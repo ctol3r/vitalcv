@@ -1,1 +1,3 @@
-// full_end_to_end_test.ts - placeholder or stub for chai-vc-platform
+test('placeholder full end-to-end test', () => {
+  expect(true).toBe(true);
+});
