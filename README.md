@@ -8,6 +8,12 @@ The `backend/src/blockchain/evm_erc721_wrapper.ts` file provides a simple
 ERC-721 wrapper for CHAI soulbound tokens. It can be used to mint and query
 non-transferable tokens on any EVM-compatible chain.
 
+## Blockchain Modules
+
+- **credibc**: a skeleton Cosmos IBC module located at
+  `backend/src/blockchain/credibc` for transferring credential evidence between
+  chains.
+
 ## Chainlink Functions Oracle
 
 This repository includes a stub integration with Chainlink Functions to
