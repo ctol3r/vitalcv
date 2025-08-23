@@ -35,7 +35,7 @@ jobs:
           
       - name: Start services
         run: |
-          docker-compose up -d --wait
+          docker compose up -d --wait
         timeout-minutes: 5
         
       - name: Run E2E tests with ${{ matrix.browser }}
@@ -53,4 +53,4 @@ jobs:
           
       - name: Cleanup
         if: always()
-        run: docker-compose down
+        run: docker compose down
