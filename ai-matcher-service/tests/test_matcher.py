@@ -9,11 +9,29 @@ import pytest
 # Add backend to path for trace propagation imports
 sys.path.append(str(Path(__file__).resolve().parents[2] / "backend" / "src"))
 
+# Add src to path for dummy_match import
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
 try:
     from didcomm.trace_propagation import receive_message, send_message, span_exporter
     TRACE_AVAILABLE = True
 except ImportError:
     TRACE_AVAILABLE = False
+
+try:
+    from routes.match import dummy_match
+    DUMMY_MATCH_AVAILABLE = True
+except ImportError:
+    DUMMY_MATCH_AVAILABLE = False
+
+
+def test_dummy_match():
+    """Verify that the dummy_match function returns the expected structure."""
+    if not DUMMY_MATCH_AVAILABLE:
+        pytest.skip("dummy_match not available")
+    
+    result = dummy_match({"foo": "bar"})
+    assert result == {"matched": False, "input": {"foo": "bar"}}
 
 
 class MockMatcher:
