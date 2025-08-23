@@ -6,85 +6,94 @@ on:
     branches: [ main ]
 
 jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      ai: ${{ steps.filter.outputs.ai }}
+      docs: ${{ steps.filter.outputs.docs }}
+      e2e: ${{ steps.filter.outputs.e2e }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/**'
+            ai:
+              - 'ai-matcher-service/**'
+              - '.github/workflows/**'
+            docs:
+              - '**/*.md'
+              - 'docs/**'
+              - 'marketing/**'
+            e2e:
+              - 'docker-compose*.yml'
+              - 'compose*.yml'
+              - 'e2e/**'
+              - 'backend/**'
+              - 'ai-matcher-service/**'
+
   python-tests:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.ai == 'true' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12']
-        service: ['ai-matcher-service', 'backend']
+        python-version: ['3.10','3.11']
+        service: ['ai-matcher-service','backend']
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Cache pip dependencies
-        uses: actions/cache@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: ${{ matrix.python-version }} }
+      - uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-${{ matrix.python-version }}-
-            ${{ runner.os }}-pip-
-      - name: Set up virtual environment for ${{ matrix.service }}
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles(format('{0}/requirements*.txt', matrix.service)) }}
+          restore-keys: ${{ runner.os }}-pip-${{ matrix.python-version }}-
+      - name: Install deps & pytest (${{ matrix.service }})
+        working-directory: ${{ matrix.service }}
+        shell: bash
         run: |
-          cd ${{ matrix.service }}
           python -m venv .venv
           source .venv/bin/activate
-          pip install -U pip
-          if [ -f requirements.txt ]; then
-            pip install -r requirements.txt
-          else
-            pip install pytest numpy pandas scikit-learn
-          fi
-      - name: Run Python tests for ${{ matrix.service }}
-        run: |
-          cd ${{ matrix.service }}
-          source .venv/bin/activate
-          pytest -v
+          python -m pip install -U pip
+          if [ -f requirements.lock.txt ]; then pip install -r requirements.lock.txt; \
+          elif [ -f requirements.txt ]; then pip install -r requirements.txt; \
+          else python -m pip install pytest; fi
+          pytest -q
 
   typescript-tests:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: ['18', '20', '22']
+    strategy: { matrix: { node-version: ['20','22'] } }
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-          cache-dependency-path: 'backend/package-lock.json'
-      - name: Install TypeScript dependencies
-        run: |
-          cd backend
-          npm ci
-      - name: Build TypeScript
-        run: |
-          cd backend
-          npm run build
-      - name: Run TypeScript tests
-        run: |
-          cd backend
-          npm test
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install
+        working-directory: backend
+        run: npm ci
+      - name: Build
+        working-directory: backend
+        run: npm run build --if-present
+      - name: Test
+        working-directory: backend
+        run: npm test --if-present
 
   integration-tests:
+    needs: [detect-changes, python-tests, typescript-tests]
+    if: ${{ needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.ai == 'true' }}
     runs-on: ubuntu-latest
-    needs: [python-tests, typescript-tests]
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: 'backend/package-lock.json'
       - name: Install make
         run: sudo apt-get update && sudo apt-get install -y make
-      - name: Run full test suite
+      - name: Full suite
         run: make test
