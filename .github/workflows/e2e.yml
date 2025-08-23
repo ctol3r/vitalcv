@@ -1,56 +1,42 @@
 name: E2E Tests
 on:
-  push:
-    branches: [ main ]
   pull_request:
     branches: [ main ]
+  push:
+    branches: [ main ]
   schedule:
-    - cron: '0 2 * * *'  # Run nightly at 2 AM UTC
+    - cron: '0 2 * * *'
 
 jobs:
-  e2e-tests:
+  detect-changes:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        browser: ['chrome', 'firefox']
+    outputs:
+      e2e: ${{ steps.filter.outputs.e2e }}
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: dorny/paths-filter@v3
+        id: filter
         with:
-          python-version: '3.11'
-          
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: 'backend/package-lock.json'
-      
-      - name: Install dependencies
-        run: |
-          make ai-setup backend-setup
-          cd backend && npm ci
-          
+          filters: |
+            e2e:
+              - 'e2e/**'
+              - 'docker-compose*.yml'
+              - 'compose*.yml'
+              - 'backend/**'
+              - 'ai-matcher-service/**'
+
+  e2e-tests:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.e2e == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: { browser: ['chrome','firefox'] }
+    steps:
+      - uses: actions/checkout@v4
       - name: Start services
-        run: |
-          docker compose up -d --wait
-        timeout-minutes: 5
-        
-      - name: Run E2E tests with ${{ matrix.browser }}
-        run: |
-          # Placeholder for actual E2E test commands
-          echo "Running E2E tests with ${{ matrix.browser }}"
-          
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: e2e-results-${{ matrix.browser }}
-          path: test-results/
-          retention-days: 7
-          
+        run: docker compose up -d --wait
+      - name: Run E2E tests (${{ matrix.browser }})
+        run: echo "TODO: wire Playwright/Cypress here"
       - name: Cleanup
         if: always()
         run: docker compose down
