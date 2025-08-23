@@ -13,4 +13,3 @@ def dummy_match(data: dict) -> dict:
     """Return a dummy match result for the provided data."""
 
     return {"matched": False, "input": data}
-

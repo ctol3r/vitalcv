@@ -2,6 +2,12 @@
 
 End-to-end healthcare credentialing and hiring verification.
 
+## Chainlink Functions Oracle
+
+This repository includes a stub integration with Chainlink Functions to
+demonstrate how off-chain AI logic could provide on-chain risk scores. See
+`backend/src/blockchain/chainlink_oracle.ts` for details.
+
 ## Provisional Attestations
 
 For issuers that are not yet integrated with the platform, you can issue a provisional attestation. The backend exposes a helper function `offerProvisionalAttestation` which returns a temporary attestation object valid for a configurable number of days.
