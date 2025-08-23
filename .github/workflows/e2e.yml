@@ -1,1 +1,56 @@
-// e2e.yml - placeholder or stub for chai-vc-platform
+name: E2E Tests
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 2 * * *'  # Run nightly at 2 AM UTC
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        browser: ['chrome', 'firefox']
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'backend/package-lock.json'
+      
+      - name: Install dependencies
+        run: |
+          make ai-setup backend-setup
+          cd backend && npm ci
+          
+      - name: Start services
+        run: |
+          docker-compose up -d --wait
+        timeout-minutes: 5
+        
+      - name: Run E2E tests with ${{ matrix.browser }}
+        run: |
+          # Placeholder for actual E2E test commands
+          echo "Running E2E tests with ${{ matrix.browser }}"
+          
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-results-${{ matrix.browser }}
+          path: test-results/
+          retention-days: 7
+          
+      - name: Cleanup
+        if: always()
+        run: docker-compose down

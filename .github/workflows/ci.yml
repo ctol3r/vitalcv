@@ -4,22 +4,87 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+
 jobs:
-  test:
+  python-tests:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+        service: ['ai-matcher-service', 'backend']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+            ${{ runner.os }}-pip-
+      - name: Set up virtual environment for ${{ matrix.service }}
+        run: |
+          cd ${{ matrix.service }}
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -U pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            pip install pytest numpy pandas scikit-learn
+          fi
+      - name: Run Python tests for ${{ matrix.service }}
+        run: |
+          cd ${{ matrix.service }}
+          source .venv/bin/activate
+          pytest -v
+
+  typescript-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ['18', '20', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: 'backend/package-lock.json'
+      - name: Install TypeScript dependencies
+        run: |
+          cd backend
+          npm ci
+      - name: Build TypeScript
+        run: |
+          cd backend
+          npm run build
+      - name: Run TypeScript tests
+        run: |
+          cd backend
+          npm test
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: [python-tests, typescript-tests]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Cache pip
-        uses: actions/cache@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: ${{ runner.os }}-pip-
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'backend/package-lock.json'
       - name: Install make
         run: sudo apt-get update && sudo apt-get install -y make
-      - name: Run tests
+      - name: Run full test suite
         run: make test
