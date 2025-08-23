@@ -1,6 +1,6 @@
 // state_license_checker.ts - Automates retrieval of state licensing data
 
-import fetch from 'node-fetch';
+// Using global fetch (Node 18+)
 import * as cheerio from 'cheerio';
 
 /**

@@ -1,0 +1,3 @@
+pytest
+opentelemetry-api>=1.25
+opentelemetry-sdk>=1.25
