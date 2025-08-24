@@ -3,6 +3,11 @@
 End-to-end healthcare credentialing and hiring verification.
 
 <<<<<<< HEAD
+## zk-Rollup Prototype
+
+The `backend/src/blockchain` directory contains a simple rollup prototype. It batches credential operations and anchors a SHA-256 proof on-chain via a stub Polkadot service.
+=======
+<<<<<<< HEAD
 This repository contains a minimal scaffold for the Chai VC platform. The
 backend includes a stubbed `ChainlinkAdapter` for retrieving cross-chain data
 feeds such as license status and risk signals. These adapters are exposed
@@ -68,5 +73,6 @@ errors.
 ## Substrate Network Deployment
 
 See [docs/substrate_eks_poa_setup.md](docs/substrate_eks_poa_setup.md) for instructions on deploying a permissioned Substrate network with Proof-of-Authority consensus on AWS EKS.
+>>>>>>> origin/main
 >>>>>>> origin/main
 >>>>>>> origin/main
