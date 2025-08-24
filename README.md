@@ -2,6 +2,17 @@
 
 End-to-end healthcare credentialing and hiring verification.
 
+<<<<<<< HEAD
+## SDKs
+
+SDKs are provided for integrating with external blockchains.
+
+- `sdks/solana-sdk` &ndash; helper functions for Solana based projects.
+- `sdks/avalanche-sdk` &ndash; helper functions for Avalanche projects.
+
+These packages expose a `validate<Chain>Credential(apiUrl, payload)` function
+that posts credential data to the CHAI validation API.
+=======
 ## Blockchain Support
 
 The `backend/src/blockchain/evm_erc721_wrapper.ts` file provides a simple
@@ -51,3 +62,4 @@ errors.
 ## Substrate Network Deployment
 
 See [docs/substrate_eks_poa_setup.md](docs/substrate_eks_poa_setup.md) for instructions on deploying a permissioned Substrate network with Proof-of-Authority consensus on AWS EKS.
+>>>>>>> origin/main
