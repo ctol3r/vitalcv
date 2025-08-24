@@ -1,4 +1,10 @@
+<<<<<<< HEAD
+**/node_modules/
+.DS_Store
+npm-debug.log
+=======
 node_modules
 *.log
 dist
 frontend/.next
+>>>>>>> origin/main
