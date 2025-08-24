@@ -1,3 +1,19 @@
+<<<<<<< HEAD
+// blockchain_integration.ts - placeholder for overall blockchain integration
+
+import { ChainlinkAdapter } from './oracles/chainlink_adapter';
+
+export class BlockchainIntegration {
+  private chainlink = new ChainlinkAdapter();
+
+  async getLicenseStatus(licenseId: string) {
+    return this.chainlink.fetchLicenseStatus(licenseId);
+  }
+
+  async getRiskSignals(address: string) {
+    return this.chainlink.fetchRiskSignals(address);
+  }
+=======
 import { queryRiskScore } from './chainlink_oracle';
 
 export type CredentialStatus = 'valid' | 'revoked';
@@ -22,4 +38,5 @@ export async function checkCredentialStatus(
   // TODO: Integrate with actual Polkadot or other blockchain service.
   // For now always return 'valid'.
   return 'valid';
+>>>>>>> origin/main
 }
