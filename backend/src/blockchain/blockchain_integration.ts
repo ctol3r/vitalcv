@@ -1,10 +1,25 @@
-<<<<<<< HEAD
-// blockchain_integration.ts - placeholder for overall blockchain integration
+// blockchain_integration.ts - comprehensive blockchain integration for credential validation
 
+import { EthereumBridgeService } from './ethereum_bridge_service';
 import { ChainlinkAdapter } from './oracles/chainlink_adapter';
+import { queryRiskScore } from './chainlink_oracle';
 
+export type CredentialStatus = 'valid' | 'revoked';
+
+/**
+ * Comprehensive blockchain integration combining Ethereum bridge,
+ * Chainlink oracles, and risk scoring functionality.
+ */
 export class BlockchainIntegration {
+  private bridge = new EthereumBridgeService();
   private chainlink = new ChainlinkAdapter();
+
+  /**
+   * Validate a credential hash through the Ethereum bridge.
+   */
+  async validateCredential(hash: string): Promise<boolean> {
+    return this.bridge.validate(hash);
+  }
 
   async getLicenseStatus(licenseId: string) {
     return this.chainlink.fetchLicenseStatus(licenseId);
@@ -13,10 +28,7 @@ export class BlockchainIntegration {
   async getRiskSignals(address: string) {
     return this.chainlink.fetchRiskSignals(address);
   }
-=======
-import { queryRiskScore } from './chainlink_oracle';
-
-export type CredentialStatus = 'valid' | 'revoked';
+}
 
 /**
  * Example blockchain integration utilities.
@@ -38,5 +50,4 @@ export async function checkCredentialStatus(
   // TODO: Integrate with actual Polkadot or other blockchain service.
   // For now always return 'valid'.
   return 'valid';
->>>>>>> origin/main
 }
