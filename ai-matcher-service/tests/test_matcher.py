@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-# Placeholder tests for matcher service
-
-def test_placeholder():
-=======
 # test_matcher.py - AI matcher service tests with trace propagation support
 import sys
 from pathlib import Path
@@ -183,5 +178,4 @@ def test_matcher_trace_context_isolation(mock_matcher):
 
 def test_placeholder():
     """Placeholder test to maintain compatibility."""
->>>>>>> origin/main
     assert True
