@@ -2,6 +2,20 @@
 
 End-to-end healthcare credentialing and hiring verification.
 
+## Smart Contracts
+
+The repository now includes Solidity contracts that implement basic escrow
+functionality:
+
+- `JobOfferEscrow.sol` handles deposits from employers for job offers. Funds are
+  released to the candidate once they accept the offer, or refunded if the
+  employer cancels before acceptance.
+- `MilestoneEscrow.sol` supports milestone based payments. A payer deposits
+  funds for a payee and can release them when a milestone is completed.
+
+Both contracts can be found in the `contracts/` directory and are provided under
+the MIT license.
+
 ## DID Resolution
 
 The backend now exposes a simple universal DID resolver that supports `did:web`, `did:ethr` and `did:key` methods. The resolver is implemented in `backend/src/did/universal_did_resolver.ts` using the `did-resolver` package and companion method resolvers. This utility can be imported and used anywhere within the backend:
