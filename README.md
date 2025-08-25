@@ -2,6 +2,13 @@
 
 End-to-end healthcare credentialing and hiring verification.
 
+## Blockchain
+
+This repository contains a basic Substrate pallet implementation to manage
+utilitarian, governance, and reputation tokens. The pallet can be found in
+`backend/src/blockchain/multi_token_pallet.rs` and is intended as a starting
+point for future on-chain logic.
+
 ## Challenge Rewards Contract
 The `backend/contracts/ChallengeRewards.sol` contract contains basic logic for distributing rewards for challenge-based gamification events. It allows new challenges to be added and emits a `RewardDistributed` event when a participant completes a challenge.
 

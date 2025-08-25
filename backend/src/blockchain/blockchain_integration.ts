@@ -1,4 +1,5 @@
 // blockchain_integration.ts - comprehensive blockchain integration for credential validation
+// This module integrates the custom multi-token pallet written in Rust.
 
 import { EthereumBridgeService } from './ethereum_bridge_service';
 import { ChainlinkAdapter } from './oracles/chainlink_adapter';
