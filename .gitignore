@@ -1,8 +1,12 @@
 __pycache__/
 **/node_modules/
+node_modules/
 .DS_Store
 npm-debug.log
 package-lock.json
 *.log
 dist
 frontend/.next
+.env
+artifacts/
+cache/
