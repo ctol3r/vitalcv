@@ -2,6 +2,13 @@
 
 End-to-end healthcare credentialing and hiring verification.
 
+## Staking Contract
+
+Verifiers are required to lock tokens in the `VerifierStaking` smart contract. If a
+verifier provides incorrect verification, the contract owner can slash the
+verifier's stake. The contract and a simple TypeScript wrapper live under
+`backend/contracts` and `backend/src/blockchain`.
+
 ## Bonding Curve Prototype
 
 This repository now includes a simple bonding curve model used to prototype token pricing for the credential verification service. The implementation can be found in `pricing/bonding_curve.py` with accompanying unit tests in `pricing/tests`.

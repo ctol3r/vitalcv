@@ -1,6 +1,8 @@
 // blockchain_integration.ts - comprehensive blockchain integration for credential validation
-// This module integrates the custom multi-token pallet written in Rust.
+// This module integrates the custom multi-token pallet written in Rust and verifier staking.
 
+import { Contract, BigNumberish, providers, Signer } from 'ethers';
+import VerifierStakingArtifact from '../../contracts/VerifierStaking.json';
 import { EthereumBridgeService } from './ethereum_bridge_service';
 import { ChainlinkAdapter } from './oracles/chainlink_adapter';
 import { queryRiskScore } from './chainlink_oracle';
@@ -22,12 +24,53 @@ export function submitGovernanceProposal(proposer: string, params: Partial<Econo
 export type CredentialStatus = 'valid' | 'revoked';
 
 /**
+ * Service for interacting with the VerifierStaking smart contract. This wraps
+ * basic staking functionality so the rest of the backend can easily lock tokens
+ * for verifiers and slash them if they misbehave.
+ */
+export class VerifierStakingService {
+    private contract: Contract;
+
+    constructor(address: string, signer: Signer) {
+        this.contract = new Contract(address, VerifierStakingArtifact as any, signer);
+    }
+
+    /**
+     * Stake tokens by sending native currency to the contract.
+     */
+    async stake(amount: BigNumberish) {
+        return await this.contract.stake({ value: amount });
+    }
+
+    /**
+     * Withdraw previously staked tokens.
+     */
+    async withdraw(amount: BigNumberish) {
+        return await this.contract.withdraw(amount);
+    }
+
+    /**
+     * Slash a verifier's stake. Only the contract owner can call this.
+     */
+    async slash(verifier: string, amount: BigNumberish) {
+        return await this.contract.slash(verifier, amount);
+    }
+}
+
+/**
  * Comprehensive blockchain integration combining Ethereum bridge,
- * Chainlink oracles, and risk scoring functionality.
+ * Chainlink oracles, verifier staking, and risk scoring functionality.
  */
 export class BlockchainIntegration {
   private bridge = new EthereumBridgeService();
   private chainlink = new ChainlinkAdapter();
+  private stakingService?: VerifierStakingService;
+
+  constructor(stakingAddress?: string, signer?: Signer) {
+    if (stakingAddress && signer) {
+      this.stakingService = new VerifierStakingService(stakingAddress, signer);
+    }
+  }
 
   /**
    * Validate a credential hash through the Ethereum bridge.
@@ -42,6 +85,26 @@ export class BlockchainIntegration {
 
   async getRiskSignals(address: string) {
     return this.chainlink.fetchRiskSignals(address);
+  }
+
+  /**
+   * Stake tokens for a verifier.
+   */
+  async stakeForVerifier(amount: BigNumberish) {
+    if (!this.stakingService) {
+      throw new Error('Staking service not initialized');
+    }
+    return this.stakingService.stake(amount);
+  }
+
+  /**
+   * Slash a verifier's stake for misbehavior.
+   */
+  async slashVerifier(verifier: string, amount: BigNumberish) {
+    if (!this.stakingService) {
+      throw new Error('Staking service not initialized');
+    }
+    return this.stakingService.slash(verifier, amount);
   }
 }
 
