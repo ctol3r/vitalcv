@@ -11,3 +11,4 @@ frontend/.next
 .env
 artifacts/
 cache/
+/tmp/
