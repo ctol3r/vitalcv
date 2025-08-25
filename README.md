@@ -2,6 +2,13 @@
 
 End-to-end healthcare credentialing and hiring verification.
 
+## Yield Farming Module
+
+The backend includes a simple yield farming service in
+`backend/src/blockchain/yield_farming.ts`. Stakers can deposit tokens and earn
+fees collected from credential transactions. Rewards are distributed
+proportionally to each participant's stake.
+
 ## Deflationary Token Mechanism
 
 A simple token implementation is provided in `backend/src/blockchain/deflationary_token.ts`.
