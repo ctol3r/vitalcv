@@ -4,12 +4,13 @@
   "description": "End-to-end healthcare credentialing and hiring verification.",
   "main": "index.js",
   "scripts": {
-    "test": "npx hardhat test"
+    "test": "npx hardhat test",
+    "test:did": "node --test backend/__tests__/cross_chain_did_resolver.test.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
     "@nomiclabs/hardhat-ethers": "^2.2.3",

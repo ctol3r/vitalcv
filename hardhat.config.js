@@ -1,6 +1,8 @@
-require('@nomicfoundation/hardhat-toolbox');
+import '@nomicfoundation/hardhat-toolbox';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 
-module.exports = {
+export default {
   solidity: {
     compilers: [
       {
