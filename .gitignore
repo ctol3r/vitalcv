@@ -12,3 +12,5 @@ frontend/.next
 artifacts/
 cache/
 /tmp/
+/target/
+**/target/
