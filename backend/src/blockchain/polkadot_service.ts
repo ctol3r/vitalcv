@@ -1,6 +1,12 @@
 import { ApiPromise, WsProvider, SubmittableResult } from '@polkadot/api';
 import { KeyringPair } from '@polkadot/keyring/types';
 
+export interface AuditRecord {
+  userId: string;
+  action: string;
+  timestamp: number;
+}
+
 /**
  * Service wrapping Polkadot-js API interactions.
  */
@@ -46,5 +52,12 @@ export class PolkadotService {
     );
     const batch = this.api.tx.utility.batch(calls);
     return batch.signAndSend(signer);
+  }
+
+  /** Store audit record on-chain for immutable tracking. */
+  async storeAuditRecord(record: AuditRecord): Promise<void> {
+    // This is a placeholder for the actual interaction with the Polkadot
+    // blockchain which would store a hash of the audit data.
+    console.log('Storing record on-chain:', record);
   }
 }
