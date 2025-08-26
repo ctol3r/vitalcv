@@ -1,5 +1,5 @@
 // blockchain_integration.ts - comprehensive blockchain integration for credential validation
-// This module integrates the custom multi-token pallet written in Rust and verifier staking.
+// This module integrates the custom multi-token pallet written in Rust, verifier staking, and upgrade paths.
 
 import { Contract, BigNumberish, providers, Signer } from 'ethers';
 import VerifierStakingArtifact from '../../contracts/VerifierStaking.json';
@@ -7,6 +7,7 @@ import { EthereumBridgeService } from './ethereum_bridge_service';
 import { ChainlinkAdapter } from './oracles/chainlink_adapter';
 import { queryRiskScore } from './chainlink_oracle';
 import { Governance, EconomicParameters } from './governance';
+import { bridgeToEvmContract, bridgeToWasmContract, UpgradePath } from './upgrade_paths';
 
 // Default economic parameters for the platform.
 const defaultParameters: EconomicParameters = {
@@ -22,6 +23,18 @@ export function submitGovernanceProposal(proposer: string, params: Partial<Econo
 }
 
 export type CredentialStatus = 'valid' | 'revoked';
+
+/**
+ * Obtain upgrade paths for the given target platform.
+ * This function demonstrates how the backend can prepare
+ * migrations for both EVM and WASM targets in a chain-agnostic way.
+ */
+export function getUpgradePath(target: 'EVM' | 'WASM', identifier: string): UpgradePath {
+  if (target === 'EVM') {
+    return bridgeToEvmContract(identifier);
+  }
+  return bridgeToWasmContract(identifier);
+}
 
 /**
  * Service for interacting with the VerifierStaking smart contract. This wraps
