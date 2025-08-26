@@ -1,5 +1,6 @@
 import { ApiPromise, WsProvider, SubmittableResult } from '@polkadot/api';
 import { KeyringPair } from '@polkadot/keyring/types';
+import { KeyRotationPolicy } from './key_rotation_policy';
 
 export interface AuditRecord {
   userId: string;
@@ -12,6 +13,11 @@ export interface AuditRecord {
  */
 export class PolkadotService {
   private api: ApiPromise | null = null;
+  private keyPolicy: KeyRotationPolicy;
+
+  constructor(initialKey?: string) {
+    this.keyPolicy = new KeyRotationPolicy(initialKey || 'default-key');
+  }
 
   /** Connect to a chain endpoint using WebSockets. */
   async connect(endpoint: string): Promise<void> {
@@ -59,5 +65,19 @@ export class PolkadotService {
     // This is a placeholder for the actual interaction with the Polkadot
     // blockchain which would store a hash of the audit data.
     console.log('Storing record on-chain:', record);
+  }
+
+  /**
+   * Schedule rotation of the signing key used for transactions.
+   */
+  scheduleKeyRotation(newKey: string, transitionTime: number): void {
+    this.keyPolicy.scheduleRotation(newKey, transitionTime);
+  }
+
+  /**
+   * Retrieve the key that should be used for signing at the given time.
+   */
+  getSigningKey(currentTime: number = Date.now()): string {
+    return this.keyPolicy.getActiveKey(currentTime);
   }
 }
