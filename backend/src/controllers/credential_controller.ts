@@ -1,9 +1,17 @@
+import { loadVcContext } from '../credential_registry';
 import { PolkadotService } from '../blockchain/polkadot_service';
 import { AuditScrapbook } from '../blockchain/audit_scrapbook';
 import { confirmBiometric } from '../utils/biometric_auth';
 
+// credential_controller.ts - demonstrates how the credential registry pallet
+// integrates the W3C VC Data Model 1.0 schema.
+
 const polkadot = new PolkadotService();
 const scrapbook = new AuditScrapbook(polkadot);
+
+export function getCredentialContext() {
+  return loadVcContext();
+}
 
 export async function issueCredential(userId: string, credential: any) {
     // Placeholder for logic that would issue a credential
