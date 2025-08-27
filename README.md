@@ -2,6 +2,10 @@
 
 End-to-end healthcare credentialing and hiring verification.
 
+## PII Vault
+
+The `frontend/vault` folder contains a small example of client-side encryption helpers. These functions can be used to encrypt sensitive data in the browser before sending it anywhere else, providing the foundation for a privacy-by-design vault for user PII.
+
 ## Compliance Dashboard
 
 SOC 2 compliance artifacts are published from the `compliance/` directory. A GitHub Actions workflow (`publish_soc2_dashboard.yml`) deploys the contents of this folder to GitHub Pages whenever updates are pushed to `main`.
