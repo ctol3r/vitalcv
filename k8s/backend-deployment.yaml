@@ -1,1 +1,28 @@
-// backend-deployment.yaml - placeholder or stub for chai-vc-platform
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  annotations:
+    openpolicyagent.org/inject: "yes"
+    sidecar.istio.io/inject: "true"
+spec:
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: backend:latest
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: certs
+              mountPath: /certs
+      volumes:
+        - name: certs
+          secret:
+            secretName: backend-certs

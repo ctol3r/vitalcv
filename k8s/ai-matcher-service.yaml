@@ -1,1 +1,28 @@
-// ai-matcher-service.yaml - placeholder or stub for chai-vc-platform
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-matcher-service
+  annotations:
+    openpolicyagent.org/inject: "yes"
+    sidecar.istio.io/inject: "true"
+spec:
+  selector:
+    matchLabels:
+      app: ai-matcher
+  template:
+    metadata:
+      labels:
+        app: ai-matcher
+    spec:
+      containers:
+        - name: matcher
+          image: matcher:latest
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: certs
+              mountPath: /certs
+      volumes:
+        - name: certs
+          secret:
+            secretName: matcher-certs

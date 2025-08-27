@@ -2,6 +2,12 @@
 
 End-to-end healthcare credentialing and hiring verification.
 
+## Security
+
+All service-to-service communication now uses **mTLS**. Certificates are mounted
+from Kubernetes secrets and referenced by the applications. An **OPA** sidecar
+is injected into each deployment to enforce policies defined in `opa/policy.rego`.
+
 ## Disaster Recovery
 
 See [docs/disaster_recovery.md](docs/disaster_recovery.md) for instructions on running scripted multi-region failover drills.
