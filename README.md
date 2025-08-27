@@ -2,6 +2,10 @@
 
 End-to-end healthcare credentialing and hiring verification.
 
+## Disaster Recovery
+
+See [docs/disaster_recovery.md](docs/disaster_recovery.md) for instructions on running scripted multi-region failover drills.
+
 ## PII Vault
 
 The `frontend/vault` folder contains a small example of client-side encryption helpers. These functions can be used to encrypt sensitive data in the browser before sending it anywhere else, providing the foundation for a privacy-by-design vault for user PII.
