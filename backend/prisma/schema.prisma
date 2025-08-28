@@ -1,1 +1,19 @@
-// schema.prisma - placeholder or stub for chai-vc-platform
+// Prisma schema for Chai VC Platform
+// Defines a simple Credential model used in GraphQL resolvers
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Use the generator for Prisma Client
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Credential {
+  id        String   @id @default(cuid())
+  name      String
+  issuer    String
+  issuedAt  DateTime @default(now())
+}

@@ -2,6 +2,21 @@
 
 End-to-end healthcare credentialing and hiring verification.
 
+## Backend GraphQL API
+
+The backend now includes a simple GraphQL API powered by Apollo Server.
+Resolvers use Prisma Client to perform CRUD operations on a `Credential`
+model defined in `prisma/schema.prisma`.
+
+Run the server with:
+
+```bash
+cd backend
+npm install
+npx prisma generate   # requires internet for Prisma engines
+npm start
+```
+
 ## Backend Development
 
 The backend now includes a small Express setup with middleware for request
@@ -311,3 +326,4 @@ errors.
 ## Substrate Network Deployment
 
 See [docs/substrate_eks_poa_setup.md](docs/substrate_eks_poa_setup.md) for instructions on deploying a permissioned Substrate network with Proof-of-Authority consensus on AWS EKS.
+>>>>>>> main
