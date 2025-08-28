@@ -12,6 +12,13 @@ cd backend
 npm install
 ```
 
+### Prisma Migrations
+Run the migrations and generate the Prisma client by executing:
+
+```bash
+./backend/scripts/run-migrations.sh
+```
+
 ### Generate Prisma Client
 The Prisma client requires engine downloads which may be blocked in restricted environments. If downloads fail, set `PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1` when running generate:
 ```bash
