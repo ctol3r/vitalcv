@@ -5,7 +5,7 @@ import { resolvers } from './resolvers';
 const prisma = new PrismaClient();
 
 // Comprehensive GraphQL schema for chai-vc-platform API
-const typeDefs = gql`
+export const typeDefs = gql`
   type User {
     id: ID!
     name: String!
