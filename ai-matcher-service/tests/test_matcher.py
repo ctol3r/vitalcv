@@ -30,7 +30,7 @@ except ImportError:
 
 
 def test_placeholder():
-    """Test placeholder function for backwards compatibility."""
+    """Simple placeholder test to keep pytest happy."""
     if not PLACEHOLDER_AVAILABLE:
         pytest.skip("placeholder not available")
     

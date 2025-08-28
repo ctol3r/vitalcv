@@ -8,6 +8,11 @@ import { ChainlinkAdapter } from './oracles/chainlink_adapter';
 import { queryRiskScore } from './chainlink_oracle';
 import { Governance, EconomicParameters } from './governance';
 import { bridgeToEvmContract, bridgeToWasmContract, UpgradePath } from './upgrade_paths';
+import {
+  HardwareWallet,
+  LedgerWallet,
+  YubiKeyWallet,
+} from './hardware_wallet';
 
 // Default economic parameters for the platform.
 const defaultParameters: EconomicParameters = {
@@ -17,6 +22,31 @@ const defaultParameters: EconomicParameters = {
 
 // Export a singleton governance instance that can be used by other modules.
 export const governance = new Governance(defaultParameters);
+
+let issuerWallet: HardwareWallet | null = null;
+
+/**
+ * Initialize the issuer wallet using hardware-backed storage.
+ * Only YubiKey or Ledger devices are supported.
+ */
+export function initializeIssuerWallet(type: 'yubikey' | 'ledger'): void {
+  issuerWallet = type === 'yubikey' ? new YubiKeyWallet() : new LedgerWallet();
+}
+
+/**
+ * Sign arbitrary data with the issuer's hardware wallet.
+ * Throws if the wallet has not been initialized.
+ */
+export async function signWithIssuerWallet(data: Buffer): Promise<Buffer> {
+  if (!issuerWallet) {
+    throw new Error(
+      'Issuer wallet not initialized. Use a hardware wallet such as YubiKey or Ledger.'
+    );
+  }
+
+  await issuerWallet.connect();
+  return issuerWallet.sign(data);
+}
 
 export function submitGovernanceProposal(proposer: string, params: Partial<EconomicParameters>) {
   return governance.proposeChange(proposer, params);

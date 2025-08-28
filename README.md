@@ -32,6 +32,11 @@ The backend includes utilities to hash GPT rationale and anchor it on-chain usin
 
 ## Security
 
+Issuer keys **must** be stored on hardware-backed devices such as YubiKey or
+Ledger. The backend exposes helper functions in
+`backend/src/blockchain/blockchain_integration.ts` that require a hardware
+wallet to be initialized before any signing operations can occur.
+
 All service-to-service communication now uses **mTLS**. Certificates are mounted
 from Kubernetes secrets and referenced by the applications. An **OPA** sidecar
 is injected into each deployment to enforce policies defined in `opa/policy.rego`.
