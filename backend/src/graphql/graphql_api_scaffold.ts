@@ -1,11 +1,9 @@
-import { ApolloServer, gql } from 'apollo-server';
+import { ApolloServer, gql } from 'apollo-server-express';
+import { Express } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { resolvers } from './resolvers';
 
-const prisma = new PrismaClient();
-
-// Comprehensive GraphQL schema for chai-vc-platform API
-export const typeDefs = gql`
+// Comprehensive GraphQL schema integrating Express Apollo Server with Prisma
+const typeDefs = gql`
   type User {
     id: ID!
     name: String!
@@ -57,16 +55,20 @@ export const typeDefs = gql`
   }
 `;
 
-async function startServer() {
-  const server = new ApolloServer({ 
-    typeDefs, 
+const resolvers = {
+  Query: {
+    credentials: async (_parent: unknown, _args: unknown, ctx: { prisma: PrismaClient }) => {
+      return ctx.prisma.credential.findMany();
+    },
+  },
+};
+
+export async function startApolloServer(app: Express, prisma: PrismaClient) {
+  const server = new ApolloServer({
+    typeDefs,
     resolvers,
     context: () => ({ prisma }),
   });
-  const { url } = await server.listen({ port: 4000 });
-  console.log(`GraphQL API ready at ${url}`);
+  await server.start();
+  server.applyMiddleware({ app });
 }
-
-startServer().catch((err) => {
-  console.error('Failed to start GraphQL server', err);
-});
