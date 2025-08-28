@@ -2,6 +2,20 @@
 
 End-to-end healthcare credentialing and hiring verification.
 
+## Backend Development
+
+The backend now includes a small Express setup with middleware for request
+validation and centralized error handling. To run the server locally:
+
+```bash
+cd backend
+npm install
+npm start
+```
+
+The `/credentials` endpoint expects `name` and `issuer` fields in the request
+body. Invalid input results in a structured error response.
+
 ## ACA-Py Agent
 
 The platform includes an Aries Cloud Agent Python (ACA-Py) microservice that issues and verifies healthcare credentials. The agent is configured to support both Hyperledger AnonCreds and W3C Verifiable Credentials so that clinicians can selectively disclose information during onboarding.

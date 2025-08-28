@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 **/node_modules/
 node_modules/
+backend/node_modules/
 contracts/node_modules/
 .DS_Store
 npm-debug.log
