@@ -9,6 +9,11 @@ the project's test suite runs cleanly.
 """
 
 
+def placeholder():
+    """Simple placeholder function used for tests."""
+    return {"status": "stub"}
+
+
 def dummy_match(data: dict) -> dict:
     """Return a dummy match result for the provided data."""
 

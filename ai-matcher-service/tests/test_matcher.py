@@ -1,4 +1,5 @@
 # test_matcher.py - AI matcher service tests with trace propagation support
+import os
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
@@ -11,6 +12,7 @@ sys.path.append(str(Path(__file__).resolve().parents[2] / "backend" / "src"))
 
 # Add src to path for dummy_match import
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 try:
     from didcomm.trace_propagation import receive_message, send_message, span_exporter
@@ -19,10 +21,20 @@ except ImportError:
     TRACE_AVAILABLE = False
 
 try:
-    from routes.match import dummy_match
+    from routes.match import dummy_match, placeholder
     DUMMY_MATCH_AVAILABLE = True
+    PLACEHOLDER_AVAILABLE = True
 except ImportError:
     DUMMY_MATCH_AVAILABLE = False
+    PLACEHOLDER_AVAILABLE = False
+
+
+def test_placeholder():
+    """Test placeholder function for backwards compatibility."""
+    if not PLACEHOLDER_AVAILABLE:
+        pytest.skip("placeholder not available")
+    
+    assert placeholder() == {"status": "stub"}
 
 
 def test_dummy_match():
@@ -174,8 +186,3 @@ def test_matcher_trace_context_isolation(mock_matcher):
     # Should have 2 different trace IDs
     trace_ids = {span.context.trace_id for span in spans}
     assert len(trace_ids) == 2
-
-
-def test_placeholder():
-    """Placeholder test to maintain compatibility."""
-    assert True
