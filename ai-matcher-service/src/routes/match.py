@@ -16,5 +16,9 @@ def placeholder():
 
 def dummy_match(data: dict) -> dict:
     """Return a dummy match result for the provided data."""
-
     return {"matched": False, "input": data}
+
+
+def match_skills(candidate_skills, job_skills):
+    """Return True if candidate_skills cover all job_skills."""
+    return set(job_skills).issubset(candidate_skills)

@@ -21,12 +21,14 @@ except ImportError:
     TRACE_AVAILABLE = False
 
 try:
-    from routes.match import dummy_match, placeholder
+    from routes.match import dummy_match, placeholder, match_skills
     DUMMY_MATCH_AVAILABLE = True
     PLACEHOLDER_AVAILABLE = True
+    MATCH_SKILLS_AVAILABLE = True
 except ImportError:
     DUMMY_MATCH_AVAILABLE = False
     PLACEHOLDER_AVAILABLE = False
+    MATCH_SKILLS_AVAILABLE = False
 
 
 def test_placeholder():
@@ -35,6 +37,25 @@ def test_placeholder():
         pytest.skip("placeholder not available")
     
     assert placeholder() == {"status": "stub"}
+
+
+def test_simple_assert():
+    """Simple assertion test."""
+    assert True
+
+
+def test_match_skills():
+    """Test the match_skills function."""
+    if not MATCH_SKILLS_AVAILABLE:
+        pytest.skip("match_skills not available")
+    
+    candidate_skills = {"python", "javascript", "react"}
+    job_skills = {"python", "javascript"}
+    
+    assert match_skills(candidate_skills, job_skills) == True
+    
+    job_skills_extended = {"python", "javascript", "go"}
+    assert match_skills(candidate_skills, job_skills_extended) == False
 
 
 def test_dummy_match():
