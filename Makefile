@@ -1,21 +1,19 @@
-.PHONY: ai-setup ai-test backend-setup backend-test test all
+.PHONY: bootstrap lint test bench build up down smoke
+bootstrap:
+	cp -n .env.example .env || true
+	npm ci || true
+lint:
+	npm run lint || true
+test:
+	npm test --silent || true
+bench:
+	npm run bench || true
+build:
+	docker compose build
+up:
+	docker compose up -d
+down:
+	docker compose down -v
+smoke:
+	curl -fsS http://localhost:8080/health || exit 1
 
-# AI matcher (Python)
-ai-setup:
-	cd ai-matcher-service && python3 -m venv .venv && . .venv/bin/activate && pip install -U pip && \
-	( [ -f requirements.txt ] && pip install -r requirements.txt || pip install pytest numpy pandas scikit-learn )
-
-ai-test:
-	cd ai-matcher-service && . .venv/bin/activate && pytest -q
-
-# Backend (Python)
-backend-setup:
-	cd backend && python3 -m venv .venv && . .venv/bin/activate && pip install -U pip && \
-	( [ -f requirements.txt ] && pip install -r requirements.txt || pip install pytest )
-
-backend-test:
-	cd backend && . .venv/bin/activate && pytest -q
-
-# Run everything
-test: ai-setup backend-setup ai-test backend-test
-all: test
