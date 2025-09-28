@@ -1,5 +1,5 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
+@import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -74,6 +74,79 @@
   --sidebar-ring: oklch(0.439 0 0);
 }
 
+/* Added theme variants for Hims, Palantir, Neon, and Glass themes */
+.theme-hims {
+  --background: oklch(0.98 0.01 106);
+  --foreground: oklch(0.15 0.02 106);
+  --primary: oklch(0.45 0.15 106);
+  --primary-foreground: oklch(0.98 0.01 106);
+  --secondary: oklch(0.92 0.02 106);
+  --secondary-foreground: oklch(0.25 0.02 106);
+  --accent: oklch(0.88 0.03 106);
+  --accent-foreground: oklch(0.25 0.02 106);
+  --muted: oklch(0.94 0.01 106);
+  --muted-foreground: oklch(0.55 0.02 106);
+  --card: oklch(0.99 0.005 106);
+  --card-foreground: oklch(0.15 0.02 106);
+  --border: oklch(0.88 0.02 106);
+  --input: oklch(0.88 0.02 106);
+  --ring: oklch(0.45 0.15 106);
+}
+
+.theme-palantir {
+  --background: oklch(0.08 0.01 240);
+  --foreground: oklch(0.95 0.01 240);
+  --primary: oklch(0.65 0.2 240);
+  --primary-foreground: oklch(0.08 0.01 240);
+  --secondary: oklch(0.15 0.02 240);
+  --secondary-foreground: oklch(0.85 0.01 240);
+  --accent: oklch(0.25 0.03 240);
+  --accent-foreground: oklch(0.85 0.01 240);
+  --muted: oklch(0.12 0.01 240);
+  --muted-foreground: oklch(0.65 0.01 240);
+  --card: oklch(0.1 0.01 240);
+  --card-foreground: oklch(0.95 0.01 240);
+  --border: oklch(0.2 0.02 240);
+  --input: oklch(0.2 0.02 240);
+  --ring: oklch(0.65 0.2 240);
+}
+
+.theme-neon {
+  --background: oklch(0.05 0.02 180);
+  --foreground: oklch(0.9 0.15 180);
+  --primary: oklch(0.7 0.25 180);
+  --primary-foreground: oklch(0.05 0.02 180);
+  --secondary: oklch(0.12 0.08 180);
+  --secondary-foreground: oklch(0.8 0.12 180);
+  --accent: oklch(0.6 0.2 300);
+  --accent-foreground: oklch(0.05 0.02 180);
+  --muted: oklch(0.08 0.04 180);
+  --muted-foreground: oklch(0.6 0.08 180);
+  --card: oklch(0.06 0.03 180);
+  --card-foreground: oklch(0.9 0.15 180);
+  --border: oklch(0.15 0.1 180);
+  --input: oklch(0.15 0.1 180);
+  --ring: oklch(0.7 0.25 180);
+}
+
+.theme-glass {
+  --background: oklch(0.97 0.005 220 / 0.8);
+  --foreground: oklch(0.1 0.01 220);
+  --primary: oklch(0.4 0.12 220);
+  --primary-foreground: oklch(0.97 0.005 220);
+  --secondary: oklch(0.9 0.01 220 / 0.6);
+  --secondary-foreground: oklch(0.2 0.01 220);
+  --accent: oklch(0.85 0.02 220 / 0.7);
+  --accent-foreground: oklch(0.2 0.01 220);
+  --muted: oklch(0.92 0.01 220 / 0.5);
+  --muted-foreground: oklch(0.5 0.01 220);
+  --card: oklch(0.98 0.005 220 / 0.7);
+  --card-foreground: oklch(0.1 0.01 220);
+  --border: oklch(0.85 0.01 220 / 0.4);
+  --input: oklch(0.85 0.01 220 / 0.4);
+  --ring: oklch(0.4 0.12 220);
+}
+
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -122,4 +195,15 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Added glassmorphism effects for glass theme */
+.theme-glass .backdrop-blur {
+  backdrop-filter: blur(12px);
+}
+
+.theme-glass .bg-card {
+  background: oklch(0.98 0.005 220 / 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid oklch(0.85 0.01 220 / 0.2);
 }

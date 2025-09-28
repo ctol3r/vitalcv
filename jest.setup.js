@@ -1,7 +1,7 @@
 "use client"
 
 import "@testing-library/jest-dom"
-import jest from "jest"
+import { jest } from "@jest/globals"
 
 // Mock fetch globally
 global.fetch = jest.fn()
@@ -21,4 +21,28 @@ jest.mock("next/navigation", () => ({
   usePathname() {
     return ""
   },
+}))
+
+jest.mock("react-dropzone", () => ({
+  useDropzone: jest.fn(() => ({
+    getRootProps: () => ({ role: "button" }),
+    getInputProps: () => ({ role: "textbox", hidden: true }),
+    isDragActive: false,
+    fileRejections: [],
+  })),
+}))
+
+global.URL.createObjectURL = jest.fn(() => "mocked-url")
+global.URL.revokeObjectURL = jest.fn()
+
+Object.assign(navigator, {
+  clipboard: {
+    writeText: jest.fn(() => Promise.resolve()),
+  },
+})
+
+global.IntersectionObserver = jest.fn(() => ({
+  observe: jest.fn(),
+  disconnect: jest.fn(),
+  unobserve: jest.fn(),
 }))

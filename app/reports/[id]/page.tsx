@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Download, Share2, Archive, Shield, CheckCircle, AlertTriangle, Clock } from "lucide-react"
+import { Download, Share2, Archive, Shield, CheckCircle, AlertTriangle, Clock, FileText, Loader2 } from "lucide-react"
 import { ReportSummary } from "@/components/ReportSummary"
+import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
 
 interface ReportData {
@@ -31,6 +32,8 @@ interface ReportData {
 export default function ReportPage({ params }: { params: { id: string } }) {
   const [report, setReport] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [fhirLoading, setFhirLoading] = useState(false)
+  const { toast } = useToast()
 
   useEffect(() => {
     // Simulate API call to fetch report
@@ -76,6 +79,53 @@ export default function ReportPage({ params }: { params: { id: string } }) {
 
     fetchReport()
   }, [params.id])
+
+  const downloadFHIRBundle = async () => {
+    if (!report) return
+
+    setFhirLoading(true)
+    try {
+      const response = await fetch(`/api/reports/${report.id}/fhir-bundle`, {
+        method: "GET",
+        headers: {
+          Accept: "application/fhir+json",
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to download FHIR bundle: ${response.status} ${response.statusText}`)
+      }
+
+      // Get the blob data
+      const blob = await response.blob()
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = `fhir-bundle-${report.id}.json`
+      document.body.appendChild(link)
+      link.click()
+
+      // Cleanup
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
+      toast({
+        title: "Download Complete",
+        description: "FHIR bundle has been downloaded successfully",
+      })
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to download FHIR bundle"
+      toast({
+        title: "Download Failed",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setFhirLoading(false)
+    }
+  }
 
   const getRecommendationColor = (recommendation: string) => {
     switch (recommendation) {
@@ -159,6 +209,19 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                   <Download className="h-4 w-4 mr-2" />
                   Download PDF
                 </Button>
+                <Button variant="outline" size="sm" onClick={downloadFHIRBundle} disabled={fhirLoading}>
+                  {fhirLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Download FHIR Bundle
+                    </>
+                  )}
+                </Button>
                 <Button variant="outline" size="sm">
                   <Share2 className="h-4 w-4 mr-2" />
                   Share
@@ -181,6 +244,37 @@ export default function ReportPage({ params }: { params: { id: string } }) {
               </div>
             </div>
           </div>
+
+          {/* FHIR Bundle Info Card */}
+          <Card className="mb-6 bg-blue-50/50 border-blue-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-900">
+                <FileText className="h-5 w-5" />
+                FHIR Bundle Available
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-blue-800 mb-3">
+                This report includes a FHIR-compliant bundle containing structured healthcare credential data. The
+                bundle includes practitioner information, qualifications, and verification status in standard FHIR
+                format.
+              </p>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <Badge variant="outline" className="bg-white/50">
+                  FHIR R4
+                </Badge>
+                <Badge variant="outline" className="bg-white/50">
+                  Practitioner Resource
+                </Badge>
+                <Badge variant="outline" className="bg-white/50">
+                  PractitionerRole Resource
+                </Badge>
+                <Badge variant="outline" className="bg-white/50">
+                  Qualification Resource
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Report Sections */}
           <div className="space-y-6">

@@ -5,27 +5,27 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 const faqData = [
   {
     id: "item-1",
-    question: "How do I verify a credential?",
+    question: "What is a Blockchain CV?",
     answer:
-      "To verify a credential, navigate to the Verify page and enter the credential ID. You can optionally provide a nonce and audience for additional security. Click 'Verify Credential' to get instant results showing whether the credential is valid, revoked, or unknown.",
+      "A Blockchain CV is a tamper-proof, verifiable digital credential that stores your professional healthcare qualifications on a distributed ledger. Unlike traditional paper certificates, blockchain CVs cannot be forged or altered, providing instant verification of your medical licenses, certifications, and professional credentials. Each credential is cryptographically signed and linked to authoritative sources like state medical boards and certification bodies.",
   },
   {
     id: "item-2",
-    question: "What types of credentials can be verified?",
+    question: "Where does NPI/licensure data come from?",
     answer:
-      "VitalCV supports verification of various healthcare credentials including medical licenses, board certifications, DEA registrations, nursing licenses, and other professional healthcare certifications. All credentials are backed by blockchain technology for tamper-proof verification.",
+      "VitalCV integrates directly with authoritative sources including the National Plan and Provider Enumeration System (NPPES) for NPI data, state medical boards for licensing information, and certification bodies like ABMS for board certifications. We maintain real-time connections to these databases to ensure your credentials reflect the most current status and automatically update when renewals or changes occur.",
   },
   {
     id: "item-3",
-    question: "How secure is the verification process?",
+    question: "Who can see my profile?",
     answer:
-      "Our verification process uses blockchain technology with cryptographic signatures to ensure credentials cannot be tampered with or forged. All data is encrypted in transit and at rest, and we maintain full HIPAA, GDPR, and SOC2 compliance with comprehensive audit trails.",
+      "Your VitalCV profile visibility is completely under your control. By default, profiles are private and only accessible via secure, time-limited verification links that you generate. You can share these links with employers, hospitals, or other authorized parties. No personal information is publicly searchable, and all access is logged for your security and audit purposes.",
   },
   {
     id: "item-4",
-    question: "What should I do if a credential shows as revoked?",
+    question: "What if a license expires?",
     answer:
-      "If a credential shows as revoked, this means the issuing authority has invalidated it. Contact the credential holder to obtain an updated, valid credential. The system will show the reason for revocation and the date it was revoked to help you understand the situation.",
+      "When a license approaches expiration, VitalCV automatically monitors renewal status through our integrations with licensing boards. You'll receive notifications before expiration, and the system will update your credential status in real-time once renewal is processed. If a license does expire, it will be marked as such in verification results, but historical validity periods remain intact for audit purposes.",
   },
 ]
 
