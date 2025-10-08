@@ -25,3 +25,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# prisma generated files
+/lib/generated/prisma
+
+# test coverage
+/coverage
+
+# storybook
+/storybook-static
