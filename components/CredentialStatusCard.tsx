@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
+import { QRCodeSVG } from "qrcode.react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -12,25 +13,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  CheckCircle,
-  AlertTriangle,
-  XCircle,
-  Calendar,
-  User,
-  FileText,
-  QrCode,
-  Share2,
-  Copy,
-  ExternalLink,
-} from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Calendar, User, FileText, QrCode, Share2, Copy, ExternalLink } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { getCredentialStatusConfig } from "@/lib/credential-status-config"
 
 interface VerificationResult {
-  status: "valid" | "revoked" | "unknown"
+  status: "valid" | "revoked" | "expired" | "unknown"
   credentialId: string
-  auditRef?: string // Added auditRef field
+  auditRef?: string
   details?: {
     issuer?: string
     issuedDate?: string
@@ -52,50 +43,9 @@ export function CredentialStatusCard({ result }: CredentialStatusCardProps) {
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const { toast } = useToast()
 
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case "valid":
-        return {
-          icon: <CheckCircle className="h-6 w-6" />,
-          color: "text-green-600",
-          bgColor: "bg-green-50 border-green-200",
-          badgeVariant: "default" as const,
-          badgeColor: "bg-green-100 text-green-800", // Added specific badge colors
-          title: "Credential Valid",
-          description: "This credential has been successfully verified and is currently active.",
-        }
-      case "revoked":
-        return {
-          icon: <AlertTriangle className="h-6 w-6" />,
-          color: "text-red-600", // Changed from yellow to red for revoked
-          bgColor: "bg-red-50 border-red-200", // Changed from yellow to red
-          badgeVariant: "destructive" as const, // Changed to destructive variant
-          badgeColor: "bg-red-100 text-red-800", // Added specific badge colors
-          title: "Credential Revoked",
-          description: "This credential has been revoked and is no longer valid.",
-        }
-      case "unknown":
-        return {
-          icon: <XCircle className="h-6 w-6" />,
-          color: "text-gray-600", // Changed from red to gray for unknown
-          bgColor: "bg-gray-50 border-gray-200", // Changed from red to gray
-          badgeVariant: "secondary" as const, // Changed to secondary variant
-          badgeColor: "bg-gray-100 text-gray-800", // Added specific badge colors
-          title: "Credential Unknown",
-          description: "This credential could not be found in our verification system.",
-        }
-      default:
-        return {
-          icon: <XCircle className="h-6 w-6" />,
-          color: "text-gray-600",
-          bgColor: "bg-gray-50 border-gray-200",
-          badgeVariant: "secondary" as const,
-          badgeColor: "bg-gray-100 text-gray-800",
-          title: "Unknown Status",
-          description: "Unable to determine credential status.",
-        }
-    }
-  }
+  // Get configuration from centralized config
+  const config = getCredentialStatusConfig(result.status)
+  const StatusIcon = config.icon
 
   const generateVPToken = async () => {
     setLoading(true)
@@ -120,8 +70,8 @@ export function CredentialStatusCard({ result }: CredentialStatusCardProps) {
       setVpToken(data.vpToken)
     } catch (err) {
       toast({
-        title: "Error",
-        description: "Failed to generate VP token",
+        title: "Failed to Generate VP Token",
+        description: "Please check your internet connection and try again. If the problem persists, contact support.",
         variant: "destructive",
       })
     } finally {
@@ -153,8 +103,8 @@ export function CredentialStatusCard({ result }: CredentialStatusCardProps) {
       setShareUrl(data.shareUrl)
     } catch (err) {
       toast({
-        title: "Error",
-        description: "Failed to generate share URL",
+        title: "Failed to Generate Share URL",
+        description: "Please check your internet connection and try again. If the problem persists, contact support.",
         variant: "destructive",
       })
     } finally {
@@ -178,14 +128,14 @@ export function CredentialStatusCard({ result }: CredentialStatusCardProps) {
     }
   }
 
-  const config = getStatusConfig(result.status)
-
   return (
-    <Card className={`${config.bgColor} border-2 shadow-lg`}>
+    <Card className={`${config.bgColor} ${config.borderColor} border-2 shadow-lg`}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={config.color}>{config.icon}</div>
+            <div className={config.color} aria-hidden="true">
+              <StatusIcon className="h-6 w-6" />
+            </div>
             <div>
               <CardTitle className="text-lg">{config.title}</CardTitle>
               <CardDescription className="text-sm">{config.description}</CardDescription>
@@ -193,6 +143,7 @@ export function CredentialStatusCard({ result }: CredentialStatusCardProps) {
           </div>
           <Badge variant={config.badgeVariant} className={`capitalize ${config.badgeColor}`}>
             {result.status}
+            <span className="sr-only">{config.ariaLabel}</span>
           </Badge>
         </div>
       </CardHeader>
@@ -276,35 +227,46 @@ export function CredentialStatusCard({ result }: CredentialStatusCardProps) {
                   Show QR Code
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
+              <DialogContent
+                className="sm:max-w-md"
+                aria-labelledby="qr-dialog-title"
+                aria-describedby="qr-dialog-desc"
+              >
                 <DialogHeader>
-                  <DialogTitle>Verifiable Presentation QR Code</DialogTitle>
-                  <DialogDescription>Scan this QR code to access the verifiable presentation token</DialogDescription>
+                  <DialogTitle id="qr-dialog-title">Verifiable Presentation QR Code</DialogTitle>
+                  <DialogDescription id="qr-dialog-desc">
+                    Scan this QR code to access the verifiable presentation token
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col items-center space-y-4">
                   {loading ? (
-                    <div className="flex items-center justify-center h-48 w-48 bg-gray-100 rounded-lg">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div
+                      className="flex items-center justify-center size-48 bg-muted rounded-lg"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary">
+                        <span className="sr-only">Generating VP token...</span>
+                      </div>
                     </div>
                   ) : vpToken ? (
                     <>
-                      <div className="h-48 w-48 bg-white border-2 border-gray-200 rounded-lg flex items-center justify-center">
-                        <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(vpToken)}`}
-                          alt="VP Token QR Code"
-                          className="h-44 w-44"
-                        />
+                      <div className="p-4 bg-white dark:bg-card border-2 border-border rounded-lg">
+                        <QRCodeSVG value={vpToken} size={200} level="H" includeMargin={false} />
                       </div>
                       <div className="flex items-center gap-2 w-full">
-                        <code className="flex-1 text-xs bg-gray-100 p-2 rounded truncate">{vpToken}</code>
+                        <code className="flex-1 text-xs bg-muted p-2 rounded truncate font-mono">{vpToken}</code>
                         <Button size="sm" variant="outline" onClick={() => copyToClipboard(vpToken, "VP Token")}>
                           <Copy className="h-4 w-4" />
                         </Button>
                       </div>
                     </>
                   ) : (
-                    <Alert>
-                      <AlertDescription>Failed to generate VP token. Please try again.</AlertDescription>
+                    <Alert variant="destructive">
+                      <AlertTitle>Generation Failed</AlertTitle>
+                      <AlertDescription>
+                        Failed to generate VP token. Please check your connection and try again.
+                      </AlertDescription>
                     </Alert>
                   )}
                 </div>
@@ -327,20 +289,28 @@ export function CredentialStatusCard({ result }: CredentialStatusCardProps) {
                   Share Link
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
+              <DialogContent
+                className="sm:max-w-md"
+                aria-labelledby="share-dialog-title"
+                aria-describedby="share-dialog-desc"
+              >
                 <DialogHeader>
-                  <DialogTitle>One-Time Share Link</DialogTitle>
-                  <DialogDescription>This link will expire in 1 hour and can only be accessed once</DialogDescription>
+                  <DialogTitle id="share-dialog-title">One-Time Share Link</DialogTitle>
+                  <DialogDescription id="share-dialog-desc">
+                    This link will expire in 1 hour and can only be accessed once
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   {loading ? (
-                    <div className="flex items-center justify-center h-16">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                    <div className="flex items-center justify-center h-16" role="status" aria-live="polite">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary">
+                        <span className="sr-only">Generating share URL...</span>
+                      </div>
                     </div>
                   ) : shareUrl ? (
                     <>
                       <div className="flex items-center gap-2">
-                        <code className="flex-1 text-sm bg-gray-100 p-3 rounded break-all">{shareUrl}</code>
+                        <code className="flex-1 text-sm bg-muted p-3 rounded break-all font-mono">{shareUrl}</code>
                         <Button size="sm" variant="outline" onClick={() => copyToClipboard(shareUrl, "Share URL")}>
                           <Copy className="h-4 w-4" />
                         </Button>
