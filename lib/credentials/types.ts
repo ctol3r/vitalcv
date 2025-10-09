@@ -73,6 +73,14 @@ export interface VerifiablePresentation {
 }
 
 /**
+ * Derived Credential (with selective disclosure)
+ */
+export interface DerivedCredential extends VerifiableCredential {
+  derivedFrom: string  // Original credential ID
+  revealedAttributes: string[]
+}
+
+/**
  * Credential Schema (JSON Schema)
  */
 export interface CredentialSchemaDefinition {

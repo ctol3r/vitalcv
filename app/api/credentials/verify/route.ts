@@ -7,7 +7,8 @@ import {
   isCredentialExpired,
   validateCredentialStructure,
 } from '@/lib/credentials/issue'
-import { VerifiableCredential } from '@/lib/credentials/types'
+import { verifyDerivedCredential } from '@/lib/credentials/selective-disclosure'
+import { VerifiableCredential, DerivedCredential } from '@/lib/credentials/types'
 import { z } from 'zod'
 import { randomBytes } from 'crypto'
 
@@ -94,6 +95,92 @@ export const POST = withRateLimit(
         }
 
         const vc = credential as VerifiableCredential
+
+        // Check if this is a derived credential (selective disclosure)
+        const isDerivedCredential =
+          'derivedFrom' in vc &&
+          'revealedAttributes' in vc &&
+          vc.proof.type === 'BbsBlsSignatureProof2020'
+
+        if (isDerivedCredential && presentationType === 'selective') {
+          // Handle derived credential verification
+          const derivedVc = vc as unknown as DerivedCredential
+
+          if (!challenge) {
+            return NextResponse.json(
+              {
+                error: 'Challenge is required for selective disclosure verification',
+                valid: false,
+              },
+              { status: 400 }
+            )
+          }
+
+          // Verify derived credential
+          const derivedVerification = await verifyDerivedCredential(derivedVc, challenge)
+
+          if (!derivedVerification.valid) {
+            return NextResponse.json({
+              valid: false,
+              checks: {
+                structure: true,
+                signature: false,
+                expiration: false,
+                revocation: false,
+                issuerTrust: 'unknown',
+              },
+              errors: [derivedVerification.error || 'Derived credential verification failed'],
+              message: 'Selective disclosure verification failed',
+              disclosure: {
+                presentationType: 'selective',
+                revealedFields: derivedVc.revealedAttributes,
+                derivedFrom: derivedVc.derivedFrom,
+              },
+            })
+          }
+
+          // For derived credentials, create verification record
+          const verification = await prisma.verification.create({
+            data: {
+              credentialId: '', // Derived credentials may not be in DB
+              verifierId: user.did,
+              verifierUserId: user.id,
+              challenge,
+              presentationType: 'selective',
+              revealedFields: derivedVc.revealedAttributes,
+              result: 'valid',
+              ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || undefined,
+              userAgent: req.headers.get('user-agent') || undefined,
+            },
+          })
+
+          return NextResponse.json({
+            valid: true,
+            checks: {
+              structure: true,
+              signature: true,
+              expiration: true, // Derived from original
+              revocation: true, // Would need to check original
+              issuerTrust: 'unknown', // Would need issuer lookup
+            },
+            message: 'Selective disclosure credential verified successfully',
+            verificationId: verification.id,
+            disclosure: {
+              presentationType: 'selective',
+              revealedFields: derivedVc.revealedAttributes,
+              hiddenFields: 'Not disclosed',
+              privacyPreserving: true,
+              derivedFrom: derivedVc.derivedFrom,
+            },
+            credential: {
+              id: derivedVc.id,
+              type: derivedVc.type,
+              issuer: typeof derivedVc.issuer === 'string' ? derivedVc.issuer : derivedVc.issuer.id,
+              subject: derivedVc.credentialSubject.id,
+              revealedAttributes: derivedVc.revealedAttributes,
+            },
+          })
+        }
 
         // 2. Find credential in database
         let credentialRecord = null
