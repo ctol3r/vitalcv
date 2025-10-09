@@ -2,6 +2,10 @@
 
 import "@testing-library/jest-dom"
 import { jest } from "@jest/globals"
+import { toHaveNoViolations } from "jest-axe"
+
+// Extend expect with jest-axe matchers
+expect.extend(toHaveNoViolations)
 
 // Mock fetch globally
 global.fetch = jest.fn()

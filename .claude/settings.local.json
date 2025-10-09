@@ -6,7 +6,8 @@
       "Bash(npm run build-storybook:*)",
       "Bash(npm test:*)",
       "Bash(git reset:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []
