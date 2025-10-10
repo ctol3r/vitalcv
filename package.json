@@ -47,6 +47,9 @@
     "@radix-ui/react-toggle": "latest",
     "@radix-ui/react-toggle-group": "latest",
     "@radix-ui/react-tooltip": "latest",
+    "@sentry/browser": "^10.19.0",
+    "@sentry/nextjs": "^10.19.0",
+    "@sentry/node": "^10.19.0",
     "@tensorflow/tfjs": "^4.22.0",
     "@tensorflow/tfjs-node": "^4.22.0",
     "@testing-library/dom": "latest",
@@ -89,6 +92,7 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "latest",
     "web-did-resolver": "^2.0.30",
+    "web-vitals": "^5.1.0",
     "zod": "3.25.67"
   },
   "devDependencies": {
