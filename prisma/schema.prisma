@@ -144,6 +144,7 @@ model Credential {
   issuerUser    User?            @relation("IssuerUser", fields: [issuerUserId], references: [id])
   subjectUser   User?            @relation("SubjectUser", fields: [subjectUserId], references: [id])
   verifications Verification[]
+  fraudAlerts   FraudAlert[]
 
   @@index([credentialId])
   @@index([schemaId])
@@ -230,4 +231,27 @@ model RateLimit {
   @@unique([identifier, endpoint, windowStart])
   @@index([identifier])
   @@index([windowEnd])
+}
+
+// AI Fraud Detection Alerts
+model FraudAlert {
+  id            String   @id @default(uuid())
+  credentialId  String
+  score         Float    // 0-1 (1 = highly suspicious)
+  reasons       Json     // Array of fraud reasons
+  severity      String   // "low", "medium", "high", "critical"
+  reviewed      Boolean  @default(false)
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  resolution    String?  // "legitimate", "fraudulent", "inconclusive"
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now())
+
+  // Relations
+  credential Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+
+  @@index([credentialId])
+  @@index([severity])
+  @@index([reviewed])
+  @@index([createdAt])
 }
