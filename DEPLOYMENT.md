@@ -1,5 +1,98 @@
 # VitalCV Production Deployment Guide
 
+## Frontend Quick Start
+
+For frontend developers getting started with VitalCV:
+
+### Local Development (No Docker)
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Copy environment file
+cp .env.example .env.local
+
+# 3. Generate cryptographic keys (required)
+node -e "
+const crypto = require('crypto');
+const {privateKey, publicKey} = crypto.generateKeyPairSync('ec', {namedCurve: 'P-256'});
+console.log('ISSUER_PRIVATE_KEY=' + Buffer.from(privateKey.export({type:'pkcs8',format:'pem'})).toString('base64'));
+console.log('ISSUER_PUBLIC_KEY=' + Buffer.from(publicKey.export({type:'spki',format:'pem'})).toString('base64'));
+"
+
+# 4. Add the keys to .env.local
+# Also set: NODE_ENV=development, ENABLE_REDIS=false
+
+# 5. Start development server
+npm run dev
+
+# 6. Open http://localhost:3000
+```
+
+### Development Scripts
+
+```bash
+npm run dev              # Start dev server with hot reload
+npm run build            # Build production bundle
+npm run start            # Start production server
+npm test                 # Run tests
+npm run lint             # Check code style
+npm run storybook        # Start Storybook component dev
+```
+
+### Key Pages
+
+- **Home**: http://localhost:3000
+- **Verify Credentials**: http://localhost:3000/verify
+- **Generate Offer**: http://localhost:3000/issuer/offer
+- **API Documentation**: http://localhost:3000/api-docs
+- **System Health**: http://localhost:3000/health
+- **Storybook**: http://localhost:6006 (run `npm run storybook`)
+
+### Environment Variables (Development)
+
+```env
+# Minimal config for frontend development
+NODE_ENV=development
+NEXT_PUBLIC_ISSUER_URL=http://localhost:3000
+ENABLE_REDIS=false
+LOG_LEVEL=debug
+
+# Add generated keys here
+ISSUER_PRIVATE_KEY=<base64-pem>
+ISSUER_PUBLIC_KEY=<base64-pem>
+```
+
+### Common Issues
+
+**Port already in use**:
+```bash
+# Kill process on port 3000
+lsof -ti:3000 | xargs kill -9
+```
+
+**Missing keys error**:
+- Ensure ISSUER_PRIVATE_KEY and ISSUER_PUBLIC_KEY are set in .env.local
+- Keys must be base64-encoded PEM format
+- Generate new keys using script above
+
+**TypeScript errors**:
+```bash
+npm run typecheck        # Check types
+rm -rf .next && npm run dev  # Clear cache and rebuild
+```
+
+### Next Steps
+
+- See [CONTRIBUTING.md](./CONTRIBUTING.md) for full development guide
+- See [INCIDENTS.md](./INCIDENTS.md) for audit log debugging
+- See production deployment section below for Docker setup
+
+---
+
+## Production Deployment
+
 ## Prerequisites
 
 - Docker 24.0+ and Docker Compose 2.0+

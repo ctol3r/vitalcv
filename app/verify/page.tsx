@@ -14,6 +14,7 @@ import { VerifyResultCard } from "@/components/verifier/VerifyResultCard"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
 import { buildDcqlRequest, generateNonce, validateNonce, mapVerifyStatus, type VerificationResult } from "@/lib/verifier/dcql"
+import { extractRequestId } from "@/lib/observability/request-id"
 
 interface LegacyVerificationResult {
   status: "valid" | "revoked" | "unknown"
@@ -39,6 +40,7 @@ export default function VerifyPage() {
   const [dcqlResult, setDcqlResult] = useState<VerificationResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
+  const [requestId, setRequestId] = useState<string | null>(null)
   const { toast } = useToast()
 
   // Generate cryptographically secure nonce on mount
@@ -58,9 +60,14 @@ export default function VerifyPage() {
     setError(null)
     setLegacyResult(null)
     setDcqlResult(null)
+    setRequestId(null)
 
     try {
       const response = await fetch(`/api/verifier/credential/${encodeURIComponent(credentialId.trim())}/status`)
+
+      // Extract request ID from response headers
+      const reqId = extractRequestId(response)
+      if (reqId) setRequestId(reqId)
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -129,6 +136,7 @@ export default function VerifyPage() {
     setError(null)
     setLegacyResult(null)
     setDcqlResult(null)
+    setRequestId(null)
 
     try {
       // Build DCQL request
@@ -152,6 +160,10 @@ export default function VerifyPage() {
           disclosureType: privacyMode,
         }),
       })
+
+      // Extract request ID from response headers
+      const reqId = extractRequestId(response)
+      if (reqId) setRequestId(reqId)
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -245,6 +257,9 @@ export default function VerifyPage() {
             </Link>
             <Link href="/support" className="text-gray-600 hover:text-blue-600 transition-colors">
               Support
+            </Link>
+            <Link href="/api-docs" className="text-gray-600 hover:text-blue-600 transition-colors">
+              API Docs
             </Link>
           </nav>
         </div>
@@ -414,7 +429,7 @@ export default function VerifyPage() {
 
                 {dcqlResult && (
                   <div className="space-y-4">
-                    <VerifyResultCard result={dcqlResult} showClaims={true} />
+                    <VerifyResultCard result={dcqlResult} showClaims={true} requestId={requestId || undefined} />
                   </div>
                 )}
 

@@ -24,6 +24,9 @@ export default function LandingPage() {
             <Link href="/support" className="text-gray-600 hover:text-blue-600 transition-colors">
               Support
             </Link>
+            <Link href="/api-docs" className="text-gray-600 hover:text-blue-600 transition-colors">
+              API Docs
+            </Link>
           </nav>
         </div>
       </header>
@@ -127,6 +130,11 @@ export default function LandingPage() {
                 <li>
                   <Link href="/analytics" className="hover:text-white transition-colors">
                     Analytics
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/api-docs" className="hover:text-white transition-colors">
+                    API Documentation
                   </Link>
                 </li>
               </ul>
