@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { rateLimit, RateLimitPresets } from "@/lib/middleware/rate-limit"
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const { credentialId, nonce, audience, privacyMode, disclosureType, dcqlRequest } = await request.json()
 
@@ -110,3 +111,6 @@ function extractMockClaims(credentialId: string, dcqlRequest: any): Record<strin
 
   return mockClaims
 }
+
+// Apply rate limiting
+export const POST = rateLimit(RateLimitPresets.VERIFY)(handlePost)

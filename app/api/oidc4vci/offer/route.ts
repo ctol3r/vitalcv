@@ -3,17 +3,20 @@
  *
  * POST /api/oidc4vci/offer
  * Creates a credential offer with pre-authorized code (OIDC4VCI §4)
+ *
+ * Rate limit: 10 requests per minute
  */
 
 import { type NextRequest, NextResponse } from 'next/server'
 import { initRedis, storeOffer } from '@/lib/oidc4vci/storage'
 import { generatePreAuthorizedCode, buildCredentialOffer, TTL, sanitizeForLog } from '@/lib/oidc4vci/utils'
 import type { CredentialOfferRequest, CredentialOfferResponse } from '@/lib/oidc4vci/types'
+import { rateLimit, RateLimitPresets } from '@/lib/middleware/rate-limit'
 
 // Initialize Redis on first request
 let redisInitialized = false
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     // Lazy Redis initialization
     if (!redisInitialized) {
@@ -89,3 +92,6 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+// Apply rate limiting
+export const POST = rateLimit(RateLimitPresets.OFFER)(handlePost)

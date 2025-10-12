@@ -4,14 +4,17 @@
  * POST /api/oidc4vci/token
  * Exchanges pre-authorized code for access token (OIDC4VCI §6 + §3.5)
  * Supports PKCE S256 and optional tx_code
+ *
+ * Rate limit: 5 requests per minute
  */
 
 import { type NextRequest, NextResponse } from 'next/server'
 import { getOffer, redeemOffer, storeToken, storeNonce } from '@/lib/oidc4vci/storage'
 import { generateTokenResponse, validatePKCE, generateNonce, TTL, sanitizeForLog } from '@/lib/oidc4vci/utils'
 import type { TokenRequest } from '@/lib/oidc4vci/types'
+import { rateLimit, RateLimitPresets } from '@/lib/middleware/rate-limit'
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const body: Partial<TokenRequest> = await request.json()
 
@@ -133,3 +136,6 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+// Apply rate limiting
+export const POST = rateLimit(RateLimitPresets.TOKEN)(handlePost)

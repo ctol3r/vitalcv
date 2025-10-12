@@ -3,14 +3,17 @@
  *
  * POST /api/oidc4vci/credential
  * Issues credentials with access token + proof (OIDC4VCI §8)
+ *
+ * Rate limit: 20 requests per minute
  */
 
 import { type NextRequest, NextResponse } from 'next/server'
 import { getToken, getNonce } from '@/lib/oidc4vci/storage'
 import { generateMockCredential } from '@/lib/oidc4vci/utils'
 import type { CredentialRequest, CredentialResponse } from '@/lib/oidc4vci/types'
+import { rateLimit, RateLimitPresets } from '@/lib/middleware/rate-limit'
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     // Extract access token from Authorization header
     const authHeader = request.headers.get('authorization')
@@ -104,3 +107,6 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+// Apply rate limiting
+export const POST = rateLimit(RateLimitPresets.CREDENTIAL)(handlePost)
