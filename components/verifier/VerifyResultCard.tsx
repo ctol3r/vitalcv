@@ -16,9 +16,10 @@ import type { VerificationResult } from '@/lib/verifier/dcql'
 export interface VerifyResultCardProps {
   result: VerificationResult
   showClaims?: boolean
+  requestId?: string
 }
 
-export function VerifyResultCard({ result, showClaims = true }: VerifyResultCardProps) {
+export function VerifyResultCard({ result, showClaims = true, requestId }: VerifyResultCardProps) {
   const getStatusConfig = () => {
     switch (result.status) {
       case 'success':
@@ -84,6 +85,13 @@ export function VerifyResultCard({ result, showClaims = true }: VerifyResultCard
             <span className="text-sm font-medium text-muted-foreground">Credential ID</span>
             <code className="text-xs font-mono bg-white px-2 py-1 rounded border">{result.credentialId}</code>
           </div>
+
+          {requestId && (
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-muted-foreground">Request ID</span>
+              <code className="text-xs font-mono bg-white px-2 py-1 rounded border">{requestId}</code>
+            </div>
+          )}
 
           {result.auditRef && (
             <div className="flex justify-between items-center">

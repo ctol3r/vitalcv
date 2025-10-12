@@ -125,6 +125,9 @@ export default function IssuerOfferPage() {
             <Link href="/analytics" className="text-gray-600 hover:text-blue-600 transition-colors">
               Analytics
             </Link>
+            <Link href="/api-docs" className="text-gray-600 hover:text-blue-600 transition-colors">
+              API Docs
+            </Link>
           </nav>
         </div>
       </header>

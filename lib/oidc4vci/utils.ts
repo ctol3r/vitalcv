@@ -106,26 +106,22 @@ export const TTL = {
 } as const
 
 /**
- * Sign a JWT (mock implementation for now)
+ * Generate a signed credential with real cryptographic keys
  */
-export async function signJWT(payload: Record<string, unknown>): Promise<string> {
-  // In production, use a proper JWT library with real keys
-  const header = Buffer.from(JSON.stringify({ alg: 'ES256', typ: 'JWT' })).toString('base64url')
-  const body = Buffer.from(JSON.stringify(payload)).toString('base64url')
-  const signature = crypto.randomBytes(64).toString('base64url')
-  return `${header}.${body}.${signature}`
-}
-
-/**
- * Generate a mock signed credential
- */
-export async function generateMockCredential(params: {
+export async function generateSignedCredential(params: {
   credentialType: string
   subjectId?: string
   issuerId: string
 }): Promise<string> {
+  const { signCredentialJWT } = await import('@/lib/crypto/jwt')
+  const { getIssuerKeyPair } = await import('@/lib/crypto/keys')
+
   const now = Math.floor(Date.now() / 1000)
   const exp = now + 365 * 24 * 60 * 60 // 1 year
+  const keyPair = getIssuerKeyPair()
+
+  const issuerDid = keyPair.did
+  const issuerId = `${ISSUER_BASE_URL}/issuers/${params.issuerId}`
 
   const credential = {
     '@context': [
@@ -134,7 +130,7 @@ export async function generateMockCredential(params: {
     ],
     type: ['VerifiableCredential', params.credentialType],
     issuer: {
-      id: `${ISSUER_BASE_URL}/issuers/${params.issuerId}`,
+      id: issuerDid,
       name: 'VitalCV Credential Issuer',
     },
     issuanceDate: new Date(now * 1000).toISOString(),
@@ -148,25 +144,30 @@ export async function generateMockCredential(params: {
       expiryDate: new Date(exp * 1000).toISOString().split('T')[0],
     },
     credentialStatus: {
-      id: `${ISSUER_BASE_URL}/status/1#${Math.floor(Math.random() * 100000)}`,
+      id: `${ISSUER_BASE_URL}/api/status/1#${Math.floor(Math.random() * 100000)}`,
       type: 'StatusList2021Entry',
       statusPurpose: 'revocation',
       statusListIndex: String(Math.floor(Math.random() * 100000)),
-      statusListCredential: `${ISSUER_BASE_URL}/status/1`,
+      statusListCredential: `${ISSUER_BASE_URL}/api/status/1/credential`,
     },
   }
 
-  // Sign the credential as JWT
-  const jwt = await signJWT({
-    vc: credential,
-    iss: credential.issuer.id,
-    sub: credential.credentialSubject.id,
-    iat: now,
-    exp,
+  // Sign the credential with real keys
+  const jwt = await signCredentialJWT({
+    credential,
+    issuerId: issuerDid,
+    subjectId: credential.credentialSubject.id,
+    expiresIn: 365 * 24 * 60 * 60,
   })
 
   return jwt
 }
+
+/**
+ * Legacy alias for backward compatibility
+ * @deprecated Use generateSignedCredential instead
+ */
+export const generateMockCredential = generateSignedCredential
 
 /**
  * Sanitize sensitive data for logging
