@@ -10,16 +10,24 @@
 
 import { type NextRequest, NextResponse } from 'next/server'
 import { getOffer, redeemOffer, storeToken, storeNonce } from '@/lib/oidc4vci/storage'
-import { generateTokenResponse, validatePKCE, generateNonce, TTL, sanitizeForLog } from '@/lib/oidc4vci/utils'
+import { generateTokenResponse, validatePKCE, generateNonce, TTL } from '@/lib/oidc4vci/utils'
 import type { TokenRequest } from '@/lib/oidc4vci/types'
 import { rateLimit, RateLimitPresets } from '@/lib/middleware/rate-limit'
+import { createAuditLogger } from '@/lib/logging/audit'
 
 async function handlePost(request: NextRequest) {
+  const logger = createAuditLogger(request)
+
   try {
     const body: Partial<TokenRequest> = await request.json()
 
     // Validation
     if (body.grant_type !== 'urn:ietf:params:oauth:grant-type:pre-authorized_code') {
+      logger.logTokenRejected({
+        reason: 'Unsupported grant_type',
+        error_code: 'invalid_grant',
+        status_code: 400,
+      })
       return NextResponse.json(
         { error: 'invalid_grant', error_description: 'Unsupported grant_type' },
         { status: 400 }
@@ -27,6 +35,11 @@ async function handlePost(request: NextRequest) {
     }
 
     if (!body['pre-authorized_code']) {
+      logger.logTokenRejected({
+        reason: 'Missing pre-authorized_code',
+        error_code: 'invalid_request',
+        status_code: 400,
+      })
       return NextResponse.json(
         { error: 'invalid_request', error_description: 'pre-authorized_code is required' },
         { status: 400 }
@@ -38,6 +51,11 @@ async function handlePost(request: NextRequest) {
     // Retrieve offer
     const storedOffer = await getOffer(preAuthCode)
     if (!storedOffer) {
+      logger.logTokenRejected({
+        reason: 'Invalid or expired pre-authorized code',
+        error_code: 'invalid_grant',
+        status_code: 401,
+      })
       return NextResponse.json(
         { error: 'invalid_grant', error_description: 'Invalid or expired pre-authorized code' },
         { status: 401 }
@@ -46,6 +64,11 @@ async function handlePost(request: NextRequest) {
 
     // Check if already redeemed (replay protection)
     if (storedOffer.redeemed) {
+      logger.logTokenRejected({
+        reason: 'Pre-authorized code already used (replay attack)',
+        error_code: 'invalid_grant',
+        status_code: 409,
+      })
       return NextResponse.json(
         { error: 'invalid_grant', error_description: 'Pre-authorized code has already been used' },
         { status: 409 }
@@ -55,6 +78,11 @@ async function handlePost(request: NextRequest) {
     // Validate PKCE if code_challenge was set
     if (storedOffer.code_challenge) {
       if (!body.code_verifier) {
+        logger.logTokenRejected({
+          reason: 'Missing code_verifier for PKCE',
+          error_code: 'invalid_request',
+          status_code: 400,
+        })
         return NextResponse.json(
           { error: 'invalid_request', error_description: 'code_verifier is required for PKCE' },
           { status: 400 }
@@ -63,6 +91,7 @@ async function handlePost(request: NextRequest) {
 
       const pkceValid = validatePKCE(body.code_verifier, storedOffer.code_challenge)
       if (!pkceValid) {
+        logger.logPKCEFailed()
         return NextResponse.json(
           { error: 'invalid_grant', error_description: 'Invalid code_verifier' },
           { status: 401 }
@@ -73,6 +102,11 @@ async function handlePost(request: NextRequest) {
     // Validate tx_code if required
     if (storedOffer.tx_code) {
       if (!body.tx_code) {
+        logger.logTokenRejected({
+          reason: 'Missing tx_code',
+          error_code: 'invalid_request',
+          status_code: 400,
+        })
         return NextResponse.json(
           { error: 'invalid_request', error_description: 'tx_code is required' },
           { status: 400 }
@@ -80,6 +114,11 @@ async function handlePost(request: NextRequest) {
       }
 
       if (body.tx_code !== storedOffer.tx_code) {
+        logger.logTokenRejected({
+          reason: 'Invalid tx_code',
+          error_code: 'invalid_grant',
+          status_code: 401,
+        })
         return NextResponse.json(
           { error: 'invalid_grant', error_description: 'Invalid tx_code' },
           { status: 401 }
@@ -90,6 +129,11 @@ async function handlePost(request: NextRequest) {
     // Mark offer as redeemed (atomic)
     const redeemed = await redeemOffer(preAuthCode)
     if (!redeemed) {
+      logger.logTokenRejected({
+        reason: 'Failed to redeem offer (race condition)',
+        error_code: 'invalid_grant',
+        status_code: 409,
+      })
       return NextResponse.json(
         { error: 'invalid_grant', error_description: 'Failed to redeem offer' },
         { status: 409 }
@@ -116,12 +160,12 @@ async function handlePost(request: NextRequest) {
       expires_at: now + TTL.NONCE,
     })
 
-    // Log (sanitized)
-    console.log('[OIDC4VCI] Token issued:', sanitizeForLog({
-      pre_authorized_code: preAuthCode,
-      access_token: tokenResponse.access_token,
-      c_nonce: tokenResponse.c_nonce,
-    }))
+    // Audit log
+    logger.logTokenIssued({
+      credential_type: storedOffer.offer.credential_configuration_ids[0],
+      pkce_used: !!storedOffer.code_challenge,
+      tx_code_used: !!storedOffer.tx_code,
+    })
 
     return NextResponse.json(tokenResponse, {
       headers: {
@@ -129,7 +173,11 @@ async function handlePost(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('[OIDC4VCI] Token error:', error)
+    logger.logError({
+      message: 'Token issuance failed',
+      error,
+    })
+
     return NextResponse.json(
       { error: 'server_error', error_description: 'Failed to issue token' },
       { status: 500 }

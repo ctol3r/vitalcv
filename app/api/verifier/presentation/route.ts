@@ -1,13 +1,23 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { rateLimit, RateLimitPresets } from "@/lib/middleware/rate-limit"
+import { createAuditLogger } from "@/lib/logging/audit"
 
 async function handlePost(request: NextRequest) {
+  const logger = createAuditLogger(request)
+
   try {
     const { credentialId, nonce, audience, privacyMode, disclosureType, dcqlRequest } = await request.json()
 
     if (!credentialId) {
       return NextResponse.json({ error: "credentialId is required" }, { status: 400 })
     }
+
+    // Log verification request
+    logger.logVerificationRequested({
+      credential_id: credentialId,
+      dcql_used: !!dcqlRequest,
+      privacy_mode: !!privacyMode,
+    })
 
     // Validate nonce if provided (5-minute freshness check)
     if (nonce) {
@@ -45,12 +55,11 @@ async function handlePost(request: NextRequest) {
       verifiedAt: new Date().toISOString(),
     }
 
-    // Track analytics
-    console.log('[Verifier] Presentation verified:', {
-      credentialId,
-      status,
-      dcqlUsed: !!dcqlRequest,
-      privacyMode,
+    // Log verification result
+    logger.logVerificationResult({
+      credential_id: credentialId,
+      status: status,
+      claims_count: claims ? Object.keys(claims).length : 0,
     })
 
     const delay = privacyMode ? 1500 : 500 // ZK proofs take longer
@@ -58,7 +67,11 @@ async function handlePost(request: NextRequest) {
 
     return NextResponse.json(mockResponse, { status: 200 })
   } catch (error) {
-    console.error("Presentation verification error:", error)
+    logger.logError({
+      message: "Presentation verification failed",
+      error,
+    })
+
     return NextResponse.json({ error: "Failed to verify presentation" }, { status: 500 })
   }
 }

@@ -9,14 +9,17 @@
 
 import { type NextRequest, NextResponse } from 'next/server'
 import { initRedis, storeOffer } from '@/lib/oidc4vci/storage'
-import { generatePreAuthorizedCode, buildCredentialOffer, TTL, sanitizeForLog } from '@/lib/oidc4vci/utils'
+import { generatePreAuthorizedCode, buildCredentialOffer, TTL } from '@/lib/oidc4vci/utils'
 import type { CredentialOfferRequest, CredentialOfferResponse } from '@/lib/oidc4vci/types'
 import { rateLimit, RateLimitPresets } from '@/lib/middleware/rate-limit'
+import { createAuditLogger } from '@/lib/logging/audit'
 
 // Initialize Redis on first request
 let redisInitialized = false
 
 async function handlePost(request: NextRequest) {
+  const logger = createAuditLogger(request)
+
   try {
     // Lazy Redis initialization
     if (!redisInitialized) {
@@ -70,13 +73,13 @@ async function handlePost(request: NextRequest) {
       expires_in: Math.floor(TTL.OFFER / 1000),
     }
 
-    // Log (sanitized)
-    console.log('[OIDC4VCI] Offer created:', sanitizeForLog({
-      credentialType: body.credentialType,
-      issuerId: body.issuerId,
-      pre_authorized_code: preAuthCode,
-      expires_at: response.expires_at,
-    }))
+    // Audit log
+    logger.logOfferCreated({
+      credential_type: body.credentialType,
+      issuer_id: body.issuerId,
+      pre_auth_code: preAuthCode,
+      ttl_seconds: Math.floor(TTL.OFFER / 1000),
+    })
 
     return NextResponse.json(response, {
       status: 201,
@@ -85,7 +88,11 @@ async function handlePost(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('[OIDC4VCI] Offer creation error:', error)
+    logger.logError({
+      message: 'Offer creation failed',
+      error,
+    })
+
     return NextResponse.json(
       { error: 'Failed to create credential offer' },
       { status: 500 }

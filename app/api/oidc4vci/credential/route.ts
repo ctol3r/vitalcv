@@ -12,12 +12,19 @@ import { getToken, getNonce } from '@/lib/oidc4vci/storage'
 import { generateMockCredential } from '@/lib/oidc4vci/utils'
 import type { CredentialRequest, CredentialResponse } from '@/lib/oidc4vci/types'
 import { rateLimit, RateLimitPresets } from '@/lib/middleware/rate-limit'
+import { createAuditLogger } from '@/lib/logging/audit'
 
 async function handlePost(request: NextRequest) {
+  const logger = createAuditLogger(request)
+
   try {
     // Extract access token from Authorization header
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      logger.logAuthFailed({
+        reason: 'Missing or invalid Authorization header',
+        error_code: 'invalid_token',
+      })
       return NextResponse.json(
         { error: 'invalid_token', error_description: 'Missing or invalid Authorization header' },
         { status: 401 }
@@ -29,6 +36,10 @@ async function handlePost(request: NextRequest) {
     // Validate access token
     const tokenData = await getToken(accessToken)
     if (!tokenData) {
+      logger.logAuthFailed({
+        reason: 'Invalid or expired access token',
+        error_code: 'invalid_token',
+      })
       return NextResponse.json(
         { error: 'invalid_token', error_description: 'Invalid or expired access token' },
         { status: 401 }
@@ -89,8 +100,10 @@ async function handlePost(request: NextRequest) {
       format: body.format,
     }
 
-    console.log('[OIDC4VCI] Credential issued:', {
-      credentialType: tokenData.credential_type,
+    logger.logCredentialIssued({
+      credential_type: tokenData.credential_type,
+      issuer_id: 'vitalcv-issuer-001',
+      subject_id: tokenData.subject_id || 'unknown',
       format: body.format,
     })
 
@@ -100,7 +113,11 @@ async function handlePost(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('[OIDC4VCI] Credential error:', error)
+    logger.logError({
+      message: 'Credential issuance failed',
+      error,
+    })
+
     return NextResponse.json(
       { error: 'server_error', error_description: 'Failed to issue credential' },
       { status: 500 }
