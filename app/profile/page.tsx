@@ -35,6 +35,7 @@ import {
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
+import { QRCodeDisplay } from "@/components/QRCodeDisplay"
 
 interface ClinicianProfile {
   npi: string
@@ -454,13 +455,11 @@ export default function ProfilePage() {
                     <DialogDescription>Share this verified profile with the QR code</DialogDescription>
                   </DialogHeader>
                   <div className="flex flex-col items-center space-y-4">
-                    <div className="h-48 w-48 bg-white border-2 border-gray-200 rounded-lg flex items-center justify-center">
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-                          `${window.location.origin}/profile?id=${profile.npi}`,
-                        )}`}
+                    <div className="bg-white border-2 border-gray-200 rounded-lg p-2">
+                      <QRCodeDisplay
+                        data={`${window.location.origin}/profile?id=${profile.npi}`}
+                        size={192}
                         alt="Profile QR Code"
-                        className="h-44 w-44"
                       />
                     </div>
                     <Button onClick={() => handleShareProfile()} className="w-full">
