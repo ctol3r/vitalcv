@@ -9,6 +9,19 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  webpack: (config, { isServer }) => {
+    if (process.env.NEXT_DISABLE_PWA === '1') {
+      config.optimization = {
+        ...config.optimization,
+        moduleIds: 'deterministic',
+        chunkIds: 'deterministic',
+      };
+    }
+    return config;
+  },
+  experimental: {
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+  },
 }
 
 export default nextConfig
