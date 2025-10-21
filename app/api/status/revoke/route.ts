@@ -1,26 +1,53 @@
 import { type NextRequest, NextResponse } from "next/server"
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000"
+
 export async function POST(request: NextRequest) {
   try {
-    const { credentialId, reason } = await request.json()
+    const body = await request.json()
+    const { credentialId } = body
 
     if (!credentialId) {
       return NextResponse.json({ error: "credentialId is required" }, { status: 400 })
     }
 
-    // TODO: Replace with actual backend call
-    // For now, simulate credential revocation
-    const mockResponse = {
-      credentialId,
-      status: "revoked",
-      reason: reason || "Revoked by issuer",
-      revokedAt: new Date().toISOString(),
-      revokedBy: "system",
-    }
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000)
 
-    return NextResponse.json(mockResponse, { status: 200 })
+    try {
+      const response = await fetch(`${BACKEND_URL}/issuer/revoke`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Failed to revoke credential" }))
+        return NextResponse.json(
+          { error: errorData.error || `Backend error: ${response.status}` },
+          { status: response.status },
+        )
+      }
+
+      const data = await response.json()
+      return NextResponse.json(data, { status: 200 })
+    } catch (fetchError) {
+      clearTimeout(timeoutId)
+      if (fetchError instanceof Error && fetchError.name === "AbortError") {
+        return NextResponse.json({ error: "Request timeout - backend took too long to respond" }, { status: 408 })
+      }
+      throw fetchError
+    }
   } catch (error) {
     console.error("Credential revocation error:", error)
-    return NextResponse.json({ error: "Failed to revoke credential" }, { status: 500 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to revoke credential" },
+      { status: 500 },
+    )
   }
 }

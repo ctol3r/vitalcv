@@ -3,6 +3,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, Shield, Zap } from "lucide-react"
 import Link from "next/link"
+import { DarkModeToggle } from "@/components/DarkModeToggle"
 
 export default function LandingPage() {
   return (
@@ -24,6 +25,7 @@ export default function LandingPage() {
             <Link href="/support" className="text-gray-600 hover:text-blue-600 transition-colors">
               Support
             </Link>
+            <DarkModeToggle />
           </nav>
         </div>
       </header>

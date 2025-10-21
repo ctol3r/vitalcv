@@ -51,9 +51,9 @@ class VitalCVApiClient {
   private baseUrl: string
   private timeout: number
 
-  constructor(baseUrl?: string, timeout = 10000) {
-    // Use environment variable or default to current origin
-    this.baseUrl = baseUrl || process.env.NEXT_PUBLIC_API_BASE_URL || ""
+  constructor(baseUrl?: string, timeout = 5000) {
+    // Use environment variable pointing to backend at localhost:4000
+    this.baseUrl = baseUrl || process.env.NEXT_PUBLIC_BACKEND_URL || ""
     this.timeout = timeout
   }
 

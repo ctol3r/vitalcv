@@ -1,51 +1,52 @@
 import { type NextRequest, NextResponse } from "next/server"
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000"
+
 export async function POST(request: NextRequest) {
   try {
-    const { subjectId, type } = await request.json()
+    const body = await request.json()
 
-    if (!subjectId || !type) {
+    if (!body.subjectId || !body.type) {
       return NextResponse.json({ error: "subjectId and type are required" }, { status: 400 })
     }
 
-    // TODO: Replace with actual backend call
-    // For now, simulate credential issuance
-    const credentialId = `cred-${Date.now()}`
-    const mockVC = {
-      "@context": ["https://www.w3.org/2018/credentials/v1", "https://vitalcv.com/contexts/v1"],
-      id: `https://vitalcv.com/credentials/${credentialId}`,
-      type: ["VerifiableCredential", type],
-      issuer: {
-        id: "did:web:vitalcv.com",
-        name: "VitalCV Issuer",
-      },
-      issuanceDate: new Date().toISOString(),
-      expirationDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year
-      credentialSubject: {
-        id: subjectId,
-        type: type,
-        issuedBy: "VitalCV Platform",
-        status: "active",
-      },
-      proof: {
-        type: "Ed25519Signature2020",
-        created: new Date().toISOString(),
-        verificationMethod: "did:web:vitalcv.com#key-1",
-        proofPurpose: "assertionMethod",
-        proofValue: "mock-signature-value",
-      },
-    }
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000)
 
-    return NextResponse.json(
-      {
-        message: "Credential issued successfully",
-        id: credentialId,
-        vc: mockVC,
-      },
-      { status: 200 },
-    )
+    try {
+      const response = await fetch(`${BACKEND_URL}/issuer/credential`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Failed to issue credential" }))
+        return NextResponse.json(
+          { error: errorData.error || `Backend error: ${response.status}` },
+          { status: response.status },
+        )
+      }
+
+      const data = await response.json()
+      return NextResponse.json(data, { status: 200 })
+    } catch (fetchError) {
+      clearTimeout(timeoutId)
+      if (fetchError instanceof Error && fetchError.name === "AbortError") {
+        return NextResponse.json({ error: "Request timeout - backend took too long to respond" }, { status: 408 })
+      }
+      throw fetchError
+    }
   } catch (error) {
     console.error("Credential issuance error:", error)
-    return NextResponse.json({ error: "Failed to issue credential" }, { status: 500 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to issue credential" },
+      { status: 500 },
+    )
   }
 }

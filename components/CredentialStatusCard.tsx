@@ -26,6 +26,7 @@ import {
   ExternalLink,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { QRCodeDisplay } from "@/components/QRCodeDisplay"
 
 interface VerificationResult {
   status: "valid" | "revoked" | "unknown"
@@ -288,12 +289,8 @@ export function CredentialStatusCard({ result }: CredentialStatusCardProps) {
                     </div>
                   ) : vpToken ? (
                     <>
-                      <div className="h-48 w-48 bg-white border-2 border-gray-200 rounded-lg flex items-center justify-center">
-                        <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(vpToken)}`}
-                          alt="VP Token QR Code"
-                          className="h-44 w-44"
-                        />
+                      <div className="bg-white border-2 border-gray-200 rounded-lg p-2">
+                        <QRCodeDisplay data={vpToken} size={192} alt="VP Token QR Code" />
                       </div>
                       <div className="flex items-center gap-2 w-full">
                         <code className="flex-1 text-xs bg-gray-100 p-2 rounded truncate">{vpToken}</code>

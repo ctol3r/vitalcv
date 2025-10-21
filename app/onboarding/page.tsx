@@ -86,6 +86,11 @@ export default function OnboardingPage() {
   const [npiData, setNpiData] = useState<NPIData | null>(null)
   const [npiLoading, setNpiLoading] = useState(false)
   const [npiError, setNpiError] = useState<string | null>(null)
+  const [allowManualEntry, setAllowManualEntry] = useState(false)
+  const [manualNpiEntry, setManualNpiEntry] = useState(false)
+  const [manualName, setManualName] = useState("")
+  const [manualCredentials, setManualCredentials] = useState("")
+  const [manualTaxonomy, setManualTaxonomy] = useState("")
 
   // Step 3: Review
   const [finalLoading, setFinalLoading] = useState(false)
@@ -146,11 +151,25 @@ export default function OnboardingPage() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || `NPI sync failed: ${response.status}`)
+
+        if (errorData.allowManualEntry) {
+          setAllowManualEntry(true)
+          setNpiError(errorData.error + " - You can proceed with manual entry.")
+        } else {
+          throw new Error(errorData.error || `NPI sync failed: ${response.status}`)
+        }
+
+        toast({
+          title: "NPI Lookup Timeout",
+          description: "NPI lookup timed out. You can enter data manually or try again.",
+          variant: "destructive",
+        })
+        return
       }
 
       const data = await response.json()
       setNpiData(data.npiData)
+      setAllowManualEntry(false)
 
       toast({
         title: "NPI Synced Successfully",
@@ -159,10 +178,11 @@ export default function OnboardingPage() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to sync NPI. Please try again."
       setNpiError(errorMessage)
+      setAllowManualEntry(true)
 
       toast({
         title: "NPI Sync Failed",
-        description: errorMessage,
+        description: errorMessage + " - You can enter data manually.",
         variant: "destructive",
       })
     } finally {
@@ -427,8 +447,86 @@ export default function OnboardingPage() {
                     {npiError && (
                       <Alert variant="destructive">
                         <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{npiError}</AlertDescription>
+                        <AlertDescription>
+                          {npiError}
+                          {allowManualEntry && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="mt-2"
+                              onClick={() => {
+                                setManualNpiEntry(true)
+                                setNpiError(null)
+                              }}
+                            >
+                              Enter Data Manually
+                            </Button>
+                          )}
+                        </AlertDescription>
                       </Alert>
+                    )}
+
+                    {manualNpiEntry && !npiData && (
+                      <div className="space-y-4 border-2 border-dashed border-blue-300 rounded-lg p-4 bg-blue-50">
+                        <h4 className="font-semibold text-blue-900">Manual NPI Entry</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="manual-name">Full Name *</Label>
+                            <Input
+                              id="manual-name"
+                              placeholder="Dr. John Smith"
+                              value={manualName}
+                              onChange={(e) => setManualName(e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="manual-credentials">Credentials *</Label>
+                            <Input
+                              id="manual-credentials"
+                              placeholder="MD, DO, NP, etc."
+                              value={manualCredentials}
+                              onChange={(e) => setManualCredentials(e.target.value)}
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <Label htmlFor="manual-taxonomy">Primary Taxonomy *</Label>
+                            <Input
+                              id="manual-taxonomy"
+                              placeholder="207R00000X - Internal Medicine"
+                              value={manualTaxonomy}
+                              onChange={(e) => setManualTaxonomy(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        <Button
+                          onClick={() => {
+                            setNpiData({
+                              npi: npi,
+                              name: manualName,
+                              credentials: manualCredentials,
+                              primaryTaxonomy: manualTaxonomy,
+                              status: "Active",
+                              enumerationDate: new Date().toISOString(),
+                              lastUpdated: new Date().toISOString(),
+                              practiceAddress: {
+                                address1: "",
+                                city: "",
+                                state: "",
+                                postalCode: "",
+                                countryCode: "US",
+                              },
+                            })
+                            setManualNpiEntry(false)
+                            toast({
+                              title: "Manual Entry Saved",
+                              description: "Your NPI information has been recorded.",
+                            })
+                          }}
+                          disabled={!manualName || !manualCredentials || !manualTaxonomy}
+                        >
+                          Save Manual Entry
+                        </Button>
+                      </div>
                     )}
 
                     {npiLoading && (
