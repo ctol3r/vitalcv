@@ -8,15 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Loader2, Shield, XCircle, Search, CheckCircle2, RefreshCw } from "lucide-react"
+import { Loader2, Shield, XCircle, Search, CheckCircle2 } from "lucide-react"
 import { CredentialStatusCard } from "@/components/CredentialStatusCard"
-import { VerifyResultCard } from "@/components/verifier/VerifyResultCard"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
-import { buildDcqlRequest, generateNonce, validateNonce, mapVerifyStatus, type VerificationResult } from "@/lib/verifier/dcql"
-import { extractRequestId } from "@/lib/observability/request-id"
 
-interface LegacyVerificationResult {
+interface VerificationResult {
   status: "valid" | "revoked" | "unknown"
   credentialId: string
   auditRef?: string
@@ -36,49 +33,31 @@ export default function VerifyPage() {
   const [privacyMode, setPrivacyMode] = useState<"plain" | "bbs" | "zk">("plain")
   const [loading, setLoading] = useState(false)
   const [statusLoading, setStatusLoading] = useState(false)
-  const [legacyResult, setLegacyResult] = useState<LegacyVerificationResult | null>(null)
-  const [dcqlResult, setDcqlResult] = useState<VerificationResult | null>(null)
+  const [result, setResult] = useState<VerificationResult | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [retryCount, setRetryCount] = useState(0)
-  const [requestId, setRequestId] = useState<string | null>(null)
   const { toast } = useToast()
 
-  // Generate cryptographically secure nonce on mount
   useEffect(() => {
-    refreshNonce()
+    setNonce(Math.random().toString(36).substring(2, 15))
   }, [])
-
-  const refreshNonce = () => {
-    const newNonce = generateNonce()
-    setNonce(newNonce)
-  }
 
   const handleCheckStatus = async () => {
     if (!credentialId.trim()) return
 
     setStatusLoading(true)
     setError(null)
-    setLegacyResult(null)
-    setDcqlResult(null)
-    setRequestId(null)
+    setResult(null)
 
     try {
       const response = await fetch(`/api/verifier/credential/${encodeURIComponent(credentialId.trim())}/status`)
 
-      // Extract request ID from response headers
-      const reqId = extractRequestId(response)
-      if (reqId) setRequestId(reqId)
-
       if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Session expired. Please refresh the page and try again.')
-        }
         throw new Error(`Status check failed: ${response.status} ${response.statusText}`)
       }
 
       const data = await response.json()
 
-      const statusResult: LegacyVerificationResult = {
+      const statusResult: VerificationResult = {
         status: data.status || "unknown",
         credentialId: credentialId.trim(),
         auditRef: data.auditRef,
@@ -90,7 +69,7 @@ export default function VerifyPage() {
         },
       }
 
-      setLegacyResult(statusResult)
+      setResult(statusResult)
 
       toast({
         title: "Status Check Complete",
@@ -105,14 +84,6 @@ export default function VerifyPage() {
         description: errorMessage,
         variant: "destructive",
       })
-
-      // Track error event
-      if (typeof window !== 'undefined' && (window as unknown as { trackEvent?: (name: string, props: unknown) => void }).trackEvent) {
-        (window as unknown as { trackEvent: (name: string, props: unknown) => void }).trackEvent('api.error', {
-          context: 'status.check',
-          error: errorMessage,
-        })
-      }
     } finally {
       setStatusLoading(false)
     }
@@ -121,33 +92,11 @@ export default function VerifyPage() {
   const handleVerifyPresentation = async () => {
     if (!credentialId.trim()) return
 
-    // Validate nonce freshness
-    if (!validateNonce(nonce)) {
-      setError('Nonce has expired. Please refresh and try again.')
-      toast({
-        title: 'Nonce Expired',
-        description: 'Your verification nonce has expired. Click "Refresh Nonce" to generate a new one.',
-        variant: 'destructive',
-      })
-      return
-    }
-
     setLoading(true)
     setError(null)
-    setLegacyResult(null)
-    setDcqlResult(null)
-    setRequestId(null)
+    setResult(null)
 
     try {
-      // Build DCQL request
-      const dcqlRequest = buildDcqlRequest({
-        credentialType: 'MedicalLicense', // Could be derived from credential or made dynamic
-        nonce: nonce.trim(),
-        audience: audience.trim(),
-        requiredFields: ['licenseNumber', 'issuer', 'expiryDate', 'subjectId'],
-        purpose: 'Verify medical professional credentials',
-      })
-
       const response = await fetch("/api/verifier/presentation", {
         method: "POST",
         headers: {
@@ -155,60 +104,43 @@ export default function VerifyPage() {
         },
         body: JSON.stringify({
           credentialId: credentialId.trim(),
-          dcqlRequest,
+          nonce: nonce.trim(),
+          audience: audience.trim(),
           privacyMode: privacyMode !== "plain",
           disclosureType: privacyMode,
         }),
       })
 
-      // Extract request ID from response headers
-      const reqId = extractRequestId(response)
-      if (reqId) setRequestId(reqId)
-
       if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Session expired. Please refresh the page and try again.')
-        }
-        if (response.status === 400) {
-          const errorData = await response.json().catch(() => ({ message: 'Bad request' }))
-          throw new Error(errorData.message || 'Invalid request parameters')
-        }
         throw new Error(`Verification failed: ${response.status} ${response.statusText}`)
       }
 
       const data = await response.json()
 
-      // Map API response to VerificationResult
-      const verificationResult = mapVerifyStatus({
-        status: data.status || 'unknown',
+      const verificationResult: VerificationResult = {
+        status: data.status || "unknown",
         credentialId: credentialId.trim(),
         auditRef: data.auditRef,
-        reason: data.reason,
-        claims: data.claims || {},
-      })
-
-      setDcqlResult(verificationResult)
-
-      toast({
-        title: verificationResult.status === 'success' ? 'Verification Successful' : 'Verification Complete',
-        description: verificationResult.status === 'success'
-          ? 'The credential has been verified successfully'
-          : 'Verification completed with issues',
-      })
-
-      // Track analytics
-      if (typeof window !== 'undefined' && (window as unknown as { trackEvent?: (name: string, props: unknown) => void }).trackEvent) {
-        (window as unknown as { trackEvent: (name: string, props: unknown) => void }).trackEvent(
-          verificationResult.status === 'success' ? 'vp.verified.success' : 'vp.verified.fail',
-          {
-            credentialId: credentialId.trim(),
-            privacyMode,
-          }
-        )
+        details: {
+          issuer: data.issuer,
+          issuedDate: data.issuedDate,
+          expiryDate: data.expiryDate,
+          reason: data.reason,
+          disclosureType:
+            privacyMode === "plain"
+              ? "Full disclosure"
+              : privacyMode === "bbs"
+                ? "BBS+ selective disclosure"
+                : "Zero-knowledge proof",
+        },
       }
 
-      // Refresh nonce after successful verification
-      refreshNonce()
+      setResult(verificationResult)
+
+      toast({
+        title: "Verification Complete",
+        description: `Credential ${verificationResult.status === "valid" ? "verified successfully" : "verification completed"}`,
+      })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to verify credential. Please try again."
       setError(errorMessage)
@@ -218,25 +150,9 @@ export default function VerifyPage() {
         description: errorMessage,
         variant: "destructive",
       })
-
-      // Track error event
-      if (typeof window !== 'undefined' && (window as unknown as { trackEvent?: (name: string, props: unknown) => void }).trackEvent) {
-        (window as unknown as { trackEvent: (name: string, props: unknown) => void }).trackEvent('vp.verified.fail', {
-          error: errorMessage,
-        })
-      }
-
-      // Increment retry count
-      setRetryCount(prev => prev + 1)
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleRetry = () => {
-    setError(null)
-    setRetryCount(0)
-    refreshNonce()
   }
 
   return (
@@ -257,9 +173,6 @@ export default function VerifyPage() {
             </Link>
             <Link href="/support" className="text-gray-600 hover:text-blue-600 transition-colors">
               Support
-            </Link>
-            <Link href="/api-docs" className="text-gray-600 hover:text-blue-600 transition-colors">
-              API Docs
             </Link>
           </nav>
         </div>
@@ -292,29 +205,16 @@ export default function VerifyPage() {
                   />
                 </div>
 
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <Label htmlFor="nonce">Nonce (Auto-generated)</Label>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={refreshNonce}
-                        className="h-6 px-2 text-xs"
-                        aria-label="Refresh nonce"
-                      >
-                        <RefreshCw className="h-3 w-3 mr-1" />
-                        Refresh
-                      </Button>
-                    </div>
+                    <Label htmlFor="nonce">Nonce (Auto-generated)</Label>
                     <Input
                       id="nonce"
                       type="text"
                       placeholder="Auto-generated nonce"
                       value={nonce}
                       onChange={(e) => setNonce(e.target.value)}
-                      className="font-mono text-sm"
-                      readOnly
+                      className="mt-1 font-mono text-sm"
                     />
                   </div>
                   <div>
@@ -401,21 +301,13 @@ export default function VerifyPage() {
               </CardHeader>
               <CardContent>
                 {error && (
-                  <div className="space-y-4">
-                    <Alert variant="destructive">
-                      <XCircle className="h-4 w-4" />
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                    {retryCount > 0 && (
-                      <Button onClick={handleRetry} variant="outline" className="w-full gap-2">
-                        <RefreshCw className="h-4 w-4" />
-                        Try Again
-                      </Button>
-                    )}
-                  </div>
+                  <Alert variant="destructive" className="mb-4">
+                    <XCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
                 )}
 
-                {(loading || statusLoading) && !dcqlResult && !legacyResult && (
+                {(loading || statusLoading) && !result && (
                   <div className="space-y-4">
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="h-4 w-1/2" />
@@ -427,26 +319,20 @@ export default function VerifyPage() {
                   </div>
                 )}
 
-                {dcqlResult && (
+                {result && (
                   <div className="space-y-4">
-                    <VerifyResultCard result={dcqlResult} showClaims={true} requestId={requestId || undefined} />
-                  </div>
-                )}
-
-                {legacyResult && !dcqlResult && (
-                  <div className="space-y-4">
-                    <CredentialStatusCard result={legacyResult} />
-                    {legacyResult.auditRef && (
+                    <CredentialStatusCard result={result} />
+                    {result.auditRef && (
                       <div className="flex justify-center">
                         <div className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-600">
-                          Audit ref: {legacyResult.auditRef}
+                          Audit ref: {result.auditRef}
                         </div>
                       </div>
                     )}
                   </div>
                 )}
 
-                {!dcqlResult && !legacyResult && !loading && !statusLoading && !error && (
+                {!result && !loading && !statusLoading && !error && (
                   <div className="text-center py-12 text-gray-500">
                     <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>Enter a credential ID and click verify to see results</p>
