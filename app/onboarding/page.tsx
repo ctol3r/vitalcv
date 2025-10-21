@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
-import { Upload, FileText, User, CheckCircle, Loader2, Shield, AlertCircle, ArrowLeft, ArrowRight } from "lucide-react"
+import { Upload, FileText, User, CheckCircle, Loader2, Shield, AlertCircle, ArrowLeft, ArrowRight, BadgeCheck } from "lucide-react"
 import Link from "next/link"
 import { AuthGuard } from "@/components/auth-guard"
 
@@ -87,6 +88,8 @@ export default function OnboardingPage() {
   const [npiLoading, setNpiLoading] = useState(false)
   const [npiError, setNpiError] = useState<string | null>(null)
   const [allowManualEntry, setAllowManualEntry] = useState(false)
+  const [npiTimeout, setNpiTimeout] = useState(false)
+  const [npiFromNPPES, setNpiFromNPPES] = useState(false)
   const [manualNpiEntry, setManualNpiEntry] = useState(false)
   const [manualName, setManualName] = useState("")
   const [manualCredentials, setManualCredentials] = useState("")
@@ -139,8 +142,15 @@ export default function OnboardingPage() {
 
     setNpiLoading(true)
     setNpiError(null)
+    setNpiTimeout(false)
+    setNpiFromNPPES(false)
+
+    const timeoutTimer = setTimeout(() => {
+      setNpiTimeout(true)
+    }, 10000)
 
     try {
+      clearTimeout(timeoutTimer)
       const response = await fetch("/api/clinician/npi-sync", {
         method: "POST",
         headers: {
@@ -170,6 +180,8 @@ export default function OnboardingPage() {
       const data = await response.json()
       setNpiData(data.npiData)
       setAllowManualEntry(false)
+      setNpiFromNPPES(true)
+      setNpiTimeout(false)
 
       toast({
         title: "NPI Synced Successfully",
@@ -439,9 +451,19 @@ export default function OnboardingPage() {
                           {npiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sync NPI"}
                         </Button>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Your NPI is a unique 10-digit identifier for healthcare providers
-                      </p>
+                      <div className="space-y-1">
+                        <p className="text-xs text-gray-500">
+                          Your NPI is a unique 10-digit identifier for healthcare providers
+                        </p>
+                        {npiTimeout && npiLoading && (
+                          <Alert variant="default" className="mt-2">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription className="text-xs">
+                              NPI lookup is taking longer than expected (10s+ timeout). You can continue waiting or enter data manually below.
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                      </div>
                     </div>
 
                     {npiError && (
@@ -541,7 +563,15 @@ export default function OnboardingPage() {
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <h3 className="text-lg font-semibold text-gray-900">NPI Information</h3>
-                          <span className="text-sm text-gray-500">Status: {npiData.status}</span>
+                          <div className="flex items-center gap-2">
+                            {npiFromNPPES && (
+                              <Badge variant="default" className="bg-blue-100 text-blue-800 border-blue-200">
+                                <BadgeCheck className="h-3 w-3 mr-1" />
+                                Data from NPPES
+                              </Badge>
+                            )}
+                            <span className="text-sm text-gray-500">Status: {npiData.status}</span>
+                          </div>
                         </div>
 
                         <div className="bg-gray-50 rounded-lg p-4 space-y-2">

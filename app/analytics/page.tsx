@@ -19,6 +19,7 @@ import {
   Download,
 } from "lucide-react"
 import { AnalyticsChart } from "@/components/AnalyticsChart"
+import { SessionAnalyticsWidget } from "@/components/SessionAnalyticsWidget"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
 
@@ -224,7 +225,9 @@ export default function AnalyticsPage() {
       </header>
 
       <div className="container mx-auto px-4 py-12">
-        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <SessionAnalyticsWidget />
+
+        <div className="mt-12 mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 mb-4">Analytics Dashboard</h1>
             <p className="text-lg text-gray-600">

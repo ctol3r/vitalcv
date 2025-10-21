@@ -2,17 +2,50 @@
 
 import { useEffect, useState, useMemo } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Button } from "@/components/ui/button"
+import { Copy, ExternalLink } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 interface QRCodeDisplayProps {
   data: string
   size?: number
   className?: string
   alt?: string
+  showActions?: boolean
 }
 
-export function QRCodeDisplay({ data, size = 200, className = "", alt = "QR Code" }: QRCodeDisplayProps) {
+export function QRCodeDisplay({ data, size = 200, className = "", alt = "QR Code", showActions = true }: QRCodeDisplayProps) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const { toast } = useToast()
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(data)
+      toast({
+        title: "Copied",
+        description: "Link copied to clipboard",
+      })
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to copy to clipboard",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const openInNewTab = () => {
+    if (data.startsWith("http://") || data.startsWith("https://")) {
+      window.open(data, "_blank", "noopener,noreferrer")
+    } else {
+      toast({
+        title: "Cannot open",
+        description: "This QR code doesn't contain a valid URL",
+        variant: "destructive",
+      })
+    }
+  }
 
   const qrUrl = useMemo(() => {
     if (!data) return null
@@ -83,15 +116,41 @@ export function QRCodeDisplay({ data, size = 200, className = "", alt = "QR Code
   }
 
   return (
-    <div className={`${className}`} style={{ width: size, height: size }}>
-      <img
-        src={qrDataUrl}
-        alt={alt}
-        width={size}
-        height={size}
-        className="w-full h-full object-contain"
-        style={{ imageRendering: "pixelated" }}
-      />
+    <div className="space-y-3">
+      <div className={`${className}`} style={{ width: size, height: size }}>
+        <img
+          src={qrDataUrl}
+          alt={alt}
+          width={size}
+          height={size}
+          className="w-full h-full object-contain"
+          style={{ imageRendering: "pixelated" }}
+        />
+      </div>
+      {showActions && (
+        <div className="flex gap-2">
+          <Button
+            onClick={copyToClipboard}
+            variant="outline"
+            size="sm"
+            className="flex-1"
+            aria-label="Copy link to clipboard"
+          >
+            <Copy className="h-4 w-4 mr-2" />
+            Copy Link
+          </Button>
+          <Button
+            onClick={openInNewTab}
+            variant="outline"
+            size="sm"
+            className="flex-1"
+            aria-label="Open link in new tab"
+          >
+            <ExternalLink className="h-4 w-4 mr-2" />
+            Open
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Loader2, Shield, XCircle, Search, CheckCircle2 } from "lucide-react"
+import { Loader2, Shield, XCircle, Search, CheckCircle2, RefreshCw } from "lucide-react"
 import { CredentialStatusCard } from "@/components/CredentialStatusCard"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
@@ -35,11 +35,128 @@ export default function VerifyPage() {
   const [statusLoading, setStatusLoading] = useState(false)
   const [result, setResult] = useState<VerificationResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isRechecking, setIsRechecking] = useState(false)
+  const [lastCheckTime, setLastCheckTime] = useState<Date | null>(null)
+  const pollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const pollCountRef = useRef(0)
   const { toast } = useToast()
 
   useEffect(() => {
     setNonce(Math.random().toString(36).substring(2, 15))
   }, [])
+
+  const handleRecheck = useCallback(async () => {
+    if (!result?.credentialId) return
+
+    setIsRechecking(true)
+    setError(null)
+
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
+
+      const response = await fetch("/api/verifier/presentation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          credentialId: result.credentialId,
+          nonce: nonce.trim(),
+          audience: audience.trim(),
+          privacyMode: privacyMode !== "plain",
+          disclosureType: privacyMode,
+        }),
+        signal: controller.signal,
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        throw new Error(`Re-check failed: ${response.status} ${response.statusText}`)
+      }
+
+      const data = await response.json()
+
+      const verificationResult: VerificationResult = {
+        status: data.status || "unknown",
+        credentialId: result.credentialId,
+        auditRef: data.auditRef,
+        details: {
+          issuer: data.issuer,
+          issuedDate: data.issuedDate,
+          expiryDate: data.expiryDate,
+          reason: data.reason,
+          disclosureType:
+            privacyMode === "plain"
+              ? "Full disclosure"
+              : privacyMode === "bbs"
+                ? "BBS+ selective disclosure"
+                : "Zero-knowledge proof",
+        },
+      }
+
+      setResult(verificationResult)
+      setLastCheckTime(new Date())
+
+      toast({
+        title: "Status Updated",
+        description: `Credential status: ${verificationResult.status}`,
+      })
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to re-check credential status."
+      setError(errorMessage)
+
+      toast({
+        title: "Re-check Failed",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsRechecking(false)
+    }
+  }, [result?.credentialId, nonce, audience, privacyMode, toast])
+
+  const startPolling = useCallback(() => {
+    if (!result?.credentialId) return
+
+    pollCountRef.current = 0
+    const pollInterval = 1000
+    const maxPolls = 5
+
+    const poll = () => {
+      pollCountRef.current++
+      if (pollCountRef.current <= maxPolls) {
+        handleRecheck()
+        pollTimeoutRef.current = setTimeout(poll, pollInterval)
+      }
+    }
+
+    poll()
+  }, [result?.credentialId, handleRecheck])
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && result) {
+        startPolling()
+      } else {
+        if (pollTimeoutRef.current) {
+          clearTimeout(pollTimeoutRef.current)
+          pollTimeoutRef.current = null
+        }
+        pollCountRef.current = 0
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+      if (pollTimeoutRef.current) {
+        clearTimeout(pollTimeoutRef.current)
+      }
+    }
+  }, [result, startPolling])
 
   const handleCheckStatus = async () => {
     if (!credentialId.trim()) return
@@ -136,6 +253,7 @@ export default function VerifyPage() {
       }
 
       setResult(verificationResult)
+      setLastCheckTime(new Date())
 
       toast({
         title: "Verification Complete",
@@ -322,13 +440,38 @@ export default function VerifyPage() {
                 {result && (
                   <div className="space-y-4">
                     <CredentialStatusCard result={result} />
-                    {result.auditRef && (
-                      <div className="flex justify-center">
+                    <div className="flex flex-col items-center gap-3">
+                      {result.auditRef && (
                         <div className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-600">
                           Audit ref: {result.auditRef}
                         </div>
-                      </div>
-                    )}
+                      )}
+                      <Button
+                        onClick={handleRecheck}
+                        disabled={isRechecking}
+                        variant="outline"
+                        size="sm"
+                        className="bg-transparent"
+                        aria-label="Re-check credential status"
+                      >
+                        {isRechecking ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Re-checking...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Re-check Status
+                          </>
+                        )}
+                      </Button>
+                      {lastCheckTime && (
+                        <p className="text-xs text-gray-500 text-center">
+                          Last checked: {lastCheckTime.toLocaleTimeString()}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )}
 
