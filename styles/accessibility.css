@@ -41,8 +41,8 @@
   }
 
   /* Simplify loading states */
-  [role="progressbar"],
-  [aria-busy="true"] {
+  [role='progressbar'],
+  [aria-busy='true'] {
     animation: none !important;
   }
 }
@@ -83,7 +83,7 @@
 
 /* Accessible button states */
 button:disabled,
-button[aria-disabled="true"] {
+button[aria-disabled='true'] {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -153,8 +153,59 @@ th {
 }
 
 /* Loading state announcements */
-[aria-live="polite"],
-[aria-live="assertive"] {
+[aria-live='polite'],
+[aria-live='assertive'] {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* Enhanced focus rings for better visibility */
+.focus-ring {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Ensure interactive elements are keyboard accessible */
+button:not(:disabled),
+a:not([aria-disabled='true']),
+input:not(:disabled),
+select:not(:disabled),
+textarea:not(:disabled) {
+  cursor: pointer;
+}
+
+/* High contrast mode improvements */
+@media (prefers-contrast: high) {
+  .bg-gray-100 {
+    background-color: #f3f4f6;
+    border: 1px solid #d1d5db;
+  }
+
+  .text-gray-500 {
+    color: #374151;
+  }
+
+  .text-gray-600 {
+    color: #1f2937;
+  }
+}
+
+/* Ensure minimum touch target size */
+button,
+a,
+input,
+select,
+textarea {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Screen reader announcements for dynamic content */
+.sr-announce {
   position: absolute;
   left: -10000px;
   width: 1px;
