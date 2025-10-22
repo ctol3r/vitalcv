@@ -12,15 +12,14 @@ Healthcare credential verification platform powered by W3C Verifiable Credential
 
 - Node.js 18+ or pnpm
 - Backend service running on `http://localhost:4000` (chai-vc-platform)
+- `jq` command-line JSON processor (for helper script)
 
 ### Environment Setup
 
-Create a `.env` file in the project root:
+The environment is already configured with `.env.local`:
 
 ```bash
 NEXT_PUBLIC_BACKEND_URL=http://localhost:4000
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 ### Installation & Development
@@ -29,14 +28,37 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 # Install dependencies
 pnpm install
 
-# Run development server (default port 3000)
-pnpm dev
-
-# Or specify port 3005 for pilot setup
+# Run development server on port 3005 (pilot setup)
 PORT=3005 pnpm dev
 ```
 
 The application will be available at `http://localhost:3005`
+
+### How to Test Locally
+
+1. **Start the backend** (chai-vc-platform) on `http://localhost:4000`
+
+2. **Start the frontend**:
+
+   ```bash
+   PORT=3005 pnpm dev
+   ```
+
+3. **Test the complete flow**:
+
+   - Go to `/issuer` to issue a new credential
+   - The credential will be saved to localStorage and `/tmp/issue.json`
+   - Use the helper script to open verify page: `./scripts/open-verify-from-last-issue.sh`
+   - Or manually go to `/verify?jwt=<credentialId>` for auto-verification
+   - Check `/wallet` to see issued credentials
+
+4. **Key Features to Test**:
+   - ✅ JWT auto-verification on verify page (with React StrictMode guard)
+   - ✅ Credential issuance with QR sharing
+   - ✅ Wallet with JWT listing and status badges
+   - ✅ Dark mode toggle (persist in localStorage)
+   - ✅ Toast notifications
+   - ✅ Accessibility features (aria-live, focus rings)
 
 ### Production Build
 
@@ -159,14 +181,17 @@ styles/
 All API routes proxy to the backend service (`NEXT_PUBLIC_BACKEND_URL`):
 
 ### Issuer Endpoints
+
 - `POST /api/issuer/credential` → Issue new credential
 - `POST /api/status/revoke` → Revoke credential
 
 ### Verifier Endpoints
+
 - `POST /api/verifier/presentation` → Verify presentation
 - `GET /api/verifier/credential/:id/status` → Check credential status
 
 ### NPI Lookup
+
 - `POST /api/clinician/npi-sync` → Sync with NPPES (10s timeout)
 
 All endpoints use `AbortController` with 5-second timeouts and return detailed error messages.
@@ -176,6 +201,7 @@ All endpoints use `AbortController` with 5-second timeouts and return detailed e
 The app is installable as a Progressive Web App:
 
 ### Manifest
+
 - **Name**: VitalCV - Healthcare Credential Verification
 - **Theme Color**: `#2563eb` (light) / `#1e40af` (dark)
 - **Icons**: 192x192 and 512x512 SVG icons
@@ -183,11 +209,13 @@ The app is installable as a Progressive Web App:
 - **Start URL**: `/`
 
 ### Installation
+
 1. Open the app in Chrome/Edge
 2. Click the install icon in the address bar
 3. Follow the installation prompt
 
 ### Browser Support
+
 - Chrome/Edge 90+
 - Safari 15+ (iOS/macOS)
 - Firefox 100+
@@ -197,6 +225,7 @@ The app is installable as a Progressive Web App:
 Target: **Lighthouse Accessibility Score ≥ 90**
 
 ### Features
+
 - ✅ Semantic HTML5 structure
 - ✅ ARIA labels on all interactive elements
 - ✅ Keyboard navigation support (Tab, Enter, Escape)
@@ -207,6 +236,7 @@ Target: **Lighthouse Accessibility Score ≥ 90**
 - ✅ Reduced motion support (prefers-reduced-motion)
 
 ### Testing
+
 ```bash
 # Run Lighthouse CI
 npm run lighthouse
@@ -215,18 +245,22 @@ npm run lighthouse
 ## 🔧 Configuration
 
 ### Port Configuration
+
 - **Frontend**: `PORT=3005` (pilot default)
 - **Backend**: `4000` (chai-vc-platform)
 
 ### Environment Variables
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `NEXT_PUBLIC_BACKEND_URL` | Backend API URL | Yes |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | No |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key | No |
+
+| Variable                        | Description          | Required |
+| ------------------------------- | -------------------- | -------- |
+| `NEXT_PUBLIC_BACKEND_URL`       | Backend API URL      | Yes      |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase project URL | No       |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key    | No       |
 
 ### Offline Mode
+
 When the backend is unavailable, a banner displays:
+
 > **Backend service unavailable.** Credential verification and issuance are currently disabled.
 
 The app automatically reconnects when the service is restored.
@@ -234,6 +268,7 @@ The app automatically reconnects when the service is restored.
 ## 📸 Screenshots
 
 Demo screenshots are located in `/docs`:
+
 - `verify-green.png` - Valid credential verification
 - `verify-red.png` - Revoked credential verification
 - `wallet-access-log.png` - Access log with verification history
@@ -242,6 +277,7 @@ Demo screenshots are located in `/docs`:
 ## 🐛 Troubleshooting
 
 ### Backend Connection Issues
+
 ```bash
 # Check backend health
 curl http://localhost:4000/healthz
@@ -250,6 +286,7 @@ curl http://localhost:4000/healthz
 ```
 
 ### Port Already in Use
+
 ```bash
 # Kill process on port 3005
 lsof -ti:3005 | xargs kill -9
@@ -259,6 +296,7 @@ PORT=3006 pnpm dev
 ```
 
 ### Build Errors
+
 ```bash
 # Clear Next.js cache
 rm -rf .next
