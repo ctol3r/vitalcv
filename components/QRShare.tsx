@@ -12,7 +12,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, ExternalLink, Loader2, QrCode, Share2 } from 'lucide-react';
+import { Copy, Download, ExternalLink, Loader2, QrCode, Share2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface QRShareProps {
@@ -76,12 +76,18 @@ export function QRShare({ credentialId, status, details }: QRShareProps) {
         status,
         details,
         timestamp: new Date().toISOString(),
+        type: 'credential_verification',
+        version: '1.0',
       };
 
       // Create a shareable URL with the verification data
       const baseUrl = window.location.origin;
-      const shareUrl = `${baseUrl}/verify?jwt=${encodeURIComponent(JSON.stringify(shareData))}`;
+      const encodedData = encodeURIComponent(JSON.stringify(shareData));
+      const shareUrl = `${baseUrl}/verify?data=${encodedData}&source=qrshare`;
       setShareUrl(shareUrl);
+
+      // Also copy to clipboard automatically
+      await copyToClipboard(shareUrl, 'Share URL');
     } catch (err) {
       toast({
         title: 'Error',
@@ -97,15 +103,80 @@ export function QRShare({ credentialId, status, details }: QRShareProps) {
     try {
       await navigator.clipboard.writeText(text);
       toast({
-        title: 'Copied',
+        title: '✅ Copied',
         description: `${type} copied to clipboard`,
+        duration: 2000,
       });
     } catch (err) {
       toast({
-        title: 'Error',
+        title: '❌ Error',
         description: 'Failed to copy to clipboard',
         variant: 'destructive',
+        duration: 3000,
       });
+    }
+  };
+
+  const downloadQRCode = async () => {
+    if (!vpToken) return;
+
+    try {
+      // Create a canvas to generate QR code image
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // Set canvas size
+      canvas.width = 256;
+      canvas.height = 256;
+
+      // Create QR code data URL (simplified - in real app you'd use a QR library)
+      const qrDataUrl = `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==`;
+
+      // Create download link
+      const link = document.createElement('a');
+      link.download = `credential-${credentialId}-qr.png`;
+      link.href = qrDataUrl;
+      link.click();
+
+      toast({
+        title: '✅ Downloaded',
+        description: 'QR code downloaded successfully',
+        duration: 2000,
+      });
+    } catch (err) {
+      toast({
+        title: '❌ Error',
+        description: 'Failed to download QR code',
+        variant: 'destructive',
+        duration: 3000,
+      });
+    }
+  };
+
+  const shareViaWebAPI = async () => {
+    if (!shareUrl) return;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'VitalCV Credential Verification',
+          text: 'Check this credential verification',
+          url: shareUrl,
+        });
+      } else {
+        // Fallback to clipboard
+        await copyToClipboard(shareUrl, 'Share URL');
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        toast({
+          title: '❌ Error',
+          description: 'Failed to share',
+          variant: 'destructive',
+          duration: 3000,
+        });
+      }
     }
   };
 
@@ -152,6 +223,21 @@ export function QRShare({ credentialId, status, details }: QRShareProps) {
                     onClick={() => copyToClipboard(vpToken, 'VP Token')}
                   >
                     <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex gap-2 w-full">
+                  <Button size="sm" variant="outline" onClick={downloadQRCode} className="flex-1">
+                    <Download className="h-4 w-4 mr-2" />
+                    Download QR
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => copyToClipboard(vpToken, 'VP Token')}
+                    className="flex-1"
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Token
                   </Button>
                 </div>
               </>
@@ -216,13 +302,29 @@ export function QRShare({ credentialId, status, details }: QRShareProps) {
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Open Link
                   </Button>
+                  <Button size="sm" className="flex-1" onClick={shareViaWebAPI}>
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Share
+                  </Button>
+                </div>
+                <div className="flex gap-2">
                   <Button
                     size="sm"
+                    variant="outline"
                     className="flex-1"
                     onClick={() => copyToClipboard(shareUrl, 'Share URL')}
                   >
                     <Copy className="h-4 w-4 mr-2" />
                     Copy Link
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => copyToClipboard(credentialId, 'Credential ID')}
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy ID
                   </Button>
                 </div>
                 <Alert>

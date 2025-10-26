@@ -1,137 +1,247 @@
-"use client"
+'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { CheckCircle, FileCheck, XCircle, Clock } from "lucide-react"
-import { format } from "date-fns"
-
-export interface TimelineEvent {
-  type: "issued" | "verified" | "revoked"
-  timestamp: string
-  auditRef?: string
-  details?: string
-}
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useToast } from '@/hooks/use-toast';
+import {
+  CredentialEvent,
+  formatEventTimestamp,
+  getEventTypeInfo,
+  getEventsForCredential,
+} from '@/lib/event-cache';
+import {
+  AlertTriangle,
+  Calendar,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Copy,
+  FileText,
+  History,
+  XCircle,
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface RevocationTimelineProps {
-  credentialId: string
-  events: TimelineEvent[]
-  className?: string
+  credentialId: string;
+  isOpen: boolean;
+  onToggle: () => void;
 }
 
-export function RevocationTimeline({ credentialId, events, className = "" }: RevocationTimelineProps) {
-  const sortedEvents = [...events].sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-  )
+export function RevocationTimeline({ credentialId, isOpen, onToggle }: RevocationTimelineProps) {
+  const [events, setEvents] = useState<CredentialEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  const getEventConfig = (type: TimelineEvent["type"]) => {
-    switch (type) {
-      case "issued":
-        return {
-          icon: <CheckCircle className="h-5 w-5" />,
-          color: "text-green-600",
-          bgColor: "bg-green-100",
-          borderColor: "border-green-300",
-          label: "Issued",
-          badgeVariant: "default" as const,
-        }
-      case "verified":
-        return {
-          icon: <FileCheck className="h-5 w-5" />,
-          color: "text-blue-600",
-          bgColor: "bg-blue-100",
-          borderColor: "border-blue-300",
-          label: "Verified",
-          badgeVariant: "default" as const,
-        }
-      case "revoked":
-        return {
-          icon: <XCircle className="h-5 w-5" />,
-          color: "text-red-600",
-          bgColor: "bg-red-100",
-          borderColor: "border-red-300",
-          label: "Revoked",
-          badgeVariant: "destructive" as const,
-        }
+  useEffect(() => {
+    if (isOpen && credentialId) {
+      loadEvents();
     }
-  }
+  }, [isOpen, credentialId]);
 
-  if (events.length === 0) {
-    return (
-      <Card className={className}>
-        <CardHeader>
-          <CardTitle className="text-lg">Event Timeline</CardTitle>
-          <CardDescription>No events recorded for this credential</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-gray-500">
-            <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Timeline will update as events occur</p>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
+  const loadEvents = () => {
+    setIsLoading(true);
+    try {
+      const credentialEvents = getEventsForCredential(credentialId);
+      setEvents(credentialEvents);
+    } catch (error) {
+      console.error('Failed to load events:', error);
+      toast({
+        title: '❌ Error',
+        description: 'Failed to load event history',
+        variant: 'destructive',
+        duration: 3000,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const copyToClipboard = async (text: string, type: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: '✅ Copied',
+        description: `${type} copied to clipboard`,
+        duration: 2000,
+      });
+    } catch (err) {
+      toast({
+        title: '❌ Error',
+        description: 'Failed to copy to clipboard',
+        variant: 'destructive',
+        duration: 3000,
+      });
+    }
+  };
+
+  const getEventIcon = (type: CredentialEvent['type']) => {
+    switch (type) {
+      case 'issued':
+        return <FileText className="h-4 w-4" />;
+      case 'verified':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'revoked':
+        return <XCircle className="h-4 w-4" />;
+      default:
+        return <AlertTriangle className="h-4 w-4" />;
+    }
+  };
 
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle className="text-lg">Event Timeline</CardTitle>
-        <CardDescription>
-          Chronological history for credential <span className="font-mono text-xs">{credentialId}</span>
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="relative space-y-4">
-          {sortedEvents.map((event, index) => {
-            const config = getEventConfig(event.type)
-            const isLast = index === sortedEvents.length - 1
-
-            return (
-              <div key={`${event.type}-${event.timestamp}-${index}`} className="relative flex gap-4">
-                {/* Timeline line */}
-                {!isLast && (
-                  <div
-                    className="absolute left-[18px] top-10 bottom-0 w-0.5 bg-gray-200"
-                    aria-hidden="true"
-                  />
-                )}
-
-                {/* Event icon */}
-                <div
-                  className={`relative z-10 flex items-center justify-center w-9 h-9 rounded-full ${config.bgColor} ${config.borderColor} border-2`}
-                >
-                  <div className={config.color}>{config.icon}</div>
-                </div>
-
-                {/* Event content */}
-                <div className="flex-1 pb-6">
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <div className="flex items-center gap-2">
-                      <Badge variant={config.badgeVariant} className="text-xs">
-                        {config.label}
-                      </Badge>
-                      <time className="text-sm text-gray-500" dateTime={event.timestamp}>
-                        {format(new Date(event.timestamp), "MMM d, yyyy 'at' h:mm a")}
-                      </time>
-                    </div>
-                  </div>
-
-                  {event.auditRef && (
-                    <div className="mt-2">
-                      <span className="text-xs text-gray-500">Audit Ref: </span>
-                      <code className="text-xs bg-gray-100 px-2 py-0.5 rounded font-mono">{event.auditRef}</code>
-                    </div>
-                  )}
-
-                  {event.details && (
-                    <p className="text-sm text-gray-600 mt-2">{event.details}</p>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+    <Card className="w-full">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <History className="h-5 w-5 text-gray-600" />
+            <CardTitle className="text-lg">Event Timeline</CardTitle>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                  <span className="sr-only">Help</span>
+                  <span className="text-gray-400">ℹ️</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="max-w-xs">
+                  Shows the complete history of this credential including when it was issued,
+                  verified, and any revocation events.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onToggle}
+            className="flex items-center gap-1"
+            aria-label={isOpen ? 'Collapse timeline' : 'Expand timeline'}
+          >
+            {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            {isOpen ? 'Hide' : 'Show'}
+          </Button>
         </div>
-      </CardContent>
+        <CardDescription>Complete history of credential events and status changes</CardDescription>
+      </CardHeader>
+
+      {isOpen && (
+        <CardContent className="pt-0">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-600"></div>
+              <span className="ml-2 text-sm text-gray-600">Loading events...</span>
+            </div>
+          ) : events.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <History className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+              <p className="text-sm">No events found for this credential</p>
+              <p className="text-xs mt-1">
+                Events will appear here after verification or revocation
+              </p>
+            </div>
+          ) : (
+            <ScrollArea className="h-64">
+              <div className="space-y-3">
+                {events.map((event, index) => {
+                  const typeInfo = getEventTypeInfo(event.type);
+                  const isLast = index === events.length - 1;
+
+                  return (
+                    <div key={event.id} className="relative">
+                      {/* Timeline line */}
+                      {!isLast && <div className="absolute left-4 top-8 w-px h-6 bg-gray-200" />}
+
+                      <div className="flex items-start gap-3">
+                        {/* Event icon */}
+                        <div
+                          className={`flex-shrink-0 w-8 h-8 rounded-full ${typeInfo.bgColor} ${typeInfo.borderColor} border flex items-center justify-center`}
+                        >
+                          <span className={typeInfo.color}>{getEventIcon(event.type)}</span>
+                        </div>
+
+                        {/* Event content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant="outline"
+                                className={`text-xs ${typeInfo.color} ${typeInfo.bgColor}`}
+                              >
+                                {typeInfo.label}
+                              </Badge>
+                              <span className="text-xs text-gray-500 flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {formatEventTimestamp(event.timestamp)}
+                              </span>
+                            </div>
+
+                            {event.auditRef && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => copyToClipboard(event.auditRef!, 'Audit Reference')}
+                                className="h-6 px-2 text-xs"
+                              >
+                                <Copy className="h-3 w-3 mr-1" />
+                                Copy Audit
+                              </Button>
+                            )}
+                          </div>
+
+                          <div className="text-sm text-gray-700">
+                            {event.details?.reason && (
+                              <p className="mb-1">
+                                <strong>Reason:</strong> {event.details.reason}
+                              </p>
+                            )}
+                            {event.details?.issuer && (
+                              <p className="mb-1">
+                                <strong>Issuer:</strong> {event.details.issuer}
+                              </p>
+                            )}
+                            {event.details?.subjectId && (
+                              <p className="mb-1">
+                                <strong>Subject:</strong> {event.details.subjectId}
+                              </p>
+                            )}
+                            {event.details?.status && (
+                              <p className="mb-1">
+                                <strong>Status:</strong> {event.details.status}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(event.timestamp).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+          )}
+
+          {events.length > 0 && (
+            <div className="mt-4 pt-3 border-t">
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <span>
+                  {events.length} event{events.length !== 1 ? 's' : ''} recorded
+                </span>
+                <Button variant="ghost" size="sm" onClick={loadEvents} className="h-6 px-2 text-xs">
+                  Refresh
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      )}
     </Card>
-  )
+  );
 }

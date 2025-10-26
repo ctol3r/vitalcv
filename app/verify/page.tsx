@@ -1,6 +1,10 @@
 'use client';
 
+import { ClaimStatusChip } from '@/components/ClaimStatusChip';
 import { DarkModeToggle } from '@/components/DarkModeToggle';
+import { ApiErrorBoundary } from '@/components/ErrorBoundary';
+import { RevocationTimeline } from '@/components/RevocationTimeline';
+import { RoleSwitcher } from '@/components/RoleSwitcher';
 import { VerifyResult } from '@/components/VerifyResult';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -15,7 +19,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useSession } from '@/contexts/SessionContext';
 import { useToast } from '@/hooks/use-toast';
+import { addEvent } from '@/lib/event-cache';
 import { CheckCircle2, Loader2, Search, Shield, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -25,6 +31,8 @@ interface VerificationResult {
   status: 'valid' | 'revoked' | 'unknown';
   credentialId: string;
   auditRef?: string;
+  timestamp?: string;
+  claimLevel?: number;
   details?: {
     issuer?: string;
     issuedDate?: string;
@@ -36,6 +44,7 @@ interface VerificationResult {
 
 export default function VerifyPage() {
   const searchParams = useSearchParams();
+  const { session } = useSession();
   const [credentialId, setCredentialId] = useState('');
   const [nonce, setNonce] = useState('');
   const [audience, setAudience] = useState('vitalcv.com');
@@ -47,6 +56,7 @@ export default function VerifyPage() {
   const [isRechecking, setIsRechecking] = useState(false);
   const [lastCheckTime, setLastCheckTime] = useState<Date | null>(null);
   const [hasAutoVerified, setHasAutoVerified] = useState(false);
+  const [timelineOpen, setTimelineOpen] = useState(false);
   const pollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pollCountRef = useRef(0);
   const { toast } = useToast();
@@ -127,6 +137,19 @@ export default function VerifyPage() {
       setResult(verificationResult);
       setLastCheckTime(new Date());
 
+      // Add verification event to cache
+      addEvent({
+        credentialId: credentialId.trim(),
+        type: 'verified',
+        timestamp: new Date().toISOString(),
+        auditRef: data.auditRef,
+        details: {
+          issuer: data.issuer,
+          status: verificationResult.status,
+          reason: data.reason,
+        },
+      });
+
       toast({
         title: 'Auto-Verification Complete',
         description: `Credential ${
@@ -202,6 +225,19 @@ export default function VerifyPage() {
 
       setResult(verificationResult);
       setLastCheckTime(new Date());
+
+      // Add verification event to cache
+      addEvent({
+        credentialId: result.credentialId,
+        type: 'verified',
+        timestamp: new Date().toISOString(),
+        auditRef: data.auditRef,
+        details: {
+          issuer: data.issuer,
+          status: verificationResult.status,
+          reason: data.reason,
+        },
+      });
 
       toast({
         title: 'Status Updated',
@@ -367,6 +403,19 @@ export default function VerifyPage() {
       setResult(verificationResult);
       setLastCheckTime(new Date());
 
+      // Add verification event to cache
+      addEvent({
+        credentialId: credentialId.trim(),
+        type: 'verified',
+        timestamp: new Date().toISOString(),
+        auditRef: data.auditRef,
+        details: {
+          issuer: data.issuer,
+          status: verificationResult.status,
+          reason: data.reason,
+        },
+      });
+
       toast({
         title: 'Verification Complete',
         description: `Credential ${
@@ -415,6 +464,7 @@ export default function VerifyPage() {
             <Link href="/support" className="text-gray-600 hover:text-blue-600 transition-colors">
               Support
             </Link>
+            {session && session.roles.length > 1 && <RoleSwitcher availableRoles={session.roles} />}
             <DarkModeToggle />
           </nav>
         </div>
@@ -573,11 +623,35 @@ export default function VerifyPage() {
                 )}
 
                 {result && (
-                  <VerifyResult
-                    result={result}
-                    onRecheck={handleRecheck}
-                    isRechecking={isRechecking}
-                    lastCheckTime={lastCheckTime}
+                  <ApiErrorBoundary>
+                    {result.claimLevel !== undefined && result.claimLevel > 0 && (
+                      <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-blue-900 dark:text-blue-200">
+                            Claim Level:
+                          </span>
+                          <ClaimStatusChip
+                            level={result.claimLevel as 0 | 1 | 2 | 3}
+                            showLabel={true}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    <VerifyResult
+                      result={result}
+                      onRecheck={handleRecheck}
+                      isRechecking={isRechecking}
+                      lastCheckTime={lastCheckTime}
+                    />
+                  </ApiErrorBoundary>
+                )}
+
+                {/* Revocation Timeline */}
+                {result && (
+                  <RevocationTimeline
+                    credentialId={result.credentialId}
+                    isOpen={timelineOpen}
+                    onToggle={() => setTimelineOpen(!timelineOpen)}
                   />
                 )}
 

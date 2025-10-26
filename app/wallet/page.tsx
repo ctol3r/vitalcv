@@ -1,11 +1,14 @@
 'use client';
 
 import { AccessLog, type AccessLogEntry } from '@/components/AccessLog';
+import { ClaimStatusChip } from '@/components/ClaimStatusChip';
 import { DarkModeToggle } from '@/components/DarkModeToggle';
 import { RevocationTimeline, type TimelineEvent } from '@/components/RevocationTimeline';
+import { RoleSwitcher } from '@/components/RoleSwitcher';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useSession } from '@/contexts/SessionContext';
 import { useToast } from '@/hooks/use-toast';
 import { Shield, Wallet } from 'lucide-react';
 import Link from 'next/link';
@@ -23,6 +26,7 @@ interface Credential {
 export default function WalletPage() {
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [lastIssued, setLastIssued] = useState<any>(null);
+  const { session } = useSession();
 
   const [selectedCredential, setSelectedCredential] = useState<string | null>(null);
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([
@@ -145,6 +149,13 @@ export default function WalletPage() {
             <Link href="/analytics" className="text-gray-600 hover:text-blue-600 transition-colors">
               Analytics
             </Link>
+            <Link
+              href="/wallet/access-log"
+              className="text-gray-600 hover:text-blue-600 transition-colors"
+            >
+              Access Log
+            </Link>
+            {session && session.roles.length > 1 && <RoleSwitcher availableRoles={session.roles} />}
             <DarkModeToggle />
           </nav>
         </div>
@@ -152,7 +163,10 @@ export default function WalletPage() {
 
       <main id="main-content" className="container mx-auto px-4 py-12">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">My Wallet</h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-4xl font-bold text-gray-900">My Wallet</h1>
+            {session && <ClaimStatusChip level={session.claimLevel} showLabel={true} />}
+          </div>
           <p className="text-lg text-gray-600">
             Manage your verifiable credentials and access history
           </p>
