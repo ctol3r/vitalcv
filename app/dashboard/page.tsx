@@ -1,223 +1,226 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Shield } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import Link from "next/link"
-import { AuthGuard } from "@/components/auth-guard"
-import { NPICard } from "@/components/dashboard/NPICard"
-import { LicensureCard } from "@/components/dashboard/LicensureCard"
-import { NotificationsCard } from "@/components/dashboard/NotificationsCard"
-import { QuickActionsCard } from "@/components/dashboard/QuickActionsCard"
+import { DashboardAnalytics } from '@/components/DashboardAnalytics';
+import { AuthGuard } from '@/components/auth-guard';
+import { AnalyticsCard } from '@/components/dashboard/AnalyticsCard';
+import { LicensureCard } from '@/components/dashboard/LicensureCard';
+import { NPICard } from '@/components/dashboard/NPICard';
+import { NotificationsCard } from '@/components/dashboard/NotificationsCard';
+import { QuickActionsCard } from '@/components/dashboard/QuickActionsCard';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { Shield } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 interface ClinicianData {
-  npi: string
-  name: string
-  credentials: string
-  primaryTaxonomy: string
+  npi: string;
+  name: string;
+  credentials: string;
+  primaryTaxonomy: string;
   practiceAddress: {
-    address1: string
-    city: string
-    state: string
-    postalCode: string
-    countryCode: string
-  }
-  enumerationDate: string
-  lastUpdated: string
-  status: string
-  lastSynced?: string
+    address1: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    countryCode: string;
+  };
+  enumerationDate: string;
+  lastUpdated: string;
+  status: string;
+  lastSynced?: string;
 }
 
 interface LicenseData {
-  state: string
-  number: string
-  status: "active" | "expired" | "expiring_soon"
-  expiration: string
-  verified: boolean
+  state: string;
+  number: string;
+  status: 'active' | 'expired' | 'expiring_soon';
+  expiration: string;
+  verified: boolean;
 }
 
 interface NotificationData {
-  id: number
-  type: "info" | "warning" | "update"
-  message: string
-  timestamp: string
-  actionRequired: boolean
+  id: number;
+  type: 'info' | 'warning' | 'update';
+  message: string;
+  timestamp: string;
+  actionRequired: boolean;
 }
 
 export default function DashboardPage() {
-  const [clinicianData, setClinicianData] = useState<ClinicianData | null>(null)
-  const [licenses, setLicenses] = useState<LicenseData[]>([])
-  const [notifications, setNotifications] = useState<NotificationData[]>([])
-  const [loading, setLoading] = useState(true)
-  const [syncing, setSyncing] = useState(false)
-  const [qrDialogOpen, setQrDialogOpen] = useState(false)
-  const [shareDialogOpen, setShareDialogOpen] = useState(false)
-  const { toast } = useToast()
+  const [clinicianData, setClinicianData] = useState<ClinicianData | null>(null);
+  const [licenses, setLicenses] = useState<LicenseData[]>([]);
+  const [notifications, setNotifications] = useState<NotificationData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
-    fetchDashboardData()
-  }, [])
+    fetchDashboardData();
+  }, []);
 
   const fetchDashboardData = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
       // Mock data since we don't have a dashboard API endpoint yet
       const mockClinicianData: ClinicianData = {
-        npi: "1234567890",
-        name: "Dr. Sarah Johnson",
-        credentials: "MD",
-        primaryTaxonomy: "207R00000X - Internal Medicine",
+        npi: '1234567890',
+        name: 'Dr. Sarah Johnson',
+        credentials: 'MD',
+        primaryTaxonomy: '207R00000X - Internal Medicine',
         practiceAddress: {
-          address1: "123 Medical Center Dr",
-          city: "Healthcare City",
-          state: "CA",
-          postalCode: "12345",
-          countryCode: "US",
+          address1: '123 Medical Center Dr',
+          city: 'Healthcare City',
+          state: 'CA',
+          postalCode: '12345',
+          countryCode: 'US',
         },
-        enumerationDate: "2015-07-15",
-        lastUpdated: "2024-01-15",
-        status: "Active",
-        lastSynced: "2024-01-15T10:30:00Z",
-      }
+        enumerationDate: '2015-07-15',
+        lastUpdated: '2024-01-15',
+        status: 'Active',
+        lastSynced: '2024-01-15T10:30:00Z',
+      };
 
       const mockLicenses: LicenseData[] = [
         {
-          state: "California",
-          number: "A12345",
-          status: "active",
-          expiration: "2025-12-31",
+          state: 'California',
+          number: 'A12345',
+          status: 'active',
+          expiration: '2025-12-31',
           verified: true,
         },
         {
-          state: "Nevada",
-          number: "NV98765",
-          status: "expiring_soon",
-          expiration: "2024-03-15",
+          state: 'Nevada',
+          number: 'NV98765',
+          status: 'expiring_soon',
+          expiration: '2024-03-15',
           verified: true,
         },
         {
-          state: "Arizona",
-          number: "AZ54321",
-          status: "expired",
-          expiration: "2023-11-30",
+          state: 'Arizona',
+          number: 'AZ54321',
+          status: 'expired',
+          expiration: '2023-11-30',
           verified: false,
         },
-      ]
+      ];
 
       const mockNotifications: NotificationData[] = [
         {
           id: 1,
-          type: "warning",
-          message: "Nevada medical license expires in 45 days",
-          timestamp: "2 hours ago",
+          type: 'warning',
+          message: 'Nevada medical license expires in 45 days',
+          timestamp: '2 hours ago',
           actionRequired: true,
         },
         {
           id: 2,
-          type: "update",
-          message: "Updated information detected in NPPES registry",
-          timestamp: "1 day ago",
+          type: 'update',
+          message: 'Updated information detected in NPPES registry',
+          timestamp: '1 day ago',
           actionRequired: true,
         },
         {
           id: 3,
-          type: "info",
-          message: "Profile verification completed successfully",
-          timestamp: "3 days ago",
+          type: 'info',
+          message: 'Profile verification completed successfully',
+          timestamp: '3 days ago',
           actionRequired: false,
         },
-      ]
+      ];
 
-      setClinicianData(mockClinicianData)
-      setLicenses(mockLicenses)
-      setNotifications(mockNotifications)
+      setClinicianData(mockClinicianData);
+      setLicenses(mockLicenses);
+      setNotifications(mockNotifications);
     } catch (err) {
       toast({
-        title: "Error",
-        description: "Failed to load dashboard data",
-        variant: "destructive",
-      })
+        title: 'Error',
+        description: 'Failed to load dashboard data',
+        variant: 'destructive',
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleNpiSync = async () => {
-    if (!clinicianData) return
+    if (!clinicianData) return;
 
-    setSyncing(true)
+    setSyncing(true);
     try {
-      const response = await fetch("/api/clinician/npi-sync", {
-        method: "POST",
+      const response = await fetch('/api/clinician/npi-sync', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           npi: clinicianData.npi,
         }),
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to sync NPI data")
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to sync NPI data');
       }
 
-      const data = await response.json()
+      const data = await response.json();
       setClinicianData({
         ...data.npiData,
         lastSynced: data.lastSynced,
-      })
+      });
 
       toast({
-        title: "Sync Complete",
-        description: "NPI data has been updated successfully",
-      })
+        title: 'Sync Complete',
+        description: 'NPI data has been updated successfully',
+      });
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Unable to sync NPI data. Please try again."
+      const errorMessage =
+        err instanceof Error ? err.message : 'Unable to sync NPI data. Please try again.';
       toast({
-        title: "Sync Failed",
+        title: 'Sync Failed',
         description: errorMessage,
-        variant: "destructive",
-      })
+        variant: 'destructive',
+      });
     } finally {
-      setSyncing(false)
+      setSyncing(false);
     }
-  }
+  };
 
   const handleDownloadPDF = async () => {
     try {
       // Mock PDF generation
       toast({
-        title: "PDF Generated",
-        description: "Your profile PDF has been downloaded",
-      })
+        title: 'PDF Generated',
+        description: 'Your profile PDF has been downloaded',
+      });
     } catch (err) {
       toast({
-        title: "Error",
-        description: "Failed to generate PDF",
-        variant: "destructive",
-      })
+        title: 'Error',
+        description: 'Failed to generate PDF',
+        variant: 'destructive',
+      });
     }
-  }
+  };
 
   const handleShareProfile = async () => {
     try {
-      const shareUrl = `${window.location.origin}/profile/${clinicianData?.npi}`
-      await navigator.clipboard.writeText(shareUrl)
+      const shareUrl = `${window.location.origin}/profile/${clinicianData?.npi}`;
+      await navigator.clipboard.writeText(shareUrl);
       toast({
-        title: "Link Copied",
-        description: "Profile link copied to clipboard",
-      })
+        title: 'Link Copied',
+        description: 'Profile link copied to clipboard',
+      });
     } catch (err) {
       toast({
-        title: "Error",
-        description: "Failed to copy profile link",
-        variant: "destructive",
-      })
+        title: 'Error',
+        description: 'Failed to copy profile link',
+        variant: 'destructive',
+      });
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -231,13 +234,22 @@ export default function DashboardPage() {
                 <span className="text-2xl font-bold text-gray-900">VitalCV</span>
               </Link>
               <nav className="hidden md:flex items-center space-x-6">
-                <Link href="/verify" className="text-gray-600 hover:text-blue-600 transition-colors">
+                <Link
+                  href="/verify"
+                  className="text-gray-600 hover:text-blue-600 transition-colors"
+                >
                   Verify
                 </Link>
-                <Link href="/analytics" className="text-gray-600 hover:text-blue-600 transition-colors">
+                <Link
+                  href="/analytics"
+                  className="text-gray-600 hover:text-blue-600 transition-colors"
+                >
                   Analytics
                 </Link>
-                <Link href="/support" className="text-gray-600 hover:text-blue-600 transition-colors">
+                <Link
+                  href="/support"
+                  className="text-gray-600 hover:text-blue-600 transition-colors"
+                >
                   Support
                 </Link>
               </nav>
@@ -270,7 +282,10 @@ export default function DashboardPage() {
                   <CardContent>
                     <div className="space-y-4">
                       {[1, 2, 3].map((i) => (
-                        <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div
+                          key={i}
+                          className="flex items-center justify-between p-4 border rounded-lg"
+                        >
                           <div className="space-y-2">
                             <Skeleton className="h-4 w-24" />
                             <Skeleton className="h-3 w-32" />
@@ -305,7 +320,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </AuthGuard>
-    )
+    );
   }
 
   return (
@@ -322,7 +337,10 @@ export default function DashboardPage() {
               <Link href="/verify" className="text-gray-600 hover:text-blue-600 transition-colors">
                 Verify
               </Link>
-              <Link href="/analytics" className="text-gray-600 hover:text-blue-600 transition-colors">
+              <Link
+                href="/analytics"
+                className="text-gray-600 hover:text-blue-600 transition-colors"
+              >
                 Analytics
               </Link>
               <Link href="/support" className="text-gray-600 hover:text-blue-600 transition-colors">
@@ -334,8 +352,12 @@ export default function DashboardPage() {
 
         <div className="container mx-auto px-4 py-8 lg:py-12">
           <div className="mb-8">
-            <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Clinician Dashboard</h1>
-            <p className="text-lg text-gray-600">Manage your professional credentials and verification status</p>
+            <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+              Clinician Dashboard
+            </h1>
+            <p className="text-lg text-gray-600">
+              Manage your professional credentials and verification status
+            </p>
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
@@ -356,6 +378,12 @@ export default function DashboardPage() {
 
               {/* Licensure Card */}
               <LicensureCard licenses={licenses} />
+
+              {/* Analytics */}
+              <AnalyticsCard />
+
+              {/* Full Analytics */}
+              <DashboardAnalytics />
             </div>
 
             {/* Sidebar - Takes up 1 column on xl screens */}
@@ -365,9 +393,9 @@ export default function DashboardPage() {
                 notifications={notifications}
                 onReview={(id) => {
                   toast({
-                    title: "Notification Reviewed",
-                    description: "Notification has been marked as reviewed",
-                  })
+                    title: 'Notification Reviewed',
+                    description: 'Notification has been marked as reviewed',
+                  });
                 }}
               />
 
@@ -384,5 +412,5 @@ export default function DashboardPage() {
         </div>
       </div>
     </AuthGuard>
-  )
+  );
 }

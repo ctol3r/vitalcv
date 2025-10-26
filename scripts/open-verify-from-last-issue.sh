@@ -61,4 +61,3 @@ else
 fi
 
 echo "✅ Verify page opened successfully!"
-

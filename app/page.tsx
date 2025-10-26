@@ -1,9 +1,9 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { CheckCircle, Shield, Zap } from "lucide-react"
-import Link from "next/link"
-import { DarkModeToggle } from "@/components/DarkModeToggle"
+import { DarkModeToggle } from '@/components/DarkModeToggle';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CheckCircle, Shield, Zap } from 'lucide-react';
+import Link from 'next/link';
 
 export default function LandingPage() {
   return (
@@ -16,6 +16,9 @@ export default function LandingPage() {
             <span className="text-2xl font-bold text-gray-900">VitalCV</span>
           </div>
           <nav className="hidden md:flex items-center space-x-6">
+            <Link href="/start" className="text-gray-600 hover:text-blue-600 transition-colors">
+              Get Started
+            </Link>
             <Link href="/verify" className="text-gray-600 hover:text-blue-600 transition-colors">
               Verify
             </Link>
@@ -44,15 +47,20 @@ export default function LandingPage() {
             for Clinicians
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Streamline healthcare credentialing with blockchain-powered verification. Reduce onboarding time from months
-            to days while ensuring compliance and trust.
+            Streamline healthcare credentialing with blockchain-powered verification. Reduce
+            onboarding time from months to days while ensuring compliance and trust.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="lg" className="text-lg px-8 py-6">
-              <Link href="/verify">Verify Now</Link>
+              <Link href="/start">Get Started with Your NPI</Link>
             </Button>
-            <Button variant="outline" size="lg" className="text-lg px-8 py-6 bg-transparent">
-              Learn More
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="text-lg px-8 py-6 bg-transparent"
+            >
+              <Link href="/verify">Verify Credentials</Link>
             </Button>
           </div>
         </div>
@@ -61,14 +69,17 @@ export default function LandingPage() {
       {/* Benefits Section */}
       <section className="py-16 px-4 bg-white/50 backdrop-blur-sm">
         <div className="container mx-auto">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">Why Choose VitalCV?</h2>
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
+            Why Choose VitalCV?
+          </h2>
           <div className="grid md:grid-cols-3 gap-8">
             <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
               <CardHeader>
                 <Zap className="h-12 w-12 text-blue-600 mb-4" />
                 <CardTitle>Lightning Fast</CardTitle>
                 <CardDescription>
-                  Reduce credentialing time from 90+ days to under 10 days with automated verification
+                  Reduce credentialing time from 90+ days to under 10 days with automated
+                  verification
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -77,7 +88,8 @@ export default function LandingPage() {
                 <Shield className="h-12 w-12 text-green-600 mb-4" />
                 <CardTitle>Blockchain Trust</CardTitle>
                 <CardDescription>
-                  Immutable, tamper-proof credentials backed by blockchain technology and cryptographic verification
+                  Immutable, tamper-proof credentials backed by blockchain technology and
+                  cryptographic verification
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -86,7 +98,8 @@ export default function LandingPage() {
                 <CheckCircle className="h-12 w-12 text-teal-600 mb-4" />
                 <CardTitle>Full Compliance</CardTitle>
                 <CardDescription>
-                  HIPAA, GDPR, and SOC2 compliant with comprehensive audit trails and privacy protection
+                  HIPAA, GDPR, and SOC2 compliant with comprehensive audit trails and privacy
+                  protection
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -97,12 +110,22 @@ export default function LandingPage() {
       {/* Partners Section */}
       <section className="py-16 px-4">
         <div className="container mx-auto text-center">
-          <h3 className="text-2xl font-semibold text-gray-900 mb-8">Trusted by Leading Healthcare Organizations</h3>
+          <h3 className="text-2xl font-semibold text-gray-900 mb-8">
+            Trusted by Leading Healthcare Organizations
+          </h3>
           <div className="flex flex-wrap justify-center items-center gap-8 opacity-60">
-            <div className="bg-gray-200 rounded-lg px-6 py-3 text-gray-600 font-semibold">General Hospital</div>
-            <div className="bg-gray-200 rounded-lg px-6 py-3 text-gray-600 font-semibold">Medical Board CA</div>
-            <div className="bg-gray-200 rounded-lg px-6 py-3 text-gray-600 font-semibold">University Health</div>
-            <div className="bg-gray-200 rounded-lg px-6 py-3 text-gray-600 font-semibold">State Licensing</div>
+            <div className="bg-gray-200 rounded-lg px-6 py-3 text-gray-600 font-semibold">
+              General Hospital
+            </div>
+            <div className="bg-gray-200 rounded-lg px-6 py-3 text-gray-600 font-semibold">
+              Medical Board CA
+            </div>
+            <div className="bg-gray-200 rounded-lg px-6 py-3 text-gray-600 font-semibold">
+              University Health
+            </div>
+            <div className="bg-gray-200 rounded-lg px-6 py-3 text-gray-600 font-semibold">
+              State Licensing
+            </div>
           </div>
         </div>
       </section>
@@ -116,7 +139,9 @@ export default function LandingPage() {
                 <Shield className="h-6 w-6" />
                 <span className="text-xl font-bold">VitalCV</span>
               </div>
-              <p className="text-gray-400">Transforming healthcare credentialing with blockchain technology.</p>
+              <p className="text-gray-400">
+                Transforming healthcare credentialing with blockchain technology.
+              </p>
             </div>
             <div>
               <h4 className="font-semibold mb-4">Product</h4>
@@ -170,5 +195,5 @@ export default function LandingPage() {
         </div>
       </footer>
     </div>
-  )
+  );
 }
