@@ -104,20 +104,7 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 export async function lookupNpi(npi: string): Promise<NpiRecord> {
-  try {
-    const res = await fetch(`${API_BASE}/npi/lookup?npi=${encodeURIComponent(npi)}`);
-    return await fetchJson<NpiRecord>(`${API_BASE}/npi/lookup?npi=${encodeURIComponent(npi)}`);
-  } catch (err: any) {
-    // If the fetch itself failed (network/CORS), surface a clean hint
-    if (String(err?.message || '').includes('Failed to fetch')) {
-      throw new NpiClientError(
-        'Network error: frontend cannot reach the API. Check NEXT_PUBLIC_BACKEND_URL and CORS.',
-        undefined,
-        'NETWORK_ERROR',
-      );
-    }
-    throw err;
-  }
+  return fetchJson<NpiRecord>(`${API_BASE}/npi/lookup?npi=${encodeURIComponent(npi)}`);
 }
 
 export async function startBasicClaim(
