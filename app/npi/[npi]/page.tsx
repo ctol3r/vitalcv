@@ -4,18 +4,17 @@
  * NPI Public Profile Page - Display public NPI information with sliding pane for claim
  */
 
+import { ClaimWizardPane } from '@/components/claim/ClaimWizardPane';
 import { NpiPublicCard } from '@/components/NpiPublicCard';
+import { PaneProvider, usePanes } from '@/components/panes/PaneManager';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { NpiClientError, lookupNpi } from '@/lib/npi-client';
 import { NpiRecord } from '@/lib/npi-types';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { PaneProvider, usePanes } from '@/components/panes/PaneManager';
-import { ClaimWizardPane } from '@/components/claim/ClaimWizardPane';
 
 function NpiProfileContent() {
   const params = useParams();
@@ -28,30 +27,6 @@ function NpiProfileContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { push } = usePanes();
-
-  useEffect(() => {
-    if (!npi) return;
-
-    const fetchNpiData = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const data = await lookupNpi(npi);
-        setRecord(data);
-      } catch (err) {
-        if (err instanceof NpiClientError) {
-          setError(err.message);
-        } else {
-          setError('Failed to load NPI information');
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchNpiData();
-  }, [npi]);
 
   // Auto-open claim wizard if ?auto=1
   useEffect(() => {

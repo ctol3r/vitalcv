@@ -1,67 +1,58 @@
+import { NextRequest, NextResponse } from 'next/server';
+
 /**
- * Document Upload API - Handles Level 2 identity document uploads
+ * Document Upload & Verification (Level 2)
+ * POST /api/claim/doc
+ *
+ * Accepts multipart/form-data with license and selfie files
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+interface RequestBody {
+  npi: string;
+  userId?: string;
+}
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const npi = formData.get('npi') as string;
+    const userId = formData.get('userId') as string;
+    const license = formData.get('license') as File;
+    const selfie = formData.get('selfie') as File;
 
+    // Validate
     if (!npi || !/^\d{10}$/.test(npi)) {
-      return NextResponse.json({ error: 'Invalid NPI format' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid NPI' }, { status: 400 });
+    }
+    if (!userId) {
+      return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
+    }
+    if (!license || !selfie) {
+      return NextResponse.json({ error: 'Missing files' }, { status: 400 });
     }
 
-    // Collect uploaded files
-    const files: File[] = [];
-    for (const [key, value] of formData.entries()) {
-      if (key.startsWith('file') && value instanceof File) {
-        files.push(value);
-      }
-    }
+    // Forward to backend
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:4000';
+    const backendFormData = new FormData();
+    backendFormData.append('npi', npi);
+    backendFormData.append('userId', userId);
+    backendFormData.append('license', license);
+    backendFormData.append('selfie', selfie);
 
-    if (files.length === 0) {
-      return NextResponse.json({ error: 'No files uploaded' }, { status: 400 });
-    }
-
-    // Validate file types and sizes
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-
-    for (const file of files) {
-      if (!allowedTypes.includes(file.type)) {
-        return NextResponse.json({ error: `Invalid file type: ${file.type}` }, { status: 400 });
-      }
-      if (file.size > maxSize) {
-        return NextResponse.json({ error: `File too large: ${file.name}` }, { status: 400 });
-      }
-    }
-
-    // In production:
-    // 1. Upload to S3/Cloud Storage
-    // 2. Run identity verification (AWS Rekognition, ID.me, etc.)
-    // 3. Store document metadata in database
-    // 4. Update claim level to 2
-
-    console.log(`[Document Upload] NPI ${npi}: ${files.length} files uploaded`);
-
-    // Mock processing delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    return NextResponse.json({
-      success: true,
-      uploadedCount: files.length,
-      message: 'Documents uploaded and verified successfully',
+    const response = await fetch(`${backendUrl}/api/claim/doc-multipart`, {
+      method: 'POST',
+      body: backendFormData,
     });
+
+    if (!response.ok) {
+      const error = await response.text();
+      return NextResponse.json({ error }, { status: response.status });
+    }
+
+    const data = await response.json();
+    return NextResponse.json(data);
   } catch (error) {
-    console.error('Document upload error:', error);
+    console.error('[Document Upload Error]', error);
     return NextResponse.json({ error: 'Failed to upload documents' }, { status: 500 });
   }
 }
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
