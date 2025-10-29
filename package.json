@@ -10,7 +10,10 @@
     "start": "next start",
     "storybook": "storybook dev -p 6006",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "analyze": "cross-env ANALYZE=true next build",
+    "analyze:server": "cross-env BUNDLE_ANALYZE=server next build",
+    "analyze:browser": "cross-env BUNDLE_ANALYZE=browser next build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -56,6 +59,8 @@
     "geist": "latest",
     "input-otp": "latest",
     "jest": "latest",
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.454.0",
     "msw": "latest",
     "next": "15.2.4",

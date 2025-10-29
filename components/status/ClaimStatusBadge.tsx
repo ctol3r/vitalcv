@@ -1,65 +1,38 @@
 'use client';
-import { getJSON } from '@/components/api/http';
-import { useEffect, useState } from 'react';
 
-type ClaimStatus = {
-  npi: string;
-  level: 0 | 1 | 2 | 3;
-  issuerAttestTx: string | null;
-  lastVerifiedAt: string | null;
-};
+import { useEffect, useRef, useState } from 'react';
+import { pollClaimStatus } from '@/lib/apiClient';
 
-export default function ClaimStatusBadge({ npi }: { npi: string }) {
-  const [status, setStatus] = useState<ClaimStatus | null>(null);
-  const [err, setErr] = useState('');
+export function ClaimStatusBadge({ npi, className = '' }: { npi: string; className?: string }) {
+  const [level, setLevel] = useState<number>(0);
+  const [label, setLabel] = useState<string>('Not Verified');
+  const timer = useRef<any>(null);
 
   useEffect(() => {
-    (async () => {
+    let abort = new AbortController();
+    const tick = async () => {
       try {
-        const data = await getJSON<ClaimStatus>(`/api/claim/status?npi=${npi}`);
-        setStatus(data);
-      } catch (e: any) {
-        setErr(e.message || 'status error');
-      }
-    })();
+        const s = await pollClaimStatus(npi, abort.signal);
+        const lvl = Number(s?.level ?? 0);
+        setLevel(lvl);
+        setLabel(
+          ['Not Verified', 'Email Verified', 'ID Verified', 'Issuer Attested'][lvl] || 'Unknown',
+        );
+      } catch {}
+      timer.current = setTimeout(tick, 15000);
+    };
+    tick();
+    return () => {
+      abort.abort();
+      clearTimeout(timer.current);
+    };
   }, [npi]);
 
-  if (err)
-    return (
-      <span className="rounded bg-red-100 px-2 py-1 text-xs text-red-700 dark:bg-red-900/30 dark:text-red-300">
-        Status error
-      </span>
-    );
-  if (!status)
-    return (
-      <span className="rounded bg-neutral-100 px-2 py-1 text-xs text-neutral-500 dark:bg-neutral-800 dark:text-neutral-300">
-        Loading…
-      </span>
-    );
-
-  const levels = ['L0 Lookup', 'L1 Basic', 'L2 Doc/Live', 'L3 Issuer Attested'];
-  const palette = [
-    'bg-neutral-100 text-neutral-700',
-    'bg-blue-100 text-blue-700',
-    'bg-purple-100 text-purple-700',
-    'bg-emerald-100 text-emerald-700',
-  ];
-  const tone = palette[status.level] || palette[0];
-
+  const color =
+    ['bg-gray-500', 'bg-blue-600', 'bg-purple-600', 'bg-green-600'][level] || 'bg-gray-500';
   return (
-    <span
-      className={`inline-flex items-center gap-2 rounded px-2 py-1 text-xs ${tone} dark:opacity-90`}
-    >
-      <strong>{levels[status.level]}</strong>
-      {status.issuerAttestTx && (
-        <a
-          className="underline"
-          href={`#onchain:${status.issuerAttestTx}`}
-          title="On-chain tx reference (demo link)"
-        >
-          tx
-        </a>
-      )}
+    <span className={`inline-block text-white text-xs px-2 py-1 rounded ${color} ${className}`}>
+      {label}
     </span>
   );
 }
