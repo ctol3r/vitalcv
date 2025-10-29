@@ -59,6 +59,8 @@
     "geist": "latest",
     "input-otp": "latest",
     "jest": "latest",
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.454.0",
     "msw": "latest",
     "next": "15.2.4",

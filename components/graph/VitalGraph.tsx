@@ -1,8 +1,11 @@
 'use client';
 
-import { Slider } from '@/components/ui/slider';
+import { Button } from '@/components/ui/button';
+import { Download } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useMemo, useRef, useState } from 'react';
+import { GraphControls } from './GraphControls';
+import { GraphNodeType, GraphToolbar } from './GraphToolbar';
 
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
 
@@ -22,7 +25,7 @@ export default function VitalGraph({ data }: { data: GraphData }) {
   const [center, setCenter] = useState(0.5);
   const [repel, setRepel] = useState(-1000);
   const [linkDist, setLinkDist] = useState(80);
-  const [enabled, setEnabled] = useState<Record<string, boolean>>({
+  const [enabled, setEnabled] = useState<Record<GraphNodeType, boolean>>({
     holder: true,
     issuer: true,
     verifier: true,
@@ -65,146 +68,160 @@ export default function VitalGraph({ data }: { data: GraphData }) {
     fg.zoom(4, 1200);
   }
 
+  function fitToView() {
+    const fg = ref.current;
+    if (!fg) return;
+    fg.zoomToFit(400, 20);
+  }
+
+  function resetView() {
+    const fg = ref.current;
+    if (!fg) return;
+    fg.centerAt(0, 0, 1000);
+    fg.zoom(1, 1000);
+  }
+
+  function exportGraph() {
+    const canvas = document.querySelector('canvas');
+    if (!canvas) return;
+
+    const url = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.download = `graph-${Date.now()}.png`;
+    link.href = url;
+    link.click();
+  }
+
   return (
-    <div className="grid h-[75vh] grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
-      <div className="rounded-lg border bg-white dark:bg-neutral-900">
-        <ForceGraph2D
-          ref={ref}
-          graphData={filteredData}
-          nodeRelSize={6}
-          nodeCanvasObject={(node: any, ctx, scale) => {
-            const label = node.label ?? node.id;
-            const color =
-              node.group === 'holder'
-                ? colors.holder
-                : node.group === 'issuer'
-                ? colors.issuer
-                : node.group === 'verifier'
-                ? colors.verifier
-                : node.group === 'cred'
-                ? colors.cred
-                : colors.job;
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.arc(node.x!, node.y!, 5, 0, 2 * Math.PI, false);
-            ctx.fill();
-            const fontSize = 12 / scale;
-            if (fontSize > 3) {
-              ctx.font = `${fontSize}px Inter, system-ui`;
-              ctx.fillStyle = 'rgba(255,255,255,0.9)';
-              ctx.fillText(label, node.x! + 8, node.y! + 3);
-            }
-          }}
-          linkColor={() => 'rgba(148,163,184,0.6)'}
-          linkWidth={(l: any) => (l.weight ? 1 + l.weight * 0.5 : 1)}
-          d3VelocityDecay={0.3}
-          cooldownTicks={100}
-          onEngineStop={() => {
-            const fg = ref.current;
-            if (!fg) return;
-            fg.d3Force('center').strength(center);
-            fg.d3Force('charge').strength(repel);
-            fg.d3Force('link').distance(linkDist).iterations(1);
-          }}
-        />
+    <div className="space-y-4">
+      {/* Toolbar */}
+      <GraphToolbar
+        enabled={enabled}
+        onToggle={(type, value) => setEnabled((prev) => ({ ...prev, [type]: value }))}
+        onShowAll={() =>
+          setEnabled({ holder: true, issuer: true, verifier: true, cred: true, job: true })
+        }
+        onHideAll={() =>
+          setEnabled({ holder: false, issuer: false, verifier: false, cred: false, job: false })
+        }
+      />
+
+      <div className="grid h-[75vh] grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
+        <div className="rounded-lg border bg-white dark:bg-neutral-900">
+          <ForceGraph2D
+            ref={ref}
+            graphData={filteredData}
+            nodeRelSize={6}
+            nodeCanvasObject={(node: any, ctx, scale) => {
+              const label = node.label ?? node.id;
+              const color =
+                node.group === 'holder'
+                  ? colors.holder
+                  : node.group === 'issuer'
+                  ? colors.issuer
+                  : node.group === 'verifier'
+                  ? colors.verifier
+                  : node.group === 'cred'
+                  ? colors.cred
+                  : colors.job;
+              ctx.fillStyle = color;
+              ctx.beginPath();
+              ctx.arc(node.x!, node.y!, 5, 0, 2 * Math.PI, false);
+              ctx.fill();
+              const fontSize = 12 / scale;
+              if (fontSize > 3) {
+                ctx.font = `${fontSize}px Inter, system-ui`;
+                ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                ctx.fillText(label, node.x! + 8, node.y! + 3);
+              }
+            }}
+            linkColor={(l: any) => {
+              // Highlight AI-inferred links with a different color
+              return l.inferred
+                ? 'rgba(139,92,246,0.8)' // Purple for AI links
+                : 'rgba(148,163,184,0.6)'; // Default gray
+            }}
+            linkWidth={(l: any) => (l.weight ? 1 + l.weight * 0.5 : 1)}
+            linkLabel={(l: any) => l.relationship || 'related'}
+            linkDirectionalArrowLength={6}
+            linkDirectionalArrowRelPos={1}
+            d3VelocityDecay={0.3}
+            cooldownTicks={100}
+            onEngineStop={() => {
+              const fg = ref.current;
+              if (!fg) return;
+              fg.d3Force('center').strength(center);
+              fg.d3Force('charge').strength(repel);
+              fg.d3Force('link').distance(linkDist).iterations(1);
+            }}
+            onNodeClick={(node: any) => {
+              // Handle node click - could open sliding pane
+              console.log('Node clicked:', node);
+            }}
+            onLinkClick={(link: any) => {
+              // Handle link click - show relationship details
+              console.log('Link clicked:', link);
+            }}
+          />
+        </div>
       </div>
 
-      <aside className="rounded-lg border bg-white p-4 dark:bg-neutral-900 space-y-4">
-        <h3 className="font-semibold">Graph Controls</h3>
+      <aside className="rounded-lg border bg-white p-4 dark:bg-neutral-900">
+        <GraphControls
+          center={center}
+          repel={repel}
+          linkDist={linkDist}
+          onCenterChange={setCenter}
+          onRepelChange={setRepel}
+          onLinkDistChange={setLinkDist}
+          onReset={resetView}
+          onFitToView={fitToView}
+        />
 
-        <div className="space-y-2">
-          <label className="text-sm">Search / Focus</label>
-          <div className="flex items-center gap-2">
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="ID or label…"
-              className="w-full rounded border p-2 text-sm"
-            />
-            <button
-              onClick={() => focusNode(query)}
-              className="rounded bg-neutral-900 px-3 py-2 text-sm text-white dark:bg-white dark:text-neutral-900"
-            >
-              Focus
-            </button>
+        <div className="mt-4 space-y-4 border-t pt-4">
+          <h3 className="font-semibold">Search & Actions</h3>
+
+          <div className="space-y-2">
+            <label className="text-sm">Search / Focus</label>
+            <div className="flex items-center gap-2">
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="ID or label…"
+                className="w-full rounded border p-2 text-sm"
+              />
+              <button
+                onClick={() => focusNode(query)}
+                className="rounded bg-neutral-900 px-3 py-2 text-sm text-white dark:bg-white dark:text-neutral-900"
+              >
+                Focus
+              </button>
+            </div>
           </div>
-        </div>
 
-        <div>
-          <div className="mb-2 text-sm font-medium">Groups</div>
-          <div className="flex flex-wrap gap-2">
-            {ALL_GROUPS.map((g) => (
-              <label key={g} className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={enabled[g]}
-                  onChange={(e) => setEnabled((s) => ({ ...s, [g]: e.target.checked }))}
-                />
-                <span className="capitalize">{g}</span>
-              </label>
-            ))}
+          {/* Search Input */}
+          <div className="space-y-2">
+            <label className="text-sm">Search / Focus</label>
+            <div className="flex items-center gap-2">
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by ID or label..."
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+              <Button size="sm" onClick={() => focusNode(query)}>
+                Focus
+              </Button>
+            </div>
           </div>
-        </div>
 
-        <div className="space-y-5">
-          <Control
-            label="Center force"
-            value={center}
-            min={0}
-            max={1}
-            step={0.05}
-            onChange={setCenter}
-          />
-          <Control
-            label="Repel force"
-            value={repel}
-            min={-2000}
-            max={-50}
-            step={50}
-            onChange={setRepel}
-          />
-          <Control
-            label="Link distance"
-            value={linkDist}
-            min={20}
-            max={240}
-            step={5}
-            onChange={setLinkDist}
-          />
+          {/* Export Button */}
+          <Button variant="outline" size="sm" onClick={exportGraph} className="w-full">
+            <Download className="h-4 w-4 mr-2" />
+            Export Graph as PNG
+          </Button>
         </div>
       </aside>
-    </div>
-  );
-}
-
-function Control({
-  label,
-  value,
-  min,
-  max,
-  step,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <div>
-      <div className="mb-1 flex items-center justify-between">
-        <span className="text-sm">{label}</span>
-        <span className="text-xs text-neutral-500">{value}</span>
-      </div>
-      <Slider
-        defaultValue={[value]}
-        min={min}
-        max={max}
-        step={step}
-        onValueChange={(v) => onChange(v[0])}
-      />
     </div>
   );
 }

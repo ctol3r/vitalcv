@@ -1,11 +1,16 @@
-/**
- * Claim Status API - Returns current claim verification status
- */
-
 import { NextRequest, NextResponse } from 'next/server';
 
-// Mock claim data store (in production, use database)
-const claimStore = new Map();
+/**
+ * Get Claim Status
+ * GET /api/claim/status?npi=1234567890
+ */
+
+interface ClaimStatus {
+  npi: string;
+  level: 0 | 1 | 2 | 3;
+  issuerAttestTx: string | null;
+  lastVerifiedAt: string | null;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,63 +18,31 @@ export async function GET(request: NextRequest) {
     const npi = searchParams.get('npi');
 
     if (!npi || !/^\d{10}$/.test(npi)) {
-      return NextResponse.json({ error: 'Invalid NPI format' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid NPI' }, { status: 400 });
     }
 
-    // Get or create claim status
-    let claimStatus = claimStore.get(npi);
+    // Fetch from backend
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:4000';
+    const response = await fetch(`${backendUrl}/api/claim/status?npi=${npi}`, {
+      cache: 'no-store',
+    });
 
-    if (!claimStatus) {
-      // Return default unclaimed status
-      claimStatus = {
-        npi,
-        level: 0,
-        emailVerified: false,
-        phoneVerified: false,
-        documentsUploaded: false,
-        selfieUploaded: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+    if (!response.ok) {
+      return NextResponse.json({ error: 'Claim not found' }, { status: 404 });
     }
 
-    return NextResponse.json(claimStatus);
-  } catch (error) {
-    console.error('Claim status error:', error);
-    return NextResponse.json({ error: 'Failed to get claim status' }, { status: 500 });
-  }
-}
+    const data = await response.json();
 
-export async function PUT(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { npi, ...updates } = body;
-
-    if (!npi) {
-      return NextResponse.json({ error: 'NPI is required' }, { status: 400 });
-    }
-
-    let claimStatus = claimStore.get(npi) || {
-      npi,
-      level: 0,
-      emailVerified: false,
-      phoneVerified: false,
-      documentsUploaded: false,
-      selfieUploaded: false,
-      createdAt: new Date().toISOString(),
+    const status: ClaimStatus = {
+      npi: data.npi,
+      level: data.level ?? 0,
+      issuerAttestTx: data.issuerAttestTx ?? null,
+      lastVerifiedAt: data.lastVerifiedAt ?? null,
     };
 
-    claimStatus = {
-      ...claimStatus,
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    };
-
-    claimStore.set(npi, claimStatus);
-
-    return NextResponse.json(claimStatus);
+    return NextResponse.json(status);
   } catch (error) {
-    console.error('Claim status update error:', error);
-    return NextResponse.json({ error: 'Failed to update claim status' }, { status: 500 });
+    console.error('[Claim Status Error]', error);
+    return NextResponse.json({ error: 'Failed to fetch claim status' }, { status: 500 });
   }
 }
