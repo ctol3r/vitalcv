@@ -1,0 +1,11 @@
+<svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+  <rect width="192" height="192" fill="#2563eb" rx="24"/>
+  <g transform="translate(48, 48)">
+    <path d="M48 0L60 12L48 24L36 12L48 0Z M48 24L60 36L48 48L36 36L48 24Z M24 24L36 36L24 48L12 36L24 24Z M72 24L84 36L72 48L60 36L72 24Z M48 48L60 60L48 72L36 60L48 48Z M24 72L36 84L24 96L12 84L24 72Z M48 72L60 84L48 96L36 84L48 72Z M72 72L84 84L72 96L60 84L72 72Z"
+          fill="white"
+          opacity="0.9"/>
+  </g>
+  <text x="96" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white">
+    VitalCV
+  </text>
+</svg>
