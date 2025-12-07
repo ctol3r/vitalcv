@@ -1,5 +1,0 @@
-{"title":"Docs page: Dark-Mode badge & links","files":[{"path":"app/admin/docs/public/page.tsx","action":"patch"}]}
-{"title":"CLI Installer card (copy/curl)","files":[{"path":"app/admin/docs/portal/page.tsx","action":"write"}]}
-{"title":"Press Kit page (download logos/colors/boilerplate)","files":[{"path":"app/press/page.tsx","action":"write"}]}
-{"title":"Robots & Sitemap links in footer","files":[{"path":"components/layout/Footer.tsx","action":"write"},{"path":"app/layout.tsx","action":"patch"}]}
-

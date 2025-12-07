@@ -1,7 +1,0 @@
-Placeholder for video: "Intro to VitalCV"
-
-Content to be added:
-- Overview of the platform
-- Value proposition for Clinicians and Issuers
-- High-level workflow demo
-

@@ -1,8 +1,0 @@
-Placeholder for video: "How Issuers Approve Claims"
-
-Content to be added:
-- Walkthrough of Issuer Dashboard
-- Reviewing pending claims
-- Checking documents
-- The "Approve" and "Issue" flow
-
