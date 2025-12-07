@@ -1,0 +1,10 @@
+{
+  "name": "zk-sample",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "node test_license_proof.js"
+  },
+  "dependencies": {
+    "snarkjs": "^0.7.5"
+  }
+}

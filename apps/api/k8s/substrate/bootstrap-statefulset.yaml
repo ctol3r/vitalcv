@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: chai-node
+spec:
+  serviceName: chai-node
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chai-node
+  template:
+    metadata:
+      labels:
+        app: chai-node
+    spec:
+      containers:
+        - name: node
+          image: <account-id>.dkr.ecr.us-west-2.amazonaws.com/chai-node:latest
+          command: ["/bin/chai-node"]
+          args:
+            - "--base-path=/data"
+            - "--chain=/config/chain-spec.json"
+            - "--name=bootstrap"
+            - "--rpc-external"
+            - "--rpc-cors=all"
+            - "--ws-external"
+            - "--prometheus-external"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: config
+              mountPath: /config
+      volumes:
+        - name: config
+          configMap:
+            name: chai-chain-spec
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 10Gi

@@ -1,0 +1,13 @@
+{
+  "id": "urn:uuid:1234",
+  "issuer": "Hospital A",
+  "credentialSubject": {
+    "id": "did:example:practitioner:001",
+    "qualification": {
+      "code": "MD",
+      "issuer": "Medical Board",
+      "periodStart": "2021-01-01",
+      "periodEnd": "2025-12-31"
+    }
+  }
+}

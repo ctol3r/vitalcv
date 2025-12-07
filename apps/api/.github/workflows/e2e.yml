@@ -1,0 +1,42 @@
+name: E2E Tests
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 2 * * *'
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      e2e: ${{ steps.filter.outputs.e2e }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            e2e:
+              - 'e2e/**'
+              - 'docker-compose*.yml'
+              - 'compose*.yml'
+              - 'backend/**'
+              - 'ai-matcher-service/**'
+
+  e2e-tests:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.e2e == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: { browser: ['chrome','firefox'] }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start services
+        run: docker compose up -d --wait
+      - name: Run E2E tests (${{ matrix.browser }})
+        run: echo "TODO: wire Playwright/Cypress here"
+      - name: Cleanup
+        if: always()
+        run: docker compose down

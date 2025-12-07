@@ -1,0 +1,23 @@
+[package]
+name = "pallet-credential-registry"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+frame-support = { version = "14.0.0", default-features = false, features = ["std"] }
+frame-system = { version = "14.0.0", default-features = false, features = ["std"] }
+sp-runtime = { version = "14.0.0", default-features = false, features = ["std"] }
+sp-std = { version = "14.0.0", default-features = false, features = ["std"] }
+
+[dev-dependencies]
+sp-core = { version = "14.0.0", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+    "frame-support/std",
+    "frame-system/std",
+    "sp-runtime/std",
+    "sp-std/std",
+]
+
