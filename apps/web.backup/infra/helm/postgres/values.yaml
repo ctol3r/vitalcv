@@ -1,0 +1,93 @@
+global:
+  postgresql:
+    auth:
+      existingSecret: postgres-app-credentials
+      username: vitalcv
+      database: vitalcv
+      replicationUsername: repl_user
+      replicationPassword: repl_password
+
+architecture: replication
+primary:
+  persistence:
+    enabled: true
+    size: 200Gi
+    storageClass: fast-ssd
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 60
+    periodSeconds: 15
+  extraEnvVars:
+    - name: POSTGRESQL_SHARED_BUFFERS
+      value: "1GB"
+    - name: POSTGRESQL_EFFECTIVE_CACHE_SIZE
+      value: "3GB"
+  configuration: |
+    wal_level = logical
+    max_replication_slots = 16
+    max_wal_senders = 16
+    hot_standby = on
+    shared_preload_libraries = 'pglogical'
+    synchronous_commit = on
+    track_commit_timestamp = on
+    pglogical.conflict_resolution = 'last_update_wins'
+readReplicas:
+  replicaCount: 1
+  persistence:
+    enabled: true
+    size: 200Gi
+    storageClass: fast-ssd
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 2Gi
+  configuration: |
+    hot_standby = on
+    shared_preload_libraries = 'pglogical'
+    wal_receiver_status_interval = 5
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+pgpool:
+  enabled: false
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    selector:
+      release: kube-prometheus
+pgHbaConfiguration: |
+  host replication repl_user 10.0.0.0/8 md5
+  host replication repl_user 172.16.0.0/12 md5
+  host replication repl_user 192.168.0.0/16 md5
+initdbScripts:
+  01_create_extensions.sql: |
+    CREATE EXTENSION IF NOT EXISTS pgcrypto;
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+  02_enable_pglogical.sql: |
+    CREATE EXTENSION IF NOT EXISTS pglogical;
+    SELECT pglogical.create_node(
+      node_name := 'vitalcv_primary',
+      dsn := format(
+        'host=%s dbname=%s user=%s',
+        current_setting('listen_addresses'),
+        current_database(),
+        current_user
+      )
+    );
+

@@ -1,0 +1,84 @@
+{
+  "monorepo": {
+    "root": "/Users/christoler/vitalcv",
+    "packageManager": "pnpm",
+    "buildTool": "turborepo"
+  },
+  "apps": {
+    "api": {
+      "path": "apps/api",
+      "name": "@vitalcv/api",
+      "type": "backend",
+      "entrypoint": "apps/api/api/src/server.ts",
+      "packageJson": "apps/api/package.json"
+    },
+    "web": {
+      "path": "apps/web",
+      "name": "@vitalcv/web",
+      "type": "frontend",
+      "entrypoint": "apps/web/app",
+      "packageJson": "apps/web/package.json",
+      "framework": "nextjs"
+    },
+    "issuer-api": {
+      "path": "apps/issuer-api",
+      "name": "@vitalcv/issuer-api",
+      "type": "backend",
+      "entrypoint": "apps/issuer-api/src/index.ts"
+    },
+    "verifier-api": {
+      "path": "apps/verifier-api",
+      "name": "@vitalcv/verifier-api",
+      "type": "backend",
+      "entrypoint": "apps/verifier-api/src/index.ts"
+    }
+  },
+  "packages": {
+    "shared-utils": {
+      "path": "packages/shared-utils",
+      "status": "planned",
+      "description": "Shared utilities and helpers"
+    },
+    "vc-schemas": {
+      "path": "packages/vc-schemas",
+      "status": "exists",
+      "description": "Verifiable Credential schemas"
+    },
+    "compliance-core": {
+      "path": "packages/compliance-core",
+      "status": "planned",
+      "description": "Compliance and regulatory logic"
+    },
+    "psv-pipeline": {
+      "path": "packages/psv-pipeline",
+      "status": "planned",
+      "description": "Provider Screening and Verification"
+    },
+    "ai-engines": {
+      "path": "packages/ai-engines",
+      "status": "planned",
+      "description": "AI/ML engines"
+    },
+    "ui": {
+      "path": "packages/ui",
+      "status": "planned",
+      "description": "Shared UI components"
+    }
+  },
+  "services": {
+    "path": "services",
+    "description": "Shared services used across apps"
+  },
+  "blockchain": {
+    "path": "blockchain",
+    "description": "Substrate/blockchain integration",
+    "status": "migrated"
+  },
+  "config": {
+    "tsconfig": "tsconfig.base.json",
+    "turbo": "turbo.json",
+    "workspace": "pnpm-workspace.yaml",
+    "rootPackage": "package.json"
+  }
+}
+

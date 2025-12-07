@@ -1,0 +1,28 @@
+{
+  "name": "@chai-vc/public-api-client",
+  "version": "1.0.0",
+  "description": "TypeScript client library for Chai VC Platform Public API",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest"
+  },
+  "keywords": [
+    "chai-vc",
+    "public-api",
+    "graphql",
+    "client"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
+

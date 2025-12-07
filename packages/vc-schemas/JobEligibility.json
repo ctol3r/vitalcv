@@ -1,0 +1,246 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://vitalcv.com/schemas/JobEligibility/v1",
+  "title": "JobEligibility Verifiable Credential",
+  "description": "B132A-VC-011: Job eligibility VC schema with license, board certification, and telehealth eligibility",
+  "type": "object",
+  "required": [
+    "@context",
+    "type",
+    "issuer",
+    "issuanceDate",
+    "credentialSubject",
+    "proof"
+  ],
+  "properties": {
+    "@context": {
+      "type": "array",
+      "items": [
+        {
+          "const": "https://www.w3.org/2018/credentials/v1"
+        },
+        {
+          "const": "https://vitalcv.com/contexts/JobEligibility/v1"
+        }
+      ],
+      "minItems": 2
+    },
+    "type": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "contains": {
+        "const": "JobEligibilityCredential"
+      }
+    },
+    "issuer": {
+      "type": "string",
+      "format": "uri",
+      "description": "DID of the issuer (VitalCV platform)"
+    },
+    "issuanceDate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expirationDate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "credentialSubject": {
+      "type": "object",
+      "required": [
+        "id",
+        "jobId",
+        "specialty",
+        "licenses",
+        "eligibilityStatus"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uri",
+          "description": "DID of the clinician"
+        },
+        "jobId": {
+          "type": "string",
+          "description": "ID of the job this eligibility is for"
+        },
+        "specialty": {
+          "type": "object",
+          "required": ["code", "system"],
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "Specialty taxonomy code (e.g., NUCC)"
+            },
+            "system": {
+              "type": "string",
+              "description": "Coding system (e.g., http://nucc.org/provider-taxonomy)"
+            },
+            "display": {
+              "type": "string",
+              "description": "Human-readable specialty name"
+            }
+          }
+        },
+        "licenses": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["state", "licenseNumber", "status"],
+            "properties": {
+              "state": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 2,
+                "description": "Two-letter state code"
+              },
+              "licenseNumber": {
+                "type": "string",
+                "description": "Medical license number"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["active", "inactive", "suspended"],
+                "description": "License status"
+              },
+              "issueDate": {
+                "type": "string",
+                "format": "date"
+              },
+              "expirationDate": {
+                "type": "string",
+                "format": "date"
+              },
+              "verificationDate": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When this license was last verified"
+              }
+            }
+          }
+        },
+        "boardCertifications": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["specialty", "board", "status"],
+            "properties": {
+              "specialty": {
+                "type": "string",
+                "description": "Board certified specialty"
+              },
+              "board": {
+                "type": "string",
+                "description": "Certifying board (e.g., ABMS)"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["certified", "eligible", "expired"],
+                "description": "Certification status"
+              },
+              "certificationDate": {
+                "type": "string",
+                "format": "date"
+              },
+              "expirationDate": {
+                "type": "string",
+                "format": "date"
+              }
+            }
+          }
+        },
+        "telehealthEligibility": {
+          "type": "object",
+          "required": ["eligible", "method"],
+          "properties": {
+            "eligible": {
+              "type": "boolean",
+              "description": "Whether clinician is eligible for telehealth in required states"
+            },
+            "method": {
+              "type": "string",
+              "enum": ["direct", "imlc", "multi-state", "not-eligible"],
+              "description": "How telehealth eligibility is achieved"
+            },
+            "imlcMember": {
+              "type": "boolean",
+              "description": "Whether clinician has IMLC membership"
+            },
+            "coveredStates": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 2
+              },
+              "description": "States covered for telehealth practice"
+            }
+          }
+        },
+        "eligibilityStatus": {
+          "type": "string",
+          "enum": ["eligible", "partially-eligible", "not-eligible"],
+          "description": "Overall eligibility status for the job"
+        },
+        "eligibilityScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Normalized eligibility score (0-1)"
+        },
+        "matchReasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Reasons for eligibility decision"
+        },
+        "verificationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When eligibility was verified"
+        },
+        "evidenceReferences": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          },
+          "description": "References to underlying evidence VCs"
+        }
+      }
+    },
+    "proof": {
+      "type": "object",
+      "required": ["type", "created", "proofPurpose", "verificationMethod"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["Ed25519Signature2020", "JsonWebSignature2020", "BbsBlsSignature2020"]
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "proofPurpose": {
+          "type": "string",
+          "const": "assertionMethod"
+        },
+        "verificationMethod": {
+          "type": "string",
+          "format": "uri"
+        },
+        "proofValue": {
+          "type": "string"
+        },
+        "jws": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
+

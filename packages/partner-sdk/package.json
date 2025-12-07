@@ -1,0 +1,42 @@
+{
+  "name": "@vitalcv/partner-sdk",
+  "version": "0.1.0-pilot",
+  "description": "Official SDK for verifying VitalCV credentials (server-side)",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "test": "jest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "vitalcv",
+    "verifiable-credentials",
+    "healthcare",
+    "npi",
+    "verification",
+    "ed25519",
+    "sdk"
+  ],
+  "author": "VitalCV Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vitalcv/partner-sdk"
+  },
+  "dependencies": {
+    "tweetnacl": "^1.0.3",
+    "@chai-vc/generated-api-types": "workspace:*",
+    "@chai-vc/metrics-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0",
+    "jest": "^29.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ]
+}

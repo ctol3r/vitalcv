@@ -1,0 +1,86 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "EnableAccountRoot",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::{{ACCOUNT_ID}}:root"
+      },
+      "Action": "kms:*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowRegionalDeployers",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": [
+          "arn:aws:iam::{{ACCOUNT_ID}}:role/VitalCVUsWestSigner",
+          "arn:aws:iam::{{ACCOUNT_ID}}:role/VitalCVUsEastSigner",
+          "arn:aws:iam::{{ACCOUNT_ID}}:role/VitalCVEuCentralSigner"
+        ]
+      },
+      "Action": [
+        "kms:DescribeKey",
+        "kms:CreateGrant",
+        "kms:ListKeys",
+        "kms:ListAliases",
+        "kms:Encrypt",
+        "kms:Decrypt",
+        "kms:Sign",
+        "kms:Verify"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "kms:ViaService": [
+            "ec2.us-west-2.amazonaws.com",
+            "ec2.us-east-1.amazonaws.com",
+            "ec2.eu-central-1.amazonaws.com"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "ReplicationAndRotation",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::{{ACCOUNT_ID}}:role/VitalCVKMSReplicator"
+      },
+      "Action": [
+        "kms:ReplicateKey",
+        "kms:UpdatePrimaryRegion",
+        "kms:ScheduleKeyDeletion",
+        "kms:CancelKeyDeletion",
+        "kms:EnableKeyRotation",
+        "kms:DisableKeyRotation",
+        "kms:CreateKey"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "RotationObservers",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": [
+          "arn:aws:iam::{{ACCOUNT_ID}}:role/VitalCVSecurityAudit"
+        ]
+      },
+      "Action": [
+        "kms:DescribeKey",
+        "kms:GetKeyRotationStatus",
+        "kms:ListResourceTags"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+
+
+
+
+
+
+
+
+

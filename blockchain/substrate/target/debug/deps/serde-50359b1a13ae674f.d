@@ -1,0 +1,14 @@
+/Users/christoler/chai-vc-platform/substrate/target/debug/deps/serde-50359b1a13ae674f.d: /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.225/src/lib.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.225/src/integer128.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.225/src/private/mod.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.225/src/private/de.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.225/src/private/ser.rs /Users/christoler/chai-vc-platform/substrate/target/debug/build/serde-af7c49d49104a2b9/out/private.rs
+
+/Users/christoler/chai-vc-platform/substrate/target/debug/deps/libserde-50359b1a13ae674f.rlib: /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.225/src/lib.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.225/src/integer128.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.225/src/private/mod.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.225/src/private/de.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.225/src/private/ser.rs /Users/christoler/chai-vc-platform/substrate/target/debug/build/serde-af7c49d49104a2b9/out/private.rs
+
+/Users/christoler/chai-vc-platform/substrate/target/debug/deps/libserde-50359b1a13ae674f.rmeta: /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.225/src/lib.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.225/src/integer128.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.225/src/private/mod.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.225/src/private/de.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.225/src/private/ser.rs /Users/christoler/chai-vc-platform/substrate/target/debug/build/serde-af7c49d49104a2b9/out/private.rs
+
+/Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.225/src/lib.rs:
+/Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.225/src/integer128.rs:
+/Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.225/src/private/mod.rs:
+/Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.225/src/private/de.rs:
+/Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.225/src/private/ser.rs:
+/Users/christoler/chai-vc-platform/substrate/target/debug/build/serde-af7c49d49104a2b9/out/private.rs:
+
+# env-dep:OUT_DIR=/Users/christoler/chai-vc-platform/substrate/target/debug/build/serde-af7c49d49104a2b9/out

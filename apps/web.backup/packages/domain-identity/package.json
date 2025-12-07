@@ -1,0 +1,15 @@
+{
+  "name": "@chai-vc/domain-identity",
+  "version": "1.0.0",
+  "description": "Identity layer helpers for DID resolution and credential signing.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b tsconfig.json"
+  },
+  "dependencies": {
+    "@noble/ed25519": "^2.1.0",
+    "@prisma/client": "^5.7.0"
+  }
+}
+

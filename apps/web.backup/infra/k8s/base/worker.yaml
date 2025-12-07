@@ -1,0 +1,125 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: chai-vc-platform
+  labels:
+    app: worker
+    tier: async
+    environment: stage
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+        tier: async
+        environment: stage
+    spec:
+      containers:
+        - name: worker
+          image: ghcr.io/vitalcv/build-artifacts/worker:${BUILD_SHA}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: platform-config
+            - secretRef:
+                name: platform-secrets
+          env:
+            - name: WORKER_MODE
+              value: queue
+          readinessProbe:
+            httpGet:
+              path: /healthz/readiness
+              port: metrics
+            periodSeconds: 10
+            initialDelaySeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pgrep -f "node.*worker" >/dev/null
+            periodSeconds: 30
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+        - name: fluent-bit
+          image: grafana/fluent-bit-plugin-loki:2.9.4
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          envFrom:
+            - secretRef:
+                name: loki-writer
+          ports:
+            - name: logs
+              containerPort: 2020
+              protocol: TCP
+          volumeMounts:
+            - name: fluentbit-config
+              mountPath: /fluent-bit/etc
+            - name: varlog
+              mountPath: /var/log/containers
+              readOnly: true
+            - name: fluentbit-buffer
+              mountPath: /fluent-bit/tail
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+      volumes:
+        - name: fluentbit-config
+          configMap:
+            name: worker-fluent-bit-config
+        - name: varlog
+          hostPath:
+            path: /var/log/containers
+            type: Directory
+        - name: fluentbit-buffer
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker
+  namespace: chai-vc-platform
+  labels:
+    app: worker
+    environment: stage
+spec:
+  type: ClusterIP
+  selector:
+    app: worker
+  ports:
+    - name: metrics
+      port: 9090
+      targetPort: metrics
+      protocol: TCP
+

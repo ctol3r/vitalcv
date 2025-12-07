@@ -1,0 +1,100 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.vitalcv.com/schemas/ClinicianIdentityVC.json",
+  "title": "Clinician Identity Verifiable Credential",
+  "description": "Basic identity credential for healthcare clinicians. Contains verified identity information including name, NPI, and specialty.",
+  "type": "object",
+  "properties": {
+    "@context": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "JSON-LD context for the credential",
+      "minItems": 1
+    },
+    "id": {
+      "type": "string",
+      "format": "uri",
+      "description": "Unique identifier for this credential"
+    },
+    "type": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Credential types, must include 'VerifiableCredential' and 'ClinicianIdentityCredential'",
+      "minItems": 2
+    },
+    "issuer": {
+      "type": ["string", "object"],
+      "description": "DID or object representing the credential issuer"
+    },
+    "issuanceDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 date-time when the credential was issued"
+    },
+    "expirationDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 date-time when the credential expires (optional)"
+    },
+    "credentialSubject": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uri",
+          "description": "DID of the credential subject (clinician)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Full name of the clinician",
+          "minLength": 1
+        },
+        "npi": {
+          "type": "string",
+          "pattern": "^[0-9]{10}$",
+          "description": "National Provider Identifier (10 digits)"
+        },
+        "specialty": {
+          "type": "string",
+          "description": "Primary medical specialty",
+          "minLength": 1
+        }
+      },
+      "required": ["id", "name", "npi", "specialty"]
+    },
+    "proof": {
+      "type": "object",
+      "description": "Cryptographic proof of the credential (e.g., JWS signature)"
+    }
+  },
+  "required": [
+    "@context",
+    "id",
+    "type",
+    "issuer",
+    "issuanceDate",
+    "credentialSubject"
+  ],
+  "examples": [
+    {
+      "@context": [
+        "https://www.w3.org/2018/credentials/v1"
+      ],
+      "id": "https://api.vitalcv.com/credentials/clinician/550e8400-e29b-41d4-a716-446655440000",
+      "type": ["VerifiableCredential", "ClinicianIdentityCredential"],
+      "issuer": "did:web:issuer.vitalcv.com",
+      "issuanceDate": "2025-11-13T00:00:00Z",
+      "credentialSubject": {
+        "id": "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
+        "name": "Dr. Jane Smith",
+        "npi": "1234567890",
+        "specialty": "Cardiology"
+      }
+    }
+  ]
+}
+

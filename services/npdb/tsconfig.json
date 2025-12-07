@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./",
+    "outDir": "../../dist/services/npdb",
+    "tsBuildInfoFile": "../../build-info/services-npdb.tsbuildinfo"
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist", "**/__tests__/**/*", "**/*.spec.ts"]
+}

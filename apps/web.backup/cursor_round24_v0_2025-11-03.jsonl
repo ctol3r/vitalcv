@@ -1,0 +1,7 @@
+{"title":"Traffic panel (Geo + region policy)","files":[{"path":"app/admin/traffic/page.tsx","action":"write","note":"Displays traffic policy from backend"}]}
+{"title":"Read-replica badge (from /aa/health headers)","files":[{"path":"app/components/ReplicaBadge.tsx","action":"write","note":"Shows database role badge"}]}
+{"title":"Upgrade flow UI (preview → commit)","files":[{"path":"app/customer/upgrade/page.tsx","action":"write","note":"Pro-rated upgrade preview and commit UI"}]}
+{"title":"Invoice HTML preview link","files":[{"path":"app/customer/invoice/page.tsx","action":"write","note":"Opens /billing/invoice/pdf in new tab"}]}
+{"title":"Header: show sticky + geo country tiny tooltips","files":[{"path":"app/components/StickyGeo.tsx","action":"write","note":"Shows geo country badge from x-geo-country header"},{"path":"components/layout/Header.tsx","action":"patch","note":"Added ReplicaBadge and StickyGeo badges"}]}
+{"title":"Nav updates","files":[{"path":"components/layout/Header.tsx","action":"patch","note":"Added links to /admin/traffic, /customer/upgrade, /customer/invoice"}]}
+

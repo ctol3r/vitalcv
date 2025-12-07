@@ -1,0 +1,65 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020", "DOM", "DOM.Iterable", "ESNext"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "rootDirs": ["src", "services", "packages", "lib"],
+    "types": ["node", "@jest/globals"],
+    "typeRoots": [
+      "./types",
+      "./node_modules/@types"
+    ],
+    "incremental": true,
+    "composite": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "paths": {
+      "@api/*": ["apps/api/src/*"],
+      "@web/*": ["apps/web/src/*", "apps/web/app/*"],
+      "@packages/*": ["packages/*/src", "packages/*"],
+      "@schemas/*": ["packages/vc-schemas/src/*"],
+      "@shared-utils/*": ["packages/shared-utils/src/*"],
+      "@compliance-core/*": ["packages/compliance-core/src/*"],
+      "@psv-pipeline/*": ["packages/psv-pipeline/src/*"],
+      "@ai-engines/*": ["packages/ai-engines/src/*"],
+      "@ui/*": ["packages/ui/src/*"],
+      "@apps/*": ["apps/*", "apps/*/src"],
+      "@backend/*": ["apps/api/src/*"],
+      "@config": ["config"],
+      "@config/*": ["config/*"],
+      "@domain/*": [
+        "packages/domain-*",
+        "packages/domain-*/src",
+        "packages/domain-*/src/index.ts",
+        "services/*/src",
+        "services/*"
+      ],
+      "@domain-common/*": ["packages/domain-common/*", "packages/domain-common/src/*"],
+      "@events": ["packages/event-core/src", "packages/event-core"],
+      "@events/*": ["packages/event-core/src/*"],
+      "@generated": ["packages/generated-api-types/src"],
+      "@generated/*": ["packages/generated-api-types/src/*"],
+      "@lib/*": ["lib/*"],
+      "@queue": ["packages/queue-core/src", "packages/queue-core"],
+      "@queue/*": ["packages/queue-core/src/*"],
+      "@root/*": ["./*"],
+      "@jest/globals": ["types/@jest/globals/index"],
+      "apps/*": ["apps/*/src"],
+      "backend/*": ["apps/api/*"],
+      "backend/src/*": ["apps/api/src/*"],
+      "controllers/*": ["apps/api/src/controllers/*"],
+      "packages/*": ["packages/*/src", "packages/*"],
+      "services/*": ["services/*"],
+      "src/*": ["src/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist", "build", ".next"]
+}
+

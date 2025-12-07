@@ -1,0 +1,40 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "../../dist/packages/metrics-core",
+    "tsBuildInfoFile": "../../build-info/packages-metrics-core.tsbuildinfo",
+    "composite": true
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/__tests__/**/*",
+    "**/*.spec.ts"
+  ]
+}
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "../../dist/packages/metrics-core",
+    "tsBuildInfoFile": "../../dist/.tsbuildinfo/packages-metrics-core.tsbuildinfo",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/__tests__/**/*",
+    "**/*.spec.ts",
+    "**/*.test.ts"
+  ]
+}
+

@@ -1,0 +1,30 @@
+{
+  "name": "vitalcv-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VitalCV Healthcare Credentialing Platform Monorepo",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "format": "turbo run format",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "scan:imports": "tsx scripts/scan-imports.ts",
+    "scan:compliance": "tsx scripts/scan-compliance.ts",
+    "cleanup:legacy": "bash scripts/cleanup-legacy.sh",
+    "verify:build": "bash scripts/verify-build.sh"
+  },
+  "devDependencies": {
+    "turbo": "^2.1.3",
+    "typescript": "^5.4.5",
+    "tsx": "^4.7.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}
+

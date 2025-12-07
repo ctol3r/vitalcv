@@ -1,0 +1,189 @@
+.svgContainer {
+  min-height: 500px;
+}
+
+/* Node text colors by type */
+.nodeText[data-node-type='root-cause'] {
+  fill: #78350f; /* amber-900 */
+}
+
+.nodeText[data-node-type='intermediate'] {
+  fill: #312e81; /* indigo-900 */
+}
+
+.nodeText[data-node-type='event'] {
+  fill: #7f1d1d; /* red-900 */
+}
+
+.nodeText[data-node-type='remediation'] {
+  fill: #064e3b; /* emerald-900 */
+}
+
+/* Node rectangles by type */
+.nodeRect[data-node-type='root-cause'] {
+  fill: #fef3c7; /* amber-100 */
+  stroke: #f59e0b; /* amber-500 */
+}
+
+.nodeRect[data-node-type='intermediate'] {
+  fill: #e0e7ff; /* indigo-100 */
+  stroke: #6366f1; /* indigo-500 */
+}
+
+.nodeRect[data-node-type='event'] {
+  fill: #fee2e2; /* red-100 */
+  stroke: #ef4444; /* red-500 */
+}
+
+.nodeRect[data-node-type='remediation'] {
+  fill: #d1fae5; /* emerald-100 */
+  stroke: #10b981; /* emerald-500 */
+}
+
+.nodeRect {
+  stroke-width: 2;
+  stroke-opacity: 0.7;
+  transition: all 0.2s;
+}
+
+.nodeRect[data-selected='true'] {
+  stroke: #ea580c;
+  stroke-width: 4;
+  stroke-opacity: 1;
+}
+
+.nodeRect[data-hovered='true']:not([data-selected='true']) {
+  stroke-width: 3;
+  stroke-opacity: 1;
+}
+
+/* Confidence circle colors */
+.confidenceCircle[data-confidence='high'] {
+  fill: #10b981; /* emerald-500 */
+}
+
+.confidenceCircle[data-confidence='medium'] {
+  fill: #f59e0b; /* amber-500 */
+}
+
+.confidenceCircle[data-confidence='low'] {
+  fill: #ef4444; /* red-500 */
+}
+
+.confidenceCircle {
+  stroke: white;
+  stroke-width: 1.5;
+}
+
+/* Edge lines by strength */
+.edgeLine[data-strength='strong'] {
+  stroke: #3b82f6;
+  stroke-width: 3;
+}
+
+.edgeLine[data-strength='moderate'] {
+  stroke: #60a5fa;
+  stroke-width: 2;
+}
+
+.edgeLine[data-strength='weak'] {
+  stroke: #93c5fd;
+  stroke-width: 1.5;
+}
+
+.edgeLine {
+  stroke-opacity: 0.6;
+  transition: all 0.2s;
+}
+
+.edgeLine[data-hovered='true'] {
+  stroke-opacity: 0.9;
+}
+
+.edgeLine[data-strength='strong'][data-hovered='true'] {
+  stroke-width: 4;
+}
+
+.edgeLine[data-strength='moderate'][data-hovered='true'] {
+  stroke-width: 3;
+}
+
+.edgeLine[data-strength='weak'][data-hovered='true'] {
+  stroke-width: 2.5;
+}
+
+/* Legend node indicators by type */
+.legendNodeIndicator[data-node-type='root-cause'] {
+  background-color: #fef3c7; /* amber-100 */
+  border-color: #f59e0b; /* amber-500 */
+}
+
+.legendNodeIndicator[data-node-type='intermediate'] {
+  background-color: #e0e7ff; /* indigo-100 */
+  border-color: #6366f1; /* indigo-500 */
+}
+
+.legendNodeIndicator[data-node-type='event'] {
+  background-color: #fee2e2; /* red-100 */
+  border-color: #ef4444; /* red-500 */
+}
+
+.legendNodeIndicator[data-node-type='remediation'] {
+  background-color: #d1fae5; /* emerald-100 */
+  border-color: #10b981; /* emerald-500 */
+}
+
+.legendNodeIndicator {
+  height: 1rem;
+  width: 1rem;
+  border-radius: 0.25rem;
+  border-width: 2px;
+}
+
+/* Legend edge indicators by strength */
+.legendEdgeIndicator[data-edge-strength='strong'] {
+  background-color: #3b82f6;
+  height: 3px;
+}
+
+.legendEdgeIndicator[data-edge-strength='moderate'] {
+  background-color: #60a5fa;
+  height: 2px;
+}
+
+.legendEdgeIndicator[data-edge-strength='weak'] {
+  background-color: #93c5fd;
+  height: 1.5px;
+}
+
+.legendEdgeIndicator {
+  width: 2rem;
+}
+
+/* Container for SVG diagram */
+.diagramContainer {
+  position: relative;
+  border-radius: 0.5rem;
+  border: 1px solid;
+  background-color: rgb(248 250 252);
+  padding: 1rem;
+}
+
+/* Node text styling */
+.nodeLabelText {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Legend container */
+.legendContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid;
+  background-color: hsl(var(--card));
+  padding: 1rem;
+  font-size: 0.75rem;
+}
+

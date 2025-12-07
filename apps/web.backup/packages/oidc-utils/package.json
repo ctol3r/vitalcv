@@ -1,0 +1,43 @@
+{
+  "name": "@chai-vc/oidc-utils",
+  "version": "1.0.0",
+  "description": "OIDC helper utilities (DPoP, proof validation, middleware).",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b tsconfig.json"
+  },
+  "dependencies": {
+    "@chai-vc/metrics-core": "workspace:*",
+    "jose": "^6.1.0"
+  }
+}
+
+{
+  "name": "@vitalcv/oidc-utils",
+  "version": "0.2.0",
+  "description": "OIDC helper utilities for VitalCV (DPoP, nonce, introspection)",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest"
+  },
+  "keywords": [
+    "oidc",
+    "dpop",
+    "oauth",
+    "vitalcv"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@vitalcv/metrics-core": "file:../metrics-core",
+    "jose": "^6.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.0"
+  }
+}
+

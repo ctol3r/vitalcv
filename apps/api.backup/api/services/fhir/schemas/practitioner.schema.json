@@ -1,0 +1,161 @@
+{
+  "$id": "https://schemas.vitalcv.health/fhir/r6/practitioner",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FHIR R6 Practitioner (Minimal Subset)",
+  "type": "object",
+  "required": [
+    "resourceType",
+    "id",
+    "identifier",
+    "name",
+    "telecom",
+    "address",
+    "qualification"
+  ],
+  "properties": {
+    "resourceType": {
+      "const": "Practitioner"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "active": {
+      "type": "boolean"
+    },
+    "identifier": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["system", "value"],
+        "properties": {
+          "system": { "type": "string", "minLength": 1 },
+          "value": { "type": "string", "minLength": 1 },
+          "type": {
+            "type": "object",
+            "properties": {
+              "coding": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["system", "code"],
+                  "properties": {
+                    "system": { "type": "string" },
+                    "code": { "type": "string" },
+                    "display": { "type": "string" }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "name": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["family", "given"],
+        "properties": {
+          "use": { "type": "string" },
+          "family": { "type": "string", "minLength": 1 },
+          "given": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "prefix": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "suffix": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "telecom": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["system", "value"],
+        "properties": {
+          "system": { "type": "string" },
+          "value": { "type": "string" },
+          "use": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "address": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "city": { "type": "string" },
+          "district": { "type": "string" },
+          "state": { "type": "string" },
+          "postalCode": { "type": "string" },
+          "country": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "qualification": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["code"],
+        "properties": {
+          "code": {
+            "type": "object",
+            "required": ["coding"],
+            "properties": {
+              "coding": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": ["system", "code"],
+                  "properties": {
+                    "system": { "type": "string" },
+                    "code": { "type": "string" },
+                    "display": { "type": "string" }
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "text": { "type": "string" }
+            },
+            "additionalProperties": true
+          },
+          "issuer": {
+            "type": "object",
+            "properties": {
+              "display": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}
+
+

@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - packages/*
+  - backend
+  - contracts
+  - credential-demo
+  - fhir-bridge
+  - trusted-node
+  - vitalcv
+  - zk-sample
+

@@ -1,0 +1,88 @@
+# Fastfile
+# Batch 542 - Task 57
+# Release Fastlane pipeline
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Build for TestFlight"
+  lane :testflight do
+    increment_build_number
+    build_app(
+      scheme: "VitalCVWallet",
+      export_method: "app-store",
+      export_options: {
+        method: "app-store",
+        provisioningProfiles: {
+          "com.vitalcv.wallet" => "match AppStore com.vitalcv.wallet"
+        }
+      }
+    )
+    upload_to_testflight(
+      skip_waiting_for_build_processing: false,
+      skip_submission: false,
+      distribute_external: false,
+      notify_external_testers: false
+    )
+  end
+
+  desc "Build for App Store"
+  lane :release do
+    increment_build_number
+    build_app(
+      scheme: "VitalCVWallet",
+      export_method: "app-store"
+    )
+    upload_to_app_store(
+      force: true,
+      submit_for_review: false,
+      automatic_release: false
+    )
+  end
+
+  desc "Build dev flavor"
+  lane :dev do
+    # Task 58: Build flavors: dev/stage/prod
+    build_app(
+      scheme: "VitalCVWallet-Dev",
+      configuration: "Debug"
+    )
+  end
+
+  desc "Build stage flavor"
+  lane :stage do
+    build_app(
+      scheme: "VitalCVWallet-Stage",
+      configuration: "Release"
+    )
+  end
+
+  desc "Build prod flavor"
+  lane :prod do
+    build_app(
+      scheme: "VitalCVWallet",
+      configuration: "Release"
+    )
+  end
+
+  desc "Automate bundle identifier"
+  lane :setup_bundle_ids do
+    # Task 59: Bundle identifier automation
+    ensure_env_vars(env_vars: ['BUNDLE_ID'])
+
+    # Update bundle identifier in project
+    update_app_identifier(
+      xcodeproj: "VitalCVWallet.xcodeproj",
+      plist_path: "VitalCVWallet/Info.plist",
+      app_identifier: ENV['BUNDLE_ID']
+    )
+  end
+end
+
+
+
+
+
+
+
+

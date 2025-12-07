@@ -1,0 +1,453 @@
+openapi: 3.0.3
+info:
+  title: VitalCV Issuer API
+  description: |
+    OIDC4VCI-compliant credential issuance API for VitalCV platform.
+    Supports SD-JWT VC, W3C VC, and ISO mDL credential formats.
+  version: 1.0.0
+  contact:
+    name: VitalCV API Support
+    url: https://vitalcv.ai/support
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://vitalcv.ai/oidc4vci
+    description: Production server
+  - url: http://localhost:4000/oidc4vci
+    description: Development server
+  - url: https://stoplight.io/mocks/vitalcv/issuer-api/1.0.0
+    description: Mock server (Try It Out)
+    x-try-it-out: true
+
+tags:
+  - name: Metadata
+    description: Issuer metadata and discovery endpoints
+  - name: Credentials
+    description: Credential issuance endpoints
+  - name: Tokens
+    description: OAuth2 token endpoints
+
+paths:
+  /.well-known/openid-credential-issuer:
+    get:
+      tags:
+        - Metadata
+      summary: Get issuer metadata
+      description: |
+        Returns OIDC4VCI-compliant issuer metadata including supported credential formats,
+        endpoints, and cryptographic binding methods.
+      operationId: getIssuerMetadata
+      responses:
+        '200':
+          description: Issuer metadata
+          headers:
+            ETag:
+              description: Entity tag for cache validation
+              schema:
+                type: string
+                example: "W/\"abc123\""
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssuerMetadata'
+              examples:
+                default:
+                  summary: Standard issuer metadata
+                  value:
+                    credential_issuer: "https://vitalcv.ai/oidc4vci"
+                    credential_endpoint: "https://vitalcv.ai/oidc4vci/credential"
+                    token_endpoint: "https://vitalcv.ai/oidc4vci/token"
+                    deferred_credential_endpoint: "https://vitalcv.ai/oidc4vci/deferred"
+                    credential_response_encryption:
+                      alg_values_supported: ["RSA-OAEP", "RSA-OAEP-256"]
+                      enc_values_supported: ["A256GCM"]
+                    batch_credential_endpoint: "https://vitalcv.ai/oidc4vci/batch"
+                    credentials_supported:
+                      - format: "jwt_vc_json"
+                        id: "PhysicianCredential"
+                        types: ["VerifiableCredential", "PhysicianCredential"]
+                        cryptographic_binding_methods_supported: ["did:key", "did:web"]
+                        display:
+                          - name: "Physician Credential"
+                            locale: "en-US"
+                            description: "Verified physician credential"
+                            logo:
+                              url: "https://vitalcv.ai/logo.png"
+                              alt_text: "VitalCV Logo"
+        '304':
+          description: Not modified (if ETag matches)
+
+  /token:
+    post:
+      tags:
+        - Tokens
+      summary: Request access token
+      description: |
+        OAuth2 token endpoint for credential issuance. Supports authorization_code
+        and pre-authorized_code grant types.
+      operationId: requestToken
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRequest'
+            examples:
+              authorization_code:
+                summary: Authorization code grant
+                value:
+                  grant_type: "authorization_code"
+                  code: "abc123def456"
+                  redirect_uri: "https://wallet.example.com/callback"
+                  client_id: "wallet-client-123"
+              pre_authorized:
+                summary: Pre-authorized code grant
+                value:
+                  grant_type: "urn:ietf:params:oauth:grant-type:pre-authorized_code"
+                  "pre-authorized_code": "preauth123"
+                  pin: "1234"
+      responses:
+        '200':
+          description: Access token response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+              examples:
+                success:
+                  summary: Successful token response
+                  value:
+                    access_token: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    token_type: "Bearer"
+                    expires_in: 3600
+                    c_nonce: "nonce123"
+                    c_nonce_expires_in: 300
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_grant:
+                  summary: Invalid grant
+                  value:
+                    error: "invalid_grant"
+                    error_description: "The provided authorization code is invalid or expired"
+
+  /credential:
+    post:
+      tags:
+        - Credentials
+      summary: Request credential
+      description: |
+        Request issuance of a verifiable credential. Supports multiple formats
+        including SD-JWT VC, W3C VC, and ISO mDL.
+      operationId: requestCredential
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CredentialRequest'
+            examples:
+              physician_credential:
+                summary: Request physician credential
+                value:
+                  format: "jwt_vc_json"
+                  credential_definition_id: "PhysicianCredential"
+                  proof:
+                    proof_type: "jwt"
+                    jwt: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+              sd_jwt_vc:
+                summary: Request SD-JWT VC credential
+                value:
+                  format: "vc+sd-jwt"
+                  credential_definition_id: "PhysicianCredential"
+                  proof:
+                    proof_type: "jwt"
+                    jwt: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+      responses:
+        '200':
+          description: Credential issued successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialResponse'
+              examples:
+                jwt_vc:
+                  summary: JWT VC credential
+                  value:
+                    format: "jwt_vc_json"
+                    credential: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2YyI6eyJAY29udGV4dCI6WyJodHRwczovL3d3dy53My5vcmcvMjAxOC9jcmVkZW50aWFscy92MSJdLCJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIiwiUGh5c2ljaWFuQ3JlZGVudGlhbCJdLCJjcmVkZW50aWFsU3ViamVjdCI6eyJucGkiOiIxODAxOTIxMTQ4IiwiY3JlZGVudGlhbCI6Ik1EIiwibGljZW5zZVN0YXRlIjoiQ0EifX0sImlzcyI6ImRpZDp3ZWI6dml0YWxjdi5haSIsImV4cCI6MTczNTg0ODAwMCwiaWF0IjoxNzM1ODQ0ODAwfQ.signature"
+                    c_nonce: "nonce456"
+                    c_nonce_expires_in: 300
+                deferred:
+                  summary: Deferred credential (processing)
+                  value:
+                    transaction_id: "txn-123-456"
+                    format: "jwt_vc_json"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /deferred:
+    post:
+      tags:
+        - Credentials
+      summary: Check deferred credential status
+      description: |
+        Check the status of a deferred credential issuance request.
+      operationId: checkDeferredCredential
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - transaction_id
+              properties:
+                transaction_id:
+                  type: string
+                  description: Transaction ID from deferred credential response
+                  example: "txn-123-456"
+            examples:
+              check_status:
+                summary: Check deferred credential status
+                value:
+                  transaction_id: "txn-123-456"
+      responses:
+        '200':
+          description: Credential status response
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/CredentialResponse'
+                  - type: object
+                    properties:
+                      transaction_id:
+                        type: string
+                      status:
+                        type: string
+                        enum: ["requested", "ready", "issued"]
+              examples:
+                ready:
+                  summary: Credential ready
+                  value:
+                    transaction_id: "txn-123-456"
+                    status: "ready"
+                    format: "jwt_vc_json"
+                    credential: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+                processing:
+                  summary: Still processing
+                  value:
+                    transaction_id: "txn-123-456"
+                    status: "requested"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    IssuerMetadata:
+      type: object
+      required:
+        - credential_issuer
+        - credential_endpoint
+        - token_endpoint
+        - credentials_supported
+      properties:
+        credential_issuer:
+          type: string
+          format: uri
+          example: "https://vitalcv.ai/oidc4vci"
+        credential_endpoint:
+          type: string
+          format: uri
+          example: "https://vitalcv.ai/oidc4vci/credential"
+        token_endpoint:
+          type: string
+          format: uri
+          example: "https://vitalcv.ai/oidc4vci/token"
+        deferred_credential_endpoint:
+          type: string
+          format: uri
+          example: "https://vitalcv.ai/oidc4vci/deferred"
+        credential_response_encryption:
+          type: object
+          properties:
+            alg_values_supported:
+              type: array
+              items:
+                type: string
+            enc_values_supported:
+              type: array
+              items:
+                type: string
+        batch_credential_endpoint:
+          type: string
+          format: uri
+        credentials_supported:
+          type: array
+          items:
+            $ref: '#/components/schemas/CredentialSupported'
+
+    CredentialSupported:
+      type: object
+      required:
+        - format
+        - id
+        - types
+      properties:
+        format:
+          type: string
+          enum: ["jwt_vc_json", "vc+sd-jwt", "ldp_vc", "mso_mdoc"]
+        id:
+          type: string
+        types:
+          type: array
+          items:
+            type: string
+        cryptographic_binding_methods_supported:
+          type: array
+          items:
+            type: string
+        display:
+          type: array
+          items:
+            $ref: '#/components/schemas/CredentialDisplay'
+
+    CredentialDisplay:
+      type: object
+      properties:
+        name:
+          type: string
+        locale:
+          type: string
+        description:
+          type: string
+        logo:
+          type: object
+          properties:
+            url:
+              type: string
+              format: uri
+            alt_text:
+              type: string
+
+    TokenRequest:
+      type: object
+      required:
+        - grant_type
+      properties:
+        grant_type:
+          type: string
+          enum: ["authorization_code", "urn:ietf:params:oauth:grant-type:pre-authorized_code"]
+        code:
+          type: string
+        redirect_uri:
+          type: string
+          format: uri
+        client_id:
+          type: string
+        "pre-authorized_code":
+          type: string
+        pin:
+          type: string
+
+    TokenResponse:
+      type: object
+      required:
+        - access_token
+        - token_type
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          example: "Bearer"
+        expires_in:
+          type: integer
+        c_nonce:
+          type: string
+        c_nonce_expires_in:
+          type: integer
+
+    CredentialRequest:
+      type: object
+      required:
+        - format
+        - credential_definition_id
+        - proof
+      properties:
+        format:
+          type: string
+          enum: ["jwt_vc_json", "vc+sd-jwt", "ldp_vc", "mso_mdoc"]
+        credential_definition_id:
+          type: string
+        proof:
+          $ref: '#/components/schemas/Proof'
+
+    Proof:
+      type: object
+      required:
+        - proof_type
+        - jwt
+      properties:
+        proof_type:
+          type: string
+          enum: ["jwt"]
+        jwt:
+          type: string
+          description: JWT proof of possession
+
+    CredentialResponse:
+      type: object
+      required:
+        - format
+      properties:
+        format:
+          type: string
+        credential:
+          type: string
+          description: The issued credential (format depends on format field)
+        transaction_id:
+          type: string
+          description: Transaction ID for deferred credentials
+        c_nonce:
+          type: string
+        c_nonce_expires_in:
+          type: integer
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+        error_description:
+          type: string
+        error_uri:
+          type: string
+          format: uri
+

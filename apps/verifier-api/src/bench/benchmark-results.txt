@@ -1,0 +1,41 @@
+🔬 Running SD vs CSD Benchmark...
+
+📊 License - Minimal Disclosure
+   SD:  1241 bytes
+   CSD: 266 bytes
+   Reduction: 78.6%
+
+📊 License - Full Disclosure
+   SD:  1235 bytes
+   CSD: 520 bytes
+   Reduction: 57.9%
+
+📊 Board - Minimal Disclosure
+   SD:  1234 bytes
+   CSD: 301 bytes
+   Reduction: 75.6%
+
+📊 Board - Full Disclosure
+   SD:  1229 bytes
+   CSD: 547 bytes
+   Reduction: 55.5%
+
+📊 Training - Minimal Disclosure
+   SD:  1290 bytes
+   CSD: 310 bytes
+   Reduction: 76.0%
+
+📊 Training - Full Disclosure
+   SD:  1284 bytes
+   CSD: 558 bytes
+   Reduction: 56.5%
+
+
+📈 Average VP Size Reduction: 66.7%
+🎯 Target: ≥40% reduction
+✅ PASS: Target met!
+
+✅ CSV written to: /Users/christoler/chai-vc-platform/apps/verifier-api/src/bench/sd-vs-csd-benchmark.csv
+✅ Grafana queries written to: /Users/christoler/chai-vc-platform/apps/verifier-api/src/bench/grafana-queries.txt
+
+✅ Benchmark passed!

@@ -1,0 +1,30 @@
+{
+  "buttons": {
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "update": "Update"
+  },
+  "forms": {
+    "required": "Required",
+    "optional": "Optional",
+    "submit": "Submit",
+    "reset": "Reset"
+  },
+  "tables": {
+    "noData": "No data available",
+    "loading": "Loading data...",
+    "rowsPerPage": "Rows per page",
+    "page": "Page",
+    "of": "of"
+  },
+  "modals": {
+    "close": "Close",
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  }
+}
+

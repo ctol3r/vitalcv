@@ -1,0 +1,5 @@
+{"title":"Press-ready Landing Page (animated hero)","files":[{"path":"app/page.tsx","action":"write","summary":"New landing page with animated hero, live code snippet that calls /solve, and demo reset button"}]}
+{"title":"OG/Twitter meta tags (head)","files":[{"path":"app/layout.tsx","action":"patch","summary":"Added Open Graph and Twitter card metadata in Next.js metadata export"}]}
+{"title":"Landing styles: subtle gradient & motion-safe","files":[{"path":"app/globals.css","action":"append","summary":"Added landing page gradient background and motion-safe animation rules"}]}
+{"title":"Admin: Demo Reset page","files":[{"path":"app/admin/demo-reset/page.tsx","action":"write","summary":"Admin interface for safely resetting demo data with visual feedback"}]}
+

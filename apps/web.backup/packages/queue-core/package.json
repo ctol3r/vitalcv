@@ -1,0 +1,16 @@
+{
+  "name": "@chai-vc/queue-core",
+  "version": "1.0.0",
+  "description": "Queue instrumentation helpers for chai-vc workers.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b tsconfig.json"
+  },
+  "dependencies": {
+    "@chai-vc/logging-core": "workspace:*",
+    "@opentelemetry/api": "^1.11.0"
+  }
+}
+
+

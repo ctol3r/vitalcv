@@ -1,0 +1,32 @@
+[package]
+name = "pallet-state-board"
+version = "0.1.0"
+edition = "2021"
+description = "Substrate pallet for syncing state board data via offchain workers"
+
+[dependencies]
+frame-support = { version = "41.0.0", default-features = false }
+frame-system = { version = "41.0.0", default-features = false }
+sp-runtime = { version = "42.0.0", default-features = false }
+sp-std = { version = "14.0.0", default-features = false }
+sp-core = { version = "21.0.0", default-features = false }
+sp-io = { version = "22.0.0", default-features = false }
+serde = { version = "1.0", features = ["derive"], optional = true }
+parity-scale-codec = { version = "3.7.5", default-features = false, features = ["derive"] }
+scale-info = { version = "2.11.6", default-features = false, features = ["derive"] }
+log = { version = "0.4", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+    "frame-support/std",
+    "frame-system/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "sp-core/std",
+    "sp-io/std",
+    "serde",
+    "parity-scale-codec/std",
+    "scale-info/std",
+    "log/std",
+]

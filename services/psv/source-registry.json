@@ -1,0 +1,193 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-01-01T00:00:00Z",
+  "sources": [
+    {
+      "id": "nppes",
+      "name": "National Plan and Provider Enumeration System",
+      "endpoint": "https://npiregistry.cms.hhs.gov/api/",
+      "method": "GET",
+      "auth": {
+        "type": "none",
+        "description": "Public API, no authentication required"
+      },
+      "checks": [
+        {
+          "id": "CR1",
+          "name": "Provider Identity Verification",
+          "description": "Verify provider NPI and basic identity information",
+          "required": true
+        },
+        {
+          "id": "CR2",
+          "name": "Provider Taxonomy",
+          "description": "Verify provider taxonomy codes and specialties",
+          "required": true
+        }
+      ],
+      "freshnessWindow": 30,
+      "freshnessUnit": "days"
+    },
+    {
+      "id": "state-board",
+      "name": "State Medical Board License Verification",
+      "endpoint": "https://api.stateboard.example.com/verify",
+      "method": "POST",
+      "auth": {
+        "type": "api_key",
+        "header": "X-API-Key",
+        "description": "API key authentication"
+      },
+      "checks": [
+        {
+          "id": "CR3",
+          "name": "License Status Verification",
+          "description": "Verify active license status and expiration",
+          "required": true
+        },
+        {
+          "id": "CR4",
+          "name": "License History",
+          "description": "Verify license history and disciplinary actions",
+          "required": false
+        }
+      ],
+      "freshnessWindow": 120,
+      "freshnessUnit": "days"
+    },
+    {
+      "id": "npdb",
+      "name": "National Practitioner Data Bank",
+      "endpoint": "https://api.npdb.hrsa.gov/query",
+      "method": "POST",
+      "auth": {
+        "type": "oauth2",
+        "grantType": "client_credentials",
+        "tokenEndpoint": "https://api.npdb.hrsa.gov/oauth/token",
+        "description": "OAuth2 client credentials flow"
+      },
+      "checks": [
+        {
+          "id": "CR5",
+          "name": "Malpractice and Disciplinary Actions",
+          "description": "Query NPDB for malpractice payments and disciplinary actions",
+          "required": true
+        }
+      ],
+      "freshnessWindow": 90,
+      "freshnessUnit": "days"
+    },
+    {
+      "id": "oig-exclusions",
+      "name": "OIG Exclusion List",
+      "endpoint": "https://oig.hhs.gov/exclusions/api/search",
+      "method": "GET",
+      "auth": {
+        "type": "none",
+        "description": "Public API"
+      },
+      "checks": [
+        {
+          "id": "CR5",
+          "name": "OIG Exclusion Check",
+          "description": "Verify provider is not on OIG exclusion list",
+          "required": true
+        }
+      ],
+      "freshnessWindow": 30,
+      "freshnessUnit": "days"
+    },
+    {
+      "id": "sanctions",
+      "name": "SAM.gov Sanctions List",
+      "endpoint": "https://api.sam.gov/entity-information/v3/entities",
+      "method": "GET",
+      "auth": {
+        "type": "api_key",
+        "queryParam": "api_key",
+        "description": "API key in query parameter"
+      },
+      "checks": [
+        {
+          "id": "CR5",
+          "name": "Federal Sanctions Check",
+          "description": "Verify provider is not on federal sanctions list",
+          "required": true
+        }
+      ],
+      "freshnessWindow": 30,
+      "freshnessUnit": "days"
+    },
+    {
+      "id": "education",
+      "name": "Medical School Verification",
+      "endpoint": "https://api.medical-schools.example.com/verify",
+      "method": "POST",
+      "auth": {
+        "type": "bearer",
+        "header": "Authorization",
+        "description": "Bearer token authentication"
+      },
+      "checks": [
+        {
+          "id": "CR1",
+          "name": "Education Verification",
+          "description": "Verify medical school graduation",
+          "required": false
+        }
+      ],
+      "freshnessWindow": 365,
+      "freshnessUnit": "days"
+    },
+    {
+      "id": "residency",
+      "name": "Residency Program Verification",
+      "endpoint": "https://api.acgme.org/verify",
+      "method": "GET",
+      "auth": {
+        "type": "oauth2",
+        "grantType": "client_credentials",
+        "tokenEndpoint": "https://api.acgme.org/oauth/token",
+        "description": "OAuth2 client credentials"
+      },
+      "checks": [
+        {
+          "id": "CR1",
+          "name": "Residency Completion",
+          "description": "Verify residency program completion",
+          "required": false
+        }
+      ],
+      "freshnessWindow": 365,
+      "freshnessUnit": "days"
+    }
+  ],
+  "complianceRequirements": {
+    "CR1": {
+      "name": "Identity and Credentials",
+      "description": "Verify provider identity, education, and training credentials",
+      "sources": ["nppes", "education", "residency"]
+    },
+    "CR2": {
+      "name": "Licensure",
+      "description": "Verify current and valid professional licenses",
+      "sources": ["state-board"]
+    },
+    "CR3": {
+      "name": "License Status",
+      "description": "Verify active license status and expiration dates",
+      "sources": ["state-board"]
+    },
+    "CR4": {
+      "name": "License History",
+      "description": "Review license history and disciplinary actions",
+      "sources": ["state-board"]
+    },
+    "CR5": {
+      "name": "Sanctions and Exclusions",
+      "description": "Verify provider is not excluded or sanctioned",
+      "sources": ["npdb", "oig-exclusions", "sanctions"]
+    }
+  }
+}
+

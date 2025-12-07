@@ -1,0 +1,229 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://vitalcv.com/schemas/CompactsStatus.json",
+  "title": "CompactsStatus",
+  "description": "Verifiable Credential schema for healthcare provider compact eligibility status (IMLC, PSYPACT, Counseling Compact)",
+  "type": "object",
+  "properties": {
+    "@context": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "contains": {
+        "const": "https://www.w3.org/2018/credentials/v1"
+      }
+    },
+    "id": {
+      "type": "string",
+      "format": "uri",
+      "description": "Unique identifier for this credential"
+    },
+    "type": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "contains": {
+        "const": "VerifiableCredential"
+      },
+      "minItems": 2,
+      "description": "Must include 'VerifiableCredential' and 'CompactsStatusCredential'"
+    },
+    "issuer": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "uri"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uri"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": ["id"]
+        }
+      ],
+      "description": "DID or URI of the credential issuer"
+    },
+    "issuanceDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 date-time when credential was issued"
+    },
+    "expirationDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 date-time when credential expires"
+    },
+    "credentialSubject": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uri",
+          "description": "DID of the clinician subject"
+        },
+        "imlc": {
+          "type": "object",
+          "description": "Interstate Medical Licensure Compact status",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["NOT_ELIGIBLE", "ELIGIBLE", "LICENSED"],
+              "description": "IMLC eligibility status"
+            },
+            "homeState": {
+              "type": "string",
+              "pattern": "^[A-Z]{2}$",
+              "description": "Two-letter home state code"
+            },
+            "compactStates": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Z]{2}$"
+              },
+              "description": "Array of compact states where eligible"
+            },
+            "lastCheckedAt": {
+              "type": "string",
+              "format": "date-time",
+              "description": "When eligibility was last verified"
+            }
+          },
+          "required": ["status", "compactStates", "lastCheckedAt"]
+        },
+        "psypact": {
+          "type": "object",
+          "description": "PSYPACT (Psychology Interjurisdictional Compact) status",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["NOT_ELIGIBLE", "ELIGIBLE", "E_PASS", "ACTIVE"],
+              "description": "PSYPACT eligibility status"
+            },
+            "primaryState": {
+              "type": "string",
+              "pattern": "^[A-Z]{2}$",
+              "description": "Primary state for psychology license"
+            },
+            "participatingStates": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Z]{2}$"
+              },
+              "description": "Array of PSYPACT participating states"
+            },
+            "ePassportId": {
+              "type": "string",
+              "description": "E.Passport ID if enrolled"
+            },
+            "lastCheckedAt": {
+              "type": "string",
+              "format": "date-time",
+              "description": "When eligibility was last verified"
+            }
+          },
+          "required": ["status", "participatingStates", "lastCheckedAt"]
+        },
+        "counselingCompact": {
+          "type": "object",
+          "description": "Counseling Compact status",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["NOT_ELIGIBLE", "ELIGIBLE", "ACTIVE"],
+              "description": "Counseling Compact eligibility status"
+            },
+            "homeState": {
+              "type": "string",
+              "pattern": "^[A-Z]{2}$",
+              "description": "Home state for counseling license"
+            },
+            "compactStates": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Z]{2}$"
+              },
+              "description": "Array of counseling compact states"
+            },
+            "licenseType": {
+              "type": "string",
+              "enum": ["LPC", "LPCC", "LMHC", "LCMHC", "LCPC"],
+              "description": "Counseling license type"
+            },
+            "lastCheckedAt": {
+              "type": "string",
+              "format": "date-time",
+              "description": "When eligibility was last verified"
+            }
+          },
+          "required": ["status", "compactStates", "lastCheckedAt"]
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Additional metadata about compacts status",
+          "properties": {
+            "lastComputedAt": {
+              "type": "string",
+              "format": "date-time",
+              "description": "When compacts status was computed"
+            },
+            "version": {
+              "type": "string",
+              "description": "Schema version"
+            },
+            "anchoredTxHash": {
+              "type": "string",
+              "description": "Blockchain transaction hash where credential was anchored"
+            }
+          }
+        }
+      },
+      "required": ["id", "imlc", "psypact", "counselingCompact"]
+    },
+    "proof": {
+      "type": "object",
+      "description": "Cryptographic proof of credential integrity",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Proof type (e.g., Ed25519Signature2020, JwtProof2020)"
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the proof was created"
+        },
+        "verificationMethod": {
+          "type": "string",
+          "format": "uri",
+          "description": "URI of the verification method"
+        },
+        "proofPurpose": {
+          "type": "string",
+          "enum": ["assertionMethod", "authentication"],
+          "description": "Purpose of the proof"
+        },
+        "jws": {
+          "type": "string",
+          "description": "JSON Web Signature (for JwtProof2020)"
+        }
+      },
+      "required": ["type", "created", "verificationMethod", "proofPurpose"]
+    }
+  },
+  "required": ["@context", "id", "type", "issuer", "issuanceDate", "credentialSubject"],
+  "additionalProperties": true
+}
+

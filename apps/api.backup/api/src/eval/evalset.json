@@ -1,0 +1,18 @@
+[
+  {
+    "task": "verify CA license",
+    "input": {
+      "state": "CA",
+      "licensePdfId": "demo"
+    },
+    "domain": "physician"
+  },
+  {
+    "task": "parse resume then suggest jobs",
+    "input": {
+      "resumeText": "Cardiologist 10y CA"
+    },
+    "domain": "physician"
+  }
+]
+

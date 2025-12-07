@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./",
+    "outDir": "../../dist/services/billing",
+    "tsBuildInfoFile": "../../build-info/services-billing.tsbuildinfo"
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist", "**/__tests__/**/*", "**/*.spec.ts"]
+}

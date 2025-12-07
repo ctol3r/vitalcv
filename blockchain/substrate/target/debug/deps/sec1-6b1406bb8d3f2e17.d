@@ -1,0 +1,11 @@
+/Users/christoler/chai-vc-platform/substrate/target/debug/deps/sec1-6b1406bb8d3f2e17.d: /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sec1-0.3.0/src/lib.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sec1-0.3.0/src/point.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sec1-0.3.0/src/error.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sec1-0.3.0/src/parameters.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sec1-0.3.0/src/private_key.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sec1-0.3.0/src/traits.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sec1-0.3.0/src/../README.md
+
+/Users/christoler/chai-vc-platform/substrate/target/debug/deps/libsec1-6b1406bb8d3f2e17.rmeta: /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sec1-0.3.0/src/lib.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sec1-0.3.0/src/point.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sec1-0.3.0/src/error.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sec1-0.3.0/src/parameters.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sec1-0.3.0/src/private_key.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sec1-0.3.0/src/traits.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sec1-0.3.0/src/../README.md
+
+/Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sec1-0.3.0/src/lib.rs:
+/Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sec1-0.3.0/src/point.rs:
+/Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sec1-0.3.0/src/error.rs:
+/Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sec1-0.3.0/src/parameters.rs:
+/Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sec1-0.3.0/src/private_key.rs:
+/Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sec1-0.3.0/src/traits.rs:
+/Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sec1-0.3.0/src/../README.md:

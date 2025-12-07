@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "tsBuildInfoFile": "../../build-info/packages-nci-data.tsbuildinfo",
+    "declaration": true,
+    "declarationMap": true,
+    "composite": true
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "**/__tests__/**/*"]
+}
+

@@ -1,0 +1,14 @@
+# Exam versioning configuration
+# Used by ExamVersioningService to determine which exam version to use
+
+naplex:
+  # New NAPLEX outline effective date
+  new_outline_from: "2025-11-01"
+  description: "NAPLEX outline updated November 2025"
+
+mpje:
+  # Uniform MPJE adoption target date
+  uniform_from: "2026-06-01"
+  description: "Uniform MPJE expected to be adopted by participating states from June 2026"
+  notes: "State-by-state adoption tracked in ExamAdoption table"
+

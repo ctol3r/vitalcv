@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: issuer-api
+  namespace: platform
+spec:
+  template:
+    metadata:
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/agent-inject-secret-issuer-api.env: "secret/dev/api/dummy"
+        vault.hashicorp.com/agent-inject-template-issuer-api.env: |
+          {{- with secret "secret/dev/api/dummy" -}}
+          {{ include "templates/issuer-api.env.tpl" . }}
+          {{- end -}}
+        vault.hashicorp.com/role: "issuer-api"
+        vault.hashicorp.com/log-level: "warn"
+        vault.hashicorp.com/agent-pre-populate: "true"
+        vault.hashicorp.com/agent-run-as-user: "65534"
+    spec:
+      serviceAccountName: issuer-api
+      containers:
+        - name: issuer-api
+          env:
+            - name: VAULT_SECRETS_FILE
+              value: /vault/secrets/issuer-api.env
+          command:
+            - /bin/sh
+            - -c
+            - |
+              source ${VAULT_SECRETS_FILE}
+              exec node dist/index.js
+

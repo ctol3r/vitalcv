@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./",
+    "outDir": "../../dist/services/reputation",
+    "tsBuildInfoFile": "../../build-info/services-reputation.tsbuildinfo",
+    "typeRoots": ["../../types", "../../node_modules/@types"]
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist", "**/__tests__/**/*", "**/*.spec.ts"]
+}
+

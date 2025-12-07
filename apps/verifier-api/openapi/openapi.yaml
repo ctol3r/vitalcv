@@ -1,0 +1,251 @@
+openapi: 3.0.3
+info:
+  title: VitalCV Verifier API
+  description: |
+    OIDC4VP-compliant presentation verification API for VitalCV platform.
+    Supports EUDI wallet verification with hard-enforcement mode.
+  version: 1.0.0
+  contact:
+    name: VitalCV API Support
+    url: https://vitalcv.ai/support
+
+servers:
+  - url: https://vitalcv.ai/oidc4vp
+    description: Production server
+  - url: http://localhost:4001/oidc4vp
+    description: Development server
+  - url: https://stoplight.io/mocks/vitalcv/verifier-api/1.0.0
+    description: Mock server (Try It Out)
+    x-try-it-out: true
+
+tags:
+  - name: Metadata
+    description: Verifier metadata and discovery endpoints
+  - name: Presentations
+    description: Presentation verification endpoints
+
+paths:
+  /.well-known/openid-credential-verifier:
+    get:
+      tags:
+        - Metadata
+      summary: Get verifier metadata
+      description: |
+        Returns OIDC4VP-compliant verifier metadata including supported
+        presentation formats and verification policies.
+      operationId: getVerifierMetadata
+      responses:
+        '200':
+          description: Verifier metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifierMetadata'
+              examples:
+                default:
+                  summary: Standard verifier metadata
+                  value:
+                    verifier: "https://vitalcv.ai/oidc4vp"
+                    presentation_endpoint: "https://vitalcv.ai/oidc4vp/presentation"
+                    supported_credential_formats:
+                      - "jwt_vc_json"
+                      - "vc+sd-jwt"
+                      - "ldp_vc"
+                    eudi_only_mode: false
+
+  /presentation:
+    post:
+      tags:
+        - Presentations
+      summary: Verify presentation
+      description: |
+        Verify a verifiable presentation. When EUDI-only mode is enabled,
+        only EUDI wallet presentations are accepted.
+      operationId: verifyPresentation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresentationRequest'
+            examples:
+              jwt_vp:
+                summary: JWT VP presentation
+                value:
+                  vp_token: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  nonce: "nonce123"
+                  presentation_submission:
+                    id: "submission-123"
+                    definition_id: "physician-credential-definition"
+                    descriptor_map:
+                      - id: "physician-credential"
+                        path: "$.vp.verifiableCredential[0]"
+                        format: "jwt_vc_json"
+              eudi_wallet:
+                summary: EUDI wallet presentation
+                value:
+                  vp_token: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  nonce: "nonce456"
+                  presentation_submission:
+                    id: "submission-456"
+                    definition_id: "eudi-credential-definition"
+                  trustRegistry: "https://eudi.ec.europa.eu/trust-list"
+      responses:
+        '200':
+          description: Presentation verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresentationResponse'
+              examples:
+                success:
+                  summary: Successful verification
+                  value:
+                    verified: true
+                    credential_subjects:
+                      - npi: "1801921148"
+                        credential: "MD"
+                        licenseState: "CA"
+                    verification_result:
+                      format: "jwt_vc_json"
+                      issuer: "did:web:vitalcv.ai"
+                      issued_at: "2025-01-15T10:00:00Z"
+                      expires_at: "2026-01-15T10:00:00Z"
+        '403':
+          description: Non-EUDI presentation blocked (EUDI-only mode)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                eudi_only:
+                  summary: EUDI-only mode violation
+                  value:
+                    error: "eudi_only_mode"
+                    message: "Only EUDI wallet presentations are accepted. Non-EUDI presentations are blocked."
+                    reason: "Non-EUDI presentation blocked: EUDI-only mode enabled"
+                    timestamp: "2025-01-15T10:00:00Z"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    VerifierMetadata:
+      type: object
+      required:
+        - verifier
+        - presentation_endpoint
+      properties:
+        verifier:
+          type: string
+          format: uri
+        presentation_endpoint:
+          type: string
+          format: uri
+        supported_credential_formats:
+          type: array
+          items:
+            type: string
+        eudi_only_mode:
+          type: boolean
+          description: Whether EUDI-only mode is enabled
+
+    PresentationRequest:
+      type: object
+      required:
+        - vp_token
+        - nonce
+      properties:
+        vp_token:
+          type: string
+          description: Verifiable presentation token (JWT)
+        nonce:
+          type: string
+          description: Nonce for replay protection
+        presentation_submission:
+          $ref: '#/components/schemas/PresentationSubmission'
+        trustRegistry:
+          type: string
+          format: uri
+          description: EUDI trust registry reference
+
+    PresentationSubmission:
+      type: object
+      required:
+        - id
+        - definition_id
+      properties:
+        id:
+          type: string
+        definition_id:
+          type: string
+        descriptor_map:
+          type: array
+          items:
+            $ref: '#/components/schemas/DescriptorMap'
+
+    DescriptorMap:
+      type: object
+      required:
+        - id
+        - path
+        - format
+      properties:
+        id:
+          type: string
+        path:
+          type: string
+        format:
+          type: string
+
+    PresentationResponse:
+      type: object
+      required:
+        - verified
+      properties:
+        verified:
+          type: boolean
+        credential_subjects:
+          type: array
+          items:
+            type: object
+            properties:
+              npi:
+                type: string
+              credential:
+                type: string
+              licenseState:
+                type: string
+        verification_result:
+          type: object
+          properties:
+            format:
+              type: string
+            issuer:
+              type: string
+            issued_at:
+              type: string
+              format: date-time
+            expires_at:
+              type: string
+              format: date-time
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        reason:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+

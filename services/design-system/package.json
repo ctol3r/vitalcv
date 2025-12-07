@@ -1,0 +1,27 @@
+{
+  "name": "@chai-vc/design-system",
+  "version": "0.1.0",
+  "description": "Design system service with theming support",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "docs:generate": "tsx docs/generateThemingDocs.ts"
+  },
+  "dependencies": {
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "typescript": "^5.4.5",
+    "tsx": "^4.7.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  }
+}
+

@@ -1,0 +1,95 @@
+{
+  "$id": "https://schemas.vitalcv.health/fhir/r6/endpoint",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FHIR R6 Endpoint (Minimal Subset)",
+  "type": "object",
+  "required": ["resourceType", "id", "status", "connectionType", "address", "payload"],
+  "properties": {
+    "resourceType": { "const": "Endpoint" },
+    "id": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["active", "suspended", "error", "off", "entered-in-error", "test"]
+    },
+    "connectionType": {
+      "type": "object",
+      "required": ["system", "code"],
+      "properties": {
+        "system": { "type": "string" },
+        "code": { "type": "string" },
+        "display": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "name": { "type": "string" },
+    "address": { "type": "string", "minLength": 1 },
+    "payload": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["coding"],
+              "properties": {
+                "coding": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "required": ["system", "code"],
+                    "properties": {
+                      "system": { "type": "string" },
+                      "code": { "type": "string" },
+                      "display": { "type": "string" }
+                    },
+                    "additionalProperties": true
+                  }
+                }
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "contact": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "telecom": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["system", "value"],
+              "properties": {
+                "system": { "type": "string" },
+                "value": { "type": "string" }
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "managingOrganization": {
+      "type": "object",
+      "properties": {
+        "reference": { "type": "string" },
+        "display": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
+
+

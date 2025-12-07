@@ -1,0 +1,51 @@
+{
+  "onboarding": {
+    "title": "Activate your credential wallet",
+    "subtitle": "Complete three quick steps to unlock mobile verification.",
+    "cta": "Start onboarding",
+    "steps": {
+      "verifyIdentity": "Verify identity & link NPI",
+      "linkLicenses": "Sync board & state licenses",
+      "shareProof": "Issue readiness proof"
+    }
+  },
+  "verification": {
+    "title": "Verification center",
+    "cta": "Launch verification",
+    "status": {
+      "waiting": "Waiting for verifier response",
+      "completed": "Proof accepted",
+      "failed": "Verification failed"
+    }
+  },
+  "issuance": {
+    "title": "Issue credentials",
+    "cta": "Generate credential",
+    "helper": "Signed artifacts are stored in your wallet and exportable to EHR or payer workflows."
+  },
+  "proof": {
+    "title": "Share a selective disclosure proof",
+    "cta": "Generate proof",
+    "helper": "Only disclosed attributes are shared. Protected data stays encrypted.",
+    "qr": {
+      "label": "Scan QR to verify",
+      "instructions": "Present this QR code to recruiters or partners to transmit the DIDComm payload."
+    }
+  },
+  "errors": {
+    "network": "Network request failed. Check your connection and retry.",
+    "retry": "Retry",
+    "unauthorized": "Session expired. Sign in again to continue.",
+    "unknown": "Something went wrong. Our team has been notified."
+  }
+}
+
+
+
+
+
+
+
+
+
+

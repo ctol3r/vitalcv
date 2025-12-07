@@ -1,0 +1,16 @@
+{
+  "required": "This field is required",
+  "email": "Please enter a valid email address",
+  "url": "Please enter a valid URL",
+  "minLength": "Must be at least {{min}} characters",
+  "maxLength": "Must be no more than {{max}} characters",
+  "min": "Must be at least {{min}}",
+  "max": "Must be no more than {{max}}",
+  "pattern": "Invalid format",
+  "number": "Must be a valid number",
+  "integer": "Must be a valid integer",
+  "positive": "Must be a positive number",
+  "date": "Must be a valid date",
+  "time": "Must be a valid time"
+}
+

@@ -1,0 +1,51 @@
+{
+  "onboarding": {
+    "title": "Activez votre portefeuille de justificatifs",
+    "subtitle": "Trois étapes rapides pour débloquer la vérification mobile.",
+    "cta": "Commencer l’intégration",
+    "steps": {
+      "verifyIdentity": "Vérifier l’identité et lier le NPI",
+      "linkLicenses": "Synchroniser les licences d’État et de conseil",
+      "shareProof": "Émettre une preuve de préparation"
+    }
+  },
+  "verification": {
+    "title": "Centre de vérification",
+    "cta": "Lancer la vérification",
+    "status": {
+      "waiting": "En attente de la réponse du vérificateur",
+      "completed": "Preuve acceptée",
+      "failed": "La vérification a échoué"
+    }
+  },
+  "issuance": {
+    "title": "Émettre des justificatifs",
+    "cta": "Générer un justificatif",
+    "helper": "Les artefacts signés sont stockés dans votre portefeuille et exportables vers les flux EHR ou payeurs."
+  },
+  "proof": {
+    "title": "Partager une preuve à divulgation sélective",
+    "cta": "Générer une preuve",
+    "helper": "Seuls les attributs divulgués sont partagés. Les données protégées restent chiffrées.",
+    "qr": {
+      "label": "Scanner le QR pour vérifier",
+      "instructions": "Présentez ce code QR aux recruteurs ou partenaires pour transmettre la charge DIDComm."
+    }
+  },
+  "errors": {
+    "network": "La requête réseau a échoué. Vérifiez votre connexion et réessayez.",
+    "retry": "Réessayer",
+    "unauthorized": "Session expirée. Veuillez vous reconnecter.",
+    "unknown": "Une erreur est survenue. Notre équipe en a été informée."
+  }
+}
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,4 @@
+import { Router } from 'express'; import { buildPlaybook } from '../services/playbook'; export const pexp=Router();
+pexp.get('/api/playbook/export.csv', async (req,res)=>{ const prof=(req.query.profession||'physician').toString(); const st=(req.query.state||'CA').toString().toUpperCase(); const out=await buildPlaybook(prof,st); const lines=['profession,state,step','',...out.steps.map((s:string)=>`${prof},${st},"${s.replace(/"/g,'""')}"`)]; res.type('text/csv').send(lines.join('\n')); });
+pexp.post('/api/playbook/export.bulk.csv', async (req,res)=>{ const profs=(req.body?.professions||['physician']).map((x:string)=>x.toString()); const states=(req.body?.states||['CA']).map((x:string)=>x.toUpperCase()); const out:string[]=['profession,state,step']; for(const p of profs){ for(const s of states){ const pb=await buildPlaybook(p,s); pb.steps.forEach((stp:string)=> out.push(`${p},${s},"${stp.replace(/"/g,'""')}"`)); } } res.type('text/csv').send(out.join('\n')); });
+

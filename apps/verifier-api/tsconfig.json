@@ -1,0 +1,30 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "../../dist/apps/verifier-api",
+    "tsBuildInfoFile": "../../build-info/apps-verifier-api.tsbuildinfo",
+    "types": [
+      "node",
+      "vitest/globals"
+    ],
+    "composite": true
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/__tests__/**/*",
+    "**/*.spec.ts"
+  ],
+  "references": [
+    {
+      "path": "../../packages/vc-schemas"
+    },
+    {
+      "path": "../../packages/vc-formats-csdjwt"
+    }
+  ]
+}

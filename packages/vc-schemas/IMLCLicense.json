@@ -1,0 +1,220 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.vitalcv.com/schemas/IMLCLicense.json",
+  "title": "IMLC License Verifiable Credential",
+  "description": "Interstate Medical Licensure Compact (IMLC) license credential schema. Represents a physician's multi-state medical license under the IMLC compact.",
+  "type": "object",
+  "properties": {
+    "@context": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "JSON-LD context for the credential"
+    },
+    "id": {
+      "type": "string",
+      "format": "uri",
+      "description": "Unique identifier for this credential"
+    },
+    "type": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Credential types, must include 'VerifiableCredential' and 'IMLCLicense'"
+    },
+    "issuer": {
+      "type": ["string", "object"],
+      "description": "DID or object representing the credential issuer (VitalCV or state medical board)"
+    },
+    "issuanceDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 date-time when the credential was issued"
+    },
+    "expirationDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 date-time when the credential expires"
+    },
+    "credentialSubject": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uri",
+          "description": "DID of the credential subject (physician)"
+        },
+        "homeState": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$",
+          "description": "Two-letter state code of the physician's home state (state of principal license)"
+        },
+        "compactStates": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z]{2}$"
+          },
+          "description": "Array of two-letter state codes where physician is licensed under IMLC compact",
+          "minItems": 1
+        },
+        "issueDate": {
+          "type": "string",
+          "format": "date",
+          "description": "Date when IMLC license was originally issued (YYYY-MM-DD)"
+        },
+        "expirationDate": {
+          "type": "string",
+          "format": "date",
+          "description": "Date when IMLC license expires (YYYY-MM-DD)"
+        },
+        "licenseNumber": {
+          "type": "string",
+          "description": "Primary medical license number (from home state)"
+        },
+        "npi": {
+          "type": "string",
+          "pattern": "^[0-9]{10}$",
+          "description": "National Provider Identifier (10 digits)"
+        },
+        "physicianName": {
+          "type": "object",
+          "properties": {
+            "firstName": {
+              "type": "string"
+            },
+            "middleName": {
+              "type": "string"
+            },
+            "lastName": {
+              "type": "string"
+            },
+            "suffix": {
+              "type": "string"
+            }
+          },
+          "required": ["firstName", "lastName"]
+        },
+        "specialty": {
+          "type": "string",
+          "description": "Primary medical specialty"
+        },
+        "compactParticipationStatus": {
+          "type": "string",
+          "enum": ["active", "inactive", "suspended", "revoked"],
+          "description": "Current status of IMLC compact participation"
+        },
+        "disciplinaryActions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "state": {
+                "type": "string",
+                "pattern": "^[A-Z]{2}$"
+              },
+              "date": {
+                "type": "string",
+                "format": "date"
+              },
+              "action": {
+                "type": "string"
+              },
+              "resolved": {
+                "type": "boolean"
+              }
+            }
+          },
+          "description": "Any disciplinary actions in compact states"
+        },
+        "verificationMethod": {
+          "type": "string",
+          "description": "Method used to verify IMLC license (e.g., 'imlcc_registry', 'state_board_api')"
+        },
+        "lastVerificationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last time the license was verified with IMLC commission"
+        }
+      },
+      "required": [
+        "id",
+        "homeState",
+        "compactStates",
+        "issueDate",
+        "licenseNumber",
+        "npi",
+        "physicianName",
+        "compactParticipationStatus"
+      ]
+    },
+    "proof": {
+      "type": "object",
+      "description": "Cryptographic proof of the credential (e.g., JWT signature, Data Integrity proof)"
+    },
+    "credentialSchema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uri"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "type"]
+    }
+  },
+  "required": [
+    "@context",
+    "id",
+    "type",
+    "issuer",
+    "issuanceDate",
+    "credentialSubject"
+  ],
+  "examples": [
+    {
+      "@context": [
+        "https://www.w3.org/2018/credentials/v1",
+        "https://api.vitalcv.com/contexts/imlc-v1.jsonld"
+      ],
+      "id": "https://api.vitalcv.com/credentials/imlc/550e8400-e29b-41d4-a716-446655440000",
+      "type": ["VerifiableCredential", "IMLCLicense"],
+      "issuer": {
+        "id": "did:web:issuer.vitalcv.com",
+        "name": "VitalCV IMLC Issuer"
+      },
+      "issuanceDate": "2025-01-15T00:00:00Z",
+      "expirationDate": "2027-01-15T00:00:00Z",
+      "credentialSubject": {
+        "id": "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
+        "homeState": "CA",
+        "compactStates": ["CA", "AZ", "CO", "NV", "UT", "WA"],
+        "issueDate": "2020-03-01",
+        "expirationDate": "2027-03-01",
+        "licenseNumber": "CA-G12345",
+        "npi": "1234567890",
+        "physicianName": {
+          "firstName": "Jane",
+          "middleName": "Marie",
+          "lastName": "Smith",
+          "suffix": "MD"
+        },
+        "specialty": "Cardiology",
+        "compactParticipationStatus": "active",
+        "disciplinaryActions": [],
+        "verificationMethod": "imlcc_registry",
+        "lastVerificationDate": "2025-11-01T12:00:00Z"
+      },
+      "credentialSchema": {
+        "id": "https://api.vitalcv.com/schemas/IMLCLicense.json",
+        "type": "JsonSchema2023"
+      }
+    }
+  ]
+}
+

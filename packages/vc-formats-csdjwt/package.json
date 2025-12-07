@@ -1,0 +1,24 @@
+{
+  "name": "@chai-vc/vc-formats-csdjwt",
+  "version": "1.0.0",
+  "description": "Compact Selective Disclosure JWT (CSD-JWT) POC for ≥40% payload reduction",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "test": "node --test dist/test.js"
+  },
+  "keywords": [
+    "csd-jwt",
+    "selective-disclosure",
+    "verifiable-credentials",
+    "compact"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {}
+}

@@ -1,0 +1,101 @@
+type Query {
+  credential(id: ID!): Credential
+  credentialsByUser(userId: ID!): [Credential!]!
+  lifecycle(credentialId: ID!): LifecycleStatus
+  org(id: ID!): Organization
+  user(id: ID!): User
+}
+
+type Mutation {
+  verifyCredential(id: ID!): VerificationResult
+}
+
+type Credential {
+  id: ID!
+  type: String!
+  issuer: String!
+  holder: User!
+  issuanceDate: String!
+  expirationDate: String
+  claims: [Claim!]!
+  status: String!
+  lifecycle: LifecycleStatus
+}
+
+type Claim {
+  id: ID!
+  type: String!
+  value: String!
+  isVerified: Boolean!
+}
+
+type LifecycleStatus {
+  credentialId: ID!
+  stage: String!
+  history: [LifecycleEvent!]!
+  aggregatedStatus: String!
+}
+
+type LifecycleEvent {
+  stage: String!
+  status: String!
+  timestamp: String!
+  notes: String
+}
+
+type IssuanceEvent {
+  id: ID!
+  credentialId: ID!
+  timestamp: String!
+  issuerId: String!
+}
+
+type AuditEvent {
+  id: ID!
+  action: String!
+  userId: ID!
+  timestamp: String!
+  details: String
+}
+
+type MonitoringStatus {
+  id: ID!
+  entityId: ID!
+  status: String!
+  lastChecked: String!
+}
+
+type Organization {
+  id: ID!
+  name: String!
+  domain: String
+  users: [User!]!
+}
+
+type User {
+  id: ID!
+  email: String!
+  name: String
+  organization: Organization
+  credentials: [Credential!]!
+}
+
+type VerificationResult {
+  success: Boolean!
+  message: String
+  timestamp: String!
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

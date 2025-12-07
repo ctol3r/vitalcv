@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "../../dist/packages/domain-provider",
+    "tsBuildInfoFile": "../../build-info/packages-domain-provider.tsbuildinfo",
+    "declaration": true,
+    "declarationMap": true,
+    "composite": true
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist", "**/__tests__/**/*"]
+}
+

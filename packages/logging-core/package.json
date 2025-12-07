@@ -1,0 +1,14 @@
+{
+  "name": "@chai-vc/logging-core",
+  "version": "1.0.0",
+  "description": "Structured logging utilities shared across chai-vc platform services.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "dev": "tsc --watch -p tsconfig.json"
+  },
+  "dependencies": {
+    "pino": "^9.14.0"
+  }
+}

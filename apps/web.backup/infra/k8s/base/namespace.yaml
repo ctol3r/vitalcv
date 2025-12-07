@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: chai-vc-platform
+  labels:
+    app: chai-vc-platform
+    environment: stage
+

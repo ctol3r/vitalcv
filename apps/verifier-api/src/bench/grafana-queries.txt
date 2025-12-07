@@ -1,0 +1,10 @@
+-- Grafana Prometheus Query Example:
+--
+-- VP Size Reduction by Credential Type:
+-- sum(rate(vp_size_bytes{format="SD"}[5m])) - sum(rate(vp_size_bytes{format="CSD"}[5m])) / sum(rate(vp_size_bytes{format="SD"}[5m])) * 100
+--
+-- Average VP Size by Format:
+-- avg(vp_size_bytes) by (format)
+--
+-- VP Size by Credential Type:
+-- avg(vp_size_bytes) by (credential_type, format)

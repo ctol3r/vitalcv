@@ -1,0 +1,48 @@
+{
+  "bundleIdentifier": "health.vitalcv.appclip",
+  "appBundleIdentifier": "health.vitalcv",
+  "teamIdentifier": "NJ32VGK8Q7",
+  "displayName": "Vital CV Clip",
+  "supportedDomains": [
+    {
+      "domain": "clip.vitalcv.health",
+      "paths": [
+        "/claim/*",
+        "/verify/*"
+      ]
+    },
+    {
+      "domain": "verifier.vitalcv.health",
+      "paths": [
+        "/oidc4vp/*"
+      ]
+    }
+  ],
+  "deepLinks": [
+    "vitalcv://clip/claim",
+    "vitalcv://clip/verify"
+  ],
+  "routing": {
+    "claim": "vitalcv://clip/claim?requestId={requestId}",
+    "verify": "vitalcv://clip/verify?requestId={requestId}"
+  },
+  "oidc4vp": {
+    "callbackUrl": "https://verifier.vitalcv.health/oidc4vp/callback",
+    "scopes": ["openid", "vp_token"]
+  },
+  "metadata": {
+    "maxDownloadSizeMB": 9.2,
+    "features": ["qr-scan", "oidc4vp-presenter"],
+    "updatedAt": "2025-11-24T00:00:00.000Z"
+  }
+}
+
+
+
+
+
+
+
+
+
+

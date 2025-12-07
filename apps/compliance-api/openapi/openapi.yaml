@@ -1,0 +1,538 @@
+openapi: 3.0.3
+info:
+  title: VitalCV Compliance API
+  description: |
+    Compliance and evidence management API for NCQA accreditation.
+    Provides endpoints for PSV evidence, coverage metrics, and audit trails.
+
+    **B128B-OPENAPI-029**: Enhanced with comprehensive examples and try-it mocks.
+  version: 1.0.0
+  contact:
+    name: VitalCV API Support
+    url: https://vitalcv.ai/support
+    email: api@vitalcv.com
+
+servers:
+  - url: https://vitalcv.ai/compliance
+    description: Production server
+  - url: http://localhost:4004/compliance
+    description: Development server
+  - url: https://stoplight.io/mocks/vitalcv/compliance-api/1.0.0
+    description: Mock server (Try It Out)
+    x-try-it-out: true
+
+tags:
+  - name: Coverage
+    description: Coverage metrics and stale tracking
+  - name: Evidence
+    description: Evidence registry and export
+  - name: NCQA
+    description: NCQA-specific compliance endpoints
+
+paths:
+  /coverage:
+    get:
+      tags:
+        - Coverage
+      summary: Get compliance coverage metrics
+      description: |
+        Returns comprehensive coverage metrics including auto-PSV percentage,
+        stale evidence by source, and SLA badges.
+
+        **Features:**
+        - Auto-PSV percentage calculation
+        - Stale tracking by source with age in days
+        - SLA badges (green/yellow/red)
+        - Per-row evidence IDs
+      operationId: getCoverageMetrics
+      responses:
+        '200':
+          description: Coverage metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CoverageMetrics'
+              examples:
+                success:
+                  summary: Successful coverage response
+                  value:
+                    summary:
+                      autoPSVPercentage: 85
+                      totalVerifications: 1250
+                      autoVerifications: 1063
+                      manualVerifications: 187
+                      totalSources: 12
+                      slaDistribution:
+                        green: 8
+                        yellow: 3
+                        red: 1
+                      staleDistribution:
+                        current: 8
+                        approaching_stale: 3
+                        stale: 1
+                    tiles:
+                      - id: auto-psv-percentage
+                        title: Auto-PSV Coverage
+                        value: "85%"
+                        description: "1063 of 1250 verifications automated"
+                        badge: green
+                      - id: total-sources
+                        title: Total Sources
+                        value: "12"
+                        description: "12 unique verification sources"
+                        badge: green
+                      - id: sla-green
+                        title: "Current (< 30 days)"
+                        value: "8"
+                        description: "67% of sources"
+                        badge: green
+                      - id: sla-yellow
+                        title: "Approaching Stale (30-90 days)"
+                        value: "3"
+                        description: "25% of sources"
+                        badge: yellow
+                      - id: sla-red
+                        title: "Stale (> 90 days)"
+                        value: "1"
+                        description: "8% of sources"
+                        badge: red
+                    staleBySource:
+                      - sourceId: nppes
+                        sourceName: NPPES Registry
+                        totalVerifications: 450
+                        successfulVerifications: 445
+                        latestVerificationId: ver-nppes-001
+                        latestVerificationTimestamp: 1699920000000
+                        ageInDays: 15
+                        slaBadge: green
+                        staleCategory: current
+                        evidenceIds:
+                          - ver-nppes-001
+                          - ver-nppes-002
+                      - sourceId: state-board
+                        sourceName: State Medical Board
+                        totalVerifications: 320
+                        successfulVerifications: 310
+                        latestVerificationId: ver-state-001
+                        latestVerificationTimestamp: 1697328000000
+                        ageInDays: 45
+                        slaBadge: yellow
+                        staleCategory: approaching_stale
+                        evidenceIds:
+                          - ver-state-001
+                          - ver-state-002
+                    slaThresholds:
+                      green: 30
+                      yellow: 60
+                      red: 90
+                    timestamp: "2025-11-12T10:00:00.000Z"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                error:
+                  value:
+                    error: coverage_query_failed
+                    error_description: "Failed to calculate coverage metrics"
+                    timestamp: "2025-11-12T10:00:00.000Z"
+
+  /coverage/source/{sourceId}:
+    get:
+      tags:
+        - Coverage
+      summary: Get source-specific coverage details
+      description: Returns detailed coverage metrics for a specific verification source
+      operationId: getSourceCoverage
+      parameters:
+        - name: sourceId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: nppes
+      responses:
+        '200':
+          description: Source coverage details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceCoverage'
+              examples:
+                nppes:
+                  summary: NPPES source coverage
+                  value:
+                    sourceId: nppes
+                    sourceName: NPPES Registry
+                    totalVerifications: 450
+                    successfulVerifications: 445
+                    failedVerifications: 5
+                    successRate: "99%"
+                    latestVerificationId: ver-nppes-001
+                    latestVerificationTimestamp: 1699920000000
+                    ageInDays: 15
+                    slaBadge: green
+                    staleCategory: current
+                    verifications:
+                      - id: ver-nppes-001
+                        verificationType: license
+                        subjectId: provider-12345
+                        status: success
+                        timestamp: 1699920000000
+                        ageInDays: 15
+                        slaBadge: green
+                    timestamp: "2025-11-12T10:00:00.000Z"
+        '404':
+          description: Source not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  value:
+                    error: source_not_found
+                    error_description: "No verifications found for source: unknown"
+
+  /coverage/evidence/{evidenceId}:
+    get:
+      tags:
+        - Coverage
+      summary: Get specific evidence details
+      description: Returns detailed information about a specific evidence record
+      operationId: getEvidenceDetails
+      parameters:
+        - name: evidenceId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: ver-nppes-001
+      responses:
+        '200':
+          description: Evidence details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceDetails'
+              examples:
+                evidence:
+                  summary: Evidence record details
+                  value:
+                    evidenceId: ver-nppes-001
+                    verificationType: license
+                    subjectId: provider-12345
+                    endpointId: endpoint-nppes
+                    status: success
+                    timestamp: 1699920000000
+                    ageInDays: 15
+                    slaBadge: green
+                    staleCategory: current
+                    requestPayload:
+                      npi: "1234567890"
+                    responsePayload:
+                      verified: true
+                      licenseNumber: "MD12345"
+                      licenseState: "CA"
+                      expirationDate: "2026-12-31"
+                    durationMs: 150
+        '404':
+          description: Evidence not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /ncqa/evidence/zip:
+    post:
+      tags:
+        - NCQA
+      summary: Export evidence as ZIP
+      description: |
+        Exports multiple evidence records as a ZIP file for NCQA audits.
+        Includes JSON evidence files and manifest.
+      operationId: exportEvidenceZip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                evidenceIds:
+                  type: array
+                  items:
+                    type: string
+              required:
+                - evidenceIds
+            examples:
+              request:
+                summary: Evidence ZIP export request
+                value:
+                  evidenceIds:
+                    - ver-nppes-001
+                    - ver-nppes-002
+                    - ver-state-001
+      responses:
+        '200':
+          description: ZIP file generated successfully
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /evidence/registry:
+    get:
+      tags:
+        - Evidence
+      summary: List evidence registry entries
+      description: Returns paginated list of evidence registry entries
+      operationId: listEvidence
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          example: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+          example: 50
+        - name: sourceId
+          in: query
+          schema:
+            type: string
+          example: nppes
+      responses:
+        '200':
+          description: Evidence list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceList'
+              examples:
+                list:
+                  summary: Evidence registry list
+                  value:
+                    evidence:
+                      - id: ver-nppes-001
+                        sourceId: nppes
+                        verificationType: license
+                        timestamp: 1699920000000
+                        status: success
+                      - id: ver-nppes-002
+                        sourceId: nppes
+                        verificationType: certification
+                        timestamp: 1699919000000
+                        status: success
+                    pagination:
+                      page: 1
+                      limit: 50
+                      total: 1250
+                      pages: 25
+
+components:
+  schemas:
+    CoverageMetrics:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            autoPSVPercentage:
+              type: number
+            totalVerifications:
+              type: integer
+            autoVerifications:
+              type: integer
+            manualVerifications:
+              type: integer
+        tiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/CoverageTile'
+        staleBySource:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaleSource'
+        slaThresholds:
+          type: object
+          properties:
+            green:
+              type: integer
+            yellow:
+              type: integer
+            red:
+              type: integer
+        timestamp:
+          type: string
+          format: date-time
+
+    CoverageTile:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        value:
+          type: string
+        description:
+          type: string
+        badge:
+          type: string
+          enum: [green, yellow, red]
+
+    StaleSource:
+      type: object
+      properties:
+        sourceId:
+          type: string
+        sourceName:
+          type: string
+        totalVerifications:
+          type: integer
+        successfulVerifications:
+          type: integer
+        latestVerificationId:
+          type: string
+        latestVerificationTimestamp:
+          type: integer
+          format: int64
+        ageInDays:
+          type: integer
+        slaBadge:
+          type: string
+          enum: [green, yellow, red]
+        staleCategory:
+          type: string
+          enum: [current, approaching_stale, stale]
+        evidenceIds:
+          type: array
+          items:
+            type: string
+
+    SourceCoverage:
+      type: object
+      properties:
+        sourceId:
+          type: string
+        sourceName:
+          type: string
+        totalVerifications:
+          type: integer
+        successfulVerifications:
+          type: integer
+        failedVerifications:
+          type: integer
+        successRate:
+          type: string
+        verifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/Verification'
+        timestamp:
+          type: string
+          format: date-time
+
+    Verification:
+      type: object
+      properties:
+        id:
+          type: string
+        verificationType:
+          type: string
+        subjectId:
+          type: string
+        status:
+          type: string
+          enum: [success, failed, pending]
+        timestamp:
+          type: integer
+          format: int64
+        ageInDays:
+          type: integer
+        slaBadge:
+          type: string
+          enum: [green, yellow, red]
+
+    EvidenceDetails:
+      type: object
+      properties:
+        evidenceId:
+          type: string
+        verificationType:
+          type: string
+        subjectId:
+          type: string
+        endpointId:
+          type: string
+        status:
+          type: string
+        timestamp:
+          type: integer
+          format: int64
+        ageInDays:
+          type: integer
+        slaBadge:
+          type: string
+        staleCategory:
+          type: string
+        requestPayload:
+          type: object
+        responsePayload:
+          type: object
+        durationMs:
+          type: integer
+
+    EvidenceList:
+      type: object
+      properties:
+        evidence:
+          type: array
+          items:
+            $ref: '#/components/schemas/Verification'
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+            limit:
+              type: integer
+            total:
+              type: integer
+            pages:
+              type: integer
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        error_description:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []

@@ -1,0 +1,4231 @@
+enum WorkforceSupplyNodeType {
+  CLINICIAN
+  LICENSE
+  PRIVILEGE
+  ORG
+  STATE
+  COMPACT
+  ENROLLMENT
+  PAYER
+  EHR_ROLE
+}
+
+enum WorkforceSupplyRelationType {
+  CAN_PRACTICE_IN
+  CAN_PERFORM
+  ELIGIBLE_VIA_COMPACT
+  COVERED_BY_PAYER
+  APPROVED_AT_ORG
+  EHR_ROLE_GRANTED
+}
+
+model PrivilegeSafetySignal {
+  id                String                    @id @default(cuid())
+  clinicianId       String
+  clinician         ClinicianProfile          @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  signalType        PrivilegeSafetySignalType
+  severity          PrivilegeSafetySeverity
+  privilegeCodes    String[]                  @default([])
+  summary           String                    @db.Text
+  source            String
+  sourceEventId     String?
+  details           Json?
+  recommendedAction String?
+  detectedAt        DateTime                  @default(now())
+  acknowledgedAt    DateTime?
+  resolvedAt        DateTime?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  @@index([clinicianId, detectedAt])
+  @@index([signalType])
+  @@index([severity])
+  @@index([resolvedAt])
+  @@index([acknowledgedAt])
+}
+
+model SafetySignal {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  type        String           // near-miss | adverse-event | commendation
+  severity    String           // low | moderate | high
+  metadata    Json
+  reportedAt  DateTime         @default(now())
+
+  @@index([clinicianId, reportedAt])
+  @@index([type])
+  @@index([severity])
+}
+
+model RiskEvent {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  type        String           // sanctions | fraud | psv-mismatch | npdb | behavior | composite
+  severity    Float
+  metadata    Json
+  createdAt   DateTime         @default(now())
+
+  @@index([clinicianId, createdAt])
+  @@index([type])
+  @@index([severity])
+}
+
+model RiskGraphEdge {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  fromSignal  String
+  toSignal    String
+  weight      Float
+  createdAt   DateTime         @default(now())
+
+  @@index([clinicianId, createdAt])
+  @@index([fromSignal])
+  @@index([toSignal])
+}
+
+model CredentialGraph {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  nodes       Json
+  edges       Json
+  updatedAt   DateTime         @default(now())
+
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+model IdentityForensics {
+  id           String           @id @default(cuid())
+  clinicianId  String
+  clinician    ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  riskScore    Float
+  signals      Json
+  lastReviewed DateTime         @default(now())
+
+  @@index([clinicianId, lastReviewed])
+  @@index([riskScore])
+}
+
+model ComplianceCheck {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  type        String
+  source      String
+  result      Json
+  createdAt   DateTime         @default(now())
+
+  @@index([clinicianId, type])
+  @@index([createdAt])
+}
+
+model ContinuousCheck {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  type        String           // license | sanctions | board | npdb | compact
+  result      Json
+  runAt       DateTime         @default(now())
+  createdAt   DateTime         @default(now())
+
+  @@index([clinicianId, type])
+  @@index([runAt])
+}
+
+model CredentialVitalSign {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  component   String           // license | board | sanctions | npdb | dea
+  status      String           // good | warning | critical
+  details     Json
+  updatedAt   DateTime         @default(now())
+
+  @@unique([clinicianId, component])
+  @@index([status])
+  @@index([component])
+}
+
+model CredentialLifecycle {
+  id           String   @id @default(cuid())
+  credentialId String
+  phase        String   // intake | psv | issued | active | expiring | expired | retired
+  metadata     Json
+  timestamp    DateTime @default(now())
+
+  @@index([credentialId])
+  @@index([phase])
+  @@index([timestamp])
+}
+
+model ProviderLifecycle {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  phase       String           // training | resident | attending | multi-state | senior | retired
+  metadata    Json
+  updatedAt   DateTime         @default(now()) @updatedAt
+
+  @@index([clinicianId])
+  @@index([phase])
+}
+
+model SelfHealingEvent {
+  id        String   @id @default(cuid())
+  type      String
+  metadata  Json
+  resolved  Boolean  @default(false)
+  timestamp DateTime @default(now())
+
+  @@index([type])
+  @@index([resolved])
+  @@index([timestamp])
+}
+
+model ReputationSignal {
+  id           String           @id @default(cuid())
+  clinicianId  String
+  clinician    ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  signalType   String
+  weight       Float
+  timestamp    DateTime         @default(now())
+
+  @@index([clinicianId, timestamp])
+  @@index([signalType])
+}
+
+model VerifierGateway {
+  id        String   @id @default(cuid())
+  orgId     String
+  apiKey    String   @unique
+  rateLimit Int
+  createdAt DateTime @default(now())
+
+  @@index([orgId])
+}
+
+model CareShift {
+  id         String   @id @default(cuid())
+  facilityId String
+  role       String
+  start      DateTime
+  end        DateTime
+  specialty  String
+
+  @@index([facilityId])
+  @@index([role])
+  @@index([specialty])
+  @@index([start])
+}
+
+model MonitoringGrid {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  itemType    String           // license | dea | sanction | board | npdb
+  status      String           // clear | warning | critical
+  lastCheck   DateTime
+  nextCheck   DateTime
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([clinicianId, itemType])
+  @@index([itemType, status])
+  @@index([nextCheck])
+}
+
+enum PrivilegeSafetySignalType {
+  LICENSE_RISK
+  QUALITY_RISK
+  EHR_MISMATCH
+  COMPACT_ELIGIBILITY_LOSS
+  PAYER_DENIAL_SPIKE
+  OPPE_LOW
+  FPPE_FAILURE
+  DEA_EXPIRED
+  BOARD_EXPIRED
+  NPDB_FLAG
+}
+
+enum TrustEntityType {
+  ISSUER
+  VERIFIER
+  ORG
+  STATE_BOARD
+  PAYER
+  COMPACT_AUTHORITY
+}
+
+enum AccreditationStatus {
+  ACCREDITED
+  PROBATION
+  SUSPENDED
+  REVOKED
+  UNKNOWN
+}
+
+enum NCINodeType {
+  CLINICIAN
+  ISSUER
+  VERIFIER
+  STATE_BOARD
+  PAYER
+  ORG
+  EHR_SYSTEM
+  COMPACT_AUTHORITY
+}
+
+enum NCIVerifiableProofType {
+  ISSUANCE
+  VERIFICATION
+  REVOCATION
+}
+
+// B200A-NCI: Node registry + trust anchors
+model NCITrustAnchor {
+  entityId         String              @id
+  entityType       TrustEntityType
+  publicKey        String
+  certificateChain Json?
+  accreditation    AccreditationStatus @default(UNKNOWN)
+  jurisdiction     String?
+  isActive         Boolean             @default(true)
+  metadata         Json?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  nodes            NCINode[]
+
+  @@index([entityType])
+  @@index([jurisdiction])
+  @@index([accreditation])
+  @@index([isActive])
+}
+
+model NCINode {
+  nodeId        String       @id @default(cuid())
+  nodeType      NCINodeType
+  did           String       @unique
+  jurisdiction  String?
+  metadata      Json?
+  trustAnchorId String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  trustAnchor   NCITrustAnchor? @relation(fields: [trustAnchorId], references: [entityId], onDelete: SetNull)
+  proofs        NCIVerifiableProof[]
+
+  @@index([nodeType])
+  @@index([jurisdiction])
+  @@index([trustAnchorId])
+}
+
+model NCIVerifiableProof {
+  id           String                 @id @default(cuid())
+  did          String
+  proofType    NCIVerifiableProofType
+  eventType    String
+  payloadHash  String
+  anchorTxHash String?
+  chainId      String?
+  metadata     Json?
+  issuedFor    String?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  node         NCINode?               @relation(fields: [did], references: [did], onDelete: Cascade)
+
+  @@unique([payloadHash, proofType])
+  @@index([did])
+  @@index([proofType])
+  @@index([eventType])
+  @@index([issuedFor])
+}
+
+enum PrivilegeSafetySeverity {
+  LOW
+  MED
+  HIGH
+  CRITICAL
+}
+
+enum FHIRSubscriptionStatus {
+  ACTIVE
+  PAUSED
+  FAILED
+}
+
+enum CommitteePacketStatus {
+  GENERATED
+  REGENERATED
+  EXPORTED
+  SUBMITTED
+}
+
+model CommitteePacket {
+  id                   String                @id @default(cuid())
+  clinicianId          String
+  clinician            ClinicianProfile      @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  packetId             String                @unique
+  snapshotAt           DateTime              @default(now())
+  status               CommitteePacketStatus @default(GENERATED)
+  metadataHash         String
+  storagePath          String
+  snapshotSize         Int
+  encryptionKeyVersion String                @default("v1")
+  encryptionIv         String
+  encryptionAuthTag    String
+  anchorTxHash         String?
+  anchoredAt           DateTime?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+
+  @@index([clinicianId, snapshotAt])
+}
+
+model EvidencePack {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  items       Json
+  createdAt   DateTime         @default(now())
+
+  @@index([clinicianId, createdAt])
+}
+
+enum WorkforceSupplyNodeType {
+  CLINICIAN
+  LICENSE
+  PRIVILEGE
+  ORG
+  STATE
+  COMPACT
+  ENROLLMENT
+  PAYER
+  EHR_ROLE
+}
+
+enum WorkforceSupplyRelationType {
+  CAN_PRACTICE_IN
+  CAN_PERFORM
+  ELIGIBLE_VIA_COMPACT
+  COVERED_BY_PAYER
+  APPROVED_AT_ORG
+  EHR_ROLE_GRANTED
+}
+
+model WorkforceSupplyNode {
+  nodeId    String                 @id
+  nodeType  WorkforceSupplyNodeType
+  metadata  Json?
+  createdAt DateTime               @default(now())
+
+  outgoing WorkforceSupplyEdge[] @relation("WorkforceSupplyOutgoing")
+  incoming WorkforceSupplyEdge[] @relation("WorkforceSupplyIncoming")
+
+  @@index([nodeType])
+}
+
+model WorkforceSupplyEdge {
+  sourceNodeId String
+  targetNodeId String
+  relationType WorkforceSupplyRelationType
+  weight       Float    @default(1)
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  source WorkforceSupplyNode @relation("WorkforceSupplyOutgoing", fields: [sourceNodeId], references: [nodeId], onDelete: Cascade)
+  target WorkforceSupplyNode @relation("WorkforceSupplyIncoming", fields: [targetNodeId], references: [nodeId], onDelete: Cascade)
+
+  @@id([sourceNodeId, targetNodeId, relationType])
+  @@index([relationType])
+  @@index([sourceNodeId])
+  @@index([targetNodeId])
+}
+
+model MarketSignal {
+  id        String   @id @default(cuid())
+  region    String
+  specialty String
+  demand    Float
+  supply    Float
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([region, specialty])
+  @@index([region])
+  @@index([specialty])
+}
+
+model DidcommThread {
+  id             String   @id @default(cuid())
+  threadId       String   @unique
+  parentThreadId String?
+  auditEventId   String
+  messageType    String
+  connectionId   String?
+  status         String   @default("pending")
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([threadId])
+  @@index([parentThreadId])
+  @@index([auditEventId])
+}
+
+model ProofStream {
+  id       String   @id @default(cuid())
+  threadId String
+  event    String
+  payload  Json
+  ts       DateTime @default(now())
+
+  @@index([threadId, ts])
+  @@index([event])
+}
+
+/// Task 130.1 — persistent store for device fingerprints observed by bot defense
+model BotFingerprint {
+  id        String   @id @default(cuid())
+  deviceSig String   @unique
+  risk      Float
+  lastSeen  DateTime @default(now())
+
+  @@index([lastSeen])
+  @@index([risk])
+}
+model FHIRSubscription {
+  id              String                 @id @default(cuid())
+  resourceType    String
+  criteria        String
+  callbackUrl     String
+  status          FHIRSubscriptionStatus @default(PAUSED)
+  lastHandshakeAt DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([resourceType])
+}
+
+model WalletDevice {
+  deviceId     String             @id @default(uuid())
+  clinicianId  String
+  clinician    ClinicianProfile   @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  publicKeyJwk Json
+  metadata     Json?
+  createdAt    DateTime           @default(now())
+  lastUsedAt   DateTime?
+  credentials  WalletCredential[]
+
+  @@index([clinicianId])
+}
+
+model WalletCredential {
+  credentialId String           @id
+  clinicianId  String
+  clinician    ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  type         String
+  payload      Json
+  issuedAt     DateTime         @default(now())
+  revokedAt    DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  warranties   CredentialWarranty[]
+
+  @@index([clinicianId])
+  @@index([revokedAt])
+}
+
+model WalletCredential {
+  credentialId String           @id
+  clinicianId  String
+  clinician    ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  type         String
+  payload      Json
+  issuedAt     DateTime         @default(now())
+  revokedAt    DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  warranties   CredentialWarranty[]
+
+  @@index([clinicianId])
+  @@index([revokedAt])
+}
+
+model WalletProfile {
+  id           String           @id @default(cuid())
+  clinicianId  String
+  clinician    ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  walletType   String           // VCV | EUDI | AppleWallet | GoogleWallet
+  walletHandle String?
+  createdAt    DateTime         @default(now())
+
+  @@index([clinicianId])
+  @@index([walletType])
+  @@unique([clinicianId, walletType])
+}
+
+model CredentialWarranty {
+  id           String            @id @default(cuid())
+  credentialId String
+  credential   WalletCredential  @relation(fields: [credentialId], references: [credentialId], onDelete: Cascade)
+  issuerDid    String
+  warrantyType String            // accuracy | timeliness | liability
+  coverage     Float
+  expiresAt    DateTime
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@unique([credentialId])
+  @@index([issuerDid])
+  @@index([warrantyType])
+  @@index([expiresAt])
+}
+
+model DIDRecovery {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  recoveryDid String
+  method      String
+  createdAt   DateTime         @default(now())
+
+  @@index([clinicianId])
+  @@unique([clinicianId, recoveryDid])
+}
+
+model RecoverySession {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  method      String
+  step        String
+  metadata    Json
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([clinicianId, method])
+  @@index([step])
+}
+
+enum DriftType {
+  LICENSE_STATUS
+  LICENSE_EXPIRY
+  BOARD_STATUS
+  DEA_STATUS
+  NAME_MISMATCH
+  TAXONOMY_DRIFT
+  ADDRESS_DRIFT
+  SPECIALTY_DRIFT
+  PECOS_DRIFT
+  MEDICAID_DRIFT
+  NPPES_DRIFT
+  COMPACT_STATUS_DRIFT
+}
+
+enum DriftSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum DriftResolutionType {
+  MANUAL_OVERRIDE
+  DATA_CORRECTION
+  EXPIRED
+  NONE_NEEDED
+}
+
+model DriftEvent {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  driftType   DriftType
+  severity    DriftSeverity
+  oldValue    Json?
+  newValue    Json?
+  metadata    Json?
+  detectedAt  DateTime         @default(now())
+  resolvedAt  DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  resolutions DriftResolution[]
+
+  @@index([clinicianId, driftType])
+  @@index([severity])
+  @@index([detectedAt])
+}
+
+model DriftResolution {
+  id             String              @id @default(cuid())
+  eventId        String
+  event          DriftEvent          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  resolutionType DriftResolutionType
+  resolvedBy     String
+  resolvedAt     DateTime            @default(now())
+  notes          String?             @db.Text
+  metadata       Json?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([eventId])
+  @@index([resolutionType])
+  @@index([resolvedAt])
+}
+
+model ClinicianReadinessScore {
+  id          String   @id @default(cuid())
+  clinicianId String
+  score       Float
+  factors     Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([clinicianId])
+  @@index([score])
+}
+
+enum ReadinessDimensionType {
+  PSD
+  BOARD
+  SANCTIONS
+  COMPACT
+  IDENTITY
+  NPDB
+}
+
+model ReadinessDimension {
+  id          String                 @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile       @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  dimension   ReadinessDimensionType
+  score       Float
+  metadata    Json
+  updatedAt   DateTime               @default(now())
+
+  @@unique([clinicianId, dimension])
+  @@index([dimension])
+}
+
+model ReadinessSignal {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  type        String
+  score       Float
+  metadata    Json
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @default(now())
+
+  @@index([clinicianId, type])
+  @@index([updatedAt])
+}
+
+model NPIValidation {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  npi         String
+  crossRefs   Json
+  score       Float
+  updatedAt   DateTime         @default(now()) @updatedAt
+
+  @@index([clinicianId])
+  @@index([npi])
+  @@unique([clinicianId, npi])
+}
+
+model HiringRecommendation {
+  id          String   @id @default(cuid())
+  orgId       String
+  clinicianId String
+  score       Float
+  rationale   Json
+  createdAt   DateTime @default(now())
+}
+
+model ContextualMatchFeatures {
+  id           String            @id @default(cuid())
+  clinicianId  String
+  jobId        String
+  scheduleFit  Float
+  travelRadius Int
+  preferences  Json
+  createdAt    DateTime          @default(now())
+  clinician    ClinicianProfile  @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  job          JobPosting        @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicianId, jobId])
+  @@index([jobId])
+  @@index([scheduleFit])
+}
+
+model SpecialtyRequirement {
+  id        String   @id @default(cuid())
+  jobId     String
+  specialty String
+  minYears  Int
+  compactOk Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([jobId])
+  @@index([specialty])
+}
+
+model JobSearchIndex {
+  id        String   @id @default(cuid())
+  jobId     String
+  keywords  String[]
+  createdAt DateTime @default(now())
+
+  @@index([jobId])
+  @@index([createdAt])
+  @@unique([jobId])
+}
+
+model MarketplaceProfile {
+  id           String           @id @default(cuid())
+  clinicianId  String
+  clinician    ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  visibility   String
+  specialties  String[]
+  regions      String[]
+  updatedAt    DateTime         @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([visibility])
+  @@index([updatedAt])
+}
+
+model CompactEligibility {
+  id          String   @id @default(cuid())
+  clinicianId String
+  compact     String
+  eligible    Boolean
+  rationale   Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([clinicianId])
+  @@index([clinicianId, compact])
+  @@unique([clinicianId, compact])
+}
+
+model MobilityPassport {
+  id             String           @id @default(cuid())
+  clinicianId    String
+  clinician      ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  statesEligible String[]         @default([])
+  countries      String[]         @default([])
+  compactStatus  Json
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+model CountryEquivalencyRule {
+  id            String   @id @default(cuid())
+  country       String
+  foreignType   String
+  usEquivalent  String
+  level         String
+  metadata      Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([country, foreignType])
+  @@index([country])
+  @@index([foreignType])
+  @@index([usEquivalent])
+}
+
+model PrivilegeSet {
+  id         String   @id @default(cuid())
+  hospitalId String
+  specialty  String
+  procedures String[]
+  version    Int
+  updatedAt  DateTime @default(now())
+
+  @@unique([hospitalId, specialty, version])
+  @@index([hospitalId])
+}
+
+model PrivilegePack {
+  id        String   @id @default(cuid())
+  orgId     String
+  name      String
+  rules     Json
+  createdAt DateTime @default(now())
+
+  @@index([orgId])
+}
+
+model PrivilegePropagationPolicy {
+  id        String   @id @default(cuid())
+  systemId  String
+  sites     String[] @default([])
+  propagate Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([systemId])
+}
+
+model ProcedureVolume {
+  id          String            @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile  @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  procedure   String
+  count       Int
+  roleBreakdown Json?
+  sources     Json?
+  periodStart DateTime
+  periodEnd   DateTime
+  createdAt   DateTime          @default(now())
+
+  @@index([clinicianId, procedure])
+  @@index([periodStart, periodEnd])
+  @@unique([clinicianId, procedure, periodStart, periodEnd])
+}
+
+model SkillNode {
+  id          String   @id @default(cuid())
+  name        String
+  category    String   // procedure | certification | specialty
+  metadata    Json
+  createdAt   DateTime @default(now())
+
+  @@unique([name, category])
+  @@index([category])
+}
+
+model WorkforcePredictor {
+  id        String   @id @default(cuid())
+  orgId     String
+  region    String
+  specialty String
+  signals   Json
+  createdAt DateTime @default(now())
+
+  @@index([orgId, region, specialty])
+}
+
+model CapacityScenario {
+  id        String   @id @default(cuid())
+  orgId     String
+  name      String
+  params    Json
+  createdAt DateTime @default(now())
+
+  @@index([orgId, createdAt])
+}
+
+model MarketSignal {
+  id        String   @id @default(cuid())
+  region    String
+  specialty String
+  demand    Float
+  supply    Float
+  updatedAt DateTime @default(now())
+
+  @@index([region, specialty])
+  @@index([updatedAt])
+}
+
+model DocumentFingerprint {
+  id          String            @id @default(cuid())
+  clinicianId String
+  hash        String            @unique
+  features    Json
+  createdAt   DateTime          @default(now())
+  clinician   ClinicianProfile? @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+
+  @@index([clinicianId])
+}
+
+model DocumentHashChain {
+  id        String   @id @default(cuid())
+  docId     String
+  hashSeq   String[]
+  createdAt DateTime @default(now())
+
+  @@unique([docId])
+}
+
+model CustodyRecord {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  documentId  String
+  action      String           // upload | viewed | verified | signed | anchored
+  metadata    Json
+  timestamp   DateTime         @default(now())
+
+  @@index([clinicianId, timestamp])
+  @@index([documentId])
+}
+
+model LicenseAutofillRecord {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  state       String
+  licenseNum  String
+  data        Json
+  source      String           // NPPES | StateBoard | Aggregator
+  createdAt   DateTime         @default(now())
+
+  @@index([clinicianId, state])
+  @@index([source])
+  @@index([licenseNum])
+}
+
+model LicenseTemplate {
+  id        String   @id @default(cuid())
+  state     String
+  version   String
+  features  Json
+  createdAt DateTime @default(now())
+
+  @@unique([state, version])
+  @@index([state])
+}
+
+model BlockProof {
+  id         String   @id @default(cuid())
+  eventId    String   @unique
+  blockHash  String
+  merklePath Json
+  palletName String?
+  eventType  String?
+  timestamp  DateTime @default(now())
+
+  @@index([eventId])
+}
+
+model ChainMetrics {
+  id          String   @id @default(cuid())
+  blockTimeMs Int
+  finalityLag Int
+  queueDepth  Int
+  capturedAt  DateTime @default(now())
+
+  @@index([capturedAt])
+}
+
+model ChainHealth {
+  id        String   @id @default(cuid())
+  nodeId    String
+  block     Int
+  latencyMs Int
+  synced    Boolean
+  updatedAt DateTime @default(now())
+}
+
+model TrustedIssuer {
+  id      String   @id @default(cuid())
+  did     String   @unique
+  orgNpi  String
+  orgName String
+  addedAt DateTime @default(now())
+
+  @@index([did])
+  @@index([orgNpi])
+}
+
+model TrustWeight {
+  id        String   @id @default(cuid())
+  issuerDid String   @unique
+  weight    Float
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([issuerDid])
+}
+
+model GovernanceProposal {
+  id          String   @id @default(cuid())
+  proposerDid String
+  title       String
+  description String   @db.Text
+  status      String   @default("draft")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([proposerDid])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model IssuerFederation {
+  id         String   @id @default(cuid())
+  parentDid  String
+  childDid   String
+  trustLevel Int      @default(3)
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@unique([parentDid, childDid])
+  @@index([parentDid])
+  @@index([childDid])
+}
+
+model CredentialTemplate {
+  id             String                      @id @default(cuid())
+  issuerId       String
+  name           String
+  schema         Json
+  currentVersion Int                          @default(1)
+  metadata       Json?
+  createdAt      DateTime                     @default(now())
+  updatedAt      DateTime                     @updatedAt
+  versions       CredentialTemplateVersion[]
+
+  @@index([issuerId])
+}
+
+model CredentialTemplateVersion {
+  id         String             @id @default(cuid())
+  templateId String
+  version    Int
+  name       String
+  schema     Json
+  createdAt  DateTime           @default(now())
+  template   CredentialTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, version])
+  @@index([templateId])
+}
+
+model CredentialSummary {
+  id           String           @id @default(cuid())
+  clinicianId  String
+  clinician    ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  summary      String           @db.Text
+  rationale    Json
+  createdAt    DateTime         @default(now())
+
+  @@index([clinicianId, createdAt])
+}
+
+model AuditEvidence {
+  id          String   @id @default(cuid())
+  clinicianId String
+  category    String
+  payload     Json
+  createdAt   DateTime @default(now())
+
+  @@index([clinicianId])
+  @@index([category])
+}
+
+model AuditProof {
+  id          String   @id @default(cuid())
+  eventId     String
+  circuitType String
+  proof       Json
+  createdAt   DateTime @default(now())
+
+  @@index([eventId])
+  @@index([circuitType])
+}
+
+model ExplainableDecision {
+  id        String   @id @default(cuid())
+  decision  String
+  features  Json
+  weights   Json
+  outcome   String
+  timestamp DateTime @default(now())
+
+  @@index([decision, timestamp])
+  @@index([outcome])
+}
+
+model EmergencyPrivilege {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  orgId       String
+  reason      String
+  expiresAt   DateTime
+  metadata    Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  revokedAt   DateTime?
+
+  @@index([clinicianId, orgId])
+  @@index([orgId])
+  @@index([expiresAt])
+  @@index([revokedAt])
+}
+
+model DEACredential {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  deaNumber   String
+  expiration  DateTime
+  mateHours   Int
+  metadata    Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([clinicianId])
+  @@index([deaNumber])
+  @@index([expiration])
+}
+
+model ContractEscrow {
+  id           String           @id @default(cuid())
+  clinicianId  String
+  clinician    ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  employerId   String
+  amount       Int
+  currency     String
+  status       String
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([clinicianId])
+  @@index([employerId])
+  @@index([status])
+}
+
+model ForeignCredential {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  country     String
+  type        String           // GMC, NMC, EU-Directive, IMG
+  data        Json
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([clinicianId])
+  @@index([country, type])
+}
+
+model GlobalLicense {
+  id                  String           @id @default(cuid())
+  clinicianId         String
+  clinician           ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  country             String
+  authority           String
+  licenseNumber       String
+  status              String          // active | expired | suspended
+  expiresAt           DateTime?
+  lastVerified        DateTime        @default(now())
+  payloadHash         String
+  recordHash          String
+  payload             Json?
+  metadata            Json?
+  provenanceVerdict   String?
+  provenanceScore     Float?
+  provenanceIssues    Json?
+  equivalencyTarget   String?
+  equivalencyLevel    String?
+  equivalencyRationale String?
+  pdfDigest           String?
+  pdfDataUri          String?
+  anchorTxHash        String?
+  anchorNetwork       String?
+  anchorEvent         String?
+  anchoredAt          DateTime?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@unique([clinicianId, authority, licenseNumber])
+  @@index([clinicianId])
+  @@index([country])
+  @@index([authority])
+  @@index([status])
+  @@index([lastVerified])
+  @@index([equivalencyTarget])
+}
+
+model RegAuthority {
+  id            String                 @id @default(cuid())
+  code          String                 @unique
+  country       String
+  apiUrl        String?
+  updatedAt     DateTime               @default(now()) @updatedAt
+  createdAt     DateTime               @default(now())
+  ruleSnapshots RegulatoryRuleSnapshot[]
+  events        RegulatoryEvent[]
+}
+
+model RegulatoryRuleSnapshot {
+  id                 String                 @id @default(cuid())
+  authorityCode      String
+  authority          RegAuthority?          @relation(fields: [authorityCode], references: [code], onDelete: SetNull)
+  payload            Json
+  summary            Json?
+  diffSummary        Json?
+  snapshotHash       String
+  diffHash           String?
+  fetchedAt          DateTime               @default(now())
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  anchorTxHash       String?
+  anchorNetwork      String?
+  anchorEventId      String?
+  previousSnapshotId String?
+  previousSnapshot   RegulatoryRuleSnapshot? @relation("RegSnapshotPrev", fields: [previousSnapshotId], references: [id], onDelete: SetNull)
+  nextSnapshots      RegulatoryRuleSnapshot[] @relation("RegSnapshotPrev")
+  ruleVersion        Int                    @default(1)
+  events             RegulatoryEvent[]
+
+  @@index([authorityCode, fetchedAt])
+  @@index([snapshotHash])
+  @@index([diffHash])
+}
+
+model RegulatoryEvent {
+  id            String                @id @default(cuid())
+  authorityCode String
+  authority     RegAuthority?         @relation(fields: [authorityCode], references: [code], onDelete: SetNull)
+  snapshotId    String?
+  snapshot      RegulatoryRuleSnapshot? @relation(fields: [snapshotId], references: [id], onDelete: SetNull)
+  eventType     String
+  title         String
+  description   String?
+  payload       Json?
+  tags          String[]              @default([])
+  diffHash      String?
+  occurredAt    DateTime              @default(now())
+  createdAt     DateTime              @default(now())
+
+  @@index([authorityCode, occurredAt])
+  @@index([eventType])
+  @@index([diffHash])
+}
+
+enum AriesMessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+model AriesConnection {
+  id           String            @id @default(cuid())
+  connectionId String            @unique
+  label        String?
+  role         String
+  state        String
+  theirDid     String?
+  threadId     String?
+  metadata     Json?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  messages     AriesMessageLog[]
+
+  @@index([role])
+  @@index([state])
+}
+
+model AriesMessageLog {
+  id            String                @id @default(cuid())
+  threadId      String
+  connectionId  String?
+  direction     AriesMessageDirection
+  messageType   String
+  payload       Json
+  acked         Boolean               @default(false)
+  auditId       String?
+  createdAt     DateTime              @default(now())
+  connection    AriesConnection?      @relation(fields: [connectionId], references: [connectionId], onDelete: SetNull)
+
+  @@index([threadId])
+  @@index([connectionId])
+  @@index([direction])
+}
+
+model ATSWebhook {
+  id               String   @id @default(cuid())
+  orgId            String
+  url              String
+  secret           String
+  events           String[] @default([])
+  clinicianFilters String[] @default([])
+  createdAt        DateTime @default(now())
+
+  @@index([orgId])
+}
+
+model CredentialStreamSubscription {
+  id        String   @id @default(cuid())
+  orgId     String
+  topic     String   // clinician-updates | revocations | status-changes
+  endpoint  String
+  secret    String
+  createdAt DateTime @default(now())
+
+  @@index([orgId])
+  @@index([topic])
+  @@unique([orgId, topic, endpoint])
+}
+
+model EmployerATS {
+  id        String   @id @default(cuid())
+  orgId     String
+  name      String
+  apiUrl    String?
+  apiKey    String?
+  createdAt DateTime @default(now())
+
+  @@index([orgId])
+  @@index([orgId, name])
+}
+
+model HRISConnection {
+  id       String @id @default(cuid())
+  orgId    String
+  type     String // Workday | UKG | ADP | Oracle
+  endpoint String
+  secret   String
+
+  @@index([orgId])
+  @@index([type])
+  @@unique([orgId, type])
+}
+
+model CandidateSyncQueue {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  orgId       String
+  event       String           // readinessUpdate | credentialIssued | sanctionFlag | expirationWarning
+  payload     Json
+  createdAt   DateTime         @default(now())
+  processed   Boolean          @default(false)
+
+  @@index([processed, createdAt])
+  @@index([orgId])
+  @@index([clinicianId])
+}
+
+model RoutingRequest {
+  id           String           @id @default(cuid())
+  clinicianId  String
+  clinician    ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  targetSystem String           // ATS | EHR | CVO | TEFCA Node
+  method       String           // OIDC4VC | FHIR
+  payload      Json
+  status       String           @default("pending") // pending | sent | acked | failed
+  createdAt    DateTime         @default(now())
+
+  @@index([clinicianId])
+  @@index([targetSystem])
+  @@index([status])
+  @@index([method])
+}
+
+// Recruiter CRM
+model RecruiterNote {
+  id          String           @id @default(cuid())
+  recruiterId String
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  note        String           @db.Text
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([clinicianId, createdAt])
+  @@index([recruiterId, createdAt])
+}
+
+model RecruiterContactEvent {
+  id           String           @id @default(cuid())
+  clinicianId  String
+  recruiterId  String
+  channel      String?
+  metadata     Json?
+  contactedAt  DateTime         @default(now())
+  createdAt    DateTime         @default(now())
+  clinician    ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+
+  @@index([clinicianId, contactedAt])
+  @@index([recruiterId, contactedAt])
+}
+
+model HiringEvent {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  employerId  String
+  eventType   String           // applied | verified | privileged | offerSent | offerAccepted | onboarded
+  metadata    Json
+  eventHash   String
+  txHash      String?
+  blockHash   String?
+  anchoredAt  DateTime?
+  createdAt   DateTime         @default(now())
+
+  @@index([clinicianId, createdAt])
+  @@index([employerId, createdAt])
+  @@index([eventType])
+}
+
+model OnboardingKinetics {
+  id           String           @id @default(cuid())
+  clinicianId  String
+  clinician    ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  phase        String           // docs | verification | committee | itAccess | onboarding
+  durationDays Int
+  bottlenecks  Json
+  timestamp    DateTime         @default(now())
+
+  @@index([clinicianId, phase])
+  @@index([timestamp])
+}
+
+model OnboardingCheckpoint {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  step        String
+  status      String
+  blockerCode String?
+  metadata    Json?
+  timestamp   DateTime         @default(now())
+
+  @@index([clinicianId, step, timestamp])
+  @@index([blockerCode])
+  @@index([timestamp])
+}
+
+// Workforce forecasting v3
+model WorkforceTrend {
+  id         String   @id @default(cuid())
+  specialty  String
+  region     String
+  signals    Json
+  predicted  Json
+  createdAt  DateTime @default(now())
+
+  @@index([specialty, region])
+  @@index([createdAt])
+}
+
+// Compact automation
+model CompactDocument {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  compact     String
+  documentUrl String
+  verified    Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([clinicianId, compact])
+  @@index([verified])
+}
+
+model MasterCredentialIndex {
+  id             String            @id @default(cuid())
+  clinicianId    String
+  clinician      ClinicianProfile  @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  credentialType String
+  credentialId   String
+  issuerDid      String
+  status         String            // active | expired | revoked
+  lastUpdated    DateTime          @default(now())
+
+  @@unique([clinicianId, credentialType, credentialId])
+  @@index([clinicianId])
+  @@index([credentialType])
+  @@index([status])
+}
+
+model CredentialFusion {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  sources     Json
+  fusedRecord Json
+  updatedAt   DateTime         @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([updatedAt])
+}
+
+model MultiPartyCredential {
+  id               String   @id @default(cuid())
+  baseCredentialId String
+  participantDids  String[] @default([])
+  status           String   @default("draft") // draft | requested | partially_signed | fully_signed | revoked
+  partialProofs    Json?
+  rootHash         String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([baseCredentialId])
+  @@index([status])
+}
+
+// Batch 148 - Next-Gen Identity Fusion v4
+model IdentityFusionSnapshot {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  fused       Json
+  confidence  Float
+  timestamp   DateTime         @default(now())
+  events      IdentityEventLog[]
+
+  @@index([clinicianId, timestamp])
+  @@index([timestamp])
+}
+
+model IdentityEventLog {
+  id          String           @id @default(cuid())
+  clinicianId String
+  snapshotId  String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  snapshot    IdentityFusionSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  eventType   String
+  field       String
+  oldValue    Json?
+  newValue    Json?
+  changeHash  String
+  createdAt   DateTime         @default(now())
+
+  @@index([clinicianId, createdAt])
+  @@index([snapshotId])
+  @@index([eventType])
+}
+
+// Batch 149 - Clinical Privilege Ontology Engine v3
+model PrivilegeOntology {
+  id        String   @id @default(cuid())
+  specialty String
+  ontology  Json
+  version   Int      @default(1)
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([specialty, version])
+  @@index([updatedAt])
+}
+
+// Batch 150 - Enterprise Delegated Admin v2
+model DelegatedAdmin {
+  id        String   @id @default(cuid())
+  orgId     String
+  email     String
+  role      String   // admin | reviewer | auditor
+  createdAt DateTime @default(now())
+
+  @@index([orgId])
+  @@index([email])
+  @@index([role])
+}
+
+// Batch 151 - AI-Driven Compliance Navigator v3
+model ComplianceNavigator {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  path        Json
+  status      String
+  timestamp   DateTime         @default(now())
+
+  @@index([clinicianId, timestamp])
+  @@index([status])
+}
+
+// Batch 152 - Credential Performance Telemetry v2
+model CredentialTelemetry {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  metric      String
+  value       Float
+  timestamp   DateTime         @default(now())
+
+  @@index([clinicianId, timestamp])
+  @@index([metric])
+  @@index([timestamp])
+}
+
+// Batch 153 - National Provider Graph Explorer v3
+model ProviderGraph {
+  id        String   @id @default(cuid())
+  nodes     Json
+  edges     Json
+  region    String
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// Batch 154 — Next-Gen Credential Fabric v4
+model CredentialFabric {
+  id           String           @id @default(cuid())
+  clinicianId  String
+  clinician    ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  fabric       Json
+  version      Int              @default(1)
+  status       String           @default("stable")
+  integrity    Json?
+  conflicts    Json?
+  crossChain   Json?
+  anchorTxHash String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @default(now()) @updatedAt
+  diffs        CredentialFabricDiff[]
+  events       CredentialFabricEvent[]
+
+  @@unique([clinicianId])
+  @@index([updatedAt])
+}
+
+model CredentialFabricDiff {
+  id             String             @id @default(cuid())
+  fabricId       String
+  clinicianId    String
+  fabric         CredentialFabric   @relation(fields: [fabricId], references: [id], onDelete: Cascade)
+  version        Int
+  previousVersion Int?
+  diff           Json
+  mutatedAt      DateTime           @default(now())
+  actor          String?
+  reason         String?
+
+  @@index([fabricId])
+  @@index([clinicianId, version])
+}
+
+model CredentialFabricEvent {
+  id            String             @id @default(cuid())
+  fabricId      String?
+  clinicianId   String
+  fabricVersion Int
+  eventType     String
+  payload       Json
+  replayHash    String?
+  replayed      Boolean            @default(false)
+  createdAt     DateTime           @default(now())
+  fabric        CredentialFabric?  @relation(fields: [fabricId], references: [id], onDelete: SetNull)
+
+  @@index([clinicianId, fabricVersion])
+  @@index([eventType])
+}
+
+// Batch 155 — Trust Anchoring Engine v3
+model TrustAnchor {
+  id        String   @id @default(cuid())
+  entityDid String   @unique
+  score     Float
+  metadata  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+}
+
+// Batch 156 — Enterprise Observability Grid v4
+model ObservabilityGrid {
+  id        String   @id @default(cuid())
+  metrics   Json
+  region    String
+  status    String   @default("healthy")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// Batch 157 — Multi-Role UX Unification Layer v3
+model RoleUXConfig {
+  id        String   @id @default(cuid())
+  role      String
+  uxProfile Json
+  version   Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([role])
+  @@index([updatedAt])
+}
+
+// Batch 158 — Workforce Supply Chain Intelligence Engine v3
+model SupplyChainNode {
+  id        String   @id @default(cuid())
+  region    String
+  specialty String
+  supply    Float
+  demand    Float
+  readiness Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([region, specialty])
+  @@index([updatedAt])
+}
+
+// Batch 159 — Wallet Interoperability Expansion v5
+model WalletInteropConfig {
+  id        String   @id @default(cuid())
+  wallet    String
+  schema    Json
+  version   Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([wallet])
+  @@index([updatedAt])
+}
+
+// Batch 172 — Digital License Passport v4
+model DigitalLicensePassport {
+  id            String   @id @default(cuid())
+  clinicianId   String
+  clinician     ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  passport      Json
+  version       Int      @default(1)
+  updatedAt     DateTime @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([version])
+}
+
+// Batch 173 — Global Workforce Routing Grid v3
+model WorkforceRouting {
+  id            String   @id @default(cuid())
+  clinicianId   String
+  clinician     ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  regions       Json
+  routes        Json
+  updatedAt     DateTime @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+}
+
+// Batch 174 — Blockchain Identity Hardening v4
+model IdentityHardening {
+  id          String   @id @default(cuid())
+  did         String   @unique
+  level       String   // basic | hardened | enterprise | regulator
+  metadata    Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([did])
+  @@index([level])
+}
+
+// Batch 175 — Employer Trust Scoring Engine v3
+model EmployerTrust {
+  id          String   @id @default(cuid())
+  orgId       String
+  score       Float
+  metrics     Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([orgId])
+  @@index([orgId])
+  @@index([score])
+}
+
+// Batch 176 — Credential Compression & Sync Fabric v2
+model CredentialCompression {
+  id         String   @id @default(cuid())
+  vcId       String
+  method     String   // gzip, brotli, sd-jwt, custom
+  ratio      Float
+  createdAt  DateTime @default(now())
+
+  @@index([vcId])
+  @@index([method])
+  @@index([createdAt])
+}
+
+// Batch 177 — Marketplace Liquidity Optimizer v4
+model LiquiditySignal {
+  id          String   @id @default(cuid())
+  clinicianId String?
+  metric      String
+  value       Float
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([clinicianId])
+  @@index([metric])
+  @@index([updatedAt])
+}
+
+// Batch 178 — Provider Safety Graph v4
+model SafetyGraph {
+  id          String   @id @default(cuid())
+  clinicianId String
+  signals     Json
+  edges       Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 179 — Multi-Layer Reputation AI v5
+model ReputationLayer {
+  id          String   @id @default(cuid())
+  clinicianId String
+  layers      Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 180 — Regulatory Interop Bridge v3
+model RegInterop {
+  id        String   @id @default(cuid())
+  region    String
+  mapping   Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// Batch 181 — Credential Pathway Generator v4
+model PathwayPlan {
+  id          String   @id @default(cuid())
+  clinicianId String
+  targetRole  String
+  steps       Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([clinicianId])
+  @@index([targetRole])
+  @@index([updatedAt])
+}
+
+// Batch 182 — Zero-Friction Employer Onboarding v3
+model EmployerOnboarding {
+  id        String   @id @default(cuid())
+  orgId     String
+  steps     Json
+  status    String
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([orgId])
+  @@index([status])
+  @@index([updatedAt])
+}
+
+// Batch 183 — Global Identity Continuity Framework v3
+model IdentityContinuity {
+  id          String   @id @default(cuid())
+  clinicianId String
+  continuity  Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 190 — Provider Experience Timeline v4
+model ExperienceTimeline {
+  id          String   @id @default(cuid())
+  clinicianId String
+  timeline    Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 191 — National Safety & Sanctions Exchange v3
+model SafetyExchange {
+  id          String   @id @default(cuid())
+  clinicianId String
+  events      Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 192 — Credentialing Automation Kernel v3
+model AutomationKernel {
+  id        String   @id @default(cuid())
+  tasks     Json
+  status    String
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([status])
+  @@index([updatedAt])
+}
+
+// Batch 193 — Verifier Experience 3.0
+model VerifierCheck {
+  id          String   @id @default(cuid())
+  verifierId  String
+  result      Json
+  timestamp   DateTime @default(now())
+
+  @@index([verifierId, timestamp])
+  @@index([timestamp])
+}
+
+// Batch 194 — On-Chain Observability Mesh v3
+model ObservabilityMesh {
+  id        String   @id @default("current")
+  nodes     Json
+  metrics   Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+}
+
+// Batch 195 — Workforce Acceleration Engine v4
+model AccelerationSignal {
+  id          String   @id @default(cuid())
+  clinicianId String
+  signals     Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 214 — Holistic Workforce Graph v5
+model WorkforceGraph {
+  id        String   @id @default(cuid())
+  nodes     Json
+  edges     Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+}
+
+// Batch 215 — Credential Reliability Engine v4
+model CredentialReliability {
+  id          String   @id @default(cuid())
+  credentialId String
+  score       Float
+  signals     Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([credentialId])
+  @@index([score])
+  @@index([updatedAt])
+}
+
+// Batch 216 — Privilege Intelligence Network v3
+model PrivilegeIntel {
+  id            String   @id @default(cuid())
+  clinicianId   String
+  intel         Json
+  updatedAt     DateTime @default(now()) @updatedAt
+
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 217 — National Hiring Pulse Grid v3
+model HiringPulse {
+  id        String   @id @default(cuid())
+  region    String
+  pulse     Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// Batch 218 — Global Identity Proof Protocol v4
+model IdentityProofProtocol {
+  id        String   @id @default(cuid())
+  protocol  Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+}
+
+// Batch 219 — Credential Performance Accelerator v3
+model CredentialPerformance {
+  id          String   @id @default(cuid())
+  clinicianId String
+  performance Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 220 — Global Trust Intelligence Layer v5
+model GlobalTrustGraph {
+  id        String   @id
+  nodes     Json
+  edges     Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+}
+
+// Batch 221 — Credential Exchange Orchestration v4
+model VCExchange {
+  id        String   @id @default(cuid())
+  exchange  Json
+  orgId     String
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([orgId])
+  @@index([updatedAt])
+}
+
+// Batch 222 — Skills & Procedure Volume Engine v3
+// Note: ProcedureVolume model already exists at line 892, updating it
+// The existing model is sufficient, no changes needed
+
+// Batch 223 — National Provider Index v4
+model ProviderIndex {
+  id        String   @id @default(cuid())
+  region    String
+  index     Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// Batch 224 — Zero-Friction Proof UX v3
+model ProofUXConfig {
+  id        String   @id @default(cuid())
+  config    Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+}
+
+// Batch 225 — Safety & Privileging Alignment Engine v4
+model PrivilegeSafetyAlignment {
+  id          String   @id @default(cuid())
+  clinicianId String
+  alignment   Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 238 — Global Clinician Ontology v5
+model GlobalClinicianOntology {
+  id        String   @id @default(cuid())
+  ontology  Json
+  version   Int
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([version])
+  @@index([updatedAt])
+}
+
+// Batch 239 — National Safety & Compliance Mesh v4
+model SafetyComplianceMesh {
+  id        String   @id @default(cuid())
+  mesh      Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+}
+
+// Batch 240 — Marketplace Liquidity Intelligence v5
+model LiquidityIntelligence {
+  id        String   @id @default(cuid())
+  region    String
+  intel     Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([region])
+  @@index([updatedAt])
+  @@unique([region])
+}
+
+// Batch 241 — Employer Credential Maturity Model v3
+model CredentialMaturity {
+  id        String   @id @default(cuid())
+  orgId     String
+  score     Float
+  signals   Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([orgId])
+  @@index([orgId])
+  @@index([score])
+  @@index([updatedAt])
+}
+
+// Batch 242 — Multi-DID Identity Synchronizer v4
+model MultiDIDSynchronizer {
+  id          String   @id @default(cuid())
+  clinicianId String
+  dids        Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 243 — Resilient Cross-Border Credential Bridge v4
+model CrossBorderBridge {
+  id          String   @id @default(cuid())
+  clinicianId String
+  mappings    Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 274 — Autonomous Workforce Routing Grid v5
+model WorkforceRoutingGrid {
+  id        String   @id @default(cuid())
+  grid      Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+}
+
+// Batch 275 — Clinician Trust Persona Engine v4
+model TrustPersona {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  persona     Json
+  updatedAt   DateTime         @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 276 — Employer Reputation Mesh v6
+model ReputationMesh {
+  id        String   @id @default(cuid())
+  mesh      Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+}
+
+// Batch 277 — Compliance Signal Network v6
+model ComplianceSignalNetwork {
+  id        String   @id @default(cuid())
+  signals   Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+}
+
+// Batch 278 — Chain-Aware Attestation Engine v5
+model ChainAttestation {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  attestations Json
+  updatedAt   DateTime         @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 279 — AI Credential Verification Copilot v4
+model VerificationCopilot {
+  id        String   @id @default(cuid())
+  userId    String
+  context   Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([userId])
+  @@index([userId])
+  @@index([updatedAt])
+}
+
+// Batch 280 — Clinician License Continuity Grid v5
+model LicenseContinuity {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  continuity  Json
+  updatedAt   DateTime         @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 281 — Employer Behavioral Economics Engine v4
+model EmployerBehaviorEconomics {
+  id        String   @id @default(cuid())
+  orgId     String
+  signals   Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([orgId])
+  @@index([orgId])
+  @@index([updatedAt])
+}
+
+// Batch 282 — Chain Stability Monitor v6
+model ChainStability {
+  id        String   @id @default(cuid())
+  stability Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+}
+
+// Batch 283 — International Regulatory Interop Layer v5
+model RegInteropLayer {
+  id        String   @id @default(cuid())
+  region    String
+  layer     Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([region])
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// Batch 284 — Workforce Efficiency Intelligence v4
+model WorkforceEfficiency {
+  id        String   @id @default(cuid())
+  efficiency Json
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+}
+
+// Batch 285 — AI Credential Forensics Engine v5
+model CredentialForensics {
+  id           String           @id @default(cuid())
+  credentialId String
+  forensics    Json
+  updatedAt    DateTime         @default(now()) @updatedAt
+
+  @@index([credentialId])
+  @@index([updatedAt])
+}
+
+// Batch 292 — Real-Time Regulatory Intelligence v6
+model RegulatoryIntelligence {
+  id        String   @id @default(cuid())
+  region    String
+  intel     Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// Batch 293 — Clinician Flexibility & Mobility Engine v5
+model FlexibilityEngine {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  flexibility Json
+  updatedAt   DateTime         @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 294 — Employer Compliance Navigator v5
+model EmployerComplianceNavigator {
+  id        String   @id @default(cuid())
+  orgId     String
+  navigator Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([orgId])
+  @@index([orgId])
+  @@index([updatedAt])
+}
+
+// Batch 295 — Global Workforce Sentiment Engine v3
+model WorkforceSentiment {
+  id        String   @id @default(cuid())
+  region    String
+  sentiment Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([region])
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// Batch 296 — Multi-Layer Credential Fusion Fabric v6
+model CredentialFusionFabric {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  fusion      Json
+  updatedAt   DateTime         @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 297 — Autonomous System Recovery Mesh v4
+model RecoveryMesh {
+  id        String   @id @default(cuid())
+  recovery  Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+}
+
+// Batch 340 — Clinician-Employer Trust Graph v6
+model ClinicianEmployerTrustGraph {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  graph       Json
+  updatedAt   DateTime         @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 341 — Global Credential Timeline Synthesizer v5
+model CredentialTimelineSynth {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  timeline    Json
+  updatedAt   DateTime         @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 342 — System-Wide Compliance Stress Engine v5
+model ComplianceStressEngine {
+  id        String   @id @default(cuid())
+  stress    Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+}
+
+// Batch 343 — AI-Driven Hiring Fairness Core v5
+model HiringFairnessCore {
+  id        String   @id @default(cuid())
+  orgId     String
+  fairness  Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([orgId])
+  @@index([orgId])
+  @@index([updatedAt])
+}
+
+// Batch 344 — Universal Talent Gravity Model v4
+model TalentGravity {
+  id        String   @id @default(cuid())
+  gravity   Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+}
+
+// Batch 345 — Credential Auditability Kernel v6
+model AuditabilityKernel {
+  id        String   @id @default(cuid())
+  kernel    Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+}
+
+// Batch 352 — Dynamic Workforce Routing Kernel v7
+model WorkforceRoutingKernel {
+  id        String   @id @default(cuid())
+  region    String
+  kernel    Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// Batch 353 — Credential Assurance Probability Engine v6
+model CredentialAssurance {
+  id           String   @id @default(cuid())
+  credentialId String
+  assurance    Json
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  @@index([credentialId])
+  @@index([updatedAt])
+}
+
+// Batch 354 — Employer Operational Intelligence Matrix v7
+model OperationalIntelligenceMatrix {
+  id        String   @id @default(cuid())
+  orgId     String
+  matrix    Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([orgId])
+  @@index([updatedAt])
+}
+
+// Batch 355 — Global Compliance Horizon Forecaster v5
+model ComplianceHorizon {
+  id        String   @id @default(cuid())
+  region    String
+  horizon   Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// Batch 356 — Talent Resonance & Match Quality Engine v5
+model TalentResonance {
+  id          String   @id @default(cuid())
+  clinicianId String
+  employerId  String
+  resonance   Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([clinicianId])
+  @@index([employerId])
+  @@index([updatedAt])
+  @@unique([clinicianId, employerId])
+}
+
+// Batch 357 — Multi-Chain Credential Reconciliation Fabric v6
+model ReconciliationFabric {
+  id          String   @id @default(cuid())
+  clinicianId String
+  fabric      Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([clinicianId])
+  @@index([updatedAt])
+  @@unique([clinicianId])
+}
+
+// Batch 358 — Provider Trust Elasticity Engine v6
+model TrustElasticity {
+  id          String   @id @default(cuid())
+  clinicianId String
+  elasticity  Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 359 — Employer Performance Stability Core v5
+model PerformanceStability {
+  id        String   @id @default(cuid())
+  orgId     String
+  stability Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([orgId])
+  @@index([orgId])
+  @@index([updatedAt])
+}
+
+// Batch 360 — Global Credential Continuum Mapper v6
+model CredentialContinuum {
+  id          String   @id @default(cuid())
+  clinicianId String
+  continuum   Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 361 — Compliance Impact Predictor v7
+model ComplianceImpactPredictor {
+  id        String   @id @default(cuid())
+  region    String
+  impact    Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([region])
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// Batch 362 — Clinician Value & Economic Yield Engine v4
+model ClinicianEconomicYield {
+  id          String   @id @default(cuid())
+  clinicianId String
+  yield       Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 363 — AI-Powered Verification State Machine v5
+model VerificationStateMachine {
+  id        String   @id @default(cuid())
+  sessionId String
+  state     Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([sessionId])
+  @@index([sessionId])
+  @@index([updatedAt])
+}
+
+// Batch 364 — Global Provider Trust Trajectory Engine v7
+model ProviderTrustTrajectory {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  trajectory  Json
+  updatedAt   DateTime         @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 365 — Employer-Clinician Contract Health Core v5
+model ContractHealth {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  employerId  String
+  health      Json
+  updatedAt   DateTime         @default(now()) @updatedAt
+
+  @@unique([clinicianId, employerId])
+  @@index([clinicianId])
+  @@index([employerId])
+  @@index([updatedAt])
+}
+
+// Batch 366 — Credential Latency & Throughput Monitor v5
+model CredentialLatency {
+  id          String   @id @default(cuid())
+  credentialId String
+  metrics     Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([credentialId])
+  @@index([credentialId])
+  @@index([updatedAt])
+}
+
+// Batch 367 — Regulatory Scenario Simulation Lab v6
+model RegScenario {
+  id        String   @id @default(cuid())
+  name      String
+  region    String
+  rules     Json
+  impact    Json
+  createdAt DateTime @default(now())
+
+  @@index([region])
+  @@index([createdAt])
+}
+
+// Batch 368 — Universal Workforce Readiness Gauge v6
+model ReadinessGauge {
+  id        String   @id @default(cuid())
+  scope     String   // orgId | region | system
+  metrics   Json
+  score     Float
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([scope])
+  @@index([scope])
+  @@index([score])
+  @@index([updatedAt])
+}
+
+// Batch 369 — AI Risk & Governance Sentinel v5
+model AIRiskSentinel {
+  id        String   @id @default(cuid())
+  agentId   String
+  config    Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([agentId])
+  @@index([agentId])
+  @@index([updatedAt])
+}
+
+// Batch 400 — Global Provider Trust Synthesis Layer v8
+model TrustSynthesisLayer {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  synthesis   Json
+  updatedAt   DateTime         @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 401 — Credential Harmonic Coherence Engine v7
+model CredentialCoherence {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  coherence   Json
+  updatedAt   DateTime         @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 402 — Employer Talent Equilibrium Network v7
+model TalentEquilibriumNetwork {
+  id        String   @id @default(cuid())
+  region    String
+  network   Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([region])
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// Batch 403 — Regulator Impact Propagation Grid v8
+model RegImpactGrid {
+  id        String   @id @default(cuid())
+  region    String
+  grid      Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([region])
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// Batch 404 — Workforce Erosion & Retention Predictor v6
+model WorkforceErosion {
+  id        String   @id @default(cuid())
+  region    String
+  erosion   Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([region])
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// Batch 405 — Blockchain Attestation Reinforcement Engine v7
+model AttestationReinforcement {
+  id            String   @id @default(cuid())
+  credentialId  String
+  reinforcement Json
+  updatedAt     DateTime @default(now()) @updatedAt
+
+  @@unique([credentialId])
+  @@index([credentialId])
+  @@index([updatedAt])
+}
+
+// Batch 412 — Credential Consensus Vector Engine v7
+model CredentialConsensusVector {
+  id           String   @id @default(cuid())
+  credentialId String
+  vector       Json
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  @@unique([credentialId])
+  @@index([credentialId])
+  @@index([updatedAt])
+}
+
+// Batch 413 — Employer Workforce Maturity Model v7
+model WorkforceMaturityModel {
+  id        String   @id @default(cuid())
+  orgId     String
+  maturity  Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([orgId])
+  @@index([orgId])
+  @@index([updatedAt])
+}
+
+// Batch 414 — Clinician Multiverse Identity Fabric v6
+model MultiverseIdentityFabric {
+  id          String   @id @default(cuid())
+  clinicianId String
+  fabric      Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 415 — Regulatory Rule-Diff Intelligence Engine v8
+model RuleDiffIntelligence {
+  id        String   @id @default(cuid())
+  region    String
+  diffs     Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([region])
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// Batch 416 — Workforce Predictive Flow Model v7
+model PredictiveFlowModel {
+  id        String   @id @default(cuid())
+  region    String
+  flow      Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([region])
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// Batch 417 — Chain-Integrated Risk Hardening Matrix v6
+model RiskHardeningMatrix {
+  id          String   @id @default(cuid())
+  clinicianId String
+  matrix      Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 430 — Credential Temporal Alignment Engine v7
+model TemporalAlignment {
+  id            String   @id @default(cuid())
+  credentialId  String
+  alignment     Json
+  updatedAt     DateTime @default(now()) @updatedAt
+
+  @@index([credentialId])
+  @@index([updatedAt])
+}
+
+// Batch 431 — Employer Behavioral Forecast Tensor v8
+model EmployerBehaviorTensor {
+  id        String   @id @default(cuid())
+  orgId     String
+  tensor    Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([orgId])
+  @@index([orgId])
+  @@index([updatedAt])
+}
+
+// Batch 432 — Clinician Competency-Role Fusion Grid v7
+model CompetencyRoleFusion {
+  id            String   @id @default(cuid())
+  clinicianId   String
+  fusion        Json
+  updatedAt     DateTime @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 433 — Regulatory Confidence Map v8
+model RegulatoryConfidenceMap {
+  id          String   @id @default(cuid())
+  clinicianId String
+  confidence  Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 434 — Workforce Predictive Volatility Engine v7
+model WorkforceVolatility {
+  id        String   @id @default(cuid())
+  region    String
+  volatility Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([region])
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// Batch 435 — Chain Integrity Consensus Reactor v7
+model ChainConsensusReactor {
+  id        String   @id @default("current")
+  reactor   Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+}
+
+// Batch 470 — Clinician Global Mobility Intelligence Core v11
+model GlobalMobilityIntelligence {
+  id          String           @id @default(cuid())
+  clinicianId String
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  mobility    Json
+  updatedAt   DateTime         @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Batch 471 — Employer Trustline Graph Reactor v10
+model TrustlineGraphReactor {
+  id        String   @id @default(cuid())
+  orgId     String
+  reactor   Json
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([orgId])
+  @@index([orgId])
+  @@index([updatedAt])
+}
+
+// ============================================================================
+// Batch 499 — Global Credential Intelligence & Synthetic Proof Infrastructure
+// ============================================================================
+
+// Task 499.1 — CredentialSynapseGraph model
+model CredentialSynapseGraph {
+  id          String   @id @default(cuid())
+  clinicianId String
+  nodes       Json     // Neural nodes representing credentials
+  edges       Json     // Links between credentials (trust, evidence, lineage)
+  embeddings  Json?    // Multi-view embeddings
+  coherence   Float?   // Overall coherence score
+  updatedAt   DateTime @default(now()) @updatedAt
+  neuralLinks CredentialNeuralLink[]
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Task 499.2-499.6 — Credential AI Core components
+model CredentialNeuralLink {
+  id              String   @id @default(cuid())
+  synapseGraphId  String
+  synapseGraph    CredentialSynapseGraph @relation(fields: [synapseGraphId], references: [id], onDelete: Cascade)
+  fromCredential  String
+  toCredential    String
+  linkType        String   // trust | evidence | lineage | contradiction
+  weight          Float
+  embedding       Json?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  @@index([synapseGraphId])
+  @@index([fromCredential, toCredential])
+  @@index([linkType])
+}
+
+model CredentialEmbedding {
+  id          String   @id @default(cuid())
+  credentialId String
+  view        String   // semantic | structural | temporal | trust
+  vector      Json     // Embedding vector
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+
+  @@unique([credentialId, view, version])
+  @@index([credentialId])
+  @@index([view])
+}
+
+model ClaimEvidenceAlignment {
+  id          String   @id @default(cuid())
+  claimId     String
+  evidenceId  String
+  alignment   Float    // 0-1 alignment score
+  confidence  Float
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@unique([claimId, evidenceId])
+  @@index([claimId])
+  @@index([evidenceId])
+  @@index([alignment])
+}
+
+model CredentialContradiction {
+  id            String   @id @default(cuid())
+  credentialId1 String
+  credentialId2 String
+  contradictionType String // factual | temporal | logical
+  severity      Float
+  resolution    String?   // resolved | unresolved | auto-resolved
+  resolvedAt    DateTime?
+  metadata      Json?
+  detectedAt    DateTime @default(now())
+
+  @@index([credentialId1, credentialId2])
+  @@index([resolution])
+  @@index([severity])
+}
+
+// Task 499.7-499.12 — Autonomous Proof Generation
+model SyntheticEvidence {
+  id              String   @id @default(cuid())
+  credentialId    String
+  evidenceType    String   // cross-consistency | zk-proof | attestation
+  proof           Json
+  consistency     Float
+  verified        Boolean  @default(false)
+  verifiedAt      DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([credentialId])
+  @@index([evidenceType])
+  @@index([verified])
+}
+
+model AttestationRotation {
+  id              String   @id @default(cuid())
+  credentialId    String
+  previousAttestationId String?
+  newAttestationId String
+  rotationReason  String
+  rotatedAt       DateTime @default(now())
+  metadata        Json?
+
+  @@index([credentialId])
+  @@index([rotatedAt])
+}
+
+model GhostProofDetection {
+  id          String   @id @default(cuid())
+  credentialId String
+  vcHash      String
+  isGhost     Boolean
+  reason      String?
+  detectedAt  DateTime @default(now())
+
+  @@index([credentialId])
+  @@index([vcHash])
+  @@index([isGhost])
+}
+
+// Task 499.13-499.18 — Provenance Stability
+model ProvenanceSurvival {
+  id          String   @id @default(cuid())
+  credentialId String
+  survivalScore Float  // 0-1 probability of survival
+  riskFactors Json?
+  estimatedLifetime Int? // days
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([credentialId])
+  @@index([credentialId])
+  @@index([survivalScore])
+}
+
+model ProvenanceFork {
+  id          String   @id @default(cuid())
+  credentialId String
+  forkType    String   // issuer | chain | evidence
+  branches    Json
+  reconciled  Boolean  @default(false)
+  reconciledAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([credentialId])
+  @@index([reconciled])
+}
+
+model LineageConvergence {
+  id          String   @id @default(cuid())
+  credentialId String
+  sources     String[] // Multiple source IDs
+  convergence Float    // 0-1 convergence score
+  validated   Boolean  @default(false)
+  validatedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([credentialId])
+  @@index([convergence])
+}
+
+// Task 499.19-499.24 — Evidence Health Engine
+model EvidenceDecayCycle {
+  id          String   @id @default(cuid())
+  evidenceId  String
+  lastRefresh DateTime
+  nextRefresh DateTime
+  decayRate   Float
+  health      String   // healthy | warning | critical
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([evidenceId])
+  @@index([nextRefresh])
+  @@index([health])
+}
+
+model EvidenceHashChain {
+  id          String   @id @default(cuid())
+  evidenceId  String
+  chainHash   String
+  previousHash String?
+  anchored    Boolean  @default(false)
+  anchorTxHash String?
+  createdAt   DateTime @default(now())
+
+  @@index([evidenceId])
+  @@index([chainHash])
+  @@index([anchored])
+}
+
+// Task 499.25-499.28 — Cred Reliability AI
+model CredentialReliabilityScore {
+  id          String   @id @default(cuid())
+  credentialId String
+  trustScore  Float
+  stabilityScore Float
+  coherenceScore Float
+  overallScore Float
+  factors     Json?
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([credentialId])
+  @@index([credentialId])
+  @@index([overallScore])
+}
+
+model CredentialDriftPrediction {
+  id          String   @id @default(cuid())
+  credentialId String
+  driftProbability Float
+  predictedDriftType String?
+  timeHorizon Int      // days
+  confidence  Float
+  createdAt   DateTime @default(now())
+
+  @@index([credentialId])
+  @@index([driftProbability])
+}
+
+// Task 499.29-499.34 — Chain Governance
+model ChainCredentialGovernance {
+  id          String   @id @default(cuid())
+  credentialId String
+  chainId     String
+  governanceRules Json
+  rateLimit   Int?
+  rotationEnabled Boolean @default(false)
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([credentialId, chainId])
+  @@index([credentialId])
+  @@index([chainId])
+}
+
+model ChainRevocationLog {
+  id          String   @id @default(cuid())
+  credentialId String
+  chainId     String
+  reason      String
+  revokedBy   String
+  txHash      String?
+  revokedAt   DateTime @default(now())
+
+  @@index([credentialId])
+  @@index([chainId])
+  @@index([revokedAt])
+}
+
+// Task 499.35-499.38 — Failure & Rescue Engineering
+model CredentialRecovery {
+  id          String   @id @default(cuid())
+  credentialId String
+  recoveryType String  // emergency | mass | reconstruction
+  status      String   // pending | in_progress | completed | failed
+  metadata    Json?
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+
+  @@index([credentialId])
+  @@index([status])
+}
+
+// Task 499.39-499.42 — Multi-Proof Validation
+model BundledProof {
+  id          String   @id @default(cuid())
+  credentialId String
+  proofs      Json     // Array of proof objects
+  verificationStatus String // pending | verified | failed
+  verifiedAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([credentialId])
+  @@index([verificationStatus])
+}
+
+model FallbackProofCascade {
+  id          String   @id @default(cuid())
+  credentialId String
+  primaryProofId String
+  fallbackProofs Json
+  currentProof String
+  createdAt   DateTime @default(now())
+
+  @@index([credentialId])
+  @@index([currentProof])
+}
+
+// ============================================================================
+// Batch 500 — Employer Integrity Circuits, Behavioral Analytics & Trust Control
+// ============================================================================
+
+// Task 500.1-500.6 — Behavior Intelligence
+model BehavioralCircuitGraph {
+  id        String   @id @default(cuid())
+  orgId     String
+  nodes     Json     // Behavioral nodes
+  edges     Json     // Relationships between behaviors
+  frequency Json?    // Behavior frequency data
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([orgId])
+  @@index([orgId])
+  @@index([updatedAt])
+}
+
+model EmployerBehaviorFrequency {
+  id          String   @id @default(cuid())
+  orgId       String
+  behaviorType String
+  frequency   Float
+  period      String   // daily | weekly | monthly
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([orgId, behaviorType, period])
+  @@index([orgId])
+  @@index([behaviorType])
+}
+
+model EthicalCircuitActivation {
+  id          String   @id @default(cuid())
+  orgId       String
+  circuitType String
+  activated   Boolean
+  confidence  Float
+  detectedAt  DateTime @default(now())
+
+  @@index([orgId])
+  @@index([circuitType])
+  @@index([activated])
+}
+
+model BiasRecurrence {
+  id          String   @id @default(cuid())
+  orgId       String
+  biasType    String
+  occurrences Int
+  severity    Float
+  lastOccurred DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([orgId])
+  @@index([biasType])
+  @@index([severity])
+}
+
+// Task 500.7-500.12 — Immunity & Recovery
+model BehaviorImmuneResponse {
+  id          String   @id @default(cuid())
+  orgId       String
+  threatType  String
+  response    String   // blocked | mitigated | escalated
+  effectiveness Float
+  respondedAt DateTime @default(now())
+
+  @@index([orgId])
+  @@index([threatType])
+  @@index([response])
+}
+
+model SafetyConsistencyAmplifier {
+  id          String   @id @default(cuid())
+  orgId       String
+  consistencyScore Float
+  amplificationFactor Float
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([orgId])
+  @@index([orgId])
+  @@index([consistencyScore])
+}
+
+model EthicsRelapsePrediction {
+  id          String   @id @default(cuid())
+  orgId       String
+  relapseProbability Float
+  predictedDate DateTime?
+  riskFactors Json?
+  createdAt   DateTime @default(now())
+
+  @@index([orgId])
+  @@index([relapseProbability])
+}
+
+// Task 500.13-500.18 — Regulatory Governance
+model RegulatorComplianceCheck {
+  id          String   @id @default(cuid())
+  orgId       String
+  regulatorId String
+  complianceScore Float
+  violations   Json?
+  checkedAt   DateTime @default(now())
+
+  @@index([orgId])
+  @@index([regulatorId])
+  @@index([complianceScore])
+}
+
+model BehaviorComplianceMapping {
+  id          String   @id @default(cuid())
+  orgId       String
+  behaviorId  String
+  complianceRuleId String
+  alignment    Float
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([orgId, behaviorId, complianceRuleId])
+  @@index([orgId])
+  @@index([alignment])
+}
+
+model ComplianceHeatShock {
+  id          String   @id @default(cuid())
+  orgId       String
+  shockType   String
+  severity    Float
+  predictedAt DateTime?
+  detectedAt  DateTime @default(now())
+
+  @@index([orgId])
+  @@index([shockType])
+  @@index([severity])
+}
+
+// Task 500.19-500.24 — Systemwide Integrity Grid
+model SystemIntegrityInfluence {
+  id          String   @id @default(cuid())
+  orgId       String
+  influenceMap Json
+  coherence   Float
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([orgId])
+  @@index([orgId])
+  @@index([coherence])
+}
+
+model EmployerSimilarityCluster {
+  id          String   @id @default(cuid())
+  clusterId   String
+  orgIds      String[]
+  similarity  Float
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([clusterId])
+  @@index([similarity])
+}
+
+model DissonanceIndex {
+  id          String   @id @default(cuid())
+  orgId       String
+  index       Float    // Ethical divergence score
+  factors     Json?
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([orgId])
+  @@index([orgId])
+  @@index([index])
+}
+
+// Task 500.25-500.30 — Predictive Drift Management
+model EthicalDriftRadar {
+  id          String   @id @default(cuid())
+  orgId       String
+  driftLevel  Float
+  warningLevel String  // low | medium | high | critical
+  predictedDate DateTime?
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([orgId])
+  @@index([orgId])
+  @@index([driftLevel])
+  @@index([warningLevel])
+}
+
+model FairnessStabilityForecast {
+  id          String   @id @default(cuid())
+  orgId       String
+  forecast    Json
+  timeHorizon Int      // days
+  confidence  Float
+  createdAt   DateTime @default(now())
+
+  @@index([orgId])
+  @@index([confidence])
+}
+
+model BehavioralQuarantine {
+  id          String   @id @default(cuid())
+  orgId       String
+  behaviorId  String
+  quarantined Boolean
+  reason      String?
+  quarantinedAt DateTime @default(now())
+  releasedAt  DateTime?
+
+  @@index([orgId])
+  @@index([quarantined])
+}
+
+// Task 500.31-500.36 — Trust Control
+model TrustControlPolicy {
+  id          String   @id @default(cuid())
+  orgId       String
+  policy      Json
+  version     Int      @default(1)
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([orgId])
+  @@index([orgId])
+  @@index([version])
+}
+
+model TrustProfileRegression {
+  id          String   @id @default(cuid())
+  orgId       String
+  regressionScore Float
+  detectedAt DateTime @default(now())
+
+  @@index([orgId])
+  @@index([regressionScore])
+}
+
+model SystemTrustResilience {
+  id          String   @id @default(cuid())
+  resilienceIndex Float
+  factors     Json?
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([resilienceIndex])
+}
+
+// ============================================================================
+// Batch 501 — Global Workforce Brain, Dynamic Routing Mesh & Regulatory Drift Immunity
+// ============================================================================
+
+// Task 501.1-501.10 — Workforce Neuro-Routing
+model WorkforceBrain {
+  id        String   @id @default(cuid())
+  region    String?
+  nodes     Json     // Graph neurons
+  edges     Json     // Flow edges
+  weights   Json?    // Routing weight matrix
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([region])
+  @@index([updatedAt])
+}
+
+model RoutingTrajectory {
+  id          String   @id @default(cuid())
+  clinicianId String
+  trajectory  Json     // Routing path
+  confidence  Float
+  createdAt   DateTime @default(now())
+
+  @@index([clinicianId])
+  @@index([confidence])
+}
+
+model LaborFlowTurbulence {
+  id          String   @id @default(cuid())
+  region      String
+  specialty   String?
+  turbulence  Float
+  factors     Json?
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([region, specialty])
+  @@index([turbulence])
+}
+
+model DeploymentOracle {
+  id          String   @id @default(cuid())
+  clinicianId String
+  next90Days  Json     // 90-day deployment predictions
+  confidence  Float
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+  @@index([confidence])
+}
+
+model ReadinessRoutingMatrix {
+  id          String   @id @default(cuid())
+  clinicianId String
+  matrix      Json     // Readiness → routing weight matrix
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([clinicianId])
+  @@index([clinicianId])
+}
+
+model CrossBorderRoutingPermission {
+  id          String   @id @default(cuid())
+  clinicianId String
+  fromRegion  String
+  toRegion    String
+  permitted   Boolean
+  reason      String?
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([clinicianId, fromRegion, toRegion])
+  @@index([clinicianId])
+  @@index([permitted])
+}
+
+model SupplyDemandFlux {
+  id          String   @id @default(cuid())
+  region      String
+  specialty   String
+  supply      Float
+  demand      Float
+  flux        Float
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([region, specialty])
+  @@index([region])
+  @@index([flux])
+}
+
+// Task 501.11-501.17 — Predictive Mobility
+model MigrationProbability {
+  id          String   @id @default(cuid())
+  clinicianId String
+  fromRegion  String
+  toRegion    String
+  probability Float
+  factors     Json?
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([clinicianId])
+  @@index([fromRegion, toRegion])
+  @@index([probability])
+}
+
+model GlobalWorkforceDrift {
+  id          String   @id @default(cuid())
+  region      String
+  drift       Json     // Drift predictions
+  timeHorizon Int      // days
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([region])
+  @@index([updatedAt])
+}
+
+model ReimbursementMobilityElasticity {
+  id          String   @id @default(cuid())
+  region      String
+  elasticity  Float
+  factors     Json?
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([region])
+  @@index([elasticity])
+}
+
+model JurisdictionFriction {
+  id          String   @id @default(cuid())
+  fromJurisdiction String
+  toJurisdiction   String
+  friction    Float
+  factors     Json?
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([fromJurisdiction, toJurisdiction])
+  @@index([friction])
+}
+
+// Task 501.18-501.23 — Compliance Immunity
+model AdaptiveRegulatoryShield {
+  id          String   @id @default(cuid())
+  region      String
+  shieldLevel Float
+  rules       Json?
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([region])
+  @@index([region])
+  @@index([shieldLevel])
+}
+
+model RuleflowAnomaly {
+  id          String   @id @default(cuid())
+  ruleflowId  String
+  anomalyType String
+  severity    Float
+  detectedAt  DateTime @default(now())
+
+  @@index([ruleflowId])
+  @@index([anomalyType])
+  @@index([severity])
+}
+
+model RuleDiffSusceptibility {
+  id          String   @id @default(cuid())
+  region      String
+  susceptibility Float
+  factors     Json?
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([region])
+  @@index([susceptibility])
+}
+
+model RegulatoryFlowImpact {
+  id          String   @id @default(cuid())
+  region      String
+  impact      Json
+  predictedAt DateTime?
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// Task 501.24-501.29 — System Convergence
+model ConvergenceMap {
+  id          String   @id @default(cuid())
+  mapType     String   // skill | trust | compliance | combined
+  map         Json
+  convergence Float
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([mapType])
+  @@index([convergence])
+}
+
+model ConvergenceForecast {
+  id          String   @id @default(cuid())
+  region      String
+  forecast    Json
+  timeHorizon Int      // 1-5 years
+  confidence  Float
+  createdAt   DateTime @default(now())
+
+  @@index([region])
+  @@index([timeHorizon])
+  @@index([confidence])
+}
+
+model SystemConvergenceOrchestration {
+  id          String   @id @default(cuid())
+  orchestration Json
+  status      String
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([status])
+  @@index([updatedAt])
+}
+
+// ============================================================================
+// Batch 517 — Global Permissionless Trust Fabric, Sovereign Identity Anchors & Cross-Chain Veracity Nexus v22
+// ============================================================================
+
+// Task 517.1 — PermissionlessTrustFabric model
+model PermissionlessTrustFabric {
+  id          String   @id @default(cuid())
+  trustNodes  Json     // Trust nodes in the network
+  flows       Json     // Trust flow paths
+  weights     Json     // Trust weights between nodes
+  global      Boolean  @default(true)
+  region      String?
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([global])
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// Task 517.2 — Sovereign trust anchor generator
+model SovereignTrustAnchor {
+  id          String   @id @default(cuid())
+  entityId    String
+  entityType  String   // issuer | regulator | org
+  publicKey   String
+  certificateChain Json?
+  jurisdiction String?
+  isActive    Boolean  @default(true)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([entityId, entityType])
+  @@index([entityType])
+  @@index([jurisdiction])
+  @@index([isActive])
+}
+
+// Task 517.3 — Multi-root trust consolidation engine
+model MultiRootTrustConsolidation {
+  id          String   @id @default(cuid())
+  roots       Json     // Multiple trust roots
+  consolidated Json    // Consolidated trust state
+  confidence  Float
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([confidence])
+  @@index([updatedAt])
+}
+
+// Task 517.4 — Trust-depth calculator
+model TrustDepth {
+  id          String   @id @default(cuid())
+  chainId     String?
+  identityId  String
+  depth       Float     // Trust depth score
+  path        Json?     // Path from chain to identity
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([chainId])
+  @@index([identityId])
+  @@index([depth])
+}
+
+// Task 517.5 — Trust-diffusion field estimator
+model TrustDiffusionField {
+  id          String   @id @default("current")
+  field       Json     // Diffusion field data
+  intensity   Float
+  spread      Float
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([intensity])
+  @@index([updatedAt])
+}
+
+// Task 517.6 — SovereignIdentityLedger (chain-backed)
+model SovereignIdentityLedger {
+  id          String   @id @default(cuid())
+  identityId  String
+  chainId     String
+  ledger      Json     // Chain-backed ledger entries
+  anchorTxHash String?
+  anchoredAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([identityId])
+  @@index([chainId])
+  @@index([anchorTxHash])
+}
+
+// Task 517.7 — DID sovereignty validator
+model DIDSovereigntyValidator {
+  id          String   @id @default(cuid())
+  did         String
+  compromised Boolean  @default(false)
+  state       String   // valid | compromised | unknown
+  detectedAt  DateTime @default(now())
+  metadata    Json?
+
+  @@unique([did])
+  @@index([compromised])
+  @@index([state])
+}
+
+// Task 517.8 — Identity truth-state classifier
+model IdentityTruthState {
+  id          String   @id @default(cuid())
+  identityId  String
+  state       String   // verified | unverified | disputed | compromised
+  confidence  Float
+  factors     Json?
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([identityId])
+  @@index([state])
+  @@index([confidence])
+}
+
+// Task 517.9 — Cross-chain ID unification flow
+model CrossChainIDUnification {
+  id          String   @id @default(cuid())
+  identityId  String
+  chains      Json     // Array of chain IDs
+  unified     Boolean  @default(false)
+  unifiedAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([identityId])
+  @@index([unified])
+}
+
+// Task 517.10 — Sovereignty activity heatmap
+model SovereigntyActivityHeatmap {
+  id          String   @id @default(cuid())
+  region      String?
+  heatmap     Json     // Activity heatmap data
+  period      String   // daily | weekly | monthly
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([region])
+  @@index([period])
+  @@index([updatedAt])
+}
+
+// Task 517.11 — Veracity nexus synthesizer
+model VeracityNexus {
+  id          String   @id @default(cuid())
+  proofs      Json     // Array of proofs to synthesize
+  synthesized Json     // Synthesized veracity state
+  confidence  Float
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([confidence])
+  @@index([updatedAt])
+}
+
+// Task 517.12 — Reality-veracity convergence solver
+model RealityVeracityConvergence {
+  id          String   @id @default(cuid())
+  reality     Json     // Reality state
+  veracity    Json     // Veracity state
+  convergence Float    // Convergence score
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([convergence])
+  @@index([updatedAt])
+}
+
+// Task 517.13 — Contradiction-supernode detector
+model ContradictionSupernode {
+  id          String   @id @default(cuid())
+  nodeId      String
+  contradictions Json  // Detected contradictions
+  severity    Float
+  detectedAt  DateTime @default(now())
+
+  @@index([nodeId])
+  @@index([severity])
+}
+
+// Task 517.14 — Veracity pressure map UI data
+model VeracityPressureMap {
+  id          String   @id @default(cuid())
+  map         Json     // Pressure map data for UI
+  region      String?
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// Task 517.15 — Truth shadow locator
+model TruthShadow {
+  id          String   @id @default(cuid())
+  identityId  String?
+  missingProofs Json   // Missing proofs identified
+  shadowScore Float
+  detectedAt  DateTime @default(now())
+
+  @@index([identityId])
+  @@index([shadowScore])
+}
+
+// ============================================================================
+// Batch 518 — Employer Friction Physics, Compliance Resonance & Privilege Safety Reactors v18
+// ============================================================================
+
+// Task 518.1 — FrictionPhysicsMatrix model
+model FrictionPhysicsMatrix {
+  id          String   @id @default(cuid())
+  orgId       String?
+  drag        Float    // Drag coefficient
+  kineticResistance Float // Kinetic resistance
+  matrix      Json     // Full friction matrix
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([orgId])
+  @@index([drag])
+  @@index([updatedAt])
+}
+
+// Task 518.2 — Hiring friction detector
+model HiringFriction {
+  id          String   @id @default(cuid())
+  orgId       String
+  atsId       String?
+  outcomeMismatch Float // Mismatch score
+  frictionScore Float
+  detectedAt  DateTime @default(now())
+
+  @@index([orgId])
+  @@index([atsId])
+  @@index([frictionScore])
+}
+
+// Task 518.3 — Privilege issuance friction model
+model PrivilegeIssuanceFriction {
+  id          String   @id @default(cuid())
+  orgId       String
+  privilegeCode String
+  friction    Float
+  factors     Json?
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([orgId])
+  @@index([privilegeCode])
+  @@index([friction])
+}
+
+// Task 518.7 — Compliance resonance wave detector
+model ComplianceResonance {
+  id          String   @id @default(cuid())
+  orgId       String?
+  region      String?
+  resonance   Float    // Resonance frequency/amplitude
+  wave        Json     // Wave data
+  detectedAt  DateTime @default(now())
+
+  @@index([orgId])
+  @@index([region])
+  @@index([resonance])
+}
+
+// Task 518.8 — Ruleflow harmony index
+model RuleflowHarmony {
+  id          String   @id @default(cuid())
+  orgId       String?
+  harmony     Float    // Harmony index
+  ruleflow    Json
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([orgId])
+  @@index([harmony])
+}
+
+// Task 518.13 — SafetyPrivilegeReactor model
+model SafetyPrivilegeReactor {
+  id          String   @id @default(cuid())
+  orgId       String?
+  clinicianId String?
+  reactor     Json     // Reactor state
+  safetyScore Float
+  privilegeScore Float
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([orgId])
+  @@index([clinicianId])
+  @@index([safetyScore])
+}
+
+// Task 518.14 — Privilege safety causal inference engine
+model PrivilegeSafetyCausal {
+  id          String   @id @default(cuid())
+  cause       Json     // Causal factors
+  effect      Json     // Effects
+  confidence  Float
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([confidence])
+  @@index([updatedAt])
+}
+
+// Task 518.19 — Ethics friction hotzones
+model EthicsFrictionHotzone {
+  id          String   @id @default(cuid())
+  orgId       String?
+  region      String?
+  hotzone     Json     // Hotzone data
+  severity    Float
+  detectedAt  DateTime @default(now())
+
+  @@index([orgId])
+  @@index([region])
+  @@index([severity])
+}
+
+// ============================================================================
+// Batch 519 — Global Workforce Neuroeconomic Flow, Mobility Simulation & Role Evolution Engine v21
+// ============================================================================
+
+// Task 519.1 — NeuroEconomicFlowTensor model
+model NeuroEconomicFlowTensor {
+  id          String   @id @default(cuid())
+  tensor      Json     // Multi-dimensional flow tensor
+  region      String?
+  specialty   String?
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([region])
+  @@index([specialty])
+  @@index([updatedAt])
+}
+
+// Task 519.2 — Economic microshock predictor
+model EconomicMicroshock {
+  id          String   @id @default(cuid())
+  region      String?
+  specialty   String?
+  shock       Json     // Shock prediction data
+  probability Float
+  predictedAt DateTime @default(now())
+
+  @@index([region])
+  @@index([specialty])
+  @@index([probability])
+}
+
+// Task 519.3 — Labor flow neuro-graph embedding generator
+model LaborFlowNeuroGraph {
+  id          String   @id @default(cuid())
+  graph       Json     // Neuro-graph structure
+  embeddings  Json     // Graph embeddings
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+}
+
+// Task 519.4 — Specialty evolution kinetics engine
+model SpecialtyEvolutionKinetics {
+  id          String   @id @default(cuid())
+  specialty   String
+  kinetics    Json     // Evolution kinetics data
+  rate        Float
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([specialty])
+  @@index([rate])
+}
+
+// Task 519.5 — Multi-region value production estimator
+model MultiRegionValueProduction {
+  id          String   @id @default(cuid())
+  regions     Json     // Array of regions
+  production  Json     // Value production data
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+}
+
+// Task 519.6 — Clinician microincentive→mobility translator
+model ClinicianMicroincentiveMobility {
+  id          String   @id @default(cuid())
+  clinicianId String
+  microincentive Json  // Microincentive data
+  mobility    Json     // Translated mobility data
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([clinicianId])
+  @@index([updatedAt])
+}
+
+// Task 519.7 — Specialty→region migration wave predictor
+model SpecialtyRegionMigrationWave {
+  id          String   @id @default(cuid())
+  specialty   String
+  fromRegion  String
+  toRegion    String
+  wave        Json     // Migration wave data
+  probability Float
+  predictedAt DateTime @default(now())
+
+  @@index([specialty])
+  @@index([fromRegion, toRegion])
+  @@index([probability])
+}
+
+// Task 519.8 — Workforce gravitational mobility map
+model WorkforceGravitationalMobility {
+  id          String   @id @default(cuid())
+  map         Json     // Gravitational mobility map
+  region      String?
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// Task 519.9 — Compensation→flow causation solver
+model CompensationFlowCausation {
+  id          String   @id @default(cuid())
+  compensation Json    // Compensation data
+  flow        Json     // Flow data
+  causation   Float    // Causation score
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([causation])
+  @@index([updatedAt])
+}
+
+// Task 519.10 — Regulatory constraint→mobility damping logic
+model RegulatoryMobilityDamping {
+  id          String   @id @default(cuid())
+  constraint  Json     // Regulatory constraints
+  damping     Float    // Damping coefficient
+  mobility    Json     // Mobility impact
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([damping])
+  @@index([updatedAt])
+}
+
+// Task 519.13 — Role-evolution forecast model
+model RoleEvolutionForecast {
+  id          String   @id @default(cuid())
+  role        String
+  forecast    Json     // 10-year forecast
+  horizon     Int      // Years (default 10)
+  confidence  Float
+  createdAt   DateTime @default(now())
+
+  @@index([role])
+  @@index([horizon])
+  @@index([confidence])
+}
+
+// Task 519.14 — Competency mutation detector
+model CompetencyMutation {
+  id          String   @id @default(cuid())
+  competency  String
+  mutation    Json     // Mutation data
+  detectedAt  DateTime @default(now())
+
+  @@index([competency])
+  @@index([detectedAt])
+}
+
+// Task 519.15 — Specialty split/merge detector
+model SpecialtySplitMerge {
+  id          String   @id @default(cuid())
+  specialty   String
+  eventType   String   // split | merge
+  details     Json
+  detectedAt  DateTime @default(now())
+
+  @@index([specialty])
+  @@index([eventType])
+}
+
+// Task 519.16 — Clinical depth evolution model
+model ClinicalDepthEvolution {
+  id          String   @id @default(cuid())
+  specialty   String
+  depth       Json     // Depth evolution data
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([specialty])
+  @@index([updatedAt])
+}
+
+// Task 519.17 — Role evolution pressure heatmap
+model RoleEvolutionPressureHeatmap {
+  id          String   @id @default(cuid())
+  heatmap     Json     // Pressure heatmap data
+  region      String?
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([region])
+  @@index([updatedAt])
+}
+
+// VC2-004 — W3C VC StatusList v2.0 models for revocation
+// StatusList v2 uses bitstring-based revocation (https://www.w3.org/TR/vc-status-list-2021/)
+model CredentialStatusList {
+  id              String   @id @default(cuid())
+  issuerId        String   // Issuer organization ID
+  purpose         String   // "revocation" | "suspension"
+  statusListIndex Int      // Position in the bitstring
+  bitstring       String   @db.Text // Base64-encoded bitstring (compressed)
+  size            Int      // Total number of credentials in this list
+  validFrom       DateTime @default(now())
+  validUntil      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  entries         CredentialStatusEntry[]
+
+  @@index([issuerId, purpose])
+  @@index([statusListIndex])
+  @@index([validFrom])
+  @@unique([issuerId, purpose, statusListIndex])
+}
+
+model CredentialStatusEntry {
+  id                String   @id @default(cuid())
+  credentialId      String   // VC credential ID
+  statusListId      String
+  statusList        CredentialStatusList @relation(fields: [statusListId], references: [id], onDelete: Cascade)
+  bitIndex          Int      // Position in the bitstring (0-based)
+  revoked           Boolean  @default(false)
+  revokedAt         DateTime?
+  reason            String?   // Optional revocation reason
+  metadata          Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([credentialId])
+  @@index([statusListId, bitIndex])
+  @@index([revoked])
+  @@index([revokedAt])
+  @@unique([credentialId, statusListId])
+}
+
+// Peppered hash records for GDPR-compliant on-chain anchoring (VC2-006)
+model PepperedHash {
+  id              String   @id @default(cuid())
+  pepper          String   // High-entropy random value (32 bytes, base64url)
+  targetHash      String   // SHA-256(identifier + pepper)
+  identifierType  String   // "credentialId" | "subjectDid" | "npi" | "custom"
+  identifier      String?  // Original identifier (encrypted or null for privacy)
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  deletedAt       DateTime? // GDPR erasure timestamp
+
+  @@index([targetHash])
+  @@index([identifierType])
+  @@index([deletedAt])
+  @@unique([targetHash, identifierType])
+}

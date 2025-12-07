@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "../../dist/packages/domain-common",
+    "tsBuildInfoFile": "../../dist/.tsbuildinfo/packages-domain-common.tsbuildinfo",
+    "declaration": true,
+    "declarationMap": true,
+    "composite": true
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/__tests__/**/*"]
+}
+

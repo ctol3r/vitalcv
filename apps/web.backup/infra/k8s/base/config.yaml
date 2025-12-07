@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-config
+  namespace: chai-vc-platform
+  labels:
+    app: chai-vc-platform
+data:
+  NODE_ENV: production
+  LOG_LEVEL: info
+  NEXT_PUBLIC_API_URL: https://api.demo.vitalcv.com
+  API_PORT: "3000"
+  WORKER_CONCURRENCY: "4"
+  QUEUE_VISIBILITY_TIMEOUT: "90"
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: platform-secrets
+  namespace: chai-vc-platform
+  labels:
+    app: chai-vc-platform
+stringData:
+  DATABASE_URL: postgres://app:change-me@postgres-primary:5432/vitalcv
+  REDIS_URL: redis://:change-me@redis:6379/0
+  REDIS_QUEUE_URL: redis://:change-me@redis:6379/1
+  JWT_SECRET: change-me
+  NEXTAUTH_SECRET: change-me
+

@@ -1,0 +1,20 @@
+{
+  "name": "@vitalcv/state-agent",
+  "version": "1.0.0",
+  "description": "System intelligence generator & AI onboarding module for VitalCV",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch"
+  },
+  "dependencies": {
+    "@prisma/client": "*",
+    "typescript": "^5.3.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "ts-node": "^10.9.2"
+  }
+}
+

@@ -1,0 +1,89 @@
+{
+  "$id": "https://schemas.vitalcv.health/fhir/r6/organization",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FHIR R6 Organization (Minimal Subset)",
+  "type": "object",
+  "required": ["resourceType", "id", "name"],
+  "properties": {
+    "resourceType": { "const": "Organization" },
+    "id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "active": { "type": "boolean" },
+    "telecom": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["system", "value"],
+        "properties": {
+          "system": { "type": "string" },
+          "value": { "type": "string" },
+          "use": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "address": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "city": { "type": "string" },
+          "state": { "type": "string" },
+          "postalCode": { "type": "string" },
+          "country": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "contact": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "object",
+            "properties": {
+              "text": { "type": "string" }
+            },
+            "additionalProperties": true
+          },
+          "telecom": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["system", "value"],
+              "properties": {
+                "system": { "type": "string" },
+                "value": { "type": "string" },
+                "use": { "type": "string" }
+              },
+              "additionalProperties": true
+            }
+          },
+          "address": {
+            "type": "object",
+            "properties": {
+              "line": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "city": { "type": "string" },
+              "state": { "type": "string" },
+              "postalCode": { "type": "string" },
+              "country": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}
+
+

@@ -1,0 +1,15 @@
+{
+  "name": "@vitalcv/shared",
+  "version": "1.0.0",
+  "description": "Shared utilities and types for VitalCV platform",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
+
