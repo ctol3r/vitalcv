@@ -1,0 +1,13 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" fill="#2563eb" rx="64"/>
+  <g transform="translate(128, 128)">
+    <path d="M128 0L160 32L128 64L96 32L128 0Z M128 64L160 96L128 128L96 96L128 64Z M64 64L96 96L64 128L32 96L64 64Z M192 64L224 96L192 128L160 96L192 64Z M128 128L160 160L128 192L96 160L128 128Z M64 192L96 224L64 256L32 224L64 192Z M128 192L160 224L128 256L96 224L128 192Z M192 192L224 224L192 256L160 224L192 192Z"
+          fill="white"
+          opacity="0.9"
+          stroke="white"
+          stroke-width="2"/>
+  </g>
+  <text x="256" y="400" text-anchor="middle" font-family="Arial, sans-serif" font-size="64" font-weight="bold" fill="white">
+    VitalCV
+  </text>
+</svg>
