@@ -1,0 +1,5 @@
+# require review from core for dangerous areas
+**/migrations/** @ctol3r
+**/crypto/**      @ctol3r
+**/auth/**        @ctol3r
+

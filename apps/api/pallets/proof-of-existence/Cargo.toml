@@ -1,0 +1,22 @@
+[package]
+name = "pallet-proof-of-existence"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+frame-support = { version = "41.0.0", default-features = false }
+frame-system = { version = "41.0.0", default-features = false }
+sp-std = { version = "14.0.0", default-features = false }
+parity-scale-codec = { version = "3.7", default-features = false, features = ["derive"] }
+scale-info = { version = "2.11", default-features = false, features = ["derive"] }
+
+[features]
+default = ["std"]
+std = [
+    "frame-support/std",
+    "frame-system/std",
+    "sp-std/std",
+    "parity-scale-codec/std",
+    "scale-info/std",
+]

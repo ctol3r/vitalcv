@@ -1,0 +1,21 @@
+[package]
+name = "pallet-identity-governance"
+version = "0.1.0"
+edition = "2021"
+authors = ["Chai Devs"]
+license = "Apache-2.0"
+
+[dependencies]
+frame-support = { version = "41.0.0", default-features = false }
+frame-system = { version = "41.0.0", default-features = false }
+sp-std = { version = "14.0.0", default-features = false }
+sp-runtime = { version = "32.0.0", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+    "frame-support/std",
+    "frame-system/std",
+    "sp-std/std",
+    "sp-runtime/std",
+]

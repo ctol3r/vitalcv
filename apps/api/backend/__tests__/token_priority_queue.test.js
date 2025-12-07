@@ -1,0 +1,20 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const assert_1 = __importDefault(require("assert"));
+const token_priority_queue_1 = __importDefault(require("../src/queues/token_priority_queue"));
+const queue = new token_priority_queue_1.default();
+queue.enqueue({ token: 'low', priority: 1 });
+queue.enqueue({ token: 'high', priority: 10 });
+queue.enqueue({ token: 'medium', priority: 5 });
+assert_1.default.strictEqual(queue.size(), 3, 'queue should contain 3 items');
+const first = queue.dequeue();
+assert_1.default.strictEqual(first === null || first === void 0 ? void 0 : first.token, 'high', 'highest priority token should dequeue first');
+const second = queue.dequeue();
+assert_1.default.strictEqual(second === null || second === void 0 ? void 0 : second.token, 'medium', 'medium priority token should dequeue second');
+const third = queue.dequeue();
+assert_1.default.strictEqual(third === null || third === void 0 ? void 0 : third.token, 'low', 'lowest priority token should dequeue last');
+assert_1.default.strictEqual(queue.size(), 0, 'queue should be empty after dequeues');
+console.log('TokenPriorityQueue tests passed.');

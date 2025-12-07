@@ -1,0 +1,68 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: backend-success-analysis
+spec:
+  args:
+  - name: service-name
+  metrics:
+  - name: success-rate
+    interval: 1m
+    count: 1
+    successCondition: result[0] >= 95
+    provider:
+      prometheus:
+        address: http://prometheus:9090
+        query: |
+          sum(rate(http_requests_total{service="{{args.service-name}}",status=~"2.."}[5m]))
+            /
+          sum(rate(http_requests_total{service="{{args.service-name}}"}[5m]))
+            * 100
+  - name: error-count
+    interval: 1m
+    count: 1
+    successCondition: result[0] == 0
+    provider:
+      prometheus:
+        address: http://prometheus:9090
+        query: |
+          sum(rate(http_requests_total{service="{{args.service-name}}",status=~"5.."}[5m]))
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: backend:latest
+        ports:
+        - containerPort: 8080
+  strategy:
+    canary:
+      steps:
+      - setWeight: 20
+      - pause: {duration: 1m}
+      - analysis:
+          templates:
+          - templateName: backend-success-analysis
+            args:
+            - name: service-name
+              value: backend
+      - setWeight: 60
+      - pause: {duration: 1m}
+      - analysis:
+          templates:
+          - templateName: backend-success-analysis
+            args:
+            - name: service-name
+              value: backend

@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chai-chain-spec
+data:
+  chain-spec.json: |
+    {
+      "name": "Chai PoA",
+      "id": "chai-poa",
+      "chainType": "Live",
+      "bootNodes": [],
+      "genesis": {
+        "runtime": {
+          "aura": {"authorities": ["<AUTHORITY_SR25519_PUBLIC_KEY>"]},
+          "grandpa": {"authorities": [["<AUTHORITY_ED25519_PUBLIC_KEY>", 1]]}
+        }
+      }
+    }
