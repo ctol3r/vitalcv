@@ -2,22 +2,10 @@ import { NextResponse } from "next/server"
 
 export async function GET() {
   try {
-    const services = {
-      database: await checkDatabaseConnection(),
-      blockchain: await checkBlockchainConnection(),
-      storage: await checkStorageConnection(),
-      cache: await checkCacheConnection(),
-    }
-
-    const allServicesReady = Object.values(services).every((status) => status === true)
-
-    const readinessStatus = {
-      status: allServicesReady ? "ready" : "not_ready",
-      timestamp: new Date().toISOString(),
-      services,
-    }
-
-    return NextResponse.json(readinessStatus, { status: allServicesReady ? 200 : 503 })
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000"
+    const response = await fetch(`${backendUrl}/readyz`, { cache: "no-store" })
+    const data = await response.json().catch(() => ({ error: "Invalid JSON from backend" }))
+    return NextResponse.json(data, { status: response.status })
   } catch (error) {
     console.error("Readiness check error:", error)
     return NextResponse.json(
@@ -29,33 +17,4 @@ export async function GET() {
       { status: 503 },
     )
   }
-}
-
-async function checkDatabaseConnection(): Promise<boolean> {
-  // TODO: Implement actual database connection check
-  // For now, simulate check
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(Math.random() > 0.1), 100) // 90% success rate
-  })
-}
-
-async function checkBlockchainConnection(): Promise<boolean> {
-  // TODO: Implement actual blockchain connection check
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(Math.random() > 0.05), 150) // 95% success rate
-  })
-}
-
-async function checkStorageConnection(): Promise<boolean> {
-  // TODO: Implement actual storage connection check
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(Math.random() > 0.02), 50) // 98% success rate
-  })
-}
-
-async function checkCacheConnection(): Promise<boolean> {
-  // TODO: Implement actual cache connection check
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(Math.random() > 0.03), 75) // 97% success rate
-  })
 }

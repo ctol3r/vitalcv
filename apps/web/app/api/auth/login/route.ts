@@ -8,33 +8,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
     }
 
-    // TODO: Replace with actual backend call
-    // For now, simulate authentication
-    if (email === "demo@vitalcv.com" && password === "demo123") {
-      const response = NextResponse.json(
-        {
-          message: "Login successful",
-          user: {
-            id: "1",
-            email: email,
-            name: "Demo User",
-          },
-        },
-        { status: 200 },
-      )
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000"
+    const resp = await fetch(`${backendUrl}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    })
 
-      // Set authentication cookie
-      response.cookies.set("auth-token", "demo-token", {
+    const data = await resp.json().catch(() => ({ error: "Invalid JSON from backend" }))
+    if (!resp.ok) return NextResponse.json(data, { status: resp.status })
+
+    const response = NextResponse.json({ message: "Login successful", user: data.user }, { status: 200 })
+    if (data.token) {
+      response.cookies.set("auth-token", String(data.token), {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         maxAge: 60 * 60 * 24 * 7, // 7 days
       })
-
-      return response
     }
-
-    return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
+    return response
   } catch (error) {
     console.error("Login error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

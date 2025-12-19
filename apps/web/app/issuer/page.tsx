@@ -52,35 +52,7 @@ export default function IssuerPage() {
   const [loading, setLoading] = useState(false);
   const { session } = useSession();
   const [attestationRequests, setAttestationRequests] = useState<any[]>([]);
-  const [credentials, setCredentials] = useState<Credential[]>([
-    {
-      id: 'CRED-12345',
-      type: 'Medical License',
-      holder: 'Dr. Sarah Johnson',
-      issuer: 'California Medical Board',
-      status: 'active',
-      issuedDate: '2023-01-15',
-      expiryDate: '2025-01-15',
-    },
-    {
-      id: 'CRED-67890',
-      type: 'Board Certification',
-      holder: 'Dr. Michael Chen',
-      issuer: 'American Board of Internal Medicine',
-      status: 'active',
-      issuedDate: '2023-03-20',
-      expiryDate: '2026-03-20',
-    },
-    {
-      id: 'CRED-11111',
-      type: 'DEA Registration',
-      holder: 'Dr. Emily Davis',
-      issuer: 'Drug Enforcement Administration',
-      status: 'revoked',
-      issuedDate: '2022-06-10',
-      expiryDate: '2025-06-10',
-    },
-  ]);
+  const [credentials, setCredentials] = useState<Credential[]>([]);
 
   // Issue form state
   const [issueForm, setIssueForm] = useState({
@@ -116,6 +88,44 @@ export default function IssuerPage() {
 
     loadAttestationRequests();
   }, []);
+
+  // Load issued credentials from the real backend (no demo mocks)
+  useEffect(() => {
+    let mounted = true;
+    const loadCredentials = async () => {
+      try {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+        const resp = await fetch(`${backendUrl}/issuer/credentials`, { cache: 'no-store' });
+        if (!resp.ok) throw new Error(`Failed to load credentials: ${resp.status} ${resp.statusText}`);
+        const data = await resp.json();
+        const list = Array.isArray(data?.credentials) ? data.credentials : [];
+        if (!mounted) return;
+        setCredentials(
+          list.map((c: any) => ({
+            id: String(c.id),
+            type: String(c.type || ''),
+            holder: String(c.holder || ''),
+            issuer: String(c.issuer || ''),
+            status: (c.status === 'revoked' ? 'revoked' : 'active') as Credential['status'],
+            issuedDate: String(c.issuedDate || ''),
+            expiryDate: c.expiryDate ? String(c.expiryDate) : undefined,
+          })),
+        );
+      } catch (error) {
+        console.error('Failed to load credentials:', error);
+        toast({
+          title: 'Backend unavailable',
+          description: 'Unable to load issued credentials. Check the Live Proof bar for system status.',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    loadCredentials();
+    return () => {
+      mounted = false;
+    };
+  }, [toast]);
 
   const handleIssueCredential = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,0 +1,8 @@
+/Users/christoler/vitalcv/blockchain/substrate/pallets/credential/target/debug/deps/tap-744924255b5c7cb5.d: /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tap-1.0.1/src/lib.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tap-1.0.1/src/conv.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tap-1.0.1/src/pipe.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tap-1.0.1/src/tap.rs
+
+/Users/christoler/vitalcv/blockchain/substrate/pallets/credential/target/debug/deps/libtap-744924255b5c7cb5.rmeta: /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tap-1.0.1/src/lib.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tap-1.0.1/src/conv.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tap-1.0.1/src/pipe.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tap-1.0.1/src/tap.rs
+
+/Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tap-1.0.1/src/lib.rs:
+/Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tap-1.0.1/src/conv.rs:
+/Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tap-1.0.1/src/pipe.rs:
+/Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tap-1.0.1/src/tap.rs:

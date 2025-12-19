@@ -14,6 +14,7 @@ model User {
   id          Int          @id @default(autoincrement())
   email       String       @unique
   name        String
+  passwordHash String?
   credentials Credential[]
   jobs        Job[]
 }
@@ -25,6 +26,16 @@ model Credential {
   issuedAt DateTime @default(now())
   user     User     @relation(fields: [userId], references: [id])
   userId   Int
+}
+
+model AuditEvent {
+  id           Int      @id @default(autoincrement())
+  type         String
+  hash         String
+  credentialId String?
+  userId       Int?
+  metadata     Json?
+  createdAt    DateTime @default(now())
 }
 
 model Job {

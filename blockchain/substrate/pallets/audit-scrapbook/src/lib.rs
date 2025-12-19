@@ -15,15 +15,14 @@
 use frame_support::{
     dispatch::DispatchResult,
     pallet_prelude::*,
-    traits::{Get, GenesisBuild},
+    traits::Get,
 };
 use frame_system::pallet_prelude::*;
 use sp_std::vec::Vec;
-use sp_runtime::traits::{SaturatedConversion, Saturating};
+use sp_runtime::traits::SaturatedConversion;
 
 /// Audit action types
 #[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[scale_info(skip_type_params(T))]
 pub enum ActionType {
     /// Credential issued
     Issue,
@@ -46,23 +45,6 @@ impl ActionType {
     }
 }
 
-/// AuditRecord structure
-/// LEDGER-011: Stores {timestamp, action_type, target_hash, actor_did, meta_hash}
-#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[scale_info(skip_type_params(T))]
-pub struct AuditRecord {
-    /// Timestamp of the action (Unix timestamp in milliseconds)
-    pub timestamp: u64,
-    /// Type of action performed
-    pub action_type: ActionType,
-    /// Peppered hash of the target (credential hash for GDPR compliance)
-    pub target_hash: Vec<u8>,
-    /// DID of the actor performing the action
-    pub actor_did: Vec<u8>,
-    /// Hash of metadata (anchored on-chain, details stored off-chain)
-    pub meta_hash: Vec<u8>,
-}
-
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
@@ -77,6 +59,45 @@ pub mod pallet {
         /// Maximum number of audit records that can be stored per block
         #[pallet::constant]
         type MaxRecordsPerBlock: Get<u32>;
+
+        /// Max DID bytes for actor identifiers.
+        #[pallet::constant]
+        type MaxActorDidLen: Get<u32>;
+
+        /// Max number of record indices stored per target hash.
+        #[pallet::constant]
+        type MaxRecordsPerTarget: Get<u32>;
+
+        /// Max number of record indices stored per actor DID.
+        #[pallet::constant]
+        type MaxRecordsPerActor: Get<u32>;
+    }
+
+    pub type TargetHash = [u8; 32];
+    pub type MetaHash = [u8; 32];
+    pub type ActorDidOf<T> = BoundedVec<u8, <T as Config>::MaxActorDidLen>;
+    pub type RecordIdxListByTarget<T> = BoundedVec<u64, <T as Config>::MaxRecordsPerTarget>;
+    pub type RecordIdxListByActor<T> = BoundedVec<u64, <T as Config>::MaxRecordsPerActor>;
+
+    /// AuditRecord structure
+    /// Stores {timestamp, action_type, target_hash, actor_did, meta_hash, block_number, extrinsic_index}
+    #[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+    #[scale_info(skip_type_params(T))]
+    pub struct AuditRecord<T: Config> {
+        /// Timestamp of the action (Unix timestamp in milliseconds)
+        pub timestamp: u64,
+        /// Type of action performed
+        pub action_type: ActionType,
+        /// Peppered hash of the target (credential hash for GDPR compliance)
+        pub target_hash: TargetHash,
+        /// DID of the actor performing the action
+        pub actor_did: ActorDidOf<T>,
+        /// Hash of metadata (anchored on-chain, details stored off-chain)
+        pub meta_hash: MetaHash,
+        /// Block number where this record was created.
+        pub block_number: T::BlockNumber,
+        /// Extrinsic index within the block (if available).
+        pub extrinsic_index: Option<u32>,
     }
 
     #[pallet::storage]
@@ -91,7 +112,7 @@ pub mod pallet {
         _,
         Blake2_128Concat,
         u64,
-        AuditRecord,
+        AuditRecord<T>,
         OptionQuery,
     >;
 
@@ -101,8 +122,8 @@ pub mod pallet {
     pub type AuditRecordsByHash<T: Config> = StorageMap<
         _,
         Blake2_128Concat,
-        Vec<u8>, // target_hash
-        Vec<u64>, // List of audit record indices
+        TargetHash,
+        RecordIdxListByTarget<T>,
         ValueQuery,
     >;
 
@@ -112,8 +133,8 @@ pub mod pallet {
     pub type AuditRecordsByActor<T: Config> = StorageMap<
         _,
         Blake2_128Concat,
-        Vec<u8>, // actor_did
-        Vec<u64>, // List of audit record indices
+        ActorDidOf<T>,
+        RecordIdxListByActor<T>,
         ValueQuery,
     >;
 
@@ -124,9 +145,11 @@ pub mod pallet {
         AuditRecordCreated {
             record_index: u64,
             action_type: ActionType,
-            target_hash: Vec<u8>,
+            target_hash: TargetHash,
             actor_did: Vec<u8>,
             timestamp: u64,
+            block_number: T::BlockNumber,
+            extrinsic_index: Option<u32>,
         },
     }
 
@@ -134,14 +157,14 @@ pub mod pallet {
     pub enum Error<T> {
         /// Invalid timestamp (in the future or too old)
         InvalidTimestamp,
-        /// Invalid target hash length
-        InvalidTargetHash,
         /// Invalid actor DID format
         InvalidActorDid,
-        /// Invalid meta hash length
-        InvalidMetaHash,
         /// Too many records in this block
         TooManyRecordsPerBlock,
+        /// Too many indices stored for this target hash.
+        TooManyRecordsForTarget,
+        /// Too many indices stored for this actor DID.
+        TooManyRecordsForActor,
     }
 
     #[pallet::call]
@@ -153,89 +176,27 @@ pub mod pallet {
         /// - `target_hash`: Peppered hash of the credential/object (32 bytes)
         /// - `actor_did`: DID of the actor performing the action
         /// - `meta_hash`: Hash of metadata (32 bytes)
+        #[pallet::call_index(0)]
         #[pallet::weight(10_000)]
         pub fn record_audit(
             origin: OriginFor<T>,
             action_type: ActionType,
-            target_hash: Vec<u8>,
+            target_hash: TargetHash,
             actor_did: Vec<u8>,
-            meta_hash: Vec<u8>,
+            meta_hash: MetaHash,
         ) -> DispatchResult {
             // Anyone can record audit events (trusted backend services)
             let _ = ensure_signed(origin)?;
-
-            // Get current timestamp
-            let now = pallet_timestamp::Pallet::<T>::now();
-            let timestamp_ms = now.saturated_into::<u64>() / 1000; // Convert to milliseconds
-
-            // Validate inputs
-            ensure!(
-                target_hash.len() == 32,
-                Error::<T>::InvalidTargetHash
-            );
-            ensure!(
-                actor_did.len() > 0 && actor_did.len() <= 256,
-                Error::<T>::InvalidActorDid
-            );
-            ensure!(
-                meta_hash.len() == 32,
-                Error::<T>::InvalidMetaHash
-            );
-
-            // Validate timestamp (must be within last hour to prevent replay)
-            let max_age = 3600 * 1000; // 1 hour in milliseconds
-            ensure!(
-                timestamp_ms <= now.saturated_into::<u64>() / 1000 + max_age,
-                Error::<T>::InvalidTimestamp
-            );
-
-            // Get next record index
-            let record_index = AuditRecordCount::<T>::get();
-
-            // Create audit record
-            let record = AuditRecord {
-                timestamp: timestamp_ms,
-                action_type: action_type.clone(),
-                target_hash: target_hash.clone(),
-                actor_did: actor_did.clone(),
-                meta_hash: meta_hash.clone(),
-            };
-
-            // Store record
-            AuditRecords::<T>::insert(record_index, &record);
-            AuditRecordCount::<T>::put(record_index.saturating_add(1));
-
-            // Update indices
-            AuditRecordsByHash::<T>::mutate(&target_hash, |indices| {
-                if !indices.contains(&record_index) {
-                    indices.push(record_index);
-                }
-            });
-
-            AuditRecordsByActor::<T>::mutate(&actor_did, |indices| {
-                if !indices.contains(&record_index) {
-                    indices.push(record_index);
-                }
-            });
-
-            // Emit event
-            Self::deposit_event(Event::AuditRecordCreated {
-                record_index,
-                action_type,
-                target_hash,
-                actor_did,
-                timestamp: timestamp_ms,
-            });
-
-            Ok(())
+            Self::do_record_audit(action_type, target_hash, actor_did, meta_hash)
         }
 
         /// Batch record multiple audit events
         /// Useful for efficient bulk operations
-        #[pallet::weight(10_000 + T::MaxRecordsPerBlock::get() * 10_000)]
+        #[pallet::call_index(1)]
+        #[pallet::weight(10_000)]
         pub fn batch_record_audit(
             origin: OriginFor<T>,
-            records: Vec<(ActionType, Vec<u8>, Vec<u8>, Vec<u8>)>,
+            records: Vec<(ActionType, TargetHash, Vec<u8>, MetaHash)>,
         ) -> DispatchResult {
             let _ = ensure_signed(origin)?;
 
@@ -246,42 +207,84 @@ pub mod pallet {
             );
 
             for (action_type, target_hash, actor_did, meta_hash) in records {
-                Self::record_audit(
-                    origin.clone(),
-                    action_type,
-                    target_hash,
-                    actor_did,
-                    meta_hash,
-                )?;
+                Self::do_record_audit(action_type, target_hash, actor_did, meta_hash)?;
             }
 
             Ok(())
         }
     }
 
-    #[pallet::genesis_config]
-    pub struct GenesisConfig<T: Config> {
-        pub initial_records: Vec<AuditRecord>,
-    }
+    impl<T: Config> Pallet<T> {
+        fn do_record_audit(
+            action_type: ActionType,
+            target_hash: TargetHash,
+            actor_did: Vec<u8>,
+            meta_hash: MetaHash,
+        ) -> DispatchResult {
+            // Timestamp (ms since epoch) from on-chain timestamp pallet.
+            let now = pallet_timestamp::Pallet::<T>::now();
+            let timestamp_ms = now.saturated_into::<u64>();
 
-    #[cfg(feature = "std")]
-    impl<T: Config> Default for GenesisConfig<T> {
-        fn default() -> Self {
-            Self {
-                initial_records: Default::default(),
-            }
-        }
-    }
+            // Validate + bound actor DID.
+            ensure!(
+                !actor_did.is_empty() && (actor_did.len() as u32) <= T::MaxActorDidLen::get(),
+                Error::<T>::InvalidActorDid
+            );
+            let actor_bounded: ActorDidOf<T> =
+                actor_did.clone().try_into().map_err(|_| Error::<T>::InvalidActorDid)?;
 
-    #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
-        fn build(&self) {
-            let mut count = 0u64;
-            for record in &self.initial_records {
-                AuditRecords::<T>::insert(count, record);
-                count = count.saturating_add(1);
-            }
-            AuditRecordCount::<T>::put(count);
+            // Get next record index
+            let record_index = AuditRecordCount::<T>::get();
+
+            let block_number = <frame_system::Pallet<T>>::block_number();
+            let extrinsic_index = <frame_system::Pallet<T>>::extrinsic_index();
+
+            // Create audit record
+            let record = AuditRecord::<T> {
+                timestamp: timestamp_ms,
+                action_type: action_type.clone(),
+                target_hash,
+                actor_did: actor_bounded.clone(),
+                meta_hash,
+                block_number,
+                extrinsic_index,
+            };
+
+            // Store record + bump counter
+            AuditRecords::<T>::insert(record_index, &record);
+            AuditRecordCount::<T>::put(record_index.saturating_add(1));
+
+            // Update indices (bounded)
+            AuditRecordsByHash::<T>::try_mutate(target_hash, |indices| -> DispatchResult {
+                if !indices.contains(&record_index) {
+                    indices
+                        .try_push(record_index)
+                        .map_err(|_| Error::<T>::TooManyRecordsForTarget)?;
+                }
+                Ok(())
+            })?;
+
+            AuditRecordsByActor::<T>::try_mutate(actor_bounded, |indices| -> DispatchResult {
+                if !indices.contains(&record_index) {
+                    indices
+                        .try_push(record_index)
+                        .map_err(|_| Error::<T>::TooManyRecordsForActor)?;
+                }
+                Ok(())
+            })?;
+
+            // Emit event
+            Self::deposit_event(Event::AuditRecordCreated {
+                record_index,
+                action_type,
+                target_hash,
+                actor_did,
+                timestamp: timestamp_ms,
+                block_number,
+                extrinsic_index,
+            });
+
+            Ok(())
         }
     }
 }

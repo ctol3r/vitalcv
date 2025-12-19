@@ -68,7 +68,7 @@
 
 ### Event Flow
 
-```
+```text
 1. User Action
    ↓
 2. Route Handler (e.g., POST /api/claim/basic)
@@ -295,7 +295,7 @@ GROUP BY agentName;
 
 ## 📝 Code Structure
 
-```
+```text
 vitalcv-backend/
 ├── prisma/
 │   └── schema.prisma          # Tags + AgentRun
@@ -317,7 +317,7 @@ vitalcv-backend/
 │   ├── db.ts                 # Prisma client
 │   └── server.ts             # Server entry
 
-v0-vital-cv-frontend-mvp/
+apps/web/
 ├── lib/
 │   └── apiClient.ts          # Agent API functions
 └── app/
@@ -343,7 +343,7 @@ v0-vital-cv-frontend-mvp/
 
 ---
 
-## 🎉 Success!
+## 🎉 Success
 
 You now have a complete, event-driven multi-agent system ready for integration. The "nervous system" is built—just wire it into your existing routes and watch the agents work their magic.
 

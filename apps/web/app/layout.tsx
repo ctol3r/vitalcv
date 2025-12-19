@@ -12,6 +12,7 @@ import type { Metadata } from 'next';
 import type React from 'react';
 import { Suspense } from 'react';
 import './globals.css';
+import { LiveProofBar } from '@/components/proof/LiveProofBar';
 
 export const metadata: Metadata = {
   title: 'VitalCV - Fast, Trusted Credential Verification for Clinicians',
@@ -57,6 +58,7 @@ export default function RootLayout({
           <SessionProvider>
             <ErrorBoundary>
               <Header />
+              <LiveProofBar />
               <OfflineBanner />
               <Suspense fallback={null}>
                 {children}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast"
 import { Upload, FileText, User, CheckCircle, Loader2, Shield, AlertCircle, ArrowLeft, ArrowRight, BadgeCheck } from "lucide-react"
 import Link from "next/link"
 import { AuthGuard } from "@/components/auth-guard"
+import { IDKitWidget } from "@worldcoin/idkit"
+import { setVerifiedHuman } from "@/lib/session"
 
 interface CVData {
   personalInfo?: {
@@ -97,6 +99,79 @@ export default function OnboardingPage() {
 
   // Step 3: Review
   const [finalLoading, setFinalLoading] = useState(false)
+
+  // Optional: World ID (Proof-of-Personhood) — authn-only
+  const [worldIdConsent, setWorldIdConsent] = useState(false)
+  const [worldIdProofJson, setWorldIdProofJson] = useState("")
+  const [worldIdLoading, setWorldIdLoading] = useState(false)
+  const [worldIdVerified, setWorldIdVerified] = useState(false)
+  const [worldIdAuditRef, setWorldIdAuditRef] = useState<string | null>(null)
+  const [worldIdError, setWorldIdError] = useState<string | null>(null)
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("vitalcv_worldid_verified")
+      if (!raw) return
+      const parsed = JSON.parse(raw)
+      if (parsed?.verified === true) {
+        setWorldIdVerified(true)
+        setWorldIdAuditRef(typeof parsed.auditRef === "string" ? parsed.auditRef : null)
+        setVerifiedHuman("worldid")
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  const handleWorldIdVerify = async (proofBodyOverride?: any) => {
+    setWorldIdLoading(true)
+    setWorldIdError(null)
+
+    try {
+      if (!worldIdConsent) {
+        throw new Error("Consent is required to verify with World ID.")
+      }
+      const proofBody = proofBodyOverride ?? JSON.parse(worldIdProofJson)
+
+      const resp = await fetch("/api/world-id/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(proofBody),
+      })
+      const data = await resp.json().catch(() => ({ error: "Invalid JSON response" }))
+      if (!resp.ok) {
+        throw new Error(data?.error || `World ID verification failed: ${resp.status}`)
+      }
+
+      if (data?.verified !== true) {
+        throw new Error(data?.error || "World ID verification did not succeed")
+      }
+
+      setWorldIdVerified(true)
+      setWorldIdAuditRef(typeof data.auditRef === "string" ? data.auditRef : null)
+      setVerifiedHuman("worldid")
+
+      localStorage.setItem(
+        "vitalcv_worldid_verified",
+        JSON.stringify({ verified: true, auditRef: data.auditRef || null, verifiedAt: new Date().toISOString() }),
+      )
+
+      toast({
+        title: "Verified Human",
+        description: "World ID verification succeeded (optional).",
+      })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "World ID verification failed"
+      setWorldIdError(msg)
+      toast({
+        title: "World ID Verification Failed",
+        description: msg,
+        variant: "destructive",
+      })
+    } finally {
+      setWorldIdLoading(false)
+    }
+  }
 
   const handleFileUpload = async (file: File) => {
     setCvLoading(true)
@@ -682,6 +757,128 @@ export default function OnboardingPage() {
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Optional: World ID verification (authn-only; opt-in) */}
+                  <div className="rounded-lg border bg-white p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <BadgeCheck className="h-5 w-5 text-blue-600" />
+                        <h3 className="text-sm font-semibold text-gray-900">Verify with World ID (Optional)</h3>
+                      </div>
+                      {worldIdVerified ? (
+                        <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white">Verified Human</Badge>
+                      ) : (
+                        <Badge variant="secondary">Not verified</Badge>
+                      )}
+                    </div>
+
+                    <p className="mt-2 text-sm text-gray-600">
+                      This is an optional anti-bot check. VitalCV does not store biometrics, and we only record a
+                      hash-only audit event (no PHI).
+                    </p>
+
+                    <div className="mt-3 flex items-start gap-2">
+                      <input
+                        id="worldid-consent"
+                        type="checkbox"
+                        checked={worldIdConsent}
+                        onChange={(e) => setWorldIdConsent(e.target.checked)}
+                        className="mt-1"
+                      />
+                      <Label htmlFor="worldid-consent" className="text-sm text-gray-700">
+                        I consent to submit my World ID proof for verification. I understand this is optional and can be
+                        skipped.
+                      </Label>
+                    </div>
+
+                    {!worldIdVerified ? (
+                      <div className="mt-3 space-y-3">
+                        {process.env.NEXT_PUBLIC_WORLD_ID_APP_ID ? (
+                          <IDKitWidget
+                            app_id={process.env.NEXT_PUBLIC_WORLD_ID_APP_ID}
+                            action={process.env.NEXT_PUBLIC_WORLD_ID_ACTION || "vitalcv-verify"}
+                            onSuccess={async (result) => {
+                              // Send the proof directly to backend verification (no mocks).
+                              await handleWorldIdVerify({
+                                ...result,
+                                action: process.env.NEXT_PUBLIC_WORLD_ID_ACTION || "vitalcv-verify",
+                                // Optional non-PHI signal (NPI is not PHI; still treated carefully)
+                                signal: npiData?.npi || undefined,
+                                consent: true,
+                              })
+                            }}
+                          >
+                            {({ open }) => (
+                              <Button onClick={open} disabled={worldIdLoading} className="w-full">
+                                {worldIdLoading ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Verifying…
+                                  </>
+                                ) : (
+                                  <>
+                                    <BadgeCheck className="mr-2 h-4 w-4" />
+                                    Verify with World ID
+                                  </>
+                                )}
+                              </Button>
+                            )}
+                          </IDKitWidget>
+                        ) : (
+                          <Alert>
+                            <AlertDescription>
+                              World ID is not configured in this environment. Set{" "}
+                              <span className="font-mono">NEXT_PUBLIC_WORLD_ID_APP_ID</span> (web) and{" "}
+                              <span className="font-mono">WORLD_ID_APP_ID</span> (api) to enable.
+                            </AlertDescription>
+                          </Alert>
+                        )}
+
+                        <div className="space-y-1">
+                          <Label htmlFor="worldid-proof" className="text-sm">
+                            Paste World ID proof JSON (advanced)
+                          </Label>
+                          <textarea
+                            id="worldid-proof"
+                            value={worldIdProofJson}
+                            onChange={(e) => setWorldIdProofJson(e.target.value)}
+                            placeholder='{"proof":{"merkle_root":"...","nullifier_hash":"...","proof":"..."},"signal":"...","action":"...","app_id":"..."}'
+                            className="min-h-[120px] w-full rounded-md border bg-white p-2 font-mono text-xs"
+                          />
+                        </div>
+
+                        {worldIdError ? (
+                          <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>{worldIdError}</AlertDescription>
+                          </Alert>
+                        ) : null}
+
+                        <Button
+                          onClick={() => handleWorldIdVerify()}
+                          disabled={worldIdLoading || !worldIdProofJson.trim()}
+                          variant="outline"
+                          className="w-full"
+                        >
+                          {worldIdLoading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Verifying…
+                            </>
+                          ) : (
+                            <>
+                              <BadgeCheck className="mr-2 h-4 w-4" />
+                              Verify (pasted proof)
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="mt-3 text-sm text-gray-700">
+                        Verified. Audit ref: <span className="font-mono">{worldIdAuditRef || "—"}</span>
+                      </div>
+                    )}
                   </div>
 
                   <Alert>

@@ -1,0 +1,50 @@
+{"id":"TASK-051","agent":"CURSOR • BACKEND","title":"PSV Adapter: NPPES","details":"Implement NPI registry lookup, normalize fields, compute hash for identity binding, and link PSVResult to provider profile."}
+{"id":"TASK-052","agent":"CURSOR • BACKEND","title":"PSV Adapter: DEA NTIS","details":"Retrieve DEA registration status, schedules, expiration; normalize fields and attach to credential graph."}
+{"id":"TASK-053","agent":"CURSOR • BACKEND","title":"PSV Adapter: OIG LEIE","details":"Check exclusion list, parse sanction metadata, update provider StabilityScore and Eligibility engine."}
+{"id":"TASK-054","agent":"CURSOR • BACKEND","title":"PSV Adapter: FSMB/State Boards","details":"Pull state license statuses, disciplinary actions, expiration windows, and normalize for audit linking."}
+{"id":"TASK-055","agent":"CURSOR • BACKEND","title":"PSV Evidence Linking","details":"Connect PSV evidence to credential instances and chain anchors for traceability."}
+{"id":"TASK-056","agent":"CURSOR • BACKEND","title":"PSV Freshness Monitor","details":"Detect stale PSV entries and auto-trigger re-verification."}
+{"id":"TASK-057","agent":"AI • ANALYTICS","title":"PSV Confidence Engine","details":"Generate confidence scores for PSV accuracy and signal drift."}
+{"id":"TASK-058","agent":"CURSOR • BACKEND","title":"Compliance Rule Engine","details":"Centralize PoU, minimum necessary, redaction rules, org-based policy inheritance."}
+{"id":"TASK-059","agent":"CURSOR • BACKEND","title":"Redaction Profiles","details":"Create redaction presets for different requester roles (issuer, employer, ATS, provider)." }
+{"id":"TASK-060","agent":"CURSOR • WEB","title":"Compliance Dashboard","details":"Issuer sees POU violations, excessive access attempts, stale evidence, trust gaps."}
+{"id":"TASK-061","agent":"CURSOR • BACKEND","title":"Sanction Sync Job","details":"Continuous monitoring of sanction sources; auto-update provider eligibility, FitScore warnings, and issuer alerts."}
+{"id":"TASK-062","agent":"CURSOR • BACKEND","title":"Provider Privilege Engine","details":"Create facility-specific privilege evaluation logic based on credentials, PSV status, training logs."}
+{"id":"TASK-063","agent":"CURSOR • WEB","title":"Privilege Management UI","details":"Allow issuers to approve/reject privileges, add comments, and anchor changes to chain."}
+{"id":"TASK-064","agent":"CURSOR • MOBILE","title":"Privilege Viewer","details":"Provider sees active privileges, pending approvals, reasons for denial."}
+{"id":"TASK-065","agent":"CURSOR • BACKEND","title":"Job Eligibility Engine","details":"Compute job eligibility from credential + privilege sets and attach reasoning labels."}
+{"id":"TASK-066","agent":"CURSOR • BACKEND","title":"MatchScore Engine","details":"Combine FitScore, IntentScore, EligibilityScore, StabilityScore into final ranking value."}
+{"id":"TASK-067","agent":"AI • ANALYTICS","title":"Explainability Model","details":"Produce textual explanation for FitScore and MatchScore."}
+{"id":"TASK-068","agent":"CURSOR • WEB","title":"Candidate Insights UI","details":"Employer UI displays score breakdowns: strong areas, risk flags, privilege gaps."}
+{"id":"TASK-069","agent":"CURSOR • BACKEND","title":"Job Application Tracking","details":"Track application status, timestamps, employer actions, and audit trail."}
+{"id":"TASK-070","agent":"CURSOR • MOBILE","title":"Application History View","details":"Provider view of past applications, verification status, FitScore trends."}
+{"id":"TASK-071","agent":"CURSOR • WEB","title":"Job Detail Page","details":"Show required credentials, privileges, facility metadata, FitScore charts."}
+{"id":"TASK-072","agent":"CURSOR • BACKEND","title":"Timeline Aggregation Service","details":"Aggregate events (issuance, renewal, revocation, PSV, job apps, anchors) into chronological sequence."}
+{"id":"TASK-073","agent":"CURSOR • MOBILE","title":"Timeline Event Renderer","details":"Display VC events, anchors, job applications, and facility interactions."}
+{"id":"TASK-074","agent":"CURSOR • WEB","title":"Timeline Visualizer","details":"Interactive web timeline with filters for issuers and employers."}
+{"id":"TASK-075","agent":"CURSOR • BACKEND","title":"Attachment Storage Engine","details":"Handle uploads, virus scanning, metadata linking, and permanent evidence storage for credentials."}
+{"id":"TASK-076","agent":"CURSOR • MOBILE","title":"Document Upload UI","details":"Allow providers to upload training docs, CME, certifications; classify automatically."}
+{"id":"TASK-077","agent":"AI • ANALYTICS","title":"Document Classifier","details":"Classify uploaded docs into license, board cert, CME, DEA, sanction, training, privilege evidence."}
+{"id":"TASK-078","agent":"CURSOR • BACKEND","title":"Attachment → VC Auto-Linker","details":"Automatically connect documents to correct credential types based on classifier."}
+{"id":"TASK-079","agent":"CURSOR • BACKEND","title":"Cross-VC Consistency Checker","details":"Detect mismatches across VCs for name, NPI, dates, specialties, or issuer conflicts."}
+{"id":"TASK-080","agent":"CURSOR • WEB","title":"Consistency Dashboard","details":"Issuer UI listing inconsistencies and suggested fixes."}
+{"id":"TASK-081","agent":"CURSOR • BACKEND","title":"Identity Drift Detector","details":"Detect anomalies in DID → NPI → VC identity relationships; flag to issuers."}
+{"id":"TASK-082","agent":"CURSOR • MOBILE","title":"Identity Review Flow","details":"Prompt clinician to confirm identity when drift signals are detected."}
+{"id":"TASK-083","agent":"CURSOR • BACKEND","title":"Session Manager","details":"Handle device binding, refresh token rotation, biometric-required routes."}
+{"id":"TASK-084","agent":"CURSOR • MOBILE","title":"Device Binding Enforcement","details":"Device must match backend-bound device fingerprint; auto-logout on mismatch."}
+{"id":"TASK-085","agent":"CURSOR • WEB","title":"Issuer Session Console","details":"Issuer sees active sessions, device details, revoke options."}
+{"id":"TASK-086","agent":"CURSOR • BACKEND","title":"Org & Facility Registry","details":"Manage orgs, facilities, departments, issuers, and permission scopes."}
+{"id":"TASK-087","agent":"CURSOR • WEB","title":"Org Management UI","details":"Admin UI to edit facility metadata, privileges, delegated issuers."}
+{"id":"TASK-088","agent":"CURSOR • BACKEND","title":"Provider Roster Importer","details":"Import facility rosters; auto-match to VitalCV identities; propose VC actions."}
+{"id":"TASK-089","agent":"CURSOR • BACKEND","title":"Cross-Org Credential Relay API","details":"Enable secure sharing of provider credentials between partner orgs under PoU."}
+{"id":"TASK-090","agent":"CURSOR • WEB","title":"Relay Approval Console","details":"Issuer views inbound/outbound relay requests and grants or denies access."}
+{"id":"TASK-091","agent":"CURSOR • BACKEND","title":"Anchor Provenance Chain","details":"Track multi-chain anchor sources (local, public, backup realm), return provenance metadata."}
+{"id":"TASK-092","agent":"CURSOR • MOBILE","title":"Provenance Badge UI","details":"Display multi-anchor status and link to public explorer."}
+{"id":"TASK-093","agent":"CURSOR • BACKEND","title":"Expiration Heatmap API","details":"Compute expiring credential distribution across org/facility."}
+{"id":"TASK-094","agent":"CURSOR • WEB","title":"Expiration Heatmap UI","details":"Color-coded grid showing upcoming renewal crises."}
+{"id":"TASK-095","agent":"CURSOR • BACKEND","title":"Job Notification Engine","details":"Trigger push notifications to clinicians when new job posting matches FitScore thresholds."}
+{"id":"TASK-096","agent":"CURSOR • MOBILE","title":"Job Alerts UI","details":"Provider receives job notifications with preview card and one-tap apply."}
+{"id":"TASK-097","agent":"AI • ANALYTICS","title":"Workstyle Preference Model","details":"Cluster provider preferences for schedule, location, comp expectations, telehealth interest."}
+{"id":"TASK-098","agent":"CURSOR • BACKEND","title":"Preference API","details":"Store provider preferences; update IntentScore accordingly."}
+{"id":"TASK-099","agent":"CURSOR • MOBILE","title":"Preference Setup Flow","details":"Onboarding step where provider selects workstyle preferences to improve job matching."}
+{"id":"TASK-100","agent":"CURSOR • QA","title":"Golden Path Test Part 2","details":"Full-cycle testing including PSV, privileges, FitScore, apply flow, and instant verification."}

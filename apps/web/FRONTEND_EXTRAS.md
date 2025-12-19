@@ -114,7 +114,7 @@ import ClaimStatusBadge from '@/components/status/ClaimStatusBadge';
 
 **Visual**:
 
-```
+```text
 Dr. Jane Smith
 NPI: 1234567890
 [L1 Basic] <- NEW!
@@ -246,8 +246,8 @@ open http://localhost:3000/start
 
 ## File Structure
 
-```
-v0-vital-cv-frontend-mvp/
+```text
+apps/web/
 ├── app/
 │   └── start/
 │       └── page.tsx                      # NEW: NPI entry page

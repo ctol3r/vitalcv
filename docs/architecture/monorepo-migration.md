@@ -10,11 +10,11 @@ December 2024
 
 ## Structure
 
-```
+```text
 vitalcv/
 ├── apps/
-│   ├── api/          # Backend API (from chai-vc-platform)
-│   ├── web/          # Frontend Next.js (from v0-vital-cv-frontend-mvp)
+│   ├── api/          # Backend API
+│   ├── web/          # Frontend Next.js
 │   ├── issuer-api/   # OIDC4VCI Issuer API
 │   ├── verifier-api/ # OIDC4VP Verifier API
 │   └── ...
@@ -38,12 +38,14 @@ vitalcv/
 ## Package Organization
 
 ### Apps
+
 - `@vitalcv/api` - Main backend API
 - `@vitalcv/web` - Frontend application
 - `@vitalcv/issuer-api` - Credential issuer
 - `@vitalcv/verifier-api` - Credential verifier
 
 ### Packages (Planned)
+
 - `@vitalcv/shared-utils` - Common utilities
 - `@vitalcv/vc-schemas` - Verifiable Credential schemas
 - `@vitalcv/compliance-core` - Compliance logic
@@ -93,4 +95,3 @@ import { apiType } from '@vitalcv/api/types';
 - Add more apps as needed (admin panel, mobile apps, etc.)
 - Extract more shared logic into packages
 - Consider micro-frontends architecture if needed
-

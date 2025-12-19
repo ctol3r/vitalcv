@@ -1,19 +1,27 @@
 # VitalCV Monorepo
 
+<!-- VitalCV canonical monorepo (source of truth). -->
+
+> **VitalCV canonical monorepo.** Open this repository at the monorepo root (`/vitalcv`). Any legacy `v0-*` repos are archival and should not be used as the working directory.
+
 Unified monorepo for the VitalCV healthcare credentialing platform.
 
 ## Structure
 
-```
+```text
 vitalcv/
 ├── apps/
-│   ├── api/          # Backend API (from chai-vc-platform)
-│   └── web/          # Frontend Next.js app (from v0-vital-cv-frontend-mvp)
+│   ├── api/          # Backend API
+│   └── web/          # Frontend Next.js app
 ├── packages/         # Shared packages
 ├── blockchain/       # Blockchain/Substrate integration
 ├── docs/            # Documentation
 └── infra/           # Infrastructure as code
 ```
+
+## Workspace
+
+- Open the repo at the root (recommended: open `vitalcv.code-workspace` in Cursor).
 
 ## Getting Started
 
@@ -78,4 +86,3 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 ## License
 
 Proprietary - All rights reserved
-

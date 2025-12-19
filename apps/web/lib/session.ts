@@ -15,6 +15,9 @@ export interface UserSession {
   phone?: string;
   claimLevel: ClaimLevel;
   roles: UserRole[];
+  verifiedHuman?: boolean;
+  verifiedHumanProvider?: 'worldid';
+  verifiedHumanVerifiedAt?: string;
   verifiedAt?: string;
   expiresAt?: string;
 }
@@ -106,6 +109,19 @@ export function updateClaimLevel(level: ClaimLevel): void {
 }
 
 /**
+ * Mark a user as "verified human" (anti-bot only; not licensure).
+ */
+export function setVerifiedHuman(provider: 'worldid'): void {
+  const session = getSession();
+  saveSession({
+    ...session,
+    verifiedHuman: true,
+    verifiedHumanProvider: provider,
+    verifiedHumanVerifiedAt: new Date().toISOString(),
+  });
+}
+
+/**
  * Add role to session
  */
 export function addRole(role: UserRole): void {
@@ -173,8 +189,8 @@ function getCookieSession(): UserSession | null {
 /**
  * Hook to listen for session changes
  */
-export function useSessionListener(callback: (session: UserSession) => void): void {
-  if (typeof window === 'undefined') return;
+export function useSessionListener(callback: (session: UserSession) => void): () => void {
+  if (typeof window === 'undefined') return () => {};
 
   const handleUpdate = (event: Event) => {
     const customEvent = event as CustomEvent<UserSession>;

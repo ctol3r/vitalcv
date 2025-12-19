@@ -1,0 +1,30 @@
+{"id":"TASK-001","agent":"CURSOR • BLOCKCHAIN","title":"Initialize CredentialRegistry Pallet","details":"Implement extrinsics and storage for issuing, updating, and revoking credentials. Support hashing metadata for on-chain proof."}
+{"id":"TASK-002","agent":"CURSOR • BLOCKCHAIN","title":"Implement AuditScrapbook Pallet","details":"Accept audit log hashes, timestamp them, emit events, and store extrinsic references for traceability."}
+{"id":"TASK-003","agent":"CURSOR • BLOCKCHAIN","title":"IdentityBinding Pallet","details":"Bind provider DID to NPI hash. Support updates, rotations, and event logs."}
+{"id":"TASK-004","agent":"CURSOR • BLOCKCHAIN","title":"DelegatedIssuance Pallet","details":"Allow on-chain issuer → delegate trust relationships. Support revocation and modification."}
+{"id":"TASK-005","agent":"CURSOR • BLOCKCHAIN","title":"StatusListBitstring Pallet","details":"Implement revocation status list for credentials. Provide compact bitmap storage."}
+{"id":"TASK-006","agent":"CURSOR • DEVOPS","title":"Deploy Multi-Node Validator Network","details":"Configure 3–5 validators, TLS RPC, metrics, KMS signing, and monitoring dashboards."}
+{"id":"TASK-007","agent":"CURSOR • BACKEND","title":"Chain RPC Client","details":"Implement polkadot.js client wrapper with retry logic, health checks, and fallback for chain lag."}
+{"id":"TASK-008","agent":"CURSOR • BACKEND","title":"Anchor Submission Queue","details":"Queue VC anchors, retry failures, batch submissions, and expose job status to APIs."}
+{"id":"TASK-009","agent":"CURSOR • BACKEND","title":"Chain Event Listener","details":"Subscribe to chain events and push them to WebSocket channels for mobile/web clients."}
+{"id":"TASK-010","agent":"CURSOR • BACKEND","title":"OIDC4VCI Token Endpoint","details":"Implement issuance token exchange for VC delivery. Support preAuthCode and PIN flows."}
+{"id":"TASK-011","agent":"CURSOR • BACKEND","title":"OIDC4VP Verification Endpoint","details":"Verify SD-JWT tokens, validate nonce, check revocation, and assemble verification evidence."}
+{"id":"TASK-012","agent":"CURSOR • BACKEND","title":"VC Metadata Endpoint","details":"Return metadata: type, issuer, expiration, schemaVersion, anchorStatus, revocation status."}
+{"id":"TASK-013","agent":"CURSOR • BACKEND","title":"Provider Profile API","details":"Aggregate VCs, PSV results, privileges, sanctions, FitScore, and return combined profile state."}
+{"id":"TASK-014","agent":"CURSOR • BACKEND","title":"Evidence Graph Builder","details":"Link VCs to PSV events, attachments, chain anchors, prior credential versions."}
+{"id":"TASK-015","agent":"CURSOR • BACKEND","title":"Provider Identity Sync","details":"Bind provider DID, update NPI hash, handle profile edits from mobile or web."}
+{"id":"TASK-016","agent":"CURSOR • MOBILE","title":"Wallet Storage Engine","details":"Store credential files encrypted, maintain indexes, support schema migrations."}
+{"id":"TASK-017","agent":"CURSOR • MOBILE","title":"VC Viewer Core","details":"Display VC fields, claims grouped by schema, anchor details, issuer metadata, and attachments."}
+{"id":"TASK-018","agent":"CURSOR • MOBILE","title":"SD-JWT Presentation Flow","details":"Enable selective disclosure toggles, sign SD-JWT with device key, present via QR or deep link."}
+{"id":"TASK-019","agent":"CURSOR • MOBILE","title":"Profile UI Sync","details":"Ensure profile updates instantly reflect backend state with optimistic UI and rollback on conflict."}
+{"id":"TASK-020","agent":"CURSOR • MOBILE","title":"Deep-Link Login","details":"Support universal links to authorize the wallet when accessed from web employer portals."}
+{"id":"TASK-021","agent":"CURSOR • WEB","title":"Issuer Portal Framework","details":"Implement navigation, role-based routing, session storage, and secure API client."}
+{"id":"TASK-022","agent":"CURSOR • WEB","title":"Credential Issuance Form","details":"UI for issuers to input credential data, validate required fields, preview VC before issuance."}
+{"id":"TASK-023","agent":"CURSOR • WEB","title":"Credential Revocation UI","details":"Allow issuer to revoke VC, select reason code, and trigger anchor update."}
+{"id":"TASK-024","agent":"CURSOR • WEB","title":"Issuer Bulk Upload Wizard","details":"Parse CSVs, auto-match providers, preview issuance actions, detect duplicates."}
+{"id":"TASK-025","agent":"CURSOR • BACKEND","title":"Bulk Issuance Pipeline","details":"Batch creation of VCs, queue anchor submissions, return job state and progress."}
+{"id":"TASK-026","agent":"CURSOR • BACKEND","title":"Job Posting API","details":"Allow employers to create jobs with credential requirements, privileges, specialty, and telehealth rules."}
+{"id":"TASK-027","agent":"CURSOR • BACKEND","title":"FitScore Computation Engine","details":"Compute FitScore using job requirements + provider credentials + privileges + experience + sanctions + recency."}
+{"id":"TASK-028","agent":"AI • ANALYTICS","title":"IntentScore Engine","details":"Train model on provider preferences (location, schedule, comp) to enhance job matching."}
+{"id":"TASK-029","agent":"CURSOR • BACKEND","title":"Match Ranking API","details":"Return ranked candidate list for employer job postings using FitScore+IntentScore."}
+{"id":"TASK-030","agent":"CURSOR • WEB","title":"Employer Dashboard Framework","details":"Dashboard shell, navigation, authentication, multi-role support."}

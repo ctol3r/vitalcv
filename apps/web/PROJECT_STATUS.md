@@ -172,49 +172,20 @@ Future enhancements:
 
 ## 📁 Project Structure
 
-```
-vitalcv-mvp/
-├── v0-vital-cv-frontend-mvp/          # Next.js Frontend
-│   ├── app/                            # Next.js App Router
-│   │   ├── start/                      # NPI entry page
-│   │   ├── npi/[npi]/                  # Public profile + claim
-│   │   ├── graph/                      # Network visualization
-│   │   ├── workspace/                  # Pane demo
-│   │   └── ...
-│   ├── components/
-│   │   ├── panes/                      # Sliding pane system
-│   │   ├── graph/                      # Force-directed graph
-│   │   ├── claim/                      # Claim wizard
-│   │   ├── status/                     # Status badges
-│   │   ├── layout/                     # Header, theme picker
-│   │   └── ui/                         # shadcn/ui components
-│   ├── lib/
-│   │   ├── npi-client.ts               # NPI API wrapper
-│   │   ├── npi-types.ts                # Type definitions
-│   │   └── ...
-│   └── Documentation/
-│       ├── ROADMAP.md                  # 100-task roadmap
-│       ├── QUICK_WINS.md               # Top 10 quick wins
-│       ├── ENHANCED_FEATURES.md        # UI enhancements
-│       ├── FRONTEND_EXTRAS.md          # Latest additions
-│       └── COMPLETE_IMPLEMENTATION_SUMMARY.md
-│
-└── vitalcv-backend/                    # Express Backend
-    ├── src/
-    │   ├── middlewares/
-    │   │   └── multipart.ts            # File upload handler
-    │   ├── services/
-    │   │   └── substrate.ts            # Polkadot.js integration
-    │   ├── routes/                     # API routes
-    │   └── ...
-    ├── prisma/
-    │   ├── schema.prisma               # Database schema
-    │   └── seed.ts                     # Demo data seeder
-    ├── Dockerfile                      # Container image
-    ├── docker-compose.yml              # Docker orchestration
-    └── Documentation/
-        ├── README.md                   # Backend setup guide
-        └── BACKEND_EXTRAS.md           # Latest features
+```text
+vitalcv/
+├── apps/
+│   ├── web/                            # Next.js frontend (App Router)
+│   │   ├── app/                        # Routes + API routes
+│   │   ├── components/                 # UI components
+│   │   └── lib/                        # Client libs
+│   └── api/
+│       └── backend/                    # Express backend + Prisma
+│           ├── src/
+│           └── prisma/
+├── packages/                           # Shared packages
+├── services/                           # Shared services
+└── docs/                               # Documentation
 ```
 
 ---
@@ -339,7 +310,7 @@ vitalcv-mvp/
 - L1 → L2 completion >50%
 - L2 → L3 request rate >30%
 
-### Performance
+### Performance Targets
 
 - Lighthouse score ≥90
 - FCP <1.5s
@@ -374,17 +345,14 @@ vitalcv-mvp/
 2. **Setup Environment**
 
    ```bash
+   # From monorepo root
+   pnpm install
+
    # Frontend
-   cd v0-vital-cv-frontend-mvp
-   npm install
-   npm run dev
+   pnpm --filter @vitalcv/web dev
 
    # Backend
-   cd ../vitalcv-backend
-   npm install
-   npm run prisma:gen
-   npm run prisma:migrate
-   npm run dev
+   pnpm --filter @vitalcv/api dev
    ```
 
 3. **Pick a Task**
@@ -435,8 +403,8 @@ vitalcv-mvp/
 
 ### Documentation
 
-- **Frontend Docs**: See `/v0-vital-cv-frontend-mvp/*.md`
-- **Backend Docs**: See `/vitalcv-backend/README.md`
+- **Frontend Docs**: See `apps/web/*.md`
+- **Backend Docs**: See `apps/api/backend/README.md`
 - **API Docs**: (TBD - Swagger/OpenAPI)
 
 ### External Resources
@@ -451,7 +419,7 @@ vitalcv-mvp/
 - GitHub Issues: For bugs
 - GitHub Discussions: For questions
 - Slack: (TBD)
-- Email: support@vitalcv.app (TBD)
+- Email: [support@vitalcv.app](mailto:support@vitalcv.app) (TBD)
 
 ---
 
