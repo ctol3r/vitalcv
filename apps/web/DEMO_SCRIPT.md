@@ -2,7 +2,7 @@
 
 ## 🎬 Quick Demo Flow
 
-**Target Time: Under 10 seconds for full cycle**
+**Target Time:** Under 10 seconds for full cycle
 
 ### Prerequisites
 
@@ -259,10 +259,10 @@ Before demo, capture:
 
 ```bash
 # Start backend
-cd chai-vc-platform && npm run dev
+pnpm --filter @vitalcv/api dev
 
 # Start frontend
-cd v0-vital-cv-frontend-mvp && PORT=3005 pnpm dev
+PORT=3005 pnpm --filter @vitalcv/web dev
 
 # Health check
 curl http://localhost:4000/healthz
@@ -276,6 +276,6 @@ pnpm test
 
 ---
 
-**Demo Confidence Level: 🚀 Production Ready**
+**Demo Confidence Level:** 🚀 Production Ready
 
 Good luck with your demo! 🎉

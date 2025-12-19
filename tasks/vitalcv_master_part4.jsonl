@@ -1,0 +1,50 @@
+{"id":"TASK-151","agent":"CURSOR • BACKEND","title":"Credential Renewal DAG","details":"Automate renewal workflow with nodes for evidence intake, VC regeneration, signature, anchor submission, and provider notification."}
+{"id":"TASK-152","agent":"CURSOR • BACKEND","title":"Revocation Propagation Engine","details":"Update revocation status-list bits, notify issuers, notify providers via push, and update employer FitScore consistency."}
+{"id":"TASK-153","agent":"CURSOR • WEB","title":"Revocation Visibility UI","details":"Show revocation timeline, reasoning, related PSV evidence, and chain anchor on issuer portal."}
+{"id":"TASK-154","agent":"CURSOR • BACKEND","title":"Cross-Chain Public Verification API","details":"Expose public verification endpoint returning anchor proofs with Ethereum/Polygon contract state validation."}
+{"id":"TASK-155","agent":"CURSOR • WEB","title":"Public Verify Page","details":"Standalone public webpage for employers to verify a VC hash with anchor proofs."}
+{"id":"TASK-156","agent":"CURSOR • BACKEND","title":"Cross-Org Privilege Transport","details":"When provider moves orgs, transport privileges with policy-based filtering and re-evaluation triggers."}
+{"id":"TASK-157","agent":"CURSOR • MOBILE","title":"Cross-Org Transition UI","details":"Provider sees privileges that transfer, ones that require renewal, and ones that sunset."}
+{"id":"TASK-158","agent":"CURSOR • BACKEND","title":"Delegated Issuance Workflow","details":"Add issuance approval chain: dept head → admin → chain anchoring; capture signatures and timestamps."}
+{"id":"TASK-159","agent":"CURSOR • WEB","title":"Delegation Approvals UI","details":"Show delegated roles, pending approvals, expiration of delegated powers."}
+{"id":"TASK-160","agent":"CURSOR • BACKEND","title":"Employment Verification Engine","details":"Allow employers to verify past roles, privileges, and training with time-bound VC packages."}
+{"id":"TASK-161","agent":"CURSOR • MOBILE","title":"Employment History View","details":"Providers see anchored employment history including facility, role, privileges granted."}
+{"id":"TASK-162","agent":"CURSOR • BACKEND","title":"Continuous Credential Monitoring","details":"Evaluate credential statuses every 24 hours; detect pending expirations, mismatch, drift, sanctions."}
+{"id":"TASK-163","agent":"CURSOR • WEB","title":"Compliance Heat Index View","details":"Display risk across department/provider populations with red/yellow/green compliance indicators."}
+{"id":"TASK-164","agent":"AI • ANALYTICS","title":"Fraud Probability Engine","details":"Compute fraud likelihood using anomalies, chain inconsistencies, rapid VC churn, mismatch patterns."}
+{"id":"TASK-165","agent":"CURSOR • WEB","title":"Fraud Probability UI","details":"Compliance screen with risk score, reasoning, suspicious evidence events."}
+{"id":"TASK-166","agent":"CURSOR • BACKEND","title":"PSV Failure Recovery","details":"Auto-correct PSV failures via fallback data sources, notify issuers, allow override flow."}
+{"id":"TASK-167","agent":"CURSOR • BACKEND","title":"Clinician Mobility Forecast","details":"Predict interstate mobility readiness and suggest next steps for broader eligibility."}
+{"id":"TASK-168","agent":"CURSOR • MOBILE","title":"Mobility Forecast UI","details":"Providers see a map visualization showing where they can soon practice."}
+{"id":"TASK-169","agent":"CURSOR • BACKEND","title":"ATS Hiring Feedback Loop","details":"Collect employer hiring outcomes to refine FitScore, IntentScore, MatchScore."}
+{"id":"TASK-170","agent":"AI • MATCHING","title":"FitScore Reinforcement Model","details":"Improve FitScore using actual job placement success metrics."}
+{"id":"TASK-171","agent":"CURSOR • WEB","title":"Hiring Outcome Dashboard","details":"Shows relevancy of applicants, pipeline efficiency, hiring confidence metrics."}
+{"id":"TASK-172","agent":"CURSOR • BACKEND","title":"VC Custody Tracking","details":"Track every credential’s lifecycle: issued→picked up→presented→verified→revoked. Anchor custody nodes to chain."}
+{"id":"TASK-173","agent":"CURSOR • WEB","title":"Custody Timeline UI","details":"Issuer sees custody chain, anchor references, verification history."}
+{"id":"TASK-174","agent":"CURSOR • BACKEND","title":"Cross-Platform Sync Engine","details":"Ensure web, mobile, and employer portal sync provider states consistently via event streams + deltas."}
+{"id":"TASK-175","agent":"CURSOR • MOBILE","title":"Conflict Resolution Local Storage","details":"Detect local → server mismatches and resolve by prompting user or force-syncing securely."}
+{"id":"TASK-176","agent":"CURSOR • WEB","title":"Shift Economy Insights","details":"Employer UI showing cost-per-shift, credential ROI, staffing gaps."}
+{"id":"TASK-177","agent":"CURSOR • BACKEND","title":"Workforce Volatility Index","details":"Track system-level volatility across expirations, sanctions, privileges, hiring bursts."}
+{"id":"TASK-178","agent":"AI • ANALYTICS","title":"Surge Readiness Score","details":"Quantify how ready a provider or facility is to meet sudden demand surges."}
+{"id":"TASK-179","agent":"CURSOR • WEB","title":"Surge Readiness Dashboard","details":"Exec-level model output: where staffing is most at risk or easily strengthened."}
+{"id":"TASK-180","agent":"CURSOR • BACKEND","title":"Credential Evidence Exporter","details":"Generate downloadable bundles for audits, onboarding partners, or contracting reviews."}
+{"id":"TASK-181","agent":"CURSOR • WEB","title":"Evidence Export UI","details":"UI for issuers to generate export bundles."}
+{"id":"TASK-182","agent":"CURSOR • BACKEND","title":"Org Workforce Simulation","details":"Simulate staffing scenarios: What happens if 20 licenses expire? If sanctions spike? If hiring slows?"}
+{"id":"TASK-183","agent":"CURSOR • WEB","title":"Simulation Console","details":"Admins run simulations, compare outcomes, export results."}
+{"id":"TASK-184","agent":"CURSOR • BACKEND","title":"Historical Dataset Builder","details":"Construct anonymized datasets for analytics: hires, failures, credential patterns, privileges."}
+{"id":"TASK-185","agent":"CURSOR • BACKEND","title":"Credential Cost Model","details":"Estimate credential cost-per-hire, ROI of renewal strategies, and employer savings."}
+{"id":"TASK-186","agent":"CURSOR • WEB","title":"ROI Dashboard","details":"Show financial benefit of VitalCV adoption for employers."}
+{"id":"TASK-187","agent":"CURSOR • BACKEND","title":"Multilingual Support Infrastructure","details":"Implement i18n for APIs; return localized labels for credential types, statuses, evidence, privilege categories."}
+{"id":"TASK-188","agent":"CURSOR • MOBILE","title":"Mobile Localization","details":"Provider wallet translated into EN, ES, FR, Tagalog, Chinese."}
+{"id":"TASK-189","agent":"CURSOR • WEB","title":"Issuer Localization","details":"Localized metadata for credentials, privileges, sanctions, org policies."}
+{"id":"TASK-190","agent":"CURSOR • BACKEND","title":"System Health Router","details":"Aggregate DB, chain, queue, PSV, and notification health into a unified readiness endpoint."}
+{"id":"TASK-191","agent":"CURSOR • WEB","title":"System Health Console","details":"Admin UI showing real-time health of the entire VitalCV infrastructure."}
+{"id":"TASK-192","agent":"CURSOR • BACKEND","title":"Provider Career Graph Builder","details":"Construct graph of provider’s training, experience, privileges, employment, and outcomes."}
+{"id":"TASK-193","agent":"AI • ANALYTICS","title":"Career Arc Predictor","details":"Predict provider future roles, specialties, or leadership readiness."}
+{"id":"TASK-194","agent":"CURSOR • MOBILE","title":"Career Arc UI","details":"Providers view predicted career pathways and recommended steps."}
+{"id":"TASK-195","agent":"CURSOR • BACKEND","title":"VC Pack Issuance Engine","details":"Issue credential packs for 'Hospitalist Pack', 'Telehealth Pack', 'Surge Pack' from templates."}
+{"id":"TASK-196","agent":"CURSOR • WEB","title":"VC Pack Designer","details":"Issuer UI for constructing reusable VC packs."}
+{"id":"TASK-197","agent":"CURSOR • BACKEND","title":"ATS Apply Feedback API","details":"Return structured employer hiring feedback to refine FitScores and recommendations."}
+{"id":"TASK-198","agent":"CURSOR • MOBILE","title":"Apply Feedback Viewer","details":"Provider sees reasons why an application succeeded or failed."}
+{"id":"TASK-199","agent":"CURSOR • BACKEND","title":"Lifecycle Snapshot Engine","details":"Store snapshots of provider lifecycle state for audit and compliance trend analysis."}
+{"id":"TASK-200","agent":"CURSOR • QA","title":"Final Full-System Golden Path","details":"Test full system under realistic conditions: chain load, PSV outages, multi-org workflows, ATS flows, surge detection, privilege checks, and job application loops."}

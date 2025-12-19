@@ -1,0 +1,12 @@
+/Users/christoler/vitalcv/blockchain/substrate/pallets/credential/target/debug/deps/ss58_registry-2a6af30eda8d2f17.d: /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ss58-registry-1.51.0/src/lib.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ss58-registry-1.51.0/src/address_format.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ss58-registry-1.51.0/src/error.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ss58-registry-1.51.0/src/registry.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ss58-registry-1.51.0/src/token.rs /Users/christoler/vitalcv/blockchain/substrate/pallets/credential/target/debug/build/ss58-registry-a03955540b7a1055/out/registry_gen.rs
+
+/Users/christoler/vitalcv/blockchain/substrate/pallets/credential/target/debug/deps/libss58_registry-2a6af30eda8d2f17.rmeta: /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ss58-registry-1.51.0/src/lib.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ss58-registry-1.51.0/src/address_format.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ss58-registry-1.51.0/src/error.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ss58-registry-1.51.0/src/registry.rs /Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ss58-registry-1.51.0/src/token.rs /Users/christoler/vitalcv/blockchain/substrate/pallets/credential/target/debug/build/ss58-registry-a03955540b7a1055/out/registry_gen.rs
+
+/Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ss58-registry-1.51.0/src/lib.rs:
+/Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ss58-registry-1.51.0/src/address_format.rs:
+/Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ss58-registry-1.51.0/src/error.rs:
+/Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ss58-registry-1.51.0/src/registry.rs:
+/Users/christoler/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ss58-registry-1.51.0/src/token.rs:
+/Users/christoler/vitalcv/blockchain/substrate/pallets/credential/target/debug/build/ss58-registry-a03955540b7a1055/out/registry_gen.rs:
+
+# env-dep:OUT_DIR=/Users/christoler/vitalcv/blockchain/substrate/pallets/credential/target/debug/build/ss58-registry-a03955540b7a1055/out

@@ -8,14 +8,15 @@ Both repositories have been successfully merged into the `vitalcv` monorepo with
 
 ### Merged Repositories
 
-- ✅ **chai-vc-platform** → `apps/api/` (247M)
-- ✅ **v0-vital-cv-frontend-mvp** → `apps/web/` (7.7M)
+- ✅ **Legacy backend repo** → `apps/api/` (247M)
+- ✅ **Legacy frontend repo (pre-monorepo)** → `apps/web/` (7.7M)
 
 ### Git History
 
 All commits from both repositories are preserved:
-- `f9c1e7f1` - Add 'apps/api/' from chai-vc-platform
-- `d71a8a30` - Add 'apps/web/' from v0-vital-cv-frontend-mvp
+
+- `f9c1e7f1` - Add 'apps/api/' from legacy backend repo
+- `d71a8a30` - Add 'apps/web/' from legacy frontend repo
 - `17c2c058` - Clean legacy CI/CD and configs after merge
 
 ### Current Status
@@ -46,8 +47,8 @@ To pull updates from the original repos in the future:
 
 ```bash
 # Add remotes back temporarily
-git remote add chai /Users/christoler/chai-vc-platform
-git remote add web /Users/christoler/v0-vital-cv-frontend-mvp
+git remote add chai /path/to/legacy-backend-repo
+git remote add web /path/to/legacy-frontend-repo
 
 # Pull updates using subtree
 git subtree pull --prefix=apps/api chai main --squash
@@ -60,11 +61,11 @@ git remote remove web
 
 ### 3. Monorepo Structure
 
-```
+```text
 vitalcv/
 ├── apps/
-│   ├── api/          ← chai-vc-platform
-│   └── web/          ← v0-vital-cv-frontend-mvp
+│   ├── api/          ← legacy backend
+│   └── web/          ← legacy frontend (pre-monorepo)
 ├── packages/         ← Shared packages
 ├── blockchain/       ← Blockchain components
 ├── scripts/          ← Build & deployment scripts

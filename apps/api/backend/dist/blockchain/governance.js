@@ -36,7 +36,10 @@ class Governance {
             throw new Error('Proposal not found');
         }
         if (!proposal.executed && proposal.votesFor > proposal.votesAgainst) {
-            this.currentParameters = Object.assign(Object.assign({}, this.currentParameters), proposal.newParameters);
+            this.currentParameters = {
+                ...this.currentParameters,
+                ...proposal.newParameters
+            };
         }
         proposal.executed = true;
         return this.currentParameters;

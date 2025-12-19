@@ -1,0 +1,116 @@
+# =============================================================================
+# VitalCV Backend API - Turborepo + pnpm Production Dockerfile
+# Location: /apps/api/Dockerfile (for monorepo-integrated backend)
+# Build context: repository ROOT (important for workspace resolution)
+# 
+# Usage: docker build -f apps/api/Dockerfile -t vitalcv-api .
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Stage 1: Pruned Monorepo (Turborepo prune)
+# - Creates a minimal subset of the monorepo needed for this package
+# -----------------------------------------------------------------------------
+FROM node:20-alpine AS pruner
+
+RUN apk add --no-cache libc6-compat
+RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
+
+WORKDIR /app
+
+# Copy entire monorepo for pruning
+COPY . .
+
+# Install turbo globally for pruning
+RUN pnpm add -g turbo
+
+# Prune monorepo to only include 'api' and its dependencies
+# This creates a minimal /out directory with only required packages
+RUN turbo prune api --docker
+
+# -----------------------------------------------------------------------------
+# Stage 2: Installer (Dependencies)
+# - Installs production dependencies from pruned lockfile
+# -----------------------------------------------------------------------------
+FROM node:20-alpine AS installer
+
+RUN apk add --no-cache libc6-compat python3 make g++ openssl
+RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
+
+WORKDIR /app
+
+# Copy pruned lockfile and package.json files
+COPY --from=pruner /app/out/json/ .
+COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
+
+# Install dependencies (leverages Docker cache if lockfile unchanged)
+RUN pnpm install --frozen-lockfile
+
+# -----------------------------------------------------------------------------
+# Stage 3: Builder (Compile TypeScript)
+# - Copies source and builds with Turborepo
+# -----------------------------------------------------------------------------
+FROM node:20-alpine AS builder
+
+RUN apk add --no-cache libc6-compat openssl
+RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
+
+WORKDIR /app
+
+# Copy installed node_modules from installer
+COPY --from=installer /app/ .
+
+# Copy pruned source code
+COPY --from=pruner /app/out/full/ .
+
+# Generate Prisma client (adjust path if prisma schema location differs)
+RUN pnpm --filter api exec prisma generate || true
+
+# Build only the api package and its dependencies
+RUN pnpm turbo run build --filter=api
+
+# Prune to production dependencies only
+RUN pnpm prune --prod
+
+# -----------------------------------------------------------------------------
+# Stage 4: Production Runtime
+# - Minimal image with only compiled output and prod dependencies
+# -----------------------------------------------------------------------------
+FROM node:20-alpine AS runtime
+
+# Runtime dependencies
+RUN apk add --no-cache openssl dumb-init
+
+# Security: non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 vitalcv
+
+WORKDIR /app
+
+# Production environment
+ENV NODE_ENV=production
+
+# Copy production artifacts
+# Adjust paths based on your actual package structure in the monorepo
+COPY --from=builder --chown=vitalcv:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=vitalcv:nodejs /app/apps/api/dist ./dist
+COPY --from=builder --chown=vitalcv:nodejs /app/apps/api/package.json ./
+
+# If using Prisma, copy generated client
+COPY --from=builder --chown=vitalcv:nodejs /app/apps/api/prisma ./prisma
+COPY --from=builder --chown=vitalcv:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+
+# If you have shared packages, copy their dist folders
+# COPY --from=builder --chown=vitalcv:nodejs /app/packages/shared/dist ./node_modules/@vitalcv/shared/dist
+
+USER vitalcv
+
+# Port (change 4000 to match your server.ts PORT)
+EXPOSE 4000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 4000) + '/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" || exit 1
+
+# Start server
+# Adjust entrypoint if your compiled output is at a different path
+CMD ["dumb-init", "node", "dist/server.js"]

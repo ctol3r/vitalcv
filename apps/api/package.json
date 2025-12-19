@@ -1,9 +1,13 @@
 {
-  "name": "chai-vc-platform",
+  "name": "@vitalcv/api",
   "version": "1.0.0",
   "description": "End-to-end healthcare credentialing and hiring verification.",
   "main": "index.js",
   "scripts": {
+    "dev": "npm --prefix backend run dev",
+    "build": "npm --prefix backend run build",
+    "start": "npm --prefix backend run start",
+    "seed": "npm --prefix backend run seed",
     "test": "npx hardhat test",
     "test:did": "node --test backend/__tests__/cross_chain_did_resolver.test.js"
   },

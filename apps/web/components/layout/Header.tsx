@@ -4,6 +4,7 @@ import { useRole } from '@/app/providers';
 import { ThemePicker } from '../ui/ThemePicker';
 import { Shield } from 'lucide-react';
 import Link from 'next/link';
+import { VerifiedHumanBadge } from '@/components/VerifiedHumanBadge';
 
 export default function Header() {
   const { role, setRole, roles } = useRole();
@@ -44,6 +45,7 @@ export default function Header() {
             Workspace
           </Link>
         </nav>
+        <VerifiedHumanBadge />
         <ThemePicker />
       </div>
     </header>

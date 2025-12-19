@@ -1,0 +1,50 @@
+{"id":"TASK-101","agent":"CURSOR • BACKEND","title":"Anchor Reconciliation Engine","details":"Compare stored credential anchors with latest on-chain state, detect mismatches, repair by re-submitting anchors or flagging issuer."}
+{"id":"TASK-102","agent":"CURSOR • BACKEND","title":"Multi-Realm Anchor Manager","details":"Support anchoring to primary (VitalCV chain), secondary (public Ethereum/Polygon), and fallback realms. Track provenance in VC metadata."}
+{"id":"TASK-103","agent":"CURSOR • MOBILE","title":"Multi-Realm Anchor UI","details":"Display a tiered trust badge with on-chain, cross-chain, and fallback realm statuses."}
+{"id":"TASK-104","agent":"AI • SECURITY","title":"Anchor Integrity Model","details":"Detect suspicious anchor timing, orphan anchors, stale extrinsics, or inconsistent signer authority."}
+{"id":"TASK-105","agent":"CURSOR • BLOCKCHAIN","title":"Public Anchor Publisher","details":"Publish Merkle roots of batched VC anchors to Ethereum via RPC or contract ABI."}
+{"id":"TASK-106","agent":"CURSOR • BACKEND","title":"Surge Detection Engine","details":"Analyze job postings, facility alerts, shift gaps, and credential inactivity to detect workforce surges."}
+{"id":"TASK-107","agent":"CURSOR • BACKEND","title":"Surge Response Router","details":"Notify eligible clinicians with privileges matching facility surge requirements."}
+{"id":"TASK-108","agent":"CURSOR • MOBILE","title":"Surge Alert UI","details":"Provider receives emergency credential request or shift need with privileged-eligibility."}
+{"id":"TASK-109","agent":"AI • ANALYTICS","title":"Burnout & Attrition Predictor","details":"Analyze workload, renewal timing, privilege volatility, and FitScore trends to detect risk of clinician attrition."}
+{"id":"TASK-110","agent":"CURSOR • MOBILE","title":"Stability Insights Panel","details":"Show clinicians their StabilityScore with recommendations to avoid risk."}
+{"id":"TASK-111","agent":"CURSOR • BACKEND","title":"Credential Drift Simulator","details":"Simulate future deterioration of credential trust based on PSV drift, expired evidence, sanction risk, and issuer confidence."}
+{"id":"TASK-112","agent":"CURSOR • WEB","title":"Organizational Drift Dashboard","details":"Issuer sees future risk of credential instability across provider roster."}
+{"id":"TASK-113","agent":"CURSOR • BACKEND","title":"Shift Scheduling Engine","details":"Match provider availability, privileges, license status, and job settings to assign shifts."}
+{"id":"TASK-114","agent":"CURSOR • MOBILE","title":"Shift Acceptance UI","details":"Provider accepts/declines shifts with real-time eligibility enforcement."}
+{"id":"TASK-115","agent":"CURSOR • WEB","title":"Shift Assignment Console","details":"Facility admins assign shifts using eligibility filters and FitScore-powered recommendations."}
+{"id":"TASK-116","agent":"CURSOR • BACKEND","title":"Clinical Experience Logger","details":"Track each shift as a VC-backed clinical experience log for long-term skill assessment."}
+{"id":"TASK-117","agent":"AI • ANALYTICS","title":"Experience-Based Competency Engine","details":"Evaluate provider competency growth using shift logs, privileges, training, and time-in-role."}
+{"id":"TASK-118","agent":"CURSOR • MOBILE","title":"Competency Progress UI","details":"Show progress across competencies: ICU-ready, Telehealth-ready, Leadership-ready, Surgery-ready."}
+{"id":"TASK-119","agent":"CURSOR • BACKEND","title":"Leadership Qualification Engine","details":"Evaluate provider strength for leadership roles using performance, credentials, tenure, privilege history."}
+{"id":"TASK-120","agent":"CURSOR • WEB","title":"Leadership Recommendations UI","details":"Show department leaders recommended clinicians for leadership opportunities."}
+{"id":"TASK-121","agent":"CURSOR • BACKEND","title":"International License Mapper","details":"Map overseas licensure to US equivalent categories. Include equivalency confidence score."}
+{"id":"TASK-122","agent":"AI • ANALYTICS","title":"MobilityScore Engine","details":"Compute provider’s mobility potential based on telehealth, interstate compacts, and international equivalencies."}
+{"id":"TASK-123","agent":"CURSOR • MOBILE","title":"Mobility View","details":"Provider sees where they can practice today and where they can become eligible."}
+{"id":"TASK-124","agent":"CURSOR • BACKEND","title":"ATS Credential Bundle Generator","details":"Bundle VCs + SD-JWT + anchor proofs into recruiter-friendly packet."}
+{"id":"TASK-125","agent":"CURSOR • WEB","title":"ATS Integration Console","details":"Employers configure ATS mappings, API keys, and webhook interactions."}
+{"id":"TASK-126","agent":"CURSOR • BACKEND","title":"Marketplace Recommendation Engine","details":"Suggest credentials providers should earn to unlock higher-paying roles or increase FitScore."}
+{"id":"TASK-127","agent":"CURSOR • MOBILE","title":"Career Advancement UI","details":"Provider receives actionable suggestions for achieving next-level opportunities."}
+{"id":"TASK-128","agent":"CURSOR • BACKEND","title":"Privilege Renewal Engine","details":"Auto-renew privileges when underlying credentials are renewed and PSV evidence is fresh."}
+{"id":"TASK-129","agent":"CURSOR • BACKEND","title":"Privilege Drift Detection","details":"Detect inconsistencies in privilege eligibility and notify issuers."}
+{"id":"TASK-130","agent":"CURSOR • WEB","title":"Privilege Drift Dashboard","details":"Issuer portal shows drift list, required actions, and upcoming issues."}
+{"id":"TASK-131","agent":"CURSOR • WEB","title":"Credential Diff Viewer","details":"Show changes between VC versions with anchor proofs and timeline references."}
+{"id":"TASK-132","agent":"CURSOR • BACKEND","title":"VC Version Control","details":"Implement version pointers, backward compatibility, and anchor tracking across upgrades."}
+{"id":"TASK-133","agent":"CURSOR • BACKEND","title":"PSV Result History","details":"Store all PSV results historically and show trend of verification outcomes over time."}
+{"id":"TASK-134","agent":"CURSOR • WEB","title":"PSV Trend View","details":"Visualize a provider’s PSV quality and drift over time."}
+{"id":"TASK-135","agent":"CURSOR • BACKEND","title":"Job Market Trend Engine","details":"Analyze trends in job postings, specialties, salaries, privileges, and geographic needs."}
+{"id":"TASK-136","agent":"AI • ANALYTICS","title":"Compensation Forecast Model","details":"Predict salary ranges for providers based on credential portfolio and market conditions."}
+{"id":"TASK-137","agent":"CURSOR • WEB","title":"Employer Economic Dashboard","details":"Show expected compensation ranges, hiring costs, credentialing ROI metrics."}
+{"id":"TASK-138","agent":"CURSOR • BACKEND","title":"Fraud Pattern Detector","details":"Identify suspicious credential activity: rapid-credential churn, mismatched specialty paths, anchor failures."}
+{"id":"TASK-139","agent":"CURSOR • WEB","title":"Fraud Investigation Console","details":"Compliance UI with suspicious events, VC graph anomalies, anchor inconsistencies."}
+{"id":"TASK-140","agent":"CURSOR • BACKEND","title":"Provider Reputation Engine","details":"Compute ReputationScore from experience logs, issuer quality, PSVs, privileges, sanctions, and verification reliability."}
+{"id":"TASK-141","agent":"CURSOR • MOBILE","title":"Reputation Badge UI","details":"Display provider’s reputation level with reasons, anchor trust, and timeline accuracy."}
+{"id":"TASK-142","agent":"CURSOR • BACKEND","title":"Chain-Synced Snapshots","details":"Snapshot provider state and credential graphs periodically with anchor metadata."}
+{"id":"TASK-143","agent":"CURSOR • WEB","title":"State Snapshot Viewer","details":"Issuer/executive UI showing historical trust-state snapshots with diffs."}
+{"id":"TASK-144","agent":"CURSOR • BACKEND","title":"API Latency Monitor","details":"Track slow endpoints, chain RPC delays, and long PSV requests; auto-label risk zones."}
+{"id":"TASK-145","agent":"CURSOR • INFRA","title":"Worker Queue Autoscaler","details":"Autoscale background workers depending on DAG load, PSV volume, and anchor submissions."}
+{"id":"TASK-146","agent":"CURSOR • BACKEND","title":"Safe Mode Toggle","details":"If critical infrastructure fails (chain, DB, PSV), enter read-only mode with proper messaging."}
+{"id":"TASK-147","agent":"CURSOR • WEB","title":"Safe Mode UX","details":"Display reduced functionality banners when backend enters Safe Mode."}
+{"id":"TASK-148","agent":"CURSOR • BACKEND","title":"Dead Letter Queue","details":"Capture failed DAG tasks and allow administrators to retry or inspect root cause."}
+{"id":"TASK-149","agent":"CURSOR • WEB","title":"DLQ Console","details":"Admin view of failed tasks, their context, and retry controls."}
+{"id":"TASK-150","agent":"CURSOR • QA","title":"Golden Path Test Part 3","details":"Simulate surge detection, job matching, drift detection, chain failures, and fallback pathways."}

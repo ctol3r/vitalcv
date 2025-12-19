@@ -16,11 +16,18 @@ import {
 } from '@/lib/event-cache';
 
 // Mock localStorage
+let store: Record<string, string> = {};
 const localStorageMock = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
+  getItem: jest.fn((key: string) => (key in store ? store[key] : null)),
+  setItem: jest.fn((key: string, value: string) => {
+    store[key] = String(value);
+  }),
+  removeItem: jest.fn((key: string) => {
+    delete store[key];
+  }),
+  clear: jest.fn(() => {
+    store = {};
+  }),
 };
 Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
@@ -28,8 +35,20 @@ Object.defineProperty(window, 'localStorage', {
 
 describe('Event Cache Utilities', () => {
   beforeEach(() => {
+    store = {};
     jest.clearAllMocks();
-    localStorageMock.getItem.mockReturnValue(null);
+    localStorageMock.getItem.mockImplementation((key: string) =>
+      key in store ? store[key] : null,
+    );
+    localStorageMock.setItem.mockImplementation((key: string, value: string) => {
+      store[key] = String(value);
+    });
+    localStorageMock.removeItem.mockImplementation((key: string) => {
+      delete store[key];
+    });
+    localStorageMock.clear.mockImplementation(() => {
+      store = {};
+    });
   });
 
   describe('getEventCache', () => {

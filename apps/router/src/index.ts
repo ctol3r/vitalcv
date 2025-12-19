@@ -2,6 +2,7 @@ import './tracing';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { createHash } from 'crypto';
+import net from 'net';
 import { MessagingGuard, AuditEvent } from '@vitalcv/messaging-guard';
 import { allowedSinksEnforcer } from './middleware/allowedSinksEnforcer';
 import { RouterDenyCode, getDenyReason, mapReasonToCode, DENY_REASON_CATALOG } from './deny-reasons';
@@ -18,10 +19,14 @@ app.use(express.json());
 app.use(requestIdMiddleware());
 
 // B93-SEC-001: Enforce allowed_sinks on all inbound routes (repo-wide)
-// Apply middleware to all routes except health checks and DLQ endpoints
+// Apply middleware to all routes except health checks and selected read-only endpoints
 app.use((req, res, next) => {
-  // Skip health checks and DLQ query endpoints
-  if (req.path === '/health' || req.path.startsWith('/router/dlq') || req.path.startsWith('/router/audit')) {
+  // Skip health checks and read-only query endpoints
+  const isHealth = req.path === '/health';
+  const isDlqRead = req.method === 'GET' && req.path.startsWith('/router/dlq');
+  const isAuditRead = req.method === 'GET' && (req.path.startsWith('/router/audit') || req.path === '/audit/summary');
+  const isBuildInfoRead = req.method === 'GET' && req.path === '/build-info';
+  if (isHealth || isDlqRead || isAuditRead || isBuildInfoRead) {
     return next();
   }
   return allowedSinksEnforcer(req, res, next);

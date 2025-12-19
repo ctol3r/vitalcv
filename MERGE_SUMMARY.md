@@ -7,6 +7,7 @@ The foundational structure for the VitalCV monorepo has been created and the cod
 ## Completed Tasks
 
 ### ✅ MERGE-001: Create new VitalCV monorepo root structure
+
 - Created `/vitalcv` root directory
 - Set up folder structure: `apps/`, `packages/`, `blockchain/`, `docs/`, `infra/`
 - Created root configuration files:
@@ -18,6 +19,7 @@ The foundational structure for the VitalCV monorepo has been created and the cod
   - `tsconfig.base.json`
 
 ### ✅ MERGE-002: Move backend repo (chai-vc-platform) into /apps/api
+
 - Copied backend codebase into `apps/api/`
 - Preserved existing structure including:
   - `apps/api/api/` - Main API code
@@ -25,24 +27,29 @@ The foundational structure for the VitalCV monorepo has been created and the cod
   - Other backend apps (issuer-api, verifier-api, etc.)
 - Created `apps/api/package.json` for monorepo integration
 
-### ✅ MERGE-003: Move frontend repo (v0-vital-cv-frontend-mvp) into /apps/web
+### ✅ MERGE-003: Move legacy frontend into /apps/web
+
 - Copied frontend Next.js project into `apps/web/`
 - Updated `apps/web/package.json` with workspace name `@vitalcv/web`
 
 ### ✅ MERGE-005: Configure pnpm workspaces
+
 - Created `pnpm-workspace.yaml` with workspace patterns
 - Configured to include `apps/*`, `packages/*`, `blockchain/*`
 
 ### ✅ MERGE-006: Add Turborepo configuration
+
 - Created `turbo.json` with pipeline definitions
 - Configured tasks: `build`, `dev`, `lint`, `format`, `test`, `typecheck`
 - Set up caching strategy
 
 ### ✅ MERGE-011: Create environment variable router
+
 - Created `infra/env-map.md` documenting environment variables
 - Documented which vars belong to which app/service
 
 ### ✅ MERGE-021: Document monorepo merge
+
 - Created `docs/architecture/monorepo-migration.md`
 - Documented structure, rationale, and migration steps
 
@@ -78,7 +85,7 @@ The following tasks require further work and codebase analysis:
 
 ## File Structure
 
-```
+```text
 vitalcv/
 ├── apps/
 │   ├── api/              # Backend API
@@ -122,4 +129,3 @@ pnpm test
 # Run linting
 pnpm lint
 ```
-

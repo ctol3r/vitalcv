@@ -6,16 +6,16 @@
 
 ## Issue: CORS Errors
 
-### Symptoms
+### Symptoms (CORS Errors)
 
-```
+```text
 Access to fetch at 'http://localhost:4000/...' from origin 'http://localhost:3005'
 has been blocked by CORS policy
 ```
 
-### Solutions
+### Solutions (CORS Errors)
 
-**1. Check Backend CORS Configuration**
+#### 1. Check Backend CORS Configuration
 
 ```javascript
 // In backend server.js or app.js
@@ -27,7 +27,7 @@ app.use(
 );
 ```
 
-**2. Verify Environment Variables**
+#### 2. Verify Environment Variables
 
 ```bash
 # Frontend .env
@@ -37,7 +37,7 @@ NEXT_PUBLIC_BACKEND_URL=http://localhost:4000
 FRONTEND_URL=http://localhost:3005
 ```
 
-**3. Check Port Availability**
+#### 3. Check Port Availability
 
 ```bash
 # Backend should be on 4000
@@ -51,15 +51,15 @@ lsof -i :3005
 
 ## Issue: Backend Not Responding
 
-### Symptoms
+### Symptoms (Backend Not Responding)
 
 - Red "Offline" banner appears
 - 500/502 errors in console
 - "Failed to fetch" errors
 
-### Solutions
+### Solutions (Backend Not Responding)
 
-**1. Verify Backend is Running**
+#### 1. Verify Backend is Running
 
 ```bash
 # Test health endpoint
@@ -68,7 +68,7 @@ curl http://localhost:4000/healthz
 # Should return: {"status":"ok"}
 ```
 
-**2. Check Backend Logs**
+#### 2. Check Backend Logs
 
 ```bash
 cd ../chai-vc-platform
@@ -79,7 +79,7 @@ npm run dev
 # ✓ Database connected (if applicable)
 ```
 
-**3. Restart Backend**
+#### 3. Restart Backend
 
 ```bash
 # Kill existing process
@@ -93,15 +93,15 @@ npm run dev
 
 ## Issue: Frontend Won't Start
 
-### Symptoms
+### Symptoms (Frontend Won't Start)
 
 - `Error: Port 3005 is already in use`
 - Build errors
 - Module not found errors
 
-### Solutions
+### Solutions (Frontend Won't Start)
 
-**1. Port Already in Use**
+#### 1. Port Already in Use
 
 ```bash
 # Find process using port 3005
@@ -114,14 +114,14 @@ kill -9 <PID>
 PORT=3006 pnpm dev
 ```
 
-**2. Clear Next.js Cache**
+#### 2. Clear Next.js Cache
 
 ```bash
 rm -rf .next
 pnpm dev
 ```
 
-**3. Reinstall Dependencies**
+#### 3. Reinstall Dependencies
 
 ```bash
 rm -rf node_modules pnpm-lock.yaml
@@ -132,15 +132,15 @@ pnpm install
 
 ## Issue: Build Failures
 
-### Symptoms
+### Symptoms (Build Failures)
 
 - `Type error: ...` during build
 - `Module not found` errors
 - Failed production build
 
-### Solutions
+### Solutions (Build Failures)
 
-**1. Type Errors**
+#### 1. Type Errors
 
 ```bash
 # Check TypeScript errors
@@ -151,7 +151,7 @@ npx tsc --noEmit
 npm run build:ignore-errors
 ```
 
-**2. Missing Dependencies**
+#### 2. Missing Dependencies
 
 ```bash
 # Install missing packages
@@ -161,7 +161,7 @@ pnpm add <package-name>
 pnpm install
 ```
 
-**3. Environment Variables**
+#### 3. Environment Variables
 
 ```bash
 # Ensure .env.local exists
@@ -175,15 +175,15 @@ NEXT_PUBLIC_BACKEND_URL=http://localhost:4000
 
 ## Issue: Database/Storage Errors
 
-### Symptoms
+### Symptoms (Database/Storage Errors)
 
 - "Cannot connect to database"
 - "Storage error" messages
 - Lost session data
 
-### Solutions
+### Solutions (Database/Storage Errors)
 
-**1. In-Memory Storage (Development)**
+#### 1. In-Memory Storage (Development)
 
 ```bash
 # Backend uses in-memory storage by default
@@ -191,7 +191,7 @@ NEXT_PUBLIC_BACKEND_URL=http://localhost:4000
 # Re-issue credentials after backend restart
 ```
 
-**2. localStorage Quota Exceeded**
+#### 2. localStorage Quota Exceeded
 
 ```javascript
 // Clear localStorage
@@ -200,7 +200,7 @@ sessionStorage.clear();
 location.reload();
 ```
 
-**3. IndexedDB Issues**
+#### 3. IndexedDB Issues
 
 ```bash
 # Open DevTools > Application > Storage
@@ -212,15 +212,15 @@ location.reload();
 
 ## Issue: Authentication/Session Problems
 
-### Symptoms
+### Symptoms (Authentication/Session Problems)
 
 - Can't log in
 - Session expires immediately
 - "Unauthorized" errors
 
-### Solutions
+### Solutions (Authentication/Session Problems)
 
-**1. Clear Session Data**
+#### 1. Clear Session Data
 
 ```javascript
 // Open browser console
@@ -231,7 +231,7 @@ document.cookie.split(';').forEach((c) => {
 location.reload();
 ```
 
-**2. Check Cookie Settings**
+#### 2. Check Cookie Settings
 
 ```javascript
 // In session.ts, ensure:
@@ -240,7 +240,7 @@ SameSite=Strict (production)
 Secure=true (production only)
 ```
 
-**3. Verify JWT/Session Config**
+#### 3. Verify JWT/Session Config
 
 ```bash
 # Backend JWT secret should be set
@@ -252,22 +252,22 @@ SESSION_SECRET=your-session-secret
 
 ## Issue: NPI Lookup Fails
 
-### Symptoms
+### Symptoms (NPI Lookup Fails)
 
 - "NPI not found" errors
 - Timeout after 10 seconds
 - Empty NPPES data
 
-### Solutions
+### Solutions (NPI Lookup Fails)
 
-**1. Check NPPES API**
+#### 1. Check NPPES API
 
 ```bash
 # Test NPPES directly
 curl "https://npiregistry.cms.hhs.gov/api/?number=1234567890&version=2.1"
 ```
 
-**2. Use Mock Data (Development)**
+#### 2. Use Mock Data (Development)
 
 ```javascript
 // In npi-client.ts
@@ -279,7 +279,7 @@ export async function lookupNpi(npi: string) {
 }
 ```
 
-**3. Increase Timeout**
+#### 3. Increase Timeout
 
 ```javascript
 // In npi-client.ts
@@ -291,15 +291,15 @@ const timeout = setTimeout(() => controller.abort(), 15000); // 15s
 
 ## Issue: Styling/UI Problems
 
-### Symptoms
+### Symptoms (Styling/UI Problems)
 
 - Tailwind classes not applying
 - Dark mode not working
 - Layout broken
 
-### Solutions
+### Solutions (Styling/UI Problems)
 
-**1. Rebuild Tailwind**
+#### 1. Rebuild Tailwind
 
 ```bash
 # Clear PostCSS cache
@@ -307,14 +307,14 @@ rm -rf .next
 pnpm dev
 ```
 
-**2. Check Tailwind Config**
+#### 2. Check Tailwind Config
 
 ```javascript
 // tailwind.config.ts should include:
 content: ['./app/**/*.{js,ts,jsx,tsx}', './components/**/*.{js,ts,jsx,tsx}'];
 ```
 
-**3. Dark Mode Issues**
+#### 3. Dark Mode Issues
 
 ```javascript
 // Ensure ThemeProvider is in layout
@@ -327,15 +327,15 @@ import { ThemeProvider } from 'next-themes';
 
 ## Issue: PWA Not Installing
 
-### Symptoms
+### Symptoms (PWA Not Installing)
 
 - No install prompt
 - Service worker not registering
 - Manifest errors
 
-### Solutions
+### Solutions (PWA Not Installing)
 
-**1. Check Manifest**
+#### 1. Check Manifest
 
 ```bash
 # Verify manifest is accessible
@@ -344,7 +344,7 @@ curl http://localhost:3005/manifest.json
 # Should return valid JSON
 ```
 
-**2. HTTPS Required (Production)**
+#### 2. HTTPS Required (Production)
 
 ```bash
 # PWA requires HTTPS in production
@@ -352,7 +352,7 @@ curl http://localhost:3005/manifest.json
 ngrok http 3005
 ```
 
-**3. Service Worker Registration**
+#### 3. Service Worker Registration
 
 ```javascript
 // In app/layout.tsx
@@ -365,15 +365,15 @@ if ('serviceWorker' in navigator) {
 
 ## Issue: Performance Problems
 
-### Symptoms
+### Symptoms (Performance Problems)
 
 - Slow page loads
 - Laggy interactions
 - High memory usage
 
-### Solutions
+### Solutions (Performance Problems)
 
-**1. Check Bundle Size**
+#### 1. Check Bundle Size
 
 ```bash
 pnpm run analyze
@@ -382,7 +382,7 @@ pnpm run analyze
 # Consider code splitting
 ```
 
-**2. Optimize Images**
+#### 2. Optimize Images
 
 ```javascript
 // Use Next.js Image component
@@ -396,7 +396,7 @@ import Image from 'next/image';
 />;
 ```
 
-**3. Reduce Client-Side JavaScript**
+#### 3. Reduce Client-Side JavaScript
 
 ```javascript
 // Use server components where possible
@@ -409,15 +409,15 @@ const HeavyComponent = dynamic(() => import('./Heavy'));
 
 ## Issue: Testing Failures
 
-### Symptoms
+### Symptoms (Testing Failures)
 
 - Jest tests failing
 - Storybook won't start
 - E2E tests timing out
 
-### Solutions
+### Solutions (Testing Failures)
 
-**1. Jest Issues**
+#### 1. Jest Issues
 
 ```bash
 # Clear Jest cache
@@ -427,7 +427,7 @@ npx jest --clearCache
 pnpm test -- --testPathPattern=MyTest
 ```
 
-**2. Storybook Issues**
+#### 2. Storybook Issues
 
 ```bash
 # Clear Storybook cache
@@ -437,7 +437,7 @@ rm -rf node_modules/.cache
 pnpm run build-storybook
 ```
 
-**3. Playwright Issues**
+#### 3. Playwright Issues
 
 ```bash
 # Install browsers
@@ -462,11 +462,11 @@ Press `Ctrl+Shift+D` to open the Developer Toolbar:
 
 ## Port Reference
 
-| Service   | Port | URL                   |
-| --------- | ---- | --------------------- |
-| Frontend  | 3005 | http://localhost:3005 |
-| Backend   | 4000 | http://localhost:4000 |
-| Storybook | 6006 | http://localhost:6006 |
+| Service   | Port | URL                     |
+| --------- | ---- | ----------------------- |
+| Frontend  | 3005 | <http://localhost:3005> |
+| Backend   | 4000 | <http://localhost:4000> |
+| Storybook | 6006 | <http://localhost:6006> |
 
 ---
 
@@ -512,15 +512,14 @@ pkill -f "node.*3005"
 
 # 2. Clear everything
 rm -rf node_modules .next
-rm -rf ../chai-vc-platform/node_modules
+rm -rf apps/web/.next
 
-# 3. Fresh install
+# 3. Fresh install (run from the monorepo root)
 pnpm install
-cd ../chai-vc-platform && npm install
 
 # 4. Restart
-cd ../chai-vc-platform && npm run dev &
-cd ../v0-vital-cv-frontend-mvp && PORT=3005 pnpm dev
+pnpm --filter @vitalcv/api dev &
+PORT=3005 pnpm --filter @vitalcv/web dev
 ```
 
 ---

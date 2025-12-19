@@ -1,0 +1,32 @@
+[package]
+name = "pallet-status-list-bitstring"
+version = "0.1.0"
+edition = "2021"
+description = "StatusListBitstring pallet: compact revocation bitmaps"
+license = "Apache-2.0"
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.4.0", default-features = false, features = ["derive"] }
+scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
+
+# Substrate
+frame-support = { version = "4.0.0", default-features = false }
+frame-system = { version = "4.0.0", default-features = false }
+sp-runtime = { version = "7.0.0", default-features = false }
+sp-std = { version = "7.0.0", default-features = false }
+
+# Keep Substrate crypto deps compatible with sp-core expectations.
+substrate-bip39 = "=0.4.4"
+
+[features]
+default = ["std"]
+std = [
+  "codec/std",
+  "scale-info/std",
+  "frame-support/std",
+  "frame-system/std",
+  "sp-runtime/std",
+  "sp-std/std",
+]
+try-runtime = []
+

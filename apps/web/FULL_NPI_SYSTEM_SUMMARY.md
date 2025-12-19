@@ -78,7 +78,7 @@ Fully integrated frontend + backend system for NPI-based authentication and iden
 
 ## 🏗️ Architecture
 
-```
+```plaintext
 ┌─────────────────────────────────────────────────────────────────┐
 │                          Frontend (Next.js)                    │
 ├─────────────────────────────────────────────────────────────────┤
@@ -126,7 +126,7 @@ Fully integrated frontend + backend system for NPI-based authentication and iden
 
 ### 1. NPI Entry
 
-```
+```plaintext
 User visits /start
   ↓
 Enters 10-digit NPI
@@ -138,7 +138,7 @@ Redirected to /npi/[npi]?auto=1
 
 ### 2. Profile Display
 
-```
+```plaintext
 Frontend calls GET /api/npi/lookup?npi=1234567890
   ↓
 Backend fetches from NPPES API
@@ -152,7 +152,7 @@ Claim wizard pane auto-opens
 
 ### 3. Level 1 - Email Verification
 
-```
+```plaintext
 User clicks "Start Claim"
   ↓
 Enters email address
@@ -172,7 +172,7 @@ Badge updates to "L1 Basic"
 
 ### 4. Level 2 - Document Verification
 
-```
+```plaintext
 User uploads medical license + selfie
   ↓
 Frontend creates FormData with files
@@ -192,7 +192,7 @@ If confidence > threshold:
 
 ### 5. Level 3 - Issuer Attestation
 
-```
+```plaintext
 User clicks "Request Issuer Attestation"
   ↓
 Frontend calls POST /api/issuer/attest-request { npi, userId, holderDid }
@@ -262,9 +262,8 @@ Backend runs on: `http://localhost:4000`
 ### 2. Start Frontend
 
 ```bash
-cd v0-vital-cv-frontend-mvp
-npm install
-npm run dev
+# From monorepo root
+pnpm --filter @vitalcv/web dev
 ```
 
 Frontend runs on: `http://localhost:3000`
@@ -285,8 +284,8 @@ Frontend runs on: `http://localhost:3000`
 
 ### Frontend
 
-```
-v0-vital-cv-frontend-mvp/
+```plaintext
+apps/web/
 ├── app/
 │   ├── start/page.tsx                    # NPI entry
 │   ├── npi/[npi]/page.tsx                # Profile + claim
@@ -313,7 +312,7 @@ v0-vital-cv-frontend-mvp/
 
 ### Backend
 
-```
+```plaintext
 vitalcv-backend/
 ├── src/
 │   ├── routes/

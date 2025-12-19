@@ -1,0 +1,62 @@
+# =============================================================================
+# VitalCV Backend - Docker Build Ignore
+# =============================================================================
+
+# Dependencies (will be installed fresh in container)
+node_modules
+.pnpm-store
+
+# Build outputs (will be rebuilt in container)
+dist
+.next
+.turbo
+
+# Development/IDE
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+
+# Environment files (pass at runtime, not bake in)
+.env
+.env.*
+!.env.example
+
+# Tests
+__tests__
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+coverage
+.jest
+
+# Documentation
+*.md
+docs
+LICENSE
+
+# Git
+.git
+.gitignore
+
+# Docker (avoid infinite recursion)
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Python virtual envs (if present in sibling dirs)
+.venv
+__pycache__
+*.pyc
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Misc
+.claude
+.pre-commit-config.yaml
+Makefile

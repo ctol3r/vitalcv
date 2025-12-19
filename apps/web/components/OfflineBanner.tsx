@@ -3,49 +3,46 @@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, WifiOff } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+// Prefer same-origin Next proxy to avoid CORS issues in browsers.
+const HEALTH_URL = '/api/health';
 
 export function OfflineBanner() {
   const [isOnline, setIsOnline] = useState(true);
   const [backendAvailable, setBackendAvailable] = useState(true);
   const [checking, setChecking] = useState(true);
 
+  const checkBackendHealth = useCallback(async () => {
+    if (!navigator.onLine) {
+      setIsOnline(false);
+      setBackendAvailable(false);
+      setChecking(false);
+      return;
+    }
+
+    setIsOnline(true);
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+      const response = await fetch(HEALTH_URL, {
+        method: 'GET',
+        signal: controller.signal,
+        cache: 'no-store',
+      });
+
+      clearTimeout(timeoutId);
+      setBackendAvailable(response.ok);
+    } catch (_error) {
+      setBackendAvailable(false);
+    } finally {
+      setChecking(false);
+    }
+  }, []);
+
   useEffect(() => {
-    const checkBackendHealth = async () => {
-      if (!navigator.onLine) {
-        setIsOnline(false);
-        setBackendAvailable(false);
-        setChecking(false);
-        return;
-      }
-
-      setIsOnline(true);
-
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-        const response = await fetch(`${BACKEND_URL}/healthz`, {
-          method: 'GET',
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-          setBackendAvailable(true);
-        } else {
-          setBackendAvailable(false);
-        }
-      } catch (error) {
-        setBackendAvailable(false);
-      } finally {
-        setChecking(false);
-      }
-    };
-
     checkBackendHealth();
 
     const handleOnline = () => {
@@ -69,7 +66,7 @@ export function OfflineBanner() {
       window.removeEventListener('offline', handleOffline);
       clearInterval(intervalId);
     };
-  }, []);
+  }, [checkBackendHealth]);
 
   if (checking) {
     return null;

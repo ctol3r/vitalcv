@@ -6,11 +6,11 @@
   "license": "ISC",
   "type": "commonjs",
   "scripts": {
-    "dev": "ts-node src/server.ts",
-    "build": "tsc",
+    "dev": "prisma db push && prisma generate && ts-node src/server.ts",
+    "build": "prisma generate && tsc",
     "start": "node dist/server.js",
     "test": "jest",
-    "seed": "ts-node prisma/seed.ts",
+    "seed": "prisma db push && ts-node -P tsconfig.seed.json prisma/seed.ts",
     "prisma:generate": "prisma generate"
   },
   "keywords": [],
