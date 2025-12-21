@@ -21,3 +21,9 @@ if rg -n 'apps/api/frontend' \
 fi
 
 echo "✅ Repo guards passed."
+
+# Fail if edge services introduce core-only keywords
+if rg -n 'auditLog|authorize\(|credential(ssue|Verify|Revoke)' apps/*-api apps/router >/dev/null; then
+  echo "❌ Core-only logic detected in edge service."
+  exit 1
+fi
