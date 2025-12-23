@@ -22,4 +22,4 @@ export {
   bindUserContextToRequest,
   type RequestContextOptions,
 } from './requestContext';
-
+export { logAuditEvent, type AuditEventPayload, type LoggedAuditEvent } from './auditLog';
