@@ -14,8 +14,12 @@ const router = express.Router();
 
 const TRUSTED_ISSUERS = (process.env.TRUSTED_ISSUERS || 'did:web:issuer.vitalcv.com')
   .split(',')
-  .map(issuer => issuer.trim())
+  .map((issuer) => issuer.trim())
   .filter(Boolean);
+
+function isTrustedIssuer(issuer: string): boolean {
+  return TRUSTED_ISSUERS.includes(issuer);
+}
 
 const JWKS_REFRESH_INTERVAL_MS = Number(process.env.JWKS_REFRESH_INTERVAL_MS || 60_000);
 
@@ -100,45 +104,17 @@ router.post('/', async (req: Request, res: Response) => {
         : Array.isArray(refreshParam)
           ? refreshParam.some(value => ['1', 'true'].includes(String(value).toLowerCase()))
           : false;
-      const isTrustedIssuer = TRUSTED_ISSUERS.includes(issuer);
-
-      if (isTrustedIssuer) {
-        const JWKS = await ensureIssuerJwks(refreshRequested);
-        await jwtVerify(credential, JWKS, {
-          issuer,
-        });
-      } else {
-        console.warn(`[VerifyCredential] Unknown issuer: ${issuer}. Attempting structure-only verification.`);
-
-        const parts = credential.split('.');
-        if (parts.length !== 3) {
-          return res.json({
-            valid: false,
-            reason: 'Invalid JWS format: expected 3 parts'
-          });
-        }
-
-        const header = JSON.parse(Buffer.from(parts[0], 'base64url').toString());
-        const alg = header.alg;
-
-        if (!alg) {
-          return res.json({
-            valid: false,
-            reason: 'Missing algorithm in JWT header'
-          });
-        }
-
-        console.warn(`[VerifyCredential] Skipping signature verification for untrusted issuer: ${issuer}.`);
-
+      if (!isTrustedIssuer(issuer)) {
         return res.json({
-          valid: true,
-          reason: 'Issuer not trusted. Signature not verified.',
-          warning: 'This verification is incomplete. Signature was not cryptographically verified.',
-          issuer,
-          subject: decoded.sub,
-          issuedAt: decoded.iat ? new Date(decoded.iat * 1000).toISOString() : undefined,
+          valid: false,
+          reason: 'untrusted_issuer',
         });
       }
+
+      const JWKS = await ensureIssuerJwks(refreshRequested);
+      await jwtVerify(credential, JWKS, {
+        issuer,
+      });
 
       // Verification successful
       return res.json({
@@ -178,4 +154,3 @@ router.get('/health', (req: Request, res: Response) => {
 });
 
 export default router;
-

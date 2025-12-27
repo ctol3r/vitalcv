@@ -1,7 +1,9 @@
 import express, { Request, Response, NextFunction } from 'express';
+import { randomUUID } from 'crypto';
 import { decodeJwt } from 'jose';
 import { pouAllowlistEnforcer } from '../policies/middleware';
 import { eudiAcceptEnforce } from '../middleware/eudiAcceptEnforce';
+import { validateVCs } from '../services/vcValidator';
 
 const router = express.Router();
 
@@ -49,6 +51,43 @@ function extractJtiFromVPToken(vpToken: string): string | null {
     return decoded.jti as string | null;
   } catch {
     return null;
+  }
+}
+
+function extractVpPayload(decoded: any): any {
+  return decoded?.vp || decoded?.presentation || decoded;
+}
+
+function extractVpNonce(decoded: any, vpPayload: any): string | undefined {
+  return decoded?.nonce || vpPayload?.nonce;
+}
+
+function extractHolderDid(decoded: any, vpPayload: any): string | undefined {
+  return decoded?.sub || decoded?.iss || vpPayload?.holder || vpPayload?.issuer;
+}
+
+function normalizePresentationCredentials(vpPayload: any): any[] {
+  const credentials = vpPayload?.verifiableCredential ?? vpPayload?.verifiableCredentials;
+  if (!credentials) {
+    return [];
+  }
+  return Array.isArray(credentials) ? credentials : [credentials];
+}
+
+function summarizeCredential(vc: any): { id?: string; issuer?: string; type?: string[] } {
+  try {
+    const decoded = typeof vc === 'string' ? decodeJwt(vc) : vc;
+    const payload = decoded?.vc || decoded;
+    const types = payload?.type;
+    return {
+      id: payload?.id || decoded?.jti,
+      issuer: payload?.issuer || decoded?.iss,
+      type: Array.isArray(types) ? types : types ? [types] : undefined,
+    };
+  } catch {
+    return {
+      type: ['unparseable'],
+    };
   }
 }
 
@@ -215,12 +254,55 @@ router.get('/.well-known/openid-credential-verifier', (req: Request, res: Respon
  * Replays return 409; jti cache metrics; tests for replay
  */
 router.post('/presentation', eudiAcceptEnforce, enforceVPReplayGuard, async (req: Request, res: Response) => {
-  const { vp_token, presentation_submission } = req.body;
+  const { vp_token } = req.body;
 
   if (!vp_token) {
     return res.status(400).json({
       error: 'invalid_request',
       error_description: 'Missing vp_token'
+    });
+  }
+
+  let decodedPresentation: any;
+  try {
+    decodedPresentation = decodeJwt(vp_token);
+  } catch (error) {
+    return res.status(400).json({
+      error: 'invalid_request',
+      error_description: `Invalid vp_token: ${error instanceof Error ? error.message : 'unknown error'}`,
+    });
+  }
+
+  const vpPayload = extractVpPayload(decodedPresentation);
+  const nonceFromRequest = req.body?.nonce as string | undefined;
+  const nonceFromToken = extractVpNonce(decodedPresentation, vpPayload);
+
+  if (nonceFromToken && nonceFromRequest && nonceFromToken !== nonceFromRequest) {
+    return res.status(400).json({
+      error: 'invalid_request',
+      error_description: 'Nonce mismatch between request and vp_token',
+    });
+  }
+
+  if (nonceFromToken && !nonceFromRequest) {
+    return res.status(400).json({
+      error: 'invalid_request',
+      error_description: 'Nonce missing from request body',
+    });
+  }
+
+  if (!nonceFromToken && nonceFromRequest) {
+    return res.status(400).json({
+      error: 'invalid_request',
+      error_description: 'Nonce missing from vp_token',
+    });
+  }
+
+  const presentationCredentials = normalizePresentationCredentials(vpPayload);
+  if (presentationCredentials.length === 0) {
+    return res.status(400).json({
+      error: 'invalid_request',
+      error_description: 'vp_token missing verifiableCredential payload',
     });
   }
 
@@ -249,11 +331,35 @@ router.post('/presentation', eudiAcceptEnforce, enforceVPReplayGuard, async (req
     vpTokenId: extractJtiFromVPToken(vp_token) || 'unknown',
   });
 
-  // TODO: Implement actual VP verification
-  // For now, return a placeholder response
+  const validationResults = await validateVCs(presentationCredentials, {
+    checkStatus: true,
+  });
+  const verified = validationResults.every((result) => result.valid);
+  const auditRef = `audit_${randomUUID()}`;
+  const holderDid = extractHolderDid(decodedPresentation, vpPayload);
+  const credentialSummary = presentationCredentials.map(summarizeCredential);
+
+  await auditService.auditLog('PRESENTATION_RECEIVED', {
+    userId: (req as any).user?.id || 'anonymous',
+    reason: 'OIDC4VP presentation received',
+    path: req.path,
+    method: req.method,
+    timestamp: new Date().toISOString(),
+    holderDid,
+    credentialSummary,
+    nonceUsed: nonceFromRequest || nonceFromToken,
+    auditRef,
+    vpTokenId: extractJtiFromVPToken(vp_token) || 'unknown',
+  });
+
   res.json({
-    verified: true,
+    verified,
+    auditRef,
+    holder: holderDid,
+    nonce: nonceFromRequest || nonceFromToken,
     vp_token_id: extractJtiFromVPToken(vp_token) || 'unknown',
+    results: validationResults,
+    credential_summary: credentialSummary,
     timestamp: new Date().toISOString(),
   });
 });
@@ -384,4 +490,3 @@ oidc4vp_replay_detections ${vpReplayMetrics.replayDetections}
 });
 
 export default router;
-
