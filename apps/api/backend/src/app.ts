@@ -19,6 +19,9 @@ import { errorHandler } from './middleware/errorHandler';
 import { validateRequest } from './middleware/validateRequest';
 import { log, reqLogFields } from './obs/logger';
 import { requestIdMiddleware, type RequestWithId } from './obs/requestId';
+import { type CredentialPacket } from './api/adapters/base';
+import { GreenhouseAdapter } from './api/adapters/greenhouse';
+import { WorkdayAdapter } from './api/adapters/workday';
 
 const app = express();
 const bootedAtIso = new Date().toISOString();
@@ -180,6 +183,10 @@ function resolveEnvironment(): string {
 const gitSha = resolveGitSha();
 const builtAtIso = resolveBuiltAtIso();
 const environmentName = resolveEnvironment();
+const atsAdapters = {
+  greenhouse: new GreenhouseAdapter(),
+  workday: new WorkdayAdapter(),
+};
 
 function normalizeCredentialId(raw: string): { externalId: string; dbId?: number } {
   const trimmed = raw.trim();
@@ -916,6 +923,60 @@ app.get('/graph/analytics/readiness-score', async (req, res) => {
   const result = await getReadinessScore(clinicianId);
   return res.json(result);
 });
+
+app.post(
+  '/ats/readiness-webhook',
+  body('target').isString().withMessage('target is required'),
+  body('packet').isObject().withMessage('packet is required'),
+  body('packet.candidateId').isString().withMessage('packet.candidateId is required'),
+  body('packet.email').isEmail().withMessage('packet.email must be a valid email'),
+  body('packet.fullName').isString().withMessage('packet.fullName is required'),
+  body('packet.readinessScore').optional().isNumeric(),
+  validateRequest,
+  async (req: Request, res: Response) => {
+    const { target, packet, event, updatedAt } = req.body as {
+      target: string;
+      packet: CredentialPacket;
+      event?: string;
+      updatedAt?: string;
+    };
+    const normalizedTarget = target.toLowerCase?.().trim() as keyof typeof atsAdapters;
+    const adapter = atsAdapters[normalizedTarget];
+    if (!adapter) return res.status(400).json({ error: 'Unsupported ATS target' });
+
+    try {
+      const result = await adapter.sendReadinessUpdate({
+        target: normalizedTarget,
+        event: event || 'readiness.updated',
+        updatedAt: updatedAt || new Date().toISOString(),
+        packet,
+      });
+      await writeAuditEvent({
+        type: 'ATS_READINESS_SYNC',
+        metadata: {
+          target: normalizedTarget,
+          transmitted: result.transmitted,
+          reference: result.reference,
+          status: result.status ?? null,
+        },
+      });
+      return res.json({
+        ok: true,
+        target: normalizedTarget,
+        transmitted: result.transmitted,
+        reference: result.reference,
+        payload: result.payload,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      await writeAuditEvent({
+        type: 'ATS_READINESS_SYNC_FAILED',
+        metadata: { target: normalizedTarget, error: message },
+      });
+      return res.status(502).json({ error: 'Unable to push readiness update', detail: message });
+    }
+  },
+);
 
 app.get('/graph/analytics/specialty-density', async (req, res) => {
   if (!neo4jConfigured()) return res.status(501).json({ error: 'Neo4j not configured' });
