@@ -17,6 +17,7 @@ model User {
   passwordHash String?
   credentials Credential[]
   jobs        Job[]
+  applications Application[]
 }
 
 model Credential {
@@ -24,6 +25,7 @@ model Credential {
   name     String
   issuer   String
   issuedAt DateTime @default(now())
+  expiresAt DateTime?
   user     User     @relation(fields: [userId], references: [id])
   userId   Int
 }
@@ -43,4 +45,23 @@ model Job {
   title  String
   user   User   @relation(fields: [userId], references: [id])
   userId Int
+  applications Application[]
+}
+
+model Application {
+  id           Int                 @id @default(autoincrement())
+  clinician    User                @relation(fields: [clinicianId], references: [id])
+  clinicianId  Int
+  job          Job                 @relation(fields: [jobId], references: [id])
+  jobId        Int
+  report       ApplicationReport?
+  createdAt    DateTime            @default(now())
+}
+
+model ApplicationReport {
+  id             String      @id @default(uuid())
+  application    Application @relation(fields: [applicationId], references: [id])
+  applicationId  Int         @unique
+  summary        Json
+  createdAt      DateTime    @default(now())
 }

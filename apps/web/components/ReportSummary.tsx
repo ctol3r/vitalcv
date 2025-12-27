@@ -12,11 +12,12 @@ interface Credential {
   issuer: string
   status?: string
   reason?: string
+  expiresAt?: string | null
 }
 
 interface ReportSummaryProps {
   title: string
-  type: "cleared" | "pending" | "flagged"
+  type: "verified" | "pending" | "revoked"
   credentials: Credential[]
 }
 
@@ -25,7 +26,7 @@ export function ReportSummary({ title, type, credentials }: ReportSummaryProps) 
 
   const getTypeConfig = (type: string) => {
     switch (type) {
-      case "cleared":
+      case "verified":
         return {
           icon: <CheckCircle className="h-5 w-5 text-green-600" />,
           badgeVariant: "default" as const,
@@ -39,7 +40,7 @@ export function ReportSummary({ title, type, credentials }: ReportSummaryProps) 
           badgeColor: "bg-yellow-100 text-yellow-800",
           borderColor: "border-yellow-200",
         }
-      case "flagged":
+      case "revoked":
         return {
           icon: <AlertTriangle className="h-5 w-5 text-red-600" />,
           badgeVariant: "destructive" as const,
@@ -87,33 +88,48 @@ export function ReportSummary({ title, type, credentials }: ReportSummaryProps) 
 
         <CollapsibleContent>
           <CardContent className="pt-0">
-            <div className="space-y-3">
-              {credentials.map((credential, index) => (
-                <div
-                  key={credential.id}
-                  className="flex items-center justify-between p-3 bg-white/50 rounded-lg border"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-sm">{credential.type}</span>
-                      <Badge variant="outline" className="text-xs">
-                        {credential.id}
-                      </Badge>
+            {credentials.length === 0 ? (
+              <p className="text-sm text-gray-500">No credentials in this category.</p>
+            ) : (
+              <div className="space-y-3">
+                {credentials.map((credential) => (
+                  <div
+                    key={credential.id}
+                    className="flex items-center justify-between p-3 bg-white/50 rounded-lg border"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-sm">{credential.type}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {credential.id}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-600">{credential.issuer}</p>
+                      {credential.expiresAt && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Expires {new Date(credential.expiresAt).toLocaleDateString()}
+                        </p>
+                      )}
+                      {!credential.expiresAt && (
+                        <p className="text-xs text-gray-500 mt-1">No expiration on file</p>
+                      )}
+                      {credential.reason && <p className="text-xs text-gray-500 mt-1">{credential.reason}</p>}
                     </div>
-                    <p className="text-sm text-gray-600">{credential.issuer}</p>
-                    {credential.reason && <p className="text-xs text-gray-500 mt-1">{credential.reason}</p>}
-                  </div>
 
-                  <div className="flex items-center gap-2">
-                    {credential.status && (
-                      <Badge variant={credential.status === "Valid" ? "default" : "secondary"} className="text-xs">
-                        {credential.status}
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {credential.status && (
+                        <Badge
+                          variant={credential.status === "verified" ? "default" : "secondary"}
+                          className="text-xs capitalize"
+                        >
+                          {credential.status}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </CollapsibleContent>
       </Collapsible>

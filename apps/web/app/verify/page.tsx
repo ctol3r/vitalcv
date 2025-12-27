@@ -44,6 +44,7 @@ interface VerificationResult {
 
 export default function VerifyPage() {
   const searchParams = useSearchParams();
+  const reportId = searchParams.get('reportId');
   const { session } = useSession();
   const [credentialId, setCredentialId] = useState('');
   const [nonce, setNonce] = useState('');
@@ -643,6 +644,13 @@ export default function VerifyPage() {
                       isRechecking={isRechecking}
                       lastCheckTime={lastCheckTime}
                     />
+                    {reportId && (
+                      <div className="mt-4">
+                        <Button asChild>
+                          <Link href={`/reports/${reportId}`}>View Credential Packet</Link>
+                        </Button>
+                      </div>
+                    )}
                   </ApiErrorBoundary>
                 )}
 

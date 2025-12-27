@@ -5,80 +5,80 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Download, Share2, Archive, Shield, CheckCircle, AlertTriangle, Clock, FileText, Loader2 } from "lucide-react"
+import { Download, Share2, Archive, Shield, FileText, Loader2 } from "lucide-react"
 import { ReportSummary } from "@/components/ReportSummary"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
+import { useParams } from "next/navigation"
+
+interface ReportCredential {
+  id: string
+  type: string
+  issuer: string
+  status: "verified" | "pending" | "revoked"
+  expiresAt?: string | null
+  reason?: string
+}
 
 interface ReportData {
   id: string
-  timestamp: string
-  clearedCredentials: Array<{
-    id: string
-    type: string
-    issuer: string
-    status: string
-  }>
-  pendingCredentials: Array<{
-    id: string
-    type: string
-    issuer: string
-    reason: string
-  }>
-  recommendation: "proceed" | "conditional" | "hold"
-  confidenceScore: number
+  reportRef?: string
+  applicationId?: number
+  clinicianId?: number
+  jobId?: number
+  generatedAt: string
+  credentials: {
+    verified: ReportCredential[]
+    pending: ReportCredential[]
+    revoked: ReportCredential[]
+  }
+  fitExplanation: string
 }
 
-export default function ReportPage({ params }: { params: { id: string } }) {
+export default function ReportPage() {
+  const params = useParams<{ id: string }>()
+  const reportId = params?.id
   const [report, setReport] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
   const [fhirLoading, setFhirLoading] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
-    // Simulate API call to fetch report
+    if (!reportId) return
     const fetchReport = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      try {
+        const response = await fetch(`/api/reports/${reportId}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
 
-      const mockReport: ReportData = {
-        id: params.id,
-        timestamp: new Date().toISOString(),
-        clearedCredentials: [
-          {
-            id: "CRED-12345",
-            type: "Medical License",
-            issuer: "California Medical Board",
-            status: "Valid",
-          },
-          {
-            id: "CRED-67890",
-            type: "Board Certification",
-            issuer: "American Board of Internal Medicine",
-            status: "Valid",
-          },
-        ],
-        pendingCredentials: [
-          {
-            id: "CRED-11111",
-            type: "DEA Registration",
-            issuer: "Drug Enforcement Administration",
-            reason: "Awaiting renewal verification",
-          },
-        ],
-        recommendation: params.id.includes("hold")
-          ? "hold"
-          : params.id.includes("conditional")
-            ? "conditional"
-            : "proceed",
-        confidenceScore: 92,
+        if (!response.ok) {
+          throw new Error(`Failed to fetch report: ${response.status} ${response.statusText}`)
+        }
+
+        const reportData = (await response.json()) as ReportData
+        const normalizedReport = {
+          ...reportData,
+          id: reportData.reportRef || reportData.id || reportId,
+        }
+        setReport(normalizedReport)
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Failed to load report"
+        toast({
+          title: "Report Unavailable",
+          description: errorMessage,
+          variant: "destructive",
+        })
+        setReport(null)
+      } finally {
+        setLoading(false)
       }
-
-      setReport(mockReport)
-      setLoading(false)
     }
 
     fetchReport()
-  }, [params.id])
+  }, [reportId])
 
   const downloadFHIRBundle = async () => {
     if (!report) return
@@ -124,32 +124,6 @@ export default function ReportPage({ params }: { params: { id: string } }) {
       })
     } finally {
       setFhirLoading(false)
-    }
-  }
-
-  const getRecommendationColor = (recommendation: string) => {
-    switch (recommendation) {
-      case "proceed":
-        return "bg-green-100 text-green-800"
-      case "conditional":
-        return "bg-yellow-100 text-yellow-800"
-      case "hold":
-        return "bg-red-100 text-red-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
-
-  const getRecommendationIcon = (recommendation: string) => {
-    switch (recommendation) {
-      case "proceed":
-        return <CheckCircle className="h-5 w-5" />
-      case "conditional":
-        return <AlertTriangle className="h-5 w-5" />
-      case "hold":
-        return <Clock className="h-5 w-5" />
-      default:
-        return null
     }
   }
 
@@ -200,9 +174,14 @@ export default function ReportPage({ params }: { params: { id: string } }) {
           <div className="mb-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Verification Report</h1>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Credential Packet</h1>
                 <p className="text-gray-600">Report ID: {report.id}</p>
-                <p className="text-sm text-gray-500">Generated: {new Date(report.timestamp).toLocaleString()}</p>
+                <p className="text-sm text-gray-500">
+                  Generated: {new Date(report.generatedAt).toLocaleString()}
+                </p>
+                {report.applicationId && (
+                  <p className="text-sm text-gray-500">Application ID: {report.applicationId}</p>
+                )}
               </div>
               <div className="flex flex-col sm:flex-row gap-2 mt-4 md:mt-0">
                 <Button variant="outline" size="sm">
@@ -233,15 +212,16 @@ export default function ReportPage({ params }: { params: { id: string } }) {
               </div>
             </div>
 
-            {/* Recommendation Badge */}
-            <div className="flex items-center gap-4">
-              <Badge className={`${getRecommendationColor(report.recommendation)} px-4 py-2 text-sm font-semibold`}>
-                {getRecommendationIcon(report.recommendation)}
-                <span className="ml-2 capitalize">{report.recommendation}</span>
+            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
+              <Badge variant="outline" className="bg-white/70">
+                Verified: {report.credentials.verified.length}
               </Badge>
-              <div className="text-sm text-gray-600">
-                Confidence Score: <span className="font-semibold">{report.confidenceScore}%</span>
-              </div>
+              <Badge variant="outline" className="bg-white/70">
+                Pending: {report.credentials.pending.length}
+              </Badge>
+              <Badge variant="outline" className="bg-white/70">
+                Revoked: {report.credentials.revoked.length}
+              </Badge>
             </div>
           </div>
 
@@ -278,48 +258,18 @@ export default function ReportPage({ params }: { params: { id: string } }) {
 
           {/* Report Sections */}
           <div className="space-y-6">
-            <ReportSummary title="Cleared Credentials" type="cleared" credentials={report.clearedCredentials} />
+            <ReportSummary title="Verified Credentials" type="verified" credentials={report.credentials.verified} />
 
-            {report.pendingCredentials.length > 0 && (
-              <ReportSummary title="Pending Credentials" type="pending" credentials={report.pendingCredentials} />
-            )}
+            <ReportSummary title="Pending Credentials" type="pending" credentials={report.credentials.pending} />
 
-            {/* Recommendation Details */}
+            <ReportSummary title="Revoked Credentials" type="revoked" credentials={report.credentials.revoked} />
+
             <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {getRecommendationIcon(report.recommendation)}
-                  Recommendation Details
-                </CardTitle>
+                <CardTitle>Fit Explanation (MATCHA)</CardTitle>
               </CardHeader>
               <CardContent>
-                {report.recommendation === "proceed" && (
-                  <div className="text-green-700">
-                    <p className="font-semibold mb-2">✅ Proceed with Employment</p>
-                    <p>
-                      All required credentials have been verified and are in good standing. The candidate meets all
-                      verification requirements.
-                    </p>
-                  </div>
-                )}
-                {report.recommendation === "conditional" && (
-                  <div className="text-yellow-700">
-                    <p className="font-semibold mb-2">⚠️ Conditional Employment</p>
-                    <p>
-                      Most credentials are verified, but some items require attention. Employment may proceed with
-                      conditions or pending resolution of outstanding items.
-                    </p>
-                  </div>
-                )}
-                {report.recommendation === "hold" && (
-                  <div className="text-red-700">
-                    <p className="font-semibold mb-2">🛑 Hold Employment</p>
-                    <p>
-                      Critical verification issues have been identified. Employment should be held until all issues are
-                      resolved.
-                    </p>
-                  </div>
-                )}
+                <p className="text-sm text-gray-700">{report.fitExplanation}</p>
               </CardContent>
             </Card>
           </div>
