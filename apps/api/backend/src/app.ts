@@ -18,7 +18,9 @@ import prisma from './graphql/prisma_client';
 import { errorHandler } from './middleware/errorHandler';
 import { validateRequest } from './middleware/validateRequest';
 import { log, reqLogFields } from './obs/logger';
+import { maybeEmitOnCompleteEvent } from './obs/onTracking';
 import { requestIdMiddleware, type RequestWithId } from './obs/requestId';
+import { isPreferredSource } from './trust/psl';
 
 const app = express();
 const bootedAtIso = new Date().toISOString();
@@ -191,6 +193,21 @@ function normalizeCredentialId(raw: string): { externalId: string; dbId?: number
   const asInt = Number(trimmed);
   if (Number.isInteger(asInt) && asInt > 0) return { externalId: `CRED-${asInt}`, dbId: asInt };
   return { externalId: trimmed };
+}
+
+function buildMatchScore(credential: { issuer: string }, verifierId: string): {
+  score: number;
+  explanations: Array<{ code: string; label: string }>;
+  preferredSource: boolean;
+} {
+  let score = 60;
+  const explanations: Array<{ code: string; label: string }> = [];
+  const preferredSource = isPreferredSource(credential.issuer, verifierId);
+  if (preferredSource) {
+    score += 20;
+    explanations.push({ code: 'PREFERRED_SOURCE', label: 'Verified by preferred source' });
+  }
+  return { score: Math.min(100, score), explanations, preferredSource };
 }
 
 function signDemoJwt(payload: Record<string, unknown>): string {
@@ -555,6 +572,42 @@ app.get('/audit/summary', async (_req, res) => {
   });
 });
 
+app.get('/matches', async (req, res) => {
+  const verifierId = String(req.query.verifierId || 'verifier:demo-hospital').trim();
+  const pslOnly = String(req.query.pslOnly || '').toLowerCase() === 'true';
+
+  const creds = await prisma.credential.findMany({
+    orderBy: { issuedAt: 'desc' },
+    take: 200,
+    include: { user: true },
+  });
+
+  const matches = creds
+    .map((cred) => {
+      const { score, explanations, preferredSource } = buildMatchScore(
+        { issuer: cred.issuer },
+        verifierId,
+      );
+      return {
+        credentialId: `CRED-${cred.id}`,
+        issuer: cred.issuer,
+        holder: cred.user?.name || cred.user?.email || null,
+        issuedAt: cred.issuedAt.toISOString(),
+        score,
+        preferredSource,
+        explanations,
+      };
+    })
+    .filter((match) => (pslOnly ? match.preferredSource : true))
+    .sort((a, b) => b.score - a.score);
+
+  return res.json({
+    verifierId,
+    pslOnly,
+    matches,
+  });
+});
+
 // Demo-safe seed (token-gated in production)
 app.post('/demo/seed', async (req: Request, res: Response) => {
   const token = String(req.headers['x-seed-token'] || '');
@@ -659,6 +712,103 @@ app.post(
     const token = signDemoJwt({ userId: user.id, email: user.email });
     await writeAuditEvent({ type: 'AUTH_LOGIN', userId: user.id, metadata: { email: user.email } });
     return res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
+  },
+);
+
+app.post(
+  '/api/application/:id/interviewed',
+  body('credentialId').optional().isString(),
+  body('verifierId').optional().isString(),
+  validateRequest,
+  async (req: Request, res: Response) => {
+    const applicationId = Number(req.params.id);
+    if (!Number.isInteger(applicationId) || applicationId <= 0) {
+      return res.status(400).json({ error: 'Invalid application id' });
+    }
+
+    const { credentialId, verifierId } = req.body as {
+      credentialId?: string;
+      verifierId?: string;
+    };
+    const interviewedAt = new Date();
+    const application = await prisma.application.upsert({
+      where: { id: applicationId },
+      update: {
+        credentialId: credentialId ?? undefined,
+        status: 'INTERVIEWED',
+        interviewedAt,
+      },
+      create: {
+        id: applicationId,
+        credentialId: credentialId ?? null,
+        status: 'INTERVIEWED',
+        interviewedAt,
+      },
+    });
+
+    const audit = await writeAuditEvent({
+      type: 'JOB_ACTION',
+      metadata: {
+        action: 'interviewed',
+        applicationId,
+        credentialId: application.credentialId,
+        verifierId: verifierId ?? null,
+      },
+    });
+
+    return res.json({ application, auditRef: audit.hash });
+  },
+);
+
+app.post(
+  '/api/application/:id/hired',
+  body('credentialId').optional().isString(),
+  body('verifierId').optional().isString(),
+  validateRequest,
+  async (req: Request, res: Response) => {
+    const applicationId = Number(req.params.id);
+    if (!Number.isInteger(applicationId) || applicationId <= 0) {
+      return res.status(400).json({ error: 'Invalid application id' });
+    }
+
+    const { credentialId, verifierId } = req.body as {
+      credentialId?: string;
+      verifierId?: string;
+    };
+    const hiredAt = new Date();
+    const application = await prisma.application.upsert({
+      where: { id: applicationId },
+      update: {
+        credentialId: credentialId ?? undefined,
+        status: 'HIRED',
+        hiredAt,
+      },
+      create: {
+        id: applicationId,
+        credentialId: credentialId ?? null,
+        status: 'HIRED',
+        hiredAt,
+      },
+    });
+
+    const audit = await writeAuditEvent({
+      type: 'JOB_ACTION',
+      metadata: {
+        action: 'hire_confirmed',
+        applicationId,
+        credentialId: application.credentialId,
+        verifierId: verifierId ?? null,
+      },
+    });
+
+    const onComplete = await maybeEmitOnCompleteEvent({
+      credentialId: application.credentialId,
+      applicationId,
+      verifierId: verifierId ?? null,
+      writeAuditEvent,
+    });
+
+    return res.json({ application, auditRef: audit.hash, onComplete });
   },
 );
 
@@ -849,6 +999,13 @@ app.post(
       credentialId: externalId,
       userId: user.id,
       metadata: jwtPayload,
+    });
+
+    await writeAuditEvent({
+      type: 'WALLET_STORED',
+      credentialId: externalId,
+      userId: user.id,
+      metadata: { source: 'issuer_api' },
     });
 
     // Mirror issuance into the network graph when configured (fail-soft).
