@@ -301,6 +301,9 @@ export default function ProfilePage() {
               <Link href="/verify" className="text-gray-600 hover:text-blue-600 transition-colors">
                 Verify
               </Link>
+              <Link href="/matches" className="text-gray-600 hover:text-blue-600 transition-colors">
+                Job Matches
+              </Link>
               <Link href="/dashboard" className="text-gray-600 hover:text-blue-600 transition-colors">
                 Dashboard
               </Link>
@@ -380,6 +383,9 @@ export default function ProfilePage() {
           <nav className="hidden md:flex items-center space-x-6">
             <Link href="/verify" className="text-gray-600 hover:text-blue-600 transition-colors">
               Verify
+            </Link>
+            <Link href="/matches" className="text-gray-600 hover:text-blue-600 transition-colors">
+              Job Matches
             </Link>
             <Link href="/dashboard" className="text-gray-600 hover:text-blue-600 transition-colors">
               Dashboard

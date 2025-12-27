@@ -241,6 +241,12 @@ export default function DashboardPage() {
                   Verify
                 </Link>
                 <Link
+                  href="/matches"
+                  className="text-gray-600 hover:text-blue-600 transition-colors"
+                >
+                  Job Matches
+                </Link>
+                <Link
                   href="/analytics"
                   className="text-gray-600 hover:text-blue-600 transition-colors"
                 >
@@ -336,6 +342,9 @@ export default function DashboardPage() {
             <nav className="hidden md:flex items-center space-x-6">
               <Link href="/verify" className="text-gray-600 hover:text-blue-600 transition-colors">
                 Verify
+              </Link>
+              <Link href="/matches" className="text-gray-600 hover:text-blue-600 transition-colors">
+                Job Matches
               </Link>
               <Link
                 href="/analytics"

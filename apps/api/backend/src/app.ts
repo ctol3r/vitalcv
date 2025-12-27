@@ -19,6 +19,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { validateRequest } from './middleware/validateRequest';
 import { log, reqLogFields } from './obs/logger';
 import { requestIdMiddleware, type RequestWithId } from './obs/requestId';
+import matchingRouter from './routes/matching';
 
 const app = express();
 const bootedAtIso = new Date().toISOString();
@@ -1075,6 +1076,8 @@ app.post(
     res.json({ message: 'Credential created' });
   },
 );
+
+app.use('/api', matchingRouter);
 
 app.use(errorHandler);
 
