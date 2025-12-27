@@ -2,15 +2,44 @@
  * S72-D1-A-008: Unit tests for Credential Verification Endpoint
  */
 
-import { describe, it, expect, jest } from '@jest/globals';
+import crypto from 'crypto';
+import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
+import { SignJWT, exportJWK, generateKeyPair } from 'jose';
 import verifyCredentialRouter from '../verifyCredential';
+import { setLocalCredentialStatus } from '../../services/statusRegistry';
 
 // Create test app
 const app = express();
 app.use(express.json());
 app.use('/', verifyCredentialRouter);
+
+const issuerDid = 'did:example:issuer';
+const subjectDid = 'did:example:subject';
+
+async function buildSignedCredential() {
+  const { publicKey, privateKey } = await generateKeyPair('ES256');
+  const publicJwk = await exportJWK(publicKey);
+  publicJwk.kid = `${issuerDid}#key-1`;
+  publicJwk.alg = 'ES256';
+
+  const credentialId = `urn:uuid:${crypto.randomUUID()}`;
+  const jwt = await new SignJWT({
+    sub: subjectDid,
+    jti: credentialId,
+  })
+    .setProtectedHeader({ alg: 'ES256', kid: publicJwk.kid })
+    .setIssuer(issuerDid)
+    .setIssuedAt()
+    .sign(privateKey);
+
+  return { jwt, publicJwk, credentialId };
+}
+
+beforeEach(() => {
+  jest.resetAllMocks();
+});
 
 describe('POST /verify/credential', () => {
   it('should return 400 for missing credential', async () => {
@@ -47,43 +76,73 @@ describe('POST /verify/credential', () => {
     expect(response.body.valid).toBe(false);
   });
 
-  it('should handle valid structure with unknown issuer', async () => {
-    // Create a properly formatted JWT (with alg:none for testing)
-    const header = Buffer.from(JSON.stringify({ alg: 'EdDSA', typ: 'JWT' })).toString('base64url');
-    const payload = Buffer.from(JSON.stringify({
-      iss: 'did:example:unknown',
-      sub: 'did:example:subject',
-      iat: Math.floor(Date.now() / 1000)
-    })).toString('base64url');
-    const signature = 'fake-signature';
-    const credential = `${header}.${payload}.${signature}`;
+  it('should verify signature via DID resolution', async () => {
+    const { jwt, publicJwk } = await buildSignedCredential();
+
+    (global.fetch as jest.Mock) = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        didDocument: {
+          id: issuerDid,
+          verificationMethod: [
+            {
+              id: publicJwk.kid,
+              type: 'JsonWebKey2020',
+              controller: issuerDid,
+              publicKeyJwk: publicJwk,
+            },
+          ],
+          assertionMethod: [publicJwk.kid],
+        },
+      }),
+    });
 
     const response = await request(app)
       .post('/')
-      .send({ credential });
+      .send({ credential: jwt });
 
     expect(response.status).toBe(200);
-    // For unknown issuer, we return valid with warning
     expect(response.body.valid).toBe(true);
-    expect(response.body.warning).toBeTruthy();
+    expect(response.body.issuer).toBe(issuerDid);
+    expect(response.body.subject).toBe(subjectDid);
+    expect(response.body.receipt).toBeTruthy();
+    expect(response.body.receipt.payload.credentialId).toBeDefined();
   });
 
-  it('should extract issuer and subject from credential', async () => {
-    const header = Buffer.from(JSON.stringify({ alg: 'EdDSA', typ: 'JWT' })).toString('base64url');
-    const payload = Buffer.from(JSON.stringify({
-      iss: 'did:web:issuer.example.com',
-      sub: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
-      iat: Math.floor(Date.now() / 1000)
-    })).toString('base64url');
-    const credential = `${header}.${payload}.fake-signature`;
+  it('should fail verification when credential is revoked', async () => {
+    const { jwt, publicJwk, credentialId } = await buildSignedCredential();
+
+    setLocalCredentialStatus(credentialId, {
+      revoked: true,
+      reason: 'Unit test revocation',
+      revokedAt: new Date().toISOString(),
+    });
+
+    (global.fetch as jest.Mock) = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        didDocument: {
+          id: issuerDid,
+          verificationMethod: [
+            {
+              id: publicJwk.kid,
+              type: 'JsonWebKey2020',
+              controller: issuerDid,
+              publicKeyJwk: publicJwk,
+            },
+          ],
+          assertionMethod: [publicJwk.kid],
+        },
+      }),
+    });
 
     const response = await request(app)
       .post('/')
-      .send({ credential });
+      .send({ credential: jwt });
 
     expect(response.status).toBe(200);
-    expect(response.body.issuer).toBe('did:web:issuer.example.com');
-    expect(response.body.subject).toBe('did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK');
+    expect(response.body.valid).toBe(false);
+    expect(response.body.status.status).toBe('revoked');
   });
 });
 
@@ -97,4 +156,3 @@ describe('GET /verify/credential/health', () => {
     expect(response.body.service).toBe('credential-verifier');
   });
 });
-

@@ -36,6 +36,10 @@ app.use('/eu', eudiRouter);
 import verifyCredentialRouter from './routes/verifyCredential';
 app.use('/verify/credential', verifyCredentialRouter);
 
+// Verification receipt routes
+import receiptsRouter from './routes/receipts';
+app.use('/receipts', receiptsRouter);
+
 // Health check
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'verifier-api' });
@@ -48,4 +52,3 @@ app.listen(PORT, () => {
 });
 
 export default app;
-
