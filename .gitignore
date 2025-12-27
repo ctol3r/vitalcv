@@ -56,9 +56,9 @@ logs/
 
 # Prisma
 prisma/migrations/
+apps/api/backend/prisma/dev-*-test.db
 
 # Temporary files
 tmp/
 temp/
 *.tmp
-

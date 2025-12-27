@@ -44,3 +44,42 @@ model Job {
   user   User   @relation(fields: [userId], references: [id])
   userId Int
 }
+
+model PulseEvent {
+  id            Int      @id @default(autoincrement())
+  type          String
+  title         String
+  message       String
+  severity      String   @default("info")
+  source        String?
+  scope         String?
+  fingerprint   String
+  occurrences   Int      @default(1)
+  calmUntil     DateTime?
+  lastEmittedAt DateTime @default(now())
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([fingerprint, lastEmittedAt])
+  @@index([type, lastEmittedAt])
+  @@index([scope, lastEmittedAt])
+}
+
+model DiscoverItem {
+  id          Int      @id @default(autoincrement())
+  source      String
+  sourceId    String
+  specialty   String
+  title       String
+  summary     String
+  url         String
+  publishedAt DateTime?
+  ingestedAt  DateTime @default(now())
+  metadata    Json?
+  fingerprint String
+
+  @@unique([source, sourceId])
+  @@index([specialty, publishedAt])
+  @@index([fingerprint])
+}

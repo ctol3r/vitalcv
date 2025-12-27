@@ -19,6 +19,8 @@ import { errorHandler } from './middleware/errorHandler';
 import { validateRequest } from './middleware/validateRequest';
 import { log, reqLogFields } from './obs/logger';
 import { requestIdMiddleware, type RequestWithId } from './obs/requestId';
+import pulseRouter from './api/pulse/routes';
+import { configurePubmedIngestFromEnv } from './api/discover/ingestors/pubmed';
 
 const app = express();
 const bootedAtIso = new Date().toISOString();
@@ -62,6 +64,9 @@ app.use((req: RequestWithId, res, next) => {
   });
   next();
 });
+
+// Pulse feed endpoints (Wave F emission rules enforced in service)
+app.use(pulseRouter);
 
 function sha256Hex(input: string): string {
   return crypto.createHash('sha256').update(input).digest('hex');
@@ -1075,6 +1080,9 @@ app.post(
     res.json({ message: 'Credential created' });
   },
 );
+
+// Optional scheduled ingest (disabled unless PUBMED_SPECIALTIES is provided)
+configurePubmedIngestFromEnv();
 
 app.use(errorHandler);
 
