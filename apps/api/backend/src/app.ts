@@ -19,6 +19,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { validateRequest } from './middleware/validateRequest';
 import { log, reqLogFields } from './obs/logger';
 import { requestIdMiddleware, type RequestWithId } from './obs/requestId';
+import { computeEmployerRisk } from './api/employer/risk';
 
 const app = express();
 const bootedAtIso = new Date().toISOString();
@@ -1075,6 +1076,33 @@ app.post(
     res.json({ message: 'Credential created' });
   },
 );
+
+app.get('/employer/risk/:clinicianId/:jobId', async (req: Request, res: Response) => {
+  const clinicianId = Number(req.params.clinicianId);
+  const jobId = Number(req.params.jobId);
+  if (!Number.isInteger(clinicianId) || clinicianId <= 0) {
+    return res.status(400).json({ error: 'clinicianId must be a positive integer' });
+  }
+  if (!Number.isInteger(jobId) || jobId <= 0) {
+    return res.status(400).json({ error: 'jobId must be a positive integer' });
+  }
+
+  try {
+    const evaluation = await computeEmployerRisk(clinicianId, jobId);
+    return res.json(evaluation);
+  } catch (e) {
+    const message = String(e instanceof Error ? e.message : e);
+    if (message === 'clinician_not_found' || message === 'job_not_found') {
+      return res.status(404).json({ error: message });
+    }
+    log('error', 'employer_risk_error', {
+      clinicianId,
+      jobId,
+      error: message,
+    });
+    return res.status(500).json({ error: 'unable_to_compute_risk' });
+  }
+});
 
 app.use(errorHandler);
 
