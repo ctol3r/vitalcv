@@ -242,6 +242,14 @@ async function writeAuditEvent(event: {
   return { hash, createdAt: createdAt.toISOString() };
 }
 
+async function writeOnEvent(event: {
+  type: 'credential_issued' | 'wallet_viewed' | 'credential_validated' | 'job_action';
+  credentialId?: string;
+  metadata?: any;
+}): Promise<{ hash: string; createdAt: string }> {
+  return writeAuditEvent(event);
+}
+
 function merkleRootHex(hashes: string[]): string | null {
   if (hashes.length === 0) return null;
   let layer: Buffer<ArrayBufferLike>[] = hashes.map((h) => Buffer.from(h, 'hex'));
@@ -406,17 +414,17 @@ app.get(['/ready', '/readyz'], async (_req, res) => {
 });
 
 app.get('/build-info', (_req, res) => {
+  const buildHash = gitSha || 'unknown';
+  const buildTimestamp = builtAtIso || 'unknown';
+  const environment = environmentName;
   res.json({
+    buildHash,
+    buildTimestamp,
+    environment,
     commit: gitSha,
     builtAt: builtAtIso,
-    environment: environmentName,
-    gitSha:
-      gitSha ||
-      process.env.GIT_SHA ||
-      process.env.VERCEL_GIT_COMMIT_SHA ||
-      process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ||
-      'unknown',
-    buildTime: builtAtIso || process.env.BUILD_TIME || process.env.VERCEL_BUILD_TIME || 'unknown',
+    gitSha: buildHash,
+    buildTime: buildTimestamp,
     version: process.env.APP_VERSION || '1.0.0',
   });
 });
@@ -513,20 +521,8 @@ app.post(
 );
 
 app.get('/audit/summary', async (_req, res) => {
-  const [lastIssue, lastVerify, lastRevoke, recent, eventCount] = await Promise.all([
-    prisma.auditEvent.findFirst({
-      where: { type: 'ISSUE_CREDENTIAL' },
-      orderBy: { createdAt: 'desc' },
-    }),
-    prisma.auditEvent.findFirst({
-      where: { type: 'VERIFY_PRESENTATION' },
-      orderBy: { createdAt: 'desc' },
-    }),
-    prisma.auditEvent.findFirst({
-      where: { type: 'REVOKE_CREDENTIAL' },
-      orderBy: { createdAt: 'desc' },
-    }),
-    prisma.auditEvent.findMany({ orderBy: { createdAt: 'desc' }, take: 25 }),
+  const [recent, eventCount] = await Promise.all([
+    prisma.auditEvent.findMany({ orderBy: { createdAt: 'desc' }, take: 10 }),
     prisma.auditEvent.count(),
   ]);
 
@@ -535,23 +531,79 @@ app.get('/audit/summary', async (_req, res) => {
   const latest = recent[0] || null;
 
   res.json({
-    lastEvent: latest
-      ? {
-          type: latest.type,
-          timestamp: latest.createdAt?.toISOString?.() ?? null,
-        }
-      : null,
-    eventCount,
     latestHash: latest?.hash ?? null,
-    lastCredentialIssuanceHash: lastIssue?.hash ?? null,
-    lastCredentialIssuanceAt: lastIssue?.createdAt?.toISOString?.() ?? null,
-    lastVerificationHash: lastVerify?.hash ?? null,
-    lastVerificationAt: lastVerify?.createdAt?.toISOString?.() ?? null,
-    lastRevocationHash: lastRevoke?.hash ?? null,
-    lastRevocationAt: lastRevoke?.createdAt?.toISOString?.() ?? null,
     merkleRoot: root,
+    auditEventCount: eventCount,
     recentCount: recent.length,
     anchorReference: process.env.AUDIT_ANCHOR_REFERENCE || null,
+  });
+});
+
+app.get('/on-status', async (_req, res) => {
+  const reasons: string[] = [];
+  const buildHash = gitSha || 'unknown';
+
+  if (!buildHash || buildHash === 'unknown') {
+    reasons.push('build_info_unavailable');
+  }
+
+  const matcha = String(process.env.MATCHA || '').trim();
+  if (!matcha) {
+    reasons.push('matcha_missing');
+  }
+
+  const [lastAudit, lastIssued] = await Promise.all([
+    prisma.auditEvent.findFirst({ orderBy: { createdAt: 'desc' } }),
+    prisma.auditEvent.findFirst({
+      where: { type: { in: ['ISSUE_CREDENTIAL', 'credential_issued'] } },
+      orderBy: { createdAt: 'desc' },
+    }),
+  ]);
+
+  if (!lastAudit) {
+    reasons.push('audit_log_empty');
+  } else {
+    const ageMs = Date.now() - lastAudit.createdAt.getTime();
+    if (ageMs > 24 * 60 * 60 * 1000) {
+      reasons.push('audit_event_stale');
+    }
+  }
+
+  if (!lastIssued) {
+    reasons.push('no_credential_issued');
+  } else if (!lastIssued.credentialId) {
+    reasons.push('credential_id_missing');
+  } else {
+    const credentialId = lastIssued.credentialId;
+    const lastValidated = await prisma.auditEvent.findFirst({
+      where: {
+        type: { in: ['VERIFY_PRESENTATION', 'credential_validated'] },
+        credentialId,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!lastValidated || lastValidated.createdAt < lastIssued.createdAt) {
+      reasons.push('credential_not_validated');
+    } else {
+      const followup = await prisma.auditEvent.findFirst({
+        where: {
+          type: { in: ['wallet_viewed', 'job_action'] },
+          credentialId,
+          createdAt: { gte: lastValidated.createdAt },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (!followup) {
+        reasons.push('credential_not_audited');
+      }
+    }
+  }
+
+  return res.json({
+    isOn: reasons.length === 0,
+    reasons,
   });
 });
 
@@ -850,6 +902,11 @@ app.post(
       userId: user.id,
       metadata: jwtPayload,
     });
+    await writeOnEvent({
+      type: 'credential_issued',
+      credentialId: externalId,
+      metadata: { auditRef: audit.hash },
+    });
 
     // Mirror issuance into the network graph when configured (fail-soft).
     try {
@@ -975,6 +1032,30 @@ app.post(
 );
 
 app.post(
+  '/jobs/action',
+  body('credentialId').isString().withMessage('credentialId is required'),
+  body('action').isString().withMessage('action is required'),
+  validateRequest,
+  async (req: Request, res: Response) => {
+    const { credentialId, action, metadata } = req.body as {
+      credentialId: string;
+      action: string;
+      metadata?: Record<string, unknown>;
+    };
+    const { externalId } = normalizeCredentialId(credentialId);
+    if (!externalId) return res.status(400).json({ error: 'credentialId is required' });
+
+    const audit = await writeOnEvent({
+      type: 'job_action',
+      credentialId: externalId,
+      metadata: { action, ...(metadata ?? {}) },
+    });
+
+    return res.json({ success: true, auditRef: audit.hash });
+  },
+);
+
+app.post(
   '/verifier/presentation',
   body('credentialId').isString().withMessage('credentialId is required'),
   body('nonce').isString().withMessage('nonce is required'),
@@ -1024,6 +1105,13 @@ app.post(
         status,
       },
     });
+    if (!revoked) {
+      await writeOnEvent({
+        type: 'credential_validated',
+        credentialId: externalId,
+        metadata: { auditRef: audit.hash, status },
+      });
+    }
 
     return res.status(200).json({
       valid: !revoked,
@@ -1053,6 +1141,11 @@ app.get(
     });
 
     const status = lastRevoke ? 'revoked' : 'valid';
+    await writeOnEvent({
+      type: 'wallet_viewed',
+      credentialId: externalId,
+      metadata: { status },
+    });
     return res.json({
       credentialId: externalId,
       status,
