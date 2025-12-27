@@ -11,12 +11,14 @@ datasource db {
 }
 
 model User {
-  id          Int          @id @default(autoincrement())
-  email       String       @unique
-  name        String
-  passwordHash String?
-  credentials Credential[]
-  jobs        Job[]
+  id                   Int          @id @default(autoincrement())
+  email                String       @unique
+  name                 String
+  passwordHash         String?
+  deletionRequestedAt  DateTime?
+  deletionErasedAt     DateTime?
+  credentials          Credential[]
+  jobs                 Job[]
 }
 
 model Credential {

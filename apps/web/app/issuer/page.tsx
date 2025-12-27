@@ -24,6 +24,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useSession } from '@/contexts/SessionContext';
 import { useToast } from '@/hooks/use-toast';
 import { addEvent } from '@/lib/event-cache';
+import { getReasonOptionsForPolicy, getRevocationPolicyView } from '@/lib/revocation-policies';
 import {
   AlertTriangle,
   CheckCircle,
@@ -67,10 +68,18 @@ export default function IssuerPage() {
   // Revoke form state
   const [revokeForm, setRevokeForm] = useState({
     credentialId: '',
-    reason: '',
+    reasonCode: '',
+    explanation: '',
   });
 
   const { toast } = useToast();
+  const canViewExplanation = session?.roles.includes('issuer') ?? false;
+
+  const selectedCredential = credentials.find((credential) => {
+    return credential.id === revokeForm.credentialId;
+  });
+  const revocationPolicy = getRevocationPolicyView(selectedCredential?.type);
+  const reasonOptions = getReasonOptionsForPolicy(revocationPolicy);
 
   // Load attestation requests
   useEffect(() => {
@@ -264,7 +273,9 @@ export default function IssuerPage() {
         },
         body: JSON.stringify({
           credentialId: revokeForm.credentialId,
-          reason: revokeForm.reason,
+          reason: revokeForm.reasonCode,
+          reasonCode: revokeForm.reasonCode,
+          explanation: revokeForm.explanation,
         }),
       });
 
@@ -288,14 +299,16 @@ export default function IssuerPage() {
         timestamp: new Date().toISOString(),
         auditRef: data.auditRef,
         details: {
-          reason: revokeForm.reason,
+          reason: revokeForm.reasonCode,
+          explanation: canViewExplanation ? revokeForm.explanation : undefined,
         },
       });
 
       // Reset form
       setRevokeForm({
         credentialId: '',
-        reason: '',
+        reasonCode: '',
+        explanation: '',
       });
 
       toast({
@@ -554,7 +567,12 @@ export default function IssuerPage() {
                             <Select
                               value={revokeForm.credentialId}
                               onValueChange={(value) =>
-                                setRevokeForm((prev) => ({ ...prev, credentialId: value }))
+                                setRevokeForm((prev) => ({
+                                  ...prev,
+                                  credentialId: value,
+                                  reasonCode: '',
+                                  explanation: '',
+                                }))
                               }
                             >
                               <SelectTrigger className="mt-1">
@@ -573,19 +591,48 @@ export default function IssuerPage() {
                           </div>
 
                           <div>
-                            <Label htmlFor="reason">Reason for Revocation *</Label>
-                            <Textarea
-                              id="reason"
-                              placeholder="Enter the reason for revoking this credential"
-                              value={revokeForm.reason}
-                              onChange={(e) =>
-                                setRevokeForm((prev) => ({ ...prev, reason: e.target.value }))
+                            <Label htmlFor="reasonCode">Revocation Reason Code *</Label>
+                            <Select
+                              value={revokeForm.reasonCode}
+                              onValueChange={(value) =>
+                                setRevokeForm((prev) => ({ ...prev, reasonCode: value }))
                               }
-                              required
-                              className="mt-1"
-                              rows={3}
-                            />
+                            >
+                              <SelectTrigger className="mt-1">
+                                <SelectValue placeholder="Select a reason code" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {reasonOptions.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <p className="mt-2 text-xs text-gray-500">
+                              Approver: {revocationPolicy.approver} · SLA {revocationPolicy.slaHours}
+                              h
+                            </p>
                           </div>
+
+                          {canViewExplanation && (
+                            <div>
+                              <Label htmlFor="explanation">Revocation Explanation (Authorized)</Label>
+                              <Textarea
+                                id="explanation"
+                                placeholder="Add any supporting explanation for governance audit..."
+                                value={revokeForm.explanation}
+                                onChange={(e) =>
+                                  setRevokeForm((prev) => ({ ...prev, explanation: e.target.value }))
+                                }
+                                className="mt-1"
+                                rows={3}
+                              />
+                              <p className="mt-2 text-xs text-gray-500">
+                                Explanation is visible to authorized reviewers only.
+                              </p>
+                            </div>
+                          )}
 
                           <Alert variant="destructive">
                             <AlertTriangle className="h-4 w-4" />
@@ -599,7 +646,7 @@ export default function IssuerPage() {
                             type="submit"
                             variant="destructive"
                             className="w-full"
-                            disabled={loading || !revokeForm.credentialId || !revokeForm.reason}
+                            disabled={loading || !revokeForm.credentialId || !revokeForm.reasonCode}
                           >
                             {loading ? (
                               <>

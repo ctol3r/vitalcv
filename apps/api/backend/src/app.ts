@@ -19,9 +19,16 @@ import { errorHandler } from './middleware/errorHandler';
 import { validateRequest } from './middleware/validateRequest';
 import { log, reqLogFields } from './obs/logger';
 import { requestIdMiddleware, type RequestWithId } from './obs/requestId';
+import {
+  evaluateRevocationPolicy,
+  normalizeRevocationReason,
+  type RevocationApprover,
+} from './registry/revocationPolicies';
+import privacyRouter from './routes/privacy';
 
 const app = express();
 const bootedAtIso = new Date().toISOString();
+const REVOCATION_EVENT_TYPES = ['REVOKE_CREDENTIAL', 'CREDENTIAL_REVOKED'] as const;
 
 app.disable('x-powered-by');
 
@@ -62,6 +69,8 @@ app.use((req: RequestWithId, res, next) => {
   });
   next();
 });
+
+app.use('/privacy', privacyRouter);
 
 function sha256Hex(input: string): string {
   return crypto.createHash('sha256').update(input).digest('hex');
@@ -193,6 +202,26 @@ function normalizeCredentialId(raw: string): { externalId: string; dbId?: number
   return { externalId: trimmed };
 }
 
+function getActorContext(
+  req: Request,
+  fallbackRole?: RevocationApprover,
+): { actorId: string; actorRole: string } {
+  const headerValue = (value: string | string[] | undefined) =>
+    Array.isArray(value) ? value[0] : value;
+  const actorId =
+    headerValue(req.headers['x-actor-id']) ||
+    headerValue(req.headers['x-user-id']) ||
+    headerValue(req.headers['x-requested-by']) ||
+    headerValue(req.headers['authorization']) ||
+    'anonymous';
+  const actorRole =
+    headerValue(req.headers['x-actor-role']) ||
+    headerValue(req.headers['x-actor-type']) ||
+    fallbackRole ||
+    'unknown';
+  return { actorId: String(actorId), actorRole: String(actorRole) };
+}
+
 function signDemoJwt(payload: Record<string, unknown>): string {
   const secret = process.env.JWT_SECRET || 'dev-only-secret';
   return jwt.sign(payload, secret, { expiresIn: '7d' });
@@ -240,6 +269,84 @@ async function writeAuditEvent(event: {
   });
 
   return { hash, createdAt: createdAt.toISOString() };
+}
+
+async function handleCredentialRevocation(
+  req: Request,
+  res: Response,
+  options?: { actorRoleOverride?: RevocationApprover },
+) {
+  const { credentialId, reason, reasonCode, explanation } = req.body as {
+    credentialId: string;
+    reason?: string;
+    reasonCode?: string;
+    explanation?: string;
+  };
+  const { externalId, dbId } = normalizeCredentialId(String(credentialId || ''));
+  if (!externalId) return res.status(400).json({ error: 'credentialId is required' });
+
+  const rawReason = String(reasonCode || reason || '').trim();
+  if (!rawReason) return res.status(400).json({ error: 'reasonCode is required' });
+
+  const normalizedReason = normalizeRevocationReason(rawReason);
+  const { actorId, actorRole } = getActorContext(req, options?.actorRoleOverride);
+
+  const credential = dbId ? await prisma.credential.findUnique({ where: { id: dbId } }) : null;
+  if (dbId && !credential) return res.status(404).json({ error: 'Credential not found' });
+
+  const { policy, satisfied, failureReasons } = evaluateRevocationPolicy({
+    credentialType: credential?.name,
+    reasonCode: normalizedReason,
+    actorRole,
+  });
+
+  const slaDeadlineAt = new Date(Date.now() + policy.slaHours * 60 * 60 * 1000).toISOString();
+  const governanceMetadata = {
+    actor: { id: actorId, role: actorRole },
+    credential: { id: externalId, type: credential?.name ?? null },
+    reason: {
+      code: normalizedReason,
+      raw: normalizedReason ? undefined : rawReason,
+      explanation: explanation?.trim() || undefined,
+    },
+    policy: {
+      allowedReasons: policy.allowedReasons,
+      approver: policy.approver,
+      slaHours: policy.slaHours,
+    },
+    policySatisfied: satisfied,
+    policyFailureReasons: failureReasons,
+    slaDeadlineAt,
+  };
+
+  log('info', 'credential_revocation', {
+    ...reqLogFields(req),
+    credentialId: externalId,
+    actorId,
+    actorRole,
+    policySatisfied: satisfied,
+  });
+
+  const revokeAudit = await writeAuditEvent({
+    type: 'CREDENTIAL_REVOKED',
+    credentialId: externalId,
+    metadata: governanceMetadata,
+  });
+
+  const governanceAudit = await writeAuditEvent({
+    type: 'GOVERNANCE_AUDIT',
+    credentialId: externalId,
+    metadata: governanceMetadata,
+  });
+
+  return res.json({
+    success: true,
+    auditRef: revokeAudit.hash,
+    governanceAuditRef: governanceAudit.hash,
+    policySatisfied: satisfied,
+    policy,
+    slaDeadlineAt,
+  });
 }
 
 function merkleRootHex(hashes: string[]): string | null {
@@ -933,7 +1040,7 @@ app.get('/issuer/credentials', async (_req, res) => {
 
   const externalIds = creds.map((c) => `CRED-${c.id}`);
   const revokedEvents = await prisma.auditEvent.findMany({
-    where: { type: 'REVOKE_CREDENTIAL', credentialId: { in: externalIds } },
+    where: { type: { in: [...REVOCATION_EVENT_TYPES] }, credentialId: { in: externalIds } },
     select: { credentialId: true },
   });
   const revoked = new Set(revokedEvents.map((e) => e.credentialId).filter(Boolean) as string[]);
@@ -953,25 +1060,22 @@ app.get('/issuer/credentials', async (_req, res) => {
 app.post(
   '/issuer/revoke',
   body('credentialId').isString().withMessage('credentialId is required'),
+  body('reasonCode').optional().isString(),
+  body('reason').optional().isString(),
+  body('explanation').optional().isString(),
   validateRequest,
-  async (req: Request, res: Response) => {
-    const { credentialId, reason } = req.body as { credentialId: string; reason?: string };
-    const { externalId, dbId } = normalizeCredentialId(credentialId);
-    if (!externalId) return res.status(400).json({ error: 'credentialId is required' });
+  async (req: Request, res: Response) =>
+    handleCredentialRevocation(req, res, { actorRoleOverride: 'issuer' }),
+);
 
-    if (dbId) {
-      const exists = await prisma.credential.findUnique({ where: { id: dbId } });
-      if (!exists) return res.status(404).json({ error: 'Credential not found' });
-    }
-
-    const audit = await writeAuditEvent({
-      type: 'REVOKE_CREDENTIAL',
-      credentialId: externalId,
-      metadata: { reason: reason || null },
-    });
-
-    return res.json({ success: true, auditRef: audit.hash });
-  },
+app.post(
+  '/api/credentials/revoke',
+  body('credentialId').isString().withMessage('credentialId is required'),
+  body('reasonCode').optional().isString(),
+  body('reason').optional().isString(),
+  body('explanation').optional().isString(),
+  validateRequest,
+  async (req: Request, res: Response) => handleCredentialRevocation(req, res),
 );
 
 app.post(
@@ -1007,7 +1111,7 @@ app.post(
     }
 
     const lastRevoke = await prisma.auditEvent.findFirst({
-      where: { type: 'REVOKE_CREDENTIAL', credentialId: externalId },
+      where: { type: { in: [...REVOCATION_EVENT_TYPES] }, credentialId: externalId },
       orderBy: { createdAt: 'desc' },
     });
     const revoked = Boolean(lastRevoke);
@@ -1048,7 +1152,7 @@ app.get(
     if (!credential) return res.status(404).json({ credentialId: externalId, status: 'unknown' });
 
     const lastRevoke = await prisma.auditEvent.findFirst({
-      where: { type: 'REVOKE_CREDENTIAL', credentialId: externalId },
+      where: { type: { in: [...REVOCATION_EVENT_TYPES] }, credentialId: externalId },
       orderBy: { createdAt: 'desc' },
     });
 
