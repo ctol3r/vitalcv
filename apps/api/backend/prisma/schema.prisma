@@ -44,3 +44,23 @@ model Job {
   user   User   @relation(fields: [userId], references: [id])
   userId Int
 }
+
+model TrustEdge {
+  id           Int      @id @default(autoincrement())
+  edgeType     String
+  fromActor    String
+  fromRole     String
+  toActor      String
+  toRole       String
+  credentialId String?
+  evidenceHash String?
+  createdAt    DateTime @default(now())
+}
+
+model TrustSnapshot {
+  id        Int      @id @default(autoincrement())
+  rootHash  String
+  edgeCount Int
+  note      String?
+  createdAt DateTime @default(now())
+}

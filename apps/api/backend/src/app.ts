@@ -19,6 +19,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { validateRequest } from './middleware/validateRequest';
 import { log, reqLogFields } from './obs/logger';
 import { requestIdMiddleware, type RequestWithId } from './obs/requestId';
+import { listTrustEdges, listTrustSnapshots, recordTrustEdge } from './trust-graph/models';
 
 const app = express();
 const bootedAtIso = new Date().toISOString();
@@ -867,6 +868,23 @@ app.post(
       });
     }
 
+    try {
+      await recordTrustEdge({
+        edgeType: 'ISSUES',
+        fromActor: issuer,
+        fromRole: 'ISSUER',
+        toActor: externalId,
+        toRole: 'CREDENTIAL',
+        credentialId: externalId,
+        evidenceHash: audit.hash,
+      });
+    } catch (e) {
+      log('warn', 'trust_edge_issue_failed', {
+        credentialId: externalId,
+        error: String(e instanceof Error ? e.message : e),
+      });
+    }
+
     return res.status(200).json({
       credentialId: externalId,
       jwt: jwtToken,
@@ -924,6 +942,39 @@ app.get('/graph/analytics/specialty-density', async (req, res) => {
   return res.json({ rows });
 });
 
+// --- Trust graph (issuer ↔ verifier ↔ regulator) ---
+app.get('/trust-graph/edges', async (req, res) => {
+  const limit = Number(req.query.limit || 100);
+  const edges = await listTrustEdges(Number.isFinite(limit) ? limit : 100);
+  return res.json({ edges });
+});
+
+app.get('/trust-graph/snapshots', async (req, res) => {
+  const limit = Number(req.query.limit || 10);
+  const snapshots = await listTrustSnapshots(Number.isFinite(limit) ? limit : 10);
+  return res.json({ snapshots });
+});
+
+app.get('/trust-graph/status', async (_req, res) => {
+  const [latestSnapshot, edgeCount] = await Promise.all([
+    listTrustSnapshots(1).then((s) => s[0] || null),
+    prisma.trustEdge.count(),
+  ]);
+
+  return res.json({
+    edges: edgeCount,
+    latestSnapshot: latestSnapshot
+      ? {
+          id: latestSnapshot.id,
+          createdAt: latestSnapshot.createdAt,
+          rootHash: latestSnapshot.rootHash,
+          edgeCount: latestSnapshot.edgeCount,
+          note: latestSnapshot.note,
+        }
+      : null,
+  });
+});
+
 app.get('/issuer/credentials', async (_req, res) => {
   const creds = await prisma.credential.findMany({
     orderBy: { issuedAt: 'desc' },
@@ -959,9 +1010,10 @@ app.post(
     const { externalId, dbId } = normalizeCredentialId(credentialId);
     if (!externalId) return res.status(400).json({ error: 'credentialId is required' });
 
-    if (dbId) {
-      const exists = await prisma.credential.findUnique({ where: { id: dbId } });
-      if (!exists) return res.status(404).json({ error: 'Credential not found' });
+    const existingCredential =
+      dbId && (await prisma.credential.findUnique({ where: { id: dbId } }));
+    if (dbId && !existingCredential) {
+      return res.status(404).json({ error: 'Credential not found' });
     }
 
     const audit = await writeAuditEvent({
@@ -969,6 +1021,23 @@ app.post(
       credentialId: externalId,
       metadata: { reason: reason || null },
     });
+
+    try {
+      await recordTrustEdge({
+        edgeType: 'REVOKES',
+        fromActor: existingCredential?.issuer || 'issuer:unknown',
+        fromRole: 'ISSUER',
+        toActor: externalId,
+        toRole: 'CREDENTIAL',
+        credentialId: externalId,
+        evidenceHash: audit.hash,
+      });
+    } catch (e) {
+      log('warn', 'trust_edge_revoke_failed', {
+        credentialId: externalId,
+        error: String(e instanceof Error ? e.message : e),
+      });
+    }
 
     return res.json({ success: true, auditRef: audit.hash });
   },
@@ -1001,6 +1070,22 @@ app.post(
           status: 'unknown',
         },
       });
+      try {
+        await recordTrustEdge({
+          edgeType: 'VERIFIES',
+          fromActor: audience,
+          fromRole: 'VERIFIER',
+          toActor: externalId,
+          toRole: 'CREDENTIAL',
+          credentialId: externalId,
+          evidenceHash: audit.hash,
+        });
+      } catch (e) {
+        log('warn', 'trust_edge_verify_failed', {
+          credentialId: externalId,
+          error: String(e instanceof Error ? e.message : e),
+        });
+      }
       return res
         .status(200)
         .json({ valid: false, status: 'unknown', auditRef: audit.hash, reason: 'Not found' });
@@ -1024,6 +1109,23 @@ app.post(
         status,
       },
     });
+
+    try {
+      await recordTrustEdge({
+        edgeType: 'VERIFIES',
+        fromActor: audience,
+        fromRole: 'VERIFIER',
+        toActor: externalId,
+        toRole: 'CREDENTIAL',
+        credentialId: externalId,
+        evidenceHash: audit.hash,
+      });
+    } catch (e) {
+      log('warn', 'trust_edge_verify_failed', {
+        credentialId: externalId,
+        error: String(e instanceof Error ? e.message : e),
+      });
+    }
 
     return res.status(200).json({
       valid: !revoked,
