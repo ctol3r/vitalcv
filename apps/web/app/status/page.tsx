@@ -25,10 +25,12 @@ function formatTimestamp(iso?: string | null) {
 export default async function StatusPage() {
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
 
-  const [health, build, audit] = await Promise.all([
+  const [health, build, audit, onStatus, onHistory] = await Promise.all([
     getJson(`${backendUrl}/healthz`),
     getJson(`${backendUrl}/build-info`),
     getJson(`${backendUrl}/audit/summary`),
+    getJson(`${backendUrl}/on-status`),
+    getJson(`${backendUrl}/on-history`),
   ]);
 
   const overallOk = health.ok && build.ok && audit.ok;
@@ -38,6 +40,8 @@ export default async function StatusPage() {
   const buildJson = build.json as any;
   const auditJson = audit.json as any;
   const healthJson = health.json as any;
+  const onJson = onStatus.json as any;
+  const onHistoryRows = Array.isArray(onHistory.json) ? onHistory.json : [];
 
   const commit = buildJson?.commit || buildJson?.gitSha;
   const builtAt = buildJson?.builtAt || buildJson?.buildTime;
@@ -53,6 +57,16 @@ export default async function StatusPage() {
   const lastIssuanceAt = auditJson?.lastCredentialIssuanceAt ?? null;
   const lastVerificationAt = auditJson?.lastVerificationAt ?? null;
   const lastRevocationAt = auditJson?.lastRevocationAt ?? null;
+
+  const onIsOn = Boolean(onJson?.isOn);
+  const onPercent =
+    onHistoryRows.length > 0
+      ? Math.round((onHistoryRows.filter((row) => row?.isOn).length / onHistoryRows.length) * 100)
+      : null;
+  const recentFailures = onHistoryRows
+    .filter((row) => Array.isArray(row?.failureReasons) && row.failureReasons.length > 0)
+    .slice(-5)
+    .reverse();
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
@@ -89,6 +103,75 @@ export default async function StatusPage() {
           </div>
         </div>
       </div>
+
+      <section className="mt-8 rounded-lg border p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-block h-2 w-2 rounded-full ${
+                onIsOn ? 'bg-emerald-500' : 'bg-rose-500'
+              }`}
+              aria-hidden="true"
+            />
+            <h2 className="font-semibold">ON Readiness</h2>
+          </div>
+          <span className={onIsOn ? 'text-emerald-600' : 'text-rose-600'}>
+            {onIsOn ? 'ON ✅' : 'OFF ❌'}
+          </span>
+        </div>
+
+        <div className="mt-3 grid gap-4 text-sm md:grid-cols-3">
+          <div>
+            <div className="text-neutral-600 dark:text-neutral-300">Last check</div>
+            <div className="font-mono">{formatTimestamp(onJson?.checkedAt ?? null)}</div>
+          </div>
+          <div>
+            <div className="text-neutral-600 dark:text-neutral-300">ON % (30d)</div>
+            <div className="font-mono">{onPercent != null ? `${onPercent}%` : '—'}</div>
+          </div>
+          <div>
+            <div className="text-neutral-600 dark:text-neutral-300">Recent audits</div>
+            <div className="font-mono">
+              {onJson?.signals?.recentAuditCount != null
+                ? String(onJson.signals.recentAuditCount)
+                : '—'}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <div className="text-xs text-neutral-600 dark:text-neutral-300">ON trend (30 days)</div>
+          <div className="mt-2 flex items-end gap-1">
+            {onHistoryRows.map((row: any) => (
+              <span
+                key={row?.date}
+                title={`${row?.date}: ${row?.isOn ? 'ON' : 'OFF'}`}
+                className={`h-3 w-2 rounded-sm ${
+                  row?.isOn ? 'bg-emerald-500' : 'bg-rose-400'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4 text-xs text-neutral-700 dark:text-neutral-300">
+          <div className="font-semibold">Top recent ON failures</div>
+          {recentFailures.length > 0 ? (
+            <ul className="mt-2 space-y-1">
+              {recentFailures.map((row: any) => (
+                <li key={`failure-${row?.date}`} className="flex flex-wrap gap-2">
+                  <span className="font-mono">{row?.date}</span>
+                  <span>
+                    {(row?.failureReasons || []).join(', ') || 'unknown_failure'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="mt-2 text-neutral-500">No failures reported in the last 30 days.</div>
+          )}
+        </div>
+      </section>
 
       <div className="mt-8 grid gap-6 md:grid-cols-3">
         <section className="rounded-lg border p-4">

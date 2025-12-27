@@ -19,6 +19,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { validateRequest } from './middleware/validateRequest';
 import { log, reqLogFields } from './obs/logger';
 import { requestIdMiddleware, type RequestWithId } from './obs/requestId';
+import { router as onRouter } from './routes/on';
 
 const app = express();
 const bootedAtIso = new Date().toISOString();
@@ -62,6 +63,8 @@ app.use((req: RequestWithId, res, next) => {
   });
   next();
 });
+
+app.use(onRouter);
 
 function sha256Hex(input: string): string {
   return crypto.createHash('sha256').update(input).digest('hex');

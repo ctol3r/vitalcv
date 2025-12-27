@@ -1,0 +1,68 @@
+name: Deploy Guardrails
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      on_override:
+        description: 'Override ON status guard (true/false)'
+        required: false
+        default: 'false'
+
+env:
+  ON_STATUS_URL: ${{ secrets.ON_STATUS_URL }}
+  ON_OVERRIDE: ${{ github.event.inputs.on_override || 'false' }}
+
+jobs:
+  on-status-guard:
+    name: ON Status Guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check ON status
+        run: |
+          if [ -z "$ON_STATUS_URL" ]; then
+            echo "ON_STATUS_URL secret is not set."
+            exit 1
+          fi
+
+          response=$(curl -sS "$ON_STATUS_URL")
+          echo "ON status response: $response"
+
+          if [ "$ON_OVERRIDE" = "true" ]; then
+            echo "Override enabled; skipping ON failure guard."
+            exit 0
+          fi
+
+          export ON_STATUS_RESPONSE="$response"
+          python - <<'PY'
+          import json
+          import os
+          import sys
+
+          response = os.environ.get('ON_STATUS_RESPONSE', '')
+          data = json.loads(response or '{}')
+          is_on = bool(data.get('isOn'))
+          reasons = data.get('failureReasons') or []
+          if not is_on:
+            print('ON status check failed.')
+            print('Failure reasons:', ', '.join(reasons) if reasons else 'none')
+            sys.exit(1)
+          print('ON status check passed.')
+          PY
+
+  deploy-api:
+    name: Deploy API
+    needs: on-status-guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy API
+        run: echo "Deploy API (guarded by ON status)"
+
+  deploy-web:
+    name: Deploy Web
+    needs: on-status-guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Web
+        run: echo "Deploy Web (guarded by ON status)"

@@ -1,0 +1,36 @@
+name: PR Greenlock Checklist
+
+on:
+  pull_request_target:
+    types: [opened]
+
+jobs:
+  greenlock-checklist:
+    name: Post Greenlock Checklist
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Post checklist comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = [
+              '### ✅ Greenlock Checklist',
+              '',
+              '- [ ] Does /on-status return true?',
+              '- [ ] Is build info endpoint reachable?',
+              '- [ ] Has one credential been issued/verified/audited in last 24h?',
+              '- [ ] MATCHA match returns > 0 for at least one user?',
+              '- [ ] No regressions in audit log schema?',
+              '',
+              '_Complete before merge or deployment._',
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
