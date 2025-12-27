@@ -4,6 +4,7 @@ import { body } from 'express-validator';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import path from 'path';
+import employerRoutes from './api/employer/routes';
 import { neo4jConfigured } from './graph/neo4jHttp';
 import {
   ensureGraphSchema,
@@ -1075,6 +1076,8 @@ app.post(
     res.json({ message: 'Credential created' });
   },
 );
+
+app.use('/employer', employerRoutes);
 
 app.use(errorHandler);
 
