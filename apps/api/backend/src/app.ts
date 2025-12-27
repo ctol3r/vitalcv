@@ -19,6 +19,10 @@ import { errorHandler } from './middleware/errorHandler';
 import { validateRequest } from './middleware/validateRequest';
 import { log, reqLogFields } from './obs/logger';
 import { requestIdMiddleware, type RequestWithId } from './obs/requestId';
+import { issueCredential } from './api/credentials/signer';
+import { verifyCredentialJwt } from './api/credentials/verifier';
+import { revocationRouter } from './api/credentials/revocation';
+import { receiptRouter } from './api/credentials/receipt';
 
 const app = express();
 const bootedAtIso = new Date().toISOString();
@@ -264,7 +268,7 @@ function merkleRootHex(hashes: string[]): string | null {
 
 // --- Proof infra endpoints ---
 // Minimal ON-contract health endpoint (keep /healthz for detailed dependency checks)
-app.get('/health', async (_req, res) => {
+app.get(['/health', '/api/health'], async (_req, res) => {
   const dbOk = await withTimeout(
     prisma.$queryRaw`SELECT 1`,
     Number(process.env.HEALTH_DB_TIMEOUT_MS || 800),
@@ -273,14 +277,17 @@ app.get('/health', async (_req, res) => {
     .then(() => true)
     .catch(() => false);
 
-  res.status(dbOk ? 200 : 503).json({
+  const response = {
     status: dbOk ? 'OK' : 'DEGRADED',
     timestamp: new Date().toISOString(),
     gitSha,
-  });
+    requestId: (_req as RequestWithId).requestId,
+  };
+
+  res.status(dbOk ? 200 : 503).json(response);
 });
 
-app.get('/healthz', async (_req, res) => {
+app.get(['/healthz', '/api/healthz'], async (_req, res) => {
   const startedAt = Date.now();
 
   const dbPromise = withTimeout(
@@ -376,6 +383,7 @@ app.get('/healthz', async (_req, res) => {
     status: ok ? 'ok' : 'degraded',
     timestamp: new Date().toISOString(),
     latencyMs: Date.now() - startedAt,
+    requestId: (_req as RequestWithId).requestId,
     checks: {
       db,
       substrate: chain,
@@ -390,7 +398,7 @@ app.get('/healthz', async (_req, res) => {
   });
 });
 
-app.get(['/ready', '/readyz'], async (_req, res) => {
+app.get(['/ready', '/readyz', '/api/ready', '/api/readyz'], async (_req, res) => {
   const startedAt = Date.now();
   const db = await prisma.$queryRaw`SELECT 1`.then(() => true).catch(() => false);
   // For readiness, require DB only; other dependencies are reported in /health but shouldn't block boot.
@@ -398,6 +406,7 @@ app.get(['/ready', '/readyz'], async (_req, res) => {
   res.status(ok ? 200 : 503).json({
     status: ok ? 'ready' : 'not_ready',
     timestamp: new Date().toISOString(),
+    requestId: (_req as RequestWithId).requestId,
     latencyMs: Date.now() - startedAt,
     services: {
       database: db,
@@ -420,6 +429,75 @@ app.get('/build-info', (_req, res) => {
     version: process.env.APP_VERSION || '1.0.0',
   });
 });
+
+app.post(
+  '/api/credentials/issue',
+  body('subjectId').isString().withMessage('subjectId is required'),
+  body('issuerId').isString().withMessage('issuerId is required'),
+  body('claims').optional().isObject(),
+  body('expiresAt').optional().isISO8601(),
+  validateRequest,
+  async (req: RequestWithId, res: Response) => {
+    const { subjectId, issuerId, claims, expiresAt, credentialId } = req.body as Record<
+      string,
+      any
+    >;
+
+    try {
+      const { credential, auditRef } = await issueCredential({
+        subjectId,
+        issuerId,
+        claims,
+        expiresAt,
+        credentialId,
+        requestId: req.requestId,
+      });
+
+      return res.status(201).json({
+        credentialId: credential.id,
+        jwt: credential.jwt,
+        proofHash: credential.proofHash,
+        status: credential.status,
+        issuedAt: credential.issuedAt,
+        expiresAt: credential.expiresAt,
+        auditRef,
+        requestId: req.requestId,
+      });
+    } catch (err) {
+      return res.status(500).json({
+        error: 'Failed to issue credential',
+        detail: err instanceof Error ? err.message : String(err),
+        requestId: req.requestId,
+      });
+    }
+  },
+);
+
+app.post(
+  '/api/credentials/verify',
+  body('jwt').isString().withMessage('jwt is required'),
+  validateRequest,
+  async (req: RequestWithId, res: Response) => {
+    const { jwt: token } = req.body as { jwt: string };
+    try {
+      const verification = await verifyCredentialJwt(token, req.requestId);
+      return res.status(verification.valid ? 200 : 400).json({
+        ...verification,
+        requestId: req.requestId,
+      });
+    } catch (err) {
+      return res.status(500).json({
+        valid: false,
+        error: 'Verification failed',
+        detail: err instanceof Error ? err.message : String(err),
+        requestId: req.requestId,
+      });
+    }
+  },
+);
+
+app.use('/api', revocationRouter);
+app.use('/api', receiptRouter);
 
 // --- World ID (Phase 1: AuthN only) ---
 app.get('/worldid/status', async (_req, res) => {

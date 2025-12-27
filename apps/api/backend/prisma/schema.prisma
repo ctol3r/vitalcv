@@ -44,3 +44,33 @@ model Job {
   user   User   @relation(fields: [userId], references: [id])
   userId Int
 }
+
+enum CredentialStatus {
+  active
+  revoked
+  expired
+}
+
+model VerifiableCredential {
+  id         String             @id
+  subjectId  String
+  issuerId   String
+  jwt        String
+  status     CredentialStatus   @default(active)
+  issuedAt   DateTime           @default(now())
+  expiresAt  DateTime?
+  proofHash  String
+  revocations CredentialRevocation[]
+}
+
+model CredentialRevocation {
+  id           Int      @id @default(autoincrement())
+  credentialId String
+  reason       String?
+  revokedAt    DateTime @default(now())
+  revokedBy    String?
+
+  credential VerifiableCredential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+
+  @@index([credentialId])
+}
