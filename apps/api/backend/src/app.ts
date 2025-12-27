@@ -19,6 +19,8 @@ import { errorHandler } from './middleware/errorHandler';
 import { validateRequest } from './middleware/validateRequest';
 import { log, reqLogFields } from './obs/logger';
 import { requestIdMiddleware, type RequestWithId } from './obs/requestId';
+import { issuancePolicies } from './registry/issuancePolicies';
+import { complianceRouter } from './routes/compliance';
 
 const app = express();
 const bootedAtIso = new Date().toISOString();
@@ -29,6 +31,7 @@ app.disable('x-powered-by');
 app.use(requestIdMiddleware);
 
 app.use(express.json());
+app.use(complianceRouter);
 
 // Basic CORS for local dev + simple deployments (browser calls backend directly from apps/web)
 app.use((req, res, next) => {
@@ -419,6 +422,10 @@ app.get('/build-info', (_req, res) => {
     buildTime: builtAtIso || process.env.BUILD_TIME || process.env.VERCEL_BUILD_TIME || 'unknown',
     version: process.env.APP_VERSION || '1.0.0',
   });
+});
+
+app.get('/policies.json', (_req, res) => {
+  res.json(issuancePolicies);
 });
 
 // --- World ID (Phase 1: AuthN only) ---

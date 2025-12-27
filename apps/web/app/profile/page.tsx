@@ -244,6 +244,37 @@ export default function ProfilePage() {
     }
   }
 
+  const handleComplianceExport = async () => {
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE || ""
+      const clinicianId = profileId && /^\d+$/.test(profileId) ? profileId : "1"
+      const url = `${apiBase}/compliance/export?clinicianId=${encodeURIComponent(clinicianId)}&format=csv`
+      const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error(await response.text())
+      }
+      const blob = await response.blob()
+      const downloadUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = downloadUrl
+      link.download = `credential-compliance-${clinicianId}.csv`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(downloadUrl)
+      toast({
+        title: "Compliance Packet Ready",
+        description: "Credential compliance packet downloaded",
+      })
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to download compliance packet",
+        variant: "destructive",
+      })
+    }
+  }
+
   const getLicenseStatusConfig = (status: string) => {
     switch (status) {
       case "active":
@@ -437,6 +468,10 @@ export default function ProfilePage() {
               <Button onClick={handleDownloadPDF} variant="outline" size="sm">
                 <Download className="h-4 w-4 mr-2" />
                 Download PDF
+              </Button>
+              <Button onClick={handleComplianceExport} variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Download Credential Compliance Packet
               </Button>
               <Button onClick={handleShareProfile} variant="outline" size="sm">
                 <Share2 className="h-4 w-4 mr-2" />
