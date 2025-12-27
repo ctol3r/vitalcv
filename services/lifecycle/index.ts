@@ -12,6 +12,7 @@ export * from './models/AutoRenewalRules.js';
 export * from './models/Revocation.js';
 export * from './models/RevocationReason.js';
 export * from './models/CredentialFreeze.js';
+export * from './models/CredentialLifecycle.js';
 
 // Constants
 export * from './constants.js';
@@ -31,12 +32,15 @@ export { RenewalNotificationService } from './notifications/renewalNotificationS
 export { RenewalPolicyService } from './policies/renewalPolicyService.js';
 export { CredentialReplacementService } from './replacementService.js';
 export { CredentialFreezeService } from './models/CredentialFreeze.js';
+export { RenewalInstructionService } from './api/renewals/service.js';
 
 // Audit
 export { RevocationAuditLogService } from './audit/revocationAuditLog.js';
+export { RenewalGuidanceAuditService } from './audit/renewalGuidanceAudit.js';
 
 // Notifications
 export { RevocationNotificationService } from './notifications/revocationNotificationService.js';
+export { emitPulse, onPulse, pulseEmitter } from './notifications/pulse.js';
 
 // Workflows
 export { RenewalApprovalWorkflowService } from './workflows/renewalApprovalWorkflow.js';
@@ -46,4 +50,3 @@ export { ExpiringCredentialsReportService } from './reports/expiringCredentialsR
 
 // API
 export { createCredentialLifecycleRouter } from './api/credentialLifecycleAPI.js';
-

@@ -14,6 +14,7 @@ import {
   PolicyEvaluationResult,
   policyFramework,
 } from '../framework/policyFramework.js';
+import { RenewalInstructionService } from '../../lifecycle/api/renewals/service.js';
 
 const logger = createLogger({ service: 'credential-lifecycle-automation' });
 const prisma = new PrismaClient();
@@ -51,7 +52,12 @@ export interface DecisionLog {
  * Credential lifecycle event
  */
 export interface LifecycleEvent {
-  type: 'STATE_CHANGE' | 'POLICY_CHECK' | 'CONSENT_REQUIRED' | 'OVERRIDE_REQUIRED';
+  type:
+    | 'STATE_CHANGE'
+    | 'POLICY_CHECK'
+    | 'CONSENT_REQUIRED'
+    | 'OVERRIDE_REQUIRED'
+    | 'RENEWAL_INSTRUCTIONS';
   credentialId: string;
   action: AutonomousActionType;
   state: CredentialLifecycleState;
@@ -65,6 +71,7 @@ export interface LifecycleEvent {
 export class CredentialLifecycleAutomation {
   private decisionLogs: Map<string, DecisionLog[]> = new Map();
   private eventHandlers: Map<string, ((event: LifecycleEvent) => Promise<void>)[]> = new Map();
+  private renewalInstructionService = new RenewalInstructionService(prisma);
 
   /**
    * Initialize the automation engine
@@ -177,6 +184,25 @@ export class CredentialLifecycleAutomation {
       timestamp: new Date(),
       details: { credential, decisionLog },
     });
+
+    // Pre-compute renewal guidance and surface it through lifecycle events
+    try {
+      const renewalInstructions =
+        await this.renewalInstructionService.getRenewalInstructions(credential.id);
+      await this.emitEvent({
+        type: 'RENEWAL_INSTRUCTIONS',
+        credentialId: credential.id,
+        action: AutonomousActionType.ISSUE,
+        state: CredentialLifecycleState.ACTIVE,
+        timestamp: new Date(),
+        details: { renewalInstructions },
+      });
+    } catch (error) {
+      logger.warn('Failed to generate renewal instructions during issuance', {
+        credentialId: credential.id,
+        error,
+      });
+    }
 
     return {
       credentialId: credential.id,
@@ -571,6 +597,28 @@ export class CredentialLifecycleAutomation {
   }
 
   /**
+   * Expose renewal guidance for downstream orchestrations
+   */
+  async getRenewalInstructions(
+    credentialId: string
+  ): Promise<{ credentialId: string; instructions: Record<string, unknown> }> {
+    const instructions = await this.renewalInstructionService.getRenewalInstructions(
+      credentialId
+    );
+
+    await this.emitEvent({
+      type: 'RENEWAL_INSTRUCTIONS',
+      credentialId,
+      action: AutonomousActionType.UPDATE,
+      state: CredentialLifecycleState.ACTIVE,
+      timestamp: new Date(),
+      details: { renewalInstructions: instructions },
+    });
+
+    return { credentialId, instructions };
+  }
+
+  /**
    * Emit lifecycle event
    */
   private async emitEvent(event: LifecycleEvent): Promise<void> {
@@ -600,4 +648,3 @@ export class CredentialLifecycleAutomation {
 
 // Export singleton instance
 export const lifecycleAutomation = new CredentialLifecycleAutomation();
-
