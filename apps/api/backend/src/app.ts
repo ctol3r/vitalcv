@@ -19,6 +19,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { validateRequest } from './middleware/validateRequest';
 import { log, reqLogFields } from './obs/logger';
 import { requestIdMiddleware, type RequestWithId } from './obs/requestId';
+import { onStatusHandler } from './api/system/on-status';
 
 const app = express();
 const bootedAtIso = new Date().toISOString();
@@ -389,6 +390,9 @@ app.get('/healthz', async (_req, res) => {
     },
   });
 });
+
+// ON-state aggregation (non-mocking, anchors-aware)
+app.get('/system/on-status', onStatusHandler);
 
 app.get(['/ready', '/readyz'], async (_req, res) => {
   const startedAt = Date.now();
