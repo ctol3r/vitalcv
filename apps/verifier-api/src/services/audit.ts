@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 /**
  * Audit Service for Verifier API
  * B110B-EUDI-018: Proper audit logging for EUDI wallet enforcement
@@ -14,6 +16,19 @@ interface AuditEventData {
   headers?: Record<string, string | undefined>;
   timestamp: string;
   [key: string]: any;
+}
+
+interface VerificationEventInput {
+  credentialId: string;
+  verifierId: string;
+  valid: boolean;
+  vc: unknown;
+  issuer?: string;
+  subject?: string;
+}
+
+function sha256Hex(payload: string): string {
+  return crypto.createHash('sha256').update(payload).digest('hex');
 }
 
 /**
@@ -66,3 +81,19 @@ export async function auditLog(
   }
 }
 
+export async function logVerificationEvent(input: VerificationEventInput): Promise<void> {
+  const createdAt = new Date();
+  const vcHash = sha256Hex(JSON.stringify(input.vc));
+  await auditLog('VERIFY_CREDENTIAL', {
+    reason: 'credential_verification',
+    path: '/verify/credential',
+    method: 'POST',
+    timestamp: createdAt.toISOString(),
+    credentialId: input.credentialId,
+    verifierId: input.verifierId,
+    valid: input.valid,
+    issuer: input.issuer,
+    subject: input.subject,
+    vcHash,
+  });
+}
