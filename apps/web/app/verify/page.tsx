@@ -61,6 +61,9 @@ export default function VerifyPage() {
   const pollCountRef = useRef(0);
   const { toast } = useToast();
 
+  const resolveConsentScope = (mode: 'plain' | 'bbs' | 'zk') =>
+    mode === 'plain' ? ['full credential'] : ['status only'];
+
   useEffect(() => {
     setNonce(Math.random().toString(36).substring(2, 15));
   }, []);
@@ -106,6 +109,7 @@ export default function VerifyPage() {
           audience: audience.trim(),
           privacyMode: privacyMode !== 'plain',
           disclosureType: privacyMode,
+          scope: resolveConsentScope(privacyMode),
         }),
       });
 
@@ -192,6 +196,7 @@ export default function VerifyPage() {
           audience: audience.trim(),
           privacyMode: privacyMode !== 'plain',
           disclosureType: privacyMode,
+          scope: resolveConsentScope(privacyMode),
         }),
         signal: controller.signal,
       });
@@ -372,6 +377,7 @@ export default function VerifyPage() {
           audience: audience.trim(),
           privacyMode: privacyMode !== 'plain',
           disclosureType: privacyMode,
+          scope: resolveConsentScope(privacyMode),
         }),
       });
 

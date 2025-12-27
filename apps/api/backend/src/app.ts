@@ -193,6 +193,43 @@ function normalizeCredentialId(raw: string): { externalId: string; dbId?: number
   return { externalId: trimmed };
 }
 
+function normalizeConsentScope(scope: unknown): string[] | null {
+  if (Array.isArray(scope)) {
+    const cleaned = scope.map((entry) => String(entry).trim()).filter(Boolean);
+    return cleaned.length ? cleaned : null;
+  }
+  if (typeof scope === 'string' && scope.trim()) return [scope.trim()];
+  return null;
+}
+
+function parseClinicianId(raw: unknown): number | undefined {
+  if (typeof raw === 'number' && Number.isInteger(raw)) return raw;
+  if (typeof raw === 'string' && raw.trim()) {
+    const parsed = Number(raw);
+    if (Number.isInteger(parsed)) return parsed;
+  }
+  return undefined;
+}
+
+function normalizeAuditEventType(type: string): string {
+  switch (type) {
+    case 'ISSUE_CREDENTIAL':
+      return 'issuance';
+    case 'VERIFY_PRESENTATION':
+      return 'verification';
+    case 'REVOKE_CREDENTIAL':
+      return 'revocation';
+    case 'CONSENT_GIVEN':
+      return 'consent';
+    case 'MATCH_PLACEMENT':
+      return 'match';
+    case 'HIRE_PLACEMENT':
+      return 'hire';
+    default:
+      return type.toLowerCase();
+  }
+}
+
 function signDemoJwt(payload: Record<string, unknown>): string {
   const secret = process.env.JWT_SECRET || 'dev-only-secret';
   return jwt.sign(payload, secret, { expiresIn: '7d' });
@@ -552,6 +589,71 @@ app.get('/audit/summary', async (_req, res) => {
     merkleRoot: root,
     recentCount: recent.length,
     anchorReference: process.env.AUDIT_ANCHOR_REFERENCE || null,
+  });
+});
+
+app.get('/audit/history', async (req, res) => {
+  const clinicianIdRaw = String(req.query.clinicianId || '').trim();
+  const credentialIdRaw = String(req.query.credentialId || '').trim();
+  if (!clinicianIdRaw && !credentialIdRaw) {
+    return res.status(400).json({ error: 'clinicianId or credentialId is required' });
+  }
+
+  const clinicianId = clinicianIdRaw ? parseClinicianId(clinicianIdRaw) : undefined;
+  if (clinicianIdRaw && clinicianId === undefined) {
+    return res.status(400).json({ error: 'clinicianId must be an integer' });
+  }
+
+  const { externalId } = credentialIdRaw ? normalizeCredentialId(credentialIdRaw) : { externalId: '' };
+  if (credentialIdRaw && !externalId) {
+    return res.status(400).json({ error: 'credentialId is required' });
+  }
+
+  const events = await prisma.auditEvent.findMany({
+    where: {
+      ...(externalId ? { credentialId: externalId } : {}),
+      ...(clinicianId ? { userId: clinicianId } : {}),
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  const items = events.map((event) => ({
+    auditRef: event.hash,
+    eventType: normalizeAuditEventType(event.type),
+    type: event.type,
+    credentialId: event.credentialId,
+    clinicianId: event.userId,
+    timestamp: event.createdAt.toISOString(),
+    metadata: event.metadata ?? null,
+  }));
+
+  return res.json({ count: items.length, events: items });
+});
+
+app.get('/consent', async (req, res) => {
+  const clinicianIdRaw = String(req.query.clinicianId || '').trim();
+  const clinicianId = parseClinicianId(clinicianIdRaw);
+  if (!clinicianIdRaw || clinicianId === undefined) {
+    return res.status(400).json({ error: 'clinicianId is required' });
+  }
+
+  const consents = await prisma.auditEvent.findMany({
+    where: { type: 'CONSENT_GIVEN', userId: clinicianId },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return res.json({
+    clinicianId,
+    receipts: consents.map((event) => ({
+      auditRef: event.hash,
+      clinicianId: event.userId,
+      credentialId: event.credentialId,
+      scope: (event.metadata as any)?.scope ?? null,
+      recipient: (event.metadata as any)?.recipient ?? null,
+      timestamp: (event.metadata as any)?.timestamp ?? event.createdAt.toISOString(),
+      revoked: false,
+      revocable: true,
+    })),
   });
 });
 
@@ -989,6 +1091,27 @@ app.post(
     if (!externalId) return res.status(400).json({ error: 'credentialId is required' });
 
     const credential = dbId ? await prisma.credential.findUnique({ where: { id: dbId } }) : null;
+    const consentScope =
+      normalizeConsentScope(req.body?.scope ?? req.body?.fields ?? disclosureType) ?? null;
+    const consentRecipient =
+      typeof req.body?.recipient === 'string' && req.body.recipient.trim()
+        ? req.body.recipient.trim()
+        : audience;
+    const consentTimestamp = new Date().toISOString();
+    const consentClinicianId = credential?.userId ?? parseClinicianId(req.body?.clinicianId);
+    await writeAuditEvent({
+      type: 'CONSENT_GIVEN',
+      credentialId: externalId,
+      userId: consentClinicianId,
+      metadata: {
+        clinicianId: consentClinicianId ?? null,
+        credentialId: externalId,
+        scope: consentScope,
+        recipient: consentRecipient || null,
+        timestamp: consentTimestamp,
+      },
+    });
+
     if (!credential) {
       const audit = await writeAuditEvent({
         type: 'VERIFY_PRESENTATION',
