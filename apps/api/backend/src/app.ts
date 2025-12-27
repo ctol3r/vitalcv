@@ -17,6 +17,7 @@ import {
 import prisma from './graphql/prisma_client';
 import { errorHandler } from './middleware/errorHandler';
 import { validateRequest } from './middleware/validateRequest';
+import { worldIdVerificationMiddleware } from './middleware/worldid';
 import { log, reqLogFields } from './obs/logger';
 import { requestIdMiddleware, type RequestWithId } from './obs/requestId';
 
@@ -45,7 +46,10 @@ app.use((req, res, next) => {
 
   res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization, X-World-Id-Token, World-Id-Token',
+  );
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   return next();
 });
@@ -80,6 +84,10 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
       setTimeout(() => reject(new Error(`${label} timeout after ${ms}ms`)), ms),
     ),
   ]);
+}
+
+function startOfUtcDay(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
 function findRepoRoot(startDir: string): string | null {
@@ -387,6 +395,54 @@ app.get('/healthz', async (_req, res) => {
         configured: Boolean(String(process.env.WORLD_ID_APP_ID || '').trim()),
       },
     },
+  });
+});
+
+app.get('/status', async (_req, res) => {
+  const now = new Date();
+  const today = startOfUtcDay(now);
+  const inSevenDays = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  const [statusGroups, lastSweep, upcoming] = await Promise.all([
+    prisma.credential.groupBy({
+      by: ['status'],
+      _count: { _all: true },
+    }),
+    prisma.auditEvent.findFirst({
+      where: { type: 'CREDENTIAL_LIFECYCLE_SWEEP' },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.credential.findMany({
+      where: {
+        expirationDate: { gte: today, lt: inSevenDays },
+        status: 'active',
+      },
+      select: { id: true, name: true, issuer: true, expirationDate: true },
+      orderBy: { expirationDate: 'asc' },
+      take: 25,
+    }),
+  ]);
+
+  const counts = {
+    active: 0,
+    inactive: 0,
+    revoked: 0,
+  };
+  for (const row of statusGroups) {
+    counts[row.status as keyof typeof counts] = row._count._all;
+  }
+
+  res.json({
+    status: 'ok',
+    timestamp: now.toISOString(),
+    credentials: counts,
+    lastLifecycleSweepAt: lastSweep?.createdAt?.toISOString?.() ?? null,
+    upcomingExpirations: upcoming.map((cred) => ({
+      credentialId: `CRED-${cred.id}`,
+      type: cred.name,
+      issuer: cred.issuer,
+      expirationDate: cred.expirationDate?.toISOString() ?? null,
+    })),
   });
 });
 
@@ -801,7 +857,9 @@ app.post(
   '/issuer/credential',
   body('subjectId').isString().withMessage('subjectId is required'),
   body('type').isString().withMessage('type is required'),
+  body('expiryDate').optional().isISO8601().withMessage('expiryDate must be ISO8601'),
   validateRequest,
+  worldIdVerificationMiddleware,
   async (req: Request, res: Response) => {
     const { subjectId, type, issuingAuthority, expiryDate, licenseNumber, additionalData } =
       req.body as Record<string, any>;
@@ -823,11 +881,16 @@ app.post(
 
     const issuer =
       (issuingAuthority && String(issuingAuthority)) || 'VitalCV Demo Issuer (Non-PHI)';
+    const expirationDate =
+      expiryDate && String(expiryDate).trim() ? new Date(String(expiryDate)) : null;
+
     const credential = await prisma.credential.create({
       data: {
         name: String(type),
         issuer,
         userId: user.id,
+        expirationDate,
+        status: 'active',
       },
     });
 
@@ -848,7 +911,11 @@ app.post(
       type: 'ISSUE_CREDENTIAL',
       credentialId: externalId,
       userId: user.id,
-      metadata: jwtPayload,
+      metadata: {
+        ...jwtPayload,
+        worldIdVerified: Boolean(req.user?.worldIdVerified),
+        worldIdAuditRef: req.user?.worldIdAuditRef ?? null,
+      },
     });
 
     // Mirror issuance into the network graph when configured (fail-soft).
@@ -939,14 +1006,19 @@ app.get('/issuer/credentials', async (_req, res) => {
   const revoked = new Set(revokedEvents.map((e) => e.credentialId).filter(Boolean) as string[]);
 
   return res.json({
-    credentials: creds.map((c) => ({
-      id: `CRED-${c.id}`,
-      type: c.name,
-      holder: c.user?.name || c.user?.email,
-      issuer: c.issuer,
-      issuedDate: c.issuedAt.toISOString(),
-      status: revoked.has(`CRED-${c.id}`) ? 'revoked' : 'active',
-    })),
+    credentials: creds.map((c) => {
+      const externalId = `CRED-${c.id}`;
+      const status = revoked.has(externalId) ? 'revoked' : c.status || 'active';
+      return {
+        id: externalId,
+        type: c.name,
+        holder: c.user?.name || c.user?.email,
+        issuer: c.issuer,
+        issuedDate: c.issuedAt.toISOString(),
+        expirationDate: c.expirationDate?.toISOString() ?? null,
+        status,
+      };
+    }),
   });
 });
 
@@ -962,6 +1034,7 @@ app.post(
     if (dbId) {
       const exists = await prisma.credential.findUnique({ where: { id: dbId } });
       if (!exists) return res.status(404).json({ error: 'Credential not found' });
+      await prisma.credential.update({ where: { id: dbId }, data: { status: 'revoked' } });
     }
 
     const audit = await writeAuditEvent({
@@ -1010,9 +1083,10 @@ app.post(
       where: { type: 'REVOKE_CREDENTIAL', credentialId: externalId },
       orderBy: { createdAt: 'desc' },
     });
-    const revoked = Boolean(lastRevoke);
+    const revoked = Boolean(lastRevoke) || credential.status === 'revoked';
+    const inactive = credential.status === 'inactive';
 
-    const status = revoked ? 'revoked' : 'valid';
+    const status = revoked ? 'revoked' : inactive ? 'inactive' : 'valid';
     const audit = await writeAuditEvent({
       type: 'VERIFY_PRESENTATION',
       credentialId: externalId,
@@ -1026,12 +1100,16 @@ app.post(
     });
 
     return res.status(200).json({
-      valid: !revoked,
+      valid: !(revoked || inactive),
       status,
       auditRef: audit.hash,
       issuer: credential.issuer,
       issuedDate: credential.issuedAt.toISOString(),
-      reason: revoked ? 'Credential revoked' : undefined,
+      reason: revoked
+        ? 'Credential revoked'
+        : inactive
+          ? 'Credential inactive (expired)'
+          : undefined,
     });
   },
 );
@@ -1051,8 +1129,9 @@ app.get(
       where: { type: 'REVOKE_CREDENTIAL', credentialId: externalId },
       orderBy: { createdAt: 'desc' },
     });
-
-    const status = lastRevoke ? 'revoked' : 'valid';
+    const revoked = Boolean(lastRevoke) || credential.status === 'revoked';
+    const inactive = credential.status === 'inactive';
+    const status = revoked ? 'revoked' : inactive ? 'inactive' : 'valid';
     return res.json({
       credentialId: externalId,
       status,
@@ -1060,7 +1139,11 @@ app.get(
       issuedDate: credential.issuedAt.toISOString(),
       lastUpdated: new Date().toISOString(),
       auditRef: lastRevoke?.hash ?? undefined,
-      statusReason: lastRevoke ? 'Credential revoked' : undefined,
+      statusReason: revoked
+        ? 'Credential revoked'
+        : inactive
+          ? 'Credential inactive (expired)'
+          : undefined,
     });
   },
 );
