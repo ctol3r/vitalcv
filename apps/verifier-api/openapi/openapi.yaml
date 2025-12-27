@@ -132,6 +132,90 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /verify/public:
+    get:
+      tags:
+        - Presentations
+      summary: Public Merkle proof verification
+      description: |
+        Recomputes a Merkle root from a proof hash and sibling path and returns validation status.
+        This endpoint is public and does not expose PHI; it only accepts hashes.
+      operationId: verifyPublicProof
+      parameters:
+        - in: query
+          name: proofHash
+          required: true
+          schema:
+            type: string
+            description: Leaf hash in hex encoding
+        - in: query
+          name: root
+          required: true
+          schema:
+            type: string
+            description: Expected Merkle root in hex encoding
+        - in: query
+          name: path
+          required: false
+          schema:
+            type: string
+            description: JSON string or comma-separated list of sibling hashes (optionally prefixed with left:/right:)
+        - in: query
+          name: merkleProof
+          required: false
+          schema:
+            type: string
+            description: Alias for path
+        - in: query
+          name: proof
+          required: false
+          schema:
+            type: string
+            description: Alias for path
+        - in: query
+          name: siblings
+          required: false
+          schema:
+            type: string
+            description: Alias for path
+      responses:
+        '200':
+          description: Merkle verification result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  proofHash:
+                    type: string
+                  expectedRoot:
+                    type: string
+                  computedRoot:
+                    type: string
+                  proofDepth:
+                    type: integer
+                  timestamp:
+                    type: string
+                    format: date-time
+              examples:
+                valid:
+                  summary: Successful Merkle verification
+                  value:
+                    valid: true
+                    proofHash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    expectedRoot: "d59f67cd1de4b0fe5ae7b2db4a36881f3e9d796f388f08c99c03d4ea1b1b304d"
+                    computedRoot: "d59f67cd1de4b0fe5ae7b2db4a36881f3e9d796f388f08c99c03d4ea1b1b304d"
+                    proofDepth: 1
+                    timestamp: "2024-06-01T12:00:00Z"
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
 components:
   schemas:
     VerifierMetadata:
@@ -248,4 +332,3 @@ components:
         timestamp:
           type: string
           format: date-time
-

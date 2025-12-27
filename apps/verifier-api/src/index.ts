@@ -36,6 +36,10 @@ app.use('/eu', eudiRouter);
 import verifyCredentialRouter from './routes/verifyCredential';
 app.use('/verify/credential', verifyCredentialRouter);
 
+// Public Merkle verification (additive path, no PHI)
+import verifyPublicRouter from './routes/verifyPublic';
+app.use('/verify/public', verifyPublicRouter);
+
 // Health check
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'verifier-api' });
@@ -48,4 +52,3 @@ app.listen(PORT, () => {
 });
 
 export default app;
-

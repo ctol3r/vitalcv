@@ -6,11 +6,14 @@ import { describe, it, expect, jest } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
 import verifyCredentialRouter from '../verifyCredential';
+import verifyPublicRouter from '../verifyPublic';
+import { createHash } from 'crypto';
 
 // Create test app
 const app = express();
 app.use(express.json());
 app.use('/', verifyCredentialRouter);
+app.use('/verify/public', verifyPublicRouter);
 
 describe('POST /verify/credential', () => {
   it('should return 400 for missing credential', async () => {
@@ -98,3 +101,45 @@ describe('GET /verify/credential/health', () => {
   });
 });
 
+describe('GET /verify/public', () => {
+  const leaf = 'a'.repeat(64); // hex
+  const sibling = 'b'.repeat(64);
+  const left = Buffer.from(leaf, 'hex');
+  const right = Buffer.from(sibling, 'hex');
+  const root = createHash('sha256').update(Buffer.concat([left, right])).digest('hex');
+
+  it('returns 400 when required params are missing', async () => {
+    const response = await request(app).get('/verify/public');
+    expect(response.status).toBe(400);
+    expect(response.body.valid).toBe(false);
+  });
+
+  it('validates merkle path and returns valid=true on match', async () => {
+    const response = await request(app)
+      .get('/verify/public')
+      .query({
+        proofHash: leaf,
+        root,
+        path: JSON.stringify([{ hash: sibling, position: 'right' }]),
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.valid).toBe(true);
+    expect(response.body.computedRoot).toBe(root);
+    expect(response.body.expectedRoot).toBe(root);
+    expect(response.body.timestamp).toBeDefined();
+  });
+
+  it('returns valid=false when root does not match', async () => {
+    const response = await request(app)
+      .get('/verify/public')
+      .query({
+        proofHash: leaf,
+        root: 'c'.repeat(64),
+        path: JSON.stringify([{ hash: sibling, position: 'right' }]),
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.valid).toBe(false);
+  });
+});
