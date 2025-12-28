@@ -19,6 +19,13 @@ import { errorHandler } from './middleware/errorHandler';
 import { validateRequest } from './middleware/validateRequest';
 import { log, reqLogFields } from './obs/logger';
 import { requestIdMiddleware, type RequestWithId } from './obs/requestId';
+import {
+  getCredentialFormat,
+  getCredentialFormats,
+  resolveCredentialFormat,
+  validateCredentialPayload,
+} from './registry/credentialFormats';
+import { getPslNetworkMap, isPslIssuer, resolvePslTier } from './registry/pslNetwork';
 
 const app = express();
 const bootedAtIso = new Date().toISOString();
@@ -421,6 +428,13 @@ app.get('/build-info', (_req, res) => {
   });
 });
 
+app.get('/formats.json', (_req, res) => {
+  res.json({
+    formats: getCredentialFormats(),
+    generatedAt: new Date().toISOString(),
+  });
+});
+
 // --- World ID (Phase 1: AuthN only) ---
 app.get('/worldid/status', async (_req, res) => {
   const configured = Boolean(String(process.env.WORLD_ID_APP_ID || '').trim());
@@ -801,10 +815,41 @@ app.post(
   '/issuer/credential',
   body('subjectId').isString().withMessage('subjectId is required'),
   body('type').isString().withMessage('type is required'),
+  body('format').optional().isString().withMessage('format must be a string'),
   validateRequest,
   async (req: Request, res: Response) => {
-    const { subjectId, type, issuingAuthority, expiryDate, licenseNumber, additionalData } =
-      req.body as Record<string, any>;
+    const {
+      subjectId,
+      type,
+      issuingAuthority,
+      expiryDate,
+      licenseNumber,
+      additionalData,
+      format,
+      compactType,
+      compactMemberState,
+      compactPrivileges,
+      compactStanding,
+      eudccVersion,
+      eudccIssuer,
+      eudccUvci,
+    } = req.body as Record<string, any>;
+
+    const resolvedFormat = format ? getCredentialFormat(String(format)) : resolveCredentialFormat('us_license');
+    if (!resolvedFormat) {
+      return res.status(400).json({
+        error: 'Unsupported credential format',
+        supportedFormats: getCredentialFormats().map((item) => item.id),
+      });
+    }
+    const validation = validateCredentialPayload(resolvedFormat, req.body || {});
+    if (!validation.valid) {
+      return res.status(400).json({
+        error: 'Missing required fields for format',
+        format: resolvedFormat.id,
+        missingFields: validation.missingFields,
+      });
+    }
 
     const isEmail = typeof subjectId === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(subjectId);
     const email = isEmail
@@ -828,6 +873,7 @@ app.post(
         name: String(type),
         issuer,
         userId: user.id,
+        format: resolvedFormat.id,
       },
     });
 
@@ -837,9 +883,19 @@ app.post(
       subjectId,
       type,
       issuer,
+      format: resolvedFormat.id,
+      formatVersion: resolvedFormat.version,
+      formatExpiryModel: resolvedFormat.expiryModel,
       issuedAt: credential.issuedAt.toISOString(),
       expiryDate: expiryDate || null,
       licenseNumber: licenseNumber || null,
+      compactType: compactType || null,
+      compactMemberState: compactMemberState || null,
+      compactPrivileges: compactPrivileges || null,
+      compactStanding: compactStanding || null,
+      eudccVersion: eudccVersion || null,
+      eudccIssuer: eudccIssuer || null,
+      eudccUvci: eudccUvci || null,
       additionalData: additionalData || null,
     };
     const jwtToken = signDemoJwt(jwtPayload);
@@ -872,6 +928,57 @@ app.post(
       jwt: jwtToken,
       auditRef: audit.hash,
       issuedAt: credential.issuedAt.toISOString(),
+      format: resolvedFormat.id,
+    });
+  },
+);
+
+// --- PSL Network Map + MATCHA Filters ---
+app.get('/psl/map', async (req, res) => {
+  const minTier = req.query.minTier ? Number(req.query.minTier) : undefined;
+  if (req.query.minTier && !Number.isFinite(minTier)) {
+    return res.status(400).json({ error: 'minTier must be a number' });
+  }
+  return res.json(getPslNetworkMap(minTier));
+});
+
+app.post(
+  '/matcha/filter',
+  body('candidates').isArray({ min: 1 }).withMessage('candidates must be an array'),
+  validateRequest,
+  async (req: Request, res: Response) => {
+    const { candidates, filters } = req.body as {
+      candidates: Array<Record<string, any>>;
+      filters?: { pslOnly?: boolean; tier1Only?: boolean };
+    };
+
+    const normalized = candidates.map((candidate) => {
+      const issuerDid = candidate.issuerDid ? String(candidate.issuerDid) : null;
+      const trustTier = resolvePslTier(issuerDid);
+      const pslCredential = Boolean(
+        candidate.hasPslCredential ?? (issuerDid ? isPslIssuer(issuerDid) : false),
+      );
+      return {
+        ...candidate,
+        issuerDid,
+        trustTier,
+        pslCredential,
+      };
+    });
+
+    const pslOnly = Boolean(filters?.pslOnly);
+    const tier1Only = Boolean(filters?.tier1Only);
+
+    const filtered = normalized.filter((candidate) => {
+      if (pslOnly && !candidate.pslCredential) return false;
+      if (tier1Only && candidate.trustTier !== 1) return false;
+      return true;
+    });
+
+    return res.json({
+      filtersApplied: { pslOnly, tier1Only },
+      total: filtered.length,
+      results: filtered,
     });
   },
 );
@@ -942,6 +1049,7 @@ app.get('/issuer/credentials', async (_req, res) => {
     credentials: creds.map((c) => ({
       id: `CRED-${c.id}`,
       type: c.name,
+      format: ('format' in c ? (c as { format?: string }).format : undefined) || 'us_license',
       holder: c.user?.name || c.user?.email,
       issuer: c.issuer,
       issuedDate: c.issuedAt.toISOString(),

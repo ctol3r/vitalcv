@@ -23,6 +23,7 @@ model Credential {
   id       Int      @id @default(autoincrement())
   name     String
   issuer   String
+  format   String   @default("us_license")
   issuedAt DateTime @default(now())
   user     User     @relation(fields: [userId], references: [id])
   userId   Int
