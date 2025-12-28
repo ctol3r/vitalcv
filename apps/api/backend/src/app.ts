@@ -262,6 +262,28 @@ function merkleRootHex(hashes: string[]): string | null {
   return layer[0].toString('hex');
 }
 
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => stableStringify(entry)).join(',')}]`;
+  }
+  const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) =>
+    a.localeCompare(b),
+  );
+  return `{${entries
+    .map(([key, entry]) => `${JSON.stringify(key)}:${stableStringify(entry)}`)
+    .join(',')}}`;
+}
+
+function credentialDbIdFromExternal(externalId: string): number | null {
+  const match = externalId.match(/^CRED-(\d+)$/i);
+  if (!match) return null;
+  const parsed = Number(match[1]);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
 // --- Proof infra endpoints ---
 // Minimal ON-contract health endpoint (keep /healthz for detailed dependency checks)
 app.get('/health', async (_req, res) => {
@@ -552,6 +574,137 @@ app.get('/audit/summary', async (_req, res) => {
     merkleRoot: root,
     recentCount: recent.length,
     anchorReference: process.env.AUDIT_ANCHOR_REFERENCE || null,
+  });
+});
+
+app.get('/audit/export/:clinicianId', async (req, res) => {
+  const clinicianId = String(req.params.clinicianId || '').trim();
+  if (!clinicianId) return res.status(400).json({ error: 'clinicianId is required' });
+
+  const numericId = /^\d+$/.test(clinicianId) ? Number(clinicianId) : null;
+  const user =
+    (numericId ? await prisma.user.findUnique({ where: { id: numericId } }) : null) ??
+    (await prisma.user.findUnique({ where: { email: clinicianId } }));
+
+  if (!user) return res.status(404).json({ error: 'Clinician not found' });
+
+  const credentials = await prisma.credential.findMany({
+    where: { userId: user.id },
+    orderBy: { issuedAt: 'desc' },
+  });
+  const externalIds = credentials.map((cred) => `CRED-${cred.id}`);
+  const auditEvents = await prisma.auditEvent.findMany({
+    where: {
+      OR: [{ userId: user.id }, { credentialId: { in: externalIds } }],
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+  const jobs = await prisma.job.findMany({
+    where: { userId: user.id },
+    orderBy: { id: 'desc' },
+  });
+
+  const auditEventRows = auditEvents.map((event) => ({
+    id: event.id,
+    type: event.type,
+    hash: event.hash,
+    credentialId: event.credentialId ?? null,
+    userId: event.userId ?? null,
+    createdAt: event.createdAt.toISOString(),
+    metadata: event.metadata ?? null,
+  }));
+
+  const revocations = new Map<string, string>();
+  const issuance = new Map<string, any>();
+  for (const event of auditEvents) {
+    if (event.type === 'REVOKE_CREDENTIAL' && event.credentialId) {
+      revocations.set(event.credentialId, event.createdAt.toISOString());
+    }
+    if (event.type === 'ISSUE_CREDENTIAL' && event.credentialId) {
+      issuance.set(event.credentialId, event.metadata ?? null);
+    }
+  }
+
+  const credentialMetadata = credentials.map((cred) => {
+    const externalId = `CRED-${cred.id}`;
+    const issuedMeta = issuance.get(externalId);
+    return {
+      credentialId: externalId,
+      type: cred.name,
+      issuer: cred.issuer,
+      issuedAt: cred.issuedAt.toISOString(),
+      expiryDate: issuedMeta?.expiryDate ?? null,
+      revocation: revocations.has(externalId)
+        ? { revokedAt: revocations.get(externalId) }
+        : null,
+      status: revocations.has(externalId) ? 'revoked' : 'active',
+    };
+  });
+
+  const matchActions = auditEventRows.filter((event) =>
+    event.type.toUpperCase().includes('MATCH'),
+  );
+  const jobActions = auditEventRows.filter((event) => {
+    const upper = event.type.toUpperCase();
+    return upper.includes('JOB') || upper.includes('APPLICATION');
+  });
+
+  const exportPayload = {
+    clinician: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+    },
+    generatedAt: new Date().toISOString(),
+    credentials: credentialMetadata,
+    matchActions,
+    applications: jobs.map((job) => ({
+      id: job.id,
+      title: job.title,
+      userId: job.userId,
+    })),
+    jobActions,
+    auditEvents: auditEventRows,
+    format: 'json',
+    pdfSummary: null,
+  };
+
+  const exportHash = sha256Hex(stableStringify(exportPayload));
+  const signingKey =
+    process.env.AUDIT_EXPORT_SIGNING_SECRET || process.env.JWT_SECRET || 'dev-only-secret';
+  const signature = jwt.sign(
+    {
+      sub: String(user.id),
+      hash: exportHash,
+      type: 'AUDIT_EXPORT',
+      issuedAt: new Date().toISOString(),
+    },
+    signingKey,
+    { expiresIn: '7d' },
+  );
+
+  const verifyBase = String(process.env.AUDIT_EXPORT_VERIFY_URL || '').trim();
+  const verificationUrl = verifyBase
+    ? `${verifyBase}?hash=${encodeURIComponent(exportHash)}&sub=${encodeURIComponent(
+        String(user.id),
+      )}`
+    : null;
+
+  await writeAuditEvent({
+    type: 'AUDIT_EXPORT_CREATED',
+    userId: user.id,
+    metadata: {
+      credentialCount: credentials.length,
+      auditEventCount: auditEvents.length,
+      exportHash,
+    },
+  });
+
+  return res.json({
+    file: exportPayload,
+    hash: exportHash,
+    signature,
+    verificationUrl,
   });
 });
 
@@ -875,6 +1028,135 @@ app.post(
     });
   },
 );
+
+app.post(
+  '/referrals',
+  body('credentialId').isString().withMessage('credentialId is required'),
+  body('toVerifierId').isString().withMessage('toVerifierId is required'),
+  body('fromVerifierId').isString().withMessage('fromVerifierId is required'),
+  body('context').optional(),
+  body('matchScore').optional().isNumeric().withMessage('matchScore must be numeric'),
+  validateRequest,
+  async (req: Request, res: Response) => {
+    const { credentialId, toVerifierId, fromVerifierId, context, matchScore } = req.body as {
+      credentialId: string;
+      toVerifierId: string;
+      fromVerifierId: string;
+      context?: unknown;
+      matchScore?: number;
+    };
+
+    const { externalId, dbId } = normalizeCredentialId(credentialId);
+    if (!externalId) return res.status(400).json({ error: 'credentialId is required' });
+
+    const credential = dbId
+      ? await prisma.credential.findUnique({ where: { id: dbId }, include: { user: true } })
+      : null;
+    if (!credential) return res.status(404).json({ error: 'Credential not found' });
+
+    const referral = await prisma.referral.create({
+      data: {
+        credentialId: externalId,
+        toVerifierId: String(toVerifierId).trim(),
+        fromVerifierId: String(fromVerifierId).trim(),
+        context: context ?? undefined,
+        matchScore: matchScore ?? undefined,
+      },
+    });
+
+    await writeAuditEvent({
+      type: 'REFERRAL_CREATED',
+      credentialId: externalId,
+      metadata: {
+        toVerifierId: referral.toVerifierId,
+        fromVerifierId: referral.fromVerifierId,
+        matchScore: referral.matchScore ?? null,
+        context: context ?? null,
+      },
+    });
+
+    return res.status(201).json({
+      referralId: referral.id,
+      credential: {
+        credentialId: externalId,
+        type: credential.name,
+        issuer: credential.issuer,
+        issuedAt: credential.issuedAt.toISOString(),
+        holderId: credential.userId,
+      },
+      toVerifierId: referral.toVerifierId,
+      fromVerifierId: referral.fromVerifierId,
+      matchScore: referral.matchScore ?? null,
+      context: referral.context ?? null,
+      createdAt: referral.createdAt.toISOString(),
+    });
+  },
+);
+
+app.get('/referrals', async (req, res) => {
+  const verifierId = String(req.query.verifierId || '').trim();
+  if (!verifierId) return res.status(400).json({ error: 'verifierId is required' });
+
+  const referrals = await prisma.referral.findMany({
+    where: { toVerifierId: verifierId },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const credentialIds = referrals
+    .map((ref) => credentialDbIdFromExternal(ref.credentialId))
+    .filter((id): id is number => Boolean(id));
+  const credentials = credentialIds.length
+    ? await prisma.credential.findMany({
+        where: { id: { in: credentialIds } },
+        include: { user: true },
+      })
+    : [];
+  const credentialById = new Map<number, (typeof credentials)[number]>();
+  for (const cred of credentials) {
+    credentialById.set(cred.id, cred);
+  }
+
+  const revoked = await prisma.auditEvent.findMany({
+    where: { type: 'REVOKE_CREDENTIAL', credentialId: { in: referrals.map((r) => r.credentialId) } },
+    select: { credentialId: true },
+  });
+  const revokedIds = new Set(
+    revoked.map((event) => event.credentialId).filter(Boolean) as string[],
+  );
+
+  const response = referrals.map((ref) => {
+    const dbId = credentialDbIdFromExternal(ref.credentialId);
+    const credential = dbId ? credentialById.get(dbId) : null;
+    return {
+      referralId: ref.id,
+      credential: credential
+        ? {
+            credentialId: ref.credentialId,
+            type: credential.name,
+            issuer: credential.issuer,
+            issuedAt: credential.issuedAt.toISOString(),
+            holderId: credential.userId,
+            holderName: credential.user?.name ?? null,
+            status: revokedIds.has(ref.credentialId) ? 'revoked' : 'active',
+          }
+        : {
+            credentialId: ref.credentialId,
+            type: null,
+            issuer: null,
+            issuedAt: null,
+            holderId: null,
+            holderName: null,
+            status: revokedIds.has(ref.credentialId) ? 'revoked' : 'unknown',
+          },
+      fromVerifierId: ref.fromVerifierId,
+      matchScore: ref.matchScore ?? null,
+      context: ref.context ?? null,
+      createdAt: ref.createdAt.toISOString(),
+    };
+  });
+
+  return res.json({ verifierId, referrals: response });
+});
 
 // --- Graph (Clinical Network Intelligence) ---
 app.get('/graph/health', async (_req, res) => {

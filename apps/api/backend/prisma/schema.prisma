@@ -38,6 +38,16 @@ model AuditEvent {
   createdAt    DateTime @default(now())
 }
 
+model Referral {
+  id             Int      @id @default(autoincrement())
+  credentialId   String
+  fromVerifierId String
+  toVerifierId   String
+  context        Json?
+  matchScore     Float?
+  createdAt      DateTime @default(now())
+}
+
 model Job {
   id     Int    @id @default(autoincrement())
   title  String
