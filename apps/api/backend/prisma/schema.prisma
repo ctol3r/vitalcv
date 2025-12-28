@@ -28,6 +28,21 @@ model Credential {
   userId   Int
 }
 
+model CredentialAttestation {
+  id              Int      @id @default(autoincrement())
+  subjectId       String
+  credentialType  String
+  issuerOrgId     String
+  submitterId     String
+  status          String
+  evidence        Json?
+  rejectionReason String?
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
 model AuditEvent {
   id           Int      @id @default(autoincrement())
   type         String

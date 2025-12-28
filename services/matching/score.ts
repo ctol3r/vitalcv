@@ -6,12 +6,15 @@
  */
 
 import { FeatureWeights, DEFAULT_FEATURE_WEIGHTS } from './models/MatchingConfig';
+import { MATCHA_CONFIG } from './matchaConfig';
+import { getSpecialtyDistance } from './specialtyDistance';
 
 /**
  * Feature scores extracted from clinician and job profiles
  */
 export interface FeatureScores {
   specialtyMatch: number; // 0-1, based on specialty compatibility
+  specialtyMatchType?: 'exact' | 'adjacent' | 'category' | 'group' | 'none';
   locationProximity: number; // 0-1, based on distance
   experienceYears: number; // 0-1, normalized years of experience
   rating: number; // 0-1, clinician rating/quality score
@@ -65,19 +68,37 @@ export function extractFeatureScores(
 ): FeatureScores {
   // Specialty match
   let specialtyMatch = 0;
+  let specialtyMatchType: FeatureScores['specialtyMatchType'] = 'none';
   if (clinicianData.specialty && jobData.specialty) {
     if (clinicianData.specialty === jobData.specialty) {
       specialtyMatch = 1.0;
+      specialtyMatchType = 'exact';
     } else if (
       clinicianData.specialty.substring(0, 4) ===
       jobData.specialty.substring(0, 4)
     ) {
       specialtyMatch = 0.8; // Same category
+      specialtyMatchType = 'category';
     } else if (
       clinicianData.specialty.substring(0, 2) ===
       jobData.specialty.substring(0, 2)
     ) {
       specialtyMatch = 0.5; // Same group
+      specialtyMatchType = 'group';
+    }
+
+    const distance = getSpecialtyDistance(
+      MATCHA_CONFIG.specialtyDistanceMap,
+      clinicianData.specialty,
+      jobData.specialty,
+    );
+    if (distance !== undefined) {
+      const fuzzyBase = 0.8;
+      const fuzzyScore = fuzzyBase * distance;
+      if (fuzzyScore >= specialtyMatch) {
+        specialtyMatch = fuzzyScore;
+        specialtyMatchType = 'adjacent';
+      }
     }
   }
 
@@ -116,6 +137,7 @@ export function extractFeatureScores(
 
   return {
     specialtyMatch,
+    specialtyMatchType,
     locationProximity,
     experienceYears,
     rating,
@@ -201,4 +223,3 @@ export function batchScore(
     index,
   }));
 }
-

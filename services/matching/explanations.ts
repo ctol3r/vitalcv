@@ -17,6 +17,7 @@ import { FeatureScores } from './score';
  */
 export type ExplanationTag =
   | 'specialty_match'
+  | 'specialty_adjacent_match'
   | 'specialty_category_match'
   | 'geographically_close'
   | 'geographically_distant'
@@ -54,6 +55,12 @@ export function generateExplanations(
       tag: 'specialty_match',
       confidence: features.specialtyMatch,
       message: 'Exact specialty match',
+    });
+  } else if (features.specialtyMatchType === 'adjacent') {
+    explanations.push({
+      tag: 'specialty_adjacent_match',
+      confidence: features.specialtyMatch,
+      message: 'Adjacent specialty match',
     });
   } else if (features.specialtyMatch >= 0.7) {
     explanations.push({
@@ -185,6 +192,7 @@ export function categorizeExplanations(
 
   const positiveTags: ExplanationTag[] = [
     'specialty_match',
+    'specialty_adjacent_match',
     'specialty_category_match',
     'geographically_close',
     'experienced',
@@ -213,4 +221,3 @@ export function categorizeExplanations(
 
   return { positive, negative, neutral };
 }
-

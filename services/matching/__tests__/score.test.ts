@@ -60,6 +60,15 @@ describe('score', () => {
       expect(features.specialtyMatch).toBe(0.8);
     });
 
+    it('should extract adjacent specialty fuzzy match', () => {
+      const features = extractFeatureScores(
+        { specialty: 'Internal Medicine' },
+        { specialty: 'Primary Care' }
+      );
+      expect(features.specialtyMatchType).toBe('adjacent');
+      expect(features.specialtyMatch).toBeCloseTo(0.72, 2);
+    });
+
     it('should extract location proximity', () => {
       const features = extractFeatureScores(
         {
@@ -171,4 +180,3 @@ describe('score', () => {
     });
   });
 });
-

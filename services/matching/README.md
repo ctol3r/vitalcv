@@ -9,6 +9,7 @@ The matching service combines:
 - **Feature-weighted scoring** (specialty, location, experience, rating, burnout risk)
 - **Explainability** (reason codes for each match)
 - **Fairness metrics** (disparity detection by region, specialty, etc.)
+- **Fuzzy specialty matching** (adjacent specialties via distance map)
 
 ## Components
 
@@ -22,6 +23,8 @@ The matching service combines:
 - **embeddings.ts**: Embedding provider integration (OpenAI/Vertex/stub)
 - **score.ts**: Similarity scoring (cosine + feature-weighted)
 - **explanations.ts**: Explainability service (reason codes)
+- **matchaConfig.ts**: MATCHA boot config (specialty distance map)
+- **specialtyDistance.ts**: Specialty adjacency map + utilities
 - **fhirAgentHarness.ts**: FHIR-AgentBench harness for evaluation
 - **fairnessMetrics.ts**: Fairness metrics computation
 
@@ -96,6 +99,19 @@ Default weights (sum to 1.0):
 - `burnoutRisk`: 0.05
 
 Customize via `MatchingConfig` model in database.
+
+### Specialty Distance Map
+
+MATCHA loads a specialty distance map at boot to support adjacent specialty matching.
+Distances are normalized to 0–1 and applied as a fuzzy score multiplier.
+
+Example (default map):
+
+```ts
+Internal Medicine -> Primary Care = 0.9
+Family Medicine -> Primary Care = 0.9
+Emergency Medicine -> Urgent Care = 0.75
+```
 
 ## Database Schema
 
@@ -185,6 +201,7 @@ Final score: `0.5 * embeddingScore + 0.5 * featureScore`
 
 Each match includes explanation tags:
 - `specialty_match`: Exact specialty match
+- `specialty_adjacent_match`: Adjacent specialty match (distance-weighted)
 - `specialty_category_match`: Same specialty category
 - `geographically_close`: Close to job location
 - `experienced`: High experience
@@ -234,4 +251,3 @@ const scenarios = [
 const results = await runBenchmark(scenarios);
 console.log(generateReport(results));
 ```
-

@@ -350,6 +350,33 @@ const attestation = offerProvisionalAttestation('issuer-123');
 
 This allows the platform to acknowledge an issuer while full integration is pending.
 
+## Delegated Credential Attestations
+
+Recruiters or peers can submit delegated credential attestations for later review.
+These attestations start in `ATTESTED` state and await issuer/admin review.
+
+Endpoints:
+
+- `POST /credential/attest` → submit an attestation
+- `GET /attestations?status=pending` → list pending attestations
+- `POST /attestations/:id/approve` → mark as `VERIFIED`
+- `POST /attestations/:id/reject` → mark as `REJECTED`
+
+Example payload:
+
+```json
+{
+  "subjectId": "clinician-123",
+  "credentialType": "MedicalLicense",
+  "issuerOrgId": "org-456",
+  "submitterId": "recruiter-789",
+  "evidence": {
+    "attachment": "s3://bucket/attestation.pdf",
+    "notes": "Submitted on behalf of credential source"
+  }
+}
+```
+
 ## Wallet UX
 
 The demonstration wallet now includes a **Share only status** toggle on the

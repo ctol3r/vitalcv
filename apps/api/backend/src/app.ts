@@ -193,6 +193,25 @@ function normalizeCredentialId(raw: string): { externalId: string; dbId?: number
   return { externalId: trimmed };
 }
 
+const ATTESTATION_STATUSES = {
+  ATTESTED: 'ATTESTED',
+  VERIFIED: 'VERIFIED',
+  REJECTED: 'REJECTED',
+} as const;
+
+type AttestationStatus = (typeof ATTESTATION_STATUSES)[keyof typeof ATTESTATION_STATUSES];
+
+function normalizeAttestationStatus(input?: string | null): AttestationStatus | undefined {
+  if (!input) return undefined;
+  const normalized = input.trim().toLowerCase();
+  if (!normalized) return undefined;
+  if (normalized === 'pending') return ATTESTATION_STATUSES.ATTESTED;
+  if (normalized === 'attested') return ATTESTATION_STATUSES.ATTESTED;
+  if (normalized === 'verified') return ATTESTATION_STATUSES.VERIFIED;
+  if (normalized === 'rejected') return ATTESTATION_STATUSES.REJECTED;
+  return undefined;
+}
+
 function signDemoJwt(payload: Record<string, unknown>): string {
   const secret = process.env.JWT_SECRET || 'dev-only-secret';
   return jwt.sign(payload, secret, { expiresIn: '7d' });
@@ -872,6 +891,185 @@ app.post(
       jwt: jwtToken,
       auditRef: audit.hash,
       issuedAt: credential.issuedAt.toISOString(),
+    });
+  },
+);
+
+// --- Delegated Credential Attestations ---
+app.post(
+  '/credential/attest',
+  body('subjectId').isString().withMessage('subjectId is required'),
+  body('credentialType').isString().withMessage('credentialType is required'),
+  body('issuerOrgId').isString().withMessage('issuerOrgId is required'),
+  body('submitterId').isString().withMessage('submitterId is required'),
+  body('evidence').isObject().withMessage('evidence is required'),
+  body('evidence.attachment').optional().isString().withMessage('evidence.attachment must be a string'),
+  body('evidence.notes').optional().isString().withMessage('evidence.notes must be a string'),
+  validateRequest,
+  async (req: Request, res: Response) => {
+    const { subjectId, credentialType, issuerOrgId, submitterId, evidence } = req.body as Record<
+      string,
+      any
+    >;
+
+    const attestation = await prisma.credentialAttestation.create({
+      data: {
+        subjectId: String(subjectId),
+        credentialType: String(credentialType),
+        issuerOrgId: String(issuerOrgId),
+        submitterId: String(submitterId),
+        status: ATTESTATION_STATUSES.ATTESTED,
+        evidence: evidence
+          ? {
+              attachment: evidence.attachment ? String(evidence.attachment) : null,
+              notes: evidence.notes ? String(evidence.notes) : null,
+            }
+          : null,
+      },
+    });
+
+    const audit = await writeAuditEvent({
+      type: 'AUDIT_ATTESTATION_SUBMITTED',
+      metadata: {
+        attestationId: attestation.id,
+        subjectIdDigest: privacyDigest(String(subjectId)),
+        credentialType: String(credentialType),
+        issuerOrgId: String(issuerOrgId),
+        submitterId: String(submitterId),
+        status: attestation.status,
+      },
+    });
+
+    return res.status(201).json({
+      attestationId: attestation.id,
+      status: attestation.status,
+      auditRef: audit.hash,
+      createdAt: attestation.createdAt.toISOString(),
+    });
+  },
+);
+
+app.get('/attestations', async (req, res) => {
+  const statusParam = typeof req.query.status === 'string' ? req.query.status : undefined;
+  const statusFilter = normalizeAttestationStatus(statusParam);
+  if (statusParam && !statusFilter) {
+    return res.status(400).json({ error: 'Invalid status filter' });
+  }
+
+  const attestations = await prisma.credentialAttestation.findMany({
+    where: statusFilter ? { status: statusFilter } : undefined,
+    orderBy: { createdAt: 'desc' },
+    take: 200,
+  });
+
+  return res.json({
+    attestations: attestations.map((attestation) => ({
+      id: attestation.id,
+      subjectId: attestation.subjectId,
+      credentialType: attestation.credentialType,
+      issuerOrgId: attestation.issuerOrgId,
+      submitterId: attestation.submitterId,
+      status: attestation.status,
+      evidence: attestation.evidence,
+      rejectionReason: attestation.rejectionReason,
+      reviewedBy: attestation.reviewedBy,
+      reviewedAt: attestation.reviewedAt ? attestation.reviewedAt.toISOString() : null,
+      createdAt: attestation.createdAt.toISOString(),
+      updatedAt: attestation.updatedAt.toISOString(),
+    })),
+  });
+});
+
+app.post(
+  '/attestations/:id/approve',
+  body('reviewerId').optional().isString().withMessage('reviewerId must be a string'),
+  validateRequest,
+  async (req: Request, res: Response) => {
+    const attestationId = Number(req.params.id);
+    if (!Number.isInteger(attestationId) || attestationId <= 0) {
+      return res.status(400).json({ error: 'Invalid attestation id' });
+    }
+
+    const existing = await prisma.credentialAttestation.findUnique({ where: { id: attestationId } });
+    if (!existing) return res.status(404).json({ error: 'Attestation not found' });
+    if (existing.status !== ATTESTATION_STATUSES.ATTESTED) {
+      return res.status(409).json({ error: 'Attestation is not pending review' });
+    }
+
+    const reviewerId = req.body.reviewerId ? String(req.body.reviewerId) : null;
+    const attestation = await prisma.credentialAttestation.update({
+      where: { id: attestationId },
+      data: {
+        status: ATTESTATION_STATUSES.VERIFIED,
+        reviewedBy: reviewerId,
+        reviewedAt: new Date(),
+        rejectionReason: null,
+      },
+    });
+
+    const audit = await writeAuditEvent({
+      type: 'AUDIT_ATTESTATION_APPROVED',
+      metadata: {
+        attestationId,
+        reviewerId,
+        status: attestation.status,
+      },
+    });
+
+    return res.json({
+      attestationId: attestation.id,
+      status: attestation.status,
+      auditRef: audit.hash,
+      reviewedAt: attestation.reviewedAt?.toISOString() ?? null,
+    });
+  },
+);
+
+app.post(
+  '/attestations/:id/reject',
+  body('reason').isString().withMessage('reason is required'),
+  body('reviewerId').optional().isString().withMessage('reviewerId must be a string'),
+  validateRequest,
+  async (req: Request, res: Response) => {
+    const attestationId = Number(req.params.id);
+    if (!Number.isInteger(attestationId) || attestationId <= 0) {
+      return res.status(400).json({ error: 'Invalid attestation id' });
+    }
+
+    const existing = await prisma.credentialAttestation.findUnique({ where: { id: attestationId } });
+    if (!existing) return res.status(404).json({ error: 'Attestation not found' });
+    if (existing.status !== ATTESTATION_STATUSES.ATTESTED) {
+      return res.status(409).json({ error: 'Attestation is not pending review' });
+    }
+
+    const reviewerId = req.body.reviewerId ? String(req.body.reviewerId) : null;
+    const reason = String(req.body.reason);
+    const attestation = await prisma.credentialAttestation.update({
+      where: { id: attestationId },
+      data: {
+        status: ATTESTATION_STATUSES.REJECTED,
+        rejectionReason: reason,
+        reviewedBy: reviewerId,
+        reviewedAt: new Date(),
+      },
+    });
+
+    const audit = await writeAuditEvent({
+      type: 'AUDIT_ATTESTATION_REJECTED',
+      metadata: {
+        attestationId,
+        reviewerId,
+        reason,
+        status: attestation.status,
+      },
+    });
+
+    return res.json({
+      attestationId: attestation.id,
+      status: attestation.status,
+      auditRef: audit.hash,
+      reviewedAt: attestation.reviewedAt?.toISOString() ?? null,
+      rejectionReason: attestation.rejectionReason,
     });
   },
 );
