@@ -19,6 +19,8 @@ import { errorHandler } from './middleware/errorHandler';
 import { validateRequest } from './middleware/validateRequest';
 import { log, reqLogFields } from './obs/logger';
 import { requestIdMiddleware, type RequestWithId } from './obs/requestId';
+import { analyticsRouter } from './routes/analytics';
+import { readinessRouter } from './routes/readiness';
 
 const app = express();
 const bootedAtIso = new Date().toISOString();
@@ -62,6 +64,9 @@ app.use((req: RequestWithId, res, next) => {
   });
   next();
 });
+
+app.use(readinessRouter);
+app.use(analyticsRouter);
 
 function sha256Hex(input: string): string {
   return crypto.createHash('sha256').update(input).digest('hex');
@@ -923,6 +928,45 @@ app.get('/graph/analytics/specialty-density', async (req, res) => {
   const rows = await getSpecialtyDensity(Number.isFinite(limit) ? limit : 10);
   return res.json({ rows });
 });
+
+app.post(
+  '/feedback',
+  body('text').isString().trim().isLength({ min: 1, max: 2000 }).withMessage('text is required'),
+  body('type')
+    .isIn(['bug', 'UX', 'confusion'])
+    .withMessage('type must be one of bug, UX, confusion'),
+  body('screenId').isString().trim().withMessage('screenId is required'),
+  validateRequest,
+  async (req: Request, res: Response) => {
+    const clinicianId = String(req.query.clinicianId || '').trim();
+    if (!clinicianId) return res.status(400).json({ error: 'clinicianId is required' });
+
+    const { text, type, screenId } = req.body as {
+      text: string;
+      type: 'bug' | 'UX' | 'confusion';
+      screenId: string;
+    };
+
+    const sanitizedText = text.trim().slice(0, 2000);
+    const clinicianHash = privacyDigest(clinicianId);
+
+    const audit = await writeAuditEvent({
+      type: 'FEEDBACK_SUBMITTED',
+      metadata: {
+        clinicianHash,
+        feedbackType: type,
+        screenId,
+        text: sanitizedText,
+      },
+    });
+
+    return res.status(201).json({
+      ok: true,
+      auditRef: audit.hash,
+      receivedAt: audit.createdAt,
+    });
+  },
+);
 
 app.get('/issuer/credentials', async (_req, res) => {
   const creds = await prisma.credential.findMany({
