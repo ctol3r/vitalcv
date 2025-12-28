@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { SessionProvider } from '@/contexts/SessionContext';
 import Providers from './providers';
 import Header from '@/components/layout/Header';
+import { CommandMenu } from '@/components/CommandMenu';
 import '@/styles/accessibility.css';
 import { Analytics } from '@vercel/analytics/next';
 import { GeistMono } from 'geist/font/mono';
@@ -62,6 +63,7 @@ export default function RootLayout({
               <OfflineBanner />
               <Suspense fallback={null}>
                 {children}
+                <CommandMenu />
                 <Toaster />
                 <Analytics />
               </Suspense>

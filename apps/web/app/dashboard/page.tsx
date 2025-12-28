@@ -7,10 +7,17 @@ import { LicensureCard } from '@/components/dashboard/LicensureCard';
 import { NPICard } from '@/components/dashboard/NPICard';
 import { NotificationsCard } from '@/components/dashboard/NotificationsCard';
 import { QuickActionsCard } from '@/components/dashboard/QuickActionsCard';
+import { PaneProvider, usePanes } from '@/components/panes/PaneManager';
+import { PulseFeed } from '@/pulse/PulseFeed';
+import { usePulse } from '@/pulse/usePulse';
+import type { PulseEvent } from '@/pulse/types';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Shield } from 'lucide-react';
+import { ArrowRight, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -53,10 +60,8 @@ export default function DashboardPage() {
   const [licenses, setLicenses] = useState<LicenseData[]>([]);
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
-  const [qrDialogOpen, setQrDialogOpen] = useState(false);
-  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const { toast } = useToast();
+  const { events: pulseEvents } = usePulse();
 
   useEffect(() => {
     fetchDashboardData();
@@ -149,7 +154,6 @@ export default function DashboardPage() {
   const handleNpiSync = async () => {
     if (!clinicianData) return;
 
-    setSyncing(true);
     try {
       const response = await fetch('/api/clinician/npi-sync', {
         method: 'POST',
@@ -184,8 +188,6 @@ export default function DashboardPage() {
         description: errorMessage,
         variant: 'destructive',
       });
-    } finally {
-      setSyncing(false);
     }
   };
 
@@ -225,192 +227,286 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <AuthGuard>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50">
-          {/* Header */}
-          <header className="border-b bg-white/80 backdrop-blur-sm">
-            <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-              <Link href="/" className="flex items-center space-x-2">
-                <Shield className="h-8 w-8 text-blue-600" />
-                <span className="text-2xl font-bold text-gray-900">VitalCV</span>
-              </Link>
-              <nav className="hidden md:flex items-center space-x-6">
-                <Link
-                  href="/verify"
-                  className="text-gray-600 hover:text-blue-600 transition-colors"
-                >
-                  Verify
-                </Link>
-                <Link
-                  href="/analytics"
-                  className="text-gray-600 hover:text-blue-600 transition-colors"
-                >
-                  Analytics
-                </Link>
-                <Link
-                  href="/support"
-                  className="text-gray-600 hover:text-blue-600 transition-colors"
-                >
-                  Support
-                </Link>
-              </nav>
-            </div>
-          </header>
-
-          <div className="container mx-auto px-4 py-12">
-            <div className="mb-8">
-              <Skeleton className="h-10 w-64 mb-4" />
-              <Skeleton className="h-6 w-96" />
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 space-y-6">
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                  <CardHeader>
-                    <Skeleton className="h-6 w-32" />
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                  <CardHeader>
-                    <Skeleton className="h-6 w-40" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {[1, 2, 3].map((i) => (
-                        <div
-                          key={i}
-                          className="flex items-center justify-between p-4 border rounded-lg"
-                        >
-                          <div className="space-y-2">
-                            <Skeleton className="h-4 w-24" />
-                            <Skeleton className="h-3 w-32" />
-                          </div>
-                          <Skeleton className="h-6 w-16" />
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="space-y-6">
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                  <CardHeader>
-                    <Skeleton className="h-6 w-32" />
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="flex items-start gap-3 p-3 border rounded-lg">
-                        <Skeleton className="h-4 w-4 rounded-full" />
-                        <div className="flex-1 space-y-2">
-                          <Skeleton className="h-3 w-full" />
-                          <Skeleton className="h-3 w-16" />
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </div>
-        </div>
+        <PaneProvider>
+          <DashboardSkeleton />
+        </PaneProvider>
       </AuthGuard>
     );
   }
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50">
-        {/* Header */}
-        <header className="border-b bg-white/80 backdrop-blur-sm">
-          <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-2">
-              <Shield className="h-8 w-8 text-blue-600" />
-              <span className="text-2xl font-bold text-gray-900">VitalCV</span>
+      <PaneProvider>
+        <DashboardContent
+          clinicianData={clinicianData}
+          licenses={licenses}
+          notifications={notifications}
+          onNpiSync={handleNpiSync}
+          onDownloadPDF={handleDownloadPDF}
+          onShareProfile={handleShareProfile}
+          onReviewNotification={(id) =>
+            toast({
+              title: 'Notification Reviewed',
+              description: `Notification ${id} has been marked as reviewed`,
+            })
+          }
+          pulseEvents={pulseEvents}
+        />
+      </PaneProvider>
+    </AuthGuard>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50">
+      {/* Header */}
+      <header className="border-b bg-white/80 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center space-x-2">
+            <Shield className="h-8 w-8 text-blue-600" />
+            <span className="text-2xl font-bold text-gray-900">VitalCV</span>
+          </Link>
+          <nav className="hidden md:flex items-center space-x-6">
+            <Link href="/verify" className="text-gray-600 hover:text-blue-600 transition-colors">
+              Verify
             </Link>
-            <nav className="hidden md:flex items-center space-x-6">
-              <Link href="/verify" className="text-gray-600 hover:text-blue-600 transition-colors">
-                Verify
-              </Link>
-              <Link
-                href="/analytics"
-                className="text-gray-600 hover:text-blue-600 transition-colors"
-              >
-                Analytics
-              </Link>
-              <Link href="/support" className="text-gray-600 hover:text-blue-600 transition-colors">
-                Support
-              </Link>
-            </nav>
+            <Link href="/analytics" className="text-gray-600 hover:text-blue-600 transition-colors">
+              Analytics
+            </Link>
+            <Link href="/support" className="text-gray-600 hover:text-blue-600 transition-colors">
+              Support
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      <div className="container mx-auto px-4 py-12">
+        <div className="mb-8">
+          <Skeleton className="h-10 w-64 mb-4" />
+          <Skeleton className="h-6 w-96" />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader>
+                <Skeleton className="h-6 w-32" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader>
+                <Skeleton className="h-6 w-40" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-3 w-32" />
+                      </div>
+                      <Skeleton className="h-6 w-16" />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </header>
 
-        <div className="container mx-auto px-4 py-8 lg:py-12">
-          <div className="mb-8">
-            <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Clinician Dashboard
-            </h1>
-            <p className="text-lg text-gray-600">
-              Manage your professional credentials and verification status
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-            {/* Main Content - Takes up 3 columns on xl screens */}
-            <div className="xl:col-span-3 space-y-6">
-              {/* NPI Card */}
-              {clinicianData && (
-                <NPICard
-                  npi={clinicianData.npi}
-                  name={clinicianData.name}
-                  credentials={clinicianData.credentials}
-                  status={clinicianData.status}
-                  lastSynced={clinicianData.lastSynced}
-                  verified={true}
-                  onSync={handleNpiSync}
-                />
-              )}
-
-              {/* Licensure Card */}
-              <LicensureCard licenses={licenses} />
-
-              {/* Analytics */}
-              <AnalyticsCard />
-
-              {/* Full Analytics */}
-              <DashboardAnalytics />
-            </div>
-
-            {/* Sidebar - Takes up 1 column on xl screens */}
-            <div className="space-y-6">
-              {/* Notifications */}
-              <NotificationsCard
-                notifications={notifications}
-                onReview={(id) => {
-                  toast({
-                    title: 'Notification Reviewed',
-                    description: 'Notification has been marked as reviewed',
-                  });
-                }}
-              />
-
-              {/* Quick Actions */}
-              {clinicianData && (
-                <QuickActionsCard
-                  npi={clinicianData.npi}
-                  onDownloadPDF={handleDownloadPDF}
-                  onShareProfile={handleShareProfile}
-                />
-              )}
-            </div>
+          <div className="space-y-6">
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader>
+                <Skeleton className="h-6 w-32" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-start gap-3 p-3 border rounded-lg">
+                    <Skeleton className="h-4 w-4 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-3 w-full" />
+                      <Skeleton className="h-3 w-16" />
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
-    </AuthGuard>
+    </div>
+  );
+}
+
+function DashboardContent({
+  clinicianData,
+  licenses,
+  notifications,
+  onNpiSync,
+  onDownloadPDF,
+  onShareProfile,
+  onReviewNotification,
+  pulseEvents,
+}: {
+  clinicianData: ClinicianData | null;
+  licenses: LicenseData[];
+  notifications: NotificationData[];
+  onNpiSync: () => Promise<void>;
+  onDownloadPDF: () => Promise<void>;
+  onShareProfile: () => Promise<void>;
+  onReviewNotification: (id: number) => void;
+  pulseEvents: PulseEvent[];
+}) {
+  const { push } = usePanes();
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.location.hash === '#pulse') {
+      document.getElementById('pulse-feed')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
+
+  const handleInspect = (event: PulseEvent) =>
+    push({
+      title: `Inspect • ${event.title}`,
+      content: (
+        <div className="space-y-4 p-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">
+                {event.type}
+              </Badge>
+              <span className="text-sm text-muted-foreground">
+                {new Date(event.timestamp).toLocaleString()}
+              </span>
+            </div>
+            <p className="text-sm text-foreground">{event.summary}</p>
+            {event.tags && (
+              <div className="flex flex-wrap gap-2">
+                {event.tags.map((tag) => (
+                  <Badge key={tag} variant="secondary" className="text-[11px]">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+          <Separator />
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <div>
+              Source: <span className="font-medium text-foreground">{event.source}</span>
+            </div>
+            {event.relatedEntity?.label && (
+              <div>
+                Related: <span className="font-medium text-foreground">{event.relatedEntity.label}</span>
+              </div>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {event.links
+              .filter((link) => link.destination !== 'inspect')
+              .map((link) => (
+                <Button key={link.label} asChild variant="outline" size="sm">
+                  <Link href={link.href}>
+                    {link.label}
+                    <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              ))}
+            <Button asChild size="sm" variant="default">
+              <Link href="/graph">Open Graph</Link>
+            </Button>
+          </div>
+        </div>
+      ),
+    });
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50">
+      {/* Header */}
+      <header className="border-b bg-white/80 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center space-x-2">
+            <Shield className="h-8 w-8 text-blue-600" />
+            <span className="text-2xl font-bold text-gray-900">VitalCV</span>
+          </Link>
+          <nav className="hidden md:flex items-center space-x-6">
+            <Link href="/verify" className="text-gray-600 hover:text-blue-600 transition-colors">
+              Verify
+            </Link>
+            <Link href="/analytics" className="text-gray-600 hover:text-blue-600 transition-colors">
+              Analytics
+            </Link>
+            <Link href="/support" className="text-gray-600 hover:text-blue-600 transition-colors">
+              Support
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      <div className="container mx-auto px-4 py-8 lg:py-12 space-y-8">
+        <div>
+          <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Clinician Dashboard</h1>
+          <p className="text-lg text-gray-600">
+            Manage your professional credentials and verification status
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
+          {/* Main Content - Takes up 3 columns on xl screens */}
+          <div className="xl:col-span-3 space-y-6">
+            {/* NPI Card */}
+            {clinicianData && (
+              <NPICard
+                npi={clinicianData.npi}
+                name={clinicianData.name}
+                credentials={clinicianData.credentials}
+                status={clinicianData.status}
+                lastSynced={clinicianData.lastSynced}
+                verified={true}
+                onSync={onNpiSync}
+              />
+            )}
+
+            <div id="pulse-feed" className="scroll-mt-24">
+              <PulseFeed events={pulseEvents} onInspect={handleInspect} />
+            </div>
+
+            {/* Licensure Card */}
+            <LicensureCard licenses={licenses} />
+
+            {/* Analytics */}
+            <AnalyticsCard />
+
+            {/* Full Analytics */}
+            <DashboardAnalytics />
+          </div>
+
+          {/* Sidebar - Takes up 1 column on xl screens */}
+          <div className="space-y-6">
+            {/* Notifications */}
+            <NotificationsCard notifications={notifications} onReview={onReviewNotification} />
+
+            {/* Quick Actions */}
+            {clinicianData && (
+              <QuickActionsCard
+                npi={clinicianData.npi}
+                onDownloadPDF={onDownloadPDF}
+                onShareProfile={onShareProfile}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
