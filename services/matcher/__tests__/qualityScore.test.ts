@@ -184,8 +184,9 @@ describe('Match Quality Score Computation', () => {
       };
 
       const result = computeCompactScore(clinician, job);
-      expect(result.score).toBe(80);
+      expect(result.score).toBe(90);
       expect(result.eligibility).toContain('imlc');
+      expect(result.eligibility).toContain('imlc_portable');
     });
 
     it('should give zero score for no eligibility', () => {
@@ -413,4 +414,3 @@ describe('Match Quality Score Computation', () => {
     });
   });
 });
-

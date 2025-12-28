@@ -6,6 +6,7 @@
 
 import { JobMatchCriteria } from '../jobs/models/JobPosting';
 import { MatchReason } from '../jobs/models/Application';
+import { isCompactPortabilityMatch } from '../compacts/licenseCompacts';
 
 export interface JobCandidate {
   id: string;
@@ -94,6 +95,25 @@ function calculateLicenseStateMatch(
       states: directMatches,
       method: 'direct',
     };
+  }
+
+  if (job.imlcEligible || job.compactAllowed) {
+    const compactMatches: string[] = [];
+    for (const candidateState of candidateStates) {
+      for (const requiredState of requiredStates) {
+        if (isCompactPortabilityMatch('IMLC', candidateState, requiredState)) {
+          compactMatches.push(requiredState);
+        }
+      }
+    }
+
+    if (compactMatches.length > 0) {
+      return {
+        matched: true,
+        states: Array.from(new Set(compactMatches)),
+        method: 'imlc_portable',
+      };
+    }
   }
 
   // IMLC eligibility (if both candidate and job support it)
@@ -289,4 +309,3 @@ export function getTopMatches(
     .filter(match => match.matched)
     .slice(0, topN);
 }
-

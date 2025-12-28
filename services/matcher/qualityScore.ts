@@ -20,6 +20,7 @@ const log = getServiceLogger('matcher/qualityScore');
 
 import { PrismaClient } from '@prisma/client';
 import { getServiceLogger } from '../logging/serviceLogger';
+import { isCompactPortabilityMatch } from '../compacts/licenseCompacts';
 
 const prisma = new PrismaClient();
 
@@ -83,6 +84,7 @@ export interface QualityScore {
     distanceMiles?: number;
     specialtyMatch: string;
     compactEligibility: string[];
+    compactPortabilityStates?: string[];
     licenseStateMatch: boolean;
   };
   breakdown: {
@@ -219,6 +221,7 @@ export function computeCompactScore(
 ): { score: number; eligibility: string[] } {
   const eligibleCompacts: string[] = [];
   let hasDirectLicense = false;
+  const portabilityStates: string[] = [];
 
   // Check for direct license match
   for (const requiredState of job.requiredStates) {
@@ -232,6 +235,13 @@ export function computeCompactScore(
   // Check compact eligibility
   if (job.compacts?.imlcAllowed && clinician.compacts?.imlc) {
     eligibleCompacts.push('imlc');
+    for (const candidateState of clinician.licenseStates) {
+      for (const requiredState of job.requiredStates) {
+        if (isCompactPortabilityMatch('IMLC', candidateState, requiredState)) {
+          portabilityStates.push(requiredState);
+        }
+      }
+    }
   }
 
   if (job.compacts?.psypactAllowed && clinician.compacts?.psypact) {
@@ -245,9 +255,16 @@ export function computeCompactScore(
     eligibleCompacts.push('counseling_compact');
   }
 
+  const uniquePortabilityStates = Array.from(new Set(portabilityStates));
+  if (uniquePortabilityStates.length > 0) {
+    eligibleCompacts.push('imlc_portable');
+  }
+
   // Score calculation
   if (hasDirectLicense) {
     return { score: 100, eligibility: eligibleCompacts };
+  } else if (uniquePortabilityStates.length > 0) {
+    return { score: 90, eligibility: eligibleCompacts };
   } else if (eligibleCompacts.length > 0) {
     // Compact eligible but no direct license
     return { score: 80, eligibility: eligibleCompacts };
@@ -291,6 +308,13 @@ export function computeQualityScore(
       distanceMiles: distanceResult.distanceMiles,
       specialtyMatch: specialtyResult.match,
       compactEligibility: compactResult.eligibility,
+      compactPortabilityStates: compactResult.eligibility.includes('imlc_portable')
+        ? job.requiredStates.filter((state) =>
+            clinician.licenseStates.some((candidateState) =>
+              isCompactPortabilityMatch('IMLC', candidateState, state)
+            )
+          )
+        : undefined,
       licenseStateMatch: compactResult.eligibility.includes('direct_license'),
     },
     breakdown: {
@@ -426,4 +450,3 @@ export type {
   ClinicianProfile as MatchClinicianProfile,
   JobRequirements as MatchJobRequirements,
 };
-

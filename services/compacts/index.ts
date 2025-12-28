@@ -55,5 +55,5 @@ export * from './models/ClinicianCompactWallet.js';
 export type { ClinicianCompactWalletEntry } from './models/ClinicianCompactWallet.js';
 export * from './psyEngine.js';
 export * from './compactGraph.js';
+export * from './licenseCompacts.js';
 export * from './rules/aprnRules.js';
-

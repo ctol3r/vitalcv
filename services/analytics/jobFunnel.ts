@@ -15,10 +15,12 @@ import { getServiceLogger } from '../logging/serviceLogger';
 export interface JobFunnelEvent {
   jobId: string;
   partnerId: string;
-  eventType: 'view' | 'click' | 'apply' | 'hired';
+  eventType: 'view' | 'click' | 'apply' | 'interview' | 'offer' | 'hire' | 'hired';
   timestamp: Date;
   candidateId?: string;
   applicationId?: string;
+  credentialId?: string;
+  issuerDid?: string;
   metadata?: Record<string, any>;
 }
 
@@ -28,9 +30,15 @@ export interface JobFunnelMetrics {
   views: number;
   clicks: number;
   applies: number;
+  interviews: number;
+  offers: number;
   hired: number;
+  hires: number;
   viewToClickRate: number;
   clickToApplyRate: number;
+  applyToInterviewRate: number;
+  interviewToOfferRate: number;
+  offerToHireRate: number;
   applyToHireRate: number;
   overallConversionRate: number;
   lastUpdated: Date;
@@ -42,12 +50,36 @@ export interface PartnerFunnelMetrics {
   totalViews: number;
   totalClicks: number;
   totalApplies: number;
+  totalInterviews: number;
+  totalOffers: number;
   totalHired: number;
   avgViewToClickRate: number;
   avgClickToApplyRate: number;
+  avgApplyToInterviewRate: number;
+  avgInterviewToOfferRate: number;
+  avgOfferToHireRate: number;
   avgApplyToHireRate: number;
   avgOverallConversionRate: number;
   jobMetrics: JobFunnelMetrics[];
+  lastUpdated: Date;
+}
+
+export interface FunnelDimensionMetrics {
+  dimension: 'credential' | 'issuer';
+  id: string;
+  views: number;
+  clicks: number;
+  applies: number;
+  interviews: number;
+  offers: number;
+  hires: number;
+  viewToClickRate: number;
+  clickToApplyRate: number;
+  applyToInterviewRate: number;
+  interviewToOfferRate: number;
+  offerToHireRate: number;
+  applyToHireRate: number;
+  overallConversionRate: number;
   lastUpdated: Date;
 }
 
@@ -55,12 +87,111 @@ export interface PartnerFunnelMetrics {
  * In-memory storage for demo purposes
  * In production, this would use a time-series database like InfluxDB or TimescaleDB
  */
-const funnelData = new Map<string, {
+type FunnelBucket = {
   views: Set<string>;
   clicks: Set<string>;
   applies: Set<string>;
-  hired: Set<string>;
-}>();
+  interviews: Set<string>;
+  offers: Set<string>;
+  hires: Set<string>;
+};
+
+const funnelData = new Map<string, FunnelBucket>();
+const credentialFunnelData = new Map<string, FunnelBucket>();
+const issuerFunnelData = new Map<string, FunnelBucket>();
+
+function createBucket(): FunnelBucket {
+  return {
+    views: new Set(),
+    clicks: new Set(),
+    applies: new Set(),
+    interviews: new Set(),
+    offers: new Set(),
+    hires: new Set(),
+  };
+}
+
+function resolveBucket(store: Map<string, FunnelBucket>, key: string): FunnelBucket {
+  if (!store.has(key)) {
+    store.set(key, createBucket());
+  }
+  return store.get(key)!;
+}
+
+function applyEventToBucket(
+  bucket: FunnelBucket,
+  eventType: JobFunnelEvent['eventType'] | 'hired',
+  eventId: string
+): void {
+  switch (eventType) {
+    case 'view':
+      bucket.views.add(eventId);
+      break;
+    case 'click':
+      bucket.clicks.add(eventId);
+      break;
+    case 'apply':
+      bucket.applies.add(eventId);
+      break;
+    case 'interview':
+      bucket.interviews.add(eventId);
+      break;
+    case 'offer':
+      bucket.offers.add(eventId);
+      break;
+    case 'hire':
+    case 'hired':
+      bucket.hires.add(eventId);
+      break;
+  }
+}
+
+function summarizeBucket(bucket: FunnelBucket): {
+  views: number;
+  clicks: number;
+  applies: number;
+  interviews: number;
+  offers: number;
+  hires: number;
+  viewToClickRate: number;
+  clickToApplyRate: number;
+  applyToInterviewRate: number;
+  interviewToOfferRate: number;
+  offerToHireRate: number;
+  applyToHireRate: number;
+  overallConversionRate: number;
+} {
+  const views = bucket.views.size;
+  const clicks = bucket.clicks.size;
+  const applies = bucket.applies.size;
+  const interviews = bucket.interviews.size;
+  const offers = bucket.offers.size;
+  const hires = bucket.hires.size;
+
+  const viewToClickRate = views > 0 ? (clicks / views) * 100 : 0;
+  const clickToApplyRate = clicks > 0 ? (applies / clicks) * 100 : 0;
+  const applyToInterviewRate = applies > 0 ? (interviews / applies) * 100 : 0;
+  const interviewToOfferRate = interviews > 0 ? (offers / interviews) * 100 : 0;
+  const offerToHireRate = offers > 0 ? (hires / offers) * 100 : 0;
+  const applyToHireRate = applies > 0 ? (hires / applies) * 100 : 0;
+  const overallConversionRate = views > 0 ? (hires / views) * 100 : 0;
+
+  return {
+    views,
+    clicks,
+    applies,
+    interviews,
+    offers,
+    hires,
+    viewToClickRate,
+    clickToApplyRate,
+    applyToInterviewRate,
+    interviewToOfferRate,
+    offerToHireRate,
+    applyToHireRate,
+    overallConversionRate,
+  };
+}
 
 class JobFunnelAnalytics extends EventEmitter {
   private static instance: JobFunnelAnalytics;
@@ -82,35 +213,20 @@ class JobFunnelAnalytics extends EventEmitter {
   public trackEvent(event: JobFunnelEvent): void {
     const key = `${event.partnerId}:${event.jobId}`;
 
-    if (!funnelData.has(key)) {
-      funnelData.set(key, {
-        views: new Set(),
-        clicks: new Set(),
-        applies: new Set(),
-        hired: new Set(),
-      });
+    const jobBucket = resolveBucket(funnelData, key);
+    const eventId = event.applicationId || event.candidateId || `anon-${Date.now()}`;
+    const normalizedEventType = event.eventType === 'hire' ? 'hired' : event.eventType;
+
+    applyEventToBucket(jobBucket, normalizedEventType, eventId);
+
+    if (event.credentialId) {
+      const credentialBucket = resolveBucket(credentialFunnelData, event.credentialId);
+      applyEventToBucket(credentialBucket, normalizedEventType, eventId);
     }
 
-    const data = funnelData.get(key)!;
-    const eventId = event.candidateId || event.applicationId || `anon-${Date.now()}`;
-
-    switch (event.eventType) {
-      case 'view':
-        data.views.add(eventId);
-        break;
-      case 'click':
-        data.clicks.add(eventId);
-        break;
-      case 'apply':
-        if (event.applicationId) {
-          data.applies.add(event.applicationId);
-        }
-        break;
-      case 'hired':
-        if (event.applicationId) {
-          data.hired.add(event.applicationId);
-        }
-        break;
+    if (event.issuerDid) {
+      const issuerBucket = resolveBucket(issuerFunnelData, event.issuerDid);
+      applyEventToBucket(issuerBucket, normalizedEventType, eventId);
     }
 
     this.emit('funnel:event', event);
@@ -128,27 +244,25 @@ class JobFunnelAnalytics extends EventEmitter {
       return null;
     }
 
-    const views = data.views.size;
-    const clicks = data.clicks.size;
-    const applies = data.applies.size;
-    const hired = data.hired.size;
-
-    const viewToClickRate = views > 0 ? (clicks / views) * 100 : 0;
-    const clickToApplyRate = clicks > 0 ? (applies / clicks) * 100 : 0;
-    const applyToHireRate = applies > 0 ? (hired / applies) * 100 : 0;
-    const overallConversionRate = views > 0 ? (hired / views) * 100 : 0;
+    const summary = summarizeBucket(data);
 
     return {
       jobId,
       partnerId,
-      views,
-      clicks,
-      applies,
-      hired,
-      viewToClickRate: Math.round(viewToClickRate * 100) / 100,
-      clickToApplyRate: Math.round(clickToApplyRate * 100) / 100,
-      applyToHireRate: Math.round(applyToHireRate * 100) / 100,
-      overallConversionRate: Math.round(overallConversionRate * 100) / 100,
+      views: summary.views,
+      clicks: summary.clicks,
+      applies: summary.applies,
+      interviews: summary.interviews,
+      offers: summary.offers,
+      hired: summary.hires,
+      hires: summary.hires,
+      viewToClickRate: Math.round(summary.viewToClickRate * 100) / 100,
+      clickToApplyRate: Math.round(summary.clickToApplyRate * 100) / 100,
+      applyToInterviewRate: Math.round(summary.applyToInterviewRate * 100) / 100,
+      interviewToOfferRate: Math.round(summary.interviewToOfferRate * 100) / 100,
+      offerToHireRate: Math.round(summary.offerToHireRate * 100) / 100,
+      applyToHireRate: Math.round(summary.applyToHireRate * 100) / 100,
+      overallConversionRate: Math.round(summary.overallConversionRate * 100) / 100,
       lastUpdated: new Date(),
     };
   }
@@ -161,6 +275,8 @@ class JobFunnelAnalytics extends EventEmitter {
     let totalViews = 0;
     let totalClicks = 0;
     let totalApplies = 0;
+    let totalInterviews = 0;
+    let totalOffers = 0;
     let totalHired = 0;
 
     for (const [key, data] of funnelData.entries()) {
@@ -172,13 +288,19 @@ class JobFunnelAnalytics extends EventEmitter {
           totalViews += metrics.views;
           totalClicks += metrics.clicks;
           totalApplies += metrics.applies;
-          totalHired += metrics.hired;
+          totalInterviews += metrics.interviews;
+          totalOffers += metrics.offers;
+          totalHired += metrics.hires;
         }
       }
     }
 
     const avgViewToClickRate = totalViews > 0 ? (totalClicks / totalViews) * 100 : 0;
     const avgClickToApplyRate = totalClicks > 0 ? (totalApplies / totalClicks) * 100 : 0;
+    const avgApplyToInterviewRate = totalApplies > 0 ? (totalInterviews / totalApplies) * 100 : 0;
+    const avgInterviewToOfferRate =
+      totalInterviews > 0 ? (totalOffers / totalInterviews) * 100 : 0;
+    const avgOfferToHireRate = totalOffers > 0 ? (totalHired / totalOffers) * 100 : 0;
     const avgApplyToHireRate = totalApplies > 0 ? (totalHired / totalApplies) * 100 : 0;
     const avgOverallConversionRate = totalViews > 0 ? (totalHired / totalViews) * 100 : 0;
 
@@ -188,9 +310,14 @@ class JobFunnelAnalytics extends EventEmitter {
       totalViews,
       totalClicks,
       totalApplies,
+      totalInterviews,
+      totalOffers,
       totalHired,
       avgViewToClickRate: Math.round(avgViewToClickRate * 100) / 100,
       avgClickToApplyRate: Math.round(avgClickToApplyRate * 100) / 100,
+      avgApplyToInterviewRate: Math.round(avgApplyToInterviewRate * 100) / 100,
+      avgInterviewToOfferRate: Math.round(avgInterviewToOfferRate * 100) / 100,
+      avgOfferToHireRate: Math.round(avgOfferToHireRate * 100) / 100,
       avgApplyToHireRate: Math.round(avgApplyToHireRate * 100) / 100,
       avgOverallConversionRate: Math.round(avgOverallConversionRate * 100) / 100,
       jobMetrics,
@@ -207,6 +334,48 @@ class JobFunnelAnalytics extends EventEmitter {
       .filter((metrics): metrics is JobFunnelMetrics => metrics !== null);
   }
 
+  public getCredentialMetrics(credentialId: string): FunnelDimensionMetrics | null {
+    const data = credentialFunnelData.get(credentialId);
+    if (!data) {
+      return null;
+    }
+    const summary = summarizeBucket(data);
+    return {
+      dimension: 'credential',
+      id: credentialId,
+      ...summary,
+      viewToClickRate: Math.round(summary.viewToClickRate * 100) / 100,
+      clickToApplyRate: Math.round(summary.clickToApplyRate * 100) / 100,
+      applyToInterviewRate: Math.round(summary.applyToInterviewRate * 100) / 100,
+      interviewToOfferRate: Math.round(summary.interviewToOfferRate * 100) / 100,
+      offerToHireRate: Math.round(summary.offerToHireRate * 100) / 100,
+      applyToHireRate: Math.round(summary.applyToHireRate * 100) / 100,
+      overallConversionRate: Math.round(summary.overallConversionRate * 100) / 100,
+      lastUpdated: new Date(),
+    };
+  }
+
+  public getIssuerMetrics(issuerDid: string): FunnelDimensionMetrics | null {
+    const data = issuerFunnelData.get(issuerDid);
+    if (!data) {
+      return null;
+    }
+    const summary = summarizeBucket(data);
+    return {
+      dimension: 'issuer',
+      id: issuerDid,
+      ...summary,
+      viewToClickRate: Math.round(summary.viewToClickRate * 100) / 100,
+      clickToApplyRate: Math.round(summary.clickToApplyRate * 100) / 100,
+      applyToInterviewRate: Math.round(summary.applyToInterviewRate * 100) / 100,
+      interviewToOfferRate: Math.round(summary.interviewToOfferRate * 100) / 100,
+      offerToHireRate: Math.round(summary.offerToHireRate * 100) / 100,
+      applyToHireRate: Math.round(summary.applyToHireRate * 100) / 100,
+      overallConversionRate: Math.round(summary.overallConversionRate * 100) / 100,
+      lastUpdated: new Date(),
+    };
+  }
+
   /**
    * Reset metrics for a job (for testing)
    */
@@ -220,6 +389,8 @@ class JobFunnelAnalytics extends EventEmitter {
    */
   public resetAllMetrics(): void {
     funnelData.clear();
+    credentialFunnelData.clear();
+    issuerFunnelData.clear();
   }
 }
 
@@ -234,6 +405,8 @@ export function trackJobView(
   partnerId: string,
   jobId: string,
   candidateId?: string,
+  credentialId?: string,
+  issuerDid?: string,
   metadata?: Record<string, any>
 ): void {
   jobFunnelAnalytics.trackEvent({
@@ -242,6 +415,8 @@ export function trackJobView(
     eventType: 'view',
     timestamp: new Date(),
     candidateId,
+    credentialId,
+    issuerDid,
     metadata,
   });
 }
@@ -250,6 +425,8 @@ export function trackJobClick(
   partnerId: string,
   jobId: string,
   candidateId?: string,
+  credentialId?: string,
+  issuerDid?: string,
   metadata?: Record<string, any>
 ): void {
   jobFunnelAnalytics.trackEvent({
@@ -258,6 +435,8 @@ export function trackJobClick(
     eventType: 'click',
     timestamp: new Date(),
     candidateId,
+    credentialId,
+    issuerDid,
     metadata,
   });
 }
@@ -267,6 +446,8 @@ export function trackJobApply(
   jobId: string,
   applicationId: string,
   candidateId?: string,
+  credentialId?: string,
+  issuerDid?: string,
   metadata?: Record<string, any>
 ): void {
   jobFunnelAnalytics.trackEvent({
@@ -276,6 +457,8 @@ export function trackJobApply(
     timestamp: new Date(),
     applicationId,
     candidateId,
+    credentialId,
+    issuerDid,
     metadata,
   });
 }
@@ -285,6 +468,8 @@ export function trackJobHired(
   jobId: string,
   applicationId: string,
   candidateId: string,
+  credentialId?: string,
+  issuerDid?: string,
   metadata?: Record<string, any>
 ): void {
   jobFunnelAnalytics.trackEvent({
@@ -294,6 +479,74 @@ export function trackJobHired(
     timestamp: new Date(),
     applicationId,
     candidateId,
+    credentialId,
+    issuerDid,
+    metadata,
+  });
+}
+
+export function trackJobInterviewScheduled(
+  partnerId: string,
+  jobId: string,
+  applicationId: string,
+  candidateId?: string,
+  credentialId?: string,
+  issuerDid?: string,
+  metadata?: Record<string, any>
+): void {
+  jobFunnelAnalytics.trackEvent({
+    jobId,
+    partnerId,
+    eventType: 'interview',
+    timestamp: new Date(),
+    applicationId,
+    candidateId,
+    credentialId,
+    issuerDid,
+    metadata,
+  });
+}
+
+export function trackJobOfferExtended(
+  partnerId: string,
+  jobId: string,
+  applicationId: string,
+  candidateId?: string,
+  credentialId?: string,
+  issuerDid?: string,
+  metadata?: Record<string, any>
+): void {
+  jobFunnelAnalytics.trackEvent({
+    jobId,
+    partnerId,
+    eventType: 'offer',
+    timestamp: new Date(),
+    applicationId,
+    candidateId,
+    credentialId,
+    issuerDid,
+    metadata,
+  });
+}
+
+export function trackJobHire(
+  partnerId: string,
+  jobId: string,
+  applicationId: string,
+  candidateId?: string,
+  credentialId?: string,
+  issuerDid?: string,
+  metadata?: Record<string, any>
+): void {
+  jobFunnelAnalytics.trackEvent({
+    jobId,
+    partnerId,
+    eventType: 'hire',
+    timestamp: new Date(),
+    applicationId,
+    candidateId,
+    credentialId,
+    issuerDid,
     metadata,
   });
 }
@@ -304,17 +557,38 @@ export function trackJobHired(
  */
 
 export interface JobFunnelAPIRequest {
-  partnerId: string;
+  partnerId?: string;
   jobId?: string;
   jobIds?: string[];
+  credentialId?: string;
+  issuerDid?: string;
 }
 
 export async function getJobFunnelStats(
   request: JobFunnelAPIRequest
-): Promise<JobFunnelMetrics | PartnerFunnelMetrics | JobFunnelMetrics[]> {
-  const { partnerId, jobId, jobIds } = request;
+): Promise<JobFunnelMetrics | PartnerFunnelMetrics | JobFunnelMetrics[] | FunnelDimensionMetrics> {
+  const { partnerId, jobId, jobIds, credentialId, issuerDid } = request;
+
+  if (credentialId) {
+    const metrics = jobFunnelAnalytics.getCredentialMetrics(credentialId);
+    if (!metrics) {
+      throw new Error(`No metrics found for credential ${credentialId}`);
+    }
+    return metrics;
+  }
+
+  if (issuerDid) {
+    const metrics = jobFunnelAnalytics.getIssuerMetrics(issuerDid);
+    if (!metrics) {
+      throw new Error(`No metrics found for issuer ${issuerDid}`);
+    }
+    return metrics;
+  }
 
   if (jobId) {
+    if (!partnerId) {
+      throw new Error('partnerId is required for job metrics');
+    }
     const metrics = jobFunnelAnalytics.getJobMetrics(partnerId, jobId);
     if (!metrics) {
       throw new Error(`No metrics found for job ${jobId}`);
@@ -323,10 +597,15 @@ export async function getJobFunnelStats(
   }
 
   if (jobIds && jobIds.length > 0) {
+    if (!partnerId) {
+      throw new Error('partnerId is required for job metrics');
+    }
     return jobFunnelAnalytics.getMultipleJobMetrics(partnerId, jobIds);
   }
 
   // Return partner-level metrics
+  if (!partnerId) {
+    throw new Error('partnerId is required for partner metrics');
+  }
   return jobFunnelAnalytics.getPartnerMetrics(partnerId);
 }
-

@@ -38,6 +38,16 @@ model AuditEvent {
   createdAt    DateTime @default(now())
 }
 
+model LicenseCompact {
+  id            Int    @id @default(autoincrement())
+  compactId     String
+  memberState   String
+  issuerDid     String
+  recognizedDid String
+
+  @@unique([compactId, memberState, issuerDid, recognizedDid])
+}
+
 model Job {
   id     Int    @id @default(autoincrement())
   title  String

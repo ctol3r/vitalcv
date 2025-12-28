@@ -19,6 +19,11 @@ import { errorHandler } from './middleware/errorHandler';
 import { validateRequest } from './middleware/validateRequest';
 import { log, reqLogFields } from './obs/logger';
 import { requestIdMiddleware, type RequestWithId } from './obs/requestId';
+import {
+  trackJobHire,
+  trackJobInterviewScheduled,
+  trackJobOfferExtended,
+} from 'services/analytics/jobFunnel';
 
 const app = express();
 const bootedAtIso = new Date().toISOString();
@@ -508,6 +513,84 @@ app.post(
       verified,
       auditRef: audit.hash,
       upstream,
+    });
+  },
+);
+
+app.post(
+  '/job-action/intent',
+  body('applicationId').isString().withMessage('applicationId is required'),
+  body('type')
+    .isIn(['interview_scheduled', 'offer_extended', 'contract_signed'])
+    .withMessage('type must be interview_scheduled, offer_extended, or contract_signed'),
+  body('metadata').optional().isObject(),
+  validateRequest,
+  async (req: Request, res: Response) => {
+    const { applicationId, type, metadata } = req.body as {
+      applicationId: string;
+      type: 'interview_scheduled' | 'offer_extended' | 'contract_signed';
+      metadata?: Record<string, any>;
+    };
+
+    const auditTypeMap: Record<string, string> = {
+      interview_scheduled: 'JOB_ACTION_INTERVIEW_SCHEDULED',
+      offer_extended: 'JOB_ACTION_OFFER_EXTENDED',
+      contract_signed: 'JOB_ACTION_CONTRACT_SIGNED',
+    };
+
+    const audit = await writeAuditEvent({
+      type: auditTypeMap[type],
+      metadata: {
+        applicationId,
+        ...metadata,
+      },
+    });
+
+    const jobId = metadata?.jobId as string | undefined;
+    const partnerId = metadata?.partnerId as string | undefined;
+    const candidateId = metadata?.candidateId as string | undefined;
+    const credentialId = metadata?.credentialId as string | undefined;
+    const issuerDid = metadata?.issuerDid as string | undefined;
+
+    if (jobId && partnerId) {
+      if (type === 'interview_scheduled') {
+        trackJobInterviewScheduled(
+          partnerId,
+          jobId,
+          applicationId,
+          candidateId,
+          credentialId,
+          issuerDid,
+          metadata,
+        );
+      } else if (type === 'offer_extended') {
+        trackJobOfferExtended(
+          partnerId,
+          jobId,
+          applicationId,
+          candidateId,
+          credentialId,
+          issuerDid,
+          metadata,
+        );
+      } else if (type === 'contract_signed') {
+        trackJobHire(
+          partnerId,
+          jobId,
+          applicationId,
+          candidateId,
+          credentialId,
+          issuerDid,
+          metadata,
+        );
+      }
+    }
+
+    return res.status(202).json({
+      status: 'accepted',
+      auditRef: audit.hash,
+      eventType: auditTypeMap[type],
+      recordedAt: audit.createdAt,
     });
   },
 );
