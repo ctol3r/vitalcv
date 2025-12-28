@@ -19,6 +19,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { validateRequest } from './middleware/validateRequest';
 import { log, reqLogFields } from './obs/logger';
 import { requestIdMiddleware, type RequestWithId } from './obs/requestId';
+import trustLedgerRoutes from './api/trust-ledger/routes';
 
 const app = express();
 const bootedAtIso = new Date().toISOString();
@@ -29,6 +30,7 @@ app.disable('x-powered-by');
 app.use(requestIdMiddleware);
 
 app.use(express.json());
+app.use('/trust-ledger', trustLedgerRoutes);
 
 // Basic CORS for local dev + simple deployments (browser calls backend directly from apps/web)
 app.use((req, res, next) => {
