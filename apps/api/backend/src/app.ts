@@ -8,7 +8,7 @@ import { neo4jConfigured } from './graph/neo4jHttp';
 import {
   ensureGraphSchema,
   getGraphView,
-  getReadinessScore,
+  getReadinessScore as getGraphReadinessScore,
   getSpecialtyDensity,
   graphHealth,
   seedDemoGraph,
@@ -19,6 +19,8 @@ import { errorHandler } from './middleware/errorHandler';
 import { validateRequest } from './middleware/validateRequest';
 import { log, reqLogFields } from './obs/logger';
 import { requestIdMiddleware, type RequestWithId } from './obs/requestId';
+import { feedbackRouter } from './routes/feedback';
+import { readinessRouter } from './routes/readiness';
 
 const app = express();
 const bootedAtIso = new Date().toISOString();
@@ -62,6 +64,10 @@ app.use((req: RequestWithId, res, next) => {
   });
   next();
 });
+
+// Modular routes
+app.use(readinessRouter);
+app.use(feedbackRouter);
 
 function sha256Hex(input: string): string {
   return crypto.createHash('sha256').update(input).digest('hex');
@@ -913,7 +919,7 @@ app.get('/graph/analytics/readiness-score', async (req, res) => {
   if (!neo4jConfigured()) return res.status(501).json({ error: 'Neo4j not configured' });
   const clinicianId = String(req.query.clinicianId || '').trim();
   if (!clinicianId) return res.status(400).json({ error: 'clinicianId is required' });
-  const result = await getReadinessScore(clinicianId);
+  const result = await getGraphReadinessScore(clinicianId);
   return res.json(result);
 });
 
