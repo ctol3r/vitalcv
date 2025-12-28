@@ -21,6 +21,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSession } from '@/contexts/SessionContext';
 import { useToast } from '@/hooks/use-toast';
+import { PilotBanner } from '@/components/PilotBanner';
+import { usePilotMode } from '@/hooks/usePilotMode';
 import { addEvent } from '@/lib/event-cache';
 import { CheckCircle2, Loader2, Search, Shield, XCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -60,6 +62,9 @@ export default function VerifyPage() {
   const pollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pollCountRef = useRef(0);
   const { toast } = useToast();
+  const { pilotEnabled, hospitalLabel, clinicianLabel } = usePilotMode();
+  const verifierLabel = pilotEnabled ? hospitalLabel : 'Demo Hospital';
+  const presenterLabel = pilotEnabled ? clinicianLabel : 'Demo Clinician';
 
   useEffect(() => {
     setNonce(Math.random().toString(36).substring(2, 15));
@@ -94,8 +99,7 @@ export default function VerifyPage() {
     setResult(null);
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
-      const response = await fetch(`${backendUrl}/verifier/presentation`, {
+      const response = await fetch(`/api/verifier/presentation`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -180,8 +184,7 @@ export default function VerifyPage() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
-      const response = await fetch(`${backendUrl}/verifier/presentation`, {
+      const response = await fetch(`/api/verifier/presentation`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -360,8 +363,7 @@ export default function VerifyPage() {
     setResult(null);
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
-      const response = await fetch(`${backendUrl}/verifier/presentation`, {
+      const response = await fetch(`/api/verifier/presentation`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -471,10 +473,14 @@ export default function VerifyPage() {
       </header>
 
       <main id="main-content" className="container mx-auto px-4 py-12">
+        <PilotBanner />
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Verify Credential</h1>
           <p className="text-lg text-gray-600">
             Enter a credential ID to verify its authenticity and status
+          </p>
+          <p className="text-sm text-gray-500 mt-2">
+            Acting as {verifierLabel} verifying a {presenterLabel}&apos;s credential.
           </p>
         </div>
 

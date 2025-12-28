@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Shield, Zap } from 'lucide-react';
 import Link from 'next/link';
+import { EarlyAccessSection } from '@/components/EarlyAccessSection';
 
 export default function LandingPage() {
   return (
@@ -62,9 +63,19 @@ export default function LandingPage() {
             >
               <Link href="/verify">Verify Credentials</Link>
             </Button>
+            <Button
+              asChild
+              variant="secondary"
+              size="lg"
+              className="text-lg px-8 py-6 bg-white/80 text-blue-700 border border-blue-100"
+            >
+              <Link href="#early-access">Request Early Access</Link>
+            </Button>
           </div>
         </div>
       </section>
+
+      <EarlyAccessSection />
 
       {/* Benefits Section */}
       <section className="py-16 px-4 bg-white/50 backdrop-blur-sm">

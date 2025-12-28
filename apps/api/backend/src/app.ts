@@ -17,11 +17,18 @@ import {
 import prisma from './graphql/prisma_client';
 import { errorHandler } from './middleware/errorHandler';
 import { validateRequest } from './middleware/validateRequest';
+import {
+  actorContextMiddleware,
+  requireActorRole,
+  type ActorContext,
+  type RequestWithActor,
+} from './middleware/actorContext';
 import { log, reqLogFields } from './obs/logger';
 import { requestIdMiddleware, type RequestWithId } from './obs/requestId';
 
 const app = express();
 const bootedAtIso = new Date().toISOString();
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-only-secret';
 
 app.disable('x-powered-by');
 
@@ -29,6 +36,9 @@ app.disable('x-powered-by');
 app.use(requestIdMiddleware);
 
 app.use(express.json());
+
+// Lightweight actor context (role/org) for RBAC enforcement
+app.use(actorContextMiddleware);
 
 // Basic CORS for local dev + simple deployments (browser calls backend directly from apps/web)
 app.use((req, res, next) => {
@@ -180,6 +190,8 @@ function resolveEnvironment(): string {
 const gitSha = resolveGitSha();
 const builtAtIso = resolveBuiltAtIso();
 const environmentName = resolveEnvironment();
+const EARLY_ACCESS_TOKEN_TTL_HOURS = Number(process.env.EARLY_ACCESS_TOKEN_TTL_HOURS || 24);
+const INVITE_TOKEN_TTL_HOURS = Number(process.env.INVITE_TOKEN_TTL_HOURS || 72);
 
 function normalizeCredentialId(raw: string): { externalId: string; dbId?: number } {
   const trimmed = raw.trim();
@@ -193,9 +205,32 @@ function normalizeCredentialId(raw: string): { externalId: string; dbId?: number
   return { externalId: trimmed };
 }
 
-function signDemoJwt(payload: Record<string, unknown>): string {
-  const secret = process.env.JWT_SECRET || 'dev-only-secret';
-  return jwt.sign(payload, secret, { expiresIn: '7d' });
+function signDemoJwt(payload: Record<string, unknown>, expiresIn: string | number = '7d'): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn });
+}
+
+type AuthTokenPayload = {
+  userId: number;
+  email: string;
+  role?: ActorContext['role'];
+  orgId?: number;
+  roles?: string[];
+  inviteId?: number;
+};
+
+function issueAuthToken(payload: AuthTokenPayload): string {
+  return signDemoJwt(
+    {
+      userId: payload.userId,
+      email: payload.email,
+      role: payload.role,
+      actorRole: payload.role,
+      orgId: payload.orgId,
+      roles: payload.roles,
+      inviteId: payload.inviteId,
+    },
+    '3d',
+  );
 }
 
 function verifyPassword(password: string, passwordHash: string): boolean {
@@ -240,6 +275,88 @@ async function writeAuditEvent(event: {
   });
 
   return { hash, createdAt: createdAt.toISOString() };
+}
+
+type MetricEventType = 'ISSUE' | 'VERIFY' | 'REVOKE' | 'MATCH';
+
+async function recordMetricEvent(event: {
+  type: MetricEventType;
+  actor?: ActorContext;
+  credentialId?: string;
+  durationMs?: number;
+  completionPct?: number;
+  orgId?: number;
+  meta?: any;
+}) {
+  try {
+    await prisma.metricEvent.create({
+      data: {
+        type: event.type,
+        actorRole: event.actor?.role ?? null,
+        orgId: event.orgId ?? event.actor?.orgId ?? null,
+        credentialId: event.credentialId,
+        durationMs: event.durationMs ?? null,
+        completionPct: event.completionPct ?? null,
+        metaJson: event.meta ?? undefined,
+      },
+    });
+  } catch (e) {
+    log('warn', 'metric_event_write_failed', {
+      type: event.type,
+      credentialId: event.credentialId,
+      error: String(e instanceof Error ? e.message : e),
+    });
+  }
+}
+
+const allowedActorRoles: ActorContext['role'][] = ['clinician', 'issuer', 'verifier'];
+
+function normalizeActorRole(role: any): ActorContext['role'] | undefined {
+  const normalized = String(role || '').trim().toLowerCase();
+  if (allowedActorRoles.includes(normalized as ActorContext['role'])) {
+    return normalized as ActorContext['role'];
+  }
+  return undefined;
+}
+
+function inviteExpiry(hoursFromNow: number): Date {
+  const d = new Date();
+  d.setHours(d.getHours() + hoursFromNow);
+  return d;
+}
+
+async function ensureOrg(name: string) {
+  const orgName = name.trim() || 'VitalCV Pilot Org';
+  return prisma.org.upsert({
+    where: { name: orgName },
+    update: {},
+    create: { name: orgName },
+  });
+}
+
+async function resolveActorForUser(userId: number, email: string): Promise<{
+  role: ActorContext['role'];
+  orgId?: number;
+  roles: ActorContext['role'][];
+}> {
+  const bindings = await prisma.roleBinding.findMany({
+    where: { OR: [{ userId }, { email }] },
+    orderBy: { createdAt: 'asc' },
+  });
+  const normalized = bindings
+    .map((b) => ({ role: normalizeActorRole(b.role), orgId: b.orgId }))
+    .filter((b) => Boolean(b.role)) as { role: ActorContext['role']; orgId?: number }[];
+
+  if (normalized.length > 0) {
+    const primary = normalized[0];
+    return {
+      role: primary.role,
+      orgId: primary.orgId,
+      roles: normalized.map((b) => b.role),
+    };
+  }
+
+  return { role: 'clinician', roles: ['clinician'] };
 }
 
 function merkleRootHex(hashes: string[]): string | null {
@@ -421,6 +538,179 @@ app.get('/build-info', (_req, res) => {
   });
 });
 
+// --- Early access + invites (pilot enablement) ---
+app.post(
+  '/api/early-access/request',
+  body('email').isEmail().withMessage('email must be valid'),
+  body('role')
+    .isIn(allowedActorRoles as string[])
+    .withMessage('role must be clinician, issuer, or verifier'),
+  body('orgName').optional().isString(),
+  validateRequest,
+  async (req: Request, res: Response) => {
+    const { email, role, orgName } = req.body as {
+      email: string;
+      role: string;
+      orgName?: string;
+    };
+    const normalizedRole = normalizeActorRole(role);
+    if (!normalizedRole) return res.status(400).json({ error: 'Invalid role' });
+
+    const token = crypto.randomBytes(24).toString('hex');
+    const tokenHash = sha256Hex(token);
+    const expiresAt = inviteExpiry(EARLY_ACCESS_TOKEN_TTL_HOURS);
+
+    await prisma.earlyAccessRequest.create({
+      data: {
+        email: email.toLowerCase(),
+        role: normalizedRole,
+        orgName: orgName?.trim() || null,
+        tokenHash,
+        expiresAt,
+      },
+    });
+
+    await writeAuditEvent({
+      type: 'EARLY_ACCESS_REQUESTED',
+      metadata: { email: email.toLowerCase(), role: normalizedRole, orgName: orgName || null },
+    });
+
+    console.log(
+      `[early-access] token for ${email.toLowerCase()} (${normalizedRole}) expires ${expiresAt.toISOString()}: ${token}`,
+    );
+
+    return res.status(201).json({
+      ok: true,
+      message: "You're on the list.",
+      token,
+      expiresAt: expiresAt.toISOString(),
+    });
+  },
+);
+
+app.post(
+  '/api/invite/create',
+  body('role')
+    .isIn(['issuer', 'verifier'])
+    .withMessage('role must be issuer or verifier'),
+  body('orgName').isString().withMessage('orgName is required'),
+  body('email').isEmail().withMessage('email must be valid'),
+  validateRequest,
+  async (req: RequestWithActor, res: Response) => {
+    const { role, orgName, email } = req.body as {
+      role: string;
+      orgName: string;
+      email: string;
+    };
+    const normalizedRole = normalizeActorRole(role);
+    if (!normalizedRole || normalizedRole === 'clinician') {
+      return res.status(400).json({ error: 'role must be issuer or verifier' });
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = sha256Hex(token);
+    const expiresAt = inviteExpiry(INVITE_TOKEN_TTL_HOURS);
+    const org = await ensureOrg(orgName);
+
+    const invite = await prisma.invite.create({
+      data: {
+        tokenHash,
+        role: normalizedRole,
+        orgName: org.name,
+        email: email.toLowerCase(),
+        expiresAt,
+        orgId: org.id,
+      },
+    });
+
+    await writeAuditEvent({
+      type: 'INVITE_CREATED',
+      metadata: {
+        inviteId: invite.id,
+        role: normalizedRole,
+        orgId: org.id,
+        email: email.toLowerCase(),
+        createdBy: req.actor?.email || null,
+      },
+    });
+
+    console.log(
+      `[invite:create] role=${normalizedRole} org=${org.name} email=${email.toLowerCase()} token=${token} expires=${expiresAt.toISOString()}`,
+    );
+
+    return res
+      .status(201)
+      .json({ inviteToken: token, expiresAt: expiresAt.toISOString(), orgId: org.id });
+  },
+);
+
+app.post(
+  '/api/invite/accept',
+  body('token').isString().withMessage('token is required'),
+  validateRequest,
+  async (req: RequestWithActor, res: Response) => {
+    const { token } = req.body as { token: string };
+    const tokenHash = sha256Hex(token);
+    const invite = await prisma.invite.findUnique({ where: { tokenHash } });
+    if (!invite) return res.status(404).json({ error: 'Invite not found' });
+    if (invite.acceptedAt) return res.status(410).json({ error: 'Invite already accepted' });
+    if (invite.expiresAt.getTime() < Date.now())
+      return res.status(410).json({ error: 'Invite expired' });
+
+    const normalizedRole = normalizeActorRole(invite.role);
+    if (!normalizedRole || normalizedRole === 'clinician')
+      return res.status(400).json({ error: 'Invalid invite role' });
+
+    const org = await ensureOrg(invite.orgName);
+    const user = await prisma.user.upsert({
+      where: { email: invite.email },
+      update: { name: invite.email.split('@')[0] || invite.email },
+      create: { email: invite.email, name: invite.email.split('@')[0] || invite.email, passwordHash: null },
+    });
+
+    const existingBinding = await prisma.roleBinding.findFirst({
+      where: { userId: user.id, orgId: org.id, role: normalizedRole },
+    });
+    if (!existingBinding) {
+      await prisma.roleBinding.create({
+        data: {
+          role: normalizedRole,
+          email: invite.email,
+          orgId: org.id,
+          userId: user.id,
+        },
+      });
+    }
+
+    await prisma.invite.update({
+      where: { id: invite.id },
+      data: { acceptedAt: new Date(), orgId: org.id },
+    });
+
+    const auth = issueAuthToken({
+      userId: user.id,
+      email: user.email,
+      role: normalizedRole,
+      orgId: org.id,
+      roles: [normalizedRole],
+      inviteId: invite.id,
+    });
+
+    await writeAuditEvent({
+      type: 'INVITE_ACCEPTED',
+      userId: user.id,
+      metadata: { inviteId: invite.id, orgId: org.id, role: normalizedRole },
+    });
+
+    return res.status(200).json({
+      token: auth,
+      role: normalizedRole,
+      org: { id: org.id, name: org.name },
+      email: user.email,
+    });
+  },
+);
+
 // --- World ID (Phase 1: AuthN only) ---
 app.get('/worldid/status', async (_req, res) => {
   const configured = Boolean(String(process.env.WORLD_ID_APP_ID || '').trim());
@@ -555,6 +845,59 @@ app.get('/audit/summary', async (_req, res) => {
   });
 });
 
+app.get('/api/metrics/summary', async (_req, res) => {
+  const [issued, verified, revoked, matched] = await Promise.all([
+    prisma.metricEvent.count({ where: { type: 'ISSUE' } }),
+    prisma.metricEvent.count({ where: { type: 'VERIFY' } }),
+    prisma.metricEvent.count({ where: { type: 'REVOKE' } }),
+    prisma.metricEvent.count({ where: { type: 'MATCH' } }),
+  ]);
+
+  const verifyDurations = await prisma.metricEvent
+    .findMany({
+      where: { type: 'VERIFY', durationMs: { not: null } },
+      select: { durationMs: true },
+      orderBy: { ts: 'asc' },
+    })
+    .then((rows) => rows.map((r) => Number(r.durationMs)).filter((n) => Number.isFinite(n)));
+
+  const completion = await prisma.metricEvent
+    .findMany({
+      where: { completionPct: { not: null } },
+      select: { completionPct: true },
+    })
+    .then((rows) => rows.map((r) => Number(r.completionPct)).filter((n) => Number.isFinite(n)));
+
+  const avgVerifyMs =
+    verifyDurations.length === 0
+      ? null
+      : Math.round(verifyDurations.reduce((sum, n) => sum + n, 0) / verifyDurations.length);
+  const p95VerifyMs =
+    verifyDurations.length === 0
+      ? null
+      : (() => {
+          const sorted = [...verifyDurations].sort((a, b) => a - b);
+          const idx = Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.95) - 1);
+          return sorted[idx];
+        })();
+
+  const avgCompletionPct =
+    completion.length === 0
+      ? null
+      : Math.round((completion.reduce((sum, n) => sum + n, 0) / completion.length) * 10) / 10;
+
+  return res.json({
+    counts: { issued, verified, revoked, matched },
+    latency: {
+      avgVerifyMs,
+      p95VerifyMs,
+    },
+    completion: {
+      avgCompletionPct,
+    },
+  });
+});
+
 // Demo-safe seed (token-gated in production)
 app.post('/demo/seed', async (req: Request, res: Response) => {
   const token = String(req.headers['x-seed-token'] || '');
@@ -631,7 +974,14 @@ app.post(
       },
     });
 
-    const token = signDemoJwt({ userId: user.id, email: user.email });
+    const actor = await resolveActorForUser(user.id, user.email);
+    const token = issueAuthToken({
+      userId: user.id,
+      email: user.email,
+      role: actor.role,
+      orgId: actor.orgId,
+      roles: actor.roles,
+    });
     await writeAuditEvent({
       type: 'AUTH_SIGNUP',
       userId: user.id,
@@ -656,7 +1006,14 @@ app.post(
     if (!verifyPassword(password, user.passwordHash))
       return res.status(401).json({ error: 'Invalid credentials' });
 
-    const token = signDemoJwt({ userId: user.id, email: user.email });
+    const actor = await resolveActorForUser(user.id, user.email);
+    const token = issueAuthToken({
+      userId: user.id,
+      email: user.email,
+      role: actor.role,
+      orgId: actor.orgId,
+      roles: actor.roles,
+    });
     await writeAuditEvent({ type: 'AUTH_LOGIN', userId: user.id, metadata: { email: user.email } });
     return res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
   },
@@ -802,7 +1159,9 @@ app.post(
   body('subjectId').isString().withMessage('subjectId is required'),
   body('type').isString().withMessage('type is required'),
   validateRequest,
-  async (req: Request, res: Response) => {
+  async (req: RequestWithActor, res: Response) => {
+    if (!requireActorRole(req, res, ['issuer'])) return;
+    const startedAt = Date.now();
     const { subjectId, type, issuingAuthority, expiryDate, licenseNumber, additionalData } =
       req.body as Record<string, any>;
 
@@ -849,6 +1208,14 @@ app.post(
       credentialId: externalId,
       userId: user.id,
       metadata: jwtPayload,
+    });
+    await recordMetricEvent({
+      type: 'ISSUE',
+      actor: req.actor,
+      credentialId: externalId,
+      durationMs: Date.now() - startedAt,
+      orgId: req.actor?.orgId,
+      meta: { issuer, subjectId, type },
     });
 
     // Mirror issuance into the network graph when configured (fail-soft).
@@ -950,24 +1317,74 @@ app.get('/issuer/credentials', async (_req, res) => {
   });
 });
 
+app.get('/clinician/credentials', async (req: RequestWithActor, res: Response) => {
+  if (!requireActorRole(req, res, ['clinician'])) return;
+  if (!req.actor.email) return res.status(400).json({ error: 'email is required for clinician' });
+
+  const user = await prisma.user.findUnique({ where: { email: req.actor.email } });
+  if (!user) return res.json({ credentials: [] });
+
+  const creds = await prisma.credential.findMany({
+    where: { userId: user.id },
+    orderBy: { issuedAt: 'desc' },
+    include: { user: true },
+  });
+
+  const revokedEvents = await prisma.auditEvent.findMany({
+    where: { type: 'REVOKE_CREDENTIAL', credentialId: { in: creds.map((c) => `CRED-${c.id}`) } },
+    select: { credentialId: true },
+  });
+  const revoked = new Set(revokedEvents.map((e) => e.credentialId).filter(Boolean) as string[]);
+
+  return res.json({
+    credentials: creds.map((c) => ({
+      id: `CRED-${c.id}`,
+      type: c.name,
+      holder: c.user?.name || c.user?.email,
+      issuer: c.issuer,
+      issuedDate: c.issuedAt.toISOString(),
+      status: revoked.has(`CRED-${c.id}`) ? 'revoked' : 'active',
+    })),
+  });
+});
+
 app.post(
   '/issuer/revoke',
   body('credentialId').isString().withMessage('credentialId is required'),
   validateRequest,
-  async (req: Request, res: Response) => {
+  async (req: RequestWithActor, res: Response) => {
+    if (!requireActorRole(req, res, ['issuer'])) return;
+    const startedAt = Date.now();
     const { credentialId, reason } = req.body as { credentialId: string; reason?: string };
     const { externalId, dbId } = normalizeCredentialId(credentialId);
     if (!externalId) return res.status(400).json({ error: 'credentialId is required' });
 
     if (dbId) {
       const exists = await prisma.credential.findUnique({ where: { id: dbId } });
-      if (!exists) return res.status(404).json({ error: 'Credential not found' });
+      if (!exists) {
+        await recordMetricEvent({
+          type: 'REVOKE',
+          actor: req.actor,
+          credentialId: externalId,
+          durationMs: Date.now() - startedAt,
+          meta: { status: 'not_found' },
+        });
+        return res.status(404).json({ error: 'Credential not found' });
+      }
     }
 
     const audit = await writeAuditEvent({
       type: 'REVOKE_CREDENTIAL',
       credentialId: externalId,
       metadata: { reason: reason || null },
+    });
+    await recordMetricEvent({
+      type: 'REVOKE',
+      actor: req.actor,
+      credentialId: externalId,
+      durationMs: Date.now() - startedAt,
+      orgId: req.actor?.orgId,
+      meta: { reason: reason || null },
     });
 
     return res.json({ success: true, auditRef: audit.hash });
@@ -980,7 +1397,9 @@ app.post(
   body('nonce').isString().withMessage('nonce is required'),
   body('audience').isString().withMessage('audience is required'),
   validateRequest,
-  async (req: Request, res: Response) => {
+  async (req: RequestWithActor, res: Response) => {
+    if (!requireActorRole(req, res, ['verifier'])) return;
+    const startedAt = Date.now();
     const { credentialId, nonce, audience, privacyMode, disclosureType } = req.body as Record<
       string,
       any
@@ -1000,6 +1419,13 @@ app.post(
           disclosureType,
           status: 'unknown',
         },
+      });
+      await recordMetricEvent({
+        type: 'VERIFY',
+        actor: req.actor,
+        credentialId: externalId,
+        durationMs: Date.now() - startedAt,
+        meta: { status: 'unknown', nonce, audience },
       });
       return res
         .status(200)
@@ -1024,6 +1450,14 @@ app.post(
         status,
       },
     });
+    await recordMetricEvent({
+      type: 'VERIFY',
+      actor: req.actor,
+      credentialId: externalId,
+      durationMs: Date.now() - startedAt,
+      orgId: req.actor?.orgId,
+      meta: { status, nonce, audience, revoked },
+    });
 
     return res.status(200).json({
       valid: !revoked,
@@ -1033,6 +1467,29 @@ app.post(
       issuedDate: credential.issuedAt.toISOString(),
       reason: revoked ? 'Credential revoked' : undefined,
     });
+  },
+);
+
+app.post(
+  '/api/match',
+  body('matchId').optional().isString(),
+  body('durationMs').optional().isNumeric(),
+  body('completionPct').optional().isNumeric(),
+  validateRequest,
+  async (req: RequestWithActor, res: Response) => {
+    if (!requireActorRole(req, res, ['verifier'])) return;
+    const { matchId, durationMs, completionPct, metadata } = req.body as Record<string, any>;
+
+    await recordMetricEvent({
+      type: 'MATCH',
+      actor: req.actor,
+      durationMs: durationMs ? Number(durationMs) : undefined,
+      completionPct: completionPct ? Number(completionPct) : undefined,
+      orgId: req.actor?.orgId,
+      meta: { matchId: matchId ?? null, ...((metadata as any) || {}) },
+    });
+
+    return res.status(201).json({ ok: true });
   },
 );
 

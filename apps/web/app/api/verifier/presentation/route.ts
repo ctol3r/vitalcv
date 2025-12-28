@@ -1,3 +1,4 @@
+import { cookies } from "next/headers"
 import { type NextRequest, NextResponse } from "next/server"
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000"
@@ -15,11 +16,14 @@ export async function POST(request: NextRequest) {
     const timeoutId = setTimeout(() => controller.abort(), 5000)
 
     try {
+      const token = cookies().get("auth-token")?.value
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      }
+      if (token) headers.Authorization = `Bearer ${token}`
       const response = await fetch(`${BACKEND_URL}/verifier/presentation`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify(body),
         signal: controller.signal,
       })

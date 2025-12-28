@@ -23,6 +23,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useSession } from '@/contexts/SessionContext';
 import { useToast } from '@/hooks/use-toast';
+import { PilotBanner } from '@/components/PilotBanner';
+import { usePilotMode } from '@/hooks/usePilotMode';
 import { addEvent } from '@/lib/event-cache';
 import {
   AlertTriangle,
@@ -71,6 +73,9 @@ export default function IssuerPage() {
   });
 
   const { toast } = useToast();
+  const { pilotEnabled, hospitalLabel, clinicianLabel } = usePilotMode();
+  const issuerLabel = pilotEnabled ? hospitalLabel : 'Demo Hospital';
+  const holderLabel = pilotEnabled ? clinicianLabel : 'Demo Clinician';
 
   // Load attestation requests
   useEffect(() => {
@@ -94,8 +99,7 @@ export default function IssuerPage() {
     let mounted = true;
     const loadCredentials = async () => {
       try {
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
-        const resp = await fetch(`${backendUrl}/issuer/credentials`, { cache: 'no-store' });
+        const resp = await fetch('/api/issuer/credentials', { cache: 'no-store' });
         if (!resp.ok) throw new Error(`Failed to load credentials: ${resp.status} ${resp.statusText}`);
         const data = await resp.json();
         const list = Array.isArray(data?.credentials) ? data.credentials : [];
@@ -132,8 +136,7 @@ export default function IssuerPage() {
     setLoading(true);
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
-      const response = await fetch(`${backendUrl}/issuer/credential`, {
+      const response = await fetch(`/api/issuer/credential`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -256,8 +259,7 @@ export default function IssuerPage() {
     setLoading(true);
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
-      const response = await fetch(`${backendUrl}/issuer/revoke`, {
+      const response = await fetch(`/api/status/revoke`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -365,11 +367,15 @@ export default function IssuerPage() {
 
       <main id="main-content" className="container mx-auto px-4 py-12">
         <RoleGuard requireIssuerAccess>
+          <PilotBanner />
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-8">
               <h1 className="text-4xl font-bold text-gray-900 mb-4">Credential Management</h1>
               <p className="text-lg text-gray-600">
                 Issue new credentials and manage existing ones
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                Operating as {issuerLabel} issuing to a {holderLabel}.
               </p>
             </div>
 

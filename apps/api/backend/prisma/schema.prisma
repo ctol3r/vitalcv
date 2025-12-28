@@ -44,3 +44,57 @@ model Job {
   user   User   @relation(fields: [userId], references: [id])
   userId Int
 }
+
+model Org {
+  id           Int            @id @default(autoincrement())
+  name         String         @unique
+  createdAt    DateTime       @default(now())
+  roleBindings RoleBinding[]
+  invites      Invite[]
+}
+
+model RoleBinding {
+  id        Int      @id @default(autoincrement())
+  role      String
+  email     String
+  createdAt DateTime @default(now())
+  org       Org      @relation(fields: [orgId], references: [id])
+  orgId     Int
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    Int?
+}
+
+model EarlyAccessRequest {
+  id        Int      @id @default(autoincrement())
+  email     String
+  role      String
+  orgName   String?
+  createdAt DateTime @default(now())
+  tokenHash String
+  expiresAt DateTime
+}
+
+model Invite {
+  id         Int       @id @default(autoincrement())
+  tokenHash  String    @unique
+  role       String
+  orgName    String
+  email      String
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+  acceptedAt DateTime?
+  org        Org?      @relation(fields: [orgId], references: [id])
+  orgId      Int?
+}
+
+model MetricEvent {
+  id            Int       @id @default(autoincrement())
+  ts            DateTime  @default(now())
+  type          String
+  actorRole     String?
+  orgId         Int?
+  credentialId  String?
+  durationMs    Int?
+  completionPct Float?
+  metaJson      Json?
+}
