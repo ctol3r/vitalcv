@@ -24,6 +24,9 @@ model Credential {
   name     String
   issuer   String
   issuedAt DateTime @default(now())
+  expiresAt DateTime?
+  renewalWindowDays Int?
+  authorityId String?
   user     User     @relation(fields: [userId], references: [id])
   userId   Int
 }

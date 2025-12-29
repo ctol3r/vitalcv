@@ -218,6 +218,85 @@ function resolveIssuerId(fallback?: string | null): string | null {
   return trimmed ? trimmed : null;
 }
 
+const DEFAULT_RENEWAL_WINDOW_DAYS = Number(process.env.DEFAULT_RENEWAL_WINDOW_DAYS || 90);
+
+function resolveRenewalWindowDays(value?: unknown): number {
+  const parsed = Number(value);
+  if (Number.isFinite(parsed) && parsed > 0) return Math.floor(parsed);
+  if (Number.isFinite(DEFAULT_RENEWAL_WINDOW_DAYS) && DEFAULT_RENEWAL_WINDOW_DAYS > 0)
+    return Math.floor(DEFAULT_RENEWAL_WINDOW_DAYS);
+  return 90;
+}
+
+function resolveAuthorityId(value?: unknown, fallback?: string | null): string | null {
+  const candidate = String(value ?? '').trim();
+  if (candidate) return candidate;
+  return resolveIssuerId(fallback);
+}
+
+const AUTHORITY_RENEWAL_GUIDES: Record<
+  string,
+  {
+    renewalUrl: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    renewalSteps: string[];
+  }
+> = {
+  STATE_MED_BOARD: {
+    renewalUrl: 'https://www.fsmb.org/physicians/state-medical-boards/',
+    contactEmail: 'licensing@stateboard.example',
+    renewalSteps: [
+      'Confirm renewal window and CE requirements on the state medical board portal.',
+      'Submit renewal application and required attestations.',
+      'Upload proof of completed CME/CE credits and pay renewal fees.',
+    ],
+  },
+  DEA: {
+    renewalUrl: 'https://www.deadiversion.usdoj.gov/drugreg/registration/renewal/',
+    contactPhone: '+1-571-362-6905',
+    renewalSteps: [
+      'Sign in to the DEA Diversion Control Division portal.',
+      'Complete the renewal application and verify address/registration data.',
+      'Pay renewal fees and submit confirmation.',
+    ],
+  },
+  DEFAULT: {
+    renewalUrl: 'https://vitalcv.example.com/renewal-support',
+    contactEmail: 'renewals@vitalcv.example.com',
+    renewalSteps: [
+      'Review credential requirements with the issuing authority.',
+      'Prepare required attestations and supporting documentation.',
+      'Submit renewal via the authority portal and confirm completion.',
+    ],
+  },
+};
+
+type LifecycleState = 'ACTIVE' | 'RENEWAL_WINDOW' | 'EXPIRED';
+
+function evaluateLifecycle(expiresAtIso: string | null, renewalWindowDays: number): {
+  daysRemaining: number | null;
+  currentState: LifecycleState;
+} {
+  if (!expiresAtIso) {
+    return { daysRemaining: null, currentState: 'ACTIVE' };
+  }
+  const expiresAtMs = Date.parse(expiresAtIso);
+  if (!Number.isFinite(expiresAtMs)) {
+    return { daysRemaining: null, currentState: 'ACTIVE' };
+  }
+  const now = Date.now();
+  const msRemaining = expiresAtMs - now;
+  const daysRemaining = Math.floor(msRemaining / (24 * 60 * 60 * 1000));
+  if (msRemaining <= 0) {
+    return { daysRemaining, currentState: 'EXPIRED' };
+  }
+  if (renewalWindowDays > 0 && daysRemaining <= renewalWindowDays) {
+    return { daysRemaining, currentState: 'RENEWAL_WINDOW' };
+  }
+  return { daysRemaining, currentState: 'ACTIVE' };
+}
+
 function resolveCredentialExpiry(expiryDate?: string | null): {
   expiresAt: string;
   expiresInSeconds: number;
@@ -346,6 +425,25 @@ async function writeAuditEvent(event: AuditEventInput): Promise<AuditEventResult
   });
 
   return { eventType, subjectId, createdAt: createdAt.toISOString(), hash };
+}
+
+async function ensureAuditEventOnce(
+  eventType: string,
+  subjectId: string,
+  metadata?: Record<string, unknown>,
+): Promise<{ auditRef: string; created: boolean }> {
+  const existing = await prisma.auditEvent.findFirst({
+    where: { type: eventType, credentialId: subjectId },
+    orderBy: { createdAt: 'desc' },
+  });
+  if (existing?.hash) return { auditRef: existing.hash, created: false };
+  const audit = await writeAuditEvent({ eventType, subjectId, metadata });
+  return { auditRef: audit.hash, created: true };
+}
+
+function resolveAuthorityGuide(authorityId: string | null) {
+  if (!authorityId) return AUTHORITY_RENEWAL_GUIDES.DEFAULT;
+  return AUTHORITY_RENEWAL_GUIDES[authorityId] || AUTHORITY_RENEWAL_GUIDES.DEFAULT;
 }
 
 async function appendAuditCheck(
@@ -1048,10 +1146,19 @@ app.post('/issuer/credential', async (req: Request, res: Response, next) => {
     (issuedPayload as Record<string, unknown>)?.subjectId ||
     subjectId ||
     null;
+  const renewalWindowDays = resolveRenewalWindowDays(
+    credentialRequest.renewalWindowDays ??
+      (issuedPayload as Record<string, unknown> | null)?.renewalWindowDays,
+  );
   const issuerId = resolveIssuerId(
     (issuedPayload?.iss as string | undefined) ||
       (issuedPayload as Record<string, unknown>)?.issuerId ||
       (issuedPayload as Record<string, unknown>)?.issuer,
+  );
+  const authorityId = resolveAuthorityId(
+    credentialRequest.authorityId ??
+      (issuedPayload as Record<string, unknown>)?.authorityId,
+    issuerId,
   );
   await writeAuditEvent({
     eventType: 'ISSUE_CREDENTIAL',
@@ -1060,6 +1167,8 @@ app.post('/issuer/credential', async (req: Request, res: Response, next) => {
       credentialId: credentialId ? String(credentialId) : null,
       issuerId,
       subjectId: subjectIdValue ? String(subjectIdValue) : null,
+      authorityId,
+      renewalWindowDays,
       issuedAt,
       expiresAt,
       jwt: issuedCredential,
@@ -1087,8 +1196,16 @@ app.post(
   body('type').isString().withMessage('type is required'),
   validateRequest,
   async (req: Request, res: Response) => {
-    const { subjectId, type, issuingAuthority, expiryDate, licenseNumber, additionalData } =
-      req.body as Record<string, any>;
+    const {
+      subjectId,
+      type,
+      issuingAuthority,
+      expiryDate,
+      licenseNumber,
+      additionalData,
+      renewalWindowDays: renewalWindowDaysInput,
+      authorityId: authorityIdInput,
+    } = req.body as Record<string, any>;
 
     const isEmail = typeof subjectId === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(subjectId);
     const email = isEmail
@@ -1108,17 +1225,22 @@ app.post(
     const issuer =
       (issuingAuthority && String(issuingAuthority)) || 'VitalCV Demo Issuer (Non-PHI)';
     const issuerId = resolveIssuerId(issuer);
+    const authorityId = resolveAuthorityId(authorityIdInput, issuerId || issuer);
+    const expiryInput = expiryDate ? String(expiryDate) : null;
+    const { expiresAt, expiresInSeconds } = resolveCredentialExpiry(expiryInput);
+    const renewalWindowDays = resolveRenewalWindowDays(renewalWindowDaysInput);
     const credential = await prisma.credential.create({
       data: {
         name: String(type),
         issuer,
+        authorityId: authorityId ?? undefined,
         userId: user.id,
+        expiresAt: expiresAt ? new Date(expiresAt) : undefined,
+        renewalWindowDays,
       },
     });
 
     const externalId = `CRED-${credential.id}`;
-    const expiryInput = expiryDate ? String(expiryDate) : null;
-    const { expiresAt, expiresInSeconds } = resolveCredentialExpiry(expiryInput);
     const jwtPayload = {
       credentialId: externalId,
       subjectId,
@@ -1127,6 +1249,8 @@ app.post(
       issuedAt: credential.issuedAt.toISOString(),
       expiryDate: expiresAt,
       expiresAt,
+      renewalWindowDays,
+      authorityId,
       licenseNumber: licenseNumber || null,
       additionalData: additionalData || null,
     };
@@ -1141,11 +1265,14 @@ app.post(
         credentialId: externalId,
         issuerId,
         subjectId: String(subjectId),
+        authorityId,
+        renewalWindowDays,
         ...jwtPayload,
         jwt: jwtToken,
         proofHash,
       },
     });
+
 
     // Mirror issuance into the network graph when configured (fail-soft).
     try {
@@ -1357,8 +1484,9 @@ app.post(
     const expMs = payload && typeof payload.exp === 'number' ? payload.exp * 1000 : Number.NaN;
     const issuedExpiryRaw = issuanceMetadata?.expiryDate || issuanceMetadata?.expiresAt;
     const issuedExpiryMs = issuedExpiryRaw ? Date.parse(String(issuedExpiryRaw)) : Number.NaN;
-    const expiryCandidates = [expMs, payloadExpiryMs, issuedExpiryMs].filter((value) =>
-      Number.isFinite(value),
+    const credentialExpiryMs = credential?.expiresAt ? credential.expiresAt.getTime() : Number.NaN;
+    const expiryCandidates = [expMs, payloadExpiryMs, issuedExpiryMs, credentialExpiryMs].filter(
+      (value) => Number.isFinite(value),
     ) as number[];
     const expiryMs = expiryCandidates.length ? Math.min(...expiryCandidates) : null;
     const expired = expiryMs !== null && expiryMs <= Date.now();
@@ -1512,6 +1640,123 @@ app.get('/credentials/:id/receipt', async (req, res) => {
     },
     timeline,
   });
+});
+
+app.get('/credentials/:id/renewal-info', async (req, res) => {
+  const rawId = String(req.params.id || '').trim();
+  if (!rawId) return res.status(400).json({ error: 'credentialId is required' });
+
+  const { externalId, dbId } = normalizeCredentialId(rawId);
+  if (!externalId) return res.status(400).json({ error: 'credentialId is required' });
+
+  const credential = dbId ? await prisma.credential.findUnique({ where: { id: dbId } }) : null;
+  const issuanceEvent = await prisma.auditEvent.findFirst({
+    where: { type: 'ISSUE_CREDENTIAL', credentialId: externalId },
+    orderBy: { createdAt: 'desc' },
+  });
+  if (!credential && !issuanceEvent) {
+    return res.status(404).json({ error: 'Credential not found' });
+  }
+
+  const issuanceMetadata = (issuanceEvent?.metadata as Record<string, any>) ?? {};
+  const expiresAt =
+    credential?.expiresAt?.toISOString() ||
+    issuanceMetadata.expiresAt ||
+    issuanceMetadata.expiryDate ||
+    null;
+  const renewalWindowDays = resolveRenewalWindowDays(
+    credential?.renewalWindowDays ?? issuanceMetadata.renewalWindowDays,
+  );
+  const authorityId = resolveAuthorityId(
+    credential?.authorityId || issuanceMetadata.authorityId || issuanceMetadata.issuerId,
+    credential?.issuer || issuanceMetadata.issuer,
+  );
+  const issuerId = resolveIssuerId(issuanceMetadata.issuerId || credential?.issuer || null);
+  const subjectId =
+    issuanceMetadata.subjectId ||
+    issuanceMetadata.subject_id ||
+    issuanceMetadata.credentialSubjectId ||
+    null;
+  const issuedAt =
+    issuanceMetadata.issuedAt ||
+    credential?.issuedAt.toISOString() ||
+    issuanceEvent?.createdAt.toISOString() ||
+    null;
+
+  const lifecycle = evaluateLifecycle(expiresAt, renewalWindowDays);
+
+  try {
+    const lifecycleAudit = await writeAuditEvent({
+      eventType: 'LIFECYCLE_CHECK',
+      subjectId: externalId,
+      metadata: {
+        credentialId: externalId,
+        issuerId,
+        subjectId,
+        authorityId,
+        expiresAt,
+        renewalWindowDays,
+        daysRemaining: lifecycle.daysRemaining,
+        currentState: lifecycle.currentState,
+      },
+    });
+
+    let renewalWindowAudit: { auditRef: string; created: boolean } | null = null;
+    let expiringPulse: { auditRef: string; created: boolean } | null = null;
+    let expiredAudit: { auditRef: string; created: boolean } | null = null;
+
+    if (lifecycle.currentState === 'RENEWAL_WINDOW') {
+      renewalWindowAudit = await ensureAuditEventOnce('RENEWAL_WINDOW_OPEN', externalId, {
+        daysRemaining: lifecycle.daysRemaining,
+        renewalWindowDays,
+        expiresAt,
+      });
+      expiringPulse = await ensureAuditEventOnce('CREDENTIAL_EXPIRING_SOON', externalId, {
+        daysRemaining: lifecycle.daysRemaining,
+        renewalWindowDays,
+        expiresAt,
+      });
+    }
+
+    if (lifecycle.currentState === 'EXPIRED') {
+      expiredAudit = await ensureAuditEventOnce('CREDENTIAL_EXPIRED', externalId, {
+        expiresAt,
+      });
+    }
+
+    const authorityGuide = resolveAuthorityGuide(authorityId);
+
+    return res.json({
+      credentialId: externalId,
+      lifecycle: {
+        daysRemaining: lifecycle.daysRemaining,
+        currentState: lifecycle.currentState,
+        renewalWindowDays,
+        expiresAt,
+      },
+      renewalGuidance: {
+        authorityId,
+        renewalUrl: authorityGuide.renewalUrl,
+        contactEmail: authorityGuide.contactEmail ?? null,
+        contactPhone: authorityGuide.contactPhone ?? null,
+        renewalSteps: authorityGuide.renewalSteps,
+      },
+      auditRef: lifecycleAudit.hash,
+      pulseEvents: {
+        renewalWindowOpen: renewalWindowAudit?.auditRef ?? null,
+        credentialExpiringSoon: expiringPulse?.auditRef ?? null,
+        credentialExpired: expiredAudit?.auditRef ?? null,
+      },
+      issuedAt,
+      issuerId,
+      subjectId,
+    });
+  } catch (error) {
+    return res.status(503).json({
+      error: 'Failed to append lifecycle audit event',
+      detail: String(error instanceof Error ? error.message : error),
+    });
+  }
 });
 
 // Compatibility status endpoints used by the frontend client
