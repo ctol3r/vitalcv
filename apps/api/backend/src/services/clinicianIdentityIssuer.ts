@@ -11,7 +11,12 @@ const DEMO_ISSUER_LABEL = 'DEMO ISSUER';
 const DEFAULT_TTL_SECONDS = Number(process.env.ISSUER_TOKEN_TTL_SECONDS || 60 * 60 * 24 * 7);
 
 function resolveIssuerSecret(): string {
-  return process.env.JWT_SECRET || process.env.ISSUER_JWT_SECRET || 'dev-only-secret';
+  return (
+    process.env.ISSUER_SIGNING_KEY ||
+    process.env.JWT_SECRET ||
+    process.env.ISSUER_JWT_SECRET ||
+    'dev-only-secret'
+  );
 }
 
 export async function issueIdentity(profile: ClinicianIdentityProfile): Promise<string> {

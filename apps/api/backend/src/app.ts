@@ -200,7 +200,22 @@ function signDemoJwt(payload: Record<string, unknown>): string {
 }
 
 function resolveJwtSecret(): string {
-  return process.env.JWT_SECRET || process.env.ISSUER_JWT_SECRET || 'dev-only-secret';
+  return (
+    process.env.ISSUER_SIGNING_KEY ||
+    process.env.JWT_SECRET ||
+    process.env.ISSUER_JWT_SECRET ||
+    'dev-only-secret'
+  );
+}
+
+function resolveIssuerId(fallback?: string | null): string | null {
+  const issuerId = String(
+    process.env.ISSUER_ID || process.env.JWT_ISSUER || process.env.ISSUER_NAME || '',
+  ).trim();
+  if (issuerId) return issuerId;
+  if (fallback === undefined || fallback === null) return null;
+  const trimmed = String(fallback).trim();
+  return trimmed ? trimmed : null;
 }
 
 function resolveCredentialExpiry(expiryDate?: string | null): {
@@ -234,6 +249,30 @@ function isJwtLike(value: string): boolean {
 function decodeJwtPayload(token: string): jwt.JwtPayload | null {
   const decoded = jwt.decode(token);
   return decoded && typeof decoded === 'object' ? (decoded as jwt.JwtPayload) : null;
+}
+
+function resolveIssuedAtFromPayload(payload: jwt.JwtPayload | null): string | null {
+  if (!payload) return null;
+  const issuedAtRaw = (payload as Record<string, unknown>).issuedAt;
+  if (issuedAtRaw) {
+    const parsed = Date.parse(String(issuedAtRaw));
+    if (Number.isFinite(parsed)) return new Date(parsed).toISOString();
+  }
+  if (typeof payload.iat === 'number') return new Date(payload.iat * 1000).toISOString();
+  return null;
+}
+
+function resolveExpiresAtFromPayload(payload: jwt.JwtPayload | null): string | null {
+  if (!payload) return null;
+  const expiresAtRaw =
+    (payload as Record<string, unknown>).expiresAt ||
+    (payload as Record<string, unknown>).expiryDate;
+  if (expiresAtRaw) {
+    const parsed = Date.parse(String(expiresAtRaw));
+    if (Number.isFinite(parsed)) return new Date(parsed).toISOString();
+  }
+  if (typeof payload.exp === 'number') return new Date(payload.exp * 1000).toISOString();
+  return null;
 }
 
 function verifyPassword(password: string, passwordHash: string): boolean {
@@ -1000,14 +1039,33 @@ app.post('/issuer/credential', async (req: Request, res: Response, next) => {
       ? (result as Record<string, unknown>).credential
       : null;
   const proofHash = issuedCredential ? computeProofHash(issuedCredential) : null;
+  const issuedPayload = issuedCredential ? decodeJwtPayload(issuedCredential) : null;
+  const issuedAt = resolveIssuedAtFromPayload(issuedPayload);
+  const expiresAt = resolveExpiresAtFromPayload(issuedPayload);
+  const credentialId = extractCredentialIdFromPayload(issuedPayload) || subjectId || null;
+  const subjectIdValue =
+    (issuedPayload?.sub as string | undefined) ||
+    (issuedPayload as Record<string, unknown>)?.subjectId ||
+    subjectId ||
+    null;
+  const issuerId = resolveIssuerId(
+    (issuedPayload?.iss as string | undefined) ||
+      (issuedPayload as Record<string, unknown>)?.issuerId ||
+      (issuedPayload as Record<string, unknown>)?.issuer,
+  );
   await writeAuditEvent({
     eventType: 'ISSUE_CREDENTIAL',
-    subjectId: subjectId ? String(subjectId) : null,
+    subjectId: credentialId ? String(credentialId) : null,
     metadata: {
+      credentialId: credentialId ? String(credentialId) : null,
+      issuerId,
+      subjectId: subjectIdValue ? String(subjectIdValue) : null,
+      issuedAt,
+      expiresAt,
+      jwt: issuedCredential,
+      proofHash,
       flow: 'oidc4vci',
       format: result?.format ?? null,
-      proofHash,
-      jwt: issuedCredential,
     },
   });
   return res.status(200).json({ ...result, proofHash });
@@ -1049,6 +1107,7 @@ app.post(
 
     const issuer =
       (issuingAuthority && String(issuingAuthority)) || 'VitalCV Demo Issuer (Non-PHI)';
+    const issuerId = resolveIssuerId(issuer);
     const credential = await prisma.credential.create({
       data: {
         name: String(type),
@@ -1079,6 +1138,9 @@ app.post(
       subjectId: externalId,
       userId: user.id,
       metadata: {
+        credentialId: externalId,
+        issuerId,
+        subjectId: String(subjectId),
         ...jwtPayload,
         jwt: jwtToken,
         proofHash,
@@ -1203,10 +1265,19 @@ app.post(
       if (!exists) return res.status(404).json({ error: 'Credential not found' });
     }
 
+    const issuanceEvent = await prisma.auditEvent.findFirst({
+      where: { type: 'ISSUE_CREDENTIAL', credentialId: externalId },
+      orderBy: { createdAt: 'desc' },
+      select: { metadata: true },
+    });
+    const issuanceMetadata = (issuanceEvent?.metadata as Record<string, any>) ?? null;
+    const proofHash = issuanceMetadata?.proofHash ? String(issuanceMetadata.proofHash) : null;
+    const revokedAt = new Date().toISOString();
+
     const audit = await writeAuditEvent({
       eventType: 'REVOKE_CREDENTIAL',
       subjectId: externalId,
-      metadata: { reason: reason || null },
+      metadata: { reason: reason || null, revokedAt, proofHash },
     });
 
     return res.json({ success: true, auditRef: audit.hash });
@@ -1248,19 +1319,15 @@ app.post(
 
     const credential = dbId ? await prisma.credential.findUnique({ where: { id: dbId } }) : null;
 
-    let issuanceEvent = null as null | { metadata?: unknown };
-    let issuanceMetadata: Record<string, any> | null = null;
-    if (!presentedJwt) {
-      issuanceEvent = await prisma.auditEvent.findFirst({
-        where: { type: 'ISSUE_CREDENTIAL', credentialId: externalId },
-        orderBy: { createdAt: 'desc' },
-        select: { metadata: true },
-      });
-      issuanceMetadata = (issuanceEvent?.metadata as Record<string, any>) ?? null;
-      const storedJwt = issuanceMetadata?.jwt || issuanceMetadata?.credential || issuanceMetadata?.signedCredential;
-      if (typeof storedJwt === 'string' && storedJwt.trim()) {
-        presentedJwt = storedJwt.trim();
-      }
+    const issuanceEvent = await prisma.auditEvent.findFirst({
+      where: { type: 'ISSUE_CREDENTIAL', credentialId: externalId },
+      orderBy: { createdAt: 'desc' },
+      select: { metadata: true },
+    });
+    const issuanceMetadata = (issuanceEvent?.metadata as Record<string, any>) ?? null;
+    const storedJwt = issuanceMetadata?.jwt || issuanceMetadata?.credential || issuanceMetadata?.signedCredential;
+    if (!presentedJwt && typeof storedJwt === 'string' && storedJwt.trim()) {
+      presentedJwt = storedJwt.trim();
     }
 
     const storedProofHash = issuanceMetadata?.proofHash ? String(issuanceMetadata.proofHash) : null;
@@ -1316,6 +1383,7 @@ app.post(
       (payload ? (payload as Record<string, unknown>).issuer : null) ||
       payload?.iss ||
       issuanceMetadata?.issuer ||
+      issuanceMetadata?.issuerId ||
       null;
 
     const lastRevoke = await prisma.auditEvent.findFirst({
@@ -1374,6 +1442,77 @@ app.post(
     });
   },
 );
+
+app.get('/credentials/:id/receipt', async (req, res) => {
+  const rawId = String(req.params.id || '').trim();
+  if (!rawId) return res.status(400).json({ error: 'credentialId is required' });
+
+  let resolvedId = rawId;
+  let jwtArtifact: string | null = null;
+  if (isJwtLike(rawId)) {
+    jwtArtifact = rawId;
+    const payload = decodeJwtPayload(rawId);
+    const payloadId = extractCredentialIdFromPayload(payload);
+    if (payloadId) resolvedId = payloadId;
+  }
+
+  const { externalId } = normalizeCredentialId(resolvedId);
+  if (!externalId) return res.status(400).json({ error: 'credentialId is required' });
+
+  const issuanceEvent = await prisma.auditEvent.findFirst({
+    where: { type: 'ISSUE_CREDENTIAL', credentialId: externalId },
+    orderBy: { createdAt: 'desc' },
+  });
+  if (!issuanceEvent) return res.status(404).json({ error: 'Receipt not found' });
+
+  const issuanceMetadata = (issuanceEvent.metadata as Record<string, any>) ?? {};
+  const storedJwt = issuanceMetadata.jwt ? String(issuanceMetadata.jwt) : null;
+  if (!jwtArtifact && storedJwt) jwtArtifact = storedJwt;
+
+  const proofHash = issuanceMetadata.proofHash
+    ? String(issuanceMetadata.proofHash)
+    : jwtArtifact
+      ? computeProofHash(jwtArtifact)
+      : null;
+  const issuerId = resolveIssuerId(issuanceMetadata.issuerId || issuanceMetadata.issuer);
+  const subjectId =
+    issuanceMetadata.subjectId ||
+    issuanceMetadata.subject_id ||
+    issuanceMetadata.credentialSubjectId ||
+    null;
+  const issuedAt = issuanceMetadata.issuedAt || issuanceEvent.createdAt.toISOString();
+  const expiresAt = issuanceMetadata.expiresAt || issuanceMetadata.expiryDate || null;
+
+  const events = await prisma.auditEvent.findMany({
+    where: {
+      credentialId: externalId,
+      type: {
+        in: ['ISSUE_CREDENTIAL', 'VERIFY_PRESENTATION', 'REVOKE_CREDENTIAL'],
+      },
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  const timeline = events.map((event) => ({
+    eventType: event.type,
+    createdAt: event.createdAt.toISOString(),
+    auditRef: event.hash,
+    metadata: event.metadata ?? null,
+  }));
+
+  return res.json({
+    credential: {
+      credentialId: externalId,
+      issuerId,
+      subjectId,
+      jwt: jwtArtifact,
+      proofHash,
+      issuedAt,
+      expiresAt,
+    },
+    timeline,
+  });
+});
 
 // Compatibility status endpoints used by the frontend client
 app.get(
