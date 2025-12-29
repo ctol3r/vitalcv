@@ -213,35 +213,74 @@ function hashPassword(password: string): string {
   return `${salt}:${derived}`;
 }
 
-async function writeAuditEvent(event: {
-  type: string;
-  credentialId?: string;
+type AuditEventInput = {
+  eventType: string;
+  subjectId?: string | null;
   userId?: number;
   metadata?: any;
-}): Promise<{ hash: string; createdAt: string }> {
+};
+
+type AuditEventResult = {
+  eventType: string;
+  subjectId: string | null;
+  createdAt: string;
+  hash: string;
+};
+
+function normalizeSubjectId(value?: string | number | null): string | null {
+  if (value === undefined || value === null) return null;
+  const trimmed = String(value).trim();
+  return trimmed ? trimmed : null;
+}
+
+async function writeAuditEvent(event: AuditEventInput): Promise<AuditEventResult> {
   const createdAt = new Date();
-  const hash = sha256Hex(
-    JSON.stringify({
-      type: event.type,
-      credentialId: event.credentialId || null,
-      userId: event.userId || null,
-      createdAt: createdAt.toISOString(),
-      metadata: event.metadata || null,
-    }),
-  );
+  const eventType = String(event.eventType || '').trim();
+  if (!eventType) throw new Error('audit eventType is required');
+  const subjectId =
+    normalizeSubjectId(event.subjectId) ??
+    (event.userId !== undefined ? normalizeSubjectId(`user:${event.userId}`) : null);
+  const payload = {
+    eventType,
+    subjectId,
+    createdAt: createdAt.toISOString(),
+    metadata: event.metadata || null,
+  };
+  const hash = sha256Hex(JSON.stringify(payload));
 
   await prisma.auditEvent.create({
     data: {
-      type: event.type,
+      type: eventType,
       hash,
-      credentialId: event.credentialId,
+      credentialId: subjectId ?? undefined,
       userId: event.userId,
       metadata: event.metadata ?? undefined,
       createdAt,
     },
   });
 
-  return { hash, createdAt: createdAt.toISOString() };
+  return { eventType, subjectId, createdAt: createdAt.toISOString(), hash };
+}
+
+async function appendAuditCheck(
+  eventType: string,
+  subjectId: string,
+  metadata?: Record<string, unknown>,
+  timeoutMs?: number,
+): Promise<{ ok: boolean; hash?: string; createdAt?: string; error?: string }> {
+  const effectiveTimeoutMs = Number.isFinite(timeoutMs)
+    ? (timeoutMs as number)
+    : Number(process.env.HEALTH_DB_TIMEOUT_MS || 800);
+  try {
+    const audit = await withTimeout(
+      writeAuditEvent({ eventType, subjectId, metadata }),
+      effectiveTimeoutMs,
+      'audit',
+    );
+    return { ok: true, hash: audit.hash, createdAt: audit.createdAt };
+  } catch (e) {
+    return { ok: false, error: String(e instanceof Error ? e.message : e) };
+  }
 }
 
 function merkleRootHex(hashes: string[]): string | null {
@@ -267,18 +306,24 @@ function merkleRootHex(hashes: string[]): string | null {
 // --- Proof infra endpoints ---
 // Minimal ON-contract health endpoint (keep /healthz for detailed dependency checks)
 app.get('/health', async (_req, res) => {
+  const dbTimeoutMs = Number(process.env.HEALTH_DB_TIMEOUT_MS || 800);
   const dbOk = await withTimeout(
     prisma.$queryRaw`SELECT 1`,
-    Number(process.env.HEALTH_DB_TIMEOUT_MS || 800),
+    dbTimeoutMs,
     'db',
   )
     .then(() => true)
     .catch(() => false);
+  const auditAppend = dbOk
+    ? await appendAuditCheck('HEALTH_CHECK', 'health', { status: dbOk ? 'ok' : 'degraded' }, dbTimeoutMs)
+    : { ok: false, error: 'db_unavailable' };
+  const ok = dbOk && auditAppend.ok;
 
-  res.status(dbOk ? 200 : 503).json({
-    status: dbOk ? 'OK' : 'DEGRADED',
+  res.status(ok ? 200 : 503).json({
+    status: ok ? 'OK' : 'DEGRADED',
     timestamp: new Date().toISOString(),
     gitSha,
+    audit: auditAppend,
   });
 });
 
@@ -418,7 +463,17 @@ app.get('/healthz', async (_req, res) => {
     graphPromise,
     agentPromise,
   ]);
-  const ok = db.ok && audit.ok && chain.ok && acapy.ok;
+  const baseOk = db.ok && audit.ok && chain.ok && acapy.ok;
+  const auditAppend = db.ok
+    ? await appendAuditCheck('HEALTHZ_CHECK', 'healthz', {
+        status: baseOk ? 'ok' : 'degraded',
+        dbOk: db.ok,
+        auditOk: audit.ok,
+        chainOk: chain.ok,
+        acapyOk: acapy.ok,
+      }, dbTimeoutMs)
+    : { ok: false, error: 'db_unavailable' };
+  const ok = baseOk && auditAppend.ok;
 
   res.status(ok ? 200 : 503).json({
     status: ok ? 'ok' : 'degraded',
@@ -427,6 +482,7 @@ app.get('/healthz', async (_req, res) => {
     checks: {
       db,
       audit,
+      auditAppend,
       substrate: chain,
       acapy,
       graph,
@@ -454,8 +510,15 @@ app.get(['/ready', '/readyz'], async (_req, res) => {
       .then(() => true)
       .catch(() => false),
   ]);
+  const auditAppend = db
+    ? await appendAuditCheck('READYZ_CHECK', 'readyz', {
+        status: db && audit ? 'ready' : 'not_ready',
+        dbOk: db,
+        auditOk: audit,
+      }, timeoutMs)
+    : { ok: false, error: 'db_unavailable' };
   // For readiness, require DB + audit log access; other dependencies are reported in /health.
-  const ok = db && audit;
+  const ok = db && audit && auditAppend.ok;
   res.status(ok ? 200 : 503).json({
     status: ok ? 'ready' : 'not_ready',
     timestamp: new Date().toISOString(),
@@ -463,6 +526,7 @@ app.get(['/ready', '/readyz'], async (_req, res) => {
     services: {
       database: db,
       auditLog: audit,
+      auditAppend,
     },
   });
 });
@@ -512,7 +576,8 @@ app.post(
     const appId = String(process.env.WORLD_ID_APP_ID || '').trim();
     if (!appId) {
       const audit = await writeAuditEvent({
-        type: 'WORLD_ID_VERIFY_ATTEMPT',
+        eventType: 'WORLD_ID_VERIFY_ATTEMPT',
+        subjectId: 'worldid',
         metadata: { status: 'not_configured' },
       });
       return res.status(501).json({
@@ -557,7 +622,8 @@ app.post(
     const pepper = String(process.env.WORLD_ID_AUDIT_PEPPER || '').trim();
     const nullifierHashHash = sha256Hex(`${String(nullifier_hash)}:${pepper}`);
     const audit = await writeAuditEvent({
-      type: verified ? 'WORLD_ID_VERIFIED' : 'WORLD_ID_VERIFY_FAILED',
+      eventType: verified ? 'WORLD_ID_VERIFIED' : 'WORLD_ID_VERIFY_FAILED',
+      subjectId: `worldid:${nullifierHashHash}`,
       metadata: {
         action,
         verificationLevel: verification_level ?? null,
@@ -595,14 +661,19 @@ app.get('/audit/summary', async (_req, res) => {
   const hashes = recent.map((e) => e.hash);
   const root = merkleRootHex(hashes);
   const latest = recent[0] || null;
+  const latestEvent = latest
+    ? {
+        type: latest.type,
+        timestamp: latest.createdAt?.toISOString?.() ?? null,
+        eventType: latest.type,
+        subjectId: latest.credentialId ?? (latest.userId ? `user:${latest.userId}` : null),
+        createdAt: latest.createdAt?.toISOString?.() ?? null,
+        hash: latest.hash ?? null,
+      }
+    : null;
 
   res.json({
-    lastEvent: latest
-      ? {
-          type: latest.type,
-          timestamp: latest.createdAt?.toISOString?.() ?? null,
-        }
-      : null,
+    lastEvent: latestEvent,
     eventCount,
     latestHash: latest?.hash ?? null,
     lastCredentialIssuanceHash: lastIssue?.hash ?? null,
@@ -634,7 +705,6 @@ app.post('/demo/seed', async (req: Request, res: Response) => {
   if (reset) {
     await prisma.job.deleteMany();
     await prisma.credential.deleteMany();
-    await prisma.auditEvent.deleteMany();
     await prisma.user.deleteMany();
   }
 
@@ -663,7 +733,8 @@ app.post('/demo/seed', async (req: Request, res: Response) => {
   }
 
   await writeAuditEvent({
-    type: 'DEMO_SEED',
+    eventType: 'DEMO_SEED',
+    subjectId: 'demo-seed',
     metadata: { reset, users: [alice.email, bob.email], created: toCreate.length },
   });
 
@@ -695,7 +766,8 @@ app.post(
 
     const token = signDemoJwt({ userId: user.id, email: user.email });
     await writeAuditEvent({
-      type: 'AUTH_SIGNUP',
+      eventType: 'AUTH_SIGNUP',
+      subjectId: `user:${user.id}`,
       userId: user.id,
       metadata: { email: user.email },
     });
@@ -719,7 +791,12 @@ app.post(
       return res.status(401).json({ error: 'Invalid credentials' });
 
     const token = signDemoJwt({ userId: user.id, email: user.email });
-    await writeAuditEvent({ type: 'AUTH_LOGIN', userId: user.id, metadata: { email: user.email } });
+    await writeAuditEvent({
+      eventType: 'AUTH_LOGIN',
+      subjectId: `user:${user.id}`,
+      userId: user.id,
+      metadata: { email: user.email },
+    });
     return res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
   },
 );
@@ -801,7 +878,8 @@ app.post('/world-id/verify', validateRequest, async (req: Request, res: Response
 
     if (!verifyResp.ok) {
       const audit = await writeAuditEvent({
-        type: 'WORLD_ID_VERIFY_FAILURE',
+        eventType: 'WORLD_ID_VERIFY_FAILURE',
+        subjectId: nullifierDigest ? `worldid:${nullifierDigest}` : 'worldid',
         metadata: {
           app_id,
           action,
@@ -821,7 +899,8 @@ app.post('/world-id/verify', validateRequest, async (req: Request, res: Response
     }
 
     const audit = await writeAuditEvent({
-      type: 'WORLD_ID_VERIFY_SUCCESS',
+      eventType: 'WORLD_ID_VERIFY_SUCCESS',
+      subjectId: nullifierDigest ? `worldid:${nullifierDigest}` : 'worldid',
       metadata: {
         app_id,
         action,
@@ -840,7 +919,8 @@ app.post('/world-id/verify', validateRequest, async (req: Request, res: Response
     });
   } catch (e) {
     const audit = await writeAuditEvent({
-      type: 'WORLD_ID_VERIFY_ERROR',
+      eventType: 'WORLD_ID_VERIFY_ERROR',
+      subjectId: nullifierDigest ? `worldid:${nullifierDigest}` : 'worldid',
       metadata: {
         app_id,
         action,
@@ -862,6 +942,20 @@ app.post('/world-id/verify', validateRequest, async (req: Request, res: Response
 app.post('/issuer/credential', async (req: Request, res: Response, next) => {
   if (!req.body?.credential_request) return next();
   const result = await issueOidcCredential(req);
+  const credentialRequest = req.body?.credential_request ?? {};
+  const subjectId =
+    credentialRequest.subject_id ??
+    credentialRequest.credential_subject?.id ??
+    credentialRequest.credential_subject?.did ??
+    null;
+  await writeAuditEvent({
+    eventType: 'ISSUE_CREDENTIAL',
+    subjectId: subjectId ? String(subjectId) : null,
+    metadata: {
+      flow: 'oidc4vci',
+      format: result?.format ?? null,
+    },
+  });
   return res.status(200).json(result);
 });
 
@@ -923,8 +1017,8 @@ app.post(
     const jwtToken = signDemoJwt(jwtPayload);
 
     const audit = await writeAuditEvent({
-      type: 'ISSUE_CREDENTIAL',
-      credentialId: externalId,
+      eventType: 'ISSUE_CREDENTIAL',
+      subjectId: externalId,
       userId: user.id,
       metadata: jwtPayload,
     });
@@ -976,7 +1070,11 @@ app.post('/graph/seed-demo', async (req: Request, res: Response) => {
 
   await ensureGraphSchema();
   await seedDemoGraph();
-  await writeAuditEvent({ type: 'GRAPH_DEMO_SEED', metadata: { ok: true } });
+  await writeAuditEvent({
+    eventType: 'GRAPH_DEMO_SEED',
+    subjectId: 'graph-seed',
+    metadata: { ok: true },
+  });
   return res.json({ ok: true });
 });
 
@@ -1043,8 +1141,8 @@ app.post(
     }
 
     const audit = await writeAuditEvent({
-      type: 'REVOKE_CREDENTIAL',
-      credentialId: externalId,
+      eventType: 'REVOKE_CREDENTIAL',
+      subjectId: externalId,
       metadata: { reason: reason || null },
     });
 
@@ -1069,8 +1167,8 @@ app.post(
     const credential = dbId ? await prisma.credential.findUnique({ where: { id: dbId } }) : null;
     if (!credential) {
       const audit = await writeAuditEvent({
-        type: 'VERIFY_PRESENTATION',
-        credentialId: externalId,
+        eventType: 'VERIFY_PRESENTATION',
+        subjectId: externalId,
         metadata: {
           nonce,
           audience,
@@ -1092,8 +1190,8 @@ app.post(
 
     const status = revoked ? 'revoked' : 'valid';
     const audit = await writeAuditEvent({
-      type: 'VERIFY_PRESENTATION',
-      credentialId: externalId,
+      eventType: 'VERIFY_PRESENTATION',
+      subjectId: externalId,
       metadata: {
         nonce,
         audience,

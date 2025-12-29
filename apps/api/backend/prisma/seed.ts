@@ -16,7 +16,6 @@ async function main() {
     // Destructive reset for local dev only. Never run this in production.
     await prisma.job.deleteMany()
     await prisma.credential.deleteMany()
-    await prisma.auditEvent.deleteMany()
     await prisma.user.deleteMany()
   }
 
