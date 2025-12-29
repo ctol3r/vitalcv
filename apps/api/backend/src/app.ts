@@ -4,6 +4,7 @@ import { body } from 'express-validator';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import path from 'path';
+import { PolkadotService } from './blockchain/polkadot_service';
 import { neo4jConfigured } from './graph/neo4jHttp';
 import {
   ensureGraphSchema,
@@ -15,6 +16,7 @@ import {
   upsertIssuanceToGraph,
 } from './graph/service';
 import prisma from './graphql/prisma_client';
+import { issueNonce, issueOidcCredential, pollDeferredCredential } from './issuer';
 import { errorHandler } from './middleware/errorHandler';
 import { validateRequest } from './middleware/validateRequest';
 import { log, reqLogFields } from './obs/logger';
@@ -282,23 +284,68 @@ app.get('/health', async (_req, res) => {
 
 app.get('/healthz', async (_req, res) => {
   const startedAt = Date.now();
+  const dbTimeoutMs = Number(process.env.HEALTH_DB_TIMEOUT_MS || 1200);
 
   const dbPromise = withTimeout(
     prisma.$queryRaw`SELECT 1`,
-    Number(process.env.HEALTH_DB_TIMEOUT_MS || 1200),
+    dbTimeoutMs,
     'db',
   )
     .then(() => ({ ok: true as const }))
     .catch((e) => ({ ok: false as const, error: String(e instanceof Error ? e.message : e) }));
 
+  const auditPromise = withTimeout(
+    prisma.auditEvent.findFirst({
+      select: { hash: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    }),
+    dbTimeoutMs,
+    'audit',
+  )
+    .then((event) => ({
+      ok: true as const,
+      lastEventAt: event?.createdAt?.toISOString?.() ?? null,
+      lastEventHash: event?.hash ?? null,
+    }))
+    .catch((e) => ({ ok: false as const, error: String(e instanceof Error ? e.message : e) }));
+
   // Substrate is optional for ON. If configured we show it, but we don't block readiness on chain connectivity.
-  const chainPromise = Promise.resolve().then(() => {
-    const ws = String(process.env.SUBSTRATE_WS || '').trim();
-    if (!ws) {
-      return { ok: true as const, configured: false as const, status: 'not_configured' as const };
-    }
-    return { ok: true as const, configured: true as const, status: 'skipped' as const };
-  });
+  const chainPromise = withTimeout(
+    (async () => {
+      const ws = String(process.env.SUBSTRATE_WS || '').trim();
+      if (!ws) {
+        return { ok: true as const, configured: false as const, status: 'not_configured' as const };
+      }
+      const endpoints = ws
+        .split(',')
+        .map((endpoint) => endpoint.trim())
+        .filter(Boolean);
+      const maxLagBlocks = Number(process.env.HEALTH_CHAIN_MAX_LAG || 64);
+      const chainTimeoutMs = Number(process.env.HEALTH_CHAIN_TIMEOUT_MS || 1200);
+      const service = new PolkadotService(undefined, {
+        endpoints,
+        connectTimeoutMs: chainTimeoutMs,
+        maxConnectAttempts: 1,
+        retryBackoffMs: 0,
+        maxAllowedLagBlocks: maxLagBlocks,
+      });
+
+      try {
+        await service.connect();
+        const health = await service.getHealth();
+        const ok = !health.isSyncing && health.lagBlocks <= maxLagBlocks;
+        return { ok, configured: true as const, status: health };
+      } finally {
+        await service.disconnect().catch(() => undefined);
+      }
+    })(),
+    Number(process.env.HEALTH_CHAIN_TIMEOUT_MS || 1200),
+    'substrate',
+  ).catch((e) => ({
+    ok: false as const,
+    configured: Boolean(String(process.env.SUBSTRATE_WS || '').trim()),
+    error: String(e instanceof Error ? e.message : e),
+  }));
 
   const acapyPromise = withTimeout(
     (async () => {
@@ -363,14 +410,15 @@ app.get('/healthz', async (_req, res) => {
     error: String(e instanceof Error ? e.message : e),
   }));
 
-  const [db, chain, acapy, graph, agent] = await Promise.all([
+  const [db, audit, chain, acapy, graph, agent] = await Promise.all([
     dbPromise,
+    auditPromise,
     chainPromise,
     acapyPromise,
     graphPromise,
     agentPromise,
   ]);
-  const ok = db.ok && chain.ok && acapy.ok;
+  const ok = db.ok && audit.ok && chain.ok && acapy.ok;
 
   res.status(ok ? 200 : 503).json({
     status: ok ? 'ok' : 'degraded',
@@ -378,6 +426,7 @@ app.get('/healthz', async (_req, res) => {
     latencyMs: Date.now() - startedAt,
     checks: {
       db,
+      audit,
       substrate: chain,
       acapy,
       graph,
@@ -392,15 +441,28 @@ app.get('/healthz', async (_req, res) => {
 
 app.get(['/ready', '/readyz'], async (_req, res) => {
   const startedAt = Date.now();
-  const db = await prisma.$queryRaw`SELECT 1`.then(() => true).catch(() => false);
-  // For readiness, require DB only; other dependencies are reported in /health but shouldn't block boot.
-  const ok = db;
+  const timeoutMs = Number(process.env.HEALTH_DB_TIMEOUT_MS || 800);
+  const [db, audit] = await Promise.all([
+    withTimeout(prisma.$queryRaw`SELECT 1`, timeoutMs, 'db')
+      .then(() => true)
+      .catch(() => false),
+    withTimeout(
+      prisma.auditEvent.findFirst({ select: { id: true }, orderBy: { createdAt: 'desc' } }),
+      timeoutMs,
+      'audit',
+    )
+      .then(() => true)
+      .catch(() => false),
+  ]);
+  // For readiness, require DB + audit log access; other dependencies are reported in /health.
+  const ok = db && audit;
   res.status(ok ? 200 : 503).json({
     status: ok ? 'ready' : 'not_ready',
     timestamp: new Date().toISOString(),
     latencyMs: Date.now() - startedAt,
     services: {
       database: db,
+      auditLog: audit,
     },
   });
 });
@@ -797,6 +859,22 @@ app.post('/world-id/verify', validateRequest, async (req: Request, res: Response
 });
 
 // --- Demo VC issuance / verification / revocation ---
+app.post('/issuer/credential', async (req: Request, res: Response, next) => {
+  if (!req.body?.credential_request) return next();
+  const result = await issueOidcCredential(req);
+  return res.status(200).json(result);
+});
+
+app.post('/issuer/nonce', async (req: Request, res: Response) => {
+  const result = await issueNonce(req);
+  return res.status(200).json(result);
+});
+
+app.get('/issuer/deferred', async (req: Request, res: Response) => {
+  const result = await pollDeferredCredential(req);
+  return res.status(200).json(result);
+});
+
 app.post(
   '/issuer/credential',
   body('subjectId').isString().withMessage('subjectId is required'),
