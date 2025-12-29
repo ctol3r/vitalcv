@@ -933,6 +933,145 @@ async function ensureBatchAnchor(window: BatchWindow) {
   };
 }
 
+function resolveOnStatusBaseUrl(): string {
+  const configured = String(process.env.ON_STATUS_BASE_URL || process.env.SELF_BASE_URL || '').trim();
+  if (configured) return configured.replace(/\/$/, '');
+  const port = process.env.PORT || 4000;
+  return `http://127.0.0.1:${port}`;
+}
+
+function parseEnvFlag(value: string | undefined): boolean {
+  return ['1', 'true', 'yes', 'on'].includes(String(value || '').trim().toLowerCase());
+}
+
+function hasMockFlags(): boolean {
+  const flags = ['MOCK_MODE', 'ENABLE_MOCKS', 'USE_MOCKS', 'MOCK_ENDPOINTS'];
+  return flags.some((flag) => parseEnvFlag(process.env[flag]));
+}
+
+async function checkEndpoint(baseUrl: string, path: string) {
+  const url = `${baseUrl}${path}`;
+  try {
+    const timeoutMs = Number(process.env.ON_STATUS_TIMEOUT_MS || 1200);
+    const response = await withTimeout(fetch(url, { method: 'GET' }), timeoutMs, path);
+    return { ok: response.ok, status: response.status };
+  } catch (error) {
+    return { ok: false, error: String(error instanceof Error ? error.message : error) };
+  }
+}
+
+async function verifyAuditAppend(eventType: string, metadata: Record<string, unknown>) {
+  try {
+    const audit = await writeAuditEvent({ eventType, subjectId: 'system:on-status', metadata });
+    const found = await prisma.auditEvent.findFirst({ where: { hash: audit.hash } });
+    if (!found) throw new Error('audit_event_not_found');
+    return { ok: true, hash: audit.hash };
+  } catch (error) {
+    return { ok: false, error: String(error instanceof Error ? error.message : error) };
+  }
+}
+
+async function getLastAuditRoot(): Promise<string | null> {
+  const anchor = await prisma.auditEvent.findFirst({
+    where: { type: 'PROOF_BATCH_ANCHORED' },
+    orderBy: { createdAt: 'desc' },
+  });
+  if (!anchor) return null;
+  const parsed = parseAnchoredBatch(anchor);
+  return parsed?.merkleRoot ?? null;
+}
+
+async function evaluateOnStatus(baseUrl: string) {
+  const checkedAt = new Date().toISOString();
+  const blockingReasons: string[] = [];
+  let criticalFailure = false;
+
+  const databaseUrl = String(process.env.DATABASE_URL || '').trim();
+  if (!databaseUrl) {
+    blockingReasons.push('DATABASE_URL missing');
+    criticalFailure = true;
+  }
+
+  if (parseEnvFlag(process.env.DEMO_MODE)) {
+    blockingReasons.push('DEMO_MODE enabled');
+  }
+
+  if (hasMockFlags()) {
+    blockingReasons.push('mock_endpoints_enabled');
+  }
+
+  const ledgerAdapter = String(
+    process.env.LEDGER_ADAPTER || process.env.ANCHOR_CHAIN || '',
+  ).trim();
+  const ledgerEnabled = Boolean(ledgerAdapter && ledgerAdapter !== 'noop');
+  if (!ledgerEnabled) {
+    blockingReasons.push('ledger_adapter_missing');
+  }
+
+  const [health, healthz, readyz] = await Promise.all([
+    checkEndpoint(baseUrl, '/health'),
+    checkEndpoint(baseUrl, '/healthz'),
+    checkEndpoint(baseUrl, '/readyz'),
+  ]);
+  if (!health.ok) {
+    blockingReasons.push('health_failed');
+    criticalFailure = true;
+  }
+  if (!healthz.ok) {
+    blockingReasons.push('healthz_failed');
+    criticalFailure = true;
+  }
+  if (!readyz.ok) {
+    blockingReasons.push('readyz_failed');
+    criticalFailure = true;
+  }
+
+  const verifierPing = await checkEndpoint(
+    baseUrl,
+    '/verify/public?proofHash=ping&merkleRoot=ping',
+  );
+  const verifierReachable = verifierPing.ok || verifierPing.status === 400;
+  if (!verifierReachable) {
+    blockingReasons.push('public_verifier_unreachable');
+  }
+
+  const status = criticalFailure
+    ? 'OFF'
+    : blockingReasons.length
+      ? 'SOFT_ON'
+      : 'HARD_ON';
+
+  return {
+    status,
+    blockingReasons,
+    checkedAt,
+    dependencies: {
+      db: health.ok,
+      audit: healthz.ok,
+      ledger: { enabled: ledgerEnabled, adapter: ledgerAdapter || null },
+    },
+    checks: {
+      boot: true,
+      health: health.ok,
+      healthz: healthz.ok,
+      readyz: readyz.ok,
+      ledger: ledgerEnabled,
+      verifier: verifierReachable,
+    },
+  };
+}
+
+async function getSystemOnStatus(baseUrl: string) {
+  const onStatus = await evaluateOnStatus(baseUrl);
+  const auditCheck = await verifyAuditAppend('SYSTEM_ON_CHECKED', {
+    status: onStatus.status,
+    blockingReasons: onStatus.blockingReasons,
+    checkedAt: onStatus.checkedAt,
+    dependencies: onStatus.dependencies,
+  });
+  return { onStatus, auditCheck };
+}
+
 async function appendAuditCheck(
   eventType: string,
   subjectId: string,
@@ -1216,6 +1355,76 @@ app.get('/build-info', (_req, res) => {
     buildTime: builtAtIso || process.env.BUILD_TIME || process.env.VERCEL_BUILD_TIME || 'unknown',
     version: process.env.APP_VERSION || '1.0.0',
   });
+});
+
+app.get('/system/on-status', async (_req, res) => {
+  const baseUrl = resolveOnStatusBaseUrl();
+  const { onStatus, auditCheck } = await getSystemOnStatus(baseUrl);
+
+  if (!auditCheck.ok) {
+    return res.status(503).json({
+      status: 'OFF',
+      blockingReasons: [...onStatus.blockingReasons, 'audit_append_failed'],
+      checkedAt: onStatus.checkedAt,
+      error: auditCheck.error,
+    });
+  }
+
+  return res.json({
+    status: onStatus.status,
+    blockingReasons: onStatus.blockingReasons,
+    checkedAt: onStatus.checkedAt,
+  });
+});
+
+app.get('/status', async (req, res) => {
+  const baseUrl = resolveOnStatusBaseUrl();
+  const { onStatus, auditCheck } = await getSystemOnStatus(baseUrl);
+  if (!auditCheck.ok) {
+    return res.status(503).json({
+      error: 'Failed to append system on-status audit',
+      detail: auditCheck.error,
+    });
+  }
+  const lastAuditRoot = await getLastAuditRoot();
+
+  const statusPayload = {
+    onStatus: {
+      status: onStatus.status,
+      blockingReasons: onStatus.blockingReasons,
+      checkedAt: onStatus.checkedAt,
+    },
+    lastAuditRoot,
+    buildInfo: {
+      sha: gitSha,
+      time: builtAtIso,
+    },
+    dependencies: {
+      db: onStatus.dependencies.db,
+      audit: onStatus.dependencies.audit,
+      ledger: onStatus.dependencies.ledger,
+    },
+  };
+
+  try {
+    const audit = await writeAuditEvent({
+      eventType: 'STATUS_VIEWED',
+      subjectId: 'system:status',
+      metadata: {
+        onStatus: statusPayload.onStatus,
+        lastAuditRoot,
+        buildInfo: statusPayload.buildInfo,
+        dependencies: statusPayload.dependencies,
+        employerId: resolveEmployerId(req),
+      },
+    });
+    return res.json({ ...statusPayload, auditRef: audit.hash });
+  } catch (error) {
+    return res.status(503).json({
+      error: 'Failed to append status audit event',
+      detail: String(error instanceof Error ? error.message : error),
+    });
+  }
 });
 
 // --- World ID (Phase 1: AuthN only) ---
