@@ -272,7 +272,28 @@ const AUTHORITY_RENEWAL_GUIDES: Record<
   },
 };
 
+const DEFAULT_AUDIT_BATCH_WINDOW_MINUTES = Number(
+  process.env.AUDIT_BATCH_WINDOW_MINUTES || 60,
+);
+const AUDIT_BATCH_EXCLUDED_TYPES = new Set([
+  'PROOF_BATCH_ANCHORED',
+  'PUBLIC_PROOF_VERIFIED',
+]);
+
 type LifecycleState = 'ACTIVE' | 'RENEWAL_WINDOW' | 'EXPIRED';
+
+type BatchWindow = {
+  from: Date;
+  to: Date;
+  fromIso: string;
+  toIso: string;
+};
+
+type AnchorReceipt = {
+  chain: string;
+  txId: string;
+  timestamp: string;
+};
 
 function evaluateLifecycle(expiresAtIso: string | null, renewalWindowDays: number): {
   daysRemaining: number | null;
@@ -295,6 +316,62 @@ function evaluateLifecycle(expiresAtIso: string | null, renewalWindowDays: numbe
     return { daysRemaining, currentState: 'RENEWAL_WINDOW' };
   }
   return { daysRemaining, currentState: 'ACTIVE' };
+}
+
+function resolveBatchWindow(now: Date = new Date()): BatchWindow {
+  const windowMinutes =
+    Number.isFinite(DEFAULT_AUDIT_BATCH_WINDOW_MINUTES) &&
+    DEFAULT_AUDIT_BATCH_WINDOW_MINUTES > 0
+      ? DEFAULT_AUDIT_BATCH_WINDOW_MINUTES
+      : 60;
+  const windowMs = windowMinutes * 60 * 1000;
+  const nowMs = now.getTime();
+  const startMs = Math.floor(nowMs / windowMs) * windowMs;
+  const endMs = startMs + windowMs;
+  const from = new Date(startMs);
+  const to = new Date(endMs);
+  return {
+    from,
+    to,
+    fromIso: from.toISOString(),
+    toIso: to.toISOString(),
+  };
+}
+
+function buildAnchorReceipt(merkleRoot: string): AnchorReceipt {
+  const chain = String(process.env.ANCHOR_CHAIN || 'noop').trim() || 'noop';
+  const txId =
+    String(process.env.ANCHOR_TX_ID || '').trim() || merkleRoot.slice(0, 32) || 'noop';
+  return {
+    chain,
+    txId,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+async function loadBatchEvents(window: BatchWindow) {
+  const events = await prisma.auditEvent.findMany({
+    where: {
+      createdAt: {
+        gte: window.from,
+        lt: window.to,
+      },
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+  return events
+    .filter((event) => !AUDIT_BATCH_EXCLUDED_TYPES.has(event.type))
+    .sort((a, b) => {
+      const timeDiff = a.createdAt.getTime() - b.createdAt.getTime();
+      if (timeDiff !== 0) return timeDiff;
+      return a.hash.localeCompare(b.hash);
+    });
+}
+
+function computeMerkleRootFromEvents(events: { hash: string }[]): string | null {
+  const hashes = events.map((event) => event.hash).filter(Boolean);
+  if (!hashes.length) return null;
+  return merkleRootHex(hashes);
 }
 
 function resolveCredentialExpiry(expiryDate?: string | null): {
@@ -444,6 +521,91 @@ async function ensureAuditEventOnce(
 function resolveAuthorityGuide(authorityId: string | null) {
   if (!authorityId) return AUTHORITY_RENEWAL_GUIDES.DEFAULT;
   return AUTHORITY_RENEWAL_GUIDES[authorityId] || AUTHORITY_RENEWAL_GUIDES.DEFAULT;
+}
+
+function normalizeBatchWindow(window: BatchWindow) {
+  return {
+    from: window.fromIso,
+    to: window.toIso,
+  };
+}
+
+function parseAnchorReceipt(input?: Record<string, unknown> | null): AnchorReceipt | null {
+  if (!input) return null;
+  const chain = typeof input.chain === 'string' ? input.chain : null;
+  const txId = typeof input.txId === 'string' ? input.txId : null;
+  const timestamp = typeof input.timestamp === 'string' ? input.timestamp : null;
+  if (!chain || !txId || !timestamp) return null;
+  return { chain, txId, timestamp };
+}
+
+function parseAnchoredBatch(event: { metadata: unknown; createdAt: Date }) {
+  const metadata = event.metadata as Record<string, any> | null;
+  if (!metadata) return null;
+  const merkleRoot = typeof metadata.merkleRoot === 'string' ? metadata.merkleRoot : null;
+  const batchWindow = metadata.batchWindow as { from?: string; to?: string } | undefined;
+  if (!merkleRoot || !batchWindow?.from || !batchWindow?.to) return null;
+  const anchorReceipt = parseAnchorReceipt(metadata.anchorReceipt);
+  return {
+    merkleRoot,
+    batchWindow: { from: batchWindow.from, to: batchWindow.to },
+    anchorReceipt,
+    anchoredAt: anchorReceipt?.timestamp || event.createdAt.toISOString(),
+  };
+}
+
+async function findAnchoredBatchByRoot(merkleRoot: string) {
+  const anchors = await prisma.auditEvent.findMany({
+    where: { type: 'PROOF_BATCH_ANCHORED' },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  });
+  for (const anchor of anchors) {
+    const parsed = parseAnchoredBatch(anchor);
+    if (parsed && parsed.merkleRoot === merkleRoot) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
+async function findAnchoredBatchByWindow(window: BatchWindow) {
+  const anchors = await prisma.auditEvent.findMany({
+    where: { type: 'PROOF_BATCH_ANCHORED' },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  });
+  for (const anchor of anchors) {
+    const parsed = parseAnchoredBatch(anchor);
+    if (parsed && parsed.batchWindow.from === window.fromIso && parsed.batchWindow.to === window.toIso) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
+async function ensureBatchAnchor(window: BatchWindow) {
+  const existing = await findAnchoredBatchByWindow(window);
+  if (existing) return existing;
+  const events = await loadBatchEvents(window);
+  const merkleRoot = computeMerkleRootFromEvents(events);
+  if (!merkleRoot) return null;
+  const anchorReceipt = buildAnchorReceipt(merkleRoot);
+  const audit = await writeAuditEvent({
+    eventType: 'PROOF_BATCH_ANCHORED',
+    subjectId: `batch:${window.fromIso}`,
+    metadata: {
+      merkleRoot,
+      batchWindow: normalizeBatchWindow(window),
+      anchorReceipt,
+    },
+  });
+  return {
+    merkleRoot,
+    batchWindow: normalizeBatchWindow(window),
+    anchorReceipt,
+    anchoredAt: anchorReceipt.timestamp || audit.createdAt,
+  };
 }
 
 async function appendAuditCheck(
@@ -1570,6 +1732,119 @@ app.post(
     });
   },
 );
+
+app.get('/verify/public', async (req, res) => {
+  const proofHash = String(req.query.proofHash || '').trim();
+  const merkleRoot = String(req.query.merkleRoot || '').trim();
+  if (!proofHash || !merkleRoot) {
+    return res.status(400).json({ error: 'proofHash and merkleRoot are required' });
+  }
+
+  let anchor = await findAnchoredBatchByRoot(merkleRoot);
+  if (!anchor) {
+    try {
+      const window = resolveBatchWindow();
+      const events = await loadBatchEvents(window);
+      const computedRoot = computeMerkleRootFromEvents(events);
+      if (computedRoot && computedRoot === merkleRoot) {
+        anchor = await ensureBatchAnchor(window);
+      }
+    } catch (error) {
+      return res.status(503).json({
+        error: 'Failed to anchor audit batch',
+        detail: String(error instanceof Error ? error.message : error),
+      });
+    }
+  }
+
+  if (!anchor) {
+    try {
+      const audit = await writeAuditEvent({
+        eventType: 'PUBLIC_PROOF_VERIFIED',
+        subjectId: `proof:${proofHash}`,
+        metadata: {
+          proofHash,
+          merkleRoot,
+          valid: false,
+          reason: 'anchor_not_found',
+        },
+      });
+      return res.json({
+        valid: false,
+        anchoredAt: null,
+        batchWindow: null,
+        auditRef: audit.hash,
+        reason: 'anchor_not_found',
+        proof: {
+          proofHash,
+          merkleRoot,
+          anchorReceipt: null,
+        },
+      });
+    } catch (error) {
+      return res.status(503).json({
+        error: 'Failed to append public verification audit',
+        detail: String(error instanceof Error ? error.message : error),
+      });
+    }
+  }
+
+  const window: BatchWindow = {
+    from: new Date(anchor.batchWindow.from),
+    to: new Date(anchor.batchWindow.to),
+    fromIso: anchor.batchWindow.from,
+    toIso: anchor.batchWindow.to,
+  };
+  const events = await loadBatchEvents(window);
+  const computedRoot = computeMerkleRootFromEvents(events);
+  const rootMatches = computedRoot === merkleRoot;
+  const proofFound = events.some((event) => {
+    const metadata = event.metadata as Record<string, any> | null;
+    return metadata?.proofHash === proofHash;
+  });
+
+  let reason: string | undefined;
+  if (!rootMatches) {
+    reason = 'merkle_root_mismatch';
+  } else if (!proofFound) {
+    reason = 'proof_not_in_batch';
+  }
+
+  const valid = rootMatches && proofFound;
+  const proof = {
+    proofHash,
+    merkleRoot,
+    anchorReceipt: anchor.anchorReceipt,
+  };
+
+  try {
+    const audit = await writeAuditEvent({
+      eventType: 'PUBLIC_PROOF_VERIFIED',
+      subjectId: `proof:${proofHash}`,
+      metadata: {
+        proofHash,
+        merkleRoot,
+        valid,
+        reason: reason || null,
+        batchWindow: anchor.batchWindow,
+        anchoredAt: anchor.anchoredAt,
+      },
+    });
+    return res.json({
+      valid,
+      anchoredAt: anchor.anchoredAt,
+      batchWindow: anchor.batchWindow,
+      auditRef: audit.hash,
+      reason,
+      proof,
+    });
+  } catch (error) {
+    return res.status(503).json({
+      error: 'Failed to append public verification audit',
+      detail: String(error instanceof Error ? error.message : error),
+    });
+  }
+});
 
 app.get('/credentials/:id/receipt', async (req, res) => {
   const rawId = String(req.params.id || '').trim();
