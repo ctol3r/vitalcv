@@ -279,6 +279,12 @@ const AUDIT_BATCH_EXCLUDED_TYPES = new Set([
   'PROOF_BATCH_ANCHORED',
   'PUBLIC_PROOF_VERIFIED',
 ]);
+const ANY_CREDENTIAL_REQUIREMENT = 'ANY_CREDENTIAL';
+const JOB_REQUIREMENTS: Record<string, string[]> = {
+  nurse: ['Nursing License'],
+  pharmacist: ['Pharmacy Certification'],
+  physician: ['Medical License'],
+};
 
 type LifecycleState = 'ACTIVE' | 'RENEWAL_WINDOW' | 'EXPIRED';
 
@@ -293,6 +299,14 @@ type AnchorReceipt = {
   chain: string;
   txId: string;
   timestamp: string;
+};
+
+type CredentialLifecycle = {
+  externalId: string;
+  name: string;
+  daysRemaining: number | null;
+  currentState: LifecycleState;
+  revoked: boolean;
 };
 
 function evaluateLifecycle(expiresAtIso: string | null, renewalWindowDays: number): {
@@ -521,6 +535,29 @@ async function ensureAuditEventOnce(
 function resolveAuthorityGuide(authorityId: string | null) {
   if (!authorityId) return AUTHORITY_RENEWAL_GUIDES.DEFAULT;
   return AUTHORITY_RENEWAL_GUIDES[authorityId] || AUTHORITY_RENEWAL_GUIDES.DEFAULT;
+}
+
+function normalizeJobKey(value?: string | null): string | null {
+  if (!value) return null;
+  const normalized = String(value).trim().toLowerCase();
+  return normalized ? normalized : null;
+}
+
+function resolveJobRequirements(jobId: string, jobTitle?: string | null): string[] {
+  const jobKeys = [normalizeJobKey(jobId), normalizeJobKey(jobTitle)].filter(
+    (value): value is string => Boolean(value),
+  );
+  for (const key of jobKeys) {
+    if (JOB_REQUIREMENTS[key]?.length) return JOB_REQUIREMENTS[key];
+  }
+  return [ANY_CREDENTIAL_REQUIREMENT];
+}
+
+function resolveEmployerId(req: Request): string | null {
+  const headerId = String(req.headers['x-employer-id'] || '').trim();
+  const queryId = String(req.query.employerId || '').trim();
+  const candidate = headerId || queryId;
+  return candidate ? candidate : null;
 }
 
 function normalizeBatchWindow(window: BatchWindow) {
@@ -2032,6 +2069,230 @@ app.get('/credentials/:id/renewal-info', async (req, res) => {
       detail: String(error instanceof Error ? error.message : error),
     });
   }
+});
+
+app.get('/employer/readiness/:clinicianId/:jobId', async (req, res) => {
+  const clinicianId = String(req.params.clinicianId || '').trim();
+  const jobId = String(req.params.jobId || '').trim();
+  if (!clinicianId || !jobId) {
+    return res.status(400).json({ error: 'clinicianId and jobId are required' });
+  }
+
+  const employerId = resolveEmployerId(req);
+  const clinicianNumericId = Number(clinicianId);
+  const clinician = Number.isFinite(clinicianNumericId)
+    ? await prisma.user.findUnique({ where: { id: clinicianNumericId } })
+    : await prisma.user.findUnique({ where: { email: clinicianId } });
+  if (!clinician) {
+    return res.status(404).json({ error: 'Clinician not found' });
+  }
+  const clinicianAuditId = String(clinician.id);
+
+  const jobNumericId = Number(jobId);
+  const job = Number.isFinite(jobNumericId)
+    ? await prisma.job.findUnique({ where: { id: jobNumericId } })
+    : null;
+  const jobTitle = job?.title || jobId;
+  const requirements = resolveJobRequirements(jobId, jobTitle);
+  const requiredCount = requirements.length;
+
+  const credentials = await prisma.credential.findMany({
+    where: { userId: clinician.id },
+    orderBy: { issuedAt: 'asc' },
+  });
+  const externalIds = credentials.map((credential) => `CRED-${credential.id}`);
+  const revokedEvents = externalIds.length
+    ? await prisma.auditEvent.findMany({
+        where: { type: 'REVOKE_CREDENTIAL', credentialId: { in: externalIds } },
+        select: { credentialId: true },
+      })
+    : [];
+  const revokedSet = new Set(revokedEvents.map((event) => event.credentialId).filter(Boolean));
+
+  const lifecycleRecords: CredentialLifecycle[] = credentials.map((credential) => {
+    const expiresAt = credential.expiresAt ? credential.expiresAt.toISOString() : null;
+    const renewalWindowDays = resolveRenewalWindowDays(credential.renewalWindowDays);
+    const lifecycle = evaluateLifecycle(expiresAt, renewalWindowDays);
+    const externalId = `CRED-${credential.id}`;
+    return {
+      externalId,
+      name: credential.name,
+      daysRemaining: lifecycle.daysRemaining,
+      currentState: lifecycle.currentState,
+      revoked: revokedSet.has(externalId),
+    };
+  });
+
+  const evidenceSet = new Set<string>();
+  let satisfiedCount = 0;
+  let hasRenewalWindow = false;
+  let hasMissingRequirement = false;
+
+  for (const requirement of requirements) {
+    const matches = lifecycleRecords.filter((record) => {
+      if (requirement === ANY_CREDENTIAL_REQUIREMENT) return true;
+      return record.name.toLowerCase() === requirement.toLowerCase();
+    });
+    const validMatches = matches.filter(
+      (record) => !record.revoked && record.currentState !== 'EXPIRED',
+    );
+
+    if (!validMatches.length) {
+      hasMissingRequirement = true;
+      continue;
+    }
+
+    satisfiedCount += 1;
+    validMatches.forEach((record) => evidenceSet.add(record.externalId));
+    if (validMatches.some((record) => record.currentState === 'RENEWAL_WINDOW')) {
+      hasRenewalWindow = true;
+    }
+  }
+
+  let status: 'READY' | 'ALMOST_READY' | 'NOT_READY' = 'READY';
+  if (hasMissingRequirement) {
+    status = 'NOT_READY';
+  } else if (hasRenewalWindow) {
+    status = 'ALMOST_READY';
+  }
+
+  const generatedAt = new Date().toISOString();
+  const response = {
+    status,
+    satisfiedCount,
+    requiredCount,
+    evidence: Array.from(evidenceSet).sort(),
+    generatedAt,
+  };
+
+  try {
+    await writeAuditEvent({
+      eventType: 'EMPLOYER_READINESS_VIEWED',
+      subjectId: `clinician:${clinicianAuditId}`,
+      metadata: {
+        employerId,
+        clinicianId: clinicianAuditId,
+        jobId,
+        jobTitle,
+        status,
+        satisfiedCount,
+        requiredCount,
+        evidenceCount: response.evidence.length,
+        generatedAt,
+      },
+    });
+  } catch (error) {
+    return res.status(503).json({
+      error: 'Failed to append readiness audit event',
+      detail: String(error instanceof Error ? error.message : error),
+    });
+  }
+
+  return res.json(response);
+});
+
+app.get('/employer/risk/:clinicianId/:jobId', async (req, res) => {
+  const clinicianId = String(req.params.clinicianId || '').trim();
+  const jobId = String(req.params.jobId || '').trim();
+  if (!clinicianId || !jobId) {
+    return res.status(400).json({ error: 'clinicianId and jobId are required' });
+  }
+
+  const employerId = resolveEmployerId(req);
+  const clinicianNumericId = Number(clinicianId);
+  const clinician = Number.isFinite(clinicianNumericId)
+    ? await prisma.user.findUnique({ where: { id: clinicianNumericId } })
+    : await prisma.user.findUnique({ where: { email: clinicianId } });
+  if (!clinician) {
+    return res.status(404).json({ error: 'Clinician not found' });
+  }
+  const clinicianAuditId = String(clinician.id);
+
+  const jobNumericId = Number(jobId);
+  const job = Number.isFinite(jobNumericId)
+    ? await prisma.job.findUnique({ where: { id: jobNumericId } })
+    : null;
+  const jobTitle = job?.title || jobId;
+  const requirements = resolveJobRequirements(jobId, jobTitle);
+
+  const credentials = await prisma.credential.findMany({
+    where: { userId: clinician.id },
+    orderBy: { issuedAt: 'asc' },
+  });
+
+  const lifecycleRecords: CredentialLifecycle[] = credentials.map((credential) => {
+    const expiresAt = credential.expiresAt ? credential.expiresAt.toISOString() : null;
+    const renewalWindowDays = resolveRenewalWindowDays(credential.renewalWindowDays);
+    const lifecycle = evaluateLifecycle(expiresAt, renewalWindowDays);
+    return {
+      externalId: `CRED-${credential.id}`,
+      name: credential.name,
+      daysRemaining: lifecycle.daysRemaining,
+      currentState: lifecycle.currentState,
+      revoked: false,
+    };
+  });
+
+  const relevantCredentials = lifecycleRecords.filter((record) => {
+    if (requirements.includes(ANY_CREDENTIAL_REQUIREMENT)) return true;
+    return requirements.some(
+      (requirement) => requirement.toLowerCase() === record.name.toLowerCase(),
+    );
+  });
+
+  const reasons: string[] = [];
+  let hasExpired = false;
+  let hasRenewalWindow = false;
+  for (const record of relevantCredentials) {
+    if (record.currentState === 'EXPIRED') {
+      hasExpired = true;
+      reasons.push(`${record.name} expired`);
+    } else if (record.currentState === 'RENEWAL_WINDOW') {
+      hasRenewalWindow = true;
+      if (record.daysRemaining !== null) {
+        reasons.push(`${record.name} expires in ${record.daysRemaining} days`);
+      } else {
+        reasons.push(`${record.name} nearing renewal window`);
+      }
+    }
+  }
+
+  let riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' = 'LOW';
+  if (hasExpired) {
+    riskLevel = 'HIGH';
+  } else if (hasRenewalWindow) {
+    riskLevel = 'MEDIUM';
+  }
+
+  const generatedAt = new Date().toISOString();
+  const response = {
+    riskLevel,
+    reasons,
+    generatedAt,
+  };
+
+  try {
+    await writeAuditEvent({
+      eventType: 'EMPLOYER_RISK_VIEWED',
+      subjectId: `clinician:${clinicianAuditId}`,
+      metadata: {
+        employerId,
+        clinicianId: clinicianAuditId,
+        jobId,
+        jobTitle,
+        riskLevel,
+        reasonCount: reasons.length,
+        generatedAt,
+      },
+    });
+  } catch (error) {
+    return res.status(503).json({
+      error: 'Failed to append risk audit event',
+      detail: String(error instanceof Error ? error.message : error),
+    });
+  }
+
+  return res.json(response);
 });
 
 // Compatibility status endpoints used by the frontend client
