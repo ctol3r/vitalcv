@@ -309,6 +309,32 @@ type CredentialLifecycle = {
   revoked: boolean;
 };
 
+type EvidenceLink = {
+  publicationId: string | null;
+  credentialId: string | null;
+  jobId: string | null;
+  source: 'DISCOVER' | 'PUBMED';
+  discoverItemId?: number;
+};
+
+type ReadinessSnapshot = {
+  status: 'READY' | 'ALMOST_READY' | 'NOT_READY';
+  satisfiedCount: number;
+  requiredCount: number;
+  evidence: string[];
+  generatedAt: string;
+  evidenceOnly: boolean;
+};
+
+type DiscoverImpactType = 'NONE' | 'ELIGIBILITY' | 'READINESS' | 'COMPLIANCE';
+
+const DISCOVER_IMPACT_TYPES = new Set<DiscoverImpactType>([
+  'NONE',
+  'ELIGIBILITY',
+  'READINESS',
+  'COMPLIANCE',
+]);
+
 function evaluateLifecycle(expiresAtIso: string | null, renewalWindowDays: number): {
   daysRemaining: number | null;
   currentState: LifecycleState;
@@ -558,6 +584,268 @@ function resolveEmployerId(req: Request): string | null {
   const queryId = String(req.query.employerId || '').trim();
   const candidate = headerId || queryId;
   return candidate ? candidate : null;
+}
+
+function parseStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item) => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .filter((item) => typeof item === 'string')
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+    } catch {
+      return trimmed
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+  }
+  return [];
+}
+
+function resolveImpactType(value: unknown): DiscoverImpactType {
+  const normalized = String(value || '').trim().toUpperCase();
+  if (DISCOVER_IMPACT_TYPES.has(normalized as DiscoverImpactType)) {
+    return normalized as DiscoverImpactType;
+  }
+  return 'NONE';
+}
+
+function buildEvidenceIds(evidenceLinks: EvidenceLink[]): string[] {
+  const evidenceSet = new Set<string>();
+  for (const link of evidenceLinks) {
+    if (link.credentialId) evidenceSet.add(link.credentialId);
+    if (link.publicationId) evidenceSet.add(`PUBMED:${link.publicationId}`);
+  }
+  return Array.from(evidenceSet);
+}
+
+function evidenceMatchesRequirement(
+  requirement: string,
+  jobId: string,
+  link: EvidenceLink,
+  credentialByExternalId: Map<string, { name: string }>,
+): boolean {
+  if (requirement === ANY_CREDENTIAL_REQUIREMENT) {
+    return Boolean(link.publicationId || link.credentialId || link.jobId === jobId);
+  }
+  if (link.credentialId) {
+    const credential = credentialByExternalId.get(link.credentialId);
+    if (credential && credential.name.toLowerCase() === requirement.toLowerCase()) return true;
+    if (link.credentialId.toLowerCase() === requirement.toLowerCase()) return true;
+  }
+  if (link.jobId && link.jobId === jobId) return true;
+  return false;
+}
+
+async function buildReadinessSnapshot(
+  clinician: { id: number },
+  clinicianKey: string,
+  jobId: string,
+  jobTitle: string,
+): Promise<ReadinessSnapshot> {
+  const requirements = resolveJobRequirements(jobId, jobTitle);
+  const requiredCount = requirements.length;
+
+  const credentials = await prisma.credential.findMany({
+    where: { userId: clinician.id },
+    orderBy: { issuedAt: 'asc' },
+  });
+  const externalIds = credentials.map((credential) => `CRED-${credential.id}`);
+  const revokedEvents = externalIds.length
+    ? await prisma.auditEvent.findMany({
+        where: { type: 'REVOKE_CREDENTIAL', credentialId: { in: externalIds } },
+        select: { credentialId: true },
+      })
+    : [];
+  const revokedSet = new Set(revokedEvents.map((event) => event.credentialId).filter(Boolean));
+
+  const credentialByExternalId = new Map<string, { name: string; currentState: LifecycleState }>();
+  for (const credential of credentials) {
+    const expiresAt = credential.expiresAt ? credential.expiresAt.toISOString() : null;
+    const renewalWindowDays = resolveRenewalWindowDays(credential.renewalWindowDays);
+    const lifecycle = evaluateLifecycle(expiresAt, renewalWindowDays);
+    const externalId = `CRED-${credential.id}`;
+    if (!revokedSet.has(externalId) && lifecycle.currentState !== 'EXPIRED') {
+      credentialByExternalId.set(externalId, {
+        name: credential.name,
+        currentState: lifecycle.currentState,
+      });
+    }
+  }
+
+  const discoverItems = await prisma.discoverItem.findMany({
+    where: { clinicianId: clinicianKey },
+    orderBy: { createdAt: 'asc' },
+  });
+  const pubmedEvidence = await prisma.pubMedEvidence.findMany({
+    where: { clinicianId: clinicianKey },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  const evidenceLinks: EvidenceLink[] = [];
+  for (const item of discoverItems) {
+    const impactType = String(item.impactType || '').toUpperCase();
+    if (impactType === 'NONE') continue;
+    const impactedJobs = parseStringArray(item.impactedJobIds);
+    const impactedCreds = parseStringArray(item.impactedCredentialIds);
+    const jobMatches = impactedJobs.includes(jobId);
+    if (!jobMatches && impactedCreds.length === 0) continue;
+    const publicationId = item.publicationId ? String(item.publicationId) : null;
+    if (publicationId) {
+      evidenceLinks.push({
+        publicationId,
+        credentialId: null,
+        jobId: jobMatches ? jobId : null,
+        source: 'DISCOVER',
+        discoverItemId: item.id,
+      });
+    }
+    for (const credentialId of impactedCreds) {
+      evidenceLinks.push({
+        publicationId,
+        credentialId,
+        jobId: jobMatches ? jobId : null,
+        source: 'DISCOVER',
+        discoverItemId: item.id,
+      });
+    }
+  }
+
+  for (const link of pubmedEvidence) {
+    if (link.jobId && link.jobId !== jobId && !link.credentialId) continue;
+    evidenceLinks.push({
+      publicationId: link.publicationId,
+      credentialId: link.credentialId ?? null,
+      jobId: link.jobId ?? null,
+      source: 'PUBMED',
+    });
+  }
+
+  const evidenceSet = new Set<string>();
+  let satisfiedCount = 0;
+  let missingRequirement = false;
+  let evidenceOnly = false;
+
+  for (const requirement of requirements) {
+    const credentialMatches = Array.from(credentialByExternalId.entries()).filter((entry) => {
+      const [, credential] = entry;
+      if (requirement === ANY_CREDENTIAL_REQUIREMENT) return true;
+      return credential.name.toLowerCase() === requirement.toLowerCase();
+    });
+    const evidenceMatches = evidenceLinks.filter((link) =>
+      evidenceMatchesRequirement(requirement, jobId, link, credentialByExternalId),
+    );
+
+    if (credentialMatches.length) {
+      satisfiedCount += 1;
+      credentialMatches.forEach(([externalId]) => evidenceSet.add(externalId));
+      buildEvidenceIds(evidenceMatches).forEach((id) => evidenceSet.add(id));
+      continue;
+    }
+
+    if (evidenceMatches.length) {
+      satisfiedCount += 1;
+      evidenceOnly = true;
+      buildEvidenceIds(evidenceMatches).forEach((id) => evidenceSet.add(id));
+      continue;
+    }
+
+    missingRequirement = true;
+  }
+
+  let status: 'READY' | 'ALMOST_READY' | 'NOT_READY' = 'READY';
+  if (missingRequirement) {
+    status = 'NOT_READY';
+  } else if (evidenceOnly) {
+    status = 'ALMOST_READY';
+  }
+
+  return {
+    status,
+    satisfiedCount,
+    requiredCount,
+    evidence: Array.from(evidenceSet).sort(),
+    generatedAt: new Date().toISOString(),
+    evidenceOnly,
+  };
+}
+
+function readinessRank(status: 'READY' | 'ALMOST_READY' | 'NOT_READY'): number {
+  if (status === 'READY') return 2;
+  if (status === 'ALMOST_READY') return 1;
+  return 0;
+}
+
+function resolveReadinessImprovement(before: ReadinessSnapshot, after: ReadinessSnapshot) {
+  const beforeRank = readinessRank(before.status);
+  const afterRank = readinessRank(after.status);
+  if (afterRank <= beforeRank) return null;
+  if (after.status === 'READY') return 'READINESS_IMPROVED';
+  return 'ELIGIBILITY_IMPROVED';
+}
+
+function resolveJobsFromCredentialNames(names: string[]): string[] {
+  const normalized = names.map((name) => name.toLowerCase());
+  const jobIds = new Set<string>();
+  for (const [jobKey, requirements] of Object.entries(JOB_REQUIREMENTS)) {
+    if (requirements.some((req) => normalized.includes(req.toLowerCase()))) {
+      jobIds.add(jobKey);
+    }
+  }
+  return Array.from(jobIds);
+}
+
+async function emitEligibilityImpactEvents(params: {
+  clinicianKey: string;
+  jobId: string;
+  before: ReadinessSnapshot;
+  after: ReadinessSnapshot;
+  discoverItemId?: number;
+  publicationId?: string;
+  affectedJobIds: string[];
+}) {
+  const pulseType = resolveReadinessImprovement(params.before, params.after);
+  if (!pulseType) return null;
+
+  const changeAudit = await writeAuditEvent({
+    eventType: 'ELIGIBILITY_CHANGED',
+    subjectId: `eligibility:${params.clinicianKey}:${params.jobId}`,
+    metadata: {
+      clinicianId: params.clinicianKey,
+      jobId: params.jobId,
+      affectedJobIds: params.affectedJobIds,
+      discoverItemId: params.discoverItemId ?? null,
+      publicationId: params.publicationId ?? null,
+      beforeStatus: params.before.status,
+      afterStatus: params.after.status,
+      generatedAt: params.after.generatedAt,
+    },
+  });
+
+  await ensureAuditEventOnce(pulseType, `pulse:${params.clinicianKey}:${params.jobId}`, {
+    clinicianId: params.clinicianKey,
+    jobId: params.jobId,
+    affectedJobIds: params.affectedJobIds,
+    discoverItemId: params.discoverItemId ?? null,
+    publicationId: params.publicationId ?? null,
+    beforeStatus: params.before.status,
+    afterStatus: params.after.status,
+    generatedAt: params.after.generatedAt,
+  });
+
+  return changeAudit.hash;
 }
 
 function normalizeBatchWindow(window: BatchWindow) {
@@ -2071,6 +2359,263 @@ app.get('/credentials/:id/renewal-info', async (req, res) => {
   }
 });
 
+app.post(
+  '/discover/items/classify',
+  body('clinicianId').isString().withMessage('clinicianId is required'),
+  body('impactType').isString().withMessage('impactType is required'),
+  validateRequest,
+  async (req: Request, res: Response) => {
+    const {
+      clinicianId,
+      impactType,
+      publicationId: publicationIdInput,
+      impactedCredentialIds: impactedCredentialIdsInput,
+      impactedJobIds: impactedJobIdsInput,
+    } = req.body as Record<string, any>;
+
+    const clinicianNumericId = Number(clinicianId);
+    const clinician = Number.isFinite(clinicianNumericId)
+      ? await prisma.user.findUnique({ where: { id: clinicianNumericId } })
+      : await prisma.user.findUnique({ where: { email: String(clinicianId) } });
+    if (!clinician) {
+      return res.status(404).json({ error: 'Clinician not found' });
+    }
+    const clinicianKey = String(clinician.id);
+    const resolvedImpactType = resolveImpactType(impactType);
+    const publicationId = publicationIdInput ? String(publicationIdInput).trim() : null;
+
+    const impactedCredentialIdsRaw = parseStringArray(impactedCredentialIdsInput);
+    const impactedJobIdsRaw = parseStringArray(impactedJobIdsInput);
+    const impactedCredentialIds: string[] = [];
+    const credentialDbIds: number[] = [];
+
+    for (const credentialId of impactedCredentialIdsRaw) {
+      const normalized = normalizeCredentialId(credentialId);
+      if (normalized.externalId) impactedCredentialIds.push(normalized.externalId);
+      if (normalized.dbId) credentialDbIds.push(normalized.dbId);
+    }
+
+    const impactedCredentials = credentialDbIds.length
+      ? await prisma.credential.findMany({
+          where: { id: { in: credentialDbIds } },
+          select: { name: true },
+        })
+      : [];
+    const derivedJobIds = resolveJobsFromCredentialNames(
+      impactedCredentials.map((credential) => credential.name),
+    );
+    const impactedJobIds = Array.from(new Set([...impactedJobIdsRaw, ...derivedJobIds]));
+
+    const readinessBefore = new Map<string, ReadinessSnapshot>();
+    for (const jobId of impactedJobIds) {
+      const jobNumericId = Number(jobId);
+      const job = Number.isFinite(jobNumericId)
+        ? await prisma.job.findUnique({ where: { id: jobNumericId } })
+        : null;
+      const jobTitle = job?.title || jobId;
+      readinessBefore.set(
+        jobId,
+        await buildReadinessSnapshot(clinician, clinicianKey, jobId, jobTitle),
+      );
+    }
+
+    const discoverItem = await prisma.discoverItem.create({
+      data: {
+        clinicianId: clinicianKey,
+        publicationId,
+        impactType: resolvedImpactType,
+        impactedCredentialIds,
+        impactedJobIds,
+      },
+    });
+
+    try {
+      const audit = await writeAuditEvent({
+        eventType: 'DISCOVER_ITEM_EVALUATED',
+        subjectId: `discover:${discoverItem.id}`,
+        metadata: {
+          discoverItemId: discoverItem.id,
+          clinicianId: clinicianKey,
+          publicationId,
+          impactType: resolvedImpactType,
+          impactedCredentialIds,
+          impactedJobIds,
+        },
+      });
+
+      if (resolvedImpactType !== 'NONE' && impactedJobIds.length) {
+        for (const jobId of impactedJobIds) {
+          const jobNumericId = Number(jobId);
+          const job = Number.isFinite(jobNumericId)
+            ? await prisma.job.findUnique({ where: { id: jobNumericId } })
+            : null;
+          const jobTitle = job?.title || jobId;
+          const before = readinessBefore.get(jobId);
+          if (!before) continue;
+          const after = await buildReadinessSnapshot(clinician, clinicianKey, jobId, jobTitle);
+          await emitEligibilityImpactEvents({
+            clinicianKey,
+            jobId,
+            before,
+            after,
+            discoverItemId: discoverItem.id,
+            publicationId: publicationId || undefined,
+            affectedJobIds: impactedJobIds,
+          });
+        }
+      }
+
+      return res.status(201).json({ discoverItemId: discoverItem.id, auditRef: audit.hash });
+    } catch (error) {
+      return res.status(503).json({
+        error: 'Failed to append discover audit event',
+        detail: String(error instanceof Error ? error.message : error),
+      });
+    }
+  },
+);
+
+app.post(
+  '/pubmed/ingest',
+  body('clinicianId').isString().withMessage('clinicianId is required'),
+  body('publicationId').isString().withMessage('publicationId is required'),
+  validateRequest,
+  async (req: Request, res: Response) => {
+    const {
+      clinicianId,
+      publicationId: publicationIdInput,
+      title,
+      impactedCredentialIds: impactedCredentialIdsInput,
+      impactedJobIds: impactedJobIdsInput,
+    } = req.body as Record<string, any>;
+
+    const clinicianNumericId = Number(clinicianId);
+    const clinician = Number.isFinite(clinicianNumericId)
+      ? await prisma.user.findUnique({ where: { id: clinicianNumericId } })
+      : await prisma.user.findUnique({ where: { email: String(clinicianId) } });
+    if (!clinician) {
+      return res.status(404).json({ error: 'Clinician not found' });
+    }
+    const clinicianKey = String(clinician.id);
+    const publicationId = String(publicationIdInput).trim();
+
+    const impactedCredentialIdsRaw = parseStringArray(impactedCredentialIdsInput);
+    const impactedJobIdsRaw = parseStringArray(impactedJobIdsInput);
+    const impactedCredentialIds: string[] = [];
+    const credentialDbIds: number[] = [];
+
+    for (const credentialId of impactedCredentialIdsRaw) {
+      const normalized = normalizeCredentialId(credentialId);
+      if (normalized.externalId) impactedCredentialIds.push(normalized.externalId);
+      if (normalized.dbId) credentialDbIds.push(normalized.dbId);
+    }
+
+    const impactedCredentials = credentialDbIds.length
+      ? await prisma.credential.findMany({
+          where: { id: { in: credentialDbIds } },
+          select: { name: true },
+        })
+      : [];
+    const derivedJobIds = resolveJobsFromCredentialNames(
+      impactedCredentials.map((credential) => credential.name),
+    );
+    const impactedJobIds = Array.from(new Set([...impactedJobIdsRaw, ...derivedJobIds]));
+
+    const readinessBefore = new Map<string, ReadinessSnapshot>();
+    for (const jobId of impactedJobIds) {
+      const jobNumericId = Number(jobId);
+      const job = Number.isFinite(jobNumericId)
+        ? await prisma.job.findUnique({ where: { id: jobNumericId } })
+        : null;
+      const jobTitle = job?.title || jobId;
+      readinessBefore.set(
+        jobId,
+        await buildReadinessSnapshot(clinician, clinicianKey, jobId, jobTitle),
+      );
+    }
+
+    await prisma.pubMedPublication.upsert({
+      where: { publicationId },
+      update: {
+        clinicianId: clinicianKey,
+        title: title ? String(title) : undefined,
+      },
+      create: {
+        publicationId,
+        clinicianId: clinicianKey,
+        title: title ? String(title) : undefined,
+      },
+    });
+
+    const evidenceToInsert: { publicationId: string; clinicianId: string; jobId?: string; credentialId?: string }[] = [];
+    const evidenceKeys = new Set<string>();
+    for (const jobId of impactedJobIds) {
+      evidenceKeys.add(`job:${jobId}`);
+      evidenceToInsert.push({ publicationId, clinicianId: clinicianKey, jobId });
+    }
+    for (const credentialId of impactedCredentialIds) {
+      const key = `cred:${credentialId}`;
+      if (!evidenceKeys.has(key)) {
+        evidenceKeys.add(key);
+        evidenceToInsert.push({ publicationId, clinicianId: clinicianKey, credentialId });
+      }
+    }
+
+    const existingEvidence = await prisma.pubMedEvidence.findMany({
+      where: { publicationId, clinicianId: clinicianKey },
+    });
+    const existingKey = new Set(
+      existingEvidence.map((item) => `${item.jobId || ''}:${item.credentialId || ''}`),
+    );
+    const toCreate = evidenceToInsert.filter(
+      (item) => !existingKey.has(`${item.jobId || ''}:${item.credentialId || ''}`),
+    );
+    if (toCreate.length) {
+      await prisma.pubMedEvidence.createMany({ data: toCreate });
+    }
+
+    try {
+      const audit = await writeAuditEvent({
+        eventType: 'PUBMED_EVIDENCE_APPLIED',
+        subjectId: `pubmed:${publicationId}`,
+        metadata: {
+          publicationId,
+          clinicianId: clinicianKey,
+          impactedCredentialIds,
+          impactedJobIds,
+          evidenceCount: toCreate.length,
+        },
+      });
+
+      for (const jobId of impactedJobIds) {
+        const jobNumericId = Number(jobId);
+        const job = Number.isFinite(jobNumericId)
+          ? await prisma.job.findUnique({ where: { id: jobNumericId } })
+          : null;
+        const jobTitle = job?.title || jobId;
+        const before = readinessBefore.get(jobId);
+        if (!before) continue;
+        const after = await buildReadinessSnapshot(clinician, clinicianKey, jobId, jobTitle);
+        await emitEligibilityImpactEvents({
+          clinicianKey,
+          jobId,
+          before,
+          after,
+          publicationId,
+          affectedJobIds: impactedJobIds,
+        });
+      }
+
+      return res.status(201).json({ publicationId, auditRef: audit.hash, evidenceCount: toCreate.length });
+    } catch (error) {
+      return res.status(503).json({
+        error: 'Failed to append pubmed audit event',
+        detail: String(error instanceof Error ? error.message : error),
+      });
+    }
+  },
+);
+
 app.get('/employer/readiness/:clinicianId/:jobId', async (req, res) => {
   const clinicianId = String(req.params.clinicianId || '').trim();
   const jobId = String(req.params.jobId || '').trim();
@@ -2093,76 +2638,13 @@ app.get('/employer/readiness/:clinicianId/:jobId', async (req, res) => {
     ? await prisma.job.findUnique({ where: { id: jobNumericId } })
     : null;
   const jobTitle = job?.title || jobId;
-  const requirements = resolveJobRequirements(jobId, jobTitle);
-  const requiredCount = requirements.length;
-
-  const credentials = await prisma.credential.findMany({
-    where: { userId: clinician.id },
-    orderBy: { issuedAt: 'asc' },
-  });
-  const externalIds = credentials.map((credential) => `CRED-${credential.id}`);
-  const revokedEvents = externalIds.length
-    ? await prisma.auditEvent.findMany({
-        where: { type: 'REVOKE_CREDENTIAL', credentialId: { in: externalIds } },
-        select: { credentialId: true },
-      })
-    : [];
-  const revokedSet = new Set(revokedEvents.map((event) => event.credentialId).filter(Boolean));
-
-  const lifecycleRecords: CredentialLifecycle[] = credentials.map((credential) => {
-    const expiresAt = credential.expiresAt ? credential.expiresAt.toISOString() : null;
-    const renewalWindowDays = resolveRenewalWindowDays(credential.renewalWindowDays);
-    const lifecycle = evaluateLifecycle(expiresAt, renewalWindowDays);
-    const externalId = `CRED-${credential.id}`;
-    return {
-      externalId,
-      name: credential.name,
-      daysRemaining: lifecycle.daysRemaining,
-      currentState: lifecycle.currentState,
-      revoked: revokedSet.has(externalId),
-    };
-  });
-
-  const evidenceSet = new Set<string>();
-  let satisfiedCount = 0;
-  let hasRenewalWindow = false;
-  let hasMissingRequirement = false;
-
-  for (const requirement of requirements) {
-    const matches = lifecycleRecords.filter((record) => {
-      if (requirement === ANY_CREDENTIAL_REQUIREMENT) return true;
-      return record.name.toLowerCase() === requirement.toLowerCase();
-    });
-    const validMatches = matches.filter(
-      (record) => !record.revoked && record.currentState !== 'EXPIRED',
-    );
-
-    if (!validMatches.length) {
-      hasMissingRequirement = true;
-      continue;
-    }
-
-    satisfiedCount += 1;
-    validMatches.forEach((record) => evidenceSet.add(record.externalId));
-    if (validMatches.some((record) => record.currentState === 'RENEWAL_WINDOW')) {
-      hasRenewalWindow = true;
-    }
-  }
-
-  let status: 'READY' | 'ALMOST_READY' | 'NOT_READY' = 'READY';
-  if (hasMissingRequirement) {
-    status = 'NOT_READY';
-  } else if (hasRenewalWindow) {
-    status = 'ALMOST_READY';
-  }
-
-  const generatedAt = new Date().toISOString();
+  const readiness = await buildReadinessSnapshot(clinician, clinicianAuditId, jobId, jobTitle);
   const response = {
-    status,
-    satisfiedCount,
-    requiredCount,
-    evidence: Array.from(evidenceSet).sort(),
-    generatedAt,
+    status: readiness.status,
+    satisfiedCount: readiness.satisfiedCount,
+    requiredCount: readiness.requiredCount,
+    evidence: readiness.evidence,
+    generatedAt: readiness.generatedAt,
   };
 
   try {
@@ -2174,11 +2656,11 @@ app.get('/employer/readiness/:clinicianId/:jobId', async (req, res) => {
         clinicianId: clinicianAuditId,
         jobId,
         jobTitle,
-        status,
-        satisfiedCount,
-        requiredCount,
+        status: response.status,
+        satisfiedCount: response.satisfiedCount,
+        requiredCount: response.requiredCount,
         evidenceCount: response.evidence.length,
-        generatedAt,
+        generatedAt: response.generatedAt,
       },
     });
   } catch (error) {

@@ -47,3 +47,30 @@ model Job {
   user   User   @relation(fields: [userId], references: [id])
   userId Int
 }
+
+model DiscoverItem {
+  id                   Int      @id @default(autoincrement())
+  clinicianId          String
+  publicationId        String?
+  impactType           String
+  impactedCredentialIds Json?
+  impactedJobIds       Json?
+  createdAt            DateTime @default(now())
+}
+
+model PubMedPublication {
+  id            Int      @id @default(autoincrement())
+  publicationId String   @unique
+  clinicianId   String
+  title         String?
+  createdAt     DateTime @default(now())
+}
+
+model PubMedEvidence {
+  id            Int      @id @default(autoincrement())
+  publicationId String
+  clinicianId   String
+  credentialId  String?
+  jobId         String?
+  createdAt     DateTime @default(now())
+}
