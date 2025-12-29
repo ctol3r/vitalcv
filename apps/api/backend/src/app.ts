@@ -196,8 +196,44 @@ function normalizeCredentialId(raw: string): { externalId: string; dbId?: number
 }
 
 function signDemoJwt(payload: Record<string, unknown>): string {
-  const secret = process.env.JWT_SECRET || 'dev-only-secret';
-  return jwt.sign(payload, secret, { expiresIn: '7d' });
+  return jwt.sign(payload, resolveJwtSecret(), { expiresIn: '7d' });
+}
+
+function resolveJwtSecret(): string {
+  return process.env.JWT_SECRET || process.env.ISSUER_JWT_SECRET || 'dev-only-secret';
+}
+
+function resolveCredentialExpiry(expiryDate?: string | null): {
+  expiresAt: string;
+  expiresInSeconds: number;
+} {
+  const now = Date.now();
+  const defaultTtlSeconds = Number(process.env.JWT_CREDENTIAL_TTL_SECONDS || 60 * 60 * 24 * 30);
+  const parsed = expiryDate ? Date.parse(expiryDate) : Number.NaN;
+  if (Number.isFinite(parsed) && parsed > now) {
+    const expiresInSeconds = Math.max(1, Math.floor((parsed - now) / 1000));
+    return { expiresAt: new Date(parsed).toISOString(), expiresInSeconds };
+  }
+  return { expiresAt: new Date(now + defaultTtlSeconds * 1000).toISOString(), expiresInSeconds: defaultTtlSeconds };
+}
+
+function signCredentialJwt(payload: Record<string, unknown>, expiresInSeconds: number): string {
+  const issuer = process.env.JWT_ISSUER || 'vitalcv-demo-issuer';
+  return jwt.sign(payload, resolveJwtSecret(), { expiresIn: expiresInSeconds, issuer });
+}
+
+function computeProofHash(artifact: string): string {
+  return sha256Hex(artifact);
+}
+
+function isJwtLike(value: string): boolean {
+  const parts = value.split('.');
+  return parts.length === 3 && parts.every(Boolean);
+}
+
+function decodeJwtPayload(token: string): jwt.JwtPayload | null {
+  const decoded = jwt.decode(token);
+  return decoded && typeof decoded === 'object' ? (decoded as jwt.JwtPayload) : null;
 }
 
 function verifyPassword(password: string, passwordHash: string): boolean {
@@ -231,6 +267,17 @@ function normalizeSubjectId(value?: string | number | null): string | null {
   if (value === undefined || value === null) return null;
   const trimmed = String(value).trim();
   return trimmed ? trimmed : null;
+}
+
+function extractCredentialIdFromPayload(payload: jwt.JwtPayload | null): string | null {
+  if (!payload) return null;
+  const candidate =
+    (payload as Record<string, unknown>).credentialId ||
+    (payload as Record<string, unknown>).credential_id ||
+    (payload as Record<string, unknown>).subjectId ||
+    (payload as Record<string, unknown>).id ||
+    payload.sub;
+  return normalizeSubjectId(candidate as string | number | null);
 }
 
 async function writeAuditEvent(event: AuditEventInput): Promise<AuditEventResult> {
@@ -948,15 +995,22 @@ app.post('/issuer/credential', async (req: Request, res: Response, next) => {
     credentialRequest.credential_subject?.id ??
     credentialRequest.credential_subject?.did ??
     null;
+  const issuedCredential =
+    result && typeof (result as Record<string, unknown>).credential === 'string'
+      ? (result as Record<string, unknown>).credential
+      : null;
+  const proofHash = issuedCredential ? computeProofHash(issuedCredential) : null;
   await writeAuditEvent({
     eventType: 'ISSUE_CREDENTIAL',
     subjectId: subjectId ? String(subjectId) : null,
     metadata: {
       flow: 'oidc4vci',
       format: result?.format ?? null,
+      proofHash,
+      jwt: issuedCredential,
     },
   });
-  return res.status(200).json(result);
+  return res.status(200).json({ ...result, proofHash });
 });
 
 app.post('/issuer/nonce', async (req: Request, res: Response) => {
@@ -1004,23 +1058,31 @@ app.post(
     });
 
     const externalId = `CRED-${credential.id}`;
+    const expiryInput = expiryDate ? String(expiryDate) : null;
+    const { expiresAt, expiresInSeconds } = resolveCredentialExpiry(expiryInput);
     const jwtPayload = {
       credentialId: externalId,
       subjectId,
       type,
       issuer,
       issuedAt: credential.issuedAt.toISOString(),
-      expiryDate: expiryDate || null,
+      expiryDate: expiresAt,
+      expiresAt,
       licenseNumber: licenseNumber || null,
       additionalData: additionalData || null,
     };
-    const jwtToken = signDemoJwt(jwtPayload);
+    const jwtToken = signCredentialJwt(jwtPayload, expiresInSeconds);
+    const proofHash = computeProofHash(jwtToken);
 
     const audit = await writeAuditEvent({
       eventType: 'ISSUE_CREDENTIAL',
       subjectId: externalId,
       userId: user.id,
-      metadata: jwtPayload,
+      metadata: {
+        ...jwtPayload,
+        jwt: jwtToken,
+        proofHash,
+      },
     });
 
     // Mirror issuance into the network graph when configured (fail-soft).
@@ -1042,6 +1104,7 @@ app.post(
     return res.status(200).json({
       credentialId: externalId,
       jwt: jwtToken,
+      proofHash,
       auditRef: audit.hash,
       issuedAt: credential.issuedAt.toISOString(),
     });
@@ -1157,30 +1220,103 @@ app.post(
   body('audience').isString().withMessage('audience is required'),
   validateRequest,
   async (req: Request, res: Response) => {
-    const { credentialId, nonce, audience, privacyMode, disclosureType } = req.body as Record<
-      string,
-      any
-    >;
-    const { externalId, dbId } = normalizeCredentialId(credentialId);
+    const {
+      credentialId,
+      nonce,
+      audience,
+      privacyMode,
+      disclosureType,
+      jwt: jwtBody,
+      credentialJwt,
+      presentation,
+    } = req.body as Record<string, any>;
+    const rawCredentialInput = String(credentialId || '').trim();
+    if (!rawCredentialInput) return res.status(400).json({ error: 'credentialId is required' });
+
+    let presentedJwt = String(jwtBody || credentialJwt || presentation || '').trim();
+    let lookupId = rawCredentialInput;
+    if (!presentedJwt && isJwtLike(rawCredentialInput)) {
+      presentedJwt = rawCredentialInput;
+      lookupId = '';
+    }
+
+    const decodedPayload = presentedJwt ? decodeJwtPayload(presentedJwt) : null;
+    const payloadCredentialId = extractCredentialIdFromPayload(decodedPayload);
+    const resolvedId = payloadCredentialId || lookupId;
+    const { externalId, dbId } = normalizeCredentialId(resolvedId);
     if (!externalId) return res.status(400).json({ error: 'credentialId is required' });
 
     const credential = dbId ? await prisma.credential.findUnique({ where: { id: dbId } }) : null;
-    if (!credential) {
-      const audit = await writeAuditEvent({
-        eventType: 'VERIFY_PRESENTATION',
-        subjectId: externalId,
-        metadata: {
-          nonce,
-          audience,
-          privacyMode: !!privacyMode,
-          disclosureType,
-          status: 'unknown',
-        },
+
+    let issuanceEvent = null as null | { metadata?: unknown };
+    let issuanceMetadata: Record<string, any> | null = null;
+    if (!presentedJwt) {
+      issuanceEvent = await prisma.auditEvent.findFirst({
+        where: { type: 'ISSUE_CREDENTIAL', credentialId: externalId },
+        orderBy: { createdAt: 'desc' },
+        select: { metadata: true },
       });
-      return res
-        .status(200)
-        .json({ valid: false, status: 'unknown', auditRef: audit.hash, reason: 'Not found' });
+      issuanceMetadata = (issuanceEvent?.metadata as Record<string, any>) ?? null;
+      const storedJwt = issuanceMetadata?.jwt || issuanceMetadata?.credential || issuanceMetadata?.signedCredential;
+      if (typeof storedJwt === 'string' && storedJwt.trim()) {
+        presentedJwt = storedJwt.trim();
+      }
     }
+
+    const storedProofHash = issuanceMetadata?.proofHash ? String(issuanceMetadata.proofHash) : null;
+    const computedProofHash = presentedJwt ? computeProofHash(presentedJwt) : null;
+    const proofHash = computedProofHash ?? storedProofHash ?? null;
+    const proofHashMatches = computedProofHash && storedProofHash ? computedProofHash === storedProofHash : true;
+
+    let signatureValid = false;
+    let signatureError: string | null = null;
+    let verifiedPayload: jwt.JwtPayload | null = null;
+    if (presentedJwt) {
+      try {
+        verifiedPayload = jwt.verify(presentedJwt, resolveJwtSecret(), {
+          ignoreExpiration: true,
+        }) as jwt.JwtPayload;
+        signatureValid = true;
+      } catch (e) {
+        signatureError = String(e instanceof Error ? e.message : e);
+      }
+    }
+
+    const payload = verifiedPayload ?? decodedPayload;
+    const payloadExpiryRaw = payload
+      ? (payload as Record<string, unknown>).expiryDate || (payload as Record<string, unknown>).expiresAt
+      : null;
+    const payloadExpiryMs = payloadExpiryRaw ? Date.parse(String(payloadExpiryRaw)) : Number.NaN;
+    const expMs = payload && typeof payload.exp === 'number' ? payload.exp * 1000 : Number.NaN;
+    const issuedExpiryRaw = issuanceMetadata?.expiryDate || issuanceMetadata?.expiresAt;
+    const issuedExpiryMs = issuedExpiryRaw ? Date.parse(String(issuedExpiryRaw)) : Number.NaN;
+    const expiryCandidates = [expMs, payloadExpiryMs, issuedExpiryMs].filter((value) =>
+      Number.isFinite(value),
+    ) as number[];
+    const expiryMs = expiryCandidates.length ? Math.min(...expiryCandidates) : null;
+    const expired = expiryMs !== null && expiryMs <= Date.now();
+    const expiryDate = expiryMs ? new Date(expiryMs).toISOString() : null;
+
+    const payloadIssuedAtRaw = payload
+      ? (payload as Record<string, unknown>).issuedAt
+      : null;
+    const payloadIssuedAtMs = payloadIssuedAtRaw
+      ? Date.parse(String(payloadIssuedAtRaw))
+      : Number.NaN;
+    const issuedAt = credential?.issuedAt
+      ? credential.issuedAt.toISOString()
+      : Number.isFinite(payloadIssuedAtMs)
+        ? new Date(payloadIssuedAtMs).toISOString()
+        : payload && typeof payload.iat === 'number'
+          ? new Date(payload.iat * 1000).toISOString()
+          : null;
+
+    const issuerName =
+      credential?.issuer ||
+      (payload ? (payload as Record<string, unknown>).issuer : null) ||
+      payload?.iss ||
+      issuanceMetadata?.issuer ||
+      null;
 
     const lastRevoke = await prisma.auditEvent.findFirst({
       where: { type: 'REVOKE_CREDENTIAL', credentialId: externalId },
@@ -1188,7 +1324,26 @@ app.post(
     });
     const revoked = Boolean(lastRevoke);
 
-    const status = revoked ? 'revoked' : 'valid';
+    let status = 'valid';
+    let reason: string | undefined;
+    if (!presentedJwt) {
+      status = 'missing_signature';
+      reason = 'Missing signed credential';
+    } else if (!signatureValid) {
+      status = 'invalid_signature';
+      reason = signatureError || 'Invalid signature';
+    } else if (!proofHashMatches) {
+      status = 'proof_hash_mismatch';
+      reason = 'Proof hash mismatch';
+    } else if (expired) {
+      status = 'expired';
+      reason = 'Credential expired';
+    } else if (revoked) {
+      status = 'revoked';
+      reason = 'Credential revoked';
+    }
+
+    const valid = status === 'valid';
     const audit = await writeAuditEvent({
       eventType: 'VERIFY_PRESENTATION',
       subjectId: externalId,
@@ -1198,16 +1353,24 @@ app.post(
         privacyMode: !!privacyMode,
         disclosureType,
         status,
+        signatureValid,
+        signatureError,
+        expired,
+        revoked,
+        proofHash,
+        proofHashMatches,
       },
     });
 
     return res.status(200).json({
-      valid: !revoked,
+      valid,
       status,
+      proofHash,
       auditRef: audit.hash,
-      issuer: credential.issuer,
-      issuedDate: credential.issuedAt.toISOString(),
-      reason: revoked ? 'Credential revoked' : undefined,
+      issuer: issuerName,
+      issuedDate: issuedAt,
+      expiryDate,
+      reason,
     });
   },
 );
