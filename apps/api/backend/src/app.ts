@@ -558,6 +558,296 @@ async function ensureAuditEventOnce(
   return { auditRef: audit.hash, created: true };
 }
 
+const INTEROP_EVENT_TYPES = new Set([
+  'CREDENTIAL_VERIFIED',
+  'CREDENTIAL_REVOKED',
+  'READINESS_CHANGED',
+  'ELIGIBILITY_IMPROVED',
+]);
+
+type InteropEventType =
+  | 'CREDENTIAL_VERIFIED'
+  | 'CREDENTIAL_REVOKED'
+  | 'READINESS_CHANGED'
+  | 'ELIGIBILITY_IMPROVED';
+
+type InteropEventPayload = {
+  version: 'v1';
+  eventType: InteropEventType;
+  occurredAt: string;
+  subject: Record<string, string | null>;
+  proof: Record<string, string | null>;
+  data?: Record<string, unknown>;
+};
+
+function resolveWebhookEncryptionKey(): Buffer {
+  const raw =
+    process.env.WEBHOOK_SECRET_KEY ||
+    process.env.INTEROP_WEBHOOK_SECRET ||
+    process.env.JWT_SECRET ||
+    'dev-only-secret';
+  return crypto.createHash('sha256').update(String(raw)).digest();
+}
+
+function encryptWebhookSecret(secret: string): {
+  secretCiphertext: string;
+  secretIv: string;
+  secretTag: string;
+} {
+  const key = resolveWebhookEncryptionKey();
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const ciphertext = Buffer.concat([cipher.update(secret, 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return {
+    secretCiphertext: ciphertext.toString('base64'),
+    secretIv: iv.toString('base64'),
+    secretTag: tag.toString('base64'),
+  };
+}
+
+function decryptWebhookSecret(record: {
+  secretCiphertext: string;
+  secretIv: string;
+  secretTag: string;
+}): string {
+  const key = resolveWebhookEncryptionKey();
+  const iv = Buffer.from(record.secretIv, 'base64');
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+  decipher.setAuthTag(Buffer.from(record.secretTag, 'base64'));
+  const plaintext = Buffer.concat([
+    decipher.update(Buffer.from(record.secretCiphertext, 'base64')),
+    decipher.final(),
+  ]);
+  return plaintext.toString('utf8');
+}
+
+function resolveWebhookRetryAttempts(): number {
+  const attempts = Number(process.env.WEBHOOK_RETRY_ATTEMPTS || 3);
+  return Number.isFinite(attempts) && attempts > 0 ? Math.floor(attempts) : 3;
+}
+
+function resolveWebhookRetryBaseMs(): number {
+  const base = Number(process.env.WEBHOOK_RETRY_BASE_MS || 500);
+  return Number.isFinite(base) && base > 0 ? Math.floor(base) : 500;
+}
+
+function resolveWebhookOrgId(req: Request, fallback?: string | null): string | null {
+  const headerOrg = String(req.headers['x-org-id'] || '').trim();
+  const employerId = resolveEmployerId(req);
+  const candidate = String(fallback || '').trim() || headerOrg || employerId || '';
+  return candidate ? candidate : null;
+}
+
+function normalizeInteropEventTypes(input: unknown): InteropEventType[] {
+  if (!input) return [];
+  const raw = Array.isArray(input) ? input : [input];
+  const normalized = raw
+    .filter((value) => typeof value === 'string')
+    .map((value) => value.trim().toUpperCase())
+    .filter(Boolean);
+  const result: InteropEventType[] = [];
+  for (const value of normalized) {
+    if (INTEROP_EVENT_TYPES.has(value)) {
+      result.push(value as InteropEventType);
+    }
+  }
+  return Array.from(new Set(result));
+}
+
+function serializeWebhookSubscription(record: {
+  id: number | string;
+  eventType: string;
+  targetUrl: string;
+  orgId?: string | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}) {
+  return {
+    id: record.id,
+    eventType: record.eventType,
+    targetUrl: record.targetUrl,
+    orgId: record.orgId ?? null,
+    isActive: record.isActive,
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+  };
+}
+
+function computeWebhookSignature(
+  payload: string,
+  secret: string,
+  timestamp: string,
+  nonce: string,
+): string {
+  const base = `${timestamp}.${nonce}.${payload}`;
+  return crypto.createHmac('sha256', secret).update(base).digest('hex');
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function sendSignedWebhook(params: {
+  subscription: {
+    id: number | string;
+    eventType: string;
+    targetUrl: string;
+    orgId?: string | null;
+    secretCiphertext: string;
+    secretIv: string;
+    secretTag: string;
+  };
+  payload: InteropEventPayload;
+}): Promise<{ ok: boolean; status?: number; attempts: number }> {
+  const { subscription, payload } = params;
+  const payloadString = JSON.stringify(payload);
+  const payloadHash = sha256Hex(payloadString);
+  const secret = decryptWebhookSecret(subscription);
+  const deliveryId = crypto.randomUUID();
+  const maxAttempts = resolveWebhookRetryAttempts();
+  const baseDelayMs = resolveWebhookRetryBaseMs();
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const timestamp = new Date().toISOString();
+    const nonce = crypto.randomBytes(16).toString('hex');
+    const signature = computeWebhookSignature(payloadString, secret, timestamp, nonce);
+
+    await writeAuditEvent({
+      eventType: 'WEBHOOK_DELIVERY_ATTEMPTED',
+      subjectId: `webhook:${subscription.id}`,
+      metadata: {
+        deliveryId,
+        subscriptionId: subscription.id,
+        eventType: subscription.eventType,
+        targetUrl: subscription.targetUrl,
+        orgId: subscription.orgId ?? null,
+        attempt,
+        timestamp,
+        nonce,
+        payloadHash,
+      },
+    });
+
+    try {
+      const response = await fetch(subscription.targetUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Webhook-Signature': signature,
+          'X-Webhook-Timestamp': timestamp,
+          'X-Webhook-Nonce': nonce,
+          'X-Webhook-Event': subscription.eventType,
+          'X-Webhook-Delivery': deliveryId,
+        },
+        body: payloadString,
+      });
+
+      if (response.ok) {
+        await writeAuditEvent({
+          eventType: 'WEBHOOK_DELIVERY_SUCCEEDED',
+          subjectId: `webhook:${subscription.id}`,
+          metadata: {
+            deliveryId,
+            subscriptionId: subscription.id,
+            eventType: subscription.eventType,
+            targetUrl: subscription.targetUrl,
+            orgId: subscription.orgId ?? null,
+            attempt,
+            status: response.status,
+            payloadHash,
+            timestamp,
+          },
+        });
+        return { ok: true, status: response.status, attempts: attempt };
+      }
+
+      if (attempt === maxAttempts) {
+        await writeAuditEvent({
+          eventType: 'WEBHOOK_DELIVERY_FAILED',
+          subjectId: `webhook:${subscription.id}`,
+          metadata: {
+            deliveryId,
+            subscriptionId: subscription.id,
+            eventType: subscription.eventType,
+            targetUrl: subscription.targetUrl,
+            orgId: subscription.orgId ?? null,
+            attempt,
+            status: response.status,
+            payloadHash,
+            timestamp,
+          },
+        });
+        return { ok: false, status: response.status, attempts: attempt };
+      }
+    } catch (error) {
+      if (attempt === maxAttempts) {
+        await writeAuditEvent({
+          eventType: 'WEBHOOK_DELIVERY_FAILED',
+          subjectId: `webhook:${subscription.id}`,
+          metadata: {
+            deliveryId,
+            subscriptionId: subscription.id,
+            eventType: subscription.eventType,
+            targetUrl: subscription.targetUrl,
+            orgId: subscription.orgId ?? null,
+            attempt,
+            payloadHash,
+            timestamp,
+            error: String(error instanceof Error ? error.message : error),
+          },
+        });
+        return { ok: false, attempts: attempt };
+      }
+    }
+
+    const delayMs = baseDelayMs * 2 ** (attempt - 1);
+    await sleep(delayMs);
+  }
+
+  return { ok: false, attempts: maxAttempts };
+}
+
+async function dispatchInteropWebhookEvent(
+  payload: InteropEventPayload,
+  orgId?: string | null,
+): Promise<{ delivered: number; failed: number }> {
+  const subscriptionModel = (prisma as any).webhookSubscription;
+  if (!subscriptionModel) return { delivered: 0, failed: 0 };
+
+  const where: Record<string, unknown> = {
+    eventType: payload.eventType,
+    isActive: true,
+  };
+  if (orgId) {
+    where.OR = [{ orgId }, { orgId: null }];
+  } else {
+    where.orgId = null;
+  }
+
+  const subscriptions = await subscriptionModel.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (!subscriptions.length) return { delivered: 0, failed: 0 };
+
+  let delivered = 0;
+  let failed = 0;
+
+  for (const subscription of subscriptions) {
+    const result = await sendSignedWebhook({ subscription, payload });
+    if (result.ok) {
+      delivered += 1;
+    } else {
+      failed += 1;
+    }
+  }
+
+  return { delivered, failed };
+}
+
 function resolveAuthorityGuide(authorityId: string | null) {
   if (!authorityId) return AUTHORITY_RENEWAL_GUIDES.DEFAULT;
   return AUTHORITY_RENEWAL_GUIDES[authorityId] || AUTHORITY_RENEWAL_GUIDES.DEFAULT;
@@ -843,6 +1133,47 @@ async function emitEligibilityImpactEvents(params: {
     beforeStatus: params.before.status,
     afterStatus: params.after.status,
     generatedAt: params.after.generatedAt,
+  });
+
+  const proof = {
+    auditRef: changeAudit.hash,
+    publicationId: params.publicationId ?? null,
+    discoverItemId: params.discoverItemId ? String(params.discoverItemId) : null,
+  };
+
+  await dispatchInteropWebhookEvent({
+    version: 'v1',
+    eventType: 'READINESS_CHANGED',
+    occurredAt: params.after.generatedAt,
+    subject: {
+      clinicianId: params.clinicianKey,
+      jobId: params.jobId,
+    },
+    proof,
+    data: {
+      beforeStatus: params.before.status,
+      afterStatus: params.after.status,
+      affectedJobIds: params.affectedJobIds,
+      generatedAt: params.after.generatedAt,
+    },
+  });
+
+  await dispatchInteropWebhookEvent({
+    version: 'v1',
+    eventType: 'ELIGIBILITY_IMPROVED',
+    occurredAt: params.after.generatedAt,
+    subject: {
+      clinicianId: params.clinicianKey,
+      jobId: params.jobId,
+    },
+    proof,
+    data: {
+      improvementType: pulseType,
+      beforeStatus: params.before.status,
+      afterStatus: params.after.status,
+      affectedJobIds: params.affectedJobIds,
+      generatedAt: params.after.generatedAt,
+    },
   });
 
   return changeAudit.hash;
@@ -2074,6 +2405,240 @@ app.get('/issuer/credentials', async (_req, res) => {
   });
 });
 
+app.get('/interop/credentials/:clinicianId', async (req, res) => {
+  const clinicianIdInput = String(req.params.clinicianId || '').trim();
+  if (!clinicianIdInput) {
+    return res.status(400).json({ error: 'clinicianId is required' });
+  }
+
+  const clinicianNumericId = Number(clinicianIdInput);
+  const clinician = Number.isFinite(clinicianNumericId)
+    ? await prisma.user.findUnique({ where: { id: clinicianNumericId } })
+    : await prisma.user.findUnique({ where: { email: clinicianIdInput } });
+  if (!clinician) {
+    return res.status(404).json({ error: 'Clinician not found' });
+  }
+
+  const credentials = await prisma.credential.findMany({
+    where: { userId: clinician.id },
+    orderBy: { issuedAt: 'desc' },
+  });
+  const externalIds = credentials.map((credential) => `CRED-${credential.id}`);
+
+  const [issuanceEvents, revokeEvents, lastAuditRoot] = await Promise.all([
+    prisma.auditEvent.findMany({
+      where: { type: 'ISSUE_CREDENTIAL', credentialId: { in: externalIds } },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.auditEvent.findMany({
+      where: { type: 'REVOKE_CREDENTIAL', credentialId: { in: externalIds } },
+      select: { credentialId: true },
+    }),
+    getLastAuditRoot(),
+  ]);
+
+  const proofHashByCredential = new Map<string, string | null>();
+  for (const event of issuanceEvents) {
+    const credentialId = event.credentialId ? String(event.credentialId) : '';
+    if (!credentialId || proofHashByCredential.has(credentialId)) continue;
+    const metadata = event.metadata as Record<string, any> | null;
+    const proofHash = metadata?.proofHash ? String(metadata.proofHash) : null;
+    proofHashByCredential.set(credentialId, proofHash);
+  }
+
+  const revoked = new Set(
+    revokeEvents.map((event) => event.credentialId).filter(Boolean) as string[],
+  );
+  const nowMs = Date.now();
+  const generatedAt = new Date().toISOString();
+
+  try {
+    const audit = await writeAuditEvent({
+      eventType: 'INTEROP_EXPORT_GENERATED',
+      subjectId: `clinician:${clinician.id}`,
+      metadata: {
+        clinicianId: String(clinician.id),
+        credentialCount: credentials.length,
+        generatedAt,
+        lastAuditRoot,
+      },
+    });
+
+    return res.json({
+      version: 'v1',
+      generatedAt,
+      lastAuditRoot,
+      credentials: credentials.map((credential) => {
+        const externalId = `CRED-${credential.id}`;
+        const expiresAt = credential.expiresAt
+          ? credential.expiresAt.toISOString()
+          : null;
+        const isExpired = credential.expiresAt
+          ? credential.expiresAt.getTime() <= nowMs
+          : false;
+        const status = revoked.has(externalId)
+          ? 'revoked'
+          : isExpired
+            ? 'expired'
+            : 'active';
+        return {
+          id: externalId,
+          issuer: credential.issuer,
+          status,
+          issuedAt: credential.issuedAt.toISOString(),
+          expiresAt,
+          proofHash: proofHashByCredential.get(externalId) ?? null,
+        };
+      }),
+      auditRef: audit.hash,
+    });
+  } catch (error) {
+    return res.status(503).json({
+      error: 'Failed to append interop export audit event',
+      detail: String(error instanceof Error ? error.message : error),
+    });
+  }
+});
+
+app.post(
+  '/interop/webhooks',
+  body('targetUrl').isString().withMessage('targetUrl is required'),
+  body('secret').isString().withMessage('secret is required'),
+  validateRequest,
+  async (req: Request, res: Response) => {
+    const targetUrlInput = String(req.body?.targetUrl || '').trim();
+    const secret = String(req.body?.secret || '').trim();
+    const orgIdInput = String(req.body?.orgId || '').trim();
+    const eventTypes = normalizeInteropEventTypes(
+      req.body?.eventTypes ?? req.body?.eventType,
+    );
+
+    if (!eventTypes.length) {
+      return res.status(400).json({
+        error: 'eventTypes is required',
+        allowed: Array.from(INTEROP_EVENT_TYPES),
+      });
+    }
+
+    let normalizedUrl: string;
+    try {
+      const parsed = new URL(targetUrlInput);
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return res.status(400).json({ error: 'targetUrl must be http or https' });
+      }
+      normalizedUrl = parsed.toString();
+    } catch {
+      return res.status(400).json({ error: 'Invalid targetUrl' });
+    }
+
+    const orgId = resolveWebhookOrgId(req, orgIdInput);
+    const encrypted = encryptWebhookSecret(secret);
+    const secretHash = sha256Hex(secret);
+
+    const subscriptionModel = (prisma as any).webhookSubscription;
+    const created: any[] = [];
+
+    try {
+      for (const eventType of eventTypes) {
+        const createdRecord = await subscriptionModel.create({
+          data: {
+            eventType,
+            targetUrl: normalizedUrl,
+            orgId,
+            secretHash,
+            secretCiphertext: encrypted.secretCiphertext,
+            secretIv: encrypted.secretIv,
+            secretTag: encrypted.secretTag,
+            isActive: true,
+          },
+        });
+        created.push(createdRecord);
+      }
+    } catch (error) {
+      return res.status(500).json({
+        error: 'Failed to register webhook',
+        detail: String(error instanceof Error ? error.message : error),
+      });
+    }
+
+    try {
+      const audit = await writeAuditEvent({
+        eventType: 'WEBHOOK_REGISTERED',
+        subjectId: orgId ? `org:${orgId}` : 'interop:webhook',
+        metadata: {
+          subscriptionIds: created.map((record) => record.id),
+          eventTypes,
+          targetUrl: normalizedUrl,
+          orgId,
+        },
+      });
+
+      return res.status(201).json({
+        webhooks: created.map((record) =>
+          serializeWebhookSubscription({
+            ...record,
+            createdAt: new Date(record.createdAt),
+            updatedAt: new Date(record.updatedAt),
+          }),
+        ),
+        auditRef: audit.hash,
+      });
+    } catch (error) {
+      if (created.length) {
+        await subscriptionModel.deleteMany({
+          where: { id: { in: created.map((record) => record.id) } },
+        });
+      }
+      return res.status(503).json({
+        error: 'Failed to append webhook audit event',
+        detail: String(error instanceof Error ? error.message : error),
+      });
+    }
+  },
+);
+
+app.get('/interop/webhooks', async (req, res) => {
+  const orgId = resolveWebhookOrgId(req, String(req.query.orgId || '').trim() || null);
+  const includeInactive = ['1', 'true', 'yes'].includes(
+    String(req.query.includeInactive || '').trim().toLowerCase(),
+  );
+  const subscriptionModel = (prisma as any).webhookSubscription;
+  const where: Record<string, unknown> = {};
+  if (orgId) where.orgId = orgId;
+  if (!includeInactive) where.isActive = true;
+
+  const subscriptions = await subscriptionModel.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return res.json({
+    webhooks: subscriptions.map((record: any) =>
+      serializeWebhookSubscription({
+        ...record,
+        createdAt: new Date(record.createdAt),
+        updatedAt: new Date(record.updatedAt),
+      }),
+    ),
+  });
+});
+
+app.delete('/interop/webhooks/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid webhook id' });
+  }
+
+  const subscriptionModel = (prisma as any).webhookSubscription;
+  const existing = await subscriptionModel.findUnique({ where: { id } });
+  if (!existing) {
+    return res.status(404).json({ error: 'Webhook not found' });
+  }
+
+  await subscriptionModel.delete({ where: { id } });
+  return res.json({ deleted: true, id });
+});
+
 app.post(
   '/issuer/revoke',
   body('credentialId').isString().withMessage('credentialId is required'),
@@ -2102,6 +2667,34 @@ app.post(
       subjectId: externalId,
       metadata: { reason: reason || null, revokedAt, proofHash },
     });
+
+    try {
+      await dispatchInteropWebhookEvent(
+        {
+          version: 'v1',
+          eventType: 'CREDENTIAL_REVOKED',
+          occurredAt: revokedAt,
+          subject: {
+            credentialId: externalId,
+          },
+          proof: {
+            proofHash,
+            auditRef: audit.hash,
+          },
+          data: {
+            revokedAt,
+            reason: reason || null,
+          },
+        },
+        resolveWebhookOrgId(req, null),
+      );
+    } catch (error) {
+      return res.status(503).json({
+        error: 'Failed to dispatch interop webhook',
+        detail: String(error instanceof Error ? error.message : error),
+        auditRef: audit.hash,
+      });
+    }
 
     return res.json({ success: true, auditRef: audit.hash });
   },
@@ -2253,6 +2846,44 @@ app.post(
         proofHashMatches,
       },
     });
+
+    if (valid) {
+      const subjectIdValue =
+        (payload?.sub as string | undefined) ||
+        ((payload as Record<string, unknown> | null)?.subjectId as string | undefined) ||
+        null;
+      try {
+        await dispatchInteropWebhookEvent(
+          {
+            version: 'v1',
+            eventType: 'CREDENTIAL_VERIFIED',
+            occurredAt: audit.createdAt,
+            subject: {
+              credentialId: externalId,
+              clinicianId: subjectIdValue,
+            },
+            proof: {
+              proofHash,
+              auditRef: audit.hash,
+            },
+            data: {
+              status,
+              issuer: issuerName,
+              issuedAt,
+              expiryDate,
+              verificationMode: disclosureType ?? null,
+            },
+          },
+          resolveWebhookOrgId(req, null),
+        );
+      } catch (error) {
+        return res.status(503).json({
+          error: 'Failed to dispatch interop webhook',
+          detail: String(error instanceof Error ? error.message : error),
+          auditRef: audit.hash,
+        });
+      }
+    }
 
     return res.status(200).json({
       valid,

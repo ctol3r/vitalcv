@@ -74,3 +74,20 @@ model PubMedEvidence {
   jobId         String?
   createdAt     DateTime @default(now())
 }
+
+model WebhookSubscription {
+  id              Int      @id @default(autoincrement())
+  eventType       String
+  targetUrl       String
+  orgId           String?
+  secretHash      String
+  secretCiphertext String
+  secretIv        String
+  secretTag       String
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([eventType])
+  @@index([orgId])
+}
