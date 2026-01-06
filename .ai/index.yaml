@@ -1,0 +1,25 @@
+tiers:
+  charter:
+    tier: 1
+    file: .ai/charter.md
+    definition: immutable
+  standing_directives:
+    tier: 2
+    file: .ai/standing-directives.md
+    definition: governs memory and workflow
+  snapshot:
+    tier: 3
+    file: .ai/snapshot.md
+    definition: current operational truth
+
+experts:
+  incident_triage:
+    purpose: Rapidly scope and mitigate incidents.
+    focus:
+      - impact and containment
+      - immediate mitigation steps
+  monorepo_stabilizer:
+    purpose: Stabilize monorepos by reducing cross-package breakage and drift.
+    focus:
+      - dependency boundaries
+      - minimal safe change sets
