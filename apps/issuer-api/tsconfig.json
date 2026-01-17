@@ -6,21 +6,17 @@
     "tsBuildInfoFile": "../../build-info/apps-issuer-api.tsbuildinfo",
     "composite": true
   },
-  "include": [
-    "src/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/__tests__/**/*",
-    "**/*.spec.ts"
-  ],
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "**/__tests__/**/*", "**/*.spec.ts"],
   "references": [
     {
-      "path": "../../backend"
+      "path": "../../services"
     },
     {
-      "path": "../../services"
+      "path": "../../packages/messaging-guard"
+    },
+    {
+      "path": "../../packages/metrics-core"
     }
   ]
 }

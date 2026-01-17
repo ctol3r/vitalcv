@@ -8,8 +8,8 @@
  * - Documentation and examples
  */
 
-import { PluginManifest, PluginCapability } from '../types';
-import { createManifest } from '../manifest';
+import { PluginManifest, PluginCapability } from '../src/types';
+import { createManifest } from '../src/manifest';
 
 export interface MarketplaceModuleConfig {
 	name: string;
@@ -268,5 +268,3 @@ export async function createMarketplaceModule(
 }
 
 // Export types and utilities
-export type { MarketplaceModuleConfig, SignedManifest, PackageManifest };
-

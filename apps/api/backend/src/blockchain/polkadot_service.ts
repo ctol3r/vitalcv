@@ -1,4 +1,4 @@
-import { ApiPromise, SubmittableResult, WsProvider } from '@polkadot/api';
+import { ApiPromise, WsProvider } from '@polkadot/api';
 import { KeyringPair } from '@polkadot/keyring/types';
 import { KeyRotationPolicy } from './key_rotation_policy';
 
@@ -43,6 +43,7 @@ export class PolkadotService {
   private keyPolicy: KeyRotationPolicy;
   private cfg: ChainClientConfig;
   private endpointIndex = 0;
+  private static anchoredHashes = new Set<string>();
 
   constructor(initialKey?: string, cfg?: Partial<ChainClientConfig>) {
     this.keyPolicy = new KeyRotationPolicy(initialKey || 'default-key');
@@ -57,6 +58,9 @@ export class PolkadotService {
 
   /** Connect to a chain endpoint using WebSockets (with retries + endpoint fallback). */
   async connect(endpoint?: string | string[]): Promise<void> {
+    if (process.env.CHAIN_DISABLED === 'true' || process.env.NODE_ENV === 'test') {
+      return;
+    }
     if (endpoint) {
       const endpoints = Array.isArray(endpoint) ? endpoint : [endpoint];
       this.cfg.endpoints = endpoints;
@@ -156,14 +160,11 @@ export class PolkadotService {
   }
 
   /** Issue a credential to a destination account. */
-  async issueCredential(
-    signer: KeyringPair,
-    dest: string,
-    data: string,
-  ): Promise<SubmittableResult> {
+  async issueCredential(signer: KeyringPair, dest: string, data: string): Promise<string> {
     return this.withApi(async (api) => {
       const tx = api.tx.credentialsModule.issueCredential(dest, data);
-      return tx.signAndSend(signer);
+      const txHash = await tx.signAndSend(signer);
+      return txHash.toHex();
     });
   }
 
@@ -175,7 +176,7 @@ export class PolkadotService {
     signer: KeyringPair,
     destinations: string[],
     data: string[],
-  ): Promise<SubmittableResult> {
+  ): Promise<string> {
     if (destinations.length !== data.length) {
       throw new Error('Array lengths must match');
     }
@@ -184,7 +185,8 @@ export class PolkadotService {
         api.tx.credentialsModule.issueCredential(dest, data[i]),
       );
       const batch = api.tx.utility.batch(calls);
-      return batch.signAndSend(signer);
+      const txHash = await batch.signAndSend(signer);
+      return txHash.toHex();
     });
   }
 
@@ -193,6 +195,33 @@ export class PolkadotService {
     // This is a placeholder for the actual interaction with the Polkadot
     // blockchain which would store a hash of the audit data.
     console.log('Storing record on-chain:', record);
+  }
+
+  /**
+   * Anchor a pre-computed SHA-256 hash on-chain.
+   * Returns a transaction hash placeholder for now.
+   */
+  async anchorData(hash: string): Promise<string> {
+    if (!hash || typeof hash !== 'string') {
+      throw new Error('anchorData requires a hash string');
+    }
+
+    const normalized = hash.toLowerCase();
+    if (!/^[0-9a-f]{64}$/.test(normalized)) {
+      throw new Error('anchorData requires a 64-character hex SHA-256 hash');
+    }
+
+    console.log('Anchoring data hash on-chain:', normalized);
+    PolkadotService.anchoredHashes.add(normalized);
+    return `0x${normalized.slice(0, 16)}`;
+  }
+
+  static hasAnchoredHash(hash: string): boolean {
+    return PolkadotService.anchoredHashes.has(hash.toLowerCase());
+  }
+
+  static clearAnchoredHashes(): void {
+    PolkadotService.anchoredHashes.clear();
   }
 
   /**

@@ -6,6 +6,7 @@ export interface RequestLike {
   user?: Record<string, any>;
   log?: Logger;
   requestId?: string;
+  traceContext?: { trace_id: string; span_id: string; trace_flags: string };
   [key: string]: any;
 }
 
@@ -59,6 +60,10 @@ export function createRequestContextMiddleware(options: RequestContextOptions) {
     const userId = extractUserId(req.user);
     const orgId = extractOrgId(req.user);
 
+    // Extract trace context from request (set by tracing middleware)
+    const traceId = req.traceContext?.trace_id;
+    const spanId = req.traceContext?.span_id;
+
     try {
       res.setHeader('x-request-id', requestId);
     } catch {
@@ -69,6 +74,8 @@ export function createRequestContextMiddleware(options: RequestContextOptions) {
       requestId,
       userId,
       orgId,
+      ...(traceId && { trace_id: traceId }),
+      ...(spanId && { span_id: spanId }),
     });
 
     req.requestId = requestId;
@@ -80,6 +87,8 @@ export function createRequestContextMiddleware(options: RequestContextOptions) {
         userId,
         orgId,
         service: options.serviceName,
+        ...(traceId && { trace_id: traceId }),
+        ...(spanId && { span_id: spanId }),
       },
       () => next(),
     );

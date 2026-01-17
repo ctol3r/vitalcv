@@ -5,11 +5,15 @@
   "description": "VitalCV Healthcare Credentialing Platform Monorepo",
   "scripts": {
     "build": "turbo run build",
+    "build:issuer": "turbo run build --filter=@vitalcv/issuer-api...",
+    "build:verifier": "turbo run build --filter=@vitalcv/verifier-api...",
     "dev": "turbo run dev",
     "dev:local": "tsx scripts/check-env.ts --mode=dev && turbo run dev",
     "lint": "turbo run lint",
     "format": "turbo run format",
     "test": "turbo run test",
+    "test:issuer": "turbo run test --filter=./apps/issuer-api",
+    "test:verifier": "turbo run test --filter=./apps/verifier-api",
     "typecheck": "turbo run typecheck",
     "clean": "turbo run clean && rm -rf node_modules",
     "check:env": "tsx scripts/check-env.ts --mode=demo",
@@ -20,13 +24,21 @@
     "verify:build": "bash scripts/verify-build.sh"
   },
   "devDependencies": {
+    "@jest/globals": "^29.0.0",
+    "@prisma/client": "7.2.0",
+    "@types/node": "^20.0.0",
+    "tsx": "^4.7.0",
     "turbo": "^2.1.3",
-    "typescript": "^5.4.5",
-    "tsx": "^4.7.0"
+    "typescript": "^5.4.5"
   },
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=8.0.0"
   },
-  "packageManager": "pnpm@8.15.0"
+  "packageManager": "pnpm@8.15.0",
+  "dependencies": {
+    "@noble/ed25519": "^3.0.0",
+    "@opentelemetry/instrumentation-redis-4": "^0.49.0",
+    "jose": "^6.1.3"
+  }
 }

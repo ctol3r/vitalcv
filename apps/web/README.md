@@ -10,8 +10,9 @@ Healthcare credential verification platform powered by W3C Verifiable Credential
 
 ### Prerequisites
 
-- Node.js 18+ or pnpm
-- Backend service running on `http://localhost:4000` (chai-vc-platform)
+- Node.js 20+
+- pnpm 8+
+- Backend service running on `http://localhost:4000` (VitalCV API / `apps/api`)
 - `jq` command-line JSON processor (for helper script)
 
 ### Environment Setup
@@ -36,7 +37,7 @@ The application will be available at `http://localhost:3005`
 
 ### How to Test Locally
 
-1. **Start the backend** (chai-vc-platform) on `http://localhost:4000`
+1. **Start the backend** (`apps/api`) on `http://localhost:4000`
 
 2. **Start the frontend**:
 
@@ -79,7 +80,7 @@ This demo showcases the complete credential lifecycle under 10 seconds:
 1. Navigate to `/issuer`
 2. Fill in the credential form:
    - **Credential Type**: Medical License
-   - **Subject ID**: test@example.com
+   - **Subject ID**: [test@example.com](mailto:test@example.com)
    - **License Number**: CA123456
    - **Issuing Authority**: California Medical Board
    - **Expiry Date**: 2025-12-31
@@ -148,7 +149,7 @@ This demo showcases the complete credential lifecycle under 10 seconds:
 
 ## 📁 Project Structure
 
-```
+```text
 app/
 ├── analytics/         # Analytics dashboard with session metrics
 ├── issuer/           # Credential issuance and revocation
@@ -247,13 +248,14 @@ npm run lighthouse
 ### Port Configuration
 
 - **Frontend**: `PORT=3005` (pilot default)
-- **Backend**: `4000` (chai-vc-platform)
+- **Backend**: `4000` (VitalCV API)
 
 ### Environment Variables
 
 | Variable                        | Description          | Required |
 | ------------------------------- | -------------------- | -------- |
 | `NEXT_PUBLIC_BACKEND_URL`       | Backend API URL      | Yes      |
+| `NEXT_PUBLIC_VERIFIER_API_URL`  | Verifier API URL     | No       |
 | `NEXT_PUBLIC_SUPABASE_URL`      | Supabase project URL | No       |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key    | No       |
 
@@ -308,9 +310,10 @@ pnpm install
 
 ## 📚 Additional Resources
 
-- [VitalCV Executive Summary](https://github.com/your-org/vital-cv-docs/exec-summary.md)
-- [MVP → Production Roadmap](https://github.com/your-org/vital-cv-docs/roadmap.md)
-- [Backend Repository (chai-vc-platform)](https://github.com/your-org/chai-vc-platform)
+- [Monorepo Architecture](../../docs/architecture.md)
+- [Backend Overview](../../docs/backend.md)
+- [Error Handling](../../docs/error-handling.md)
+- [Backend (apps/api)](../api)
 - [W3C Verifiable Credentials Spec](https://www.w3.org/TR/vc-data-model/)
 - [DIDComm v2 Spec](https://identity.foundation/didcomm-messaging/spec/)
 

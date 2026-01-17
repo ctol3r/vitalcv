@@ -1,6 +1,7 @@
 # VitalCV Pilot P0 - Pre-Demo Checklist
 
 ## 🎯 Overview
+
 This checklist ensures all systems are ready for the live pilot demonstration. Complete all items before the demo.
 
 ---
@@ -8,12 +9,14 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 ## 📋 Pre-Demo Setup
 
 ### Environment Configuration
+
 - [ ] `.env` file exists with `NEXT_PUBLIC_BACKEND_URL=http://localhost:4000`
-- [ ] Backend service (chai-vc-platform) is running on port 4000
+- [ ] Backend service (`apps/api`) is running on port 4000
 - [ ] Backend health check passes: `curl http://localhost:4000/healthz`
 - [ ] Frontend can connect to backend (no offline banner appears)
 
 ### Application Startup
+
 - [ ] Dependencies installed: `pnpm install` completed without errors
 - [ ] Development server started: `PORT=3005 pnpm dev`
 - [ ] Application accessible at: `http://localhost:3005`
@@ -21,6 +24,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 - [ ] All pages load successfully (verify, issuer, wallet, analytics)
 
 ### Browser Setup
+
 - [ ] Chrome or Edge browser (latest version)
 - [ ] Browser zoom set to 100%
 - [ ] Clear browser cache and cookies
@@ -32,6 +36,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 ## 🧪 Feature Testing
 
 ### 1. Credential Issuance
+
 - [ ] Navigate to `/issuer`
 - [ ] Fill credential form with sample data
 - [ ] Click "Issue Credential"
@@ -40,6 +45,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 - [ ] Copy credential ID to clipboard
 
 ### 2. Valid Verification
+
 - [ ] Navigate to `/verify`
 - [ ] Paste credential ID from step 1
 - [ ] Click "Verify Presentation"
@@ -49,6 +55,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 - [ ] "Re-check Status" button visible
 
 ### 3. Re-check Functionality
+
 - [ ] Click "Re-check Status" button
 - [ ] Status refreshes (may stay valid)
 - [ ] Timestamp updates
@@ -56,6 +63,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 - [ ] Loading state briefly visible
 
 ### 4. Auto-Polling
+
 - [ ] Switch to another tab/window
 - [ ] Wait 5 seconds
 - [ ] Return to verification tab
@@ -63,6 +71,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 - [ ] Status updates automatically
 
 ### 5. Credential Revocation
+
 - [ ] Navigate to `/issuer` → Revoke tab
 - [ ] Select credential from dropdown
 - [ ] Enter revocation reason: "Expired license"
@@ -70,6 +79,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 - [ ] Success toast appears
 
 ### 6. Revoked Verification
+
 - [ ] Navigate to `/verify`
 - [ ] Enter same credential ID
 - [ ] Click "Verify Presentation"
@@ -79,6 +89,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 - [ ] Timestamp updated
 
 ### 7. Timeline Visualization
+
 - [ ] Navigate to `/wallet`
 - [ ] Select a credential
 - [ ] Click "Timeline" tab
@@ -87,6 +98,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 - [ ] Audit references visible
 
 ### 8. Access Log
+
 - [ ] Stay on `/wallet`
 - [ ] Click "Access Log" tab
 - [ ] Verification entries visible
@@ -95,6 +107,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 - [ ] Timestamps in descending order
 
 ### 9. Session Analytics
+
 - [ ] Navigate to `/analytics`
 - [ ] Session counters visible at top
 - [ ] Credentials Issued counter > 0
@@ -103,6 +116,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 - [ ] Click "Reset Counters" to test reset
 
 ### 10. NPI Onboarding
+
 - [ ] Navigate to `/onboarding`
 - [ ] Enter a valid 10-digit NPI
 - [ ] Click "Sync NPI"
@@ -112,6 +126,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 - [ ] Manual entry option becomes available
 
 ### 11. QR Code Features
+
 - [ ] Navigate to any credential detail
 - [ ] Click "Show QR Code"
 - [ ] QR code displays
@@ -119,6 +134,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 - [ ] Click "Open" → New tab opens (if URL)
 
 ### 12. Offline Detection
+
 - [ ] Stop backend service
 - [ ] Refresh page
 - [ ] Red offline banner appears at top
@@ -128,6 +144,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 - [ ] Banner disappears
 
 ### 13. PWA Installation
+
 - [ ] Open app in Chrome
 - [ ] Look for install icon in address bar
 - [ ] Click install
@@ -136,6 +153,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 - [ ] App runs in standalone mode
 
 ### 14. Accessibility
+
 - [ ] Tab through all interactive elements
 - [ ] Focus visible on all elements (blue outline)
 - [ ] Screen reader announces all labels
@@ -143,6 +161,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 - [ ] Keyboard shortcuts function (Enter, Escape)
 
 ### 15. Reduced Motion
+
 - [ ] Enable "Reduce motion" in OS settings
 - [ ] Refresh page
 - [ ] Animations simplified or removed
@@ -154,12 +173,14 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 ## 📸 Screenshot Capture
 
 ### Required Screenshots
+
 - [ ] `verify-green.png` - Valid credential
 - [ ] `verify-red.png` - Revoked credential
 - [ ] `wallet-access-log.png` - Access log tab
 - [ ] `analytics.png` - Session analytics
 
 ### Screenshot Quality
+
 - [ ] Resolution ≥ 1920x1080
 - [ ] PNG format
 - [ ] Clear and readable text
@@ -172,18 +193,21 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 ## ⚡ Performance Validation
 
 ### Load Times
+
 - [ ] Home page loads < 3 seconds
 - [ ] Verify page loads < 3 seconds
 - [ ] Wallet page loads < 3 seconds
 - [ ] Analytics page loads < 3 seconds
 
 ### API Response Times
+
 - [ ] Verification completes < 5 seconds
 - [ ] Issuance completes < 3 seconds
 - [ ] Revocation completes < 3 seconds
 - [ ] NPI lookup completes < 10 seconds (or times out)
 
 ### Lighthouse Scores
+
 - [ ] Performance ≥ 90
 - [ ] Accessibility ≥ 90
 - [ ] Best Practices ≥ 90
@@ -194,12 +218,14 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 ## 🔍 Error Handling
 
 ### Network Errors
+
 - [ ] Backend timeout shows error message
 - [ ] Offline state detected and displayed
 - [ ] Retry options available
 - [ ] Toast notifications for errors
 
 ### Validation Errors
+
 - [ ] Empty form fields show validation
 - [ ] Invalid NPI shows error
 - [ ] Unknown credential ID shows error
@@ -210,6 +236,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 ## 🎬 Demo Flow Practice
 
 ### Full Lifecycle (Target: < 10 seconds)
+
 1. [ ] Start timer
 2. [ ] Issue credential (2-3s)
 3. [ ] Verify valid (2-3s)
@@ -219,6 +246,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 7. [ ] Total time < 10 seconds
 
 ### Talking Points
+
 - [ ] Explain W3C VC standard
 - [ ] Mention blockchain anchoring (non-blocking)
 - [ ] Highlight 10s total time
@@ -232,12 +260,14 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 ## 📱 Device Testing
 
 ### Desktop
+
 - [ ] Chrome on macOS
 - [ ] Chrome on Windows
 - [ ] Edge on Windows
 - [ ] Firefox (optional)
 
 ### Mobile (Optional)
+
 - [ ] Chrome on Android
 - [ ] Safari on iOS
 - [ ] Responsive layout works
@@ -248,6 +278,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 ## 🛠️ Troubleshooting Prep
 
 ### Common Issues
+
 - [ ] Backend not responding: Check port 4000
 - [ ] Frontend not loading: Check port 3005
 - [ ] CORS errors: Verify backend CORS config
@@ -255,6 +286,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 - [ ] Dependency errors: Re-run `pnpm install`
 
 ### Backup Plan
+
 - [ ] Screenshot backup ready
 - [ ] Video recording of successful run
 - [ ] Alternative credential IDs prepared
@@ -265,12 +297,14 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 ## 📝 Documentation Review
 
 ### Required Docs
+
 - [ ] README.md reviewed
 - [ ] SCREENSHOTS.md reviewed
 - [ ] IMPLEMENTATION_SUMMARY.md reviewed
 - [ ] PILOT_CHECKLIST.md (this file) reviewed
 
 ### Links Working
+
 - [ ] All internal links functional
 - [ ] Code examples correct
 - [ ] Command examples tested
@@ -280,12 +314,14 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 ## 👥 Team Coordination
 
 ### Roles
+
 - [ ] Demo presenter assigned
 - [ ] Technical support standby
 - [ ] Backend engineer available
 - [ ] Stakeholders invited
 
 ### Communication
+
 - [ ] Demo time confirmed
 - [ ] Zoom/meeting link shared
 - [ ] Screen sharing tested
@@ -296,6 +332,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 ## 🎉 Final Validation
 
 ### Critical Path
+
 - [ ] Issue works
 - [ ] Verify valid works
 - [ ] Revoke works
@@ -305,6 +342,7 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 - [ ] Analytics counters increment
 
 ### Nice-to-Have
+
 - [ ] QR codes work
 - [ ] PWA installs
 - [ ] Offline banner shows
@@ -315,20 +353,21 @@ This checklist ensures all systems are ready for the live pilot demonstration. C
 
 ## ✅ Sign-Off
 
-**Date**: _________________
+**Date**: ********\_********
 
-**Tested By**: _________________
+**Tested By**: ********\_********
 
-**Backend Status**: ☐ Running  ☐ Not Running
+**Backend Status**: ☐ Running ☐ Not Running
 
-**Frontend Status**: ☐ Running  ☐ Not Running
+**Frontend Status**: ☐ Running ☐ Not Running
 
-**Overall Readiness**: ☐ Ready  ☐ Not Ready  ☐ Ready with Issues
+**Overall Readiness**: ☐ Ready ☐ Not Ready ☐ Ready with Issues
 
-**Notes**:
-_______________________________________
-_______________________________________
-_______________________________________
+**Notes:**
+
+Line 1: ******************\_\_\_******************
+Line 2: ******************\_\_\_******************
+Line 3: ******************\_\_\_******************
 
 ---
 
@@ -346,6 +385,7 @@ _______________________________________
 ---
 
 **Demo Time**: Under 10 seconds for full cycle
+
 **Success Criteria**: Issue → Verify (Valid) → Revoke → Verify (Revoked)
 
-**Good luck! 🚀**
+Good luck! 🚀

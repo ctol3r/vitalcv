@@ -1,5 +1,7 @@
 # VitalCV Legacy Context
 
+> **Note:** Important historical context for understanding codebase evolution. Last reviewed: 2026-01-16.
+
 This document centralizes historical references to legacy repositories. It is the only place where legacy repo names should appear.
 
 ## Prior Repository History (Reference-Only)

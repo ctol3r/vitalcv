@@ -22,4 +22,9 @@ export {
   bindUserContextToRequest,
   type RequestContextOptions,
 } from './requestContext';
+export {
+  redactPII,
+  getDefaultPiiFields,
+  isPii,
+} from './piiRedaction';
 

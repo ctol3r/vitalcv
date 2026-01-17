@@ -1,4 +1,11 @@
 /**
+ * ========================================
+ * TEMPORARY STUB — DO NOT USE FOR PROD
+ * ========================================
+ *
+ * This is a minimal stub for Wave 3 testing.
+ * Actual allowed_sinks enforcement disabled.
+ *
  * B119A-ALLOWED-004: allowed_sinks middleware enforcement
  * B97A-SEC-001: Repo-wide allowed_sinks + detached JWS enforcer
  *
@@ -98,25 +105,13 @@ export function createAllowedSinksEnforcer(options: {
       );
 
       // B119A-ALLOWED-004: Record AuditScrapbook event
-      try {
-        // Try to import AuditScrapbook if available
-        const { AuditScrapbook } = await import('../../../backend/src/blockchain/audit_scrapbook').catch(() => ({ AuditScrapbook: null }));
-        if (AuditScrapbook) {
-          const scrapbook = new AuditScrapbook();
-          await scrapbook.recordEvent({
-            type: 'MESSAGE_DENIED',
-            sink,
-            reason: 'Missing allowed_sinks',
-            hashAnchor,
-            requestId,
-            timestamp: new Date(timestamp),
-            payload: envelope.payload,
-          });
-        }
-      } catch (error) {
-        // AuditScrapbook not available or failed - log but don't fail request
-        console.warn('[MessagingGuard] Failed to record AuditScrapbook event:', error);
-      }
+      // STUBBED: AuditScrapbook integration removed for Wave 3
+      console.warn('[MessagingGuard STUB] AuditScrapbook event not recorded:', {
+        type: 'MESSAGE_DENIED',
+        sink,
+        reason: 'Missing allowed_sinks',
+        requestId,
+      });
 
       return res.status(403).json({
         error: 'MESSAGE_DENIED',
@@ -144,23 +139,13 @@ export function createAllowedSinksEnforcer(options: {
       );
 
       // B119A-ALLOWED-004: Record AuditScrapbook event
-      try {
-        const { AuditScrapbook } = await import('../../../backend/src/blockchain/audit_scrapbook').catch(() => ({ AuditScrapbook: null }));
-        if (AuditScrapbook) {
-          const scrapbook = new AuditScrapbook();
-          await scrapbook.recordEvent({
-            type: 'SIGNATURE_INVALID',
-            sink,
-            reason: 'Missing detached JWS signature',
-            hashAnchor,
-            requestId,
-            timestamp: new Date(timestamp),
-            payload: envelope.payload,
-          });
-        }
-      } catch (error) {
-        console.warn('[MessagingGuard] Failed to record AuditScrapbook event:', error);
-      }
+      // STUBBED: AuditScrapbook integration removed for Wave 3
+      console.warn('[MessagingGuard STUB] AuditScrapbook event not recorded:', {
+        type: 'SIGNATURE_INVALID',
+        sink,
+        reason: 'Missing detached JWS signature',
+        requestId,
+      });
 
       return res.status(403).json({
         error: 'MESSAGE_DENIED',

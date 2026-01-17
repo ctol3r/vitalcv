@@ -1,6 +1,7 @@
 import pino, { Logger as PinoLogger } from 'pino';
 import { getLogContext, type LogContext } from './context';
 import { serializeError } from './errorSerializer';
+import { redactPII } from './piiRedaction';
 
 export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
@@ -29,7 +30,7 @@ export interface Logger {
   child(options?: LoggerChildOptions): Logger;
 }
 
-const DEFAULT_SERVICE = process.env.SERVICE_NAME || 'chai-vc-platform';
+const DEFAULT_SERVICE = process.env.SERVICE_NAME || 'vitalcv';
 
 const baseLogger = pino({
   level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
@@ -112,12 +113,17 @@ class StructuredLogger implements Logger {
   private prepareFields(fields?: LogFields): LogFields | undefined {
     const context = getLogContext();
     const merged: LogFields = {};
-    mergeContext(merged, context, ['requestId', 'userId', 'orgId', 'service']);
+
+    // Extract trace context (trace_id, span_id) if available
+    mergeContext(merged, context, ['requestId', 'userId', 'orgId', 'service', 'trace_id', 'span_id']);
 
     const normalizedFields = normalizeFields(fields);
     Object.assign(merged, this.defaultFields, normalizedFields);
 
-    return Object.keys(merged).length ? merged : undefined;
+    // CRITICAL: Apply PII redaction to ALL log contexts (Wave 5 Hard Constraint)
+    const redacted = redactPII(merged);
+
+    return Object.keys(redacted).length ? redacted : undefined;
   }
 }
 

@@ -2,7 +2,7 @@
   "name": "@chai-vc/metrics-core",
   "version": "1.0.0",
   "description": "Core metrics utilities for the platform",
-  "type": "module",
+  "type": "commonjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -15,4 +15,3 @@
     "typescript": "^5.3.3"
   }
 }
-

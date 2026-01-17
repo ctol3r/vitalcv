@@ -91,3 +91,294 @@ model WebhookSubscription {
   @@index([eventType])
   @@index([orgId])
 }
+
+model ClinicianProfile {
+  id             String   @id
+  userId         String?
+  npi            String?
+  firstName      String?
+  lastName       String?
+  fullName       String?
+  specialty      String?
+  state          String?
+  status         String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  psvResults     PSVResult[]
+  licenses       StateLicenseVerification[]
+  boardCertifications BoardCertification[]
+  deaRegistrations DeaRegistration[]
+  recredentialingCycles RecredentialingCycle[]
+  rightsNotices  PractitionerRightsNotice[]
+  fileAudits     CredentialingFileAudit[]
+  oppeReports    OppeReport[]
+  delegationAudits DelegationAudit[]
+  monitoringEvents OngoingMonitoringEvent[]
+  malpracticeClaims MalpracticeClaim[]
+  timelineEvents CredentialTimelineEvent[]
+
+  @@index([npi])
+  @@index([userId])
+}
+
+model OrgProfile {
+  orgId         String   @id
+  name          String
+  contactEmail  String
+  address       Json?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  delegationAgreements DelegationAgreement[]
+  recredentialingCycles RecredentialingCycle[]
+  rightsNotices PractitionerRightsNotice[]
+  fileAudits    CredentialingFileAudit[]
+  oppeReports   OppeReport[]
+  monitoringEvents OngoingMonitoringEvent[]
+  malpracticeClaims MalpracticeClaim[]
+}
+
+model PSVResult {
+  id            String   @id @default(cuid())
+  clinicianId   String
+  checkedAt     DateTime @default(now())
+  freshUntil    DateTime?
+  overallStatus String
+  source        String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  clinician     ClinicianProfile @relation(fields: [clinicianId], references: [id])
+
+  @@index([clinicianId])
+  @@index([overallStatus])
+}
+
+model StateLicenseVerification {
+  id                  String   @id @default(cuid())
+  clinicianId         String
+  state               String
+  licenseNumber       String
+  status              String
+  issueDate            DateTime?
+  expiryDate           DateTime?
+  disciplinaryFlag    Boolean  @default(false)
+  restrictions        Json?
+  disciplinaryHistory Json?
+  sourceMetadata      Json?
+  lastCheckedAt       DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  clinician           ClinicianProfile @relation(fields: [clinicianId], references: [id])
+
+  @@index([clinicianId])
+  @@index([state])
+  @@index([status])
+}
+
+model BoardCertification {
+  id                   String   @id @default(cuid())
+  clinicianId          String
+  boardName            String
+  specialty            String
+  certificationNumber  String?
+  grantedAt            DateTime?
+  expiresAt            DateTime?
+  status               String
+  verificationSource   String?
+  metadata             Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  clinician            ClinicianProfile @relation(fields: [clinicianId], references: [id])
+
+  @@index([clinicianId])
+  @@index([boardName])
+  @@index([status])
+}
+
+model DeaRegistration {
+  id                 String   @id @default(cuid())
+  clinicianId        String
+  registrationNumber String
+  schedules          Json?
+  state              String?
+  issuedAt           DateTime?
+  expiresAt          DateTime?
+  status             String
+  linkedLicenseId    String?
+  metadata           Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  clinician          ClinicianProfile @relation(fields: [clinicianId], references: [id])
+
+  @@index([clinicianId])
+  @@index([status])
+}
+
+model RecredentialingCycle {
+  id              String   @id @default(cuid())
+  clinicianId     String
+  orgId           String?
+  status          String
+  lastCompletedAt DateTime?
+  nextDueAt       DateTime?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  clinician       ClinicianProfile @relation(fields: [clinicianId], references: [id])
+  org             OrgProfile? @relation(fields: [orgId], references: [orgId])
+
+  @@index([clinicianId])
+  @@index([orgId])
+  @@index([status])
+}
+
+model PractitionerRightsNotice {
+  id             String   @id @default(cuid())
+  clinicianId    String
+  orgId          String?
+  noticeType     String
+  channel        String?
+  deliveredAt    DateTime
+  responseDueAt  DateTime?
+  acknowledgedAt DateTime?
+  status         String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  clinician      ClinicianProfile @relation(fields: [clinicianId], references: [id])
+  org            OrgProfile? @relation(fields: [orgId], references: [orgId])
+
+  @@index([clinicianId])
+  @@index([orgId])
+  @@index([noticeType])
+}
+
+model CredentialingFileAudit {
+  id           String   @id @default(cuid())
+  clinicianId  String
+  orgId        String?
+  completedAt  DateTime
+  completeness Float?
+  status       String?
+  findings     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  clinician    ClinicianProfile @relation(fields: [clinicianId], references: [id])
+  org          OrgProfile? @relation(fields: [orgId], references: [orgId])
+
+  @@index([clinicianId])
+  @@index([orgId])
+  @@index([completedAt])
+}
+
+model OppeReport {
+  id          String   @id @default(cuid())
+  clinicianId String
+  orgId       String?
+  periodStart DateTime?
+  periodEnd   DateTime
+  status      String?
+  metrics     Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id])
+  org         OrgProfile? @relation(fields: [orgId], references: [orgId])
+
+  @@index([clinicianId])
+  @@index([orgId])
+  @@index([periodEnd])
+}
+
+model DelegationAgreement {
+  id                     String   @id @default(cuid())
+  orgId                  String
+  delegateOrgId          String
+  status                 String
+  startDate              DateTime?
+  endDate                DateTime?
+  oversightFrequencyDays Int?
+  metadata               Json?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  org                    OrgProfile @relation(fields: [orgId], references: [orgId])
+  audits                 DelegationAudit[]
+
+  @@index([orgId])
+  @@index([delegateOrgId])
+  @@index([status])
+}
+
+model DelegationAudit {
+  id                    String   @id @default(cuid())
+  delegationAgreementId String
+  clinicianId           String?
+  auditDate             DateTime
+  status                String?
+  findings              Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  agreement             DelegationAgreement @relation(fields: [delegationAgreementId], references: [id])
+  clinician             ClinicianProfile? @relation(fields: [clinicianId], references: [id])
+
+  @@index([delegationAgreementId])
+  @@index([clinicianId])
+  @@index([auditDate])
+}
+
+model OngoingMonitoringEvent {
+  id          String   @id @default(cuid())
+  clinicianId String
+  orgId       String?
+  eventType   String
+  source      String?
+  occurredAt  DateTime
+  status      String?
+  details     Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id])
+  org         OrgProfile? @relation(fields: [orgId], references: [orgId])
+
+  @@index([clinicianId])
+  @@index([orgId])
+  @@index([eventType])
+}
+
+model MalpracticeClaim {
+  id             String   @id @default(cuid())
+  clinicianId    String
+  orgId          String?
+  incidentDate   DateTime?
+  claimDate      DateTime?
+  status         String?
+  amount         Float?
+  resolutionDate DateTime?
+  details        Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  clinician      ClinicianProfile @relation(fields: [clinicianId], references: [id])
+  org            OrgProfile? @relation(fields: [orgId], references: [orgId])
+
+  @@index([clinicianId])
+  @@index([orgId])
+  @@index([status])
+}
+
+model CredentialTimelineEvent {
+  id          String   @id @default(cuid())
+  clinicianId String
+  eventType   String
+  severity    String?
+  metadata    Json?
+  auditHash   String?
+  timestamp   DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  clinician   ClinicianProfile @relation(fields: [clinicianId], references: [id])
+
+  @@index([clinicianId])
+  @@index([eventType])
+  @@index([timestamp])
+}

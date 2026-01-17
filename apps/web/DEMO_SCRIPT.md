@@ -208,8 +208,8 @@ http://localhost:3005/verify
 curl http://localhost:4000/healthz
 
 # Restart if needed
-cd ../chai-vc-platform
-npm run dev
+# From the monorepo root:
+pnpm --filter @vitalcv/api dev
 ```
 
 ### Frontend Error

@@ -1,21 +1,50 @@
-import './tracing';
-import express, { Request, Response } from 'express';
+import { createLogger } from '@chai-vc/logging-core';
+import { InMemoryIdempotencyStore, idempotencyMiddleware } from '@chai-vc/idempotency';
+import { InMemoryRateLimiter, perEndpointRateLimitMiddleware } from '@chai-vc/rate-limiter';
+import { tracingMiddleware } from '@chai-vc/tracing';
 import cors from 'cors';
-import oidc4vpRouter from './oidc4vp/routes';
+import express, { type Express, Request, Response } from 'express';
 import { allowedSinksEnforcer } from './middleware/allowedSinksEnforcer';
 import { requestIdMiddleware } from './middleware/requestId';
-import { createLogger } from '@chai-vc/logging-core';
+import oidc4vpRouter from './oidc4vp/routes';
+import './tracing';
 
 const log = createLogger({
   service: process.env.SERVICE_NAME || 'verifier-api',
 });
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+const app: Express = express();
+
+// Per-endpoint rate limiters (B114B-RATE-001)
+const rateLimiters = {
+  '/verify/credential': new InMemoryRateLimiter({
+    maxRequests: 50,
+    windowMs: 60_000, // 1 minute
+    keyPrefix: 'rl:verifier:credential',
+  }),
+};
+
+// CRITICAL MIDDLEWARE ORDER (B114B-TRACE-001):
+// 1. Tracing middleware FIRST - generates/extracts trace context
+app.use(tracingMiddleware());
+
+// 2. Request ID middleware
 app.use(requestIdMiddleware());
 
-// B93-SEC-001: Enforce allowed_sinks on all inbound routes (repo-wide)
+// 3. CORS
+app.use(cors());
+
+// 4. Body parsing
+app.use(express.json());
+
+// 5. Rate limiting (per-endpoint)
+app.use(perEndpointRateLimitMiddleware(rateLimiters));
+
+// 6. Idempotency (24-hour window)
+const idempotencyStore = new InMemoryIdempotencyStore();
+app.use(idempotencyMiddleware({ store: idempotencyStore, ttlSeconds: 86400 }));
+
+// 7. Security enforcement (B93-SEC-001)
 // Apply middleware to all routes except health checks
 app.use((req, res, next) => {
   // Skip health checks
@@ -36,6 +65,14 @@ app.use('/eu', eudiRouter);
 import verifyCredentialRouter from './routes/verifyCredential';
 app.use('/verify/credential', verifyCredentialRouter);
 
+// CRS routes
+import crsRouter from './routes/crs';
+app.use('/crs', crsRouter);
+
+// Dashboard routes
+import dashboardRouter from './routes/dashboard';
+app.use('/dashboard', dashboardRouter);
+
 // Health check
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'verifier-api' });
@@ -48,4 +85,3 @@ app.listen(PORT, () => {
 });
 
 export default app;
-

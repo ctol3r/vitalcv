@@ -35,7 +35,7 @@
 🎯 Target: ≥40% reduction
 ✅ PASS: Target met!
 
-✅ CSV written to: /Users/christoler/chai-vc-platform/apps/verifier-api/src/bench/sd-vs-csd-benchmark.csv
-✅ Grafana queries written to: /Users/christoler/chai-vc-platform/apps/verifier-api/src/bench/grafana-queries.txt
+✅ CSV written to: apps/verifier-api/src/bench/sd-vs-csd-benchmark.csv
+✅ Grafana queries written to: apps/verifier-api/src/bench/grafana-queries.txt
 
 ✅ Benchmark passed!

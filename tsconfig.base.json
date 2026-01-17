@@ -12,10 +12,7 @@
     "baseUrl": ".",
     "rootDirs": ["src", "services", "packages", "lib"],
     "types": ["node", "@jest/globals"],
-    "typeRoots": [
-      "./types",
-      "./node_modules/@types"
-    ],
+    "typeRoots": ["./types", "./node_modules", "./node_modules/@types"],
     "incremental": true,
     "composite": true,
     "isolatedModules": true,
@@ -62,4 +59,3 @@
   },
   "exclude": ["node_modules", "dist", "build", ".next"]
 }
-

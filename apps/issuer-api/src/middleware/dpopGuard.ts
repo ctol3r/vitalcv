@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import { calculateJwkThumbprint, decodeJwt, jwtVerify, importJWK } from 'jose';
-import { getTenantMtlsConfig, isDpopRequired, getDpopAlgorithms } from '../../../api/config/security-loader';
+import { NextFunction, Request, Response } from 'express';
+import { calculateJwkThumbprint, decodeJwt, importJWK, jwtVerify } from 'jose';
+import { getDpopAlgorithms, getTenantMtlsConfig, isDpopRequired } from '../config/security-loader';
 
 /**
  * B119A-SEC-001: DPoP as default; mTLS optional via tenant flag
@@ -69,7 +69,7 @@ async function verifyDPoPProof(
   dpopHeader: string,
   htu: string,
   htm: string,
-  accessToken?: string
+  accessToken?: string,
 ): Promise<{ valid: boolean; thumbprint?: string; error?: string }> {
   try {
     // First, verify the JWT signature using jose
@@ -101,12 +101,20 @@ async function verifyDPoPProof(
       // B109A-TBIND-002: JOSE allowlist for DPoP proofs (alg ∈ {ES256,EdDSA})
       const ALLOWED_ALGORITHMS = getDpopAlgorithms();
       if (!ALLOWED_ALGORITHMS.includes(alg)) {
-        return { valid: false, error: `invalid_alg: algorithm '${alg}' not allowed. Allowed algorithms: ${ALLOWED_ALGORITHMS.join(', ')}` };
+        return {
+          valid: false,
+          error: `invalid_alg: algorithm '${alg}' not allowed. Allowed algorithms: ${ALLOWED_ALGORITHMS.join(
+            ', ',
+          )}`,
+        };
       }
 
       // B109A-TBIND-002: Check typ='dpop+jwt' presence (returns 400 for invalid typ)
       if (typ !== 'dpop+jwt') {
-        return { valid: false, error: `invalid_typ: expected 'dpop+jwt', got '${typ || 'missing'}'` };
+        return {
+          valid: false,
+          error: `invalid_typ: expected 'dpop+jwt', got '${typ || 'missing'}'`,
+        };
       }
 
       // B113A-TBIND-002: Check kid presence (required per JOSE policy)
@@ -126,7 +134,9 @@ async function verifyDPoPProof(
     } catch (verifyError) {
       return {
         valid: false,
-        error: `DPoP proof signature verification failed: ${verifyError instanceof Error ? verifyError.message : 'unknown'}`
+        error: `DPoP proof signature verification failed: ${
+          verifyError instanceof Error ? verifyError.message : 'unknown'
+        }`,
       };
     }
 
@@ -137,13 +147,21 @@ async function verifyDPoPProof(
 
     // Verify htm matches (case-insensitive per RFC 9449)
     if (payload.htm?.toUpperCase() !== htm.toUpperCase()) {
-      return { valid: false, error: `htm mismatch: expected ${htm.toUpperCase()}, got ${payload.htm}` };
+      return {
+        valid: false,
+        error: `htm mismatch: expected ${htm.toUpperCase()}, got ${payload.htm}`,
+      };
     }
 
     // Verify iat is recent (within 60s skew)
     const now = Math.floor(Date.now() / 1000);
     if (!payload.iat || Math.abs(payload.iat - now) > 60) {
-      return { valid: false, error: `iat too old or missing: ${payload.iat ? Math.abs(payload.iat - now) + 's ago' : 'missing'} (max skew: 60s)` };
+      return {
+        valid: false,
+        error: `iat too old or missing: ${
+          payload.iat ? Math.abs(payload.iat - now) + 's ago' : 'missing'
+        } (max skew: 60s)`,
+      };
     }
 
     // B103A-TBIND-001: Validate jti (JWT ID) for replay protection
@@ -169,7 +187,7 @@ async function verifyDPoPProof(
       if (atCnfJkt !== thumbprint) {
         return {
           valid: false,
-          error: `cnf.jkt mismatch: AT has ${atCnfJkt}, DPoP proof has ${thumbprint}`
+          error: `cnf.jkt mismatch: AT has ${atCnfJkt}, DPoP proof has ${thumbprint}`,
         };
       }
     } else {
@@ -177,13 +195,19 @@ async function verifyDPoPProof(
       // This should not happen if pre-validation above works, but adding as safety check
       const isCredentialEndpoint = htu.includes('/credential') || htu.includes('/deferred');
       if (isCredentialEndpoint) {
-        return { valid: false, error: 'Access token with cnf.jkt required for credential endpoints' };
+        return {
+          valid: false,
+          error: 'Access token with cnf.jkt required for credential endpoints',
+        };
       }
     }
 
     return { valid: true, thumbprint };
   } catch (error) {
-    return { valid: false, error: `DPoP proof validation error: ${error instanceof Error ? error.message : 'unknown'}` };
+    return {
+      valid: false,
+      error: `DPoP proof validation error: ${error instanceof Error ? error.message : 'unknown'}`,
+    };
   }
 }
 
@@ -200,7 +224,7 @@ async function verifyDPoPProof(
 export function dpopGuard(req: Request, res: Response, next: NextFunction) {
   const dpopHeader = req.headers['dpop'] as string;
   const authHeader = req.headers['authorization'];
-  const clientType = req.headers['x-client-type'] as string || 'wallet';
+  const clientType = (req.headers['x-client-type'] as string) || 'wallet';
   const tenantId = req.headers['x-tenant-id'] as string | undefined;
 
   // B119A-SEC-001: Load tenant-specific mTLS configuration
@@ -222,7 +246,7 @@ export function dpopGuard(req: Request, res: Response, next: NextFunction) {
   if (!authHeader || (!authHeader.startsWith('Bearer ') && !authHeader.startsWith('DPoP '))) {
     return res.status(401).json({
       error: 'invalid_token',
-      error_description: 'Missing or invalid Authorization header'
+      error_description: 'Missing or invalid Authorization header',
     });
   }
 
@@ -238,25 +262,29 @@ export function dpopGuard(req: Request, res: Response, next: NextFunction) {
   if (!dpopHeader && (!hasMtls || !mtlsEnabled)) {
     return res.status(401).json({
       error: 'use_dpop',
-      error_description: 'DPoP proof is required. Bearer-only tokens are rejected. Provide DPoP proof header.',
-      error_hint: 'Include DPoP header with valid proof. mTLS is optional and tenant-specific.'
+      error_description:
+        'DPoP proof is required. Bearer-only tokens are rejected. Provide DPoP proof header.',
+      error_hint: 'Include DPoP header with valid proof. mTLS is optional and tenant-specific.',
     });
   }
 
   // Validate DPoP if present
   if (dpopHeader) {
-    const htu = `${req.protocol}://${req.get('host')}${req.path}`;
+    const htu = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
     const htm = req.method;
 
     // B120A-TBIND-001: STRICT enforcement - For credential endpoints, access token with cnf.jkt is REQUIRED
     // Enforce DPoP sender-constrained AT (cnf.jkt) everywhere - all credential-related endpoints
-    const isCredentialEndpoint = req.path.includes('/credential') || req.path.includes('/deferred') || req.path.includes('/batch');
+    const isCredentialEndpoint =
+      req.originalUrl.includes('/credential') ||
+      req.originalUrl.includes('/deferred') ||
+      req.originalUrl.includes('/batch');
     if (isCredentialEndpoint) {
       if (!accessToken) {
         return res.status(401).json({
           error: 'invalid_token',
           error_description: 'Access token required for credential endpoints when using DPoP',
-          error_hint: 'Bearer token with cnf.jkt claim must be provided'
+          error_hint: 'Bearer token with cnf.jkt claim must be provided',
         });
       }
       // B120A-TBIND-001: Pre-validate that access token has cnf.jkt before full DPoP verification
@@ -265,41 +293,48 @@ export function dpopGuard(req: Request, res: Response, next: NextFunction) {
       if (!atCnfJkt) {
         return res.status(401).json({
           error: 'invalid_dpop',
-          error_description: 'Access token missing cnf.jkt claim (required for credential endpoints)',
-          error_hint: 'Access token must include cnf.jkt claim matching DPoP proof thumbprint'
+          error_description:
+            'Access token missing cnf.jkt claim (required for credential endpoints)',
+          error_hint: 'Access token must include cnf.jkt claim matching DPoP proof thumbprint',
         });
       }
     }
 
-    verifyDPoPProof(dpopHeader, htu, htm, accessToken || undefined).then(result => {
-      if (!result.valid) {
-        // B113A-TBIND-002: Return 400 for invalid_alg, invalid_typ, or invalid_kid; 401 for other errors
-        const isInvalidAlgOrTypOrKid = result.error?.includes('invalid_alg') ||
-                                       result.error?.includes('invalid_typ') ||
-                                       result.error?.includes('invalid_kid');
-        const statusCode = isInvalidAlgOrTypOrKid ? 400 : 401;
-        const errorCode = result.error?.includes('invalid_alg') ? 'invalid_alg'
-          : result.error?.includes('invalid_typ') ? 'invalid_typ'
-          : result.error?.includes('invalid_kid') ? 'invalid_kid'
-          : 'invalid_dpop';
-        return res.status(statusCode).json({
-          error: errorCode,
-          error_description: result.error || 'DPoP proof validation failed'
-        });
-      }
+    return verifyDPoPProof(dpopHeader, htu, htm, accessToken || undefined)
+      .then((result) => {
+        if (!result.valid) {
+          // B113A-TBIND-002: Return 400 for invalid_alg, invalid_typ, or invalid_kid; 401 for other errors
+          const isInvalidAlgOrTypOrKid =
+            result.error?.includes('invalid_alg') ||
+            result.error?.includes('invalid_typ') ||
+            result.error?.includes('invalid_kid');
+          const statusCode = isInvalidAlgOrTypOrKid ? 400 : 401;
+          const errorCode = result.error?.includes('invalid_alg')
+            ? 'invalid_alg'
+            : result.error?.includes('invalid_typ')
+            ? 'invalid_typ'
+            : result.error?.includes('invalid_kid')
+            ? 'invalid_kid'
+            : 'invalid_dpop';
+          return res.status(statusCode).json({
+            error: errorCode,
+            error_description: result.error || 'DPoP proof validation failed',
+          });
+        }
 
-      // Attach cnf.jkt to request
-      if (result.thumbprint) {
-        (req as any).cnfJkt = result.thumbprint;
-        (req as any).dpopValidated = true;
-      }
-      next();
-    }).catch((error) => {
-      res.status(401).json({
-        error: 'dpop_verification_failed',
-        error_description: error instanceof Error ? error.message : 'DPoP verification failed'
+        // Attach cnf.jkt to request
+        if (result.thumbprint) {
+          (req as any).cnfJkt = result.thumbprint;
+          (req as any).dpopValidated = true;
+        }
+        next();
+      })
+      .catch((error) => {
+        res.status(401).json({
+          error: 'dpop_verification_failed',
+          error_description: error instanceof Error ? error.message : 'DPoP verification failed',
+        });
       });
-    });
     return; // Exit early, next() called in promise
   }
 
@@ -318,7 +353,7 @@ export function dpopGuard(req: Request, res: Response, next: NextFunction) {
     return res.status(401).json({
       error: 'use_dpop',
       error_description: 'mTLS is not enabled for this tenant. DPoP proof is required.',
-      error_hint: 'Include DPoP header with valid proof'
+      error_hint: 'Include DPoP header with valid proof',
     });
   }
 
@@ -327,7 +362,7 @@ export function dpopGuard(req: Request, res: Response, next: NextFunction) {
     return res.status(401).json({
       error: 'use_dpop',
       error_description: 'DPoP proof is required. mTLS is not enabled for this tenant.',
-      error_hint: 'Include DPoP header with valid proof'
+      error_hint: 'Include DPoP header with valid proof',
     });
   }
 
@@ -335,6 +370,6 @@ export function dpopGuard(req: Request, res: Response, next: NextFunction) {
   return res.status(401).json({
     error: 'use_dpop',
     error_description: 'DPoP proof is required (default enforcement)',
-    error_hint: 'Include DPoP header with valid proof'
+    error_hint: 'Include DPoP header with valid proof',
   });
 }

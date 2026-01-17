@@ -1,5 +1,7 @@
 # Wave 3 Backend Certification
 
+> **Note:** Certification requirements document (January 2026). Last reviewed: 2026-01-16.
+
 **Status:** ✅ CERTIFIED
 **Date:** 2026-01-11
 **Codex Cluster:** wave-04

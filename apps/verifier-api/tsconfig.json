@@ -5,8 +5,7 @@
     "outDir": "../../dist/apps/verifier-api",
     "tsBuildInfoFile": "../../build-info/apps-verifier-api.tsbuildinfo",
     "types": [
-      "node",
-      "vitest/globals"
+      "node"
     ],
     "composite": true
   },
@@ -20,6 +19,12 @@
     "**/*.spec.ts"
   ],
   "references": [
+    {
+      "path": "../../packages/messaging-guard"
+    },
+    {
+      "path": "../../packages/metrics-core"
+    },
     {
       "path": "../../packages/vc-schemas"
     },

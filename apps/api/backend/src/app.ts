@@ -183,8 +183,8 @@ const gitSha = resolveGitSha();
 const builtAtIso = resolveBuiltAtIso();
 const environmentName = resolveEnvironment();
 
-function normalizeCredentialId(raw: string): { externalId: string; dbId?: number } {
-  const trimmed = raw.trim();
+function normalizeCredentialId(raw?: string | null): { externalId: string; dbId?: number } {
+  const trimmed = String(raw ?? '').trim();
   if (!trimmed) return { externalId: '' };
   if (/^CRED-\d+$/i.test(trimmed)) {
     const dbId = Number(trimmed.split('-')[1]);
@@ -272,13 +272,8 @@ const AUTHORITY_RENEWAL_GUIDES: Record<
   },
 };
 
-const DEFAULT_AUDIT_BATCH_WINDOW_MINUTES = Number(
-  process.env.AUDIT_BATCH_WINDOW_MINUTES || 60,
-);
-const AUDIT_BATCH_EXCLUDED_TYPES = new Set([
-  'PROOF_BATCH_ANCHORED',
-  'PUBLIC_PROOF_VERIFIED',
-]);
+const DEFAULT_AUDIT_BATCH_WINDOW_MINUTES = Number(process.env.AUDIT_BATCH_WINDOW_MINUTES || 60);
+const AUDIT_BATCH_EXCLUDED_TYPES = new Set(['PROOF_BATCH_ANCHORED', 'PUBLIC_PROOF_VERIFIED']);
 const ANY_CREDENTIAL_REQUIREMENT = 'ANY_CREDENTIAL';
 const JOB_REQUIREMENTS: Record<string, string[]> = {
   nurse: ['Nursing License'],
@@ -335,7 +330,10 @@ const DISCOVER_IMPACT_TYPES = new Set<DiscoverImpactType>([
   'COMPLIANCE',
 ]);
 
-function evaluateLifecycle(expiresAtIso: string | null, renewalWindowDays: number): {
+function evaluateLifecycle(
+  expiresAtIso: string | null,
+  renewalWindowDays: number,
+): {
   daysRemaining: number | null;
   currentState: LifecycleState;
 } {
@@ -360,8 +358,7 @@ function evaluateLifecycle(expiresAtIso: string | null, renewalWindowDays: numbe
 
 function resolveBatchWindow(now: Date = new Date()): BatchWindow {
   const windowMinutes =
-    Number.isFinite(DEFAULT_AUDIT_BATCH_WINDOW_MINUTES) &&
-    DEFAULT_AUDIT_BATCH_WINDOW_MINUTES > 0
+    Number.isFinite(DEFAULT_AUDIT_BATCH_WINDOW_MINUTES) && DEFAULT_AUDIT_BATCH_WINDOW_MINUTES > 0
       ? DEFAULT_AUDIT_BATCH_WINDOW_MINUTES
       : 60;
   const windowMs = windowMinutes * 60 * 1000;
@@ -380,8 +377,7 @@ function resolveBatchWindow(now: Date = new Date()): BatchWindow {
 
 function buildAnchorReceipt(merkleRoot: string): AnchorReceipt {
   const chain = String(process.env.ANCHOR_CHAIN || 'noop').trim() || 'noop';
-  const txId =
-    String(process.env.ANCHOR_TX_ID || '').trim() || merkleRoot.slice(0, 32) || 'noop';
+  const txId = String(process.env.ANCHOR_TX_ID || '').trim() || merkleRoot.slice(0, 32) || 'noop';
   return {
     chain,
     txId,
@@ -425,7 +421,10 @@ function resolveCredentialExpiry(expiryDate?: string | null): {
     const expiresInSeconds = Math.max(1, Math.floor((parsed - now) / 1000));
     return { expiresAt: new Date(parsed).toISOString(), expiresInSeconds };
   }
-  return { expiresAt: new Date(now + defaultTtlSeconds * 1000).toISOString(), expiresInSeconds: defaultTtlSeconds };
+  return {
+    expiresAt: new Date(now + defaultTtlSeconds * 1000).toISOString(),
+    expiresInSeconds: defaultTtlSeconds,
+  };
 }
 
 function signCredentialJwt(payload: Record<string, unknown>, expiresInSeconds: number): string {
@@ -905,7 +904,9 @@ function parseStringArray(value: unknown): string[] {
 }
 
 function resolveImpactType(value: unknown): DiscoverImpactType {
-  const normalized = String(value || '').trim().toUpperCase();
+  const normalized = String(value || '')
+    .trim()
+    .toUpperCase();
   if (DISCOVER_IMPACT_TYPES.has(normalized as DiscoverImpactType)) {
     return normalized as DiscoverImpactType;
   }
@@ -1233,7 +1234,11 @@ async function findAnchoredBatchByWindow(window: BatchWindow) {
   });
   for (const anchor of anchors) {
     const parsed = parseAnchoredBatch(anchor);
-    if (parsed && parsed.batchWindow.from === window.fromIso && parsed.batchWindow.to === window.toIso) {
+    if (
+      parsed &&
+      parsed.batchWindow.from === window.fromIso &&
+      parsed.batchWindow.to === window.toIso
+    ) {
       return parsed;
     }
   }
@@ -1265,14 +1270,20 @@ async function ensureBatchAnchor(window: BatchWindow) {
 }
 
 function resolveOnStatusBaseUrl(): string {
-  const configured = String(process.env.ON_STATUS_BASE_URL || process.env.SELF_BASE_URL || '').trim();
+  const configured = String(
+    process.env.ON_STATUS_BASE_URL || process.env.SELF_BASE_URL || '',
+  ).trim();
   if (configured) return configured.replace(/\/$/, '');
   const port = process.env.PORT || 4000;
   return `http://127.0.0.1:${port}`;
 }
 
 function parseEnvFlag(value: string | undefined): boolean {
-  return ['1', 'true', 'yes', 'on'].includes(String(value || '').trim().toLowerCase());
+  return ['1', 'true', 'yes', 'on'].includes(
+    String(value || '')
+      .trim()
+      .toLowerCase(),
+  );
 }
 
 function hasMockFlags(): boolean {
@@ -1331,9 +1342,7 @@ async function evaluateOnStatus(baseUrl: string) {
     blockingReasons.push('mock_endpoints_enabled');
   }
 
-  const ledgerAdapter = String(
-    process.env.LEDGER_ADAPTER || process.env.ANCHOR_CHAIN || '',
-  ).trim();
+  const ledgerAdapter = String(process.env.LEDGER_ADAPTER || process.env.ANCHOR_CHAIN || '').trim();
   const ledgerEnabled = Boolean(ledgerAdapter && ledgerAdapter !== 'noop');
   if (!ledgerEnabled) {
     blockingReasons.push('ledger_adapter_missing');
@@ -1366,11 +1375,7 @@ async function evaluateOnStatus(baseUrl: string) {
     blockingReasons.push('public_verifier_unreachable');
   }
 
-  const status = criticalFailure
-    ? 'OFF'
-    : blockingReasons.length
-      ? 'SOFT_ON'
-      : 'HARD_ON';
+  const status = criticalFailure ? 'OFF' : blockingReasons.length ? 'SOFT_ON' : 'HARD_ON';
 
   return {
     status,
@@ -1448,15 +1453,16 @@ function merkleRootHex(hashes: string[]): string | null {
 // Minimal ON-contract health endpoint (keep /healthz for detailed dependency checks)
 app.get('/health', async (_req, res) => {
   const dbTimeoutMs = Number(process.env.HEALTH_DB_TIMEOUT_MS || 800);
-  const dbOk = await withTimeout(
-    prisma.$queryRaw`SELECT 1`,
-    dbTimeoutMs,
-    'db',
-  )
+  const dbOk = await withTimeout(prisma.$queryRaw`SELECT 1`, dbTimeoutMs, 'db')
     .then(() => true)
     .catch(() => false);
   const auditAppend = dbOk
-    ? await appendAuditCheck('HEALTH_CHECK', 'health', { status: dbOk ? 'ok' : 'degraded' }, dbTimeoutMs)
+    ? await appendAuditCheck(
+        'HEALTH_CHECK',
+        'health',
+        { status: dbOk ? 'ok' : 'degraded' },
+        dbTimeoutMs,
+      )
     : { ok: false, error: 'db_unavailable' };
   const ok = dbOk && auditAppend.ok;
 
@@ -1472,11 +1478,7 @@ app.get('/healthz', async (_req, res) => {
   const startedAt = Date.now();
   const dbTimeoutMs = Number(process.env.HEALTH_DB_TIMEOUT_MS || 1200);
 
-  const dbPromise = withTimeout(
-    prisma.$queryRaw`SELECT 1`,
-    dbTimeoutMs,
-    'db',
-  )
+  const dbPromise = withTimeout(prisma.$queryRaw`SELECT 1`, dbTimeoutMs, 'db')
     .then(() => ({ ok: true as const }))
     .catch((e) => ({ ok: false as const, error: String(e instanceof Error ? e.message : e) }));
 
@@ -1606,13 +1608,18 @@ app.get('/healthz', async (_req, res) => {
   ]);
   const baseOk = db.ok && audit.ok && chain.ok && acapy.ok;
   const auditAppend = db.ok
-    ? await appendAuditCheck('HEALTHZ_CHECK', 'healthz', {
-        status: baseOk ? 'ok' : 'degraded',
-        dbOk: db.ok,
-        auditOk: audit.ok,
-        chainOk: chain.ok,
-        acapyOk: acapy.ok,
-      }, dbTimeoutMs)
+    ? await appendAuditCheck(
+        'HEALTHZ_CHECK',
+        'healthz',
+        {
+          status: baseOk ? 'ok' : 'degraded',
+          dbOk: db.ok,
+          auditOk: audit.ok,
+          chainOk: chain.ok,
+          acapyOk: acapy.ok,
+        },
+        dbTimeoutMs,
+      )
     : { ok: false, error: 'db_unavailable' };
   const ok = baseOk && auditAppend.ok;
 
@@ -1652,11 +1659,16 @@ app.get(['/ready', '/readyz'], async (_req, res) => {
       .catch(() => false),
   ]);
   const auditAppend = db
-    ? await appendAuditCheck('READYZ_CHECK', 'readyz', {
-        status: db && audit ? 'ready' : 'not_ready',
-        dbOk: db,
-        auditOk: audit,
-      }, timeoutMs)
+    ? await appendAuditCheck(
+        'READYZ_CHECK',
+        'readyz',
+        {
+          status: db && audit ? 'ready' : 'not_ready',
+          dbOk: db,
+          auditOk: audit,
+        },
+        timeoutMs,
+      )
     : { ok: false, error: 'db_unavailable' };
   // For readiness, require DB + audit log access; other dependencies are reported in /health.
   const ok = db && audit && auditAppend.ok;
@@ -2055,6 +2067,8 @@ app.post('/world-id/verify', validateRequest, async (req: Request, res: Response
   }
 
   const startedAt = Date.now();
+  const nullifierDigest = privacyDigest(nullifier_hash);
+  const signalDigest = signal ? privacyDigest(signal) : undefined;
   try {
     const verifyResp = await fetch(verifyUrl, {
       method: 'POST',
@@ -2083,9 +2097,6 @@ app.post('/world-id/verify', validateRequest, async (req: Request, res: Response
         return { raw: rawText };
       }
     })();
-
-    const nullifierDigest = privacyDigest(nullifier_hash);
-    const signalDigest = signal ? privacyDigest(signal) : undefined;
 
     if (!verifyResp.ok) {
       const audit = await writeAuditEvent({
@@ -2159,32 +2170,33 @@ app.post('/issuer/credential', async (req: Request, res: Response, next) => {
     credentialRequest.credential_subject?.id ??
     credentialRequest.credential_subject?.did ??
     null;
-  const issuedCredential =
-    result && typeof (result as Record<string, unknown>).credential === 'string'
-      ? (result as Record<string, unknown>).credential
-      : null;
+  const credentialValue = (result as Record<string, unknown> | null)?.credential;
+  const issuedCredential = typeof credentialValue === 'string' ? credentialValue : null;
   const proofHash = issuedCredential ? computeProofHash(issuedCredential) : null;
   const issuedPayload = issuedCredential ? decodeJwtPayload(issuedCredential) : null;
+  const issuedPayloadRecord = issuedPayload as Record<string, unknown> | null;
   const issuedAt = resolveIssuedAtFromPayload(issuedPayload);
   const expiresAt = resolveExpiresAtFromPayload(issuedPayload);
   const credentialId = extractCredentialIdFromPayload(issuedPayload) || subjectId || null;
   const subjectIdValue =
     (issuedPayload?.sub as string | undefined) ||
-    (issuedPayload as Record<string, unknown>)?.subjectId ||
+    issuedPayloadRecord?.subjectId ||
     subjectId ||
     null;
   const renewalWindowDays = resolveRenewalWindowDays(
-    credentialRequest.renewalWindowDays ??
-      (issuedPayload as Record<string, unknown> | null)?.renewalWindowDays,
+    credentialRequest.renewalWindowDays ?? issuedPayloadRecord?.renewalWindowDays,
   );
-  const issuerId = resolveIssuerId(
-    (issuedPayload?.iss as string | undefined) ||
-      (issuedPayload as Record<string, unknown>)?.issuerId ||
-      (issuedPayload as Record<string, unknown>)?.issuer,
-  );
+  const issuerIdCandidate =
+    typeof issuedPayload?.iss === 'string'
+      ? issuedPayload.iss
+      : typeof issuedPayloadRecord?.issuerId === 'string'
+      ? issuedPayloadRecord.issuerId
+      : typeof issuedPayloadRecord?.issuer === 'string'
+      ? issuedPayloadRecord.issuer
+      : null;
+  const issuerId = resolveIssuerId(issuerIdCandidate);
   const authorityId = resolveAuthorityId(
-    credentialRequest.authorityId ??
-      (issuedPayload as Record<string, unknown>)?.authorityId,
+    credentialRequest.authorityId ?? issuedPayloadRecord?.authorityId,
     issuerId,
   );
   await writeAuditEvent({
@@ -2289,17 +2301,12 @@ app.post(
       subjectId: externalId,
       userId: user.id,
       metadata: {
-        credentialId: externalId,
-        issuerId,
-        subjectId: String(subjectId),
-        authorityId,
-        renewalWindowDays,
         ...jwtPayload,
+        issuerId,
         jwt: jwtToken,
         proofHash,
       },
     });
-
 
     // Mirror issuance into the network graph when configured (fail-soft).
     try {
@@ -2470,17 +2477,9 @@ app.get('/interop/credentials/:clinicianId', async (req, res) => {
       lastAuditRoot,
       credentials: credentials.map((credential) => {
         const externalId = `CRED-${credential.id}`;
-        const expiresAt = credential.expiresAt
-          ? credential.expiresAt.toISOString()
-          : null;
-        const isExpired = credential.expiresAt
-          ? credential.expiresAt.getTime() <= nowMs
-          : false;
-        const status = revoked.has(externalId)
-          ? 'revoked'
-          : isExpired
-            ? 'expired'
-            : 'active';
+        const expiresAt = credential.expiresAt ? credential.expiresAt.toISOString() : null;
+        const isExpired = credential.expiresAt ? credential.expiresAt.getTime() <= nowMs : false;
+        const status = revoked.has(externalId) ? 'revoked' : isExpired ? 'expired' : 'active';
         return {
           id: externalId,
           issuer: credential.issuer,
@@ -2509,9 +2508,7 @@ app.post(
     const targetUrlInput = String(req.body?.targetUrl || '').trim();
     const secret = String(req.body?.secret || '').trim();
     const orgIdInput = String(req.body?.orgId || '').trim();
-    const eventTypes = normalizeInteropEventTypes(
-      req.body?.eventTypes ?? req.body?.eventType,
-    );
+    const eventTypes = normalizeInteropEventTypes(req.body?.eventTypes ?? req.body?.eventType);
 
     if (!eventTypes.length) {
       return res.status(400).json({
@@ -2600,7 +2597,9 @@ app.post(
 app.get('/interop/webhooks', async (req, res) => {
   const orgId = resolveWebhookOrgId(req, String(req.query.orgId || '').trim() || null);
   const includeInactive = ['1', 'true', 'yes'].includes(
-    String(req.query.includeInactive || '').trim().toLowerCase(),
+    String(req.query.includeInactive || '')
+      .trim()
+      .toLowerCase(),
   );
   const subscriptionModel = (prisma as any).webhookSubscription;
   const where: Record<string, unknown> = {};
@@ -2700,6 +2699,263 @@ app.post(
   },
 );
 
+// --- OIDC4VP Verifier Flow ---
+
+// In-memory store for OIDC4VP requests (nonce/state)
+// In production, use Redis with TTL
+const oidc4vpRequestStore = new Map<
+  string,
+  {
+    nonce: string;
+    state: string;
+    timestamp: number;
+    constraints: {
+      type: string;
+      issuer?: string;
+      claims?: string[];
+    };
+  }
+>();
+
+// Cleanup old requests periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [state, data] of oidc4vpRequestStore.entries()) {
+    if (now - data.timestamp > 300000) {
+      // 5 minutes TTL
+      oidc4vpRequestStore.delete(state);
+    }
+  }
+}, 60000);
+
+app.post('/verifier/oidc4vp/request', async (req: Request, res: Response) => {
+  try {
+    // Generate fresh state and nonce
+    const state = crypto.randomBytes(16).toString('hex');
+    const nonce = crypto.randomBytes(16).toString('hex');
+
+    // Default constraints (can be customized via body)
+    const constraints = {
+      type: req.body.type || 'VerifiableCredential',
+      issuer: req.body.issuer, // Optional specific issuer
+      claims: req.body.claims || ['credentialId', 'issuer', 'issuedAt'], // Default claims to verify
+    };
+
+    // Store request context
+    oidc4vpRequestStore.set(state, {
+      nonce,
+      state,
+      timestamp: Date.now(),
+      constraints,
+    });
+
+    // Construct Authorization Request (OIDC4VP)
+    const authRequest = {
+      client_id: 'https://vitalcv.com/verifier',
+      response_type: 'vp_token',
+      response_mode: 'direct_post',
+      response_uri: `${
+        process.env.PUBLIC_API_URL || 'https://api.vitalcv.com'
+      }/verifier/oidc4vp/verify`,
+      nonce,
+      state,
+      scope: 'openid',
+      presentation_definition: {
+        id: `pd-${state}`,
+        input_descriptors: [
+          {
+            id: 'credential_input',
+            name: 'Requested Credential',
+            purpose: 'We need to verify your credential details.',
+            constraints: {
+              fields: [
+                {
+                  path: ['$.type'],
+                  filter: {
+                    type: 'string',
+                    pattern: constraints.type,
+                  },
+                },
+                ...(constraints.issuer
+                  ? [
+                      {
+                        path: ['$.issuer', '$.vc.issuer', '$.iss'],
+                        filter: {
+                          type: 'string',
+                          const: constraints.issuer,
+                        },
+                      },
+                    ]
+                  : []),
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    return res.json(authRequest);
+  } catch (error) {
+    log('error', 'oidc4vp_request_error', { error: String(error) });
+    return res.status(500).json({ error: 'Failed to generate OIDC4VP request' });
+  }
+});
+
+app.post('/verifier/oidc4vp/verify', async (req: Request, res: Response) => {
+  try {
+    const { vp_token, presentation_submission, state } = req.body;
+
+    if (!vp_token) {
+      return res.status(400).json({ error: 'Missing vp_token' });
+    }
+
+    // 1. Validate State/Nonce
+    const requestContext = state ? oidc4vpRequestStore.get(state) : null;
+    if (state && !requestContext) {
+      return res.status(400).json({ error: 'Invalid or expired state' });
+    }
+    // Remove used state (one-time use)
+    if (state) oidc4vpRequestStore.delete(state);
+
+    // 2. Decode & Verify Token
+    // Support both JWT VP and bare VC JWT for flexibility in this demo
+    let credentialPayload: any = null;
+    let credentialJwt = vp_token;
+
+    // Simple JWT decode first
+    const decoded = decodeJwtPayload(vp_token);
+
+    // Check if it's a VP wrapping a VC
+    if (decoded && (decoded.vp || decoded.verifiableCredential)) {
+      // Extract the VC from VP
+      const vc = decoded.vp?.verifiableCredential?.[0] || decoded.verifiableCredential?.[0];
+      if (typeof vc === 'string') {
+        credentialJwt = vc;
+        credentialPayload = decodeJwtPayload(vc);
+      } else {
+        // Assume vp_token is the VC itself if structure matches
+        credentialPayload = decoded;
+      }
+    } else {
+      credentialPayload = decoded;
+    }
+
+    if (!credentialPayload) {
+      return res.status(400).json({ error: 'Invalid token format' });
+    }
+
+    // 3. Verify Signature
+    let signatureValid = false;
+    try {
+      // Use existing resolveJwtSecret helper
+      jwt.verify(credentialJwt, resolveJwtSecret(), { ignoreExpiration: true });
+      signatureValid = true;
+    } catch (e) {
+      log('warn', 'signature_verification_failed', { error: String(e) });
+    }
+
+    // 4. Resolve IDs & Revocation Status
+    const credentialIdRaw = extractCredentialIdFromPayload(credentialPayload);
+    const { externalId, dbId } = normalizeCredentialId(credentialIdRaw);
+
+    const issuanceEvent = await prisma.auditEvent.findFirst({
+      where: { type: 'ISSUE_CREDENTIAL', credentialId: externalId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const revocationEvent = await prisma.auditEvent.findFirst({
+      where: { type: 'REVOKE_CREDENTIAL', credentialId: externalId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const isRevoked = !!revocationEvent;
+    const isExpired = credentialPayload.exp && credentialPayload.exp * 1000 < Date.now();
+
+    // 5. Determine Overall Status
+    let status = 'valid';
+    let failureReason = null;
+
+    if (!signatureValid) {
+      status = 'invalid';
+      failureReason = 'Cryptographic signature verification failed';
+    } else if (isRevoked) {
+      status = 'revoked';
+      failureReason = 'Credential has been revoked by issuer';
+    } else if (isExpired) {
+      status = 'expired';
+      failureReason = 'Credential has expired';
+    } else if (!issuanceEvent) {
+      status = 'unknown'; // Valid signature but no issuance record (maybe different issuer)
+      // If signature is valid but unknown to us, we might treat as "external_valid" or "unknown"
+      // For this system, we only trust what we issued or audited.
+      failureReason = 'Credential issuance record not found';
+    }
+
+    // 6. Enforce Constraints (if state existed)
+    if (requestContext?.constraints) {
+      const { type, issuer } = requestContext.constraints;
+      const credType = credentialPayload.type || credentialPayload.vc?.type;
+      const credIssuer = credentialPayload.iss || credentialPayload.issuer;
+
+      // Check type (loose match)
+      if (type && !JSON.stringify(credType).includes(type)) {
+        status = 'invalid';
+        failureReason = `Credential type mismatch. Expected ${type}`;
+      }
+
+      // Check issuer
+      if (issuer && credIssuer !== issuer) {
+        status = 'invalid';
+        failureReason = `Issuer mismatch. Expected ${issuer}`;
+      }
+    }
+
+    // 7. Extract Verified Claims (only if signature valid)
+    // For revoked creds, we show claims BUT with revoked status (per instructions)
+    const verifiedClaims = signatureValid
+      ? {
+          credentialId: externalId,
+          type: credentialPayload.type,
+          issuer: credentialPayload.iss || credentialPayload.issuer,
+          subject: credentialPayload.sub || credentialPayload.credentialSubject,
+          issuedAt: credentialPayload.iat
+            ? new Date(credentialPayload.iat * 1000).toISOString()
+            : null,
+          ...credentialPayload.credentialSubject,
+        }
+      : null;
+
+    // 8. Write Audit Log
+    const audit = await writeAuditEvent({
+      eventType: 'VERIFY_PRESENTATION_OIDC',
+      subjectId: externalId,
+      metadata: {
+        status,
+        failureReason,
+        nonce: requestContext?.nonce,
+        isRevoked,
+        isExpired,
+        signatureValid,
+      },
+    });
+
+    // 9. Return Response
+    return res.json({
+      verified: status === 'valid',
+      status,
+      auditRef: audit.hash,
+      verifiedAt: audit.createdAt,
+      verifiedClaims: verifiedClaims, // Null if sig invalid
+      failureReason: failureReason,
+      // Metadata for UI
+      issuer: issuanceEvent?.metadata ? (issuanceEvent.metadata as any).issuerId : null,
+    });
+  } catch (error) {
+    log('error', 'oidc4vp_verify_error', { error: String(error) });
+    return res.status(500).json({ error: 'Verification processing failed' });
+  }
+});
+
 app.post(
   '/verifier/presentation',
   body('credentialId').isString().withMessage('credentialId is required'),
@@ -2741,7 +2997,8 @@ app.post(
       select: { metadata: true },
     });
     const issuanceMetadata = (issuanceEvent?.metadata as Record<string, any>) ?? null;
-    const storedJwt = issuanceMetadata?.jwt || issuanceMetadata?.credential || issuanceMetadata?.signedCredential;
+    const storedJwt =
+      issuanceMetadata?.jwt || issuanceMetadata?.credential || issuanceMetadata?.signedCredential;
     if (!presentedJwt && typeof storedJwt === 'string' && storedJwt.trim()) {
       presentedJwt = storedJwt.trim();
     }
@@ -2749,7 +3006,8 @@ app.post(
     const storedProofHash = issuanceMetadata?.proofHash ? String(issuanceMetadata.proofHash) : null;
     const computedProofHash = presentedJwt ? computeProofHash(presentedJwt) : null;
     const proofHash = computedProofHash ?? storedProofHash ?? null;
-    const proofHashMatches = computedProofHash && storedProofHash ? computedProofHash === storedProofHash : true;
+    const proofHashMatches =
+      computedProofHash && storedProofHash ? computedProofHash === storedProofHash : true;
 
     let signatureValid = false;
     let signatureError: string | null = null;
@@ -2767,7 +3025,8 @@ app.post(
 
     const payload = verifiedPayload ?? decodedPayload;
     const payloadExpiryRaw = payload
-      ? (payload as Record<string, unknown>).expiryDate || (payload as Record<string, unknown>).expiresAt
+      ? (payload as Record<string, unknown>).expiryDate ||
+        (payload as Record<string, unknown>).expiresAt
       : null;
     const payloadExpiryMs = payloadExpiryRaw ? Date.parse(String(payloadExpiryRaw)) : Number.NaN;
     const expMs = payload && typeof payload.exp === 'number' ? payload.exp * 1000 : Number.NaN;
@@ -2781,19 +3040,17 @@ app.post(
     const expired = expiryMs !== null && expiryMs <= Date.now();
     const expiryDate = expiryMs ? new Date(expiryMs).toISOString() : null;
 
-    const payloadIssuedAtRaw = payload
-      ? (payload as Record<string, unknown>).issuedAt
-      : null;
+    const payloadIssuedAtRaw = payload ? (payload as Record<string, unknown>).issuedAt : null;
     const payloadIssuedAtMs = payloadIssuedAtRaw
       ? Date.parse(String(payloadIssuedAtRaw))
       : Number.NaN;
     const issuedAt = credential?.issuedAt
       ? credential.issuedAt.toISOString()
       : Number.isFinite(payloadIssuedAtMs)
-        ? new Date(payloadIssuedAtMs).toISOString()
-        : payload && typeof payload.iat === 'number'
-          ? new Date(payload.iat * 1000).toISOString()
-          : null;
+      ? new Date(payloadIssuedAtMs).toISOString()
+      : payload && typeof payload.iat === 'number'
+      ? new Date(payload.iat * 1000).toISOString()
+      : null;
 
     const issuerName =
       credential?.issuer ||
@@ -3040,8 +3297,8 @@ app.get('/credentials/:id/receipt', async (req, res) => {
   const proofHash = issuanceMetadata.proofHash
     ? String(issuanceMetadata.proofHash)
     : jwtArtifact
-      ? computeProofHash(jwtArtifact)
-      : null;
+    ? computeProofHash(jwtArtifact)
+    : null;
   const issuerId = resolveIssuerId(issuanceMetadata.issuerId || issuanceMetadata.issuer);
   const subjectId =
     issuanceMetadata.subjectId ||
@@ -3387,7 +3644,12 @@ app.post(
       },
     });
 
-    const evidenceToInsert: { publicationId: string; clinicianId: string; jobId?: string; credentialId?: string }[] = [];
+    const evidenceToInsert: {
+      publicationId: string;
+      clinicianId: string;
+      jobId?: string;
+      credentialId?: string;
+    }[] = [];
     const evidenceKeys = new Set<string>();
     for (const jobId of impactedJobIds) {
       evidenceKeys.add(`job:${jobId}`);
@@ -3446,7 +3708,9 @@ app.post(
         });
       }
 
-      return res.status(201).json({ publicationId, auditRef: audit.hash, evidenceCount: toCreate.length });
+      return res
+        .status(201)
+        .json({ publicationId, auditRef: audit.hash, evidenceCount: toCreate.length });
     } catch (error) {
       return res.status(503).json({
         error: 'Failed to append pubmed audit event',

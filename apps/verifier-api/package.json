@@ -10,12 +10,19 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@chai-vc/idempotency": "workspace:*",
+    "@chai-vc/logging-core": "workspace:*",
+    "@chai-vc/rate-limiter": "workspace:*",
+    "@chai-vc/tracing": "workspace:*",
+    "@vitalcv/audit-receipts": "workspace:*",
     "@vitalcv/messaging-guard": "workspace:*",
+    "@vitalcv/runtime-mode": "workspace:*",
     "express": "^4.18.2",
     "jose": "^6.1.0",
     "cors": "^2.8.5"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^20.10.6",
     "ts-node": "^10.9.2",
@@ -25,4 +32,3 @@
     "@types/supertest": "^2.0.16"
   }
 }
-

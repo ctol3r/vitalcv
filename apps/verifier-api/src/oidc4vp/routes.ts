@@ -1,14 +1,26 @@
-import express, { Request, Response, NextFunction } from 'express';
-import { decodeJwt } from 'jose';
-import { pouAllowlistEnforcer } from '../policies/middleware';
+import { createHash, randomBytes } from 'crypto';
+import express, { NextFunction, Request, Response, Router } from 'express';
+import { calculateJwkThumbprint, decodeJwt, importJWK, jwtVerify } from 'jose';
 import { eudiAcceptEnforce } from '../middleware/eudiAcceptEnforce';
+import { pouAllowlistEnforcer } from '../policies/middleware';
+import { PolkadotService } from '../services/polkadotService';
+import { verifySdJwtCredential } from '../services/sdJwtVerifier';
+import { resolveCredentialStatus } from '../services/statusListResolver';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // B108A-POLICY-006: Apply PoU allowlist enforcement to VP routes
 router.use(pouAllowlistEnforcer);
 
-const VERIFIER_URL = process.env.PUBLIC_VERIFIER_URL || process.env.VERIFIER_URL || 'https://vitalcv.ai';
+const VERIFIER_URL =
+  process.env.PUBLIC_VERIFIER_URL || process.env.VERIFIER_URL || 'https://vitalcv.ai';
+const VERIFIER_AUDIENCE = `${VERIFIER_URL}/oidc4vp`;
+const revokedHashes = new Set(
+  (process.env.REVOKED_CREDENTIAL_HASHES || '')
+    .split(',')
+    .map((hash) => hash.trim().toLowerCase())
+    .filter(Boolean),
+);
 
 // Nonce store for VP requests (in production, use Redis or database)
 // B108A-OIDC-005: Nonce binding for VP replay protection
@@ -98,7 +110,8 @@ function enforceVPReplayGuard(req: Request, res: Response, next: NextFunction) {
   if (!vp_token) {
     return res.status(400).json({
       error: 'invalid_request',
-      error_description: 'Missing vp_token'
+      error_description: 'Missing vp_token',
+      status: 'INVALID_SIGNATURE',
     });
   }
 
@@ -110,7 +123,8 @@ function enforceVPReplayGuard(req: Request, res: Response, next: NextFunction) {
     return res.status(409).json({
       error: 'replay_detected',
       error_description: `VP token jti reused: ${jti} (replay attack detected)`,
-      error_hint: 'This VP token has already been used. Generate a new presentation.'
+      error_hint: 'This VP token has already been used. Generate a new presentation.',
+      status: 'INVALID_SIGNATURE',
     });
   }
 
@@ -131,7 +145,8 @@ function enforceVPReplayGuard(req: Request, res: Response, next: NextFunction) {
         return res.status(409).json({
           error: 'replay_detected',
           error_description: 'Nonce reused (replay attempt detected)',
-          error_hint: 'This nonce has already been used. Request a new nonce.'
+          error_hint: 'This nonce has already been used. Request a new nonce.',
+          status: 'INVALID_SIGNATURE',
         });
       }
 
@@ -141,7 +156,8 @@ function enforceVPReplayGuard(req: Request, res: Response, next: NextFunction) {
         vpReplayMetrics.nonceMisses++;
         return res.status(400).json({
           error: 'invalid_request',
-          error_description: `Nonce expired (age: ${Math.floor(age / 1000)}s, max: 60s)`
+          error_description: `Nonce expired (age: ${Math.floor(age / 1000)}s, max: 60s)`,
+          status: 'INVALID_SIGNATURE',
         });
       }
 
@@ -156,7 +172,9 @@ function enforceVPReplayGuard(req: Request, res: Response, next: NextFunction) {
       vpReplayMetrics.nonceMisses++;
       return res.status(400).json({
         error: 'invalid_request',
-        error_description: 'Invalid or expired nonce. Request a new nonce from /oidc4vp/nonce endpoint.'
+        error_description:
+          'Invalid or expired nonce. Request a new nonce from /oidc4vp/nonce endpoint.',
+        status: 'INVALID_SIGNATURE',
       });
     }
 
@@ -180,7 +198,120 @@ function enforceVPReplayGuard(req: Request, res: Response, next: NextFunction) {
  * Generate a fresh nonce for VP request
  */
 function generateNonce(): string {
-  return Buffer.from(Math.random().toString(36) + Date.now().toString()).toString('base64').slice(0, 16);
+  return Buffer.from(randomBytes(18)).toString('base64url');
+}
+
+function buildPresentationDefinition(credentialTypes: string[], claimPaths: string[]) {
+  const fields = claimPaths.map((path) => ({
+    path: [path],
+    purpose: 'Requested claims for verification',
+  }));
+
+  const typeConstraints = credentialTypes.map((type) => ({
+    path: ['$.type'],
+    purpose: `Require credential type ${type}`,
+    filter: {
+      type: 'array',
+      contains: { const: type },
+    },
+  }));
+
+  return {
+    id: `vitalcv-pd-${randomBytes(6).toString('hex')}`,
+    input_descriptors: [
+      {
+        id: 'vitalcv-credential',
+        name: 'VitalCV Credential',
+        purpose: 'Verify credential type and requested claims',
+        format: {
+          'vc+sd-jwt': {
+            alg: ['EdDSA'],
+          },
+          jwt_vp: {
+            alg: ['EdDSA', 'ES256'],
+          },
+        },
+        constraints: {
+          fields: [...typeConstraints, ...fields],
+          limit_disclosure: 'required',
+        },
+      },
+    ],
+    format: {
+      'vc+sd-jwt': {
+        alg: ['EdDSA'],
+      },
+      jwt_vp: {
+        alg: ['EdDSA', 'ES256'],
+      },
+    },
+    credential_types: credentialTypes,
+  };
+}
+
+function normalizeClaimPaths(claims: string[]): string[] {
+  if (claims.length === 0) {
+    return [];
+  }
+
+  return claims.map((claim) => {
+    if (claim.startsWith('$.')) {
+      return claim;
+    }
+    return `$.credentialSubject.${claim}`;
+  });
+}
+
+async function verifyPresentationJwt(
+  vpToken: string,
+  expectedAudience: string,
+  expectedNonce: string,
+): Promise<{ payload: Record<string, any>; holderJkt: string }> {
+  const parts = vpToken.split('.');
+  if (parts.length !== 3) {
+    throw new Error('vp_token must be a signed JWT');
+  }
+
+  const header = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8')) as {
+    jwk?: Record<string, unknown>;
+    alg?: string;
+  };
+
+  if (!header.jwk || !header.alg) {
+    throw new Error('vp_token header must include jwk and alg');
+  }
+
+  const publicKey = await importJWK(header.jwk as any, header.alg);
+  const verified = await jwtVerify(vpToken, publicKey, {
+    algorithms: ['EdDSA', 'ES256'],
+    audience: expectedAudience,
+  });
+
+  const payload = verified.payload as Record<string, any>;
+  if (!payload.nonce || payload.nonce !== expectedNonce) {
+    throw new Error('vp_token nonce mismatch');
+  }
+
+  const holderJkt = await calculateJwkThumbprint(header.jwk as any);
+  return { payload, holderJkt };
+}
+
+async function checkStatusRegistry(
+  credentialHash: string,
+): Promise<{ status: 'valid' | 'revoked' | 'invalid'; reason?: string }> {
+  if (!credentialHash) {
+    return { status: 'invalid', reason: 'Credential hash missing for status registry check' };
+  }
+
+  if (revokedHashes.has(credentialHash.toLowerCase())) {
+    return { status: 'revoked', reason: 'Credential hash is in revoked registry' };
+  }
+
+  if (!PolkadotService.hasAnchoredHash(credentialHash)) {
+    return { status: 'invalid', reason: 'Credential hash not anchored in registry' };
+  }
+
+  return { status: 'valid' };
 }
 
 /**
@@ -207,6 +338,37 @@ router.get('/.well-known/openid-credential-verifier', (req: Request, res: Respon
 });
 
 /**
+ * Presentation Request Endpoint
+ * POST /oidc4vp/request
+ */
+router.post('/request', (req: Request, res: Response) => {
+  const credentialTypes = Array.isArray(req.body?.credential_types)
+    ? req.body.credential_types
+    : ['ClinicianIdentityCredential'];
+  const claims = Array.isArray(req.body?.claims) ? req.body.claims : ['name', 'npi', 'specialty'];
+  const audience = (req.body?.audience as string) || VERIFIER_AUDIENCE;
+  const nonce = generateNonce();
+
+  nonceStore.set(nonce, { timestamp: Date.now(), used: false });
+
+  const presentationDefinition = buildPresentationDefinition(
+    credentialTypes,
+    normalizeClaimPaths(claims),
+  );
+
+  res.json({
+    response_type: 'vp_token',
+    response_mode: 'direct_post',
+    client_id: VERIFIER_AUDIENCE,
+    client_id_scheme: 'redirect_uri',
+    nonce,
+    audience,
+    requested_credential_type: credentialTypes[0],
+    presentation_definition: presentationDefinition,
+  });
+});
+
+/**
  * Presentation Verification Endpoint
  * POST /oidc4vp/presentation
  *
@@ -214,49 +376,236 @@ router.get('/.well-known/openid-credential-verifier', (req: Request, res: Respon
  * B109B-EUDI-022: EUDI wallet enforcement - blocks non-EUDI presentations when enabled
  * Replays return 409; jti cache metrics; tests for replay
  */
-router.post('/presentation', eudiAcceptEnforce, enforceVPReplayGuard, async (req: Request, res: Response) => {
-  const { vp_token, presentation_submission } = req.body;
+router.post(
+  '/presentation',
+  eudiAcceptEnforce,
+  enforceVPReplayGuard,
+  async (req: Request, res: Response) => {
+    const { vp_token } = req.body;
+    const nonce = req.body?.nonce as string | undefined;
+    const audience = (req.body?.audience as string) || VERIFIER_AUDIENCE;
 
-  if (!vp_token) {
-    return res.status(400).json({
-      error: 'invalid_request',
-      error_description: 'Missing vp_token'
+    if (!vp_token) {
+      return res.status(400).json({
+        error: 'invalid_request',
+        error_description: 'Missing vp_token',
+        status: 'INVALID_SIGNATURE',
+      });
+    }
+
+    if (!nonce) {
+      return res.status(400).json({
+        error: 'invalid_request',
+        error_description: 'Missing nonce in presentation response',
+        status: 'INVALID_SIGNATURE',
+      });
+    }
+
+    if (audience !== VERIFIER_AUDIENCE) {
+      return res.status(400).json({
+        error: 'invalid_request',
+        error_description: 'Audience mismatch for verifier',
+        status: 'INVALID_SIGNATURE',
+      });
+    }
+
+    let vpPayload: Record<string, any>;
+    let holderJkt: string;
+
+    try {
+      const verification = await verifyPresentationJwt(vp_token, audience, nonce);
+      vpPayload = verification.payload;
+      holderJkt = verification.holderJkt;
+    } catch (error) {
+      return res.status(400).json({
+        error: 'invalid_presentation',
+        error_description:
+          error instanceof Error ? error.message : 'Presentation verification failed',
+        status: 'INVALID_SIGNATURE',
+      });
+    }
+
+    const vp = vpPayload.vp as Record<string, any> | undefined;
+    if (!vp || !vp.verifiableCredential) {
+      return res.status(400).json({
+        error: 'invalid_presentation',
+        error_description: 'vp_token is missing verifiableCredential',
+        status: 'INVALID_SIGNATURE',
+      });
+    }
+
+    const credentials = Array.isArray(vp.verifiableCredential)
+      ? vp.verifiableCredential
+      : [vp.verifiableCredential];
+
+    const credentialToken = credentials[0];
+    if (typeof credentialToken !== 'string') {
+      return res.status(400).json({
+        error: 'invalid_presentation',
+        error_description: 'verifiableCredential must be a string SD-JWT token',
+        status: 'INVALID_SIGNATURE',
+      });
+    }
+
+    const verificationResult = await verifySdJwtCredential(credentialToken, {
+      expectedHolderJkt: holderJkt,
     });
-  }
 
-  // B123A-EUDI-008: Extract PoU and requested claim set for GDPR logging
-  const pou = (req.headers['x-purpose-of-use'] as string) ||
-              (req.body?.purpose_of_use as string) ||
-              'TREATMENT';
-  const requestedClaims = extractRequestedClaims(req.body);
-  const pouValidation = (req as any).pouValidation;
+    if (!verificationResult.valid) {
+      return res.status(400).json({
+        error: 'invalid_credential',
+        error_description: verificationResult.error || 'Credential verification failed',
+        status: 'INVALID_SIGNATURE',
+      });
+    }
 
-  // B123A-EUDI-008: GDPR logging - store PoU + requested claim set in audit
-  const auditService = await import('../services/audit');
-  await auditService.auditLog('EUDI_PRESENTATION_VERIFIED', {
-    userId: (req as any).user?.id || 'anonymous',
-    reason: 'EUDI wallet presentation verified',
-    path: req.path,
-    method: req.method,
-    timestamp: new Date().toISOString(),
-    // B123A-EUDI-008: PoU + requested claim set stored
-    purposeOfUse: pou,
-    requestedClaims: requestedClaims,
-    allowedClaims: pouValidation?.requestedFields || requestedClaims,
-    // B123A-EUDI-008: Redaction of non-necessary attrs confirmed
-    redactedFields: pouValidation ?
-      requestedClaims.filter((c: string) => !pouValidation.requestedFields.includes(c)) : [],
-    vpTokenId: extractJtiFromVPToken(vp_token) || 'unknown',
-  });
+    const vc = verificationResult.vc as Record<string, any> | undefined;
+    const credentialId =
+      (vc?.id as string | undefined) ||
+      (verificationResult.payload?.jti as string | undefined) ||
+      '';
+    const credentialHash = createHash('sha256').update(credentialToken).digest('hex');
 
-  // TODO: Implement actual VP verification
-  // For now, return a placeholder response
-  res.json({
-    verified: true,
-    vp_token_id: extractJtiFromVPToken(vp_token) || 'unknown',
-    timestamp: new Date().toISOString(),
-  });
-});
+    const requestedTypes = extractRequestedTypes(req.body);
+    const requestedClaims = extractRequestedClaims(req.body);
+    if (requestedTypes.length > 0) {
+      const vcTypes = Array.isArray(vc?.type) ? vc?.type : [];
+      const missingTypes = requestedTypes.filter((type) => !vcTypes.includes(type));
+      if (missingTypes.length > 0) {
+        return res.status(400).json({
+          error: 'invalid_presentation',
+          error_description: `Missing required credential types: ${missingTypes.join(', ')}`,
+          status: 'INVALID_SIGNATURE',
+        });
+      }
+    }
+
+    if (requestedClaims.length > 0) {
+      const subject = (vc?.credentialSubject as Record<string, any> | undefined) || {};
+      for (const path of requestedClaims) {
+        const match = path.match(/\$\.credentialSubject\.(.+)$/);
+        if (!match) {
+          continue;
+        }
+        const key = match[1];
+        const hasClaim =
+          Object.prototype.hasOwnProperty.call(subject, key) ||
+          Object.prototype.hasOwnProperty.call(verificationResult.revealedClaims || {}, key);
+        if (!hasClaim) {
+          return res.status(400).json({
+            error: 'invalid_presentation',
+            error_description: `Missing required claim disclosure for ${key}`,
+            status: 'INVALID_SIGNATURE',
+          });
+        }
+      }
+    }
+
+    const statusResolution = await resolveCredentialStatus((vc || {}) as Record<string, unknown>);
+    if (statusResolution.status === 'revoked') {
+      return res.status(403).json({
+        verified: false,
+        status: 'REVOKED',
+        error: 'credential_revoked',
+        error_description: statusResolution.reason || 'Credential has been revoked',
+        credential_id: credentialId,
+        credential_hash: credentialHash,
+        status_details: {
+          status: statusResolution.status,
+          list_id: statusResolution.listId,
+          index: statusResolution.index,
+          status_url: statusResolution.statusUrl,
+          list_url: statusResolution.listUrl,
+        },
+      });
+    }
+
+    if (statusResolution.status === 'uncheckable') {
+      return res.status(503).json({
+        verified: false,
+        status: 'UNCHECKABLE',
+        error: 'status_uncheckable',
+        error_description: statusResolution.reason || 'Credential status could not be verified',
+        credential_id: credentialId,
+        credential_hash: credentialHash,
+        status_details: {
+          status: statusResolution.status,
+          list_id: statusResolution.listId,
+          index: statusResolution.index,
+          status_url: statusResolution.statusUrl,
+          list_url: statusResolution.listUrl,
+        },
+      });
+    }
+
+    try {
+      const revocation = await checkStatusRegistry(credentialHash);
+      if (revocation.status === 'revoked') {
+        return res.status(403).json({
+          verified: false,
+          status: 'REVOKED',
+          error: 'credential_revoked',
+          error_description: revocation.reason || 'Credential has been revoked',
+          credential_id: credentialId,
+          credential_hash: credentialHash,
+        });
+      }
+      if (revocation.status === 'invalid') {
+        return res.status(400).json({
+          verified: false,
+          status: 'INVALID_SIGNATURE',
+          error: 'invalid_credential',
+          error_description: revocation.reason || 'Credential is not valid',
+          credential_id: credentialId,
+          credential_hash: credentialHash,
+        });
+      }
+    } catch (error) {
+      return res.status(500).json({
+        error: 'revocation_check_failed',
+        error_description: error instanceof Error ? error.message : 'Revocation check failed',
+        status: 'INVALID_SIGNATURE',
+      });
+    }
+
+    // B123A-EUDI-008: Extract PoU and requested claim set for GDPR logging
+    const pou =
+      (req.headers['x-purpose-of-use'] as string) ||
+      (req.body?.purpose_of_use as string) ||
+      'TREATMENT';
+    const pouValidation = (req as any).pouValidation;
+
+    // B123A-EUDI-008: GDPR logging - store PoU + requested claim set in audit
+    const auditService = await import('../services/audit');
+    await auditService.auditLog('EUDI_PRESENTATION_VERIFIED', {
+      userId: (req as any).user?.id || 'anonymous',
+      reason: 'EUDI wallet presentation verified',
+      path: req.path,
+      method: req.method,
+      timestamp: new Date().toISOString(),
+      // B123A-EUDI-008: PoU + requested claim set stored
+      purposeOfUse: pou,
+      requestedClaims: requestedClaims,
+      allowedClaims: pouValidation?.requestedFields || requestedClaims,
+      // B123A-EUDI-008: Redaction of non-necessary attrs confirmed
+      redactedFields: pouValidation
+        ? requestedClaims.filter((c: string) => !pouValidation.requestedFields.includes(c))
+        : [],
+      vpTokenId: extractJtiFromVPToken(vp_token) || 'unknown',
+    });
+
+    res.json({
+      verified: true,
+      status: 'VALID',
+      vp_token_id: extractJtiFromVPToken(vp_token) || 'unknown',
+      holder: vpPayload.sub || holderJkt,
+      credential_id: credentialId,
+      credential_hash: credentialHash,
+      revealed_claims: verificationResult.revealedClaims ?? {},
+      timestamp: new Date().toISOString(),
+    });
+  },
+);
 
 /**
  * B123A-EUDI-008: Extract requested claim set from presentation request
@@ -292,6 +641,27 @@ function extractRequestedClaims(body: any): string[] {
   }
 
   return [...new Set(claims)]; // Deduplicate
+}
+
+function extractRequestedTypes(body: any): string[] {
+  const types: string[] = [];
+  if (body.presentation_definition?.input_descriptors) {
+    for (const descriptor of body.presentation_definition.input_descriptors) {
+      if (Array.isArray(descriptor.constraints?.fields)) {
+        for (const field of descriptor.constraints.fields) {
+          if (field.filter?.contains?.const && field.path?.includes('$.type')) {
+            types.push(field.filter.contains.const);
+          }
+        }
+      }
+    }
+  }
+
+  if (Array.isArray(body.credential_types)) {
+    types.push(...body.credential_types);
+  }
+
+  return [...new Set(types)];
 }
 
 /**
@@ -384,4 +754,3 @@ oidc4vp_replay_detections ${vpReplayMetrics.replayDetections}
 });
 
 export default router;
-

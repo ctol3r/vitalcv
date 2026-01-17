@@ -49,6 +49,8 @@ export class MessagingGuard {
   /**
    * Build environment-scoped sink allowlist
    * Only includes sinks that are registered for the current environment
+   *
+   * FAIL CLOSED: Unregistered sinks are EXCLUDED (trust guarantee)
    */
   private buildEnvironmentScopedSinks(requestedSinks: string[]): Set<string> {
     const envSinks = new Set<string>();
@@ -63,12 +65,9 @@ export class MessagingGuard {
         }
         // If not available in current environment, silently exclude (fail closed)
       } else {
-        // Sink not in registry - include if explicitly requested (backward compat)
-        // But log warning in production
-        if (this.environment === 'production') {
-          console.warn(`[MessagingGuard] Sink '${sinkId}' not in registry - allowing but consider registering`);
-        }
-        envSinks.add(sinkId);
+        // B98B-SEC-001: Sink not in registry - EXCLUDE (fail closed)
+        // This ensures unregistered sinks cannot bypass environment-scoped enforcement
+        console.warn(`[MessagingGuard] Sink '${sinkId}' not in registry - DENYING (fail closed)`);
       }
     }
 

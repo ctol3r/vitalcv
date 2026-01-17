@@ -1,22 +1,25 @@
-import './tracing';
-import express, { Request, Response } from 'express';
-import cors from 'cors';
-import statusListRoutes from './routes/statusList';
 import { createLogger } from '@chai-vc/logging-core';
+import cors from 'cors';
+import express, { Request, Response, type Application } from 'express';
 import { requestIdMiddleware } from './middleware/requestId';
+import statusListRoutes from './routes/statusList';
+import './tracing';
 
 const log = createLogger({
   service: process.env.SERVICE_NAME || 'status-api',
 });
 
-const app = express();
+const app: Application = express();
 app.use(cors());
 app.use(express.json());
 app.use(requestIdMiddleware());
 
 // Status list routes
+app.post('/status-list/allocate', statusListRoutes.allocateStatusListEntry);
 app.post('/status-list/revoke', statusListRoutes.revokeCredential);
 app.get('/status-list/status/:credential_id', statusListRoutes.checkCredentialStatus);
+app.get('/status-list/compact', statusListRoutes.getStatusListCompact);
+app.get('/status-list/compact/:listId', statusListRoutes.getStatusListCompact);
 app.get('/status-list/2021', statusListRoutes.getStatusListVC);
 app.get('/status-list/2021/bitstring', statusListRoutes.getStatusListBitstring);
 app.post('/status-list/restore', statusListRoutes.restoreCredential);
@@ -33,4 +36,3 @@ app.listen(PORT, () => {
 });
 
 export default app;
-

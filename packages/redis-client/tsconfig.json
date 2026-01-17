@@ -6,15 +6,6 @@
     "tsBuildInfoFile": "../../build-info/packages-redis-client.tsbuildinfo",
     "composite": true
   },
-  "include": [
-    "*.ts",
-    "src"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/__tests__/**/*",
-    "**/*.spec.ts",
-    "**/*.test.ts"
-  ]
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "**/__tests__/**/*", "**/*.spec.ts", "**/*.test.ts"]
 }

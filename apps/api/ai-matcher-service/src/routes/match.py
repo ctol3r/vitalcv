@@ -1,4 +1,4 @@
-# match.py - placeholder or stub for chai-vc-platform
+# match.py - placeholder or stub for VitalCV
 
 """Placeholder module for route handlers.
 

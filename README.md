@@ -2,9 +2,24 @@
 
 <!-- VitalCV canonical monorepo (source of truth). -->
 
-> **VitalCV canonical monorepo.** Open this repository at the monorepo root (`/vitalcv`). Any legacy `v0-*` repos are archival and should not be used as the working directory.
+> **VitalCV canonical monorepo.** Open this repository at the monorepo root (`/vitalcv`). Legacy repos are reference-only and must not be used as working directories.
 
 Unified monorepo for the VitalCV healthcare credentialing platform.
+
+## Canonical Repository Declaration
+
+This repository (`ctol3r/vitalcv`) is the **single canonical** repository for the VitalCV platform.
+
+- **All active development**: must occur in this repository.
+- **Legacy repositories (reference-only)**: see `./.ai/snapshot.md` (legacy identifiers are intentionally centralized there and should be purged elsewhere).
+- **Operational snapshot**: `./.ai/snapshot.md` is authoritative for “as-is” boundaries and constraints.
+- **Runtime rule**: if something is not present in this repo, it is not part of the current system.
+
+## Canonical Rules
+
+- Agent safety rules: `AGENTS.md`
+- System boundaries: `docs/architecture.md`
+- Legacy history: `docs/legacy-context.md`
 
 ## Structure
 
@@ -68,20 +83,22 @@ pnpm test
 pnpm --filter @vitalcv/api test
 ```
 
-## Workspace Packages
+## Key Workspaces
 
-- `@vitalcv/api` - Main backend API
-- `@vitalcv/web` - Frontend Next.js application
-- `@vitalcv/shared-utils` - Shared utilities
-- `@vitalcv/vc-schemas` - Verifiable Credential schemas
-- `@vitalcv/compliance-core` - Compliance and regulatory logic
-- `@vitalcv/psv-pipeline` - Provider Screening and Verification pipeline
-- `@vitalcv/ai-engines` - AI/ML engines
-- `@vitalcv/ui` - Shared UI components
+- `apps/api` - Backend API surface
+- `apps/web` - Frontend Next.js application
+- `packages/shared-utils` - Shared utilities
+- `packages/vc-schemas` - Verifiable Credential schemas
+- `packages/vc-formats-csdjwt` - CSD-JWT VC format helpers
+- `packages/domain-identity` - Identity domain types/logic
+- `packages/logging-core` - Logging core
+- `packages/ui` - Shared UI components
+
+For a full list, see `apps/`, `packages/`, and `services/`.
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+See `docs/architecture.md` for system boundaries and `AGENTS.md` for repo rules.
 
 ## License
 

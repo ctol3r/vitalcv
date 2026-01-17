@@ -71,8 +71,8 @@ curl http://localhost:4000/healthz
 #### 2. Check Backend Logs
 
 ```bash
-cd ../chai-vc-platform
-npm run dev
+# From the monorepo root:
+pnpm --filter @vitalcv/api dev
 
 # Look for:
 # ✓ Server listening on port 4000

@@ -1,5 +1,7 @@
 # VitalCV Architecture (As-Is)
 
+> **Note:** Reflects Wave 4 Trust Layer implementation. Last reviewed: 2026-01-16.
+
 Last updated: 2026-01-14
 Source of truth: `.ai/snapshot.md`
 

@@ -1,7 +1,7 @@
 {
-  "name": "chai-vc-platform-backend",
+  "name": "vitalcv-backend",
   "version": "1.0.0",
-  "description": "chai vc platform backend",
+  "description": "vitalcv backend",
   "main": "dist/server.js",
   "license": "ISC",
   "type": "commonjs",

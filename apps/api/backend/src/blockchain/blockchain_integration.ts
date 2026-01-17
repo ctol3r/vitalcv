@@ -1,18 +1,15 @@
 // blockchain_integration.ts - comprehensive blockchain integration for credential validation
 // This module integrates the custom multi-token pallet written in Rust, verifier staking, and upgrade paths.
 
-import { Contract, BigNumberish, providers, Signer } from 'ethers';
-import VerifierStakingArtifact from '../../contracts/VerifierStaking.json';
-import { EthereumBridgeService } from './ethereum_bridge_service';
-import { ChainlinkAdapter } from './oracles/chainlink_adapter';
+import { BigNumberish, Contract, Signer } from 'ethers';
 import { queryRiskScore } from './chainlink_oracle';
-import { Governance, EconomicParameters } from './governance';
+import { EthereumBridgeService } from './ethereum_bridge_service';
+import { EconomicParameters, Governance } from './governance';
+import { HardwareWallet, LedgerWallet, YubiKeyWallet } from './hardware_wallet';
+import { ChainlinkAdapter } from './oracles/chainlink_adapter';
 import { bridgeToEvmContract, bridgeToWasmContract, UpgradePath } from './upgrade_paths';
-import {
-  HardwareWallet,
-  LedgerWallet,
-  YubiKeyWallet,
-} from './hardware_wallet';
+
+const VerifierStakingArtifact = require('../../contracts/VerifierStaking.json');
 
 // Default economic parameters for the platform.
 const defaultParameters: EconomicParameters = {
@@ -40,7 +37,7 @@ export function initializeIssuerWallet(type: 'yubikey' | 'ledger'): void {
 export async function signWithIssuerWallet(data: Buffer): Promise<Buffer> {
   if (!issuerWallet) {
     throw new Error(
-      'Issuer wallet not initialized. Use a hardware wallet such as YubiKey or Ledger.'
+      'Issuer wallet not initialized. Use a hardware wallet such as YubiKey or Ledger.',
     );
   }
 
@@ -72,32 +69,32 @@ export function getUpgradePath(target: 'EVM' | 'WASM', identifier: string): Upgr
  * for verifiers and slash them if they misbehave.
  */
 export class VerifierStakingService {
-    private contract: Contract;
+  private contract: Contract;
 
-    constructor(address: string, signer: Signer) {
-        this.contract = new Contract(address, VerifierStakingArtifact as any, signer);
-    }
+  constructor(address: string, signer: Signer) {
+    this.contract = new Contract(address, VerifierStakingArtifact as any, signer);
+  }
 
-    /**
-     * Stake tokens by sending native currency to the contract.
-     */
-    async stake(amount: BigNumberish) {
-        return await this.contract.stake({ value: amount });
-    }
+  /**
+   * Stake tokens by sending native currency to the contract.
+   */
+  async stake(amount: BigNumberish) {
+    return await this.contract.stake({ value: amount });
+  }
 
-    /**
-     * Withdraw previously staked tokens.
-     */
-    async withdraw(amount: BigNumberish) {
-        return await this.contract.withdraw(amount);
-    }
+  /**
+   * Withdraw previously staked tokens.
+   */
+  async withdraw(amount: BigNumberish) {
+    return await this.contract.withdraw(amount);
+  }
 
-    /**
-     * Slash a verifier's stake. Only the contract owner can call this.
-     */
-    async slash(verifier: string, amount: BigNumberish) {
-        return await this.contract.slash(verifier, amount);
-    }
+  /**
+   * Slash a verifier's stake. Only the contract owner can call this.
+   */
+  async slash(verifier: string, amount: BigNumberish) {
+    return await this.contract.slash(verifier, amount);
+  }
 }
 
 /**
@@ -165,10 +162,6 @@ export async function getOnChainRisk(userId: string): Promise<number> {
  * Placeholder blockchain check implementation.
  * In a real system this would query the on-chain credential registry.
  */
-export async function checkCredentialStatus(
-  credentialId: string
-): Promise<CredentialStatus> {
-  // TODO: Integrate with actual Polkadot or other blockchain service.
-  // For now always return 'valid'.
-  return 'valid';
+export async function checkCredentialStatus(credentialId: string): Promise<CredentialStatus> {
+  throw new Error(`Credential status check not implemented for ${credentialId}`);
 }

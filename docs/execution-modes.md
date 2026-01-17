@@ -1,5 +1,7 @@
 # Execution Modes Contract
 
+> **Note:** Canonical workflow documentation. Last reviewed: 2026-01-16.
+
 **Version:** 1.0.0
 **Status:** Authoritative Policy
 **Applies to:** All VitalCV services, tests, and development workflows

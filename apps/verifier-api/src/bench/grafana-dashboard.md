@@ -56,8 +56,8 @@
         "type": "stat",
         "thresholds": {
           "steps": [
-            {"value": 0, "color": "red"},
-            {"value": 40, "color": "green"}
+            { "value": 0, "color": "red" },
+            { "value": 40, "color": "green" }
           ]
         }
       }
@@ -99,24 +99,28 @@ Import the CSV file (`sd-vs-csd-benchmark.csv`) into Grafana:
 ## Dashboard Panels
 
 ### Panel 1: VP Size Reduction by Credential Type
+
 - **Type**: Graph
 - **Query**: `reduction_percent by (credential_type)`
 - **Y-axis**: Percentage reduction
 - **Legend**: Credential type
 
 ### Panel 2: Average VP Size by Format
+
 - **Type**: Graph
 - **Query**: `avg(vp_size_bytes) by (format)`
 - **Y-axis**: Bytes
 - **Legend**: Format (SD/CSD)
 
 ### Panel 3: VP Size by Credential Type
+
 - **Type**: Graph
 - **Query**: `avg(vp_size_bytes) by (credential_type, format)`
 - **Y-axis**: Bytes
 - **Legend**: Credential type - Format
 
 ### Panel 4: Reduction Percentage Stat
+
 - **Type**: Stat
 - **Query**: `reduction_percent`
 - **Thresholds**:
@@ -133,4 +137,3 @@ See `grafana-sd-csd-dashboard.png` for visual representation of the dashboard.
 **Version**: 1.1
 **Status**: Production Ready
 **Task**: B116C-CSD-036
-

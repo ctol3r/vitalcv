@@ -1,10 +1,17 @@
-import express, { Request, Response, NextFunction } from 'express';
-import { oidc4vciGuard } from '../middleware/guard';
-import { dpopGuard } from '../middleware/dpopGuard';
-import { createHash } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
+import type { Router } from 'express';
+import express, { NextFunction, Request, Response } from 'express';
+import { calculateJwkThumbprint, importJWK, jwtVerify, SignJWT } from 'jose';
 import { Histogram, Registry } from 'prom-client';
+import { getDpopAlgorithms } from '../config/security-loader';
+import { dpopGuard } from '../middleware/dpopGuard';
+import { oidc4vciGuard } from '../middleware/guard';
+import { AuditScrapbook } from '../services/auditScrapbook';
+import { EudiCredentialType, issueEudiCredential } from '../services/eudiIssuer';
+import { PolkadotService } from '../services/polkadotService';
+import { getActiveSigningKey } from '../services/signingKeyProvider';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // B114A-NONCE-003: Histogram metrics for nonce service
 // Create a registry for nonce metrics
@@ -64,6 +71,24 @@ const nonceStore = new Map<string, { timestamp: number; used: boolean }>(); // n
 const jtiReplayCache = new Map<string, { timestamp: number }>(); // jti -> { timestamp }
 const JTI_REPLAY_TTL_MS = 60000; // 60 seconds
 
+// Pre-authorized code flow storage (pilot)
+interface PreAuthorizedCodeRecord {
+  code: string;
+  expiresAt: number;
+  used: boolean;
+  userPin?: string;
+  scope?: string;
+  subjectDid?: string;
+  credentialType?: string;
+}
+
+const preAuthorizedCodes = new Map<string, PreAuthorizedCodeRecord>();
+const PRE_AUTH_CODE_TTL_MS = 10 * 60 * 1000;
+
+// DPoP replay cache for token endpoint
+const tokenDpopJtiCache = new Map<string, { timestamp: number }>();
+const TOKEN_DPOP_TTL_MS = 60000;
+
 // B106A-TBIND-002: Metrics for nonce service (hit/miss/evictions)
 interface NonceMetrics {
   hits: number; // Nonce found and valid
@@ -122,19 +147,7 @@ function generateIssuerMetadata(): any {
     batch_credential_endpoint: `${ISSUER_URL}/oidc4vci/batch`,
     // S72-STRETCH-A-001: Required field - credential configurations supported
     credential_configurations_supported: {
-      'PhysicianCredential': {
-        format: 'jwt_vc_json',
-        types: ['VerifiableCredential', 'PhysicianCredential'],
-        cryptographic_binding_methods_supported: ['did:key', 'did:web'],
-        cryptographic_suites_supported: ['EdDSA', 'ES256'],
-        display: [
-          {
-            name: 'Physician Credential',
-            locale: 'en-US',
-          },
-        ],
-      },
-      'SDJWTPhysicianCredential': {
+      SDJWTPhysicianCredential: {
         format: 'vc+sd-jwt',
         types: ['VerifiableCredential', 'PhysicianCredential'],
         cryptographic_binding_methods_supported: ['did:key', 'did:web'],
@@ -147,7 +160,7 @@ function generateIssuerMetadata(): any {
           },
         ],
       },
-      'SDJWTIdentityCredential': {
+      SDJWTIdentityCredential: {
         format: 'vc+sd-jwt',
         types: ['VerifiableCredential', 'IdentityCredential'],
         cryptographic_binding_methods_supported: ['did:key'],
@@ -159,38 +172,9 @@ function generateIssuerMetadata(): any {
           },
         ],
       },
-      'ISO_mDL': {
-        format: 'mso_mdoc',
-        types: ['VerifiableCredential', 'mDL'],
-        cryptographic_binding_methods_supported: ['did:key'],
-        cryptographic_suites_supported: ['ES256', 'EdDSA'],
-        display: [
-          {
-            name: 'ISO mDL (Mobile Driving License)',
-            locale: 'en-US',
-            description: 'ISO 18013-5 Mobile Driving License credential',
-          },
-        ],
-        doc_types: ['org.iso.18013.5.1.mDL'],
-      },
     },
     // Legacy format for backward compatibility
     credentials_supported: [
-      {
-        format: 'jwt_vc_json',
-        id: 'PhysicianCredential',
-        types: ['VerifiableCredential', 'PhysicianCredential'],
-        cryptographic_binding_methods_supported: ['did:key', 'did:web'],
-        cryptographic_suites_supported: ['EdDSA', 'ES256'],
-        // B119A-OIDC-002: Include token_binding metadata for DPoP+mTLS
-        token_binding: ['Dpop', 'Mtls'],
-        display: [
-          {
-            name: 'Physician Credential',
-            locale: 'en-US',
-          },
-        ],
-      },
       {
         format: 'vc+sd-jwt',
         id: 'SDJWTPhysicianCredential',
@@ -222,26 +206,9 @@ function generateIssuerMetadata(): any {
           },
         ],
       },
-      {
-        format: 'mso_mdoc',
-        id: 'ISO_mDL',
-        types: ['VerifiableCredential', 'mDL'],
-        cryptographic_binding_methods_supported: ['did:key'],
-        cryptographic_suites_supported: ['ES256', 'EdDSA'],
-        // B119A-OIDC-002: Include token_binding metadata for DPoP+mTLS
-        token_binding: ['Dpop', 'Mtls'],
-        display: [
-          {
-            name: 'ISO mDL (Mobile Driving License)',
-            locale: 'en-US',
-            description: 'ISO 18013-5 Mobile Driving License credential',
-          },
-        ],
-        doc_types: ['org.iso.18013.5.1.mDL'],
-      },
     ],
-    authorization_endpoint: `${ISSUER_URL}/oidc4vci/authorize`,
-    token_endpoint_auth_methods_supported: ['private_key_jwt', 'client_secret_basic'],
+    grant_types_supported: ['urn:ietf:params:oauth:grant-type:pre-authorized_code'],
+    token_endpoint_auth_methods_supported: ['none'],
     token_endpoint_auth_signing_alg_values_supported: ['EdDSA', 'ES256'],
     dpop_signing_alg_values_supported: ['EdDSA', 'ES256'],
     c_nonce_supported: true,
@@ -249,7 +216,19 @@ function generateIssuerMetadata(): any {
     // B119A-OIDC-002: Include token_binding at issuer level (DPoP+mTLS)
     token_binding: ['Dpop', 'Mtls'],
     // B99A-OIDC-005: Include format support metadata
-    formats_supported: ['jwt_vc_json', 'vc+sd-jwt', 'mso_mdoc'],
+    formats_supported: ['vc+sd-jwt'],
+  };
+}
+
+function generateOpenIdConfiguration(): any {
+  return {
+    issuer: `${ISSUER_URL}/oidc4vci`,
+    token_endpoint: `${ISSUER_URL}/oidc4vci/token`,
+    jwks_uri: `${ISSUER_URL}/.well-known/jwks.json`,
+    grant_types_supported: ['urn:ietf:params:oauth:grant-type:pre-authorized_code'],
+    scopes_supported: ['openid', 'credential'],
+    token_endpoint_auth_methods_supported: ['none'],
+    dpop_signing_alg_values_supported: ['EdDSA', 'ES256'],
   };
 }
 
@@ -314,6 +293,183 @@ initializeMetadata().catch((err) => {
   process.exit(1);
 });
 
+function base64UrlEncode(input: Buffer | string): string {
+  const buffer = typeof input === 'string' ? Buffer.from(input, 'utf8') : input;
+  return buffer.toString('base64url');
+}
+
+function cleanupReplayCache(cache: Map<string, { timestamp: number }>, ttlMs: number) {
+  const now = Date.now();
+  for (const [key, entry] of cache.entries()) {
+    if (now - entry.timestamp > ttlMs) {
+      cache.delete(key);
+    }
+  }
+}
+
+function cleanupPreAuthorizedCodes(): void {
+  const now = Date.now();
+  for (const [code, record] of preAuthorizedCodes.entries()) {
+    if (record.expiresAt < now || record.used) {
+      preAuthorizedCodes.delete(code);
+    }
+  }
+}
+
+export function registerPreAuthorizedCode(
+  input: {
+    code?: string;
+    userPin?: string;
+    scope?: string;
+    subjectDid?: string;
+    credentialType?: string;
+    expiresInSeconds?: number;
+  } = {},
+): PreAuthorizedCodeRecord {
+  const code = input.code || base64UrlEncode(randomBytes(24));
+  const expiresAt = Date.now() + (input.expiresInSeconds ?? PRE_AUTH_CODE_TTL_MS / 1000) * 1000;
+  const record: PreAuthorizedCodeRecord = {
+    code,
+    expiresAt,
+    used: false,
+    userPin: input.userPin,
+    scope: input.scope,
+    subjectDid: input.subjectDid,
+    credentialType: input.credentialType,
+  };
+  preAuthorizedCodes.set(code, record);
+  cleanupPreAuthorizedCodes();
+  return record;
+}
+
+export function clearPreAuthorizedCodes(): void {
+  preAuthorizedCodes.clear();
+}
+
+export function registerIssuedNonce(nonce: string, timestamp: number = Date.now()): void {
+  nonceStore.set(nonce, { timestamp, used: false });
+}
+
+async function verifyTokenDpopProof(
+  req: Request,
+): Promise<{ thumbprint?: string; error?: string }> {
+  const dpopHeader = req.headers['dpop'] as string | undefined;
+  if (!dpopHeader) {
+    return { error: 'DPoP proof header is required' };
+  }
+
+  const parts = dpopHeader.split('.');
+  if (parts.length !== 3) {
+    return { error: 'Invalid DPoP proof format' };
+  }
+
+  let header: { jwk?: any; alg?: string; typ?: string; kid?: string };
+  try {
+    header = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
+  } catch {
+    return { error: 'Invalid DPoP header encoding' };
+  }
+
+  const { jwk, alg, typ, kid } = header;
+  if (!jwk) {
+    return { error: 'Missing JWK in DPoP proof header' };
+  }
+
+  const allowedAlgorithms = getDpopAlgorithms();
+  if (!alg || !allowedAlgorithms.includes(alg)) {
+    return { error: `invalid_alg: algorithm '${alg || 'missing'}' not allowed` };
+  }
+
+  if (typ !== 'dpop+jwt') {
+    return { error: `invalid_typ: expected 'dpop+jwt', got '${typ || 'missing'}'` };
+  }
+
+  if (!kid) {
+    return { error: 'invalid_kid: Missing kid in DPoP proof header' };
+  }
+
+  try {
+    const publicKey = await importJWK(jwk, alg);
+    const verified = await jwtVerify(dpopHeader, publicKey, { algorithms: allowedAlgorithms });
+    const payload = verified.payload as Record<string, any>;
+
+    const htu = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+    if (payload.htu !== htu) {
+      return { error: `htu mismatch: expected ${htu}, got ${payload.htu}` };
+    }
+
+    if (payload.htm?.toUpperCase() !== req.method.toUpperCase()) {
+      return { error: `htm mismatch: expected ${req.method.toUpperCase()}, got ${payload.htm}` };
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    if (!payload.iat || Math.abs(now - payload.iat) > 60) {
+      return { error: 'iat too old or missing' };
+    }
+
+    if (!payload.jti) {
+      return { error: 'Missing jti in DPoP proof' };
+    }
+
+    cleanupReplayCache(tokenDpopJtiCache, TOKEN_DPOP_TTL_MS);
+    if (tokenDpopJtiCache.has(payload.jti)) {
+      return { error: `jti reused: ${payload.jti}` };
+    }
+    tokenDpopJtiCache.set(payload.jti, { timestamp: Date.now() });
+
+    const thumbprint = await calculateJwkThumbprint(jwk);
+    return { thumbprint };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'DPoP verification failed' };
+  }
+}
+
+async function issueAccessToken(params: {
+  clientId: string;
+  scope?: string;
+  holderJkt: string;
+}): Promise<{ token: string; expiresIn: number }> {
+  const expiresIn = 600;
+  const { jwk, kid } = await getActiveSigningKey();
+  const algorithm = (jwk.alg as string) || 'EdDSA';
+  const privateKey = await importJWK(jwk, algorithm);
+
+  const issuedAt = Math.floor(Date.now() / 1000);
+  const payload: Record<string, unknown> = {
+    cnf: { jkt: params.holderJkt },
+  };
+  if (params.scope) {
+    payload.scope = params.scope;
+  }
+
+  const token = await new SignJWT(payload)
+    .setProtectedHeader({ alg: algorithm, typ: 'JWT', kid: kid || 'issuer-key-default' })
+    .setIssuer(`${ISSUER_URL}/oidc4vci`)
+    .setSubject(params.clientId)
+    .setAudience(`${ISSUER_URL}/oidc4vci`)
+    .setIssuedAt(issuedAt)
+    .setExpirationTime(issuedAt + expiresIn)
+    .setJti(base64UrlEncode(randomBytes(12)))
+    .sign(privateKey);
+
+  return { token, expiresIn };
+}
+
+function issueStoredNonce(): { nonce: string; expiresIn: number } {
+  return { nonce: generateCNonce(), expiresIn: 60 };
+}
+
+async function anchorIssuedCredential(subjectId: string, credentialHash: string) {
+  const polkadot = new PolkadotService();
+  await polkadot.connect();
+  const txHash = await polkadot.anchorData(credentialHash);
+
+  const scrapbook = new AuditScrapbook(polkadot);
+  await scrapbook.recordIdentityAction(subjectId, `oidc4vci_issue:${credentialHash}`);
+
+  return { txHash };
+}
+
 /**
  * Middleware to enforce c_nonce freshness and prevent replay attacks
  * B110A-NONCE-002: Fresh nonce required; skew ≤60s; replay blocked; audit logs recorded
@@ -331,7 +487,7 @@ function enforceCNonce(req: Request, res: Response, next: NextFunction) {
     });
     return res.status(400).json({
       error: 'invalid_request',
-      error_description: 'Missing c_nonce'
+      error_description: 'Missing c_nonce',
     });
   }
 
@@ -359,7 +515,7 @@ function enforceCNonce(req: Request, res: Response, next: NextFunction) {
       });
       return res.status(400).json({
         error: 'invalid_request',
-        error_description: 'Nonce reused (replay attempt detected)'
+        error_description: 'Nonce reused (replay attempt detected)',
       });
     }
 
@@ -381,7 +537,7 @@ function enforceCNonce(req: Request, res: Response, next: NextFunction) {
       });
       return res.status(400).json({
         error: 'invalid_request',
-        error_description: `Nonce expired (age: ${Math.floor(age / 1000)}s, max: 60s)`
+        error_description: `Nonce expired (age: ${Math.floor(age / 1000)}s, max: 60s)`,
       });
     }
 
@@ -400,15 +556,17 @@ function enforceCNonce(req: Request, res: Response, next: NextFunction) {
       cache_ttl_validated: true,
     });
   } else {
-    // New nonce - store with current timestamp
-    nonceStore.set(cNonce, { timestamp: now, used: true });
-    nonceMetrics.misses++; // Nonce not found (new or expired)
-    auditLogNonce('NONCE_NEW', {
+    nonceMetrics.misses++;
+    auditLogNonce('NONCE_UNKNOWN', {
       nonce: cNonce.substring(0, 8) + '...',
       endpoint,
       clientId,
       ip: req.ip,
-      note: 'Nonce not found in cache (new or expired)',
+      note: 'Nonce not found in cache',
+    });
+    return res.status(400).json({
+      error: 'invalid_request',
+      error_description: 'Unknown or missing c_nonce (nonce not issued or expired)',
     });
   }
 
@@ -465,6 +623,124 @@ router.get('/.well-known/openid-credential-issuer', (req: Request, res: Response
 });
 
 /**
+ * OpenID Configuration (issuer subset)
+ * GET /.well-known/openid-configuration
+ */
+router.get('/.well-known/openid-configuration', (req: Request, res: Response) => {
+  const config = generateOpenIdConfiguration();
+  res.setHeader('Content-Type', 'application/json');
+  res.json(config);
+});
+
+/**
+ * Generate pre-authorized code (internal/admin endpoint)
+ * POST /oidc4vci/pre-authorized-code
+ */
+router.post('/pre-authorized-code', oidc4vciGuard, (req: Request, res: Response) => {
+  const { subjectDid, credentialType, userPin, expiresInSeconds, scope } = req.body;
+
+  const record = registerPreAuthorizedCode({
+    subjectDid,
+    credentialType,
+    userPin,
+    expiresInSeconds,
+    scope: scope || 'openid credential',
+  });
+
+  res.json({
+    pre_authorized_code: record.code,
+    expires_in: Math.floor((record.expiresAt - Date.now()) / 1000),
+    user_pin_required: !!userPin,
+  });
+});
+
+/**
+ * Token Endpoint (authorization code flow)
+ * POST /oidc4vci/token
+ */
+router.post('/token', async (req: Request, res: Response) => {
+  const grantType = req.body?.grant_type as string | undefined;
+
+  if (grantType !== 'urn:ietf:params:oauth:grant-type:pre-authorized_code') {
+    return res.status(400).json({
+      error: 'unsupported_grant_type',
+      error_description: 'Only pre-authorized code grant is supported for pilot issuance',
+    });
+  }
+
+  cleanupPreAuthorizedCodes();
+
+  const preAuthorizedCode = req.body?.['pre-authorized_code'] as string | undefined;
+  const userPin =
+    (req.body?.user_pin as string | undefined) || (req.body?.pin as string | undefined);
+  const clientId = req.body?.client_id as string | undefined;
+
+  if (!preAuthorizedCode) {
+    return res.status(400).json({
+      error: 'invalid_request',
+      error_description: 'Missing pre-authorized_code',
+    });
+  }
+
+  const record = preAuthorizedCodes.get(preAuthorizedCode);
+  if (!record) {
+    return res.status(400).json({
+      error: 'invalid_grant',
+      error_description: 'Pre-authorized code not found',
+    });
+  }
+
+  if (record.used || record.expiresAt < Date.now()) {
+    return res.status(400).json({
+      error: 'invalid_grant',
+      error_description: 'Pre-authorized code expired or already used',
+    });
+  }
+
+  if (record.userPin && record.userPin !== userPin) {
+    return res.status(400).json({
+      error: 'invalid_grant',
+      error_description: 'Invalid user PIN',
+    });
+  }
+
+  const dpopResult = await verifyTokenDpopProof(req);
+  if (!dpopResult.thumbprint) {
+    return res.status(401).json({
+      error: 'invalid_dpop',
+      error_description: dpopResult.error || 'DPoP proof validation failed',
+    });
+  }
+
+  record.used = true;
+  preAuthorizedCodes.set(preAuthorizedCode, record);
+  cleanupPreAuthorizedCodes();
+
+  try {
+    const { token, expiresIn } = await issueAccessToken({
+      clientId: clientId || record.subjectDid || 'wallet',
+      scope: record.scope,
+      holderJkt: dpopResult.thumbprint,
+    });
+
+    const { nonce: cNonce, expiresIn: cNonceExpiresIn } = issueStoredNonce();
+
+    return res.json({
+      access_token: token,
+      token_type: 'DPoP',
+      expires_in: expiresIn,
+      c_nonce: cNonce,
+      c_nonce_expires_in: cNonceExpiresIn,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: 'server_error',
+      error_description: error instanceof Error ? error.message : 'Failed to issue access token',
+    });
+  }
+});
+
+/**
  * Credential Endpoint
  * POST /oidc4vci/credential
  *
@@ -475,66 +751,132 @@ router.get('/.well-known/openid-credential-issuer', (req: Request, res: Response
  *
  * Bearer-only calls rejected with use_dpop error; DPoP verifies htm/htu/iat/jti; cnf.jkt present in AT
  */
-router.post('/credential', oidc4vciGuard, dpopGuard, enforceCNonce, async (req: Request, res: Response) => {
-  // Guard middleware has verified the message
-  const { credential_request, transaction_id } = req.body;
+router.post(
+  '/credential',
+  oidc4vciGuard,
+  dpopGuard,
+  enforceCNonce,
+  async (req: Request, res: Response) => {
+    // Guard middleware has verified the message
+    const { credential_request, transaction_id } = req.body;
 
-  if (!credential_request) {
-    return res.status(400).json({ error: 'invalid_request', error_description: 'Missing credential_request' });
-  }
+    if (!credential_request) {
+      return res
+        .status(400)
+        .json({ error: 'invalid_request', error_description: 'Missing credential_request' });
+    }
 
-  // Check if this is a deferred issuance request
-  const deferIssuance = credential_request.defer_issuance === true;
+    // Check if this is a deferred issuance request
+    const deferIssuance = credential_request.defer_issuance === true;
 
-  if (deferIssuance) {
-    // Create deferred credential entry
-    const txId = transaction_id || `tx-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-    deferredCredentials.set(txId, {
-      transaction_id: txId,
-      status: 'requested',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    });
+    if (deferIssuance) {
+      // Create deferred credential entry
+      const txId = transaction_id || `tx-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      deferredCredentials.set(txId, {
+        transaction_id: txId,
+        status: 'requested',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
 
-    return res.json({
-      transaction_id: txId,
-      status: 'requested',
-      c_nonce: generateCNonce(),
-      c_nonce_expires_in: 300,
-    });
-  }
+      return res.json({
+        transaction_id: txId,
+        status: 'requested',
+        c_nonce: generateCNonce(),
+        c_nonce_expires_in: 60,
+      });
+    }
 
-  // Immediate issuance
-  // S72-D1-A-007: Use ClinicianIdentityVC issuer for actual credential issuance
-  try {
-    const { issueClinicianIdentityVC } = await import('../services/clinicianIdentityIssuer');
+    // Immediate issuance
+    try {
+      const holderJkt = (req as any).cnfJkt as string | undefined;
+      if (!holderJkt) {
+        return res.status(401).json({
+          error: 'invalid_token',
+          error_description: 'DPoP-bound access token required for holder binding',
+        });
+      }
 
-    // Extract clinician profile from credential_request
-    // In production, this would be extracted from authenticated session
-    const profile = {
-      did: credential_request.subject_id || `did:key:z${Buffer.from(Math.random().toString()).toString('base64url').substring(0, 20)}`,
-      name: credential_request.credential_subject?.name || 'Dr. Test Clinician',
-      npi: credential_request.credential_subject?.npi || '1234567890',
-      specialty: credential_request.credential_subject?.specialty || 'General Medicine',
-    };
+      const requestedFormat = credential_request.format || req.body?.format || 'vc+sd-jwt';
+      if (requestedFormat !== 'vc+sd-jwt') {
+        return res.status(400).json({
+          error: 'unsupported_credential_format',
+          error_description: 'Only vc+sd-jwt format is supported for pilot issuance',
+        });
+      }
 
-    // Issue signed VC
-    const vcJws = await issueClinicianIdentityVC(profile);
+      const subjectId =
+        credential_request.subject_id ||
+        credential_request.credential_subject?.id ||
+        credential_request.credential_subject?.did;
 
-    res.json({
-      format: 'jwt_vc_json',
-      credential: vcJws,
-      c_nonce: generateCNonce(),
-      c_nonce_expires_in: 300,
-    });
-  } catch (issueError) {
-    console.error('[OIDC4VCI] Credential issuance error:', issueError);
-    res.status(500).json({
-      error: 'server_error',
-      error_description: issueError instanceof Error ? issueError.message : 'Failed to issue credential',
-    });
-  }
-});
+      const countryCode =
+        credential_request.credential_subject?.country ||
+        credential_request.country_code ||
+        credential_request.countryCode;
+
+      if (!subjectId || !countryCode) {
+        return res.status(400).json({
+          error: 'invalid_request',
+          error_description: 'subject_id and countryCode are required for EUDI issuance',
+        });
+      }
+
+      const credentialType =
+        credential_request.credential_type ||
+        credential_request.types?.find((type: string) => type !== 'VerifiableCredential') ||
+        credential_request.type;
+
+      if (
+        !credentialType ||
+        !Object.values(EudiCredentialType).includes(credentialType as EudiCredentialType)
+      ) {
+        return res.status(400).json({
+          error: 'invalid_request',
+          error_description: 'Unsupported or missing EUDI credential type',
+        });
+      }
+
+      const claims = {
+        ...(credential_request.credential_subject || {}),
+      } as Record<string, unknown>;
+      delete (claims as any).id;
+      delete (claims as any).did;
+      delete (claims as any).country;
+
+      const issued = await issueEudiCredential({
+        credentialType: credentialType as EudiCredentialType,
+        subjectDid: subjectId,
+        countryCode,
+        claims,
+        holderBindingKey: holderJkt,
+      });
+
+      const signedCredential = issued.credential;
+
+      const credentialHash = createHash('sha256').update(signedCredential).digest('hex');
+      const anchor = await anchorIssuedCredential(subjectId, credentialHash);
+
+      res.json({
+        format: requestedFormat,
+        credential: signedCredential,
+        c_nonce: generateCNonce(),
+        c_nonce_expires_in: 60,
+        audit: {
+          hash: credentialHash,
+          txHash: anchor.txHash,
+        },
+      });
+    } catch (issueError) {
+      console.error('[OIDC4VCI] Credential issuance error:', issueError);
+      res.status(500).json({
+        error: 'server_error',
+        error_description:
+          issueError instanceof Error ? issueError.message : 'Failed to issue credential',
+      });
+    }
+  },
+);
 
 /**
  * Nonce Endpoint
@@ -552,9 +894,9 @@ router.post('/nonce', oidc4vciGuard, (req: Request, res: Response) => {
 
   // B110A-NONCE-002: Check for jti in request body (if provided)
   const jti = req.body?.jti;
+  const now = Date.now();
 
   if (jti) {
-    const now = Date.now();
     // Check if jti was already used (replay protection)
     if (jtiReplayCache.has(jti)) {
       const cachedJti = jtiReplayCache.get(jti)!;
@@ -571,7 +913,7 @@ router.post('/nonce', oidc4vciGuard, (req: Request, res: Response) => {
       });
       return res.status(400).json({
         error: 'invalid_request',
-        error_description: `jti reused: ${jti} (replay attack detected)`
+        error_description: `jti reused: ${jti} (replay attack detected)`,
       });
     }
 
@@ -606,12 +948,9 @@ router.post('/nonce', oidc4vciGuard, (req: Request, res: Response) => {
     }
   }
 
-  const freshNonce = generateCNonce();
-  // Use existing 'now' from jti check above, or create new one
-  const nonceNow = jti ? now : Date.now();
-
-  // Store nonce with timestamp (not yet used)
-  nonceStore.set(freshNonce, { timestamp: nonceNow, used: false });
+  // Reuse request timestamp for nonce generation
+  const nonceNow = now;
+  const freshNonce = generateCNonce(nonceNow);
 
   // B110A-NONCE-002: Audit log nonce generation
   auditLogNonce('NONCE_GENERATED', {
@@ -637,52 +976,64 @@ router.post('/nonce', oidc4vciGuard, (req: Request, res: Response) => {
  * Supports polling with status state machine: requested → ready → issued
  * B100B-TBIND-038: Bearer-only tokens rejected; DPoP/mTLS required
  */
-router.post('/deferred', oidc4vciGuard, dpopGuard, enforceCNonce, async (req: Request, res: Response) => {
-  const { transaction_id } = req.body;
+router.post(
+  '/deferred',
+  oidc4vciGuard,
+  dpopGuard,
+  enforceCNonce,
+  async (req: Request, res: Response) => {
+    const { transaction_id } = req.body;
 
-  if (!transaction_id) {
-    return res.status(400).json({ error: 'invalid_request', error_description: 'Missing transaction_id' });
-  }
+    if (!transaction_id) {
+      return res
+        .status(400)
+        .json({ error: 'invalid_request', error_description: 'Missing transaction_id' });
+    }
 
-  const deferred = deferredCredentials.get(transaction_id);
+    const deferred = deferredCredentials.get(transaction_id);
 
-  if (!deferred) {
-    return res.status(404).json({ error: 'not_found', error_description: 'Deferred credential not found' });
-  }
+    if (!deferred) {
+      return res
+        .status(404)
+        .json({ error: 'not_found', error_description: 'Deferred credential not found' });
+    }
 
-  // State machine: requested → ready → issued
-  if (deferred.status === 'requested') {
-    // Still processing - wallet should poll again
-    return res.json({
-      transaction_id,
-      status: 'requested',
-      c_nonce: generateCNonce(),
-      c_nonce_expires_in: 300,
-    });
-  }
+    // State machine: requested → ready → issued
+    if (deferred.status === 'requested') {
+      // Still processing - wallet should poll again
+      return res.json({
+        transaction_id,
+        status: 'requested',
+        c_nonce: generateCNonce(),
+        c_nonce_expires_in: 60,
+      });
+    }
 
-  if (deferred.status === 'ready') {
-    // Credential is ready but not yet issued
-    return res.json({
-      transaction_id,
-      status: 'ready',
-      c_nonce: generateCNonce(),
-      c_nonce_expires_in: 300,
-    });
-  }
+    if (deferred.status === 'ready') {
+      // Credential is ready but not yet issued
+      return res.json({
+        transaction_id,
+        status: 'ready',
+        c_nonce: generateCNonce(),
+        c_nonce_expires_in: 60,
+      });
+    }
 
-  if (deferred.status === 'issued' && deferred.credential) {
-    // Credential has been issued
-    return res.json({
-      format: 'jwt_vc_json',
-      credential: deferred.credential,
-      c_nonce: generateCNonce(),
-      c_nonce_expires_in: 300,
-    });
-  }
+    if (deferred.status === 'issued' && deferred.credential) {
+      // Credential has been issued
+      return res.json({
+        format: 'jwt_vc_json',
+        credential: deferred.credential,
+        c_nonce: generateCNonce(),
+        c_nonce_expires_in: 60,
+      });
+    }
 
-  return res.status(500).json({ error: 'server_error', error_description: 'Invalid deferred credential state' });
-});
+    return res
+      .status(500)
+      .json({ error: 'server_error', error_description: 'Invalid deferred credential state' });
+  },
+);
 
 /**
  * Deferred Credential Status Endpoint
@@ -691,22 +1042,29 @@ router.post('/deferred', oidc4vciGuard, dpopGuard, enforceCNonce, async (req: Re
  * Polling endpoint for deferred credential status
  * B100B-TBIND-038: Bearer-only tokens rejected; DPoP/mTLS required
  */
-router.get('/deferred/:transaction_id/status', oidc4vciGuard, dpopGuard, async (req: Request, res: Response) => {
-  const { transaction_id } = req.params;
+router.get(
+  '/deferred/:transaction_id/status',
+  oidc4vciGuard,
+  dpopGuard,
+  async (req: Request, res: Response) => {
+    const { transaction_id } = req.params;
 
-  const deferred = deferredCredentials.get(transaction_id);
+    const deferred = deferredCredentials.get(transaction_id);
 
-  if (!deferred) {
-    return res.status(404).json({ error: 'not_found', error_description: 'Deferred credential not found' });
-  }
+    if (!deferred) {
+      return res
+        .status(404)
+        .json({ error: 'not_found', error_description: 'Deferred credential not found' });
+    }
 
-  res.json({
-    transaction_id,
-    status: deferred.status,
-    createdAt: new Date(deferred.createdAt).toISOString(),
-    updatedAt: new Date(deferred.updatedAt).toISOString(),
-  });
-});
+    res.json({
+      transaction_id,
+      status: deferred.status,
+      createdAt: new Date(deferred.createdAt).toISOString(),
+      updatedAt: new Date(deferred.updatedAt).toISOString(),
+    });
+  },
+);
 
 /**
  * Batch Credential Endpoint
@@ -718,53 +1076,26 @@ router.get('/deferred/:transaction_id/status', oidc4vciGuard, dpopGuard, async (
  *
  * Bearer-only calls rejected with use_dpop error; DPoP verifies htm/htu/iat/jti; cnf.jkt present in AT
  */
-router.post('/batch', oidc4vciGuard, dpopGuard, enforceCNonce, async (req: Request, res: Response) => {
-  const { credential_requests } = req.body;
-
-  if (!credential_requests || !Array.isArray(credential_requests) || credential_requests.length === 0) {
-    return res.status(400).json({
-      error: 'invalid_request',
-      error_description: 'Missing or invalid credential_requests array'
+router.post(
+  '/batch',
+  oidc4vciGuard,
+  dpopGuard,
+  enforceCNonce,
+  async (req: Request, res: Response) => {
+    return res.status(501).json({
+      error: 'unsupported_endpoint',
+      error_description: 'Batch issuance is disabled in pilot mode',
     });
-  }
-
-  // Limit batch size for security
-  const MAX_BATCH_SIZE = 100;
-  if (credential_requests.length > MAX_BATCH_SIZE) {
-    return res.status(400).json({
-      error: 'invalid_request',
-      error_description: `Batch size exceeds maximum of ${MAX_BATCH_SIZE} credentials`
-    });
-  }
-
-  // Process batch credential requests
-  // TODO: Implement actual batch credential issuance
-  // For now, return placeholder responses
-  const credentials = credential_requests.map((credential_request: any) => ({
-    format: credential_request.format || 'jwt_vc_json',
-    credential: {
-      '@context': ['https://www.w3.org/2018/credentials/v1'],
-      type: ['VerifiableCredential', credential_request.types?.[1] || 'PhysicianCredential'],
-      issuer: ISSUER_URL,
-      issuanceDate: new Date().toISOString(),
-      credentialSubject: {
-        id: credential_request.subject_id || 'did:example:subject',
-      },
-    },
-  }));
-
-  res.json({
-    credentials,
-    c_nonce: generateCNonce(),
-    c_nonce_expires_in: 300,
-  });
-});
+  },
+);
 
 /**
  * Generate a fresh c_nonce
  */
-function generateCNonce(): string {
-  return Buffer.from(Math.random().toString(36) + Date.now().toString()).toString('base64').slice(0, 16);
+function generateCNonce(timestamp: number = Date.now()): string {
+  const nonce = base64UrlEncode(randomBytes(18));
+  nonceStore.set(nonce, { timestamp, used: false });
+  return nonce;
 }
 
 /**

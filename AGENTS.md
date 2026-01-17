@@ -1,5 +1,7 @@
 # VitalCV Agent Rules
 
+> **Note:** Created pre-Wave 5 (January 2026). Last reviewed: 2026-01-16.
+
 These rules apply to all automated agents working in this repository.
 
 ## Canonical Repository

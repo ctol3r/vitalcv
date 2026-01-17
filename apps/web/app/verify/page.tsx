@@ -22,7 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useSession } from '@/contexts/SessionContext';
 import { useToast } from '@/hooks/use-toast';
 import { addEvent } from '@/lib/event-cache';
-import { CheckCircle2, Loader2, Search, Shield, XCircle } from 'lucide-react';
+import { CheckCircle2, Loader2, QrCode, Search, Shield, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -46,6 +46,7 @@ export default function VerifyPage() {
   const searchParams = useSearchParams();
   const { session } = useSession();
   const [credentialId, setCredentialId] = useState('');
+  const [vpTokenInput, setVpTokenInput] = useState('');
   const [nonce, setNonce] = useState('');
   const [audience, setAudience] = useState('vitalcv.com');
   const [privacyMode, setPrivacyMode] = useState<'plain' | 'bbs' | 'zk'>('plain');
@@ -57,6 +58,12 @@ export default function VerifyPage() {
   const [lastCheckTime, setLastCheckTime] = useState<Date | null>(null);
   const [hasAutoVerified, setHasAutoVerified] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
+
+  // OIDC4VP State
+  const [verificationState, setVerificationState] = useState<string | null>(null);
+  const [requestUri, setRequestUri] = useState<string | null>(null);
+  const [requestQrCode, setRequestQrCode] = useState<string | null>(null);
+
   const pollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pollCountRef = useRef(0);
   const { toast } = useToast();
@@ -352,26 +359,58 @@ export default function VerifyPage() {
     }
   };
 
+  const handleInitiateVerification = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/verifier/oidc/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'VerifiableCredential', // Can be parameterized
+          claims: ['credentialId', 'issuer', 'issuedAt'],
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to generate request');
+      const data = await response.json();
+
+      setVerificationState(data.state);
+      // In a real app, response_uri would be a deep link or QR code content
+      setRequestUri(data.response_uri);
+      // For demo, we just show the request details or a QR code representing the request
+      setRequestQrCode(JSON.stringify(data));
+
+      toast({
+        title: 'Request Generated',
+        description: 'Scan the QR code with your wallet',
+      });
+    } catch (err) {
+      setError('Failed to initiate verification');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleVerifyPresentation = async () => {
-    if (!credentialId.trim()) return;
+    const tokenToVerify = vpTokenInput || credentialId;
+    if (!tokenToVerify.trim()) return;
 
     setLoading(true);
     setError(null);
     setResult(null);
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
-      const response = await fetch(`${backendUrl}/verifier/presentation`, {
+      // Use new OIDC verify endpoint which enforces backend checks
+      const response = await fetch('/api/verifier/oidc/verify', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          credentialId: credentialId.trim(),
-          nonce: nonce.trim(),
-          audience: audience.trim(),
-          privacyMode: privacyMode !== 'plain',
-          disclosureType: privacyMode,
+          vp_token: tokenToVerify.trim(),
+          state: verificationState, // Pass state if we initiated a flow
+          // Legacy params if needed by backend adapter, but new endpoint uses vp_token
         }),
       });
 
@@ -382,15 +421,15 @@ export default function VerifyPage() {
       const data = await response.json();
 
       const verificationResult: VerificationResult = {
-        status: data.valid ? 'valid' : data.status || 'unknown',
-        credentialId: credentialId.trim(),
+        status: data.status || 'unknown',
+        credentialId: data.verifiedClaims?.credentialId || 'unknown',
         auditRef: data.auditRef,
-        timestamp: new Date().toISOString(),
+        timestamp: data.verifiedAt || new Date().toISOString(),
         details: {
-          issuer: data.issuer,
-          issuedDate: data.issuedDate,
+          issuer: data.issuer || data.verifiedClaims?.issuer,
+          issuedDate: data.verifiedClaims?.issuedAt,
           expiryDate: data.expiryDate,
-          reason: data.reason,
+          reason: data.failureReason, // Backend provides clear reason
           disclosureType:
             privacyMode === 'plain'
               ? 'Full disclosure'
@@ -404,23 +443,24 @@ export default function VerifyPage() {
       setLastCheckTime(new Date());
 
       // Add verification event to cache
-      addEvent({
-        credentialId: credentialId.trim(),
-        type: 'verified',
-        timestamp: new Date().toISOString(),
-        auditRef: data.auditRef,
-        details: {
-          issuer: data.issuer,
-          status: verificationResult.status,
-          reason: data.reason,
-        },
-      });
+      if (verificationResult.credentialId !== 'unknown') {
+        addEvent({
+          credentialId: verificationResult.credentialId,
+          type: 'verified',
+          timestamp: new Date().toISOString(),
+          auditRef: data.auditRef,
+          details: {
+            issuer: data.issuer,
+            status: verificationResult.status,
+            reason: data.failureReason,
+          },
+        });
+      }
 
       toast({
-        title: 'Verification Complete',
-        description: `Credential ${
-          verificationResult.status === 'valid' ? 'verified successfully' : 'verification completed'
-        }`,
+        title: data.verified ? 'Verification Successful' : 'Verification Failed',
+        description: data.failureReason || `Credential verified successfully`,
+        variant: data.verified ? 'default' : 'destructive',
       });
     } catch (err) {
       const errorMessage =
@@ -489,14 +529,73 @@ export default function VerifyPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* OIDC4VP Section */}
+                <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 mb-4">
+                  <h3 className="text-sm font-semibold mb-2">Wallet Verification (OIDC4VP)</h3>
+                  {!requestQrCode ? (
+                    <Button
+                      onClick={handleInitiateVerification}
+                      variant="outline"
+                      className="w-full"
+                      disabled={loading}
+                    >
+                      <QrCode className="mr-2 h-4 w-4" />
+                      Generate Request QR
+                    </Button>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="bg-white p-2 rounded border mx-auto w-fit">
+                        {/* Placeholder for QR Code rendering */}
+                        <div className="h-48 w-48 bg-slate-200 flex items-center justify-center text-xs text-center p-2">
+                          QR Code for:
+                          <br />
+                          {verificationState}
+                        </div>
+                      </div>
+                      <p className="text-xs text-center text-muted-foreground">
+                        Scan with your wallet
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-xs"
+                        onClick={() => {
+                          setRequestQrCode(null);
+                          setRequestUri(null);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-2 text-muted-foreground">Or manual input</span>
+                  </div>
+                </div>
+
                 <div>
-                  <Label htmlFor="credentialId">Credential ID *</Label>
+                  <Label htmlFor="credentialId">Credential ID or VP Token *</Label>
                   <Input
                     id="credentialId"
                     type="text"
-                    placeholder="Enter credential ID (e.g., CRED-12345)"
-                    value={credentialId}
-                    onChange={(e) => setCredentialId(e.target.value)}
+                    placeholder="Enter ID (CRED-...) or paste VP Token"
+                    value={vpTokenInput || credentialId}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val.startsWith('ey') || val.length > 50) {
+                        setVpTokenInput(val);
+                        setCredentialId(''); // Clear simple ID if pasting token
+                      } else {
+                        setCredentialId(val);
+                        setVpTokenInput('');
+                      }
+                    }}
                     className="mt-1"
                   />
                 </div>
