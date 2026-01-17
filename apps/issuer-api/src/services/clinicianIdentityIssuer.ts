@@ -5,9 +5,11 @@
  * Uses a single keypair from environment configuration.
  */
 
-import { SignJWT, importJWK, JWK } from 'jose';
+import { createReceipt } from '@vitalcv/audit-receipts';
 import { randomBytes } from 'crypto';
-import { getActiveSigningKey } from '../../../../services/identity/signingKeyProvider';
+import { importJWK, JWK, SignJWT } from 'jose';
+import { getActiveSigningKey } from './signingKeyProvider';
+import { allocateStatusListEntry, buildCredentialStatus } from './statusList';
 
 // Issuer configuration
 const ISSUER_DID = process.env.ISSUER_DID || 'did:web:issuer.vitalcv.com';
@@ -15,10 +17,20 @@ const ISSUER_URL = process.env.PUBLIC_ISSUER_URL || process.env.ISSUER_URL || 'h
 
 const DEFAULT_SIGNING_ALG = process.env.ISSUER_SIGNING_ALG || 'EdDSA';
 
-async function getSigningMaterial(): Promise<{ kid: string; jwk: JWK; algorithm: string; privateKey: CryptoKey }> {
+type SigningKey = Exclude<Awaited<ReturnType<typeof importJWK>>, Uint8Array>;
+
+async function getSigningMaterial(): Promise<{
+  kid: string;
+  jwk: JWK;
+  algorithm: string;
+  privateKey: SigningKey;
+}> {
   const { kid, jwk } = await getActiveSigningKey();
   const algorithm = (jwk.alg as string) || DEFAULT_SIGNING_ALG;
   const privateKey = await importJWK(jwk, algorithm);
+  if (privateKey instanceof Uint8Array) {
+    throw new Error(`ISSUER_SIGNING_JWK must be asymmetric for ${algorithm}`);
+  }
   return { kid, jwk, algorithm, privateKey };
 }
 
@@ -30,6 +42,7 @@ export interface ClinicianProfile {
   name: string;
   npi: string;
   specialty: string;
+  holderJkt?: string;
 }
 
 /**
@@ -48,6 +61,7 @@ export interface ClinicianIdentityVC {
     npi: string;
     specialty: string;
   };
+  credentialStatus?: Record<string, unknown>;
 }
 
 /**
@@ -71,15 +85,25 @@ export async function issueClinicianIdentityVC(profile: ClinicianProfile): Promi
   // Generate credential ID
   const credentialId = `${ISSUER_URL}/credentials/clinician/${randomBytes(16).toString('hex')}`;
 
+  // Allocate status list index BEFORE signing the VC
+  let statusAllocation;
+  try {
+    statusAllocation = await allocateStatusListEntry(credentialId);
+  } catch (error) {
+    throw new Error(
+      `Failed to allocate status list entry: ${
+        error instanceof Error ? error.message : 'unknown error'
+      }`,
+    );
+  }
+
   // Build credential subject DID (use provided or generate placeholder)
   const subjectDid = profile.did || `did:key:z${randomBytes(16).toString('base64url')}`;
 
-  // Build VC payload
+  // Build VC payload with credentialStatus
   const now = new Date();
   const vc: ClinicianIdentityVC = {
-    '@context': [
-      'https://www.w3.org/2018/credentials/v1'
-    ],
+    '@context': ['https://www.w3.org/2018/credentials/v1'],
     id: credentialId,
     type: ['VerifiableCredential', 'ClinicianIdentityCredential'],
     issuer: ISSUER_DID,
@@ -89,7 +113,8 @@ export async function issueClinicianIdentityVC(profile: ClinicianProfile): Promi
       name: profile.name.trim(),
       npi: profile.npi,
       specialty: profile.specialty.trim(),
-    }
+    },
+    credentialStatus: buildCredentialStatus(statusAllocation),
   };
 
   // Sign as JWS (JWT format)
@@ -97,17 +122,45 @@ export async function issueClinicianIdentityVC(profile: ClinicianProfile): Promi
 
   const nowSeconds = Math.floor(now.getTime() / 1000);
 
-  const jws = await new SignJWT({ vc })
+  const jwsPayload: Record<string, unknown> = { vc };
+  if (profile.holderJkt) {
+    jwsPayload.cnf = { jkt: profile.holderJkt };
+  }
+
+  const jws = await new SignJWT(jwsPayload)
     .setProtectedHeader({
       alg: algorithm,
       typ: 'JWT',
-      kid: kid || 'issuer-key-default'
+      kid: kid || 'issuer-key-default',
     })
     .setIssuedAt(nowSeconds)
     .setIssuer(ISSUER_DID)
     .setSubject(subjectDid)
     .setJti(credentialId)
     .sign(privateKey);
+
+  // Generate CREDENTIAL_ISSUED audit receipt
+  try {
+    await createReceipt(
+      'CREDENTIAL_ISSUED',
+      { type: 'issuer', id: ISSUER_DID },
+      {
+        credential_id: credentialId,
+        holder_did: subjectDid,
+        issuer_did: ISSUER_DID,
+      },
+      'VALID',
+      {
+        credential_type: 'ClinicianIdentityCredential',
+        status_list_index: statusAllocation.index,
+        status_list_id: statusAllocation.listId,
+      },
+      privateKey,
+    );
+  } catch (error) {
+    // Log but don't fail issuance if receipt generation fails
+    console.error('[AUDIT] Failed to generate CREDENTIAL_ISSUED receipt:', error);
+  }
 
   return jws;
 }
@@ -149,4 +202,3 @@ export async function getPublicJWK(): Promise<JWK> {
     kid: jwk.kid,
   };
 }
-

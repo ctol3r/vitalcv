@@ -2,21 +2,22 @@
  * B139A-EUDI-006: Tests for EUDI Wallet VC Issuance
  */
 
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { Region } from '../../../../../services/org/models/TenantRegion';
 import {
-  issueEudiCredential,
   batchIssueEudiCredentials,
-  validateEudiRegion,
-  validateEudiCountry,
-  isEudiIssuanceAvailable,
+  clearEudiAuditLogs,
+  EudiCredentialRequest,
+  EudiCredentialType,
+  EudiIssuanceError,
   getCurrentRegion,
   getEudiAuditLogs,
-  clearEudiAuditLogs,
   getEudiIssuanceMetrics,
-  EudiCredentialType,
-  EudiCredentialRequest,
-  EudiIssuanceError,
+  isEudiIssuanceAvailable,
+  issueEudiCredential,
+  validateEudiCountry,
+  validateEudiRegion,
 } from '../eudiIssuer';
-import { Region } from '../../../../../services/org/models/TenantRegion';
 
 // Mock environment
 const originalEnv = process.env;
@@ -25,6 +26,7 @@ describe('EUDI Issuer Service', () => {
   beforeEach(() => {
     clearEudiAuditLogs();
     process.env = { ...originalEnv };
+    process.env.DEFAULT_HOLDER_JKT = 'test-holder-jkt';
   });
 
   afterEach(() => {
@@ -68,7 +70,7 @@ describe('EUDI Issuer Service', () => {
     it('should include country code in error', () => {
       try {
         validateEudiCountry('US');
-        fail('Should have thrown');
+        throw new Error('Should have thrown');
       } catch (error) {
         expect(error).toBeInstanceOf(EudiIssuanceError);
         const err = error as EudiIssuanceError;
@@ -182,7 +184,7 @@ describe('EUDI Issuer Service', () => {
 
       try {
         await issueEudiCredential(request);
-        fail('Should have thrown');
+        throw new Error('Should have thrown');
       } catch (error) {
         // Expected
       }
@@ -452,12 +454,7 @@ describe('EUDI Issuer Service', () => {
 
   describe('EudiIssuanceError', () => {
     it('should serialize to JSON correctly', () => {
-      const error = new EudiIssuanceError(
-        'Test error',
-        'TEST_CODE',
-        Region.US,
-        'DE'
-      );
+      const error = new EudiIssuanceError('Test error', 'TEST_CODE', Region.US, 'DE');
 
       const json = error.toJSON();
 
@@ -517,4 +514,3 @@ describe('EUDI Issuer Service', () => {
     });
   });
 });
-

@@ -2,7 +2,7 @@
  * S72-D1-A-007: Unit tests for ClinicianIdentityVC Issuer
  */
 
-import { describe, it, expect, beforeAll } from '@jest/globals';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { generateKeyPair, exportJWK } from 'jose';
 import {
   issueClinicianIdentityVC,
@@ -10,16 +10,14 @@ import {
   getPublicJWK,
   ClinicianProfile,
 } from '../clinicianIdentityIssuer';
-import { resetSigningKeyCache } from '../../../../../services/identity/signingKeyProvider';
 
 beforeAll(async () => {
   if (!process.env.VC_SIGNING_KEY_JWK) {
-    const { privateKey } = await generateKeyPair('EdDSA');
+    const { privateKey } = await generateKeyPair('EdDSA', { extractable: true });
     const jwk = await exportJWK(privateKey);
     jwk.kid = 'test-issuer-key';
     process.env.VC_SIGNING_KEY_JWK = JSON.stringify(jwk);
   }
-  resetSigningKeyCache();
 });
 
 describe('ClinicianIdentityVC Issuer', () => {
@@ -173,6 +171,23 @@ describe('ClinicianIdentityVC Issuer', () => {
       const vc2 = await verifyClinicianIdentityVC(vc2Jws);
 
       expect(vc1.id).not.toBe(vc2.id);
+    });
+
+    it('should include credentialStatus with status list allocation', async () => {
+      const profile: ClinicianProfile = {
+        name: 'Dr. Test',
+        npi: '1234567890',
+        specialty: 'Testing',
+      };
+
+      const vcJws = await issueClinicianIdentityVC(profile);
+      const vc = await verifyClinicianIdentityVC(vcJws);
+
+      expect(vc.credentialStatus).toBeTruthy();
+      expect(vc.credentialStatus?.type).toBe('StatusList2021Entry');
+      expect(vc.credentialStatus?.statusPurpose).toBe('revocation');
+      expect(vc.credentialStatus?.statusListIndex).toBeTruthy();
+      expect(vc.credentialStatus?.statusListCredential).toBeTruthy();
     });
   });
 });

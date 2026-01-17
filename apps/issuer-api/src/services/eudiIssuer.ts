@@ -10,17 +10,16 @@
  * - GDPR Article 25 (data protection by design)
  */
 
-import { Region } from '../../../../services/org/models/TenantRegion';
-import {
-  isEudiEligible,
-  getEudiIssuanceRegion,
-  getEudiCountryMetadata,
-} from '../../../../services/compacts/euRegionMap';
+import { getEudiCountryMetadata, isEudiEligible } from '../../../../services/compacts/euRegionMap';
+import { Region } from '../../../../services/org/models/region-types';
+import { issueSdJwtCredential } from './sdJwtIssuer';
 
 /**
  * Get current cluster region from environment
  */
-const CURRENT_REGION: Region = (process.env.CLUSTER_REGION as Region) || Region.US;
+function resolveCurrentRegion(): Region {
+  return (process.env.CLUSTER_REGION as Region) || Region.US;
+}
 
 /**
  * EUDI Credential types supported
@@ -44,18 +43,19 @@ export interface EudiCredentialRequest {
   subjectDid: string;
   countryCode: string; // ISO 3166-1 alpha-2
   claims: Record<string, any>;
-  holderBindingKey?: string; // Public key for holder binding
+  holderBindingKey?: string; // Public key thumbprint (cnf.jkt)
   validityPeriod?: {
     notBefore?: Date;
     notAfter?: Date;
   };
+  vcOverrides?: Record<string, any>; // Override specific VC fields (e.g., credentialStatus for testing)
 }
 
 /**
  * EUDI credential response
  */
 export interface EudiCredentialResponse {
-  credential: string; // JWT or SD-JWT format
+  credential: string; // SD-JWT format
   format: 'vc+sd-jwt' | 'jwt_vc_json';
   credentialType: EudiCredentialType;
   issuanceDate: Date;
@@ -71,7 +71,7 @@ export class EudiIssuanceError extends Error {
     message: string,
     public code: string,
     public region?: Region,
-    public countryCode?: string
+    public countryCode?: string,
   ) {
     super(message);
     this.name = 'EudiIssuanceError';
@@ -114,14 +114,14 @@ function logIssuanceAttempt(
   request: EudiCredentialRequest,
   allowed: boolean,
   reason: string,
-  credentialId?: string
+  credentialId?: string,
 ): void {
   const log: EudiIssuanceAuditLog = {
     timestamp: new Date(),
     credentialType: request.credentialType,
     countryCode: request.countryCode,
     subjectDid: request.subjectDid,
-    currentRegion: CURRENT_REGION,
+    currentRegion: resolveCurrentRegion(),
     allowed,
     reason,
     credentialId,
@@ -142,11 +142,12 @@ function logIssuanceAttempt(
  * @throws EudiIssuanceError if current region is not EU
  */
 export function validateEudiRegion(): void {
-  if (CURRENT_REGION !== Region.EU) {
+  const currentRegion = resolveCurrentRegion();
+  if (currentRegion !== Region.EU) {
     const error = new EudiIssuanceError(
-      `EUDI Wallet credentials can only be issued in EU region. Current region: ${CURRENT_REGION}`,
+      `EUDI Wallet credentials can only be issued in EU region. Current region: ${currentRegion}`,
       'INVALID_REGION',
-      CURRENT_REGION
+      currentRegion,
     );
     throw error;
   }
@@ -165,7 +166,7 @@ export function validateEudiCountry(countryCode: string): void {
       `Country ${countryCode} (${metadata.countryName}) is not eligible for EUDI Wallet credentials`,
       'COUNTRY_NOT_ELIGIBLE',
       undefined,
-      countryCode
+      countryCode,
     );
   }
 }
@@ -181,9 +182,17 @@ export function validateEudiCountry(countryCode: string): void {
  * @throws EudiIssuanceError if issuance is not allowed
  */
 export async function issueEudiCredential(
-  request: EudiCredentialRequest
+  request: EudiCredentialRequest,
 ): Promise<EudiCredentialResponse> {
   try {
+    const holderBindingKey = request.holderBindingKey || process.env.DEFAULT_HOLDER_JKT;
+    if (!holderBindingKey) {
+      throw new EudiIssuanceError(
+        'holderBindingKey is required for SD-JWT issuance',
+        'HOLDER_BINDING_REQUIRED',
+      );
+    }
+
     // 1. Validate current region is EU
     validateEudiRegion();
 
@@ -197,15 +206,10 @@ export async function issueEudiCredential(
     const credential = await buildEudiCredential(request, credentialId);
 
     // 5. Sign credential
-    const signedCredential = await signEudiCredential(credential);
+    const signedCredential = await signEudiCredential(credential, holderBindingKey);
 
     // 6. Log successful issuance
-    logIssuanceAttempt(
-      request,
-      true,
-      'Credential issued successfully',
-      credentialId
-    );
+    logIssuanceAttempt(request, true, 'Credential issued successfully', credentialId);
 
     // 7. Return response
     return {
@@ -245,11 +249,11 @@ function getEuIssuerDid(): string {
  */
 async function buildEudiCredential(
   request: EudiCredentialRequest,
-  credentialId: string
+  credentialId: string,
 ): Promise<any> {
   const now = new Date();
-  const expirationDate = request.validityPeriod?.notAfter ||
-                         new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000); // 1 year default
+  const expirationDate =
+    request.validityPeriod?.notAfter || new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000); // 1 year default
 
   return {
     '@context': [
@@ -269,19 +273,13 @@ async function buildEudiCredential(
       id: request.subjectDid,
       country: request.countryCode,
       ...request.claims,
+      ...(request.holderBindingKey ? { publicKey: request.holderBindingKey } : {}),
     },
     // EUDI-specific metadata
     credentialSchema: {
       id: `https://api.vitalcv.com/schemas/${request.credentialType}.json`,
       type: 'JsonSchema2023',
     },
-    // Holder binding (if provided)
-    ...(request.holderBindingKey && {
-      credentialSubject: {
-        ...request.claims,
-        publicKey: request.holderBindingKey,
-      },
-    }),
   };
 }
 
@@ -289,17 +287,57 @@ async function buildEudiCredential(
  * Sign EUDI credential
  * In production, this would use HSM-backed signing
  */
-async function signEudiCredential(credential: any): Promise<string> {
-  // Placeholder: In production, use SD-JWT library with proper signing
-  // For now, return JSON stringified (would be actual SD-JWT format)
+async function signEudiCredential(
+  credential: any,
+  holderBindingKey?: string,
+  additionalVcOverrides?: Record<string, any>,
+): Promise<string> {
+  if (!holderBindingKey) {
+    throw new Error('holderBindingKey is required for EUDI SD-JWT issuance');
+  }
 
-  // This would be:
-  // import { SignJWT } from 'jose';
-  // const jwt = await new SignJWT(credential)
-  //   .setProtectedHeader({ alg: 'ES256', typ: 'vc+sd-jwt' })
-  //   .sign(privateKey);
+  const issuerDid =
+    typeof credential.issuer === 'string' ? credential.issuer : credential.issuer?.id;
+  if (!issuerDid) {
+    throw new Error('EUDI credential issuer is missing');
+  }
 
-  return JSON.stringify(credential);
+  const subject = credential.credentialSubject || {};
+  if (!subject.id) {
+    throw new Error('EUDI credential subject is missing');
+  }
+
+  const disclosableFields = Object.keys(subject).filter((key) => key !== 'id' && key !== 'country');
+
+  const expiresAt = credential.expirationDate ? new Date(credential.expirationDate) : undefined;
+  const expiresInSeconds = expiresAt
+    ? Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000))
+    : undefined;
+
+  const issued = await issueSdJwtCredential({
+    issuerDid,
+    issuerUrl: process.env.PUBLIC_ISSUER_URL || process.env.ISSUER_URL || 'https://vitalcv.ai',
+    holderJkt: holderBindingKey,
+    credentialTypes: [
+      credential.type?.find((type: string) => type !== 'VerifiableCredential') ||
+        credential.type?.[1] ||
+        'EudiCredential',
+    ],
+    subject: {
+      id: subject.id,
+      country: subject.country,
+      ...subject,
+    },
+    disclosableFields,
+    expiresInSeconds,
+    vcOverrides: {
+      '@context': credential['@context'],
+      credentialSchema: credential.credentialSchema,
+      ...additionalVcOverrides, // Merge additional overrides (e.g., credentialStatus for testing)
+    },
+  });
+
+  return issued.credential;
 }
 
 /**
@@ -308,9 +346,7 @@ async function signEudiCredential(credential: any): Promise<string> {
  * @param requests Array of credential requests
  * @returns Array of responses (successful) and errors (failed)
  */
-export async function batchIssueEudiCredentials(
-  requests: EudiCredentialRequest[]
-): Promise<{
+export async function batchIssueEudiCredentials(requests: EudiCredentialRequest[]): Promise<{
   successful: EudiCredentialResponse[];
   failed: Array<{ request: EudiCredentialRequest; error: EudiIssuanceError }>;
 }> {
@@ -329,7 +365,7 @@ export async function batchIssueEudiCredentials(
           request,
           error: new EudiIssuanceError(
             error instanceof Error ? error.message : 'Unknown error',
-            'UNKNOWN_ERROR'
+            'UNKNOWN_ERROR',
           ),
         });
       }
@@ -353,19 +389,19 @@ export function getEudiAuditLogs(filters?: {
 
   if (filters) {
     if (filters.allowed !== undefined) {
-      filtered = filtered.filter(log => log.allowed === filters.allowed);
+      filtered = filtered.filter((log) => log.allowed === filters.allowed);
     }
     if (filters.countryCode) {
-      filtered = filtered.filter(log => log.countryCode === filters.countryCode);
+      filtered = filtered.filter((log) => log.countryCode === filters.countryCode);
     }
     if (filters.credentialType) {
-      filtered = filtered.filter(log => log.credentialType === filters.credentialType);
+      filtered = filtered.filter((log) => log.credentialType === filters.credentialType);
     }
     if (filters.startDate) {
-      filtered = filtered.filter(log => log.timestamp >= filters.startDate!);
+      filtered = filtered.filter((log) => log.timestamp >= filters.startDate!);
     }
     if (filters.endDate) {
-      filtered = filtered.filter(log => log.timestamp <= filters.endDate!);
+      filtered = filtered.filter((log) => log.timestamp <= filters.endDate!);
     }
   }
 
@@ -437,14 +473,14 @@ export function getEudiIssuanceMetrics(): EudiIssuanceMetrics {
  * Check if EUDI issuance is available in current region
  */
 export function isEudiIssuanceAvailable(): boolean {
-  return CURRENT_REGION === Region.EU;
+  return resolveCurrentRegion() === Region.EU;
 }
 
 /**
  * Get current region
  */
 export function getCurrentRegion(): Region {
-  return CURRENT_REGION;
+  return resolveCurrentRegion();
 }
 
 /**
@@ -539,4 +575,3 @@ if (isEudiIssuanceAvailable()) {
 }
 \`\`\`
 `;
-

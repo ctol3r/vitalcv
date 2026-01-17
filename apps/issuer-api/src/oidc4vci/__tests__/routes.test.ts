@@ -11,11 +11,11 @@
  * - GET /oidc4vci/deferred/:transaction_id/status
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import request from 'supertest';
 import express, { Express } from 'express';
-import oidc4vciRouter from '../routes';
-import { SignJWT, generateKeyPair, exportJWK, calculateJwkThumbprint } from 'jose';
+import { SignJWT, calculateJwkThumbprint, exportJWK, generateKeyPair } from 'jose';
+import supertest, { type Test } from 'supertest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import oidc4vciRouter, { registerIssuedNonce } from '../routes';
 
 function createTestApp(): Express {
   const app = express();
@@ -26,12 +26,20 @@ function createTestApp(): Express {
 
 describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
   let app: Express;
+  type SupertestClient = {
+    post: (path: string) => Test;
+    get: (path: string) => Test;
+  };
+  let api: SupertestClient;
   let keyPair: { privateKey: CryptoKey; publicKey: CryptoKey };
   let jwk: any;
   let atKeyPair: { privateKey: CryptoKey; publicKey: CryptoKey }; // Access token signing key
 
   beforeEach(async () => {
     app = createTestApp();
+    api = supertest(app) as unknown as SupertestClient;
+    process.env.CHAIN_DISABLED = 'true';
+    process.env.CLUSTER_REGION = 'EU';
 
     // Generate key pair for DPoP proofs
     const pair = await generateKeyPair('ES256');
@@ -71,16 +79,29 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
   }
 
   describe('POST /oidc4vci/credential', () => {
+    const credentialRequest = {
+      format: 'vc+sd-jwt',
+      credential_type: 'MedicalLicense',
+      credential_subject: {
+        id: 'did:key:test-holder',
+        country: 'DE',
+        licenseNumber: 'DE-12345',
+      },
+    };
+
+    function seedNonce(): string {
+      const nonce = `test-nonce-${Date.now()}`;
+      registerIssuedNonce(nonce);
+      return nonce;
+    }
+
     it('should reject bearer-only request with 401 use_dpop', async () => {
-      const response = await request(app)
+      const response = await api
         .post('/oidc4vci/credential')
         .set('Authorization', 'Bearer test-token')
         .send({
-          credential_request: {
-            format: 'jwt_vc_json',
-            types: ['VerifiableCredential', 'PhysicianCredential'],
-          },
-          c_nonce: 'test-nonce',
+          credential_request: credentialRequest,
+          c_nonce: seedNonce(),
         });
 
       expect(response.status).toBe(401);
@@ -93,17 +114,14 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
       const thumbprint = await calculateJwkThumbprint(jwk);
       const accessToken = await createAccessTokenWithCnfJkt(thumbprint);
 
-      const response = await request(app)
+      const response = await api
         .post('/oidc4vci/credential')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('DPoP', proof)
         .set('Host', 'localhost')
         .send({
-          credential_request: {
-            format: 'jwt_vc_json',
-            types: ['VerifiableCredential', 'PhysicianCredential'],
-          },
-          c_nonce: 'test-nonce-' + Date.now(),
+          credential_request: credentialRequest,
+          c_nonce: seedNonce(),
         });
 
       // Should not be rejected for bearer-only or missing cnf.jkt
@@ -123,17 +141,14 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
         .setProtectedHeader({ alg: 'ES256' })
         .sign(atKeyPair.privateKey);
 
-      const response = await request(app)
+      const response = await api
         .post('/oidc4vci/credential')
         .set('Authorization', `Bearer ${accessTokenWithoutCnf}`)
         .set('DPoP', proof)
         .set('Host', 'localhost')
         .send({
-          credential_request: {
-            format: 'jwt_vc_json',
-            types: ['VerifiableCredential', 'PhysicianCredential'],
-          },
-          c_nonce: 'test-nonce-' + Date.now(),
+          credential_request: credentialRequest,
+          c_nonce: seedNonce(),
         });
 
       expect(response.status).toBe(401);
@@ -158,17 +173,14 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
         .setProtectedHeader({ alg: 'ES256' })
         .sign(atKeyPair.privateKey);
 
-      const response = await request(app)
+      const response = await api
         .post('/oidc4vci/credential')
         .set('Authorization', `Bearer ${accessTokenWithWrongCnf}`)
         .set('DPoP', proof)
         .set('Host', 'localhost')
         .send({
-          credential_request: {
-            format: 'jwt_vc_json',
-            types: ['VerifiableCredential', 'PhysicianCredential'],
-          },
-          c_nonce: 'test-nonce-' + Date.now(),
+          credential_request: credentialRequest,
+          c_nonce: seedNonce(),
         });
 
       expect(response.status).toBe(401);
@@ -178,13 +190,19 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
   });
 
   describe('POST /oidc4vci/deferred', () => {
+    function seedNonce(): string {
+      const nonce = `test-nonce-${Date.now()}`;
+      registerIssuedNonce(nonce);
+      return nonce;
+    }
+
     it('should reject bearer-only request with 401 use_dpop', async () => {
-      const response = await request(app)
+      const response = await api
         .post('/oidc4vci/deferred')
         .set('Authorization', 'Bearer test-token')
         .send({
           transaction_id: 'test-tx-id',
-          c_nonce: 'test-nonce',
+          c_nonce: seedNonce(),
         });
 
       expect(response.status).toBe(401);
@@ -197,14 +215,14 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
       const thumbprint = await calculateJwkThumbprint(jwk);
       const accessToken = await createAccessTokenWithCnfJkt(thumbprint);
 
-      const response = await request(app)
+      const response = await api
         .post('/oidc4vci/deferred')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('DPoP', proof)
         .set('Host', 'localhost')
         .send({
           transaction_id: 'test-tx-id',
-          c_nonce: 'test-nonce-' + Date.now(),
+          c_nonce: seedNonce(),
         });
 
       // Should not be rejected for bearer-only or missing cnf.jkt
@@ -216,7 +234,7 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
 
   describe('POST /oidc4vci/batch', () => {
     it('B120A-TBIND-001: should reject bearer-only request with 401 use_dpop', async () => {
-      const response = await request(app)
+      const response = await api
         .post('/oidc4vci/batch')
         .set('Authorization', 'Bearer test-token')
         .send({
@@ -239,7 +257,7 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
       const thumbprint = await calculateJwkThumbprint(jwk);
       const accessToken = await createAccessTokenWithCnfJkt(thumbprint);
 
-      const response = await request(app)
+      const response = await api
         .post('/oidc4vci/batch')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('DPoP', proof)
@@ -272,7 +290,7 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
         .setProtectedHeader({ alg: 'ES256' })
         .sign(atKeyPair.privateKey);
 
-      const response = await request(app)
+      const response = await api
         .post('/oidc4vci/batch')
         .set('Authorization', `Bearer ${accessTokenWithoutCnf}`)
         .set('DPoP', proof)
@@ -295,7 +313,7 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
 
   describe('GET /oidc4vci/deferred/:transaction_id/status', () => {
     it('should reject bearer-only request with 401 use_dpop', async () => {
-      const response = await request(app)
+      const response = await api
         .get('/oidc4vci/deferred/test-tx-id/status')
         .set('Authorization', 'Bearer test-token');
 
@@ -305,11 +323,14 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
     });
 
     it('should accept request with valid DPoP proof and access token with cnf.jkt', async () => {
-      const proof = await createDPoPProof('GET', 'http://localhost/oidc4vci/deferred/test-tx-id/status');
+      const proof = await createDPoPProof(
+        'GET',
+        'http://localhost/oidc4vci/deferred/test-tx-id/status',
+      );
       const thumbprint = await calculateJwkThumbprint(jwk);
       const accessToken = await createAccessTokenWithCnfJkt(thumbprint);
 
-      const response = await request(app)
+      const response = await api
         .get('/oidc4vci/deferred/test-tx-id/status')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('DPoP', proof)
@@ -324,13 +345,11 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
 
   describe('Negative test cases', () => {
     it('should reject request without Authorization header', async () => {
-      const response = await request(app)
-        .post('/oidc4vci/credential')
-        .send({
-          credential_request: {
-            format: 'jwt_vc_json',
-          },
-        });
+      const response = await api.post('/oidc4vci/credential').send({
+        credential_request: {
+          format: 'jwt_vc_json',
+        },
+      });
 
       expect(response.status).toBe(401);
       expect(response.body.error).toBe('invalid_token');
@@ -340,7 +359,7 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
       const thumbprint = await calculateJwkThumbprint(jwk);
       const accessToken = await createAccessTokenWithCnfJkt(thumbprint);
 
-      const response = await request(app)
+      const response = await api
         .post('/oidc4vci/credential')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('DPoP', 'invalid.proof.format')
@@ -359,7 +378,7 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
       const thumbprint = await calculateJwkThumbprint(jwk);
       const accessToken = await createAccessTokenWithCnfJkt(thumbprint);
 
-      const response = await request(app)
+      const response = await api
         .post('/oidc4vci/credential')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('DPoP', proof)
@@ -379,7 +398,7 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
       const thumbprint = await calculateJwkThumbprint(jwk);
       const accessToken = await createAccessTokenWithCnfJkt(thumbprint);
 
-      const response = await request(app)
+      const response = await api
         .post('/oidc4vci/credential')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('DPoP', proof)
@@ -401,7 +420,7 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
       const thumbprint = await calculateJwkThumbprint(jwk);
       const accessToken = await createAccessTokenWithCnfJkt(thumbprint);
 
-      const response = await request(app)
+      const response = await api
         .post('/oidc4vci/nonce')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('DPoP', proof)
@@ -421,7 +440,7 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
       const jti = `test-jti-${Date.now()}`;
 
       // First request with jti
-      const response1 = await request(app)
+      const response1 = await api
         .post('/oidc4vci/nonce')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('DPoP', proof)
@@ -431,7 +450,7 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
       expect(response1.status).toBe(200);
 
       // Second request with same jti should fail
-      const response2 = await request(app)
+      const response2 = await api
         .post('/oidc4vci/nonce')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('DPoP', proof)
@@ -449,7 +468,7 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
       const accessToken = await createAccessTokenWithCnfJkt(thumbprint);
 
       // Get a fresh nonce
-      const nonceResponse = await request(app)
+      const nonceResponse = await api
         .post('/oidc4vci/nonce')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('DPoP', proof)
@@ -463,7 +482,7 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
       // For now, we'll test that nonce validation works
 
       // Use the nonce immediately (should work)
-      const response1 = await request(app)
+      const response1 = await api
         .post('/oidc4vci/credential')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('DPoP', proof)
@@ -487,7 +506,7 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
       const thumbprint = await calculateJwkThumbprint(jwk);
       const accessToken = await createAccessTokenWithCnfJkt(thumbprint);
 
-      const response = await request(app)
+      const response = await api
         .post('/oidc4vci/credential')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('DPoP', proof)
@@ -511,7 +530,7 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
       const accessToken = await createAccessTokenWithCnfJkt(thumbprint);
 
       // Get fresh nonce
-      const nonceResponse = await request(app)
+      const nonceResponse = await api
         .post('/oidc4vci/nonce')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('DPoP', proof)
@@ -521,7 +540,7 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
       const cNonce = nonceResponse.body.c_nonce;
 
       // Use nonce immediately (within skew window)
-      const response = await request(app)
+      const response = await api
         .post('/oidc4vci/credential')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('DPoP', proof)
@@ -542,4 +561,3 @@ describe('B100B-TBIND-038: Bearer-only rejection on issuance routes', () => {
     });
   });
 });
-

@@ -13,6 +13,7 @@ import {
   getEventsForCredential,
   getRecentEvents,
   saveEventCache,
+  type EventCache,
 } from '@/lib/event-cache';
 
 // Mock localStorage
@@ -84,7 +85,7 @@ describe('Event Cache Utilities', () => {
 
   describe('saveEventCache', () => {
     it('should save cache to localStorage', () => {
-      const mockCache = {
+      const mockCache: EventCache = {
         'CRED-123': [
           {
             id: 'event-1',
