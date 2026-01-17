@@ -62,3 +62,8 @@ tmp/
 temp/
 *.tmp
 
+
+# AI/IDE Frameworks (Repo Hygiene 2026-01-16)
+.ai/
+.claude/
+.cursor/
