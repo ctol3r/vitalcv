@@ -134,7 +134,7 @@ export class CachedDIDResolver {
     };
   }
 
-  private getFromCache<T>(store: Map<string, CacheEntry<T>>, key: string): T | true | null {
+  private getFromCache<T>(store: Map<string, CacheEntry<T>>, key: string): T | null {
     const entry = store.get(key);
     if (!entry) {
       return null;

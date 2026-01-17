@@ -1,0 +1,17 @@
+{
+  "name": "@chai-vc/vitalindex",
+  "version": "1.0.0",
+  "description": "Indexing contracts and client interfaces for VitalCV",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

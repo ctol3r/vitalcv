@@ -2,17 +2,11 @@
  * B196B-CONTRACT-006
  * Identity domain contracts shared across wallet services, VC formats, and agents.
  */
-
 type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
 export interface JsonObject {
   [key: string]: JsonValue | undefined;
 }
-
-// ---------------------------------------------------------------------------
-// DID Documents
-// ---------------------------------------------------------------------------
-
 export interface DIDVerificationMethod {
   id: string;
   type: string;
@@ -22,7 +16,6 @@ export interface DIDVerificationMethod {
   blockchainAccountId?: string;
   [key: string]: JsonValue | undefined;
 }
-
 export interface DIDServiceEndpoint {
   id?: string;
   type: string | string[];
@@ -31,9 +24,7 @@ export interface DIDServiceEndpoint {
   routingKeys?: string[];
   [key: string]: JsonValue | undefined;
 }
-
 export type DIDVerificationRelationship = string | DIDVerificationMethod;
-
 export interface DIDDocument extends JsonObject {
   id: string;
   alsoKnownAs?: string[];
@@ -46,14 +37,8 @@ export interface DIDDocument extends JsonObject {
   capabilityDelegation?: DIDVerificationRelationship[];
   service?: DIDServiceEndpoint[];
 }
-
-// ---------------------------------------------------------------------------
-// Wallet device bindings
-// ---------------------------------------------------------------------------
-
-export const WALLET_SIGNATURE_ALGS = ['EdDSA', 'ES256'] as const;
+export declare const WALLET_SIGNATURE_ALGS: readonly ['EdDSA', 'ES256'];
 export type WalletSignatureAlgorithm = (typeof WALLET_SIGNATURE_ALGS)[number];
-
 export interface WalletDevicePublicKey extends JsonObject {
   kty: 'OKP' | 'EC';
   crv: 'Ed25519' | 'P-256';
@@ -63,7 +48,6 @@ export interface WalletDevicePublicKey extends JsonObject {
   y?: string;
   use?: 'sig';
 }
-
 export interface WalletDeviceMetadata {
   label?: string;
   platform?: string;
@@ -75,7 +59,6 @@ export interface WalletDeviceMetadata {
   secureElement?: 'TEE' | 'HSM' | 'SE' | 'UNKNOWN';
   [key: string]: string | undefined;
 }
-
 export interface WalletDeviceDescriptor {
   deviceId: string;
   clinicianId: string;
@@ -84,14 +67,8 @@ export interface WalletDeviceDescriptor {
   createdAt?: string;
   lastUsedAt?: string;
 }
-
-// ---------------------------------------------------------------------------
-// Signed Verifiable Credentials
-// ---------------------------------------------------------------------------
-
-export const VC_FORMATS = ['ldp_vc', 'jwt_vc', 'sd_jwt', 'csd_jwt'] as const;
+export declare const VC_FORMATS: readonly ['ldp_vc', 'jwt_vc', 'sd_jwt', 'csd_jwt'];
 export type CredentialFormat = (typeof VC_FORMATS)[number];
-
 export interface CredentialProof {
   type: string;
   created: string;
@@ -103,7 +80,6 @@ export interface CredentialProof {
   domain?: string;
   [key: string]: JsonValue | undefined;
 }
-
 export interface SignedVC<TSubject = JsonObject, TProof extends CredentialProof = CredentialProof> {
   format: CredentialFormat;
   credential: {
@@ -122,5 +98,5 @@ export interface SignedVC<TSubject = JsonObject, TProof extends CredentialProof 
   hash?: string;
   raw?: string | JsonObject;
 }
-
-
+export {};
+//# sourceMappingURL=contracts.d.ts.map

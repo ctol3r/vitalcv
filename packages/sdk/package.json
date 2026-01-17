@@ -1,0 +1,21 @@
+{
+  "name": "@chai-vc/sdk",
+  "version": "1.0.0",
+  "description": "Typed client SDK for VitalCV public APIs",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@chai-vc/public-api-client": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

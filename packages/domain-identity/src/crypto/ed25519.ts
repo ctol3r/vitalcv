@@ -1,7 +1,7 @@
 /**
  * Ed25519 Cryptography Utilities
  * Tagged: cursor-batch-1101
- * Agent: CODEX • BACKEND • chai-vc-platform
+ * Agent: CODEX • BACKEND • vitalcv
  *
  * Uses @noble/ed25519 for all Ed25519/EdDSA operations
  * Supports W3C VC signing, JWK export, and OIDC4VCI compliance

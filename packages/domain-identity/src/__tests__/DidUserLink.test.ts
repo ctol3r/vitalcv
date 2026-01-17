@@ -1,13 +1,6 @@
-import { PrismaClient, UserRole } from '@prisma/client';
-import { createUser } from 'services/users/models/User';
-import {
-  findUserIdByDid,
-  linkDidToUser,
-  listDidsForUser,
-  unlinkDid,
-} from '../models/DidUserLink';
-
-const prisma = new PrismaClient();
+import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
+import { createUser, deleteUser, getUserById } from '../../../../services/users/models/User';
+import { findUserIdByDid, linkDidToUser, listDidsForUser, unlinkDid } from '../models/DidUserLink';
 
 describe('DidUserLink model', () => {
   let userId: string;
@@ -17,15 +10,22 @@ describe('DidUserLink model', () => {
     const user = await createUser({
       email: `did-user+${Date.now()}@example.com`,
       name: 'DID Demo User',
-      role: UserRole.CLINICIAN,
     });
     userId = user.id;
   });
 
   afterAll(async () => {
-    await prisma.didUserLink.deleteMany({ where: { userId } });
-    await prisma.user.deleteMany({ where: { id: userId } });
-    await prisma.$disconnect();
+    if (!userId) {
+      return;
+    }
+
+    const links = await listDidsForUser(userId);
+    await Promise.all(links.map((link) => unlinkDid(link.did)));
+
+    const user = await getUserById(userId);
+    if (user) {
+      await deleteUser(userId);
+    }
   });
 
   it('links DID to user and retrieves it', async () => {
@@ -45,4 +45,3 @@ describe('DidUserLink model', () => {
     expect(removed.did).toBe(did);
   });
 });
-
