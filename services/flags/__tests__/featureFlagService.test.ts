@@ -3,9 +3,10 @@
  * Tests for precedence (org→user→global) and fallback
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals';
-import { PrismaClient } from '@prisma/client';
-import { getFlag, getAllFlags, clearCache } from '../featureFlagService';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { clearCache, getAllFlags, getFlag } from '../featureFlagService';
+
+type PrismaClient = Parameters<typeof getFlag>[0];
 
 // Mock Prisma client
 const mockPrisma = {
@@ -19,7 +20,7 @@ const mockPrisma = {
   userFeatureFlag: {
     findUnique: jest.fn(),
   },
-} as unknown as PrismaClient;
+} as jest.Mocked<PrismaClient>;
 
 describe('Feature Flag Service', () => {
   beforeEach(() => {
@@ -29,15 +30,13 @@ describe('Feature Flag Service', () => {
 
   describe('getFlag', () => {
     it('should return default value when no overrides exist', async () => {
-      mockPrisma.featureFlag.findUnique = jest.fn().mockResolvedValue({
+      mockPrisma.featureFlag.findUnique.mockResolvedValue({
         key: 'testFlag',
         defaultValue: true,
-        allowedValues: null,
-        scope: 'GLOBAL',
       });
 
-      mockPrisma.orgFeatureFlag.findUnique = jest.fn().mockResolvedValue(null);
-      mockPrisma.userFeatureFlag.findUnique = jest.fn().mockResolvedValue(null);
+      mockPrisma.orgFeatureFlag.findUnique.mockResolvedValue(null);
+      mockPrisma.userFeatureFlag.findUnique.mockResolvedValue(null);
 
       const result = await getFlag(mockPrisma, 'testFlag', {
         orgId: 'org-1',
@@ -50,22 +49,16 @@ describe('Feature Flag Service', () => {
     });
 
     it('should return org override when present (highest precedence)', async () => {
-      mockPrisma.featureFlag.findUnique = jest.fn().mockResolvedValue({
+      mockPrisma.featureFlag.findUnique.mockResolvedValue({
         key: 'testFlag',
         defaultValue: false,
-        allowedValues: null,
-        scope: 'ORG',
       });
 
-      mockPrisma.orgFeatureFlag.findUnique = jest.fn().mockResolvedValue({
-        orgId: 'org-1',
-        flagKey: 'testFlag',
+      mockPrisma.orgFeatureFlag.findUnique.mockResolvedValue({
         value: true,
       });
 
-      mockPrisma.userFeatureFlag.findUnique = jest.fn().mockResolvedValue({
-        userId: 'user-1',
-        flagKey: 'testFlag',
+      mockPrisma.userFeatureFlag.findUnique.mockResolvedValue({
         value: false, // This should be ignored
       });
 
@@ -79,17 +72,13 @@ describe('Feature Flag Service', () => {
     });
 
     it('should return user override when no org override exists', async () => {
-      mockPrisma.featureFlag.findUnique = jest.fn().mockResolvedValue({
+      mockPrisma.featureFlag.findUnique.mockResolvedValue({
         key: 'testFlag',
         defaultValue: false,
-        allowedValues: null,
-        scope: 'USER',
       });
 
-      mockPrisma.orgFeatureFlag.findUnique = jest.fn().mockResolvedValue(null);
-      mockPrisma.userFeatureFlag.findUnique = jest.fn().mockResolvedValue({
-        userId: 'user-1',
-        flagKey: 'testFlag',
+      mockPrisma.orgFeatureFlag.findUnique.mockResolvedValue(null);
+      mockPrisma.userFeatureFlag.findUnique.mockResolvedValue({
         value: true,
       });
 
@@ -103,23 +92,21 @@ describe('Feature Flag Service', () => {
     });
 
     it('should throw error when flag does not exist', async () => {
-      mockPrisma.featureFlag.findUnique = jest.fn().mockResolvedValue(null);
+      mockPrisma.featureFlag.findUnique.mockResolvedValue(null);
 
       await expect(getFlag(mockPrisma, 'nonexistent', {})).rejects.toThrow(
-        "Feature flag 'nonexistent' not found"
+        "Feature flag 'nonexistent' not found",
       );
     });
 
     it('should cache results and return cached value', async () => {
-      mockPrisma.featureFlag.findUnique = jest.fn().mockResolvedValue({
+      mockPrisma.featureFlag.findUnique.mockResolvedValue({
         key: 'testFlag',
         defaultValue: true,
-        allowedValues: null,
-        scope: 'GLOBAL',
       });
 
-      mockPrisma.orgFeatureFlag.findUnique = jest.fn().mockResolvedValue(null);
-      mockPrisma.userFeatureFlag.findUnique = jest.fn().mockResolvedValue(null);
+      mockPrisma.orgFeatureFlag.findUnique.mockResolvedValue(null);
+      mockPrisma.userFeatureFlag.findUnique.mockResolvedValue(null);
 
       // First call
       const result1 = await getFlag(mockPrisma, 'testFlag', {
@@ -142,38 +129,29 @@ describe('Feature Flag Service', () => {
 
   describe('getAllFlags', () => {
     it('should return all flags with resolved values', async () => {
-      mockPrisma.featureFlag.findMany = jest.fn().mockResolvedValue([
+      mockPrisma.featureFlag.findMany.mockResolvedValue([
         {
           key: 'flag1',
           defaultValue: true,
-          allowedValues: null,
-          scope: 'GLOBAL',
         },
         {
           key: 'flag2',
           defaultValue: false,
-          allowedValues: null,
-          scope: 'GLOBAL',
         },
       ]);
 
-      mockPrisma.featureFlag.findUnique = jest
-        .fn()
+      mockPrisma.featureFlag.findUnique
         .mockResolvedValueOnce({
           key: 'flag1',
           defaultValue: true,
-          allowedValues: null,
-          scope: 'GLOBAL',
         })
         .mockResolvedValueOnce({
           key: 'flag2',
           defaultValue: false,
-          allowedValues: null,
-          scope: 'GLOBAL',
         });
 
-      mockPrisma.orgFeatureFlag.findUnique = jest.fn().mockResolvedValue(null);
-      mockPrisma.userFeatureFlag.findUnique = jest.fn().mockResolvedValue(null);
+      mockPrisma.orgFeatureFlag.findUnique.mockResolvedValue(null);
+      mockPrisma.userFeatureFlag.findUnique.mockResolvedValue(null);
 
       const results = await getAllFlags(mockPrisma, { orgId: 'org-1' });
 
@@ -185,4 +163,3 @@ describe('Feature Flag Service', () => {
     });
   });
 });
-

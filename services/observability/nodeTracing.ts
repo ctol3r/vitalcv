@@ -1,12 +1,12 @@
-import type { InstrumentationOption } from '@opentelemetry/instrumentation';
+import type { Instrumentation } from '@opentelemetry/instrumentation';
 import type { NodeSDK } from '@opentelemetry/sdk-node';
-import { initializeTracing, TracingConfig } from '../../infra/observability/tracing';
+import { initializeOpenTelemetry, OpenTelemetryConfig } from './otelConfig';
 
 export interface NodeTracingOptions {
   serviceName: string;
   serviceVersion?: string;
   environment?: string;
-  instrumentations?: InstrumentationOption[];
+  instrumentations?: Instrumentation[];
   otlpEndpoint?: string;
 }
 
@@ -34,7 +34,7 @@ export function startNodeTracing(options: NodeTracingOptions): NodeSDK | null {
     return startedSdks.get(options.serviceName)!;
   }
 
-  const tracingConfig: TracingConfig = {
+  const tracingConfig: OpenTelemetryConfig = {
     serviceName: options.serviceName,
     serviceVersion:
       options.serviceVersion ||
@@ -47,8 +47,7 @@ export function startNodeTracing(options: NodeTracingOptions): NodeSDK | null {
     additionalInstrumentations: options.instrumentations,
   };
 
-  const sdk = initializeTracing(tracingConfig);
+  const sdk = initializeOpenTelemetry(tracingConfig);
   startedSdks.set(options.serviceName, sdk);
   return sdk;
 }
-

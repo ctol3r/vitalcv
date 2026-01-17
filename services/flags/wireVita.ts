@@ -6,15 +6,17 @@ const log = getServiceLogger('flags/wireVita');
  * All calls to VITA issuance/usage check flag; if off, returns 501 Not Implemented with helpful message.
  */
 
-import { PrismaClient } from '@prisma/client';
-import { checkFeatureFlag, getFeatureFlagService } from './featureFlags';
+type PrismaClient = any;
 import { getServiceLogger } from '../logging/serviceLogger';
+import { checkFeatureFlag } from './featureFlags';
 
 /**
  * Error class for VITA feature disabled
  */
 export class VITANotImplementedError extends Error {
-  constructor(message: string = 'VITA billing features are not currently implemented. Please contact support for more information.') {
+  constructor(
+    message: string = 'VITA billing features are not currently implemented. Please contact support for more information.',
+  ) {
     super(message);
     this.name = 'VITANotImplementedError';
   }
@@ -27,10 +29,7 @@ export class VITANotImplementedError extends Error {
  * @returns true if VITA features are enabled
  * @throws VITANotImplementedError if disabled
  */
-export async function requireVITAEnabled(
-  prisma: PrismaClient,
-  orgId?: string
-): Promise<boolean> {
+export async function requireVITAEnabled(prisma: PrismaClient, orgId?: string): Promise<boolean> {
   const enabled = await checkFeatureFlag(prisma, 'billing.vita.enabled', orgId);
   if (!enabled) {
     throw new VITANotImplementedError();
@@ -52,7 +51,7 @@ export async function issueVITA(
   orgId: string,
   amount: number,
   reason: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, any>,
 ): Promise<string> {
   // Check if VITA features are enabled
   await requireVITAEnabled(prisma, orgId);
@@ -91,7 +90,7 @@ export async function debitVITA(
   orgId: string,
   amount: number,
   reason: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, any>,
 ): Promise<string> {
   // Check if VITA features are enabled
   await requireVITAEnabled(prisma, orgId);
@@ -122,10 +121,7 @@ export async function debitVITA(
  * @param orgId - Organization ID
  * @returns Current VITA balance
  */
-export async function getVITABalance(
-  prisma: PrismaClient,
-  orgId: string
-): Promise<number> {
+export async function getVITABalance(prisma: PrismaClient, orgId: string): Promise<number> {
   // Check if VITA features are enabled
   await requireVITAEnabled(prisma, orgId);
 
@@ -134,7 +130,7 @@ export async function getVITABalance(
     where: { orgId },
   });
 
-  const balance = entries.reduce((sum, entry) => sum + entry.amount, 0);
+  const balance = entries.reduce((sum: number, entry: { amount: number }) => sum + entry.amount, 0);
   return balance;
 }
 
@@ -144,10 +140,7 @@ export async function getVITABalance(
  * @param txId - Transaction ID to verify
  * @returns true if transaction exists and is valid
  */
-export async function verifyVITATransaction(
-  prisma: PrismaClient,
-  txId: string
-): Promise<boolean> {
+export async function verifyVITATransaction(prisma: PrismaClient, txId: string): Promise<boolean> {
   // Check if VITA features are enabled (no orgId needed for verification)
   const enabled = await checkFeatureFlag(prisma, 'billing.vita.enabled');
   if (!enabled) {
@@ -160,4 +153,3 @@ export async function verifyVITATransaction(
 
   return !!entry;
 }
-

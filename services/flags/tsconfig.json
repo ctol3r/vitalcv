@@ -1,10 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "./",
-    "outDir": "../../dist/services/flags",
+    "rootDir": "../",
+    "outDir": "../../dist/services",
     "tsBuildInfoFile": "../../build-info/services-flags.tsbuildinfo"
   },
-  "include": ["**/*.ts"],
+  "include": ["./**/*.ts", "../logging/**/*.ts", "../audit/**/*.ts"],
   "exclude": ["node_modules", "dist", "**/__tests__/**/*", "**/*.spec.ts"]
 }

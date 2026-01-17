@@ -19,7 +19,7 @@ This document describes how contributors can propose changes or new components t
 
 ### Prerequisites
 
-- Node.js 18+ and npm/yarn
+- Node.js 20+ and pnpm 8+
 - Git
 - Basic understanding of React and TypeScript
 - Familiarity with design system principles
@@ -28,15 +28,20 @@ This document describes how contributors can propose changes or new components t
 
 1. Fork the repository
 2. Clone your fork:
+
    ```bash
-   git clone https://github.com/your-org/chai-vc-platform.git
-   cd chai-vc-platform
+   git clone https://github.com/ctol3r/vitalcv.git
+   cd vitalcv
    ```
+
 3. Install dependencies:
+
    ```bash
-   npm install
+   pnpm install
    ```
+
 4. Create a branch for your changes:
+
    ```bash
    git checkout -b feature/your-component-name
    ```
@@ -48,10 +53,12 @@ This document describes how contributors can propose changes or new components t
 ### Before You Start Coding
 
 1. **Check Existing Components**
+
    - Review existing components to avoid duplication
    - Check if your use case can be solved with existing components
 
 2. **Propose Your Design**
+
    - Create a design proposal in an issue
    - Include:
      - Use case and problem statement
@@ -88,9 +95,9 @@ All components must follow these principles:
 ```tsx
 // Good
 interface ButtonProps {
-  variant: 'primary' | 'secondary'
-  size?: 'sm' | 'md' | 'lg'
-  children: React.ReactNode
+  variant: 'primary' | 'secondary';
+  size?: 'sm' | 'md' | 'lg';
+  children: React.ReactNode;
 }
 
 // Bad
@@ -112,7 +119,7 @@ export function Component({ prop, ...rest }: ComponentProps) {
   // Implementation
 }
 
-export type { ComponentProps }
+export type { ComponentProps };
 ```
 
 ### File Naming
@@ -133,18 +140,18 @@ export type { ComponentProps }
 
 ```tsx
 // External dependencies first
-import React from 'react'
-import { clsx } from 'clsx'
+import React from 'react';
+import { clsx } from 'clsx';
 
 // Internal components
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 // Utilities
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils';
 
 // Types
-import type { ComponentProps } from './types'
+import type { ComponentProps } from './types';
 ```
 
 ---
@@ -190,32 +197,29 @@ Every component must pass this checklist:
 ### Component Template
 
 ```tsx
-'use client'
+'use client';
 
-import * as React from 'react'
-import { cn } from '@/lib/utils'
-import { cva, type VariantProps } from 'class-variance-authority'
+import * as React from 'react';
+import { cn } from '@/lib/utils';
+import { cva, type VariantProps } from 'class-variance-authority';
 
-const componentVariants = cva(
-  'base-classes',
-  {
-    variants: {
-      variant: {
-        default: 'default-classes',
-        secondary: 'secondary-classes',
-      },
-      size: {
-        sm: 'small-classes',
-        md: 'medium-classes',
-        lg: 'large-classes',
-      },
+const componentVariants = cva('base-classes', {
+  variants: {
+    variant: {
+      default: 'default-classes',
+      secondary: 'secondary-classes',
     },
-    defaultVariants: {
-      variant: 'default',
-      size: 'md',
+    size: {
+      sm: 'small-classes',
+      md: 'medium-classes',
+      lg: 'large-classes',
     },
-  }
-)
+  },
+  defaultVariants: {
+    variant: 'default',
+    size: 'md',
+  },
+});
 
 export interface ComponentProps
   extends React.HTMLAttributes<HTMLDivElement>,
@@ -223,39 +227,33 @@ export interface ComponentProps
   // Component-specific props
 }
 
-export function Component({
-  className,
-  variant,
-  size,
-  ...props
-}: ComponentProps) {
-  return (
-    <div
-      className={cn(componentVariants({ variant, size, className }))}
-      {...props}
-    />
-  )
+export function Component({ className, variant, size, ...props }: ComponentProps) {
+  return <div className={cn(componentVariants({ variant, size, className }))} {...props} />;
 }
 ```
 
 ### Component Requirements
 
 1. **Props Interface**
+
    - Well-typed with TypeScript
    - Clear documentation
    - Sensible defaults
 
 2. **Variants**
+
    - Use `class-variance-authority` for variants
    - Follow existing variant patterns
    - Document all variants
 
 3. **Accessibility**
+
    - Proper ARIA attributes
    - Keyboard support
    - Screen reader support
 
 4. **Styling**
+
    - Use design tokens
    - Support dark mode
    - Responsive design
@@ -270,24 +268,24 @@ export function Component({
 Create Storybook stories for all components:
 
 ```tsx
-import type { Meta, StoryObj } from '@storybook/react'
-import { Component } from './Component'
+import type { Meta, StoryObj } from '@storybook/react';
+import { Component } from './Component';
 
 const meta: Meta<typeof Component> = {
   title: 'Components/Component',
   component: Component,
   tags: ['autodocs'],
-}
+};
 
-export default meta
-type Story = StoryObj<typeof Component>
+export default meta;
+type Story = StoryObj<typeof Component>;
 
 export const Default: Story = {
   args: {
     variant: 'default',
     size: 'md',
   },
-}
+};
 ```
 
 ---
@@ -306,7 +304,7 @@ We follow [Semantic Versioning](https://semver.org/):
 
 Use [Conventional Commits](https://www.conventionalcommits.org/):
 
-```
+```text
 feat: add new Button component
 fix: correct focus ring styling
 docs: update component usage guidelines
@@ -330,11 +328,13 @@ When making breaking changes:
 ### Before Submitting
 
 1. **Update Documentation**
+
    - Update component usage guidelines
    - Add Storybook stories
    - Update accessibility guidelines if needed
 
 2. **Run Tests**
+
    ```bash
    npm run test
    npm run lint
@@ -342,11 +342,13 @@ When making breaking changes:
    ```
 
 3. **Check Accessibility**
+
    ```bash
    npm run test:a11y
    ```
 
 4. **Build Storybook**
+
    ```bash
    npm run build-storybook
    ```
@@ -367,9 +369,11 @@ When making breaking changes:
 
 ```markdown
 ## Description
+
 Brief description of changes
 
 ## Type of Change
+
 - [ ] New component
 - [ ] Component update
 - [ ] Bug fix
@@ -377,36 +381,43 @@ Brief description of changes
 - [ ] Breaking change
 
 ## Accessibility
+
 - [ ] Keyboard navigation tested
 - [ ] Screen reader tested
 - [ ] Color contrast verified
 - [ ] Focus indicators visible
 
 ## Testing
+
 - [ ] Unit tests added/updated
 - [ ] Storybook stories added
 - [ ] Manual testing completed
 
 ## Screenshots
+
 (if applicable)
 
 ## Breaking Changes
+
 (if applicable)
 ```
 
 ### Review Process
 
 1. **Automated Checks**
+
    - CI/CD runs tests and linting
    - Accessibility checks run
    - Build verification
 
 2. **Code Review**
+
    - At least one maintainer approval required
    - Address all review comments
    - Update PR based on feedback
 
 3. **Design Review**
+
    - Design team reviews visual changes
    - Accessibility team reviews a11y changes
 
@@ -421,6 +432,7 @@ Brief description of changes
 ### Version Bump
 
 The versioning pipeline automatically:
+
 - Detects breaking changes
 - Bumps version (semver)
 - Generates changelog
@@ -439,6 +451,7 @@ The versioning pipeline automatically:
 ### Release Notes
 
 Include in release notes:
+
 - New components
 - Component updates
 - Breaking changes
@@ -471,7 +484,6 @@ Include in release notes:
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-11-16 | Initial contribution workflow |
-
+| Version | Date       | Changes                       |
+| ------- | ---------- | ----------------------------- |
+| 1.0.0   | 2025-11-16 | Initial contribution workflow |

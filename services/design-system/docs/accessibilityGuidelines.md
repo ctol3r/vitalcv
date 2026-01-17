@@ -35,21 +35,25 @@ Accessibility ensures that our platform is usable by everyone, including people 
 ### Perceivable
 
 #### Text Alternatives
+
 - Provide alt text for all images
 - Use descriptive link text
 - Provide captions for multimedia
 
 #### Time-based Media
+
 - Provide captions for video
 - Provide transcripts for audio
 - Avoid auto-playing media
 
 #### Adaptable
+
 - Use semantic HTML
 - Ensure content can be presented in different ways
 - Maintain information relationships
 
 #### Distinguishable
+
 - Ensure sufficient color contrast (4.5:1 for text)
 - Don't rely solely on color to convey information
 - Provide text alternatives for color-coded information
@@ -57,25 +61,30 @@ Accessibility ensures that our platform is usable by everyone, including people 
 ### Operable
 
 #### Keyboard Accessible
+
 - All functionality available via keyboard
 - No keyboard traps
 - Logical tab order
 
 #### Enough Time
+
 - Provide sufficient time to read content
 - Allow users to extend time limits
 - Avoid auto-advancing content
 
 #### Seizures and Physical Reactions
+
 - Avoid flashing content (more than 3 flashes per second)
 - Provide warnings for potentially harmful content
 
 #### Navigable
+
 - Provide skip links
 - Use clear headings
 - Provide multiple navigation methods
 
 #### Input Modalities
+
 - Support pointer gestures
 - Provide alternative input methods
 - Ensure touch targets are at least 44x44px
@@ -83,16 +92,19 @@ Accessibility ensures that our platform is usable by everyone, including people 
 ### Understandable
 
 #### Readable
+
 - Use clear, simple language
 - Define abbreviations and jargon
 - Provide pronunciation guidance when needed
 
 #### Predictable
+
 - Maintain consistent navigation
 - Use consistent labeling
 - Provide clear error messages
 
 #### Input Assistance
+
 - Identify input errors clearly
 - Provide suggestions for correction
 - Prevent and correct mistakes
@@ -100,6 +112,7 @@ Accessibility ensures that our platform is usable by everyone, including people 
 ### Robust
 
 #### Compatible
+
 - Use valid HTML
 - Use proper ARIA attributes
 - Ensure compatibility with assistive technologies
@@ -132,7 +145,10 @@ All interactive elements must have visible focus indicators:
 Provide skip links for keyboard users:
 
 ```tsx
-<a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 focus:p-4 focus:bg-primary focus:text-primary-foreground">
+<a
+  href="#main-content"
+  className="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 focus:p-4 focus:bg-primary focus:text-primary-foreground"
+>
   Skip to main content
 </a>
 ```
@@ -144,11 +160,11 @@ Provide skip links for keyboard users:
 useEffect(() => {
   if (isOpen) {
     const firstFocusable = modalRef.current?.querySelector(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    )
-    firstFocusable?.focus()
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    firstFocusable?.focus();
   }
-}, [isOpen])
+}, [isOpen]);
 ```
 
 ---
@@ -171,12 +187,12 @@ When implementing custom shortcuts:
 useEffect(() => {
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && isOpen) {
-      onClose()
+      onClose();
     }
-  }
-  document.addEventListener('keydown', handleKeyDown)
-  return () => document.removeEventListener('keydown', handleKeyDown)
-}, [isOpen, onClose])
+  };
+  document.addEventListener('keydown', handleKeyDown);
+  return () => document.removeEventListener('keydown', handleKeyDown);
+}, [isOpen, onClose]);
 ```
 
 ### Keyboard Traps
@@ -202,6 +218,7 @@ Avoid keyboard traps. Always provide a way to exit:
 ### Common ARIA Roles
 
 #### Landmarks
+
 - `role="banner"` - Site header
 - `role="navigation"` - Navigation menus
 - `role="main"` - Main content area
@@ -209,6 +226,7 @@ Avoid keyboard traps. Always provide a way to exit:
 - `role="contentinfo"` - Footer
 
 #### Widgets
+
 - `role="button"` - Custom button elements
 - `role="dialog"` - Modal dialogs
 - `role="alert"` - Important messages
@@ -219,6 +237,7 @@ Avoid keyboard traps. Always provide a way to exit:
 ### ARIA Attributes
 
 #### aria-label
+
 Provide accessible names when text is not visible:
 
 ```tsx
@@ -228,6 +247,7 @@ Provide accessible names when text is not visible:
 ```
 
 #### aria-describedby
+
 Link elements to descriptions:
 
 ```tsx
@@ -240,18 +260,17 @@ Link elements to descriptions:
 ```
 
 #### aria-expanded
+
 Indicate expandable/collapsible state:
 
 ```tsx
-<button
-  aria-expanded={isOpen}
-  aria-controls="menu"
->
+<button aria-expanded={isOpen} aria-controls="menu">
   Menu
 </button>
 ```
 
 #### aria-hidden
+
 Hide decorative elements from screen readers:
 
 ```tsx
@@ -260,6 +279,7 @@ Hide decorative elements from screen readers:
 ```
 
 #### aria-live
+
 Announce dynamic content changes:
 
 ```tsx
@@ -289,6 +309,7 @@ Announce dynamic content changes:
 ### Color Contrast Checker
 
 Use tools to verify contrast:
+
 - [WebAIM Contrast Checker](https://webaim.org/resources/contrastchecker/)
 - [Colour Contrast Analyser](https://www.tpgi.com/color-contrast-checker/)
 
@@ -443,17 +464,20 @@ Announce dynamic content:
 ### Manual Testing
 
 1. **Keyboard Navigation**
+
    - Tab through all interactive elements
    - Verify focus indicators are visible
    - Test all keyboard shortcuts
 
 2. **Screen Reader Testing**
+
    - Test with NVDA (Windows)
    - Test with JAWS (Windows)
    - Test with VoiceOver (macOS/iOS)
    - Test with TalkBack (Android)
 
 3. **Color Contrast**
+
    - Verify all text meets contrast requirements
    - Test in both light and dark modes
    - Check focus indicators
@@ -519,7 +543,6 @@ Use this checklist when building components:
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-11-16 | Initial accessibility guidelines |
-
+| Version | Date       | Changes                          |
+| ------- | ---------- | -------------------------------- |
+| 1.0.0   | 2025-11-16 | Initial accessibility guidelines |

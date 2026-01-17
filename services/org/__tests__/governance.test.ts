@@ -3,28 +3,24 @@
  * Tests for roles, permissions, policies, and audit features
  */
 
+import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
 import { PrismaClient } from '@prisma/client';
+import { recordSettingChange, SettingChangeAction } from '../../audit/settingsEvents';
 import {
-  seedBuiltInRoles,
-  checkPermission,
-  hasAllPermissions,
-  BUILT_IN_ROLES,
-} from '../models/OrgRole';
-import {
-  assignRoleToUser,
-  revokeRoleFromUser,
-  getUserRolesInOrg,
-  getUserPermissionsInOrg,
-  userHasPermission,
-  userHasAllPermissions,
-} from '../models/OrgUserRole';
-import { seedInitialPolicies } from '../../policy/models/PlatformPolicyVersion';
-import {
-  recordPolicyAcceptance,
   getPolicyAcceptanceStatus,
   hasOrgAcceptedPolicy,
+  recordPolicyAcceptance,
 } from '../../policy/models/OrgPolicyAcceptance';
-import { recordSettingChange, SettingChangeAction } from '../../audit/settingsEvents';
+import { seedInitialPolicies } from '../../policy/models/PlatformPolicyVersion';
+import { checkPermission, hasAllPermissions, seedBuiltInRoles } from '../models/OrgRole';
+import {
+  assignRoleToUser,
+  getUserPermissionsInOrg,
+  getUserRolesInOrg,
+  revokeRoleFromUser,
+  userHasAllPermissions,
+  userHasPermission,
+} from '../models/OrgUserRole';
 
 const prisma = new PrismaClient();
 
@@ -71,18 +67,8 @@ describe('B141A-GOV-001: OrgRole Model', () => {
 
   it('should check multiple permissions', () => {
     const userPermissions = ['org:config:read', 'audit:export:read'];
-    expect(
-      hasAllPermissions(userPermissions, [
-        'org:config:read',
-        'audit:export:read',
-      ])
-    ).toBe(true);
-    expect(
-      hasAllPermissions(userPermissions, [
-        'org:config:read',
-        'org:config:write',
-      ])
-    ).toBe(false);
+    expect(hasAllPermissions(userPermissions, ['org:config:read', 'audit:export:read'])).toBe(true);
+    expect(hasAllPermissions(userPermissions, ['org:config:read', 'org:config:write'])).toBe(false);
   });
 });
 
@@ -102,12 +88,7 @@ describe('B141A-GOV-002: OrgUserRole Mapping', () => {
   });
 
   it('should assign role to user', async () => {
-    const assignment = await assignRoleToUser(
-      TEST_USER_ID,
-      TEST_ORG_ID,
-      testRoleId,
-      TEST_ADMIN_ID
-    );
+    const assignment = await assignRoleToUser(TEST_USER_ID, TEST_ORG_ID, testRoleId, TEST_ADMIN_ID);
 
     expect(assignment.userId).toBe(TEST_USER_ID);
     expect(assignment.orgId).toBe(TEST_ORG_ID);
@@ -122,33 +103,21 @@ describe('B141A-GOV-002: OrgUserRole Mapping', () => {
     });
     const secondRoleId = roles[1].id;
 
-    await assignRoleToUser(
-      TEST_USER_ID,
-      TEST_ORG_ID,
-      secondRoleId,
-      TEST_ADMIN_ID
-    );
+    await assignRoleToUser(TEST_USER_ID, TEST_ORG_ID, secondRoleId, TEST_ADMIN_ID);
 
     const userRoles = await getUserRolesInOrg(TEST_USER_ID, TEST_ORG_ID);
     expect(userRoles.length).toBeGreaterThanOrEqual(2);
   });
 
   it('should get user permissions in org', async () => {
-    const permissions = await getUserPermissionsInOrg(
-      TEST_USER_ID,
-      TEST_ORG_ID
-    );
+    const permissions = await getUserPermissionsInOrg(TEST_USER_ID, TEST_ORG_ID);
 
     expect(permissions.length).toBeGreaterThan(0);
     expect(permissions).toContain('org:*:*'); // OrgAdmin has this
   });
 
   it('should check user has permission', async () => {
-    const hasPermission = await userHasPermission(
-      TEST_USER_ID,
-      TEST_ORG_ID,
-      'org:config:read'
-    );
+    const hasPermission = await userHasPermission(TEST_USER_ID, TEST_ORG_ID, 'org:config:read');
     expect(hasPermission).toBe(true);
   });
 
@@ -164,7 +133,9 @@ describe('B141A-GOV-002: OrgUserRole Mapping', () => {
     await revokeRoleFromUser(TEST_USER_ID, TEST_ORG_ID, testRoleId);
 
     const userRoles = await getUserRolesInOrg(TEST_USER_ID, TEST_ORG_ID);
-    const hasRevokedRole = userRoles.some((ur) => ur.orgRoleId === testRoleId);
+    const hasRevokedRole = userRoles.some(
+      (ur: { orgRoleId: string }) => ur.orgRoleId === testRoleId,
+    );
     expect(hasRevokedRole).toBe(false);
   });
 });
@@ -180,11 +151,7 @@ describe('B141A-GOV-003: Permission Middleware', () => {
     });
     await assignRoleToUser(TEST_USER_ID, TEST_ORG_ID, roles[0].id);
 
-    const hasPermission = await userHasPermission(
-      TEST_USER_ID,
-      TEST_ORG_ID,
-      'audit:export:read'
-    );
+    const hasPermission = await userHasPermission(TEST_USER_ID, TEST_ORG_ID, 'audit:export:read');
     expect(hasPermission).toBe(true);
   });
 
@@ -195,16 +162,12 @@ describe('B141A-GOV-003: Permission Middleware', () => {
     });
 
     if (readOnlyRole) {
-      await assignRoleToUser(
-        'test-readonly-user',
-        TEST_ORG_ID,
-        readOnlyRole.id
-      );
+      await assignRoleToUser('test-readonly-user', TEST_ORG_ID, readOnlyRole.id);
 
       const hasWritePermission = await userHasPermission(
         'test-readonly-user',
         TEST_ORG_ID,
-        'org:config:write'
+        'org:config:write',
       );
       expect(hasWritePermission).toBe(false);
     }
@@ -236,7 +199,7 @@ describe('B141A-POLICY-005 & B141A-POLICY-006: Policy Management', () => {
       TEST_ADMIN_ID,
       'Test Admin',
       '127.0.0.1',
-      'test-agent'
+      'test-agent',
     );
 
     expect(acceptance.orgId).toBe(TEST_ORG_ID);
@@ -246,10 +209,7 @@ describe('B141A-POLICY-005 & B141A-POLICY-006: Policy Management', () => {
   });
 
   it('should check if org has accepted policy', async () => {
-    const hasAccepted = await hasOrgAcceptedPolicy(
-      TEST_ORG_ID,
-      'Security Policy'
-    );
+    const hasAccepted = await hasOrgAcceptedPolicy(TEST_ORG_ID, 'Security Policy');
     expect(hasAccepted).toBe(true);
   });
 
@@ -258,7 +218,7 @@ describe('B141A-POLICY-005 & B141A-POLICY-006: Policy Management', () => {
 
     expect(statuses.length).toBeGreaterThan(0);
     const securityPolicyStatus = statuses.find(
-      (s) => s.policy.name === 'Security Policy'
+      (s: { policy: { name: string } }) => s.policy.name === 'Security Policy',
     );
     expect(securityPolicyStatus?.accepted).toBe(true);
   });
@@ -277,7 +237,7 @@ describe('B141A-AUD-008: Settings Audit Events', () => {
       'Test Admin',
       before,
       after,
-      'ehr-config-123'
+      'ehr-config-123',
     );
 
     expect(event.orgId).toBe(TEST_ORG_ID);
@@ -300,7 +260,7 @@ describe('B141A-AUD-008: Settings Audit Events', () => {
       TEST_ADMIN_ID,
       'Test Admin',
       before,
-      after
+      after,
     );
 
     const changeSet = event.changeSet as Record<string, any>;
@@ -321,7 +281,7 @@ describe('B141A-AUD-008: Settings Audit Events', () => {
       TEST_ADMIN_ID,
       'Test Admin',
       before,
-      after
+      after,
     );
 
     const changeSet = event.changeSet as Record<string, any>;
@@ -330,4 +290,3 @@ describe('B141A-AUD-008: Settings Audit Events', () => {
     expect(changeSet.clientSecret.before).toBe('[REDACTED]');
   });
 });
-

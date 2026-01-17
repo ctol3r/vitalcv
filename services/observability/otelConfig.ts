@@ -4,22 +4,21 @@
  * Exports traces and metrics to Prometheus and Jaeger
  */
 
-import { NodeSDK } from '@opentelemetry/sdk-node';
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
-import { Resource } from '@opentelemetry/resources';
-import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
-import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
+import { GrpcInstrumentation } from '@opentelemetry/instrumentation-grpc';
+import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
+import { KafkaJsInstrumentation } from '@opentelemetry/instrumentation-kafkajs';
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
 import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis';
-import { GrpcInstrumentation } from '@opentelemetry/instrumentation-grpc';
-import { KafkaJsInstrumentation } from '@opentelemetry/instrumentation-kafkajs';
+import { defaultResource, resourceFromAttributes } from '@opentelemetry/resources';
+import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { BatchSpanProcessor, TraceIdRatioBasedSampler } from '@opentelemetry/sdk-trace-base';
+import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { PrismaInstrumentation } from '@prisma/instrumentation';
-import type { InstrumentationOption } from '@opentelemetry/instrumentation';
 // Optional exporters - will gracefully degrade if not installed
 let PrometheusExporter: any;
 let JaegerExporter: any;
@@ -61,7 +60,7 @@ export interface OpenTelemetryConfig {
   enablePrisma?: boolean;
 
   // Additional instrumentations
-  additionalInstrumentations?: InstrumentationOption[];
+  additionalInstrumentations?: Instrumentation[];
 
   // Resource attributes
   resourceAttributes?: Record<string, string>;
@@ -93,13 +92,15 @@ export function initializeOpenTelemetry(config: OpenTelemetryConfig): NodeSDK {
   const resourceAttributes: Record<string, string> = {
     [SemanticResourceAttributes.SERVICE_NAME]: finalConfig.serviceName,
     [SemanticResourceAttributes.SERVICE_VERSION]: finalConfig.serviceVersion || '1.0.0',
-    [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: finalConfig.environment || process.env.NODE_ENV || 'development',
+    [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]:
+      finalConfig.environment || process.env.NODE_ENV || 'development',
     ...finalConfig.resourceAttributes,
   };
 
   // Add deployment attributes if available
   if (process.env.KUBERNETES_NAMESPACE) {
-    resourceAttributes[SemanticResourceAttributes.K8S_NAMESPACE_NAME] = process.env.KUBERNETES_NAMESPACE;
+    resourceAttributes[SemanticResourceAttributes.K8S_NAMESPACE_NAME] =
+      process.env.KUBERNETES_NAMESPACE;
   }
   if (process.env.KUBERNETES_POD_NAME) {
     resourceAttributes[SemanticResourceAttributes.K8S_POD_NAME] = process.env.KUBERNETES_POD_NAME;
@@ -108,10 +109,10 @@ export function initializeOpenTelemetry(config: OpenTelemetryConfig): NodeSDK {
     resourceAttributes[SemanticResourceAttributes.HOST_NAME] = process.env.HOSTNAME;
   }
 
-  const resource = Resource.default().merge(new Resource(resourceAttributes));
+  const resource = defaultResource().merge(resourceFromAttributes(resourceAttributes));
 
   // Build instrumentations array
-  const instrumentations: InstrumentationOption[] = [];
+  const instrumentations: Instrumentation[] = [];
 
   // HTTP instrumentation
   if (finalConfig.enableHttp) {
@@ -124,12 +125,29 @@ export function initializeOpenTelemetry(config: OpenTelemetryConfig): NodeSDK {
           return path === '/health' || path === '/metrics' || path === '/ready' || path === '/live';
         },
         requestHook: (span, request) => {
-          span.setAttribute('http.user_agent', request.headers['user-agent'] || 'unknown');
+          const userAgent = (() => {
+            if ('headers' in request) {
+              const headerValue = request.headers?.['user-agent'];
+              return Array.isArray(headerValue) ? headerValue.join(',') : headerValue;
+            }
+            if ('getHeader' in request && typeof request.getHeader === 'function') {
+              const headerValue = request.getHeader('user-agent');
+              if (Array.isArray(headerValue)) {
+                return headerValue.join(',');
+              }
+              if (headerValue != null) {
+                return String(headerValue);
+              }
+            }
+            return undefined;
+          })();
+
+          span.setAttribute('http.user_agent', userAgent || 'unknown');
         },
       }),
       new ExpressInstrumentation({
         enabled: true,
-      })
+      }),
     );
   }
 
@@ -138,7 +156,7 @@ export function initializeOpenTelemetry(config: OpenTelemetryConfig): NodeSDK {
     instrumentations.push(
       new GrpcInstrumentation({
         enabled: true,
-      })
+      }),
     );
   }
 
@@ -147,8 +165,8 @@ export function initializeOpenTelemetry(config: OpenTelemetryConfig): NodeSDK {
     instrumentations.push(
       new PgInstrumentation({
         enabled: true,
-        addSqlCommenterCommentToSpan: true,
-      })
+        addSqlCommenterCommentToQueries: true,
+      }),
     );
   }
 
@@ -157,7 +175,7 @@ export function initializeOpenTelemetry(config: OpenTelemetryConfig): NodeSDK {
     instrumentations.push(
       new RedisInstrumentation({
         enabled: true,
-      })
+      }),
     );
   }
 
@@ -166,7 +184,7 @@ export function initializeOpenTelemetry(config: OpenTelemetryConfig): NodeSDK {
     instrumentations.push(
       new KafkaJsInstrumentation({
         enabled: true,
-      })
+      }),
     );
   }
 
@@ -175,7 +193,7 @@ export function initializeOpenTelemetry(config: OpenTelemetryConfig): NodeSDK {
     instrumentations.push(
       new PrismaInstrumentation({
         enabled: true,
-      })
+      }),
     );
   }
 
@@ -247,11 +265,10 @@ export function initializeOpenTelemetry(config: OpenTelemetryConfig): NodeSDK {
     instrumentations,
     metricReader,
     // Sampling configuration
-    sampler: finalConfig.traceSampleRate < 1.0
-      ? {
-          shouldSample: () => Math.random() < finalConfig.traceSampleRate,
-        }
-      : undefined,
+    sampler:
+      finalConfig.traceSampleRate < 1.0
+        ? new TraceIdRatioBasedSampler(finalConfig.traceSampleRate)
+        : undefined,
   });
 
   // Start SDK
@@ -281,12 +298,16 @@ export function initializeOpenTelemetry(config: OpenTelemetryConfig): NodeSDK {
 export function getDefaultConfig(serviceName: string): OpenTelemetryConfig {
   return {
     serviceName,
-    serviceVersion: process.env.SERVICE_VERSION || process.env.RELEASE || process.env.GIT_SHA || '1.0.0',
+    serviceVersion:
+      process.env.SERVICE_VERSION || process.env.RELEASE || process.env.GIT_SHA || '1.0.0',
     environment: process.env.NODE_ENV || 'development',
     prometheusEnabled: process.env.OTEL_PROMETHEUS_ENABLED !== 'false',
     prometheusPort: parseInt(process.env.OTEL_PROMETHEUS_PORT || '9464', 10),
     jaegerEnabled: process.env.OTEL_JAEGER_ENABLED !== 'false',
-    jaegerEndpoint: process.env.JAEGER_ENDPOINT || process.env.OTEL_EXPORTER_JAEGER_ENDPOINT || 'http://localhost:14268/api/traces',
+    jaegerEndpoint:
+      process.env.JAEGER_ENDPOINT ||
+      process.env.OTEL_EXPORTER_JAEGER_ENDPOINT ||
+      'http://localhost:14268/api/traces',
     otlpEnabled: process.env.OTEL_EXPORTER_OTLP_ENABLED !== 'false',
     otlpEndpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318',
     traceSampleRate: parseFloat(process.env.OTEL_TRACES_SAMPLER_ARG || '1.0'),
@@ -306,4 +327,3 @@ export default {
   initializeOpenTelemetryDefault,
   getDefaultConfig,
 };
-

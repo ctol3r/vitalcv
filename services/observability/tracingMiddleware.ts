@@ -4,10 +4,9 @@
  * Correlates logs with traces and supports W3C Trace Context
  */
 
-import { Request, Response, NextFunction } from 'express';
-import { trace, context, SpanStatusCode, Span, propagation, SpanKind } from '@opentelemetry/api';
+import { context, propagation, Span, SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import { W3CTraceContextPropagator } from '@opentelemetry/core';
-import { getTracer } from '../../infra/observability/tracing';
+import { NextFunction, Request, Response } from 'express';
 
 export interface TraceContext {
   traceId: string;
@@ -47,7 +46,10 @@ export function extractTraceContext(req: Request): TraceContext | null {
 /**
  * Inject trace context into request headers (W3C Trace Context)
  */
-export function injectTraceContext(headers: Record<string, string>, traceContext: TraceContext): void {
+export function injectTraceContext(
+  headers: Record<string, string>,
+  traceContext: TraceContext,
+): void {
   const traceFlags = traceContext.traceFlags.toString(16).padStart(2, '0');
   headers['traceparent'] = `00-${traceContext.traceId}-${traceContext.spanId}-${traceFlags}`;
 
@@ -83,7 +85,7 @@ export function getCurrentTraceContext(): TraceContext | null {
  * Creates spans for incoming requests and correlates logs
  */
 export function distributedTracingMiddleware(serviceName: string) {
-  const tracer = getTracer(serviceName);
+  const tracer = trace.getTracer(serviceName);
 
   // Set W3C Trace Context as the default propagator
   propagation.setGlobalPropagator(new W3CTraceContextPropagator());
@@ -93,22 +95,19 @@ export function distributedTracingMiddleware(serviceName: string) {
     const extractedContext = extractTraceContext(req);
 
     // Create span for this request
-    const span = tracer.startSpan(
-      `${req.method} ${req.path}`,
-      {
-        kind: SpanKind.SERVER,
-        attributes: {
-          'http.method': req.method,
-          'http.url': req.url,
-          'http.target': req.path,
-          'http.host': req.hostname,
-          'http.scheme': req.protocol,
-          'http.user_agent': req.get('user-agent') || 'unknown',
-          'http.route': req.route?.path || req.path,
-          'service.name': serviceName,
-        },
-      }
-    );
+    const span = tracer.startSpan(`${req.method} ${req.path}`, {
+      kind: SpanKind.SERVER,
+      attributes: {
+        'http.method': req.method,
+        'http.url': req.url,
+        'http.target': req.path,
+        'http.host': req.hostname,
+        'http.scheme': req.protocol,
+        'http.user_agent': req.get('user-agent') || 'unknown',
+        'http.route': req.route?.path || req.path,
+        'service.name': serviceName,
+      },
+    });
 
     // Set span as active in context
     const ctx = trace.setSpan(context.active(), span);
@@ -175,20 +174,27 @@ export function distributedTracingMiddleware(serviceName: string) {
 /**
  * Create a child span for a specific operation
  */
-export function createChildSpan(name: string, attributes?: Record<string, string | number | boolean>): Span {
+export function createChildSpan(
+  name: string,
+  attributes?: Record<string, string | number | boolean>,
+): Span {
   const span = trace.getActiveSpan();
   if (!span) {
-    const tracer = getTracer('chai-vc-platform');
+    const tracer = trace.getTracer('vitalcv');
     return tracer.startSpan(name, { attributes });
   }
 
-  const tracer = trace.getTracer('chai-vc-platform');
+  const tracer = trace.getTracer('vitalcv');
   const ctx = trace.setSpan(context.active(), span);
 
-  return tracer.startSpan(name, {
-    attributes,
-    kind: SpanKind.INTERNAL,
-  }, ctx);
+  return tracer.startSpan(
+    name,
+    {
+      attributes,
+      kind: SpanKind.INTERNAL,
+    },
+    ctx,
+  );
 }
 
 /**
@@ -197,7 +203,7 @@ export function createChildSpan(name: string, attributes?: Record<string, string
 export async function withTrace<T>(
   name: string,
   fn: (span: Span) => Promise<T>,
-  attributes?: Record<string, string | number | boolean>
+  attributes?: Record<string, string | number | boolean>,
 ): Promise<T> {
   const span = createChildSpan(name, attributes);
   const ctx = trace.setSpan(context.active(), span);
@@ -224,7 +230,7 @@ export async function withTrace<T>(
 export function withTraceSync<T>(
   name: string,
   fn: (span: Span) => T,
-  attributes?: Record<string, string | number | boolean>
+  attributes?: Record<string, string | number | boolean>,
 ): T {
   const span = createChildSpan(name, attributes);
   const ctx = trace.setSpan(context.active(), span);
@@ -248,7 +254,10 @@ export function withTraceSync<T>(
 /**
  * Add event to current span
  */
-export function addSpanEvent(name: string, attributes?: Record<string, string | number | boolean>): void {
+export function addSpanEvent(
+  name: string,
+  attributes?: Record<string, string | number | boolean>,
+): void {
   const span = trace.getActiveSpan();
   if (span) {
     span.addEvent(name, attributes);
@@ -292,26 +301,23 @@ export function getCurrentSpan(): Span | undefined {
 export async function traceHttpCall<T>(
   method: string,
   url: string,
-  fn: () => Promise<T>
+  fn: () => Promise<T>,
 ): Promise<T> {
-  return withTrace(
-    `http.client.${method}`,
-    async (span) => {
-      span.setAttribute('http.method', method);
-      span.setAttribute('http.url', url);
+  return withTrace(`http.client.${method}`, async (span) => {
+    span.setAttribute('http.method', method);
+    span.setAttribute('http.url', url);
 
-      // Inject trace context into outgoing request headers
-      const headers: Record<string, string> = {};
-      const traceContext = getCurrentTraceContext();
-      if (traceContext) {
-        injectTraceContext(headers, traceContext);
-      }
-
-      span.setAttribute('http.request.headers', JSON.stringify(headers));
-
-      return fn();
+    // Inject trace context into outgoing request headers
+    const headers: Record<string, string> = {};
+    const traceContext = getCurrentTraceContext();
+    if (traceContext) {
+      injectTraceContext(headers, traceContext);
     }
-  );
+
+    span.setAttribute('http.request.headers', JSON.stringify(headers));
+
+    return fn();
+  });
 }
 
 /**
@@ -320,16 +326,13 @@ export async function traceHttpCall<T>(
 export async function traceDatabaseQuery<T>(
   queryName: string,
   query: string,
-  fn: () => Promise<T>
+  fn: () => Promise<T>,
 ): Promise<T> {
-  return withTrace(
-    `db.query.${queryName}`,
-    async (span) => {
-      span.setAttribute('db.statement', query.substring(0, 500)); // Limit query length
-      span.setAttribute('db.operation', queryName);
-      return fn();
-    }
-  );
+  return withTrace(`db.query.${queryName}`, async (span) => {
+    span.setAttribute('db.statement', query.substring(0, 500)); // Limit query length
+    span.setAttribute('db.operation', queryName);
+    return fn();
+  });
 }
 
 /**
@@ -339,18 +342,15 @@ export async function traceKafkaMessage<T>(
   topic: string,
   partition: number,
   offset: string,
-  fn: () => Promise<T>
+  fn: () => Promise<T>,
 ): Promise<T> {
-  return withTrace(
-    `kafka.process.${topic}`,
-    async (span) => {
-      span.setAttribute('messaging.system', 'kafka');
-      span.setAttribute('messaging.destination', topic);
-      span.setAttribute('messaging.kafka.partition', partition);
-      span.setAttribute('messaging.kafka.offset', offset);
-      return fn();
-    }
-  );
+  return withTrace(`kafka.process.${topic}`, async (span) => {
+    span.setAttribute('messaging.system', 'kafka');
+    span.setAttribute('messaging.destination', topic);
+    span.setAttribute('messaging.kafka.partition', partition);
+    span.setAttribute('messaging.kafka.offset', offset);
+    return fn();
+  });
 }
 
 export default {
@@ -369,4 +369,3 @@ export default {
   traceDatabaseQuery,
   traceKafkaMessage,
 };
-

@@ -1,3 +1,4 @@
+import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
 import { OrgMembershipRole, OrgMembershipV2Status, PrismaClient } from '@prisma/client';
 import {
   inviteClinicianToOrg,
@@ -97,14 +98,14 @@ describe('OrgMembershipV2 model', () => {
     const activated = await updateOrgMembershipV2Status(
       clinicianId,
       primaryOrgId,
-      OrgMembershipV2Status.ACTIVE
+      OrgMembershipV2Status.ACTIVE,
     );
 
     expect(activated.membershipStatus).toBe(OrgMembershipV2Status.ACTIVE);
     expect(activated.joinedAt).toBeInstanceOf(Date);
 
     await expect(
-      updateOrgMembershipV2Status(clinicianId, primaryOrgId, OrgMembershipV2Status.INVITED)
+      updateOrgMembershipV2Status(clinicianId, primaryOrgId, OrgMembershipV2Status.INVITED),
     ).rejects.toThrow(/Cannot transition/);
   });
 
@@ -119,4 +120,3 @@ describe('OrgMembershipV2 model', () => {
     expect(orgMemberships[0].membershipStatus).toBe(OrgMembershipV2Status.INVITED);
   });
 });
-

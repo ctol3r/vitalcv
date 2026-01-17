@@ -1,10 +1,10 @@
 # Design System Documentation
 
-This directory contains the design system documentation, components, and tooling for the Chai VC Platform.
+This directory contains the design system documentation, components, and tooling for the VitalCV platform.
 
 ## Structure
 
-```
+```text
 services/design-system/
 ├── docs/
 │   ├── componentUsage.md          # Component usage guidelines
@@ -74,7 +74,7 @@ The icon library (`icons/iconLibrary.ts`) provides:
 - Pre-configured common icons
 - Lucide React integration
 
-### Usage
+### Icon Library Usage
 
 ```tsx
 import { Icon, Icons } from '@/services/design-system/icons/iconLibrary'
@@ -95,16 +95,16 @@ The versioning pipeline (`release/versioningPipeline.ts`) automates:
 - Breaking change detection
 - Release note creation
 
-### Usage
+### Versioning Pipeline Usage
 
 ```typescript
-import { runVersioningPipeline } from './release/versioningPipeline'
+import { runVersioningPipeline } from './release/versioningPipeline';
 
 runVersioningPipeline({
   packagePath: '.',
   changelogPath: './CHANGELOG.md',
   dryRun: false,
-})
+});
 ```
 
 ## Adoption Analytics
@@ -116,17 +116,12 @@ The analytics service (`analytics/adoptionAnalyticsService.ts`) tracks:
 - Most/least used components
 - Usage by application
 
-### Usage
+### Adoption Analytics Usage
 
 ```typescript
-import { generateAdoptionReport } from './analytics/adoptionAnalyticsService'
+import { generateAdoptionReport } from './analytics/adoptionAnalyticsService';
 
-const report = generateAdoptionReport(
-  rootDir,
-  componentsDir,
-  componentPaths,
-  apps
-)
+const report = generateAdoptionReport(rootDir, componentsDir, componentPaths, apps);
 ```
 
 ## Contributing

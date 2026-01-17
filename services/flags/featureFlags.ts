@@ -8,8 +8,12 @@ const log = getServiceLogger('flags/featureFlags');
  * - Fallback to defaults
  */
 
-import { PrismaClient } from '@prisma/client';
 import { getServiceLogger } from '../logging/serviceLogger';
+
+type PrismaClient = any;
+const { PrismaClient: PrismaClientCtor } = require('@prisma/client') as {
+  PrismaClient: new () => PrismaClient;
+};
 
 export interface FeatureFlagConfig {
   enabled: boolean;
@@ -187,7 +191,7 @@ export class FeatureFlagService {
     flagKey: keyof FeatureFlags,
     enabled: boolean,
     description?: string,
-    updatedBy?: string
+    updatedBy?: string,
   ): Promise<void> {
     await this.prisma.serverConfig.upsert({
       where: {
@@ -222,7 +226,7 @@ export class FeatureFlagService {
     orgId: string,
     flagKey: keyof FeatureFlags,
     enabled: boolean,
-    description?: string
+    description?: string,
   ): Promise<void> {
     try {
       // Try OrgFeatureFlag model first
@@ -337,11 +341,11 @@ export function featureFlagGuard(
     errorMessage?: string;
     errorCode?: string;
     statusCode?: number;
-  }
+  },
 ) {
   return async (req: any, res: any, next: any) => {
     try {
-      const prisma = (req as any).prisma || new PrismaClient();
+      const prisma = (req as any).prisma || new PrismaClientCtor();
       const featureFlagService = getFeatureFlagService(prisma);
 
       // Extract orgId if provided
@@ -394,9 +398,8 @@ export function featureFlagGuard(
 export async function checkFeatureFlag(
   prisma: PrismaClient,
   flagKey: keyof FeatureFlags,
-  orgId?: string
+  orgId?: string,
 ): Promise<boolean> {
   const service = getFeatureFlagService(prisma);
   return service.isEnabled(flagKey, orgId);
 }
-

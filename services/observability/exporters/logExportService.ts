@@ -3,9 +3,20 @@
  * Sends logs to external aggregator (e.g. Elasticsearch, CloudWatch) in batch; ensures network retries and backpressure; supports configurable endpoints via ObservabilityConfigService
  */
 
-import { PrismaClient, LogLevel } from '@prisma/client';
 import { LogEventModel } from '../models/LogEvent.js';
 import { ObservabilityConfigService } from '../services/observabilityConfigService.js';
+
+type LogLevel = string;
+
+interface LogEventRecord {
+  id: string;
+  serviceName: string;
+  level: LogLevel;
+  message: string;
+  context: unknown;
+  correlationId?: string | null;
+  timestamp: Date;
+}
 
 export interface LogExportConfig {
   endpoint: string;
@@ -23,7 +34,7 @@ export interface LogBatch {
     serviceName: string;
     level: LogLevel;
     message: string;
-    context: any;
+    context: unknown;
     correlationId?: string;
     timestamp: Date;
   }>;
@@ -38,12 +49,8 @@ export class LogExportService {
   private flushTimer?: NodeJS.Timeout;
   private pendingCount: number = 0;
 
-  constructor(
-    prisma: PrismaClient,
-    config: LogExportConfig,
-    configService: ObservabilityConfigService
-  ) {
-    this.logEventModel = new LogEventModel(prisma);
+  constructor(prisma: unknown, config: LogExportConfig, configService: ObservabilityConfigService) {
+    this.logEventModel = new LogEventModel(prisma as any);
     this.config = config;
     this.configService = configService;
 
@@ -135,7 +142,7 @@ export class LogExportService {
 
       case 'cloudwatch':
         return {
-          logGroupName: '/chai-vc-platform/logs',
+          logGroupName: '/vitalcv/logs',
           logStreamName: batch.logs[0]?.serviceName || 'default',
           logEvents: batch.logs.map((log) => ({
             timestamp: log.timestamp.getTime(),
@@ -164,11 +171,11 @@ export class LogExportService {
       return;
     }
 
-    const logs = await this.logEventModel.findMany(
+    const logs: LogEventRecord[] = await this.logEventModel.findMany(
       {
         serviceName,
       },
-      limit
+      limit,
     );
 
     if (logs.length === 0) {
@@ -176,12 +183,12 @@ export class LogExportService {
     }
 
     const batch: LogBatch = {
-      logs: logs.map((log) => ({
+      logs: logs.map((log: LogEventRecord) => ({
         id: log.id,
         serviceName: log.serviceName,
         level: log.level,
         message: log.message,
-        context: log.context as any,
+        context: log.context,
         correlationId: log.correlationId || undefined,
         timestamp: log.timestamp,
       })),
@@ -238,4 +245,3 @@ export class LogExportService {
 }
 
 export default LogExportService;
-

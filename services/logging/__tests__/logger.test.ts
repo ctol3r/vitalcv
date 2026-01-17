@@ -2,6 +2,7 @@
  * B146C-SEC-001: Unit tests for PHI filtering in logger
  */
 
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { createLogger } from '../logger';
 
 describe('Logger PHI Filtering', () => {
@@ -13,9 +14,9 @@ describe('Logger PHI Filtering', () => {
 
   beforeEach(() => {
     logOutput = [];
-    console.info = jest.fn((...args) => logOutput.push(args));
-    console.error = jest.fn((...args) => logOutput.push(args));
-    console.warn = jest.fn((...args => logOutput.push(args)));
+    console.info = jest.fn((...args: unknown[]) => logOutput.push(args));
+    console.error = jest.fn((...args: unknown[]) => logOutput.push(args));
+    console.warn = jest.fn((...args: unknown[]) => logOutput.push(args));
   });
 
   afterEach(() => {
@@ -42,7 +43,7 @@ describe('Logger PHI Filtering', () => {
     logger.info('Address update', {
       address: '123 Main St',
       city: 'Springfield',
-      zipCode: '12345'
+      zipCode: '12345',
     });
 
     const logEntry = JSON.parse(logOutput[0][0]);
@@ -65,9 +66,9 @@ describe('Logger PHI Filtering', () => {
         name: 'Jane Doe',
         birthDate: '1985-05-15',
         metadata: {
-          userId: '456'
-        }
-      }
+          userId: '456',
+        },
+      },
     });
 
     const logEntry = JSON.parse(logOutput[0][0]);
@@ -80,8 +81,8 @@ describe('Logger PHI Filtering', () => {
     logger.info('Multiple patients', {
       patients: [
         { name: 'Patient 1', id: '1' },
-        { name: 'Patient 2', id: '2' }
-      ]
+        { name: 'Patient 2', id: '2' },
+      ],
     });
 
     const logEntry = JSON.parse(logOutput[0][0]);
@@ -95,7 +96,7 @@ describe('Logger PHI Filtering', () => {
       userId: '123',
       timestamp: '2025-01-01',
       action: 'login',
-      count: 42
+      count: 42,
     });
 
     const logEntry = JSON.parse(logOutput[0][0]);
@@ -109,7 +110,7 @@ describe('Logger PHI Filtering', () => {
     logger.info('Case variants', {
       Name: 'John',
       BIRTHDATE: '1990-01-01',
-      Address: '123 Main St'
+      Address: '123 Main St',
     });
 
     const logEntry = JSON.parse(logOutput[0][0]);

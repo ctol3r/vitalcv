@@ -4,8 +4,19 @@
  * Integrates with ELK/Datadog stack and adds error and event logs
  */
 
-import { Request } from 'express';
 import { getCurrentTraceContext } from './tracingMiddleware';
+
+export interface RequestLike {
+  method: string;
+  path: string;
+  query?: Record<string, unknown>;
+  headers?: Record<string, unknown>;
+  requestId?: string;
+  traceId?: string;
+  userId?: string;
+  startTime?: number;
+  [key: string]: any;
+}
 
 export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
@@ -49,14 +60,14 @@ export class EnhancedLogger {
   private enableELK: boolean;
 
   constructor(
-    serviceName: string = process.env.SERVICE_NAME || 'chai-vc-platform',
+    serviceName: string = process.env.SERVICE_NAME || 'vitalcv',
     options: {
       logFormat?: 'json' | 'plain';
       minLevel?: LogLevel;
       enableTraceCorrelation?: boolean;
       enableDatadog?: boolean;
       enableELK?: boolean;
-    } = {}
+    } = {},
   ) {
     this.serviceName = serviceName;
     this.logFormat = options.logFormat || (process.env.LOG_FORMAT === 'json' ? 'json' : 'plain');
@@ -73,7 +84,7 @@ export class EnhancedLogger {
     return currentIndex >= minIndex;
   }
 
-  private enrichLogEntry(entry: Partial<LogEntry>, req?: Request): LogEntry {
+  private enrichLogEntry(entry: Partial<LogEntry>, req?: RequestLike): LogEntry {
     const baseEntry: LogEntry = {
       timestamp: new Date().toISOString(),
       level: entry.level || 'info',
@@ -156,19 +167,21 @@ export class EnhancedLogger {
       let output = parts.join(' ');
 
       // Add metadata if present
-      const metadata = { ...entry };
-      delete metadata.timestamp;
-      delete metadata.level;
-      delete metadata.service;
-      delete metadata.message;
-      delete metadata.traceId;
-      delete metadata.spanId;
-      delete metadata.requestId;
-      delete metadata.userId;
-      delete metadata.dd;
-      delete metadata['@timestamp'];
-      delete metadata['@version'];
-      delete metadata.fields;
+      const {
+        timestamp: _timestamp,
+        level: _level,
+        service: _service,
+        message: _message,
+        traceId: _traceId,
+        spanId: _spanId,
+        requestId: _requestId,
+        userId: _userId,
+        dd: _dd,
+        '@timestamp': _elkTimestamp,
+        '@version': _elkVersion,
+        fields: _fields,
+        ...metadata
+      } = entry;
 
       if (Object.keys(metadata).length > 0) {
         output += ` ${JSON.stringify(metadata, null, 2)}`;
@@ -188,7 +201,7 @@ export class EnhancedLogger {
   /**
    * Log a trace message (most verbose)
    */
-  trace(message: string, meta?: Record<string, any>, req?: Request): void {
+  trace(message: string, meta?: Record<string, any>, req?: RequestLike): void {
     const entry = this.enrichLogEntry({ level: 'trace', message, ...meta }, req);
     this.output(entry);
   }
@@ -196,7 +209,7 @@ export class EnhancedLogger {
   /**
    * Log a debug message
    */
-  debug(message: string, meta?: Record<string, any>, req?: Request): void {
+  debug(message: string, meta?: Record<string, any>, req?: RequestLike): void {
     const entry = this.enrichLogEntry({ level: 'debug', message, ...meta }, req);
     this.output(entry);
   }
@@ -204,7 +217,7 @@ export class EnhancedLogger {
   /**
    * Log an info message
    */
-  info(message: string, meta?: Record<string, any>, req?: Request): void {
+  info(message: string, meta?: Record<string, any>, req?: RequestLike): void {
     const entry = this.enrichLogEntry({ level: 'info', message, ...meta }, req);
     this.output(entry);
   }
@@ -212,7 +225,7 @@ export class EnhancedLogger {
   /**
    * Log a warning message
    */
-  warn(message: string, meta?: Record<string, any>, req?: Request): void {
+  warn(message: string, meta?: Record<string, any>, req?: RequestLike): void {
     const entry = this.enrichLogEntry({ level: 'warn', message, ...meta }, req);
     this.output(entry);
   }
@@ -220,7 +233,7 @@ export class EnhancedLogger {
   /**
    * Log an error message
    */
-  error(message: string, error?: Error | any, meta?: Record<string, any>, req?: Request): void {
+  error(message: string, error?: Error | any, meta?: Record<string, any>, req?: RequestLike): void {
     const errorEntry: ErrorLogEntry = {
       ...this.enrichLogEntry({ level: 'error', message, ...meta }, req),
       error: {
@@ -237,7 +250,7 @@ export class EnhancedLogger {
   /**
    * Log a fatal error message
    */
-  fatal(message: string, error?: Error | any, meta?: Record<string, any>, req?: Request): void {
+  fatal(message: string, error?: Error | any, meta?: Record<string, any>, req?: RequestLike): void {
     const errorEntry: ErrorLogEntry = {
       ...this.enrichLogEntry({ level: 'fatal', message, ...meta }, req),
       error: {
@@ -254,7 +267,7 @@ export class EnhancedLogger {
   /**
    * Log an event
    */
-  event(event: string, eventType: string, metadata?: Record<string, any>, req?: Request): void {
+  event(event: string, eventType: string, metadata?: Record<string, any>, req?: RequestLike): void {
     const eventEntry: EventLogEntry = {
       ...this.enrichLogEntry({ level: 'info', message: `Event: ${event}`, ...metadata }, req),
       event,
@@ -268,21 +281,23 @@ export class EnhancedLogger {
   /**
    * Create a child logger with additional context
    */
-  child(options: { service?: string; requestId?: string; userId?: string; [key: string]: any }): EnhancedLogger {
-    const childLogger = new EnhancedLogger(
-      options.service || this.serviceName,
-      {
-        logFormat: this.logFormat,
-        minLevel: this.minLevel,
-        enableTraceCorrelation: this.enableTraceCorrelation,
-        enableDatadog: this.enableDatadog,
-        enableELK: this.enableELK,
-      }
-    );
+  child(options: {
+    service?: string;
+    requestId?: string;
+    userId?: string;
+    [key: string]: any;
+  }): EnhancedLogger {
+    const childLogger = new EnhancedLogger(options.service || this.serviceName, {
+      logFormat: this.logFormat,
+      minLevel: this.minLevel,
+      enableTraceCorrelation: this.enableTraceCorrelation,
+      enableDatadog: this.enableDatadog,
+      enableELK: this.enableELK,
+    });
 
     // Override enrichLogEntry to include child context
     const originalEnrich = childLogger.enrichLogEntry.bind(childLogger);
-    childLogger.enrichLogEntry = (entry: Partial<LogEntry>, req?: Request) => {
+    childLogger.enrichLogEntry = (entry: Partial<LogEntry>, req?: RequestLike) => {
       const enriched = originalEnrich(entry, req);
       return {
         ...enriched,
@@ -300,7 +315,7 @@ export class EnhancedLogger {
  * Express middleware to add request context to logs
  */
 export function loggingMiddleware(logger: EnhancedLogger) {
-  return (req: Request, res: any, next: () => void) => {
+  return (req: RequestLike, res: any, next: () => void) => {
     // Generate request ID if not present
     if (!(req as any).requestId) {
       (req as any).requestId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -310,21 +325,29 @@ export function loggingMiddleware(logger: EnhancedLogger) {
     res.setHeader('X-Request-Id', (req as any).requestId);
 
     // Log request start
-    logger.debug('Request started', {
-      method: req.method,
-      path: req.path,
-      query: req.query,
-      headers: req.headers,
-    }, req);
+    logger.debug(
+      'Request started',
+      {
+        method: req.method,
+        path: req.path,
+        query: req.query,
+        headers: req.headers,
+      },
+      req,
+    );
 
     // Log request end
     res.on('finish', () => {
-      logger.debug('Request completed', {
-        method: req.method,
-        path: req.path,
-        statusCode: res.statusCode,
-        duration: Date.now() - (req as any).startTime,
-      }, req);
+      logger.debug(
+        'Request completed',
+        {
+          method: req.method,
+          path: req.path,
+          statusCode: res.statusCode,
+          duration: Date.now() - (req as any).startTime,
+        },
+        req,
+      );
     });
 
     (req as any).startTime = Date.now();
@@ -346,4 +369,3 @@ export function getLogger(serviceName?: string): EnhancedLogger {
 }
 
 export default EnhancedLogger;
-

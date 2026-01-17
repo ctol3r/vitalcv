@@ -6,7 +6,36 @@
  * Results cached per process for N seconds
  */
 
-import { PrismaClient } from '@prisma/client';
+type FeatureFlagRecord = {
+  key: string;
+  defaultValue: unknown;
+};
+
+type OrgFeatureFlagRecord = {
+  value: unknown;
+};
+
+type UserFeatureFlagRecord = {
+  value: unknown;
+};
+
+// Minimal Prisma client shape to avoid hard dependency on generated types.
+type PrismaClient = {
+  featureFlag: {
+    findUnique: (args: { where: { key: string } }) => Promise<FeatureFlagRecord | null>;
+    findMany: (args: { orderBy: { key: 'asc' | 'desc' } }) => Promise<FeatureFlagRecord[]>;
+  };
+  orgFeatureFlag: {
+    findUnique: (args: {
+      where: { orgId_flagKey: { orgId: string; flagKey: string } };
+    }) => Promise<OrgFeatureFlagRecord | null>;
+  };
+  userFeatureFlag: {
+    findUnique: (args: {
+      where: { userId_flagKey: { userId: string; flagKey: string } };
+    }) => Promise<UserFeatureFlagRecord | null>;
+  };
+};
 
 export interface FlagContext {
   orgId?: string;
@@ -49,7 +78,7 @@ function isCacheValid(entry: CacheEntry): boolean {
 export async function getFlag(
   prisma: PrismaClient,
   flagKey: string,
-  context: FlagContext = {}
+  context: FlagContext = {},
 ): Promise<FlagValue> {
   // Check cache first
   const cacheKey = getCacheKey(flagKey, context);
@@ -146,16 +175,13 @@ export function clearCache(flagKey?: string): void {
  */
 export async function getAllFlags(
   prisma: PrismaClient,
-  context: FlagContext = {}
+  context: FlagContext = {},
 ): Promise<FlagValue[]> {
   const flags = await prisma.featureFlag.findMany({
     orderBy: { key: 'asc' },
   });
 
-  const results = await Promise.all(
-    flags.map((flag) => getFlag(prisma, flag.key, context))
-  );
+  const results = await Promise.all(flags.map((flag) => getFlag(prisma, flag.key, context)));
 
   return results;
 }
-

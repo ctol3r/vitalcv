@@ -32,26 +32,26 @@ export interface AutoHoldResult {
  * Main function: Process new NPDB adverse event and suspend privileges
  */
 export async function processNPDBAdverseEvent(
-  adverseEvent: NPDBAdverseEvent
+  adverseEvent: NPDBAdverseEvent,
 ): Promise<AutoHoldResult> {
   log.info('[NPDBAutoHold] Processing adverse event', {
     clinicianDid: adverseEvent.clinicianDid,
-    type: adverseEvent.adverseActionType
+    type: adverseEvent.adverseActionType,
   });
 
   // Find all active privileges for this clinician
   const activePrivileges = await prisma.privilegeGranted.findMany({
     where: {
       clinicianDid: adverseEvent.clinicianDid,
-      status: 'ACTIVE'
+      status: 'ACTIVE',
     },
     include: {
       privilegeRequest: {
         include: {
-          privilegeSet: true
-        }
-      }
-    }
+          privilegeSet: true,
+        },
+      },
+    },
   });
 
   log.info(`[NPDBAutoHold] Found ${activePrivileges.length} active privileges to hold`);
@@ -66,8 +66,8 @@ export async function processNPDBAdverseEvent(
       where: { id: privilege.id },
       data: {
         status: 'HOLD',
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     });
 
     // Log audit event
@@ -81,11 +81,11 @@ export async function processNPDBAdverseEvent(
         adverseEvent: {
           type: adverseEvent.adverseActionType,
           date: adverseEvent.actionDate,
-          description: adverseEvent.description
-        }
+          description: adverseEvent.description,
+        },
       },
       privilege.orgId,
-      adverseEvent.clinicianDid
+      adverseEvent.clinicianDid,
     );
 
     auditEventIds.push(auditEvent.id);
@@ -95,7 +95,7 @@ export async function processNPDBAdverseEvent(
       privilege.orgId,
       adverseEvent.clinicianDid,
       privilege.id,
-      adverseEvent
+      adverseEvent,
     );
 
     if (notificationResult.sent) {
@@ -103,11 +103,7 @@ export async function processNPDBAdverseEvent(
     }
 
     // Send notification to clinician
-    await sendClinicianNotification(
-      adverseEvent.clinicianDid,
-      privilege.id,
-      adverseEvent
-    );
+    await sendClinicianNotification(adverseEvent.clinicianDid, privilege.id, adverseEvent);
   }
 
   // Record the NPDB check in monitoring table
@@ -121,16 +117,16 @@ export async function processNPDBAdverseEvent(
       adverseActions: [adverseEvent],
       privilegeAction: 'HOLD',
       notificationSent: true,
-      orgIds: [...new Set(activePrivileges.map(p => p.orgId))],
-      rawResponse: adverseEvent
-    }
+      orgIds: [...new Set(activePrivileges.map((p: { orgId: string }) => p.orgId))],
+      rawResponse: adverseEvent,
+    },
   });
 
   return {
     clinicianDid: adverseEvent.clinicianDid,
     privilegesAffected: activePrivileges.length,
     notificationsSent: [...new Set(notificationsSent)],
-    auditEventIds
+    auditEventIds,
   };
 }
 
@@ -141,14 +137,14 @@ async function sendOrganizationNotification(
   orgId: string,
   clinicianDid: string,
   privilegeGrantedId: string,
-  adverseEvent: NPDBAdverseEvent
+  adverseEvent: NPDBAdverseEvent,
 ): Promise<{ sent: boolean; method: string }> {
   // TODO: Integrate with notification service (email, Slack, PagerDuty, etc.)
   log.warn(`[NPDBAutoHold] NOTIFICATION TO ORG ${orgId}:`, {
     message: `URGENT: Privilege ${privilegeGrantedId} for clinician ${clinicianDid} has been placed on HOLD due to NPDB adverse action`,
     adverseActionType: adverseEvent.adverseActionType,
     actionDate: adverseEvent.actionDate,
-    description: adverseEvent.description
+    description: adverseEvent.description,
   });
 
   // Mock notification - replace with actual email/alert service
@@ -161,14 +157,14 @@ async function sendOrganizationNotification(
 async function sendClinicianNotification(
   clinicianDid: string,
   privilegeGrantedId: string,
-  adverseEvent: NPDBAdverseEvent
+  adverseEvent: NPDBAdverseEvent,
 ): Promise<void> {
   // TODO: Integrate with clinician notification service
   log.warn(`[NPDBAutoHold] NOTIFICATION TO CLINICIAN ${clinicianDid}:`, {
     message: `Your privilege ${privilegeGrantedId} has been placed on HOLD due to NPDB adverse action`,
     adverseActionType: adverseEvent.adverseActionType,
     actionDate: adverseEvent.actionDate,
-    nextSteps: 'Please contact your credentialing office for review'
+    nextSteps: 'Please contact your credentialing office for review',
   });
 }
 
@@ -183,12 +179,12 @@ export async function checkForNewNPDBAdverseEvents(): Promise<void> {
   // Mock: Fetch clinicians with active privileges
   const activeClinicians = await prisma.privilegeGranted.findMany({
     where: {
-      status: 'ACTIVE'
+      status: 'ACTIVE',
     },
     select: {
-      clinicianDid: true
+      clinicianDid: true,
     },
-    distinct: ['clinicianDid']
+    distinct: ['clinicianDid'],
   });
 
   log.info(`[NPDBAutoHold] Checking ${activeClinicians.length} clinicians with active privileges`);
@@ -206,4 +202,3 @@ export async function checkForNewNPDBAdverseEvents(): Promise<void> {
     }
   }
 }
-

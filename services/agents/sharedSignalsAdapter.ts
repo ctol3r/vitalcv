@@ -433,7 +433,7 @@ export class SharedSignalsAdapter {
    */
   exportSignals(): any[] {
     return Array.from(this.signals.values()).map(signal => ({
-      iss: 'https://chai-vc-platform.com',
+      iss: 'https://github.com/ctol3r/vitalcv',
       jti: signal.id,
       iat: Math.floor(signal.timestamp.getTime() / 1000),
       event_type: `risk.${signal.type}`,

@@ -1,17 +1,28 @@
-const log = getServiceLogger('compacts/euRegionMap');
 /**
  * B139A-INTL-005: EUDI Region Mapping
  *
  * Maps European Economic Area (EEA) member states to EU region.
  * Used to determine if EUDI Wallet credentials can be issued.
  *
+ * IMPORTANT:
+ * Do NOT initialize the service logger at module load time.
+ * This file previously caused a circular dependency with
+ * serviceLogger under Vitest.
+ *
  * References:
  * - EEA Member States: https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Glossary:European_Economic_Area_(EEA)
  * - EUDI Wallet ARF: https://github.com/eu-digital-identity-wallet/eudi-doc-architecture-and-reference-framework
  */
 
-import { Region } from '../org/models/TenantRegion';
+import { Region } from '../org/models/region-types';
 import { getServiceLogger } from '../logging/serviceLogger';
+
+/**
+ * Lazily obtain logger to avoid circular initialization
+ */
+function getLog() {
+  return getServiceLogger('compacts/euRegionMap');
+}
 
 /**
  * ISO 3166-1 alpha-2 country codes for EEA member states
@@ -136,7 +147,7 @@ export function mapCountryToRegion(countryCode: string): Region {
   }
 
   // Default to US for unknown countries (could be changed to throw error)
-  log.warn(`Unknown country code: ${countryCode}, defaulting to US region`);
+  getLog().warn(`Unknown country code: ${countryCode}, defaulting to US region`);
   return Region.US;
 }
 
@@ -348,10 +359,10 @@ export const USAGE_EXAMPLES = `
 import { mapCountryToRegion, Region } from './euRegionMap';
 
 const region = mapCountryToRegion('DE'); // Germany
-log.info(region); // Region.EU
+getLog().info(region); // Region.EU
 
 const usRegion = mapCountryToRegion('US');
-log.info(usRegion); // Region.US
+getLog().info(usRegion); // Region.US
 \`\`\`
 
 ## Check EUDI eligibility
@@ -360,16 +371,16 @@ log.info(usRegion); // Region.US
 import { isEudiEligible, getEudiIssuanceRegion } from './euRegionMap';
 
 const isGermanyEligible = isEudiEligible('DE');
-log.info(isGermanyEligible); // true
+getLog().info(isGermanyEligible); // true
 
 const isUsEligible = isEudiEligible('US');
-log.info(isUsEligible); // false
+getLog().info(isUsEligible); // false
 
 try {
   const region = getEudiIssuanceRegion('DE');
-  log.info('Can issue EUDI credential in region:', region);
+  getLog().info('Can issue EUDI credential in region:', region);
 } catch (error) {
-  log.error('Cannot issue EUDI credential:', error.message);
+  getLog().error('Cannot issue EUDI credential:', error.message);
 }
 \`\`\`
 
@@ -379,7 +390,7 @@ try {
 import { getEudiCountryMetadata } from './euRegionMap';
 
 const metadata = getEudiCountryMetadata('FR');
-log.info(metadata);
+getLog().info(metadata);
 // {
 //   countryCode: 'FR',
 //   countryName: 'France',
@@ -398,12 +409,12 @@ import { batchMapCountriesToRegions, filterEudiEligible } from './euRegionMap';
 const countries = ['DE', 'FR', 'US', 'ES', 'AU'];
 
 const regionMap = batchMapCountriesToRegions(countries);
-log.info(regionMap);
+getLog().info(regionMap);
 // Map { 'DE' => Region.EU, 'FR' => Region.EU, 'US' => Region.US, ... }
 
 const { eligible, ineligible } = filterEudiEligible(countries);
-log.info('EUDI eligible:', eligible); // ['DE', 'FR', 'ES']
-log.info('Not eligible:', ineligible); // ['US', 'AU']
+getLog().info('EUDI eligible:', eligible); // ['DE', 'FR', 'ES']
+getLog().info('Not eligible:', ineligible); // ['US', 'AU']
 \`\`\`
 
 ## Get all EEA countries
@@ -412,7 +423,7 @@ log.info('Not eligible:', ineligible); // ['US', 'AU']
 import { getEeaCountriesWithNames } from './euRegionMap';
 
 const eeaCountries = getEeaCountriesWithNames();
-log.info(eeaCountries);
+getLog().info(eeaCountries);
 // [
 //   { code: 'AT', name: 'Austria' },
 //   { code: 'BE', name: 'Belgium' },

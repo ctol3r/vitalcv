@@ -1,11 +1,19 @@
-import {
-  OrgMembershipRole,
-  OrgMembershipV2Status,
-  PrismaClient,
-} from '@prisma/client';
+import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
 import { getMultiOrgProfile } from '../multiOrgProfile';
 
-const prisma = new PrismaClient();
+type PrismaClient = any;
+
+const {
+  PrismaClient: PrismaClientCtor,
+  OrgMembershipRole,
+  OrgMembershipV2Status,
+} = require('@prisma/client') as {
+  PrismaClient: new () => PrismaClient;
+  OrgMembershipRole: Record<string, string>;
+  OrgMembershipV2Status: Record<string, string>;
+};
+
+const prisma = new PrismaClientCtor();
 
 describe('MultiOrgProfile view', () => {
   const clinicianUserId = 'multi-org-user';
@@ -239,4 +247,3 @@ describe('MultiOrgProfile view', () => {
     await prisma.user.deleteMany({ where: { id: clinicianUserId } });
   }
 });
-

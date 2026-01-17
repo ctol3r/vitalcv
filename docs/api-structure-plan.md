@@ -6,7 +6,7 @@ The API currently has routes organized in `apps/api/api/src/routes/` with many i
 
 ## Proposed Structure
 
-```
+```text
 apps/api/api/src/
 ├── modules/
 │   ├── auth/
@@ -38,7 +38,9 @@ apps/api/api/src/
 ## Migration Strategy
 
 ### Phase 1: Identify Domain Modules
+
 Group related routes by domain:
+
 - **Auth**: Authentication, authorization, OIDC
 - **Credentials**: VC issuance, verification, revocation
 - **Compliance**: NCQA, TJC, PSV
@@ -47,7 +49,9 @@ Group related routes by domain:
 - **Operations**: Health checks, metrics, monitoring
 
 ### Phase 2: Create Module Structure
+
 For each module:
+
 1. Create `modules/{module}/` directory
 2. Move related routes to `routes.ts`
 3. Extract controller logic to `controller.ts`
@@ -55,7 +59,9 @@ For each module:
 5. Define types in `types.ts`
 
 ### Phase 3: Update Imports
+
 Update all imports to use new module structure:
+
 ```typescript
 // Before
 import { verifyCredential } from '../routes/vc-verify';
@@ -65,6 +71,7 @@ import { verifyCredential } from '../modules/credentials/controller';
 ```
 
 ### Phase 4: Cleanup
+
 Remove old route files after migration is complete.
 
 ## Example: Credentials Module
@@ -122,4 +129,3 @@ export async function verifyCredential(req: Request, res: Response) {
 **Status**: Planning phase
 **Priority**: Medium (can be done incrementally)
 **Estimated Effort**: Large (weeks of work)
-

@@ -1,7 +1,9 @@
+/// <reference path="../prisma-client.d.ts" />
 /**
  * B162C-MULTI-001: OrgMembership model tests
  */
 
+import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
 import { OrgMembershipRole, PrismaClient } from '@prisma/client';
 import {
   createOrgMembership,
@@ -10,11 +12,16 @@ import {
   listMembersForOrg,
   listMembershipsForUser,
   removeOrgMembership,
-  upsertOrgMembership,
   updateOrgMembershipRole,
+  upsertOrgMembership,
 } from '../models/OrgMembership';
 
 const prisma = new PrismaClient();
+
+type OrgMembershipRecord = {
+  orgId: string;
+  role: OrgMembershipRole;
+};
 
 describe('OrgMembership Model', () => {
   const testUserId = 'org-membership-user-1';
@@ -94,7 +101,11 @@ describe('OrgMembership Model', () => {
     expect(updated.role).toBe(OrgMembershipRole.ADMIN);
     expect(await isOrgAdmin(testUserId, testOrgId)).toBe(true);
 
-    const downgraded = await updateOrgMembershipRole(testUserId, testOrgId, OrgMembershipRole.REVIEWER);
+    const downgraded = await updateOrgMembershipRole(
+      testUserId,
+      testOrgId,
+      OrgMembershipRole.REVIEWER,
+    );
     expect(downgraded.role).toBe(OrgMembershipRole.REVIEWER);
     expect(await isOrgAdmin(testUserId, testOrgId)).toBe(false);
   });
@@ -102,7 +113,7 @@ describe('OrgMembership Model', () => {
   it('lists memberships for a user', async () => {
     await upsertOrgMembership(testUserId, secondOrgId, OrgMembershipRole.VIEWER);
 
-    const memberships = await listMembershipsForUser(testUserId);
+    const memberships = (await listMembershipsForUser(testUserId)) as OrgMembershipRecord[];
     const orgIds = memberships.map((m) => m.orgId);
 
     expect(memberships.length).toBeGreaterThanOrEqual(2);
@@ -110,10 +121,13 @@ describe('OrgMembership Model', () => {
   });
 
   it('lists members for an org filtered by role', async () => {
-    const members = await listMembersForOrg(testOrgId);
+    const members = (await listMembersForOrg(testOrgId)) as OrgMembershipRecord[];
     expect(members.length).toBeGreaterThan(0);
 
-    const reviewers = await listMembersForOrg(testOrgId, OrgMembershipRole.REVIEWER);
+    const reviewers = (await listMembersForOrg(
+      testOrgId,
+      OrgMembershipRole.REVIEWER,
+    )) as OrgMembershipRecord[];
     expect(reviewers.every((m) => m.role === OrgMembershipRole.REVIEWER)).toBe(true);
   });
 

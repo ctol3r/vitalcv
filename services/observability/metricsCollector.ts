@@ -4,8 +4,8 @@
  * Publishes to Prometheus and provides helper decorators
  */
 
-import { Counter, Histogram, Gauge, Registry, collectDefaultMetrics } from 'prom-client';
 import { Request, Response } from 'express';
+import { Counter, Gauge, Histogram, Registry, collectDefaultMetrics } from 'prom-client';
 
 export interface QueueMetrics {
   queueName: string;
@@ -67,7 +67,7 @@ export class MetricsCollector {
   private customGauges: Map<string, Gauge<string>>;
   private customHistograms: Map<string, Histogram<string>>;
 
-  constructor(serviceName: string = 'chai-vc-platform') {
+  constructor(serviceName: string = 'vitalcv') {
     this.registry = new Registry();
 
     // Collect default Node.js metrics
@@ -184,7 +184,10 @@ export class MetricsCollector {
     this.queueLengthGauge.set({ queue_name: metrics.queueName }, metrics.length);
     this.queueProcessingGauge.set({ queue_name: metrics.queueName }, metrics.processing);
     if (metrics.failed > 0) {
-      this.queueFailedCounter.inc({ queue_name: metrics.queueName, error_type: 'unknown' }, metrics.failed);
+      this.queueFailedCounter.inc(
+        { queue_name: metrics.queueName, error_type: 'unknown' },
+        metrics.failed,
+      );
     }
   }
 
@@ -194,7 +197,7 @@ export class MetricsCollector {
   recordJobMetrics(metrics: JobMetrics): void {
     this.jobDurationHistogram.observe(
       { job_type: metrics.jobType, status: metrics.status },
-      metrics.duration / 1000 // Convert ms to seconds
+      metrics.duration / 1000, // Convert ms to seconds
     );
     this.jobTotalCounter.inc({ job_type: metrics.jobType, status: metrics.status });
   }
@@ -226,7 +229,7 @@ export class MetricsCollector {
   recordHttpRequest(method: string, route: string, statusCode: number, duration: number): void {
     this.httpRequestDuration.observe(
       { method, route, status_code: statusCode.toString() },
-      duration / 1000 // Convert ms to seconds
+      duration / 1000, // Convert ms to seconds
     );
     this.httpRequestTotal.inc({ method, route, status_code: statusCode.toString() });
   }
@@ -266,7 +269,12 @@ export class MetricsCollector {
   /**
    * Create or get a custom histogram
    */
-  getHistogram(name: string, help: string, buckets: number[] = [0.1, 0.5, 1, 2, 5, 10], labelNames: string[] = []): Histogram<string> {
+  getHistogram(
+    name: string,
+    help: string,
+    buckets: number[] = [0.1, 0.5, 1, 2, 5, 10],
+    labelNames: string[] = [],
+  ): Histogram<string> {
     if (!this.customHistograms.has(name)) {
       const histogram = new Histogram({
         name,
@@ -326,29 +334,42 @@ export function TrackMetrics(metricName: string, labels?: Record<string, string>
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
     const collector = new MetricsCollector();
+    const baseLabelNames = labels ? Object.keys(labels) : [];
+    const counterLabelNames = baseLabelNames.includes('status')
+      ? baseLabelNames
+      : [...baseLabelNames, 'status'];
 
     descriptor.value = async function (...args: any[]) {
       const startTime = Date.now();
-      const histogram = collector.getHistogram(`${metricName}_duration_seconds`);
-      const counter = collector.getCounter(`${metricName}_total`);
+      const histogram = collector.getHistogram(
+        `${metricName}_duration_seconds`,
+        `Duration of ${metricName} in seconds`,
+        [0.1, 0.5, 1, 2, 5, 10],
+        baseLabelNames,
+      );
+      const counter = collector.getCounter(
+        `${metricName}_total`,
+        `Total number of ${metricName} executions`,
+        counterLabelNames,
+      );
 
       try {
         const result = await originalMethod.apply(this, args);
         const duration = Date.now() - startTime;
 
         histogram.observe(labels || {}, duration / 1000);
-        counter.inc({ ...labels, status: 'success' });
+        counter.inc({ ...(labels ?? {}), status: 'success' });
 
         return result;
       } catch (error) {
         const duration = Date.now() - startTime;
 
         histogram.observe(labels || {}, duration / 1000);
-        counter.inc({ ...labels, status: 'error' });
+        counter.inc({ ...(labels ?? {}), status: 'error' });
 
         collector.recordError(
           labels?.service || 'unknown',
-          error instanceof Error ? error.constructor.name : 'UnknownError'
+          error instanceof Error ? error.constructor.name : 'UnknownError',
         );
 
         throw error;
@@ -406,4 +427,3 @@ export function getDefaultMetricsCollector(serviceName?: string): MetricsCollect
 }
 
 export default MetricsCollector;
-

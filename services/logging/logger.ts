@@ -131,7 +131,7 @@ const DEFAULT_SERVICE_NAME =
   process.env.SERVICE_NAME ||
   process.env.APP_NAME ||
   process.env.NODE_APP_INSTANCE ||
-  'chai-vc-platform';
+  'vitalcv';
 
 const loggerCache = new Map<string, JsonLogger>();
 

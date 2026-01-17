@@ -1,0 +1,14 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node", "@jest/globals"]
+  },
+  "include": [
+    "../**/*.ts",
+    "../prisma-client.d.ts",
+    "../../policy/models/PlatformPolicyVersion.ts",
+    "../../policy/models/OrgPolicyAcceptance.ts",
+    "../../audit/settingsEvents.ts",
+    "../../logging/serviceLogger.ts"
+  ]
+}

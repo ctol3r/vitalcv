@@ -8,11 +8,12 @@
 
 import {
   CloudWatchLogsClient,
-  PutLogEventsCommand,
   CreateLogGroupCommand,
   CreateLogStreamCommand,
   DescribeLogStreamsCommand,
   InputLogEvent,
+  LogStream,
+  PutLogEventsCommand,
 } from '@aws-sdk/client-cloudwatch-logs';
 
 export interface CloudWatchConfig {
@@ -38,7 +39,9 @@ export interface LogEvent {
  */
 export class CloudWatchIntegration {
   private client: CloudWatchLogsClient;
-  private config: Required<Pick<CloudWatchConfig, 'logGroupName' | 'batchSize' | 'flushIntervalMs'>> &
+  private config: Required<
+    Pick<CloudWatchConfig, 'logGroupName' | 'batchSize' | 'flushIntervalMs'>
+  > &
     CloudWatchConfig;
   private logBuffer: InputLogEvent[] = [];
   private flushTimer: NodeJS.Timeout | null = null;
@@ -120,7 +123,10 @@ export class CloudWatchIntegration {
       console.error('[CloudWatchIntegration] Error flushing logs:', error);
 
       // If error is due to invalid sequence token, retry once
-      if (error.name === 'InvalidSequenceTokenException' || error.name === 'DataAlreadyAcceptedException') {
+      if (
+        error.name === 'InvalidSequenceTokenException' ||
+        error.name === 'DataAlreadyAcceptedException'
+      ) {
         try {
           await this.refreshSequenceToken();
           const retryCommand = new PutLogEventsCommand({
@@ -151,7 +157,7 @@ export class CloudWatchIntegration {
       await this.client.send(
         new CreateLogGroupCommand({
           logGroupName: this.config.logGroupName,
-        })
+        }),
       );
     } catch (error: any) {
       // Log group already exists or insufficient permissions
@@ -172,7 +178,7 @@ export class CloudWatchIntegration {
         new CreateLogStreamCommand({
           logGroupName: this.config.logGroupName,
           logStreamName: streamName,
-        })
+        }),
       );
     } catch (error: any) {
       // Log stream already exists
@@ -195,7 +201,7 @@ export class CloudWatchIntegration {
       });
 
       const response = await this.client.send(command);
-      const stream = response.logStreams?.find((s) => s.logStreamName === streamName);
+      const stream = response.logStreams?.find((s: LogStream) => s.logStreamName === streamName);
 
       if (stream?.uploadSequenceToken) {
         this.sequenceToken = stream.uploadSequenceToken;
@@ -210,7 +216,7 @@ export class CloudWatchIntegration {
    */
   private getDefaultLogStreamName(): string {
     const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    return `chai-vc-platform-${date}`;
+    return `vitalcv-${date}`;
   }
 
   /**
@@ -268,11 +274,11 @@ export class CloudWatchIntegration {
  */
 export function createCloudWatchIntegration(
   logGroupName?: string,
-  overrides?: Partial<CloudWatchConfig>
+  overrides?: Partial<CloudWatchConfig>,
 ): CloudWatchIntegration {
   const config: CloudWatchConfig = {
     region: process.env.AWS_REGION || 'us-east-1',
-    logGroupName: logGroupName || process.env.CLOUDWATCH_LOG_GROUP || 'chai-vc-platform',
+    logGroupName: logGroupName || process.env.CLOUDWATCH_LOG_GROUP || 'vitalcv',
     logStreamName: process.env.CLOUDWATCH_LOG_STREAM,
     awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID,
     awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -283,4 +289,3 @@ export function createCloudWatchIntegration(
 
   return new CloudWatchIntegration(config);
 }
-

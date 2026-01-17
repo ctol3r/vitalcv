@@ -39,7 +39,7 @@ export async function checkLEIEStatus(
   clinicianDid: string,
   npi?: string,
   firstName?: string,
-  lastName?: string
+  lastName?: string,
 ): Promise<LEIECheckResult> {
   log.info('[LEIEIntegration] Checking LEIE status', { clinicianDid, npi });
 
@@ -54,7 +54,7 @@ export async function checkLEIEStatus(
       isExcluded: false,
       matches: [],
       privilegesAffected: 0,
-      alertsSent: []
+      alertsSent: [],
     };
   }
 
@@ -62,7 +62,7 @@ export async function checkLEIEStatus(
   log.warn('[LEIEIntegration] LEIE MATCH FOUND', {
     clinicianDid,
     npi,
-    matchCount: matches.length
+    matchCount: matches.length,
   });
 
   // Process auto-hold for all active privileges
@@ -73,7 +73,7 @@ export async function checkLEIEStatus(
     isExcluded: true,
     matches,
     privilegesAffected: holdResult.privilegesAffected,
-    alertsSent: holdResult.alertsSent
+    alertsSent: holdResult.alertsSent,
   };
 }
 
@@ -82,21 +82,21 @@ export async function checkLEIEStatus(
  */
 async function processLEIEAutoHold(
   clinicianDid: string,
-  leieMatch: LEIEMatch
+  leieMatch: LEIEMatch,
 ): Promise<{ privilegesAffected: number; alertsSent: string[] }> {
   // Find all active privileges
   const activePrivileges = await prisma.privilegeGranted.findMany({
     where: {
       clinicianDid,
-      status: 'ACTIVE'
+      status: 'ACTIVE',
     },
     include: {
       privilegeRequest: {
         include: {
-          privilegeSet: true
-        }
-      }
-    }
+          privilegeSet: true,
+        },
+      },
+    },
   });
 
   log.info(`[LEIEIntegration] Placing ${activePrivileges.length} privileges on HOLD`);
@@ -109,8 +109,8 @@ async function processLEIEAutoHold(
       where: { id: privilege.id },
       data: {
         status: 'HOLD',
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     });
 
     // Log audit event
@@ -125,11 +125,11 @@ async function processLEIEAutoHold(
           exclusionType: leieMatch.exclusionType,
           exclusionDate: leieMatch.exclusionDate,
           waiverDate: leieMatch.waiverDate,
-          waiverState: leieMatch.waiverState
-        }
+          waiverState: leieMatch.waiverState,
+        },
       },
       privilege.orgId,
-      clinicianDid
+      clinicianDid,
     );
 
     // Send alerts
@@ -148,14 +148,14 @@ async function processLEIEAutoHold(
       adverseActions: [leieMatch],
       privilegeAction: 'HOLD',
       notificationSent: true,
-      orgIds: [...new Set(activePrivileges.map(p => p.orgId))],
-      rawResponse: leieMatch
-    }
+      orgIds: [...new Set(activePrivileges.map((privilege: { orgId: string }) => privilege.orgId))],
+      rawResponse: leieMatch,
+    },
   });
 
   return {
     privilegesAffected: activePrivileges.length,
-    alertsSent: [...new Set(alertsSent)]
+    alertsSent: [...new Set(alertsSent)],
   };
 }
 
@@ -166,7 +166,7 @@ async function sendLEIEAlerts(
   orgId: string,
   clinicianDid: string,
   privilegeGrantedId: string,
-  leieMatch: LEIEMatch
+  leieMatch: LEIEMatch,
 ): Promise<void> {
   // 1. Send email alert
   await sendEmailAlert(orgId, clinicianDid, privilegeGrantedId, leieMatch);
@@ -178,7 +178,7 @@ async function sendLEIEAlerts(
     orgId,
     clinicianDid,
     privilegeGrantedId,
-    exclusionType: leieMatch.exclusionType
+    exclusionType: leieMatch.exclusionType,
   });
 }
 
@@ -189,7 +189,7 @@ async function sendEmailAlert(
   orgId: string,
   clinicianDid: string,
   privilegeGrantedId: string,
-  leieMatch: LEIEMatch
+  leieMatch: LEIEMatch,
 ): Promise<void> {
   // TODO: Integrate with actual email service (SendGrid, AWS SES, etc.)
   log.error(`[LEIEIntegration] EMAIL ALERT TO ORG ${orgId}:`, {
@@ -201,8 +201,8 @@ async function sendEmailAlert(
       exclusionDate: leieMatch.exclusionDate,
       npi: leieMatch.npi,
       action: 'Privilege automatically placed on HOLD',
-      nextSteps: 'Immediate review required. Contact compliance office.'
-    }
+      nextSteps: 'Immediate review required. Contact compliance office.',
+    },
   });
 }
 
@@ -213,7 +213,7 @@ async function sendPagerDutyAlert(
   orgId: string,
   clinicianDid: string,
   privilegeGrantedId: string,
-  leieMatch: LEIEMatch
+  leieMatch: LEIEMatch,
 ): Promise<void> {
   // TODO: Integrate with actual PagerDuty Events API v2
   // https://developer.pagerduty.com/docs/ZG9jOjExMDI5NTgw-events-api-v2-overview
@@ -224,16 +224,16 @@ async function sendPagerDutyAlert(
     payload: {
       summary: `OIG LEIE Exclusion: Privilege ${privilegeGrantedId} on HOLD`,
       severity: 'critical',
-      source: 'chai-vc-platform-leie-monitor',
+      source: 'vitalcv-leie-monitor',
       custom_details: {
         orgId,
         clinicianDid,
         privilegeGrantedId,
         exclusionType: leieMatch.exclusionType,
         exclusionDate: leieMatch.exclusionDate,
-        npi: leieMatch.npi
-      }
-    }
+        npi: leieMatch.npi,
+      },
+    },
   };
 
   log.error('[LEIEIntegration] PAGERDUTY ALERT:', pagerDutyEvent);
@@ -253,7 +253,7 @@ async function sendPagerDutyAlert(
 async function queryLEIEDatabase(
   npi?: string,
   firstName?: string,
-  lastName?: string
+  lastName?: string,
 ): Promise<LEIEMatch[]> {
   // Mock implementation
   // In production, this would:
@@ -275,12 +275,12 @@ export async function runLEIEBatchCheck(): Promise<void> {
   // Get all clinicians with active privileges
   const activeClinicians = await prisma.privilegeGranted.findMany({
     where: {
-      status: 'ACTIVE'
+      status: 'ACTIVE',
     },
     select: {
-      clinicianDid: true
+      clinicianDid: true,
     },
-    distinct: ['clinicianDid']
+    distinct: ['clinicianDid'],
   });
 
   log.info(`[LEIEIntegration] Checking ${activeClinicians.length} clinicians`);
@@ -303,4 +303,3 @@ export async function runLEIEBatchCheck(): Promise<void> {
 
   log.info(`[LEIEIntegration] Batch check complete. Exclusions found: ${exclusionsFound}`);
 }
-
