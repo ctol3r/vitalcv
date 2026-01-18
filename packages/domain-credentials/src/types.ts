@@ -1,166 +1,115 @@
 /**
- * Domain Types for Credential Trust Infrastructure
+ * Domain types for credential validity.
  *
- * Pure TypeScript types with no dependencies.
- * All "truth" is time-bound - no absolute statements about validity.
+ * Pure TypeScript only. All validity is time-derived.
  */
 
-/**
- * Credential Status - Revocation First
- *
- * Order matters: Check REVOKED before VALID
- */
 export enum CredentialStatus {
-  REVOKED = 'REVOKED',           // Terminal state - cannot be unrevoked
-  EXPIRED = 'EXPIRED',           // Time-bound invalidity
-  NOT_YET_VALID = 'NOT_YET_VALID', // Time-bound invalidity (future)
-  SUSPENDED = 'SUSPENDED',       // Temporary invalidity
-  VALID = 'VALID',               // Valid at evaluation time
-  UNKNOWN = 'UNKNOWN',           // Cannot determine (fail loudly elsewhere)
+  REVOKED = 'REVOKED',
+  EXPIRED = 'EXPIRED',
+  NOT_YET_VALID = 'NOT_YET_VALID',
+  VALID = 'VALID',
 }
 
-/**
- * Revocation Reason - Audit Trail
- */
-export enum RevocationReason {
-  COMPROMISED = 'COMPROMISED',           // Security breach
-  LICENSE_REVOKED = 'LICENSE_REVOKED',   // Underlying credential revoked
-  SUPERSEDED = 'SUPERSEDED',             // Replaced by newer credential
-  AFFILIATION_ENDED = 'AFFILIATION_ENDED', // Employment/affiliation terminated
-  FRAUD = 'FRAUD',                       // Fraudulent issuance
-  ADMINISTRATIVE = 'ADMINISTRATIVE',     // Admin action
-  HOLDER_REQUEST = 'HOLDER_REQUEST',     // Holder requested revocation
+export interface TemporalBounds {
+  readonly issued_at: Date;
+  readonly not_before?: Date;
+  readonly expires_at: Date;
 }
 
-/**
- * Revocation Record
- *
- * Immutable once created. Revocation is irreversible.
- */
+export interface CredentialSubject {
+  readonly id: string;
+  readonly type: string;
+  readonly claims: Record<string, unknown>;
+}
+
+export interface Credential {
+  readonly id: string;
+  readonly type: string[];
+  readonly issuer: string;
+  readonly subject: CredentialSubject;
+  readonly temporal: TemporalBounds;
+}
+
+export type RevocationReason =
+  | 'COMPROMISED'
+  | 'LICENSE_REVOKED'
+  | 'SUPERSEDED'
+  | 'AFFILIATION_ENDED'
+  | 'FRAUD'
+  | 'ADMINISTRATIVE'
+  | 'HOLDER_REQUEST'
+  | 'OTHER';
+
 export interface RevocationRecord {
   readonly credential_id: string;
   readonly revoked_at: Date;
-  readonly reason: RevocationReason;
-  readonly revoked_by: string;          // Who performed the revocation
-  readonly effective_immediately: boolean; // True if retroactive
+  /**
+   * Optional effective time. When omitted, revocation is effective at revoked_at.
+   */
+  readonly effective_at?: Date;
+  readonly reason: RevocationReason | string;
+  readonly revoked_by: string;
   readonly metadata?: Record<string, unknown>;
 }
 
-/**
- * Temporal Bounds for Credential Validity
- *
- * All credentials have finite validity periods.
- */
-export interface TemporalBounds {
-  readonly issued_at: Date;
-  readonly not_before?: Date;           // Optional: credential valid from this date
-  readonly expires_at: Date;            // Required: all credentials expire
-  readonly max_age_seconds?: number;    // Optional: freshness requirement
+export interface FreshnessRequirement {
+  readonly max_age_seconds: number;
+  readonly grace_period_seconds?: number;
 }
 
-/**
- * Credential Subject - Who the credential is about
- */
-export interface CredentialSubject {
-  readonly id: string;                  // DID or unique identifier
-  readonly npi?: string;                // National Provider Identifier (if healthcare)
-  readonly type: string;                // Subject type (e.g., "Practitioner", "Organization")
-  readonly claims: Record<string, unknown>; // Flexible claims
-}
-
-/**
- * Credential Core
- *
- * Minimal credential structure for domain logic.
- * Does not include full W3C VC structure (that's in another layer).
- */
-export interface Credential {
-  readonly id: string;
-  readonly type: string[];              // Credential type (e.g., ["VerifiableCredential", "LicenseCredential"])
-  readonly issuer: string;              // Issuer DID or identifier
-  readonly subject: CredentialSubject;
-  readonly temporal: TemporalBounds;
-  readonly status_list_index?: number;  // Optional: index in status list
-  readonly proof_type?: string;         // Optional: signature algorithm
-}
-
-/**
- * Status Check Result
- *
- * Result of checking credential status at a specific time.
- * Immutable snapshot.
- */
-export interface StatusCheckResult {
+type ValidityBase = {
   readonly credential_id: string;
   readonly status: CredentialStatus;
   readonly checked_at: Date;
-  readonly valid_until?: Date;          // When status expires (for caching)
+  readonly valid_until?: Date;
   readonly revocation?: RevocationRecord;
-  readonly reason?: string;             // Human-readable reason for status
-}
+  readonly reason?: string;
+};
 
-/**
- * Freshness Requirement
- *
- * Policy for how fresh a credential must be.
- */
-export interface FreshnessRequirement {
-  readonly max_age_seconds: number;
-  readonly allow_not_before: boolean;   // Allow credentials with future not_before?
-  readonly grace_period_seconds?: number; // Grace period after expiration
-}
+export type ValidityResult =
+  | (ValidityBase & {
+      readonly status: CredentialStatus.REVOKED;
+      readonly revocation: RevocationRecord;
+      readonly valid_until?: undefined;
+    })
+  | (ValidityBase & {
+      readonly status: CredentialStatus.EXPIRED;
+    })
+  | (ValidityBase & {
+      readonly status: CredentialStatus.NOT_YET_VALID;
+    })
+  | (ValidityBase & {
+      readonly status: CredentialStatus.VALID;
+      readonly valid_until: Date;
+    });
 
-/**
- * Trust Evaluation Context
- *
- * Context for evaluating credential trust.
- */
-export interface TrustEvaluationContext {
-  readonly evaluation_time: Date;
-  readonly freshness?: FreshnessRequirement;
-  readonly require_revocation_check: boolean;
-  readonly trusted_issuers?: string[]; // Optional: only trust specific issuers
-}
+export type StatusCheckResult = ValidityResult;
 
-/**
- * Trust Evaluation Result
- *
- * Outcome of full trust evaluation (QIA: Quality, Identity, Authorization).
- */
-export interface TrustEvaluationResult {
-  readonly trusted: boolean;
-  readonly quality_score: number;       // 0-1: quality assessment
-  readonly identity_verified: boolean;  // Identity claims verified
-  readonly authorized: boolean;         // Issuer authorized to issue
-  readonly status: StatusCheckResult;
-  readonly failures: string[];          // List of failure reasons
-  readonly evaluated_at: Date;
-}
-
-/**
- * Error Types
- */
-export class CredentialTrustError extends Error {
-  constructor(message: string, public readonly code: string) {
+export class DomainCredentialsError extends Error {
+  constructor(message: string) {
     super(message);
-    this.name = 'CredentialTrustError';
+    this.name = 'DomainCredentialsError';
   }
 }
 
-export class RevocationCheckFailedError extends CredentialTrustError {
+export class AmbiguousStateError extends DomainCredentialsError {
   constructor(message: string) {
-    super(message, 'REVOCATION_CHECK_FAILED');
+    super(message);
+    this.name = 'AmbiguousStateError';
   }
 }
 
-export class TemporalBoundsViolationError extends CredentialTrustError {
+export class TemporalBoundsViolationError extends DomainCredentialsError {
   constructor(message: string) {
-    super(message, 'TEMPORAL_BOUNDS_VIOLATION');
+    super(message);
+    this.name = 'TemporalBoundsViolationError';
   }
 }
 
-export class AmbiguousStateError extends CredentialTrustError {
+export class RevocationRecordError extends DomainCredentialsError {
   constructor(message: string) {
-    super(message, 'AMBIGUOUS_STATE');
+    super(message);
+    this.name = 'RevocationRecordError';
   }
 }

@@ -1,8 +1,7 @@
 /**
- * Revocation-First Validity Logic
+ * Revocation-first utilities.
  *
- * CRITICAL: Always check revocation BEFORE checking temporal validity.
- * A revoked credential is invalid regardless of temporal bounds.
+ * Revocation is terminal and irreversible once effective.
  */
 
 import {
@@ -10,146 +9,117 @@ import {
   CredentialStatus,
   type RevocationRecord,
   type StatusCheckResult,
-  RevocationCheckFailedError,
   AmbiguousStateError,
+  RevocationRecordError,
 } from './types';
 
-/**
- * Check if credential is revoked
- *
- * INVARIANT: Revocation is terminal - once revoked, always revoked.
- *
- * @throws RevocationCheckFailedError if revocation status cannot be determined
- * @throws AmbiguousStateError if revocation record is inconsistent
- */
-export function isRevoked(
-  credential: Credential,
-  revocationRecord: RevocationRecord | null,
-  checkTime: Date = new Date(),
-): boolean {
-  // No revocation record = not revoked
-  if (!revocationRecord) {
-    return false;
+function assertValidDate(value: Date, label: string): Date {
+  if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+    throw new RevocationRecordError(`${label} must be a valid Date`);
   }
-
-  // Validate revocation record consistency
-  if (revocationRecord.credential_id !== credential.id) {
-    throw new AmbiguousStateError(
-      `Revocation record credential_id mismatch: expected ${credential.id}, got ${revocationRecord.credential_id}`
-    );
-  }
-
-  // Effective immediately = revoked from moment of revocation
-  if (revocationRecord.effective_immediately) {
-    return checkTime >= revocationRecord.revoked_at;
-  }
-
-  // Not effective immediately = revoked from revocation time
-  return checkTime >= revocationRecord.revoked_at;
+  return value;
 }
 
-/**
- * Create revocation status check result
- *
- * PURE: No side effects
- */
-export function createRevocationStatusResult(
-  credential: Credential,
-  revocationRecord: RevocationRecord,
-  checkTime: Date = new Date(),
-): StatusCheckResult {
-  return {
-    credential_id: credential.id,
-    status: CredentialStatus.REVOKED,
-    checked_at: checkTime,
-    valid_until: undefined, // Revoked credentials are never valid again
-    revocation: revocationRecord,
-    reason: `Revoked on ${revocationRecord.revoked_at.toISOString()} - ${revocationRecord.reason}`,
-  };
+function assertValidCheckTime(checkTime: Date): Date {
+  if (!(checkTime instanceof Date) || Number.isNaN(checkTime.getTime())) {
+    throw new AmbiguousStateError('checkTime must be a valid Date');
+  }
+  return checkTime;
 }
 
-/**
- * Validate revocation record
- *
- * INVARIANT: Revocation records must be consistent and complete.
- *
- * @throws AmbiguousStateError if revocation record is invalid
- */
 export function validateRevocationRecord(record: RevocationRecord): void {
   if (!record.credential_id) {
-    throw new AmbiguousStateError('Revocation record missing credential_id');
-  }
-
-  if (!record.revoked_at) {
-    throw new AmbiguousStateError('Revocation record missing revoked_at');
-  }
-
-  if (record.revoked_at > new Date()) {
-    throw new AmbiguousStateError(
-      `Revocation record has future revoked_at: ${record.revoked_at.toISOString()}`
-    );
-  }
-
-  if (!record.reason) {
-    throw new AmbiguousStateError('Revocation record missing reason');
+    throw new RevocationRecordError('Revocation record missing credential_id');
   }
 
   if (!record.revoked_by) {
-    throw new AmbiguousStateError('Revocation record missing revoked_by');
+    throw new RevocationRecordError('Revocation record missing revoked_by');
+  }
+
+  if (!record.reason) {
+    throw new RevocationRecordError('Revocation record missing reason');
+  }
+
+  assertValidDate(record.revoked_at, 'revoked_at');
+
+  if (record.effective_at) {
+    assertValidDate(record.effective_at, 'effective_at');
   }
 }
 
-/**
- * Check if revocation is retroactive
- *
- * Retroactive revocations invalidate the credential from issuance time,
- * not from revocation time.
- */
-export function isRetroactive(revocationRecord: RevocationRecord): boolean {
-  return revocationRecord.effective_immediately === true;
+export function getEffectiveRevocationTime(record: RevocationRecord): Date {
+  return record.effective_at ?? record.revoked_at;
 }
 
-/**
- * Get effective revocation time
- *
- * For retroactive revocations, this is the issuance time of the credential.
- * For normal revocations, this is the revocation time.
- */
-export function getEffectiveRevocationTime(
+export function assertRevocationRecordMatchesCredential(
   credential: Credential,
-  revocationRecord: RevocationRecord,
-): Date {
-  if (isRetroactive(revocationRecord)) {
-    return credential.temporal.issued_at;
+  record: RevocationRecord,
+): void {
+  validateRevocationRecord(record);
+
+  if (!credential.id) {
+    throw new AmbiguousStateError('Credential missing id');
   }
-  return revocationRecord.revoked_at;
+
+  if (record.credential_id !== credential.id) {
+    throw new AmbiguousStateError(
+      `Revocation record credential_id mismatch: expected ${credential.id}, got ${record.credential_id}`,
+    );
+  }
+
+  const issuedAt = credential.temporal?.issued_at;
+  if (!(issuedAt instanceof Date) || Number.isNaN(issuedAt.getTime())) {
+    throw new AmbiguousStateError('Credential temporal.issued_at must be a valid Date');
+  }
+
+  if (record.revoked_at < issuedAt) {
+    throw new AmbiguousStateError(
+      `Revocation record revoked_at (${record.revoked_at.toISOString()}) precedes issuance (${issuedAt.toISOString()})`,
+    );
+  }
+
+  const effectiveAt = getEffectiveRevocationTime(record);
+  if (effectiveAt < issuedAt) {
+    throw new AmbiguousStateError(
+      `Revocation effective_at (${effectiveAt.toISOString()}) precedes issuance (${issuedAt.toISOString()})`,
+    );
+  }
 }
 
-/**
- * Revocation-First Status Check
- *
- * CRITICAL: This is the entry point for all status checks.
- * Always check revocation BEFORE temporal validity.
- *
- * @returns StatusCheckResult if revoked, null otherwise
- */
+export function isRevokedAt(
+  record: RevocationRecord,
+  checkTime: Date = new Date(),
+): boolean {
+  validateRevocationRecord(record);
+  const time = assertValidCheckTime(checkTime);
+  const effectiveAt = getEffectiveRevocationTime(record);
+  return time >= effectiveAt;
+}
+
 export function checkRevocationFirst(
   credential: Credential,
   revocationRecord: RevocationRecord | null,
   checkTime: Date = new Date(),
 ): StatusCheckResult | null {
-  // No revocation record = not revoked
   if (!revocationRecord) {
     return null;
   }
 
-  // Validate revocation record
-  validateRevocationRecord(revocationRecord);
+  assertRevocationRecordMatchesCredential(credential, revocationRecord);
 
-  // Check if revoked at check time
-  if (isRevoked(credential, revocationRecord, checkTime)) {
-    return createRevocationStatusResult(credential, revocationRecord, checkTime);
+  const time = assertValidCheckTime(checkTime);
+  const effectiveAt = getEffectiveRevocationTime(revocationRecord);
+
+  if (time < effectiveAt) {
+    return null;
   }
 
-  return null;
+  return {
+    credential_id: credential.id,
+    status: CredentialStatus.REVOKED,
+    checked_at: time,
+    valid_until: undefined,
+    revocation: revocationRecord,
+    reason: `Revoked effective ${effectiveAt.toISOString()} (${revocationRecord.reason})`,
+  };
 }
