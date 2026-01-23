@@ -43,6 +43,7 @@ export interface CreateShareTokenInput {
   readonly scope: readonly string[];
   readonly purpose: string;
   readonly ttl_seconds?: number;
+  readonly now?: Date;
 }
 
 const DEFAULT_TTL_SECONDS = 60 * 60 * 24;
@@ -58,7 +59,7 @@ export function createShareToken(input: CreateShareTokenInput): ShareToken {
     throw new AmbiguousQiaStateError('purpose is required');
   }
 
-  const issuedAt = new Date();
+  const issuedAt = input.now ?? new Date();
   const ttl = input.ttl_seconds ?? DEFAULT_TTL_SECONDS;
   const expiresAt = new Date(issuedAt.getTime() + ttl * 1000);
 
@@ -155,6 +156,9 @@ export function verifyForEmployer(input: VerifyForEmployerInput): VerificationSu
     blockers.push('No valid credentials found');
   }
 
+  // ASSUMPTION: Using first credential as primary for CRS computation.
+  // TODO: Allow caller to specify primary credential or aggregate multiple credentials.
+  // HOLDER-FIRST: Holder should control which credential is prioritized.
   const primaryCredential = input.credentials[0];
   const primaryRevocation = primaryCredential
     ? input.revocation_records.get(primaryCredential.id) ?? null
@@ -167,6 +171,8 @@ export function verifyForEmployer(input: VerifyForEmployerInput): VerificationSu
     throw new AmbiguousQiaStateError('No primary credential available for CRS computation');
   }
 
+  // NOTE: qiaValidationResult conflates token/credential blockers with QIA validation.
+  // This is a simplification - true QIA validation would check QIA-specific invariants.
   const crsInput: CRSInput = {
     credentialValidityResult: primaryValidity,
     authorityStateSummary: input.authority_snapshot,
