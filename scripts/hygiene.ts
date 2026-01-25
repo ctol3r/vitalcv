@@ -279,6 +279,7 @@ function runForPackage(pkgDir: string): PackageReport {
 }
 
 function run(): void {
+  console.log(`Hygiene scopes: ${scopes.join(', ')}`);
   const packageDirs = scopes.flatMap(collectPackageDirs);
   const reports = packageDirs.map(runForPackage);
 
