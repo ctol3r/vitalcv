@@ -11,7 +11,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { getServiceLogger } from '../../logging/serviceLogger.js';
-import type { PlannedTask } from '../planner/supervisorPlanner.js';
+import type { PlannedTask } from '../planner/plannerTypes.js';
 // Note: SupervisorTaskType enum should include these values:
 // PSV_CHECK, FPPE_PREP, LICENSE_RENEWAL, ENROLLMENT_REVALIDATION, OPPE_REVIEW,
 // CREDENTIAL_RENEWAL, PECOS_REVALIDATION, COMPACT_MONITORING, SAFETY_REVIEW

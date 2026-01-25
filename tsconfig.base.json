@@ -11,7 +11,7 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "rootDirs": ["src", "services", "packages", "lib"],
-    "types": ["node", "@jest/globals"],
+    "types": ["node"],
     "typeRoots": [
       "./types",
       "./node_modules/@types"
@@ -50,7 +50,6 @@
       "@queue": ["packages/queue-core/src", "packages/queue-core"],
       "@queue/*": ["packages/queue-core/src/*"],
       "@root/*": ["./*"],
-      "@jest/globals": ["types/@jest/globals/index"],
       "apps/*": ["apps/*/src"],
       "backend/*": ["apps/api/*"],
       "backend/src/*": ["apps/api/src/*"],

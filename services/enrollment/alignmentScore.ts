@@ -5,9 +5,7 @@
  * Example: PECOS enrolled but Medicaid terminated
  */
 
-import type { PECOSEnrollment } from './enrollmentCompleteness.js';
-import type { MedicaidEnrollment } from './enrollmentCompleteness.js';
-import type { PayerEnrollment } from './enrollmentCompleteness.js';
+import type { PECOSEnrollment, MedicaidEnrollment, PayerEnrollment } from './enrollmentTypes.js';
 
 export interface AlignmentScoreResult {
   score: number; // 0-1, where 1 is perfect alignment

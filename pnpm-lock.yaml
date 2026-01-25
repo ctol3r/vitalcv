@@ -8,6 +8,12 @@ importers:
 
   .:
     devDependencies:
+      '@jest/globals':
+        specifier: ^29.7.0
+        version: 29.7.0
+      '@types/node':
+        specifier: ^25.0.10
+        version: 25.0.10
       tsx:
         specifier: ^4.7.0
         version: 4.21.0
@@ -7163,6 +7169,12 @@ packages:
 
   /@types/node@24.10.4:
     resolution: {integrity: sha512-vnDVpYPMzs4wunl27jHrfmwojOGKya0xyM3sH+UE5iv5uPS6vX7UIoh6m+vQc5LGBq52HBKPIn/zcSZVzeDEZg==}
+    dependencies:
+      undici-types: 7.16.0
+    dev: true
+
+  /@types/node@25.0.10:
+    resolution: {integrity: sha512-zWW5KPngR/yvakJgGOmZ5vTBemDoSqF3AcV/LrO5u5wTWyEAVVh+IT39G4gtyAkh3CtTZs8aX/yRM82OfzHJRg==}
     dependencies:
       undici-types: 7.16.0
     dev: true

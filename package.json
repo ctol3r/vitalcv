@@ -20,9 +20,11 @@
     "verify:build": "bash scripts/verify-build.sh"
   },
   "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "@types/node": "^25.0.10",
+    "tsx": "^4.7.0",
     "turbo": "^2.1.3",
-    "typescript": "^5.4.5",
-    "tsx": "^4.7.0"
+    "typescript": "^5.4.5"
   },
   "engines": {
     "node": ">=20.0.0",

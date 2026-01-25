@@ -13,6 +13,7 @@ import {
   stateRequiresMedicaid,
 } from './stateRules/medicaidRules.js';
 import { calculateAlignmentScore } from './alignmentScore.js';
+import type { MedicaidEnrollment, PECOSEnrollment, PayerEnrollment } from './enrollmentTypes.js';
 import type { PayerNetworkGraph } from '../payer/networkGraph.js';
 
 /**
@@ -25,28 +26,6 @@ export const ENROLLMENT_WEIGHTS = {
   REQUIRED_PAYERS: 0.3,
   OPTIONAL_PAYERS: 0.1,
 } as const;
-
-export interface PECOSEnrollment {
-  status: 'ENROLLED' | 'PENDING' | 'DEACTIVATED' | 'REVOKED' | 'REVALIDATION_DUE' | 'UNKNOWN';
-  enrollmentDate?: Date;
-  expiryDate?: Date;
-}
-
-export interface MedicaidEnrollment {
-  state: string;
-  status: 'ENROLLED' | 'PENDING' | 'REJECTED' | 'UNKNOWN';
-  enrollmentDate?: Date;
-  expiryDate?: Date;
-}
-
-export interface PayerEnrollment {
-  payerId: string;
-  payerName: string;
-  status: 'ENROLLED' | 'PENDING' | 'REJECTED' | 'PANEL_FULL' | 'UNKNOWN';
-  enrollmentDate?: Date;
-  expiryDate?: Date;
-  isRequired?: boolean; // Whether this payer is required for the clinician's practice
-}
 
 export interface EnrollmentCompletenessInput {
   pecos?: PECOSEnrollment | null;
