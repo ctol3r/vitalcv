@@ -11,6 +11,7 @@ import {
   SupervisorTaskStatus,
 } from '@prisma/client';
 import type { SupervisorSignals } from '../signals/signalCollector.js';
+import type { PlannedTask } from './plannerTypes.js';
 import {
   getTaskPriority,
   resolvePolicies,
@@ -24,13 +25,6 @@ export interface PlannerOptions {
   llmModel?: string; // LLM model to use if not deterministic
   maxTasks?: number; // Maximum number of tasks to generate
   useCausalAnalysis?: boolean; // Enhance tasks with causal graph analysis (default: false)
-}
-
-export interface PlannedTask {
-  taskType: SupervisorTaskType;
-  priority: number;
-  triggeredBy: string;
-  metadata?: Record<string, unknown>;
 }
 
 /**

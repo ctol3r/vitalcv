@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip test step (true/false)'
+        required: false
+        default: 'false'
+
+env:
+  NODE_VERSION: '20.11.1'
+  PNPM_VERSION: '8.15.0'
+  CI: true
+  ESLINT_MAX_WARNINGS: 0
+  SKIP_TESTS: ${{ inputs.skip_tests || 'false' }}
+
+jobs:
+  validate:
+    name: Install, Check, Build, Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint (fail on warnings)
+        run: pnpm lint -- --max-warnings=0
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        if: env.SKIP_TESTS != 'true'
+        run: pnpm test

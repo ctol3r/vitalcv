@@ -11,7 +11,7 @@ import {
   PrismaClient,
 } from '@prisma/client';
 import { logCredentialTimelineEvent } from '../../timeline/logCredentialTimelineEvent.js';
-import type { PlannedTask } from '../planner/supervisorPlanner.js';
+import type { PlannedTask } from '../planner/plannerTypes.js';
 import type { SupervisorSignals } from '../signals/signalCollector.js';
 
 const prisma = new PrismaClient();

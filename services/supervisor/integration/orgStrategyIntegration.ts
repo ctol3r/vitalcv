@@ -9,7 +9,7 @@
  */
 
 import { createLogger } from '@chai-vc/logging-core';
-import type { PlannedTask } from '../planner/supervisorPlanner.js';
+import type { PlannedTask } from '../planner/plannerTypes.js';
 import type { SupervisorSignals } from '../signals/signalCollector.js';
 import { SupervisorTaskType } from '@prisma/client';
 import type { StrategicAction, StrategicInsight } from '../../orgStrategy/models/OrgStrategicState.js';

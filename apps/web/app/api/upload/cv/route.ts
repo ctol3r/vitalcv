@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "File too large. Maximum size is 10MB." }, { status: 400 })
     }
 
-    // TODO: Replace with actual backend call
-    // For now, simulate CV parsing
+    // TODO(@backend-integration): Replace with actual backend call
+    // STUB: For now, simulate CV parsing
     const mockParsedData = {
       personalInfo: {
         name: "Dr. Sarah Johnson",

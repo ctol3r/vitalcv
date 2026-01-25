@@ -1,0 +1,60 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "workspaces": {
+    "apps/*": {
+      "entry": [
+        "app/**/{page,layout,route}.{ts,tsx,js,jsx}",
+        "pages/**/*.{ts,tsx,js,jsx}",
+        "src/**/index.{ts,tsx,js,jsx}",
+        "src/**/main.{ts,tsx,js,jsx}",
+        "src/**/server.{ts,tsx,js,jsx}",
+        "src/**/cli.{ts,tsx,js,jsx}",
+        "backend/src/**/index.{ts,tsx,js,jsx}",
+        "backend/src/**/server.{ts,tsx,js,jsx}",
+        "backend/src/**/app.{ts,tsx,js,jsx}",
+        "index.{ts,tsx,js,jsx}",
+        "__tests__/**/*.{ts,tsx,js,jsx}",
+        "**/*.test.{ts,tsx,js,jsx}",
+        "**/*.spec.{ts,tsx,js,jsx}"
+      ]
+    },
+    "packages/*": {
+      "entry": [
+        "src/**/index.{ts,tsx,js,jsx}",
+        "index.{ts,tsx,js,jsx}",
+        "__tests__/**/*.{ts,tsx,js,jsx}",
+        "**/*.test.{ts,tsx,js,jsx}",
+        "**/*.spec.{ts,tsx,js,jsx}"
+      ]
+    },
+    "services/design-system": {
+      "entry": [
+        "src/**/index.{ts,tsx,js,jsx}",
+        "index.{ts,tsx,js,jsx}",
+        "__tests__/**/*.{ts,tsx,js,jsx}",
+        "**/*.test.{ts,tsx,js,jsx}",
+        "**/*.spec.{ts,tsx,js,jsx}"
+      ]
+    },
+    "services/i18n": {
+      "entry": [
+        "src/**/index.{ts,tsx,js,jsx}",
+        "index.{ts,tsx,js,jsx}",
+        "__tests__/**/*.{ts,tsx,js,jsx}",
+        "**/*.test.{ts,tsx,js,jsx}",
+        "**/*.spec.{ts,tsx,js,jsx}"
+      ]
+    },
+    "services/localisation": {
+      "entry": [
+        "src/**/index.{ts,tsx,js,jsx}",
+        "index.{ts,tsx,js,jsx}",
+        "__tests__/**/*.{ts,tsx,js,jsx}",
+        "**/*.test.{ts,tsx,js,jsx}",
+        "**/*.spec.{ts,tsx,js,jsx}"
+      ]
+    }
+  },
+  "ignore": ["**/.venv/**", "**/storybook-static/**"],
+  "jest": false
+}

@@ -36,8 +36,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const timeRange = searchParams.get("timeRange") || "30d"
 
-    // TODO: Replace with actual backend analytics service call
-    // For now, generate realistic mock data based on time range
+    // TODO(@backend-integration): Replace with actual backend analytics service call
+    // STUB: For now, generate realistic mock data based on time range
     const mockData = generateMockAnalytics(timeRange)
 
     return NextResponse.json(mockData, { status: 200 })
