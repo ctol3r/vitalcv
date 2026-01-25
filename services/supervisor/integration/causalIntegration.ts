@@ -8,7 +8,7 @@
  */
 
 import { createLogger } from '@chai-vc/logging-core';
-import type { PlannedTask } from '../planner/supervisorPlanner.js';
+import type { PlannedTask } from '../planner/plannerTypes.js';
 import type { SupervisorSignals } from '../signals/signalCollector.js';
 import { getCausalGraphStore } from '../../causalGraph/models/causalGraphStore.js';
 import { detectRootCauses, getRootCauses } from '../../causalGraph/rootCauseDetector.js';
