@@ -222,7 +222,19 @@
 
 - ✅ `pnpm dev` runs all services
 - ✅ Hot reload works
-- ✅ TypeScript compilation clean
+- ⚠️  TypeScript compilation: 18/22 packages pass typecheck
+  - **Failing**: @vitalcv/plugin-sdk (rootDir/module resolution), @chai-vc/logging-core (type conversion)
+  - **Impact**: Non-MVP packages, does not block core functionality
+
+### Build & CI Status
+
+- ✅ turbo.json migrated to v2.0 'tasks' field
+- ✅ tsconfig.base.json fixed (@jest/globals removed from global types)
+- ✅ pnpm lockfile regenerated (compatible with pnpm 8.15.0+)
+- ✅ Root @types/node and @jest/globals installed
+- ⚠️  CI workflow defined (.github/workflows/ci.yml) but not fully passing
+  - Typecheck: 18/22 packages pass
+  - Tests: issuer-api has 19 failing tests (dpopGuard, allowedSinksEnforcer)
 
 ### Production Blockers
 
