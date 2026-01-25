@@ -1,6 +1,6 @@
 import { RoleRouteLayout } from '@/components/RoleRouteLayout';
 import { ROLE_TOKENS } from '@/components/roleTokens';
 
-export default function IssuerPage() {
-  return <RoleRouteLayout token={ROLE_TOKENS.issuer} />;
+export default function ClinicianPage() {
+  return <RoleRouteLayout token={ROLE_TOKENS.clinician} />;
 }
