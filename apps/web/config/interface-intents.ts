@@ -1,4 +1,4 @@
-export type InterfaceIntentKey = 'clinician' | 'employer' | 'issuer';
+export type InterfaceIntentKey = 'clinician' | 'employer_verifier' | 'issuer_authority';
 
 export interface InterfaceIntentStub {
   interface: InterfaceIntentKey;
@@ -12,17 +12,17 @@ export interface InterfaceIntentStub {
 export const INTERFACE_INTENT_STUBS: ReadonlyArray<InterfaceIntentStub> = [
   {
     interface: 'clinician',
-    intent: 'STUB: Document clinician interface intent and required workflows.',
+    intent: 'STUB: Clinician interface intent documentation placeholder.',
     status: 'STUB',
   },
   {
-    interface: 'employer',
-    intent: 'STUB: Document employer interface intent and verification expectations.',
+    interface: 'employer_verifier',
+    intent: 'STUB: Employer/verifier interface intent documentation placeholder.',
     status: 'STUB',
   },
   {
-    interface: 'issuer',
-    intent: 'STUB: Document issuer interface intent and issuance operations.',
+    interface: 'issuer_authority',
+    intent: 'STUB: Issuer/authority interface intent documentation placeholder.',
     status: 'STUB',
   },
 ];

@@ -24,14 +24,14 @@ export const INTERFACE_ROUTE_INDEX: ReadonlyArray<InterfaceRouteIndexStub> = [
     status: 'STUB',
   },
   {
-    interface: 'employer',
-    intent: 'STUB: Employer interface route index not yet defined.',
+    interface: 'employer_verifier',
+    intent: 'STUB: Employer/verifier interface route index not yet defined.',
     routes: [],
     status: 'STUB',
   },
   {
-    interface: 'issuer',
-    intent: 'STUB: Issuer interface route index not yet defined.',
+    interface: 'issuer_authority',
+    intent: 'STUB: Issuer/authority interface route index not yet defined.',
     routes: [],
     status: 'STUB',
   },
