@@ -19,9 +19,6 @@ const nextConfig = {
     }
     return config;
   },
-  experimental: {
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
-  },
 }
 
 export default nextConfig
