@@ -1,8 +1,8 @@
 {
-	"extends": "../../tsconfig.json",
+	"extends": "../../tsconfig.base.json",
 	"compilerOptions": {
 		"outDir": "dist",
-		"rootDir": "src",
+		"rootDir": ".",
 		"declaration": true,
 		"composite": true,
 		"module": "ESNext",
@@ -11,6 +11,5 @@
 		"strict": true,
 		"skipLibCheck": true
 	},
-	"include": ["src"]
+	"include": ["src", "marketplace"]
 }
-

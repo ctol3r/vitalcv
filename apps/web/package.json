@@ -95,6 +95,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "cross-fetch": "^4.0.0",
+    "eslint-config-next": "^15.5.9",
     "jest-environment-jsdom": "latest",
     "postcss": "^8.5",
     "storybook": "^8.0.0",

@@ -97,26 +97,15 @@ export function createAllowedSinksEnforcer(options: {
         envelope.payload
       );
 
-      // B119A-ALLOWED-004: Record AuditScrapbook event
-      try {
-        // Try to import AuditScrapbook if available
-        const { AuditScrapbook } = await import('../../../backend/src/blockchain/audit_scrapbook').catch(() => ({ AuditScrapbook: null }));
-        if (AuditScrapbook) {
-          const scrapbook = new AuditScrapbook();
-          await scrapbook.recordEvent({
-            type: 'MESSAGE_DENIED',
-            sink,
-            reason: 'Missing allowed_sinks',
-            hashAnchor,
-            requestId,
-            timestamp: new Date(timestamp),
-            payload: envelope.payload,
-          });
-        }
-      } catch (error) {
-        // AuditScrapbook not available or failed - log but don't fail request
-        console.warn('[MessagingGuard] Failed to record AuditScrapbook event:', error);
-      }
+      // B119A-ALLOWED-004: Record AuditScrapbook event (stubbed)
+      console.warn('[MessagingGuard STUB] AuditScrapbook integration not wired', {
+        type: 'MESSAGE_DENIED',
+        sink,
+        reason: 'Missing allowed_sinks',
+        hashAnchor,
+        requestId,
+        timestamp: new Date(timestamp),
+      });
 
       return res.status(403).json({
         error: 'MESSAGE_DENIED',
@@ -143,24 +132,15 @@ export function createAllowedSinksEnforcer(options: {
         envelope.payload
       );
 
-      // B119A-ALLOWED-004: Record AuditScrapbook event
-      try {
-        const { AuditScrapbook } = await import('../../../backend/src/blockchain/audit_scrapbook').catch(() => ({ AuditScrapbook: null }));
-        if (AuditScrapbook) {
-          const scrapbook = new AuditScrapbook();
-          await scrapbook.recordEvent({
-            type: 'SIGNATURE_INVALID',
-            sink,
-            reason: 'Missing detached JWS signature',
-            hashAnchor,
-            requestId,
-            timestamp: new Date(timestamp),
-            payload: envelope.payload,
-          });
-        }
-      } catch (error) {
-        console.warn('[MessagingGuard] Failed to record AuditScrapbook event:', error);
-      }
+      // B119A-ALLOWED-004: Record AuditScrapbook event (stubbed)
+      console.warn('[MessagingGuard STUB] AuditScrapbook integration not wired', {
+        type: 'SIGNATURE_INVALID',
+        sink,
+        reason: 'Missing detached JWS signature',
+        hashAnchor,
+        requestId,
+        timestamp: new Date(timestamp),
+      });
 
       return res.status(403).json({
         error: 'MESSAGE_DENIED',
@@ -176,4 +156,3 @@ export function createAllowedSinksEnforcer(options: {
     return guardMiddleware(req, res, next);
   };
 }
-

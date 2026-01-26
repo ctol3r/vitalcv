@@ -67,8 +67,9 @@ export function serializeError(
     );
 
     if (detailKeys.length) {
+      const errorRecord = error as unknown as Record<string, unknown>;
       serialized.details = detailKeys.reduce<Record<string, unknown>>((acc, key) => {
-        acc[key] = (error as Record<string, unknown>)[key];
+        acc[key] = errorRecord[key];
         return acc;
       }, {});
     }
@@ -81,4 +82,3 @@ export function serializeError(
     message: typeof error === 'string' ? error : JSON.stringify(error),
   };
 }
-
