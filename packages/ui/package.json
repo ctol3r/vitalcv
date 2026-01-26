@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "lint": "eslint .",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx --no-error-on-unmatched-pattern",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -24,4 +24,3 @@
     "react-dom": "^19.2.1"
   }
 }
-

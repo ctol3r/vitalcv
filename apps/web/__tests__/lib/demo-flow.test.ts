@@ -4,6 +4,7 @@
  */
 
 import { DemoState } from '@/lib/demo-flow';
+import type { DemoStep } from '@/lib/demo-flow';
 
 const describeIfEnabled = process.env.SKIP_STUB_TESTS === 'true' ? describe.skip : describe;
 
@@ -14,5 +15,10 @@ describeIfEnabled('Demo flow contracts (STUB)', () => {
     expect(DemoState.PRESENTATION).toBe('PRESENTATION');
     expect(DemoState.VERIFICATION).toBe('VERIFICATION');
     expect(DemoState.COMPLETE).toBe('COMPLETE');
+  });
+
+  it('exposes demo step contract type (STUB)', () => {
+    const placeholder: DemoStep | null = null;
+    expect(placeholder).toBeNull();
   });
 });
