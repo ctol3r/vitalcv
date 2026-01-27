@@ -187,9 +187,9 @@ function getCookieSession(): UserSession | null {
 }
 
 /**
- * Hook to listen for session changes
+ * Subscribe to session change events.
  */
-export function useSessionListener(callback: (session: UserSession) => void): () => void {
+export function createSessionListener(callback: (session: UserSession) => void): () => void {
   if (typeof window === 'undefined') return () => {};
 
   const handleUpdate = (event: Event) => {

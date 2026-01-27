@@ -1,6 +1,6 @@
 'use client';
 
-import { getSession, useSessionListener } from '@/lib/session';
+import { createSessionListener, getSession } from '@/lib/session';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -174,7 +174,7 @@ export function LiveProofBar() {
     const s = getSession();
     setVerifiedHuman(Boolean(s.verifiedHuman));
 
-    const unsubscribe = useSessionListener((session) => {
+    const unsubscribe = createSessionListener((session) => {
       setVerifiedHuman(Boolean(session.verifiedHuman));
     });
 

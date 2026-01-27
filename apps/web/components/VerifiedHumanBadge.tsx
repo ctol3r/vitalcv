@@ -1,7 +1,7 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { getSession, useSessionListener } from '@/lib/session';
+import { createSessionListener, getSession } from '@/lib/session';
 import { BadgeCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -12,7 +12,7 @@ export function VerifiedHumanBadge() {
     const s = getSession();
     setVerified(Boolean(s.verifiedHuman));
 
-    const unsubscribe = useSessionListener((session) => {
+    const unsubscribe = createSessionListener((session) => {
       setVerified(Boolean(session.verifiedHuman));
     });
 
@@ -30,5 +30,4 @@ export function VerifiedHumanBadge() {
     </Badge>
   );
 }
-
 
