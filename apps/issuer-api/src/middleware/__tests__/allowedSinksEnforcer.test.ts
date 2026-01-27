@@ -48,7 +48,7 @@ describe('allowedSinksEnforcer', () => {
         reason: 'Request missing allowed_sinks',
         sink: 'svc.test',
         hashAnchor: expect.any(String),
-        receiptHash: expect.any(String),
+        receiptId: expect.any(String),
       })
     );
     expect(mockNext).not.toHaveBeenCalled();
@@ -117,11 +117,11 @@ describe('allowedSinksEnforcer', () => {
 
     const jsonCall = (mockRes.json as any).mock.calls[0][0];
     expect(jsonCall).toHaveProperty('hashAnchor');
-    expect(jsonCall).toHaveProperty('receiptHash');
+    expect(jsonCall).toHaveProperty('receiptId');
     expect(typeof jsonCall.hashAnchor).toBe('string');
-    expect(typeof jsonCall.receiptHash).toBe('string');
+    expect(typeof jsonCall.receiptId).toBe('string');
     expect(jsonCall.hashAnchor.length).toBeGreaterThan(0);
-    expect(jsonCall.receiptHash.length).toBeGreaterThan(0);
+    expect(jsonCall.receiptId.length).toBeGreaterThan(0);
   });
 
   it('should include requestId in deny response', async () => {
@@ -156,6 +156,7 @@ describe('allowedSinksEnforcer', () => {
     const middleware = createAllowedSinksEnforcer({
       allowedSinks: ['svc.test'],
       requireSignature: false,
+      requireAudience: false,
     });
 
     await middleware(mockReq as Request, mockRes as Response, mockNext);
@@ -176,6 +177,7 @@ describe('allowedSinksEnforcer', () => {
     const middleware = createAllowedSinksEnforcer({
       allowedSinks: ['svc.test'],
       requireSignature: false,
+      requireAudience: false,
     });
 
     await middleware(mockReq as Request, mockRes as Response, mockNext);
