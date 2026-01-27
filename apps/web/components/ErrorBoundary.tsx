@@ -287,7 +287,7 @@ export function useErrorHandler() {
     // e.g., Sentry.captureException(error, { tags: { context } });
   };
 
-  const withRetry = async <T>(
+  const withRetry = async <T,>(
     operation: () => Promise<T>,
     maxRetries: number = 3,
     delay: number = 1000
