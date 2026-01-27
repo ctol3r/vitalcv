@@ -197,7 +197,7 @@ async function verifyDPoPProof(
  * For credential endpoints, access token with cnf.jkt is REQUIRED when DPoP is used.
  * B121A-SEC-001: Reject bearer tokens; require valid DPoP header; validate jti+htu+htm; validate cnf.jkt claim
  */
-export function dpopGuard(req: Request, res: Response, next: NextFunction) {
+export async function dpopGuard(req: Request, res: Response, next: NextFunction): Promise<void> {
   const dpopHeader = req.headers['dpop'] as string;
   const authHeader = req.headers['authorization'];
   const clientType = req.headers['x-client-type'] as string || 'wallet';
@@ -271,7 +271,9 @@ export function dpopGuard(req: Request, res: Response, next: NextFunction) {
       }
     }
 
-    verifyDPoPProof(dpopHeader, htu, htm, accessToken || undefined).then(result => {
+    try {
+      const result = await verifyDPoPProof(dpopHeader, htu, htm, accessToken || undefined);
+
       if (!result.valid) {
         // B113A-TBIND-002: Return 400 for invalid_alg, invalid_typ, or invalid_kid; 401 for other errors
         const isInvalidAlgOrTypOrKid = result.error?.includes('invalid_alg') ||
@@ -293,14 +295,13 @@ export function dpopGuard(req: Request, res: Response, next: NextFunction) {
         (req as any).cnfJkt = result.thumbprint;
         (req as any).dpopValidated = true;
       }
-      next();
-    }).catch((error) => {
-      res.status(401).json({
+      return next();
+    } catch (error) {
+      return res.status(401).json({
         error: 'dpop_verification_failed',
         error_description: error instanceof Error ? error.message : 'DPoP verification failed'
       });
-    });
-    return; // Exit early, next() called in promise
+    }
   }
 
   // B119A-SEC-001: Validate mTLS for confidential clients (only if enabled per tenant)
