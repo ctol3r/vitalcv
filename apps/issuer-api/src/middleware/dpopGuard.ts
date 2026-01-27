@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { calculateJwkThumbprint, decodeJwt, jwtVerify, importJWK } from 'jose';
-import { getTenantMtlsConfig, isDpopRequired, getDpopAlgorithms } from '../../../api/config/security-loader';
+import { getTenantMtlsConfig, isDpopRequired, getDpopAlgorithms } from '../config/security-loader';
 
 /**
  * B119A-SEC-001: DPoP as default; mTLS optional via tenant flag
