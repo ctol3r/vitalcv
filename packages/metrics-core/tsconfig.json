@@ -4,7 +4,9 @@
     "rootDir": "src",
     "outDir": "dist",
     "tsBuildInfoFile": "../../build-info/packages-metrics-core.tsbuildinfo",
-    "composite": true
+    "composite": true,
+    "module": "ES2020",
+    "moduleResolution": "node"
   },
   "include": [
     "src"
