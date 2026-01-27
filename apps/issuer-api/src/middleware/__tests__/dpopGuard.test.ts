@@ -26,7 +26,7 @@ describe('dpopGuard', () => {
         if (header === 'host') return 'example.com';
         return undefined;
       }),
-      path: '/oidc4vci/credential',
+      path: '/oidc4vci/token', // Non-credential endpoint to avoid cnf.jkt pre-check
       method: 'POST',
     };
     mockRes = {
@@ -62,7 +62,7 @@ describe('dpopGuard', () => {
     expect(mockRes.json).toHaveBeenCalledWith(
       expect.objectContaining({
         error: 'use_dpop',
-        error_description: expect.stringContaining('sender-constrained tokens'),
+        error_description: expect.stringContaining('DPoP proof is required'),
       })
     );
     expect(mockNext).not.toHaveBeenCalled();
@@ -94,7 +94,7 @@ describe('dpopGuard', () => {
     // Sign with wrong key but include correct public key in header
     const proof = await new SignJWT({
       htm: 'POST',
-      htu: 'https://example.com/oidc4vci/credential',
+      htu: 'https://example.com/oidc4vci/token',
       iat: Math.floor(Date.now() / 1000),
       jti: randomUUID(),
     })
@@ -124,7 +124,7 @@ describe('dpopGuard', () => {
 
     const proof = await new SignJWT({
       htm: 'GET',
-      htu: 'https://example.com/oidc4vci/credential',
+      htu: 'https://example.com/oidc4vci/token',
       iat: Math.floor(Date.now() / 1000),
       jti: randomUUID(),
     })
@@ -185,7 +185,7 @@ describe('dpopGuard', () => {
 
     const proof = await new SignJWT({
       htm: 'POST',
-      htu: 'https://example.com/oidc4vci/credential',
+      htu: 'https://example.com/oidc4vci/token',
       iat: Math.floor(Date.now() / 1000) - 120, // 2 minutes ago
       jti: randomUUID(),
     })
@@ -215,7 +215,7 @@ describe('dpopGuard', () => {
 
     const proof = await new SignJWT({
       htm: 'POST',
-      htu: 'https://example.com/oidc4vci/credential',
+      htu: 'https://example.com/oidc4vci/token',
       iat: Math.floor(Date.now() / 1000),
       // jti missing
     })
@@ -243,18 +243,30 @@ describe('dpopGuard', () => {
     const { privateKey, publicKey } = await generateKeyPair('ES256');
     const jwk = await exportJWK(publicKey);
     const jti = randomUUID();
+    const { calculateJwkThumbprint } = await import('jose');
+    const thumbprint = await calculateJwkThumbprint(jwk);
 
     const proof = await new SignJWT({
       htm: 'POST',
-      htu: 'https://example.com/oidc4vci/credential',
+      htu: 'https://example.com/oidc4vci/token',
       iat: Math.floor(Date.now() / 1000),
       jti,
     })
       .setProtectedHeader({ alg: 'ES256', typ: 'dpop+jwt', kid: 'test-kid', jwk: jwk as any })
       .sign(privateKey);
 
+    // Create access token with matching cnf.jkt
+    const accessToken = await new SignJWT({
+      sub: 'user123',
+      cnf: {
+        jkt: thumbprint,
+      },
+    })
+      .setProtectedHeader({ alg: 'ES256' })
+      .sign(privateKey);
+
     mockReq.headers = {
-      authorization: 'Bearer token123',
+      authorization: `Bearer ${accessToken}`,
       dpop: proof,
     };
 
@@ -284,18 +296,30 @@ describe('dpopGuard', () => {
   it('should accept valid DPoP proof with ES256 and attach cnfJkt to request', async () => {
     const { privateKey, publicKey } = await generateKeyPair('ES256');
     const jwk = await exportJWK(publicKey);
+    const { calculateJwkThumbprint } = await import('jose');
+    const thumbprint = await calculateJwkThumbprint(jwk);
 
     const proof = await new SignJWT({
       htm: 'POST',
-      htu: 'https://example.com/oidc4vci/credential',
+      htu: 'https://example.com/oidc4vci/token',
       iat: Math.floor(Date.now() / 1000),
       jti: randomUUID(),
     })
       .setProtectedHeader({ alg: 'ES256', typ: 'dpop+jwt', kid: 'test-kid', jwk: jwk as any })
       .sign(privateKey);
 
+    // Create access token with matching cnf.jkt
+    const accessToken = await new SignJWT({
+      sub: 'user123',
+      cnf: {
+        jkt: thumbprint,
+      },
+    })
+      .setProtectedHeader({ alg: 'ES256' })
+      .sign(privateKey);
+
     mockReq.headers = {
-      authorization: 'Bearer token123',
+      authorization: `Bearer ${accessToken}`,
       dpop: proof,
     };
 
@@ -310,18 +334,30 @@ describe('dpopGuard', () => {
   it('should accept valid DPoP proof with EdDSA and attach cnfJkt to request', async () => {
     const { privateKey, publicKey } = await generateKeyPair('EdDSA');
     const jwk = await exportJWK(publicKey);
+    const { calculateJwkThumbprint } = await import('jose');
+    const thumbprint = await calculateJwkThumbprint(jwk);
 
     const proof = await new SignJWT({
       htm: 'POST',
-      htu: 'https://example.com/oidc4vci/credential',
+      htu: 'https://example.com/oidc4vci/token',
       iat: Math.floor(Date.now() / 1000),
       jti: randomUUID(),
     })
       .setProtectedHeader({ alg: 'EdDSA', typ: 'dpop+jwt', kid: 'test-kid', jwk: jwk as any })
       .sign(privateKey);
 
+    // Create access token with matching cnf.jkt
+    const accessToken = await new SignJWT({
+      sub: 'user123',
+      cnf: {
+        jkt: thumbprint,
+      },
+    })
+      .setProtectedHeader({ alg: 'EdDSA' })
+      .sign(privateKey);
+
     mockReq.headers = {
-      authorization: 'Bearer token123',
+      authorization: `Bearer ${accessToken}`,
       dpop: proof,
     };
 
@@ -339,7 +375,7 @@ describe('dpopGuard', () => {
 
     const proof = await new SignJWT({
       htm: 'POST',
-      htu: 'https://example.com/oidc4vci/credential',
+      htu: 'https://example.com/oidc4vci/token',
       iat: Math.floor(Date.now() / 1000),
       jti: randomUUID(),
     })
@@ -369,7 +405,7 @@ describe('dpopGuard', () => {
 
     const proof = await new SignJWT({
       htm: 'POST',
-      htu: 'https://example.com/oidc4vci/credential',
+      htu: 'https://example.com/oidc4vci/token',
       iat: Math.floor(Date.now() / 1000),
       jti: randomUUID(),
     })
@@ -400,7 +436,7 @@ describe('dpopGuard', () => {
 
     const proof = await new SignJWT({
       htm: 'POST',
-      htu: 'https://example.com/oidc4vci/credential',
+      htu: 'https://example.com/oidc4vci/token',
       iat: Math.floor(Date.now() / 1000),
       jti: randomUUID(),
     })
@@ -431,7 +467,7 @@ describe('dpopGuard', () => {
 
     const proof = await new SignJWT({
       htm: 'POST',
-      htu: 'https://example.com/oidc4vci/credential',
+      htu: 'https://example.com/oidc4vci/token',
       iat: Math.floor(Date.now() / 1000),
       jti: randomUUID(),
     })
@@ -470,7 +506,7 @@ describe('dpopGuard', () => {
     // Create DPoP proof
     const proof = await new SignJWT({
       htm: 'POST',
-      htu: 'https://example.com/oidc4vci/credential',
+      htu: 'https://example.com/oidc4vci/token',
       iat: Math.floor(Date.now() / 1000),
       jti: randomUUID(),
     })
@@ -518,7 +554,7 @@ describe('dpopGuard', () => {
     // Create DPoP proof
     const proof = await new SignJWT({
       htm: 'POST',
-      htu: 'https://example.com/oidc4vci/credential',
+      htu: 'https://example.com/oidc4vci/token',
       iat: Math.floor(Date.now() / 1000),
       jti: randomUUID(),
     })
