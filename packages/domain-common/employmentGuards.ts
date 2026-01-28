@@ -17,6 +17,7 @@ import {
   EmployerAcceptance,
   StartAttestation,
   EmploymentVerificationPath,
+  VerifiedCanonicalPath,
 } from './employmentContracts';
 
 /**
@@ -495,4 +496,31 @@ export function isCanonicalPathValid(path: Partial<EmploymentVerificationPath>):
   } catch {
     return false;
   }
+}
+
+/**
+ * TYPE-LEVEL LAW: Canonical Path Verification
+ *
+ * This is the ONLY function that can create a VerifiedCanonicalPath.
+ * The branded type acts as a compile-time proof of validation.
+ *
+ * ENFORCEMENT MECHANISM:
+ * 1. Run full canonical path validation (throws on failure)
+ * 2. Return branded type that can satisfy type constraints
+ * 3. Any function requiring VerifiedCanonicalPath MUST call this first
+ *
+ * COMPILE-TIME GUARANTEE:
+ * - Cannot construct VerifiedCanonicalPath any other way
+ * - Type system prevents bypass attempts
+ * - Employment operations impossible without this function
+ *
+ * @throws {CanonicalPathViolation} if path is invalid
+ * @returns Branded type proving validation occurred
+ */
+export function verifyCanonicalPath(path: EmploymentVerificationPath): VerifiedCanonicalPath {
+  // Run full validation - throws on any violation
+  assertCanonicalPathValid(path);
+
+  // Type cast is safe: validation passed, brand is earned
+  return path as VerifiedCanonicalPath;
 }

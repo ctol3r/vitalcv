@@ -29,6 +29,9 @@ export {
   StartAttestation,
   CanonicalPathEvent,
   EmploymentVerificationPath,
+  VerifiedCanonicalPath,
+  EmploymentStartRequest,
+  CredentialIssuanceRequest,
 } from './employmentContracts';
 export {
   CanonicalPathViolation,
@@ -37,4 +40,5 @@ export {
   assertStartAttestationValid,
   assertCanonicalPathValid,
   isCanonicalPathValid,
+  verifyCanonicalPath,
 } from './employmentGuards';

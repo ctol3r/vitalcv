@@ -251,3 +251,47 @@ export interface EmploymentVerificationPath {
   acceptance: EmployerAcceptance;
   start: StartAttestation;
 }
+
+/**
+ * TYPE-LEVEL LAW ENFORCEMENT
+ *
+ * VerifiedCanonicalPath is a BRANDED TYPE that can ONLY be constructed
+ * by passing canonical path validation.
+ *
+ * PURPOSE:
+ * - ANY function that triggers employment start MUST require this type
+ * - IMPOSSIBLE to call without validation at compile time
+ * - NO runtime overhead - pure type system enforcement
+ *
+ * GRAVITY ENFORCEMENT:
+ * If code compiles without this brand, it bypasses canonical truth.
+ * TypeScript compiler becomes the law enforcer.
+ */
+declare const __verified_canonical_path__: unique symbol;
+
+export type VerifiedCanonicalPath = EmploymentVerificationPath & {
+  readonly [__verified_canonical_path__]: true;
+};
+
+/**
+ * TYPE-LEVEL ENFORCEMENT: Employment Operations
+ *
+ * These operation types REQUIRE VerifiedCanonicalPath.
+ * Cannot be satisfied with raw EmploymentVerificationPath.
+ *
+ * COMPILE-TIME LAW:
+ * - startEmployment() MUST receive VerifiedCanonicalPath
+ * - issueCredential() MUST receive VerifiedCanonicalPath
+ * - Any bypass attempt = TypeScript compilation failure
+ */
+export interface EmploymentStartRequest {
+  readonly verifiedPath: VerifiedCanonicalPath;
+  readonly effectiveDate: string;
+  readonly facilityId?: string;
+}
+
+export interface CredentialIssuanceRequest {
+  readonly verifiedPath: VerifiedCanonicalPath;
+  readonly credentialType: 'employment' | 'privileges' | 'qualifications';
+  readonly issuingAuthority: string;
+}
