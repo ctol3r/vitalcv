@@ -30,3 +30,11 @@ export {
   CanonicalPathEvent,
   EmploymentVerificationPath,
 } from './employmentContracts';
+export {
+  CanonicalPathViolation,
+  assertRecognitionEventValid,
+  assertEmployerAcceptanceValid,
+  assertStartAttestationValid,
+  assertCanonicalPathValid,
+  isCanonicalPathValid,
+} from './employmentGuards';
