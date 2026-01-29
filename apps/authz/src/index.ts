@@ -1,21 +1,12 @@
-import './tracing';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { jwtVerify, importJWK, calculateJwkThumbprint, decodeJwt, compactVerify } from 'jose';
 import { createHash, randomBytes } from 'crypto';
-import { allowedSinksEnforcer } from './middleware/allowedSinksEnforcer';
 import { issueAccessToken, issueRefreshToken, validateAndRotateRefreshToken } from './services/tokenService';
-import { requestIdMiddleware } from './middleware/requestId';
-import { createLogger } from '@chai-vc/logging-core';
-
-const log = createLogger({
-  service: process.env.SERVICE_NAME || 'authz-api',
-});
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(requestIdMiddleware());
 
 /**
  * B99A-TBIND-001: DPoP default; mTLS enterprise-optional (issuer/verifier)
@@ -31,15 +22,6 @@ app.use(requestIdMiddleware());
  * - Enterprise mode: Set MTLS_REQUIRED=true to enforce mTLS for all confidential clients
  */
 
-// B93-SEC-001: Enforce allowed_sinks on all inbound routes (repo-wide)
-// Apply middleware to all routes except health checks
-app.use((req, res, next) => {
-  // Skip health checks
-  if (req.path === '/health') {
-    return next();
-  }
-  return allowedSinksEnforcer(req, res, next);
-});
 
 // Pre-authorized code store (in production, use Redis/database)
 interface PreAuthorizedCode {
@@ -802,9 +784,7 @@ app.get('/health', (req: Request, res: Response) => {
 
 const PORT = process.env.PORT || 4003;
 
-app.listen(PORT, () => {
-  log.info('Authz service listening', { port: PORT });
-});
+app.listen(PORT);
 
 export default app;
 
