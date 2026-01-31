@@ -67,7 +67,7 @@ export default function OnboardingPage() {
         const errorData = await response.json();
         // NO MANUAL FALLBACK - if NPPES fails, clinician is blocked
         throw new Error(
-          errorData.error || 'NPI verification failed. We will verify your NPI to get started.',
+          errorData.error || "NPI verification failed. We'll verify your NPI to get started.",
         );
       }
 
@@ -135,7 +135,9 @@ export default function OnboardingPage() {
                     onChange={(e) => setNpi(e.target.value.replace(/\D/g, ''))}
                     maxLength={10}
                     className="mt-1 text-lg font-mono tracking-wider"
-                    aria-describedby={`${descriptionId} ${helperTextId}${error ? ` ${errorId}` : ''}`}
+                    aria-describedby={`${descriptionId} ${helperTextId}${
+                      error ? ` ${errorId}` : ''
+                    }`}
                     aria-invalid={error ? 'true' : undefined}
                     disabled={loading}
                   />
@@ -170,7 +172,7 @@ export default function OnboardingPage() {
 
                 <p id={helperTextId} className="text-xs text-center text-gray-500">
                   By proceeding, your NPI will be verified against the National Plan and Provider
-                  Enumeration System. We will look this up automatically.
+                  Enumeration System. We'll look this up automatically.
                 </p>
               </form>
             </CardContent>
