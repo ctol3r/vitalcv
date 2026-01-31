@@ -68,6 +68,8 @@ export default function PsvDemoClient() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [report, setReport] = useState<PSVReport | null>(null)
+  const descriptionId = 'psv-npi-description'
+  const errorId = 'psv-npi-error'
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -102,7 +104,9 @@ export default function PsvDemoClient() {
       <Card className="border-border/70 bg-card/80 shadow-sm">
         <CardHeader>
           <CardTitle className="text-lg">Run PSV</CardTitle>
-          <CardDescription>Enter a 10-digit NPI to generate a PSV report.</CardDescription>
+          <CardDescription id={descriptionId}>
+            Enter a 10-digit NPI to generate a PSV report.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <form className="space-y-4" onSubmit={handleSubmit}>
@@ -110,6 +114,7 @@ export default function PsvDemoClient() {
               <Label htmlFor="npi">NPI Number</Label>
               <Input
                 id="npi"
+                name="npi"
                 type="text"
                 inputMode="numeric"
                 autoComplete="off"
@@ -117,12 +122,14 @@ export default function PsvDemoClient() {
                 value={npi}
                 onChange={(event) => setNpi(event.target.value.replace(/\D/g, '').slice(0, 10))}
                 className="mt-2 text-lg font-mono tracking-widest"
+                aria-describedby={`${descriptionId}${error ? ` ${errorId}` : ''}`}
+                aria-invalid={error ? 'true' : undefined}
                 disabled={loading}
               />
             </div>
             {error && (
               <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription id={errorId}>{error}</AlertDescription>
               </Alert>
             )}
             <Button
@@ -133,7 +140,7 @@ export default function PsvDemoClient() {
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
                   Running PSV...
                 </>
               ) : (

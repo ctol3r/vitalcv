@@ -98,6 +98,7 @@ export function ParticlesCanvas({ className, density = 0.00006 }: ParticlesCanva
   return (
     <canvas
       ref={canvasRef}
+      aria-hidden="true"
       className={cn('pointer-events-none absolute inset-0 text-foreground/20', className)}
     />
   )

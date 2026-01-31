@@ -23,7 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, Loader2, Shield, XCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 
 interface NPIVerificationResult {
   npi: string;
@@ -41,12 +41,16 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [verified, setVerified] = useState<NPIVerificationResult | null>(null);
+  const descriptionId = 'npi-description';
+  const helperTextId = 'npi-helper';
+  const errorId = 'npi-error';
 
   /**
    * Single action: Verify NPI via NPPES and issue recognition.
    * No fallback. No manual entry. No optional steps.
    */
-  const handleVerifyAndRecognize = async () => {
+  const handleVerifyAndRecognize = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (!npi.trim() || npi.length !== 10) return;
 
     setLoading(true);
@@ -63,7 +67,7 @@ export default function OnboardingPage() {
         const errorData = await response.json();
         // NO MANUAL FALLBACK - if NPPES fails, clinician is blocked
         throw new Error(
-          errorData.error || 'NPI verification failed. We'll verify your NPI to get started.',
+          errorData.error || 'NPI verification failed. We will verify your NPI to get started.',
         );
       }
 
@@ -101,7 +105,7 @@ export default function OnboardingPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center space-x-2 mb-6">
-            <Shield className="h-10 w-10 text-blue-600" />
+            <Shield className="h-10 w-10 text-blue-600" aria-hidden="true" />
             <span className="text-3xl font-bold text-gray-900">VitalCV</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Verify Your Identity</h1>
@@ -112,63 +116,70 @@ export default function OnboardingPage() {
           <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
             <CardHeader>
               <CardTitle>National Provider Identifier</CardTitle>
-              <CardDescription>
+              <CardDescription id={descriptionId}>
                 Your 10-digit NPI will be verified against the NPPES registry
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <Label htmlFor="npi">NPI Number</Label>
-                <Input
-                  id="npi"
-                  type="text"
-                  placeholder="Enter your 10-digit NPI"
-                  value={npi}
-                  onChange={(e) => setNpi(e.target.value.replace(/\D/g, ''))}
-                  maxLength={10}
-                  className="mt-1 text-lg font-mono tracking-wider"
-                  disabled={loading}
-                />
-              </div>
+            <CardContent>
+              <form className="space-y-6" onSubmit={handleVerifyAndRecognize}>
+                <div>
+                  <Label htmlFor="npi">NPI Number</Label>
+                  <Input
+                    id="npi"
+                    name="npi"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="Enter your 10-digit NPI"
+                    value={npi}
+                    onChange={(e) => setNpi(e.target.value.replace(/\D/g, ''))}
+                    maxLength={10}
+                    className="mt-1 text-lg font-mono tracking-wider"
+                    aria-describedby={`${descriptionId} ${helperTextId}${error ? ` ${errorId}` : ''}`}
+                    aria-invalid={error ? 'true' : undefined}
+                    disabled={loading}
+                  />
+                </div>
 
-              {error && (
-                <Alert variant="destructive">
-                  <XCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    {error}
-                    <p className="mt-2 text-xs">
-                      Having trouble? We're here to help—contact support.
-                    </p>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <Button
-                onClick={handleVerifyAndRecognize}
-                disabled={loading || npi.length !== 10}
-                className="w-full h-12 text-lg"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Verifying via NPPES...
-                  </>
-                ) : (
-                  'Verify & Receive Recognition'
+                {error && (
+                  <Alert variant="destructive">
+                    <XCircle className="h-4 w-4" aria-hidden="true" />
+                    <AlertDescription id={errorId}>
+                      {error}
+                      <p className="mt-2 text-xs">
+                        Having trouble? We're here to help—contact support.
+                      </p>
+                    </AlertDescription>
+                  </Alert>
                 )}
-              </Button>
 
-              <p className="text-xs text-center text-gray-500">
-                By proceeding, your NPI will be verified against the National Plan and Provider
-                Enumeration System. We'll look this up automatically.
-              </p>
+                <Button
+                  type="submit"
+                  disabled={loading || npi.length !== 10}
+                  className="w-full h-12 text-lg"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
+                      Verifying via NPPES...
+                    </>
+                  ) : (
+                    'Verify & Receive Recognition'
+                  )}
+                </Button>
+
+                <p id={helperTextId} className="text-xs text-center text-gray-500">
+                  By proceeding, your NPI will be verified against the National Plan and Provider
+                  Enumeration System. We will look this up automatically.
+                </p>
+              </form>
             </CardContent>
           </Card>
         ) : (
           <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
             <CardContent className="pt-8 pb-8 text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="h-8 w-8 text-green-600" />
+                <CheckCircle className="h-8 w-8 text-green-600" aria-hidden="true" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Recognition Issued</h2>
               <p className="text-gray-600 mb-6">
