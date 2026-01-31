@@ -63,7 +63,7 @@ export default function OnboardingPage() {
         const errorData = await response.json();
         // NO MANUAL FALLBACK - if NPPES fails, clinician is blocked
         throw new Error(
-          errorData.error || 'NPI verification failed. Cannot proceed without verified identity.',
+          errorData.error || 'NPI verification failed. We'll verify your NPI to get started.',
         );
       }
 
@@ -86,7 +86,7 @@ export default function OnboardingPage() {
       const msg = err instanceof Error ? err.message : 'Verification failed';
       setError(msg);
       toast({
-        title: 'Verification Blocked',
+        title: 'Verification needed',
         description: msg,
         variant: 'destructive',
       });
@@ -137,8 +137,7 @@ export default function OnboardingPage() {
                   <AlertDescription>
                     {error}
                     <p className="mt-2 text-xs">
-                      VitalCV requires verified identity. Contact support if your NPI cannot be
-                      verified.
+                      Having trouble? We're here to help—contact support.
                     </p>
                   </AlertDescription>
                 </Alert>
@@ -161,7 +160,7 @@ export default function OnboardingPage() {
 
               <p className="text-xs text-center text-gray-500">
                 By proceeding, your NPI will be verified against the National Plan and Provider
-                Enumeration System. No manual entry is permitted.
+                Enumeration System. We'll look this up automatically.
               </p>
             </CardContent>
           </Card>
