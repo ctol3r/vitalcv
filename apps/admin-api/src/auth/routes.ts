@@ -21,8 +21,18 @@ import {
 } from './recovery-keys';
 import { AuthenticatedRequest } from './middleware/types';
 
-const router = Router();
+const router: Router = Router();
 const prisma = new PrismaClient();
+
+type WebAuthnAuthenticatorRecord = {
+  id: string;
+  userId: string;
+  name: string | null;
+  deviceBound: boolean;
+  transports: string[] | null;
+  createdAt: Date;
+  lastUsedAt: Date | null;
+};
 
 /**
  * POST /api/auth/webauthn/register/start
@@ -254,20 +264,20 @@ router.get('/webauthn/authenticators', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'userId required' });
     }
 
-    const authenticators = await prisma.webAuthnAuthenticator.findMany({
+    const authenticators = (await prisma.webAuthnAuthenticator.findMany({
       where: {
         userId,
         revokedAt: null,
       },
       orderBy: { createdAt: 'desc' },
-    });
+    })) as WebAuthnAuthenticatorRecord[];
 
     res.json({
       authenticators: authenticators.map((auth) => ({
         id: auth.id,
         name: auth.name,
         deviceBound: auth.deviceBound,
-        transports: auth.transports,
+        transports: auth.transports || [],
         createdAt: auth.createdAt,
         lastUsedAt: auth.lastUsedAt,
       })),
@@ -515,4 +525,3 @@ router.patch('/recovery-keys/:id/rename', async (req: Request, res: Response) =>
 });
 
 export { router as authRouter };
-

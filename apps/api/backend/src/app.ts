@@ -6,19 +6,19 @@ import jwt from 'jsonwebtoken';
 import path from 'path';
 import { neo4jConfigured } from './graph/neo4jHttp';
 import {
-  ensureGraphSchema,
-  getGraphView,
-  getReadinessScore,
-  getSpecialtyDensity,
-  graphHealth,
-  seedDemoGraph,
-  upsertIssuanceToGraph,
+    ensureGraphSchema,
+    getGraphView,
+    getReadinessScore,
+    getSpecialtyDensity,
+    graphHealth,
+    seedDemoGraph,
+    upsertIssuanceToGraph,
 } from './graph/service';
 import prisma from './graphql/prisma_client';
-import { errorHandler } from './middleware/errorHandler';
 import { validateRequest } from './middleware/validateRequest';
 import { log, reqLogFields } from './obs/logger';
 import { requestIdMiddleware, type RequestWithId } from './obs/requestId';
+import { registerAuthorityAcceptanceRoute } from './routes/acceptAuthority';
 
 const app = express();
 const bootedAtIso = new Date().toISOString();
@@ -62,6 +62,12 @@ app.use((req: RequestWithId, res, next) => {
   });
   next();
 });
+
+// --- Authority acceptance ---
+registerAuthorityAcceptanceRoute(app);
+
+// --- Authority acceptance ---
+registerAuthorityAcceptanceRoute(app);
 
 function sha256Hex(input: string): string {
   return crypto.createHash('sha256').update(input).digest('hex');
@@ -1075,6 +1081,114 @@ app.post(
     res.json({ message: 'Credential created' });
   },
 );
+
+// --- NPI Lookup (Antigravity MVP: Mock Implementation) ---
+app.get('/lookup/npi/:npi', async (req: Request, res: Response) => {
+  const { npi } = req.params;
+
+  if (!/^\d{10}$/.test(npi)) {
+    return res.status(400).json({ error: 'Invalid NPI format. Must be 10 digits.' });
+  }
+
+  // MVP: Deterministic mock to ensure "Recognition" flow works without external API dependency.
+  // In production, this must call https://npiregistry.cms.hhs.gov/api/
+
+  // Seed random-ish but deterministic values based on NPI
+  const seed = Number(npi.slice(-4));
+  const specialities = ['Family Medicine', 'Internal Medicine', 'Emergency Medicine', 'Pediatrics'];
+  const specialty = specialities[seed % specialities.length];
+  const credential = seed % 2 === 0 ? 'MD' : 'DO';
+  const taxonomy = '207Q00000X'; // Generic Family Med
+
+  const mockResponse = {
+    npi,
+    name: `Dr. Example Clinician ${npi.slice(-4)}`,
+    credentials: credential,
+    primaryTaxonomy: `${specialty} (${taxonomy})`,
+    status: 'Active',
+    lastUpdated: new Date().toISOString(),
+    // Simulate real NPPES fields for forward compat
+    providerType: 'Individual',
+    address: '123 Medical Center Dr, Anytown, US'
+  };
+
+  // Simulate network latency
+  await new Promise(resolve => setTimeout(resolve, 600));
+
+  return res.json(mockResponse);
+});
+
+import { assertCanonicalPathValid, CanonicalPathViolation } from './guards';
+
+// --- OIDC4VP Enforcer (Antigravity Canonical Path) ---
+app.post('/oidc4vp/presentation', validateRequest, async (req: Request, res: Response) => {
+  const { vp_token, canonicalPath } = req.body as { vp_token: string; canonicalPath?: any };
+
+  try {
+    // 1. Enforce Canonical Path (The "Gravity Well")
+    if (canonicalPath) {
+      assertCanonicalPathValid(canonicalPath);
+    } else {
+       // If no path provided, strict rejection for this endpoint
+       return res.status(400).json({ error: 'Canonical Path data is required for OIDC4VP verification.' });
+    }
+
+    // 2. Decode VP Token to get Credential ID (Mock/Demo decoding for now)
+    // In real OIDC4VP, we'd verify the JWT signature here.
+    // For Antigravity MVP, we trust the Guard logic above and check revocation.
+
+    // Attempt to extract credential ID if present in the token structure
+    let externalId = '';
+    try {
+      const decoded = jwt.decode(vp_token) as any;
+      externalId = decoded?.credentialId || decoded?.vc?.id || '';
+    } catch {
+      // ignore
+    }
+
+    // 3. Check Revocation (Persistence Layer)
+    let isRevoked = false;
+    if (externalId && externalId.startsWith('CRED-')) {
+       // Check our DB
+       const lastRevoke = await prisma.auditEvent.findFirst({
+         where: { type: 'REVOKE_CREDENTIAL', credentialId: externalId },
+         orderBy: { createdAt: 'desc' },
+       });
+       if (lastRevoke) isRevoked = true;
+    }
+
+    if (isRevoked) {
+      return res.status(409).json({
+        verified: false,
+        error: 'Credential has been REVOKED by the issuer.',
+        status: 'revoked'
+      });
+    }
+
+    // 4. Success -> Write Audit
+    await writeAuditEvent({
+      type: 'VERIFY_CANONICAL_PATH',
+      credentialId: externalId || 'path-only',
+      metadata: {
+        status: 'verified',
+        recognitionId: canonicalPath.recognition?.recognitionId
+      }
+    });
+
+    return res.json({ verified: true, status: 'valid' });
+
+  } catch (error) {
+    if (error instanceof CanonicalPathViolation) {
+      return res.status(400).json({
+        verified: false,
+        error: error.message,
+        violation: error.violationType
+      });
+    }
+    console.error('OIDC4VP Error:', error);
+    return res.status(500).json({ verified: false, error: 'Internal verification error' });
+  }
+});
 
 app.use(errorHandler);
 

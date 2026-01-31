@@ -15,7 +15,7 @@ import {
 import { requireAal } from './middleware/aal-guard';
 import { AuthenticatedRequest } from './middleware/types';
 
-const router = Router();
+const router: Router = Router();
 const prisma = new PrismaClient();
 
 /**
@@ -191,4 +191,3 @@ router.get('/export/json', async (req: Request, res: Response) => {
 });
 
 export { router as policyRouter };
-

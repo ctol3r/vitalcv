@@ -146,6 +146,18 @@ export interface EmployerAcceptance {
     schedule?: 'full-time' | 'part-time' | 'contract' | 'per-diem';
     compensationBand?: string;
   };
+
+  /**
+   * PSV verification requirement (CRITICAL for NCQA CR1 + CMS CoP compliance)
+   *
+   * LEGAL LIABILITY: Employer acceptance without PSV creates negligent credentialing risk.
+   * NCQA CR1: "Organization verifies qualifications BEFORE granting privileges"
+   * CMS CoP §482.12(a)(1): "Medical staff verifies credentials BEFORE appointment"
+   *
+   * MVP: Require psvReportId reference as minimum gate
+   * TODO: Full compliance requires PSV decision validation (see TECH_DEBT.md EMP-1)
+   */
+  psvReportId: string;
 }
 
 /**
