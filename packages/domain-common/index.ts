@@ -24,6 +24,21 @@ export {
   ProcedureEventSeverity,
 } from './qualityContracts';
 export {
+  FacilityDepartmentDelegation,
+  FacilityPrivilegeCredential,
+  FacilityPrivilegeRevocation,
+  FacilityPrivilegeTemplateVersion,
+  FacilityIssuerType,
+} from './facilityPrivilegeContracts';
+export {
+  FacilityPrivilegeViolation,
+  assertFacilityPrivilegeTemplateValid,
+  assertTemplateSupersessionValid,
+  assertDelegationAllowsIssuance,
+  assertFacilityPrivilegeIssuanceValid,
+  assertFacilityPrivilegeScope,
+} from './facilityPrivilegeGuards';
+export {
   RecognitionEvent,
   EmployerAcceptance,
   StartAttestation,
@@ -42,3 +57,38 @@ export {
   isCanonicalPathValid,
   verifyCanonicalPath,
 } from './employmentGuards';
+export {
+  PSVCheckEvidence,
+  PSVCheckResult,
+  PSVDecision,
+  PSV_DECISION_VALUES,
+  PSVFinding,
+  PSVFreshnessRule,
+  PSVMatchingRule,
+  PSVPolicy,
+  PSVPolicyEvaluation,
+  PSVReport,
+  PSVSource,
+  PSV_SOURCE_VALUES,
+  PSVStatus,
+  PSV_STATUS_VALUES,
+} from './psvContracts';
+export {
+  createPSVReport,
+  evaluatePSV,
+  getMissingRequiredSources,
+  getStaleChecks,
+  isCheckFresh,
+} from './psvPolicy';
+export {
+  AUTHORITY_CREDENTIAL_STATUS_VALUES,
+  AUTHORITY_CREDENTIAL_TYPE_VALUES,
+  AUTHORITY_ISSUER_TYPES,
+  AuthorityAcceptanceEvent,
+  AuthorityCredential,
+  AuthorityCredentialStatus,
+  AuthorityCredentialType,
+  AuthorityEvent,
+  AuthorityFacility,
+  AuthorityIssuerType,
+} from './src/authorityEvents';

@@ -12,10 +12,7 @@
     "baseUrl": ".",
     "rootDirs": ["src", "services", "packages", "lib"],
     "types": ["node"],
-    "typeRoots": [
-      "./types",
-      "./node_modules/@types"
-    ],
+    "typeRoots": ["./types", "./node_modules/@types"],
     "incremental": true,
     "composite": true,
     "isolatedModules": true,
@@ -24,7 +21,6 @@
       "@api/*": ["apps/api/src/*"],
       "@web/*": ["apps/web/src/*", "apps/web/app/*"],
       "@packages/*": ["packages/*/src", "packages/*"],
-      "@schemas/*": ["packages/vc-schemas/src/*"],
       "@shared-utils/*": ["packages/shared-utils/src/*"],
       "@compliance-core/*": ["packages/compliance-core/src/*"],
       "@psv-pipeline/*": ["packages/psv-pipeline/src/*"],
@@ -61,4 +57,3 @@
   },
   "exclude": ["node_modules", "dist", "build", ".next"]
 }
-

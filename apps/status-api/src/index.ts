@@ -1,5 +1,5 @@
-import express, { Request, Response, type Express } from 'express';
 import cors from 'cors';
+import express, { Request, Response, type Express } from 'express';
 import statusListRoutes from './routes/statusList';
 
 const app: Express = express();
@@ -23,4 +23,3 @@ const PORT = process.env.PORT || 4003;
 app.listen(PORT);
 
 export default app;
-

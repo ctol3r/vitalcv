@@ -1,13 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": ".",
     "outDir": "dist",
-    "tsBuildInfoFile": "../../build-info/packages-domain-common.tsbuildinfo",
+    "tsBuildInfoFile": "../../build-info/packages-domain-provider.tsbuildinfo",
     "declaration": true,
     "declarationMap": true,
     "composite": true
   },
-  "include": ["src", "credentialingContracts.ts", "privilegeContracts.ts", "qualityContracts.ts"],
+  "include": ["src", "contracts.ts", "index.ts", "fhir"],
   "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/__tests__/**/*"]
 }

@@ -17,8 +17,10 @@
   },
   "dependencies": {
     "@radix-ui/react-label": "latest",
+    "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-slot": "latest",
     "@radix-ui/react-toast": "latest",
+    "@radix-ui/react-tooltip": "^1.2.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.454.0",

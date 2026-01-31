@@ -16,6 +16,8 @@
     "sanity:repo": "tsx scripts/repo-sanity.ts",
     "scan:imports": "tsx scripts/scan-imports.ts",
     "scan:compliance": "tsx scripts/scan-compliance.ts",
+    "psv:demo": "tsx --tsconfig tsconfig.base.json scripts/psv-demo.ts",
+    "psv:test": "pnpm --filter @vitalcv/domain-common test",
     "cleanup:legacy": "bash scripts/cleanup-legacy.sh",
     "verify:build": "bash scripts/verify-build.sh"
   },

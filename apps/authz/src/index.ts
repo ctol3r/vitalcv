@@ -1,10 +1,14 @@
-import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import { jwtVerify, importJWK, calculateJwkThumbprint, decodeJwt, compactVerify } from 'jose';
 import { createHash, randomBytes } from 'crypto';
-import { issueAccessToken, issueRefreshToken, validateAndRotateRefreshToken } from './services/tokenService';
+import express, { type Express, NextFunction, Request, Response } from 'express';
+import { calculateJwkThumbprint, importJWK, jwtVerify } from 'jose';
+import {
+  issueAccessToken,
+  issueRefreshToken,
+  validateAndRotateRefreshToken,
+} from './services/tokenService';
 
-const app = express();
+const app: Express = express();
 app.use(cors());
 app.use(express.json());
 
@@ -21,7 +25,6 @@ app.use(express.json());
  * - Confidential clients: Can use mTLS if MTLS_ALLOWED_FOR_CONFIDENTIAL=true
  * - Enterprise mode: Set MTLS_REQUIRED=true to enforce mTLS for all confidential clients
  */
-
 
 // Pre-authorized code store (in production, use Redis/database)
 interface PreAuthorizedCode {
@@ -88,7 +91,11 @@ function extractJwkThumbprint(token: any): string | null {
  * Validates JWS signature, htu/htm matching, and iat freshness
  * B113A-TBIND-002: Returns detailed error messages for JOSE policy violations (alg, typ, kid)
  */
-async function verifyDPoP(dpopHeader: string, htu: string, htm: string): Promise<{ valid: boolean; jwk?: any; thumbprint?: string; error?: string }> {
+async function verifyDPoP(
+  dpopHeader: string,
+  htu: string,
+  htm: string,
+): Promise<{ valid: boolean; jwk?: any; thumbprint?: string; error?: string }> {
   try {
     const parts = dpopHeader.split('.');
     if (parts.length !== 3) {
@@ -109,7 +116,12 @@ async function verifyDPoP(dpopHeader: string, htu: string, htm: string): Promise
     // B113A-TBIND-002: JOSE allowlist for DPoP proofs (alg ∈ {ES256,EdDSA})
     const ALLOWED_ALGORITHMS = ['ES256', 'EdDSA'];
     if (!alg || !ALLOWED_ALGORITHMS.includes(alg)) {
-      return { valid: false, error: `invalid_alg: algorithm '${alg || 'missing'}' not allowed. Allowed algorithms: ${ALLOWED_ALGORITHMS.join(', ')}` };
+      return {
+        valid: false,
+        error: `invalid_alg: algorithm '${
+          alg || 'missing'
+        }' not allowed. Allowed algorithms: ${ALLOWED_ALGORITHMS.join(', ')}`,
+      };
     }
 
     // B113A-TBIND-002: Check typ='dpop+jwt' presence (returns 400 for invalid typ)
@@ -132,7 +144,12 @@ async function verifyDPoP(dpopHeader: string, htu: string, htm: string): Promise
         algorithms: ALLOWED_ALGORITHMS,
       });
 
-      const payload = verified.payload;
+      const payload = verified.payload as {
+        htu?: string;
+        htm?: string;
+        iat?: number;
+        jti?: string;
+      };
 
       // Verify htu matches (must match exactly)
       if (payload.htu !== htu) {
@@ -141,13 +158,21 @@ async function verifyDPoP(dpopHeader: string, htu: string, htm: string): Promise
 
       // Verify htm matches (must match exactly)
       if (payload.htm?.toUpperCase() !== htm.toUpperCase()) {
-        return { valid: false, error: `htm mismatch: expected ${htm.toUpperCase()}, got ${payload.htm}` };
+        return {
+          valid: false,
+          error: `htm mismatch: expected ${htm.toUpperCase()}, got ${payload.htm}`,
+        };
       }
 
       // B107A-TBIND-002: Verify iat is recent (within 60s skew)
       const now = Math.floor(Date.now() / 1000);
       if (!payload.iat || Math.abs(payload.iat - now) > 60) {
-        return { valid: false, error: `iat too old or missing: ${payload.iat ? Math.abs(payload.iat - now) + 's ago' : 'missing'} (max skew: 60s)` };
+        return {
+          valid: false,
+          error: `iat too old or missing: ${
+            payload.iat ? Math.abs(payload.iat - now) + 's ago' : 'missing'
+          } (max skew: 60s)`,
+        };
       }
 
       // B118A-TBIND-002: Validate jti (JWT ID) for replay protection
@@ -165,10 +190,18 @@ async function verifyDPoP(dpopHeader: string, htu: string, htm: string): Promise
 
       return { valid: true, jwk, thumbprint };
     } catch (error) {
-      return { valid: false, error: `DPoP proof signature verification failed: ${error instanceof Error ? error.message : 'unknown'}` };
+      return {
+        valid: false,
+        error: `DPoP proof signature verification failed: ${
+          error instanceof Error ? error.message : 'unknown'
+        }`,
+      };
     }
   } catch (error) {
-    return { valid: false, error: `DPoP proof parsing error: ${error instanceof Error ? error.message : 'unknown'}` };
+    return {
+      valid: false,
+      error: `DPoP proof parsing error: ${error instanceof Error ? error.message : 'unknown'}`,
+    };
   }
 }
 
@@ -179,13 +212,13 @@ async function verifyDPoP(dpopHeader: string, htu: string, htm: string): Promise
 export function dpopMiddleware(req: Request, res: Response, next: NextFunction) {
   const dpopHeader = req.headers['dpop'] as string;
   const authHeader = req.headers['authorization'];
-  const clientType = req.headers['x-client-type'] as string || 'wallet';
+  const clientType = (req.headers['x-client-type'] as string) || 'wallet';
 
   // Check if DPoP is required (default: true for wallets)
   const dpopRequired = process.env.DPOP_REQUIRED !== 'false';
   const isWallet = clientType === 'wallet' || !clientType;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ') && !authHeader.startsWith('DPoP ')) {
+  if (!authHeader || (!authHeader.startsWith('Bearer ') && !authHeader.startsWith('DPoP '))) {
     return res.status(401).json({ error: 'missing_token' });
   }
 
@@ -193,7 +226,7 @@ export function dpopMiddleware(req: Request, res: Response, next: NextFunction) 
   if (isWallet && (!dpopHeader || !dpopRequired)) {
     return res.status(401).json({
       error: 'dpop_required',
-      error_description: 'DPoP proof required for wallet clients with cnf.jkt'
+      error_description: 'DPoP proof required for wallet clients with cnf.jkt',
     });
   }
 
@@ -202,32 +235,38 @@ export function dpopMiddleware(req: Request, res: Response, next: NextFunction) 
     const htu = `${req.protocol}://${req.get('host')}${req.path}`;
     const htm = req.method;
 
-    verifyDPoP(dpopHeader, htu, htm).then(result => {
-      if (!result.valid) {
-        // B113A-TBIND-002: Return 400 for invalid_alg, invalid_typ, or invalid_kid; 401 for other errors
-        const isInvalidAlgOrTypOrKid = result.error?.includes('invalid_alg') ||
-                                       result.error?.includes('invalid_typ') ||
-                                       result.error?.includes('invalid_kid');
-        const statusCode = isInvalidAlgOrTypOrKid ? 400 : 401;
-        const errorCode = result.error?.includes('invalid_alg') ? 'invalid_alg'
-          : result.error?.includes('invalid_typ') ? 'invalid_typ'
-          : result.error?.includes('invalid_kid') ? 'invalid_kid'
-          : 'invalid_dpop';
-        return res.status(statusCode).json({
-          error: errorCode,
-          error_description: result.error || 'DPoP proof validation failed'
-        });
-      }
+    verifyDPoP(dpopHeader, htu, htm)
+      .then((result) => {
+        if (!result.valid) {
+          // B113A-TBIND-002: Return 400 for invalid_alg, invalid_typ, or invalid_kid; 401 for other errors
+          const isInvalidAlgOrTypOrKid =
+            result.error?.includes('invalid_alg') ||
+            result.error?.includes('invalid_typ') ||
+            result.error?.includes('invalid_kid');
+          const statusCode = isInvalidAlgOrTypOrKid ? 400 : 401;
+          const errorCode = result.error?.includes('invalid_alg')
+            ? 'invalid_alg'
+            : result.error?.includes('invalid_typ')
+            ? 'invalid_typ'
+            : result.error?.includes('invalid_kid')
+            ? 'invalid_kid'
+            : 'invalid_dpop';
+          return res.status(statusCode).json({
+            error: errorCode,
+            error_description: result.error || 'DPoP proof validation failed',
+          });
+        }
 
-      // Attach cnf.jkt to request for token issuance
-      if (result.thumbprint) {
-        (req as any).cnfJkt = result.thumbprint;
-        (req as any).dpopValidated = true;
-      }
-      next();
-    }).catch(() => {
-      res.status(401).json({ error: 'dpop_verification_failed' });
-    });
+        // Attach cnf.jkt to request for token issuance
+        if (result.thumbprint) {
+          (req as any).cnfJkt = result.thumbprint;
+          (req as any).dpopValidated = true;
+        }
+        next();
+      })
+      .catch(() => {
+        res.status(401).json({ error: 'dpop_verification_failed' });
+      });
   } else {
     // No DPoP header - allow if not required for this client type
     next();
@@ -241,7 +280,7 @@ export function dpopMiddleware(req: Request, res: Response, next: NextFunction) 
 export function mtlsMiddleware(req: Request, res: Response, next: NextFunction) {
   const clientCert = (req as any).socket?.getPeerCertificate?.();
   const clientCertHeader = req.headers['x-client-cert'] as string;
-  const clientType = req.headers['x-client-type'] as string || 'wallet';
+  const clientType = (req.headers['x-client-type'] as string) || 'wallet';
 
   // Configuration flags (B99A-TBIND-001)
   const requireMtls = process.env.MTLS_REQUIRED === 'true';
@@ -256,7 +295,7 @@ export function mtlsMiddleware(req: Request, res: Response, next: NextFunction) 
       // Confidential clients must use DPoP if mTLS is disabled
       return res.status(401).json({
         error: 'mtls_not_allowed',
-        error_description: 'mTLS is disabled for confidential clients. Use DPoP instead.'
+        error_description: 'mTLS is disabled for confidential clients. Use DPoP instead.',
       });
     }
 
@@ -265,7 +304,8 @@ export function mtlsMiddleware(req: Request, res: Response, next: NextFunction) 
       if (!clientCert && !clientCertHeader) {
         return res.status(401).json({
           error: 'mtls_required',
-          error_description: 'Client certificate required for confidential clients (enterprise mode)'
+          error_description:
+            'Client certificate required for confidential clients (enterprise mode)',
         });
       }
     }
@@ -296,19 +336,19 @@ app.post('/par', mtlsMiddleware, async (req: Request, res: Response) => {
   if (!request && !scope) {
     return res.status(400).json({
       error: 'invalid_request',
-      error_description: 'Missing request or scope parameter'
+      error_description: 'Missing request or scope parameter',
     });
   }
 
   // Determine if this is a high-risk request requiring PAR
   const highRiskScopes = ['credential:issue', 'credential:batch', 'credential:deferred'];
-  const scopes = scope?.split(' ') || [];
-  const requiresPAR = scopes.some(s => highRiskScopes.includes(s));
+  const scopes: string[] = typeof scope === 'string' ? scope.split(' ') : [];
+  const requiresPAR = scopes.some((s: string) => highRiskScopes.includes(s));
 
   if (requiresPAR && !request) {
     return res.status(400).json({
       error: 'invalid_request',
-      error_description: 'PAR required for high-risk scopes'
+      error_description: 'PAR required for high-risk scopes',
     });
   }
 
@@ -352,10 +392,16 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
 
     const cnfJkt = (req as any).cnfJkt;
     const clientCert = (req as any).clientCert;
-    const clientCertFingerprint = clientCert ? createHash('sha256').update(clientCert).digest('hex') : undefined;
+    const clientCertFingerprint = clientCert
+      ? createHash('sha256').update(clientCert).digest('hex')
+      : undefined;
 
     try {
-      const result = await validateAndRotateRefreshToken(refresh_token, cnfJkt, clientCertFingerprint);
+      const result = await validateAndRotateRefreshToken(
+        refresh_token,
+        cnfJkt,
+        clientCertFingerprint,
+      );
 
       return res.json({
         access_token: result.accessToken,
@@ -386,7 +432,7 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
     if (!pre_authorized_code) {
       return res.status(400).json({
         error: 'invalid_request',
-        error_description: 'Missing pre_authorized_code'
+        error_description: 'Missing pre_authorized_code',
       });
     }
 
@@ -395,7 +441,7 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
     if (!preAuthCode) {
       return res.status(400).json({
         error: 'invalid_grant',
-        error_description: 'Invalid or expired pre-authorized code'
+        error_description: 'Invalid or expired pre-authorized code',
       });
     }
 
@@ -403,17 +449,21 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
       preAuthorizedCodes.delete(pre_authorized_code);
       return res.status(400).json({
         error: 'invalid_grant',
-        error_description: 'Pre-authorized code expired'
+        error_description: 'Pre-authorized code expired',
       });
     }
 
     // B107A-OIDC-003: PAR required for high-risk scopes (credential:issue:*)
-    const highRiskScopes = preAuthCode.scope.filter((s: string) => s.startsWith('credential:issue:'));
+    const highRiskScopes = preAuthCode.scope.filter((s: string) =>
+      s.startsWith('credential:issue:'),
+    );
     if (highRiskScopes.length > 0) {
       if (!request_uri) {
         return res.status(400).json({
           error: 'invalid_request',
-          error_description: 'PAR (request_uri) required for high-risk scopes. Scopes requiring PAR: ' + highRiskScopes.join(', ')
+          error_description:
+            'PAR (request_uri) required for high-risk scopes. Scopes requiring PAR: ' +
+            highRiskScopes.join(', '),
         });
       }
 
@@ -422,7 +472,7 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
       if (!parRequest) {
         return res.status(400).json({
           error: 'invalid_request_uri',
-          error_description: 'Invalid or expired request_uri'
+          error_description: 'Invalid or expired request_uri',
         });
       }
 
@@ -430,7 +480,7 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
         parRequests.delete(request_uri);
         return res.status(400).json({
           error: 'expired_request_uri',
-          error_description: 'Request URI expired'
+          error_description: 'Request URI expired',
         });
       }
 
@@ -440,7 +490,7 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
       if (!scopeMatch) {
         return res.status(400).json({
           error: 'invalid_scope',
-          error_description: 'PAR request scopes do not match pre-authorized code scopes'
+          error_description: 'PAR request scopes do not match pre-authorized code scopes',
         });
       }
 
@@ -452,7 +502,7 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
     if (preAuthCode.clientId && preAuthCode.clientId !== client_id) {
       return res.status(400).json({
         error: 'invalid_client',
-        error_description: 'Client ID mismatch'
+        error_description: 'Client ID mismatch',
       });
     }
 
@@ -502,7 +552,7 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
     if (!parRequest) {
       return res.status(400).json({
         error: 'invalid_request_uri',
-        error_description: 'Invalid or expired request_uri'
+        error_description: 'Invalid or expired request_uri',
       });
     }
 
@@ -510,7 +560,7 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
       parRequests.delete(request_uri);
       return res.status(400).json({
         error: 'expired_request_uri',
-        error_description: 'Request URI expired'
+        error_description: 'Request URI expired',
       });
     }
 
@@ -518,7 +568,7 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
     if (parRequest.clientId !== client_id) {
       return res.status(400).json({
         error: 'invalid_client',
-        error_description: 'Client ID mismatch'
+        error_description: 'Client ID mismatch',
       });
     }
 
@@ -564,7 +614,7 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
 
   // Original token endpoint logic (for other grant types)
   // B99A-TBIND-001: Enforce DPoP for wallets, mTLS optional for confidential
-  const clientType = req.headers['x-client-type'] as string || 'wallet';
+  const clientType = (req.headers['x-client-type'] as string) || 'wallet';
   const cnfJkt = (req as any).cnfJkt;
   const dpopValidated = (req as any).dpopValidated;
   const clientCert = (req as any).clientCert;
@@ -575,7 +625,7 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
     if (!dpopValidated || !cnfJkt) {
       return res.status(401).json({
         error: 'dpop_required',
-        error_description: 'DPoP proof required for wallet clients with cnf.jkt'
+        error_description: 'DPoP proof required for wallet clients with cnf.jkt',
       });
     }
 
@@ -617,13 +667,15 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
     if (requireMtls && !mtlsValidated) {
       return res.status(401).json({
         error: 'mtls_required',
-        error_description: 'Client certificate required for confidential clients (enterprise mode)'
+        error_description: 'Client certificate required for confidential clients (enterprise mode)',
       });
     }
 
     // B100B-TBIND-039: Issue tokens with proper binding
     try {
-      const clientCertFingerprint = clientCert ? createHash('sha256').update(clientCert).digest('hex') : undefined;
+      const clientCertFingerprint = clientCert
+        ? createHash('sha256').update(clientCert).digest('hex')
+        : undefined;
 
       if (mtlsValidated && mtlsAllowed) {
         // Confidential client using mTLS
@@ -700,29 +752,31 @@ app.post('/pre-authorized-code', async (req: Request, res: Response) => {
   if (!scope) {
     return res.status(400).json({
       error: 'invalid_request',
-      error_description: 'Missing scope parameter'
+      error_description: 'Missing scope parameter',
     });
   }
 
-  const scopes = Array.isArray(scope) ? scope : scope.split(' ');
+  const scopes: string[] = Array.isArray(scope) ? scope.map(String) : String(scope).split(' ');
 
   // Limit scopes for pre-authorized codes (security best practice)
   // B107A-OIDC-003: Allow credential:issue:* patterns (high-risk scopes)
   const allowedScopes = ['openid', 'credential:issue'];
-  const limitedScopes = scopes.filter(s =>
-    allowedScopes.includes(s) || s.startsWith('credential:issue:')
+  const limitedScopes = scopes.filter(
+    (s: string) => allowedScopes.includes(s) || s.startsWith('credential:issue:'),
   );
 
   if (limitedScopes.length === 0) {
     return res.status(400).json({
       error: 'invalid_scope',
-      error_description: 'No allowed scopes specified'
+      error_description: 'No allowed scopes specified',
     });
   }
 
   // B107A-OIDC-003: Mark high-risk scopes (credential:issue:*) as requiring PAR
   const highRiskScopes = limitedScopes.filter((s: string) => s.startsWith('credential:issue:'));
-  const requiresPAR = highRiskScopes.length > 0 || scopes.some(s => ['credential:batch', 'credential:deferred'].includes(s));
+  const requiresPAR =
+    highRiskScopes.length > 0 ||
+    scopes.some((s: string) => ['credential:batch', 'credential:deferred'].includes(s));
 
   // Generate pre-authorized code
   const code = randomBytes(16).toString('base64url');
@@ -730,7 +784,7 @@ app.post('/pre-authorized-code', async (req: Request, res: Response) => {
   preAuthorizedCodes.set(code, {
     code,
     scope: limitedScopes,
-    expiresAt: Date.now() + (expires_in * 1000),
+    expiresAt: Date.now() + expires_in * 1000,
     clientId: client_id,
     requiresPAR,
   });
@@ -748,7 +802,7 @@ app.post('/pre-authorized-code', async (req: Request, res: Response) => {
  */
 app.post('/credential', dpopMiddleware, mtlsMiddleware, (req: Request, res: Response) => {
   const authHeader = req.headers['authorization'];
-  const clientType = req.headers['x-client-type'] as string || 'wallet';
+  const clientType = (req.headers['x-client-type'] as string) || 'wallet';
 
   // Extract token (supports both Bearer and DPoP token types)
   const token = authHeader?.replace(/^(Bearer|DPoP)\s+/, '');
@@ -765,7 +819,8 @@ app.post('/credential', dpopMiddleware, mtlsMiddleware, (req: Request, res: Resp
   if (!dpopValidated && !mtlsValidated) {
     return res.status(401).json({
       error: 'sender_constraint_required',
-      error_description: 'Credential endpoint requires sender-constrained tokens (DPoP or mTLS). Bearer-only tokens are rejected.'
+      error_description:
+        'Credential endpoint requires sender-constrained tokens (DPoP or mTLS). Bearer-only tokens are rejected.',
     });
   }
 
@@ -787,4 +842,3 @@ const PORT = process.env.PORT || 4003;
 app.listen(PORT);
 
 export default app;
-
