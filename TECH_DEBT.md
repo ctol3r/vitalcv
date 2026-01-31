@@ -36,6 +36,14 @@ Canonical list of known technical debt for the YC MVP. Keep this in sync with
 - Operator runbook
 - Architecture decision records (ADRs)
 
+### Recently Added (2026-01-30)
+
+✅ **Canonical Documentation:**
+- `docs/VITALCV_OVERVIEW.md` - System overview, problem space, current state
+- `docs/CRED0_DOCTRINE.md` - Trust reset philosophy, issued vs inferred trust
+- `docs/MVP_SCOPE.md` - YC demo boundaries, what's in/out
+- `docs/TRUST_LOOP.md` - Issue→Hold→Present→Accept cycle, roles, proofs
+
 ## Source References
 
 - `RELEASE_NOTES.md` (2026-01-25)
@@ -57,3 +65,22 @@ Canonical list of known technical debt for the YC MVP. Keep this in sync with
 - **World ID**: Removed from MVP scope to strictly enforce "NPI -> Recognition" flow first.
 - **Blockchain**: `blockchain/` folder exists but substrate node integration is not fully wired into `apps/api`.
 - **Authentication**: Usage of `AuthGuard` is minimal; production needs robust session management (NextAuth or Clerk).
+
+## Recently Fixed (2026-01-30)
+
+✅ **EMP-1/EMP-3: PSV Requirement Enforcement**
+- Added `psvReportId` field to `EmployerAcceptance` interface (employmentContracts.ts:160)
+- Added validation in `assertEmployerAcceptanceValid()` (employmentGuards.ts:315-322)
+- Prevents acceptance without PSV verification (NCQA CR1 + CMS CoP compliance)
+- All tests passing (104 tests, 100% coverage)
+
+✅ **UX-1: Anxiety-Inducing Language Softened**
+- Onboarding error messages changed from punitive to helpful
+- "Verification Blocked" → "Verification needed"
+- "Cannot proceed" → "We will help you get started"
+- apps/web/app/onboarding/page.tsx:66,89,140,163
+
+✅ **Web Build Compliance**
+- Fixed string escaping syntax error in onboarding page
+- Added Suspense boundaries for useSearchParams() in verify and home pages
+- Next.js 15 production build now passes successfully
