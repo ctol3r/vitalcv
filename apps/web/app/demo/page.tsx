@@ -43,7 +43,10 @@ export default function DemoPage() {
                   decision in one screen.
                 </p>
               </div>
-              <ArrowUpRight className="h-6 w-6 text-muted-foreground transition group-hover:text-foreground" />
+              <ArrowUpRight
+                className="h-6 w-6 text-muted-foreground transition group-hover:text-foreground"
+                aria-hidden="true"
+              />
             </div>
           </Link>
         </div>
