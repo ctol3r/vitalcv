@@ -68,8 +68,10 @@ export default function PsvDemoClient() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [report, setReport] = useState<PSVReport | null>(null)
+  const labelId = 'psv-npi-label'
   const descriptionId = 'psv-npi-description'
   const errorId = 'psv-npi-error'
+  const describedBy = [descriptionId, error ? errorId : null].filter(Boolean).join(' ')
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -111,7 +113,9 @@ export default function PsvDemoClient() {
         <CardContent className="space-y-5">
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
-              <Label htmlFor="npi">NPI Number</Label>
+              <Label id={labelId} htmlFor="npi">
+                NPI Number
+              </Label>
               <Input
                 id="npi"
                 name="npi"
@@ -122,8 +126,9 @@ export default function PsvDemoClient() {
                 value={npi}
                 onChange={(event) => setNpi(event.target.value.replace(/\D/g, '').slice(0, 10))}
                 className="mt-2 text-lg font-mono tracking-widest"
-                aria-describedby={`${descriptionId}${error ? ` ${errorId}` : ''}`}
-                aria-invalid={error ? 'true' : undefined}
+                aria-labelledby={labelId}
+                aria-describedby={describedBy}
+                aria-invalid={error ? true : undefined}
                 disabled={loading}
               />
             </div>
