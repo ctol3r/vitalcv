@@ -41,9 +41,13 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [verified, setVerified] = useState<NPIVerificationResult | null>(null);
+  const labelId = 'npi-label';
   const descriptionId = 'npi-description';
   const helperTextId = 'npi-helper';
   const errorId = 'npi-error';
+  const describedBy = [descriptionId, helperTextId, error ? errorId : null]
+    .filter(Boolean)
+    .join(' ');
 
   /**
    * Single action: Verify NPI via NPPES and issue recognition.
@@ -123,7 +127,9 @@ export default function OnboardingPage() {
             <CardContent>
               <form className="space-y-6" onSubmit={handleVerifyAndRecognize}>
                 <div>
-                  <Label htmlFor="npi">NPI Number</Label>
+                  <Label id={labelId} htmlFor="npi">
+                    NPI Number
+                  </Label>
                   <Input
                     id="npi"
                     name="npi"
@@ -135,10 +141,9 @@ export default function OnboardingPage() {
                     onChange={(e) => setNpi(e.target.value.replace(/\D/g, ''))}
                     maxLength={10}
                     className="mt-1 text-lg font-mono tracking-wider"
-                    aria-describedby={`${descriptionId} ${helperTextId}${
-                      error ? ` ${errorId}` : ''
-                    }`}
-                    aria-invalid={error ? 'true' : undefined}
+                    aria-labelledby={labelId}
+                    aria-describedby={describedBy}
+                    aria-invalid={error ? true : undefined}
                     disabled={loading}
                   />
                 </div>
