@@ -6,22 +6,9 @@
     "tsBuildInfoFile": "../../build-info/apps-status-api.tsbuildinfo",
     "composite": true
   },
-  "include": [
-    "src/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/__tests__/**/*",
-    "**/*.spec.ts"
-  ],
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "**/__tests__/**/*", "**/*.spec.ts"],
   "references": [
-    {
-      "path": "../../services"
-    },
-    {
-      "path": "../../packages/domain-identity"
-    },
     {
       "path": "../../packages/domain-common"
     }

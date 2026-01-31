@@ -54,3 +54,7 @@ jobs:
       - name: Test
         if: env.SKIP_TESTS != 'true'
         run: pnpm test
+
+      - name: PSV tests
+        if: env.SKIP_TESTS != 'true'
+        run: pnpm psv:test

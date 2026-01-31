@@ -70,7 +70,7 @@ export default function VerifyPage() {
       try {
         jwtData = JSON.parse(decodeURIComponent(token));
       } catch {
-        throw new Error('Invalid recognition token. Ask the clinician to reshare.');
+        throw new Error('Invalid recognition token.');
       }
 
       if (!jwtData?.canonicalPath) {
@@ -174,13 +174,7 @@ export default function VerifyPage() {
             {error && (
               <Alert variant="destructive">
                 <XCircle className="h-4 w-4" />
-                <AlertDescription>
-                  {error}
-                  <p className="mt-2 text-xs">
-                    If you received this link from a clinician, ask them to reshare their VitalCV
-                    Recognition.
-                  </p>
-                </AlertDescription>
+                <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
@@ -242,9 +236,7 @@ export default function VerifyPage() {
                   <AlertTriangle className="h-8 w-8 text-yellow-600" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900">Unknown Status</h3>
-                <p className="text-gray-600 mt-2">
-                  Could not determine credential status. Ask the clinician to reshare.
-                </p>
+                <p className="text-gray-600 mt-2">Could not determine credential status.</p>
               </div>
             )}
           </CardContent>

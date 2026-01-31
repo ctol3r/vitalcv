@@ -1,9 +1,9 @@
-import express, { Request, Response } from 'express';
 import cors from 'cors';
-import { authRouter } from './auth/routes';
+import express, { Request, Response, type Express } from 'express';
 import { policyRouter } from './auth/policy-routes';
+import { authRouter } from './auth/routes';
 
-const app = express();
+const app: Express = express();
 app.use(cors());
 app.use(express.json());
 
@@ -23,4 +23,3 @@ const PORT = process.env.PORT || 4003;
 app.listen(PORT);
 
 export default app;
-
