@@ -57,6 +57,7 @@ const createAcceptance = (
     roleTitle: 'Registered Nurse',
     schedule: 'full-time',
   },
+  psvReportId: 'psv-report-001',
   ...overrides,
 });
 
@@ -511,6 +512,28 @@ describe('assertEmployerAcceptanceValid', () => {
       () => assertEmployerAcceptanceValid(acceptance, recognition),
       'INVALID_SIGNATURE',
       'hashAnchor'
+    );
+  });
+
+  it('rejects missing PSV report ID (NCQA/CMS compliance)', () => {
+    const { recognition } = createPath();
+    const acceptance = createAcceptance(recognition, { psvReportId: '' });
+
+    expectViolation(
+      () => assertEmployerAcceptanceValid(acceptance, recognition),
+      'MISSING_REFERENCE',
+      'psvReportId'
+    );
+  });
+
+  it('rejects PSV report ID with wrong type', () => {
+    const { recognition } = createPath();
+    const acceptance = createAcceptance(recognition, { psvReportId: undefined as unknown as string });
+
+    expectViolation(
+      () => assertEmployerAcceptanceValid(acceptance, recognition),
+      'MISSING_REFERENCE',
+      'psvReportId'
     );
   });
 });

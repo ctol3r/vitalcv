@@ -5,7 +5,8 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { defaultAalPolicies, upsertAalPolicy } from './auth/policy-config';
+import { defaultAalPolicies } from './policy-config';
+import { upsertAalPolicy } from './aal-policy';
 
 const prisma = new PrismaClient();
 
@@ -16,7 +17,7 @@ async function seedPolicies() {
     // Seed AAL2 policy
     await upsertAalPolicy(
       defaultAalPolicies.aal2.name,
-      defaultAalPolicies.aal2,
+      defaultAalPolicies.aal2 as Parameters<typeof upsertAalPolicy>[1],
       defaultAalPolicies.aal2.description
     );
     console.log(`✓ Created policy: ${defaultAalPolicies.aal2.name}`);
@@ -24,7 +25,7 @@ async function seedPolicies() {
     // Seed AAL3 policy
     await upsertAalPolicy(
       defaultAalPolicies.aal3.name,
-      defaultAalPolicies.aal3,
+      defaultAalPolicies.aal3 as Parameters<typeof upsertAalPolicy>[1],
       defaultAalPolicies.aal3.description
     );
     console.log(`✓ Created policy: ${defaultAalPolicies.aal3.name}`);
@@ -32,7 +33,7 @@ async function seedPolicies() {
     // Seed admin default policy
     await upsertAalPolicy(
       defaultAalPolicies.adminDefault.name,
-      defaultAalPolicies.adminDefault,
+      defaultAalPolicies.adminDefault as Parameters<typeof upsertAalPolicy>[1],
       defaultAalPolicies.adminDefault.description
     );
     console.log(`✓ Created policy: ${defaultAalPolicies.adminDefault.name}`);
@@ -40,7 +41,7 @@ async function seedPolicies() {
     // Seed verifier default policy
     await upsertAalPolicy(
       defaultAalPolicies.verifierDefault.name,
-      defaultAalPolicies.verifierDefault,
+      defaultAalPolicies.verifierDefault as Parameters<typeof upsertAalPolicy>[1],
       defaultAalPolicies.verifierDefault.description
     );
     console.log(`✓ Created policy: ${defaultAalPolicies.verifierDefault.name}`);
@@ -59,4 +60,3 @@ if (require.main === module) {
 }
 
 export { seedPolicies };
-

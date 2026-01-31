@@ -16,10 +16,6 @@ import {
   type GenerateAuthenticationOptionsOpts,
   type VerifyAuthenticationResponseOpts,
 } from '@simplewebauthn/server';
-import type {
-  AuthenticatorTransportFuture,
-  PublicKeyCredentialDescriptorFuture,
-} from '@simplewebauthn/server';
 import { challengeStore } from './challenge-store';
 
 const prisma = new PrismaClient();
@@ -39,6 +35,18 @@ export interface AuthenticationChallenge {
   options: any;
   challengeId: string;
 }
+
+type WebAuthnAuthenticatorRecord = {
+  id: string;
+  userId: string;
+  credentialId: string;
+  publicKey: string;
+  counter: number;
+  deviceBound: boolean;
+  transports: string[] | null;
+  revokedAt: Date | null;
+  name: string | null;
+};
 
 /**
  * Get Relying Party (RP) configuration from environment
@@ -61,24 +69,23 @@ export async function generateRegistrationOptionsForUser(
   const { rpId, rpName } = getRPConfig();
 
   // Get existing authenticators for this user
-  const existingAuthenticators = await prisma.webAuthnAuthenticator.findMany({
+  const existingAuthenticators = (await prisma.webAuthnAuthenticator.findMany({
     where: {
       userId: user.id,
       revokedAt: null,
     },
-  });
+  })) as WebAuthnAuthenticatorRecord[];
 
-  const excludeCredentials: PublicKeyCredentialDescriptorFuture[] =
-    existingAuthenticators.map((auth) => ({
-      id: Buffer.from(auth.credentialId, 'base64url'),
-      type: 'public-key',
-      transports: auth.transports as AuthenticatorTransportFuture[],
-    }));
+  const excludeCredentials = existingAuthenticators.map((auth) => ({
+    id: Buffer.from(auth.credentialId, 'base64url'),
+    type: 'public-key',
+    transports: auth.transports || [],
+  })) as GenerateRegistrationOptionsOpts['excludeCredentials'];
 
   const opts: GenerateRegistrationOptionsOpts = {
     rpName,
     rpID: rpId,
-    userID: Buffer.from(user.id),
+    userID: user.id,
     userName: user.email,
     userDisplayName: user.name,
     timeout: 60000,
@@ -188,23 +195,22 @@ export async function generateAuthenticationOptionsForUser(
   const { rpId } = getRPConfig();
 
   // Get user's active authenticators
-  const authenticators = await prisma.webAuthnAuthenticator.findMany({
+  const authenticators = (await prisma.webAuthnAuthenticator.findMany({
     where: {
       userId: user.id,
       revokedAt: null,
     },
-  });
+  })) as WebAuthnAuthenticatorRecord[];
 
   if (authenticators.length === 0) {
     throw new Error('No authenticators found for user');
   }
 
-  const allowCredentials: PublicKeyCredentialDescriptorFuture[] =
-    authenticators.map((auth) => ({
-      id: Buffer.from(auth.credentialId, 'base64url'),
-      type: 'public-key',
-      transports: auth.transports as AuthenticatorTransportFuture[],
-    }));
+  const allowCredentials = authenticators.map((auth) => ({
+    id: Buffer.from(auth.credentialId, 'base64url'),
+    type: 'public-key',
+    transports: auth.transports || [],
+  })) as GenerateAuthenticationOptionsOpts['allowCredentials'];
 
   const opts: GenerateAuthenticationOptionsOpts = {
     rpID: rpId,
@@ -242,9 +248,9 @@ export async function verifyAuthenticationResponseForUser(
   const credentialId = Buffer.from(response.id, 'base64url').toString(
     'base64url'
   );
-  const authenticator = await prisma.webAuthnAuthenticator.findUnique({
+  const authenticator = (await prisma.webAuthnAuthenticator.findUnique({
     where: { credentialId },
-  });
+  })) as WebAuthnAuthenticatorRecord | null;
 
   if (!authenticator || authenticator.userId !== user.id) {
     return { success: false, error: 'Authenticator not found' };
@@ -269,16 +275,19 @@ export async function verifyAuthenticationResponseForUser(
     return { success: false, error: 'Invalid challenge type' };
   }
 
+  const authenticatorDevice = {
+    credentialID: Buffer.from(authenticator.credentialId, 'base64url'),
+    credentialPublicKey: Buffer.from(authenticator.publicKey, 'base64url'),
+    counter: authenticator.counter,
+    transports: authenticator.transports || [],
+  } as VerifyAuthenticationResponseOpts['authenticator'];
+
   const opts: VerifyAuthenticationResponseOpts = {
     response,
     expectedChallenge: challengeData.challenge,
     expectedOrigin: origin,
     expectedRPID: rpId,
-    credential: {
-      id: Buffer.from(authenticator.credentialId, 'base64url'),
-      publicKey: Buffer.from(authenticator.publicKey, 'base64url'),
-      counter: authenticator.counter,
-    },
+    authenticator: authenticatorDevice,
     requireUserVerification: true,
   };
 
@@ -306,4 +315,3 @@ export async function verifyAuthenticationResponseForUser(
     };
   }
 }
-

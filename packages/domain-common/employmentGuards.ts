@@ -311,6 +311,15 @@ export function assertEmployerAcceptanceValid(
       { hashAnchor: acceptance.hashAnchor }
     );
   }
+
+  // INVARIANT: Acceptance requires PSV verification (NCQA CR1 + CMS CoP compliance)
+  if (!acceptance.psvReportId || typeof acceptance.psvReportId !== 'string') {
+    throw new CanonicalPathViolation(
+      'EmployerAcceptance.psvReportId required for NCQA/CMS compliance',
+      'MISSING_REFERENCE',
+      { psvReportId: acceptance.psvReportId }
+    );
+  }
 }
 
 /**
