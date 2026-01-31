@@ -30,7 +30,7 @@ export default function EmployerPage() {
             <Button asChild size="lg" className="rounded-full px-6">
               <Link href="/demo/psv">
                 Run PSV demo
-                <ArrowUpRight className="ml-2 h-4 w-4" />
+                <ArrowUpRight className="ml-2 h-4 w-4" aria-hidden="true" />
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="rounded-full px-6">
