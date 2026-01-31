@@ -14,8 +14,10 @@ export default function CredentialDetail() {
   const [shareStatusOnly, setShareStatusOnly] = useState(false);
   const [shareOutput, setShareOutput] = useState<string | null>(null);
   const [npi, setNpi] = useState('');
+  const npiStatusId = 'npi-status';
   
   const npiValid = npi ? isValidNPI(npi) : null;
+  const npiInvalidProps = npiValid === false ? { 'aria-invalid': 'true' as const } : {};
 
   function generateStatusProof(vcId: string | string[] | undefined) {
     // Placeholder: real implementation would produce a cryptographic proof.
@@ -40,13 +42,21 @@ export default function CredentialDetail() {
       <div style={{ marginBottom: '20px' }}>
         <h2>NPI Validation</h2>
         <input
+          id="npi-input"
+          name="npi"
           type="text"
           value={npi}
           onChange={(e) => setNpi(e.target.value)}
           placeholder="Enter NPI"
+          inputMode="numeric"
+          aria-label="NPI"
+          aria-describedby={npiValid !== null ? npiStatusId : undefined}
+          {...npiInvalidProps}
         />
         {npiValid !== null && (
-          <p>{npiValid ? 'NPI is valid' : 'NPI is invalid'}</p>
+          <p id={npiStatusId} role="status" aria-live="polite">
+            {npiValid ? 'NPI is valid' : 'NPI is invalid'}
+          </p>
         )}
       </div>
 
