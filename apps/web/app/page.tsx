@@ -33,7 +33,7 @@ export default function HomePage() {
                 <Button asChild size="lg" className="rounded-full px-6">
                   <Link href="/demo/psv">
                     Run PSV demo
-                    <ArrowUpRight className="ml-2 h-4 w-4" />
+                    <ArrowUpRight className="ml-2 h-4 w-4" aria-hidden="true" />
                   </Link>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="rounded-full px-6">
@@ -144,7 +144,7 @@ export default function HomePage() {
                 <p className="mt-2 text-sm text-muted-foreground">{description}</p>
                 <span className="mt-4 inline-flex items-center text-xs uppercase tracking-[0.3em] text-muted-foreground group-hover:text-foreground">
                   Explore
-                  <ArrowUpRight className="ml-2 h-3 w-3" />
+                  <ArrowUpRight className="ml-2 h-3 w-3" aria-hidden="true" />
                 </span>
               </Link>
             ))}
