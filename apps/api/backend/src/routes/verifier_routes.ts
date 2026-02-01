@@ -1,9 +1,9 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { getCredentialStatus } from '../controllers/verifier_controller';
 
-export const router = Router();
+export const router: Router = Router();
 
-router.get('/verifier/credential/:credentialId/status', async (req, res) => {
+router.get('/verifier/credential/:credentialId/status', async (req: Request, res: Response) => {
   try {
     const status = await getCredentialStatus(req.params.credentialId);
     res.json({ credentialId: req.params.credentialId, status });
