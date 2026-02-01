@@ -29,6 +29,11 @@ Canonical list of known technical debt for the YC MVP. Keep this in sync with
 - `@vitalcv/plugin-sdk` fails typecheck (rootDir/module resolution errors).
 - `@chai-vc/logging-core` fails typecheck (Error type conversion).
 
+## Dependencies
+
+- Admin API relies on `@prisma/client` but lacked the matching `prisma` CLI for local builds.
+  Added `prisma@5.7.1` to `apps/admin-api/package.json` to keep schema generation aligned.
+
 ## Documentation Gaps
 
 - API reference documentation
