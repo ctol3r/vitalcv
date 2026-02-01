@@ -47,27 +47,25 @@ Medical staff committees review "credential packets" containing:
 
 ## Issued Trust: The Infrastructure Alternative
 
-VitalCV replaces inferred trust with **issued trust**:
+VitalCV is designed to replace inferred trust with **issued trust**:
 
-> Authoritative sources issue cryptographic proofs. Employers accept proofs instead of collecting documents.
+> Authoritative sources issue proofs. Employers accept proofs instead of collecting documents.
 
-### Issued Trust Properties
+### Issued Trust Properties (Target State)
 
 **Cryptographically Verifiable:**
-- Every claim is signed by the authoritative source
-- Signatures are mathematically provable
+- Claims are signed by the authoritative source
 - Tampering is detectable
 - Forgery is computationally infeasible
 
 **Freshness-Guaranteed:**
-- Every proof includes timestamp and expiry
-- Revocation is cryptographically provable
+- Proofs include timestamp and expiry
+- Revocation is provable
 - Stale proofs are rejected at protocol level
 
 **Holder-Bound:**
 - Proofs are bound to practitioner's DID
-- Cannot be transferred or stolen
-- Presentation requires cryptographic proof of control
+- Presentation requires proof of control
 
 **Non-Repudiable:**
 - Authoritative source cannot deny issuance
@@ -118,12 +116,12 @@ Infrastructure is invisible until you need it:
 
 | Dimension | Inferred Trust (Current) | Issued Trust (VitalCV) |
 |-----------|-------------------------|------------------------|
-| **Verification** | Manual review of documents | Cryptographic signature verification |
-| **Freshness** | Unknown (documents could be outdated) | Guaranteed (timestamp + expiry in proof) |
-| **Revocation** | Manual notification (if at all) | Instant cryptographic revocation |
-| **Fraud Risk** | High (forgery is cheap) | Negligible (requires breaking cryptography) |
-| **Re-Verification** | Required at every hire | Never (proof accepted everywhere) |
-| **Audit Trail** | Paper trail, manual review | Immutable cryptographic record |
+| **Verification** | Manual review of documents | Signature verification (target state) |
+| **Freshness** | Unknown (documents could be outdated) | Timestamp + expiry (target state) |
+| **Revocation** | Manual notification (if at all) | Revocation registry (target state) |
+| **Fraud Risk** | High (forgery is cheap) | Reduced via cryptographic proofs |
+| **Re-Verification** | Required at every hire | Intended to be eliminated |
+| **Audit Trail** | Paper trail, manual review | Immutable cryptographic record (target state) |
 | **Trust Model** | "We hope this is real" | "Math proves this is real" |
 | **Time to Verify** | Days to weeks | Seconds |
 | **Employer Liability** | Negligent credentialing risk | Cryptographic proof defense |
@@ -153,6 +151,12 @@ Infrastructure is invisible until you need it:
 **Audit Defense:**
 - **Inferred Trust:** "We reviewed documents and believed them"
 - **Issued Trust:** "We verified cryptographic signatures from authoritative sources"
+
+## MVP Reality Check
+
+- Current MVP enforces canonical path rules and PSV policy evaluation.
+- Primary source integrations and signature issuance are mocked or deferred.
+- Issued trust is the target state; MVP proves the policy enforcement layer.
 
 ## The Billion-Dollar Question
 
