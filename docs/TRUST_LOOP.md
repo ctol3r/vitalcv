@@ -1,5 +1,8 @@
 # Trust Loop: Issue → Hold → Present → Accept
 
+**MVP STATUS NOTE:**
+This document describes the complete trust loop architecture. Current MVP implements **Phase 1 (Issue)** and **Phase 4 (Accept)** with type-safe enforcement. Phases 2-3 (Hold/Present with wallet integration) are designed but not yet implemented. See [MVP_SCOPE.md](./MVP_SCOPE.md) for current boundaries.
+
 ## The Trust Cycle
 
 VitalCV operates on a four-phase trust cycle:
@@ -71,6 +74,10 @@ const recognition: RecognitionEvent = {
 - Proof cryptographically signed by VitalCV
 - Cannot be forged (requires breaking Ed25519)
 
+**MVP IMPLEMENTATION STATUS:**
+✅ **Implemented:** NPI verification flow (`apps/web/app/onboarding/page.tsx`), RecognitionEvent types (`packages/domain-common/employmentContracts.ts`)
+❌ **Not Yet Implemented:** Cryptographic signing (proof field is typed but not generated), DID binding, hash anchoring
+
 ## Phase 2: HOLD
 
 **Actor:** Practitioner (Clinician)
@@ -109,6 +116,10 @@ await wallet.store({
 - Credential cannot be transferred (bound to DID)
 - Holder can present on-demand
 - No intermediary required (peer-to-peer)
+
+**MVP IMPLEMENTATION STATUS:**
+❌ **Not Yet Implemented:** Digital wallet integration, credential storage, DID infrastructure, private key management
+📋 **Design Complete:** W3C Verifiable Credential data model, holder binding architecture
 
 ## Phase 3: PRESENT
 
@@ -155,6 +166,10 @@ const presentation = await wallet.createPresentation({
 - Presentation is fresh (challenge-response prevents replay)
 - Credential has not been revoked
 - Data matches original issuance
+
+**MVP IMPLEMENTATION STATUS:**
+❌ **Not Yet Implemented:** Presentation protocol, challenge-response flow, verifier endpoint
+📋 **Design Complete:** OID4VP presentation specification, verifiable presentation data model
 
 ## Phase 4: ACCEPT
 
@@ -233,6 +248,11 @@ await startEmployment({
 - Canonical path followed (no bypass possible)
 - Acceptance is immutable (hash-anchored)
 - Employment start is defensible (audit trail exists)
+
+**MVP IMPLEMENTATION STATUS:**
+✅ **Implemented:** PSV policy evaluation (`packages/domain-common/psvPolicy.ts`), EmployerAcceptance types (`employmentContracts.ts:90-161`), PSV requirement enforcement (`employmentGuards.ts:315-322`), Canonical path validation (`employmentGuards.ts`)
+❌ **Not Yet Implemented:** Cryptographic signature verification, actual hash anchoring, immutable storage backend
+⚠️ **Partially Implemented:** Type-level canonical path enforcement works, runtime validation incomplete
 
 ## Roles and Responsibilities
 
