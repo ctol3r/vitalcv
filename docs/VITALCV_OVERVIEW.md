@@ -2,10 +2,9 @@
 
 ## What VitalCV Is
 
-VitalCV is a trust infrastructure system that enables healthcare employers to accept verified professional credentials without re-verification.
+VitalCV is a trust infrastructure system that reduces credentialing friction by enforcing a single canonical path for employment verification.
 
-It replaces credentialing friction with a single irreversible action:
-
+**Canonical action (MVP intent):**
 > Clinician presents verified authority → Employer accepts → Employment proceeds
 
 ## What Problem It Solves
@@ -22,8 +21,8 @@ Healthcare credentialing creates workflow paralysis:
 **Root Cause:**
 Employers rely on **inferred trust** (collecting documents and hoping they're real) instead of **issued trust** (accepting cryptographic proofs from authoritative sources).
 
-**VitalCV Solution:**
-Replace document collection with verification acceptance. Employers accept proofs issued by authoritative sources (NPPES, state medical boards, NPDB) instead of re-verifying documents.
+**VitalCV Solution (MVP):**
+Replace document collection with verification acceptance enforced by domain contracts and policy evaluation. Live primary-source integrations are stubbed in the demo.
 
 ## Who It Is For
 
@@ -38,18 +37,19 @@ Replace document collection with verification acceptance. Employers accept proof
 
 ## What Exists Now
 
-### Core Infrastructure (Production-Ready)
+### Core Infrastructure (MVP)
 
 **Domain Primitives:**
 - `employmentContracts.ts` - Canonical path types (Recognition → Acceptance → Start)
 - `employmentGuards.ts` - Compile-time enforcement of canonical path
 - `psvContracts.ts` - Primary Source Verification evidence types
 - `psvPolicy.ts` - Policy evaluation engine for PSV decisions
+- `facilityPrivilegeContracts.ts` / `facilityPrivilegeGuards.ts` - Facility-issued privilege issuance rules
 
-**Services:**
-- NPI synchronization with NPPES registry
-- PSV policy evaluation
-- Employment verification path enforcement
+**Demo Services:**
+- NPI lookup mock endpoint (`apps/api/backend/src/app.ts`) used by onboarding
+- PSV demo evaluator with deterministic stub sources (`apps/web/lib/psv-integrations.ts`)
+- Canonical path enforcement endpoints for demo verification flows
 
 **Compliance Foundation:**
 - NCQA CR1-CR5 requirements documented
@@ -66,9 +66,9 @@ Replace document collection with verification acceptance. Employers accept proof
 
 **Not Yet Implemented:**
 - Live PSV source integrations (NPDB, state boards)
-- Digital credential issuance
+- Cryptographic credential issuance + DID binding
 - Blockchain anchoring
-- Multi-facility support
+- Multi-facility runtime workflows (contracts exist, services do not)
 
 See [MVP_SCOPE.md](./MVP_SCOPE.md) for detailed boundaries.
 
@@ -114,10 +114,10 @@ VitalCV Trust Infrastructure
 
 ## Current Status
 
-- **Codebase**: Monorepo with domain primitives, test coverage 100%
+- **Codebase**: Monorepo with domain primitives and PSV tests (coverage gated in domain-common)
 - **Deployment**: Development environment only
 - **Compliance**: Foundation in place, full audit pending
-- **YC Demo**: Scoped to recognition + acceptance flow
+- **YC Demo**: Scoped to mock NPI lookup, PSV policy evaluation, and canonical-path enforcement
 
 ## Next Steps
 
