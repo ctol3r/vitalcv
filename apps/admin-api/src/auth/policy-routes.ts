@@ -18,6 +18,9 @@ import { AuthenticatedRequest } from './middleware/types';
 const router: Router = Router();
 const prisma = new PrismaClient();
 
+const resolveErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback;
+
 /**
  * GET /api/auth/policy
  * List all AAL policies
@@ -30,9 +33,9 @@ router.get('/', async (req: Request, res: Response) => {
     });
 
     res.json({ policies });
-  } catch (error: any) {
+  } catch (error) {
     console.error('List policies error:', error);
-    res.status(500).json({ error: error.message || 'Failed to list policies' });
+    res.status(500).json({ error: resolveErrorMessage(error, 'Failed to list policies') });
   }
 });
 
@@ -52,9 +55,9 @@ router.get('/:name', async (req: Request, res: Response) => {
     }
 
     res.json({ policy });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Get policy error:', error);
-    res.status(500).json({ error: error.message || 'Failed to get policy' });
+    res.status(500).json({ error: resolveErrorMessage(error, 'Failed to get policy') });
   }
 });
 
@@ -96,9 +99,9 @@ router.post('/', requireAal(3), async (req: Request, res: Response) => {
     );
 
     res.json({ success: true, policyId });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Create policy error:', error);
-    res.status(500).json({ error: error.message || 'Failed to create policy' });
+    res.status(500).json({ error: resolveErrorMessage(error, 'Failed to create policy') });
   }
 });
 
@@ -122,9 +125,9 @@ router.get('/user/:userId', async (req: Request, res: Response) => {
     const status = await checkUserAalCompliance(userId, user.roles || []);
 
     res.json({ policy, status });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Get user policy error:', error);
-    res.status(500).json({ error: error.message || 'Failed to get user policy' });
+    res.status(500).json({ error: resolveErrorMessage(error, 'Failed to get user policy') });
   }
 });
 
@@ -167,9 +170,9 @@ router.post('/user/:userId/assign', requireAal(3), async (req: Request, res: Res
     );
 
     res.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Assign policy error:', error);
-    res.status(500).json({ error: error.message || 'Failed to assign policy' });
+    res.status(500).json({ error: resolveErrorMessage(error, 'Failed to assign policy') });
   }
 });
 
@@ -184,9 +187,9 @@ router.get('/export/json', async (req: Request, res: Response) => {
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', 'attachment; filename="aal-policies.json"');
     res.send(json);
-  } catch (error: any) {
+  } catch (error) {
     console.error('Export policy error:', error);
-    res.status(500).json({ error: error.message || 'Failed to export policies' });
+    res.status(500).json({ error: resolveErrorMessage(error, 'Failed to export policies') });
   }
 });
 
