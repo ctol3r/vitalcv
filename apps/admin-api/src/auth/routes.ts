@@ -34,6 +34,9 @@ type WebAuthnAuthenticatorRecord = {
   lastUsedAt: Date | null;
 };
 
+const resolveErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback;
+
 /**
  * POST /api/auth/webauthn/register/start
  * Start WebAuthn registration
@@ -64,9 +67,9 @@ router.post('/webauthn/register/start', async (req: Request, res: Response) => {
     );
 
     res.json(challenge);
-  } catch (error: any) {
+  } catch (error) {
     console.error('Registration start error:', error);
-    res.status(500).json({ error: error.message || 'Registration failed' });
+    res.status(500).json({ error: resolveErrorMessage(error, 'Registration failed') });
   }
 });
 
@@ -111,9 +114,9 @@ router.post('/webauthn/register/finish', async (req: Request, res: Response) => 
       success: true,
       authenticatorId: result.authenticatorId,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Registration finish error:', error);
-    res.status(500).json({ error: error.message || 'Registration failed' });
+    res.status(500).json({ error: resolveErrorMessage(error, 'Registration failed') });
   }
 });
 
@@ -146,10 +149,10 @@ router.post(
       });
 
       res.json(challenge);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Authentication start error:', error);
       res.status(500).json({
-        error: error.message || 'Authentication failed',
+        error: resolveErrorMessage(error, 'Authentication failed'),
       });
     }
   }
@@ -243,10 +246,10 @@ router.post(
         factorStrength,
         // TODO: Include session token
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Authentication finish error:', error);
       res.status(500).json({
-        error: error.message || 'Authentication failed',
+        error: resolveErrorMessage(error, 'Authentication failed'),
       });
     }
   }
@@ -282,9 +285,11 @@ router.get('/webauthn/authenticators', async (req: Request, res: Response) => {
         lastUsedAt: auth.lastUsedAt,
       })),
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('List authenticators error:', error);
-    res.status(500).json({ error: error.message || 'Failed to list authenticators' });
+    res
+      .status(500)
+      .json({ error: resolveErrorMessage(error, 'Failed to list authenticators') });
   }
 });
 
@@ -317,9 +322,11 @@ router.delete(
       });
 
       res.json({ success: true });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Revoke authenticator error:', error);
-      res.status(500).json({ error: error.message || 'Failed to revoke authenticator' });
+      res
+        .status(500)
+        .json({ error: resolveErrorMessage(error, 'Failed to revoke authenticator') });
     }
   }
 );
@@ -353,9 +360,11 @@ router.patch(
       });
 
       res.json({ success: true });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Rename authenticator error:', error);
-      res.status(500).json({ error: error.message || 'Failed to rename authenticator' });
+      res
+        .status(500)
+        .json({ error: resolveErrorMessage(error, 'Failed to rename authenticator') });
     }
   }
 );
@@ -389,9 +398,11 @@ router.post('/recovery-keys/generate', async (req: Request, res: Response) => {
       key, // Plaintext key - show to user once, then discard
       warning: 'Save this key securely. It will not be shown again.',
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Generate recovery key error:', error);
-    res.status(500).json({ error: error.message || 'Failed to generate recovery key' });
+    res
+      .status(500)
+      .json({ error: resolveErrorMessage(error, 'Failed to generate recovery key') });
   }
 });
 
@@ -445,9 +456,11 @@ router.post('/recovery-keys/verify', async (req: Request, res: Response) => {
       factorStrength: 'cryptographic',
       // TODO: Include session token
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Verify recovery key error:', error);
-    res.status(500).json({ error: error.message || 'Failed to verify recovery key' });
+    res
+      .status(500)
+      .json({ error: resolveErrorMessage(error, 'Failed to verify recovery key') });
   }
 });
 
@@ -466,9 +479,11 @@ router.get('/recovery-keys', async (req: Request, res: Response) => {
     const recoveryKeys = await listRecoveryKeys(userId);
 
     res.json({ recoveryKeys });
-  } catch (error: any) {
+  } catch (error) {
     console.error('List recovery keys error:', error);
-    res.status(500).json({ error: error.message || 'Failed to list recovery keys' });
+    res
+      .status(500)
+      .json({ error: resolveErrorMessage(error, 'Failed to list recovery keys') });
   }
 });
 
@@ -492,9 +507,11 @@ router.delete('/recovery-keys/:id', async (req: Request, res: Response) => {
     }
 
     res.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Revoke recovery key error:', error);
-    res.status(500).json({ error: error.message || 'Failed to revoke recovery key' });
+    res
+      .status(500)
+      .json({ error: resolveErrorMessage(error, 'Failed to revoke recovery key') });
   }
 });
 
@@ -518,9 +535,11 @@ router.patch('/recovery-keys/:id/rename', async (req: Request, res: Response) =>
     }
 
     res.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Rename recovery key error:', error);
-    res.status(500).json({ error: error.message || 'Failed to rename recovery key' });
+    res
+      .status(500)
+      .json({ error: resolveErrorMessage(error, 'Failed to rename recovery key') });
   }
 });
 
