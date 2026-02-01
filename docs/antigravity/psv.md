@@ -15,7 +15,7 @@ Every PSV check must produce retrievable, immutable evidence:
 
 ### 2. **No Network Calls in Domain Layer**
 - `packages/domain-common`: Pure types + policy evaluation only
-- `packages/psv-integrations`: Network calls, API clients, data fetching
+- MVP demo integration lives at `apps/web/lib/psv-integrations.ts`
 - Domain layer receives `PSVCheckResult[]`, evaluates policy, returns decision
 
 ### 3. **Clean Separation of Concerns**
@@ -33,18 +33,17 @@ PSV Integration → PSVCheckResult[] → Policy Evaluator → PSVDecision
 
 ### Integration Truth Table
 
-| Source | Status | Connector Type | Auth Required | Evidence Requirements |
-|--------|--------|----------------|---------------|----------------------|
-| **OIG LEIE** | ✅ LIVE | Downloadable CSV | No (public) | File version, download date |
-| **SAM Exclusions** | ✅ LIVE | REST API v4 | Yes (api_key) | Transaction ID, API version |
-| **CMS PPEF** | ✅ LIVE | Data.cms.gov API | No (public) | Dataset ID, query timestamp |
-| **NPDB** | 🔒 RESTRICTED | QRXS XML/WSDL | Yes (eligible entity) | DCN (Disclosure Control Number) |
-| **DEA** | 🔒 RESTRICTED | Format validation only | N/A (real check requires auth) | Format check note |
-| **State Boards** | 🔒 RESTRICTED | FSMB integration | Yes (enterprise) | State, license number, check date |
+| Source | Status (MVP) | Connector Type | Auth Required | Evidence Requirements |
+|--------|--------------|----------------|---------------|----------------------|
+| **OIG LEIE** | STUB | Downloadable CSV | No (public) | File version, download date |
+| **SAM Exclusions** | STUB | REST API v4 | Yes (api_key) | Transaction ID, API version |
+| **CMS PPEF** | STUB | Data.cms.gov API | No (public) | Dataset ID, query timestamp |
+| **NPDB** | STUB | QRXS XML/WSDL | Yes (eligible entity) | DCN (Disclosure Control Number) |
+| **DEA** | STUB | Format validation only | N/A (real check requires auth) | Format check note |
+| **State Boards** | STUB | FSMB integration | Yes (enterprise) | State, license number, check date |
 
 ### Legend
-- ✅ **LIVE**: Connector implemented and testable
-- 🔒 **RESTRICTED**: Requires authorized credentials/registration
+- **STUB**: Deterministic demo output only (no external calls)
 
 ---
 
@@ -74,7 +73,7 @@ PSV Integration → PSVCheckResult[] → Policy Evaluator → PSVDecision
 2. **Fallback**: `LASTNAME + FIRSTNAME + DOB` exact match
 3. **No fuzzy by default**: Ambiguous matches → `PSVStatus.FLAG`
 
-**Integration Mode**: LIVE (downloadable CSV)
+**Integration Mode**: STUB (MVP demo)
 
 ---
 
@@ -108,7 +107,7 @@ PSV Integration → PSVCheckResult[] → Policy Evaluator → PSVDecision
    - Active exclusion match → `PSVStatus.FAIL`
    - Ambiguous match → `PSVStatus.FLAG`
 
-**Integration Mode**: LIVE (requires API key)
+**Integration Mode**: STUB (MVP demo)
 
 ---
 
@@ -138,7 +137,7 @@ PSV Integration → PSVCheckResult[] → Policy Evaluator → PSVDecision
    - NPI not found → `PSVStatus.FLAG` (not necessarily exclusion)
    - Query error → `PSVStatus.ERROR`
 
-**Integration Mode**: LIVE (public API)
+**Integration Mode**: STUB (MVP demo)
 
 ---
 
@@ -169,7 +168,7 @@ PSV Integration → PSVCheckResult[] → Policy Evaluator → PSVDecision
    - Adverse action reports → `PSVStatus.FAIL`
    - Configuration missing → `PSVStatus.UNKNOWN` with reason `"NOT_CONFIGURED"`
 
-**Integration Mode**: RESTRICTED (requires eligible entity registration)
+**Integration Mode**: STUB (MVP demo)
 
 **Configuration Gate**:
 ```typescript
@@ -212,7 +211,7 @@ if (!config.npdb.entityId || !config.npdb.credentials) {
    - Format valid but no primary source → `PSVStatus.FLAG` with note `"FORMAT_ONLY"`
    - Primary source verified → `PSVStatus.PASS`
 
-**Integration Mode**: RESTRICTED (format check only by default)
+**Integration Mode**: STUB (MVP demo)
 
 **Configuration Gate**:
 ```typescript
@@ -265,7 +264,7 @@ if (!config.dea.authorized) {
    - License inactive or disciplinary actions → `PSVStatus.FAIL`
    - No FSMB credentials → `PSVStatus.UNKNOWN` with reason `"NOT_CONFIGURED"`
 
-**Integration Mode**: RESTRICTED (requires FSMB or per-board integration)
+**Integration Mode**: STUB (MVP demo)
 
 **Configuration Options**:
 ```typescript
