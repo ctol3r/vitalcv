@@ -1,9 +1,9 @@
-import express, { Request, Response } from 'express';
+import { Request, Response, Router } from 'express';
 import path from 'path';
 
 type EmploymentGuards = {
   assertCanonicalPathValid: (path: unknown) => void;
-  CanonicalPathViolation: new (...args: any[]) => Error;
+  CanonicalPathViolation: new (...args: unknown[]) => Error;
 };
 
 const employmentGuardsPath = path.resolve(
@@ -16,7 +16,7 @@ function loadEmploymentGuards(): EmploymentGuards {
   return require(employmentGuardsPath) as EmploymentGuards;
 }
 
-const router: express.Router = express.Router();
+const router: Router = Router();
 
 /**
  * Canonical path enforcement endpoint.
