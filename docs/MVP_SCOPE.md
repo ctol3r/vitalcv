@@ -7,8 +7,8 @@ The YC MVP demonstrates the canonical path: Recognition → Acceptance → Start
 ### Implemented Features
 
 **Clinician Onboarding:**
-- NPI entry and NPPES verification
-- Recognition event issuance after verification
+- NPI entry via web onboarding page
+- Backend mock NPI lookup (`/lookup/npi/:npi`)
 - Single-step onboarding (no wizard, no optional steps)
 
 **Domain Primitives:**
@@ -27,7 +27,8 @@ The YC MVP demonstrates the canonical path: Recognition → Acceptance → Start
 - PSV check result types
 - Policy evaluation (CLEAR / REVIEW / BLOCK decisions)
 - Freshness rules and expiry handling
-- Source priority ordering
+- Deterministic source ordering
+- PSV demo script (`pnpm psv:demo --npi <npi>`)
 
 **Compliance Scaffolding:**
 - NCQA CR1-CR5 requirements documented
@@ -36,16 +37,13 @@ The YC MVP demonstrates the canonical path: Recognition → Acceptance → Start
 - PSV requirement enforced at acceptance
 
 **Read-Only Demos:**
-- Clinician home page with CRS snapshot
-- Employer verification page for authority events
-- Credential status display
+- PSV demo UI and API route (`/demo/psv`, `apps/web/app/api/psv/route.ts`)
+- Employer/clinician/issuer marketing pages
 
 ### Test Coverage
 
-- 104 tests passing
-- 100% coverage on domain primitives
-- Compile-time enforcement via TypeScript
-- No runtime validation bypasses possible
+- Domain-common PSV policy and guards are coverage-gated
+- Demo tests validate deterministic PSV output
 
 ## What Is Explicitly Out
 
@@ -81,7 +79,7 @@ The following are intentionally excluded from YC MVP to maintain scope:
 **Multi-Facility Support:**
 - ❌ Organization management
 - ❌ Multi-site credentialing
-- ❌ Facility privilege delegation
+- ❌ Facility privilege delegation runtime (contracts exist only)
 - ❌ Cross-organization acceptance
 
 *Why Excluded:* Adds data model complexity. MVP focuses on single employer→clinician path.
@@ -127,7 +125,7 @@ Prove the canonical path works:
 
 ### Included Decisions
 
-1. **NPI-Only Onboarding:** NPI is authoritative, NPPES is accessible, sufficient for MVP identity anchor
+1. **NPI-Only Onboarding:** NPI lookup is mocked to keep the demo deterministic
 2. **PSV Policy Engine:** Core value prop is evidence evaluation, must demonstrate decisioning logic
 3. **Type-Safe Canonical Path:** Compile-time enforcement is the innovation, must be in MVP
 4. **Antigravity Compliance:** Removing friction is the product, UX must demonstrate this
@@ -187,9 +185,8 @@ Post-YC priorities if canonical path is validated:
 **What Works:**
 - Canonical path type enforcement
 - PSV policy evaluation engine
-- NPI verification flow
-- Recognition issuance
-- Acceptance with PSV gate
+- Mock NPI lookup flow
+- PSV demo API + UI
 
 **What's Missing:**
 - Live PSV source integrations
