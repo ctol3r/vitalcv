@@ -47,10 +47,10 @@ export function revokeCredential(id: string): Credential {
   return credential;
 }
 
-export async function issueCredential(userId: string, credential: any) {
-    // Placeholder for logic that would issue a credential
-    await scrapbook.recordIdentityAction(userId, 'ISSUE_CREDENTIAL');
-    return { userId, credential };
+export async function issueCredential(userId: string, credential: unknown) {
+  // Placeholder for logic that would issue a credential
+  await scrapbook.recordIdentityAction(userId, 'ISSUE_CREDENTIAL');
+  return { userId, credential };
 }
 
 /**
