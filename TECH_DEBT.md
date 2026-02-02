@@ -29,6 +29,11 @@ Canonical list of known technical debt for the YC MVP. Keep this in sync with
 - `@vitalcv/plugin-sdk` fails typecheck (rootDir/module resolution errors).
 - `@chai-vc/logging-core` fails typecheck (Error type conversion).
 
+## Backend Isolation
+
+- `apps/api/backend/tsconfig.json` excludes `src/blockchain`, `src/graphql`, and `src/graph` during MVP
+  to isolate non-MVP services. Re-enable as services are productionized.
+
 ## Dependencies
 
 - Admin API relies on `@prisma/client` but lacked the matching `prisma` CLI for local builds.

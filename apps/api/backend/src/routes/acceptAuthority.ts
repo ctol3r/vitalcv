@@ -59,7 +59,17 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-function resolveAcceptedBy(authorityEvent: AuthorityEventPayload, acceptor: any): AcceptingEntity {
+type AcceptingEntityInput = {
+  entityId?: unknown;
+  name?: unknown;
+  did?: unknown;
+  type?: unknown;
+};
+
+function resolveAcceptedBy(
+  authorityEvent: AuthorityEventPayload,
+  acceptor: AcceptingEntityInput | null | undefined
+): AcceptingEntity {
   const facilityFallback =
     authorityEvent.facility && isNonEmptyString(authorityEvent.facility.name)
       ? {
@@ -97,7 +107,7 @@ async function writeAuditEvent(event: {
   type: string;
   credentialId?: string;
   userId?: number;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }): Promise<{ hash: string; createdAt: string }> {
   const createdAt = new Date();
   const hash = sha256Hex(
