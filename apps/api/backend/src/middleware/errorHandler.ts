@@ -3,7 +3,7 @@ import { log } from '../obs/logger';
 
 export interface HttpError extends Error {
   status?: number;
-  errors?: any;
+  errors?: unknown;
 }
 
 export function errorHandler(
@@ -13,7 +13,9 @@ export function errorHandler(
   next: NextFunction
 ) {
   const status = err.status || 500;
-  const response: any = { message: err.message || 'Internal Server Error' };
+  const response: { message: string; errors?: unknown } = {
+    message: err.message || 'Internal Server Error',
+  };
   if (err.errors) {
     response.errors = err.errors;
   }
