@@ -10,6 +10,11 @@
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node"
   },
-  "include": ["src/server.ts"],
-  "exclude": ["__tests__"]
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "__tests__",
+    "src/blockchain",
+    "src/graphql",
+    "src/graph"
+  ]
 }
