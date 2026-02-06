@@ -17,7 +17,8 @@
  * - Represents: Employer's formal acknowledgment of offer/role
  * - Must be: Cryptographically signed by employer DID
  * - Cannot be: Self-reported by practitioner
- * - Immutable: Once emitted, recognition cannot be revoked (only superseded)
+ * - Issued only after verification
+ * - Immutable: Once emitted, recognition cannot be updated (revocation is a separate event)
  *
  * WHY IRREVERSIBLE:
  * Recognition establishes the employer's intent record. Even if an offer is
@@ -43,6 +44,14 @@ export interface RecognitionEvent {
 
   /** Timestamp when recognition was issued (ISO 8601) */
   recognizedAt: string;
+
+  /** Verification proof that preceded recognition issuance */
+  verification: {
+    /** Timestamp when verification completed (ISO 8601) */
+    verifiedAt: string;
+    /** Immutable verification reference (receipt/hash/ID) */
+    verificationRef: string;
+  };
 
   /** Cryptographic proof of employer signature */
   proof: {
@@ -73,7 +82,7 @@ export interface RecognitionEvent {
  * - Represents: Mutual agreement on employment terms
  * - Must reference: Corresponding RecognitionEvent.recognitionId
  * - Cannot exist: Without prior RecognitionEvent
- * - Scoped: To specific role, start date, and terms
+ * - Scoped: To specific role, facility, start date, and terms
  * - Time-bound: Acceptance has validity period
  * - Immutable: Once countersigned, acceptance cannot be revoked (only terminated)
  *
@@ -102,6 +111,9 @@ export interface EmployerAcceptance {
 
   /** Role being accepted (must match RecognitionEvent.roleId) */
   roleId: string;
+
+  /** Facility scope for this acceptance */
+  facilityId: string;
 
   /** Timestamp when practitioner accepted (ISO 8601) */
   acceptedAt: string;
@@ -172,6 +184,7 @@ export interface EmployerAcceptance {
  * - Cannot be: Self-reported by practitioner
  * - Immutable: Once emitted, start cannot be retroactively changed
  * - Definitive: StartAttestation is the ONLY trigger for "employment active" state
+ * - Facility-scoped: Must match EmployerAcceptance.facilityId
  *
  * WHY IRREVERSIBLE:
  * Start attestation establishes the legal commencement of employment relationship.
@@ -204,6 +217,9 @@ export interface StartAttestation {
   /** Role started (must match Recognition and Acceptance) */
   roleId: string;
 
+  /** Facility scope (must match EmployerAcceptance.facilityId) */
+  facilityId: string;
+
   /** ACTUAL start date attested by employer (ISO 8601) */
   actualStartDate: string;
 
@@ -228,7 +244,6 @@ export interface StartAttestation {
     department?: string;
     schedule: 'full-time' | 'part-time' | 'contract' | 'per-diem';
     supervisorDid?: string;
-    facilityId?: string;
   };
 
   /** Optional: Onboarding confirmation details */

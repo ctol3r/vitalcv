@@ -16,12 +16,12 @@
  */
 
 import type {
-  RecognitionEvent,
   EmployerAcceptance,
+  RecognitionEvent,
   StartAttestation,
   VerifiedCanonicalPath,
 } from '@vitalcv/domain-common';
-import { verifyCanonicalPath, CanonicalPathViolation } from '@vitalcv/domain-common';
+import { CanonicalPathViolation, verifyCanonicalPath } from '@vitalcv/domain-common';
 import { createHash } from 'crypto';
 
 export interface StartAttestationRequest {
@@ -86,7 +86,7 @@ export interface StartAttestationResult {
  * @returns VerifiedCanonicalPath - proof of complete canonical path
  */
 export async function emitStartAttestation(
-  request: StartAttestationRequest
+  request: StartAttestationRequest,
 ): Promise<StartAttestationResult> {
   const {
     recognition,
@@ -101,13 +101,13 @@ export async function emitStartAttestation(
   // INVARIANT: Employer DID must match across all events
   if (employerDid !== recognition.employerDid) {
     throw new CanonicalPathViolation(
-      `Employer DID mismatch: Start attestation employerDid (${employerDid}) must match Recognition employerDid (${recognition.employerDid})`
+      `Employer DID mismatch: Start attestation employerDid (${employerDid}) must match Recognition employerDid (${recognition.employerDid})`,
     );
   }
 
   if (employerDid !== acceptance.employerDid) {
     throw new CanonicalPathViolation(
-      `Employer DID mismatch: Start attestation employerDid (${employerDid}) must match Acceptance employerDid (${acceptance.employerDid})`
+      `Employer DID mismatch: Start attestation employerDid (${employerDid}) must match Acceptance employerDid (${acceptance.employerDid})`,
     );
   }
 
@@ -122,7 +122,7 @@ export async function emitStartAttestation(
 
   if (startTime < acceptedTime) {
     throw new Error(
-      `Start date (${actualStartDate}) cannot be before acceptance date (${acceptance.acceptedAt})`
+      `Start date (${actualStartDate}) cannot be before acceptance date (${acceptance.acceptedAt})`,
     );
   }
 
@@ -143,6 +143,7 @@ export async function emitStartAttestation(
     employerDid,
     practitionerDid: recognition.practitionerDid,
     roleId: recognition.roleId,
+    facilityId: acceptance.facilityId,
     actualStartDate,
     attestedAt,
   });
@@ -161,6 +162,7 @@ export async function emitStartAttestation(
     employerDid,
     practitionerDid: recognition.practitionerDid,
     roleId: recognition.roleId,
+    facilityId: acceptance.facilityId,
     actualStartDate,
     attestedAt,
     proof: {
@@ -197,7 +199,7 @@ export async function emitStartAttestation(
         recognitionId: recognition.recognitionId,
         acceptanceId: acceptance.acceptanceId,
         attestationId: startAttestation.attestationId,
-      })
+      }),
     )
     .digest('hex');
 
@@ -217,7 +219,7 @@ export async function emitStartAttestation(
  */
 export function canEmitStartAttestation(
   recognition: RecognitionEvent | null | undefined,
-  acceptance: EmployerAcceptance | null | undefined
+  acceptance: EmployerAcceptance | null | undefined,
 ): boolean {
   return Boolean(recognition && acceptance);
 }
