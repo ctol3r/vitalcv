@@ -9,10 +9,10 @@
  * - No alternate start path exists
  */
 
-import { describe, it, expect } from 'vitest';
-import type { RecognitionEvent, EmployerAcceptance } from '@vitalcv/domain-common';
+import type { EmployerAcceptance, RecognitionEvent } from '@vitalcv/domain-common';
 import { CanonicalPathViolation } from '@vitalcv/domain-common';
-import { emitStartAttestation, canEmitStartAttestation } from './emitStartAttestation';
+import { describe, expect, it } from 'vitest';
+import { canEmitStartAttestation, emitStartAttestation } from './emitStartAttestation';
 
 // Test fixtures
 const EMPLOYER_DID = 'did:key:employer123';
@@ -33,6 +33,10 @@ function createValidRecognition(): RecognitionEvent {
     practitionerDid: PRACTITIONER_DID,
     roleId: ROLE_ID,
     recognizedAt: '2025-01-01T10:00:00.000Z',
+    verification: {
+      verifiedAt: '2025-01-01T09:55:00.000Z',
+      verificationRef: 'verification-ref-001',
+    },
     proof: {
       type: 'Ed25519Signature2020',
       created: '2025-01-01T10:00:00.000Z',
@@ -51,6 +55,7 @@ function createValidAcceptance(): EmployerAcceptance {
     employerDid: EMPLOYER_DID,
     practitionerDid: PRACTITIONER_DID,
     roleId: ROLE_ID,
+    facilityId: 'facility:alpha',
     acceptedAt: '2025-01-02T10:00:00.000Z',
     countersignedAt: '2025-01-02T11:00:00.000Z',
     agreedStartDate: '2025-01-15T00:00:00.000Z',
@@ -78,6 +83,7 @@ function createValidAcceptance(): EmployerAcceptance {
       department: 'Surgery',
       schedule: 'full-time',
     },
+    psvReportId: 'psv-report-001',
   };
 }
 
@@ -94,7 +100,7 @@ describe('ANTIGRAVITY PROOF: emitStartAttestation()', () => {
           actualStartDate: '2025-01-15T08:00:00.000Z',
           employerDid: EMPLOYER_DID,
           signingKey: mockSigningKey,
-        })
+        }),
       ).rejects.toThrow();
     });
 
@@ -110,7 +116,7 @@ describe('ANTIGRAVITY PROOF: emitStartAttestation()', () => {
           actualStartDate: '2025-01-15T08:00:00.000Z',
           employerDid: EMPLOYER_DID,
           signingKey: mockSigningKey,
-        })
+        }),
       ).rejects.toThrow(CanonicalPathViolation);
     });
 
@@ -125,7 +131,7 @@ describe('ANTIGRAVITY PROOF: emitStartAttestation()', () => {
           actualStartDate: '2025-01-01T08:00:00.000Z', // Before acceptance
           employerDid: EMPLOYER_DID,
           signingKey: mockSigningKey,
-        })
+        }),
       ).rejects.toThrow(/Start date.*cannot be before acceptance date/);
     });
   });
@@ -142,7 +148,7 @@ describe('ANTIGRAVITY PROOF: emitStartAttestation()', () => {
           actualStartDate: '2025-01-15T08:00:00.000Z',
           employerDid: EMPLOYER_DID,
           signingKey: mockSigningKey,
-        })
+        }),
       ).rejects.toThrow();
     });
 
@@ -158,7 +164,7 @@ describe('ANTIGRAVITY PROOF: emitStartAttestation()', () => {
           actualStartDate: '2025-01-15T08:00:00.000Z',
           employerDid: EMPLOYER_DID,
           signingKey: mockSigningKey,
-        })
+        }),
       ).rejects.toThrow(CanonicalPathViolation);
     });
 
@@ -174,7 +180,7 @@ describe('ANTIGRAVITY PROOF: emitStartAttestation()', () => {
           actualStartDate: '2025-01-15T08:00:00.000Z',
           employerDid: EMPLOYER_DID,
           signingKey: mockSigningKey,
-        })
+        }),
       ).rejects.toThrow(CanonicalPathViolation);
     });
   });
@@ -191,7 +197,7 @@ describe('ANTIGRAVITY PROOF: emitStartAttestation()', () => {
           actualStartDate: '2025-01-15T08:00:00.000Z',
           employerDid: 'did:key:different-employer',
           signingKey: mockSigningKey,
-        })
+        }),
       ).rejects.toThrow(/Employer DID mismatch/);
     });
 
@@ -207,7 +213,7 @@ describe('ANTIGRAVITY PROOF: emitStartAttestation()', () => {
           actualStartDate: '2025-01-15T08:00:00.000Z',
           employerDid: EMPLOYER_DID,
           signingKey: mockSigningKey,
-        })
+        }),
       ).rejects.toThrow(CanonicalPathViolation);
     });
   });
@@ -241,7 +247,9 @@ describe('ANTIGRAVITY PROOF: emitStartAttestation()', () => {
       expect(result.startAttestation.actualStartDate).toBe('2025-01-15T08:00:00.000Z');
 
       // Verify proof is employer-signed
-      expect(result.startAttestation.proof.verificationMethod).toBe(mockSigningKey.verificationMethod);
+      expect(result.startAttestation.proof.verificationMethod).toBe(
+        mockSigningKey.verificationMethod,
+      );
       expect(result.startAttestation.proof.type).toBe('Ed25519Signature2020');
 
       // Verify immutability anchors
@@ -290,6 +298,7 @@ describe('ANTIGRAVITY PROOF: emitStartAttestation()', () => {
         department: 'Surgery',
         schedule: 'full-time',
       });
+      expect(result.startAttestation.facilityId).toBe(acceptance.facilityId);
     });
 
     it('MUST allow custom employment details override', async () => {
@@ -306,7 +315,6 @@ describe('ANTIGRAVITY PROOF: emitStartAttestation()', () => {
           roleTitle: 'Senior Surgeon',
           department: 'Trauma Surgery',
           schedule: 'part-time',
-          facilityId: 'facility-001',
         },
       });
 
@@ -314,8 +322,8 @@ describe('ANTIGRAVITY PROOF: emitStartAttestation()', () => {
         roleTitle: 'Senior Surgeon',
         department: 'Trauma Surgery',
         schedule: 'part-time',
-        facilityId: 'facility-001',
       });
+      expect(result.startAttestation.facilityId).toBe(acceptance.facilityId);
     });
   });
 

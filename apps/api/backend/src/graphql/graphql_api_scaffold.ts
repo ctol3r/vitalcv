@@ -1,6 +1,6 @@
+import { PrismaClient } from '@prisma/client';
 import { ApolloServer, gql } from 'apollo-server-express';
 import { Express } from 'express';
-import { PrismaClient } from '@prisma/client';
 
 // Comprehensive GraphQL schema integrating Express Apollo Server with Prisma
 const typeDefs = gql`
@@ -39,19 +39,7 @@ const typeDefs = gql`
   }
 
   type Mutation {
-    createUser(name: String!, email: String!): User
-    createCredential(name: String!, issuer: String!): Credential!
-    updateCredential(id: ID!, name: String, issuer: String): Credential!
-    deleteCredential(id: ID!): Credential!
-    issueCredential(
-      userId: ID!
-      name: String!
-      issuer: String!
-      issuedAt: String
-      expiresAt: String
-    ): Credential
-    postJob(title: String!, description: String, postedBy: ID!): Job
-    applyForJob(jobId: ID!, userId: ID!): Job
+    _empty: String
   }
 `;
 

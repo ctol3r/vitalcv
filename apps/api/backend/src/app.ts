@@ -4,21 +4,22 @@ import { body } from 'express-validator';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import path from 'path';
+import { registerWedgeRoutes } from '../routes/wedge';
 import { neo4jConfigured } from './graph/neo4jHttp';
 import {
-    ensureGraphSchema,
-    getGraphView,
-    getReadinessScore,
-    getSpecialtyDensity,
-    graphHealth,
-    seedDemoGraph,
-    upsertIssuanceToGraph,
+  ensureGraphSchema,
+  getGraphView,
+  getReadinessScore,
+  getSpecialtyDensity,
+  graphHealth,
+  seedDemoGraph,
+  upsertIssuanceToGraph,
 } from './graph/service';
 import prisma from './graphql/prisma_client';
+import { assertCanonicalPathValid, CanonicalPathViolation } from './guards';
 import { validateRequest } from './middleware/validateRequest';
 import { log, reqLogFields } from './obs/logger';
 import { requestIdMiddleware, type RequestWithId } from './obs/requestId';
-import { registerAuthorityAcceptanceRoute } from './routes/acceptAuthority';
 
 const app = express();
 const bootedAtIso = new Date().toISOString();
@@ -63,11 +64,8 @@ app.use((req: RequestWithId, res, next) => {
   next();
 });
 
-// --- Authority acceptance ---
-registerAuthorityAcceptanceRoute(app);
-
-// --- Authority acceptance ---
-registerAuthorityAcceptanceRoute(app);
+// --- Canonical wedge endpoints (Recognition → Acceptance → Start) ---
+registerWedgeRoutes(app);
 
 function sha256Hex(input: string): string {
   return crypto.createHash('sha256').update(input).digest('hex');
@@ -1042,46 +1040,6 @@ app.post(
   },
 );
 
-// Compatibility status endpoints used by the frontend client
-app.get(
-  ['/status/:credentialId', '/verifier/credential/:credentialId/status'],
-  async (req, res) => {
-    const { credentialId } = req.params;
-    const { externalId, dbId } = normalizeCredentialId(credentialId);
-    if (!externalId) return res.status(400).json({ error: 'Credential ID is required' });
-
-    const credential = dbId ? await prisma.credential.findUnique({ where: { id: dbId } }) : null;
-    if (!credential) return res.status(404).json({ credentialId: externalId, status: 'unknown' });
-
-    const lastRevoke = await prisma.auditEvent.findFirst({
-      where: { type: 'REVOKE_CREDENTIAL', credentialId: externalId },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    const status = lastRevoke ? 'revoked' : 'valid';
-    return res.json({
-      credentialId: externalId,
-      status,
-      issuer: credential.issuer,
-      issuedDate: credential.issuedAt.toISOString(),
-      lastUpdated: new Date().toISOString(),
-      auditRef: lastRevoke?.hash ?? undefined,
-      statusReason: lastRevoke ? 'Credential revoked' : undefined,
-    });
-  },
-);
-
-// Existing placeholder endpoint (kept for backwards compatibility)
-app.post(
-  '/credentials',
-  body('name').isString().withMessage('name must be a string'),
-  body('issuer').isString().withMessage('issuer must be a string'),
-  validateRequest,
-  (_req: Request, res: Response) => {
-    res.json({ message: 'Credential created' });
-  },
-);
-
 // --- NPI Lookup (Antigravity MVP: Mock Implementation) ---
 app.get('/lookup/npi/:npi', async (req: Request, res: Response) => {
   const { npi } = req.params;
@@ -1109,16 +1067,14 @@ app.get('/lookup/npi/:npi', async (req: Request, res: Response) => {
     lastUpdated: new Date().toISOString(),
     // Simulate real NPPES fields for forward compat
     providerType: 'Individual',
-    address: '123 Medical Center Dr, Anytown, US'
+    address: '123 Medical Center Dr, Anytown, US',
   };
 
   // Simulate network latency
-  await new Promise(resolve => setTimeout(resolve, 600));
+  await new Promise((resolve) => setTimeout(resolve, 600));
 
   return res.json(mockResponse);
 });
-
-import { assertCanonicalPathValid, CanonicalPathViolation } from './guards';
 
 // --- OIDC4VP Enforcer (Antigravity Canonical Path) ---
 app.post('/oidc4vp/presentation', validateRequest, async (req: Request, res: Response) => {
@@ -1129,8 +1085,10 @@ app.post('/oidc4vp/presentation', validateRequest, async (req: Request, res: Res
     if (canonicalPath) {
       assertCanonicalPathValid(canonicalPath);
     } else {
-       // If no path provided, strict rejection for this endpoint
-       return res.status(400).json({ error: 'Canonical Path data is required for OIDC4VP verification.' });
+      // If no path provided, strict rejection for this endpoint
+      return res
+        .status(400)
+        .json({ error: 'Canonical Path data is required for OIDC4VP verification.' });
     }
 
     // 2. Decode VP Token to get Credential ID (Mock/Demo decoding for now)
@@ -1149,19 +1107,19 @@ app.post('/oidc4vp/presentation', validateRequest, async (req: Request, res: Res
     // 3. Check Revocation (Persistence Layer)
     let isRevoked = false;
     if (externalId && externalId.startsWith('CRED-')) {
-       // Check our DB
-       const lastRevoke = await prisma.auditEvent.findFirst({
-         where: { type: 'REVOKE_CREDENTIAL', credentialId: externalId },
-         orderBy: { createdAt: 'desc' },
-       });
-       if (lastRevoke) isRevoked = true;
+      // Check our DB
+      const lastRevoke = await prisma.auditEvent.findFirst({
+        where: { type: 'REVOKE_CREDENTIAL', credentialId: externalId },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (lastRevoke) isRevoked = true;
     }
 
     if (isRevoked) {
       return res.status(409).json({
         verified: false,
         error: 'Credential has been REVOKED by the issuer.',
-        status: 'revoked'
+        status: 'revoked',
       });
     }
 
@@ -1171,18 +1129,17 @@ app.post('/oidc4vp/presentation', validateRequest, async (req: Request, res: Res
       credentialId: externalId || 'path-only',
       metadata: {
         status: 'verified',
-        recognitionId: canonicalPath.recognition?.recognitionId
-      }
+        recognitionId: canonicalPath.recognition?.recognitionId,
+      },
     });
 
     return res.json({ verified: true, status: 'valid' });
-
   } catch (error) {
     if (error instanceof CanonicalPathViolation) {
       return res.status(400).json({
         verified: false,
         error: error.message,
-        violation: error.violationType
+        violation: error.violationType,
       });
     }
     console.error('OIDC4VP Error:', error);

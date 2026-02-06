@@ -13,10 +13,10 @@
  */
 
 import {
-  RecognitionEvent,
   EmployerAcceptance,
-  StartAttestation,
   EmploymentVerificationPath,
+  RecognitionEvent,
+  StartAttestation,
   VerifiedCanonicalPath,
 } from './employmentContracts';
 
@@ -33,11 +33,13 @@ export class CanonicalPathViolation extends Error {
       | 'INVALID_SIGNATURE'
       | 'MISSING_REFERENCE'
       | 'DID_MISMATCH'
+      | 'SCOPE_MISMATCH'
       | 'TIMESTAMP_ORDER'
+      | 'EXPIRED'
       | 'SELF_REPORTED'
       | 'MISSING_COUNTERSIGNATURE'
       | 'INVALID_PROOF_TYPE',
-    public readonly context?: Record<string, unknown>
+    public readonly context?: Record<string, unknown>,
   ) {
     super(message);
     this.name = 'CanonicalPathViolation';
@@ -51,11 +53,10 @@ export class CanonicalPathViolation extends Error {
  */
 function assertDidPresent(did: string | undefined, fieldName: string): asserts did is string {
   if (!did || typeof did !== 'string' || did.trim().length === 0) {
-    throw new CanonicalPathViolation(
-      `${fieldName} must be a valid DID`,
-      'INVALID_SIGNATURE',
-      { fieldName, did }
-    );
+    throw new CanonicalPathViolation(`${fieldName} must be a valid DID`, 'INVALID_SIGNATURE', {
+      fieldName,
+      did,
+    });
   }
 }
 
@@ -66,13 +67,13 @@ function assertDidPresent(did: string | undefined, fieldName: string): asserts d
  */
 function assertProofValid(
   proof: RecognitionEvent['proof'] | undefined,
-  eventType: string
+  eventType: string,
 ): asserts proof is NonNullable<RecognitionEvent['proof']> {
   if (!proof) {
     throw new CanonicalPathViolation(
       `${eventType} missing cryptographic proof`,
       'INVALID_SIGNATURE',
-      { eventType }
+      { eventType },
     );
   }
 
@@ -80,7 +81,7 @@ function assertProofValid(
     throw new CanonicalPathViolation(
       `${eventType} proof missing required fields`,
       'INVALID_SIGNATURE',
-      { eventType, proof }
+      { eventType, proof },
     );
   }
 
@@ -89,7 +90,35 @@ function assertProofValid(
     throw new CanonicalPathViolation(
       `${eventType} proof type must be Ed25519Signature2020 or JcsEd25519Signature2020`,
       'INVALID_PROOF_TYPE',
-      { eventType, proofType: proof.type }
+      { eventType, proofType: proof.type },
+    );
+  }
+}
+
+function assertVerificationValid(
+  verification: RecognitionEvent['verification'] | undefined,
+): asserts verification is NonNullable<RecognitionEvent['verification']> {
+  if (!verification || typeof verification !== 'object') {
+    throw new CanonicalPathViolation(
+      'RecognitionEvent.verification must be present',
+      'INVALID_SIGNATURE',
+      { verification },
+    );
+  }
+
+  if (!verification.verifiedAt || typeof verification.verifiedAt !== 'string') {
+    throw new CanonicalPathViolation(
+      'RecognitionEvent.verification.verifiedAt must be a valid ISO 8601 timestamp',
+      'TIMESTAMP_ORDER',
+      { verifiedAt: verification.verifiedAt },
+    );
+  }
+
+  if (!verification.verificationRef || typeof verification.verificationRef !== 'string') {
+    throw new CanonicalPathViolation(
+      'RecognitionEvent.verification.verificationRef must be present',
+      'INVALID_SIGNATURE',
+      { verificationRef: verification.verificationRef },
     );
   }
 }
@@ -99,12 +128,15 @@ function assertProofValid(
  *
  * INVARIANT: All timestamps must be valid ISO 8601 strings
  */
-function assertTimestampValid(timestamp: string | undefined, fieldName: string): asserts timestamp is string {
+function assertTimestampValid(
+  timestamp: string | undefined,
+  fieldName: string,
+): asserts timestamp is string {
   if (!timestamp || typeof timestamp !== 'string') {
     throw new CanonicalPathViolation(
       `${fieldName} must be a valid ISO 8601 timestamp`,
       'TIMESTAMP_ORDER',
-      { fieldName, timestamp }
+      { fieldName, timestamp },
     );
   }
 
@@ -114,7 +146,7 @@ function assertTimestampValid(timestamp: string | undefined, fieldName: string):
     throw new CanonicalPathViolation(
       `${fieldName} must be a valid ISO 8601 timestamp`,
       'TIMESTAMP_ORDER',
-      { fieldName, timestamp }
+      { fieldName, timestamp },
     );
   }
 }
@@ -140,7 +172,7 @@ export function assertRecognitionEventValid(event: RecognitionEvent): void {
     throw new CanonicalPathViolation(
       'RecognitionEvent.recognitionId must be a valid identifier',
       'INVALID_SIGNATURE',
-      { recognitionId: event.recognitionId }
+      { recognitionId: event.recognitionId },
     );
   }
 
@@ -148,7 +180,7 @@ export function assertRecognitionEventValid(event: RecognitionEvent): void {
     throw new CanonicalPathViolation(
       'RecognitionEvent.roleId must be a valid identifier',
       'INVALID_SIGNATURE',
-      { roleId: event.roleId }
+      { roleId: event.roleId },
     );
   }
 
@@ -163,19 +195,34 @@ export function assertRecognitionEventValid(event: RecognitionEvent): void {
       {
         verificationMethod: event.proof.verificationMethod,
         employerDid: event.employerDid,
-      }
+      },
     );
   }
 
   // INVARIANT: Recognition must have timestamp
   assertTimestampValid(event.recognizedAt, 'RecognitionEvent.recognizedAt');
 
+  // INVARIANT: Recognition must only be issued after verification
+  assertVerificationValid(event.verification);
+  assertTimestampValid(event.verification.verifiedAt, 'RecognitionEvent.verification.verifiedAt');
+
+  if (new Date(event.verification.verifiedAt).getTime() > new Date(event.recognizedAt).getTime()) {
+    throw new CanonicalPathViolation(
+      'RecognitionEvent.verification.verifiedAt must be at or before recognizedAt',
+      'TIMESTAMP_ORDER',
+      {
+        verifiedAt: event.verification.verifiedAt,
+        recognizedAt: event.recognizedAt,
+      },
+    );
+  }
+
   // INVARIANT: Recognition must have hash anchor for immutability
   if (!event.hashAnchor || typeof event.hashAnchor !== 'string') {
     throw new CanonicalPathViolation(
       'RecognitionEvent.hashAnchor must be present for immutability verification',
       'INVALID_SIGNATURE',
-      { hashAnchor: event.hashAnchor }
+      { hashAnchor: event.hashAnchor },
     );
   }
 }
@@ -194,7 +241,7 @@ export function assertRecognitionEventValid(event: RecognitionEvent): void {
  */
 export function assertEmployerAcceptanceValid(
   acceptance: EmployerAcceptance,
-  recognition: RecognitionEvent
+  recognition: RecognitionEvent,
 ): void {
   // INVARIANT: Acceptance is SECOND event, requires prior Recognition
   if (!acceptance.recognitionId || acceptance.recognitionId !== recognition.recognitionId) {
@@ -204,7 +251,7 @@ export function assertEmployerAcceptanceValid(
       {
         acceptanceRecognitionId: acceptance.recognitionId,
         expectedRecognitionId: recognition.recognitionId,
-      }
+      },
     );
   }
 
@@ -219,7 +266,7 @@ export function assertEmployerAcceptanceValid(
       {
         acceptanceEmployerDid: acceptance.employerDid,
         recognitionEmployerDid: recognition.employerDid,
-      }
+      },
     );
   }
 
@@ -230,7 +277,7 @@ export function assertEmployerAcceptanceValid(
       {
         acceptancePractitionerDid: acceptance.practitionerDid,
         recognitionPractitionerDid: recognition.practitionerDid,
-      }
+      },
     );
   }
 
@@ -241,7 +288,15 @@ export function assertEmployerAcceptanceValid(
       {
         acceptanceRoleId: acceptance.roleId,
         recognitionRoleId: recognition.roleId,
-      }
+      },
+    );
+  }
+
+  if (!acceptance.facilityId || typeof acceptance.facilityId !== 'string') {
+    throw new CanonicalPathViolation(
+      'EmployerAcceptance.facilityId must be present',
+      'INVALID_SIGNATURE',
+      { facilityId: acceptance.facilityId },
     );
   }
 
@@ -255,7 +310,7 @@ export function assertEmployerAcceptanceValid(
       {
         verificationMethod: acceptance.practitionerProof.verificationMethod,
         practitionerDid: acceptance.practitionerDid,
-      }
+      },
     );
   }
 
@@ -269,7 +324,7 @@ export function assertEmployerAcceptanceValid(
       {
         verificationMethod: acceptance.employerProof.verificationMethod,
         employerDid: acceptance.employerDid,
-      }
+      },
     );
   }
 
@@ -281,6 +336,21 @@ export function assertEmployerAcceptanceValid(
   const acceptedTime = new Date(acceptance.acceptedAt).getTime();
   const countersignedTime = new Date(acceptance.countersignedAt).getTime();
 
+  if (recognition.terms?.expiresAt) {
+    assertTimestampValid(recognition.terms.expiresAt, 'RecognitionEvent.terms.expiresAt');
+    const expiresTime = new Date(recognition.terms.expiresAt).getTime();
+    if (acceptedTime > expiresTime) {
+      throw new CanonicalPathViolation(
+        'RecognitionEvent is expired and cannot be accepted',
+        'EXPIRED',
+        {
+          expiresAt: recognition.terms.expiresAt,
+          acceptedAt: acceptance.acceptedAt,
+        },
+      );
+    }
+  }
+
   if (acceptedTime < recognitionTime) {
     throw new CanonicalPathViolation(
       'EmployerAcceptance.acceptedAt must be after RecognitionEvent.recognizedAt',
@@ -288,7 +358,7 @@ export function assertEmployerAcceptanceValid(
       {
         recognizedAt: recognition.recognizedAt,
         acceptedAt: acceptance.acceptedAt,
-      }
+      },
     );
   }
 
@@ -299,7 +369,7 @@ export function assertEmployerAcceptanceValid(
       {
         acceptedAt: acceptance.acceptedAt,
         countersignedAt: acceptance.countersignedAt,
-      }
+      },
     );
   }
 
@@ -308,7 +378,7 @@ export function assertEmployerAcceptanceValid(
     throw new CanonicalPathViolation(
       'EmployerAcceptance.hashAnchor must be present',
       'INVALID_SIGNATURE',
-      { hashAnchor: acceptance.hashAnchor }
+      { hashAnchor: acceptance.hashAnchor },
     );
   }
 
@@ -317,7 +387,7 @@ export function assertEmployerAcceptanceValid(
     throw new CanonicalPathViolation(
       'EmployerAcceptance.psvReportId required for NCQA/CMS compliance',
       'MISSING_REFERENCE',
-      { psvReportId: acceptance.psvReportId }
+      { psvReportId: acceptance.psvReportId },
     );
   }
 }
@@ -338,7 +408,7 @@ export function assertEmployerAcceptanceValid(
 export function assertStartAttestationValid(
   start: StartAttestation,
   recognition: RecognitionEvent,
-  acceptance: EmployerAcceptance
+  acceptance: EmployerAcceptance,
 ): void {
   // INVARIANT: Start is THIRD and FINAL event, requires both Recognition and Acceptance
   if (!start.recognitionId || start.recognitionId !== recognition.recognitionId) {
@@ -348,7 +418,7 @@ export function assertStartAttestationValid(
       {
         startRecognitionId: start.recognitionId,
         expectedRecognitionId: recognition.recognitionId,
-      }
+      },
     );
   }
 
@@ -359,7 +429,7 @@ export function assertStartAttestationValid(
       {
         startAcceptanceId: start.acceptanceId,
         expectedAcceptanceId: acceptance.acceptanceId,
-      }
+      },
     );
   }
 
@@ -374,7 +444,7 @@ export function assertStartAttestationValid(
       {
         startEmployerDid: start.employerDid,
         recognitionEmployerDid: recognition.employerDid,
-      }
+      },
     );
   }
 
@@ -385,7 +455,7 @@ export function assertStartAttestationValid(
       {
         startPractitionerDid: start.practitionerDid,
         recognitionPractitionerDid: recognition.practitionerDid,
-      }
+      },
     );
   }
 
@@ -396,7 +466,26 @@ export function assertStartAttestationValid(
       {
         startRoleId: start.roleId,
         recognitionRoleId: recognition.roleId,
-      }
+      },
+    );
+  }
+
+  if (!start.facilityId || typeof start.facilityId !== 'string') {
+    throw new CanonicalPathViolation(
+      'StartAttestation.facilityId must be present',
+      'INVALID_SIGNATURE',
+      { facilityId: start.facilityId },
+    );
+  }
+
+  if (start.facilityId !== acceptance.facilityId) {
+    throw new CanonicalPathViolation(
+      'StartAttestation.facilityId must match EmployerAcceptance.facilityId',
+      'SCOPE_MISMATCH',
+      {
+        startFacilityId: start.facilityId,
+        acceptanceFacilityId: acceptance.facilityId,
+      },
     );
   }
 
@@ -410,7 +499,7 @@ export function assertStartAttestationValid(
       {
         verificationMethod: start.proof.verificationMethod,
         employerDid: start.employerDid,
-      }
+      },
     );
   }
 
@@ -428,7 +517,7 @@ export function assertStartAttestationValid(
       {
         acceptedAt: acceptance.acceptedAt,
         actualStartDate: start.actualStartDate,
-      }
+      },
     );
   }
 
@@ -437,7 +526,7 @@ export function assertStartAttestationValid(
     throw new CanonicalPathViolation(
       'StartAttestation.hashAnchor must be present',
       'INVALID_SIGNATURE',
-      { hashAnchor: start.hashAnchor }
+      { hashAnchor: start.hashAnchor },
     );
   }
 }
@@ -457,22 +546,19 @@ export function assertCanonicalPathValid(path: EmploymentVerificationPath): void
   if (!path.recognition) {
     throw new CanonicalPathViolation(
       'Canonical path requires RecognitionEvent',
-      'MISSING_RECOGNITION'
+      'MISSING_RECOGNITION',
     );
   }
 
   if (!path.acceptance) {
     throw new CanonicalPathViolation(
       'Canonical path requires EmployerAcceptance',
-      'MISSING_ACCEPTANCE'
+      'MISSING_ACCEPTANCE',
     );
   }
 
   if (!path.start) {
-    throw new CanonicalPathViolation(
-      'Canonical path requires StartAttestation',
-      'MISSING_START'
-    );
+    throw new CanonicalPathViolation('Canonical path requires StartAttestation', 'MISSING_START');
   }
 
   // INVARIANT: Each event must be individually valid
@@ -491,7 +577,9 @@ export function assertCanonicalPathValid(path: EmploymentVerificationPath): void
  *
  * @returns true if path is valid, false otherwise
  */
-export function isCanonicalPathValid(path: Partial<EmploymentVerificationPath>): path is EmploymentVerificationPath {
+export function isCanonicalPathValid(
+  path: Partial<EmploymentVerificationPath>,
+): path is EmploymentVerificationPath {
   try {
     if (!path.recognition || !path.acceptance || !path.start) {
       return false;

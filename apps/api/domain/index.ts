@@ -1,0 +1,1 @@
+export { CanonicalPathService } from './canonicalPath';

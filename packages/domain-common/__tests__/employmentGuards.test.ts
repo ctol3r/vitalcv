@@ -1,19 +1,19 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import {
+  EmployerAcceptance,
+  EmploymentVerificationPath,
+  RecognitionEvent,
+  StartAttestation,
+} from '../employmentContracts';
 import {
   assertCanonicalPathValid,
   assertEmployerAcceptanceValid,
   assertRecognitionEventValid,
   assertStartAttestationValid,
+  CanonicalPathViolation,
   isCanonicalPathValid,
   verifyCanonicalPath,
-  CanonicalPathViolation,
 } from '../employmentGuards';
-import {
-  RecognitionEvent,
-  EmployerAcceptance,
-  StartAttestation,
-  EmploymentVerificationPath,
-} from '../employmentContracts';
 
 const createProof = (did: string, created: string) => ({
   type: 'Ed25519Signature2020',
@@ -29,6 +29,10 @@ const createRecognition = (overrides: Partial<RecognitionEvent> = {}): Recogniti
   practitionerDid: 'did:example:practitioner',
   roleId: 'role:registered-nurse',
   recognizedAt: '2024-01-01T00:00:00Z',
+  verification: {
+    verifiedAt: '2024-01-01T00:00:00Z',
+    verificationRef: 'verification-ref-001',
+  },
   proof: createProof('did:example:employer', '2024-01-01T00:00:00Z'),
   hashAnchor: 'hash-recognition',
   ...overrides,
@@ -36,13 +40,14 @@ const createRecognition = (overrides: Partial<RecognitionEvent> = {}): Recogniti
 
 const createAcceptance = (
   recognition: RecognitionEvent,
-  overrides: Partial<EmployerAcceptance> = {}
+  overrides: Partial<EmployerAcceptance> = {},
 ): EmployerAcceptance => ({
   acceptanceId: 'acc-001',
   recognitionId: recognition.recognitionId,
   employerDid: recognition.employerDid,
   practitionerDid: recognition.practitionerDid,
   roleId: recognition.roleId,
+  facilityId: 'facility:alpha',
   acceptedAt: '2024-01-02T00:00:00Z',
   countersignedAt: '2024-01-02T01:00:00Z',
   agreedStartDate: '2024-02-01T00:00:00Z',
@@ -64,7 +69,7 @@ const createAcceptance = (
 const createStart = (
   recognition: RecognitionEvent,
   acceptance: EmployerAcceptance,
-  overrides: Partial<StartAttestation> = {}
+  overrides: Partial<StartAttestation> = {},
 ): StartAttestation => ({
   attestationId: 'start-001',
   recognitionId: recognition.recognitionId,
@@ -72,6 +77,7 @@ const createStart = (
   employerDid: recognition.employerDid,
   practitionerDid: recognition.practitionerDid,
   roleId: recognition.roleId,
+  facilityId: acceptance.facilityId,
   actualStartDate: '2024-02-05T00:00:00Z',
   attestedAt: '2024-02-05T01:00:00Z',
   proof: createProof(recognition.employerDid, '2024-02-05T01:00:00Z'),
@@ -83,11 +89,13 @@ const createStart = (
   ...overrides,
 });
 
-const createPath = (overrides: {
-  recognition?: Partial<RecognitionEvent>;
-  acceptance?: Partial<EmployerAcceptance>;
-  start?: Partial<StartAttestation>;
-} = {}): EmploymentVerificationPath => {
+const createPath = (
+  overrides: {
+    recognition?: Partial<RecognitionEvent>;
+    acceptance?: Partial<EmployerAcceptance>;
+    start?: Partial<StartAttestation>;
+  } = {},
+): EmploymentVerificationPath => {
   const recognition = createRecognition(overrides.recognition);
   const acceptance = createAcceptance(recognition, overrides.acceptance);
   const start = createStart(recognition, acceptance, overrides.start);
@@ -109,7 +117,7 @@ const captureViolation = (action: () => void): CanonicalPathViolation => {
 const expectViolation = (
   action: () => void,
   violationType: CanonicalPathViolation['violationType'],
-  messageContains?: string
+  messageContains?: string,
 ) => {
   const violation = captureViolation(action);
   expect(violation.violationType).toBe(violationType);
@@ -132,7 +140,7 @@ describe('assertRecognitionEventValid', () => {
     expectViolation(
       () => assertRecognitionEventValid(recognition),
       'INVALID_SIGNATURE',
-      'RecognitionEvent.employerDid'
+      'RecognitionEvent.employerDid',
     );
   });
 
@@ -142,7 +150,7 @@ describe('assertRecognitionEventValid', () => {
     expectViolation(
       () => assertRecognitionEventValid(recognition),
       'INVALID_SIGNATURE',
-      'RecognitionEvent.employerDid'
+      'RecognitionEvent.employerDid',
     );
   });
 
@@ -152,7 +160,7 @@ describe('assertRecognitionEventValid', () => {
     expectViolation(
       () => assertRecognitionEventValid(recognition),
       'INVALID_SIGNATURE',
-      'RecognitionEvent.practitionerDid'
+      'RecognitionEvent.practitionerDid',
     );
   });
 
@@ -162,7 +170,7 @@ describe('assertRecognitionEventValid', () => {
     expectViolation(
       () => assertRecognitionEventValid(recognition),
       'INVALID_SIGNATURE',
-      'recognitionId'
+      'recognitionId',
     );
   });
 
@@ -172,37 +180,58 @@ describe('assertRecognitionEventValid', () => {
     expectViolation(
       () => assertRecognitionEventValid(recognition),
       'INVALID_SIGNATURE',
-      'recognitionId'
+      'recognitionId',
     );
   });
 
   it('rejects missing roleId', () => {
     const recognition = createRecognition({ roleId: '' });
 
-    expectViolation(
-      () => assertRecognitionEventValid(recognition),
-      'INVALID_SIGNATURE',
-      'roleId'
-    );
+    expectViolation(() => assertRecognitionEventValid(recognition), 'INVALID_SIGNATURE', 'roleId');
   });
 
   it('rejects roleId with wrong type', () => {
     const recognition = createRecognition({ roleId: 456 as unknown as string });
 
-    expectViolation(
-      () => assertRecognitionEventValid(recognition),
-      'INVALID_SIGNATURE',
-      'roleId'
-    );
+    expectViolation(() => assertRecognitionEventValid(recognition), 'INVALID_SIGNATURE', 'roleId');
   });
 
   it('rejects missing proof', () => {
-    const recognition = createRecognition({ proof: undefined as unknown as RecognitionEvent['proof'] });
+    const recognition = createRecognition({
+      proof: undefined as unknown as RecognitionEvent['proof'],
+    });
 
     expectViolation(
       () => assertRecognitionEventValid(recognition),
       'INVALID_SIGNATURE',
-      'cryptographic proof'
+      'cryptographic proof',
+    );
+  });
+
+  it('rejects missing verification', () => {
+    const recognition = createRecognition({
+      verification: undefined as unknown as RecognitionEvent['verification'],
+    });
+
+    expectViolation(
+      () => assertRecognitionEventValid(recognition),
+      'INVALID_SIGNATURE',
+      'verification',
+    );
+  });
+
+  it('rejects verification issued after recognition', () => {
+    const recognition = createRecognition({
+      verification: {
+        verifiedAt: '2024-01-02T00:00:00Z',
+        verificationRef: 'verification-ref-002',
+      },
+    });
+
+    expectViolation(
+      () => assertRecognitionEventValid(recognition),
+      'TIMESTAMP_ORDER',
+      'verifiedAt',
     );
   });
 
@@ -217,7 +246,7 @@ describe('assertRecognitionEventValid', () => {
     expectViolation(
       () => assertRecognitionEventValid(recognition),
       'INVALID_SIGNATURE',
-      'proof missing required fields'
+      'proof missing required fields',
     );
   });
 
@@ -232,7 +261,7 @@ describe('assertRecognitionEventValid', () => {
     expectViolation(
       () => assertRecognitionEventValid(recognition),
       'INVALID_SIGNATURE',
-      'proof missing required fields'
+      'proof missing required fields',
     );
   });
 
@@ -247,7 +276,7 @@ describe('assertRecognitionEventValid', () => {
     expectViolation(
       () => assertRecognitionEventValid(recognition),
       'INVALID_SIGNATURE',
-      'proof missing required fields'
+      'proof missing required fields',
     );
   });
 
@@ -262,7 +291,7 @@ describe('assertRecognitionEventValid', () => {
     expectViolation(
       () => assertRecognitionEventValid(recognition),
       'INVALID_PROOF_TYPE',
-      'proof type'
+      'proof type',
     );
   });
 
@@ -274,7 +303,7 @@ describe('assertRecognitionEventValid', () => {
     expectViolation(
       () => assertRecognitionEventValid(recognition),
       'SELF_REPORTED',
-      'verificationMethod'
+      'verificationMethod',
     );
   });
 
@@ -284,7 +313,7 @@ describe('assertRecognitionEventValid', () => {
     expectViolation(
       () => assertRecognitionEventValid(recognition),
       'TIMESTAMP_ORDER',
-      'recognizedAt'
+      'recognizedAt',
     );
   });
 
@@ -294,7 +323,7 @@ describe('assertRecognitionEventValid', () => {
     expectViolation(
       () => assertRecognitionEventValid(recognition),
       'INVALID_SIGNATURE',
-      'hashAnchor'
+      'hashAnchor',
     );
   });
 
@@ -304,7 +333,7 @@ describe('assertRecognitionEventValid', () => {
     expectViolation(
       () => assertRecognitionEventValid(recognition),
       'INVALID_SIGNATURE',
-      'hashAnchor'
+      'hashAnchor',
     );
   });
 });
@@ -323,7 +352,7 @@ describe('assertEmployerAcceptanceValid', () => {
     expectViolation(
       () => assertEmployerAcceptanceValid(acceptance, recognition),
       'MISSING_REFERENCE',
-      'RecognitionEvent.recognitionId'
+      'RecognitionEvent.recognitionId',
     );
   });
 
@@ -334,7 +363,7 @@ describe('assertEmployerAcceptanceValid', () => {
     expectViolation(
       () => assertEmployerAcceptanceValid(acceptance, recognition),
       'MISSING_REFERENCE',
-      'RecognitionEvent.recognitionId'
+      'RecognitionEvent.recognitionId',
     );
   });
 
@@ -348,7 +377,7 @@ describe('assertEmployerAcceptanceValid', () => {
     expectViolation(
       () => assertEmployerAcceptanceValid(acceptance, recognition),
       'DID_MISMATCH',
-      'EmployerAcceptance.employerDid'
+      'EmployerAcceptance.employerDid',
     );
   });
 
@@ -362,7 +391,7 @@ describe('assertEmployerAcceptanceValid', () => {
     expectViolation(
       () => assertEmployerAcceptanceValid(acceptance, recognition),
       'DID_MISMATCH',
-      'EmployerAcceptance.practitionerDid'
+      'EmployerAcceptance.practitionerDid',
     );
   });
 
@@ -373,7 +402,18 @@ describe('assertEmployerAcceptanceValid', () => {
     expectViolation(
       () => assertEmployerAcceptanceValid(acceptance, recognition),
       'DID_MISMATCH',
-      'EmployerAcceptance.roleId'
+      'EmployerAcceptance.roleId',
+    );
+  });
+
+  it('rejects missing facilityId', () => {
+    const { recognition } = createPath();
+    const acceptance = createAcceptance(recognition, { facilityId: '' });
+
+    expectViolation(
+      () => assertEmployerAcceptanceValid(acceptance, recognition),
+      'INVALID_SIGNATURE',
+      'facilityId',
     );
   });
 
@@ -386,7 +426,7 @@ describe('assertEmployerAcceptanceValid', () => {
     expectViolation(
       () => assertEmployerAcceptanceValid(acceptance, recognition),
       'INVALID_SIGNATURE',
-      'practitionerProof'
+      'practitionerProof',
     );
   });
 
@@ -399,7 +439,7 @@ describe('assertEmployerAcceptanceValid', () => {
     expectViolation(
       () => assertEmployerAcceptanceValid(acceptance, recognition),
       'INVALID_SIGNATURE',
-      'practitionerProof'
+      'practitionerProof',
     );
   });
 
@@ -412,7 +452,7 @@ describe('assertEmployerAcceptanceValid', () => {
     expectViolation(
       () => assertEmployerAcceptanceValid(acceptance, recognition),
       'INVALID_SIGNATURE',
-      'employerProof'
+      'employerProof',
     );
   });
 
@@ -425,7 +465,7 @@ describe('assertEmployerAcceptanceValid', () => {
     expectViolation(
       () => assertEmployerAcceptanceValid(acceptance, recognition),
       'MISSING_COUNTERSIGNATURE',
-      'employerProof'
+      'employerProof',
     );
   });
 
@@ -439,7 +479,7 @@ describe('assertEmployerAcceptanceValid', () => {
     expectViolation(
       () => assertEmployerAcceptanceValid(acceptance, recognition),
       'TIMESTAMP_ORDER',
-      'acceptedAt'
+      'acceptedAt',
     );
   });
 
@@ -452,7 +492,20 @@ describe('assertEmployerAcceptanceValid', () => {
     expectViolation(
       () => assertEmployerAcceptanceValid(acceptance, recognition),
       'TIMESTAMP_ORDER',
-      'countersignedAt'
+      'countersignedAt',
+    );
+  });
+
+  it('rejects acceptance after recognition expires', () => {
+    const recognition = createRecognition({
+      terms: { expiresAt: '2024-01-01T12:00:00Z' },
+    });
+    const acceptance = createAcceptance(recognition, { acceptedAt: '2024-01-02T00:00:00Z' });
+
+    expectViolation(
+      () => assertEmployerAcceptanceValid(acceptance, recognition),
+      'EXPIRED',
+      'expired',
     );
   });
 
@@ -465,7 +518,7 @@ describe('assertEmployerAcceptanceValid', () => {
     expectViolation(
       () => assertEmployerAcceptanceValid(acceptance, recognition),
       'TIMESTAMP_ORDER',
-      'acceptedAt'
+      'acceptedAt',
     );
   });
 
@@ -476,7 +529,7 @@ describe('assertEmployerAcceptanceValid', () => {
     expectViolation(
       () => assertEmployerAcceptanceValid(acceptance, recognition),
       'TIMESTAMP_ORDER',
-      'acceptedAt'
+      'acceptedAt',
     );
   });
 
@@ -489,7 +542,7 @@ describe('assertEmployerAcceptanceValid', () => {
     expectViolation(
       () => assertEmployerAcceptanceValid(acceptance, recognition),
       'TIMESTAMP_ORDER',
-      'countersignedAt'
+      'countersignedAt',
     );
   });
 
@@ -500,7 +553,7 @@ describe('assertEmployerAcceptanceValid', () => {
     expectViolation(
       () => assertEmployerAcceptanceValid(acceptance, recognition),
       'INVALID_SIGNATURE',
-      'hashAnchor'
+      'hashAnchor',
     );
   });
 
@@ -511,7 +564,7 @@ describe('assertEmployerAcceptanceValid', () => {
     expectViolation(
       () => assertEmployerAcceptanceValid(acceptance, recognition),
       'INVALID_SIGNATURE',
-      'hashAnchor'
+      'hashAnchor',
     );
   });
 
@@ -522,18 +575,20 @@ describe('assertEmployerAcceptanceValid', () => {
     expectViolation(
       () => assertEmployerAcceptanceValid(acceptance, recognition),
       'MISSING_REFERENCE',
-      'psvReportId'
+      'psvReportId',
     );
   });
 
   it('rejects PSV report ID with wrong type', () => {
     const { recognition } = createPath();
-    const acceptance = createAcceptance(recognition, { psvReportId: undefined as unknown as string });
+    const acceptance = createAcceptance(recognition, {
+      psvReportId: undefined as unknown as string,
+    });
 
     expectViolation(
       () => assertEmployerAcceptanceValid(acceptance, recognition),
       'MISSING_REFERENCE',
-      'psvReportId'
+      'psvReportId',
     );
   });
 });
@@ -552,7 +607,7 @@ describe('assertStartAttestationValid', () => {
     expectViolation(
       () => assertStartAttestationValid(start, recognition, acceptance),
       'MISSING_REFERENCE',
-      'RecognitionEvent.recognitionId'
+      'RecognitionEvent.recognitionId',
     );
   });
 
@@ -563,7 +618,7 @@ describe('assertStartAttestationValid', () => {
     expectViolation(
       () => assertStartAttestationValid(start, recognition, acceptance),
       'MISSING_REFERENCE',
-      'RecognitionEvent.recognitionId'
+      'RecognitionEvent.recognitionId',
     );
   });
 
@@ -574,7 +629,7 @@ describe('assertStartAttestationValid', () => {
     expectViolation(
       () => assertStartAttestationValid(start, recognition, acceptance),
       'MISSING_REFERENCE',
-      'EmployerAcceptance.acceptanceId'
+      'EmployerAcceptance.acceptanceId',
     );
   });
 
@@ -585,7 +640,7 @@ describe('assertStartAttestationValid', () => {
     expectViolation(
       () => assertStartAttestationValid(start, recognition, acceptance),
       'MISSING_REFERENCE',
-      'EmployerAcceptance.acceptanceId'
+      'EmployerAcceptance.acceptanceId',
     );
   });
 
@@ -599,7 +654,7 @@ describe('assertStartAttestationValid', () => {
     expectViolation(
       () => assertStartAttestationValid(start, recognition, acceptance),
       'DID_MISMATCH',
-      'StartAttestation.employerDid'
+      'StartAttestation.employerDid',
     );
   });
 
@@ -612,7 +667,7 @@ describe('assertStartAttestationValid', () => {
     expectViolation(
       () => assertStartAttestationValid(start, recognition, acceptance),
       'DID_MISMATCH',
-      'StartAttestation.practitionerDid'
+      'StartAttestation.practitionerDid',
     );
   });
 
@@ -623,7 +678,29 @@ describe('assertStartAttestationValid', () => {
     expectViolation(
       () => assertStartAttestationValid(start, recognition, acceptance),
       'DID_MISMATCH',
-      'StartAttestation.roleId'
+      'StartAttestation.roleId',
+    );
+  });
+
+  it('rejects missing facilityId', () => {
+    const { recognition, acceptance } = createPath();
+    const start = createStart(recognition, acceptance, { facilityId: '' });
+
+    expectViolation(
+      () => assertStartAttestationValid(start, recognition, acceptance),
+      'INVALID_SIGNATURE',
+      'facilityId',
+    );
+  });
+
+  it('rejects facilityId mismatch', () => {
+    const { recognition, acceptance } = createPath();
+    const start = createStart(recognition, acceptance, { facilityId: 'facility:beta' });
+
+    expectViolation(
+      () => assertStartAttestationValid(start, recognition, acceptance),
+      'SCOPE_MISMATCH',
+      'facilityId',
     );
   });
 
@@ -636,7 +713,7 @@ describe('assertStartAttestationValid', () => {
     expectViolation(
       () => assertStartAttestationValid(start, recognition, acceptance),
       'INVALID_SIGNATURE',
-      'StartAttestation'
+      'StartAttestation',
     );
   });
 
@@ -649,7 +726,7 @@ describe('assertStartAttestationValid', () => {
     expectViolation(
       () => assertStartAttestationValid(start, recognition, acceptance),
       'SELF_REPORTED',
-      'employerDid'
+      'employerDid',
     );
   });
 
@@ -662,7 +739,7 @@ describe('assertStartAttestationValid', () => {
     expectViolation(
       () => assertStartAttestationValid(start, recognition, acceptance),
       'TIMESTAMP_ORDER',
-      'actualStartDate'
+      'actualStartDate',
     );
   });
 
@@ -673,7 +750,7 @@ describe('assertStartAttestationValid', () => {
     expectViolation(
       () => assertStartAttestationValid(start, recognition, acceptance),
       'TIMESTAMP_ORDER',
-      'attestedAt'
+      'attestedAt',
     );
   });
 
@@ -684,7 +761,7 @@ describe('assertStartAttestationValid', () => {
     expectViolation(
       () => assertStartAttestationValid(start, recognition, acceptance),
       'INVALID_SIGNATURE',
-      'hashAnchor'
+      'hashAnchor',
     );
   });
 
@@ -695,7 +772,7 @@ describe('assertStartAttestationValid', () => {
     expectViolation(
       () => assertStartAttestationValid(start, recognition, acceptance),
       'INVALID_SIGNATURE',
-      'hashAnchor'
+      'hashAnchor',
     );
   });
 });
@@ -711,13 +788,14 @@ describe('assertCanonicalPathValid', () => {
     const { acceptance, start } = createPath();
 
     expectViolation(
-      () => assertCanonicalPathValid({
-        recognition: undefined as unknown as RecognitionEvent,
-        acceptance,
-        start,
-      } as EmploymentVerificationPath),
+      () =>
+        assertCanonicalPathValid({
+          recognition: undefined as unknown as RecognitionEvent,
+          acceptance,
+          start,
+        } as EmploymentVerificationPath),
       'MISSING_RECOGNITION',
-      'RecognitionEvent'
+      'RecognitionEvent',
     );
   });
 
@@ -725,13 +803,14 @@ describe('assertCanonicalPathValid', () => {
     const { recognition, start } = createPath();
 
     expectViolation(
-      () => assertCanonicalPathValid({
-        recognition,
-        acceptance: undefined as unknown as EmployerAcceptance,
-        start,
-      } as EmploymentVerificationPath),
+      () =>
+        assertCanonicalPathValid({
+          recognition,
+          acceptance: undefined as unknown as EmployerAcceptance,
+          start,
+        } as EmploymentVerificationPath),
       'MISSING_ACCEPTANCE',
-      'EmployerAcceptance'
+      'EmployerAcceptance',
     );
   });
 
@@ -739,13 +818,14 @@ describe('assertCanonicalPathValid', () => {
     const { recognition, acceptance } = createPath();
 
     expectViolation(
-      () => assertCanonicalPathValid({
-        recognition,
-        acceptance,
-        start: undefined as unknown as StartAttestation,
-      } as EmploymentVerificationPath),
+      () =>
+        assertCanonicalPathValid({
+          recognition,
+          acceptance,
+          start: undefined as unknown as StartAttestation,
+        } as EmploymentVerificationPath),
       'MISSING_START',
-      'StartAttestation'
+      'StartAttestation',
     );
   });
 });
