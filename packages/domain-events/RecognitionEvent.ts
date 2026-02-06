@@ -5,6 +5,12 @@ import {
   type PsvReceiptSnapshot,
   validateReceiptSet,
 } from '../domain-core';
+import {
+  assertHashAnchor,
+  assertValidProof,
+  normalizeProof,
+  type SignatureProof,
+} from './nonRepudiation';
 
 export type RecognitionEventInput = {
   recognitionId?: string;
@@ -12,6 +18,8 @@ export type RecognitionEventInput = {
   employerId: string;
   recognizedAt: string;
   psvReceipts: readonly PsvReceiptSnapshot[];
+  proof: SignatureProof;
+  hashAnchor?: string;
 };
 
 function generateId(prefix: string): string {
@@ -29,6 +37,8 @@ export class RecognitionEvent {
   public readonly recognizedAt: string;
   public readonly psvReceiptIds: readonly string[];
   public readonly lastVerifiedAt: string;
+  public readonly proof: SignatureProof;
+  public readonly hashAnchor: string;
 
   constructor(input: RecognitionEventInput) {
     if (!input || typeof input !== 'object') {
@@ -38,6 +48,7 @@ export class RecognitionEvent {
     assertNonEmptyString(input.subjectId, 'RecognitionEvent.subjectId');
     assertNonEmptyString(input.employerId, 'RecognitionEvent.employerId');
     parseRfc3339Utc(input.recognizedAt, 'RecognitionEvent.recognizedAt');
+    assertValidProof(input.proof, 'RecognitionEvent.proof');
 
     const receiptSet = validateReceiptSet(input.psvReceipts, input.recognizedAt);
     if (receiptSet.receiptIds.length === 0) {
@@ -47,12 +58,25 @@ export class RecognitionEvent {
       );
     }
 
-    this.recognitionId = input.recognitionId ?? generateId('rec');
+    const recognitionId = input.recognitionId ?? generateId('rec');
+    const canonicalPayload = Object.freeze({
+      event_type: 'RECOGNITION',
+      recognitionId,
+      subjectId: input.subjectId,
+      employerId: input.employerId,
+      recognizedAt: input.recognizedAt,
+      psvReceiptIds: receiptSet.receiptIds,
+      lastVerifiedAt: receiptSet.lastVerifiedAt,
+    });
+
+    this.recognitionId = recognitionId;
     this.subjectId = input.subjectId;
     this.employerId = input.employerId;
     this.recognizedAt = input.recognizedAt;
     this.psvReceiptIds = Object.freeze([...receiptSet.receiptIds]);
     this.lastVerifiedAt = receiptSet.lastVerifiedAt;
+    this.proof = normalizeProof(input.proof);
+    this.hashAnchor = assertHashAnchor(input.hashAnchor, canonicalPayload);
 
     Object.freeze(this);
   }

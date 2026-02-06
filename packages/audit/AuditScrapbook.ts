@@ -50,11 +50,19 @@ function mapNcqaTags(eventType: AuditEventType): readonly NcqaTag[] {
       return Object.freeze(['CR1']);
     case 'ACCEPTANCE':
       return Object.freeze(['CR1']);
+    case 'EMPLOYER_ACCEPTANCE':
+      return Object.freeze(['CR1']);
     case 'START':
       return Object.freeze(['CR1']);
     case 'COMMITTEE':
       return Object.freeze(['CR4']);
     case 'TRUST_STATE_CHECK':
+      return Object.freeze(['CR1']);
+    case 'TRUST_STATE_DECAY':
+      return Object.freeze(['CR1']);
+    case 'IDEMPOTENT_REPLAY':
+      return Object.freeze(['CR1']);
+    case 'CONCURRENCY_GUARD_TRIGGERED':
       return Object.freeze(['CR1']);
     default:
       return Object.freeze(['CR1']);
