@@ -4,12 +4,20 @@ import {
   parseRfc3339Utc,
 } from '../domain-core';
 import { EmployerAcceptance } from './EmployerAcceptance';
+import {
+  assertHashAnchor,
+  assertValidProof,
+  normalizeProof,
+  type SignatureProof,
+} from './nonRepudiation';
 
 export type StartAttestationInput = {
   startId?: string;
   acceptance: EmployerAcceptance;
   attestedAt: string;
   crsScore: number;
+  proof: SignatureProof;
+  hashAnchor?: string;
 };
 
 function generateId(prefix: string): string {
@@ -28,6 +36,8 @@ export class StartAttestation {
   public readonly employerId: string;
   public readonly attestedAt: string;
   public readonly crsScore: number;
+  public readonly proof: SignatureProof;
+  public readonly hashAnchor: string;
 
   constructor(input: StartAttestationInput) {
     if (!input || typeof input !== 'object') {
@@ -50,6 +60,7 @@ export class StartAttestation {
 
     assertStartReadyCrs(input.crsScore);
     parseRfc3339Utc(input.attestedAt, 'StartAttestation.attestedAt');
+    assertValidProof(input.proof, 'StartAttestation.proof');
 
     const attestedAtTs = Date.parse(input.attestedAt);
     const countersignedAtTs = Date.parse(input.acceptance.countersignedAt);
@@ -67,13 +78,27 @@ export class StartAttestation {
       );
     }
 
-    this.startId = input.startId ?? generateId('start');
+    const startId = input.startId ?? generateId('start');
+    const canonicalPayload = Object.freeze({
+      event_type: 'START',
+      startId,
+      recognitionId: input.acceptance.recognitionId,
+      acceptanceId: input.acceptance.acceptanceId,
+      subjectId: input.acceptance.subjectId,
+      employerId: input.acceptance.employerId,
+      attestedAt: input.attestedAt,
+      crsScore: input.crsScore,
+    });
+
+    this.startId = startId;
     this.recognitionId = input.acceptance.recognitionId;
     this.acceptanceId = input.acceptance.acceptanceId;
     this.subjectId = input.acceptance.subjectId;
     this.employerId = input.acceptance.employerId;
     this.attestedAt = input.attestedAt;
     this.crsScore = input.crsScore;
+    this.proof = normalizeProof(input.proof);
+    this.hashAnchor = assertHashAnchor(input.hashAnchor, canonicalPayload);
 
     Object.freeze(this);
   }

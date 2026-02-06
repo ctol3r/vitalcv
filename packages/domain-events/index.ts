@@ -12,3 +12,8 @@ export {
   StartAttestation,
   type StartAttestationInput,
 } from './StartAttestation';
+
+export {
+  type SignatureProof,
+  buildHashAnchor,
+} from './nonRepudiation';

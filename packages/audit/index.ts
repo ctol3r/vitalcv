@@ -16,3 +16,15 @@ export {
   type DelegateAuditSelector,
   type AuditPacket,
 } from './AuditScrapbook';
+
+export {
+  listEmployersForClinician,
+  listCliniciansForEmployer,
+  type EmployerScopeLink,
+} from './trustGraph';
+
+export {
+  buildTimeline,
+  type BuildTimelineOptions,
+  type TimelineEvent,
+} from './timeline';

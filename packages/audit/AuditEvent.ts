@@ -4,9 +4,13 @@ export const AUDIT_EVENT_TYPES = [
   'PSV_RECEIPT',
   'RECOGNITION',
   'ACCEPTANCE',
+  'EMPLOYER_ACCEPTANCE',
   'START',
   'COMMITTEE',
   'TRUST_STATE_CHECK',
+  'TRUST_STATE_DECAY',
+  'IDEMPOTENT_REPLAY',
+  'CONCURRENCY_GUARD_TRIGGERED',
 ] as const;
 
 export type AuditEventType = (typeof AUDIT_EVENT_TYPES)[number];
@@ -34,6 +38,13 @@ export type AuditEventSnapshot = Readonly<{
 const RFC3339_UTC_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 const UUID_V4_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SHA256_HEX_REGEX = /^[0-9a-f]{64}$/i;
+const NON_REPUDIATION_EVENTS = new Set<AuditEventType>([
+  'RECOGNITION',
+  'ACCEPTANCE',
+  'EMPLOYER_ACCEPTANCE',
+  'START',
+]);
 
 function assertNonEmptyString(value: unknown, field: string): asserts value is string {
   if (typeof value !== 'string' || value.trim().length === 0) {
@@ -71,10 +82,108 @@ function deepFreeze<T>(value: T): T {
   return Object.freeze(value);
 }
 
-function normalizeMetadata(metadata: AuditEventMetadata | undefined): AuditEventMetadata {
-  if (!metadata) return Object.freeze({});
+function readOptionalScopeField(
+  metadata: Record<string, unknown>,
+  field: 'employer_id' | 'facility_id' | 'role',
+): string | undefined {
+  const value = metadata[field];
+  if (typeof value !== 'string') return undefined;
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : undefined;
+}
 
-  return deepFreeze({ ...metadata });
+function readOptionalString(metadata: Record<string, unknown>, field: string): string | undefined {
+  const value = metadata[field];
+  if (typeof value !== 'string') return undefined;
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function readOptionalProofField(
+  metadata: Record<string, unknown>,
+  proofKey: 'type' | 'verificationMethod',
+): string | undefined {
+  const proof = metadata.proof;
+  if (!proof || typeof proof !== 'object') {
+    return undefined;
+  }
+
+  return readOptionalString(proof as Record<string, unknown>, proofKey);
+}
+
+function readOptionalEmployerProofField(
+  metadata: Record<string, unknown>,
+  proofKey: 'type' | 'verificationMethod',
+): string | undefined {
+  const proof = metadata.employerProof;
+  if (!proof || typeof proof !== 'object') {
+    return undefined;
+  }
+
+  return readOptionalString(proof as Record<string, unknown>, proofKey);
+}
+
+function normalizeNonRepudiationMetadata(
+  event_type: AuditEventType,
+  metadata: Record<string, unknown>,
+): void {
+  if (!NON_REPUDIATION_EVENTS.has(event_type)) {
+    return;
+  }
+
+  const hashAnchor = readOptionalString(metadata, 'hashAnchor') ?? readOptionalString(metadata, 'hash_anchor');
+  const proofType =
+    readOptionalString(metadata, 'proofType') ??
+    readOptionalProofField(metadata, 'type') ??
+    readOptionalEmployerProofField(metadata, 'type');
+  const verificationMethod =
+    readOptionalString(metadata, 'verificationMethod') ??
+    readOptionalProofField(metadata, 'verificationMethod') ??
+    readOptionalEmployerProofField(metadata, 'verificationMethod');
+
+  if (!hashAnchor || !SHA256_HEX_REGEX.test(hashAnchor)) {
+    throw new Error(`metadata.hashAnchor is required for ${event_type}`);
+  }
+  if (!proofType) {
+    throw new Error(`metadata.proofType is required for ${event_type}`);
+  }
+  if (!verificationMethod) {
+    throw new Error(`metadata.verificationMethod is required for ${event_type}`);
+  }
+
+  metadata.hashAnchor = hashAnchor.toLowerCase();
+  metadata.proofType = proofType;
+  metadata.verificationMethod = verificationMethod;
+}
+
+function normalizeMetadata(
+  event_type: AuditEventType,
+  clinician_id: string,
+  metadata: AuditEventMetadata | undefined,
+): AuditEventMetadata {
+  const payload = metadata ? { ...metadata } : {};
+
+  // Canonical trust events always carry the clinician anchor for graph traversal.
+  if (
+    event_type === 'PSV_RECEIPT' ||
+    event_type === 'RECOGNITION' ||
+    event_type === 'EMPLOYER_ACCEPTANCE' ||
+    event_type === 'START' ||
+    event_type === 'TRUST_STATE_DECAY'
+  ) {
+    payload.clinician_id = clinician_id;
+  }
+
+  const employer_id = readOptionalScopeField(payload, 'employer_id');
+  const facility_id = readOptionalScopeField(payload, 'facility_id');
+  const role = readOptionalScopeField(payload, 'role');
+
+  if (employer_id) payload.employer_id = employer_id;
+  if (facility_id) payload.facility_id = facility_id;
+  if (role) payload.role = role;
+  normalizeNonRepudiationMetadata(event_type, payload);
+
+  return deepFreeze(payload);
 }
 
 function createAuditEventId(audit_event_id?: string): string {
@@ -125,7 +234,7 @@ export class AuditEvent {
       event_type: input.event_type,
       reference_id: input.reference_id,
       occurred_at: input.occurred_at,
-      metadata: normalizeMetadata(input.metadata),
+      metadata: normalizeMetadata(input.event_type, input.clinician_id, input.metadata),
     });
   }
 

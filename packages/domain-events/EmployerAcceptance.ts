@@ -5,14 +5,24 @@ import {
   parseRfc3339Utc,
 } from '../domain-core';
 import { RecognitionEvent } from './RecognitionEvent';
+import {
+  assertHashAnchor,
+  assertValidProof,
+  normalizeProof,
+  type SignatureProof,
+} from './nonRepudiation';
 
 export type EmployerAcceptanceInput = {
   acceptanceId?: string;
   recognition: RecognitionEvent;
+  employerId?: string;
   facilityId: string;
+  role?: string;
   acceptedAt: string;
   countersignedAt: string;
   countersignedByEmployer: boolean;
+  employerProof: SignatureProof;
+  hashAnchor?: string;
 };
 
 function generateId(prefix: string): string {
@@ -29,10 +39,13 @@ export class EmployerAcceptance {
   public readonly subjectId: string;
   public readonly employerId: string;
   public readonly facilityId: string;
+  public readonly role: string;
   public readonly acceptedAt: string;
   public readonly countersignedAt: string;
   public readonly countersignedByEmployer: true;
   public readonly recognitionRecognizedAt: string;
+  public readonly employerProof: SignatureProof;
+  public readonly hashAnchor: string;
 
   constructor(input: EmployerAcceptanceInput) {
     if (!input || typeof input !== 'object') {
@@ -59,8 +72,15 @@ export class EmployerAcceptance {
         'MISSING_COUNTERSIGNATURE',
       );
     }
+    assertValidProof(input.employerProof, 'EmployerAcceptance.employerProof');
 
     assertNonEmptyString(input.facilityId, 'EmployerAcceptance.facilityId');
+    const resolvedEmployerId = input.employerId ?? input.recognition.employerId;
+    assertNonEmptyString(resolvedEmployerId, 'EmployerAcceptance.employerId');
+
+    const resolvedRole = input.role ?? 'role:unspecified';
+    assertNonEmptyString(resolvedRole, 'EmployerAcceptance.role');
+
     parseRfc3339Utc(input.acceptedAt, 'EmployerAcceptance.acceptedAt');
     parseRfc3339Utc(input.countersignedAt, 'EmployerAcceptance.countersignedAt');
 
@@ -80,15 +100,33 @@ export class EmployerAcceptance {
       );
     }
 
-    this.acceptanceId = input.acceptanceId ?? generateId('acc');
+    const acceptanceId = input.acceptanceId ?? generateId('acc');
+    const canonicalPayload = Object.freeze({
+      event_type: 'ACCEPTANCE',
+      acceptanceId,
+      recognitionId: input.recognition.recognitionId,
+      subjectId: input.recognition.subjectId,
+      employerId: resolvedEmployerId,
+      facilityId: input.facilityId,
+      role: resolvedRole,
+      acceptedAt: input.acceptedAt,
+      countersignedAt: input.countersignedAt,
+      countersignedByEmployer: true,
+      recognitionRecognizedAt: input.recognition.recognizedAt,
+    });
+
+    this.acceptanceId = acceptanceId;
     this.recognitionId = input.recognition.recognitionId;
     this.subjectId = input.recognition.subjectId;
-    this.employerId = input.recognition.employerId;
+    this.employerId = resolvedEmployerId;
     this.facilityId = input.facilityId;
+    this.role = resolvedRole;
     this.acceptedAt = input.acceptedAt;
     this.countersignedAt = input.countersignedAt;
     this.countersignedByEmployer = true;
     this.recognitionRecognizedAt = input.recognition.recognizedAt;
+    this.employerProof = normalizeProof(input.employerProof);
+    this.hashAnchor = assertHashAnchor(input.hashAnchor, canonicalPayload);
 
     Object.freeze(this);
   }

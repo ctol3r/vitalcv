@@ -46,10 +46,14 @@ export class CanonicalPathService {
     const acceptance = new EmployerAcceptance({
       acceptanceId: input.acceptanceId,
       recognition,
+      employerId: input.employerId,
       facilityId: input.facilityId,
+      role: input.role,
       acceptedAt: input.acceptedAt,
       countersignedAt: input.countersignedAt,
       countersignedByEmployer: input.countersignedByEmployer,
+      employerProof: input.employerProof,
+      hashAnchor: input.hashAnchor,
     });
 
     if (this.acceptanceByRecognitionId.has(recognition.recognitionId)) {
@@ -102,6 +106,8 @@ export class CanonicalPathService {
       acceptance,
       attestedAt: input.attestedAt,
       crsScore: input.crsScore,
+      proof: input.proof,
+      hashAnchor: input.hashAnchor,
     });
 
     this.startsByAcceptanceId.set(input.acceptanceId, start);
