@@ -1,0 +1,1 @@
+export { DomainError } from "./DomainError";

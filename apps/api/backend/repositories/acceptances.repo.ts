@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { Prisma } from '@prisma/client';
 import {
   EmployerAcceptance,
   type EmployerAcceptanceInput,
@@ -6,6 +7,14 @@ import {
 import prisma from '../src/graphql/prisma_client';
 
 type CanonicalEventType = 'ACCEPTANCE_EMITTED';
+type CanonicalMetadata = Readonly<{
+  eventTimestamp: unknown;
+  subjectId: unknown;
+  eventHash: string;
+  recognitionId: unknown;
+  acceptanceId: unknown;
+  payload: Prisma.InputJsonValue;
+}>;
 
 function stableStringify(value: unknown): string {
   if (value === null || value === undefined) return 'null';
@@ -36,14 +45,14 @@ function buildAcceptancePayload(event: EmployerAcceptance): Record<string, unkno
   };
 }
 
-function buildMetadata(eventType: CanonicalEventType, payload: Record<string, unknown>) {
+function buildMetadata(eventType: CanonicalEventType, payload: Record<string, unknown>): CanonicalMetadata {
   return {
     eventTimestamp: payload.acceptedAt ?? null,
     subjectId: payload.subjectId ?? null,
     eventHash: canonicalEventHash(eventType, payload),
     recognitionId: payload.recognitionId ?? null,
     acceptanceId: payload.acceptanceId ?? null,
-    payload,
+    payload: payload as Prisma.InputJsonValue,
   };
 }
 
@@ -87,7 +96,7 @@ export async function insertAcceptance(event: EmployerAcceptance): Promise<void>
       type: 'ACCEPTANCE_EMITTED',
       hash: String(metadata.eventHash),
       credentialId: event.acceptanceId,
-      metadata,
+      metadata: metadata as Prisma.InputJsonValue,
       createdAt: new Date(),
     },
   });

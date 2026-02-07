@@ -1,3 +1,4 @@
+/** YC MVP — behavior frozen. Do not modify without scope approval. */
 export type TrustBand = 'GREEN' | 'YELLOW' | 'RED';
 
 export type BlockingReason =

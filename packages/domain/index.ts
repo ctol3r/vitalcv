@@ -1,4 +1,4 @@
-export { DomainError } from './errors';
+export { DomainError } from '../domain-common/src/errors/DomainError';
 export { EmployerAcceptance, type EmployerAcceptanceInput } from './events/EmployerAcceptance';
 export {
   RecognitionEvent,

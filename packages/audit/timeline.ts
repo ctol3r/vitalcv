@@ -1,3 +1,4 @@
+/** YC MVP — behavior frozen. Do not modify without scope approval. */
 import type { AuditEventType } from './AuditEvent';
 import type { AuditPacket, AuditTimelineEntry } from './AuditScrapbook';
 

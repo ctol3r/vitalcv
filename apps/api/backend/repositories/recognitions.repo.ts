@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { Prisma } from '@prisma/client';
 import {
   type RecognitionEventInput,
   type RecognitionRevocation,
@@ -7,6 +8,13 @@ import {
 import prisma from '../src/graphql/prisma_client';
 
 type CanonicalEventType = 'RECOGNITION_EMITTED' | 'RECOGNITION_REVOKED';
+type CanonicalMetadata = Readonly<{
+  eventTimestamp: unknown;
+  subjectId: unknown;
+  eventHash: string;
+  recognitionId: unknown;
+  payload: Prisma.InputJsonValue;
+}>;
 
 type RecognitionRevocationRecord = RecognitionRevocation & {
   recognitionId: string;
@@ -60,7 +68,7 @@ function buildRevocationPayload(revocation: RecognitionRevocationRecord): Record
   };
 }
 
-function buildMetadata(eventType: CanonicalEventType, payload: Record<string, unknown>) {
+function buildMetadata(eventType: CanonicalEventType, payload: Record<string, unknown>): CanonicalMetadata {
   return {
     eventTimestamp:
       eventType === 'RECOGNITION_REVOKED'
@@ -69,7 +77,7 @@ function buildMetadata(eventType: CanonicalEventType, payload: Record<string, un
     subjectId: payload.subjectId ?? null,
     eventHash: canonicalEventHash(eventType, payload),
     recognitionId: payload.recognitionId ?? null,
-    payload,
+    payload: payload as Prisma.InputJsonValue,
   };
 }
 
@@ -149,7 +157,7 @@ export async function insertRecognition(event: RecognitionEvent): Promise<void> 
       type: 'RECOGNITION_EMITTED',
       hash: String(metadata.eventHash),
       credentialId: event.recognitionId,
-      metadata,
+      metadata: metadata as Prisma.InputJsonValue,
       createdAt: new Date(),
     },
   });
@@ -166,7 +174,7 @@ export async function insertRecognitionRevocation(
       type: 'RECOGNITION_REVOKED',
       hash: String(metadata.eventHash),
       credentialId: revocation.recognitionId,
-      metadata,
+      metadata: metadata as Prisma.InputJsonValue,
       createdAt: new Date(),
     },
   });

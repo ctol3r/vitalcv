@@ -1,3 +1,4 @@
+/** YC MVP — behavior frozen. Do not modify without scope approval. */
 export type LatencyPercentile = 'p50' | 'p90' | 'p99';
 
 export type LatencyHistogramSnapshot = Readonly<{

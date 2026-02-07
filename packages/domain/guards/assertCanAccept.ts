@@ -1,4 +1,4 @@
-import { DomainError } from '../errors';
+import { DomainError } from '../../domain-common/src/errors/DomainError';
 import { RecognitionEvent } from '../events/RecognitionEvent';
 
 function isNonEmptyString(value: unknown): value is string {

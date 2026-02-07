@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { Prisma } from '@prisma/client';
 import {
   StartAttestation,
   type StartAttestationInput,
@@ -6,6 +7,14 @@ import {
 import prisma from '../src/graphql/prisma_client';
 
 type CanonicalEventType = 'START_EMITTED';
+type CanonicalMetadata = Readonly<{
+  eventTimestamp: unknown;
+  subjectId: unknown;
+  eventHash: string;
+  acceptanceId: unknown;
+  startId: unknown;
+  payload: Prisma.InputJsonValue;
+}>;
 
 function stableStringify(value: unknown): string {
   if (value === null || value === undefined) return 'null';
@@ -35,14 +44,14 @@ function buildStartPayload(event: StartAttestation): Record<string, unknown> {
   };
 }
 
-function buildMetadata(eventType: CanonicalEventType, payload: Record<string, unknown>) {
+function buildMetadata(eventType: CanonicalEventType, payload: Record<string, unknown>): CanonicalMetadata {
   return {
     eventTimestamp: payload.attestedAt ?? null,
     subjectId: payload.subjectId ?? null,
     eventHash: canonicalEventHash(eventType, payload),
     acceptanceId: payload.acceptanceId ?? null,
     startId: payload.startId ?? null,
-    payload,
+    payload: payload as Prisma.InputJsonValue,
   };
 }
 
@@ -85,7 +94,7 @@ export async function insertStart(event: StartAttestation): Promise<void> {
       type: 'START_EMITTED',
       hash: String(metadata.eventHash),
       credentialId: event.startId,
-      metadata,
+      metadata: metadata as Prisma.InputJsonValue,
       createdAt: new Date(),
     },
   });
