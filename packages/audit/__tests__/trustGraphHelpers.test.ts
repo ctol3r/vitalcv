@@ -1,3 +1,4 @@
+/** YC MVP — behavior frozen. Do not modify without scope approval. */
 import { describe, expect, it } from 'vitest';
 import { AuditLedger } from '../auditLedger';
 import { buildAuditScrapbook } from '../AuditScrapbook';

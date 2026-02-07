@@ -6,6 +6,12 @@ export {
   type CreatePSVReceiptInput,
 } from './PSVReceipt';
 
-export { validateReceipt, validateReceiptSet, type ReceiptValidationResult } from './validateReceipt';
+export {
+  resolveReceiptStatus,
+  validateReceipt,
+  validateReceiptSet,
+  type ReceiptStatus,
+  type ReceiptValidationResult,
+} from './validateReceipt';
 
 export { PsvStore, type AppendReceiptInput, type TrustStateReceiptRecord } from './psvStore';

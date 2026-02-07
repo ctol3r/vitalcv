@@ -1,3 +1,4 @@
+/** YC MVP — behavior frozen. Do not modify without scope approval. */
 import { AuditEvent, type AuditEventInput } from './AuditEvent';
 
 type StoredAuditEvent = Readonly<{

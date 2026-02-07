@@ -1,36 +1,26 @@
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-
-export default function Home() {
+export default function HomePage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-8">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="text-center">
-          <CardTitle>VitalCV Demo</CardTitle>
-          <CardDescription>Select your role</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Link href="/holder" className="block">
-            <Button className="h-12 w-full text-lg" variant="default">
-              Holder (Clinician)
-            </Button>
-          </Link>
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or</span>
-            </div>
-          </div>
-          <Link href="/verifier" className="block">
-            <Button className="h-12 w-full text-lg" variant="outline">
-              Verifier (Employer)
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
+    <main className="mx-auto my-12 max-w-[880px] p-6">
+      <h1 className="mb-3 text-[42px] font-bold">
+        VitalCV turns credentialing into a reusable, start-ready trust state.
+      </h1>
+
+      <p className="mb-6 text-lg">
+        Verify once. Reuse everywhere. Clinicians start in days, not months.
+      </p>
+
+      <ul className="mb-8 list-inside list-disc text-base leading-relaxed">
+        <li>Recognition → Acceptance → Start (enforced in code)</li>
+        <li>Employers never chase documents or re-verify</li>
+        <li>Audit-backed, revocation-aware trust</li>
+      </ul>
+
+      <a
+        href="/verifier"
+        className="inline-block rounded-lg bg-black px-[22px] py-[14px] font-semibold text-white no-underline"
+      >
+        View Live Demo
+      </a>
     </main>
   );
 }

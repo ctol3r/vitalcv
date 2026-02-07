@@ -1,3 +1,4 @@
+/** YC MVP — behavior frozen. Do not modify without scope approval. */
 import { describe, expect, it, vi } from 'vitest';
 import { TrustStateResolver } from '../TrustStateResolver.ts';
 import type {

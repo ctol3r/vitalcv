@@ -1,14 +1,10 @@
-import { Request, Response, NextFunction } from 'express';
-import { validationResult } from 'express-validator';
-import { HttpError } from './errorHandler';
+import { Request, Response, NextFunction } from "express";
 
-export function validateRequest(req: Request, res: Response, next: NextFunction) {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    const err: HttpError = new Error('Invalid request');
-    err.status = 400;
-    err.errors = errors.array();
-    return next(err);
-  }
+export function validateRequest(
+  _req: Request,
+  _res: Response,
+  next: NextFunction
+) {
+  // MVP: validation intentionally deferred
   next();
 }

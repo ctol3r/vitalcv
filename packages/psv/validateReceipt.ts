@@ -1,6 +1,9 @@
 import type { PSVReceiptSnapshot } from './PSVReceipt';
 
+export type ReceiptStatus = 'VALID' | 'EXPIRED' | 'REVOKED';
+
 export type ReceiptValidationResult = Readonly<{
+  status: ReceiptStatus;
   is_valid: boolean;
   is_expired: boolean;
   is_revoked: boolean;
@@ -47,27 +50,36 @@ function isValidReceiptShape(receipt: Partial<PSVReceiptSnapshot>): boolean {
   );
 }
 
-export function validateReceipt(
+export function resolveReceiptStatus(
   receipt: Partial<PSVReceiptSnapshot>,
   as_of: string | Date,
-): ReceiptValidationResult {
+): ReceiptStatus {
   const asOfEpochMs = parseAsEpoch(as_of, 'as_of');
 
   if (!isValidReceiptShape(receipt)) {
-    return Object.freeze({
-      is_valid: false,
-      is_expired: true,
-      is_revoked: Boolean(receipt?.revoked),
-    });
+    // Fail closed for malformed payloads.
+    return 'EXPIRED';
+  }
+
+  if (receipt.revoked === true) {
+    return 'REVOKED';
   }
 
   const fetchedAtEpochMs = Date.parse(receipt.fetched_at as string);
   const expiresAtEpochMs = fetchedAtEpochMs + (receipt.ttl_seconds as number) * 1000;
+  return asOfEpochMs > expiresAtEpochMs ? 'EXPIRED' : 'VALID';
+}
 
-  const is_revoked = receipt.revoked === true;
-  const is_expired = asOfEpochMs > expiresAtEpochMs;
+export function validateReceipt(
+  receipt: Partial<PSVReceiptSnapshot>,
+  as_of: string | Date,
+): ReceiptValidationResult {
+  const status = resolveReceiptStatus(receipt, as_of);
+  const is_revoked = status === 'REVOKED';
+  const is_expired = status === 'EXPIRED';
 
   return Object.freeze({
+    status,
     is_valid: !is_expired && !is_revoked,
     is_expired,
     is_revoked,

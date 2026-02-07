@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import { isValidNPI } from '../../utils/validateNpi';
+import styles from './CredentialDetail.module.css';
 
 /**
  * Credential detail page.
@@ -39,14 +40,14 @@ export default function CredentialDetail() {
       <h1>Credential {id}</h1>
       
       {/* NPI Validation Section */}
-      <div style={{ marginBottom: '20px' }}>
+      <div className={styles.npiSection}>
         <h2>NPI Validation</h2>
         <input
           id="npi-input"
           name="npi"
           type="text"
           value={npi}
-          onChange={(e) => setNpi(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNpi(e.target.value)}
           placeholder="Enter NPI"
           inputMode="numeric"
           aria-label="NPI"
@@ -67,7 +68,7 @@ export default function CredentialDetail() {
           <input
             type="checkbox"
             checked={shareStatusOnly}
-            onChange={(e) => setShareStatusOnly(e.target.checked)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setShareStatusOnly(e.target.checked)}
           />
           Share only status
         </label>

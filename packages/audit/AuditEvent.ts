@@ -1,3 +1,4 @@
+/** YC MVP — behavior frozen. Do not modify without scope approval. */
 import crypto from 'crypto';
 
 export const AUDIT_EVENT_TYPES = [

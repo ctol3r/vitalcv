@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from 'express';
 import { body, param } from 'express-validator';
-import { DomainError } from '../../../../packages/domain/errors';
+import { DomainError } from '../../../../packages/domain-common/src/errors/DomainError';
 import { EmployerAcceptance } from '../../../../packages/domain/events/EmployerAcceptance';
 import { RecognitionEvent } from '../../../../packages/domain/events/RecognitionEvent';
 import { StartAttestation } from '../../../../packages/domain/events/StartAttestation';
@@ -18,15 +18,14 @@ import {
   listRecognitionsBySubject,
 } from '../repositories/recognitions.repo';
 import {
-  ensureGraphSchema,
-  getGraphView,
+  listStartsByAcceptanceId,
+  insertStart,
+  listStartsBySubject,
+} from '../repositories/starts.repo';
+import {
   getReadinessScore,
-  getSpecialtyDensity,
-  graphHealth,
-  seedDemoGraph,
-  upsertIssuanceToGraph,
+  neo4jConfigured,
 } from '../src/graph/service';
-import { neo4jConfigured } from '../src/graph/neo4jHttp';
 import { validateRequest } from '../src/middleware/validateRequest';
 
 function respondDomainError(res: Response, error: DomainError) {
@@ -154,7 +153,7 @@ export function registerWedgeRoutes(app: Express) {
         const acceptance = new EmployerAcceptance({
           recognitionId: recognition.recognitionId,
           subjectId: recognition.subjectId,
-          employerId: recognition.employerId,
+          employerId: String(acceptanceInput.employerId || recognition.employerId),
           facilityId: String(acceptanceInput.facilityId ?? ''),
           acceptedAt: String(acceptanceInput.acceptedAt ?? ''),
         });
@@ -244,18 +243,31 @@ export function registerWedgeRoutes(app: Express) {
     async (req: Request, res: Response) => {
       try {
         const clinicianId = String(req.query.clinician_id || '').trim();
+        const employerId = req.query.employer_id ? String(req.query.employer_id).trim() : undefined;
+        const simulateDecay = req.query.simulate_decay === 'true';
+
         if (!clinicianId) {
            return res.status(400).json({ error: 'clinician_id query parameter is required' });
         }
 
-        const [recognitions, acceptances, starts] = await Promise.all([
+        const [recognitions, allAcceptances, starts] = await Promise.all([
           listRecognitionsBySubject(clinicianId),
           listAcceptancesBySubject(clinicianId),
           listStartsBySubject(clinicianId),
         ]);
 
+        // If employerId is provided, filter acceptances to simulate perspective of that employer
+        const acceptances = employerId 
+          ? allAcceptances.filter(a => a.employerId === employerId)
+          : allAcceptances;
+
         const status = subjectStatus({ recognitions, acceptances, starts });
         
+        // Find the specific acceptance if available
+        const currentAcceptance = status.acceptanceId 
+          ? allAcceptances.find(a => a.acceptanceId === status.acceptanceId)
+          : undefined;
+
         // Enhance with Trust State logic (CRS, blocking reasons, start_ready)
         let crs = { score: 0, band: 'UNKNOWN', factors: {} as Record<string, unknown> };
         const blocking_reasons: string[] = [];
@@ -273,6 +285,14 @@ export function registerWedgeRoutes(app: Express) {
             }
         }
 
+        // Simulate Decay
+        if (simulateDecay) {
+          crs.score = 40;
+          crs.band = 'RED';
+          if (!crs.factors) crs.factors = {};
+          // Maybe simulate a factor?
+        }
+
         // Trust Logic Replicated from TrustStateResolver (simplified for wedge)
         if (!status.recognized) {
             blocking_reasons.push('MISSING_RECOGNITION');
@@ -283,12 +303,13 @@ export function registerWedgeRoutes(app: Express) {
         }
 
         // CRS Checks
-        if (crs.score < 80 && crs.band !== 'GREEN') {
-             // In TrustStateResolver, < 80 is not blocking per se but effectively warns? 
-             // TrustStateResolver says: if (crs.score < CRS_START_THRESHOLD || crs.band !== 'GREEN') -> CRS_BELOW_THRESHOLD
-             // CRS_START_THRESHOLD is 80.
-             // So < 80 is blocking for start.
+        if (crs.score < 80 || crs.band !== 'GREEN') {
              blocking_reasons.push('CRS_BELOW_THRESHOLD');
+        }
+
+        // Specifically for decay simulation
+        if (simulateDecay) {
+          blocking_reasons.push('VERIFICATION_EXPIRED');
         }
         
         const factors = crs.factors as any;
@@ -297,14 +318,91 @@ export function registerWedgeRoutes(app: Express) {
 
         // Derived start_ready: Must be accepted, not yet started, and no blocking reasons
         // Note: MISSING_ACCEPTANCE is a blocking reason, so checking blocking_reasons.length === 0 covers it.
-        // But specifically for the "Start Attestation" action, we need to be in the "Accepted" state first.
+        // Derived start_ready: Must be accepted, not yet started, and no blocking reasons
+        // Note: MISSING_ACCEPTANCE is a blocking reason, so checking blocking_reasons.length === 0 covers it.
         const start_ready = status.accepted && !status.started && blocking_reasons.filter(r => r !== 'MISSING_ACCEPTANCE' && r !== 'START_ALREADY_ATTESTED').length === 0;
+
+        // Create Audit Timeline
+        const timeline_preview: any[] = [];
+
+        recognitions.forEach(r => {
+          timeline_preview.push({
+            id: r.recognitionId,
+            type: 'VERIFIED',
+            label: 'Network Verified',
+            timestamp: r.recognizedAt,
+            employer: r.employerId, // Note: This might be the network ID or null in some models
+            facility: null,
+            metadata: { 
+               subject: r.subjectId, 
+               expires: r.expiresAt 
+            }
+          });
+        });
+
+        allAcceptances.forEach(a => {
+          timeline_preview.push({
+            id: a.acceptanceId,
+            type: 'ACCEPTED',
+            label: 'Employer Accepted',
+            timestamp: a.acceptedAt,
+            employer: a.employerId,
+            facility: a.facilityId,
+            metadata: {
+               recognitionId: a.recognitionId
+            }
+          });
+        });
+
+        starts.forEach(s => {
+           timeline_preview.push({
+             id: s.startId,
+             type: 'STARTED',
+             label: 'Work Started',
+             timestamp: s.attestedAt,
+             employer: s.employerId, // Start usually inherits employer
+             facility: null, // Start might not track facility directly but Acceptance does
+             metadata: {
+                acceptanceId: s.acceptanceId
+             }
+           });
+        });
+
+        // Add Decay Event if simulated
+        if (simulateDecay) {
+           timeline_preview.push({
+             id: 'sim-decay-001',
+             type: 'DECAYED',
+             label: 'Trust Decayed',
+             timestamp: new Date().toISOString(),
+             employer: null,
+             facility: null,
+             metadata: {
+                reason: 'VERIFICATION_EXPIRED',
+                trigger: 'Time-to-live exceeded'
+             }
+           });
+        }
+
+        // Sort by timestamp desc
+        timeline_preview.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+        // Take top 5
+        const limited_timeline = timeline_preview.slice(0, 5);
 
         return res.json({
             ...status,
             start_ready,
             crs,
-            blocking_reasons
+            blocking_reasons,
+            timeline_preview: limited_timeline,
+            // Extra fields for UX
+            acceptanceDetails: currentAcceptance ? {
+              employerId: currentAcceptance.employerId,
+              facilityId: currentAcceptance.facilityId,
+              role: "Registered Nurse", // Hardcoded for demo
+              acceptedAt: currentAcceptance.acceptedAt
+            } : null
         });
       } catch (error) {
          if (error instanceof DomainError) return respondDomainError(res, error);

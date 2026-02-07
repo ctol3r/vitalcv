@@ -1,5 +1,9 @@
-import { checkCredentialStatus, CredentialStatus } from '../blockchain/blockchain_integration';
+/**
+ * Legacy verifier controller.
+ * Disabled for MVP and YC demo.
+ */
+export type CredentialStatus = 'valid' | 'revoked';
 
-export async function getCredentialStatus(credentialId: string): Promise<CredentialStatus> {
-  return checkCredentialStatus(credentialId);
+export async function getCredentialStatus(_credentialId: string): Promise<CredentialStatus> {
+  throw new Error('Legacy verifier controller is disabled for MVP and YC demo');
 }

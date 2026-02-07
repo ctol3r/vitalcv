@@ -8,6 +8,9 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@vitalcv/psv": "workspace:*"
+  },
   "devDependencies": {
     "typescript": "^5.4.5",
     "vitest": "^1.6.0"

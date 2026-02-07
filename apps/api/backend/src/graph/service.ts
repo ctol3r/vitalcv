@@ -1,4 +1,5 @@
 import { neo4jConfigured, neo4jRunCypher } from './neo4jHttp';
+export { neo4jConfigured };
 import { GRAPH_SCHEMA_CYPHER } from './schema';
 
 export type GraphView = {

@@ -1,4 +1,4 @@
-import { DomainError } from '../errors';
+import { DomainError } from '../../domain-common/src/errors/DomainError';
 import { EmployerAcceptance } from '../events/EmployerAcceptance';
 import { StartAttestation } from '../events/StartAttestation';
 
