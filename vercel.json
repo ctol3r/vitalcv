@@ -1,5 +1,5 @@
 {
-  "installCommand": "pnpm install",
-  "buildCommand": "pnpm --filter web build",
+  "installCommand": "npm install",
+  "buildCommand": "npm run build --workspace=web",
   "framework": "nextjs"
 }
