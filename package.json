@@ -7,6 +7,6 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "turbo run build"
+    "build:web": "pnpm --filter web build"
   }
 }
