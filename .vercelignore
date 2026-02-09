@@ -1,0 +1,30 @@
+# dependencies
+node_modules
+**/node_modules
+
+# build outputs
+.next
+dist
+build
+out
+coverage
+
+# pnpm
+.pnpm-store
+.pnpm-debug.log
+
+# tooling
+.turbo
+.cache
+
+# OS
+.DS_Store
+
+# VCS
+.git
+.gitignore
+
+# tests & docs not needed at deploy time
+**/__tests__
+**/*.test.*
+docs
