@@ -10,7 +10,7 @@ export default function LandingSection({
   children,
 }: LandingSectionProps) {
   return (
-    <section className="space-y-6 sm:space-y-8">
+    <section className="space-y-8 sm:space-y-10">
       {heading && (
         <h2 className="text-sm font-medium tracking-wide text-neutral-400 uppercase">
           {heading}

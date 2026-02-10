@@ -4,10 +4,10 @@ import LandingSection from '@/components/LandingSection';
 
 export default function HomePage() {
   return (
-    <main className="mx-auto max-w-5xl px-6 py-20 sm:px-10 sm:py-28">
+    <main className="mx-auto max-w-5xl px-6 py-24 sm:px-10 sm:py-32">
       <LandingHero />
 
-      <div className="mt-24 sm:mt-32">
+      <div className="mt-28 sm:mt-36">
         <LandingSection heading="Lifecycle">
           <p className="text-lg font-medium tracking-tight text-neutral-950 sm:text-xl">
             issued &rarr; held &rarr; presented &rarr; verified
