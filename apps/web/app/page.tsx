@@ -1,26 +1,27 @@
+import Footer from '@/components/Footer';
+import LandingHero from '@/components/LandingHero';
+import LandingSection from '@/components/LandingSection';
+
 export default function HomePage() {
   return (
-    <main className="mx-auto my-12 max-w-[880px] p-6">
-      <h1 className="mb-3 text-[42px] font-bold">
-        VitalCV turns credentialing into a reusable, start-ready trust state.
-      </h1>
+    <main className="mx-auto max-w-5xl px-6 py-20 sm:px-10 sm:py-28">
+      <LandingHero />
 
-      <p className="mb-6 text-lg">
-        Verify once. Reuse everywhere. Clinicians start in days, not months.
-      </p>
+      <div className="mt-24 sm:mt-32">
+        <LandingSection heading="Lifecycle">
+          <p className="text-lg font-medium tracking-tight text-neutral-950 sm:text-xl">
+            issued &rarr; held &rarr; presented &rarr; verified
+          </p>
+          <p className="mt-6 max-w-2xl text-base leading-relaxed text-neutral-600 sm:text-lg sm:leading-relaxed">
+            A credential is a signed assertion from an issuing authority.
+            The holder accepts it; it becomes portable.
+            Verification occurs once&nbsp;&mdash; the result persists across
+            relying parties. Revocation propagates at any point.
+          </p>
+        </LandingSection>
+      </div>
 
-      <ul className="mb-8 list-inside list-disc text-base leading-relaxed">
-        <li>Recognition → Acceptance → Start (enforced in code)</li>
-        <li>Employers never chase documents or re-verify</li>
-        <li>Audit-backed, revocation-aware trust</li>
-      </ul>
-
-      <a
-        href="/verifier"
-        className="inline-block rounded-lg bg-black px-[22px] py-[14px] font-semibold text-white no-underline"
-      >
-        View Live Demo
-      </a>
+      <Footer />
     </main>
   );
 }
