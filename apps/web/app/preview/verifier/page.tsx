@@ -164,7 +164,7 @@ export default function VerifierPreviewPage() {
   );
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16 font-mono text-sm sm:px-10 sm:py-20">
+    <main className="mx-auto max-w-3xl px-6 py-20 font-mono text-sm sm:px-10 sm:py-28">
       {/* ── Header ── */}
       <header className="border-b border-neutral-200 pb-8">
         <p className="text-xs tracking-wide text-neutral-400">
@@ -432,7 +432,7 @@ export default function VerifierPreviewPage() {
       </div>
 
       {/* ── Footer ── */}
-      <footer className="mt-10 border-t border-neutral-200 pt-6">
+      <footer className="mt-16 border-t border-neutral-200 pt-8">
         <p className="text-xs text-neutral-400">
           Synthetic data over production code paths.
         </p>

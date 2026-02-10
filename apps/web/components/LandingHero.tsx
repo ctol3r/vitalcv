@@ -8,7 +8,7 @@ const previewLinks = [
 
 export default function LandingHero() {
   return (
-    <section className="border-b border-neutral-200 pb-14 sm:pb-16">
+    <section className="border-b border-neutral-200 pb-16 sm:pb-20">
       <h1 className="max-w-3xl text-4xl leading-tight font-semibold tracking-tight text-neutral-950 sm:text-5xl">
         Trust infrastructure for healthcare credentialing
       </h1>
@@ -18,7 +18,7 @@ export default function LandingHero() {
         Every state transition produces proof.
       </p>
 
-      <nav aria-label="Participants" className="mt-12">
+      <nav aria-label="Participants" className="mt-14">
         <ul className="flex gap-6 sm:gap-8">
           {previewLinks.map((link) => (
             <li key={link.href}>
