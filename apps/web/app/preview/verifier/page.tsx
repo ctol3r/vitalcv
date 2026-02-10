@@ -427,14 +427,14 @@ export default function VerifierPreviewPage() {
           href="/preview"
           className="font-sans text-sm font-medium text-neutral-700 underline underline-offset-4 hover:text-neutral-900 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 focus-visible:ring-offset-2"
         >
-          Back to Preview Mode
+          All participants
         </Link>
       </div>
 
       {/* ── Footer ── */}
       <footer className="mt-10 border-t border-neutral-200 pt-6">
         <p className="text-xs text-neutral-400">
-          Demo runs real code paths with synthetic data.
+          Synthetic data over production code paths.
         </p>
       </footer>
     </main>
