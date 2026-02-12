@@ -244,6 +244,9 @@ importers:
 
   apps/authz:
     dependencies:
+      '@vitalcv/haip-config':
+        specifier: workspace:*
+        version: link:../../packages/haip-config
       cors:
         specifier: ^2.8.5
         version: 2.8.5
@@ -297,6 +300,9 @@ importers:
 
   apps/verifier-api:
     dependencies:
+      '@vitalcv/haip-config':
+        specifier: workspace:*
+        version: link:../../packages/haip-config
       cors:
         specifier: ^2.8.5
         version: 2.8.5
@@ -486,6 +492,18 @@ importers:
       typescript:
         specifier: ^5.4.5
         version: 5.9.3
+
+  packages/haip-config:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.10.6
+        version: 20.19.27
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@20.19.27)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)
 
   packages/ingest:
     devDependencies:
