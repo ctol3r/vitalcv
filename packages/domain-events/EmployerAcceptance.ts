@@ -22,6 +22,7 @@ export type EmployerAcceptanceInput = {
   countersignedAt: string;
   countersignedByEmployer: boolean;
   employerProof: SignatureProof;
+  psvReportId: string;
   hashAnchor?: string;
 };
 
@@ -44,6 +45,7 @@ export class EmployerAcceptance {
   public readonly countersignedAt: string;
   public readonly countersignedByEmployer: true;
   public readonly recognitionRecognizedAt: string;
+  public readonly psvReportId: string;
   public readonly employerProof: SignatureProof;
   public readonly hashAnchor: string;
 
@@ -83,6 +85,7 @@ export class EmployerAcceptance {
 
     parseRfc3339Utc(input.acceptedAt, 'EmployerAcceptance.acceptedAt');
     parseRfc3339Utc(input.countersignedAt, 'EmployerAcceptance.countersignedAt');
+    assertNonEmptyString(input.psvReportId, 'EmployerAcceptance.psvReportId');
 
     assertStrictlyAfter(
       input.recognition.recognizedAt,
@@ -113,6 +116,7 @@ export class EmployerAcceptance {
       countersignedAt: input.countersignedAt,
       countersignedByEmployer: true,
       recognitionRecognizedAt: input.recognition.recognizedAt,
+      psvReportId: input.psvReportId,
     });
 
     this.acceptanceId = acceptanceId;
@@ -125,6 +129,7 @@ export class EmployerAcceptance {
     this.countersignedAt = input.countersignedAt;
     this.countersignedByEmployer = true;
     this.recognitionRecognizedAt = input.recognition.recognizedAt;
+    this.psvReportId = input.psvReportId;
     this.employerProof = normalizeProof(input.employerProof);
     this.hashAnchor = assertHashAnchor(input.hashAnchor, canonicalPayload);
 

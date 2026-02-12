@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/node";
 import { Request, Response, NextFunction } from "express";
 
 /**
@@ -33,6 +34,11 @@ export function errorHandler(
       ? res.locals.request_id
       : "unknown";
 
+  const errorCode =
+    err && typeof err === "object" && "code" in err && typeof (err as any).code === "string"
+      ? (err as any).code
+      : null;
+
   console.error(
     JSON.stringify({
       event: "request_error",
@@ -41,13 +47,22 @@ export function errorHandler(
       path: req.originalUrl || req.url,
       status_code: status,
       message,
-      code:
-        err && typeof err === "object" && "code" in err && typeof (err as any).code === "string"
-          ? (err as any).code
-          : null,
+      code: errorCode,
       timestamp: new Date().toISOString(),
     })
   );
+
+  // Report 5xx errors to Sentry
+  if (status >= 500 && err instanceof Error) {
+    Sentry.captureException(err, {
+      extra: {
+        request_id: requestId,
+        method: req.method,
+        path: req.originalUrl || req.url,
+        code: errorCode,
+      },
+    });
+  }
 
   res.status(status).json({
     error: message,

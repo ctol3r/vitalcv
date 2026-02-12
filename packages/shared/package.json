@@ -1,0 +1,41 @@
+{
+  "name": "@vitalcv/shared",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./credentials": "./credentials/index.ts",
+    "./crs": "./crs/index.ts",
+    "./legacy": "./legacy/index.ts",
+    "./onchain": "./onchain/index.ts",
+    "./receipts": "./receipts/index.ts",
+    "./recognition": "./recognition/index.ts",
+    "./roles": "./roles/index.ts"
+  },
+  "typesVersions": {
+    "*": {
+      "credentials": ["./credentials/index.ts"],
+      "crs": ["./crs/index.ts"],
+      "legacy": ["./legacy/index.ts"],
+      "onchain": ["./onchain/index.ts"],
+      "receipts": ["./receipts/index.ts"],
+      "recognition": ["./recognition/index.ts"],
+      "roles": ["./roles/index.ts"]
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@vitalcv/crs": "workspace:*",
+    "@vitalcv/domain-core": "workspace:*",
+    "@vitalcv/domain-events": "workspace:*",
+    "@vitalcv/ingest": "workspace:*",
+    "@vitalcv/psv": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

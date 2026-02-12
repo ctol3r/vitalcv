@@ -102,12 +102,14 @@ export async function emitStartAttestation(
   if (employerDid !== recognition.employerDid) {
     throw new CanonicalPathViolation(
       `Employer DID mismatch: Start attestation employerDid (${employerDid}) must match Recognition employerDid (${recognition.employerDid})`,
+      'DID_MISMATCH',
     );
   }
 
   if (employerDid !== acceptance.employerDid) {
     throw new CanonicalPathViolation(
       `Employer DID mismatch: Start attestation employerDid (${employerDid}) must match Acceptance employerDid (${acceptance.employerDid})`,
+      'DID_MISMATCH',
     );
   }
 
@@ -173,11 +175,18 @@ export async function emitStartAttestation(
       proofValue,
     },
     hashAnchor: createHash('sha256').update(canonicalPayload).digest('hex'),
-    employmentDetails: employmentDetails || {
-      roleTitle: acceptance.terms.roleTitle,
-      department: acceptance.terms.department,
-      schedule: acceptance.terms.schedule || 'full-time',
-    },
+    employmentDetails: employmentDetails
+      ? {
+          roleTitle: employmentDetails.roleTitle || acceptance.terms.roleTitle || 'Unspecified',
+          department: employmentDetails.department,
+          schedule: employmentDetails.schedule || acceptance.terms.schedule || 'full-time',
+          supervisorDid: employmentDetails.supervisorDid,
+        }
+      : {
+          roleTitle: acceptance.terms.roleTitle || 'Unspecified',
+          department: acceptance.terms.department,
+          schedule: acceptance.terms.schedule || 'full-time',
+        },
     onboarding,
   };
 

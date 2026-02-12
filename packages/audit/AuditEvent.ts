@@ -2,11 +2,23 @@
 import crypto from 'crypto';
 
 export const AUDIT_EVENT_TYPES = [
+  'NPI_INGESTED',
+  'NPI_VALIDATION_FAILED',
+  'FILE_INGESTED',
+  'INGEST_PARSE_SUMMARY',
+  'INGEST_CONFLICT_DETECTED',
+  'INGEST_ERROR',
+  'VERIFICATION_REQUESTED',
+  'VERIFICATION_COMPLETED',
+  'VERIFICATION_FAILED',
+  'EMPLOYER_ACCEPTANCE_REJECTED',
+  'START_REJECTED',
   'PSV_RECEIPT',
   'RECOGNITION',
   'ACCEPTANCE',
   'EMPLOYER_ACCEPTANCE',
   'START',
+  'START_ATTESTED',
   'COMMITTEE',
   'TRUST_STATE_CHECK',
   'TRUST_STATE_DECAY',
@@ -45,6 +57,7 @@ const NON_REPUDIATION_EVENTS = new Set<AuditEventType>([
   'ACCEPTANCE',
   'EMPLOYER_ACCEPTANCE',
   'START',
+  'START_ATTESTED',
 ]);
 
 function assertNonEmptyString(value: unknown, field: string): asserts value is string {
@@ -166,10 +179,22 @@ function normalizeMetadata(
 
   // Canonical trust events always carry the clinician anchor for graph traversal.
   if (
+    event_type === 'NPI_INGESTED' ||
+    event_type === 'NPI_VALIDATION_FAILED' ||
+    event_type === 'FILE_INGESTED' ||
+    event_type === 'INGEST_PARSE_SUMMARY' ||
+    event_type === 'INGEST_CONFLICT_DETECTED' ||
+    event_type === 'INGEST_ERROR' ||
+    event_type === 'VERIFICATION_REQUESTED' ||
+    event_type === 'VERIFICATION_COMPLETED' ||
+    event_type === 'VERIFICATION_FAILED' ||
+    event_type === 'EMPLOYER_ACCEPTANCE_REJECTED' ||
+    event_type === 'START_REJECTED' ||
     event_type === 'PSV_RECEIPT' ||
     event_type === 'RECOGNITION' ||
     event_type === 'EMPLOYER_ACCEPTANCE' ||
     event_type === 'START' ||
+    event_type === 'START_ATTESTED' ||
     event_type === 'TRUST_STATE_DECAY'
   ) {
     payload.clinician_id = clinician_id;

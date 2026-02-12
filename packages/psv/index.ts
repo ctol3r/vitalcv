@@ -14,4 +14,23 @@ export {
   type ReceiptValidationResult,
 } from './validateReceipt';
 
-export { PsvStore, type AppendReceiptInput, type TrustStateReceiptRecord } from './psvStore';
+export {
+  PsvStore,
+  type AppendReceiptInput,
+  type TrustStateReceiptRecord,
+} from './psvStore';
+
+// Source connectors
+export {
+  checkOigLeie,
+  type OigSearchInput,
+  type OigCheckResult,
+  type OigExclusion,
+} from './sources/oigLeie';
+
+export {
+  checkSamExclusions,
+  type SamSearchInput,
+  type SamCheckResult,
+  type SamExclusion,
+} from './sources/samExclusions';

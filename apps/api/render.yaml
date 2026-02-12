@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: vitalcv-api
+    env: node
+    buildCommand: npm install -g pnpm@10.6.1 && pnpm install --frozen-lockfile && cd apps/api/backend && npx prisma generate && cd ../../.. && pnpm --filter @vitalcv/api build
+    startCommand: cd apps/api/backend && npx prisma migrate deploy && cd ../../.. && node apps/api/backend/dist/apps/api/backend/src/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vitalcv-db
+          property: connectionString

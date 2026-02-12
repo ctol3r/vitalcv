@@ -28,7 +28,11 @@ function toEmployerScopeLink(entry: AuditTimelineEntry): EmployerScopeLink | nul
 }
 
 function isEmployerLinkEvent(entry: AuditTimelineEntry): boolean {
-  return entry.event_type === 'EMPLOYER_ACCEPTANCE' || entry.event_type === 'START';
+  return (
+    entry.event_type === 'EMPLOYER_ACCEPTANCE' ||
+    entry.event_type === 'START' ||
+    entry.event_type === 'START_ATTESTED'
+  );
 }
 
 export function listEmployersForClinician(

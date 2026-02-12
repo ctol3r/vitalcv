@@ -5,6 +5,8 @@ export type BlockingReason =
   | 'MISSING_PSV'
   | 'EXPIRED_PSV'
   | 'REVOKED_PSV'
+  | 'FAILED_VERIFICATION'
+  | 'IDENTITY_CONFLICT'
   | 'MISSING_ACCEPTANCE'
   | 'CRS_BELOW_THRESHOLD'
   | 'START_ALREADY_ATTESTED';
@@ -17,6 +19,7 @@ export type TrustState = {
   blocking_reasons: BlockingReason[];
   last_verified_at: string;
   audit_ref: string;
+  verification_messages?: readonly string[];
   metrics: {
     latency_ms: number;
     p90_ms: number;
@@ -43,6 +46,13 @@ export type PsvReceiptRecord = {
   fetched_at: string;
   ttl_seconds: number;
   revoked: boolean;
+  lane?: 'PUBLIC' | 'PARTNER' | 'MANUAL';
+  verification_check?: string;
+  verification_outcome?: 'PASS' | 'FAIL';
+  failure_reason?: string;
+  source?: 'EMPLOYER' | 'CVO';
+  attestor_id?: string;
+  verification_request_id?: string;
 };
 
 export type AcceptanceScopeRecord = {
@@ -138,6 +148,17 @@ export type TrustStateResolverDependencies = {
     existsForClinician(clinician_id: string): Promise<boolean> | boolean;
     listByClinician?(clinician_id: string): Promise<StartScopeRecord[]> | StartScopeRecord[];
     existsForScope?(scope: TrustStateScope & { clinician_id: string }): Promise<boolean> | boolean;
+  };
+  conflicts?: {
+    hasUnresolvedForClinician(clinician_id: string): Promise<boolean> | boolean;
+  };
+  verification?: {
+    required_public_checks?:
+      | readonly string[]
+      | Promise<readonly string[]>;
+    required_manual_checks?:
+      | readonly string[]
+      | Promise<readonly string[]>;
   };
   audit: {
     append(event: TrustStateAuditEvent): Promise<{ audit_packet_id: string }> | { audit_packet_id: string };

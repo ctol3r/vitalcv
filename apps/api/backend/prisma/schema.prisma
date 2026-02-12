@@ -1,46 +1,180 @@
-// Prisma schema for Chai VC Platform with database seeding support
-// Defines User, Credential, and Job models for comprehensive GraphQL operations
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-model User {
-  id          Int          @id @default(autoincrement())
-  email       String       @unique
-  name        String
-  passwordHash String?
-  credentials Credential[]
-  jobs        Job[]
+// ──────────────────────────────────────────────────────────────
+// Canonical Path: Recognition → Acceptance → Start
+// ──────────────────────────────────────────────────────────────
+
+model Recognition {
+  id              String    @id @default(uuid()) @db.Uuid
+  recognitionId   String    @unique
+  subjectId       String
+  employerId      String
+  recognizedAt    DateTime
+  verifiedAt      DateTime
+  verificationRef String
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  revocationRef   String?
+  eventHash       String
+  createdAt       DateTime  @default(now())
+
+  acceptances Acceptance[]
+
+  @@index([subjectId])
+  @@index([employerId])
+  @@index([recognitionId])
 }
 
-model Credential {
-  id       Int      @id @default(autoincrement())
-  name     String
-  issuer   String
-  issuedAt DateTime @default(now())
-  user     User     @relation(fields: [userId], references: [id])
-  userId   Int
+model Acceptance {
+  id              String   @id @default(uuid()) @db.Uuid
+  acceptanceId    String   @unique
+  recognitionId   String
+  subjectId       String
+  employerId      String
+  facilityId      String
+  acceptedAt      DateTime
+  psvReportId     String
+  eventHash       String
+  createdAt       DateTime @default(now())
+
+  recognition Recognition @relation(fields: [recognitionId], references: [recognitionId])
+  starts      Start[]
+
+  @@index([subjectId])
+  @@index([employerId])
+  @@index([recognitionId])
+  @@index([acceptanceId])
 }
+
+model Start {
+  id           String   @id @default(uuid()) @db.Uuid
+  startId      String   @unique
+  acceptanceId String
+  subjectId    String
+  employerId   String
+  attestedAt   DateTime
+  eventHash    String
+  createdAt    DateTime @default(now())
+
+  acceptance Acceptance @relation(fields: [acceptanceId], references: [acceptanceId])
+
+  @@index([subjectId])
+  @@index([employerId])
+  @@index([acceptanceId])
+  @@index([startId])
+}
+
+// ──────────────────────────────────────────────────────────────
+// PSV Receipts (verification evidence)
+// ──────────────────────────────────────────────────────────────
+
+model PsvReceipt {
+  id              String   @id @default(uuid()) @db.Uuid
+  receiptId       String   @unique
+  clinicianId     String
+  sourceAuthority String
+  licenseId       String
+  transactionId   String
+  fetchedAt       DateTime
+  responseHash    String
+  ttlSeconds      Int
+  revoked         Boolean  @default(false)
+  lane            String?
+  verificationCheck   String?
+  verificationOutcome String?
+  failureReason       String?
+  source              String?
+  attestorId          String?
+  verificationRequestId String?
+  createdAt       DateTime @default(now())
+
+  @@index([clinicianId])
+  @@index([receiptId])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Clinician Intake (ingestion staging)
+// ──────────────────────────────────────────────────────────────
+
+model ClinicianIdentity {
+  id           String   @id @default(uuid()) @db.Uuid
+  clinicianId  String   @unique
+  data         Json     @db.JsonB
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model CandidateCredential {
+  id                     String   @id @default(uuid()) @db.Uuid
+  candidateCredentialId  String   @unique
+  clinicianId            String
+  data                   Json     @db.JsonB
+  status                 String   @default("UNVERIFIED")
+  createdAt              DateTime @default(now())
+
+  @@index([clinicianId])
+}
+
+model IngestConflict {
+  id           String   @id @default(uuid()) @db.Uuid
+  conflictId   String   @unique
+  clinicianId  String
+  status       String   @default("UNRESOLVED")
+  data         Json     @db.JsonB
+  createdAt    DateTime @default(now())
+
+  @@index([clinicianId])
+}
+
+model IdempotentResponse {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  auditRef    String
+  payload     Json     @db.JsonB
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+
+  @@index([key])
+  @@index([expiresAt])
+}
+
+// ──────────────────────────────────────────────────────────────
+// API Key → Organization mapping
+// ──────────────────────────────────────────────────────────────
+
+model ApiKey {
+  id           String    @id @default(uuid()) @db.Uuid
+  keyHash      String    @unique
+  orgName      String
+  orgId        String
+  permissions  String[]  @default(["write:recognitions", "write:acceptances", "write:starts", "write:ingest"])
+  createdAt    DateTime  @default(now())
+  revokedAt    DateTime?
+
+  @@index([orgId])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Audit Trail (append-only event log)
+// ──────────────────────────────────────────────────────────────
 
 model AuditEvent {
-  id           Int      @id @default(autoincrement())
+  id           String   @id @default(uuid()) @db.Uuid
   type         String
   hash         String
-  credentialId String?
-  userId       Int?
-  metadata     Json?
+  referenceId  String?
+  clinicianId  String?
+  metadata     Json?    @db.JsonB
   createdAt    DateTime @default(now())
-}
 
-model Job {
-  id     Int    @id @default(autoincrement())
-  title  String
-  user   User   @relation(fields: [userId], references: [id])
-  userId Int
+  @@index([type, createdAt])
+  @@index([clinicianId])
+  @@index([referenceId])
 }

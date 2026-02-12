@@ -1,6 +1,8 @@
+import crypto from 'crypto';
+import { Prisma } from '@prisma/client';
 import type { Express, Request, Response } from 'express';
 import { body, param } from 'express-validator';
-import { DomainError } from '../../../../packages/domain-common/src/errors/DomainError';
+import { DomainError } from '../../../../packages/domain/errors';
 import { EmployerAcceptance } from '../../../../packages/domain/events/EmployerAcceptance';
 import { RecognitionEvent } from '../../../../packages/domain/events/RecognitionEvent';
 import { StartAttestation } from '../../../../packages/domain/events/StartAttestation';
@@ -26,11 +28,128 @@ import {
   getReadinessScore,
   neo4jConfigured,
 } from '../src/graph/service';
+import prisma from '../src/graphql/prisma_client';
+import { apiKeyAuth } from '../src/middleware/publicSafety';
 import { validateRequest } from '../src/middleware/validateRequest';
 
 function respondDomainError(res: Response, error: DomainError) {
-  const status = error.code === 'START_EXISTS' ? 409 : 400;
-  return res.status(status).json({ error: error.message, code: error.code });
+  const status =
+    error.code === 'START_EXISTS' ||
+    error.code === 'MISSING_VERIFICATION' ||
+    error.code === 'RECOGNITION_EXPIRED' ||
+    error.code === 'RECOGNITION_REVOKED'
+      ? 409
+      : 400;
+  return res.status(status).json({
+    error: error.message,
+    code: error.code,
+    blocker: blockerMessageForReasons(
+      typeof error.code === 'string' ? [error.code] : ['TRUST_STATE_UNAVAILABLE'],
+    ),
+  });
+}
+
+type RejectionEventType = 'EMPLOYER_ACCEPTANCE_REJECTED' | 'START_REJECTED';
+type FactualBlockerMessage =
+  | 'Pending verification'
+  | 'Failed verification'
+  | 'Employer acceptance required';
+type CrsSnapshot = {
+  score: number;
+  band: 'GREEN' | 'YELLOW' | 'RED';
+  factors: Record<string, unknown>;
+};
+
+function stableStringify(value: unknown): string {
+  if (value === null || value === undefined) return 'null';
+  if (value instanceof Date) return JSON.stringify(value.toISOString());
+  if (typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map((item) => stableStringify(item)).join(',')}]`;
+
+  const record = value as Record<string, unknown>;
+  const keys = Object.keys(record).sort();
+  return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`).join(',')}}`;
+}
+
+function rejectionEventHash(
+  eventType: RejectionEventType,
+  metadata: Record<string, unknown>,
+): string {
+  return crypto
+    .createHash('sha256')
+    .update(stableStringify({ eventType, metadata }))
+    .digest('hex');
+}
+
+async function emitRejectionAuditEvent(input: {
+  type: RejectionEventType;
+  credentialId: string;
+  metadata: Record<string, unknown>;
+}): Promise<void> {
+  await prisma.auditEvent.create({
+    data: {
+      type: input.type,
+      hash: rejectionEventHash(input.type, input.metadata),
+      clinicianId: String(input.metadata.clinician_id ?? input.credentialId),
+      referenceId: input.credentialId,
+      metadata: input.metadata as Prisma.InputJsonValue,
+      createdAt: new Date(),
+    },
+  });
+}
+
+async function emitRejectionAuditEventSafe(input: {
+  type: RejectionEventType;
+  credentialId: string;
+  metadata: Record<string, unknown>;
+}): Promise<void> {
+  try {
+    await emitRejectionAuditEvent(input);
+  } catch (error) {
+    console.error('rejection audit emission error:', error);
+  }
+}
+
+function trustStateEventHash(metadata: Record<string, unknown>): string {
+  return crypto.createHash('sha256').update(stableStringify(metadata)).digest('hex');
+}
+
+async function emitTrustStateAuditEvent(input: {
+  clinicianId: string;
+  metadata: Record<string, unknown>;
+}): Promise<void> {
+  await prisma.auditEvent.create({
+    data: {
+      type: 'TRUST_STATE_CHECK',
+      hash: trustStateEventHash({
+        clinician_id: input.clinicianId,
+        ...input.metadata,
+      }),
+      clinicianId: input.clinicianId,
+      metadata: {
+        clinician_id: input.clinicianId,
+        ...input.metadata,
+      } as Prisma.InputJsonValue,
+      createdAt: new Date(),
+    },
+  });
+}
+
+async function emitTrustStateAuditEventSafe(input: {
+  clinicianId: string;
+  metadata: Record<string, unknown>;
+}): Promise<void> {
+  try {
+    await emitTrustStateAuditEvent(input);
+  } catch (error) {
+    console.error('trust-state audit emission error:', error);
+  }
+}
+
+function parseOptionalString(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 function parseObjectField(value: unknown, field: string): Record<string, unknown> {
@@ -40,9 +159,88 @@ function parseObjectField(value: unknown, field: string): Record<string, unknown
   return value as Record<string, unknown>;
 }
 
+function resolveCrsBand(score: number): 'GREEN' | 'YELLOW' | 'RED' {
+  if (score >= 80) return 'GREEN';
+  if (score >= 50) return 'YELLOW';
+  return 'RED';
+}
+
+async function resolveCrsSnapshot(clinicianId: string): Promise<CrsSnapshot> {
+  if (!neo4jConfigured()) {
+    return {
+      score: 95,
+      band: 'GREEN',
+      factors: {},
+    };
+  }
+
+  try {
+    const readiness = await getReadinessScore(clinicianId);
+    return {
+      score: readiness.score,
+      band: resolveCrsBand(readiness.score),
+      factors: readiness.factors as Record<string, unknown>,
+    };
+  } catch {
+    return {
+      score: 0,
+      band: 'RED',
+      factors: {
+        trust_state_unavailable: true,
+      },
+    };
+  }
+}
+
+function blockerMessageForReasons(reasons: readonly string[]): FactualBlockerMessage {
+  if (reasons.includes('MISSING_ACCEPTANCE')) {
+    return 'Employer acceptance required';
+  }
+
+  if (
+    reasons.some((reason) =>
+      [
+        'FAILED_VERIFICATION',
+        'REVOKED_PSV',
+        'ACTIVE_SANCTIONS',
+        'TRUST_STATE_UNAVAILABLE',
+        'IDENTITY_CONFLICT',
+      ].includes(reason),
+    )
+  ) {
+    return 'Failed verification';
+  }
+
+  return 'Pending verification';
+}
+
+function blockerMessagesForReasons(reasons: readonly string[]): readonly FactualBlockerMessage[] {
+  const messages = new Set<FactualBlockerMessage>();
+  for (const reason of reasons) {
+    if (reason === 'MISSING_ACCEPTANCE') {
+      messages.add('Employer acceptance required');
+      continue;
+    }
+
+    if (
+      ['FAILED_VERIFICATION', 'REVOKED_PSV', 'ACTIVE_SANCTIONS', 'TRUST_STATE_UNAVAILABLE', 'IDENTITY_CONFLICT'].includes(
+        reason,
+      )
+    ) {
+      messages.add('Failed verification');
+      continue;
+    }
+
+    messages.add('Pending verification');
+  }
+
+  return [...messages];
+}
+
 export function registerWedgeRoutes(app: Express) {
   app.post(
     '/recognitions',
+    apiKeyAuth,
     body('recognition').isObject().withMessage('recognition is required'),
     validateRequest,
     async (req: Request, res: Response) => {
@@ -122,6 +320,7 @@ export function registerWedgeRoutes(app: Express) {
 
   app.post(
     '/acceptances',
+    apiKeyAuth,
     body('acceptance').isObject().withMessage('acceptance is required'),
     validateRequest,
     async (req: Request, res: Response) => {
@@ -148,6 +347,56 @@ export function registerWedgeRoutes(app: Express) {
           return res.status(404).json({ error: 'RecognitionEvent not found', recognitionId });
         }
 
+        const unresolvedConflict = await prisma.auditEvent.findFirst({
+          where: {
+            type: 'INGEST_CONFLICT_DETECTED',
+            clinicianId: recognition.subjectId,
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+        if (unresolvedConflict) {
+          throw new DomainError('Acceptance blocked: Identity conflict detected', 'IDENTITY_CONFLICT');
+        }
+
+        const psvReportId = parseOptionalString(acceptanceInput.psvReportId);
+        if (!psvReportId) {
+          await emitRejectionAuditEvent({
+            type: 'EMPLOYER_ACCEPTANCE_REJECTED',
+            credentialId: recognitionId,
+            metadata: {
+              clinician_id: recognition.subjectId,
+              recognitionId: recognition.recognitionId,
+              reason: 'MISSING_PSV_REPORT_ID',
+              message: 'Acceptance requires completed PSV.',
+              rejectedAt: new Date().toISOString(),
+            },
+          });
+          return res.status(409).json({
+            error: 'Acceptance requires completed PSV.',
+            code: 'MISSING_PSV',
+          });
+        }
+
+        const recognitionPsvRef = parseOptionalString(recognition.verification?.verificationRef);
+        if (!recognitionPsvRef) {
+          await emitRejectionAuditEvent({
+            type: 'EMPLOYER_ACCEPTANCE_REJECTED',
+            credentialId: recognitionId,
+            metadata: {
+              clinician_id: recognition.subjectId,
+              recognitionId: recognition.recognitionId,
+              psvReportId,
+              reason: 'MISSING_PSV_REFERENCE',
+              message: 'Acceptance requires completed PSV.',
+              rejectedAt: new Date().toISOString(),
+            },
+          });
+          return res.status(409).json({
+            error: 'Acceptance requires completed PSV.',
+            code: 'MISSING_PSV',
+          });
+        }
+
         assertCanAccept(recognition);
 
         const acceptance = new EmployerAcceptance({
@@ -156,6 +405,7 @@ export function registerWedgeRoutes(app: Express) {
           employerId: String(acceptanceInput.employerId || recognition.employerId),
           facilityId: String(acceptanceInput.facilityId ?? ''),
           acceptedAt: String(acceptanceInput.acceptedAt ?? ''),
+          psvReportId,
         });
 
         await insertAcceptance(acceptance);
@@ -171,6 +421,7 @@ export function registerWedgeRoutes(app: Express) {
 
   app.post(
     '/starts',
+    apiKeyAuth,
     body('start').isObject().withMessage('start is required'),
     validateRequest,
     async (req: Request, res: Response) => {
@@ -189,6 +440,127 @@ export function registerWedgeRoutes(app: Express) {
         const acceptance = await getAcceptanceById(acceptanceId);
         if (!acceptance) {
           return res.status(404).json({ error: 'EmployerAcceptance not found', acceptanceId });
+        }
+
+        const recognition = await getRecognitionById(acceptance.recognitionId);
+        if (!recognition) {
+          return res.status(404).json({
+            error: 'RecognitionEvent not found',
+            recognitionId: acceptance.recognitionId,
+          });
+        }
+
+        if (!parseOptionalString(acceptance.psvReportId)) {
+          const message = 'Start blocked: Acceptance requires completed PSV.';
+          await emitRejectionAuditEvent({
+            type: 'START_REJECTED',
+            credentialId: acceptanceId,
+            metadata: {
+              clinician_id: acceptance.subjectId,
+              acceptanceId: acceptance.acceptanceId,
+              recognitionId: recognition.recognitionId,
+              reason: 'MISSING_PSV_REPORT_ID',
+              message,
+              rejectedAt: new Date().toISOString(),
+            },
+          });
+          return res.status(409).json({ error: message, code: 'MISSING_PSV' });
+        }
+
+        const psvReference = parseOptionalString(recognition.verification?.verificationRef);
+        if (!psvReference) {
+          const message = 'Start blocked: Missing required PSV.';
+          await emitRejectionAuditEvent({
+            type: 'START_REJECTED',
+            credentialId: acceptanceId,
+            metadata: {
+              clinician_id: acceptance.subjectId,
+              acceptanceId: acceptance.acceptanceId,
+              recognitionId: recognition.recognitionId,
+              reason: 'MISSING_PSV_REFERENCE',
+              message,
+              rejectedAt: new Date().toISOString(),
+            },
+          });
+          return res.status(409).json({ error: message, code: 'MISSING_PSV' });
+        }
+
+        if (recognition.revocation) {
+          const message = 'Start blocked: PSV receipt is revoked.';
+          await emitRejectionAuditEvent({
+            type: 'START_REJECTED',
+            credentialId: acceptanceId,
+            metadata: {
+              clinician_id: acceptance.subjectId,
+              acceptanceId: acceptance.acceptanceId,
+              recognitionId: recognition.recognitionId,
+              reason: 'REVOKED_PSV',
+              message,
+              rejectedAt: new Date().toISOString(),
+            },
+          });
+          return res.status(409).json({ error: message, code: 'REVOKED_PSV' });
+        }
+
+        if (recognition.expiresAt) {
+          const expiresAtMs = Date.parse(recognition.expiresAt);
+          if (!Number.isNaN(expiresAtMs) && Date.now() > expiresAtMs) {
+            const message = 'Start blocked: PSV receipt is expired.';
+            await emitRejectionAuditEvent({
+              type: 'START_REJECTED',
+              credentialId: acceptanceId,
+              metadata: {
+                clinician_id: acceptance.subjectId,
+                acceptanceId: acceptance.acceptanceId,
+                recognitionId: recognition.recognitionId,
+                expiresAt: recognition.expiresAt,
+                reason: 'EXPIRED_PSV',
+                message,
+                rejectedAt: new Date().toISOString(),
+              },
+            });
+            return res.status(409).json({ error: message, code: 'EXPIRED_PSV' });
+          }
+        }
+
+        if (neo4jConfigured()) {
+          try {
+            const readiness = await getReadinessScore(acceptance.subjectId);
+            const factors = readiness.factors as Record<string, unknown>;
+            const sanctions = Number(factors?.sanctions ?? 0);
+            if (Number.isFinite(sanctions) && sanctions > 0) {
+              const message = 'Start blocked: Active sanctions detected.';
+              await emitRejectionAuditEvent({
+                type: 'START_REJECTED',
+                credentialId: acceptanceId,
+                metadata: {
+                  clinician_id: acceptance.subjectId,
+                  acceptanceId: acceptance.acceptanceId,
+                  recognitionId: recognition.recognitionId,
+                  reason: 'ACTIVE_SANCTIONS',
+                  sanctions,
+                  message,
+                  rejectedAt: new Date().toISOString(),
+                },
+              });
+              return res.status(409).json({ error: message, code: 'ACTIVE_SANCTIONS' });
+            }
+          } catch {
+            const message = 'Start blocked: Unable to compute trust-state.';
+            await emitRejectionAuditEvent({
+              type: 'START_REJECTED',
+              credentialId: acceptanceId,
+              metadata: {
+                clinician_id: acceptance.subjectId,
+                acceptanceId: acceptance.acceptanceId,
+                recognitionId: recognition.recognitionId,
+                reason: 'TRUST_STATE_UNAVAILABLE',
+                message,
+                rejectedAt: new Date().toISOString(),
+              },
+            });
+            return res.status(409).json({ error: message, code: 'TRUST_STATE_UNAVAILABLE' });
+          }
         }
 
         const priorStarts = await listStartsByAcceptanceId(acceptanceId);
@@ -263,151 +635,194 @@ export function registerWedgeRoutes(app: Express) {
 
         const status = subjectStatus({ recognitions, acceptances, starts });
         
-        // Find the specific acceptance if available
-        const currentAcceptance = status.acceptanceId 
-          ? allAcceptances.find(a => a.acceptanceId === status.acceptanceId)
+        const currentRecognition = status.recognitionId
+          ? recognitions.find((recognition) => recognition.recognitionId === status.recognitionId)
+          : undefined;
+        const currentAcceptance = status.acceptanceId
+          ? allAcceptances.find((acceptance) => acceptance.acceptanceId === status.acceptanceId)
           : undefined;
 
-        // Enhance with Trust State logic (CRS, blocking reasons, start_ready)
-        let crs = { score: 0, band: 'UNKNOWN', factors: {} as Record<string, unknown> };
+        let crs = { score: 0, band: 'RED', factors: {} as Record<string, unknown> };
         const blocking_reasons: string[] = [];
-        
+
         if (neo4jConfigured()) {
-            try {
-                const readiness = await getReadinessScore(clinicianId);
-                crs = {
-                    score: readiness.score,
-                    band: readiness.score >= 80 ? 'GREEN' : readiness.score >= 50 ? 'YELLOW' : 'RED',
-                    factors: readiness.factors,
-                };
-            } catch (e) {
-                console.warn('Failed to fetch readiness score for trust state', e);
-            }
+          try {
+            const readiness = await getReadinessScore(clinicianId);
+            crs = {
+              score: readiness.score,
+              band: readiness.score >= 80 ? 'GREEN' : readiness.score >= 50 ? 'YELLOW' : 'RED',
+              factors: readiness.factors,
+            };
+          } catch {
+            // Fail closed by keeping CRS in RED when readiness cannot be computed.
+          }
         }
 
-        // Simulate Decay
+        const hasPsvReference = Boolean(
+          parseOptionalString(currentRecognition?.verification?.verificationRef),
+        );
+        const isRevoked = Boolean(currentRecognition?.revocation);
+        const isExpired = Boolean(
+          currentRecognition?.expiresAt &&
+            !Number.isNaN(Date.parse(currentRecognition.expiresAt)) &&
+            Date.now() > Date.parse(currentRecognition.expiresAt),
+        );
+
+        if (!hasPsvReference) {
+          blocking_reasons.push('MISSING_PSV');
+        }
+        if (isExpired) {
+          blocking_reasons.push('EXPIRED_PSV');
+        }
+        if (isRevoked) {
+          blocking_reasons.push('REVOKED_PSV');
+        }
+
+        if (!status.recognized) {
+          blocking_reasons.push('MISSING_RECOGNITION');
+        }
+        if (!status.accepted) {
+          blocking_reasons.push('MISSING_ACCEPTANCE');
+        }
+        if (status.started) {
+          blocking_reasons.push('START_ALREADY_ATTESTED');
+        }
+
+        const factors = crs.factors as Record<string, unknown>;
+        const sanctions = Number(factors?.sanctions ?? 0);
+        if (Number.isFinite(sanctions) && sanctions > 0) {
+          blocking_reasons.push('ACTIVE_SANCTIONS');
+        }
+        const activeLicenses = Number(factors?.activeLicenses ?? 1);
+        if (Number.isFinite(activeLicenses) && activeLicenses === 0) {
+          blocking_reasons.push('NO_ACTIVE_LICENSE');
+        }
+
         if (simulateDecay) {
+          blocking_reasons.push('VERIFICATION_EXPIRED', 'EXPIRED_PSV');
           crs.score = 40;
           crs.band = 'RED';
-          if (!crs.factors) crs.factors = {};
-          // Maybe simulate a factor?
         }
 
-        // Trust Logic Replicated from TrustStateResolver (simplified for wedge)
-        if (!status.recognized) {
-            blocking_reasons.push('MISSING_RECOGNITION');
-        } else if (!status.accepted) {
-            blocking_reasons.push('MISSING_ACCEPTANCE');
-        } else if (status.started) {
-            blocking_reasons.push('START_ALREADY_ATTESTED');
+        const psvInvalidatesTrust = blocking_reasons.some((reason) =>
+          ['MISSING_PSV', 'EXPIRED_PSV', 'REVOKED_PSV', 'ACTIVE_SANCTIONS'].includes(reason),
+        );
+        if (psvInvalidatesTrust) {
+          crs.band = 'RED';
+          if (crs.score >= 80) {
+            crs.score = 79;
+          }
         }
 
-        // CRS Checks
         if (crs.score < 80 || crs.band !== 'GREEN') {
-             blocking_reasons.push('CRS_BELOW_THRESHOLD');
+          blocking_reasons.push('CRS_BELOW_THRESHOLD');
         }
 
-        // Specifically for decay simulation
-        if (simulateDecay) {
-          blocking_reasons.push('VERIFICATION_EXPIRED');
-        }
-        
-        const factors = crs.factors as any;
-        if (factors?.sanctions > 0) blocking_reasons.push('ACTIVE_SANCTIONS');
-        if (factors?.activeLicenses === 0) blocking_reasons.push('NO_ACTIVE_LICENSE');
+        const dedupedBlockingReasons = [...new Set(blocking_reasons)];
+        const start_ready = dedupedBlockingReasons.length === 0 && status.accepted && !status.started;
 
-        // Derived start_ready: Must be accepted, not yet started, and no blocking reasons
-        // Note: MISSING_ACCEPTANCE is a blocking reason, so checking blocking_reasons.length === 0 covers it.
-        // Derived start_ready: Must be accepted, not yet started, and no blocking reasons
-        // Note: MISSING_ACCEPTANCE is a blocking reason, so checking blocking_reasons.length === 0 covers it.
-        const start_ready = status.accepted && !status.started && blocking_reasons.filter(r => r !== 'MISSING_ACCEPTANCE' && r !== 'START_ALREADY_ATTESTED').length === 0;
+        const timeline_preview: Array<{
+          id: string;
+          type:
+            | 'INGESTED'
+            | 'VERIFICATION_REQUESTED'
+            | 'VERIFICATION_COMPLETED'
+            | 'VERIFICATION_FAILED'
+            | 'ACCEPTED'
+            | 'STARTED'
+            | 'DECAYED';
+          label: string;
+          timestamp: string;
+          employer: string | null;
+          facility: string | null;
+          metadata: Record<string, unknown>;
+        }> = [];
 
-        // Create Audit Timeline
-        const timeline_preview: any[] = [];
-
-        recognitions.forEach(r => {
+        if (currentRecognition && hasPsvReference) {
           timeline_preview.push({
-            id: r.recognitionId,
-            type: 'VERIFIED',
-            label: 'Network Verified',
-            timestamp: r.recognizedAt,
-            employer: r.employerId, // Note: This might be the network ID or null in some models
+            id: currentRecognition.recognitionId,
+            type: 'VERIFICATION_COMPLETED',
+            label: 'Verification completed',
+            timestamp: currentRecognition.recognizedAt,
+            employer: currentRecognition.employerId,
             facility: null,
-            metadata: { 
-               subject: r.subjectId, 
-               expires: r.expiresAt 
-            }
-          });
-        });
-
-        allAcceptances.forEach(a => {
-          timeline_preview.push({
-            id: a.acceptanceId,
-            type: 'ACCEPTED',
-            label: 'Employer Accepted',
-            timestamp: a.acceptedAt,
-            employer: a.employerId,
-            facility: a.facilityId,
             metadata: {
-               recognitionId: a.recognitionId
-            }
+              subject: currentRecognition.subjectId,
+              psv_report_id: currentRecognition.verification.verificationRef,
+              expires: currentRecognition.expiresAt,
+            },
           });
-        });
-
-        starts.forEach(s => {
-           timeline_preview.push({
-             id: s.startId,
-             type: 'STARTED',
-             label: 'Work Started',
-             timestamp: s.attestedAt,
-             employer: s.employerId, // Start usually inherits employer
-             facility: null, // Start might not track facility directly but Acceptance does
-             metadata: {
-                acceptanceId: s.acceptanceId
-             }
-           });
-        });
-
-        // Add Decay Event if simulated
-        if (simulateDecay) {
-           timeline_preview.push({
-             id: 'sim-decay-001',
-             type: 'DECAYED',
-             label: 'Trust Decayed',
-             timestamp: new Date().toISOString(),
-             employer: null,
-             facility: null,
-             metadata: {
-                reason: 'VERIFICATION_EXPIRED',
-                trigger: 'Time-to-live exceeded'
-             }
-           });
         }
 
-        // Sort by timestamp desc
-        timeline_preview.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        allAcceptances.forEach((acceptance) => {
+          timeline_preview.push({
+            id: acceptance.acceptanceId,
+            type: 'ACCEPTED',
+            label: 'Employer accepted',
+            timestamp: acceptance.acceptedAt,
+            employer: acceptance.employerId,
+            facility: acceptance.facilityId,
+            metadata: {
+              recognitionId: acceptance.recognitionId,
+              psvReportId: acceptance.psvReportId,
+            },
+          });
+        });
 
-        // Take top 5
-        const limited_timeline = timeline_preview.slice(0, 5);
+        starts.forEach((start) => {
+          timeline_preview.push({
+            id: start.startId,
+            type: 'STARTED',
+            label: 'Work started',
+            timestamp: start.attestedAt,
+            employer: start.employerId,
+            facility: null,
+            metadata: {
+              acceptanceId: start.acceptanceId,
+            },
+          });
+        });
+
+        if (simulateDecay || isExpired || isRevoked) {
+          timeline_preview.push({
+            id: 'trust-decay',
+            type: 'DECAYED',
+            label: 'Trust decayed',
+            timestamp: new Date().toISOString(),
+            employer: currentRecognition?.employerId ?? null,
+            facility: currentAcceptance?.facilityId ?? null,
+            metadata: {
+              reason: isRevoked ? 'REVOKED_PSV' : 'EXPIRED_PSV',
+              trigger: simulateDecay ? 'Simulation' : 'PSV freshness check',
+            },
+          });
+        }
+
+        timeline_preview.sort((left, right) => {
+          const leftTs = Date.parse(left.timestamp);
+          const rightTs = Date.parse(right.timestamp);
+          return rightTs - leftTs;
+        });
 
         return res.json({
-            ...status,
-            start_ready,
-            crs,
-            blocking_reasons,
-            timeline_preview: limited_timeline,
-            // Extra fields for UX
-            acceptanceDetails: currentAcceptance ? {
-              employerId: currentAcceptance.employerId,
-              facilityId: currentAcceptance.facilityId,
-              role: "Registered Nurse", // Hardcoded for demo
-              acceptedAt: currentAcceptance.acceptedAt
-            } : null
+          ...status,
+          start_ready,
+          crs,
+          blocking_reasons: dedupedBlockingReasons,
+          timeline_preview: timeline_preview.slice(0, 5),
+          acceptanceDetails: currentAcceptance
+            ? {
+                employerId: currentAcceptance.employerId,
+                facilityId: currentAcceptance.facilityId,
+                role: 'Unspecified',
+                acceptedAt: currentAcceptance.acceptedAt,
+              }
+            : null,
         });
       } catch (error) {
          if (error instanceof DomainError) return respondDomainError(res, error);
          console.error('trust-state error:', error);
-         return res.status(500).json({ error: 'Unable to load trust state.' });
+         return res.status(500).json({ error: 'Unable to compute trust-state.' });
       }
     }
   );

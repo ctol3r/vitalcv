@@ -71,7 +71,7 @@ export function createTrustStateRouter(deps: TrustStateApiDependencies): Router 
 
       return res.status(200).json(trustState);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to verify trust-state';
+      const message = error instanceof Error ? error.message : 'Unable to compute trust-state.';
       return res.status(400).json({ error: message });
     }
   });

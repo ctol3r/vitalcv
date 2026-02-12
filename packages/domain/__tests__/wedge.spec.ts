@@ -1,10 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { DomainError } from "@vitalcv/domain-common";
 
-import {
-  assertCanAccept,
-  assertCanStart,
-} from "../src/wedge/assertions";
+import { assertCanAccept } from "../guards/assertCanAccept";
+import { assertCanStart } from "../guards/assertCanStart";
 
 describe("Wedge domain invariants", () => {
   it("Start without Recognition → throws", () => {

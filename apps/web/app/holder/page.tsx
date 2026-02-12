@@ -98,7 +98,7 @@ export default function HolderPage() {
           {status?.recognized && (
             <div className="space-y-3 rounded-md border p-4 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Last Verified</span>
+                <span className="text-muted-foreground">Last Recorded</span>
                 <span>{new Date().toLocaleDateString()}</span>
               </div>
               <div className="flex justify-between">

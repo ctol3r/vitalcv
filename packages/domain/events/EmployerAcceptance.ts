@@ -7,6 +7,7 @@ export type EmployerAcceptanceInput = {
   employerId: string;
   facilityId: string;
   acceptedAt: string;
+  psvReportId: string;
 };
 
 function generateId(prefix: string): string {
@@ -37,6 +38,7 @@ export class EmployerAcceptance {
   public readonly employerId: string;
   public readonly facilityId: string;
   public readonly acceptedAt: string;
+  public readonly psvReportId: string;
 
   constructor(input: EmployerAcceptanceInput) {
     if (!input || typeof input !== 'object') {
@@ -48,6 +50,7 @@ export class EmployerAcceptance {
     assertNonEmpty(input.employerId, 'EmployerAcceptance.employerId');
     assertNonEmpty(input.facilityId, 'EmployerAcceptance.facilityId');
     assertTimestamp(input.acceptedAt, 'EmployerAcceptance.acceptedAt');
+    assertNonEmpty(input.psvReportId, 'EmployerAcceptance.psvReportId');
 
     this.acceptanceId = input.acceptanceId ?? generateId('acc');
     this.recognitionId = input.recognitionId;
@@ -55,6 +58,7 @@ export class EmployerAcceptance {
     this.employerId = input.employerId;
     this.facilityId = input.facilityId;
     this.acceptedAt = input.acceptedAt;
+    this.psvReportId = input.psvReportId;
 
     Object.freeze(this);
   }
