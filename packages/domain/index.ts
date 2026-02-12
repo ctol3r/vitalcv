@@ -1,4 +1,4 @@
-export { DomainError } from '../domain-common/src/errors/DomainError';
+export { DomainError } from '@vitalcv/domain-common';
 export { EmployerAcceptance, type EmployerAcceptanceInput } from './events/EmployerAcceptance';
 export {
   RecognitionEvent,

@@ -156,6 +156,7 @@ describe('reuseAcrossEmployers.e2e', () => {
       countersignedAt: '2026-02-07T09:00:03.000Z',
       countersignedByEmployer: true,
       employerProof: proofFor('did:key:employer-A#key-1'),
+      psvReportId: receipt.receipt_id,
     });
     acceptances.push(acceptanceA);
 
@@ -197,6 +198,7 @@ describe('reuseAcrossEmployers.e2e', () => {
       countersignedAt: '2026-02-07T09:00:06.000Z',
       countersignedByEmployer: true,
       employerProof: proofFor('did:key:employer-B#key-1'),
+      psvReportId: receipt.receipt_id,
     });
     acceptances.push(acceptanceB);
 

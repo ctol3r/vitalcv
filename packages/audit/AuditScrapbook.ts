@@ -45,6 +45,28 @@ function toPacketId(clinician_id: string, timeline: readonly AuditTimelineEntry[
 
 function mapNcqaTags(eventType: AuditEventType): readonly NcqaTag[] {
   switch (eventType) {
+    case 'NPI_INGESTED':
+      return Object.freeze(['CR1']);
+    case 'NPI_VALIDATION_FAILED':
+      return Object.freeze(['CR1']);
+    case 'FILE_INGESTED':
+      return Object.freeze(['CR1']);
+    case 'INGEST_PARSE_SUMMARY':
+      return Object.freeze(['CR1']);
+    case 'INGEST_CONFLICT_DETECTED':
+      return Object.freeze(['CR1']);
+    case 'INGEST_ERROR':
+      return Object.freeze(['CR1']);
+    case 'VERIFICATION_REQUESTED':
+      return Object.freeze(['CR1']);
+    case 'VERIFICATION_COMPLETED':
+      return Object.freeze(['CR1']);
+    case 'VERIFICATION_FAILED':
+      return Object.freeze(['CR1']);
+    case 'EMPLOYER_ACCEPTANCE_REJECTED':
+      return Object.freeze(['CR1']);
+    case 'START_REJECTED':
+      return Object.freeze(['CR1']);
     case 'PSV_RECEIPT':
       return Object.freeze(['CR1', 'CR5']);
     case 'RECOGNITION':
@@ -54,6 +76,8 @@ function mapNcqaTags(eventType: AuditEventType): readonly NcqaTag[] {
     case 'EMPLOYER_ACCEPTANCE':
       return Object.freeze(['CR1']);
     case 'START':
+      return Object.freeze(['CR1']);
+    case 'START_ATTESTED':
       return Object.freeze(['CR1']);
     case 'COMMITTEE':
       return Object.freeze(['CR4']);

@@ -119,6 +119,7 @@ describe('silentPilot.e2e', () => {
         countersignedAt: '2026-02-06T10:16:00.000Z',
         countersignedByEmployer: true,
         employerProof: proofFor('did:key:missing-recognition#key-1'),
+        psvReportId: 'psv-missing-recognition',
       }),
     ).toThrow();
 
@@ -207,6 +208,7 @@ describe('silentPilot.e2e', () => {
       countersignedAt: '2026-02-06T10:11:00.000Z',
       countersignedByEmployer: true,
       employerProof: proofFor('did:key:employer-silent-001#key-1'),
+      psvReportId: receipt.receipt_id,
     });
     acceptanceRecords.push({
       clinician_id,
@@ -408,6 +410,7 @@ describe('silentPilot.e2e', () => {
       countersignedAt: '2026-02-06T12:00:00.800Z',
       countersignedByEmployer: true,
       employerProof: proofFor('did:key:employer-silent-decay-001#key-1'),
+      psvReportId: receipt.receipt_id,
     });
     acceptanceRecords.push({
       clinician_id,

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { AuthButton } from '@/components/AuthButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,12 +18,23 @@ import {
   History,
   FileSignature,
   Fingerprint,
-  Lock
+  Lock,
+  Loader2,
+  Shield,
+  Upload,
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { AuditTimeline } from '@/components/AuditTimeline';
+import {
+  VerificationReceipts,
+  type ReceiptRow,
+  type ReceiptOutcome,
+} from '@/components/VerificationReceipts';
+
+const START_READY_CLARIFICATION =
+  'PSV complete. Employer acceptance and start attestation still required.';
 
 // Helper to generate consistent mock hash
 const getMockHash = (id: string) => {
@@ -44,7 +56,7 @@ function getTrustObserverExplanation(status: any) {
   let key_blocker = null;
 
   if (start_ready) {
-    explanation = "Subject is fully credentialed, recognized by the network, and accepted by the employer. Trust score is stable.";
+    explanation = "Subject has PSV-backed recognition and employer acceptance on record. Start remains gated by explicit attestation timing.";
   } else if (!recognized) {
     explanation = "Subject is not recognized by the trust network. Initial verification is required.";
     key_blocker = "MISSING_RECOGNITION";
@@ -58,7 +70,7 @@ function getTrustObserverExplanation(status: any) {
      explanation = "Cumulative trust factors (license status, tenure, sanctions) result in a score below the safety threshold.";
      key_blocker = "CRS_BELOW_THRESHOLD";
   } else if (!accepted) {
-    explanation = "Network verification is valid, but the subject has not yet been accepted by this specific employer.";
+    explanation = "PSV-backed recognition is present, but this employer has not recorded acceptance for this scope.";
     key_blocker = "MISSING_ACCEPTANCE";
   } else {
     explanation = "One or more blocking criteria are unmet.";
@@ -85,7 +97,22 @@ export default function VerifierPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /* ---- CRS change tracking ---- */
+  const prevCrsRef = useRef<number | null>(null);
+  const [crsUpdatedBanner, setCrsUpdatedBanner] = useState(false);
+
   const trustObserver = useMemo(() => getTrustObserverExplanation(status), [status]);
+
+  /* ---- Manual Verification State ---- */
+  const [manualSubject, setManualSubject] = useState('');
+  const [manualAttestor, setManualAttestor] = useState<'Employer' | 'CVO'>('Employer');
+  const [manualFile, setManualFile] = useState<File | null>(null);
+  const [manualSubmitting, setManualSubmitting] = useState(false);
+  const [manualVerifications, setManualVerifications] = useState<
+    { id: number; subject: string; attestor: string; status: 'PENDING' | 'COMPLETE' | 'FAILED'; timestamp: string; reason?: string }[]
+  >([]);
+  const manualIdRef = useRef(0);
+  const manualFileInputRef = useRef<HTMLInputElement>(null);
 
   const checkTrustState = async () => {
     if (!clinicianId.trim()) return;
@@ -124,13 +151,31 @@ export default function VerifierPage() {
     }
   }, [employerId, simulateDecay]);
 
+  // Track CRS score changes
+  useEffect(() => {
+    if (status?.crs?.score != null) {
+      if (prevCrsRef.current !== null && prevCrsRef.current !== status.crs.score) {
+        setCrsUpdatedBanner(true);
+      }
+      prevCrsRef.current = status.crs.score;
+    }
+  }, [status]);
+
   const handleAccept = async () => {
     if (!status?.recognitionId) return;
     setActionLoading(true);
     try {
+      const psvReportId = status?.timeline_preview?.find(
+        (event: any) => event?.type === 'VERIFICATION_COMPLETED',
+      )?.metadata?.psv_report_id;
+      if (!psvReportId) {
+        throw new Error('Acceptance requires completed PSV.');
+      }
+
       const payload = {
         acceptance: {
           recognitionId: status.recognitionId,
+          psvReportId,
           facilityId: employerId === 'employer:alpha' ? 'facility:main' : 'facility:b', // Dynamic facility based on employer
           employerId: employerId, // Pass the current employer
           acceptedAt: new Date().toISOString(),
@@ -174,6 +219,82 @@ export default function VerifierPage() {
     }
   };
 
+  /* ---- Manual Verification Handler ---- */
+  const handleManualVerification = async () => {
+    if (!manualSubject.trim() || !manualFile || !clinicianId.trim()) return;
+
+    const id = ++manualIdRef.current;
+    setManualVerifications((prev) => [
+      ...prev,
+      {
+        id,
+        subject: manualSubject.trim(),
+        attestor: manualAttestor,
+        status: 'PENDING' as const,
+        timestamp: new Date().toISOString(),
+      },
+    ]);
+    setManualSubmitting(true);
+
+    try {
+      const res = await fetch(`${backendUrl}/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          purpose: 'employment',
+          clinician_id: clinicianId,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        setManualVerifications((prev) =>
+          prev.map((v) =>
+            v.id === id
+              ? {
+                  ...v,
+                  status: 'FAILED' as const,
+                  timestamp: new Date().toISOString(),
+                  reason: body || `Request failed (HTTP ${res.status}).`,
+                }
+              : v,
+          ),
+        );
+        return;
+      }
+
+      await res.json();
+      setManualVerifications((prev) =>
+        prev.map((v) =>
+          v.id === id
+            ? { ...v, status: 'COMPLETE' as const, timestamp: new Date().toISOString() }
+            : v,
+        ),
+      );
+
+      setManualSubject('');
+      setManualFile(null);
+      if (manualFileInputRef.current) manualFileInputRef.current.value = '';
+    } catch (err) {
+      setManualVerifications((prev) =>
+        prev.map((v) =>
+          v.id === id
+            ? {
+                ...v,
+                status: 'FAILED' as const,
+                timestamp: new Date().toISOString(),
+                reason:
+                  err instanceof Error ? err.message : 'Unable to reach the verification service.',
+              }
+            : v,
+        ),
+      );
+    } finally {
+      setManualSubmitting(false);
+      await checkTrustState();
+    }
+  };
+
   const formatTimestamp = (isoString?: string) => {
     if (!isoString) return '—';
     try {
@@ -185,6 +306,9 @@ export default function VerifierPage() {
 
   const mapBlockingReason = (reason: string) => {
     switch (reason) {
+      case 'MISSING_PSV': return 'Missing required PSV';
+      case 'EXPIRED_PSV': return 'PSV receipt expired';
+      case 'REVOKED_PSV': return 'PSV receipt revoked';
       case 'MISSING_RECOGNITION': return 'Missing network recognition';
       case 'MISSING_ACCEPTANCE': return 'Missing employer acceptance';
       case 'CRS_BELOW_THRESHOLD': return 'CRS below threshold';
@@ -205,6 +329,62 @@ export default function VerifierPage() {
     }
   };
 
+  const normalizeEventLabel = (label?: string) => {
+    if (label?.toLowerCase() === 'verification completed') return 'Recognition recorded';
+    return label;
+  };
+
+  /* ---- Verification Receipts derivation ---- */
+  const receiptRows: ReceiptRow[] = useMemo(() => {
+    const rows: ReceiptRow[] = [];
+
+    if (status?.timeline_preview) {
+      for (const event of status.timeline_preview) {
+        if (event.type === 'VERIFICATION_COMPLETED') {
+          rows.push({
+            lane: (event.metadata?.lane || 'PUBLIC').toUpperCase(),
+            subject:
+              event.metadata?.verification_check ||
+              normalizeEventLabel(event.label) ||
+              'Verification',
+            outcome: 'PASS' as ReceiptOutcome,
+            timestamp: event.timestamp,
+            hash: getMockHash(event.id || event.timestamp).substring(2, 10),
+          });
+        } else if (event.type === 'VERIFICATION_FAILED') {
+          rows.push({
+            lane: (event.metadata?.lane || 'PUBLIC').toUpperCase(),
+            subject:
+              event.metadata?.verification_check ||
+              normalizeEventLabel(event.label) ||
+              'Verification',
+            outcome: 'FAIL' as ReceiptOutcome,
+            timestamp: event.timestamp,
+            hash: getMockHash(event.id || event.timestamp).substring(2, 10),
+          });
+        }
+      }
+    }
+
+    for (const mv of manualVerifications) {
+      const outcome: ReceiptOutcome =
+        mv.status === 'COMPLETE' ? 'PASS' : mv.status === 'FAILED' ? 'FAIL' : 'PENDING';
+      rows.push({
+        lane: 'MANUAL',
+        subject: mv.subject,
+        outcome,
+        timestamp: mv.timestamp,
+        hash: getMockHash(`mv-${mv.id}`).substring(2, 10),
+      });
+    }
+
+    return rows;
+  }, [status?.timeline_preview, manualVerifications]);
+
+  const allReceiptsPass =
+    receiptRows.length > 0 && receiptRows.every((r) => r.outcome === 'PASS');
+  const failedOrPendingReceipts = receiptRows.filter((r) => r.outcome !== 'PASS');
+
   return (
     <div className="min-h-screen bg-slate-50 p-8 flex flex-col items-center justify-start font-sans">
       <div className="w-full max-w-3xl space-y-8">
@@ -216,10 +396,10 @@ export default function VerifierPage() {
               <ShieldCheck className="w-8 h-8 text-blue-700" />
               <div>
                 <h1 className="text-2xl font-bold text-slate-900">Verifier Console</h1>
-                <p className="text-slate-500 text-sm">Cryptographic Trust State Inspection</p>
+                <p className="text-slate-500 text-sm">Trust State Inspection</p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
                <Input
                  placeholder="Clinician ID"
                  value={clinicianId}
@@ -233,6 +413,7 @@ export default function VerifierPage() {
                >
                  {loading ? 'Verifying...' : 'Verify'}
                </Button>
+               <AuthButton />
             </div>
           </div>
 
@@ -356,10 +537,13 @@ export default function VerifierPage() {
                     <div className="text-right">
                        <Label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Status</Label>
                        <div className="mt-1">
-                         <Badge variant={status.start_ready ? "default" : "destructive"} className="text-sm px-3 py-1">
-                           {status.start_ready ? "CLEAR TO START" : "BLOCKED"}
+                       <Badge variant={status.start_ready ? "default" : "destructive"} className="text-sm px-3 py-1">
+                           {status.start_ready ? "CRS threshold met (employer action required)" : "BLOCKED"}
                          </Badge>
                        </div>
+                       <p className="mt-2 text-xs text-slate-500 max-w-44">
+                         {START_READY_CLARIFICATION}
+                       </p>
                     </div>
                   </div>
                 </CardContent>
@@ -440,9 +624,185 @@ export default function VerifierPage() {
                    ))}
                  </ul>
                ) : (
-                 <p className="text-green-700 font-medium text-sm">All verification checks passed. No blocking signals detected.</p>
+                 <p className="text-green-700 font-medium text-sm">No blocking signals detected.</p>
                )}
             </div>
+
+            {/* Verification Receipts Panel */}
+            {receiptRows.length > 0 && (
+              <VerificationReceipts
+                receipts={receiptRows}
+                crsUpdated={crsUpdatedBanner}
+              />
+            )}
+
+            {/* Manual Verification Panel */}
+            <Card>
+              <CardHeader className="border-b border-slate-100 pb-4">
+                <CardTitle className="text-lg text-slate-800 flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-slate-600" />
+                  Manual Verification
+                </CardTitle>
+                <p className="text-sm text-slate-500 mt-1">
+                  Upload a document for preview review. This creates a recorded receipt.
+                </p>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm text-slate-700">Subject</Label>
+                    <Input
+                      type="text"
+                      placeholder="e.g., License – State, Education"
+                      value={manualSubject}
+                      onChange={(e) => setManualSubject(e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm text-slate-700">Attestor</Label>
+                    <select
+                      aria-label="Attestor"
+                      value={manualAttestor}
+                      onChange={(e) => setManualAttestor(e.target.value as 'Employer' | 'CVO')}
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    >
+                      <option value="Employer">Employer</option>
+                      <option value="CVO">CVO</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-sm text-slate-700">Document</Label>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 rounded-md border border-dashed border-slate-200 bg-slate-50/50 px-4 py-2 cursor-pointer hover:border-slate-300 transition-colors flex-1">
+                      <Upload className="w-4 h-4 text-slate-400" />
+                      <span className="text-sm text-slate-500">
+                        {manualFile ? manualFile.name : 'Select PDF or DOCX'}
+                      </span>
+                      <input
+                        ref={manualFileInputRef}
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        onChange={(e) => setManualFile(e.target.files?.[0] ?? null)}
+                        className="hidden"
+                      />
+                    </label>
+                    {manualFile && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setManualFile(null);
+                          if (manualFileInputRef.current) manualFileInputRef.current.value = '';
+                        }}
+                        className="text-slate-400 hover:text-red-500 transition-colors"
+                        aria-label="Remove file"
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500">File is not stored in this preview.</p>
+                </div>
+
+                <Button
+                  onClick={handleManualVerification}
+                  disabled={manualSubmitting || !manualSubject.trim() || !manualFile}
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white"
+                >
+                  {manualSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="w-4 h-4 mr-2" />
+                      Submit Manual Verification
+                    </>
+                  )}
+                </Button>
+
+                {/* Verification Receipts */}
+                {manualVerifications.length > 0 && (
+                  <div className="rounded-md border border-slate-200 overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200">
+                          <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                            Subject
+                          </th>
+                          <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                            Attestor
+                          </th>
+                          <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                            Timestamp
+                          </th>
+                          <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                            Receipt
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {manualVerifications.map((v) => (
+                          <tr
+                            key={v.id}
+                            className={v.status === 'FAILED' ? 'bg-red-50/30' : 'bg-white'}
+                          >
+                            <td className="px-4 py-2.5 font-medium text-slate-700">{v.subject}</td>
+                            <td className="px-4 py-2.5 text-slate-600">{v.attestor}</td>
+                            <td className="px-4 py-2.5">
+                              <Badge
+                                className={`text-[11px] border ${
+                                  v.status === 'PENDING'
+                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                    : v.status === 'COMPLETE'
+                                    ? 'bg-slate-100 text-slate-700 border-slate-200'
+                                    : 'bg-red-50 text-red-700 border-red-200'
+                                } hover:bg-transparent`}
+                              >
+                                <span className={`inline-block h-2 w-2 rounded-full mr-1.5 ${
+                                  v.status === 'PENDING'
+                                    ? 'bg-gray-400'
+                                    : v.status === 'COMPLETE'
+                                    ? 'bg-green-600'
+                                    : 'bg-red-600'
+                                }`} />
+                                {v.status === 'PENDING'
+                                  ? 'PENDING'
+                                  : v.status === 'COMPLETE'
+                                  ? 'PASS'
+                                  : 'FAIL'}
+                              </Badge>
+                              {v.status === 'FAILED' && v.reason && (
+                                <p className="text-xs text-red-600 mt-1">{v.reason}</p>
+                              )}
+                            </td>
+                            <td className="px-4 py-2.5 text-xs text-slate-400 font-mono">
+                              {new Date(v.timestamp).toLocaleTimeString()}
+                            </td>
+                            <td className="px-4 py-2.5">
+                              {v.status === 'COMPLETE' ? (
+                                <span className="text-xs text-slate-700 flex items-center gap-1">
+                                  <span className="inline-block h-2 w-2 rounded-full bg-slate-500" />
+                                  Recorded
+                                </span>
+                              ) : (
+                                <span className="text-xs text-slate-400">&mdash;</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Flow Steps */}
             <Card>
@@ -465,18 +825,18 @@ export default function VerifierPage() {
                            {/* Reuse Visibility */}
                            {status.recognized && (
                              <Badge variant="outline" className="text-blue-700 border-blue-200 bg-blue-50">
-                               Verification Reused
+                               Recognition Reused
                              </Badge>
                            )}
                          </div>
                          <p className="text-sm text-slate-500">Subject identified in clinical graph</p>
                          {status.recognized && (
                             <div className="space-y-2 mt-2">
-                                <p className="text-xs text-slate-500">No re-verification performed</p>
+                                <p className="text-xs text-slate-500">No new verification run</p>
                                 <div className="flex items-center gap-3">
                                   <Badge variant="outline" className="text-xs gap-1 px-2 border-slate-200 text-slate-500 font-normal">
                                     <FileSignature className="w-3 h-3" />
-                                    Signed by VitalCV Network
+                                    Recorded by VitalCV Network
                                   </Badge>
                                   <TooltipProvider>
                                     <Tooltip>
@@ -487,7 +847,7 @@ export default function VerifierPage() {
                                          </div>
                                       </TooltipTrigger>
                                       <TooltipContent>
-                                        <p>Tamper-evident hash anchor</p>
+                                        <p>Demo reference hash</p>
                                       </TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
@@ -496,7 +856,7 @@ export default function VerifierPage() {
                          )}
                        </div>
                        <div className="text-right">
-                         <span className="text-xs text-slate-400 uppercase tracking-wide">Verified At</span>
+                         <span className="text-xs text-slate-400 uppercase tracking-wide">Recorded At</span>
                          <div className="font-mono text-sm text-slate-700">{formatTimestamp(status.recognizedAt)}</div>
                        </div>
                      </div>
@@ -538,9 +898,9 @@ export default function VerifierPage() {
 
                          {status.accepted && (
                             <div className="flex items-center gap-3 mt-3">
-                              <Badge variant="outline" className="text-xs gap-1 px-2 border-slate-200 text-slate-500 font-normal">
+                             <Badge variant="outline" className="text-xs gap-1 px-2 border-slate-200 text-slate-500 font-normal">
                                 <FileSignature className="w-3 h-3" />
-                                Signed by {status.acceptanceDetails?.employerId || 'Employer'}
+                                Recorded by {status.acceptanceDetails?.employerId || 'Employer'}
                               </Badge>
                               <TooltipProvider>
                                 <Tooltip>
@@ -551,7 +911,7 @@ export default function VerifierPage() {
                                      </div>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>Tamper-evident hash anchor</p>
+                                    <p>Demo reference hash</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -566,14 +926,35 @@ export default function VerifierPage() {
                      </div>
                      {!status.accepted && (
                        <div className="mt-2">
-                         <Button 
-                           onClick={handleAccept}
-                           disabled={!status.recognized || actionLoading}
-                           className="bg-slate-900 hover:bg-slate-800 text-white"
-                         >
-                           {actionLoading ? 'Accepting...' : 'Accept Recognition'}
-                         </Button>
-                         <p className="text-xs text-slate-400 font-medium mt-1 ml-1">Replayable • Timestamped • Anchored</p>
+                         <TooltipProvider>
+                           <Tooltip>
+                             <TooltipTrigger asChild>
+                               <span className="inline-block">
+                                 <Button 
+                                   onClick={handleAccept}
+                                   disabled={!status.recognized || actionLoading || status.crs?.band !== 'GREEN' || !allReceiptsPass}
+                                   className={`bg-slate-900 hover:bg-slate-800 text-white ${
+                                     !status.recognized || status.crs?.band !== 'GREEN' || !allReceiptsPass
+                                       ? 'opacity-50 cursor-not-allowed'
+                                       : ''
+                                   }`}
+                                 >
+                                   {actionLoading ? 'Accepting...' : 'Accept Recognition'}
+                                 </Button>
+                               </span>
+                             </TooltipTrigger>
+                             <TooltipContent side="top" className="max-w-xs">
+                               <p>
+                                 {failedOrPendingReceipts.length > 0
+                                   ? `Employer action required — ${failedOrPendingReceipts.map((r) => `${r.subject}: ${r.outcome}`).join(', ')}`
+                                   : 'Employer action required'}
+                               </p>
+                             </TooltipContent>
+                           </Tooltip>
+                         </TooltipProvider>
+                         <p className="text-xs text-slate-400 font-medium mt-1 ml-1">
+                           Employer action required
+                         </p>
                        </div>
                      )}
                    </div>
@@ -594,7 +975,7 @@ export default function VerifierPage() {
                             <div className="flex items-center gap-3 mt-2">
                               <Badge variant="outline" className="text-xs gap-1 px-2 border-slate-200 text-slate-500 font-normal">
                                 <FileSignature className="w-3 h-3" />
-                                Signed by {status.acceptanceDetails?.employerId || 'Employer'}
+                                Recorded by {status.acceptanceDetails?.employerId || 'Employer'}
                               </Badge>
                               <TooltipProvider>
                                 <Tooltip>
@@ -605,7 +986,7 @@ export default function VerifierPage() {
                                      </div>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>Tamper-evident hash anchor</p>
+                                    <p>Demo reference hash</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>

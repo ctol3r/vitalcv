@@ -14,7 +14,7 @@ on:
 
 env:
   NODE_VERSION: '20.11.1'
-  PNPM_VERSION: '8.15.0'
+  PNPM_VERSION: '10.6.1'
   CI: true
   ESLINT_MAX_WARNINGS: 0
   SKIP_TESTS: ${{ inputs.skip_tests || 'false' }}

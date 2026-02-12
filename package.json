@@ -7,6 +7,20 @@
     "packages/*"
   ],
   "scripts": {
-    "build:web": "pnpm --filter web build"
+    "build:web": "pnpm --filter web build",
+    "typecheck": "turbo typecheck",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "build": "turbo build"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "turbo": "^2.7.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "^19",
+      "@types/react-dom": "^19"
+    }
   }
 }

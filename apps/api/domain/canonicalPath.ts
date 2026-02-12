@@ -53,6 +53,7 @@ export class CanonicalPathService {
       countersignedAt: input.countersignedAt,
       countersignedByEmployer: input.countersignedByEmployer,
       employerProof: input.employerProof,
+      psvReportId: input.psvReportId,
       hashAnchor: input.hashAnchor,
     });
 

@@ -18,7 +18,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 export interface TimelineEvent {
   id: string;
-  type: 'VERIFIED' | 'ACCEPTED' | 'STARTED' | 'DECAYED';
+  type:
+    | 'INGESTED'
+    | 'VERIFICATION_REQUESTED'
+    | 'VERIFICATION_COMPLETED'
+    | 'VERIFICATION_FAILED'
+    | 'ACCEPTED'
+    | 'STARTED'
+    | 'DECAYED';
   label: string;
   timestamp: string;
   employer?: string;
@@ -45,7 +52,7 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
     }, 0).toString(16).replace('-', 'f').padStart(64, '0').substring(0, 16);
 
     let mockSigner = event.employer || 'Network Authority';
-    if (event.type === 'VERIFIED') mockSigner = 'VitalCV Network';
+    if (event.type === 'VERIFICATION_COMPLETED') mockSigner = 'VitalCV Network';
     if (event.type === 'DECAYED') mockSigner = 'System Observer';
 
     return {
@@ -57,7 +64,10 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'VERIFIED': return <ShieldCheck className="w-4 h-4 text-blue-700" />;
+      case 'INGESTED': return <Clock className="w-4 h-4 text-slate-500" />;
+      case 'VERIFICATION_REQUESTED': return <Clock className="w-4 h-4 text-amber-700" />;
+      case 'VERIFICATION_COMPLETED': return <ShieldCheck className="w-4 h-4 text-blue-700" />;
+      case 'VERIFICATION_FAILED': return <AlertTriangle className="w-4 h-4 text-red-700" />;
       case 'ACCEPTED': return <CheckCircle2 className="w-4 h-4 text-green-700" />;
       case 'STARTED': return <PlayCircle className="w-4 h-4 text-green-700" />;
       case 'DECAYED': return <AlertTriangle className="w-4 h-4 text-red-700" />;
@@ -77,6 +87,11 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
     } catch {
       return iso;
     }
+  };
+
+  const getDisplayLabel = (label: string) => {
+    if (label.toLowerCase() === 'verification completed') return 'Recognition recorded';
+    return label;
   };
 
   if (!events || events.length === 0) {
@@ -116,7 +131,7 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
                     <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-baseline">
                             <h4 className="text-xs font-semibold text-slate-800 truncate pr-2">
-                                {event.label}
+                                {getDisplayLabel(event.label)}
                             </h4>
                             <span className="text-xs font-mono text-slate-400 whitespace-nowrap">
                                 {formatTime(event.timestamp)}
@@ -144,7 +159,7 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
                                     </div>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>Tamper-evident hash anchor</p>
+                                    <p>Demo reference hash</p>
                                     <p className="font-mono text-xs opacity-75 mt-1">{event.hash}</p>
                                 </TooltipContent>
                             </Tooltip>

@@ -29,12 +29,14 @@ class EmployerAcceptance {
         assertNonEmpty(input.employerId, 'EmployerAcceptance.employerId');
         assertNonEmpty(input.facilityId, 'EmployerAcceptance.facilityId');
         assertTimestamp(input.acceptedAt, 'EmployerAcceptance.acceptedAt');
+        assertNonEmpty(input.psvReportId, 'EmployerAcceptance.psvReportId');
         this.acceptanceId = input.acceptanceId ?? generateId('acc');
         this.recognitionId = input.recognitionId;
         this.subjectId = input.subjectId;
         this.employerId = input.employerId;
         this.facilityId = input.facilityId;
         this.acceptedAt = input.acceptedAt;
+        this.psvReportId = input.psvReportId;
         Object.freeze(this);
     }
 }

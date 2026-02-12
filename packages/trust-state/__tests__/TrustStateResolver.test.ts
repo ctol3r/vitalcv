@@ -100,6 +100,32 @@ describe('TrustStateResolver', () => {
     expect(result.blocking_reasons).toContain('MISSING_ACCEPTANCE');
   });
 
+  it('fails closed to RED when CRS is GREEN but PSV receipts are missing', async () => {
+    const { deps } = createDependencies({
+      crs: {
+        computeForClinician: vi.fn().mockResolvedValue({
+          clinician_id: 'clin-1',
+          score: 95,
+          band: 'GREEN',
+          blocking_reasons: [],
+          last_verified_at: FIXED_NOW,
+        } satisfies CrsResult),
+      },
+      receipts: {
+        listByClinician: vi.fn().mockResolvedValue([]),
+      },
+    });
+
+    const resolver = new TrustStateResolver(deps);
+    const result = await resolver.resolve('clin-1');
+
+    expect(result.start_ready).toBe(false);
+    expect(result.band).toBe('RED');
+    expect(result.score).toBeLessThan(80);
+    expect(result.blocking_reasons).toContain('MISSING_PSV');
+    expect(result.blocking_reasons).toContain('CRS_BELOW_THRESHOLD');
+  });
+
   it('returns start_ready=false when CRS is below threshold', async () => {
     const { deps } = createDependencies({
       crs: {

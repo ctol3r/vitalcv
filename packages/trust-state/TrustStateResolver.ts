@@ -20,6 +20,8 @@ const BLOCKING_REASON_ORDER: readonly BlockingReason[] = [
   'MISSING_PSV',
   'EXPIRED_PSV',
   'REVOKED_PSV',
+  'FAILED_VERIFICATION',
+  'IDENTITY_CONFLICT',
   'MISSING_ACCEPTANCE',
   'CRS_BELOW_THRESHOLD',
   'START_ALREADY_ATTESTED',
@@ -47,6 +49,18 @@ function normalizeScopeField(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function normalizeVerificationCheck(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function normalizeAttestorId(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
 }
 
 function readHashAnchor(record: AcceptanceScopeRecord): string | null {
@@ -178,21 +192,46 @@ export class TrustStateResolver {
 
     const asOf = (this.deps.now ?? (() => new Date()))().toISOString();
 
-    const [crs, receipts, hasAcceptance, hasStart] = await Promise.all([
+    const [
+      crs,
+      receipts,
+      hasAcceptance,
+      hasStart,
+      hasIdentityConflict,
+      requiredPublicChecks,
+      requiredManualChecks,
+    ] =
+      await Promise.all([
       this.deps.crs.computeForClinician({ clinician_id, as_of: asOf }),
       this.deps.receipts.listByClinician(clinician_id),
       this.hasAcceptanceForScope(clinician_id, normalizedScope),
       this.hasStartForScope(clinician_id, normalizedScope),
+      this.deps.conflicts?.hasUnresolvedForClinician
+        ? this.deps.conflicts.hasUnresolvedForClinician(clinician_id)
+        : false,
+      this.deps.verification?.required_public_checks
+        ? this.deps.verification.required_public_checks
+        : [],
+      this.deps.verification?.required_manual_checks
+        ? this.deps.verification.required_manual_checks
+        : [],
     ]);
 
     const blockingReasons = new Set<BlockingReason>();
     const decayedReceipts: Array<{ receipt_id: string; status: 'EXPIRED' | 'REVOKED' }> = [];
+    const passedPublicChecks = new Set<string>();
+    const passedManualChecks = new Set<string>();
+    const manualAttestorByCheck = new Map<string, string>();
 
     if (!Array.isArray(receipts) || receipts.length === 0) {
       blockingReasons.add('MISSING_PSV');
     } else {
       for (const receipt of receipts) {
         const status = resolveReceiptStatus(receipt, asOf);
+        if (receipt.verification_outcome === 'FAIL') {
+          blockingReasons.add('FAILED_VERIFICATION');
+        }
+
         if (status === 'REVOKED') {
           blockingReasons.add('REVOKED_PSV');
           decayedReceipts.push({ receipt_id: receipt.receipt_id, status });
@@ -202,7 +241,71 @@ export class TrustStateResolver {
           blockingReasons.add('EXPIRED_PSV');
           decayedReceipts.push({ receipt_id: receipt.receipt_id, status });
         }
+
+        if (
+          receipt.lane === 'PUBLIC' &&
+          status === 'VALID' &&
+          receipt.verification_outcome !== 'FAIL'
+        ) {
+          const check = normalizeVerificationCheck(receipt.verification_check);
+          if (check) {
+            passedPublicChecks.add(check);
+          }
+        }
+
+        if (
+          receipt.lane === 'MANUAL' &&
+          status === 'VALID' &&
+          receipt.verification_outcome !== 'FAIL'
+        ) {
+          const check = normalizeVerificationCheck(receipt.verification_check);
+          if (check) {
+            passedManualChecks.add(check);
+            const attestor = normalizeAttestorId(receipt.attestor_id);
+            if (attestor && !manualAttestorByCheck.has(check)) {
+              manualAttestorByCheck.set(check, attestor);
+            }
+          }
+        }
       }
+    }
+
+    const requiredChecks = Array.isArray(requiredPublicChecks)
+      ? requiredPublicChecks
+          .map((check) => normalizeVerificationCheck(check))
+          .filter((check): check is string => Boolean(check))
+      : [];
+    if (requiredChecks.length > 0) {
+      const missingRequiredCheck = requiredChecks.some((check) => !passedPublicChecks.has(check));
+      if (missingRequiredCheck) {
+        blockingReasons.add('MISSING_PSV');
+      }
+    }
+
+    const requiredManual = Array.isArray(requiredManualChecks)
+      ? requiredManualChecks
+          .map((check) => normalizeVerificationCheck(check))
+          .filter((check): check is string => Boolean(check))
+      : [];
+    if (requiredManual.length > 0) {
+      const missingRequiredManual = requiredManual.some((check) => !passedManualChecks.has(check));
+      if (missingRequiredManual) {
+        blockingReasons.add('MISSING_PSV');
+      }
+    }
+
+    const verification_messages = Object.freeze(
+      [...new Set(
+        (requiredManual.length > 0 ? requiredManual : [...passedManualChecks])
+          .map((check) => manualAttestorByCheck.get(check))
+          .filter((attestor): attestor is string => Boolean(attestor))
+          .sort((left, right) => left.localeCompare(right))
+          .map((attestor) => `Manual verification completed by ${attestor}`),
+      )],
+    );
+
+    if (hasIdentityConflict) {
+      blockingReasons.add('IDENTITY_CONFLICT');
     }
 
     if (!hasAcceptance) {
@@ -214,9 +317,12 @@ export class TrustStateResolver {
     }
 
     const hasDecay = decayedReceipts.length > 0;
-    const resolvedBand = hasDecay ? 'RED' : crs.band;
+    const hasFailedVerification = blockingReasons.has('FAILED_VERIFICATION');
+    const hasMissingPsv = blockingReasons.has('MISSING_PSV');
+    const hasRiskConflict = hasDecay || hasFailedVerification || hasIdentityConflict || hasMissingPsv;
+    const resolvedBand = hasRiskConflict ? 'RED' : crs.band;
     const resolvedScore =
-      hasDecay && crs.score >= CRS_START_THRESHOLD ? CRS_START_THRESHOLD - 1 : crs.score;
+      hasRiskConflict && crs.score >= CRS_START_THRESHOLD ? CRS_START_THRESHOLD - 1 : crs.score;
 
     if (resolvedScore < CRS_START_THRESHOLD || resolvedBand !== 'GREEN') {
       blockingReasons.add('CRS_BELOW_THRESHOLD');
@@ -299,6 +405,7 @@ export class TrustStateResolver {
       blocking_reasons: orderedReasons,
       last_verified_at,
       audit_ref: audit.audit_packet_id,
+      ...(verification_messages.length > 0 ? { verification_messages } : {}),
       metrics: {
         latency_ms: metrics.latency_ms,
         p90_ms: metrics.p90_ms,

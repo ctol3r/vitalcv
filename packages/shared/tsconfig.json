@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "composite": false,
+    "incremental": false,
+    "rootDir": "../..",
+    "baseUrl": "../..",
+    "types": ["node"]
+  },
+  "include": [
+    "./**/*.ts",
+    "../domain-events/**/*.ts",
+    "../domain-core/**/*.ts",
+    "../domain/events/**/*.ts",
+    "../domain-common/src/errors/DomainError.ts",
+    "../crs/*.ts",
+    "../crs/src/**/*.ts",
+    "../psv/*.ts",
+    "../psv/src/**/*.ts",
+    "../ingest/*.ts",
+    "../ingest/engine/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/__tests__/**",
+    "**/dist/**"
+  ]
+}
