@@ -2,6 +2,10 @@ import cors from 'cors';
 import { createHash, randomBytes } from 'crypto';
 import express, { type Express, NextFunction, Request, Response } from 'express';
 import { calculateJwkThumbprint, importJWK, jwtVerify } from 'jose';
+import { haipConfig } from '@vitalcv/haip-config';
+import { enforceCredentialPolicy, enforceTokenPolicy } from './policyEnforcer';
+import { isDpopReplay } from './security/dpopReplayTable';
+import { issueNonce } from './security/nonceTable';
 import {
   issueAccessToken,
   issueRefreshToken,
@@ -37,47 +41,33 @@ interface PreAuthorizedCode {
 
 const preAuthorizedCodes = new Map<string, PreAuthorizedCode>();
 
-// B118A-TBIND-002: JTI replay cache for DPoP proofs (one-shot)
-const jtiReplayCache = new Map<string, { timestamp: number }>();
-const JTI_REPLAY_TTL_MS = 60000; // 60 seconds
-
-/**
- * Check if jti was already used (replay protection)
- * Returns true if jti is reused, false otherwise
- */
-function checkAndStoreJti(jti: string): boolean {
-  if (!jti) {
-    return false; // No jti means we can't check, but it's not a replay
-  }
-
-  // Check if jti was already used
-  if (jtiReplayCache.has(jti)) {
-    return true; // Already used - replay detected
-  }
-
-  // Store jti with timestamp to prevent future reuse
-  jtiReplayCache.set(jti, { timestamp: Date.now() });
-
-  // Cleanup old entries
-  const now = Date.now();
-  for (const [cachedJti, data] of jtiReplayCache.entries()) {
-    if (now - data.timestamp > JTI_REPLAY_TTL_MS) {
-      jtiReplayCache.delete(cachedJti);
-    }
-  }
-
-  return false; // Not reused
-}
-
 // Pushed Authorization Request (PAR) store
 interface PARRequest {
   request_uri: string;
   request: any; // OAuth 2.0 authorization request
   expiresAt: number;
   clientId: string;
+  codeChallenge?: string;
+  codeChallengeMethod?: string;
+  redirectUri?: string;
 }
 
 const parRequests = new Map<string, PARRequest>();
+
+function tokenSuccessBody(payload: {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  refresh_token: string;
+  scope: string;
+}) {
+  const { nonce, expiresInSeconds } = issueNonce();
+  return {
+    ...payload,
+    c_nonce: nonce,
+    c_nonce_expires_in: expiresInSeconds,
+  };
+}
 
 /**
  * Extract JWK thumbprint (cnf.jkt) from token
@@ -113,14 +103,14 @@ async function verifyDPoP(
       return { valid: false, error: 'Missing JWK in DPoP proof header' };
     }
 
-    // B113A-TBIND-002: JOSE allowlist for DPoP proofs (alg ∈ {ES256,EdDSA})
-    const ALLOWED_ALGORITHMS = ['ES256', 'EdDSA'];
-    if (!alg || !ALLOWED_ALGORITHMS.includes(alg)) {
+    // Strict policy: DPoP proofs must use HAIP-mandated algorithms only.
+    const allowedAlgs = haipConfig.dpop.allowedAlgorithms as readonly string[];
+    if (!alg || !allowedAlgs.includes(alg)) {
       return {
         valid: false,
         error: `invalid_alg: algorithm '${
           alg || 'missing'
-        }' not allowed. Allowed algorithms: ${ALLOWED_ALGORITHMS.join(', ')}`,
+        }' not allowed. Allowed algorithms: ${allowedAlgs.join(', ')}`,
       };
     }
 
@@ -141,7 +131,7 @@ async function verifyDPoP(
 
       // Verify the JWT signature (only allowlisted algorithms)
       const verified = await jwtVerify(dpopHeader, publicKey, {
-        algorithms: ALLOWED_ALGORITHMS,
+        algorithms: [...allowedAlgs],
       });
 
       const payload = verified.payload as {
@@ -175,13 +165,22 @@ async function verifyDPoP(
         };
       }
 
+      // SPECIFICATION §2: exp ≤ 5 minutes from iat
+      const exp = (verified.payload as { exp?: number }).exp;
+      if (exp && payload.iat && exp - payload.iat > haipConfig.dpop.maxProofLifetimeSeconds) {
+        return {
+          valid: false,
+          error: `DPoP exp too far in future (max ${haipConfig.dpop.maxProofLifetimeSeconds}s lifetime)`,
+        };
+      }
+
       // B118A-TBIND-002: Validate jti (JWT ID) for replay protection
       if (!payload.jti) {
         return { valid: false, error: 'Missing jti in DPoP proof' };
       }
 
       // B118A-TBIND-002: Check for jti reuse (one-shot)
-      if (checkAndStoreJti(payload.jti as string)) {
+      if (isDpopReplay(payload.jti as string)) {
         return { valid: false, error: `jti reused: ${payload.jti} (replay attack detected)` };
       }
 
@@ -213,12 +212,16 @@ export function dpopMiddleware(req: Request, res: Response, next: NextFunction) 
   const dpopHeader = req.headers['dpop'] as string;
   const authHeader = req.headers['authorization'];
   const clientType = (req.headers['x-client-type'] as string) || 'wallet';
+  const isTokenEndpoint = req.path === '/token';
 
   // Check if DPoP is required (default: true for wallets)
   const dpopRequired = process.env.DPOP_REQUIRED !== 'false';
   const isWallet = clientType === 'wallet' || !clientType;
 
-  if (!authHeader || (!authHeader.startsWith('Bearer ') && !authHeader.startsWith('DPoP '))) {
+  if (
+    !isTokenEndpoint &&
+    (!authHeader || (!authHeader.startsWith('Bearer ') && !authHeader.startsWith('DPoP ')))
+  ) {
     return res.status(401).json({ error: 'missing_token' });
   }
 
@@ -331,7 +334,7 @@ export function mtlsMiddleware(req: Request, res: Response, next: NextFunction) 
  * Required for high-risk requests per OIDC4VCI spec
  */
 app.post('/par', mtlsMiddleware, async (req: Request, res: Response) => {
-  const { request, client_id, scope } = req.body;
+  const { request, client_id, scope, code_challenge, code_challenge_method, redirect_uri } = req.body;
 
   if (!request && !scope) {
     return res.status(400).json({
@@ -355,17 +358,20 @@ app.post('/par', mtlsMiddleware, async (req: Request, res: Response) => {
   // Generate request_uri
   const requestUri = `urn:ietf:params:oauth:request_uri:${randomBytes(16).toString('base64url')}`;
 
-  // Store PAR request
+  // Store PAR request (including PKCE + redirect_uri for later verification)
   parRequests.set(requestUri, {
     request_uri: requestUri,
     request: request || { scope, client_id },
-    expiresAt: Date.now() + 60000, // 1 minute expiry
+    expiresAt: Date.now() + haipConfig.par.requestUriLifetimeSeconds * 1000,
     clientId: client_id || 'unknown',
+    codeChallenge: typeof code_challenge === 'string' ? code_challenge : undefined,
+    codeChallengeMethod: typeof code_challenge_method === 'string' ? code_challenge_method : undefined,
+    redirectUri: typeof redirect_uri === 'string' ? redirect_uri : undefined,
   });
 
   res.json({
     request_uri: requestUri,
-    expires_in: 60,
+    expires_in: haipConfig.par.requestUriLifetimeSeconds,
   });
 });
 
@@ -378,7 +384,12 @@ app.post('/par', mtlsMiddleware, async (req: Request, res: Response) => {
  *
  * B99B-TBIND-042: Access token issuance embeds cnf.jkt when DPoP used
  */
-app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Response) => {
+app.post(
+  '/token',
+  enforceTokenPolicy,
+  dpopMiddleware,
+  mtlsMiddleware,
+  async (req: Request, res: Response) => {
   const { grant_type, client_id, pre_authorized_code, request_uri, refresh_token } = req.body;
 
   // B100B-TBIND-039: Refresh token grant (rotate-on-use)
@@ -403,13 +414,15 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
         clientCertFingerprint,
       );
 
-      return res.json({
-        access_token: result.accessToken,
-        token_type: cnfJkt ? 'DPoP' : 'Bearer',
-        expires_in: 3600,
-        refresh_token: result.refreshToken,
-        scope: result.scope.join(' '),
-      });
+      return res.json(
+        tokenSuccessBody({
+          access_token: result.accessToken,
+          token_type: cnfJkt ? 'DPoP' : 'Bearer',
+          expires_in: 3600,
+          refresh_token: result.refreshToken,
+          scope: result.scope.join(' '),
+        }),
+      );
     } catch (error: any) {
       const errorMap: Record<string, { status: number; error: string }> = {
         invalid_refresh_token: { status: 400, error: 'invalid_grant' },
@@ -530,13 +543,15 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
       // Clean up used code
       preAuthorizedCodes.delete(pre_authorized_code);
 
-      return res.json({
-        access_token: accessToken,
-        token_type: cnfJkt ? 'DPoP' : 'Bearer',
-        expires_in: 3600,
-        refresh_token: refreshTokenResult.token,
-        scope: preAuthCode.scope.join(' '),
-      });
+      return res.json(
+        tokenSuccessBody({
+          access_token: accessToken,
+          token_type: cnfJkt ? 'DPoP' : 'Bearer',
+          expires_in: 3600,
+          refresh_token: refreshTokenResult.token,
+          scope: preAuthCode.scope.join(' '),
+        }),
+      );
     } catch (error: any) {
       return res.status(500).json({
         error: 'server_error',
@@ -597,13 +612,15 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
       // Clean up used PAR request
       parRequests.delete(request_uri);
 
-      return res.json({
-        access_token: accessToken,
-        token_type: cnfJkt ? 'DPoP' : 'Bearer',
-        expires_in: 3600,
-        refresh_token: refreshTokenResult.token,
-        scope: scope.join(' '),
-      });
+      return res.json(
+        tokenSuccessBody({
+          access_token: accessToken,
+          token_type: cnfJkt ? 'DPoP' : 'Bearer',
+          expires_in: 3600,
+          refresh_token: refreshTokenResult.token,
+          scope: scope.join(' '),
+        }),
+      );
     } catch (error: any) {
       return res.status(500).json({
         error: 'server_error',
@@ -646,13 +663,15 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
         expiresIn: 604800,
       });
 
-      return res.json({
-        access_token: accessToken,
-        token_type: 'DPoP',
-        expires_in: 3600,
-        refresh_token: refreshTokenResult.token,
-        scope: 'openid',
-      });
+      return res.json(
+        tokenSuccessBody({
+          access_token: accessToken,
+          token_type: 'DPoP',
+          expires_in: 3600,
+          refresh_token: refreshTokenResult.token,
+          scope: 'openid',
+        }),
+      );
     } catch (error: any) {
       return res.status(500).json({
         error: 'server_error',
@@ -692,13 +711,15 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
           expiresIn: 604800,
         });
 
-        return res.json({
-          access_token: accessToken,
-          token_type: 'Bearer',
-          expires_in: 3600,
-          refresh_token: refreshTokenResult.token,
-          scope: 'openid',
-        });
+        return res.json(
+          tokenSuccessBody({
+            access_token: accessToken,
+            token_type: 'Bearer',
+            expires_in: 3600,
+            refresh_token: refreshTokenResult.token,
+            scope: 'openid',
+          }),
+        );
       } else if (dpopValidated && cnfJkt) {
         // Confidential client using DPoP
         const accessToken = await issueAccessToken({
@@ -715,13 +736,15 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
           expiresIn: 604800,
         });
 
-        return res.json({
-          access_token: accessToken,
-          token_type: 'DPoP',
-          expires_in: 3600,
-          refresh_token: refreshTokenResult.token,
-          scope: 'openid',
-        });
+        return res.json(
+          tokenSuccessBody({
+            access_token: accessToken,
+            token_type: 'DPoP',
+            expires_in: 3600,
+            refresh_token: refreshTokenResult.token,
+            scope: 'openid',
+          }),
+        );
       } else {
         return res.status(401).json({
           error: 'token_binding_required',
@@ -800,9 +823,13 @@ app.post('/pre-authorized-code', async (req: Request, res: Response) => {
  * Credential endpoint guard - blocks bearer-only tokens
  * B99A-TBIND-003: Credential endpoint requires sender-constrained tokens
  */
-app.post('/credential', dpopMiddleware, mtlsMiddleware, (req: Request, res: Response) => {
+app.post(
+  '/credential',
+  dpopMiddleware,
+  mtlsMiddleware,
+  enforceCredentialPolicy,
+  (req: Request, res: Response) => {
   const authHeader = req.headers['authorization'];
-  const clientType = (req.headers['x-client-type'] as string) || 'wallet';
 
   // Extract token (supports both Bearer and DPoP token types)
   const token = authHeader?.replace(/^(Bearer|DPoP)\s+/, '');
@@ -829,6 +856,33 @@ app.post('/credential', dpopMiddleware, mtlsMiddleware, (req: Request, res: Resp
     message: 'Credential endpoint accessed with proper token binding',
     binding: cnfJkt ? 'DPoP' : 'mTLS',
     cnf: cnfJkt ? { jkt: cnfJkt } : undefined,
+  });
+});
+
+app.get('/.well-known/openid-configuration', (_req: Request, res: Response) => {
+  res.json({
+    issuer: haipConfig.tokenIssuer,
+    token_endpoint: '/token',
+    pushed_authorization_request_endpoint: '/par',
+    credential_endpoint: '/credential',
+    dpop_signing_alg_values_supported: [...haipConfig.allowedAlgorithms],
+    token_endpoint_auth_signing_alg_values_supported: [...haipConfig.allowedAlgorithms],
+    code_challenge_methods_supported: [...haipConfig.pkce.allowedMethods],
+    require_pushed_authorization_requests: haipConfig.par.required,
+    dpop_bound_access_tokens: true,
+    clock_skew_seconds: haipConfig.dpop.maxClockSkewSeconds,
+  });
+});
+
+app.get('/.well-known/oauth-authorization-server', (_req: Request, res: Response) => {
+  res.json({
+    issuer: haipConfig.tokenIssuer,
+    token_endpoint: '/token',
+    pushed_authorization_request_endpoint: '/par',
+    require_pushed_authorization_requests: haipConfig.par.required,
+    code_challenge_methods_supported: [...haipConfig.pkce.allowedMethods],
+    dpop_signing_alg_values_supported: [...haipConfig.allowedAlgorithms],
+    token_endpoint_auth_signing_alg_values_supported: [...haipConfig.allowedAlgorithms],
   });
 });
 

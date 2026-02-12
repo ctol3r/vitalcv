@@ -24,6 +24,11 @@ interface RefreshTokenRecord {
   rotatedTo?: string; // ID of the new token if rotated
 }
 
+type StrictAccessTokenVerificationOptions = {
+  audience: string;
+  maxClockSkewSeconds: number;
+};
+
 const refreshTokenStore = new Map<string, RefreshTokenRecord>();
 
 // Signing key for JWT tokens (in production, use proper key management)
@@ -258,3 +263,41 @@ export function cleanupExpiredTokens(): number {
   return cleaned;
 }
 
+/**
+ * Strict token validation for protected endpoints.
+ * Enforces ES256, exact aud match, and 60s iat clock skew policy.
+ */
+export async function verifyAccessTokenStrict(
+  token: string,
+  options: StrictAccessTokenVerificationOptions,
+) {
+  const key = await initializeSigningKey();
+  const verificationKey = await importJWK(key, 'ES256');
+  const expectedIssuer = process.env.TOKEN_ISSUER || 'https://authz.vitalcv.ai';
+
+  const verified = await jwtVerify(token, verificationKey, {
+    algorithms: ['ES256'],
+    audience: options.audience,
+    issuer: expectedIssuer,
+  });
+
+  const payload = verified.payload as { aud?: string | string[]; iat?: number };
+  if (Array.isArray(payload.aud)) {
+    throw new Error('aud must be a single exact audience');
+  }
+
+  if (payload.aud !== options.audience) {
+    throw new Error('audience mismatch');
+  }
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  if (!payload.iat) {
+    throw new Error('iat missing');
+  }
+
+  if (Math.abs(nowSeconds - payload.iat) > options.maxClockSkewSeconds) {
+    throw new Error('iat outside allowed clock skew window');
+  }
+
+  return payload;
+}
