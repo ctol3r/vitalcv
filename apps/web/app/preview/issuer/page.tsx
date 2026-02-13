@@ -1,8 +1,11 @@
 import Link from 'next/link';
 
 const capabilities = [
-  { label: 'Issue credential', status: 'read-only' },
-  { label: 'Revocation authority enabled', status: 'read-only' },
+  { label: 'Issue credential', status: 'Issue credential (preview)' },
+  {
+    label: 'Revocation authority',
+    status: 'Revocation authority enabled (preview)',
+  },
 ];
 
 export default function IssuerPreviewPage() {
@@ -10,15 +13,15 @@ export default function IssuerPreviewPage() {
     <main className="mx-auto max-w-4xl px-6 py-20 sm:px-10 sm:py-28">
       <header className="space-y-4">
         <p className="text-xs tracking-wide text-neutral-400">
-          Illustrative preview &mdash; not live
+          Illustrative preview — issuance disabled.
         </p>
         <h1 className="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
-          Issuer
+          Issuer Preview
         </h1>
       </header>
 
       <section className="mt-16">
-        <h2 className="text-sm font-medium tracking-wide text-neutral-400 uppercase">
+        <h2 className="text-sm font-medium tracking-wide text-neutral-600">
           Issuance controls
         </h2>
         <ul className="mt-4 divide-y divide-neutral-200 border-y border-neutral-200">
@@ -44,7 +47,7 @@ export default function IssuerPreviewPage() {
 
       <footer className="mt-16 border-t border-neutral-200 pt-8">
         <p className="text-xs text-neutral-400">
-          Synthetic data over production code paths.
+          Illustrative preview — issuance disabled.
         </p>
       </footer>
     </main>
