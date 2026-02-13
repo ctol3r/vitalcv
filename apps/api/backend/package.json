@@ -7,6 +7,7 @@
   "type": "commonjs",
   "scripts": {
     "dev": "prisma db push && prisma generate && ts-node src/server.ts",
+    "postinstall": "prisma generate",
     "build": "prisma generate && tsc",
     "start": "node dist/apps/api/backend/src/server.js",
     "test": "jest",
