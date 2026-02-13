@@ -23,6 +23,20 @@ jobs:
   validate:
     name: Install, Check, Build, Test
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vitalcv_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
       - name: Checkout
@@ -41,6 +55,20 @@ jobs:
 
       - name: Install
         run: pnpm install --frozen-lockfile
+
+      - name: Ensure migrations directory exists
+        run: |
+          if [ ! -d "apps/api/backend/prisma/migrations" ]; then
+            echo "Missing migrations directory: apps/api/backend/prisma/migrations" >&2
+            exit 1
+          fi
+
+      - name: Run database migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_ci
+        run: |
+          cd apps/api/backend
+          npx prisma migrate deploy
 
       - name: Typecheck
         run: pnpm typecheck

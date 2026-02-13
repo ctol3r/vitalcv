@@ -1,14 +1,49 @@
 import { z } from 'zod';
 
+type ApiKeyParseInput = string;
+
+function parseApiKeys(raw: ApiKeyParseInput, isProduction: boolean): string[] {
+  const values = raw
+    .split(',')
+    .map((key) => key.trim())
+    .filter((key) => key.length > 0);
+
+  if (isProduction && values.length === 0) {
+    throw new Error('API_KEYS must be defined in production');
+  }
+
+  return values;
+}
+
+const PRODUCTION = process.env.NODE_ENV === 'production';
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
-  CORS_ORIGIN: z.string().default('*'),
-  API_KEYS: z
+  CORS_ORIGIN: z
     .string()
-    .optional()
-    .transform((val) => (val ? val.split(',').map((k) => k.trim()).filter(Boolean) : [])),
+    .default('*')
+    .transform((value) => value.trim())
+    .superRefine((value, ctx) => {
+      if (process.env.NODE_ENV === 'production' && value === '*') {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'CORS_ORIGIN must not be "*" in production',
+        });
+      }
+    }),
+  API_KEYS: z.preprocess(
+    (raw) => {
+      if (raw === undefined) {
+        return '';
+      }
+      return String(raw);
+    },
+    z
+      .string()
+      .transform((raw) => parseApiKeys(raw, PRODUCTION)),
+  ),
   TRUST_STATE_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(60),
   SAM_API_KEY: z.string().optional(),
 });
