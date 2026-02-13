@@ -162,7 +162,8 @@ export default function VerifierPreviewPage() {
       {/* ── 1. HEADER ── */}
       <header className="border-b border-neutral-200 pb-8">
         <p className="text-xs tracking-wide text-neutral-400">
-          Read-only. No authentication required.
+          Read-only verification result. No authentication required. Illustrative
+          preview — acceptance actions disabled.
         </p>
         <h1 className="mt-3 font-sans text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl">
           Verification Result
