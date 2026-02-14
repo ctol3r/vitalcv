@@ -1,37 +1,46 @@
+import prisma from '../db';
+
 const DPOP_REPLAY_TTL_MS = 5 * 60 * 1000;
-
-type DpopReplayRecord = {
-  readonly expiresAt: number;
-};
-
-const dpopReplayTable = new Map<string, DpopReplayRecord>();
-
-function cleanupExpired(now: number): void {
-  for (const [jti, record] of dpopReplayTable.entries()) {
-    if (record.expiresAt <= now) {
-      dpopReplayTable.delete(jti);
-    }
-  }
-}
 
 /**
  * Returns true when the jti is already present and unexpired (replay).
  * Returns false when the jti is newly stored.
  */
-export function isDpopReplay(jti: string, now = Date.now()): boolean {
-  cleanupExpired(now);
+export async function isDpopReplay(jti: string, now = Date.now()): Promise<boolean> {
+  const nowDate = new Date(now);
+  await prisma.jtiReplay.deleteMany({
+    where: {
+      service: 'authz',
+      expiresAt: { lte: nowDate },
+    },
+  });
 
-  const existing = dpopReplayTable.get(jti);
-  if (existing && existing.expiresAt > now) {
+  const existing = await prisma.jtiReplay.findUnique({
+    where: {
+      service_jti: {
+        service: 'authz',
+        jti,
+      },
+    },
+  });
+
+  if (existing && existing.expiresAt > nowDate) {
     return true;
   }
 
-  dpopReplayTable.set(jti, { expiresAt: now + DPOP_REPLAY_TTL_MS });
+  await prisma.jtiReplay.create({
+    data: {
+      service: 'authz',
+      jti,
+      expiresAt: new Date(now + DPOP_REPLAY_TTL_MS),
+    },
+  });
+
   return false;
 }
 
 export function resetDpopReplayTable(): void {
-  dpopReplayTable.clear();
+  void prisma.jtiReplay.deleteMany({ where: { service: 'authz' } }).catch(() => undefined);
 }
 
 export function getDpopReplayTtlMs(): number {
