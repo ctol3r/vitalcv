@@ -2,18 +2,36 @@ import cors from 'cors';
 import { createHash, randomBytes } from 'crypto';
 import express, { type Express, NextFunction, Request, Response } from 'express';
 import { calculateJwkThumbprint, importJWK, jwtVerify } from 'jose';
+import { Prisma } from '@prisma/client';
 import { haipConfig } from '@vitalcv/haip-config';
 import { enforceCredentialPolicy, enforceTokenPolicy } from './policyEnforcer';
+import prisma from './db';
 import { isDpopReplay } from './security/dpopReplayTable';
-import { issueNonce } from './security/nonceTable';
+import { consumeNonce, issueNonce } from './security/nonceTable';
 import {
   issueAccessToken,
   issueRefreshToken,
   validateAndRotateRefreshToken,
 } from './services/tokenService';
 
+if (process.env.NODE_ENV === 'production' && !process.env.SIGNING_KEY_JWK?.trim()) {
+  throw new Error('SIGNING_KEY_JWK is required in production');
+}
+if (process.env.NODE_ENV === 'production' && !process.env.API_KEYS?.trim()) {
+  throw new Error('API_KEYS is required in production');
+}
+
 const app: Express = express();
-app.use(cors());
+const corsOrigin = process.env.CORS_ORIGIN?.trim() || '*';
+if (process.env.NODE_ENV === 'production' && corsOrigin === '*') {
+  throw new Error('CORS_ORIGIN must not be "*" in production');
+}
+
+app.use(
+  cors({
+    origin: corsOrigin === '*' ? true : corsOrigin.split(',').map((o) => o.trim()),
+  }),
+);
 app.use(express.json());
 
 /**
@@ -30,38 +48,193 @@ app.use(express.json());
  * - Enterprise mode: Set MTLS_REQUIRED=true to enforce mTLS for all confidential clients
  */
 
-// Pre-authorized code store (in production, use Redis/database)
-interface PreAuthorizedCode {
-  code: string;
-  scope: string[];
-  expiresAt: number;
-  clientId?: string;
-  requiresPAR?: boolean; // High-risk requests require PAR
+type AuthzParRequest = {
+  requestUri: string;
+  requestType: string;
+  requestJson: Prisma.JsonValue;
+  clientId: string;
+  codeChallenge: string | null;
+  codeChallengeMethod: string | null;
+  redirectUri: string | null;
+  scope: string | null;
+  expiresAt: Date;
+};
+
+function nowDate(now = Date.now()): Date {
+  return new Date(now);
 }
 
-const preAuthorizedCodes = new Map<string, PreAuthorizedCode>();
+async function purgeExpiredParRequests(now = Date.now()): Promise<void> {
+  await prisma.parRequest.deleteMany({
+    where: {
+      expiresAt: {
+        lte: nowDate(now),
+      },
+    },
+  });
+}
 
-// Pushed Authorization Request (PAR) store
-interface PARRequest {
-  request_uri: string;
-  request: any; // OAuth 2.0 authorization request
-  expiresAt: number;
+async function getParRequest(
+  requestUri: string,
+  requestType: string,
+  now = Date.now(),
+): Promise<AuthzParRequest | null> {
+  await purgeExpiredParRequests(now);
+
+  const record = await prisma.parRequest.findUnique({
+    where: { requestUri },
+    select: {
+      requestUri: true,
+      requestType: true,
+      requestJson: true,
+      clientId: true,
+      codeChallenge: true,
+      codeChallengeMethod: true,
+      redirectUri: true,
+      scope: true,
+      expiresAt: true,
+    },
+  });
+
+  if (!record || record.requestType !== requestType) {
+    return null;
+  }
+
+  const requestJson =
+    typeof record.requestJson === 'object' && record.requestJson !== null
+      ? (record.requestJson as Prisma.JsonValue)
+      : {};
+
+  return {
+    ...record,
+    requestJson,
+    codeChallenge: record.codeChallenge,
+    codeChallengeMethod: record.codeChallengeMethod,
+    redirectUri: record.redirectUri,
+    scope: record.scope,
+  };
+}
+
+async function createParRequest(record: {
+  requestUri: string;
+  requestType: string;
+  request: Record<string, unknown>;
   clientId: string;
   codeChallenge?: string;
   codeChallengeMethod?: string;
   redirectUri?: string;
+  scope?: string;
+  expiresAt: number;
+}): Promise<void> {
+  await prisma.parRequest.create({
+    data: {
+      requestUri: record.requestUri,
+      requestType: record.requestType,
+      requestJson: record.request as Prisma.InputJsonValue,
+      clientId: record.clientId,
+      codeChallenge: record.codeChallenge,
+      codeChallengeMethod: record.codeChallengeMethod,
+      redirectUri: record.redirectUri,
+      scope: record.scope,
+      expiresAt: nowDate(record.expiresAt),
+    },
+  });
 }
 
-const parRequests = new Map<string, PARRequest>();
+async function consumeParRequest(requestUri: string, requestType: string, now = Date.now()): Promise<void> {
+  const record = await getParRequest(requestUri, requestType, now);
+  if (!record) {
+    return;
+  }
 
-function tokenSuccessBody(payload: {
+  await prisma.parRequest.delete({ where: { requestUri } });
+}
+
+type AuthzPreAuthorizedCodeRecord = {
+  code: string;
+  scope: string;
+  clientId: string | null;
+  expiresAt: Date;
+  requiresPAR: boolean;
+};
+
+function nowDateWithTtl(base: number, seconds: number): Date {
+  return new Date(base + seconds * 1000);
+}
+
+async function createPreAuthorizedCode(record: {
+  code: string;
+  scope: readonly string[];
+  clientId?: string;
+  expiresIn: number;
+  requiresPAR: boolean;
+}): Promise<void> {
+  await prisma.parRequest.create({
+    data: {
+      requestUri: record.code,
+      requestType: 'pre_authorized_code',
+      requestJson: {
+        type: 'pre_authorized_code',
+      },
+      clientId: record.clientId ?? 'unknown',
+      codeChallenge: null,
+      codeChallengeMethod: null,
+      redirectUri: null,
+      scope: record.scope.join(' '),
+      expiresAt: nowDateWithTtl(Date.now(), record.expiresIn),
+    },
+  });
+}
+
+async function getPreAuthorizedCode(code: string): Promise<AuthzPreAuthorizedCodeRecord | null> {
+  await prisma.parRequest.deleteMany({
+    where: {
+      requestType: 'pre_authorized_code',
+      expiresAt: { lte: new Date() },
+    },
+  });
+
+  const row = await prisma.parRequest.findUnique({
+    where: { requestUri: code },
+  });
+
+  if (!row || row.requestType !== 'pre_authorized_code') {
+    return null;
+  }
+
+  const scope = typeof row.scope === 'string' ? row.scope : '';
+    const requiresPAR =
+      scope
+      .split(' ')
+      .map((entry: string) => entry.trim())
+      .some((entry) => entry.startsWith('credential:issue:'));
+
+  return {
+    code: row.requestUri,
+    scope,
+    clientId: row.clientId,
+    expiresAt: row.expiresAt,
+    requiresPAR,
+  };
+}
+
+async function consumePreAuthorizedCode(code: string): Promise<void> {
+  await prisma.parRequest.deleteMany({
+    where: {
+      requestType: 'pre_authorized_code',
+      requestUri: code,
+    },
+  });
+}
+
+async function tokenSuccessBody(payload: {
   access_token: string;
   token_type: string;
   expires_in: number;
   refresh_token: string;
   scope: string;
 }) {
-  const { nonce, expiresInSeconds } = issueNonce();
+  const { nonce, expiresInSeconds } = await issueNonce();
   return {
     ...payload,
     c_nonce: nonce,
@@ -180,7 +353,7 @@ async function verifyDPoP(
       }
 
       // B118A-TBIND-002: Check for jti reuse (one-shot)
-      if (isDpopReplay(payload.jti as string)) {
+      if (await isDpopReplay(payload.jti as string)) {
         return { valid: false, error: `jti reused: ${payload.jti} (replay attack detected)` };
       }
 
@@ -335,7 +508,6 @@ export function mtlsMiddleware(req: Request, res: Response, next: NextFunction) 
  */
 app.post('/par', mtlsMiddleware, async (req: Request, res: Response) => {
   const { request, client_id, scope, code_challenge, code_challenge_method, redirect_uri } = req.body;
-
   if (!request && !scope) {
     return res.status(400).json({
       error: 'invalid_request',
@@ -358,15 +530,16 @@ app.post('/par', mtlsMiddleware, async (req: Request, res: Response) => {
   // Generate request_uri
   const requestUri = `urn:ietf:params:oauth:request_uri:${randomBytes(16).toString('base64url')}`;
 
-  // Store PAR request (including PKCE + redirect_uri for later verification)
-  parRequests.set(requestUri, {
-    request_uri: requestUri,
+  await createParRequest({
+    requestUri,
+    requestType: 'authorization_code',
     request: request || { scope, client_id },
-    expiresAt: Date.now() + haipConfig.par.requestUriLifetimeSeconds * 1000,
     clientId: client_id || 'unknown',
     codeChallenge: typeof code_challenge === 'string' ? code_challenge : undefined,
     codeChallengeMethod: typeof code_challenge_method === 'string' ? code_challenge_method : undefined,
     redirectUri: typeof redirect_uri === 'string' ? redirect_uri : undefined,
+    scope: typeof scope === 'string' ? scope : '',
+    expiresAt: Date.now() + haipConfig.par.requestUriLifetimeSeconds * 1000,
   });
 
   res.json({
@@ -415,7 +588,7 @@ app.post(
       );
 
       return res.json(
-        tokenSuccessBody({
+        await tokenSuccessBody({
           access_token: result.accessToken,
           token_type: cnfJkt ? 'DPoP' : 'Bearer',
           expires_in: 3600,
@@ -449,7 +622,7 @@ app.post(
       });
     }
 
-    const preAuthCode = preAuthorizedCodes.get(pre_authorized_code);
+    const preAuthCode = await getPreAuthorizedCode(pre_authorized_code as string);
 
     if (!preAuthCode) {
       return res.status(400).json({
@@ -458,8 +631,8 @@ app.post(
       });
     }
 
-    if (Date.now() > preAuthCode.expiresAt) {
-      preAuthorizedCodes.delete(pre_authorized_code);
+    if (new Date() > preAuthCode.expiresAt) {
+      await consumePreAuthorizedCode(pre_authorized_code);
       return res.status(400).json({
         error: 'invalid_grant',
         error_description: 'Pre-authorized code expired',
@@ -467,9 +640,11 @@ app.post(
     }
 
     // B107A-OIDC-003: PAR required for high-risk scopes (credential:issue:*)
-    const highRiskScopes = preAuthCode.scope.filter((s: string) =>
-      s.startsWith('credential:issue:'),
-    );
+    const highRiskScopes = preAuthCode.scope
+      .split(' ')
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0)
+      .filter((entry) => entry.startsWith('credential:issue:'));
     if (highRiskScopes.length > 0) {
       if (!request_uri) {
         return res.status(400).json({
@@ -481,7 +656,7 @@ app.post(
       }
 
       // Validate PAR request
-      const parRequest = parRequests.get(request_uri);
+      const parRequest = await getParRequest(request_uri, 'authorization_code');
       if (!parRequest) {
         return res.status(400).json({
           error: 'invalid_request_uri',
@@ -489,8 +664,8 @@ app.post(
         });
       }
 
-      if (Date.now() > parRequest.expiresAt) {
-        parRequests.delete(request_uri);
+      if (new Date() > parRequest.expiresAt) {
+        await consumeParRequest(request_uri, 'authorization_code');
         return res.status(400).json({
           error: 'expired_request_uri',
           error_description: 'Request URI expired',
@@ -498,7 +673,7 @@ app.post(
       }
 
       // Validate PAR scopes match pre-authorized code scopes
-      const parScopes = parRequest.request.scope?.split(' ') || [];
+      const parScopes = parRequest.scope ? parRequest.scope.split(' ') : [];
       const scopeMatch = highRiskScopes.every((scope: string) => parScopes.includes(scope));
       if (!scopeMatch) {
         return res.status(400).json({
@@ -508,7 +683,7 @@ app.post(
       }
 
       // Clean up used PAR request
-      parRequests.delete(request_uri);
+      await consumeParRequest(request_uri, 'authorization_code');
     }
 
     // Validate client_id if specified
@@ -524,9 +699,13 @@ app.post(
     const clientCert = (req as any).clientCert;
 
     try {
+      const scope = preAuthCode.scope
+        .split(' ')
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0);
       const accessToken = await issueAccessToken({
         clientId: client_id || preAuthCode.clientId,
-        scope: preAuthCode.scope,
+        scope,
         cnfJkt,
         expiresIn: 3600,
       });
@@ -534,22 +713,22 @@ app.post(
       // B100B-TBIND-039: Issue refresh token (sender-constrained)
       const refreshTokenResult = await issueRefreshToken({
         clientId: client_id || preAuthCode.clientId,
-        scope: preAuthCode.scope,
+        scope,
         cnfJkt,
         clientCert: clientCert ? createHash('sha256').update(clientCert).digest('hex') : undefined,
         expiresIn: 604800, // 7 days
       });
 
       // Clean up used code
-      preAuthorizedCodes.delete(pre_authorized_code);
+      await consumePreAuthorizedCode(pre_authorized_code);
 
       return res.json(
-        tokenSuccessBody({
+        await tokenSuccessBody({
           access_token: accessToken,
           token_type: cnfJkt ? 'DPoP' : 'Bearer',
           expires_in: 3600,
           refresh_token: refreshTokenResult.token,
-          scope: preAuthCode.scope.join(' '),
+          scope: scope.join(' '),
         }),
       );
     } catch (error: any) {
@@ -562,7 +741,7 @@ app.post(
 
   // Authorization Code grant with PAR
   if (grant_type === 'authorization_code' && request_uri) {
-    const parRequest = parRequests.get(request_uri);
+    const parRequest = await getParRequest(request_uri, 'authorization_code');
 
     if (!parRequest) {
       return res.status(400).json({
@@ -571,8 +750,8 @@ app.post(
       });
     }
 
-    if (Date.now() > parRequest.expiresAt) {
-      parRequests.delete(request_uri);
+    if (Date.now() > parRequest.expiresAt.getTime()) {
+      await consumeParRequest(request_uri, 'authorization_code');
       return res.status(400).json({
         error: 'expired_request_uri',
         error_description: 'Request URI expired',
@@ -592,7 +771,7 @@ app.post(
     const clientCert = (req as any).clientCert;
 
     try {
-      const scope = parRequest.request.scope?.split(' ') || ['openid'];
+      const scope = parRequest.scope ? parRequest.scope.split(' ') : ['openid'];
       const accessToken = await issueAccessToken({
         clientId: client_id,
         scope,
@@ -610,10 +789,10 @@ app.post(
       });
 
       // Clean up used PAR request
-      parRequests.delete(request_uri);
+      await consumeParRequest(request_uri, 'authorization_code');
 
       return res.json(
-        tokenSuccessBody({
+        await tokenSuccessBody({
           access_token: accessToken,
           token_type: cnfJkt ? 'DPoP' : 'Bearer',
           expires_in: 3600,
@@ -664,7 +843,7 @@ app.post(
       });
 
       return res.json(
-        tokenSuccessBody({
+        await tokenSuccessBody({
           access_token: accessToken,
           token_type: 'DPoP',
           expires_in: 3600,
@@ -712,7 +891,7 @@ app.post(
         });
 
         return res.json(
-          tokenSuccessBody({
+          await tokenSuccessBody({
             access_token: accessToken,
             token_type: 'Bearer',
             expires_in: 3600,
@@ -737,7 +916,7 @@ app.post(
         });
 
         return res.json(
-          tokenSuccessBody({
+          await tokenSuccessBody({
             access_token: accessToken,
             token_type: 'DPoP',
             expires_in: 3600,
@@ -804,11 +983,11 @@ app.post('/pre-authorized-code', async (req: Request, res: Response) => {
   // Generate pre-authorized code
   const code = randomBytes(16).toString('base64url');
 
-  preAuthorizedCodes.set(code, {
+  await createPreAuthorizedCode({
     code,
     scope: limitedScopes,
-    expiresAt: Date.now() + expires_in * 1000,
     clientId: client_id,
+    expiresIn: expires_in,
     requiresPAR,
   });
 
@@ -866,6 +1045,7 @@ app.get('/.well-known/openid-configuration', (_req: Request, res: Response) => {
     pushed_authorization_request_endpoint: '/par',
     credential_endpoint: '/credential',
     dpop_signing_alg_values_supported: [...haipConfig.allowedAlgorithms],
+    request_object_signing_alg_values_supported: [...haipConfig.allowedAlgorithms],
     token_endpoint_auth_signing_alg_values_supported: [...haipConfig.allowedAlgorithms],
     code_challenge_methods_supported: [...haipConfig.pkce.allowedMethods],
     require_pushed_authorization_requests: haipConfig.par.required,
@@ -878,17 +1058,28 @@ app.get('/.well-known/oauth-authorization-server', (_req: Request, res: Response
   res.json({
     issuer: haipConfig.tokenIssuer,
     token_endpoint: '/token',
+    request_object_signing_alg_values_supported: [...haipConfig.allowedAlgorithms],
     pushed_authorization_request_endpoint: '/par',
     require_pushed_authorization_requests: haipConfig.par.required,
     code_challenge_methods_supported: [...haipConfig.pkce.allowedMethods],
     dpop_signing_alg_values_supported: [...haipConfig.allowedAlgorithms],
     token_endpoint_auth_signing_alg_values_supported: [...haipConfig.allowedAlgorithms],
+    dpop_bound_access_tokens: true,
   });
 });
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'authz' });
+});
+
+app.get('/readyz', async (_req: Request, res: Response) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'ready', service: 'authz' });
+  } catch {
+    res.status(503).json({ status: 'not_ready', service: 'authz' });
+  }
 });
 
 const PORT = process.env.PORT || 4003;
