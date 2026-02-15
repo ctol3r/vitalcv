@@ -10,7 +10,11 @@ import { registerWedgeRoutes } from '../routes/wedge';
 import { errorHandler } from './middleware/errorHandler';
 import { apiKeyAuth, trustStateRateLimit } from './middleware/publicSafety';
 import { requestObservability } from './middleware/requestObservability';
+import { invokeAgentModel } from './llm';
+import { estimateTokenCount } from './telemetry';
+import { withToolSpan } from './tools/tracing';
 import { requestLatencyMetrics } from './observability/requestMetrics';
+import prisma from './graphql/prisma_client';
 import openApiSpec from './openapi';
 
 type VerificationLane = 'PUBLIC' | 'PARTNER' | 'MANUAL';
@@ -40,6 +44,23 @@ function registerHealthRoutes(app: Express): void {
     });
   });
 
+  app.get('/readyz', (_req, res) => {
+    prisma
+      .$queryRaw`SELECT 1`
+      .then(() => {
+        res.status(200).json({
+          status: 'ready',
+          service: 'api',
+        });
+      })
+      .catch(() => {
+        res.status(503).json({
+          status: 'not_ready',
+          service: 'api',
+        });
+      });
+  });
+
   app.get('/', (_req, res) => {
     res.status(200).json({
       name: 'VitalCV API',
@@ -58,46 +79,93 @@ function registerVerificationRoutes(app: Express): void {
 
     const reference_id = crypto.randomUUID();
     let clinician_id = 'clinician:unknown';
+    const model = process.env.VITALCV_AGENT_MODEL || 'vitalcv-trust-observer-v1';
+    const agentName = process.env.VITALCV_AGENT_NAME || 'trust-observer';
+    const traceparent =
+      typeof req.get('traceparent') === 'string' ? req.get('traceparent') ?? undefined : undefined;
 
     try {
-      clinician_id = parseRequiredString(body.clinician_id, 'clinician_id');
-      const lane = parseLane(body.lane);
-      const subject = parseRequiredString(body.subject, 'subject');
-
-      const responsePayload = {
-        request_id: reference_id,
-        clinician_id,
-        lane,
-        subject,
-        status: 'PENDING' as const,
-      };
-
-      await emitVerificationAuditEvent({
-        type: 'VERIFICATION_REQUESTED',
-        clinician_id,
-        reference_id,
-        metadata: {
-          lane,
-          subject,
-          status: 'PENDING',
-          correlation_id: correlationId,
+      const responsePayload = await invokeAgentModel(
+        {
+          agentName,
+          model,
+          input: body,
+          traceparent,
         },
-      });
+        async () => {
+          clinician_id = parseRequiredString(body.clinician_id, 'clinician_id');
+          const lane = parseLane(body.lane);
+          const subject = parseRequiredString(body.subject, 'subject');
+
+          const response = {
+            request_id: reference_id,
+            clinician_id,
+            lane,
+            subject,
+            status: 'PENDING' as const,
+          };
+
+          await withToolSpan(
+            {
+              toolName: 'emit_verification_audit',
+              input: {
+                type: 'VERIFICATION_REQUESTED',
+                clinician_id,
+                lane,
+                subject,
+                correlation_id: correlationId,
+              },
+            },
+            async () =>
+              emitVerificationAuditEvent({
+                type: 'VERIFICATION_REQUESTED',
+                clinician_id,
+                reference_id,
+                metadata: {
+                  lane,
+                  subject,
+                  status: 'PENDING',
+                  correlation_id: correlationId,
+                },
+              }),
+          );
+
+          return {
+            output: response,
+            usage: {
+              inputTokens: estimateTokenCount(body),
+              outputTokens: estimateTokenCount(response),
+            },
+          };
+        },
+      );
 
       return res.status(200).json(responsePayload);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to process verification request';
 
       try {
-        await emitVerificationAuditEvent({
-          type: 'VERIFICATION_FAILED',
-          clinician_id,
-          reference_id,
-          metadata: {
-            reason: message,
-            correlation_id: correlationId,
+        await withToolSpan(
+          {
+            toolName: 'emit_verification_failed_audit',
+            input: {
+              clinician_id,
+              reason: message,
+              correlation_id: correlationId,
+            },
+            traceparent,
           },
-        });
+          async () =>
+            emitVerificationAuditEvent({
+              type: 'VERIFICATION_FAILED',
+              clinician_id,
+              reference_id,
+              metadata: {
+                reason: message,
+                correlation_id: correlationId,
+              },
+            }),
+        );
       } catch (auditError) {
         console.error('verification audit emission error:', auditError);
       }
@@ -137,7 +205,10 @@ const app = express();
 app.use(helmet());
 
 // CORS
-const corsOrigin = process.env.CORS_ORIGIN || '*';
+const corsOrigin = process.env.CORS_ORIGIN?.trim() || '*';
+if (process.env.NODE_ENV === 'production' && corsOrigin === '*') {
+  throw new Error('CORS_ORIGIN must not be "*" in production');
+}
 app.use(
   cors({
     origin: corsOrigin === '*' ? true : corsOrigin.split(',').map((o) => o.trim()),

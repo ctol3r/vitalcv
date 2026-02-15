@@ -1,46 +1,74 @@
 @import 'tailwindcss';
 
+/* ─── Light Theme (default) ─── */
 :root {
-  --background: oklch(0.99 0.002 160);
-  --foreground: oklch(0.13 0.02 220);
-  --primary: oklch(0.45 0.16 165);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.95 0.01 165);
-  --secondary-foreground: oklch(0.20 0.04 165);
-  --muted: oklch(0.96 0.005 160);
-  --muted-foreground: oklch(0.50 0.02 220);
-  --accent: oklch(0.88 0.05 165);
-  --accent-foreground: oklch(0.20 0.04 165);
-  --border: oklch(0.90 0.01 160);
-  --ring: oklch(0.45 0.16 165);
-  --radius: 0.5rem;
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --surface: #f9fafb;
+  --accent: #0a0a0a;
+  --accent-foreground: #ffffff;
+
+  /* Motion discipline: single curve, single duration */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration: 300ms;
 }
 
+/* ─── Dark Theme ─── */
+.dark {
+  --background: #000000;
+  --foreground: #ffffff;
+  --muted: #9ca3af;
+  --border: #27272a;
+  --surface: #0a0a0a;
+  --accent: #ffffff;
+  --accent-foreground: #000000;
+}
+
+/* ─── Tailwind v4 theme bridge ─── */
 @theme inline {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-surface: var(--surface);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
-  --color-border: var(--border);
-  --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* ─── Base layer ─── */
 @layer base {
   * {
-    @apply border-border;
+    border-color: var(--border);
   }
+
   body {
-    @apply bg-background text-foreground antialiased;
+    background-color: var(--background);
+    color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Focus visible for accessibility */
+  :focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: 2px;
+  }
+
+  /* Selection */
+  ::selection {
+    background-color: var(--foreground);
+    color: var(--background);
+  }
+}
+
+/* ─── Motion discipline ─── */
+@layer utilities {
+  .transition-theme {
+    transition-property: color, background-color, border-color, opacity, transform;
+    transition-duration: var(--duration);
+    transition-timing-function: var(--ease-out);
   }
 }

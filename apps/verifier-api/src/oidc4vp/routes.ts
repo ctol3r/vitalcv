@@ -26,8 +26,8 @@ router.get('/.well-known/openid-configuration', (_req: Request, res: Response) =
   res.json({
     issuer: process.env.VERIFIER_ISSUER || 'https://verifier.vitalcv.ai/oidc4vp',
     authorization_response_iss_parameter_supported: true,
-    dpop_signing_alg_values_supported: [...haipConfig.allowedAlgorithms],
     request_object_signing_alg_values_supported: [...haipConfig.allowedAlgorithms],
+    dpop_signing_alg_values_supported: [...haipConfig.allowedAlgorithms],
     vp_formats_supported: {
       jwt_vp_json: {
         alg: [...haipConfig.allowedAlgorithms],
@@ -43,8 +43,8 @@ router.get('/.well-known/openid-configuration', (_req: Request, res: Response) =
  * Nonce issuance endpoint.
  * GET /oidc4vp/nonce
  */
-router.get('/nonce', (_req: Request, res: Response) => {
-  const { nonce, expiresInSeconds } = issueNonce();
+router.get('/nonce', async (_req: Request, res: Response) => {
+  const { nonce, expiresInSeconds } = await issueNonce();
   res.json({ nonce, expires_in_seconds: expiresInSeconds });
 });
 
@@ -66,7 +66,7 @@ router.post('/presentation', policyEnforcer, async (req: Request, res: Response)
     });
   }
 
-  const nonceResult = consumeNonce(nonce);
+  const nonceResult = await consumeNonce(nonce);
   if (nonceResult !== 'accepted') {
     const desc = nonceResult === 'replay' ? 'nonce replay detected.' :
                  nonceResult === 'expired' ? 'nonce expired.' : 'nonce is invalid.';

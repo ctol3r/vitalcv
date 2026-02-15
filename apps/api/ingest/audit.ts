@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import prisma, { Prisma } from '../backend/src/graphql/prisma_client';
+import { withPrismaToolSpan } from '../backend/src/tools/tracing';
 
 export type IntakeAuditEventType =
   | 'NPI_INGESTED'
@@ -52,20 +53,30 @@ export async function emitIngestAuditEvent(input: IngestAuditInput): Promise<str
     occurred_at,
   });
 
-  const created = await prisma.auditEvent.create({
-    data: {
-      type: input.type,
-      hash: computeAuditHash({
+  const created = await withPrismaToolSpan(
+    {
+      operation: 'auditEvent.create',
+      input: {
         type: input.type,
         clinician_id,
-        metadata,
-        occurred_at,
-      }),
-      clinicianId: clinician_id,
-      metadata: metadata as unknown as Prisma.InputJsonValue,
-      createdAt: new Date(occurred_at),
+      },
     },
-  });
+    () =>
+      prisma.auditEvent.create({
+        data: {
+          type: input.type,
+          hash: computeAuditHash({
+            type: input.type,
+            clinician_id,
+            metadata,
+            occurred_at,
+          }),
+          clinicianId: clinician_id,
+          metadata: metadata as unknown as Prisma.InputJsonValue,
+          createdAt: new Date(occurred_at),
+        },
+      }),
+  );
 
   return `audit:${created.id}`;
 }

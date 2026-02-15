@@ -1,14 +1,86 @@
 services:
+  - type: pserv
+    name: vitalcv-postgres
+    env: postgresql
+    plan: free
+    databaseName: vitalcv
+    user: postgres
+    ipAllowList: []
+
   - type: web
-    name: vitalcv-api
+    name: vitalcv-backend
     env: node
-    buildCommand: npm install -g pnpm@10.6.1 && pnpm install --frozen-lockfile && cd apps/api/backend && npx prisma generate && cd ../../.. && pnpm --filter @vitalcv/api build
-    startCommand: cd apps/api/backend && npx prisma migrate deploy && cd ../../.. && node apps/api/backend/dist/apps/api/backend/src/server.js
+    rootDir: .
+    buildCommand: >
+      npm install -g pnpm@10.6.1 &&
+      pnpm install --frozen-lockfile &&
+      cd apps/api &&
+      npx prisma generate &&
+      pnpm --filter @vitalcv/api build
+    startCommand: >
+      npx prisma migrate deploy --schema apps/api/backend/prisma/schema.prisma &&
+      node apps/api/backend/dist/apps/api/backend/src/server.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
         fromDatabase:
-          name: vitalcv-db
+          name: vitalcv-postgres
           property: connectionString
+      - key: SIGNING_KEY_JWK
+        value: "<set-in-render-env>"
+
+  - type: web
+    name: vitalcv-authz
+    env: node
+    rootDir: .
+    buildCommand: >
+      npm install -g pnpm@10.6.1 &&
+      pnpm install --frozen-lockfile &&
+      pnpm --filter @vitalcv/authz build
+    startCommand: >
+      cd apps/authz &&
+      node dist/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4003
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vitalcv-postgres
+          property: connectionString
+      - key: TOKEN_ISSUER
+        value: https://authz.vitalcv.ai
+      - key: TOKEN_AUDIENCE
+        value: https://api.vitalcv.ai
+      - key: SIGNING_KEY_JWK
+        value: "<set-in-render-env>"
+
+  - type: web
+    name: vitalcv-verifier-api
+    env: node
+    rootDir: .
+    buildCommand: >
+      npm install -g pnpm@10.6.1 &&
+      pnpm install --frozen-lockfile &&
+      pnpm --filter @vitalcv/verifier-api build
+    startCommand: >
+      cd apps/verifier-api &&
+      node dist/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4002
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vitalcv-postgres
+          property: connectionString
+      - key: VERIFIER_ISSUER
+        value: https://verifier.vitalcv.ai/oidc4vp
+      - key: VERIFIER_AUDIENCE
+        value: https://verifier.vitalcv.ai

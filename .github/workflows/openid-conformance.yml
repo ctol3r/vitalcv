@@ -1,0 +1,347 @@
+name: OpenID Conformance
+
+on:
+  pull_request:
+    branches: ['main', 'phase/**']
+    paths:
+      - 'apps/authz/**'
+      - 'apps/verifier-api/**'
+      - 'packages/haip-config/**'
+      - 'packages/vc-formats-csdjwt/**'
+      - 'docker-compose.conformance.yml'
+      - '.github/workflows/openid-conformance.yml'
+  workflow_dispatch:
+    inputs:
+      test_plan:
+        description: 'Conformance test plan (vci, vp, haip, all)'
+        required: false
+        default: 'all'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  NODE_VERSION: '20.11.1'
+  PNPM_VERSION: '10.6.1'
+  # Conformance suite image
+  CONFORMANCE_IMAGE: ghcr.io/openid-certification/conformance-suite:latest
+  # Service ports (internal Docker network)
+  AUTHZ_PORT: 4003
+  VERIFIER_PORT: 4004
+  CONFORMANCE_PORT: 8443
+  # HAIP enforcement
+  HAIP_ENFORCE: 'true'
+  DPOP_REQUIRED: 'true'
+  PKCE_REQUIRED: 'true'
+  PAR_REQUIRED: 'true'
+
+jobs:
+  conformance:
+    name: OpenID Conformance Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      # MongoDB required by the conformance suite for test state
+      mongo:
+        image: mongo:7
+        options: >-
+          --health-cmd="mongosh --eval 'db.adminCommand({ping:1})'"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build authz and verifier services
+        run: |
+          pnpm --filter @vitalcv/authz build
+          pnpm --filter @vitalcv/verifier-api build
+
+      # ── Boot VitalCV Services ──────────────────────────────────
+      - name: Start Authorization Server
+        env:
+          PORT: ${{ env.AUTHZ_PORT }}
+          DPOP_REQUIRED: ${{ env.DPOP_REQUIRED }}
+          HAIP_ENFORCE: ${{ env.HAIP_ENFORCE }}
+          PKCE_REQUIRED: ${{ env.PKCE_REQUIRED }}
+          PAR_REQUIRED: ${{ env.PAR_REQUIRED }}
+          TOKEN_ISSUER: http://localhost:4003
+          TOKEN_AUDIENCE: http://localhost:4004
+          MTLS_REQUIRED: 'false'
+          MTLS_ALLOWED_FOR_CONFIDENTIAL: 'true'
+        run: |
+          cd apps/authz
+          node dist/index.js &
+          echo "AUTHZ_PID=$!" >> "$GITHUB_ENV"
+
+      - name: Start Verifier API
+        env:
+          PORT: ${{ env.VERIFIER_PORT }}
+          AUTHZ_ISSUER: http://localhost:4003
+        run: |
+          cd apps/verifier-api
+          node dist/index.js &
+          echo "VERIFIER_PID=$!" >> "$GITHUB_ENV"
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for authz server..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4003/health > /dev/null 2>&1; then
+              echo "Authz server ready"
+              break
+            fi
+            sleep 1
+          done
+
+          echo "Waiting for verifier API..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4004/health > /dev/null 2>&1; then
+              echo "Verifier API ready"
+              break
+            fi
+            sleep 1
+          done
+
+      # ── Conformance Suite ──────────────────────────────────────
+      - name: Pull conformance suite image
+        run: docker pull "$CONFORMANCE_IMAGE"
+
+      - name: Resolve test plan selection
+        id: plan_select
+        env:
+          PLAN_INPUT: ${{ inputs.test_plan }}
+        run: |
+          PLAN="${PLAN_INPUT:-all}"
+          if [ "$PLAN" = "all" ] || [ "$PLAN" = "vci" ]; then
+            echo "run_vci=true" >> "$GITHUB_OUTPUT"
+          fi
+          if [ "$PLAN" = "all" ] || [ "$PLAN" = "vp" ]; then
+            echo "run_vp=true" >> "$GITHUB_OUTPUT"
+          fi
+          if [ "$PLAN" = "all" ] || [ "$PLAN" = "haip" ]; then
+            echo "run_haip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate test plans
+        run: |
+          mkdir -p /tmp/conformance-plans /tmp/conformance-results
+
+          # OpenID4VCI test plan
+          cat > /tmp/conformance-plans/vci-plan.json << 'PLAN_EOF'
+          {
+            "testPlan": "oidcc-vci-id1",
+            "variant": {
+              "server_metadata": "discovery",
+              "client_auth_type": "dpop",
+              "credential_format": "jwt_vc_json",
+              "request_method": "par"
+            },
+            "modules": {
+              "issuer_url": "http://host.docker.internal:4003",
+              "credential_issuer_url": "http://host.docker.internal:4003",
+              "client_id": "conformance-test-client",
+              "scope": "openid credential:issue"
+            }
+          }
+          PLAN_EOF
+
+          # OpenID4VP test plan
+          cat > /tmp/conformance-plans/vp-plan.json << 'PLAN_EOF'
+          {
+            "testPlan": "oidcc-vp-id1",
+            "variant": {
+              "response_mode": "direct_post",
+              "vp_format": "jwt_vp_json",
+              "client_auth_type": "dpop"
+            },
+            "modules": {
+              "verifier_url": "http://host.docker.internal:4004",
+              "authorization_endpoint": "http://host.docker.internal:4003/authorize",
+              "client_id": "conformance-test-verifier"
+            }
+          }
+          PLAN_EOF
+
+          # HAIP test plan
+          cat > /tmp/conformance-plans/haip-plan.json << 'PLAN_EOF'
+          {
+            "testPlan": "oidcc-haip-id1",
+            "variant": {
+              "haip_profile": "1.0",
+              "alg": "ES256",
+              "dpop_required": true,
+              "pkce_required": true,
+              "par_required": true
+            },
+            "modules": {
+              "issuer_url": "http://host.docker.internal:4003",
+              "verifier_url": "http://host.docker.internal:4004",
+              "client_id": "conformance-test-haip"
+            }
+          }
+          PLAN_EOF
+
+      - name: Run OpenID4VCI conformance tests
+        if: steps.plan_select.outputs.run_vci == 'true'
+        run: |
+          docker run --rm \
+            --add-host=host.docker.internal:host-gateway \
+            -v /tmp/conformance-plans:/plans:ro \
+            -v /tmp/conformance-results:/results \
+            "$CONFORMANCE_IMAGE" \
+            --plan-file /plans/vci-plan.json \
+            --output /results/vci-results.json \
+            --exit-on-failure \
+            2>&1 | tee /tmp/conformance-vci.log
+        continue-on-error: false
+
+      - name: Run OpenID4VP conformance tests
+        if: steps.plan_select.outputs.run_vp == 'true'
+        run: |
+          docker run --rm \
+            --add-host=host.docker.internal:host-gateway \
+            -v /tmp/conformance-plans:/plans:ro \
+            -v /tmp/conformance-results:/results \
+            "$CONFORMANCE_IMAGE" \
+            --plan-file /plans/vp-plan.json \
+            --output /results/vp-results.json \
+            --exit-on-failure \
+            2>&1 | tee /tmp/conformance-vp.log
+        continue-on-error: false
+
+      - name: Run HAIP conformance tests
+        if: steps.plan_select.outputs.run_haip == 'true'
+        run: |
+          docker run --rm \
+            --add-host=host.docker.internal:host-gateway \
+            -v /tmp/conformance-plans:/plans:ro \
+            -v /tmp/conformance-results:/results \
+            "$CONFORMANCE_IMAGE" \
+            --plan-file /plans/haip-plan.json \
+            --output /results/haip-results.json \
+            --exit-on-failure \
+            2>&1 | tee /tmp/conformance-haip.log
+        continue-on-error: false
+
+      # ── Results ────────────────────────────────────────────────
+      - name: Parse conformance results
+        if: always()
+        id: results
+        run: |
+          TOTAL=0
+          PASSED=0
+          FAILED=0
+          SUMMARY=""
+
+          for result_file in /tmp/conformance-results/*.json; do
+            if [ -f "$result_file" ]; then
+              plan_name=$(basename "$result_file" .json | sed 's/-results//')
+              plan_total=$(jq '.testResults | length' "$result_file" 2>/dev/null || echo 0)
+              plan_passed=$(jq '[.testResults[] | select(.status == "PASSED")] | length' "$result_file" 2>/dev/null || echo 0)
+              plan_failed=$(jq '[.testResults[] | select(.status == "FAILED")] | length' "$result_file" 2>/dev/null || echo 0)
+
+              TOTAL=$((TOTAL + plan_total))
+              PASSED=$((PASSED + plan_passed))
+              FAILED=$((FAILED + plan_failed))
+              SUMMARY="${SUMMARY}| ${plan_name} | ${plan_total} | ${plan_passed} | ${plan_failed} |\n"
+            fi
+          done
+
+          echo "total=${TOTAL}" >> "$GITHUB_OUTPUT"
+          echo "passed=${PASSED}" >> "$GITHUB_OUTPUT"
+          echo "failed=${FAILED}" >> "$GITHUB_OUTPUT"
+
+          # Write step summary
+          {
+            echo "## OpenID Conformance Results"
+            echo ""
+            echo "| Plan | Total | Passed | Failed |"
+            echo "|------|-------|--------|--------|"
+            echo -e "$SUMMARY"
+            echo ""
+            if [ "$FAILED" -gt 0 ]; then
+              echo "❌ **${FAILED} test(s) failed** — PR blocked"
+            else
+              echo "✅ All ${PASSED} tests passed"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment PR with conformance results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        env:
+          CONF_TOTAL: ${{ steps.results.outputs.total }}
+          CONF_PASSED: ${{ steps.results.outputs.passed }}
+          CONF_FAILED: ${{ steps.results.outputs.failed }}
+        with:
+          script: |
+            const total = process.env.CONF_TOTAL || '0';
+            const passed = process.env.CONF_PASSED || '0';
+            const failed = process.env.CONF_FAILED || '0';
+            const status = parseInt(failed) > 0 ? '❌' : '✅';
+
+            const body = [
+              `## ${status} OpenID Conformance Results`,
+              '',
+              `| Metric | Count |`,
+              `|--------|-------|`,
+              `| Total tests | ${total} |`,
+              `| Passed | ${passed} |`,
+              `| Failed | ${failed} |`,
+              '',
+              parseInt(failed) > 0
+                ? '> ❌ Conformance tests failed — this PR cannot merge until all tests pass.'
+                : '> ✅ All conformance tests passed.',
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+      - name: Upload conformance logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: conformance-results
+          path: |
+            /tmp/conformance-results/
+            /tmp/conformance-*.log
+          retention-days: 30
+
+      - name: Fail if conformance tests failed
+        if: always()
+        run: |
+          FAILED="${{ steps.results.outputs.failed }}"
+          if [ "${FAILED:-0}" -gt 0 ]; then
+            echo "::error::OpenID conformance tests failed: ${FAILED} test(s) did not pass"
+            exit 1
+          fi
+
+      # ── Cleanup ────────────────────────────────────────────────
+      - name: Stop services
+        if: always()
+        run: |
+          [ -n "$AUTHZ_PID" ] && kill "$AUTHZ_PID" 2>/dev/null || true
+          [ -n "$VERIFIER_PID" ] && kill "$VERIFIER_PID" 2>/dev/null || true

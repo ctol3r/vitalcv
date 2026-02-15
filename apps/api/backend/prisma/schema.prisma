@@ -161,6 +161,83 @@ model ApiKey {
   @@index([orgId])
 }
 
+model ParRequest {
+  id                   String   @id @default(uuid()) @db.Uuid
+  requestUri           String   @unique
+  requestType          String
+  requestJson          Json
+  clientId             String
+  codeChallenge        String?
+  codeChallengeMethod  String?
+  redirectUri          String?
+  scope                String?
+  expiresAt            DateTime
+  used                 Boolean  @default(false)
+  createdAt            DateTime @default(now())
+
+  @@index([requestType])
+  @@index([expiresAt])
+  @@index([createdAt])
+}
+
+model JtiReplay {
+  service   String
+  jti       String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@id([service, jti])
+  @@index([expiresAt])
+}
+
+model RefreshToken {
+  tokenId   String   @id
+  clientId  String?
+  userId    String?
+  scope     String
+  cnfJkt    String?
+  clientCert String?
+  issuedAt  DateTime
+  expiresAt DateTime
+  rotated   Boolean  @default(false)
+  rotatedTo String?
+}
+
+model VerifierNonce {
+  nonce     String   @id
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([used])
+  @@index([expiresAt])
+}
+
+enum VerificationRequestStatus {
+  PENDING
+  COMPLETE
+  FAILED
+}
+
+model VerificationRequest {
+  requestId       String                   @id @default(uuid()) @db.Uuid
+  clinicianId     String
+  lane            String
+  source          String
+  attestorId      String?
+  documentHash    String?
+  subject         String
+  status          VerificationRequestStatus @default(PENDING)
+  createdAt       DateTime                 @default(now())
+  completedAt     DateTime?
+  receiptId       String?
+  failureReason   String?
+
+  @@index([clinicianId])
+  @@index([status])
+  @@index([createdAt])
+}
+
 // ──────────────────────────────────────────────────────────────
 // Audit Trail (append-only event log)
 // ──────────────────────────────────────────────────────────────

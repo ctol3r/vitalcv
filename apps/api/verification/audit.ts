@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import prisma, { Prisma } from '../backend/src/graphql/prisma_client';
+import { withPrismaToolSpan } from '../backend/src/tools/tracing';
 
 export type VerificationAuditEventType =
   | 'VERIFICATION_REQUESTED'
@@ -48,23 +49,33 @@ export async function emitVerificationAuditEvent(input: VerificationAuditInput):
     occurred_at,
   });
 
-  const created = await prisma.auditEvent.create({
-    data: {
-      type: input.type,
-      hash: auditHash({
+  const created = await withPrismaToolSpan(
+    {
+      operation: 'auditEvent.create',
+      input: {
         type: input.type,
         clinician_id,
         reference_id,
-        metadata,
-        occurred_at,
-      }),
-      clinicianId: clinician_id,
-      referenceId: reference_id,
-      metadata: metadata as unknown as Prisma.InputJsonValue,
-      createdAt: new Date(occurred_at),
+      },
     },
-  });
+    () =>
+      prisma.auditEvent.create({
+        data: {
+          type: input.type,
+          hash: auditHash({
+            type: input.type,
+            clinician_id,
+            reference_id,
+            metadata,
+            occurred_at,
+          }),
+          clinicianId: clinician_id,
+          referenceId: reference_id,
+          metadata: metadata as unknown as Prisma.InputJsonValue,
+          createdAt: new Date(occurred_at),
+        },
+      }),
+  );
 
   return `audit:${created.id}`;
 }
-
