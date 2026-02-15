@@ -1,5 +1,7 @@
 // identity_governance_upgrade.ts - prototype consensus upgrade for new identity features via governance
 
+import { log } from '../obs/logger';
+
 export interface IdentityFeatureProposal {
     featureName: string;
     description: string;
@@ -9,14 +11,19 @@ export interface IdentityFeatureProposal {
 export class IdentityGovernance {
     // Simulate submitting a governance proposal
     proposeUpgrade(proposal: IdentityFeatureProposal): void {
-        console.log(`Proposing upgrade: ${proposal.featureName}`);
+        log('info', 'Proposing upgrade', {
+          event: 'identity_governance_propose',
+          feature: proposal.featureName,
+        });
         // TODO: integrate with on-chain governance mechanics
     }
 
     // Simulate applying the upgrade after approval
     applyUpgrade(proposal: IdentityFeatureProposal): void {
-        console.log(`Applying upgrade: ${proposal.featureName}`);
+        log('info', 'Applying upgrade', {
+          event: 'identity_governance_apply',
+          feature: proposal.featureName,
+        });
         // TODO: integrate with consensus-layer runtime upgrade
     }
 }
-

@@ -5,6 +5,7 @@ import { logEvent } from "../../../lib/events";
 
 interface Props {
   params: Promise<{ shareId: string }>;
+  searchParams: Promise<{ organizationId?: string | string[] }>;
 }
 
 /**
@@ -13,26 +14,40 @@ interface Props {
  * Public verifier view — no login required.
  * Records first-view timestamp for time-to-view metric.
  */
-export default async function VerifyPage({ params }: Props) {
+export default async function VerifyPage({ params, searchParams }: Props) {
   const { shareId } = await params;
+  const resolvedSearchParams = await searchParams;
+  const organizationIdFromSearch =
+    typeof resolvedSearchParams.organizationId === 'string'
+      ? resolvedSearchParams.organizationId
+      : Array.isArray(resolvedSearchParams.organizationId)
+      ? resolvedSearchParams.organizationId[0]
+      : undefined;
+  const organizationId = organizationIdFromSearch?.trim();
 
-  const shareLink = await prisma.shareLink.findUnique({
-    where: { id: shareId },
+  const shareLink = await prisma.shareLink.findFirst({
+    where: {
+      id: shareId,
+      ...(organizationId ? { organizationId } : {}),
+    },
   });
 
   if (!shareLink) {
-    notFound();
+    return notFound();
   }
 
   // Record first view (time-to-view metric)
   if (!shareLink.firstViewAt) {
     await prisma.shareLink.update({
-      where: { id: shareId },
+      where: {
+        id: shareId,
+        ...(organizationId ? { organizationId } : {}),
+      },
       data: { firstViewAt: new Date() },
     });
   }
 
-  void logEvent("artifact_viewed", shareLink.npi, { shareId });
+  void logEvent("artifact_viewed", shareLink.npi, { shareId }, organizationId);
 
   const npi = shareLink.npi;
   const now = new Date();
@@ -80,7 +95,9 @@ export default async function VerifyPage({ params }: Props) {
 
         <div className="mt-6 flex gap-3">
           <a
-            href={`/api/artifact/export/${npi}`}
+            href={`/api/artifact/export/${npi}${
+              organizationId ? `?organizationId=${encodeURIComponent(organizationId)}` : ''
+            }`}
             className="px-4 py-2 bg-accent text-accent-foreground rounded text-sm font-medium"
           >
             Download PDF

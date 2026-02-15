@@ -11,7 +11,7 @@ const NPI_PATTERN = /^\d{10}$/;
  * Mock data — same deterministic logic as the NPI lookup.
  */
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ npi: string }> },
 ): Promise<NextResponse | Response> {
   const { npi } = await params;
@@ -31,8 +31,12 @@ export async function GET(
     );
   }
 
+  const requestUrl = new URL(request.url);
+  const organizationId = requestUrl.searchParams.get('organizationId') ?? request.headers.get('x-org-id');
+  const normalizedOrganizationId = organizationId?.trim() ?? undefined;
+
   // Fire-and-forget event logging
-  void logEvent("artifact_exported", npi);
+  void logEvent("artifact_exported", npi, undefined, normalizedOrganizationId);
 
   const now = new Date();
   const timestamp = now.toISOString();

@@ -11,7 +11,7 @@ const NPI_PATTERN = /^\d{10}$/;
  * Returns the share link ID for verifier access.
  */
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ npi: string }> },
 ): Promise<NextResponse> {
   const { npi } = await params;
@@ -31,14 +31,24 @@ export async function POST(
     );
   }
 
+  const requestUrl = new URL(request.url);
+  const organizationId = requestUrl.searchParams.get('organizationId') ?? request.headers.get('x-org-id');
+  const normalizedOrganizationId = organizationId?.trim() ?? undefined;
+  const shareUrlOrganizationParam = normalizedOrganizationId
+    ? `?organizationId=${encodeURIComponent(normalizedOrganizationId)}`
+    : '';
+
   const shareLink = await prisma.shareLink.create({
-    data: { npi },
+    data: {
+      npi,
+      ...(normalizedOrganizationId ? { organizationId: normalizedOrganizationId } : {}),
+    },
   });
 
-  void logEvent("share_link_created", npi, { shareId: shareLink.id });
+  void logEvent("share_link_created", npi, { shareId: shareLink.id }, normalizedOrganizationId);
 
   return NextResponse.json({
     shareId: shareLink.id,
-    url: `/verify/${shareLink.id}`,
+    url: `/verify/${shareLink.id}${shareUrlOrganizationParam}`,
   });
 }

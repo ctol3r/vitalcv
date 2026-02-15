@@ -12,11 +12,18 @@ function isAuthed(cookieStore: Awaited<ReturnType<typeof cookies>>): boolean {
  * GET /api/internal/metrics
  * Returns traction metrics. Protected by INTERNAL_DASH_PASSWORD.
  */
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: Request): Promise<NextResponse> {
   const cookieStore = await cookies();
   if (!isAuthed(cookieStore)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const requestUrl = new URL(request.url);
+  const organizationId =
+    requestUrl.searchParams.get('organizationId')?.trim() ??
+    request.headers.get('x-org-id')?.trim();
+
+  const organizationFilter = organizationId ? { organizationId } : {};
 
   const [
     totalLookups,
@@ -24,15 +31,15 @@ export async function GET(): Promise<NextResponse> {
     totalViews,
     totalExports,
   ] = await Promise.all([
-    prisma.eventLog.count({ where: { eventType: "npi_lookup" } }),
-    prisma.eventLog.count({ where: { eventType: "share_link_created" } }),
-    prisma.eventLog.count({ where: { eventType: "artifact_viewed" } }),
-    prisma.eventLog.count({ where: { eventType: "artifact_exported" } }),
+    prisma.eventLog.count({ where: { eventType: "npi_lookup", ...organizationFilter } }),
+    prisma.eventLog.count({ where: { eventType: "share_link_created", ...organizationFilter } }),
+    prisma.eventLog.count({ where: { eventType: "artifact_viewed", ...organizationFilter } }),
+    prisma.eventLog.count({ where: { eventType: "artifact_exported", ...organizationFilter } }),
   ]);
 
   // Avg time from share_link_created → artifact_viewed (derived from ShareLink.firstViewAt)
   const viewedLinks = await prisma.shareLink.findMany({
-    where: { firstViewAt: { not: null } },
+    where: { firstViewAt: { not: null }, ...organizationFilter },
     select: { createdAt: true, firstViewAt: true },
   });
 

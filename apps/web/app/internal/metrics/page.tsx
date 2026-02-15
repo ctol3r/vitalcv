@@ -12,6 +12,26 @@ type YcMetrics = {
 
 const DEFAULT_BACKEND_URL = 'http://localhost:4000';
 
+function normalizeOrganizationId(
+  value?: string | string[] | undefined,
+): string | undefined {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+
+  if (Array.isArray(value)) {
+    const first = value[0];
+    if (typeof first !== 'string') {
+      return undefined;
+    }
+    const trimmed = first.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+
+  return undefined;
+}
+
 function formatMinutes(minutes: number): string {
   if (!Number.isFinite(minutes)) {
     return '0';
@@ -20,10 +40,11 @@ function formatMinutes(minutes: number): string {
   return `${minutes.toFixed(1)}m`;
 }
 
-async function getMetrics(): Promise<YcMetrics | null> {
+async function getMetrics(organizationId?: string): Promise<YcMetrics | null> {
+  const query = organizationId ? `?organizationId=${encodeURIComponent(organizationId)}` : '';
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || DEFAULT_BACKEND_URL;
   try {
-    const res = await fetch(`${backendUrl}/api/metrics/yc`, {
+    const res = await fetch(`${backendUrl}/api/metrics/yc${query}`, {
       cache: 'no-store',
     });
     if (!res.ok) {
@@ -35,8 +56,15 @@ async function getMetrics(): Promise<YcMetrics | null> {
   }
 }
 
-export default async function InternalMetricsPage() {
-  const metrics = await getMetrics();
+export default async function InternalMetricsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ organizationId?: string | string[] }>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const organizationId = normalizeOrganizationId(resolvedSearchParams.organizationId);
+  const metrics = await getMetrics(organizationId);
+  const orgQuery = organizationId ? `?organizationId=${encodeURIComponent(organizationId)}` : '';
 
   return (
     <main className="mx-auto min-h-screen max-w-4xl px-6 py-16 text-neutral-900">
@@ -62,13 +90,18 @@ export default async function InternalMetricsPage() {
         This page is read-only and is intended for operational monitoring.
       </p>
       <p className="mt-2 text-sm text-neutral-600">
-        <Link href="/internal/yc" className="underline underline-offset-4">
+        <Link href={`/internal/yc${orgQuery}`} className="underline underline-offset-4">
           Open YC dashboard
         </Link>
       </p>
       <p className="mt-2 text-sm text-neutral-600">
-        <Link href="/internal/pilots" className="underline underline-offset-4">
+        <Link href={`/internal/pilots${orgQuery}`} className="underline underline-offset-4">
           Open Pilot dashboard
+        </Link>
+      </p>
+      <p className="mt-2 text-sm text-neutral-600">
+        <Link href={`/internal/enterprise${orgQuery}`} className="underline underline-offset-4">
+          Open enterprise signals
         </Link>
       </p>
     </main>

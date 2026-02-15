@@ -34,6 +34,7 @@ export async function logEvent(
   eventType: EventType,
   npi: string,
   metadata?: Record<string, unknown>,
+  organizationId?: string,
 ): Promise<void> {
   try {
     await prisma.eventLog.create({
@@ -41,6 +42,7 @@ export async function logEvent(
         eventType,
         npi,
         metadata: (metadata as Prisma.InputJsonValue) ?? undefined,
+        ...(organizationId ? { organizationId } : {}),
       },
     });
   } catch (err) {

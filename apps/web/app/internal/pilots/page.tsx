@@ -17,10 +17,31 @@ type PilotReport = {
 
 const DEFAULT_BACKEND_URL = 'http://localhost:4000';
 
-async function fetchPilotReport(): Promise<PilotReport | null> {
+function normalizeOrganizationId(
+  value?: string | string[] | undefined,
+): string | undefined {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+
+  if (Array.isArray(value)) {
+    const first = value[0];
+    if (typeof first !== 'string') {
+      return undefined;
+    }
+    const trimmed = first.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+
+  return undefined;
+}
+
+async function fetchPilotReport(organizationId?: string): Promise<PilotReport | null> {
+  const query = organizationId ? `?organizationId=${encodeURIComponent(organizationId)}` : '';
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || DEFAULT_BACKEND_URL;
   try {
-    const response = await fetch(`${backendUrl}/api/pilot/report`, {
+    const response = await fetch(`${backendUrl}/api/pilot/report${query}`, {
       cache: 'no-store',
     });
     if (!response.ok) {
@@ -40,10 +61,17 @@ function formatActivationDate(value: string): string {
   return parsed.toLocaleString();
 }
 
-export default async function InternalPilotsPage() {
-  const report = await fetchPilotReport();
+export default async function InternalPilotsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ organizationId?: string | string[] }>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const organizationId = normalizeOrganizationId(resolvedSearchParams.organizationId);
+  const report = await fetchPilotReport(organizationId);
   const rows = report?.pilotOrgs ?? [];
   const count = report?.pilotOrgCount ?? rows.length;
+  const orgQuery = organizationId ? `?organizationId=${encodeURIComponent(organizationId)}` : '';
 
   return (
     <main className="min-h-screen bg-white px-6 py-16 text-black">
@@ -106,13 +134,18 @@ export default async function InternalPilotsPage() {
 
         <div className="space-y-1 text-sm">
           <p>
-            <Link href="/internal/yc" className="underline underline-offset-4">
+            <Link href={`/internal/yc${orgQuery}`} className="underline underline-offset-4">
               Open YC dashboard
             </Link>
           </p>
           <p>
-            <Link href="/internal/metrics" className="underline underline-offset-4">
+            <Link href={`/internal/metrics${orgQuery}`} className="underline underline-offset-4">
               Open raw internal metrics
+            </Link>
+          </p>
+          <p>
+            <Link href={`/internal/enterprise${orgQuery}`} className="underline underline-offset-4">
+              Open enterprise signals
             </Link>
           </p>
         </div>

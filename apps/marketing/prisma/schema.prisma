@@ -11,10 +11,12 @@ model EventLog {
   id        String   @id @default(uuid())
   eventType String
   npi       String
+  organizationId String? @db.Uuid
   metadata  Json?
   createdAt DateTime @default(now())
 
   @@index([eventType])
+  @@index([organizationId])
   @@index([npi])
   @@index([createdAt])
 }
@@ -23,8 +25,10 @@ model EventLog {
 model ShareLink {
   id          String    @id @default(uuid())
   npi         String
+  organizationId String? @db.Uuid
   createdAt   DateTime  @default(now())
   firstViewAt DateTime?
 
   @@index([npi])
+  @@index([organizationId])
 }

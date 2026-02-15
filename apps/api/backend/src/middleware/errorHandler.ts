@@ -1,5 +1,8 @@
 import * as Sentry from "@sentry/node";
-import { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
+import { HttpError } from "../utils/httpError";
+import { log } from '../obs/logger';
+import type { OperationalEventType } from '../types/auditEventTypes';
 
 /**
  * Central API error handler.
@@ -7,25 +10,31 @@ import { Request, Response, NextFunction } from "express";
  * - MUST be last middleware registered.
  * - Never throws.
  * - Never leaks stack traces in production.
+ * - Returns normalized structure: { error: { code, message } }
  */
 export function errorHandler(
   err: unknown,
   req: Request,
   res: Response,
   _next: NextFunction
-) {
-  // Default safe response
+): void {
   let status = 500;
   let message = "Internal Server Error";
+  let errorCode = "INTERNAL_ERROR";
 
-  // Domain / application errors
-  if (err && typeof err === "object") {
-    if ("status" in err && typeof (err as any).status === "number") {
-      status = (err as any).status;
+  if (err instanceof HttpError) {
+    status = err.status;
+    message = err.message;
+    errorCode = err.code;
+  } else if (err && typeof err === "object") {
+    if ("status" in err && typeof (err as Record<string, unknown>).status === "number") {
+      status = (err as Record<string, unknown>).status as number;
     }
-
-    if ("message" in err && typeof (err as any).message === "string") {
-      message = (err as any).message;
+    if ("message" in err && typeof (err as Record<string, unknown>).message === "string") {
+      message = (err as Record<string, unknown>).message as string;
+    }
+    if ("code" in err && typeof (err as Record<string, unknown>).code === "string") {
+      errorCode = (err as Record<string, unknown>).code as string;
     }
   }
 
@@ -34,23 +43,18 @@ export function errorHandler(
       ? res.locals.request_id
       : "unknown";
 
-  const errorCode =
-    err && typeof err === "object" && "code" in err && typeof (err as any).code === "string"
-      ? (err as any).code
-      : null;
+  // Determine event type for structured logging (canonical enum)
+  const eventType: OperationalEventType = status === 429 ? "RATE_LIMIT_HIT" : status >= 500 ? "API_ERROR" : "VALIDATION_ERROR";
 
-  console.error(
-    JSON.stringify({
-      event: "request_error",
-      request_id: requestId,
-      method: req.method,
-      path: req.originalUrl || req.url,
-      status_code: status,
-      message,
-      code: errorCode,
-      timestamp: new Date().toISOString(),
-    })
-  );
+  log('error', 'request_error', {
+    eventType,
+    request_id: requestId,
+    method: req.method,
+    path: req.originalUrl || req.url,
+    status_code: status,
+    message,
+    code: errorCode,
+  });
 
   // Report 5xx errors to Sentry
   if (status >= 500 && err instanceof Error) {
@@ -65,6 +69,9 @@ export function errorHandler(
   }
 
   res.status(status).json({
-    error: message,
+    error: {
+      code: errorCode,
+      message,
+    },
   });
 }

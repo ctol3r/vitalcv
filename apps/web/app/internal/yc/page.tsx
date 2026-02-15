@@ -27,10 +27,31 @@ type YcMetrics = {
 
 const DEFAULT_BACKEND_URL = 'http://localhost:4000';
 
-async function fetchYcMetrics(): Promise<YcMetrics | null> {
+function normalizeOrganizationId(
+  value?: string | string[] | undefined,
+): string | undefined {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+
+  if (Array.isArray(value)) {
+    const first = value[0];
+    if (typeof first !== 'string') {
+      return undefined;
+    }
+    const trimmed = first.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+
+  return undefined;
+}
+
+async function fetchYcMetrics(organizationId?: string): Promise<YcMetrics | null> {
+  const query = organizationId ? `?organizationId=${encodeURIComponent(organizationId)}` : '';
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || DEFAULT_BACKEND_URL;
   try {
-    const response = await fetch(`${backendUrl}/api/metrics/yc`, {
+    const response = await fetch(`${backendUrl}/api/metrics/yc${query}`, {
       cache: 'no-store',
     });
     if (!response.ok) return null;
@@ -80,8 +101,15 @@ function monitoringLabel(flag: keyof MonitoringFlags): string {
   }
 }
 
-export default async function YcDashboardPage() {
-  const metrics = await fetchYcMetrics();
+export default async function YcDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ organizationId?: string | string[] }>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const organizationId = normalizeOrganizationId(resolvedSearchParams.organizationId);
+  const metrics = await fetchYcMetrics(organizationId);
+  const orgQuery = organizationId ? `?organizationId=${encodeURIComponent(organizationId)}` : '';
 
   return (
     <main className="min-h-screen bg-white px-6 py-16 text-black">
@@ -155,13 +183,18 @@ export default async function YcDashboardPage() {
         </p>
 
         <p className="text-sm">
-          <Link href="/internal/metrics" className="underline underline-offset-4">
+          <Link href={`/internal/metrics${orgQuery}`} className="underline underline-offset-4">
             Open raw internal metrics
           </Link>
         </p>
         <p className="text-sm">
-          <Link href="/internal/pilots" className="underline underline-offset-4">
+          <Link href={`/internal/pilots${orgQuery}`} className="underline underline-offset-4">
             Open pilot org dashboard
+          </Link>
+        </p>
+        <p className="text-sm">
+          <Link href={`/internal/enterprise${orgQuery}`} className="underline underline-offset-4">
+            Open enterprise signals
           </Link>
         </p>
       </div>

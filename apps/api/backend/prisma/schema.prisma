@@ -243,12 +243,14 @@ model VerificationRequest {
 // ──────────────────────────────────────────────────────────────
 
 model ShareLink {
-  id            String   @id @default(uuid()) @db.Uuid
-  npi           String
-  firstViewedAt DateTime?
-  createdAt     DateTime @default(now())
+  id             String   @id @default(uuid()) @db.Uuid
+  npi            String
+  firstViewedAt  DateTime?
+  organizationId String?  @db.Uuid
+  createdAt      DateTime @default(now())
 
   @@index([npi])
+  @@index([organizationId])
   @@index([createdAt])
 }
 
@@ -275,17 +277,50 @@ model PilotOrg {
 
 model PilotPlan {
   id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
+  organizationId String?  @db.Uuid
   startDate      DateTime
   endDate        DateTime?
   active         Boolean  @default(true)
   bundleCount    Int      @default(0)
 
-  organization PilotOrg @relation(fields: [organizationId], references: [id])
+  organization PilotOrg? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
   @@index([organizationId])
   @@index([active])
   @@index([startDate])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Verifier Onboarding (enterprise registration + token access)
+// ──────────────────────────────────────────────────────────────
+
+model VerifierOrg {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String
+  contactName    String
+  contactEmail   String
+  createdAt      DateTime @default(now())
+  pilotActivated Boolean  @default(false)
+
+  tokens VerifierAccessToken[]
+
+  @@index([contactEmail])
+  @@index([pilotActivated])
+  @@index([createdAt])
+}
+
+model VerifierAccessToken {
+  id            String   @id @default(uuid()) @db.Uuid
+  verifierOrgId String   @db.Uuid
+  token         String   @unique
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+
+  verifierOrg VerifierOrg @relation(fields: [verifierOrgId], references: [id])
+
+  @@index([verifierOrgId])
+  @@index([token])
+  @@index([expiresAt])
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -302,6 +337,7 @@ model VerificationArtifact {
   verifiedAt DateTime
   expiresAt  DateTime?
   monitoring Boolean   @default(false)
+  organizationId String? @db.Uuid
   trustState String    @default("needs_review")
   createdAt  DateTime  @default(now())
 
@@ -310,7 +346,23 @@ model VerificationArtifact {
   @@index([npi])
   @@index([source])
   @@index([monitoring])
+  @@index([organizationId])
   @@index([trustState])
+  @@index([createdAt])
+}
+
+model TrustLedgerEntry {
+  id         String   @id @default(uuid()) @db.Uuid
+  artifactId String?
+  npi        String?
+  action     String
+  hash       String
+  organizationId String?
+  metadata   Json?    @db.JsonB
+  createdAt  DateTime @default(now())
+
+  @@index([npi])
+  @@index([organizationId])
   @@index([createdAt])
 }
 
@@ -331,17 +383,19 @@ model AuditSnapshot {
 // ──────────────────────────────────────────────────────────────
 
 model AuditEvent {
-  id           String   @id @default(uuid()) @db.Uuid
-  type         String
-  hash         String
-  referenceId  String?
-  clinicianId  String?
-  metadata     Json?    @db.JsonB
-  createdAt    DateTime @default(now())
+  id             String   @id @default(uuid()) @db.Uuid
+  type           String
+  hash           String
+  referenceId    String?
+  clinicianId    String?
+  organizationId String?
+  metadata       Json?    @db.JsonB
+  createdAt      DateTime @default(now())
 
   @@index([type, createdAt])
   @@index([clinicianId])
   @@index([referenceId])
+  @@index([organizationId])
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -352,11 +406,13 @@ model MonitoringEvent {
   id             String    @id @default(uuid()) @db.Uuid
   npi            String
   source         String
+  organizationId  String?   @db.Uuid
   previousStatus String?
   newStatus      String
   detectedAt     DateTime  @default(now())
 
   @@index([npi])
+  @@index([organizationId])
   @@index([source])
   @@index([detectedAt])
 }

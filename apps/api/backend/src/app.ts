@@ -10,7 +10,7 @@ import { emitVerificationAuditEvent } from '../../verification/audit';
 import { registerIngestRoutes } from '../../routes/ingest';
 import { registerWedgeRoutes } from '../routes/wedge';
 import { errorHandler } from './middleware/errorHandler';
-import { apiKeyAuth, trustStateRateLimit } from './middleware/publicSafety';
+import { apiKeyAuth, trustStateRateLimit, publicApiRateLimit } from './middleware/publicSafety';
 import { getRequestOrganizationId, requireOrganizationContext } from './middleware/organizationContext';
 import { requestObservability } from './middleware/requestObservability';
 import { invokeAgentModel } from './llm';
@@ -22,6 +22,7 @@ import openApiSpec from './openapi';
 import { getLatestArtifact, createArtifactFromNursys, generateAuditBundle } from './services/artifactService';
 import { computeTrustState } from './services/trustState';
 import { runMonitoringCheck } from './services/monitoringEngine';
+import { registerVerifierOnboardingRoutes } from './routes/verifierOnboarding';
 
 type VerificationLane = 'PUBLIC' | 'PARTNER' | 'MANUAL';
 const VALID_LANES: readonly VerificationLane[] = ['PUBLIC', 'PARTNER', 'MANUAL'] as const;
@@ -584,7 +585,11 @@ async function loadYcMetrics(): Promise<YcMetricsPayload> {
     avgMillisecondsToView === null ? 0 : Number((avgMillisecondsToView / (1000 * 60)).toFixed(2));
   const estimatedStartDateAccelerationDays = toStartDateAcceleration(avgMillisecondsToView);
 
-  const bundlesByOrg = new Map<string, number>(activePilotPlans.map((plan) => [plan.organizationId, plan.bundleCount]));
+  const bundlesByOrg = new Map<string, number>(
+    activePilotPlans
+      .filter((plan): plan is typeof plan & { organizationId: string } => plan.organizationId !== null)
+      .map((plan) => [plan.organizationId, plan.bundleCount]),
+  );
   const activeBundlesGenerated = activePilotPlans.reduce(
     (sum, plan) => sum + plan.bundleCount,
     0,
@@ -799,7 +804,7 @@ function registerVerificationRoutes(app: Express): void {
 
 
 function registerPilotRoutes(app: Express): void {
-  app.get('/api/verify/:shareId', async (req: Request, res: Response) => {
+  app.get('/api/verify/:shareId', publicApiRateLimit, async (req: Request, res: Response) => {
     const shareId = parseRequiredString(req.params.shareId, 'shareId');
     const ref = normalizeFunnelRef(req.query.ref);
 
@@ -834,6 +839,7 @@ function registerPilotRoutes(app: Express): void {
           hash: toAuditHash(`verify:${shareId}`),
           referenceId: updated.id,
           clinicianId: updated.npi,
+          ...(updated.organizationId ? { organizationId: updated.organizationId } : {}),
           metadata: {
             shareId: updated.id,
             first_view: isFirstView,
@@ -842,10 +848,11 @@ function registerPilotRoutes(app: Express): void {
         },
       });
 
-      // Resolve or create artifact for this NPI
-      let artifact = await getLatestArtifact(updated.npi);
+      // Resolve or create artifact for this NPI (scoped to share link's org)
+      const shareLinkOrgId = updated.organizationId ?? undefined;
+      let artifact = await getLatestArtifact(updated.npi, shareLinkOrgId);
       if (!artifact) {
-        artifact = await createArtifactFromNursys(updated.npi);
+        artifact = await createArtifactFromNursys(updated.npi, shareLinkOrgId);
       }
 
       const status = artifact.status === 'ACTIVE' ? 'VERIFIED' : artifact.status;
@@ -1005,7 +1012,7 @@ function registerPilotRoutes(app: Express): void {
   });
 
   // ── Wave 11: NCQA Audit-Ready Bundle Generator ──────────────
-  app.get('/api/artifact/bundle/:npi', async (req: Request, res: Response) => {
+  app.get('/api/artifact/bundle/:npi', publicApiRateLimit, async (req: Request, res: Response) => {
     try {
       const npi = parseRequiredString(req.params.npi, 'npi');
       const organizationId = parseOptionalString(req.query.organizationId);
@@ -1135,6 +1142,7 @@ registerVerificationRoutes(app);
 registerPilotRoutes(app);
 registerTrustStateRoutes(app);
 registerMonitoringRoutes(app);
+registerVerifierOnboardingRoutes(app);
 registerWedgeRoutes(app);
 
 // API documentation
