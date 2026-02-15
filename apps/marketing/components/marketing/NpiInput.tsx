@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 /**
  * NPI lookup input — the primary conversion wedge.
@@ -20,6 +21,7 @@ import { useRouter } from 'next/navigation';
  */
 export function NpiInput() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [value, setValue] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -49,9 +51,12 @@ export function NpiInput() {
       submittingRef.current = true;
       setLoading(true);
       setError('');
+      const rawRef = searchParams.get('ref');
+      const ref = rawRef === 'demo' || rawRef === 'yc' || rawRef === 'direct' ? rawRef : null;
+      const refQuery = ref ? `?ref=${ref}` : '';
 
       try {
-        const res = await fetch(`/api/npi/${value}`);
+        const res = await fetch(`/api/npi/${value}${refQuery}`);
 
         if (!res.ok) {
           const body = await res.json().catch(() => null);
@@ -62,7 +67,8 @@ export function NpiInput() {
         const data: { exists: boolean } = await res.json();
 
         if (data.exists) {
-          router.push(`/clinician?npi=${value}`);
+          const refQuery = ref ? `&ref=${ref}` : '';
+          router.push(`/clinician?npi=${value}${refQuery}`);
         } else {
           setError('NPI not found');
         }
@@ -73,7 +79,7 @@ export function NpiInput() {
         submittingRef.current = false;
       }
     },
-    [value, router],
+    [searchParams, value, router],
   );
 
   return (

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { logEvent, normalizeVerifierRef } from '../../lib/events';
 
 /**
  * Clinician page — displays NPI and placeholder credential profile.
@@ -13,6 +14,14 @@ export default async function ClinicianPage({
 }) {
   const params = await searchParams;
   const npi = typeof params.npi === 'string' ? params.npi : null;
+  const rawRef = Array.isArray(params.ref) ? params.ref[0] : params.ref;
+  const ref = normalizeVerifierRef(rawRef);
+
+  if (npi) {
+    void logEvent('verifier_page_view', npi, {
+      ...(ref ? { ref } : {}),
+    });
+  }
 
   return (
     <main className="mx-auto max-w-[1200px] px-6 py-24 md:py-32">

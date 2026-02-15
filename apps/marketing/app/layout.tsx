@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { ThemeScript } from '../components/marketing/ThemeScript';
+import PilotBanner from '../components/PilotBanner';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -61,7 +62,10 @@ export default function RootLayout({
       <head>
         <ThemeScript />
       </head>
-      <body className={`${inter.variable} font-sans`}>{children}</body>
+      <body className={`${inter.variable} font-sans`}>
+        <PilotBanner />
+        {children}
+      </body>
     </html>
   );
 }

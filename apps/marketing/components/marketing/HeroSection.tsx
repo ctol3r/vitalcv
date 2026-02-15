@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { NpiInput } from './NpiInput';
 
@@ -15,7 +16,9 @@ export function HeroSection() {
       </p>
 
       <div className="mt-10 max-w-md">
-        <NpiInput />
+        <Suspense fallback={<div className="h-12" />}>
+          <NpiInput />
+        </Suspense>
       </div>
 
       <div className="mt-10 flex items-center gap-6">

@@ -239,6 +239,94 @@ model VerificationRequest {
 }
 
 // ──────────────────────────────────────────────────────────────
+// Verifier Pilot: Cross-check share links and acceptance actions
+// ──────────────────────────────────────────────────────────────
+
+model ShareLink {
+  id            String   @id @default(uuid()) @db.Uuid
+  npi           String
+  firstViewedAt DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([npi])
+  @@index([createdAt])
+}
+
+model VerifierAcceptance {
+  id           String   @id @default(uuid()) @db.Uuid
+  organization String
+  acceptedAt   DateTime @default(now())
+
+  @@index([organization])
+  @@index([acceptedAt])
+}
+
+model PilotOrg {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  contactEmail String
+  activatedAt  DateTime @default(now())
+  accepted     Boolean  @default(false)
+  plans        PilotPlan[]
+
+  @@index([accepted])
+  @@index([activatedAt])
+}
+
+model PilotPlan {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  startDate      DateTime
+  endDate        DateTime?
+  active         Boolean  @default(true)
+  bundleCount    Int      @default(0)
+
+  organization PilotOrg @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([active])
+  @@index([startDate])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Verification Artifacts (primary-source evidence)
+// ──────────────────────────────────────────────────────────────
+
+model VerificationArtifact {
+  id         String    @id @default(uuid()) @db.Uuid
+  npi        String
+  source     String
+  status     String
+  rawPayload Json?     @db.JsonB
+  checksum   String
+  verifiedAt DateTime
+  expiresAt  DateTime?
+  monitoring Boolean   @default(false)
+  trustState String    @default("needs_review")
+  createdAt  DateTime  @default(now())
+
+  snapshots AuditSnapshot[]
+
+  @@index([npi])
+  @@index([source])
+  @@index([monitoring])
+  @@index([trustState])
+  @@index([createdAt])
+}
+
+model AuditSnapshot {
+  id         String   @id @default(uuid()) @db.Uuid
+  artifactId String
+  snapshot   Json     @db.JsonB
+  createdAt  DateTime @default(now())
+
+  artifact VerificationArtifact @relation(fields: [artifactId], references: [id])
+
+  @@index([artifactId])
+  @@index([createdAt])
+}
+
+// ──────────────────────────────────────────────────────────────
 // Audit Trail (append-only event log)
 // ──────────────────────────────────────────────────────────────
 
@@ -254,4 +342,21 @@ model AuditEvent {
   @@index([type, createdAt])
   @@index([clinicianId])
   @@index([referenceId])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Continuous Monitoring (status change detection)
+// ──────────────────────────────────────────────────────────────
+
+model MonitoringEvent {
+  id             String    @id @default(uuid()) @db.Uuid
+  npi            String
+  source         String
+  previousStatus String?
+  newStatus      String
+  detectedAt     DateTime  @default(now())
+
+  @@index([npi])
+  @@index([source])
+  @@index([detectedAt])
 }
