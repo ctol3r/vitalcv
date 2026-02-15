@@ -4,6 +4,7 @@ import path from 'node:path';
 import * as Sentry from '@sentry/node';
 import { loadEnv } from './config/env';
 import app from './app';
+import { initializeTelemetry, shutdownTelemetry } from './telemetry';
 
 function resolvePrismaSchemaPath(): string {
   const override = process.env.PRISMA_SCHEMA_PATH;
@@ -82,6 +83,8 @@ async function main() {
     runPrismaMigrateDeploy();
   }
 
+  initializeTelemetry('vitalcv-agent');
+
   // Initialize Sentry if DSN is configured
   const sentryDsn = process.env.SENTRY_DSN;
   if (sentryDsn) {
@@ -93,17 +96,18 @@ async function main() {
     console.log('Sentry initialized');
   }
 
-  app.get('/readyz', (_req, res) => {
-    res.status(200).json({
-      status: 'ready',
-      service: 'api',
-    });
-  });
-
   app.listen(config.PORT, () => {
     console.log(`Server ready at http://localhost:${config.PORT} [${config.NODE_ENV}]`);
   });
 }
+
+process.on('SIGTERM', () => {
+  void shutdownTelemetry();
+});
+
+process.on('SIGINT', () => {
+  void shutdownTelemetry();
+});
 
 main().catch((e) => {
   console.error(e);

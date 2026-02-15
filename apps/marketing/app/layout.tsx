@@ -1,28 +1,35 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import { ThemeScript } from '../components/marketing/ThemeScript';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
-  title: 'VitalCV — Verified Trust Infrastructure for Healthcare',
+  title: 'VitalCV — Portable Credential Verification for Healthcare',
   description:
-    'VitalCV collapses credentialing from months to days with reusable, cryptographically verifiable credentials built on W3C, OpenID4VCI, and HAIP 1.0.',
+    'Verify once. Keep forever. Portable credential verification infrastructure for clinicians and verifiers, built on W3C Verifiable Credentials, OpenID4VCI, and HAIP 1.0.',
   keywords: [
     'healthcare credentialing',
     'verifiable credentials',
     'provider verification',
     'VitalCV',
-    'CRED0',
+    'NPI verification',
     'digital credentials',
     'W3C VC',
     'OpenID4VCI',
+    'HAIP 1.0',
+    'primary source verification',
   ],
   authors: [{ name: 'VitalCV' }],
   openGraph: {
-    title: 'VitalCV — Verified Trust Infrastructure for Healthcare',
+    title: 'VitalCV — Verify once. Keep forever.',
     description:
-      'VitalCV collapses credentialing from months to days with reusable, cryptographically verifiable credentials built on open standards.',
+      'Portable credential verification infrastructure for clinicians and verifiers.',
     url: 'https://vitalcv.com',
     siteName: 'VitalCV',
     locale: 'en_US',
@@ -30,9 +37,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'VitalCV — Verified Trust Infrastructure for Healthcare',
+    title: 'VitalCV — Verify once. Keep forever.',
     description:
-      'Reusable, cryptographically verifiable healthcare credentials built on open standards.',
+      'Portable credential verification infrastructure for clinicians and verifiers.',
   },
   metadataBase: new URL('https://vitalcv.com'),
   alternates: {
@@ -50,8 +57,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+      </head>
+      <body className={`${inter.variable} font-sans`}>{children}</body>
     </html>
   );
 }

@@ -1,54 +1,75 @@
 import { randomBytes } from 'crypto';
+import prisma from '../db';
 
 const NONCE_TTL_MS = 5 * 60 * 1000;
 
-type NonceRecord = {
-  readonly expiresAt: number;
-  used: boolean;
-};
+export async function issueNonce(now = Date.now()): Promise<{ nonce: string; expiresInSeconds: number }> {
+  await prisma.jtiReplay.deleteMany({
+    where: { service: 'authz_nonce', expiresAt: { lte: new Date(now) } },
+  });
 
-const nonceTable = new Map<string, NonceRecord>();
-
-function cleanupExpired(now: number): void {
-  for (const [nonce, record] of nonceTable.entries()) {
-    if (record.expiresAt <= now) {
-      nonceTable.delete(nonce);
-    }
-  }
-}
-
-export function issueNonce(now = Date.now()): { nonce: string; expiresInSeconds: number } {
-  cleanupExpired(now);
   const nonce = randomBytes(32).toString('base64url');
-  nonceTable.set(nonce, { expiresAt: now + NONCE_TTL_MS, used: false });
+  await prisma.jtiReplay.create({
+    data: {
+      service: 'authz_nonce',
+      jti: nonce,
+      expiresAt: new Date(now + NONCE_TTL_MS),
+    },
+  });
+
   return { nonce, expiresInSeconds: NONCE_TTL_MS / 1000 };
 }
 
 export type ConsumeNonceResult = 'accepted' | 'missing' | 'expired' | 'replay';
 
-export function consumeNonce(nonce: string, now = Date.now()): ConsumeNonceResult {
-  cleanupExpired(now);
-  const record = nonceTable.get(nonce);
+export async function consumeNonce(
+  nonce: string,
+  now = Date.now(),
+): Promise<ConsumeNonceResult> {
+  const nowDate = new Date(now);
+  await prisma.jtiReplay.deleteMany({
+    where: { service: 'authz_nonce', expiresAt: { lte: nowDate } },
+  });
+
+  const record = await prisma.jtiReplay.findUnique({
+    where: {
+      service_jti: {
+        service: 'authz_nonce',
+        jti: nonce,
+      },
+    },
+  }) as unknown as { used?: boolean; expiresAt: Date } | null;
 
   if (!record) {
     return 'missing';
   }
 
-  if (record.expiresAt <= now) {
-    nonceTable.delete(nonce);
+  if (record.expiresAt <= nowDate) {
+    void prisma.jtiReplay.delete({
+      where: {
+        service_jti: {
+          service: 'authz_nonce',
+          jti: nonce,
+        },
+      },
+    });
     return 'expired';
   }
 
-  if (record.used) {
-    return 'replay';
-  }
+  await prisma.jtiReplay.delete({
+    where: {
+      service_jti: {
+        service: 'authz_nonce',
+        jti: nonce,
+      },
+    },
+  });
 
-  record.used = true;
   return 'accepted';
 }
 
 export function resetNonceTable(): void {
-  nonceTable.clear();
+  void prisma.jtiReplay.deleteMany({ where: { service: 'authz_nonce' } }).catch(() => undefined);
 }
 
 export function getNonceTtlMs(): number {

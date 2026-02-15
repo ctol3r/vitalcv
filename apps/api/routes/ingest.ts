@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import type { Express, Request, Response } from 'express';
 import { apiKeyAuth } from '../backend/src/middleware/publicSafety';
+import { withHttpToolSpan, withNpiLookupToolSpan } from '../backend/src/tools/tracing';
 import {
   detectIntakeConflicts,
   ingestNpiIdentity,
@@ -201,10 +202,27 @@ export function registerIngestRoutes(app: Express): void {
         });
       }
 
-      const clinician_identity = await ingestNpiIdentity({
-        clinician_id: normalizedClinicianId,
-        npi,
-      });
+      const clinician_identity = await withNpiLookupToolSpan(
+        {
+          npi,
+          input: { clinician_id: normalizedClinicianId },
+        },
+        () =>
+          ingestNpiIdentity({
+            clinician_id: normalizedClinicianId,
+            npi,
+            fetcher: (url, init) =>
+              withHttpToolSpan(
+                {
+                  operation: 'nppes.lookup',
+                  method: 'GET',
+                  url,
+                  input: { npi },
+                },
+                () => fetch(url, init),
+              ),
+          }),
+      );
       upsertClinicianIdentity(clinician_identity);
       const conflict_ids = await detectAndPersistConflicts(normalizedClinicianId);
 

@@ -125,7 +125,7 @@ async function validateDpopProof(req: Request, expectedCnfJkt?: string): Promise
     throw new Error('DPoP jti is required.');
   }
 
-  if (isReplayJti(payload.jti)) {
+  if (await isReplayJti(payload.jti)) {
     throw new Error('DPoP jti replay detected.');
   }
 

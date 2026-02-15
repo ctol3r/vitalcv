@@ -7,70 +7,74 @@
  * - Refresh token rotation (rotate-on-use)
  */
 
-import { SignJWT, jwtVerify, importJWK, generateKeyPair, exportJWK, JWK } from 'jose';
-import { randomBytes } from 'crypto';
-
-// Refresh token store (in production, use Redis/database)
-interface RefreshTokenRecord {
-  tokenId: string;
-  clientId?: string;
-  userId?: string;
-  scope: string[];
-  cnfJkt?: string; // JWK thumbprint for sender-constraint
-  clientCert?: string; // mTLS certificate fingerprint
-  issuedAt: number;
-  expiresAt: number;
-  rotated: boolean; // True if this token was used and rotated
-  rotatedTo?: string; // ID of the new token if rotated
-}
+import { SignJWT, jwtVerify, importJWK, type JWK } from 'jose';
+import { randomBytes, randomUUID } from 'crypto';
+import prisma from '../db';
 
 type StrictAccessTokenVerificationOptions = {
   audience: string;
   maxClockSkewSeconds: number;
 };
 
-const refreshTokenStore = new Map<string, RefreshTokenRecord>();
+type SignableJwk = JWK;
 
-// Signing key for JWT tokens (in production, use proper key management)
-let signingKey: JWK | null = null;
+let cachedSigningKey: SignableJwk | null = null;
 
-/**
- * Initialize signing key (in production, load from secure storage)
- */
-async function initializeSigningKey(): Promise<JWK> {
-  if (!signingKey) {
-    // Generate a key pair for signing (in production, use a persistent key)
-    const { privateKey } = await generateKeyPair('ES256');
-    signingKey = await exportJWK(privateKey);
+function resolveSigningKey(): SignableJwk {
+  const raw = process.env.SIGNING_KEY_JWK;
+  if (!raw || !raw.trim()) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('SIGNING_KEY_JWK is required in production');
+    }
+    throw new Error('SIGNING_KEY_JWK is required');
   }
-  return signingKey;
+
+  try {
+    const parsed = JSON.parse(raw) as SignableJwk;
+    return parsed;
+  } catch {
+    throw new Error('SIGNING_KEY_JWK must be valid JSON');
+  }
 }
 
-/**
- * Generate a unique token ID
- */
+async function initializeSigningKey(): Promise<JWK> {
+  if (cachedSigningKey) {
+    return cachedSigningKey;
+  }
+  const key = resolveSigningKey();
+  cachedSigningKey = key;
+  return key;
+}
+
+function parseRefreshTokenPayload(raw: string): { id: string; type: string } {
+  try {
+    const decoded = Buffer.from(raw, 'base64url').toString('utf-8');
+    return JSON.parse(decoded) as { id: string; type: string };
+  } catch {
+    throw new Error('invalid_refresh_token');
+  }
+}
+
 function generateTokenId(): string {
   return `token_${Date.now()}_${randomBytes(8).toString('hex')}`;
 }
 
 /**
  * Issue an access token with cnf.jkt claim
- * B100B-TBIND-039: AT embeds cnf.jkt
  */
 export async function issueAccessToken(params: {
   clientId?: string;
   userId?: string;
   scope: string[];
-  cnfJkt?: string; // JWK thumbprint from DPoP proof
+  cnfJkt?: string;
   expiresIn?: number;
 }): Promise<string> {
   const { clientId, userId, scope, cnfJkt, expiresIn = 3600 } = params;
-
   const key = await initializeSigningKey();
   const privateKey = await importJWK(key, 'ES256');
 
   const now = Math.floor(Date.now() / 1000);
-  const payload: any = {
+  const payload: Record<string, unknown> = {
     iss: process.env.TOKEN_ISSUER || 'https://authz.vitalcv.ai',
     sub: userId || clientId || 'anonymous',
     aud: process.env.TOKEN_AUDIENCE || 'https://api.vitalcv.ai',
@@ -79,7 +83,6 @@ export async function issueAccessToken(params: {
     scope: scope.join(' '),
   };
 
-  // B100B-TBIND-039: Embed cnf.jkt claim when DPoP is used
   if (cnfJkt) {
     payload.cnf = {
       jkt: cnfJkt,
@@ -90,182 +93,169 @@ export async function issueAccessToken(params: {
     payload.client_id = clientId;
   }
 
-  const token = await new SignJWT(payload)
+  return new SignJWT(payload)
     .setProtectedHeader({ alg: 'ES256' })
     .setIssuedAt(now)
     .setExpirationTime(now + expiresIn)
     .sign(privateKey);
-
-  return token;
 }
 
 /**
  * Issue a refresh token with sender-constraint
- * B100B-TBIND-039: RT sender-constrained & rotates
  */
 export async function issueRefreshToken(params: {
   clientId?: string;
   userId?: string;
   scope: string[];
-  cnfJkt?: string; // JWK thumbprint for DPoP constraint
-  clientCert?: string; // Certificate fingerprint for mTLS constraint
+  cnfJkt?: string;
+  clientCert?: string;
   expiresIn?: number;
 }): Promise<{ token: string; tokenId: string }> {
-  const { clientId, userId, scope, cnfJkt, clientCert, expiresIn = 604800 } = params; // Default 7 days
+  const { clientId, userId, scope, cnfJkt, clientCert, expiresIn = 604800 } = params;
 
-  // B100B-TBIND-039: Refresh tokens must be sender-constrained
   if (!cnfJkt && !clientCert) {
     throw new Error('Refresh tokens must be sender-constrained (require DPoP or mTLS)');
   }
 
-  const tokenId = generateTokenId();
+  const tokenId = randomUUID();
   const now = Date.now();
+  const issuedAt = new Date(now);
+  const expiresAt = new Date(now + expiresIn * 1000);
 
-  // Store refresh token record
-  const record: RefreshTokenRecord = {
-    tokenId,
-    clientId,
-    userId,
-    scope,
-    cnfJkt,
-    clientCert,
-    issuedAt: now,
-    expiresAt: now + (expiresIn * 1000),
-    rotated: false,
-  };
+  await prisma.refreshToken.create({
+    data: {
+      tokenId,
+      clientId,
+      userId,
+      scope: scope.join(' '),
+      cnfJkt,
+      clientCert,
+      issuedAt,
+      expiresAt,
+      rotated: false,
+    },
+  });
 
-  refreshTokenStore.set(tokenId, record);
-
-  // Generate opaque refresh token (in production, use cryptographically secure random)
-  const token = Buffer.from(JSON.stringify({
-    id: tokenId,
-    type: 'refresh',
-    iat: Math.floor(now / 1000),
-  })).toString('base64url');
+  const token = Buffer.from(
+    JSON.stringify({ id: tokenId, type: 'refresh', iat: Math.floor(now / 1000) }),
+  ).toString('base64url');
 
   return { token, tokenId };
 }
 
 /**
  * Validate and rotate refresh token
- * B100B-TBIND-039: RT rotates on use
  */
 export async function validateAndRotateRefreshToken(
   refreshToken: string,
   cnfJkt?: string,
-  clientCert?: string
+  clientCert?: string,
 ): Promise<{ accessToken: string; refreshToken: string; scope: string[] }> {
-  // Decode refresh token
-  let tokenData: any;
-  try {
-    const decoded = Buffer.from(refreshToken, 'base64url').toString('utf-8');
-    tokenData = JSON.parse(decoded);
-  } catch {
-    throw new Error('invalid_refresh_token');
-  }
+  const tokenData = parseRefreshTokenPayload(refreshToken);
 
   if (!tokenData.id || tokenData.type !== 'refresh') {
     throw new Error('invalid_refresh_token');
   }
 
-  const record = refreshTokenStore.get(tokenData.id);
+  const record = await prisma.refreshToken.findUnique({
+    where: {
+      tokenId: tokenData.id,
+    },
+  });
 
   if (!record) {
     throw new Error('invalid_refresh_token');
   }
 
-  // Check if token was already rotated
   if (record.rotated) {
     throw new Error('refresh_token_already_used');
   }
 
-  // Check expiration
-  if (Date.now() > record.expiresAt) {
-    refreshTokenStore.delete(tokenData.id);
+  if (Date.now() > record.expiresAt.getTime()) {
+    await prisma.refreshToken.delete({ where: { tokenId: tokenData.id } });
     throw new Error('refresh_token_expired');
   }
 
-  // B100B-TBIND-039: Validate sender-constraint
   if (record.cnfJkt) {
-    // Token requires DPoP
     if (!cnfJkt || cnfJkt !== record.cnfJkt) {
       throw new Error('sender_constraint_mismatch');
     }
   } else if (record.clientCert) {
-    // Token requires mTLS
     if (!clientCert || clientCert !== record.clientCert) {
       throw new Error('sender_constraint_mismatch');
     }
   } else {
-    // Should not happen, but fail safe
     throw new Error('refresh_token_not_constrained');
   }
 
-  // B100B-TBIND-039: Rotate refresh token (mark old as rotated, issue new)
-  record.rotated = true;
-  record.rotatedTo = generateTokenId();
+  const rotatedTo = generateTokenId();
+  await prisma.refreshToken.update({
+    where: {
+      tokenId: tokenData.id,
+    },
+    data: {
+      rotated: true,
+      rotatedTo,
+    },
+  });
 
-  // Issue new access token
   const accessToken = await issueAccessToken({
-    clientId: record.clientId,
-    userId: record.userId,
-    scope: record.scope,
-    cnfJkt: record.cnfJkt, // Preserve sender-constraint
-    expiresIn: 3600, // 1 hour
+    clientId: record.clientId ?? undefined,
+    userId: record.userId ?? undefined,
+    scope: record.scope.split(' '),
+    cnfJkt: record.cnfJkt ?? undefined,
+    expiresIn: 3600,
   });
 
-  // Issue new refresh token with same constraints
-  const newRefreshToken = await issueRefreshToken({
-    clientId: record.clientId,
-    userId: record.userId,
-    scope: record.scope,
-    cnfJkt: record.cnfJkt,
-    clientCert: record.clientCert,
-    expiresIn: 604800, // 7 days
+  const nextRefresh = await issueRefreshToken({
+    clientId: record.clientId ?? undefined,
+    userId: record.userId ?? undefined,
+    scope: record.scope.split(' '),
+    cnfJkt: record.cnfJkt ?? undefined,
+    clientCert: record.clientCert ?? undefined,
+    expiresIn: 604800,
   });
 
-  // Update record to point to new token
-  record.rotatedTo = newRefreshToken.tokenId;
+  await prisma.refreshToken.update({
+    where: {
+      tokenId: tokenData.id,
+    },
+    data: {
+      rotatedTo: nextRefresh.tokenId,
+    },
+  });
 
   return {
     accessToken,
-    refreshToken: newRefreshToken.token,
-    scope: record.scope,
+    refreshToken: nextRefresh.token,
+    scope: record.scope.split(' '),
   };
 }
 
 /**
  * Revoke refresh token
  */
-export function revokeRefreshToken(tokenId: string): boolean {
-  const record = refreshTokenStore.get(tokenId);
-  if (record) {
-    refreshTokenStore.delete(tokenId);
-    return true;
-  }
-  return false;
+export async function revokeRefreshToken(tokenId: string): Promise<boolean> {
+  const result = await prisma.refreshToken.deleteMany({ where: { tokenId } });
+  return result.count > 0;
 }
 
 /**
- * Clean up expired tokens (should be called periodically)
+ * Clean up expired tokens
  */
-export function cleanupExpiredTokens(): number {
-  const now = Date.now();
-  let cleaned = 0;
-
-  for (const [tokenId, record] of refreshTokenStore.entries()) {
-    if (now > record.expiresAt) {
-      refreshTokenStore.delete(tokenId);
-      cleaned++;
-    }
-  }
-
-  return cleaned;
+export async function cleanupExpiredTokens(): Promise<number> {
+  const now = new Date();
+  const result = await prisma.refreshToken.deleteMany({
+    where: {
+      OR: [{ expiresAt: { lte: now } }, { rotated: true }],
+    },
+  });
+  return result.count;
 }
 
 /**
  * Strict token validation for protected endpoints.
- * Enforces ES256, exact aud match, and 60s iat clock skew policy.
+ * Enforces ES256, exact aud match, and clock skew policy.
  */
 export async function verifyAccessTokenStrict(
   token: string,
@@ -273,12 +263,11 @@ export async function verifyAccessTokenStrict(
 ) {
   const key = await initializeSigningKey();
   const verificationKey = await importJWK(key, 'ES256');
-  const expectedIssuer = process.env.TOKEN_ISSUER || 'https://authz.vitalcv.ai';
 
   const verified = await jwtVerify(token, verificationKey, {
     algorithms: ['ES256'],
     audience: options.audience,
-    issuer: expectedIssuer,
+    issuer: process.env.TOKEN_ISSUER || 'https://authz.vitalcv.ai',
   });
 
   const payload = verified.payload as { aud?: string | string[]; iat?: number };
@@ -299,5 +288,5 @@ export async function verifyAccessTokenStrict(
     throw new Error('iat outside allowed clock skew window');
   }
 
-  return payload;
+  return verified.payload;
 }

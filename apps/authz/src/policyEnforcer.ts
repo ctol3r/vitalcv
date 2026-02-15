@@ -145,7 +145,7 @@ export async function enforceCredentialPolicy(
     return;
   }
 
-  const nonceResult = consumeNonce(nonce);
+  const nonceResult = await consumeNonce(nonce);
   if (nonceResult === 'accepted') {
     next();
     return;

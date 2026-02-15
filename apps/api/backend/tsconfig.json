@@ -18,7 +18,7 @@
       "@vitalcv/audit/*": ["packages/audit/*"]
     },
 
-    "types": ["node"],
+    "types": ["node", "jest"],
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
