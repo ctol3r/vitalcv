@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { FormEvent, Suspense, useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { AuthButton } from '@/components/AuthButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,30 @@ import {
 
 const START_READY_CLARIFICATION =
   'PSV complete. Employer acceptance and start attestation still required.';
+
+type CtaVariant = 'A' | 'B';
+type VerifierRef = 'demo' | 'yc' | 'direct';
+
+function getCtaVariant(): CtaVariant {
+  const raw = process.env.NEXT_PUBLIC_CTA_VARIANT ?? process.env.CTA_VARIANT ?? 'A';
+  return raw.trim().toUpperCase() === 'B' ? 'B' : 'A';
+}
+
+function isPilotModeEnabled(): boolean {
+  const raw = process.env.NEXT_PUBLIC_PILOT_MODE ?? process.env.PILOT_MODE;
+  if (!raw) {
+    return true;
+  }
+  const normalized = raw.trim().toLowerCase();
+  return !['0', 'false', 'no', 'off'].includes(normalized);
+}
+
+function getVerifierRef(rawRef: string | null): VerifierRef | null {
+  if (rawRef === 'demo' || rawRef === 'yc' || rawRef === 'direct') {
+    return rawRef;
+  }
+  return null;
+}
 
 // Helper to generate consistent mock hash
 const getMockHash = (id: string) => {
@@ -88,7 +113,16 @@ function getTrustObserverExplanation(status: any) {
 }
 
 export default function VerifierPage() {
+  return (
+    <Suspense fallback={null}>
+      <VerifierPageContent />
+    </Suspense>
+  );
+}
+
+function VerifierPageContent() {
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+  const searchParams = useSearchParams();
   const [clinicianId, setClinicianId] = useState('clinician:alice');
   const [employerId, setEmployerId] = useState('employer:alpha');
   const [simulateDecay, setSimulateDecay] = useState(false);
@@ -96,6 +130,15 @@ export default function VerifierPage() {
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pilotOrganization, setPilotOrganization] = useState('');
+  const [pilotContactEmail, setPilotContactEmail] = useState('');
+  const [pilotActivationState, setPilotActivationState] = useState<string | null>(null);
+  const [pilotActivationLoading, setPilotActivationLoading] = useState(false);
+  const ctaVariant = getCtaVariant();
+  const pilotModeEnabled = isPilotModeEnabled();
+  const verifierRef = getVerifierRef(searchParams.get('ref'));
+  const pilotActivationButtonLabel =
+    ctaVariant === 'B' ? 'Start 30-Day Pilot' : 'Request Pilot Access';
 
   /* ---- CRS change tracking ---- */
   const prevCrsRef = useRef<number | null>(null);
@@ -216,6 +259,48 @@ export default function VerifierPage() {
       setError(e.message);
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handlePilotActivate = async (event: FormEvent) => {
+    event.preventDefault();
+    setPilotActivationState(null);
+
+    if (!pilotOrganization.trim() || !pilotContactEmail.trim()) {
+      setPilotActivationState('Organization name and contact email are required.');
+      return;
+    }
+
+    setPilotActivationLoading(true);
+    try {
+      const response = await fetch(`${backendUrl}/api/pilot/activate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          organizationName: pilotOrganization,
+          contactEmail: pilotContactEmail,
+          ctaVariant,
+          ref: verifierRef,
+          npi: 'pilot_activation',
+        }),
+      });
+
+      if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        throw new Error(body || `Request failed (HTTP ${response.status}).`);
+      }
+
+      setPilotActivationState('Pilot access request submitted.');
+      setPilotOrganization('');
+      setPilotContactEmail('');
+    } catch (err) {
+      setPilotActivationState(
+        err instanceof Error ? err.message : 'Unable to submit pilot access request.',
+      );
+    } finally {
+      setPilotActivationLoading(false);
     }
   };
 
@@ -532,6 +617,24 @@ export default function VerifierPage() {
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
+
+                        {/* Artifact Trust State Badge */}
+                        {status.crs && (
+                          <div className="mt-1 border border-slate-200 rounded px-2 py-0.5 inline-flex items-center gap-1.5">
+                            <span className="text-xs font-mono text-slate-500 uppercase tracking-wider">Trust State:</span>
+                            <span className="text-xs font-mono font-semibold text-slate-700 uppercase">
+                              {status.blocking_reasons?.includes('VERIFICATION_EXPIRED')
+                                ? 'EXPIRED'
+                                : status.crs.band === 'GREEN' && status.start_ready
+                                  ? 'VERIFIED'
+                                  : status.crs.band === 'YELLOW'
+                                    ? 'EXPIRING SOON'
+                                    : status.blocking_reasons?.length > 0
+                                      ? 'NEEDS REVIEW'
+                                      : 'MONITORING ACTIVE'}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="text-right">
@@ -1018,9 +1121,34 @@ export default function VerifierPage() {
 
           </div>
         )}
-        <div className="w-full max-w-3xl flex justify-between text-xs text-slate-400 px-1">
-           {/* Footer Removed for Demo Cleanliness */}
+        {pilotModeEnabled ? (
+          <div className="w-full max-w-3xl flex justify-between text-xs text-slate-400 px-1">
+          <form onSubmit={handlePilotActivate} className="mt-0 w-full space-y-3 border border-slate-200 p-4 rounded-lg">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold text-slate-700">Verifier Pilot Access</h3>
+              <Button type="submit" disabled={pilotActivationLoading} className="bg-slate-900">
+                {pilotActivationLoading ? 'Submitting…' : pilotActivationButtonLabel}
+              </Button>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Input
+                placeholder="Organization name"
+                value={pilotOrganization}
+                onChange={(e) => setPilotOrganization(e.target.value)}
+              />
+              <Input
+                type="email"
+                placeholder="Contact email"
+                value={pilotContactEmail}
+                onChange={(e) => setPilotContactEmail(e.target.value)}
+              />
+            </div>
+
+            {pilotActivationState && <p className="text-xs text-slate-500">{pilotActivationState}</p>}
+          </form>
         </div>
+        ) : null}
       </div>
     </div>
   );

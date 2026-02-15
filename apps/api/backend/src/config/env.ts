@@ -21,6 +21,18 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  YC_DEMO_MODE: z.preprocess((raw) => {
+    if (raw === undefined) {
+      return false;
+    }
+
+    if (typeof raw === 'string') {
+      const normalized = raw.trim().toLowerCase();
+      return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
+    }
+
+    return raw;
+  }, z.boolean()),
   CORS_ORIGIN: z
     .string()
     .default('*')
@@ -46,6 +58,36 @@ const envSchema = z.object({
   ),
   TRUST_STATE_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(60),
   SAM_API_KEY: z.string().optional(),
+  MONITORING_SECRET: z.preprocess(
+    (raw) => (raw === undefined ? '' : String(raw)),
+    z.string().superRefine((value, ctx) => {
+      if (PRODUCTION && value.trim().length === 0) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'MONITORING_SECRET is required in production',
+        });
+      }
+    }),
+  ),
+  INTERNAL_DASH_PASSWORD: z.preprocess(
+    (raw) => (raw === undefined ? '' : String(raw)),
+    z.string().superRefine((value, ctx) => {
+      if (PRODUCTION && value.trim().length === 0) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'INTERNAL_DASH_PASSWORD is required in production',
+        });
+      }
+    }),
+  ),
+  PILOT_MODE: z.preprocess((raw) => {
+    if (raw === undefined) return false;
+    if (typeof raw === 'string') {
+      const normalized = raw.trim().toLowerCase();
+      return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
+    }
+    return raw;
+  }, z.boolean()),
 });
 
 export type Env = z.infer<typeof envSchema>;
