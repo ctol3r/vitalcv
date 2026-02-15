@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import type { NextFunction, Request, Response } from 'express';
 import { requestLatencyMetrics } from '../observability/requestMetrics';
+import { log } from '../obs/logger';
 
 function buildRequestLog(
   requestId: string,
@@ -33,12 +34,10 @@ export function requestObservability(req: Request, res: Response, next: NextFunc
     const latencyMs = Number(elapsedNs) / 1_000_000;
     requestLatencyMetrics.record(latencyMs, res.statusCode);
 
-    const payload = JSON.stringify(buildRequestLog(requestId, req, res, latencyMs));
-
     if (res.statusCode >= 500) {
-      console.error(payload);
+      log('error', 'http_request_error', buildRequestLog(requestId, req, res, latencyMs));
     } else {
-      console.info(payload);
+      log('info', 'http_request', buildRequestLog(requestId, req, res, latencyMs));
     }
   });
 

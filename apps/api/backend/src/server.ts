@@ -3,8 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import * as Sentry from '@sentry/node';
 import { loadEnv } from './config/env';
-import app from './app';
 import { initializeTelemetry, shutdownTelemetry } from './telemetry';
+import { log } from './obs/logger';
+
+const APP_READY_MESSAGE = 'Server ready';
 
 function resolvePrismaSchemaPath(): string {
   const override = process.env.PRISMA_SCHEMA_PATH;
@@ -79,10 +81,22 @@ function runPrismaMigrateDeploy(): void {
 async function main() {
   const config = loadEnv();
 
-  if (config.NODE_ENV === 'production') {
+  const productionDeployment = config.NODE_ENV === 'production';
+  if (productionDeployment && !config.SYSTEM_FROZEN) {
+    log('info', 'Applying Prisma migrations at startup', {
+      event: 'migration_run',
+      node_env: config.NODE_ENV,
+    });
     runPrismaMigrateDeploy();
+  } else {
+    log('warn', 'Schema migrations skipped at startup', {
+      event: 'migration_skip',
+      reason: config.SYSTEM_FROZEN ? 'SYSTEM_FROZEN' : 'non_production',
+      node_env: config.NODE_ENV,
+    });
   }
 
+  const { default: app } = await import('./app');
   initializeTelemetry('vitalcv-agent');
 
   // Initialize Sentry if DSN is configured
@@ -93,11 +107,25 @@ async function main() {
       environment: config.NODE_ENV,
       tracesSampleRate: config.NODE_ENV === 'production' ? 0.2 : 1.0,
     });
-    console.log('Sentry initialized');
+    log('info', 'Sentry initialized', {
+      event: 'sentry_initialized',
+      environment: config.NODE_ENV,
+    });
   }
 
   app.listen(config.PORT, () => {
-    console.log(`Server ready at http://localhost:${config.PORT} [${config.NODE_ENV}]`);
+    if (config.SYSTEM_FROZEN) {
+      log('warn', 'SYSTEM_FROZEN active: startup migration freeze is enabled', {
+        event: 'startup_frozen',
+        environment: config.NODE_ENV,
+      });
+    }
+    log('info', APP_READY_MESSAGE, {
+      event: 'server_started',
+      url: `http://localhost:${config.PORT}`,
+      environment: config.NODE_ENV,
+      frozen: config.SYSTEM_FROZEN,
+    });
   });
 }
 
@@ -110,6 +138,10 @@ process.on('SIGINT', () => {
 });
 
 main().catch((e) => {
-  console.error(e);
+  log('error', 'server startup failed', {
+    event: 'server_startup_failed',
+    error: e instanceof Error ? e.message : 'Unknown startup error',
+    details: e instanceof Error ? e.stack : String(e),
+  });
   process.exit(1);
 });

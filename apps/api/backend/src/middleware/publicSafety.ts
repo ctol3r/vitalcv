@@ -2,7 +2,9 @@ import { createHash } from 'crypto';
 import type { NextFunction, Request, Response } from 'express';
 
 const DEFAULT_RATE_LIMIT_PER_MINUTE = 120;
-const RATE_LIMIT_WINDOW_MS = 60_000;
+const DEFAULT_PUBLIC_RATE_LIMIT = 100;
+const TRUST_STATE_RATE_LIMIT_WINDOW_MS = 60_000;
+const PUBLIC_RATE_LIMIT_WINDOW_MS = 10 * 60_000;
 const MAX_RATE_LIMIT_ENTRIES = 1024;
 
 type RateLimitEntry = {
@@ -11,6 +13,7 @@ type RateLimitEntry = {
 };
 
 const trustStateRateLimitByKey = new Map<string, RateLimitEntry>();
+const publicApiRateLimitByKey = new Map<string, RateLimitEntry>();
 
 function parsePositiveIntEnv(name: string, fallback: number): number {
   const raw = process.env[name];
@@ -55,24 +58,70 @@ function getRateLimitKey(req: Request, res: Response): string {
     return localKey;
   }
 
-  const requestId = typeof res.locals.request_id === 'string' ? res.locals.request_id : '';
-  if (requestId.trim().length > 0) {
-    return `request-${requestId.trim()}`;
-  }
-
-  return `anonymous-${req.ip ?? 'unknown'}`;
+  const requestIp =
+    typeof req.ip === 'string' && req.ip.trim().length > 0
+      ? req.ip
+      : typeof req.socket?.remoteAddress === 'string'
+        ? req.socket.remoteAddress
+        : 'unknown';
+  return `ip-${requestIp}`;
 }
 
-function trimStaleRateLimitEntries(nowMs: number): void {
-  if (trustStateRateLimitByKey.size <= MAX_RATE_LIMIT_ENTRIES) {
+function trimStaleRateLimitEntries(
+  store: Map<string, RateLimitEntry>,
+  nowMs: number,
+  windowMs: number,
+): void {
+  if (store.size <= MAX_RATE_LIMIT_ENTRIES) {
     return;
   }
 
-  for (const [key, value] of trustStateRateLimitByKey.entries()) {
-    if (nowMs - value.window_started_at_ms >= RATE_LIMIT_WINDOW_MS) {
-      trustStateRateLimitByKey.delete(key);
+  for (const [key, value] of store.entries()) {
+    if (nowMs - value.window_started_at_ms >= windowMs) {
+      store.delete(key);
     }
   }
+}
+
+function createRateLimiter(
+  store: Map<string, RateLimitEntry>,
+  windowMs: number,
+  maxRequests: number,
+  label: string,
+): (req: Request, res: Response, next: NextFunction) => void {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const nowMs = Date.now();
+    const rateLimitKey = getRateLimitKey(req, res);
+    const current = store.get(rateLimitKey);
+
+    if (!current || nowMs - current.window_started_at_ms >= windowMs) {
+      store.set(rateLimitKey, {
+        window_started_at_ms: nowMs,
+        count: 1,
+      });
+      res.setHeader('x-rate-limit-limit', String(maxRequests));
+      res.setHeader('x-rate-limit-window-ms', String(windowMs));
+      res.setHeader('x-rate-limit-remaining', String(maxRequests - 1));
+      next();
+      return;
+    }
+
+    if (current.count >= maxRequests) {
+      res.setHeader('x-rate-limit-limit', String(maxRequests));
+      res.setHeader('x-rate-limit-window-ms', String(windowMs));
+      res.setHeader('x-rate-limit-remaining', '0');
+      res.status(429).json({ error: `Rate limit exceeded for ${label}` });
+      return;
+    }
+
+    current.count += 1;
+    store.set(rateLimitKey, current);
+    res.setHeader('x-rate-limit-limit', String(maxRequests));
+    res.setHeader('x-rate-limit-window-ms', String(windowMs));
+    res.setHeader('x-rate-limit-remaining', String(Math.max(0, maxRequests - current.count)));
+    trimStaleRateLimitEntries(store, nowMs, windowMs);
+    next();
+  };
 }
 
 /**
@@ -109,33 +158,32 @@ export function apiKeyAuth(req: Request, res: Response, next: NextFunction): voi
  * Rate limit for trust-state queries. Uses in-memory sliding window.
  */
 export function trustStateRateLimit(req: Request, res: Response, next: NextFunction): void {
-  const maxRequests = parsePositiveIntEnv('TRUST_STATE_RATE_LIMIT_PER_MINUTE', DEFAULT_RATE_LIMIT_PER_MINUTE);
-  const nowMs = Date.now();
-  const rateLimitKey = getRateLimitKey(req, res);
-  const current = trustStateRateLimitByKey.get(rateLimitKey);
+  const maxRequests = parsePositiveIntEnv(
+    'TRUST_STATE_RATE_LIMIT_PER_MINUTE',
+    DEFAULT_RATE_LIMIT_PER_MINUTE,
+  );
+  const limiter = createRateLimiter(
+    trustStateRateLimitByKey,
+    TRUST_STATE_RATE_LIMIT_WINDOW_MS,
+    maxRequests,
+    'trust-state',
+  );
+  limiter(req, res, next);
+}
 
-  if (!current || nowMs - current.window_started_at_ms >= RATE_LIMIT_WINDOW_MS) {
-    trustStateRateLimitByKey.set(rateLimitKey, {
-      window_started_at_ms: nowMs,
-      count: 1,
-    });
-    res.setHeader('x-rate-limit-limit', String(maxRequests));
-    res.setHeader('x-rate-limit-remaining', String(maxRequests - 1));
-    next();
-    return;
-  }
-
-  if (current.count >= maxRequests) {
-    res.setHeader('x-rate-limit-limit', String(maxRequests));
-    res.setHeader('x-rate-limit-remaining', '0');
-    res.status(429).json({ error: 'Rate limit exceeded for trust-state' });
-    return;
-  }
-
-  current.count += 1;
-  trustStateRateLimitByKey.set(rateLimitKey, current);
-  res.setHeader('x-rate-limit-limit', String(maxRequests));
-  res.setHeader('x-rate-limit-remaining', String(Math.max(0, maxRequests - current.count)));
-  trimStaleRateLimitEntries(nowMs);
-  next();
+/**
+ * Generic public API rate limiter for stability smoke checks.
+ */
+export function publicApiRateLimit(req: Request, res: Response, next: NextFunction): void {
+  const maxRequests = parsePositiveIntEnv(
+    'PUBLIC_RATE_LIMIT_PER_TEN_MINUTES',
+    DEFAULT_PUBLIC_RATE_LIMIT,
+  );
+  const limiter = createRateLimiter(
+    publicApiRateLimitByKey,
+    PUBLIC_RATE_LIMIT_WINDOW_MS,
+    maxRequests,
+    'public-api',
+  );
+  limiter(req, res, next);
 }

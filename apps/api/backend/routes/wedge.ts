@@ -31,6 +31,7 @@ import {
 import prisma from '../src/graphql/prisma_client';
 import { apiKeyAuth } from '../src/middleware/publicSafety';
 import { validateRequest } from '../src/middleware/validateRequest';
+import { log } from '../src/obs/logger';
 
 function respondDomainError(res: Response, error: DomainError) {
   const status =
@@ -106,7 +107,11 @@ async function emitRejectionAuditEventSafe(input: {
   try {
     await emitRejectionAuditEvent(input);
   } catch (error) {
-    console.error('rejection audit emission error:', error);
+    log('error', 'failed to emit rejection audit event', {
+      event: 'rejection_audit_emit_failed',
+      credentialId: input.credentialId,
+      error: error instanceof Error ? error.message : 'unknown',
+    });
   }
 }
 
@@ -142,7 +147,11 @@ async function emitTrustStateAuditEventSafe(input: {
   try {
     await emitTrustStateAuditEvent(input);
   } catch (error) {
-    console.error('trust-state audit emission error:', error);
+    log('error', 'failed to emit trust-state audit event', {
+      event: 'trust_state_audit_emit_failed',
+      clinicianId: input.clinicianId,
+      error: error instanceof Error ? error.message : 'unknown',
+    });
   }
 }
 
@@ -291,7 +300,10 @@ export function registerWedgeRoutes(app: Express) {
         return res.status(201).json({ recognitionId: recognition.recognitionId });
       } catch (error) {
         if (error instanceof DomainError) return respondDomainError(res, error);
-        console.error('recognition error:', error);
+        log('error', 'failed to create recognition', {
+          event: 'recognition_error',
+          error: error instanceof Error ? error.message : 'unknown',
+        });
         return res.status(500).json({ error: 'Unable to record recognition event.' });
       }
     },
@@ -312,7 +324,10 @@ export function registerWedgeRoutes(app: Express) {
 
         return res.json({ recognition });
       } catch (error) {
-        console.error('get recognition error:', error);
+        log('error', 'failed to fetch recognition', {
+          event: 'get_recognition_error',
+          error: error instanceof Error ? error.message : 'unknown',
+        });
         return res.status(500).json({ error: 'Unable to fetch recognition.' });
       }
     },
@@ -413,7 +428,10 @@ export function registerWedgeRoutes(app: Express) {
         return res.status(201).json({ acceptanceId: acceptance.acceptanceId });
       } catch (error) {
         if (error instanceof DomainError) return respondDomainError(res, error);
-        console.error('acceptance error:', error);
+        log('error', 'failed to create acceptance', {
+          event: 'acceptance_error',
+          error: error instanceof Error ? error.message : 'unknown',
+        });
         return res.status(500).json({ error: 'Unable to record acceptance event.' });
       }
     },
@@ -578,7 +596,10 @@ export function registerWedgeRoutes(app: Express) {
         return res.status(201).json({ startId: start.startId });
       } catch (error) {
         if (error instanceof DomainError) return respondDomainError(res, error);
-        console.error('start error:', error);
+        log('error', 'failed to create start', {
+          event: 'start_error',
+          error: error instanceof Error ? error.message : 'unknown',
+        });
         return res.status(500).json({ error: 'Unable to record start attestation.' });
       }
     },
@@ -604,7 +625,10 @@ export function registerWedgeRoutes(app: Express) {
         return res.json(subjectStatus({ recognitions, acceptances, starts }));
       } catch (error) {
         if (error instanceof DomainError) return respondDomainError(res, error);
-        console.error('status error:', error);
+        log('error', 'Unable to load subject status', {
+          event: 'subject_status_error',
+          error: error instanceof Error ? error.message : 'unknown',
+        });
         return res.status(500).json({ error: 'Unable to load subject status.' });
       }
     },
@@ -820,8 +844,11 @@ export function registerWedgeRoutes(app: Express) {
             : null,
         });
       } catch (error) {
-         if (error instanceof DomainError) return respondDomainError(res, error);
-         console.error('trust-state error:', error);
+        if (error instanceof DomainError) return respondDomainError(res, error);
+        log('error', 'failed to evaluate trust-state', {
+          event: 'trust_state_error',
+          error: error instanceof Error ? error.message : 'unknown',
+        });
          return res.status(500).json({ error: 'Unable to compute trust-state.' });
       }
     }

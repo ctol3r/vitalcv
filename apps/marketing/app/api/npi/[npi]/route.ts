@@ -27,6 +27,9 @@ export async function GET(
 ): Promise<NextResponse<NpiLookupResponse | { error: string }>> {
   const { npi } = await params;
   const ref = normalizeVerifierRef(new URL(request.url).searchParams.get('ref'));
+  const organizationId = new URL(request.url).searchParams.get('organizationId') ??
+    request.headers.get('x-org-id');
+  const normalizedOrganizationId = organizationId?.trim() ?? undefined;
 
   // ── Validate ──
   if (!NPI_PATTERN.test(npi)) {
@@ -43,7 +46,7 @@ export async function GET(
   void logEvent('npi_lookup', npi, {
     exists,
     ...(ref ? { ref } : {}),
-  });
+  }, normalizedOrganizationId);
 
   return NextResponse.json({
     exists,

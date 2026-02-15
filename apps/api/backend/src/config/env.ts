@@ -1,6 +1,24 @@
 import { z } from 'zod';
+import { log } from '../obs/logger';
 
 type ApiKeyParseInput = string;
+
+export const PRODUCTION_REQUIRED_VARS = [
+  'DATABASE_URL',
+  'INTERNAL_DASH_PASSWORD',
+  'MONITORING_SECRET',
+  'PILOT_MODE',
+  'YC_DEMO_MODE',
+  'ENTERPRISE_MODE',
+] as const;
+
+export type ProductionEnvCheckReport = {
+  ok: boolean;
+  missing: string[];
+};
+
+const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on']);
+const FALSE_VALUES = new Set(['0', 'false', 'no', 'off']);
 
 function parseApiKeys(raw: ApiKeyParseInput, isProduction: boolean): string[] {
   const values = raw
@@ -15,6 +33,32 @@ function parseApiKeys(raw: ApiKeyParseInput, isProduction: boolean): string[] {
   return values;
 }
 
+function parseBooleanEnvVar(
+  raw: unknown,
+  fieldName: string,
+  requiredInProduction: boolean,
+): boolean {
+  const normalized =
+    raw === undefined || raw === null ? '' : String(raw).trim().toLowerCase();
+
+  if (!normalized) {
+    if (requiredInProduction && PRODUCTION) {
+      throw new Error(`${fieldName} must be defined in production`);
+    }
+    return false;
+  }
+
+  if (TRUE_VALUES.has(normalized)) {
+    return true;
+  }
+
+  if (FALSE_VALUES.has(normalized)) {
+    return false;
+  }
+
+  throw new Error(`${fieldName} must be 'true', 'false', '1', or '0'`);
+}
+
 const PRODUCTION = process.env.NODE_ENV === 'production';
 
 const envSchema = z.object({
@@ -22,16 +66,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   YC_DEMO_MODE: z.preprocess((raw) => {
-    if (raw === undefined) {
-      return false;
-    }
-
-    if (typeof raw === 'string') {
-      const normalized = raw.trim().toLowerCase();
-      return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
-    }
-
-    return raw;
+    return parseBooleanEnvVar(raw, 'YC_DEMO_MODE', true);
   }, z.boolean()),
   CORS_ORIGIN: z
     .string()
@@ -57,7 +92,6 @@ const envSchema = z.object({
       .transform((raw) => parseApiKeys(raw, PRODUCTION)),
   ),
   TRUST_STATE_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(60),
-  SAM_API_KEY: z.string().optional(),
   MONITORING_SECRET: z.preprocess(
     (raw) => (raw === undefined ? '' : String(raw)),
     z.string().superRefine((value, ctx) => {
@@ -81,24 +115,54 @@ const envSchema = z.object({
     }),
   ),
   PILOT_MODE: z.preprocess((raw) => {
-    if (raw === undefined) return false;
-    if (typeof raw === 'string') {
-      const normalized = raw.trim().toLowerCase();
-      return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
-    }
-    return raw;
+    return parseBooleanEnvVar(raw, 'PILOT_MODE', true);
   }, z.boolean()),
+  ENTERPRISE_MODE: z.preprocess((raw) => {
+    return parseBooleanEnvVar(raw, 'ENTERPRISE_MODE', true);
+  }, z.boolean()),
+  SYSTEM_FROZEN: z.preprocess((raw) => parseBooleanEnvVar(raw, 'SYSTEM_FROZEN', false), z.boolean()),
+  REAL_NURSYS_ENABLED: z.preprocess((raw) => parseBooleanEnvVar(raw, 'REAL_NURSYS_ENABLED', false), z.boolean()),
 });
 
 export type Env = z.infer<typeof envSchema>;
 
 let _env: Env | null = null;
 
+function resolveValue(raw: unknown): string {
+  return String(raw ?? '').trim();
+}
+
+export function getProductionEnvCheck(): ProductionEnvCheckReport {
+  const missing = PRODUCTION_REQUIRED_VARS.filter((name) => !resolveValue(process.env[name]).length);
+
+  return {
+    ok: missing.length === 0,
+    missing,
+  };
+}
+
 /**
  * Parse and validate environment variables.
  * Throws on missing required vars so the process fails fast before serving traffic.
  */
 export function loadEnv(): Env {
+  const productionMode =
+    process.env.NODE_ENV === 'production' ||
+    String(process.env.NODE_ENV).trim().toLowerCase() === 'production';
+  if (productionMode) {
+    const missing = getProductionEnvCheck();
+    if (!missing.ok) {
+      const formatted = missing.missing.map((name) => `${name}: required in production`).join('\n');
+      log('error', 'environment validation failed', {
+        event: 'production_env_validation_failed',
+        missing: missing.missing,
+        details: formatted,
+        node_env: process.env.NODE_ENV ?? 'development',
+      });
+      throw new Error(`Environment validation failed:\n${formatted}`);
+    }
+  }
+
   const result = envSchema.safeParse(process.env);
 
   if (!result.success) {
@@ -106,6 +170,48 @@ export function loadEnv(): Env {
       .map((i) => `  ${i.path.join('.')}: ${i.message}`)
       .join('\n');
     throw new Error(`Environment validation failed:\n${formatted}`);
+  }
+
+  // Wave 34: Fail fast if production runs with demo mode enabled.
+  // YC_DEMO_MODE=true in production is a safety violation unless SYSTEM_FROZEN overrides it.
+  if (
+    productionMode &&
+    result.data.YC_DEMO_MODE &&
+    !result.data.SYSTEM_FROZEN
+  ) {
+    throw new Error(
+      'YC_DEMO_MODE cannot be enabled in production. Set YC_DEMO_MODE=false or enable SYSTEM_FROZEN.',
+    );
+  }
+
+  const frozen = result.data.SYSTEM_FROZEN;
+  if (frozen && !result.data.PILOT_MODE) {
+    const blockedFlags = {
+      YC_DEMO_MODE: result.data.YC_DEMO_MODE,
+      ENTERPRISE_MODE: result.data.ENTERPRISE_MODE,
+      REAL_NURSYS_ENABLED: result.data.REAL_NURSYS_ENABLED,
+    } as const;
+
+    for (const [name, value] of Object.entries(blockedFlags) as Array<
+      [keyof typeof blockedFlags, boolean]
+    >) {
+      if (!value) {
+        continue;
+      }
+
+      log('warn', 'feature flag blocked by SYSTEM_FROZEN', {
+        event: 'feature_lock_blocked',
+        feature: name,
+      });
+      process.env[name] = 'false';
+    }
+
+    result.data = {
+      ...result.data,
+      YC_DEMO_MODE: false,
+      ENTERPRISE_MODE: false,
+      REAL_NURSYS_ENABLED: false,
+    };
   }
 
   _env = result.data;

@@ -1,8 +1,17 @@
 import type { Prisma } from '@prisma/client';
 import prisma from '../graphql/prisma_client';
-import { queryNursysLicense, computeArtifactChecksum } from './nursysAdapter';
-import type { NursysFetcher } from './nursysAdapter';
+import {
+  VerifierLifecycle,
+  assessVerifierLifecycleTransition,
+  coerceVerifierLifecycle,
+  isVerifierLifecycleAtLeast,
+  logVerifierLifecycleTransitionEvent,
+} from './verifierLifecycle';
+import { log } from '../obs/logger';
+import { computeArtifactChecksum } from './nursysAdapter';
+import { getVerificationSource } from './sourceRegistry';
 import { computeTrustState } from './trustState';
+import type { ArtifactEventType } from '../types/auditEventTypes';
 
 const MONITORING_THRESHOLD_DAYS = 90;
 
@@ -26,20 +35,23 @@ type GenerateAuditBundleOptions = {
 
 
 /**
- * Create a VerificationArtifact from a Nursys license query.
+ * Create a VerificationArtifact via the adapter registry.
  * Computes SHA-256 checksum over the raw payload for tamper evidence.
  * Sets monitoring=true when license expires within 90 days.
+ *
+ * Wave 33: Routed through sourceRegistry to enforce adapter purity.
  */
 export async function createArtifactFromNursys(
   npi: string,
-  fetcher?: NursysFetcher,
+  organizationId?: string,
 ): Promise<ArtifactRecord> {
-  const result = await queryNursysLicense(npi, fetcher);
+  const source = getVerificationSource('NURSYS');
+  const result = await source.verify(npi);
 
-  const checksum = computeArtifactChecksum(result);
+  const checksum = computeArtifactChecksum(result.rawPayload);
   const verifiedAt = new Date();
 
-  const expiresAt = result.expirationDate ? new Date(result.expirationDate) : null;
+  const expiresAt = result.expirationDate ?? null;
   const monitoring = shouldMonitor(expiresAt);
   const trustState = computeTrustState({ status: result.licenseStatus, expiresAt, monitoring });
 
@@ -48,12 +60,13 @@ export async function createArtifactFromNursys(
       npi,
       source: 'NURSYS',
       status: result.licenseStatus,
-      rawPayload: result as unknown as Prisma.InputJsonValue,
+      rawPayload: result.rawPayload as Prisma.InputJsonValue,
       checksum,
       verifiedAt,
       expiresAt,
       monitoring,
       trustState,
+      ...(organizationId ? { organizationId } : {}),
     },
   });
 
@@ -62,10 +75,19 @@ export async function createArtifactFromNursys(
 
 /**
  * Get the most recent artifact for a given NPI.
+ * When organizationId is provided, results are scoped to that tenant.
+ *
+ * Wave 33: Added organizationId parameter for multi-tenant safety.
  */
-export async function getLatestArtifact(npi: string): Promise<ArtifactRecord | null> {
+export async function getLatestArtifact(
+  npi: string,
+  organizationId?: string,
+): Promise<ArtifactRecord | null> {
   return prisma.verificationArtifact.findFirst({
-    where: { npi },
+    where: {
+      npi,
+      ...(organizationId ? { organizationId } : {}),
+    },
     orderBy: { createdAt: 'desc' },
   });
 }
@@ -90,10 +112,10 @@ export async function generateAuditBundle(
   };
   snapshotId: string;
 }> {
-  let artifact = await getLatestArtifact(npi);
+  let artifact = await getLatestArtifact(npi, options.organizationId);
 
   if (!artifact) {
-    artifact = await createArtifactFromNursys(npi);
+    artifact = await createArtifactFromNursys(npi, options.organizationId);
   }
 
   const timestamp = new Date().toISOString();
@@ -131,12 +153,14 @@ export async function generateAuditBundle(
   });
 
   // Emit audit event for bundle generation
+  const bundleEventType: ArtifactEventType = 'BUNDLE_GENERATED';
   await prisma.auditEvent.create({
     data: {
-      type: 'BUNDLE_GENERATED',
+      type: bundleEventType,
       hash: computeArtifactChecksum(bundlePayload),
       clinicianId: npi,
       referenceId: artifact.id,
+      ...(options.organizationId ? { organizationId: options.organizationId } : {}),
       metadata: {
         snapshotId: snapshot.id,
         checksum: artifact.checksum,
@@ -146,6 +170,7 @@ export async function generateAuditBundle(
   });
 
   if (options.organizationId) {
+    await advanceVerifierLifecycleForBundleGeneration(options.organizationId);
     await incrementPilotPlanBundleCount(options.organizationId);
   }
 
@@ -162,6 +187,64 @@ export async function generateAuditBundle(
     },
     snapshotId: snapshot.id,
   };
+}
+
+async function advanceVerifierLifecycleForBundleGeneration(
+  organizationId: string,
+): Promise<void> {
+  const verifierOrg = await prisma.verifierOrg.findUnique({
+    where: { id: organizationId },
+    select: { id: true, lifecycle: true },
+  });
+
+  if (!verifierOrg) {
+    return;
+  }
+
+  const currentLifecycle = coerceVerifierLifecycle(verifierOrg.lifecycle);
+  const transition = assessVerifierLifecycleTransition(
+    currentLifecycle,
+    'BUNDLE_GENERATED',
+  );
+
+  if (!transition.allowed) {
+    log('error', 'Invalid verifier lifecycle transition', {
+      event: 'verifier_lifecycle_transition_invalid',
+      verifierOrgId: organizationId,
+      currentLifecycle,
+      targetLifecycle: 'BUNDLE_GENERATED',
+      reason: transition.reason,
+    });
+    throw new Error('Invalid verifier lifecycle transition attempt while generating bundle');
+  }
+
+  if (transition.noOp) {
+    return;
+  }
+
+  const updated = await prisma.verifierOrg.updateMany({
+    where: {
+      id: organizationId,
+      lifecycle: currentLifecycle,
+    },
+    data: {
+      lifecycle: 'BUNDLE_GENERATED' as VerifierLifecycle,
+      pilotActivated: isVerifierLifecycleAtLeast('BUNDLE_GENERATED', 'PILOT_ACTIVATED'),
+    },
+  });
+
+  if (updated.count !== 1) {
+    throw new Error('Verifier lifecycle transition raced or was already applied.');
+  }
+
+  await logVerifierLifecycleTransitionEvent(
+    organizationId,
+    currentLifecycle,
+    'BUNDLE_GENERATED',
+    {
+      source: 'bundle_generation',
+    },
+  );
 }
 
 async function incrementPilotPlanBundleCount(organizationId: string): Promise<void> {

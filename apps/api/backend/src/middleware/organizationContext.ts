@@ -21,6 +21,10 @@ type JwtPayloadShape = {
 };
 
 function parseOrganizationId(value: unknown): string | undefined {
+  if (Array.isArray(value)) {
+    return parseOrganizationId(value[0]);
+  }
+
   if (typeof value !== 'string') {
     return undefined;
   }
