@@ -6,6 +6,29 @@ type MonitoringFlags = {
   pilotOrgTracking: boolean;
 };
 
+type FunnelMetrics = {
+  totalVerifierViews: number;
+  totalPilotClicks: number;
+  totalActivations: number;
+  conversionRateByVariant: Record<string, number>;
+};
+
+type TrustStateDistribution = {
+  verified: number;
+  verified_monitoring: number;
+  expiring_soon: number;
+  needs_review: number;
+  expired: number;
+};
+
+type EnterpriseComplianceSummary = {
+  ncqaAlignment: boolean;
+  monitoringEnabled: boolean;
+  trustLedgerAppendOnly: boolean;
+  lifecycleEnforced: boolean;
+  multiTenantScoped: boolean;
+};
+
 type YcMetrics = {
   totalNPIs: number;
   shareLinks: number;
@@ -22,7 +45,14 @@ type YcMetrics = {
   verifierConversionRate: number;
   pilotActivationRate: number;
   avgArtifactViewTime: number;
+  timeFromRegistrationToPilotActivation: number | null;
   isDemoMode?: boolean;
+  verifierFunnelMetrics?: FunnelMetrics;
+  revenueRecoveryEstimate?: number;
+  trustStateDistribution?: TrustStateDistribution;
+  monitoringDeltaFrequency?: number;
+  enterpriseComplianceSummary?: EnterpriseComplianceSummary;
+  pilotReady?: boolean;
 };
 
 const DEFAULT_BACKEND_URL = 'http://localhost:4000';
@@ -76,6 +106,14 @@ function formatCurrency(value: number): string {
 function formatAcceleration(days: number | null): string {
   if (days === null) {
     return 'Insufficient pilot data.';
+  }
+
+  return `${days} days`;
+}
+
+function formatDays(days: number | null): string {
+  if (days === null) {
+    return 'No completed pilot activations yet.';
   }
 
   return `${days} days`;
@@ -143,6 +181,10 @@ export default async function YcDashboardPage({
                 value={minutesToHours(metrics.avgArtifactViewTime)}
               />
               <Stat
+                label="Avg reg→pilot activation"
+                value={formatDays(metrics.timeFromRegistrationToPilotActivation)}
+              />
+              <Stat
                 label="Estimated Start-Date Acceleration"
                 value={formatAcceleration(metrics.estimatedStartDateAccelerationDays)}
               />
@@ -165,6 +207,55 @@ export default async function YcDashboardPage({
                 ),
               )}
             </section>
+
+            {metrics.verifierFunnelMetrics ? (
+              <section>
+                <p className="mb-3 text-xs uppercase tracking-[0.2em] text-neutral-500">Verifier funnel</p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <Stat label="Funnel views" value={metrics.verifierFunnelMetrics.totalVerifierViews} />
+                  <Stat label="Pilot clicks" value={metrics.verifierFunnelMetrics.totalPilotClicks} />
+                  <Stat label="Activations" value={metrics.verifierFunnelMetrics.totalActivations} />
+                </div>
+              </section>
+            ) : null}
+
+            {metrics.trustStateDistribution ? (
+              <section>
+                <p className="mb-3 text-xs uppercase tracking-[0.2em] text-neutral-500">Trust state distribution</p>
+                <div className="grid gap-3 sm:grid-cols-5">
+                  <Stat label="Verified" value={metrics.trustStateDistribution.verified} />
+                  <Stat label="Monitoring" value={metrics.trustStateDistribution.verified_monitoring} />
+                  <Stat label="Expiring soon" value={metrics.trustStateDistribution.expiring_soon} />
+                  <Stat label="Needs review" value={metrics.trustStateDistribution.needs_review} />
+                  <Stat label="Expired" value={metrics.trustStateDistribution.expired} />
+                </div>
+              </section>
+            ) : null}
+
+            <section className="grid gap-3 sm:grid-cols-3">
+              {typeof metrics.revenueRecoveryEstimate === 'number' ? (
+                <Stat label="Revenue recovery estimate" value={formatCurrency(metrics.revenueRecoveryEstimate)} />
+              ) : null}
+              {typeof metrics.monitoringDeltaFrequency === 'number' ? (
+                <Stat label="Monitoring delta events" value={metrics.monitoringDeltaFrequency} />
+              ) : null}
+              {typeof metrics.pilotReady === 'boolean' ? (
+                <Stat label="Pilot ready" value={metrics.pilotReady ? 'true' : 'false'} />
+              ) : null}
+            </section>
+
+            {metrics.enterpriseComplianceSummary ? (
+              <section>
+                <p className="mb-3 text-xs uppercase tracking-[0.2em] text-neutral-500">Enterprise compliance</p>
+                <div className="grid gap-3 sm:grid-cols-5">
+                  {(Object.entries(metrics.enterpriseComplianceSummary) as Array<[string, boolean]>).map(
+                    ([key, value]) => (
+                      <Stat key={key} label={key} value={value ? 'pass' : 'fail'} />
+                    ),
+                  )}
+                </div>
+              </section>
+            ) : null}
           </>
         ) : (
           <p className="rounded border border-neutral-300 px-4 py-3 text-sm text-neutral-700">

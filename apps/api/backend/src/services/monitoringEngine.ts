@@ -1,7 +1,8 @@
 import prisma from '../graphql/prisma_client';
+import { buildVerificationMerklePayload } from './artifactService';
 import { getVerificationSource } from './sourceRegistry';
-import { computeArtifactChecksum } from './nursysAdapter';
 import { computeTrustState } from './trustState';
+import { computeCredentialState } from './credentialStatusEngine';
 import type { Prisma } from '@prisma/client';
 import type { MonitoringEventType } from '../types/auditEventTypes';
 
@@ -48,7 +49,7 @@ export async function runMonitoringCheck(
   // Re-query source via adapter registry
   const source = getVerificationSource(artifact.source === 'NURSYS' ? 'NURSYS' : artifact.source);
   const freshResult = await source.verify(npi);
-  const newChecksum = computeArtifactChecksum(freshResult.rawPayload);
+  const { fingerprint, merkleRoot, claimHashes } = buildVerificationMerklePayload(npi, freshResult);
   const statusChanged = artifact.status !== freshResult.licenseStatus;
   let monitoringEventId: string | undefined;
 
@@ -57,6 +58,16 @@ export async function runMonitoringCheck(
   const monitoring = artifact.monitoring;
   const trustState = computeTrustState(
     { status: freshResult.licenseStatus, expiresAt, monitoring },
+  );
+  const statusCheckedAt = new Date();
+  const lifecycleState = computeCredentialState(
+    {
+      revokedAt: artifact.revokedAt,
+      suspendedAt: artifact.suspendedAt,
+      expiresAt,
+      status: freshResult.licenseStatus,
+    },
+    statusCheckedAt,
   );
 
   // Wave 34: Wrap all mutations in a transaction to prevent race conditions
@@ -81,7 +92,7 @@ export async function runMonitoringCheck(
       await tx.auditEvent.create({
         data: {
           type: monitoringAuditType,
-          hash: newChecksum,
+          hash: fingerprint,
           clinicianId: npi,
           referenceId: artifact.id,
           ...(organizationId ? { organizationId } : {}),
@@ -98,11 +109,15 @@ export async function runMonitoringCheck(
     await tx.verificationArtifact.update({
       where: { id: artifact.id },
       data: {
-        status: freshResult.licenseStatus,
+      status: freshResult.licenseStatus,
         rawPayload: freshResult.rawPayload as Prisma.InputJsonValue,
-        checksum: newChecksum,
+        checksum: fingerprint,
+        merkleRoot,
+        claimHashes: claimHashes as unknown as Prisma.InputJsonValue,
         verifiedAt: new Date(),
         expiresAt,
+        lifecycleState,
+        statusLastChecked: statusCheckedAt,
         trustState,
       },
     });

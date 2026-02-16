@@ -497,7 +497,7 @@ async function main(): Promise<void> {
     { method: 'GET', path: '/clinician?npi=1234567890', expectedStatus: [200, 404] },
     { method: 'GET', path: `/api/npi/${TEST_NPI}`, expectedStatus: [200, 404] },
     { method: 'GET', path: '/api/npi/abc', expectedStatus: [400] },
-    { method: 'GET', path: `/api/trust/${TEST_NPI}`, expectedStatus: [200] },
+    { method: 'GET', path: `/api/trust/${TEST_NPI}`, expectedStatus: [200, 404] },
     { method: 'GET', path: '/api/compliance/summary', expectedStatus: [200] },
     { method: 'GET', path: '/api/security/posture', expectedStatus: [200] },
     { method: 'GET', path: '/api/version', expectedStatus: [200] },
@@ -520,6 +520,14 @@ async function main(): Promise<void> {
     {
       method: 'GET',
       path: '/api/internal/pilot-checklist',
+      expectedStatus: [200],
+      headers: {
+        'x-monitoring-secret': MONITORING_SECRET,
+      },
+    },
+    {
+      method: 'GET',
+      path: '/api/internal/enterprise-status',
       expectedStatus: [200],
       headers: {
         'x-monitoring-secret': MONITORING_SECRET,

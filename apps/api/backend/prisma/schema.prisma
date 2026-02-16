@@ -219,6 +219,14 @@ enum VerificationRequestStatus {
   FAILED
 }
 
+enum VerifierLifecycle {
+  REGISTERED
+  TOKEN_SENT
+  TOKEN_USED
+  PILOT_ACTIVATED
+  BUNDLE_GENERATED
+}
+
 model VerificationRequest {
   requestId       String                   @id @default(uuid()) @db.Uuid
   clinicianId     String
@@ -300,12 +308,14 @@ model VerifierOrg {
   contactName    String
   contactEmail   String
   createdAt      DateTime @default(now())
+  lifecycle      VerifierLifecycle @default(REGISTERED)
   pilotActivated Boolean  @default(false)
 
   tokens VerifierAccessToken[]
 
   @@index([contactEmail])
   @@index([pilotActivated])
+  @@index([lifecycle])
   @@index([createdAt])
 }
 
@@ -334,6 +344,13 @@ model VerificationArtifact {
   status     String
   rawPayload Json?     @db.JsonB
   checksum   String
+  merkleRoot String?
+  claimHashes Json?
+  lifecycleState String @default("active")
+  revokedAt DateTime?
+  suspendedAt DateTime?
+  revocationReason String?
+  statusLastChecked DateTime @default(now())
   verifiedAt DateTime
   expiresAt  DateTime?
   monitoring Boolean   @default(false)
@@ -347,8 +364,15 @@ model VerificationArtifact {
   @@index([source])
   @@index([monitoring])
   @@index([organizationId])
+  @@index([lifecycleState])
+  @@index([revokedAt])
+  @@index([suspendedAt])
   @@index([trustState])
+  @@index([statusLastChecked])
   @@index([createdAt])
+  // Wave M: Performance indexes
+  @@index([checksum])
+  @@index([merkleRoot])
 }
 
 model TrustLedgerEntry {
@@ -364,6 +388,8 @@ model TrustLedgerEntry {
   @@index([npi])
   @@index([organizationId])
   @@index([createdAt])
+  // Wave M: Performance index for transparency log queries
+  @@index([artifactId])
 }
 
 model AuditSnapshot {
