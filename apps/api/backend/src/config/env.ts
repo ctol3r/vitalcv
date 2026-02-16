@@ -120,6 +120,9 @@ const envSchema = z.object({
   ENTERPRISE_MODE: z.preprocess((raw) => {
     return parseBooleanEnvVar(raw, 'ENTERPRISE_MODE', true);
   }, z.boolean()),
+  LOW_FRICTION_MODE: z.preprocess((raw) => {
+    return parseBooleanEnvVar(raw, 'LOW_FRICTION_MODE', false);
+  }, z.boolean()),
   SYSTEM_FROZEN: z.preprocess((raw) => parseBooleanEnvVar(raw, 'SYSTEM_FROZEN', false), z.boolean()),
   REAL_NURSYS_ENABLED: z.preprocess((raw) => parseBooleanEnvVar(raw, 'REAL_NURSYS_ENABLED', false), z.boolean()),
 });
@@ -185,11 +188,12 @@ export function loadEnv(): Env {
   }
 
   const frozen = result.data.SYSTEM_FROZEN;
-  if (frozen && !result.data.PILOT_MODE) {
+  if (frozen) {
     const blockedFlags = {
       YC_DEMO_MODE: result.data.YC_DEMO_MODE,
       ENTERPRISE_MODE: result.data.ENTERPRISE_MODE,
       REAL_NURSYS_ENABLED: result.data.REAL_NURSYS_ENABLED,
+      LOW_FRICTION_MODE: result.data.LOW_FRICTION_MODE,
     } as const;
 
     for (const [name, value] of Object.entries(blockedFlags) as Array<
@@ -211,6 +215,7 @@ export function loadEnv(): Env {
       YC_DEMO_MODE: false,
       ENTERPRISE_MODE: false,
       REAL_NURSYS_ENABLED: false,
+      LOW_FRICTION_MODE: false,
     };
   }
 

@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "../../dist/apps/issuer-api",
+    "tsBuildInfoFile": "../../build-info/apps-issuer-api.tsbuildinfo",
+    "composite": true,
+    "types": ["node"],
+    "typeRoots": ["./node_modules/@types", "./node_modules", "../../types"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "**/__tests__/**/*", "**/*.spec.ts"]
+}

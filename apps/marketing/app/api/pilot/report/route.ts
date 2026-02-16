@@ -18,21 +18,15 @@ export async function GET(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const requestUrl = new URL(request.url);
-  const organizationId =
-    requestUrl.searchParams.get('organizationId')?.trim() ??
-    request.headers.get('x-org-id')?.trim();
-  const organizationFilter = organizationId ? { organizationId } : {};
-
   const [totalShareLinks, totalViews, totalExports] = await Promise.all([
-    prisma.shareLink.count({ where: { ...(organizationFilter as { organizationId?: string }) } }),
-    prisma.eventLog.count({ where: { eventType: "artifact_viewed", ...(organizationFilter as { organizationId?: string }) } }),
-    prisma.eventLog.count({ where: { eventType: "artifact_exported", ...(organizationFilter as { organizationId?: string }) } }),
+    prisma.shareLink.count(),
+    prisma.eventLog.count({ where: { eventType: "artifact_viewed" } }),
+    prisma.eventLog.count({ where: { eventType: "artifact_exported" } }),
   ]);
 
   // Compute avg time-to-view from ShareLink records with firstViewAt
   const viewedLinks = await prisma.shareLink.findMany({
-    where: { firstViewAt: { not: null }, ...(organizationFilter as { organizationId?: string }) },
+    where: { firstViewAt: { not: null } },
     select: { createdAt: true, firstViewAt: true },
   });
 
