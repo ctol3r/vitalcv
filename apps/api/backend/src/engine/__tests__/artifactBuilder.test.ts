@@ -53,7 +53,7 @@ function makePayload(): NormalizedCredentialPayload {
 
 describe('buildPsvArtifact', () => {
   it('returns a complete artifact with all required fields', async () => {
-    const artifact = await buildPsvArtifact(makePayload(), mockSign);
+    const { artifact } = await buildPsvArtifact(makePayload(), mockSign);
 
     expect(artifact.artifactId).toBeDefined();
     expect(artifact.artifactVersion).toBe('1.0');
@@ -72,23 +72,43 @@ describe('buildPsvArtifact', () => {
 
   it('produces deterministic rawPayloadHash', async () => {
     const payload = makePayload();
-    const a1 = await buildPsvArtifact(payload, mockSign);
-    const a2 = await buildPsvArtifact(payload, mockSign);
+    const { artifact: a1 } = await buildPsvArtifact(payload, mockSign);
+    const { artifact: a2 } = await buildPsvArtifact(payload, mockSign);
     expect(a1.integrity.rawPayloadHash).toBe(a2.integrity.rawPayloadHash);
   });
 
   it('generates unique artifactIds', async () => {
     const payload = makePayload();
-    const a1 = await buildPsvArtifact(payload, mockSign);
-    const a2 = await buildPsvArtifact(payload, mockSign);
+    const { artifact: a1 } = await buildPsvArtifact(payload, mockSign);
+    const { artifact: a2 } = await buildPsvArtifact(payload, mockSign);
     expect(a1.artifactId).not.toBe(a2.artifactId);
   });
 
   it('artifact hash is computed over partial (without integrity)', async () => {
-    const artifact = await buildPsvArtifact(makePayload(), mockSign);
-    // Reconstruct partial by removing integrity
+    const { artifact } = await buildPsvArtifact(makePayload(), mockSign);
     const { integrity, ...partial } = artifact;
     const recomputedHash = sha256(canonicalize(partial));
     expect(artifact.integrity.artifactHash).toBe(recomputedHash);
+  });
+
+  it('returns empty storage ref when no store function provided', async () => {
+    const { rawPayloadStorageRef } = await buildPsvArtifact(makePayload(), mockSign);
+    expect(rawPayloadStorageRef).toBe('');
+  });
+
+  it('calls store function and returns storage ref', async () => {
+    const mockStore = jest.fn().mockResolvedValue('/storage/abc-123/raw.json');
+
+    const { rawPayloadStorageRef, artifact } = await buildPsvArtifact(
+      makePayload(),
+      mockSign,
+      mockStore,
+    );
+
+    expect(rawPayloadStorageRef).toBe('/storage/abc-123/raw.json');
+    expect(mockStore).toHaveBeenCalledWith(
+      artifact.artifactId,
+      makePayload().rawPayload,
+    );
   });
 });

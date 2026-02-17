@@ -20,10 +20,25 @@ export interface SigningResult {
 
 export type SignFunction = (payload: string) => Promise<SigningResult>;
 
+/**
+ * Stores the raw payload blob and returns the storage path.
+ * Injected so the builder stays testable without disk I/O.
+ */
+export type StoreFunction = (
+  artifactId: string,
+  payload: unknown,
+) => Promise<string>;
+
+export interface BuildResult {
+  artifact: PsvArtifact;
+  rawPayloadStorageRef: string;
+}
+
 export async function buildPsvArtifact(
   payload: NormalizedCredentialPayload,
   sign: SignFunction,
-): Promise<PsvArtifact> {
+  store?: StoreFunction,
+): Promise<BuildResult> {
   const now = new Date();
   const generatedAt = now.toISOString();
 
@@ -34,7 +49,12 @@ export async function buildPsvArtifact(
   // Step 3: Generate artifact ID
   const artifactId = randomUUID();
 
-  // Step 4: Calculate decision window
+  // Step 4: Store raw payload blob (immutable)
+  const rawPayloadStorageRef = store
+    ? await store(artifactId, payload.rawPayload)
+    : '';
+
+  // Step 5: Calculate decision window
   const decisionWindow = calculateDecisionWindow(generatedAt, DEFAULT_WINDOW_DAYS);
 
   // Step 5: Build monitoring (initial state — no deltas yet)
@@ -74,10 +94,10 @@ export async function buildPsvArtifact(
     signedAt: signingResult.signedAt,
   };
 
-  // Step 10: Return complete artifact
+  // Step 11: Return artifact + storage ref
   return {
-    ...partial,
-    integrity,
+    artifact: { ...partial, integrity },
+    rawPayloadStorageRef,
   };
 }
 
