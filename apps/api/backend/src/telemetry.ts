@@ -1,4 +1,3 @@
-import crypto from 'crypto';
 import {
   context,
   propagation,
@@ -21,6 +20,7 @@ import {
   type ReadableSpan,
   type SpanExporter,
 } from '@opentelemetry/sdk-trace-base';
+import { sha256Hex as deterministicSha256Hex } from './utils/deterministic';
 
 type PrimitiveAttribute = string | number | boolean;
 
@@ -232,7 +232,7 @@ export function isContentCaptureEnabled(): boolean {
 }
 
 export function sha256Hex(value: string): string {
-  return crypto.createHash('sha256').update(value).digest('hex');
+  return deterministicSha256Hex(value);
 }
 
 export function serializeForHash(value: unknown): string {

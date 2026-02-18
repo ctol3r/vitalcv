@@ -9,7 +9,7 @@
     "build": "tsc -p backend/tsconfig.json",
     "start": "npm --prefix backend run start",
     "seed": "npm --prefix backend run seed",
-    "test": "npx hardhat test",
+    "test": "npm --prefix backend test",
     "test:did": "node --test backend/__tests__/cross_chain_did_resolver.test.js"
   },
   "keywords": [],
@@ -27,6 +27,7 @@
     "solc": "^0.8.20"
   },
   "dependencies": {
+    "@vitalcv/haip-config": "workspace:*",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/context-async-hooks": "^2.5.0",
     "@opentelemetry/core": "^2.5.0",

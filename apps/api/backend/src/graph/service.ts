@@ -160,7 +160,7 @@ RETURN
 `;
 
   const res = await neo4jRunCypher(cypher, { id: clinicianId });
-  const row = (res.data[0]?.row || {}) as any;
+  const row = res.data[0]?.row ?? {};
 
   const activeLicenses = Number(row.activeLicenses || 0);
   const boardCerts = Number(row.boardCerts || 0);
@@ -201,8 +201,8 @@ LIMIT $limit
 
   const res = await neo4jRunCypher(cypher, { limit });
   return res.data.map((d) => {
-    const row = d.row as any;
-    return { specialty: String(row.specialty || 'unknown'), clinicians: Number(row.clinicians || 0) };
+    const row = d.row;
+    return { specialty: String(row['specialty'] ?? 'unknown'), clinicians: Number(row['clinicians'] ?? 0) };
   });
 }
 
@@ -237,14 +237,14 @@ LIMIT $limit
   };
 
   for (const d of res.data) {
-    const row = d.row as any;
-    const aId = String(row.aId);
-    const bId = String(row.bId);
-    const aLabel = String(row.aLabel || 'Node');
-    const bLabel = String(row.bLabel || 'Node');
-    if (!nodes.has(aId)) nodes.set(aId, { id: aId, label: String(row.aName || aId), group: groupFor(aLabel) });
-    if (!nodes.has(bId)) nodes.set(bId, { id: bId, label: String(row.bName || bId), group: groupFor(bLabel) });
-    links.push({ source: aId, target: bId, weight: 1, type: String(row.relType || '') || undefined });
+    const row = d.row;
+    const aId = String(row['aId']);
+    const bId = String(row['bId']);
+    const aLabel = String(row['aLabel'] ?? 'Node');
+    const bLabel = String(row['bLabel'] ?? 'Node');
+    if (!nodes.has(aId)) nodes.set(aId, { id: aId, label: String(row['aName'] ?? aId), group: groupFor(aLabel) });
+    if (!nodes.has(bId)) nodes.set(bId, { id: bId, label: String(row['bName'] ?? bId), group: groupFor(bLabel) });
+    links.push({ source: aId, target: bId, weight: 1, type: String(row['relType'] ?? '') || undefined });
   }
 
   return { nodes: Array.from(nodes.values()), links };

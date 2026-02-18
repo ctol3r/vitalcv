@@ -26,8 +26,8 @@ export default function HolderPage() {
         const data = await res.json();
         setStatus(data);
       }
-    } catch (e) {
-      console.error(e);
+    } catch {
+      // Silently ignore — status fetch is non-critical
     }
   };
 

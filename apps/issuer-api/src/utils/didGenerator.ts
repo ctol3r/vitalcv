@@ -1,9 +1,14 @@
-const CONTROLLED_ISSUER_DID = 'did:web:vitalcv.com';
+const FALLBACK_ISSUER_DID = 'did:web:vitalcv.com';
+
+function normalizeDidCandidate(rawDid: string | undefined): string {
+  const trimmed = rawDid?.trim() ?? '';
+  return trimmed.length > 0 ? trimmed : FALLBACK_ISSUER_DID;
+}
 
 export function generateIssuerDID(): string {
-  return CONTROLLED_ISSUER_DID;
+  return normalizeDidCandidate(process.env.ISSUER_DID);
 }
 
 export function getControlledIssuerDID(): string {
-  return CONTROLLED_ISSUER_DID;
+  return generateIssuerDID();
 }

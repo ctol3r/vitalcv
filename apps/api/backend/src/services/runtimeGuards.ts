@@ -12,17 +12,14 @@
  */
 
 import { log } from '../obs/logger';
+import { evaluateHaipNoDowngrade } from '../utils/haip';
+import { getConfiguredIssuerDid } from '../utils/issuerDid';
+import { isStrictTransitionMode, parseBooleanEnv } from '../utils/environment';
 
 export type RuntimeGuardResult = {
   passed: boolean;
   failures: string[];
 };
-
-function parseBooleanEnv(raw: string | undefined): boolean {
-  if (!raw) return false;
-  const normalized = raw.trim().toLowerCase();
-  return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
-}
 
 function isSigningKeyPresent(): boolean {
   const raw =
@@ -83,7 +80,7 @@ export function runRuntimeGuards(): RuntimeGuardResult {
 
   // 4. Issuer registry must not be empty
   if (isProduction) {
-    const issuerDid = process.env.ISSUER_DID?.trim() ?? '';
+    const issuerDid = getConfiguredIssuerDid();
     if (issuerDid.length === 0) {
       failures.push('ISSUER_DID is not configured (issuer registry empty)');
     }
@@ -143,31 +140,16 @@ export function enforceHaipNoDowngrade(params: {
   issuerType?: string;
   tokenType?: string;
 }): HaipValidationResult {
-  const violations: string[] = [];
-
-  // Reject algorithm other than ES256
-  if (params.algorithm !== undefined && params.algorithm !== 'ES256') {
-    violations.push(`Algorithm "${params.algorithm}" rejected — only ES256 is permitted`);
-  }
-
-  // Reject unsigned VC
-  if (params.signed === false) {
-    violations.push('Unsigned verifiable credentials are rejected');
-  }
-
-  // Reject non-DID issuer
-  if (params.issuerType !== undefined && !params.issuerType.startsWith('did:')) {
-    violations.push(`Issuer type "${params.issuerType}" rejected — only DID-based issuers are permitted`);
-  }
-
-  // Reject bearer token downgrade
-  if (params.tokenType !== undefined && params.tokenType.toLowerCase() === 'bearer') {
-    violations.push('Bearer token type rejected — DPoP-bound tokens are required');
-  }
+  const result = evaluateHaipNoDowngrade({
+    algorithm: params.algorithm,
+    signed: params.signed,
+    tokenType: params.tokenType,
+    issuerDid: params.issuerType,
+  });
 
   return {
-    valid: violations.length === 0,
-    violations,
+    valid: result.valid,
+    violations: result.violations,
   };
 }
 
@@ -179,15 +161,26 @@ export function isZeroDowngradeEnforced(): boolean {
 
   if (!isProduction) {
     // In non-production, check if strict mode is configured
-    return parseBooleanEnv(process.env.STRICT_TRANSITION_MODE);
+    return isStrictTransitionMode();
   }
 
   // In production, all guards must pass
   return (
-    parseBooleanEnv(process.env.STRICT_TRANSITION_MODE) &&
+    isStrictTransitionMode() &&
+    isHaipNoDowngradeConfigValid() &&
     isSigningKeyPresent() &&
     !isSigningKeyEphemeral() &&
-    (process.env.ISSUER_DID?.trim() ?? '').length > 0 &&
+    getConfiguredIssuerDid().length > 0 &&
     (process.env.DATABASE_URL?.trim() ?? '').length > 0
   );
+}
+
+function isHaipNoDowngradeConfigValid(): boolean {
+  const result = evaluateHaipNoDowngrade({
+    algorithm: 'ES256',
+    signed: true,
+    tokenType: 'dpop',
+    issuerDid: getConfiguredIssuerDid(),
+  });
+  return result.valid;
 }

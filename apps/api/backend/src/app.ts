@@ -13,13 +13,22 @@ import { registerWedgeRoutes } from '../routes/wedge';
 import { errorHandler } from './middleware/errorHandler';
 import { apiKeyAuth, trustStateRateLimit, publicApiRateLimit } from './middleware/publicSafety';
 import { proofRateLimit, credentialStatusRateLimit, walletRateLimit } from './middleware/rateLimitFactory';
+import { isStrictTransitionMode, parseBooleanEnv } from './utils/environment';
+import { getConfiguredIssuerDid, isValidDidFormat } from './utils/issuerDid';
+import { sha256Hex } from './utils/deterministic';
 import { getEnterpriseCapabilities } from './services/enterpriseCapabilities';
 import { runEnterpriseSelfTest } from './services/enterpriseSelfTest';
 import { enterpriseCapabilitiesCache } from './services/ttlCache';
 import { recordLatency, getPerformanceSnapshot } from './services/performanceMetrics';
 import { runRuntimeGuards, isZeroDowngradeEnforced, enforceHaipNoDowngrade } from './services/runtimeGuards';
-import { getRequestOrganizationId, requireOrganizationContext } from './middleware/organizationContext';
+import { getRequestOrganizationId } from './middleware/organizationContext';
 import { requestObservability } from './middleware/requestObservability';
+import {
+  enforceOrganizationMatch,
+  isSuperAdminRequest,
+  parseRequestRole as parseTenantRequestRole,
+  requireTenantContext,
+} from './middleware/tenantGuard';
 import { invokeAgentModel } from './llm';
 import { estimateTokenCount } from './telemetry';
 import { withToolSpan } from './tools/tracing';
@@ -27,13 +36,27 @@ import { requestLatencyMetrics } from './observability/requestMetrics';
 import prisma, { Prisma, PrismaClient } from './graphql/prisma_client';
 import openApiSpec from './openapi';
 import { getLatestArtifact, createArtifactFromNursys, generateAuditBundle } from './services/artifactService';
+import { generateAuditPacket } from './services/auditPacketGenerator';
+import { getIssuerRegistrySummary } from './services/issuerRegistry';
+import { getTransparencyEntries } from './services/transparencyLog';
 import { computeTrustState } from './services/trustState';
 import { computeCredentialState } from './services/credentialStatusEngine';
-import { runMonitoringCheck } from './services/monitoringEngine';
+import {
+  getActiveOrganizationTrustLinks,
+  getFederatedTrustLevel,
+  getTotalOrganizationTrustLinks,
+} from './services/federatedTrustEngine';
+import { resolveCrossOrgTrustLevel } from './utils/federation';
+import {
+  getMonitoringStatus,
+  runMonitoringSweep,
+  isMonitoringEngineOperational,
+} from './services/credentialMonitoringEngine';
 import { validateMerkleIntegrity } from './services/merkleIntegrity';
+import { generateCrossCheckBundle } from './services/crossCheckBundleEngine';
 import { generateClaimProof, verifyClaimProof } from './services/selectiveProofEngine';
 import type { ClaimProof } from './types/selectiveProof';
-import { CredentialLifecycleState } from '../../../../types/credentialLifecycle';
+import { CredentialLifecycleState } from './utils/lifecycleState';
 import { validateTrustChain } from './services/trustChain';
 import {
   VERIFIER_LIFECYCLE_STATES,
@@ -41,6 +64,24 @@ import {
   coerceVerifierLifecycle,
 } from './services/verifierLifecycle';
 import { log } from './obs/logger';
+// Wave R: Onboarding Analytics + Revenue Signal
+import { getOnboardingMetrics, recordVerificationEvent, recordProofIssuedEvent, recordPSVCompletionEvent } from './services/onboardingAnalyticsEngine';
+import { computeRevenueSignal } from './services/revenueSignalEngine';
+// Wave S: PSV Window Engine
+import { getPSVStatus, checkPSVDeadlines } from './services/psvWindowEngine';
+// Wave T: Failure Isolation Engine
+import { logSystemFailure, getObservabilityStatus, isSystemHealthyForOperation, hasCriticalFailure } from './services/failureIsolationEngine';
+// Wave X: External Integrations
+import { getIntegrationHealth } from './services/externalIntegrations';
+// Wave Y: Delta Monitoring + Expiration Forecasting
+import { getOrganizationForecastSummary } from './services/expirationForecastEngine';
+// Wave Z: Verifier Dashboard
+import { buildDashboardResponse, buildDashboardExport } from './services/verifierDashboardEngine';
+// Identity Module
+import { registerIdentityRoutes } from './modules/identity';
+import { registerWave2AVerifyRoutes } from './modules/wave2a';
+// PSV Verify Module (Wave 1)
+import { registerPsvVerifyRoutes } from './services/psv/verifyRoute';
 
 type VerificationLane = 'PUBLIC' | 'PARTNER' | 'MANUAL';
 const VALID_LANES: readonly VerificationLane[] = ['PUBLIC', 'PARTNER', 'MANUAL'] as const;
@@ -231,10 +272,10 @@ type PilotChecklist = {
 };
 
 const MONITORING_SECRET = process.env.MONITORING_SECRET?.trim();
-const ENTERPRISE_MODE = parseBooleanEnv(process.env.ENTERPRISE_MODE);
-const PILOT_MODE = parseBooleanEnv(process.env.PILOT_MODE);
-const SYSTEM_FROZEN = parseBooleanEnv(process.env.SYSTEM_FROZEN);
-const YC_DEMO_MODE = parseBooleanEnv(process.env.YC_DEMO_MODE);
+const ENTERPRISE_MODE = parseBooleanEnv(process.env.ENTERPRISE_MODE, false);
+const PILOT_MODE = parseBooleanEnv(process.env.PILOT_MODE, false);
+const SYSTEM_FROZEN = parseBooleanEnv(process.env.SYSTEM_FROZEN, false);
+const YC_DEMO_MODE = parseBooleanEnv(process.env.YC_DEMO_MODE, false);
 
 const COMPLIANCE_SUMMARY: ComplianceSummary = {
   ncqaAlignment: true,
@@ -265,6 +306,32 @@ function extractInternalSecret(req: Request): string | null {
   return null;
 }
 
+function requireVerifierOrAdmin(req: Request, res: Response): boolean {
+  const role = parseTenantRequestRole(req);
+  if (role === 'verifier' || role === 'admin' || role === 'super-admin') {
+    return true;
+  }
+
+  res.status(403).json({
+    error: 'forbidden',
+    error_description: 'RBAC requires verifier or admin role.',
+  });
+  return false;
+}
+
+function requireVerifierOnly(req: Request, res: Response): boolean {
+  const role = parseTenantRequestRole(req);
+  if (role === 'verifier' || role === 'super-admin') {
+    return true;
+  }
+
+  res.status(403).json({
+    error: 'forbidden',
+    error_description: 'RBAC requires verifier role.',
+  });
+  return false;
+}
+
 function requireInternalSecret(req: Request, res: Response): boolean {
   const provided = extractInternalSecret(req);
   if (!MONITORING_SECRET || !provided || provided !== MONITORING_SECRET) {
@@ -272,6 +339,47 @@ function requireInternalSecret(req: Request, res: Response): boolean {
     return false;
   }
   return true;
+}
+
+function requireAdminRequest(req: Request, res: Response): boolean {
+  const role = parseTenantRequestRole(req);
+  if (role === 'admin' || role === 'super-admin') {
+    return true;
+  }
+
+  res.status(403).json({
+    error: 'forbidden',
+    error_description: 'RBAC requires admin role.',
+  });
+  return false;
+}
+
+function shouldSkipTenantContext(pathname: string): boolean {
+  return (
+    pathname === '/' ||
+    pathname === '/health' ||
+    pathname === '/readyz' ||
+    pathname === '/verifier' ||
+    pathname === '/verify' ||
+    pathname.startsWith('/psv/') ||
+    pathname.startsWith('/identity/') ||
+    pathname.startsWith('/.well-known/') ||
+    pathname.startsWith('/api-docs') ||
+    pathname === '/openapi.json'
+  );
+}
+
+function enforceArtifactOrganizationAccess(
+  req: Request,
+  res: Response,
+  artifact: { organizationId: string | null },
+): boolean {
+  if (!artifact.organizationId) {
+    res.status(404).json({ error: 'Artifact not found' });
+    return false;
+  }
+
+  return enforceOrganizationMatch(req, res, artifact.organizationId);
 }
 
 function isValidNpi(input: string | undefined): input is string {
@@ -384,6 +492,9 @@ type EnterpriseStatus = {
   lifecycleIntegrity: boolean;
   trustEngineIntegrity: boolean;
   selectiveDisclosureEnabled: boolean;
+  issuerRegistryReady: boolean;
+  transparencyLogActive: boolean;
+  auditPacketReady: boolean;
   version: string;
   pilotReady: boolean;
 };
@@ -555,15 +666,6 @@ function parsePositiveInteger(raw: string | undefined, fallback: number): number
   return parsed;
 }
 
-function parseBooleanWithFallback(raw: string | undefined, fallback: boolean): boolean {
-  if (!raw) {
-    return fallback;
-  }
-
-  const normalized = raw.trim().toLowerCase();
-  return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
-}
-
 function parseVerifierWalletApiKeys(): Set<string> {
   const raw = process.env.VERIFIER_WALLET_API_KEYS ?? process.env.API_KEYS ?? '';
   return new Set(
@@ -634,17 +736,17 @@ function computeHaipComplianceReady(): boolean {
     return false;
   }
 
-  const pkceRequired = parseBooleanWithFallback(process.env.PKCE_REQUIRED, true);
-  const parRequired = parseBooleanWithFallback(process.env.PAR_REQUIRED, true);
-  const dpopRequired = parseBooleanWithFallback(process.env.DPOP_REQUIRED, true);
+  const pkceRequired = parseBooleanEnv(process.env.PKCE_REQUIRED, true);
+  const parRequired = parseBooleanEnv(process.env.PAR_REQUIRED, true);
+  const dpopRequired = parseBooleanEnv(process.env.DPOP_REQUIRED, true);
   const cNonceLifetime = parsePositiveInteger(process.env.C_NONCE_LIFETIME_SECONDS, 60);
 
   return pkceRequired && parRequired && dpopRequired && cNonceLifetime <= 60;
 }
 
 function isDidResolverReady(): boolean {
-  const issuerDid = process.env.ISSUER_DID?.trim() ?? 'did:web:vitalcv.com';
-  return isHaipResolverHealthy() && issuerDid === 'did:web:vitalcv.com';
+  const issuerDid = getConfiguredIssuerDid();
+  return isHaipResolverHealthy() && isValidDidFormat(issuerDid);
 }
 
 function isHaipResolverHealthy(): boolean {
@@ -661,6 +763,39 @@ function isWalletSimulationReady(): boolean {
   return true;
 }
 
+async function hasActiveTrustedIssuer(): Promise<boolean> {
+  try {
+    const activeIssuer = await prisma.trustedIssuer.findFirst({
+      where: { active: true },
+      select: { id: true },
+      take: 1,
+    });
+    return activeIssuer !== null;
+  } catch {
+    return false;
+  }
+}
+
+async function isTransparencyLogOperational(): Promise<boolean> {
+  try {
+    await prisma.credentialTransparencyLog.findFirst({
+      select: { id: true },
+      take: 1,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function isAuditPacketReady(): Promise<boolean> {
+  const [issuerRegistryReady, transparencyLogActive] = await Promise.all([
+    hasActiveTrustedIssuer(),
+    isTransparencyLogOperational(),
+  ]);
+  return isDidResolverReady() && issuerRegistryReady && transparencyLogActive;
+}
+
 async function buildEnterpriseStatus(organizationId?: string): Promise<EnterpriseStatus> {
   const [
     trustLedgerDeterministic,
@@ -668,12 +803,18 @@ async function buildEnterpriseStatus(organizationId?: string): Promise<Enterpris
     trustEngineIntegrity,
     multiTenantSafe,
     selectiveDisclosureEnabled,
+    issuerRegistryReady,
+    transparencyLogActive,
+    auditPacketReady,
   ] = await Promise.all([
     isTrustChainDeterministic(),
     isMonitoringOperational(organizationId),
     checkTrustEngineIntegrity(organizationId),
     checkDataScopeSafety(),
     checkSelectiveDisclosureCapability(organizationId),
+    hasActiveTrustedIssuer(),
+    isTransparencyLogOperational(),
+    isAuditPacketReady(),
   ]);
 
   const systemFrozen = SYSTEM_FROZEN;
@@ -701,7 +842,10 @@ async function buildEnterpriseStatus(organizationId?: string): Promise<Enterpris
     structuredLoggingEnabled &&
     startupGuardsEnforced &&
     lifecycleIntegrity &&
-    trustEngineIntegrity;
+    trustEngineIntegrity &&
+    issuerRegistryReady &&
+    transparencyLogActive &&
+    auditPacketReady;
 
   return {
     systemFrozen,
@@ -718,22 +862,12 @@ async function buildEnterpriseStatus(organizationId?: string): Promise<Enterpris
     lifecycleIntegrity,
     trustEngineIntegrity,
     selectiveDisclosureEnabled,
+    issuerRegistryReady,
+    transparencyLogActive,
+    auditPacketReady,
     version: VERSION_INFO.buildVersion,
     pilotReady,
   };
-}
-
-function isStrictTransitionMode(): boolean {
-  return parseBooleanEnv(process.env.STRICT_TRANSITION_MODE);
-}
-
-function parseBooleanEnv(raw: string | undefined): boolean {
-  if (!raw) {
-    return false;
-  }
-
-  const normalized = raw.trim().toLowerCase();
-  return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
 }
 
 function readVersionInfo(): VersionResponse {
@@ -1021,13 +1155,7 @@ function parseRequiredString(value: unknown, field: string): string {
 }
 
 function parseYcDemoMode(): boolean {
-  const raw = process.env.YC_DEMO_MODE;
-  if (!raw) {
-    return false;
-  }
-
-  const normalized = raw.trim().toLowerCase();
-  return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
+  return parseBooleanEnv(process.env.YC_DEMO_MODE, false);
 }
 
 function parseEmail(value: unknown, field: string): string {
@@ -1194,7 +1322,7 @@ function parseDateField(value: unknown): Date {
 }
 
 function toAuditHash(input: string): string {
-  return crypto.createHash('sha256').update(input).digest('hex');
+  return sha256Hex(input);
 }
 
 function calculateAverageTimeToViewMilliseconds(
@@ -1654,6 +1782,23 @@ function registerOperationsRoutes(app: Express): void {
     }
   });
 
+  app.get('/api/internal/trusted-issuers', async (req: Request, res: Response) => {
+    if (!requireInternalSecret(req, res)) {
+      return;
+    }
+
+    try {
+      const summary = await getIssuerRegistrySummary();
+      return res.status(200).json(summary);
+    } catch (error) {
+      log('error', 'trusted_issuer_lookup_error', {
+        event: 'trusted_issuer_lookup_error',
+        error: error instanceof Error ? error.message : 'unknown',
+      });
+      return res.status(500).json({ error: 'Unable to load trusted issuers.' });
+    }
+  });
+
   app.get('/api/internal/artifact-merkle/:artifactId', async (req: Request, res: Response) => {
     if (!requireInternalSecret(req, res)) {
       return;
@@ -1663,10 +1808,20 @@ function registerOperationsRoutes(app: Express): void {
       const artifactId = parseRequiredString(req.params.artifactId, 'artifactId');
       const artifact = await prisma.verificationArtifact.findUnique({
         where: { id: artifactId },
+        select: {
+          id: true,
+          organizationId: true,
+          claimHashes: true,
+          merkleRoot: true,
+        },
       });
 
       if (!artifact) {
         return res.status(404).json({ error: 'Artifact not found' });
+      }
+
+      if (!enforceArtifactOrganizationAccess(req, res, artifact)) {
+        return;
       }
 
       const claimHashes = Array.isArray(artifact.claimHashes) ? artifact.claimHashes : [];
@@ -1724,19 +1879,47 @@ function registerProofRoutes(app: Express): void {
       try {
         const artifactId = parseRequiredString(req.params.artifactId, 'artifactId');
         const claimType = parseRequiredString(req.params.claimType, 'claimType');
-        const organizationId = getRequestOrganizationId(req);
+        const requestOrganizationId = getRequestOrganizationId(req);
+        if (!requestOrganizationId) {
+          return res.status(401).json({
+            error: 'organization_context_required',
+            error_description: 'Organization context is required.',
+          });
+        }
 
         const artifact = await prisma.verificationArtifact.findUnique({
           where: { id: artifactId },
+          select: {
+            id: true,
+            npi: true,
+            status: true,
+            rawPayload: true,
+            checksum: true,
+            merkleRoot: true,
+            claimHashes: true,
+            verifiedAt: true,
+            expiresAt: true,
+            revokedAt: true,
+            suspendedAt: true,
+            organizationId: true,
+          },
         });
 
         if (!artifact) {
           return res.status(404).json({ error: 'Artifact not found' });
         }
 
-        // RBAC: artifact must be scoped to requesting org
-        if (organizationId && artifact.organizationId !== organizationId) {
-          return res.status(403).json({ error: 'Forbidden' });
+        const trustLevel = await resolveCrossOrgTrustLevel({
+          requestOrganizationId,
+          artifactOrganizationId: artifact.organizationId,
+          isSuperAdmin: isSuperAdminRequest(req),
+          resolveTrustLevel: getFederatedTrustLevel,
+        });
+        if (!trustLevel) {
+          return res.status(403).json({
+            error: 'forbidden',
+            error_description: 'Cross-organization proof access not permitted.',
+          });
         }
 
         // Wave N: HAIP no-downgrade enforcement
@@ -1746,7 +1929,7 @@ function registerProofRoutes(app: Express): void {
         const haipCheck = enforceHaipNoDowngrade({
           algorithm: algorithmHeader ?? 'ES256',
           signed: true,
-          issuerType: process.env.ISSUER_DID?.trim() ?? 'did:web:vitalcv.com',
+          issuerType: getConfiguredIssuerDid(),
         });
         if (!haipCheck.valid) {
           return res.status(422).json({
@@ -1775,23 +1958,45 @@ function registerProofRoutes(app: Express): void {
           }
         }
 
-        const proofStartMs = Date.now();
-        const claimProof = generateClaimProof(
-          {
-            npi: artifact.npi,
-            status: artifact.status,
-            rawPayload: artifact.rawPayload,
-            checksum: artifact.checksum,
-            merkleRoot: artifact.merkleRoot,
-            claimHashes: artifact.claimHashes,
-            verifiedAt: artifact.verifiedAt,
-            expiresAt: artifact.expiresAt,
-          },
-          claimType,
-        );
-        recordLatency('proof', Date.now() - proofStartMs);
+        // Wave T5: Strict mode health gate — abort if system unhealthy
+        if (isStrictTransitionMode() && hasCriticalFailure()) {
+          return res.status(503).json({
+            error: 'system_unhealthy',
+            error_description: 'Proof generation blocked: recent critical system failure detected.',
+          });
+        }
 
-        return res.status(200).json({ claimProof });
+        const proofStartMs = Date.now();
+        let claimProof;
+        try {
+          claimProof = generateClaimProof(
+            {
+              npi: artifact.npi,
+              status: artifact.status,
+              rawPayload: artifact.rawPayload,
+              checksum: artifact.checksum,
+              merkleRoot: artifact.merkleRoot,
+              claimHashes: artifact.claimHashes,
+              verifiedAt: artifact.verifiedAt,
+              expiresAt: artifact.expiresAt,
+            },
+            claimType,
+          );
+          recordLatency('proof', Date.now() - proofStartMs);
+
+          // Wave R: Record proof issuance analytics (fire-and-forget)
+          recordProofIssuedEvent(artifactId, requestOrganizationId).catch(() => {});
+        } catch (proofError) {
+          await logSystemFailure('proof_generation', 'error', proofError instanceof Error ? proofError.message : 'Proof generation failed', { artifactId });
+          throw proofError;
+        }
+
+        if (trustLevel !== 'full') {
+          return res.status(200).json({ claimProof });
+        }
+
+        const auditPacket = await generateAuditPacket(artifact.id);
+        return res.status(200).json({ claimProof, auditPacket });
       } catch (error) {
         const message =
           error instanceof Error ? error.message : 'Unable to generate claim proof';
@@ -1884,10 +2089,24 @@ function registerCredentialStatusRoutes(app: Express): void {
       const artifactId = parseRequiredString(req.params.artifactId, 'artifactId');
       const artifact = await prisma.verificationArtifact.findUnique({
         where: { id: artifactId },
+        select: {
+          id: true,
+          organizationId: true,
+          revokedAt: true,
+          suspendedAt: true,
+          expiresAt: true,
+          status: true,
+          checksum: true,
+          merkleRoot: true,
+        },
       });
 
       if (!artifact) {
         return res.status(404).json({ error: 'Artifact not found' });
+      }
+
+      if (!enforceArtifactOrganizationAccess(req, res, artifact)) {
+        return;
       }
 
       const lifecycleState = computeCredentialState(
@@ -1917,16 +2136,126 @@ function registerCredentialStatusRoutes(app: Express): void {
     }
   });
 
-  app.get('/api/status-list', credentialStatusRateLimit, async (_req: Request, res: Response) => {
+  app.get('/api/transparency/:artifactId', async (req: Request, res: Response) => {
+    try {
+      const artifactId = parseRequiredString(req.params.artifactId, 'artifactId');
+      const artifact = await prisma.verificationArtifact.findUnique({
+        where: { id: artifactId },
+        select: {
+          id: true,
+          organizationId: true,
+        },
+      });
+
+      if (!artifact) {
+        return res.status(404).json({ error: 'Artifact not found' });
+      }
+
+      if (!enforceArtifactOrganizationAccess(req, res, artifact)) {
+        return;
+      }
+
+      const entries = await getTransparencyEntries(artifactId);
+      return res.status(200).json({
+        artifactId,
+        entries,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to read transparency log';
+      return res.status(400).json({ error: message });
+    }
+  });
+
+  app.get('/api/audit-packet/:artifactId', async (req: Request, res: Response) => {
+    if (!requireVerifierOrAdmin(req, res)) {
+      return;
+    }
+
+    try {
+      const artifactId = parseRequiredString(req.params.artifactId, 'artifactId');
+      const artifact = await prisma.verificationArtifact.findUnique({
+        where: { id: artifactId },
+        select: {
+          id: true,
+          organizationId: true,
+        },
+      });
+
+      if (!artifact) {
+        return res.status(404).json({ error: 'Artifact not found' });
+      }
+
+      if (!enforceArtifactOrganizationAccess(req, res, artifact)) {
+        return;
+      }
+
+      const auditPacket = await generateAuditPacket(artifactId);
+      return res.status(200).json({
+        auditPacket,
+        generatedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to generate audit packet';
+      return res.status(400).json({ error: message });
+    }
+  });
+
+  app.get('/api/cross-check-bundle/:artifactId', async (req: Request, res: Response) => {
+    if (!requireVerifierOnly(req, res)) {
+      return;
+    }
+
+    try {
+      const requestOrganizationId = getRequestOrganizationId(req);
+      if (!requestOrganizationId) {
+        return res.status(401).json({ error: 'organization_context_required' });
+      }
+
+      const artifactId = parseRequiredString(req.params.artifactId, 'artifactId');
+      const artifact = await prisma.verificationArtifact.findUnique({
+        where: { id: artifactId },
+        select: { id: true, organizationId: true },
+      });
+
+      if (!artifact || !artifact.organizationId) {
+        return res.status(404).json({ error: 'Artifact not found' });
+      }
+
+      const trustLevel = await resolveCrossOrgTrustLevel({
+        requestOrganizationId,
+        artifactOrganizationId: artifact.organizationId,
+        isSuperAdmin: isSuperAdminRequest(req),
+        resolveTrustLevel: getFederatedTrustLevel,
+      });
+      if (!trustLevel) {
+        return res.status(403).json({
+          error: 'forbidden',
+          error_description: 'Cross-organization bundle access not permitted.',
+        });
+      }
+
+      const bundle = await generateCrossCheckBundle(artifactId);
+      return res.status(200).json(bundle);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Unable to generate cross-check bundle';
+      return res.status(400).json({ error: message });
+    }
+  });
+
+  app.get('/api/status-list', credentialStatusRateLimit, async (req: Request, res: Response) => {
+    const organizationId = getRequestOrganizationId(req);
+    const organizationFilter = buildOrganizationFilter(organizationId);
     try {
       const [revokedCredentials, suspendedCredentials] = await Promise.all([
         prisma.verificationArtifact.findMany({
-          where: { revokedAt: { not: null } },
+          where: { ...organizationFilter, revokedAt: { not: null } },
           select: { id: true },
           orderBy: { id: 'asc' },
         }),
         prisma.verificationArtifact.findMany({
           where: {
+            ...organizationFilter,
             revokedAt: null,
             suspendedAt: { not: null },
           },
@@ -1954,10 +2283,22 @@ function registerCredentialStatusRoutes(app: Express): void {
       const artifactId = parseRequiredString(req.params.artifactId, 'artifactId');
       const artifact = await prisma.verificationArtifact.findUnique({
         where: { id: artifactId },
+        select: {
+          id: true,
+          organizationId: true,
+          revokedAt: true,
+          suspendedAt: true,
+          expiresAt: true,
+          status: true,
+        },
       });
 
       if (!artifact) {
         return res.status(404).json({ error: 'Artifact not found' });
+      }
+
+      if (!enforceArtifactOrganizationAccess(req, res, artifact)) {
+        return;
       }
 
       const lifecycleState = computeCredentialState(
@@ -2165,11 +2506,28 @@ function registerPilotRoutes(app: Express): void {
 
       // Resolve or create artifact for this NPI (scoped to share link's org)
       const shareLinkOrgId = updated.organizationId ?? undefined;
+
+      // Wave T5: Strict mode health gate — abort issuance if system unhealthy
+      if (isStrictTransitionMode() && hasCriticalFailure()) {
+        return res.status(503).json({
+          error: 'system_unhealthy',
+          error_description: 'VC issuance blocked: recent critical system failure detected.',
+        });
+      }
+
       let artifact = await getLatestArtifact(updated.npi, shareLinkOrgId);
       if (!artifact) {
         const issuanceStartMs = Date.now();
-        artifact = await createArtifactFromNursys(updated.npi, shareLinkOrgId);
-        recordLatency('vc_issuance', Date.now() - issuanceStartMs);
+        try {
+          artifact = await createArtifactFromNursys(updated.npi, shareLinkOrgId);
+          recordLatency('vc_issuance', Date.now() - issuanceStartMs);
+
+          // Wave R: Record onboarding analytics (fire-and-forget)
+          recordVerificationEvent(artifact.id, shareLinkOrgId ?? '').catch(() => {});
+        } catch (issuanceError) {
+          await logSystemFailure('vc_issuance', 'critical', issuanceError instanceof Error ? issuanceError.message : 'VC issuance failed', { organizationId: shareLinkOrgId });
+          throw issuanceError;
+        }
       }
 
       const status = artifact.status === 'ACTIVE' ? 'VERIFIED' : artifact.status;
@@ -2394,6 +2752,36 @@ function registerPilotRoutes(app: Express): void {
       return res.status(500).json({ error: message });
     }
   });
+
+  // ── Wave 3C: Bundle Download (zip) ───────────────────────
+  app.get('/api/artifact/bundle/:npi/download', publicApiRateLimit, async (req: Request, res: Response) => {
+    try {
+      const npi = parseRequiredString(req.params.npi, 'npi');
+      const organizationId = getRequestOrganizationId(req);
+
+      const bundle = await generateAuditBundle(npi, { organizationId });
+      const rawPayload = (bundle.artifact.rawPayload ?? {}) as Record<string, unknown>;
+
+      // Build a PsvArtifact-shaped object from the DB record for the bundle
+      const { buildBundleContentsFromRecord, createBundleZipStream } = await import('./engine/services/bundleDownloadService');
+
+      const bundleContents = buildBundleContentsFromRecord(bundle, rawPayload);
+      const zipStream = createBundleZipStream(bundleContents, npi);
+
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="psv-bundle-${npi}.zip"`);
+
+      zipStream.pipe(res);
+    } catch (error) {
+      log('error', 'artifact_bundle_download_error', {
+        event: 'artifact_bundle_download_error',
+        npi: req.params.npi,
+        error: error instanceof Error ? error.message : 'unknown',
+      });
+      const message = error instanceof Error ? error.message : 'Unable to generate bundle download';
+      return res.status(500).json({ error: message });
+    }
+  });
 }
 
 function registerTrustStateRoutes(app: Express): void {
@@ -2421,7 +2809,40 @@ function registerTrustStateRoutes(app: Express): void {
 // ─── Wave 14: Continuous Monitoring Engine ───────────────────
 
 function registerMonitoringRoutes(app: Express): void {
-  app.post('/api/internal/monitoring/run', async (req: Request, res: Response) => {
+  const runMonitoringNow = async (req: Request, res: Response): Promise<void> => {
+    if (!requireInternalSecret(req, res)) {
+      return;
+    }
+    if (!requireAdminRequest(req, res)) {
+      return;
+    }
+
+    const organizationId = getRequestOrganizationId(req);
+
+    try {
+      const status = await runMonitoringSweep(organizationId);
+      res.status(200).json({
+        totalActiveCredentials: status.totalActiveCredentials,
+        expiringSoonCount: status.expiringSoonCount,
+        revokedCount: status.revokedCount,
+        lastSweepTimestamp: status.lastSweepTimestamp,
+      });
+    } catch (error) {
+      await logSystemFailure('monitoring_sweep', 'error', error instanceof Error ? error.message : 'Monitoring sweep failed', { organizationId: organizationId ?? undefined });
+      log('error', 'monitoring_run_error', {
+        event: 'monitoring_run_error',
+        organizationId: organizationId ?? null,
+        error: error instanceof Error ? error.message : 'unknown',
+      });
+      const message = error instanceof Error ? error.message : 'Monitoring run failed';
+      res.status(500).json({ error: message });
+    }
+  };
+
+  app.post('/api/internal/run-monitoring', runMonitoringNow);
+  app.post('/api/internal/monitoring/run', runMonitoringNow);
+
+  app.get('/api/internal/monitoring-status', async (req: Request, res: Response) => {
     if (!requireInternalSecret(req, res)) {
       return;
     }
@@ -2429,40 +2850,78 @@ function registerMonitoringRoutes(app: Express): void {
     const organizationId = getRequestOrganizationId(req);
 
     try {
-      // Find all NPIs with monitoring=true
-      const monitored = await prisma.verificationArtifact.findMany({
-        where: {
-          monitoring: true,
-          ...(organizationId ? { organizationId } : {}),
-        },
-        distinct: ['npi'],
-        orderBy: { createdAt: 'desc' },
-        select: { npi: true },
-      });
-
-      const results = [];
-      let checksRun = 0;
-      let statusChanges = 0;
-
-      for (const { npi } of monitored) {
-        const result = await runMonitoringCheck(npi, organizationId);
-        checksRun++;
-        if (result.changed) statusChanges++;
-        results.push(result);
-      }
-
+      const status = await getMonitoringStatus(organizationId);
       return res.status(200).json({
-        monitoringChecksRun: checksRun,
-        monitoringStatusChanges: statusChanges,
-        results,
+        totalActiveCredentials: status.totalActiveCredentials,
+        expiringSoonCount: status.expiringSoonCount,
+        revokedCount: status.revokedCount,
+        lastSweepTimestamp: status.lastSweepTimestamp,
       });
     } catch (error) {
-      log('error', 'monitoring_run_error', {
-        event: 'monitoring_run_error',
+      log('error', 'monitoring_status_error', {
+        event: 'monitoring_status_error',
         organizationId: organizationId ?? null,
         error: error instanceof Error ? error.message : 'unknown',
       });
-      const message = error instanceof Error ? error.message : 'Monitoring run failed';
+      const message = error instanceof Error ? error.message : 'Unable to read monitoring status';
+      return res.status(500).json({ error: message });
+    }
+  });
+
+  app.get('/api/internal/nursys-status', async (req: Request, res: Response) => {
+    if (!requireInternalSecret(req, res)) {
+      return;
+    }
+    if (!requireAdminRequest(req, res)) {
+      return;
+    }
+
+    try {
+      const [totalEvents, lastEvent, monitoringIntegrated] = await Promise.all([
+        prisma.nursysEvent.count(),
+        prisma.nursysEvent.findFirst({
+          orderBy: { receivedAt: 'desc' },
+          select: { receivedAt: true },
+        }),
+        isMonitoringEngineOperational(),
+      ]);
+
+      return res.status(200).json({
+        totalEvents,
+        lastEventReceived: lastEvent?.receivedAt?.toISOString() ?? null,
+        monitoringIntegrated,
+      });
+    } catch (error) {
+      log('error', 'nursys_status_error', {
+        event: 'nursys_status_error',
+        error: error instanceof Error ? error.message : 'unknown',
+      });
+      const message = error instanceof Error ? error.message : 'Unable to read nursys status';
+      return res.status(500).json({ error: message });
+    }
+  });
+
+  app.get('/api/internal/federation-status', async (req: Request, res: Response) => {
+    if (!requireInternalSecret(req, res)) {
+      return;
+    }
+
+    try {
+      const [totalTrustLinks, activeTrustLinks] = await Promise.all([
+        getTotalOrganizationTrustLinks(),
+        getActiveOrganizationTrustLinks(),
+      ]);
+      return res.status(200).json({
+        totalTrustLinks,
+        activeTrustLinks,
+        federationEnabled: activeTrustLinks > 0,
+      });
+    } catch (error) {
+      log('error', 'federation_status_error', {
+        event: 'federation_status_error',
+        error: error instanceof Error ? error.message : 'unknown',
+      });
+      const message = error instanceof Error ? error.message : 'Unable to read federation status';
       return res.status(500).json({ error: message });
     }
   });
@@ -2503,11 +2962,15 @@ function registerEnterpriseReadinessRoutes(app: Express): void {
         runtimeGuardsPassed = false;
       }
 
+      // Wave T: observability status
+      const observability = await getObservabilityStatus();
+
       return res.status(200).json({
         capabilities,
         selfTest,
         zeroDowngradeEnforced,
         runtimeGuardsPassed,
+        observability,
       });
     } catch (error) {
       log('error', 'enterprise_readiness_error', {
@@ -2536,6 +2999,292 @@ function registerPerformanceMetricsRoutes(app: Express): void {
   });
 }
 
+// ─── Wave R: Onboarding Metrics Routes ──────────────────────
+
+function registerOnboardingMetricsRoutes(app: Express): void {
+  /**
+   * GET /api/internal/onboarding-metrics/:organizationId
+   * Returns analytics for artifact onboarding + revenue signal.
+   * RBAC: Admin only (monitoring secret).
+   */
+  app.get('/api/internal/onboarding-metrics/:organizationId', async (req: Request, res: Response) => {
+    if (!requireInternalSecret(req, res)) {
+      return;
+    }
+
+    try {
+      const organizationId = parseRequiredString(req.params.organizationId, 'organizationId');
+      const metrics = await getOnboardingMetrics(organizationId);
+      const revenueSignal = computeRevenueSignal(metrics);
+
+      return res.status(200).json({
+        avgDaysToVerification: metrics.avgDaysToVerification,
+        avgDaysToPSVCompletion: metrics.avgDaysToPSVCompletion,
+        avgDaysSaved: revenueSignal.avgDaysSaved,
+        estimatedRevenueRecovered: revenueSignal.estimatedRevenueRecovered,
+        totalArtifacts: metrics.totalArtifacts,
+        completedVerifications: metrics.completedVerifications,
+        completedPSV: metrics.completedPSV,
+        revenueSignal,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to compute onboarding metrics';
+      log('error', 'onboarding_metrics_endpoint_error', {
+        event: 'onboarding_metrics_endpoint_error',
+        error: message,
+      });
+      return res.status(500).json({ error: message });
+    }
+  });
+}
+
+// ─── Wave S: PSV Status Routes ──────────────────────────────
+
+function registerPSVStatusRoutes(app: Express): void {
+  /**
+   * GET /api/internal/psv-status/:artifactId
+   * Returns PSV window compliance status for an artifact.
+   * RBAC: Admin only (monitoring secret).
+   */
+  app.get('/api/internal/psv-status/:artifactId', async (req: Request, res: Response) => {
+    if (!requireInternalSecret(req, res)) {
+      return;
+    }
+
+    try {
+      const artifactId = parseRequiredString(req.params.artifactId, 'artifactId');
+      const status = await getPSVStatus(artifactId);
+
+      if (!status) {
+        return res.status(404).json({ error: 'No PSV window found for this artifact' });
+      }
+
+      return res.status(200).json(status);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to read PSV status';
+      log('error', 'psv_status_endpoint_error', {
+        event: 'psv_status_endpoint_error',
+        error: message,
+      });
+      return res.status(500).json({ error: message });
+    }
+  });
+
+  /**
+   * POST /api/internal/psv-deadline-check/:organizationId
+   * Run PSV deadline checks for an organization.
+   * Returns any warnings or breaches detected.
+   */
+  app.post('/api/internal/psv-deadline-check/:organizationId', async (req: Request, res: Response) => {
+    if (!requireInternalSecret(req, res)) {
+      return;
+    }
+
+    try {
+      const organizationId = parseRequiredString(req.params.organizationId, 'organizationId');
+      const warnings = await checkPSVDeadlines(organizationId);
+
+      return res.status(200).json({
+        warningCount: warnings.filter((w) => w.eventType === 'psv-window-warning').length,
+        breachCount: warnings.filter((w) => w.eventType === 'psv-window-breach').length,
+        events: warnings,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to check PSV deadlines';
+      log('error', 'psv_deadline_check_endpoint_error', {
+        event: 'psv_deadline_check_endpoint_error',
+        error: message,
+      });
+      return res.status(500).json({ error: message });
+    }
+  });
+}
+
+// ─── Wave T: Observability Status Routes ────────────────────
+
+function registerObservabilityRoutes(app: Express): void {
+  /**
+   * GET /api/internal/observability-status
+   * Returns system health status based on failure events.
+   * systemHealthy = no critical failures in last 24h.
+   * RBAC: Admin only (monitoring secret).
+   */
+  app.get('/api/internal/observability-status', async (req: Request, res: Response) => {
+    if (!requireInternalSecret(req, res)) {
+      return;
+    }
+
+    try {
+      const status = await getObservabilityStatus();
+      return res.status(200).json(status);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to read observability status';
+      log('error', 'observability_status_endpoint_error', {
+        event: 'observability_status_endpoint_error',
+        error: message,
+      });
+      return res.status(500).json({ error: message });
+    }
+  });
+}
+
+// ─── Wave X: Integration Health Routes ──────────────────────
+
+function registerIntegrationHealthRoutes(app: Express): void {
+  /**
+   * GET /api/internal/integration-health
+   * Returns Nursys/PECOS integration mode and health status.
+   * RBAC: Admin only (monitoring secret).
+   */
+  app.get('/api/internal/integration-health', async (req: Request, res: Response) => {
+    if (!requireInternalSecret(req, res)) {
+      return;
+    }
+
+    try {
+      const health = getIntegrationHealth();
+      return res.status(200).json(health);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to read integration health';
+      log('error', 'integration_health_endpoint_error', {
+        event: 'integration_health_endpoint_error',
+        error: message,
+      });
+      return res.status(500).json({ error: message });
+    }
+  });
+}
+
+// ─── Wave Y: Expiration Forecast Routes ─────────────────────
+
+function registerExpirationForecastRoutes(app: Express): void {
+  /**
+   * GET /api/internal/expiration-forecast/:organizationId
+   * Returns expiration risk distribution for an organization.
+   * RBAC: Admin or verifier with org match.
+   */
+  app.get('/api/internal/expiration-forecast/:organizationId', async (req: Request, res: Response) => {
+    if (!requireVerifierOrAdmin(req, res)) {
+      return;
+    }
+
+    const { organizationId } = req.params;
+    if (!organizationId?.trim()) {
+      return res.status(400).json({ error: 'organizationId is required.' });
+    }
+
+    if (!enforceOrganizationMatch(req, res, organizationId)) {
+      return;
+    }
+
+    try {
+      const summary = await getOrganizationForecastSummary(organizationId);
+      return res.status(200).json(summary);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to compute expiration forecast';
+      log('error', 'expiration_forecast_endpoint_error', {
+        event: 'expiration_forecast_endpoint_error',
+        organizationId,
+        error: message,
+      });
+      return res.status(500).json({ error: message });
+    }
+  });
+}
+
+// ─── Wave Z: Verifier Dashboard Routes ──────────────────────
+
+function registerVerifierDashboardRoutes(app: Express): void {
+  /**
+   * GET /api/verifier/dashboard
+   * Aggregated verifier dashboard with summary, events, revenue, health.
+   * RBAC: Verifier only, tenant scoped, federation enforced.
+   */
+  app.get('/api/verifier/dashboard', async (req: Request, res: Response) => {
+    if (!requireVerifierOnly(req, res)) {
+      return;
+    }
+
+    const organizationId = getRequestOrganizationId(req)?.trim();
+    if (!organizationId) {
+      return res.status(401).json({
+        error: 'organization_context_required',
+        error_description: 'Organization context is required for dashboard.',
+      });
+    }
+
+    // Strict mode enforcement: reject if system unhealthy
+    const strictMode = isStrictTransitionMode();
+    if (strictMode) {
+      const healthy = await isSystemHealthyForOperation();
+      if (!healthy) {
+        return res.status(503).json({
+          error: 'system_unhealthy',
+          error_description: 'Dashboard generation rejected: system health check failed under strict mode.',
+        });
+      }
+    }
+
+    try {
+      const dashboard = await buildDashboardResponse(organizationId);
+      return res.status(200).json(dashboard);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to build dashboard';
+      log('error', 'verifier_dashboard_endpoint_error', {
+        event: 'verifier_dashboard_endpoint_error',
+        organizationId,
+        error: message,
+      });
+      return res.status(500).json({ error: message });
+    }
+  });
+
+  /**
+   * GET /api/verifier/dashboard/export
+   * Audit-ready JSON export of dashboard data.
+   * RBAC: Verifier only, tenant scoped.
+   * Strict mode: rejects if transparency log inconsistent.
+   */
+  app.get('/api/verifier/dashboard/export', async (req: Request, res: Response) => {
+    if (!requireVerifierOnly(req, res)) {
+      return;
+    }
+
+    const organizationId = getRequestOrganizationId(req)?.trim();
+    if (!organizationId) {
+      return res.status(401).json({
+        error: 'organization_context_required',
+        error_description: 'Organization context is required for export.',
+      });
+    }
+
+    // Strict mode enforcement: reject if system unhealthy
+    const strictMode = isStrictTransitionMode();
+    if (strictMode) {
+      const healthy = await isSystemHealthyForOperation();
+      if (!healthy) {
+        return res.status(503).json({
+          error: 'system_unhealthy',
+          error_description: 'Export rejected: system health check failed under strict mode.',
+        });
+      }
+    }
+
+    try {
+      const exportData = await buildDashboardExport(organizationId);
+      return res.status(200).json(exportData);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to build export';
+      log('error', 'verifier_dashboard_export_endpoint_error', {
+        event: 'verifier_dashboard_export_endpoint_error',
+        organizationId,
+        error: message,
+      });
+      return res.status(500).json({ error: message });
+    }
+  });
+}
+
 // ─── Express Application ────────────────────────────────────
 
 const app = express();
@@ -2559,24 +3308,34 @@ app.use(
       'x-request-id',
       'x-org-id',
       'x-monitoring-secret',
+      'x-role',
+      'x-user-role',
+      'x-verifier-role',
     ],
     credentials: corsOrigin !== '*',
   }),
 );
-app.use(requireOrganizationContext);
+app.use((req: Request, res: Response, next: express.NextFunction) => {
+  if (shouldSkipTenantContext(req.path)) {
+    next();
+    return;
+  }
+  requireTenantContext(req, res, next);
+});
 
 // Body parsing with size limits
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 
 // Observability
-app.use(requestObservability);
+  app.use(requestObservability);
 
-// Routes
-registerHealthRoutes(app);
-registerIngestRoutes(app);
-registerVerificationRoutes(app);
-registerProofRoutes(app);
+  // Routes
+  registerHealthRoutes(app);
+  registerIngestRoutes(app);
+  registerLookupRoutes(app);
+  registerVerificationRoutes(app);
+  registerProofRoutes(app);
 registerComplianceRoutes(app);
 registerOperationsRoutes(app);
 registerPilotRoutes(app);
@@ -2585,7 +3344,15 @@ registerCredentialStatusRoutes(app);
 registerMonitoringRoutes(app);
 registerEnterpriseReadinessRoutes(app);
 registerPerformanceMetricsRoutes(app);
+registerOnboardingMetricsRoutes(app);
+registerPSVStatusRoutes(app);
+registerObservabilityRoutes(app);
+registerIntegrationHealthRoutes(app);
+registerExpirationForecastRoutes(app);
+registerVerifierDashboardRoutes(app);
 registerWedgeRoutes(app);
+registerIdentityRoutes(app);
+registerPsvVerifyRoutes(app);
 
 if (ENTERPRISE_MODE) {
   app.get('/internal/enterprise', async (req: Request, res: Response) => {

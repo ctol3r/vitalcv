@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import {
   importJWK,
   jwtVerify,
@@ -7,8 +6,10 @@ import {
   decodeProtectedHeader,
 } from 'jose';
 import { getControlledIssuerDID } from '../utils/didGenerator';
+import { hashDeterministicPayload } from '../utils/deterministic';
 import { haipConfig } from '@vitalcv/haip-config';
 import { getSigningKeyMaterial, getPublicSigningJwk, parseSigningKeyFingerprint } from './signingKeyProvider';
+import { getIssuerPublicKey, isTrustedIssuer } from './issuerRegistry';
 import type { VitalVC } from '../types/verifierWallet';
 
 type IssuerDidDocument = {
@@ -59,7 +60,6 @@ type CredentialPayload = {
 };
 
 const VERIFICATION_METHOD_ID = `${getControlledIssuerDID()}#key-1`;
-const credentialSequenceBySubject = new Map<string, number>();
 
 function normalizeNpi(input: string, field: string): string {
   const normalized = input.trim();
@@ -77,18 +77,15 @@ function normalizeName(input: string, field: string): string {
   return normalized;
 }
 
-function nextSequence(subjectDid: string, npi: string): number {
-  const key = `${subjectDid}:${npi}`;
-  const next = (credentialSequenceBySubject.get(key) ?? 0) + 1;
-  credentialSequenceBySubject.set(key, next);
-  return next;
-}
-
 function buildCredentialId(subjectDid: string, npi: string): string {
-  const sequence = nextSequence(subjectDid, npi);
-  const nowSeconds = Math.floor(Date.now() / 1000);
-  const seed = `${subjectDid}|${npi}|${sequence}|${nowSeconds}`;
-  const credentialDigest = createHash('sha256').update(seed).digest('hex');
+  const now = new Date();
+  const nowSeconds = now.toISOString();
+  const credentialDigest = hashDeterministicPayload({
+    did: getControlledIssuerDID(),
+    subjectDid,
+    npi,
+    issuedAt: nowSeconds,
+  });
   return `${getControlledIssuerDID()}/credentials/clinician/${credentialDigest.slice(0, 32)}`;
 }
 
@@ -131,16 +128,16 @@ function parseJwsPayloadObject(token: string): CredentialPayload {
       }
       return value;
     }),
-    id: normalizeName(vc.id, 'vc.id'),
+    id: normalizeName(String(vc.id), 'vc.id'),
     type: vcType.map((value) => {
       if (typeof value !== 'string' || value.length === 0) {
         throw new Error('VC type entries must be strings.');
       }
       return value;
     }),
-    issuer: normalizeName(vc.issuer, 'vc.issuer'),
-    issuanceDate: normalizeName(vc.issuanceDate, 'vc.issuanceDate'),
-    credentialSubject: vc.credentialSubject,
+    issuer: normalizeName(String(vc.issuer), 'vc.issuer'),
+    issuanceDate: normalizeName(String(vc.issuanceDate), 'vc.issuanceDate'),
+    credentialSubject: vc.credentialSubject as Record<string, unknown>,
     ...(credentialStatus ? { credentialStatus } : {}),
   };
 }
@@ -150,8 +147,8 @@ function parseCredentialStatus(input: unknown): CredentialStatus {
     throw new Error('vc.credentialStatus must be an object.');
   }
 
-  const id = normalizeName(input.id, 'vc.credentialStatus.id');
-  const type = normalizeName(input.type, 'vc.credentialStatus.type');
+  const id = normalizeName(String(input.id), 'vc.credentialStatus.id');
+  const type = normalizeName(String(input.type), 'vc.credentialStatus.type');
 
   if (type !== 'VitalCredentialStatus') {
     throw new Error('vc.credentialStatus.type must be "VitalCredentialStatus".');
@@ -178,6 +175,21 @@ function arePublicKeysEquivalent(left: Record<string, unknown>, right: Record<st
     use: right.use,
   };
   return JSON.stringify(normalizedLeft) === JSON.stringify(normalizedRight);
+}
+
+async function assertIssuerTrusted(issuerDid: string): Promise<Record<string, unknown>> {
+  const trusted = await isTrustedIssuer(issuerDid);
+  if (!trusted) {
+    throw new Error(`Issuer not trusted: ${issuerDid}.`);
+  }
+
+  const registryPublicKey = await getIssuerPublicKey(issuerDid);
+  const localPublicKey = getPublicSigningJwk();
+  if (!arePublicKeysEquivalent(registryPublicKey as Record<string, unknown>, localPublicKey)) {
+    throw new Error(`Issuer key mismatch for ${issuerDid}.`);
+  }
+
+  return registryPublicKey as Record<string, unknown>;
 }
 
 export function getControlledDidDocument(): IssuerDidDocument {
@@ -260,6 +272,7 @@ export async function issueClinicianIdentityVC(
   options: IssueOptions = {},
 ): Promise<string> {
   const did = getControlledIssuerDID();
+  await assertIssuerTrusted(did);
   const normalizedName = normalizeName(profile.name, 'name');
   const normalizedNpi = normalizeNpi(profile.npi, 'npi');
   const normalizedSpecialty = normalizeName(profile.specialty, 'specialty');
@@ -312,31 +325,21 @@ export async function validateVitalVC(vcJws: string): Promise<VitalVC> {
     throw new Error('Invalid VC signing algorithm. ES256 required.');
   }
 
-  const expectedKid = `${getControlledIssuerDID()}#key-1`;
+  const vcObject = parseJwsPayloadObject(vcJws);
+  const expectedKid = `${vcObject.issuer}#key-1`;
   if (header.kid && header.kid !== expectedKid) {
     throw new Error(`VC signing key id must be ${expectedKid}.`);
   }
 
-  const didDocument = await resolveIssuerDID(getControlledIssuerDID());
-  verifyControlledIssuerDidDocument(didDocument);
+  const trustedPublicKey = await assertIssuerTrusted(vcObject.issuer);
 
-  const didPublicJwk = didDocument.verificationMethod[0]?.publicKeyJwk;
-  if (!didPublicJwk) {
-    throw new Error('Unable to resolve issuer DID public key.');
-  }
-
-  if (!arePublicKeysEquivalent(didPublicJwk, getPublicSigningJwk())) {
-    throw new Error('VC public key does not match DID key.');
-  }
-
-  const publicKey = await importJWK(didPublicJwk, 'ES256');
+  const publicKey = await importJWK(trustedPublicKey, 'ES256');
   await jwtVerify(vcJws, publicKey, {
     algorithms: ['ES256'],
-    issuer: getControlledIssuerDID(),
+    issuer: vcObject.issuer,
     audience: haipConfig.tokenAudience,
   });
 
-  const vcObject = parseJwsPayloadObject(vcJws);
   const credential: VitalVC = {
     '@context': vcObject['@context'],
     id: vcObject.id,
@@ -356,7 +359,7 @@ export async function validateVitalVC(vcJws: string): Promise<VitalVC> {
   }
 
   if (
-    parseSigningKeyFingerprint(didPublicJwk as Record<string, string>) !==
+    parseSigningKeyFingerprint(trustedPublicKey as Parameters<typeof parseSigningKeyFingerprint>[0]) !==
     parseSigningKeyFingerprint(getPublicSigningJwk())
   ) {
     throw new Error('VC public key fingerprint mismatch.');

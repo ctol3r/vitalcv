@@ -13,6 +13,7 @@ import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
 import { getEnterpriseCapabilities } from './enterpriseCapabilities';
 import { validateTrustChain } from './trustChain';
+import { getConfiguredIssuerDid } from '../utils/issuerDid';
 
 export type SelfTestResult = {
   passed: boolean;
@@ -45,7 +46,7 @@ async function checkDidDocumentReachable(): Promise<boolean> {
   // and the signing key can back it up. In a full deployment, this
   // would resolve did:web to the hosted DID document; here we verify
   // the configuration is coherent.
-  const issuerDid = process.env.ISSUER_DID?.trim() ?? '';
+  const issuerDid = getConfiguredIssuerDid();
   if (issuerDid.length === 0) return false;
   return checkSigningKeyPresent();
 }
@@ -94,10 +95,9 @@ async function checkRevocationWorks(): Promise<boolean> {
 }
 
 async function checkTransparencyAppendWorks(): Promise<boolean> {
-  // Transparency log append requires DB + TrustLedgerEntry table.
+  // Transparency log append requires DB + credentialTransparencyLog table.
   try {
-    // Smoke test: count query on TrustLedgerEntry
-    await prisma.trustLedgerEntry.count({ take: 1 });
+    await prisma.credentialTransparencyLog.count({ take: 1 });
     return true;
   } catch {
     return false;
@@ -105,8 +105,12 @@ async function checkTransparencyAppendWorks(): Promise<boolean> {
 }
 
 async function checkIssuerRegistryValidation(): Promise<boolean> {
-  const capabilities = getEnterpriseCapabilities();
-  return capabilities.issuerRegistryReady;
+  try {
+    const activeIssuers = await prisma.trustedIssuer.count({ where: { active: true } });
+    return activeIssuers > 0;
+  } catch {
+    return false;
+  }
 }
 
 async function checkStrictTransitionModeConsistent(): Promise<boolean> {

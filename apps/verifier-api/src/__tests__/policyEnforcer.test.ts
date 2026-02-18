@@ -11,6 +11,19 @@ import oidc4vpRouter from '../oidc4vp/routes';
 import { policyEnforcer } from '../policyEnforcer';
 import { resetReplayTable } from '../security/dpopReplayTable';
 
+const seenJtis = new Set<string>();
+vi.mock('../security/dpopReplayTable', async (importOriginal) => {
+  return {
+    ...(await importOriginal<typeof import('../security/dpopReplayTable')>()),
+    isReplayJti: vi.fn(async (jti: string) => {
+      if (seenJtis.has(jti)) return true;
+      seenJtis.add(jti);
+      return false;
+    }),
+    resetReplayTable: vi.fn(() => { seenJtis.clear(); }),
+  };
+});
+
 type MockResponse = Response & {
   statusCode: number;
   body?: unknown;

@@ -2,9 +2,11 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import * as Sentry from '@sentry/node';
+import cron from 'node-cron';
 import { loadEnv } from './config/env';
 import { initializeTelemetry, shutdownTelemetry } from './telemetry';
 import { log } from './obs/logger';
+import { runMonitoringCycle } from '../jobs/monitoringJob';
 
 const APP_READY_MESSAGE = 'Server ready';
 
@@ -126,6 +128,37 @@ async function main() {
       environment: config.NODE_ENV,
       frozen: config.SYSTEM_FROZEN,
     });
+
+    // Wave 2D: Schedule monitoring cycle every 24 hours (midnight UTC)
+    if (!config.SYSTEM_FROZEN) {
+      const monitoringTask = cron.schedule('0 0 * * *', async () => {
+        log('info', 'monitoring_cron_triggered', { event: 'monitoring_cron_triggered' });
+        try {
+          const result = await runMonitoringCycle();
+          log('info', 'monitoring_cron_completed', {
+            event: 'monitoring_cron_completed',
+            totalChecked: result.totalChecked,
+            statusChanges: result.statusChanges,
+            deltasDetected: result.deltasDetected,
+            errors: result.errors,
+            durationMs: result.durationMs,
+          });
+        } catch (error) {
+          log('error', 'monitoring_cron_failed', {
+            event: 'monitoring_cron_failed',
+            error: error instanceof Error ? error.message : 'unknown',
+          });
+        }
+      }, { timezone: 'UTC' });
+
+      process.on('SIGTERM', () => monitoringTask.stop());
+      process.on('SIGINT', () => monitoringTask.stop());
+
+      log('info', 'monitoring_cron_scheduled', {
+        event: 'monitoring_cron_scheduled',
+        schedule: '0 0 * * * (daily at midnight UTC)',
+      });
+    }
   });
 }
 

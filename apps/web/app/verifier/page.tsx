@@ -471,7 +471,7 @@ function VerifierPageContent() {
   const failedOrPendingReceipts = receiptRows.filter((r) => r.outcome !== 'PASS');
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8 flex flex-col items-center justify-start font-sans">
+    <main className="min-h-screen bg-slate-50 p-8 flex flex-col items-center justify-start font-sans">
       <div className="w-full max-w-3xl space-y-8">
         
         {/* Header */}
@@ -504,13 +504,13 @@ function VerifierPageContent() {
 
           <div className="flex items-center justify-between pt-4 border-t border-slate-100">
              <div className="flex items-center gap-4">
-               <Tabs value={employerId} onValueChange={setEmployerId} className="w-[400px]">
+               <Tabs value={employerId.replace(':', '-')} onValueChange={(v) => setEmployerId(v.replace('-', ':'))} className="w-[400px]">
                  <TabsList>
-                   <TabsTrigger value="employer:alpha" className="flex items-center gap-2">
+                   <TabsTrigger value="employer-alpha" className="flex items-center gap-2">
                      <Building2 className="w-4 h-4" />
                      Employer A
                    </TabsTrigger>
-                   <TabsTrigger value="employer:beta" className="flex items-center gap-2">
+                   <TabsTrigger value="employer-beta" className="flex items-center gap-2">
                      <Building2 className="w-4 h-4" />
                      Employer B
                    </TabsTrigger>
@@ -552,7 +552,7 @@ function VerifierPageContent() {
                  <CardContent className="pt-6">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">System Explanation</h3>
+                      <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">System Explanation</h2>
                     </div>
                     <p className="text-lg leading-relaxed text-slate-200 font-medium">
                       "{trustObserver.explanation}"
@@ -714,10 +714,10 @@ function VerifierPageContent() {
 
             {/* System Check / Blocking Reasons */}
             <div className={`border rounded-lg p-4 transition-colors ${status.blocking_reasons && status.blocking_reasons.length > 0 && !status.start_ready ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'}`}>
-               <h3 className={`font-semibold flex items-center gap-2 text-sm uppercase tracking-wide mb-2 ${status.blocking_reasons && status.blocking_reasons.length > 0 && !status.start_ready ? 'text-red-800' : 'text-green-800'}`}>
+               <h2 className={`font-semibold flex items-center gap-2 text-sm uppercase tracking-wide mb-2 ${status.blocking_reasons && status.blocking_reasons.length > 0 && !status.start_ready ? 'text-red-800' : 'text-green-800'}`}>
                  {status.blocking_reasons && status.blocking_reasons.length > 0 && !status.start_ready ? <AlertCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
                  {status.blocking_reasons && status.blocking_reasons.length > 0 && !status.start_ready ? 'Blocking Reasons' : 'System Check'}
-               </h3>
+               </h2>
                {status.blocking_reasons && status.blocking_reasons.length > 0 && !status.start_ready ? (
                  <ul className="list-disc list-inside space-y-1">
                    {status.blocking_reasons.map((reason: string) => (
@@ -924,7 +924,7 @@ function VerifierPageContent() {
                      <div className="flex justify-between items-start">
                        <div>
                          <div className="flex items-center gap-2">
-                           <h3 className={`font-semibold text-lg ${status.recognized ? 'text-slate-900' : 'text-slate-400'}`}>Network Recognition</h3>
+                           <h2 className={`font-semibold text-lg ${status.recognized ? 'text-slate-900' : 'text-slate-400'}`}>Network Recognition</h2>
                            {/* Reuse Visibility */}
                            {status.recognized && (
                              <Badge variant="outline" className="text-blue-700 border-blue-200 bg-blue-50">
@@ -975,7 +975,7 @@ function VerifierPageContent() {
                    <div className="flex-1 pt-2">
                      <div className="flex justify-between items-start mb-3">
                        <div>
-                         <h3 className={`font-semibold text-lg ${status.accepted ? 'text-slate-900' : 'text-slate-500'}`}>Employer Acceptance</h3>
+                         <h2 className={`font-semibold text-lg ${status.accepted ? 'text-slate-900' : 'text-slate-500'}`}>Employer Acceptance</h2>
                          <p className="text-sm text-slate-500">Commitment to employ recognized subject</p>
                          
                          {status.accepted && status.acceptanceDetails && (
@@ -1071,7 +1071,7 @@ function VerifierPageContent() {
                    <div className="flex-1 pt-2">
                      <div className="flex justify-between items-start mb-3">
                        <div>
-                         <h3 className={`font-semibold text-lg ${status.started ? 'text-slate-900' : 'text-slate-500'}`}>Start Attestation</h3>
+                         <h2 className={`font-semibold text-lg ${status.started ? 'text-slate-900' : 'text-slate-500'}`}>Start Attestation</h2>
                          <p className="text-sm text-slate-500">Official commencement of clinical duties</p>
                          
                          {status.started && (
@@ -1125,7 +1125,7 @@ function VerifierPageContent() {
           <div className="w-full max-w-3xl flex justify-between text-xs text-slate-400 px-1">
           <form onSubmit={handlePilotActivate} className="mt-0 w-full space-y-3 border border-slate-200 p-4 rounded-lg">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold text-slate-700">Verifier Pilot Access</h3>
+              <h2 className="text-sm font-semibold text-slate-700">Verifier Pilot Access</h2>
               <Button type="submit" disabled={pilotActivationLoading} className="bg-slate-900">
                 {pilotActivationLoading ? 'Submitting…' : pilotActivationButtonLabel}
               </Button>
@@ -1150,6 +1150,6 @@ function VerifierPageContent() {
         </div>
         ) : null}
       </div>
-    </div>
+    </main>
   );
 }

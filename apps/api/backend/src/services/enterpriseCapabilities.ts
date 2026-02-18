@@ -6,6 +6,8 @@
  */
 
 import { log } from '../obs/logger';
+import { isStrictTransitionMode, parseBooleanEnv } from '../utils/environment';
+import { getConfiguredIssuerDid, isValidDidFormat } from '../utils/issuerDid';
 
 export type EnterpriseCapabilities = {
   openId4VCIReady: boolean;
@@ -21,12 +23,6 @@ export type EnterpriseCapabilities = {
 };
 
 // ── Runtime checks ────────────────────────────────────────────
-
-function parseBooleanEnv(raw: string | undefined): boolean {
-  if (!raw) return false;
-  const normalized = raw.trim().toLowerCase();
-  return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
-}
 
 function resolveEnvironment(): 'development' | 'staging' | 'production' {
   const raw = (process.env.NODE_ENV ?? 'development').trim().toLowerCase();
@@ -59,15 +55,14 @@ function parseSigningJwkPresent(): boolean {
 
 function isHaipCompliant(): boolean {
   if (!parseSigningJwkPresent()) return false;
-  const pkce = parseBooleanEnv(process.env.PKCE_REQUIRED) || process.env.PKCE_REQUIRED === undefined;
-  const par = parseBooleanEnv(process.env.PAR_REQUIRED) || process.env.PAR_REQUIRED === undefined;
-  const dpop = parseBooleanEnv(process.env.DPOP_REQUIRED) || process.env.DPOP_REQUIRED === undefined;
+  const pkce = parseBooleanEnv(process.env.PKCE_REQUIRED, true);
+  const par = parseBooleanEnv(process.env.PAR_REQUIRED, true);
+  const dpop = parseBooleanEnv(process.env.DPOP_REQUIRED, true);
   return pkce && par && dpop;
 }
 
 function isDidReady(): boolean {
-  const issuerDid = process.env.ISSUER_DID?.trim() ?? '';
-  return issuerDid.length > 0 && parseSigningJwkPresent();
+  return isValidDidFormat(getConfiguredIssuerDid()) && parseSigningJwkPresent();
 }
 
 function isOpenId4VCIReady(): boolean {
@@ -75,7 +70,7 @@ function isOpenId4VCIReady(): boolean {
 }
 
 function isStrictMode(): boolean {
-  return parseBooleanEnv(process.env.STRICT_TRANSITION_MODE);
+  return isStrictTransitionMode();
 }
 
 function isIssuerRegistryReady(): boolean {
