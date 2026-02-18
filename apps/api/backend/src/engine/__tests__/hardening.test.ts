@@ -81,6 +81,8 @@ function makePayload(credentials?: Credential[]): NormalizedCredentialPayload {
 // ── Setup/teardown ────────────────────────────────────────────
 
 let originalEnv: NodeJS.ProcessEnv;
+let testPrivateKey: string;
+let testPublicKey: string;
 
 beforeAll(() => {
   originalEnv = { ...process.env };
@@ -89,14 +91,19 @@ beforeAll(() => {
     privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
     publicKeyEncoding: { type: 'spki', format: 'pem' },
   });
-  process.env['PSV_SIGNING_PRIVATE_KEY'] = privateKey as string;
-  process.env['PSV_SIGNING_PUBLIC_KEY'] = publicKey as string;
-  process.env['PSV_SIGNING_KID'] = 'hardening-test-key-1';
-  _resetKeyCache();
+  testPrivateKey = privateKey as string;
+  testPublicKey = publicKey as string;
 });
 
 afterAll(() => {
   process.env = originalEnv;
+  _resetKeyCache();
+});
+
+beforeEach(() => {
+  process.env['PSV_SIGNING_PRIVATE_KEY'] = testPrivateKey;
+  process.env['PSV_SIGNING_PUBLIC_KEY'] = testPublicKey;
+  process.env['PSV_SIGNING_KID'] = 'hardening-test-key-1';
   _resetKeyCache();
 });
 
