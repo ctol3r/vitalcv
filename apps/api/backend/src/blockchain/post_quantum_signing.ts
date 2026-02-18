@@ -1,11 +1,11 @@
-declare var require: any;
-const crypto = require("crypto");
+import crypto from "crypto";
+
 export interface VerifiableCredential {
     id: string;
     issuer: string;
     subject: string;
     issuanceDate: string;
-    credentialSubject: any;
+    credentialSubject: Record<string, unknown>;
 }
 
 export interface SignedCredential {

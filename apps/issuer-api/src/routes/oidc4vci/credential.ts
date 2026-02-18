@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { decodeJwt } from 'jose';
 import { Request, Response, Router } from 'express';
 import {
@@ -18,6 +17,7 @@ import {
   verifyControlledIssuerDidDocument,
 } from '../../services/vcIssuer';
 import { getControlledIssuerDID } from '../../utils/didGenerator';
+import { hashDeterministicPayload } from '../../utils/deterministic';
 
 const router: Router = Router();
 
@@ -73,11 +73,6 @@ function parseArtifactId(body: unknown): string | null {
   return parseRequiredString(body.id, 'artifact.id');
 }
 
-function digestPayload(value: unknown): string {
-  const payload = JSON.stringify(value);
-  return createHash('sha256').update(payload).digest('hex');
-}
-
 function ensureArtifactIntegrity(artifactInput: unknown, requireArtifact: boolean): void {
   if (!artifactInput) {
     if (requireArtifact) {
@@ -113,7 +108,7 @@ function ensureArtifactIntegrity(artifactInput: unknown, requireArtifact: boolea
   }
 
   const expected = integrityInput.startsWith('sha256:') ? integrityInput.slice(7) : integrityInput;
-  const computed = digestPayload(payloadForIntegrity);
+  const computed = hashDeterministicPayload(payloadForIntegrity);
 
   if (expected !== computed) {
     throw new Error(`artifact integrity mismatch for ${artifactId}.`);

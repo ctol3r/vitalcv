@@ -23,7 +23,7 @@ export class WebAuthnOIDCBridge {
     }
 
     // Verify the WebAuthn response and issue an OIDC code
-    verifyAndCreateOIDCCode(webauthnResponse: any): string {
+    verifyAndCreateOIDCCode(webauthnResponse: Record<string, unknown>): string {
         // In a real implementation we would validate the response and
         // generate a signed OAuth2/OIDC authorization code
         return 'dummy-oidc-code';

@@ -8,7 +8,7 @@ import didRoutes from './routes/did';
 import walletRoutes from './routes/wallet';
 import oidc4vciRoutes from './routes/oidc4vci/credential';
 
-const app = express();
+const app: ReturnType<typeof express> = express();
 
 if (process.env.NODE_ENV === 'production' && !isSigningKeyConfigured()) {
   throw new Error('Production requires ISSUER_SIGNING_JWK or SIGNING_KEY_JWK configuration.');

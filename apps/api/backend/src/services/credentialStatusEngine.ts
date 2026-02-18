@@ -1,4 +1,4 @@
-import { CredentialLifecycleState } from '../../../../../types/credentialLifecycle';
+import { CredentialLifecycleState } from '../utils/lifecycleState';
 
 type CredentialStateInput = {
   revokedAt: Date | null;
@@ -13,6 +13,8 @@ const LEGACY_STATE_TO_LIFECYCLE: Readonly<Record<string, CredentialLifecycleStat
   expiring_soon: CredentialLifecycleState.ACTIVE,
   needs_review: CredentialLifecycleState.SUSPENDED,
   expired: CredentialLifecycleState.EXPIRED,
+  revoked: CredentialLifecycleState.REVOKED,
+  active: CredentialLifecycleState.ACTIVE,
 };
 
 export function mapLegacyLifecycleState(status: string | null | undefined): CredentialLifecycleState | null {
@@ -20,7 +22,8 @@ export function mapLegacyLifecycleState(status: string | null | undefined): Cred
     return null;
   }
 
-  const mapped = LEGACY_STATE_TO_LIFECYCLE[status.toLowerCase()];
+  const normalizedStatus = status.toLowerCase().trim();
+  const mapped = LEGACY_STATE_TO_LIFECYCLE[normalizedStatus];
   if (mapped !== undefined) {
     return mapped;
   }

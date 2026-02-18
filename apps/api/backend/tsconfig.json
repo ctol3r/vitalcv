@@ -15,7 +15,8 @@
       "@vitalcv/psv/*": ["packages/psv/*"],
       "@vitalcv/crs/*": ["packages/crs/*"],
       "@vitalcv/trust-state/*": ["packages/trust-state/*"],
-      "@vitalcv/audit/*": ["packages/audit/*"]
+      "@vitalcv/audit/*": ["packages/audit/*"],
+      "@vitalcv/haip-config": ["packages/haip-config"]
     },
 
     "types": ["node", "jest"],
@@ -24,7 +25,7 @@
     "skipLibCheck": true,
     "outDir": "dist"
   },
-  "include": ["src"],
+  "include": ["src", "jobs", "adapters", "types", "routes"],
   "exclude": [
     "node_modules",
     "src/blockchain/**",

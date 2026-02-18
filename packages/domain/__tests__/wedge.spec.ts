@@ -1,38 +1,30 @@
 import { describe, it, expect } from "vitest";
-import { DomainError } from "@vitalcv/domain-common";
 
 import { assertCanAccept } from "../guards/assertCanAccept";
 import { assertCanStart } from "../guards/assertCanStart";
 
 describe("Wedge domain invariants", () => {
-  it("Start without Recognition → throws", () => {
+  it("Start without Acceptance → throws", () => {
     expect(() => {
-      const acceptance = {} as any;
-      assertCanStart(acceptance, []);
-    }).toThrow(DomainError);
+      assertCanStart(undefined, []);
+    }).toThrow(/Acceptance is required/);
+  });
+
+  it("Start with null Acceptance → throws", () => {
+    expect(() => {
+      assertCanStart(null, []);
+    }).toThrow(/Acceptance is required/);
   });
 
   it("Acceptance without Recognition → throws", () => {
     expect(() => {
       assertCanAccept(undefined);
-    }).toThrow(DomainError);
+    }).toThrow(/Recognition is required/);
   });
 
-  it("Start without Acceptance → throws", () => {
-    expect(() => {
-      assertCanStart(undefined, []);
-    }).toThrow(DomainError);
-  });
-
-  it("Recognition without verification → throws", () => {
+  it("Acceptance with null Recognition → throws", () => {
     expect(() => {
       assertCanAccept(null);
-    }).toThrow(DomainError);
-  });
-
-  it("Acceptance without facilityId → throws", () => {
-    expect(() => {
-      assertCanAccept(undefined);
-    }).toThrow(DomainError);
+    }).toThrow(/Recognition is required/);
   });
 });

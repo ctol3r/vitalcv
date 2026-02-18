@@ -44,7 +44,7 @@ describe('observability middleware', () => {
     const res = await request(app).get('/boom').set('x-request-id', 'req-err-1');
 
     expect(res.status).toBe(500);
-    expect(res.body.error).toBe('boom');
+    expect(res.body.error?.message ?? res.body.error).toBe('boom');
     expect(console.error).toHaveBeenCalled();
   });
 });

@@ -262,6 +262,48 @@ model ShareLink {
   @@index([createdAt])
 }
 
+model Organization {
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String
+  slug          String   @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model NursysEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  npi           String
+  licenseNumber String
+  state         String
+  eventType     String
+  rawPayload    Json     @db.JsonB
+  receivedAt    DateTime @default(now())
+
+  @@index([npi])
+  @@index([licenseNumber])
+}
+
+model PecosCheck {
+  id             String   @id @default(uuid()) @db.Uuid
+  npi            String
+  enrolled       Boolean
+  enrollmentType String?
+  rawPayload     Json     @db.JsonB
+  checkedAt      DateTime @default(now())
+
+  @@index([npi])
+}
+
+model CrossCheckBundle {
+  id             String   @id @default(uuid()) @db.Uuid
+  artifactId     String
+  checksum       String
+  crossCheckPass Boolean
+  createdAt      DateTime @default(now())
+
+  @@index([artifactId])
+}
+
 model VerifierAcceptance {
   id           String   @id @default(uuid()) @db.Uuid
   organization String
@@ -351,11 +393,17 @@ model VerificationArtifact {
   suspendedAt DateTime?
   revocationReason String?
   statusLastChecked DateTime @default(now())
+  psvWindowStart    DateTime?
+  psvWindowDeadline DateTime?
+  psvWindowCompliant Boolean?
   verifiedAt DateTime
   expiresAt  DateTime?
   monitoring Boolean   @default(false)
   organizationId String? @db.Uuid
   trustState String    @default("needs_review")
+  // Wave Y: Expiration forecasting
+  daysUntilExpiration  Int?
+  forecastRiskLevel    String?   // low | medium | high
   createdAt  DateTime  @default(now())
 
   snapshots AuditSnapshot[]
@@ -373,6 +421,47 @@ model VerificationArtifact {
   // Wave M: Performance indexes
   @@index([checksum])
   @@index([merkleRoot])
+  // Wave Y: Forecast index
+  @@index([forecastRiskLevel])
+}
+
+model TrustedIssuer {
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String
+  did          String    @unique
+  publicKeyJwk Json      @db.JsonB
+  active       Boolean   @default(true)
+  organizationId String?  @db.Uuid
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([organizationId])
+}
+
+model CredentialTransparencyLog {
+  id            String    @id @default(uuid()) @db.Uuid
+  artifactId    String
+  fingerprint   String
+  merkleRoot    String
+  lifecycleState String
+  organizationId String?   @db.Uuid
+  createdAt     DateTime  @default(now())
+
+  @@index([artifactId])
+  @@index([fingerprint])
+  @@index([organizationId])
+}
+
+model OrganizationTrust {
+  id                  String   @id @default(uuid()) @db.Uuid
+  sourceOrgId         String   @db.Uuid
+  targetOrgId         String   @db.Uuid
+  trustLevel          String
+  active              Boolean  @default(true)
+  createdAt           DateTime @default(now())
+
+  @@index([sourceOrgId])
+  @@index([targetOrgId])
 }
 
 model TrustLedgerEntry {
@@ -441,4 +530,105 @@ model MonitoringEvent {
   @@index([organizationId])
   @@index([source])
   @@index([detectedAt])
+}
+
+model CredentialMonitoringEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  artifactId     String
+  organizationId String   @db.Uuid
+  eventType      String
+  createdAt      DateTime @default(now())
+
+  @@index([artifactId])
+  @@index([organizationId])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Wave R: Onboarding Analytics (revenue signal computation)
+// ──────────────────────────────────────────────────────────────
+
+model OnboardingAnalytics {
+  id                  String    @id @default(uuid()) @db.Uuid
+  organizationId      String
+  artifactId          String
+  createdAt           DateTime  @default(now())
+  firstVerifiedAt     DateTime?
+  firstProofIssuedAt  DateTime?
+  psvCompletedAt      DateTime?
+  daysToVerification  Int?
+  daysToPSVCompletion Int?
+
+  @@index([organizationId])
+  @@index([artifactId])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Wave T: System Failure Events (observability + isolation)
+// ──────────────────────────────────────────────────────────────
+
+model SystemFailureEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  component      String
+  severity       String   // "warning", "error", "critical"
+  message        String
+  artifactId     String?
+  organizationId String?
+  createdAt      DateTime @default(now())
+
+  @@index([severity])
+  @@index([createdAt])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Wave 2A: Normalized persistence (Provider → VerificationRun → Artifact)
+// ──────────────────────────────────────────────────────────────
+
+model Provider {
+  id              String   @id @default(uuid()) @db.Uuid
+  npi             String   @unique
+  fullName        String
+  providerType    String
+  taxonomyCode    String
+  stateOfPractice String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  verificationRuns VerificationRun[]
+}
+
+model VerificationRun {
+  id              String   @id @default(uuid()) @db.Uuid
+  providerId      String   @db.Uuid
+  sourceName      String
+  retrievedAtUtc  DateTime
+  rawPayloadHash  String
+  artifactHash    String
+  createdAt       DateTime @default(now())
+
+  provider  Provider   @relation(fields: [providerId], references: [id])
+  artifacts W2Artifact[]
+}
+
+model W2Artifact {
+  id                  String   @id @default(uuid()) @db.Uuid
+  verificationRunId   String   @db.Uuid
+  artifactJson        Json     @db.JsonB
+  signature           String
+  signatureAlgorithm  String
+  signatureIssuedAt   DateTime
+  createdAt           DateTime @default(now())
+
+  verificationRun VerificationRun @relation(fields: [verificationRunId], references: [id])
+  deltaLogs       DeltaLog[]
+}
+
+model DeltaLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  artifactId     String   @db.Uuid
+  previousStatus String
+  newStatus      String
+  deltaHash      String
+  detectedAt     DateTime @default(now())
+
+  artifact W2Artifact @relation(fields: [artifactId], references: [id])
 }

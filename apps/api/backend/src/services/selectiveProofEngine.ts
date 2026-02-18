@@ -1,9 +1,9 @@
-import { createHash } from 'node:crypto';
 import type { ClaimProof } from '../types/selectiveProof';
 import type { CanonicalClaim } from '../utils/claimHash';
 import { hashClaim } from '../utils/claimHash';
-import { generateMerkleProofPath } from './merkleTree';
+import { buildMerkleProofPath } from './merkleTree';
 import { validateMerkleIntegrity } from './merkleIntegrity';
+import { hashMerkleConcat } from '../utils/merkle';
 
 /**
  * Minimal artifact shape required by the proof engine.
@@ -137,10 +137,6 @@ function parseStoredClaimHashes(value: unknown): string[] {
   return hashes;
 }
 
-function hashConcat(left: string, right: string): string {
-  return createHash('sha256').update(`${left}${right}`).digest('hex');
-}
-
 // ── Proof generation ────────────────────────────────────────
 
 /**
@@ -189,7 +185,7 @@ export function generateClaimProof(
   }
 
   // Generate proof path using the canonical claims
-  const proofResult = generateMerkleProofPath(claims, normalizedType);
+  const proofResult = buildMerkleProofPath(claims, normalizedType);
 
   // Cross-check: proof root must match stored root
   if (proofResult.root !== artifact.merkleRoot) {
@@ -254,10 +250,10 @@ export function verifyClaimProof(proof: ClaimProof): boolean {
   for (const sibling of proof.proofPath) {
     if (index % 2 === 0) {
       // Current node is left child, sibling is right
-      currentHash = hashConcat(currentHash, sibling);
+      currentHash = hashMerkleConcat(currentHash, sibling);
     } else {
       // Current node is right child, sibling is left
-      currentHash = hashConcat(sibling, currentHash);
+      currentHash = hashMerkleConcat(sibling, currentHash);
     }
     index = Math.floor(index / 2);
   }

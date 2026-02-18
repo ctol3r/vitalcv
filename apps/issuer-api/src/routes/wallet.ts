@@ -35,6 +35,19 @@ function parseOptionalString(value: unknown): string | undefined {
   return normalized.length > 0 ? normalized : undefined;
 }
 
+function getOrganizationIdFromContext(req: Request, providedBodyOrganizationId?: string): string {
+  const headerOrganizationId = normalizeString(req.get('x-org-id'));
+  const bodyOrganizationId = parseOptionalString(providedBodyOrganizationId);
+  if (bodyOrganizationId && headerOrganizationId && bodyOrganizationId !== headerOrganizationId) {
+    throw new Error('organizationId mismatch between header and request body.');
+  }
+  const resolvedOrganizationId = bodyOrganizationId ?? headerOrganizationId;
+  if (!resolvedOrganizationId) {
+    throw new Error('organizationId is required.');
+  }
+  return resolvedOrganizationId;
+}
+
 function parseVerifierApiKeys(): Set<string> {
   const raw = process.env.VERIFIER_WALLET_API_KEYS ?? process.env.API_KEYS ?? '';
   return new Set(
@@ -95,7 +108,7 @@ router.post('/store', async (req: Request, res: Response): Promise<void> => {
   try {
     const walletId = parseRequiredString(body.walletId, 'walletId');
     const credential = parseRequiredString(body.credential, 'credential');
-    const organizationId = parseOptionalString(body.organizationId);
+    const organizationId = getOrganizationIdFromContext(req, parseOptionalString(body.organizationId));
 
     const wallet = await storeCredential(walletId, credential, organizationId);
     res.status(201).json(wallet);
@@ -110,7 +123,9 @@ router.post('/store', async (req: Request, res: Response): Promise<void> => {
 router.get('/:walletId', async (req: Request, res: Response): Promise<void> => {
   try {
     const walletId = parseRequiredString(req.params.walletId, 'walletId');
-    const wallet = getWalletRecord(walletId);
+    const organizationId = getOrganizationIdFromContext(req);
+
+    const wallet = getWalletRecord(walletId, organizationId);
 
     if (!wallet) {
       res.status(404).json({
@@ -131,7 +146,16 @@ router.get('/:walletId', async (req: Request, res: Response): Promise<void> => {
 router.get('/:walletId/credentials', async (req: Request, res: Response): Promise<void> => {
   try {
     const walletId = parseRequiredString(req.params.walletId, 'walletId');
-    const credentials = listCredentials(walletId);
+    const organizationId = getOrganizationIdFromContext(req);
+    const wallet = getWalletRecord(walletId, organizationId);
+    if (!wallet) {
+      res.status(404).json({
+        error: 'wallet_not_found',
+      });
+      return;
+    }
+
+    const credentials = listCredentials(walletId, organizationId);
     res.status(200).json({
       walletId,
       credentials,
@@ -150,8 +174,16 @@ router.post('/verify', async (req: Request, res: Response): Promise<void> => {
   try {
     const walletId = parseRequiredString(body.walletId, 'walletId');
     const vcId = parseRequiredString(body.vcId, 'vcId');
+    const organizationId = getOrganizationIdFromContext(req, parseOptionalString(body.organizationId));
+    const wallet = getWalletRecord(walletId, organizationId);
+    if (!wallet) {
+      res.status(404).json({
+        error: 'wallet_not_found',
+      });
+      return;
+    }
 
-    const valid = await verifyStoredCredential(walletId, vcId);
+    const valid = await verifyStoredCredential(walletId, vcId, organizationId);
     res.status(200).json({
       walletId,
       vcId,

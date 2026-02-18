@@ -1,4 +1,10 @@
-import type { CredentialLifecycleState } from '../../../../types/credentialLifecycle';
+enum CredentialLifecycleState {
+  ISSUED = 'issued',
+  ACTIVE = 'active',
+  SUSPENDED = 'suspended',
+  REVOKED = 'revoked',
+  EXPIRED = 'expired',
+}
 
 type CredentialStatusResponse = {
   lifecycleState: string;

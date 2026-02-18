@@ -1,0 +1,19 @@
+[build]
+builder = "NIXPACKS"
+buildCommand = "cd apps/api/backend && pnpm run build"
+watchPatterns = [
+  "apps/api/backend/**",
+  "apps/api/verification/**",
+  "apps/api/routes/**",
+  "apps/api/ingest/**",
+  "packages/haip-config/**",
+  "packages/ingest/**",
+  "pnpm-lock.yaml"
+]
+
+[deploy]
+startCommand = "cd apps/api/backend && pnpm run db:migrate:deploy && pnpm run start"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5

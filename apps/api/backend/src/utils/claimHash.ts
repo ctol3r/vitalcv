@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { sha256Hex } from './deterministic';
 
 export interface CanonicalClaim {
   type: string;
@@ -7,5 +7,5 @@ export interface CanonicalClaim {
 
 export function hashClaim(claim: CanonicalClaim): string {
   const payload = `${claim.type}:${String(claim.value)}`;
-  return createHash('sha256').update(payload).digest('hex');
+  return sha256Hex(payload);
 }

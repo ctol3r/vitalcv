@@ -1,5 +1,5 @@
-import { createHash } from 'crypto';
 import type { NextFunction, Request, Response } from 'express';
+import { sha256Hex } from '../utils/deterministic';
 
 const DEFAULT_RATE_LIMIT_PER_MINUTE = 120;
 const DEFAULT_PUBLIC_RATE_LIMIT = 100;
@@ -39,7 +39,7 @@ function configuredApiKeys(): Set<string> {
 }
 
 function toApiKeyId(apiKey: string): string {
-  const fingerprint = createHash('sha256').update(apiKey).digest('hex').slice(0, 12);
+  const fingerprint = sha256Hex(apiKey).slice(0, 12);
   return `key-${fingerprint}`;
 }
 

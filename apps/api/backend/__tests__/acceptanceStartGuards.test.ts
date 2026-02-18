@@ -77,7 +77,7 @@ describe('acceptance/start guards', () => {
       data: {
         type: 'INGEST_CONFLICT_DETECTED',
         hash: crypto.createHash('sha256').update('conflict').digest('hex'),
-        credentialId: CLINICIAN_ID,
+        clinicianId: CLINICIAN_ID,
         metadata: {
           conflict_type: 'NAME_MISMATCH',
           status: 'UNRESOLVED',

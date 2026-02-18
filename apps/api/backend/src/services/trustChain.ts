@@ -1,5 +1,5 @@
-import crypto from 'node:crypto';
 import prisma from '../graphql/prisma_client';
+import { sha256ForPayload } from '../utils/deterministic';
 
 type LedgerEvent = {
   eventType: 'RECOGNITION' | 'ACCEPTANCE' | 'START';
@@ -30,37 +30,21 @@ export type TrustChainValidationResult = {
   };
 };
 
-function stableStringify(value: unknown): string {
-  if (value === null || value === undefined) return 'null';
-  if (value instanceof Date) return JSON.stringify(value.toISOString());
-  if (typeof value !== 'object') return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map((item) => stableStringify(item)).join(',')}]`;
-
-  const obj = value as Record<string, unknown>;
-  const keys = Object.keys(obj).sort();
-  return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(obj[key])}`).join(',')}}`;
-}
-
 function buildExpectedRecognitionHash(row: {
   recognitionId: string;
   subjectId: string;
   employerId: string;
   recognizedAt: Date;
 }): string {
-  return crypto
-    .createHash('sha256')
-    .update(
-      stableStringify({
-        eventType: 'RECOGNITION_EMITTED',
-        payload: {
-          recognitionId: row.recognitionId,
-          subjectId: row.subjectId,
-          employerId: row.employerId,
-          recognizedAt: row.recognizedAt.toISOString(),
-        },
-      }),
-    )
-    .digest('hex');
+  return sha256ForPayload({
+    eventType: 'RECOGNITION_EMITTED',
+    payload: {
+      recognitionId: row.recognitionId,
+      subjectId: row.subjectId,
+      employerId: row.employerId,
+      recognizedAt: row.recognizedAt.toISOString(),
+    },
+  });
 }
 
 function buildExpectedAcceptanceHash(row: {
@@ -70,21 +54,16 @@ function buildExpectedAcceptanceHash(row: {
   employerId: string;
   acceptedAt: Date;
 }): string {
-  return crypto
-    .createHash('sha256')
-    .update(
-      stableStringify({
-        eventType: 'ACCEPTANCE_EMITTED',
-        payload: {
-          acceptanceId: row.acceptanceId,
-          recognitionId: row.recognitionId,
-          subjectId: row.subjectId,
-          employerId: row.employerId,
-          acceptedAt: row.acceptedAt.toISOString(),
-        },
-      }),
-    )
-    .digest('hex');
+  return sha256ForPayload({
+    eventType: 'ACCEPTANCE_EMITTED',
+    payload: {
+      acceptanceId: row.acceptanceId,
+      recognitionId: row.recognitionId,
+      subjectId: row.subjectId,
+      employerId: row.employerId,
+      acceptedAt: row.acceptedAt.toISOString(),
+    },
+  });
 }
 
 function buildExpectedStartHash(row: {
@@ -94,21 +73,16 @@ function buildExpectedStartHash(row: {
   employerId: string;
   attestedAt: Date;
 }): string {
-  return crypto
-    .createHash('sha256')
-    .update(
-      stableStringify({
-        eventType: 'START_EMITTED',
-        payload: {
-          startId: row.startId,
-          acceptanceId: row.acceptanceId,
-          subjectId: row.subjectId,
-          employerId: row.employerId,
-          attestedAt: row.attestedAt.toISOString(),
-        },
-      }),
-    )
-    .digest('hex');
+  return sha256ForPayload({
+    eventType: 'START_EMITTED',
+    payload: {
+      startId: row.startId,
+      acceptanceId: row.acceptanceId,
+      subjectId: row.subjectId,
+      employerId: row.employerId,
+      attestedAt: row.attestedAt.toISOString(),
+    },
+  });
 }
 
 function deriveSubjectIds(npi: string): string[] {

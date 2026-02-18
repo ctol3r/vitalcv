@@ -88,8 +88,8 @@ async function insertCanonicalEvent(
     data: {
       type: eventType,
       hash: metadata.eventHash,
-      credentialId,
-      metadata,
+      clinicianId: credentialId,
+      metadata: JSON.parse(JSON.stringify(metadata)),
       createdAt: new Date(),
     },
   });

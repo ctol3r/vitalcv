@@ -1,0 +1,114 @@
+import { exportJWK, exportPKCS8, generateKeyPair } from 'jose';
+import { rm } from 'node:fs/promises';
+import path from 'node:path';
+import { sha256ForPayload } from '../src/utils/deterministic';
+import { generateIdentityArtifact } from '../src/modules/identity/nppes.artifact.generator';
+import { signArtifact } from '../src/modules/identity/signer';
+import { verifyArtifactSignature } from '../src/modules/identity/verification';
+import { LocalStorageProvider } from '../src/modules/identity/storage';
+
+const JWKS_URL = 'https://identity.local/.well-known/jwks.json';
+
+describe('identity artifact crypto hardening', () => {
+  const originalPrivateKey = process.env.VCV_PRIVATE_KEY;
+  const originalPublicKey = process.env.VCV_PUBLIC_KEY;
+  const originalJwksUrl = process.env.IDENTITY_JWKS_URL;
+  let fetchSpy: jest.SpiedFunction<typeof fetch>;
+  const storageProvider = new LocalStorageProvider('/tmp/vitalcv-identity-test');
+
+  beforeAll(async () => {
+    const { privateKey, publicKey } = await generateKeyPair('ES256', { extractable: true });
+    process.env.VCV_PRIVATE_KEY = Buffer.from(await exportPKCS8(privateKey)).toString('base64');
+    process.env.IDENTITY_JWKS_URL = JWKS_URL;
+
+    const publicJwk = await exportJWK(publicKey);
+    const jwks = {
+      keys: [
+        {
+          ...publicJwk,
+          kid: 'vcv-key-2026-01',
+          alg: 'ES256',
+          use: 'sig',
+        },
+      ],
+    };
+
+    fetchSpy = jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () =>
+        new Response(JSON.stringify(jwks), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
+  });
+
+  afterAll(async () => {
+    process.env.VCV_PRIVATE_KEY = originalPrivateKey;
+    process.env.VCV_PUBLIC_KEY = originalPublicKey;
+    process.env.IDENTITY_JWKS_URL = originalJwksUrl;
+
+    fetchSpy.mockRestore();
+  });
+
+  it('returns same hash when key order changes and payload content does not', () => {
+    const a = { b: 2, a: { y: 2, x: 1 }, z: [3, 1, 2] };
+    const b = { z: [3, 1, 2], a: { x: 1, y: 2 }, b: 2 };
+
+    expect(sha256ForPayload(a)).toBe(sha256ForPayload(b));
+  });
+
+  it('returns different hashes when values change', () => {
+    const a = { a: 1, b: 2 };
+    const b = { a: 1, b: 3 };
+
+    expect(sha256ForPayload(a)).not.toBe(sha256ForPayload(b));
+  });
+
+  it('verifies a signed identity artifact and rejects a payload tamper', async () => {
+    const artifact = generateIdentityArtifact(
+      {
+        npi: '1234567893',
+        enumeration_type: 'NPI-1',
+        status: 'ACTIVE',
+        first_name: 'Avery',
+        last_name: 'Stone',
+        primary_taxonomy: null,
+      },
+      'payload-hash-0',
+      '1234567893-0000000000000.json',
+    );
+
+    const signature = await signArtifact(artifact.artifact, artifact.artifact_hash);
+
+    const verifiedPayload = await verifyArtifactSignature(signature);
+    expect(verifiedPayload.npi).toBe('1234567893');
+    expect(verifiedPayload.artifact_hash).toBe(artifact.artifact_hash);
+
+    const [headerSegment, payloadSegment, signatureSegment] = signature.split('.');
+    const payload = JSON.parse(
+      Buffer.from(payloadSegment, 'base64url').toString('utf8'),
+    ) as Record<string, unknown>;
+    const tamperedPayload = {
+      ...payload,
+      artifact_hash: 'tampered',
+    };
+    const tamperedSignature = `${headerSegment}.${Buffer.from(
+      JSON.stringify(tamperedPayload),
+      'utf8',
+    ).toString('base64url')}.${signatureSegment}`;
+
+    await expect(verifyArtifactSignature(tamperedSignature)).rejects.toThrow();
+  });
+
+  it('stores raw payloads with npi-timestamp filenames in storage', async () => {
+    const payloadPath = await storageProvider.storeRawPayload('1234567890', {
+      example: true,
+    });
+
+    const fileName = path.basename(payloadPath);
+    expect(fileName).toMatch(/^1234567890-\d+\.json$/);
+
+    await rm(payloadPath);
+  });
+});

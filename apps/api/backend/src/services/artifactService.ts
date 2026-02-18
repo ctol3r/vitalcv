@@ -14,14 +14,13 @@ import { getVerificationSource } from './sourceRegistry';
 import { buildMerkleTree } from './merkleTree';
 import { computeTrustState } from './trustState';
 import { computeCredentialState } from './credentialStatusEngine';
+import { runIndependentCrossCheck } from './crossCheckEngine';
 import type { ArtifactEventType } from '../types/auditEventTypes';
+import { appendArtifactLifecycleEntry } from './transparencyLedger';
+import { assertMonitoringEngineEnabled } from './credentialMonitoringEngine';
+import { isStrictTransitionMode } from '../utils/environment';
 
 const MONITORING_THRESHOLD_DAYS = 90;
-const STRICT_TRANSITION_MODE = (() => {
-  const raw = process.env.STRICT_TRANSITION_MODE?.trim().toLowerCase();
-  const trueValues = new Set(['1', 'true', 'yes', 'on']);
-  return raw !== undefined && trueValues.has(raw);
-})();
 
 type ArtifactMerklePayload = {
   fingerprint: string;
@@ -84,6 +83,10 @@ export async function createArtifactFromNursys(
   npi: string,
   organizationId?: string,
 ): Promise<ArtifactRecord> {
+  if (isStrictTransitionMode()) {
+    await assertMonitoringEngineEnabled();
+  }
+
   const source = getVerificationSource('NURSYS');
   const result = await source.verify(npi);
   const { fingerprint, merkleRoot, claimHashes } = buildVerificationMerklePayload(npi, result);
@@ -106,24 +109,48 @@ export async function createArtifactFromNursys(
     statusLastChecked,
   );
 
-  const artifact = await prisma.verificationArtifact.create({
-    data: {
-      npi,
-      source: 'NURSYS',
-      status: result.licenseStatus,
-      rawPayload: result.rawPayload as Prisma.InputJsonValue,
-      checksum: fingerprint,
-      merkleRoot,
-      claimHashes: claimHashes as unknown as Prisma.InputJsonValue,
-      lifecycleState,
-      statusLastChecked,
-      verifiedAt,
-      expiresAt,
-      monitoring,
-      trustState,
-      ...(organizationId ? { organizationId } : {}),
-    },
-  }) as unknown as ArtifactRecord;
+  const artifact = await prisma.$transaction(async (tx) => {
+    const created = await tx.verificationArtifact.create({
+      data: {
+        npi,
+        source: 'NURSYS',
+        status: result.licenseStatus,
+        rawPayload: result.rawPayload as Prisma.InputJsonValue,
+        checksum: fingerprint,
+        merkleRoot,
+        claimHashes: claimHashes as unknown as Prisma.InputJsonValue,
+        lifecycleState,
+        statusLastChecked,
+        verifiedAt,
+        expiresAt,
+        monitoring,
+        trustState,
+        ...(organizationId ? { organizationId } : {}),
+      },
+    });
+
+    await appendArtifactLifecycleEntry(
+      {
+        id: created.id,
+        checksum: created.checksum,
+        merkleRoot: created.merkleRoot ?? '',
+        lifecycleState,
+        organizationId: created.organizationId,
+      },
+      { tx },
+    );
+
+    if (isStrictTransitionMode()) {
+      const crossCheckResult = await runIndependentCrossCheck(created.id, tx);
+      if (!crossCheckResult.passed) {
+        throw new Error(
+          `Strict mode cross-check failed: ${crossCheckResult.failures.join(', ') || 'unknown'}`,
+        );
+      }
+    }
+
+    return created as unknown as ArtifactRecord;
+  });
 
   return {
     ...artifact,
@@ -431,7 +458,7 @@ function enforceStrictTransitionRequirements(
   merkleRoot: string,
   claimHashes: string[],
 ): void {
-  if (!STRICT_TRANSITION_MODE) {
+  if (!isStrictTransitionMode()) {
     return;
   }
 

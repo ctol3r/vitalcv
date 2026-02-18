@@ -31,6 +31,14 @@ function toRecord(value: unknown): Record<string, unknown> {
   return {};
 }
 
+function parseWalletOrganizationId(value: unknown): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
 async function assertWalletCredentialUsable(credential: VitalVC): Promise<void> {
   const status = credential.credentialStatus;
   if (!status || typeof status !== 'object') {
@@ -81,6 +89,10 @@ function parseCredentialFromJwt(vcJwt: string): VitalVC {
   };
 }
 
+function getCredentialOrganizationId(credential: VitalVC): string | undefined {
+  return parseWalletOrganizationId(credential.organization_id) ?? parseWalletOrganizationId(credential.organizationId);
+}
+
 function getWallet(walletId: string): WalletStorageRecord {
   const existing = walletStore.get(walletId);
   if (existing) {
@@ -107,7 +119,7 @@ function cloneWallet(wallet: WalletStorageRecord): SimulatedWallet {
 export async function storeCredential(
   walletId: string,
   vcJws: string,
-  organizationId?: string,
+  organizationId: string,
 ): Promise<SimulatedWallet> {
   const normalizedWalletId = toNonEmptyString(walletId, 'walletId');
   const credentialJwt = toNonEmptyString(vcJws, 'credential');
@@ -120,15 +132,19 @@ export async function storeCredential(
     credential = parseCredentialFromJwt(credentialJwt);
   }
 
-  const normalizedOrganizationId = typeof organizationId === 'string' ? organizationId.trim() : '';
+  const normalizedOrganizationId = toNonEmptyString(organizationId, 'organizationId');
   const wallet = getWallet(normalizedWalletId);
-
-  if (!wallet.organizationId) {
-    wallet.organizationId = normalizedOrganizationId || String(credential.organization_id || credential.organizationId || '');
+  const credentialOrganizationId = getCredentialOrganizationId(credential);
+  if (credentialOrganizationId && credentialOrganizationId !== normalizedOrganizationId) {
+    throw new Error('Wallet organizationId does not match credential organizationId.');
   }
 
-  if (normalizedOrganizationId && wallet.organizationId && wallet.organizationId !== normalizedOrganizationId) {
+  if (wallet.organizationId && wallet.organizationId !== normalizedOrganizationId) {
     throw new Error('Wallet organizationId does not match existing wallet context.');
+  }
+
+  if (!wallet.organizationId) {
+    wallet.organizationId = normalizedOrganizationId;
   }
 
   wallet.credentials.set(credential.id, {
@@ -139,33 +155,52 @@ export async function storeCredential(
   return cloneWallet(wallet);
 }
 
-export function listCredentials(walletId: string): VitalVC[] {
+export function listCredentials(walletId: string, organizationId: string): VitalVC[] {
   const normalizedWalletId = toNonEmptyString(walletId, 'walletId');
+  const normalizedOrganizationId = toNonEmptyString(organizationId, 'organizationId');
   const wallet = walletStore.get(normalizedWalletId);
   if (!wallet) {
+    return [];
+  }
+  if (wallet.organizationId !== normalizedOrganizationId) {
     return [];
   }
   return Array.from(wallet.credentials.values()).map((entry) => entry.credential);
 }
 
-export function getWalletRecord(walletId: string): SimulatedWallet | null {
+export function getWalletRecord(walletId: string, organizationId: string): SimulatedWallet | null {
   const normalizedWalletId = walletId.trim();
   if (!normalizedWalletId) {
     return null;
   }
+  const normalizedOrganizationId = organizationId.trim();
+  if (!normalizedOrganizationId) {
+    return null;
+  }
   const wallet = walletStore.get(normalizedWalletId);
   if (!wallet) {
+    return null;
+  }
+  if (wallet.organizationId !== normalizedOrganizationId) {
     return null;
   }
   return cloneWallet(wallet);
 }
 
-export async function verifyStoredCredential(walletId: string, vcId: string): Promise<boolean> {
+export async function verifyStoredCredential(
+  walletId: string,
+  vcId: string,
+  organizationId: string,
+): Promise<boolean> {
   const normalizedWalletId = toNonEmptyString(walletId, 'walletId');
   const normalizedVcId = toNonEmptyString(vcId, 'vcId');
+  const normalizedOrganizationId = toNonEmptyString(organizationId, 'organizationId');
 
   const wallet = walletStore.get(normalizedWalletId);
   if (!wallet) {
+    return false;
+  }
+  if (wallet.organizationId !== normalizedOrganizationId) {
     return false;
   }
 

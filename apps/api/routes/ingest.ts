@@ -2,6 +2,8 @@ import crypto from 'crypto';
 import type { Express, Request, Response } from 'express';
 import { apiKeyAuth } from '../backend/src/middleware/publicSafety';
 import { withHttpToolSpan, withNpiLookupToolSpan } from '../backend/src/tools/tracing';
+import prisma, { Prisma } from '../backend/src/graphql/prisma_client';
+import { getRequestOrganizationId } from '../backend/src/middleware/organizationContext';
 import {
   detectIntakeConflicts,
   ingestNpiIdentity,
@@ -23,11 +25,23 @@ import {
   upsertClinicianIdentity,
   writeIdempotentResponse,
 } from '../ingest';
+import { runMonitoringSweep } from '../backend/src/services/credentialMonitoringEngine';
+import { setCredentialExpiry, suspendCredential } from '../backend/src/services/revocationService';
 
 type NpiBody = {
   clinician_id?: unknown;
   npi?: unknown;
 };
+
+type NursysIngestBody = {
+  npi?: unknown;
+  licenseNumber?: unknown;
+  state?: unknown;
+  eventType?: unknown;
+  payload?: unknown;
+};
+
+type NursysEventType = 'discipline' | 'expiration' | 'renewal';
 
 type ResumeFileBody = {
   filename?: unknown;
@@ -60,6 +74,144 @@ function parseOptionalStringField(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : null;
+}
+
+const NURSYS_WEBHOOK_SECRET = process.env.NURSYS_WEBHOOK_SECRET?.trim() ?? '';
+
+function parseNursysStringField(value: unknown, field: string): string {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new Error(`${field} is required`);
+  }
+
+  return value.trim();
+}
+
+function parseNursysEventType(value: unknown): NursysEventType {
+  const normalized = parseNursysStringField(value, 'eventType').toLowerCase();
+  if (
+    normalized === 'discipline' ||
+    normalized === 'expiration' ||
+    normalized === 'renewal'
+  ) {
+    return normalized;
+  }
+
+  throw new Error('eventType must be one of: discipline, expiration, renewal');
+}
+
+function stableStringify(value: unknown): string {
+  if (value === null || value === undefined) {
+    return 'null';
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => stableStringify(entry)).join(',')}]`;
+  }
+
+  if (value instanceof Date) {
+    return JSON.stringify(value.toISOString());
+  }
+
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    const keys = Object.keys(record).sort();
+    return `{${keys
+      .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
+      .join(',')}}`;
+  }
+
+  return JSON.stringify(value);
+}
+
+function parseNursysSignature(signatureHeader: string | undefined): string | null {
+  if (!signatureHeader) {
+    return null;
+  }
+
+  const normalized = signatureHeader.trim();
+  if (!normalized.length) {
+    return null;
+  }
+
+  const withoutScheme = normalized.toLowerCase().startsWith('sha256=')
+    ? normalized.slice(7)
+    : normalized;
+  const token = withoutScheme.trim();
+  if (!/^[a-f0-9]{64}$/i.test(token)) {
+    return null;
+  }
+  return token.toLowerCase();
+}
+
+function validateNursysSignature(signatureHeader: string | undefined, body: unknown): void {
+  if (!signatureHeader) {
+    return;
+  }
+
+  const normalizedSignature = parseNursysSignature(signatureHeader);
+  if (!normalizedSignature) {
+    throw new Error('x-nursys-signature format is invalid');
+  }
+
+  if (!NURSYS_WEBHOOK_SECRET) {
+    throw new Error('NURSYS signature verification is not configured');
+  }
+
+  const canonicalPayload = stableStringify(body);
+  const expected = crypto
+    .createHmac('sha256', NURSYS_WEBHOOK_SECRET)
+    .update(canonicalPayload)
+    .digest('hex');
+  const expectedBuffer = Buffer.from(expected, 'hex');
+  const providedBuffer = Buffer.from(normalizedSignature, 'hex');
+  if (
+    expectedBuffer.length !== providedBuffer.length ||
+    !crypto.timingSafeEqual(expectedBuffer, providedBuffer)
+  ) {
+    throw new Error('NURSYS signature validation failed');
+  }
+}
+
+function extractExpirationDate(payload: Record<string, unknown>): Date | null {
+  const candidates = [
+    payload.expiresAt,
+    payload.expirationDate,
+    payload.expiration_date,
+    payload.expirationDateUtc,
+    payload.expiryDate,
+    payload.renewalDate,
+  ];
+
+  for (const candidate of candidates) {
+    const parsed = parseDateLike(candidate);
+    if (parsed) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+function parseDateLike(value: unknown): Date | null {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const converted = new Date(value);
+    return Number.isNaN(converted.getTime()) ? null : converted;
+  }
+  if (typeof value === 'string') {
+    const converted = new Date(value);
+    return Number.isNaN(converted.getTime()) ? null : converted;
+  }
+  return null;
+}
+
+function parseOptionalNursysPayload(value: unknown): Record<string, unknown> {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('payload is required and must be an object');
+  }
+  return value as Record<string, unknown>;
 }
 
 function toJsonError(res: Response, status: number, message: string): Response {
@@ -162,7 +314,7 @@ function parseResumeFiles(input: unknown): ResumeFileBody[] {
 async function emitErrorAuditEvent(input: {
   clinician_id: string;
   correlation_id: string;
-  route: '/ingest/npi' | '/ingest/files';
+  route: '/ingest/npi' | '/ingest/files' | '/ingest/nursys';
   message: string;
   request_hash: string;
 }): Promise<void> {
@@ -286,6 +438,130 @@ export function registerIngestRoutes(app: Express): void {
           request_hash,
         });
       }
+      return toJsonError(res, status, message);
+    }
+  });
+
+  app.post('/ingest/nursys', apiKeyAuth, async (req: Request, res: Response) => {
+    const correlation_id = requestCorrelationId(res);
+    const body = (req.body ?? {}) as NursysIngestBody;
+    const request_hash = routePayload('POST:/ingest/nursys', body);
+    const requestOrganizationId = getRequestOrganizationId(req);
+    if (!requestOrganizationId) {
+      return toJsonError(res, 401, 'organization_context_required');
+    }
+
+    try {
+      const eventType = parseNursysEventType(body.eventType);
+      const npi = parseNursysStringField(body.npi, 'npi');
+      const licenseNumber = parseNursysStringField(body.licenseNumber, 'licenseNumber');
+      const state = parseNursysStringField(body.state, 'state');
+      const payload = parseOptionalNursysPayload(body.payload);
+      validateNursysSignature(req.get('x-nursys-signature'), {
+        npi,
+        licenseNumber,
+        state,
+        eventType,
+        payload,
+      });
+
+      const event = await prisma.nursysEvent.create({
+        data: {
+          npi,
+          licenseNumber,
+          state,
+          eventType,
+          rawPayload: payload as Prisma.InputJsonValue,
+        },
+      });
+
+      const artifact = await prisma.verificationArtifact.findFirst({
+        where: {
+          npi,
+          organizationId: requestOrganizationId,
+        },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          revokedAt: true,
+          expiresAt: true,
+          status: true,
+          organizationId: true,
+          statusLastChecked: true,
+          lifecycleState: true,
+        },
+      });
+
+      if (!artifact) {
+        const message = `No credential artifact found for npi: ${npi}`;
+        await emitErrorAuditEvent({
+          clinician_id: `clinician:npi:${npi}`,
+          correlation_id,
+          route: '/ingest/nursys',
+          message,
+          request_hash,
+        });
+        return toJsonError(res, 404, message);
+      }
+
+      let action = 'none';
+      switch (eventType) {
+        case 'discipline': {
+          await suspendCredential(artifact.id, parseOptionalStringField(payload.reason) ?? undefined);
+          action = 'suspended';
+          break;
+        }
+        case 'expiration': {
+          const expirationDate = extractExpirationDate(payload);
+          await setCredentialExpiry(
+            artifact.id,
+            expirationDate ?? new Date(),
+            parseOptionalStringField(payload.reason) ?? undefined,
+          );
+          action = 'expired';
+          break;
+        }
+        case 'renewal': {
+          const renewalDate = extractExpirationDate(payload);
+          const nextExpiresAt = renewalDate ?? artifact.expiresAt ?? new Date();
+          await setCredentialExpiry(
+            artifact.id,
+            nextExpiresAt,
+            parseOptionalStringField(payload.reason) ?? undefined,
+          );
+          action = 'renewed';
+          break;
+        }
+      }
+
+      if (eventType === 'discipline' || eventType === 'renewal' || eventType === 'expiration') {
+        await runMonitoringSweep(artifact.organizationId ?? requestOrganizationId);
+      }
+
+      return res.status(200).json({
+        eventType,
+        npi,
+        eventId: event.id,
+        artifactId: artifact.id,
+        action,
+        licenseNumber,
+        state,
+        request_hash,
+        request_organization_id: requestOrganizationId,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Unable to process Nursys ingestion event';
+      await emitErrorAuditEvent({
+        clinician_id:
+          parseOptionalStringField(body.npi) ? `clinician:npi:${(body.npi as string).trim()}` : 'clinician:unknown',
+        correlation_id,
+        route: '/ingest/nursys',
+        message,
+        request_hash,
+      });
+      const status =
+        error instanceof Error && /required|not found|invalid/i.test(error.message) ? 400 : 500;
       return toJsonError(res, status, message);
     }
   });

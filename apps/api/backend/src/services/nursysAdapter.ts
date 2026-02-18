@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import { sha256ForPayload } from '../utils/deterministic';
 
 /**
  * Structured license status response aligned with Nursys E-Notify data fields.
@@ -60,17 +60,5 @@ export async function queryNursysLicense(
  * Uses deterministic JSON key ordering for reproducibility.
  */
 export function computeArtifactChecksum(payload: unknown): string {
-  const serialized = stableStringify(payload);
-  return crypto.createHash('sha256').update(serialized).digest('hex');
-}
-
-function stableStringify(value: unknown): string {
-  if (value === null || value === undefined) return 'null';
-  if (value instanceof Date) return JSON.stringify(value.toISOString());
-  if (typeof value !== 'object') return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map((item) => stableStringify(item)).join(',')}]`;
-
-  const record = value as Record<string, unknown>;
-  const keys = Object.keys(record).sort();
-  return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`).join(',')}}`;
+  return sha256ForPayload(payload);
 }

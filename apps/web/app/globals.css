@@ -206,6 +206,18 @@
   }
 }
 
+/* Trust-State panel entry — 280-420ms, no spring, no parallax */
+@keyframes trust-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Added glassmorphism effects for glass theme */
 .theme-glass .backdrop-blur {
   backdrop-filter: blur(12px);
