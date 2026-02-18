@@ -138,7 +138,11 @@
       "Bash(/usr/bin/tail:*)",
       "Bash(/usr/bin/grep -A 5 \"●\")",
       "Bash(/usr/bin/grep -E \"\\(●|FAIL|PASS\\)\")",
-      "Bash(/usr/bin/grep -A 10 \"rejects invalid NPI\")"
+      "Bash(/usr/bin/grep -A 10 \"rejects invalid NPI\")",
+      "Bash(/usr/bin/grep -E \"\\(Test Suites:|Tests:\\)\")",
+      "Bash(/usr/bin/grep -E \"\\(PASS|FAIL|Tests:\\)\")",
+      "Bash(/usr/bin/grep:*)",
+      "Bash(STRICT_TRANSITION_MODE=true npx jest:*)"
     ],
     "deny": [],
     "ask": []

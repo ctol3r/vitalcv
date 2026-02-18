@@ -21,7 +21,9 @@ function recognitionPayload() {
   };
 }
 
-describe('acceptance/start guards', () => {
+const suite = process.env.DATABASE_URL ? describe : describe.skip;
+
+suite('acceptance/start guards', () => {
   const originalFetch = (globalThis as unknown as { fetch?: unknown }).fetch;
 
   beforeEach(async () => {

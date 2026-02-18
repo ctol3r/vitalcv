@@ -41,7 +41,9 @@ function asBase64(content: string): string {
   return Buffer.from(content, 'utf8').toString('base64');
 }
 
-describe('ingest routes', () => {
+const suite = process.env.DATABASE_URL ? describe : describe.skip;
+
+suite('ingest routes', () => {
   const originalFetch = (globalThis as unknown as { fetch?: unknown }).fetch;
 
   beforeEach(async () => {

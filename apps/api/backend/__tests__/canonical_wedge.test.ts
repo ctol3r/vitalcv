@@ -182,7 +182,9 @@ afterAll(async () => {
   await prisma.$disconnect();
 });
 
-describe('canonical wedge API', () => {
+const suite = process.env.DATABASE_URL ? describe : describe.skip;
+
+suite('canonical wedge API', () => {
   it('Acceptance without Recognition fails', async () => {
     const acceptance = createAcceptance('rec-missing');
     const res = await request(app).post('/acceptances').send({ acceptance });
