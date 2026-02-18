@@ -1,14 +1,8 @@
 [build]
-builder = "NIXPACKS"
-buildCommand = "pnpm install --frozen-lockfile && cd apps/api/backend && pnpm exec prisma generate && pnpm run build"
-watchPatterns = [
-  "apps/api/**",
-  "packages/haip-config/**",
-  "pnpm-lock.yaml"
-]
+buildCommand = "pnpm install --frozen-lockfile && cd apps/api/backend && pnpm run build"
 
 [deploy]
-startCommand = "cd apps/api/backend && npx prisma migrate deploy && node dist/apps/api/backend/src/server.js"
+startCommand = "cd apps/api/backend && pnpm run db:migrate:deploy && node dist/apps/api/backend/src/server.js"
 healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
