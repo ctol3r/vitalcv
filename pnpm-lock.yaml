@@ -147,7 +147,7 @@ importers:
   apps/authz:
     dependencies:
       '@prisma/client':
-        specifier: ^6.19.1
+        specifier: ^6.19.2
         version: 6.19.2(prisma@6.19.2(magicast@0.3.5)(typescript@5.9.3))(typescript@5.9.3)
       '@vitalcv/haip-config':
         specifier: workspace:*
@@ -295,7 +295,7 @@ importers:
   apps/verifier-api:
     dependencies:
       '@prisma/client':
-        specifier: ^6.19.1
+        specifier: ^6.19.2
         version: 6.19.2(prisma@6.19.2(magicast@0.3.5)(typescript@5.9.3))(typescript@5.9.3)
       '@vitalcv/haip-config':
         specifier: workspace:*
