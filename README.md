@@ -6,15 +6,28 @@
 
 Unified monorepo for the VitalCV healthcare credentialing platform.
 
+## Antigravity Contract
+
+This system operates under strict **Antigravity** requirements (see [`ANTIGRAVITY.md`](./ANTIGRAVITY.md)).
+
+**The Canonical Action:**
+> A clinician presents verified authority → An employer accepts it → Progress continues without re-verification.
+
+**Forbidden Patterns:**
+- No "Committee Packets" or manual upload workflows.
+- No "Dashboards" that exist outside of blocking moments.
+- No parallel verify flows (e.g. manual profile claims).
+
 ## Structure
 
 ```text
 vitalcv/
 ├── apps/
-│   ├── api/          # Backend API
-│   └── web/          # Frontend Next.js app
-├── packages/         # Shared packages
-├── blockchain/       # Blockchain/Substrate integration
+│   ├── api/          # Backend API (NPI sync, Issuer logic)
+│   ├── web/          # Frontend Next.js app (Antigravity-compliant UI)
+│   └── verifier-api/ # OID4VP Verifier (Canonical Path enforcement)
+├── packages/         # Shared packages (Contracts, Guards, Policy)
+├── blockchain/       # Blockchain integration
 ├── docs/            # Documentation
 └── infra/           # Infrastructure as code
 ```
@@ -43,7 +56,6 @@ pnpm install
 pnpm dev
 
 # Run specific app
-pnpm --filter @vitalcv/api dev
 pnpm --filter @vitalcv/web dev
 ```
 
@@ -52,36 +64,20 @@ pnpm --filter @vitalcv/web dev
 ```bash
 # Build all packages and apps
 pnpm build
-
-# Build specific package/app
-pnpm --filter @vitalcv/api build
-pnpm --filter @vitalcv/web build
-```
-
-### Testing
-
-```bash
-# Run all tests
-pnpm test
-
-# Run tests for specific package/app
-pnpm --filter @vitalcv/api test
 ```
 
 ## Workspace Packages
 
-- `@vitalcv/api` - Main backend API
 - `@vitalcv/web` - Frontend Next.js application
-- `@vitalcv/shared-utils` - Shared utilities
-- `@vitalcv/vc-schemas` - Verifiable Credential schemas
-- `@vitalcv/compliance-core` - Compliance and regulatory logic
-- `@vitalcv/psv-pipeline` - Provider Screening and Verification pipeline
-- `@vitalcv/ai-engines` - AI/ML engines
-- `@vitalcv/ui` - Shared UI components
+- `@vitalcv/api` - Main backend API
+- `@vitalcv/verifier-api` - OIDC4VP Verifier Service
+- `@domain-common/psvContracts` - Shared type definitions for PSV
+- `@domain-common/employmentGuards` - Canonical Path logic
 
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+Refer to `TECH_DEBT.md` for current limitations and roadmap.
 
 ## License
 

@@ -11,6 +11,12 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+type WebAuthnAuthenticatorRecord = {
+  id: string;
+  deviceBound: boolean;
+  phishingResistant?: boolean | null;
+};
+
 export interface AalPolicyConfig {
   aalLevel: 1 | 2 | 3;
   requiresPhishingResistant: boolean;
@@ -113,12 +119,12 @@ export async function checkUserAalCompliance(
   }
 
   // Get user's authenticators
-  const authenticators = await prisma.webAuthnAuthenticator.findMany({
+  const authenticators = (await prisma.webAuthnAuthenticator.findMany({
     where: {
       userId,
       revokedAt: null,
     },
-  });
+  })) as WebAuthnAuthenticatorRecord[];
 
   // Determine current AAL based on authenticators
   let currentAal = 1;
@@ -143,8 +149,9 @@ export async function checkUserAalCompliance(
   // B111A-AAL-015: AAL2 requires phishing-resistant authenticator; denies weak factors
   if (policy.aalLevel === 2) {
     // Check for weak factors (password-only, SMS OTP, etc.)
-    const hasWeakFactor = authenticators.length === 0 ||
-      authenticators.every(auth => !auth.phishingResistant);
+    const hasWeakFactor =
+      authenticators.length === 0 ||
+      authenticators.every((auth) => !auth.phishingResistant);
 
     if (!hasPhishingResistant || hasWeakFactor) {
       return {
@@ -256,4 +263,3 @@ export async function assignAalPolicyToUser(
     },
   });
 }
-

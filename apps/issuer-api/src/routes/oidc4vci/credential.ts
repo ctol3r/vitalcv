@@ -1,83 +1,248 @@
-/**
- * S72-D1-A-001: OIDC4VCI Credential Endpoint
- *
- * Minimal credential issuance route that accepts signed requests
- * and returns ClinicianIdentityVC credentials.
- */
+import { decodeJwt } from 'jose';
+import { Request, Response, Router } from 'express';
+import {
+  issueCNonce,
+  getCNonceLifetimeSeconds,
+  validateHAIPCompliance,
+  isStrictTransitionMode,
+} from '../../services/haipPolicy';
+import {
+  assertActiveCredentialLifecycle,
+  credentialStatusUrl,
+} from '../../services/credentialStatus';
+import { isES256SigningKeyConfigured, isSigningKeyConfigured } from '../../services/signingKeyProvider';
+import {
+  getControlledDidDocument,
+  issueClinicianIdentityVC,
+  verifyControlledIssuerDidDocument,
+} from '../../services/vcIssuer';
+import { getControlledIssuerDID } from '../../utils/didGenerator';
+import { hashDeterministicPayload } from '../../utils/deterministic';
 
-import express, { Request, Response } from 'express';
-import { oidc4vciGuard } from '../../middleware/guard';
-import { dpopGuard } from '../../middleware/dpopGuard';
-import { issueClinicianIdentityVC, ClinicianProfile } from '../../services/clinicianIdentityIssuer';
+const router: Router = Router();
 
-const router = express.Router();
+type CredentialProfile = {
+  subjectDid: string;
+  name: string;
+  npi: string;
+  specialty: string;
+  organizationId?: string;
+};
 
-/**
- * POST /credential
- *
- * Issues a ClinicianIdentityCredential based on the credential request.
- * Protected by DPoP and requires sender-constrained access token.
- */
-router.post('/', oidc4vciGuard, dpopGuard, async (req: Request, res: Response) => {
+type JwtPayloadRecord = Record<string, unknown>;
+
+type PayloadObject = Record<string, unknown>;
+
+type BodyRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is PayloadObject {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function parseBodyRecord(body: unknown): BodyRecord {
+  if (isRecord(body)) {
+    return body;
+  }
+  return {};
+}
+
+function parseRequiredString(value: unknown, field: string): string {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new Error(`${field} is required.`);
+  }
+  return value.trim();
+}
+
+function parseOptionalString(value: unknown): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function normalizeString(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function parseArtifactId(body: unknown): string | null {
+  if (!isRecord(body)) {
+    return null;
+  }
+
+  return parseRequiredString(body.id, 'artifact.id');
+}
+
+function ensureArtifactIntegrity(artifactInput: unknown, requireArtifact: boolean): void {
+  if (!artifactInput) {
+    if (requireArtifact) {
+      throw new Error('Missing artifact required for strict issuance.');
+    }
+    return;
+  }
+
+  const artifact = isRecord(artifactInput) ? artifactInput : {};
+  if (Object.keys(artifact).length === 0) {
+    if (requireArtifact) {
+      throw new Error('artifact must be an object.');
+    }
+    return;
+  }
+
+  const artifactId = parseRequiredString(artifact.id, 'artifact.id');
+  const integrityInput = normalizeString(artifact.integrity);
+  const payloadForIntegrity = artifact.payload ?? artifact.claims ?? artifact.data;
+
+  if (payloadForIntegrity === undefined) {
+    if (requireArtifact) {
+      throw new Error(`artifact integrity missing for ${artifactId}.`);
+    }
+    return;
+  }
+
+  if (integrityInput.length === 0) {
+    if (requireArtifact) {
+      throw new Error(`artifact.integrity required for ${artifactId}.`);
+    }
+    return;
+  }
+
+  const expected = integrityInput.startsWith('sha256:') ? integrityInput.slice(7) : integrityInput;
+  const computed = hashDeterministicPayload(payloadForIntegrity);
+
+  if (expected !== computed) {
+    throw new Error(`artifact integrity mismatch for ${artifactId}.`);
+  }
+}
+
+function parseSubjectFromProofJwt(token: string): string | null {
   try {
-    const { format, credential_definition, proof } = req.body;
+    const payload = decodeJwt(token) as JwtPayloadRecord;
+    return parseOptionalString(payload.sub) ?? parseOptionalString(payload.iss) ?? null;
+  } catch {
+    return null;
+  }
+}
 
-    // Validate format
-    if (format && format !== 'jwt_vc_json') {
-      return res.status(400).json({
-        error: 'unsupported_credential_format',
-        error_description: `Format '${format}' not supported. Use 'jwt_vc_json'.`
-      });
+function parseCredentialProfile(body: BodyRecord): CredentialProfile {
+  const credentialSubject = isRecord(body.credential_subject) ? body.credential_subject : {};
+  const requestBody = isRecord(body.credential_request) ? body.credential_request : {};
+  const requestSubject = isRecord(requestBody.credential_subject)
+    ? requestBody.credential_subject
+    : isRecord(requestBody.credentialSubject)
+      ? requestBody.credentialSubject
+      : {};
+  const proof = isRecord(body.proof) ? body.proof : {};
+  const proofJwt = parseOptionalString(proof.jwt);
+  const subjectFromProof = proofJwt ? parseSubjectFromProofJwt(proofJwt) : null;
+
+  const subjectDid = parseRequiredString(
+    parseOptionalString(body.subjectDid) ??
+      parseOptionalString(credentialSubject.id) ??
+      parseOptionalString(requestSubject.id) ??
+      subjectFromProof,
+    'subjectDid',
+  );
+
+  return {
+    subjectDid,
+    name: parseRequiredString(
+      parseOptionalString(credentialSubject.name) ?? parseOptionalString(requestSubject.name),
+      'name',
+    ),
+    npi: parseRequiredString(
+      parseOptionalString(credentialSubject.npi) ?? parseOptionalString(requestSubject.npi),
+      'npi',
+    ),
+    specialty: parseRequiredString(
+      parseOptionalString(credentialSubject.specialty) ?? parseOptionalString(requestSubject.specialty),
+      'specialty',
+    ),
+    organizationId: parseOptionalString(
+      parseOptionalString(credentialSubject.organizationId) ??
+        parseOptionalString(requestSubject.organizationId) ??
+        parseOptionalString(body.organizationId) ??
+        parseOptionalString(body.organization_id),
+    ),
+  };
+}
+
+function validateSigningSetup(): void {
+  if (!isSigningKeyConfigured()) {
+    throw new Error('ISSUER_SIGNING_JWK is required and must be valid for issuance.');
+  }
+  if (!isES256SigningKeyConfigured()) {
+    throw new Error('ISSUER_SIGNING_JWK must be configured for ES256.');
+  }
+}
+
+function validateStrictDid(): void {
+  if (!isStrictTransitionMode()) {
+    return;
+  }
+
+  const document = getControlledDidDocument();
+  const expectedDid = getControlledIssuerDID();
+  if (document.id !== expectedDid) {
+    throw new Error(`Strict mode issuer DID mismatch. Expected ${expectedDid}.`);
+  }
+
+  verifyControlledIssuerDidDocument(document);
+}
+
+router.post('/nonce', (_req: Request, res: Response): void => {
+  const cNonce = issueCNonce();
+  res.status(200).json({
+    c_nonce: cNonce,
+    c_nonce_expires_in: getCNonceLifetimeSeconds(),
+  });
+});
+
+router.post('/credential', async (req: Request, res: Response): Promise<void> => {
+  const body = parseBodyRecord(req.body);
+
+  try {
+    validateSigningSetup();
+    validateHAIPCompliance(req);
+
+    const strict = isStrictTransitionMode();
+    validateStrictDid();
+
+    const profile = parseCredentialProfile(body);
+    const artifact = body.artifact ?? (isRecord(body.credential_request) ? body.credential_request.artifact : null);
+    const artifactId = parseArtifactId(artifact);
+    ensureArtifactIntegrity(artifact, strict);
+
+    if (strict && !artifactId) {
+      throw new Error('Strict mode requires an artifact with id.');
     }
 
-    // Validate credential type
-    const requestedTypes = credential_definition?.types || credential_definition?.type || [];
-    if (!requestedTypes.includes('ClinicianIdentityCredential')) {
-      return res.status(400).json({
-        error: 'unsupported_credential_type',
-        error_description: 'Only ClinicianIdentityCredential type is supported'
-      });
+    if (strict && artifactId) {
+      await assertActiveCredentialLifecycle(artifactId);
     }
 
-    // Extract clinician profile from proof or request body
-    // In a real implementation, this would be extracted from authenticated session
-    // or from the proof's DID/claims
-    const profile: ClinicianProfile = {
-      did: proof?.jwt ? extractDidFromProof(proof.jwt) : undefined,
-      name: req.body.credential_subject?.name || 'Dr. Test Clinician',
-      npi: req.body.credential_subject?.npi || '1234567890',
-      specialty: req.body.credential_subject?.specialty || 'General Medicine',
-    };
+    const credentialStatus = artifactId
+      ? {
+          id: credentialStatusUrl(artifactId),
+          type: 'VitalCredentialStatus' as const,
+        }
+      : undefined;
 
-    // Issue the credential
-    const vcJws = await issueClinicianIdentityVC(profile);
+    const credential = await issueClinicianIdentityVC(profile, {
+      ...(credentialStatus ? { credentialStatus } : {}),
+    });
 
-    // Return credential in OIDC4VCI format
-    return res.json({
+    res.status(201).json({
       format: 'jwt_vc_json',
-      credential: vcJws,
+      credential,
     });
   } catch (error) {
-    console.error('[OIDC4VCI] Credential issuance error:', error);
-    return res.status(500).json({
-      error: 'server_error',
-      error_description: error instanceof Error ? error.message : 'Failed to issue credential'
+    const message = error instanceof Error ? error.message : 'Invalid credential request.';
+    res.status(400).json({
+      error: 'haip_compliance_error',
+      error_description: message,
     });
   }
 });
 
-/**
- * Extract DID from proof JWT (placeholder)
- */
-function extractDidFromProof(proofJwt: string): string | undefined {
-  try {
-    const { decodeJwt } = require('jose');
-    const decoded = decodeJwt(proofJwt);
-    return decoded.iss as string || decoded.sub as string;
-  } catch {
-    return undefined;
-  }
-}
-
 export default router;
-

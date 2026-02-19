@@ -1,0 +1,10 @@
+[build]
+installCommand = "pnpm install --frozen-lockfile --ignore-scripts"
+buildCommand = "pnpm --filter @vitalcv/api run build"
+
+[deploy]
+startCommand = "pnpm --filter @vitalcv/api run db:migrate:deploy && node apps/api/backend/dist/apps/api/backend/src/server.js"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5

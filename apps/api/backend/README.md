@@ -6,7 +6,7 @@ Run the Prisma migrations and seed the database with sample data for development
 
 ```bash
 npm install
-npx prisma db push
+npx prisma migrate deploy
 npm run seed
 ```
 

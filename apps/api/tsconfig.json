@@ -2,10 +2,13 @@
   "compilerOptions": {
     "target": "ES2019",
     "module": "commonjs",
-    "rootDir": "./backend/src",
-    "outDir": "./backend/dist",
+    "moduleResolution": "node",
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
     "esModuleInterop": true,
-    "moduleResolution": "node"
+    "skipLibCheck": true,
+    "noEmit": true
   },
-  "include": ["backend/**/*.ts"]
+  "include": ["backend/src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "frontend", "contracts", "credential-demo", "fhir-bridge", "zk-sample"]
 }

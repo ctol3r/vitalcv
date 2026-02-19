@@ -114,10 +114,11 @@ export function revokeCredential(req: Request, res: Response): void {
   const { credential_id, reason } = req.body;
 
   if (!credential_id) {
-    return res.status(400).json({
+    res.status(400).json({
       error: 'invalid_request',
       error_description: 'Missing credential_id',
     });
+    return;
   }
 
   // Mark as revoked
@@ -149,11 +150,12 @@ export function checkCredentialStatus(req: Request, res: Response): void {
   const entry = statusList.get(credential_id);
 
   if (!entry) {
-    return res.json({
+    res.json({
       credential_id,
       revoked: false,
       status: 'active',
     });
+    return;
   }
 
   res.json({
@@ -202,18 +204,20 @@ export function restoreCredential(req: Request, res: Response): void {
   const { credential_id } = req.body;
 
   if (!credential_id) {
-    return res.status(400).json({
+    res.status(400).json({
       error: 'invalid_request',
       error_description: 'Missing credential_id',
     });
+    return;
   }
 
   const entry = statusList.get(credential_id);
   if (!entry) {
-    return res.status(404).json({
+    res.status(404).json({
       error: 'not_found',
       error_description: 'Credential not found in status list',
     });
+    return;
   }
 
   // Restore (unrevoke)
@@ -237,4 +241,3 @@ export default {
   getStatusListBitstring,
   restoreCredential,
 };
-

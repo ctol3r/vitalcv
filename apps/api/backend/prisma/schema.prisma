@@ -1,46 +1,634 @@
-// Prisma schema for Chai VC Platform with database seeding support
-// Defines User, Credential, and Job models for comprehensive GraphQL operations
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-model User {
-  id          Int          @id @default(autoincrement())
-  email       String       @unique
-  name        String
-  passwordHash String?
-  credentials Credential[]
-  jobs        Job[]
+// ──────────────────────────────────────────────────────────────
+// Canonical Path: Recognition → Acceptance → Start
+// ──────────────────────────────────────────────────────────────
+
+model Recognition {
+  id              String    @id @default(uuid()) @db.Uuid
+  recognitionId   String    @unique
+  subjectId       String
+  employerId      String
+  recognizedAt    DateTime
+  verifiedAt      DateTime
+  verificationRef String
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  revocationRef   String?
+  eventHash       String
+  createdAt       DateTime  @default(now())
+
+  acceptances Acceptance[]
+
+  @@index([subjectId])
+  @@index([employerId])
+  @@index([recognitionId])
 }
 
-model Credential {
-  id       Int      @id @default(autoincrement())
-  name     String
-  issuer   String
-  issuedAt DateTime @default(now())
-  user     User     @relation(fields: [userId], references: [id])
-  userId   Int
+model Acceptance {
+  id              String   @id @default(uuid()) @db.Uuid
+  acceptanceId    String   @unique
+  recognitionId   String
+  subjectId       String
+  employerId      String
+  facilityId      String
+  acceptedAt      DateTime
+  psvReportId     String
+  eventHash       String
+  createdAt       DateTime @default(now())
+
+  recognition Recognition @relation(fields: [recognitionId], references: [recognitionId])
+  starts      Start[]
+
+  @@index([subjectId])
+  @@index([employerId])
+  @@index([recognitionId])
+  @@index([acceptanceId])
 }
+
+model Start {
+  id           String   @id @default(uuid()) @db.Uuid
+  startId      String   @unique
+  acceptanceId String
+  subjectId    String
+  employerId   String
+  attestedAt   DateTime
+  eventHash    String
+  createdAt    DateTime @default(now())
+
+  acceptance Acceptance @relation(fields: [acceptanceId], references: [acceptanceId])
+
+  @@index([subjectId])
+  @@index([employerId])
+  @@index([acceptanceId])
+  @@index([startId])
+}
+
+// ──────────────────────────────────────────────────────────────
+// PSV Receipts (verification evidence)
+// ──────────────────────────────────────────────────────────────
+
+model PsvReceipt {
+  id              String   @id @default(uuid()) @db.Uuid
+  receiptId       String   @unique
+  clinicianId     String
+  sourceAuthority String
+  licenseId       String
+  transactionId   String
+  fetchedAt       DateTime
+  responseHash    String
+  ttlSeconds      Int
+  revoked         Boolean  @default(false)
+  lane            String?
+  verificationCheck   String?
+  verificationOutcome String?
+  failureReason       String?
+  source              String?
+  attestorId          String?
+  verificationRequestId String?
+  createdAt       DateTime @default(now())
+
+  @@index([clinicianId])
+  @@index([receiptId])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Clinician Intake (ingestion staging)
+// ──────────────────────────────────────────────────────────────
+
+model ClinicianIdentity {
+  id           String   @id @default(uuid()) @db.Uuid
+  clinicianId  String   @unique
+  data         Json     @db.JsonB
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model CandidateCredential {
+  id                     String   @id @default(uuid()) @db.Uuid
+  candidateCredentialId  String   @unique
+  clinicianId            String
+  data                   Json     @db.JsonB
+  status                 String   @default("UNVERIFIED")
+  createdAt              DateTime @default(now())
+
+  @@index([clinicianId])
+}
+
+model IngestConflict {
+  id           String   @id @default(uuid()) @db.Uuid
+  conflictId   String   @unique
+  clinicianId  String
+  status       String   @default("UNRESOLVED")
+  data         Json     @db.JsonB
+  createdAt    DateTime @default(now())
+
+  @@index([clinicianId])
+}
+
+model IdempotentResponse {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  auditRef    String
+  payload     Json     @db.JsonB
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+
+  @@index([key])
+  @@index([expiresAt])
+}
+
+// ──────────────────────────────────────────────────────────────
+// API Key → Organization mapping
+// ──────────────────────────────────────────────────────────────
+
+model ApiKey {
+  id           String    @id @default(uuid()) @db.Uuid
+  keyHash      String    @unique
+  orgName      String
+  orgId        String
+  permissions  String[]  @default(["write:recognitions", "write:acceptances", "write:starts", "write:ingest"])
+  createdAt    DateTime  @default(now())
+  revokedAt    DateTime?
+
+  @@index([orgId])
+}
+
+model ParRequest {
+  id                   String   @id @default(uuid()) @db.Uuid
+  requestUri           String   @unique
+  requestType          String
+  requestJson          Json
+  clientId             String
+  codeChallenge        String?
+  codeChallengeMethod  String?
+  redirectUri          String?
+  scope                String?
+  expiresAt            DateTime
+  used                 Boolean  @default(false)
+  createdAt            DateTime @default(now())
+
+  @@index([requestType])
+  @@index([expiresAt])
+  @@index([createdAt])
+}
+
+model JtiReplay {
+  service   String
+  jti       String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@id([service, jti])
+  @@index([expiresAt])
+}
+
+model RefreshToken {
+  tokenId   String   @id
+  clientId  String?
+  userId    String?
+  scope     String
+  cnfJkt    String?
+  clientCert String?
+  issuedAt  DateTime
+  expiresAt DateTime
+  rotated   Boolean  @default(false)
+  rotatedTo String?
+}
+
+model VerifierNonce {
+  nonce     String   @id
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([used])
+  @@index([expiresAt])
+}
+
+enum VerificationRequestStatus {
+  PENDING
+  COMPLETE
+  FAILED
+}
+
+enum VerifierLifecycle {
+  REGISTERED
+  TOKEN_SENT
+  TOKEN_USED
+  PILOT_ACTIVATED
+  BUNDLE_GENERATED
+}
+
+model VerificationRequest {
+  requestId       String                   @id @default(uuid()) @db.Uuid
+  clinicianId     String
+  lane            String
+  source          String
+  attestorId      String?
+  documentHash    String?
+  subject         String
+  status          VerificationRequestStatus @default(PENDING)
+  createdAt       DateTime                 @default(now())
+  completedAt     DateTime?
+  receiptId       String?
+  failureReason   String?
+
+  @@index([clinicianId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Verifier Pilot: Cross-check share links and acceptance actions
+// ──────────────────────────────────────────────────────────────
+
+model ShareLink {
+  id             String   @id @default(uuid()) @db.Uuid
+  npi            String
+  firstViewedAt  DateTime?
+  organizationId String?  @db.Uuid
+  createdAt      DateTime @default(now())
+
+  @@index([npi])
+  @@index([organizationId])
+  @@index([createdAt])
+}
+
+model Organization {
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String
+  slug          String   @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model NursysEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  npi           String
+  licenseNumber String
+  state         String
+  eventType     String
+  rawPayload    Json     @db.JsonB
+  receivedAt    DateTime @default(now())
+
+  @@index([npi])
+  @@index([licenseNumber])
+}
+
+model PecosCheck {
+  id             String   @id @default(uuid()) @db.Uuid
+  npi            String
+  enrolled       Boolean
+  enrollmentType String?
+  rawPayload     Json     @db.JsonB
+  checkedAt      DateTime @default(now())
+
+  @@index([npi])
+}
+
+model CrossCheckBundle {
+  id             String   @id @default(uuid()) @db.Uuid
+  artifactId     String
+  checksum       String
+  crossCheckPass Boolean
+  createdAt      DateTime @default(now())
+
+  @@index([artifactId])
+}
+
+model VerifierAcceptance {
+  id           String   @id @default(uuid()) @db.Uuid
+  organization String
+  acceptedAt   DateTime @default(now())
+
+  @@index([organization])
+  @@index([acceptedAt])
+}
+
+model PilotOrg {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  contactEmail String
+  activatedAt  DateTime @default(now())
+  accepted     Boolean  @default(false)
+  plans        PilotPlan[]
+
+  @@index([accepted])
+  @@index([activatedAt])
+}
+
+model PilotPlan {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String?  @db.Uuid
+  startDate      DateTime
+  endDate        DateTime?
+  active         Boolean  @default(true)
+  bundleCount    Int      @default(0)
+
+  organization PilotOrg? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([active])
+  @@index([startDate])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Verifier Onboarding (enterprise registration + token access)
+// ──────────────────────────────────────────────────────────────
+
+model VerifierOrg {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String
+  contactName    String
+  contactEmail   String
+  createdAt      DateTime @default(now())
+  lifecycle      VerifierLifecycle @default(REGISTERED)
+  pilotActivated Boolean  @default(false)
+
+  tokens VerifierAccessToken[]
+
+  @@index([contactEmail])
+  @@index([pilotActivated])
+  @@index([lifecycle])
+  @@index([createdAt])
+}
+
+model VerifierAccessToken {
+  id            String   @id @default(uuid()) @db.Uuid
+  verifierOrgId String   @db.Uuid
+  token         String   @unique
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+
+  verifierOrg VerifierOrg @relation(fields: [verifierOrgId], references: [id])
+
+  @@index([verifierOrgId])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Verification Artifacts (primary-source evidence)
+// ──────────────────────────────────────────────────────────────
+
+model VerificationArtifact {
+  id         String    @id @default(uuid()) @db.Uuid
+  npi        String
+  source     String
+  status     String
+  rawPayload Json?     @db.JsonB
+  checksum   String
+  merkleRoot String?
+  claimHashes Json?
+  lifecycleState String @default("active")
+  revokedAt DateTime?
+  suspendedAt DateTime?
+  revocationReason String?
+  statusLastChecked DateTime @default(now())
+  psvWindowStart    DateTime?
+  psvWindowDeadline DateTime?
+  psvWindowCompliant Boolean?
+  verifiedAt DateTime
+  expiresAt  DateTime?
+  monitoring Boolean   @default(false)
+  organizationId String? @db.Uuid
+  trustState String    @default("needs_review")
+  // Wave Y: Expiration forecasting
+  daysUntilExpiration  Int?
+  forecastRiskLevel    String?   // low | medium | high
+  createdAt  DateTime  @default(now())
+
+  snapshots AuditSnapshot[]
+
+  @@index([npi])
+  @@index([source])
+  @@index([monitoring])
+  @@index([organizationId])
+  @@index([lifecycleState])
+  @@index([revokedAt])
+  @@index([suspendedAt])
+  @@index([trustState])
+  @@index([statusLastChecked])
+  @@index([createdAt])
+  // Wave M: Performance indexes
+  @@index([checksum])
+  @@index([merkleRoot])
+  // Wave Y: Forecast index
+  @@index([forecastRiskLevel])
+}
+
+model TrustedIssuer {
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String
+  did          String    @unique
+  publicKeyJwk Json      @db.JsonB
+  active       Boolean   @default(true)
+  organizationId String?  @db.Uuid
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([organizationId])
+}
+
+model CredentialTransparencyLog {
+  id            String    @id @default(uuid()) @db.Uuid
+  artifactId    String
+  fingerprint   String
+  merkleRoot    String
+  lifecycleState String
+  organizationId String?   @db.Uuid
+  createdAt     DateTime  @default(now())
+
+  @@index([artifactId])
+  @@index([fingerprint])
+  @@index([organizationId])
+}
+
+model OrganizationTrust {
+  id                  String   @id @default(uuid()) @db.Uuid
+  sourceOrgId         String   @db.Uuid
+  targetOrgId         String   @db.Uuid
+  trustLevel          String
+  active              Boolean  @default(true)
+  createdAt           DateTime @default(now())
+
+  @@index([sourceOrgId])
+  @@index([targetOrgId])
+}
+
+model TrustLedgerEntry {
+  id         String   @id @default(uuid()) @db.Uuid
+  artifactId String?
+  npi        String?
+  action     String
+  hash       String
+  organizationId String?
+  metadata   Json?    @db.JsonB
+  createdAt  DateTime @default(now())
+
+  @@index([npi])
+  @@index([organizationId])
+  @@index([createdAt])
+  // Wave M: Performance index for transparency log queries
+  @@index([artifactId])
+}
+
+model AuditSnapshot {
+  id         String   @id @default(uuid()) @db.Uuid
+  artifactId String
+  snapshot   Json     @db.JsonB
+  createdAt  DateTime @default(now())
+
+  artifact VerificationArtifact @relation(fields: [artifactId], references: [id])
+
+  @@index([artifactId])
+  @@index([createdAt])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Audit Trail (append-only event log)
+// ──────────────────────────────────────────────────────────────
 
 model AuditEvent {
-  id           Int      @id @default(autoincrement())
-  type         String
-  hash         String
-  credentialId String?
-  userId       Int?
-  metadata     Json?
-  createdAt    DateTime @default(now())
+  id             String   @id @default(uuid()) @db.Uuid
+  type           String
+  hash           String
+  referenceId    String?
+  clinicianId    String?
+  organizationId String?
+  metadata       Json?    @db.JsonB
+  createdAt      DateTime @default(now())
+
+  @@index([type, createdAt])
+  @@index([clinicianId])
+  @@index([referenceId])
+  @@index([organizationId])
 }
 
-model Job {
-  id     Int    @id @default(autoincrement())
-  title  String
-  user   User   @relation(fields: [userId], references: [id])
-  userId Int
+// ──────────────────────────────────────────────────────────────
+// Continuous Monitoring (status change detection)
+// ──────────────────────────────────────────────────────────────
+
+model MonitoringEvent {
+  id             String    @id @default(uuid()) @db.Uuid
+  npi            String
+  source         String
+  organizationId  String?   @db.Uuid
+  previousStatus String?
+  newStatus      String
+  detectedAt     DateTime  @default(now())
+
+  @@index([npi])
+  @@index([organizationId])
+  @@index([source])
+  @@index([detectedAt])
+}
+
+model CredentialMonitoringEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  artifactId     String
+  organizationId String   @db.Uuid
+  eventType      String
+  createdAt      DateTime @default(now())
+
+  @@index([artifactId])
+  @@index([organizationId])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Wave R: Onboarding Analytics (revenue signal computation)
+// ──────────────────────────────────────────────────────────────
+
+model OnboardingAnalytics {
+  id                  String    @id @default(uuid()) @db.Uuid
+  organizationId      String
+  artifactId          String
+  createdAt           DateTime  @default(now())
+  firstVerifiedAt     DateTime?
+  firstProofIssuedAt  DateTime?
+  psvCompletedAt      DateTime?
+  daysToVerification  Int?
+  daysToPSVCompletion Int?
+
+  @@index([organizationId])
+  @@index([artifactId])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Wave T: System Failure Events (observability + isolation)
+// ──────────────────────────────────────────────────────────────
+
+model SystemFailureEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  component      String
+  severity       String   // "warning", "error", "critical"
+  message        String
+  artifactId     String?
+  organizationId String?
+  createdAt      DateTime @default(now())
+
+  @@index([severity])
+  @@index([createdAt])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Wave 2A: Normalized persistence (Provider → VerificationRun → Artifact)
+// ──────────────────────────────────────────────────────────────
+
+model Provider {
+  id              String   @id @default(uuid()) @db.Uuid
+  npi             String   @unique
+  fullName        String
+  providerType    String
+  taxonomyCode    String
+  stateOfPractice String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  verificationRuns VerificationRun[]
+}
+
+model VerificationRun {
+  id              String   @id @default(uuid()) @db.Uuid
+  providerId      String   @db.Uuid
+  sourceName      String
+  retrievedAtUtc  DateTime
+  rawPayloadHash  String
+  artifactHash    String
+  createdAt       DateTime @default(now())
+
+  provider  Provider   @relation(fields: [providerId], references: [id])
+  artifacts W2Artifact[]
+}
+
+model W2Artifact {
+  id                  String   @id @default(uuid()) @db.Uuid
+  verificationRunId   String   @db.Uuid
+  artifactJson        Json     @db.JsonB
+  signature           String
+  signatureAlgorithm  String
+  signatureIssuedAt   DateTime
+  createdAt           DateTime @default(now())
+
+  verificationRun VerificationRun @relation(fields: [verificationRunId], references: [id])
+  deltaLogs       DeltaLog[]
+}
+
+model DeltaLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  artifactId     String   @db.Uuid
+  previousStatus String
+  newStatus      String
+  deltaHash      String
+  detectedAt     DateTime @default(now())
+
+  artifact W2Artifact @relation(fields: [artifactId], references: [id])
 }

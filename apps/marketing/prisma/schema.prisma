@@ -1,0 +1,34 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Append-only event log for traction metrics.
+model EventLog {
+  id        String   @id @default(uuid())
+  eventType String
+  npi       String
+  organizationId String? @db.Uuid
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([eventType])
+  @@index([organizationId])
+  @@index([npi])
+  @@index([createdAt])
+}
+
+/// Share links for verifier access tracking.
+model ShareLink {
+  id          String    @id @default(uuid())
+  npi         String
+  organizationId String? @db.Uuid
+  createdAt   DateTime  @default(now())
+  firstViewAt DateTime?
+
+  @@index([npi])
+  @@index([organizationId])
+}

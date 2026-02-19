@@ -1,3 +1,5 @@
+import { log } from '../obs/logger';
+
 export interface HardwareWallet {
   connect(): Promise<void>;
   sign(data: Buffer): Promise<Buffer>;
@@ -6,17 +8,20 @@ export interface HardwareWallet {
 
 export class YubiKeyWallet implements HardwareWallet {
   async connect(): Promise<void> {
-    console.log('Connecting to YubiKey...');
+    log('info', 'Connecting to YubiKey');
   }
 
   async sign(data: Buffer): Promise<Buffer> {
-    console.log('Signing with YubiKey...');
+    log('info', 'Signing with YubiKey', {
+      event: 'hardware_wallet_yubikey_sign',
+      bytes: data.length,
+    });
     // In a real implementation this would interact with the device
     return data;
   }
 
   async getPublicKey(): Promise<string> {
-    console.log('Retrieving public key from YubiKey...');
+    log('info', 'Retrieving public key from YubiKey');
     // Return a placeholder key for now
     return 'yubi-public-key';
   }
@@ -24,17 +29,20 @@ export class YubiKeyWallet implements HardwareWallet {
 
 export class LedgerWallet implements HardwareWallet {
   async connect(): Promise<void> {
-    console.log('Connecting to Ledger...');
+    log('info', 'Connecting to Ledger');
   }
 
   async sign(data: Buffer): Promise<Buffer> {
-    console.log('Signing with Ledger...');
+    log('info', 'Signing with Ledger', {
+      event: 'hardware_wallet_ledger_sign',
+      bytes: data.length,
+    });
     // In a real implementation this would interact with the device
     return data;
   }
 
   async getPublicKey(): Promise<string> {
-    console.log('Retrieving public key from Ledger...');
+    log('info', 'Retrieving public key from Ledger');
     // Return a placeholder key for now
     return 'ledger-public-key';
   }

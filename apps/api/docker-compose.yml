@@ -1,1 +1,107 @@
-# docker-compose.yml - placeholder
+services:
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-vitalcv}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - vitalcv-net
+
+  backend:
+    build:
+      context: ..
+      dockerfile: apps/api/backend/Dockerfile
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/${POSTGRES_DB:-vitalcv}
+      NODE_ENV: production
+      PORT: 4000
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      API_KEYS: ${API_KEYS:-dev-api-key}
+      SIGNING_KEY_JWK: ${SIGNING_KEY_JWK}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:4000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))\" || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    ports:
+      - "4000:4000"
+    networks:
+      - vitalcv-net
+
+  authz:
+    build:
+      context: ..
+      dockerfile: apps/authz/Dockerfile
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/${POSTGRES_DB:-vitalcv}
+      NODE_ENV: production
+      PORT: 4003
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      SIGNING_KEY_JWK: ${SIGNING_KEY_JWK}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:4003/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))\" || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    ports:
+      - "4003:4003"
+    networks:
+      - vitalcv-net
+
+  verifier:
+    build:
+      context: ..
+      dockerfile: apps/verifier-api/Dockerfile
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/${POSTGRES_DB:-vitalcv}
+      NODE_ENV: production
+      PORT: 4002
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:4002/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))\" || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    ports:
+      - "4002:4002"
+    networks:
+      - vitalcv-net
+
+volumes:
+  postgres_data:
+
+networks:
+  vitalcv-net:
+    driver: bridge
