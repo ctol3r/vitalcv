@@ -4,12 +4,8 @@ import { log } from '../obs/logger';
 type ApiKeyParseInput = string;
 
 export const PRODUCTION_REQUIRED_VARS = [
+  'API_KEYS',
   'DATABASE_URL',
-  'INTERNAL_DASH_PASSWORD',
-  'MONITORING_SECRET',
-  'PILOT_MODE',
-  'YC_DEMO_MODE',
-  'ENTERPRISE_MODE',
 ] as const;
 
 export type ProductionEnvCheckReport = {
@@ -66,7 +62,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   YC_DEMO_MODE: z.preprocess((raw) => {
-    return parseBooleanEnvVar(raw, 'YC_DEMO_MODE', true);
+    return parseBooleanEnvVar(raw, 'YC_DEMO_MODE', false);
   }, z.boolean()),
   CORS_ORIGIN: z
     .string()
@@ -94,31 +90,17 @@ const envSchema = z.object({
   TRUST_STATE_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(60),
   MONITORING_SECRET: z.preprocess(
     (raw) => (raw === undefined ? '' : String(raw)),
-    z.string().superRefine((value, ctx) => {
-      if (PRODUCTION && value.trim().length === 0) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'MONITORING_SECRET is required in production',
-        });
-      }
-    }),
+    z.string(),
   ),
   INTERNAL_DASH_PASSWORD: z.preprocess(
     (raw) => (raw === undefined ? '' : String(raw)),
-    z.string().superRefine((value, ctx) => {
-      if (PRODUCTION && value.trim().length === 0) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'INTERNAL_DASH_PASSWORD is required in production',
-        });
-      }
-    }),
+    z.string(),
   ),
   PILOT_MODE: z.preprocess((raw) => {
-    return parseBooleanEnvVar(raw, 'PILOT_MODE', true);
+    return parseBooleanEnvVar(raw, 'PILOT_MODE', false);
   }, z.boolean()),
   ENTERPRISE_MODE: z.preprocess((raw) => {
-    return parseBooleanEnvVar(raw, 'ENTERPRISE_MODE', true);
+    return parseBooleanEnvVar(raw, 'ENTERPRISE_MODE', false);
   }, z.boolean()),
   LOW_FRICTION_MODE: z.preprocess((raw) => {
     return parseBooleanEnvVar(raw, 'LOW_FRICTION_MODE', false);

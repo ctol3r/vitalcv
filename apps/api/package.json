@@ -19,19 +19,17 @@
   "type": "module",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
-    "prisma": "^6.19.2",
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.21",
     "@types/swagger-ui-express": "^4.1.8",
     "ethers": "^5.8.0",
     "hardhat": "^2.25.0",
+    "prisma": "^6.19.2",
     "solc": "^0.8.20",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.2",
-    "@vitalcv/haip-config": "workspace:*",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/context-async-hooks": "^2.5.0",
     "@opentelemetry/core": "^2.5.0",
@@ -39,7 +37,9 @@
     "@opentelemetry/sdk-trace-base": "^2.5.0",
     "@opentelemetry/semantic-conventions": "^1.39.0",
     "@openzeppelin/contracts": "^5.3.0",
+    "@prisma/client": "^6.19.2",
     "@sentry/node": "^10.38.0",
+    "@vitalcv/haip-config": "workspace:*",
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "helmet": "^8.1.0",
