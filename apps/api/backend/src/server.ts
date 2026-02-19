@@ -84,7 +84,17 @@ async function main() {
   const config = loadEnv();
 
   const productionDeployment = config.NODE_ENV === 'production';
-  if (productionDeployment && !config.SYSTEM_FROZEN) {
+  const skipStartupMigration =
+    process.env.SKIP_STARTUP_MIGRATION === '1' ||
+    process.env.SKIP_STARTUP_MIGRATION === 'true';
+
+  if (skipStartupMigration) {
+    log('info', 'Startup migration skipped (SKIP_STARTUP_MIGRATION)', {
+      event: 'migration_skip',
+      reason: 'SKIP_STARTUP_MIGRATION',
+      node_env: config.NODE_ENV,
+    });
+  } else if (productionDeployment && !config.SYSTEM_FROZEN) {
     log('info', 'Applying Prisma migrations at startup', {
       event: 'migration_run',
       node_env: config.NODE_ENV,
