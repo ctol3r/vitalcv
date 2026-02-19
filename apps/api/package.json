@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "npm --prefix backend run dev",
-    "typecheck": "tsc -p backend/tsconfig.json --noEmit",
-    "build": "pnpm exec prisma generate --schema backend/prisma/schema.prisma && tsc -p backend/tsconfig.json",
+    "typecheck": "pnpm exec tsc -p backend/tsconfig.json --noEmit",
+    "build": "pnpm exec prisma generate --schema backend/prisma/schema.prisma && pnpm exec tsc -p backend/tsconfig.json",
     "start": "npm --prefix backend run start",
     "db:migrate:deploy": "pnpm exec prisma migrate deploy --schema backend/prisma/schema.prisma",
     "seed": "npm --prefix backend run seed",
@@ -26,7 +26,8 @@
     "@types/swagger-ui-express": "^4.1.8",
     "ethers": "^5.8.0",
     "hardhat": "^2.25.0",
-    "solc": "^0.8.20"
+    "solc": "^0.8.20",
+    "typescript": "^5.8.3"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",
