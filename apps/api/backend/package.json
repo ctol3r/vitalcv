@@ -6,13 +6,13 @@
   "license": "ISC",
   "type": "commonjs",
   "scripts": {
-    "db:migrate:deploy": "prisma migrate deploy",
-    "dev": "prisma generate && ts-node src/server.ts",
-    "build": "prisma generate && tsc",
+    "db:migrate:deploy": "pnpm exec prisma migrate deploy",
+    "dev": "pnpm exec prisma generate && ts-node src/server.ts",
+    "build": "pnpm exec prisma generate && tsc",
     "start": "node dist/apps/api/backend/src/server.js",
     "test": "jest",
-    "seed": "prisma migrate deploy && ts-node -P tsconfig.seed.json prisma/seed.ts",
-    "prisma:generate": "prisma generate"
+    "seed": "pnpm exec prisma migrate deploy && ts-node -P tsconfig.seed.json prisma/seed.ts",
+    "prisma:generate": "pnpm exec prisma generate"
   },
   "keywords": [],
   "author": "",
