@@ -13,9 +13,7 @@ services:
     rootDir: .
     buildCommand: >
       npm install -g pnpm@10.6.1 &&
-      pnpm install --frozen-lockfile &&
-      cd apps/api &&
-      npx prisma generate &&
+      pnpm install --frozen-lockfile --ignore-scripts &&
       pnpm --filter @vitalcv/api build
     startCommand: >
       npx prisma migrate deploy --schema apps/api/backend/prisma/schema.prisma &&
@@ -37,7 +35,7 @@ services:
     rootDir: .
     buildCommand: >
       npm install -g pnpm@10.6.1 &&
-      pnpm install --frozen-lockfile &&
+      pnpm install --frozen-lockfile --ignore-scripts &&
       pnpm --filter @vitalcv/authz build
     startCommand: >
       cd apps/authz &&
@@ -65,7 +63,7 @@ services:
     rootDir: .
     buildCommand: >
       npm install -g pnpm@10.6.1 &&
-      pnpm install --frozen-lockfile &&
+      pnpm install --frozen-lockfile --ignore-scripts &&
       pnpm --filter @vitalcv/verifier-api build
     startCommand: >
       cd apps/verifier-api &&
