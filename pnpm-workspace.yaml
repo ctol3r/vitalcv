@@ -1,5 +1,5 @@
 packages:
   - apps/*
+  - apps/api/*
   - packages/*
   - blockchain/*
-

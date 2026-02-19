@@ -1,95 +1,49 @@
-import './tracing';
-import express, { Request, Response } from 'express';
 import cors from 'cors';
-import oidc4vciRouter from './oidc4vci/routes';
-import { allowedSinksEnforcer } from './middleware/allowedSinksEnforcer';
-import { getCachedJwks, refreshJwks, startJwksUpdater } from './services/jwksUpdater';
-import { createLogger, serializeError } from '@chai-vc/logging-core';
-import { requestIdMiddleware } from './middleware/requestId';
+import express from 'express';
+import helmet from 'helmet';
+import { isSigningKeyConfigured } from './services/signingKeyProvider';
+import internalRoutes from './routes/internal';
+import metadataRouter from './routes/oidc4vci/metadata';
+import didRoutes from './routes/did';
+import walletRoutes from './routes/wallet';
+import oidc4vciRoutes from './routes/oidc4vci/credential';
 
-// Swagger UI for OpenAPI documentation (B114B-OPENAPI-028)
-let swaggerUi: any = null;
-let swaggerDocument: any = null;
+const app: ReturnType<typeof express> = express();
 
-const log = createLogger({
-  service: process.env.SERVICE_NAME || 'issuer-api',
-});
-
-try {
-  // Dynamic import to avoid requiring swagger-ui-express as hard dependency
-  swaggerUi = require('swagger-ui-express');
-  const YAML = require('yamljs');
-  const path = require('path');
-  swaggerDocument = YAML.load(path.join(__dirname, '../openapi/openapi.yaml'));
-} catch (error) {
-  log.warn('Swagger UI not available', { error: serializeError(error) });
+if (process.env.NODE_ENV === 'production' && !isSigningKeyConfigured()) {
+  throw new Error('Production requires ISSUER_SIGNING_JWK or SIGNING_KEY_JWK configuration.');
 }
 
-const app = express();
+app.use(helmet());
 app.use(cors());
-app.use(express.json());
-app.use(requestIdMiddleware());
+app.use(express.json({ limit: '1mb' }));
 
-// B93-SEC-001: Enforce allowed_sinks on all inbound routes (repo-wide)
-// Apply middleware to all routes except health checks
-app.use((req, res, next) => {
-  // Skip health checks
-  if (req.path === '/health') {
-    return next();
-  }
-  return allowedSinksEnforcer(req, res, next);
+// OIDC4VCI metadata and discovery
+app.use(metadataRouter);
+app.use('/oidc4vci', oidc4vciRoutes);
+app.use('/api/oid4vci', oidc4vciRoutes);
+app.use('/api/wallet', walletRoutes);
+app.use('/api/internal', internalRoutes);
+app.use(didRoutes);
+
+app.get('/health', (_req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'issuer-api',
+  });
 });
 
-// OIDC4VCI routes (guard middleware applied within routes)
-app.use('/oidc4vci', oidc4vciRouter);
-
-// OpenAPI/Swagger UI documentation (B114B-OPENAPI-028)
-if (swaggerUi && swaggerDocument) {
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
-    customCss: '.swagger-ui .topbar { display: none }',
-    customSiteTitle: 'VitalCV Issuer API Documentation',
-  }));
-  log.info('Swagger UI available', { path: '/api-docs', port: process.env.PORT || 4001 });
-}
-
-// JWKS endpoint for verifiers
-app.get('/.well-known/jwks.json', async (req: Request, res: Response) => {
-  try {
-    const refreshParam = req.query?.refresh;
-    const refreshRequested = typeof refreshParam === 'string'
-      ? ['1', 'true'].includes(refreshParam.toLowerCase())
-      : false;
-
-    if (refreshRequested) {
-      await refreshJwks({ force: true });
-    } else if (!getCachedJwks().keys.length) {
-      await refreshJwks();
-    }
-
-    return res.json(getCachedJwks());
-  } catch (error) {
-    log.error('Failed to serve JWKS', { error: serializeError(error) });
-    return res.status(503).json({
-      error: 'jwks_unavailable',
-      message: error instanceof Error ? error.message : 'Unable to serve JWKS',
-    });
-  }
-});
-
-// Health check
-app.get('/health', (req: Request, res: Response) => {
-  res.json({ status: 'ok', service: 'issuer-api' });
-});
-
-startJwksUpdater().catch((error) => {
-  log.error('Failed to start JWKS updater', { error: serializeError(error) });
+app.get('/readyz', (_req, res) => {
+  res.status(200).json({
+    status: isSigningKeyConfigured() ? 'ready' : 'starting',
+    service: 'issuer-api',
+  });
 });
 
 const PORT = process.env.PORT || 4001;
 
 app.listen(PORT, () => {
-  log.info('Issuer API listening', { port: PORT });
+  console.log('Issuer API listening', { port: PORT });
 });
 
 export default app;
-

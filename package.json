@@ -1,34 +1,26 @@
 {
-  "name": "vitalcv-monorepo",
-  "version": "1.0.0",
+  "name": "vitalcv",
   "private": true,
-  "description": "VitalCV Healthcare Credentialing Platform Monorepo",
+  "packageManager": "pnpm@10.6.1",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "dev:local": "tsx scripts/check-env.ts --mode=dev && turbo run dev",
-    "lint": "turbo run lint",
-    "format": "turbo run format",
-    "test": "turbo run test",
-    "typecheck": "turbo run typecheck",
-    "clean": "turbo run clean && rm -rf node_modules",
-    "check:env": "tsx scripts/check-env.ts --mode=demo",
-    "sanity:repo": "tsx scripts/repo-sanity.ts",
-    "scan:imports": "tsx scripts/scan-imports.ts",
-    "scan:compliance": "tsx scripts/scan-compliance.ts",
-    "cleanup:legacy": "bash scripts/cleanup-legacy.sh",
-    "verify:build": "bash scripts/verify-build.sh"
+    "build:web": "pnpm --filter web build",
+    "typecheck": "turbo typecheck",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "build": "turbo build"
   },
   "devDependencies": {
-    "@jest/globals": "^29.7.0",
-    "@types/node": "^25.0.10",
-    "tsx": "^4.7.0",
-    "turbo": "^2.1.3",
-    "typescript": "^5.4.5"
+    "@types/node": "^20",
+    "turbo": "^2.7.0"
   },
-  "engines": {
-    "node": ">=20.0.0",
-    "pnpm": ">=8.0.0"
-  },
-  "packageManager": "pnpm@8.15.0"
+  "pnpm": {
+    "overrides": {
+      "@types/react": "^19",
+      "@types/react-dom": "^19"
+    }
+  }
 }

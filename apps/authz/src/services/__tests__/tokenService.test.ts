@@ -12,12 +12,15 @@ import { generateKeyPair, exportJWK, calculateJwkThumbprint } from 'jose';
 
 describe('B100B-TBIND-039: Access/Refresh Token Policy', () => {
   let testJwk: any;
+  let testPrivateJwk: any;
   let testCnfJkt: string;
 
   beforeEach(async () => {
     // Generate test JWK for DPoP
-    const { publicKey } = await generateKeyPair('ES256');
+    const { publicKey, privateKey } = await generateKeyPair('ES256');
     testJwk = await exportJWK(publicKey);
+    testPrivateJwk = await exportJWK(privateKey);
+    process.env.SIGNING_KEY_JWK = JSON.stringify(testPrivateJwk);
     testCnfJkt = await calculateJwkThumbprint(testJwk);
   });
 
@@ -174,4 +177,3 @@ describe('B100B-TBIND-039: Access/Refresh Token Policy', () => {
     });
   });
 });
-

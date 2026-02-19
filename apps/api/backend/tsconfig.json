@@ -1,15 +1,35 @@
 {
   "compilerOptions": {
-    "target": "es2020",
-    "module": "commonjs",
-    "rootDir": "src",
-    "outDir": "dist",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "CommonJS",
+    "moduleResolution": "Node",
     "strict": true,
+
+    "rootDir": "../../..",
+    "baseUrl": "../../..",
+
+    "paths": {
+      "@vitalcv/domain/*": ["packages/domain/*"],
+      "@vitalcv/domain-common": ["packages/domain-common/src"],
+      "@vitalcv/psv/*": ["packages/psv/*"],
+      "@vitalcv/crs/*": ["packages/crs/*"],
+      "@vitalcv/trust-state/*": ["packages/trust-state/*"],
+      "@vitalcv/audit/*": ["packages/audit/*"],
+      "@vitalcv/haip-config": ["packages/haip-config"]
+    },
+
+    "types": ["node", "jest"],
     "esModuleInterop": true,
+    "resolveJsonModule": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node"
+    "outDir": "dist"
   },
-  "include": ["src/server.ts"],
-  "exclude": ["__tests__"]
+  "include": ["src", "jobs", "adapters", "types", "routes"],
+  "exclude": [
+    "node_modules",
+    "src/blockchain/**",
+    "src/graphql/**",
+    "routes/*.disabled.ts"
+  ]
 }

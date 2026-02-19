@@ -43,7 +43,9 @@ COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 
 # Install dependencies (leverages Docker cache if lockfile unchanged)
-RUN pnpm install --frozen-lockfile
+# --ignore-scripts prevents postinstall hooks from running prisma generate
+# prematurely; prisma generate runs in the builder stage via the build script.
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # -----------------------------------------------------------------------------
 # Stage 3: Builder (Compile TypeScript)
@@ -62,10 +64,7 @@ COPY --from=installer /app/ .
 # Copy pruned source code
 COPY --from=pruner /app/out/full/ .
 
-# Generate Prisma client (adjust path if prisma schema location differs)
-RUN pnpm --filter api exec prisma generate || true
-
-# Build only the api package and its dependencies
+# Build the api package (prisma generate runs as part of the build script)
 RUN pnpm turbo run build --filter=api
 
 # Prune to production dependencies only

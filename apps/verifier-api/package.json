@@ -5,24 +5,24 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node src/index.ts",
-    "build": "tsc",
+    "build": "pnpm exec prisma generate --schema ../api/backend/prisma/schema.prisma && tsc",
     "start": "node dist/index.js",
     "test": "vitest"
   },
   "dependencies": {
-    "@vitalcv/messaging-guard": "workspace:*",
+    "@prisma/client": "^6.19.2",
+    "@vitalcv/haip-config": "workspace:*",
+    "cors": "^2.8.5",
     "express": "^4.18.2",
-    "jose": "^6.1.0",
-    "cors": "^2.8.5"
+    "jose": "^6.1.0"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.5",
     "@types/express": "^4.17.21",
     "@types/node": "^20.10.6",
+    "prisma": "^6.19.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
-    "vitest": "^1.0.0",
-    "supertest": "^6.3.3",
-    "@types/supertest": "^2.0.16"
+    "vitest": "^4.0.18"
   }
 }
-

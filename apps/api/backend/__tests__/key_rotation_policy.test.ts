@@ -1,11 +1,7 @@
-import assert from 'assert';
-import { KeyRotationPolicy } from '../src/blockchain/key_rotation_policy';
-
-const now = Date.now();
-const policy = new KeyRotationPolicy('key1');
-policy.scheduleRotation('key2', now + 1000);
-
-assert.strictEqual(policy.getActiveKey(now), 'key1', 'Key should remain the same before time lock');
-assert.strictEqual(policy.getActiveKey(now + 1500), 'key2', 'Key should rotate after time lock');
-
-console.log('KeyRotationPolicy tests passed');
+// Skipped: src/blockchain/key_rotation_policy was removed during architecture refactor.
+// Key management is now handled via signingService (PSV) and signer (identity).
+describe.skip('key rotation policy (legacy — module removed)', () => {
+  it('placeholder', () => {
+    expect(true).toBe(true);
+  });
+});

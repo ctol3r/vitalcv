@@ -9,7 +9,7 @@ import * as cheerio from 'cheerio';
 export interface LicenseResult {
   status: string;
   expirationDate?: string;
-  raw?: any;
+  raw?: unknown;
 }
 
 /**
@@ -56,4 +56,3 @@ export async function scrapeLicenseStatus(
 
   return { status, expirationDate };
 }
-

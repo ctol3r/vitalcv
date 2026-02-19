@@ -6,11 +6,16 @@
  * and return a risk score that can be used on-chain.
  */
 
+import { log } from '../obs/logger';
+
 export async function queryRiskScore(userId: string): Promise<number> {
   // In production, this function would make a request to a Chainlink Function
   // that performs the AI risk calculation off-chain. Here we simply log the
   // invocation and return a mock score.
-  console.log(`Querying Chainlink Functions for risk score of ${userId}`);
+  log('info', 'Querying Chainlink Functions for risk score', {
+    event: 'chainlink_risk_score_query',
+    userId,
+  });
 
   // Placeholder risk score
   return 42;

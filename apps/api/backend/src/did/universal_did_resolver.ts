@@ -1,4 +1,4 @@
-import { Resolver } from 'did-resolver';
+import { Resolver, type DIDResolutionResult, type ResolverRegistry } from 'did-resolver';
 import { getResolver as getWebResolver } from 'web-did-resolver';
 import { getResolver as getEthrResolver } from 'ethr-did-resolver';
 import { getResolver as getKeyResolver } from 'key-did-resolver';
@@ -22,7 +22,7 @@ export class UniversalDIDResolver {
   private resolver: Resolver;
 
   constructor(options: UniversalResolverOptions = {}) {
-    const methodResolvers: Record<string, any> = {
+    const methodResolvers: ResolverRegistry = {
       ...getWebResolver(),
       ...getKeyResolver(),
     };
@@ -38,7 +38,7 @@ export class UniversalDIDResolver {
    * Resolve a DID and return its DID Document.
    * @param did - The decentralized identifier to resolve.
    */
-  async resolve(did: string): Promise<any> {
+  async resolve(did: string): Promise<DIDResolutionResult> {
     return this.resolver.resolve(did);
   }
 }

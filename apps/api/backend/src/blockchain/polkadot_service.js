@@ -4,8 +4,7 @@
  */
 class PolkadotService {
   async anchorProof(proof) {
-    console.log('Anchoring proof on chain:', proof);
-    // Simulate returning a transaction hash
+    // Simulate returning a transaction hash after proof anchoring.
     return `0x${Buffer.from(proof).toString('hex').slice(0, 8)}`;
   }
 }

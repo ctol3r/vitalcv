@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { PolkadotService } from './polkadot_service';
+import { log } from '../obs/logger';
 
 /**
  * logRationale hashes an explanation and anchors it on-chain.
@@ -12,5 +13,9 @@ export async function logRationale(id: string, rationale: string): Promise<void>
   const hash = crypto.createHash('sha256').update(rationale).digest('hex');
   const payload = JSON.stringify({ id, hash });
   await service.anchorData(payload);
-  console.log(`Anchored rationale ${id} with hash ${hash}`);
+  log('info', 'Anchored rationale', {
+    event: 'explainability_log_anchor',
+    rationaleId: id,
+    hash,
+  });
 }

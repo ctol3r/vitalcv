@@ -1,6 +1,7 @@
 import { ApiPromise, SubmittableResult, WsProvider } from '@polkadot/api';
 import { KeyringPair } from '@polkadot/keyring/types';
 import { KeyRotationPolicy } from './key_rotation_policy';
+import { log } from '../obs/logger';
 
 export interface ErasureRecord {
   userId: string;
@@ -192,7 +193,11 @@ export class PolkadotService {
   async storeAuditRecord(record: AuditRecord): Promise<void> {
     // This is a placeholder for the actual interaction with the Polkadot
     // blockchain which would store a hash of the audit data.
-    console.log('Storing record on-chain:', record);
+    log('info', 'Storing record on-chain', {
+      event: 'store_audit_record',
+      userId: record.userId,
+      action: record.action,
+    });
   }
 
   /**
@@ -201,7 +206,11 @@ export class PolkadotService {
    */
   async recordErasure(record: ErasureRecord): Promise<void> {
     // In a real implementation, this would submit a transaction to the chain.
-    console.log('Recording erasure on-chain:', record);
+    log('info', 'Recording erasure on-chain', {
+      event: 'record_erasure',
+      userId: record.userId,
+      action: record.action,
+    });
   }
 
   /**

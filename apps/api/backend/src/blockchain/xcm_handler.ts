@@ -1,5 +1,6 @@
 import { ApiPromise, SubmittableExtrinsic } from '@polkadot/api';
 import { Keyring } from '@polkadot/keyring';
+import { log } from '../obs/logger';
 
 export interface ChaiCredentialMessage {
   credentialId: string;
@@ -48,7 +49,10 @@ export class XcmHandler {
               const message = JSON.parse(payload) as ChaiCredentialMessage;
               onMessage(Number(paraId), message);
             } catch (err) {
-              console.error('Failed to parse CHAI credential message', err);
+              log('error', 'Failed to parse CHAI credential message', {
+                event: 'chai_credential_parse_error',
+                error: err instanceof Error ? err.message : 'unknown',
+              });
             }
           }
         }
@@ -58,4 +62,3 @@ export class XcmHandler {
 }
 
 export default XcmHandler;
-

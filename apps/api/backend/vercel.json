@@ -1,0 +1,4 @@
+{
+  "installCommand": "npm install -g pnpm@10.6.1 && pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm --filter @vitalcv/api build"
+}

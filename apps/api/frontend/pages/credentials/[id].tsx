@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import { isValidNPI } from '../../utils/validateNpi';
+import styles from './CredentialDetail.module.css';
 
 /**
  * Credential detail page.
@@ -14,8 +15,10 @@ export default function CredentialDetail() {
   const [shareStatusOnly, setShareStatusOnly] = useState(false);
   const [shareOutput, setShareOutput] = useState<string | null>(null);
   const [npi, setNpi] = useState('');
+  const npiStatusId = 'npi-status';
   
   const npiValid = npi ? isValidNPI(npi) : null;
+  const npiInvalidProps = npiValid === false ? { 'aria-invalid': 'true' as const } : {};
 
   function generateStatusProof(vcId: string | string[] | undefined) {
     // Placeholder: real implementation would produce a cryptographic proof.
@@ -37,16 +40,24 @@ export default function CredentialDetail() {
       <h1>Credential {id}</h1>
       
       {/* NPI Validation Section */}
-      <div style={{ marginBottom: '20px' }}>
+      <div className={styles.npiSection}>
         <h2>NPI Validation</h2>
         <input
+          id="npi-input"
+          name="npi"
           type="text"
           value={npi}
-          onChange={(e) => setNpi(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNpi(e.target.value)}
           placeholder="Enter NPI"
+          inputMode="numeric"
+          aria-label="NPI"
+          aria-describedby={npiValid !== null ? npiStatusId : undefined}
+          {...npiInvalidProps}
         />
         {npiValid !== null && (
-          <p>{npiValid ? 'NPI is valid' : 'NPI is invalid'}</p>
+          <p id={npiStatusId} role="status" aria-live="polite">
+            {npiValid ? 'NPI is valid' : 'NPI is invalid'}
+          </p>
         )}
       </div>
 
@@ -57,7 +68,7 @@ export default function CredentialDetail() {
           <input
             type="checkbox"
             checked={shareStatusOnly}
-            onChange={(e) => setShareStatusOnly(e.target.checked)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setShareStatusOnly(e.target.checked)}
           />
           Share only status
         </label>

@@ -1,21 +1,38 @@
-import './tracing';
-import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import { jwtVerify, importJWK, calculateJwkThumbprint, decodeJwt, compactVerify } from 'jose';
 import { createHash, randomBytes } from 'crypto';
-import { allowedSinksEnforcer } from './middleware/allowedSinksEnforcer';
-import { issueAccessToken, issueRefreshToken, validateAndRotateRefreshToken } from './services/tokenService';
-import { requestIdMiddleware } from './middleware/requestId';
-import { createLogger } from '@chai-vc/logging-core';
+import express, { type Express, NextFunction, Request, Response } from 'express';
+import { calculateJwkThumbprint, importJWK, jwtVerify } from 'jose';
+import { Prisma } from '@prisma/client';
+import { haipConfig } from '@vitalcv/haip-config';
+import { enforceCredentialPolicy, enforceTokenPolicy } from './policyEnforcer';
+import prisma from './db';
+import { isDpopReplay } from './security/dpopReplayTable';
+import { consumeNonce, issueNonce } from './security/nonceTable';
+import {
+  issueAccessToken,
+  issueRefreshToken,
+  validateAndRotateRefreshToken,
+} from './services/tokenService';
 
-const log = createLogger({
-  service: process.env.SERVICE_NAME || 'authz-api',
-});
+if (process.env.NODE_ENV === 'production' && !process.env.SIGNING_KEY_JWK?.trim()) {
+  throw new Error('SIGNING_KEY_JWK is required in production');
+}
+if (process.env.NODE_ENV === 'production' && !process.env.API_KEYS?.trim()) {
+  throw new Error('API_KEYS is required in production');
+}
 
-const app = express();
-app.use(cors());
+const app: Express = express();
+const corsOrigin = process.env.CORS_ORIGIN?.trim() || '*';
+if (process.env.NODE_ENV === 'production' && corsOrigin === '*') {
+  throw new Error('CORS_ORIGIN must not be "*" in production');
+}
+
+app.use(
+  cors({
+    origin: corsOrigin === '*' ? true : corsOrigin.split(',').map((o) => o.trim()),
+  }),
+);
 app.use(express.json());
-app.use(requestIdMiddleware());
 
 /**
  * B99A-TBIND-001: DPoP default; mTLS enterprise-optional (issuer/verifier)
@@ -31,68 +48,199 @@ app.use(requestIdMiddleware());
  * - Enterprise mode: Set MTLS_REQUIRED=true to enforce mTLS for all confidential clients
  */
 
-// B93-SEC-001: Enforce allowed_sinks on all inbound routes (repo-wide)
-// Apply middleware to all routes except health checks
-app.use((req, res, next) => {
-  // Skip health checks
-  if (req.path === '/health') {
-    return next();
-  }
-  return allowedSinksEnforcer(req, res, next);
-});
-
-// Pre-authorized code store (in production, use Redis/database)
-interface PreAuthorizedCode {
-  code: string;
-  scope: string[];
-  expiresAt: number;
-  clientId?: string;
-  requiresPAR?: boolean; // High-risk requests require PAR
-}
-
-const preAuthorizedCodes = new Map<string, PreAuthorizedCode>();
-
-// B118A-TBIND-002: JTI replay cache for DPoP proofs (one-shot)
-const jtiReplayCache = new Map<string, { timestamp: number }>();
-const JTI_REPLAY_TTL_MS = 60000; // 60 seconds
-
-/**
- * Check if jti was already used (replay protection)
- * Returns true if jti is reused, false otherwise
- */
-function checkAndStoreJti(jti: string): boolean {
-  if (!jti) {
-    return false; // No jti means we can't check, but it's not a replay
-  }
-
-  // Check if jti was already used
-  if (jtiReplayCache.has(jti)) {
-    return true; // Already used - replay detected
-  }
-
-  // Store jti with timestamp to prevent future reuse
-  jtiReplayCache.set(jti, { timestamp: Date.now() });
-
-  // Cleanup old entries
-  const now = Date.now();
-  for (const [cachedJti, data] of jtiReplayCache.entries()) {
-    if (now - data.timestamp > JTI_REPLAY_TTL_MS) {
-      jtiReplayCache.delete(cachedJti);
-    }
-  }
-
-  return false; // Not reused
-}
-
-// Pushed Authorization Request (PAR) store
-interface PARRequest {
-  request_uri: string;
-  request: any; // OAuth 2.0 authorization request
-  expiresAt: number;
+type AuthzParRequest = {
+  requestUri: string;
+  requestType: string;
+  requestJson: Prisma.JsonValue;
   clientId: string;
+  codeChallenge: string | null;
+  codeChallengeMethod: string | null;
+  redirectUri: string | null;
+  scope: string | null;
+  expiresAt: Date;
+};
+
+function nowDate(now = Date.now()): Date {
+  return new Date(now);
 }
 
-const parRequests = new Map<string, PARRequest>();
+async function purgeExpiredParRequests(now = Date.now()): Promise<void> {
+  await prisma.parRequest.deleteMany({
+    where: {
+      expiresAt: {
+        lte: nowDate(now),
+      },
+    },
+  });
+}
+
+async function getParRequest(
+  requestUri: string,
+  requestType: string,
+  now = Date.now(),
+): Promise<AuthzParRequest | null> {
+  await purgeExpiredParRequests(now);
+
+  const record = await prisma.parRequest.findUnique({
+    where: { requestUri },
+    select: {
+      requestUri: true,
+      requestType: true,
+      requestJson: true,
+      clientId: true,
+      codeChallenge: true,
+      codeChallengeMethod: true,
+      redirectUri: true,
+      scope: true,
+      expiresAt: true,
+    },
+  });
+
+  if (!record || record.requestType !== requestType) {
+    return null;
+  }
+
+  const requestJson =
+    typeof record.requestJson === 'object' && record.requestJson !== null
+      ? (record.requestJson as Prisma.JsonValue)
+      : {};
+
+  return {
+    ...record,
+    requestJson,
+    codeChallenge: record.codeChallenge,
+    codeChallengeMethod: record.codeChallengeMethod,
+    redirectUri: record.redirectUri,
+    scope: record.scope,
+  };
+}
+
+async function createParRequest(record: {
+  requestUri: string;
+  requestType: string;
+  request: Record<string, unknown>;
+  clientId: string;
+  codeChallenge?: string;
+  codeChallengeMethod?: string;
+  redirectUri?: string;
+  scope?: string;
+  expiresAt: number;
+}): Promise<void> {
+  await prisma.parRequest.create({
+    data: {
+      requestUri: record.requestUri,
+      requestType: record.requestType,
+      requestJson: record.request as Prisma.InputJsonValue,
+      clientId: record.clientId,
+      codeChallenge: record.codeChallenge,
+      codeChallengeMethod: record.codeChallengeMethod,
+      redirectUri: record.redirectUri,
+      scope: record.scope,
+      expiresAt: nowDate(record.expiresAt),
+    },
+  });
+}
+
+async function consumeParRequest(requestUri: string, requestType: string, now = Date.now()): Promise<void> {
+  const record = await getParRequest(requestUri, requestType, now);
+  if (!record) {
+    return;
+  }
+
+  await prisma.parRequest.delete({ where: { requestUri } });
+}
+
+type AuthzPreAuthorizedCodeRecord = {
+  code: string;
+  scope: string;
+  clientId: string | null;
+  expiresAt: Date;
+  requiresPAR: boolean;
+};
+
+function nowDateWithTtl(base: number, seconds: number): Date {
+  return new Date(base + seconds * 1000);
+}
+
+async function createPreAuthorizedCode(record: {
+  code: string;
+  scope: readonly string[];
+  clientId?: string;
+  expiresIn: number;
+  requiresPAR: boolean;
+}): Promise<void> {
+  await prisma.parRequest.create({
+    data: {
+      requestUri: record.code,
+      requestType: 'pre_authorized_code',
+      requestJson: {
+        type: 'pre_authorized_code',
+      },
+      clientId: record.clientId ?? 'unknown',
+      codeChallenge: null,
+      codeChallengeMethod: null,
+      redirectUri: null,
+      scope: record.scope.join(' '),
+      expiresAt: nowDateWithTtl(Date.now(), record.expiresIn),
+    },
+  });
+}
+
+async function getPreAuthorizedCode(code: string): Promise<AuthzPreAuthorizedCodeRecord | null> {
+  await prisma.parRequest.deleteMany({
+    where: {
+      requestType: 'pre_authorized_code',
+      expiresAt: { lte: new Date() },
+    },
+  });
+
+  const row = await prisma.parRequest.findUnique({
+    where: { requestUri: code },
+  });
+
+  if (!row || row.requestType !== 'pre_authorized_code') {
+    return null;
+  }
+
+  const scope = typeof row.scope === 'string' ? row.scope : '';
+    const requiresPAR =
+      scope
+      .split(' ')
+      .map((entry: string) => entry.trim())
+      .some((entry) => entry.startsWith('credential:issue:'));
+
+  return {
+    code: row.requestUri,
+    scope,
+    clientId: row.clientId,
+    expiresAt: row.expiresAt,
+    requiresPAR,
+  };
+}
+
+async function consumePreAuthorizedCode(code: string): Promise<void> {
+  await prisma.parRequest.deleteMany({
+    where: {
+      requestType: 'pre_authorized_code',
+      requestUri: code,
+    },
+  });
+}
+
+async function tokenSuccessBody(payload: {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  refresh_token: string;
+  scope: string;
+}) {
+  const { nonce, expiresInSeconds } = await issueNonce();
+  return {
+    ...payload,
+    c_nonce: nonce,
+    c_nonce_expires_in: expiresInSeconds,
+  };
+}
 
 /**
  * Extract JWK thumbprint (cnf.jkt) from token
@@ -106,7 +254,11 @@ function extractJwkThumbprint(token: any): string | null {
  * Validates JWS signature, htu/htm matching, and iat freshness
  * B113A-TBIND-002: Returns detailed error messages for JOSE policy violations (alg, typ, kid)
  */
-async function verifyDPoP(dpopHeader: string, htu: string, htm: string): Promise<{ valid: boolean; jwk?: any; thumbprint?: string; error?: string }> {
+async function verifyDPoP(
+  dpopHeader: string,
+  htu: string,
+  htm: string,
+): Promise<{ valid: boolean; jwk?: any; thumbprint?: string; error?: string }> {
   try {
     const parts = dpopHeader.split('.');
     if (parts.length !== 3) {
@@ -124,10 +276,15 @@ async function verifyDPoP(dpopHeader: string, htu: string, htm: string): Promise
       return { valid: false, error: 'Missing JWK in DPoP proof header' };
     }
 
-    // B113A-TBIND-002: JOSE allowlist for DPoP proofs (alg ∈ {ES256,EdDSA})
-    const ALLOWED_ALGORITHMS = ['ES256', 'EdDSA'];
-    if (!alg || !ALLOWED_ALGORITHMS.includes(alg)) {
-      return { valid: false, error: `invalid_alg: algorithm '${alg || 'missing'}' not allowed. Allowed algorithms: ${ALLOWED_ALGORITHMS.join(', ')}` };
+    // Strict policy: DPoP proofs must use HAIP-mandated algorithms only.
+    const allowedAlgs = haipConfig.dpop.allowedAlgorithms as readonly string[];
+    if (!alg || !allowedAlgs.includes(alg)) {
+      return {
+        valid: false,
+        error: `invalid_alg: algorithm '${
+          alg || 'missing'
+        }' not allowed. Allowed algorithms: ${allowedAlgs.join(', ')}`,
+      };
     }
 
     // B113A-TBIND-002: Check typ='dpop+jwt' presence (returns 400 for invalid typ)
@@ -147,10 +304,15 @@ async function verifyDPoP(dpopHeader: string, htu: string, htm: string): Promise
 
       // Verify the JWT signature (only allowlisted algorithms)
       const verified = await jwtVerify(dpopHeader, publicKey, {
-        algorithms: ALLOWED_ALGORITHMS,
+        algorithms: [...allowedAlgs],
       });
 
-      const payload = verified.payload;
+      const payload = verified.payload as {
+        htu?: string;
+        htm?: string;
+        iat?: number;
+        jti?: string;
+      };
 
       // Verify htu matches (must match exactly)
       if (payload.htu !== htu) {
@@ -159,13 +321,30 @@ async function verifyDPoP(dpopHeader: string, htu: string, htm: string): Promise
 
       // Verify htm matches (must match exactly)
       if (payload.htm?.toUpperCase() !== htm.toUpperCase()) {
-        return { valid: false, error: `htm mismatch: expected ${htm.toUpperCase()}, got ${payload.htm}` };
+        return {
+          valid: false,
+          error: `htm mismatch: expected ${htm.toUpperCase()}, got ${payload.htm}`,
+        };
       }
 
       // B107A-TBIND-002: Verify iat is recent (within 60s skew)
       const now = Math.floor(Date.now() / 1000);
       if (!payload.iat || Math.abs(payload.iat - now) > 60) {
-        return { valid: false, error: `iat too old or missing: ${payload.iat ? Math.abs(payload.iat - now) + 's ago' : 'missing'} (max skew: 60s)` };
+        return {
+          valid: false,
+          error: `iat too old or missing: ${
+            payload.iat ? Math.abs(payload.iat - now) + 's ago' : 'missing'
+          } (max skew: 60s)`,
+        };
+      }
+
+      // SPECIFICATION §2: exp ≤ 5 minutes from iat
+      const exp = (verified.payload as { exp?: number }).exp;
+      if (exp && payload.iat && exp - payload.iat > haipConfig.dpop.maxProofLifetimeSeconds) {
+        return {
+          valid: false,
+          error: `DPoP exp too far in future (max ${haipConfig.dpop.maxProofLifetimeSeconds}s lifetime)`,
+        };
       }
 
       // B118A-TBIND-002: Validate jti (JWT ID) for replay protection
@@ -174,7 +353,7 @@ async function verifyDPoP(dpopHeader: string, htu: string, htm: string): Promise
       }
 
       // B118A-TBIND-002: Check for jti reuse (one-shot)
-      if (checkAndStoreJti(payload.jti as string)) {
+      if (await isDpopReplay(payload.jti as string)) {
         return { valid: false, error: `jti reused: ${payload.jti} (replay attack detected)` };
       }
 
@@ -183,10 +362,18 @@ async function verifyDPoP(dpopHeader: string, htu: string, htm: string): Promise
 
       return { valid: true, jwk, thumbprint };
     } catch (error) {
-      return { valid: false, error: `DPoP proof signature verification failed: ${error instanceof Error ? error.message : 'unknown'}` };
+      return {
+        valid: false,
+        error: `DPoP proof signature verification failed: ${
+          error instanceof Error ? error.message : 'unknown'
+        }`,
+      };
     }
   } catch (error) {
-    return { valid: false, error: `DPoP proof parsing error: ${error instanceof Error ? error.message : 'unknown'}` };
+    return {
+      valid: false,
+      error: `DPoP proof parsing error: ${error instanceof Error ? error.message : 'unknown'}`,
+    };
   }
 }
 
@@ -197,13 +384,17 @@ async function verifyDPoP(dpopHeader: string, htu: string, htm: string): Promise
 export function dpopMiddleware(req: Request, res: Response, next: NextFunction) {
   const dpopHeader = req.headers['dpop'] as string;
   const authHeader = req.headers['authorization'];
-  const clientType = req.headers['x-client-type'] as string || 'wallet';
+  const clientType = (req.headers['x-client-type'] as string) || 'wallet';
+  const isTokenEndpoint = req.path === '/token';
 
   // Check if DPoP is required (default: true for wallets)
   const dpopRequired = process.env.DPOP_REQUIRED !== 'false';
   const isWallet = clientType === 'wallet' || !clientType;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ') && !authHeader.startsWith('DPoP ')) {
+  if (
+    !isTokenEndpoint &&
+    (!authHeader || (!authHeader.startsWith('Bearer ') && !authHeader.startsWith('DPoP ')))
+  ) {
     return res.status(401).json({ error: 'missing_token' });
   }
 
@@ -211,7 +402,7 @@ export function dpopMiddleware(req: Request, res: Response, next: NextFunction) 
   if (isWallet && (!dpopHeader || !dpopRequired)) {
     return res.status(401).json({
       error: 'dpop_required',
-      error_description: 'DPoP proof required for wallet clients with cnf.jkt'
+      error_description: 'DPoP proof required for wallet clients with cnf.jkt',
     });
   }
 
@@ -220,32 +411,38 @@ export function dpopMiddleware(req: Request, res: Response, next: NextFunction) 
     const htu = `${req.protocol}://${req.get('host')}${req.path}`;
     const htm = req.method;
 
-    verifyDPoP(dpopHeader, htu, htm).then(result => {
-      if (!result.valid) {
-        // B113A-TBIND-002: Return 400 for invalid_alg, invalid_typ, or invalid_kid; 401 for other errors
-        const isInvalidAlgOrTypOrKid = result.error?.includes('invalid_alg') ||
-                                       result.error?.includes('invalid_typ') ||
-                                       result.error?.includes('invalid_kid');
-        const statusCode = isInvalidAlgOrTypOrKid ? 400 : 401;
-        const errorCode = result.error?.includes('invalid_alg') ? 'invalid_alg'
-          : result.error?.includes('invalid_typ') ? 'invalid_typ'
-          : result.error?.includes('invalid_kid') ? 'invalid_kid'
-          : 'invalid_dpop';
-        return res.status(statusCode).json({
-          error: errorCode,
-          error_description: result.error || 'DPoP proof validation failed'
-        });
-      }
+    verifyDPoP(dpopHeader, htu, htm)
+      .then((result) => {
+        if (!result.valid) {
+          // B113A-TBIND-002: Return 400 for invalid_alg, invalid_typ, or invalid_kid; 401 for other errors
+          const isInvalidAlgOrTypOrKid =
+            result.error?.includes('invalid_alg') ||
+            result.error?.includes('invalid_typ') ||
+            result.error?.includes('invalid_kid');
+          const statusCode = isInvalidAlgOrTypOrKid ? 400 : 401;
+          const errorCode = result.error?.includes('invalid_alg')
+            ? 'invalid_alg'
+            : result.error?.includes('invalid_typ')
+            ? 'invalid_typ'
+            : result.error?.includes('invalid_kid')
+            ? 'invalid_kid'
+            : 'invalid_dpop';
+          return res.status(statusCode).json({
+            error: errorCode,
+            error_description: result.error || 'DPoP proof validation failed',
+          });
+        }
 
-      // Attach cnf.jkt to request for token issuance
-      if (result.thumbprint) {
-        (req as any).cnfJkt = result.thumbprint;
-        (req as any).dpopValidated = true;
-      }
-      next();
-    }).catch(() => {
-      res.status(401).json({ error: 'dpop_verification_failed' });
-    });
+        // Attach cnf.jkt to request for token issuance
+        if (result.thumbprint) {
+          (req as any).cnfJkt = result.thumbprint;
+          (req as any).dpopValidated = true;
+        }
+        next();
+      })
+      .catch(() => {
+        res.status(401).json({ error: 'dpop_verification_failed' });
+      });
   } else {
     // No DPoP header - allow if not required for this client type
     next();
@@ -259,7 +456,7 @@ export function dpopMiddleware(req: Request, res: Response, next: NextFunction) 
 export function mtlsMiddleware(req: Request, res: Response, next: NextFunction) {
   const clientCert = (req as any).socket?.getPeerCertificate?.();
   const clientCertHeader = req.headers['x-client-cert'] as string;
-  const clientType = req.headers['x-client-type'] as string || 'wallet';
+  const clientType = (req.headers['x-client-type'] as string) || 'wallet';
 
   // Configuration flags (B99A-TBIND-001)
   const requireMtls = process.env.MTLS_REQUIRED === 'true';
@@ -274,7 +471,7 @@ export function mtlsMiddleware(req: Request, res: Response, next: NextFunction) 
       // Confidential clients must use DPoP if mTLS is disabled
       return res.status(401).json({
         error: 'mtls_not_allowed',
-        error_description: 'mTLS is disabled for confidential clients. Use DPoP instead.'
+        error_description: 'mTLS is disabled for confidential clients. Use DPoP instead.',
       });
     }
 
@@ -283,7 +480,8 @@ export function mtlsMiddleware(req: Request, res: Response, next: NextFunction) 
       if (!clientCert && !clientCertHeader) {
         return res.status(401).json({
           error: 'mtls_required',
-          error_description: 'Client certificate required for confidential clients (enterprise mode)'
+          error_description:
+            'Client certificate required for confidential clients (enterprise mode)',
         });
       }
     }
@@ -309,41 +507,44 @@ export function mtlsMiddleware(req: Request, res: Response, next: NextFunction) 
  * Required for high-risk requests per OIDC4VCI spec
  */
 app.post('/par', mtlsMiddleware, async (req: Request, res: Response) => {
-  const { request, client_id, scope } = req.body;
-
+  const { request, client_id, scope, code_challenge, code_challenge_method, redirect_uri } = req.body;
   if (!request && !scope) {
     return res.status(400).json({
       error: 'invalid_request',
-      error_description: 'Missing request or scope parameter'
+      error_description: 'Missing request or scope parameter',
     });
   }
 
   // Determine if this is a high-risk request requiring PAR
   const highRiskScopes = ['credential:issue', 'credential:batch', 'credential:deferred'];
-  const scopes = scope?.split(' ') || [];
-  const requiresPAR = scopes.some(s => highRiskScopes.includes(s));
+  const scopes: string[] = typeof scope === 'string' ? scope.split(' ') : [];
+  const requiresPAR = scopes.some((s: string) => highRiskScopes.includes(s));
 
   if (requiresPAR && !request) {
     return res.status(400).json({
       error: 'invalid_request',
-      error_description: 'PAR required for high-risk scopes'
+      error_description: 'PAR required for high-risk scopes',
     });
   }
 
   // Generate request_uri
   const requestUri = `urn:ietf:params:oauth:request_uri:${randomBytes(16).toString('base64url')}`;
 
-  // Store PAR request
-  parRequests.set(requestUri, {
-    request_uri: requestUri,
+  await createParRequest({
+    requestUri,
+    requestType: 'authorization_code',
     request: request || { scope, client_id },
-    expiresAt: Date.now() + 60000, // 1 minute expiry
     clientId: client_id || 'unknown',
+    codeChallenge: typeof code_challenge === 'string' ? code_challenge : undefined,
+    codeChallengeMethod: typeof code_challenge_method === 'string' ? code_challenge_method : undefined,
+    redirectUri: typeof redirect_uri === 'string' ? redirect_uri : undefined,
+    scope: typeof scope === 'string' ? scope : '',
+    expiresAt: Date.now() + haipConfig.par.requestUriLifetimeSeconds * 1000,
   });
 
   res.json({
     request_uri: requestUri,
-    expires_in: 60,
+    expires_in: haipConfig.par.requestUriLifetimeSeconds,
   });
 });
 
@@ -356,7 +557,12 @@ app.post('/par', mtlsMiddleware, async (req: Request, res: Response) => {
  *
  * B99B-TBIND-042: Access token issuance embeds cnf.jkt when DPoP used
  */
-app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Response) => {
+app.post(
+  '/token',
+  enforceTokenPolicy,
+  dpopMiddleware,
+  mtlsMiddleware,
+  async (req: Request, res: Response) => {
   const { grant_type, client_id, pre_authorized_code, request_uri, refresh_token } = req.body;
 
   // B100B-TBIND-039: Refresh token grant (rotate-on-use)
@@ -370,18 +576,26 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
 
     const cnfJkt = (req as any).cnfJkt;
     const clientCert = (req as any).clientCert;
-    const clientCertFingerprint = clientCert ? createHash('sha256').update(clientCert).digest('hex') : undefined;
+    const clientCertFingerprint = clientCert
+      ? createHash('sha256').update(clientCert).digest('hex')
+      : undefined;
 
     try {
-      const result = await validateAndRotateRefreshToken(refresh_token, cnfJkt, clientCertFingerprint);
+      const result = await validateAndRotateRefreshToken(
+        refresh_token,
+        cnfJkt,
+        clientCertFingerprint,
+      );
 
-      return res.json({
-        access_token: result.accessToken,
-        token_type: cnfJkt ? 'DPoP' : 'Bearer',
-        expires_in: 3600,
-        refresh_token: result.refreshToken,
-        scope: result.scope.join(' '),
-      });
+      return res.json(
+        await tokenSuccessBody({
+          access_token: result.accessToken,
+          token_type: cnfJkt ? 'DPoP' : 'Bearer',
+          expires_in: 3600,
+          refresh_token: result.refreshToken,
+          scope: result.scope.join(' '),
+        }),
+      );
     } catch (error: any) {
       const errorMap: Record<string, { status: number; error: string }> = {
         invalid_refresh_token: { status: 400, error: 'invalid_grant' },
@@ -404,73 +618,79 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
     if (!pre_authorized_code) {
       return res.status(400).json({
         error: 'invalid_request',
-        error_description: 'Missing pre_authorized_code'
+        error_description: 'Missing pre_authorized_code',
       });
     }
 
-    const preAuthCode = preAuthorizedCodes.get(pre_authorized_code);
+    const preAuthCode = await getPreAuthorizedCode(pre_authorized_code as string);
 
     if (!preAuthCode) {
       return res.status(400).json({
         error: 'invalid_grant',
-        error_description: 'Invalid or expired pre-authorized code'
+        error_description: 'Invalid or expired pre-authorized code',
       });
     }
 
-    if (Date.now() > preAuthCode.expiresAt) {
-      preAuthorizedCodes.delete(pre_authorized_code);
+    if (new Date() > preAuthCode.expiresAt) {
+      await consumePreAuthorizedCode(pre_authorized_code);
       return res.status(400).json({
         error: 'invalid_grant',
-        error_description: 'Pre-authorized code expired'
+        error_description: 'Pre-authorized code expired',
       });
     }
 
     // B107A-OIDC-003: PAR required for high-risk scopes (credential:issue:*)
-    const highRiskScopes = preAuthCode.scope.filter((s: string) => s.startsWith('credential:issue:'));
+    const highRiskScopes = preAuthCode.scope
+      .split(' ')
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0)
+      .filter((entry) => entry.startsWith('credential:issue:'));
     if (highRiskScopes.length > 0) {
       if (!request_uri) {
         return res.status(400).json({
           error: 'invalid_request',
-          error_description: 'PAR (request_uri) required for high-risk scopes. Scopes requiring PAR: ' + highRiskScopes.join(', ')
+          error_description:
+            'PAR (request_uri) required for high-risk scopes. Scopes requiring PAR: ' +
+            highRiskScopes.join(', '),
         });
       }
 
       // Validate PAR request
-      const parRequest = parRequests.get(request_uri);
+      const parRequest = await getParRequest(request_uri, 'authorization_code');
       if (!parRequest) {
         return res.status(400).json({
           error: 'invalid_request_uri',
-          error_description: 'Invalid or expired request_uri'
+          error_description: 'Invalid or expired request_uri',
         });
       }
 
-      if (Date.now() > parRequest.expiresAt) {
-        parRequests.delete(request_uri);
+      if (new Date() > parRequest.expiresAt) {
+        await consumeParRequest(request_uri, 'authorization_code');
         return res.status(400).json({
           error: 'expired_request_uri',
-          error_description: 'Request URI expired'
+          error_description: 'Request URI expired',
         });
       }
 
       // Validate PAR scopes match pre-authorized code scopes
-      const parScopes = parRequest.request.scope?.split(' ') || [];
+      const parScopes = parRequest.scope ? parRequest.scope.split(' ') : [];
       const scopeMatch = highRiskScopes.every((scope: string) => parScopes.includes(scope));
       if (!scopeMatch) {
         return res.status(400).json({
           error: 'invalid_scope',
-          error_description: 'PAR request scopes do not match pre-authorized code scopes'
+          error_description: 'PAR request scopes do not match pre-authorized code scopes',
         });
       }
 
       // Clean up used PAR request
-      parRequests.delete(request_uri);
+      await consumeParRequest(request_uri, 'authorization_code');
     }
 
     // Validate client_id if specified
     if (preAuthCode.clientId && preAuthCode.clientId !== client_id) {
       return res.status(400).json({
         error: 'invalid_client',
-        error_description: 'Client ID mismatch'
+        error_description: 'Client ID mismatch',
       });
     }
 
@@ -479,9 +699,13 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
     const clientCert = (req as any).clientCert;
 
     try {
+      const scope = preAuthCode.scope
+        .split(' ')
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0);
       const accessToken = await issueAccessToken({
         clientId: client_id || preAuthCode.clientId,
-        scope: preAuthCode.scope,
+        scope,
         cnfJkt,
         expiresIn: 3600,
       });
@@ -489,22 +713,24 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
       // B100B-TBIND-039: Issue refresh token (sender-constrained)
       const refreshTokenResult = await issueRefreshToken({
         clientId: client_id || preAuthCode.clientId,
-        scope: preAuthCode.scope,
+        scope,
         cnfJkt,
         clientCert: clientCert ? createHash('sha256').update(clientCert).digest('hex') : undefined,
         expiresIn: 604800, // 7 days
       });
 
       // Clean up used code
-      preAuthorizedCodes.delete(pre_authorized_code);
+      await consumePreAuthorizedCode(pre_authorized_code);
 
-      return res.json({
-        access_token: accessToken,
-        token_type: cnfJkt ? 'DPoP' : 'Bearer',
-        expires_in: 3600,
-        refresh_token: refreshTokenResult.token,
-        scope: preAuthCode.scope.join(' '),
-      });
+      return res.json(
+        await tokenSuccessBody({
+          access_token: accessToken,
+          token_type: cnfJkt ? 'DPoP' : 'Bearer',
+          expires_in: 3600,
+          refresh_token: refreshTokenResult.token,
+          scope: scope.join(' '),
+        }),
+      );
     } catch (error: any) {
       return res.status(500).json({
         error: 'server_error',
@@ -515,20 +741,20 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
 
   // Authorization Code grant with PAR
   if (grant_type === 'authorization_code' && request_uri) {
-    const parRequest = parRequests.get(request_uri);
+    const parRequest = await getParRequest(request_uri, 'authorization_code');
 
     if (!parRequest) {
       return res.status(400).json({
         error: 'invalid_request_uri',
-        error_description: 'Invalid or expired request_uri'
+        error_description: 'Invalid or expired request_uri',
       });
     }
 
-    if (Date.now() > parRequest.expiresAt) {
-      parRequests.delete(request_uri);
+    if (Date.now() > parRequest.expiresAt.getTime()) {
+      await consumeParRequest(request_uri, 'authorization_code');
       return res.status(400).json({
         error: 'expired_request_uri',
-        error_description: 'Request URI expired'
+        error_description: 'Request URI expired',
       });
     }
 
@@ -536,7 +762,7 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
     if (parRequest.clientId !== client_id) {
       return res.status(400).json({
         error: 'invalid_client',
-        error_description: 'Client ID mismatch'
+        error_description: 'Client ID mismatch',
       });
     }
 
@@ -545,7 +771,7 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
     const clientCert = (req as any).clientCert;
 
     try {
-      const scope = parRequest.request.scope?.split(' ') || ['openid'];
+      const scope = parRequest.scope ? parRequest.scope.split(' ') : ['openid'];
       const accessToken = await issueAccessToken({
         clientId: client_id,
         scope,
@@ -563,15 +789,17 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
       });
 
       // Clean up used PAR request
-      parRequests.delete(request_uri);
+      await consumeParRequest(request_uri, 'authorization_code');
 
-      return res.json({
-        access_token: accessToken,
-        token_type: cnfJkt ? 'DPoP' : 'Bearer',
-        expires_in: 3600,
-        refresh_token: refreshTokenResult.token,
-        scope: scope.join(' '),
-      });
+      return res.json(
+        await tokenSuccessBody({
+          access_token: accessToken,
+          token_type: cnfJkt ? 'DPoP' : 'Bearer',
+          expires_in: 3600,
+          refresh_token: refreshTokenResult.token,
+          scope: scope.join(' '),
+        }),
+      );
     } catch (error: any) {
       return res.status(500).json({
         error: 'server_error',
@@ -582,7 +810,7 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
 
   // Original token endpoint logic (for other grant types)
   // B99A-TBIND-001: Enforce DPoP for wallets, mTLS optional for confidential
-  const clientType = req.headers['x-client-type'] as string || 'wallet';
+  const clientType = (req.headers['x-client-type'] as string) || 'wallet';
   const cnfJkt = (req as any).cnfJkt;
   const dpopValidated = (req as any).dpopValidated;
   const clientCert = (req as any).clientCert;
@@ -593,7 +821,7 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
     if (!dpopValidated || !cnfJkt) {
       return res.status(401).json({
         error: 'dpop_required',
-        error_description: 'DPoP proof required for wallet clients with cnf.jkt'
+        error_description: 'DPoP proof required for wallet clients with cnf.jkt',
       });
     }
 
@@ -614,13 +842,15 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
         expiresIn: 604800,
       });
 
-      return res.json({
-        access_token: accessToken,
-        token_type: 'DPoP',
-        expires_in: 3600,
-        refresh_token: refreshTokenResult.token,
-        scope: 'openid',
-      });
+      return res.json(
+        await tokenSuccessBody({
+          access_token: accessToken,
+          token_type: 'DPoP',
+          expires_in: 3600,
+          refresh_token: refreshTokenResult.token,
+          scope: 'openid',
+        }),
+      );
     } catch (error: any) {
       return res.status(500).json({
         error: 'server_error',
@@ -635,13 +865,15 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
     if (requireMtls && !mtlsValidated) {
       return res.status(401).json({
         error: 'mtls_required',
-        error_description: 'Client certificate required for confidential clients (enterprise mode)'
+        error_description: 'Client certificate required for confidential clients (enterprise mode)',
       });
     }
 
     // B100B-TBIND-039: Issue tokens with proper binding
     try {
-      const clientCertFingerprint = clientCert ? createHash('sha256').update(clientCert).digest('hex') : undefined;
+      const clientCertFingerprint = clientCert
+        ? createHash('sha256').update(clientCert).digest('hex')
+        : undefined;
 
       if (mtlsValidated && mtlsAllowed) {
         // Confidential client using mTLS
@@ -658,13 +890,15 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
           expiresIn: 604800,
         });
 
-        return res.json({
-          access_token: accessToken,
-          token_type: 'Bearer',
-          expires_in: 3600,
-          refresh_token: refreshTokenResult.token,
-          scope: 'openid',
-        });
+        return res.json(
+          await tokenSuccessBody({
+            access_token: accessToken,
+            token_type: 'Bearer',
+            expires_in: 3600,
+            refresh_token: refreshTokenResult.token,
+            scope: 'openid',
+          }),
+        );
       } else if (dpopValidated && cnfJkt) {
         // Confidential client using DPoP
         const accessToken = await issueAccessToken({
@@ -681,13 +915,15 @@ app.post('/token', dpopMiddleware, mtlsMiddleware, async (req: Request, res: Res
           expiresIn: 604800,
         });
 
-        return res.json({
-          access_token: accessToken,
-          token_type: 'DPoP',
-          expires_in: 3600,
-          refresh_token: refreshTokenResult.token,
-          scope: 'openid',
-        });
+        return res.json(
+          await tokenSuccessBody({
+            access_token: accessToken,
+            token_type: 'DPoP',
+            expires_in: 3600,
+            refresh_token: refreshTokenResult.token,
+            scope: 'openid',
+          }),
+        );
       } else {
         return res.status(401).json({
           error: 'token_binding_required',
@@ -718,38 +954,40 @@ app.post('/pre-authorized-code', async (req: Request, res: Response) => {
   if (!scope) {
     return res.status(400).json({
       error: 'invalid_request',
-      error_description: 'Missing scope parameter'
+      error_description: 'Missing scope parameter',
     });
   }
 
-  const scopes = Array.isArray(scope) ? scope : scope.split(' ');
+  const scopes: string[] = Array.isArray(scope) ? scope.map(String) : String(scope).split(' ');
 
   // Limit scopes for pre-authorized codes (security best practice)
   // B107A-OIDC-003: Allow credential:issue:* patterns (high-risk scopes)
   const allowedScopes = ['openid', 'credential:issue'];
-  const limitedScopes = scopes.filter(s =>
-    allowedScopes.includes(s) || s.startsWith('credential:issue:')
+  const limitedScopes = scopes.filter(
+    (s: string) => allowedScopes.includes(s) || s.startsWith('credential:issue:'),
   );
 
   if (limitedScopes.length === 0) {
     return res.status(400).json({
       error: 'invalid_scope',
-      error_description: 'No allowed scopes specified'
+      error_description: 'No allowed scopes specified',
     });
   }
 
   // B107A-OIDC-003: Mark high-risk scopes (credential:issue:*) as requiring PAR
   const highRiskScopes = limitedScopes.filter((s: string) => s.startsWith('credential:issue:'));
-  const requiresPAR = highRiskScopes.length > 0 || scopes.some(s => ['credential:batch', 'credential:deferred'].includes(s));
+  const requiresPAR =
+    highRiskScopes.length > 0 ||
+    scopes.some((s: string) => ['credential:batch', 'credential:deferred'].includes(s));
 
   // Generate pre-authorized code
   const code = randomBytes(16).toString('base64url');
 
-  preAuthorizedCodes.set(code, {
+  await createPreAuthorizedCode({
     code,
     scope: limitedScopes,
-    expiresAt: Date.now() + (expires_in * 1000),
     clientId: client_id,
+    expiresIn: expires_in,
     requiresPAR,
   });
 
@@ -764,9 +1002,13 @@ app.post('/pre-authorized-code', async (req: Request, res: Response) => {
  * Credential endpoint guard - blocks bearer-only tokens
  * B99A-TBIND-003: Credential endpoint requires sender-constrained tokens
  */
-app.post('/credential', dpopMiddleware, mtlsMiddleware, (req: Request, res: Response) => {
+app.post(
+  '/credential',
+  dpopMiddleware,
+  mtlsMiddleware,
+  enforceCredentialPolicy,
+  (req: Request, res: Response) => {
   const authHeader = req.headers['authorization'];
-  const clientType = req.headers['x-client-type'] as string || 'wallet';
 
   // Extract token (supports both Bearer and DPoP token types)
   const token = authHeader?.replace(/^(Bearer|DPoP)\s+/, '');
@@ -783,7 +1025,8 @@ app.post('/credential', dpopMiddleware, mtlsMiddleware, (req: Request, res: Resp
   if (!dpopValidated && !mtlsValidated) {
     return res.status(401).json({
       error: 'sender_constraint_required',
-      error_description: 'Credential endpoint requires sender-constrained tokens (DPoP or mTLS). Bearer-only tokens are rejected.'
+      error_description:
+        'Credential endpoint requires sender-constrained tokens (DPoP or mTLS). Bearer-only tokens are rejected.',
     });
   }
 
@@ -795,16 +1038,52 @@ app.post('/credential', dpopMiddleware, mtlsMiddleware, (req: Request, res: Resp
   });
 });
 
+app.get('/.well-known/openid-configuration', (_req: Request, res: Response) => {
+  res.json({
+    issuer: haipConfig.tokenIssuer,
+    token_endpoint: '/token',
+    pushed_authorization_request_endpoint: '/par',
+    credential_endpoint: '/credential',
+    dpop_signing_alg_values_supported: [...haipConfig.allowedAlgorithms],
+    request_object_signing_alg_values_supported: [...haipConfig.allowedAlgorithms],
+    token_endpoint_auth_signing_alg_values_supported: [...haipConfig.allowedAlgorithms],
+    code_challenge_methods_supported: [...haipConfig.pkce.allowedMethods],
+    require_pushed_authorization_requests: haipConfig.par.required,
+    dpop_bound_access_tokens: true,
+    clock_skew_seconds: haipConfig.dpop.maxClockSkewSeconds,
+  });
+});
+
+app.get('/.well-known/oauth-authorization-server', (_req: Request, res: Response) => {
+  res.json({
+    issuer: haipConfig.tokenIssuer,
+    token_endpoint: '/token',
+    request_object_signing_alg_values_supported: [...haipConfig.allowedAlgorithms],
+    pushed_authorization_request_endpoint: '/par',
+    require_pushed_authorization_requests: haipConfig.par.required,
+    code_challenge_methods_supported: [...haipConfig.pkce.allowedMethods],
+    dpop_signing_alg_values_supported: [...haipConfig.allowedAlgorithms],
+    token_endpoint_auth_signing_alg_values_supported: [...haipConfig.allowedAlgorithms],
+    dpop_bound_access_tokens: true,
+  });
+});
+
 // Health check
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'authz' });
 });
 
-const PORT = process.env.PORT || 4003;
-
-app.listen(PORT, () => {
-  log.info('Authz service listening', { port: PORT });
+app.get('/readyz', async (_req: Request, res: Response) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'ready', service: 'authz' });
+  } catch {
+    res.status(503).json({ status: 'not_ready', service: 'authz' });
+  }
 });
 
-export default app;
+const PORT = process.env.PORT || 4003;
 
+app.listen(PORT);
+
+export default app;
