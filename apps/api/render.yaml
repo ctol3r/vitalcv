@@ -16,7 +16,7 @@ services:
       pnpm install --frozen-lockfile --ignore-scripts &&
       pnpm --filter @vitalcv/api build
     startCommand: >
-      npx prisma migrate deploy --schema apps/api/backend/prisma/schema.prisma &&
+      pnpm exec prisma migrate deploy --schema apps/api/backend/prisma/schema.prisma &&
       node apps/api/backend/dist/apps/api/backend/src/server.js
     healthCheckPath: /health
     envVars:
