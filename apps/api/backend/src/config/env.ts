@@ -197,8 +197,16 @@ export function loadEnv(): Env {
     const formatted = result.error.issues
       .map((i) => `  ${i.path.join('.')}: ${i.message}`)
       .join('\n');
-    log('error', 'Zod environment validation failed', {
-      event: 'zod_env_validation_failed',
+    const missingKeys = result.error.issues
+      .filter((i) => i.code === 'too_small' || i.message.toLowerCase().includes('required'))
+      .map((i) => i.path.join('.'));
+    const invalidKeys = result.error.issues
+      .filter((i) => i.code !== 'too_small' && !i.message.toLowerCase().includes('required'))
+      .map((i) => i.path.join('.'));
+    log('error', 'environment validation failed', {
+      event: 'env_validation_failed',
+      missing_keys: missingKeys,
+      invalid_keys: invalidKeys,
       fields: result.error.issues.map((i) => ({
         field: i.path.join('.'),
         message: i.message,
