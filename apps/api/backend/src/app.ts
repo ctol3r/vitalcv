@@ -6,7 +6,7 @@ import path from 'node:path';
 import type { Express, Request, Response } from 'express';
 import express from 'express';
 import swaggerUi from 'swagger-ui-express';
-import { getProductionEnvCheck } from './config/env';
+import { env, getProductionEnvCheck } from './config/env';
 import { emitVerificationAuditEvent } from '../../verification/audit';
 import { registerIngestRoutes } from '../../routes/ingest';
 import { registerWedgeRoutes } from '../routes/wedge';
@@ -3293,7 +3293,7 @@ const app = express();
 app.use(helmet());
 
 // CORS
-const corsOrigin = process.env.CORS_ORIGIN?.trim() || '*';
+const corsOrigin = env().CORS_ORIGIN?.trim() || '*';
 if (process.env.NODE_ENV === 'production' && corsOrigin === '*') {
   throw new Error('CORS_ORIGIN must not be "*" in production');
 }
