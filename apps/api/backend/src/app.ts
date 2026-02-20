@@ -80,6 +80,8 @@ import { buildDashboardResponse, buildDashboardExport } from './services/verifie
 // Identity Module
 import { registerIdentityRoutes } from './modules/identity';
 import { registerWave2AVerifyRoutes } from './modules/wave2a';
+// Demo Module (public, rate-limited, no auth)
+import { registerDemoRoutes } from './modules/demo';
 // PSV Verify Module (Wave 1)
 import { registerPsvVerifyRoutes } from './services/psv/verifyRoute';
 
@@ -365,6 +367,7 @@ function shouldSkipTenantContext(pathname: string): boolean {
     normalizedPath === '/verify' ||
     normalizedPath.startsWith('/psv') ||
     normalizedPath.startsWith('/identity') ||
+    normalizedPath.startsWith('/demo') ||
     normalizedPath.startsWith('/.well-known') ||
     normalizedPath.startsWith('/api-docs') ||
     normalizedPath === '/openapi.json'
@@ -3360,6 +3363,7 @@ registerExpirationForecastRoutes(app);
 registerVerifierDashboardRoutes(app);
 registerWedgeRoutes(app);
 registerIdentityRoutes(app);
+registerDemoRoutes(app);
 registerPsvVerifyRoutes(app);
 
 if (ENTERPRISE_MODE) {
