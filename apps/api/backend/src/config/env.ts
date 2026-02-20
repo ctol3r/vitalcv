@@ -3,6 +3,38 @@ import { log } from '../obs/logger';
 
 type ApiKeyParseInput = string;
 
+function normalizeCorsCandidate(raw: string | undefined): string {
+  const trimmed = raw?.trim();
+  if (!trimmed) {
+    return '';
+  }
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    try {
+      return new URL(trimmed).origin;
+    } catch {
+      return trimmed;
+    }
+  }
+  return `https://${trimmed}`;
+}
+
+function resolvePlatformCorsOrigin(): string {
+  const candidates = [
+    process.env.RAILWAY_PUBLIC_DOMAIN,
+    process.env.RENDER_EXTERNAL_URL,
+    process.env.VERCEL_URL,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = normalizeCorsCandidate(candidate);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return '';
+}
+
 export const PRODUCTION_REQUIRED_VARS = [
   'API_KEYS',
   'DATABASE_URL',
@@ -64,18 +96,27 @@ const envSchema = z.object({
   YC_DEMO_MODE: z.preprocess((raw) => {
     return parseBooleanEnvVar(raw, 'YC_DEMO_MODE', false);
   }, z.boolean()),
-  CORS_ORIGIN: z
-    .string()
-    .default('*')
-    .transform((value) => value.trim())
-    .superRefine((value, ctx) => {
+  CORS_ORIGIN: z.preprocess(
+    (raw: unknown): string => {
+      const rawValue = raw === undefined || raw === null ? '' : String(raw).trim();
+      if (rawValue.length > 0) {
+        return rawValue;
+      }
+
+      return resolvePlatformCorsOrigin() || '*';
+    },
+    z
+      .string()
+      .transform((value: string) => value.trim())
+      .superRefine((value: string, ctx) => {
       if (process.env.NODE_ENV === 'production' && value === '*') {
         ctx.addIssue({
           code: 'custom',
           message: 'CORS_ORIGIN must not be "*" in production',
         });
       }
-    }),
+      }),
+  ),
   API_KEYS: z.preprocess(
     (raw) => {
       if (raw === undefined) {
