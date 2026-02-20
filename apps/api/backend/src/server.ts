@@ -62,8 +62,8 @@ function runPrismaMigrateDeploy(): void {
   }
 
   const result = spawnSync(
-    process.platform === 'win32' ? 'npx.cmd' : 'npx',
-    ['prisma', 'migrate', 'deploy', '--schema', schemaPath],
+    process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm',
+    ['exec', 'prisma', 'migrate', 'deploy', '--schema', schemaPath],
     {
       stdio: 'inherit',
       env: process.env,
@@ -86,20 +86,22 @@ async function main() {
   const productionDeployment = config.NODE_ENV === 'production';
   const skipStartupMigration =
     process.env.SKIP_STARTUP_MIGRATION === '1' ||
-    process.env.SKIP_STARTUP_MIGRATION === 'true';
+    process.env.SKIP_STARTUP_MIGRATION === 'true' ||
+    process.env.DEPLOY_MIGRATIONS_DONE === '1' ||
+    process.env.DEPLOY_MIGRATIONS_DONE === 'true';
+  const runStartupMigration = productionDeployment && !config.SYSTEM_FROZEN && !skipStartupMigration;
 
   if (skipStartupMigration) {
-    log('info', 'Startup migration skipped (SKIP_STARTUP_MIGRATION)', {
+    log('info', 'Startup migration skipped', {
       event: 'migration_skip',
       reason: 'SKIP_STARTUP_MIGRATION',
       node_env: config.NODE_ENV,
     });
-  } else if (productionDeployment && !config.SYSTEM_FROZEN) {
-    log('info', 'Applying Prisma migrations at startup', {
-      event: 'migration_run',
+  } else if (runStartupMigration) {
+    log('warn', 'Startup migration will run in background to unblock readiness probes', {
+      event: 'migration_async',
       node_env: config.NODE_ENV,
     });
-    runPrismaMigrateDeploy();
   } else {
     log('warn', 'Schema migrations skipped at startup', {
       event: 'migration_skip',
@@ -170,6 +172,24 @@ async function main() {
       });
     }
   });
+
+  if (runStartupMigration) {
+    void Promise.resolve()
+      .then(() => {
+        log('info', 'Applying Prisma migrations at startup', {
+          event: 'migration_run',
+          node_env: config.NODE_ENV,
+        });
+        runPrismaMigrateDeploy();
+      })
+      .catch((error) => {
+        log('error', 'startup migration failed', {
+          event: 'startup_migration_failed',
+          error: error instanceof Error ? error.message : 'unknown',
+        });
+        process.exit(1);
+      });
+  }
 }
 
 process.on('SIGTERM', () => {
