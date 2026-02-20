@@ -184,6 +184,8 @@ export function loadEnv(): Env {
         missing: missing.missing,
         details: formatted,
         node_env: process.env.NODE_ENV ?? 'development',
+        railway_branch: process.env.RAILWAY_GIT_BRANCH ?? null,
+        railway_sha: process.env.RAILWAY_GIT_COMMIT_SHA ?? null,
       });
       throw new Error(`Environment validation failed:\n${formatted}`);
     }
@@ -195,6 +197,15 @@ export function loadEnv(): Env {
     const formatted = result.error.issues
       .map((i) => `  ${i.path.join('.')}: ${i.message}`)
       .join('\n');
+    log('error', 'Zod environment validation failed', {
+      event: 'zod_env_validation_failed',
+      fields: result.error.issues.map((i) => ({
+        field: i.path.join('.'),
+        message: i.message,
+      })),
+      railway_branch: process.env.RAILWAY_GIT_BRANCH ?? null,
+      railway_sha: process.env.RAILWAY_GIT_COMMIT_SHA ?? null,
+    });
     throw new Error(`Environment validation failed:\n${formatted}`);
   }
 
