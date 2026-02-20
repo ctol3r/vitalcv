@@ -1,0 +1,74 @@
+name: Deploy Preflight
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20.11.1'
+  PNPM_VERSION: '10.6.1'
+
+jobs:
+  preflight:
+    name: Railway Deploy Preflight
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vitalcv_preflight
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Build API
+        run: pnpm --filter @vitalcv/api run build
+
+      - name: Deploy preflight checks
+        run: node scripts/railway/preflight.mjs
+
+      - name: Ensure migrations directory exists
+        run: |
+          if [ ! -d "apps/api/backend/prisma/migrations" ]; then
+            echo "Missing migrations directory" >&2
+            exit 1
+          fi
+
+      - name: Run database migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_preflight
+        run: |
+          cd apps/api/backend
+          npx prisma migrate deploy
+
+      - name: Smoke tests
+        run: pnpm test

@@ -1594,6 +1594,8 @@ function registerHealthRoutes(app: Express): void {
     res.status(200).json({
       status: 'ok',
       metrics: requestLatencyMetrics.snapshot(),
+      git_branch: process.env.RAILWAY_GIT_BRANCH ?? null,
+      git_sha: process.env.RAILWAY_GIT_COMMIT_SHA ?? null,
     });
   });
 
@@ -1604,12 +1606,16 @@ function registerHealthRoutes(app: Express): void {
         res.status(200).json({
           status: 'ready',
           service: 'api',
+          git_branch: process.env.RAILWAY_GIT_BRANCH ?? null,
+          git_sha: process.env.RAILWAY_GIT_COMMIT_SHA ?? null,
         });
       })
       .catch(() => {
         res.status(503).json({
           status: 'not_ready',
           service: 'api',
+          git_branch: process.env.RAILWAY_GIT_BRANCH ?? null,
+          git_sha: process.env.RAILWAY_GIT_COMMIT_SHA ?? null,
         });
       });
   });

@@ -30,16 +30,17 @@ let startupError: string | null = null;
 
 const earlyServer = http.createServer((req, res) => {
   if (req.url === '/health' && req.method === 'GET') {
+    const git = { git_branch: RAILWAY_BRANCH, git_sha: RAILWAY_SHA };
     if (startupError) {
       res.writeHead(503, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ status: 'error', error: startupError }));
+      res.end(JSON.stringify({ status: 'error', error: startupError, ...git }));
     } else if (!appReady) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ status: 'starting' }));
+      res.end(JSON.stringify({ status: 'starting', ...git }));
     } else {
       // Should not reach here — once appReady, Express handles requests
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ status: 'ok' }));
+      res.end(JSON.stringify({ status: 'ok', ...git }));
     }
     return;
   }
@@ -47,10 +48,17 @@ const earlyServer = http.createServer((req, res) => {
   res.end('Service starting...');
 });
 
-earlyServer.listen(PORT, () => {
-  earlyLog('info', 'Early health probe server bound', {
+const HOST = '0.0.0.0';
+const RAILWAY_BRANCH = process.env.RAILWAY_GIT_BRANCH ?? null;
+const RAILWAY_SHA = process.env.RAILWAY_GIT_COMMIT_SHA ?? null;
+
+earlyServer.listen(PORT, HOST, () => {
+  earlyLog('info', `Listening on ${HOST}:${PORT}`, {
     event: 'early_server_bound',
+    host: HOST,
     port: PORT,
+    railway_branch: RAILWAY_BRANCH,
+    railway_sha: RAILWAY_SHA,
   });
 
   // Now bootstrap the real application
@@ -62,6 +70,8 @@ earlyServer.listen(PORT, () => {
       event: 'server_startup_failed',
       error: message,
       details,
+      railway_branch: RAILWAY_BRANCH,
+      railway_sha: RAILWAY_SHA,
     });
     // Keep process alive so Railway can read logs — don't exit
   });
@@ -211,6 +221,8 @@ async function bootstrapApp() {
       url: `http://localhost:${PORT}`,
       environment: config.NODE_ENV,
       frozen: config.SYSTEM_FROZEN,
+      railway_branch: RAILWAY_BRANCH,
+      railway_sha: RAILWAY_SHA,
     });
 
     // Wave 2D: Schedule monitoring cycle every 24 hours (midnight UTC)
