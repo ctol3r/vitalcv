@@ -1,0 +1,68 @@
+name: Deploy API + Smoke Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+      - 'packages/**'
+      - 'railway.toml'
+      - 'pnpm-lock.yaml'
+
+concurrency:
+  group: deploy-api
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20.11.1'
+  PNPM_VERSION: '10.6.1'
+
+jobs:
+  # Railway auto-deploys on push to main.
+  # This job waits for the deploy to complete, then runs smoke tests.
+  smoke-test:
+    name: Post-deploy smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Wait for Railway deploy to propagate
+        run: sleep 120
+
+      - name: Smoke test /health
+        env:
+          API_DOMAIN: ${{ secrets.RAILWAY_API_DOMAIN }}
+        run: |
+          if [ -z "$API_DOMAIN" ]; then
+            echo "RAILWAY_API_DOMAIN secret not set. Skipping smoke test."
+            exit 0
+          fi
+
+          HEALTH_URL="https://${API_DOMAIN}/health"
+          echo "Testing: $HEALTH_URL"
+
+          MAX_ATTEMPTS=12
+          INTERVAL=15
+          ATTEMPT=0
+
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            HTTP_CODE=$(curl -s -o /tmp/health_body -w '%{http_code}' "$HEALTH_URL" 2>/dev/null || echo "000")
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "Health check passed (HTTP 200)"
+              cat /tmp/health_body
+              echo ""
+              exit 0
+            fi
+
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: HTTP $HTTP_CODE. Retrying in ${INTERVAL}s..."
+            sleep "$INTERVAL"
+          done
+
+          echo "Health check failed after $MAX_ATTEMPTS attempts"
+          cat /tmp/health_body 2>/dev/null || true
+          exit 1

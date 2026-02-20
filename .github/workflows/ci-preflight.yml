@@ -53,6 +53,13 @@ jobs:
       - name: Build API
         run: pnpm --filter @vitalcv/api run build
 
+      - name: Env contract check (production mode with dummy values)
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_preflight
+          API_KEYS: ci-test-key
+          CORS_ORIGIN: https://ci-test.example.com
+        run: node scripts/env/check.mjs --mode=production
+
       - name: Deploy preflight checks
         run: node scripts/railway/preflight.mjs
 
