@@ -1,12 +1,20 @@
+// ── ONLY Node.js built-ins at top level ─────────────────────
+// Everything else is dynamically imported inside bootstrapApp() so that
+// a broken third-party require() cannot crash the process before the
+// health-probe server binds the port.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
-import * as Sentry from '@sentry/node';
-import cron from 'node-cron';
-import { log } from './obs/logger';
 
 const APP_READY_MESSAGE = 'Server ready';
+
+// Minimal structured logger for the early boot phase — no dependencies.
+function earlyLog(level: string, message: string, fields?: Record<string, unknown>): void {
+  const payload = { level, message, timestamp: new Date().toISOString(), ...fields };
+  // eslint-disable-next-line no-console
+  console[level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log'](JSON.stringify(payload));
+}
 
 // ── Bind a bare HTTP server immediately so the health probe passes ──
 // Railway starts the healthcheck timer on container boot.  If loadEnv()
@@ -40,7 +48,7 @@ const earlyServer = http.createServer((req, res) => {
 });
 
 earlyServer.listen(PORT, () => {
-  log('info', 'Early health probe server bound', {
+  earlyLog('info', 'Early health probe server bound', {
     event: 'early_server_bound',
     port: PORT,
   });
@@ -50,7 +58,7 @@ earlyServer.listen(PORT, () => {
     const message = e instanceof Error ? e.message : 'Unknown startup error';
     const details = e instanceof Error ? e.stack : String(e);
     startupError = message;
-    log('error', 'server startup failed', {
+    earlyLog('error', 'server startup failed', {
       event: 'server_startup_failed',
       error: message,
       details,
@@ -134,9 +142,12 @@ function runPrismaMigrateDeploy(): void {
 // ── Application bootstrap ───────────────────────────────────
 
 async function bootstrapApp() {
+  const { log } = await import('./obs/logger');
   const { loadEnv } = await import('./config/env');
   const { initializeTelemetry, shutdownTelemetry } = await import('./telemetry');
   const { runMonitoringCycle } = await import('../jobs/monitoringJob');
+  const Sentry = await import('@sentry/node');
+  const cronMod = await import('node-cron');
 
   const config = loadEnv();
 
@@ -184,12 +195,10 @@ async function bootstrapApp() {
     });
   }
 
-  // Close the early health server and hand the port to Express
-  await new Promise<void>((resolve, reject) => {
-    earlyServer.close((err) => (err ? reject(err) : resolve()));
-  });
-
-  app.listen(PORT, () => {
+  // Hand the already-bound socket to Express — no close/rebind gap.
+  earlyServer.removeAllListeners('request');
+  earlyServer.on('request', app);
+  {
     appReady = true;
     if (config.SYSTEM_FROZEN) {
       log('warn', 'SYSTEM_FROZEN active: startup migration freeze is enabled', {
@@ -206,7 +215,7 @@ async function bootstrapApp() {
 
     // Wave 2D: Schedule monitoring cycle every 24 hours (midnight UTC)
     if (!config.SYSTEM_FROZEN) {
-      const monitoringTask = cron.schedule('0 0 * * *', async () => {
+      const monitoringTask = (cronMod.default ?? cronMod).schedule('0 0 * * *', async () => {
         log('info', 'monitoring_cron_triggered', { event: 'monitoring_cron_triggered' });
         try {
           const result = await runMonitoringCycle();
@@ -234,7 +243,7 @@ async function bootstrapApp() {
         schedule: '0 0 * * * (daily at midnight UTC)',
       });
     }
-  });
+  }
 
   if (runStartupMigration) {
     void Promise.resolve()
