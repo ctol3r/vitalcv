@@ -355,17 +355,19 @@ function requireAdminRequest(req: Request, res: Response): boolean {
 }
 
 function shouldSkipTenantContext(pathname: string): boolean {
+  const normalizedPath = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+
   return (
-    pathname === '/' ||
-    pathname === '/health' ||
-    pathname === '/readyz' ||
-    pathname === '/verifier' ||
-    pathname === '/verify' ||
-    pathname.startsWith('/psv/') ||
-    pathname.startsWith('/identity/') ||
-    pathname.startsWith('/.well-known/') ||
-    pathname.startsWith('/api-docs') ||
-    pathname === '/openapi.json'
+    normalizedPath === '/' ||
+    normalizedPath === '/health' ||
+    normalizedPath === '/readyz' ||
+    normalizedPath === '/verifier' ||
+    normalizedPath === '/verify' ||
+    normalizedPath.startsWith('/psv') ||
+    normalizedPath.startsWith('/identity') ||
+    normalizedPath.startsWith('/.well-known') ||
+    normalizedPath.startsWith('/api-docs') ||
+    normalizedPath === '/openapi.json'
   );
 }
 
@@ -1588,7 +1590,7 @@ async function ensureActivePilotPlan(organizationId: string): Promise<void> {
 }
 
 function registerHealthRoutes(app: Express): void {
-  app.get('/health', (_req, res) => {
+  app.get(['/health', '/health/'], (_req, res) => {
     res.status(200).json({
       status: 'ok',
       metrics: requestLatencyMetrics.snapshot(),

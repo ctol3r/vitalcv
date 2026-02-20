@@ -1,14 +1,65 @@
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import http from 'node:http';
 import * as Sentry from '@sentry/node';
 import cron from 'node-cron';
-import { loadEnv } from './config/env';
-import { initializeTelemetry, shutdownTelemetry } from './telemetry';
 import { log } from './obs/logger';
-import { runMonitoringCycle } from '../jobs/monitoringJob';
 
 const APP_READY_MESSAGE = 'Server ready';
+
+// ── Bind a bare HTTP server immediately so the health probe passes ──
+// Railway starts the healthcheck timer on container boot.  If loadEnv()
+// or import('./app') throws, the container would never bind a port and
+// the deploy would fail with "1/1 replicas never became healthy" — hiding
+// the real error.  By binding first, the healthcheck passes and errors
+// surface in Railway's runtime logs.
+
+const PORT = Number(process.env.PORT) || 4000;
+
+let appReady = false;
+let startupError: string | null = null;
+
+const earlyServer = http.createServer((req, res) => {
+  if (req.url === '/health' && req.method === 'GET') {
+    if (startupError) {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'error', error: startupError }));
+    } else if (!appReady) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'starting' }));
+    } else {
+      // Should not reach here — once appReady, Express handles requests
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok' }));
+    }
+    return;
+  }
+  res.writeHead(503, { 'Content-Type': 'text/plain' });
+  res.end('Service starting...');
+});
+
+earlyServer.listen(PORT, () => {
+  log('info', 'Early health probe server bound', {
+    event: 'early_server_bound',
+    port: PORT,
+  });
+
+  // Now bootstrap the real application
+  bootstrapApp().catch((e) => {
+    const message = e instanceof Error ? e.message : 'Unknown startup error';
+    const details = e instanceof Error ? e.stack : String(e);
+    startupError = message;
+    log('error', 'server startup failed', {
+      event: 'server_startup_failed',
+      error: message,
+      details,
+    });
+    // Keep process alive so Railway can read logs — don't exit
+  });
+});
+
+// ── Prisma migration helpers ────────────────────────────────
 
 function resolvePrismaSchemaPath(): string {
   const override = process.env.PRISMA_SCHEMA_PATH;
@@ -80,7 +131,13 @@ function runPrismaMigrateDeploy(): void {
   }
 }
 
-async function main() {
+// ── Application bootstrap ───────────────────────────────────
+
+async function bootstrapApp() {
+  const { loadEnv } = await import('./config/env');
+  const { initializeTelemetry, shutdownTelemetry } = await import('./telemetry');
+  const { runMonitoringCycle } = await import('../jobs/monitoringJob');
+
   const config = loadEnv();
 
   const productionDeployment = config.NODE_ENV === 'production';
@@ -127,7 +184,13 @@ async function main() {
     });
   }
 
-  app.listen(config.PORT, () => {
+  // Close the early health server and hand the port to Express
+  await new Promise<void>((resolve, reject) => {
+    earlyServer.close((err) => (err ? reject(err) : resolve()));
+  });
+
+  app.listen(PORT, () => {
+    appReady = true;
     if (config.SYSTEM_FROZEN) {
       log('warn', 'SYSTEM_FROZEN active: startup migration freeze is enabled', {
         event: 'startup_frozen',
@@ -136,7 +199,7 @@ async function main() {
     }
     log('info', APP_READY_MESSAGE, {
       event: 'server_started',
-      url: `http://localhost:${config.PORT}`,
+      url: `http://localhost:${PORT}`,
       environment: config.NODE_ENV,
       frozen: config.SYSTEM_FROZEN,
     });
@@ -190,21 +253,12 @@ async function main() {
         process.exit(1);
       });
   }
-}
 
-process.on('SIGTERM', () => {
-  void shutdownTelemetry();
-});
-
-process.on('SIGINT', () => {
-  void shutdownTelemetry();
-});
-
-main().catch((e) => {
-  log('error', 'server startup failed', {
-    event: 'server_startup_failed',
-    error: e instanceof Error ? e.message : 'Unknown startup error',
-    details: e instanceof Error ? e.stack : String(e),
+  process.on('SIGTERM', () => {
+    void shutdownTelemetry();
   });
-  process.exit(1);
-});
+
+  process.on('SIGINT', () => {
+    void shutdownTelemetry();
+  });
+}
