@@ -3,6 +3,8 @@ import {
   handleDemoProviderLookup,
   handleDemoVerify,
   handleDemoSampleNpis,
+  handleDemoStatus,
+  handleDemoIssue,
 } from './demo.controller';
 import { demoRateLimit } from './demo.rateLimit';
 
@@ -21,12 +23,16 @@ function asyncHandler(
  * Register public demo routes — no API key auth, rate-limited.
  *
  * Routes:
+ *   GET  /demo/status              — service version, uptime, git sha
  *   GET  /demo/provider?npi=:npi   — public NPPES lookup
- *   POST /demo/verify              — full verify pipeline, returns signed artifact
  *   GET  /demo/sample-npis         — hardcoded sample NPI list
+ *   POST /demo/issue               — issue mock W3C Verifiable Credential
+ *   POST /demo/verify              — full verify pipeline, returns signed artifact
  */
 export function registerDemoRoutes(app: Express): void {
+  app.get('/demo/status', handleDemoStatus);
   app.get('/demo/provider', demoRateLimit, asyncHandler(handleDemoProviderLookup));
+  app.post('/demo/issue', demoRateLimit, handleDemoIssue);
   app.post('/demo/verify', demoRateLimit, asyncHandler(handleDemoVerify));
   app.get('/demo/sample-npis', demoRateLimit, handleDemoSampleNpis);
 }
