@@ -4,7 +4,7 @@ buildCommand = "pnpm --filter @vitalcv/api run build"
 
 [deploy]
 releaseCommand = "pnpm --filter @vitalcv/api run db:migrate:deploy"
-startCommand = "SKIP_STARTUP_MIGRATION=1 node apps/api/backend/dist/apps/api/backend/src/server.js"
+startCommand = "SKIP_STARTUP_MIGRATION=1 node apps/api/backend/dist/src/server.js"
 healthcheckPath = "/health"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
