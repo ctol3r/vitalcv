@@ -1,6 +1,7 @@
 import type { ClaimProof } from '../types/selectiveProof';
 import type { CanonicalClaim } from '../utils/claimHash';
 import { hashClaim } from '../utils/claimHash';
+import { buildCanonicalClaimsFromArtifact } from './auditBundleClaims';
 import { buildMerkleProofPath } from './merkleTree';
 import { validateMerkleIntegrity } from './merkleIntegrity';
 import { hashMerkleConcat } from '../utils/merkle';
@@ -31,98 +32,11 @@ export type ProofArtifact = {
  * entries sorted alphabetically.
  */
 export function reconstructCanonicalClaims(artifact: ProofArtifact): CanonicalClaim[] {
-  const claims = new Map<string, string>();
-
-  const addClaim = (type: string, value: string | number | boolean | null): void => {
-    const normalizedType = type.trim();
-    if (normalizedType.length === 0) return;
-    const normalizedValue = String(value);
-
-    const existing = claims.get(normalizedType);
-    if (existing !== undefined) {
-      if (existing !== normalizedValue) {
-        throw new Error(`Conflicting canonical claim values for type "${normalizedType}"`);
-      }
-      return;
-    }
-    claims.set(normalizedType, normalizedValue);
-  };
-
-  // Mirror the exact order from canonicalizeVerificationClaims:
-  // 1. npi from artifact
-  // 2. licenseStatus from artifact.status (= result.licenseStatus)
-  // 3. jurisdiction from rawPayload (= result.jurisdiction)
-  // 4. sourceUrl from rawPayload (= result.sourceUrl)
-  // 5. lastUpdated from rawPayload (= result.lastUpdated.toISOString())
-  // 6. expirationDate from rawPayload (= result.expirationDate?.toISOString())
-  // 7. Remaining rawPayload entries alphabetically
-  //
-  // IMPORTANT: lastUpdated and expirationDate must come from rawPayload,
-  // not from artifact.verifiedAt/expiresAt. The artifact stores these
-  // independently and they may differ by milliseconds from the original
-  // verification timestamps used during canonicalization.
-
-  addClaim('npi', artifact.npi);
-  addClaim('licenseStatus', artifact.status);
-
-  const raw = artifact.rawPayload;
-  if (raw !== null && typeof raw === 'object' && !Array.isArray(raw)) {
-    const record = raw as Record<string, unknown>;
-
-    // Extract the same top-level fields that canonicalizeVerificationClaims
-    // adds before iterating rawPayload
-    if (typeof record.jurisdiction === 'string') {
-      addClaim('jurisdiction', record.jurisdiction);
-    }
-
-    // sourceUrl may be in rawPayload or at the VerificationResult level.
-    // The stub adapter doesn't put sourceUrl in rawPayload, so fall back
-    // to reconstructing it from the NPI pattern used by the adapter.
-    if (typeof record.sourceUrl === 'string') {
-      addClaim('sourceUrl', record.sourceUrl);
-    } else {
-      // Reconstruct from the deterministic pattern
-      addClaim(
-        'sourceUrl',
-        `https://www.nursys.com/LLV/LLVVerification.aspx?npi=${artifact.npi}`,
-      );
-    }
-
-    // lastUpdated: use the exact string stored in rawPayload
-    if (typeof record.lastUpdated === 'string') {
-      addClaim('lastUpdated', record.lastUpdated);
-    }
-
-    // expirationDate: use the exact string stored in rawPayload
-    if (typeof record.expirationDate === 'string') {
-      addClaim('expirationDate', record.expirationDate);
-    } else {
-      addClaim('expirationDate', null);
-    }
-
-    // Remaining rawPayload entries, sorted alphabetically for determinism
-    const payloadEntries = Object.entries(record).sort(([a], [b]) =>
-      a.localeCompare(b),
-    );
-
-    for (const [type, value] of payloadEntries) {
-      if (type.length === 0) continue;
-      if (value instanceof Date) {
-        addClaim(type, value.toISOString());
-        continue;
-      }
-      if (
-        typeof value === 'string' ||
-        typeof value === 'number' ||
-        typeof value === 'boolean' ||
-        value === null
-      ) {
-        addClaim(type, value);
-      }
-    }
-  }
-
-  return [...claims.entries()].map(([type, value]) => ({ type, value }));
+  return buildCanonicalClaimsFromArtifact({
+    npi: artifact.npi,
+    status: artifact.status,
+    rawPayload: artifact.rawPayload,
+  });
 }
 
 // ── Helpers ─────────────────────────────────────────────────
