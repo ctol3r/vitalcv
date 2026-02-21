@@ -179,7 +179,7 @@ export function loadEnv(): Env {
     const missing = getProductionEnvCheck();
     if (!missing.ok) {
       const formatted = missing.missing.map((name) => `${name}: required in production`).join('\n');
-      log('error', 'environment validation failed', {
+      log('error', `environment validation failed: ${formatted}`, {
         event: 'production_env_validation_failed',
         missing: missing.missing,
         details: formatted,
@@ -203,7 +203,7 @@ export function loadEnv(): Env {
     const invalidKeys = result.error.issues
       .filter((i) => i.code !== 'too_small' && !i.message.toLowerCase().includes('required'))
       .map((i) => i.path.join('.'));
-    log('error', 'environment validation failed', {
+    log('error', `environment validation failed: ${formatted}`, {
       event: 'env_validation_failed',
       missing_keys: missingKeys,
       invalid_keys: invalidKeys,

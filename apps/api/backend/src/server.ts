@@ -24,12 +24,30 @@ function earlyLog(level: string, message: string, fields?: Record<string, unknow
 // surface in Railway's runtime logs.
 
 const PORT = Number(process.env.PORT) || 4000;
+const HOST = '0.0.0.0';
 
 let appReady = false;
 let startupError: string | null = null;
 
+function isHealthProbeRequest(req: http.IncomingMessage): boolean {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return false;
+  }
+
+  if (!req.url) {
+    return false;
+  }
+
+  try {
+    const pathname = new URL(req.url, `http://${HOST}:${PORT}`).pathname.replace(/\/+$/, '');
+    return pathname === '/health';
+  } catch {
+    return req.url === '/health' || req.url === '/health/' || req.url.startsWith('/health?');
+  }
+}
+
 const earlyServer = http.createServer((req, res) => {
-  if (req.url === '/health' && req.method === 'GET') {
+  if (isHealthProbeRequest(req)) {
     const git = { git_branch: RAILWAY_BRANCH, git_sha: RAILWAY_SHA };
     if (startupError) {
       res.writeHead(503, { 'Content-Type': 'application/json' });
@@ -48,7 +66,6 @@ const earlyServer = http.createServer((req, res) => {
   res.end('Service starting...');
 });
 
-const HOST = '0.0.0.0';
 const RAILWAY_BRANCH = process.env.RAILWAY_GIT_BRANCH ?? null;
 const RAILWAY_SHA = process.env.RAILWAY_GIT_COMMIT_SHA ?? null;
 
@@ -66,7 +83,7 @@ earlyServer.listen(PORT, HOST, () => {
     const message = e instanceof Error ? e.message : 'Unknown startup error';
     const details = e instanceof Error ? e.stack : String(e);
     startupError = message;
-    earlyLog('error', 'server startup failed', {
+    earlyLog('error', `server startup failed: ${message}`, {
       event: 'server_startup_failed',
       error: message,
       details,
