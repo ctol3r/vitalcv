@@ -1,7 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import prisma from '../graphql/prisma_client';
 import type { VerificationResult } from '../interfaces/verificationSource';
-import type { CanonicalClaim } from '../utils/claimHash';
 import {
   assessVerifierLifecycleTransition,
   coerceVerifierLifecycle,
@@ -12,6 +11,7 @@ import { log } from '../obs/logger';
 import { computeArtifactChecksum } from './nursysAdapter';
 import { getVerificationSource } from './sourceRegistry';
 import { buildMerkleTree } from './merkleTree';
+import { buildCanonicalClaimsFromVerificationResult } from './auditBundleClaims';
 import { computeTrustState } from './trustState';
 import { computeCredentialState } from './credentialStatusEngine';
 import { runIndependentCrossCheck } from './crossCheckEngine';
@@ -19,8 +19,67 @@ import type { ArtifactEventType } from '../types/auditEventTypes';
 import { appendArtifactLifecycleEntry } from './transparencyLedger';
 import { assertMonitoringEngineEnabled } from './credentialMonitoringEngine';
 import { isStrictTransitionMode } from '../utils/environment';
+import {
+  AUDITSCRAPBOOK_COMPLIANCE_PROFILE,
+  AUDITSCRAPBOOK_METHOD,
+  AUDITSCRAPBOOK_METHODLOGY_VERSION,
+  AUDITSCRAPBOOK_VERIFIER_IDENTITY,
+  buildVerifierAuditBundle,
+  type ArtifactForVerifierAuditBundle,
+  type VerifierAuditBundle,
+} from './verifierAuditBundle';
+import { getTransparencyEntries } from './transparencyLog';
+import {
+  attachAuditBundleSignature,
+  buildAuditBundleVc,
+  computeAuditBundleVcHash,
+  type AuditBundlePayloadView,
+  type SignedAuditBundleVerifiableCredential,
+} from './auditBundleVc';
+import { signAuditBundleHash } from './auditBundleSigning';
 
 const MONITORING_THRESHOLD_DAYS = 90;
+
+export type AuditBundleMetadataInput = {
+  timestamp: string;
+  verifierIdentity: string;
+  methodology: string;
+  monitoringStatus: string;
+};
+
+export interface AuditBundlePayload {
+  npi: string;
+  artifact: {
+    id: string;
+    source: string;
+    status: string;
+    checksum: string;
+    verifiedAt: string;
+    expiresAt: string | null;
+    monitoring: boolean;
+  };
+  auditMetadata: {
+    source: string;
+    timestamp: string;
+    verifierIdentity: string;
+    checksum: string;
+    methodology: string;
+    monitoringStatus: string;
+  };
+}
+
+export interface AuditBundleResult extends AuditBundlePayload {
+  snapshotId: string;
+  rawPayload: Prisma.JsonValue;
+  verifierAuditBundle: VerifierAuditBundle;
+}
+
+export interface AuditBundleExportResult {
+  rawBundle: AuditBundlePayload;
+  vcWrapped: SignedAuditBundleVerifiableCredential;
+  hash: string;
+  signature: string;
+}
 
 type ArtifactMerklePayload = {
   fingerprint: string;
@@ -41,17 +100,42 @@ export type ArtifactRecord = {
   statusLastChecked: Date;
   checksum: string;
   fingerprint: string;
-  merkleRoot: string;
+  merkleRoot: string | null;
   claimHashes: Prisma.JsonValue;
   verifiedAt: Date;
   expiresAt: Date | null;
   monitoring: boolean;
   trustState: string;
+  organizationId: string | null;
+  psvWindowStart: Date | null;
+  psvWindowDeadline: Date | null;
+  psvWindowCompliant: boolean | null;
+  daysUntilExpiration: number | null;
+  forecastRiskLevel: string | null;
   createdAt: Date;
 };
 
 type GenerateAuditBundleOptions = {
   organizationId?: string;
+};
+
+type SnapshotArtifact = {
+  id: string;
+  npi: string;
+  source: string;
+  status: string;
+  rawPayload: Prisma.JsonValue;
+  checksum: string;
+  merkleRoot: string | null;
+  verifiedAt: Date;
+  expiresAt: Date | null;
+  monitoring: boolean;
+};
+
+type SnapshotRecord = {
+  id: string;
+  snapshot: Prisma.JsonValue;
+  artifact: SnapshotArtifact;
 };
 
 /**
@@ -61,7 +145,7 @@ export function buildVerificationMerklePayload(
   npi: string,
   result: VerificationResult,
 ): ArtifactMerklePayload {
-  const claims = canonicalizeVerificationClaims(npi, result);
+  const claims = buildCanonicalClaimsFromVerificationResult(npi, result);
   const tree = buildMerkleTree(claims);
   const fingerprint = computeArtifactChecksum(result.rawPayload);
 
@@ -69,6 +153,32 @@ export function buildVerificationMerklePayload(
     fingerprint,
     merkleRoot: tree.root,
     claimHashes: tree.leaves,
+  };
+}
+
+export function buildAuditBundlePayload(
+  artifact: ArtifactRecord,
+  options: AuditBundleMetadataInput,
+): AuditBundlePayload {
+  return {
+    npi: artifact.npi,
+    artifact: {
+      id: artifact.id,
+      source: artifact.source,
+      status: artifact.status,
+      checksum: artifact.checksum,
+      verifiedAt: artifact.verifiedAt.toISOString(),
+      expiresAt: artifact.expiresAt?.toISOString() ?? null,
+      monitoring: artifact.monitoring,
+    },
+    auditMetadata: {
+      source: artifact.source,
+      timestamp: options.timestamp,
+      verifierIdentity: options.verifierIdentity,
+      checksum: artifact.checksum,
+      methodology: options.methodology,
+      monitoringStatus: options.monitoringStatus,
+    },
   };
 }
 
@@ -189,10 +299,8 @@ export async function getLatestArtifact(
     revocationReason: artifact.revocationReason ?? null,
     lifecycleState: artifact.lifecycleState,
     statusLastChecked: artifact.statusLastChecked,
-    checksum: artifact.checksum,
     fingerprint: artifact.checksum,
-    merkleRoot: artifact.merkleRoot ?? '',
-    claimHashes: artifact.claimHashes ?? [],
+    claimHashes: artifact.claimHashes,
   };
 }
 
@@ -203,19 +311,7 @@ export async function getLatestArtifact(
 export async function generateAuditBundle(
   npi: string,
   options: GenerateAuditBundleOptions = {},
-): Promise<{
-  npi: string;
-  artifact: ArtifactRecord;
-  auditMetadata: {
-    source: string;
-    timestamp: string;
-    verifierIdentity: string;
-    checksum: string;
-    methodology: string;
-    monitoringStatus: string;
-  };
-  snapshotId: string;
-}> {
+): Promise<AuditBundleResult> {
   let artifact = await getLatestArtifact(npi, options.organizationId);
 
   if (!artifact) {
@@ -223,30 +319,27 @@ export async function generateAuditBundle(
   }
 
   const timestamp = new Date().toISOString();
-  const verifierIdentity = 'VitalCV Cross-Check Engine v1';
-  const methodology = 'Primary source verification via Nursys E-Notify simulation';
+  const verifierIdentity = AUDITSCRAPBOOK_VERIFIER_IDENTITY;
+  const methodology = AUDITSCRAPBOOK_METHOD;
   const monitoringStatus = artifact.monitoring ? 'ACTIVE_MONITORING' : 'STANDARD';
 
-  const bundlePayload = {
-    npi,
-    artifact: {
-      id: artifact.id,
-      source: artifact.source,
-      status: artifact.status,
-      checksum: artifact.checksum,
-      verifiedAt: artifact.verifiedAt.toISOString(),
-      expiresAt: artifact.expiresAt?.toISOString() ?? null,
-      monitoring: artifact.monitoring,
-    },
-    auditMetadata: {
-      source: artifact.source,
-      timestamp,
+  const bundlePayload = buildAuditBundlePayload(artifact, {
+    timestamp,
+    verifierIdentity,
+    methodology,
+    monitoringStatus,
+  });
+  const transparencyEntries = await getTransparencyEntries(artifact.id);
+  const verifierAuditBundle = buildVerifierAuditBundle(
+    artifact as unknown as ArtifactForVerifierAuditBundle,
+    {
+      generatedAt: timestamp,
       verifierIdentity,
-      checksum: artifact.checksum,
       methodology,
       monitoringStatus,
+      transparencyEntries,
     },
-  };
+  );
 
   // Persist snapshot at bundle generation time
   const snapshot = await prisma.auditSnapshot.create({
@@ -269,6 +362,9 @@ export async function generateAuditBundle(
         snapshotId: snapshot.id,
         checksum: artifact.checksum,
         monitoring: artifact.monitoring,
+        methodologyVersion: AUDITSCRAPBOOK_METHODLOGY_VERSION,
+        complianceProfile: AUDITSCRAPBOOK_COMPLIANCE_PROFILE,
+        tamperAnchor: verifierAuditBundle.tamperAnchoring.chainDigest,
       } as unknown as Prisma.InputJsonValue,
     },
   });
@@ -280,7 +376,15 @@ export async function generateAuditBundle(
 
   return {
     npi,
-    artifact,
+    artifact: {
+      id: artifact.id,
+      source: artifact.source,
+      status: artifact.status,
+      checksum: artifact.checksum,
+      verifiedAt: artifact.verifiedAt.toISOString(),
+      expiresAt: artifact.expiresAt ? artifact.expiresAt.toISOString() : null,
+      monitoring: artifact.monitoring,
+    },
     auditMetadata: {
       source: artifact.source,
       timestamp,
@@ -290,6 +394,145 @@ export async function generateAuditBundle(
       monitoringStatus,
     },
     snapshotId: snapshot.id,
+    rawPayload: artifact.rawPayload,
+    verifierAuditBundle,
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function parseStringField(
+  record: Record<string, unknown>,
+  field: string,
+  required = true,
+): string {
+  const value = record[field];
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    if (required) {
+      throw new Error(`Snapshot payload missing required field: ${field}`);
+    }
+    return '';
+  }
+
+  return value;
+}
+
+function parseBooleanField(record: Record<string, unknown>, field: string): boolean {
+  const value = record[field];
+  return value === true;
+}
+
+function parseAuditMetadataField(record: Record<string, unknown>): AuditBundlePayloadView['auditMetadata'] {
+  if (!isRecord(record)) {
+    throw new Error('Audit bundle snapshot missing auditMetadata');
+  }
+
+  return {
+    source: parseStringField(record, 'source'),
+    timestamp: parseStringField(record, 'timestamp'),
+    verifierIdentity: parseStringField(record, 'verifierIdentity'),
+    checksum: parseStringField(record, 'checksum'),
+    methodology: parseStringField(record, 'methodology'),
+    monitoringStatus: parseStringField(record, 'monitoringStatus'),
+  };
+}
+
+function parseArtifactSection(
+  record: Record<string, unknown>,
+  artifactId: string,
+): AuditBundlePayload['artifact'] {
+  return {
+    id: artifactId,
+    source: parseStringField(record, 'source'),
+    status: parseStringField(record, 'status'),
+    checksum: parseStringField(record, 'checksum'),
+    verifiedAt: parseStringField(record, 'verifiedAt'),
+    expiresAt: parseStringField(record, 'expiresAt', false) || null,
+    monitoring: parseBooleanField(record, 'monitoring'),
+  };
+}
+
+function parseAuditBundleSnapshot(snapshot: Prisma.JsonValue, artifactId: string): AuditBundlePayload {
+  if (!isRecord(snapshot)) {
+    throw new Error('Invalid audit snapshot payload');
+  }
+
+  const npi = parseStringField(snapshot, 'npi');
+  const artifact = snapshot.artifact;
+  const auditMetadata = snapshot.auditMetadata;
+  if (!isRecord(artifact)) {
+    throw new Error('Invalid audit snapshot payload: artifact is missing');
+  }
+  if (!isRecord(auditMetadata)) {
+    throw new Error('Invalid audit snapshot payload: auditMetadata is missing');
+  }
+
+  return {
+    npi,
+    artifact: parseArtifactSection(artifact as Record<string, unknown>, artifactId),
+    auditMetadata: parseAuditMetadataField(auditMetadata as Record<string, unknown>),
+  };
+}
+
+export async function getBundleExportBySnapshotId(snapshotId: string): Promise<AuditBundleExportResult> {
+  const normalizedId = snapshotId.trim();
+  if (!normalizedId) {
+    throw new Error('snapshotId is required');
+  }
+
+  const snapshot = await prisma.auditSnapshot.findUnique({
+    where: { id: normalizedId },
+    select: {
+      id: true,
+      snapshot: true,
+      artifact: {
+        select: {
+          id: true,
+          npi: true,
+          source: true,
+          status: true,
+          rawPayload: true,
+          checksum: true,
+          merkleRoot: true,
+          verifiedAt: true,
+          expiresAt: true,
+          monitoring: true,
+        },
+      },
+    },
+  }) as SnapshotRecord | null;
+
+  if (!snapshot || !snapshot.artifact) {
+    throw new Error('Audit snapshot not found');
+  }
+
+  const rawBundle = parseAuditBundleSnapshot(snapshot.snapshot, snapshot.artifact.id);
+  const issuedAt = rawBundle.auditMetadata.timestamp;
+
+  const vc = buildAuditBundleVc({
+    bundle: rawBundle,
+    artifactId: snapshot.artifact.id,
+    artifactRawPayload: snapshot.artifact.rawPayload,
+    snapshotId: snapshot.id,
+    merkleRoot: snapshot.artifact.merkleRoot,
+    issuedAt,
+  });
+  const hash = computeAuditBundleVcHash(vc);
+  const signature = await signAuditBundleHash({
+    bundleHash: hash,
+    bundleId: snapshot.id,
+    artifactId: snapshot.artifact.id,
+    issuedAt,
+  });
+  const vcWrapped = attachAuditBundleSignature(vc, signature);
+
+  return {
+    rawBundle,
+    vcWrapped,
+    hash,
+    signature,
   };
 }
 
@@ -392,65 +635,6 @@ function shouldMonitor(expiresAt: Date | null): boolean {
   const now = Date.now();
   const thresholdMs = MONITORING_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
   return expiresAt.getTime() - now < thresholdMs;
-}
-
-export function canonicalizeVerificationClaims(
-  npi: string,
-  result: VerificationResult,
-): CanonicalClaim[] {
-  const claims = new Map<string, string>();
-
-  const addClaim = (type: string, value: string | number | boolean | null): void => {
-    const normalizedType = type.trim();
-    if (normalizedType.length === 0) {
-      return;
-    }
-    const normalizedValue = String(value);
-
-    const existingValue = claims.get(normalizedType);
-    if (existingValue !== undefined) {
-      if (existingValue !== normalizedValue) {
-        throw new Error(`Conflicting canonical claim values for type "${normalizedType}"`);
-      }
-      return;
-    }
-
-    claims.set(normalizedType, normalizedValue);
-  };
-
-  addClaim('npi', npi);
-  addClaim('licenseStatus', result.licenseStatus);
-  addClaim('jurisdiction', result.jurisdiction);
-  addClaim('sourceUrl', result.sourceUrl);
-  addClaim('lastUpdated', result.lastUpdated.toISOString());
-  addClaim('expirationDate', result.expirationDate ? result.expirationDate.toISOString() : null);
-
-  const rawPayload = result.rawPayload;
-  if (rawPayload !== null && typeof rawPayload === 'object' && !Array.isArray(rawPayload)) {
-    const payloadEntries = Object.entries(rawPayload as Record<string, unknown>).sort(([left], [right]) =>
-      left.localeCompare(right),
-    );
-
-    for (const [type, value] of payloadEntries) {
-      if (type.length === 0) {
-        continue;
-      }
-      if (value instanceof Date) {
-        addClaim(type, value.toISOString());
-        continue;
-      }
-      if (
-        typeof value === 'string' ||
-        typeof value === 'number' ||
-        typeof value === 'boolean' ||
-        value === null
-      ) {
-        addClaim(type, value);
-      }
-    }
-  }
-
-  return [...claims.entries()].map(([type, value]) => ({ type, value }));
 }
 
 function enforceStrictTransitionRequirements(

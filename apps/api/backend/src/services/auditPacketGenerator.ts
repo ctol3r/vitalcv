@@ -3,10 +3,17 @@ import prisma from '../graphql/prisma_client';
 import { computeArtifactChecksum } from './nursysAdapter';
 import { computeCredentialState } from './credentialStatusEngine';
 import { validateMerkleIntegrity } from './merkleIntegrity';
-import { isStrictTransitionMode, parseBooleanEnv } from '../utils/environment';
+import { parseBooleanEnv } from '../utils/environment';
 import { getConfiguredIssuerDid } from '../utils/issuerDid';
 import { CredentialLifecycleState } from '../utils/lifecycleState';
 import { getTransparencyEntries, type TransparencyLogEntry } from './transparencyLog';
+import {
+  AUDITSCRAPBOOK_METHOD,
+  AUDITSCRAPBOOK_VERIFIER_IDENTITY,
+  buildVerifierAuditBundle,
+  type ArtifactForVerifierAuditBundle,
+  type VerifierAuditBundle,
+} from './verifierAuditBundle';
 
 type ArtifactForAudit = Prisma.VerificationArtifactGetPayload<{
   select: {
@@ -23,6 +30,7 @@ type ArtifactForAudit = Prisma.VerificationArtifactGetPayload<{
     trustState: true;
     revokedAt: true;
     suspendedAt: true;
+    monitoring: true;
     claimHashes: true;
   };
 }>;
@@ -90,6 +98,7 @@ type AuditPacket = {
       type: string;
     };
   };
+  verifierAuditBundle: VerifierAuditBundle;
 };
 
 function normalizeArtifactBaseUrl(): string {
@@ -151,10 +160,10 @@ function buildCanonicalCredential(
   };
 
   const subjectId = `did:vitalcv:npi:${artifact.npi}`;
-    const credential = {
-      '@context': ['https://www.w3.org/2018/credentials/v1'],
-      id: `urn:vitalcv:artifact:${artifact.id}`,
-      type: ['VerifiableCredential', 'ClinicianIdentityCredential'],
+  const credential = {
+    '@context': ['https://www.w3.org/2018/credentials/v1'],
+    id: `urn:vitalcv:artifact:${artifact.id}`,
+    type: ['VerifiableCredential', 'ClinicianIdentityCredential'],
     issuer: getConfiguredIssuerDid(),
     issuanceDate: issuedAt,
     credentialSubject: {
@@ -223,6 +232,7 @@ export async function generateAuditPacket(artifactId: string): Promise<AuditPack
       organizationId: true,
       verifiedAt: true,
       expiresAt: true,
+      monitoring: true,
       trustState: true,
       revokedAt: true,
       suspendedAt: true,
@@ -250,6 +260,21 @@ export async function generateAuditPacket(artifactId: string): Promise<AuditPack
 
   const { credential, revocationStatus } = buildCanonicalCredential(artifact, artifact.verifiedAt.toISOString());
   const transparencyEntries = await getTransparencyEntries(artifact.id);
+  const generatedAt = new Date().toISOString();
+  const verifierIdentity = AUDITSCRAPBOOK_VERIFIER_IDENTITY;
+  const methodology = AUDITSCRAPBOOK_METHOD;
+  const monitoringStatus = artifact.monitoring ? 'ACTIVE_MONITORING' : 'STANDARD';
+  const verifierAuditBundle = buildVerifierAuditBundle(
+    artifact as ArtifactForVerifierAuditBundle,
+    {
+      generatedAt,
+      verifierIdentity,
+      methodology,
+      monitoringStatus,
+      transparencyEntries,
+      snapshotId: undefined,
+    },
+  );
 
   return {
     artifactId: artifact.id,
@@ -262,5 +287,6 @@ export async function generateAuditPacket(artifactId: string): Promise<AuditPack
     transparencyEntries,
     proofEndpoints: buildProofEndpoints(artifact.id),
     issuedVC: credential,
+    verifierAuditBundle,
   };
 }

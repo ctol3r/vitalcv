@@ -483,7 +483,7 @@ model TrustLedgerEntry {
 
 model AuditSnapshot {
   id         String   @id @default(uuid()) @db.Uuid
-  artifactId String
+  artifactId String   @db.Uuid
   snapshot   Json     @db.JsonB
   createdAt  DateTime @default(now())
 
