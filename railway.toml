@@ -1,6 +1,6 @@
 [build]
 installCommand = "pnpm install --frozen-lockfile --ignore-scripts"
-buildCommand = "pnpm --filter @vitalcv/api run build"
+buildCommand = "pnpm --filter @vitalcv/haip-config run build && pnpm --filter @vitalcv/api run build"
 
 [deploy]
 releaseCommand = "pnpm --filter @vitalcv/api run db:migrate:deploy"
