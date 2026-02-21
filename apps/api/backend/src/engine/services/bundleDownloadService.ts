@@ -167,8 +167,8 @@ export function buildBundleContentsFromRecord(
       source: string;
       status: string;
       checksum: string;
-      verifiedAt: Date;
-      expiresAt: Date | null;
+      verifiedAt: Date | string;
+      expiresAt: Date | string | null;
       monitoring: boolean;
     };
     auditMetadata: {
@@ -192,8 +192,8 @@ export function buildBundleContentsFromRecord(
         source: bundle.artifact.source,
         status: bundle.artifact.status,
         checksum: bundle.artifact.checksum,
-        verifiedAt: bundle.artifact.verifiedAt.toISOString(),
-        expiresAt: bundle.artifact.expiresAt?.toISOString() ?? null,
+        verifiedAt: typeof bundle.artifact.verifiedAt === 'string' ? bundle.artifact.verifiedAt : bundle.artifact.verifiedAt.toISOString(),
+        expiresAt: bundle.artifact.expiresAt ? (typeof bundle.artifact.expiresAt === 'string' ? bundle.artifact.expiresAt : bundle.artifact.expiresAt.toISOString()) : null,
         monitoring: bundle.artifact.monitoring,
       },
       auditMetadata: bundle.auditMetadata,
@@ -222,8 +222,8 @@ function buildReadmeFromRecord(bundle: {
     source: string;
     status: string;
     checksum: string;
-    verifiedAt: Date;
-    expiresAt: Date | null;
+    verifiedAt: Date | string;
+    expiresAt: Date | string | null;
     monitoring: boolean;
   };
   auditMetadata: {
@@ -236,7 +236,7 @@ function buildReadmeFromRecord(bundle: {
   };
   snapshotId: string;
 }): string {
-  const verifiedAt = bundle.artifact.verifiedAt;
+  const verifiedAt = new Date(bundle.artifact.verifiedAt);
   const validUntil = new Date(verifiedAt);
   validUntil.setDate(validUntil.getDate() + 120);
   const msRemaining = validUntil.getTime() - Date.now();
@@ -262,7 +262,7 @@ function buildReadmeFromRecord(bundle: {
     '── Provenance ─────────────────────────────────────────',
     '',
     `Source:              ${bundle.artifact.source}`,
-    `RetrievedAt:         ${bundle.artifact.verifiedAt.toISOString()}`,
+    `RetrievedAt:         ${verifiedAt.toISOString()}`,
     `Method:              Primary Source Verification`,
     `Methodology:         ${bundle.auditMetadata.methodology}`,
     '',
