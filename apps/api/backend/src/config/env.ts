@@ -179,11 +179,13 @@ export function loadEnv(): Env {
     const missing = getProductionEnvCheck();
     if (!missing.ok) {
       const formatted = missing.missing.map((name) => `${name}: required in production`).join('\n');
-      log('error', 'environment validation failed', {
+      log('error', `environment validation failed: ${formatted}`, {
         event: 'production_env_validation_failed',
         missing: missing.missing,
         details: formatted,
         node_env: process.env.NODE_ENV ?? 'development',
+        railway_branch: process.env.RAILWAY_GIT_BRANCH ?? null,
+        railway_sha: process.env.RAILWAY_GIT_COMMIT_SHA ?? null,
       });
       throw new Error(`Environment validation failed:\n${formatted}`);
     }
@@ -195,6 +197,23 @@ export function loadEnv(): Env {
     const formatted = result.error.issues
       .map((i) => `  ${i.path.join('.')}: ${i.message}`)
       .join('\n');
+    const missingKeys = result.error.issues
+      .filter((i) => i.code === 'too_small' || i.message.toLowerCase().includes('required'))
+      .map((i) => i.path.join('.'));
+    const invalidKeys = result.error.issues
+      .filter((i) => i.code !== 'too_small' && !i.message.toLowerCase().includes('required'))
+      .map((i) => i.path.join('.'));
+    log('error', `environment validation failed: ${formatted}`, {
+      event: 'env_validation_failed',
+      missing_keys: missingKeys,
+      invalid_keys: invalidKeys,
+      fields: result.error.issues.map((i) => ({
+        field: i.path.join('.'),
+        message: i.message,
+      })),
+      railway_branch: process.env.RAILWAY_GIT_BRANCH ?? null,
+      railway_sha: process.env.RAILWAY_GIT_COMMIT_SHA ?? null,
+    });
     throw new Error(`Environment validation failed:\n${formatted}`);
   }
 

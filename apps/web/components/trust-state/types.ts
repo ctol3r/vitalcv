@@ -5,6 +5,8 @@
 
 export type TrustBand = 'GREEN' | 'YELLOW' | 'RED';
 
+export type ClaimLevel = 'L0' | 'L1' | 'L2' | 'L3';
+
 export type WindowStatus =
   | 'WITHIN_WINDOW'
   | 'EXPIRING_SOON'

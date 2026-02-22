@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto';
 import { canonicalizeJson } from './canonicalizeJson';
 
+export { canonicalizeJson };
+
 export function stableStringify(value: unknown): string {
   return canonicalizeJson(value as object);
 }

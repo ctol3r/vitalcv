@@ -142,7 +142,8 @@
       "Bash(/usr/bin/grep -E \"\\(Test Suites:|Tests:\\)\")",
       "Bash(/usr/bin/grep -E \"\\(PASS|FAIL|Tests:\\)\")",
       "Bash(/usr/bin/grep:*)",
-      "Bash(STRICT_TRANSITION_MODE=true npx jest:*)"
+      "Bash(STRICT_TRANSITION_MODE=true npx jest:*)",
+      "Bash(git -C /Users/christoler/vitalcv diff apps/api/backend/src/config/env.ts apps/api/backend/src/server.ts)"
     ],
     "deny": [],
     "ask": []

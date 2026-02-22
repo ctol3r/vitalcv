@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "npm --prefix backend run dev",
-    "typecheck": "pnpm exec tsc -p backend/tsconfig.json --noEmit",
+    "typecheck": "pnpm exec prisma generate --schema backend/prisma/schema.prisma && pnpm exec tsc -p backend/tsconfig.json --noEmit",
     "build": "pnpm exec prisma generate --schema backend/prisma/schema.prisma && pnpm exec tsc -p backend/tsconfig.json",
     "start": "npm --prefix backend run start",
     "db:migrate:deploy": "pnpm exec prisma migrate deploy --schema backend/prisma/schema.prisma",

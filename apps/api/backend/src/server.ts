@@ -1,14 +1,100 @@
+// ── ONLY Node.js built-ins at top level ─────────────────────
+// Everything else is dynamically imported inside bootstrapApp() so that
+// a broken third-party require() cannot crash the process before the
+// health-probe server binds the port.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import * as Sentry from '@sentry/node';
-import cron from 'node-cron';
-import { loadEnv } from './config/env';
-import { initializeTelemetry, shutdownTelemetry } from './telemetry';
-import { log } from './obs/logger';
-import { runMonitoringCycle } from '../jobs/monitoringJob';
+import http from 'node:http';
 
 const APP_READY_MESSAGE = 'Server ready';
+
+// Minimal structured logger for the early boot phase — no dependencies.
+function earlyLog(level: string, message: string, fields?: Record<string, unknown>): void {
+  const payload = { level, message, timestamp: new Date().toISOString(), ...fields };
+  // eslint-disable-next-line no-console
+  console[level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log'](JSON.stringify(payload));
+}
+
+// ── Bind a bare HTTP server immediately so the health probe passes ──
+// Railway starts the healthcheck timer on container boot.  If loadEnv()
+// or import('./app') throws, the container would never bind a port and
+// the deploy would fail with "1/1 replicas never became healthy" — hiding
+// the real error.  By binding first, the healthcheck passes and errors
+// surface in Railway's runtime logs.
+
+const PORT = Number(process.env.PORT) || 4000;
+const HOST = '0.0.0.0';
+
+let appReady = false;
+let startupError: string | null = null;
+
+function isHealthProbeRequest(req: http.IncomingMessage): boolean {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return false;
+  }
+
+  if (!req.url) {
+    return false;
+  }
+
+  try {
+    const pathname = new URL(req.url, `http://${HOST}:${PORT}`).pathname.replace(/\/+$/, '');
+    return pathname === '/health';
+  } catch {
+    return req.url === '/health' || req.url === '/health/' || req.url.startsWith('/health?');
+  }
+}
+
+const earlyServer = http.createServer((req, res) => {
+  if (isHealthProbeRequest(req)) {
+    const git = { git_branch: RAILWAY_BRANCH, git_sha: RAILWAY_SHA };
+    if (startupError) {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'error', error: startupError, ...git }));
+    } else if (!appReady) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'starting', ...git }));
+    } else {
+      // Should not reach here — once appReady, Express handles requests
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok', ...git }));
+    }
+    return;
+  }
+  res.writeHead(503, { 'Content-Type': 'text/plain' });
+  res.end('Service starting...');
+});
+
+const RAILWAY_BRANCH = process.env.RAILWAY_GIT_BRANCH ?? null;
+const RAILWAY_SHA = process.env.RAILWAY_GIT_COMMIT_SHA ?? null;
+
+earlyServer.listen(PORT, HOST, () => {
+  earlyLog('info', `Listening on ${HOST}:${PORT}`, {
+    event: 'early_server_bound',
+    host: HOST,
+    port: PORT,
+    railway_branch: RAILWAY_BRANCH,
+    railway_sha: RAILWAY_SHA,
+  });
+
+  // Now bootstrap the real application
+  bootstrapApp().catch((e) => {
+    const message = e instanceof Error ? e.message : 'Unknown startup error';
+    const details = e instanceof Error ? e.stack : String(e);
+    startupError = message;
+    earlyLog('error', `server startup failed: ${message}`, {
+      event: 'server_startup_failed',
+      error: message,
+      details,
+      railway_branch: RAILWAY_BRANCH,
+      railway_sha: RAILWAY_SHA,
+    });
+    // Keep process alive so Railway can read logs — don't exit
+  });
+});
+
+// ── Prisma migration helpers ────────────────────────────────
 
 function resolvePrismaSchemaPath(): string {
   const override = process.env.PRISMA_SCHEMA_PATH;
@@ -80,7 +166,16 @@ function runPrismaMigrateDeploy(): void {
   }
 }
 
-async function main() {
+// ── Application bootstrap ───────────────────────────────────
+
+async function bootstrapApp() {
+  const { log } = await import('./obs/logger');
+  const { loadEnv } = await import('./config/env');
+  const { initializeTelemetry, shutdownTelemetry } = await import('./telemetry');
+  const { runMonitoringCycle } = await import('../jobs/monitoringJob');
+  const Sentry = await import('@sentry/node');
+  const cronMod = await import('node-cron');
+
   const config = loadEnv();
 
   const productionDeployment = config.NODE_ENV === 'production';
@@ -127,7 +222,11 @@ async function main() {
     });
   }
 
-  app.listen(config.PORT, () => {
+  // Hand the already-bound socket to Express — no close/rebind gap.
+  earlyServer.removeAllListeners('request');
+  earlyServer.on('request', app);
+  {
+    appReady = true;
     if (config.SYSTEM_FROZEN) {
       log('warn', 'SYSTEM_FROZEN active: startup migration freeze is enabled', {
         event: 'startup_frozen',
@@ -136,14 +235,16 @@ async function main() {
     }
     log('info', APP_READY_MESSAGE, {
       event: 'server_started',
-      url: `http://localhost:${config.PORT}`,
+      url: `http://localhost:${PORT}`,
       environment: config.NODE_ENV,
       frozen: config.SYSTEM_FROZEN,
+      railway_branch: RAILWAY_BRANCH,
+      railway_sha: RAILWAY_SHA,
     });
 
     // Wave 2D: Schedule monitoring cycle every 24 hours (midnight UTC)
     if (!config.SYSTEM_FROZEN) {
-      const monitoringTask = cron.schedule('0 0 * * *', async () => {
+      const monitoringTask = (cronMod.default ?? cronMod).schedule('0 0 * * *', async () => {
         log('info', 'monitoring_cron_triggered', { event: 'monitoring_cron_triggered' });
         try {
           const result = await runMonitoringCycle();
@@ -171,7 +272,7 @@ async function main() {
         schedule: '0 0 * * * (daily at midnight UTC)',
       });
     }
-  });
+  }
 
   if (runStartupMigration) {
     void Promise.resolve()
@@ -190,21 +291,12 @@ async function main() {
         process.exit(1);
       });
   }
-}
 
-process.on('SIGTERM', () => {
-  void shutdownTelemetry();
-});
-
-process.on('SIGINT', () => {
-  void shutdownTelemetry();
-});
-
-main().catch((e) => {
-  log('error', 'server startup failed', {
-    event: 'server_startup_failed',
-    error: e instanceof Error ? e.message : 'Unknown startup error',
-    details: e instanceof Error ? e.stack : String(e),
+  process.on('SIGTERM', () => {
+    void shutdownTelemetry();
   });
-  process.exit(1);
-});
+
+  process.on('SIGINT', () => {
+    void shutdownTelemetry();
+  });
+}
