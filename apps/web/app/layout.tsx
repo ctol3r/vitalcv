@@ -1,9 +1,23 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import { Toaster } from '@/components/ui/toaster';
 import type { Metadata } from 'next';
+import { Fraunces, Inter } from 'next/font/google';
 import type React from 'react';
 import './globals.css';
 import Providers from './providers';
+
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-fraunces',
+  weight: ['400', '500', '600', '700'],
+});
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
   title: 'VitalCV',
@@ -18,8 +32,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const content = (
-    <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-white text-neutral-900 antialiased font-sans">
+    <html lang="en" className={`${fraunces.variable} ${inter.variable}`} suppressHydrationWarning>
+      <body className="min-h-screen bg-background text-foreground antialiased font-sans">
         <Providers>
           {children}
           <Toaster />

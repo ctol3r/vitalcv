@@ -4,7 +4,7 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 const badgeVariants = cva(
-  'inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+  'inline-flex items-center rounded-lg border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
   {
     variants: {
       variant: {
@@ -14,6 +14,20 @@ const badgeVariants = cva(
         destructive:
           'border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80',
         outline: 'text-foreground',
+        'trust-green':
+          'border-transparent bg-[var(--trust-green)]/15 text-[var(--trust-green)]',
+        'trust-yellow':
+          'border-transparent bg-[var(--trust-yellow)]/15 text-[var(--trust-yellow)]',
+        'trust-red':
+          'border-transparent bg-[var(--trust-red)]/15 text-[var(--trust-red)]',
+        'claim-l0':
+          'border-dashed border-[var(--claim-l0)] text-[var(--claim-l0-foreground)] bg-transparent',
+        'claim-l1':
+          'border-transparent bg-[var(--claim-l1)] text-[var(--claim-l1-foreground)]',
+        'claim-l2':
+          'border-transparent bg-[var(--claim-l2)] text-[var(--claim-l2-foreground)]',
+        'claim-l3':
+          'border-transparent bg-[var(--claim-l3)] text-[var(--claim-l3-foreground)]',
       },
     },
     defaultVariants: {
