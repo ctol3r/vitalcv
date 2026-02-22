@@ -1,5 +1,5 @@
 {
-  "framework": null,
+  "framework": "nextjs",
   "buildCommand": "pnpm --filter @vitalcv/web build",
   "outputDirectory": "apps/web/.next"
 }
