@@ -1,4 +1,5 @@
 {
+  "framework": null,
   "buildCommand": "pnpm --filter @vitalcv/web build",
   "outputDirectory": "apps/web/.next"
 }
