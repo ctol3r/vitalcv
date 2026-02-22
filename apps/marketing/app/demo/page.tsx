@@ -1,113 +1,147 @@
-import type { Metadata } from 'next';
-import Link from 'next/link';
-import { DemoErrorBoundary } from '../../components/demo/DemoErrorBoundary';
-import { DemoWizard } from '../../components/demo/DemoWizard';
-import LiveStatusWidget from '../../components/site/LiveStatusWidget';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Live demo — VitalCV',
-  description:
-    "Walk through VitalCV's identity pipeline: look up an NPI, verify a provider, and generate a signed credential — all live.",
-  openGraph: {
-    title: 'Live demo — VitalCV',
-    description:
-      'Interactive 3-step demo of cryptographically signed healthcare credentials.',
-  },
-};
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-const apiBase = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '');
-
-const statusLinks = [
-  { method: 'GET', path: '/demo/status', description: 'Live service health, version, and environment.' },
-  { method: 'GET', path: '/api/version', description: 'Build/commit metadata for release tracking.' },
-  { method: 'GET', path: '/api/security/posture', description: 'Security toggle and enforcement posture.' },
+const SAMPLE_NPIS = [
+  { npi: '1003000126', label: 'Robert Smith' },
+  { npi: '1497758544', label: 'Mary Johnson' },
+  { npi: '1588667638', label: 'James Williams' },
 ];
 
-function EndpointLink({ path, method, description }: { path: string; method: string; description: string }) {
-  const url = apiBase ? `${apiBase}${path}` : path;
+export default function DemoLanding() {
+  const router = useRouter();
+  const [npi, setNpi] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  return (
-    <li className="rounded-lg border border-border p-4">
-      <p className="text-sm font-semibold uppercase tracking-wide text-muted">
-        {method}
-      </p>
-      <p className="mt-1 font-mono text-sm text-foreground break-all">{url}</p>
-      <p className="mt-2 text-sm leading-relaxed text-muted">{description}</p>
-    </li>
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const handleNpiChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setNpi(e.target.value.replace(/\D/g, '').slice(0, 10));
+      setError('');
+    },
+    [],
   );
-}
 
-export default function DemoPage() {
+  const handleSubmit = useCallback(
+    async (submittedNpi?: string) => {
+      const target = submittedNpi ?? npi;
+      if (target.length !== 10) {
+        setError('Enter a 10-digit NPI');
+        return;
+      }
+
+      setLoading(true);
+      setError('');
+
+      try {
+        const res = await fetch('/api/demo/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ npi: target }),
+        });
+
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error ?? `Verification failed (${res.status})`);
+        }
+
+        const data = await res.json();
+        // Store artifact data in sessionStorage for the dashboard
+        sessionStorage.setItem('vcv_artifact', JSON.stringify(data));
+        router.push(`/demo/dashboard?npi=${target}`);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Something went wrong');
+        setLoading(false);
+      }
+    },
+    [npi, router],
+  );
+
   return (
-    <main className="bg-background">
-      {/* ── Hero ── */}
-      <section className="mx-auto max-w-[1200px] px-6 pt-20 pb-12 md:pt-28">
-        <p className="text-sm uppercase tracking-[0.2em] text-muted">
-          Live demo
-        </p>
-        <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
-          See the identity pipeline in action.
-        </h1>
-        <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted">
-          Enter any NPI below to look up a real provider from the CMS NPPES
-          registry, then generate a cryptographically signed identity
-          credential — all in three steps.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link
-            href="/how-it-works"
-            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-theme hover:bg-surface"
+    <div className="flex min-h-screen flex-col items-center justify-center bg-black px-6 text-white">
+      {/* Logo */}
+      <div className="mb-12">
+        <h2 className="text-lg font-semibold tracking-[0.3em] uppercase text-white/60">
+          VitalCV
+        </h2>
+      </div>
+
+      {/* Headline */}
+      <h1 className="max-w-lg text-center text-4xl font-semibold tracking-tight md:text-5xl">
+        Verify a Healthcare Provider
+      </h1>
+      <p className="mt-4 max-w-md text-center text-base text-white/50">
+        Enter an NPI to generate a cryptographically signed identity bundle in
+        seconds.
+      </p>
+
+      {/* NPI Input */}
+      <div className="mt-10 w-full max-w-md">
+        <input
+          ref={inputRef}
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          placeholder="Enter 10-digit NPI"
+          value={npi}
+          onChange={handleNpiChange}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSubmit();
+          }}
+          disabled={loading}
+          className="w-full rounded-lg border border-white/20 bg-transparent px-5 py-4 text-center text-xl font-mono tracking-widest text-white placeholder:text-white/30 focus:border-white focus:outline-none disabled:opacity-50"
+        />
+
+        {error && (
+          <p className="mt-3 text-center text-sm text-red-400">{error}</p>
+        )}
+
+        <button
+          onClick={() => handleSubmit()}
+          disabled={loading || npi.length !== 10}
+          className="mt-4 w-full rounded-lg bg-white px-6 py-4 text-base font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-30"
+        >
+          {loading ? (
+            <span className="inline-flex items-center gap-2">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/20 border-t-black" />
+              Verifying…
+            </span>
+          ) : (
+            'Apply with VCV'
+          )}
+        </button>
+      </div>
+
+      {/* Sample NPIs */}
+      <div className="mt-8 flex flex-wrap justify-center gap-2">
+        {SAMPLE_NPIS.map((sample) => (
+          <button
+            key={sample.npi}
+            onClick={() => {
+              setNpi(sample.npi);
+              handleSubmit(sample.npi);
+            }}
+            disabled={loading}
+            className="rounded-full border border-white/10 px-4 py-1.5 text-xs text-white/40 transition-colors hover:border-white/30 hover:text-white/70 disabled:opacity-30"
           >
-            How it works
-          </Link>
-          <Link
-            href="/security"
-            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-theme hover:bg-surface"
-          >
-            Security model
-          </Link>
-        </div>
-      </section>
+            {sample.label} · {sample.npi}
+          </button>
+        ))}
+      </div>
 
-      {/* ── Interactive wizard ── */}
-      <section className="border-y border-border bg-surface py-14">
-        <div className="mx-auto max-w-[1200px] px-6">
-          <DemoErrorBoundary>
-            <DemoWizard />
-          </DemoErrorBoundary>
-        </div>
-      </section>
-
-      {/* ── Live status + endpoints ── */}
-      <section className="mx-auto max-w-[1200px] px-6 py-14">
-        <div className="grid gap-10 lg:grid-cols-2">
-          <div>
-            <h2 className="text-sm uppercase tracking-[0.2em] text-muted">
-              Live status
-            </h2>
-            <p className="mt-4 text-2xl font-semibold text-foreground">
-              Real-time backend signal
-            </p>
-            <LiveStatusWidget />
-          </div>
-
-          <div>
-            <h2 className="text-sm uppercase tracking-[0.2em] text-muted">
-              API endpoints
-            </h2>
-            <ul className="mt-6 space-y-3">
-              {statusLinks.map((item) => (
-                <EndpointLink
-                  key={item.path}
-                  method={item.method}
-                  path={item.path}
-                  description={item.description}
-                />
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
-    </main>
+      {/* Subtle link to full wizard */}
+      <a
+        href="/demo/wizard"
+        className="mt-12 text-xs text-white/20 transition-colors hover:text-white/40"
+      >
+        Full technical demo →
+      </a>
+    </div>
   );
 }
