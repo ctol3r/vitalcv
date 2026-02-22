@@ -9,7 +9,7 @@ export interface BundleContents {
   artifactJson: string;
   /** SHA-256 integrity digest matching the artifact's integrity.artifactHash */
   integrityTxt: string;
-  /** Raw payload blob exactly as retrieved from the primary source */
+  /** Canonicalized raw payload blob */
   rawJson: string;
   /** Human-readable README with provenance, hash algorithms, and NCQA note */
   readmeTxt: string;
@@ -20,7 +20,7 @@ export interface BundleContents {
  *
  * artifact.json — Canonicalized PsvArtifact (sorted keys, no trailing whitespace)
  * integrity.txt — "sha256:<artifactHash>" line matching DB record
- * raw.json      — Serialized raw payload blob (pretty-printed for readability)
+ * raw.json      — Canonicalized raw payload blob for stable replays
  * README.txt    — Provenance card: source, retrieval time, method, algorithms, NCQA window
  */
 export function buildBundleContents(
@@ -33,8 +33,8 @@ export function buildBundleContents(
   // integrity.txt — must match the stored artifactHash
   const integrityTxt = `sha256:${artifact.integrity.artifactHash}`;
 
-  // raw.json — pretty-printed raw payload
-  const rawJson = JSON.stringify(rawPayload, null, 2);
+  // raw.json — canonicalized raw payload for deterministic exports
+  const rawJson = canonicalize(rawPayload);
 
   // README.txt — human-readable provenance card
   const readmeTxt = buildReadme(artifact);
@@ -55,40 +55,57 @@ export function verifyBundleContents(bundle: BundleContents): string[] {
   const errors: string[] = [];
 
   // 1. artifact.json must be canonicalized
-  const parsed = JSON.parse(bundle.artifactJson) as PsvArtifact;
+  const parsed = JSON.parse(bundle.artifactJson) as Record<string, unknown>;
   const reCanonicalized = canonicalize(parsed);
   if (reCanonicalized !== bundle.artifactJson) {
     errors.push('artifact.json is not canonicalized');
   }
 
-  // 2-4 require the integrity block to be present
-  if (!parsed.integrity) {
-    errors.push('artifact.json missing integrity block');
+  const parsedAsPsv = parsed as unknown as PsvArtifact;
+  const parsedAsVerifierBundle = parsed as {
+    evidenceCapture?: {
+      artifactId?: string;
+      integrity?: {
+        checksum?: string;
+        rawPayloadHash?: string;
+      };
+    };
+  };
+  const evidenceIntegrity = parsedAsVerifierBundle.evidenceCapture?.integrity;
+
+  const parsedIntegrity = parsedAsPsv.integrity;
+  const parsedRawPayloadHash = parsedAsVerifierBundle.evidenceCapture?.integrity?.rawPayloadHash
+    ?? parsedAsVerifierBundle.evidenceCapture?.integrity?.checksum;
+  // 2-4 require an integrity-like block to be present
+  if (!parsedIntegrity && !evidenceIntegrity) {
+    errors.push('artifact.json missing integrity/evidence capture integrity block');
   } else {
-    // 2. integrity.txt must match artifactHash
-    const expectedIntegrity = `sha256:${parsed.integrity.artifactHash}`;
+    const expectedChecksum = evidenceIntegrity?.checksum ?? parsedIntegrity?.artifactHash;
+    const expectedIntegrity = expectedChecksum ? `sha256:${expectedChecksum}` : null;
     if (bundle.integrityTxt.trim() !== expectedIntegrity) {
       errors.push(
         `integrity.txt mismatch: expected "${expectedIntegrity}", got "${bundle.integrityTxt.trim()}"`,
       );
     }
 
-    // 3. Verify artifactHash is correct (hash of partial without integrity)
-    const { integrity, ...partial } = parsed;
-    const recomputedArtifactHash = sha256(canonicalize(partial));
-    if (recomputedArtifactHash !== parsed.integrity.artifactHash) {
-      errors.push(
-        `artifactHash mismatch: recomputed "${recomputedArtifactHash}", stored "${parsed.integrity.artifactHash}"`,
-      );
+    // 3. Verify artifactHash is correct (hash of partial without integrity/evidence)
+    if (parsedIntegrity) {
+      const { integrity, ...partial } = parsedAsPsv;
+      const recomputedArtifactHash = sha256(canonicalize(partial));
+      if (recomputedArtifactHash !== parsedIntegrity.artifactHash) {
+        errors.push(
+          `artifactHash mismatch: recomputed "${recomputedArtifactHash}", stored "${parsedIntegrity.artifactHash}"`,
+        );
+      }
     }
 
     // 4. raw.json hash must match rawPayloadHash
     const rawParsed = JSON.parse(bundle.rawJson);
     const rawCanonicalized = canonicalize(rawParsed);
     const recomputedRawHash = sha256(rawCanonicalized);
-    if (recomputedRawHash !== parsed.integrity.rawPayloadHash) {
+    if (!parsedRawPayloadHash || recomputedRawHash !== parsedRawPayloadHash) {
       errors.push(
-        `rawPayloadHash mismatch: recomputed "${recomputedRawHash}", stored "${parsed.integrity.rawPayloadHash}"`,
+        `rawPayloadHash mismatch: recomputed "${recomputedRawHash}", stored "${parsedRawPayloadHash ?? ''}"`,
       );
     }
   }
@@ -150,8 +167,8 @@ export function buildBundleContentsFromRecord(
       source: string;
       status: string;
       checksum: string;
-      verifiedAt: Date;
-      expiresAt: Date | null;
+      verifiedAt: Date | string;
+      expiresAt: Date | string | null;
       monitoring: boolean;
     };
     auditMetadata: {
@@ -163,31 +180,34 @@ export function buildBundleContentsFromRecord(
       monitoringStatus: string;
     };
     snapshotId: string;
+    verifierAuditBundle?: unknown;
   },
   rawPayload: Record<string, unknown>,
 ): BundleContents {
+  const artifactData = bundle.verifierAuditBundle
+    ?? {
+      npi: bundle.npi,
+      artifact: {
+        id: bundle.artifact.id,
+        source: bundle.artifact.source,
+        status: bundle.artifact.status,
+        checksum: bundle.artifact.checksum,
+        verifiedAt: typeof bundle.artifact.verifiedAt === 'string' ? bundle.artifact.verifiedAt : bundle.artifact.verifiedAt.toISOString(),
+        expiresAt: bundle.artifact.expiresAt ? (typeof bundle.artifact.expiresAt === 'string' ? bundle.artifact.expiresAt : bundle.artifact.expiresAt.toISOString()) : null,
+        monitoring: bundle.artifact.monitoring,
+      },
+      auditMetadata: bundle.auditMetadata,
+      snapshotId: bundle.snapshotId,
+    };
+
   // artifact.json — canonicalized audit bundle
-  const auditPayload = {
-    npi: bundle.npi,
-    artifact: {
-      id: bundle.artifact.id,
-      source: bundle.artifact.source,
-      status: bundle.artifact.status,
-      checksum: bundle.artifact.checksum,
-      verifiedAt: bundle.artifact.verifiedAt.toISOString(),
-      expiresAt: bundle.artifact.expiresAt?.toISOString() ?? null,
-      monitoring: bundle.artifact.monitoring,
-    },
-    auditMetadata: bundle.auditMetadata,
-    snapshotId: bundle.snapshotId,
-  };
-  const artifactJson = canonicalize(auditPayload);
+  const artifactJson = canonicalize(artifactData as Record<string, unknown>);
 
   // integrity.txt — DB-stored checksum
   const integrityTxt = `sha256:${bundle.artifact.checksum}`;
 
-  // raw.json — pretty-printed raw payload
-  const rawJson = JSON.stringify(rawPayload, null, 2);
+  // raw.json — canonicalized raw payload for deterministic replay checks
+  const rawJson = canonicalize(rawPayload);
 
   // README.txt — provenance card from audit metadata
   const readmeTxt = buildReadmeFromRecord(bundle);
@@ -202,8 +222,8 @@ function buildReadmeFromRecord(bundle: {
     source: string;
     status: string;
     checksum: string;
-    verifiedAt: Date;
-    expiresAt: Date | null;
+    verifiedAt: Date | string;
+    expiresAt: Date | string | null;
     monitoring: boolean;
   };
   auditMetadata: {
@@ -216,7 +236,7 @@ function buildReadmeFromRecord(bundle: {
   };
   snapshotId: string;
 }): string {
-  const verifiedAt = bundle.artifact.verifiedAt;
+  const verifiedAt = new Date(bundle.artifact.verifiedAt);
   const validUntil = new Date(verifiedAt);
   validUntil.setDate(validUntil.getDate() + 120);
   const msRemaining = validUntil.getTime() - Date.now();
@@ -242,7 +262,7 @@ function buildReadmeFromRecord(bundle: {
     '── Provenance ─────────────────────────────────────────',
     '',
     `Source:              ${bundle.artifact.source}`,
-    `RetrievedAt:         ${bundle.artifact.verifiedAt.toISOString()}`,
+    `RetrievedAt:         ${verifiedAt.toISOString()}`,
     `Method:              Primary Source Verification`,
     `Methodology:         ${bundle.auditMetadata.methodology}`,
     '',

@@ -1,7 +1,7 @@
 'use client';
 
-import { IntakeContent } from '../intake/IntakeContent';
+import { OnboardingOrchestrator } from '@/components/clinician/OnboardingOrchestrator';
 
 export default function DemoPage() {
-  return <IntakeContent />;
+  return <OnboardingOrchestrator />;
 }

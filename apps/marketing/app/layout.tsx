@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { ThemeScript } from '../components/marketing/ThemeScript';
+import SiteChrome from '../components/site/SiteChrome';
 import PilotBanner from '../components/PilotBanner';
 
 const inter = Inter({
@@ -64,7 +65,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} font-sans`}>
         <PilotBanner />
-        {children}
+        <SiteChrome>{children}</SiteChrome>
       </body>
     </html>
   );

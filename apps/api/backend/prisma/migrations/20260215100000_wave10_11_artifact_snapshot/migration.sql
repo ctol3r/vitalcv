@@ -22,7 +22,7 @@ CREATE INDEX "VerificationArtifact_createdAt_idx" ON "VerificationArtifact"("cre
 -- Wave 11: AuditSnapshot model (bundle state freeze)
 CREATE TABLE "AuditSnapshot" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "artifactId" TEXT NOT NULL,
+    "artifactId" UUID NOT NULL,
     "snapshot" JSONB NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

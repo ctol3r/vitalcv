@@ -35,7 +35,12 @@ import { withToolSpan } from './tools/tracing';
 import { requestLatencyMetrics } from './observability/requestMetrics';
 import prisma, { Prisma, PrismaClient } from './graphql/prisma_client';
 import openApiSpec from './openapi';
-import { getLatestArtifact, createArtifactFromNursys, generateAuditBundle } from './services/artifactService';
+import {
+  getLatestArtifact,
+  createArtifactFromNursys,
+  generateAuditBundle,
+  getBundleExportBySnapshotId,
+} from './services/artifactService';
 import { generateAuditPacket } from './services/auditPacketGenerator';
 import { getIssuerRegistrySummary } from './services/issuerRegistry';
 import { getTransparencyEntries } from './services/transparencyLog';
@@ -80,6 +85,8 @@ import { buildDashboardResponse, buildDashboardExport } from './services/verifie
 // Identity Module
 import { registerIdentityRoutes } from './modules/identity';
 import { registerWave2AVerifyRoutes } from './modules/wave2a';
+// Demo Module (public, rate-limited, no auth)
+import { registerDemoRoutes } from './modules/demo';
 // PSV Verify Module (Wave 1)
 import { registerPsvVerifyRoutes } from './services/psv/verifyRoute';
 
@@ -355,17 +362,20 @@ function requireAdminRequest(req: Request, res: Response): boolean {
 }
 
 function shouldSkipTenantContext(pathname: string): boolean {
+  const normalizedPath = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+
   return (
-    pathname === '/' ||
-    pathname === '/health' ||
-    pathname === '/readyz' ||
-    pathname === '/verifier' ||
-    pathname === '/verify' ||
-    pathname.startsWith('/psv/') ||
-    pathname.startsWith('/identity/') ||
-    pathname.startsWith('/.well-known/') ||
-    pathname.startsWith('/api-docs') ||
-    pathname === '/openapi.json'
+    normalizedPath === '/' ||
+    normalizedPath === '/health' ||
+    normalizedPath === '/readyz' ||
+    normalizedPath === '/verifier' ||
+    normalizedPath === '/verify' ||
+    normalizedPath.startsWith('/psv') ||
+    normalizedPath.startsWith('/identity') ||
+    normalizedPath.startsWith('/demo') ||
+    normalizedPath.startsWith('/.well-known') ||
+    normalizedPath.startsWith('/api-docs') ||
+    normalizedPath === '/openapi.json'
   );
 }
 
@@ -1588,10 +1598,12 @@ async function ensureActivePilotPlan(organizationId: string): Promise<void> {
 }
 
 function registerHealthRoutes(app: Express): void {
-  app.get('/health', (_req, res) => {
+  app.get(['/health', '/health/'], (_req, res) => {
     res.status(200).json({
       status: 'ok',
       metrics: requestLatencyMetrics.snapshot(),
+      git_branch: process.env.RAILWAY_GIT_BRANCH ?? null,
+      git_sha: process.env.RAILWAY_GIT_COMMIT_SHA ?? null,
     });
   });
 
@@ -1602,12 +1614,16 @@ function registerHealthRoutes(app: Express): void {
         res.status(200).json({
           status: 'ready',
           service: 'api',
+          git_branch: process.env.RAILWAY_GIT_BRANCH ?? null,
+          git_sha: process.env.RAILWAY_GIT_COMMIT_SHA ?? null,
         });
       })
       .catch(() => {
         res.status(503).json({
           status: 'not_ready',
           service: 'api',
+          git_branch: process.env.RAILWAY_GIT_BRANCH ?? null,
+          git_sha: process.env.RAILWAY_GIT_COMMIT_SHA ?? null,
         });
       });
   });
@@ -2200,6 +2216,41 @@ function registerCredentialStatusRoutes(app: Express): void {
     }
   });
 
+  app.get('/api/verifier/audit-bundle/:artifactId', async (req: Request, res: Response) => {
+    if (!requireVerifierOrAdmin(req, res)) {
+      return;
+    }
+
+    try {
+      const artifactId = parseRequiredString(req.params.artifactId, 'artifactId');
+      const artifact = await prisma.verificationArtifact.findUnique({
+        where: { id: artifactId },
+        select: {
+          id: true,
+          organizationId: true,
+        },
+      });
+
+      if (!artifact) {
+        return res.status(404).json({ error: 'Artifact not found' });
+      }
+
+      if (!enforceArtifactOrganizationAccess(req, res, artifact)) {
+        return;
+      }
+
+      const auditPacket = await generateAuditPacket(artifactId);
+      return res.status(200).json({
+        artifactId,
+        verifierAuditBundle: auditPacket.verifierAuditBundle,
+        generatedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to export verifier audit bundle';
+      return res.status(400).json({ error: message });
+    }
+  });
+
   app.get('/api/cross-check-bundle/:artifactId', async (req: Request, res: Response) => {
     if (!requireVerifierOnly(req, res)) {
       return;
@@ -2721,6 +2772,30 @@ function registerPilotRoutes(app: Express): void {
   });
 
   // ── Wave 11: NCQA Audit-Ready Bundle Generator ──────────────
+  app.get('/bundle/:id/export', publicApiRateLimit, async (req: Request, res: Response) => {
+    try {
+      const snapshotId = parseRequiredString(req.params.id, 'id');
+      const exportPayload = await getBundleExportBySnapshotId(snapshotId);
+
+      return res.status(200).json(exportPayload);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to export audit bundle snapshot';
+      if (message.includes('required')) {
+        return res.status(400).json({ error: message });
+      }
+      if (message.includes('not found')) {
+        return res.status(404).json({ error: message });
+      }
+
+      log('error', 'audit_bundle_export_error', {
+        event: 'audit_bundle_export_error',
+        snapshotId: req.params.id,
+        error: message,
+      });
+      return res.status(500).json({ error: message });
+    }
+  });
+
   app.get('/api/artifact/bundle/:npi', publicApiRateLimit, async (req: Request, res: Response) => {
     try {
       const npi = parseRequiredString(req.params.npi, 'npi');
@@ -2735,12 +2810,13 @@ function registerPilotRoutes(app: Express): void {
           source: bundle.artifact.source,
           status: bundle.artifact.status,
           checksum: bundle.artifact.checksum,
-          verifiedAt: bundle.artifact.verifiedAt.toISOString(),
-          expiresAt: bundle.artifact.expiresAt?.toISOString() ?? null,
+          verifiedAt: bundle.artifact.verifiedAt,
+          expiresAt: bundle.artifact.expiresAt,
           monitoring: bundle.artifact.monitoring,
         },
         auditMetadata: bundle.auditMetadata,
         snapshotId: bundle.snapshotId,
+        verifierAuditBundle: bundle.verifierAuditBundle,
       });
     } catch (error) {
       log('error', 'artifact_bundle_error', {
@@ -2760,7 +2836,7 @@ function registerPilotRoutes(app: Express): void {
       const organizationId = getRequestOrganizationId(req);
 
       const bundle = await generateAuditBundle(npi, { organizationId });
-      const rawPayload = (bundle.artifact.rawPayload ?? {}) as Record<string, unknown>;
+      const rawPayload = (bundle.rawPayload ?? {}) as Record<string, unknown>;
 
       // Build a PsvArtifact-shaped object from the DB record for the bundle
       const { buildBundleContentsFromRecord, createBundleZipStream } = await import('./engine/services/bundleDownloadService');
@@ -3352,6 +3428,7 @@ registerExpirationForecastRoutes(app);
 registerVerifierDashboardRoutes(app);
 registerWedgeRoutes(app);
 registerIdentityRoutes(app);
+registerDemoRoutes(app);
 registerPsvVerifyRoutes(app);
 
 if (ENTERPRISE_MODE) {

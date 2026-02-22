@@ -1,0 +1,54 @@
+name: Deploy Marketing Site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/marketing/**'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+
+concurrency:
+  group: deploy-marketing
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm turbo typecheck --filter=@vitalcv/marketing
+
+      - name: Build
+        run: pnpm --filter @vitalcv/marketing build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_COMMIT_SHA: ${{ github.sha }}
+          NEXT_PUBLIC_DEPLOY_TIME: ${{ github.run_id }}
+
+      - name: Deploy to Vercel
+        run: |
+          npx vercel --prod --cwd apps/marketing --yes --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_COMMIT_SHA: ${{ github.sha }}
