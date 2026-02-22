@@ -55,7 +55,7 @@ type YcMetrics = {
   pilotReady?: boolean;
 };
 
-const DEFAULT_BACKEND_URL = 'http://localhost:4000';
+const DEFAULT_BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE || '';
 
 function normalizeOrganizationId(
   value?: string | string[] | undefined,
