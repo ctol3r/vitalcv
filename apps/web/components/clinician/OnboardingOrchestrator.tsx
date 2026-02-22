@@ -28,12 +28,12 @@ import { Step3_AttestationReview } from './Step3_AttestationReview';
 /*  Manages all intake state. Delegates rendering to step components.  */
 /*  Preserves all original API call logic from IntakeContent.tsx.      */
 /* ================================================================== */
-
 export function OnboardingOrchestrator() {
   const backendUrl =
     process.env.NEXT_PUBLIC_API_BASE ||
     process.env.NEXT_PUBLIC_BACKEND_URL ||
     '';
+    const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
   /* ---- API reachability check ---- */
   const [apiReachable, setApiReachable] = useState<boolean | null>(null);
@@ -43,7 +43,7 @@ export function OnboardingOrchestrator() {
       setApiReachable(false);
       return;
     }
-    fetch(`${backendUrl}/trust-state?clinician_id=_ping`, { method: 'GET' })
+    fetch(`${backendUrl}${DEMO_MODE ? '/demo/status' : '/trust-state'}?clinician_id=_ping`, { method: 'GET' })
       .then(() => setApiReachable(true))
       .catch(() => setApiReachable(false));
   }, [backendUrl]);
@@ -115,7 +115,7 @@ export function OnboardingOrchestrator() {
 
       try {
         const params = new URLSearchParams({ clinician_id: clinicianId });
-        const res = await fetch(`${backendUrl}/trust-state?${params.toString()}`);
+        const res = await fetch(`${backendUrl}${DEMO_MODE ? '/demo/status' : '/trust-state'}?${params.toString()}`);
         if (!res.ok) {
           const body = await res.text().catch(() => '');
           setTrustApiError(body || `Trust status lookup failed (HTTP ${res.status}).`);
@@ -156,7 +156,7 @@ export function OnboardingOrchestrator() {
     setNpiState('loading');
 
     try {
-      const res = await fetch(`${backendUrl}/ingest/npi`, {
+      const res = await fetch(`${backendUrl}${DEMO_MODE ? '/demo/issue' : '/ingest/npi'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
