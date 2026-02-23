@@ -32,7 +32,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   let avgTimeToViewMs: number | null = null;
   if (viewedLinks.length > 0) {
-    const totalMs = viewedLinks.reduce((sum, link) => {
+    const totalMs = viewedLinks.reduce((sum: number, link) => {
       return sum + (link.firstViewAt!.getTime() - link.createdAt.getTime());
     }, 0);
     avgTimeToViewMs = Math.round(totalMs / viewedLinks.length);
