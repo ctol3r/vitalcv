@@ -231,8 +231,9 @@ export function loadEnv(): Env {
 
   const frozen = result.data.SYSTEM_FROZEN;
   if (frozen) {
+    // YC_DEMO_MODE is intentionally exempt — it is allowed in production
+    // when SYSTEM_FROZEN=true (validated by the guard above).
     const blockedFlags = {
-      YC_DEMO_MODE: result.data.YC_DEMO_MODE,
       ENTERPRISE_MODE: result.data.ENTERPRISE_MODE,
       REAL_NURSYS_ENABLED: result.data.REAL_NURSYS_ENABLED,
       LOW_FRICTION_MODE: result.data.LOW_FRICTION_MODE,
@@ -254,7 +255,6 @@ export function loadEnv(): Env {
 
     result.data = {
       ...result.data,
-      YC_DEMO_MODE: false,
       ENTERPRISE_MODE: false,
       REAL_NURSYS_ENABLED: false,
       LOW_FRICTION_MODE: false,

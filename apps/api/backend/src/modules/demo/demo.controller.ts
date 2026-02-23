@@ -158,12 +158,29 @@ export function handleDemoSampleNpis(
 /**
  * GET /demo/status
  *
- * Returns service version, git SHA, and uptime. Always responds — no auth.
+ * When called with a `clinician_id` query param (other than `_ping`), returns
+ * a mock trust-state response matching the TrustStateResponse shape the web
+ * frontend expects. Otherwise returns service metadata (version, uptime, etc.).
  */
 export function handleDemoStatus(
-  _req: Request,
+  req: Request,
   res: Response,
 ): void {
+  const clinicianId =
+    typeof req.query.clinician_id === 'string' ? req.query.clinician_id.trim() : '';
+
+  // Trust-state mock: the web app routes /trust-state → /demo/status in demo mode.
+  if (clinicianId && clinicianId !== '_ping') {
+    res.json({
+      start_ready: true,
+      crs: { score: 0.82, band: 'GREEN' as const },
+      blocking_reasons: [],
+      clinician_id: clinicianId,
+    });
+    return;
+  }
+
+  // Service metadata (health ping and status checks).
   const uptimeMs = Date.now() - BOOT_TIME;
   const uptimeMin = Math.floor(uptimeMs / 60_000);
 
