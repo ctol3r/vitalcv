@@ -1394,6 +1394,7 @@ export function IntakeContent() {
                           {LABELS.START_READY_CLARIFICATION}
                         </p>
                       </div>
+                    )}
                       </>
                     )}
                   </div>
