@@ -23,6 +23,7 @@ env:
   ESLINT_MAX_WARNINGS: 0
   SKIP_TESTS: ${{ inputs.skip_tests || 'false' }}
   OTEL_SERVICE_NAME: 'vitalcv-ci'
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_ci
 
 jobs:
   validate:
