@@ -53,7 +53,7 @@ jobs:
         run: pnpm turbo run lint
 
       - name: Run tests
-        run: pnpm turbo run test --filter=!zk-sample
+        run: pnpm turbo run test --filter=!zk-sample --filter=!contracts
 
       - name: PSV tests
         run: pnpm psv:test

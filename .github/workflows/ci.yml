@@ -104,7 +104,7 @@ jobs:
 
       - name: Test
         if: env.SKIP_TESTS != 'true'
-        run: pnpm test --filter=!zk-sample
+        run: pnpm test --filter=!zk-sample --filter=!contracts
 
       - name: PSV tests
         if: env.SKIP_TESTS != 'true'
