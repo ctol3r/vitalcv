@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "../generated/prisma";
 import { prisma } from "./prisma";
 
 export type VerifierRef = 'demo' | 'yc' | 'direct';
