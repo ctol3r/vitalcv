@@ -375,7 +375,10 @@ function shouldSkipTenantContext(pathname: string): boolean {
     normalizedPath.startsWith('/demo') ||
     normalizedPath.startsWith('/.well-known') ||
     normalizedPath.startsWith('/api-docs') ||
-    normalizedPath === '/openapi.json'
+    normalizedPath === '/openapi.json' ||
+    // Demo mode: allow trust-state reads without tenant context so the
+    // public demo can resolve trust-state without an x-org-id header.
+    (YC_DEMO_MODE && normalizedPath.startsWith('/trust-state'))
   );
 }
 
