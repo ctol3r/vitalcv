@@ -9,10 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@prisma/client": "^7.4.0",
+    "@prisma/client": "^6.19.0",
     "next": "15.2.8",
     "pdfkit": "^0.17.2",
-    "prisma": "^7.4.0",
+    "prisma": "^6.19.0",
     "react": "^19",
     "react-dom": "^19"
   },
