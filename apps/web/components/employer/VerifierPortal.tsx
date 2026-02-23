@@ -43,6 +43,7 @@ export function VerifierPortal() {
 function VerifierPortalContent() {
   const backendUrl =
     process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_BACKEND_URL || '';
+  const orgHeaders = { 'x-org-id': 'demo-pilot-org-alpha' };
   const searchParams = useSearchParams();
 
   /* ---- Core state ---- */
@@ -95,6 +96,7 @@ function VerifierPortalContent() {
       });
       const res = await fetch(
         `${backendUrl}/trust-state?${queryParams.toString()}`,
+        { headers: orgHeaders },
       );
       if (!res.ok) throw new Error('Failed to fetch trust state');
       const data = await res.json();
@@ -151,7 +153,7 @@ function VerifierPortalContent() {
       };
       const res = await fetch(`${backendUrl}/acceptances`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...orgHeaders },
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('Failed to accept');
@@ -175,7 +177,7 @@ function VerifierPortalContent() {
       };
       const res = await fetch(`${backendUrl}/starts`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...orgHeaders },
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('Failed to attest start');
@@ -283,7 +285,7 @@ function VerifierPortalContent() {
       try {
         const response = await fetch(`${backendUrl}/api/pilot/activate`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...orgHeaders },
           body: JSON.stringify({
             organizationName: pilotOrganization,
             contactEmail: pilotContactEmail,

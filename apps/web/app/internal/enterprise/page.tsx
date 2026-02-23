@@ -23,7 +23,7 @@ type VersionResponse = {
   prismaVersion: string;
 };
 
-const DEFAULT_BACKEND_URL = 'http://localhost:4000';
+const DEFAULT_BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE || '';
 
 function hasEnterpriseModeEnabled(): boolean {
   const raw = process.env.NEXT_PUBLIC_ENTERPRISE_MODE ?? process.env.ENTERPRISE_MODE;
