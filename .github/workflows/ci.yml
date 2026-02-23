@@ -88,6 +88,11 @@ jobs:
           cd apps/api/backend
           npx prisma migrate deploy
 
+      - name: Generate Prisma clients
+        run: |
+          pnpm --filter chai-vc-platform-backend exec prisma generate
+          pnpm --filter @vitalcv/marketing exec prisma generate
+
       - name: Typecheck
         run: pnpm typecheck
 
