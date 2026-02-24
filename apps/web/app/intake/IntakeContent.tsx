@@ -436,10 +436,11 @@ export function IntakeContent() {
   /* ---- Track CRS score changes ---- */
   useEffect(() => {
     if (trustResult?.crs?.score != null) {
-      if (prevCrsRef.current !== null && prevCrsRef.current !== trustResult.crs.score) {
+      const readinessScore = trustResult.crs.score;
+      if (prevCrsRef.current !== null && prevCrsRef.current !== readinessScore) {
         setCrsUpdatedBanner(true);
       }
-      prevCrsRef.current = trustResult.crs.score;
+      prevCrsRef.current = readinessScore;
     }
   }, [trustResult]);
 
@@ -787,8 +788,10 @@ export function IntakeContent() {
   const allReceiptsPass =
     receiptRows.length > 0 && receiptRows.every((r) => r.outcome === 'PASS');
   const failedOrPendingReceipts = receiptRows.filter((r) => r.outcome !== 'PASS');
-  const acceptanceEnabled =
-    !!trustResult && trustResult.crs.band === 'GREEN' && allReceiptsPass;
+  const readiness = trustResult?.crs;
+  const band = readiness?.band ?? 'NOT_READY';
+  const score = readiness?.score ?? 0;
+  const acceptanceEnabled = band === 'GREEN' && allReceiptsPass;
 
   /* ================================================================ */
   /*  Render                                                           */
@@ -1292,37 +1295,43 @@ export function IntakeContent() {
               <ResultPanel state={trustState} errorMessage={trustApiError}>
                 {trustResult && (
                   <div className="space-y-4">
-                    {/* Trust-State panel: CRS display */}
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                      <div>
-                        <Label className="text-xs text-slate-500 uppercase tracking-wider block mb-1">
-                          Credential Readiness Score (CRS)
-                        </Label>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-3xl font-mono font-bold text-slate-900">
-                            {trustResult.crs.score}
-                          </span>
-                          <span className="text-sm text-slate-400">/ 100</span>
-                        </div>
-                      </div>
+                    {!readiness ? (
+                      <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                        Demo data not available
+                      </p>
+                    ) : (
+                      <>
+                        {/* Trust-State panel: CRS display */}
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                          <div>
+                            <Label className="text-xs text-slate-500 uppercase tracking-wider block mb-1">
+                              Credential Readiness Score (CRS)
+                            </Label>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-3xl font-mono font-bold text-slate-900">
+                                {score}
+                              </span>
+                              <span className="text-sm text-slate-400">/ 100</span>
+                            </div>
+                          </div>
 
-                      <div>
-                        <Label className="text-xs text-slate-500 uppercase tracking-wider block mb-1">
-                          Level
-                        </Label>
-                        <Badge
-                          className={`${bandColors(trustResult.crs.band).bg} ${
-                            bandColors(trustResult.crs.band).text
-                          } ${bandColors(trustResult.crs.band).border} border text-sm px-3 py-1`}
-                        >
-                          <span
-                            className={`w-2 h-2 rounded-full ${
-                              bandColors(trustResult.crs.band).dot
-                            } inline-block mr-1.5`}
-                          />
-                          {bandColors(trustResult.crs.band).label}
-                        </Badge>
-                      </div>
+                          <div>
+                            <Label className="text-xs text-slate-500 uppercase tracking-wider block mb-1">
+                              Level
+                            </Label>
+                            <Badge
+                              className={`${bandColors(band).bg} ${
+                                bandColors(band).text
+                              } ${bandColors(band).border} border text-sm px-3 py-1`}
+                            >
+                              <span
+                                className={`w-2 h-2 rounded-full ${
+                                  bandColors(band).dot
+                                } inline-block mr-1.5`}
+                              />
+                              {bandColors(band).label}
+                            </Badge>
+                          </div>
 
                       <div>
                         <Label className="text-xs text-slate-500 uppercase tracking-wider block mb-1">
@@ -1385,6 +1394,8 @@ export function IntakeContent() {
                           {LABELS.START_READY_CLARIFICATION}
                         </p>
                       </div>
+                    )}
+                      </>
                     )}
                   </div>
                 )}
@@ -1703,42 +1714,48 @@ export function IntakeContent() {
 
                     {trustState === 'success' && trustResult ? (
                       <div className="space-y-4">
-                        {/* CRS + Band */}
-                        <div
-                          className={`rounded-md border-l-4 ${
-                            bandColors(trustResult.crs.band).stripe
-                          } border ${bandColors(trustResult.crs.band).border} ${
-                            bandColors(trustResult.crs.band).bg
-                          } p-4`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-baseline gap-2">
-                              <span className="text-2xl font-mono font-bold text-slate-900">
-                                {trustResult.crs.score}
-                              </span>
-                              <span className="text-sm text-slate-400">/ 100 CRS</span>
-                            </div>
-                            <Badge
-                              className={`${bandColors(trustResult.crs.band).bg} ${
-                                bandColors(trustResult.crs.band).text
-                              } ${bandColors(trustResult.crs.band).border} border text-xs`}
+                        {!readiness ? (
+                          <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                            Demo data not available
+                          </p>
+                        ) : (
+                          <>
+                            {/* CRS + Band */}
+                            <div
+                              className={`rounded-md border-l-4 ${
+                                bandColors(band).stripe
+                              } border ${bandColors(band).border} ${bandColors(band).bg} p-4`}
                             >
-                              <span
-                                className={`w-2 h-2 rounded-full ${
-                                  bandColors(trustResult.crs.band).dot
-                                } inline-block mr-1.5`}
-                              />
-                              {bandColors(trustResult.crs.band).label}
-                            </Badge>
-                          </div>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-baseline gap-2">
+                                  <span className="text-2xl font-mono font-bold text-slate-900">
+                                    {score}
+                                  </span>
+                                  <span className="text-sm text-slate-400">/ 100 CRS</span>
+                                </div>
+                                <Badge
+                                  className={`${bandColors(band).bg} ${
+                                    bandColors(band).text
+                                  } ${bandColors(band).border} border text-xs`}
+                                >
+                                  <span
+                                    className={`w-2 h-2 rounded-full ${
+                                      bandColors(band).dot
+                                    } inline-block mr-1.5`}
+                                  />
+                                  {bandColors(band).label}
+                                </Badge>
+                              </div>
 
-                          {trustResult.crs.band !== 'GREEN' && (
-                            <p className="text-xs mt-2 text-slate-600">
-                              CRS is below the threshold required for acceptance.{' '}
-                              {LABELS.ADDITIONAL_CHECKS}.
-                            </p>
-                          )}
-                        </div>
+                              {band !== 'GREEN' && (
+                                <p className="text-xs mt-2 text-slate-600">
+                                  CRS is below the threshold required for acceptance.{' '}
+                                  {LABELS.ADDITIONAL_CHECKS}.
+                                </p>
+                              )}
+                            </div>
+                          </>
+                        )}
 
                         {/* Blocking reasons — listed plainly */}
                         {trustResult.blocking_reasons.length > 0 && (

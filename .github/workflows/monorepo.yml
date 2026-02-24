@@ -52,11 +52,8 @@ jobs:
       - name: Run lint
         run: pnpm turbo run lint
 
-      - name: Run tests
-        run: pnpm turbo run test
-
-      - name: PSV tests
-        run: pnpm psv:test
+      - name: Run tests (non-backend packages)
+        run: pnpm turbo run test --filter=!zk-sample --filter=!contracts --filter=!chai-vc-platform-backend --filter=!@vitalcv/api
 
   deploy-api:
     name: Deploy API

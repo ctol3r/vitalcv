@@ -2,6 +2,7 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   testMatch: ['**/__tests__/**/*.ts'],
+  setupFiles: ['./jest.setup.ts'],
   transformIgnorePatterns: [
     '<rootDir>/.*node_modules/(?!.*jose)',
   ],
