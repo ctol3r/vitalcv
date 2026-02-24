@@ -3,6 +3,7 @@
 /* ------------------------------------------------------------------ */
 
 import type { ReceiptOutcome, ReceiptRow } from '@/components/VerificationReceipts';
+import type { TrustStateResponse } from '@/components/trust-state/types';
 
 export type CtaVariant = 'A' | 'B';
 export type VerifierRef = 'demo' | 'yc' | 'direct';
@@ -23,22 +24,8 @@ export interface AcceptanceDetails {
   acceptedAt: string;
 }
 
-export interface TrustStateStatus {
-  start_ready: boolean;
-  crs: { score: number; band: string } | null;
-  blocking_reasons: string[];
-  recognized: boolean;
-  accepted: boolean;
-  started: boolean;
-  recognitionId?: string;
-  recognizedAt?: string;
-  acceptanceId?: string;
-  acceptedAt?: string;
-  acceptanceDetails?: AcceptanceDetails;
-  startId?: string;
-  attestedAt?: string;
-  timeline_preview?: TimelineEvent[];
-}
+/** @deprecated Use TrustStateResponse from trust-state/types directly. */
+export type TrustStateStatus = TrustStateResponse;
 
 export interface TimelineEvent {
   id: string;

@@ -464,7 +464,7 @@ function VerifierPortalContent() {
                 onSimulateDecayChange={setSimulateDecay}
                 trustExplanation={trustObserver.explanation}
                 trustSummary={trustObserver.summary}
-                previousTrustBand={previousTrustBand}
+                previousTrustBand={previousTrustBand ?? undefined}
               />
             ) : (
               <GlassCard className="h-full min-h-[320px]">
