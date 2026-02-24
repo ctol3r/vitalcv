@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "rootDir": "./src",
-    "outDir": "../../dist/apps/verifier-api",
+    "outDir": "./dist",
     "tsBuildInfoFile": "../../build-info/apps-verifier-api.tsbuildinfo",
     "composite": true,
     "types": ["node"],

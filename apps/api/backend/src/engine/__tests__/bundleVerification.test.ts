@@ -182,10 +182,12 @@ describe('Wave 3C — Bundle Verification', () => {
       expect(rawHash).toBe(parsed.integrity.rawPayloadHash);
     });
 
-    it('raw.json is pretty-printed', async () => {
+    it('raw.json is canonicalized (compact, deterministic)', async () => {
       const { bundle } = await buildTestBundle();
-      expect(bundle.rawJson).toContain('\n');
-      expect(bundle.rawJson).toContain('  ');
+      // canonicalize() produces compact JSON with sorted keys, no whitespace
+      expect(bundle.rawJson).not.toContain('\n');
+      const parsed = JSON.parse(bundle.rawJson);
+      expect(canonicalize(parsed)).toBe(bundle.rawJson);
     });
   });
 

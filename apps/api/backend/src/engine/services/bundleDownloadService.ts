@@ -75,7 +75,8 @@ export function verifyBundleContents(bundle: BundleContents): string[] {
 
   const parsedIntegrity = parsedAsPsv.integrity;
   const parsedRawPayloadHash = parsedAsVerifierBundle.evidenceCapture?.integrity?.rawPayloadHash
-    ?? parsedAsVerifierBundle.evidenceCapture?.integrity?.checksum;
+    ?? parsedAsVerifierBundle.evidenceCapture?.integrity?.checksum
+    ?? parsedIntegrity?.rawPayloadHash;
   // 2-4 require an integrity-like block to be present
   if (!parsedIntegrity && !evidenceIntegrity) {
     errors.push('artifact.json missing integrity/evidence capture integrity block');
