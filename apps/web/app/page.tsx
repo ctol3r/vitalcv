@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { NpiLookupInput } from '@/components/marketing/NpiLookupInput';
 
+import AcceptanceNetwork from "@/components/marketing/AcceptanceNetwork";
+
 // ── Section heading helper ─────────────────────────────────
 function SectionHeading({
   eyebrow,
@@ -288,6 +290,8 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      <AcceptanceNetwork />
 
       {/* ──── Portal Access ────────────────────────────── */}
       <section id="portals" className="py-20 px-6">
