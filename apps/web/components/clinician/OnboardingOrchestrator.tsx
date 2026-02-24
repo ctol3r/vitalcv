@@ -2,13 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReceiptOutcome, ReceiptRow } from '@/components/VerificationReceipts';
+import { apiRoute } from '@/lib/api';
+import {
+  type TrustStateResponse,
+  normalizeTrustStateResponse,
+  type TrustBand,
+} from '@/components/trust-state/types';
 import { AlertCircle } from 'lucide-react';
 import type {
   DataState,
   ExtractedField,
   ManualVerificationRecord,
   NpiIdentityResult,
-  TrustStateResponse,
   VerificationLane,
   VerificationRequestRecord,
 } from './intake-types';
@@ -29,24 +34,26 @@ import { Step3_AttestationReview } from './Step3_AttestationReview';
 /*  Preserves all original API call logic from IntakeContent.tsx.      */
 /* ================================================================== */
 export function OnboardingOrchestrator() {
-  const backendUrl =
-    process.env.NEXT_PUBLIC_API_BASE ||
-    process.env.NEXT_PUBLIC_BACKEND_URL ||
-    '';
-    const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
+  const trustStateRoute = apiRoute('/trust-state');
+  const ingestNpiRoute = apiRoute('/ingest/npi');
+  const ingestFilesRoute = apiRoute('/ingest/files');
+  const verificationRunRoute = apiRoute('/verification/run');
+  const isApiConfigured = Boolean(
+    process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_BACKEND_URL,
+  );
 
   /* ---- API reachability check ---- */
   const [apiReachable, setApiReachable] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!backendUrl) {
+    if (!isApiConfigured) {
       setApiReachable(false);
       return;
     }
-    fetch(`${backendUrl}${DEMO_MODE ? '/demo/status' : '/trust-state'}?clinician_id=_ping`, { method: 'GET' })
+    fetch(`${trustStateRoute}?clinician_id=_ping`, { method: 'GET' })
       .then(() => setApiReachable(true))
       .catch(() => setApiReachable(false));
-  }, [backendUrl]);
+  }, [isApiConfigured, trustStateRoute]);
 
   /* ---- NPI input ref ---- */
   const npiInputRef = useRef<HTMLInputElement>(null);
@@ -75,8 +82,14 @@ export function OnboardingOrchestrator() {
 
   /* ---- Section 4: Trust Status ---- */
   const [trustState, setTrustState] = useState<DataState>('idle');
-  const [trustResult, setTrustResult] = useState<TrustStateResponse | null>(null);
+  const [trustResult, setTrustResult] = useState<TrustStateResponse>(() =>
+    normalizeTrustStateResponse(null),
+  );
   const [trustApiError, setTrustApiError] = useState<string | null>(null);
+  const [trustIsRefreshing, setTrustIsRefreshing] = useState(false);
+  const [trustResultStale, setTrustResultStale] = useState(false);
+  const [trustActionInFlight, setTrustActionInFlight] = useState(0);
+  const [previousTrustBand, setPreviousTrustBand] = useState<TrustBand | null>(null);
 
   /* ---- CRS change tracking ---- */
   const prevCrsRef = useRef<number | null>(null);
@@ -101,46 +114,73 @@ export function OnboardingOrchestrator() {
   const fetchTrustStatus = useCallback(
     async (silent = false) => {
       const cleaned = npi.trim().replace(/\D/g, '');
+      const shouldRefreshInPlace = silent && trustState === 'success';
+      const shouldPreserve = trustState === 'success';
+
       if (cleaned.length !== 10) {
         if (!silent) {
           setTrustApiError('Enter a valid NPI first to check trust status.');
           setTrustState('error');
+          setTrustResultStale(false);
         }
         return;
       }
 
       setTrustApiError(null);
-      setTrustState('loading');
+      if (!shouldRefreshInPlace) {
+        setTrustState('loading');
+        setTrustResultStale(false);
+      }
+      setTrustIsRefreshing(shouldRefreshInPlace);
       const clinicianId = `clinician:npi:${cleaned}`;
 
       try {
         const params = new URLSearchParams({ clinician_id: clinicianId });
-        const res = await fetch(`${backendUrl}${DEMO_MODE ? '/demo/status' : '/trust-state'}?${params.toString()}`);
+        const res = await fetch(`${trustStateRoute}?${params.toString()}`);
         if (!res.ok) {
           const body = await res.text().catch(() => '');
           setTrustApiError(body || `Trust status lookup failed (HTTP ${res.status}).`);
-          setTrustState('error');
+          if (!silent) {
+            setTrustState('error');
+            setTrustResult(normalizeTrustStateResponse(null));
+            setTrustResultStale(false);
+          } else if (shouldPreserve) {
+            setTrustResultStale(true);
+          }
           return;
         }
-        const data: TrustStateResponse = await res.json();
+        const rawData = await res.json().catch(() => null);
+        const data = normalizeTrustStateResponse(rawData);
+        if (shouldRefreshInPlace && trustResult.crs.band !== data.crs.band) {
+          setPreviousTrustBand(trustResult.crs.band);
+        } else if (!shouldRefreshInPlace) {
+          setPreviousTrustBand(null);
+        }
         setTrustResult(data);
         setTrustState('success');
+        setTrustResultStale(false);
       } catch (err) {
         setTrustApiError(err instanceof Error ? err.message : 'Unable to reach the trust service.');
-        setTrustState('error');
+        if (!silent) {
+          setTrustState('error');
+          setTrustResult(normalizeTrustStateResponse(null));
+          setTrustResultStale(false);
+        } else if (shouldPreserve) {
+          setTrustResultStale(true);
+        }
+      } finally {
+        setTrustIsRefreshing(false);
       }
     },
-    [npi, backendUrl],
+    [npi, trustResult, trustState, trustStateRoute],
   );
 
   /* Track CRS score changes */
   useEffect(() => {
-    if (trustResult?.crs?.score != null) {
-      if (prevCrsRef.current !== null && prevCrsRef.current !== trustResult.crs.score) {
-        setCrsUpdatedBanner(true);
-      }
-      prevCrsRef.current = trustResult.crs.score;
+    if (prevCrsRef.current !== null && prevCrsRef.current !== trustResult.crs.score) {
+      setCrsUpdatedBanner(true);
     }
+    prevCrsRef.current = trustResult.crs.score;
   }, [trustResult]);
 
   const handleNpiLookup = useCallback(async () => {
@@ -156,7 +196,7 @@ export function OnboardingOrchestrator() {
     setNpiState('loading');
 
     try {
-      const res = await fetch(`${backendUrl}${DEMO_MODE ? '/demo/issue' : '/ingest/npi'}`, {
+      const res = await fetch(ingestNpiRoute, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -181,7 +221,7 @@ export function OnboardingOrchestrator() {
       setNpiApiError(err instanceof Error ? err.message : 'Unable to reach the ingestion service.');
       setNpiState('error');
     }
-  }, [npi, backendUrl, fetchTrustStatus]);
+  }, [npi, ingestNpiRoute, fetchTrustStatus]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
@@ -225,7 +265,7 @@ export function OnboardingOrchestrator() {
         })),
       );
 
-      const res = await fetch(`${backendUrl}/ingest/files`, {
+      const res = await fetch(ingestFilesRoute, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -252,7 +292,7 @@ export function OnboardingOrchestrator() {
       );
       setUploadState('error');
     }
-  }, [files, npi, backendUrl, fetchTrustStatus]);
+  }, [files, npi, ingestFilesRoute, fetchTrustStatus]);
 
   const requestVerification = useCallback(
     async (lane: VerificationLane) => {
@@ -271,9 +311,10 @@ export function OnboardingOrchestrator() {
         delete next[lane];
         return next;
       });
+      setTrustActionInFlight((n) => n + 1);
 
       try {
-        const res = await fetch(`${backendUrl}/verification/run`, {
+        const res = await fetch(verificationRunRoute, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ purpose: 'employment', clinician_id: clinicianId }),
@@ -316,10 +357,11 @@ export function OnboardingOrchestrator() {
           [lane]: err instanceof Error ? err.message : 'Unable to reach the verification service.',
         }));
       } finally {
+        setTrustActionInFlight((n) => Math.max(0, n - 1));
         fetchTrustStatus();
       }
     },
-    [npi, backendUrl, fetchTrustStatus],
+    [npi, verificationRunRoute, fetchTrustStatus],
   );
 
   const handleManualVerification = useCallback(async () => {
@@ -341,9 +383,10 @@ export function OnboardingOrchestrator() {
       },
     ]);
     setManualSubmitting(true);
+    setTrustActionInFlight((n) => n + 1);
 
     try {
-      const res = await fetch(`${backendUrl}/verification/run`, {
+      const res = await fetch(verificationRunRoute, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ purpose: 'employment', clinician_id: clinicianId }),
@@ -393,9 +436,17 @@ export function OnboardingOrchestrator() {
       );
     } finally {
       setManualSubmitting(false);
+      setTrustActionInFlight((n) => Math.max(0, n - 1));
       fetchTrustStatus();
     }
-  }, [manualSubject, manualAttestor, manualFile, npi, backendUrl, fetchTrustStatus]);
+  }, [
+    manualSubject,
+    manualAttestor,
+    manualFile,
+    npi,
+    verificationRunRoute,
+    fetchTrustStatus,
+  ]);
 
   /* ================================================================ */
   /*  Derived state                                                    */
@@ -434,8 +485,8 @@ export function OnboardingOrchestrator() {
   const allReceiptsPass =
     receiptRows.length > 0 && receiptRows.every((r) => r.outcome === 'PASS');
   const failedOrPendingReceipts = receiptRows.filter((r) => r.outcome !== 'PASS');
-  const acceptanceEnabled =
-    !!trustResult && trustResult.crs.band === 'GREEN' && allReceiptsPass;
+  const acceptanceEnabled = trustResult.crs.band === 'GREEN' && allReceiptsPass;
+  const trustActionInFlightInProgress = trustActionInFlight > 0;
 
   /* ================================================================ */
   /*  Render                                                           */
@@ -521,6 +572,10 @@ export function OnboardingOrchestrator() {
           crsUpdatedBanner={crsUpdatedBanner}
           acceptanceEnabled={acceptanceEnabled}
           failedOrPendingReceipts={failedOrPendingReceipts}
+          trustIsRefreshing={trustIsRefreshing}
+          trustResultStale={trustResultStale}
+          previousTrustBand={previousTrustBand}
+          trustActionInFlight={trustActionInFlightInProgress}
         />
       )}
     </div>

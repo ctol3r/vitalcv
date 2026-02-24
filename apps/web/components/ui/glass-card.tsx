@@ -6,9 +6,15 @@ type GlassWeight = 'light' | 'heavy';
 
 interface GlassCardProps extends React.ComponentProps<'div'> {
   weight?: GlassWeight;
+  interactive?: boolean;
 }
 
-function GlassCard({ className, weight = 'light', ...props }: GlassCardProps) {
+function GlassCard({
+  className,
+  weight = 'light',
+  interactive,
+  ...props
+}: GlassCardProps) {
   return (
     <div
       data-slot="glass-card"
@@ -16,6 +22,7 @@ function GlassCard({ className, weight = 'light', ...props }: GlassCardProps) {
         'rounded-2xl p-6',
         weight === 'heavy' ? 'glass-heavy' : 'glass',
         'glass-border',
+        interactive ? 'motion-glass-card' : '',
         className,
       )}
       {...props}

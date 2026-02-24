@@ -90,7 +90,7 @@ export function MonitoringPanel({ data }: { data: MonitoringPanelData }) {
 
   return (
     <section aria-labelledby="monitoring-heading" className={PANEL_TRANSITION}>
-      <Card>
+      <Card interactive>
         <CardHeader>
           <CardTitle id="monitoring-heading" className="text-lg text-slate-800">
             Monitoring

@@ -1,10 +1,37 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE!;
+type ApiPath =
+  | '/trust-state'
+  | '/ingest/npi'
+  | '/ingest/files'
+  | '/verification/run'
+  | '/acceptances'
+  | '/starts'
+  | '/verify'
+  | '/api/pilot/activate';
+
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  '';
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
-export function apiRoute(path: string) {
-    if (DEMO_MODE) {
-          if (path.startsWith('/ingest/npi')) return `${API_BASE}/demo/issue`;
-          if (path.startsWith('/trust-state')) return `${API_BASE}/demo/status`;
-    }
-    return `${API_BASE}${path}`;
+const DEMO_PATHS: Record<
+  Extract<ApiPath, '/trust-state' | '/ingest/npi'>,
+  string
+> = {
+  '/trust-state': '/demo/status',
+  '/ingest/npi': '/demo/issue',
+};
+
+function normalizeApiBase(base: string): string {
+  if (!base) return '';
+  return base.endsWith('/') ? base.slice(0, -1) : base;
 }
+
+export function apiRoute(path: ApiPath): string {
+  const resolvedPath =
+    DEMO_MODE && path in DEMO_PATHS ? DEMO_PATHS[path] : path;
+  const base = normalizeApiBase(API_BASE);
+  return base ? `${base}${resolvedPath}` : resolvedPath;
+}
+
+export type { ApiPath };

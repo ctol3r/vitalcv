@@ -141,3 +141,167 @@ export interface TrustStateViewData {
   monitoring: MonitoringPanelData;
   integrity: IntegrityPanelData;
 }
+
+export interface TrustStateCrs {
+  score: number;
+  band: TrustBand;
+  factors?: Record<string, unknown>;
+}
+
+export interface TrustStateTimelineEvent {
+  id: string;
+  type: string;
+  label: string;
+  timestamp: string;
+  employer: string | null;
+  facility: string | null;
+  metadata: Record<string, unknown>;
+}
+
+export interface TrustStateAcceptanceDetails {
+  employerId: string;
+  facilityId: string;
+  role: string;
+  acceptedAt: string;
+}
+
+export interface TrustStateIntakeSummary {
+  identities_count: number;
+  candidate_credentials_count: number;
+  unverified_credentials_count: number;
+}
+
+export interface TrustStateResponse {
+  recognized: boolean;
+  accepted: boolean;
+  started: boolean;
+  start_ready: boolean;
+  crs: TrustStateCrs;
+  blocking_reasons: string[];
+  blocking_reason_messages?: string[];
+  timeline_preview: TrustStateTimelineEvent[];
+  recognitionId?: string;
+  acceptanceId?: string;
+  startId?: string;
+  recognizedAt?: string;
+  acceptedAt?: string;
+  attestedAt?: string;
+  acceptanceDetails?: TrustStateAcceptanceDetails | null;
+  intake_summary?: TrustStateIntakeSummary;
+}
+
+function normalizeStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is string => typeof entry === 'string');
+}
+
+function toStringRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object'
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+export function normalizeTrustBand(value: unknown): TrustBand {
+  return value === 'GREEN' || value === 'YELLOW' || value === 'RED'
+    ? value
+    : 'RED';
+}
+
+export function normalizeTrustStateResponse(raw: unknown): TrustStateResponse {
+  const fallback: TrustStateResponse = {
+    recognized: false,
+    accepted: false,
+    started: false,
+    start_ready: false,
+    crs: {
+      score: 0,
+      band: 'RED',
+      factors: {},
+    },
+    blocking_reasons: [],
+    timeline_preview: [],
+  };
+
+  if (!raw || typeof raw !== 'object') {
+    return fallback;
+  }
+
+  const data = raw as Record<string, unknown>;
+  const crsRecord = toStringRecord(data.crs);
+  const score = Number(crsRecord.score);
+  const factors = toStringRecord(crsRecord.factors);
+  const timeline = Array.isArray(data.timeline_preview)
+    ? data.timeline_preview
+        .filter((entry): entry is Record<string, unknown> =>
+          Boolean(entry) && typeof entry === 'object',
+        )
+        .map((entry) => {
+          const timelineEntry = entry as Record<string, unknown>;
+          return {
+            id: String(timelineEntry.id ?? ''),
+            type: String(timelineEntry.type ?? ''),
+            label: String(timelineEntry.label ?? ''),
+            timestamp: String(timelineEntry.timestamp ?? ''),
+            employer: typeof timelineEntry.employer === 'string'
+              ? timelineEntry.employer
+              : null,
+            facility: typeof timelineEntry.facility === 'string'
+              ? timelineEntry.facility
+              : null,
+            metadata: toStringRecord(timelineEntry.metadata),
+          };
+        })
+    : [];
+
+  const acceptanceDetails = toStringRecord(data.acceptanceDetails);
+
+  const acceptance: TrustStateAcceptanceDetails | null =
+    typeof acceptanceDetails.employerId === 'string' &&
+    typeof acceptanceDetails.facilityId === 'string' &&
+    typeof acceptanceDetails.role === 'string' &&
+    typeof acceptanceDetails.acceptedAt === 'string'
+      ? {
+          employerId: acceptanceDetails.employerId,
+          facilityId: acceptanceDetails.facilityId,
+          role: acceptanceDetails.role,
+          acceptedAt: acceptanceDetails.acceptedAt,
+        }
+      : null;
+
+  return {
+    recognized: Boolean(data.recognized),
+    accepted: Boolean(data.accepted),
+    started: Boolean(data.started),
+    start_ready: Boolean(data.start_ready),
+    crs: {
+      score: Number.isFinite(score) ? score : 0,
+      band: normalizeTrustBand(crsRecord.band),
+      factors,
+    },
+    blocking_reasons: normalizeStringArray(data.blocking_reasons),
+    blocking_reason_messages: normalizeStringArray(data.blocking_reason_messages),
+    timeline_preview: timeline,
+    recognitionId: typeof data.recognitionId === 'string'
+      ? data.recognitionId
+      : undefined,
+    acceptanceId: typeof data.acceptanceId === 'string'
+      ? data.acceptanceId
+      : undefined,
+    startId: typeof data.startId === 'string' ? data.startId : undefined,
+    recognizedAt: typeof data.recognizedAt === 'string'
+      ? data.recognizedAt
+      : undefined,
+    acceptedAt: typeof data.acceptedAt === 'string'
+      ? data.acceptedAt
+      : undefined,
+    attestedAt: typeof data.attestedAt === 'string'
+      ? data.attestedAt
+      : undefined,
+    acceptanceDetails: acceptance,
+    intake_summary:
+      typeof data.intake_summary === 'object' &&
+      data.intake_summary !== null
+        ? (data.intake_summary as TrustStateIntakeSummary)
+        : undefined,
+  };
+}

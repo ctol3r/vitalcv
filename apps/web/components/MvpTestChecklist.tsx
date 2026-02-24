@@ -8,6 +8,11 @@ import {
   ChevronRight,
   Circle,
 } from 'lucide-react';
+import { apiRoute } from '@/lib/api';
+import {
+  type TrustStateResponse,
+  normalizeTrustStateResponse,
+} from '@/components/trust-state/types';
 
 /* ------------------------------------------------------------------ */
 /*  Copy-lock: only these terms are used as status labels              */
@@ -28,18 +33,17 @@ interface Step {
 
 export function MvpTestChecklist() {
   /* ── backend polling (existing endpoint, no new API) ── */
-  const backendUrl =
-    process.env.NEXT_PUBLIC_API_BASE ||
-    process.env.NEXT_PUBLIC_BACKEND_URL ||
-    '';
-
-  const [status, setStatus] = useState<any>(null);
+  const trustStateRoute = apiRoute('/trust-state');
+  const isApiConfigured = Boolean(process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_BACKEND_URL);
+  const [status, setStatus] = useState<TrustStateResponse>(() =>
+    normalizeTrustStateResponse(null),
+  );
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
-  const [apiUnavailable, setApiUnavailable] = useState(!backendUrl);
+  const [apiUnavailable, setApiUnavailable] = useState(!isApiConfigured);
 
   const fetchTrustState = useCallback(async () => {
-    if (!backendUrl) {
+    if (!isApiConfigured || !trustStateRoute) {
       setApiUnavailable(true);
       setLoading(false);
       return;
@@ -52,19 +56,22 @@ export function MvpTestChecklist() {
         facility_id: 'facility:main',
         role: 'Registered Nurse',
       });
-      const res = await fetch(
-        `${backendUrl}/trust-state?${params.toString()}`,
-      );
-      if (res.ok) {
-        setStatus(await res.json());
-        setApiUnavailable(false);
+      const res = await fetch(`${trustStateRoute}?${params.toString()}`);
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
       }
+
+      const rawData = await res.json().catch(() => null);
+      setStatus(normalizeTrustStateResponse(rawData));
+      setApiUnavailable(false);
     } catch {
       setApiUnavailable(true);
+      setStatus(normalizeTrustStateResponse(null));
     } finally {
       setLoading(false);
     }
-  }, [backendUrl]);
+  }, [isApiConfigured, trustStateRoute]);
 
   useEffect(() => {
     fetchTrustState();
@@ -73,17 +80,15 @@ export function MvpTestChecklist() {
   }, [fetchTrustState]);
 
   /* ── live state bindings ── */
-  const identityPresent = !!status?.recognized;
+  const identityPresent = status.recognized;
   const filesParsed = false; // not available in current demo scope
-  const crsLoaded = status?.crs != null;
-  const crsBand: string = status?.crs?.band ?? 'UNKNOWN';
+  const crsLoaded = Boolean(status.crs);
+  const crsBand: string = status.crs.band;
   const crsGreen = crsBand === 'GREEN';
-  const hasBlockers =
-    Array.isArray(status?.blocking_reasons) &&
-    status.blocking_reasons.length > 0;
+  const hasBlockers = status.blocking_reasons.length > 0;
   const verificationProcessed = identityPresent && crsLoaded;
-  const acceptanceExists = !!status?.accepted;
-  const startExists = !!status?.started;
+  const acceptanceExists = status.accepted;
+  const startExists = status.started;
 
   /* ── step definitions (exact spec) ── */
   const steps: Step[] = [
@@ -217,9 +222,18 @@ export function MvpTestChecklist() {
           )}
 
           {loading && !status && !apiUnavailable && (
-            <p className="text-sm text-slate-400 py-2">
-              Loading trust state&hellip;
-            </p>
+            <div className="space-y-3 py-2">
+              <div className="h-4 w-44 rounded bg-slate-200 animate-shimmer" />
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="rounded-md border border-slate-200 p-3 space-y-2"
+                >
+                  <div className="h-3 w-64 bg-slate-200 rounded animate-shimmer" />
+                  <div className="h-3 w-36 bg-slate-100 rounded animate-shimmer" />
+                </div>
+              ))}
+            </div>
           )}
 
           {steps.map((step, idx) => {

@@ -29,6 +29,7 @@ interface TrustStatePanelProps {
   onSimulateDecayChange: (v: boolean) => void;
   trustExplanation: string;
   trustSummary: Record<string, unknown>;
+  previousTrustBand?: TrustBand;
 }
 
 /* ------------------------------------------------------------------ */
@@ -41,6 +42,7 @@ export function TrustStatePanel({
   onSimulateDecayChange,
   trustExplanation,
   trustSummary,
+  previousTrustBand,
 }: TrustStatePanelProps) {
   const band = (status.crs?.band ?? 'RED') as TrustBand;
 
@@ -49,7 +51,7 @@ export function TrustStatePanel({
       {/* Agent Explanation + CRS Ring */}
       <div className="grid grid-cols-1 md:grid-cols-[1fr_200px] gap-4">
         {/* System Explanation */}
-        <GlassCard className="bg-foreground/[0.03]">
+        <GlassCard interactive className="bg-foreground/[0.03]">
           <GlassCardContent>
             <div className="flex items-center gap-2 mb-3">
               <div className="h-2 w-2 rounded-full bg-[var(--accent)] animate-[badge-pulse_2s_ease-in-out_infinite]" />
@@ -98,10 +100,15 @@ export function TrustStatePanel({
         </GlassCard>
 
         {/* CRS Ring */}
-        <GlassCard weight="heavy" className="flex flex-col items-center justify-center py-4">
+        <GlassCard interactive weight="heavy" className="flex flex-col items-center justify-center py-4">
           <GlassCardContent className="flex flex-col items-center gap-2">
-            <CRSRing band={band} percentage={status.crs?.score ?? 0} size={120} />
-            <TrustBandIndicator band={band} size="sm" />
+            <CRSRing
+              band={band}
+              percentage={status.crs?.score ?? 0}
+              size={120}
+              previousBand={previousTrustBand}
+            />
+            <TrustBandIndicator band={band} size="sm" previousBand={previousTrustBand} />
             <div className="flex items-center gap-1.5 mt-1">
               <Checkbox
                 id="decay-toggle"
@@ -126,6 +133,7 @@ export function TrustStatePanel({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Start Ready */}
         <GlassCard
+          interactive
           className={`border-l-4 ${
             status.start_ready
               ? 'border-l-[var(--trust-green)]'
@@ -169,6 +177,7 @@ export function TrustStatePanel({
 
         {/* Blocking Reasons */}
         <GlassCard
+          interactive
           className={`border-l-4 ${
             status.blocking_reasons?.length > 0 && !status.start_ready
               ? 'border-l-destructive'
@@ -207,7 +216,7 @@ export function TrustStatePanel({
         </GlassCard>
 
         {/* Dispute Evidence */}
-        <GlassCard className="border-l-4 border-l-muted-foreground/20">
+        <GlassCard interactive className="border-l-4 border-l-muted-foreground/20">
           <GlassCardContent className="space-y-2">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
               <Lock className="h-3 w-3" />

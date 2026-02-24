@@ -59,6 +59,7 @@ interface TrustBandIndicatorProps
     VariantProps<typeof trustBandVariants> {
   band: TrustBand;
   label?: string;
+  previousBand?: TrustBand;
 }
 
 function TrustBandIndicator({
@@ -66,17 +67,25 @@ function TrustBandIndicator({
   band,
   size,
   label,
+  previousBand,
   ...props
 }: TrustBandIndicatorProps) {
   const displayLabel = label ?? BAND_TEXT[band];
+  const shouldPulse = previousBand != null && previousBand !== band && band === 'GREEN';
 
   return (
     <div
       data-slot="trust-band-indicator"
       data-band={band}
+      data-prev-band={previousBand}
       role="status"
       aria-label={`Trust status: ${displayLabel}`}
-      className={cn(trustBandVariants({ band, size }), className)}
+      className={cn(
+        'trust-band-indicator-wrap',
+        trustBandVariants({ band, size }),
+        shouldPulse ? 'animate-trust-band-rise' : '',
+        className,
+      )}
       {...props}
     >
       {BAND_ICONS[band]}

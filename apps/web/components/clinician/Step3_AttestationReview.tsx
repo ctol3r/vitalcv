@@ -26,7 +26,8 @@ import {
   Upload,
   XCircle,
 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
+import type { TrustBand } from '@/components/trust-state/types';
 import type {
   DataState,
   ExtractedField,
@@ -62,9 +63,12 @@ export interface Step3Props {
 
   /* Trust status */
   trustState: DataState;
-  trustResult: TrustStateResponse | null;
+  trustResult: TrustStateResponse;
   trustApiError: string | null;
   onFetchTrustStatus: () => void;
+  trustIsRefreshing: boolean;
+  trustResultStale: boolean;
+  previousTrustBand?: TrustBand | null;
 
   /* Manual verification */
   manualVerifications: ManualVerificationRecord[];
@@ -82,6 +86,26 @@ export interface Step3Props {
   crsUpdatedBanner: boolean;
   acceptanceEnabled: boolean;
   failedOrPendingReceipts: ReceiptRow[];
+  trustActionInFlight?: boolean;
+}
+
+function TrustStatusSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-center">
+        <div className="h-44 w-44 rounded-full border-8 border-muted/60 bg-muted/20 animate-shimmer" />
+      </div>
+      <div className="space-y-2 px-4">
+        <div className="h-8 rounded-md bg-muted/50 animate-shimmer" />
+        <div className="h-4 rounded-md bg-muted/40 animate-shimmer w-2/3" />
+      </div>
+      <div className="rounded-md border border-border/30 p-4 bg-muted/20 space-y-2">
+        <div className="h-4 rounded bg-muted/40 animate-shimmer w-1/2" />
+        <div className="h-3 rounded bg-muted/30 animate-shimmer w-full" />
+        <div className="h-3 rounded bg-muted/30 animate-shimmer w-5/6" />
+      </div>
+    </div>
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -99,6 +123,9 @@ export function Step3_AttestationReview({
   trustResult,
   trustApiError,
   onFetchTrustStatus,
+  trustIsRefreshing,
+  trustResultStale,
+  previousTrustBand,
   manualVerifications,
   onManualVerification,
   manualSubject,
@@ -112,8 +139,12 @@ export function Step3_AttestationReview({
   crsUpdatedBanner,
   acceptanceEnabled,
   failedOrPendingReceipts,
+  trustActionInFlight,
 }: Step3Props) {
   const manualFileInputRef = useRef<HTMLInputElement>(null);
+  const hasTrustSnapshot =
+    trustState === 'success' || trustResultStale || trustIsRefreshing;
+  const isTrustBusy = Boolean(trustActionInFlight || trustIsRefreshing || trustState === 'loading');
 
   return (
     <div className="space-y-6">
@@ -151,7 +182,7 @@ export function Step3_AttestationReview({
                       <Button
                         variant={isComplete ? 'outline' : 'default'}
                         size="sm"
-                        disabled={isRunning}
+                        disabled={isRunning || isTrustBusy || manualSubmitting}
                         onClick={() => onRequestVerification(lane)}
                         className="shrink-0"
                       >
@@ -248,10 +279,14 @@ export function Step3_AttestationReview({
         <GlassCard>
           <GlassCardContent className="pt-6 space-y-6">
             {trustState === 'loading' && (
-              <div className="flex items-center justify-center gap-3 py-8">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Evaluating trust status…</span>
-              </div>
+              hasTrustSnapshot ? (
+                <div className="rounded-md bg-muted/25 border border-muted/40 p-3 text-xs text-muted-foreground flex items-center gap-2">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Refreshing trust status...
+                </div>
+              ) : (
+                <TrustStatusSkeleton />
+              )
             )}
 
             {trustState === 'error' && (
@@ -265,24 +300,36 @@ export function Step3_AttestationReview({
                     variant="ghost"
                     size="sm"
                     onClick={onFetchTrustStatus}
+                    disabled={trustIsRefreshing || isTrustBusy}
                     className="mt-2 text-xs"
                   >
-                    Retry
+                    {trustIsRefreshing || isTrustBusy ? 'Refreshing…' : 'Retry'}
                   </Button>
                 </div>
               </div>
             )}
 
-            {trustState === 'success' && trustResult && (
+            {hasTrustSnapshot && (
               <>
+                {trustResultStale && (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 flex items-center gap-2">
+                    <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
+                    Showing prior trust snapshot while refresh is in progress.
+                  </div>
+                )}
+
                 {/* CRS Ring */}
                 <div className="flex flex-col items-center gap-4">
                   <CRSRing
-                    band={trustResult.crs.band as 'GREEN' | 'YELLOW' | 'RED'}
+                    band={trustResult.crs.band}
                     percentage={trustResult.crs.score}
                     size={160}
+                    previousBand={previousTrustBand ?? undefined}
                   />
-                  <TrustBandIndicator band={trustResult.crs.band as 'GREEN' | 'YELLOW' | 'RED'} />
+                  <TrustBandIndicator
+                    band={trustResult.crs.band}
+                    previousBand={previousTrustBand ?? undefined}
+                  />
                 </div>
 
                 {/* Blocking reasons */}
@@ -476,7 +523,7 @@ export function Step3_AttestationReview({
 
                 <Button
                   onClick={onManualVerification}
-                  disabled={manualSubmitting || !manualSubject.trim() || !manualFile}
+                  disabled={manualSubmitting || isTrustBusy || !manualSubject.trim() || !manualFile}
                   className="w-full"
                 >
                   {manualSubmitting ? (
@@ -550,22 +597,24 @@ export function Step3_AttestationReview({
             </div>
 
             {/* Trust-State Summary in employer view */}
-            {trustState === 'success' && trustResult && (
+            {hasTrustSnapshot && (
               <div className="space-y-3">
                 <Label className="text-xs text-muted-foreground uppercase tracking-wider">
                   Trust-State Summary
                 </Label>
                 <div className="flex items-center gap-4">
                   <CRSRing
-                    band={trustResult.crs.band as 'GREEN' | 'YELLOW' | 'RED'}
+                    band={trustResult.crs.band}
                     percentage={trustResult.crs.score}
                     size={80}
                     strokeWidth={6}
+                    previousBand={previousTrustBand ?? undefined}
                   />
                   <div>
                     <TrustBandIndicator
-                      band={trustResult.crs.band as 'GREEN' | 'YELLOW' | 'RED'}
+                      band={trustResult.crs.band}
                       size="sm"
+                      previousBand={previousTrustBand ?? undefined}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
                       CRS {trustResult.crs.score} / 100
@@ -580,13 +629,13 @@ export function Step3_AttestationReview({
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <span className="w-full inline-block" tabIndex={0}>
-                      <Button
-                        disabled={!acceptanceEnabled}
-                        className={`w-full ${
-                          !acceptanceEnabled ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                      >
+                        <span className="w-full inline-block" tabIndex={0}>
+                          <Button
+                            disabled={!acceptanceEnabled || isTrustBusy}
+                            className={`w-full ${
+                              !acceptanceEnabled ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                          >
                         <Lock className="w-4 h-4 mr-2" />
                         Accept Recognition
                       </Button>
@@ -614,6 +663,7 @@ export function Step3_AttestationReview({
         <VerificationReceipts
           receipts={receiptRows}
           crsUpdated={crsUpdatedBanner}
+          isUpdating={isTrustBusy || trustState === 'loading' || trustIsRefreshing}
         />
       )}
     </div>

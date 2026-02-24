@@ -6,6 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { apiRoute } from '@/lib/api';
+import {
+  type TrustStateResponse,
+  normalizeTrustStateResponse,
+} from '@/components/trust-state/types';
 import type {
   CredentialCandidate as CandidateCredentialApi,
   ClinicianIdentity,
@@ -47,19 +52,6 @@ type ExtractedField = {
   label: string;
   value: string | null;
   source: string | null;
-};
-
-/** Trust-state response from /trust-state. */
-type TrustStateResponse = {
-  start_ready: boolean;
-  crs: { score: number; band: 'GREEN' | 'YELLOW' | 'RED' };
-  blocking_reasons: string[];
-  blocking_reason_messages?: string[];
-  intake_summary?: {
-    identities_count: number;
-    candidate_credentials_count: number;
-    unverified_credentials_count: number;
-  };
 };
 
 /** Verification lane identifier. */
@@ -321,25 +313,27 @@ function ResultPanel({
 /* ================================================================== */
 
 export function IntakeContent() {
-  const backendUrl =
-    process.env.NEXT_PUBLIC_API_BASE ||
-    process.env.NEXT_PUBLIC_BACKEND_URL ||
-    '';
-    const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
+  const trustStateRoute = apiRoute('/trust-state');
+  const ingestNpiRoute = apiRoute('/ingest/npi');
+  const ingestFilesRoute = apiRoute('/ingest/files');
+  const verificationRunRoute = apiRoute('/verification/run');
+  const isApiConfigured = Boolean(
+    process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_BACKEND_URL,
+  );
 
   /* ---- API reachability check ---- */
   const [apiReachable, setApiReachable] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!backendUrl) {
+    if (!isApiConfigured) {
       setApiReachable(false);
       return;
     }
 
-    fetch(`${backendUrl}${DEMO_MODE ? '/demo/status' : '/trust-state'}?clinician_id=_ping`, { method: 'GET' })
+    fetch(`${trustStateRoute}?clinician_id=_ping`, { method: 'GET' })
       .then(() => setApiReachable(true))
       .catch(() => setApiReachable(false));
-  }, [backendUrl]);
+  }, [isApiConfigured, trustStateRoute]);
 
   /* ---- NPI input ref ---- */
   const npiInputRef = useRef<HTMLInputElement>(null);
@@ -370,7 +364,9 @@ export function IntakeContent() {
 
   /* ---- Section 4: Trust Status ---- */
   const [trustState, setTrustState] = useState<DataState>('idle');
-  const [trustResult, setTrustResult] = useState<TrustStateResponse | null>(null);
+  const [trustResult, setTrustResult] = useState<TrustStateResponse>(() =>
+    normalizeTrustStateResponse(null),
+  );
   const [trustApiError, setTrustApiError] = useState<string | null>(null);
 
   /* ---- CRS change tracking ---- */
@@ -413,7 +409,7 @@ export function IntakeContent() {
 
       try {
         const params = new URLSearchParams({ clinician_id: clinicianId });
-        const res = await fetch(`${backendUrl}${DEMO_MODE ? '/demo/status' : '/trust-state'}?${params.toString()}`);
+        const res = await fetch(`${trustStateRoute}?${params.toString()}`);
 
         if (!res.ok) {
           const body = await res.text().catch(() => '');
@@ -422,26 +418,24 @@ export function IntakeContent() {
           return;
         }
 
-        const data: TrustStateResponse = await res.json();
-        setTrustResult(data);
+        const rawData = await res.json().catch(() => null);
+        setTrustResult(normalizeTrustStateResponse(rawData));
         setTrustState('success');
       } catch (err) {
         setTrustApiError(err instanceof Error ? err.message : 'Unable to reach the trust service.');
         setTrustState('error');
+        setTrustResult(normalizeTrustStateResponse(null));
       }
     },
-    [npi, backendUrl],
+    [npi, trustStateRoute],
   );
 
   /* ---- Track CRS score changes ---- */
   useEffect(() => {
-    if (trustResult?.crs?.score != null) {
-      const readinessScore = trustResult.crs.score;
-      if (prevCrsRef.current !== null && prevCrsRef.current !== readinessScore) {
-        setCrsUpdatedBanner(true);
-      }
-      prevCrsRef.current = readinessScore;
+    if (prevCrsRef.current !== null && prevCrsRef.current !== trustResult.crs.score) {
+      setCrsUpdatedBanner(true);
     }
+    prevCrsRef.current = trustResult.crs.score;
   }, [trustResult]);
 
   /* ---------------------------------------------------------------- */
@@ -462,7 +456,7 @@ export function IntakeContent() {
     setNpiState('loading');
 
     try {
-      const res = await fetch(`${backendUrl}${DEMO_MODE ? '/demo/issue' : '/ingest/npi'}`, {
+      const res = await fetch(ingestNpiRoute, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -489,7 +483,7 @@ export function IntakeContent() {
       setNpiApiError(err instanceof Error ? err.message : 'Unable to reach the ingestion service.');
       setNpiState('error');
     }
-  }, [npi, backendUrl, fetchTrustStatus]);
+  }, [npi, ingestNpiRoute, fetchTrustStatus]);
 
   /* ---------------------------------------------------------------- */
   /*  Section 2: File handlers                                         */
@@ -539,7 +533,7 @@ export function IntakeContent() {
         })),
       );
 
-      const res = await fetch(`${backendUrl}/ingest/files`, {
+      const res = await fetch(ingestFilesRoute, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -568,7 +562,7 @@ export function IntakeContent() {
       );
       setUploadState('error');
     }
-  }, [files, npi, backendUrl, fetchTrustStatus]);
+  }, [files, npi, fetchTrustStatus, ingestFilesRoute]);
 
   /* ---------------------------------------------------------------- */
   /*  Section 3: Verification request handler                          */
@@ -599,7 +593,7 @@ export function IntakeContent() {
       });
 
       try {
-        const res = await fetch(`${backendUrl}/verification/run`, {
+        const res = await fetch(verificationRunRoute, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -663,7 +657,7 @@ export function IntakeContent() {
         fetchTrustStatus();
       }
     },
-    [npi, backendUrl, fetchTrustStatus],
+    [npi, fetchTrustStatus, verificationRunRoute],
   );
 
   /* ---------------------------------------------------------------- */
@@ -691,7 +685,7 @@ export function IntakeContent() {
     setManualSubmitting(true);
 
     try {
-      const res = await fetch(`${backendUrl}/verification/run`, {
+      const res = await fetch(verificationRunRoute, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -749,7 +743,14 @@ export function IntakeContent() {
       // Refresh trust state after any verification attempt
       fetchTrustStatus();
     }
-  }, [manualSubject, manualAttestor, manualFile, npi, backendUrl, fetchTrustStatus]);
+  }, [
+    manualSubject,
+    manualAttestor,
+    manualFile,
+    npi,
+    fetchTrustStatus,
+    verificationRunRoute,
+  ]);
 
   /* ---------------------------------------------------------------- */
   /*  Verification Receipts (derived from request + manual records)    */
@@ -788,9 +789,9 @@ export function IntakeContent() {
   const allReceiptsPass =
     receiptRows.length > 0 && receiptRows.every((r) => r.outcome === 'PASS');
   const failedOrPendingReceipts = receiptRows.filter((r) => r.outcome !== 'PASS');
-  const readiness = trustResult?.crs;
-  const band = readiness?.band ?? 'NOT_READY';
-  const score = readiness?.score ?? 0;
+  const readiness = trustResult.crs;
+  const band = readiness.band;
+  const score = readiness.score;
   const acceptanceEnabled = band === 'GREEN' && allReceiptsPass;
 
   /* ================================================================ */
@@ -807,9 +808,9 @@ export function IntakeContent() {
             <div>
               <p className="text-sm font-medium text-amber-800">API unavailable</p>
               <p className="text-xs text-amber-600 mt-0.5">
-                {backendUrl
-                  ? `Unable to reach ${backendUrl}. Please check the service status.`
-                  : 'NEXT_PUBLIC_API_BASE is not configured.'}
+              {isApiConfigured
+                ? 'Unable to reach the configured trust-state endpoint. Please check the service status.'
+                : 'NEXT_PUBLIC_API_BASE is not configured.'}
               </p>
             </div>
           </div>
@@ -1293,45 +1294,39 @@ export function IntakeContent() {
 
               {/* Trust result panel */}
               <ResultPanel state={trustState} errorMessage={trustApiError}>
-                {trustResult && (
+                {trustState === 'success' && (
                   <div className="space-y-4">
-                    {!readiness ? (
-                      <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-                        Demo data not available
-                      </p>
-                    ) : (
-                      <>
-                        {/* Trust-State panel: CRS display */}
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                          <div>
-                            <Label className="text-xs text-slate-500 uppercase tracking-wider block mb-1">
-                              Credential Readiness Score (CRS)
-                            </Label>
-                            <div className="flex items-baseline gap-1">
-                              <span className="text-3xl font-mono font-bold text-slate-900">
-                                {score}
-                              </span>
-                              <span className="text-sm text-slate-400">/ 100</span>
-                            </div>
-                          </div>
+                    {/* Trust-State panel: CRS display */}
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                      <div>
+                        <Label className="text-xs text-slate-500 uppercase tracking-wider block mb-1">
+                          Credential Readiness Score (CRS)
+                        </Label>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-3xl font-mono font-bold text-slate-900">
+                            {score}
+                          </span>
+                          <span className="text-sm text-slate-400">/ 100</span>
+                        </div>
+                      </div>
 
-                          <div>
-                            <Label className="text-xs text-slate-500 uppercase tracking-wider block mb-1">
-                              Level
-                            </Label>
-                            <Badge
-                              className={`${bandColors(band).bg} ${
-                                bandColors(band).text
-                              } ${bandColors(band).border} border text-sm px-3 py-1`}
-                            >
-                              <span
-                                className={`w-2 h-2 rounded-full ${
-                                  bandColors(band).dot
-                                } inline-block mr-1.5`}
-                              />
-                              {bandColors(band).label}
-                            </Badge>
-                          </div>
+                      <div>
+                        <Label className="text-xs text-slate-500 uppercase tracking-wider block mb-1">
+                          Level
+                        </Label>
+                        <Badge
+                          className={`${bandColors(band).bg} ${
+                            bandColors(band).text
+                          } ${bandColors(band).border} border text-sm px-3 py-1`}
+                        >
+                          <span
+                            className={`w-2 h-2 rounded-full ${
+                              bandColors(band).dot
+                            } inline-block mr-1.5`}
+                          />
+                          {bandColors(band).label}
+                        </Badge>
+                      </div>
 
                       <div>
                         <Label className="text-xs text-slate-500 uppercase tracking-wider block mb-1">
@@ -1394,8 +1389,6 @@ export function IntakeContent() {
                           {LABELS.START_READY_CLARIFICATION}
                         </p>
                       </div>
-                    )}
-                      </>
                     )}
                   </div>
                 )}
@@ -1712,50 +1705,42 @@ export function IntakeContent() {
                       Trust-State Summary
                     </Label>
 
-                    {trustState === 'success' && trustResult ? (
+                    {trustState === 'success' && (
                       <div className="space-y-4">
-                        {!readiness ? (
-                          <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-                            Demo data not available
-                          </p>
-                        ) : (
-                          <>
-                            {/* CRS + Band */}
-                            <div
-                              className={`rounded-md border-l-4 ${
-                                bandColors(band).stripe
-                              } border ${bandColors(band).border} ${bandColors(band).bg} p-4`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-baseline gap-2">
-                                  <span className="text-2xl font-mono font-bold text-slate-900">
-                                    {score}
-                                  </span>
-                                  <span className="text-sm text-slate-400">/ 100 CRS</span>
-                                </div>
-                                <Badge
-                                  className={`${bandColors(band).bg} ${
-                                    bandColors(band).text
-                                  } ${bandColors(band).border} border text-xs`}
-                                >
-                                  <span
-                                    className={`w-2 h-2 rounded-full ${
-                                      bandColors(band).dot
-                                    } inline-block mr-1.5`}
-                                  />
-                                  {bandColors(band).label}
-                                </Badge>
-                              </div>
-
-                              {band !== 'GREEN' && (
-                                <p className="text-xs mt-2 text-slate-600">
-                                  CRS is below the threshold required for acceptance.{' '}
-                                  {LABELS.ADDITIONAL_CHECKS}.
-                                </p>
-                              )}
+                        {/* CRS + Band */}
+                        <div
+                          className={`rounded-md border-l-4 ${
+                            bandColors(band).stripe
+                          } border ${bandColors(band).border} ${bandColors(band).bg} p-4`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-2xl font-mono font-bold text-slate-900">
+                                {score}
+                              </span>
+                              <span className="text-sm text-slate-400">/ 100 CRS</span>
                             </div>
-                          </>
-                        )}
+                            <Badge
+                              className={`${bandColors(band).bg} ${
+                                bandColors(band).text
+                              } ${bandColors(band).border} border text-xs`}
+                            >
+                              <span
+                                className={`w-2 h-2 rounded-full ${
+                                  bandColors(band).dot
+                                } inline-block mr-1.5`}
+                              />
+                              {bandColors(band).label}
+                            </Badge>
+                          </div>
+
+                          {band !== 'GREEN' && (
+                            <p className="text-xs mt-2 text-slate-600">
+                              CRS is below the threshold required for acceptance.{` `}
+                              {LABELS.ADDITIONAL_CHECKS}.
+                            </p>
+                          )}
+                        </div>
 
                         {/* Blocking reasons — listed plainly */}
                         {trustResult.blocking_reasons.length > 0 && (

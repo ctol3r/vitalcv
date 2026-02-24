@@ -14,6 +14,7 @@ interface CRSRingProps {
   /** Ring stroke width */
   strokeWidth?: number;
   className?: string;
+  previousBand?: TrustBand;
   children?: React.ReactNode;
 }
 
@@ -35,17 +36,23 @@ function CRSRing({
   size = 200,
   strokeWidth = 12,
   className,
+  previousBand,
   children,
 }: CRSRingProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const clamped = Math.max(0, Math.min(100, percentage));
+  const normalizedPercentage = Number(percentage);
+  const clamped = Number.isFinite(normalizedPercentage)
+    ? Math.max(0, Math.min(100, normalizedPercentage))
+    : 0;
   const offset = circumference - (clamped / 100) * circumference;
 
   return (
     <div
       data-slot="crs-ring"
-      className={cn('relative inline-flex items-center justify-center', className)}
+      data-band={band}
+      data-prev-band={previousBand}
+      className={cn('crs-band-wrap relative inline-flex items-center justify-center', className)}
       style={{ width: size, height: size }}
       role="img"
       aria-label={`Credential Readiness: ${BAND_LABELS[band]} — ${clamped}%`}
@@ -54,7 +61,8 @@ function CRSRing({
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
-        className="rotate-[-90deg]"
+        className="crs-band-svg rotate-[-90deg]"
+        style={{ '--trust-band-color': BAND_COLORS[band] } as React.CSSProperties}
       >
         {/* Track */}
         <circle
@@ -72,12 +80,18 @@ function CRSRing({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke={BAND_COLORS[band]}
+          stroke="var(--trust-band-color)"
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
-          className="transition-[stroke-dashoffset] duration-700 ease-out"
+          className={cn(
+            'crs-band-transition',
+            previousBand != null && band === 'GREEN' && previousBand !== band ? 'animate-trust-band-rise' : '',
+          )}
+          style={{
+            '--trust-band-color': BAND_COLORS[band],
+          } as React.CSSProperties}
         />
       </svg>
 
