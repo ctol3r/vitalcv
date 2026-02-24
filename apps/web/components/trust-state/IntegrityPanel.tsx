@@ -33,7 +33,7 @@ function truncateHash(hash: string, length = 16): string {
 export function IntegrityPanel({ data }: { data: IntegrityPanelData }) {
   return (
     <section aria-labelledby="integrity-heading" className={PANEL_TRANSITION}>
-      <Card>
+      <Card interactive>
         <CardHeader>
           <CardTitle id="integrity-heading" className="text-lg text-slate-800">
             Integrity

@@ -20,6 +20,7 @@ interface VerificationInputProps {
   onEmployerIdChange: (id: string) => void;
   loading: boolean;
   onVerify: () => void;
+  actionInProgress?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -33,7 +34,9 @@ export function VerificationInput({
   onEmployerIdChange,
   loading,
   onVerify,
+  actionInProgress = false,
 }: VerificationInputProps) {
+  const disableControls = loading || actionInProgress;
   return (
     <GlassCard weight="heavy" className="space-y-4">
       <GlassCardContent>
@@ -55,8 +58,9 @@ export function VerificationInput({
               value={clinicianId}
               onChange={(e) => onClinicianIdChange(e.target.value)}
               className="w-48 font-mono text-sm"
+              disabled={disableControls}
             />
-            <Button onClick={onVerify} disabled={loading}>
+            <Button onClick={onVerify} disabled={disableControls}>
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
@@ -77,12 +81,14 @@ export function VerificationInput({
             value="employer:alpha"
             selected={employerId === 'employer:alpha'}
             onSelect={onEmployerIdChange}
+            disabled={disableControls}
           />
           <EmployerTab
             label="Employer B"
             value="employer:beta"
             selected={employerId === 'employer:beta'}
             onSelect={onEmployerIdChange}
+            disabled={disableControls}
           />
         </div>
       </GlassCardContent>
@@ -99,21 +105,26 @@ function EmployerTab({
   value,
   selected,
   onSelect,
+  disabled = false,
 }: {
   label: string;
   value: string;
   selected: boolean;
   onSelect: (v: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
-      onClick={() => onSelect(value)}
+      onClick={() => {
+        if (!disabled) onSelect(value);
+      }}
+      disabled={disabled}
       className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
         selected
           ? 'bg-primary/10 border border-primary/20 text-foreground'
           : 'bg-muted/30 border border-transparent text-muted-foreground hover:border-border/40'
-      }`}
+      } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
       <Building2 className="h-4 w-4" />
       {label}

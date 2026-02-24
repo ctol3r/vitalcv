@@ -4,6 +4,7 @@
  */
 
 import type { CredentialCandidate as CandidateCredentialApi } from '@vitalcv/shared/credentials';
+import type { TrustStateResponse } from '@/components/trust-state/types';
 
 /* ------------------------------------------------------------------ */
 /*  State & Data Types                                                 */
@@ -20,19 +21,6 @@ export type ExtractedField = {
   label: string;
   value: string | null;
   source: string | null;
-};
-
-/** Trust-state response from /trust-state. */
-export type TrustStateResponse = {
-  start_ready: boolean;
-  crs: { score: number; band: 'GREEN' | 'YELLOW' | 'RED' };
-  blocking_reasons: string[];
-  blocking_reason_messages?: string[];
-  intake_summary?: {
-    identities_count: number;
-    candidate_credentials_count: number;
-    unverified_credentials_count: number;
-  };
 };
 
 /** Verification lane identifier. */

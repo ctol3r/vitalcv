@@ -33,6 +33,7 @@ interface VerificationFlowProps {
   onStart: () => void;
   allReceiptsPass: boolean;
   failedOrPendingReceipts: ReceiptRow[];
+  isUpdating?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -46,7 +47,9 @@ export function VerificationFlow({
   onStart,
   allReceiptsPass,
   failedOrPendingReceipts,
+  isUpdating = false,
 }: VerificationFlowProps) {
+  const isBusy = actionLoading || isUpdating;
   return (
     <GlassCard>
       <GlassCardHeader>
@@ -130,16 +133,16 @@ export function VerificationFlow({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span className="inline-block">
-                      <Button
-                        onClick={onAccept}
-                        disabled={
-                          !status.recognized ||
-                          actionLoading ||
+                        <Button
+                          onClick={onAccept}
+                          disabled={
+                            !status.recognized ||
+                          isBusy ||
                           status.crs?.band !== 'GREEN' ||
                           !allReceiptsPass
-                        }
-                      >
-                        {actionLoading ? 'Accepting...' : 'Accept Recognition'}
+                          }
+                        >
+                          {actionLoading ? 'Accepting...' : 'Accept Recognition'}
                       </Button>
                     </span>
                   </TooltipTrigger>
@@ -154,11 +157,16 @@ export function VerificationFlow({
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              <p className="text-xs text-muted-foreground font-medium mt-1 ml-1">
-                Employer action required
-              </p>
-            </div>
-          )}
+                  <p className="text-xs text-muted-foreground font-medium mt-1 ml-1">
+                    Employer action required
+                  </p>
+                  {isUpdating && (
+                    <p className="text-xs text-muted-foreground mt-1 ml-1">
+                      Refreshing verification status…
+                    </p>
+                  )}
+                </div>
+              )}
         </FlowStep>
 
         {/* Step 3: Start Attestation */}
@@ -187,7 +195,7 @@ export function VerificationFlow({
             <div className="mt-3">
               <Button
                 onClick={onStart}
-                disabled={!status.start_ready || actionLoading}
+                disabled={!status.start_ready || isBusy}
                 className={
                   status.start_ready
                     ? 'bg-[var(--trust-green)] hover:bg-[var(--trust-green)]/90 text-white'

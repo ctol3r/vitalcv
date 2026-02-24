@@ -8,6 +8,11 @@ import {
 } from '@/components/VerificationReceipts';
 import { AuditTimeline } from '@/components/AuditTimeline';
 import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
+import { apiRoute } from '@/lib/api';
+import {
+  type TrustStateResponse,
+  normalizeTrustStateResponse,
+} from '@/components/trust-state/types';
 import { History, AlertCircle } from 'lucide-react';
 import { FormEvent, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -18,7 +23,7 @@ import { ManualVerification } from './ManualVerification';
 import { TrustStatePanel } from './TrustStatePanel';
 import { VerificationFlow } from './VerificationFlow';
 import { VerificationInput } from './VerificationInput';
-import type { ManualVerificationRecord, TrustStateStatus } from './verifier-types';
+import type { ManualVerificationRecord } from './verifier-types';
 import {
   getCtaVariant,
   getMockHash,
@@ -41,8 +46,11 @@ export function VerifierPortal() {
 }
 
 function VerifierPortalContent() {
-  const backendUrl =
-    process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_BACKEND_URL || '';
+  const trustStateRoute = apiRoute('/trust-state');
+  const acceptancesRoute = apiRoute('/acceptances');
+  const startsRoute = apiRoute('/starts');
+  const verifyRoute = apiRoute('/verify');
+  const pilotActivateRoute = apiRoute('/api/pilot/activate');
   const orgHeaders = { 'x-org-id': 'demo-pilot-org-alpha' };
   const searchParams = useSearchParams();
 
@@ -50,10 +58,11 @@ function VerifierPortalContent() {
   const [clinicianId, setClinicianId] = useState('clinician:alice');
   const [employerId, setEmployerId] = useState('employer:alpha');
   const [simulateDecay, setSimulateDecay] = useState(false);
-  const [status, setStatus] = useState<TrustStateStatus | null>(null);
+  const [status, setStatus] = useState<TrustStateResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previousTrustBand, setPreviousTrustBand] = useState<TrustStateResponse['crs']['band'] | null>(null);
 
   /* ---- Pilot state ---- */
   const [pilotOrganization, setPilotOrganization] = useState('');
@@ -86,6 +95,8 @@ function VerifierPortalContent() {
   /* ---- API handlers ---- */
   const checkTrustState = useCallback(async () => {
     if (!clinicianId.trim()) return;
+    const hadStatus = Boolean(status);
+    const priorBand = status?.crs?.band ?? null;
     setLoading(true);
     setError(null);
     try {
@@ -94,20 +105,28 @@ function VerifierPortalContent() {
         employer_id: employerId,
         simulate_decay: String(simulateDecay),
       });
-      const res = await fetch(
-        `${backendUrl}/trust-state?${queryParams.toString()}`,
-        { headers: orgHeaders },
-      );
+      const res = await fetch(`${trustStateRoute}?${queryParams.toString()}`, {
+        headers: orgHeaders,
+      });
       if (!res.ok) throw new Error('Failed to fetch trust state');
-      const data = await res.json();
+      const rawData = await res.json();
+      const data = normalizeTrustStateResponse(rawData);
+      if (hadStatus && priorBand && data.crs.band !== priorBand) {
+        setPreviousTrustBand(priorBand);
+      } else {
+        setPreviousTrustBand(null);
+      }
       setStatus(data);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Unknown error');
-      setStatus(null);
+      if (!hadStatus) {
+        setStatus(null);
+        setPreviousTrustBand(null);
+      }
     } finally {
       setLoading(false);
     }
-  }, [backendUrl, clinicianId, employerId, simulateDecay]);
+  }, [clinicianId, employerId, simulateDecay, status, trustStateRoute]);
 
   // Auto-check on mount
   useEffect(() => {
@@ -151,7 +170,7 @@ function VerifierPortalContent() {
           acceptedAt: new Date().toISOString(),
         },
       };
-      const res = await fetch(`${backendUrl}/acceptances`, {
+      const res = await fetch(acceptancesRoute, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...orgHeaders },
         body: JSON.stringify(payload),
@@ -163,7 +182,7 @@ function VerifierPortalContent() {
     } finally {
       setActionLoading(false);
     }
-  }, [backendUrl, checkTrustState, employerId, status]);
+  }, [acceptancesRoute, checkTrustState, employerId, status]);
 
   const handleStart = useCallback(async () => {
     if (!status?.acceptanceId) return;
@@ -175,7 +194,7 @@ function VerifierPortalContent() {
           attestedAt: new Date().toISOString(),
         },
       };
-      const res = await fetch(`${backendUrl}/starts`, {
+      const res = await fetch(startsRoute, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...orgHeaders },
         body: JSON.stringify(payload),
@@ -187,7 +206,7 @@ function VerifierPortalContent() {
     } finally {
       setActionLoading(false);
     }
-  }, [backendUrl, checkTrustState, status]);
+  }, [startsRoute, checkTrustState, status]);
 
   const handleManualVerification = useCallback(async () => {
     if (!manualSubject.trim() || !manualFile || !clinicianId.trim()) return;
@@ -206,7 +225,7 @@ function VerifierPortalContent() {
     setManualSubmitting(true);
 
     try {
-      const res = await fetch(`${backendUrl}/verify`, {
+      const res = await fetch(verifyRoute, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -267,7 +286,7 @@ function VerifierPortalContent() {
       setManualSubmitting(false);
       await checkTrustState();
     }
-  }, [backendUrl, checkTrustState, clinicianId, manualAttestor, manualFile, manualSubject]);
+  }, [checkTrustState, clinicianId, manualAttestor, manualFile, manualSubject, verifyRoute]);
 
   const handlePilotActivate = useCallback(
     async (event: FormEvent) => {
@@ -283,7 +302,7 @@ function VerifierPortalContent() {
 
       setPilotActivationLoading(true);
       try {
-        const response = await fetch(`${backendUrl}/api/pilot/activate`, {
+        const response = await fetch(pilotActivateRoute, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...orgHeaders },
           body: JSON.stringify({
@@ -313,7 +332,7 @@ function VerifierPortalContent() {
         setPilotActivationLoading(false);
       }
     },
-    [backendUrl, ctaVariant, pilotContactEmail, pilotOrganization, verifierRef],
+    [pilotActivateRoute, ctaVariant, pilotContactEmail, pilotOrganization, verifierRef],
   );
 
   /* ---- Receipt derivation ---- */
@@ -376,6 +395,8 @@ function VerifierPortalContent() {
   const failedOrPendingReceipts = receiptRows.filter(
     (r) => r.outcome !== 'PASS',
   );
+  const isPortalBusy = loading || actionLoading || manualSubmitting || pilotActivationLoading;
+  const isRefreshing = loading && Boolean(status);
 
   /* ---- Render ---- */
   return (
@@ -388,6 +409,7 @@ function VerifierPortalContent() {
         onEmployerIdChange={setEmployerId}
         loading={loading}
         onVerify={checkTrustState}
+        actionInProgress={isPortalBusy}
       />
 
       {/* Error banner */}
@@ -400,31 +422,62 @@ function VerifierPortalContent() {
       )}
 
       {/* Trust state + flow */}
-      {status && (
+      {(status || loading) && (
         <div className="space-y-6 animate-[trust-panel-enter_0.3s_ease-out]">
           {/* Audit Timeline + Trust State */}
           <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4">
             <div>
-              {status.timeline_preview && status.timeline_preview.length > 0 ? (
-                <AuditTimeline events={status.timeline_preview as any} />
+              {status ? (
+                status.timeline_preview && status.timeline_preview.length > 0 ? (
+                  <div className="space-y-3">
+                    {isRefreshing && (
+                      <p className="text-xs text-muted-foreground px-1">
+                        Refreshing trust state…
+                      </p>
+                    )}
+                    <AuditTimeline events={status.timeline_preview as any} />
+                  </div>
+                ) : (
+                  <GlassCard className="h-full min-h-[200px] flex flex-col items-center justify-center">
+                    <GlassCardContent className="text-center">
+                      <History className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        No audit history available
+                      </p>
+                    </GlassCardContent>
+                  </GlassCard>
+                )
               ) : (
-                <GlassCard className="h-full min-h-[200px] flex flex-col items-center justify-center">
-                  <GlassCardContent className="text-center">
-                    <History className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">
-                      No audit history available
-                    </p>
+                <GlassCard className="h-full min-h-[200px]">
+                  <GlassCardContent className="space-y-2">
+                    <div className="h-4 w-3/4 bg-muted/50 rounded animate-shimmer" />
+                    <div className="h-3 w-1/2 bg-muted/60 rounded animate-shimmer" />
+                    <div className="h-24 rounded border border-dashed border-muted/40 bg-muted/30" />
                   </GlassCardContent>
                 </GlassCard>
               )}
             </div>
-            <TrustStatePanel
-              status={status}
-              simulateDecay={simulateDecay}
-              onSimulateDecayChange={setSimulateDecay}
-              trustExplanation={trustObserver.explanation}
-              trustSummary={trustObserver.summary}
-            />
+            {status ? (
+              <TrustStatePanel
+                status={status}
+                simulateDecay={simulateDecay}
+                onSimulateDecayChange={setSimulateDecay}
+                trustExplanation={trustObserver.explanation}
+                trustSummary={trustObserver.summary}
+                previousTrustBand={previousTrustBand}
+              />
+            ) : (
+              <GlassCard className="h-full min-h-[320px]">
+                <GlassCardContent className="space-y-3">
+                  <div className="h-5 w-40 bg-muted/50 rounded animate-shimmer" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="h-4 bg-muted/60 rounded animate-shimmer" />
+                    <div className="h-4 bg-muted/60 rounded animate-shimmer" />
+                  </div>
+                  <div className="h-28 rounded-md border border-muted/30 bg-muted/30" />
+                </GlassCardContent>
+              </GlassCard>
+            )}
           </div>
 
           {/* Verification Receipts */}
@@ -432,31 +485,38 @@ function VerifierPortalContent() {
             <VerificationReceipts
               receipts={receiptRows}
               crsUpdated={crsUpdatedBanner}
+              isUpdating={isPortalBusy}
             />
           )}
 
           {/* Manual Verification */}
-          <ManualVerification
-            subject={manualSubject}
-            onSubjectChange={setManualSubject}
-            attestor={manualAttestor}
-            onAttestorChange={setManualAttestor}
-            file={manualFile}
-            onFileChange={setManualFile}
-            submitting={manualSubmitting}
-            onSubmit={handleManualVerification}
-            verifications={manualVerifications}
-          />
+          {status && (
+            <ManualVerification
+              subject={manualSubject}
+              onSubjectChange={setManualSubject}
+              attestor={manualAttestor}
+              onAttestorChange={setManualAttestor}
+              file={manualFile}
+              onFileChange={setManualFile}
+              submitting={manualSubmitting}
+              onSubmit={handleManualVerification}
+              verifications={manualVerifications}
+              disableActions={isPortalBusy}
+            />
+          )}
 
           {/* 3-Step Flow */}
-          <VerificationFlow
-            status={status}
-            actionLoading={actionLoading}
-            onAccept={handleAccept}
-            onStart={handleStart}
-            allReceiptsPass={allReceiptsPass}
-            failedOrPendingReceipts={failedOrPendingReceipts}
-          />
+          {status && (
+            <VerificationFlow
+              status={status}
+              actionLoading={actionLoading}
+              onAccept={handleAccept}
+              onStart={handleStart}
+              allReceiptsPass={allReceiptsPass}
+              failedOrPendingReceipts={failedOrPendingReceipts}
+              isUpdating={isPortalBusy}
+            />
+          )}
         </div>
       )}
 

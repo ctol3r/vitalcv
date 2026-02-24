@@ -3,6 +3,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Loader2 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -66,16 +67,33 @@ const OUTCOME_CONFIG: Record<
 export function VerificationReceipts({
   receipts,
   crsUpdated = false,
+  isUpdating = false,
 }: {
   receipts: ReceiptRow[];
   crsUpdated?: boolean;
+  isUpdating?: boolean;
 }) {
-  if (receipts.length === 0) return null;
+  if (receipts.length === 0) {
+    if (!isUpdating) return null;
+
+    return (
+      <Card interactive className="shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg text-slate-800">Verification Receipts</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border border-muted/40 bg-muted/30 p-3 text-xs text-muted-foreground">
+            Polling for receipt updates…
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const hasFail = receipts.some((r) => r.outcome === 'FAIL');
 
   return (
-    <Card className="shadow-sm">
+    <Card interactive className="shadow-sm">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg text-slate-800">Verification Receipts</CardTitle>
       </CardHeader>
@@ -100,7 +118,7 @@ export function VerificationReceipts({
 
         {/* Receipts table */}
         <div className="rounded-md border border-slate-200 overflow-hidden">
-          <table className="w-full text-sm">
+            <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
                 <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
@@ -121,6 +139,19 @@ export function VerificationReceipts({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
+              {isUpdating && (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-4 py-2.5 text-xs text-muted-foreground bg-slate-50/60"
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Updating receipts…
+                    </span>
+                  </td>
+                </tr>
+              )}
               {receipts.map((receipt, i) => {
                 const config = OUTCOME_CONFIG[receipt.outcome];
                 return (

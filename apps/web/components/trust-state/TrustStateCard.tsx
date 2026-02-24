@@ -75,7 +75,7 @@ export function TrustStateCard({ data }: { data: TrustStateCardData }) {
 
   return (
     <section aria-labelledby="trust-state-heading" className={PANEL_TRANSITION}>
-      <Card>
+      <Card interactive>
         <CardHeader>
           <CardTitle id="trust-state-heading" className="text-lg text-slate-800">
             Trust State

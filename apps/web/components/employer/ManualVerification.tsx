@@ -28,6 +28,7 @@ interface ManualVerificationProps {
   submitting: boolean;
   onSubmit: () => void;
   verifications: ManualVerificationRecord[];
+  disableActions?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -44,6 +45,7 @@ export function ManualVerification({
   submitting,
   onSubmit,
   verifications,
+  disableActions = false,
 }: ManualVerificationProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -69,6 +71,7 @@ export function ManualVerification({
               value={subject}
               onChange={(e) => onSubjectChange(e.target.value)}
               className="text-sm"
+              disabled={disableActions}
             />
           </div>
           <div className="space-y-1.5">
@@ -80,6 +83,7 @@ export function ManualVerification({
                 onAttestorChange(e.target.value as 'Employer' | 'CVO')
               }
               className="flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              disabled={disableActions}
             >
               <option value="Employer">Employer</option>
               <option value="CVO">CVO</option>
@@ -112,6 +116,7 @@ export function ManualVerification({
                 }}
                 className="text-muted-foreground hover:text-destructive transition-colors"
                 aria-label="Remove file"
+                disabled={disableActions}
               >
                 <XCircle className="h-4 w-4" />
               </button>
@@ -124,7 +129,7 @@ export function ManualVerification({
 
         <Button
           onClick={onSubmit}
-          disabled={submitting || !subject.trim() || !file}
+          disabled={submitting || !subject.trim() || !file || disableActions}
           className="w-full"
         >
           {submitting ? (

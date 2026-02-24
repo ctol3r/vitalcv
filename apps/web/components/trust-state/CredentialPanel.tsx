@@ -146,7 +146,7 @@ export function CredentialPanel({ data }: { data: CredentialPanelData }) {
 
   return (
     <section aria-labelledby="credentials-heading" className={PANEL_TRANSITION}>
-      <Card>
+      <Card interactive>
         <CardHeader>
           <CardTitle id="credentials-heading" className="text-lg text-slate-800">
             Credentials

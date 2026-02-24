@@ -2,12 +2,17 @@ import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-function Card({ className, ...props }: React.ComponentProps<'div'>) {
+interface CardProps extends React.ComponentProps<'div'> {
+  interactive?: boolean;
+}
+
+function Card({ className, interactive, ...props }: CardProps) {
   return (
     <div
       data-slot="card"
       className={cn(
         'bg-card text-card-foreground flex flex-col gap-6 rounded-2xl border py-6 shadow-sm',
+        interactive ? 'motion-card' : '',
         className,
       )}
       {...props}
