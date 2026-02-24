@@ -5,6 +5,7 @@
 
 import type { CredentialCandidate as CandidateCredentialApi } from '@vitalcv/shared/credentials';
 import type { TrustStateResponse } from '@/components/trust-state/types';
+export type { TrustStateResponse };
 
 /* ------------------------------------------------------------------ */
 /*  State & Data Types                                                 */

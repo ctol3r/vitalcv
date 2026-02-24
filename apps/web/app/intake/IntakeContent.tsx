@@ -1705,7 +1705,7 @@ export function IntakeContent() {
                       Trust-State Summary
                     </Label>
 
-                    {trustState === 'success' && (
+                    {trustState === 'success' ? (
                       <div className="space-y-4">
                         {/* CRS + Band */}
                         <div

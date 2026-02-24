@@ -251,7 +251,7 @@ export default function VerifierPreviewPage() {
 
               <div>
                 <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-neutral-400">Verification Checks</h3>
-                {Object.keys(state.crs.factors).length > 0 ? (
+                {state.crs.factors && Object.keys(state.crs.factors).length > 0 ? (
                   <dl className="space-y-1.5">
                     {Object.entries(state.crs.factors).map(([key, value]) => (
                       <div key={key} className="flex gap-4">
