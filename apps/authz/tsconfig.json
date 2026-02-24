@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "rootDir": "./src",
-    "outDir": "../../dist/apps/authz",
+    "outDir": "./dist",
     "tsBuildInfoFile": "../../build-info/apps-authz.tsbuildinfo",
     "composite": true
   },

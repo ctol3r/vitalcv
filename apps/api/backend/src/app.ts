@@ -376,9 +376,23 @@ function shouldSkipTenantContext(pathname: string): boolean {
     normalizedPath.startsWith('/.well-known') ||
     normalizedPath.startsWith('/api-docs') ||
     normalizedPath === '/openapi.json' ||
-    // Demo mode: allow trust-state reads without tenant context so the
-    // public demo can resolve trust-state without an x-org-id header.
-    (YC_DEMO_MODE && normalizedPath.startsWith('/trust-state'))
+    // Wedge routes authenticate via apiKeyAuth, not tenant context.
+    normalizedPath.startsWith('/recognitions') ||
+    normalizedPath.startsWith('/acceptances') ||
+    normalizedPath.startsWith('/starts') ||
+    normalizedPath.startsWith('/status') ||
+    normalizedPath.startsWith('/trust-state') ||
+    // Ingest routes authenticate via apiKeyAuth.
+    normalizedPath.startsWith('/ingest') ||
+    // Pilot/verify routes are public-facing or use wallet rate limits.
+    normalizedPath.startsWith('/api/verify') ||
+    normalizedPath.startsWith('/api/verifier/accept') ||
+    normalizedPath.startsWith('/api/pilot') ||
+    normalizedPath.startsWith('/api/metrics') ||
+    normalizedPath.startsWith('/api/artifact') ||
+    normalizedPath.startsWith('/bundle') ||
+    // Verification request route uses apiKeyAuth.
+    normalizedPath === '/verification/request'
   );
 }
 
