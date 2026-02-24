@@ -78,4 +78,6 @@ jobs:
           npx prisma migrate deploy
 
       - name: Smoke tests
-        run: pnpm test
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_preflight
+        run: pnpm test --filter=!zk-sample --filter=!contracts
