@@ -27,8 +27,12 @@ function normalizeApiBase(base: string): string {
   return base.endsWith('/') ? base.slice(0, -1) : base;
 }
 
+function isDemoPath(p: string): p is keyof typeof DEMO_PATHS {
+  return p in DEMO_PATHS;
+}
+
 export function apiRoute(path: ApiPath): string {
-  const resolvedPath = DEMO_MODE && path in DEMO_PATHS ? DEMO_PATHS[path] : path;
+  const resolvedPath = DEMO_MODE && isDemoPath(path) ? DEMO_PATHS[path] : path;
   const base = normalizeApiBase(API_BASE);
   return base ? `${base}${resolvedPath}` : resolvedPath;
 }
