@@ -12,15 +12,6 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ||
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   '';
-const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
-
-const DEMO_PATHS: Record<
-  Extract<ApiPath, '/trust-state' | '/ingest/npi'>,
-  string
-> = {
-  '/trust-state': '/demo/status',
-  '/ingest/npi': '/demo/issue',
-};
 
 function normalizeApiBase(base: string): string {
   if (!base) return '';
@@ -28,10 +19,8 @@ function normalizeApiBase(base: string): string {
 }
 
 export function apiRoute(path: ApiPath): string {
-  const resolvedPath =
-    DEMO_MODE && path in DEMO_PATHS ? DEMO_PATHS[path] : path;
   const base = normalizeApiBase(API_BASE);
-  return base ? `${base}${resolvedPath}` : resolvedPath;
+  return base ? `${base}${path}` : path;
 }
 
 export type { ApiPath };
