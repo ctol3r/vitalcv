@@ -175,71 +175,71 @@ export function WalletDashboard() {
   const nextAction = getNextBestAction(credentials);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
+    <div className="mx-auto max-w-6xl px-8 py-16 space-y-14">
       {/* Header */}
-      <header className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="font-heading text-2xl font-bold tracking-tight">
+      <header className="flex items-start justify-between gap-6">
+        <div className="space-y-2">
+          <h1 className="font-heading text-4xl font-bold tracking-tight">
             Credential Wallet
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-lg text-muted-foreground">
             Your verified credentials, readiness score, and next steps.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <VitaTokenBalance balance={DEMO_VITA_BALANCE} />
           <Button
             variant="outline"
-            size="sm"
+            size="default"
             onClick={() => setShareOpen(true)}
           >
-            <Share2 className="h-4 w-4 mr-1.5" />
+            <Share2 className="h-5 w-5 mr-2" />
             Share
           </Button>
         </div>
       </header>
 
       {/* Main layout: content + sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
         {/* Left: CRS + credentials */}
-        <div className="space-y-8">
+        <div className="space-y-10">
           {/* Top row: CRS Ring + stats + next action */}
-          <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-8">
             {/* CRS Ring */}
-            <GlassCard weight="heavy" className="flex flex-col items-center justify-center py-6">
-              <GlassCardContent className="flex flex-col items-center gap-3">
-                <CRSRing band={trustBand} percentage={trustScore} size={140} />
+            <GlassCard weight="heavy" className="flex flex-col items-center justify-center py-10">
+              <GlassCardContent className="flex flex-col items-center gap-4">
+                <CRSRing band={trustBand} percentage={trustScore} size={220} strokeWidth={12} />
                 <TrustBandIndicator band={trustBand} size="sm" />
-                <p className="text-xs text-muted-foreground text-center mt-1">
+                <p className="text-sm text-muted-foreground text-center mt-1.5">
                   Credential Readiness Score
                 </p>
               </GlassCardContent>
             </GlassCard>
 
             {/* Right side: summary + next action */}
-            <div className="flex flex-col gap-4 justify-center">
+            <div className="flex flex-col gap-5 justify-center">
               {/* Quick stats */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-4">
                 <GlassCard>
-                  <GlassCardContent className="pt-3 pb-3 text-center">
-                    <p className="text-2xl font-heading font-bold">{credentials.length}</p>
-                    <p className="text-xs text-muted-foreground">Credentials</p>
+                  <GlassCardContent className="pt-5 pb-5 text-center">
+                    <p className="text-4xl font-heading font-bold">{credentials.length}</p>
+                    <p className="text-base text-muted-foreground mt-1">Credentials</p>
                   </GlassCardContent>
                 </GlassCard>
                 <GlassCard>
-                  <GlassCardContent className="pt-3 pb-3 text-center">
-                    <p className="text-2xl font-heading font-bold">
+                  <GlassCardContent className="pt-5 pb-5 text-center">
+                    <p className="text-4xl font-heading font-bold">
                       {credentials.filter((c) => c.claimLevel === 'L3').length}
                     </p>
-                    <p className="text-xs text-muted-foreground">PSV Verified</p>
+                    <p className="text-base text-muted-foreground mt-1">PSV Verified</p>
                   </GlassCardContent>
                 </GlassCard>
                 <GlassCard>
-                  <GlassCardContent className="pt-3 pb-3 text-center">
-                    <p className="text-2xl font-heading font-bold">
+                  <GlassCardContent className="pt-5 pb-5 text-center">
+                    <p className="text-4xl font-heading font-bold">
                       {credentials.filter((c) => c.status === 'ACTIVE').length}
                     </p>
-                    <p className="text-xs text-muted-foreground">Active</p>
+                    <p className="text-base text-muted-foreground mt-1">Active</p>
                   </GlassCardContent>
                 </GlassCard>
               </div>
@@ -250,15 +250,15 @@ export function WalletDashboard() {
           </div>
 
           {/* Credential cards grid */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-muted-foreground" />
-              <h2 className="font-heading text-base font-semibold tracking-tight">
+          <section className="space-y-6">
+            <div className="flex items-center gap-3">
+              <Shield className="h-5 w-5 text-muted-foreground" />
+              <h2 className="font-heading text-2xl font-semibold tracking-tight">
                 Your Credentials
               </h2>
             </div>
 
-            <BentoGrid columns={3}>
+            <BentoGrid columns={3} className="gap-8">
               {credentials.map((cred) => (
                 <BentoItem key={cred.id}>
                   <CredentialCard credential={cred} className="h-full" />

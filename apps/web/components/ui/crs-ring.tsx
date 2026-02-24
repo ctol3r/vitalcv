@@ -32,8 +32,8 @@ const BAND_LABELS: Record<TrustBand, string> = {
 function CRSRing({
   band,
   percentage,
-  size = 160,
-  strokeWidth = 10,
+  size = 200,
+  strokeWidth = 12,
   className,
   children,
 }: CRSRingProps) {
@@ -85,10 +85,10 @@ function CRSRing({
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
         {children ?? (
           <>
-            <span className="text-2xl font-heading font-bold tabular-nums">
+            <span className="text-3xl font-heading font-bold tabular-nums">
               {clamped}%
             </span>
-            <span className="text-xs text-muted-foreground mt-0.5">
+            <span className="text-sm text-muted-foreground mt-1">
               {BAND_LABELS[band]}
             </span>
           </>

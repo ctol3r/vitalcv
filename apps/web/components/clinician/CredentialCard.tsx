@@ -56,6 +56,13 @@ const STATUS_TEXT: Record<string, string> = {
   UNKNOWN: 'Unknown',
 };
 
+const CLAIM_LEVEL_TEXT: Record<string, string> = {
+  L0: 'Unverified',
+  L1: 'Self-Reported',
+  L2: 'Document Verified',
+  L3: 'Primary Source Verified',
+};
+
 /* ------------------------------------------------------------------ */
 /*  CredentialCard                                                     */
 /* ------------------------------------------------------------------ */
@@ -86,54 +93,77 @@ export function CredentialCard({
         className,
       )}
     >
-      <GlassCardContent className="pt-4 pb-4 space-y-3">
+      <GlassCardContent className="pt-10 pb-10 px-8 space-y-6">
         {/* Claim badge — top right */}
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-5 right-5">
           <ClaimBadge level={credential.claimLevel} />
         </div>
 
         {/* Icon + Type */}
-        <div className="flex items-start gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/8 text-primary shrink-0">
-            <Icon className="h-5 w-5" />
+        <div className="flex items-start gap-5">
+          <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-primary/8 text-primary shrink-0">
+            <Icon className="h-7 w-7" />
           </div>
           <div className="min-w-0 pr-16">
-            <p className="font-heading font-semibold text-sm leading-tight truncate">
+            <p className="font-heading font-semibold text-2xl leading-snug">
               {credential.name}
             </p>
-            <p className="text-xs text-muted-foreground truncate mt-0.5">
+            <p className="text-base text-muted-foreground truncate mt-1.5">
               {credential.issuer}
             </p>
           </div>
         </div>
 
-        {/* Status + Expiry */}
-        <div className="flex items-center justify-between text-xs">
-          <span
-            className={cn(
-              'flex items-center gap-1.5',
-              isExpired ? 'text-destructive' : 'text-muted-foreground',
-            )}
-          >
+        {/* Structured details */}
+        <div className="space-y-4 pt-2">
+          {/* Credential Status */}
+          <div>
+            <p className="text-sm font-medium uppercase tracking-wider text-muted-foreground/70 mb-1.5">
+              Credential Status
+            </p>
             <span
               className={cn(
-                'w-1.5 h-1.5 rounded-full',
-                credential.status === 'ACTIVE'
-                  ? 'bg-[var(--trust-green)]'
-                  : credential.status === 'PENDING'
-                    ? 'bg-[var(--trust-yellow)]'
-                    : isExpired
-                      ? 'bg-destructive'
-                      : 'bg-muted-foreground/50',
+                'flex items-center gap-2.5 text-lg font-medium',
+                isExpired ? 'text-destructive' : 'text-foreground',
               )}
-            />
-            {statusLabel}
-          </span>
-          {expiryFormatted && (
-            <span className="text-muted-foreground/70">
-              {isExpired ? 'Expired' : 'Exp.'} {expiryFormatted}
+            >
+              <span
+                className={cn(
+                  'w-2.5 h-2.5 rounded-full',
+                  credential.status === 'ACTIVE'
+                    ? 'bg-[var(--trust-green)]'
+                    : credential.status === 'PENDING'
+                      ? 'bg-[var(--trust-yellow)]'
+                      : isExpired
+                        ? 'bg-destructive'
+                        : 'bg-muted-foreground/50',
+                )}
+              />
+              {statusLabel}
             </span>
+          </div>
+
+          {/* Expiration */}
+          {expiryFormatted && (
+            <div>
+              <p className="text-sm font-medium uppercase tracking-wider text-muted-foreground/70 mb-1.5">
+                Expiration
+              </p>
+              <p className={cn('text-lg', isExpired ? 'text-destructive' : 'text-foreground')}>
+                {isExpired ? 'Expired' : 'Expires'} {expiryFormatted}
+              </p>
+            </div>
           )}
+
+          {/* Verification Level */}
+          <div>
+            <p className="text-sm font-medium uppercase tracking-wider text-muted-foreground/70 mb-1.5">
+              Verification Level
+            </p>
+            <p className="text-lg text-foreground">
+              {CLAIM_LEVEL_TEXT[credential.claimLevel] ?? credential.claimLevel}
+            </p>
+          </div>
         </div>
       </GlassCardContent>
     </GlassCard>
