@@ -7,13 +7,11 @@ import {
   Building2,
   CheckCircle,
   Clock,
-  DollarSign,
   FileCheck2,
   Lock,
   Shield,
   ShieldCheck,
   Stethoscope,
-  Users,
 } from 'lucide-react';
 import { NpiLookupInput } from '@/components/marketing/NpiLookupInput';
 
@@ -79,22 +77,34 @@ export default function HomePage() {
       {/* ──── Hero ─────────────────────────────────────── */}
       <section className="relative overflow-hidden pt-20 pb-24 px-6">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="font-fraunces text-5xl md:text-6xl font-semibold tracking-tight text-[var(--warm-charcoal)] leading-[1.1]">
-            Start Clinicians in Days,
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--warm-charcoal)]/10 text-xs font-semibold uppercase tracking-widest text-[var(--mist-blue)] mb-8 bg-[var(--mist-blue)]/5">
+            Infrastructure for Healthcare Credentialing
+          </div>
+          <h1 className="font-fraunces text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight text-[var(--warm-charcoal)] leading-[1.1]">
+            Verified Once.
             <br className="hidden sm:block" />
-            Not Months
+            Accepted Everywhere.
           </h1>
-          <p className="mt-6 text-lg text-[var(--warm-charcoal)]/70 max-w-xl mx-auto leading-relaxed">
-            Reusable trust infrastructure for healthcare credentialing.
-            Verify once, accept everywhere.
+          <p className="mt-6 text-lg md:text-xl text-[var(--warm-charcoal)]/70 max-w-2xl mx-auto leading-relaxed">
+            VitalCV generates audit-ready credential artifacts that eliminate redundant
+            primary source verification and reduce clinician onboarding from{' '}
+            <span className="font-semibold text-[var(--warm-charcoal)]">months to days.</span>
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button asChild size="lg" className="gap-2">
+            <Button asChild size="lg" className="gap-2 px-10 py-5 text-base">
               <Link href="/demo">
-                Explore Demo
+                Run Live Demo
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
+            <Button asChild variant="outline" size="lg" className="gap-2 px-10 py-5 text-base">
+              <Link href="/verifier">
+                For Employers
+                <Building2 className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+          <div className="mt-6">
             <NpiLookupInput />
           </div>
         </div>
@@ -211,24 +221,41 @@ export default function HomePage() {
           eyebrow="Measurable Impact"
           title="Credential Faster. Start Sooner."
         />
-        <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { icon: Clock, value: '< 7 days', label: 'Time to credential readiness', accent: 'text-[var(--trust-green)]' },
-            { icon: ShieldCheck, value: '99.7%', label: 'Audit confidence score', accent: 'text-[var(--trust-green)]' },
-            { icon: DollarSign, value: '62%', label: 'Reduction in credentialing cost', accent: 'text-[var(--mist-blue)]' },
-            { icon: Users, value: '40hrs', label: 'Saved per provider per cycle', accent: 'text-[var(--mist-blue)]' },
+            {
+              icon: Clock,
+              direction: '↓',
+              metric: 'Days-to-Start',
+              label: 'Accelerate clinician revenue activation',
+              accent: 'text-[var(--trust-green)]',
+            },
+            {
+              icon: ShieldCheck,
+              direction: '↓',
+              metric: 'Redundant PSV',
+              label: 'Eliminate repeated primary source cycles',
+              accent: 'text-[var(--trust-green)]',
+            },
+            {
+              icon: CheckCircle,
+              direction: '↑',
+              metric: 'Audit Confidence',
+              label: 'Deterministic, timestamped artifact bundles',
+              accent: 'text-[var(--mist-blue)]',
+            },
           ].map((item) => (
-            <GlassCard key={item.label} weight="heavy">
-              <GlassCardContent className="py-10 px-8 flex items-start gap-5">
-                <div className={`w-12 h-12 rounded-2xl bg-[var(--warm-charcoal)]/5 flex items-center justify-center ${item.accent} shrink-0`}>
+            <GlassCard key={item.metric}>
+              <GlassCardContent className="py-10 px-6 text-center">
+                <div className={`w-12 h-12 rounded-2xl bg-[var(--warm-charcoal)]/5 flex items-center justify-center ${item.accent} mx-auto mb-4`}>
                   <item.icon className="h-6 w-6" />
                 </div>
-                <div>
-                  <p className="font-fraunces text-3xl font-semibold text-[var(--warm-charcoal)]">
-                    {item.value}
-                  </p>
-                  <p className="mt-1 text-sm text-[var(--warm-charcoal)]/60">{item.label}</p>
-                </div>
+                <p className="font-fraunces text-2xl font-semibold text-[var(--warm-charcoal)]">
+                  {item.direction} {item.metric}
+                </p>
+                <p className="mt-2 text-sm text-[var(--warm-charcoal)]/60 leading-relaxed">
+                  {item.label}
+                </p>
               </GlassCardContent>
             </GlassCard>
           ))}
