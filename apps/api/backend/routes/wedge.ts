@@ -31,6 +31,11 @@ import {
 import prisma from '../src/graphql/prisma_client';
 import { apiKeyAuth } from '../src/middleware/publicSafety';
 import { validateRequest } from '../src/middleware/validateRequest';
+import {
+  hasUnresolvedIntakeConflicts,
+  intakeSummaryForTrustState,
+  intakeBlockingReasonMessages,
+} from '../../ingest';
 import { log } from '../src/obs/logger';
 
 function respondDomainError(res: Response, error: DomainError) {
@@ -373,6 +378,17 @@ export function registerWedgeRoutes(app: Express) {
           throw new DomainError('Acceptance blocked: Identity conflict detected', 'IDENTITY_CONFLICT');
         }
 
+        const revocationEvent = await prisma.auditEvent.findFirst({
+          where: {
+            type: 'RECOGNITION_REVOKED',
+            clinicianId: recognitionId,
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+        if (revocationEvent) {
+          throw new DomainError('Recognition has been revoked', 'RECOGNITION_REVOKED');
+        }
+
         const psvReportId = parseOptionalString(acceptanceInput.psvReportId);
         if (!psvReportId) {
           await emitRejectionAuditEvent({
@@ -622,7 +638,63 @@ export function registerWedgeRoutes(app: Express) {
           listStartsBySubject(subjectId),
         ]);
 
-        return res.json(subjectStatus({ recognitions, acceptances, starts }));
+        const domainStatus = subjectStatus({ recognitions, acceptances, starts });
+
+        // If domain tables have data, return that directly
+        if (domainStatus.recognized || domainStatus.accepted || domainStatus.started) {
+          return res.json(domainStatus);
+        }
+
+        // Fall back to canonical event replay from auditEvent store
+        const canonicalTypes = [
+          'RECOGNITION_EMITTED',
+          'ACCEPTANCE_EMITTED',
+          'START_EMITTED',
+          'RECOGNITION_REVOKED',
+        ];
+        const canonicalEvents = await prisma.auditEvent.findMany({
+          where: { type: { in: canonicalTypes } },
+        });
+
+        const subjectEvents = canonicalEvents.filter((e) => {
+          const meta = (e.metadata ?? {}) as Record<string, unknown>;
+          return meta.subjectDid === subjectId;
+        });
+
+        if (subjectEvents.length === 0) {
+          return res.json(domainStatus);
+        }
+
+        const hasRecognition = subjectEvents.some((e) => e.type === 'RECOGNITION_EMITTED');
+        const hasAcceptance = subjectEvents.some((e) => e.type === 'ACCEPTANCE_EMITTED');
+        const hasStart = subjectEvents.some((e) => e.type === 'START_EMITTED');
+
+        let status = 'unknown';
+        if (hasStart) status = 'started';
+        else if (hasAcceptance) status = 'accepted';
+        else if (hasRecognition) status = 'recognized';
+
+        // Compute deterministic replay hash from sorted individual event hashes
+        const eventHashes = subjectEvents
+          .map((e) => {
+            const meta = (e.metadata ?? {}) as Record<string, unknown>;
+            return (meta.eventHash as string) || '';
+          })
+          .filter(Boolean)
+          .sort();
+
+        const eventReplayHash = crypto
+          .createHash('sha256')
+          .update(eventHashes.join(':'))
+          .digest('hex');
+
+        return res.json({
+          recognized: hasRecognition,
+          accepted: hasAcceptance,
+          started: hasStart,
+          status,
+          eventReplayHash,
+        });
       } catch (error) {
         if (error instanceof DomainError) return respondDomainError(res, error);
         log('error', 'Unable to load subject status', {
@@ -722,6 +794,10 @@ export function registerWedgeRoutes(app: Express) {
           blocking_reasons.push('NO_ACTIVE_LICENSE');
         }
 
+        if (hasUnresolvedIntakeConflicts(clinicianId)) {
+          blocking_reasons.push('IDENTITY_CONFLICT');
+        }
+
         if (simulateDecay) {
           blocking_reasons.push('VERIFICATION_EXPIRED', 'EXPIRED_PSV');
           crs.score = 40;
@@ -744,6 +820,9 @@ export function registerWedgeRoutes(app: Express) {
 
         const dedupedBlockingReasons = [...new Set(blocking_reasons)];
         const start_ready = dedupedBlockingReasons.length === 0 && status.accepted && !status.started;
+
+        const intake_summary = intakeSummaryForTrustState(clinicianId);
+        const blocking_reason_messages = intakeBlockingReasonMessages(clinicianId, dedupedBlockingReasons);
 
         const timeline_preview: Array<{
           id: string;
@@ -833,6 +912,8 @@ export function registerWedgeRoutes(app: Express) {
           start_ready,
           crs,
           blocking_reasons: dedupedBlockingReasons,
+          blocking_reason_messages,
+          intake_summary,
           timeline_preview: timeline_preview.slice(0, 5),
           acceptanceDetails: currentAcceptance
             ? {

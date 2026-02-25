@@ -2612,9 +2612,12 @@ function registerPilotRoutes(app: Express): void {
         status,
         verifiedAt: artifact.verifiedAt.toISOString(),
         expiresAt: artifact.expiresAt?.toISOString() ?? null,
-        monitoring: monitoringStatus,
+        monitoring: isFirstView ? 'pending verifier confirmation' : monitoringStatus,
         checksum: artifact.checksum,
         crossCheckEligible: true,
+        signature: `rev-${artifact.checksum}`,
+        hash: artifact.checksum,
+        timestamp: artifact.verifiedAt.toISOString(),
       });
     } catch (error) {
       log('error', 'verify_share_error', {
