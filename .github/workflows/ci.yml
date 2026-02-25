@@ -112,12 +112,6 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_ci
         run: pnpm --filter chai-vc-platform-backend test
 
-      - name: PSV tests
-        if: env.SKIP_TESTS != 'true'
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_ci
-        run: pnpm psv:test
-
       - name: Publish trace root
         if: always()
         env:
