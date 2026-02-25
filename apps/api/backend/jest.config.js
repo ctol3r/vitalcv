@@ -2,6 +2,9 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   testMatch: ['**/__tests__/**/*.ts'],
+  // Run sequentially — test files share a PostgreSQL database and use
+  // unscoped deleteMany() in beforeEach, causing race conditions in parallel.
+  maxWorkers: 1,
   setupFiles: ['./jest.setup.ts'],
   transformIgnorePatterns: [
     '<rootDir>/.*node_modules/(?!.*jose)',
