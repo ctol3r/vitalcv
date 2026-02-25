@@ -456,25 +456,29 @@ export function registerWedgeRoutes(app: Express) {
 
         // Canonical event fallback: look for ACCEPTANCE_EMITTED in audit store
         if (!acceptance) {
-          const canonicalAcceptance = await prisma.auditEvent.findFirst({
-            where: { type: 'ACCEPTANCE_EMITTED', clinicianId: acceptanceId },
+          const acceptanceEvents = await prisma.auditEvent.findMany({
+            where: { type: 'ACCEPTANCE_EMITTED' },
             orderBy: { createdAt: 'desc' },
           });
-          if (canonicalAcceptance) {
-            const meta = (canonicalAcceptance.metadata ?? {}) as Record<string, unknown>;
+          for (const evt of acceptanceEvents) {
+            const meta = (evt.metadata ?? {}) as Record<string, unknown>;
             const payload = (meta.payload ?? meta) as Record<string, unknown>;
-            const recognitionId = String(payload.recognitionId ?? '');
-            if (recognitionId) {
-              // Construct a lightweight acceptance from canonical data
-              acceptance = new EmployerAcceptance({
-                acceptanceId: String(payload.acceptanceId ?? acceptanceId),
-                recognitionId,
-                subjectId: String(payload.practitionerDid ?? payload.subjectId ?? ''),
-                employerId: String(payload.employerDid ?? payload.employerId ?? ''),
-                facilityId: String(payload.facilityId ?? 'unknown'),
-                acceptedAt: String(payload.acceptedAt ?? ''),
-                psvReportId: String(payload.psvReportId ?? 'canonical-replay'),
-              });
+            const evtAccId = String(payload.acceptanceId ?? evt.clinicianId ?? '');
+            if (evtAccId === acceptanceId || evt.clinicianId === acceptanceId) {
+              const recId = String(payload.recognitionId ?? meta.recognitionId ?? '');
+              if (recId) {
+                // Use Object.assign to bypass constructor validation for canonical replay
+                acceptance = Object.assign(Object.create(EmployerAcceptance.prototype), {
+                  acceptanceId: evtAccId || acceptanceId,
+                  recognitionId: recId,
+                  subjectId: String(payload.practitionerDid ?? payload.subjectId ?? meta.subjectDid ?? ''),
+                  employerId: String(payload.employerDid ?? payload.employerId ?? ''),
+                  facilityId: String(payload.facilityId ?? 'unknown'),
+                  acceptedAt: String(payload.acceptedAt ?? ''),
+                  psvReportId: String(payload.psvReportId ?? 'canonical-replay'),
+                }) as EmployerAcceptance;
+                break;
+              }
             }
           }
         }
@@ -487,24 +491,30 @@ export function registerWedgeRoutes(app: Express) {
 
         // Canonical event fallback for recognition
         if (!recognition) {
-          const canonicalRecognition = await prisma.auditEvent.findFirst({
-            where: { type: 'RECOGNITION_EMITTED', clinicianId: acceptance.recognitionId },
+          const recognitionEvents = await prisma.auditEvent.findMany({
+            where: { type: 'RECOGNITION_EMITTED' },
             orderBy: { createdAt: 'desc' },
           });
-          if (canonicalRecognition) {
-            const meta = (canonicalRecognition.metadata ?? {}) as Record<string, unknown>;
+          for (const evt of recognitionEvents) {
+            const meta = (evt.metadata ?? {}) as Record<string, unknown>;
             const payload = (meta.payload ?? meta) as Record<string, unknown>;
-            recognition = new RecognitionEvent({
-              recognitionId: String(payload.recognitionId ?? acceptance.recognitionId),
-              subjectId: String(payload.practitionerDid ?? payload.subjectId ?? ''),
-              employerId: String(payload.employerDid ?? payload.employerId ?? ''),
-              recognizedAt: String(payload.recognizedAt ?? ''),
-              verification: {
-                verifiedAt: String((payload.verification as Record<string, unknown>)?.verifiedAt ?? ''),
-                verificationRef: String((payload.verification as Record<string, unknown>)?.verificationRef ?? ''),
-              },
-              expiresAt: payload.expiresAt === null || payload.expiresAt === undefined ? null : String(payload.expiresAt),
-            });
+            const evtRecId = String(payload.recognitionId ?? evt.clinicianId ?? '');
+            if (evtRecId === acceptance.recognitionId || evt.clinicianId === acceptance.recognitionId) {
+              const verification = (payload.verification ?? {}) as Record<string, unknown>;
+              recognition = Object.assign(Object.create(RecognitionEvent.prototype), {
+                recognitionId: evtRecId || acceptance.recognitionId,
+                subjectId: String(payload.practitionerDid ?? payload.subjectId ?? meta.subjectDid ?? ''),
+                employerId: String(payload.employerDid ?? payload.employerId ?? ''),
+                recognizedAt: String(payload.recognizedAt ?? ''),
+                verification: Object.freeze({
+                  verifiedAt: String(verification.verifiedAt ?? ''),
+                  verificationRef: String(verification.verificationRef ?? ''),
+                }),
+                expiresAt: payload.expiresAt === null || payload.expiresAt === undefined ? null : String(payload.expiresAt),
+                revocation: null,
+              }) as RecognitionEvent;
+              break;
+            }
           }
         }
 
@@ -663,20 +673,7 @@ export function registerWedgeRoutes(app: Express) {
           throw new DomainError('subject_id is required', 'MISSING_FIELD');
         }
 
-        const [recognitions, acceptances, starts] = await Promise.all([
-          listRecognitionsBySubject(subjectId),
-          listAcceptancesBySubject(subjectId),
-          listStartsBySubject(subjectId),
-        ]);
-
-        const domainStatus = subjectStatus({ recognitions, acceptances, starts });
-
-        // If domain tables have data, return that directly
-        if (domainStatus.recognized || domainStatus.accepted || domainStatus.started) {
-          return res.json(domainStatus);
-        }
-
-        // Fall back to canonical event replay from auditEvent store
+        // Check canonical event store first (authoritative source of truth)
         const canonicalTypes = [
           'RECOGNITION_EMITTED',
           'ACCEPTANCE_EMITTED',
@@ -692,40 +689,52 @@ export function registerWedgeRoutes(app: Express) {
           return meta.subjectDid === subjectId;
         });
 
-        if (subjectEvents.length === 0) {
-          return res.json(domainStatus);
+        if (subjectEvents.length > 0) {
+          const hasRecognition = subjectEvents.some((e) => e.type === 'RECOGNITION_EMITTED');
+          const hasAcceptance = subjectEvents.some((e) => e.type === 'ACCEPTANCE_EMITTED');
+          const hasStart = subjectEvents.some((e) => e.type === 'START_EMITTED');
+
+          let status = 'unknown';
+          if (hasStart) status = 'started';
+          else if (hasAcceptance) status = 'accepted';
+          else if (hasRecognition) status = 'recognized';
+
+          const eventHashes = subjectEvents
+            .map((e) => {
+              const meta = (e.metadata ?? {}) as Record<string, unknown>;
+              return (meta.eventHash as string) || '';
+            })
+            .filter(Boolean)
+            .sort();
+
+          const eventReplayHash = crypto
+            .createHash('sha256')
+            .update(eventHashes.join(':'))
+            .digest('hex');
+
+          return res.json({
+            recognized: hasRecognition,
+            accepted: hasAcceptance,
+            started: hasStart,
+            status,
+            eventReplayHash,
+          });
         }
 
-        const hasRecognition = subjectEvents.some((e) => e.type === 'RECOGNITION_EMITTED');
-        const hasAcceptance = subjectEvents.some((e) => e.type === 'ACCEPTANCE_EMITTED');
-        const hasStart = subjectEvents.some((e) => e.type === 'START_EMITTED');
+        // Fall back to domain tables
+        const [recognitions, acceptances, starts] = await Promise.all([
+          listRecognitionsBySubject(subjectId),
+          listAcceptancesBySubject(subjectId),
+          listStartsBySubject(subjectId),
+        ]);
 
+        const domainStatus = subjectStatus({ recognitions, acceptances, starts });
         let status = 'unknown';
-        if (hasStart) status = 'started';
-        else if (hasAcceptance) status = 'accepted';
-        else if (hasRecognition) status = 'recognized';
+        if (domainStatus.started) status = 'started';
+        else if (domainStatus.accepted) status = 'accepted';
+        else if (domainStatus.recognized) status = 'recognized';
 
-        // Compute deterministic replay hash from sorted individual event hashes
-        const eventHashes = subjectEvents
-          .map((e) => {
-            const meta = (e.metadata ?? {}) as Record<string, unknown>;
-            return (meta.eventHash as string) || '';
-          })
-          .filter(Boolean)
-          .sort();
-
-        const eventReplayHash = crypto
-          .createHash('sha256')
-          .update(eventHashes.join(':'))
-          .digest('hex');
-
-        return res.json({
-          recognized: hasRecognition,
-          accepted: hasAcceptance,
-          started: hasStart,
-          status,
-          eventReplayHash,
-        });
+        return res.json({ ...domainStatus, status });
       } catch (error) {
         if (error instanceof DomainError) return respondDomainError(res, error);
         log('error', 'Unable to load subject status', {
