@@ -8,6 +8,41 @@ datasource db {
 }
 
 // ──────────────────────────────────────────────────────────────
+// Auth & RBAC: User identity linked to Clerk
+// ──────────────────────────────────────────────────────────────
+
+enum UserRole {
+  CLINICIAN
+  VERIFIER
+  ISSUER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  DEACTIVATED
+}
+
+model User {
+  id             String     @id @default(uuid()) @db.Uuid
+  clerkUserId    String     @unique
+  email          String     @unique
+  role           UserRole   @default(CLINICIAN)
+  roleVersion    Int        @default(1)
+  status         UserStatus @default(INVITED)
+  organizationId String?    @db.Uuid
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([clerkUserId])
+  @@index([organizationId])
+  @@index([role])
+  @@index([status])
+}
+
+// ──────────────────────────────────────────────────────────────
 // Canonical Path: Recognition → Acceptance → Start
 // ──────────────────────────────────────────────────────────────
 
