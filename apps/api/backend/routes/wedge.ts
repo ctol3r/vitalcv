@@ -758,6 +758,25 @@ export function registerWedgeRoutes(app: Express) {
            return res.status(400).json({ error: 'clinician_id query parameter is required' });
         }
 
+        // Demo mode: return mock trust-state without hitting DB/Neo4j.
+        if (process.env.YC_DEMO_MODE === 'true' || process.env.YC_DEMO_MODE === '1') {
+          return res.json({
+            recognized: true,
+            accepted: true,
+            started: false,
+            start_ready: true,
+            crs: { score: 0.82, band: 'GREEN', factors: {} },
+            blocking_reasons: [],
+            blocking_reason_messages: [],
+            intake_summary: null,
+            timeline_preview: [],
+            acceptanceDetails: employerId
+              ? { employerId, facilityId: null, role: 'Unspecified', acceptedAt: new Date().toISOString() }
+              : null,
+            clinician_id: clinicianId,
+          });
+        }
+
         const [recognitions, allAcceptances, starts] = await Promise.all([
           listRecognitionsBySubject(clinicianId),
           listAcceptancesBySubject(clinicianId),
