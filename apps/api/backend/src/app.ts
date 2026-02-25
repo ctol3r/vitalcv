@@ -10,6 +10,7 @@ import { env, getProductionEnvCheck } from './config/env';
 import { emitVerificationAuditEvent } from '../../verification/audit';
 import { registerIngestRoutes } from '../../routes/ingest';
 import { registerWedgeRoutes } from '../routes/wedge';
+import { registerPublicMetricsRoutes } from './routes/publicMetrics';
 import { errorHandler } from './middleware/errorHandler';
 import { apiKeyAuth, trustStateRateLimit, publicApiRateLimit } from './middleware/publicSafety';
 import { proofRateLimit, credentialStatusRateLimit, walletRateLimit } from './middleware/rateLimitFactory';
@@ -367,6 +368,7 @@ function shouldSkipTenantContext(pathname: string): boolean {
   return (
     normalizedPath === '/' ||
     normalizedPath === '/health' ||
+    normalizedPath === '/metrics/public' ||
     normalizedPath === '/readyz' ||
     normalizedPath === '/verifier' ||
     normalizedPath === '/verify' ||
@@ -3428,6 +3430,7 @@ app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 
   // Routes
   registerHealthRoutes(app);
+  registerPublicMetricsRoutes(app);
   registerIngestRoutes(app);
   registerLookupRoutes(app);
   registerVerificationRoutes(app);
