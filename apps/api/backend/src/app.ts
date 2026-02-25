@@ -2608,7 +2608,7 @@ function registerPilotRoutes(app: Express): void {
 
       return res.status(200).json({
         trustState,
-        source: artifact.source,
+        source: `NPI:${updated.npi}`,
         status,
         verifiedAt: artifact.verifiedAt.toISOString(),
         expiresAt: artifact.expiresAt?.toISOString() ?? null,
