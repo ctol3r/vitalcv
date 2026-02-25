@@ -175,6 +175,10 @@ function createStart(
 }
 
 beforeEach(async () => {
+  // Clean domain tables in FK order (Start → Acceptance → Recognition) before audit events
+  await prisma.start.deleteMany();
+  await prisma.acceptance.deleteMany();
+  await prisma.recognition.deleteMany();
   await prisma.auditEvent.deleteMany();
 });
 

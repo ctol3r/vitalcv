@@ -31,6 +31,11 @@ import {
 import prisma from '../src/graphql/prisma_client';
 import { apiKeyAuth } from '../src/middleware/publicSafety';
 import { validateRequest } from '../src/middleware/validateRequest';
+import {
+  hasUnresolvedIntakeConflicts,
+  intakeSummaryForTrustState,
+  intakeBlockingReasonMessages,
+} from '../../ingest';
 import { log } from '../src/obs/logger';
 
 function respondDomainError(res: Response, error: DomainError) {
@@ -259,13 +264,6 @@ export function registerWedgeRoutes(app: Express) {
           'recognition',
         );
 
-        if ('recognitionId' in recognitionInput) {
-          throw new DomainError(
-            'recognitionId is generated and must not be provided',
-            'ID_PROVIDED',
-          );
-        }
-
         if ('revocation' in recognitionInput && recognitionInput.revocation) {
           throw new DomainError(
             'revocation must not be provided on recognition creation',
@@ -273,25 +271,24 @@ export function registerWedgeRoutes(app: Express) {
           );
         }
 
-        if (!('expiresAt' in recognitionInput)) {
-          throw new DomainError('expiresAt is required (use null for no expiry)', 'MISSING_FIELD');
-        }
-
         const verification = parseObjectField(
           recognitionInput.verification,
           'recognition.verification',
         );
 
+        // Accept both canonical (practitionerDid/employerDid) and domain (subjectId/employerId) field names
         const recognition = new RecognitionEvent({
-          subjectId: String(recognitionInput.subjectId ?? ''),
-          employerId: String(recognitionInput.employerId ?? ''),
+          recognitionId: recognitionInput.recognitionId ? String(recognitionInput.recognitionId) : undefined,
+          subjectId: String(recognitionInput.practitionerDid ?? recognitionInput.subjectId ?? ''),
+          employerId: String(recognitionInput.employerDid ?? recognitionInput.employerId ?? ''),
           recognizedAt: String(recognitionInput.recognizedAt ?? ''),
           verification: {
             verifiedAt: String(verification.verifiedAt ?? ''),
             verificationRef: String(verification.verificationRef ?? ''),
           },
-          expiresAt:
-            recognitionInput.expiresAt === null ? null : String(recognitionInput.expiresAt ?? ''),
+          expiresAt: 'expiresAt' in recognitionInput
+            ? (recognitionInput.expiresAt === null ? null : String(recognitionInput.expiresAt ?? ''))
+            : null,
           revocation: null,
         });
 
@@ -345,13 +342,6 @@ export function registerWedgeRoutes(app: Express) {
           'acceptance',
         );
 
-        if ('acceptanceId' in acceptanceInput) {
-          throw new DomainError(
-            'acceptanceId is generated and must not be provided',
-            'ID_PROVIDED',
-          );
-        }
-
         const recognitionId = String(acceptanceInput.recognitionId ?? '').trim();
         if (!recognitionId) {
           throw new DomainError('acceptance.recognitionId is required', 'MISSING_FIELD');
@@ -371,6 +361,17 @@ export function registerWedgeRoutes(app: Express) {
         });
         if (unresolvedConflict) {
           throw new DomainError('Acceptance blocked: Identity conflict detected', 'IDENTITY_CONFLICT');
+        }
+
+        const revocationEvent = await prisma.auditEvent.findFirst({
+          where: {
+            type: 'RECOGNITION_REVOKED',
+            clinicianId: recognitionId,
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+        if (revocationEvent) {
+          throw new DomainError('Recognition has been revoked', 'RECOGNITION_REVOKED');
         }
 
         const psvReportId = parseOptionalString(acceptanceInput.psvReportId);
@@ -446,21 +447,77 @@ export function registerWedgeRoutes(app: Express) {
       try {
         const startInput = parseObjectField((req.body as { start?: unknown }).start, 'start');
 
-        if ('startId' in startInput) {
-          throw new DomainError('startId is generated and must not be provided', 'ID_PROVIDED');
-        }
-
         const acceptanceId = String(startInput.acceptanceId ?? '').trim();
         if (!acceptanceId) {
           throw new DomainError('start.acceptanceId is required', 'MISSING_FIELD');
         }
 
-        const acceptance = await getAcceptanceById(acceptanceId);
+        let acceptance = await getAcceptanceById(acceptanceId);
+
+        // Canonical event fallback: look for ACCEPTANCE_EMITTED in audit store
+        if (!acceptance) {
+          const acceptanceEvents = await prisma.auditEvent.findMany({
+            where: { type: 'ACCEPTANCE_EMITTED' },
+            orderBy: { createdAt: 'desc' },
+          });
+          for (const evt of acceptanceEvents) {
+            const meta = (evt.metadata ?? {}) as Record<string, unknown>;
+            const payload = (meta.payload ?? meta) as Record<string, unknown>;
+            const evtAccId = String(payload.acceptanceId ?? evt.clinicianId ?? '');
+            if (evtAccId === acceptanceId || evt.clinicianId === acceptanceId) {
+              const recId = String(payload.recognitionId ?? meta.recognitionId ?? '');
+              if (recId) {
+                // Use Object.assign to bypass constructor validation for canonical replay
+                acceptance = Object.assign(Object.create(EmployerAcceptance.prototype), {
+                  acceptanceId: evtAccId || acceptanceId,
+                  recognitionId: recId,
+                  subjectId: String(payload.practitionerDid ?? payload.subjectId ?? meta.subjectDid ?? ''),
+                  employerId: String(payload.employerDid ?? payload.employerId ?? ''),
+                  facilityId: String(payload.facilityId ?? 'unknown'),
+                  acceptedAt: String(payload.acceptedAt ?? ''),
+                  psvReportId: String(payload.psvReportId ?? 'canonical-replay'),
+                }) as EmployerAcceptance;
+                break;
+              }
+            }
+          }
+        }
+
         if (!acceptance) {
           return res.status(404).json({ error: 'EmployerAcceptance not found', acceptanceId });
         }
 
-        const recognition = await getRecognitionById(acceptance.recognitionId);
+        let recognition = await getRecognitionById(acceptance.recognitionId);
+
+        // Canonical event fallback for recognition
+        if (!recognition) {
+          const recognitionEvents = await prisma.auditEvent.findMany({
+            where: { type: 'RECOGNITION_EMITTED' },
+            orderBy: { createdAt: 'desc' },
+          });
+          for (const evt of recognitionEvents) {
+            const meta = (evt.metadata ?? {}) as Record<string, unknown>;
+            const payload = (meta.payload ?? meta) as Record<string, unknown>;
+            const evtRecId = String(payload.recognitionId ?? evt.clinicianId ?? '');
+            if (evtRecId === acceptance.recognitionId || evt.clinicianId === acceptance.recognitionId) {
+              const verification = (payload.verification ?? {}) as Record<string, unknown>;
+              recognition = Object.assign(Object.create(RecognitionEvent.prototype), {
+                recognitionId: evtRecId || acceptance.recognitionId,
+                subjectId: String(payload.practitionerDid ?? payload.subjectId ?? meta.subjectDid ?? ''),
+                employerId: String(payload.employerDid ?? payload.employerId ?? ''),
+                recognizedAt: String(payload.recognizedAt ?? ''),
+                verification: Object.freeze({
+                  verifiedAt: String(verification.verifiedAt ?? ''),
+                  verificationRef: String(verification.verificationRef ?? ''),
+                }),
+                expiresAt: payload.expiresAt === null || payload.expiresAt === undefined ? null : String(payload.expiresAt),
+                revocation: null,
+              }) as RecognitionEvent;
+              break;
+            }
+          }
+        }
+
         if (!recognition) {
           return res.status(404).json({
             error: 'RecognitionEvent not found',
@@ -616,13 +673,68 @@ export function registerWedgeRoutes(app: Express) {
           throw new DomainError('subject_id is required', 'MISSING_FIELD');
         }
 
+        // Check canonical event store first (authoritative source of truth)
+        const canonicalTypes = [
+          'RECOGNITION_EMITTED',
+          'ACCEPTANCE_EMITTED',
+          'START_EMITTED',
+          'RECOGNITION_REVOKED',
+        ];
+        const canonicalEvents = await prisma.auditEvent.findMany({
+          where: { type: { in: canonicalTypes } },
+        });
+
+        const subjectEvents = canonicalEvents.filter((e) => {
+          const meta = (e.metadata ?? {}) as Record<string, unknown>;
+          return meta.subjectDid === subjectId;
+        });
+
+        if (subjectEvents.length > 0) {
+          const hasRecognition = subjectEvents.some((e) => e.type === 'RECOGNITION_EMITTED');
+          const hasAcceptance = subjectEvents.some((e) => e.type === 'ACCEPTANCE_EMITTED');
+          const hasStart = subjectEvents.some((e) => e.type === 'START_EMITTED');
+
+          let status = 'unknown';
+          if (hasStart) status = 'started';
+          else if (hasAcceptance) status = 'accepted';
+          else if (hasRecognition) status = 'recognized';
+
+          const eventHashes = subjectEvents
+            .map((e) => {
+              const meta = (e.metadata ?? {}) as Record<string, unknown>;
+              return (meta.eventHash as string) || '';
+            })
+            .filter(Boolean)
+            .sort();
+
+          const eventReplayHash = crypto
+            .createHash('sha256')
+            .update(eventHashes.join(':'))
+            .digest('hex');
+
+          return res.json({
+            recognized: hasRecognition,
+            accepted: hasAcceptance,
+            started: hasStart,
+            status,
+            eventReplayHash,
+          });
+        }
+
+        // Fall back to domain tables
         const [recognitions, acceptances, starts] = await Promise.all([
           listRecognitionsBySubject(subjectId),
           listAcceptancesBySubject(subjectId),
           listStartsBySubject(subjectId),
         ]);
 
-        return res.json(subjectStatus({ recognitions, acceptances, starts }));
+        const domainStatus = subjectStatus({ recognitions, acceptances, starts });
+        let status = 'unknown';
+        if (domainStatus.started) status = 'started';
+        else if (domainStatus.accepted) status = 'accepted';
+        else if (domainStatus.recognized) status = 'recognized';
+
+        return res.json({ ...domainStatus, status });
       } catch (error) {
         if (error instanceof DomainError) return respondDomainError(res, error);
         log('error', 'Unable to load subject status', {
@@ -644,6 +756,25 @@ export function registerWedgeRoutes(app: Express) {
 
         if (!clinicianId) {
            return res.status(400).json({ error: 'clinician_id query parameter is required' });
+        }
+
+        // Demo mode: return mock trust-state without hitting DB/Neo4j.
+        if (process.env.YC_DEMO_MODE === 'true' || process.env.YC_DEMO_MODE === '1') {
+          return res.json({
+            recognized: true,
+            accepted: true,
+            started: false,
+            start_ready: true,
+            crs: { score: 0.82, band: 'GREEN', factors: {} },
+            blocking_reasons: [],
+            blocking_reason_messages: [],
+            intake_summary: null,
+            timeline_preview: [],
+            acceptanceDetails: employerId
+              ? { employerId, facilityId: null, role: 'Unspecified', acceptedAt: new Date().toISOString() }
+              : null,
+            clinician_id: clinicianId,
+          });
         }
 
         const [recognitions, allAcceptances, starts] = await Promise.all([
@@ -722,6 +853,10 @@ export function registerWedgeRoutes(app: Express) {
           blocking_reasons.push('NO_ACTIVE_LICENSE');
         }
 
+        if (hasUnresolvedIntakeConflicts(clinicianId)) {
+          blocking_reasons.push('IDENTITY_CONFLICT');
+        }
+
         if (simulateDecay) {
           blocking_reasons.push('VERIFICATION_EXPIRED', 'EXPIRED_PSV');
           crs.score = 40;
@@ -744,6 +879,9 @@ export function registerWedgeRoutes(app: Express) {
 
         const dedupedBlockingReasons = [...new Set(blocking_reasons)];
         const start_ready = dedupedBlockingReasons.length === 0 && status.accepted && !status.started;
+
+        const intake_summary = intakeSummaryForTrustState(clinicianId);
+        const blocking_reason_messages = intakeBlockingReasonMessages(clinicianId, dedupedBlockingReasons);
 
         const timeline_preview: Array<{
           id: string;
@@ -833,6 +971,8 @@ export function registerWedgeRoutes(app: Express) {
           start_ready,
           crs,
           blocking_reasons: dedupedBlockingReasons,
+          blocking_reason_messages,
+          intake_summary,
           timeline_preview: timeline_preview.slice(0, 5),
           acceptanceDetails: currentAcceptance
             ? {
