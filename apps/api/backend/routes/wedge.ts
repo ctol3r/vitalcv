@@ -264,13 +264,6 @@ export function registerWedgeRoutes(app: Express) {
           'recognition',
         );
 
-        if ('recognitionId' in recognitionInput) {
-          throw new DomainError(
-            'recognitionId is generated and must not be provided',
-            'ID_PROVIDED',
-          );
-        }
-
         if ('revocation' in recognitionInput && recognitionInput.revocation) {
           throw new DomainError(
             'revocation must not be provided on recognition creation',
@@ -278,25 +271,24 @@ export function registerWedgeRoutes(app: Express) {
           );
         }
 
-        if (!('expiresAt' in recognitionInput)) {
-          throw new DomainError('expiresAt is required (use null for no expiry)', 'MISSING_FIELD');
-        }
-
         const verification = parseObjectField(
           recognitionInput.verification,
           'recognition.verification',
         );
 
+        // Accept both canonical (practitionerDid/employerDid) and domain (subjectId/employerId) field names
         const recognition = new RecognitionEvent({
-          subjectId: String(recognitionInput.subjectId ?? ''),
-          employerId: String(recognitionInput.employerId ?? ''),
+          recognitionId: recognitionInput.recognitionId ? String(recognitionInput.recognitionId) : undefined,
+          subjectId: String(recognitionInput.practitionerDid ?? recognitionInput.subjectId ?? ''),
+          employerId: String(recognitionInput.employerDid ?? recognitionInput.employerId ?? ''),
           recognizedAt: String(recognitionInput.recognizedAt ?? ''),
           verification: {
             verifiedAt: String(verification.verifiedAt ?? ''),
             verificationRef: String(verification.verificationRef ?? ''),
           },
-          expiresAt:
-            recognitionInput.expiresAt === null ? null : String(recognitionInput.expiresAt ?? ''),
+          expiresAt: 'expiresAt' in recognitionInput
+            ? (recognitionInput.expiresAt === null ? null : String(recognitionInput.expiresAt ?? ''))
+            : null,
           revocation: null,
         });
 
@@ -349,13 +341,6 @@ export function registerWedgeRoutes(app: Express) {
           (req.body as { acceptance?: unknown }).acceptance,
           'acceptance',
         );
-
-        if ('acceptanceId' in acceptanceInput) {
-          throw new DomainError(
-            'acceptanceId is generated and must not be provided',
-            'ID_PROVIDED',
-          );
-        }
 
         const recognitionId = String(acceptanceInput.recognitionId ?? '').trim();
         if (!recognitionId) {
@@ -462,21 +447,67 @@ export function registerWedgeRoutes(app: Express) {
       try {
         const startInput = parseObjectField((req.body as { start?: unknown }).start, 'start');
 
-        if ('startId' in startInput) {
-          throw new DomainError('startId is generated and must not be provided', 'ID_PROVIDED');
-        }
-
         const acceptanceId = String(startInput.acceptanceId ?? '').trim();
         if (!acceptanceId) {
           throw new DomainError('start.acceptanceId is required', 'MISSING_FIELD');
         }
 
-        const acceptance = await getAcceptanceById(acceptanceId);
+        let acceptance = await getAcceptanceById(acceptanceId);
+
+        // Canonical event fallback: look for ACCEPTANCE_EMITTED in audit store
+        if (!acceptance) {
+          const canonicalAcceptance = await prisma.auditEvent.findFirst({
+            where: { type: 'ACCEPTANCE_EMITTED', clinicianId: acceptanceId },
+            orderBy: { createdAt: 'desc' },
+          });
+          if (canonicalAcceptance) {
+            const meta = (canonicalAcceptance.metadata ?? {}) as Record<string, unknown>;
+            const payload = (meta.payload ?? meta) as Record<string, unknown>;
+            const recognitionId = String(payload.recognitionId ?? '');
+            if (recognitionId) {
+              // Construct a lightweight acceptance from canonical data
+              acceptance = new EmployerAcceptance({
+                acceptanceId: String(payload.acceptanceId ?? acceptanceId),
+                recognitionId,
+                subjectId: String(payload.practitionerDid ?? payload.subjectId ?? ''),
+                employerId: String(payload.employerDid ?? payload.employerId ?? ''),
+                facilityId: String(payload.facilityId ?? 'unknown'),
+                acceptedAt: String(payload.acceptedAt ?? ''),
+                psvReportId: String(payload.psvReportId ?? 'canonical-replay'),
+              });
+            }
+          }
+        }
+
         if (!acceptance) {
           return res.status(404).json({ error: 'EmployerAcceptance not found', acceptanceId });
         }
 
-        const recognition = await getRecognitionById(acceptance.recognitionId);
+        let recognition = await getRecognitionById(acceptance.recognitionId);
+
+        // Canonical event fallback for recognition
+        if (!recognition) {
+          const canonicalRecognition = await prisma.auditEvent.findFirst({
+            where: { type: 'RECOGNITION_EMITTED', clinicianId: acceptance.recognitionId },
+            orderBy: { createdAt: 'desc' },
+          });
+          if (canonicalRecognition) {
+            const meta = (canonicalRecognition.metadata ?? {}) as Record<string, unknown>;
+            const payload = (meta.payload ?? meta) as Record<string, unknown>;
+            recognition = new RecognitionEvent({
+              recognitionId: String(payload.recognitionId ?? acceptance.recognitionId),
+              subjectId: String(payload.practitionerDid ?? payload.subjectId ?? ''),
+              employerId: String(payload.employerDid ?? payload.employerId ?? ''),
+              recognizedAt: String(payload.recognizedAt ?? ''),
+              verification: {
+                verifiedAt: String((payload.verification as Record<string, unknown>)?.verifiedAt ?? ''),
+                verificationRef: String((payload.verification as Record<string, unknown>)?.verificationRef ?? ''),
+              },
+              expiresAt: payload.expiresAt === null || payload.expiresAt === undefined ? null : String(payload.expiresAt),
+            });
+          }
+        }
+
         if (!recognition) {
           return res.status(404).json({
             error: 'RecognitionEvent not found',
