@@ -203,8 +203,13 @@ describe('tampered artifact fails verification', () => {
   it('flipped signature byte produces invalid result', async () => {
     const { artifact } = await buildPsvArtifact(makePayload(), signArtifact);
     const parts = artifact.integrity.signature.split('.');
-    const lastChar = parts[2].slice(-1);
-    const flipped = parts[2].slice(0, -1) + (lastChar === 'A' ? 'B' : 'A');
+    // Flip a byte near the middle of the signature to guarantee we mutate
+    // actual signature data, not just base64 padding bits at the tail.
+    const sig = parts[2];
+    const mid = Math.floor(sig.length / 2);
+    const midChar = sig[mid];
+    const replacement = midChar === 'A' ? 'B' : 'A';
+    const flipped = sig.slice(0, mid) + replacement + sig.slice(mid + 1);
     const tampered = `${parts[0]}.${parts[1]}.${flipped}`;
     const { valid } = verifySignature(tampered);
     expect(valid).toBe(false);

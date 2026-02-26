@@ -77,8 +77,14 @@ jobs:
           cd apps/api/backend
           npx prisma migrate deploy
 
-      - name: Smoke tests
+      - name: Generate Prisma clients
+        run: pnpm --filter chai-vc-platform-backend exec prisma generate
+
+      - name: Smoke tests (non-backend)
+        run: pnpm test --filter=!zk-sample --filter=!contracts --filter=!chai-vc-platform-backend --filter=!@vitalcv/api
+
+      - name: Smoke tests (backend)
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_preflight
           STRICT_TRANSITION_MODE: "true"
-        run: pnpm test --filter=!zk-sample --filter=!contracts
+        run: pnpm --filter chai-vc-platform-backend test
