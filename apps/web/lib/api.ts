@@ -38,3 +38,49 @@ export function apiRoute(path: ApiPath): string {
 }
 
 export type { ApiPath };
+
+/* ------------------------------------------------------------------ */
+/*  Holder Wallet types (Wave 2.1)                                     */
+/* ------------------------------------------------------------------ */
+
+export type CredentialStatus = "Valid" | "Expiring" | "Revoked" | "Pending";
+export type ClaimLevel = "L0" | "L1" | "L2" | "L3";
+
+export interface CredentialItem {
+  id: string;
+  name: string;
+  issuer: string;
+  scope: string;
+  status: CredentialStatus;
+  claimLevel: ClaimLevel;
+  issueDate: string;
+  expirationDate?: string;
+  npi?: string;
+  licenseNumber?: string;
+  holderName?: string;
+  verifierDID?: string;
+  methodologyVersion?: string;
+  pouBinding?: string;
+  // AuditScrapbook
+  audit?: {
+    psvArtifactTrace?: string;
+    sourceQueried?: string;
+    sourceQueriedAt?: string;
+    rawSnapshotHash?: string; // SHA-256
+  };
+}
+
+export interface TrustStateResponse {
+  holderName: string;
+  npi: string;
+  credentials: CredentialItem[];
+}
+
+/** Returns a safe empty state when backend data is missing/null */
+export function createSafeFallbackState<T>(
+  data: T | null | undefined,
+  fallback: T
+): T {
+  if (data == null) return fallback;
+  return data;
+}

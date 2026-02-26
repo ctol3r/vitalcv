@@ -1,14 +1,16 @@
 'use client';
 
-import { BentoGrid, BentoItem } from '@/components/ui/bento-grid';
 import { Button } from '@/components/ui/button';
 import { CRSRing } from '@/components/ui/crs-ring';
 import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
 import { TrustBandIndicator } from '@/components/ui/trust-band-indicator';
 import type { TrustBand } from '@/components/trust-state/types';
+import type { CredentialItem, CredentialStatus as WalletCredentialStatus } from '@/lib/api';
 import { Share2, Shield } from 'lucide-react';
 import { useState } from 'react';
-import { CredentialCard, type CredentialCardData } from './CredentialCard';
+import { type CredentialCardData } from './CredentialCard';
+import { CredentialLargeCard } from './CredentialLargeCard';
+import { FocusMode } from './FocusMode';
 import { NextBestAction, type NextBestActionData } from './NextBestAction';
 import { SelectiveDisclosureModal } from './SelectiveDisclosureModal';
 import { VitaTokenBalance } from './VitaTokenBalance';
@@ -134,6 +136,43 @@ const DEMO_VITA_EVENTS: VitaEvent[] = [
   },
 ];
 
+/* ------------------------------------------------------------------ */
+/*  Map demo data → CredentialItem for large cards                     */
+/* ------------------------------------------------------------------ */
+
+const STATUS_MAP: Record<string, WalletCredentialStatus> = {
+  ACTIVE: 'Valid',
+  EXPIRED: 'Revoked',
+  REVOKED: 'Revoked',
+  PENDING: 'Pending',
+  SUSPENDED: 'Revoked',
+  INACTIVE: 'Expiring',
+};
+
+const SCOPE_MAP: Record<string, string> = {
+  STATE_LICENSE: 'Medical Licensure',
+  BOARD_CERTIFICATION: 'Board Certification',
+  DEA_REGISTRATION: 'Controlled Substances',
+  NPI_ENROLLMENT: 'Provider Identity',
+  EDUCATION: 'Medical Education',
+  TRAINING: 'Graduate Medical Education',
+  WORK_HISTORY: 'Employment History',
+};
+
+function toCredentialItem(card: CredentialCardData): CredentialItem {
+  return {
+    id: card.id,
+    name: card.name,
+    issuer: card.issuer,
+    scope: SCOPE_MAP[card.type] ?? card.type,
+    status: STATUS_MAP[card.status] ?? 'Pending',
+    claimLevel: card.claimLevel as CredentialItem['claimLevel'],
+    issueDate: card.issueDate ?? '',
+    expirationDate: card.expirationDate,
+    pouBinding: 'Employment Credentialing',
+  };
+}
+
 function getNextBestAction(credentials: CredentialCardData[]): NextBestActionData | null {
   const unverified = credentials.filter((c) => c.claimLevel === 'L0' || c.claimLevel === 'L1');
   if (unverified.length > 0) {
@@ -168,8 +207,10 @@ function getNextBestAction(credentials: CredentialCardData[]): NextBestActionDat
 
 export function WalletDashboard() {
   const [shareOpen, setShareOpen] = useState(false);
+  const [focusCred, setFocusCred] = useState<CredentialItem | null>(null);
 
   const credentials = DEMO_CREDENTIALS;
+  const walletCredentials = credentials.map(toCredentialItem);
   const trustBand = DEMO_TRUST.band;
   const trustScore = DEMO_TRUST.score;
   const nextAction = getNextBestAction(credentials);
@@ -249,7 +290,7 @@ export function WalletDashboard() {
             </div>
           </div>
 
-          {/* Credential cards grid */}
+          {/* Credential large cards */}
           <section className="space-y-6">
             <div className="flex items-center gap-3">
               <Shield className="h-5 w-5 text-muted-foreground" />
@@ -258,13 +299,15 @@ export function WalletDashboard() {
               </h2>
             </div>
 
-            <BentoGrid columns={3} className="gap-8">
-              {credentials.map((cred) => (
-                <BentoItem key={cred.id}>
-                  <CredentialCard credential={cred} className="h-full" />
-                </BentoItem>
+            <div className="space-y-4">
+              {walletCredentials.map((cred) => (
+                <CredentialLargeCard
+                  key={cred.id}
+                  credential={cred}
+                  onFocusMode={() => setFocusCred(cred)}
+                />
               ))}
-            </BentoGrid>
+            </div>
           </section>
         </div>
 
@@ -283,6 +326,9 @@ export function WalletDashboard() {
         onClose={() => setShareOpen(false)}
         credentials={credentials}
       />
+
+      {/* Focus Mode overlay */}
+      <FocusMode credential={focusCred} onClose={() => setFocusCred(null)} />
     </div>
   );
 }
