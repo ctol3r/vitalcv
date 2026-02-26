@@ -4,6 +4,22 @@ import prisma from '../src/graphql/prisma_client';
 
 const runPilotRouteSuite = process.env.DATABASE_URL ? describe : describe.skip;
 
+// Pilot route tests exercise business logic, not strict-mode validation.
+// Disable STRICT_TRANSITION_MODE to avoid monitoring engine pre-condition gates
+// that are tested separately in security_refactor.test.ts.
+let savedStrictMode: string | undefined;
+beforeAll(() => {
+  savedStrictMode = process.env.STRICT_TRANSITION_MODE;
+  process.env.STRICT_TRANSITION_MODE = 'false';
+});
+afterAll(() => {
+  if (savedStrictMode === undefined) {
+    delete process.env.STRICT_TRANSITION_MODE;
+  } else {
+    process.env.STRICT_TRANSITION_MODE = savedStrictMode;
+  }
+});
+
 beforeEach(async () => {
   await prisma.pilotPlan.deleteMany();
   await prisma.auditEvent.deleteMany();
