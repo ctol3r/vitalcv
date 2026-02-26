@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import CountUp from 'react-countup';
 
@@ -46,7 +46,13 @@ function CrsRing() {
           fontSize="28"
           fontWeight="600"
         >
-          {inView ? <CountUp end={score} duration={1.8} /> : '0'}
+          {inView ? (
+            <CountUp start={0} end={score} duration={1.8} delay={0}>
+              {({ countUpRef }) => <tspan ref={countUpRef as any} />}
+            </CountUp>
+          ) : (
+            '0'
+          )}
         </text>
         <text
           x="60"
@@ -80,7 +86,7 @@ function ClaimTimeline() {
   return (
     <div
       ref={ref}
-      className="flex flex-col justify-center h-full gap-5 bg-[var(--warm-charcoal)] rounded-2xl p-8"
+      className="flex flex-col justify-center h-full gap-5 bg-[oklch(0.22_0.01_60)] rounded-2xl p-8"
     >
       <p className="text-xs font-semibold uppercase tracking-widest text-white/50 mb-1">
         Claim Progression

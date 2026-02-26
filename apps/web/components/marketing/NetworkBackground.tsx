@@ -53,7 +53,7 @@ export default function NetworkBackground() {
   if (!ready) return null;
 
   return (
-    <div className="fixed inset-0 -z-50 pointer-events-auto">
+    <div className="fixed inset-0 -z-50 pointer-events-none">
       <Particles id="trust-network" options={options} />
     </div>
   );
