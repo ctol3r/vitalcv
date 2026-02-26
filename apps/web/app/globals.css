@@ -2,6 +2,12 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@theme {
+  --shadow-glass: 0 4px 30px rgba(0, 0, 0, 0.05);
+  --shadow-glass-heavy: 0 8px 40px rgba(0, 0, 0, 0.08);
+  --backdrop-blur-glass: 12px;
+}
+
 /* ─────────────────────────────────────────────────────────────
    VitalCV Design System — Warm Minimalism + Liquid Glass
    Palette: Cloud Dancer · Warm Paper · Mist Blue · Terracotta
