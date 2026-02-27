@@ -25,7 +25,8 @@ export interface TimelineEvent {
     | 'VERIFICATION_FAILED'
     | 'ACCEPTED'
     | 'STARTED'
-    | 'DECAYED';
+    | 'DECAYED'
+    | 'REVOCATION_WEBHOOK';
   label: string;
   timestamp: string;
   employer?: string;
@@ -71,6 +72,7 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
       case 'ACCEPTED': return <CheckCircle2 className="w-4 h-4 text-green-700" />;
       case 'STARTED': return <PlayCircle className="w-4 h-4 text-green-700" />;
       case 'DECAYED': return <AlertTriangle className="w-4 h-4 text-red-700" />;
+      case 'REVOCATION_WEBHOOK': return <AlertTriangle className="w-4 h-4 text-red-600 animate-pulse" />;
       default: return <Clock className="w-4 h-4 text-slate-400" />;
     }
   };
@@ -124,13 +126,28 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
             {events.map((rawEvent, i) => {
                 const event = enhanceEvent(rawEvent);
                 return (
-                <div key={event.id} className="relative z-10 flex gap-3 items-start group">
-                    <div className="mt-0.5 bg-white p-0.5 rounded-full border border-slate-100 shadow-sm group-hover:border-slate-300 transition-colors">
+                <div
+                  key={event.id}
+                  className={`relative z-10 flex gap-3 items-start group rounded-lg transition-colors ${
+                    event.type === 'REVOCATION_WEBHOOK'
+                      ? 'bg-red-50 border border-red-200 px-2 py-2 -mx-2'
+                      : ''
+                  }`}
+                >
+                    <div className={`mt-0.5 p-0.5 rounded-full shadow-sm transition-colors ${
+                      event.type === 'REVOCATION_WEBHOOK'
+                        ? 'bg-red-100 border border-red-300'
+                        : 'bg-white border border-slate-100 group-hover:border-slate-300'
+                    }`}>
                         {getIcon(event.type)}
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-baseline">
-                            <h4 className="text-xs font-semibold text-slate-800 truncate pr-2">
+                            <h4 className={`text-xs font-semibold truncate pr-2 ${
+                              event.type === 'REVOCATION_WEBHOOK'
+                                ? 'text-red-800 font-bold'
+                                : 'text-slate-800'
+                            }`}>
                                 {getDisplayLabel(event.label)}
                             </h4>
                             <span className="text-xs font-mono text-slate-400 whitespace-nowrap">

@@ -13,7 +13,8 @@ import {
   type TrustStateResponse,
   normalizeTrustStateResponse,
 } from '@/components/trust-state/types';
-import { History, AlertCircle } from 'lucide-react';
+import { History, AlertCircle, AlertTriangle } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { FormEvent, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -83,6 +84,44 @@ function VerifierPortalContent() {
     () => getTrustObserverExplanation(status),
     [status],
   );
+
+  /* ---- Revocation simulation ---- */
+  const [isRevoked, setIsRevoked] = useState(false);
+  const [revokedAt, setRevokedAt] = useState<string | null>(null);
+
+  function handleSimulateRevocation() {
+    const ts = new Date().toISOString();
+    setRevokedAt(ts);
+    setIsRevoked(true);
+  }
+
+  function handleResetRevocation() {
+    setIsRevoked(false);
+    setRevokedAt(null);
+  }
+
+  /* Prepend webhook audit event when revoked */
+  const revokedTimelineEvent = useMemo(() => {
+    if (!isRevoked || !revokedAt) return null;
+    return {
+      id: 'webhook-revocation',
+      type: 'REVOCATION_WEBHOOK',
+      label:
+        '[URGENT] Webhook received: CA Medical Board status changed to SUSPENDED. Cryptographic proof invalidated.',
+      timestamp: revokedAt,
+      metadata: {
+        lane: 'URGENT',
+        source: 'CA_MEDICAL_BOARD',
+        severity: 'CRITICAL',
+      },
+    };
+  }, [isRevoked, revokedAt]);
+
+  /* Final timeline events: webhook event always first when active */
+  const timelineEvents = useMemo(() => {
+    const base = (status?.timeline_preview ?? []) as object[];
+    return revokedTimelineEvent ? [revokedTimelineEvent, ...base] : base;
+  }, [status?.timeline_preview, revokedTimelineEvent]);
 
   /* ---- Manual Verification State ---- */
   const [manualSubject, setManualSubject] = useState('');
@@ -428,14 +467,14 @@ function VerifierPortalContent() {
           <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4">
             <div>
               {status ? (
-                status.timeline_preview && status.timeline_preview.length > 0 ? (
+                timelineEvents.length > 0 ? (
                   <div className="space-y-3">
                     {isRefreshing && (
                       <p className="text-xs text-muted-foreground px-1">
                         Refreshing trust state…
                       </p>
                     )}
-                    <AuditTimeline events={status.timeline_preview as any} />
+                    <AuditTimeline events={timelineEvents as any} />
                   </div>
                 ) : (
                   <GlassCard className="h-full min-h-[200px] flex flex-col items-center justify-center">
@@ -465,6 +504,7 @@ function VerifierPortalContent() {
                 trustExplanation={trustObserver.explanation}
                 trustSummary={trustObserver.summary}
                 previousTrustBand={previousTrustBand ?? undefined}
+                isRevoked={isRevoked}
               />
             ) : (
               <GlassCard className="h-full min-h-[320px]">
@@ -519,6 +559,44 @@ function VerifierPortalContent() {
           )}
         </div>
       )}
+
+      {/* ── Demo Controls: Revocation Webhook Simulator ─────────── */}
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2">
+        {isRevoked && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className="bg-red-50 border border-red-200 rounded-xl px-4 py-2 shadow-lg
+                       flex items-center gap-2 text-sm text-red-700 font-medium"
+          >
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            Revocation active
+            <button
+              onClick={handleResetRevocation}
+              className="ml-2 text-xs underline underline-offset-2 hover:text-red-900 transition-colors"
+            >
+              Reset
+            </button>
+          </motion.div>
+        )}
+        <motion.button
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={isRevoked ? handleResetRevocation : handleSimulateRevocation}
+          className={`min-h-[44px] px-5 rounded-xl text-sm font-semibold shadow-lg
+                      border transition-colors flex items-center gap-2
+                      ${isRevoked
+                        ? 'bg-white border-red-200 text-red-700 hover:bg-red-50'
+                        : 'bg-slate-900 border-slate-700 text-white hover:bg-slate-800'
+                      }`}
+        >
+          <AlertTriangle className={`h-4 w-4 ${isRevoked ? 'text-red-600' : 'text-amber-400'}`} />
+          {isRevoked ? 'Reset Revocation' : 'Simulate State Board Revocation Webhook'}
+        </motion.button>
+        <p className="text-[10px] text-muted-foreground/50 text-right pr-1">
+          Demo Controls
+        </p>
+      </div>
 
       {/* Pilot access form */}
       {pilotModeEnabled && (
