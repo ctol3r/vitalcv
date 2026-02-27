@@ -48,6 +48,7 @@ export default function Navbar() {
           <Link href="/holder" className="hover:text-[var(--warm-charcoal)] transition-colors">Holder</Link>
           <Link href="/verifier" className="hover:text-[var(--warm-charcoal)] transition-colors">Verifier</Link>
           <Link href="/demo/ats" className="hover:text-[var(--warm-charcoal)] font-medium transition-colors text-teal-600">ATS Demo</Link>
+          <Link href="/demo/magic" className="hover:text-[var(--warm-charcoal)] font-medium transition-colors text-teal-600">Magic UI</Link>
         </div>
         <div className="flex items-center gap-3">
           <Button asChild variant="ghost" size="sm">
