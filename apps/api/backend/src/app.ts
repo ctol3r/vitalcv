@@ -91,6 +91,8 @@ import { registerWave2AVerifyRoutes } from './modules/wave2a';
 import { registerDemoRoutes } from './modules/demo';
 // PSV Verify Module (Wave 1)
 import { registerPsvVerifyRoutes } from './services/psv/verifyRoute';
+// Wave 6: OIDC4VP Verifier Gateway
+import { registerOidc4vpRoutes } from './routes/verifier';
 
 type VerificationLane = 'PUBLIC' | 'PARTNER' | 'MANUAL';
 const VALID_LANES: readonly VerificationLane[] = ['PUBLIC', 'PARTNER', 'MANUAL'] as const;
@@ -3456,6 +3458,7 @@ registerWedgeRoutes(app);
 registerIdentityRoutes(app);
 registerDemoRoutes(app);
 registerPsvVerifyRoutes(app);
+registerOidc4vpRoutes(app);
 
 if (ENTERPRISE_MODE) {
   app.get('/internal/enterprise', async (req: Request, res: Response) => {
