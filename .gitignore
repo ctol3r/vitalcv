@@ -54,6 +54,9 @@ Thumbs.db
 logs/
 *.log
 
+# Local automation scripts
+.vitalcv_waves.sh
+
 # Prisma (migrations should be committed; SQLite dev DBs should not)
 *.db
 *.db-journal

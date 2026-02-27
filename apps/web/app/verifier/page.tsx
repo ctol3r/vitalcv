@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { VerifierPortal } from '@/components/employer/VerifierPortal';
+import { VerifierCommandCenter } from "@/components/employer/VerifierCommandCenter";
 
 export default function VerifierPage() {
-  return <VerifierPortal />;
+  return <VerifierCommandCenter />;
 }

@@ -14,8 +14,10 @@ import {
   Stethoscope,
 } from 'lucide-react';
 import { NpiLookupInput } from '@/components/marketing/NpiLookupInput';
-
-import AcceptanceNetwork from "@/components/marketing/AcceptanceNetwork";
+import AcceptanceNetwork from '@/components/marketing/AcceptanceNetwork';
+import NetworkBackground from '@/components/marketing/NetworkBackground';
+import Navbar from '@/components/marketing/Navbar';
+import ProductBento from '@/components/marketing/ProductBento';
 
 // ── Section heading helper ─────────────────────────────────
 function SectionHeading({
@@ -50,47 +52,23 @@ function SectionHeading({
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-[var(--cloud-dancer)]">
-      {/* ──── Nav ──────────────────────────────────────── */}
-      <nav className="sticky top-0 z-50 backdrop-blur-md bg-[var(--cloud-dancer)]/80 border-b border-[var(--warm-charcoal)]/5">
-        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link
-            href="/"
-            className="font-fraunces text-lg font-semibold text-[var(--warm-charcoal)] tracking-tight"
-          >
-            VitalCV
-          </Link>
-          <div className="hidden md:flex items-center gap-6 text-sm text-[var(--warm-charcoal)]/70">
-            <a href="#how-it-works" className="hover:text-[var(--warm-charcoal)] transition-colors">
-              How It Works
-            </a>
-            <a href="#security" className="hover:text-[var(--warm-charcoal)] transition-colors">
-              Security
-            </a>
-            <a href="#portals" className="hover:text-[var(--warm-charcoal)] transition-colors">
-              Portals
-            </a>
-          </div>
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/sign-in">Sign In</Link>
-          </Button>
-        </div>
-      </nav>
+      <NetworkBackground />
+      <Navbar />
 
       {/* ──── Hero ─────────────────────────────────────── */}
-      <section className="relative overflow-hidden pt-20 pb-24 px-6">
+      <section className="relative overflow-hidden pt-24 pb-24 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--warm-charcoal)]/10 text-xs font-semibold uppercase tracking-widest text-[var(--mist-blue)] mb-8 bg-[var(--mist-blue)]/5">
             Infrastructure for Healthcare Credentialing
           </div>
           <h1 className="font-fraunces text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight text-[var(--warm-charcoal)] leading-[1.1]">
-            Verified Once.
+            Start clinicians
             <br className="hidden sm:block" />
-            Accepted Everywhere.
+            3–6 weeks faster.
           </h1>
           <p className="mt-6 text-lg md:text-xl text-[var(--warm-charcoal)]/70 max-w-2xl mx-auto leading-relaxed">
             VitalCV generates audit-ready credential artifacts that eliminate redundant
-            primary source verification and reduce clinician onboarding from{' '}
-            <span className="font-semibold text-[var(--warm-charcoal)]">months to days.</span>
+            primary source verification.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button asChild size="lg" className="gap-2 px-10 py-5 text-base">
@@ -170,6 +148,9 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ──── Product Bento ────────────────────────────── */}
+      <ProductBento />
+
       {/* ──── How It Works ─────────────────────────────── */}
       <section id="how-it-works" className="py-20 px-6 bg-[var(--warm-charcoal)]/[0.02]">
         <SectionHeading
@@ -227,21 +208,21 @@ export default function HomePage() {
           {[
             {
               icon: Clock,
-              direction: '↓',
+              direction: '\u2193',
               metric: 'Days-to-Start',
               label: 'Accelerate clinician revenue activation',
               accent: 'text-[var(--trust-green)]',
             },
             {
               icon: ShieldCheck,
-              direction: '↓',
+              direction: '\u2193',
               metric: 'Redundant PSV',
               label: 'Eliminate repeated primary source cycles',
               accent: 'text-[var(--trust-green)]',
             },
             {
               icon: CheckCircle,
-              direction: '↑',
+              direction: '\u2191',
               metric: 'Audit Confidence',
               label: 'Deterministic, timestamped artifact bundles',
               accent: 'text-[var(--mist-blue)]',
