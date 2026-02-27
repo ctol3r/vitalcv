@@ -5,12 +5,12 @@ import { CRSRing } from '@/components/ui/crs-ring';
 import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
 import { TrustBandIndicator } from '@/components/ui/trust-band-indicator';
 import type { TrustBand } from '@/components/trust-state/types';
-import type { CredentialItem, CredentialStatus as WalletCredentialStatus } from '@/lib/api';
+import { CredentialCard } from '@/components/holder/CredentialCard';
+import { FocusMode } from '@/components/holder/FocusMode';
+import type { CredentialState, HolderCredential, TrustLevel } from '@/types/holder';
 import { Share2, Shield } from 'lucide-react';
 import { useState } from 'react';
 import { type CredentialCardData } from './CredentialCard';
-import { CredentialLargeCard } from './CredentialLargeCard';
-import { FocusMode } from './FocusMode';
 import { NextBestAction, type NextBestActionData } from './NextBestAction';
 import { SelectiveDisclosureModal } from './SelectiveDisclosureModal';
 import { VitaTokenBalance } from './VitaTokenBalance';
@@ -137,16 +137,16 @@ const DEMO_VITA_EVENTS: VitaEvent[] = [
 ];
 
 /* ------------------------------------------------------------------ */
-/*  Map demo data → CredentialItem for large cards                     */
+/*  Map demo data → HolderCredential for new holder cards              */
 /* ------------------------------------------------------------------ */
 
-const STATUS_MAP: Record<string, WalletCredentialStatus> = {
-  ACTIVE: 'Valid',
-  EXPIRED: 'Revoked',
-  REVOKED: 'Revoked',
-  PENDING: 'Pending',
-  SUSPENDED: 'Revoked',
-  INACTIVE: 'Expiring',
+const STATE_MAP: Record<string, CredentialState> = {
+  ACTIVE: 'valid',
+  EXPIRED: 'revoked',
+  REVOKED: 'revoked',
+  PENDING: 'expiring',
+  SUSPENDED: 'revoked',
+  INACTIVE: 'expiring',
 };
 
 const SCOPE_MAP: Record<string, string> = {
@@ -159,17 +159,24 @@ const SCOPE_MAP: Record<string, string> = {
   WORK_HISTORY: 'Employment History',
 };
 
-function toCredentialItem(card: CredentialCardData): CredentialItem {
+function toHolderCredential(card: CredentialCardData): HolderCredential {
   return {
     id: card.id,
+    type: card.type,
     name: card.name,
     issuer: card.issuer,
-    scope: SCOPE_MAP[card.type] ?? card.type,
-    status: STATUS_MAP[card.status] ?? 'Pending',
-    claimLevel: card.claimLevel as CredentialItem['claimLevel'],
+    state: STATE_MAP[card.status] ?? 'expiring',
+    trustLevel: card.claimLevel as TrustLevel,
     issueDate: card.issueDate ?? '',
     expirationDate: card.expirationDate,
-    pouBinding: 'Employment Credentialing',
+    scope: SCOPE_MAP[card.type] ?? card.type,
+    holderName: 'Dr. Jordan Ellis',
+    npi: '1003000126',
+    auditTrail: [],
+    methodologyVersion: 'vitalcv.psv/2.3.1',
+    verifierDID: 'did:web:vitalcv.com:verifier:psv-engine-v2',
+    rawSnapshotHash:
+      'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
   };
 }
 
@@ -207,10 +214,10 @@ function getNextBestAction(credentials: CredentialCardData[]): NextBestActionDat
 
 export function WalletDashboard() {
   const [shareOpen, setShareOpen] = useState(false);
-  const [focusCred, setFocusCred] = useState<CredentialItem | null>(null);
+  const [focusCred, setFocusCred] = useState<HolderCredential | null>(null);
 
   const credentials = DEMO_CREDENTIALS;
-  const walletCredentials = credentials.map(toCredentialItem);
+  const holderCredentials = credentials.map(toHolderCredential);
   const trustBand = DEMO_TRUST.band;
   const trustScore = DEMO_TRUST.score;
   const nextAction = getNextBestAction(credentials);
@@ -300,11 +307,11 @@ export function WalletDashboard() {
             </div>
 
             <div className="space-y-4">
-              {walletCredentials.map((cred) => (
-                <CredentialLargeCard
+              {holderCredentials.map((cred) => (
+                <CredentialCard
                   key={cred.id}
                   credential={cred}
-                  onFocusMode={() => setFocusCred(cred)}
+                  onFocusMode={(c) => setFocusCred(c)}
                 />
               ))}
             </div>
