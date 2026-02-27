@@ -49,6 +49,6 @@ export async function POST(
 
   return NextResponse.json({
     shareId: shareLink.id,
-    url: `/verify/${shareLink.id}${shareUrlOrganizationParam}`,
+    url: `/verify/${npi}${shareUrlOrganizationParam}`,
   });
 }

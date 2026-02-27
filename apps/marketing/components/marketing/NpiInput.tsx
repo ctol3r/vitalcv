@@ -9,15 +9,12 @@ import { useSearchParams } from 'next/navigation';
  *
  * Flow:
  * 1. User enters 10-digit NPI
- * 2. On submit → POST to /api/npi/:npi
- * 3. If exists → route to /clinician?npi=...
- * 4. If not found → inline "NPI not found" error
- * 5. If network error → graceful inline message
+ * 2. On submit → navigate to /verify/:npi (Trust-State Terminal)
  *
  * Edge cases:
  * - Double-submit prevention via loading flag + ref guard
  * - State reset on any input change
- * - Input disabled during request
+ * - Input disabled during navigation
  */
 export function NpiInput() {
   const router = useRouter();
@@ -56,24 +53,9 @@ export function NpiInput() {
       const refQuery = ref ? `?ref=${ref}` : '';
 
       try {
-        const res = await fetch(`/api/npi/${value}${refQuery}`);
-
-        if (!res.ok) {
-          const body = await res.json().catch(() => null);
-          setError(body?.error ?? 'Invalid request');
-          return;
-        }
-
-        const data: { exists: boolean } = await res.json();
-
-        if (data.exists) {
-          const refQuery = ref ? `&ref=${ref}` : '';
-          router.push(`/clinician?npi=${value}${refQuery}`);
-        } else {
-          setError('NPI not found');
-        }
+        router.push(`/verify/${value}${refQuery}`);
       } catch {
-        setError('Network error — please try again');
+        setError('Navigation error — please try again');
       } finally {
         setLoading(false);
         submittingRef.current = false;
