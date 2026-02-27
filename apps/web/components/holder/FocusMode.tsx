@@ -1,6 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
+import { QRCodeSVG } from 'qrcode.react';
 import { useEffect } from 'react';
 
 import type { HolderCredential } from '@/types/holder';
@@ -14,9 +15,10 @@ const EASE_OUT: [number, number, number, number] = [0, 0, 0.2, 1];
 interface FocusModeProps {
   credential: HolderCredential | null;
   onClose: () => void;
+  qrValue?: string;
 }
 
-export function FocusMode({ credential, onClose }: FocusModeProps) {
+export function FocusMode({ credential, onClose, qrValue }: FocusModeProps) {
   /* Escape key dismiss */
   useEffect(() => {
     if (!credential) return;
@@ -96,11 +98,14 @@ export function FocusMode({ credential, onClose }: FocusModeProps) {
               </p>
             </div>
 
-            {/* QR placeholder */}
-            <div className="mt-10 w-[240px] h-[240px] rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center">
-              <span className="text-lg font-medium text-white/50">
-                Scan to Verify
-              </span>
+            {/* QR code */}
+            <div className="mt-10 rounded-2xl overflow-hidden bg-white p-4">
+              <QRCodeSVG
+                value={qrValue ?? 'openid4vp://?client_id=did:web:demo&request_uri=https://api.vitalcv.com/vp/req-123'}
+                size={220}
+                level="H"
+                includeMargin={false}
+              />
             </div>
 
             {/* Close hint */}
