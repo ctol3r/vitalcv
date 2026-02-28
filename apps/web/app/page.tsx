@@ -14,6 +14,8 @@ import {
   Stethoscope,
 } from 'lucide-react';
 import { NpiLookupInput } from '@/components/marketing/NpiLookupInput';
+// Wave 11: Antigravity Aesthetic — upgraded hero component
+import { HeroSection } from '@/components/marketing/HeroSection';
 
 import AcceptanceNetwork from "@/components/marketing/AcceptanceNetwork";
 
@@ -76,41 +78,8 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* ──── Hero ─────────────────────────────────────── */}
-      <section className="relative overflow-hidden pt-20 pb-24 px-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--warm-charcoal)]/10 text-xs font-semibold uppercase tracking-widest text-[var(--mist-blue)] mb-8 bg-[var(--mist-blue)]/5">
-            Infrastructure for Healthcare Credentialing
-          </div>
-          <h1 className="font-fraunces text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight text-[var(--warm-charcoal)] leading-[1.1]">
-            Verified Once.
-            <br className="hidden sm:block" />
-            Accepted Everywhere.
-          </h1>
-          <p className="mt-6 text-lg md:text-xl text-[var(--warm-charcoal)]/70 max-w-2xl mx-auto leading-relaxed">
-            VitalCV generates audit-ready credential artifacts that eliminate redundant
-            primary source verification and reduce clinician onboarding from{' '}
-            <span className="font-semibold text-[var(--warm-charcoal)]">months to days.</span>
-          </p>
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button asChild size="lg" className="gap-2 px-10 py-5 text-base">
-              <Link href="/demo">
-                Run Live Demo
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="gap-2 px-10 py-5 text-base">
-              <Link href="/verifier">
-                For Employers
-                <Building2 className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-          <div className="mt-6">
-            <NpiLookupInput />
-          </div>
-        </div>
-      </section>
+      {/* ──── Hero — Wave 11: Antigravity Aesthetic ────────── */}
+      <HeroSection />
 
       {/* ──── Problem ──────────────────────────────────── */}
       <section className="py-20 px-6 bg-[var(--warm-charcoal)]/[0.02]">

@@ -34,6 +34,8 @@ export default function RootLayout({
   const content = (
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`} suppressHydrationWarning>
       <body className="min-h-screen bg-background text-foreground antialiased font-sans">
+        {/* Wave 11: Tactile grain overlay — fixed, pointer-events:none, z-50 */}
+        <div aria-hidden="true" className="noise-overlay" />
         <Providers>
           {children}
           <Toaster />
