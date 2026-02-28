@@ -1,6 +1,9 @@
+'use client';
+
 import * as React from 'react';
 
 import { cn } from '@/lib/utils';
+import { SpotlightCard } from './SpotlightCard';
 
 interface BentoGridProps extends React.ComponentProps<'div'> {
   /** Number of columns at desktop. Defaults to 3. Responsive: 1 col mobile, 2 col tablet. */
@@ -32,17 +35,19 @@ interface BentoItemProps extends React.ComponentProps<'div'> {
   span2?: boolean;
 }
 
-function BentoItem({ className, span2, ...props }: BentoItemProps) {
+function BentoItem({ className, span2, children, ...props }: BentoItemProps) {
   return (
-    <div
-      data-slot="bento-item"
+    <SpotlightCard
       className={cn(
         'rounded-2xl',
         span2 && 'md:col-span-2',
         className,
       )}
-      {...props}
-    />
+    >
+      <div data-slot="bento-item" {...props}>
+        {children}
+      </div>
+    </SpotlightCard>
   );
 }
 
