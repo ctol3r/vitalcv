@@ -71,6 +71,9 @@ export default function HomePage() {
             <a href="#portals" className="hover:text-[var(--warm-charcoal)] transition-colors">
               Portals
             </a>
+            <Link href="/developers" className="hover:text-[var(--warm-charcoal)] transition-colors font-medium">
+              Developers
+            </Link>
           </div>
           <Button asChild variant="ghost" size="sm">
             <Link href="/sign-in">Sign In</Link>
@@ -333,6 +336,9 @@ export default function HomePage() {
             <span>Privacy</span>
             <span>Terms</span>
             <span>Contact</span>
+            <Link href="/developers" className="hover:text-[var(--warm-charcoal)]/70 transition-colors">
+              Developers
+            </Link>
           </div>
         </div>
       </footer>
