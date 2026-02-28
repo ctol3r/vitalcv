@@ -1,96 +1,99 @@
-import crypto from 'crypto';
 import cors from 'cors';
+import crypto from 'crypto';
+import type { Express, Request, Response } from 'express';
+import express from 'express';
 import helmet from 'helmet';
 import fs from 'node:fs';
 import path from 'node:path';
-import type { Express, Request, Response } from 'express';
-import express from 'express';
 import swaggerUi from 'swagger-ui-express';
-import { env, getProductionEnvCheck } from './config/env';
-import { emitVerificationAuditEvent } from '../../verification/audit';
 import { registerIngestRoutes } from '../../routes/ingest';
+import { emitVerificationAuditEvent } from '../../verification/audit';
 import { registerWedgeRoutes } from '../routes/wedge';
-import { registerPublicMetricsRoutes } from './routes/publicMetrics';
-import { registerImpactRoutes } from './routes/impact';
+import { env, getProductionEnvCheck } from './config/env';
+import prisma, { Prisma, PrismaClient } from './graphql/prisma_client';
+import { invokeAgentModel } from './llm';
 import { errorHandler } from './middleware/errorHandler';
-import { apiKeyAuth, trustStateRateLimit, publicApiRateLimit } from './middleware/publicSafety';
-import { proofRateLimit, credentialStatusRateLimit, walletRateLimit } from './middleware/rateLimitFactory';
-import { isStrictTransitionMode, parseBooleanEnv } from './utils/environment';
-import { getConfiguredIssuerDid, isValidDidFormat } from './utils/issuerDid';
-import { sha256Hex } from './utils/deterministic';
-import { getEnterpriseCapabilities } from './services/enterpriseCapabilities';
-import { runEnterpriseSelfTest } from './services/enterpriseSelfTest';
-import { enterpriseCapabilitiesCache } from './services/ttlCache';
-import { recordLatency, getPerformanceSnapshot } from './services/performanceMetrics';
-import { runRuntimeGuards, isZeroDowngradeEnforced, enforceHaipNoDowngrade } from './services/runtimeGuards';
 import { getRequestOrganizationId } from './middleware/organizationContext';
+import { apiKeyAuth, publicApiRateLimit, trustStateRateLimit } from './middleware/publicSafety';
+import { credentialStatusRateLimit, proofRateLimit, walletRateLimit } from './middleware/rateLimitFactory';
 import { requestObservability } from './middleware/requestObservability';
 import {
-  enforceOrganizationMatch,
-  isSuperAdminRequest,
-  parseRequestRole as parseTenantRequestRole,
-  requireTenantContext,
+    enforceOrganizationMatch,
+    isSuperAdminRequest,
+    parseRequestRole as parseTenantRequestRole,
+    requireTenantContext,
 } from './middleware/tenantGuard';
-import { invokeAgentModel } from './llm';
-import { estimateTokenCount } from './telemetry';
-import { withToolSpan } from './tools/tracing';
+import { log } from './obs/logger';
 import { requestLatencyMetrics } from './observability/requestMetrics';
-import prisma, { Prisma, PrismaClient } from './graphql/prisma_client';
 import openApiSpec from './openapi';
+import { registerImpactRoutes } from './routes/impact';
+import { registerPublicMetricsRoutes } from './routes/publicMetrics';
+// Wave 26: Golden Link — public read-only profile API
+import { registerPublicRoutes } from './routes/public';
 import {
-  getLatestArtifact,
-  createArtifactFromNursys,
-  generateAuditBundle,
-  getBundleExportBySnapshotId,
+    createArtifactFromNursys,
+    generateAuditBundle,
+    getBundleExportBySnapshotId,
+    getLatestArtifact,
 } from './services/artifactService';
 import { generateAuditPacket } from './services/auditPacketGenerator';
-import { getIssuerRegistrySummary } from './services/issuerRegistry';
-import { getTransparencyEntries } from './services/transparencyLog';
-import { computeTrustState } from './services/trustState';
-import { computeCredentialState } from './services/credentialStatusEngine';
 import {
-  getActiveOrganizationTrustLinks,
-  getFederatedTrustLevel,
-  getTotalOrganizationTrustLinks,
-} from './services/federatedTrustEngine';
-import { resolveCrossOrgTrustLevel } from './utils/federation';
-import {
-  getMonitoringStatus,
-  runMonitoringSweep,
-  isMonitoringEngineOperational,
+    getMonitoringStatus,
+    isMonitoringEngineOperational,
+    runMonitoringSweep,
 } from './services/credentialMonitoringEngine';
-import { validateMerkleIntegrity } from './services/merkleIntegrity';
+import { computeCredentialState } from './services/credentialStatusEngine';
 import { generateCrossCheckBundle } from './services/crossCheckBundleEngine';
-import { generateClaimProof, verifyClaimProof } from './services/selectiveProofEngine';
-import type { ClaimProof } from './types/selectiveProof';
-import { CredentialLifecycleState } from './utils/lifecycleState';
-import { validateTrustChain } from './services/trustChain';
+import { getEnterpriseCapabilities } from './services/enterpriseCapabilities';
+import { runEnterpriseSelfTest } from './services/enterpriseSelfTest';
 import {
-  VERIFIER_LIFECYCLE_STATES,
-  assessVerifierLifecycleTransition,
-  coerceVerifierLifecycle,
+    getActiveOrganizationTrustLinks,
+    getFederatedTrustLevel,
+    getTotalOrganizationTrustLinks,
+} from './services/federatedTrustEngine';
+import { getIssuerRegistrySummary } from './services/issuerRegistry';
+import { validateMerkleIntegrity } from './services/merkleIntegrity';
+import { getPerformanceSnapshot, recordLatency } from './services/performanceMetrics';
+import { enforceHaipNoDowngrade, isZeroDowngradeEnforced, runRuntimeGuards } from './services/runtimeGuards';
+import { generateClaimProof, verifyClaimProof } from './services/selectiveProofEngine';
+import { getTransparencyEntries } from './services/transparencyLog';
+import { validateTrustChain } from './services/trustChain';
+import { computeTrustState } from './services/trustState';
+import { enterpriseCapabilitiesCache } from './services/ttlCache';
+import {
+    assessVerifierLifecycleTransition,
+    coerceVerifierLifecycle,
+    VERIFIER_LIFECYCLE_STATES,
 } from './services/verifierLifecycle';
-import { log } from './obs/logger';
+import { estimateTokenCount } from './telemetry';
+import { withToolSpan } from './tools/tracing';
+import type { ClaimProof } from './types/selectiveProof';
+import { sha256Hex } from './utils/deterministic';
+import { isStrictTransitionMode, parseBooleanEnv } from './utils/environment';
+import { resolveCrossOrgTrustLevel } from './utils/federation';
+import { getConfiguredIssuerDid, isValidDidFormat } from './utils/issuerDid';
+import { CredentialLifecycleState } from './utils/lifecycleState';
 // Wave R: Onboarding Analytics + Revenue Signal
-import { getOnboardingMetrics, recordVerificationEvent, recordProofIssuedEvent, recordPSVCompletionEvent } from './services/onboardingAnalyticsEngine';
+import { getOnboardingMetrics, recordProofIssuedEvent, recordVerificationEvent } from './services/onboardingAnalyticsEngine';
 import { computeRevenueSignal } from './services/revenueSignalEngine';
 // Wave S: PSV Window Engine
-import { getPSVStatus, checkPSVDeadlines } from './services/psvWindowEngine';
+import { checkPSVDeadlines, getPSVStatus } from './services/psvWindowEngine';
 // Wave T: Failure Isolation Engine
-import { logSystemFailure, getObservabilityStatus, isSystemHealthyForOperation, hasCriticalFailure } from './services/failureIsolationEngine';
+import { getObservabilityStatus, hasCriticalFailure, isSystemHealthyForOperation, logSystemFailure } from './services/failureIsolationEngine';
 // Wave X: External Integrations
 import { getIntegrationHealth } from './services/externalIntegrations';
 // Wave Y: Delta Monitoring + Expiration Forecasting
 import { getOrganizationForecastSummary } from './services/expirationForecastEngine';
 // Wave Z: Verifier Dashboard
-import { buildDashboardResponse, buildDashboardExport } from './services/verifierDashboardEngine';
+import { buildDashboardExport, buildDashboardResponse } from './services/verifierDashboardEngine';
 // Identity Module
 import { registerIdentityRoutes } from './modules/identity';
-import { registerWave2AVerifyRoutes } from './modules/wave2a';
 // Demo Module (public, rate-limited, no auth)
 import { registerDemoRoutes } from './modules/demo';
 // PSV Verify Module (Wave 1)
 import { registerPsvVerifyRoutes } from './services/psv/verifyRoute';
+// Wave 27: Genesis Mesh Emergency Overrides
+import { complianceRoutes } from './routes/compliance-emergency';
 
 type VerificationLane = 'PUBLIC' | 'PARTNER' | 'MANUAL';
 const VALID_LANES: readonly VerificationLane[] = ['PUBLIC', 'PARTNER', 'MANUAL'] as const;
@@ -1751,6 +1754,8 @@ function registerLookupRoutes(app: Express): void {
 }
 
 function registerComplianceRoutes(app: Express): void {
+  app.use('/api', complianceRoutes);
+
   app.get('/api/compliance/summary', (_req: Request, res: Response) => {
     res.status(200).json(COMPLIANCE_SUMMARY);
   });
@@ -3433,6 +3438,7 @@ app.use(express.urlencoded({ extended: false, limit: '1mb' }));
   // Routes
   registerHealthRoutes(app);
   registerPublicMetricsRoutes(app);
+  registerPublicRoutes(app); // Wave 26: Golden Link
   registerImpactRoutes(app);
   registerIngestRoutes(app);
   registerLookupRoutes(app);
