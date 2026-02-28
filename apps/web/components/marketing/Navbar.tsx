@@ -25,6 +25,9 @@ export default function Navbar() {
           <Link href="/#portals" className="hover:text-[var(--warm-charcoal)] transition-colors">
             Portals
           </Link>
+          <Link href="/developers" className="hover:text-[var(--warm-charcoal)] transition-colors font-medium">
+            Developers
+          </Link>
         </div>
         <Button asChild variant="ghost" size="sm">
           <Link href="/sign-in">Sign In</Link>
