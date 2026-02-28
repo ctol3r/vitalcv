@@ -30,6 +30,8 @@ import { registerImpactRoutes } from './routes/impact';
 import { registerPublicMetricsRoutes } from './routes/publicMetrics';
 // Wave 26: Golden Link — public read-only profile API
 import { registerPublicRoutes } from './routes/public';
+// Wave 27: Authority-Bound Knowledge Graph — MCP endpoint
+import { registerAKGRoutes } from './mcp/akg-server';
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3439,6 +3441,7 @@ app.use(express.urlencoded({ extended: false, limit: '1mb' }));
   registerHealthRoutes(app);
   registerPublicMetricsRoutes(app);
   registerPublicRoutes(app); // Wave 26: Golden Link
+  registerAKGRoutes(app);    // Wave 27: AKG / MCP
   registerImpactRoutes(app);
   registerIngestRoutes(app);
   registerLookupRoutes(app);
