@@ -29,6 +29,7 @@
     "@prisma/client": "^6.19.2",
     "@types/cheerio": "^0.22.35",
     "@types/jsonwebtoken": "^9.0.10",
+    "@vitalcv/poe-engine": "workspace:*",
     "apollo-server": "^3.13.0",
     "apollo-server-express": "^3.12.2",
     "archiver": "^7.0.1",
