@@ -98,6 +98,7 @@ import { registerDemoRoutes } from './modules/demo';
 import { registerPsvVerifyRoutes } from './services/psv/verifyRoute';
 // Wave 31: HTM Proof of Experience (PoE) — cryptographic volume attestation
 import { registerPoeRoutes } from './routes/poe';
+import { registerWidgetRoutes } from './routes/widget'; // Wave 34: Plaid Widget
 // Wave 27: Genesis Mesh Emergency Overrides
 import { complianceRoutes } from './routes/compliance-emergency';
 
@@ -3474,6 +3475,7 @@ registerIdentityRoutes(app);
 registerDemoRoutes(app);
 registerPsvVerifyRoutes(app);
 registerPoeRoutes(app);
+registerWidgetRoutes(app); // Wave 34: Plaid Widget
 
 if (ENTERPRISE_MODE) {
   app.get('/internal/enterprise', async (req: Request, res: Response) => {

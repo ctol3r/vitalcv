@@ -23,6 +23,7 @@ import {
 import { ApiKeyManager } from '@/components/developers/ApiKeyManager';
 import { ApiSandbox } from '@/components/developers/ApiSandbox';
 import { WebhookLog } from '@/components/developers/WebhookLog';
+import { DropInSection } from '@/components/developers/DropInSection';
 
 export const metadata: Metadata = {
   title: 'Developer Portal | VitalCV',
@@ -160,6 +161,9 @@ export default function DeveloperPortalPage() {
         <div id="sandbox" className="scroll-mt-20">
           <ApiSandbox />
         </div>
+
+        {/* Row 3: Drop-in Widget SDK — Wave 34: Plaid Wedge */}
+        <DropInSection />
 
         {/* ── Resource links ──────────────────────────────── */}
         <div>
