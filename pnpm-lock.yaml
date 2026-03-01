@@ -194,6 +194,9 @@ importers:
       '@types/jsonwebtoken':
         specifier: ^9.0.10
         version: 9.0.10
+      '@vitalcv/poe-engine':
+        specifier: workspace:*
+        version: link:../../../packages/poe-engine
       apollo-server:
         specifier: ^3.13.0
         version: 3.13.0(graphql@16.12.0)
@@ -599,9 +602,15 @@ importers:
       react:
         specifier: ^19
         version: 19.2.3
+      react-countup:
+        specifier: ^6.5.3
+        version: 6.5.3(react@19.2.3)
       react-dom:
         specifier: ^19
         version: 19.2.3(react@19.2.3)
+      react-qr-code:
+        specifier: ^2.0.18
+        version: 2.0.18(react@19.2.3)
       tailwind-merge:
         specifier: ^2.5.5
         version: 2.6.0
@@ -752,6 +761,18 @@ importers:
       typescript:
         specifier: ^5.4.5
         version: 5.9.3
+
+  packages/poe-engine:
+    devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.27
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.1(@types/node@20.19.27)(lightningcss@1.30.2)(terser@5.46.0)
 
   packages/psv:
     devDependencies:
@@ -5317,6 +5338,9 @@ packages:
     resolution: {integrity: sha512-KIHbLJqu73RGr/hnbrO9uBeixNGuvSQjul/jdFvS/KFSIH1hWVd1ng7zOHx+YrEfInLG7q4n6GHQ9cDtxv/P6g==}
     engines: {node: '>= 0.10'}
 
+  countup.js@2.9.0:
+    resolution: {integrity: sha512-llqrvyXztRFPp6+i8jx25phHWcVWhrHO4Nlt0uAOSKHB8778zzQswa4MU3qKBvkXfJKftRYFJuVHez67lyKdHg==}
+
   crc-32@1.2.2:
     resolution: {integrity: sha512-ROmzCKrTnOwybPcJApAA6WBWij23HVfGVNKqqrZpuyZOHqK2CwHSvpGuyt/UNNvaIjEd8X5IFGp4Mh+Ie1IHJQ==}
     engines: {node: '>=0.8'}
@@ -8111,6 +8135,9 @@ packages:
     resolution: {integrity: sha512-KTqnxsgGiQ6ZAzZCVlJH5eOjSnvlyEgx1m8bkRJfOhmGRqfo5KLvmAlACQkrjEtOQ4B7wF9TdSLIs9O90MX9xA==}
     engines: {node: '>=16.0.0'}
 
+  qr.js@0.0.0:
+    resolution: {integrity: sha512-c4iYnWb+k2E+vYpRimHqSu575b1/wKl4XFeJGpFmrJQz5I88v9aY2czh7s0w36srfCM1sXgC/xpoJz5dJfq+OQ==}
+
   qs@6.14.0:
     resolution: {integrity: sha512-YWWTjgABSKcvs/nWBi9PycY/JiPJqOD4JA6o9Sej2AtvSGarXxKC3OQSk4pAarbdQlKAh5D4FCQkJNkW+GAn3w==}
     engines: {node: '>=0.6'}
@@ -8191,6 +8218,11 @@ packages:
   rdfxml-streaming-parser@3.2.0:
     resolution: {integrity: sha512-SgQGK0EkbXd0jQ1PZk7dEpfDxf4CZpezkO6cTuGWesa9twdWaaW5elMoNBcbMT+2tOZC1EYZjs0JaXx0HnifcQ==}
 
+  react-countup@6.5.3:
+    resolution: {integrity: sha512-udnqVQitxC7QWADSPDOxVWULkLvKUWrDapn5i53HE4DPRVgs+Y5rr4bo25qEl8jSh+0l2cToJgGMx+clxPM3+w==}
+    peerDependencies:
+      react: '>= 16.3.0'
+
   react-dom@18.3.1:
     resolution: {integrity: sha512-5m4nQKp+rZRb09LNH59GM4BxTh9251/ylbKIbpe7TpGxfJ+9kv6BLkLBXIjjspbgbnIBNqlI23tRnTWT0snUIw==}
     peerDependencies:
@@ -8206,6 +8238,11 @@ packages:
 
   react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
+
+  react-qr-code@2.0.18:
+    resolution: {integrity: sha512-v1Jqz7urLMhkO6jkgJuBYhnqvXagzceg3qJUWayuCK/c6LTIonpWbwxR1f1APGd4xrW/QcQEovNrAojbUz65Tg==}
+    peerDependencies:
+      react: '*'
 
   react-refresh@0.18.0:
     resolution: {integrity: sha512-QgT5//D3jfjJb6Gsjxv0Slpj23ip+HtOpnNgnb2S5zU3CB26G/IDPGoy4RJB42wzFE46DRsstbW6tKHoKbhAxw==}
@@ -15366,6 +15403,8 @@ snapshots:
       object-assign: 4.1.1
       vary: 1.1.2
 
+  countup.js@2.9.0: {}
+
   crc-32@1.2.2: {}
 
   crc32-stream@6.0.0:
@@ -18919,6 +18958,8 @@ snapshots:
 
   pvutils@1.1.5: {}
 
+  qr.js@0.0.0: {}
+
   qs@6.14.0:
     dependencies:
       side-channel: 1.1.0
@@ -19043,6 +19084,11 @@ snapshots:
       relative-to-absolute-iri: 1.0.7
       validate-iri: 1.0.1
 
+  react-countup@6.5.3(react@19.2.3):
+    dependencies:
+      countup.js: 2.9.0
+      react: 19.2.3
+
   react-dom@18.3.1(react@18.3.1):
     dependencies:
       loose-envify: 1.4.0
@@ -19057,6 +19103,12 @@ snapshots:
   react-is@16.13.1: {}
 
   react-is@18.3.1: {}
+
+  react-qr-code@2.0.18(react@19.2.3):
+    dependencies:
+      prop-types: 15.8.1
+      qr.js: 0.0.0
+      react: 19.2.3
 
   react-refresh@0.18.0: {}
 
