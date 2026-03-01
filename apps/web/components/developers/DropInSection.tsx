@@ -40,11 +40,26 @@ export function DropInSection() {
           </p>
         </div>
 
-        {/* Live button preview pill */}
-        <div className="hidden lg:flex h-10 items-center gap-2 rounded-xl border border-white/8 bg-slate-800/60 px-4 text-sm font-semibold text-slate-200 shadow-inner">
+        {/* Live button preview pill — triggers actual OIDC4VP popup */}
+        <button
+          type="button"
+          title="Preview the Apply with VitalCV popup"
+          onClick={() => {
+            const w    = 400;
+            const h    = 600;
+            const left = (window.screen.width  - w) / 2;
+            const top  = (window.screen.height - h) / 2;
+            window.open(
+              '/widget/authorize?clientId=demo_preview',
+              'vitalcv_apply',
+              `width=${w},height=${h},top=${top},left=${left},resizable=yes,scrollbars=no,status=no`,
+            );
+          }}
+          className="hidden lg:flex h-10 items-center gap-2 rounded-xl border border-white/8 bg-slate-800/60 px-4 text-sm font-semibold text-slate-200 shadow-inner cursor-pointer transition-opacity hover:opacity-80 active:opacity-60"
+        >
           <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(74,222,128,0.7)]" />
           Apply with VitalCV
-        </div>
+        </button>
       </div>
 
       {/* ── Code block ─────────────────────────────────── */}
