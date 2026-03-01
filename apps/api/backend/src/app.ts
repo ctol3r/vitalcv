@@ -32,6 +32,8 @@ import { registerPublicMetricsRoutes } from './routes/publicMetrics';
 import { registerPublicRoutes } from './routes/public';
 // Wave 27: Authority-Bound Knowledge Graph — MCP endpoint
 import { registerAKGRoutes } from './mcp/akg-server';
+// Wave 29: Professional Authority State (PAS) engine
+import { registerAuthorityRoutes } from './routes/authority';
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -94,6 +96,8 @@ import { registerIdentityRoutes } from './modules/identity';
 import { registerDemoRoutes } from './modules/demo';
 // PSV Verify Module (Wave 1)
 import { registerPsvVerifyRoutes } from './services/psv/verifyRoute';
+// Wave 31: HTM Proof of Experience (PoE) — cryptographic volume attestation
+import { registerPoeRoutes } from './routes/poe';
 // Wave 27: Genesis Mesh Emergency Overrides
 import { complianceRoutes } from './routes/compliance-emergency';
 
@@ -401,7 +405,10 @@ function shouldSkipTenantContext(pathname: string): boolean {
     normalizedPath.startsWith('/api/artifact') ||
     normalizedPath.startsWith('/bundle') ||
     // Verification request route uses apiKeyAuth.
-    normalizedPath === '/verification/request'
+    normalizedPath === '/verification/request' ||
+    // Wave 31: PoE issuance uses apiKeyAuth; verify is stateless/public.
+    normalizedPath.startsWith('/api/issuer/') ||
+    normalizedPath.startsWith('/api/poe/')
   );
 }
 
@@ -3441,7 +3448,8 @@ app.use(express.urlencoded({ extended: false, limit: '1mb' }));
   registerHealthRoutes(app);
   registerPublicMetricsRoutes(app);
   registerPublicRoutes(app); // Wave 26: Golden Link
-  registerAKGRoutes(app);    // Wave 27: AKG / MCP
+  registerAKGRoutes(app);       // Wave 27: AKG / MCP
+  registerAuthorityRoutes(app); // Wave 29: PAS Engine
   registerImpactRoutes(app);
   registerIngestRoutes(app);
   registerLookupRoutes(app);
@@ -3465,6 +3473,7 @@ registerWedgeRoutes(app);
 registerIdentityRoutes(app);
 registerDemoRoutes(app);
 registerPsvVerifyRoutes(app);
+registerPoeRoutes(app);
 
 if (ENTERPRISE_MODE) {
   app.get('/internal/enterprise', async (req: Request, res: Response) => {

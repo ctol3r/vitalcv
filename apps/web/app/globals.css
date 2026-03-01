@@ -65,6 +65,8 @@
   --glass-border: oklch(0.85 0.008 80 / 0.3);
   --glass-blur: 20px;
   --glass-shadow: 0 4px 24px oklch(0.30 0.01 60 / 0.06);
+  --shadow-glow: 0 0 40px oklch(0.72 0.15 155 / 0.12);
+  --shadow-elevated: 0 8px 32px oklch(0.30 0.01 60 / 0.10);
 
   /* ── Charts ────────────────────────────────────────────── */
   --chart-1: oklch(0.55 0.14 35);             /* Terracotta */
@@ -136,6 +138,8 @@
   --glass-bg-heavy: oklch(0.22 0.012 60 / 0.82);
   --glass-border: oklch(0.35 0.012 60 / 0.3);
   --glass-shadow: 0 4px 24px oklch(0 0 0 / 0.2);
+  --shadow-glow: 0 0 40px oklch(0.65 0.14 155 / 0.18);
+  --shadow-elevated: 0 8px 32px oklch(0 0 0 / 0.20);
 
   --surface-elevated: oklch(0.23 0.012 60);
   --sage: oklch(0.60 0.06 155);
@@ -203,6 +207,10 @@
 
   --color-surface-elevated: var(--surface-elevated);
   --color-sage: var(--sage);
+
+  --shadow-glass: var(--glass-shadow);
+  --shadow-glow: var(--shadow-glow);
+  --shadow-elevated: var(--shadow-elevated);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -373,6 +381,12 @@
   }
 }
 
+/* Compliance marquee — infinite horizontal scroll */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
 /* Gentle float for decorative elements */
 @keyframes float {
   0%, 100% {
@@ -398,6 +412,10 @@
 
   .animate-crs-ring {
     animation: crs-ring-fill 800ms ease-out both;
+  }
+
+  .animate-marquee {
+    animation: marquee 25s linear infinite;
   }
 
   .animate-shimmer {

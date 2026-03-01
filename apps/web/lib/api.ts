@@ -6,7 +6,10 @@ type ApiPath =
   | '/acceptances'
   | '/starts'
   | '/verify'
-  | '/api/pilot/activate';
+  | '/compliance/emergency/declare'
+  | '/compliance/emergency/status'
+  | '/api/pilot/activate'
+  | '/metrics/public';
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ||

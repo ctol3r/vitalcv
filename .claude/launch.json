@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "marketing-dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@vitalcv/marketing", "dev"],
+      "port": 3001
+    },
+    {
+      "name": "web-dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@vitalcv/web", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "api-dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@vitalcv/api", "dev"],
+      "port": 4000
+    }
+  ]
+}

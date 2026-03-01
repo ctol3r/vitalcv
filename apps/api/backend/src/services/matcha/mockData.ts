@@ -1,0 +1,163 @@
+/**
+ * MATCHA Mock Data
+ *
+ * Hardcoded clinician profile + job postings for the demo.
+ * Designed to produce a natural spread: 2 CLEAR, 2 PARTIAL, 1 INELIGIBLE.
+ *
+ * The default profile intentionally omits malpractice insurance so that
+ * jobs requiring it fall to PARTIAL, demonstrating the "Add Credential" flow.
+ */
+
+import type { ClinicianProfile, JobPosting } from './eligibility';
+
+/* ------------------------------------------------------------------ */
+/*  Clinician Profile                                                  */
+/* ------------------------------------------------------------------ */
+
+const DEFAULT_PROFILE: ClinicianProfile = {
+  npi: '1003000126',
+  name: 'Dr. Sarah Chen',
+  specialty: 'Internal Medicine',
+  credentials: [
+    {
+      key: 'npi',
+      status: 'active',
+      claimLevel: 'L3',
+      issuer: 'CMS NPPES',
+    },
+    {
+      key: 'state_license',
+      status: 'active',
+      claimLevel: 'L3',
+      issuer: 'California Medical Board',
+      state: 'CA',
+      expiresAt: '2026-12-31',
+    },
+    {
+      key: 'board_cert',
+      status: 'active',
+      claimLevel: 'L3',
+      issuer: 'American Board of Internal Medicine',
+      specialty: 'Internal Medicine',
+      expiresAt: '2027-06-30',
+    },
+    {
+      key: 'dea',
+      status: 'active',
+      claimLevel: 'L3',
+      issuer: 'DEA',
+    },
+    {
+      key: 'sanctions_clear',
+      status: 'active',
+      claimLevel: 'L3',
+      issuer: 'OIG / NPDB',
+    },
+    // Intentionally MISSING: malpractice — drives partial matches
+  ],
+};
+
+/** Returns mock profile with the requested NPI stamped in. */
+export function getMockProfile(npi: string): ClinicianProfile {
+  return { ...DEFAULT_PROFILE, npi };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Job Postings                                                       */
+/* ------------------------------------------------------------------ */
+
+export const MOCK_JOBS: JobPosting[] = [
+  // Job 1 — 100% CLEAR (all required, no preferred)
+  {
+    id: 'matcha-job-1',
+    title: 'Staff Internist',
+    facility: 'Stanford Health Care',
+    location: 'Palo Alto, CA',
+    department: 'Internal Medicine',
+    compensation: '$280k – $350k',
+    startDate: '2026-04-15',
+    postedAt: '2026-02-20T00:00:00Z',
+    requirements: [
+      { key: 'state_license', label: 'Active CA Medical License', priority: 'required', state: 'CA' },
+      { key: 'board_cert', label: 'ABIM Board Certification', priority: 'required', specialty: 'Internal Medicine' },
+      { key: 'dea', label: 'DEA Registration', priority: 'required' },
+      { key: 'sanctions_clear', label: 'Clean Sanctions Record', priority: 'required' },
+      { key: 'npi', label: 'Active NPI', priority: 'required' },
+    ],
+  },
+
+  // Job 2 — CLEAR (~95%, all required met, preferred malpractice missing)
+  {
+    id: 'matcha-job-2',
+    title: 'Hospitalist — Night Shift',
+    facility: 'Kaiser Permanente',
+    location: 'Oakland, CA',
+    department: 'Hospital Medicine',
+    compensation: '$310k – $380k + Night Differential',
+    startDate: '2026-05-01',
+    postedAt: '2026-02-18T00:00:00Z',
+    requirements: [
+      { key: 'state_license', label: 'Active CA Medical License', priority: 'required', state: 'CA' },
+      { key: 'board_cert', label: 'ABIM Board Certification', priority: 'required', specialty: 'Internal Medicine' },
+      { key: 'dea', label: 'DEA Registration', priority: 'required' },
+      { key: 'sanctions_clear', label: 'Clean Sanctions Record', priority: 'required' },
+      { key: 'malpractice', label: 'Malpractice Insurance', priority: 'preferred' },
+    ],
+  },
+
+  // Job 3 — PARTIAL (malpractice is REQUIRED here)
+  {
+    id: 'matcha-job-3',
+    title: 'Primary Care Physician',
+    facility: 'One Medical (Amazon)',
+    location: 'San Francisco, CA',
+    department: 'Primary Care',
+    compensation: '$250k – $300k + Equity',
+    startDate: '2026-03-01',
+    postedAt: '2026-02-22T00:00:00Z',
+    requirements: [
+      { key: 'state_license', label: 'Active CA Medical License', priority: 'required', state: 'CA' },
+      { key: 'board_cert', label: 'Board Certification (IM or FM)', priority: 'required', specialty: 'Internal Medicine' },
+      { key: 'npi', label: 'Active NPI', priority: 'required' },
+      { key: 'malpractice', label: 'Malpractice Coverage', priority: 'required' },
+      { key: 'sanctions_clear', label: 'Clean Sanctions Record', priority: 'required' },
+    ],
+  },
+
+  // Job 4 — CLEAR (~80%, required met, preferred board cert + malpractice missing)
+  {
+    id: 'matcha-job-4',
+    title: 'Urgent Care Physician',
+    facility: 'Sutter Health',
+    location: 'Sacramento, CA',
+    department: 'Urgent Care',
+    compensation: '$260k – $320k',
+    startDate: '2026-06-01',
+    postedAt: '2026-02-15T00:00:00Z',
+    requirements: [
+      { key: 'state_license', label: 'Active CA Medical License', priority: 'required', state: 'CA' },
+      { key: 'dea', label: 'DEA Registration', priority: 'required' },
+      { key: 'npi', label: 'Active NPI', priority: 'required' },
+      { key: 'board_cert', label: 'Board Certification', priority: 'preferred', specialty: 'Internal Medicine' },
+      { key: 'malpractice', label: 'Malpractice Insurance', priority: 'preferred' },
+    ],
+  },
+
+  // Job 5 — INELIGIBLE (specialty mismatch: requires Cardiology, clinician has Internal Medicine)
+  {
+    id: 'matcha-job-5',
+    title: 'Interventional Cardiologist',
+    facility: 'UCSF Medical Center',
+    location: 'San Francisco, CA',
+    department: 'Cardiology',
+    compensation: '$400k – $500k',
+    startDate: '2026-07-01',
+    postedAt: '2026-02-25T00:00:00Z',
+    requirements: [
+      { key: 'state_license', label: 'Active CA Medical License', priority: 'required', state: 'CA' },
+      { key: 'board_cert', label: 'Cardiology Board Certification', priority: 'required', specialty: 'Cardiology' },
+      { key: 'dea', label: 'DEA Registration', priority: 'required' },
+      { key: 'sanctions_clear', label: 'Clean Sanctions Record', priority: 'required' },
+    ],
+  },
+];

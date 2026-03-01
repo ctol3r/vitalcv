@@ -1,36 +1,37 @@
 'use client';
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import {
-  VerificationReceipts,
-  type ReceiptRow,
-  type ReceiptOutcome,
-} from '@/components/VerificationReceipts';
 import { AuditTimeline } from '@/components/AuditTimeline';
-import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
-import { apiRoute } from '@/lib/api';
 import {
-  type TrustStateResponse,
-  normalizeTrustStateResponse,
+    normalizeTrustStateResponse,
+    type TrustStateResponse,
 } from '@/components/trust-state/types';
-import { History, AlertCircle } from 'lucide-react';
-import { FormEvent, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
 import { Input } from '@/components/ui/input';
+import {
+    VerificationReceipts,
+    type ReceiptOutcome,
+    type ReceiptRow,
+} from '@/components/VerificationReceipts';
+import { apiRoute } from '@/lib/api';
+import { AlertCircle, History } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { FormEvent, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { EmergencySwitch } from './EmergencySwitch';
 import { ManualVerification } from './ManualVerification';
 import { TrustStatePanel } from './TrustStatePanel';
 import { VerificationFlow } from './VerificationFlow';
 import { VerificationInput } from './VerificationInput';
 import type { ManualVerificationRecord } from './verifier-types';
 import {
-  getCtaVariant,
-  getMockHash,
-  getTrustObserverExplanation,
-  getVerifierRef,
-  isPilotModeEnabled,
-  normalizeEventLabel,
+    getCtaVariant,
+    getMockHash,
+    getTrustObserverExplanation,
+    getVerifierRef,
+    isPilotModeEnabled,
+    normalizeEventLabel,
 } from './verifier-types';
 
 /* ------------------------------------------------------------------ */
@@ -63,6 +64,11 @@ function VerifierPortalContent() {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previousTrustBand, setPreviousTrustBand] = useState<TrustStateResponse['crs']['band'] | null>(null);
+
+  /* ---- Emergency State ---- */
+  const [isEmergencyActive, setIsEmergencyActive] = useState(false);
+  const emergencyDeclareRoute = apiRoute('/compliance/emergency/declare');
+  const emergencyStatusRoute = apiRoute('/compliance/emergency/status');
 
   /* ---- Pilot state ---- */
   const [pilotOrganization, setPilotOrganization] = useState('');
@@ -131,6 +137,12 @@ function VerifierPortalContent() {
   // Auto-check on mount
   useEffect(() => {
     checkTrustState();
+
+    // Check emergency status
+    fetch(emergencyStatusRoute, { headers: orgHeaders })
+      .then(res => res.json())
+      .then(data => setIsEmergencyActive(data.active))
+      .catch(console.error);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-check when scenario parameters change
@@ -207,6 +219,21 @@ function VerifierPortalContent() {
       setActionLoading(false);
     }
   }, [startsRoute, checkTrustState, status]);
+
+  const handleDeclareEmergency = useCallback(async () => {
+    try {
+      const res = await fetch(emergencyDeclareRoute, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...orgHeaders },
+        body: JSON.stringify({ active: true, context: 'Employer-declared Emergency', npi: employerId }),
+      });
+      if (!res.ok) throw new Error('Failed to declare emergency');
+      const data = await res.json();
+      setIsEmergencyActive(data.declaration.active);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Unknown error declaring emergency');
+    }
+  }, [emergencyDeclareRoute, employerId, orgHeaders]);
 
   const handleManualVerification = useCallback(async () => {
     if (!manualSubject.trim() || !manualFile || !clinicianId.trim()) return;
@@ -401,6 +428,10 @@ function VerifierPortalContent() {
   /* ---- Render ---- */
   return (
     <main className="mx-auto max-w-4xl px-4 py-8 space-y-6">
+      <div className="flex justify-end">
+        <EmergencySwitch onDeclareEmergency={handleDeclareEmergency} isEmergencyActive={isEmergencyActive} />
+      </div>
+
       {/* Header / Input */}
       <VerificationInput
         clinicianId={clinicianId}
