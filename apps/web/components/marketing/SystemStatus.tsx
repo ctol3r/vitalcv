@@ -1,123 +1,170 @@
 'use client';
 
-/**
- * SystemStatus — Wave 33: Antigravity UI Enforcement
- *
- * Fetches GET /health from NEXT_PUBLIC_API_BASE.
- * Degrades gracefully to mock data — never shows error states to users.
- * Uses react-countup for animated counter transitions.
- */
-
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { motion, useInView } from 'framer-motion';
 import CountUp from 'react-countup';
+import { Activity, CheckCircle2, FileStack, ShieldCheck } from 'lucide-react';
+import { apiRoute } from '@/lib/api';
 
-interface HealthPayload {
-  uptime_pct?: number;
-  latency_ms?: number;
-  verifications_performed?: number;
+interface PublicMetrics {
+  status: string;
+  uptime: string;
+  bundlesGenerated: number;
+  verificationsPerformed: number;
+  generated_at: string;
 }
 
-const MOCK_DATA: HealthPayload = {
-  uptime_pct: 99.9,
-  latency_ms: 38,
-  verifications_performed: 14_872,
-};
-
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? '').replace(/\/$/, '');
-const HEALTH_URL = API_BASE ? `${API_BASE}/health` : '';
+const POLL_INTERVAL_MS = 15_000;
 
 export function SystemStatus() {
-  const [data, setData] = useState<HealthPayload>(MOCK_DATA);
-  const prevRef = useRef<HealthPayload>(MOCK_DATA);
+  const [metrics, setMetrics] = useState<PublicMetrics | null>(null);
+  const prevMetrics = useRef<PublicMetrics | null>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const inView = useInView(sectionRef, { amount: 0.2 });
 
-  const fetchHealth = useCallback(async () => {
-    if (!HEALTH_URL) return;
-
+  const fetchMetrics = useCallback(async () => {
     try {
-      const res = await fetch(HEALTH_URL, { signal: AbortSignal.timeout(4_000) });
+      const res = await fetch(apiRoute('/metrics/public'));
       if (!res.ok) return;
-
-      const json: HealthPayload = await res.json();
-      prevRef.current = data;
-      setData({
-        uptime_pct: json.uptime_pct ?? MOCK_DATA.uptime_pct,
-        latency_ms: json.latency_ms ?? MOCK_DATA.latency_ms,
-        verifications_performed: json.verifications_performed ?? MOCK_DATA.verifications_performed,
-      });
+      const data: PublicMetrics = await res.json();
+      prevMetrics.current = metrics;
+      setMetrics(data);
     } catch {
-      // Silently fall back to mock — the panel always renders
+      // Keep last-known values on failure
     }
-  }, [data]);
+  }, [metrics]);
 
   useEffect(() => {
-    fetchHealth();
-    const id = setInterval(fetchHealth, 15_000);
-    return () => clearInterval(id);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!inView) return;
 
-  const prev = prevRef.current;
+    fetchMetrics();
+    const id = setInterval(fetchMetrics, POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [inView, fetchMetrics]);
+
+  const bundles = metrics?.bundlesGenerated ?? 0;
+  const verifications = metrics?.verificationsPerformed ?? 0;
+  const prevBundles = prevMetrics.current?.bundlesGenerated ?? 0;
+  const prevVerifications = prevMetrics.current?.verificationsPerformed ?? 0;
+  const loaded = metrics !== null;
 
   return (
-    <section className="px-6 py-12">
-      <div className="mx-auto max-w-6xl">
-        <div className="rounded-3xl border border-white/35 bg-white/80 backdrop-blur-md p-6 shadow-[var(--glass-shadow)]">
-          <div className="flex flex-wrap items-center gap-x-10 gap-y-4">
-            {/* ── Live indicator ──────────────────────────── */}
-            <div className="flex items-center gap-3">
-              <span className="relative flex h-3 w-3">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--trust-green)] opacity-60" />
-                <span className="relative inline-flex h-3 w-3 rounded-full bg-[var(--trust-green)]" />
-              </span>
-              <span className="text-sm font-semibold text-[var(--warm-charcoal)]">
-                System Operational
-              </span>
-            </div>
-
-            {/* ── Uptime ──────────────────────────────────── */}
-            <div className="flex items-center gap-2 text-sm text-[var(--warm-charcoal)]/70">
-              <span className="font-medium">Uptime</span>
-              <span className="font-semibold tabular-nums text-[var(--warm-charcoal)]">
-                <CountUp
-                  start={prev.uptime_pct ?? MOCK_DATA.uptime_pct!}
-                  end={data.uptime_pct ?? MOCK_DATA.uptime_pct!}
-                  decimals={1}
-                  suffix="%"
-                  duration={0.8}
-                  preserveValue
-                />
-              </span>
-            </div>
-
-            {/* ── API Latency ──────────────────────────────── */}
-            <div className="flex items-center gap-2 text-sm text-[var(--warm-charcoal)]/70">
-              <span className="font-medium">API Latency</span>
-              <span className="font-semibold tabular-nums text-[var(--warm-charcoal)]">
-                <CountUp
-                  start={prev.latency_ms ?? MOCK_DATA.latency_ms!}
-                  end={data.latency_ms ?? MOCK_DATA.latency_ms!}
-                  suffix="ms"
-                  duration={0.8}
-                  preserveValue
-                />
-              </span>
-            </div>
-
-            {/* ── Verifications Performed ──────────────────── */}
-            <div className="flex items-center gap-2 text-sm text-[var(--warm-charcoal)]/70">
-              <span className="font-medium">Verifications Performed</span>
-              <span className="font-semibold tabular-nums text-[var(--warm-charcoal)]">
-                <CountUp
-                  start={prev.verifications_performed ?? MOCK_DATA.verifications_performed!}
-                  end={data.verifications_performed ?? MOCK_DATA.verifications_performed!}
-                  separator=","
-                  duration={0.8}
-                  preserveValue
-                />
-              </span>
-            </div>
-          </div>
+    <section
+      ref={sectionRef}
+      className="relative px-6 py-16"
+      role="region"
+      aria-label="Platform system status"
+    >
+      <motion.div
+        className="mx-auto max-w-6xl"
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ amount: 0.3, once: true }}
+      >
+        <div className="text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.33em] text-[var(--trust-green)]">
+            System Status
+          </p>
+          <h2 className="mt-4 text-4xl font-semibold tracking-tight font-fraunces text-[var(--warm-charcoal)]">
+            Platform health, live
+          </h2>
         </div>
-      </div>
+
+        <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Status */}
+          <motion.div
+            className="rounded-3xl border border-white/35 bg-white/80 backdrop-blur-md p-6"
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--warm-charcoal)]/50">
+              <Activity className="h-3.5 w-3.5" />
+              Status
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--trust-green)] opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--trust-green)]" />
+              </span>
+              <span className="text-lg font-semibold text-[var(--trust-green)]">
+                {loaded ? metrics.status : '--'}
+              </span>
+            </div>
+          </motion.div>
+
+          {/* Uptime */}
+          <motion.div
+            className="rounded-3xl border border-white/35 bg-white/80 backdrop-blur-md p-6"
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.06 }}
+            viewport={{ once: true }}
+          >
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--warm-charcoal)]/50">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Uptime
+            </div>
+            <div className="mt-3 text-3xl font-semibold tabular-nums text-[var(--warm-charcoal)]">
+              {loaded ? metrics.uptime : '--'}
+            </div>
+          </motion.div>
+
+          {/* Bundles Generated */}
+          <motion.div
+            className="rounded-3xl border border-white/35 bg-white/80 backdrop-blur-md p-6"
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.12 }}
+            viewport={{ once: true }}
+          >
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--warm-charcoal)]/50">
+              <FileStack className="h-3.5 w-3.5" />
+              Bundles Generated
+            </div>
+            <div className="mt-3 text-3xl font-semibold tabular-nums text-[var(--warm-charcoal)]">
+              {loaded ? (
+                <CountUp
+                  start={prevBundles}
+                  end={bundles}
+                  duration={1.2}
+                  separator=","
+                  preserveValue
+                />
+              ) : (
+                '--'
+              )}
+            </div>
+          </motion.div>
+
+          {/* Verifications Performed */}
+          <motion.div
+            className="rounded-3xl border border-white/35 bg-white/80 backdrop-blur-md p-6"
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.18 }}
+            viewport={{ once: true }}
+          >
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--warm-charcoal)]/50">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Verifications
+            </div>
+            <div className="mt-3 text-3xl font-semibold tabular-nums text-[var(--warm-charcoal)]">
+              {loaded ? (
+                <CountUp
+                  start={prevVerifications}
+                  end={verifications}
+                  duration={1.2}
+                  separator=","
+                  preserveValue
+                />
+              ) : (
+                '--'
+              )}
+            </div>
+          </motion.div>
+        </div>
+      </motion.div>
     </section>
   );
 }

@@ -13,8 +13,8 @@ export default function HomePage() {
       <Navbar />
       <HeroSection />
       <ProductBento />
-      <ImpactPanel />
       <SystemStatus />
+      <ImpactPanel />
     </main>
   );
 }

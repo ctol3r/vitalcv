@@ -179,10 +179,11 @@ export function HeroSection() {
 
           {/* ── Right column: NPI Terminal / Clearance State ── */}
           <motion.div
+            layout
             className="rounded-3xl border border-white/30 bg-white/80 backdrop-blur-md p-6 shadow-[0_30px_80px_rgba(19,20,20,0.08)] dark:border-white/10 dark:bg-white/10"
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 0.1 }}
+            transition={{ duration: 0.9, delay: 0.1, layout: { type: 'spring', stiffness: 200, damping: 30 } }}
           >
             <h2 className="font-fraunces text-2xl font-semibold tracking-tight text-[var(--warm-charcoal)]">
               Clearance State
@@ -195,6 +196,7 @@ export function HeroSection() {
               {isVerifying ? (
                 <motion.div
                   key="loading"
+                  layout="position"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
@@ -205,6 +207,7 @@ export function HeroSection() {
               ) : showClearance ? (
                 <motion.div
                   key="ready"
+                  layout="position"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
@@ -242,6 +245,7 @@ export function HeroSection() {
               ) : (
                 <motion.div
                   key="idle"
+                  layout="position"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
