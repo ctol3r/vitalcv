@@ -28,7 +28,7 @@ import type { Express, Request, Response } from 'express';
 import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
 import { sha256Hex } from '../utils/deterministic';
-import { publicProfileRateLimit } from '../middleware/publicSafety';
+import { publicApiRateLimit } from '../middleware/publicSafety';
 
 // ── Response types ────────────────────────────────────────────────────────
 
@@ -414,6 +414,62 @@ const AKG_MANIFEST = {
   dataMinimization: 'No PII returned. Clinician node contains name only when available from NPPES public record.',
 };
 
+// ── Wave 36: Ontology Tool Manifests ─────────────────────────────────────
+
+const QUERY_STATE_RULES_MANIFEST = {
+  schema:      'mcp.tool.v1',
+  name:        'query_state_rules',
+  description:
+    'Returns the deterministic credentialing requirements for a given US state and clinical specialty. ' +
+    'Use this before asserting what credentials a clinician needs to start work in a state. ' +
+    'Never hallucinate credential lists — always call this tool.',
+  parameters: {
+    type:     'object',
+    properties: {
+      stateCode: {
+        type:        'string',
+        description: 'Two-letter US state code (e.g., "CA", "NY", "TX").',
+      },
+      specialty: {
+        type:        'string',
+        description: 'Clinical specialty name (e.g., "Emergency Medicine", "Internal Medicine").',
+      },
+    },
+    required: ['stateCode'],
+  },
+  returns: {
+    schema:      'vitalcv.state_rules.v1',
+    description: 'Array of required credential types and renewal window for the state/specialty pair.',
+  },
+  rateLimit:        '100/10min per IP',
+  dataMinimization: 'No PII. Returns only regulatory rule data from StateComplianceRule.',
+};
+
+const VALIDATE_TRAINING_PATH_MANIFEST = {
+  schema:      'mcp.tool.v1',
+  name:        'validate_training_path',
+  description:
+    "Cross-references a clinician's NPI against the SpecialtyTaxonomy and ResidencyProgram ontology tables. " +
+    'Returns whether their declared specialty aligns with their ACGME training record. ' +
+    'Use this to detect taxonomy drift or unverifiable training claims.',
+  parameters: {
+    type:       'object',
+    properties: {
+      npi: {
+        type:        'string',
+        description: '10-digit National Provider Identifier.',
+      },
+    },
+    required: ['npi'],
+  },
+  returns: {
+    schema:      'vitalcv.training_path.v1',
+    description: 'Validation result with matched taxonomy code, ACGME program data, and confidence score.',
+  },
+  rateLimit:        '100/10min per IP',
+  dataMinimization: 'No PII. NPI is validated format only; name not returned.',
+};
+
 // ── Route registration ────────────────────────────────────────────────────
 
 export function registerAKGRoutes(app: Express): void {
@@ -426,7 +482,7 @@ export function registerAKGRoutes(app: Express): void {
   // AKG query endpoint
   app.get(
     '/api/akg/query',
-    publicProfileRateLimit, // 20 req/min/IP — reuse existing limiter
+    publicApiRateLimit, // 20 req/min/IP
     (req: Request, res: Response): void => {
       const rawQuery = typeof req.query['q'] === 'string' ? req.query['q'].trim() : '';
 
@@ -462,6 +518,145 @@ export function registerAKGRoutes(app: Express): void {
             res.status(500).json({ error: 'AKG traversal failed' });
           }
         });
+    },
+  );
+
+  // ── GET /api/akg/ontology/manifest ─────────────────────────────────────
+  // MCP discovery endpoint — lists the two Wave 36 ontology tools.
+  app.get('/api/akg/ontology/manifest', (_req: Request, res: Response): void => {
+    res.setHeader('cache-control', 'public, max-age=3600');
+    res.json({
+      schema: 'mcp.toolset.v1',
+      tools:  [QUERY_STATE_RULES_MANIFEST, VALIDATE_TRAINING_PATH_MANIFEST],
+    });
+  });
+
+  // ── GET /api/akg/state-rules ────────────────────────────────────────────
+  // MCP tool: query_state_rules(stateCode, specialty?)
+  app.get(
+    '/api/akg/state-rules',
+    publicApiRateLimit,
+    async (req: Request, res: Response): Promise<void> => {
+      const stateCode = typeof req.query['stateCode'] === 'string'
+        ? req.query['stateCode'].toUpperCase().trim()
+        : '';
+      const specialty = typeof req.query['specialty'] === 'string'
+        ? req.query['specialty'].trim()
+        : undefined;
+
+      if (!stateCode || !/^[A-Z]{2}$/.test(stateCode)) {
+        res.status(400).json({
+          error:   'invalid_request',
+          message: 'stateCode must be a 2-letter US state abbreviation (e.g. "CA").',
+        });
+        return;
+      }
+
+      try {
+        const rules = await prisma.stateComplianceRule.findMany({
+          where:   specialty ? { state_code: stateCode, specialty } : { state_code: stateCode },
+          orderBy: { specialty: 'asc' },
+        });
+
+        res.setHeader('cache-control', 'no-store');
+        res.json({
+          schema:     'vitalcv.state_rules.v1',
+          state_code: stateCode,
+          specialty:  specialty ?? null,
+          count:      rules.length,
+          rules:      rules.map((r) => ({
+            specialty:                 r.specialty,
+            required_credential_types: r.required_credential_types,
+            renewal_window_days:       r.renewal_window_days,
+            as_of:                     r.updatedAt.toISOString(),
+          })),
+        });
+      } catch (err) {
+        log('error', 'akg_state_rules_error', { stateCode, message: String(err) });
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Failed to query state compliance rules.' });
+        }
+      }
+    },
+  );
+
+  // ── GET /api/akg/training-path ─────────────────────────────────────────
+  // MCP tool: validate_training_path(npi)
+  app.get(
+    '/api/akg/training-path',
+    publicApiRateLimit,
+    async (req: Request, res: Response): Promise<void> => {
+      const npi = typeof req.query['npi'] === 'string'
+        ? req.query['npi'].replace(/\D/g, '').trim()
+        : '';
+
+      if (!/^\d{10}$/.test(npi)) {
+        res.status(400).json({
+          error:   'invalid_request',
+          message: 'npi must be a 10-digit National Provider Identifier.',
+        });
+        return;
+      }
+
+      try {
+        // Fetch clinician's declared taxonomy from identity record
+        const identity = await prisma.clinicianIdentity.findFirst({
+          where:  { clinicianId: npi },
+          select: { data: true },
+        });
+
+        const declaredTaxonomyCode: string | null =
+          identity !== null &&
+          typeof identity.data === 'object' &&
+          identity.data !== null &&
+          'taxonomy_code' in (identity.data as Record<string, unknown>)
+            ? String((identity.data as Record<string, unknown>)['taxonomy_code'])
+            : null;
+
+        // Cross-reference against SpecialtyTaxonomy
+        const taxonomyMatch = declaredTaxonomyCode
+          ? await prisma.specialtyTaxonomy.findUnique({ where: { code: declaredTaxonomyCode } })
+          : null;
+
+        // Find ACGME programs matching the resolved specialty
+        const acgmePrograms = taxonomyMatch
+          ? await prisma.residencyProgram.findMany({
+              where:   { specialty: taxonomyMatch.description },
+              take:    5,
+              orderBy: { name: 'asc' },
+            })
+          : [];
+
+        const validated  = Boolean(taxonomyMatch);
+        const confidence = validated ? (acgmePrograms.length > 0 ? 0.92 : 0.65) : 0;
+
+        res.setHeader('cache-control', 'no-store');
+        res.json({
+          schema:                 'vitalcv.training_path.v1',
+          npi,
+          validated,
+          confidence,
+          declared_taxonomy_code: declaredTaxonomyCode,
+          taxonomy_match:         taxonomyMatch
+            ? { code: taxonomyMatch.code, description: taxonomyMatch.description, board_name: taxonomyMatch.board_name }
+            : null,
+          acgme_programs: acgmePrograms.map((p) => ({
+            name:                p.name,
+            acgme_code:          p.acgme_code,
+            specialty:           p.specialty,
+            hospital_affiliation: p.hospital_affiliation,
+          })),
+          reasoning: validated
+            ? `Declared taxonomy ${declaredTaxonomyCode} maps to "${taxonomyMatch!.description}" ` +
+              `(${taxonomyMatch!.board_name}). ${acgmePrograms.length} ACGME programme(s) found.`
+            : `No taxonomy code found in verification record for NPI ${npi}. Training path cannot be validated.`,
+        });
+      } catch (err) {
+        log('error', 'akg_training_path_error', { npi, message: String(err) });
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Failed to validate training path.' });
+        }
+      }
     },
   );
 }

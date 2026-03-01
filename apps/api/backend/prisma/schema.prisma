@@ -540,12 +540,16 @@ model AuditEvent {
   clinicianId    String?
   organizationId String?
   metadata       Json?    @db.JsonB
+  anchored       Boolean  @default(false)
+  merkleRoot     String?
   createdAt      DateTime @default(now())
 
   @@index([type, createdAt])
   @@index([clinicianId])
   @@index([referenceId])
   @@index([organizationId])
+  @@index([anchored])
+  @@index([merkleRoot])
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -666,4 +670,65 @@ model DeltaLog {
   detectedAt     DateTime @default(now())
 
   artifact W2Artifact @relation(fields: [artifactId], references: [id])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Wave 36: Clinical Ontology Engine — Superbrain data models
+// ──────────────────────────────────────────────────────────────
+
+model MedicalSchool {
+  id                   String   @id @default(uuid()) @db.Uuid
+  name                 String
+  location             String
+  accreditation_status String   @default("LCME")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  residencyPrograms ResidencyProgram[]
+
+  @@index([name])
+  @@index([accreditation_status])
+}
+
+model ResidencyProgram {
+  id                   String        @id @default(uuid()) @db.Uuid
+  name                 String
+  specialty            String
+  acgme_code           String        @unique
+  hospital_affiliation String
+  medicalSchoolId      String?       @db.Uuid
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  medicalSchool MedicalSchool? @relation(fields: [medicalSchoolId], references: [id])
+
+  @@index([specialty])
+  @@index([acgme_code])
+  @@index([hospital_affiliation])
+}
+
+model SpecialtyTaxonomy {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique
+  description String
+  board_name  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([code])
+  @@index([board_name])
+}
+
+model StateComplianceRule {
+  id                        String   @id @default(uuid()) @db.Uuid
+  state_code                String
+  specialty                 String
+  required_credential_types String[]
+  renewal_window_days       Int      @default(365)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@unique([state_code, specialty])
+  @@index([state_code])
+  @@index([specialty])
 }
