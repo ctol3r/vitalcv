@@ -175,7 +175,7 @@ export function IssueCredentialForm({ onIssue, loading }: IssueCredentialFormPro
               ) : (
                 <>
                   <ShieldCheck className="h-4 w-4 mr-1.5" />
-                  Issue Credential
+                  Cryptographically Sign & Issue
                 </>
               )}
             </Button>

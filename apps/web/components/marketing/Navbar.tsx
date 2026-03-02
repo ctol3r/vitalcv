@@ -11,6 +11,7 @@ const NAV_LINKS: ReadonlyArray<{ readonly href: string; readonly label: string; 
   { href: '#security',     label: 'Security'      },
   { href: '#portals',      label: 'Portals'        },
   { href: '/developers',   label: 'Developers', isRoute: true },
+  { href: '/issuer',       label: 'Issuer',     isRoute: true },
 ];
 
 export default function Navbar() {
