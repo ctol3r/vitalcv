@@ -45,6 +45,7 @@
     "key-did-resolver": "^4.0.0",
     "node-cron": "^4.2.1",
     "prisma": "^6.19.2",
+    "stripe": "^20.4.0",
     "swagger-ui-express": "^5.0.1",
     "ts-node": "^10.9.2",
     "web-did-resolver": "^2.0.30"

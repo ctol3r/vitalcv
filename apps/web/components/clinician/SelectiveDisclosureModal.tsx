@@ -10,8 +10,10 @@ import {
   GlassModalTitle,
 } from '@/components/ui/glass-modal';
 import { PrivacyToggle } from '@/components/ui/privacy-toggle';
+import type { AuthenticationResponseJSON } from '@simplewebauthn/browser';
 import { Eye, EyeOff, Share2, ShieldCheck } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { BiometricPrompt } from './BiometricPrompt';
 import type { CredentialCardData } from './CredentialCard';
 
 /* ------------------------------------------------------------------ */
@@ -36,6 +38,17 @@ export function SelectiveDisclosureModal({
   const [disclosureLevel, setDisclosureLevel] = useState<'full' | 'proof'>('full');
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(credentials.map((c) => c.id)),
+  );
+  const [biometricOpen, setBiometricOpen] = useState(false);
+
+  const handleBiometricSuccess = useCallback(
+    (_assertion: AuthenticationResponseJSON) => {
+      // TODO: Attach assertion to the SD-JWT presentation payload
+      // and submit to the verifier endpoint.
+      setBiometricOpen(false);
+      onClose();
+    },
+    [onClose],
   );
 
   const toggleCredential = (id: string) => {
@@ -150,11 +163,22 @@ export function SelectiveDisclosureModal({
         <Button variant="ghost" onClick={onClose}>
           Cancel
         </Button>
-        <Button disabled={selected.size === 0}>
+        <Button
+          disabled={selected.size === 0}
+          onClick={() => setBiometricOpen(true)}
+        >
           <Share2 className="h-4 w-4 mr-1.5" />
           Share {selected.size} Credential{selected.size !== 1 ? 's' : ''}
         </Button>
       </GlassModalFooter>
+
+      {/* Biometric holder-binding confirmation */}
+      <BiometricPrompt
+        open={biometricOpen}
+        onClose={() => setBiometricOpen(false)}
+        onSuccess={handleBiometricSuccess}
+        credentialCount={selected.size}
+      />
     </GlassModal>
   );
 }

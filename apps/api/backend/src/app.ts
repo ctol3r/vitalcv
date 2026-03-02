@@ -44,6 +44,8 @@ import { registerStatusListRoutes } from './routes/statusList';
 import { startContinuousMonitor } from './workers/continuousMonitor';
 // Wave 41: Start Attestation Engine — ON Loop
 import { registerHiringRoutes } from './routes/hiring';
+// Wave 43: Public Trust Profile — NPI-keyed
+import { registerPublicProfileRoutes } from './routes/publicProfile';
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3496,6 +3498,7 @@ registerAuditRoutes(app); // Wave 35: Merkle Anchoring
 registerIntelligenceRoutes(app); // Wave 37: Superbrain GraphRAG
 registerStatusListRoutes(app); // Wave 40: W3C Bitstring Status List
 registerHiringRoutes(app);    // Wave 41: ON Loop — EmployerAcceptance + StartAttestation
+registerPublicProfileRoutes(app); // Wave 43: Public Trust Profile — NPI-keyed
 
 // Wave 35: Start the Merkle anchoring background worker.
 startAnchorWorker();

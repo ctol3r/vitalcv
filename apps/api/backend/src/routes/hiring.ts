@@ -1,31 +1,34 @@
 /**
- * hiring.ts — Wave 41: Start Attestation Engine
+ * hiring.ts — Wave 41 (updated Wave 42): Start Attestation + Billing Engine
  *
- * Closes the ON Loop: Recognition → Acceptance → Start.
+ * Closes the ON Loop and triggers usage-based billing.
  *
  * POST /api/hiring/accept
  * ────────────────────────
- * Records an employer's formal decision to hire a clinician after reviewing
- * their verified credential bundle.  Creates an EmployerAcceptance row.
+ * Records an employer's formal decision to hire a clinician.
+ * Creates an EmployerAcceptance row.  Unchanged from Wave 41.
  *
- * POST /api/hiring/start
+ * POST /api/hiring/start  ← UPDATED in Wave 42
  * ────────────────────────
- * Records the clinician's first day — the moment they start practising at
- * the facility.  Creates a StartAttestation row, then immediately submits
- * a cryptographic hash to the Wave 35 AuditEvent ledger so the
- * merkleBatcher can anchor it in the next Merkle batch cycle.
+ * Records the clinician's first day.  Wave 42 additions:
+ *
+ *   ATOMIC TRANSACTION
+ *   ─────────────────
+ *   StartAttestation + AuditEvent + BillingEvent(PENDING) are written in a
+ *   single Prisma transaction.  Either all three are persisted or none are —
+ *   preventing orphaned billing records or untracked start events.
+ *
+ *   ASYNC STRIPE BILLING
+ *   ────────────────────
+ *   After the transaction commits, `recordSuccessfulHire()` is called
+ *   fire-and-forget.  On success the BillingEvent is updated to BILLED.
+ *   On failure (network error, Stripe outage) it is updated to ERROR with
+ *   the error message, without rolling back the start attestation.
+ *   When STRIPE_SECRET_KEY is absent it is set to SKIPPED (dev/test).
  *
  * SECURITY
  * ────────
- * Both routes sit behind apiKeyAuth (added to allowlist below).
- * artifactId on /accept is optional — callers should supply it when the
- * acceptance is tied to a specific VerificationArtifact (best practice).
- *
- * ON LOOP METRIC
- * ──────────────
- * The millisecond delta between EmployerAcceptance.acceptedAt and
- * StartAttestation.startedAt is VitalCV's core "time-to-hire velocity"
- * metric.  Both timestamps are stored with UTC precision.
+ * Both routes sit behind apiKeyAuth + publicApiRateLimit.
  */
 
 import { randomUUID } from 'node:crypto';
@@ -34,6 +37,7 @@ import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
 import { apiKeyAuth, publicApiRateLimit } from '../middleware/publicSafety';
 import { sha256ForPayload } from '../utils/deterministic';
+import { recordSuccessfulHire, VERIFIED_HIRE_AMOUNT_CENTS, VERIFIED_HIRE_CURRENCY } from '../services/billing/stripeClient';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -114,7 +118,6 @@ export function registerHiringRoutes(app: Express): void {
         });
       }
 
-      // ── Create EmployerAcceptance ────────────────────────────────────────
       const acceptance = await prisma.employerAcceptance.create({
         data: {
           id:           randomUUID(),
@@ -181,7 +184,7 @@ export function registerHiringRoutes(app: Express): void {
       // ── Resolve parent acceptance ────────────────────────────────────────
       const acceptance = await prisma.employerAcceptance.findUnique({
         where:  { id: acceptanceId },
-        select: { id: true, clinicianNpi: true, employerId: true, status: true },
+        select: { id: true, clinicianNpi: true, employerId: true, status: true, acceptedAt: true },
       });
 
       if (!acceptance) {
@@ -206,20 +209,20 @@ export function registerHiringRoutes(app: Express): void {
 
       if (existingStart) {
         return res.status(409).json({
-          error:             'already_started',
-          error_description: 'A StartAttestation already exists for this acceptance.',
-          startAttestationId: existingStart.id,
+          error:               'already_started',
+          error_description:   'A StartAttestation already exists for this acceptance.',
+          startAttestationId:  existingStart.id,
         });
       }
 
-      const startedAtDate = new Date(startedAt);
-      const createdAt     = new Date();
-      const attestationId = randomUUID();
+      // ── Prepare deterministic IDs and hashes ─────────────────────────────
+      const startedAtDate  = new Date(startedAt);
+      const createdAt      = new Date();
+      const attestationId  = randomUUID();
+      const billingEventId = randomUUID();
 
-      // ── Compute cryptographic hash of the attestation ────────────────────
-      // This hash is what gets submitted to the merkleBatcher — it binds
-      // the employer, clinician, role, facility, and start timestamp into
-      // a single tamper-evident commitment.
+      // Binds employer + clinician + role + facility + timestamp into a single
+      // tamper-evident commitment for the Wave 35 Merkle ledger.
       const attestationHash = sha256ForPayload({
         attestationId,
         acceptanceId,
@@ -231,55 +234,65 @@ export function registerHiringRoutes(app: Express): void {
         createdAt:    createdAt.toISOString(),
       });
 
-      // ── Create StartAttestation ──────────────────────────────────────────
-      const attestation = await prisma.startAttestation.create({
-        data: {
-          id:           attestationId,
-          acceptanceId,
-          role:         role.trim(),
-          facility:     facility.trim(),
-          startedAt:    startedAtDate,
-          anchoredRoot: null, // populated by merkleBatcher on next cycle
-          createdAt,
-        },
-      });
-
-      // ── Submit hash to Wave 35 merkleBatcher (via AuditEvent) ───────────
-      // Creating an AuditEvent with anchored:false is the contract — the
-      // anchorWorker will include it in the next Merkle batch, stamp
-      // merkleRoot on both this AuditEvent AND update StartAttestation.anchoredRoot
-      // in a follow-up (or callers can poll /api/audit/proof/:hash).
-      const auditEvent = await prisma.auditEvent.create({
-        data: {
-          id:          randomUUID(),
-          type:        'START_ATTESTED',
-          hash:        attestationHash,
-          referenceId: attestationId,
-          clinicianId: acceptance.clinicianNpi,
-          anchored:    false,
-          metadata: {
-            attestationId,
+      // ── ATOMIC TRANSACTION ───────────────────────────────────────────────
+      // StartAttestation + AuditEvent + BillingEvent(PENDING) in one TX.
+      // All three rows are written or none are.
+      const { attestation, auditEvent, billingEvent } = await prisma.$transaction(async (tx) => {
+        const attestation = await tx.startAttestation.create({
+          data: {
+            id:           attestationId,
             acceptanceId,
-            employerId:  acceptance.employerId,
-            role:        role.trim(),
-            facility:    facility.trim(),
-            startedAt:   startedAtDate.toISOString(),
+            role:         role.trim(),
+            facility:     facility.trim(),
+            startedAt:    startedAtDate,
+            anchoredRoot: null,
+            createdAt,
           },
-        },
+        });
+
+        const auditEvent = await tx.auditEvent.create({
+          data: {
+            id:          randomUUID(),
+            type:        'START_ATTESTED',
+            hash:        attestationHash,
+            referenceId: attestationId,
+            clinicianId: acceptance.clinicianNpi,
+            anchored:    false,
+            metadata: {
+              attestationId,
+              acceptanceId,
+              employerId:  acceptance.employerId,
+              role:        role.trim(),
+              facility:    facility.trim(),
+              startedAt:   startedAtDate.toISOString(),
+            },
+          },
+        });
+
+        // BillingEvent starts PENDING; Stripe call resolves it async.
+        const billingEvent = await tx.billingEvent.create({
+          data: {
+            id:                 billingEventId,
+            employerId:         acceptance.employerId,
+            startAttestationId: attestationId,
+            stripeInvoiceItemId: null,
+            stripeCustomerId:    null,
+            amountCents:         VERIFIED_HIRE_AMOUNT_CENTS,
+            currency:            VERIFIED_HIRE_CURRENCY,
+            status:              'PENDING',
+          },
+        });
+
+        return { attestation, auditEvent, billingEvent };
       });
 
-      // ON Loop delta: acceptedAt → startedAt (milliseconds)
-      const acceptanceRow = await prisma.employerAcceptance.findUnique({
-        where:  { id: acceptanceId },
-        select: { acceptedAt: true },
-      });
-      const onLoopDeltaMs = acceptanceRow
-        ? startedAtDate.getTime() - acceptanceRow.acceptedAt.getTime()
-        : null;
+      // ── ON Loop velocity metric ──────────────────────────────────────────
+      const onLoopDeltaMs = startedAtDate.getTime() - acceptance.acceptedAt.getTime();
 
       log('info', 'hiring_start_attested', {
         attestationId,
         acceptanceId,
+        billingEventId:   billingEvent.id,
         employerId:       acceptance.employerId,
         npi_prefix:       acceptance.clinicianNpi.slice(0, 4) + '····',
         role:             role.trim(),
@@ -290,6 +303,55 @@ export function registerHiringRoutes(app: Express): void {
         on_loop_delta_ms: onLoopDeltaMs,
       });
 
+      // ── ASYNC STRIPE BILLING (fire-and-forget) ───────────────────────────
+      // The 201 response is sent BEFORE this settles — Stripe latency never
+      // blocks the employer's workflow.  BillingEvent.status tracks the result.
+      void recordSuccessfulHire(
+        acceptance.employerId,
+        acceptance.clinicianNpi,
+        attestationId,
+      ).then(async (result) => {
+        if (!result) {
+          // STRIPE_SECRET_KEY not set — expected in dev; mark as SKIPPED.
+          await prisma.billingEvent.update({
+            where: { id: billingEventId },
+            data:  { status: 'SKIPPED' },
+          });
+          log('info', 'billing_event_skipped', { billingEventId, attestationId });
+          return;
+        }
+
+        await prisma.billingEvent.update({
+          where: { id: billingEventId },
+          data: {
+            stripeInvoiceItemId: result.stripeInvoiceItemId,
+            stripeCustomerId:    result.stripeCustomerId,
+            status:              'BILLED',
+          },
+        });
+
+        log('info', 'billing_event_billed', {
+          billingEventId,
+          attestationId,
+          stripeInvoiceItemId: result.stripeInvoiceItemId,
+          amountCents:         result.amountCents,
+        });
+      }).catch(async (err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+
+        await prisma.billingEvent.update({
+          where: { id: billingEventId },
+          data:  { status: 'ERROR', errorMessage: message },
+        }).catch(() => { /* best-effort; don't throw in a fire-and-forget */ });
+
+        log('error', 'billing_event_error', {
+          billingEventId,
+          attestationId,
+          error: message,
+        });
+      });
+
+      // ── 201 response ─────────────────────────────────────────────────────
       return res.status(201).json({
         ok:                 true,
         startAttestationId: attestation.id,
@@ -301,8 +363,14 @@ export function registerHiringRoutes(app: Express): void {
         merkle: {
           auditEventId:    auditEvent.id,
           attestationHash: attestationHash,
-          anchoredRoot:    null, // Wave 35 merkleBatcher anchors asynchronously
+          anchoredRoot:    null,
           status:          'PENDING_ANCHOR',
+        },
+        billing: {
+          billingEventId:  billingEvent.id,
+          status:          'PENDING',        // resolves async
+          amountCents:     VERIFIED_HIRE_AMOUNT_CENTS,
+          currency:        VERIFIED_HIRE_CURRENCY,
         },
         on_loop_delta_ms: onLoopDeltaMs,
       });

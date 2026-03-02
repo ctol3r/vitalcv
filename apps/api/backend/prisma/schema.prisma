@@ -819,9 +819,42 @@ model StartAttestation {
   anchoredRoot String?
   createdAt    DateTime @default(now())
 
-  acceptance EmployerAcceptance @relation(fields: [acceptanceId], references: [id])
+  acceptance    EmployerAcceptance @relation(fields: [acceptanceId], references: [id])
+  billingEvents BillingEvent[]
 
   @@index([acceptanceId])
   @@index([startedAt])
+  @@index([createdAt])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Wave 42: Outcomes Billing Engine — per-hire Stripe billing
+// ──────────────────────────────────────────────────────────────
+
+/// Append-only financial truth record.  One row is created for every
+/// successful StartAttestation, recording the Stripe billing outcome.
+/// status lifecycle: PENDING → BILLED | SKIPPED | ERROR
+model BillingEvent {
+  id                  String   @id @default(uuid()) @db.Uuid
+  employerId          String
+  startAttestationId  String   @db.Uuid
+  /// Stripe invoiceitem.id — null until the async Stripe call resolves.
+  stripeInvoiceItemId String?
+  /// Stripe customer.id resolved or created for this employer.
+  stripeCustomerId    String?
+  /// Fee in smallest currency unit (cents). Default: $37.99 = 3799 cents.
+  amountCents         Int      @default(3799)
+  currency            String   @default("usd")
+  /// PENDING | BILLED | SKIPPED | ERROR
+  status              String   @default("PENDING")
+  /// Populated when status = ERROR.
+  errorMessage        String?
+  createdAt           DateTime @default(now())
+
+  startAttestation StartAttestation @relation(fields: [startAttestationId], references: [id])
+
+  @@index([employerId])
+  @@index([startAttestationId])
+  @@index([status])
   @@index([createdAt])
 }

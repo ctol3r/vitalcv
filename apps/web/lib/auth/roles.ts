@@ -43,6 +43,8 @@ export const PUBLIC_ROUTE_PATTERNS = [
   /^\/intake(\/.*)?$/,
   /^\/verify(\/.*)?$/,
   /^\/trust-state(\/.*)?$/,
+  /^\/clip(\/.*)?$/, // App Clip zero-install verification receipts
+  /^\/\.well-known(\/.*)?$/, // OS association manifests (AASA, assetlinks)
   /^\/auth\/error$/,
   /^\/api(\/.*)?$/, // API routes handle their own auth
 ];

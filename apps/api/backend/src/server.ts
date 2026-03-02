@@ -271,6 +271,32 @@ async function bootstrapApp() {
         event: 'monitoring_cron_scheduled',
         schedule: '0 0 * * * (daily at midnight UTC)',
       });
+
+      // Wave 20: Autonomous Verification Swarm
+      const { AgentOrchestrator, SanctionsAgent, StateBoardAgent } = await import('./agents');
+      const orchestrator = AgentOrchestrator.getInstance();
+
+      orchestrator.register(new SanctionsAgent(30_000));
+      orchestrator.register(new StateBoardAgent(45_000));
+
+      orchestrator.on('sanction_detected', (entry) => {
+        log('warn', 'Agent sanction detection event', {
+          event: 'agent_sanction_alert',
+          npi: entry.npi,
+          agentId: entry.agentId,
+          timestamp: entry.timestamp,
+        });
+      });
+
+      orchestrator.start();
+
+      process.on('SIGTERM', () => orchestrator.shutdown());
+      process.on('SIGINT', () => orchestrator.shutdown());
+
+      log('info', 'Agent orchestrator initialized', {
+        event: 'orchestrator_initialized',
+        agents: ['sanctions', 'state_board'],
+      });
     }
   }
 
