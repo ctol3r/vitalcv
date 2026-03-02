@@ -34,6 +34,11 @@ import { registerPublicRoutes } from './routes/public';
 import { registerAKGRoutes } from './mcp/akg-server';
 // Wave 29: Professional Authority State (PAS) engine
 import { registerAuthorityRoutes } from './routes/authority';
+// Wave 35: Merkle Anchoring — audit proof endpoint + background worker
+import { registerAuditRoutes } from './routes/audit';
+import { startAnchorWorker } from './workers/anchorWorker';
+// Wave 37: Superbrain GraphRAG intelligence endpoint
+import { registerIntelligenceRoutes } from './routes/intelligence';
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -409,7 +414,11 @@ function shouldSkipTenantContext(pathname: string): boolean {
     normalizedPath === '/verification/request' ||
     // Wave 31: PoE issuance uses apiKeyAuth; verify is stateless/public.
     normalizedPath.startsWith('/api/issuer/') ||
-    normalizedPath.startsWith('/api/poe/')
+    normalizedPath.startsWith('/api/poe/') ||
+    // Wave 35: Audit proof endpoint is read-only / public for auditors.
+    normalizedPath.startsWith('/api/audit/') ||
+    // Wave 37: Superbrain intelligence endpoint.
+    normalizedPath.startsWith('/api/intelligence/')
   );
 }
 
@@ -3476,6 +3485,11 @@ registerDemoRoutes(app);
 registerPsvVerifyRoutes(app);
 registerPoeRoutes(app);
 registerWidgetRoutes(app); // Wave 34: Plaid Widget
+registerAuditRoutes(app); // Wave 35: Merkle Anchoring
+registerIntelligenceRoutes(app); // Wave 37: Superbrain GraphRAG
+
+// Wave 35: Start the Merkle anchoring background worker.
+startAnchorWorker();
 
 if (ENTERPRISE_MODE) {
   app.get('/internal/enterprise', async (req: Request, res: Response) => {

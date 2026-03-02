@@ -21,6 +21,7 @@ import { FormEvent, Suspense, useCallback, useEffect, useMemo, useRef, useState 
 
 import { EmergencySwitch } from './EmergencySwitch';
 import { ManualVerification } from './ManualVerification';
+import { SuperbrainInsights } from './SuperbrainInsights';
 import { TrustStatePanel } from './TrustStatePanel';
 import { VerificationFlow } from './VerificationFlow';
 import { VerificationInput } from './VerificationInput';
@@ -510,6 +511,9 @@ function VerifierPortalContent() {
               </GlassCard>
             )}
           </div>
+
+          {/* Wave 37: Superbrain Intelligence Panel */}
+          <SuperbrainInsights />
 
           {/* Verification Receipts */}
           {receiptRows.length > 0 && (
