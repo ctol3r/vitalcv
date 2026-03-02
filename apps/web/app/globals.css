@@ -245,6 +245,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    overscroll-behavior: contain;
   }
 }
 
@@ -274,6 +275,30 @@
 
   .section-anchor {
     scroll-margin-top: 4.5rem;
+  }
+
+  /* @starting-style utilities for buttery mounts/unmounts */
+  .motion-mount {
+    transition: opacity 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), display 0.4s allow-discrete;
+    opacity: 1;
+    transform: scale(1);
+
+    @starting-style {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+  }
+
+  /* Scroll-driven animations natively supported in CSS */
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .scroll-animate {
+    animation: fade-in-up linear both;
+    animation-timeline: view();
+    animation-range: entry 10% cover 30%;
   }
 
   .motion-card,
