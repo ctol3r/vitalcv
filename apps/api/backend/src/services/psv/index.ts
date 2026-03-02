@@ -19,3 +19,11 @@ export type {
   MaterialChange,
   MonitoringResult,
 } from './monitoringEngine';
+// Wave 39.1: NCQA audit provenance layer
+export {
+  hashEvidence,
+  buildAggregateEvidenceHash,
+  submitEvidenceToAuditLedger,
+  recordVerificationRequested,
+} from './auditMapper';
+export type { ConnectorEvidence, AuditRecord } from './auditMapper';
