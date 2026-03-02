@@ -773,3 +773,55 @@ model EmployerWebhookConfig {
 
   @@index([active])
 }
+
+// ──────────────────────────────────────────────────────────────
+// Wave 41: Start Attestation Engine — Golden Path / ON Loop
+// ──────────────────────────────────────────────────────────────
+
+/// An employer's formal decision to accept a clinician after reviewing
+/// their verified credential bundle.  This is the first half of the
+/// ON Loop — the moment an employer says "we will hire this person".
+model EmployerAcceptance {
+  id           String   @id @default(uuid()) @db.Uuid
+  /// Internal employer identifier (domain-level, not a FK to preserve loose coupling).
+  employerId   String
+  /// 10-digit NPI of the clinician being accepted.
+  clinicianNpi String
+  /// Optional: the VerificationArtifact that anchored the decision.
+  artifactId   String?
+  /// PENDING | ACCEPTED | WITHDRAWN
+  status       String   @default("ACCEPTED")
+  acceptedAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  startAttestations StartAttestation[]
+
+  @@index([clinicianNpi])
+  @@index([employerId])
+  @@index([status])
+  @@index([acceptedAt])
+}
+
+/// The employer's final, cryptographically-anchored confirmation that the
+/// clinician has started their role.  Closing this record closes the ON Loop.
+/// The `anchoredRoot` ties this record to the Wave 35 Merkle audit ledger.
+model StartAttestation {
+  id           String   @id @default(uuid()) @db.Uuid
+  acceptanceId String   @db.Uuid
+  /// Clinical role title (e.g. "Attending Cardiologist").
+  role         String
+  /// Facility or unit identifier.
+  facility     String
+  /// The attested start date/time (employer-supplied; may be future-dated).
+  startedAt    DateTime
+  /// Merkle root of the AuditEvent batch that includes this attestation.
+  /// Null until the Wave 35 merkleBatcher anchors the pending event.
+  anchoredRoot String?
+  createdAt    DateTime @default(now())
+
+  acceptance EmployerAcceptance @relation(fields: [acceptanceId], references: [id])
+
+  @@index([acceptanceId])
+  @@index([startedAt])
+  @@index([createdAt])
+}
