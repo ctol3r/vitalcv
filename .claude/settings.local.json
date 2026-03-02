@@ -144,7 +144,9 @@
       "Bash(/usr/bin/grep:*)",
       "Bash(STRICT_TRANSITION_MODE=true npx jest:*)",
       "Bash(git -C /Users/christoler/vitalcv diff apps/api/backend/src/config/env.ts apps/api/backend/src/server.ts)",
-      "Bash(wc -l /Users/christoler/vitalcv/apps/api/backend/src/routes/*.ts)"
+      "Bash(wc -l /Users/christoler/vitalcv/apps/api/backend/src/routes/*.ts)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(git push -u origin feature/ontology-superbrain)"
     ],
     "deny": [],
     "ask": []
