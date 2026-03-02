@@ -42,6 +42,8 @@ import { registerIntelligenceRoutes } from './routes/intelligence';
 // Wave 40: Continuous Trust & Revocation Engine
 import { registerStatusListRoutes } from './routes/statusList';
 import { startContinuousMonitor } from './workers/continuousMonitor';
+// Wave 41: Start Attestation Engine — ON Loop
+import { registerHiringRoutes } from './routes/hiring';
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3493,6 +3495,7 @@ registerIssuerRoutes(app); // Wave 38: Issuer Command Center
 registerAuditRoutes(app); // Wave 35: Merkle Anchoring
 registerIntelligenceRoutes(app); // Wave 37: Superbrain GraphRAG
 registerStatusListRoutes(app); // Wave 40: W3C Bitstring Status List
+registerHiringRoutes(app);    // Wave 41: ON Loop — EmployerAcceptance + StartAttestation
 
 // Wave 35: Start the Merkle anchoring background worker.
 startAnchorWorker();

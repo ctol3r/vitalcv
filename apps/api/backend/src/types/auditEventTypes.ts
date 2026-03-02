@@ -27,7 +27,9 @@ export type ArtifactEventType =
 export type TrustChainEventType =
   | 'RECOGNITION_EMITTED'
   | 'ACCEPTANCE_EMITTED'
-  | 'START_EMITTED';
+  | 'START_EMITTED'
+  // Wave 41: Start Attestation Engine
+  | 'START_ATTESTED';
 
 // ── Operational / error tracking ─────────────────────────────
 export type OperationalEventType =
