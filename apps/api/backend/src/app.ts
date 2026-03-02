@@ -39,6 +39,9 @@ import { registerAuditRoutes } from './routes/audit';
 import { startAnchorWorker } from './workers/anchorWorker';
 // Wave 37: Superbrain GraphRAG intelligence endpoint
 import { registerIntelligenceRoutes } from './routes/intelligence';
+// Wave 40: Continuous Trust & Revocation Engine
+import { registerStatusListRoutes } from './routes/statusList';
+import { startContinuousMonitor } from './workers/continuousMonitor';
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3489,9 +3492,12 @@ registerWidgetRoutes(app); // Wave 34: Plaid Widget
 registerIssuerRoutes(app); // Wave 38: Issuer Command Center
 registerAuditRoutes(app); // Wave 35: Merkle Anchoring
 registerIntelligenceRoutes(app); // Wave 37: Superbrain GraphRAG
+registerStatusListRoutes(app); // Wave 40: W3C Bitstring Status List
 
 // Wave 35: Start the Merkle anchoring background worker.
 startAnchorWorker();
+// Wave 40: Start the continuous trust monitoring cron daemon.
+startContinuousMonitor();
 
 if (ENTERPRISE_MODE) {
   app.get('/internal/enterprise', async (req: Request, res: Response) => {
