@@ -439,6 +439,8 @@ model VerificationArtifact {
   // Wave Y: Expiration forecasting
   daysUntilExpiration  Int?
   forecastRiskLevel    String?   // low | medium | high
+  // Wave 40: W3C Bitstring Status List bit assignment
+  statusListIndex      Int?
   createdAt  DateTime  @default(now())
 
   snapshots AuditSnapshot[]
@@ -458,6 +460,8 @@ model VerificationArtifact {
   @@index([merkleRoot])
   // Wave Y: Forecast index
   @@index([forecastRiskLevel])
+  // Wave 40: Status list index
+  @@index([statusListIndex])
 }
 
 model TrustedIssuer {
@@ -731,4 +735,41 @@ model StateComplianceRule {
   @@unique([state_code, specialty])
   @@index([state_code])
   @@index([specialty])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Wave 40: W3C Bitstring Status List — singleton bitstring state
+// ──────────────────────────────────────────────────────────────
+
+model StatusListState {
+  /// Singleton row — always "singleton"
+  id        String   @id @default("singleton")
+  /// GZIP-compressed, Base64URL-encoded bitstring (W3C spec §3.1)
+  encoded   String
+  /// Monotonically increasing version counter for cache-busting
+  version   Int      @default(0)
+  /// Total bits allocated (131 072 minimum per W3C spec)
+  sizeBits  Int      @default(131072)
+  /// Next available bit index to assign
+  nextIndex Int      @default(0)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+// ──────────────────────────────────────────────────────────────
+// Wave 40: Enterprise Webhook Dispatcher — per-employer webhook config
+// ──────────────────────────────────────────────────────────────
+
+model EmployerWebhookConfig {
+  id            String   @id @default(uuid()) @db.Uuid
+  /// Domain-level employer identifier (matches Acceptance.employerId)
+  employerId    String   @unique
+  webhookUrl    String
+  /// HMAC-SHA256 signing secret for X-VitalCV-Signature
+  signingSecret String
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([active])
 }
