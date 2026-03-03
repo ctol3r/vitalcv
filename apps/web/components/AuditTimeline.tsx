@@ -1,20 +1,20 @@
-import { useState } from 'react';
-import { 
-  ShieldCheck, 
-  CheckCircle2, 
-  PlayCircle, 
-  AlertTriangle, 
-  History, 
-  ChevronDown, 
-  ChevronUp,
-  Clock,
-  Fingerprint,
-  FileSignature
-} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+    AlertTriangle,
+    CheckCircle2,
+    ChevronDown,
+    ChevronUp,
+    Clock,
+    FileSignature,
+    Fingerprint,
+    History,
+    PlayCircle,
+    ShieldCheck
+} from 'lucide-react';
+import { useState } from 'react';
 
 export interface TimelineEvent {
   id: string;
@@ -45,7 +45,7 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
   // Helper to generate consistent mock hash/signer if missing (for demo without backend changes)
   const enhanceEvent = (event: TimelineEvent) => {
     if (event.hash && event.signer) return event;
-    
+
     // Deterministic mock hash based on ID
     const mockHash = '0x' + Array.from(event.id).reduce((hash, char) => {
       return ((hash << 5) - hash) + char.charCodeAt(0) | 0;
@@ -77,10 +77,10 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
 
   const formatTime = (iso: string) => {
     try {
-      return new Date(iso).toLocaleString(undefined, { 
-        month: 'short', 
-        day: 'numeric', 
-        hour: '2-digit', 
+      return new Date(iso).toLocaleString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
         minute: '2-digit',
         second: '2-digit'
       });
@@ -100,7 +100,7 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
 
   return (
     <TooltipProvider>
-    <Card className="w-full border-slate-200 shadow-sm bg-slate-50/50">
+    <Card className="w-full border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.08)] bg-white/40 dark:bg-white/5 backdrop-blur-xl">
       <CardHeader className="pb-3 pt-4 px-4 flex flex-row items-center justify-between space-y-0">
         <div className="flex items-center gap-2">
             <History className="w-4 h-4 text-slate-500" />
@@ -137,7 +137,7 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
                                 {formatTime(event.timestamp)}
                             </span>
                         </div>
-                        
+
                         {(event.employer || event.facility) && (
                             <div className="text-xs text-slate-500 flex gap-2 mt-0.5">
                                 {event.employer && <span>{event.employer}</span>}
@@ -181,9 +181,9 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
         </div>
 
         <div className="mt-3 pt-2 border-t border-slate-100 flex justify-center">
-            <Button 
-                variant="ghost" 
-                size="sm" 
+            <Button
+                variant="ghost"
+                size="sm"
                 className="h-6 text-xs text-slate-400 hover:text-slate-600 uppercase tracking-widest w-full"
                 onClick={() => setExpanded(!expanded)}
             >
