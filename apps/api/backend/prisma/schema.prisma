@@ -858,3 +858,50 @@ model BillingEvent {
   @@index([status])
   @@index([createdAt])
 }
+
+// ──────────────────────────────────────────────────────────────
+// Wave 46: Authority-Bound Knowledge Graph (AKG)
+// ──────────────────────────────────────────────────────────────
+
+/// Generic graph node representing any entity in the AKG.
+/// entityType discriminates the kind (CLINICIAN, ISSUER, CREDENTIAL, POLICY, FACILITY).
+/// entityId references the primary key in the source-of-truth table.
+/// attributes stores denormalized metadata as JSON for fast graph queries.
+model KnowledgeNode {
+  id         String   @id @default(uuid()) @db.Uuid
+  entityType String   // CLINICIAN | ISSUER | CREDENTIAL | POLICY | FACILITY
+  entityId   String   // FK to the source table row
+  label      String   // Human-readable label
+  attributes Json     @default("{}")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  outEdges AuthorityEdge[] @relation("EdgeSource")
+  inEdges  AuthorityEdge[] @relation("EdgeTarget")
+
+  @@unique([entityType, entityId])
+  @@index([entityType])
+  @@index([entityId])
+}
+
+/// Directed edge in the AKG representing an authority relationship.
+/// relationType encodes the semantic meaning (VERIFIED_BY, ISSUED_TO, COMPLIES_WITH, REQUIRED_BY, ATTESTED_BY).
+/// cryptographicProof optionally stores a hash or signature anchoring this edge to the trust ledger.
+model AuthorityEdge {
+  id                 String   @id @default(uuid()) @db.Uuid
+  sourceNodeId       String   @db.Uuid
+  targetNodeId       String   @db.Uuid
+  relationType       String   // VERIFIED_BY | ISSUED_TO | COMPLIES_WITH | REQUIRED_BY | ATTESTED_BY
+  weight             Float    @default(1.0) // Trust weight for scoring
+  cryptographicProof String?  // Optional hash/signature
+  metadata           Json     @default("{}")
+  createdAt          DateTime @default(now())
+
+  source KnowledgeNode @relation("EdgeSource", fields: [sourceNodeId], references: [id])
+  target KnowledgeNode @relation("EdgeTarget", fields: [targetNodeId], references: [id])
+
+  @@index([sourceNodeId])
+  @@index([targetNodeId])
+  @@index([relationType])
+  @@index([sourceNodeId, relationType])
+}
