@@ -146,7 +146,10 @@
       "Bash(git -C /Users/christoler/vitalcv diff apps/api/backend/src/config/env.ts apps/api/backend/src/server.ts)",
       "Bash(wc -l /Users/christoler/vitalcv/apps/api/backend/src/routes/*.ts)",
       "mcp__Claude_Preview__preview_start",
-      "Bash(git push -u origin feature/ontology-superbrain)"
+      "Bash(git push -u origin feature/ontology-superbrain)",
+      "Bash(git status -u)",
+      "Bash(git diff apps/web/app/p/\\\\[slug\\\\]/page.tsx)",
+      "Bash(git push -u origin feature/start-attestation)"
     ],
     "deny": [],
     "ask": []

@@ -1,13 +1,13 @@
 'use client';
 
-import { FormEvent, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
-import { ArrowRight, CheckCircle2, Loader2, Shield, Sparkles } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { GlassCard } from '@/components/ui/glass-card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { GlassCard } from '@/components/ui/glass-card';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowRight, CheckCircle2, Loader2, Shield, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 
 const COMPLIANCE_ITEMS = ['NCQA', 'CMS', 'HIPAA', 'SOC 2', 'ES256'] as const;
 
@@ -59,19 +59,21 @@ export function HeroSection() {
 
   return (
     <section className="relative px-6 pt-20 pb-24">
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 rounded-full blur-[130px]"
-        style={{ background: 'radial-gradient(circle at 50% 0%, rgba(191, 211, 231, 0.40), transparent 66%)' }}
-      />
+      <div className="noise-overlay" />
 
-      <div className="mx-auto max-w-6xl">
+      {/* Bioluminescent glow artifact */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none -z-10">
+        <div className="h-[600px] w-[600px] rounded-full bg-[var(--sage)] opacity-20 blur-[120px] animate-glow-breathe" />
+      </div>
+
+      <div className="mx-auto max-w-6xl relative z-10">
         <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
           {/* ── Left column ─────────────────────────────── */}
           <motion.div
             className="space-y-8"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <p className="inline-flex items-center gap-2 rounded-full border border-[var(--trust-green)]/35 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.32em] text-[var(--trust-green)]">
               Healthcare Credentialing Reinvented
@@ -180,7 +182,7 @@ export function HeroSection() {
           {/* ── Right column: NPI Terminal / Clearance State ── */}
           <motion.div
             layout
-            className="rounded-3xl border border-white/30 bg-white/80 backdrop-blur-md p-6 shadow-[0_30px_80px_rgba(19,20,20,0.08)] dark:border-white/10 dark:bg-white/10"
+            className="rounded-3xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.08)] bg-white/40 dark:bg-white/5 backdrop-blur-xl p-6"
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.1, layout: { type: 'spring', stiffness: 200, damping: 30 } }}

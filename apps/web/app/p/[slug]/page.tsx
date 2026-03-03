@@ -20,6 +20,8 @@
  * file — this is correct; both URL forms are /p/<identifier>.
  */
 
+import { AnimatedTimeline, type TimelineEvent } from '@/components/ui/AnimatedTimeline';
+import type { BadgeLevel } from '@/components/ui/BadgeStatus';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
@@ -268,18 +270,30 @@ function CredentialPills({ creds }: { creds: string[] }) {
 // ── Wave 43: Merkle-anchored events timeline ──────────────────────────────
 
 function EventTimeline({ events, lastAnchored }: { events: AuditEvent[]; lastAnchored: string | null }) {
-  const EVENT_LABELS: Record<string, string> = {
-    VERIFICATION_COMPLETED:  'Primary source verified',
-    VERIFICATION_REQUESTED:  'Verification initiated',
-    START_ATTESTED:          'Start date attested',
-    MONITORING_STATUS_CHANGE:'Monitoring update',
-    ARTIFACT_VIEWED:         'Profile accessed',
-    BUNDLE_GENERATED:        'Credential bundle exported',
+  const EVENT_LABELS: Record<string, { label: string; status: BadgeLevel; statusLabel: string }> = {
+    VERIFICATION_COMPLETED:  { label: 'Primary source verified', status: 'L2', statusLabel: 'Verified' },
+    VERIFICATION_REQUESTED:  { label: 'Verification initiated', status: 'L1', statusLabel: 'In Progress' },
+    START_ATTESTED:          { label: 'Start date attested', status: 'L3', statusLabel: 'Monitored' },
+    MONITORING_STATUS_CHANGE:{ label: 'Monitoring update', status: 'L3', statusLabel: 'Monitored' },
+    ARTIFACT_VIEWED:         { label: 'Profile accessed', status: 'L0', statusLabel: 'Accessed' },
+    BUNDLE_GENERATED:        { label: 'Credential bundle exported', status: 'L2', statusLabel: 'Verified' },
   };
 
+  const timelineEvents: TimelineEvent[] = events.map((e, i) => {
+    const meta = EVENT_LABELS[e.type] ?? { label: e.type, status: 'L0', statusLabel: 'System' };
+    return {
+      id: e.hash + i,
+      date: formatTime(e.createdAt),
+      title: meta.label,
+      description: `Hash reference: ${e.hash.slice(0, 20)}…`,
+      status: meta.status,
+      statusLabel: meta.statusLabel,
+    };
+  });
+
   return (
-    <div className="w-full rounded-2xl bg-white/[0.03] ring-1 ring-white/10">
-      <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
+    <div className="w-full rounded-2xl bg-white/[0.03] ring-1 ring-white/10 p-5">
+      <div className="mb-6 flex items-center justify-between border-b border-white/10 pb-4">
         <div className="flex items-center gap-2">
           <svg className="h-4 w-4 text-emerald-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
             <path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm0 14a6 6 0 110-12 6 6 0 010 12zm1-7H9V7h2v2zm0 4H9v-2h2v2z" />
@@ -296,28 +310,11 @@ function EventTimeline({ events, lastAnchored }: { events: AuditEvent[]; lastAnc
       </div>
 
       {events.length === 0 ? (
-        <p className="px-5 py-4 text-xs text-gray-600">
+        <p className="px-2 py-2 text-xs text-gray-600">
           Audit events will appear here after the first verification cycle.
         </p>
       ) : (
-        <ol className="divide-y divide-white/[0.04]">
-          {events.map((e, i) => (
-            <li key={e.hash + i} className="flex items-start gap-3 px-5 py-3">
-              <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-500/60" aria-hidden="true" />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium text-gray-300 truncate">
-                  {EVENT_LABELS[e.type] ?? e.type}
-                </p>
-                <p className="mt-0.5 font-mono text-[10px] text-gray-600 truncate">
-                  {e.hash.slice(0, 20)}…
-                </p>
-              </div>
-              <span className="shrink-0 text-[10px] text-gray-600 whitespace-nowrap">
-                {formatTime(e.createdAt)}
-              </span>
-            </li>
-          ))}
-        </ol>
+        <AnimatedTimeline events={timelineEvents} className="w-full max-w-none" />
       )}
     </div>
   );

@@ -1,74 +1,88 @@
+'use client';
+
+import { HTMLMotionProps, motion } from 'framer-motion';
 import * as React from 'react';
 
+import { hoverElevate } from '@/animations/motionVariants';
 import { cn } from '@/lib/utils';
 
 type GlassWeight = 'light' | 'heavy';
 
-interface GlassCardProps extends React.ComponentProps<'div'> {
+interface GlassCardProps extends HTMLMotionProps<'div'> {
   weight?: GlassWeight;
   interactive?: boolean;
 }
 
-function GlassCard({
-  className,
-  weight = 'light',
-  interactive,
-  ...props
-}: GlassCardProps) {
-  return (
-    <div
-      data-slot="glass-card"
-      className={cn(
-        'rounded-2xl p-6',
-        weight === 'heavy' ? 'glass-heavy' : 'glass',
-        'glass-border',
-        interactive ? 'motion-glass-card' : '',
-        className,
-      )}
-      {...props}
-    />
-  );
-}
+const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
+  ({ className, weight = 'light', interactive = false, ...props }, ref) => {
+    return (
+      <motion.div
+        ref={ref}
+        data-slot="glass-card"
+        variants={interactive ? hoverElevate : undefined}
+        whileHover={interactive ? 'hover' : undefined}
+        whileTap={interactive ? 'tap' : undefined}
+        className={cn(
+          'rounded-2xl p-6',
+          weight === 'heavy' ? 'glass-heavy' : 'glass-card-base',
+          interactive && 'cursor-pointer focus-ring',
+          className
+        )}
+        {...props}
+      />
+    );
+  }
+);
+GlassCard.displayName = 'GlassCard';
 
-function GlassCardHeader({ className, ...props }: React.ComponentProps<'div'>) {
-  return (
+const GlassCardHeader = React.forwardRef<HTMLDivElement, React.ComponentProps<'div'>>(
+  ({ className, ...props }, ref) => (
     <div
+      ref={ref}
       data-slot="glass-card-header"
       className={cn('flex items-start justify-between gap-4 pb-4', className)}
       {...props}
     />
-  );
-}
+  )
+);
+GlassCardHeader.displayName = 'GlassCardHeader';
 
-function GlassCardTitle({ className, ...props }: React.ComponentProps<'h3'>) {
-  return (
+const GlassCardTitle = React.forwardRef<HTMLHeadingElement, React.ComponentProps<'h3'>>(
+  ({ className, ...props }, ref) => (
     <h3
+      ref={ref}
       data-slot="glass-card-title"
       className={cn('font-heading text-lg font-semibold tracking-tight', className)}
       {...props}
     />
-  );
-}
+  )
+);
+GlassCardTitle.displayName = 'GlassCardTitle';
 
-function GlassCardContent({ className, ...props }: React.ComponentProps<'div'>) {
-  return (
+const GlassCardContent = React.forwardRef<HTMLDivElement, React.ComponentProps<'div'>>(
+  ({ className, ...props }, ref) => (
     <div
+      ref={ref}
       data-slot="glass-card-content"
       className={cn('text-sm', className)}
       {...props}
     />
-  );
-}
+  )
+);
+GlassCardContent.displayName = 'GlassCardContent';
 
-function GlassCardFooter({ className, ...props }: React.ComponentProps<'div'>) {
-  return (
+const GlassCardFooter = React.forwardRef<HTMLDivElement, React.ComponentProps<'div'>>(
+  ({ className, ...props }, ref) => (
     <div
+      ref={ref}
       data-slot="glass-card-footer"
       className={cn('flex items-center gap-3 pt-4 border-t border-[var(--glass-border)]', className)}
       {...props}
     />
-  );
-}
+  )
+);
+GlassCardFooter.displayName = 'GlassCardFooter';
 
-export { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardContent, GlassCardFooter };
+export { GlassCard, GlassCardContent, GlassCardFooter, GlassCardHeader, GlassCardTitle };
 export type { GlassWeight };
+
