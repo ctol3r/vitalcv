@@ -12,7 +12,9 @@
     "paths": {
       "@vitalcv/domain/*": ["packages/domain/*"],
       "@vitalcv/domain-common": ["packages/domain-common/src"],
+      "@vitalcv/psv": ["packages/psv"],
       "@vitalcv/psv/*": ["packages/psv/*"],
+      "@vitalcv/crs": ["packages/crs"],
       "@vitalcv/crs/*": ["packages/crs/*"],
       "@vitalcv/trust-state/*": ["packages/trust-state/*"],
       "@vitalcv/audit/*": ["packages/audit/*"],

@@ -34,7 +34,7 @@ import type { TrustStateReceiptRecord } from '@vitalcv/psv';
 import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
 import { sha256Hex } from '../utils/deterministic';
-import { publicProfileRateLimit } from '../middleware/publicSafety';
+import { publicApiRateLimit } from '../middleware/publicSafety';
 
 // ── Response types ────────────────────────────────────────────────────────
 
@@ -291,7 +291,7 @@ async function buildPASObject(npi: string): Promise<PASObject> {
 export function registerAuthorityRoutes(app: Express): void {
   app.get(
     '/api/authority/state/:npi',
-    publicProfileRateLimit,
+    publicApiRateLimit,
     (req: Request, res: Response): void => {
       const { npi } = req.params;
 

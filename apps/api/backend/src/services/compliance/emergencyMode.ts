@@ -71,13 +71,13 @@ export class EmergencyGovernanceService {
     // We must permanently record this escalation in the AuditScrapbook for post-event reconciliation
     const reconciliationHash = generateAuditHash(JSON.stringify(escalated));
 
-    const scrapbookEntry = await prisma.auditScrapbook.create({
+    const scrapbookEntry = await prisma.auditEvent.create({
       data: {
         clinicianId: clinicianNpi,
-        action: 'EMERGENCY_ESCALATION',
-        details: {
+        type: 'EMERGENCY_ESCALATION',
+        metadata: {
           context: currentEmergencyContext,
-          credentialsEscalated: escalated.filter(c => c._emergencyFlag).length,
+          credentialsEscalated: escalated.filter((c: any) => c._emergencyFlag).length,
           ttl: '72_HOURS'
         },
         hash: reconciliationHash
