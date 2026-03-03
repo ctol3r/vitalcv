@@ -1,5 +1,4 @@
 import cors from 'cors';
-import crypto from 'crypto';
 import type { Express, Request, Response } from 'express';
 import express from 'express';
 import helmet from 'helmet';
@@ -7,11 +6,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import swaggerUi from 'swagger-ui-express';
 import { registerIngestRoutes } from '../../routes/ingest';
-import { emitVerificationAuditEvent } from '../../verification/audit';
 import { registerWedgeRoutes } from '../routes/wedge';
 import { env, getProductionEnvCheck } from './config/env';
 import prisma, { Prisma, PrismaClient } from './graphql/prisma_client';
-import { invokeAgentModel } from './llm';
 import { errorHandler } from './middleware/errorHandler';
 import { getRequestOrganizationId } from './middleware/organizationContext';
 import { apiKeyAuth, publicApiRateLimit, trustStateRateLimit } from './middleware/publicSafety';
@@ -46,6 +43,8 @@ import { startContinuousMonitor } from './workers/continuousMonitor';
 import { registerHiringRoutes } from './routes/hiring';
 // Wave 43: Public Trust Profile — NPI-keyed
 import { registerPublicProfileRoutes } from './routes/publicProfile';
+// Wave 47: Human-in-the-Loop review queue
+import { registerHitlRoutes } from './routes/hitl';
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -81,8 +80,6 @@ import {
     coerceVerifierLifecycle,
     VERIFIER_LIFECYCLE_STATES,
 } from './services/verifierLifecycle';
-import { estimateTokenCount } from './telemetry';
-import { withToolSpan } from './tools/tracing';
 import type { ClaimProof } from './types/selectiveProof';
 import { sha256Hex } from './utils/deterministic';
 import { isStrictTransitionMode, parseBooleanEnv } from './utils/environment';
@@ -109,9 +106,9 @@ import { registerDemoRoutes } from './modules/demo';
 // PSV Verify Module (Wave 1)
 import { registerPsvVerifyRoutes } from './services/psv/verifyRoute';
 // Wave 31: HTM Proof of Experience (PoE) — cryptographic volume attestation
+import { registerIssuerRoutes } from './routes/issuer'; // Wave 38: Issuer Command Center
 import { registerPoeRoutes } from './routes/poe';
 import { registerWidgetRoutes } from './routes/widget'; // Wave 34: Plaid Widget
-import { registerIssuerRoutes } from './routes/issuer'; // Wave 38: Issuer Command Center
 // Wave 27: Genesis Mesh Emergency Overrides
 import { complianceRoutes } from './routes/compliance-emergency';
 
@@ -418,8 +415,6 @@ function shouldSkipTenantContext(pathname: string): boolean {
     normalizedPath.startsWith('/api/metrics') ||
     normalizedPath.startsWith('/api/artifact') ||
     normalizedPath.startsWith('/bundle') ||
-    // Verification request route uses apiKeyAuth.
-    normalizedPath === '/verification/request' ||
     // Wave 31: PoE issuance uses apiKeyAuth; verify is stateless/public.
     normalizedPath.startsWith('/api/issuer/') ||
     normalizedPath.startsWith('/api/poe/') ||
@@ -2443,118 +2438,6 @@ function registerCredentialStatusRoutes(app: Express): void {
     }
   });
 }
-
-function registerVerificationRoutes(app: Express): void {
-  app.post('/verification/request', apiKeyAuth, async (req: Request, res: Response) => {
-    const body = (req.body ?? {}) as Record<string, unknown>;
-    const correlationId =
-      typeof res.locals.request_id === 'string' && res.locals.request_id.trim().length > 0
-        ? res.locals.request_id.trim()
-        : crypto.randomUUID();
-
-    const reference_id = crypto.randomUUID();
-    let clinician_id = 'clinician:unknown';
-    const model = process.env.VITALCV_AGENT_MODEL || 'vitalcv-trust-observer-v1';
-    const agentName = process.env.VITALCV_AGENT_NAME || 'trust-observer';
-    const traceparent =
-      typeof req.get('traceparent') === 'string' ? req.get('traceparent') ?? undefined : undefined;
-
-    try {
-      const responsePayload = await invokeAgentModel(
-        {
-          agentName,
-          model,
-          input: body,
-          traceparent,
-        },
-        async () => {
-          clinician_id = parseRequiredString(body.clinician_id, 'clinician_id');
-          const lane = parseLane(body.lane);
-          const subject = parseRequiredString(body.subject, 'subject');
-
-          const response = {
-            request_id: reference_id,
-            clinician_id,
-            lane,
-            subject,
-            status: 'PENDING' as const,
-          };
-
-          await withToolSpan(
-            {
-              toolName: 'emit_verification_audit',
-              input: {
-                type: 'VERIFICATION_REQUESTED',
-                clinician_id,
-                lane,
-                subject,
-                correlation_id: correlationId,
-              },
-            },
-            async () =>
-              emitVerificationAuditEvent({
-                type: 'VERIFICATION_REQUESTED',
-                clinician_id,
-                reference_id,
-                metadata: {
-                  lane,
-                  subject,
-                  status: 'PENDING',
-                  correlation_id: correlationId,
-                },
-              }),
-          );
-
-          return {
-            output: response,
-            usage: {
-              inputTokens: estimateTokenCount(body),
-              outputTokens: estimateTokenCount(response),
-            },
-          };
-        },
-      );
-
-      return res.status(200).json(responsePayload);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to process verification request';
-
-      try {
-        await withToolSpan(
-          {
-            toolName: 'emit_verification_failed_audit',
-            input: {
-              clinician_id,
-              reason: message,
-              correlation_id: correlationId,
-            },
-            traceparent,
-          },
-          async () =>
-            emitVerificationAuditEvent({
-              type: 'VERIFICATION_FAILED',
-              clinician_id,
-              reference_id,
-              metadata: {
-                reason: message,
-                correlation_id: correlationId,
-              },
-            }),
-        );
-      } catch (auditError) {
-        log('error', 'verification_audit_emission_error', {
-          event: 'verification_audit_emission_error',
-          error: auditError instanceof Error ? auditError.message : 'unknown',
-        });
-      }
-
-      return res.status(400).json({ error: message });
-    }
-  });
-}
-
-
-
 function registerPilotRoutes(app: Express): void {
   app.get('/api/verify/:shareId', publicApiRateLimit, async (req: Request, res: Response) => {
     const shareId = parseRequiredString(req.params.shareId, 'shareId');
@@ -3471,7 +3354,7 @@ app.use(express.urlencoded({ extended: false, limit: '1mb' }));
   registerImpactRoutes(app);
   registerIngestRoutes(app);
   registerLookupRoutes(app);
-  registerVerificationRoutes(app);
+
   registerProofRoutes(app);
 registerComplianceRoutes(app);
 registerOperationsRoutes(app);
@@ -3499,6 +3382,7 @@ registerIntelligenceRoutes(app); // Wave 37: Superbrain GraphRAG
 registerStatusListRoutes(app); // Wave 40: W3C Bitstring Status List
 registerHiringRoutes(app);    // Wave 41: ON Loop — EmployerAcceptance + StartAttestation
 registerPublicProfileRoutes(app); // Wave 43: Public Trust Profile — NPI-keyed
+registerHitlRoutes(app);         // Wave 47: AI HITL Review Queue
 
 // Wave 35: Start the Merkle anchoring background worker.
 startAnchorWorker();
