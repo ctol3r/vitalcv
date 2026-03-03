@@ -22,3 +22,8 @@ export function hashDeterministicPayload(payload: unknown): string {
 export function createHashChain(parts: Record<string, unknown>): string {
   return sha256ForPayload(parts);
 }
+
+/** Alias used by compliance modules (emergency governance, audit scrapbook). */
+export function generateAuditHash(payload: string): string {
+  return sha256Hex(payload);
+}

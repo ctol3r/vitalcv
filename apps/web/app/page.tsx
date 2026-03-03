@@ -1,20 +1,14 @@
-import Navbar from '@/components/marketing/Navbar';
-import { HeroSection } from '@/components/marketing/HeroSection';
-import NetworkBackground from '@/components/marketing/NetworkBackground';
-import { ImpactPanel } from '@/components/marketing/ImpactPanel';
-import { ProductBento } from '@/components/marketing/ProductBento';
-import { SystemStatus } from '@/components/marketing/SystemStatus';
+import { Hero } from '@/components/marketing/Hero';
+import { LedgerTicker } from '@/components/marketing/LedgerTicker';
+import { BentoGrid } from '@/components/marketing/BentoGrid';
 
-// ── Page ────────────────────────────────────────────────────
+// ── Wave 44: Palantir-Grade Marketing Shell ────────────────
 export default function HomePage() {
   return (
-    <main className="relative min-h-screen bg-[var(--cloud-dancer)] text-[var(--warm-charcoal)] overflow-x-hidden">
-      <NetworkBackground />
-      <Navbar />
-      <HeroSection />
-      <ProductBento />
-      <SystemStatus />
-      <ImpactPanel />
+    <main className="min-h-screen bg-zinc-950 text-white overflow-x-hidden">
+      <Hero />
+      <LedgerTicker />
+      <BentoGrid />
     </main>
   );
 }
