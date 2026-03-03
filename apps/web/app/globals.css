@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import '../styles/design-tokens.css';
 @import '../styles/utilities.css';
 
 @custom-variant dark (&:is(.dark *));
@@ -232,6 +233,29 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* ── Extended spacing tokens ─────────────────────────── */
+  --spacing-px: var(--space-px);
+  --spacing-0-5: var(--space-0-5);
+  --spacing-1: var(--space-1);
+  --spacing-1-5: var(--space-1-5);
+  --spacing-2: var(--space-2);
+  --spacing-3: var(--space-3);
+  --spacing-4: var(--space-4);
+  --spacing-5: var(--space-5);
+  --spacing-6: var(--space-6);
+  --spacing-8: var(--space-8);
+  --spacing-10: var(--space-10);
+  --spacing-12: var(--space-12);
+  --spacing-16: var(--space-16);
+  --spacing-20: var(--space-20);
+  --spacing-24: var(--space-24);
+  --spacing-32: var(--space-32);
+
+  /* ── Extended radius tokens ──────────────────────────── */
+  --radius-none: var(--radius-none, 0);
+  --radius-2xl: var(--radius-2xl, 1.5rem);
+  --radius-full: var(--radius-full, 9999px);
 }
 
 /* ─── Base layer ────────────────────────────────────────── */
@@ -246,6 +270,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
     overscroll-behavior: contain;
   }
 }
@@ -529,6 +556,55 @@
 
 .animate-glow-breathe {
   animation: glow-breathe 6s ease-in-out infinite;
+}
+
+/* ─── Wave 45: Antigravity Motion Keyframes ───────────── */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes blurReveal {
+  from { opacity: 0; filter: blur(12px); }
+  to { opacity: 1; filter: blur(0); }
+}
+
+@layer utilities {
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s cubic-bezier(0, 0, 0.2, 1) both;
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  }
+
+  .animate-blur-reveal {
+    animation: blurReveal 0.6s cubic-bezier(0, 0, 0.2, 1) both;
+  }
 }
 
 /* ─── Accessibility ──────────────────────────────────────── */

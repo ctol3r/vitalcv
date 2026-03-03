@@ -35,11 +35,18 @@ export function AnimatedTimeline({ events, className }: AnimatedTimelineProps) {
         <motion.div
           key={event.id}
           variants={cardReveal}
+          custom={index}
           className="relative flex items-start gap-6 mb-8 last:mb-0"
         >
           {/* Node */}
           <div className="relative z-10 flex h-14 w-14 shrink-0 items-center justify-center rounded-full glass glass-border bg-[var(--background)]">
-            <div className="h-3 w-3 rounded-full bg-[var(--primary)]" />
+            <motion.div
+              className="h-3 w-3 rounded-full bg-[var(--primary)]"
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ type: 'spring', stiffness: 200, damping: 12, delay: 0.1 * index }}
+            />
           </div>
 
           {/* Content */}

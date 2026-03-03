@@ -7,24 +7,36 @@ import { hoverElevate } from '@/animations/motionVariants';
 import { cn } from '@/lib/utils';
 
 type GlassWeight = 'light' | 'heavy';
+type GlassVariant = 'default' | 'elevated' | 'heavy';
 
 interface GlassCardProps extends HTMLMotionProps<'div'> {
   weight?: GlassWeight;
+  variant?: GlassVariant;
   interactive?: boolean;
 }
 
+const variantStyles: Record<GlassVariant, string> = {
+  default: 'glass-card-base',
+  elevated: 'glass-card-base shadow-elevated',
+  heavy: 'glass-heavy',
+};
+
 const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
-  ({ className, weight = 'light', interactive = false, ...props }, ref) => {
+  ({ className, weight = 'light', variant, interactive = false, ...props }, ref) => {
+    // variant prop takes precedence; if not set, derive from weight
+    const resolvedVariant = variant ?? (weight === 'heavy' ? 'heavy' : 'default');
+
     return (
       <motion.div
         ref={ref}
         data-slot="glass-card"
         variants={interactive ? hoverElevate : undefined}
+        initial={interactive ? 'rest' : undefined}
         whileHover={interactive ? 'hover' : undefined}
         whileTap={interactive ? 'tap' : undefined}
         className={cn(
           'rounded-2xl p-6',
-          weight === 'heavy' ? 'glass-heavy' : 'glass-card-base',
+          variantStyles[resolvedVariant],
           interactive && 'cursor-pointer focus-ring',
           className
         )}
@@ -84,5 +96,4 @@ const GlassCardFooter = React.forwardRef<HTMLDivElement, React.ComponentProps<'d
 GlassCardFooter.displayName = 'GlassCardFooter';
 
 export { GlassCard, GlassCardContent, GlassCardFooter, GlassCardHeader, GlassCardTitle };
-export type { GlassWeight };
-
+export type { GlassVariant, GlassWeight };

@@ -76,3 +76,97 @@ export const popIn: Variants = {
     transition: { type: 'spring', stiffness: 120, damping: 14 },
   },
 };
+
+/* ── Directional reveals ──────────────────────────────── */
+
+export const fadeInUp: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: durations.slow, ease: easings.decelerate },
+  },
+};
+
+export const fadeInDown: Variants = {
+  hidden: { opacity: 0, y: -24 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: durations.slow, ease: easings.decelerate },
+  },
+};
+
+export const slideInLeft: Variants = {
+  hidden: { opacity: 0, x: -40 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: durations.slow, ease: easings.easeOut },
+  },
+};
+
+export const slideInRight: Variants = {
+  hidden: { opacity: 0, x: 40 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: durations.slow, ease: easings.easeOut },
+  },
+};
+
+export const scaleIn: Variants = {
+  hidden: { opacity: 0, scale: 0.92 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: { type: 'spring', stiffness: 100, damping: 18 },
+  },
+};
+
+export const blurReveal: Variants = {
+  hidden: { opacity: 0, filter: 'blur(12px)' },
+  visible: {
+    opacity: 1,
+    filter: 'blur(0px)',
+    transition: { duration: durations.slow, ease: easings.decelerate },
+  },
+};
+
+/* ── Scroll reveal variants (direction factory) ────────── */
+
+export type ScrollDirection = 'up' | 'left' | 'right' | 'scale';
+
+const scrollHiddenByDirection: Record<ScrollDirection, Record<string, number | string>> = {
+  up: { opacity: 0, y: 30 },
+  left: { opacity: 0, x: -40 },
+  right: { opacity: 0, x: 40 },
+  scale: { opacity: 0, scale: 0.92 },
+};
+
+export function scrollRevealVariants(direction: ScrollDirection = 'up'): Variants {
+  return {
+    hidden: scrollHiddenByDirection[direction],
+    visible: {
+      opacity: 1,
+      y: 0,
+      x: 0,
+      scale: 1,
+      transition: { duration: durations.slow, ease: easings.easeOut },
+    },
+  };
+}
+
+/* ── Hero stagger (orchestrated hero section) ──────────── */
+
+export const heroStagger: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      when: 'beforeChildren',
+      staggerChildren: 0.15,
+      delayChildren: 0.1,
+    },
+  },
+};
