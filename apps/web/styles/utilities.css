@@ -25,6 +25,26 @@
     outline: 2px solid var(--ring);
   }
 
+  /* Section container — max-width + centered + responsive padding */
+  .section-container {
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .section-container {
+      padding-inline: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .section-container {
+      padding-inline: 2rem;
+    }
+  }
+
   /* Structural Glass Card (re-exported here for utility isolation) */
   .glass-card-base {
     backdrop-filter: blur(var(--glass-blur));

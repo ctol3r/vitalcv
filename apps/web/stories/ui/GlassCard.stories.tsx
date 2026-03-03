@@ -32,11 +32,27 @@ export const Default: Story = {
   ),
 };
 
+export const Elevated: Story = {
+  render: () => (
+    <div className="w-[400px] p-8 -m-8 bg-[var(--background)] relative z-0">
+      <div className="absolute top-10 left-10 w-32 h-32 rounded-full bg-[var(--sage)] blur-2xl opacity-30 -z-10" />
+      <GlassCard variant="elevated" interactive>
+        <GlassCardHeader>
+          <GlassCardTitle>Elevated Card</GlassCardTitle>
+        </GlassCardHeader>
+        <GlassCardContent>
+          The elevated variant adds a stronger shadow for cards that need visual prominence, such as featured credentials or primary actions.
+        </GlassCardContent>
+      </GlassCard>
+    </div>
+  ),
+};
+
 export const HeavyWeight: Story = {
   render: () => (
     <div className="w-[400px] p-8 -m-8 bg-[var(--background)] relative z-0">
       <div className="absolute top-10 left-10 w-32 h-32 rounded-full bg-[var(--accent)] blur-2xl opacity-30 -z-10" />
-      <GlassCard weight="heavy" interactive>
+      <GlassCard variant="heavy" interactive>
         <GlassCardHeader>
           <GlassCardTitle>Secure Vault</GlassCardTitle>
         </GlassCardHeader>

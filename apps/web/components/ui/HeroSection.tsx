@@ -1,9 +1,10 @@
 'use client';
 
-import { cardReveal, pageWrap, staggerContainer } from '@/animations/motionVariants';
+import { cardReveal, heroStagger, fadeInUp } from '@/animations/motionVariants';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
 import * as React from 'react';
+import { useRef } from 'react';
 
 interface HeroSectionProps {
   title: React.ReactNode;
@@ -20,11 +21,15 @@ export function HeroSection({
   secondaryAction,
   className,
 }: HeroSectionProps) {
+  const sectionRef = useRef<HTMLElement>(null);
+  const isInView = useInView(sectionRef, { once: true, margin: '-80px' });
+
   return (
     <motion.section
-      variants={pageWrap}
+      ref={sectionRef}
+      variants={heroStagger}
       initial="hidden"
-      animate="visible"
+      animate={isInView ? 'visible' : 'hidden'}
       className={cn(
         'relative flex min-h-[70vh] flex-col items-center justify-center px-4 py-20 text-center overflow-hidden',
         className
@@ -37,9 +42,9 @@ export function HeroSection({
         <div className="h-[600px] w-[600px] rounded-full bg-[var(--sage)] opacity-20 blur-[120px] animate-glow-breathe" />
       </div>
 
-      <motion.div variants={staggerContainer} className="relative z-10 max-w-4xl mx-auto space-y-8">
+      <div className="relative z-10 max-w-4xl mx-auto space-y-8">
         <motion.h1
-          variants={cardReveal}
+          variants={fadeInUp}
           className="font-heading text-5xl font-extrabold tracking-tight md:text-7xl lg:text-8xl text-balance"
         >
           {title}
@@ -61,7 +66,7 @@ export function HeroSection({
             {secondaryAction}
           </motion.div>
         )}
-      </motion.div>
+      </div>
     </motion.section>
   );
 }
