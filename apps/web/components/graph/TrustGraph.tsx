@@ -23,7 +23,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 export interface GraphNode {
   id: string;
   label: string;
-  group: 'clinician' | 'issuer' | 'employer' | 'credential' | 'policy';
+  group: 'clinician' | 'issuer' | 'employer' | 'credential' | 'policy' | 'decision';
   status?: string;
   trustState?: string;
   auditHash?: string | null;
@@ -60,6 +60,7 @@ const NODE_COLORS: Record<string, string> = {
   credential: '#DAA520',  // warm amber
   employer: '#8B5CF6',    // purple
   policy: '#EC4899',      // pink
+  decision: '#F97316',    // orange
 };
 
 const NODE_LABELS: Record<string, string> = {
@@ -68,6 +69,7 @@ const NODE_LABELS: Record<string, string> = {
   credential: 'Credential',
   employer: 'Employer',
   policy: 'Policy',
+  decision: 'Decision',
 };
 
 const STATUS_GLOW: Record<string, string> = {
