@@ -1,0 +1,47 @@
+{
+  "name": "VitalCV",
+  "short_name": "VitalCV",
+  "description": "Cryptographic trust infrastructure for healthcare credentialing",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#228B22",
+  "orientation": "portrait-primary",
+  "categories": ["medical", "health", "business"],
+  "icons": [
+    {
+      "src": "/placeholder-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/placeholder-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Verify Clinician",
+      "short_name": "Verify",
+      "url": "/verify",
+      "description": "Verify a clinician's credentials"
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "play",
+      "id": "com.vitalcv.app"
+    }
+  ],
+  "prefer_related_applications": false,
+  "protocol_handlers": [
+    {
+      "protocol": "web+vitalcv",
+      "url": "/verify/%s"
+    }
+  ]
+}

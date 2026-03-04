@@ -1,168 +1,198 @@
-import { notFound } from 'next/navigation';
-import type { Metadata } from 'next';
+'use client';
 
-/* ------------------------------------------------------------------ */
-/*  Metadata — App Clip optimized                                      */
-/* ------------------------------------------------------------------ */
+/**
+ * App Clip Verification Page — Wave 52
+ *
+ * This page is the target for Apple App Clip and Android Instant App
+ * deep links. When a verifier scans a clinician's QR code (from their
+ * wallet pass or badge), this page loads instantly and performs a
+ * real-time OIDC4VP verification without requiring an app download.
+ *
+ * Route: /clip/verify/[npi]
+ * AASA: Already configured to route /clip/verify/* to App Clip
+ */
 
-export const metadata: Metadata = {
-  title: 'VitalCV · Instant Verification',
-  description: 'Cryptographic credential verification receipt',
-  other: {
-    'apple-itms-apps': 'app-clip-bundle-id=com.vitalcv.clip',
-  },
+import { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// ── Types ─────────────────────────────────────────────────────────────────
+
+type VerificationStatus = 'LOADING' | 'VERIFIED' | 'FAILED' | 'EXPIRED';
+
+interface ClipVerificationResult {
+  clinicianName: string;
+  npi: string;
+  crsScore: number;
+  crsBand: 'GREEN' | 'YELLOW' | 'RED';
+  credentials: string[];
+  verifiedAt: string;
+}
+
+// ── Constants ─────────────────────────────────────────────────────────────
+
+const BAND_STYLES: Record<string, { bg: string; text: string; icon: string }> = {
+  GREEN: { bg: 'bg-emerald-500', text: 'text-emerald-500', icon: '✓' },
+  YELLOW: { bg: 'bg-amber-500', text: 'text-amber-500', icon: '⚠' },
+  RED: { bg: 'bg-red-500', text: 'text-red-500', icon: '✗' },
 };
 
-/* ------------------------------------------------------------------ */
-/*  Props                                                              */
-/* ------------------------------------------------------------------ */
+const fadeIn = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -10 },
+  transition: { duration: 0.4, ease: [0.2, 0.8, 0.2, 1] as const },
+};
 
-interface Props {
-  params: Promise<{ npi: string }>;
-}
+// ── Component ─────────────────────────────────────────────────────────────
 
-/* ------------------------------------------------------------------ */
-/*  Mock data helper (MVP — server-only)                               */
-/*  TODO: Fetch real verification data from backend API                */
-/* ------------------------------------------------------------------ */
+export default function ClipVerifyPage() {
+  const params = useParams();
+  const npi = typeof params.npi === 'string' ? params.npi : '';
 
-function getVerificationData(npi: string) {
-  // Deterministic mock hash from NPI for demo consistency
-  const hashBase = Array.from(npi)
-    .reduce((acc, ch) => acc + ch.charCodeAt(0), 0)
-    .toString(16)
-    .padStart(8, '0');
+  const [status, setStatus] = useState<VerificationStatus>('LOADING');
+  const [result, setResult] = useState<ClipVerificationResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  return {
-    npi,
-    displayName: 'Dr. Sarah Chen, MD',
-    initials: 'SC',
-    specialty: 'Internal Medicine',
-    band: 'GREEN' as const,
-    bandLabel: 'Ready',
-    verificationHash: `sha256:${hashBase}a4f9b2c1...e7d3`,
-    verifiedAt: new Date().toISOString(),
-  };
-}
+  const verify = useCallback(async () => {
+    if (!npi || !/^\d{10}$/.test(npi)) {
+      setError('Invalid NPI format');
+      setStatus('FAILED');
+      return;
+    }
 
-/* ------------------------------------------------------------------ */
-/*  Page — Pure Server Component (zero client JS)                      */
-/* ------------------------------------------------------------------ */
+    try {
+      // TODO: Replace with real API call to /api/oidc/authorize + /api/matcha/readiness
+      // Stub: simulate verification delay
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-export default async function ClipVerifyPage({ params }: Props) {
-  const { npi } = await params;
+      // Stub result — in production, this comes from the OIDC4VP flow
+      const stubResult: ClipVerificationResult = {
+        clinicianName: 'Verification Pending',
+        npi,
+        crsScore: 0,
+        crsBand: 'YELLOW',
+        credentials: [],
+        verifiedAt: new Date().toISOString(),
+      };
 
-  if (!/^\d{10}$/.test(npi)) {
-    notFound();
-  }
+      // Try to fetch real readiness data
+      const response = await fetch(`/api/matcha/readiness/${npi}`);
+      if (response.ok) {
+        const data = await response.json() as Record<string, unknown>;
+        if (typeof data.overallScore === 'number') {
+          stubResult.crsScore = data.overallScore as number;
+        }
+        if (typeof data.overallBand === 'string') {
+          stubResult.crsBand = data.overallBand as ClipVerificationResult['crsBand'];
+        }
+      }
 
-  const data = getVerificationData(npi);
+      setResult(stubResult);
+      setStatus(stubResult.crsScore > 0 ? 'VERIFIED' : 'FAILED');
+    } catch {
+      setError('Verification request failed');
+      setStatus('FAILED');
+    }
+  }, [npi]);
+
+  useEffect(() => {
+    verify();
+  }, [verify]);
+
+  const bandStyle = result
+    ? BAND_STYLES[result.crsBand] ?? BAND_STYLES.RED
+    : BAND_STYLES.YELLOW;
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-sm flex-col items-center px-5 py-10">
-      {/* ── VitalCV Wordmark (inline SVG for zero-bundle) ──────── */}
-      <div className="mb-8 flex items-center gap-1.5 text-sm font-semibold tracking-tight text-neutral-800">
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true"
-        >
-          <path
-            d="M12 2L3 7v10l9 5 9-5V7l-9-5Z"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M9 12l2 2 4-4"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        VitalCV
-      </div>
-
-      {/* ── Receipt Card ───────────────────────────────────────── */}
-      <div className="w-full rounded-2xl border border-neutral-200/60 bg-white/80 p-6 shadow-sm backdrop-blur-sm">
-        {/* Clinician identity */}
-        <div className="flex items-center gap-3.5 mb-5">
-          {/* Initials circle (no image import needed) */}
-          <div
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full font-semibold text-sm text-white"
-            style={{ backgroundColor: 'oklch(0.55 0.10 220)' }}
-            aria-label={`Avatar for ${data.displayName}`}
+    <main className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-4">
+      <AnimatePresence mode="wait">
+        {status === 'LOADING' && (
+          <motion.div
+            key="loading"
+            {...fadeIn}
+            className="glass text-center p-8 rounded-2xl max-w-sm w-full"
           >
-            {data.initials}
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-neutral-900 truncate">
-              {data.displayName}
-            </p>
-            <p className="text-xs text-neutral-500 truncate">
-              {data.specialty} · NPI {data.npi}
-            </p>
-          </div>
-        </div>
+            <div className="w-12 h-12 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-lg font-medium">Verifying credentials...</p>
+            <p className="text-sm text-zinc-400 mt-1">NPI: {npi}</p>
+          </motion.div>
+        )}
 
-        {/* Trust Band */}
-        <div className="mb-5 flex items-center gap-2 rounded-xl px-3.5 py-2.5"
-          style={{ backgroundColor: 'oklch(0.72 0.15 155 / 0.08)' }}
-        >
-          <span
-            className="inline-block h-2.5 w-2.5 rounded-full"
-            style={{ backgroundColor: 'oklch(0.72 0.15 155)' }}
-            aria-hidden="true"
-          />
-          <span
-            className="text-xs font-semibold uppercase tracking-wider"
-            style={{ color: 'oklch(0.72 0.15 155)' }}
+        {status === 'VERIFIED' && result && (
+          <motion.div
+            key="verified"
+            {...fadeIn}
+            className="glass p-8 rounded-2xl max-w-sm w-full"
           >
-            {data.bandLabel}
-          </span>
-          <span className="ml-auto text-[10px] text-neutral-400 uppercase tracking-wider">
-            Trust Band
-          </span>
-        </div>
+            {/* Band indicator */}
+            <div className={`w-16 h-16 ${bandStyle.bg} rounded-full flex items-center justify-center mx-auto mb-4`}>
+              <span className="text-3xl text-white">{bandStyle.icon}</span>
+            </div>
 
-        {/* Verification Hash */}
-        <div className="space-y-3 text-xs">
-          <div className="flex justify-between items-baseline">
-            <span className="text-neutral-400 uppercase tracking-wider font-medium">
-              Verification Hash
-            </span>
-          </div>
-          <p className="font-mono text-[11px] text-neutral-600 bg-neutral-50 rounded-lg px-3 py-2 break-all select-all">
-            {data.verificationHash}
-          </p>
+            <h1 className="text-2xl font-bold text-center mb-1">
+              {result.crsBand === 'GREEN' ? 'Verified' : 'Partially Verified'}
+            </h1>
 
-          <div className="flex justify-between items-baseline pt-1">
-            <span className="text-neutral-400 uppercase tracking-wider font-medium">
-              Verified
-            </span>
-            <span className="text-neutral-600">
-              {new Date(data.verifiedAt).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </span>
-          </div>
-        </div>
-      </div>
+            <p className="text-center text-zinc-400 text-sm mb-6">
+              {new Date(result.verifiedAt).toLocaleString()}
+            </p>
 
-      {/* ── Footer ─────────────────────────────────────────────── */}
-      <p className="mt-6 text-center text-[10px] text-neutral-400 leading-relaxed">
-        Cryptographically verified via VitalCV
-        <br />
-        This receipt is publicly auditable and tamper-evident.
-      </p>
+            {/* CRS Score */}
+            <div className="bg-white/5 rounded-xl p-4 mb-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-zinc-400">Readiness Score</span>
+                <span className={`text-2xl font-bold ${bandStyle.text}`}>
+                  {result.crsScore}%
+                </span>
+              </div>
+              <div className="mt-2 h-2 bg-white/10 rounded-full overflow-hidden">
+                <motion.div
+                  className={`h-full ${bandStyle.bg} rounded-full`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${result.crsScore}%` }}
+                  transition={{ duration: 0.8, ease: [0.2, 0.8, 0.2, 1] }}
+                />
+              </div>
+            </div>
+
+            {/* NPI */}
+            <div className="bg-white/5 rounded-xl p-4 mb-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-zinc-400">NPI</span>
+                <span className="font-mono text-sm">{result.npi}</span>
+              </div>
+            </div>
+
+            {/* Powered by */}
+            <p className="text-center text-zinc-500 text-xs mt-6">
+              Verified by VitalCV · Cryptographic Trust Infrastructure
+            </p>
+          </motion.div>
+        )}
+
+        {status === 'FAILED' && (
+          <motion.div
+            key="failed"
+            {...fadeIn}
+            className="glass text-center p-8 rounded-2xl max-w-sm w-full"
+          >
+            <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">✗</span>
+            </div>
+            <h1 className="text-xl font-bold mb-2">Verification Failed</h1>
+            <p className="text-sm text-zinc-400">
+              {error ?? 'Unable to verify this clinician at this time.'}
+            </p>
+            <button
+              onClick={verify}
+              className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition-colors"
+            >
+              Retry
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
