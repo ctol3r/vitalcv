@@ -32,13 +32,15 @@ export function TrustGraph({ npi }: TrustGraphProps) {
   useEffect(() => {
     async function fetchGraph() {
       try {
-        const res = await fetch(`http://localhost:3000/api/graph/${npi}`);
+        const base = process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_BACKEND_URL || '';
+        const normalizedBase = base.endsWith('/') ? base.slice(0, -1) : base;
+        const res = await fetch(`${normalizedBase}/api/graph/${encodeURIComponent(npi)}`);
         if (!res.ok) throw new Error('Failed to fetch graph');
         const data = await res.json();
         setNodes(data.nodes || []);
         setEdges(data.edges || []);
-      } catch (err) {
-        console.error('Error fetching graph data', err);
+      } catch {
+        // Keep empty state — UI renders gracefully with no nodes
       }
     }
     fetchGraph();

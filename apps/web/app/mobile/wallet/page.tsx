@@ -14,6 +14,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MobileTrustGraph } from '@/components/mobile/MobileTrustGraph';
 import { ShareProof } from '@/components/mobile/ShareProof';
 import { MobileStatusBar } from '@/components/mobile/MobileStatusBar';
+import { fetchMobileTrustState } from '@/lib/api';
+import type { TrustStateResponse } from '@/components/trust-state/types';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 

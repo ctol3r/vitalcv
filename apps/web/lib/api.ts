@@ -63,4 +63,45 @@ export async function fetchClinicianTrustState(
   }
 }
 
+// ── Mobile Trust API ─────────────────────────────────────────────────
+// Wrappers for mobile-specific trust data flows.
+
+export async function fetchMobileTrustState(
+  npi: string,
+): Promise<TrustStateResponse | null> {
+  return fetchClinicianTrustState(npi);
+}
+
+export interface NetworkActivity {
+  status: string;
+  uptime_seconds: number;
+  verifications_performed: number;
+  generated_at: string;
+}
+
+export async function fetchNetworkActivity(): Promise<NetworkActivity | null> {
+  try {
+    const res = await fetch(apiRoute('/metrics/public'));
+    if (!res.ok) return null;
+    return (await res.json()) as NetworkActivity;
+  } catch {
+    return null;
+  }
+}
+
+export interface ShareProofResult {
+  verifyUrl: string;
+  deepLink: string;
+  npi: string;
+}
+
+export function createShareProof(npi: string): ShareProofResult {
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://app.vitalcv.com';
+  return {
+    verifyUrl: `${origin}/verify/${encodeURIComponent(npi)}`,
+    deepLink: `vitalcv://verify/${encodeURIComponent(npi)}`,
+    npi,
+  };
+}
+
 export type { ApiPath };

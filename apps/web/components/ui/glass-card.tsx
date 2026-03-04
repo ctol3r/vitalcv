@@ -8,23 +8,37 @@ import { cn } from '@/lib/utils';
 
 type GlassWeight = 'light' | 'heavy';
 type GlassVariant = 'default' | 'elevated' | 'heavy';
+type GlassSize = 'default' | 'sm' | 'md' | 'mobile';
 
 interface GlassCardProps extends HTMLMotionProps<'div'> {
   weight?: GlassWeight;
   variant?: GlassVariant;
+  size?: GlassSize;
   interactive?: boolean;
+  swipeable?: boolean;
 }
 
 const variantStyles: Record<GlassVariant, string> = {
-  default: 'glass-card-base backdrop-blur-xl border-white/10 shadow-glow',
-  elevated: 'glass-card-base backdrop-blur-xl border-white/10 shadow-elevated shadow-glow',
-  heavy: 'glass-heavy backdrop-blur-xl border-white/10 shadow-glow',
+  default: 'glass-card-base',
+  elevated: 'glass-card-base shadow-elevated',
+  heavy: 'glass-heavy',
+};
+
+const sizeStyles: Record<GlassSize, string> = {
+  default: '',
+  sm: 'glass-sm',
+  md: 'glass-md',
+  mobile: 'glass-mobile',
 };
 
 const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
-  ({ className, weight = 'light', variant, interactive = false, ...props }, ref) => {
+  ({ className, weight = 'light', variant, size = 'default', interactive = false, swipeable = false, ...props }, ref) => {
     // variant prop takes precedence; if not set, derive from weight
     const resolvedVariant = variant ?? (weight === 'heavy' ? 'heavy' : 'default');
+
+    // Determine the base class taking scaling into account
+    // We add size styles which might override the backdrop filter/border radius of the base variant
+    const baseStyling = size === 'default' ? variantStyles[resolvedVariant] : sizeStyles[size];
 
     return (
       <motion.div
@@ -32,12 +46,16 @@ const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
         data-slot="glass-card"
         variants={interactive ? hoverElevate : undefined}
         initial={interactive ? 'rest' : undefined}
-        whileHover={interactive ? 'hover' : undefined}
-        whileTap={interactive ? 'tap' : undefined}
+        whileHover={interactive && !swipeable ? 'hover' : undefined}
+        whileTap={interactive || swipeable ? 'tap' : undefined}
+        drag={swipeable ? 'x' : false}
+        dragConstraints={swipeable ? { left: -100, right: 100 } : undefined}
+        dragElastic={swipeable ? 0.2 : undefined}
         className={cn(
-          'rounded-2xl p-6',
-          variantStyles[resolvedVariant],
-          interactive && 'cursor-pointer focus-ring glass-hover magnetic-button',
+          'p-6',
+          size === 'default' ? 'rounded-2xl' : '', // border-radius is handled by the size utility except for default
+          baseStyling,
+          interactive && 'cursor-pointer focus-ring',
           className
         )}
         {...props}
@@ -96,5 +114,5 @@ const GlassCardFooter = React.forwardRef<HTMLDivElement, React.ComponentProps<'d
 GlassCardFooter.displayName = 'GlassCardFooter';
 
 export { GlassCard, GlassCardContent, GlassCardFooter, GlassCardHeader, GlassCardTitle };
-export type { GlassVariant, GlassWeight };
+export type { GlassSize, GlassVariant, GlassWeight };
 

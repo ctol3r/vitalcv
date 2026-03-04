@@ -277,38 +277,18 @@ function TrustGraphInner({
       // Glow for active/verified
       const glowColor = STATUS_GLOW[node.status ?? ''] ?? STATUS_GLOW[node.trustState ?? ''];
       if (glowColor) {
-        const glowRadius = radius * pulseScale * 2.5;
+        const glowRadius = radius * pulseScale * 2;
         const gradient = ctx.createRadialGradient(
           node.x, node.y, radius,
           node.x, node.y, glowRadius,
         );
-        gradient.addColorStop(0, glowColor + '50'); // Increased intensity
+        gradient.addColorStop(0, glowColor + '40');
         gradient.addColorStop(1, glowColor + '00');
         ctx.fillStyle = gradient;
         ctx.beginPath();
         ctx.arc(node.x, node.y, glowRadius, 0, Math.PI * 2);
         ctx.fill();
-
-        // Inner pulsing ring
-        ctx.strokeStyle = glowColor + '80';
-        ctx.lineWidth = 1 * pulseScale;
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, radius * pulseScale * 1.5, 0, Math.PI * 2);
-        ctx.stroke();
       }
-
-      // Base subtle glow for all nodes
-      const baseGlowRadius = radius * 1.8;
-      const baseGradient = ctx.createRadialGradient(
-        node.x, node.y, radius * 0.8,
-        node.x, node.y, baseGlowRadius,
-      );
-      baseGradient.addColorStop(0, color + '60');
-      baseGradient.addColorStop(1, color + '00');
-      ctx.fillStyle = baseGradient;
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, baseGlowRadius, 0, Math.PI * 2);
-      ctx.fill();
 
       // Node circle
       ctx.fillStyle = isHovered ? '#ffffff' : color;
@@ -317,7 +297,7 @@ function TrustGraphInner({
       ctx.fill();
 
       // Border
-      ctx.strokeStyle = isHovered ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.4)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
       ctx.lineWidth = isHovered ? 2 : 1;
       ctx.stroke();
 
@@ -330,10 +310,8 @@ function TrustGraphInner({
       ctx.fillText(displayLabel, node.x, node.y + radius + 14);
     }
 
-    // Continue animation if not stabilized
-    if (tickCountRef.current < 300) {
-      frameRef.current = requestAnimationFrame(draw);
-    }
+    // Continue animation (always run for packet animation)
+    frameRef.current = requestAnimationFrame(draw);
   }, [edges, width, height, hoveredNode]);
 
   useEffect(() => {
@@ -342,8 +320,8 @@ function TrustGraphInner({
   }, [draw]);
 
   // Mouse interaction
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
       const canvas = canvasRef.current;
       if (!canvas) return;
       const rect = canvas.getBoundingClientRect();
@@ -353,7 +331,7 @@ function TrustGraphInner({
       const found = simNodesRef.current.find((n) => {
         const dx = n.x - mx;
         const dy = n.y - my;
-        return Math.sqrt(dx * dx + dy * dy) < Math.max(n.val * 0.6, 6) + 8;
+        return Math.sqrt(dx * dx + dy * dy) < Math.max(n.val * 0.6, 6) + 12; // increased hit area for mobile
       });
 
       setHoveredNode(found ?? null);
@@ -363,7 +341,7 @@ function TrustGraphInner({
   );
 
   const handleClick = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
+    (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
       if (hoveredNode && onNodeClick) {
         onNodeClick(hoveredNode);
       }
@@ -377,8 +355,9 @@ function TrustGraphInner({
         ref={canvasRef}
         width={width}
         height={height}
-        className="rounded-xl cursor-crosshair"
-        onMouseMove={handleMouseMove}
+        className="rounded-xl cursor-crosshair touch-none"
+        onPointerMove={handlePointerMove}
+        onPointerDown={handlePointerMove}
         onClick={handleClick}
         style={{ background: 'rgba(0, 0, 0, 0.3)' }}
       />

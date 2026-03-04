@@ -24,6 +24,7 @@ import { log } from './obs/logger';
 import { requestLatencyMetrics } from './observability/requestMetrics';
 import openApiSpec from './openapi';
 import { registerImpactRoutes } from './routes/impact';
+import { registerMobileTrustRoutes } from './routes/mobileTrust';
 import { registerPublicMetricsRoutes } from './routes/publicMetrics';
 // Wave 26: Golden Link — public read-only profile API
 import { registerPublicRoutes } from './routes/public';
@@ -422,6 +423,9 @@ function shouldSkipTenantContext(pathname: string): boolean {
     normalizedPath.startsWith('/api/audit/') ||
     // Wave 37: Superbrain intelligence endpoint.
     normalizedPath.startsWith('/api/intelligence/')
+    || normalizedPath.startsWith('/mobile/trust')
+    || normalizedPath === '/share-proof'
+    || normalizedPath.startsWith('/network/activity')
   );
 }
 
@@ -3360,6 +3364,7 @@ registerComplianceRoutes(app);
 registerOperationsRoutes(app);
 registerPilotRoutes(app);
 registerTrustStateRoutes(app);
+registerMobileTrustRoutes(app);
 registerCredentialStatusRoutes(app);
 registerMonitoringRoutes(app);
 registerEnterpriseReadinessRoutes(app);

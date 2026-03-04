@@ -1,15 +1,16 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from '@/components/ui/tooltip';
-import type { TrustStateCardData, TrustBand, WindowStatus } from './types';
+import { Key, Server, ShieldCheck } from 'lucide-react';
 import { PANEL_TRANSITION } from './motion';
+import type { TrustBand, TrustStateCardData, WindowStatus } from './types';
 
 // ── Visual Config ──────────────────────────────────────────
 
@@ -68,20 +69,40 @@ function formatDate(iso: string): string {
 
 // ── Component ──────────────────────────────────────────────
 
-export function TrustStateCard({ data }: { data: TrustStateCardData }) {
+export function TrustStateCard({
+  data,
+  artifactId,
+  integrityHash,
+  issuers = []
+}: {
+  data: TrustStateCardData;
+  artifactId?: string;
+  integrityHash?: string;
+  issuers?: string[];
+}) {
   const config = BAND_CONFIG[data.band];
   const verifiedDaysAgo = daysAgo(data.verifiedAt);
   const windowLabel = WINDOW_LABEL[data.windowStatus];
 
   return (
     <section aria-labelledby="trust-state-heading" className={PANEL_TRANSITION}>
-      <Card interactive>
-        <CardHeader>
-          <CardTitle id="trust-state-heading" className="text-lg text-slate-800">
-            Trust State
-          </CardTitle>
+      <Card interactive className="border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.08)] bg-white/40 dark:bg-white/5 backdrop-blur-xl relative overflow-hidden group">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-white/5 dark:from-white/10 dark:to-transparent pointer-events-none" />
+
+        <CardHeader className="pb-3 relative z-10 border-b border-slate-200/50 dark:border-white/10">
+          <div className="flex justify-between items-center">
+            <CardTitle id="trust-state-heading" className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+              Decision Capsule
+            </CardTitle>
+            {artifactId && (
+              <Badge variant="outline" className="text-[10px] font-mono font-normal text-slate-500 bg-white/50 dark:bg-black/20 border-slate-200 dark:border-slate-800 backdrop-blur-sm gap-1 h-6">
+                <ShieldCheck className="w-3 h-3 text-slate-400" />
+                {artifactId.substring(0, 8)}
+              </Badge>
+            )}
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-5 relative z-10">
           {/* Compliance status row */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -109,6 +130,54 @@ export function TrustStateCard({ data }: { data: TrustStateCardData }) {
               Band: {data.band}
             </span>
           </div>
+
+          {/* Identity & Hash Preview */}
+          {(integrityHash || issuers.length > 0) && (
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between p-3 rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 backdrop-blur-sm transition-all duration-300 group-hover:border-slate-300 dark:group-hover:border-slate-700">
+               <div className="flex items-center gap-2">
+                 <Server className="w-4 h-4 text-slate-400" />
+                 <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Sources:</span>
+                 <div className="flex -space-x-1.5 ml-1">
+                   {issuers.slice(0, 4).map((issuer, i) => (
+                     <TooltipProvider key={i}>
+                       <Tooltip>
+                         <TooltipTrigger asChild>
+                           <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 border-2 border-white dark:border-slate-950 flex items-center justify-center text-[8px] font-bold text-slate-500 overflow-hidden" style={{ zIndex: 4 - i }}>
+                             {issuer.charAt(0)}
+                           </div>
+                         </TooltipTrigger>
+                         <TooltipContent>
+                           <p className="text-xs">{issuer}</p>
+                         </TooltipContent>
+                       </Tooltip>
+                     </TooltipProvider>
+                   ))}
+                   {issuers.length > 4 && (
+                     <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-white dark:border-slate-950 flex items-center justify-center text-[8px] font-medium text-slate-500" style={{ zIndex: 0 }}>
+                       +{issuers.length - 4}
+                     </div>
+                   )}
+                 </div>
+               </div>
+
+               {integrityHash && (
+                 <TooltipProvider>
+                   <Tooltip>
+                     <TooltipTrigger asChild>
+                       <div className="flex items-center gap-1.5 cursor-help opacity-70 hover:opacity-100 transition-opacity bg-white/50 dark:bg-black/20 px-2 py-1 rounded border border-slate-200/50 dark:border-slate-800">
+                         <Key className="w-3 h-3 text-slate-400" />
+                         <span className="text-[10px] font-mono text-slate-500">{integrityHash.substring(0, 16)}...</span>
+                       </div>
+                     </TooltipTrigger>
+                     <TooltipContent side="top">
+                       <p className="font-semibold text-xs mb-1">Cryptographic Proof</p>
+                       <p className="font-mono text-[10px] text-slate-400 break-all w-48">{integrityHash}</p>
+                     </TooltipContent>
+                   </Tooltip>
+                 </TooltipProvider>
+               )}
+            </div>
+          )}
 
           {/* Verification age */}
           <div className="rounded-md border border-slate-200 p-3 space-y-2">

@@ -115,6 +115,87 @@ const spec: OpenAPIV3.Document = {
           },
         },
       },
+      MobileTrustResponse: {
+        allOf: [
+          { $ref: '#/components/schemas/TrustState' },
+          {
+            type: 'object',
+            properties: {
+              generated_at: { type: 'string', format: 'date-time' },
+            },
+            required: ['generated_at'],
+          },
+        ],
+      },
+      ShareProofRequest: {
+        type: 'object',
+        properties: {
+          npi: { type: 'string', description: '10-digit NPI number' },
+          expires_in_seconds: {
+            type: 'number',
+            description: 'Optional token lifetime in seconds (60-900). Defaults to 300.',
+          },
+        },
+        required: ['npi'],
+      },
+      ShareProofResponse: {
+        type: 'object',
+        properties: {
+          signed_share_token: { type: 'string' },
+          qr_payload: {
+            type: 'object',
+            properties: {
+              type: { type: 'string' },
+              npi: { type: 'string' },
+              verify_url: { type: 'string' },
+              token: { type: 'string' },
+            },
+            required: ['type', 'npi', 'verify_url', 'token'],
+          },
+          deep_link: { type: 'string' },
+        },
+        required: ['signed_share_token', 'qr_payload', 'deep_link'],
+      },
+      NetworkActivityResponse: {
+        type: 'object',
+        properties: {
+          generated_at: { type: 'string', format: 'date-time' },
+          verification_events: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                type: {
+                  type: 'string',
+                  enum: ['VERIFICATION_REQUESTED', 'VERIFICATION_COMPLETED', 'VERIFICATION_FAILED'],
+                },
+                reference_id: { type: 'string', nullable: true },
+                clinician_id: { type: 'string', nullable: true },
+                organization_id: { type: 'string', nullable: true },
+                occurred_at: { type: 'string', format: 'date-time' },
+              },
+              required: ['id', 'type', 'occurred_at'],
+            },
+          },
+          revocation_broadcasts: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                action: { type: 'string', enum: ['revoke', 'suspend', 'expire'] },
+                artifact_id: { type: 'string', nullable: true },
+                npi: { type: 'string', nullable: true },
+                reason: { type: 'string', nullable: true },
+                occurred_at: { type: 'string', format: 'date-time' },
+              },
+              required: ['id', 'action', 'occurred_at'],
+            },
+          },
+        },
+        required: ['generated_at', 'verification_events', 'revocation_broadcasts'],
+      },
       SubjectStatus: {
         type: 'object',
         properties: {
@@ -362,6 +443,79 @@ const spec: OpenAPIV3.Document = {
         },
       },
     },
+    '/mobile/trust/{npi}': {
+      get: {
+        summary: 'Mobile trust state lookup',
+        description:
+          'Returns a mobile-optimized TrustStateResponse for a 10-digit NPI. ' +
+          'Response is cached in Redis for 15 seconds.',
+        tags: ['Mobile Trust'],
+        parameters: [
+          { name: 'npi', in: 'path', required: true, schema: { type: 'string' } },
+        ],
+        responses: {
+          '200': {
+            description: 'Mobile trust state',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/MobileTrustResponse' },
+              },
+            },
+          },
+          '400': { description: 'Invalid NPI' },
+          '429': { description: 'Rate limit exceeded' },
+        },
+      },
+    },
+    '/share-proof': {
+      post: {
+        summary: 'Issue share-proof payload',
+        description:
+          'Issues an ES256 signed share token and returns QR + deep-link payloads for wallet/mobile handoff.',
+        tags: ['Mobile Trust'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/ShareProofRequest' },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Share proof issued',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ShareProofResponse' },
+              },
+            },
+          },
+          '400': { description: 'Invalid request' },
+          '429': { description: 'Rate limit exceeded' },
+          '503': { description: 'Signing key unavailable' },
+        },
+      },
+    },
+    '/network/activity': {
+      get: {
+        summary: 'Mobile network activity feed',
+        description:
+          'Returns recent verification events and revocation broadcasts. ' +
+          'Response is cached in Redis for 15 seconds.',
+        tags: ['Mobile Trust'],
+        responses: {
+          '200': {
+            description: 'Network activity feed',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/NetworkActivityResponse' },
+              },
+            },
+          },
+          '429': { description: 'Rate limit exceeded' },
+        },
+      },
+    },
     '/verification/request': {
       post: {
         summary: 'Request a verification',
@@ -488,6 +642,7 @@ const spec: OpenAPIV3.Document = {
     { name: 'Health', description: 'Health and status endpoints' },
     { name: 'Canonical Path', description: 'Recognition → Acceptance → Start lifecycle' },
     { name: 'Trust State', description: 'Read-only trust state queries (public, rate-limited)' },
+    { name: 'Mobile Trust', description: 'Mobile trust APIs and share-proof transport payloads' },
     { name: 'Verification', description: 'Verification request management' },
     { name: 'Ingest', description: 'Clinician identity and credential ingestion' },
   ],

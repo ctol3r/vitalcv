@@ -1,15 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-import { TrustStateCard } from './TrustStateCard';
+import { useCallback, useEffect, useState } from 'react';
 import { CredentialPanel } from './CredentialPanel';
-import { MonitoringPanel } from './MonitoringPanel';
-import { IntegrityPanel } from './IntegrityPanel';
 import { DownloadBundleButton } from './DownloadBundleButton';
-import type { TrustStateViewData } from './types';
+import { IntegrityPanel } from './IntegrityPanel';
+import { MonitoringPanel } from './MonitoringPanel';
 import { DURATION_ENTER, PANEL_TRANSITION, STAGGER_MS } from './motion';
+import { TrustStateCard } from './TrustStateCard';
+import type { TrustStateViewData } from './types';
 
 // ── Component ──────────────────────────────────────────────
 
@@ -89,7 +89,15 @@ export function TrustStateView({
   if (!data) return null;
 
   const panels = [
-    { key: 'trust-state', node: <TrustStateCard data={data.trustState} /> },
+    {
+      key: 'trust-state',
+      node: <TrustStateCard
+              data={data.trustState}
+              artifactId={data.artifactId}
+              integrityHash={data.integrity.artifactHash}
+              issuers={Array.from(new Set(data.credentials.credentials.map(c => c.issuer).filter(Boolean)))}
+            />
+    },
     { key: 'credentials', node: <CredentialPanel data={data.credentials} /> },
     { key: 'monitoring', node: <MonitoringPanel data={data.monitoring} /> },
     { key: 'integrity', node: <IntegrityPanel data={data.integrity} /> },

@@ -1,13 +1,10 @@
 'use client';
 
 /**
- * WalletDashboard — Wave 32: Holder Wallet UX Transformation
+ * WalletDashboard — Wave 32 + Wave 50: Holder Wallet with live trust data
  *
- * Main clinician wallet view. Wires:
- *  - Large-Card CredentialCard (Wave 32)
- *  - FocusModeOverlay for front-desk "show-and-go" (Wave 32)
- *  - SelectiveDisclosureModal for sharing
- *  - VitaTokenDashboard sidebar
+ * Accepts optional live CRS data from server-side trust-state fetch.
+ * Falls back to demo data when backend is unreachable.
  */
 
 import { useState, useCallback } from 'react';
@@ -25,6 +22,11 @@ import { NextBestAction, type NextBestActionData } from './NextBestAction';
 import { SelectiveDisclosureModal } from './SelectiveDisclosureModal';
 import { VitaTokenBalance } from './VitaTokenBalance';
 import { VitaTokenDashboard, type VitaEvent } from './VitaTokenDashboard';
+
+interface WalletDashboardProps {
+  trustScore?: number | null;
+  trustBand?: TrustBand | null;
+}
 
 // ── Demo data ──────────────────────────────────────────────────────────────
 
@@ -149,13 +151,15 @@ function getNextBestAction(credentials: CredentialCardData[]): NextBestActionDat
 
 // ── Component ──────────────────────────────────────────────────────────────
 
-export function WalletDashboard() {
+export function WalletDashboard({ trustScore: liveTrustScore, trustBand: liveTrustBand }: WalletDashboardProps = {}) {
   const [shareOpen, setShareOpen]   = useState(false);
   const [focusCred, setFocusCred]   = useState<CredentialCardData | null>(null);
 
   const credentials  = DEMO_CREDENTIALS;
-  const trustBand    = DEMO_TRUST.band;
-  const trustScore   = DEMO_TRUST.score;
+  // Use live data when available, normalize CRS score from 0-1 to percentage
+  const rawScore = liveTrustScore ?? DEMO_TRUST.score;
+  const trustScore = rawScore <= 1 ? Math.round(rawScore * 100) : rawScore;
+  const trustBand: TrustBand = liveTrustBand ?? DEMO_TRUST.band;
   const nextAction   = getNextBestAction(credentials);
 
   const openFocusMode = useCallback((cred: CredentialCardData) => setFocusCred(cred), []);
