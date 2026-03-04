@@ -27,6 +27,7 @@ import { registerImpactRoutes } from './routes/impact';
 import { registerKnowledgeRoutes } from './routes/knowledge';
 import { registerMobileTrustRoutes } from './routes/mobileTrust';
 import { registerPublicMetricsRoutes } from './routes/publicMetrics';
+import { registerRevocationCascadeRoutes } from './routes/revocationCascade';
 // Wave 26: Golden Link — public read-only profile API
 import { registerPublicRoutes } from './routes/public';
 // Wave 27: Authority-Bound Knowledge Graph — MCP endpoint
@@ -3386,6 +3387,7 @@ registerIssuerRoutes(app); // Wave 38: Issuer Command Center
 registerAuditRoutes(app); // Wave 35: Merkle Anchoring
 registerIntelligenceRoutes(app); // Wave 37: Superbrain GraphRAG
 registerKnowledgeRoutes(app); // Wave 59: Graph Intelligence Engine
+registerRevocationCascadeRoutes(app); // Wave 60: Revocation Cascade Engine
 registerStatusListRoutes(app); // Wave 40: W3C Bitstring Status List
 registerHiringRoutes(app);    // Wave 41: ON Loop — EmployerAcceptance + StartAttestation
 registerPublicProfileRoutes(app); // Wave 43: Public Trust Profile — NPI-keyed

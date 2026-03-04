@@ -188,10 +188,11 @@ export default function RevocationSimulationPage() {
 
   const loadData = useCallback(async (npi: string) => {
     setLoading(true); setImpact(null); setSelectedCredId(null);
+    const base = apiBase();
     try {
       const [gRes, dRes] = await Promise.allSettled([
-        fetch(`/api/graph/explorer/${npi}`).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() as Promise<GraphResponse>; }),
-        fetch(`/api/decisions/${npi}`).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() as Promise<DecisionResponse>; }),
+        fetch(`${base}/api/graph/explorer/${npi}`).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() as Promise<GraphResponse>; }),
+        fetch(`${base}/api/decisions/${npi}`).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() as Promise<DecisionResponse>; }),
       ]);
       setGraphData(gRes.status === 'fulfilled' ? gRes.value : null);
       setDecisionData(dRes.status === 'fulfilled' ? dRes.value : null);
@@ -208,10 +209,24 @@ export default function RevocationSimulationPage() {
     return graphData.graph.nodes.filter((n) => n.group === 'credential');
   }, [graphData]);
 
-  const handleRevoke = useCallback((credId: string) => {
+  const handleRevoke = useCallback(async (credId: string) => {
     if (!graphData) return;
     setSelectedCredId(credId);
-    setImpact(computeBlastRadius(credId, graphData, decisionData));
+    // Immediate client-side BFS for instant feedback
+    const localImpact = computeBlastRadius(credId, graphData, decisionData);
+    setImpact(localImpact);
+    // Enrich with backend blast-radius data (real capsule analysis)
+    const serverResult = await fetchBlastRadiusFromApi(credId);
+    if (serverResult && serverResult.totalImpacted > 0) {
+      const serverDecisions = serverResult.impactedCapsules.map(
+        (c) => `${c.decisionType} (${c.status})`,
+      );
+      // Merge: prefer server decisions if available, keep client graph data
+      const merged = serverDecisions.length > localImpact.impactedDecisions.length
+        ? serverDecisions : localImpact.impactedDecisions;
+      const recostedImpact = localImpact.impactedEmployers.length * 15000 + merged.length * 5000;
+      setImpact({ ...localImpact, impactedDecisions: merged, estimatedFinancialImpact: recostedImpact });
+    }
   }, [graphData, decisionData]);
 
   const hasData = graphData !== null;
