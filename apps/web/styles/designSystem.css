@@ -1,0 +1,56 @@
+/* ─────────────────────────────────────────────────────────────
+   Wave 66 — Antigravity Design System
+   Light interface, glass layers, soft glows, motion durations
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── Antigravity palette ─────────────────────────────────── */
+  --ag-bg: #F9FAFB;
+  --ag-bg-alt: #F3F4F6;
+  --ag-primary: #2563EB;
+  --ag-primary-light: #3B82F6;
+  --ag-accent: #14B8A6;
+  --ag-accent-light: #2DD4BF;
+  --ag-text: #111827;
+  --ag-text-muted: #6B7280;
+  --ag-text-subtle: #9CA3AF;
+
+  /* ── Glass panels ────────────────────────────────────────── */
+  --ag-glass: rgba(255, 255, 255, 0.7);
+  --ag-glass-heavy: rgba(255, 255, 255, 0.85);
+  --ag-glass-border: rgba(255, 255, 255, 0.5);
+  --ag-glass-blur: 20px;
+
+  /* ── Glow & shadows ──────────────────────────────────────── */
+  --ag-glow: rgba(37, 99, 235, 0.15);
+  --ag-glow-accent: rgba(20, 184, 166, 0.12);
+  --ag-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --ag-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
+  --ag-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --ag-shadow-glow: 0 0 40px var(--ag-glow);
+
+  /* ── Gradients ───────────────────────────────────────────── */
+  --ag-gradient-primary: linear-gradient(135deg, #2563EB, #14B8A6);
+  --ag-gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
+  --ag-gradient-hero: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(37,99,235,0.06), transparent);
+
+  /* ── Motion durations ────────────────────────────────────── */
+  --ag-duration-fast: 150ms;
+  --ag-duration-normal: 300ms;
+  --ag-duration-slow: 600ms;
+  --ag-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ag-ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  /* ── Typography scale ────────────────────────────────────── */
+  --ag-text-hero: clamp(2.5rem, 5vw, 4rem);
+  --ag-text-section: clamp(1.75rem, 3vw, 2.25rem);
+  --ag-text-body: 1.125rem;
+  --ag-text-small: 0.875rem;
+
+  /* ── Borders ─────────────────────────────────────────────── */
+  --ag-border: rgba(0, 0, 0, 0.06);
+  --ag-border-hover: rgba(0, 0, 0, 0.12);
+  --ag-radius: 1rem;
+  --ag-radius-lg: 1.5rem;
+  --ag-radius-full: 9999px;
+}
