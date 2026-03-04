@@ -196,7 +196,7 @@ export default function MobileWalletPage() {
             <button
               type="submit"
               disabled={!/^\d{10}$/.test(npi.trim()) || loading}
-              className="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-700 rounded-xl text-sm font-semibold transition-colors"
+              className="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl text-sm font-semibold transition-colors"
             >
               {loading ? '...' : 'Load'}
             </button>

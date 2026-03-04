@@ -24,6 +24,7 @@ import { log } from './obs/logger';
 import { requestLatencyMetrics } from './observability/requestMetrics';
 import openApiSpec from './openapi';
 import { registerImpactRoutes } from './routes/impact';
+import { registerKnowledgeRoutes } from './routes/knowledge';
 import { registerMobileTrustRoutes } from './routes/mobileTrust';
 import { registerPublicMetricsRoutes } from './routes/publicMetrics';
 // Wave 26: Golden Link — public read-only profile API
@@ -3384,6 +3385,7 @@ registerWidgetRoutes(app); // Wave 34: Plaid Widget
 registerIssuerRoutes(app); // Wave 38: Issuer Command Center
 registerAuditRoutes(app); // Wave 35: Merkle Anchoring
 registerIntelligenceRoutes(app); // Wave 37: Superbrain GraphRAG
+registerKnowledgeRoutes(app); // Wave 59: Graph Intelligence Engine
 registerStatusListRoutes(app); // Wave 40: W3C Bitstring Status List
 registerHiringRoutes(app);    // Wave 41: ON Loop — EmployerAcceptance + StartAttestation
 registerPublicProfileRoutes(app); // Wave 43: Public Trust Profile — NPI-keyed
