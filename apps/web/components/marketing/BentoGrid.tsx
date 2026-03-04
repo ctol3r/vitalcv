@@ -53,31 +53,31 @@ const ENGINES = [
 
 const ACCENT_CLASSES: Record<string, { glow: string; border: string; text: string; bg: string; dot: string }> = {
   emerald: {
-    glow: 'bg-emerald-500/[0.06]',
-    border: 'border-emerald-500/20 hover:border-emerald-500/35',
-    text: 'text-emerald-400',
-    bg: 'bg-emerald-500/10',
+    glow: 'bg-emerald-500/[0.08]',
+    border: 'border-emerald-200 hover:border-emerald-300',
+    text: 'text-emerald-600',
+    bg: 'bg-emerald-50',
     dot: 'bg-emerald-500',
   },
   cyan: {
-    glow: 'bg-cyan-500/[0.06]',
-    border: 'border-cyan-500/20 hover:border-cyan-500/35',
-    text: 'text-cyan-400',
-    bg: 'bg-cyan-500/10',
+    glow: 'bg-cyan-500/[0.08]',
+    border: 'border-cyan-200 hover:border-cyan-300',
+    text: 'text-cyan-600',
+    bg: 'bg-cyan-50',
     dot: 'bg-cyan-500',
   },
   amber: {
-    glow: 'bg-amber-500/[0.06]',
-    border: 'border-amber-500/20 hover:border-amber-500/35',
-    text: 'text-amber-400',
-    bg: 'bg-amber-500/10',
+    glow: 'bg-amber-500/[0.08]',
+    border: 'border-amber-200 hover:border-amber-300',
+    text: 'text-amber-600',
+    bg: 'bg-amber-50',
     dot: 'bg-amber-500',
   },
   violet: {
-    glow: 'bg-violet-500/[0.06]',
-    border: 'border-violet-500/20 hover:border-violet-500/35',
-    text: 'text-violet-400',
-    bg: 'bg-violet-500/10',
+    glow: 'bg-violet-500/[0.08]',
+    border: 'border-violet-200 hover:border-violet-300',
+    text: 'text-violet-600',
+    bg: 'bg-violet-50',
     dot: 'bg-violet-500',
   },
 };
@@ -133,7 +133,7 @@ function OrchestratorVisual() {
           />
           <span className="font-mono text-[10px] text-cyan-400/70">{src}</span>
           <span className="flex-1 border-t border-dashed border-cyan-500/15" />
-          <span className="text-[10px] text-white/30">✓</span>
+          <span className="text-[10px] text-muted-foreground/50">✓</span>
         </motion.div>
       ))}
     </div>
@@ -219,13 +219,13 @@ export function BentoGrid() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
         >
-          <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.3em] text-emerald-400/80">
+          <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.3em] text-infra-blue">
             Architecture
           </p>
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             Four engines. One trust layer.
           </h2>
-          <p className="mt-4 text-base text-white/40 max-w-2xl mx-auto">
+          <p className="mt-4 text-base text-muted-foreground max-w-2xl mx-auto">
             Purpose-built infrastructure that replaces manual credentialing with
             cryptographic certainty.
           </p>
@@ -241,7 +241,7 @@ export function BentoGrid() {
                 key={engine.title}
                 className={[
                   engine.span,
-                  'group relative overflow-hidden rounded-2xl border bg-black/40 backdrop-blur-md p-6 transition-colors duration-300',
+                  'group relative overflow-hidden rounded-2xl border bg-white/70 backdrop-blur-md p-6 transition-colors duration-300 shadow-sm',
                   a.border,
                 ].join(' ')}
                 initial={{ opacity: 0, y: 24 }}
@@ -260,7 +260,7 @@ export function BentoGrid() {
                       <div className={`mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg ${a.bg}`}>
                         <engine.icon className={`h-4.5 w-4.5 ${a.text}`} />
                       </div>
-                      <h3 className="text-lg font-semibold text-white">
+                      <h3 className="text-lg font-semibold text-foreground">
                         {engine.title}
                       </h3>
                       <p className={`mt-0.5 text-xs font-semibold uppercase tracking-[0.2em] ${a.text} opacity-70`}>
@@ -274,7 +274,7 @@ export function BentoGrid() {
                     </div>
                   </div>
 
-                  <p className="text-sm leading-relaxed text-white/45 mt-auto">
+                  <p className="text-sm leading-relaxed text-muted-foreground mt-auto">
                     {engine.description}
                   </p>
                 </div>

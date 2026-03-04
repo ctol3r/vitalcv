@@ -25,10 +25,10 @@ const ITEMS = [...LEDGER_EVENTS, ...LEDGER_EVENTS];
 
 export function LedgerTicker() {
   return (
-    <section className="relative overflow-hidden border-y border-white/[0.06] bg-black/30 py-4">
+    <section className="relative overflow-hidden border-y border-infra-border bg-infra-surface/60 backdrop-blur-sm py-4">
       {/* Fade edges */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-zinc-950 to-transparent" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-zinc-950 to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-infra-surface to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-infra-surface to-transparent" />
 
       <motion.div
         className="flex w-max gap-8"
@@ -46,8 +46,8 @@ export function LedgerTicker() {
             key={`${item.hash}-${i}`}
             className="flex shrink-0 items-center gap-3"
           >
-            <Shield className="h-3 w-3 text-white/15" />
-            <span className="font-mono text-[11px] text-white/25">
+            <Shield className="h-3 w-3 text-muted-foreground/30" />
+            <span className="font-mono text-[11px] text-muted-foreground/40">
               [{item.hash}]
             </span>
             <span className={`text-xs font-medium ${item.accent} opacity-70`}>
