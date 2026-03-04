@@ -16,9 +16,9 @@ interface GlassCardProps extends HTMLMotionProps<'div'> {
 }
 
 const variantStyles: Record<GlassVariant, string> = {
-  default: 'glass-card-base',
-  elevated: 'glass-card-base shadow-elevated',
-  heavy: 'glass-heavy',
+  default: 'glass-card-base backdrop-blur-xl border-white/10 shadow-glow',
+  elevated: 'glass-card-base backdrop-blur-xl border-white/10 shadow-elevated shadow-glow',
+  heavy: 'glass-heavy backdrop-blur-xl border-white/10 shadow-glow',
 };
 
 const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
@@ -37,7 +37,7 @@ const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
         className={cn(
           'rounded-2xl p-6',
           variantStyles[resolvedVariant],
-          interactive && 'cursor-pointer focus-ring',
+          interactive && 'cursor-pointer focus-ring glass-hover magnetic-button',
           className
         )}
         {...props}
@@ -97,3 +97,4 @@ GlassCardFooter.displayName = 'GlassCardFooter';
 
 export { GlassCard, GlassCardContent, GlassCardFooter, GlassCardHeader, GlassCardTitle };
 export type { GlassVariant, GlassWeight };
+

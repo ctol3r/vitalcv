@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
 export interface AuditLogEntry {
@@ -23,7 +24,11 @@ const STATUS_COLORS: Record<string, string> = {
 export function AuditTerminal({ entries, className }: AuditTerminalProps) {
   return (
     <div
-      className={`rounded-2xl bg-[var(--warm-charcoal)] p-4 font-mono text-[11px] leading-6 text-white/80 overflow-y-auto max-h-64 ${className ?? ''}`}
+      className={cn(
+        'rounded-2xl p-4 font-mono text-[11px] leading-6',
+        'bg-[var(--glass-bg)] backdrop-blur-[var(--glass-blur)] border border-white/10 shadow-glow text-white/80 overflow-y-auto max-h-64',
+        className
+      )}
     >
       <div className="flex items-center gap-2 mb-3 text-white/40">
         <span className="h-2.5 w-2.5 rounded-full bg-[var(--trust-green)]" />
@@ -33,7 +38,8 @@ export function AuditTerminal({ entries, className }: AuditTerminalProps) {
       <motion.ol
         className="space-y-1"
         initial="hidden"
-        animate="visible"
+        whileInView="visible"
+        viewport={{ once: true, margin: '-20px' }}
         variants={{
           hidden: {},
           visible: { transition: { staggerChildren: 0.15 } },

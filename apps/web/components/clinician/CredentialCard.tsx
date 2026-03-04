@@ -12,23 +12,23 @@
  *  - "Focus Mode" trigger button → full-screen overlay at front desk
  */
 
-import { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Award,
-  BadgeCheck,
-  BookOpen,
-  Briefcase,
-  ChevronDown,
-  FileText,
-  GraduationCap,
-  Maximize2,
-  ShieldCheck,
-  Stethoscope,
-} from 'lucide-react';
-import { ClaimBadge } from '@/components/ui/claim-badge';
 import type { ClaimLevel, CredentialStatus } from '@/components/trust-state/types';
+import { ClaimBadge } from '@/components/ui/claim-badge';
 import { cn } from '@/lib/utils';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+    Award,
+    BadgeCheck,
+    BookOpen,
+    Briefcase,
+    ChevronDown,
+    FileText,
+    GraduationCap,
+    Maximize2,
+    ShieldCheck,
+    Stethoscope,
+} from 'lucide-react';
+import { useCallback, useState } from 'react';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -203,13 +203,14 @@ export function CredentialCard({ credential, className, onFocusMode }: Credentia
   return (
     <div
       className={cn(
-        'group relative flex flex-col rounded-2xl border transition-all duration-200',
-        'bg-[var(--glass-bg-heavy)] backdrop-blur-[var(--glass-blur)]',
+        'group relative flex flex-col rounded-2xl transition-all duration-300',
+        'bg-[var(--glass-bg-heavy)] backdrop-blur-xl border border-white/10 shadow-glow',
+        'glass-hover magnetic-button cursor-pointer',
         isProblematic
           ? 'border-destructive/25'
           : isExpiringSoon
           ? 'border-[var(--trust-yellow)]/30'
-          : 'border-[var(--glass-border)] hover:border-[var(--glass-border)]/70',
+          : '',
         className,
       )}
     >

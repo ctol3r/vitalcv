@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import '../styles/design-tokens.css';
 @import '../styles/utilities.css';
+@import '../styles/motion.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -274,6 +275,20 @@
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     overscroll-behavior: contain;
+  }
+
+  /* Typography Hierarchy */
+  h1, .h1 {
+    font-size: 64px;
+    font-family: var(--font-fraunces);
+  }
+  h2, .h2 {
+    font-size: 40px;
+    font-family: var(--font-fraunces);
+  }
+  body, .body-text {
+    font-size: 18px;
+    font-family: var(--font-inter);
   }
 }
 

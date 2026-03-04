@@ -7,6 +7,7 @@
     "packages/*"
   ],
   "scripts": {
+    "postinstall": "prisma generate --schema apps/api/backend/prisma/schema.prisma",
     "build:web": "pnpm --filter web build",
     "typecheck": "turbo typecheck",
     "lint": "turbo lint",
@@ -16,6 +17,7 @@
   "devDependencies": {
     "@types/node": "^20",
     "next": "15.2.8",
+    "prisma": "^6.19.2",
     "turbo": "^2.7.0"
   },
   "pnpm": {

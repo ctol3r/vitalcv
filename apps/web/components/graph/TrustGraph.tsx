@@ -15,8 +15,8 @@
  *   - Memoized layout + throttled simulation
  */
 
-import { useRef, useEffect, useState, useCallback, useMemo, memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -235,6 +235,8 @@ function TrustGraphInner({
 
     // Draw edges
     ctx.lineWidth = 1;
+    const packetOffset = (Date.now() % 3000) / 3000;
+
     for (const edge of edges) {
       const source = nodeMap.get(edge.source);
       const target = nodeMap.get(edge.target);
@@ -245,6 +247,14 @@ function TrustGraphInner({
       ctx.moveTo(source.x, source.y);
       ctx.lineTo(target.x, target.y);
       ctx.stroke();
+
+      // Animated trust packets (flowing from source to target)
+      const px = source.x + (target.x - source.x) * packetOffset;
+      const py = source.y + (target.y - source.y) * packetOffset;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.beginPath();
+      ctx.arc(px, py, 1.5, 0, Math.PI * 2);
+      ctx.fill();
 
       // Edge label
       const mx = (source.x + target.x) / 2;
@@ -267,18 +277,38 @@ function TrustGraphInner({
       // Glow for active/verified
       const glowColor = STATUS_GLOW[node.status ?? ''] ?? STATUS_GLOW[node.trustState ?? ''];
       if (glowColor) {
-        const glowRadius = radius * pulseScale * 2;
+        const glowRadius = radius * pulseScale * 2.5;
         const gradient = ctx.createRadialGradient(
           node.x, node.y, radius,
           node.x, node.y, glowRadius,
         );
-        gradient.addColorStop(0, glowColor + '40');
+        gradient.addColorStop(0, glowColor + '50'); // Increased intensity
         gradient.addColorStop(1, glowColor + '00');
         ctx.fillStyle = gradient;
         ctx.beginPath();
         ctx.arc(node.x, node.y, glowRadius, 0, Math.PI * 2);
         ctx.fill();
+
+        // Inner pulsing ring
+        ctx.strokeStyle = glowColor + '80';
+        ctx.lineWidth = 1 * pulseScale;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, radius * pulseScale * 1.5, 0, Math.PI * 2);
+        ctx.stroke();
       }
+
+      // Base subtle glow for all nodes
+      const baseGlowRadius = radius * 1.8;
+      const baseGradient = ctx.createRadialGradient(
+        node.x, node.y, radius * 0.8,
+        node.x, node.y, baseGlowRadius,
+      );
+      baseGradient.addColorStop(0, color + '60');
+      baseGradient.addColorStop(1, color + '00');
+      ctx.fillStyle = baseGradient;
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, baseGlowRadius, 0, Math.PI * 2);
+      ctx.fill();
 
       // Node circle
       ctx.fillStyle = isHovered ? '#ffffff' : color;
@@ -287,7 +317,7 @@ function TrustGraphInner({
       ctx.fill();
 
       // Border
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.strokeStyle = isHovered ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.4)';
       ctx.lineWidth = isHovered ? 2 : 1;
       ctx.stroke();
 

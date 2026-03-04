@@ -53,6 +53,31 @@
     box-shadow: var(--glass-shadow);
     border-radius: var(--radius-xl);
   }
+
+  .glass-sm {
+    backdrop-filter: blur(calc(var(--glass-blur) * 0.5));
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    border-radius: var(--radius-md);
+  }
+
+  .glass-md {
+    backdrop-filter: blur(calc(var(--glass-blur) * 0.75));
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    border-radius: var(--radius-lg);
+  }
+
+  .glass-mobile {
+    /* Reduced blur for 60fps mobile performance */
+    backdrop-filter: blur(4px);
+    background: rgba(10, 10, 10, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-lg);
+  }
 }
 
 /* Scroll Revel Animations (Native CSS View Timelines) */

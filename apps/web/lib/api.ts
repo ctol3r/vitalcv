@@ -40,4 +40,27 @@ export function apiRoute(path: ApiPath): string {
   return base ? `${base}${resolvedPath}` : resolvedPath;
 }
 
+// ── Trust State Fetcher ──────────────────────────────────────────────
+// Fetches clinician trust state from the backend.
+// Returns null on any failure — callers must handle the fallback.
+
+import type { TrustStateResponse } from '@/components/trust-state/types';
+import { normalizeTrustStateResponse } from '@/components/trust-state/types';
+
+const ORG_HEADER = { 'x-org-id': 'demo-pilot-org-alpha' };
+
+export async function fetchClinicianTrustState(
+  npi: string,
+): Promise<TrustStateResponse | null> {
+  try {
+    const url = `${apiRoute('/trust-state')}?clinician_id=${encodeURIComponent(npi)}`;
+    const res = await fetch(url, { headers: ORG_HEADER, next: { revalidate: 30 } });
+    if (!res.ok) return null;
+    const raw: unknown = await res.json();
+    return normalizeTrustStateResponse(raw);
+  } catch {
+    return null;
+  }
+}
+
 export type { ApiPath };
