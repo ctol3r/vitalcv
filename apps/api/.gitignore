@@ -13,7 +13,8 @@ dist
 frontend/.next
 .env
 artifacts/
-cache/
+# Hardhat / Foundry compilation cache (top-level only)
+/cache/
 /tmp/
 /target/
 **/target/
