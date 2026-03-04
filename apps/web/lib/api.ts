@@ -123,4 +123,23 @@ export async function fetchKnowledgeGraph(
   }
 }
 
+// ── Revocation Blast Radius ──────────────────────────────────────────
+// Read-only analysis of credential revocation impact.
+
+import type { BlastRadiusResult } from '@/types/revocation';
+
+export async function fetchBlastRadius(
+  credentialId: string,
+): Promise<BlastRadiusResult | null> {
+  try {
+    const base = normalizeApiBase(API_BASE);
+    const url = `${base}/api/decisions/blast-radius/${encodeURIComponent(credentialId)}`;
+    const res = await fetch(url, { headers: ORG_HEADER, next: { revalidate: 0 } });
+    if (!res.ok) return null;
+    return (await res.json()) as BlastRadiusResult;
+  } catch {
+    return null;
+  }
+}
+
 export type { ApiPath };

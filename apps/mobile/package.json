@@ -1,0 +1,24 @@
+{
+  "name": "@vitalcv/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "build": "echo 'Mobile build requires Expo CLI — skipping in CI'"
+  },
+  "dependencies": {
+    "expo": "~52.0.0",
+    "expo-camera": "~16.0.0",
+    "expo-notifications": "~0.29.0",
+    "react": "^19.0.0",
+    "react-native": "~0.76.0",
+    "react-native-svg": "^15.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "typescript": "^5.9.0"
+  }
+}

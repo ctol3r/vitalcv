@@ -14,6 +14,23 @@ import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RevocationGraph } from '@/components/simulation/RevocationGraph';
 import { ImpactAlertPanel } from '@/components/simulation/ImpactAlertPanel';
+import type { BlastRadiusResult } from '@/types/revocation';
+
+// ── API Base ──────────────────────────────────────────────────────────
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_BACKEND_URL || '';
+function apiBase(): string {
+  const b = API_BASE;
+  return b.endsWith('/') ? b.slice(0, -1) : b;
+}
+
+async function fetchBlastRadiusFromApi(credentialId: string): Promise<BlastRadiusResult | null> {
+  try {
+    const res = await fetch(`${apiBase()}/api/decisions/blast-radius/${encodeURIComponent(credentialId)}`);
+    if (!res.ok) return null;
+    return (await res.json()) as BlastRadiusResult;
+  } catch { return null; }
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────
 

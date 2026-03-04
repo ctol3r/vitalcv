@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "VitalCV",
+    "slug": "vitalcv-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "vitalcv",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#09090b"
+    },
+    "ios": {
+      "bundleIdentifier": "com.vitalcv.mobile",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.vitalcv.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#09090b"
+      }
+    },
+    "plugins": [
+      "expo-camera",
+      "expo-notifications"
+    ]
+  }
+}
