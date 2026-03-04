@@ -123,6 +123,20 @@ export async function fetchKnowledgeGraph(
   }
 }
 
+export async function fetchGraphNodeData(
+  nodeId: string,
+): Promise<KnowledgeGraphData | null> {
+  try {
+    const base = normalizeApiBase(API_BASE);
+    const url = `${base}/api/knowledge/${encodeURIComponent(nodeId)}`;
+    const res = await fetch(url, { headers: ORG_HEADER, next: { revalidate: 30 } });
+    if (!res.ok) return null;
+    return (await res.json()) as KnowledgeGraphData;
+  } catch {
+    return null;
+  }
+}
+
 // ── Revocation Blast Radius ──────────────────────────────────────────
 // Read-only analysis of credential revocation impact.
 

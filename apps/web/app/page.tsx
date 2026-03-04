@@ -1,13 +1,17 @@
+import { Navbar } from '@/components/layout/Navbar';
+import { Footer } from '@/components/layout/Footer';
 import { SystemStatusBar } from '@/components/infrastructure/SystemStatusBar';
 import { TrustPreviewCard } from '@/components/infrastructure/TrustPreviewCard';
 import { NetworkActivityFeed } from '@/components/infrastructure/NetworkActivityFeed';
+import { MetricsBar } from '@/components/infrastructure/MetricsBar';
+import { HomepageCTA } from '@/components/infrastructure/HomepageCTA';
 import { InfrastructureMap } from '@/components/network/InfrastructureMap';
 
-// ── Wave 63: Infrastructure Homepage ────────────────────────
+// ── Wave 64: Infrastructure Homepage ────────────────────────
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-zinc-950 text-white overflow-x-hidden">
-      {/* System Status Strip */}
+      <Navbar />
       <SystemStatusBar />
 
       {/* Hero Section */}
@@ -27,12 +31,24 @@ export default function HomePage() {
         <NetworkActivityFeed />
       </section>
 
+      {/* Metrics Bar */}
+      <section className="max-w-7xl mx-auto px-6 pb-8">
+        <MetricsBar />
+      </section>
+
       {/* Global Network Map */}
-      <section className="max-w-7xl mx-auto px-6 pb-16">
+      <section className="max-w-7xl mx-auto px-6 pb-8">
         <div className="glass rounded-xl overflow-hidden" style={{ height: 320 }}>
           <InfrastructureMap />
         </div>
       </section>
+
+      {/* CTA */}
+      <section className="max-w-7xl mx-auto px-6 pb-16">
+        <HomepageCTA />
+      </section>
+
+      <Footer />
     </main>
   );
 }
