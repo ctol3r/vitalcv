@@ -953,3 +953,33 @@ model MatchResult {
   @@index([crsBand])
   @@index([clinicianNpi, policyId])
 }
+
+// ──────────────────────────────────────────────────────────────
+// Wave 54: Decision Capsule Engine — Institutional Memory Layer
+// ──────────────────────────────────────────────────────────────
+
+/// Immutable record of a credential-dependent operational decision.
+/// Every hiring, privileging, or deployment decision produces a capsule
+/// tied to the credential state at decision time. Enables revocation
+/// blast radius analysis and institutional audit replay.
+/// status lifecycle: VALID → AT_RISK → INVALID
+model DecisionCapsule {
+  id                  String   @id @default(uuid()) @db.Uuid
+  subjectDid          String   // Decentralized Identifier of the clinician
+  subjectNpi          String   // NPI of the clinician
+  decisionType        String   // HIRING | PRIVILEGING | DEPLOYMENT | RENEWAL
+  decisionTimestamp   DateTime // When the decision was made
+  credentialIds       String[] // IDs of credentials that supported this decision
+  issuerIds           String[] // IDs of issuers involved
+  artifactHash        String   // SHA-256 hash of the credential bundle snapshot
+  methodology         String   // Version of the evaluation methodology (e.g., "CRS_v1.0")
+  status              String   @default("VALID") // VALID | AT_RISK | INVALID
+  metadata            Json     @default("{}") // Additional context
+  createdAt           DateTime @default(now())
+
+  @@index([subjectNpi])
+  @@index([subjectDid])
+  @@index([status])
+  @@index([decisionType])
+  @@index([decisionTimestamp])
+}
