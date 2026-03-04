@@ -905,3 +905,51 @@ model AuthorityEdge {
   @@index([relationType])
   @@index([sourceNodeId, relationType])
 }
+
+// ──────────────────────────────────────────────────────────────
+// Wave 51: MATCHA Intelligence Engine — Employer Policies & Match Results
+// ──────────────────────────────────────────────────────────────
+
+/// Defines credential requirements for a specific role at an employer/facility.
+/// Each policy lists the credential types needed (e.g., StateLicense, ACLS, DEA).
+model EmployerPolicy {
+  id               String   @id @default(uuid()) @db.Uuid
+  employerId       String
+  facilityName     String
+  roleName         String   // e.g., "Registered Nurse", "Physician"
+  requiredCredentials Json  // Array of { type, label, priority, constraints }
+  optionalCredentials Json  @default("[]")
+  stateCode        String?  // Required state, if applicable
+  specialtyCode    String?  // Required specialty, if applicable
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  matchResults MatchResult[]
+
+  @@index([employerId])
+  @@index([roleName])
+  @@index([isActive])
+}
+
+/// Records the result of a MATCHA evaluation for a clinician against a policy.
+/// Immutable once written — provides audit trail of every match computation.
+model MatchResult {
+  id             String   @id @default(uuid()) @db.Uuid
+  clinicianNpi   String
+  policyId       String   @db.Uuid
+  crsScore       Float    // 0.0 to 100.0
+  crsBand        String   // GREEN | YELLOW | RED
+  isCleared      Boolean  // true if crsScore >= threshold
+  matchedCreds   Json     // Array of matched credential details
+  missingCreds   Json     // Array of missing credential details
+  gapAnalysis    Json     // Structured gap report
+  evaluatedAt    DateTime @default(now())
+
+  policy EmployerPolicy @relation(fields: [policyId], references: [id])
+
+  @@index([clinicianNpi])
+  @@index([policyId])
+  @@index([crsBand])
+  @@index([clinicianNpi, policyId])
+}
