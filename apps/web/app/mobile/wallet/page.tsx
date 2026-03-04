@@ -137,6 +137,11 @@ function CredentialCard({ credential, index }: { credential: Credential; index: 
 
 // ── Main Page ─────────────────────────────────────────────────────────────
 
+function toFallbackWallet(targetNpi: string, ts: TrustStateResponse): WalletData {
+  const s = ts.crs.score <= 1 ? Math.round(ts.crs.score * 100) : ts.crs.score;
+  return { npi: targetNpi, graph: { nodes: [], edges: [] }, crs: { overallBand: ts.crs.band, overallScore: s }, credentials: [] };
+}
+
 export default function MobileWalletPage() {
   const [npi, setNpi] = useState('');
   const [data, setData] = useState<WalletData | null>(null);
@@ -146,12 +151,16 @@ export default function MobileWalletPage() {
   const loadWallet = useCallback(async (targetNpi: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/graph/explorer/${targetNpi}`);
-      if (!res.ok) throw new Error('Failed');
-      const result = (await res.json()) as WalletData;
-      setData(result);
-    } catch {
-      // Silently fail — show empty state
+      // Primary: graph explorer (full data)
+      try {
+        const res = await fetch(`/api/graph/explorer/${encodeURIComponent(targetNpi)}`);
+        if (res.ok) { setData((await res.json()) as WalletData); return; }
+      } catch { /* graph unavailable */ }
+      // Fallback: trust-state CRS only
+      const ts = await fetchMobileTrustState(targetNpi);
+      if (ts) { setData(toFallbackWallet(targetNpi, ts)); return; }
+      // Final: score 0 / band Not Ready
+      setData({ npi: targetNpi, graph: { nodes: [], edges: [] }, crs: { overallBand: 'RED', overallScore: 0 }, credentials: [] });
     } finally {
       setLoading(false);
     }

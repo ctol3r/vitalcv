@@ -104,4 +104,23 @@ export function createShareProof(npi: string): ShareProofResult {
   };
 }
 
+// ── Knowledge Graph ──────────────────────────────────────────────────
+// Fetches the full knowledge graph for a clinician by NPI.
+
+import type { KnowledgeGraphData } from '@/types/graph';
+
+export async function fetchKnowledgeGraph(
+  npi: string,
+): Promise<KnowledgeGraphData | null> {
+  try {
+    const base = normalizeApiBase(API_BASE);
+    const url = `${base}/api/graph/explorer/${encodeURIComponent(npi)}`;
+    const res = await fetch(url, { headers: ORG_HEADER, next: { revalidate: 30 } });
+    if (!res.ok) return null;
+    return (await res.json()) as KnowledgeGraphData;
+  } catch {
+    return null;
+  }
+}
+
 export type { ApiPath };

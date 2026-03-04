@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { apiRoute } from '@/lib/api';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -38,7 +39,7 @@ export function MobileStatusBar({ className = '' }: StatusBarProps) {
 
   const poll = useCallback(async () => {
     try {
-      const res = await fetch('/metrics/public');
+      const res = await fetch(apiRoute('/metrics/public'));
       if (!res.ok) {
         setState('degraded');
         return;

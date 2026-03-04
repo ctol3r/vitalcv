@@ -515,6 +515,25 @@ function VerifierPortalContent() {
           {/* Wave 37: Superbrain Intelligence Panel */}
           <SuperbrainInsights />
 
+          {/* Wave 58: Graph Explorer Link */}
+          {status && (
+            <GlassCard>
+              <GlassCardContent className="py-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold">Trust Network Graph</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Explore credential relationships and trust paths
+                  </p>
+                </div>
+                <Button asChild variant="outline" size="sm">
+                  <a href={`/graph/${encodeURIComponent(clinicianId)}`}>
+                    Explore Graph →
+                  </a>
+                </Button>
+              </GlassCardContent>
+            </GlassCard>
+          )}
+
           {/* Verification Receipts */}
           {receiptRows.length > 0 && (
             <VerificationReceipts
