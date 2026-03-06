@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { MagneticButton } from '@/components/ui/MagneticButton';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { useCallback, useEffect, useState } from 'react';
 
 const NAV_LINKS: ReadonlyArray<{ readonly href: string; readonly label: string; readonly isRoute?: boolean }> = [
   { href: '#how-it-works', label: 'How It Works' },
@@ -91,12 +92,16 @@ export default function Navbar() {
 
         {/* Desktop CTAs */}
         <div className="hidden md:flex items-center gap-3">
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/holder">Clinician Login</Link>
-          </Button>
-          <Button asChild size="sm">
-            <Link href="/demo">Book a Demo</Link>
-          </Button>
+          <MagneticButton>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/holder">Clinician Login</Link>
+            </Button>
+          </MagneticButton>
+          <MagneticButton>
+            <Button asChild size="sm">
+              <Link href="/demo">Book a Demo</Link>
+            </Button>
+          </MagneticButton>
         </div>
 
         {/* Mobile hamburger */}
@@ -144,12 +149,16 @@ export default function Navbar() {
                 ),
               )}
               <div className="flex flex-col gap-2 pt-2">
-                <Button asChild variant="ghost" size="sm" onClick={closeMobile}>
-                  <Link href="/holder">Clinician Login</Link>
-                </Button>
-                <Button asChild size="sm" onClick={closeMobile}>
-                  <Link href="/demo">Book a Demo</Link>
-                </Button>
+                <MagneticButton className="flex">
+                  <Button asChild variant="ghost" size="sm" onClick={closeMobile} className="w-full">
+                    <Link href="/holder">Clinician Login</Link>
+                  </Button>
+                </MagneticButton>
+                <MagneticButton className="flex">
+                  <Button asChild size="sm" onClick={closeMobile} className="w-full">
+                    <Link href="/demo">Book a Demo</Link>
+                  </Button>
+                </MagneticButton>
               </div>
             </div>
           </motion.div>

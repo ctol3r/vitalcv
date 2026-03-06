@@ -15,6 +15,9 @@ export const colors = {
   trustYellow: 'oklch(0.82 0.13 85)',
   trustRed: 'oklch(0.55 0.14 35)',
   sage: 'oklch(0.82 0.06 155)',
+  waveBlue: '#2563EB',
+  waveTeal: '#14B8A6',
+  wavePurple: '#8B5CF6',
 };
 
 export const darkColors = {

@@ -24,6 +24,7 @@ import { ApiKeyManager } from '@/components/developers/ApiKeyManager';
 import { ApiSandbox } from '@/components/developers/ApiSandbox';
 import { WebhookLog } from '@/components/developers/WebhookLog';
 import { DropInSection } from '@/components/developers/DropInSection';
+import { GatewayConnections } from '@/components/network/GatewayConnections';
 
 export const metadata: Metadata = {
   title: 'Developer Portal | VitalCV',
@@ -164,6 +165,102 @@ export default function DeveloperPortalPage() {
 
         {/* Row 3: Drop-in Widget SDK — Wave 34: Plaid Wedge */}
         <DropInSection />
+
+        {/* Row 4: Network Gateway — Wave 91 */}
+        <div>
+          <div className="flex items-center gap-3 mb-4">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+              Network Gateway
+            </p>
+            <div className="flex-1 h-px bg-white/5" />
+          </div>
+          <GatewayConnections />
+        </div>
+
+        {/* ── Wave 107: Verifier SDK ──────────────────────── */}
+        <div id="verifier-sdk" className="scroll-mt-20">
+          <div className="flex items-center gap-3 mb-6">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+              Verifier SDK
+            </p>
+            <div className="flex-1 h-px bg-white/5" />
+          </div>
+          <div className="rounded-2xl border border-white/8 bg-slate-900/40 p-6 space-y-6">
+            <p className="text-sm text-slate-400">
+              Integrate VitalCV credential verification into hospitals, ATS systems, and third-party platforms using the Verifier SDK.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-semibold text-emerald-400 mb-2">verifyCredential()</p>
+                <pre className="rounded-xl bg-slate-950 border border-white/6 p-4 text-xs text-slate-300 overflow-x-auto"><code>{`import { VerifierSDK } from '@vitalcv/sdk';
+
+const result = await VerifierSDK.verifyCredential(credential);
+// result: { valid: boolean, payload?: VerifiableCredential, error?: string }`}</code></pre>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold text-emerald-400 mb-2">verifyPresentation()</p>
+                <pre className="rounded-xl bg-slate-950 border border-white/6 p-4 text-xs text-slate-300 overflow-x-auto"><code>{`const result = await VerifierSDK.verifyPresentation(presentation);
+// result: { valid: boolean, credentials?: VerifiableCredential[], holderDID?: string }`}</code></pre>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold text-emerald-400 mb-2">checkRevocation()</p>
+                <pre className="rounded-xl bg-slate-950 border border-white/6 p-4 text-xs text-slate-300 overflow-x-auto"><code>{`const result = await VerifierSDK.checkRevocation('vc:vitalcv:12345');
+// result: { revoked: boolean, reason?: string, revokedAt?: string }`}</code></pre>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />
+              API endpoint: <code className="text-emerald-400 ml-1">POST /api/credentials/verify</code>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Wave 108: Trust Governance ───────────────────── */}
+        <div id="governance" className="scroll-mt-20">
+          <div className="flex items-center gap-3 mb-6">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+              Trust Governance
+            </p>
+            <div className="flex-1 h-px bg-white/5" />
+          </div>
+          <div className="rounded-2xl border border-white/8 bg-slate-900/40 p-6 space-y-4">
+            <p className="text-sm text-slate-400">
+              The VitalCV trust network operates under the following governance rules. These rules enforce automated safeguards for issuer trust levels, revocation escalation, and peer network acceptance.
+            </p>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="rounded-xl border border-white/6 bg-slate-950/60 p-4 space-y-2">
+                <p className="text-xs font-semibold text-amber-400">TRUST_THRESHOLD</p>
+                <p className="text-sm font-semibold text-white">Minimum Issuer Trust Score</p>
+                <p className="text-xs text-slate-500">Issuers with trust score below <span className="text-white font-medium">60</span> are automatically suspended pending review.</p>
+                <span className="inline-block text-xs rounded-full bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5">SUSPEND_ISSUER</span>
+              </div>
+
+              <div className="rounded-xl border border-white/6 bg-slate-950/60 p-4 space-y-2">
+                <p className="text-xs font-semibold text-amber-400">REVOCATION_ESCALATION</p>
+                <p className="text-sm font-semibold text-white">Revocation Escalation</p>
+                <p className="text-xs text-slate-500">Issuers exceeding <span className="text-white font-medium">5</span> revocations in a 30-day window are flagged for human review.</p>
+                <span className="inline-block text-xs rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-2 py-0.5">FLAG_FOR_REVIEW</span>
+              </div>
+
+              <div className="rounded-xl border border-white/6 bg-slate-950/60 p-4 space-y-2">
+                <p className="text-xs font-semibold text-amber-400">PEER_ACCEPTANCE</p>
+                <p className="text-sm font-semibold text-white">Network Peer Acceptance</p>
+                <p className="text-xs text-slate-500">AUTHORITATIVE issuers require endorsement from <span className="text-white font-medium">3</span> existing peers before full activation.</p>
+                <span className="inline-block text-xs rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5">REQUIRE_PEER_APPROVAL</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <span className="inline-block w-2 h-2 rounded-full bg-amber-400" />
+              API endpoint: <code className="text-amber-400 ml-1">GET /api/governance/rules</code>
+            </div>
+          </div>
+        </div>
 
         {/* ── Resource links ──────────────────────────────── */}
         <div>
