@@ -1,6 +1,7 @@
 import { CommandName, CommandSchemas } from '@vitalcv/command-registry';
 import type { Express, Request, Response } from 'express';
 import { z } from 'zod';
+import { log } from '../obs/logger';
 import { parseCommandIntent } from '../services/ai/commandParser';
 
 export function registerCommandRoutes(app: Express): void {
@@ -38,7 +39,7 @@ export function registerCommandRoutes(app: Express): void {
       });
 
     } catch (e) {
-      console.error(e);
+      log('error', 'Failed to parse command', { error: String(e) });
       res.status(500).json({ error: 'Failed to parse command.' });
     }
   });
@@ -74,7 +75,7 @@ export function registerCommandRoutes(app: Express): void {
         }
       });
     } catch (e) {
-      console.error(e);
+      log('error', 'Failed to execute command', { error: String(e) });
       res.status(500).json({ error: 'Failed to execute command.' });
     }
   });

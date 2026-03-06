@@ -49,7 +49,7 @@ const TRUST_LEVEL_MULTIPLIER: Record<TrustedIssuer['trustLevel'], number> = {
 
 // ── Score calculation ─────────────────────────────────────────────────
 
-function calculateTrustScore(input: IssuerReputationInput): number {
+export function calculateTrustScore(input: IssuerReputationInput): number {
   const {
     totalCredentialsIssued,
     verificationSuccessCount,
