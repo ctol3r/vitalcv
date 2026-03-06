@@ -1,11 +1,12 @@
 /**
- * networkGateway.ts — Wave 91: Network Gateway + Webhook APIs
+ * networkGateway.ts — Wave 91 + 96: Network Gateway + Webhook APIs
  *
  * POST /api/network/gateway/connect     — Generate gateway token
  * GET  /api/network/gateway/connections — List connected orgs
  * POST /api/network/webhooks/register   — Register webhook
  * POST /api/network/webhooks/test       — Test webhook delivery
  * GET  /api/network/webhooks            — List webhook subscriptions
+ * GET  /api/network/global              — Wave 96: Global trust network graph
  */
 
 import type { Express, Request, Response } from 'express';
@@ -13,6 +14,7 @@ import { randomUUID } from 'node:crypto';
 import { generateGatewayToken } from '../services/network/gateway';
 import { gatewayRegistry } from '../services/network/gatewayRegistry';
 import { webhookDispatcher, type WebhookEvent } from '../services/network/webhookDispatcher';
+import { generateGlobalGraph } from '../services/network/globalGraph';
 import { sha256Hex } from '../utils/deterministic';
 import { log } from '../obs/logger';
 
@@ -134,5 +136,17 @@ export function registerNetworkGatewayRoutes(app: Express): void {
       createdAt: s.createdAt,
     }));
     res.json({ subscriptions, total: subscriptions.length });
+  });
+
+  // ── GET /api/network/global — Wave 96: Global Trust Network Graph ──
+  app.get('/api/network/global', async (_req: Request, res: Response) => {
+    try {
+      const graph = await generateGlobalGraph();
+      res.status(200).json(graph);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'global_graph_route_failed', { error: msg });
+      res.status(500).json({ error: 'Failed to generate global trust network graph', detail: msg });
+    }
   });
 }

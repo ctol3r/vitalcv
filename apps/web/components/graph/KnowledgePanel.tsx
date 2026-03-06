@@ -1,9 +1,80 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { FileCheck, Shield, X, Building2, Scale, Award, Stethoscope } from 'lucide-react';
+import { Award, Building2, FileCheck, Scale, Shield, ShieldCheck, ShieldAlert, Stethoscope, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import type { GraphNode, NodeType } from './TrustGraphPrimary';
 import { DEMO_EDGES, DEMO_NODES } from './TrustGraphPrimary';
+
+// ── Issuer Trust Badge (Wave 95) ──────────────────────────────────────
+
+type TrustLevel = 'AUTHORITATIVE' | 'TRUSTED' | 'PROVISIONAL' | 'UNTRUSTED';
+
+const TRUST_LEVEL_STYLES: Record<TrustLevel, { label: string; className: string }> = {
+  AUTHORITATIVE: { label: 'Authoritative', className: 'bg-emerald-100 text-emerald-700 border border-emerald-200' },
+  TRUSTED: { label: 'Trusted', className: 'bg-blue-100 text-blue-700 border border-blue-200' },
+  PROVISIONAL: { label: 'Provisional', className: 'bg-amber-100 text-amber-700 border border-amber-200' },
+  UNTRUSTED: { label: 'Untrusted', className: 'bg-red-100 text-red-700 border border-red-200' },
+};
+
+interface IssuerTrustInfo {
+  issuerId: string;
+  issuerName: string;
+  trustLevel: TrustLevel;
+  status: string;
+  registeredAt: string;
+}
+
+function IssuerTrustBadge({ issuerId }: { issuerId: string }) {
+  const [info, setInfo] = useState<IssuerTrustInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_BACKEND_URL ?? '';
+    const base = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
+    fetch(`${base}/api/registry/${encodeURIComponent(issuerId)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setInfo(d?.issuer ?? null))
+      .catch(() => setInfo(null))
+      .finally(() => setLoading(false));
+  }, [issuerId]);
+
+  if (loading) return <div className="h-4 w-24 bg-muted animate-pulse rounded" />;
+  if (!info) return null;
+
+  const style = TRUST_LEVEL_STYLES[info.trustLevel] ?? TRUST_LEVEL_STYLES.PROVISIONAL;
+  const TrustIcon = info.trustLevel === 'AUTHORITATIVE' || info.trustLevel === 'TRUSTED' ? ShieldCheck : ShieldAlert;
+
+  return (
+    <div className="space-y-2">
+      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+        <Shield className="h-3 w-3" />
+        Issuer Trust
+      </h3>
+      <div className="rounded-xl border border-infra-border bg-infra-surface p-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">Trust Level</span>
+          <span className={`flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full ${style.className}`}>
+            <TrustIcon className="h-3 w-3" />
+            {style.label}
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">Registry Status</span>
+          <span className={`text-xs font-bold ${info.status === 'ACTIVE' ? 'text-emerald-600' : 'text-red-600'}`}>
+            {info.status}
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">Registered</span>
+          <span className="text-xs font-mono text-foreground">
+            {new Date(info.registeredAt).toLocaleDateString()}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const TYPE_ICONS: Record<NodeType, typeof Shield> = {
   clinician: Stethoscope,
@@ -75,10 +146,10 @@ export function KnowledgePanel({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-white border-l border-infra-border shadow-xl overflow-y-auto"
+            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-white/70 backdrop-blur-xl border-l border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] overflow-y-auto dark:bg-black/40 dark:border-white/10 dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
           >
             {/* Header */}
-            <div className="sticky top-0 bg-white/90 backdrop-blur-sm border-b border-infra-border px-6 py-4 flex items-start justify-between">
+            <div className="sticky top-0 bg-white/40 backdrop-blur-md border-b border-infra-border/50 px-6 py-4 flex items-start justify-between dark:bg-black/40">
               <div className="flex items-center gap-3">
                 <div className={`rounded-xl p-2.5 ${colorClass}`}>
                   <Icon className="h-5 w-5" />
@@ -105,6 +176,11 @@ export function KnowledgePanel({
                   <div className="h-2 w-2 rounded-full bg-infra-green animate-pulse" />
                   <span className="text-sm font-medium text-foreground">{node.status}</span>
                 </div>
+              )}
+
+              {/* Issuer Trust (Wave 95) */}
+              {node.type === 'issuer' && node.meta?.issuerId && (
+                <IssuerTrustBadge issuerId={node.meta.issuerId as string} />
               )}
 
               {/* Metadata */}
@@ -142,7 +218,7 @@ export function KnowledgePanel({
                         return (
                           <div
                             key={cn.id}
-                            className="flex items-center justify-between rounded-xl border border-infra-border bg-white px-3 py-2.5"
+                            className="flex items-center justify-between rounded-xl border border-white/20 bg-white/50 backdrop-blur-sm px-3 py-2.5 shadow-sm dark:bg-black/30 dark:border-white/10 transition-colors hover:bg-white/70 dark:hover:bg-black/50"
                           >
                             <div className="flex items-center gap-2.5">
                               <div className={`rounded-lg p-1.5 ${groupColor}`}>
