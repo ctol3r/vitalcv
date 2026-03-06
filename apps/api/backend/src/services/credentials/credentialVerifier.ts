@@ -1,14 +1,17 @@
 /**
- * credentialVerifier.ts — Wave 94 + 95: Credential Verification
+ * credentialVerifier.ts — Wave 94 + 95 + 100 + 101: Credential Verification
  *
  * Verifies: signature (ES256 JWS), issuer trust (via registry),
- * credential status, and expiration.
+ * credential status, expiration, DID registry (Wave 100),
+ * and revocation registry (Wave 101).
  */
 
 import { importSPKI, jwtVerify } from 'jose';
 import { log } from '../../obs/logger';
 import type { VerifiableCredential, VerificationResult } from './credentialModel';
 import { getIssuer } from '../registry/trustRegistry';
+import { resolveDID } from '../identity/didRegistry';
+import { isRevoked } from '../revocation/revocationRegistry';
 
 // ── Public API ────────────────────────────────────────────────────────
 
@@ -23,20 +26,34 @@ export async function verifyCredential(
     notExpired: false,
   };
 
-  // 1. Issuer trusted? (Wave 95 integration)
+  // 1. Issuer trusted? (Wave 95: trust registry)
   const issuerRecord = getIssuer(credential.issuer);
   if (issuerRecord && issuerRecord.status === 'ACTIVE') {
     checks.issuerTrusted = true;
   } else if (!issuerRecord) {
-    errors.push(`Issuer "${credential.issuer}" not found in trust registry`);
+    // Wave 100: fallback to DID registry if not in trust registry
+    const issuerDID = resolveDID(credential.issuer);
+    if (issuerDID && issuerDID.status === 'ACTIVE') {
+      checks.issuerTrusted = true;
+    } else {
+      errors.push(`Issuer "${credential.issuer}" not found in trust registry or DID registry`);
+    }
   } else {
     errors.push(`Issuer "${credential.issuer}" status is ${issuerRecord.status}`);
   }
 
-  // 2. Signature verification
-  if (issuerRecord?.publicKey) {
+  // 2. Wave 100: Verify issuer DID is active (belt-and-suspenders check)
+  const issuerDIDDoc = resolveDID(credential.issuer);
+  if (issuerDIDDoc && issuerDIDDoc.status !== 'ACTIVE') {
+    errors.push(`Issuer DID ${credential.issuer} is ${issuerDIDDoc.status} in DID registry`);
+    checks.issuerTrusted = false;
+  }
+
+  // 3. Signature verification (use trust registry public key if available, else DID doc)
+  const signingPublicKey = issuerRecord?.publicKey || issuerDIDDoc?.publicKey || '';
+  if (signingPublicKey) {
     try {
-      const publicKey = await importSPKI(issuerRecord.publicKey, 'ES256');
+      const publicKey = await importSPKI(signingPublicKey, 'ES256');
       await jwtVerify(credential.signature, publicKey, {
         issuer: credential.issuer,
         subject: credential.subject,
@@ -50,14 +67,21 @@ export async function verifyCredential(
     errors.push('Cannot verify signature — no public key available for issuer');
   }
 
-  // 3. Status check
+  // 4. Status check (credential-level)
   if (credential.status === 'ACTIVE') {
     checks.statusActive = true;
   } else {
     errors.push(`Credential status is ${credential.status}`);
   }
 
-  // 4. Expiration check
+  // 5. Wave 101: Revocation registry check
+  const revocationEntry = isRevoked(credential.credentialId);
+  if (revocationEntry) {
+    checks.statusActive = false;
+    errors.push(`Credential ${credential.credentialId} has been revoked: ${revocationEntry.reason}`);
+  }
+
+  // 6. Expiration check
   if (!credential.expiresAt) {
     checks.notExpired = true; // No expiration set
   } else {

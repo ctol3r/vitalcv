@@ -73,6 +73,12 @@ import { registerTrustRegistryRoutes } from './routes/registry';
 import { registerTrustAlertRoutes } from './routes/alerts';
 // Wave 99: Verifier Acceptance
 import { registerVerifierAcceptanceRoutes } from './routes/verifier';
+// Wave 100: DID Registry
+import { registerDIDRoutes } from './routes/did';
+// Wave 101: Credential Revocation
+import { registerRevocationRoutes } from './routes/revocation';
+// Wave 102: Network Federation
+import { registerFederationRoutes } from './routes/federation';
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3425,6 +3431,9 @@ registerCredentialRoutes(app);       // Wave 94+98: Trust Credential Infrastruct
 registerTrustRegistryRoutes(app);    // Wave 95: Trust Registry
 registerTrustAlertRoutes(app);       // Wave 97: Trust Alerts
 registerVerifierAcceptanceRoutes(app); // Wave 99: Verifier Acceptance
+registerDIDRoutes(app);               // Wave 100: DID Registry + Resolver
+registerRevocationRoutes(app);        // Wave 101: Credential Revocation Registry
+registerFederationRoutes(app);        // Wave 102: Network Federation
 
 // Wave 35: Start the Merkle anchoring background worker.
 startAnchorWorker();

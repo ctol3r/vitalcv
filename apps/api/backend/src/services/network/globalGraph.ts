@@ -8,11 +8,12 @@
 import prisma from '../../graphql/prisma_client';
 import { listIssuers } from '../registry/trustRegistry';
 import { listAllCredentials } from '../credentials/credentialWallet';
+import { getFederatedGraphNodes } from './federation';
 import { log } from '../../obs/logger';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
-export type GlobalNodeGroup = 'clinician' | 'issuer' | 'credential' | 'decision';
+export type GlobalNodeGroup = 'clinician' | 'issuer' | 'credential' | 'decision' | 'federated_issuer';
 
 export interface GlobalNode {
   id: string;
@@ -198,8 +199,25 @@ export async function generateGlobalGraph(): Promise<GlobalGraphData> {
     }
   }
 
+  // ── 6. Federated network nodes (Wave 102) ─────────────────────────
+  const federatedNodes = getFederatedGraphNodes();
+  for (const fn of federatedNodes) {
+    addNode({
+      id: fn.id,
+      label: fn.label,
+      group: fn.group,
+      val: fn.val,
+      metadata: {
+        networkId: fn.networkId,
+        endpoint: fn.endpoint,
+        status: fn.status,
+        external: true,
+      },
+    });
+  }
+
   const statsClinicans = nodes.filter((n) => n.group === 'clinician').length;
-  const statsIssuers = nodes.filter((n) => n.group === 'issuer').length;
+  const statsIssuers = nodes.filter((n) => n.group === 'issuer' || n.group === 'federated_issuer').length;
   const statsCredentials = nodes.filter((n) => n.group === 'credential').length;
   const statsDecisions = nodes.filter((n) => n.group === 'decision').length;
 

@@ -9,11 +9,11 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Activity, Building2, FileCheck, Scale, Stethoscope, Users } from 'lucide-react';
+import { Activity, Building2, FileCheck, Globe2, Scale, Stethoscope, Users } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
-type NodeGroup = 'clinician' | 'issuer' | 'credential' | 'decision';
+type NodeGroup = 'clinician' | 'issuer' | 'credential' | 'decision' | 'federated_issuer';
 
 interface GlobalNode {
   id: string;
@@ -56,6 +56,8 @@ const GROUP_COLORS: Record<NodeGroup, { fill: string; stroke: string }> = {
   issuer: { fill: '#3b82f6', stroke: '#2563eb' },
   credential: { fill: '#a855f7', stroke: '#9333ea' },
   decision: { fill: '#f59e0b', stroke: '#d97706' },
+  // Wave 102: federated nodes use a dashed/distinct teal to signal external origin
+  federated_issuer: { fill: '#06b6d4', stroke: '#0891b2' },
 };
 
 const GROUP_RADIUS: Record<NodeGroup, number> = {
@@ -63,6 +65,7 @@ const GROUP_RADIUS: Record<NodeGroup, number> = {
   issuer: 9,
   credential: 4,
   decision: 4,
+  federated_issuer: 10,
 };
 
 // ── Demo fallback ─────────────────────────────────────────────────────
@@ -79,6 +82,9 @@ function buildDemoData(): GlobalGraphData {
     { id: 'cr2', label: 'Board Cert #4422', group: 'credential', val: 2, x: 0, y: 0, vx: 0, vy: 0 },
     { id: 'd1', label: 'Acceptance A1', group: 'decision', val: 2, x: 0, y: 0, vx: 0, vy: 0 },
     { id: 'd2', label: 'Acceptance A2', group: 'decision', val: 2, x: 0, y: 0, vx: 0, vy: 0 },
+    // Wave 102: federated external networks
+    { id: 'fn1', label: 'Nursys (External)', group: 'federated_issuer', val: 7, x: 0, y: 0, vx: 0, vy: 0 },
+    { id: 'fn2', label: 'CAQH ProView (External)', group: 'federated_issuer', val: 7, x: 0, y: 0, vx: 0, vy: 0 },
   ];
   const edges: GlobalEdge[] = [
     { source: 'i1', target: 'cr1', label: 'issued' },
@@ -88,11 +94,13 @@ function buildDemoData(): GlobalGraphData {
     { source: 'i3', target: 'c3', label: 'verified' },
     { source: 'c1', target: 'd1', label: 'received' },
     { source: 'c2', target: 'd2', label: 'received' },
+    { source: 'fn1', target: 'c3', label: 'federated_verify' },
+    { source: 'fn2', target: 'c1', label: 'federated_verify' },
   ];
   return {
     nodes,
     edges,
-    stats: { clinicians: 3, issuers: 3, credentials: 2, decisions: 2, totalNodes: 10, totalEdges: 7 },
+    stats: { clinicians: 3, issuers: 5, credentials: 2, decisions: 2, totalNodes: 12, totalEdges: 9 },
     generatedAt: new Date().toISOString(),
   };
 }
@@ -272,11 +280,27 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
         const color = GROUP_COLORS[node.group] ?? GROUP_COLORS.clinician;
         const r = GROUP_RADIUS[node.group] ?? 5;
         const isHovered = hoveredRef.current === node.id;
+        const isFederated = node.group === 'federated_issuer';
+        const drawR = isHovered ? r * 1.5 : r;
 
         ctx.beginPath();
-        ctx.arc(node.x, node.y, isHovered ? r * 1.5 : r, 0, Math.PI * 2);
+        ctx.arc(node.x, node.y, drawR, 0, Math.PI * 2);
         ctx.fillStyle = color.fill + (isHovered ? 'ff' : 'cc');
         ctx.fill();
+
+        // Wave 102: dashed outer ring for federated nodes
+        if (isFederated) {
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, drawR + 3, 0, Math.PI * 2);
+          ctx.setLineDash([3, 3]);
+          ctx.strokeStyle = color.stroke + '88';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, drawR, 0, Math.PI * 2);
         ctx.strokeStyle = color.stroke;
         ctx.lineWidth = isHovered ? 2 : 1;
         ctx.stroke();
@@ -285,7 +309,7 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
         if (isHovered) {
           ctx.font = '10px system-ui, sans-serif';
           ctx.fillStyle = 'rgba(15,23,42,0.9)';
-          ctx.fillText(node.label, node.x + r + 4, node.y + 3);
+          ctx.fillText(node.label + (isFederated ? ' ↗' : ''), node.x + drawR + 4, node.y + 3);
         }
       }
 
@@ -331,6 +355,7 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
     { group: 'issuer', label: 'Issuers', icon: Building2 },
     { group: 'credential', label: 'Credentials', icon: FileCheck },
     { group: 'decision', label: 'Decisions', icon: Scale },
+    { group: 'federated_issuer', label: 'External', icon: Globe2 },
   ];
 
   return (
@@ -372,20 +397,23 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
 
       {/* Stats bar */}
       {stats && (
-        <div className="grid grid-cols-4 divide-x divide-infra-border border-t border-infra-border">
+        <div className="grid grid-cols-5 divide-x divide-infra-border border-t border-infra-border">
           {LEGEND_ITEMS.map(({ group, label, icon: Icon }) => {
             const color = GROUP_COLORS[group];
-            const count = stats[group as keyof typeof stats];
+            // federated_issuer maps to issuers count (includes local+external); others direct
+            const statKey = group === 'federated_issuer' ? 'issuers' : (group as keyof typeof stats);
+            const count = stats[statKey] ?? '—';
+            const isFederated = group === 'federated_issuer';
             return (
-              <div key={group} className="flex items-center gap-2 px-4 py-2.5">
+              <div key={group} className={`flex items-center gap-2 px-3 py-2.5 ${isFederated ? 'bg-cyan-50/50' : ''}`}>
                 <div
                   className="h-2.5 w-2.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: color.fill }}
+                  style={{ backgroundColor: color.fill, outline: isFederated ? `1.5px dashed ${color.stroke}` : 'none', outlineOffset: '1.5px' }}
                 />
                 <Icon className="h-3 w-3 text-muted-foreground" />
                 <div>
                   <p className="text-xs font-bold text-foreground">{count}</p>
-                  <p className="text-[10px] text-muted-foreground">{label}</p>
+                  <p className={`text-[10px] ${isFederated ? 'text-cyan-600 font-medium' : 'text-muted-foreground'}`}>{label}</p>
                 </div>
               </div>
             );
