@@ -79,6 +79,8 @@ import { registerDIDRoutes } from './routes/did';
 import { registerRevocationRoutes } from './routes/revocation';
 // Wave 102: Network Federation
 import { registerFederationRoutes } from './routes/federation';
+import { registerIssuerOnboardingRoutes } from './routes/issuerOnboarding'; // Wave 106: Issuer Onboarding
+import { registerGovernanceRoutes } from './routes/governance';             // Wave 108: Trust Governance
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3434,6 +3436,8 @@ registerVerifierAcceptanceRoutes(app); // Wave 99: Verifier Acceptance
 registerDIDRoutes(app);               // Wave 100: DID Registry + Resolver
 registerRevocationRoutes(app);        // Wave 101: Credential Revocation Registry
 registerFederationRoutes(app);        // Wave 102: Network Federation
+registerIssuerOnboardingRoutes(app);  // Wave 106: Issuer Onboarding Protocol
+registerGovernanceRoutes(app);        // Wave 108: Trust Governance Layer
 
 // Wave 35: Start the Merkle anchoring background worker.
 startAnchorWorker();

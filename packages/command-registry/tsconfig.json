@@ -8,7 +8,9 @@
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
     "rootDir": "./src",
-    "declaration": true
+    "declaration": true,
+    "types": [],
+    "typeRoots": []
   },
   "include": ["src/**/*"]
 }

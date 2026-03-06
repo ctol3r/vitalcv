@@ -1,5 +1,7 @@
-import { ClerkProvider } from '@clerk/nextjs';
+import { BackgroundField } from '@/components/motion/BackgroundField';
+import { CursorPhysics } from '@/components/motion/CursorPhysics';
 import { Toaster } from '@/components/ui/toaster';
+import { ClerkProvider } from '@clerk/nextjs';
 import type { Metadata } from 'next';
 import { Fraunces, Inter } from 'next/font/google';
 import type React from 'react';
@@ -37,6 +39,8 @@ export default function RootLayout({
         {/* Wave 11: Tactile grain overlay — fixed, pointer-events:none, z-50 */}
         <div aria-hidden="true" className="noise-overlay" />
         <Providers>
+          <BackgroundField />
+          <CursorPhysics />
           {children}
           <Toaster />
         </Providers>

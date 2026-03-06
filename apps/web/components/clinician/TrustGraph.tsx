@@ -23,6 +23,40 @@ interface TrustGraphProps {
   npi: string;
 }
 
+function EdgeWithPackets({ source, target }: { source: GraphNode & { x: number; y: number }, target: GraphNode & { x: number; y: number } }) {
+  return (
+    <g>
+      <motion.line
+        x1={source.x}
+        y1={source.y}
+        x2={target.x}
+        y2={target.y}
+        stroke="#475569"
+        strokeWidth="2"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 1, ease: "easeInOut" }}
+      />
+      <motion.circle
+        r="2"
+        fill="#3b82f6"
+        initial={{ cx: source.x, cy: source.y, opacity: 0 }}
+        animate={{
+          cx: [source.x, target.x],
+          cy: [source.y, target.y],
+          opacity: [0, 1, 0, 0],
+        }}
+        transition={{
+          duration: 2,
+          ease: "linear",
+          repeat: Infinity,
+          times: [0, 0.5, 0.6, 1]
+        }}
+      />
+    </g>
+  );
+}
+
 export function TrustGraph({ npi }: TrustGraphProps) {
   const [nodes, setNodes] = useState<GraphNode[]>([]);
   const [edges, setEdges] = useState<GraphEdge[]>([]);
@@ -109,17 +143,10 @@ export function TrustGraph({ npi }: TrustGraphProps) {
             const target = computedNodes.find(n => n.id === edge.target);
             if (!source || !target) return null;
             return (
-              <motion.line
+              <EdgeWithPackets
                 key={i}
-                x1={source.x}
-                y1={source.y}
-                x2={target.x}
-                y2={target.y}
-                stroke="#475569"
-                strokeWidth="2"
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 1, ease: 'easeInOut' }}
+                source={source}
+                target={target}
               />
             );
           })}
@@ -143,6 +170,7 @@ export function TrustGraph({ npi }: TrustGraphProps) {
                 style={{ cursor: 'pointer' }}
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
+                whileHover={{ scale: 1.25, transition: { type: 'spring', stiffness: 300 } }}
                 transition={{ type: 'spring', stiffness: 200, damping: 20 }}
               >
                 <circle
@@ -150,8 +178,8 @@ export function TrustGraph({ npi }: TrustGraphProps) {
                   cy={node.y}
                   r={isCenter ? 24 : node.val}
                   fill={fill}
-                  filter={isHovered ? 'url(#glow)' : ''}
-                  stroke={isHovered ? '#fff' : 'rgba(255,255,255,0.2)'}
+                  filter={isHovered || isCenter ? 'url(#glow)' : ''}
+                  stroke={isHovered || isCenter ? '#fff' : 'rgba(255,255,255,0.2)'}
                   strokeWidth="2"
                 />
                 <text

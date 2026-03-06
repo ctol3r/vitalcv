@@ -149,7 +149,8 @@
       "Bash(git push -u origin feature/ontology-superbrain)",
       "Bash(git status -u)",
       "Bash(git diff apps/web/app/p/\\\\[slug\\\\]/page.tsx)",
-      "Bash(git push -u origin feature/start-attestation)"
+      "Bash(git push -u origin feature/start-attestation)",
+      "Skill(gsd:execute-phase)"
     ],
     "deny": [],
     "ask": []
