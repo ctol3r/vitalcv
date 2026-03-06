@@ -9,11 +9,19 @@ import prisma from '../../graphql/prisma_client';
 import { listIssuers } from '../registry/trustRegistry';
 import { listAllCredentials } from '../credentials/credentialWallet';
 import { getFederatedGraphNodes } from './federation';
+import { listFederationEntities, checkFederationHealth } from '../federation/federationMetadata';
 import { log } from '../../obs/logger';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
-export type GlobalNodeGroup = 'clinician' | 'issuer' | 'credential' | 'decision' | 'federated_issuer';
+export type GlobalNodeGroup =
+  | 'clinician'
+  | 'issuer'
+  | 'credential'
+  | 'decision'
+  | 'federated_issuer'
+  | 'oid_federation'
+  | 'degraded_federation';
 
 export interface GlobalNode {
   id: string;
@@ -223,8 +231,40 @@ export async function generateGlobalGraph(): Promise<GlobalGraphData> {
     });
   }
 
+  // ── 7. OpenID Federation entities — Phase 4 ───────────────────────
+  // Mark each entity as healthy (oid_federation) or degraded (degraded_federation)
+  const oidEntities = listFederationEntities();
+  if (oidEntities.length > 0) {
+    const healthReport = await checkFederationHealth();
+    const healthMap = new Map(healthReport.entityResults.map((r) => [r.entityId, r]));
+    for (const entity of oidEntities) {
+      const health = healthMap.get(entity.entityId);
+      const isDegraded = health ? (health.status !== 'healthy') : false;
+      const orgName = (entity.configuration.metadata?.federation_entity as Record<string, string> | undefined)
+        ?.organization_name ?? entity.entityId;
+      addNode({
+        id: `oidf-${entity.entityId}`,
+        label: orgName,
+        group: isDegraded ? 'degraded_federation' : 'oid_federation',
+        val: 9,
+        metadata: {
+          entityId: entity.entityId,
+          status: health?.status ?? 'unknown',
+          trusted: health?.trusted ?? false,
+          external: true,
+          oidFederation: true,
+          warnings: health?.warnings ?? [],
+          errors: health?.errors ?? [],
+        },
+      });
+    }
+  }
+
   const statsClinicans = nodes.filter((n) => n.group === 'clinician').length;
-  const statsIssuers = nodes.filter((n) => n.group === 'issuer' || n.group === 'federated_issuer').length;
+  const statsIssuers = nodes.filter(
+    (n) => n.group === 'issuer' || n.group === 'federated_issuer' ||
+           n.group === 'oid_federation' || n.group === 'degraded_federation',
+  ).length;
   const statsCredentials = nodes.filter((n) => n.group === 'credential').length;
   const statsDecisions = nodes.filter((n) => n.group === 'decision').length;
 

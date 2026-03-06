@@ -13,8 +13,8 @@ import { Activity, Building2, FileCheck, Globe2, Scale, Stethoscope, Users } fro
 
 // ── Types ─────────────────────────────────────────────────────────────
 
-// Wave 113: Differentiate local trust, federated trust (external network), and OpenID Federation nodes
-type NodeGroup = 'clinician' | 'issuer' | 'credential' | 'decision' | 'federated_issuer' | 'oid_federation';
+// Wave 113 + Phase 4: Differentiate local trust, federated trust, OpenID Federation, and degraded nodes
+type NodeGroup = 'clinician' | 'issuer' | 'credential' | 'decision' | 'federated_issuer' | 'oid_federation' | 'degraded_federation';
 
 interface GlobalNode {
   id: string;
@@ -63,6 +63,8 @@ const GROUP_COLORS: Record<NodeGroup, { fill: string; stroke: string }> = {
   federated_issuer: { fill: '#06b6d4', stroke: '#0891b2' },
   // Wave 113: OpenID Federation entities — verified via entity configuration chain (gold ring)
   oid_federation: { fill: '#f59e0b', stroke: '#d97706' },
+  // Phase 4: Degraded federation nodes — expired/broken trust chain (red dashed ring)
+  degraded_federation: { fill: '#ef4444', stroke: '#dc2626' },
 };
 
 const GROUP_RADIUS: Record<NodeGroup, number> = {
@@ -72,6 +74,7 @@ const GROUP_RADIUS: Record<NodeGroup, number> = {
   decision: 4,
   federated_issuer: 10,
   oid_federation: 11,
+  degraded_federation: 10,
 };
 
 // ── Demo fallback ─────────────────────────────────────────────────────
@@ -291,7 +294,8 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
         const isHovered = hoveredRef.current === node.id;
         const isFederated = node.group === 'federated_issuer';
         const isOIDFederation = node.group === 'oid_federation';
-        const isIssuerId = node.group === 'issuer' || isFederated || isOIDFederation;
+        const isDegradedFederation = node.group === 'degraded_federation';
+        const isIssuerId = node.group === 'issuer' || isFederated || isOIDFederation || isDegradedFederation;
         const isIssuer = isIssuerId;
         const drawR = isHovered ? r * 1.5 : r;
 
@@ -337,6 +341,24 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
           ctx.stroke();
         }
 
+        // Phase 4: red dashed ring for degraded/expired federation entities
+        if (isDegradedFederation) {
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, drawR + 4, 0, Math.PI * 2);
+          ctx.setLineDash([4, 3]);
+          ctx.strokeStyle = '#ef4444cc';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, drawR + 7, 0, Math.PI * 2);
+          ctx.setLineDash([2, 4]);
+          ctx.strokeStyle = '#ef444444';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
         ctx.beginPath();
         ctx.arc(node.x, node.y, drawR, 0, Math.PI * 2);
         ctx.strokeStyle = color.stroke;
@@ -348,7 +370,7 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
           ctx.font = '10px system-ui, sans-serif';
           ctx.fillStyle = 'rgba(15,23,42,0.9)';
           const scoreLabel = isIssuer && node.trustScore != null ? ` [${node.trustScore}]` : '';
-          const federationTag = isOIDFederation ? ' 🔐' : isFederated ? ' ↗' : '';
+          const federationTag = isDegradedFederation ? ' ⚠️' : isOIDFederation ? ' 🔐' : isFederated ? ' ↗' : '';
           ctx.fillText(node.label + federationTag + scoreLabel, node.x + drawR + 4, node.y + 3);
         }
       }
@@ -397,6 +419,7 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
     { group: 'decision', label: 'Decisions', icon: Scale },
     { group: 'federated_issuer', label: 'External', icon: Globe2 },
     { group: 'oid_federation', label: 'OID Fed', icon: Globe2 },
+    { group: 'degraded_federation', label: 'Degraded', icon: Activity },
   ];
 
   return (
@@ -441,20 +464,27 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
         <div className="grid grid-cols-5 divide-x divide-infra-border border-t border-infra-border">
           {LEGEND_ITEMS.map(({ group, label, icon: Icon }) => {
             const color = GROUP_COLORS[group];
-            // federated_issuer maps to issuers count (includes local+external); others direct
-            const statKey = (group === 'federated_issuer' || group === 'oid_federation') ? 'issuers' : (group as keyof typeof stats);
-            const count = stats[statKey] ?? '—';
+            // federated/oid/degraded maps to issuers count; others direct
             const isFederated = group === 'federated_issuer' || group === 'oid_federation';
+            const isDegraded = group === 'degraded_federation';
+            const statKey = (isFederated || isDegraded) ? 'issuers' : (group as keyof typeof stats);
+            const count = stats[statKey] ?? '—';
             return (
-              <div key={group} className={`flex items-center gap-2 px-3 py-2.5 ${isFederated ? 'bg-cyan-50/50' : ''}`}>
+              <div key={group} className={`flex items-center gap-2 px-3 py-2.5 ${isDegraded ? 'bg-red-50/50' : isFederated ? 'bg-cyan-50/50' : ''}`}>
                 <div
                   className="h-2.5 w-2.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: color.fill, outline: isFederated ? `1.5px dashed ${color.stroke}` : 'none', outlineOffset: '1.5px' }}
+                  style={{
+                    backgroundColor: color.fill,
+                    outline: isDegraded
+                      ? `1.5px dashed ${color.stroke}`
+                      : isFederated ? `1.5px dashed ${color.stroke}` : 'none',
+                    outlineOffset: '1.5px',
+                  }}
                 />
                 <Icon className="h-3 w-3 text-muted-foreground" />
                 <div>
                   <p className="text-xs font-bold text-foreground">{count}</p>
-                  <p className={`text-[10px] ${isFederated ? 'text-cyan-600 font-medium' : 'text-muted-foreground'}`}>{label}</p>
+                  <p className={`text-[10px] ${isDegraded ? 'text-red-600 font-medium' : isFederated ? 'text-cyan-600 font-medium' : 'text-muted-foreground'}`}>{label}</p>
                 </div>
               </div>
             );
