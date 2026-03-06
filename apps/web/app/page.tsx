@@ -9,6 +9,7 @@ import { KnowledgePanel } from '@/components/graph/KnowledgePanel';
 import { SectionReveal, GraphExpansion } from '@/components/motion/ScrollMotion';
 import { LedgerTicker } from '@/components/marketing/LedgerTicker';
 import { BentoGrid } from '@/components/marketing/BentoGrid';
+import { GlobalTrustMap } from '@/components/network/GlobalTrustMap'; // Wave 96
 
 // ── Wave 68: Infrastructure Interface Redesign ────────────────
 export default function HomePage() {
@@ -46,6 +47,26 @@ export default function HomePage() {
               onNodeClick={setSelectedNode}
             />
           </GraphExpansion>
+        </div>
+      </section>
+
+      {/* VitalCV Trust Network — Global Map (Wave 96) */}
+      <section className="px-6 py-16 bg-infra-surface/50">
+        <div className="mx-auto max-w-5xl">
+          <SectionReveal>
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold font-heading text-foreground">
+                VitalCV Trust Network
+              </h2>
+              <p className="text-sm text-muted-foreground mt-2 max-w-lg mx-auto">
+                Live view of every clinician, credentialing authority, verified credential,
+                and hiring decision across the global trust fabric.
+              </p>
+            </div>
+          </SectionReveal>
+          <SectionReveal>
+            <GlobalTrustMap height={440} />
+          </SectionReveal>
         </div>
       </section>
 

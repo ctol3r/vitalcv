@@ -65,6 +65,10 @@ import { registerSystemStatusRoutes } from './routes/systemStatus';
 import { registerNetworkGatewayRoutes } from './routes/networkGateway';
 // Wave 92: Trust Knowledge Protocol
 import { registerKnowledgeRoutes } from './routes/knowledge';
+// Wave 94: Trust Credential Infrastructure
+import { registerCredentialRoutes } from './routes/credentials';
+// Wave 95: Trust Registry
+import { registerTrustRegistryRoutes } from './routes/registry';
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3411,8 +3415,10 @@ registerTrustOperationsRoutes(app);  // Wave 87: Trust Operations
 registerPassportRoutes(app);         // Wave 88: Clinician Passport
 registerTelemetryRoutes(app);        // Wave 89: Network Telemetry
 registerSystemStatusRoutes(app);     // Wave 90: System Status
-registerNetworkGatewayRoutes(app);   // Wave 91: Network Gateway
+registerNetworkGatewayRoutes(app);   // Wave 91+96: Network Gateway + Global Graph
 registerKnowledgeRoutes(app);        // Wave 92: Trust Knowledge Protocol
+registerCredentialRoutes(app);       // Wave 94: Trust Credential Infrastructure
+registerTrustRegistryRoutes(app);    // Wave 95: Trust Registry
 
 // Wave 35: Start the Merkle anchoring background worker.
 startAnchorWorker();
