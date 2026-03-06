@@ -11,19 +11,60 @@ import {
 } from '@/components/ui/glass-modal';
 import { PrivacyToggle } from '@/components/ui/privacy-toggle';
 import type { AuthenticationResponseJSON } from '@simplewebauthn/browser';
-import { Eye, EyeOff, Share2, ShieldCheck } from 'lucide-react';
+import { CheckCircle, Eye, EyeOff, Loader2, Share2, ShieldCheck, XCircle } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { BiometricPrompt } from './BiometricPrompt';
 import type { CredentialCardData } from './CredentialCard';
 
 /* ------------------------------------------------------------------ */
-/*  Props                                                              */
+/*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
 interface SelectiveDisclosureModalProps {
   open: boolean;
   onClose: () => void;
   credentials: CredentialCardData[];
+  /** Optional: verifier-provided request ID to include in the presentation */
+  verifierRequestId?: string;
+}
+
+type SubmitState = 'idle' | 'submitting' | 'success' | 'error';
+
+/* ------------------------------------------------------------------ */
+/*  API helpers                                                        */
+/* ------------------------------------------------------------------ */
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+
+interface PresentationResult {
+  presentationId: string;
+  status: string;
+  credentialCount: number;
+}
+
+async function submitSelectivePresentation(
+  credentialIds: string[],
+  assertion: AuthenticationResponseJSON,
+  disclosureLevel: 'full' | 'proof',
+  verifierRequestId?: string,
+): Promise<PresentationResult> {
+  const res = await fetch(`${API_BASE}/api/credentials/present/selective`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      credentialIds,
+      assertion,
+      disclosureMode: disclosureLevel === 'full' ? 'full' : 'sd_jwt',
+      verifierRequestId,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error((err as { error?: string }).error ?? `Submission failed (${res.status})`);
+  }
+
+  return res.json() as Promise<PresentationResult>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -34,21 +75,45 @@ export function SelectiveDisclosureModal({
   open,
   onClose,
   credentials,
+  verifierRequestId,
 }: SelectiveDisclosureModalProps) {
   const [disclosureLevel, setDisclosureLevel] = useState<'full' | 'proof'>('full');
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(credentials.map((c) => c.id)),
   );
   const [biometricOpen, setBiometricOpen] = useState(false);
+  const [submitState, setSubmitState] = useState<SubmitState>('idle');
+  const [submitError, setSubmitError] = useState('');
+  const [presentationId, setPresentationId] = useState('');
 
   const handleBiometricSuccess = useCallback(
-    (_assertion: AuthenticationResponseJSON) => {
-      // TODO: Attach assertion to the SD-JWT presentation payload
-      // and submit to the verifier endpoint.
+    async (assertion: AuthenticationResponseJSON) => {
       setBiometricOpen(false);
-      onClose();
+      setSubmitState('submitting');
+      setSubmitError('');
+
+      try {
+        const result = await submitSelectivePresentation(
+          Array.from(selected),
+          assertion,
+          disclosureLevel,
+          verifierRequestId,
+        );
+
+        setPresentationId(result.presentationId);
+        setSubmitState('success');
+
+        // Auto-close after 2.5 s on success
+        setTimeout(() => {
+          setSubmitState('idle');
+          onClose();
+        }, 2500);
+      } catch (err) {
+        setSubmitError(err instanceof Error ? err.message : 'Submission failed.');
+        setSubmitState('error');
+      }
     },
-    [onClose],
+    [selected, disclosureLevel, verifierRequestId, onClose],
   );
 
   const toggleCredential = (id: string) => {
@@ -65,6 +130,32 @@ export function SelectiveDisclosureModal({
 
   const selectedCredentials = credentials.filter((c) => selected.has(c.id));
 
+  // ── Success overlay ──────────────────────────────────────────────
+  if (submitState === 'success') {
+    return (
+      <GlassModal open={open} onClose={onClose} className="max-w-md">
+        <GlassModalBody className="flex flex-col items-center text-center gap-5 py-10">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--trust-green)]/10 ring-2 ring-[var(--trust-green)]/30">
+            <CheckCircle className="h-8 w-8 text-[var(--trust-green)]" />
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-base font-semibold text-[var(--trust-green)]">
+              Credentials Shared
+            </p>
+            <p className="text-xs text-muted-foreground max-w-xs">
+              Your presentation was cryptographically signed and delivered.
+            </p>
+            {presentationId && (
+              <p className="text-[10px] font-mono text-muted-foreground/60 break-all mt-2">
+                {presentationId}
+              </p>
+            )}
+          </div>
+        </GlassModalBody>
+      </GlassModal>
+    );
+  }
+
   return (
     <GlassModal open={open} onClose={onClose} className="max-w-xl">
       <GlassModalHeader>
@@ -75,6 +166,14 @@ export function SelectiveDisclosureModal({
       </GlassModalHeader>
 
       <GlassModalBody className="space-y-5">
+        {/* Error banner */}
+        {submitState === 'error' && (
+          <div className="flex items-start gap-2.5 rounded-xl bg-[var(--trust-red)]/8 border border-[var(--trust-red)]/20 px-3 py-2.5">
+            <XCircle className="h-4 w-4 text-[var(--trust-red)] shrink-0 mt-0.5" />
+            <p className="text-xs text-[var(--trust-red)]">{submitError}</p>
+          </div>
+        )}
+
         {/* Disclosure level toggle */}
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
@@ -137,10 +236,7 @@ export function SelectiveDisclosureModal({
               </p>
             ) : (
               selectedCredentials.map((cred) => (
-                <div
-                  key={cred.id}
-                  className="flex items-center justify-between text-sm"
-                >
+                <div key={cred.id} className="flex items-center justify-between text-sm">
                   <span className="flex items-center gap-2">
                     <ShieldCheck className="h-3.5 w-3.5 text-[var(--trust-green)]" />
                     {disclosureLevel === 'full'
@@ -160,15 +256,18 @@ export function SelectiveDisclosureModal({
       </GlassModalBody>
 
       <GlassModalFooter>
-        <Button variant="ghost" onClick={onClose}>
+        <Button variant="ghost" onClick={onClose} disabled={submitState === 'submitting'}>
           Cancel
         </Button>
         <Button
-          disabled={selected.size === 0}
+          disabled={selected.size === 0 || submitState === 'submitting'}
           onClick={() => setBiometricOpen(true)}
         >
-          <Share2 className="h-4 w-4 mr-1.5" />
-          Share {selected.size} Credential{selected.size !== 1 ? 's' : ''}
+          {submitState === 'submitting' ? (
+            <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" />Submitting…</>
+          ) : (
+            <><Share2 className="h-4 w-4 mr-1.5" />Share {selected.size} Credential{selected.size !== 1 ? 's' : ''}</>
+          )}
         </Button>
       </GlassModalFooter>
 

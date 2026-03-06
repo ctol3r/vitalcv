@@ -128,21 +128,83 @@ function extractFieldsFromText(ocrText: string): ExtractedField[] {
   return fields;
 }
 
-// ── OCR Stub ───────────────────────────────────────────────────────
+// ── OCR Providers ──────────────────────────────────────────────────
+//
+// Priority:
+//   1. OCR_PROVIDER=openai  — uses OPENAI_API_KEY + gpt-4o vision.
+//      Set in .env: OCR_PROVIDER=openai  OPENAI_API_KEY=sk-...
+//   2. OCR_PROVIDER=stub (default) — returns fixture text for dev/test.
+//
+// Future providers: google_vision (GOOGLE_CLOUD_VISION_API_KEY),
+//   aws_textract, azure_form_recognizer — add adapters below and wire
+//   them via OCR_PROVIDER env var.
 
-/**
- * TODO: Production implementation — integrate with a Vision API (e.g. Google
- * Cloud Vision, AWS Textract, or an on-premise Tesseract deployment) to
- * perform real OCR on the document buffer. The stub below returns placeholder
- * text that exercises the downstream extraction logic.
- */
-async function performOcr(
-  _fileBuffer: Buffer,
-  _mimeType: string,
-  _config: PipelineConfig,
-): Promise<string> {
+// ── OpenAI Vision OCR ──────────────────────────────────────────────
+
+interface OpenAIChatMessage {
+  role: 'user';
+  content: Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string; detail: 'high' } }>;
+}
+
+interface OpenAIResponse {
+  choices: Array<{ message: { content: string } }>;
+  error?: { message: string };
+}
+
+async function performOcrOpenAI(fileBuffer: Buffer, mimeType: string): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_API_KEY not set');
+
+  const base64 = fileBuffer.toString('base64');
+  const dataUrl = `data:${mimeType};base64,${base64}`;
+
+  const messages: OpenAIChatMessage[] = [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'You are a medical document OCR system. Extract ALL text from this document image verbatim, preserving line breaks. Do not add commentary — return only the raw text content.',
+        },
+        {
+          type: 'image_url',
+          image_url: { url: dataUrl, detail: 'high' },
+        },
+      ],
+    },
+  ];
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages,
+      max_tokens: 1024,
+      temperature: 0,
+    }),
+    signal: AbortSignal.timeout(30000),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`OpenAI API error ${response.status}: ${errText}`);
+  }
+
+  const data = (await response.json()) as OpenAIResponse;
+  if (data.error) throw new Error(`OpenAI error: ${data.error.message}`);
+
+  return data.choices[0]?.message?.content ?? '';
+}
+
+// ── Stub OCR (dev/test fallback) ───────────────────────────────────
+
+function performOcrStub(): string {
   log('info', 'document_pipeline_ocr_stub', {
-    note: 'Using stub OCR — replace with Vision API for production',
+    note: 'Stub OCR active. Set OCR_PROVIDER=openai + OPENAI_API_KEY for real extraction.',
   });
 
   return [
@@ -159,6 +221,37 @@ async function performOcr(
     '',
     'This license is valid through the expiration date above.',
   ].join('\n');
+}
+
+// ── OCR Dispatcher ─────────────────────────────────────────────────
+
+async function performOcr(
+  fileBuffer: Buffer,
+  mimeType: string,
+  _config: PipelineConfig,
+): Promise<string> {
+  const provider = (process.env.OCR_PROVIDER ?? 'stub').toLowerCase();
+
+  switch (provider) {
+    case 'openai': {
+      try {
+        log('info', 'document_pipeline_ocr_start', { provider: 'openai' });
+        const text = await performOcrOpenAI(fileBuffer, mimeType);
+        log('info', 'document_pipeline_ocr_complete', { provider: 'openai', chars: text.length });
+        return text;
+      } catch (err) {
+        log('warn', 'document_pipeline_ocr_provider_failed', {
+          provider: 'openai',
+          error: err instanceof Error ? err.message : String(err),
+          fallback: 'stub',
+        });
+        return performOcrStub();
+      }
+    }
+
+    default:
+      return performOcrStub();
+  }
 }
 
 // ── Public API ─────────────────────────────────────────────────────
