@@ -91,6 +91,7 @@ import { registerDocsRoutes } from './routes/docs';                        // Wa
 import { registerFeedbackRoutes } from './routes/feedback';                // Wave 119: Feedback
 import { registerWebAuthnRoutes } from './routes/webauthn';                // Wave 122: WebAuthn
 import { registerDecisionCapsuleRoutes } from './routes/decisionCapsules'; // Wave A: Decision Capsules
+import { registerTrustSubstrateRoutes } from './routes/trustSubstrate';   // Substrate Consolidation: Phase 1
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3458,6 +3459,7 @@ registerDocsRoutes(app);              // Wave 117: Developer Docs & OpenAPI
 registerFeedbackRoutes(app);          // Wave 119: Feedback Loop
 registerWebAuthnRoutes(app);          // Wave 122: WebAuthn Biometric Auth
 registerDecisionCapsuleRoutes(app);   // Wave A: Decision Capsules + Blast Radius
+registerTrustSubstrateRoutes(app);    // Substrate Consolidation: Phase 1 — unified trust substrate
 
 // Wave 35: Start the Merkle anchoring background worker.
 startAnchorWorker();
