@@ -12,6 +12,7 @@ import type { VerifiableCredential, VerificationResult } from './credentialModel
 import { getIssuer } from '../registry/trustRegistry';
 import { resolveDID } from '../identity/didRegistry';
 import { isRevoked } from '../revocation/revocationRegistry';
+import { checkCredentialHAIP, checkIssuerHAIP, HAIP_HEALTHCARE_POLICY } from '../trust/haipProfile';
 
 // ── Public API ────────────────────────────────────────────────────────
 
@@ -93,6 +94,14 @@ export async function verifyCredential(
     }
   }
 
+  // Wave 112: HAIP compliance check (non-blocking by default — warnings only in base verifier)
+  const haipResult = checkCredentialHAIP(credential, HAIP_HEALTHCARE_POLICY);
+  const haipIssuerResult = issuerRecord ? checkIssuerHAIP(issuerRecord, HAIP_HEALTHCARE_POLICY) : null;
+  const haipCriticalViolations = haipResult.violations.filter((v) => v.severity === 'CRITICAL');
+  if (haipCriticalViolations.length > 0) {
+    errors.push(...haipCriticalViolations.map((v) => `[HAIP:${v.rule}] ${v.detail}`));
+  }
+
   const valid =
     checks.signature &&
     checks.issuerTrusted &&
@@ -102,6 +111,7 @@ export async function verifyCredential(
   log('info', 'credential_verified', {
     credentialId: credential.credentialId,
     valid,
+    haipCompliant: haipResult.compliant,
     errors,
   });
 
@@ -111,5 +121,11 @@ export async function verifyCredential(
     checks,
     errors,
     verifiedAt: new Date().toISOString(),
+    // Wave 112: attach HAIP result
+    haip: {
+      compliant: haipResult.compliant,
+      issuerCompliant: haipIssuerResult?.compliant ?? null,
+      violations: haipResult.violations,
+    },
   };
 }

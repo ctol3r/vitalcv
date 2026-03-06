@@ -1,0 +1,296 @@
+/**
+ * presentationServer.ts — Wave 110: OpenID4VP Presentation Server
+ *
+ * Implements OpenID for Verifiable Presentations (OID4VP) draft spec.
+ * Allows verifiers to request presentations from holders and validate responses.
+ *
+ * Spec: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html
+ */
+
+import { randomUUID } from 'node:crypto';
+import { log } from '../../obs/logger';
+import { verifyCredential } from '../credentials/credentialVerifier';
+import type { VerifiableCredential } from '../credentials/credentialModel';
+
+// ── Types ─────────────────────────────────────────────────────────────
+
+export type PresentationRequestStatus =
+  | 'PENDING'
+  | 'FULFILLED'
+  | 'REJECTED'
+  | 'EXPIRED';
+
+export interface InputDescriptor {
+  id: string;
+  name: string;
+  purpose?: string;
+  constraints: {
+    fields: Array<{
+      path: string[];       // JSONPath selectors
+      filter?: {
+        type: string;
+        pattern?: string;
+        const?: unknown;
+        enum?: unknown[];
+      };
+    }>;
+  };
+}
+
+export interface PresentationDefinition {
+  id: string;
+  name?: string;
+  purpose?: string;
+  input_descriptors: InputDescriptor[];
+}
+
+export interface PresentationRequest {
+  requestId: string;
+  /** Verifier's client ID / DID */
+  client_id: string;
+  /** Nonce for replay protection */
+  nonce: string;
+  /** ISO-8601 expiry */
+  expiresAt: string;
+  status: PresentationRequestStatus;
+  presentation_definition: PresentationDefinition;
+  response_uri: string;
+  createdAt: string;
+  fulfilledAt?: string;
+}
+
+export interface VerifiablePresentation {
+  '@context': string[];
+  type: string[];
+  id: string;
+  holder: string;
+  verifiableCredential: VerifiableCredential[];
+  proof?: {
+    type: string;
+    created: string;
+    proofPurpose: string;
+    verificationMethod: string;
+    jws?: string;
+  };
+}
+
+export interface PresentationResponseInput {
+  presentation_submission: {
+    id: string;
+    definition_id: string;
+    descriptor_map: Array<{
+      id: string;
+      format: string;
+      path: string;
+    }>;
+  };
+  vp_token: VerifiablePresentation | string;
+  state?: string;
+}
+
+export interface PresentationVerificationResult {
+  requestId: string;
+  valid: boolean;
+  holder: string;
+  credentialResults: Array<{
+    credentialId: string;
+    valid: boolean;
+    errors: string[];
+  }>;
+  errors: string[];
+  verifiedAt: string;
+}
+
+// ── In-memory store ───────────────────────────────────────────────────
+
+const requests = new Map<string, PresentationRequest>();
+const results = new Map<string, PresentationVerificationResult>();
+
+// ── Public API ────────────────────────────────────────────────────────
+
+/**
+ * Create a new presentation request.
+ */
+export function createPresentationRequest(
+  verifierDid: string,
+  definition: Omit<PresentationDefinition, 'id'>,
+  ttlSeconds = 600,
+): PresentationRequest {
+  const requestId = randomUUID();
+  const nonce = randomUUID().replace(/-/g, '');
+  const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
+  const baseUrl = process.env.ISSUER_BASE_URL ?? 'https://api.vitalcv.com';
+
+  const request: PresentationRequest = {
+    requestId,
+    client_id: verifierDid,
+    nonce,
+    expiresAt,
+    status: 'PENDING',
+    presentation_definition: {
+      ...definition,
+      id: randomUUID(),
+    },
+    response_uri: `${baseUrl}/api/oid4vp/response/${requestId}`,
+    createdAt: new Date().toISOString(),
+  };
+
+  requests.set(requestId, request);
+
+  log('info', 'oid4vp_request_created', {
+    requestId,
+    verifierDid,
+    descriptors: definition.input_descriptors.length,
+    expiresAt,
+  });
+
+  return request;
+}
+
+/**
+ * Retrieve a presentation request by ID.
+ */
+export function getPresentationRequest(requestId: string): PresentationRequest | null {
+  return requests.get(requestId) ?? null;
+}
+
+/**
+ * Verify a presentation response against its originating request.
+ */
+export async function verifyPresentationResponse(
+  requestId: string,
+  response: PresentationResponseInput,
+): Promise<PresentationVerificationResult> {
+  const req = requests.get(requestId);
+  if (!req) throw new Error(`Presentation request ${requestId} not found`);
+  if (req.status !== 'PENDING') throw new Error(`Request ${requestId} is already ${req.status}`);
+  if (new Date(req.expiresAt) < new Date()) {
+    req.status = 'EXPIRED';
+    throw new Error(`Presentation request ${requestId} has expired`);
+  }
+
+  const vpToken = response.vp_token;
+  let vp: VerifiablePresentation;
+
+  if (typeof vpToken === 'string') {
+    try {
+      vp = JSON.parse(vpToken) as VerifiablePresentation;
+    } catch {
+      throw new Error('vp_token is not valid JSON');
+    }
+  } else {
+    vp = vpToken;
+  }
+
+  const credentialResults: PresentationVerificationResult['credentialResults'] = [];
+  const errors: string[] = [];
+
+  // Verify each credential in the presentation
+  for (const cred of vp.verifiableCredential ?? []) {
+    try {
+      const result = await verifyCredential(cred);
+      credentialResults.push({
+        credentialId: cred.credentialId,
+        valid: result.valid,
+        errors: result.errors,
+      });
+      if (!result.valid) {
+        errors.push(...result.errors.map((e) => `[${cred.credentialId}] ${e}`));
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      credentialResults.push({
+        credentialId: cred.credentialId ?? 'unknown',
+        valid: false,
+        errors: [msg],
+      });
+      errors.push(`[${cred.credentialId ?? 'unknown'}] ${msg}`);
+    }
+  }
+
+  // Check presentation_submission maps to the right definition
+  const sub = response.presentation_submission;
+  if (sub.definition_id !== req.presentation_definition.id) {
+    errors.push(
+      `presentation_submission.definition_id mismatch: got ${sub.definition_id}, expected ${req.presentation_definition.id}`,
+    );
+  }
+
+  const valid = errors.length === 0;
+  req.status = valid ? 'FULFILLED' : 'REJECTED';
+  req.fulfilledAt = new Date().toISOString();
+
+  const verificationResult: PresentationVerificationResult = {
+    requestId,
+    valid,
+    holder: vp.holder ?? 'unknown',
+    credentialResults,
+    errors,
+    verifiedAt: new Date().toISOString(),
+  };
+
+  results.set(requestId, verificationResult);
+
+  log('info', 'oid4vp_response_verified', {
+    requestId,
+    valid,
+    credentialCount: credentialResults.length,
+  });
+
+  return verificationResult;
+}
+
+/**
+ * Get a prior verification result by request ID.
+ */
+export function getPresentationResult(requestId: string): PresentationVerificationResult | null {
+  return results.get(requestId) ?? null;
+}
+
+/**
+ * List all requests — optionally filtered by status.
+ */
+export function listPresentationRequests(
+  status?: PresentationRequestStatus,
+): PresentationRequest[] {
+  const all = Array.from(requests.values());
+  return status ? all.filter((r) => r.status === status) : all;
+}
+
+/**
+ * Build a sample presentation definition for medical license + board cert.
+ */
+export function buildMedicalCredentialDefinition(): Omit<PresentationDefinition, 'id'> {
+  return {
+    name: 'Medical Credential Verification',
+    purpose: 'Verify clinician credentials for privileging',
+    input_descriptors: [
+      {
+        id: 'medical_license',
+        name: 'Medical License',
+        purpose: 'Valid state medical license required',
+        constraints: {
+          fields: [
+            {
+              path: ['$.claims.licenseType', '$.type'],
+              filter: { type: 'string', pattern: 'medical_license|MedicalLicense' },
+            },
+          ],
+        },
+      },
+      {
+        id: 'npi',
+        name: 'NPI Registration',
+        purpose: 'Active NPI number required',
+        constraints: {
+          fields: [
+            {
+              path: ['$.claims.npi'],
+              filter: { type: 'string', pattern: '^\\d{10}$' },
+            },
+          ],
+        },
+      },
+    ],
+  };
+}

@@ -1,14 +1,13 @@
 /**
- * selectiveDisclosure.ts — Wave 103: Selective Disclosure Credentials
+ * selectiveDisclosure.ts — Wave 103 + 111: Selective Disclosure Credentials
  *
- * Implements selective disclosure over VerifiableCredentials using
- * a field-filter approach: the holder chooses which claim fields to
- * reveal, and the remaining claims are replaced with SHA-256 salted
- * hashes (commitments) so verifiers can confirm structure without
- * seeing values.
+ * Wave 103: Field-filter selective disclosure with SHA-256 salted commitments.
+ * Wave 111: Updated to SD-JWT VC-compatible disclosure structure.
  *
- * In production this would use SD-JWT (RFC draft) or JSON-LD BBS+
- * signatures for cryptographically-binding selective disclosure.
+ * The commitment format aligns with SD-JWT VC spec:
+ * - Each hidden claim produces a `_sd` hash entry (sha-256 of base64url(disclosure))
+ * - Disclosure format: base64url([salt, claim_name, claim_value])
+ * - hiddenCommitments now stores SD-JWT-compatible hashes
  */
 
 import { createHash, randomBytes } from 'node:crypto';

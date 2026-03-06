@@ -81,6 +81,10 @@ import { registerRevocationRoutes } from './routes/revocation';
 import { registerFederationRoutes } from './routes/federation';
 import { registerIssuerOnboardingRoutes } from './routes/issuerOnboarding'; // Wave 106: Issuer Onboarding
 import { registerGovernanceRoutes } from './routes/governance';             // Wave 108: Trust Governance
+import { registerOID4VCIRoutes } from './routes/oid4vci';                  // Wave 109: OID4VCI Issuance
+import { registerOID4VPRoutes } from './routes/oid4vp';                    // Wave 110: OID4VP Presentation
+import { registerFederationMetadataRoutes } from './routes/federationMetadata'; // Wave 113: OpenID Federation
+import { registerConformanceRoutes } from './routes/conformance';          // Wave 114: Conformance + Receipts
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3438,6 +3442,10 @@ registerRevocationRoutes(app);        // Wave 101: Credential Revocation Registr
 registerFederationRoutes(app);        // Wave 102: Network Federation
 registerIssuerOnboardingRoutes(app);  // Wave 106: Issuer Onboarding Protocol
 registerGovernanceRoutes(app);        // Wave 108: Trust Governance Layer
+registerOID4VCIRoutes(app);           // Wave 109: OpenID4VCI Issuance Layer
+registerOID4VPRoutes(app);            // Wave 110: OpenID4VP Presentation Layer
+registerFederationMetadataRoutes(app); // Wave 113: OpenID Federation Trust Metadata
+registerConformanceRoutes(app);       // Wave 114: Conformance Suite + Audit Receipts
 
 // Wave 35: Start the Merkle anchoring background worker.
 startAnchorWorker();

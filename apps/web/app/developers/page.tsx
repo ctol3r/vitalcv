@@ -25,6 +25,7 @@ import { ApiSandbox } from '@/components/developers/ApiSandbox';
 import { WebhookLog } from '@/components/developers/WebhookLog';
 import { DropInSection } from '@/components/developers/DropInSection';
 import { GatewayConnections } from '@/components/network/GatewayConnections';
+import { ConformanceReport } from '@/components/developers/ConformanceReport';
 
 export const metadata: Metadata = {
   title: 'Developer Portal | VitalCV',
@@ -286,6 +287,17 @@ const result = await VerifierSDK.verifyCredential(credential);
             ))}
           </div>
         </div>
+        {/* ── Wave 114: Conformance & Audit ──────────────── */}
+        <div id="conformance" className="scroll-mt-20">
+          <div className="flex items-center gap-3 mb-4">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+              Standards Conformance · Wave 114
+            </p>
+            <div className="flex-1 h-px bg-white/5" />
+          </div>
+          <ConformanceReport />
+        </div>
+
       </main>
 
       {/* ── Footer ───────────────────────────────────────── */}
