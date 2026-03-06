@@ -1,9 +1,12 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Activity, Globe, Shield, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { ParticleNetwork } from '../motion/ParticleNetwork';
+import { MagneticButton } from '../ui/MagneticButton';
+import { useSystemStatus } from '@/hooks/useSystemStatus';
 
 /* ── Animated counter ─────────────────────────────────────── */
 
@@ -119,9 +122,18 @@ function StatCard({
 /* ── SystemConsole Hero ───────────────────────────────────── */
 
 export function SystemConsole() {
+  const { data: status } = useSystemStatus(30_000);
+
+  // Live metrics — fall back to seed values while loading
+  const onlineNodes   = status?.artifactIntegrity.total    ?? 1247;
+  const meanLatency   = status?.latency.average             ?? 12;
+  const verificationsPerHr = status?.verificationHealth.last1h ?? 4821;
+  const trustArtifacts     = status?.artifactIntegrity.verified ?? 28493;
+
   return (
     <section className="relative px-6 pt-24 pb-16 sm:pt-32 sm:pb-24">
-      <div className="mx-auto max-w-7xl">
+      <ParticleNetwork />
+      <div className="mx-auto max-w-7xl relative z-10">
         <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           {/* Left: Copy */}
           <motion.div
@@ -151,19 +163,23 @@ export function SystemConsole() {
 
             {/* CTAs */}
             <div className="flex flex-wrap items-center gap-4 pt-2">
-              <Link
-                href="/demo"
-                className="inline-flex items-center gap-2 rounded-xl bg-infra-blue px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-infra-blue focus:ring-offset-2"
-              >
-                Try the Demo
-                <Zap className="h-4 w-4" />
-              </Link>
-              <Link
-                href="/developers"
-                className="inline-flex items-center gap-2 rounded-xl border border-infra-border bg-white px-6 py-3 text-sm font-semibold text-foreground transition hover:bg-infra-surface-alt"
-              >
-                API Docs
-              </Link>
+              <MagneticButton>
+                <Link
+                  href="/demo"
+                  className="inline-flex items-center gap-2 rounded-xl bg-infra-blue px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-infra-blue focus:ring-offset-2"
+                >
+                  Try the Demo
+                  <Zap className="h-4 w-4" />
+                </Link>
+              </MagneticButton>
+              <MagneticButton>
+                <Link
+                  href="/developers"
+                  className="inline-flex items-center gap-2 rounded-xl border border-infra-border bg-white px-6 py-3 text-sm font-semibold text-foreground transition hover:bg-infra-surface-alt"
+                >
+                  API Docs
+                </Link>
+              </MagneticButton>
             </div>
 
             {/* Compliance badges */}
@@ -205,28 +221,28 @@ export function SystemConsole() {
               <StatCard
                 icon={Globe}
                 label="Online Nodes"
-                value={1247}
+                value={onlineNodes}
                 color="bg-infra-blue-muted text-infra-blue"
                 delay={2.4}
               />
               <StatCard
-                icon={Shield}
-                label="Connected Issuers"
-                value={89}
+                icon={Activity}
+                label="Mean Latency (ms)"
+                value={meanLatency}
                 color="bg-infra-green-muted text-infra-green"
                 delay={2.6}
               />
               <StatCard
                 icon={Zap}
                 label="Verifications / hr"
-                value={4821}
+                value={verificationsPerHr}
                 color="bg-infra-red-muted text-infra-amber"
                 delay={2.8}
               />
               <StatCard
                 icon={Activity}
                 label="Trust Artifacts"
-                value={28493}
+                value={trustArtifacts}
                 color="bg-infra-blue-muted text-infra-violet"
                 delay={3.0}
               />
