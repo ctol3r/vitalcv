@@ -1,8 +1,14 @@
 /**
- * sourceVerifier.ts — Wave 47: Primary Source Verification Agent
+ * sourceVerifier.ts — Wave 47 (updated Wave 122): Primary Source Verification Agent
  *
- * Automatically queries state medical board registries to verify
- * extracted license data against the authoritative source of truth.
+ * Strategy (two-tier):
+ *   1. NPPES NPI Registry (https://npiregistry.cms.hhs.gov) — live, public, no API key.
+ *      Verifies NPI existence, clinician name, and state of practice.
+ *   2. STATE_BOARDS stub — fallback for license-number lookups while per-state
+ *      adapters (services/adapters/stateBoards/) are being built.
+ *
+ * Production roadmap: replace STATE_BOARDS with real per-state scrapers/APIs.
+ * Good third-party aggregators: Verisys, symplr, Medallion, ProCredEx.
  */
 
 import { log } from '../../obs/logger';
@@ -46,93 +52,168 @@ export interface SourceVerificationResult {
   verifiedAt: string;
 }
 
-// ── Stub Board Data ────────────────────────────────────────────────
+// ── NPPES NPI Registry ─────────────────────────────────────────────
+// Public API — no key required.
+// Docs: https://npiregistry.cms.hhs.gov/api-page
+
+const NPPES_API = 'https://npiregistry.cms.hhs.gov/api/?version=2.1';
+
+interface NppesAddress {
+  country_code: string;
+  country_name: string;
+  address_purpose: string;
+  address_type: string;
+  address_1: string;
+  city: string;
+  state: string;
+  postal_code: string;
+}
+
+interface NppesBasic {
+  first_name?: string;
+  middle_name?: string;
+  last_name?: string;
+  name?: string;            // org
+  organization_name?: string;
+  status: string;           // "A" = Active
+  credential?: string;
+  gender?: string;
+  enumeration_date?: string;
+  last_updated?: string;
+}
+
+interface NppesResult {
+  number: string;           // NPI
+  enumeration_type: string; // NPI-1 (individual) or NPI-2 (org)
+  basic: NppesBasic;
+  addresses?: NppesAddress[];
+  taxonomies?: Array<{ code: string; desc: string; primary: boolean; state?: string; license?: string }>;
+}
+
+interface NppesResponse {
+  result_count: number;
+  results: NppesResult[];
+}
+
+async function queryNppes(npi: string): Promise<NppesResult | null> {
+  const url = `${NPPES_API}&number=${encodeURIComponent(npi)}`;
+
+  log('info', 'nppes_lookup_start', { npi, url });
+
+  try {
+    const response = await fetch(url, {
+      headers: { 'Accept': 'application/json', 'User-Agent': 'VitalCV/1.0 (vitalcv.com)' },
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!response.ok) {
+      log('warn', 'nppes_http_error', { npi, status: response.status });
+      return null;
+    }
+
+    const data = (await response.json()) as NppesResponse;
+
+    if (data.result_count === 0 || !data.results?.length) {
+      log('info', 'nppes_not_found', { npi });
+      return null;
+    }
+
+    log('info', 'nppes_lookup_success', { npi, resultCount: data.result_count });
+    return data.results[0];
+  } catch (err) {
+    log('warn', 'nppes_lookup_failed', {
+      npi,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return null;
+  }
+}
+
+function nppesResultToBoardRecord(result: NppesResult, licenseNumber: string, licenseState: string): BoardRecord {
+  const { basic, addresses = [], taxonomies = [] } = result;
+
+  // Build full name
+  let fullName = '';
+  if (basic.first_name) {
+    fullName = [basic.first_name, basic.middle_name, basic.last_name]
+      .filter(Boolean)
+      .join(' ');
+  } else if (basic.name || basic.organization_name) {
+    fullName = basic.name ?? basic.organization_name ?? '';
+  }
+
+  // Primary practice state from LOCATION address
+  const locationAddr = addresses.find((a) => a.address_purpose === 'LOCATION') ?? addresses[0];
+  const practiceState = locationAddr?.state ?? licenseState;
+
+  // Derive license info from taxonomy (first primary with state match, else first primary)
+  const primaryTaxonomy =
+    taxonomies.find((t) => t.primary && t.state === licenseState) ??
+    taxonomies.find((t) => t.primary) ??
+    taxonomies[0];
+
+  const derivedLicense = primaryTaxonomy?.license ?? licenseNumber;
+  const derivedState = primaryTaxonomy?.state ?? practiceState;
+
+  // NPPES status: "A" = Active
+  const status: BoardStatus = basic.status === 'A' ? 'ACTIVE' : 'INACTIVE';
+
+  return {
+    npi: result.number,
+    fullName,
+    licenseNumber: derivedLicense || licenseNumber,
+    licenseState: derivedState || licenseState,
+    status,
+    expirationDate: null, // NPPES doesn't expose expiration; state board adapters will fill this
+    boardName: `NPPES NPI Registry (NPI-${result.enumeration_type === 'NPI-1' ? '1 Individual' : '2 Organization'})`,
+    lastVerifiedAt: new Date().toISOString(),
+    rawResponse: result as unknown as Record<string, unknown>,
+  };
+}
+
+// ── Fallback State Board Stubs ─────────────────────────────────────
+// Used when: NPI lookup unavailable or license-level details needed.
+// Replace individual entries with real per-state HTTP adapters as you build them.
 
 interface StateBoardEntry {
   boardName: string;
   records: Record<string, Omit<BoardRecord, 'lastVerifiedAt' | 'rawResponse' | 'boardName'>>;
 }
 
-/**
- * TODO: Production implementation — replace these canned records with
- * real HTTP calls to state medical board APIs, web scrapers, or a
- * third-party PSV aggregator (e.g. Verisys, symplr). Each state has a
- * different API surface; the adapter pattern in services/adapters/ is the
- * right place for per-state implementations.
- */
 const STATE_BOARDS: Record<string, StateBoardEntry> = {
   CA: {
     boardName: 'Medical Board of California',
     records: {
-      A123456: {
-        npi: '1234567890',
-        fullName: 'Jane A. Smith',
-        licenseNumber: 'A123456',
-        licenseState: 'CA',
-        status: 'ACTIVE',
-        expirationDate: '2026-01-15',
-      },
+      A123456: { npi: '1234567890', fullName: 'Jane A. Smith', licenseNumber: 'A123456', licenseState: 'CA', status: 'ACTIVE', expirationDate: '2026-01-15' },
     },
   },
   NY: {
     boardName: 'New York State Education Department',
     records: {
-      NY98765: {
-        npi: '9876543210',
-        fullName: 'John B. Doe',
-        licenseNumber: 'NY98765',
-        licenseState: 'NY',
-        status: 'ACTIVE',
-        expirationDate: '2025-08-30',
-      },
+      NY98765: { npi: '9876543210', fullName: 'John B. Doe', licenseNumber: 'NY98765', licenseState: 'NY', status: 'ACTIVE', expirationDate: '2025-08-30' },
     },
   },
   TX: {
     boardName: 'Texas Medical Board',
     records: {
-      TX55555: {
-        npi: '5555555555',
-        fullName: 'Maria C. Garcia',
-        licenseNumber: 'TX55555',
-        licenseState: 'TX',
-        status: 'ACTIVE',
-        expirationDate: '2027-03-01',
-      },
+      TX55555: { npi: '5555555555', fullName: 'Maria C. Garcia', licenseNumber: 'TX55555', licenseState: 'TX', status: 'ACTIVE', expirationDate: '2027-03-01' },
     },
   },
   FL: {
     boardName: 'Florida Department of Health',
     records: {
-      FL77777: {
-        npi: '7777777777',
-        fullName: 'Robert D. Chen',
-        licenseNumber: 'FL77777',
-        licenseState: 'FL',
-        status: 'EXPIRED',
-        expirationDate: '2024-06-15',
-      },
+      FL77777: { npi: '7777777777', fullName: 'Robert D. Chen', licenseNumber: 'FL77777', licenseState: 'FL', status: 'EXPIRED', expirationDate: '2024-06-15' },
     },
   },
 };
 
-// ── Board Query ────────────────────────────────────────────────────
-
-async function queryStateBoard(
-  licenseNumber: string,
-  state: string,
-): Promise<BoardRecord> {
-  log('info', 'source_verifier_board_query', { licenseNumber, state });
-
+async function queryStateBoard(licenseNumber: string, state: string): Promise<BoardRecord> {
   const stateBoard = STATE_BOARDS[state.toUpperCase()];
   if (!stateBoard) {
-    log('warn', 'source_verifier_unknown_state', { state });
+    log('warn', 'state_board_unknown', { state });
     return {
-      npi: '',
-      fullName: '',
-      licenseNumber,
-      licenseState: state,
-      status: 'NOT_FOUND',
-      expirationDate: null,
+      npi: '', fullName: '', licenseNumber, licenseState: state,
+      status: 'NOT_FOUND', expirationDate: null,
       boardName: `Unknown Board (${state})`,
       lastVerifiedAt: new Date().toISOString(),
       rawResponse: { error: 'state_not_supported', state },
@@ -141,39 +222,22 @@ async function queryStateBoard(
 
   const record = stateBoard.records[licenseNumber];
   if (!record) {
-    log('warn', 'source_verifier_license_not_found', { licenseNumber, state });
+    log('warn', 'state_board_license_not_found', { licenseNumber, state });
     return {
-      npi: '',
-      fullName: '',
-      licenseNumber,
-      licenseState: state,
-      status: 'NOT_FOUND',
-      expirationDate: null,
+      npi: '', fullName: '', licenseNumber, licenseState: state,
+      status: 'NOT_FOUND', expirationDate: null,
       boardName: stateBoard.boardName,
       lastVerifiedAt: new Date().toISOString(),
-      rawResponse: { error: 'license_not_found', licenseNumber, board: stateBoard.boardName },
+      rawResponse: { error: 'license_not_found', licenseNumber },
     };
   }
 
-  const boardRecord: BoardRecord = {
+  return {
     ...record,
     boardName: stateBoard.boardName,
     lastVerifiedAt: new Date().toISOString(),
-    rawResponse: {
-      source: 'stub',
-      board: stateBoard.boardName,
-      queriedAt: new Date().toISOString(),
-      ...record,
-    },
+    rawResponse: { source: 'stub', board: stateBoard.boardName, queriedAt: new Date().toISOString(), ...record },
   };
-
-  log('info', 'source_verifier_board_record_found', {
-    licenseNumber,
-    state,
-    status: boardRecord.status,
-  });
-
-  return boardRecord;
 }
 
 // ── Comparison ─────────────────────────────────────────────────────
@@ -191,73 +255,60 @@ function compareWithExtraction(
     if (ef.value) fieldMap[ef.field] = ef.value;
   }
 
-  const comparisons: VerificationComparison[] = [];
-
-  const pairsToCompare: Array<{ fieldName: string; extracted: string; board: string }> = [
+  return [
     { fieldName: 'fullName', extracted: fieldMap['fullName'] ?? '', board: boardRecord.fullName },
     { fieldName: 'licenseNumber', extracted: fieldMap['licenseNumber'] ?? '', board: boardRecord.licenseNumber },
     { fieldName: 'licenseState', extracted: fieldMap['licenseState'] ?? '', board: boardRecord.licenseState },
     { fieldName: 'expirationDate', extracted: fieldMap['expirationDate'] ?? '', board: boardRecord.expirationDate ?? '' },
-  ];
-
-  for (const pair of pairsToCompare) {
-    const matches =
-      pair.extracted !== '' &&
-      pair.board !== '' &&
-      normalizeForComparison(pair.extracted) === normalizeForComparison(pair.board);
-
-    comparisons.push({
-      fieldName: pair.fieldName,
-      extractedValue: pair.extracted,
-      boardValue: pair.board,
-      matches,
-    });
-  }
-
-  return comparisons;
+  ].map(({ fieldName, extracted, board }) => ({
+    fieldName,
+    extractedValue: extracted,
+    boardValue: board,
+    matches: extracted !== '' && board !== '' && normalizeForComparison(extracted) === normalizeForComparison(board),
+  }));
 }
 
 // ── Orchestrated Verification ──────────────────────────────────────
+// Priority: NPPES NPI (live) → state board stub (fallback)
 
-async function verifyDocument(
-  extraction: DocumentExtractionResult,
-): Promise<SourceVerificationResult> {
+async function verifyDocument(extraction: DocumentExtractionResult): Promise<SourceVerificationResult> {
   const fieldMap: Record<string, string> = {};
   for (const ef of extraction.extractedFields) {
     if (ef.value) fieldMap[ef.field] = ef.value;
   }
 
+  const npi = fieldMap['npi'] ?? '';
   const licenseNumber = fieldMap['licenseNumber'] ?? '';
   const licenseState = fieldMap['licenseState'] ?? '';
 
   if (!licenseNumber || !licenseState) {
     log('warn', 'source_verifier_missing_fields', {
       documentId: extraction.documentId,
+      hasNpi: Boolean(npi),
       hasLicenseNumber: Boolean(licenseNumber),
       hasLicenseState: Boolean(licenseState),
     });
-
-    return {
-      verified: false,
-      boardRecord: null,
-      comparisons: [],
-      discrepancies: [],
-      overallMatch: false,
-      verifiedAt: new Date().toISOString(),
-    };
+    return { verified: false, boardRecord: null, comparisons: [], discrepancies: [], overallMatch: false, verifiedAt: new Date().toISOString() };
   }
 
-  const boardRecord = await queryStateBoard(licenseNumber, licenseState);
+  // Tier 1: NPPES NPI Registry (live)
+  let boardRecord: BoardRecord | null = null;
+  if (npi) {
+    const nppes = await queryNppes(npi);
+    if (nppes) {
+      boardRecord = nppesResultToBoardRecord(nppes, licenseNumber, licenseState);
+      log('info', 'source_verifier_nppes_used', { npi, status: boardRecord.status });
+    }
+  }
+
+  // Tier 2: State board stub fallback
+  if (!boardRecord) {
+    log('info', 'source_verifier_fallback_to_stub', { licenseNumber, licenseState });
+    boardRecord = await queryStateBoard(licenseNumber, licenseState);
+  }
 
   if (boardRecord.status === 'NOT_FOUND') {
-    return {
-      verified: false,
-      boardRecord,
-      comparisons: [],
-      discrepancies: [],
-      overallMatch: false,
-      verifiedAt: new Date().toISOString(),
-    };
+    return { verified: false, boardRecord, comparisons: [], discrepancies: [], overallMatch: false, verifiedAt: new Date().toISOString() };
   }
 
   const comparisons = compareWithExtraction(extraction, boardRecord);
@@ -273,14 +324,7 @@ async function verifyDocument(
     overallMatch,
   });
 
-  return {
-    verified: overallMatch,
-    boardRecord,
-    comparisons,
-    discrepancies,
-    overallMatch,
-    verifiedAt: new Date().toISOString(),
-  };
+  return { verified: overallMatch, boardRecord, comparisons, discrepancies, overallMatch, verifiedAt: new Date().toISOString() };
 }
 
-export const sourceVerifier = { queryStateBoard, compareWithExtraction, verifyDocument };
+export const sourceVerifier = { queryStateBoard, queryNppes, compareWithExtraction, verifyDocument };

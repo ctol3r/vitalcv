@@ -89,6 +89,7 @@ import { registerSubscriptionRoutes } from './routes/subscriptions';       // Wa
 import { registerAnalyticsRoutes } from './routes/analytics';              // Wave 116: Analytics
 import { registerDocsRoutes } from './routes/docs';                        // Wave 117: Developer Docs
 import { registerFeedbackRoutes } from './routes/feedback';                // Wave 119: Feedback
+import { registerWebAuthnRoutes } from './routes/webauthn';                // Wave 122: WebAuthn
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3454,6 +3455,7 @@ registerSubscriptionRoutes(app);      // Wave 115: Subscription Billing & API Ke
 registerAnalyticsRoutes(app);         // Wave 116: Analytics Dashboard
 registerDocsRoutes(app);              // Wave 117: Developer Docs & OpenAPI
 registerFeedbackRoutes(app);          // Wave 119: Feedback Loop
+registerWebAuthnRoutes(app);          // Wave 122: WebAuthn Biometric Auth
 
 // Wave 35: Start the Merkle anchoring background worker.
 startAnchorWorker();

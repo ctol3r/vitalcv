@@ -31,28 +31,22 @@ interface BiometricPromptProps {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Mock challenge generator (MVP)                                     */
+/*  Challenge fetcher — real /api/webauthn/authenticate-options        */
 /* ------------------------------------------------------------------ */
 
-/**
- * Generates a mock WebAuthn authentication challenge.
- * TODO: Replace with real challenge from /api/webauthn/authenticate-options
- * backed by a server-side challenge store (see admin-api/src/auth/challenge-store.ts).
- */
-function getMockAuthenticationOptions(): PublicKeyCredentialRequestOptionsJSON {
-  const challenge = new Uint8Array(32);
-  crypto.getRandomValues(challenge);
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
-  return {
-    challenge: btoa(String.fromCharCode(...challenge))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, ''),
-    timeout: 60000,
-    rpId: typeof window !== 'undefined' ? window.location.hostname : 'localhost',
-    userVerification: 'required',
-    allowCredentials: [],
-  };
+interface WebAuthnOptionsResponse {
+  options: PublicKeyCredentialRequestOptionsJSON;
+  challengeId: string;
+}
+
+async function fetchAuthenticationOptions(): Promise<WebAuthnOptionsResponse> {
+  const res = await fetch(`${API_BASE}/api/webauthn/authenticate-options`, {
+    headers: { 'Accept': 'application/json' },
+  });
+  if (!res.ok) throw new Error(`Failed to fetch WebAuthn options: ${res.status}`);
+  return res.json() as Promise<WebAuthnOptionsResponse>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -74,7 +68,8 @@ export function BiometricPrompt({
     setErrorMessage('');
 
     try {
-      const options = getMockAuthenticationOptions();
+      // Fetch a fresh server-signed challenge
+      const { options } = await fetchAuthenticationOptions();
       const assertion = await startAuthentication({ optionsJSON: options });
 
       setState('success');
