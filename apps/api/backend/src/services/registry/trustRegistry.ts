@@ -1,8 +1,9 @@
 /**
- * trustRegistry.ts — Wave 95: Trust Registry
+ * trustRegistry.ts — Wave 95 + 105: Trust Registry + Reputation
  *
  * Maintains a registry of trusted credential issuers with their
- * public keys and trust levels. In-memory with seed data.
+ * public keys, trust levels, and Wave 105 reputation scores.
+ * In-memory with seed data.
  */
 
 import { log } from '../../obs/logger';
@@ -15,10 +16,15 @@ export type TrustLevel = 'AUTHORITATIVE' | 'TRUSTED' | 'PROVISIONAL' | 'UNTRUSTE
 export interface TrustedIssuer {
   issuerId: string;
   issuerName: string;
-  publicKey: string;       // SPKI PEM
+  publicKey: string;         // SPKI PEM
   trustLevel: TrustLevel;
   status: IssuerStatus;
   registeredAt: string;
+  // Wave 105: Reputation fields
+  trustScore?: number;        // 0–100 calculated score
+  verificationCount?: number; // Total verifications processed
+  revocationCount?: number;   // Total revocations issued
+  lastScoredAt?: string;      // ISO-8601 last reputation calculation
   metadata?: Record<string, unknown>;
 }
 
@@ -32,10 +38,13 @@ const SEED_ISSUERS: TrustedIssuer[] = [
   {
     issuerId: 'did:vitalcv:issuer:ca-medical-board',
     issuerName: 'California Medical Board',
-    publicKey: '', // Populated at runtime or via registration
+    publicKey: '',
     trustLevel: 'AUTHORITATIVE',
     status: 'ACTIVE',
     registeredAt: '2025-01-15T00:00:00Z',
+    trustScore: 95,
+    verificationCount: 12450,
+    revocationCount: 42,
     metadata: { jurisdiction: 'CA', type: 'state_medical_board' },
   },
   {
@@ -45,6 +54,9 @@ const SEED_ISSUERS: TrustedIssuer[] = [
     trustLevel: 'AUTHORITATIVE',
     status: 'ACTIVE',
     registeredAt: '2025-01-15T00:00:00Z',
+    trustScore: 97,
+    verificationCount: 8320,
+    revocationCount: 11,
     metadata: { type: 'specialty_board' },
   },
   {
@@ -54,6 +66,9 @@ const SEED_ISSUERS: TrustedIssuer[] = [
     trustLevel: 'AUTHORITATIVE',
     status: 'ACTIVE',
     registeredAt: '2025-01-15T00:00:00Z',
+    trustScore: 99,
+    verificationCount: 98000,
+    revocationCount: 120,
     metadata: { type: 'federal_registry' },
   },
   {
@@ -63,6 +78,9 @@ const SEED_ISSUERS: TrustedIssuer[] = [
     trustLevel: 'AUTHORITATIVE',
     status: 'ACTIVE',
     registeredAt: '2025-01-15T00:00:00Z',
+    trustScore: 96,
+    verificationCount: 3200,
+    revocationCount: 28,
     metadata: { type: 'federal_agency' },
   },
   {
@@ -72,28 +90,39 @@ const SEED_ISSUERS: TrustedIssuer[] = [
     trustLevel: 'TRUSTED',
     status: 'ACTIVE',
     registeredAt: '2025-06-01T00:00:00Z',
+    trustScore: 82,
+    verificationCount: 1100,
+    revocationCount: 5,
     metadata: { type: 'automated_verifier' },
+  },
+  {
+    issuerId: 'did:vitalcv:issuer:unverified-org',
+    issuerName: 'Unverified Org (Demo)',
+    publicKey: '',
+    trustLevel: 'PROVISIONAL',
+    status: 'ACTIVE',
+    registeredAt: '2025-12-01T00:00:00Z',
+    trustScore: 35,
+    verificationCount: 12,
+    revocationCount: 2,
+    metadata: { type: 'provisional' },
   },
 ];
 
-// Initialize seed data
 for (const issuer of SEED_ISSUERS) {
   issuers.set(issuer.issuerId, issuer);
 }
 
 // ── Public API ────────────────────────────────────────────────────────
 
-/** Get a single issuer by ID. */
 export function getIssuer(issuerId: string): TrustedIssuer | null {
   return issuers.get(issuerId) ?? null;
 }
 
-/** List all registered issuers. */
 export function listIssuers(): TrustedIssuer[] {
   return Array.from(issuers.values());
 }
 
-/** Register or update an issuer. */
 export function registerIssuer(issuer: TrustedIssuer): void {
   issuers.set(issuer.issuerId, issuer);
   log('info', 'registry_issuer_registered', {
@@ -102,7 +131,6 @@ export function registerIssuer(issuer: TrustedIssuer): void {
   });
 }
 
-/** Update issuer status. */
 export function updateIssuerStatus(
   issuerId: string,
   status: IssuerStatus,
@@ -115,13 +143,31 @@ export function updateIssuerStatus(
   return updated;
 }
 
-/** Check if an issuer is trusted (ACTIVE + not UNTRUSTED). */
+/**
+ * Wave 105: Update reputation fields for an issuer.
+ */
+export function updateIssuerReputation(
+  issuerId: string,
+  reputation: { trustScore: number; verificationCount: number; revocationCount: number },
+): TrustedIssuer | null {
+  const issuer = issuers.get(issuerId);
+  if (!issuer) return null;
+  const updated: TrustedIssuer = {
+    ...issuer,
+    trustScore: reputation.trustScore,
+    verificationCount: reputation.verificationCount,
+    revocationCount: reputation.revocationCount,
+    lastScoredAt: new Date().toISOString(),
+  };
+  issuers.set(issuerId, updated);
+  return updated;
+}
+
 export function isIssuerTrusted(issuerId: string): boolean {
   const issuer = issuers.get(issuerId);
   return issuer != null && issuer.status === 'ACTIVE' && issuer.trustLevel !== 'UNTRUSTED';
 }
 
-/** Registry size. */
 export function registrySize(): number {
   return issuers.size;
 }

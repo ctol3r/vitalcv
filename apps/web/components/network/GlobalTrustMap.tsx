@@ -21,6 +21,8 @@ interface GlobalNode {
   group: NodeGroup;
   val: number;
   metadata?: Record<string, unknown>;
+  /** Wave 105: trust score 0–100 for issuer nodes */
+  trustScore?: number;
   // Physics state (mutable)
   x: number;
   y: number;
@@ -72,9 +74,9 @@ const GROUP_RADIUS: Record<NodeGroup, number> = {
 
 function buildDemoData(): GlobalGraphData {
   const nodes: GlobalNode[] = [
-    { id: 'i1', label: 'CA Medical Board', group: 'issuer', val: 6, x: 0, y: 0, vx: 0, vy: 0 },
-    { id: 'i2', label: 'ABIM', group: 'issuer', val: 6, x: 0, y: 0, vx: 0, vy: 0 },
-    { id: 'i3', label: 'NPI Registry', group: 'issuer', val: 6, x: 0, y: 0, vx: 0, vy: 0 },
+    { id: 'i1', label: 'CA Medical Board', group: 'issuer', val: 6, trustScore: 95, x: 0, y: 0, vx: 0, vy: 0 },
+    { id: 'i2', label: 'ABIM', group: 'issuer', val: 6, trustScore: 97, x: 0, y: 0, vx: 0, vy: 0 },
+    { id: 'i3', label: 'NPI Registry', group: 'issuer', val: 6, trustScore: 99, x: 0, y: 0, vx: 0, vy: 0 },
     { id: 'c1', label: 'Dr. Sarah Chen', group: 'clinician', val: 3, x: 0, y: 0, vx: 0, vy: 0 },
     { id: 'c2', label: 'Dr. James Park', group: 'clinician', val: 3, x: 0, y: 0, vx: 0, vy: 0 },
     { id: 'c3', label: 'Dr. Maria Lopez', group: 'clinician', val: 3, x: 0, y: 0, vx: 0, vy: 0 },
@@ -277,11 +279,25 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
 
       // Draw nodes
       for (const node of nodes) {
-        const color = GROUP_COLORS[node.group] ?? GROUP_COLORS.clinician;
+        const baseColor = GROUP_COLORS[node.group] ?? GROUP_COLORS.clinician;
         const r = GROUP_RADIUS[node.group] ?? 5;
         const isHovered = hoveredRef.current === node.id;
         const isFederated = node.group === 'federated_issuer';
+        const isIssuer = node.group === 'issuer' || isFederated;
         const drawR = isHovered ? r * 1.5 : r;
+
+        // Wave 105: derive fill from trustScore for issuer nodes
+        let fillColor = baseColor.fill;
+        let strokeColor = baseColor.stroke;
+        if (isIssuer && node.trustScore != null) {
+          const s = node.trustScore;
+          if (s >= 90) { fillColor = '#10b981'; strokeColor = '#059669'; }        // emerald
+          else if (s >= 70) { fillColor = '#3b82f6'; strokeColor = '#2563eb'; }   // blue
+          else if (s >= 50) { fillColor = '#f59e0b'; strokeColor = '#d97706'; }   // amber
+          else { fillColor = '#ef4444'; strokeColor = '#dc2626'; }                 // red
+        }
+
+        const color = { fill: fillColor, stroke: strokeColor };
 
         ctx.beginPath();
         ctx.arc(node.x, node.y, drawR, 0, Math.PI * 2);
@@ -309,7 +325,8 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
         if (isHovered) {
           ctx.font = '10px system-ui, sans-serif';
           ctx.fillStyle = 'rgba(15,23,42,0.9)';
-          ctx.fillText(node.label + (isFederated ? ' ↗' : ''), node.x + drawR + 4, node.y + 3);
+          const scoreLabel = isIssuer && node.trustScore != null ? ` [${node.trustScore}]` : '';
+          ctx.fillText(node.label + (isFederated ? ' ↗' : '') + scoreLabel, node.x + drawR + 4, node.y + 3);
         }
       }
 
@@ -420,6 +437,22 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
           })}
         </div>
       )}
+
+      {/* Wave 105: Trust score color scale legend */}
+      <div className="flex flex-wrap items-center gap-3 px-5 py-2 border-t border-infra-border text-[9px] text-muted-foreground">
+        <span className="font-bold uppercase tracking-wider">Issuer Trust Score:</span>
+        {[
+          { color: '#10b981', label: '90–100 Excellent' },
+          { color: '#3b82f6', label: '70–89 Good' },
+          { color: '#f59e0b', label: '50–69 Fair' },
+          { color: '#ef4444', label: '0–49 Poor' },
+        ].map(({ color, label }) => (
+          <span key={label} className="flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full inline-block flex-shrink-0" style={{ backgroundColor: color }} />
+            {label}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

@@ -24,6 +24,7 @@ import { AnimatedTimeline, type TimelineEvent } from '@/components/ui/AnimatedTi
 import type { BadgeLevel } from '@/components/ui/BadgeStatus';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { CredentialWallet } from '@/components/wallet/CredentialWallet'; // Wave 104
 
 // ── Shared types ──────────────────────────────────────────────────────────
 
@@ -560,6 +561,16 @@ export default async function PublicTrustProfilePage({ params }: Props) {
                   )}
                 </section>
               )}
+
+              {/* Wave 104: Credential Wallet embedded in public profile */}
+              <section className="mb-8">
+                <p className="mb-3 text-center text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+                  Credential Wallet
+                </p>
+                <div className="rounded-xl overflow-hidden ring-1 ring-white/10 bg-white">
+                  <CredentialWallet subject={profile.npi} pollIntervalMs={120_000} />
+                </div>
+              </section>
 
               <footer className="text-center">
                 <p className="text-xs text-gray-600">
