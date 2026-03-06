@@ -905,3 +905,47 @@ model AuthorityEdge {
   @@index([relationType])
   @@index([sourceNodeId, relationType])
 }
+
+// ── Wave 115: Subscription Billing & API Keys ────────────────────────
+
+model Subscription {
+  id               String   @id @default(uuid()) @db.Uuid
+  clinicianId      String   @db.Uuid
+  tier             String   // STARTER | GROWTH | ENTERPRISE
+  status           String   @default("active") // active | canceled | past_due
+  stripeSubId      String?
+  currentPeriodEnd DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([clinicianId])
+  @@index([status])
+}
+
+model SubscriptionApiKey {
+  id           String    @id @default(uuid()) @db.Uuid
+  clinicianId  String    @db.Uuid
+  keyHash      String    @unique
+  name         String
+  tier         String    @default("STARTER")
+  requestCount Int       @default(0)
+  lastUsedAt   DateTime?
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([clinicianId])
+  @@index([keyHash])
+}
+
+// ── Wave 119: Feedback ───────────────────────────────────────────────
+
+model Feedback {
+  id        String   @id @default(uuid()) @db.Uuid
+  type      String   // nps | bug | feature
+  score     Int?
+  message   String
+  email     String?
+  createdAt DateTime @default(now())
+
+  @@index([type])
+}

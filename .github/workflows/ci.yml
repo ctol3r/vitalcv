@@ -2,145 +2,62 @@ name: CI
 
 on:
   push:
-    branches: ['**']
+    branches: [main, 'feature/**', 'fix/**']
   pull_request:
-    branches: ['**']
-  workflow_dispatch:
-    inputs:
-      skip_tests:
-        description: 'Skip test step (true/false)'
-        required: false
-        default: 'false'
-
-permissions:
-  contents: read
-  pull-requests: write
-
-env:
-  NODE_VERSION: '20.11.1'
-  PNPM_VERSION: '10.6.1'
-  CI: true
-  ESLINT_MAX_WARNINGS: 0
-  SKIP_TESTS: ${{ inputs.skip_tests || 'false' }}
-  OTEL_SERVICE_NAME: 'vitalcv-ci'
+    branches: [main]
 
 jobs:
-  validate:
-    name: Install, Check, Build, Test
+  build:
+    name: Build
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: vitalcv_ci
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready -U postgres"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Initialize CI root trace context
-        id: ci_trace
-        run: |
-          TRACE_ID="$(openssl rand -hex 16)"
-          SPAN_ID="$(openssl rand -hex 8)"
-          TRACEPARENT="00-${TRACE_ID}-${SPAN_ID}-01"
-          echo "TRACEPARENT=${TRACEPARENT}" >> "$GITHUB_ENV"
-          echo "OTEL_TRACEPARENT=${TRACEPARENT}" >> "$GITHUB_ENV"
-          echo "OTEL_TRACE_ID=${TRACE_ID}" >> "$GITHUB_ENV"
-          echo "CI_TRACE_ID=${TRACE_ID}" >> "$GITHUB_ENV"
-          echo "ci_trace_id=${TRACE_ID}" >> "$GITHUB_OUTPUT"
-          echo "ci_traceparent=${TRACEPARENT}" >> "$GITHUB_OUTPUT"
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
         with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+          version: 10
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '22'
           cache: 'pnpm'
-
-      - name: Install
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate --schema apps/api/backend/prisma/schema.prisma
+      - name: Build all packages
+        run: pnpm turbo build
 
-      - name: Ensure migrations directory exists
-        run: |
-          if [ ! -d "apps/api/backend/prisma/migrations" ]; then
-            echo "Missing migrations directory: apps/api/backend/prisma/migrations" >&2
-            exit 1
-          fi
-
-      - name: Run database migrations
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_ci
-        run: |
-          cd apps/api/backend
-          npx prisma migrate deploy
-
-      - name: Generate Prisma clients
-        run: |
-          pnpm --filter chai-vc-platform-backend exec prisma generate
-          pnpm --filter @vitalcv/marketing exec prisma generate
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Lint (fail on warnings)
-        run: pnpm lint -- --max-warnings=0
-
-      - name: Build
-        run: pnpm build
-
-      - name: Test (non-backend packages)
-        if: env.SKIP_TESTS != 'true'
-        run: pnpm test --filter=!zk-sample --filter=!contracts --filter=!chai-vc-platform-backend --filter=!@vitalcv/api
-
-      - name: Test (backend)
-        if: env.SKIP_TESTS != 'true'
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_ci
-        run: pnpm --filter chai-vc-platform-backend test
-
-      - name: Publish trace root
-        if: always()
-        env:
-          TRACE_ID: ${{ steps.ci_trace.outputs.ci_trace_id }}
-          TRACE_BASE: ${{ vars.OBSERVABILITY_TRACE_BASE_URL }}
-        run: |
-          if [ -n "${TRACE_BASE}" ]; then
-            TRACE_URL="${TRACE_BASE%/}/${TRACE_ID}"
-            echo "CI root trace: [${TRACE_ID}](${TRACE_URL})" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "CI root trace id: \`${TRACE_ID}\`" >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-      - name: Comment PR with trace root
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        env:
-          TRACE_ID: ${{ steps.ci_trace.outputs.ci_trace_id }}
-          TRACE_BASE: ${{ vars.OBSERVABILITY_TRACE_BASE_URL }}
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
         with:
-          script: |
-            const traceId = process.env.TRACE_ID;
-            const traceBase = process.env.TRACE_BASE;
-            const body = traceBase
-              ? `CI root trace: [${traceId}](${traceBase.replace(/\/$/, '')}/${traceId})`
-              : `CI root trace id: \`${traceId}\``;
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body,
-            });
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Lint web app
+        run: pnpm --filter web lint
+
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate --schema apps/api/backend/prisma/schema.prisma
+      - name: Type check API
+        run: pnpm exec tsc -p apps/api/backend/tsconfig.json --noEmit

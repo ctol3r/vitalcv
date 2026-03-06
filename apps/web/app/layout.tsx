@@ -1,3 +1,4 @@
+import FeedbackButton from '@/components/feedback/FeedbackButton';
 import { BackgroundField } from '@/components/motion/BackgroundField';
 import { CursorPhysics } from '@/components/motion/CursorPhysics';
 import { Toaster } from '@/components/ui/toaster';
@@ -43,6 +44,7 @@ export default function RootLayout({
           <CursorPhysics />
           {children}
           <Toaster />
+          <FeedbackButton />
         </Providers>
       </body>
     </html>
