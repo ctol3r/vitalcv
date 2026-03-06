@@ -21,6 +21,8 @@ export interface GlobalNode {
   group: GlobalNodeGroup;
   /** Relative visual size (connection count) */
   val: number;
+  /** Wave 105: trust score 0–100 for issuer nodes */
+  trustScore?: number;
   metadata?: Record<string, unknown>;
 }
 
@@ -89,10 +91,15 @@ export async function generateGlobalGraph(): Promise<GlobalGraphData> {
       label: issuer.issuerName,
       group: 'issuer',
       val: 6,
+      // Wave 105: expose trust score for canvas coloring
+      ...(issuer.trustScore != null && { trustScore: issuer.trustScore }),
       metadata: {
         issuerId: issuer.issuerId,
         trustLevel: issuer.trustLevel,
         status: issuer.status,
+        trustScore: issuer.trustScore,
+        verificationCount: issuer.verificationCount,
+        revocationCount: issuer.revocationCount,
       },
     });
   }

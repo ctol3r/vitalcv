@@ -1,7 +1,9 @@
 /**
- * credentialWallet.ts — Wave 94: In-Memory Credential Wallet
+ * credentialWallet.ts — Wave 94 + 104: In-Memory Credential Wallet
  *
  * Stores verifiable credentials per clinician (keyed by subject NPI/DID).
+ * Wave 104: adds listCredentials(), removeCredential(), plus expiration
+ * awareness helpers for the CredentialWallet UI component.
  * In-memory for now — swap to Prisma or Redis when persistence is needed.
  */
 
@@ -72,4 +74,83 @@ export function walletSize(): number {
 /** List all credentials (diagnostic / admin). */
 export function listAllCredentials(): VerifiableCredential[] {
   return Array.from(credentialsById.values());
+}
+
+// ── Wave 104 additions ────────────────────────────────────────────────
+
+/**
+ * List credentials with expiration metadata for wallet display.
+ * Optionally filter by subject.
+ */
+export interface WalletCredentialRow {
+  credential: VerifiableCredential;
+  /** Days until expiration (null = no expiry set, negative = already expired) */
+  daysUntilExpiry: number | null;
+  /** Expiration warning level */
+  expiryWarning: 'none' | 'warning' | 'critical' | 'expired';
+}
+
+export function listCredentials(subject?: string): WalletCredentialRow[] {
+  const creds = subject ? getCredentialsForSubject(subject) : listAllCredentials();
+  const now = Date.now();
+
+  return creds.map((cred) => {
+    if (!cred.expiresAt) {
+      return { credential: cred, daysUntilExpiry: null, expiryWarning: 'none' };
+    }
+    const msUntil = new Date(cred.expiresAt).getTime() - now;
+    const days = Math.ceil(msUntil / 86_400_000);
+    let expiryWarning: WalletCredentialRow['expiryWarning'];
+    if (days < 0) expiryWarning = 'expired';
+    else if (days <= 7) expiryWarning = 'critical';
+    else if (days <= 30) expiryWarning = 'warning';
+    else expiryWarning = 'none';
+
+    return { credential: cred, daysUntilExpiry: days, expiryWarning };
+  });
+}
+
+/**
+ * Remove a credential from the wallet.
+ * Returns true if removed, false if not found.
+ */
+export function removeCredential(credentialId: string): boolean {
+  const cred = credentialsById.get(credentialId);
+  if (!cred) return false;
+
+  credentialsById.delete(credentialId);
+
+  // Also remove from subject index
+  const subjectSet = credentialsBySubject.get(cred.subject);
+  if (subjectSet) {
+    subjectSet.delete(credentialId);
+    if (subjectSet.size === 0) credentialsBySubject.delete(cred.subject);
+  }
+
+  log('info', 'wallet_remove', { credentialId, subject: cred.subject });
+  return true;
+}
+
+/**
+ * Wallet summary for a subject — credential counts by status and expiry.
+ */
+export interface WalletSummary {
+  subject: string;
+  total: number;
+  active: number;
+  expiring: number;
+  expired: number;
+  revoked: number;
+}
+
+export function getWalletSummary(subject: string): WalletSummary {
+  const rows = listCredentials(subject);
+  return {
+    subject,
+    total: rows.length,
+    active: rows.filter((r) => r.credential.status === 'ACTIVE' && r.expiryWarning === 'none').length,
+    expiring: rows.filter((r) => r.expiryWarning === 'warning' || r.expiryWarning === 'critical').length,
+    expired: rows.filter((r) => r.expiryWarning === 'expired').length,
+    revoked: rows.filter((r) => r.credential.status === 'REVOKED').length,
+  };
 }
