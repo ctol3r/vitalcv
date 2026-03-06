@@ -43,6 +43,7 @@ import { log } from '../obs/logger';
 import { setRevoked } from '../services/ledger/statusListManager';
 import { dispatchEnterpriseWebhooks } from '../services/integration/webhookDispatcher';
 import { propagateRevocation } from '../services/graph/bidirectional';
+import { revocationCascade } from '../services/decision/revocationCascade';
 
 // ── Configuration ──────────────────────────────────────────────────────────
 
@@ -215,6 +216,15 @@ async function runMonitorSweep(): Promise<void> {
     // 5. Propagate BIDIRECTIONAL_FLAG_INVALID to downstream graph nodes
     void propagateRevocation(artifact.id).catch(err => {
       log('warn', 'continuous_monitor_propagation_error', {
+        sweepId,
+        artifact_id: artifact.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
+
+    // 6. Cascade revocation through dependent Decision Capsules (Wave A)
+    void revocationCascade.propagateRevocation(artifact.id).catch(err => {
+      log('warn', 'continuous_monitor_capsule_cascade_error', {
         sweepId,
         artifact_id: artifact.id,
         error: err instanceof Error ? err.message : String(err),

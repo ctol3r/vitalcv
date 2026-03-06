@@ -2,51 +2,69 @@ import type { NormalizedProvider, IdentityArtifact } from '../identity/types';
 
 /**
  * Hardcoded sample providers used when CMS NPPES is unreachable.
- * These are real NPIs that produce valid NPPES responses.
+ * Updated for NormalizedProvider v2 (Wave A — NPPES hardening).
  */
-export const SAMPLE_PROVIDERS: Record<string, NormalizedProvider> = {
-  '1003000126': {
-    npi: '1003000126',
-    enumeration_type: 'NPI-1',
-    status: 'A',
-    first_name: 'ROBERT',
-    last_name: 'SMITH',
-    primary_taxonomy: 'Internal Medicine',
-  },
-  '1497758544': {
-    npi: '1497758544',
-    enumeration_type: 'NPI-1',
-    status: 'A',
-    first_name: 'MARY',
-    last_name: 'JOHNSON',
-    primary_taxonomy: 'Family Medicine',
-  },
-  '1588667638': {
-    npi: '1588667638',
-    enumeration_type: 'NPI-1',
-    status: 'A',
-    first_name: 'JAMES',
-    last_name: 'WILLIAMS',
-    primary_taxonomy: 'Nurse Practitioner',
-  },
+
+const EMPTY_ADDRESS = {
+  purpose: 'LOCATION' as const,
+  address_1: '',
+  address_2: '',
+  city: '',
+  state: '',
+  postal_code: '',
+  country_code: 'US',
+  telephone_number: '',
 };
 
-export const SAMPLE_NPI_LIST = Object.entries(SAMPLE_PROVIDERS).map(
-  ([npi, provider]) => ({
+function makeProvider(
+  npi: string,
+  first_name: string,
+  last_name: string,
+  primary_taxonomy: string,
+  primary_taxonomy_code: string,
+  state = 'CA',
+  license = '',
+): NormalizedProvider {
+  return {
     npi,
-    name: `${provider.first_name} ${provider.last_name}`,
-    specialty: provider.primary_taxonomy,
-  }),
-);
+    enumeration_type: 'NPI-1',
+    status: 'A',
+    first_name,
+    last_name,
+    middle_name: '',
+    credential: 'MD',
+    name_prefix: '',
+    name_suffix: '',
+    organization_name: '',
+    display_name: `${first_name} ${last_name}, MD`,
+    primary_taxonomy,
+    primary_taxonomy_code,
+    taxonomies: [{ code: primary_taxonomy_code, taxonomy_group: '', desc: primary_taxonomy, state, license, primary: true }],
+    practice_address: { ...EMPTY_ADDRESS, state },
+    addresses: [{ ...EMPTY_ADDRESS, state }],
+    identifiers: [],
+    enumeration_date: '2010-01-01',
+    last_updated: '2024-01-01',
+  };
+}
+
+export const SAMPLE_PROVIDERS: Record<string, NormalizedProvider> = {
+  '1003000126': makeProvider('1003000126', 'ROBERT', 'SMITH', 'Internal Medicine', '207R00000X', 'CA', 'A100001'),
+  '1497758544': makeProvider('1497758544', 'MARY', 'JOHNSON', 'Family Medicine', '207Q00000X', 'NY', 'NY100001'),
+  '1588667638': makeProvider('1588667638', 'JAMES', 'WILLIAMS', 'Nurse Practitioner', '363L00000X', 'TX', 'TX100001'),
+};
+
+export const SAMPLE_NPI_LIST = Object.entries(SAMPLE_PROVIDERS).map(([npi, provider]) => ({
+  npi,
+  name: provider.display_name,
+  specialty: provider.primary_taxonomy,
+}));
 
 export function getCachedProvider(npi: string): NormalizedProvider | null {
   return SAMPLE_PROVIDERS[npi] ?? null;
 }
 
-export function getCachedArtifact(npi: string): {
-  artifact: IdentityArtifact;
-  artifact_hash: string;
-} | null {
+export function getCachedArtifact(npi: string): { artifact: IdentityArtifact; artifact_hash: string } | null {
   const provider = getCachedProvider(npi);
   if (!provider) return null;
 
@@ -66,8 +84,5 @@ export function getCachedArtifact(npi: string): {
     },
   };
 
-  return {
-    artifact,
-    artifact_hash: 'cached-no-hash-available',
-  };
+  return { artifact, artifact_hash: 'cached-no-hash-available' };
 }

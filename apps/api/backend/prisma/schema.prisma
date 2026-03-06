@@ -949,3 +949,53 @@ model Feedback {
 
   @@index([type])
 }
+
+// ── Wave A (Phase 1 Hardening): Decision Capsule Infrastructure ──────────────
+
+/// Immutable audit record of an operational decision (hiring, privileging,
+/// deployment, renewal) with a cryptographic snapshot of the credential
+/// bundle that supported it. Status transitions record revocation cascade
+/// impact: VALID → AT_RISK → INVALID.
+model DecisionCapsule {
+  id                String   @id @default(uuid()) @db.Uuid
+
+  /// Decentralized Identifier of the clinician subject
+  subjectDid        String
+
+  /// 10-digit NPI of the clinician subject
+  subjectNpi        String
+
+  /// HIRING | PRIVILEGING | DEPLOYMENT | RENEWAL
+  decisionType      String
+
+  /// When the decision was made (immutable after creation)
+  decisionTimestamp DateTime
+
+  /// IDs of VerificationArtifacts that supported this decision
+  credentialIds     String[]
+
+  /// IDs of trusted issuers involved in this decision
+  issuerIds         String[]
+
+  /// SHA-256 hash of the full credential bundle snapshot at decision time
+  artifactHash      String
+
+  /// Evaluation methodology version (e.g. "CRS_v1.0")
+  methodology       String   @default("CRS_v1.0")
+
+  /// VALID | AT_RISK | INVALID
+  status            String   @default("VALID")
+
+  /// Arbitrary context: employerId, deploymentRef, notes
+  metadata          Json     @default("{}")  @db.JsonB
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([subjectNpi])
+  @@index([subjectDid])
+  @@index([status])
+  @@index([decisionType])
+  @@index([decisionTimestamp])
+  @@index([subjectNpi, status])
+}

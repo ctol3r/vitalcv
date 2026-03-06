@@ -1,122 +1,202 @@
 /**
- * capsuleEngine.ts — Wave 82: Extended Decision Capsule Service
+ * capsuleEngine.ts — Wave A (Phase 1 Hardening)
+ * Salvaged from feature/interoperability-wave65 (Wave 54), upgraded for main.
  *
- * Stores decision hash, credential dependencies, and timestamp
- * for each decision capsule. Uses AuditEvent with structured
- * metadata as the storage backend (no DecisionCapsule model).
+ * Creates immutable decision capsules that record the credential state
+ * at the moment of an operational decision (hiring, privileging, deployment).
+ *
+ * Each capsule hashes the credential bundle snapshot, records the evaluation
+ * methodology, and persists to the database as an append-only audit record.
  */
 
-import prisma, { Prisma } from '../../graphql/prisma_client';
+import prisma from '../../graphql/prisma_client';
 import { sha256Hex } from '../../utils/deterministic';
 import { log } from '../../obs/logger';
 
-// ── Types ─────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────
 
-export interface CapsuleRecord {
+export type DecisionType = 'HIRING' | 'PRIVILEGING' | 'DEPLOYMENT' | 'RENEWAL';
+export type CapsuleStatus = 'VALID' | 'AT_RISK' | 'INVALID';
+
+export interface CreateCapsuleInput {
+  subjectDid: string;
+  subjectNpi: string;
+  decisionType: DecisionType;
+  credentialIds: string[];
+  issuerIds: string[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface DecisionCapsuleRecord {
   id: string;
+  subjectDid: string;
   subjectNpi: string;
   decisionType: string;
-  status: string;
+  decisionTimestamp: string;
   credentialIds: string[];
   issuerIds: string[];
   artifactHash: string;
-  decisionTimestamp: string;
+  methodology: string;
+  status: CapsuleStatus;
+  metadata: unknown;
+  createdAt: string;
 }
 
-export interface CapsuleCreateInput {
-  subjectNpi: string;
-  decisionType: string;
-  credentialIds: string[];
-  issuerIds: string[];
-}
+// ── Constants ─────────────────────────────────────────────────────────────
 
-// ── Metadata helpers ──────────────────────────────────────────────────
+const METHODOLOGY_VERSION = 'CRS_v1.0';
 
-const CAPSULE_EVENT_TYPE = 'DECISION_CAPSULE';
+// ── Engine ────────────────────────────────────────────────────────────────
 
-function eventToCapsule(ev: { id: string; clinicianId: string | null; hash: string; metadata: unknown; createdAt: Date }): CapsuleRecord {
-  const meta = (ev.metadata ?? {}) as Record<string, unknown>;
-  return {
-    id: ev.id,
-    subjectNpi: ev.clinicianId ?? '',
-    decisionType: typeof meta['decisionType'] === 'string' ? meta['decisionType'] : 'UNKNOWN',
-    status: typeof meta['status'] === 'string' ? meta['status'] : 'VALID',
-    credentialIds: Array.isArray(meta['credentialIds']) ? meta['credentialIds'] as string[] : [],
-    issuerIds: Array.isArray(meta['issuerIds']) ? meta['issuerIds'] as string[] : [],
-    artifactHash: ev.hash,
-    decisionTimestamp: ev.createdAt.toISOString(),
+/**
+ * Create a decision capsule that records the credential state
+ * at the moment of an operational decision.
+ */
+async function createDecisionCapsule(
+  input: CreateCapsuleInput,
+): Promise<DecisionCapsuleRecord> {
+  const decisionTimestamp = new Date();
+
+  // Step 1: Snapshot credential state at decision time
+  const artifacts = await prisma.verificationArtifact.findMany({
+    where: { id: { in: input.credentialIds } },
+    select: {
+      id: true,
+      npi: true,
+      source: true,
+      status: true,
+      lifecycleState: true,
+      checksum: true,
+      merkleRoot: true,
+      verifiedAt: true,
+      expiresAt: true,
+      revokedAt: true,
+    },
+  });
+
+  // Step 2: Hash the full credential bundle for replay integrity
+  const bundlePayload = {
+    subjectNpi: input.subjectNpi,
+    subjectDid: input.subjectDid,
+    decisionType: input.decisionType,
+    decisionTimestamp: decisionTimestamp.toISOString(),
+    credentials: artifacts.map((a) => ({
+      id: a.id,
+      source: a.source,
+      status: a.status,
+      checksum: a.checksum,
+      merkleRoot: a.merkleRoot,
+    })),
+    issuerIds: input.issuerIds,
+    methodology: METHODOLOGY_VERSION,
   };
-}
 
-// ── Core Operations ───────────────────────────────────────────────────
+  const artifactHash = sha256Hex(JSON.stringify(bundlePayload));
 
-export async function createCapsule(input: CapsuleCreateInput): Promise<CapsuleRecord> {
-  const timestamp = new Date();
-  const artifactHash = sha256Hex(
-    `${input.subjectNpi}:${input.decisionType}:${input.credentialIds.join(',')}:${timestamp.toISOString()}`,
-  );
-
-  const event = await prisma.auditEvent.create({
+  // Step 3: Persist capsule
+  const capsule = await prisma.decisionCapsule.create({
     data: {
-      type: CAPSULE_EVENT_TYPE,
+      subjectDid: input.subjectDid,
+      subjectNpi: input.subjectNpi,
+      decisionType: input.decisionType,
+      decisionTimestamp,
+      credentialIds: input.credentialIds,
+      issuerIds: input.issuerIds,
+      artifactHash,
+      methodology: METHODOLOGY_VERSION,
+      status: 'VALID',
+      metadata: JSON.parse(JSON.stringify(input.metadata ?? {})),
+    },
+  });
+
+  // Step 4: Anchor audit event
+  await prisma.auditEvent.create({
+    data: {
+      type: 'DECISION_CAPSULE_CREATED',
       hash: artifactHash,
+      referenceId: capsule.id,
       clinicianId: input.subjectNpi,
-      metadata: {
+      metadata: JSON.parse(JSON.stringify({
         decisionType: input.decisionType,
-        status: 'VALID',
-        credentialIds: input.credentialIds,
-        issuerIds: input.issuerIds,
         credentialCount: input.credentialIds.length,
         issuerCount: input.issuerIds.length,
-      } as unknown as Prisma.InputJsonValue,
+        methodology: METHODOLOGY_VERSION,
+      })),
     },
   });
 
   log('info', 'capsule_engine: created', {
-    capsuleId: event.id,
-    npi: input.subjectNpi,
-    type: input.decisionType,
-    deps: input.credentialIds.length,
+    capsuleId: capsule.id,
+    npi: input.subjectNpi.slice(0, 4) + '****',
+    decisionType: input.decisionType,
+    credentialCount: input.credentialIds.length,
+    artifactHash: artifactHash.slice(0, 16),
   });
 
-  return eventToCapsule(event);
+  return mapCapsule(capsule);
 }
 
-export async function getCapsulesByNpi(npi: string): Promise<CapsuleRecord[]> {
-  const events = await prisma.auditEvent.findMany({
-    where: { type: CAPSULE_EVENT_TYPE, clinicianId: npi },
-    orderBy: { createdAt: 'desc' },
+/**
+ * Retrieve all decision capsules for a clinician, ordered by decision time.
+ */
+async function getCapsulesByNpi(npi: string): Promise<DecisionCapsuleRecord[]> {
+  const capsules = await prisma.decisionCapsule.findMany({
+    where: { subjectNpi: npi },
+    orderBy: { decisionTimestamp: 'desc' },
   });
-
-  return events.map(eventToCapsule);
+  return capsules.map(mapCapsule);
 }
 
-export async function getCapsuleDependencies(capsuleId: string): Promise<{
-  capsule: CapsuleRecord;
-  credentialStatuses: Array<{ id: string; status: string; trustState: string }>;
-} | null> {
-  const event = await prisma.auditEvent.findUnique({ where: { id: capsuleId } });
-  if (!event || event.type !== CAPSULE_EVENT_TYPE) return null;
+/**
+ * Retrieve a single capsule by ID.
+ */
+async function getCapsuleById(id: string): Promise<DecisionCapsuleRecord | null> {
+  const capsule = await prisma.decisionCapsule.findUnique({ where: { id } });
+  return capsule ? mapCapsule(capsule) : null;
+}
 
-  const capsule = eventToCapsule(event);
+/**
+ * Count total capsules (for analytics / status endpoints).
+ */
+async function countCapsules(): Promise<number> {
+  return prisma.decisionCapsule.count();
+}
 
-  const credentials = await prisma.verificationArtifact.findMany({
-    where: { id: { in: capsule.credentialIds } },
-    select: { id: true, status: true, trustState: true },
-  });
+// ── Internal helpers ──────────────────────────────────────────────────────
 
+function mapCapsule(c: {
+  id: string;
+  subjectDid: string;
+  subjectNpi: string;
+  decisionType: string;
+  decisionTimestamp: Date;
+  credentialIds: string[];
+  issuerIds: string[];
+  artifactHash: string;
+  methodology: string;
+  status: string;
+  metadata: unknown;
+  createdAt: Date;
+}): DecisionCapsuleRecord {
   return {
-    capsule,
-    credentialStatuses: credentials.map((c) => ({
-      id: c.id,
-      status: c.status,
-      trustState: c.trustState,
-    })),
+    id: c.id,
+    subjectDid: c.subjectDid,
+    subjectNpi: c.subjectNpi,
+    decisionType: c.decisionType,
+    decisionTimestamp: c.decisionTimestamp.toISOString(),
+    credentialIds: c.credentialIds,
+    issuerIds: c.issuerIds,
+    artifactHash: c.artifactHash,
+    methodology: c.methodology,
+    status: c.status as CapsuleStatus,
+    metadata: c.metadata,
+    createdAt: c.createdAt.toISOString(),
   };
 }
 
-export async function countCapsules(): Promise<number> {
-  return prisma.auditEvent.count({ where: { type: CAPSULE_EVENT_TYPE } });
-}
-
-export const capsuleEngine = { createCapsule, getCapsulesByNpi, getCapsuleDependencies, countCapsules };
+export const capsuleEngine = {
+  createDecisionCapsule,
+  getCapsulesByNpi,
+  getCapsuleById,
+  countCapsules,
+};

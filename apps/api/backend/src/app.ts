@@ -90,6 +90,7 @@ import { registerAnalyticsRoutes } from './routes/analytics';              // Wa
 import { registerDocsRoutes } from './routes/docs';                        // Wave 117: Developer Docs
 import { registerFeedbackRoutes } from './routes/feedback';                // Wave 119: Feedback
 import { registerWebAuthnRoutes } from './routes/webauthn';                // Wave 122: WebAuthn
+import { registerDecisionCapsuleRoutes } from './routes/decisionCapsules'; // Wave A: Decision Capsules
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3456,6 +3457,7 @@ registerAnalyticsRoutes(app);         // Wave 116: Analytics Dashboard
 registerDocsRoutes(app);              // Wave 117: Developer Docs & OpenAPI
 registerFeedbackRoutes(app);          // Wave 119: Feedback Loop
 registerWebAuthnRoutes(app);          // Wave 122: WebAuthn Biometric Auth
+registerDecisionCapsuleRoutes(app);   // Wave A: Decision Capsules + Blast Radius
 
 // Wave 35: Start the Merkle anchoring background worker.
 startAnchorWorker();
