@@ -1,5 +1,5 @@
 /**
- * credentials.ts — Wave 94 + 98 + 103: Trust Credential API Routes
+ * credentials.ts — Wave 94 + 98 + 103 + Substrate Phase 5: Trust Credential API Routes
  *
  * POST /api/credentials/issue              — Issue a signed verifiable credential
  * POST /api/credentials/verify             — Verify a credential
@@ -8,11 +8,21 @@
  * GET  /api/credentials/present/:id        — Retrieve a presentation by ID
  * POST /api/credentials/present/selective  — Wave 103: Selective disclosure presentation
  * GET  /api/credentials/:id/fields         — Wave 103: List claim fields for a credential
+ *
+ * Phase 5 additions:
+ *   - HAIP issuance enforcement on POST /api/credentials/issue
+ *   - HAIP verification enforcement on POST /api/credentials/verify
+ *   - SD-JWT structure enforcement on POST /api/credentials/present/selective
  */
 
 import type { Express, Request, Response } from 'express';
 import { issueCredential } from '../services/credentials/credentialIssuer';
 import { verifyCredential } from '../services/credentials/credentialVerifier';
+import {
+  enforceHAIPIssuance,
+  enforceHAIPVerification,
+  enforceSDJWTStructure,
+} from '../services/compliance/haipEnforcer';
 import {
   storeCredential,
   getCredential,
@@ -67,13 +77,30 @@ export function registerCredentialRoutes(app: Express): void {
         return;
       }
 
+      // Phase 5: HAIP issuance enforcement
+      const haipResult = enforceHAIPIssuance({
+        issuerId: issuer,
+        subject,
+        format: req.body?.format ?? 'jwt_vc_json',
+        algorithm: req.body?.algorithm ?? 'ES256',
+      });
+      if (!haipResult.allowed) {
+        res.status(422).json({
+          error: 'HAIP issuance policy violation',
+          violations: haipResult.violations,
+          auditEventId: haipResult.auditEventId,
+          traceId: haipResult.traceId,
+        });
+        return;
+      }
+
       const request: IssueCredentialRequest = { issuer, subject, claims, expiresAt };
       const credential = await issueCredential(request, signingKey);
 
       // Auto-store in wallet
       storeCredential(credential);
 
-      res.status(201).json({ credential });
+      res.status(201).json({ credential, haipAuditEventId: haipResult.auditEventId });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       log('error', 'credential_issue_failed', { error: msg });
@@ -91,8 +118,21 @@ export function registerCredentialRoutes(app: Express): void {
         return;
       }
 
-      const result = await verifyCredential(credential);
-      res.status(200).json({ result });
+      // Phase 5: HAIP verification enforcement (runs in parallel with core verify)
+      const [result, haipCheck] = await Promise.all([
+        verifyCredential(credential),
+        Promise.resolve(enforceHAIPVerification(credential)),
+      ]);
+
+      res.status(200).json({
+        result,
+        haipCompliance: {
+          compliant: haipCheck.allowed,
+          violations: haipCheck.violations,
+          auditEventId: haipCheck.auditEventId,
+          traceId: haipCheck.traceId,
+        },
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       log('error', 'credential_verify_failed', { error: msg });
@@ -273,6 +313,21 @@ export function registerCredentialRoutes(app: Express): void {
       // Generate selective disclosure
       const { disclosure, salts } = generateSelectiveDisclosure(credential, revealFields);
 
+      // Phase 5: SD-JWT structure enforcement — validate before issuing presentation
+      const sdJwtCheck = enforceSDJWTStructure(
+        { ...disclosure, salts, credentialId, disclosedAt: new Date().toISOString(), holderDid: holder },
+        { actor: holder },
+      );
+      if (!sdJwtCheck.valid) {
+        res.status(422).json({
+          error: 'SD-JWT structure violation',
+          errors: sdJwtCheck.errors,
+          auditEventId: sdJwtCheck.auditEventId,
+          traceId: sdJwtCheck.traceId,
+        });
+        return;
+      }
+
       // Build a presentation wrapping the disclosure
       const presentation = await createPresentation(
         [credential],
@@ -288,6 +343,7 @@ export function registerCredentialRoutes(app: Express): void {
         salts,
         revealedFields: revealFields,
         hiddenFields: Object.keys(disclosure.hiddenCommitments),
+        sdJwtAuditEventId: sdJwtCheck.auditEventId,
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
