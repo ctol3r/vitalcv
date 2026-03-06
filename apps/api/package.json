@@ -13,6 +13,11 @@
     "test": "npm --prefix backend test",
     "test:did": "node --test backend/__tests__/cross_chain_did_resolver.test.js"
   },
+  "turbo": {
+    "build": {
+      "outputs": ["backend/dist/**"]
+    }
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

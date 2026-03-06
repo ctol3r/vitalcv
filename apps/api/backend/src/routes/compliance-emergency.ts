@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { Request, Response, Router } from 'express';
+import { log } from '../obs/logger';
 import { EmergencyGovernanceService } from '../services/compliance/emergencyMode';
 
 const router = Router();
@@ -24,7 +25,7 @@ router.post('/compliance/emergency/declare', async (req: Request, res: Response)
     });
 
   } catch (err) {
-    console.error('[EMERGENCY_ROUTE] Error declaring emergency:', err);
+    log('error', 'Error declaring emergency', { error: String(err) });
     res.status(500).json({ error: 'Failed to process emergency declaration' });
   }
 });

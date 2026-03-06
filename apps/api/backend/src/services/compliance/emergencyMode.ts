@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { log } from '../../obs/logger';
 import { generateAuditHash } from '../../utils/deterministic';
 
 const prisma = new PrismaClient();
@@ -23,7 +24,7 @@ export class EmergencyGovernanceService {
     emergencyModeActive = active;
     currentEmergencyContext = active ? context : '';
 
-    console.warn(`🚨 [EMERGENCY_GOVERNANCE] Status: ${active ? 'ACTIVE' : 'DEACTIVATED'} | Context: ${context} | By: ${declaredByNpi}`);
+    log('warn', 'Emergency governance status change', { active, context, declaredBy: declaredByNpi });
 
     return {
       active: emergencyModeActive,
@@ -51,7 +52,7 @@ export class EmergencyGovernanceService {
       return { escalatedCredentials: credentials, scrapbookEntryId: null };
     }
 
-    console.warn(`[EMERGENCY_GOVERNANCE] Overriding policies for NPI ${clinicianNpi}`);
+    log('warn', 'Overriding policies under emergency mode', { clinicianNpi });
 
     const escalated = credentials.map(cred => {
       // Mock logic: If a credential is L2 (e.g. Identity Verified, but missing Primary Source Medical Board)
