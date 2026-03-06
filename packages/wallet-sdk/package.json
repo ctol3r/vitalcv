@@ -1,0 +1,25 @@
+{
+  "name": "@vitalcv/wallet-sdk",
+  "version": "1.0.0",
+  "description": "VitalCV Wallet SDK — manage, present and share healthcare verifiable credentials",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": ["vitalcv", "wallet", "credential", "healthcare", "vc", "holder"],
+  "license": "MIT",
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}

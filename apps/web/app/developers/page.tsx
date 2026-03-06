@@ -26,6 +26,7 @@ import { WebhookLog } from '@/components/developers/WebhookLog';
 import { DropInSection } from '@/components/developers/DropInSection';
 import { GatewayConnections } from '@/components/network/GatewayConnections';
 import { ConformanceReport } from '@/components/developers/ConformanceReport';
+import { SdkDocs } from '@/components/developers/SdkDocs';
 
 export const metadata: Metadata = {
   title: 'Developer Portal | VitalCV',
@@ -296,6 +297,17 @@ const result = await VerifierSDK.verifyCredential(credential);
             <div className="flex-1 h-px bg-white/5" />
           </div>
           <ConformanceReport />
+        </div>
+
+        {/* ── Phase 7: SDK Documentation ─────────────────── */}
+        <div id="sdks" className="scroll-mt-20">
+          <div className="flex items-center gap-3 mb-4">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+              Developer SDKs · Phase 7
+            </p>
+            <div className="flex-1 h-px bg-white/5" />
+          </div>
+          <SdkDocs />
         </div>
 
       </main>
