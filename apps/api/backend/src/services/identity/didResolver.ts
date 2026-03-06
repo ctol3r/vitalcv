@@ -7,6 +7,7 @@
  */
 
 import { resolveDID, type DIDDocument } from './didRegistry';
+import { fetchEntityConfiguration } from '../federation/federationMetadata';
 import { log } from '../../obs/logger';
 
 // ── Types ─────────────────────────────────────────────────────────────
@@ -79,7 +80,40 @@ export async function resolveDid(did: string): Promise<DIDResolutionResult> {
     } else {
       result = { did, status: 'resolved', document: doc, resolvedAt, method };
     }
-  } else if (method === 'web' || method === 'key' || method === 'peer') {
+  } else if (method === 'web') {
+    // Wave 113: Try to resolve via OpenID Federation metadata cache
+    // did:web:<domain> maps to https://<domain>/.well-known/openid-federation
+    const domain = did.replace('did:web:', '').replace(/:/g, '/');
+    const entityUrl = `https://${domain}`;
+    const entityConfig = await fetchEntityConfiguration(entityUrl);
+    if (entityConfig && entityConfig.trustVerified) {
+      // Synthesize a DID document from federation entity metadata
+      const federatedDoc: DIDDocument = {
+        did,
+        controller: did,
+        publicKey: '', // Keys come from JWKS
+        subjectType: 'issuer',
+        label: entityConfig.configuration.metadata?.federation_entity?.['organization_name'] as string | undefined,
+        createdAt: entityConfig.cachedAt,
+        status: 'ACTIVE',
+        serviceEndpoints: [{
+          type: 'OpenIDFederation',
+          endpoint: entityConfig.configuration.iss,
+        }],
+        metadata: { federated: true, entityId: entityConfig.entityId },
+      };
+      result = { did, status: 'resolved', document: federatedDoc, resolvedAt, method };
+    } else {
+      log('warn', 'did_web_no_federation_config', { did, entityUrl });
+      result = {
+        did,
+        status: 'unsupported_method',
+        document: null,
+        resolvedAt,
+        method,
+      };
+    }
+  } else if (method === 'key' || method === 'peer') {
     // External method stub — would use Universal Resolver in production
     log('warn', 'did_external_method_stub', { did, method });
     result = {

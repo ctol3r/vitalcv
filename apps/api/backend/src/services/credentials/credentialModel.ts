@@ -66,6 +66,35 @@ export interface IssueCredentialRequest {
   expiresAt?: string;
 }
 
+// ── SD-JWT VC extensions (Wave 111) ──────────────────────────────────
+
+/**
+ * Metadata for a claim that supports selective disclosure.
+ */
+export interface DisclosableClaimMetadata {
+  /** Whether this claim can be selectively disclosed */
+  disclosable: boolean;
+  /** Friendly display name */
+  displayName?: string;
+  /** Whether disclosure of this claim is required by default */
+  requiredForPresentation?: boolean;
+}
+
+/**
+ * Extended credential with SD-JWT VC metadata.
+ * Layered over VerifiableCredential — use when issuing via vc+sd-jwt format.
+ */
+export interface SdJwtVcMetadata {
+  /** Claims that can be selectively disclosed, with metadata */
+  disclosableClaims: Record<string, DisclosableClaimMetadata>;
+  /** Holder DID for binding (optional — enables holder-binding proofs) */
+  holderDid?: string;
+  /** The SD-JWT string after issuance (replaces `signature` for vc+sd-jwt format) */
+  sdJwt?: string;
+  /** Format identifier */
+  format: 'vc+sd-jwt' | 'jwt_vc_json';
+}
+
 // ── Verification result ───────────────────────────────────────────────
 
 export interface VerificationResult {
@@ -79,4 +108,10 @@ export interface VerificationResult {
   };
   errors: string[];
   verifiedAt: string;
+  /** Wave 112: HAIP compliance result */
+  haip?: {
+    compliant: boolean;
+    issuerCompliant: boolean | null;
+    violations: Array<{ rule: string; detail: string; severity: string }>;
+  };
 }

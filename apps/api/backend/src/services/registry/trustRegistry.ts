@@ -25,6 +25,14 @@ export interface TrustedIssuer {
   verificationCount?: number; // Total verifications processed
   revocationCount?: number;   // Total revocations issued
   lastScoredAt?: string;      // ISO-8601 last reputation calculation
+  // Wave 112: HAIP Trust Profile fields
+  assuranceProfile?: string;  // e.g. 'IAL2', 'IAL3'
+  algorithmPolicy?: string[]; // Allowed signing algorithms
+  haipCompliant?: boolean;    // Explicitly HAIP-compliant flag
+  // Wave 113: OpenID Federation
+  federationEntityId?: string; // OpenID Federation entity ID
+  federationTrustChain?: string[]; // Trust chain JWT strings
+  federatedAt?: string;           // ISO-8601 when federated
   metadata?: Record<string, unknown>;
 }
 
@@ -45,7 +53,10 @@ const SEED_ISSUERS: TrustedIssuer[] = [
     trustScore: 95,
     verificationCount: 12450,
     revocationCount: 42,
-    metadata: { jurisdiction: 'CA', type: 'state_medical_board' },
+    assuranceProfile: 'IAL2',
+    algorithmPolicy: ['ES256', 'ES384'],
+    haipCompliant: true,
+    metadata: { jurisdiction: 'CA', type: 'state_medical_board', assuranceLevel: 'IAL2' },
   },
   {
     issuerId: 'did:vitalcv:issuer:abim',
@@ -57,7 +68,10 @@ const SEED_ISSUERS: TrustedIssuer[] = [
     trustScore: 97,
     verificationCount: 8320,
     revocationCount: 11,
-    metadata: { type: 'specialty_board' },
+    assuranceProfile: 'IAL3',
+    algorithmPolicy: ['ES256', 'ES384'],
+    haipCompliant: true,
+    metadata: { type: 'specialty_board', assuranceLevel: 'IAL3' },
   },
   {
     issuerId: 'did:vitalcv:issuer:npi-registry',
@@ -69,7 +83,10 @@ const SEED_ISSUERS: TrustedIssuer[] = [
     trustScore: 99,
     verificationCount: 98000,
     revocationCount: 120,
-    metadata: { type: 'federal_registry' },
+    assuranceProfile: 'IAL3',
+    algorithmPolicy: ['ES256'],
+    haipCompliant: true,
+    metadata: { type: 'federal_registry', assuranceLevel: 'IAL3' },
   },
   {
     issuerId: 'did:vitalcv:issuer:dea',
@@ -81,7 +98,10 @@ const SEED_ISSUERS: TrustedIssuer[] = [
     trustScore: 96,
     verificationCount: 3200,
     revocationCount: 28,
-    metadata: { type: 'federal_agency' },
+    assuranceProfile: 'IAL2',
+    algorithmPolicy: ['ES256', 'ES384'],
+    haipCompliant: true,
+    metadata: { type: 'federal_agency', assuranceLevel: 'IAL2' },
   },
   {
     issuerId: 'did:vitalcv:issuer:vitalcv-psv',
@@ -93,7 +113,10 @@ const SEED_ISSUERS: TrustedIssuer[] = [
     trustScore: 82,
     verificationCount: 1100,
     revocationCount: 5,
-    metadata: { type: 'automated_verifier' },
+    assuranceProfile: 'IAL1',
+    algorithmPolicy: ['ES256'],
+    haipCompliant: false,
+    metadata: { type: 'automated_verifier', assuranceLevel: 'IAL1' },
   },
   {
     issuerId: 'did:vitalcv:issuer:unverified-org',
