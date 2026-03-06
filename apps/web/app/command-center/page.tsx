@@ -20,18 +20,20 @@ import { TrustEngineTerminal } from '@/components/simulation/TrustEngineTerminal
 import { DecisionInsightsPanel } from '@/components/decision/DecisionInsightsPanel';
 import { AlertStream } from '@/components/monitoring/AlertStream';
 import { SimulationControlPanel } from '@/components/simulation/SimulationControlPanel';
+import { KnowledgeExplorer } from '@/components/knowledge/KnowledgeExplorer';
 import { useAlertStream } from '@/hooks/useAlertStream';
 import { useDecisionInsights } from '@/hooks/useDecisionInsights';
 import { useSystemStatus } from '@/hooks/useSystemStatus';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
-type ModuleId = 'pipeline' | 'simulation' | 'insights';
+type ModuleId = 'pipeline' | 'simulation' | 'insights' | 'knowledge';
 
 const MODULES: Array<{ id: ModuleId; label: string; icon: string }> = [
   { id: 'pipeline',   label: 'Pipeline',   icon: '▸' },
   { id: 'simulation', label: 'Simulation', icon: '◎' },
   { id: 'insights',   label: 'Insights',   icon: '◆' },
+  { id: 'knowledge',  label: 'Knowledge',  icon: '⬡' },
 ];
 
 const fadeUp = {
@@ -220,6 +222,11 @@ export default function CommandCenterPage() {
                       loading={insightsLoading && !insights}
                     />
                   )}
+                </motion.div>
+              )}
+              {activeModule === 'knowledge' && (
+                <motion.div key="knowledge" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <KnowledgeExplorer npi={npi} pollIntervalMs={60_000} />
                 </motion.div>
               )}
             </AnimatePresence>

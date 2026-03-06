@@ -45,6 +45,26 @@ import { registerHiringRoutes } from './routes/hiring';
 import { registerPublicProfileRoutes } from './routes/publicProfile';
 // Wave 47: Human-in-the-Loop review queue
 import { registerHitlRoutes } from './routes/hitl';
+// Wave 82: Trust Graph Intelligence
+import { registerGraphRoutes } from './routes/graph';
+// Wave 83: Decision Intelligence
+import { registerDecisionInsightsRoutes } from './routes/decisionInsights';
+// Wave 84: Trust Simulation
+import { registerSimulationRoutes } from './routes/simulation';
+// Wave 85: Monitoring Events
+import { registerMonitoringEventsRoutes } from './routes/monitoringEvents';
+// Wave 87: Trust Operations
+import { registerTrustOperationsRoutes } from './routes/trustOperations';
+// Wave 88: Clinician Passport
+import { registerPassportRoutes } from './routes/passport';
+// Wave 89: Network Telemetry
+import { registerTelemetryRoutes } from './routes/telemetry';
+// Wave 90: System Status
+import { registerSystemStatusRoutes } from './routes/systemStatus';
+// Wave 91: Network Gateway
+import { registerNetworkGatewayRoutes } from './routes/networkGateway';
+// Wave 92: Trust Knowledge Protocol
+import { registerKnowledgeRoutes } from './routes/knowledge';
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3383,6 +3403,16 @@ registerStatusListRoutes(app); // Wave 40: W3C Bitstring Status List
 registerHiringRoutes(app);    // Wave 41: ON Loop — EmployerAcceptance + StartAttestation
 registerPublicProfileRoutes(app); // Wave 43: Public Trust Profile — NPI-keyed
 registerHitlRoutes(app);         // Wave 47: AI HITL Review Queue
+registerGraphRoutes(app);        // Wave 82: Trust Graph Intelligence
+registerDecisionInsightsRoutes(app); // Wave 83: Decision Intelligence
+registerSimulationRoutes(app);       // Wave 84: Trust Simulation
+registerMonitoringEventsRoutes(app); // Wave 85: Monitoring Events
+registerTrustOperationsRoutes(app);  // Wave 87: Trust Operations
+registerPassportRoutes(app);         // Wave 88: Clinician Passport
+registerTelemetryRoutes(app);        // Wave 89: Network Telemetry
+registerSystemStatusRoutes(app);     // Wave 90: System Status
+registerNetworkGatewayRoutes(app);   // Wave 91: Network Gateway
+registerKnowledgeRoutes(app);        // Wave 92: Trust Knowledge Protocol
 
 // Wave 35: Start the Merkle anchoring background worker.
 startAnchorWorker();
