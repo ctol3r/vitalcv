@@ -1,0 +1,25 @@
+{
+  "name": "@vitalcv/issuer-sdk",
+  "version": "1.0.0",
+  "description": "VitalCV Issuer SDK — issue and manage healthcare verifiable credentials",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": ["vitalcv", "credential", "issuer", "healthcare", "vc", "haip"],
+  "license": "MIT",
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}
