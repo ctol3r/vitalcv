@@ -286,3 +286,184 @@ export function buildVitalCVEntityConfiguration(): FederationEntityConfiguration
 export function federationCacheSize(): number {
   return metadataCache.size;
 }
+
+// ── Phase 4: Strengthened validation + health reporting ──────────────
+
+export type FederationEntityStatus = 'healthy' | 'degraded' | 'expired' | 'unknown';
+
+export interface FederationEntityHealthResult {
+  entityId: string;
+  status: FederationEntityStatus;
+  trusted: boolean;
+  chainLength: number;
+  expiresAt: string;
+  isExpired: boolean;
+  isExpiringSoon: boolean;
+  keyCount: number;
+  hasKeyRotationHint: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+export interface FederationHealthReport {
+  overallStatus: 'healthy' | 'degraded' | 'unhealthy';
+  totalEntities: number;
+  healthyCount: number;
+  degradedCount: number;
+  expiredCount: number;
+  entityResults: FederationEntityHealthResult[];
+  checkedAt: string;
+}
+
+const EXPIRING_SOON_DAYS = 30;
+
+function evaluateEntityHealth(cached: CachedEntityConfig): FederationEntityHealthResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const now = Date.now();
+  const exp = cached.configuration.exp * 1000;
+  const expiresAt = new Date(exp).toISOString();
+  const isExpired = exp < now;
+  const msUntilExpiry = exp - now;
+  const daysUntilExpiry = msUntilExpiry / (24 * 60 * 60 * 1000);
+  const isExpiringSoon = !isExpired && daysUntilExpiry < EXPIRING_SOON_DAYS;
+
+  if (isExpired) {
+    errors.push(`Entity configuration expired at ${expiresAt}`);
+  } else if (isExpiringSoon) {
+    warnings.push(`Entity configuration expires in ${Math.round(daysUntilExpiry)} days`);
+  }
+
+  // Trust chain check
+  const hints = cached.configuration.authority_hints ?? [];
+  if (!hints.includes(VITALCV_FEDERATION_ANCHOR)) {
+    errors.push(`Missing VitalCV federation anchor in authority_hints`);
+  }
+
+  // Chain length check
+  const chainLength = cached.trustChainLength ?? 0;
+  if (chainLength > 3) {
+    warnings.push(`Trust chain depth ${chainLength} exceeds recommended maximum of 3`);
+  }
+
+  // Key rotation hint — check if JWKS has multiple keys (rotation in progress)
+  const keys = cached.configuration.jwks.keys;
+  const hasKeyRotationHint = keys.length > 1;
+  if (hasKeyRotationHint) {
+    warnings.push(`${keys.length} JWKS keys present — key rotation may be in progress`);
+  }
+
+  // Empty JWKS is a warning (demo mode)
+  if (keys.length === 0) {
+    warnings.push('JWKS is empty — signature verification will fall back to registry');
+  }
+
+  // Determine status
+  let status: FederationEntityStatus = 'healthy';
+  if (isExpired) {
+    status = 'expired';
+  } else if (errors.length > 0) {
+    status = 'degraded';
+  } else if (warnings.length > 0) {
+    status = 'degraded';
+  }
+
+  return {
+    entityId: cached.entityId,
+    status,
+    trusted: cached.trustVerified && errors.length === 0,
+    chainLength,
+    expiresAt,
+    isExpired,
+    isExpiringSoon,
+    keyCount: keys.length,
+    hasKeyRotationHint,
+    errors,
+    warnings,
+  };
+}
+
+/**
+ * Phase 4: Check federation health for a single entity or all entities.
+ * Returns a structured health report with degraded entity identification.
+ */
+export async function checkFederationHealth(
+  entityId?: string,
+): Promise<FederationHealthReport> {
+  const entities = entityId
+    ? (() => {
+        const e = metadataCache.get(entityId);
+        return e ? [e] : [];
+      })()
+    : Array.from(metadataCache.values());
+
+  const entityResults = entities.map(evaluateEntityHealth);
+
+  const healthyCount = entityResults.filter((r) => r.status === 'healthy').length;
+  const degradedCount = entityResults.filter((r) => r.status === 'degraded').length;
+  const expiredCount = entityResults.filter((r) => r.status === 'expired').length;
+  const total = entityResults.length;
+
+  let overallStatus: FederationHealthReport['overallStatus'] = 'healthy';
+  if (expiredCount > 0 || (degradedCount > 0 && healthyCount === 0)) {
+    overallStatus = 'unhealthy';
+  } else if (degradedCount > 0) {
+    overallStatus = 'degraded';
+  }
+
+  log('info', 'federation_health_checked', {
+    total,
+    healthyCount,
+    degradedCount,
+    expiredCount,
+    overallStatus,
+  });
+
+  return {
+    overallStatus,
+    totalEntities: total,
+    healthyCount,
+    degradedCount,
+    expiredCount,
+    entityResults,
+    checkedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Phase 4: Validate a full trust chain, checking each hop for expiry + key health.
+ * Returns chain-level errors and a validity boolean.
+ */
+export async function validateTrustChain(entityId: string): Promise<{
+  valid: boolean;
+  chainLength: number;
+  hops: Array<{ entityId: string; trusted: boolean; errors: string[] }>;
+}> {
+  const entity = metadataCache.get(entityId);
+  if (!entity) {
+    return { valid: false, chainLength: 0, hops: [{ entityId, trusted: false, errors: ['Entity not found'] }] };
+  }
+
+  const hops: Array<{ entityId: string; trusted: boolean; errors: string[] }> = [];
+  const health = evaluateEntityHealth(entity);
+  hops.push({ entityId, trusted: health.trusted, errors: health.errors });
+
+  // Walk authority_hints chain (max depth 5)
+  const hints = entity.configuration.authority_hints ?? [];
+  for (const hint of hints.slice(0, 5)) {
+    if (hint === VITALCV_FEDERATION_ANCHOR) {
+      hops.push({ entityId: hint, trusted: true, errors: [] });
+      break;
+    }
+    const hopEntity = metadataCache.get(hint);
+    if (!hopEntity) {
+      hops.push({ entityId: hint, trusted: false, errors: [`Intermediate entity ${hint} not in cache`] });
+      break;
+    }
+    const hopHealth = evaluateEntityHealth(hopEntity);
+    hops.push({ entityId: hint, trusted: hopHealth.trusted, errors: hopHealth.errors });
+  }
+
+  const valid = hops.every((h) => h.trusted);
+  return { valid, chainLength: hops.length, hops };
+}

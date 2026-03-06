@@ -1,10 +1,12 @@
 /**
- * federationMetadata.ts routes — Wave 113: OpenID Federation API
+ * federationMetadata.ts routes — Wave 113 + Substrate Phase 4
  *
  * GET  /api/federation/entity/:id       — Fetch entity configuration
  * GET  /api/federation/trust/:id        — Validate federation trust for entity
  * POST /api/federation/entity           — Register/cache a new entity config
  * GET  /api/federation/entities         — List all cached entities
+ * GET  /api/federation/health           — Network-wide federation health
+ * GET  /api/federation/health/:entity   — Per-entity trust chain health
  * GET  /.well-known/openid-federation   — VitalCV's own entity configuration
  */
 
@@ -15,6 +17,8 @@ import {
   cacheFederationMetadata,
   listFederationEntities,
   buildVitalCVEntityConfiguration,
+  checkFederationHealth,
+  type FederationHealthReport,
 } from '../services/federation/federationMetadata';
 import { log } from '../obs/logger';
 
@@ -99,6 +103,43 @@ export function registerFederationMetadataRoutes(app: Express): void {
       res.json({ entities, count: entities.length });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
+      res.status(500).json({ error: msg });
+    }
+  });
+
+  // ── GET /api/federation/health ── Phase 4: network-wide health ────
+  app.get('/api/federation/health', async (_req: Request, res: Response) => {
+    try {
+      const report = await checkFederationHealth();
+      const httpStatus = report.overallStatus === 'healthy' ? 200
+        : report.overallStatus === 'degraded' ? 207
+        : 503;
+      res.status(httpStatus).json(report);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'federation_health_error', { error: msg });
+      res.status(500).json({ error: msg });
+    }
+  });
+
+  // ── GET /api/federation/health/:entity ── Phase 4: per-entity ─────
+  app.get('/api/federation/health/:entity', async (req: Request, res: Response) => {
+    try {
+      const entityId = decodeURIComponent(req.params.entity);
+      const report = await checkFederationHealth(entityId);
+      const entityResult = report.entityResults.find((r) => r.entityId === entityId);
+      if (!entityResult) {
+        res.status(404).json({ error: `Entity ${entityId} not found in federation` });
+        return;
+      }
+      res.json({
+        ...entityResult,
+        overallStatus: report.overallStatus,
+        checkedAt: report.checkedAt,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'federation_health_entity_error', { error: msg });
       res.status(500).json({ error: msg });
     }
   });
