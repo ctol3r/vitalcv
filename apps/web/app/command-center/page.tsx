@@ -1,12 +1,12 @@
 'use client';
 
 /**
- * Command Center — Wave 93: Live Wire
+ * Command Center — Wave 93 + 97: Live Wire + Trust Alerts
  *
  * Route: /command-center
  *
  * Left: System modules. Center: Trust Graph + Terminal.
- * Right: Alerts (live), Decision Insights (live).
+ * Right: Alerts (live), Trust Alerts (Wave 97), Decision Insights (live).
  *
  * Each panel independently polls its own backend endpoint.
  * Loading and error states are surfaced per-panel.
@@ -14,13 +14,14 @@
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { Bell, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import { TrustStatusIndicator, type TrustStatus } from '@/components/system/TrustStatusIndicator';
 import { TrustEngineTerminal } from '@/components/simulation/TrustEngineTerminal';
 import { DecisionInsightsPanel } from '@/components/decision/DecisionInsightsPanel';
 import { AlertStream } from '@/components/monitoring/AlertStream';
 import { SimulationControlPanel } from '@/components/simulation/SimulationControlPanel';
 import { KnowledgeExplorer } from '@/components/knowledge/KnowledgeExplorer';
+import { TrustAlertsPanel } from '@/components/alerts/TrustAlertsPanel'; // Wave 97
 import { useAlertStream } from '@/hooks/useAlertStream';
 import { useDecisionInsights } from '@/hooks/useDecisionInsights';
 import { useSystemStatus } from '@/hooks/useSystemStatus';
@@ -277,6 +278,20 @@ export default function CommandCenterPage() {
                   Updated {alertsUpdated.toLocaleTimeString()}
                 </p>
               )}
+            </div>
+
+            {/* Trust Alerts Panel — Wave 97 */}
+            <div>
+              <h3 className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <Bell className="h-3 w-3 text-amber-400" />
+                Trust Alerts
+              </h3>
+              <TrustAlertsPanel
+                dark
+                limit={5}
+                pollIntervalMs={30_000}
+                className="text-xs"
+              />
             </div>
 
             {/* Quick Actions from decision insights */}

@@ -1,9 +1,11 @@
 /**
- * credentials.ts — Wave 94: Trust Credential API Routes
+ * credentials.ts — Wave 94 + 98: Trust Credential API Routes
  *
  * POST /api/credentials/issue    — Issue a signed verifiable credential
  * POST /api/credentials/verify   — Verify a credential
  * GET  /api/credentials/:id      — Retrieve a credential by ID
+ * POST /api/credentials/present  — Wave 98: Create a verifiable presentation
+ * GET  /api/credentials/present/:id — Retrieve a presentation by ID
  */
 
 import type { Express, Request, Response } from 'express';
@@ -12,7 +14,13 @@ import { verifyCredential } from '../services/credentials/credentialVerifier';
 import {
   storeCredential,
   getCredential,
+  getCredentialsForSubject,
 } from '../services/credentials/credentialWallet';
+import {
+  createPresentation,
+  getPresentation,
+  getPresentationsForHolder,
+} from '../services/credentials/credentialPresentation';
 import type { IssueCredentialRequest } from '../services/credentials/credentialModel';
 import { log } from '../obs/logger';
 
@@ -99,6 +107,91 @@ export function registerCredentialRoutes(app: Express): void {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       log('error', 'credential_get_failed', { error: msg });
       res.status(500).json({ error: 'Failed to retrieve credential', detail: msg });
+    }
+  });
+
+  // ── POST /api/credentials/present (Wave 98) ────────────────────────
+  app.post('/api/credentials/present', async (req: Request, res: Response) => {
+    try {
+      const { holder, credentialIds, disclosedClaims, expiresAt } = req.body ?? {};
+
+      if (!holder || typeof holder !== 'string') {
+        res.status(400).json({ error: 'holder is required' });
+        return;
+      }
+      if (!Array.isArray(credentialIds) || credentialIds.length === 0) {
+        res.status(400).json({ error: 'credentialIds must be a non-empty array' });
+        return;
+      }
+
+      const signingKey = DEV_SIGNING_KEY_PEM;
+      if (!signingKey) {
+        res.status(503).json({
+          error: 'Signing key not configured',
+          hint: 'Set CREDENTIAL_SIGNING_KEY_PEM environment variable',
+        });
+        return;
+      }
+
+      // Resolve credentials from wallet
+      const credentials = credentialIds
+        .map((id: string) => getCredential(id))
+        .filter((c) => c != null);
+
+      if (credentials.length === 0) {
+        res.status(404).json({ error: 'None of the specified credentials were found in the wallet' });
+        return;
+      }
+
+      const presentation = await createPresentation(credentials, holder, signingKey, {
+        disclosedClaims,
+        expiresAt,
+      });
+
+      res.status(201).json({ presentation });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'credential_present_failed', { error: msg });
+      res.status(500).json({ error: 'Failed to create presentation', detail: msg });
+    }
+  });
+
+  // ── GET /api/credentials/present/:id (Wave 98) ────────────────────
+  app.get('/api/credentials/present/:id', (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const presentation = getPresentation(id);
+
+      if (!presentation) {
+        res.status(404).json({ error: `Presentation ${id} not found` });
+        return;
+      }
+
+      res.status(200).json({ presentation });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'presentation_get_failed', { error: msg });
+      res.status(500).json({ error: 'Failed to retrieve presentation', detail: msg });
+    }
+  });
+
+  // ── GET /api/credentials/holder/:subject (Wave 98) ────────────────
+  app.get('/api/credentials/holder/:subject', (req: Request, res: Response) => {
+    try {
+      const subject = decodeURIComponent(req.params.subject ?? '');
+      const credentials = getCredentialsForSubject(subject);
+      const presentations = getPresentationsForHolder(subject);
+
+      res.status(200).json({
+        subject,
+        credentials,
+        presentations,
+        total: { credentials: credentials.length, presentations: presentations.length },
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'holder_wallet_get_failed', { error: msg });
+      res.status(500).json({ error: 'Failed to retrieve holder wallet', detail: msg });
     }
   });
 }
