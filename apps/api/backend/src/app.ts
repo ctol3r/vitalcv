@@ -93,6 +93,7 @@ import { registerWebAuthnRoutes } from './routes/webauthn';                // Wa
 import { registerDecisionCapsuleRoutes } from './routes/decisionCapsules'; // Wave A: Decision Capsules
 import { registerTrustSubstrateRoutes } from './routes/trustSubstrate';   // Substrate Consolidation: Phase 1
 import { registerAuditStreamRoutes } from './routes/auditStream';          // Substrate Consolidation: Phase 2
+import { registerHealthStartRoutes } from './routes/healthstart';           // Substrate Consolidation: Phase 3
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3462,6 +3463,7 @@ registerWebAuthnRoutes(app);          // Wave 122: WebAuthn Biometric Auth
 registerDecisionCapsuleRoutes(app);   // Wave A: Decision Capsules + Blast Radius
 registerTrustSubstrateRoutes(app);    // Substrate Consolidation: Phase 1 — unified trust substrate
 registerAuditStreamRoutes(app);       // Substrate Consolidation: Phase 2 — audit OS, cursor export, SIEM stream
+registerHealthStartRoutes(app);       // Substrate Consolidation: Phase 3 — HealthStart deployment profiles + evidence
 
 // Wave 35: Start the Merkle anchoring background worker.
 startAnchorWorker();
