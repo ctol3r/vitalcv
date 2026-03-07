@@ -30,6 +30,15 @@ function buildUnsigned(req: IssueCredentialRequest): UnsignedCredential {
   };
 }
 
+function normalizeExpiration(expiresAt: string | undefined): Date | string {
+  if (!expiresAt) {
+    return '2y';
+  }
+
+  const parsed = new Date(expiresAt);
+  return Number.isNaN(parsed.getTime()) ? expiresAt : parsed;
+}
+
 // ── Public API ────────────────────────────────────────────────────────
 
 /**
@@ -57,7 +66,7 @@ export async function issueCredential(
     .setIssuedAt()
     .setIssuer(unsigned.issuer)
     .setSubject(unsigned.subject)
-    .setExpirationTime(unsigned.expiresAt ?? '2y')
+    .setExpirationTime(normalizeExpiration(unsigned.expiresAt))
     .sign(privateKey);
 
   // Wave 100: Embed DID metadata if issuer is registered in DID registry

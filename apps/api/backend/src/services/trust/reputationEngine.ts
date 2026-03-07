@@ -11,7 +11,12 @@
  */
 
 import { log } from '../../obs/logger';
-import { listIssuers, updateIssuerReputation, type TrustedIssuer } from '../registry/trustRegistry';
+import {
+  initializeTrustRegistryPersistence,
+  listIssuers,
+  updateIssuerReputation,
+  type TrustedIssuer,
+} from '../registry/trustRegistry';
 import { listRevocations } from '../revocation/revocationRegistry';
 import { listAllCredentials } from '../credentials/credentialWallet';
 
@@ -100,6 +105,7 @@ export function calculateTrustScore(input: IssuerReputationInput): number {
  * Updates each issuer's trustScore, verificationCount, revocationCount in-place.
  */
 export async function calculateAllReputations(): Promise<IssuerReputationResult[]> {
+  await initializeTrustRegistryPersistence();
   const issuers = listIssuers();
   const allCredentials = listAllCredentials();
   const allRevocations = listRevocations();
@@ -142,7 +148,7 @@ export async function calculateAllReputations(): Promise<IssuerReputationResult[
     };
 
     // Persist back into trust registry (Wave 105 extension)
-    updateIssuerReputation(issuer.issuerId, {
+    await updateIssuerReputation(issuer.issuerId, {
       trustScore,
       verificationCount: totalVerifications,
       revocationCount: revoked.length,

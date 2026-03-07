@@ -14,7 +14,7 @@ import { log } from '../../obs/logger';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
-interface ProviderData {
+export interface ProviderData {
   npi: string;
   firstName?: string;
   lastName?: string;
@@ -50,6 +50,7 @@ interface ProviderData {
     state?: string;
   }>;
   trustBand?: string;
+  auditHash?: string;
 }
 
 interface FHIRIdentifier {
@@ -215,6 +216,10 @@ export function exportProviderAsFHIR(data: ProviderData): FHIRBundle {
         url: `${VITALCV_SYSTEM}/StructureDefinition/trust-band`,
         valueString: data.trustBand ?? 'UNKNOWN',
       },
+      ...(data.auditHash ? [{
+        url: `${VITALCV_SYSTEM}/StructureDefinition/audit-hash`,
+        valueString: data.auditHash,
+      }] : []),
       {
         url: `${VITALCV_SYSTEM}/StructureDefinition/bundle-hash`,
         valueString: createHash('sha256')

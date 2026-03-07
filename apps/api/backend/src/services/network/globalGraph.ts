@@ -6,7 +6,7 @@
  */
 
 import prisma from '../../graphql/prisma_client';
-import { listIssuers } from '../registry/trustRegistry';
+import { initializeTrustRegistryPersistence, listIssuers } from '../registry/trustRegistry';
 import { listAllCredentials } from '../credentials/credentialWallet';
 import { getFederatedGraphNodes } from './federation';
 import { listFederationEntities, checkFederationHealth } from '../federation/federationMetadata';
@@ -58,6 +58,7 @@ export interface GlobalGraphData {
 // ── Generator ─────────────────────────────────────────────────────────
 
 export async function generateGlobalGraph(): Promise<GlobalGraphData> {
+  await initializeTrustRegistryPersistence();
   const nodes: GlobalNode[] = [];
   const edges: GlobalEdge[] = [];
   const nodeIds = new Set<string>();

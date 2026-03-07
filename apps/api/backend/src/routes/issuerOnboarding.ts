@@ -11,6 +11,7 @@ import {
   listOnboardedIssuers,
   type IssuerOnboardingRequest,
 } from '../services/network/issuerOnboarding';
+import { initializeTrustRegistryPersistence } from '../services/registry/trustRegistry';
 
 export function registerIssuerOnboardingRoutes(app: Express): void {
   /**
@@ -37,8 +38,9 @@ export function registerIssuerOnboardingRoutes(app: Express): void {
    * GET /api/network/issuer
    * Returns all onboarded issuers from the trust registry.
    */
-  app.get('/api/network/issuer', (_req: Request, res: Response) => {
+  app.get('/api/network/issuer', async (_req: Request, res: Response) => {
     try {
+      await initializeTrustRegistryPersistence();
       const issuers = listOnboardedIssuers();
       res.json({ issuers, count: issuers.length });
     } catch (err) {
