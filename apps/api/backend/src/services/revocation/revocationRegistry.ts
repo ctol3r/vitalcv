@@ -9,6 +9,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { log } from '../../obs/logger';
+import { revocationCascade, type CascadeResult } from '../decision/revocationCascade';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -34,6 +35,12 @@ export interface RevokeCredentialRequest {
   metadata?: Record<string, unknown>;
 }
 
+export interface RevokeCredentialCascadeResult {
+  entry: RevocationEntry;
+  cascadeTriggered: boolean;
+  cascadeResult: CascadeResult | null;
+}
+
 // ── Storage ───────────────────────────────────────────────────────────
 
 /** credentialId → RevocationEntry */
@@ -41,15 +48,14 @@ const revocations = new Map<string, RevocationEntry>();
 
 // ── Public API ────────────────────────────────────────────────────────
 
-/**
- * Revoke a credential. Idempotent — revoking an already-revoked
- * credential returns the existing entry.
- */
-export function revokeCredential(req: RevokeCredentialRequest): RevocationEntry {
+function getOrCreateRevocationEntry(req: RevokeCredentialRequest): {
+  entry: RevocationEntry;
+  created: boolean;
+} {
   const existing = revocations.get(req.credentialId);
   if (existing) {
     log('warn', 'revocation_already_exists', { credentialId: req.credentialId });
-    return existing;
+    return { entry: existing, created: false };
   }
 
   const entry: RevocationEntry = {
@@ -69,7 +75,45 @@ export function revokeCredential(req: RevokeCredentialRequest): RevocationEntry 
     reason: req.reason,
   });
 
-  return entry;
+  return { entry, created: true };
+}
+
+/**
+ * Revoke a credential. Idempotent — revoking an already-revoked
+ * credential returns the existing entry.
+ */
+export function revokeCredential(req: RevokeCredentialRequest): RevocationEntry {
+  return getOrCreateRevocationEntry(req).entry;
+}
+
+/**
+ * Revoke a credential and eagerly invalidate any dependent decision capsules.
+ * The revocation entry remains authoritative even if cascade propagation fails.
+ */
+export async function revokeCredentialWithCascade(
+  req: RevokeCredentialRequest,
+): Promise<RevokeCredentialCascadeResult> {
+  const { entry } = getOrCreateRevocationEntry(req);
+
+  try {
+    const cascadeResult = await revocationCascade.propagateRevocation(req.credentialId);
+    return {
+      entry,
+      cascadeTriggered: true,
+      cascadeResult,
+    };
+  } catch (error) {
+    log('warn', 'revocation_cascade_failed', {
+      credentialId: req.credentialId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+
+    return {
+      entry,
+      cascadeTriggered: false,
+      cascadeResult: null,
+    };
+  }
 }
 
 /**

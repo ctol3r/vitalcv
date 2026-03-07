@@ -17,7 +17,7 @@ import { log } from '../../obs/logger';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
-export type ProvenanceSourceType = 'NPPES' | 'STATE_BOARD' | 'OIG' | 'ABMS' | 'MANUAL';
+export type ProvenanceSourceType = 'NPPES' | 'STATE_BOARD' | 'OIG' | 'ABMS' | 'CAQH' | 'NPDB' | 'MANUAL';
 
 export interface ProvenanceRecord {
   provenanceId: string;
@@ -60,6 +60,8 @@ const FRESHNESS_THRESHOLDS: Record<ProvenanceSourceType, number> = {
   STATE_BOARD: 90,  // Boards update quarterly
   OIG: 30,          // OIG LEIE updates monthly
   ABMS: 180,        // ABMS updates semi-annually
+  CAQH: 90,         // CAQH profiles update quarterly
+  NPDB: 180,        // NPDB reports semi-annually
   MANUAL: 365,      // Manual entries expire yearly
 };
 

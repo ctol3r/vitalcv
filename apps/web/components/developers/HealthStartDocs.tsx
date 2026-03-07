@@ -9,6 +9,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { RefreshCw, Shield, CheckCircle, AlertCircle, Lock, FileText, Server } from 'lucide-react';
+import { getApiBase } from '@/lib/api';
 
 type DeploymentProfile = 'SaaS' | 'PrivateVPC' | 'GovEnclave';
 
@@ -35,10 +36,7 @@ interface ControlReport {
   controls: InheritedControl[];
 }
 
-const base = () =>
-  ((typeof process !== 'undefined'
-    ? process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_BACKEND_URL
-    : '') ?? '').replace(/\/$/, '');
+const base = () => getApiBase();
 
 const STATUS_COLORS: Record<string, string> = {
   INHERITED: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',

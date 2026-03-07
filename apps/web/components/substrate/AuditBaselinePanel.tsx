@@ -11,6 +11,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { RefreshCw, AlertTriangle, CheckCircle, Activity, Download } from 'lucide-react';
+import { getApiBase } from '@/lib/api';
 
 interface BaselineWindow {
   category: string;
@@ -43,10 +44,7 @@ interface BaselineSummary {
   anomalies: AuditAnomaly[];
 }
 
-const base = () =>
-  ((typeof process !== 'undefined'
-    ? process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_BACKEND_URL
-    : '') ?? '').replace(/\/$/, '');
+const base = () => getApiBase();
 
 const SEVERITY_COLORS: Record<string, string> = {
   CRITICAL: 'text-red-400 bg-red-500/10 border-red-500/20',

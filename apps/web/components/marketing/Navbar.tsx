@@ -7,12 +7,11 @@ import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
-const NAV_LINKS: ReadonlyArray<{ readonly href: string; readonly label: string; readonly isRoute?: boolean }> = [
-  { href: '#how-it-works', label: 'How It Works' },
-  { href: '#security',     label: 'Security'      },
-  { href: '#portals',      label: 'Portals'        },
-  { href: '/developers',   label: 'Developers', isRoute: true },
-  { href: '/issuer',       label: 'Issuer',     isRoute: true },
+const NAV_LINKS: ReadonlyArray<{ readonly href: string; readonly label: string; readonly isRoute: true }> = [
+  { href: '/demo',       label: 'Demo',       isRoute: true },
+  { href: '/network',    label: 'Network',    isRoute: true },
+  { href: '/developers', label: 'Developers', isRoute: true },
+  { href: '/status',     label: 'Status',     isRoute: true },
 ];
 
 export default function Navbar() {
@@ -99,7 +98,7 @@ export default function Navbar() {
           </MagneticButton>
           <MagneticButton>
             <Button asChild size="sm">
-              <Link href="/demo">Book a Demo</Link>
+              <Link href="/demo">Try VitalCV</Link>
             </Button>
           </MagneticButton>
         </div>
@@ -156,7 +155,7 @@ export default function Navbar() {
                 </MagneticButton>
                 <MagneticButton className="flex">
                   <Button asChild size="sm" onClick={closeMobile} className="w-full">
-                    <Link href="/demo">Book a Demo</Link>
+                    <Link href="/demo">Try VitalCV</Link>
                   </Button>
                 </MagneticButton>
               </div>

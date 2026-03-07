@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, 'feature/**', 'fix/**']
+    branches: [main, 'feature/**', 'fix/**', 'wave/**']
   pull_request:
     branches: [main]
 
@@ -12,9 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # pnpm version resolved from packageManager field in package.json (pnpm@10.6.1)
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -32,8 +31,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -49,8 +46,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

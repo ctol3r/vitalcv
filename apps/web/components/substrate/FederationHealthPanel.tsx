@@ -14,6 +14,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { RefreshCw, Network, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { getApiBase } from '@/lib/api';
 
 interface FederationHealthSummary {
   healthScore: number;
@@ -34,12 +35,7 @@ interface EntityHealth {
   trustScore?: number;
 }
 
-const base = () =>
-  (
-    (typeof process !== 'undefined'
-      ? process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_BACKEND_URL
-      : '') ?? ''
-  ).replace(/\/$/, '');
+const base = () => getApiBase();
 
 function StatusIcon({ status }: { status: EntityHealth['status'] }) {
   if (status === 'healthy') return <CheckCircle className="h-3 w-3 text-emerald-400" />;

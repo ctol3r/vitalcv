@@ -12,6 +12,9 @@ FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# NEXT_PUBLIC_* vars are baked into the client bundle at build time
+ARG NEXT_PUBLIC_API_BASE=http://localhost:4000
+ENV NEXT_PUBLIC_API_BASE=${NEXT_PUBLIC_API_BASE}
 RUN pnpm --filter web build
 
 FROM base AS runtime
@@ -21,5 +24,5 @@ COPY --from=build /app/apps/web/package.json ./apps/web/
 COPY --from=build /app/node_modules ./node_modules
 WORKDIR /app/apps/web
 EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=5s CMD wget -qO- http://localhost:3000/ || exit 1
+HEALTHCHECK --interval=30s --timeout=5s CMD wget -qO- http://localhost:3000/api/health || exit 1
 CMD ["npx", "next", "start"]

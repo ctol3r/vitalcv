@@ -1,15 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import { BackgroundField } from '@/components/ui/BackgroundField';
-import { SystemConsole } from '@/components/hero/SystemConsole';
-import { TrustGraphPrimary, DEMO_NODES, DEMO_EDGES } from '@/components/graph/TrustGraphPrimary';
-import type { GraphNode } from '@/components/graph/TrustGraphPrimary';
 import { KnowledgePanel } from '@/components/graph/KnowledgePanel';
-import { SectionReveal, GraphExpansion } from '@/components/motion/ScrollMotion';
-import { LedgerTicker } from '@/components/marketing/LedgerTicker';
+import type { GraphNode } from '@/components/graph/TrustGraphPrimary';
+import { DEMO_EDGES, DEMO_NODES, TrustGraphPrimary } from '@/components/graph/TrustGraphPrimary';
+import Footer from '@/components/Footer';
+import { LiveTrustConsole } from '@/components/hero/LiveTrustConsole';
 import { BentoGrid } from '@/components/marketing/BentoGrid';
+import { LedgerTicker } from '@/components/marketing/LedgerTicker';
+import { GraphExpansion, SectionReveal } from '@/components/motion/ScrollMotion';
 import { GlobalTrustMap } from '@/components/network/GlobalTrustMap'; // Wave 96
+import { BackgroundField } from '@/components/ui/BackgroundField';
+import { useState } from 'react';
 
 // ── Wave 68: Infrastructure Interface Redesign ────────────────
 export default function HomePage() {
@@ -17,8 +18,8 @@ export default function HomePage() {
 
   return (
     <BackgroundField className="min-h-screen">
-      {/* Hero — System Console */}
-      <SystemConsole />
+      {/* Hero — Live Trust Console */}
+      <LiveTrustConsole />
 
       {/* Ledger Ticker */}
       <SectionReveal>
@@ -80,6 +81,11 @@ export default function HomePage() {
         node={selectedNode}
         onClose={() => setSelectedNode(null)}
       />
+
+      {/* Footer */}
+      <div className="px-6">
+        <Footer />
+      </div>
     </BackgroundField>
   );
 }

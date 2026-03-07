@@ -19,6 +19,7 @@ import {
   AlertTriangle, XCircle, Users, Building, Handshake,
 } from 'lucide-react';
 import Link from 'next/link';
+import { getApiBase } from '@/lib/api';
 
 interface MissionOpsOverview {
   issuerOnboarding: { total: number; complete: number; inProgress: number; blocked: number };
@@ -30,10 +31,7 @@ interface MissionOpsOverview {
   computedAt: string;
 }
 
-const base = () =>
-  ((typeof process !== 'undefined'
-    ? process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_BACKEND_URL
-    : '') ?? '').replace(/\/$/, '');
+const base = () => getApiBase();
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },

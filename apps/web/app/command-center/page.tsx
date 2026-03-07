@@ -11,27 +11,37 @@
  * All panels poll live backend APIs. No mock/demo data.
  */
 
-import { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Bell, RefreshCw, Wifi, WifiOff,
-  Shield, AlertTriangle, Network, Award, Activity, TerminalSquare,
-  Play, Lightbulb, BookOpen,
-} from 'lucide-react';
-import { TrustStatusIndicator, type TrustStatus } from '@/components/system/TrustStatusIndicator';
-import { TrustEngineTerminal } from '@/components/simulation/TrustEngineTerminal';
+import { TrustAlertsPanel } from '@/components/alerts/TrustAlertsPanel';
 import { DecisionInsightsPanel } from '@/components/decision/DecisionInsightsPanel';
+import { DEMO_EDGES, DEMO_NODES, TrustGraphPrimary } from '@/components/graph/TrustGraphPrimary';
+import { KnowledgeExplorer } from '@/components/knowledge/KnowledgeExplorer';
 import { AlertStream } from '@/components/monitoring/AlertStream';
 import { SimulationControlPanel } from '@/components/simulation/SimulationControlPanel';
-import { KnowledgeExplorer } from '@/components/knowledge/KnowledgeExplorer';
-import { TrustAlertsPanel } from '@/components/alerts/TrustAlertsPanel';
+import { TrustEngineTerminal } from '@/components/simulation/TrustEngineTerminal';
+import { TrustStatusIndicator, type TrustStatus } from '@/components/system/TrustStatusIndicator';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+    Activity,
+    AlertTriangle,
+    Award,
+    Bell,
+    BookOpen,
+    Lightbulb,
+    Network,
+    Play,
+    RefreshCw,
+    Shield,
+    TerminalSquare,
+    Wifi, WifiOff,
+} from 'lucide-react';
+import { useCallback, useState } from 'react';
 // Phase 6 substrate panels
-import { TrustSubstratePanel } from '@/components/substrate/TrustSubstratePanel';
-import { RevocationCascadePanel } from '@/components/substrate/RevocationCascadePanel';
+import { AuditBaselinePanel } from '@/components/substrate/AuditBaselinePanel';
+import { AuditStreamPanel } from '@/components/substrate/AuditStreamPanel';
 import { FederationHealthPanel } from '@/components/substrate/FederationHealthPanel';
 import { IssuerTrustScoresPanel } from '@/components/substrate/IssuerTrustScoresPanel';
-import { AuditStreamPanel } from '@/components/substrate/AuditStreamPanel';
-import { AuditBaselinePanel } from '@/components/substrate/AuditBaselinePanel';
+import { RevocationCascadePanel } from '@/components/substrate/RevocationCascadePanel';
+import { TrustSubstratePanel } from '@/components/substrate/TrustSubstratePanel';
 import { useAlertStream } from '@/hooks/useAlertStream';
 import { useDecisionInsights } from '@/hooks/useDecisionInsights';
 import { useSystemStatus } from '@/hooks/useSystemStatus';
@@ -162,210 +172,228 @@ export default function CommandCenterPage() {
             {isLive ? 'Live — polling every 15s' : 'Connecting…'}
           </p>
         </div>
-
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <input
-            type="text"
-            value={npiInput}
-            onChange={(e) => setNpiInput(e.target.value)}
-            placeholder="NPI for clinician scope"
-            maxLength={10}
-            className="bg-white/[0.05] border border-zinc-700 rounded-lg px-3 py-1.5 text-sm placeholder-zinc-600 focus:outline-none focus:border-zinc-500 w-52"
-          />
-          <button
-            type="submit"
-            disabled={!/^\d{10}$/.test(npiInput.trim())}
-            className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-700 disabled:text-zinc-500 rounded-lg text-sm font-medium transition-colors"
-          >
-            Load
-          </button>
-          {npi && (
-            <button
-              type="button"
-              onClick={() => { setNpi(null); setNpiInput(''); setActiveModule('substrate'); }}
-              className="px-3 py-1.5 border border-zinc-700 hover:border-zinc-600 rounded-lg text-xs text-zinc-500 transition-colors"
-            >
-              Clear
-            </button>
-          )}
-        </form>
       </motion.header>
 
       {/* ── Main Layout ── */}
       <div className="flex h-[calc(100vh-73px)]">
 
-        {/* Left — Module Nav */}
+        {/* Left — Entity Explorer */}
         <motion.aside
           {...fadeUp}
-          className="w-48 border-r border-zinc-800 p-3 flex-shrink-0 overflow-y-auto"
+          className="w-72 border-r border-zinc-800 p-4 flex-shrink-0 overflow-y-auto space-y-6"
         >
+          {/* Entity Search Form */}
+          <div>
+            <h2 className="text-[10px] text-zinc-500 uppercase tracking-widest mb-3">Entity Explorer</h2>
+            <form onSubmit={handleSubmit} className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={npiInput}
+                onChange={(e) => setNpiInput(e.target.value)}
+                placeholder="NPI for clinician scope"
+                maxLength={10}
+                className="bg-white/[0.05] border border-zinc-700 rounded-lg px-3 py-1.5 text-sm placeholder-zinc-600 focus:outline-none focus:border-zinc-500 w-full"
+              />
+              <button
+                type="submit"
+                disabled={!/^\d{10}$/.test(npiInput.trim())}
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-700 disabled:text-zinc-500 rounded-lg text-sm font-medium transition-colors shrink-0"
+              >
+                Load
+              </button>
+            </form>
+            {npi && (
+               <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 rounded-lg">
+                 <span className="text-xs text-emerald-400 font-mono">NPI: {npi}</span>
+                 <button type="button" onClick={() => { setNpi(null); setNpiInput(''); setActiveModule('substrate'); }} className="text-[10px] text-emerald-400/70 hover:text-emerald-400 underline">Clear</button>
+               </div>
+            )}
+          </div>
+
           {summary && (
-            <div className="mb-3">
+            <div>
+              <h2 className="text-[10px] text-zinc-500 uppercase tracking-widest mb-3">System Identity</h2>
               <TrustStatusIndicator status={trustStatus} summary={summary} />
             </div>
           )}
 
-          <SectionLabel label="Substrate" />
-          <div className="space-y-0.5 mb-1">
-            {MODULES.filter((m) => m.group === 'substrate').map((mod) => (
-              <button
-                key={mod.id}
-                onClick={() => setActiveModule(mod.id)}
-                className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-2 ${
-                  activeModule === mod.id
-                    ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300'
-                    : 'hover:bg-white/[0.04] text-zinc-400'
-                }`}
-              >
-                <span className="text-zinc-500">{mod.icon}</span>
-                <span>{mod.label}</span>
-              </button>
-            ))}
-          </div>
+          <div>
+            <SectionLabel label="Substrate" />
+            <div className="space-y-0.5 mb-1">
+              {MODULES.filter((m) => m.group === 'substrate').map((mod) => (
+                <button
+                  key={mod.id}
+                  onClick={() => setActiveModule(mod.id)}
+                  className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-2 ${
+                    activeModule === mod.id
+                      ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300'
+                      : 'hover:bg-white/[0.04] text-zinc-400'
+                  }`}
+                >
+                  <span className="text-zinc-500">{mod.icon}</span>
+                  <span>{mod.label}</span>
+                </button>
+              ))}
+            </div>
 
-          <SectionLabel label="Operations" />
-          <div className="space-y-0.5">
-            {MODULES.filter((m) => m.group === 'ops').map((mod) => (
-              <button
-                key={mod.id}
-                onClick={() => setActiveModule(mod.id)}
-                disabled={mod.requiresNpi && !npi}
-                className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed ${
-                  activeModule === mod.id
-                    ? 'bg-blue-500/15 border border-blue-500/30 text-blue-300'
-                    : 'hover:bg-white/[0.04] text-zinc-400'
-                }`}
-              >
-                <span className="text-zinc-500">{mod.icon}</span>
-                <span>{mod.label}</span>
-                {mod.id === 'insights' && insightsUpdated && (
-                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
-                )}
-              </button>
-            ))}
-          </div>
+            <SectionLabel label="Operations" />
+            <div className="space-y-0.5">
+              {MODULES.filter((m) => m.group === 'ops').map((mod) => (
+                <button
+                  key={mod.id}
+                  onClick={() => setActiveModule(mod.id)}
+                  disabled={mod.requiresNpi && !npi}
+                  className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed ${
+                    activeModule === mod.id
+                      ? 'bg-blue-500/15 border border-blue-500/30 text-blue-300'
+                      : 'hover:bg-white/[0.04] text-zinc-400'
+                  }`}
+                >
+                  <span className="text-zinc-500">{mod.icon}</span>
+                  <span>{mod.label}</span>
+                  {mod.id === 'insights' && insightsUpdated && (
+                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
+                  )}
+                </button>
+              ))}
+            </div>
 
-          {!npi && (
-            <p className="text-[9px] text-zinc-700 px-3 pt-3">
-              Load an NPI to unlock Operations panels.
-            </p>
-          )}
+            {!npi && (
+              <p className="text-[9px] text-zinc-700 px-3 pt-3">
+                Load an NPI to unlock Operations panels.
+              </p>
+            )}
+          </div>
         </motion.aside>
 
-        {/* Center — Active Module */}
+        {/* Center — Graph */}
         <motion.div
-          {...fadeUp}
-          transition={{ ...fadeUp.transition, delay: 0.1 }}
-          className="flex-1 overflow-y-auto p-5"
+           className="flex-1 relative overflow-hidden bg-zinc-950/50 flex flex-col"
         >
-          {needsNpi ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center max-w-xs">
-                <div className="text-4xl mb-3 opacity-20">⬡</div>
-                <p className="text-sm text-zinc-500">
-                  Enter a 10-digit NPI above to activate <strong className="text-zinc-400">{activeModuleDef.label}</strong>.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <AnimatePresence mode="wait">
-              {/* ── Substrate panels ── */}
-              {activeModule === 'substrate' && npi && (
-                <motion.div key="substrate" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <div className="mb-4">
-                    <h2 className="text-sm font-medium text-zinc-300 mb-0.5">Trust Substrate State</h2>
-                    <p className="text-[11px] text-zinc-600">Full L0–L3 trust evaluation for NPI {npi}</p>
-                  </div>
-                  <TrustSubstratePanel subject={npi} pollIntervalMs={30_000} />
-                </motion.div>
-              )}
+           {/* Center Graph Background */}
+           <div className="absolute inset-0 z-0">
+             <TrustGraphPrimary
+               nodes={DEMO_NODES}
+               edges={DEMO_EDGES}
+               width={1600}
+               height={1000}
+               className="w-full h-full border-none !bg-transparent opacity-40 hover:opacity-70 transition-opacity duration-1000"
+             />
+           </div>
 
-              {activeModule === 'revocation' && (
-                <motion.div key="revocation" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <div className="mb-4">
-                    <h2 className="text-sm font-medium text-zinc-300 mb-0.5">Revocation Cascade</h2>
-                    <p className="text-[11px] text-zinc-600">Network-wide revocations and blast-radius analysis</p>
-                  </div>
-                  <RevocationCascadePanel pollIntervalMs={30_000} />
-                </motion.div>
-              )}
+           {/* Active Module Glass Overlay */}
+           <div className="relative z-10 w-full h-full p-5 overflow-y-auto pointer-events-none flex flex-col items-center justify-center">
+             <div className="pointer-events-auto w-full max-w-3xl rounded-2xl border border-infra-border bg-zinc-950/80 backdrop-blur-md shadow-2xl p-6">
+               {needsNpi ? (
+                 <div className="flex items-center justify-center h-48">
+                   <div className="text-center max-w-xs">
+                     <div className="text-4xl mb-3 opacity-20">⬡</div>
+                     <p className="text-sm text-zinc-500">
+                       Enter a 10-digit NPI to activate <strong className="text-zinc-400">{activeModuleDef.label}</strong>.
+                     </p>
+                   </div>
+                 </div>
+               ) : (
+                 <AnimatePresence mode="wait">
+                   {/* ── Substrate panels ── */}
+                   {activeModule === 'substrate' && npi && (
+                     <motion.div key="substrate" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                       <div className="mb-4">
+                         <h2 className="text-sm font-medium text-zinc-300 mb-0.5">Trust Substrate State</h2>
+                         <p className="text-[11px] text-zinc-600">Full L0–L3 trust evaluation for NPI {npi}</p>
+                       </div>
+                       <TrustSubstratePanel subject={npi} pollIntervalMs={30_000} />
+                     </motion.div>
+                   )}
 
-              {activeModule === 'federation' && (
-                <motion.div key="federation" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <div className="mb-4">
-                    <h2 className="text-sm font-medium text-zinc-300 mb-0.5">Federation Health</h2>
-                    <p className="text-[11px] text-zinc-600">Trust chain integrity and peer network health</p>
-                  </div>
-                  <FederationHealthPanel pollIntervalMs={30_000} />
-                </motion.div>
-              )}
+                   {activeModule === 'revocation' && (
+                     <motion.div key="revocation" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                       <div className="mb-4">
+                         <h2 className="text-sm font-medium text-zinc-300 mb-0.5">Revocation Cascade</h2>
+                         <p className="text-[11px] text-zinc-600">Network-wide revocations and blast-radius analysis</p>
+                       </div>
+                       <RevocationCascadePanel pollIntervalMs={30_000} />
+                     </motion.div>
+                   )}
 
-              {activeModule === 'issuers' && (
-                <motion.div key="issuers" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <div className="mb-4">
-                    <h2 className="text-sm font-medium text-zinc-300 mb-0.5">Issuer Trust Scores</h2>
-                    <p className="text-[11px] text-zinc-600">Registry-wide issuer reputation and HAIP compliance</p>
-                  </div>
-                  <IssuerTrustScoresPanel pollIntervalMs={60_000} />
-                </motion.div>
-              )}
+                   {activeModule === 'federation' && (
+                     <motion.div key="federation" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                       <div className="mb-4">
+                         <h2 className="text-sm font-medium text-zinc-300 mb-0.5">Federation Health</h2>
+                         <p className="text-[11px] text-zinc-600">Trust chain integrity and peer network health</p>
+                       </div>
+                       <FederationHealthPanel pollIntervalMs={30_000} />
+                     </motion.div>
+                   )}
 
-              {activeModule === 'baseline' && (
-                <motion.div key="baseline" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <div className="mb-4">
-                    <h2 className="text-sm font-medium text-zinc-300 mb-0.5">Audit Baseline & Anomalies</h2>
-                    <p className="text-[11px] text-zinc-600">Baseline-aware anomaly detection with SIEM export</p>
-                  </div>
-                  <AuditBaselinePanel pollIntervalMs={60_000} />
-                </motion.div>
-              )}
+                   {activeModule === 'issuers' && (
+                     <motion.div key="issuers" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                       <div className="mb-4">
+                         <h2 className="text-sm font-medium text-zinc-300 mb-0.5">Issuer Trust Scores</h2>
+                         <p className="text-[11px] text-zinc-600">Registry-wide issuer reputation and HAIP compliance</p>
+                       </div>
+                       <IssuerTrustScoresPanel pollIntervalMs={60_000} />
+                     </motion.div>
+                   )}
 
-              {activeModule === 'audit' && (
-                <motion.div key="audit" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <div className="mb-4">
-                    <h2 className="text-sm font-medium text-zinc-300 mb-0.5">Audit Stream</h2>
-                    <p className="text-[11px] text-zinc-600">Append-only ledger — live event stream with SIEM export</p>
-                  </div>
-                  <AuditStreamPanel pollIntervalMs={15_000} />
-                </motion.div>
-              )}
+                   {activeModule === 'baseline' && (
+                     <motion.div key="baseline" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                       <div className="mb-4">
+                         <h2 className="text-sm font-medium text-zinc-300 mb-0.5">Audit Baseline & Anomalies</h2>
+                         <p className="text-[11px] text-zinc-600">Baseline-aware anomaly detection with SIEM export</p>
+                       </div>
+                       <AuditBaselinePanel pollIntervalMs={60_000} />
+                     </motion.div>
+                   )}
 
-              {/* ── Operations panels ── */}
-              {activeModule === 'pipeline' && npi && (
-                <motion.div key="pipeline" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <TrustEngineTerminal npi={npi} />
-                </motion.div>
-              )}
+                   {activeModule === 'audit' && (
+                     <motion.div key="audit" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                       <div className="mb-4">
+                         <h2 className="text-sm font-medium text-zinc-300 mb-0.5">Audit Stream</h2>
+                         <p className="text-[11px] text-zinc-600">Append-only ledger — live event stream with SIEM export</p>
+                       </div>
+                       <AuditStreamPanel pollIntervalMs={15_000} />
+                     </motion.div>
+                   )}
 
-              {activeModule === 'simulation' && npi && (
-                <motion.div key="simulation" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <SimulationControlPanel npi={npi} />
-                </motion.div>
-              )}
+                   {/* ── Operations panels ── */}
+                   {activeModule === 'pipeline' && npi && (
+                     <motion.div key="pipeline" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                       <TrustEngineTerminal npi={npi} />
+                     </motion.div>
+                   )}
 
-              {activeModule === 'insights' && npi && (
-                <motion.div key="insights" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  {insightsError ? (
-                    <div className="rounded-xl border border-red-500/20 bg-red-500/[0.05] p-4 text-sm text-red-400">
-                      Failed to load decision insights: {insightsError}
-                      <button onClick={refreshInsights} className="ml-3 underline text-xs">Retry</button>
-                    </div>
-                  ) : (
-                    <DecisionInsightsPanel
-                      data={insights}
-                      loading={insightsLoading && !insights}
-                    />
-                  )}
-                </motion.div>
-              )}
+                   {activeModule === 'simulation' && npi && (
+                     <motion.div key="simulation" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                       <SimulationControlPanel npi={npi} />
+                     </motion.div>
+                   )}
 
-              {activeModule === 'knowledge' && npi && (
-                <motion.div key="knowledge" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <KnowledgeExplorer npi={npi} pollIntervalMs={60_000} />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          )}
+                   {activeModule === 'insights' && npi && (
+                     <motion.div key="insights" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                       {insightsError ? (
+                         <div className="rounded-xl border border-red-500/20 bg-red-500/[0.05] p-4 text-sm text-red-400">
+                           Failed to load decision insights: {insightsError}
+                           <button onClick={refreshInsights} className="ml-3 underline text-xs">Retry</button>
+                         </div>
+                       ) : (
+                         <DecisionInsightsPanel
+                           data={insights}
+                           loading={insightsLoading && !insights}
+                         />
+                       )}
+                     </motion.div>
+                   )}
+
+                   {activeModule === 'knowledge' && npi && (
+                     <motion.div key="knowledge" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                       <KnowledgeExplorer npi={npi} pollIntervalMs={60_000} />
+                     </motion.div>
+                   )}
+                 </AnimatePresence>
+               )}
+             </div>
+           </div>
         </motion.div>
 
         {/* Right — Live Alerts Sidebar */}

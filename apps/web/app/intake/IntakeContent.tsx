@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { apiRoute } from '@/lib/api';
+import { apiRoute, getApiBase } from '@/lib/api';
 import {
   type TrustStateResponse,
   normalizeTrustStateResponse,
@@ -317,9 +317,7 @@ export function IntakeContent() {
   const ingestNpiRoute = apiRoute('/ingest/npi');
   const ingestFilesRoute = apiRoute('/ingest/files');
   const verificationRunRoute = apiRoute('/verification/run');
-  const isApiConfigured = Boolean(
-    process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_BACKEND_URL,
-  );
+  const isApiConfigured = Boolean(getApiBase());
 
   /* ---- API reachability check ---- */
   const [apiReachable, setApiReachable] = useState<boolean | null>(null);

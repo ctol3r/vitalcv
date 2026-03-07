@@ -45,6 +45,7 @@ import {
   GlassCardFooter,
 } from '@/components/ui/glass-card';
 import { cn } from '@/lib/utils';
+import { getApiBase } from '@/lib/api';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -94,11 +95,9 @@ const TC: CSSProperties = { color: 'oklch(0.52 0.11 30)' };
 const TC_BG: CSSProperties = { backgroundColor: 'oklch(0.52 0.11 30 / 0.08)' };
 const TC_BORDER: CSSProperties = { borderColor: 'oklch(0.52 0.11 30 / 0.35)' };
 
-const API_BASE =
-  (process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_BACKEND_URL ?? '').replace(/\/$/, '');
-
 function apiUrl(path: string): string {
-  return API_BASE ? `${API_BASE}${path}` : path;
+  const base = getApiBase();
+  return base ? `${base}${path}` : path;
 }
 
 function formatDelta(ms: number | null): string {

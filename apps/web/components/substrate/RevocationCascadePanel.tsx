@@ -13,6 +13,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { RefreshCw, Zap, AlertTriangle } from 'lucide-react';
+import { getApiBase } from '@/lib/api';
 
 interface RevocationEntry {
   credentialId: string;
@@ -30,12 +31,7 @@ interface BlastRadius {
   computedAt: string;
 }
 
-const base = () =>
-  (
-    (typeof process !== 'undefined'
-      ? process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_BACKEND_URL
-      : '') ?? ''
-  ).replace(/\/$/, '');
+const base = () => getApiBase();
 
 export function RevocationCascadePanel({ pollIntervalMs = 30_000 }: { pollIntervalMs?: number }) {
   const [revocations, setRevocations] = useState<RevocationEntry[]>([]);

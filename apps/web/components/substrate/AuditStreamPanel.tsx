@@ -12,6 +12,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { RefreshCw, Activity, Download } from 'lucide-react';
+import { getApiBase } from '@/lib/api';
 
 interface AuditEntry {
   eventId: string;
@@ -47,12 +48,7 @@ const SEVERITY_BG: Record<string, string> = {
   EMERGENCY: 'bg-red-500/[0.08]',
 };
 
-const base = () =>
-  (
-    (typeof process !== 'undefined'
-      ? process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_BACKEND_URL
-      : '') ?? ''
-  ).replace(/\/$/, '');
+const base = () => getApiBase();
 
 export function AuditStreamPanel({ pollIntervalMs = 15_000 }: { pollIntervalMs?: number }) {
   const [events, setEvents] = useState<AuditEntry[]>([]);

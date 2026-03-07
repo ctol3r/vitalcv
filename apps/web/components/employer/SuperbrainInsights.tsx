@@ -4,6 +4,7 @@ import { FormEvent, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
+import { getApiBase } from '@/lib/api';
 
 interface EvaluationResult {
   isEligible: boolean;
@@ -20,7 +21,6 @@ const SCAN_PHASES = [
   'Computing final determination…',
 ];
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_BACKEND_URL ?? '').replace(/\/$/, '');
 
 interface SuperbrainInsightsProps {
   npi?: string;
@@ -49,8 +49,9 @@ export function SuperbrainInsights({ npi: initialNpi }: SuperbrainInsightsProps)
     }
 
     try {
-      const url = API_BASE
-        ? `${API_BASE}/api/intelligence/evaluate-readiness`
+      const base = getApiBase();
+      const url = base
+        ? `${base}/api/intelligence/evaluate-readiness`
         : '/api/intelligence/evaluate-readiness';
 
       const res = await fetch(url, {

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReceiptOutcome, ReceiptRow } from '@/components/VerificationReceipts';
-import { apiRoute } from '@/lib/api';
+import { apiRoute, getApiBase } from '@/lib/api';
 import {
   type TrustStateResponse,
   normalizeTrustStateResponse,
@@ -38,9 +38,7 @@ export function OnboardingOrchestrator() {
   const ingestNpiRoute = apiRoute('/ingest/npi');
   const ingestFilesRoute = apiRoute('/ingest/files');
   const verificationRunRoute = apiRoute('/verification/run');
-  const isApiConfigured = Boolean(
-    process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_BACKEND_URL,
-  );
+  const isApiConfigured = Boolean(getApiBase());
 
   /* ---- API reachability check ---- */
   const [apiReachable, setApiReachable] = useState<boolean | null>(null);

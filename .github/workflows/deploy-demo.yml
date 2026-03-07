@@ -1,54 +1,70 @@
-name: Deploy Marketing Site
+name: Deploy Demo App
 
 on:
   push:
     branches: [main]
     paths:
-      - 'apps/marketing/**'
+      - 'apps/web/**'
       - 'packages/**'
       - 'pnpm-lock.yaml'
 
 concurrency:
-  group: deploy-marketing
+  group: deploy-demo
   cancel-in-progress: true
 
 jobs:
   deploy:
     name: Build & Deploy
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
 
+      # pnpm version is driven by packageManager field in package.json (pnpm@10.6.1)
+      # Do NOT set an explicit version here — it conflicts with the packageManager field.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '22'
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate --schema apps/api/backend/prisma/schema.prisma
+
       - name: Typecheck
-        run: pnpm turbo typecheck --filter=@vitalcv/marketing
+        run: pnpm --filter web exec tsc --noEmit
+
+      - name: Lint
+        run: pnpm --filter web lint
 
       - name: Build
-        run: pnpm --filter @vitalcv/marketing build
+        run: pnpm --filter web build
         env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_API_BASE: ${{ secrets.NEXT_PUBLIC_API_BASE }}
+          NEXT_PUBLIC_BACKEND_URL: ${{ secrets.NEXT_PUBLIC_BACKEND_URL }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
+          NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
           NEXT_PUBLIC_COMMIT_SHA: ${{ github.sha }}
           NEXT_PUBLIC_DEPLOY_TIME: ${{ github.run_id }}
 
       - name: Deploy to Vercel
         run: |
-          npx vercel --prod --cwd apps/marketing --yes --token="$VERCEL_TOKEN"
+          npx vercel --prod --cwd apps/web --yes --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_API_BASE: ${{ secrets.NEXT_PUBLIC_API_BASE }}
+          NEXT_PUBLIC_BACKEND_URL: ${{ secrets.NEXT_PUBLIC_BACKEND_URL }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
+          NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
           NEXT_PUBLIC_COMMIT_SHA: ${{ github.sha }}

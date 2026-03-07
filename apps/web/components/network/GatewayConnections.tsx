@@ -9,6 +9,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { getApiBase } from '@/lib/api';
 
 interface Connection {
   id: string;
@@ -34,8 +35,7 @@ export function GatewayConnections({ className = '' }: GatewayConnectionsProps) 
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_BACKEND_URL || '';
-  const base = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
+  const base = getApiBase();
 
   useEffect(() => {
     fetch(`${base}/api/network/gateway/connections`)

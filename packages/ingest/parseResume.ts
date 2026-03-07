@@ -6,6 +6,7 @@ import type {
   LicenseCandidate,
   VerificationStatus,
 } from './models';
+import { TextDecoder } from 'node:util';
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
@@ -13,6 +14,8 @@ const SUPPORTED_MIME_TYPES = new Set([
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ]);
+
+const utf8TextDecoder = new TextDecoder('utf-8', { fatal: true });
 
 function normalizeString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -92,11 +95,41 @@ export function assertSupportedFile(mime_type: string, filename: string): string
 
 function decodeBase64(content_base64: string): Buffer {
   const normalized = content_base64.replace(/\s+/g, '');
-  if (normalized.length === 0 || !/^[A-Za-z0-9+/=]+$/.test(normalized)) {
+  if (normalized.length === 0) {
     throw new ResumeIngestError('file content must be base64 encoded', 'INVALID_FILE_CONTENT');
   }
 
-  const buffer = Buffer.from(normalized, 'base64');
+  const usesBase64UrlAlphabet = /[-_]/.test(normalized);
+  const usesBase64Alphabet = /[+/]/.test(normalized);
+  if (usesBase64UrlAlphabet && usesBase64Alphabet) {
+    throw new ResumeIngestError('file content must use a single base64 alphabet', 'INVALID_FILE_CONTENT');
+  }
+
+  const validAlphabet = usesBase64UrlAlphabet
+    ? /^[A-Za-z0-9\-_]+=*$/
+    : /^[A-Za-z0-9+/]+=*$/;
+  if (!validAlphabet.test(normalized) || normalized.slice(0, -2).includes('=')) {
+    throw new ResumeIngestError('file content must be base64 encoded', 'INVALID_FILE_CONTENT');
+  }
+
+  const standardBase64 = usesBase64UrlAlphabet
+    ? normalized.replace(/-/g, '+').replace(/_/g, '/')
+    : normalized;
+  if (standardBase64.length % 4 === 1) {
+    throw new ResumeIngestError('file content must be base64 encoded', 'INVALID_FILE_CONTENT');
+  }
+
+  const paddedBase64 = standardBase64.padEnd(
+    Math.ceil(standardBase64.length / 4) * 4,
+    '=',
+  );
+  const buffer = Buffer.from(paddedBase64, 'base64');
+  const roundTripBase64 = buffer.toString('base64').replace(/=+$/u, '');
+  const normalizedInputBase64 = paddedBase64.replace(/=+$/u, '');
+  if (roundTripBase64 !== normalizedInputBase64) {
+    throw new ResumeIngestError('file content is malformed or truncated', 'INVALID_FILE_CONTENT');
+  }
+
   if (buffer.length === 0) {
     throw new ResumeIngestError('uploaded file is empty', 'INVALID_FILE_CONTENT');
   }
@@ -106,6 +139,17 @@ function decodeBase64(content_base64: string): Buffer {
   }
 
   return buffer;
+}
+
+function decodeUtf8Text(payloadBuffer: Buffer): string {
+  try {
+    return utf8TextDecoder.decode(payloadBuffer);
+  } catch {
+    throw new ResumeIngestError(
+      'uploaded file must contain valid UTF-8 text',
+      'INVALID_FILE_CONTENT',
+    );
+  }
 }
 
 function computeCredentialId(input: {
@@ -142,7 +186,7 @@ export function parseCandidateCredential(input: {
   const mime_type = assertSupportedFile(input.mime_type, filename);
   const payloadBuffer = decodeBase64(input.content_base64);
   const extracted_at = input.extracted_at ?? new Date().toISOString();
-  const rawText = payloadBuffer.toString('utf8');
+  const rawText = decodeUtf8Text(payloadBuffer);
   const parsedResume = parseResumeEngine({ text: rawText });
 
   const summary = summarizeFields({
