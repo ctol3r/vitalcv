@@ -16,14 +16,6 @@ export default function VerifierPage() {
 
   return (
     <>
-      {/* Machine state badge */}
-      <div className="px-6 pt-6 max-w-2xl mx-auto">
-        <div className="inline-flex items-center gap-2 text-[10px] font-mono text-zinc-600 mb-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
-          verifier:{verifier.state.current}
-        </div>
-      </div>
-
       <VerifierPortal />
 
       {/* Wave 99: Acceptance panel — always visible; machine state controls internal behaviour */}
