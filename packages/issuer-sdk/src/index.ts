@@ -288,3 +288,7 @@ export function createIssuer(config: VitalCVIssuerConfig): VitalCVIssuer {
 }
 
 export default VitalCVIssuer;
+
+// Wave 133: version + diagnostics
+export * from './version';
+export * from './diagnostics';
