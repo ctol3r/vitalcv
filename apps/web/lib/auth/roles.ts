@@ -31,6 +31,10 @@ export const PROTECTED_ROUTES: Array<{ pattern: RegExp; role: UserRoleType }> = 
   { pattern: /^\/verifier(\/.*)?$/, role: UserRole.VERIFIER },
   { pattern: /^\/issuer(\/.*)?$/, role: UserRole.ISSUER },
   { pattern: /^\/internal(\/.*)?$/, role: UserRole.ADMIN },
+  // Wave 136: Operator console — admin only
+  { pattern: /^\/mission-ops(\/.*)?$/, role: UserRole.ADMIN },
+  { pattern: /^\/analytics(\/.*)?$/, role: UserRole.ADMIN },
+  { pattern: /^\/command-center(\/.*)?$/, role: UserRole.ADMIN },
 ];
 
 /**

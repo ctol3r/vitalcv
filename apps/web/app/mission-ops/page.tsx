@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Mission Ops — Wave 123: Mission Ops + Conversion Engine
+ * Mission Ops — Wave 137/138: Trust Graph Console + Issuer Onboarding integrated
  *
  * Healthcare-specific Mission Manager showing:
  *   - Issuer onboarding state
@@ -10,6 +10,8 @@
  *   - Trust registry health
  *   - Control inheritance status
  *   - System readiness
+ *   - [Wave 137] Live Trust Graph Console
+ *   - [Wave 138] Issuer Onboarding Panel
  */
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -22,6 +24,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { getApiBase } from '@/lib/api';
+import TrustGraphConsole from '@/components/ops/TrustGraphConsole';
+import IssuerOnboardingPanel from '@/components/ops/IssuerOnboardingPanel';
 
 interface MissionOpsOverview {
   issuerOnboarding: { total: number; complete: number; inProgress: number; blocked: number };
@@ -278,6 +282,30 @@ export default function MissionOpsPage() {
               </Link>
             ))}
           </div>
+
+          {/* Wave 137: Trust Graph Operator Console */}
+          <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.3 }}>
+            <div className="flex items-center gap-2 mb-4">
+              <Network className="h-4 w-4 text-emerald-400" />
+              <h2 className="text-sm font-semibold text-zinc-200">Trust Graph Console</h2>
+              <span className="text-[10px] font-mono text-zinc-600 border border-zinc-800 rounded px-1.5 py-0.5">
+                Wave 137
+              </span>
+            </div>
+            <TrustGraphConsole />
+          </motion.div>
+
+          {/* Wave 138: Issuer Onboarding Panel */}
+          <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.35 }}>
+            <div className="flex items-center gap-2 mb-4">
+              <Building className="h-4 w-4 text-blue-400" />
+              <h2 className="text-sm font-semibold text-zinc-200">Issuer Onboarding</h2>
+              <span className="text-[10px] font-mono text-zinc-600 border border-zinc-800 rounded px-1.5 py-0.5">
+                Wave 138
+              </span>
+            </div>
+            <IssuerOnboardingPanel onIssuerRegistered={fetchOverview} />
+          </motion.div>
         </div>
       )}
 

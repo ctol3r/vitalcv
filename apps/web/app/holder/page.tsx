@@ -33,14 +33,6 @@ export default function HolderPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      {/* Machine state badge (dev aid — collapses in production via opacity) */}
-      <div className="px-6 pt-6 max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 text-[10px] font-mono text-zinc-700 mb-4">
-          <span className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
-          wallet:{wallet.state.current}
-        </div>
-      </div>
-
       {/* Wave 121: Passport-first wallet */}
       <div className="px-6 pb-8 max-w-3xl mx-auto">
         {showSkeleton ? (
