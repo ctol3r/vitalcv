@@ -11,7 +11,7 @@
 
 import { log } from '../../obs/logger';
 import { getLedgerSize, exportSinceTime } from '../audit/auditLedger';
-import { listIssuers } from '../registry/trustRegistry';
+import { initializeTrustRegistryPersistence, listIssuers } from '../registry/trustRegistry';
 import { listFederationEntities } from '../federation/federationMetadata';
 
 // ── Types ─────────────────────────────────────────────────────────────
@@ -321,6 +321,7 @@ export function listDeploymentProfiles(): DeploymentProfile[] {
 export async function generateEvidencePack(
   profileType: DeploymentProfileType,
 ): Promise<ComplianceEvidencePack> {
+  await initializeTrustRegistryPersistence();
   const profile = getDeploymentProfile(profileType);
 
   // Audit summary

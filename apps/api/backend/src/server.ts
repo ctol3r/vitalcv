@@ -206,7 +206,9 @@ async function bootstrapApp() {
   }
 
   const { default: app } = await import('./app');
+  const { initializeWave126Persistence } = await import('./services/persistence/wave126Persistence');
   initializeTelemetry('vitalcv-agent');
+  await initializeWave126Persistence();
 
   // Initialize Sentry if DSN is configured
   const sentryDsn = process.env.SENTRY_DSN;

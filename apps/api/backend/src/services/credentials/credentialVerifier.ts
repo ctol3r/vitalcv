@@ -9,7 +9,7 @@
 import { importSPKI, jwtVerify } from 'jose';
 import { log } from '../../obs/logger';
 import type { VerifiableCredential, VerificationResult } from './credentialModel';
-import { getIssuer } from '../registry/trustRegistry';
+import { getIssuer, initializeTrustRegistryPersistence } from '../registry/trustRegistry';
 import { resolveDID } from '../identity/didRegistry';
 import { isRevoked } from '../revocation/revocationRegistry';
 import { checkCredentialHAIP, checkIssuerHAIP, HAIP_HEALTHCARE_POLICY } from '../trust/haipProfile';
@@ -19,6 +19,7 @@ import { checkCredentialHAIP, checkIssuerHAIP, HAIP_HEALTHCARE_POLICY } from '..
 export async function verifyCredential(
   credential: VerifiableCredential,
 ): Promise<VerificationResult> {
+  await initializeTrustRegistryPersistence();
   const errors: string[] = [];
   const checks = {
     signature: false,

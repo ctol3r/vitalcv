@@ -11,26 +11,32 @@ import {
   revokeCredential,
   getRevocationEntry,
   listRevocations,
-  isRevoked,
 } from '../services/revocation/revocationRegistry';
 import {
   updateCredentialStatus,
 } from '../services/credentials/credentialWallet';
 import { emitAlert } from '../services/alerts/trustAlerts';
+import { getRequestOrganizationId } from '../middleware/organizationContext';
 import { log } from '../obs/logger';
+import { auditRevocation, newTraceId } from '../services/audit/auditLedger';
+import { revokeVerificationArtifact } from '../services/credentials/credentialArtifactBridge';
+import { revocationCascade } from '../services/decision/revocationCascade';
 
 export function registerRevocationRoutes(app: Express): void {
 
   // ── POST /api/revocation/revoke ────────────────────────────────────
-  app.post('/api/revocation/revoke', (req: Request, res: Response) => {
+  app.post('/api/revocation/revoke', async (req: Request, res: Response) => {
     try {
-      const { credentialId, issuer, reason, metadata } = req.body ?? {};
+      const { credentialId, issuer, issuerId, reason, metadata } = req.body ?? {};
+      const resolvedIssuer = typeof issuerId === 'string' && issuerId.trim().length > 0
+        ? issuerId
+        : issuer;
 
       if (!credentialId || typeof credentialId !== 'string') {
         res.status(400).json({ error: 'credentialId is required' });
         return;
       }
-      if (!issuer || typeof issuer !== 'string') {
+      if (!resolvedIssuer || typeof resolvedIssuer !== 'string') {
         res.status(400).json({ error: 'issuer is required' });
         return;
       }
@@ -39,24 +45,64 @@ export function registerRevocationRoutes(app: Express): void {
         return;
       }
 
-      const entry = revokeCredential({ credentialId, issuer, reason, metadata });
+      const entry = revokeCredential({ credentialId, issuer: resolvedIssuer, reason, metadata });
 
-      // Update wallet status if credential is in wallet
       updateCredentialStatus(credentialId, 'REVOKED');
-
-      // Wave 101 + 97: Emit trust alert on revocation
-      emitAlert({
-        type: 'credential_revoked',
-        severity: 'CRITICAL',
-        title: `Credential revoked by ${issuer.split(':').pop()}`,
-        description: `Credential ${credentialId.slice(0, 8)}… has been revoked. Reason: ${reason}`,
+      await revokeVerificationArtifact(
         credentialId,
-        issuerId: issuer,
-        recommendedAction: 'Remove this credential from any active presentations and notify the affected clinician.',
+        reason,
+        new Date(entry.revokedAt),
+        getRequestOrganizationId(req),
+      );
+
+      let cascadeTriggered = false;
+      let cascadeResult: Awaited<ReturnType<typeof revocationCascade.propagateRevocation>> | null = null;
+      try {
+        cascadeResult = await revocationCascade.propagateRevocation(credentialId);
+        cascadeTriggered = true;
+      } catch (error) {
+        log('warn', 'revocation_cascade_failed', {
+          credentialId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+
+      try {
+        await emitAlert({
+          type: 'credential_revoked',
+          severity: 'CRITICAL',
+          title: `Credential revoked by ${resolvedIssuer.split(':').pop()}`,
+          description: `Credential ${credentialId.slice(0, 8)}… has been revoked. Reason: ${reason}`,
+          credentialId,
+          issuerId: resolvedIssuer,
+          recommendedAction: 'Remove this credential from any active presentations and notify the affected clinician.',
+        });
+      } catch (error) {
+        log('warn', 'revocation_alert_emit_failed', {
+          credentialId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+
+      const traceId = newTraceId();
+      const auditEntry = auditRevocation({
+        traceId,
+        actor: resolvedIssuer,
+        credentialId,
+        issuer: resolvedIssuer,
+        reason,
       });
 
       res.status(201).json({
         revocation: entry,
+        credentialId: entry.credentialId,
+        revoked: true,
+        revokedAt: entry.revokedAt,
+        reason: entry.reason,
+        cascadeTriggered,
+        affectedDecisions: cascadeResult?.totalAffected ?? 0,
+        traceId,
+        receiptHash: auditEntry.receiptHash,
         message: 'Credential revoked and trust alert emitted',
       });
     } catch (err) {
@@ -76,6 +122,8 @@ export function registerRevocationRoutes(app: Express): void {
         credentialId,
         revoked: !!entry,
         entry: entry ?? null,
+        revokedAt: entry?.revokedAt ?? null,
+        reason: entry?.reason ?? null,
         checkedAt: new Date().toISOString(),
       });
     } catch (err) {

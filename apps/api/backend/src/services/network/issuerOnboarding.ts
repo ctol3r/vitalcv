@@ -70,7 +70,7 @@ export async function onboardIssuer(
   };
 
   try {
-    registerIssuer(issuerRecord);
+    await registerIssuer(issuerRecord);
     log('info', 'Wave 106: Issuer onboarded', { issuerId, issuerName, trustLevel });
 
     return {

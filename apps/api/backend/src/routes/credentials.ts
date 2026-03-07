@@ -1,74 +1,301 @@
 /**
  * credentials.ts — Wave 94 + 98 + 103 + Substrate Phase 5: Trust Credential API Routes
  *
- * POST /api/credentials/issue              — Issue a signed verifiable credential
- * POST /api/credentials/verify             — Verify a credential
- * GET  /api/credentials/:id                — Retrieve a credential by ID
- * POST /api/credentials/present            — Wave 98: Create a verifiable presentation
- * GET  /api/credentials/present/:id        — Retrieve a presentation by ID
- * POST /api/credentials/present/selective  — Wave 103: Selective disclosure presentation
- * GET  /api/credentials/:id/fields         — Wave 103: List claim fields for a credential
- *
- * Phase 5 additions:
- *   - HAIP issuance enforcement on POST /api/credentials/issue
- *   - HAIP verification enforcement on POST /api/credentials/verify
- *   - SD-JWT structure enforcement on POST /api/credentials/present/selective
+ * Legacy routes remain intact while Wave 124 adds SDK-compatible aliases and
+ * flattened response envelopes.
  */
 
 import type { Express, Request, Response } from 'express';
-import { issueCredential } from '../services/credentials/credentialIssuer';
-import { verifyCredential } from '../services/credentials/credentialVerifier';
+import { decodeJwt } from 'jose';
+import { generateIssuanceReceipt, generatePresentationReceipt, generateVerificationReceipt } from '../services/audit/receiptGenerator';
+import { appendAuditEvent, auditIssuance, auditPresentation, newTraceId } from '../services/audit/auditLedger';
 import {
   enforceHAIPIssuance,
   enforceHAIPVerification,
   enforceSDJWTStructure,
 } from '../services/compliance/haipEnforcer';
-import {
-  storeCredential,
-  getCredential,
-  getCredentialsForSubject,
-  listCredentials,
-  removeCredential,
-  getWalletSummary,
-} from '../services/credentials/credentialWallet';
+import { upsertVerificationArtifactFromCredential } from '../services/credentials/credentialArtifactBridge';
+import { issueCredential } from '../services/credentials/credentialIssuer';
+import type {
+  IssueCredentialRequest,
+  VerifiableCredential,
+  VerificationResult,
+} from '../services/credentials/credentialModel';
 import {
   createPresentation,
   getPresentation,
   getPresentationsForHolder,
+  type VerifiablePresentation,
 } from '../services/credentials/credentialPresentation';
+import { verifyCredential } from '../services/credentials/credentialVerifier';
+import {
+  getCredential,
+  getCredentialsForSubject,
+  getWalletSummary,
+  listCredentials,
+  removeCredential,
+  storeCredential,
+} from '../services/credentials/credentialWallet';
 import {
   generateSelectiveDisclosure,
   listCredentialFields,
 } from '../services/credentials/selectiveDisclosure';
-import type { IssueCredentialRequest } from '../services/credentials/credentialModel';
+import { getRequestOrganizationId } from '../middleware/organizationContext';
 import { log } from '../obs/logger';
+import { getIssuer } from '../services/registry/trustRegistry';
+import { computeSubstrateTrustState } from '../services/trust/trustSubstrate';
+import { acceptCredentialPresentation } from '../services/verifier/credentialAcceptance';
 
-// ── Dev/demo signing key (replace with KMS in production) ─────────────
-// Generated with: node -e "require('crypto').generateKeyPairSync('ec',{namedCurve:'P-256'})"
-// Env var: CREDENTIAL_SIGNING_KEY_PEM (PKCS#8 PEM)
-const DEV_SIGNING_KEY_PEM = process.env.CREDENTIAL_SIGNING_KEY_PEM ?? '';
+type RecordValue = Record<string, unknown>;
+
+function getSigningKey(): string {
+  return process.env.CREDENTIAL_SIGNING_KEY_PEM ?? '';
+}
+
+function isRecord(value: unknown): value is RecordValue {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function withCredentialTypeClaims(
+  claims: RecordValue,
+  credentialType: string,
+  subject: string,
+): RecordValue {
+  const existingTypes = Array.isArray(claims.type)
+    ? claims.type.filter((value): value is string => typeof value === 'string')
+    : [];
+
+  return {
+    ...claims,
+    npi: typeof claims.npi === 'string' ? claims.npi : subject,
+    credentialType,
+    type: existingTypes.length > 0
+      ? Array.from(new Set(['VerifiableCredential', ...existingTypes, credentialType]))
+      : ['VerifiableCredential', credentialType],
+  };
+}
+
+function deriveCredentialType(claims: RecordValue): string {
+  const explicitType = claims.credentialType;
+  if (typeof explicitType === 'string' && explicitType.trim().length > 0) {
+    return explicitType.trim();
+  }
+
+  const claimTypes = claims.type;
+  if (Array.isArray(claimTypes)) {
+    const resolved = claimTypes
+      .filter((value): value is string => typeof value === 'string' && value !== 'VerifiableCredential')
+      .at(0);
+    if (resolved) {
+      return resolved;
+    }
+  }
+
+  return 'VerifiableCredential';
+}
+
+function normalizeWalletStatus(status: VerifiableCredential['status']): 'VALID' | 'EXPIRED' | 'REVOKED' | 'SUSPENDED' {
+  return status === 'ACTIVE' ? 'VALID' : status;
+}
+
+function mapWalletCredential(
+  credential: VerifiableCredential,
+  opts?: {
+    daysUntilExpiry?: number | null;
+    expiryWarning?: 'none' | 'warning' | 'critical' | 'expired';
+  },
+): {
+  credentialId: string;
+  credentialType: string;
+  issuer: string;
+  issuerId: string;
+  status: 'VALID' | 'EXPIRED' | 'REVOKED' | 'SUSPENDED';
+  issuedAt: string;
+  expiresAt?: string;
+  daysUntilExpiry?: number;
+  expiryWarning?: boolean;
+  haipCompliant: boolean;
+  claims: RecordValue;
+  vcJwt: string;
+} {
+  const issuer = getIssuer(credential.issuer);
+
+  return {
+    credentialId: credential.credentialId,
+    credentialType: deriveCredentialType(credential.claims),
+    issuer: credential.issuer,
+    issuerId: credential.issuer,
+    status: normalizeWalletStatus(credential.status),
+    issuedAt: credential.issuedAt,
+    expiresAt: credential.expiresAt,
+    ...(typeof opts?.daysUntilExpiry === 'number' ? { daysUntilExpiry: opts.daysUntilExpiry } : {}),
+    ...(opts?.expiryWarning && opts.expiryWarning !== 'none'
+      ? { expiryWarning: true }
+      : {}),
+    haipCompliant: issuer?.haipCompliant ?? false,
+    claims: credential.claims,
+    vcJwt: credential.signature,
+  };
+}
+
+function normalizeIssueRequest(body: unknown):
+  | {
+      issuer: string;
+      subject: string;
+      claims: RecordValue;
+      expiresAt?: string;
+      credentialType: string;
+    }
+  | { error: string } {
+  if (!isRecord(body)) {
+    return { error: 'request body is required' };
+  }
+
+  if (
+    typeof body.issuer === 'string' &&
+    typeof body.subject === 'string' &&
+    isRecord(body.claims)
+  ) {
+    return {
+      issuer: body.issuer,
+      subject: body.subject,
+      claims: body.claims,
+      expiresAt: typeof body.expiresAt === 'string' ? body.expiresAt : undefined,
+      credentialType: deriveCredentialType(body.claims),
+    };
+  }
+
+  if (
+    typeof body.issuerId === 'string' &&
+    typeof body.npi === 'string' &&
+    typeof body.credentialType === 'string' &&
+    isRecord(body.claims)
+  ) {
+    return {
+      issuer: body.issuerId,
+      subject: body.npi,
+      claims: withCredentialTypeClaims(body.claims, body.credentialType, body.npi),
+      expiresAt: typeof body.expiresAt === 'string' ? body.expiresAt : undefined,
+      credentialType: body.credentialType,
+    };
+  }
+
+  return { error: 'Provide either { issuer, subject, claims } or { issuerId, npi, credentialType, claims }' };
+}
+
+async function safeGenerateIssuanceReceipt(credential: VerifiableCredential) {
+  try {
+    return await generateIssuanceReceipt(credential);
+  } catch (error) {
+    log('warn', 'credential_issue_receipt_failed', {
+      credentialId: credential.credentialId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    return null;
+  }
+}
+
+async function safeGeneratePresentationReceipt(opts: Parameters<typeof generatePresentationReceipt>[0]) {
+  try {
+    return await generatePresentationReceipt(opts);
+  } catch (error) {
+    log('warn', 'credential_presentation_receipt_failed', {
+      presentationId: opts.presentationId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    return null;
+  }
+}
+
+async function safeGenerateVerificationReceipt(opts: Parameters<typeof generateVerificationReceipt>[0]) {
+  try {
+    return await generateVerificationReceipt(opts);
+  } catch (error) {
+    log('warn', 'credential_verification_receipt_failed', {
+      credentialId: opts.credentialId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    return null;
+  }
+}
+
+function buildIssueResponse(
+  credential: VerifiableCredential,
+  opts: {
+    haipCompliant: boolean;
+    traceId: string;
+    receiptId: string | null;
+    receiptHash: string;
+    haipAuditEventId?: string;
+  },
+) {
+  return {
+    credential,
+    haipAuditEventId: opts.haipAuditEventId,
+    receiptId: opts.receiptId,
+    receiptHash: opts.receiptHash,
+    traceId: opts.traceId,
+    credentialId: credential.credentialId,
+    npi: credential.subject,
+    issuer: credential.issuer,
+    issuerId: credential.issuer,
+    credentialType: deriveCredentialType(credential.claims),
+    vcJwt: credential.signature,
+    claims: credential.claims,
+    issuedAt: credential.issuedAt,
+    expiresAt: credential.expiresAt,
+    haipCompliant: opts.haipCompliant,
+  };
+}
+
+function buildPresentationResponse(
+  presentation: VerifiablePresentation,
+  subject: string,
+  opts: {
+    traceId: string;
+    receiptId: string | null;
+    receiptHash: string;
+  },
+) {
+  const fallbackExpiry = new Date(Date.parse(presentation.createdAt) + 60 * 60 * 1000).toISOString();
+
+  return {
+    presentation,
+    receiptId: opts.receiptId,
+    receiptHash: opts.receiptHash,
+    traceId: opts.traceId,
+    presentationId: presentation.presentationId,
+    vpJwt: presentation.signature,
+    credentials: presentation.credentials.map((credential) => ({
+      credentialId: credential.credentialId,
+      type: deriveCredentialType(credential.claims),
+    })),
+    subject,
+    createdAt: presentation.createdAt,
+    expiresAt: presentation.expiresAt ?? fallbackExpiry,
+  };
+}
+
+function buildVerificationChecks(result: VerificationResult) {
+  return {
+    signature: result.checks.signature,
+    issuerTrusted: result.checks.issuerTrusted,
+    statusActive: result.checks.statusActive,
+    notExpired: result.checks.notExpired,
+  };
+}
 
 export function registerCredentialRoutes(app: Express): void {
-
   // ── POST /api/credentials/issue ─────────────────────────────────────
   app.post('/api/credentials/issue', async (req: Request, res: Response) => {
     try {
-      const { issuer, subject, claims, expiresAt } = req.body ?? {};
-
-      if (!issuer || typeof issuer !== 'string') {
-        res.status(400).json({ error: 'issuer is required' });
-        return;
-      }
-      if (!subject || typeof subject !== 'string') {
-        res.status(400).json({ error: 'subject is required' });
-        return;
-      }
-      if (!claims || typeof claims !== 'object') {
-        res.status(400).json({ error: 'claims must be an object' });
+      const normalized = normalizeIssueRequest(req.body);
+      if ('error' in normalized) {
+        res.status(400).json({ error: normalized.error });
         return;
       }
 
-      const signingKey = DEV_SIGNING_KEY_PEM;
+      const signingKey = getSigningKey();
       if (!signingKey) {
         res.status(503).json({
           error: 'Credential signing key not configured',
@@ -77,10 +304,9 @@ export function registerCredentialRoutes(app: Express): void {
         return;
       }
 
-      // Phase 5: HAIP issuance enforcement
       const haipResult = enforceHAIPIssuance({
-        issuerId: issuer,
-        subject,
+        issuerId: normalized.issuer,
+        subject: normalized.subject,
         format: req.body?.format ?? 'jwt_vc_json',
         algorithm: req.body?.algorithm ?? 'ES256',
       });
@@ -94,13 +320,38 @@ export function registerCredentialRoutes(app: Express): void {
         return;
       }
 
-      const request: IssueCredentialRequest = { issuer, subject, claims, expiresAt };
+      const request: IssueCredentialRequest = {
+        issuer: normalized.issuer,
+        subject: normalized.subject,
+        claims: normalized.claims,
+        expiresAt: normalized.expiresAt,
+      };
       const credential = await issueCredential(request, signingKey);
-
-      // Auto-store in wallet
       storeCredential(credential);
 
-      res.status(201).json({ credential, haipAuditEventId: haipResult.auditEventId });
+      await upsertVerificationArtifactFromCredential(credential, {
+        organizationId: getRequestOrganizationId(req),
+        source: credential.issuer,
+      });
+
+      const traceId = newTraceId();
+      const auditEntry = auditIssuance({
+        traceId,
+        actor: credential.issuer,
+        credentialId: credential.credentialId,
+        subject: credential.subject,
+        issuer: credential.issuer,
+        success: true,
+      });
+      const receipt = await safeGenerateIssuanceReceipt(credential);
+
+      res.status(201).json(buildIssueResponse(credential, {
+        haipCompliant: haipResult.allowed,
+        traceId,
+        receiptId: receipt?.receiptId ?? null,
+        receiptHash: receipt?.hash ?? auditEntry.receiptHash,
+        haipAuditEventId: haipResult.auditEventId,
+      }));
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       log('error', 'credential_issue_failed', { error: msg });
@@ -118,9 +369,8 @@ export function registerCredentialRoutes(app: Express): void {
         return;
       }
 
-      // Phase 5: HAIP verification enforcement (runs in parallel with core verify)
       const [result, haipCheck] = await Promise.all([
-        verifyCredential(credential),
+        verifyCredential(credential as VerifiableCredential),
         Promise.resolve(enforceHAIPVerification(credential)),
       ]);
 
@@ -140,40 +390,312 @@ export function registerCredentialRoutes(app: Express): void {
     }
   });
 
-  // ── GET /api/credentials/:id ───────────────────────────────────────
-  app.get('/api/credentials/:id', (req: Request, res: Response) => {
+  // ── POST /api/credentials/verify/presentation ──────────────────────
+  app.post('/api/credentials/verify/presentation', async (req: Request, res: Response) => {
     try {
-      const { id } = req.params;
-      const credential = getCredential(id);
+      const { vpJwt, expectedNpi } = req.body ?? {};
 
-      if (!credential) {
-        res.status(404).json({ error: `Credential ${id} not found` });
+      if (!vpJwt || typeof vpJwt !== 'string') {
+        res.status(400).json({ error: 'vpJwt is required' });
         return;
       }
 
-      res.status(200).json({ credential });
+      const payload = decodeJwt(vpJwt);
+      const presentationId = typeof payload.jti === 'string'
+        ? payload.jti
+        : typeof payload.presentationId === 'string'
+          ? payload.presentationId
+          : '';
+
+      if (!presentationId) {
+        res.status(422).json({ error: 'Presentation JWT missing jti/presentationId' });
+        return;
+      }
+
+      const presentation = getPresentation(presentationId);
+      if (!presentation) {
+        res.status(404).json({ error: `Presentation ${presentationId} not found` });
+        return;
+      }
+
+      const credentialResults = await Promise.all(
+        presentation.credentials.map(async (credential) => {
+          const result = await verifyCredential(credential);
+          return {
+            credentialId: credential.credentialId,
+            issuer: credential.issuer,
+            valid: result.valid,
+            revoked: !result.checks.statusActive && result.errors.some((error) => error.includes('revoked')),
+            errors: result.errors,
+            raw: result,
+            subject: credential.subject,
+          };
+        }),
+      );
+
+      const errors = credentialResults.flatMap((result) => result.errors);
+      if (typeof expectedNpi === 'string' && expectedNpi.trim().length > 0) {
+        const subjectMismatch = credentialResults.some((result) => result.subject !== expectedNpi);
+        if (subjectMismatch) {
+          errors.push(`Presentation subject does not match expected NPI ${expectedNpi}`);
+        }
+      }
+
+      const valid = errors.length === 0 && credentialResults.every((result) => result.valid);
+      const verifiedAt = new Date().toISOString();
+      const traceId = newTraceId();
+      const subject = presentation.credentials[0]?.subject ?? presentation.holder;
+      const receipts = (
+        await Promise.all(
+          presentation.credentials.map((credential, index) =>
+            safeGenerateVerificationReceipt({
+              credentialId: credential.credentialId,
+              verifier: typeof req.body?.verifierDid === 'string'
+                ? req.body.verifierDid
+                : 'did:vitalcv:verifier:sdk',
+              subject: credential.subject,
+              valid: credentialResults[index]?.valid ?? false,
+              checks: buildVerificationChecks(credentialResults[index]?.raw ?? {
+                checks: {
+                  signature: false,
+                  issuerTrusted: false,
+                  statusActive: false,
+                  notExpired: false,
+                },
+              } as VerificationResult),
+              haipCompliant: credentialResults[index]?.raw.haip?.compliant ?? false,
+              errors: credentialResults[index]?.errors ?? ['Credential verification failed'],
+            }),
+          ),
+        )
+      ).filter((receipt): receipt is NonNullable<typeof receipt> => receipt !== null);
+
+      const auditEntry = appendAuditEvent({
+        traceId,
+        category: 'VERIFICATION',
+        actor: typeof req.body?.verifierDid === 'string'
+          ? req.body.verifierDid
+          : 'did:vitalcv:verifier:sdk',
+        resource: presentationId,
+        severity: valid ? 'INFO' : 'WARNING',
+        requestFields: { expectedNpi: typeof expectedNpi === 'string' ? expectedNpi : undefined },
+        resultFields: {
+          valid,
+          subject,
+          credentialIds: presentation.credentials.map((credential) => credential.credentialId),
+          errorCount: errors.length,
+        },
+      });
+
+      res.status(200).json({
+        valid,
+        presentationId,
+        subject,
+        credentials: credentialResults.map((result) => ({
+          credentialId: result.credentialId,
+          issuer: result.issuer,
+          valid: result.valid,
+          revoked: result.revoked,
+          errors: result.errors,
+        })),
+        haipCompliant: credentialResults.every((result) => result.raw.haip?.compliant !== false),
+        verifiedAt,
+        errors,
+        receiptId: receipts[0]?.receiptId ?? null,
+        receiptIds: receipts.map((receipt) => receipt.receiptId),
+        receiptHash: receipts[0]?.hash ?? auditEntry.receiptHash,
+        traceId,
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
-      log('error', 'credential_get_failed', { error: msg });
-      res.status(500).json({ error: 'Failed to retrieve credential', detail: msg });
+      log('error', 'presentation_verify_failed', { error: msg });
+      res.status(500).json({ error: 'Failed to verify presentation', detail: msg });
     }
   });
 
-  // ── POST /api/credentials/present (Wave 98) ────────────────────────
-  app.post('/api/credentials/present', async (req: Request, res: Response) => {
+  // ── POST /api/credentials/accept ───────────────────────────────────
+  app.post('/api/credentials/accept', async (req: Request, res: Response) => {
     try {
-      const { holder, credentialIds, disclosedClaims, expiresAt } = req.body ?? {};
+      const { presentationId, acceptedCredentials, deniedCredentials, reason } = req.body ?? {};
 
-      if (!holder || typeof holder !== 'string') {
-        res.status(400).json({ error: 'holder is required' });
+      if (!presentationId || typeof presentationId !== 'string') {
+        res.status(400).json({ error: 'presentationId is required' });
         return;
       }
-      if (!Array.isArray(credentialIds) || credentialIds.length === 0) {
+
+      const presentation = getPresentation(presentationId);
+      if (!presentation) {
+        res.status(404).json({ error: `Presentation ${presentationId} not found` });
+        return;
+      }
+
+      const report = await acceptCredentialPresentation(presentation);
+      const accepted = report.decision === 'ACCEPTED';
+      const reportAccepted = report.credentialResults
+        .filter((result) => result.valid)
+        .map((result) => result.credentialId);
+      const reportDenied = report.credentialResults
+        .filter((result) => !result.valid)
+        .map((result) => result.credentialId);
+
+      const acceptedIds = Array.isArray(acceptedCredentials) && acceptedCredentials.every((value) => typeof value === 'string')
+        ? acceptedCredentials
+        : (accepted ? reportAccepted : []);
+      const deniedIds = Array.isArray(deniedCredentials) && deniedCredentials.every((value) => typeof value === 'string')
+        ? deniedCredentials
+        : (reportDenied.length > 0 ? reportDenied : accepted ? [] : presentation.credentials.map((credential) => credential.credentialId));
+
+      const traceId = newTraceId();
+      const receipts = (
+        await Promise.all(
+          report.credentialResults.map((result) =>
+            safeGenerateVerificationReceipt({
+              credentialId: result.credentialId,
+              verifier: typeof req.body?.verifierDid === 'string'
+                ? req.body.verifierDid
+                : 'did:vitalcv:verifier:sdk',
+              subject: presentation.credentials.find((credential) => credential.credentialId === result.credentialId)?.subject
+                ?? presentation.holder,
+              valid: result.valid,
+              checks: result.checks,
+              haipCompliant: result.errors.every((error) => !error.startsWith('[HAIP:')),
+              errors: result.errors,
+            }),
+          ),
+        )
+      ).filter((receipt): receipt is NonNullable<typeof receipt> => receipt !== null);
+
+      const auditEntry = appendAuditEvent({
+        traceId,
+        category: ['VERIFICATION', 'DECISION'],
+        actor: typeof req.body?.verifierDid === 'string'
+          ? req.body.verifierDid
+          : 'did:vitalcv:verifier:sdk',
+        resource: presentationId,
+        severity: accepted ? 'INFO' : 'WARNING',
+        requestFields: {
+          acceptedCredentials: acceptedIds,
+          deniedCredentials: deniedIds,
+        },
+        resultFields: {
+          decision: report.decision,
+          reason: typeof reason === 'string' ? reason : report.summary,
+        },
+      });
+
+      res.status(200).json({
+        report: {
+          ...report,
+          receiptId: receipts[0]?.receiptId ?? null,
+          traceId,
+        },
+        accepted,
+        presentationId,
+        subject: presentation.credentials[0]?.subject ?? presentation.holder,
+        credentialsAccepted: acceptedIds,
+        credentialsDenied: deniedIds,
+        reason: typeof reason === 'string' ? reason : (accepted ? undefined : report.summary),
+        acceptedAt: report.evaluatedAt,
+        receiptId: receipts[0]?.receiptId ?? null,
+        receiptIds: receipts.map((receipt) => receipt.receiptId),
+        receiptHash: receipts[0]?.hash ?? auditEntry.receiptHash,
+        traceId,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'presentation_accept_failed', { error: msg });
+      res.status(500).json({ error: 'Failed to accept presentation', detail: msg });
+    }
+  });
+
+  // ── GET /api/credentials/wallet ────────────────────────────────────
+  app.get('/api/credentials/wallet', (req: Request, res: Response) => {
+    try {
+      const subject = typeof req.query.npi === 'string' ? req.query.npi : undefined;
+      if (!subject) {
+        res.status(400).json({ error: 'npi query parameter is required' });
+        return;
+      }
+
+      const requestedStatus = typeof req.query.status === 'string' ? req.query.status : undefined;
+      const requestedType = typeof req.query.type === 'string' ? req.query.type : undefined;
+      const rows = listCredentials(subject)
+        .map((row) => mapWalletCredential(row.credential, {
+          daysUntilExpiry: row.daysUntilExpiry,
+          expiryWarning: row.expiryWarning,
+        }))
+        .filter((credential) => !requestedStatus || credential.status === requestedStatus)
+        .filter((credential) => !requestedType || credential.credentialType === requestedType);
+
+      res.status(200).json(rows);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'wallet_query_failed', { error: msg });
+      res.status(500).json({ error: 'Failed to list wallet credentials', detail: msg });
+    }
+  });
+
+  // ── GET /api/credentials/wallet/:subject/summary ───────────────────
+  app.get('/api/credentials/wallet/:subject/summary', async (req: Request, res: Response) => {
+    try {
+      const subject = decodeURIComponent(req.params.subject ?? '');
+      if (!subject) {
+        res.status(400).json({ error: 'subject is required' });
+        return;
+      }
+
+      const rows = listCredentials(subject);
+      const summary = getWalletSummary(subject);
+      const trustState = await computeSubstrateTrustState(subject);
+      const haipCompliantCount = rows.filter((row) => getIssuer(row.credential.issuer)?.haipCompliant ?? false).length;
+
+      res.status(200).json({
+        npi: subject,
+        totalCredentials: summary.total,
+        validCredentials: summary.active,
+        expiringCredentials: summary.expiring,
+        expiredCredentials: summary.expired,
+        revokedCredentials: summary.revoked,
+        haipCompliantCount,
+        trustBand: trustState.band,
+        lastUpdated: trustState.computedAt,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'wallet_summary_failed', { error: msg });
+      res.status(500).json({ error: 'Failed to retrieve wallet summary', detail: msg });
+    }
+  });
+
+  // ── POST /api/credentials/present ──────────────────────────────────
+  app.post('/api/credentials/present', async (req: Request, res: Response) => {
+    try {
+      const holder = typeof req.body?.holder === 'string'
+        ? req.body.holder
+        : typeof req.body?.holderDid === 'string'
+          ? req.body.holderDid
+          : typeof req.body?.npi === 'string'
+            ? req.body.npi
+            : '';
+      const subject = typeof req.body?.npi === 'string' ? req.body.npi : holder;
+      const credentialIds = Array.isArray(req.body?.credentialIds)
+        ? req.body.credentialIds.filter((id: unknown): id is string => typeof id === 'string')
+        : [];
+      const disclosedClaims = Array.isArray(req.body?.disclosedClaims)
+        ? req.body.disclosedClaims.filter((claim: unknown): claim is string => typeof claim === 'string')
+        : undefined;
+      const expiresAt = typeof req.body?.expiresAt === 'string' ? req.body.expiresAt : undefined;
+
+      if (!holder) {
+        res.status(400).json({ error: 'holder or holderDid is required' });
+        return;
+      }
+      if (credentialIds.length === 0) {
         res.status(400).json({ error: 'credentialIds must be a non-empty array' });
         return;
       }
 
-      const signingKey = DEV_SIGNING_KEY_PEM;
+      const signingKey = getSigningKey();
       if (!signingKey) {
         res.status(503).json({
           error: 'Signing key not configured',
@@ -182,10 +704,10 @@ export function registerCredentialRoutes(app: Express): void {
         return;
       }
 
-      // Resolve credentials from wallet
-      const credentials = credentialIds
-        .map((id: string) => getCredential(id))
-        .filter((c) => c != null);
+      const resolvedCredentials: Array<VerifiableCredential | null> = credentialIds
+        .map((id: string) => getCredential(id));
+      const credentials = resolvedCredentials
+        .filter((credential): credential is VerifiableCredential => credential != null);
 
       if (credentials.length === 0) {
         res.status(404).json({ error: 'None of the specified credentials were found in the wallet' });
@@ -196,8 +718,33 @@ export function registerCredentialRoutes(app: Express): void {
         disclosedClaims,
         expiresAt,
       });
+      const traceId = newTraceId();
+      const verifier = typeof req.body?.verifierDid === 'string'
+        ? req.body.verifierDid
+        : 'did:vitalcv:verifier:unspecified';
+      const auditEntry = auditPresentation({
+        traceId,
+        actor: holder,
+        presentationId: presentation.presentationId,
+        subject,
+        verifier,
+        disclosedClaims: presentation.disclosedClaims ?? [],
+        success: true,
+      });
+      const receipt = await safeGeneratePresentationReceipt({
+        presentationId: presentation.presentationId,
+        holder,
+        verifier,
+        disclosedClaims: presentation.disclosedClaims ?? [],
+        withheldClaimsCount: Math.max(0, Object.keys(credentials[0]?.claims ?? {}).length - (presentation.disclosedClaims?.length ?? 0)),
+        credentialCount: presentation.credentials.length,
+      });
 
-      res.status(201).json({ presentation });
+      res.status(201).json(buildPresentationResponse(presentation, subject, {
+        traceId,
+        receiptId: receipt?.receiptId ?? null,
+        receiptHash: receipt?.hash ?? auditEntry.receiptHash,
+      }));
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       log('error', 'credential_present_failed', { error: msg });
@@ -205,7 +752,7 @@ export function registerCredentialRoutes(app: Express): void {
     }
   });
 
-  // ── GET /api/credentials/present/:id (Wave 98) ────────────────────
+  // ── GET /api/credentials/present/:id ───────────────────────────────
   app.get('/api/credentials/present/:id', (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -224,7 +771,7 @@ export function registerCredentialRoutes(app: Express): void {
     }
   });
 
-  // ── GET /api/credentials/holder/:subject (Wave 98) ────────────────
+  // ── GET /api/credentials/holder/:subject ───────────────────────────
   app.get('/api/credentials/holder/:subject', (req: Request, res: Response) => {
     try {
       const subject = decodeURIComponent(req.params.subject ?? '');
@@ -244,7 +791,7 @@ export function registerCredentialRoutes(app: Express): void {
     }
   });
 
-  // ── GET /api/credentials/wallet/:subject (Wave 104) ──────────────
+  // ── GET /api/credentials/wallet/:subject ───────────────────────────
   app.get('/api/credentials/wallet/:subject', (req: Request, res: Response) => {
     try {
       const subject = decodeURIComponent(req.params.subject ?? '');
@@ -258,7 +805,47 @@ export function registerCredentialRoutes(app: Express): void {
     }
   });
 
-  // ── DELETE /api/credentials/:id (Wave 104) ────────────────────────
+  // ── DELETE /api/credentials/wallet/:credentialId ───────────────────
+  app.delete('/api/credentials/wallet/:credentialId', (req: Request, res: Response) => {
+    try {
+      const { credentialId } = req.params;
+      const removed = removeCredential(credentialId);
+      if (!removed) {
+        res.status(404).json({ error: `Credential ${credentialId} not found` });
+        return;
+      }
+
+      res.status(200).json({ removed: true, credentialId });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'wallet_remove_failed', { error: msg });
+      res.status(500).json({ error: 'Failed to remove credential', detail: msg });
+    }
+  });
+
+  // ── GET /api/credentials/:id ───────────────────────────────────────
+  app.get('/api/credentials/:id', (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const credential = getCredential(id);
+
+      if (!credential) {
+        res.status(404).json({ error: `Credential ${id} not found` });
+        return;
+      }
+
+      res.status(200).json({
+        credential,
+        ...mapWalletCredential(credential),
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'credential_get_failed', { error: msg });
+      res.status(500).json({ error: 'Failed to retrieve credential', detail: msg });
+    }
+  });
+
+  // ── DELETE /api/credentials/:id ────────────────────────────────────
   app.delete('/api/credentials/:id', (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -275,9 +862,7 @@ export function registerCredentialRoutes(app: Express): void {
     }
   });
 
-  // ── POST /api/credentials/present/selective (Wave 103) ────────────
-  // NOTE: must be registered BEFORE /api/credentials/present/:id to avoid
-  // "selective" being captured as an :id param
+  // ── POST /api/credentials/present/selective ────────────────────────
   app.post('/api/credentials/present/selective', async (req: Request, res: Response) => {
     try {
       const { holder, credentialId, revealFields, expiresAt } = req.body ?? {};
@@ -301,7 +886,7 @@ export function registerCredentialRoutes(app: Express): void {
         return;
       }
 
-      const signingKey = DEV_SIGNING_KEY_PEM;
+      const signingKey = getSigningKey();
       if (!signingKey) {
         res.status(503).json({
           error: 'Signing key not configured',
@@ -310,10 +895,8 @@ export function registerCredentialRoutes(app: Express): void {
         return;
       }
 
-      // Generate selective disclosure
       const { disclosure, salts } = generateSelectiveDisclosure(credential, revealFields);
 
-      // Phase 5: SD-JWT structure enforcement — validate before issuing presentation
       const sdJwtCheck = enforceSDJWTStructure(
         { ...disclosure, salts, credentialId, disclosedAt: new Date().toISOString(), holderDid: holder },
         { actor: holder },
@@ -328,7 +911,6 @@ export function registerCredentialRoutes(app: Express): void {
         return;
       }
 
-      // Build a presentation wrapping the disclosure
       const presentation = await createPresentation(
         [credential],
         holder,
@@ -339,7 +921,6 @@ export function registerCredentialRoutes(app: Express): void {
       res.status(201).json({
         presentation,
         disclosure,
-        // Salts returned only to the holder — they can share with trusted verifiers
         salts,
         revealedFields: revealFields,
         hiddenFields: Object.keys(disclosure.hiddenCommitments),
@@ -352,7 +933,7 @@ export function registerCredentialRoutes(app: Express): void {
     }
   });
 
-  // ── GET /api/credentials/:id/fields (Wave 103) ────────────────────
+  // ── GET /api/credentials/:id/fields ────────────────────────────────
   app.get('/api/credentials/:id/fields', (req: Request, res: Response) => {
     try {
       const { id } = req.params;

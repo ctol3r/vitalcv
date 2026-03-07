@@ -16,7 +16,11 @@ import { createIssuerMetadata, createCredentialOffer } from '../oid4vci/issuance
 import { createPresentationRequest } from '../oid4vp/presentationServer';
 import { generateSelectiveDisclosure } from '../credentials/selectiveDisclosure';
 import { isRevoked } from '../revocation/revocationRegistry';
-import { getIssuer, listIssuers } from '../registry/trustRegistry';
+import {
+  getIssuer,
+  initializeTrustRegistryPersistence,
+  listIssuers,
+} from '../registry/trustRegistry';
 import { getHAIPPolicySummary } from '../trust/haipProfile';
 import type { VerifiableCredential } from '../credentials/credentialModel';
 
@@ -265,6 +269,7 @@ async function checkOID4VCICredentialFormats(): Promise<ConformanceCheck> {
 let lastReport: ConformanceReport | null = null;
 
 export async function runConformanceSuite(): Promise<ConformanceReport> {
+  await initializeTrustRegistryPersistence();
   log('info', 'conformance_suite_started', {});
 
   const checks = await Promise.all([
