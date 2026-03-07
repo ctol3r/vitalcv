@@ -210,19 +210,47 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
   const [loading, setLoading] = useState(true);
   const hoveredRef = useRef<string | null>(null);
 
-  // Fetch data
+  // Fetch data + Wave 141: overlay live reputation scores
   useEffect(() => {
     const base = getApiBase();
     setLoading(true);
-    fetch(`${base}/api/network/global`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: GlobalGraphData | null) => {
-        const d = data ?? buildDemoData();
+
+    Promise.allSettled([
+      fetch(`${base}/api/network/global`).then((r) => (r.ok ? r.json() as Promise<GlobalGraphData> : null)),
+      fetch(`${base}/api/reputation/network`).then((r) =>
+        r.ok
+          ? r.json() as Promise<{ issuerScores: Array<{ issuerId: string; trustScore: number }> }>
+          : null,
+      ),
+    ])
+      .then(([graphResult, reputationResult]) => {
+        const graphData =
+          graphResult.status === 'fulfilled' && graphResult.value
+            ? graphResult.value
+            : buildDemoData();
+
+        // Wave 141: patch live trustScore onto issuer nodes
+        if (reputationResult.status === 'fulfilled' && reputationResult.value) {
+          const scoreMap = new Map(
+            reputationResult.value.issuerScores.map((s) => [s.issuerId, s.trustScore]),
+          );
+          for (const node of graphData.nodes) {
+            if (
+              (node.group === 'issuer' ||
+                node.group === 'federated_issuer' ||
+                node.group === 'oid_federation') &&
+              scoreMap.has(node.id)
+            ) {
+              node.trustScore = scoreMap.get(node.id);
+            }
+          }
+        }
+
         const w = widthRef.current;
-        randomizePositions(d.nodes, w, height);
-        nodesRef.current = d.nodes;
-        edgesRef.current = d.edges;
-        setStats(d.stats);
+        randomizePositions(graphData.nodes, w, height);
+        nodesRef.current = graphData.nodes;
+        edgesRef.current = graphData.edges;
+        setStats(graphData.stats);
       })
       .catch(() => {
         const d = buildDemoData();
