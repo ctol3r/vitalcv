@@ -1,0 +1,58 @@
+# docker-compose.yml — Wave 128: Deployment Hardening
+#
+# Local development stack: PostgreSQL + API + Web
+#
+# Usage:
+#   docker-compose up -d db     # just database
+#   docker-compose up           # full stack
+
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: vitalcv
+      POSTGRES_PASSWORD: vitalcv_dev
+      POSTGRES_DB: vitalcv
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vitalcv"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://vitalcv:vitalcv_dev@db:5432/vitalcv
+      NODE_ENV: development
+      PORT: "4000"
+      WEBAUTHN_RP_ID: localhost
+      WEBAUTHN_RP_NAME: VitalCV
+      OCR_PROVIDER: stub
+    ports:
+      - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      NEXT_PUBLIC_API_BASE: http://localhost:4000
+      NEXT_PUBLIC_BACKEND_URL: http://localhost:4000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

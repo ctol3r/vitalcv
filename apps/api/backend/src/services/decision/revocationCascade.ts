@@ -3,8 +3,8 @@
  * Salvaged from feature/interoperability-wave65 (Wave 54), upgraded for main.
  *
  * When a credential is revoked, finds all DecisionCapsules that depended
- * on it and transitions their status through the lifecycle:
- *   VALID → AT_RISK → INVALID
+ * on it and transitions them fail-closed:
+ *   VALID/AT_RISK → INVALID
  *
  * Emits audit events for every status transition, enabling blast radius
  * analysis and institutional audit replay.
@@ -52,7 +52,7 @@ export interface BlastRadiusResult {
 // ── Status Transitions ────────────────────────────────────────────────────
 
 const STATUS_TRANSITIONS: Record<string, string> = {
-  VALID: 'AT_RISK',
+  VALID: 'INVALID',
   AT_RISK: 'INVALID',
 };
 
@@ -60,8 +60,7 @@ const STATUS_TRANSITIONS: Record<string, string> = {
 
 /**
  * Propagate a credential revocation through all dependent DecisionCapsules.
- *   VALID    → AT_RISK  (first-touch: issuer risk flagged)
- *   AT_RISK  → INVALID  (confirmed: decision must be re-evaluated)
+ *   VALID/AT_RISK → INVALID  (revoked dependencies fail closed)
  */
 async function propagateRevocation(credentialId: string): Promise<CascadeResult> {
   const cascadedAt = new Date().toISOString();

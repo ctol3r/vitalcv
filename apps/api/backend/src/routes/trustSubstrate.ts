@@ -6,7 +6,7 @@
  */
 
 import type { Express, Request, Response } from 'express';
-import { computeSubstrateTrustState, getSubstrateBand, TRUST_BAND_LABELS } from '../services/trust/trustSubstrate';
+import { computeSubstrateTrustState } from '../services/trust/trustSubstrate';
 import { log } from '../obs/logger';
 
 export function registerTrustSubstrateRoutes(app: Express): void {
@@ -43,12 +43,14 @@ export function registerTrustSubstrateRoutes(app: Express): void {
     }
 
     try {
-      const band = await getSubstrateBand(subject);
+      const result = await computeSubstrateTrustState(subject);
       res.json({
         subject,
-        band,
-        bandLabel: TRUST_BAND_LABELS[band],
-        computedAt: new Date().toISOString(),
+        band: result.band,
+        bandLabel: result.bandLabel,
+        haipCompliant: result.haipCompliance.compliant,
+        explanation: result.explanation,
+        computedAt: result.computedAt,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';

@@ -1,12 +1,17 @@
 /**
- * trustRegistry.ts — Wave 95 + 105: Trust Registry + Reputation
+ * trustRegistry.ts — Wave 95 + 105 + 126: Trust Registry + Reputation
  *
- * Maintains a registry of trusted credential issuers with their
- * public keys, trust levels, and Wave 105 reputation scores.
- * In-memory with seed data.
+ * Maintains the trusted issuer registry as a read-through cache backed by
+ * durable persistence. Reads remain synchronous for existing callers, while
+ * mutations are written through Prisma-backed repositories.
  */
 
 import { log } from '../../obs/logger';
+import {
+  PrismaTrustRegistryRepository,
+  type TrustRegistryRepository,
+  type TrustRegistryReputationUpdate,
+} from '../../../repositories/trustRegistry.repo';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -35,10 +40,6 @@ export interface TrustedIssuer {
   federatedAt?: string;           // ISO-8601 when federated
   metadata?: Record<string, unknown>;
 }
-
-// ── Storage ───────────────────────────────────────────────────────────
-
-const issuers = new Map<string, TrustedIssuer>();
 
 // ── Seed data ─────────────────────────────────────────────────────────
 
@@ -132,65 +133,185 @@ const SEED_ISSUERS: TrustedIssuer[] = [
   },
 ];
 
-for (const issuer of SEED_ISSUERS) {
-  issuers.set(issuer.issuerId, issuer);
+// ── Cache + repository ────────────────────────────────────────────────
+
+function cloneIssuer(issuer: TrustedIssuer): TrustedIssuer {
+  return structuredClone(issuer);
+}
+
+function buildSeedCache(): Map<string, TrustedIssuer> {
+  return new Map(SEED_ISSUERS.map((issuer) => [issuer.issuerId, cloneIssuer(issuer)]));
+}
+
+function replaceCache(issuers: readonly TrustedIssuer[]): void {
+  issuerCache = new Map(issuers.map((issuer) => [issuer.issuerId, cloneIssuer(issuer)]));
+}
+
+let issuerRepository: TrustRegistryRepository = new PrismaTrustRegistryRepository();
+let issuerCache = buildSeedCache();
+let initializationPromise: Promise<void> | null = null;
+
+function isTestFallbackEnabled(): boolean {
+  return process.env.NODE_ENV === 'test';
+}
+
+// ── Repository management ────────────────────────────────────────────
+
+export function setTrustRegistryRepository(repository: TrustRegistryRepository): void {
+  issuerRepository = repository;
+  issuerCache = buildSeedCache();
+  initializationPromise = null;
+}
+
+export function resetTrustRegistryRepository(): void {
+  setTrustRegistryRepository(new PrismaTrustRegistryRepository());
+}
+
+export async function initializeTrustRegistryPersistence(): Promise<void> {
+  if (initializationPromise) {
+    return initializationPromise;
+  }
+
+  initializationPromise = (async () => {
+    try {
+      await issuerRepository.seedDefaults(SEED_ISSUERS);
+      const persistedIssuers = await issuerRepository.listIssuers();
+      replaceCache(persistedIssuers);
+      log('info', 'trust_registry_initialized', {
+        issuerCount: persistedIssuers.length,
+      });
+    } catch (error) {
+      if (!isTestFallbackEnabled()) {
+        initializationPromise = null;
+        throw error;
+      }
+
+      log('warn', 'trust_registry_initialized_in_memory_fallback', {
+        issuerCount: issuerCache.size,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  })();
+
+  return initializationPromise;
 }
 
 // ── Public API ────────────────────────────────────────────────────────
 
 export function getIssuer(issuerId: string): TrustedIssuer | null {
-  return issuers.get(issuerId) ?? null;
+  const issuer = issuerCache.get(issuerId);
+  return issuer ? cloneIssuer(issuer) : null;
 }
 
 export function listIssuers(): TrustedIssuer[] {
-  return Array.from(issuers.values());
+  return Array.from(issuerCache.values()).map(cloneIssuer);
 }
 
-export function registerIssuer(issuer: TrustedIssuer): void {
-  issuers.set(issuer.issuerId, issuer);
-  log('info', 'registry_issuer_registered', {
-    issuerId: issuer.issuerId,
-    trustLevel: issuer.trustLevel,
-  });
+export async function registerIssuer(issuer: TrustedIssuer): Promise<TrustedIssuer> {
+  await initializeTrustRegistryPersistence();
+  try {
+    const persisted = await issuerRepository.upsertIssuer(issuer);
+    issuerCache.set(persisted.issuerId, cloneIssuer(persisted));
+    log('info', 'registry_issuer_registered', {
+      issuerId: persisted.issuerId,
+      trustLevel: persisted.trustLevel,
+    });
+    return cloneIssuer(persisted);
+  } catch (error) {
+    if (!isTestFallbackEnabled()) {
+      throw error;
+    }
+
+    issuerCache.set(issuer.issuerId, cloneIssuer(issuer));
+    log('warn', 'registry_issuer_registered_in_memory_fallback', {
+      issuerId: issuer.issuerId,
+      trustLevel: issuer.trustLevel,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    return cloneIssuer(issuer);
+  }
 }
 
-export function updateIssuerStatus(
+export async function updateIssuerStatus(
   issuerId: string,
   status: IssuerStatus,
-): TrustedIssuer | null {
-  const issuer = issuers.get(issuerId);
-  if (!issuer) return null;
-  const updated = { ...issuer, status };
-  issuers.set(issuerId, updated);
-  log('info', 'registry_issuer_status_updated', { issuerId, status });
-  return updated;
+): Promise<TrustedIssuer | null> {
+  await initializeTrustRegistryPersistence();
+  try {
+    const updated = await issuerRepository.updateIssuerStatus(issuerId, status);
+    if (!updated) {
+      return null;
+    }
+    issuerCache.set(issuerId, cloneIssuer(updated));
+    log('info', 'registry_issuer_status_updated', { issuerId, status });
+    return cloneIssuer(updated);
+  } catch (error) {
+    if (!isTestFallbackEnabled()) {
+      throw error;
+    }
+
+    const cached = issuerCache.get(issuerId);
+    if (!cached) {
+      return null;
+    }
+
+    const updated: TrustedIssuer = {
+      ...cached,
+      status,
+    };
+    issuerCache.set(issuerId, cloneIssuer(updated));
+    log('warn', 'registry_status_updated_in_memory_fallback', {
+      issuerId,
+      status,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    return cloneIssuer(updated);
+  }
 }
 
 /**
  * Wave 105: Update reputation fields for an issuer.
  */
-export function updateIssuerReputation(
+export async function updateIssuerReputation(
   issuerId: string,
-  reputation: { trustScore: number; verificationCount: number; revocationCount: number },
-): TrustedIssuer | null {
-  const issuer = issuers.get(issuerId);
-  if (!issuer) return null;
-  const updated: TrustedIssuer = {
-    ...issuer,
-    trustScore: reputation.trustScore,
-    verificationCount: reputation.verificationCount,
-    revocationCount: reputation.revocationCount,
-    lastScoredAt: new Date().toISOString(),
-  };
-  issuers.set(issuerId, updated);
-  return updated;
+  reputation: TrustRegistryReputationUpdate,
+): Promise<TrustedIssuer | null> {
+  await initializeTrustRegistryPersistence();
+  try {
+    const updated = await issuerRepository.updateIssuerReputation(issuerId, reputation);
+    if (!updated) {
+      return null;
+    }
+    issuerCache.set(issuerId, cloneIssuer(updated));
+    return cloneIssuer(updated);
+  } catch (error) {
+    if (!isTestFallbackEnabled()) {
+      throw error;
+    }
+
+    const cached = issuerCache.get(issuerId);
+    if (!cached) {
+      return null;
+    }
+
+    const updated: TrustedIssuer = {
+      ...cached,
+      ...reputation,
+    };
+    issuerCache.set(issuerId, cloneIssuer(updated));
+    log('warn', 'registry_reputation_updated_in_memory_fallback', {
+      issuerId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    return cloneIssuer(updated);
+  }
 }
 
 export function isIssuerTrusted(issuerId: string): boolean {
-  const issuer = issuers.get(issuerId);
+  const issuer = issuerCache.get(issuerId);
   return issuer != null && issuer.status === 'ACTIVE' && issuer.trustLevel !== 'UNTRUSTED';
 }
 
 export function registrySize(): number {
-  return issuers.size;
+  return issuerCache.size;
 }

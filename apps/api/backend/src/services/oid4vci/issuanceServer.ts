@@ -11,7 +11,7 @@ import { randomUUID } from 'node:crypto';
 import { log } from '../../obs/logger';
 import { issueCredential } from '../credentials/credentialIssuer';
 import { storeCredential } from '../credentials/credentialWallet';
-import type { IssueCredentialRequest } from '../credentials/credentialModel';
+import type { IssueCredentialRequest, VerifiableCredential } from '../credentials/credentialModel';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -83,6 +83,11 @@ export interface OID4VCICredentialResponse {
   credential: string;           // compact JWS (vc+jwt)
   c_nonce?: string;
   c_nonce_expires_in?: number;
+  credentialId?: string;
+  issuer?: string;
+  subject?: string;
+  issuedCredential?: VerifiableCredential;
+  offerId?: string;
 }
 
 // ── In-memory store ───────────────────────────────────────────────────
@@ -235,6 +240,7 @@ export function getCredentialOffer(idOrCode: string): CredentialOffer | null {
 export async function issueOID4VCICredential(
   request: OID4VCICredentialRequest,
   pem: string,
+  subjectOverride?: string,
 ): Promise<OID4VCICredentialResponse> {
   const preCode = request['pre-authorized_code'];
   const offer = preCode ? offers.get(preCode) : undefined;
@@ -252,9 +258,13 @@ export async function issueOID4VCICredential(
   }
 
   // Use pending request from offer or build a minimal one
-  const issueReq: IssueCredentialRequest = offer?.pendingRequest ?? {
+  const pendingRequest = offer?.pendingRequest;
+  const issueReq: IssueCredentialRequest = pendingRequest ? {
+    ...pendingRequest,
+    subject: subjectOverride ?? pendingRequest.subject,
+  } : {
     issuer: 'did:vitalcv:issuer:vitalcv-psv',
-    subject: 'did:vitalcv:clinician:unknown',
+    subject: subjectOverride ?? 'did:vitalcv:clinician:unknown',
     claims: {
       credentialTypes: request.types,
       issuedViaOID4VCI: true,
@@ -262,7 +272,7 @@ export async function issueOID4VCICredential(
   };
 
   const credential = await issueCredential(issueReq, pem);
-  await storeCredential(credential);
+  storeCredential(credential);
 
   log('info', 'oid4vci_credential_issued', {
     credentialId: credential.credentialId,
@@ -275,6 +285,11 @@ export async function issueOID4VCICredential(
     credential: credential.signature,
     c_nonce: randomUUID().replace(/-/g, ''),
     c_nonce_expires_in: 300,
+    credentialId: credential.credentialId,
+    issuer: credential.issuer,
+    subject: credential.subject,
+    issuedCredential: credential,
+    offerId: offer?.offerId,
   };
 }
 
