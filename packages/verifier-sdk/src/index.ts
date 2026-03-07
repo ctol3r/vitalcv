@@ -347,3 +347,7 @@ export function createVerifier(config: VitalCVVerifierConfig): VitalCVVerifier {
 }
 
 export default VitalCVVerifier;
+
+// Wave 133: version + diagnostics
+export * from './version';
+export * from './diagnostics';

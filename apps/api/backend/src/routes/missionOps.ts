@@ -20,11 +20,23 @@ import {
 } from '../services/missionOps/onboardingFlows';
 import { initializeTrustRegistryPersistence } from '../services/registry/trustRegistry';
 import { log } from '../obs/logger';
+import { getSDKDiagnosticsReport } from '../services/missionOps/sdkDiagnosticsService';
 
 const VALID_ROLES: OnboardingRole[] = ['ISSUER', 'VERIFIER', 'PARTNER'];
 const VALID_STATUSES: StageStatus[] = ['COMPLETE', 'IN_PROGRESS', 'PENDING', 'BLOCKED'];
 
 export function registerMissionOpsRoutes(app: Express): void {
+  // Wave 133: SDK diagnostics
+  app.get('/api/mission-ops/sdk-diagnostics', async (_req: Request, res: Response) => {
+    try {
+      const report = await getSDKDiagnosticsReport();
+      res.json(report);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'mission_ops: sdk_diagnostics failed', { error: msg });
+      res.status(500).json({ error: 'SDK diagnostics failed' });
+    }
+  });
   app.get('/api/mission-ops/overview', async (_req: Request, res: Response) => {
     try {
       await Promise.all([
