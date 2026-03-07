@@ -469,12 +469,29 @@ model TrustedIssuer {
   name         String
   did          String    @unique
   publicKeyJwk Json      @db.JsonB
+  publicKeyPem String    @default("")
+  trustLevel   String    @default("PROVISIONAL")
+  status       String    @default("ACTIVE")
+  trustScore   Int?
+  verificationCount Int?
+  revocationCount   Int?
+  lastScoredAt DateTime?
+  assuranceProfile String?
+  algorithmPolicy String[] @default([])
+  haipCompliant Boolean?
+  federationEntityId String?
+  federationTrustChain String[] @default([])
+  federatedAt DateTime?
+  registryMetadata Json? @db.JsonB
   active       Boolean   @default(true)
   organizationId String?  @db.Uuid
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
   @@index([organizationId])
+  @@index([status])
+  @@index([trustLevel])
+  @@index([active])
 }
 
 model CredentialTransparencyLog {
@@ -489,6 +506,27 @@ model CredentialTransparencyLog {
   @@index([artifactId])
   @@index([fingerprint])
   @@index([organizationId])
+}
+
+model TrustAlertRecord {
+  id                String   @id @default(uuid()) @db.Uuid
+  alertId           String   @unique
+  type              String
+  severity          String
+  title             String
+  description       String
+  credentialId      String?
+  issuerId          String?
+  subject           String?
+  recommendedAction String
+  acknowledged      Boolean  @default(false)
+  acknowledgedAt    DateTime?
+  createdAt         DateTime @default(now())
+
+  @@index([severity, createdAt])
+  @@index([acknowledged, createdAt])
+  @@index([issuerId])
+  @@index([subject])
 }
 
 model OrganizationTrust {
@@ -603,6 +641,40 @@ model OnboardingAnalytics {
 
   @@index([organizationId])
   @@index([artifactId])
+}
+
+model MissionOpsOnboardingFlow {
+  id              String   @id @default(uuid()) @db.Uuid
+  role            String
+  entityId        String
+  entityName      String
+  stages          Json     @db.JsonB
+  overallProgress Int      @default(0)
+  createdAt       DateTime @default(now())
+  lastUpdated     DateTime @updatedAt
+
+  @@unique([role, entityId])
+  @@index([role, lastUpdated])
+  @@index([entityId])
+}
+
+model AuditReceiptRecord {
+  id        String   @id @default(uuid()) @db.Uuid
+  receiptId String   @unique
+  type      String
+  status    String
+  issuedAt  DateTime
+  hash      String
+  payload   Json     @db.JsonB
+  summary   String
+  actor     String
+  subject   String
+  createdAt DateTime @default(now())
+
+  @@index([type, issuedAt])
+  @@index([status, issuedAt])
+  @@index([actor])
+  @@index([subject])
 }
 
 // ──────────────────────────────────────────────────────────────

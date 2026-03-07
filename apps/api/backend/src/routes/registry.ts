@@ -14,6 +14,7 @@ import {
   listIssuers,
   getIssuer,
   registerIssuer,
+  initializeTrustRegistryPersistence,
   updateIssuerStatus,
   type TrustedIssuer,
   type IssuerStatus,
@@ -27,8 +28,9 @@ import { log } from '../obs/logger';
 export function registerTrustRegistryRoutes(app: Express): void {
 
   // ── GET /api/registry ───────────────────────────────────────────────
-  app.get('/api/registry', (_req: Request, res: Response) => {
+  app.get('/api/registry', async (_req: Request, res: Response) => {
     try {
+      await initializeTrustRegistryPersistence();
       const issuers = listIssuers();
       res.status(200).json({
         issuers,
@@ -42,9 +44,85 @@ export function registerTrustRegistryRoutes(app: Express): void {
     }
   });
 
-  // ── GET /api/registry/:issuer ──────────────────────────────────────
-  app.get('/api/registry/:issuer', (req: Request, res: Response) => {
+  // ── GET /api/registry/issuers ───────────────────────────────────────
+  app.get('/api/registry/issuers', async (_req: Request, res: Response) => {
     try {
+      await initializeTrustRegistryPersistence();
+      const issuers = listIssuers();
+      res.status(200).json({ issuers, total: issuers.length });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'registry_sdk_list_failed', { error: msg });
+      res.status(500).json({ error: 'Failed to list issuers', detail: msg });
+    }
+  });
+
+  // ── POST /api/registry/issuers ──────────────────────────────────────
+  app.post('/api/registry/issuers', async (req: Request, res: Response) => {
+    try {
+      const {
+        did,
+        issuerId,
+        issuerName,
+        issuerType,
+        jurisdiction,
+        endpoint,
+        publicKey,
+      } = req.body ?? {};
+
+      const resolvedIssuerId = typeof did === 'string' && did.trim().length > 0
+        ? did.trim()
+        : issuerId;
+
+      if (!resolvedIssuerId || typeof resolvedIssuerId !== 'string') {
+        res.status(400).json({ error: 'did or issuerId is required' });
+        return;
+      }
+      if (!issuerName || typeof issuerName !== 'string') {
+        res.status(400).json({ error: 'issuerName is required' });
+        return;
+      }
+
+      const issuer: TrustedIssuer = {
+        issuerId: resolvedIssuerId,
+        issuerName,
+        publicKey: typeof publicKey === 'string' ? publicKey : '',
+        trustLevel: 'AUTHORITATIVE',
+        status: 'ACTIVE',
+        registeredAt: new Date().toISOString(),
+        trustScore: 90,
+        assuranceProfile: 'IAL2',
+        algorithmPolicy: ['ES256'],
+        haipCompliant: true,
+        metadata: {
+          assuranceLevel: 'IAL2',
+          issuerType,
+          jurisdiction,
+          endpoint,
+        },
+      };
+
+      const persisted = await registerIssuer(issuer);
+      res.status(201).json({
+        issuer: persisted,
+        issuerId: persisted.issuerId,
+        issuerName: persisted.issuerName,
+        did: persisted.issuerId,
+        trustScore: persisted.trustScore ?? 0,
+        status: persisted.status,
+        registeredAt: persisted.registeredAt,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'registry_sdk_register_failed', { error: msg });
+      res.status(500).json({ error: 'Failed to register issuer', detail: msg });
+    }
+  });
+
+  // ── GET /api/registry/:issuer ──────────────────────────────────────
+  app.get('/api/registry/:issuer', async (req: Request, res: Response) => {
+    try {
+      await initializeTrustRegistryPersistence();
       // issuerId may be URL-encoded (e.g. did:vitalcv:issuer:ca-medical-board)
       const issuerId = decodeURIComponent(req.params.issuer ?? '');
       const issuer = getIssuer(issuerId);
@@ -64,7 +142,7 @@ export function registerTrustRegistryRoutes(app: Express): void {
 
   // ── POST /api/registry ─────────────────────────────────────────────
   // Admin endpoint to register a new trusted issuer
-  app.post('/api/registry', (req: Request, res: Response) => {
+  app.post('/api/registry', async (req: Request, res: Response) => {
     try {
       const { issuerId, issuerName, publicKey, trustLevel, status, metadata } = req.body ?? {};
 
@@ -93,8 +171,8 @@ export function registerTrustRegistryRoutes(app: Express): void {
         metadata: metadata ?? {},
       };
 
-      registerIssuer(issuer);
-      res.status(201).json({ issuer, message: 'Issuer registered successfully' });
+      const persisted = await registerIssuer(issuer);
+      res.status(201).json({ issuer: persisted, message: 'Issuer registered successfully' });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       log('error', 'registry_register_failed', { error: msg });
@@ -103,7 +181,7 @@ export function registerTrustRegistryRoutes(app: Express): void {
   });
 
   // ── PATCH /api/registry/:issuer/status ────────────────────────────
-  app.patch('/api/registry/:issuer/status', (req: Request, res: Response) => {
+  app.patch('/api/registry/:issuer/status', async (req: Request, res: Response) => {
     try {
       const issuerId = decodeURIComponent(req.params.issuer ?? '');
       const { status } = req.body ?? {};
@@ -114,7 +192,7 @@ export function registerTrustRegistryRoutes(app: Express): void {
         return;
       }
 
-      const updated = updateIssuerStatus(issuerId, status as IssuerStatus);
+      const updated = await updateIssuerStatus(issuerId, status as IssuerStatus);
       if (!updated) {
         res.status(404).json({ error: `Issuer "${issuerId}" not found` });
         return;

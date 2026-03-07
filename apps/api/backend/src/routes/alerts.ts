@@ -12,6 +12,7 @@ import {
   listAlerts,
   acknowledgeAlert,
   emitAlert,
+  initializeTrustAlertsPersistence,
   unacknowledgedCount,
   type TrustAlertSeverity,
   type TrustAlertType,
@@ -21,8 +22,9 @@ import { log } from '../obs/logger';
 export function registerTrustAlertRoutes(app: Express): void {
 
   // ── GET /api/alerts ────────────────────────────────────────────────
-  app.get('/api/alerts', (req: Request, res: Response) => {
+  app.get('/api/alerts', async (req: Request, res: Response) => {
     try {
+      await initializeTrustAlertsPersistence();
       const { severity, acknowledged, limit } = req.query;
 
       const alerts = listAlerts({
@@ -45,8 +47,9 @@ export function registerTrustAlertRoutes(app: Express): void {
   });
 
   // ── GET /api/alerts/summary ────────────────────────────────────────
-  app.get('/api/alerts/summary', (_req: Request, res: Response) => {
+  app.get('/api/alerts/summary', async (_req: Request, res: Response) => {
     try {
+      await initializeTrustAlertsPersistence();
       const all = listAlerts();
       const unacked = all.filter((a) => !a.acknowledged);
 
@@ -70,7 +73,7 @@ export function registerTrustAlertRoutes(app: Express): void {
   });
 
   // ── POST /api/alerts/acknowledge ───────────────────────────────────
-  app.post('/api/alerts/acknowledge', (req: Request, res: Response) => {
+  app.post('/api/alerts/acknowledge', async (req: Request, res: Response) => {
     try {
       const { alertId } = req.body ?? {};
 
@@ -79,7 +82,7 @@ export function registerTrustAlertRoutes(app: Express): void {
         return;
       }
 
-      const updated = acknowledgeAlert(alertId);
+      const updated = await acknowledgeAlert(alertId);
       if (!updated) {
         res.status(404).json({ error: `Alert ${alertId} not found` });
         return;
@@ -94,7 +97,7 @@ export function registerTrustAlertRoutes(app: Express): void {
   });
 
   // ── POST /api/alerts/emit (admin/internal) ─────────────────────────
-  app.post('/api/alerts/emit', (req: Request, res: Response) => {
+  app.post('/api/alerts/emit', async (req: Request, res: Response) => {
     try {
       const {
         type,
@@ -127,7 +130,7 @@ export function registerTrustAlertRoutes(app: Express): void {
         return;
       }
 
-      const alert = emitAlert({
+      const alert = await emitAlert({
         type,
         severity: severity ?? 'WARNING',
         title,

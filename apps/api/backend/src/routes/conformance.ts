@@ -45,9 +45,9 @@ export function registerConformanceRoutes(app: Express): void {
 
   // ── GET /api/audit/receipts/stats ─────────────────────────────────
   // NOTE: must register /stats BEFORE /:id to avoid route collision
-  app.get('/api/audit/receipts/stats', (_req: Request, res: Response) => {
+  app.get('/api/audit/receipts/stats', async (_req: Request, res: Response) => {
     try {
-      const stats = receiptStats();
+      const stats = await receiptStats();
       const total = stats.ISSUANCE + stats.PRESENTATION + stats.VERIFICATION;
       res.json({ stats, total });
     } catch (err) {
@@ -57,7 +57,7 @@ export function registerConformanceRoutes(app: Express): void {
   });
 
   // ── GET /api/audit/receipts ───────────────────────────────────────
-  app.get('/api/audit/receipts', (req: Request, res: Response) => {
+  app.get('/api/audit/receipts', async (req: Request, res: Response) => {
     try {
       const { type } = req.query;
       const validTypes = ['ISSUANCE', 'PRESENTATION', 'VERIFICATION'];
@@ -65,7 +65,7 @@ export function registerConformanceRoutes(app: Express): void {
         res.status(400).json({ error: `type must be one of ${validTypes.join(', ')}` });
         return;
       }
-      const receipts = listReceipts(type as 'ISSUANCE' | 'PRESENTATION' | 'VERIFICATION' | undefined);
+      const receipts = await listReceipts(type as 'ISSUANCE' | 'PRESENTATION' | 'VERIFICATION' | undefined);
       res.json({ receipts, count: receipts.length });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
@@ -74,9 +74,9 @@ export function registerConformanceRoutes(app: Express): void {
   });
 
   // ── GET /api/audit/receipt/:id ────────────────────────────────────
-  app.get('/api/audit/receipt/:id', (req: Request, res: Response) => {
+  app.get('/api/audit/receipt/:id', async (req: Request, res: Response) => {
     try {
-      const receipt = getReceipt(req.params.id);
+      const receipt = await getReceipt(req.params.id);
       if (!receipt) {
         res.status(404).json({ error: `Receipt ${req.params.id} not found` });
         return;

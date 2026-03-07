@@ -7,9 +7,17 @@
  * Uses in-memory services (no DB required).
  */
 
+import { InMemoryTrustRegistryRepository } from '../repositories/trustRegistry.repo';
 import { computeSubstrateTrustState } from '../src/services/trust/trustSubstrate';
 import { appendAuditEvent as append, getLedgerSize, exportSinceTime } from '../src/services/audit/auditLedger';
-import { registerIssuer, listIssuers, getIssuer } from '../src/services/registry/trustRegistry';
+import {
+  getIssuer,
+  initializeTrustRegistryPersistence,
+  listIssuers,
+  registerIssuer,
+  resetTrustRegistryRepository,
+  setTrustRegistryRepository,
+} from '../src/services/registry/trustRegistry';
 import { computeBaselineSummary } from '../src/services/audit/auditBaseline';
 
 // ── Test Data ─────────────────────────────────────────────────────────
@@ -32,9 +40,15 @@ const TEST_ISSUER = {
 // ── Tests ─────────────────────────────────────────────────────────────
 
 describe('E2E Trust Flow', () => {
-  beforeAll(() => {
+  beforeAll(async () => {
+    setTrustRegistryRepository(new InMemoryTrustRegistryRepository());
+    await initializeTrustRegistryPersistence();
     // Seed the registry
-    registerIssuer(TEST_ISSUER);
+    await registerIssuer(TEST_ISSUER);
+  });
+
+  afterAll(() => {
+    resetTrustRegistryRepository();
   });
 
   describe('Trust Registry', () => {

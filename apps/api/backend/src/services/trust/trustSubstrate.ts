@@ -27,7 +27,11 @@ import { log } from '../../obs/logger';
 import { getCredentialsForSubject } from '../credentials/credentialWallet';
 import { verifyCredential } from '../credentials/credentialVerifier';
 import { isRevoked } from '../revocation/revocationRegistry';
-import { getIssuer, listIssuers } from '../registry/trustRegistry';
+import {
+  getIssuer,
+  initializeTrustRegistryPersistence,
+  listIssuers,
+} from '../registry/trustRegistry';
 import { calculateTrustScore } from './reputationEngine';
 import { checkCredentialHAIP, checkIssuerHAIP, HAIP_HEALTHCARE_POLICY } from './haipProfile';
 import {
@@ -287,6 +291,7 @@ function deriveBand(
 export async function computeSubstrateTrustState(
   subject: string,
 ): Promise<SubstrateTrustResult> {
+  await initializeTrustRegistryPersistence();
   const startMs = Date.now();
 
   // 1. Load credentials for subject
