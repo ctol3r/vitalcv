@@ -14,13 +14,22 @@
  * No mock data — all live from backend APIs.
  */
 
-import { useEffect, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { HoverCard } from '@/components/ui/HoverCard';
+import { getApiBase } from '@/lib/api';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
-  RefreshCw, Shield, ShieldCheck, ShieldAlert, ShieldX,
-  Eye, EyeOff, FileKey2, Share2, CheckCircle2,
-  AlertTriangle, Clock, Fingerprint, ExternalLink,
+    CheckCircle2,
+    Clock,
+    Eye, EyeOff, FileKey2,
+    Fingerprint,
+    RefreshCw,
+    Share2,
+    Shield,
+    ShieldAlert,
+    ShieldCheck,
+    ShieldX
 } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -62,10 +71,7 @@ const BAND_CONFIG = {
   L0: { icon: ShieldX,     color: 'text-red-400',     gradient: 'from-red-600/20 to-red-900/10',         border: 'border-red-500/30',     label: 'Unverified' },
 };
 
-const base = () =>
-  ((typeof process !== 'undefined'
-    ? process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_BACKEND_URL
-    : '') ?? '').replace(/\/$/, '');
+const base = () => getApiBase();
 
 interface Props {
   npi: string;
@@ -244,9 +250,15 @@ export function WalletPassport({ npi, pollIntervalMs = 30_000 }: Props) {
                     <p className="text-sm font-medium text-zinc-200">
                       {cred.credentialType.replace(/([A-Z])/g, ' $1').trim()}
                     </p>
-                    <p className="text-[11px] text-zinc-500 mt-0.5">
-                      {cred.issuer}
-                    </p>
+                    <HoverCard
+                      trigger={<span className="text-[11px] text-zinc-500 mt-0.5 border-b border-dashed border-zinc-600 hover:text-zinc-300 cursor-help">{cred.issuer}</span>}
+                    >
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-zinc-200">{cred.issuer}</p>
+                        <p className="text-[10px] text-zinc-400">Issuer ID: {cred.issuerId || 'Unknown'}</p>
+                        <p className="text-[10px] text-emerald-400">Verified Trust Node</p>
+                      </div>
+                    </HoverCard>
                     <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                       <span className={`text-[9px] px-1.5 py-0.5 rounded border ${
                         cred.status === 'ACTIVE' ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5'

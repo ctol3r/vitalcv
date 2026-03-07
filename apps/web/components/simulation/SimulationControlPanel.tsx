@@ -9,6 +9,7 @@
 
 import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { getApiBase } from '@/lib/api';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -54,8 +55,7 @@ export function SimulationControlPanel({ npi, onResult, onReset, className = '' 
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<SimulationResult | null>(null);
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_BACKEND_URL || '';
-  const base = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
+  const base = getApiBase();
 
   const runSimulation = useCallback(async () => {
     setRunning(true);

@@ -7,6 +7,7 @@
 
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
+import { getConnectorHealth } from '../providers/connectors/connectorHealthTracker';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -88,7 +89,7 @@ export async function generateSystemStatus(): Promise<SystemStatus> {
     }),
   ]);
 
-  // Source connectivity
+  // Source connectivity from Prisma artifacts
   const sourceConnectivity: SourceStatus[] = sourceGroups.map((sg) => {
     const lastSeen = sg._max.createdAt?.toISOString() ?? null;
     const hoursSince = lastSeen
@@ -102,6 +103,21 @@ export async function generateSystemStatus(): Promise<SystemStatus> {
       artifactCount: sg._count,
     };
   });
+
+  // Connector health entries
+  const connHealth = getConnectorHealth();
+  for (const entry of connHealth.connectors) {
+    const connStatus: HealthStatus =
+      entry.status === 'HEALTHY' ? 'OPERATIONAL'
+      : entry.status === 'DEGRADED' ? 'DEGRADED'
+      : 'OUTAGE';
+    sourceConnectivity.push({
+      source: `connector:${entry.connector}`,
+      status: connStatus,
+      lastSeen: entry.lastSuccessAt,
+      artifactCount: entry.successCount,
+    });
+  }
 
   // Artifact integrity
   const expiredEstimate = Math.floor(totalArtifacts * 0.05); // Estimate

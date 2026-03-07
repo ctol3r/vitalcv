@@ -168,7 +168,7 @@ export function SystemConsole() {
                   href="/demo"
                   className="inline-flex items-center gap-2 rounded-xl bg-infra-blue px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-infra-blue focus:ring-offset-2"
                 >
-                  Try the Demo
+                  Try VitalCV
                   <Zap className="h-4 w-4" />
                 </Link>
               </MagneticButton>

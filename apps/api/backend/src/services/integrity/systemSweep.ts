@@ -12,12 +12,13 @@
  */
 
 import prisma from '../../graphql/prisma_client';
+import { getConnectorHealth } from '../providers/connectors/connectorHealthTracker';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export interface CheckResult {
   name: string;
-  category: 'database' | 'endpoint' | 'environment' | 'auth';
+  category: 'database' | 'endpoint' | 'environment' | 'auth' | 'connector';
   status: 'pass' | 'warn' | 'fail';
   message: string;
   latencyMs?: number;
@@ -36,7 +37,7 @@ export interface SweepReport {
 // ── Config ─────────────────────────────────────────────────────────────────
 
 const REQUIRED_ENV_VARS = ['DATABASE_URL', 'NEXTAUTH_SECRET', 'NEXTAUTH_URL'] as const;
-const OPTIONAL_ENV_VARS = ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'STRIPE_SECRET_KEY', 'REDIS_URL', 'OCR_PROVIDER', 'SENTRY_DSN'] as const;
+const OPTIONAL_ENV_VARS = ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'STRIPE_SECRET_KEY', 'REDIS_URL', 'OCR_PROVIDER', 'SENTRY_DSN', 'STATE_BOARD_MODE', 'OIG_MODE', 'ABMS_MODE', 'CAQH_MODE', 'NPDB_MODE'] as const;
 
 const ENDPOINT_CHECKS = [
   { name: 'Metrics Public',     path: '/metrics/public' },
@@ -156,6 +157,23 @@ function checkEndpoints(): CheckResult[] {
   }));
 }
 
+function checkConnectors(): CheckResult[] {
+  const health = getConnectorHealth();
+  return health.connectors.map((entry) => ({
+    name: `Connector: ${entry.connector}`,
+    category: 'connector' as const,
+    status:
+      entry.status === 'HEALTHY' ? 'pass' as const
+      : entry.status === 'DEGRADED' ? 'warn' as const
+      : 'fail' as const,
+    message: entry.status === 'HEALTHY'
+      ? `${entry.mode} mode — ${entry.successCount} successes`
+      : entry.status === 'DEGRADED'
+        ? `${entry.mode} mode — ${entry.consecutiveErrors} consecutive errors`
+        : `${entry.mode} mode — unreachable (${entry.lastError ?? 'unknown error'})`,
+  }));
+}
+
 // ── Main Sweep ─────────────────────────────────────────────────────────────
 
 export async function runSystemSweep(): Promise<SweepReport> {
@@ -168,6 +186,7 @@ export async function runSystemSweep(): Promise<SweepReport> {
   checks.push(checkAuthConfig());
   checks.push(checkSessionLogic());
   checks.push(...checkEndpoints());
+  checks.push(...checkConnectors());
 
   const passed   = checks.filter((c) => c.status === 'pass').length;
   const warnings = checks.filter((c) => c.status === 'warn').length;

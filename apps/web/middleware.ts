@@ -25,26 +25,19 @@ const isSignInPage = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)']);
 export default clerkMiddleware(async (auth, req) => {
   const { pathname } = req.nextUrl;
 
-  // 1. Permanent redirect: /demo -> /
-  if (pathname === '/demo' || pathname.startsWith('/demo/')) {
-    const url = req.nextUrl.clone();
-    url.pathname = '/';
-    return NextResponse.redirect(url, 308);
-  }
-
-  // 2. Public routes pass through
+  // 1. Public routes pass through
   if (isPublicRoute(pathname)) {
     return NextResponse.next();
   }
 
-  // 3. Determine required role for this route
+  // 2. Determine required role for this route
   const requiredRole = getRequiredRole(pathname);
   if (!requiredRole) {
     // Route is neither public nor protected — pass through
     return NextResponse.next();
   }
 
-  // 4. Require authentication
+  // 3. Require authentication
   const session = await auth();
   if (!session.userId) {
     const signInUrl = req.nextUrl.clone();
@@ -53,11 +46,11 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(signInUrl);
   }
 
-  // 5. Read role from JWT claim (fast path)
+  // 4. Read role from JWT claim (fast path)
   let userRole: UserRoleType | undefined =
     session.sessionClaims?.vitalcv?.role as UserRoleType | undefined;
 
-  // 6. Fallback: no role claim in JWT
+  // 5. Fallback: no role claim in JWT
   if (!userRole) {
     try {
       const resolveUrl = new URL('/api/auth/resolve-role', req.nextUrl.origin);
@@ -87,7 +80,7 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(landingUrl);
   }
 
-  // 7. Check role matches route
+  // 6. Check role matches route
   if (userRole !== requiredRole) {
     const redirectPath = getMismatchRedirect(pathname, userRole);
     const redirectUrl = req.nextUrl.clone();
@@ -95,7 +88,7 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // 8. Authorized — pass through
+  // 7. Authorized — pass through
   return NextResponse.next();
 });
 

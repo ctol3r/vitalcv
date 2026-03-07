@@ -8,7 +8,7 @@ import {
   ChevronRight,
   Circle,
 } from 'lucide-react';
-import { apiRoute } from '@/lib/api';
+import { apiRoute, getApiBase } from '@/lib/api';
 import {
   type TrustStateResponse,
   normalizeTrustStateResponse,
@@ -34,7 +34,7 @@ interface Step {
 export function MvpTestChecklist() {
   /* ── backend polling (existing endpoint, no new API) ── */
   const trustStateRoute = apiRoute('/trust-state');
-  const isApiConfigured = Boolean(process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_BACKEND_URL);
+  const isApiConfigured = Boolean(getApiBase());
   const [status, setStatus] = useState<TrustStateResponse>(() =>
     normalizeTrustStateResponse(null),
   );

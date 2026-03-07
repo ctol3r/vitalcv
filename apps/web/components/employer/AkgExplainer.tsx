@@ -15,6 +15,7 @@
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getApiBase } from '@/lib/api';
 import {
   AlertTriangle,
   Anchor,
@@ -207,9 +208,7 @@ export function AkgExplainer({ npi, context, backendUrl }: AkgExplainerProps) {
   const [result, setResult] = useState<AKGQueryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const base =
-    backendUrl ??
-    (typeof process !== 'undefined' ? (process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_BACKEND_URL ?? '') : '');
+  const base = backendUrl ?? getApiBase();
 
   const runExplanation = useCallback(async () => {
     if (result) { setOpen(true); return; } // use cached result

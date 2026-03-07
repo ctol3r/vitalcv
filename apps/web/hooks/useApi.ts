@@ -9,6 +9,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { getApiBase } from '@/lib/api';
 
 export interface UseApiOptions {
   /** Polling interval in ms. 0 = no polling (fetch once). Default: 0 */
@@ -27,14 +28,9 @@ export interface UseApiResult<T> {
   lastUpdated: Date | null;
 }
 
-const API_BASE =
-  (typeof window !== 'undefined'
-    ? (process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_BACKEND_URL ?? '')
-    : '') as string;
-
 function resolveUrl(url: string): string {
   if (url.startsWith('http')) return url;
-  const base = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
+  const base = getApiBase();
   return `${base}${url}`;
 }
 

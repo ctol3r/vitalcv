@@ -57,27 +57,6 @@ const RESOURCES = [
 export default function DeveloperPortalPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
-
-      {/* ── Nav ──────────────────────────────────────────── */}
-      <nav className="sticky top-0 z-40 border-b border-white/8 bg-slate-950/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
-          <Link href="/" className="font-fraunces text-base font-semibold tracking-tight text-white">
-            VitalCV
-          </Link>
-          <div className="hidden items-center gap-6 text-sm text-slate-400 md:flex">
-            <Link href="/developers" className="text-white font-medium">Developers</Link>
-            <Link href="/demo" className="hover:text-white transition-colors">Demo</Link>
-            <Link href="/verifier" className="hover:text-white transition-colors">Verifier</Link>
-          </div>
-          <Link
-            href="/sign-in"
-            className="rounded-xl bg-white/5 px-4 py-1.5 text-sm font-medium text-white ring-1 ring-white/10 transition hover:bg-white/10"
-          >
-            Sign In
-          </Link>
-        </div>
-      </nav>
-
       {/* ── Hero header ──────────────────────────────────── */}
       <header className="relative overflow-hidden border-b border-white/8 px-6 py-20 text-center">
         {/* Ambient glow */}
@@ -323,18 +302,6 @@ const result = await VerifierSDK.verifyCredential(credential);
         </div>
 
       </main>
-
-      {/* ── Footer ───────────────────────────────────────── */}
-      <footer className="border-t border-white/8 bg-slate-950/60 py-8 px-6">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 text-xs text-slate-600 sm:flex-row">
-          <p>&copy; {new Date().getFullYear()} VitalCV. All rights reserved.</p>
-          <div className="flex items-center gap-5">
-            <Link href="/developers" className="text-slate-500 hover:text-white transition-colors">Developers</Link>
-            <Link href="/#security" className="hover:text-white transition-colors">Security</Link>
-            <Link href="/sign-in" className="hover:text-white transition-colors">Sign In</Link>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

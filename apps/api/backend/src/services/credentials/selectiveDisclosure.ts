@@ -10,7 +10,7 @@
  * - hiddenCommitments now stores SD-JWT-compatible hashes
  */
 
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { log } from '../../obs/logger';
 import type { VerifiableCredential } from './credentialModel';
 
@@ -61,8 +61,52 @@ export interface SelectiveDisclosureRequest {
 
 // ── Commitment helpers ────────────────────────────────────────────────
 
+function stableStringify(value: unknown): string {
+  if (value === null || value === undefined) {
+    return 'null';
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => stableStringify(entry)).join(',')}]`;
+  }
+
+  if (value instanceof Date) {
+    return JSON.stringify(value.toISOString());
+  }
+
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    const keys = Object.keys(record).sort((left, right) => left.localeCompare(right));
+    return `{${keys
+      .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
+      .join(',')}}`;
+  }
+
+  return JSON.stringify(value);
+}
+
+function normalizeClaimKeys(claims: Record<string, unknown>): string[] {
+  return Object.keys(claims)
+    .filter((key) => !key.startsWith('_'))
+    .sort((left, right) => left.localeCompare(right));
+}
+
+function normalizeRevealFields(
+  revealFields: readonly string[],
+  claims: Record<string, unknown>,
+): string[] {
+  const allowedClaims = new Set(normalizeClaimKeys(claims));
+
+  return [...new Set(
+    revealFields
+      .filter((field): field is string => typeof field === 'string')
+      .map((field) => field.trim())
+      .filter((field) => field.length > 0 && allowedClaims.has(field)),
+  )].sort((left, right) => left.localeCompare(right));
+}
+
 function saltedCommitment(value: unknown, salt: string): string {
-  const payload = salt + JSON.stringify(value);
+  const payload = salt + stableStringify(value);
   return 'sha256:' + createHash('sha256').update(payload).digest('hex');
 }
 
@@ -79,12 +123,14 @@ export function generateSelectiveDisclosure(
   credential: VerifiableCredential,
   revealFields: string[],
 ): { disclosure: SelectiveDisclosureCredential; salts: Record<string, string> } {
-  const revealSet = new Set(revealFields);
+  const normalizedRevealFields = normalizeRevealFields(revealFields, credential.claims);
+  const revealSet = new Set(normalizedRevealFields);
   const revealedClaims: Record<string, unknown> = {};
   const hiddenCommitments: Record<string, string> = {};
   const salts: Record<string, string> = {};
 
-  for (const [key, value] of Object.entries(credential.claims)) {
+  for (const key of normalizeClaimKeys(credential.claims)) {
+    const value = credential.claims[key];
     if (revealSet.has(key)) {
       revealedClaims[key] = value;
     } else {
@@ -103,14 +149,14 @@ export function generateSelectiveDisclosure(
     expiresAt: credential.expiresAt,
     revealedClaims,
     hiddenCommitments,
-    disclosureFrame: { revealFields: Array.from(revealSet) },
+    disclosureFrame: { revealFields: normalizedRevealFields },
     originalSignature: credential.signature,
     createdAt: new Date().toISOString(),
   };
 
   log('info', 'selective_disclosure_generated', {
     credentialId: credential.credentialId,
-    revealed: revealFields.length,
+    revealed: Object.keys(revealedClaims).length,
     hidden: Object.keys(hiddenCommitments).length,
   });
 
@@ -127,12 +173,18 @@ export function verifyCommitment(
   salt: string,
 ): boolean {
   const expected = saltedCommitment(value, salt);
-  return commitment === expected;
+  const commitmentBuffer = Buffer.from(commitment);
+  const expectedBuffer = Buffer.from(expected);
+
+  return (
+    commitmentBuffer.length === expectedBuffer.length &&
+    timingSafeEqual(commitmentBuffer, expectedBuffer)
+  );
 }
 
 /**
  * List all claim keys available in a credential (for UI field selection).
  */
 export function listCredentialFields(credential: VerifiableCredential): string[] {
-  return Object.keys(credential.claims).filter((k) => !k.startsWith('_'));
+  return normalizeClaimKeys(credential.claims);
 }

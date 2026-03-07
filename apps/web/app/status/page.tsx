@@ -9,7 +9,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import Link from 'next/link';
+import { getApiBase } from '@/lib/api';
 import { SystemTelemetry, type TelemetryData } from '@/components/system/SystemTelemetry';
 import { IncidentPanel } from '@/components/system/IncidentPanel';
 
@@ -66,8 +66,7 @@ export default function StatusPage() {
   const [telemetry, setTelemetry] = useState<TelemetryData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_BACKEND_URL || '';
-  const base = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
+  const base = getApiBase();
 
   useEffect(() => {
     Promise.all([
@@ -87,16 +86,6 @@ export default function StatusPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
-      {/* Nav */}
-      <nav className="sticky top-0 z-40 border-b border-white/8 bg-slate-950/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
-          <Link href="/" className="font-fraunces text-base font-semibold tracking-tight text-white">
-            VitalCV
-          </Link>
-          <span className="text-xs text-zinc-500 font-mono">System Status</span>
-        </div>
-      </nav>
-
       <main className="mx-auto max-w-5xl px-6 py-12 space-y-8">
         {/* Overall Status Banner */}
         <motion.div
@@ -251,12 +240,6 @@ export default function StatusPage() {
           <IncidentPanel incidents={status?.incidents ?? []} />
         </motion.div>
       </main>
-
-      <footer className="border-t border-white/8 py-6 px-6 text-center">
-        <p className="text-xs text-zinc-600">
-          VitalCV Trust Network — Status updates every 60 seconds
-        </p>
-      </footer>
     </div>
   );
 }
