@@ -14,6 +14,11 @@ import {
   generateEvidencePack,
   type DeploymentProfileType,
 } from '../services/healthstart/deploymentProfile';
+import {
+  getInheritedControls,
+  validateControlHealth,
+} from '../services/healthstart/controlInheritance';
+import { generateSSPPack } from '../services/healthstart/sspPack';
 import { log } from '../obs/logger';
 
 const VALID_PROFILE_TYPES: DeploymentProfileType[] = ['SaaS', 'PrivateVPC', 'GovEnclave'];
@@ -80,6 +85,54 @@ export function registerHealthStartRoutes(app: Express): void {
       const message = err instanceof Error ? err.message : 'Unknown error';
       log('error', 'healthstart: evidence generation failed', { type, error: message });
       res.status(500).json({ error: 'Failed to generate compliance evidence pack' });
+    }
+  });
+
+  /**
+   * GET /api/healthstart/controls
+   * Returns inherited controls for a deployment profile (default: SaaS).
+   * Query: ?profile=SaaS|PrivateVPC|GovEnclave
+   */
+  app.get('/api/healthstart/controls', (req: Request, res: Response) => {
+    const profileType = (req.query.profile as string) || 'SaaS';
+    if (!isValidProfileType(profileType)) {
+      res.status(400).json({
+        error: `Invalid profile type "${profileType}". Valid: ${VALID_PROFILE_TYPES.join(', ')}`,
+      });
+      return;
+    }
+    res.json(getInheritedControls(profileType));
+  });
+
+  /**
+   * GET /api/healthstart/controls/health
+   * Validates that all automated controls are operational.
+   */
+  app.get('/api/healthstart/controls/health', (_req: Request, res: Response) => {
+    const health = validateControlHealth();
+    res.json(health);
+  });
+
+  /**
+   * GET /api/healthstart/ssp
+   * Generates a full SSP evidence pack (default: SaaS).
+   * Query: ?profile=SaaS|PrivateVPC|GovEnclave
+   */
+  app.get('/api/healthstart/ssp', async (req: Request, res: Response) => {
+    const profileType = (req.query.profile as string) || 'SaaS';
+    if (!isValidProfileType(profileType)) {
+      res.status(400).json({
+        error: `Invalid profile type "${profileType}". Valid: ${VALID_PROFILE_TYPES.join(', ')}`,
+      });
+      return;
+    }
+    try {
+      const pack = await generateSSPPack(profileType);
+      res.json(pack);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'healthstart: SSP generation failed', { profileType, error: message });
+      res.status(500).json({ error: 'Failed to generate SSP evidence pack' });
     }
   });
 }
