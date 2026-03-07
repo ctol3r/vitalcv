@@ -59,6 +59,7 @@ import { registerTrustOperationsRoutes } from './routes/trustOperations';
 import { registerPassportRoutes } from './routes/passport';
 // Wave 89: Network Telemetry
 import { registerTelemetryRoutes } from './routes/telemetry';
+import { registerCoordinationRoutes } from './routes/coordination';
 // Wave 90: System Status
 import { registerSystemStatusRoutes } from './routes/systemStatus';
 // Wave B: System Integrity
@@ -3445,6 +3446,7 @@ registerMonitoringEventsRoutes(app); // Wave 85: Monitoring Events
 registerTrustOperationsRoutes(app);  // Wave 87: Trust Operations
 registerPassportRoutes(app);         // Wave 88: Clinician Passport
 registerTelemetryRoutes(app);        // Wave 89: Network Telemetry
+registerCoordinationRoutes(app);     // Wave 132: Coordination & Cleanup
 registerSystemStatusRoutes(app);     // Wave 90: System Status
 registerSystemIntegrityRoutes(app);  // Wave B: System integrity sweep + E2E probes
 registerNetworkGatewayRoutes(app);   // Wave 91+96: Network Gateway + Global Graph
