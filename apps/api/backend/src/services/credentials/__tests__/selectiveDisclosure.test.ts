@@ -55,6 +55,34 @@ describe('generateSelectiveDisclosure', () => {
     const { disclosure } = generateSelectiveDisclosure(credential, []);
     expect(disclosure.credentialId).toBe(credential.credentialId);
   });
+
+  it('normalizes reveal fields deterministically and excludes internal claims', () => {
+    const credentialWithInternal: VerifiableCredential = {
+      ...credential,
+      claims: {
+        zeta: 'z',
+        _issuerHints: 'internal-only',
+        alpha: 'a',
+        npi: '1234567890',
+      },
+    };
+
+    const { disclosure } = generateSelectiveDisclosure(credentialWithInternal, [
+      'zeta',
+      'missing',
+      'alpha',
+      'zeta',
+      '_issuerHints',
+    ]);
+
+    expect(disclosure.disclosureFrame.revealFields).toEqual(['alpha', 'zeta']);
+    expect(disclosure.revealedClaims).toEqual({
+      alpha: 'a',
+      zeta: 'z',
+    });
+    expect(disclosure.hiddenCommitments).toHaveProperty('npi');
+    expect(disclosure.hiddenCommitments).not.toHaveProperty('_issuerHints');
+  });
 });
 
 describe('verifyCommitment', () => {
@@ -76,6 +104,39 @@ describe('verifyCommitment', () => {
     const npiCommitment = disclosure.hiddenCommitments['npi'];
     expect(verifyCommitment(npiCommitment, 'wrong-value', salts['npi'])).toBe(false);
   });
+
+  it('validates nested object claims using canonical field ordering', () => {
+    const credentialWithObject: VerifiableCredential = {
+      ...credential,
+      claims: {
+        ...credential.claims,
+        details: {
+          board: 'ABIM',
+          issued: {
+            year: 2024,
+            month: 6,
+          },
+        },
+      },
+    };
+
+    const { disclosure, salts } = generateSelectiveDisclosure(credentialWithObject, ['specialty']);
+    const detailsCommitment = disclosure.hiddenCommitments['details'];
+
+    expect(
+      verifyCommitment(
+        detailsCommitment,
+        {
+          issued: {
+            month: 6,
+            year: 2024,
+          },
+          board: 'ABIM',
+        },
+        salts['details'],
+      ),
+    ).toBe(true);
+  });
 });
 
 describe('listCredentialFields', () => {
@@ -84,5 +145,19 @@ describe('listCredentialFields', () => {
     expect(fields).toContain('specialty');
     expect(fields).toContain('npi');
     expect(fields).toContain('boardCertified');
+  });
+
+  it('returns fields in deterministic sorted order', () => {
+    const fields = listCredentialFields({
+      ...credential,
+      claims: {
+        zeta: true,
+        alpha: true,
+        _internal: true,
+        beta: true,
+      },
+    });
+
+    expect(fields).toEqual(['alpha', 'beta', 'zeta']);
   });
 });

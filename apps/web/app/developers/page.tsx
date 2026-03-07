@@ -47,9 +47,9 @@ const STATS = [
 // ── Resource links ────────────────────────────────────────────────────────
 
 const RESOURCES = [
-  { icon: BookOpen, label: 'API Reference',   href: '#', desc: 'Full endpoint documentation' },
-  { icon: Code2,    label: 'SDKs',            href: '#', desc: 'Node, Python, Go clients'    },
-  { icon: Webhook,  label: 'Webhook Guide',   href: '#', desc: 'Event types & signatures'    },
+  { icon: BookOpen, label: 'API Reference',   href: '/docs/api',      desc: 'Full endpoint documentation' },
+  { icon: Code2,    label: 'SDKs',            href: '/docs/sdk',      desc: 'Node, Python, Go clients'    },
+  { icon: Webhook,  label: 'Webhook Guide',   href: '/docs/webhooks', desc: 'Event types & signatures'    },
 ];
 
 // ── Page ──────────────────────────────────────────────────────────────────
@@ -96,7 +96,7 @@ export default function DeveloperPortalPage() {
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              href="#"
+              href="/docs"
               className="inline-flex items-center gap-2 rounded-xl bg-white/5 px-6 py-3 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:bg-white/10"
             >
               <BookOpen className="h-4 w-4" />

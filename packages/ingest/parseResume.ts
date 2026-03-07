@@ -106,9 +106,12 @@ function decodeBase64(content_base64: string): Buffer {
   }
 
   const validAlphabet = usesBase64UrlAlphabet
-    ? /^[A-Za-z0-9\-_]+=*$/
-    : /^[A-Za-z0-9+/]+=*$/;
-  if (!validAlphabet.test(normalized) || normalized.slice(0, -2).includes('=')) {
+    ? /^[A-Za-z0-9\-_]*={0,2}$/
+    : /^[A-Za-z0-9+/]*={0,2}$/;
+  const paddingIndex = normalized.indexOf('=');
+  const hasInteriorPadding =
+    paddingIndex !== -1 && /[^=]/.test(normalized.slice(paddingIndex));
+  if (!validAlphabet.test(normalized) || hasInteriorPadding) {
     throw new ResumeIngestError('file content must be base64 encoded', 'INVALID_FILE_CONTENT');
   }
 
