@@ -198,6 +198,59 @@ export default function StatusPage() {
           </motion.div>
         </div>
 
+        {/* Extended Telemetry — Wave 135 */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.22 }}
+        >
+          <h2 className="text-[10px] text-zinc-500 uppercase tracking-wider mb-3 font-mono">
+            Extended Trust Metrics
+          </h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Revocation Events */}
+            <div className="rounded-xl border border-white/8 bg-slate-900/40 p-4">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mb-2">Revocations (24h)</p>
+              <p className="text-2xl font-bold text-red-400 font-mono">
+                {status?.artifactIntegrity?.revoked ?? '—'}
+              </p>
+              <p className="text-xs text-zinc-600 mt-1">cumulative active</p>
+            </div>
+            {/* Issuer Health */}
+            <div className="rounded-xl border border-white/8 bg-slate-900/40 p-4">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mb-2">Issuer Health</p>
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                <p className="text-2xl font-bold text-emerald-400 font-mono">
+                  {status ? 'OK' : '—'}
+                </p>
+              </div>
+              <p className="text-xs text-zinc-600 mt-1">trust registry nominal</p>
+            </div>
+            {/* Federation Health */}
+            <div className="rounded-xl border border-white/8 bg-slate-900/40 p-4">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mb-2">Federation</p>
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-sky-400" />
+                <p className="text-2xl font-bold text-sky-400 font-mono">
+                  {status ? 'Synced' : '—'}
+                </p>
+              </div>
+              <p className="text-xs text-zinc-600 mt-1">Nursys · CAQH · ABMS</p>
+            </div>
+            {/* Audit Event Rate */}
+            <div className="rounded-xl border border-white/8 bg-slate-900/40 p-4">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mb-2">Audit Rate</p>
+              <p className="text-2xl font-bold text-violet-400 font-mono">
+                {status?.verificationHealth?.last1h
+                  ? `${status.verificationHealth.last1h}/hr`
+                  : '—'}
+              </p>
+              <p className="text-xs text-zinc-600 mt-1">events this hour</p>
+            </div>
+          </div>
+        </motion.div>
+
         {/* Source Connectivity */}
         {status && status.sourceConnectivity.length > 0 && (
           <motion.div

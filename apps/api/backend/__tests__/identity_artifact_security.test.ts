@@ -4,10 +4,35 @@ import path from 'node:path';
 import { sha256ForPayload } from '../src/utils/deterministic';
 import { generateIdentityArtifact } from '../src/modules/identity/nppes.artifact.generator';
 import { signArtifact } from '../src/modules/identity/signer';
+import type { NormalizedProvider } from '../src/modules/identity/types';
 import { verifyArtifactSignature } from '../src/modules/identity/verification';
 import { LocalStorageProvider } from '../src/modules/identity/storage';
 
 const JWKS_URL = 'https://identity.local/.well-known/jwks.json';
+
+function makeProviderFixture(): NormalizedProvider {
+  return {
+    npi: '1234567893',
+    enumeration_type: 'NPI-1',
+    status: 'A',
+    first_name: 'Avery',
+    last_name: 'Stone',
+    middle_name: '',
+    credential: 'MD',
+    name_prefix: '',
+    name_suffix: '',
+    organization_name: '',
+    display_name: 'Avery Stone, MD',
+    primary_taxonomy: null,
+    primary_taxonomy_code: null,
+    taxonomies: [],
+    practice_address: null,
+    addresses: [],
+    identifiers: [],
+    enumeration_date: '2010-01-01',
+    last_updated: '2026-01-01',
+  };
+}
 
 describe('identity artifact crypto hardening', () => {
   const originalPrivateKey = process.env.VCV_PRIVATE_KEY;
@@ -67,14 +92,7 @@ describe('identity artifact crypto hardening', () => {
 
   it('verifies a signed identity artifact and rejects a payload tamper', async () => {
     const artifact = generateIdentityArtifact(
-      {
-        npi: '1234567893',
-        enumeration_type: 'NPI-1',
-        status: 'ACTIVE',
-        first_name: 'Avery',
-        last_name: 'Stone',
-        primary_taxonomy: null,
-      },
+      makeProviderFixture(),
       'payload-hash-0',
       '1234567893-0000000000000.json',
     );
