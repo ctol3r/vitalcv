@@ -12,6 +12,11 @@ import {
   getLedgerSize,
   getAuditEvent,
 } from '../services/audit/auditLedger';
+import {
+  computeBaselineSummary,
+  getRecentAnomalies,
+  calibrateBaselines,
+} from '../services/audit/auditBaseline';
 import { log } from '../obs/logger';
 
 export function registerAuditStreamRoutes(app: Express): void {
@@ -101,5 +106,50 @@ export function registerAuditStreamRoutes(app: Express): void {
       lastEventId: lastEvent?.eventId ?? null,
       status: 'healthy',
     });
+  });
+
+  /**
+   * GET /api/audit/baseline
+   * Baseline-aware anomaly detection summary.
+   * Returns all monitored windows and any detected anomalies.
+   */
+  app.get('/api/audit/baseline', (_req: Request, res: Response) => {
+    try {
+      res.json(computeBaselineSummary());
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'audit_baseline: summary failed', { error: message });
+      res.status(500).json({ error: 'Failed to compute baseline summary' });
+    }
+  });
+
+  /**
+   * GET /api/audit/anomalies
+   * Returns only current anomalies (subset of baseline summary).
+   */
+  app.get('/api/audit/anomalies', (_req: Request, res: Response) => {
+    try {
+      res.json({ anomalies: getRecentAnomalies() });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'audit_baseline: anomalies failed', { error: message });
+      res.status(500).json({ error: 'Failed to get anomalies' });
+    }
+  });
+
+  /**
+   * POST /api/audit/calibrate
+   * Trigger baseline calibration from historical data.
+   * Typically called by cron or operator.
+   */
+  app.post('/api/audit/calibrate', (_req: Request, res: Response) => {
+    try {
+      calibrateBaselines();
+      res.json({ calibrated: true, at: new Date().toISOString() });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'audit_baseline: calibration failed', { error: message });
+      res.status(500).json({ error: 'Calibration failed' });
+    }
   });
 }
