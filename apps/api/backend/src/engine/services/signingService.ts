@@ -48,6 +48,26 @@ function base64url(buf: Buffer): string {
   return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+function decodeBase64UrlStrict(segment: string): Buffer | null {
+  if (!segment || /[^A-Za-z0-9\-_]/.test(segment)) return null;
+  if (segment.includes('=')) return null;
+
+  const remainder = segment.length % 4;
+  if (remainder === 1) return null;
+
+  const padded =
+    remainder === 0 ? segment : `${segment}${'='.repeat(4 - remainder)}`;
+
+  let decoded: Buffer;
+  try {
+    decoded = Buffer.from(padded.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
+  } catch {
+    return null;
+  }
+
+  return base64url(decoded) === segment ? decoded : null;
+}
+
 /**
  * Sign a payload using ES256 (ECDSA P-256 + SHA-256).
  * Returns a JWS Compact Serialization string.
@@ -86,15 +106,30 @@ export function verifySignature(jws: string): { valid: boolean; payload: string 
 
   const [headerB64, payloadB64, signatureB64] = parts;
   const signingInput = `${headerB64}.${payloadB64}`;
+  const headerBuf = decodeBase64UrlStrict(headerB64);
+  const payloadBuf = decodeBase64UrlStrict(payloadB64);
+  const sigBuf = decodeBase64UrlStrict(signatureB64);
 
-  const sigBuf = Buffer.from(signatureB64.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
+  if (!headerBuf || !payloadBuf || !sigBuf || sigBuf.length !== 64) {
+    return { valid: false, payload: '' };
+  }
+
+  try {
+    const parsedHeader = JSON.parse(headerBuf.toString('utf8')) as {
+      alg?: string;
+    };
+    if (parsedHeader.alg !== ALG_NAME) {
+      return { valid: false, payload: '' };
+    }
+  } catch {
+    return { valid: false, payload: '' };
+  }
 
   const publicKey = getPublicKey();
   const verifier = createVerify(SIGN_ALG);
   verifier.update(signingInput);
   const valid = verifier.verify({ key: publicKey, dsaEncoding: 'ieee-p1363' }, sigBuf);
-
-  const payload = Buffer.from(payloadB64.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
+  const payload = payloadBuf.toString('utf8');
 
   return { valid, payload };
 }
