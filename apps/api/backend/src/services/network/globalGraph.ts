@@ -10,6 +10,7 @@ import { initializeTrustRegistryPersistence, listIssuers } from '../registry/tru
 import { listAllCredentials } from '../credentials/credentialWallet';
 import { getFederatedGraphNodes } from './federation';
 import { listFederationEntities, checkFederationHealth } from '../federation/federationMetadata';
+import { listPayerNodes } from '../payers/payerVerification';
 import { log } from '../../obs/logger';
 
 // ── Types ─────────────────────────────────────────────────────────────
@@ -21,7 +22,8 @@ export type GlobalNodeGroup =
   | 'decision'
   | 'federated_issuer'
   | 'oid_federation'
-  | 'degraded_federation';
+  | 'degraded_federation'
+  | 'payer';
 
 export interface GlobalNode {
   id: string;
@@ -257,6 +259,34 @@ export async function generateGlobalGraph(): Promise<GlobalGraphData> {
           warnings: health?.warnings ?? [],
           errors: health?.errors ?? [],
         },
+      });
+    }
+  }
+
+  // ── 8. Payer trust nodes (Wave 142) ──────────────────────────────────
+  const payerNodes = listPayerNodes();
+  for (const payer of payerNodes) {
+    addNode({
+      id: `payer-${payer.payerId}`,
+      label: payer.payerName,
+      group: 'payer',
+      val: 8,
+      trustScore: payer.trustScore,
+      metadata: {
+        payerId: payer.payerId,
+        tier: payer.tier,
+        networkType: payer.networkType,
+        coveredStates: payer.coveredStates,
+      },
+    });
+
+    // Connect payers to issuers they verify against
+    for (const issuer of issuers.slice(0, 5)) {
+      edges.push({
+        source: `payer-${payer.payerId}`,
+        target: `issuer-${issuer.issuerId}`,
+        label: 'verifies_with',
+        weight: 2,
       });
     }
   }
