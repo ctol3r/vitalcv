@@ -10,6 +10,7 @@
 
 import { useCallback, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getApiBase } from '@/lib/api';
 import {
   CheckCircle2,
   ChevronDown,
@@ -59,8 +60,7 @@ export function CredentialPresentationActions({
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_BACKEND_URL ?? '';
-  const base = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
+  const base = getApiBase();
 
   const toggleCredential = (id: string) => {
     setSelected((prev) => {

@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Activity, Building2, FileCheck, Globe2, Scale, Stethoscope, Users } from 'lucide-react';
+import { getApiBase } from '@/lib/api';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -211,8 +212,7 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
 
   // Fetch data
   useEffect(() => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_BACKEND_URL ?? '';
-    const base = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
+    const base = getApiBase();
     setLoading(true);
     fetch(`${base}/api/network/global`)
       .then((r) => (r.ok ? r.json() : null))

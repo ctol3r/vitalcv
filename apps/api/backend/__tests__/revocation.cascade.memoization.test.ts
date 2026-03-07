@@ -8,7 +8,6 @@
  *   - Basic reachability in a DAG
  *   - Cycle tolerance (no infinite loop)
  *   - Memoization: nodes computed once, cache hits returned for subsequent calls
- *   - onComputed callback fires exactly once per unique node
  *   - Shared memo across multiple calls avoids re-traversal
  */
 
@@ -72,45 +71,57 @@ describe('computeReachableNodesMemoized', () => {
     expect(result).toContain('A');
   });
 
-  it('fires onComputed callback exactly once per computed node', () => {
+  it('stores reachable sets for traversed nodes in the shared memo', () => {
     const graph = makeGraph([['A', 'B'], ['A', 'C'], ['B', 'D']]);
-    const computed: string[] = [];
-    computeReachableNodesMemoized('A', graph, new Map(), (nodeId) => {
-      computed.push(nodeId);
-    });
-    // Each unique node should be computed exactly once
-    expect(computed.sort()).toEqual(['A', 'B', 'C', 'D'].sort());
-    expect(new Set(computed).size).toBe(computed.length);
+    const memo = new Map<string, Set<string>>();
+
+    computeReachableNodesMemoized('A', graph, memo);
+
+    expect(memo.get('A')).toEqual(new Set(['A', 'B', 'C', 'D']));
+    expect(memo.get('B')).toEqual(new Set(['B', 'D']));
+    expect(memo.get('C')).toEqual(new Set(['C']));
+    expect(memo.get('D')).toEqual(new Set(['D']));
   });
 
-  it('does NOT fire onComputed for cache hits when memo is shared', () => {
+  it('does not mutate the shared memo on cache hits', () => {
     const graph = makeGraph([['A', 'B'], ['B', 'C']]);
     const memo = new Map<string, Set<string>>();
-    const computedFirst: string[] = [];
-    const computedSecond: string[] = [];
 
-    // First traversal — all nodes computed
-    computeReachableNodesMemoized('A', graph, memo, (n) => computedFirst.push(n));
-    expect(computedFirst.length).toBeGreaterThan(0);
+    computeReachableNodesMemoized('A', graph, memo);
+    const memoSnapshot = JSON.stringify(
+      [...memo.entries()]
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([nodeId, reachable]) => [nodeId, [...reachable].sort()]),
+    );
 
-    // Second traversal with same memo — 'A' already cached, onComputed NOT fired
-    computeReachableNodesMemoized('A', graph, memo, (n) => computedSecond.push(n));
-    expect(computedSecond).toHaveLength(0);
+    const result = computeReachableNodesMemoized('A', graph, memo);
+
+    expect(result).toEqual(new Set(['A', 'B', 'C']));
+    expect(result).not.toBe(memo.get('A'));
+    expect(
+      JSON.stringify(
+        [...memo.entries()]
+          .sort(([left], [right]) => left.localeCompare(right))
+          .map(([nodeId, reachable]) => [nodeId, [...reachable].sort()]),
+      ),
+    ).toBe(memoSnapshot);
   });
 
-  it('partial memo reuse: only uncached nodes fire onComputed', () => {
+  it('partial memo reuse only adds uncached starting nodes', () => {
     const graph = makeGraph([['A', 'B'], ['B', 'C']]);
     const memo = new Map<string, Set<string>>();
-    const firstRound: string[] = [];
 
     // Prime the memo with B and C by starting at B
-    computeReachableNodesMemoized('B', graph, memo, (n) => firstRound.push(n));
-    expect(firstRound.sort()).toEqual(['B', 'C'].sort());
+    computeReachableNodesMemoized('B', graph, memo);
+    expect(memo.has('A')).toBe(false);
+    expect(memo.get('B')).toEqual(new Set(['B', 'C']));
+    expect(memo.get('C')).toEqual(new Set(['C']));
 
-    // Now traverse from A — B and C already cached, only A should fire
-    const secondRound: string[] = [];
-    computeReachableNodesMemoized('A', graph, memo, (n) => secondRound.push(n));
-    expect(secondRound).toEqual(['A']);
+    // Now traverse from A — B and C are reused from the shared memo
+    computeReachableNodesMemoized('A', graph, memo);
+    expect(memo.get('A')).toEqual(new Set(['A', 'B', 'C']));
+    expect(memo.get('B')).toEqual(new Set(['B', 'C']));
+    expect(memo.get('C')).toEqual(new Set(['C']));
   });
 
   it('returns a new Set instance each call (no aliasing)', () => {

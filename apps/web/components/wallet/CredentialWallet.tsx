@@ -14,6 +14,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getApiBase } from '@/lib/api';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -143,8 +144,7 @@ export function CredentialWallet({
   const [removing, setRemoving] = useState<Set<string>>(new Set());
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_BACKEND_URL ?? '';
-  const base = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
+  const base = getApiBase();
 
   const fetchWallet = useCallback(async () => {
     try {

@@ -38,6 +38,14 @@ export const PROTECTED_ROUTES: Array<{ pattern: RegExp; role: UserRoleType }> = 
  */
 export const PUBLIC_ROUTE_PATTERNS = [
   /^\/$/, // landing
+  /^\/demo(\/.*)?$/, // interactive demo — no auth required
+  /^\/network(\/.*)?$/, // public trust network map
+  /^\/simulation(\/.*)?$/, // public simulation surface
+  /^\/mobile(\/.*)?$/, // mobile landing
+  /^\/status(\/.*)?$/, // public system status
+  /^\/developers(\/.*)?$/, // public developer docs
+  /^\/investors(\/.*)?$/, // public investor page
+  /^\/partners(\/.*)?$/, // public partners page
   /^\/sign-in(\/.*)?$/,
   /^\/sign-up(\/.*)?$/,
   /^\/intake(\/.*)?$/,

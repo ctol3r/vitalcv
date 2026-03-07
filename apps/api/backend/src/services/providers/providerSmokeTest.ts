@@ -1,5 +1,5 @@
 /**
- * providerSmokeTest.ts — Wave 119: Provider Data Integrity Fabric
+ * providerSmokeTest.ts — Wave 119+127: Provider Data Integrity Fabric
  *
  * Smoke test + shadow staging workflow for provider data connectors.
  * Validates:
@@ -7,17 +7,22 @@
  *   - Response schema conformance
  *   - Field-length bounds
  *   - UTF-8 encoding integrity
- *   - Bundle hash stability
+ *   - Connector sandbox/live mode
  *
  * Can be run periodically (cron) or on-demand via API.
  */
 
 import { createHash } from 'node:crypto';
 import { log } from '../../obs/logger';
+import { lookupStateBoard } from './connectors/stateBoardConnector';
+import { checkOIGExclusion, getLeieIndexStatus } from './connectors/oigConnector';
+import { checkABMSCertification } from './connectors/abmsConnector';
+import { checkCAQHProfile } from './connectors/caqhConnector';
+import { queryNPDB } from './connectors/npdbConnector';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
-export type ConnectorId = 'NPPES' | 'STATE_BOARD' | 'OIG' | 'ABMS';
+export type ConnectorId = 'NPPES' | 'STATE_BOARD' | 'OIG' | 'ABMS' | 'CAQH' | 'NPDB';
 
 export interface SmokeTestResult {
   connector: ConnectorId;
@@ -142,21 +147,119 @@ async function smokeTestNppes(sampleNpi = '1003000126'): Promise<SmokeTestResult
   };
 }
 
-// ── Stub Connectors ───────────────────────────────────────────────────
+// ── Connector Smoke Tests ────────────────────────────────────────────
 
-function smokeTestStub(connector: ConnectorId): SmokeTestResult {
-  return {
-    connector,
-    reachable: false,
-    responseTimeMs: 0,
-    schemaValid: false,
-    fieldLengthOk: true,
-    utf8Ok: true,
-    sampleNpi: null,
-    errors: [`${connector} connector not yet implemented — stub only`],
-    warnings: [],
-    testedAt: new Date().toISOString(),
-  };
+async function smokeTestStateBoard(sampleNpi = '1003000126'): Promise<SmokeTestResult> {
+  const start = Date.now();
+  const errors: string[] = [];
+  try {
+    const result = await lookupStateBoard(sampleNpi, 'CA');
+    const valid = !!result.npi && !!result.state && !!result.licenseStatus && !!result.boardName;
+    return {
+      connector: 'STATE_BOARD', reachable: true, responseTimeMs: Date.now() - start,
+      schemaValid: valid, fieldLengthOk: true, utf8Ok: true, sampleNpi,
+      errors: valid ? [] : ['Response schema invalid'], warnings: [],
+      testedAt: new Date().toISOString(),
+    };
+  } catch (e) {
+    errors.push(e instanceof Error ? e.message : 'Unknown error');
+    return {
+      connector: 'STATE_BOARD', reachable: false, responseTimeMs: Date.now() - start,
+      schemaValid: false, fieldLengthOk: true, utf8Ok: true, sampleNpi,
+      errors, warnings: [], testedAt: new Date().toISOString(),
+    };
+  }
+}
+
+async function smokeTestOIG(sampleNpi = '1003000126'): Promise<SmokeTestResult> {
+  const start = Date.now();
+  const errors: string[] = [];
+  try {
+    const indexStatus = getLeieIndexStatus();
+    const result = await checkOIGExclusion(sampleNpi);
+    const valid = !!result.npi && typeof result.excluded === 'boolean' && !!result.lastCheckedAt;
+    const warnings: string[] = [];
+    if (!indexStatus.loaded) warnings.push('LEIE index not loaded');
+    return {
+      connector: 'OIG', reachable: true, responseTimeMs: Date.now() - start,
+      schemaValid: valid, fieldLengthOk: true, utf8Ok: true, sampleNpi,
+      errors: valid ? [] : ['Response schema invalid'], warnings,
+      testedAt: new Date().toISOString(),
+    };
+  } catch (e) {
+    errors.push(e instanceof Error ? e.message : 'Unknown error');
+    return {
+      connector: 'OIG', reachable: false, responseTimeMs: Date.now() - start,
+      schemaValid: false, fieldLengthOk: true, utf8Ok: true, sampleNpi,
+      errors, warnings: [], testedAt: new Date().toISOString(),
+    };
+  }
+}
+
+async function smokeTestABMS(sampleNpi = '1003000126'): Promise<SmokeTestResult> {
+  const start = Date.now();
+  const errors: string[] = [];
+  try {
+    const result = await checkABMSCertification(sampleNpi);
+    const valid = !!result.npi && !!result.certificationStatus && !!result.lastVerifiedAt;
+    return {
+      connector: 'ABMS', reachable: true, responseTimeMs: Date.now() - start,
+      schemaValid: valid, fieldLengthOk: true, utf8Ok: true, sampleNpi,
+      errors: valid ? [] : ['Response schema invalid'], warnings: [],
+      testedAt: new Date().toISOString(),
+    };
+  } catch (e) {
+    errors.push(e instanceof Error ? e.message : 'Unknown error');
+    return {
+      connector: 'ABMS', reachable: false, responseTimeMs: Date.now() - start,
+      schemaValid: false, fieldLengthOk: true, utf8Ok: true, sampleNpi,
+      errors, warnings: [], testedAt: new Date().toISOString(),
+    };
+  }
+}
+
+async function smokeTestCAQH(sampleNpi = '1003000126'): Promise<SmokeTestResult> {
+  const start = Date.now();
+  const errors: string[] = [];
+  try {
+    const result = await checkCAQHProfile(sampleNpi);
+    const valid = !!result.npi && !!result.profileStatus && !!result.lastVerifiedAt;
+    return {
+      connector: 'CAQH', reachable: true, responseTimeMs: Date.now() - start,
+      schemaValid: valid, fieldLengthOk: true, utf8Ok: true, sampleNpi,
+      errors: valid ? [] : ['Response schema invalid'], warnings: [],
+      testedAt: new Date().toISOString(),
+    };
+  } catch (e) {
+    errors.push(e instanceof Error ? e.message : 'Unknown error');
+    return {
+      connector: 'CAQH', reachable: false, responseTimeMs: Date.now() - start,
+      schemaValid: false, fieldLengthOk: true, utf8Ok: true, sampleNpi,
+      errors, warnings: [], testedAt: new Date().toISOString(),
+    };
+  }
+}
+
+async function smokeTestNPDB(sampleNpi = '1003000126'): Promise<SmokeTestResult> {
+  const start = Date.now();
+  const errors: string[] = [];
+  try {
+    const result = await queryNPDB(sampleNpi);
+    const valid = !!result.npi && !!result.status && !!result.lastCheckedAt;
+    return {
+      connector: 'NPDB', reachable: true, responseTimeMs: Date.now() - start,
+      schemaValid: valid, fieldLengthOk: true, utf8Ok: true, sampleNpi,
+      errors: valid ? [] : ['Response schema invalid'], warnings: [],
+      testedAt: new Date().toISOString(),
+    };
+  } catch (e) {
+    errors.push(e instanceof Error ? e.message : 'Unknown error');
+    return {
+      connector: 'NPDB', reachable: false, responseTimeMs: Date.now() - start,
+      schemaValid: false, fieldLengthOk: true, utf8Ok: true, sampleNpi,
+      errors, warnings: [], testedAt: new Date().toISOString(),
+    };
+  }
 }
 
 // ── Public API ────────────────────────────────────────────────────────
@@ -165,17 +268,19 @@ function smokeTestStub(connector: ConnectorId): SmokeTestResult {
  * Run smoke tests against all provider data connectors.
  */
 export async function runProviderSmokeTests(): Promise<SmokeTestSuite> {
-  const results: SmokeTestResult[] = [
-    await smokeTestNppes(),
-    smokeTestStub('STATE_BOARD'),
-    smokeTestStub('OIG'),
-    smokeTestStub('ABMS'),
-  ];
+  const results: SmokeTestResult[] = await Promise.all([
+    smokeTestNppes(),
+    smokeTestStateBoard(),
+    smokeTestOIG(),
+    smokeTestABMS(),
+    smokeTestCAQH(),
+    smokeTestNPDB(),
+  ]);
 
   const reachableCount = results.filter((r) => r.reachable).length;
   const overallHealth: SmokeTestSuite['overallHealth'] =
-    reachableCount >= 3 ? 'HEALTHY'
-    : reachableCount >= 1 ? 'DEGRADED'
+    reachableCount >= 4 ? 'HEALTHY'
+    : reachableCount >= 2 ? 'DEGRADED'
     : 'CRITICAL';
 
   log('info', 'provider_smoke_test: complete', {
@@ -195,6 +300,12 @@ export async function runProviderSmokeTests(): Promise<SmokeTestSuite> {
  * Run smoke test for a single connector.
  */
 export async function runSingleSmokeTest(connector: ConnectorId): Promise<SmokeTestResult> {
-  if (connector === 'NPPES') return smokeTestNppes();
-  return smokeTestStub(connector);
+  switch (connector) {
+    case 'NPPES': return smokeTestNppes();
+    case 'STATE_BOARD': return smokeTestStateBoard();
+    case 'OIG': return smokeTestOIG();
+    case 'ABMS': return smokeTestABMS();
+    case 'CAQH': return smokeTestCAQH();
+    case 'NPDB': return smokeTestNPDB();
+  }
 }

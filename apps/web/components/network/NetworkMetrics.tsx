@@ -10,6 +10,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { SystemTelemetry, type TelemetryData } from '@/components/system/SystemTelemetry';
+import { getApiBase } from '@/lib/api';
 
 interface NetworkMetricsProps {
   className?: string;
@@ -19,8 +20,7 @@ export function NetworkMetrics({ className = '' }: NetworkMetricsProps) {
   const [data, setData] = useState<TelemetryData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_BACKEND_URL || '';
-  const base = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
+  const base = getApiBase();
 
   useEffect(() => {
     fetch(`${base}/api/system/telemetry`)

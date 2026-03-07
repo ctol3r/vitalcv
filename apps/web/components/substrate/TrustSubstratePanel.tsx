@@ -9,6 +9,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { RefreshCw, ShieldCheck, ShieldAlert, ShieldX, Shield } from 'lucide-react';
+import { getApiBase } from '@/lib/api';
 
 interface IssuerTrustDetail {
   issuerId: string;
@@ -60,7 +61,7 @@ export function TrustSubstratePanel({ subject, pollIntervalMs = 30_000 }: Props)
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const base = (process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_BACKEND_URL ?? '').replace(/\/$/, '');
+  const base = getApiBase();
 
   const fetch_ = useCallback(async () => {
     setLoading(true);
