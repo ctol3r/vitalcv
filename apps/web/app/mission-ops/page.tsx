@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Mission Ops — Wave 123: Mission Ops + Conversion Engine
+ * Mission Ops — Wave 137/138: Trust Graph Console + Issuer Onboarding integrated
  *
  * Healthcare-specific Mission Manager showing:
  *   - Issuer onboarding state
@@ -10,6 +10,8 @@
  *   - Trust registry health
  *   - Control inheritance status
  *   - System readiness
+ *   - [Wave 137] Live Trust Graph Console
+ *   - [Wave 138] Issuer Onboarding Panel
  */
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -22,6 +24,9 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { getApiBase } from '@/lib/api';
+import TrustGraphConsole from '@/components/ops/TrustGraphConsole';
+import IssuerOnboardingPanel from '@/components/ops/IssuerOnboardingPanel';
+import NetworkTelemetryIntelligence from '@/components/telemetry/NetworkTelemetryIntelligence';
 
 interface MissionOpsOverview {
   issuerOnboarding: { total: number; complete: number; inProgress: number; blocked: number };
@@ -278,6 +283,54 @@ export default function MissionOpsPage() {
               </Link>
             ))}
           </div>
+
+          {/* Wave 140: Network Telemetry Intelligence */}
+          <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.28 }}>
+            <div className="flex items-center gap-2 mb-4">
+              <Activity className="h-4 w-4 text-blue-400" />
+              <h2 className="text-sm font-semibold text-zinc-200">Network Telemetry</h2>
+              <span className="text-[10px] font-mono text-zinc-600 border border-zinc-800 rounded px-1.5 py-0.5">
+                Wave 140
+              </span>
+            </div>
+            <NetworkTelemetryIntelligence />
+          </motion.div>
+
+          {/* Wave 137: Trust Graph Operator Console */}
+          <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.3 }}>
+            <div className="flex items-center gap-2 mb-4">
+              <Network className="h-4 w-4 text-emerald-400" />
+              <h2 className="text-sm font-semibold text-zinc-200">Trust Graph Console</h2>
+              <span className="text-[10px] font-mono text-zinc-600 border border-zinc-800 rounded px-1.5 py-0.5">
+                Wave 137
+              </span>
+            </div>
+            <TrustGraphConsole />
+          </motion.div>
+
+          {/* Wave 141: Network Reputation Summary */}
+          <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.32 }}>
+            <div className="flex items-center gap-2 mb-4">
+              <Award className="h-4 w-4 text-amber-400" />
+              <h2 className="text-sm font-semibold text-zinc-200">Network Reputation</h2>
+              <span className="text-[10px] font-mono text-zinc-600 border border-zinc-800 rounded px-1.5 py-0.5">
+                Wave 141
+              </span>
+            </div>
+            <NetworkReputationSummaryPanel />
+          </motion.div>
+
+          {/* Wave 138: Issuer Onboarding Panel */}
+          <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.35 }}>
+            <div className="flex items-center gap-2 mb-4">
+              <Building className="h-4 w-4 text-blue-400" />
+              <h2 className="text-sm font-semibold text-zinc-200">Issuer Onboarding</h2>
+              <span className="text-[10px] font-mono text-zinc-600 border border-zinc-800 rounded px-1.5 py-0.5">
+                Wave 138
+              </span>
+            </div>
+            <IssuerOnboardingPanel onIssuerRegistered={fetchOverview} />
+          </motion.div>
         </div>
       )}
 
@@ -362,5 +415,126 @@ function MissionTelemetry({ overview }: MissionTelemetryProps) {
         cols={4}
       />
     </motion.div>
+  );
+}
+
+// ── Wave 141: Network Reputation Summary Panel ────────────────────────────────
+
+interface NetworkReputationData {
+  networkTrustScore: number;
+  healthyIssuers: number;
+  degradedIssuers: number;
+  criticalIssuers: number;
+  issuerScores: Array<{ issuerId: string; issuerName: string; trustScore: number }>;
+  computedAt: string;
+}
+
+function NetworkReputationSummaryPanel() {
+  const [data, setData] = useState<NetworkReputationData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const apiBase = getApiBase();
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${apiBase}/api/reputation/network`)
+      .then((r) => (r.ok ? r.json() as Promise<NetworkReputationData> : null))
+      .then((d) => { if (!cancelled && d) setData(d); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [apiBase]);
+
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-5 animate-pulse space-y-3">
+        <div className="h-6 w-1/3 bg-zinc-800 rounded" />
+        <div className="h-20 bg-zinc-800/60 rounded-xl" />
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-5 text-center">
+        <p className="text-xs text-zinc-600">Reputation engine warming up — no issuers scored yet</p>
+      </div>
+    );
+  }
+
+  const scoreColor =
+    data.networkTrustScore >= 80
+      ? 'text-emerald-400'
+      : data.networkTrustScore >= 60
+        ? 'text-blue-400'
+        : 'text-amber-400';
+
+  return (
+    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/30 overflow-hidden">
+      <div className="grid grid-cols-1 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-zinc-800">
+        {/* Network score */}
+        <div className="p-4 sm:col-span-1">
+          <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Network Trust Score</p>
+          <p className={`text-4xl font-bold ${scoreColor}`}>{data.networkTrustScore}</p>
+          <p className="text-[10px] text-zinc-600 mt-1">
+            {data.networkTrustScore >= 80
+              ? 'Healthy network'
+              : data.networkTrustScore >= 60
+                ? 'Moderate health'
+                : 'Attention needed'}
+          </p>
+        </div>
+        {/* Health breakdown */}
+        <div className="p-4 sm:col-span-1">
+          <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Issuer Health</p>
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-xs">
+              <span className="text-zinc-400">Healthy ≥80</span>
+              <span className="text-emerald-400 font-medium">{data.healthyIssuers}</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-zinc-400">Degraded 50–79</span>
+              <span className="text-amber-400 font-medium">{data.degradedIssuers}</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-zinc-400">Critical &lt;50</span>
+              <span className="text-red-400 font-medium">{data.criticalIssuers}</span>
+            </div>
+          </div>
+        </div>
+        {/* Top issuers */}
+        <div className="p-4 sm:col-span-2">
+          <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Issuer Scores</p>
+          <div className="space-y-1.5 max-h-36 overflow-y-auto">
+            {data.issuerScores
+              .sort((a, b) => b.trustScore - a.trustScore)
+              .slice(0, 6)
+              .map((s) => (
+                <div key={s.issuerId} className="flex items-center gap-2">
+                  <span className="flex-1 text-[11px] text-zinc-300 truncate">{s.issuerName}</span>
+                  <div className="shrink-0 flex items-center gap-1.5">
+                    <div className="w-16 h-1 bg-zinc-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${s.trustScore}%`,
+                          background:
+                            s.trustScore >= 80
+                              ? '#10b981'
+                              : s.trustScore >= 60
+                                ? '#60a5fa'
+                                : '#f59e0b',
+                        }}
+                      />
+                    </div>
+                    <span className="text-[10px] font-mono text-zinc-500 w-6 text-right">
+                      {s.trustScore}
+                    </span>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

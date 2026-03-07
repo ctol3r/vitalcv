@@ -1,9 +1,14 @@
 /**
- * issuerOnboarding.ts — Wave 106: Issuer Onboarding Protocol
+ * issuerOnboarding.ts — Wave 106 + Wave 138: Issuer Onboarding Protocol
  *
  * Allows new credential issuers to join the VitalCV trust network.
  * Validates request fields, generates a DID-based issuerId, and
  * registers the issuer in the trustRegistry.
+ *
+ * Wave 138 additions:
+ *   - federationMetadata field in IssuerOnboardingRequest
+ *   - Federation metadata persisted in issuer record metadata
+ *   - Trust registry update emitted via log event
  */
 
 import { log } from '../../obs/logger';
@@ -16,11 +21,30 @@ import {
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
+/**
+ * Federation metadata provided when onboarding an issuer into the network.
+ * Enables cross-network trust bridging and OIDC federation compatibility.
+ */
+export interface FederationMetadata {
+  /** OIDC Federation entity statement endpoint (optional). */
+  entityStatementEndpoint?: string;
+  /** Supported DID methods for cross-network resolution. */
+  didMethods?: string[];
+  /** Whether the issuer participates in the OpenID Federation trust chain. */
+  oidcFederationEnabled?: boolean;
+  /** Network identifiers this issuer is federated with. */
+  federatedNetworkIds?: string[];
+  /** Human-readable notes about this issuer's federation setup. */
+  notes?: string;
+}
+
 export interface IssuerOnboardingRequest {
   issuerName: string;
   issuerDID: string;
   verificationEndpoint: string;
   trustLevel: TrustLevel;
+  /** Wave 138: Optional federation metadata for cross-network trust bridging. */
+  federationMetadata?: FederationMetadata;
 }
 
 export interface IssuerOnboardingResult {
@@ -28,6 +52,8 @@ export interface IssuerOnboardingResult {
   status: 'REGISTERED' | 'ALREADY_EXISTS' | 'FAILED';
   message: string;
   registeredAt: string;
+  /** Echoed back if federation metadata was provided. */
+  federationMetadata?: FederationMetadata;
 }
 
 // ── Onboarding ─────────────────────────────────────────────────────────────────
@@ -35,11 +61,12 @@ export interface IssuerOnboardingResult {
 /**
  * Onboard a new issuer into the VitalCV trust network.
  * Uses the issuerDID as the issuerId (normalized).
+ * Persists federation metadata when provided.
  */
 export async function onboardIssuer(
   req: IssuerOnboardingRequest,
 ): Promise<IssuerOnboardingResult> {
-  const { issuerName, issuerDID, verificationEndpoint, trustLevel } = req;
+  const { issuerName, issuerDID, verificationEndpoint, trustLevel, federationMetadata } = req;
 
   if (!issuerName || !issuerDID || !verificationEndpoint || !trustLevel) {
     return {
@@ -66,21 +93,31 @@ export async function onboardIssuer(
     metadata: {
       verificationEndpoint,
       onboardedVia: 'issuer-onboarding-api',
+      // Wave 138: persist federation metadata alongside core record
+      ...(federationMetadata ? { federationMetadata } : {}),
     },
   };
 
   try {
     await registerIssuer(issuerRecord);
-    log('info', 'Wave 106: Issuer onboarded', { issuerId, issuerName, trustLevel });
+
+    log('info', 'Wave 138: Issuer onboarded', {
+      issuerId,
+      issuerName,
+      trustLevel,
+      hasFederationMetadata: Boolean(federationMetadata),
+      federatedNetworkCount: federationMetadata?.federatedNetworkIds?.length ?? 0,
+    });
 
     return {
       issuerId,
       status: 'REGISTERED',
       message: `Issuer "${issuerName}" successfully registered with trust level ${trustLevel}.`,
       registeredAt,
+      ...(federationMetadata ? { federationMetadata } : {}),
     };
   } catch (err) {
-    log('error', 'Wave 106: Issuer onboarding failed', { issuerId, detail: String(err) });
+    log('error', 'Wave 138: Issuer onboarding failed', { issuerId, detail: String(err) });
     return {
       issuerId,
       status: 'FAILED',
