@@ -15,7 +15,7 @@ import { getApiBase } from '@/lib/api';
 // ── Types ─────────────────────────────────────────────────────────────
 
 // Wave 113 + Phase 4: Differentiate local trust, federated trust, OpenID Federation, and degraded nodes
-type NodeGroup = 'clinician' | 'issuer' | 'credential' | 'decision' | 'federated_issuer' | 'oid_federation' | 'degraded_federation';
+type NodeGroup = 'clinician' | 'issuer' | 'credential' | 'decision' | 'federated_issuer' | 'oid_federation' | 'degraded_federation' | 'payer';
 
 interface GlobalNode {
   id: string;
@@ -66,6 +66,8 @@ const GROUP_COLORS: Record<NodeGroup, { fill: string; stroke: string }> = {
   oid_federation: { fill: '#f59e0b', stroke: '#d97706' },
   // Phase 4: Degraded federation nodes — expired/broken trust chain (red dashed ring)
   degraded_federation: { fill: '#ef4444', stroke: '#dc2626' },
+  // Wave 142: Payer network nodes — insurance verifiers (indigo)
+  payer: { fill: '#6366f1', stroke: '#4f46e5' },
 };
 
 const GROUP_RADIUS: Record<NodeGroup, number> = {
@@ -76,6 +78,7 @@ const GROUP_RADIUS: Record<NodeGroup, number> = {
   federated_issuer: 10,
   oid_federation: 11,
   degraded_federation: 10,
+  payer: 10,
 };
 
 // ── Demo fallback ─────────────────────────────────────────────────────
@@ -210,13 +213,22 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
   const [loading, setLoading] = useState(true);
   const hoveredRef = useRef<string | null>(null);
 
-  // Fetch data + Wave 141: overlay live reputation scores
+  // Wave 144: performance telemetry
+  const renderStartRef = useRef<number>(0);
+  const [renderMs, setRenderMs] = useState<number | null>(null);
+  const [clusteringActive, setClusteringActive] = useState(false);
+
+  // Fetch data + Wave 141: overlay live reputation scores + Wave 144: scaled graph
   useEffect(() => {
     const base = getApiBase();
     setLoading(true);
+    renderStartRef.current = performance.now();
 
     Promise.allSettled([
-      fetch(`${base}/api/network/global`).then((r) => (r.ok ? r.json() as Promise<GlobalGraphData> : null)),
+      // Wave 144: prefer scaled endpoint which applies clustering for large graphs
+      fetch(`${base}/api/network/global/scaled?budget=200`)
+        .then((r) => (r.ok ? r.json() as Promise<GlobalGraphData> : null))
+        .catch(() => fetch(`${base}/api/network/global`).then((r) => r.ok ? r.json() as Promise<GlobalGraphData> : null)),
       fetch(`${base}/api/reputation/network`).then((r) =>
         r.ok
           ? r.json() as Promise<{ issuerScores: Array<{ issuerId: string; trustScore: number }> }>
@@ -251,6 +263,12 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
         nodesRef.current = graphData.nodes;
         edgesRef.current = graphData.edges;
         setStats(graphData.stats);
+
+        // Wave 144: record load time + detect clustering
+        const elapsed = Math.round(performance.now() - renderStartRef.current);
+        setRenderMs(elapsed);
+        const scaledData = graphData as GlobalGraphData & { scalingApplied?: boolean };
+        setClusteringActive(scaledData.scalingApplied === true);
       })
       .catch(() => {
         const d = buildDemoData();
@@ -323,7 +341,8 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
         const isFederated = node.group === 'federated_issuer';
         const isOIDFederation = node.group === 'oid_federation';
         const isDegradedFederation = node.group === 'degraded_federation';
-        const isIssuerId = node.group === 'issuer' || isFederated || isOIDFederation || isDegradedFederation;
+        const isPayer = node.group === 'payer';
+        const isIssuerId = node.group === 'issuer' || isFederated || isOIDFederation || isDegradedFederation || isPayer;
         const isIssuer = isIssuerId;
         const drawR = isHovered ? r * 1.5 : r;
 
@@ -393,6 +412,24 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
         ctx.lineWidth = isHovered ? 2 : 1;
         ctx.stroke();
 
+        // Wave 144: cluster nodes get a double ring + count label
+        const nodeAsCluster = node as GlobalNode & { isCluster?: boolean; clusterSize?: number };
+        if (nodeAsCluster.isCluster && nodeAsCluster.clusterSize) {
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, drawR + 5, 0, Math.PI * 2);
+          ctx.setLineDash([2, 3]);
+          ctx.strokeStyle = color.stroke + '66';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.setLineDash([]);
+          // Count badge
+          ctx.fillStyle = '#fff';
+          ctx.font = `bold ${Math.max(7, drawR * 0.9)}px Inter,sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(String(nodeAsCluster.clusterSize), node.x, node.y);
+        }
+
         // Label on hover
         if (isHovered) {
           ctx.font = '10px system-ui, sans-serif';
@@ -448,6 +485,7 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
     { group: 'federated_issuer', label: 'External', icon: Globe2 },
     { group: 'oid_federation', label: 'OID Fed', icon: Globe2 },
     { group: 'degraded_federation', label: 'Degraded', icon: Activity },
+    { group: 'payer', label: 'Payers', icon: Building2 },
   ];
 
   return (
@@ -462,6 +500,13 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span>{stats.totalNodes} nodes</span>
             <span>{stats.totalEdges} edges</span>
+            {/* Wave 144: performance telemetry */}
+            {renderMs !== null && (
+              <span className="text-infra-muted/70">{renderMs}ms</span>
+            )}
+            {clusteringActive && (
+              <span className="px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs">clustered</span>
+            )}
           </div>
         )}
       </div>
