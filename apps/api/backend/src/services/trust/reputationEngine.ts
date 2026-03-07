@@ -174,3 +174,51 @@ export async function calculateReputation(issuerId: string): Promise<IssuerReput
   const all = await calculateAllReputations();
   return all.find((r) => r.issuerId === issuerId) ?? null;
 }
+
+// ── Wave 141: Network-Level Reputation Summary ─────────────────────────────
+
+export interface NetworkReputationSummary {
+  /** Overall network trust health (0–100, weighted avg of issuer scores) */
+  networkTrustScore: number;
+  /** Count of issuers with score >= 80 */
+  healthyIssuers: number;
+  /** Count of issuers with score 50–79 */
+  degradedIssuers: number;
+  /** Count of issuers with score < 50 */
+  criticalIssuers: number;
+  /** Per-issuer snapshot (id, name, score) for GlobalTrustMap coloring */
+  issuerScores: Array<{ issuerId: string; issuerName: string; trustScore: number }>;
+  computedAt: string;
+}
+
+/**
+ * Aggregate network-level reputation summary.
+ * Used by GlobalTrustMap to color nodes by live trust score.
+ */
+export async function getNetworkReputationSummary(): Promise<NetworkReputationSummary> {
+  const reputations = await calculateAllReputations();
+
+  const healthy = reputations.filter((r) => r.trustScore >= 80).length;
+  const degraded = reputations.filter((r) => r.trustScore >= 50 && r.trustScore < 80).length;
+  const critical = reputations.filter((r) => r.trustScore < 50).length;
+
+  const networkScore =
+    reputations.length > 0
+      ? Math.round(
+          reputations.reduce((s, r) => s + r.trustScore, 0) / reputations.length,
+        )
+      : 0;
+
+  return {
+    networkTrustScore: networkScore,
+    healthyIssuers: healthy,
+    degradedIssuers: degraded,
+    criticalIssuers: critical,
+    issuerScores: reputations.map((r) => ({
+      issuerId: r.issuerId,
+      issuerName: r.issuerName,
+      trustScore: r.trustScore,
+    })),
+    computedAt: new Date().toISOString(),
+  };
+}

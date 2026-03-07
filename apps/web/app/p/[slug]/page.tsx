@@ -25,6 +25,7 @@ import type { BadgeLevel } from '@/components/ui/BadgeStatus';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { CredentialWallet } from '@/components/wallet/CredentialWallet'; // Wave 104
+import PassportShareActions from '@/components/passport/PassportShareActions'; // Wave 139
 
 // ── Shared types ──────────────────────────────────────────────────────────
 
@@ -570,6 +571,29 @@ export default async function PublicTrustProfilePage({ params }: Props) {
                 <div className="rounded-xl overflow-hidden ring-1 ring-white/10 bg-white">
                   <CredentialWallet subject={profile.npi} pollIntervalMs={120_000} />
                 </div>
+              </section>
+
+              {/* Wave 139: HAIP compliance indicator */}
+              <section className="mb-6">
+                <div className="flex items-center gap-3 rounded-xl bg-violet-500/5 ring-1 ring-violet-500/20 px-4 py-3">
+                  <svg className="h-4 w-4 text-violet-400 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" d="M16.403 12.652a3 3 0 000-5.304 3 3 0 00-3.75-3.751 3 3 0 00-5.305 0 3 3 0 00-3.751 3.75 3 3 0 000 5.305 3 3 0 003.75 3.751 3 3 0 005.305 0 3 3 0 003.751-3.75zm-2.546-4.46a.75.75 0 00-1.214-.883l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <p className="text-xs font-semibold text-violet-300">HAIP Conformance Profile</p>
+                    <p className="text-[10px] text-violet-400/70 mt-0.5">
+                      Credentials verified against Healthcare Attestation Interoperability Profile
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              {/* Wave 139: Share passport actions */}
+              <section className="mb-8">
+                <PassportShareActions
+                  npi={profile.npi}
+                  credentialCount={profile.activeCredentials.length}
+                />
               </section>
 
               <footer className="text-center">

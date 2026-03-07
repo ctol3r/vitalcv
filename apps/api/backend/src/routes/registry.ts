@@ -22,6 +22,7 @@ import {
 import {
   calculateAllReputations,
   calculateReputation,
+  getNetworkReputationSummary,
 } from '../services/trust/reputationEngine';
 import { log } from '../obs/logger';
 
@@ -203,6 +204,20 @@ export function registerTrustRegistryRoutes(app: Express): void {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       log('error', 'registry_status_update_failed', { error: msg });
       res.status(500).json({ error: 'Failed to update issuer status', detail: msg });
+    }
+  });
+
+  // ── GET /api/reputation/network (Wave 141) ────────────────────────
+  // Network-level aggregated trust score — used by GlobalTrustMap for live
+  // node coloring and Mission Ops reputation dashboard.
+  app.get('/api/reputation/network', async (_req: Request, res: Response) => {
+    try {
+      const summary = await getNetworkReputationSummary();
+      res.status(200).json(summary);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'reputation_network_summary_failed', { error: msg });
+      res.status(500).json({ error: 'Failed to compute network reputation', detail: msg });
     }
   });
 
