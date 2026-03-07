@@ -8,7 +8,7 @@
 
 import type { Express, Request, Response } from 'express';
 import {
-  revokeCredential,
+  revokeCredentialWithCascade,
   getRevocationEntry,
   listRevocations,
 } from '../services/revocation/revocationRegistry';
@@ -20,7 +20,6 @@ import { getRequestOrganizationId } from '../middleware/organizationContext';
 import { log } from '../obs/logger';
 import { auditRevocation, newTraceId } from '../services/audit/auditLedger';
 import { revokeVerificationArtifact } from '../services/credentials/credentialArtifactBridge';
-import { revocationCascade } from '../services/decision/revocationCascade';
 
 export function registerRevocationRoutes(app: Express): void {
 
@@ -45,7 +44,16 @@ export function registerRevocationRoutes(app: Express): void {
         return;
       }
 
-      const entry = revokeCredential({ credentialId, issuer: resolvedIssuer, reason, metadata });
+      const {
+        entry,
+        cascadeTriggered,
+        cascadeResult,
+      } = await revokeCredentialWithCascade({
+        credentialId,
+        issuer: resolvedIssuer,
+        reason,
+        metadata,
+      });
 
       updateCredentialStatus(credentialId, 'REVOKED');
       await revokeVerificationArtifact(
@@ -54,18 +62,6 @@ export function registerRevocationRoutes(app: Express): void {
         new Date(entry.revokedAt),
         getRequestOrganizationId(req),
       );
-
-      let cascadeTriggered = false;
-      let cascadeResult: Awaited<ReturnType<typeof revocationCascade.propagateRevocation>> | null = null;
-      try {
-        cascadeResult = await revocationCascade.propagateRevocation(credentialId);
-        cascadeTriggered = true;
-      } catch (error) {
-        log('warn', 'revocation_cascade_failed', {
-          credentialId,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-      }
 
       try {
         await emitAlert({

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
-import { apiRoute } from '@/lib/api';
+import { apiRoute, getApiBase } from '@/lib/api';
 import {
   type TrustStateResponse,
   normalizeTrustStateResponse,
@@ -58,7 +58,7 @@ const BLOCKING_REASON_LABELS: Record<string, string> = {
 
 export default function VerifierPreviewPage() {
   const trustStateRoute = apiRoute('/trust-state');
-  const isApiConfigured = Boolean(process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_BACKEND_URL);
+  const isApiConfigured = Boolean(getApiBase());
 
   const [state, setState] = useState<TrustStateResponse>(() =>
     normalizeTrustStateResponse(null),

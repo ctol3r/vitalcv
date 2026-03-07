@@ -15,6 +15,7 @@ import { listIssuers } from '../registry/trustRegistry';
 import { listFederationEntities } from '../federation/federationMetadata';
 import { getInheritedControls } from '../healthstart/controlInheritance';
 import { validateControlHealth } from '../healthstart/controlInheritance';
+import { getConnectorHealth } from '../providers/connectors/connectorHealthTracker';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -66,6 +67,12 @@ export interface MissionOpsOverview {
     totalControls: number;
     inherited: number;
     healthy: boolean;
+  };
+  connectorHealth: {
+    total: number;
+    healthy: number;
+    degraded: number;
+    unreachable: number;
   };
   systemReadiness: 'OPERATIONAL' | 'DEGRADED' | 'CRITICAL';
   computedAt: string;
@@ -267,6 +274,12 @@ export function computeMissionOpsOverview(): MissionOpsOverview {
   const controls = getInheritedControls('SaaS');
   const health = validateControlHealth();
 
+  // Connector health
+  const connHealth = getConnectorHealth();
+  const healthyCount = connHealth.connectors.filter((e) => e.status === 'HEALTHY').length;
+  const degradedCount = connHealth.connectors.filter((e) => e.status === 'DEGRADED').length;
+  const unreachableCount = connHealth.connectors.filter((e) => e.status === 'UNREACHABLE').length;
+
   // System readiness
   const readiness: MissionOpsOverview['systemReadiness'] =
     health.healthy && activeEntities.length > 0 ? 'OPERATIONAL'
@@ -299,6 +312,12 @@ export function computeMissionOpsOverview(): MissionOpsOverview {
       totalControls: controls.totalControls,
       inherited: controls.inherited,
       healthy: health.healthy,
+    },
+    connectorHealth: {
+      total: connHealth.connectors.length,
+      healthy: healthyCount,
+      degraded: degradedCount,
+      unreachable: unreachableCount,
     },
     systemReadiness: readiness,
     computedAt: new Date().toISOString(),

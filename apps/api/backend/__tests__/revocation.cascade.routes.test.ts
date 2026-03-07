@@ -119,7 +119,7 @@ describe('GET /api/integrity/sweep', () => {
       expect(check).toHaveProperty('status');
       expect(check).toHaveProperty('message');
       expect(['pass', 'warn', 'fail']).toContain(check.status);
-      expect(['database', 'endpoint', 'environment', 'auth']).toContain(check.category);
+      expect(['database', 'endpoint', 'environment', 'auth', 'connector']).toContain(check.category);
     }
   });
 

@@ -7,12 +7,19 @@ import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
-const NAV_LINKS: ReadonlyArray<{ readonly href: string; readonly label: string; readonly isRoute?: boolean }> = [
-  { href: '#how-it-works', label: 'How It Works' },
-  { href: '#security',     label: 'Security'      },
-  { href: '#portals',      label: 'Portals'        },
-  { href: '/developers',   label: 'Developers', isRoute: true },
-  { href: '/issuer',       label: 'Issuer',     isRoute: true },
+// Primary nav (visible on desktop + mobile)
+const NAV_LINKS: ReadonlyArray<{ readonly href: string; readonly label: string; readonly isRoute: true }> = [
+  { href: '/demo',        label: 'Demo',        isRoute: true },
+  { href: '/network',     label: 'Network',     isRoute: true },
+  { href: '/developers',  label: 'Developers',  isRoute: true },
+  { href: '/status',      label: 'Status',      isRoute: true },
+];
+
+// Secondary nav (mobile menu + More dropdown on desktop)
+const NAV_SECONDARY: ReadonlyArray<{ readonly href: string; readonly label: string; readonly isRoute: true }> = [
+  { href: '/simulation',  label: 'Simulation',  isRoute: true },
+  { href: '/mobile',      label: 'Mobile',      isRoute: true },
+  { href: '/mission-ops', label: 'Mission Ops', isRoute: true },
 ];
 
 export default function Navbar() {
@@ -68,26 +75,27 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop links */}
-        <div className="hidden md:flex items-center gap-6 text-sm text-[var(--warm-charcoal)]/70">
-          {NAV_LINKS.map((link) =>
-            link.isRoute ? (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="hover:text-[var(--warm-charcoal)] transition-colors font-medium"
-              >
-                {link.label}
-              </Link>
-            ) : (
-              <a
-                key={link.href}
-                href={link.href}
-                className="hover:text-[var(--warm-charcoal)] transition-colors"
-              >
-                {link.label}
-              </a>
-            ),
-          )}
+        <div className="hidden md:flex items-center gap-5 text-sm text-[var(--warm-charcoal)]/70">
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="hover:text-[var(--warm-charcoal)] transition-colors font-medium"
+            >
+              {link.label}
+            </Link>
+          ))}
+          {/* Secondary links — smaller / muted */}
+          <span className="text-[var(--warm-charcoal)]/20">|</span>
+          {NAV_SECONDARY.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="text-xs hover:text-[var(--warm-charcoal)]/80 transition-colors"
+            >
+              {link.label}
+            </Link>
+          ))}
         </div>
 
         {/* Desktop CTAs */}
@@ -99,7 +107,7 @@ export default function Navbar() {
           </MagneticButton>
           <MagneticButton>
             <Button asChild size="sm">
-              <Link href="/demo">Book a Demo</Link>
+              <Link href="/demo">Try VitalCV</Link>
             </Button>
           </MagneticButton>
         </div>
@@ -127,27 +135,16 @@ export default function Navbar() {
             transition={{ duration: 0.25 }}
           >
             <div className="px-6 py-4 space-y-3">
-              {NAV_LINKS.map((link) =>
-                link.isRoute ? (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={closeMobile}
-                    className="block text-sm text-[var(--warm-charcoal)]/70 hover:text-[var(--warm-charcoal)] transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                ) : (
-                  <a
-                    key={link.href}
-                    href={link.href}
-                    onClick={closeMobile}
-                    className="block text-sm text-[var(--warm-charcoal)]/70 hover:text-[var(--warm-charcoal)] transition-colors"
-                  >
-                    {link.label}
-                  </a>
-                ),
-              )}
+              {[...NAV_LINKS, ...NAV_SECONDARY].map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={closeMobile}
+                  className="block text-sm text-[var(--warm-charcoal)]/70 hover:text-[var(--warm-charcoal)] transition-colors"
+                >
+                  {link.label}
+                </Link>
+              ))}
               <div className="flex flex-col gap-2 pt-2">
                 <MagneticButton className="flex">
                   <Button asChild variant="ghost" size="sm" onClick={closeMobile} className="w-full">
@@ -156,7 +153,7 @@ export default function Navbar() {
                 </MagneticButton>
                 <MagneticButton className="flex">
                   <Button asChild size="sm" onClick={closeMobile} className="w-full">
-                    <Link href="/demo">Book a Demo</Link>
+                    <Link href="/demo">Try VitalCV</Link>
                   </Button>
                 </MagneticButton>
               </div>

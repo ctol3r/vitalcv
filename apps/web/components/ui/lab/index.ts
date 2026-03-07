@@ -7,7 +7,7 @@
  */
 
 export { Skeleton, SkeletonText, SkeletonCard } from './Skeleton';
-export { HoverCard } from './HoverCard';
+export { HoverCard } from '../HoverCard';
 export { Tabs, TabPanel } from './Tabs';
 export { Toggle } from './Toggle';
 export { Loader } from './Loader';

@@ -1,14 +1,11 @@
 import { VerifierCommandCenter } from '@/components/employer/VerifierCommandCenter';
-import Navbar from '@/components/marketing/Navbar';
 
 export const metadata = { title: 'Command Center Demo — VitalCV' };
 
 export default function CommandCenterDemoPage() {
   return (
     <div className="min-h-screen bg-[var(--background,#f0eee9)]">
-      <Navbar />
-
-      <main className="pt-24 pb-20 px-4">
+      <main className="px-4 py-12 sm:py-16">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">

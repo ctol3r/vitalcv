@@ -7,14 +7,15 @@
  * Right pane (65%): Golden record, CRS ring, credential list, Instant Approve, AuditTerminal
  */
 
-import { useState, useMemo, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, Inbox, ShieldCheck } from 'lucide-react';
-import { ClaimBadge } from '@/components/ui/claim-badge';
-import { Button } from '@/components/ui/button';
-import { AuditTerminal, type AuditLogEntry } from './AuditTerminal';
 import type { ClaimLevel, TrustBand } from '@/components/trust-state/types';
+import { Button } from '@/components/ui/button';
+import { ClaimBadge } from '@/components/ui/claim-badge';
+import { HoverCard } from '@/components/ui/HoverCard';
 import { cn } from '@/lib/utils';
+import { AnimatePresence, motion } from 'framer-motion';
+import { CheckCircle2, Inbox, ShieldCheck } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
+import { AuditTerminal, type AuditLogEntry } from './AuditTerminal';
 
 // ── Demo Data ───────────────────────────────────────────────────────────────
 
@@ -267,11 +268,26 @@ export function VerifierCommandCenter() {
                     {/* Credential list */}
                     <ul className="mt-5 space-y-2.5">
                       {selected.credentials.map((cred) => (
-                        <li key={cred.name} className="flex items-center gap-3">
-                          <span className={cn('h-2 w-2 rounded-full shrink-0', CREDENTIAL_STATUS_DOT[cred.status] ?? 'bg-muted-foreground/40')} />
-                          <span className="flex-1 text-sm text-foreground truncate">{cred.name}</span>
-                          <ClaimBadge level={cred.claimLevel} showLabel={false} className="shrink-0" />
-                        </li>
+                        <HoverCard
+                          key={cred.name}
+                          align="start"
+                          trigger={
+                            <li className="flex items-center gap-3 p-1 rounded hover:bg-white/5 cursor-help transition-colors">
+                              <span className={cn('h-2 w-2 rounded-full shrink-0', CREDENTIAL_STATUS_DOT[cred.status] ?? 'bg-muted-foreground/40')} />
+                              <span className="flex-1 text-sm text-foreground truncate">{cred.name}</span>
+                              <ClaimBadge level={cred.claimLevel} showLabel={false} className="shrink-0" />
+                            </li>
+                          }
+                        >
+                          <div className="space-y-1.5">
+                            <p className="text-xs font-medium text-foreground">{cred.name}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{cred.type}</p>
+                            <div className="pt-1 mt-1 border-t border-border flex items-center justify-between gap-4">
+                              <span className="text-[10px] font-medium text-muted-foreground">Status: <span className={CREDENTIAL_STATUS_DOT[cred.status] ? 'text-foreground' : ''}>{cred.status}</span></span>
+                              <ClaimBadge level={cred.claimLevel} showLabel={true} />
+                            </div>
+                          </div>
+                        </HoverCard>
                       ))}
                     </ul>
 

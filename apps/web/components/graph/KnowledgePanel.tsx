@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Award, Building2, FileCheck, Scale, Shield, ShieldCheck, ShieldAlert, Stethoscope, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { getApiBase } from '@/lib/api';
 import type { GraphNode, NodeType } from './TrustGraphPrimary';
 import { DEMO_EDGES, DEMO_NODES } from './TrustGraphPrimary';
 
@@ -30,8 +31,7 @@ function IssuerTrustBadge({ issuerId }: { issuerId: string }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_BACKEND_URL ?? '';
-    const base = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
+    const base = getApiBase();
     fetch(`${base}/api/registry/${encodeURIComponent(issuerId)}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => setInfo(d?.issuer ?? null))

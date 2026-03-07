@@ -59,8 +59,11 @@ import { registerTrustOperationsRoutes } from './routes/trustOperations';
 import { registerPassportRoutes } from './routes/passport';
 // Wave 89: Network Telemetry
 import { registerTelemetryRoutes } from './routes/telemetry';
+import { registerCoordinationRoutes } from './routes/coordination';
 // Wave 90: System Status
 import { registerSystemStatusRoutes } from './routes/systemStatus';
+// Wave B: System Integrity
+import { registerSystemIntegrityRoutes } from './routes/systemIntegrity';
 // Wave 91: Network Gateway
 import { registerNetworkGatewayRoutes } from './routes/networkGateway';
 // Wave 92: Trust Knowledge Protocol
@@ -472,7 +475,9 @@ function shouldSkipTenantContext(pathname: string): boolean {
     // Wave 35: Audit proof endpoint is read-only / public for auditors.
     normalizedPath.startsWith('/api/audit/') ||
     // Wave 37: Superbrain intelligence endpoint.
-    normalizedPath.startsWith('/api/intelligence/')
+    normalizedPath.startsWith('/api/intelligence/') ||
+    // Wave B: integrity probes are read-only operational endpoints.
+    normalizedPath.startsWith('/api/integrity/')
   );
 }
 
@@ -3441,7 +3446,9 @@ registerMonitoringEventsRoutes(app); // Wave 85: Monitoring Events
 registerTrustOperationsRoutes(app);  // Wave 87: Trust Operations
 registerPassportRoutes(app);         // Wave 88: Clinician Passport
 registerTelemetryRoutes(app);        // Wave 89: Network Telemetry
+registerCoordinationRoutes(app);     // Wave 132: Coordination & Cleanup
 registerSystemStatusRoutes(app);     // Wave 90: System Status
+registerSystemIntegrityRoutes(app);  // Wave B: System integrity sweep + E2E probes
 registerNetworkGatewayRoutes(app);   // Wave 91+96: Network Gateway + Global Graph
 registerKnowledgeRoutes(app);        // Wave 92: Trust Knowledge Protocol
 registerCredentialRoutes(app);       // Wave 94+98: Trust Credential Infrastructure + Presentations
@@ -3469,10 +3476,11 @@ registerHealthStartRoutes(app);       // Substrate Consolidation: Phase 3 — He
 registerProviderRoutes(app);          // Wave 119 — Provider data integrity + provenance + smoke tests
 registerMissionOpsRoutes(app);        // Wave 123 — Mission Ops + onboarding flows
 
-// Wave 35: Start the Merkle anchoring background worker.
-startAnchorWorker();
-// Wave 40: Start the continuous trust monitoring cron daemon.
-startContinuousMonitor();
+if (process.env.NODE_ENV !== 'test') {
+  // Avoid open handles and unrelated database chatter during Jest runs.
+  startAnchorWorker();
+  startContinuousMonitor();
+}
 
 if (ENTERPRISE_MODE) {
   app.get('/internal/enterprise', async (req: Request, res: Response) => {

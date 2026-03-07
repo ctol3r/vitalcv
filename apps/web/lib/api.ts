@@ -11,10 +11,6 @@ type ApiPath =
   | '/api/pilot/activate'
   | '/metrics/public';
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE ||
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  '';
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
 const DEMO_PATHS: Record<
@@ -34,9 +30,24 @@ function isDemoPath(p: string): p is keyof typeof DEMO_PATHS {
   return p in DEMO_PATHS;
 }
 
+/** Single source of truth for API base URL. */
+export function getApiBase(): string {
+  const raw =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    '';
+  return normalizeApiBase(raw);
+}
+
+/** Build a full API URL for any path (not limited to ApiPath type). */
+export function apiUrl(path: string): string {
+  const base = getApiBase();
+  return base ? `${base}${path}` : path;
+}
+
 export function apiRoute(path: ApiPath): string {
   const resolvedPath = DEMO_MODE && isDemoPath(path) ? DEMO_PATHS[path] : path;
-  const base = normalizeApiBase(API_BASE);
+  const base = getApiBase();
   return base ? `${base}${resolvedPath}` : resolvedPath;
 }
 

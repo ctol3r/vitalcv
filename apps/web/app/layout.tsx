@@ -1,4 +1,6 @@
 import FeedbackButton from '@/components/feedback/FeedbackButton';
+import Footer from '@/components/layout/Footer';
+import Navbar from '@/components/layout/Navbar';
 import { BackgroundField } from '@/components/motion/BackgroundField';
 import { CursorPhysics } from '@/components/motion/CursorPhysics';
 import { Toaster } from '@/components/ui/toaster';
@@ -42,7 +44,11 @@ export default function RootLayout({
         <Providers>
           <BackgroundField />
           <CursorPhysics />
-          {children}
+          <div className="relative flex min-h-screen flex-col">
+            <Navbar />
+            <div className="relative flex-1">{children}</div>
+            <Footer />
+          </div>
           <Toaster />
           <FeedbackButton />
         </Providers>

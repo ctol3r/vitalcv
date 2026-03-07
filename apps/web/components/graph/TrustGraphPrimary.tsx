@@ -2,20 +2,19 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  Award,
-  Building2,
-  FileCheck,
-  Scale,
-  Stethoscope,
+    Award,
+    Building2,
+    FileCheck,
+    Scale,
+    Stethoscope,
 } from 'lucide-react';
 import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
+    useEffect,
+    useMemo,
+    useRef,
+    useState
 } from 'react';
+import { GraphMotionLayer } from '../network/GraphMotionLayer';
 
 /* ── Types ────────────────────────────────────────────────── */
 
@@ -84,7 +83,7 @@ const NODE_RADIUS: Record<NodeType, number> = {
 
 /* ── Force simulation ─────────────────────────────────────── */
 
-interface SimNode extends GraphNode {
+export interface SimNode extends GraphNode {
   x: number;
   y: number;
   vx: number;
@@ -305,32 +304,13 @@ export function TrustGraphPrimary({
           </filter>
         </defs>
 
-        {/* Edges */}
-        <g>
-          {ready &&
-            edges.map((edge, i) => {
-              const source = nodeMap.get(edge.source);
-              const target = nodeMap.get(edge.target);
-              if (!source || !target) return null;
-              const isHovered =
-                hoveredId === edge.source || hoveredId === edge.target;
-              return (
-                <motion.line
-                  key={`${edge.source}-${edge.target}-${i}`}
-                  x1={source.x}
-                  y1={source.y}
-                  x2={target.x}
-                  y2={target.y}
-                  stroke={isHovered ? 'var(--infra-blue)' : 'var(--infra-grid)'}
-                  strokeWidth={isHovered ? 1.5 : 1}
-                  strokeOpacity={isHovered ? 0.8 : 0.5}
-                  initial={{ pathLength: 0 }}
-                  animate={{ pathLength: 1 }}
-                  transition={{ duration: 0.8, delay: i * 0.05 }}
-                />
-              );
-            })}
-        </g>
+        {/* Edges & Motion Layer */}
+        <GraphMotionLayer
+          edges={edges}
+          nodeMap={nodeMap as Map<string, any>}
+          hoveredId={hoveredId}
+          ready={ready}
+        />
 
         {/* Nodes */}
         <g>
@@ -338,14 +318,19 @@ export function TrustGraphPrimary({
             simNodes.map((node) => {
               const config = NODE_CONFIG[node.type];
               const r = NODE_RADIUS[node.type];
-              const isHovered = hoveredId === node.id;
+              const isHoveredNode = hoveredId === node.id;
+              const isConnected = hoveredId !== null && edges.some(e =>
+                 (e.source === hoveredId && e.target === node.id) ||
+                 (e.target === hoveredId && e.source === node.id)
+              );
+              const isDimmed = hoveredId !== null && !isHoveredNode && !isConnected;
               const Icon = config.icon;
 
               return (
                 <motion.g
                   key={node.id}
                   initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
+                  animate={{ scale: 1, opacity: isDimmed ? 0.2 : 1 }}
                   transition={{
                     type: 'spring',
                     stiffness: 180,
@@ -358,7 +343,7 @@ export function TrustGraphPrimary({
                   style={{ cursor: onNodeClick ? 'pointer' : 'default' }}
                 >
                   {/* Outer ring on hover */}
-                  {isHovered && (
+                  {isHoveredNode && (
                     <circle
                       cx={node.x}
                       cy={node.y}
@@ -377,8 +362,8 @@ export function TrustGraphPrimary({
                     r={r}
                     fill="white"
                     stroke={config.fill}
-                    strokeWidth={isHovered ? 3 : 2}
-                    filter={isHovered ? 'url(#node-glow)' : undefined}
+                    strokeWidth={isHoveredNode ? 3 : 2}
+                    filter={isHoveredNode ? 'url(#node-glow)' : undefined}
                   />
 
                   {/* Icon (SVG foreignObject) */}
@@ -403,17 +388,65 @@ export function TrustGraphPrimary({
                     textAnchor="middle"
                     className="text-[10px] font-medium pointer-events-none"
                     fill="var(--foreground)"
-                    fillOpacity={isHovered ? 1 : 0.7}
+                    fillOpacity={isHoveredNode ? 1 : 0.7}
                   >
                     {node.label}
                   </text>
                 </motion.g>
               );
             })}
-        </g>
-      </svg>
+          </g>
+        </svg>
 
-      {/* Legend */}
+        {/* Node Hover Card Overlay */}
+        {(() => {
+          const hoveredNode = hoveredId ? simNodes.find((n) => n.id === hoveredId) : null;
+          return (
+            <AnimatePresence>
+              {hoveredNode && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                  transition={{ duration: 0.15, ease: [0.2, 0.8, 0.2, 1] }}
+                  className="absolute z-50 pointer-events-none rounded-xl border border-zinc-200 bg-white/95 dark:border-zinc-800 dark:bg-zinc-900/95 backdrop-blur-sm shadow-xl p-4 min-w-[220px]"
+                  style={{
+                    left: hoveredNode.x,
+                    top: hoveredNode.y + NODE_RADIUS[hoveredNode.type] + 16,
+                    transform: 'translateX(-50%)',
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    {(() => {
+                      const Icon = NODE_CONFIG[hoveredNode.type].icon;
+                      return <Icon className="h-4 w-4 text-zinc-500" />;
+                    })()}
+                    <span className="text-xs uppercase tracking-wider text-zinc-500 font-semibold">{hoveredNode.type}</span>
+                  </div>
+                  <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{hoveredNode.label}</h4>
+
+                  {hoveredNode.meta && Object.keys(hoveredNode.meta).length > 0 && (
+                    <div className="mt-3 space-y-1.5 pt-3 border-t border-zinc-200 dark:border-zinc-800/50">
+                      {Object.entries(hoveredNode.meta).map(([key, val]) => (
+                        <div key={key} className="flex justify-between items-center text-[11px]">
+                          <span className="text-zinc-500 capitalize">{key}</span>
+                          <span className="font-medium text-zinc-700 dark:text-zinc-300">{val}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {hoveredNode.status && (
+                    <div className="mt-2 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                      Status: {hoveredNode.status.toUpperCase()}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          );
+        })()}
+
+        {/* Legend */}
       <div className="absolute bottom-3 left-3 flex flex-wrap gap-3">
         {(Object.entries(NODE_CONFIG) as [NodeType, (typeof NODE_CONFIG)[NodeType]][]).map(
           ([type, config]) => (

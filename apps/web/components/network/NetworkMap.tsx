@@ -8,6 +8,7 @@
  */
 
 import { useRef, useEffect, useState, useCallback } from 'react';
+import { getApiBase } from '@/lib/api';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -51,8 +52,7 @@ export function NetworkMap({ width = 600, height = 400, className = '' }: Networ
   const frameRef = useRef(0);
   const [loaded, setLoaded] = useState(false);
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_BACKEND_URL || '';
-  const base = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
+  const base = getApiBase();
 
   // Fetch network map data
   useEffect(() => {

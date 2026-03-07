@@ -10,6 +10,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { RefreshCw, Award } from 'lucide-react';
+import { getApiBase } from '@/lib/api';
 
 interface IssuerScore {
   issuerId: string;
@@ -22,12 +23,7 @@ interface IssuerScore {
   type?: string;
 }
 
-const base = () =>
-  (
-    (typeof process !== 'undefined'
-      ? process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_BACKEND_URL
-      : '') ?? ''
-  ).replace(/\/$/, '');
+const base = () => getApiBase();
 
 function ScoreBar({ score }: { score: number }) {
   const color =
