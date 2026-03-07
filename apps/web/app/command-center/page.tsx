@@ -31,6 +31,7 @@ import { RevocationCascadePanel } from '@/components/substrate/RevocationCascade
 import { FederationHealthPanel } from '@/components/substrate/FederationHealthPanel';
 import { IssuerTrustScoresPanel } from '@/components/substrate/IssuerTrustScoresPanel';
 import { AuditStreamPanel } from '@/components/substrate/AuditStreamPanel';
+import { AuditBaselinePanel } from '@/components/substrate/AuditBaselinePanel';
 import { useAlertStream } from '@/hooks/useAlertStream';
 import { useDecisionInsights } from '@/hooks/useDecisionInsights';
 import { useSystemStatus } from '@/hooks/useSystemStatus';
@@ -43,6 +44,7 @@ type ModuleId =
   | 'federation'
   | 'issuers'
   | 'audit'
+  | 'baseline'
   | 'pipeline'
   | 'simulation'
   | 'insights'
@@ -63,6 +65,7 @@ const MODULES: ModuleDef[] = [
   { id: 'federation',  label: 'Federation Health',  icon: <Network className="h-3 w-3" />,       group: 'substrate' },
   { id: 'issuers',     label: 'Issuer Scores',      icon: <Award className="h-3 w-3" />,         group: 'substrate' },
   { id: 'audit',       label: 'Audit Stream',       icon: <Activity className="h-3 w-3" />,      group: 'substrate' },
+  { id: 'baseline',    label: 'Audit Baseline',     icon: <AlertTriangle className="h-3 w-3" />, group: 'substrate' },
   // ── Operations group (NPI-scoped)
   { id: 'pipeline',    label: 'Pipeline',           icon: <TerminalSquare className="h-3 w-3" />, group: 'ops', requiresNpi: true },
   { id: 'simulation',  label: 'Simulation',         icon: <Play className="h-3 w-3" />,           group: 'ops', requiresNpi: true },
@@ -304,6 +307,16 @@ export default function CommandCenterPage() {
                     <p className="text-[11px] text-zinc-600">Registry-wide issuer reputation and HAIP compliance</p>
                   </div>
                   <IssuerTrustScoresPanel pollIntervalMs={60_000} />
+                </motion.div>
+              )}
+
+              {activeModule === 'baseline' && (
+                <motion.div key="baseline" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <div className="mb-4">
+                    <h2 className="text-sm font-medium text-zinc-300 mb-0.5">Audit Baseline & Anomalies</h2>
+                    <p className="text-[11px] text-zinc-600">Baseline-aware anomaly detection with SIEM export</p>
+                  </div>
+                  <AuditBaselinePanel pollIntervalMs={60_000} />
                 </motion.div>
               )}
 
