@@ -8,9 +8,9 @@
  * data from /api/network/global with a force-directed layout.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Activity, Building2, FileCheck, Globe2, Scale, Stethoscope, Users } from 'lucide-react';
 import { getApiBase } from '@/lib/api';
+import { Activity, Building2, FileCheck, Gauge, Globe2, Network, Scale, Stethoscope, Users } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -303,6 +303,7 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
     if (!ctx) return;
 
     let running = true;
+    let animationStart = performance.now();
 
     function draw() {
       if (!running || !ctx || !canvas) return;
@@ -326,12 +327,29 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
         const a = nodeMap.get(edge.source);
         const b = nodeMap.get(edge.target);
         if (!a || !b) continue;
+
+        const isHoveredEdge = hoveredRef.current === edge.source || hoveredRef.current === edge.target;
+
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);
         ctx.lineTo(b.x, b.y);
-        ctx.strokeStyle = 'rgba(148,163,184,0.35)';
+
+        if (isHoveredEdge) {
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.8)'; // bright blue
+          ctx.lineWidth = 2;
+          ctx.shadowColor = 'rgba(56, 189, 248, 0.6)';
+          ctx.shadowBlur = 10;
+        } else {
+          ctx.strokeStyle = 'rgba(148,163,184,0.35)'; // slate
+          ctx.lineWidth = 1;
+          ctx.shadowBlur = 0;
+        }
+
         ctx.stroke();
       }
+
+      // Reset shadow for nodes unless specified
+      ctx.shadowBlur = 0;
 
       // Draw nodes
       for (const node of nodes) {
@@ -359,10 +377,20 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
 
         const color = { fill: fillColor, stroke: strokeColor };
 
+        // Heatmap glow for scored issuers
+        if (isIssuer && node.trustScore != null) {
+          ctx.shadowColor = fillColor;
+          ctx.shadowBlur = isHovered ? 20 : 12;
+        } else {
+          ctx.shadowBlur = 0;
+        }
+
         ctx.beginPath();
         ctx.arc(node.x, node.y, drawR, 0, Math.PI * 2);
         ctx.fillStyle = color.fill + (isHovered ? 'ff' : 'cc');
         ctx.fill();
+
+        ctx.shadowBlur = 0; // reset after fill
 
         // Wave 102: dashed outer ring for federated peer nodes
         if (isFederated) {
@@ -415,6 +443,19 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
         // Wave 144: cluster nodes get a double ring + count label
         const nodeAsCluster = node as GlobalNode & { isCluster?: boolean; clusterSize?: number };
         if (nodeAsCluster.isCluster && nodeAsCluster.clusterSize) {
+          // Radar ping animation
+          const now = performance.now();
+          const p = ((now - animationStart) % 2000) / 2000; // 0 to 1 over 2s
+          const maxPingRadius = drawR * 3.5;
+          const currentPingRadius = drawR + p * (maxPingRadius - drawR);
+          const pingOpacity = (1 - p).toFixed(2);
+
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, currentPingRadius, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(139, 92, 246, ${pingOpacity})`; // violet glow
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
           ctx.beginPath();
           ctx.arc(node.x, node.y, drawR + 5, 0, Math.PI * 2);
           ctx.setLineDash([2, 3]);
@@ -477,7 +518,7 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
     setHovered(null);
   }, []);
 
-  const LEGEND_ITEMS: Array<{ group: NodeGroup; label: string; icon: typeof Users }> = [
+  const LEGEND_ITEMS: Array<{ group: NodeGroup | 'cluster'; label: string; icon: typeof Users }> = [
     { group: 'clinician', label: 'Clinicians', icon: Stethoscope },
     { group: 'issuer', label: 'Issuers', icon: Building2 },
     { group: 'credential', label: 'Credentials', icon: FileCheck },
@@ -486,6 +527,7 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
     { group: 'oid_federation', label: 'OID Fed', icon: Globe2 },
     { group: 'degraded_federation', label: 'Degraded', icon: Activity },
     { group: 'payer', label: 'Payers', icon: Building2 },
+    { group: 'cluster', label: 'Clusters', icon: Network },
   ];
 
   return (
@@ -500,13 +542,6 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span>{stats.totalNodes} nodes</span>
             <span>{stats.totalEdges} edges</span>
-            {/* Wave 144: performance telemetry */}
-            {renderMs !== null && (
-              <span className="text-infra-muted/70">{renderMs}ms</span>
-            )}
-            {clusteringActive && (
-              <span className="px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs">clustered</span>
-            )}
           </div>
         )}
       </div>
@@ -530,27 +565,65 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
           onMouseLeave={handleMouseLeave}
           style={{ cursor: hovered ? 'pointer' : 'default' }}
         />
+
+        {/* Telemetry Overlay */}
+        {stats && (
+          <div className="absolute bottom-4 right-4 z-20 pointer-events-none">
+            <div className="rounded-lg border border-infra-border bg-infra-surface/80 backdrop-blur-md shadow-xl p-3 min-w-[160px]">
+              <div className="flex items-center gap-2 mb-2 pb-2 border-b border-infra-border/50">
+                <Gauge className="h-3.5 w-3.5 text-infra-blue" />
+                <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Graph Ops</span>
+              </div>
+              <div className="space-y-1.5 [&>div]:flex [&>div]:justify-between [&>div]:items-center [&>div]:text-xs">
+                <div>
+                  <span className="text-muted-foreground">Render</span>
+                  <span className="font-mono text-foreground">{renderMs !== null ? `${renderMs}ms` : '---'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Nodes</span>
+                  <span className="font-mono text-foreground">{stats.totalNodes.toLocaleString()}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Edges</span>
+                  <span className="font-mono text-foreground">{stats.totalEdges.toLocaleString()}</span>
+                </div>
+                {clusteringActive && (
+                  <div className="mt-2 text-[10px] text-indigo-400 font-medium">
+                    <span className="w-2 h-2 rounded-full bg-indigo-500 inline-block mr-1.5 animate-pulse" />
+                    Auto-Clustered
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Stats bar */}
       {stats && (
         <div className="grid grid-cols-5 divide-x divide-infra-border border-t border-infra-border">
           {LEGEND_ITEMS.map(({ group, label, icon: Icon }) => {
-            const color = GROUP_COLORS[group];
+            const color = group === 'cluster' ? { fill: '#8b5cf6', stroke: '#7c3aed' } : GROUP_COLORS[group as NodeGroup];
             // federated/oid/degraded maps to issuers count; others direct
             const isFederated = group === 'federated_issuer' || group === 'oid_federation';
             const isDegraded = group === 'degraded_federation';
-            const statKey = (isFederated || isDegraded) ? 'issuers' : (group as keyof typeof stats);
-            const count = stats[statKey] ?? '—';
+            const isCluster = group === 'cluster';
+            let count: string | number = '—';
+            if (stats) {
+                if (isFederated || isDegraded) count = stats.issuers;
+                else if (isCluster) count = clusteringActive ? 'Active' : 'Off';
+                else count = stats[group as keyof typeof stats] ?? '—';
+            }
+
             return (
-              <div key={group} className={`flex items-center gap-2 px-3 py-2.5 ${isDegraded ? 'bg-red-50/50' : isFederated ? 'bg-cyan-50/50' : ''}`}>
+              <div key={group} className={`flex items-center gap-2 px-3 py-2.5 ${isDegraded ? 'bg-red-50/50' : isFederated ? 'bg-cyan-50/50' : isCluster && clusteringActive ? 'bg-violet-50/30' : ''}`}>
                 <div
                   className="h-2.5 w-2.5 rounded-full flex-shrink-0"
                   style={{
                     backgroundColor: color.fill,
                     outline: isDegraded
                       ? `1.5px dashed ${color.stroke}`
-                      : isFederated ? `1.5px dashed ${color.stroke}` : 'none',
+                      : isFederated ? `1.5px dashed ${color.stroke}` : isCluster ? `1.5px dotted ${color.stroke}` : 'none',
                     outlineOffset: '1.5px',
                   }}
                 />
