@@ -83,6 +83,9 @@ import { registerRevocationRoutes } from './routes/revocation';
 // Wave 102: Network Federation
 import { registerFederationRoutes } from './routes/federation';
 import { registerIssuerOnboardingRoutes } from './routes/issuerOnboarding'; // Wave 106: Issuer Onboarding
+import { registerPayerVerificationRoutes } from './routes/payerVerification'; // Wave 142: Payer Network
+import { registerProviderDirectoryRoutes } from './routes/providerDirectory';  // Wave 143: Provider Directory
+import { registerGraphScalingRoutes } from './routes/graphScaling';             // Wave 144: Graph Performance Scaling
 import { registerGovernanceRoutes } from './routes/governance';             // Wave 108: Trust Governance
 import { registerOID4VCIRoutes } from './routes/oid4vci';                  // Wave 109: OID4VCI Issuance
 import { registerOID4VPRoutes } from './routes/oid4vp';                    // Wave 110: OID4VP Presentation
@@ -3477,6 +3480,9 @@ registerAuditStreamRoutes(app);       // Substrate Consolidation: Phase 2 — au
 registerHealthStartRoutes(app);       // Substrate Consolidation: Phase 3 — HealthStart deployment profiles + evidence
 registerProviderRoutes(app);          // Wave 119 — Provider data integrity + provenance + smoke tests
 registerMissionOpsRoutes(app);        // Wave 123 — Mission Ops + onboarding flows
+registerPayerVerificationRoutes(app); // Wave 142 — Payer Network Integration
+registerProviderDirectoryRoutes(app);  // Wave 143 — Provider Directory Distribution
+registerGraphScalingRoutes(app);       // Wave 144 — Trust Graph Performance Scaling
 
 if (process.env.NODE_ENV !== 'test') {
   // Avoid open handles and unrelated database chatter during Jest runs.

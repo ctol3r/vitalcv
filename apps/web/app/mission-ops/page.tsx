@@ -27,6 +27,7 @@ import { getApiBase } from '@/lib/api';
 import TrustGraphConsole from '@/components/ops/TrustGraphConsole';
 import IssuerOnboardingPanel from '@/components/ops/IssuerOnboardingPanel';
 import NetworkTelemetryIntelligence from '@/components/telemetry/NetworkTelemetryIntelligence';
+import ProviderDirectoryPanel from '@/components/ops/ProviderDirectoryPanel';
 
 interface MissionOpsOverview {
   issuerOnboarding: { total: number; complete: number; inProgress: number; blocked: number };
@@ -330,6 +331,23 @@ export default function MissionOpsPage() {
               </span>
             </div>
             <IssuerOnboardingPanel onIssuerRegistered={fetchOverview} />
+          </motion.div>
+
+          {/* Wave 143: Provider Directory Distribution */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.35 }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs font-semibold text-infra-muted uppercase tracking-widest">
+                Provider Directory
+              </span>
+              <span className="text-xs text-indigo-400 border border-indigo-500/20 rounded px-1.5 py-0.5">
+                Wave 143
+              </span>
+            </div>
+            <ProviderDirectoryPanel />
           </motion.div>
         </div>
       )}
