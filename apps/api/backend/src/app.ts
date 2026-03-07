@@ -94,6 +94,7 @@ import { registerDecisionCapsuleRoutes } from './routes/decisionCapsules'; // Wa
 import { registerTrustSubstrateRoutes } from './routes/trustSubstrate';   // Substrate Consolidation: Phase 1
 import { registerAuditStreamRoutes } from './routes/auditStream';          // Substrate Consolidation: Phase 2
 import { registerHealthStartRoutes } from './routes/healthstart';           // Substrate Consolidation: Phase 3
+import { registerProviderRoutes } from './routes/providers';                 // Wave 119: Provider Data Integrity Fabric
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3464,6 +3465,7 @@ registerDecisionCapsuleRoutes(app);   // Wave A: Decision Capsules + Blast Radiu
 registerTrustSubstrateRoutes(app);    // Substrate Consolidation: Phase 1 — unified trust substrate
 registerAuditStreamRoutes(app);       // Substrate Consolidation: Phase 2 — audit OS, cursor export, SIEM stream
 registerHealthStartRoutes(app);       // Substrate Consolidation: Phase 3 — HealthStart deployment profiles + evidence
+registerProviderRoutes(app);          // Wave 119 — Provider data integrity + provenance + smoke tests
 
 // Wave 35: Start the Merkle anchoring background worker.
 startAnchorWorker();
