@@ -95,6 +95,7 @@ import { registerTrustSubstrateRoutes } from './routes/trustSubstrate';   // Sub
 import { registerAuditStreamRoutes } from './routes/auditStream';          // Substrate Consolidation: Phase 2
 import { registerHealthStartRoutes } from './routes/healthstart';           // Substrate Consolidation: Phase 3
 import { registerProviderRoutes } from './routes/providers';                 // Wave 119: Provider Data Integrity Fabric
+import { registerMissionOpsRoutes } from './routes/missionOps';             // Wave 123: Mission Ops + Conversion Engine
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3466,6 +3467,7 @@ registerTrustSubstrateRoutes(app);    // Substrate Consolidation: Phase 1 — un
 registerAuditStreamRoutes(app);       // Substrate Consolidation: Phase 2 — audit OS, cursor export, SIEM stream
 registerHealthStartRoutes(app);       // Substrate Consolidation: Phase 3 — HealthStart deployment profiles + evidence
 registerProviderRoutes(app);          // Wave 119 — Provider data integrity + provenance + smoke tests
+registerMissionOpsRoutes(app);        // Wave 123 — Mission Ops + onboarding flows
 
 // Wave 35: Start the Merkle anchoring background worker.
 startAnchorWorker();
