@@ -281,6 +281,39 @@ export class VitalCVVerifier {
     return this.request<RevocationStatus[]>(`/api/revocation${query}`);
   }
 
+  // ── Federation Trust ──────────────────────────────────────────────────
+
+  /**
+   * Check federation trust health for an entity.
+   */
+  async getFederationHealth(entityId: string): Promise<{
+    entityId: string;
+    status: string;
+    chainValid: boolean;
+    healthScore: number;
+    computedAt: string;
+  }> {
+    return this.request(`/api/federation/health/${encodeURIComponent(entityId)}`);
+  }
+
+  /**
+   * List all federated network peers.
+   */
+  async listFederationPeers(): Promise<Array<{
+    networkId: string;
+    networkName: string;
+    status: string;
+    networkType: string;
+  }>> {
+    const data = await this.request<{ networks?: unknown[]; peers?: unknown[] }>('/api/network/peers');
+    return (data.networks ?? data.peers ?? []) as Array<{
+      networkId: string;
+      networkName: string;
+      status: string;
+      networkType: string;
+    }>;
+  }
+
   // ── Audit ────────────────────────────────────────────────────────────
 
   /**
