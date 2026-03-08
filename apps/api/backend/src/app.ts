@@ -88,6 +88,7 @@ import { registerProviderDirectoryRoutes } from './routes/providerDirectory';  /
 import { registerGraphScalingRoutes } from './routes/graphScaling';             // Wave 144: Graph Performance Scaling
 import { registerPayerNetworkRoutes } from './routes/payerNetwork';             // Wave 148: Payer Credential Network
 import { registerNetworkTelemetryRoutes } from './routes/networkTelemetry';     // Wave 150: Network Telemetry Intelligence
+import { registerWalletExportRoutes } from './routes/walletExport';             // Wave 154: Wallet Interoperability Bridge
 import { registerGovernanceRoutes } from './routes/governance';             // Wave 108: Trust Governance
 import { registerOID4VCIRoutes } from './routes/oid4vci';                  // Wave 109: OID4VCI Issuance
 import { registerOID4VPRoutes } from './routes/oid4vp';                    // Wave 110: OID4VP Presentation
@@ -3487,6 +3488,7 @@ registerProviderDirectoryRoutes(app);  // Wave 143 — Provider Directory Distri
 registerGraphScalingRoutes(app);       // Wave 144 — Trust Graph Performance Scaling
 registerPayerNetworkRoutes(app);       // Wave 148 — Payer Credential Network
 registerNetworkTelemetryRoutes(app);   // Wave 150 — Network Telemetry Intelligence
+registerWalletExportRoutes(app);       // Wave 154 — Wallet Interoperability Bridge
 
 if (process.env.NODE_ENV !== 'test') {
   // Avoid open handles and unrelated database chatter during Jest runs.
