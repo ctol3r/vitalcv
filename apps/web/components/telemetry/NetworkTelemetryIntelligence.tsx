@@ -197,8 +197,8 @@ function ChartCard({
 
       <div className="flex items-end justify-between">
         <div>
-          <p className="text-2xl font-bold text-zinc-200">{value}</p>
-          {sub && <p className="text-[10px] text-zinc-600 mt-0.5">{sub}</p>}
+          <p className="heading-md text-zinc-200">{value}</p>
+          {sub && <p className="body-sm text-zinc-600 mt-0.5">{sub}</p>}
         </div>
         {TrendIcon && trendLabel && (
           <div className={`flex items-center gap-1 text-[10px] ${trendColor(trend === 'up' ? 1 : -1)}`}>

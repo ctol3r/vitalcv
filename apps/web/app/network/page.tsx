@@ -9,6 +9,7 @@
 import { GlobalTrustMap } from '@/components/network/GlobalTrustMap';
 import NetworkTelemetryIntelligence from '@/components/telemetry/NetworkTelemetryIntelligence';
 import TrustGraphExplorer from '@/components/network/TrustGraphExplorer';
+import { Grid, GridCol } from '@/components/layout/Grid';
 import { motion } from 'framer-motion';
 
 export default function NetworkPage() {
@@ -28,33 +29,42 @@ export default function NetworkPage() {
           </p>
         </motion.div>
 
-        {/* Global Trust Map */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="rounded-2xl border border-zinc-800 bg-zinc-950 overflow-hidden"
-        >
-          <GlobalTrustMap />
-        </motion.div>
+        {/* Wave 173: 12-col Grid layout — map full-width, telemetry + explorer side by side on xl */}
+        <Grid cols={1} xl={12} gap="lg">
+          {/* Global Trust Map — full width */}
+          <GridCol span="full">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="rounded-2xl border border-zinc-800 bg-zinc-950 overflow-hidden"
+            >
+              <GlobalTrustMap />
+            </motion.div>
+          </GridCol>
 
-        {/* Network Metrics */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <NetworkTelemetryIntelligence windowDays={30} />
-        </motion.div>
+          {/* Network Telemetry — full width */}
+          <GridCol span="full">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <NetworkTelemetryIntelligence windowDays={30} />
+            </motion.div>
+          </GridCol>
 
-        {/* Trust Graph Explorer — Wave 165 */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
-          <TrustGraphExplorer />
-        </motion.div>
+          {/* Trust Graph Explorer — full width */}
+          <GridCol span="full">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              <TrustGraphExplorer />
+            </motion.div>
+          </GridCol>
+        </Grid>
       </main>
     </div>
   );

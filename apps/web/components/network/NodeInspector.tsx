@@ -166,8 +166,8 @@ export default function NodeInspector({ node, onClose }: NodeInspectorProps) {
                 <Icon className="h-4 w-4 text-zinc-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-zinc-200 truncate">{node.name}</p>
-                <p className="text-[10px] text-zinc-600">{kindLabel(node.kind)}</p>
+                <p className="heading-sm text-zinc-200 truncate">{node.name}</p>
+                <p className="body-sm text-zinc-600">{kindLabel(node.kind)}</p>
               </div>
             </div>
             <button

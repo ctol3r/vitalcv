@@ -185,6 +185,78 @@
   text-transform:   uppercase;
 }
 
+/* ── Short-hand aliases (Wave 172) — cleaner API for new components ───── */
+/* Direct declarations (Tailwind v4 cannot @apply custom classes cross-file) */
+
+.heading-xl {
+  font-family: var(--type-heading-xl-font);
+  font-size: var(--type-heading-xl-size);
+  line-height: var(--type-heading-xl-line);
+  font-weight: var(--type-heading-xl-weight);
+  letter-spacing: var(--type-heading-xl-tracking);
+}
+.heading-lg {
+  font-family: var(--type-heading-lg-font);
+  font-size: var(--type-heading-lg-size);
+  line-height: var(--type-heading-lg-line);
+  font-weight: var(--type-heading-lg-weight);
+  letter-spacing: var(--type-heading-lg-tracking);
+}
+.heading-md {
+  font-family: var(--type-heading-md-font);
+  font-size: var(--type-heading-md-size);
+  line-height: var(--type-heading-md-line);
+  font-weight: var(--type-heading-md-weight);
+  letter-spacing: var(--type-heading-md-tracking);
+}
+.heading-sm {
+  font-family: var(--type-heading-sm-font);
+  font-size: var(--type-heading-sm-size);
+  line-height: var(--type-heading-sm-line);
+  font-weight: var(--type-heading-sm-weight);
+  letter-spacing: var(--type-heading-sm-tracking);
+}
+.body-lg {
+  font-family: var(--type-body-lg-font);
+  font-size: var(--type-body-lg-size);
+  line-height: var(--type-body-lg-line);
+  font-weight: var(--type-body-lg-weight);
+}
+.body {
+  font-family: var(--type-body-font);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  font-weight: var(--type-body-weight);
+}
+.body-sm {
+  font-family: var(--type-body-sm-font);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+  font-weight: var(--type-body-sm-weight);
+}
+.code {
+  font-family: var(--type-code-font);
+  font-size: var(--type-code-size);
+  line-height: var(--type-code-line);
+  font-weight: var(--type-code-weight);
+  font-variant-numeric: tabular-nums;
+}
+.label {
+  font-family: var(--type-label-font);
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+}
+.tag {
+  font-family: var(--type-tag-font);
+  font-size: var(--type-tag-size);
+  line-height: var(--type-tag-line);
+  font-weight: var(--type-tag-weight);
+  letter-spacing: var(--type-tag-tracking);
+  text-transform: uppercase;
+}
+
 /* ── Operator surface overrides (dark panels, /mission-ops, /network) ── */
 
 .surface-operator {
