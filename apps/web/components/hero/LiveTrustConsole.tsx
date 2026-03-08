@@ -176,7 +176,7 @@ export function LiveTrustConsole() {
               <span className="text-infra-blue">you can trust.</span>
             </h1>
 
-            <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">
+            <p className="max-w-xl body-lg text-muted-foreground">
               VitalCV automates primary source verification, anchors it to a
               cryptographic ledger, and continuously monitors compliance — so
               clinicians start 3–6 weeks faster.

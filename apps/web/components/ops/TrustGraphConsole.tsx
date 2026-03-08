@@ -17,23 +17,23 @@
  *   GET /api/audit/events             — Recent audit events
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Activity,
-  AlertTriangle,
-  CheckCircle,
-  ChevronRight,
-  GitBranch,
-  Globe,
-  Network,
-  RefreshCw,
-  Shield,
-  XCircle,
-  ZoomIn,
-  ZoomOut,
-} from 'lucide-react';
 import { getApiBase } from '@/lib/api';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+    Activity,
+    AlertTriangle,
+    CheckCircle,
+    ChevronRight,
+    GitBranch,
+    Globe,
+    Network,
+    RefreshCw,
+    Shield,
+    XCircle,
+    ZoomIn,
+    ZoomOut,
+} from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -145,8 +145,8 @@ function SectionHeader({ icon: Icon, title, action }: {
   return (
     <div className="flex items-center justify-between mb-3">
       <div className="flex items-center gap-2">
-        <Icon className="h-4 w-4 text-zinc-400" />
-        <span className="text-sm font-medium text-zinc-200">{title}</span>
+        <Icon className="h-4 w-4 text-vt-neutral-300" />
+        <span className="heading-md text-vt-neutral-100">{title}</span>
       </div>
       {action}
     </div>
@@ -273,21 +273,21 @@ function NodeDrilldown({
       initial={{ opacity: 0, x: 12 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 12 }}
-      className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-4"
+      className="rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-raised/60 p-4 space-y-4"
     >
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full" style={{ background: color }} />
-            <span className="text-sm font-semibold text-zinc-200">{node.label}</span>
+            <span className="heading-sm text-vt-neutral-100">{node.label}</span>
           </div>
-          <p className="text-[10px] font-mono text-zinc-600 mt-0.5 break-all">{node.id}</p>
+          <p className="text-[10px] font-mono text-vt-neutral-600 mt-0.5 break-all">{node.id}</p>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="text-zinc-600 hover:text-zinc-400 text-xs"
+          className="text-vt-neutral-600 hover:text-vt-neutral-300 text-xs"
         >
           ✕
         </button>
@@ -295,14 +295,14 @@ function NodeDrilldown({
 
       {/* Trust score */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-lg bg-zinc-800/50 p-3">
-          <p className="text-[10px] text-zinc-500 uppercase tracking-wide mb-1">Trust Score</p>
+        <div className="rounded-lg bg-vt-neutral-800/50 p-3">
+          <p className="text-[10px] text-vt-neutral-400 uppercase tracking-wide mb-1">Trust Score</p>
           <p className={`text-xl font-bold ${healthColor}`}>{score}</p>
           <p className={`text-[10px] ${healthColor}`}>{healthLab}</p>
         </div>
-        <div className="rounded-lg bg-zinc-800/50 p-3">
-          <p className="text-[10px] text-zinc-500 uppercase tracking-wide mb-1">Type</p>
-          <p className="text-xs text-zinc-300 capitalize">{node.type}</p>
+        <div className="rounded-lg bg-vt-neutral-800/50 p-3">
+          <p className="text-[10px] text-vt-neutral-400 uppercase tracking-wide mb-1">Type</p>
+          <p className="body-sm text-vt-neutral-200 capitalize">{node.type}</p>
           <p className={`text-[10px] mt-1 ${
             node.status === 'ACTIVE' ? 'text-emerald-400' :
             node.status === 'SUSPENDED' ? 'text-amber-400' : 'text-red-400'
@@ -314,17 +314,17 @@ function NodeDrilldown({
 
       {/* Federation info */}
       {node.type === 'federated' && federationHealth && (
-        <div className="rounded-lg bg-zinc-800/50 p-3 space-y-1.5">
-          <p className="text-[10px] text-zinc-500 uppercase tracking-wide">Federation Health</p>
+        <div className="rounded-lg bg-vt-neutral-800/50 p-3 space-y-1.5">
+          <p className="text-[10px] text-vt-neutral-400 uppercase tracking-wide">Federation Health</p>
           <div className="flex items-center justify-between text-xs">
-            <span className="text-zinc-400">Network Score</span>
+            <span className="text-vt-neutral-300">Network Score</span>
             <span className={healthLabel(federationHealth.healthScore).color}>
               {federationHealth.healthScore}
             </span>
           </div>
           <div className="flex items-center justify-between text-xs">
-            <span className="text-zinc-400">Active Entities</span>
-            <span className="text-zinc-300">{federationHealth.activeEntities} / {federationHealth.totalEntities}</span>
+            <span className="text-vt-neutral-300">Active Entities</span>
+            <span className="text-vt-neutral-200">{federationHealth.activeEntities} / {federationHealth.totalEntities}</span>
           </div>
           {federationHealth.degradedEntities > 0 && (
             <div className="flex items-center gap-1 text-[10px] text-amber-400 bg-amber-500/10 px-2 py-1 rounded">
@@ -336,12 +336,12 @@ function NodeDrilldown({
       )}
 
       {/* Cascade indicator */}
-      <div className="rounded-lg bg-zinc-800/50 p-3">
-        <p className="text-[10px] text-zinc-500 uppercase tracking-wide mb-2 flex items-center gap-1">
+      <div className="rounded-lg bg-vt-neutral-800/50 p-3">
+        <p className="text-[10px] text-vt-neutral-400 uppercase tracking-wide mb-2 flex items-center gap-1">
           <GitBranch className="h-2.5 w-2.5" /> Revocation Cascade Risk
         </p>
         <div className="flex items-center gap-2">
-          <div className="h-1.5 flex-1 bg-zinc-700 rounded-full overflow-hidden">
+          <div className="h-1.5 flex-1 bg-vt-neutral-700 rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all"
               style={{
@@ -350,9 +350,9 @@ function NodeDrilldown({
               }}
             />
           </div>
-          <span className="text-[10px] text-zinc-500">{100 - score}%</span>
+          <span className="text-[10px] text-vt-neutral-400">{100 - score}%</span>
         </div>
-        <p className="text-[10px] text-zinc-600 mt-1">
+        <p className="text-[10px] text-vt-neutral-600 mt-1">
           {score >= 85 ? 'Low blast radius — minimal cascade risk'
             : score >= 60 ? 'Moderate — downstream verification may be affected'
             : 'High — revocation here triggers cascade alerts'}
@@ -369,23 +369,23 @@ function AuditFeed({ events }: { events: AuditEvent[] }) {
     if (s === 'CRITICAL') return 'text-red-400';
     if (s === 'HIGH') return 'text-orange-400';
     if (s === 'MEDIUM') return 'text-amber-400';
-    return 'text-zinc-500';
+    return 'text-vt-neutral-400';
   };
 
   return (
     <div className="space-y-1.5 max-h-48 overflow-y-auto">
       {events.length === 0 && (
-        <p className="text-[10px] text-zinc-600 text-center py-4">No events</p>
+        <p className="text-[10px] text-vt-neutral-600 text-center py-4">No events</p>
       )}
       {events.map((ev) => (
         <div key={ev.eventId} className="flex items-start gap-2 text-[10px] font-mono">
           <span className={`mt-0.5 ${severityColor(ev.severity)}`}>▸</span>
-          <span className="text-zinc-500 shrink-0">
+          <span className="text-vt-neutral-400 shrink-0">
             {new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </span>
-          <span className="text-zinc-400 truncate">{ev.type}</span>
+          <span className="text-vt-neutral-300 truncate">{ev.type}</span>
           {ev.referenceId && (
-            <span className="text-zinc-600 shrink-0 truncate">{ev.referenceId.slice(0, 12)}…</span>
+            <span className="text-vt-neutral-600 shrink-0 truncate">{ev.referenceId.slice(0, 12)}…</span>
           )}
         </div>
       ))}
@@ -456,21 +456,21 @@ export default function TrustGraphConsole() {
   const degradedIssuers = issuerNodes.filter((n) => (n.trustScore ?? 75) < 60).length;
 
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/30 overflow-hidden">
+    <div className="rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-raised/30 overflow-hidden">
       {/* Console Header */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-800 bg-zinc-900/60">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-vt-neutral-800 bg-vt-surface-ops-raised/60">
         <div className="flex items-center gap-2">
           <Network className="h-4 w-4 text-emerald-400" />
-          <span className="text-sm font-semibold text-zinc-200">Trust Graph Console</span>
+          <span className="heading-lg text-vt-neutral-100">Trust Graph Console</span>
           {graph && (
-            <span className="text-[10px] font-mono text-zinc-600">
+            <span className="text-[10px] font-mono text-vt-neutral-600">
               {graph.totalNodes}N · {graph.totalEdges}E
             </span>
           )}
         </div>
         <div className="flex items-center gap-3">
           {lastRefresh && (
-            <span className="text-[10px] text-zinc-600">
+            <span className="text-[10px] text-vt-neutral-600">
               {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
           )}
@@ -479,18 +479,18 @@ export default function TrustGraphConsole() {
             <button
               type="button"
               onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))}
-              className="p-1 text-zinc-500 hover:text-zinc-300 transition-colors"
+              className="p-1 text-vt-neutral-400 hover:text-vt-neutral-200 transition-colors"
               title="Zoom out"
             >
               <ZoomOut className="h-3 w-3" />
             </button>
-            <span className="text-[10px] font-mono text-zinc-600 w-8 text-center">
+            <span className="text-[10px] font-mono text-vt-neutral-600 w-8 text-center">
               {Math.round(zoom * 100)}%
             </span>
             <button
               type="button"
               onClick={() => setZoom((z) => Math.min(2, z + 0.1))}
-              className="p-1 text-zinc-500 hover:text-zinc-300 transition-colors"
+              className="p-1 text-vt-neutral-400 hover:text-vt-neutral-200 transition-colors"
               title="Zoom in"
             >
               <ZoomIn className="h-3 w-3" />
@@ -499,7 +499,7 @@ export default function TrustGraphConsole() {
           <button
             type="button"
             onClick={fetchAll}
-            className="p-1 text-zinc-500 hover:text-zinc-300 transition-colors"
+            className="p-1 text-vt-neutral-400 hover:text-vt-neutral-200 transition-colors"
             title="Refresh"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -525,14 +525,14 @@ export default function TrustGraphConsole() {
               action={
                 <div className="flex items-center gap-1.5">
                   <StatusDot ok={!error && !loading} />
-                  <span className="text-[10px] text-zinc-600">
+                  <span className="text-[10px] text-vt-neutral-600">
                     {loading ? 'Syncing…' : 'Live'}
                   </span>
                 </div>
               }
             />
             <div
-              className="rounded-xl border border-zinc-800 overflow-hidden bg-zinc-950"
+              className="rounded-xl border border-vt-neutral-800 overflow-hidden bg-vt-surface-ops-base"
               style={{ height: 280 }}
             >
               {graph && graph.nodes.length > 0 ? (
@@ -544,17 +544,17 @@ export default function TrustGraphConsole() {
                 />
               ) : loading ? (
                 <div className="flex items-center justify-center h-full">
-                  <div className="text-[10px] text-zinc-600 animate-pulse">Loading graph…</div>
+                  <div className="text-[10px] text-vt-neutral-600 animate-pulse">Loading graph…</div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full gap-2">
-                  <Network className="h-8 w-8 text-zinc-700" />
-                  <p className="text-xs text-zinc-600">No nodes in graph</p>
+                  <Network className="h-8 w-8 text-vt-neutral-700" />
+                  <p className="text-xs text-vt-neutral-600">No nodes in graph</p>
                 </div>
               )}
             </div>
             {graph && (
-              <p className="text-[10px] text-zinc-700 mt-1.5 text-right">
+              <p className="text-[10px] text-vt-neutral-700 mt-1.5 text-right">
                 Click a node to inspect · computed {new Date(graph.computedAt).toLocaleTimeString()}
               </p>
             )}
@@ -563,7 +563,7 @@ export default function TrustGraphConsole() {
           {/* Audit event feed */}
           <div>
             <SectionHeader icon={Activity} title="Audit Event Feed" />
-            <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-3">
+            <div className="rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-base/60 p-3">
               <AuditFeed events={auditEvents} />
             </div>
           </div>
@@ -575,16 +575,16 @@ export default function TrustGraphConsole() {
           <div>
             <SectionHeader icon={Shield} title="Issuer Trust Health" />
             <div className="space-y-3">
-              <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-3 grid grid-cols-2 gap-3">
+              <div className="rounded-lg border border-vt-neutral-800 bg-vt-surface-ops-base/60 p-3 grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-[10px] text-zinc-500 uppercase tracking-wide">Avg Score</p>
+                  <p className="text-[10px] text-vt-neutral-400 uppercase tracking-wide">Avg Score</p>
                   <p className={`text-2xl font-bold ${healthLabel(avgTrustScore).color}`}>
                     {avgTrustScore || '—'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-zinc-500 uppercase tracking-wide">Issuers</p>
-                  <p className="text-2xl font-bold text-zinc-200">{issuerNodes.length}</p>
+                  <p className="text-[10px] text-vt-neutral-400 uppercase tracking-wide">Issuers</p>
+                  <p className="text-2xl font-bold text-vt-neutral-100">{issuerNodes.length}</p>
                 </div>
                 {degradedIssuers > 0 ? (
                   <div className="col-span-2 flex items-center gap-1.5 text-[10px] text-amber-400 bg-amber-500/10 rounded px-2 py-1.5">
@@ -608,15 +608,15 @@ export default function TrustGraphConsole() {
                     onClick={() => setSelectedNodeId((prev) => (prev === n.id ? null : n.id))}
                     className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left text-[11px] transition-colors
                       ${selectedNodeId === n.id
-                        ? 'bg-zinc-800 border border-zinc-700'
-                        : 'border border-transparent hover:bg-zinc-800/50'}`}
+                        ? 'bg-vt-neutral-800 border border-vt-neutral-700'
+                        : 'border border-transparent hover:bg-vt-neutral-800/50'}`}
                   >
-                    <span className="text-zinc-300 truncate">{n.label}</span>
+                    <span className="text-vt-neutral-200 truncate">{n.label}</span>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className={healthLabel(n.trustScore ?? 75).color}>
                         {n.trustScore ?? '—'}
                       </span>
-                      <ChevronRight className="h-3 w-3 text-zinc-600" />
+                      <ChevronRight className="h-3 w-3 text-vt-neutral-600" />
                     </div>
                   </button>
                 ))}
@@ -628,14 +628,14 @@ export default function TrustGraphConsole() {
           {federationHealth && (
             <div>
               <SectionHeader icon={Globe} title="Federation Health" />
-              <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-3 space-y-2">
+              <div className="rounded-lg border border-vt-neutral-800 bg-vt-surface-ops-base/60 p-3 space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-zinc-400">Health Score</span>
+                  <span className="text-vt-neutral-300">Health Score</span>
                   <span className={healthLabel(federationHealth.healthScore).color}>
                     {federationHealth.healthScore}
                   </span>
                 </div>
-                <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-vt-neutral-800 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all"
                     style={{
@@ -650,11 +650,11 @@ export default function TrustGraphConsole() {
                   {[
                     { label: 'Total', val: federationHealth.totalEntities },
                     { label: 'Active', val: federationHealth.activeEntities, color: 'text-emerald-400' },
-                    { label: 'Degraded', val: federationHealth.degradedEntities, color: federationHealth.degradedEntities > 0 ? 'text-amber-400' : 'text-zinc-500' },
+                    { label: 'Degraded', val: federationHealth.degradedEntities, color: federationHealth.degradedEntities > 0 ? 'text-amber-400' : 'text-vt-neutral-400' },
                   ].map(({ label, val, color }) => (
-                    <div key={label} className="rounded bg-zinc-800/50 px-1 py-1.5">
-                      <p className={`text-sm font-bold ${color ?? 'text-zinc-200'}`}>{val}</p>
-                      <p className="text-[9px] text-zinc-600">{label}</p>
+                    <div key={label} className="rounded bg-vt-neutral-800/50 px-1 py-1.5">
+                      <p className={`text-sm font-bold ${color ?? 'text-vt-neutral-100'}`}>{val}</p>
+                      <p className="text-[9px] text-vt-neutral-600">{label}</p>
                     </div>
                   ))}
                 </div>
@@ -677,9 +677,9 @@ export default function TrustGraphConsole() {
           </AnimatePresence>
 
           {!selectedNode && (
-            <div className="rounded-xl border border-dashed border-zinc-800 p-6 text-center">
-              <Network className="h-6 w-6 text-zinc-700 mx-auto mb-2" />
-              <p className="text-[11px] text-zinc-600">Select a node to inspect</p>
+            <div className="rounded-xl border border-dashed border-vt-neutral-800 p-6 text-center">
+              <Network className="h-6 w-6 text-vt-neutral-700 mx-auto mb-2" />
+              <p className="text-[11px] text-vt-neutral-600">Select a node to inspect</p>
             </div>
           )}
         </div>

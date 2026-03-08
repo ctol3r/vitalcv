@@ -14,28 +14,28 @@
  * Used by /p/:npi (NPI mode) and embedded in /holder.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import QRCode from 'react-qr-code';
-import {
-  Award,
-  CheckCircle,
-  ChevronDown,
-  ChevronUp,
-  Copy,
-  Download,
-  ExternalLink,
-  FileKey2,
-  Loader2,
-  QrCode,
-  Share2,
-  Shield,
-  ShieldAlert,
-  ShieldCheck,
-  ShieldX,
-  X,
-} from 'lucide-react';
 import { getApiBase } from '@/lib/api';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+    Award,
+    CheckCircle,
+    ChevronDown,
+    ChevronUp,
+    Copy,
+    Download,
+    ExternalLink,
+    FileKey2,
+    Loader2,
+    QrCode,
+    Share2,
+    Shield,
+    ShieldAlert,
+    ShieldCheck,
+    ShieldX,
+    X,
+} from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import QRCode from 'react-qr-code';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -75,31 +75,31 @@ export interface ClinicianPassportProps {
 const BAND_CONFIG = {
   L3: {
     icon: ShieldCheck,
-    color: 'text-emerald-400',
+    color: 'text-vt-success',
     bg: 'from-emerald-900/30 to-emerald-950/20',
-    ring: 'ring-emerald-500/40',
+    ring: 'ring-vt-success/40',
     label: 'Authoritative Trust',
     desc: 'Maximum credential authority — all sources verified',
   },
   L2: {
     icon: Shield,
-    color: 'text-blue-400',
+    color: 'text-vt-info',
     bg: 'from-blue-900/30 to-blue-950/20',
-    ring: 'ring-blue-500/40',
+    ring: 'ring-vt-info/40',
     label: 'Verified Trust',
     desc: 'Primary credentials verified and monitored',
   },
   L1: {
     icon: ShieldAlert,
-    color: 'text-amber-400',
+    color: 'text-vt-warning',
     bg: 'from-amber-900/30 to-amber-950/20',
-    ring: 'ring-amber-500/40',
+    ring: 'ring-vt-warning/40',
     label: 'Provisional Trust',
     desc: 'Verification in progress',
   },
   L0: {
     icon: ShieldX,
-    color: 'text-zinc-400',
+    color: 'text-vt-neutral-400',
     bg: 'from-zinc-900/30 to-zinc-950/20',
     ring: 'ring-zinc-500/30',
     label: 'Unverified',
@@ -108,9 +108,9 @@ const BAND_CONFIG = {
 } as const;
 
 const TRUST_LEVEL_COLOR: Record<string, string> = {
-  AUTHORITATIVE: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-  TRUSTED: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
-  UNVERIFIED: 'text-zinc-400 bg-zinc-700/20 border-zinc-700/30',
+  AUTHORITATIVE: 'text-vt-success bg-vt-success/10 border-vt-success/20',
+  TRUSTED: 'text-vt-info bg-vt-info/10 border-vt-info/20',
+  UNVERIFIED: 'text-vt-neutral-400 bg-vt-neutral-700/20 border-vt-neutral-700/30',
 };
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
@@ -130,7 +130,7 @@ function TrustBandHero({
   return (
     <div className={`rounded-2xl bg-gradient-to-br ${cfg.bg} ring-1 ${cfg.ring} p-5`}>
       <div className="flex items-start gap-4">
-        <div className={`rounded-xl bg-zinc-950/60 p-3 ring-1 ${cfg.ring}`}>
+        <div className={`rounded-xl bg-black/60 p-3 ring-1 ${cfg.ring}`}>
           <Icon className={`h-6 w-6 ${cfg.color}`} />
         </div>
         <div className="flex-1 min-w-0">
@@ -138,31 +138,31 @@ function TrustBandHero({
             <span className={`text-xs font-bold uppercase tracking-wider ${cfg.color}`}>
               {band}
             </span>
-            <span className="text-xs text-zinc-500">·</span>
-            <span className="text-xs text-zinc-400">{cfg.label}</span>
+            <span className="text-xs text-vt-neutral-500">·</span>
+            <span className="text-xs text-vt-neutral-400">{cfg.label}</span>
             {summary.haipCompliant && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 text-[10px] font-medium text-violet-400">
+              <span className="inline-flex items-center gap-1 rounded-full bg-vt-brand-primary/10 border border-vt-brand-primary/20 px-2 py-0.5 text-[10px] font-medium text-vt-brand-primary">
                 <CheckCircle className="h-2.5 w-2.5" />
                 HAIP
               </span>
             )}
           </div>
-          <p className="text-[10px] text-zinc-600 mt-0.5">{cfg.desc}</p>
-          <p className="text-[10px] font-mono text-zinc-700 mt-1">NPI {npi}</p>
+          <p className="text-[10px] text-vt-neutral-600 mt-0.5">{cfg.desc}</p>
+          <p className="text-[10px] font-mono text-vt-neutral-700 mt-1">NPI {npi}</p>
         </div>
       </div>
 
       {/* Credential summary strip */}
       <div className="mt-4 grid grid-cols-4 gap-2">
         {[
-          { label: 'Total', val: summary.totalCredentials, color: 'text-zinc-300' },
-          { label: 'Valid', val: summary.validCredentials, color: 'text-emerald-400' },
-          { label: 'Expiring', val: summary.expiringCredentials, color: summary.expiringCredentials > 0 ? 'text-amber-400' : 'text-zinc-600' },
-          { label: 'Revoked', val: summary.revokedCredentials, color: summary.revokedCredentials > 0 ? 'text-red-400' : 'text-zinc-600' },
+          { label: 'Total', val: summary.totalCredentials, color: 'text-vt-neutral-300' },
+          { label: 'Valid', val: summary.validCredentials, color: 'text-vt-success' },
+          { label: 'Expiring', val: summary.expiringCredentials, color: summary.expiringCredentials > 0 ? 'text-vt-warning' : 'text-vt-neutral-600' },
+          { label: 'Revoked', val: summary.revokedCredentials, color: summary.revokedCredentials > 0 ? 'text-vt-danger' : 'text-vt-neutral-600' },
         ].map(({ label, val, color }) => (
-          <div key={label} className="text-center rounded-lg bg-zinc-950/40 py-2">
+          <div key={label} className="text-center rounded-lg bg-black/40 py-2">
             <p className={`text-lg font-bold ${color}`}>{val}</p>
-            <p className="text-[9px] text-zinc-600 uppercase tracking-wide">{label}</p>
+            <p className="text-[9px] text-vt-neutral-600 uppercase tracking-wide">{label}</p>
           </div>
         ))}
       </div>
@@ -176,26 +176,26 @@ function IssuerTrustBadge({ credential }: { credential: PassportCredential }) {
   const colorClass = TRUST_LEVEL_COLOR[level] ?? TRUST_LEVEL_COLOR.TRUSTED;
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 flex items-start gap-3">
-      <div className="rounded-lg bg-zinc-800 p-2 shrink-0">
-        <FileKey2 className="h-3.5 w-3.5 text-zinc-400" />
+    <div className="rounded-xl border border-vt-neutral-800 bg-vt-neutral-900/60 p-3 flex items-start gap-3">
+      <div className="rounded-lg bg-vt-neutral-800 p-2 shrink-0">
+        <FileKey2 className="h-3.5 w-3.5 text-vt-neutral-400" />
       </div>
       <div className="flex-1 min-w-0 space-y-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-medium text-zinc-200 truncate">{credential.credentialType}</span>
+          <span className="label text-vt-neutral-100 truncate">{credential.credentialType}</span>
           <span className={`text-[9px] font-medium border rounded-full px-1.5 py-0.5 shrink-0 ${colorClass}`}>
             {level === 'AUTHORITATIVE' ? 'Auth' : level === 'TRUSTED' ? 'Trust' : 'Unver'}
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <p className="text-[10px] text-zinc-500 truncate">{credential.issuer}</p>
+          <p className="text-[10px] text-vt-neutral-500 truncate">{credential.issuer}</p>
           {credential.haipCompliant && (
-            <span className="text-[9px] text-violet-400 border border-violet-500/20 rounded px-1 shrink-0">HAIP</span>
+            <span className="text-[9px] text-vt-brand-primary border border-vt-brand-primary/20 rounded px-1 shrink-0">HAIP</span>
           )}
         </div>
         <div className="flex items-center gap-2">
           {/* Trust score bar */}
-          <div className="flex-1 h-1 bg-zinc-800 rounded-full overflow-hidden">
+          <div className="flex-1 h-1 bg-vt-neutral-800 rounded-full overflow-hidden">
             <div
               className="h-full rounded-full"
               style={{
@@ -204,10 +204,10 @@ function IssuerTrustBadge({ credential }: { credential: PassportCredential }) {
               }}
             />
           </div>
-          <span className="text-[9px] font-mono text-zinc-600 shrink-0">{score}</span>
+          <span className="text-[9px] font-mono text-vt-neutral-600 shrink-0">{score}</span>
           <span className={`text-[9px] ${
-            credential.status === 'ACTIVE' ? 'text-emerald-400' :
-            credential.status === 'EXPIRED' ? 'text-red-400' : 'text-amber-400'
+            credential.status === 'ACTIVE' ? 'text-vt-success' :
+            credential.status === 'EXPIRED' ? 'text-vt-danger' : 'text-vt-warning'
           }`}>{credential.status}</span>
         </div>
       </div>
@@ -237,14 +237,14 @@ function QRModal({
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6 w-full max-w-sm space-y-4"
+        className="rounded-2xl border border-vt-neutral-800 bg-black p-6 w-full max-w-sm space-y-4"
       >
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-semibold text-zinc-200">Scan to Verify</h3>
-            <p className="text-[10px] text-zinc-600 mt-0.5">NPI {npi}</p>
+            <h3 className="heading-sm text-vt-neutral-100">Scan to Verify</h3>
+            <p className="text-[10px] text-vt-neutral-600 mt-0.5">NPI {npi}</p>
           </div>
-          <button type="button" onClick={onClose} className="text-zinc-600 hover:text-zinc-400">
+          <button type="button" onClick={onClose} className="text-vt-neutral-600 hover:text-vt-neutral-400">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -252,7 +252,7 @@ function QRModal({
         <div className="flex justify-center bg-white p-4 rounded-xl">
           <QRCode value={url} size={200} level="M" />
         </div>
-        <p className="text-[10px] text-zinc-600 text-center break-all">{url}</p>
+        <p className="text-[10px] text-vt-neutral-600 text-center break-all">{url}</p>
       </motion.div>
     </motion.div>
   );
@@ -323,22 +323,22 @@ function ShareDrawer({
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 8 }}
-        className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-4 space-y-3"
+        className="rounded-xl border border-vt-neutral-800 bg-vt-neutral-900/80 p-4 space-y-3"
       >
         <div className="flex items-center justify-between mb-1">
-          <p className="text-[11px] font-medium text-zinc-400">Share this passport</p>
-          <button type="button" onClick={onClose} className="text-zinc-600 hover:text-zinc-400">
+          <p className="text-[11px] font-medium text-vt-neutral-400">Share this passport</p>
+          <button type="button" onClick={onClose} className="text-vt-neutral-600 hover:text-vt-neutral-400">
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
 
         {/* Share URL input */}
-        <div className="flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800/60 px-3 py-1.5">
-          <ExternalLink className="h-3 w-3 text-zinc-600 shrink-0" />
+        <div className="flex items-center gap-2 rounded-lg border border-vt-neutral-700 bg-vt-neutral-800/60 px-3 py-1.5">
+          <ExternalLink className="h-3 w-3 text-vt-neutral-600 shrink-0" />
           <input
             readOnly
             value={shareUrl}
-            className="flex-1 bg-transparent text-[10px] font-mono text-zinc-400 focus:outline-none min-w-0"
+            className="flex-1 bg-transparent text-[10px] font-mono text-vt-neutral-400 focus:outline-none min-w-0"
           />
         </div>
 
@@ -347,7 +347,7 @@ function ShareDrawer({
           <button
             type="button"
             onClick={copyLink}
-            className="flex flex-col items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800/60 py-2.5 px-2 text-[10px] text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors"
+            className="flex flex-col items-center gap-1.5 rounded-lg border border-vt-neutral-700 bg-vt-neutral-800/60 py-2.5 px-2 text-[10px] text-vt-neutral-400 hover:text-vt-neutral-100 hover:border-vt-neutral-600 transition-colors"
           >
             {copied ? (
               <CheckCircle className="h-4 w-4 text-emerald-400" />
@@ -360,7 +360,7 @@ function ShareDrawer({
           <button
             type="button"
             onClick={() => setShowQR(true)}
-            className="flex flex-col items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800/60 py-2.5 px-2 text-[10px] text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors"
+            className="flex flex-col items-center gap-1.5 rounded-lg border border-vt-neutral-700 bg-vt-neutral-800/60 py-2.5 px-2 text-[10px] text-vt-neutral-400 hover:text-vt-neutral-100 hover:border-vt-neutral-600 transition-colors"
           >
             <QrCode className="h-4 w-4" />
             QR code
@@ -370,7 +370,7 @@ function ShareDrawer({
             type="button"
             onClick={downloadBundle}
             disabled={downloading}
-            className="flex flex-col items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800/60 py-2.5 px-2 text-[10px] text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors disabled:opacity-50"
+            className="flex flex-col items-center gap-1.5 rounded-lg border border-vt-neutral-700 bg-vt-neutral-800/60 py-2.5 px-2 text-[10px] text-vt-neutral-400 hover:text-vt-neutral-100 hover:border-vt-neutral-600 transition-colors disabled:opacity-50"
           >
             {downloading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -381,7 +381,7 @@ function ShareDrawer({
           </button>
         </div>
 
-        <p className="text-[9px] text-zinc-700 text-center">
+        <p className="text-[9px] text-vt-neutral-700 text-center">
           Share links allow selective disclosure. Bundle is a cryptographic snapshot.
         </p>
       </motion.div>
@@ -459,16 +459,16 @@ export default function ClinicianPassport({
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6 space-y-3 animate-pulse">
-        <div className="h-24 rounded-xl bg-zinc-800/60" />
-        <div className="h-16 rounded-xl bg-zinc-800/40" />
-        <div className="h-16 rounded-xl bg-zinc-800/40" />
+      <div className="rounded-2xl border border-vt-neutral-800 bg-vt-neutral-900/30 p-6 space-y-3 animate-pulse">
+        <div className="h-24 rounded-xl bg-vt-neutral-800/60" />
+        <div className="h-16 rounded-xl bg-vt-neutral-800/40" />
+        <div className="h-16 rounded-xl bg-vt-neutral-800/40" />
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/20 overflow-hidden">
+    <div className="rounded-2xl border border-vt-neutral-800 bg-vt-neutral-900/20 overflow-hidden">
       {/* Trust band hero */}
       <div className="p-4">
         {summary && (
@@ -478,9 +478,9 @@ export default function ClinicianPassport({
 
       {/* HAIP compliance indicator */}
       {!compact && haipCount > 0 && (
-        <div className="mx-4 mb-3 flex items-center gap-2 rounded-lg bg-violet-500/5 border border-violet-500/20 px-3 py-2">
-          <Award className="h-3.5 w-3.5 text-violet-400 shrink-0" />
-          <p className="text-[11px] text-violet-300">
+        <div className="mx-4 mb-3 flex items-center gap-2 rounded-lg bg-vt-brand-primary/5 border border-vt-brand-primary/20 px-3 py-2">
+          <Award className="h-3.5 w-3.5 text-vt-brand-primary shrink-0" />
+          <p className="text-[11px] text-vt-neutral-300">
             <span className="font-semibold">{haipCount}</span>{' '}
             credential{haipCount !== 1 ? 's' : ''} meet HAIP conformance profile
           </p>
@@ -490,7 +490,7 @@ export default function ClinicianPassport({
       {/* Credential list with issuer trust badges */}
       {credentials.length > 0 && (
         <div className="px-4 pb-4 space-y-2">
-          <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider mb-2">
+          <p className="text-[10px] font-mono text-vt-neutral-600 uppercase tracking-wider mb-2">
             Credentials · {credentials.length}
           </p>
           {visible.map((c) => (
@@ -500,7 +500,7 @@ export default function ClinicianPassport({
             <button
               type="button"
               onClick={() => setShowAll((p) => !p)}
-              className="flex items-center gap-1.5 w-full justify-center text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors py-1"
+              className="flex items-center gap-1.5 w-full justify-center text-[10px] text-vt-neutral-600 hover:text-vt-neutral-400 transition-colors py-1"
             >
               {showAll ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
               {showAll ? 'Show less' : `Show ${credentials.length - 3} more`}
@@ -511,17 +511,17 @@ export default function ClinicianPassport({
 
       {credentials.length === 0 && !loading && (
         <div className="px-4 pb-4">
-          <p className="text-[11px] text-zinc-600 text-center py-3">No credentials on file</p>
+          <p className="text-[11px] text-vt-neutral-600 text-center py-3">No credentials on file</p>
         </div>
       )}
 
       {/* Share actions */}
       {!compact && (
-        <div className="border-t border-zinc-800 px-4 py-3 space-y-3">
+        <div className="border-t border-vt-neutral-800 px-4 py-3 space-y-3">
           <button
             type="button"
             onClick={() => setShowShare((p) => !p)}
-            className="flex items-center gap-2 w-full justify-center rounded-lg border border-zinc-700 bg-zinc-800/40 py-2 text-xs text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors"
+            className="flex items-center gap-2 w-full justify-center rounded-lg border border-vt-neutral-700 bg-vt-neutral-800/40 py-2 text-xs text-vt-neutral-400 hover:text-vt-neutral-100 hover:border-vt-neutral-600 transition-colors"
           >
             <Share2 className="h-3.5 w-3.5" />
             Share this passport

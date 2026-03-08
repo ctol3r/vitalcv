@@ -11,19 +11,19 @@
  *   - Shows live share count badge (fetched from analytics API)
  */
 
-import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import QRCode from 'react-qr-code';
 import {
-  BarChart2,
-  CheckCircle,
-  Copy,
-  Download,
-  Loader2,
-  QrCode,
-  Share2,
-  X,
+    BarChart2,
+    CheckCircle,
+    Copy,
+    Download,
+    Loader2,
+    QrCode,
+    Share2,
+    X,
 } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import QRCode from 'react-qr-code';
 
 interface PassportShareActionsProps {
   npi: string;
@@ -117,13 +117,13 @@ export default function PassportShareActions({ npi, credentialCount }: PassportS
       <div className="rounded-2xl bg-white/[0.03] ring-1 ring-white/10 px-5 py-4 space-y-3">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
-            <Share2 className="h-3.5 w-3.5 text-emerald-400" />
+            <Share2 className="h-3.5 w-3.5 text-vt-success" />
             <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500">
               Share Passport
             </p>
           </div>
           {shareCount !== null && shareCount > 0 && (
-            <div className="flex items-center gap-1 text-[10px] text-zinc-500">
+            <div className="flex items-center gap-1 text-[10px] text-vt-neutral-500">
               <BarChart2 className="h-3 w-3" />
               <span>{shareCount} share{shareCount !== 1 ? 's' : ''}</span>
             </div>
@@ -135,10 +135,10 @@ export default function PassportShareActions({ npi, credentialCount }: PassportS
           <button
             type="button"
             onClick={copyLink}
-            className="flex flex-col items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.02] py-3 px-2 text-[10px] text-gray-500 hover:text-gray-200 hover:border-emerald-500/30 transition-colors"
+            className="flex flex-col items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.02] py-3 px-2 text-[10px] text-gray-500 hover:text-gray-200 hover:border-vt-success/30 transition-colors"
           >
             {copied ? (
-              <CheckCircle className="h-4 w-4 text-emerald-400" />
+              <CheckCircle className="h-4 w-4 text-vt-success" />
             ) : (
               <Copy className="h-4 w-4" />
             )}
@@ -149,7 +149,7 @@ export default function PassportShareActions({ npi, credentialCount }: PassportS
           <button
             type="button"
             onClick={openQR}
-            className="flex flex-col items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.02] py-3 px-2 text-[10px] text-gray-500 hover:text-gray-200 hover:border-emerald-500/30 transition-colors"
+            className="flex flex-col items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.02] py-3 px-2 text-[10px] text-gray-500 hover:text-gray-200 hover:border-vt-success/30 transition-colors"
           >
             <QrCode className="h-4 w-4" />
             QR code
@@ -160,7 +160,7 @@ export default function PassportShareActions({ npi, credentialCount }: PassportS
             type="button"
             onClick={downloadBundle}
             disabled={downloading}
-            className="flex flex-col items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.02] py-3 px-2 text-[10px] text-gray-500 hover:text-gray-200 hover:border-emerald-500/30 transition-colors disabled:opacity-50"
+            className="flex flex-col items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.02] py-3 px-2 text-[10px] text-gray-500 hover:text-gray-200 hover:border-vt-success/30 transition-colors disabled:opacity-50"
           >
             {downloading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -187,7 +187,7 @@ export default function PassportShareActions({ npi, credentialCount }: PassportS
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="rounded-2xl border border-white/20 bg-slate-950 p-6 w-full max-w-xs space-y-4"
+              className="rounded-2xl border border-white/20 bg-black p-6 w-full max-w-xs space-y-4"
             >
               <div className="flex items-center justify-between">
                 <div>

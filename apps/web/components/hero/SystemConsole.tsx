@@ -1,12 +1,12 @@
 'use client';
 
+import { useSystemStatus } from '@/hooks/useSystemStatus';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Activity, Globe, Shield, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { ParticleNetwork } from '../motion/ParticleNetwork';
 import { MagneticButton } from '../ui/MagneticButton';
-import { useSystemStatus } from '@/hooks/useSystemStatus';
 
 /* ── Animated counter ─────────────────────────────────────── */
 
@@ -111,7 +111,7 @@ function StatCard({
       </div>
       <div>
         <p className="text-xs text-muted-foreground font-medium">{label}</p>
-        <p className="text-lg font-bold font-mono tabular-nums tracking-tight">
+        <p className="heading-lg font-mono tabular-nums tracking-tight">
           <AnimatedCounter target={value} />
         </p>
       </div>
@@ -155,7 +155,7 @@ export function SystemConsole() {
               <span className="text-infra-blue">you can trust.</span>
             </h1>
 
-            <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">
+            <p className="max-w-xl body-lg text-muted-foreground">
               VitalCV automates primary source verification, anchors it to a
               cryptographic ledger, and continuously monitors compliance — so
               clinicians start 3–6 weeks faster.
