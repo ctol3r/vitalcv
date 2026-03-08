@@ -1,174 +1,300 @@
-import Breadcrumb from '@/components/ui/Breadcrumb';
-import { Building2, ChevronRight, Clock, DollarSign, MapPin, ShieldCheck } from 'lucide-react';
+/**
+ * Wave 188 — Explore Opportunities Surface
+ * /opportunities/[id] — Opportunity detail page
+ */
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import {
+  MapPin, Clock, DollarSign, Building2, ShieldCheck,
+  Users, Zap, ChevronRight, ArrowLeft,
+} from 'lucide-react';
 
-export const metadata: Metadata = {
-  title: 'Opportunity — VitalCV',
-};
+interface Props { params: Promise<{ id: string }> }
 
-interface Props {
-  params: Promise<{ id: string }>;
+// ── Canonical opportunity data ────────────────────────────────────────────────
+
+interface OppDetail {
+  id: string; title: string; facility: string; employerSlug: string;
+  location: string; state: string; specialty: string;
+  hiringType: string; startUrgency: string;
+  payRange?: string; remote: boolean; recentHires: number;
+  description: string;
+  requirements: Array<{ label: string; level: string; note?: string }>;
+  clearToStart: string;
+  employerTrustScore: number;
 }
 
-const STUB_OPPORTUNITIES: Record<string, {
-  title: string; facility: string; location: string;
-  pay: string; start: string; type: string;
-  requirements: { label: string; level: string }[];
-  description: string; employerSlug: string;
-}> = {
-  r1: {
-    title: 'Locums Cardiologist', facility: 'Bay Area Cardiac Group',
-    location: 'San Francisco, CA', pay: '$350–$420/hr',
-    start: 'As early as 2 weeks', type: 'Locums',
+const OPPS: Record<string, OppDetail> = {
+  'opp-001': {
+    id: 'opp-001', title: 'Locums Interventional Cardiologist',
+    facility: 'Bay Area Cardiac Group', employerSlug: 'bay-area-cardiac-group',
+    location: 'San Francisco, CA', state: 'CA', specialty: 'Cardiology',
+    hiringType: 'Locums', startUrgency: 'Start in 2 weeks',
+    payRange: '$310–$380/hr', remote: false, recentHires: 3,
+    description: 'Locums interventional cardiology position covering cath lab and clinic. 2–4 week blocks available. Credentialing handled within 5 business days for VitalCV-prequalified candidates.',
     requirements: [
-      { label: 'Active CA Medical License', level: 'L3' },
-      { label: 'Board Certified Cardiology', level: 'L3' },
-      { label: 'DEA Active', level: 'L2' },
+      { label: 'CA Medical License', level: 'L3', note: 'Active, no restrictions' },
+      { label: 'ABIM Cardiology Board Certification', level: 'L3' },
+      { label: 'DEA Registration (CA)', level: 'L2' },
       { label: 'Malpractice Insurance', level: 'L2' },
-      { label: 'NPI Verified', level: 'L3' }
+      { label: 'NPI Verified', level: 'L3' },
+      { label: 'Sanctions Clear', level: 'L3' },
     ],
-    description: 'Join our interventional cardiology team for locums coverage. Full case load, supportive staff, competitive compensation.',
-    employerSlug: 'bay-area-cardiac-group',
+    clearToStart: 'CA license + ABIM board cert + active DEA + malpractice coverage',
+    employerTrustScore: 94,
   },
-  r2: {
-    title: 'Telehealth Psychiatrist', facility: 'MindBridge Health',
-    location: 'Remote — CA licensed', pay: '$280–$320/hr',
-    start: 'Flexible', type: 'Telehealth',
+  'opp-002': {
+    id: 'opp-002', title: 'Perm Electrophysiologist',
+    facility: 'Bay Area Cardiac Group', employerSlug: 'bay-area-cardiac-group',
+    location: 'Oakland, CA', state: 'CA', specialty: 'Cardiology',
+    hiringType: 'Permanent', startUrgency: 'Start within a month',
+    payRange: '$420K–$500K/yr', remote: false, recentHires: 1,
+    description: 'Full-time EP position with a growing interventional group. Partnership track after 2 years. Support staff and modern EP lab included.',
     requirements: [
-      { label: 'Active CA Psychiatry License', level: 'L2+' },
-      { label: 'DEA Active Schedule IV', level: 'L2' },
-      { label: 'Malpractice Insurance', level: 'L2' }
+      { label: 'CA Medical License', level: 'L3' },
+      { label: 'ABIM Electrophysiology', level: 'L3' },
+      { label: 'DEA Registration', level: 'L2' },
+      { label: 'Malpractice Insurance', level: 'L3' },
+      { label: 'NPI Verified', level: 'L3' },
+      { label: 'Sanctions Clear', level: 'L3' },
     ],
-    description: 'See patients from anywhere. MindBridge operates a fully async + synchronous telehealth platform for outpatient psychiatry.',
-    employerSlug: 'mindbridge-health',
+    clearToStart: 'CA license + EP board cert + clean NPDB',
+    employerTrustScore: 94,
   },
-  r3: {
-    title: 'ICU / Critical Care NP', facility: 'Sacramento Medical Center',
-    location: 'Sacramento, CA', pay: '$120–$145/hr',
-    start: 'Immediate', type: 'Perm',
+  'opp-003': {
+    id: 'opp-003', title: 'Telehealth Psychiatrist',
+    facility: 'MindBridge Health', employerSlug: 'mindbridge-health',
+    location: 'Remote — CA licensed', state: 'CA', specialty: 'Psychiatry',
+    hiringType: 'Telehealth', startUrgency: 'Flexible start',
+    payRange: '$200–$270/hr', remote: true, recentHires: 8,
+    description: 'Remote psychiatry with flexible scheduling. MindBridge handles payer enrollment and all credentialing coordination. You see patients — we handle the admin.',
     requirements: [
-      { label: 'Active CA NP License', level: 'L3' },
-      { label: 'ACNP-BC or AGACNP-BC', level: 'L3' },
-      { label: 'BLS + ACLS + PALS', level: 'L3' },
-      { label: 'Malpractice Insurance', level: 'L2' }
+      { label: 'CA State Medical License', level: 'L3' },
+      { label: 'DEA Registration', level: 'L2' },
+      { label: 'NPI Verified', level: 'L3' },
+      { label: 'Board Certification (preferred)', level: 'L1' },
     ],
-    description: 'Full-time critical care NP role in a 28-bed medical ICU. Collaborative practice model.',
-    employerSlug: 'sacramento-medical-center',
+    clearToStart: 'Active CA license + DEA + verified NPI',
+    employerTrustScore: 91,
+  },
+  'opp-004': {
+    id: 'opp-004', title: 'ICU / Critical Care NP',
+    facility: 'Sacramento Medical Center', employerSlug: 'sacramento-medical-center',
+    location: 'Sacramento, CA', state: 'CA', specialty: 'Critical Care',
+    hiringType: 'Locums', startUrgency: 'Start immediately',
+    payRange: '$120–$145/hr', remote: false, recentHires: 1,
+    description: 'Urgent need for a critical care NP in a Level II trauma ICU. Immediate start preferred. Credentialing prioritized for VitalCV-verified candidates.',
+    requirements: [
+      { label: 'CA NP License', level: 'L3' },
+      { label: 'AANP / ANCC Certification', level: 'L3' },
+      { label: 'BLS', level: 'L3' },
+      { label: 'ACLS', level: 'L3' },
+      { label: 'NPI Verified', level: 'L3' },
+      { label: 'Malpractice Insurance', level: 'L2' },
+    ],
+    clearToStart: 'CA NP license + ACLS + malpractice',
+    employerTrustScore: 88,
+  },
+  'opp-005': {
+    id: 'opp-005', title: 'Family Medicine — Rural WA',
+    facility: 'Northwest Locums Alliance', employerSlug: 'northwest-locums-alliance',
+    location: 'Eastern Washington', state: 'WA', specialty: 'Family Medicine',
+    hiringType: 'Locums', startUrgency: 'Start in 2 weeks',
+    payRange: '$180–$220/hr', remote: false, recentHires: 5,
+    description: 'Rural family medicine locums in Eastern WA. Strong community, competitive pay, housing assistance available. NLA handles all credentialing at partner facilities.',
+    requirements: [
+      { label: 'WA Medical License', level: 'L3' },
+      { label: 'DEA Registration', level: 'L2' },
+      { label: 'Malpractice Insurance', level: 'L2' },
+      { label: 'NPI Verified', level: 'L3' },
+      { label: 'NPDB Clear', level: 'L2' },
+    ],
+    clearToStart: 'Active WA license + DEA + malpractice',
+    employerTrustScore: 85,
+  },
+  'opp-006': {
+    id: 'opp-006', title: 'Staff Internist — Perm',
+    facility: 'Kaiser Permanente Northern California', employerSlug: 'kaiser-permanente-northern-california',
+    location: 'Sacramento, CA', state: 'CA', specialty: 'Internal Medicine',
+    hiringType: 'Permanent', startUrgency: 'Start within a month',
+    remote: false, recentHires: 12,
+    description: 'Kaiser Permanente is hiring permanent staff internists across NorCal facilities. Integrated EHR, competitive salary, full benefits, and physician-led culture.',
+    requirements: [
+      { label: 'CA Medical License', level: 'L3' },
+      { label: 'ABIM Internal Medicine', level: 'L3' },
+      { label: 'DEA Registration', level: 'L2' },
+      { label: 'Malpractice History Review', level: 'L3' },
+      { label: 'NPI Verified', level: 'L3' },
+      { label: 'NPDB Clear', level: 'L3' },
+    ],
+    clearToStart: 'CA license + board cert + clean NPDB + KP privileging',
+    employerTrustScore: 97,
+  },
+  'opp-007': {
+    id: 'opp-007', title: 'Telepsychiatry — TX & FL',
+    facility: 'MindBridge Health', employerSlug: 'mindbridge-health',
+    location: 'Remote — TX or FL', state: 'TX', specialty: 'Psychiatry',
+    hiringType: 'Telehealth', startUrgency: 'Flexible start',
+    payRange: '$200–$270/hr', remote: true, recentHires: 4,
+    description: 'Expand your psychiatric practice across TX and FL with MindBridge. Flexible scheduling, no admin burden.',
+    requirements: [
+      { label: 'TX or FL Medical License', level: 'L3' },
+      { label: 'DEA Registration', level: 'L2' },
+      { label: 'NPI Verified', level: 'L3' },
+    ],
+    clearToStart: 'Active TX or FL license + DEA + NPI',
+    employerTrustScore: 91,
   },
 };
 
-function LevelBadge({ level }: { level: string }) {
-  const color =
-    level.startsWith('L3') ? 'bg-vt-success/15 text-vt-success ring-vt-success/30' :
-    level.startsWith('L2') ? 'bg-vt-info/15    text-vt-info    ring-vt-info/30'    :
-                             'bg-vt-neutral-800/20 text-vt-neutral-200 ring-vt-neutral-700';
-  return (
-    <span className={`rounded-full px-2 py-0.5 tag ring-1 ${color}`}>{level}</span>
-  );
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const opp = OPPS[id];
+  if (!opp) return { title: 'Opportunity Not Found — VitalCV' };
+  return { title: `${opp.title} — VitalCV`, description: opp.description };
 }
+
+export async function generateStaticParams() {
+  return Object.keys(OPPS).map(id => ({ id }));
+}
+
+const LEVEL_COLOR: Record<string, string> = {
+  L3: 'text-red-400 bg-red-500/10 border-red-500/20',
+  L2: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
+  L1: 'text-green-400 bg-green-500/10 border-green-500/20',
+};
 
 export default async function OpportunityDetailPage({ params }: Props) {
   const { id } = await params;
-  const opp = STUB_OPPORTUNITIES[id];
+  const opp = OPPS[id];
   if (!opp) notFound();
 
   return (
     <div className="min-h-screen bg-ops-gradient text-white surface-operator">
-      <main className="mx-auto max-w-3xl px-6 py-10">
-        <Breadcrumb
-          items={[
-            { label: 'Explore', href: '/explore' },
-            { label: opp.title },
-          ]}
-          className="mb-6"
-        />
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-2 text-xs text-white/40 mb-6">
+          <Link href="/" className="hover:text-white/70 transition-colors">Home</Link>
+          <span>/</span>
+          <Link href="/explore" className="hover:text-white/70 transition-colors">Explore</Link>
+          <span>/</span>
+          <span className="text-white/60 truncate">{opp.title}</span>
+        </nav>
 
-        <header className="mb-8">
-          <h1 className="heading-lg text-white">{opp.title}</h1>
-          <p className="body-lg mt-1 text-vt-neutral-200">{opp.facility}</p>
-        </header>
-
-        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {[
-            { icon: MapPin,       value: opp.location },
-            { icon: DollarSign,   value: opp.pay },
-            { icon: Clock,        value: opp.start },
-            { icon: ShieldCheck,  value: opp.type },
-          ].map(({ icon: Icon, value }) => (
-            <div key={value} className="flex items-center gap-2 rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 px-4 py-3">
-              <Icon className="h-4 w-4 shrink-0 text-vt-neutral-800" />
-              <span className="body-sm text-vt-neutral-200">{value}</span>
-            </div>
-          ))}
-        </div>
-
-        <section className="mb-8 rounded-3xl border border-vt-neutral-800 bg-vt-surface-ops-raised/30 p-8 shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
-          <h2 className="heading-sm mb-4 text-vt-neutral-100">What This Employer Requires From You</h2>
-          <ul className="space-y-3">
-            {opp.requirements.map((r) => (
-              <li key={r.label} className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 p-3 rounded-2xl bg-vt-surface-ops-base border border-vt-neutral-800/60">
-                <div className="flex items-center gap-3">
-                  <div className="flex shrink-0 h-8 w-8 items-center justify-center rounded-xl bg-vt-success/10 text-vt-success ring-1 ring-vt-success/20">
-                    <ShieldCheck className="h-4 w-4" />
-                  </div>
-                  <span className="body-sm font-medium text-white">{r.label}</span>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Hero */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-7">
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
+                  <Building2 className="w-7 h-7 text-white/50" />
                 </div>
-                <LevelBadge level={r.level} />
-              </li>
-            ))}
-          </ul>
-        </section>
+                <div className="flex-1">
+                  <h1 className="heading-xl font-bold text-white">{opp.title}</h1>
+                  <p className="text-white/60 mt-1">{opp.facility}</p>
+                  <div className="flex flex-wrap gap-3 mt-3">
+                    <span className="flex items-center gap-1 text-sm text-white/50">
+                      <MapPin className="w-3.5 h-3.5" /> {opp.location}
+                    </span>
+                    <span className="flex items-center gap-1 text-sm text-white/50">
+                      <Clock className="w-3.5 h-3.5" /> {opp.startUrgency}
+                    </span>
+                    {opp.payRange && (
+                      <span className="flex items-center gap-1 text-sm text-white/50">
+                        <DollarSign className="w-3.5 h-3.5" /> {opp.payRange}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1 text-sm text-white/50">
+                      <Users className="w-3.5 h-3.5" /> {opp.recentHires} hired recently
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-white/70 mt-5 leading-relaxed">{opp.description}</p>
+            </div>
 
-        <section className="mb-8 rounded-3xl border border-vt-neutral-800 bg-vt-surface-ops-raised/30 p-8 shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
-          <h2 className="heading-sm mb-4 text-vt-neutral-100">About This Role</h2>
-          <p className="body text-vt-neutral-200 leading-relaxed">{opp.description}</p>
-        </section>
-
-        <section className="mb-8 rounded-3xl border border-vt-info/20 bg-vt-surface-ops-raised/40 p-8 shadow-[inset_0_2px_10px_rgba(99,102,241,0.05)] relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 opacity-5">
-            <Building2 className="w-32 h-32" />
+            {/* What this employer requires */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">What this role requires from you</h2>
+              <div className="space-y-2.5">
+                {opp.requirements.map((req, i) => (
+                  <div key={i} className="flex items-start justify-between gap-3 py-2 border-b border-white/5 last:border-0">
+                    <div>
+                      <p className="text-sm text-white/80">{req.label}</p>
+                      {req.note && <p className="text-xs text-white/40 mt-0.5">{req.note}</p>}
+                    </div>
+                    <span className={`px-2 py-0.5 rounded border text-xs flex-shrink-0 ${LEVEL_COLOR[req.level] ?? ''}`}>
+                      {req.level}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 p-3 rounded-xl bg-blue-900/20 border border-blue-500/20">
+                <p className="text-sm text-white/60">
+                  <span className="text-blue-400 font-medium">Clear-to-start: </span>
+                  {opp.clearToStart}
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="relative z-10 flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
-            <div className="max-w-md">
-              <h3 className="heading-md text-white mb-2">Ask about this employer</h3>
-              <p className="body-sm text-vt-neutral-200">
-                AI can answer your questions about {opp.facility}'s typical onboarding time, requirements, or process directly from our index.
+
+          {/* Sidebar */}
+          <div className="space-y-5">
+            {/* Apply CTA */}
+            <div className="rounded-2xl border border-vt-success/30 bg-vt-success/5 p-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-vt-success" />
+                <p className="text-sm font-semibold text-white">Apply with VitalCV</p>
+              </div>
+              <p className="text-xs text-white/50 leading-relaxed">
+                Your verified credentials are shared instantly — no forms, no fax.
               </p>
-            </div>
-            <div className="flex flex-col gap-2 w-full md:w-auto shrink-0">
               <Link
-                href={`/ask?q=${encodeURIComponent(`What does ${opp.facility} require to start?`)}`}
-                className="rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-base px-5 py-3 text-sm text-vt-neutral-200 hover:border-vt-info/50 hover:text-white transition-all shadow-sm"
+                href={`/get-ready?opportunity=${opp.id}`}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-vt-success text-black text-sm font-semibold hover:bg-vt-success/90 transition-colors"
               >
-                "Requirements to start?" →
+                Check My Readiness <ChevronRight className="w-4 h-4" />
               </Link>
               <Link
-                href={`/ask?q=${encodeURIComponent(`How fast can I start at ${opp.facility}?`)}`}
-                className="rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-base px-5 py-3 text-sm text-vt-neutral-200 hover:border-vt-info/50 hover:text-white transition-all shadow-sm"
+                href="/holder/share"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-sm transition-all"
               >
-                "How fast can I start?" →
+                Share My Readiness
               </Link>
             </div>
-          </div>
-        </section>
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Link
-            href="/get-ready"
-            className="flex-1 rounded-2xl bg-vt-success px-6 py-4 flex items-center justify-center gap-2 text-sm font-semibold text-black hover:bg-vt-success/90 hover:shadow-[0_0_20px_rgba(20,184,166,0.3)] transition-all"
-          >
-            Apply with VitalCV <ChevronRight className="h-4 w-4" />
-          </Link>
-          <Link
-            href={`/employers/${opp.employerSlug}`}
-            className="flex-1 rounded-2xl vt-glass border border-vt-neutral-800 px-6 py-4 text-center text-sm font-medium text-white hover:bg-vt-surface-ops-raised transition-all"
-          >
-            Learn about employer
-          </Link>
+            {/* Employer card */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+              <p className="text-xs text-white/40 mb-3">Employer</p>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center">
+                  <Building2 className="w-5 h-5 text-white/50" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">{opp.facility}</p>
+                  <div className="flex items-center gap-1 text-xs text-emerald-400">
+                    <ShieldCheck className="w-3 h-3" />
+                    Trust score {opp.employerTrustScore}
+                  </div>
+                </div>
+              </div>
+              <Link
+                href={`/employers/${opp.employerSlug}`}
+                className="w-full flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm text-white/60 hover:text-white transition-all"
+              >
+                Learn about this employer <ChevronRight className="w-3 h-3" />
+              </Link>
+            </div>
+
+            {/* Back */}
+            <Link href="/explore" className="flex items-center gap-2 text-sm text-white/40 hover:text-white transition-colors">
+              <ArrowLeft className="w-4 h-4" /> Back to Explore
+            </Link>
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
