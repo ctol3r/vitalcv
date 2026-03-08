@@ -1,18 +1,24 @@
 'use client';
 
+/**
+ * Navbar — Wave 181: Navigation Rewrite & Information Architecture
+ *
+ * Public nav: Home · Explore · Employers · Search · Network · Developers
+ * Auth CTA: Sign In + Get Started (unauthenticated), My Workspace (authenticated)
+ */
+
 import { isPublicSurfacePath, isRouteActive } from '@/components/layout/publicSurfaceRoutes';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Search, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 const NAV_ITEMS = [
-  { href: '/', label: 'Home' },
-  { href: '/demo', label: 'Demo' },
-  { href: '/network', label: 'Network' },
-  { href: '/developers', label: 'Developers' },
-  { href: '/status', label: 'Status' },
-  { href: '/mission-ops', label: 'Mission Ops' },
+  { href: '/explore',     label: 'Explore' },
+  { href: '/employers',   label: 'Employers' },
+  { href: '/search',      label: 'Search' },
+  { href: '/network',     label: 'Network' },
+  { href: '/developers',  label: 'Developers' },
 ] as const;
 
 export default function Navbar() {
@@ -28,24 +34,28 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[color:oklch(0.22_0.01_60_/_0.9)] text-white backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-6">
+
+        {/* Logo */}
         <Link
           href="/"
-          className="font-heading text-lg font-semibold tracking-tight"
+          className="font-heading text-lg font-semibold tracking-tight shrink-0"
           onClick={closeMenu}
         >
           VitalCV
         </Link>
 
-        <nav className="hidden items-center gap-2 md:flex">
+        {/* Desktop nav */}
+        <nav className="hidden items-center gap-1 md:flex flex-1">
           {NAV_ITEMS.map((item) => {
             const active = isRouteActive(pathname, item.href);
-
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`rounded-full px-3 py-2 text-sm font-medium transition ${
-                  active ? 'bg-white/12 text-white' : 'text-white/70 hover:bg-white/8 hover:text-white'
+                className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                  active
+                    ? 'bg-white/12 text-white'
+                    : 'text-white/70 hover:bg-white/8 hover:text-white'
                 }`}
               >
                 {item.label}
@@ -54,63 +64,78 @@ export default function Navbar() {
           })}
         </nav>
 
-        <div className="hidden md:flex">
+        {/* Desktop CTA */}
+        <div className="hidden md:flex items-center gap-2 shrink-0">
+          <Link
+            href="/search"
+            aria-label="Search VitalCV"
+            className="rounded-full p-2 text-white/60 hover:bg-white/8 hover:text-white transition"
+          >
+            <Search className="h-4 w-4" />
+          </Link>
           <Link
             href="/sign-in"
-            className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-              isRouteActive(pathname, '/sign-in')
-                ? 'border-white/20 bg-white text-[color:oklch(0.22_0.01_60)]'
-                : 'border-white/15 bg-white/8 text-white hover:bg-white/14'
-            }`}
+            className="rounded-full border border-white/20 px-4 py-1.5 text-sm font-medium text-white/80 hover:border-white/40 hover:text-white transition"
           >
             Sign In
           </Link>
+          <Link
+            href="/get-ready"
+            className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-[oklch(0.22_0.01_60)] hover:bg-white/90 transition"
+          >
+            Get Started
+          </Link>
         </div>
 
+        {/* Mobile menu toggle */}
         <button
-          type="button"
-          className="inline-flex items-center justify-center rounded-full border border-white/15 p-2 text-white md:hidden"
+          aria-label={menuOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={menuOpen}
-          aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-          onClick={() => setMenuOpen((open) => !open)}
+          className="rounded-lg p-2 text-white/70 hover:bg-white/10 hover:text-white transition md:hidden"
+          onClick={() => setMenuOpen((o) => !o)}
         >
           {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
-      {menuOpen ? (
-        <div className="border-t border-white/10 px-6 py-4 md:hidden">
-          <nav className="flex flex-col gap-2">
-            {NAV_ITEMS.map((item) => {
-              const active = isRouteActive(pathname, item.href);
-
-              return (
+      {/* Mobile menu */}
+      {menuOpen && (
+        <nav className="border-t border-white/10 bg-[oklch(0.18_0.01_60)] px-6 py-4 md:hidden">
+          <ul className="space-y-1">
+            {NAV_ITEMS.map((item) => (
+              <li key={item.href}>
                 <Link
-                  key={item.href}
                   href={item.href}
                   onClick={closeMenu}
-                  className={`rounded-2xl px-4 py-3 text-sm font-medium transition ${
-                    active ? 'bg-white/12 text-white' : 'text-white/70 hover:bg-white/8 hover:text-white'
+                  className={`block rounded-xl px-4 py-2.5 text-sm font-medium transition ${
+                    isRouteActive(pathname, item.href)
+                      ? 'bg-white/12 text-white'
+                      : 'text-white/70 hover:bg-white/8 hover:text-white'
                   }`}
                 >
                   {item.label}
                 </Link>
-              );
-            })}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-4 flex gap-2 border-t border-white/10 pt-4">
             <Link
               href="/sign-in"
               onClick={closeMenu}
-              className={`mt-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
-                isRouteActive(pathname, '/sign-in')
-                  ? 'border-white/20 bg-white text-[color:oklch(0.22_0.01_60)]'
-                  : 'border-white/15 bg-white/8 text-white hover:bg-white/14'
-              }`}
+              className="flex-1 rounded-xl border border-white/20 py-2.5 text-center text-sm font-medium text-white/80"
             >
               Sign In
             </Link>
-          </nav>
-        </div>
-      ) : null}
+            <Link
+              href="/get-ready"
+              onClick={closeMenu}
+              className="flex-1 rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-[oklch(0.22_0.01_60)]"
+            >
+              Get Started
+            </Link>
+          </div>
+        </nav>
+      )}
     </header>
   );
 }
