@@ -31,7 +31,8 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import TimeSeriesChart, { type TimeSeriesPoint } from './TimeSeriesChart';
-import { getApiBase } from '@/lib/api';
+// Telemetry fetches use relative Next.js proxy routes (Wave 162) — no CORS issues in production.
+// Falls back to absolute API base only when proxy routes return 404 (local dev without Next.js server).
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -330,15 +331,13 @@ export default function NetworkTelemetryIntelligence({ windowDays = 30 }: { wind
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const apiBase = getApiBase();
-
   const fetchAll = useCallback(async () => {
     setError(null);
     try {
       const [telRes, growthRes, actRes] = await Promise.all([
-        fetch(`${apiBase}/api/network/telemetry?days=${windowDays}`),
-        fetch(`${apiBase}/api/network/growth?days=${windowDays}`),
-        fetch(`${apiBase}/api/network/activity?limit=25`),
+        fetch(`/api/network/telemetry?days=${windowDays}`),
+        fetch(`/api/network/growth?days=${windowDays}`),
+        fetch(`/api/network/activity?limit=25`),
       ]);
 
       if (telRes.ok) setData(await telRes.json() as NetworkTelemetrySummary);
@@ -352,7 +351,7 @@ export default function NetworkTelemetryIntelligence({ windowDays = 30 }: { wind
     } finally {
       setLoading(false);
     }
-  }, [apiBase, windowDays]);
+  }, [windowDays]);
 
   useEffect(() => {
     fetchAll();

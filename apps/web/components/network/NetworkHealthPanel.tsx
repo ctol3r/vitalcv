@@ -27,7 +27,7 @@ import {
   XCircle,
   Zap,
 } from 'lucide-react';
-import { getApiBase } from '@/lib/api';
+// Uses relative Next.js proxy route /api/network/health (Wave 163) — no CORS issues.
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -290,12 +290,10 @@ export default function NetworkHealthPanel() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [activeTab, setActiveTab] = useState<'nodes' | 'issuers' | 'federation'>('nodes');
 
-  const apiBase = getApiBase();
-
   const fetchHealth = useCallback(async () => {
     setError(null);
     try {
-      const res = await fetch(`${apiBase}/api/network/health`);
+      const res = await fetch('/api/network/health');
       if (res.ok) {
         setData(await res.json() as NetworkHealthSummary);
         setLastRefresh(new Date());
@@ -307,7 +305,7 @@ export default function NetworkHealthPanel() {
     } finally {
       setLoading(false);
     }
-  }, [apiBase]);
+  }, []);
 
   useEffect(() => {
     fetchHealth();

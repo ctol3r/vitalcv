@@ -11,7 +11,7 @@
  *   - Configurable filters (minTrustScore, limit)
  */
 
-import { getApiBase } from '@/lib/api';
+// Uses relative Next.js proxy routes (Wave 164) — no CORS/firewall issues in production.
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertTriangle,
@@ -93,7 +93,7 @@ function relativeTime(ts: string): string {
 
 // ── Snapshot History Panel ────────────────────────────────────────────────────
 
-function SnapshotHistoryPanel({ base }: { base: string }) {
+function SnapshotHistoryPanel() {
   const [open, setOpen] = useState(false);
   const [snapshots, setSnapshots] = useState<DirectorySnapshot[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -101,13 +101,13 @@ function SnapshotHistoryPanel({ base }: { base: string }) {
 
   const loadSnapshots = useCallback(async () => {
     if (!open) {
-      // Opening: fetch snapshots
       setOpen(true);
-      if (snapshots !== null) return; // already loaded
+      if (snapshots !== null) return;
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${base}/api/directory/snapshots`);
+        // Relative Next.js proxy route (Wave 164)
+        const res = await fetch('/api/directory/snapshot');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json() as DirectorySnapshot[];
         setSnapshots(data);
@@ -119,18 +119,18 @@ function SnapshotHistoryPanel({ base }: { base: string }) {
     } else {
       setOpen(false);
     }
-  }, [open, snapshots, base]);
+  }, [open, snapshots]);
 
   const publishSnapshot = useCallback(async () => {
     try {
-      const res = await fetch(`${base}/api/directory/publish`, { method: 'POST' });
+      const res = await fetch('/api/directory/snapshot', { method: 'POST' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json() as DirectorySnapshot;
       setSnapshots((prev) => prev ? [data, ...prev] : [data]);
     } catch {
       // silently fail — operator action
     }
-  }, [base]);
+  }, []);
 
   return (
     <div className="rounded-xl border border-zinc-700/50 bg-zinc-900/40 overflow-hidden">
@@ -242,12 +242,11 @@ export default function ProviderDirectoryPanel() {
   const [minTrustScore, setMinTrustScore] = useState(0);
   const [limit, setLimit] = useState(200);
 
-  const base = getApiBase();
-
   const loadDirectory = useCallback(async () => {
     setLoadState('loading');
     try {
-      const res = await fetch(`${base}/api/directory?limit=${limit}&minTrustScore=${minTrustScore}`);
+      // Uses Next.js proxy route (Wave 164) via relative path — works without NEXT_PUBLIC_API_BASE
+      const res = await fetch(`/api/directory?limit=${limit}&minTrustScore=${minTrustScore}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json() as DirectorySummary;
       setSummary(data);
@@ -255,12 +254,13 @@ export default function ProviderDirectoryPanel() {
     } catch {
       setLoadState('error');
     }
-  }, [base, limit, minTrustScore]);
+  }, [limit, minTrustScore]);
 
   const handleExport = useCallback(async (format: ExportFormat) => {
     setExportState((s) => ({ ...s, [format]: 'loading' }));
     try {
-      const url = `${base}/api/directory/${format}?limit=${limit}&minTrustScore=${minTrustScore}`;
+      // Relative Next.js proxy routes: /api/directory/fhir and /api/directory/csv (Wave 164)
+      const url = `/api/directory/${format}?limit=${limit}&minTrustScore=${minTrustScore}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
@@ -279,7 +279,7 @@ export default function ProviderDirectoryPanel() {
       setExportState((s) => ({ ...s, [format]: 'error' }));
       setTimeout(() => setExportState((s) => ({ ...s, [format]: 'idle' })), 3000);
     }
-  }, [base, limit, minTrustScore]);
+  }, [limit, minTrustScore]);
 
   const healthCounts = summary ? {
     verified: summary.entries.filter((e) => e.credentialHealth === 'VERIFIED').length,
@@ -386,8 +386,8 @@ export default function ProviderDirectoryPanel() {
           </button>
         </div>
 
-        {/* Snapshot history (collapsible, fetches real data) */}
-        <SnapshotHistoryPanel base={base} />
+        {/* Snapshot history (collapsible, fetches real data via Next.js proxy routes) */}
+        <SnapshotHistoryPanel />
 
         {/* Preview table */}
         {summary && summary.entries.length > 0 && (
