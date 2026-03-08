@@ -243,7 +243,7 @@ function ClearedBadge({ status }: { status: ClearedStatus }) {
           </span>
         </div>
       </div>
-      <p className="text-xs font-medium uppercase tracking-widest text-vt-neutral-200">
+      <p className="label uppercase text-vt-neutral-200">
         Trust Status
       </p>
     </div>
@@ -294,8 +294,8 @@ function EventTimeline({ events, lastAnchored }: { events: AuditEvent[]; lastAnc
   });
 
   return (
-    <div className="w-full rounded-2xl bg-white/[0.03] ring-1 ring-white/10 p-5">
-      <div className="mb-6 flex items-center justify-between border-b border-white/10 pb-4">
+    <div className="w-full rounded-2xl vt-glass-subtle p-5">
+      <div className="mb-6 flex items-center justify-between border-b border-vt-glass-ring pb-4">
         <div className="flex items-center gap-2">
           <svg className="h-4 w-4 text-vt-success" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
             <path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm0 14a6 6 0 110-12 6 6 0 010 12zm1-7H9V7h2v2zm0 4H9v-2h2v2z" />
@@ -389,7 +389,7 @@ function CrsRing({ score, band }: { score: number; band: CrsBand }) {
           <span className="mt-0.5 text-xs font-medium text-vt-neutral-200">/100</span>
         </div>
       </div>
-      <p className="text-sm font-medium tracking-wide text-vt-neutral-200 uppercase">Credential Readiness Score</p>
+      <p className="label text-vt-neutral-200">Credential Readiness Score</p>
     </div>
   );
 }
@@ -410,7 +410,7 @@ function TrustBadges({ l3Status }: { l3Status: L3Status }) {
               className={[
                 'flex flex-col items-center gap-1 rounded-xl px-3 py-2 transition-all',
                 active ? 'bg-vt-success/20 ring-1 ring-vt-success/60 shadow-lg shadow-vt-success/20'
-                       : 'bg-white/5 ring-1 ring-white/10',
+                       : 'vt-glass',
               ].join(' ')}>
               <span className={['heading-md', active ? 'text-vt-success' : 'text-vt-neutral-800'].join(' ')}>
                 {level}
@@ -429,8 +429,8 @@ function TrustBadges({ l3Status }: { l3Status: L3Status }) {
 
 function AuditHashes({ hashes }: { hashes: string[] }) {
   return (
-    <details className="group w-full rounded-2xl bg-white/[0.03] ring-1 ring-white/10 transition-all">
-      <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-4 text-sm font-medium text-vt-neutral-200 hover:text-gray-300">
+    <details className="group w-full rounded-2xl vt-glass-subtle transition-all">
+      <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-4 text-sm font-medium text-vt-neutral-200 hover:text-white">
         <span className="flex items-center gap-2">
           <svg className="h-4 w-4 text-vt-success" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
             <path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clipRule="evenodd" />
@@ -441,7 +441,7 @@ function AuditHashes({ hashes }: { hashes: string[] }) {
           <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
         </svg>
       </summary>
-      <div className="border-t border-white/10 px-5 py-4">
+      <div className="border-t border-vt-glass-ring px-5 py-4">
         {hashes.length === 0 ? (
           <p className="text-xs text-vt-neutral-800">Cryptographic audit trail not yet available.</p>
         ) : (
@@ -482,15 +482,15 @@ export default async function PublicTrustProfilePage({ params }: Props) {
   if (!profile) notFound();
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-slate-900 pb-28">
+    <main className="min-h-screen bg-passport-gradient pb-28">
       {/* Ambient glows */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute -top-40 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-vt-success/10 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-slate-500/10 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-vt-glow-passport blur-3xl" />
       </div>
 
       <div className="relative mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24">
-        <article className="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl shadow-black/40 backdrop-blur-xl md:p-12">
+        <article className="rounded-3xl vt-glass-card p-8 shadow-2xl shadow-black/40 md:p-12">
 
           {/* Header */}
           <header className="mb-8 flex flex-col items-center gap-3 text-center">
@@ -509,7 +509,7 @@ export default async function PublicTrustProfilePage({ params }: Props) {
                 <h1 className="heading-lg text-white md:text-3xl">
                   NPI <span className="code text-vt-success">{profile.npi}</span>
                 </h1>
-                <p className="mt-2 text-sm text-vt-neutral-200">
+                <p className="body-sm mt-2 text-vt-neutral-200">
                   {profile.activeCredentials.length > 0
                     ? `${profile.activeCredentials.length} active verified credential${profile.activeCredentials.length !== 1 ? 's' : ''}`
                     : 'Verification in progress'}
@@ -538,7 +538,7 @@ export default async function PublicTrustProfilePage({ params }: Props) {
 
               {/* Readiness evaluator summary */}
               {profile.readiness.evaluated && (
-                <section className="mb-8 rounded-xl bg-white/[0.03] ring-1 ring-white/10 px-5 py-4">
+                <section className="mb-8 rounded-xl vt-glass-subtle px-5 py-4">
                   <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-vt-neutral-800">
                     Superbrain Readiness (Wave 37)
                   </p>
@@ -568,7 +568,7 @@ export default async function PublicTrustProfilePage({ params }: Props) {
                 <p className="mb-3 text-center text-[10px] font-semibold uppercase tracking-widest text-vt-neutral-800">
                   Credential Wallet
                 </p>
-                <div className="rounded-xl overflow-hidden ring-1 ring-white/10 bg-white">
+                <div className="rounded-xl overflow-hidden ring-1 ring-vt-glass-ring bg-vt-surface-raised">
                   <CredentialWallet subject={profile.npi} pollIntervalMs={120_000} />
                 </div>
               </section>
@@ -610,7 +610,7 @@ export default async function PublicTrustProfilePage({ params }: Props) {
           {profile.mode === 'slug' && (
             <>
               <section className="mb-10 text-center">
-                <h1 className="text-3xl font-bold leading-tight text-white md:text-4xl">
+                <h1 className="heading-lg text-white">
                   {profile.name}{' '}
                   <span className="text-vt-success">
                     {profile.trustState === 'verified' || profile.trustState === 'verified_monitoring'
@@ -618,7 +618,7 @@ export default async function PublicTrustProfilePage({ params }: Props) {
                       : 'is Building Trust State.'}
                   </span>
                 </h1>
-                <p className="mt-2 text-lg text-vt-neutral-200">{profile.specialty}</p>
+                <p className="body-lg mt-2 text-vt-neutral-200">{profile.specialty}</p>
               </section>
 
               <section className="mb-10 flex justify-center">
