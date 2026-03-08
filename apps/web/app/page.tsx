@@ -71,6 +71,59 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Wave 181: Who are you? — Entry cards */}
+      <section className="px-6 py-16 border-t border-border/30">
+        <div className="mx-auto max-w-4xl">
+          <SectionReveal>
+            <div className="text-center mb-10">
+              <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-2">Where would you like to start?</p>
+              <h2 className="text-2xl font-semibold tracking-tight">Your path into VitalCV</h2>
+            </div>
+          </SectionReveal>
+          <SectionReveal>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {[
+                {
+                  href: '/holder/home',
+                  emoji: '🩺',
+                  title: "I'm a Clinician",
+                  body: "Verify your credentials, build your trust passport, and get matched with roles.",
+                  cta: 'Go to my workspace',
+                  accent: 'border-trust-green/30 hover:border-trust-green/60',
+                },
+                {
+                  href: '/verifier/home',
+                  emoji: '🏥',
+                  title: "I'm an Employer",
+                  body: "Find prequalified clinicians, publish opportunities, and hire with confidence.",
+                  cta: 'Go to employer dashboard',
+                  accent: 'border-accent/30 hover:border-accent/60',
+                },
+                {
+                  href: '/workspace/switch',
+                  emoji: '⚡',
+                  title: "I'm Both",
+                  body: "Keep clinician and employer personas active. Switch workspaces without re-logging in.",
+                  cta: 'Choose a workspace',
+                  accent: 'border-claim-l2/30 hover:border-claim-l2/60',
+                },
+              ].map(({ href, emoji, title, body, cta, accent }) => (
+                <a
+                  key={href}
+                  href={href}
+                  className={`group block rounded-2xl border bg-card/60 p-6 transition-all hover:bg-card ${accent}`}
+                >
+                  <span className="text-3xl" aria-hidden="true">{emoji}</span>
+                  <p className="mt-4 font-semibold text-card-foreground">{title}</p>
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{body}</p>
+                  <p className="mt-4 text-xs font-semibold text-primary group-hover:underline">{cta} →</p>
+                </a>
+              ))}
+            </div>
+          </SectionReveal>
+        </div>
+      </section>
+
       {/* Bento Grid */}
       <SectionReveal>
         <BentoGrid />
