@@ -170,7 +170,7 @@ export default function MissionOpsPage() {
           </div>
           <div className="flex items-center gap-3">
             {overview && <ReadinessIndicator status={overview.systemReadiness} />}
-            <button onClick={fetchOverview} className="text-vt-neutral-800 hover:text-vt-neutral-200 transition-colors p-2 rounded-lg hover:bg-white/[0.05]">
+            <button onClick={fetchOverview} className="text-vt-neutral-800 hover:text-vt-neutral-200 transition-colors p-2 rounded-lg hover:bg-vt-surface-ops-raised">
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
           </div>
@@ -636,7 +636,7 @@ function NetworkReputationSummaryPanel() {
 
   return (
     <div className="rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-raised/30 overflow-hidden">
-      <Grid cols={1} sm={4} className="divide-y sm:divide-y-0 sm:divide-x divide-zinc-800">
+      <Grid cols={1} sm={4} className="divide-y sm:divide-y-0 sm:divide-x divide-vt-neutral-800">
         {/* Network score */}
         <div className="p-4 sm:col-span-1">
           <p className="text-[10px] text-vt-neutral-800 uppercase tracking-wider mb-1">Network Trust Score</p>

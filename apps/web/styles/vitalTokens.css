@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
- *  VitalCV Token Framework (Wave 174)
+ *  VitalCV Token Framework (Wave 174 → 177)
  *  Unified design token layer
  * ───────────────────────────────────────────────────────────── */
 
@@ -31,6 +31,32 @@
 
   --vt-surface-ops-base:      oklch(0.08 0.005 255);
   --vt-surface-ops-raised:    oklch(0.12 0.008 255);
+
+  /* ── Operator Gradient Stops (Wave 177) ────────────────────── */
+  /* Replaces hardcoded from-slate-950 via-slate-900 to-slate-950 */
+  --vt-ops-from:              oklch(0.05 0.008 255);  /* slate-950 equiv */
+  --vt-ops-via:               oklch(0.08 0.006 255);  /* slate-900 equiv */
+  --vt-ops-to:                oklch(0.05 0.008 255);  /* slate-950 equiv */
+
+  /* Passport gradient stops (gray-950 → gray-900 → slate-900) */
+  --vt-passport-from:         oklch(0.045 0.004 255);
+  --vt-passport-via:          oklch(0.07 0.005 255);
+  --vt-passport-to:           oklch(0.075 0.008 255);
+
+  /* ── Glass Surface Tokens (Wave 177) ───────────────────────── */
+  /* Replaces bg-white/5 ring-1 ring-white/10 patterns */
+  --vt-glass-bg:              oklch(1 0 0 / 0.05);
+  --vt-glass-subtle-bg:       oklch(1 0 0 / 0.03);
+  --vt-glass-ring:            oklch(1 0 0 / 0.10);
+  --vt-glass-ring-faint:      oklch(1 0 0 / 0.06);
+  --vt-glass-divider:         oklch(1 0 0 / 0.05);
+
+  /* ── Divider Tokens (Wave 177) ─────────────────────────────── */
+  --vt-divider-ops:           oklch(0.274 0 0);       /* zinc-800 equiv */
+  --vt-divider-light:         oklch(0.90 0.008 80);
+
+  /* ── Ambient Glow Tokens (Wave 177) ────────────────────────── */
+  --vt-glow-passport:         oklch(0.45 0.01 255 / 0.10); /* slate-500/10 */
 
   /* ── Outline Tokens ────────────────────────────────────────── */
   --vt-outline-thin:          1px solid var(--vt-color-neutral-200);
