@@ -9,7 +9,6 @@
 
 import { IncidentPanel } from '@/components/system/IncidentPanel';
 import NetworkTelemetryIntelligence from '@/components/telemetry/NetworkTelemetryIntelligence';
-import { getApiBase } from '@/lib/api';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
@@ -51,6 +50,16 @@ interface SystemStatus {
   generatedAt: string;
 }
 
+interface NetworkHealthStats {
+  overallStatus: 'HEALTHY' | 'DEGRADED' | 'CRITICAL' | 'UNKNOWN';
+  stats: {
+    totalIssuers: number;
+    healthyIssuers: number;
+    federatedNetworks: number;
+    activeNetworks: number;
+  };
+}
+
 // ── Styles ────────────────────────────────────────────────────────────
 
 const STATUS_COLOR: Record<string, { bg: string; text: string; dot: string }> = {
@@ -63,20 +72,22 @@ const STATUS_COLOR: Record<string, { bg: string; text: string; dot: string }> = 
 
 export default function StatusPage() {
   const [status, setStatus] = useState<SystemStatus | null>(null);
+  const [networkHealth, setNetworkHealth] = useState<NetworkHealthStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const base = getApiBase();
-
   useEffect(() => {
+    // Use relative Next.js proxy routes (Wave 163) — works in production without NEXT_PUBLIC_API_BASE
     Promise.all([
-      fetch(`${base}/api/system/status`).then((r) => r.ok ? r.json() : null),
+      fetch('/api/system/status', { cache: 'no-store' }).then((r) => r.ok ? r.json() : null),
+      fetch('/api/network/health', { cache: 'no-store' }).then((r) => r.ok ? r.json() : null),
     ])
-      .then(([s]) => {
-        if (s) setStatus(s);
+      .then(([s, nh]) => {
+        if (s) setStatus(s as SystemStatus);
+        if (nh) setNetworkHealth(nh as NetworkHealthStats);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [base]);
+  }, []);
 
   const overall = status?.overall ?? 'OPERATIONAL';
   const style = STATUS_COLOR[overall] ?? STATUS_COLOR.OPERATIONAL;
@@ -202,44 +213,92 @@ export default function StatusPage() {
             Extended Trust Metrics
           </h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Revocation Events */}
+            {/* Revocation Count — from system status artifactIntegrity */}
             <div className="rounded-xl border border-white/8 bg-slate-900/40 p-4">
-              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mb-2">Revocations (24h)</p>
-              <p className="text-2xl font-bold text-red-400 font-mono">
-                {status?.artifactIntegrity?.revoked ?? '—'}
-              </p>
-              <p className="text-xs text-zinc-600 mt-1">cumulative active</p>
+              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mb-2">Revocations</p>
+              {loading ? (
+                <div className="h-8 w-16 rounded bg-white/5 animate-pulse" />
+              ) : (
+                <p className="text-2xl font-bold text-red-400 font-mono">
+                  {status?.artifactIntegrity?.revoked ?? '—'}
+                </p>
+              )}
+              <p className="text-xs text-zinc-600 mt-1">cumulative revoked</p>
             </div>
-            {/* Issuer Health */}
+            {/* Issuer Health — from networkHealth stats */}
             <div className="rounded-xl border border-white/8 bg-slate-900/40 p-4">
               <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mb-2">Issuer Health</p>
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                <p className="text-2xl font-bold text-emerald-400 font-mono">
-                  {status ? 'OK' : '—'}
-                </p>
-              </div>
-              <p className="text-xs text-zinc-600 mt-1">trust registry nominal</p>
+              {loading ? (
+                <div className="h-8 w-16 rounded bg-white/5 animate-pulse" />
+              ) : networkHealth ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span className={`h-2 w-2 rounded-full ${
+                      networkHealth.stats.healthyIssuers === networkHealth.stats.totalIssuers
+                        ? 'bg-emerald-400' : 'bg-amber-400'
+                    }`} />
+                    <p className={`text-2xl font-bold font-mono ${
+                      networkHealth.stats.healthyIssuers === networkHealth.stats.totalIssuers
+                        ? 'text-emerald-400' : 'text-amber-400'
+                    }`}>
+                      {networkHealth.stats.healthyIssuers}/{networkHealth.stats.totalIssuers}
+                    </p>
+                  </div>
+                  <p className="text-xs text-zinc-600 mt-1">issuers healthy</p>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-zinc-600" />
+                    <p className="text-2xl font-bold text-zinc-500 font-mono">—</p>
+                  </div>
+                  <p className="text-xs text-zinc-600 mt-1">unavailable</p>
+                </>
+              )}
             </div>
-            {/* Federation Health */}
+            {/* Federation Health — from networkHealth stats */}
             <div className="rounded-xl border border-white/8 bg-slate-900/40 p-4">
               <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mb-2">Federation</p>
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-sky-400" />
-                <p className="text-2xl font-bold text-sky-400 font-mono">
-                  {status ? 'Synced' : '—'}
-                </p>
-              </div>
-              <p className="text-xs text-zinc-600 mt-1">Nursys · CAQH · ABMS</p>
+              {loading ? (
+                <div className="h-8 w-16 rounded bg-white/5 animate-pulse" />
+              ) : networkHealth ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span className={`h-2 w-2 rounded-full ${
+                      networkHealth.stats.activeNetworks === networkHealth.stats.federatedNetworks
+                        ? 'bg-sky-400' : 'bg-amber-400'
+                    }`} />
+                    <p className={`text-2xl font-bold font-mono ${
+                      networkHealth.stats.activeNetworks === networkHealth.stats.federatedNetworks
+                        ? 'text-sky-400' : 'text-amber-400'
+                    }`}>
+                      {networkHealth.stats.activeNetworks}/{networkHealth.stats.federatedNetworks}
+                    </p>
+                  </div>
+                  <p className="text-xs text-zinc-600 mt-1">networks active</p>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-zinc-600" />
+                    <p className="text-2xl font-bold text-zinc-500 font-mono">—</p>
+                  </div>
+                  <p className="text-xs text-zinc-600 mt-1">unavailable</p>
+                </>
+              )}
             </div>
-            {/* Audit Event Rate */}
+            {/* Audit Event Rate — from system status verificationHealth */}
             <div className="rounded-xl border border-white/8 bg-slate-900/40 p-4">
               <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mb-2">Audit Rate</p>
-              <p className="text-2xl font-bold text-violet-400 font-mono">
-                {status?.verificationHealth?.last1h != null
-                  ? `${status.verificationHealth.last1h}/hr`
-                  : '—'}
-              </p>
+              {loading ? (
+                <div className="h-8 w-16 rounded bg-white/5 animate-pulse" />
+              ) : (
+                <p className="text-2xl font-bold text-violet-400 font-mono">
+                  {status?.verificationHealth?.last1h != null
+                    ? `${status.verificationHealth.last1h}/hr`
+                    : '—'}
+                </p>
+              )}
               <p className="text-xs text-zinc-600 mt-1">events this hour</p>
             </div>
           </div>
