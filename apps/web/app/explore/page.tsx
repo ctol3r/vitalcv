@@ -1,3 +1,4 @@
+import PrequalifyTrigger from '@/components/prequalify/PrequalifyTrigger';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { MapPin, Clock, DollarSign, ShieldCheck, ChevronRight, Sparkles } from 'lucide-react';
@@ -68,12 +69,7 @@ export default function ExplorePage() {
           Know exactly what's blocking you before you apply.
         </p>
         <div className="mt-8 flex items-center justify-center gap-3">
-          <Link
-            href="/get-ready"
-            className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-[oklch(0.22_0.01_60)] hover:bg-white/90 transition"
-          >
-            Get Prequalified <ChevronRight className="h-4 w-4" />
-          </Link>
+          <PrequalifyTrigger label="Get Prequalified" className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-[oklch(0.22_0.01_60)] hover:bg-white/90" />
           <Link
             href="/search"
             className="inline-flex items-center gap-2 rounded-full vt-glass px-6 py-3 text-sm font-medium text-white transition hover:bg-vt-surface-ops-raised"
@@ -165,12 +161,7 @@ export default function ExplorePage() {
             Get prequalified and VitalCV will automatically surface roles you're already cleared for —
             no applications, just instant offers.
           </p>
-          <Link
-            href="/get-ready"
-            className="mt-5 inline-flex items-center gap-2 rounded-full bg-vt-success px-6 py-2.5 text-sm font-semibold text-black transition hover:bg-vt-success/90"
-          >
-            Get Prequalified Free <ChevronRight className="h-4 w-4" />
-          </Link>
+          <PrequalifyTrigger label="Get Prequalified Free" className="mt-5" />
         </div>
       </main>
     </div>
