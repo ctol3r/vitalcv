@@ -1181,3 +1181,89 @@ model DecisionCapsule {
   @@index([decisionTimestamp])
   @@index([subjectNpi, status])
 }
+
+// ── Wave 184: Unified Search Index & Content Graph ───────────────────────────
+
+/// Object type classifications for the search index
+enum SearchObjectType {
+  PUBLIC_PAGE
+  EMPLOYER_PROFILE
+  OPPORTUNITY
+  ISSUER_PROFILE
+  TRUST_STATE_SUMMARY
+  AUDIT_EVENT_SUMMARY
+  FAQ_DOC
+  CONNECTED_RECORD
+}
+
+/// ACL visibility levels
+enum SearchAclLevel {
+  PUBLIC        // anyone can see
+  AUTHENTICATED // any logged-in user
+  HOLDER        // clinician workspace only
+  VERIFIER      // verifier/employer workspace only
+  ADMIN         // internal only
+}
+
+/// Indexed search object — the core retrieval unit
+model SearchObject {
+  id            String           @id @default(uuid()) @db.Uuid
+  type          SearchObjectType
+  title         String
+  /// Plain-text body — used for BM25 keyword search
+  body          String
+  /// Source URL or internal path
+  sourceUrl     String?
+  /// External reference id (opportunity id, issuer id, etc.)
+  referenceId   String?
+  /// ACL gate
+  aclLevel      SearchAclLevel   @default(PUBLIC)
+  /// JSON metadata (specialty, state, pay, etc.)
+  metadata      Json             @default("{}") @db.JsonB
+  /// Embedding vector stored as float array (pgvector-ready)
+  embedding     Float[]
+  /// ISO timestamp of source freshness
+  indexedAt     DateTime         @default(now())
+  freshAt       DateTime?
+  active        Boolean          @default(true)
+
+  acl           SearchObjectACL[]
+
+  @@index([type])
+  @@index([aclLevel])
+  @@index([active])
+  @@index([type, active])
+  @@index([referenceId])
+}
+
+/// Fine-grained ACL: which role/org can access which search object
+model SearchObjectACL {
+  id             String          @id @default(uuid()) @db.Uuid
+  searchObjectId String          @db.Uuid
+  searchObject   SearchObject    @relation(fields: [searchObjectId], references: [id], onDelete: Cascade)
+  /// If set, only users with this role can see the object
+  roleRequired   String?
+  /// If set, only members of this org can see the object
+  orgId          String?         @db.Uuid
+  createdAt      DateTime        @default(now())
+
+  @@index([searchObjectId])
+  @@index([orgId])
+}
+
+/// Index job run log
+model SearchIndexRun {
+  id           String   @id @default(uuid()) @db.Uuid
+  objectType   String
+  totalIndexed Int      @default(0)
+  totalSkipped Int      @default(0)
+  totalErrors  Int      @default(0)
+  durationMs   Int?
+  status       String   @default("PENDING")  // PENDING | RUNNING | DONE | FAILED
+  startedAt    DateTime @default(now())
+  completedAt  DateTime?
+  errorMessage String?
+
+  @@index([status])
+  @@index([objectType])
+}

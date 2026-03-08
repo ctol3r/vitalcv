@@ -112,6 +112,7 @@ import { registerProviderRoutes } from './routes/providers';                 // 
 import { registerMissionOpsRoutes } from './routes/missionOps';             // Wave 123: Mission Ops + Conversion Engine
 import { registerWorkspaceRoutes } from './routes/workspace';               // Wave 180: Identity workspace graph
 import { registerIntakeRoutes } from './routes/intake';                     // Wave 183: Resume + NPI + Links + Work Auth ingestion
+import { registerSearchRoutes } from './routes/search';                     // Wave 184: Unified Search Index & Content Graph
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3491,6 +3492,7 @@ registerProviderRoutes(app);          // Wave 119 — Provider data integrity + 
 registerMissionOpsRoutes(app);        // Wave 123 — Mission Ops + onboarding flows
 registerWorkspaceRoutes(app);         // Wave 180 — Dual-Entity Identity + workspace switching
 registerIntakeRoutes(app);            // Wave 183 — Resume + NPI + Links + Work Auth ingestion
+registerSearchRoutes(app);            // Wave 184 — Unified Search Index + hybrid retrieval
 registerPayerVerificationRoutes(app); // Wave 142 — Payer Network Integration
 registerProviderDirectoryRoutes(app);  // Wave 143 — Provider Directory Distribution
 registerGraphScalingRoutes(app);       // Wave 144 — Trust Graph Performance Scaling
