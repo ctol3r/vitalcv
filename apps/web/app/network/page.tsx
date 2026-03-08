@@ -8,6 +8,7 @@
 
 import { GlobalTrustMap } from '@/components/network/GlobalTrustMap';
 import NetworkTelemetryIntelligence from '@/components/telemetry/NetworkTelemetryIntelligence';
+import TrustGraphExplorer from '@/components/network/TrustGraphExplorer';
 import { motion } from 'framer-motion';
 
 export default function NetworkPage() {
@@ -44,6 +45,15 @@ export default function NetworkPage() {
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <NetworkTelemetryIntelligence windowDays={30} />
+        </motion.div>
+
+        {/* Trust Graph Explorer — Wave 165 */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <TrustGraphExplorer />
         </motion.div>
       </main>
     </div>
