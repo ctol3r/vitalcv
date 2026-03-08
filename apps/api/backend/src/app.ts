@@ -114,6 +114,7 @@ import { registerWorkspaceRoutes } from './routes/workspace';               // W
 import { registerIntakeRoutes } from './routes/intake';                     // Wave 183: Resume + NPI + Links + Work Auth ingestion
 import { registerSearchRoutes } from './routes/search';                     // Wave 184: Unified Search Index & Content Graph
 import { registerAskRoutes } from './routes/ask';                           // Wave 185: Ask VitalCV answer engine
+import { registerEmployerRoutes } from './routes/employers';                 // Wave 186: Employer Knowledge Layer
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3495,6 +3496,7 @@ registerWorkspaceRoutes(app);         // Wave 180 — Dual-Entity Identity + wor
 registerIntakeRoutes(app);            // Wave 183 — Resume + NPI + Links + Work Auth ingestion
 registerSearchRoutes(app);            // Wave 184 — Unified Search Index + hybrid retrieval
 registerAskRoutes(app);               // Wave 185 — Ask VitalCV natural language answer engine
+registerEmployerRoutes(app);          // Wave 186 — Employer Knowledge Layer
 registerPayerVerificationRoutes(app); // Wave 142 — Payer Network Integration
 registerProviderDirectoryRoutes(app);  // Wave 143 — Provider Directory Distribution
 registerGraphScalingRoutes(app);       // Wave 144 — Trust Graph Performance Scaling

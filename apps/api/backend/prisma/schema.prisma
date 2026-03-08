@@ -369,13 +369,38 @@ model OrganizationProfile {
   specialties    String[]
   statesCovered  String[]              @map("states_covered")
   website        String?
+  // Wave 186: Employer intelligence fields
+  tagline        String?
+  description    String?
+  trustScore     Int                   @default(0) @map("trust_score")
+  openRoles      Int                   @default(0) @map("open_roles")
+  recentHires    Int                   @default(0) @map("recent_hires")
+  hiringStatus   EmployerHiringStatus  @default(NOT_HIRING) @map("hiring_status")
+  hiringTypes    String[]              @map("hiring_types")
+  timeToStart    String?               @map("time_to_start")
+  timeToOnboard  String?               @map("time_to_onboard")
+  clearToStartThreshold String?        @map("clear_to_start_threshold")
+  payTransparency Boolean              @default(false) @map("pay_transparency")
+  payRange       String?               @map("pay_range")
+  requirements   Json                  @default("[]") @db.JsonB
+  verifiedSince  DateTime?             @map("verified_since")
+  verified       Boolean               @default(false)
   createdAt      DateTime              @default(now()) @map("created_at")
   updatedAt      DateTime              @updatedAt @map("updated_at")
   memberships    WorkspaceMembership[]
 
   @@index([npi])
   @@index([organizationId])
+  @@index([hiringStatus])
+  @@index([trustScore])
   @@map("organization_profiles")
+}
+
+enum EmployerHiringStatus {
+  HIRING_NOW
+  ACTIVELY_HIRING
+  ACCEPTING_APPLICATIONS
+  NOT_HIRING
 }
 
 /// Links a person to an organization with a role

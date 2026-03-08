@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, ArrowRight, Loader2, ExternalLink, Sparkles } from 'lucide-react';
+import { ArrowRight, ExternalLink, Loader2, Search, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
 
 const EXAMPLE_QUERIES = [
   'ICU nurses near Sacramento',
@@ -75,15 +75,15 @@ export default function SearchPage() {
 
         {/* Search box */}
         <form onSubmit={(e) => { e.preventDefault(); doSearch(query); }}>
-          <div className="relative flex items-center overflow-hidden rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-raised/50 focus-within:border-vt-info/60 focus-within:ring-2 focus-within:ring-vt-info/20 transition">
-            <Search className="ml-5 h-5 w-5 shrink-0 text-vt-neutral-800" />
+          <div className="relative flex items-center overflow-hidden rounded-3xl border border-vt-info/20 bg-vt-surface-ops-base shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] focus-within:border-vt-info focus-within:ring-2 focus-within:ring-vt-info/20 focus-within:shadow-[0_0_20px_rgba(99,102,241,0.1)] transition-all p-2 pl-6">
+            <Search className="h-6 w-6 shrink-0 text-vt-neutral-800" />
             <input type="text" value={query} onChange={(e) => setQuery(e.target.value)}
               placeholder="Search opportunities, employers, requirements..."
-              className="flex-1 bg-transparent px-4 py-5 body text-white placeholder:text-vt-neutral-800 focus:outline-none"
+              className="flex-1 bg-transparent px-4 py-4 body-lg text-white placeholder:text-vt-neutral-800 focus:outline-none"
               aria-label="Search query" />
             <button type="submit" disabled={!query.trim() || loading}
-              className="mr-3 flex items-center gap-2 rounded-xl bg-vt-info px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40 hover:bg-vt-info/90 transition">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><ArrowRight className="h-4 w-4" />Search</>}
+              className="flex items-center gap-2 rounded-2xl bg-vt-info px-8 py-3.5 text-sm font-semibold text-white disabled:opacity-40 hover:bg-vt-info/90 hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] transition-all">
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <><ArrowRight className="h-5 w-5" />Search</>}
             </button>
           </div>
         </form>
