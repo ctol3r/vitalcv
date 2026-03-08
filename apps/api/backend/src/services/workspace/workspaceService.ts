@@ -522,7 +522,7 @@ async function emitWorkspaceAuditEvent(
       hash,
       referenceId,
       organizationId,
-      metadata,
+      metadata: JSON.parse(JSON.stringify(metadata)),
     },
   });
 }
