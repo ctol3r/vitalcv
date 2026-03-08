@@ -59,7 +59,7 @@ const RESOURCES = [
 
 export default function DeveloperPortalPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
+    <div className="min-h-screen bg-ops-gradient text-white">
       {/* ── Hero header ──────────────────────────────────── */}
       <header className="relative overflow-hidden border-b border-vt-neutral-800 px-6 py-20 text-center">
         {/* Ambient glow */}
@@ -79,13 +79,13 @@ export default function DeveloperPortalPage() {
             Developer Portal
           </span>
 
-          <h1 className="mt-4 font-fraunces text-4xl font-semibold tracking-tighter text-white md:text-5xl lg:text-6xl">
+          <h1 className="heading-xl mt-4 text-white">
             Build with the
             <br />
             <span className="text-vt-success">Trust Protocol.</span>
           </h1>
 
-          <p className="mt-5 text-base text-vt-neutral-200 md:text-lg max-w-xl mx-auto leading-relaxed">
+          <p className="body-lg mt-5 text-vt-neutral-200 max-w-xl mx-auto">
             Integrate real-time clinician credential verification into your hospital&apos;s
             EHR, scheduling, or onboarding systems in minutes — not months.
           </p>
@@ -100,7 +100,7 @@ export default function DeveloperPortalPage() {
             </Link>
             <Link
               href="/docs"
-              className="inline-flex items-center gap-2 rounded-xl bg-white/5 px-6 py-3 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:bg-white/10"
+              className="inline-flex items-center gap-2 rounded-xl vt-glass px-6 py-3 text-sm font-semibold text-white transition hover:bg-vt-surface-ops-raised"
             >
               <BookOpen className="h-4 w-4" />
               Read the Docs
@@ -134,7 +134,7 @@ export default function DeveloperPortalPage() {
           <p className="text-xs font-semibold uppercase tracking-widest text-vt-neutral-800">
             Developer Tools
           </p>
-          <div className="flex-1 h-px bg-white/5" />
+          <div className="vt-divider-ops" />
         </div>
 
         {/* Row 1: API Key + Webhook side-by-side */}
@@ -157,7 +157,7 @@ export default function DeveloperPortalPage() {
             <p className="text-xs font-semibold uppercase tracking-widest text-vt-neutral-800">
               Network Gateway
             </p>
-            <div className="flex-1 h-px bg-white/5" />
+            <div className="vt-divider-ops" />
           </div>
           <GatewayConnections />
         </div>
@@ -168,7 +168,7 @@ export default function DeveloperPortalPage() {
             <p className="text-xs font-semibold uppercase tracking-widest text-vt-neutral-800">
               Verifier SDK
             </p>
-            <div className="flex-1 h-px bg-white/5" />
+            <div className="vt-divider-ops" />
           </div>
           <div className="rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 p-6 space-y-6">
             <p className="text-sm text-vt-neutral-200">
@@ -210,7 +210,7 @@ const result = await VerifierSDK.verifyCredential(credential);
             <p className="text-xs font-semibold uppercase tracking-widest text-vt-neutral-800">
               Trust Governance
             </p>
-            <div className="flex-1 h-px bg-white/5" />
+            <div className="vt-divider-ops" />
           </div>
           <div className="rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 p-6 space-y-4">
             <p className="text-sm text-vt-neutral-200">
@@ -277,7 +277,7 @@ const result = await VerifierSDK.verifyCredential(credential);
             <p className="text-xs font-semibold uppercase tracking-widest text-vt-neutral-800">
               Standards Conformance · Wave 114
             </p>
-            <div className="flex-1 h-px bg-white/5" />
+            <div className="vt-divider-ops" />
           </div>
           <ConformanceReport />
         </div>
@@ -288,7 +288,7 @@ const result = await VerifierSDK.verifyCredential(credential);
             <p className="text-xs font-semibold uppercase tracking-widest text-vt-neutral-800">
               HealthStart · Wave 118
             </p>
-            <div className="flex-1 h-px bg-white/5" />
+            <div className="vt-divider-ops" />
           </div>
           <HealthStartDocs />
         </div>
@@ -299,7 +299,7 @@ const result = await VerifierSDK.verifyCredential(credential);
             <p className="text-xs font-semibold uppercase tracking-widest text-vt-neutral-800">
               Developer SDKs · Phase 7
             </p>
-            <div className="flex-1 h-px bg-white/5" />
+            <div className="vt-divider-ops" />
           </div>
           <SdkDocs />
         </div>
