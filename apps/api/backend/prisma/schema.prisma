@@ -35,6 +35,8 @@ model User {
   organizationId String?    @db.Uuid
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
+  personProfile  PersonProfile?
+  workspacePreference WorkspacePreference?
 
   @@index([clerkUserId])
   @@index([organizationId])
@@ -303,6 +305,114 @@ model Organization {
   slug          String   @unique
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  organizationProfile OrganizationProfile?
+  activeWorkspacePreferences WorkspacePreference[] @relation("WorkspacePreferenceActiveOrganization")
+}
+
+/// NPI classification
+enum NpiType {
+  TYPE_1
+  TYPE_2
+}
+
+/// Workspace persona a user is currently operating as
+enum ActivePersona {
+  CLINICIAN
+  VERIFIER
+  BOTH
+}
+
+/// Membership role within an organization workspace
+enum MembershipRole {
+  HOLDER
+  VERIFIER
+  ISSUER
+  ADMIN
+  RECRUITER
+  CREDENTIALING_SPECIALIST
+}
+
+/// Linked profile for an individual clinician (Type 1 NPI)
+model PersonProfile {
+  id              String                @id @default(uuid()) @db.Uuid
+  userId          String                @unique @db.Uuid @map("user_id")
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  npi             String?               @unique
+  npiType         NpiType?              @default(TYPE_1) @map("npi_type")
+  firstName       String?               @map("first_name")
+  lastName        String?               @map("last_name")
+  specialty       String?
+  stateOfPractice String?               @map("state_of_practice")
+  workAuthStatus  String?               @map("work_auth_status")
+  resumeUrl       String?               @map("resume_url")
+  linkedinUrl     String?               @map("linkedin_url")
+  portfolioUrl    String?               @map("portfolio_url")
+  completeness    Int                   @default(0)
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+  memberships     WorkspaceMembership[]
+
+  @@index([npi])
+  @@index([userId])
+  @@map("person_profiles")
+}
+
+/// Linked profile for an organization (Type 2 NPI or Org DID)
+model OrganizationProfile {
+  id             String                @id @default(uuid()) @db.Uuid
+  organizationId String                @unique @db.Uuid @map("organization_id")
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  npi            String?
+  npiType        NpiType?              @default(TYPE_2) @map("npi_type")
+  orgDid         String?               @map("org_did")
+  facilityType   String?               @map("facility_type")
+  specialties    String[]
+  statesCovered  String[]              @map("states_covered")
+  website        String?
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+  memberships    WorkspaceMembership[]
+
+  @@index([npi])
+  @@index([organizationId])
+  @@map("organization_profiles")
+}
+
+/// Links a person to an organization with a role
+model WorkspaceMembership {
+  id                    String              @id @default(uuid()) @db.Uuid
+  personProfileId       String              @db.Uuid @map("person_profile_id")
+  personProfile         PersonProfile       @relation(fields: [personProfileId], references: [id], onDelete: Cascade)
+  organizationProfileId String              @db.Uuid @map("organization_profile_id")
+  organizationProfile   OrganizationProfile @relation(fields: [organizationProfileId], references: [id], onDelete: Cascade)
+  role                  MembershipRole      @default(VERIFIER)
+  active                Boolean             @default(true)
+  invitedAt             DateTime?           @map("invited_at")
+  acceptedAt            DateTime?           @map("accepted_at")
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+
+  @@unique([personProfileId, organizationProfileId])
+  @@index([personProfileId])
+  @@index([organizationProfileId])
+  @@map("workspace_memberships")
+}
+
+/// Per-user workspace preferences and active persona state
+model WorkspacePreference {
+  id                String        @id @default(uuid()) @db.Uuid
+  userId            String        @unique @db.Uuid @map("user_id")
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activePersona     ActivePersona @default(CLINICIAN) @map("active_persona")
+  activeOrgId       String?       @db.Uuid @map("active_org_id")
+  activeOrganization Organization? @relation("WorkspacePreferenceActiveOrganization", fields: [activeOrgId], references: [id], onDelete: SetNull)
+  sidebarCollapsed  Boolean       @default(false) @map("sidebar_collapsed")
+  lastSwitchedAt    DateTime?     @map("last_switched_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("workspace_preferences")
 }
 
 model NursysEvent {

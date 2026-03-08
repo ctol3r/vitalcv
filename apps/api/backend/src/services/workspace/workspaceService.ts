@@ -1,0 +1,556 @@
+import {
+  ActivePersona,
+  type MembershipRole,
+  type NpiType,
+  type OrganizationProfile,
+  type PersonProfile,
+  Prisma,
+  type User,
+  UserRole,
+  UserStatus,
+  type WorkspacePreference,
+} from '@prisma/client';
+import prisma from '../../graphql/prisma_client';
+import { fetchNpiFromCMS, normalizeProvider } from '../../modules/identity';
+import { log } from '../../obs/logger';
+import { sha256ForPayload } from '../../utils/deterministic';
+import { HttpError } from '../../utils/httpError';
+
+const NPI_RE = /^\d{10}$/;
+
+type WorkspaceUserRecord = Prisma.UserGetPayload<{
+  include: {
+    personProfile: {
+      include: {
+        memberships: {
+          include: {
+            organizationProfile: true;
+          };
+          orderBy: {
+            createdAt: 'asc';
+          };
+        };
+      };
+    };
+    workspacePreference: true;
+  };
+}>;
+
+export interface WorkspaceList {
+  userId: string;
+  activePersona: ActivePersona;
+  personProfile: PersonProfile | null;
+  memberships: Array<{
+    org: OrganizationProfile;
+    role: MembershipRole;
+    active: boolean;
+  }>;
+  canSwitchTo: ActivePersona[];
+}
+
+export interface NpiBootstrapResult {
+  npi: string;
+  npiType: 'TYPE_1' | 'TYPE_2';
+  inferredPersona: 'CLINICIAN' | 'VERIFIER' | 'UNKNOWN';
+  firstName?: string;
+  lastName?: string;
+  specialty?: string;
+  state?: string;
+  alreadyRegistered: boolean;
+}
+
+export interface PersonProfileInput {
+  npi: string;
+  npiType: NpiType;
+  firstName: string;
+  lastName: string;
+  specialty: string;
+  stateOfPractice: string;
+  workAuthStatus: string;
+  resumeUrl: string;
+  linkedinUrl: string;
+  portfolioUrl: string;
+  completeness: number;
+}
+
+export async function ensureWorkspaceUser(
+  clerkUserId: string,
+  email?: string,
+): Promise<User> {
+  const existing = await prisma.user.findUnique({
+    where: { clerkUserId },
+  });
+
+  if (existing) {
+    return existing;
+  }
+
+  const normalizedEmail = normalizeOptionalString(email);
+  if (!normalizedEmail) {
+    throw new HttpError(404, 'Authenticated user has no VitalCV user record.');
+  }
+
+  const byEmail = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+  });
+
+  if (byEmail) {
+    return prisma.user.update({
+      where: { id: byEmail.id },
+      data: {
+        clerkUserId,
+        status: UserStatus.ACTIVE,
+      },
+    });
+  }
+
+  return prisma.user.create({
+    data: {
+      clerkUserId,
+      email: normalizedEmail,
+      role: UserRole.CLINICIAN,
+      status: UserStatus.ACTIVE,
+    },
+  });
+}
+
+export async function getWorkspacesForUser(
+  clerkUserId: string,
+): Promise<WorkspaceList> {
+  const user = await getWorkspaceUserByClerkUserId(clerkUserId);
+  const preference = await ensureWorkspacePreference(user.id);
+  const hydratedUser = (await getWorkspaceUserById(user.id)) ?? user;
+  const canSwitchTo = getAvailablePersonas(hydratedUser);
+  const activePersona = await coerceActivePersona(hydratedUser, preference, canSwitchTo);
+
+  return {
+    userId: hydratedUser.id,
+    activePersona,
+    personProfile: hydratedUser.personProfile,
+    memberships: hydratedUser.personProfile?.memberships.map((membership) => ({
+      org: membership.organizationProfile,
+      role: membership.role,
+      active: membership.active,
+    })) ?? [],
+    canSwitchTo,
+  };
+}
+
+export async function switchWorkspace(
+  clerkUserId: string,
+  targetPersona: ActivePersona,
+  orgId?: string,
+): Promise<WorkspacePreference> {
+  const user = await getWorkspaceUserByClerkUserId(clerkUserId);
+  const preference = await ensureWorkspacePreference(user.id);
+  const hydratedUser = (await getWorkspaceUserById(user.id)) ?? user;
+  const canSwitchTo = getAvailablePersonas(hydratedUser);
+
+  if (!canSwitchTo.includes(targetPersona)) {
+    throw new HttpError(403, `User cannot switch to ${targetPersona}.`);
+  }
+
+  const activeMemberships =
+    hydratedUser.personProfile?.memberships.filter((membership) => membership.active) ?? [];
+
+  let resolvedOrgId = getValidatedActiveOrgId(activeMemberships, preference.activeOrgId);
+  if (targetPersona !== ActivePersona.CLINICIAN) {
+    if (orgId) {
+      const selectedMembership = activeMemberships.find(
+        (membership) => membership.organizationProfile.organizationId === orgId,
+      );
+      if (!selectedMembership) {
+        throw new HttpError(403, 'Requested organization is not an active workspace membership.');
+      }
+      resolvedOrgId = selectedMembership.organizationProfile.organizationId;
+    }
+
+    if (!resolvedOrgId && activeMemberships.length > 0) {
+      resolvedOrgId = activeMemberships[0].organizationProfile.organizationId;
+    }
+
+    if (!resolvedOrgId) {
+      throw new HttpError(403, 'An organization workspace is required for this persona.');
+    }
+  }
+
+  const switchedAt = new Date();
+  const updatedPreference = await prisma.workspacePreference.update({
+    where: { userId: user.id },
+    data: {
+      activePersona: targetPersona,
+      activeOrgId: targetPersona === ActivePersona.CLINICIAN
+        ? preference.activeOrgId
+        : resolvedOrgId,
+      lastSwitchedAt: switchedAt,
+    },
+  });
+
+  await emitWorkspaceAuditEvent('workspace_switched', {
+    referenceId: updatedPreference.id,
+    organizationId: targetPersona === ActivePersona.CLINICIAN
+      ? preference.activeOrgId ?? undefined
+      : resolvedOrgId ?? undefined,
+    metadata: {
+      userId: user.id,
+      activePersona: targetPersona,
+      previousPersona: preference.activePersona,
+      orgId: targetPersona === ActivePersona.CLINICIAN
+        ? preference.activeOrgId ?? null
+        : resolvedOrgId ?? null,
+      switchedAt: switchedAt.toISOString(),
+    },
+  });
+
+  return updatedPreference;
+}
+
+export async function bootstrapFromNpi(
+  npi: string,
+): Promise<NpiBootstrapResult> {
+  if (!NPI_RE.test(npi)) {
+    throw new HttpError(400, 'NPI must be exactly 10 digits.');
+  }
+
+  const [existingPerson, existingOrg] = await Promise.all([
+    prisma.personProfile.findUnique({ where: { npi } }),
+    prisma.organizationProfile.findFirst({ where: { npi } }),
+  ]);
+
+  const alreadyRegistered = Boolean(existingPerson || existingOrg);
+
+  if (existingPerson) {
+    return {
+      npi,
+      npiType: 'TYPE_1',
+      inferredPersona: 'CLINICIAN',
+      firstName: existingPerson.firstName ?? undefined,
+      lastName: existingPerson.lastName ?? undefined,
+      specialty: existingPerson.specialty ?? undefined,
+      state: existingPerson.stateOfPractice ?? undefined,
+      alreadyRegistered,
+    };
+  }
+
+  if (existingOrg) {
+    return {
+      npi,
+      npiType: 'TYPE_2',
+      inferredPersona: 'VERIFIER',
+      alreadyRegistered,
+    };
+  }
+
+  try {
+    const { rawPayload } = await fetchNpiFromCMS(npi);
+    const provider = normalizeProvider(rawPayload);
+    const npiType = provider.enumeration_type === 'NPI-2' ? 'TYPE_2' : 'TYPE_1';
+
+    return {
+      npi,
+      npiType,
+      inferredPersona: npiType === 'TYPE_1' ? 'CLINICIAN' : 'VERIFIER',
+      firstName: provider.first_name || undefined,
+      lastName: provider.last_name || undefined,
+      specialty: provider.primary_taxonomy ?? undefined,
+      state: provider.practice_address?.state || undefined,
+      alreadyRegistered,
+    };
+  } catch (error) {
+    log('warn', 'workspace_bootstrap_npi_stub', {
+      event: 'workspace_bootstrap_npi_stub',
+      npi,
+      message: error instanceof Error ? error.message : String(error),
+    });
+
+    return {
+      npi,
+      npiType: 'TYPE_1',
+      inferredPersona: 'UNKNOWN',
+      alreadyRegistered,
+    };
+  }
+}
+
+export async function createPersonProfile(
+  userId: string,
+  data: Partial<PersonProfileInput>,
+): Promise<PersonProfile> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new HttpError(404, 'User not found.');
+  }
+
+  const existing = await prisma.personProfile.findUnique({
+    where: { userId },
+  });
+
+  if (existing) {
+    return existing;
+  }
+
+  const createData: Prisma.PersonProfileUncheckedCreateInput = {
+    userId,
+  };
+
+  const npi = normalizeOptionalString(data.npi);
+  if (npi) {
+    createData.npi = npi;
+  }
+
+  if (data.npiType) {
+    createData.npiType = data.npiType;
+  }
+
+  const firstName = normalizeOptionalString(data.firstName);
+  if (firstName) {
+    createData.firstName = firstName;
+  }
+
+  const lastName = normalizeOptionalString(data.lastName);
+  if (lastName) {
+    createData.lastName = lastName;
+  }
+
+  const specialty = normalizeOptionalString(data.specialty);
+  if (specialty) {
+    createData.specialty = specialty;
+  }
+
+  const stateOfPractice = normalizeOptionalString(data.stateOfPractice);
+  if (stateOfPractice) {
+    createData.stateOfPractice = stateOfPractice;
+  }
+
+  const workAuthStatus = normalizeOptionalString(data.workAuthStatus);
+  if (workAuthStatus) {
+    createData.workAuthStatus = workAuthStatus;
+  }
+
+  const resumeUrl = normalizeOptionalString(data.resumeUrl);
+  if (resumeUrl) {
+    createData.resumeUrl = resumeUrl;
+  }
+
+  const linkedinUrl = normalizeOptionalString(data.linkedinUrl);
+  if (linkedinUrl) {
+    createData.linkedinUrl = linkedinUrl;
+  }
+
+  const portfolioUrl = normalizeOptionalString(data.portfolioUrl);
+  if (portfolioUrl) {
+    createData.portfolioUrl = portfolioUrl;
+  }
+
+  if (typeof data.completeness === 'number') {
+    createData.completeness = clampCompleteness(data.completeness);
+  }
+
+  const profile = await prisma.personProfile.create({
+    data: createData,
+  });
+
+  await ensureWorkspacePreference(userId);
+
+  await emitWorkspaceAuditEvent('workspace_created', {
+    referenceId: profile.id,
+    metadata: {
+      userId,
+      npi: profile.npi,
+      completeness: profile.completeness,
+    },
+  });
+
+  return profile;
+}
+
+export async function ensureWorkspacePreference(
+  userId: string,
+): Promise<WorkspacePreference> {
+  const existing = await prisma.workspacePreference.findUnique({
+    where: { userId },
+  });
+
+  if (existing) {
+    return existing;
+  }
+
+  const user = await getWorkspaceUserById(userId);
+  if (!user) {
+    throw new HttpError(404, 'User not found.');
+  }
+
+  const activeMemberships =
+    user.personProfile?.memberships.filter((membership) => membership.active) ?? [];
+
+  return prisma.workspacePreference.create({
+    data: {
+      userId,
+      activePersona: resolveDefaultPersona(user),
+      activeOrgId: activeMemberships[0]?.organizationProfile.organizationId ?? null,
+    },
+  });
+}
+
+async function getWorkspaceUserByClerkUserId(
+  clerkUserId: string,
+): Promise<WorkspaceUserRecord> {
+  const user = await prisma.user.findUnique({
+    where: { clerkUserId },
+    include: workspaceUserInclude,
+  });
+
+  if (!user) {
+    throw new HttpError(404, 'Authenticated user has no VitalCV user record.');
+  }
+
+  return user;
+}
+
+async function getWorkspaceUserById(
+  userId: string,
+): Promise<WorkspaceUserRecord | null> {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    include: workspaceUserInclude,
+  });
+}
+
+function getAvailablePersonas(user: WorkspaceUserRecord): ActivePersona[] {
+  const activeMemberships =
+    user.personProfile?.memberships.filter((membership) => membership.active) ?? [];
+  const hasClinicianPersona = Boolean(user.personProfile?.npi || user.role === UserRole.CLINICIAN);
+  const hasVerifierPersona = activeMemberships.length > 0;
+
+  const personas: ActivePersona[] = [];
+  if (hasClinicianPersona) {
+    personas.push(ActivePersona.CLINICIAN);
+  }
+  if (hasVerifierPersona) {
+    personas.push(ActivePersona.VERIFIER);
+  }
+  if (hasClinicianPersona && hasVerifierPersona) {
+    personas.push(ActivePersona.BOTH);
+  }
+
+  if (personas.length === 0) {
+    personas.push(ActivePersona.CLINICIAN);
+  }
+
+  return personas;
+}
+
+function resolveDefaultPersona(user: WorkspaceUserRecord): ActivePersona {
+  const personas = getAvailablePersonas(user);
+  if (personas.includes(ActivePersona.BOTH)) {
+    return ActivePersona.BOTH;
+  }
+  if (personas.includes(ActivePersona.CLINICIAN)) {
+    return ActivePersona.CLINICIAN;
+  }
+  return ActivePersona.VERIFIER;
+}
+
+async function coerceActivePersona(
+  user: WorkspaceUserRecord,
+  preference: WorkspacePreference,
+  canSwitchTo: ActivePersona[],
+): Promise<ActivePersona> {
+  if (canSwitchTo.includes(preference.activePersona)) {
+    return preference.activePersona;
+  }
+
+  const fallbackPersona = resolveDefaultPersona(user);
+  await prisma.workspacePreference.update({
+    where: { id: preference.id },
+    data: {
+      activePersona: fallbackPersona,
+      activeOrgId: getValidatedActiveOrgId(
+        user.personProfile?.memberships.filter((membership) => membership.active) ?? [],
+        preference.activeOrgId,
+      ),
+      lastSwitchedAt: new Date(),
+    },
+  });
+
+  return fallbackPersona;
+}
+
+function getValidatedActiveOrgId(
+  activeMemberships: Array<{
+    organizationProfile: {
+      organizationId: string;
+    };
+  }>,
+  requestedOrgId: string | null,
+): string | null {
+  if (!requestedOrgId) {
+    return null;
+  }
+
+  const membership = activeMemberships.find(
+    (candidate) => candidate.organizationProfile.organizationId === requestedOrgId,
+  );
+  return membership?.organizationProfile.organizationId ?? null;
+}
+
+async function emitWorkspaceAuditEvent(
+  type: 'workspace_created' | 'workspace_switched',
+  {
+    referenceId,
+    organizationId,
+    metadata,
+  }: {
+    referenceId: string;
+    organizationId?: string;
+    metadata: Record<string, unknown>;
+  },
+): Promise<void> {
+  const hash = sha256ForPayload({
+    type,
+    referenceId,
+    organizationId: organizationId ?? null,
+    metadata,
+  });
+
+  await prisma.auditEvent.create({
+    data: {
+      type,
+      hash,
+      referenceId,
+      organizationId,
+      metadata,
+    },
+  });
+}
+
+function normalizeOptionalString(value: string | undefined): string | undefined {
+  const normalized = value?.trim();
+  return normalized ? normalized : undefined;
+}
+
+function clampCompleteness(value: number): number {
+  if (Number.isNaN(value)) {
+    return 0;
+  }
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+const workspaceUserInclude = {
+  personProfile: {
+    include: {
+      memberships: {
+        include: {
+          organizationProfile: true,
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      },
+    },
+  },
+  workspacePreference: true,
+} satisfies Prisma.UserInclude;
