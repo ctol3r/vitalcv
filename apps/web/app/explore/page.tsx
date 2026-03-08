@@ -1,7 +1,7 @@
 import PrequalifyTrigger from '@/components/prequalify/PrequalifyTrigger';
+import { Clock, DollarSign, MapPin, ShieldCheck, Sparkles } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { MapPin, Clock, DollarSign, ShieldCheck, ChevronRight, Sparkles } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Explore Opportunities — VitalCV',
@@ -12,6 +12,7 @@ const STUB_ROLES = [
   {
     id: 'r1',
     title: 'Locums Cardiologist',
+    employerSlug: 'bay-area-cardiac-group',
     facility: 'Bay Area Cardiac Group',
     location: 'San Francisco, CA',
     pay: '$350–$420/hr',
@@ -23,6 +24,7 @@ const STUB_ROLES = [
   {
     id: 'r2',
     title: 'Telehealth Psychiatrist',
+    employerSlug: 'mindbridge-health',
     facility: 'MindBridge Health',
     location: 'Remote — CA licensed',
     pay: '$280–$320/hr',
@@ -34,6 +36,7 @@ const STUB_ROLES = [
   {
     id: 'r3',
     title: 'ICU / Critical Care NP',
+    employerSlug: 'sacramento-medical-center',
     facility: 'Sacramento Medical Center',
     location: 'Sacramento, CA',
     pay: '$120–$145/hr',
@@ -103,49 +106,49 @@ export default function ExplorePage() {
             return (
               <article
                 key={role.id}
-                className="rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 p-6 hover:border-vt-neutral-700 transition-colors"
+                className="group rounded-3xl border border-vt-neutral-800 bg-vt-surface-ops-raised/30 p-7 hover:border-vt-info/30 hover:shadow-[0_4px_30px_rgba(99,102,241,0.08)] hover:-translate-y-1 transition-all duration-300 flex flex-col"
               >
-                <div className="mb-4 flex items-start justify-between gap-3">
+                <div className="mb-5 flex items-start justify-between gap-3">
                   <div>
-                    <h2 className="heading-sm text-white">{role.title}</h2>
-                    <p className="body-sm mt-0.5 text-vt-neutral-200">{role.facility}</p>
+                    <h2 className="heading-md text-white group-hover:text-vt-info transition-colors">{role.title}</h2>
+                    <p className="body-sm mt-1 text-vt-neutral-200">{role.facility}</p>
                   </div>
-                  <span className={`shrink-0 rounded-full px-2.5 py-1 tag ${status.className}`}>
+                  <span className={`shrink-0 rounded-full px-3 py-1 tag font-semibold flex items-center gap-1.5 ${status.className}`}>
                     {status.label}
                   </span>
                 </div>
 
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center gap-2 text-vt-neutral-200">
-                    <MapPin className="h-3.5 w-3.5 shrink-0 text-vt-neutral-800" />
+                <div className="grid grid-cols-2 gap-y-3 gap-x-4 border-y border-vt-neutral-800/50 py-5 mb-5">
+                  <div className="flex items-center gap-2 text-sm text-vt-neutral-200 col-span-2">
+                    <MapPin className="h-4 w-4 shrink-0 text-vt-neutral-800" />
                     {role.location}
-                  </li>
-                  <li className="flex items-center gap-2 text-vt-neutral-200">
-                    <DollarSign className="h-3.5 w-3.5 shrink-0 text-vt-success" />
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-vt-neutral-200">
+                    <DollarSign className="h-4 w-4 shrink-0 text-vt-success" />
                     {role.pay}
-                  </li>
-                  <li className="flex items-center gap-2 text-vt-neutral-200">
-                    <Clock className="h-3.5 w-3.5 shrink-0 text-vt-neutral-800" />
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-vt-neutral-200">
+                    <Clock className="h-4 w-4 shrink-0 text-vt-neutral-800" />
                     {role.startWindow}
-                  </li>
-                  <li className="flex items-center gap-2 text-vt-neutral-200">
-                    <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-vt-info" />
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-vt-neutral-200 col-span-2 mt-1">
+                    <ShieldCheck className="h-4 w-4 shrink-0 text-vt-info" />
                     Requires L{role.requirementLevel.replace('L', '')} · {role.activity}
-                  </li>
-                </ul>
+                  </div>
+                </div>
 
-                <div className="mt-5 flex gap-2">
+                <div className="mt-auto flex gap-3">
                   <Link
                     href={`/opportunities/${role.id}`}
-                    className="flex-1 rounded-xl bg-vt-success px-4 py-2.5 text-center text-sm font-semibold text-black transition hover:bg-vt-success/90"
+                    className="flex-1 rounded-2xl bg-vt-success px-5 py-3 text-center text-sm font-semibold text-black transition-all hover:bg-vt-success/90 hover:shadow-[0_0_15px_rgba(20,184,166,0.3)]"
                   >
                     Apply with VitalCV
                   </Link>
                   <Link
-                    href="/employers"
-                    className="rounded-xl vt-glass px-4 py-2.5 text-sm font-medium text-vt-neutral-200 transition hover:text-white"
+                    href={`/employers/${role.employerSlug}`}
+                    className="rounded-2xl vt-glass border border-vt-neutral-800 px-5 py-3 text-sm font-medium text-vt-neutral-200 transition-all hover:text-white hover:border-vt-neutral-700"
                   >
-                    Employer
+                    Learn about employer
                   </Link>
                 </div>
               </article>
