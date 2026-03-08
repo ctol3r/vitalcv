@@ -89,6 +89,8 @@ import { registerGraphScalingRoutes } from './routes/graphScaling';             
 import { registerPayerNetworkRoutes } from './routes/payerNetwork';             // Wave 148: Payer Credential Network
 import { registerNetworkTelemetryRoutes } from './routes/networkTelemetry';     // Wave 150: Network Telemetry Intelligence
 import { registerNetworkHealthRoutes } from './routes/networkHealth';           // Wave 162: Network Health Monitoring
+import { registerFederationDiscoveryRoutes } from './routes/federationDiscovery'; // Wave 166: Federation Discovery
+import { registerPassportAnalyticsRoutes } from './routes/passportAnalytics';   // Wave 167: Passport Analytics
 import { registerWalletExportRoutes } from './routes/walletExport';             // Wave 154: Wallet Interoperability Bridge
 import { registerComplianceCopilotRoutes } from './routes/complianceCopilot';   // Wave 157: Compliance Co-Pilot
 import { registerGovernanceRoutes } from './routes/governance';             // Wave 108: Trust Governance
@@ -3491,6 +3493,8 @@ registerGraphScalingRoutes(app);       // Wave 144 — Trust Graph Performance S
 registerPayerNetworkRoutes(app);       // Wave 148 — Payer Credential Network
 registerNetworkTelemetryRoutes(app);   // Wave 150 — Network Telemetry Intelligence
 registerNetworkHealthRoutes(app);      // Wave 162 — Network Health Monitoring
+registerFederationDiscoveryRoutes(app); // Wave 166 — Federation Discovery
+registerPassportAnalyticsRoutes(app);   // Wave 167 — Passport Analytics
 registerWalletExportRoutes(app);       // Wave 154 — Wallet Interoperability Bridge
 registerComplianceCopilotRoutes(app);  // Wave 157 — Compliance Co-Pilot
 

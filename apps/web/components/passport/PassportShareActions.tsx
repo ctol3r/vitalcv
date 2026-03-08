@@ -1,16 +1,21 @@
 'use client';
 
 /**
- * PassportShareActions.tsx — Wave 139: Clinician Passport Growth Loop
+ * PassportShareActions.tsx — Wave 167: Passport Viral Sharing
  *
  * Client-side share island embedded in the RSC public passport page (/p/:npi).
  * Provides: copy share link · QR code modal · download credential bundle.
+ *
+ * Wave 167 additions:
+ *   - Fires analytics events to /api/passport/analytics/:npi/* on each action
+ *   - Shows live share count badge (fetched from analytics API)
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import QRCode from 'react-qr-code';
 import {
+  BarChart2,
   CheckCircle,
   Copy,
   Download,
@@ -25,15 +30,41 @@ interface PassportShareActionsProps {
   credentialCount: number;
 }
 
+// ── Analytics helpers ──────────────────────────────────────────────────────────
+
+async function fireAnalyticsEvent(npi: string, event: 'share' | 'qr' | 'download' | 'accept') {
+  try {
+    await fetch(`/api/passport/analytics/${npi}/${event}`, {
+      method: 'POST',
+      cache: 'no-store',
+    });
+  } catch {
+    // analytics failures are silent — never block the user action
+  }
+}
+
+// ── Component ──────────────────────────────────────────────────────────────────
+
 export default function PassportShareActions({ npi, credentialCount }: PassportShareActionsProps) {
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [shareCount, setShareCount] = useState<number | null>(null);
 
   const shareUrl =
     typeof window !== 'undefined'
       ? window.location.href
       : `https://vitalcv.ai/p/${npi}`;
+
+  // Load share count on mount
+  useEffect(() => {
+    fetch(`/api/passport/analytics/${npi}`, { cache: 'no-store' })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d: { shareCount?: number } | null) => {
+        if (d?.shareCount !== undefined) setShareCount(d.shareCount);
+      })
+      .catch(() => {});
+  }, [npi]);
 
   const copyLink = useCallback(async () => {
     await navigator.clipboard.writeText(
@@ -41,6 +72,14 @@ export default function PassportShareActions({ npi, credentialCount }: PassportS
     );
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+    // Fire analytics
+    await fireAnalyticsEvent(npi, 'share');
+    setShareCount((prev) => (prev !== null ? prev + 1 : 1));
+  }, [npi]);
+
+  const openQR = useCallback(() => {
+    setShowQR(true);
+    fireAnalyticsEvent(npi, 'qr');
   }, [npi]);
 
   const downloadBundle = useCallback(async () => {
@@ -57,15 +96,16 @@ export default function PassportShareActions({ npi, credentialCount }: PassportS
         instructions: 'To verify credentials, visit the share URL above or contact VitalCV.',
       };
 
-      const blob = new Blob([JSON.stringify(bundle, null, 2)], {
-        type: 'application/json',
-      });
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `vitalcv-passport-npi-${npi}.json`;
       a.click();
       URL.revokeObjectURL(url);
+
+      // Fire analytics
+      await fireAnalyticsEvent(npi, 'download');
     } finally {
       setDownloading(false);
     }
@@ -75,11 +115,19 @@ export default function PassportShareActions({ npi, credentialCount }: PassportS
     <>
       {/* Share strip */}
       <div className="rounded-2xl bg-white/[0.03] ring-1 ring-white/10 px-5 py-4 space-y-3">
-        <div className="flex items-center gap-2 mb-1">
-          <Share2 className="h-3.5 w-3.5 text-emerald-400" />
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500">
-            Share Passport
-          </p>
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <Share2 className="h-3.5 w-3.5 text-emerald-400" />
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+              Share Passport
+            </p>
+          </div>
+          {shareCount !== null && shareCount > 0 && (
+            <div className="flex items-center gap-1 text-[10px] text-zinc-500">
+              <BarChart2 className="h-3 w-3" />
+              <span>{shareCount} share{shareCount !== 1 ? 's' : ''}</span>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-3 gap-2">
@@ -100,7 +148,7 @@ export default function PassportShareActions({ npi, credentialCount }: PassportS
           {/* QR code */}
           <button
             type="button"
-            onClick={() => setShowQR(true)}
+            onClick={openQR}
             className="flex flex-col items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.02] py-3 px-2 text-[10px] text-gray-500 hover:text-gray-200 hover:border-emerald-500/30 transition-colors"
           >
             <QrCode className="h-4 w-4" />
