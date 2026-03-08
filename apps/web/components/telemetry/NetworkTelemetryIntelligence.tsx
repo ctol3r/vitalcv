@@ -1,15 +1,18 @@
 'use client';
 
 /**
- * NetworkTelemetryIntelligence.tsx — Wave 140: Network Telemetry Intelligence
+ * NetworkTelemetryIntelligence.tsx — Wave 160: Telemetry Visualization
  *
  * Live charts for the trust network:
- *   - Credential verifications sparkline + success rate
+ *   - Verification throughput sparkline + success rate
  *   - Revocation rate sparkline + trend delta
  *   - Issuer activity breakdown table
- *   - Decision capsule generation sparkline
+ *   - Network growth sparkline (providers / issuers / credentials)
  *
- * Data: GET /api/network/telemetry
+ * Secondary panel:
+ *   - Live activity feed from GET /api/network/activity
+ *
+ * Data: GET /api/network/telemetry, GET /api/network/growth, GET /api/network/activity
  * Refresh: every 60 seconds
  */
 
@@ -22,6 +25,7 @@ import {
   Building,
   CheckCircle,
   GitBranch,
+  Radio,
   RefreshCw,
   TrendingDown,
   TrendingUp,
@@ -79,6 +83,34 @@ interface NetworkTelemetrySummary {
   computedAt: string;
 }
 
+interface GrowthDataPoint {
+  date: string;
+  providers: number;
+  issuers: number;
+  credentials: number;
+  cumulative: { providers: number; issuers: number; credentials: number };
+}
+
+interface NetworkGrowth {
+  dataPoints: GrowthDataPoint[];
+  currentTotals: { providers: number; issuers: number; credentials: number; revocations: number };
+  growthRate: { providers7d: number; credentials7d: number };
+  computedAt: string;
+}
+
+interface ActivityEvent {
+  type: 'credential_issued' | 'credential_revoked' | 'issuer_registered' | 'verification' | 'federation';
+  description: string;
+  timestamp: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface NetworkActivityFeed {
+  events: ActivityEvent[];
+  totalEvents: number;
+  computedAt: string;
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function bucketsToSeries(buckets: TimeBucket[]): TimeSeriesPoint[] {
@@ -88,10 +120,48 @@ function bucketsToSeries(buckets: TimeBucket[]): TimeSeriesPoint[] {
   }));
 }
 
+function growthToSeries(dataPoints: GrowthDataPoint[], key: keyof GrowthDataPoint['cumulative']): TimeSeriesPoint[] {
+  return dataPoints.map((p) => ({
+    t: new Date(p.date).getTime(),
+    v: p.cumulative[key],
+  }));
+}
+
 function trendColor(delta: number): string {
   if (delta > 0) return 'text-red-400';
   if (delta < 0) return 'text-emerald-400';
   return 'text-zinc-500';
+}
+
+function eventTypeColor(type: ActivityEvent['type']): string {
+  switch (type) {
+    case 'credential_issued':   return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+    case 'credential_revoked':  return 'bg-red-500/20 text-red-400 border-red-500/30';
+    case 'issuer_registered':   return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+    case 'verification':        return 'bg-violet-500/20 text-violet-400 border-violet-500/30';
+    case 'federation':          return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30';
+    default:                    return 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30';
+  }
+}
+
+function eventTypeLabel(type: ActivityEvent['type']): string {
+  switch (type) {
+    case 'credential_issued':   return 'ISSUED';
+    case 'credential_revoked':  return 'REVOKED';
+    case 'issuer_registered':   return 'ISSUER';
+    case 'verification':        return 'VERIFIED';
+    case 'federation':          return 'FEDERATED';
+  }
+}
+
+function relativeTime(ts: string): string {
+  const diff = Date.now() - new Date(ts).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1)  return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24)  return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 }
 
 // ── Chart Card ────────────────────────────────────────────────────────────────
@@ -208,10 +278,53 @@ function IssuerActivityTable({ issuers }: { issuers: IssuerActivity[] }) {
   );
 }
 
+// ── Activity Feed ─────────────────────────────────────────────────────────────
+
+function ActivityFeed({ feed, loading }: { feed: NetworkActivityFeed | null; loading: boolean }) {
+  if (loading && !feed) {
+    return (
+      <div className="space-y-2 animate-pulse">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-8 rounded-lg bg-zinc-800/40" />
+        ))}
+      </div>
+    );
+  }
+
+  if (!feed || feed.events.length === 0) {
+    return (
+      <div className="text-center py-6">
+        <Radio className="h-5 w-5 text-zinc-700 mx-auto mb-1.5" />
+        <p className="text-[10px] text-zinc-600">No recent activity</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+      {feed.events.slice(0, 20).map((event, i) => (
+        <div key={i} className="flex items-start gap-2.5 py-1.5">
+          <span className={`shrink-0 mt-0.5 rounded px-1.5 py-0.5 text-[9px] font-mono font-bold border ${eventTypeColor(event.type)}`}>
+            {eventTypeLabel(event.type)}
+          </span>
+          <p className="flex-1 text-[11px] text-zinc-400 leading-snug min-w-0 truncate">
+            {event.description}
+          </p>
+          <span className="shrink-0 text-[9px] text-zinc-600 font-mono">
+            {relativeTime(event.timestamp)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function NetworkTelemetryIntelligence({ windowDays = 30 }: { windowDays?: number }) {
   const [data, setData] = useState<NetworkTelemetrySummary | null>(null);
+  const [growth, setGrowth] = useState<NetworkGrowth | null>(null);
+  const [activityFeed, setActivityFeed] = useState<NetworkActivityFeed | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
@@ -219,17 +332,21 @@ export default function NetworkTelemetryIntelligence({ windowDays = 30 }: { wind
 
   const apiBase = getApiBase();
 
-  const fetchTelemetry = useCallback(async () => {
+  const fetchAll = useCallback(async () => {
     setError(null);
     try {
-      const res = await fetch(`${apiBase}/api/network/telemetry?days=${windowDays}`);
-      if (res.ok) {
-        const json = await res.json() as NetworkTelemetrySummary;
-        setData(json);
-        setLastRefresh(new Date());
-      } else {
-        setError(`API ${res.status}`);
-      }
+      const [telRes, growthRes, actRes] = await Promise.all([
+        fetch(`${apiBase}/api/network/telemetry?days=${windowDays}`),
+        fetch(`${apiBase}/api/network/growth?days=${windowDays}`),
+        fetch(`${apiBase}/api/network/activity?limit=25`),
+      ]);
+
+      if (telRes.ok) setData(await telRes.json() as NetworkTelemetrySummary);
+      if (growthRes.ok) setGrowth(await growthRes.json() as NetworkGrowth);
+      if (actRes.ok) setActivityFeed(await actRes.json() as NetworkActivityFeed);
+
+      if (!telRes.ok && !growthRes.ok) setError(`API ${telRes.status}`);
+      setLastRefresh(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Network error');
     } finally {
@@ -238,12 +355,17 @@ export default function NetworkTelemetryIntelligence({ windowDays = 30 }: { wind
   }, [apiBase, windowDays]);
 
   useEffect(() => {
-    fetchTelemetry();
-    timerRef.current = setInterval(fetchTelemetry, 60_000);
+    fetchAll();
+    timerRef.current = setInterval(fetchAll, 60_000);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [fetchTelemetry]);
+  }, [fetchAll]);
+
+  // Derive growth series
+  const credentialGrowthSeries = growth
+    ? growthToSeries(growth.dataPoints, 'credentials')
+    : [];
 
   return (
     <div className="rounded-2xl border border-zinc-800 bg-zinc-900/30 overflow-hidden">
@@ -262,7 +384,7 @@ export default function NetworkTelemetryIntelligence({ windowDays = 30 }: { wind
           )}
           <button
             type="button"
-            onClick={fetchTelemetry}
+            onClick={fetchAll}
             className="p-1 text-zinc-500 hover:text-zinc-300 transition-colors"
             title="Refresh"
           >
@@ -291,7 +413,7 @@ export default function NetworkTelemetryIntelligence({ windowDays = 30 }: { wind
             animate={{ opacity: 1, y: 0 }}
             className="grid grid-cols-2 lg:grid-cols-4 gap-3"
           >
-            {/* Credential Verifications */}
+            {/* Verification Throughput */}
             <ChartCard
               icon={CheckCircle}
               title="Verifications"
@@ -303,7 +425,7 @@ export default function NetworkTelemetryIntelligence({ windowDays = 30 }: { wind
               trendLabel={`${data.verificationRate.successRate}%`}
             />
 
-            {/* Revocations */}
+            {/* Revocation Rate */}
             <ChartCard
               icon={AlertTriangle}
               title="Revocations"
@@ -314,24 +436,32 @@ export default function NetworkTelemetryIntelligence({ windowDays = 30 }: { wind
               trend={data.revocationRate.trendDelta > 0 ? 'up' : data.revocationRate.trendDelta < 0 ? 'down' : 'flat'}
               trendLabel={
                 data.revocationRate.trendDelta !== 0
-                  ? `${data.revocationRate.trendDelta > 0 ? '+' : ''}${data.revocationRate.trendDelta} vs prior period`
+                  ? `${data.revocationRate.trendDelta > 0 ? '+' : ''}${data.revocationRate.trendDelta} vs prior`
                   : undefined
               }
             />
 
-            {/* Issuer Activity */}
+            {/* Network Growth */}
             <ChartCard
-              icon={Building}
-              title="Active Credentials"
-              value={data.issuerActivity.totalActive}
-              sub={`across ${data.issuerActivity.issuers.length} issuers`}
-              series={bucketsToSeries(data.verificationRate.dailyBuckets)}
+              icon={GitBranch}
+              title="Network Growth"
+              value={growth ? growth.currentTotals.credentials : data.issuerActivity.totalActive}
+              sub={growth
+                ? `${growth.currentTotals.providers} providers · ${growth.currentTotals.issuers} issuers`
+                : `${data.issuerActivity.issuers.length} active issuers`}
+              series={credentialGrowthSeries.length > 0
+                ? credentialGrowthSeries
+                : bucketsToSeries(data.verificationRate.dailyBuckets)}
               color="#8b5cf6"
+              trend={growth && growth.growthRate.credentials7d > 0 ? 'up' : 'flat'}
+              trendLabel={growth && growth.growthRate.credentials7d !== 0
+                ? `${growth.growthRate.credentials7d > 0 ? '+' : ''}${growth.growthRate.credentials7d}% 7d`
+                : undefined}
             />
 
             {/* Decision Capsules */}
             <ChartCard
-              icon={GitBranch}
+              icon={Award}
               title="Decision Capsules"
               value={data.decisionCapsuleRate.totalCapsules}
               sub={`${data.decisionCapsuleRate.avgPerDay}/day avg`}
@@ -340,20 +470,44 @@ export default function NetworkTelemetryIntelligence({ windowDays = 30 }: { wind
             />
           </motion.div>
 
-          {/* Issuer activity table */}
+          {/* Bottom row: issuer table + activity feed */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4"
+            className="grid grid-cols-1 lg:grid-cols-2 gap-4"
           >
-            <div className="flex items-center gap-2 mb-3">
-              <Award className="h-3.5 w-3.5 text-zinc-500" />
-              <p className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">
-                Issuer Activity Breakdown
-              </p>
+            {/* Issuer Activity */}
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Building className="h-3.5 w-3.5 text-zinc-500" />
+                <p className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">
+                  Issuer Activity Breakdown
+                </p>
+                {data.issuerActivity.totalActive > 0 && (
+                  <span className="ml-auto text-[9px] font-mono text-emerald-400">
+                    {data.issuerActivity.totalActive} active
+                  </span>
+                )}
+              </div>
+              <IssuerActivityTable issuers={data.issuerActivity.issuers} />
             </div>
-            <IssuerActivityTable issuers={data.issuerActivity.issuers} />
+
+            {/* Activity Feed */}
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Radio className="h-3.5 w-3.5 text-zinc-500" />
+                <p className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">
+                  Network Activity Feed
+                </p>
+                {activityFeed && (
+                  <span className="ml-auto text-[9px] font-mono text-zinc-600">
+                    {activityFeed.totalEvents} events
+                  </span>
+                )}
+              </div>
+              <ActivityFeed feed={activityFeed} loading={loading} />
+            </div>
           </motion.div>
         </div>
       ) : (

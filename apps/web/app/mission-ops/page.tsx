@@ -37,6 +37,7 @@ import { RevocationCascadePanel } from '@/components/substrate/RevocationCascade
 import OpsTelemetryPanel from '@/components/ops/TelemetryPanel';
 import PayerNetworkPanel from '@/components/ops/PayerNetworkPanel';
 import NetworkTelemetryDashboard from '@/components/telemetry/NetworkTelemetryDashboard';
+import NetworkHealthPanel from '@/components/network/NetworkHealthPanel';
 
 interface MissionOpsOverview {
   issuerOnboarding: { total: number; complete: number; inProgress: number; blocked: number };
@@ -450,6 +451,22 @@ export default function MissionOpsPage() {
               </span>
             </div>
             <NetworkTelemetryDashboard />
+          </motion.div>
+
+          {/* Network Health Monitor — Wave 162 */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="space-y-3"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Network Health</span>
+              <span className="text-xs text-emerald-400 border border-emerald-500/20 rounded px-1.5 py-0.5">
+                Wave 162
+              </span>
+            </div>
+            <NetworkHealthPanel />
           </motion.div>
         </div>
       )}
