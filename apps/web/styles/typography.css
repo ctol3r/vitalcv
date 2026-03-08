@@ -1,0 +1,208 @@
+/**
+ * typography.css — Wave 168: Interface Authority Typography System
+ *
+ * Font stack:
+ *   Display / UI  →  Plus Jakarta Sans  (Google Sans Flex equivalent — variable, publicly available)
+ *   Code / Mono   →  JetBrains Mono     (Google Sans Code equivalent — OFL licensed)
+ *   Serif         →  Fraunces           (editorial, trust-band callouts)
+ *   Fallback      →  Inter              (system UI fallback)
+ *
+ * Token naming: --type-{scale}-{property}
+ *
+ * Usage:
+ *   heading-xl  → hero headlines, trust band callouts
+ *   heading-lg  → section headers, modal titles
+ *   heading-md  → card headers, panel titles
+ *   heading-sm  → sub-section labels
+ *   body-lg     → lead copy, descriptions
+ *   body        → default prose
+ *   body-sm     → supporting text, captions
+ *   code        → code values, monospace metrics
+ *   label       → UI labels, navigation items
+ *   tag         → badges, chips, timestamps
+ */
+
+/* ── Font references (loaded via next/font in layout.tsx) ───────────── */
+
+:root {
+  --font-display: var(--font-plus-jakarta, var(--font-inter, 'Inter', system-ui, sans-serif));
+  --font-mono:    var(--font-jetbrains, 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace);
+  --font-serif:   var(--font-fraunces, 'Fraunces', Georgia, serif);
+  --font-body:    var(--font-inter, system-ui, -apple-system, sans-serif);
+}
+
+/* ── Type scale tokens ──────────────────────────────────────────────── */
+
+:root {
+  /* heading-xl: hero, trust band callout */
+  --type-heading-xl-size:    clamp(2.25rem, 5vw, 3.5rem);
+  --type-heading-xl-line:    1.08;
+  --type-heading-xl-weight:  700;
+  --type-heading-xl-tracking: -0.03em;
+  --type-heading-xl-font:    var(--font-display);
+
+  /* heading-lg: section header */
+  --type-heading-lg-size:    clamp(1.5rem, 3vw, 2.25rem);
+  --type-heading-lg-line:    1.15;
+  --type-heading-lg-weight:  600;
+  --type-heading-lg-tracking: -0.025em;
+  --type-heading-lg-font:    var(--font-display);
+
+  /* heading-md: card / panel title */
+  --type-heading-md-size:    clamp(1.125rem, 2vw, 1.5rem);
+  --type-heading-md-line:    1.25;
+  --type-heading-md-weight:  600;
+  --type-heading-md-tracking: -0.02em;
+  --type-heading-md-font:    var(--font-display);
+
+  /* heading-sm: sub-section label */
+  --type-heading-sm-size:    0.9375rem;
+  --type-heading-sm-line:    1.35;
+  --type-heading-sm-weight:  600;
+  --type-heading-sm-tracking: -0.01em;
+  --type-heading-sm-font:    var(--font-display);
+
+  /* body-lg: lead copy */
+  --type-body-lg-size:    1.125rem;
+  --type-body-lg-line:    1.65;
+  --type-body-lg-weight:  400;
+  --type-body-lg-tracking: 0;
+  --type-body-lg-font:    var(--font-body);
+
+  /* body: default prose */
+  --type-body-size:    1rem;
+  --type-body-line:    1.6;
+  --type-body-weight:  400;
+  --type-body-tracking: 0;
+  --type-body-font:    var(--font-body);
+
+  /* body-sm: supporting text */
+  --type-body-sm-size:    0.875rem;
+  --type-body-sm-line:    1.55;
+  --type-body-sm-weight:  400;
+  --type-body-sm-tracking: 0;
+  --type-body-sm-font:    var(--font-body);
+
+  /* code: monospace metrics, values */
+  --type-code-size:    0.8125rem;
+  --type-code-line:    1.5;
+  --type-code-weight:  400;
+  --type-code-tracking: 0;
+  --type-code-font:    var(--font-mono);
+
+  /* label: UI labels */
+  --type-label-size:    0.75rem;
+  --type-label-line:    1.4;
+  --type-label-weight:  500;
+  --type-label-tracking: 0.005em;
+  --type-label-font:    var(--font-display);
+
+  /* tag: badges, chips, timestamps */
+  --type-tag-size:    0.6875rem;
+  --type-tag-line:    1.3;
+  --type-tag-weight:  600;
+  --type-tag-tracking: 0.06em;
+  --type-tag-font:    var(--font-display);
+}
+
+/* ── Utility classes ────────────────────────────────────────────────── */
+
+.type-heading-xl {
+  font-family:      var(--type-heading-xl-font);
+  font-size:        var(--type-heading-xl-size);
+  line-height:      var(--type-heading-xl-line);
+  font-weight:      var(--type-heading-xl-weight);
+  letter-spacing:   var(--type-heading-xl-tracking);
+}
+
+.type-heading-lg {
+  font-family:      var(--type-heading-lg-font);
+  font-size:        var(--type-heading-lg-size);
+  line-height:      var(--type-heading-lg-line);
+  font-weight:      var(--type-heading-lg-weight);
+  letter-spacing:   var(--type-heading-lg-tracking);
+}
+
+.type-heading-md {
+  font-family:      var(--type-heading-md-font);
+  font-size:        var(--type-heading-md-size);
+  line-height:      var(--type-heading-md-line);
+  font-weight:      var(--type-heading-md-weight);
+  letter-spacing:   var(--type-heading-md-tracking);
+}
+
+.type-heading-sm {
+  font-family:      var(--type-heading-sm-font);
+  font-size:        var(--type-heading-sm-size);
+  line-height:      var(--type-heading-sm-line);
+  font-weight:      var(--type-heading-sm-weight);
+  letter-spacing:   var(--type-heading-sm-tracking);
+}
+
+.type-body-lg {
+  font-family:    var(--type-body-lg-font);
+  font-size:      var(--type-body-lg-size);
+  line-height:    var(--type-body-lg-line);
+  font-weight:    var(--type-body-lg-weight);
+}
+
+.type-body {
+  font-family:    var(--type-body-font);
+  font-size:      var(--type-body-size);
+  line-height:    var(--type-body-line);
+  font-weight:    var(--type-body-weight);
+}
+
+.type-body-sm {
+  font-family:    var(--type-body-sm-font);
+  font-size:      var(--type-body-sm-size);
+  line-height:    var(--type-body-sm-line);
+  font-weight:    var(--type-body-sm-weight);
+}
+
+.type-code {
+  font-family:    var(--type-code-font);
+  font-size:      var(--type-code-size);
+  line-height:    var(--type-code-line);
+  font-weight:    var(--type-code-weight);
+  font-variant-numeric: tabular-nums;
+}
+
+.type-label {
+  font-family:      var(--type-label-font);
+  font-size:        var(--type-label-size);
+  line-height:      var(--type-label-line);
+  font-weight:      var(--type-label-weight);
+  letter-spacing:   var(--type-label-tracking);
+}
+
+.type-tag {
+  font-family:      var(--type-tag-font);
+  font-size:        var(--type-tag-size);
+  line-height:      var(--type-tag-line);
+  font-weight:      var(--type-tag-weight);
+  letter-spacing:   var(--type-tag-tracking);
+  text-transform:   uppercase;
+}
+
+/* ── Operator surface overrides (dark panels, /mission-ops, /network) ── */
+
+.surface-operator {
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.surface-operator h1,
+.surface-operator h2 {
+  font-family: var(--font-display);
+  letter-spacing: -0.025em;
+}
+
+.surface-operator code,
+.surface-operator pre,
+.surface-operator .mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "liga" 1, "calt" 1;
+}
