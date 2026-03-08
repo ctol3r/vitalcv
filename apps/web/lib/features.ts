@@ -24,14 +24,14 @@ export const FEATURES = {
   /** Wave 185: AI natural-language search */
   ASK_VITALCV:         flag('NEXT_PUBLIC_FEATURE_ASK_VITALCV',          false),
 
+  /** Wave 186: Employer knowledge pages */
+  EMPLOYER_PAGES:      flag('NEXT_PUBLIC_FEATURE_EMPLOYER_PAGES',       true),
+
   /** Wave 187: MATCHA v2 engine */
   MATCHA_V2:           flag('NEXT_PUBLIC_FEATURE_MATCHA_V2',            false),
 
   /** Wave 191: Referral engine */
   REFERRALS_V2:        flag('NEXT_PUBLIC_FEATURE_REFERRALS_V2',         false),
-
-  /** Wave 186: Employer knowledge pages */
-  EMPLOYER_PAGES:      flag('NEXT_PUBLIC_FEATURE_EMPLOYER_PAGES',       true),
 
   /** Wave 193: Instant offer notifications */
   INSTANT_OFFERS:      flag('NEXT_PUBLIC_FEATURE_INSTANT_OFFERS',       false),

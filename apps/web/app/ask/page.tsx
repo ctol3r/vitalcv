@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, Shield, FileText, Building2, ShieldAlert, Loader2, ExternalLink } from 'lucide-react';
+import { Building2, ExternalLink, FileText, Loader2, Send, Shield, ShieldAlert, Sparkles } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 const EXAMPLE_QUESTIONS = [
   'Am I cleared for California locums cardiology?',
@@ -106,51 +106,63 @@ export default function AskPage() {
           {messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               {msg.role === 'user' ? (
-                <div className="max-w-xl rounded-2xl rounded-br-sm bg-vt-surface-ops-raised/60 px-5 py-3.5 vt-glass">
+                <div className="max-w-xl rounded-3xl rounded-br-sm bg-vt-surface-ops-raised shadow-[0_4px_20px_rgba(0,0,0,0.1)] px-5 py-4 border border-vt-neutral-800">
                   <p className="body text-white">{msg.content}</p>
                 </div>
               ) : (
-                <div className="max-w-2xl w-full space-y-3">
+                <div className="max-w-3xl w-full space-y-2">
                   {/* Answer */}
-                  <div className={`rounded-2xl rounded-bl-sm px-5 py-4 ${msg.response?.guardrailTriggered ? 'border border-vt-danger/20 bg-vt-danger/5' : 'border border-vt-neutral-800 bg-vt-surface-ops-raised/40'}`}>
+                  <div className={`rounded-3xl rounded-tl-sm px-6 py-5 shadow-[0_4px_24px_rgba(0,0,0,0.2)] ${msg.response?.guardrailTriggered ? 'border border-vt-danger/20 bg-vt-danger/5' : 'border border-vt-neutral-800/80 bg-vt-surface-ops-raised/60'}`}>
                     {msg.response?.guardrailTriggered && (
-                      <div className="mb-2 flex items-center gap-2 tag text-vt-danger">
-                        <ShieldAlert className="h-3.5 w-3.5" /> Guardrail triggered
+                      <div className="mb-3 flex items-center gap-2 rounded-full bg-vt-danger/10 px-3 py-1.5 w-max tag text-vt-danger ring-1 ring-vt-danger/20">
+                        <ShieldAlert className="h-4 w-4" /> Guardrail triggered
                       </div>
                     )}
-                    <p className="body text-vt-neutral-100 leading-relaxed">{msg.content}</p>
+                    <p className="body-lg text-white leading-relaxed">{msg.content}</p>
+
+                    {/* Sources */}
+                    {msg.response?.sources && msg.response.sources.length > 0 && (
+                      <div className="mt-5 rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-base p-4">
+                        <p className="label mb-3 text-vt-neutral-800">Cited Sources</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {msg.response.sources.map((s, idx) => {
+                            const Icon = SOURCE_ICONS[s.type] ?? SOURCE_ICONS.default;
+                            return (
+                              <a href={s.url || '#'} key={s.type + idx} className={`group flex items-center gap-3 rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-raised/30 px-3 py-2 hover:border-vt-neutral-700 transition`}>
+                                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-vt-surface-ops-base ring-1 ring-vt-neutral-800 ${s.color}`}>
+                                  <Icon className="h-4 w-4" />
+                                </div>
+                                <div className="flex-1 overflow-hidden">
+                                  <p className="truncate text-sm font-medium text-white group-hover:text-vt-info transition-colors">{s.label}</p>
+                                  <p className="text-xs text-vt-neutral-200 truncate">{s.type.replace(/_/g, ' ')}</p>
+                                </div>
+                                {s.url && <ExternalLink className="h-3 w-3 shrink-0 text-vt-neutral-800 group-hover:text-vt-info" />}
+                              </a>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Suggested actions block */}
+                    {msg.response?.suggestedActions && msg.response.suggestedActions.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-vt-neutral-800/50">
+                        <p className="label mb-3 text-vt-neutral-800">Suggested Actions</p>
+                        <div className="flex flex-col gap-2">
+                          {msg.response.suggestedActions.map((a) => (
+                            <a key={a.href} href={a.href} title={a.reason}
+                              className="flex items-center justify-between rounded-xl bg-vt-info/10 px-5 py-3 text-vt-info ring-1 ring-vt-info/20 hover:bg-vt-info/20 hover:ring-vt-info/40 transition">
+                              <span className="font-medium">{a.label}</span>
+                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-vt-info/20 transition-transform group-hover:translate-x-1">→</span>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Sources */}
-                  {msg.response?.sources && msg.response.sources.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {msg.response.sources.map((s) => {
-                        const Icon = SOURCE_ICONS[s.type] ?? SOURCE_ICONS.default;
-                        return (
-                          <span key={s.type} className={`flex items-center gap-1.5 rounded-full vt-glass px-3 py-1 tag ${s.color}`}>
-                            <Icon className="h-3 w-3" />
-                            {s.label}
-                            {s.url && <ExternalLink className="h-2.5 w-2.5 opacity-60" />}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Suggested actions */}
-                  {msg.response?.suggestedActions && msg.response.suggestedActions.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {msg.response.suggestedActions.map((a) => (
-                        <a key={a.href} href={a.href} title={a.reason}
-                          className="rounded-full bg-vt-success/10 px-4 py-1.5 tag text-vt-success ring-1 ring-vt-success/20 hover:bg-vt-success/20 transition">
-                          {a.label} →
-                        </a>
-                      ))}
-                    </div>
-                  )}
-
                   {msg.response && (
-                    <p className="tag text-vt-neutral-800">{msg.response.durationMs}ms · Intent: {msg.response.intent}</p>
+                    <p className="ml-2 tag text-vt-neutral-800">{msg.response.durationMs}ms search · Intent: {msg.response.intent}</p>
                   )}
                 </div>
               )}
@@ -169,17 +181,19 @@ export default function AskPage() {
       </main>
 
       {/* Input */}
-      <div className="border-t border-vt-neutral-800 bg-vt-surface-ops-base px-6 py-4">
+      <div className="border-t border-vt-neutral-800 bg-vt-surface-ops-base px-6 py-6">
         <form onSubmit={(e) => { e.preventDefault(); send(input); }}
           className="mx-auto flex max-w-3xl items-center gap-3">
-          <input ref={inputRef} type="text" value={input} onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask anything about credentialing, opportunities, or requirements..."
-            className="flex-1 rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-raised/50 px-5 py-3.5 body text-white placeholder:text-vt-neutral-800 focus:border-vt-info/60 focus:outline-none focus:ring-1 focus:ring-vt-info/30 transition"
-            aria-label="Ask a question" />
-          <button type="submit" disabled={!input.trim() || loading} aria-label="Send"
-            className="flex h-12 w-12 items-center justify-center rounded-xl bg-vt-info disabled:opacity-40 hover:bg-vt-info/90 transition">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin text-white" /> : <Send className="h-4 w-4 text-white" />}
-          </button>
+          <div className="relative flex-1">
+            <input ref={inputRef} type="text" value={input} onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask anything about credentialing, opportunities, or requirements..."
+              className="w-full rounded-2xl border border-vt-info/20 bg-vt-surface-ops-base shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] px-6 py-4 pr-16 body text-white placeholder:text-vt-neutral-800 focus:border-vt-info focus:outline-none focus:ring-2 focus:ring-vt-info/20 focus:shadow-[0_0_20px_rgba(99,102,241,0.1)] transition-all"
+              aria-label="Ask a question" />
+            <button type="submit" disabled={!input.trim() || loading} aria-label="Send"
+              className="absolute right-2 top-2 flex h-10 w-10 items-center justify-center rounded-xl bg-vt-info text-white disabled:opacity-40 hover:bg-vt-info/90 hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] transition-all">
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </button>
+          </div>
         </form>
       </div>
     </div>
