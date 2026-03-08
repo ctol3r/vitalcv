@@ -119,6 +119,40 @@ const SECTIONS: { title: string; endpoints: Endpoint[] }[] = [
       },
     ],
   },
+  {
+    title: 'Wallet Export',
+    endpoints: [
+      {
+        id: 'wallet-export',
+        method: 'POST',
+        path: '/credentials/export/wallet',
+        desc: 'Export credentials in wallet-compatible formats (CHAPI VPR, CHAPI store, SMART Health Card file/deeplink/QR).',
+        params: [
+          { name: 'subject', type: 'string', required: true, desc: 'NPI or DID of the credential subject' },
+          { name: 'credentialIds', type: 'string[]', required: true, desc: 'Array of credential IDs to export' },
+          { name: 'exportType', type: 'string', required: true, desc: 'chapi_vpr_request | chapi_store_payload | smart_health_card_file | smart_health_card_deeplink | smart_health_card_qr_payload' },
+        ],
+        response: '{ exportType, data: { ...format-specific } }',
+      },
+    ],
+  },
+  {
+    title: 'Compliance',
+    endpoints: [
+      {
+        id: 'compliance-check',
+        method: 'POST',
+        path: '/ai/compliance-check',
+        desc: 'Run an AI-assisted compliance readiness check. Returns cited findings against state + facility rules.',
+        params: [
+          { name: 'npi', type: 'string', required: true, desc: 'NPI of the clinician' },
+          { name: 'targetState', type: 'string', required: true, desc: 'Target state (CA, NY, TX, etc.)' },
+          { name: 'targetFacility', type: 'string', required: true, desc: 'Facility type (hospital, clinic, etc.)' },
+        ],
+        response: '{ readiness, confidence, findings[], citations[], traceId }',
+      },
+    ],
+  },
 ];
 
 const METHOD_COLORS: Record<string, string> = {
@@ -140,6 +174,26 @@ export default function ApiReferencePage() {
           <span>Auth: <code className="text-violet-300 bg-violet-500/10 px-1.5 py-0.5 rounded">Authorization: Bearer &lt;api_key&gt;</code></span>
           <span>Format: <code className="text-violet-300 bg-violet-500/10 px-1.5 py-0.5 rounded">application/json</code></span>
         </div>
+      </div>
+
+      {/* Wave 158: Interactive OpenAPI UI */}
+      <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 px-4 py-3">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-semibold text-violet-300">Interactive API Explorer</span>
+          <Link
+            href="/api/docs"
+            className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
+          >
+            Open full OpenAPI spec →
+          </Link>
+        </div>
+        <p className="text-xs text-zinc-400">
+          Try API endpoints directly from the{' '}
+          <Link href="/api/docs" className="text-violet-400 hover:underline">
+            interactive OpenAPI UI
+          </Link>
+          . The spec is served from <code className="text-violet-300 bg-violet-500/10 px-1 py-0.5 rounded text-xs">/openapi.json</code>.
+        </p>
       </div>
 
       {/* Rate limits callout */}

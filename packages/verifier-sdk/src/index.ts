@@ -351,3 +351,67 @@ export default VitalCVVerifier;
 // Wave 133: version + diagnostics
 export * from './version';
 export * from './diagnostics';
+
+// ── Wave 158: Webhook Signature Verification ───────────────────────────────
+
+/**
+ * Verify a VitalCV webhook signature.
+ *
+ * VitalCV signs webhook payloads using HMAC-SHA256.
+ * The signature header (`x-vitalcv-signature`) contains: `sha256=<hex>`
+ *
+ * This function is Node.js-only (uses `node:crypto`).
+ *
+ * @param rawBody - Raw request body as a string
+ * @param signatureHeader - Value of the `x-vitalcv-signature` header
+ * @param secret - Your webhook secret
+ * @returns true if the signature is valid
+ *
+ * @example
+ * ```ts
+ * import { verifyWebhookSignature } from '@vitalcv/verifier-sdk';
+ *
+ * app.post('/webhook', (req, res) => {
+ *   const valid = verifyWebhookSignature(
+ *     rawBodyString,                          // raw body as string
+ *     req.headers['x-vitalcv-signature'],     // signature header
+ *     process.env.VITALCV_WEBHOOK_SECRET!,    // your secret
+ *   );
+ *   if (!valid) return res.status(401).send('Invalid signature');
+ *   // Process event...
+ *   res.status(200).send('OK');
+ * });
+ * ```
+ */
+export function verifyWebhookSignature(
+  rawBody: string,
+  signatureHeader: string | undefined | null,
+  secret: string,
+): boolean {
+  if (!signatureHeader || !secret) return false;
+
+  try {
+    // Use globalThis to access Node.js crypto without type declarations
+    const nodeCrypto = (globalThis as Record<string, unknown>).__vitalcv_crypto ??
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      ((globalThis as Record<string, unknown>).__vitalcv_crypto = (
+        new Function('return require("node:crypto")')
+      )() as Record<string, (...args: unknown[]) => unknown>);
+
+    const crypto = nodeCrypto as Record<string, (...args: unknown[]) => unknown>;
+    const hmac = crypto['createHmac']('sha256', secret) as Record<string, (...args: unknown[]) => unknown>;
+    hmac['update'](rawBody);
+    const expectedSig = hmac['digest']('hex') as string;
+    const expected = `sha256=${expectedSig}`;
+
+    // Simple constant-time comparison
+    if (signatureHeader.length !== expected.length) return false;
+    let mismatch = 0;
+    for (let i = 0; i < expected.length; i++) {
+      mismatch |= signatureHeader.charCodeAt(i) ^ expected.charCodeAt(i);
+    }
+    return mismatch === 0;
+  } catch {
+    return false;
+  }
+}
