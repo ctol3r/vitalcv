@@ -218,6 +218,12 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
   const [renderMs, setRenderMs] = useState<number | null>(null);
   const [clusteringActive, setClusteringActive] = useState(false);
 
+  // Wave 156: WebGL rendering (behind FEATURE_WEBGL_GRAPH)
+  const [webglActive, setWebglActive] = useState(false);
+  const glRef = useRef<WebGLRenderingContext | null>(null);
+  const [fps, setFps] = useState<number | null>(null);
+  const fpsCounterRef = useRef({ frames: 0, lastTime: performance.now() });
+
   // Fetch data + Wave 141: overlay live reputation scores + Wave 144: scaled graph
   useEffect(() => {
     const base = getApiBase();
@@ -293,6 +299,25 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
     ro.observe(containerRef.current);
     widthRef.current = containerRef.current.clientWidth;
     return () => ro.disconnect();
+  }, []);
+
+  // Wave 156: Attempt WebGL init (behind feature flag, fallback to Canvas2D)
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const featureWebgl = typeof window !== 'undefined' &&
+      (window as unknown as Record<string, string>).FEATURE_WEBGL_GRAPH === 'true';
+    if (!featureWebgl) return;
+    try {
+      const gl = canvas.getContext('webgl', { alpha: true, antialias: true });
+      if (gl) {
+        glRef.current = gl;
+        setWebglActive(true);
+      }
+    } catch {
+      // Fallback to Canvas2D silently
+      setWebglActive(false);
+    }
   }, []);
 
   // Render loop
@@ -481,6 +506,15 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
         }
       }
 
+      // Wave 156: FPS counter
+      fpsCounterRef.current.frames++;
+      const now = performance.now();
+      const elapsed = now - fpsCounterRef.current.lastTime;
+      if (elapsed >= 1000) {
+        setFps(Math.round((fpsCounterRef.current.frames * 1000) / elapsed));
+        fpsCounterRef.current = { frames: 0, lastTime: now };
+      }
+
       frameRef.current = requestAnimationFrame(draw);
     }
 
@@ -593,6 +627,14 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
                     Auto-Clustered
                   </div>
                 )}
+                {/* Wave 156: Performance telemetry overlay */}
+                <div className="mt-2 flex items-center gap-3 text-[10px] text-infra-muted/60">
+                  {fps !== null && <span className="font-mono">{fps}fps</span>}
+                  {renderMs !== null && <span className="font-mono">{renderMs}ms load</span>}
+                  {webglActive && (
+                    <span className="px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[9px]">WebGL</span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
