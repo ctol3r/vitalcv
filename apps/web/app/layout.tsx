@@ -1,4 +1,5 @@
 import FeedbackButton from '@/components/feedback/FeedbackButton';
+import Omnibar from '@/components/ops/Omnibar';
 import Footer from '@/components/layout/Footer';
 import Navbar from '@/components/layout/Navbar';
 import { BackgroundField } from '@/components/motion/BackgroundField';
@@ -51,6 +52,7 @@ export default function RootLayout({
           </div>
           <Toaster />
           <FeedbackButton />
+          <Omnibar />
         </Providers>
       </body>
     </html>
