@@ -47,9 +47,12 @@ const STATS = [
 // ── Resource links ────────────────────────────────────────────────────────
 
 const RESOURCES = [
-  { icon: BookOpen, label: 'API Reference',   href: '/docs/api',      desc: 'Full endpoint documentation' },
-  { icon: Code2,    label: 'SDKs',            href: '/docs/sdk',      desc: 'Node, Python, Go clients'    },
-  { icon: Webhook,  label: 'Webhook Guide',   href: '/docs/webhooks', desc: 'Event types & signatures'    },
+  { icon: BookOpen, label: 'API Reference',   href: '/docs/api',      desc: 'Full endpoint documentation + interactive OpenAPI UI' },
+  { icon: Code2,    label: 'SDKs',            href: '/docs/sdk',      desc: 'Verifier SDK, Issuer SDK, Wallet SDK'    },
+  { icon: Webhook,  label: 'Webhook Guide',   href: '/docs/webhooks', desc: 'Event types, signatures & verification'    },
+  { icon: Lock,     label: 'Wallet Export',   href: '/docs/api',      desc: 'CHAPI + SMART Health Card export API'   },
+  { icon: Globe,    label: 'Compliance API',  href: '/docs/api',      desc: 'AI-assisted compliance checking'         },
+  { icon: GitBranch, label: 'Examples',       href: 'https://github.com/ctol3r/vitalcv/tree/main/examples', desc: 'ATS integration, webhook verification' },
 ];
 
 // ── Page ──────────────────────────────────────────────────────────────────

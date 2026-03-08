@@ -24,7 +24,7 @@ const verifier = new VitalCVVerifier({
 const result = await verifier.verify('1234567890');
 console.log(result.trustBand); // 'L3' | 'L2' | 'L1' | 'L0'
 console.log(result.credentials);`,
-    methods: ['verify(npi)', 'verifyBundle(credentials)', 'acceptPresentation(presentationId)', 'listPending()'],
+    methods: ['verify(npi)', 'verifyBundle(credentials)', 'acceptPresentation(presentationId)', 'verifyWebhookSignature(rawBody, sig, secret)', 'listPending()'],
   },
   {
     id: 'issuer',
