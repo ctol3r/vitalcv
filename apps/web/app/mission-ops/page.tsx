@@ -1,26 +1,30 @@
 'use client';
 
 /**
- * Mission Ops — Wave 137/138: Trust Graph Console + Issuer Onboarding integrated
+ * Mission Ops — Wave CC-146: Operator Surfaces
  *
- * Healthcare-specific Mission Manager showing:
- *   - Issuer onboarding state
- *   - Verifier onboarding state
- *   - Federation health
- *   - Trust registry health
- *   - Control inheritance status
- *   - System readiness
+ * Healthcare-specific operator control interface showing:
+ *   - Issuer onboarding state, Verifier onboarding state
+ *   - Federation health, Trust registry health
+ *   - Control inheritance status, System readiness
  *   - [Wave 137] Live Trust Graph Console
  *   - [Wave 138] Issuer Onboarding Panel
+ *   - [Wave 140] Network Telemetry Intelligence
+ *   - [Wave 141] Network Reputation Summary
+ *   - [Wave 143] Provider Directory Distribution
+ *   - [CC-146] Federation Health Panel
+ *   - [CC-146] Revocation Activity Panel
+ *   - [CC-146] Ops Telemetry (API-connected)
+ *   - [CC-146] Operator keyboard shortcuts (⌘E/R/I)
  */
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import TelemetryPanel from '@/components/telemetry/TelemetryPanel';
 import type { TimeSeriesPoint } from '@/components/telemetry/TimeSeriesChart';
 import {
   RefreshCw, Shield, Award, Network, Activity, CheckCircle,
-  AlertTriangle, XCircle, Users, Building, Handshake,
+  AlertTriangle, XCircle, Users, Building, Handshake, Keyboard,
 } from 'lucide-react';
 import Link from 'next/link';
 import { getApiBase } from '@/lib/api';
@@ -28,6 +32,11 @@ import TrustGraphConsole from '@/components/ops/TrustGraphConsole';
 import IssuerOnboardingPanel from '@/components/ops/IssuerOnboardingPanel';
 import NetworkTelemetryIntelligence from '@/components/telemetry/NetworkTelemetryIntelligence';
 import ProviderDirectoryPanel from '@/components/ops/ProviderDirectoryPanel';
+import { FederationHealthPanel } from '@/components/substrate/FederationHealthPanel';
+import { RevocationCascadePanel } from '@/components/substrate/RevocationCascadePanel';
+import OpsTelemetryPanel from '@/components/ops/TelemetryPanel';
+import PayerNetworkPanel from '@/components/ops/PayerNetworkPanel';
+import NetworkTelemetryDashboard from '@/components/telemetry/NetworkTelemetryDashboard';
 
 interface MissionOpsOverview {
   issuerOnboarding: { total: number; complete: number; inProgress: number; blocked: number };
@@ -90,6 +99,10 @@ export default function MissionOpsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Panel refs for keyboard shortcut scroll targeting
+  const graphRef = useRef<HTMLDivElement>(null);
+  const directoryRef = useRef<HTMLDivElement>(null);
+
   const fetchOverview = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -109,6 +122,31 @@ export default function MissionOpsPage() {
     const iv = setInterval(fetchOverview, 60_000);
     return () => clearInterval(iv);
   }, [fetchOverview]);
+
+  // Wave CC-146: Operator keyboard shortcuts
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+      const tag = (document.activeElement?.tagName ?? '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+      if (e.key === 'e') {
+        e.preventDefault();
+        directoryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else if (e.key === 'r') {
+        e.preventDefault();
+        graphRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else if (e.key === 'i') {
+        e.preventDefault();
+        graphRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Focus the graph panel after scroll
+        setTimeout(() => graphRef.current?.querySelector<HTMLElement>('[data-graph-focus]')?.focus(), 400);
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white">
@@ -285,6 +323,11 @@ export default function MissionOpsPage() {
             ))}
           </div>
 
+          {/* Wave CC-146: Operator Telemetry (API-connected) */}
+          <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.27 }}>
+            <OpsTelemetryPanel />
+          </motion.div>
+
           {/* Wave 140: Network Telemetry Intelligence */}
           <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.28 }}>
             <div className="flex items-center gap-2 mb-4">
@@ -298,7 +341,7 @@ export default function MissionOpsPage() {
           </motion.div>
 
           {/* Wave 137: Trust Graph Operator Console */}
-          <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.3 }}>
+          <motion.div ref={graphRef} {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.3 }}>
             <div className="flex items-center gap-2 mb-4">
               <Network className="h-4 w-4 text-emerald-400" />
               <h2 className="text-sm font-semibold text-zinc-200">Trust Graph Console</h2>
@@ -321,6 +364,18 @@ export default function MissionOpsPage() {
             <NetworkReputationSummaryPanel />
           </motion.div>
 
+          {/* Wave CC-146: Federation Health */}
+          <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.34 }}>
+            <div className="flex items-center gap-2 mb-4">
+              <Handshake className="h-4 w-4 text-purple-400" />
+              <h2 className="text-sm font-semibold text-zinc-200">Federation Health</h2>
+              <span className="text-[10px] font-mono text-zinc-600 border border-zinc-800 rounded px-1.5 py-0.5">
+                CC-146
+              </span>
+            </div>
+            <FederationHealthPanel />
+          </motion.div>
+
           {/* Wave 138: Issuer Onboarding Panel */}
           <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.35 }}>
             <div className="flex items-center gap-2 mb-4">
@@ -333,11 +388,24 @@ export default function MissionOpsPage() {
             <IssuerOnboardingPanel onIssuerRegistered={fetchOverview} />
           </motion.div>
 
+          {/* Wave CC-146: Revocation Activity */}
+          <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.36 }}>
+            <div className="flex items-center gap-2 mb-4">
+              <AlertTriangle className="h-4 w-4 text-red-400" />
+              <h2 className="text-sm font-semibold text-zinc-200">Revocation Activity</h2>
+              <span className="text-[10px] font-mono text-zinc-600 border border-zinc-800 rounded px-1.5 py-0.5">
+                CC-146
+              </span>
+            </div>
+            <RevocationCascadePanel />
+          </motion.div>
+
           {/* Wave 143: Provider Directory Distribution */}
           <motion.div
+            ref={directoryRef}
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.35 }}
+            transition={{ duration: 0.4, delay: 0.37 }}
           >
             <div className="flex items-center gap-2 mb-3">
               <span className="text-xs font-semibold text-infra-muted uppercase tracking-widest">
@@ -348,6 +416,40 @@ export default function MissionOpsPage() {
               </span>
             </div>
             <ProviderDirectoryPanel />
+          </motion.div>
+
+          {/* Wave 148: Payer Credential Network */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.4 }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs font-semibold text-infra-muted uppercase tracking-widest">
+                Payer Network
+              </span>
+              <span className="text-xs text-blue-400 border border-blue-500/20 rounded px-1.5 py-0.5">
+                Wave 148
+              </span>
+            </div>
+            <PayerNetworkPanel />
+          </motion.div>
+
+          {/* Wave 150: Network Telemetry Intelligence */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.45 }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs font-semibold text-infra-muted uppercase tracking-widest">
+                Network Telemetry
+              </span>
+              <span className="text-xs text-emerald-400 border border-emerald-500/20 rounded px-1.5 py-0.5">
+                Wave 150
+              </span>
+            </div>
+            <NetworkTelemetryDashboard />
           </motion.div>
         </div>
       )}
@@ -363,6 +465,23 @@ export default function MissionOpsPage() {
 
       {/* Wave 131 — Mission Telemetry */}
       {overview && <MissionTelemetry overview={overview} />}
+
+      {/* Wave CC-146: Keyboard shortcut hints */}
+      <div className="fixed bottom-4 right-4 flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/90 backdrop-blur-sm px-4 py-2 shadow-lg">
+        <Keyboard className="h-3.5 w-3.5 text-zinc-600" />
+        {[
+          { key: '⌘E', label: 'Export Dir' },
+          { key: '⌘R', label: 'Refresh Graph' },
+          { key: '⌘I', label: 'Inspect Node' },
+        ].map(({ key, label }) => (
+          <span key={key} className="flex items-center gap-1 text-[10px] text-zinc-500">
+            <kbd className="px-1 py-0.5 rounded bg-zinc-800 border border-zinc-700 font-mono text-zinc-400 text-[9px]">
+              {key}
+            </kbd>
+            {label}
+          </span>
+        ))}
+      </div>
     </main>
   );
 }
