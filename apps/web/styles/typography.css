@@ -22,13 +22,15 @@
  *   tag         → badges, chips, timestamps
  */
 
-/* ── Font references (loaded via next/font in layout.tsx) ───────────── */
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@8..144,100..1000&family=Google+Sans+Code:wght@400..700&display=swap');
+
+/* ── Font references (loaded via next/font in layout.tsx, plus Google Sans) ───────────── */
 
 :root {
-  --font-display: var(--font-plus-jakarta, var(--font-inter, 'Inter', system-ui, sans-serif));
-  --font-mono:    var(--font-jetbrains, 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace);
+  --font-display: 'Google Sans Flex', var(--font-plus-jakarta, var(--font-inter, 'Inter', system-ui, sans-serif));
+  --font-mono:    'Google Sans Code', var(--font-jetbrains, 'JetBrains Mono', monospace);
   --font-serif:   var(--font-fraunces, 'Fraunces', Georgia, serif);
-  --font-body:    var(--font-inter, system-ui, -apple-system, sans-serif);
+  --font-body:    'Google Sans Flex', var(--font-inter, system-ui, sans-serif);
 }
 
 /* ── Type scale tokens ──────────────────────────────────────────────── */

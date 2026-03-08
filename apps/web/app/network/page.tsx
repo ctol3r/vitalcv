@@ -23,7 +23,7 @@ export default function NetworkPage() {
           transition={{ duration: 0.5 }}
         >
           <h1 className="type-heading-lg text-white">Trust Network</h1>
-          <p className="mt-2 type-body-sm text-zinc-400 max-w-2xl">
+          <p className="mt-2 type-body-sm text-vt-neutral-200 max-w-2xl">
             Live view of the credential verification network — issuers, verifiers, and trust
             relationships across healthcare organizations.
           </p>
@@ -37,7 +37,7 @@ export default function NetworkPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="rounded-2xl border border-zinc-800 bg-zinc-950 overflow-hidden"
+              className="rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-base overflow-hidden"
             >
               <GlobalTrustMap />
             </motion.div>

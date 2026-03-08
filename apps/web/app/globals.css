@@ -3,6 +3,7 @@
 @import '../styles/utilities.css';
 @import '../styles/typography.css';
 @import '../styles/tokens.css';
+@import '../styles/vitalTokens.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -248,6 +249,30 @@
   --color-infra-surface-alt: var(--infra-surface-alt);
   --color-infra-grid: var(--infra-grid);
   --color-infra-border: var(--infra-border);
+
+  --color-vt-brand-primary: var(--vt-color-brand-primary);
+  --color-vt-brand-secondary: var(--vt-color-brand-secondary);
+  --color-vt-neutral-100: var(--vt-color-neutral-100);
+  --color-vt-neutral-200: var(--vt-color-neutral-200);
+  --color-vt-neutral-300: var(--vt-color-neutral-300);
+  --color-vt-neutral-400: var(--vt-color-neutral-400);
+  --color-vt-neutral-500: var(--vt-color-neutral-500);
+  --color-vt-neutral-600: var(--vt-color-neutral-600);
+  --color-vt-neutral-700: var(--vt-color-neutral-700);
+  --color-vt-neutral-800: var(--vt-color-neutral-800);
+  --color-vt-neutral-900: var(--vt-color-neutral-900);
+  --color-vt-success: var(--vt-color-success);
+  --color-vt-warning: var(--vt-color-warning);
+  --color-vt-danger: var(--vt-color-danger);
+  --color-vt-info: var(--vt-color-info);
+
+  --color-vt-surface-base: var(--vt-surface-base);
+  --color-vt-surface-sunken: var(--vt-surface-sunken);
+  --color-vt-surface-raised: var(--vt-surface-raised);
+  --color-vt-surface-overlay: var(--vt-surface-overlay);
+  --color-vt-surface-brand: var(--vt-surface-brand);
+  --color-vt-surface-ops-base: var(--vt-surface-ops-base);
+  --color-vt-surface-ops-raised: var(--vt-surface-ops-raised);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);

@@ -6,8 +6,8 @@
  * Generates a credential bundle link for employer ATS integration.
  */
 
-import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { useCallback, useState } from 'react';
 
 interface ApplyWithVitalCVProps {
   npi: string;
@@ -30,21 +30,21 @@ export function ApplyWithVitalCV({ npi, shareUrl, className = '' }: ApplyWithVit
       <motion.button
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-sm font-semibold text-white transition-colors"
+        className="w-full py-3 bg-vt-success hover:bg-vt-success/90 rounded-xl text-sm font-semibold text-white transition-colors"
         onClick={handleCopy}
       >
         {copied ? 'Link Copied!' : 'Apply with VitalCV'}
       </motion.button>
       <div className="flex gap-2">
-        <button onClick={handleCopy} className="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-[11px] text-zinc-400 transition-colors">
+        <button onClick={handleCopy} className="flex-1 py-2 bg-vt-neutral-800 hover:bg-vt-neutral-700 rounded-lg text-[11px] text-vt-neutral-400 transition-colors">
           {copied ? 'Copied' : 'Copy Link'}
         </button>
         <a href={`mailto:?subject=VitalCV%20Trust%20Profile&body=${encodeURIComponent(url)}`}
-          className="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-[11px] text-zinc-400 text-center transition-colors">
+          className="flex-1 py-2 bg-vt-neutral-800 hover:bg-vt-neutral-700 rounded-lg text-[11px] text-vt-neutral-400 text-center transition-colors">
           Email
         </a>
       </div>
-      <p className="text-[9px] text-zinc-600 text-center">
+      <p className="text-[9px] text-vt-neutral-600 text-center">
         Share your verified credential profile with employers
       </p>
     </div>

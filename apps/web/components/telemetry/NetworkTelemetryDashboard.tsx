@@ -11,13 +11,18 @@
  *   - Activity feed
  */
 
-import { useState, useCallback } from 'react';
+import { getApiBase } from '@/lib/api';
 import { motion } from 'framer-motion';
 import {
-  Activity, TrendingUp, AlertTriangle, Users, RefreshCw,
-  CheckCircle, Shield, Building2,
+    Activity,
+    AlertTriangle,
+    Building2,
+    CheckCircle,
+    RefreshCw,
+    Shield,
+    Users
 } from 'lucide-react';
-import { getApiBase } from '@/lib/api';
+import { useCallback, useState } from 'react';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -118,7 +123,7 @@ export default function NetworkTelemetryDashboard() {
       <div className="flex items-center justify-between px-5 py-4 border-b border-infra-border">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
-          <span className="text-sm font-semibold text-infra-text">Network Telemetry</span>
+          <span className="heading-lg text-infra-text">Network Telemetry</span>
           <span className="text-xs text-infra-muted ml-1">Wave 150</span>
         </div>
         <button

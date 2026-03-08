@@ -22,7 +22,7 @@ interface VerificationArtifactsProps {
 
 export function VerificationArtifacts({ artifacts, className = '' }: VerificationArtifactsProps) {
   if (artifacts.length === 0) {
-    return <p className="text-xs text-zinc-600 py-4 text-center">No verification artifacts</p>;
+    return <p className="text-xs text-vt-neutral-600 py-4 text-center">No verification artifacts</p>;
   }
 
   return (
@@ -36,11 +36,11 @@ export function VerificationArtifacts({ artifacts, className = '' }: Verificatio
           className="px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.05]"
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-zinc-300 font-medium truncate">{art.issuer}</span>
-            <span className="text-[9px] text-zinc-600">{new Date(art.timestamp).toLocaleDateString()}</span>
+            <span className="text-[11px] text-vt-neutral-300 font-medium truncate">{art.issuer}</span>
+            <span className="text-[9px] text-vt-neutral-600">{new Date(art.timestamp).toLocaleDateString()}</span>
           </div>
           {art.hash && (
-            <p className="text-[9px] text-zinc-600 font-mono mt-1 truncate">{art.hash}</p>
+            <p className="text-[9px] text-vt-neutral-600 font-mono mt-1 truncate">{art.hash}</p>
           )}
         </motion.div>
       ))}

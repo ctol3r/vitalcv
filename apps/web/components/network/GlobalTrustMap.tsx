@@ -491,7 +491,7 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
           ctx.setLineDash([]);
           // Count badge
           ctx.fillStyle = '#fff';
-          ctx.font = `bold ${Math.max(7, drawR * 0.9)}px Inter,sans-serif`;
+          ctx.font = `bold ${Math.max(7, drawR * 0.9)}px "Google Sans Flex", sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText(String(nodeAsCluster.clusterSize), node.x, node.y);
@@ -499,7 +499,7 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
 
         // Label on hover
         if (isHovered) {
-          ctx.font = '10px system-ui, sans-serif';
+          ctx.font = '10px "Google Sans Flex", sans-serif';
           ctx.fillStyle = 'rgba(15,23,42,0.9)';
           const scoreLabel = isIssuer && node.trustScore != null ? ` [${node.trustScore}]` : '';
           const federationTag = isDegradedFederation ? ' ⚠️' : isOIDFederation ? ' 🔐' : isFederated ? ' ↗' : '';

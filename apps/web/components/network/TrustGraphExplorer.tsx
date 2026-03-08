@@ -113,15 +113,15 @@ function ResultRow({
       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
         selected
           ? 'bg-blue-500/10 border border-blue-500/20'
-          : 'bg-zinc-800/30 border border-transparent hover:bg-zinc-800/60 hover:border-zinc-700/40'
+          : 'bg-vt-neutral-800/30 border border-transparent hover:bg-vt-neutral-800/60 hover:border-vt-neutral-700/40'
       }`}
     >
-      <div className="shrink-0 w-7 h-7 rounded-md bg-zinc-800 flex items-center justify-center">
-        <Icon className="h-3.5 w-3.5 text-zinc-400" />
+      <div className="shrink-0 w-7 h-7 rounded-md bg-vt-surface-ops-raised flex items-center justify-center">
+        <Icon className="h-3.5 w-3.5 text-vt-neutral-300" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-zinc-200 truncate">{node.name}</p>
-        <p className="text-[10px] text-zinc-600 truncate">
+        <p className="label text-vt-neutral-100 truncate">{node.name}</p>
+        <p className="body-sm text-vt-neutral-600 truncate">
           {node.trustScore !== undefined && <span className="mr-2">score {node.trustScore}</span>}
           {node.status}
         </p>
@@ -130,7 +130,7 @@ function ResultRow({
         <span className={`text-[9px] px-1.5 py-0.5 rounded border font-medium ${kindColor(node.kind)}`}>
           {kindLabel(node.kind)}
         </span>
-        <ChevronRight className="h-3 w-3 text-zinc-600" />
+        <ChevronRight className="h-3 w-3 text-vt-neutral-600" />
       </div>
     </button>
   );
@@ -258,19 +258,19 @@ export default function TrustGraphExplorer() {
   ];
 
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/30 overflow-hidden">
+    <div className="rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-raised/30 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-800 bg-zinc-900/60">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-vt-neutral-800 bg-vt-surface-ops-raised/60">
         <div className="flex items-center gap-2">
           <Search className="h-4 w-4 text-blue-400" />
-          <span className="text-sm font-semibold text-zinc-200">Trust Graph Explorer</span>
+          <span className="heading-sm text-vt-neutral-100">Trust Graph Explorer</span>
           {allNodes.length > 0 && (
-            <span className="text-[10px] font-mono text-zinc-600">{allNodes.length} nodes</span>
+            <span className="code text-vt-neutral-600">{allNodes.length} nodes</span>
           )}
         </div>
         <div className="flex items-center gap-2">
           {lastRefresh && (
-            <span className="text-[10px] text-zinc-600">
+            <span className="code text-vt-neutral-600">
               {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
           )}
@@ -278,7 +278,7 @@ export default function TrustGraphExplorer() {
             type="button"
             onClick={loadNodes}
             disabled={loading}
-            className="p-1 text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-50"
+            className="p-1 text-vt-neutral-400 hover:text-vt-neutral-100 transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -287,17 +287,17 @@ export default function TrustGraphExplorer() {
 
       <div className="flex" style={{ minHeight: '420px' }}>
         {/* Left: search + results */}
-        <div className="flex-1 flex flex-col min-w-0 border-r border-zinc-800">
+        <div className="flex-1 flex flex-col min-w-0 border-r border-vt-neutral-800">
           {/* Search bar */}
-          <div className="p-4 border-b border-zinc-800 space-y-3">
+          <div className="p-4 border-b border-vt-neutral-800 space-y-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-vt-neutral-400" />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search NPI, issuer, payer, or credential…"
-                className="w-full pl-9 pr-8 py-2 rounded-xl bg-zinc-800/60 border border-zinc-700/50 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50 transition-colors"
+                className="w-full pl-9 pr-8 py-2 rounded-xl bg-vt-neutral-800/60 border border-vt-neutral-700/50 text-sm text-vt-neutral-100 placeholder:text-vt-neutral-600 focus:outline-none focus:border-blue-500/50 transition-colors"
               />
               {query && (
                 <button
@@ -322,7 +322,7 @@ export default function TrustGraphExplorer() {
                     className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-medium border transition-colors ${
                       filter === f.key
                         ? 'bg-blue-500/15 border-blue-500/30 text-blue-400'
-                        : 'bg-zinc-800/40 border-zinc-700/30 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/70'
+                        : 'bg-vt-neutral-800/40 border-vt-neutral-700/30 text-vt-neutral-400 hover:text-vt-neutral-100 hover:bg-vt-neutral-800/70'
                     }`}
                   >
                     <Icon className="h-2.5 w-2.5" />
@@ -338,15 +338,15 @@ export default function TrustGraphExplorer() {
             {loading ? (
               <div className="space-y-1.5 animate-pulse">
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="h-12 rounded-lg bg-zinc-800/40" />
+                  <div key={i} className="h-12 rounded-lg bg-vt-neutral-800/40" />
                 ))}
               </div>
             ) : error ? (
-              <div className="text-xs text-amber-400 text-center py-6">{error}</div>
+              <div className="body-sm text-amber-400 text-center py-6">{error}</div>
             ) : results.length === 0 ? (
               <div className="text-center py-8">
-                <Search className="h-6 w-6 text-zinc-700 mx-auto mb-2" />
-                <p className="text-xs text-zinc-600">
+                <Search className="h-6 w-6 text-vt-neutral-700 mx-auto mb-2" />
+                <p className="body-sm text-vt-neutral-600">
                   {query ? `No results for "${query}"` : 'No nodes found'}
                 </p>
               </div>
@@ -368,7 +368,7 @@ export default function TrustGraphExplorer() {
                   </motion.div>
                 ))}
                 {results.length > 50 && (
-                  <p className="text-center text-[10px] text-zinc-600 py-2">
+                  <p className="text-center body-sm text-vt-neutral-600 py-2">
                     Showing 50 of {results.length} — refine your search
                   </p>
                 )}
@@ -383,15 +383,15 @@ export default function TrustGraphExplorer() {
             <NodeInspector node={selectedNode} onClose={() => setSelectedNode(null)} />
           ) : (
             <div className="w-72 h-full flex flex-col items-center justify-center text-center px-6">
-              <div className="w-10 h-10 rounded-xl bg-zinc-800/60 flex items-center justify-center mb-3">
+              <div className="w-10 h-10 rounded-xl bg-vt-surface-ops-raised/60 flex items-center justify-center mb-3">
                 {loading ? (
-                  <Loader2 className="h-4 w-4 text-zinc-600 animate-spin" />
+                  <Loader2 className="h-4 w-4 text-vt-neutral-600 animate-spin" />
                 ) : (
-                  <Search className="h-4 w-4 text-zinc-600" />
+                  <Search className="h-4 w-4 text-vt-neutral-600" />
                 )}
               </div>
-              <p className="text-xs font-medium text-zinc-500">Select a node</p>
-              <p className="text-[11px] text-zinc-700 mt-1">
+              <p className="label text-vt-neutral-400">Select a node</p>
+              <p className="body-sm text-vt-neutral-700 mt-1">
                 Search and click any issuer, clinician, or payer to inspect its trust profile.
               </p>
             </div>

@@ -7,6 +7,7 @@
  * throughput, network nodes, latency, and active incidents.
  */
 
+import { Grid } from '@/components/layout/Grid';
 import { IncidentPanel } from '@/components/system/IncidentPanel';
 import NetworkTelemetryIntelligence from '@/components/telemetry/NetworkTelemetryIntelligence';
 import { motion } from 'framer-motion';
@@ -63,9 +64,9 @@ interface NetworkHealthStats {
 // ── Styles ────────────────────────────────────────────────────────────
 
 const STATUS_COLOR: Record<string, { bg: string; text: string; dot: string }> = {
-  OPERATIONAL: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', dot: 'bg-emerald-400' },
-  DEGRADED: { bg: 'bg-amber-500/10', text: 'text-amber-400', dot: 'bg-amber-400' },
-  OUTAGE: { bg: 'bg-red-500/10', text: 'text-red-400', dot: 'bg-red-400' },
+  OPERATIONAL: { bg: 'bg-vt-success/10', text: 'text-vt-success', dot: 'bg-vt-success' },
+  DEGRADED: { bg: 'bg-vt-warning/10', text: 'text-vt-warning', dot: 'bg-vt-warning' },
+  OUTAGE: { bg: 'bg-vt-danger/10', text: 'text-vt-danger', dot: 'bg-red-400' },
 };
 
 // ── Component ─────────────────────────────────────────────────────────
@@ -99,7 +100,7 @@ export default function StatusPage() {
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`rounded-2xl border border-white/8 ${style.bg} p-8 text-center`}
+          className={`rounded-2xl border border-vt-neutral-800 ${style.bg} p-8 text-center`}
         >
           <div className="flex items-center justify-center gap-3 mb-2">
             <span className={`inline-block h-3 w-3 rounded-full ${style.dot} animate-pulse`} />
@@ -110,7 +111,7 @@ export default function StatusPage() {
             </span>
           </div>
           {status && (
-            <p className="text-xs text-zinc-500 font-mono">
+            <p className="text-xs text-vt-neutral-800 code">
               Uptime: {status.uptime} | Last updated: {new Date(status.generatedAt).toLocaleTimeString()}
             </p>
           )}
@@ -125,34 +126,34 @@ export default function StatusPage() {
           <NetworkTelemetryIntelligence windowDays={7} />
         </motion.div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Grid cols={1} lg={2} gap="lg">
           {/* Verification Health */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="rounded-xl border border-white/8 bg-slate-900/40 p-5"
+            className="rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 p-5"
           >
-            <h3 className="text-[10px] text-zinc-500 uppercase tracking-wider mb-3 font-mono">
+            <h3 className="text-[10px] text-vt-neutral-800 uppercase tracking-wider mb-3 code">
               Verification Throughput
             </h3>
             {status ? (
               <div className="space-y-3">
                 <div className="flex justify-between text-xs">
-                  <span className="text-zinc-400">Last 1 hour</span>
-                  <span className="text-white font-mono">{status.verificationHealth.last1h}</span>
+                  <span className="text-vt-neutral-200">Last 1 hour</span>
+                  <span className="text-white code">{status.verificationHealth.last1h}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-zinc-400">Last 24 hours</span>
-                  <span className="text-white font-mono">{status.verificationHealth.last24h}</span>
+                  <span className="text-vt-neutral-200">Last 24 hours</span>
+                  <span className="text-white code">{status.verificationHealth.last24h}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-zinc-400">Avg Latency</span>
-                  <span className="text-white font-mono">{status.latency.average} ms</span>
+                  <span className="text-vt-neutral-200">Avg Latency</span>
+                  <span className="text-white code">{status.latency.average} ms</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-zinc-400">P95 Latency</span>
-                  <span className="text-white font-mono">{status.latency.p95} ms</span>
+                  <span className="text-vt-neutral-200">P95 Latency</span>
+                  <span className="text-white code">{status.latency.p95} ms</span>
                 </div>
               </div>
             ) : (
@@ -169,28 +170,28 @@ export default function StatusPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="rounded-xl border border-white/8 bg-slate-900/40 p-5"
+            className="rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 p-5"
           >
-            <h3 className="text-[10px] text-zinc-500 uppercase tracking-wider mb-3 font-mono">
+            <h3 className="text-[10px] text-vt-neutral-800 uppercase tracking-wider mb-3 code">
               Artifact Integrity
             </h3>
             {status ? (
               <div className="space-y-3">
                 <div className="flex justify-between text-xs">
-                  <span className="text-zinc-400">Total Artifacts</span>
-                  <span className="text-white font-mono">{status.artifactIntegrity.total}</span>
+                  <span className="text-vt-neutral-200">Total Artifacts</span>
+                  <span className="text-white code">{status.artifactIntegrity.total}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-zinc-400">Verified</span>
-                  <span className="text-emerald-400 font-mono">{status.artifactIntegrity.verified}</span>
+                  <span className="text-vt-neutral-200">Verified</span>
+                  <span className="text-vt-success code">{status.artifactIntegrity.verified}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-zinc-400">Revoked</span>
-                  <span className="text-red-400 font-mono">{status.artifactIntegrity.revoked}</span>
+                  <span className="text-vt-neutral-200">Revoked</span>
+                  <span className="text-vt-danger code">{status.artifactIntegrity.revoked}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-zinc-400">Expired</span>
-                  <span className="text-amber-400 font-mono">{status.artifactIntegrity.expired}</span>
+                  <span className="text-vt-neutral-200">Expired</span>
+                  <span className="text-vt-warning code">{status.artifactIntegrity.expired}</span>
                 </div>
               </div>
             ) : (
@@ -201,7 +202,7 @@ export default function StatusPage() {
               </div>
             )}
           </motion.div>
-        </div>
+        </Grid>
 
         {/* Extended Telemetry — Wave 135 */}
         <motion.div
@@ -209,25 +210,25 @@ export default function StatusPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.22 }}
         >
-          <h2 className="text-[10px] text-zinc-500 uppercase tracking-wider mb-3 font-mono">
+          <h2 className="text-[10px] text-vt-neutral-800 uppercase tracking-wider mb-3 code">
             Extended Trust Metrics
           </h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <Grid cols={2} lg={4} gap="md">
             {/* Revocation Count — from system status artifactIntegrity */}
-            <div className="rounded-xl border border-white/8 bg-slate-900/40 p-4">
-              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mb-2">Revocations</p>
+            <div className="rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 p-4">
+              <p className="text-[10px] code uppercase tracking-wider text-vt-neutral-800 mb-2">Revocations</p>
               {loading ? (
                 <div className="h-8 w-16 rounded bg-white/5 animate-pulse" />
               ) : (
-                <p className="text-2xl font-bold text-red-400 font-mono">
+                <p className="heading-xl text-vt-danger code">
                   {status?.artifactIntegrity?.revoked ?? '—'}
                 </p>
               )}
-              <p className="text-xs text-zinc-600 mt-1">cumulative revoked</p>
+              <p className="text-xs text-vt-neutral-800 mt-1">cumulative revoked</p>
             </div>
             {/* Issuer Health — from networkHealth stats */}
-            <div className="rounded-xl border border-white/8 bg-slate-900/40 p-4">
-              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mb-2">Issuer Health</p>
+            <div className="rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 p-4">
+              <p className="text-[10px] code uppercase tracking-wider text-vt-neutral-800 mb-2">Issuer Health</p>
               {loading ? (
                 <div className="h-8 w-16 rounded bg-white/5 animate-pulse" />
               ) : networkHealth ? (
@@ -235,30 +236,30 @@ export default function StatusPage() {
                   <div className="flex items-center gap-2">
                     <span className={`h-2 w-2 rounded-full ${
                       networkHealth.stats.healthyIssuers === networkHealth.stats.totalIssuers
-                        ? 'bg-emerald-400' : 'bg-amber-400'
+                        ? 'bg-vt-success' : 'bg-vt-warning'
                     }`} />
-                    <p className={`text-2xl font-bold font-mono ${
+                    <p className={`heading-xl code ${
                       networkHealth.stats.healthyIssuers === networkHealth.stats.totalIssuers
-                        ? 'text-emerald-400' : 'text-amber-400'
+                        ? 'text-vt-success' : 'text-vt-warning'
                     }`}>
                       {networkHealth.stats.healthyIssuers}/{networkHealth.stats.totalIssuers}
                     </p>
                   </div>
-                  <p className="text-xs text-zinc-600 mt-1">issuers healthy</p>
+                  <p className="text-xs text-vt-neutral-800 mt-1">issuers healthy</p>
                 </>
               ) : (
                 <>
                   <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-zinc-600" />
-                    <p className="text-2xl font-bold text-zinc-500 font-mono">—</p>
+                    <span className="h-2 w-2 rounded-full bg-vt-neutral-600" />
+                    <p className="heading-xl text-vt-neutral-800 code">—</p>
                   </div>
-                  <p className="text-xs text-zinc-600 mt-1">unavailable</p>
+                  <p className="text-xs text-vt-neutral-800 mt-1">unavailable</p>
                 </>
               )}
             </div>
             {/* Federation Health — from networkHealth stats */}
-            <div className="rounded-xl border border-white/8 bg-slate-900/40 p-4">
-              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mb-2">Federation</p>
+            <div className="rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 p-4">
+              <p className="text-[10px] code uppercase tracking-wider text-vt-neutral-800 mb-2">Federation</p>
               {loading ? (
                 <div className="h-8 w-16 rounded bg-white/5 animate-pulse" />
               ) : networkHealth ? (
@@ -266,42 +267,42 @@ export default function StatusPage() {
                   <div className="flex items-center gap-2">
                     <span className={`h-2 w-2 rounded-full ${
                       networkHealth.stats.activeNetworks === networkHealth.stats.federatedNetworks
-                        ? 'bg-sky-400' : 'bg-amber-400'
+                        ? 'bg-vt-info' : 'bg-vt-warning'
                     }`} />
-                    <p className={`text-2xl font-bold font-mono ${
+                    <p className={`heading-xl code ${
                       networkHealth.stats.activeNetworks === networkHealth.stats.federatedNetworks
-                        ? 'text-sky-400' : 'text-amber-400'
+                        ? 'text-vt-info' : 'text-vt-warning'
                     }`}>
                       {networkHealth.stats.activeNetworks}/{networkHealth.stats.federatedNetworks}
                     </p>
                   </div>
-                  <p className="text-xs text-zinc-600 mt-1">networks active</p>
+                  <p className="text-xs text-vt-neutral-800 mt-1">networks active</p>
                 </>
               ) : (
                 <>
                   <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-zinc-600" />
-                    <p className="text-2xl font-bold text-zinc-500 font-mono">—</p>
+                    <span className="h-2 w-2 rounded-full bg-vt-neutral-600" />
+                    <p className="heading-xl text-vt-neutral-800 code">—</p>
                   </div>
-                  <p className="text-xs text-zinc-600 mt-1">unavailable</p>
+                  <p className="text-xs text-vt-neutral-800 mt-1">unavailable</p>
                 </>
               )}
             </div>
             {/* Audit Event Rate — from system status verificationHealth */}
-            <div className="rounded-xl border border-white/8 bg-slate-900/40 p-4">
-              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mb-2">Audit Rate</p>
+            <div className="rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 p-4">
+              <p className="text-[10px] code uppercase tracking-wider text-vt-neutral-800 mb-2">Audit Rate</p>
               {loading ? (
                 <div className="h-8 w-16 rounded bg-white/5 animate-pulse" />
               ) : (
-                <p className="text-2xl font-bold text-violet-400 font-mono">
+                <p className="heading-xl text-vt-brand-primary code">
                   {status?.verificationHealth?.last1h != null
                     ? `${status.verificationHealth.last1h}/hr`
                     : '—'}
                 </p>
               )}
-              <p className="text-xs text-zinc-600 mt-1">events this hour</p>
+              <p className="text-xs text-vt-neutral-800 mt-1">events this hour</p>
             </div>
-          </div>
+          </Grid>
         </motion.div>
 
         {/* Source Connectivity */}
@@ -310,9 +311,9 @@ export default function StatusPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
-            className="rounded-xl border border-white/8 bg-slate-900/40 p-5"
+            className="rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 p-5"
           >
-            <h3 className="text-[10px] text-zinc-500 uppercase tracking-wider mb-3 font-mono">
+            <h3 className="text-[10px] text-vt-neutral-800 uppercase tracking-wider mb-3 code">
               Source Connectivity
             </h3>
             <div className="space-y-2">
@@ -325,8 +326,8 @@ export default function StatusPage() {
                       <span className="text-white">{src.source}</span>
                     </div>
                     <div className="flex items-center gap-4">
-                      <span className="text-zinc-500 font-mono">{src.artifactCount} artifacts</span>
-                      <span className={`${srcStyle.text} font-mono uppercase text-[10px]`}>
+                      <span className="text-vt-neutral-800 code">{src.artifactCount} artifacts</span>
+                      <span className={`${srcStyle.text} code uppercase text-[10px]`}>
                         {src.status}
                       </span>
                     </div>

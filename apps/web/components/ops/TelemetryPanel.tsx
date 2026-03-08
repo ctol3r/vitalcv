@@ -12,11 +12,10 @@
  * Renders 4 MetricCards with sparklines. Auto-refreshes every 60s.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { RefreshCw, ShieldCheck, AlertTriangle, Building, Cpu } from 'lucide-react';
 import MetricCard, { type MetricCardProps } from '@/components/telemetry/MetricCard';
 import type { TimeSeriesPoint } from '@/components/telemetry/TimeSeriesChart';
-import { getApiBase } from '@/lib/api';
+import { Cpu, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -80,15 +79,13 @@ export default function OpsTelemetryPanel() {
   const [loading, setLoading] = useState(true);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const apiBase = getApiBase();
-
   const fetchAll = useCallback(async () => {
     const headers = { Accept: 'application/json' };
     const results = await Promise.allSettled([
-      fetch(`${apiBase}/api/network/telemetry/verifications`, { headers }),
-      fetch(`${apiBase}/api/network/telemetry/revocations`, { headers }),
-      fetch(`${apiBase}/api/network/telemetry/issuers`, { headers }),
-      fetch(`${apiBase}/api/network/global/performance`, { headers }),
+      fetch('/api/network/telemetry/verifications', { headers }),
+      fetch('/api/network/telemetry/revocations', { headers }),
+      fetch('/api/network/telemetry/issuers', { headers }),
+      fetch('/api/network/global/performance', { headers }),
     ]);
 
     if (results[0].status === 'fulfilled' && results[0].value.ok) {
@@ -105,7 +102,7 @@ export default function OpsTelemetryPanel() {
     }
 
     setLoading(false);
-  }, [apiBase]);
+  }, []);
 
   useEffect(() => {
     fetchAll();
@@ -179,19 +176,19 @@ export default function OpsTelemetryPanel() {
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/30 overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-800 bg-zinc-900/60">
+    <div className="rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-raised/30 overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-vt-neutral-800 bg-vt-surface-ops-raised/60">
         <div className="flex items-center gap-2">
           <Cpu className="h-4 w-4 text-cyan-400" />
-          <span className="text-sm font-semibold text-zinc-200">Operator Telemetry</span>
-          <span className="text-[10px] font-mono text-zinc-600 border border-zinc-800 rounded px-1.5 py-0.5">
+          <span className="heading-sm text-vt-neutral-100">Operator Telemetry</span>
+          <span className="code text-vt-neutral-600 border border-vt-neutral-800 rounded px-1.5 py-0.5">
             CC-146
           </span>
         </div>
         <button
           type="button"
           onClick={fetchAll}
-          className="p-1 text-zinc-500 hover:text-zinc-300 transition-colors"
+          className="p-1 text-vt-neutral-400 hover:text-vt-neutral-100 transition-colors"
           title="Refresh telemetry"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -201,7 +198,7 @@ export default function OpsTelemetryPanel() {
       {loading && !verifications ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-5 animate-pulse">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-28 rounded-xl bg-zinc-800/40" />
+            <div key={i} className="h-28 rounded-xl bg-vt-neutral-800/40" />
           ))}
         </div>
       ) : (

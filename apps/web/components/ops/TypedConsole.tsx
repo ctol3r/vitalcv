@@ -48,7 +48,7 @@ const KIND_COLOR: Record<NonNullable<ConsoleLine['kind']>, string> = {
   success: 'text-emerald-400',
   warn:    'text-amber-400',
   error:   'text-red-400',
-  muted:   'text-zinc-600',
+  muted:   'text-vt-neutral-600',
   command: 'text-violet-400',
 };
 
@@ -157,19 +157,19 @@ export default function TypedConsole({
 
   return (
     <div
-      className={`relative rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden ${className}`}
+      className={`relative rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-base overflow-hidden ${className}`}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
       {/* Title bar */}
-      <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-zinc-800 bg-zinc-900/70">
+      <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-vt-neutral-800 bg-vt-surface-ops-raised/70">
         <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
         <div className="w-2.5 h-2.5 rounded-full bg-amber-500/70" />
         <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/70" />
-        <span className="ml-3 type-code text-zinc-600 text-[11px]">
+        <span className="ml-3 type-code text-vt-neutral-600 text-[11px]">
           vitalcv — trust console
         </span>
-        {paused && <span className="ml-auto text-[10px] text-zinc-600">paused</span>}
+        {paused && <span className="ml-auto text-[10px] text-vt-neutral-600">paused</span>}
       </div>
 
       {/* Console body */}
@@ -185,7 +185,7 @@ export default function TypedConsole({
                 transition={{ duration: 0.15 }}
                 className={`flex items-start gap-1 ${KIND_COLOR[kind]}`}
               >
-                <span className="shrink-0 text-zinc-700">{prompt}</span>
+                <span className="shrink-0 text-vt-neutral-700">{prompt}</span>
                 <span className="shrink-0">{KIND_PREFIX[kind]}</span>
                 <span>{line.text}</span>
               </motion.div>
@@ -196,7 +196,7 @@ export default function TypedConsole({
         {/* Current typing line */}
         {currentLine && !done && (
           <div className={`flex items-start gap-1 ${KIND_COLOR[currentLine.kind ?? 'info']}`}>
-            <span className="shrink-0 text-zinc-700">{prompt}</span>
+            <span className="shrink-0 text-vt-neutral-700">{prompt}</span>
             <span className="shrink-0">{KIND_PREFIX[currentLine.kind ?? 'info']}</span>
             <span>
               {currentText}
@@ -206,9 +206,9 @@ export default function TypedConsole({
         )}
 
         {done && (
-          <div className="flex items-center gap-1 text-zinc-700">
+          <div className="flex items-center gap-1 text-vt-neutral-700">
             <span>{prompt}</span>
-            <span className="inline-block w-[7px] h-[13px] bg-zinc-700 ml-0.5 animate-pulse align-text-bottom" />
+            <span className="inline-block w-[7px] h-[13px] bg-vt-neutral-700 ml-0.5 animate-pulse align-text-bottom" />
           </div>
         )}
 

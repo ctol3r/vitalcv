@@ -1,0 +1,81 @@
+/* ─────────────────────────────────────────────────────────────
+ *  VitalCV Token Framework (Wave 174)
+ *  Unified design token layer
+ * ───────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── Color Tokens ──────────────────────────────────────────── */
+  --vt-color-brand-primary:   oklch(0.55 0.20 255); /* Trust Blue */
+  --vt-color-brand-secondary: oklch(0.48 0.18 255);
+  --vt-color-neutral-100:     oklch(0.965 0 0); /* zinc-100 equivalent */
+  --vt-color-neutral-200:     oklch(0.922 0 0);
+  --vt-color-neutral-300:     oklch(0.870 0 0);
+  --vt-color-neutral-400:     oklch(0.700 0 0);
+  --vt-color-neutral-500:     oklch(0.550 0 0); /* gray-500/zinc-500 equivalent */
+  --vt-color-neutral-600:     oklch(0.400 0 0);
+  --vt-color-neutral-700:     oklch(0.320 0 0);
+  --vt-color-neutral-800:     oklch(0.274 0 0); /* zinc-800 equivalent */
+  --vt-color-neutral-900:     oklch(0.210 0 0);
+
+  --vt-color-success:         oklch(0.68 0.18 155);
+  --vt-color-warning:         oklch(0.75 0.17 80);
+  --vt-color-danger:          oklch(0.65 0.20 25);
+  --vt-color-info:            oklch(0.60 0.18 255);
+
+  /* ── Surface Tokens ────────────────────────────────────────── */
+  --vt-surface-base:          oklch(0.985 0 0);
+  --vt-surface-sunken:        oklch(0.965 0 0);
+  --vt-surface-raised:        oklch(1 0 0);
+  --vt-surface-overlay:       oklch(1 0 0 / 0.8);
+  --vt-surface-brand:         oklch(0.97 0.03 255);
+
+  --vt-surface-ops-base:      oklch(0.08 0.005 255);
+  --vt-surface-ops-raised:    oklch(0.12 0.008 255);
+
+  /* ── Outline Tokens ────────────────────────────────────────── */
+  --vt-outline-thin:          1px solid var(--vt-color-neutral-200);
+  --vt-outline-default:       1px solid var(--vt-color-neutral-800);
+  --vt-outline-strong:        2px solid var(--vt-color-neutral-900);
+  --vt-outline-focus:         2px solid var(--vt-color-brand-primary);
+
+  /* ── Spacing Tokens ────────────────────────────────────────── */
+  --vt-spacing-xs:            0.25rem;  /* 4px */
+  --vt-spacing-sm:            0.5rem;   /* 8px */
+  --vt-spacing-md:            1rem;     /* 16px */
+  --vt-spacing-lg:            1.5rem;   /* 24px */
+  --vt-spacing-xl:            2rem;     /* 32px */
+  --vt-spacing-2xl:           3rem;     /* 48px */
+
+  /* ── Radius Tokens ─────────────────────────────────────────── */
+  --vt-radius-sm:             0.25rem;  /* 4px */
+  --vt-radius-md:             0.5rem;   /* 8px */
+  --vt-radius-lg:             0.75rem;  /* 12px */
+  --vt-radius-full:           9999px;
+
+  /* ── Shadow Tokens ─────────────────────────────────────────── */
+  --vt-shadow-sm:             0 1px 2px oklch(0 0 0 / 0.05);
+  --vt-shadow-md:             0 4px 6px -1px oklch(0 0 0 / 0.1), 0 2px 4px -1px oklch(0 0 0 / 0.06);
+  --vt-shadow-lg:             0 10px 15px -3px oklch(0 0 0 / 0.1), 0 4px 6px -2px oklch(0 0 0 / 0.05);
+  --vt-shadow-glow:           0 0 15px var(--vt-color-brand-primary);
+}
+
+/* ── Dark Mode Support (Prepared for later) ──────────────────── */
+.dark {
+  --vt-color-brand-primary:   oklch(0.66 0.18 255);
+  --vt-color-neutral-100:     oklch(0.210 0 0);
+  --vt-color-neutral-200:     oklch(0.274 0 0);
+  --vt-color-neutral-300:     oklch(0.320 0 0);
+  --vt-color-neutral-400:     oklch(0.400 0 0);
+  --vt-color-neutral-500:     oklch(0.550 0 0);
+  --vt-color-neutral-600:     oklch(0.700 0 0);
+  --vt-color-neutral-700:     oklch(0.870 0 0);
+  --vt-color-neutral-800:     oklch(0.922 0 0);
+  --vt-color-neutral-900:     oklch(0.965 0 0);
+
+  --vt-surface-base:          oklch(0.12 0.008 255);
+  --vt-surface-sunken:        oklch(0.08 0.005 255);
+  --vt-surface-raised:        oklch(0.18 0.008 255);
+
+  --vt-outline-thin:          1px solid var(--vt-color-neutral-800);
+  --vt-outline-default:       1px solid var(--vt-color-neutral-200);
+}
