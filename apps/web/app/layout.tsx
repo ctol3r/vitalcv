@@ -1,3 +1,4 @@
+import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher';
 import FeedbackButton from '@/components/feedback/FeedbackButton';
 import Omnibar from '@/components/ops/Omnibar';
 import Footer from '@/components/layout/Footer';
@@ -5,7 +6,7 @@ import Navbar from '@/components/layout/Navbar';
 import { BackgroundField } from '@/components/motion/BackgroundField';
 import { CursorPhysics } from '@/components/motion/CursorPhysics';
 import { Toaster } from '@/components/ui/toaster';
-import { ClerkProvider } from '@clerk/nextjs';
+import { ClerkProvider, SignedIn } from '@clerk/nextjs';
 import type { Metadata } from 'next';
 import { Fraunces, Inter, JetBrains_Mono, Plus_Jakarta_Sans } from 'next/font/google';
 import type React from 'react';
@@ -63,6 +64,11 @@ export default function RootLayout({
           <CursorPhysics />
           <div className="relative flex min-h-screen flex-col">
             <Navbar />
+            {clerkEnabled ? (
+              <SignedIn>
+                <WorkspaceSwitcher />
+              </SignedIn>
+            ) : null}
             <div className="relative flex-1">{children}</div>
             <Footer />
           </div>
