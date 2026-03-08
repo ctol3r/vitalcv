@@ -8,7 +8,8 @@
  * jobs requiring it fall to PARTIAL, demonstrating the "Add Credential" flow.
  */
 
-import type { ClinicianProfile, JobPosting } from './eligibility';
+import type { ClinicianProfile } from './matchaModels';
+import type { JobPosting } from './eligibility';
 
 /* ------------------------------------------------------------------ */
 /*  Clinician Profile                                                  */
@@ -18,6 +19,7 @@ const DEFAULT_PROFILE: ClinicianProfile = {
   npi: '1003000126',
   name: 'Dr. Sarah Chen',
   specialty: 'Internal Medicine',
+  states: ['CA'],
   credentials: [
     {
       key: 'npi',
