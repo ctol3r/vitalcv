@@ -483,6 +483,61 @@ const spec: OpenAPIV3.Document = {
         },
       },
     },
+    // ── Wave 154: Wallet Export ─────────────────────────────────────────
+    '/api/credentials/export/wallet': {
+      post: {
+        tags: ['Wallet'],
+        summary: 'Export credentials to a wallet-compatible format',
+        description: 'Supports CHAPI (VPR/store) and SMART Health Card (file/deeplink/QR) export types.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['exportType'],
+                properties: {
+                  subject: { type: 'string', description: 'NPI or DID of the credential subject' },
+                  credentialIds: { type: 'array', items: { type: 'string' }, description: 'Credential IDs to export' },
+                  exportType: {
+                    type: 'string',
+                    enum: [
+                      'chapi_vpr_request',
+                      'chapi_store_payload',
+                      'smart_health_card_file',
+                      'smart_health_card_deeplink',
+                      'smart_health_card_qr_payload',
+                    ],
+                    description: 'Target wallet export format',
+                  },
+                  reason: { type: 'string', description: 'Reason for presentation request (CHAPI VPR only)' },
+                  domain: { type: 'string', description: 'Domain for the wallet interaction' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Wallet export payload',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    exportType: { type: 'string' },
+                    data: { type: 'object', description: 'Format-specific payload' },
+                  },
+                },
+              },
+            },
+          },
+          '400': { description: 'Invalid request parameters' },
+          '403': { description: 'Feature disabled' },
+          '500': { description: 'Export failed' },
+        },
+      },
+    },
   },
   tags: [
     { name: 'Health', description: 'Health and status endpoints' },
@@ -490,6 +545,7 @@ const spec: OpenAPIV3.Document = {
     { name: 'Trust State', description: 'Read-only trust state queries (public, rate-limited)' },
     { name: 'Verification', description: 'Verification request management' },
     { name: 'Ingest', description: 'Clinician identity and credential ingestion' },
+    { name: 'Wallet', description: 'Credential wallet export (CHAPI + SMART Health Cards)' },
   ],
 };
 
