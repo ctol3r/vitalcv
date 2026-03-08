@@ -1,0 +1,261 @@
+/**
+ * tokens.css — Wave 171: Design Token System
+ *
+ * Unified canonical token layer. Composes:
+ *   - design-tokens.css  (typography scale, spacing, radius, z-index — already loaded)
+ *   - globals.css        (palette, surfaces, infra colors — already loaded)
+ *
+ * This file adds:
+ *   1. Structured palette scales (--palette-*)         — neutral color ramps 50→950
+ *   2. Outline / border tokens   (--outline-*)         — width + style + color
+ *   3. Motion tokens             (--motion-*)          — easing, duration
+ *   4. Shadow tokens             (--shadow-*)          — elevation system
+ *   5. Operator surface tokens   (--ops-*)             — dark infra UI surface
+ *   6. Trust state tokens        (--trust-*)           — band and signal colors
+ *
+ * Does NOT duplicate tokens in design-tokens.css or globals.css.
+ * Import order: globals.css → design-tokens.css → typography.css → tokens.css
+ */
+
+/* ── 1. Palette Scales ────────────────────────────────────────────────────── */
+/*
+ * Provider-agnostic color ramps using oklch.
+ * Used as primitives; semantic tokens in globals.css reference these.
+ */
+
+:root {
+  /* ── Neutral (zinc) ──────────────────────────── */
+  --palette-neutral-50:  oklch(0.985 0 0);
+  --palette-neutral-100: oklch(0.965 0 0);
+  --palette-neutral-200: oklch(0.922 0 0);
+  --palette-neutral-300: oklch(0.870 0 0);
+  --palette-neutral-400: oklch(0.708 0 0);
+  --palette-neutral-500: oklch(0.552 0 0);
+  --palette-neutral-600: oklch(0.442 0 0);
+  --palette-neutral-700: oklch(0.370 0 0);
+  --palette-neutral-800: oklch(0.274 0 0);
+  --palette-neutral-900: oklch(0.210 0 0);
+  --palette-neutral-950: oklch(0.145 0 0);
+
+  /* ── Trust Blue (primary brand) ──────────────── */
+  --palette-blue-50:  oklch(0.97 0.03 255);
+  --palette-blue-100: oklch(0.93 0.06 255);
+  --palette-blue-200: oklch(0.87 0.10 255);
+  --palette-blue-300: oklch(0.78 0.14 255);
+  --palette-blue-400: oklch(0.66 0.18 255);
+  --palette-blue-500: oklch(0.55 0.20 255);
+  --palette-blue-600: oklch(0.48 0.18 255);
+  --palette-blue-700: oklch(0.40 0.16 255);
+  --palette-blue-800: oklch(0.33 0.13 255);
+  --palette-blue-900: oklch(0.26 0.10 255);
+  --palette-blue-950: oklch(0.18 0.07 255);
+
+  /* ── Verification Green ──────────────────────── */
+  --palette-green-50:  oklch(0.97 0.03 155);
+  --palette-green-100: oklch(0.93 0.07 155);
+  --palette-green-200: oklch(0.87 0.12 155);
+  --palette-green-300: oklch(0.78 0.16 155);
+  --palette-green-400: oklch(0.66 0.18 155);
+  --palette-green-500: oklch(0.55 0.18 155);
+  --palette-green-600: oklch(0.47 0.17 155);
+  --palette-green-700: oklch(0.38 0.14 155);
+  --palette-green-800: oklch(0.30 0.11 155);
+  --palette-green-900: oklch(0.23 0.08 155);
+  --palette-green-950: oklch(0.15 0.05 155);
+
+  /* ── Revocation Red ──────────────────────────── */
+  --palette-red-50:  oklch(0.97 0.02 25);
+  --palette-red-100: oklch(0.93 0.05 25);
+  --palette-red-200: oklch(0.87 0.10 25);
+  --palette-red-300: oklch(0.78 0.15 25);
+  --palette-red-400: oklch(0.67 0.18 25);
+  --palette-red-500: oklch(0.55 0.20 25);
+  --palette-red-600: oklch(0.48 0.18 25);
+  --palette-red-700: oklch(0.40 0.15 25);
+  --palette-red-800: oklch(0.32 0.12 25);
+  --palette-red-900: oklch(0.24 0.08 25);
+  --palette-red-950: oklch(0.16 0.05 25);
+
+  /* ── Warning Amber ───────────────────────────── */
+  --palette-amber-50:  oklch(0.98 0.03 80);
+  --palette-amber-100: oklch(0.95 0.07 80);
+  --palette-amber-200: oklch(0.90 0.13 80);
+  --palette-amber-300: oklch(0.84 0.17 80);
+  --palette-amber-400: oklch(0.76 0.18 80);
+  --palette-amber-500: oklch(0.68 0.18 80);
+  --palette-amber-600: oklch(0.58 0.16 80);
+  --palette-amber-700: oklch(0.47 0.13 80);
+  --palette-amber-800: oklch(0.36 0.10 80);
+  --palette-amber-900: oklch(0.26 0.07 80);
+  --palette-amber-950: oklch(0.18 0.04 80);
+
+  /* ── Violet (employer, authority) ────────────── */
+  --palette-violet-50:  oklch(0.97 0.03 290);
+  --palette-violet-100: oklch(0.93 0.07 290);
+  --palette-violet-200: oklch(0.86 0.12 290);
+  --palette-violet-300: oklch(0.76 0.17 290);
+  --palette-violet-400: oklch(0.64 0.20 290);
+  --palette-violet-500: oklch(0.55 0.18 290);
+  --palette-violet-600: oklch(0.47 0.16 290);
+  --palette-violet-700: oklch(0.38 0.14 290);
+  --palette-violet-800: oklch(0.30 0.11 290);
+  --palette-violet-900: oklch(0.22 0.07 290);
+  --palette-violet-950: oklch(0.15 0.05 290);
+}
+
+/* ── 2. Outline / Border Tokens ───────────────────────────────────────────── */
+
+:root {
+  /* Width */
+  --outline-width-thin:   1px;
+  --outline-width-normal: 1.5px;
+  --outline-width-thick:  2px;
+  --outline-width-heavy:  3px;
+
+  /* Style shortcuts */
+  --outline-subtle:   1px solid var(--palette-neutral-800);
+  --outline-default:  1px solid var(--palette-neutral-700);
+  --outline-strong:   1.5px solid var(--palette-neutral-600);
+  --outline-focus:    2px solid var(--palette-blue-500);
+  --outline-trust:    1.5px solid var(--palette-green-600);
+  --outline-warning:  1.5px solid var(--palette-amber-500);
+  --outline-danger:   1.5px solid var(--palette-red-500);
+
+  /* Separator / divider */
+  --divider-color:      oklch(0.28 0.008 255 / 0.6);
+  --divider-color-soft: oklch(0.25 0.008 255 / 0.3);
+}
+
+/* ── 3. Motion Tokens ─────────────────────────────────────────────────────── */
+
+:root {
+  /* Easing curves */
+  --ease-standard:   cubic-bezier(0.2, 0, 0, 1);        /* Material standard */
+  --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);        /* Entering elements */
+  --ease-accelerate: cubic-bezier(0.4, 0, 1, 1);        /* Exiting elements */
+  --ease-spring:     cubic-bezier(0.2, 0.8, 0.2, 1);    /* VitalCV antigravity */
+  --ease-bounce:     cubic-bezier(0.34, 1.56, 0.64, 1); /* Playful expand */
+
+  /* Durations */
+  --duration-instant:  80ms;
+  --duration-fast:     150ms;
+  --duration-normal:   250ms;
+  --duration-slow:     350ms;
+  --duration-xslow:    500ms;
+  --duration-stagger:  60ms;     /* Per-item stagger increment */
+
+  /* Transition presets */
+  --transition-colors:    color var(--duration-fast) var(--ease-standard),
+                          background-color var(--duration-fast) var(--ease-standard),
+                          border-color var(--duration-fast) var(--ease-standard),
+                          opacity var(--duration-fast) var(--ease-standard);
+  --transition-transform: transform var(--duration-normal) var(--ease-spring);
+  --transition-all:       all var(--duration-normal) var(--ease-spring);
+}
+
+/* ── 4. Shadow / Elevation Tokens ─────────────────────────────────────────── */
+
+:root {
+  /* Resting / flat */
+  --shadow-none: none;
+
+  /* Low elevation — cards, chips */
+  --shadow-xs: 0 1px 2px oklch(0.10 0 0 / 0.20),
+               0 0 0 1px oklch(0.10 0 0 / 0.04);
+
+  /* Default card */
+  --shadow-sm: 0 2px 4px oklch(0.10 0 0 / 0.20),
+               0 1px 2px oklch(0.10 0 0 / 0.12);
+
+  /* Raised panel */
+  --shadow-md: 0 4px 12px oklch(0.10 0 0 / 0.22),
+               0 2px 4px oklch(0.10 0 0 / 0.12);
+
+  /* Floating modal */
+  --shadow-lg: 0 8px 24px oklch(0.10 0 0 / 0.30),
+               0 2px 8px oklch(0.10 0 0 / 0.16);
+
+  /* Command surface / overlay */
+  --shadow-xl: 0 16px 48px oklch(0.10 0 0 / 0.40),
+               0 4px 16px oklch(0.10 0 0 / 0.20);
+
+  /* Focus ring glow (blue trust) */
+  --shadow-focus-blue:  0 0 0 3px oklch(0.55 0.20 255 / 0.35);
+  --shadow-focus-green: 0 0 0 3px oklch(0.55 0.18 155 / 0.35);
+}
+
+/* ── 5. Operator Surface Tokens (dark infra, /mission-ops, /network) ──────── */
+
+:root {
+  --ops-bg:          oklch(0.08 0.005 255);   /* Near-black blue-tinted */
+  --ops-surface:     oklch(0.12 0.008 255);   /* Panel surface */
+  --ops-surface-alt: oklch(0.15 0.008 255);   /* Hover / selected state */
+  --ops-border:      oklch(0.22 0.010 255);   /* Default border */
+  --ops-border-soft: oklch(0.18 0.008 255);   /* Subtle divider */
+  --ops-text:        oklch(0.88 0.005 255);   /* Primary text */
+  --ops-text-muted:  oklch(0.55 0.008 255);   /* Secondary text */
+  --ops-text-subtle: oklch(0.38 0.006 255);   /* Placeholder, disabled */
+
+  /* Status indicators on dark surfaces */
+  --ops-status-ok:      oklch(0.68 0.18 155);
+  --ops-status-warn:    oklch(0.75 0.17 80);
+  --ops-status-error:   oklch(0.65 0.20 25);
+  --ops-status-neutral: oklch(0.50 0.008 255);
+  --ops-status-active:  oklch(0.60 0.18 255);
+}
+
+/* ── 6. Trust State Tokens ────────────────────────────────────────────────── */
+
+:root {
+  /* Band levels L0–L3 */
+  --trust-l0-fg:   oklch(0.55 0.008 255);
+  --trust-l0-bg:   oklch(0.20 0.005 255);
+  --trust-l0-ring: oklch(0.35 0.008 255);
+
+  --trust-l1-fg:   oklch(0.65 0.18 255);
+  --trust-l1-bg:   oklch(0.15 0.08 255);
+  --trust-l1-ring: oklch(0.40 0.15 255);
+
+  --trust-l2-fg:   oklch(0.68 0.18 180);
+  --trust-l2-bg:   oklch(0.14 0.06 180);
+  --trust-l2-ring: oklch(0.42 0.14 180);
+
+  --trust-l3-fg:   oklch(0.68 0.18 155);
+  --trust-l3-bg:   oklch(0.14 0.06 155);
+  --trust-l3-ring: oklch(0.42 0.15 155);
+
+  /* Signal states */
+  --trust-signal-verified:  oklch(0.68 0.18 155);
+  --trust-signal-pending:   oklch(0.68 0.18 255);
+  --trust-signal-expired:   oklch(0.72 0.17 80);
+  --trust-signal-revoked:   oklch(0.62 0.20 25);
+
+  /* Score gradient stops (0–100 mapped to CSS) */
+  --trust-score-low:    oklch(0.62 0.20 25);
+  --trust-score-mid:    oklch(0.72 0.17 80);
+  --trust-score-high:   oklch(0.68 0.18 155);
+}
+
+/* ── Utility classes that consume ops tokens ──────────────────────────────── */
+
+.ops-surface {
+  background-color: var(--ops-surface);
+  color:            var(--ops-text);
+  border:           var(--outline-subtle);
+}
+
+.ops-surface-alt {
+  background-color: var(--ops-surface-alt);
+  color:            var(--ops-text);
+}
+
+.ops-border { border-color: var(--ops-border); }
+.ops-text   { color: var(--ops-text); }
+.ops-muted  { color: var(--ops-text-muted); }
+.ops-subtle { color: var(--ops-text-subtle); }
+
+/* Trust state classes */
+.trust-l3 { color: var(--trust-l3-fg); background: var(--trust-l3-bg); }
+.trust-l2 { color: var(--trust-l2-fg); background: var(--trust-l2-bg); }
+.trust-l1 { color: var(--trust-l1-fg); background: var(--trust-l1-bg); }
+.trust-l0 { color: var(--trust-l0-fg); background: var(--trust-l0-bg); }

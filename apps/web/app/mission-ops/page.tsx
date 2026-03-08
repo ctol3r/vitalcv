@@ -39,6 +39,7 @@ import PayerNetworkPanel from '@/components/ops/PayerNetworkPanel';
 import NetworkTelemetryDashboard from '@/components/telemetry/NetworkTelemetryDashboard';
 import NetworkHealthPanel from '@/components/network/NetworkHealthPanel';
 import DebugPanel from '@/components/ops/DebugPanel';
+import { MetricStrip } from '@/components/layout/Grid';
 
 interface MissionOpsOverview {
   issuerOnboarding: { total: number; complete: number; inProgress: number; blocked: number };
@@ -178,8 +179,9 @@ export default function MissionOpsPage() {
 
       {overview && (
         <div className="max-w-6xl mx-auto px-6 py-6 space-y-6">
-          {/* Top-level metrics */}
-          <motion.div {...fadeUp} className="grid grid-cols-5 gap-3">
+          {/* Top-level metrics — Wave 173: MetricStrip grid */}
+          <motion.div {...fadeUp}>
+          <MetricStrip cols={5} gap="sm">
             {[
               { icon: Building, label: 'Issuers', value: overview.trustRegistryHealth.totalIssuers, sub: `${overview.trustRegistryHealth.haipCompliant} HAIP`, color: 'text-emerald-400' },
               { icon: Users, label: 'Verifiers', value: overview.verifierOnboarding.total, sub: `${overview.verifierOnboarding.complete} active`, color: 'text-blue-400' },
@@ -196,6 +198,7 @@ export default function MissionOpsPage() {
                 <p className="text-[10px] text-zinc-600 mt-0.5">{sub}</p>
               </div>
             ))}
+          </MetricStrip>
           </motion.div>
 
           {/* Onboarding sections */}
