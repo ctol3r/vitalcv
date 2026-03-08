@@ -11,9 +11,14 @@
  */
 
 import { log } from '../../obs/logger';
-import { listIssuers, type TrustedIssuer } from '../registry/trustRegistry';
+import {
+  getIssuer,
+  initializeTrustRegistryPersistence,
+  type TrustedIssuer,
+} from '../registry/trustRegistry';
 import { listAllCredentials } from '../credentials/credentialWallet';
 import type { VerifiableCredential } from '../credentials/credentialModel';
+import { verifyCredential } from '../credentials/credentialVerifier';
 import { isRevoked } from '../revocation/revocationRegistry';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -129,6 +134,11 @@ const SEED_PAYERS: PayerNode[] = [
 
 let payerRegistry: PayerNode[] = [...SEED_PAYERS];
 
+const QUALIFYING_ISSUER_TRUST_LEVELS = new Set<TrustedIssuer['trustLevel']>([
+  'AUTHORITATIVE',
+  'TRUSTED',
+]);
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function getPayerById(payerId: string): PayerNode | undefined {
@@ -136,18 +146,126 @@ function getPayerById(payerId: string): PayerNode | undefined {
 }
 
 function getCredentialsForNpi(npi: string): VerifiableCredential[] {
-  const all = listAllCredentials();
-  return all.filter((c) => c.subject === npi || c.subject?.includes(npi));
+  return listAllCredentials()
+    .filter((credential) => credential.subject === npi)
+    .sort((left, right) => left.credentialId.localeCompare(right.credentialId));
 }
 
 function getCredentialType(cred: VerifiableCredential): string {
   return (cred.claims?.type as string) ?? (cred.claims?.credentialType as string) ?? 'unknown';
 }
 
-function getIssuerTrustScore(issuerId: string): number {
-  const issuers = listIssuers();
-  const issuer = issuers.find((i) => i.issuerId === issuerId);
-  return issuer?.trustScore ?? 50;
+function isCredentialExpired(credential: VerifiableCredential, now = Date.now()): boolean {
+  if (credential.status === 'EXPIRED') {
+    return true;
+  }
+
+  if (!credential.expiresAt) {
+    return false;
+  }
+
+  const expiresAt = new Date(credential.expiresAt).getTime();
+  return Number.isFinite(expiresAt) && expiresAt <= now;
+}
+
+function getIssuerTrustScore(issuer: TrustedIssuer | null): number {
+  return issuer?.trustScore ?? 0;
+}
+
+function sortStrings(values: Iterable<string>): string[] {
+  return Array.from(new Set(values)).sort((left, right) => left.localeCompare(right));
+}
+
+function describePayerIssuerEligibility(issuerId: string): {
+  qualifying: boolean;
+  reason: string | null;
+  trustScore: number;
+} {
+  const issuer = getIssuer(issuerId);
+
+  if (!issuer) {
+    return {
+      qualifying: false,
+      reason: `Credential issuer ${issuerId} is not trusted for payer verification`,
+      trustScore: 0,
+    };
+  }
+
+  if (issuer.status !== 'ACTIVE') {
+    return {
+      qualifying: false,
+      reason: `Credential issuer ${issuerId} is ${issuer.status}`,
+      trustScore: getIssuerTrustScore(issuer),
+    };
+  }
+
+  if (issuer.trustLevel === 'PROVISIONAL') {
+    return {
+      qualifying: false,
+      reason: `Credential issuer ${issuerId} has PROVISIONAL trust level`,
+      trustScore: getIssuerTrustScore(issuer),
+    };
+  }
+
+  if (!QUALIFYING_ISSUER_TRUST_LEVELS.has(issuer.trustLevel)) {
+    return {
+      qualifying: false,
+      reason: `Credential issuer ${issuerId} trust level ${issuer.trustLevel} is not eligible for payer verification`,
+      trustScore: getIssuerTrustScore(issuer),
+    };
+  }
+
+  return {
+    qualifying: true,
+    reason: null,
+    trustScore: getIssuerTrustScore(issuer),
+  };
+}
+
+function summarizeBundleFailureReason(params: {
+  credential: VerifiableCredential;
+  npi: string;
+  verification: Awaited<ReturnType<typeof verifyCredential>>;
+}): string | null {
+  const { credential, npi, verification } = params;
+
+  if (credential.subject !== npi) {
+    return 'Credential subject does not match requested provider';
+  }
+
+  const signatureFailure = verification.errors.find((error) =>
+    error.startsWith('Signature verification failed'),
+  );
+  if (signatureFailure) {
+    return 'Credential signature validation failed';
+  }
+
+  const issuerEligibility = describePayerIssuerEligibility(credential.issuer);
+  if (!issuerEligibility.qualifying && issuerEligibility.reason) {
+    return issuerEligibility.reason;
+  }
+
+  if (isRevoked(credential.credentialId)) {
+    return 'Credential revoked';
+  }
+
+  if (isCredentialExpired(credential) || !verification.checks.notExpired) {
+    return 'Credential expired';
+  }
+
+  if (!verification.checks.signature) {
+    return 'Credential signature validation failed';
+  }
+
+  if (!verification.checks.statusActive) {
+    return 'Credential is not active';
+  }
+
+  if (!verification.valid) {
+    return verification.errors[0] ?? 'Credential failed verification';
+  }
+
+  return null;
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────────
@@ -159,6 +277,8 @@ export async function verifyProviderEligibility(
   npi: string,
   payerId: string,
 ): Promise<EligibilityResult> {
+  await initializeTrustRegistryPersistence();
+
   const payer = getPayerById(payerId);
   if (!payer) {
     return {
@@ -176,55 +296,77 @@ export async function verifyProviderEligibility(
   }
 
   const credentials = getCredentialsForNpi(npi);
-  const reasons: string[] = [];
+  const reasonSet = new Set<string>();
+  const verifiedTypeSet = new Set<string>();
+  const now = Date.now();
 
   let active = 0;
   let expired = 0;
   let revoked = 0;
-  let minTrustScore = 100;
-  const verifiedTypes: string[] = [];
+  let minTrustScore = Number.POSITIVE_INFINITY;
+  let provisionalIssuerCount = 0;
+  let ignoredIssuerCount = 0;
 
   for (const cred of credentials) {
-    const credRevoked = isRevoked(cred.credentialId);
-
-    if (credRevoked) {
+    if (isRevoked(cred.credentialId) || cred.status === 'REVOKED') {
       revoked++;
       continue;
     }
 
-    if (cred.status === 'EXPIRED') {
+    if (isCredentialExpired(cred, now)) {
       expired++;
       continue;
     }
 
+    const issuerEligibility = describePayerIssuerEligibility(cred.issuer);
+    if (!issuerEligibility.qualifying) {
+      if (issuerEligibility.reason) {
+        reasonSet.add(issuerEligibility.reason);
+      }
+
+      if (getIssuer(cred.issuer)?.trustLevel === 'PROVISIONAL') {
+        provisionalIssuerCount++;
+      } else {
+        ignoredIssuerCount++;
+      }
+      continue;
+    }
+
     active++;
-    const issuerScore = getIssuerTrustScore(cred.issuer);
-    minTrustScore = Math.min(minTrustScore, issuerScore);
-    const ct = getCredentialType(cred);
-    if (ct !== 'unknown' && !verifiedTypes.includes(ct)) {
-      verifiedTypes.push(ct);
+    minTrustScore = Math.min(minTrustScore, issuerEligibility.trustScore);
+
+    const credentialType = getCredentialType(cred);
+    if (credentialType !== 'unknown') {
+      verifiedTypeSet.add(credentialType);
     }
   }
 
-  if (active === 0 && credentials.length === 0) minTrustScore = 0;
+  if (active === 0) {
+    minTrustScore = 0;
+  }
 
   let status: EligibilityStatus = 'ELIGIBLE';
   if (active === 0) {
     status = 'INELIGIBLE';
-    reasons.push('No active credentials found');
+    if (credentials.length === 0 || expired > 0 || revoked > 0) {
+      reasonSet.add('No active credentials found');
+    } else {
+      reasonSet.add('No active credentials from AUTHORITATIVE or TRUSTED issuers');
+    }
   } else if (revoked > 0) {
     status = 'NEEDS_REVIEW';
-    reasons.push(`${revoked} credential(s) revoked — manual review required`);
+    reasonSet.add(`${revoked} credential(s) revoked - manual review required`);
   } else if (expired > active) {
     status = 'NEEDS_REVIEW';
-    reasons.push('More expired credentials than active — review freshness');
-  } else if (minTrustScore < 50) {
+    reasonSet.add('More expired credentials than active - review freshness');
+  } else if (provisionalIssuerCount > 0) {
     status = 'NEEDS_REVIEW';
-    reasons.push(`Low issuer trust score (${minTrustScore}) — review credential sources`);
+  } else if (ignoredIssuerCount > 0) {
+    reasonSet.add(`Ignored ${ignoredIssuerCount} credential(s) from inactive or non-qualifying issuers`);
   }
 
   if (status === 'ELIGIBLE') {
-    reasons.push('All credential checks passed');
+    reasonSet.add('All qualifying credential checks passed');
   }
 
   log('info', 'payer_eligibility_check', { npi, payerId, status, active, expired, revoked });
@@ -236,10 +378,10 @@ export async function verifyProviderEligibility(
     activeCredentials: active,
     expiredCredentials: expired,
     revokedCredentials: revoked,
-    minIssuerTrustScore: active > 0 ? minTrustScore : 0,
-    verifiedTypes,
+    minIssuerTrustScore: Number.isFinite(minTrustScore) ? minTrustScore : 0,
+    verifiedTypes: sortStrings(verifiedTypeSet),
     checkedAt: new Date().toISOString(),
-    reasons,
+    reasons: sortStrings(reasonSet),
   };
 }
 
@@ -251,13 +393,17 @@ export async function verifyCredentialBundle(
   payerId: string,
   credentialIds: string[],
 ): Promise<BundleVerificationResult> {
-  const allCredentials = listAllCredentials();
+  await initializeTrustRegistryPersistence();
+
+  const allCredentials = new Map(
+    listAllCredentials().map((credential) => [credential.credentialId, credential] as const),
+  );
   const details: BundleVerificationResult['details'] = [];
   let validCount = 0;
   let invalidCount = 0;
 
-  for (const credId of credentialIds) {
-    const cred = allCredentials.find((c) => c.credentialId === credId);
+  for (const credId of [...credentialIds].sort((left, right) => left.localeCompare(right))) {
+    const cred = allCredentials.get(credId);
     if (!cred) {
       details.push({
         credentialId: credId,
@@ -270,39 +416,20 @@ export async function verifyCredentialBundle(
       continue;
     }
 
-    const revoked = isRevoked(credId);
-    if (revoked) {
-      details.push({
-        credentialId: credId,
-        credentialType: getCredentialType(cred),
-        issuer: cred.issuer,
-        valid: false,
-        reason: 'Credential revoked',
-      });
-      invalidCount++;
-      continue;
-    }
+    const verification = await verifyCredential(cred);
+    const failureReason = summarizeBundleFailureReason({
+      credential: cred,
+      npi,
+      verification,
+    });
 
-    if (cred.status === 'EXPIRED') {
+    if (failureReason) {
       details.push({
         credentialId: credId,
         credentialType: getCredentialType(cred),
         issuer: cred.issuer,
         valid: false,
-        reason: 'Credential expired',
-      });
-      invalidCount++;
-      continue;
-    }
-
-    const issuerScore = getIssuerTrustScore(cred.issuer);
-    if (issuerScore < 30) {
-      details.push({
-        credentialId: credId,
-        credentialType: getCredentialType(cred),
-        issuer: cred.issuer,
-        valid: false,
-        reason: `Issuer trust score too low (${issuerScore})`,
+        reason: failureReason,
       });
       invalidCount++;
       continue;

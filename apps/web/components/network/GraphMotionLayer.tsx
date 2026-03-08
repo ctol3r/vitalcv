@@ -39,13 +39,15 @@ export function GraphMotionLayer({ edges, nodeMap, hoveredId, ready }: GraphMoti
         const isDimmed = hoveredId !== null && !isHoveredNode;
 
         // Relationship highlight
-        const strokeColor = isHoveredNode ? 'var(--infra-blue)' : 'var(--infra-grid)';
-        const strokeWidth = isHoveredNode ? 1.5 : 1;
-        const opacity = isDimmed ? 0.15 : isHoveredNode ? 0.8 : 0.5;
+        const isRevoked = edge.type === 'revocation';
+        const strokeColor = isRevoked ? 'var(--infra-red)' : isHoveredNode ? 'var(--infra-blue)' : 'var(--infra-grid)';
+        const strokeWidth = isHoveredNode || isRevoked ? 1.5 : 1;
+        const opacity = isDimmed ? 0.15 : (isHoveredNode || isRevoked) ? 0.8 : 0.5;
 
         // Packet propagation logic:
         const { delay, duration } = packetDelays[i];
-        const packetColor = isHoveredNode ? 'var(--infra-blue)' : 'var(--infra-grid)';
+        const packetColor = isRevoked ? 'var(--infra-red)' : isHoveredNode ? 'var(--infra-blue)' : 'var(--infra-grid)';
+        const packetSize = isRevoked ? 3 : isHoveredNode ? 2.5 : 1.5;
 
         return (
           <g key={`${edge.source}-${edge.target}-${i}`}>
@@ -58,23 +60,33 @@ export function GraphMotionLayer({ edges, nodeMap, hoveredId, ready }: GraphMoti
               strokeWidth={strokeWidth}
               strokeOpacity={opacity}
               initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: 0.8, delay: i * 0.05 }}
+              animate={isRevoked ? {
+                pathLength: 1,
+                strokeOpacity: [0.3, 0.8, 0.3], // Pulsing effect for revocation edge
+                strokeWidth: [1, 2, 1]
+              } : { pathLength: 1 }}
+              transition={isRevoked ? {
+                pathLength: { duration: 0.8, delay: i * 0.05 },
+                strokeOpacity: { duration: 1.5, repeat: Infinity, ease: 'easeInOut' },
+                strokeWidth: { duration: 1.5, repeat: Infinity, ease: 'easeInOut' }
+              } : { duration: 0.8, delay: i * 0.05 }}
             />
             {/* Packet propagation animation */}
             {!isDimmed && (
               <motion.circle
-                r={isHoveredNode ? 2.5 : 1.5}
+                r={packetSize}
                 fill={packetColor}
-                opacity={isHoveredNode ? 0.9 : 0.5}
+                opacity={isHoveredNode || isRevoked ? 0.9 : 0.5}
+                style={isRevoked ? { filter: 'url(#node-glow)' } : undefined}
                 initial={{ cx: source.x, cy: source.y, opacity: 0 }}
                 animate={{
                   cx: [source.x, target.x],
                   cy: [source.y, target.y],
-                  opacity: [0, isHoveredNode ? 0.9 : 0.5, 0],
+                  opacity: [0, isHoveredNode || isRevoked ? 0.9 : 0.5, 0],
+                  scale: isRevoked ? [1, 1.5, 1] : 1
                 }}
                 transition={{
-                  duration,
+                  duration: isRevoked ? duration * 0.7 : duration, // revocation moves faster
                   repeat: Infinity,
                   ease: 'linear',
                   delay,
