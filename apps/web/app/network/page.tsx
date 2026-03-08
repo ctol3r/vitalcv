@@ -13,7 +13,7 @@ import { motion } from 'framer-motion';
 
 export default function NetworkPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white surface-operator">
       <main className="mx-auto max-w-7xl px-6 py-10 space-y-8">
         {/* Hero */}
         <motion.div
@@ -21,8 +21,8 @@ export default function NetworkPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-2xl font-bold tracking-tight">Trust Network</h1>
-          <p className="mt-2 text-sm text-zinc-400 max-w-2xl">
+          <h1 className="type-heading-lg text-white">Trust Network</h1>
+          <p className="mt-2 type-body-sm text-zinc-400 max-w-2xl">
             Live view of the credential verification network — issuers, verifiers, and trust
             relationships across healthcare organizations.
           </p>

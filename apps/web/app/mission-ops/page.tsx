@@ -38,6 +38,7 @@ import OpsTelemetryPanel from '@/components/ops/TelemetryPanel';
 import PayerNetworkPanel from '@/components/ops/PayerNetworkPanel';
 import NetworkTelemetryDashboard from '@/components/telemetry/NetworkTelemetryDashboard';
 import NetworkHealthPanel from '@/components/network/NetworkHealthPanel';
+import DebugPanel from '@/components/ops/DebugPanel';
 
 interface MissionOpsOverview {
   issuerOnboarding: { total: number; complete: number; inProgress: number; blocked: number };
@@ -150,7 +151,7 @@ export default function MissionOpsPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-white">
+    <main className="min-h-screen bg-zinc-950 text-white surface-operator">
       {/* Header */}
       <motion.header {...fadeUp} className="border-b border-zinc-800 px-6 py-5">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
@@ -689,6 +690,8 @@ function NetworkReputationSummaryPanel() {
           </div>
         </div>
       </div>
+      {/* Operator Debug Panel — Wave 170 */}
+      <DebugPanel />
     </div>
   );
 }
