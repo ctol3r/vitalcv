@@ -18,7 +18,7 @@ export default function Footer() {
   }
 
   return (
-    <footer className="border-t border-white/10 bg-[color:oklch(0.22_0.01_60)] text-white">
+    <footer className="mt-auto shrink-0 border-t border-white/10 bg-[color:oklch(0.22_0.01_60)] text-white">
       <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-8 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p className="text-white/70">&copy; VitalCV</p>
         <div className="flex flex-wrap items-center gap-5">

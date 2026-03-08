@@ -10,10 +10,10 @@
  *   - Configurable filters (minTrustScore, limit)
  */
 
-import { useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { Download, FileText, Users, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { getApiBase } from '@/lib/api';
+import { motion } from 'framer-motion';
+import { AlertTriangle, CheckCircle, Download, FileText, History, RefreshCw, Users } from 'lucide-react';
+import { useCallback, useState } from 'react';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -205,6 +205,13 @@ export default function ProviderDirectoryPanel() {
           >
             <Download className="h-4 w-4" />
             {exportState.csv === 'loading' ? 'Exporting…' : exportState.csv === 'done' ? '✓ CSV Downloaded' : 'Export CSV'}
+          </button>
+          <button
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-500/10 border border-zinc-500/20 text-zinc-400 text-sm font-medium hover:bg-zinc-500/20 transition-colors"
+            onClick={() => alert('Snapshot history is available in the data warehouse.')}
+          >
+            <History className="h-4 w-4" />
+            View snapshot history
           </button>
         </div>
 

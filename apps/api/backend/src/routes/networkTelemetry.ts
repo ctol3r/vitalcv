@@ -9,16 +9,28 @@
  */
 
 import type { Express, Request, Response } from 'express';
-import {
-  getNetworkTelemetryDashboard,
-  getNetworkGrowth,
-  getNetworkActivityFeed,
-  getVerificationThroughput,
-  getIssuerActivitySummary,
-} from '../services/network/networkTelemetry';
 import { log } from '../obs/logger';
+import {
+    getIssuerActivitySummary,
+    getNetworkActivityFeed,
+    getNetworkGrowth,
+    getNetworkTelemetryDashboard,
+    getVerificationThroughput,
+} from '../services/network/networkTelemetry';
+import { aggregateTelemetry } from '../services/network/telemetryAggregator';
 
 export function registerNetworkTelemetryRoutes(app: Express): void {
+  app.get('/api/network/telemetry', async (req: Request, res: Response) => {
+    try {
+      const days = Math.max(7, Math.min(90, Number(req.query.days) || 30));
+      const data = await aggregateTelemetry(days);
+      res.json(data);
+    } catch (err) {
+      log('error', 'network_telemetry_error', { error: String(err) });
+      res.status(500).json({ error: 'Telemetry data failed' });
+    }
+  });
+
   app.get('/api/network/telemetry/dashboard', async (_req: Request, res: Response) => {
     try {
       const dashboard = await getNetworkTelemetryDashboard();
