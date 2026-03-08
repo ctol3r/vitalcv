@@ -6,9 +6,9 @@
  * Displays the global trust network graph and network-wide metrics.
  */
 
-import { motion } from 'framer-motion';
 import { GlobalTrustMap } from '@/components/network/GlobalTrustMap';
-import { NetworkMetrics } from '@/components/network/NetworkMetrics';
+import NetworkTelemetryIntelligence from '@/components/telemetry/NetworkTelemetryIntelligence';
+import { motion } from 'framer-motion';
 
 export default function NetworkPage() {
   return (
@@ -43,7 +43,7 @@ export default function NetworkPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <NetworkMetrics />
+          <NetworkTelemetryIntelligence windowDays={30} />
         </motion.div>
       </main>
     </div>

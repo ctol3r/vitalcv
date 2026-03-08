@@ -7,11 +7,11 @@
  * throughput, network nodes, latency, and active incidents.
  */
 
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { getApiBase } from '@/lib/api';
-import { SystemTelemetry, type TelemetryData } from '@/components/system/SystemTelemetry';
 import { IncidentPanel } from '@/components/system/IncidentPanel';
+import NetworkTelemetryIntelligence from '@/components/telemetry/NetworkTelemetryIntelligence';
+import { getApiBase } from '@/lib/api';
+import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -63,7 +63,6 @@ const STATUS_COLOR: Record<string, { bg: string; text: string; dot: string }> = 
 
 export default function StatusPage() {
   const [status, setStatus] = useState<SystemStatus | null>(null);
-  const [telemetry, setTelemetry] = useState<TelemetryData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const base = getApiBase();
@@ -71,11 +70,9 @@ export default function StatusPage() {
   useEffect(() => {
     Promise.all([
       fetch(`${base}/api/system/status`).then((r) => r.ok ? r.json() : null),
-      fetch(`${base}/api/system/telemetry`).then((r) => r.ok ? r.json() : null),
     ])
-      .then(([s, t]) => {
+      .then(([s]) => {
         if (s) setStatus(s);
-        if (t) setTelemetry(t);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -114,10 +111,7 @@ export default function StatusPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <h2 className="text-[10px] text-zinc-500 uppercase tracking-wider mb-3 font-mono">
-            Network Telemetry
-          </h2>
-          <SystemTelemetry data={telemetry} loading={loading} />
+          <NetworkTelemetryIntelligence windowDays={7} />
         </motion.div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -242,7 +236,7 @@ export default function StatusPage() {
             <div className="rounded-xl border border-white/8 bg-slate-900/40 p-4">
               <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mb-2">Audit Rate</p>
               <p className="text-2xl font-bold text-violet-400 font-mono">
-                {status?.verificationHealth?.last1h
+                {status?.verificationHealth?.last1h != null
                   ? `${status.verificationHealth.last1h}/hr`
                   : '—'}
               </p>

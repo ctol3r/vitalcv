@@ -47,6 +47,7 @@ interface GlobalGraphData {
     issuers: number;
     credentials: number;
     decisions: number;
+    payers?: number;
     totalNodes: number;
     totalEdges: number;
   };
@@ -654,6 +655,9 @@ export function GlobalTrustMap({ height = 420, className = '' }: GlobalTrustMapP
             if (stats) {
                 if (isFederated || isDegraded) count = stats.issuers;
                 else if (isCluster) count = clusteringActive ? 'Active' : 'Off';
+                else if (group === 'payer') {
+                    count = stats.payers ?? nodesRef.current.filter(n => n.group === 'payer').length;
+                }
                 else count = stats[group as keyof typeof stats] ?? '—';
             }
 
