@@ -42,6 +42,7 @@ import { FederationHealthPanel } from '@/components/substrate/FederationHealthPa
 import { IssuerTrustScoresPanel } from '@/components/substrate/IssuerTrustScoresPanel';
 import { RevocationCascadePanel } from '@/components/substrate/RevocationCascadePanel';
 import { TrustSubstratePanel } from '@/components/substrate/TrustSubstratePanel';
+import ComplianceCopilot from '@/components/ops/ComplianceCopilot';
 import { useAlertStream } from '@/hooks/useAlertStream';
 import { useDecisionInsights } from '@/hooks/useDecisionInsights';
 import { useSystemStatus } from '@/hooks/useSystemStatus';
@@ -454,6 +455,11 @@ export default function CommandCenterPage() {
               pollIntervalMs={30_000}
               className="text-xs"
             />
+          </div>
+
+          {/* Wave 157: Compliance Co-Pilot */}
+          <div className="mt-4">
+            <ComplianceCopilot />
           </div>
 
           {/* Quick Actions (NPI-scoped, from Decision Insights) */}

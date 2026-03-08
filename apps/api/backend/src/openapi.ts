@@ -483,6 +483,52 @@ const spec: OpenAPIV3.Document = {
         },
       },
     },
+    // ── Wave 157: Compliance Co-Pilot ───────────────────────────────────
+    '/api/ai/compliance-check': {
+      post: {
+        tags: ['Compliance'],
+        summary: 'Run a compliance readiness check for a clinician',
+        description: 'Evaluates clinician credentials against state + facility compliance rules. Returns findings with citations.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['npi', 'targetState', 'targetFacility'],
+                properties: {
+                  npi: { type: 'string', description: 'NPI of the clinician' },
+                  targetState: { type: 'string', description: 'Target state (e.g., CA, NY, TX)' },
+                  targetFacility: { type: 'string', description: 'Facility type (e.g., hospital, clinic)' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Compliance check result with findings and citations',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    npi: { type: 'string' },
+                    readiness: { type: 'string', enum: ['READY', 'PARTIAL', 'NOT_READY', 'UNKNOWN'] },
+                    confidence: { type: 'number' },
+                    findings: { type: 'array', items: { type: 'object' } },
+                    citations: { type: 'array', items: { type: 'object' } },
+                    traceId: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+          '400': { description: 'Missing parameters' },
+          '403': { description: 'Feature disabled' },
+        },
+      },
+    },
     // ── Wave 154: Wallet Export ─────────────────────────────────────────
     '/api/credentials/export/wallet': {
       post: {
@@ -546,6 +592,7 @@ const spec: OpenAPIV3.Document = {
     { name: 'Verification', description: 'Verification request management' },
     { name: 'Ingest', description: 'Clinician identity and credential ingestion' },
     { name: 'Wallet', description: 'Credential wallet export (CHAPI + SMART Health Cards)' },
+    { name: 'Compliance', description: 'AI-assisted compliance checking (Wave 157)' },
   ],
 };
 
