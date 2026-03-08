@@ -1,5 +1,6 @@
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher';
 import FeedbackButton from '@/components/feedback/FeedbackButton';
+import PrequalifyBar from '@/components/prequalify/PrequalifyBar';
 import Omnibar from '@/components/ops/Omnibar';
 import Footer from '@/components/layout/Footer';
 import Navbar from '@/components/layout/Navbar';
@@ -74,6 +75,7 @@ export default function RootLayout({
           </div>
           <Toaster />
           <FeedbackButton />
+          <PrequalifyBar />
           <Omnibar />
         </Providers>
       </body>
