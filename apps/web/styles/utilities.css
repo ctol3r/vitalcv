@@ -53,6 +53,61 @@
     box-shadow: var(--glass-shadow);
     border-radius: var(--radius-xl);
   }
+
+  /* ─── Wave 177: Operator Background Utilities ─────────────── */
+
+  /* Replaces bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 */
+  .bg-ops-gradient {
+    background-image: linear-gradient(
+      to bottom right,
+      var(--vt-ops-from),
+      var(--vt-ops-via),
+      var(--vt-ops-to)
+    );
+  }
+
+  /* Replaces bg-gradient-to-br from-gray-950 via-gray-900 to-slate-900 (passport) */
+  .bg-passport-gradient {
+    background-image: linear-gradient(
+      to bottom right,
+      var(--vt-passport-from),
+      var(--vt-passport-via),
+      var(--vt-passport-to)
+    );
+  }
+
+  /* ─── Wave 177: Glass Surface Utilities ───────────────────── */
+
+  /* Replaces bg-white/5 ring-1 ring-white/10 */
+  .vt-glass {
+    background: var(--vt-glass-bg);
+    box-shadow: inset 0 0 0 1px var(--vt-glass-ring);
+  }
+
+  /* Replaces bg-white/[0.03] ring-1 ring-white/10 */
+  .vt-glass-subtle {
+    background: var(--vt-glass-subtle-bg);
+    box-shadow: inset 0 0 0 1px var(--vt-glass-ring);
+  }
+
+  /* Replaces border border-white/10 bg-white/5 */
+  .vt-glass-card {
+    background: var(--vt-glass-bg);
+    border: 1px solid var(--vt-glass-ring);
+    backdrop-filter: blur(20px);
+  }
+
+  /* Replaces h-px bg-white/5 divider lines */
+  .vt-divider-ops {
+    flex: 1;
+    height: 1px;
+    background: var(--vt-glass-divider);
+  }
+
+  /* Replaces divide-zinc-800 / divide-vt-neutral-800 on Grid */
+  .divide-ops > * + * {
+    border-color: var(--vt-divider-ops);
+  }
 }
 
 /* Scroll Revel Animations (Native CSS View Timelines) */

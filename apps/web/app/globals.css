@@ -274,6 +274,15 @@
   --color-vt-surface-ops-base: var(--vt-surface-ops-base);
   --color-vt-surface-ops-raised: var(--vt-surface-ops-raised);
 
+  /* ── Wave 177: Glass + Gradient tokens ──────────────────── */
+  --color-vt-glass-bg: var(--vt-glass-bg);
+  --color-vt-glass-subtle-bg: var(--vt-glass-subtle-bg);
+  --color-vt-glass-ring: var(--vt-glass-ring);
+  --color-vt-glass-ring-faint: var(--vt-glass-ring-faint);
+  --color-vt-glass-divider: var(--vt-glass-divider);
+  --color-vt-divider-ops: var(--vt-divider-ops);
+  --color-vt-glow-passport: var(--vt-glow-passport);
+
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
