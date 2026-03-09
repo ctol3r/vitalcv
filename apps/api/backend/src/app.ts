@@ -117,6 +117,7 @@ import { registerAskRoutes } from './routes/ask';                           // W
 import { registerEmployerRoutes } from './routes/employers';                 // Wave 186: Employer Knowledge Layer
 import { registerPrequalificationRoutes } from './routes/prequalification';  // Wave 189: AI Interview, Assessments, Prequalification
 import { registerVerifierPipelineRoutes } from './routes/verifierPipeline';  // Wave 190: Apply with VitalCV + ATS + Verifier Pipeline
+import { registerReferralRoutes } from './routes/referrals';                 // Wave 191: Referral Engine with Compliance Guardrails
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3504,6 +3505,7 @@ registerAskRoutes(app);               // Wave 185 — Ask VitalCV natural langua
 registerEmployerRoutes(app);          // Wave 186 — Employer Knowledge Layer
 registerPrequalificationRoutes(app);  // Wave 189 — AI Interview, Assessments, Prequalification
 registerVerifierPipelineRoutes(app);  // Wave 190 — Apply with VitalCV + ATS + Verifier Pipeline
+registerReferralRoutes(app);          // Wave 191 — Referral Engine with Compliance Guardrails
 registerPayerVerificationRoutes(app); // Wave 142 — Payer Network Integration
 registerProviderDirectoryRoutes(app);  // Wave 143 — Provider Directory Distribution
 registerGraphScalingRoutes(app);       // Wave 144 — Trust Graph Performance Scaling
