@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   const body = await req.text();
 
-  const res = await fetch(`${BACKEND}/api/ask`, {
+  const res = await fetch(`${BACKEND}/api/search/suggest`, {
     method: 'POST',
     headers: buildForwardHeaders(session),
     body,

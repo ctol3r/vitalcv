@@ -2,27 +2,29 @@
  * Wave 186 — Employer Knowledge Layer
  * employerService.ts
  *
- * Provides employer profile retrieval, listing, comparison, and
- * search integration. Seeded with representative stub data until
- * a live employer onboarding flow is wired (Wave 190+).
+ * DB-first employer profile retrieval with seeded fallback overlays keyed by
+ * canonical Organization.slug. Public-facing responses only expose verified
+ * org profiles or known seeded employers.
  */
 
-import { EmployerHiringStatus } from '@prisma/client';
+import {
+  EmployerHiringStatus,
+  Prisma,
+} from '@prisma/client';
+import prisma from '../../graphql/prisma_client';
+import { log } from '../../obs/logger';
+import {
+  type EmployerRequirementSpec,
+  type EmployerSeedRecord,
+  EMPLOYER_KNOWLEDGE_SEEDS,
+  getEmployerSeedBySlug,
+} from './employerCatalog';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const log = (level: string, event: string, meta?: any) =>
-  console.log(JSON.stringify({ level, event, ...meta }));
-
-// Prisma client reserved for Wave 190 DB-backed employer storage
-// const prisma = new PrismaClient();
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-export interface RequirementSpec {
-  label: string;
-  level: 'L1' | 'L2' | 'L3';
-  note?: string;
-}
+type EmployerProfileRecord = Prisma.OrganizationProfileGetPayload<{
+  include: {
+    organization: true;
+  };
+}>;
 
 export interface EmployerSummary {
   id: string;
@@ -37,6 +39,14 @@ export interface EmployerSummary {
   hiringStatus: EmployerHiringStatus;
   timeToStart: string;
   verified: boolean;
+  trustIndicators: string[];
+}
+
+export interface EmployerOverviewPayload {
+  description: string;
+  website: string | null;
+  facilityType: string;
+  states: string[];
 }
 
 export interface EmployerDetail extends EmployerSummary {
@@ -46,10 +56,15 @@ export interface EmployerDetail extends EmployerSummary {
   clearToStartThreshold: string;
   payTransparency: boolean;
   payRange: string | null;
-  requirements: RequirementSpec[];
+  requirements: EmployerRequirementSpec[];
   recentHires: number;
   website: string | null;
   verifiedSince: string | null;
+  overview: EmployerOverviewPayload;
+  specialtiesHired: string[];
+  requirementsSummary: string;
+  startSpeed: string;
+  onboardingSpeed: string;
 }
 
 export interface EmployerListOptions {
@@ -61,325 +76,370 @@ export interface EmployerListOptions {
   offset?: number;
 }
 
+export interface EmployerListResult {
+  employers: EmployerSummary[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export interface EmployerCompareResult {
   employers: EmployerDetail[];
   differentiators: string[];
+  comparedAt: string;
 }
 
-// ── Seed data (representative — Wave 190 wires live onboarding) ───────────────
+const EMPLOYER_PROFILE_INCLUDE = {
+  organization: true,
+} satisfies Prisma.OrganizationProfileInclude;
 
-const SEED_EMPLOYERS: Array<{
-  slug: string;
-  name: string;
-  facilityType: string;
-  tagline: string;
-  description: string;
-  specialties: string[];
-  states: string[];
-  openRoles: number;
+function normalizeText(value: string | null | undefined, fallback: string): string {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : fallback;
+}
+
+function normalizeArray(value: string[] | null | undefined, fallback: string[]): string[] {
+  const normalized = value?.map((item) => item.trim()).filter(Boolean) ?? [];
+  return normalized.length > 0 ? [...new Set(normalized)] : fallback;
+}
+
+function normalizeCount(value: number | null | undefined, fallback: number): number {
+  return typeof value === 'number' && value > 0 ? value : fallback;
+}
+
+function normalizeRequirements(
+  value: Prisma.JsonValue | null | undefined,
+  fallback: EmployerRequirementSpec[],
+): EmployerRequirementSpec[] {
+  if (!Array.isArray(value)) {
+    return fallback;
+  }
+
+  const parsed: EmployerRequirementSpec[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      continue;
+    }
+
+    const label = typeof item.label === 'string' ? item.label.trim() : '';
+    if (!label) {
+      continue;
+    }
+
+    const level = item.level === 'L1' || item.level === 'L2' || item.level === 'L3'
+      ? item.level
+      : 'L1';
+    const note = typeof item.note === 'string' && item.note.trim().length > 0
+      ? item.note.trim()
+      : undefined;
+
+    parsed.push(note ? { label, level, note } : { label, level });
+  }
+
+  return parsed.length > 0 ? parsed : fallback;
+}
+
+function buildTrustIndicators(detail: {
+  verified: boolean;
   trustScore: number;
-  hiringStatus: EmployerHiringStatus;
-  hiringTypes: string[];
-  timeToStart: string;
-  timeToOnboard: string;
-  clearToStartThreshold: string;
-  payTransparency: boolean;
-  payRange: string | null;
-  recentHires: number;
-  website: string | null;
-  verifiedSince: string;
-  requirements: RequirementSpec[];
-}> = [
-  {
-    slug: 'bay-area-cardiac-group',
-    name: 'Bay Area Cardiac Group',
-    facilityType: 'Specialty Cardiology Practice',
-    tagline: "The Bay Area's premier interventional cardiology group.",
-    description:
-      'Bay Area Cardiac Group operates 4 facilities across San Francisco and the East Bay. We run a locums-friendly practice with rapid credentialing turnaround and a collaborative PA/NP team.',
-    specialties: ['Cardiology', 'Electrophysiology', 'Interventional Cardiology'],
-    states: ['CA'],
-    openRoles: 4,
-    trustScore: 94,
-    hiringStatus: EmployerHiringStatus.HIRING_NOW,
-    hiringTypes: ['Locums', 'Perm', 'Hybrid'],
-    timeToStart: '2–3 weeks',
-    timeToOnboard: '~5 business days',
-    clearToStartThreshold:
-      'Active CA license + ABIM board certification + active DEA + malpractice insurance',
-    payTransparency: true,
-    payRange: '$310–$380/hr (locums); $420K–$500K (perm)',
-    recentHires: 6,
-    website: 'https://bayareacardiac.example.com',
-    verifiedSince: '2023-06-01T00:00:00Z',
-    requirements: [
-      { label: 'CA Medical License', level: 'L3', note: 'Active, no restrictions' },
-      { label: 'Board Certification', level: 'L3', note: 'ABIM Cardiology or equivalent' },
-      { label: 'DEA Registration', level: 'L2', note: 'Active in CA' },
-      { label: 'Malpractice Insurance', level: 'L2', note: 'Tail or occurrence-based' },
-      { label: 'NPI Verified', level: 'L3' },
-      { label: 'Sanctions Clear', level: 'L3' },
-    ],
-  },
-  {
-    slug: 'mindbridge-health',
-    name: 'MindBridge Health',
-    facilityType: 'Telehealth Platform',
-    tagline: 'Mental healthcare without geographic limits.',
-    description:
-      'MindBridge connects psychiatric and behavioral health specialists with patients across 14 states. We handle all credentialing coordination and payer enrollment.',
-    specialties: ['Psychiatry', 'Psychology', 'Behavioral Health', 'Addiction Medicine'],
-    states: ['CA', 'TX', 'FL', 'NY', 'WA', 'OR', 'CO', 'AZ', 'NV', 'IL', 'GA', 'NC', 'VA', 'MA'],
-    openRoles: 12,
-    trustScore: 91,
-    hiringStatus: EmployerHiringStatus.HIRING_NOW,
-    hiringTypes: ['Telehealth', 'Locums', 'Part-time'],
-    timeToStart: 'Flexible',
-    timeToOnboard: '3–7 business days',
-    clearToStartThreshold:
-      'Active state license in target state + DEA (or state CSOS equivalent) + NPI active',
-    payTransparency: true,
-    payRange: '$200–$270/hr',
-    recentHires: 23,
-    website: 'https://mindbridge.example.com',
-    verifiedSince: '2023-09-15T00:00:00Z',
-    requirements: [
-      { label: 'State Medical License', level: 'L3', note: 'Active in target state' },
-      { label: 'DEA Registration', level: 'L2' },
-      { label: 'NPI Verified', level: 'L3' },
-      { label: 'Board Certification', level: 'L2', note: 'Preferred, not required' },
-      { label: 'Telehealth Platform Agreement', level: 'L1' },
-    ],
-  },
-  {
-    slug: 'sacramento-medical-center',
-    name: 'Sacramento Medical Center',
-    facilityType: 'Hospital System',
-    tagline: 'Northern California critical care — excellence without compromise.',
-    description:
-      'Sacramento Medical Center is a 620-bed Level II trauma center. We hire critical care, emergency, and internal medicine physicians and APPs on both locums and permanent tracks.',
-    specialties: ['Critical Care', 'Emergency Medicine', 'Internal Medicine', 'Hospitalist'],
-    states: ['CA'],
-    openRoles: 7,
-    trustScore: 88,
-    hiringStatus: EmployerHiringStatus.HIRING_NOW,
-    hiringTypes: ['Locums', 'Perm', 'PRN'],
-    timeToStart: 'Immediate',
-    timeToOnboard: '5–10 business days',
-    clearToStartThreshold:
-      'Active CA license + board certification + BLS/ACLS + credentialing file complete',
-    payTransparency: false,
-    payRange: null,
-    recentHires: 11,
-    website: 'https://sacmedcenter.example.com',
-    verifiedSince: '2022-11-01T00:00:00Z',
-    requirements: [
-      { label: 'CA Medical License', level: 'L3', note: 'Active, unrestricted' },
-      { label: 'Board Certification', level: 'L3' },
-      { label: 'BLS / ACLS', level: 'L3' },
-      { label: 'DEA Registration', level: 'L2', note: 'Active in CA' },
-      { label: 'Hospital Credentialing File', level: 'L3' },
-      { label: 'NPI Verified', level: 'L3' },
-      { label: 'Background Check', level: 'L2' },
-    ],
-  },
-  {
-    slug: 'northwest-locums-alliance',
-    name: 'Northwest Locums Alliance',
-    facilityType: 'Staffing / Locums Agency',
-    tagline: 'Connecting credentialed clinicians with Pacific Northwest opportunities.',
-    description:
-      'NLA places board-certified physicians and APPs in rural and urban facilities across WA, OR, ID, and MT. We specialize in rapid placement with compliant credentialing support.',
-    specialties: ['Family Medicine', 'Internal Medicine', 'Emergency Medicine', 'Hospitalist', 'Pediatrics'],
-    states: ['WA', 'OR', 'ID', 'MT'],
-    openRoles: 19,
-    trustScore: 85,
-    hiringStatus: EmployerHiringStatus.ACTIVELY_HIRING,
-    hiringTypes: ['Locums', 'Short-term'],
-    timeToStart: '1–2 weeks',
-    timeToOnboard: '3–5 business days',
-    clearToStartThreshold:
-      'Active state license + current DEA + current malpractice coverage',
-    payTransparency: true,
-    payRange: '$150–$320/hr depending on specialty',
-    recentHires: 34,
-    website: 'https://nwlocums.example.com',
-    verifiedSince: '2024-01-20T00:00:00Z',
-    requirements: [
-      { label: 'State License (target state)', level: 'L3' },
-      { label: 'DEA Registration', level: 'L2' },
-      { label: 'Malpractice Insurance', level: 'L2' },
-      { label: 'NPI Verified', level: 'L3' },
-      { label: 'NPDB Clear', level: 'L2' },
-    ],
-  },
-  {
-    slug: 'kaiser-permanente-northern-california',
-    name: 'Kaiser Permanente Northern California',
-    facilityType: 'Integrated Health System',
-    tagline: 'Delivering total health for 4.5 million members.',
-    description:
-      'Kaiser Permanente Northern California operates 21 hospitals and 260+ medical offices. We hire permanent physicians and APPs across all specialties with robust onboarding and credentialing support.',
-    specialties: ['All Specialties', 'Primary Care', 'Oncology', 'Surgery', 'Radiology', 'Psychiatry'],
-    states: ['CA'],
-    openRoles: 38,
-    trustScore: 97,
-    hiringStatus: EmployerHiringStatus.ACTIVELY_HIRING,
-    hiringTypes: ['Perm', 'Part-time'],
-    timeToStart: '4–8 weeks',
-    timeToOnboard: '10–15 business days',
-    clearToStartThreshold:
-      'CA license + board certification + malpractice history review + KP privileging complete',
-    payTransparency: false,
-    payRange: null,
-    recentHires: 89,
-    website: 'https://kaiserpermanente.org',
-    verifiedSince: '2021-03-01T00:00:00Z',
-    requirements: [
-      { label: 'CA Medical License', level: 'L3', note: 'Active, unrestricted' },
-      { label: 'Board Certification', level: 'L3', note: 'Required for all specialties' },
-      { label: 'DEA Registration', level: 'L2' },
-      { label: 'Malpractice History', level: 'L3', note: 'Reviewed by credentialing committee' },
-      { label: 'KP Privileging', level: 'L3', note: 'System-specific process, ~10 days' },
-      { label: 'NPI Verified', level: 'L3' },
-      { label: 'NPDB Clear', level: 'L3' },
-    ],
-  },
-];
+  verifiedSince: string | null;
+  requirements: EmployerRequirementSpec[];
+}): string[] {
+  const indicators: string[] = [];
 
-// ── In-memory store (Wave 190 migrates to DB-backed) ─────────────────────────
+  if (detail.verified) {
+    indicators.push(detail.verifiedSince ? `Verified since ${detail.verifiedSince.slice(0, 10)}` : 'Verified employer');
+  }
 
-const EMPLOYER_MAP = new Map(SEED_EMPLOYERS.map(e => [e.slug, e]));
+  if (detail.trustScore > 0) {
+    indicators.push(`Trust score ${detail.trustScore}`);
+  }
 
-// ── Service functions ─────────────────────────────────────────────────────────
+  if (detail.requirements.some((requirement) => requirement.level === 'L3')) {
+    indicators.push('Requires primary-source verified credentials');
+  }
 
-export async function listEmployers(opts: EmployerListOptions = {}): Promise<EmployerSummary[]> {
-  let results = SEED_EMPLOYERS;
+  return indicators;
+}
 
+function buildRequirementsSummary(
+  threshold: string,
+  requirements: EmployerRequirementSpec[],
+): string {
+  if (threshold.trim().length > 0) {
+    return threshold;
+  }
+
+  return requirements
+    .slice(0, 4)
+    .map((requirement) => requirement.label)
+    .join(', ');
+}
+
+function buildEmployerDetail(
+  slug: string,
+  seed: EmployerSeedRecord | undefined,
+  profile?: EmployerProfileRecord,
+): EmployerDetail {
+  const verifiedSince = profile?.verifiedSince?.toISOString() ?? seed?.verifiedSince ?? null;
+  const requirements = normalizeRequirements(profile?.requirements, seed?.requirements ?? []);
+  const verified = Boolean(profile?.verified) || Boolean(seed);
+  const trustScore = normalizeCount(profile?.trustScore, seed?.trustScore ?? 0);
+
+  const detailBase = {
+    id: profile?.organizationId ?? slug,
+    slug,
+    name: normalizeText(profile?.organization.name, seed?.name ?? slug),
+    facilityType: normalizeText(profile?.facilityType, seed?.facilityType ?? 'Employer'),
+    tagline: normalizeText(profile?.tagline, seed?.tagline ?? ''),
+    specialties: normalizeArray(profile?.specialties, seed?.specialties ?? []),
+    states: normalizeArray(profile?.statesCovered, seed?.states ?? []),
+    openRoles: normalizeCount(profile?.openRoles, seed?.openRoles ?? 0),
+    trustScore,
+    hiringStatus: profile?.hiringStatus ?? seed?.hiringStatus ?? EmployerHiringStatus.NOT_HIRING,
+    timeToStart: normalizeText(profile?.timeToStart, seed?.timeToStart ?? 'Not disclosed'),
+    verified,
+    description: normalizeText(profile?.description, seed?.description ?? ''),
+    hiringTypes: normalizeArray(profile?.hiringTypes, seed?.hiringTypes ?? []),
+    timeToOnboard: normalizeText(profile?.timeToOnboard, seed?.timeToOnboard ?? 'Not disclosed'),
+    clearToStartThreshold: normalizeText(
+      profile?.clearToStartThreshold,
+      seed?.clearToStartThreshold ?? '',
+    ),
+    payTransparency: profile?.payTransparency ?? seed?.payTransparency ?? false,
+    payRange: profile?.payRange ?? seed?.payRange ?? null,
+    requirements,
+    recentHires: normalizeCount(profile?.recentHires, seed?.recentHires ?? 0),
+    website: profile?.website ?? seed?.website ?? null,
+    verifiedSince,
+  };
+
+  const trustIndicators = buildTrustIndicators({
+    verified: detailBase.verified,
+    trustScore: detailBase.trustScore,
+    verifiedSince: detailBase.verifiedSince,
+    requirements: detailBase.requirements,
+  });
+
+  return {
+    ...detailBase,
+    trustIndicators,
+    overview: {
+      description: detailBase.description,
+      website: detailBase.website,
+      facilityType: detailBase.facilityType,
+      states: detailBase.states,
+    },
+    specialtiesHired: detailBase.specialties,
+    requirementsSummary: buildRequirementsSummary(
+      detailBase.clearToStartThreshold,
+      detailBase.requirements,
+    ),
+    startSpeed: detailBase.timeToStart,
+    onboardingSpeed: detailBase.timeToOnboard,
+  };
+}
+
+function toSummary(detail: EmployerDetail): EmployerSummary {
+  return {
+    id: detail.id,
+    slug: detail.slug,
+    name: detail.name,
+    facilityType: detail.facilityType,
+    tagline: detail.tagline,
+    specialties: detail.specialties,
+    states: detail.states,
+    openRoles: detail.openRoles,
+    trustScore: detail.trustScore,
+    hiringStatus: detail.hiringStatus,
+    timeToStart: detail.timeToStart,
+    verified: detail.verified,
+    trustIndicators: detail.trustIndicators,
+  };
+}
+
+function isPublicEmployer(profile: EmployerProfileRecord | undefined, seed: EmployerSeedRecord | undefined): boolean {
+  if (seed) {
+    return true;
+  }
+
+  return Boolean(profile?.verified);
+}
+
+function applyListFilters(detail: EmployerDetail, opts: EmployerListOptions): boolean {
   if (opts.specialty) {
-    const sp = opts.specialty.toLowerCase();
-    results = results.filter(e =>
-      e.specialties.some(s => s.toLowerCase().includes(sp)),
-    );
+    const specialty = opts.specialty.toLowerCase();
+    if (!detail.specialties.some((value) => value.toLowerCase().includes(specialty))) {
+      return false;
+    }
   }
 
   if (opts.state) {
-    const st = opts.state.toUpperCase();
-    results = results.filter(e => e.states.includes(st));
+    const state = opts.state.toUpperCase();
+    if (!detail.states.includes(state)) {
+      return false;
+    }
   }
 
-  if (opts.hiringStatus) {
-    results = results.filter(e => e.hiringStatus === opts.hiringStatus);
+  if (opts.hiringStatus && detail.hiringStatus !== opts.hiringStatus) {
+    return false;
   }
 
   if (opts.hiringType) {
-    const ht = opts.hiringType.toLowerCase();
-    results = results.filter(e =>
-      e.hiringTypes.some(t => t.toLowerCase() === ht),
-    );
+    const hiringType = opts.hiringType.toLowerCase();
+    if (!detail.hiringTypes.some((value) => value.toLowerCase() === hiringType)) {
+      return false;
+    }
   }
 
-  const start = opts.offset ?? 0;
-  const end = start + (opts.limit ?? 20);
-  const page = results.slice(start, end);
+  return true;
+}
 
-  log('info', 'employer.list', { count: page.length, opts });
+async function getPublicProfilesBySlug(): Promise<Map<string, EmployerProfileRecord>> {
+  const profiles = await prisma.organizationProfile.findMany({
+    where: {
+      OR: [
+        { verified: true },
+        {
+          organization: {
+            slug: { in: EMPLOYER_KNOWLEDGE_SEEDS.map((seed) => seed.slug) },
+          },
+        },
+      ],
+    },
+    include: EMPLOYER_PROFILE_INCLUDE,
+  });
 
-  return page.map(toSummary);
+  return new Map(
+    profiles.map((profile) => [profile.organization.slug, profile]),
+  );
+}
+
+export async function listEmployers(opts: EmployerListOptions = {}): Promise<EmployerListResult> {
+  const [profilesBySlug] = await Promise.all([getPublicProfilesBySlug()]);
+  const slugs = new Set<string>([
+    ...EMPLOYER_KNOWLEDGE_SEEDS.map((seed) => seed.slug),
+    ...profilesBySlug.keys(),
+  ]);
+
+  const allEmployers = [...slugs]
+    .map((slug) => {
+      const seed = getEmployerSeedBySlug(slug);
+      const profile = profilesBySlug.get(slug);
+      if (!isPublicEmployer(profile, seed)) {
+        return null;
+      }
+
+      return buildEmployerDetail(slug, seed, profile);
+    })
+    .filter((detail): detail is EmployerDetail => Boolean(detail))
+    .filter((detail) => applyListFilters(detail, opts))
+    .sort((left, right) => {
+      if (right.trustScore !== left.trustScore) {
+        return right.trustScore - left.trustScore;
+      }
+      return right.openRoles - left.openRoles;
+    });
+
+  const offset = Math.max(0, opts.offset ?? 0);
+  const limit = Math.max(1, Math.min(opts.limit ?? 20, 50));
+  const employers = allEmployers.slice(offset, offset + limit).map(toSummary);
+
+  log('info', 'employer.list', { count: employers.length, total: allEmployers.length, opts });
+
+  return {
+    employers,
+    total: allEmployers.length,
+    limit,
+    offset,
+  };
 }
 
 export async function getEmployerBySlug(slug: string): Promise<EmployerDetail | null> {
-  const e = EMPLOYER_MAP.get(slug);
-  if (!e) return null;
-  log('info', 'employer.view', { slug });
-  return toDetail(e);
+  const normalizedSlug = slug.trim();
+  const [profile, seed] = await Promise.all([
+    prisma.organizationProfile.findFirst({
+      where: {
+        organization: {
+          slug: normalizedSlug,
+        },
+      },
+      include: EMPLOYER_PROFILE_INCLUDE,
+    }),
+    Promise.resolve(getEmployerSeedBySlug(normalizedSlug)),
+  ]);
+
+  if (!isPublicEmployer(profile ?? undefined, seed)) {
+    return null;
+  }
+
+  const employer = buildEmployerDetail(normalizedSlug, seed, profile ?? undefined);
+  log('info', 'employer.view', { slug: normalizedSlug, source: profile ? 'db' : 'seed' });
+  return employer;
 }
 
 export async function compareEmployers(slugs: string[]): Promise<EmployerCompareResult> {
-  const employers: EmployerDetail[] = [];
-  for (const slug of slugs.slice(0, 4)) {
-    const e = EMPLOYER_MAP.get(slug);
-    if (e) employers.push(toDetail(e));
-  }
+  const employers = (
+    await Promise.all(slugs.slice(0, 4).map((slug) => getEmployerBySlug(slug)))
+  ).filter((detail): detail is EmployerDetail => Boolean(detail));
 
   const differentiators = computeDifferentiators(employers);
   log('info', 'employer.compare', { slugs, count: employers.length });
 
-  return { employers, differentiators };
+  return {
+    employers,
+    differentiators,
+    comparedAt: new Date().toISOString(),
+  };
 }
 
 export async function searchEmployers(query: string): Promise<EmployerSummary[]> {
-  const q = query.toLowerCase();
-  const results = SEED_EMPLOYERS.filter(e =>
-    e.name.toLowerCase().includes(q) ||
-    e.facilityType.toLowerCase().includes(q) ||
-    e.specialties.some(s => s.toLowerCase().includes(q)) ||
-    e.tagline.toLowerCase().includes(q) ||
-    e.states.some(s => s.toLowerCase() === q),
+  const q = query.trim().toLowerCase();
+  if (!q) {
+    return [];
+  }
+
+  const result = await listEmployers({ limit: 100, offset: 0 });
+  const employers = result.employers.filter((employer) =>
+    employer.name.toLowerCase().includes(q) ||
+    employer.facilityType.toLowerCase().includes(q) ||
+    employer.specialties.some((specialty) => specialty.toLowerCase().includes(q)) ||
+    employer.tagline.toLowerCase().includes(q) ||
+    employer.states.some((state) => state.toLowerCase() === q),
   );
-  log('info', 'employer.search', { query, count: results.length });
-  return results.map(toSummary);
-}
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function toSummary(e: typeof SEED_EMPLOYERS[0]): EmployerSummary {
-  return {
-    id: e.slug,
-    slug: e.slug,
-    name: e.name,
-    facilityType: e.facilityType,
-    tagline: e.tagline,
-    specialties: e.specialties,
-    states: e.states,
-    openRoles: e.openRoles,
-    trustScore: e.trustScore,
-    hiringStatus: e.hiringStatus,
-    timeToStart: e.timeToStart,
-    verified: true,
-  };
-}
-
-function toDetail(e: typeof SEED_EMPLOYERS[0]): EmployerDetail {
-  return {
-    ...toSummary(e),
-    description: e.description,
-    hiringTypes: e.hiringTypes,
-    timeToOnboard: e.timeToOnboard,
-    clearToStartThreshold: e.clearToStartThreshold,
-    payTransparency: e.payTransparency,
-    payRange: e.payRange,
-    requirements: e.requirements,
-    recentHires: e.recentHires,
-    website: e.website,
-    verifiedSince: e.verifiedSince,
-  };
+  log('info', 'employer.search', { query, count: employers.length });
+  return employers;
 }
 
 function computeDifferentiators(employers: EmployerDetail[]): string[] {
-  if (employers.length < 2) return [];
-  const diffs: string[] = [];
-
-  const scores = employers.map(e => e.trustScore);
-  if (Math.max(...scores) - Math.min(...scores) > 5) {
-    const highest = employers.reduce((a, b) => (a.trustScore > b.trustScore ? a : b));
-    diffs.push(`${highest.name} has the highest trust score (${highest.trustScore})`);
+  if (employers.length < 2) {
+    return [];
   }
 
-  const payVisible = employers.filter(e => e.payTransparency);
-  if (payVisible.length < employers.length) {
-    diffs.push(`${payVisible.map(e => e.name).join(', ')} publish pay ranges; others do not`);
+  const differentiators: string[] = [];
+  const highestTrust = employers.reduce((best, current) => (
+    current.trustScore > best.trustScore ? current : best
+  ));
+  const fastestStart = employers.reduce((best, current) => (
+    parseStartDays(current.timeToStart) < parseStartDays(best.timeToStart) ? current : best
+  ));
+
+  if (highestTrust.trustScore > 0) {
+    differentiators.push(`${highestTrust.name} has the highest trust score (${highestTrust.trustScore}).`);
   }
 
-  const fastest = employers.reduce((a, b) =>
-    parseStartDays(a.timeToStart) < parseStartDays(b.timeToStart) ? a : b,
-  );
-  diffs.push(`${fastest.name} offers the fastest start time (${fastest.timeToStart})`);
+  const payTransparent = employers.filter((employer) => employer.payTransparency);
+  if (payTransparent.length > 0 && payTransparent.length < employers.length) {
+    differentiators.push(`${payTransparent.map((employer) => employer.name).join(', ')} publish pay ranges.`);
+  }
 
-  return diffs;
+  differentiators.push(`${fastestStart.name} offers the fastest start time (${fastestStart.timeToStart}).`);
+
+  return differentiators;
 }
 
-function parseStartDays(t: string): number {
-  const m = t.match(/(\d+)/);
-  return m ? parseInt(m[1]) : 99;
+function parseStartDays(value: string): number {
+  const match = value.match(/(\d+)/);
+  return match ? parseInt(match[1], 10) : 99;
 }

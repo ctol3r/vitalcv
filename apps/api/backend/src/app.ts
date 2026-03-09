@@ -116,6 +116,7 @@ import { registerSearchRoutes } from './routes/search';                     // W
 import { registerAskRoutes } from './routes/ask';                           // Wave 185: Ask VitalCV answer engine
 import { registerEmployerRoutes } from './routes/employers';                 // Wave 186: Employer Knowledge Layer
 import { registerPrequalificationRoutes } from './routes/prequalification';  // Wave 189: AI Interview, Assessments, Prequalification
+import { registerVerifierPipelineRoutes } from './routes/verifierPipeline';  // Wave 190: Apply with VitalCV + ATS + Verifier Pipeline
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -485,6 +486,9 @@ function shouldSkipTenantContext(pathname: string): boolean {
     normalizedPath.startsWith('/api/pilot') ||
     normalizedPath.startsWith('/api/metrics') ||
     normalizedPath.startsWith('/api/artifact') ||
+    normalizedPath.startsWith('/api/ask') ||
+    normalizedPath.startsWith('/api/search') ||
+    normalizedPath.startsWith('/api/employers') ||
     normalizedPath.startsWith('/bundle') ||
     // Wave 31: PoE issuance uses apiKeyAuth; verify is stateless/public.
     normalizedPath.startsWith('/api/issuer/') ||
@@ -3499,6 +3503,7 @@ registerSearchRoutes(app);            // Wave 184 — Unified Search Index + hyb
 registerAskRoutes(app);               // Wave 185 — Ask VitalCV natural language answer engine
 registerEmployerRoutes(app);          // Wave 186 — Employer Knowledge Layer
 registerPrequalificationRoutes(app);  // Wave 189 — AI Interview, Assessments, Prequalification
+registerVerifierPipelineRoutes(app);  // Wave 190 — Apply with VitalCV + ATS + Verifier Pipeline
 registerPayerVerificationRoutes(app); // Wave 142 — Payer Network Integration
 registerProviderDirectoryRoutes(app);  // Wave 143 — Provider Directory Distribution
 registerGraphScalingRoutes(app);       // Wave 144 — Trust Graph Performance Scaling
