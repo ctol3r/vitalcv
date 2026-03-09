@@ -10,6 +10,7 @@
 
 import type { ClinicianProfile } from './matchaModels';
 import type { JobPosting } from './eligibility';
+import { resolveEmployerSlugFromName } from '../employers/employerCatalog';
 
 /* ------------------------------------------------------------------ */
 /*  Clinician Profile                                                  */
@@ -74,6 +75,16 @@ export const MOCK_JOBS: JobPosting[] = [
     id: 'matcha-job-1',
     title: 'Staff Internist',
     facility: 'Stanford Health Care',
+    employerSlug: resolveEmployerSlugFromName('Stanford Health Care'),
+    employer: {
+      slug: resolveEmployerSlugFromName('Stanford Health Care'),
+      name: 'Stanford Health Care',
+    },
+    askContext: {
+      employerSlug: resolveEmployerSlugFromName('Stanford Health Care'),
+      employerName: 'Stanford Health Care',
+      opportunityId: 'matcha-job-1',
+    },
     location: 'Palo Alto, CA',
     department: 'Internal Medicine',
     compensation: '$280k – $350k',
@@ -93,6 +104,16 @@ export const MOCK_JOBS: JobPosting[] = [
     id: 'matcha-job-2',
     title: 'Hospitalist — Night Shift',
     facility: 'Kaiser Permanente',
+    employerSlug: resolveEmployerSlugFromName('Kaiser Permanente'),
+    employer: {
+      slug: resolveEmployerSlugFromName('Kaiser Permanente'),
+      name: 'Kaiser Permanente',
+    },
+    askContext: {
+      employerSlug: resolveEmployerSlugFromName('Kaiser Permanente'),
+      employerName: 'Kaiser Permanente',
+      opportunityId: 'matcha-job-2',
+    },
     location: 'Oakland, CA',
     department: 'Hospital Medicine',
     compensation: '$310k – $380k + Night Differential',
@@ -112,6 +133,16 @@ export const MOCK_JOBS: JobPosting[] = [
     id: 'matcha-job-3',
     title: 'Primary Care Physician',
     facility: 'One Medical (Amazon)',
+    employerSlug: resolveEmployerSlugFromName('One Medical Amazon'),
+    employer: {
+      slug: resolveEmployerSlugFromName('One Medical Amazon'),
+      name: 'One Medical (Amazon)',
+    },
+    askContext: {
+      employerSlug: resolveEmployerSlugFromName('One Medical Amazon'),
+      employerName: 'One Medical (Amazon)',
+      opportunityId: 'matcha-job-3',
+    },
     location: 'San Francisco, CA',
     department: 'Primary Care',
     compensation: '$250k – $300k + Equity',
@@ -131,6 +162,16 @@ export const MOCK_JOBS: JobPosting[] = [
     id: 'matcha-job-4',
     title: 'Urgent Care Physician',
     facility: 'Sutter Health',
+    employerSlug: resolveEmployerSlugFromName('Sutter Health'),
+    employer: {
+      slug: resolveEmployerSlugFromName('Sutter Health'),
+      name: 'Sutter Health',
+    },
+    askContext: {
+      employerSlug: resolveEmployerSlugFromName('Sutter Health'),
+      employerName: 'Sutter Health',
+      opportunityId: 'matcha-job-4',
+    },
     location: 'Sacramento, CA',
     department: 'Urgent Care',
     compensation: '$260k – $320k',
@@ -150,6 +191,16 @@ export const MOCK_JOBS: JobPosting[] = [
     id: 'matcha-job-5',
     title: 'Interventional Cardiologist',
     facility: 'UCSF Medical Center',
+    employerSlug: resolveEmployerSlugFromName('UCSF Medical Center'),
+    employer: {
+      slug: resolveEmployerSlugFromName('UCSF Medical Center'),
+      name: 'UCSF Medical Center',
+    },
+    askContext: {
+      employerSlug: resolveEmployerSlugFromName('UCSF Medical Center'),
+      employerName: 'UCSF Medical Center',
+      opportunityId: 'matcha-job-5',
+    },
     location: 'San Francisco, CA',
     department: 'Cardiology',
     compensation: '$400k – $500k',

@@ -7,7 +7,7 @@
  * POST /api/search/reindex (admin only)
  */
 
-import { SearchAclLevel, SearchObjectType } from '@prisma/client';
+import { SearchObjectType } from '@prisma/client';
 import type { Express, NextFunction, Request, Response } from 'express';
 import {
   getIndexStatus,
@@ -15,74 +15,69 @@ import {
   seedPublicPages,
   suggestSearch,
 } from '../services/search/searchIndex';
+import { resolveSearchRequestContext } from '../services/search/requestContext';
 import { HttpError } from '../utils/httpError';
 
 function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
   return (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
 }
 
-function resolveAcl(req: Request): SearchAclLevel {
-  const clerkId = req.headers['x-clerk-user-id'];
-  const role    = (req.headers['x-clerk-user-role'] as string | undefined)?.toUpperCase();
-  if (!clerkId) return 'PUBLIC';
-  if (role === 'ADMIN') return 'ADMIN';
-  if (role === 'VERIFIER') return 'VERIFIER';
-  return 'AUTHENTICATED';
-}
-
 export function registerSearchRoutes(app: Express): void {
-
-  /**
-   * POST /api/search/query
-   * Body: { q: string; types?: string[]; limit?: number; offset?: number; filters?: object }
-   */
   app.post(
     '/api/search/query',
     asyncHandler(async (req, res) => {
       const body = req.body as {
         q?: string;
+        query?: string;
         types?: string[];
         limit?: number;
         offset?: number;
-        filters?: Record<string, unknown>;
+        filters?: Record<string, string | number | boolean | undefined>;
       };
 
-      if (!body.q?.trim()) {
+      const q = body.q?.trim() || body.query?.trim();
+      if (!q) {
         throw new HttpError(400, 'q (query string) is required.');
       }
 
-      const validTypes = Object.values(SearchObjectType);
-      const types = body.types?.filter((t) => validTypes.includes(t as SearchObjectType)) as SearchObjectType[] | undefined;
+      const validTypes = new Set(Object.values(SearchObjectType));
+      const types = body.types?.filter((type) => validTypes.has(type as SearchObjectType)) as SearchObjectType[] | undefined;
+      const requestContext = await resolveSearchRequestContext(req, q);
 
       const result = await querySearch({
-        q:        body.q.trim(),
+        q,
         types,
-        aclLevel: resolveAcl(req),
-        limit:    Math.min(body.limit ?? 10, 50),
-        offset:   body.offset ?? 0,
+        aclLevel: requestContext.aclLevel,
+        orgId: requestContext.organizationId,
+        roles: requestContext.membershipRoles,
+        limit: Math.min(body.limit ?? 10, 50),
+        offset: Math.max(body.offset ?? 0, 0),
+        filters: body.filters,
       });
 
       res.json(result);
     }),
   );
 
-  /**
-   * POST /api/search/suggest
-   * Body: { q: string; limit?: number }
-   */
   app.post(
     '/api/search/suggest',
     asyncHandler(async (req, res) => {
-      const { q, limit } = req.body as { q?: string; limit?: number };
-      if (!q) throw new HttpError(400, 'q is required.');
-      const result = await suggestSearch(q.trim(), limit ?? 5);
+      const body = req.body as { q?: string; query?: string; limit?: number };
+      const q = body.q?.trim() || body.query?.trim();
+      if (!q) {
+        throw new HttpError(400, 'q is required.');
+      }
+
+      const requestContext = await resolveSearchRequestContext(req, q);
+      const result = await suggestSearch(q, body.limit ?? 5, {
+        aclLevel: requestContext.aclLevel,
+        orgId: requestContext.organizationId,
+        roles: requestContext.membershipRoles,
+      });
       res.json(result);
     }),
   );
 
-  /**
-   * GET /api/search/index-status
-   */
   app.get(
     '/api/search/index-status',
     asyncHandler(async (_req, res) => {
@@ -91,16 +86,11 @@ export function registerSearchRoutes(app: Express): void {
     }),
   );
 
-  /**
-   * POST /api/search/reindex
-   * Admin only — seeds public pages into the index.
-   */
   app.post(
     '/api/search/reindex',
     asyncHandler(async (req, res) => {
-      const clerkId = req.headers['x-clerk-user-id'];
-      const role    = (req.headers['x-clerk-user-role'] as string | undefined)?.toUpperCase();
-      if (!clerkId || role !== 'ADMIN') {
+      const requestContext = await resolveSearchRequestContext(req);
+      if (!requestContext.clerkUserId || requestContext.aclLevel !== 'ADMIN') {
         throw new HttpError(403, 'Admin access required for reindex.');
       }
 
