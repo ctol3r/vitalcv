@@ -4,38 +4,51 @@
  * POST /api/ask
  */
 
-import { SearchAclLevel } from '@prisma/client';
 import type { Express, NextFunction, Request, Response } from 'express';
 import { ask } from '../services/search/askService';
+import { resolveSearchRequestContext } from '../services/search/requestContext';
 import { HttpError } from '../utils/httpError';
 
 function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
   return (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
 }
 
-function resolveAcl(req: Request): SearchAclLevel {
-  const clerkId = req.headers['x-clerk-user-id'];
-  const role    = (req.headers['x-clerk-user-role'] as string | undefined)?.toUpperCase();
-  if (!clerkId) return 'PUBLIC';
-  if (role === 'ADMIN')    return 'ADMIN';
-  if (role === 'VERIFIER') return 'VERIFIER';
-  return 'AUTHENTICATED';
-}
-
 export function registerAskRoutes(app: Express): void {
-  /**
-   * POST /api/ask
-   * Body: { q: string }
-   * Returns: AskResponse with answer, sources, suggestedActions, guardrail state
-   */
   app.post(
     '/api/ask',
     asyncHandler(async (req, res) => {
-      const { q } = req.body as { q?: string };
-      if (!q?.trim()) throw new HttpError(400, 'q (query string) is required.');
-      if (q.length > 500) throw new HttpError(400, 'Query must be 500 characters or fewer.');
+      const body = req.body as {
+        q?: string;
+        query?: string;
+        context?: {
+          employerSlug?: string;
+          employerName?: string;
+          opportunityId?: string;
+        };
+        filters?: {
+          employer?: string;
+          type?: string;
+          state?: string;
+          hiringType?: string;
+        };
+      };
 
-      const result = await ask(q.trim(), resolveAcl(req));
+      const q = body.q?.trim() || body.query?.trim();
+      if (!q) {
+        throw new HttpError(400, 'q (query string) is required.');
+      }
+      if (q.length > 500) {
+        throw new HttpError(400, 'Query must be 500 characters or fewer.');
+      }
+
+      const requestContext = await resolveSearchRequestContext(req, q);
+      const result = await ask({
+        q,
+        requestContext,
+        context: body.context,
+        filters: body.filters,
+      });
+
       res.json(result);
     }),
   );

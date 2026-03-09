@@ -33,6 +33,19 @@ export interface JobPosting {
   id: string;
   title: string;
   facility: string;
+  employerSlug?: string;
+  employer?: {
+    slug?: string;
+    name: string;
+    trustScore?: number;
+    hiringStatus?: string;
+    timeToStart?: string;
+  };
+  askContext?: {
+    employerSlug?: string;
+    employerName: string;
+    opportunityId: string;
+  };
   location: string;
   department: string;
   compensation: string;
