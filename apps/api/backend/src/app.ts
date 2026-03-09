@@ -120,6 +120,7 @@ import { registerVerifierPipelineRoutes } from './routes/verifierPipeline';  // 
 import { registerReferralRoutes } from './routes/referrals';                 // Wave 191: Referral Engine with Compliance Guardrails
 import { registerAmbassadorRoutes } from './routes/ambassador';              // Wave 192: Ambassador Program
 import { registerGrowthRoutes } from './routes/growth';                      // Wave 193: Instant Offers + Growth Loops
+import { registerMarketplaceAnalyticsRoutes } from './routes/marketplaceAnalytics'; // Wave 194: Marketplace Analytics
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3510,6 +3511,7 @@ registerVerifierPipelineRoutes(app);  // Wave 190 — Apply with VitalCV + ATS +
 registerReferralRoutes(app);          // Wave 191 — Referral Engine with Compliance Guardrails
 registerAmbassadorRoutes(app);        // Wave 192 — Ambassador Program
 registerGrowthRoutes(app);            // Wave 193 — Instant Offers + Growth Loops
+registerMarketplaceAnalyticsRoutes(app); // Wave 194 — Marketplace Analytics
 registerPayerVerificationRoutes(app); // Wave 142 — Payer Network Integration
 registerProviderDirectoryRoutes(app);  // Wave 143 — Provider Directory Distribution
 registerGraphScalingRoutes(app);       // Wave 144 — Trust Graph Performance Scaling
