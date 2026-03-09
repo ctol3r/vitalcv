@@ -13,6 +13,7 @@ import { matchOpportunities, scoreOpportunity, buildDecisionAudit, checkInstantO
 import { getMockProfile } from '../services/matcha/mockData';
 import { OPPORTUNITIES, getOpportunity, listOpportunities } from '../services/matcha/opportunityRegistry';
 import type { CandidateIntent } from '../services/matcha/matchaModels';
+import { getEmployerBySlug } from '../services/employers/employerService';
 
 // In-memory intent store — Wave 190 migrates to DB
 const intentStore = new Map<string, CandidateIntent>();
@@ -27,50 +28,79 @@ export function registerMatchaRoutes(app: Express): void {
    * Returns ranked matched opportunities for a clinician.
    * Query: specialty, state, hiringType, remote
    */
-  app.get('/api/matcha/opportunities/:npi', (req: Request, res: Response) => {
-    const { npi } = req.params;
-    if (!npi || !/^\d{10}$/.test(npi)) {
-      res.status(400).json({ error: 'Invalid NPI — expected 10 digits' });
-      return;
+  app.get('/api/matcha/opportunities/:npi', async (req: Request, res: Response) => {
+    try {
+      const { npi } = req.params;
+      if (!npi || !/^\d{10}$/.test(npi)) {
+        res.status(400).json({ error: 'Invalid NPI — expected 10 digits' });
+        return;
+      }
+
+      const clinician = getMockProfile(npi);
+      const intent = intentStore.get(npi) ?? null;
+
+      const { specialty, state, hiringType, remote } = req.query;
+      const filtered = listOpportunities({
+        specialty: specialty as string | undefined,
+        state: state as string | undefined,
+        hiringType: hiringType as string | undefined,
+        remote: remote === 'true' ? true : remote === 'false' ? false : undefined,
+      });
+
+      const matches = matchOpportunities(clinician, intent, filtered);
+
+      for (const match of matches) {
+        decisionLog.push(buildDecisionAudit(npi, match.opportunity, match.explanation));
+      }
+
+      const opportunities = await Promise.all(matches.map(async (match) => {
+        const employer = await getEmployerBySlug(match.opportunity.employerSlug);
+        return {
+          ...match.opportunity,
+          employerSlug: match.opportunity.employerSlug,
+          employer: employer
+            ? {
+              slug: employer.slug,
+              name: employer.name,
+              trustScore: employer.trustScore,
+              hiringStatus: employer.hiringStatus,
+              timeToStart: employer.timeToStart,
+            }
+            : {
+              slug: match.opportunity.employerSlug,
+              name: match.opportunity.facility,
+            },
+          askContext: {
+            employerSlug: match.opportunity.employerSlug,
+            employerName: employer?.name ?? match.opportunity.facility,
+            opportunityId: match.opportunity.id,
+          },
+          matchScore: match.explanation.matchScore,
+          matchBand: match.explanation.matchBand,
+          confidence: match.explanation.confidence,
+          instantOfferEligible: match.explanation.instantOfferEligible,
+          blockerCount: match.explanation.blockers.length,
+          fitSummary: match.explanation.fitReasons.filter((reason) => reason.positive).slice(0, 3).map((reason) => reason.label),
+          topBlocker: match.explanation.blockers[0]?.label ?? null,
+        };
+      }));
+
+      res.json({
+        npi,
+        clinician: { name: clinician.name, specialty: clinician.specialty },
+        totalOpportunities: matches.length,
+        clearToStart: matches.filter((match) => match.explanation.matchBand === 'CLEAR').length,
+        nearClear: matches.filter((match) => match.explanation.matchBand === 'NEAR_CLEAR').length,
+        instantOfferEligible: matches.filter((match) => match.explanation.instantOfferEligible).length,
+        opportunities,
+        generatedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        error: 'Failed to load MATCHA opportunities',
+        detail: error instanceof Error ? error.message : String(error),
+      });
     }
-
-    const clinician = getMockProfile(npi);
-    const intent = intentStore.get(npi) ?? null;
-
-    const { specialty, state, hiringType, remote } = req.query;
-    const filtered = listOpportunities({
-      specialty: specialty as string | undefined,
-      state: state as string | undefined,
-      hiringType: hiringType as string | undefined,
-      remote: remote === 'true' ? true : remote === 'false' ? false : undefined,
-    });
-
-    const matches = matchOpportunities(clinician, intent, filtered);
-
-    // Persist audit records
-    for (const m of matches) {
-      decisionLog.push(buildDecisionAudit(npi, m.opportunity, m.explanation));
-    }
-
-    res.json({
-      npi,
-      clinician: { name: clinician.name, specialty: clinician.specialty },
-      totalOpportunities: matches.length,
-      clearToStart: matches.filter(m => m.explanation.matchBand === 'CLEAR').length,
-      nearClear: matches.filter(m => m.explanation.matchBand === 'NEAR_CLEAR').length,
-      instantOfferEligible: matches.filter(m => m.explanation.instantOfferEligible).length,
-      opportunities: matches.map(m => ({
-        ...m.opportunity,
-        matchScore: m.explanation.matchScore,
-        matchBand: m.explanation.matchBand,
-        confidence: m.explanation.confidence,
-        instantOfferEligible: m.explanation.instantOfferEligible,
-        blockerCount: m.explanation.blockers.length,
-        fitSummary: m.explanation.fitReasons.filter(r => r.positive).slice(0, 3).map(r => r.label),
-        topBlocker: m.explanation.blockers[0]?.label ?? null,
-      })),
-      generatedAt: new Date().toISOString(),
-    });
   });
 
   /**
