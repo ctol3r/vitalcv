@@ -25,6 +25,13 @@ enum UserStatus {
   DEACTIVATED
 }
 
+enum NpiDidBindingStatus {
+  ACTIVE
+  CONTESTED
+  REVOKED
+  PENDING
+}
+
 model User {
   id             String     @id @default(uuid()) @db.Uuid
   clerkUserId    String     @unique
@@ -146,6 +153,23 @@ model ClinicianIdentity {
   data         Json     @db.JsonB
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+model NpiDidBinding {
+  id                String              @id @default(uuid()) @db.Uuid
+  npi               String              @unique
+  did               String              @unique
+  sourceFingerprint String
+  recipeVersion     String              @default("1.0.0")
+  evidencePointers  Json                @db.JsonB
+  status            NpiDidBindingStatus @default(ACTIVE)
+  contestReason     String?
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  @@index([npi])
+  @@index([did])
+  @@map("npi_did_binding")
 }
 
 model CandidateCredential {
