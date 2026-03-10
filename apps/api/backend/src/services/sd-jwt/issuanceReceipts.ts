@@ -1,32 +1,32 @@
-/**
- * Wave 199 — Issuance Receipts
- * Appends a receipt record to the audit scrapbook (JSONL) on every issuance.
- */
+import { generateIssuanceReceipt, type AuditReceipt } from '../audit/receiptGenerator';
+import type { VerifiableCredential } from '../credentials/credentialModel';
 
-import fs from 'node:fs';
-import path from 'node:path';
-import { log } from '../../obs/logger';
-
-const RECEIPTS_PATH = path.resolve(
-  __dirname,
-  '../../audit/scrapbook/issuance-receipts.jsonl',
-);
-
-export interface IssuanceReceipt {
+export interface SdJwtIssuanceReceiptInput {
   credentialId: string;
+  issuerDid: string;
   holderDid: string;
-  type: string;
+  credentialType: string;
+  compact: string;
   issuedAt: string;
-  claims: string[];
-  kid: string;
+  expiresAt?: string;
 }
 
-export function recordIssuanceReceipt(receipt: IssuanceReceipt): void {
-  try {
-    const dir = path.dirname(RECEIPTS_PATH);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.appendFileSync(RECEIPTS_PATH, JSON.stringify(receipt) + '\n');
-  } catch {
-    log('warn', 'issuance_receipt_write_failed', { credentialId: receipt.credentialId });
-  }
+export async function recordIssuanceReceipt(
+  receipt: SdJwtIssuanceReceiptInput,
+): Promise<AuditReceipt> {
+  const credential: VerifiableCredential = {
+    credentialId: receipt.credentialId,
+    issuer: receipt.issuerDid,
+    subject: receipt.holderDid,
+    claims: {
+      type: ['VerifiableCredential', receipt.credentialType],
+    },
+    signature: receipt.compact,
+    status: 'ACTIVE',
+    issuedAt: receipt.issuedAt,
+    expiresAt: receipt.expiresAt,
+    schemaVersion: '1.0',
+  };
+
+  return generateIssuanceReceipt(credential, 'vc+sd-jwt');
 }

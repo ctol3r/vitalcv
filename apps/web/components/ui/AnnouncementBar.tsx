@@ -1,15 +1,73 @@
 'use client';
-import React from 'react';
-const COLORS = { info: 'bg-blue-600', warning: 'bg-amber-500', critical: 'bg-red-600' };
-interface Props { message: string; type?: 'info' | 'warning' | 'critical'; dismissible?: boolean; ctaText?: string; ctaHref?: string }
-export function AnnouncementBar({ message, type = 'info', dismissible = true, ctaText, ctaHref }: Props) {
-  const [dismissed, setDismissed] = React.useState(false);
-  React.useEffect(() => { if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('bar-dismissed-' + message)) setDismissed(true); }, [message]);
-  if (dismissed) return null;
+import { cn } from '@/lib/utils';
+import { AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
+export type AnnouncementType = 'info' | 'warning' | 'critical';
+
+export interface AnnouncementBarProps {
+  message: string;
+  type?: AnnouncementType;
+  dismissible?: boolean;
+  ctaText?: string;
+  ctaHref?: string;
+  onDismiss?: () => void;
+}
+
+const TYPE_CONFIG: Record<AnnouncementType, { bg: string; text: string; icon: any; border: string }> = {
+  info: { bg: 'bg-vt-info/10', text: 'text-vt-info', border: 'border-vt-info/20', icon: Info },
+  warning: { bg: 'bg-vt-warning/10', text: 'text-vt-warning', border: 'border-vt-warning/20', icon: AlertTriangle },
+  critical: { bg: 'bg-vt-danger/10', text: 'text-vt-danger', border: 'border-vt-danger/20', icon: AlertCircle },
+};
+
+export function AnnouncementBar({ message, type = 'info', dismissible = true, ctaText, ctaHref, onDismiss }: AnnouncementBarProps) {
+  const [dismissed, setDismissed] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(`bar-dismissed-${message}`)) {
+      setDismissed(true);
+    }
+  }, [message]);
+
+  if (!mounted || dismissed) return null;
+
+  const config = TYPE_CONFIG[type];
+  const Icon = config.icon;
+
+  const handleDismiss = () => {
+    setDismissed(true);
+    sessionStorage.setItem(`bar-dismissed-${message}`, '1');
+    onDismiss?.();
+  };
+
   return (
-    <div className={`fixed top-0 left-0 right-0 z-[9999] ${COLORS[type]} text-white text-xs py-2 px-4 flex items-center justify-between`}>
-      <span>{message}{ctaText && ctaHref && <a href={ctaHref} className="ml-3 underline font-semibold">{ctaText}</a>}</span>
-      {dismissible && <button onClick={() => { setDismissed(true); sessionStorage.setItem('bar-dismissed-' + message, '1'); }} className="ml-4 opacity-70 hover:opacity-100">✕</button>}
+    <div className={cn(
+      "w-full border-b backdrop-blur-md flex items-center justify-between px-4 py-2",
+      config.bg, config.border
+    )}>
+      <div className="flex items-center gap-3">
+        <Icon className={cn("w-4 h-4 shrink-0", config.text)} />
+        <span className="text-[11px] font-medium text-white/90">
+          {message}
+          {ctaText && ctaHref && (
+            <a href={ctaHref} className={cn("ml-3 font-semibold underline hover:text-white transition-colors", config.text)}>
+              {ctaText}
+            </a>
+          )}
+        </span>
+      </div>
+
+      {dismissible && (
+        <button
+          onClick={handleDismiss}
+          className="shrink-0 p-1 rounded-sm text-white/50 hover:bg-white/10 hover:text-white transition-colors"
+          aria-label="Dismiss announcement"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
     </div>
   );
 }

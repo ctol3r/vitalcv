@@ -11,7 +11,8 @@
     "typecheck": "turbo typecheck",
     "lint": "turbo lint",
     "test": "turbo test",
-    "build": "turbo build"
+    "build": "turbo build",
+    "test:backend:db": "bash scripts/backend-test-db.sh"
   },
   "devDependencies": {
     "@types/node": "^20",

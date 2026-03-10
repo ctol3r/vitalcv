@@ -489,6 +489,7 @@ function shouldSkipTenantContext(pathname: string): boolean {
     normalizedPath.startsWith('/identity') ||
     normalizedPath.startsWith('/demo') ||
     normalizedPath.startsWith('/.well-known') ||
+    normalizedPath.startsWith('/api/.well-known') ||
     normalizedPath.startsWith('/api-docs') ||
     normalizedPath === '/openapi.json' ||
     // Wedge routes authenticate via apiKeyAuth, not tenant context.
@@ -517,7 +518,10 @@ function shouldSkipTenantContext(pathname: string): boolean {
     // Wave 37: Superbrain intelligence endpoint.
     normalizedPath.startsWith('/api/intelligence/') ||
     // Wave B: integrity probes are read-only operational endpoints.
-    normalizedPath.startsWith('/api/integrity/')
+    normalizedPath.startsWith('/api/integrity/') ||
+    // Program Gravity Well: read-only protocol validation and schema surfaces.
+    normalizedPath.startsWith('/api/validate/') ||
+    normalizedPath.startsWith('/api/schemas')
   );
 }
 

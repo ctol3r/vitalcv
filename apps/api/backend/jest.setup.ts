@@ -1,5 +1,5 @@
-// Provide required env vars for test runs before loading the env validator.
-process.env.DATABASE_URL ??= 'postgresql://localhost:5432/vitalcv_test';
+// The backend test script provisions a real ephemeral Postgres instance and
+// exports DATABASE_URL before Jest starts. Avoid injecting a fake local URL.
 process.env.NODE_ENV ??= 'test';
 process.env.YC_DEMO_MODE = 'false';
 
