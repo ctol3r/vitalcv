@@ -60,6 +60,18 @@ export function validateEnv(): void {
     }
   }
 
+  if (getFeatureFlag('FEATURE_SD_JWT_ISSUER') && !process.env.ISSUER_KEY_ENCRYPTION_SECRET) {
+    if (isProduction) {
+      log('error', 'env_validation_fatal', { missing: 'ISSUER_KEY_ENCRYPTION_SECRET' });
+      throw new Error('[EnvValidation] ISSUER_KEY_ENCRYPTION_SECRET is required when SD-JWT issuance is enabled');
+    }
+
+    log('warn', 'env_validation_missing', {
+      key: 'ISSUER_KEY_ENCRYPTION_SECRET',
+      note: 'required when FEATURE_SD_JWT_ISSUER is enabled',
+    });
+  }
+
   // --- Optional, warn if absent ---
   const optionalKeys: { key: string; note: string }[] = [
     { key: 'OPENAI_API_KEY',    note: 'LLM provider will use stub mode' },
@@ -67,7 +79,6 @@ export function validateEnv(): void {
     { key: 'JWT_SECRET',        note: 'JWT signing will use fallback' },
     { key: 'ISSUER_BASE_URL',   note: 'OID4VC metadata will use default base URL' },
     { key: 'FSMB_API_URL',      note: 'FSMB PSV adapter will use stub' },
-    { key: 'KEY_STORE_PATH',    note: 'Key store will use /tmp/vitalcv-keys.json' },
   ];
 
   for (const { key, note } of optionalKeys) {

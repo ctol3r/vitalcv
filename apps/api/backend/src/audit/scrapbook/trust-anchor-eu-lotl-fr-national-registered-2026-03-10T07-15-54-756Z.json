@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "anchorId": "eu-lotl-fr-national",
+  "name": "France National Trusted List (ANSSI)",
+  "rootType": "NATIONAL",
+  "action": "registered",
+  "chainHash": "4293b060c55fac3cacbd027e40c87234ee2e6002063f834d696ed497d35cb769",
+  "timestamp": "2026-03-10T07:15:54.756Z",
+  "methodologyVersion": "1.0.0"
+}

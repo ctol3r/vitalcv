@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "anchorId": "eu-lotl-ec-root",
+  "name": "EU LOTL — European Commission Root",
+  "rootType": "EU_LOTL",
+  "action": "registered",
+  "chainHash": "afced4df59327c9ded82bf29602de89b70cd071a1b9521902b49c4012a74d493",
+  "timestamp": "2026-03-10T06:46:32.344Z",
+  "methodologyVersion": "1.0.0"
+}

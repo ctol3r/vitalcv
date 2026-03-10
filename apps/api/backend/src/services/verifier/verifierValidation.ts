@@ -8,7 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { jwtVerify, importJWK } from "jose";;
+import { importJWK, jwtVerify } from 'jose';
 import { log } from '../../obs/logger';
 import { getKeyByKid } from '../sd-jwt/keyManager';
 import { evaluatePolicy } from '../trust-anchors/verification-policies/policyEngine';
@@ -77,7 +77,7 @@ export async function validateSdJwt(
     const header = JSON.parse(base64urlDecode(headerStr)) as { kid?: string };
 
     // Find public key
-    const kidEntry = header.kid ? getKeyByKid(header.kid) : null;
+    const kidEntry = header.kid ? await getKeyByKid(header.kid) : null;
     if (!kidEntry) {
       errors.push(`No signing key found for kid: ${header.kid ?? 'unknown'}`);
       const result: ValidationResult = { valid: false, credentialId, holderDid, claims, errors, warnings, policyPassed: false, revocationStatus: 'UNKNOWN', validatedAt };

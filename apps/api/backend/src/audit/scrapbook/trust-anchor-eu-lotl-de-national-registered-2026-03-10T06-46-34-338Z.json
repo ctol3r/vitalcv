@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "anchorId": "eu-lotl-de-national",
+  "name": "Germany National Trusted List",
+  "rootType": "NATIONAL",
+  "action": "registered",
+  "chainHash": "d7ce84010bfdb47da9c0d243bab996f4f41a27041e0d2fed0c7b128668bf641d",
+  "timestamp": "2026-03-10T06:46:34.338Z",
+  "methodologyVersion": "1.0.0"
+}

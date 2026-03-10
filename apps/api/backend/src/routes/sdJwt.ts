@@ -6,7 +6,7 @@ import type { Express, Request, Response } from 'express';
 import { parseBooleanEnv } from '../utils/environment';
 import { isSuperAdminRequest } from '../middleware/tenantGuard';
 import { log } from '../obs/logger';
-import { issueSdJwt, verifySdJwt, type SdJwtClaim } from '../services/sd-jwt/sdJwtIssuer';
+import { issueSdJwt, type SdJwtClaim } from '../services/sd-jwt/sdJwtIssuer';
 import { getJwks } from '../services/sd-jwt/keyManager';
 import {
   registerIssuer, grantCapability, revokeCapability, appendEvidence,
@@ -36,12 +36,13 @@ export function registerSdJwtRoutes(app: Express): void {
   // ── SD-JWT Issuance ─────────────────────────────────────────────────────────
   app.post('/api/credentials/sd-jwt/issue', async (req: Request, res: Response) => {
     if (!sdJwtEnabled()) { res.status(404).json({ error: 'Not found' }); return; }
-    const { holderDid, claims, type, expiresInSeconds, issuerDid } = req.body as {
+    const { holderDid, claims, type, expiresInSeconds, issuerDid, kid } = req.body as {
       holderDid?: string;
       claims?: { key: string; value: unknown; disclosed: boolean }[];
       type?: string;
       expiresInSeconds?: number;
       issuerDid?: string;
+      kid?: string;
     };
 
     if (!holderDid || !claims || !Array.isArray(claims)) {
@@ -50,7 +51,12 @@ export function registerSdJwtRoutes(app: Express): void {
     }
 
     try {
-      const issued = await issueSdJwt(holderDid, claims as SdJwtClaim[], { type, expiresInSeconds, issuerDid });
+      const issued = await issueSdJwt(holderDid, claims as SdJwtClaim[], {
+        type,
+        expiresInSeconds,
+        issuerDid,
+        kid,
+      });
       res.status(201).json(issued);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Issuance failed';

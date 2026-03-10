@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "anchorId": "apple-iaca-root-1",
+  "name": "Apple IACA Root 1",
+  "rootType": "APPLE_IACA",
+  "action": "registered",
+  "chainHash": "a71ef334e1cf5cedb1760cb65ef49d44858e7a443be4c8c83892e27fe56f7b5a",
+  "timestamp": "2026-03-10T06:46:35.196Z",
+  "methodologyVersion": "1.0.0"
+}

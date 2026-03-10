@@ -32,6 +32,12 @@ enum NpiDidBindingStatus {
   PENDING
 }
 
+enum IssuerSigningKeyState {
+  ACTIVE
+  GRACE
+  RETIRED
+}
+
 model User {
   id             String     @id @default(uuid()) @db.Uuid
   clerkUserId    String     @unique
@@ -651,6 +657,56 @@ model TrustedIssuer {
   @@index([status])
   @@index([trustLevel])
   @@index([active])
+}
+
+model IssuerSigningKey {
+  id                     String                @id @default(uuid()) @db.Uuid
+  issuerDid              String
+  kid                    String                @unique
+  algorithm              String
+  publicKeyJwk           Json                  @db.JsonB
+  encryptedPrivateKeyJwk String
+  state                  IssuerSigningKeyState @default(ACTIVE)
+  createdAt              DateTime              @default(now())
+  activatesAt            DateTime              @default(now())
+  expiresAt              DateTime
+  graceUntil             DateTime?
+  retiredAt              DateTime?
+  rotatedFromKid         String?
+  lastUsedAt             DateTime?
+
+  @@index([issuerDid, state])
+  @@index([issuerDid, activatesAt])
+  @@index([graceUntil])
+  @@index([rotatedFromKid])
+}
+
+model IssuedCredentialRecord {
+  id                String   @id @default(uuid()) @db.Uuid
+  credentialId      String   @unique
+  issuerDid         String
+  holderDid         String
+  credentialType    String
+  format            String
+  kid               String
+  claimDigests      Json     @db.JsonB
+  disclosureDigests String[] @default([])
+  holderBindingHash String
+  statusReference   String?
+  receiptId         String   @unique
+  auditEventId      String   @unique
+  issuedAt          DateTime
+  expiresAt         DateTime?
+  revokedAt         DateTime?
+  status            String   @default("ACTIVE")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([issuerDid, createdAt])
+  @@index([holderDid, createdAt])
+  @@index([kid])
+  @@index([status])
+  @@index([revokedAt])
 }
 
 model CredentialTransparencyLog {

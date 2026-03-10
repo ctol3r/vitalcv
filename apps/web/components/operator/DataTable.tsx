@@ -1,15 +1,31 @@
 'use client';
-import React from 'react';
+import { cn } from '@/lib/utils';
+import { ArrowDown, ArrowUp } from 'lucide-react';
+import React, { KeyboardEvent, useMemo, useState } from 'react';
 
-export interface ColumnDef<T = Record<string, unknown>> { key: string; label: string; width?: number; sortable?: boolean; render?: (row: T) => React.ReactNode }
-interface Props<T extends Record<string, unknown>> { columns: ColumnDef<T>[]; data: T[]; onRowClick?: (row: T) => void; selectedRow?: T | null }
+export interface ColumnDef<T = Record<string, unknown>> {
+  key: string;
+  label: string;
+  width?: number | string;
+  sortable?: boolean;
+  render?: (row: T) => React.ReactNode;
+  align?: 'left' | 'right' | 'center';
+}
 
-export function DataTable<T extends Record<string, unknown>>({ columns, data, onRowClick, selectedRow }: Props<T>) {
-  const [sortKey, setSortKey] = React.useState<string | null>(null);
-  const [sortDir, setSortDir] = React.useState<'asc' | 'desc'>('asc');
-  const [focusIdx, setFocusIdx] = React.useState(-1);
+interface Props<T extends Record<string, unknown>> {
+  columns: ColumnDef<T>[];
+  data: T[];
+  onRowClick?: (row: T) => void;
+  selectedRow?: T | null;
+  className?: string;
+}
 
-  const sorted = React.useMemo(() => {
+export function DataTable<T extends Record<string, unknown>>({ columns, data, onRowClick, selectedRow, className }: Props<T>) {
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [focusIdx, setFocusIdx] = useState(-1);
+
+  const sorted = useMemo(() => {
     if (!sortKey) return data;
     return [...data].sort((a, b) => {
       const av = a[sortKey]; const bv = b[sortKey];
@@ -18,42 +34,101 @@ export function DataTable<T extends Record<string, unknown>>({ columns, data, on
     });
   }, [data, sortKey, sortDir]);
 
-  const handleKeyDown = (e: React.KeyboardEvent, idx: number) => {
-    if (e.key === 'ArrowDown') { e.preventDefault(); setFocusIdx(Math.min(idx + 1, sorted.length - 1)); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); setFocusIdx(Math.max(idx - 1, 0)); }
-    else if (e.key === 'Enter' && onRowClick) onRowClick(sorted[idx]);
+  const handleKeyDown = (e: KeyboardEvent, idx: number) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setFocusIdx(Math.min(idx + 1, sorted.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setFocusIdx(Math.max(idx - 1, 0));
+    } else if (e.key === 'Enter' && onRowClick) {
+      e.preventDefault();
+      onRowClick(sorted[idx]);
+    }
   };
 
   return (
-    <div className="w-full overflow-x-auto">
-      <table className="w-full text-xs border-collapse">
-        <thead>
-          <tr className="border-b border-white/10">
-            {columns.map((col) => (
-              <th key={col.key} style={col.width ? { width: col.width } : undefined}
-                className={`text-left py-2 px-3 text-white/40 font-medium uppercase tracking-wider text-[10px] select-none ${col.sortable ? 'cursor-pointer hover:text-white/70' : ''}`}
-                onClick={() => { if (!col.sortable) return; if (sortKey === col.key) setSortDir(sortDir === 'asc' ? 'desc' : 'asc'); else { setSortKey(col.key); setSortDir('asc'); } }}>
-                {col.label}{sortKey === col.key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.map((row, idx) => (
-            <tr key={idx} tabIndex={0} ref={(el) => { if (focusIdx === idx && el) el.focus(); }}
-              onKeyDown={(e) => handleKeyDown(e, idx)}
-              onClick={() => onRowClick?.(row)}
-              className={`h-10 border-b border-white/5 cursor-pointer transition-colors outline-none ${selectedRow === row ? 'bg-white/10' : 'hover:bg-white/5'} focus:bg-white/10`}>
+    <div className={cn("w-full h-full flex flex-col bg-[#0a0a0f]", className)}>
+      <div className="flex-1 overflow-auto overscroll-contain">
+        <table className="w-full text-left border-collapse whitespace-nowrap">
+          <thead className="sticky top-0 bg-[#0f1115] z-10 shadow-[0_1px_0_rgba(255,255,255,0.1)]">
+            <tr>
               {columns.map((col) => (
-                <td key={col.key} className="py-1.5 px-3 text-white/80">
-                  {col.render ? col.render(row) : String(row[col.key] ?? '')}
-                </td>
+                <th
+                  key={col.key}
+                  style={{ width: col.width }}
+                  className={cn(
+                    "py-2 px-3 text-[10px] font-semibold tracking-wider uppercase text-white/50 select-none",
+                    col.sortable && "cursor-pointer hover:bg-white/[0.03] transition-colors",
+                    col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
+                  )}
+                  onClick={() => {
+                    if (!col.sortable) return;
+                    if (sortKey === col.key) {
+                      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+                    } else {
+                      setSortKey(col.key);
+                      setSortDir('asc');
+                    }
+                  }}
+                >
+                  <div className={cn("flex items-center gap-1", col.align === 'right' && "justify-end", col.align === 'center' && "justify-center")}>
+                    {col.label}
+                    {sortKey === col.key && (
+                      sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-white/80" /> : <ArrowDown className="w-3 h-3 text-white/80" />
+                    )}
+                  </div>
+                </th>
               ))}
             </tr>
-          ))}
-          {sorted.length === 0 && <tr><td colSpan={columns.length} className="py-8 px-3 text-center text-white/30">No data</td></tr>}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-white/[0.04]">
+            {sorted.map((row, idx) => {
+              const isSelected = selectedRow === row;
+              const isFocused = focusIdx === idx;
+
+              return (
+                <tr
+                  key={idx}
+                  tabIndex={0}
+                  ref={(el) => { if (isFocused && el) el.focus(); }}
+                  onKeyDown={(e) => handleKeyDown(e, idx)}
+                  onClick={() => {
+                    setFocusIdx(idx);
+                    onRowClick?.(row);
+                  }}
+                  className={cn(
+                    "group h-9 text-xs transition-colors outline-none cursor-pointer",
+                    isSelected ? "bg-vt-info/10 text-white" : "text-white/80 hover:bg-white/[0.02]",
+                    isFocused && !isSelected && "bg-white/[0.04] ring-1 ring-inset ring-white/10"
+                  )}
+                >
+                  {columns.map((col) => (
+                    <td
+                      key={col.key}
+                      className={cn(
+                        "py-1 px-3 truncate max-w-[200px]",
+                        col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left',
+                        isSelected ? "text-white" : "text-white/70 group-hover:text-white/90"
+                      )}
+                    >
+                      {col.render ? col.render(row) : String(row[col.key] ?? '')}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+
+            {sorted.length === 0 && (
+              <tr>
+                <td colSpan={columns.length} className="py-12 px-3 text-center">
+                  <span className="text-xs text-white/30">No relative data available</span>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

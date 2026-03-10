@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "anchorId": "aamva-vical-root-2",
+  "name": "AAMVA VICAL Root CA 2",
+  "rootType": "AAMVA_VICAL",
+  "action": "registered",
+  "chainHash": "1b4786ff18a054c4fe3a81ad16a7c47248fde847b4caa08e8e69884672f2ddd5",
+  "timestamp": "2026-03-10T07:14:58.942Z",
+  "methodologyVersion": "1.0.0"
+}
