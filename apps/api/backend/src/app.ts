@@ -81,6 +81,8 @@ import { registerVerifierAcceptanceRoutes } from './routes/verifier';
 import { registerDIDRoutes } from './routes/did';
 // Wave 197: Trust Anchor Service
 import { registerTrustAnchorRoutes } from './routes/trustAnchors';
+// Waves 205-207: PSV Adapter Layer
+import { registerPsvAdapterRoutes } from './routes/psvAdapters';
 import { ingestAllTrustLists } from './services/trust-anchors/anchorIngestion';
 // Wave 198: NPI-bound DID Identity Binding
 import { registerIdentityBindingRoutes } from './routes/identityBinding';
@@ -3491,6 +3493,7 @@ registerTrustAlertRoutes(app);       // Wave 97: Trust Alerts
 registerVerifierAcceptanceRoutes(app); // Wave 99: Verifier Acceptance
 registerDIDRoutes(app);               // Wave 100: DID Registry + Resolver
 registerTrustAnchorRoutes(app);       // Wave 197: Trust Anchor Service
+registerPsvAdapterRoutes(app);        // Waves 205-207: PSV Adapter Layer
 registerIdentityBindingRoutes(app);   // Wave 198: NPI-bound DID identity binding
 registerRevocationRoutes(app);        // Wave 101: Credential Revocation Registry
 registerFederationRoutes(app);        // Wave 102: Network Federation
