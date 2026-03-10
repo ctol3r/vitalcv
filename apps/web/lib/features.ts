@@ -55,6 +55,44 @@ export const FEATURES = {
 
   /** Wave 194: Marketplace analytics dashboard — INTERNAL */
   MARKETPLACE_ANALYTICS: flag('NEXT_PUBLIC_FEATURE_MARKETPLACE_ANALYTICS', false),
+
+  // ── PROGRAM GRAVITY WELL (Waves 196–215) ───────────────────────────────────
+
+  /** Wave 197: Trust anchor management — INTERNAL */
+  TRUST_ANCHORS:         flag('NEXT_PUBLIC_FEATURE_TRUST_ANCHORS',         false),
+
+  /** Wave 198: NPI-bound DID identity — INTERNAL */
+  NPI_DID_BINDING:       flag('NEXT_PUBLIC_FEATURE_NPI_DID_BINDING',       false),
+
+  /** Wave 199: SD-JWT credential issuance — INTERNAL */
+  SD_JWT_ISSUER:         flag('NEXT_PUBLIC_FEATURE_SD_JWT_ISSUER',         false),
+
+  /** Wave 202-203: OpenID4VC flows — INTERNAL */
+  OID4VC:                flag('NEXT_PUBLIC_FEATURE_OID4VC',                false),
+
+  /** Wave 205-207: PSV adapter layer — INTERNAL */
+  PSV_ADAPTERS:          flag('NEXT_PUBLIC_FEATURE_PSV_ADAPTERS',          false),
+
+  /** Wave 208: Imaging credential stack — INTERNAL */
+  VERTICAL_IMAGING:      flag('NEXT_PUBLIC_FEATURE_VERTICAL_IMAGING',      false),
+
+  /** Wave 209: Behavioral health credential stack — INTERNAL */
+  VERTICAL_BH:           flag('NEXT_PUBLIC_FEATURE_VERTICAL_BH',           false),
+
+  /** Wave 210: Readiness engine — INTERNAL */
+  READINESS_ENGINE:      flag('NEXT_PUBLIC_FEATURE_READINESS_ENGINE',      false),
+
+  /** Wave 211: Operator universal search — INTERNAL */
+  OPERATOR_SEARCH:       flag('NEXT_PUBLIC_FEATURE_OPERATOR_SEARCH',       false),
+
+  /** Wave 212: Drawer/modal/inspector system — INTERNAL */
+  DRAWER_SYSTEM:         flag('NEXT_PUBLIC_FEATURE_DRAWER_SYSTEM',         false),
+
+  /** Wave 213: Mission Ops v2 — INTERNAL */
+  MISSION_OPS_V2:        flag('NEXT_PUBLIC_FEATURE_MISSION_OPS_V2',        false),
+
+  /** Wave 214: Contract registry — INTERNAL */
+  CONTRACT_REGISTRY:     flag('NEXT_PUBLIC_FEATURE_CONTRACT_REGISTRY',     false),
 } as const;
 
 export type FeatureKey = keyof typeof FEATURES;
@@ -73,4 +111,17 @@ export const ROLLOUT_TIERS: Record<FeatureKey, 'INTERNAL' | 'PILOT' | 'PUBLIC'> 
   AMBASSADOR:            'INTERNAL',
   INSTANT_OFFERS:        'PILOT',
   MARKETPLACE_ANALYTICS: 'INTERNAL',
+  // Gravity Well
+  TRUST_ANCHORS:         'INTERNAL',
+  NPI_DID_BINDING:       'INTERNAL',
+  SD_JWT_ISSUER:         'INTERNAL',
+  OID4VC:                'INTERNAL',
+  PSV_ADAPTERS:          'INTERNAL',
+  VERTICAL_IMAGING:      'INTERNAL',
+  VERTICAL_BH:           'INTERNAL',
+  READINESS_ENGINE:      'INTERNAL',
+  OPERATOR_SEARCH:       'INTERNAL',
+  DRAWER_SYSTEM:         'INTERNAL',
+  MISSION_OPS_V2:        'INTERNAL',
+  CONTRACT_REGISTRY:     'INTERNAL',
 };

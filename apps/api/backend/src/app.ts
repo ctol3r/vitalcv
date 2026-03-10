@@ -8,6 +8,7 @@ import swaggerUi from 'swagger-ui-express';
 import { registerIngestRoutes } from '../../routes/ingest';
 import { registerWedgeRoutes } from '../routes/wedge';
 import { env, getProductionEnvCheck } from './config/env';
+import { validateEnv } from './config/envValidation'; // Wave 196
 import prisma, { Prisma, PrismaClient } from './graphql/prisma_client';
 import { errorHandler } from './middleware/errorHandler';
 import { getRequestOrganizationId } from './middleware/organizationContext';
@@ -3382,6 +3383,9 @@ function registerVerifierDashboardRoutes(app: Express): void {
 }
 
 // ─── Express Application ────────────────────────────────────
+
+// Wave 196: Validate environment on startup
+validateEnv();
 
 const app = express();
 
