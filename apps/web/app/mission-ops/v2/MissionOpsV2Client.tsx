@@ -199,13 +199,13 @@ export default function MissionOpsV2Client() {
                     color: String(selected.status) === 'ACTIVE' ? '#22c55e' : String(selected.status) === 'PENDING' ? '#f59e0b' : '#ef4444'
                   }}
                   items={[
-                    { label: 'UID', value: selected.id, mono: true, copy: true, colSpan: 2 },
-                    { label: 'Full Name', value: selected.name, copy: true, colSpan: 2 },
-                    { label: 'Role', value: selected.role },
-                    { label: 'Risk Score', value: selected.riskScore, mono: true },
+                    { label: 'UID', value: String(selected.id ?? ''), mono: true, copy: true, colSpan: 2 },
+                    { label: 'Full Name', value: String(selected.name ?? ''), copy: true, colSpan: 2 },
+                    { label: 'Role', value: String(selected.role ?? '') },
+                    { label: 'Risk Score', value: String(selected.riskScore ?? ''), mono: true },
                     { label: 'Last Synced', value: String(selected.updatedAt) },
                     { label: 'Source', value: 'Primary PSV Net' },
-                    { label: 'Raw Payload', value: selected._raw, mono: true, colSpan: 2, copy: true },
+                    { label: 'Raw Payload', value: String(selected._raw ?? ''), mono: true, colSpan: 2, copy: true },
                   ]}
                   className="bg-transparent"
                 />
