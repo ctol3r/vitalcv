@@ -79,6 +79,9 @@ import { registerTrustAlertRoutes } from './routes/alerts';
 import { registerVerifierAcceptanceRoutes } from './routes/verifier';
 // Wave 100: DID Registry
 import { registerDIDRoutes } from './routes/did';
+// Wave 197: Trust Anchor Service
+import { registerTrustAnchorRoutes } from './routes/trustAnchors';
+import { ingestAllTrustLists } from './services/trust-anchors/anchorIngestion';
 // Wave 101: Credential Revocation
 import { registerRevocationRoutes } from './routes/revocation';
 // Wave 102: Network Federation
@@ -3485,6 +3488,7 @@ registerTrustRegistryRoutes(app);    // Wave 95: Trust Registry
 registerTrustAlertRoutes(app);       // Wave 97: Trust Alerts
 registerVerifierAcceptanceRoutes(app); // Wave 99: Verifier Acceptance
 registerDIDRoutes(app);               // Wave 100: DID Registry + Resolver
+registerTrustAnchorRoutes(app);       // Wave 197: Trust Anchor Service
 registerRevocationRoutes(app);        // Wave 101: Credential Revocation Registry
 registerFederationRoutes(app);        // Wave 102: Network Federation
 registerIssuerOnboardingRoutes(app);  // Wave 106: Issuer Onboarding Protocol
@@ -3564,5 +3568,8 @@ app.get('/openapi.json', (_req, res) => res.json(openApiSpec));
 
 // Error handler (must be last)
 app.use(errorHandler);
+
+// Wave 197: Ingest trust lists on startup (idempotent)
+ingestAllTrustLists();
 
 export default app;
