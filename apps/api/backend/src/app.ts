@@ -85,6 +85,9 @@ import { registerTrustAnchorRoutes } from './routes/trustAnchors';
 import { registerSdJwtRoutes } from './routes/sdJwt';
 // Waves 202-204: OID4VC metadata discovery + self-cert
 import { registerOidcDiscoveryRoutes } from './routes/oidcDiscovery';
+// Waves 205-207: PSV Adapter Layer
+import { registerPsvAdapterRoutes } from './routes/psvAdapters';
+
 import { ingestAllTrustLists } from './services/trust-anchors/anchorIngestion';
 // Wave 198: NPI-bound DID Identity Binding
 import { registerIdentityBindingRoutes } from './routes/identityBinding';
@@ -3497,6 +3500,8 @@ registerDIDRoutes(app);               // Wave 100: DID Registry + Resolver
 registerTrustAnchorRoutes(app);       // Wave 197: Trust Anchor Service
 registerSdJwtRoutes(app);             // Waves 199-201: SD-JWT, Governance, Validation, Schemas
 registerOidcDiscoveryRoutes(app);     // Waves 202-204: OID4VC metadata + discovery
+registerPsvAdapterRoutes(app);        // Waves 205-207: PSV Adapter Layer
+
 registerIdentityBindingRoutes(app);   // Wave 198: NPI-bound DID identity binding
 registerRevocationRoutes(app);        // Wave 101: Credential Revocation Registry
 registerFederationRoutes(app);        // Wave 102: Network Federation
