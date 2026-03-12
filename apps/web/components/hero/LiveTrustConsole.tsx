@@ -172,14 +172,17 @@ export function LiveTrustConsole() {
             </div>
 
             <h1 className="text-[clamp(2.2rem,4.5vw,4.2rem)] font-bold leading-[1.08] tracking-tight text-foreground font-heading">
-              Credentialing infrastructure{' '}
-              <span className="text-infra-blue">you can trust.</span>
+              Clinician credentialing takes{' '}
+              <span className="text-red-500 line-through decoration-2">90 days.</span>
+              <br />
+              <span className="text-infra-blue">VitalCV does it in 24 hours.</span>
             </h1>
 
             <p className="max-w-xl body-lg text-muted-foreground">
-              VitalCV automates primary source verification, anchors it to a
-              cryptographic ledger, and continuously monitors compliance — so
-              clinicians start 3–6 weeks faster.
+              Automated primary source verification, cryptographic audit trail,
+              and continuous license monitoring — so hospitals stop losing{' '}
+              <strong className="text-foreground">$9,000 per day</strong> to
+              unfilled physician slots.
             </p>
 
             {/* CTAs */}
@@ -189,16 +192,16 @@ export function LiveTrustConsole() {
                   href="/demo"
                   className="inline-flex items-center gap-2 rounded-xl bg-infra-blue px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-infra-blue focus:ring-offset-2"
                 >
-                  Try VitalCV
+                  See it live
                   <Zap className="h-4 w-4" />
                 </Link>
               </MagneticButton>
               <MagneticButton>
                 <Link
-                  href="/developers"
+                  href="/employers"
                   className="inline-flex items-center gap-2 rounded-xl border border-infra-border bg-white px-6 py-3 text-sm font-semibold text-foreground transition hover:bg-infra-surface-alt"
                 >
-                  API Docs
+                  For Employers →
                 </Link>
               </MagneticButton>
             </div>

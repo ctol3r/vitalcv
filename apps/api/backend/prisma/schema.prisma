@@ -355,9 +355,40 @@ model Opportunity {
   status          String   @default("ACTIVE")    // ACTIVE | PAUSED | CLOSED
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
+  applications    Application[]
 
   @@index([organizationId])
   @@index([specialty, state])
+  @@index([status])
+}
+
+/// Application status for clinician → opportunity flow
+enum ApplicationStatus {
+  PENDING
+  REVIEWED
+  ACCEPTED
+  DECLINED
+  WITHDRAWN
+}
+
+/// Clinician application to a job opportunity
+model Application {
+  id             String            @id @default(uuid()) @db.Uuid
+  opportunityId  String            @db.Uuid @map("opportunity_id")
+  opportunity    Opportunity       @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  clerkUserId    String            @map("clerk_user_id")
+  npi            String?
+  coverNote      String?           @map("cover_note")
+  status         ApplicationStatus @default(PENDING)
+  reviewedBy     String?           @map("reviewed_by")   // verifier clerkUserId
+  reviewedAt     DateTime?         @map("reviewed_at")
+  reviewNote     String?           @map("review_note")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  @@unique([opportunityId, clerkUserId])
+  @@index([clerkUserId])
+  @@index([opportunityId])
   @@index([status])
 }
 

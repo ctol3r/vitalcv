@@ -16,9 +16,12 @@ import {
   Clock,
   DollarSign,
   FileX,
+  Globe,
   Lock,
+  Rocket,
   Search,
   ShieldCheck,
+  TrendingUp,
   Zap,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -273,11 +276,19 @@ export function HowItWorksSection() {
    3. TRACTION / CREDIBILITY SECTION
 ───────────────────────────────────────────────────────────── */
 
-const METRICS = [
-  { value: '3–6 wks', label: 'faster time-to-start vs. industry average' },
-  { value: '100%', label: 'primary source verified — no manual review' },
-  { value: '24 / 7', label: 'continuous license monitoring per clinician' },
-  { value: '<3 sec', label: 'NPI lookup to trust passport bootstrap' },
+const TRACTION_STATS = [
+  { value: '6.8M', label: 'licensed US healthcare workers — every one needs credentialing', color: 'text-emerald-600' },
+  { value: '$9K', label: 'lost per day per unfilled physician slot', color: 'text-red-500' },
+  { value: '< 24h', label: 'time-to-verified on VitalCV vs. 45–90 day industry average', color: 'text-infra-blue' },
+  { value: '$4.2B', label: 'US healthcare credentialing market, growing 11% YoY', color: 'text-amber-500' },
+] as const;
+
+const BUILD_SIGNALS = [
+  { icon: CheckCircle2, text: 'Live NPI verification via NPPES (250k+ provider database)' },
+  { icon: CheckCircle2, text: 'Cryptographic SD-JWT credentials — W3C VC + OID4VCI compliant' },
+  { icon: CheckCircle2, text: 'Two-sided marketplace: clinicians browse & apply, employers post & hire' },
+  { icon: CheckCircle2, text: 'Apple/Google Wallet passes for portable credential sharing' },
+  { icon: CheckCircle2, text: 'HIPAA-compliant audit ledger with continuous license monitoring' },
 ] as const;
 
 const COMPLIANCE_BADGES = [
@@ -295,28 +306,28 @@ export function TractionSection() {
       <div className="mx-auto max-w-5xl">
         <FadeIn className="text-center mb-14">
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 mb-5">
-            <Lock className="h-3.5 w-3.5 text-emerald-600" />
+            <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
             <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-emerald-600">
-              Built to Last
+              The Opportunity
             </span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-zinc-900 leading-tight">
-            Infrastructure-grade from{' '}
-            <span className="text-emerald-600">day one.</span>
+            A massive, broken market.{' '}
+            <span className="text-emerald-600">We have the fix.</span>
           </h2>
           <p className="mt-4 text-zinc-500 max-w-xl mx-auto text-lg leading-relaxed">
-            VitalCV is built on the same standards governments and health
-            systems use — not workarounds. That matters when a clinician's
-            career or a patient's safety is on the line.
+            Every hospital, clinic, and staffing agency re-verifies the same
+            clinician from scratch — by fax, by hand, every time. VitalCV
+            makes that process permanent, portable, and instant.
           </p>
         </FadeIn>
 
-        {/* Metrics */}
+        {/* Market stats */}
         <div className="grid grid-cols-2 gap-5 sm:grid-cols-4 mb-12">
-          {METRICS.map((m, i) => (
+          {TRACTION_STATS.map((m, i) => (
             <FadeIn key={m.label} delay={i * 0.1}>
-              <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-center shadow-sm">
-                <div className="text-2xl sm:text-3xl font-black text-zinc-900 mb-1.5 tracking-tight">
+              <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-center shadow-sm h-full">
+                <div className={`text-2xl sm:text-3xl font-black mb-1.5 tracking-tight ${m.color}`}>
                   {m.value}
                 </div>
                 <div className="text-xs text-zinc-500 leading-relaxed">{m.label}</div>
@@ -324,6 +335,23 @@ export function TractionSection() {
             </FadeIn>
           ))}
         </div>
+
+        {/* What's built */}
+        <FadeIn delay={0.25}>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm mb-6">
+            <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-zinc-400 mb-5">
+              What&apos;s already built &amp; working
+            </p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {BUILD_SIGNALS.map(({ icon: Icon, text }) => (
+                <div key={text} className="flex items-start gap-2.5">
+                  <Icon className="h-4 w-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-zinc-600 leading-snug">{text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </FadeIn>
 
         {/* Compliance badges */}
         <FadeIn delay={0.3}>
@@ -348,14 +376,14 @@ export function TractionSection() {
         {/* CTA */}
         <FadeIn delay={0.4} className="text-center mt-12">
           <p className="text-zinc-500 mb-5 text-sm">
-            Ready to see it working?
+            See the product working in real time.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/demo"
               className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 px-7 py-3.5 text-sm font-semibold text-white transition-colors"
             >
-              See the live demo <ArrowRight className="h-4 w-4" />
+              Live demo <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               href="/employers"
@@ -365,6 +393,78 @@ export function TractionSection() {
             </Link>
           </div>
         </FadeIn>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   4. WHY NOW SECTION
+───────────────────────────────────────────────────────────── */
+
+const WHY_NOW_ITEMS = [
+  {
+    icon: Globe,
+    title: 'TEFCA & ONC mandates are live',
+    body: 'The 21st Century Cures Act and TEFCA (2024) require health systems to adopt interoperable digital credentialing. Compliance windows are closing — and paper workflows can\'t meet them.',
+  },
+  {
+    icon: TrendingUp,
+    title: 'Post-COVID staffing crisis',
+    body: '1 in 5 hospitals reported critical physician shortages in 2024. Every week a credentialing committee delays a hire costs a system tens of thousands. Speed is now a patient safety issue.',
+  },
+  {
+    icon: Rocket,
+    title: 'The technology finally exists',
+    body: 'SD-JWT, W3C Verifiable Credentials, and OpenID4VCI are ratified standards. NPI APIs are open. The infrastructure to do this right — portably, verifiably, permanently — is here today.',
+  },
+] as const;
+
+export function WhyNowSection() {
+  return (
+    <section className="relative px-6 py-20 bg-zinc-900 overflow-hidden">
+      {/* Subtle dot grid */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.06]"
+        style={{
+          backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)',
+          backgroundSize: '32px 32px',
+        }}
+      />
+
+      <div className="relative mx-auto max-w-5xl">
+        <FadeIn className="text-center mb-14">
+          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 mb-5">
+            <Zap className="h-3.5 w-3.5 text-amber-400" />
+            <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-amber-400">
+              Why Now
+            </span>
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
+            Three forces are converging.{' '}
+            <span className="text-amber-400">This is the window.</span>
+          </h2>
+          <p className="mt-4 text-zinc-400 max-w-xl mx-auto text-lg leading-relaxed">
+            The stars haven't aligned for healthcare credentialing reform — they've collided.
+            Regulatory mandates, a staffing emergency, and mature open standards
+            make this the exact right moment to build VitalCV.
+          </p>
+        </FadeIn>
+
+        <div className="grid gap-6 sm:grid-cols-3">
+          {WHY_NOW_ITEMS.map(({ icon: Icon, title, body }, i) => (
+            <FadeIn key={title} delay={i * 0.12}>
+              <div className="rounded-2xl border border-zinc-700 bg-zinc-800/60 p-6 h-full">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 mb-4">
+                  <Icon className="h-5 w-5 text-amber-400" />
+                </div>
+                <h3 className="text-base font-semibold text-white mb-2">{title}</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed">{body}</p>
+              </div>
+            </FadeIn>
+          ))}
+        </div>
       </div>
     </section>
   );

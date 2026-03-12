@@ -130,6 +130,7 @@ import { registerIntakeRoutes } from './routes/intake';                     // W
 import { registerSearchRoutes } from './routes/search';                     // Wave 184: Unified Search Index & Content Graph
 import { registerRoleRoutes } from './routes/role';                         // Clerk auth: GET /api/me/role
 import { registerOpportunityRoutes } from './routes/opportunities';          // Wave 227: Opportunities + Candidates
+import { registerApplicationRoutes } from './routes/applications';            // Wave 229: Application Flow
 import { registerAskRoutes } from './routes/ask';                           // Wave 185: Ask VitalCV answer engine
 import { registerEmployerRoutes } from './routes/employers';                 // Wave 186: Employer Knowledge Layer
 import { registerPrequalificationRoutes } from './routes/prequalification';  // Wave 189: AI Interview, Assessments, Prequalification
@@ -3537,6 +3538,7 @@ registerIntakeRoutes(app);            // Wave 183 — Resume + NPI + Links + Wor
 registerSearchRoutes(app);            // Wave 184 — Unified Search Index + hybrid retrieval
 registerRoleRoutes(app);              // Clerk auth — GET /api/me/role (role resolution)
 registerOpportunityRoutes(app);       // Wave 227 — Opportunities + Candidates
+registerApplicationRoutes(app);       // Wave 229 — Clinician Application Flow
 registerAskRoutes(app);               // Wave 185 — Ask VitalCV natural language answer engine
 registerEmployerRoutes(app);          // Wave 186 — Employer Knowledge Layer
 registerPrequalificationRoutes(app);  // Wave 189 — AI Interview, Assessments, Prequalification
