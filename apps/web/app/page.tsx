@@ -7,7 +7,7 @@ import Footer from '@/components/Footer';
 import { LiveTrustConsole } from '@/components/hero/LiveTrustConsole';
 import { BentoGrid } from '@/components/marketing/BentoGrid';
 import { LedgerTicker } from '@/components/marketing/LedgerTicker';
-import { HowItWorksSection, MoneballSection, ProblemSection, TractionSection, WhyNowSection } from '@/components/marketing/HomeSections';
+import { HowItWorksSection, MoneballSection, PlatformVisionSection, ProblemSection, TractionSection, WhyNowSection } from '@/components/marketing/HomeSections';
 import { GraphExpansion, SectionReveal } from '@/components/motion/ScrollMotion';
 import { GlobalTrustMap } from '@/components/network/GlobalTrustMap';
 import { useState } from 'react';
@@ -26,10 +26,11 @@ export default function HomePage() {
         <LedgerTicker />
       </SectionReveal>
 
-      {/* Problem → How It Works → Moneyball Thesis → Why Now → Traction */}
+      {/* Narrative arc: Problem → Solution → Thesis → Platform → Why Now → Traction */}
       <ProblemSection />
       <HowItWorksSection />
       <MoneballSection />
+      <PlatformVisionSection />
       <WhyNowSection />
       <TractionSection />
 

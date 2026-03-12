@@ -655,3 +655,183 @@ export function MoneballSection() {
     </section>
   );
 }
+
+/* ─────────────────────────────────────────────────────────────
+   6. PLATFORM VISION — The five pillars + novel tech
+   "Not just credentialing. The infrastructure layer for
+    all of US healthcare."
+───────────────────────────────────────────────────────────── */
+
+const PILLARS = [
+  {
+    number: '01',
+    title: 'Universal Clinical Identity',
+    body: 'One verified profile per clinician — NPI, licenses, board certifications, publications, employer history, and career trajectory. Pulled from primary sources, not self-reported.',
+    tags: ['NPPES', 'NPDB', 'DEA', 'State Boards', 'ABMS', 'PubMed'],
+    color: 'blue',
+  },
+  {
+    number: '02',
+    title: 'Free Specialty Job Board',
+    body: 'Every healthcare job, every specialty, free to post. Physicians, NPs, CRNAs, therapists — one platform for all of medicine. Employers stop paying $5,000 for a single oncology posting.',
+    tags: ['All Specialties', 'All Provider Types', 'Free to Post', 'Auto-Aggregated'],
+    color: 'emerald',
+  },
+  {
+    number: '03',
+    title: 'MATCHA — AI Career Matching',
+    body: 'Not keyword matching. Credential-aware AI that knows your exact qualifications, your gaps, your trajectory. Surfaces opportunities you\'re actually eligible for — before you go looking.',
+    tags: ['Gap Analysis', 'Career Paths', 'Readiness Score', 'Match Intelligence'],
+    color: 'violet',
+  },
+  {
+    number: '04',
+    title: 'Clinic Capacity Intelligence',
+    body: 'For the first time, health systems can measure hiring capacity — not just headcount. How many physicians can actually start this quarter? VitalCV tells you, and tells you how to increase it.',
+    tags: ['Staffing Projections', 'Credentialing Velocity', 'Capacity Model', 'New Metric'],
+    color: 'amber',
+  },
+  {
+    number: '05',
+    title: 'Blockchain-Anchored PSV',
+    body: 'Primary source verification results anchored permanently. Once verified, a credential is trusted everywhere — by hospitals, government agencies, and credentialing bodies — without re-verification.',
+    tags: ['SD-JWT VC', 'W3C Standards', 'OID4VCI', 'Permanent Record'],
+    color: 'rose',
+  },
+] as const;
+
+const PILLAR_COLORS: Record<string, { border: string; tag: string; num: string }> = {
+  blue:    { border: 'border-blue-500/20 hover:border-blue-500/40',    tag: 'bg-blue-500/10 text-blue-400/80',    num: 'text-blue-500/30'    },
+  emerald: { border: 'border-emerald-500/20 hover:border-emerald-500/40', tag: 'bg-emerald-500/10 text-emerald-400/80', num: 'text-emerald-500/30' },
+  violet:  { border: 'border-violet-500/20 hover:border-violet-500/40',  tag: 'bg-violet-500/10 text-violet-400/80',  num: 'text-violet-500/30'  },
+  amber:   { border: 'border-amber-500/20 hover:border-amber-500/40',   tag: 'bg-amber-500/10 text-amber-400/80',   num: 'text-amber-500/30'   },
+  rose:    { border: 'border-rose-500/20 hover:border-rose-500/40',     tag: 'bg-rose-500/10 text-rose-400/80',     num: 'text-rose-500/30'    },
+};
+
+const NOVEL_CLAIMS = [
+  {
+    claim: 'The first unified clinical identity graph',
+    detail: 'NPI → credentials → publications → career history — one traversable, live, cryptographically-anchored graph. No one has done this.',
+  },
+  {
+    claim: 'Credential-aware job matching',
+    detail: 'MATCHA knows what you\'re qualified for today, what you\'re 6 months from qualifying for, and what your peers pivoted to. That\'s not a job board — it\'s a career engine.',
+  },
+  {
+    claim: 'PSV that never expires',
+    detail: 'When a credential is verified via primary source and blockchain-anchored, it\'s trusted forever. The re-verification loop — the one that costs $9K/day — ends.',
+  },
+  {
+    claim: 'Clinic hiring capacity as a measurable metric',
+    detail: 'No health system can currently answer "how many physicians can we actually onboard this year?" VitalCV answers it — and improves the number.',
+  },
+];
+
+export function PlatformVisionSection() {
+  return (
+    <section className="relative px-6 py-28 overflow-hidden" style={{ background: '#060c16' }}>
+      {/* Radial glow */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: 'radial-gradient(ellipse 70% 40% at 50% 0%, rgba(99,102,241,0.06) 0%, transparent 70%)',
+        }}
+      />
+
+      <div className="relative mx-auto max-w-6xl">
+
+        {/* Header */}
+        <FadeIn className="text-center mb-16">
+          <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/8 px-4 py-1.5 mb-6">
+            <Globe className="h-3.5 w-3.5 text-violet-400" />
+            <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-violet-400">
+              The Platform
+            </span>
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight mb-4">
+            Not just credentialing.
+            <br />
+            <span className="text-violet-400">The infrastructure layer for all of US healthcare.</span>
+          </h2>
+          <p className="text-white/40 max-w-2xl mx-auto text-lg leading-relaxed">
+            VitalCV is building the definitive knowledge base for every clinician, every credential,
+            every specialty, and every career path in American medicine — powered by AI and anchored
+            by cryptographic proof. Free for the people who need it most.
+          </p>
+        </FadeIn>
+
+        {/* Five Pillars */}
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 mb-16">
+          {PILLARS.map((p, i) => {
+            const c = PILLAR_COLORS[p.color];
+            return (
+              <FadeIn key={p.number} delay={i * 0.08}>
+                <div className={`group h-full rounded-2xl border bg-white/3 p-6 transition-all hover:bg-white/5 ${c.border}`}>
+                  <div className="flex items-start justify-between mb-4">
+                    <span className={`text-4xl font-black ${c.num}`}>{p.number}</span>
+                  </div>
+                  <h3 className="text-base font-semibold text-white mb-2">{p.title}</h3>
+                  <p className="text-sm text-white/40 leading-relaxed mb-4">{p.body}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {p.tags.map(tag => (
+                      <span key={tag} className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${c.tag}`}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </FadeIn>
+            );
+          })}
+
+          {/* Sixth cell — the integration network */}
+          <FadeIn delay={0.4}>
+            <div className="group h-full rounded-2xl border border-white/8 bg-white/2 p-6 transition-all hover:bg-white/4">
+              <div className="mb-4">
+                <span className="text-4xl font-black text-white/10">06</span>
+              </div>
+              <h3 className="text-base font-semibold text-white mb-2">Integration Network</h3>
+              <p className="text-sm text-white/40 leading-relaxed mb-4">
+                Ingests data from every major medical registry, association, and platform —
+                so clinicians never fill out a form that already exists somewhere.
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {['NPPES', 'NPDB', 'Doximity', 'PubMed', 'DEA', 'OIG', 'ABMS', 'State Boards', 'CMS', 'TEFCA'].map(src => (
+                  <span key={src} className="rounded-full px-2 py-0.5 text-[10px] font-medium bg-white/5 text-white/30">
+                    {src}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </FadeIn>
+        </div>
+
+        {/* Novel Tech Claims */}
+        <FadeIn delay={0.3}>
+          <div className="rounded-2xl border border-white/8 bg-white/3 p-8">
+            <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/25 text-center mb-8">
+              What&apos;s never been done before
+            </p>
+            <div className="grid sm:grid-cols-2 gap-6">
+              {NOVEL_CLAIMS.map((item, i) => (
+                <div key={i} className="flex gap-4">
+                  <div className="flex-shrink-0 mt-1">
+                    <div className="h-5 w-5 rounded-full border border-violet-500/30 bg-violet-500/10 flex items-center justify-center">
+                      <Rocket className="h-2.5 w-2.5 text-violet-400" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white mb-1">{item.claim}</p>
+                    <p className="text-xs text-white/35 leading-relaxed">{item.detail}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </FadeIn>
+
+      </div>
+    </section>
+  );
+}
