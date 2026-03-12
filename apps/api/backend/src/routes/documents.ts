@@ -7,21 +7,36 @@
  *   GET  /api/documents/:id     — retrieve a stored extraction result by documentId
  *
  * Auth: all routes require `x-clerk-user-id` header.
+ *
+ * TODO (production): add per-user rate limiting via rateLimitFactory middleware.
  */
 
 import type { Express, NextFunction, Request, Response } from 'express';
 import multer from 'multer';
-import { documentPipeline, type DocumentExtractionResult } from '../services/ai/documentPipeline';
+import { documentPipeline } from '../services/ai/documentPipeline';
 import { sourceVerifier } from '../services/ai/sourceVerifier';
 import { log } from '../obs/logger';
+import { storeExtraction, getExtraction, isAllowedMimeType } from '../services/documents/documentStore';
+import { auditParse, auditVerify } from '../services/documents/documentAudit';
 
-// ── In-memory extraction store (keyed by documentId) ──────────────
-const extractionStore = new Map<string, DocumentExtractionResult>();
+// ── Allowed file types ─────────────────────────────────────────────
+const ALLOWED_MIME_TYPES = ['application/pdf', 'image/png', 'image/jpeg', 'image/tiff'];
 
 // ── Multer config: memory storage, 10 MB limit ────────────────────
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  fileFilter(_req, file, cb) {
+    if (isAllowedMimeType(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(
+        new Error(
+          `Unsupported file type: ${file.mimetype}. Allowed types: ${ALLOWED_MIME_TYPES.join(', ')}`,
+        ),
+      );
+    }
+  },
 });
 
 // ── Auth middleware: require x-clerk-user-id ───────────────────────
@@ -44,8 +59,9 @@ export function registerDocumentRoutes(app: Express): void {
   /**
    * POST /api/documents/parse
    * Accepts a multipart/form-data file upload (field name: "file").
+   * Allowed types: application/pdf, image/png, image/jpeg, image/tiff (max 10 MB).
    * Runs OCR + field extraction via documentPipeline.
-   * Stores result in memory and returns it.
+   * Stores result durably in VerificationArtifact and returns it.
    */
   app.post(
     '/api/documents/parse',
@@ -54,23 +70,46 @@ export function registerDocumentRoutes(app: Express): void {
     async (req: Request, res: Response): Promise<void> => {
       try {
         if (!req.file) {
-          res.status(400).json({ error: 'No file uploaded. Send a multipart/form-data request with field "file".' });
+          res.status(400).json({
+            error: 'No file uploaded. Send a multipart/form-data request with field "file".',
+          });
           return;
         }
 
         const { buffer, mimetype, originalname, size } = req.file;
 
+        // Validate file size (multer enforces limit, but include explicit message)
+        if (size > 10 * 1024 * 1024) {
+          res.status(400).json({
+            error: `File too large: ${size} bytes. Maximum allowed size is 10 MB (10485760 bytes).`,
+          });
+          return;
+        }
+
+        // Validate MIME type (double-check beyond multer fileFilter)
+        if (!isAllowedMimeType(mimetype)) {
+          res.status(400).json({
+            error: `Unsupported file type: ${mimetype}. Allowed: ${ALLOWED_MIME_TYPES.join(', ')}`,
+          });
+          return;
+        }
+
+        const clerkUserId = req.headers['x-clerk-user-id'] as string;
+
         log('info', 'document_parse_start', {
           originalname,
           mimetype,
           sizeBytes: size,
-          userId: req.headers['x-clerk-user-id'],
+          userId: clerkUserId,
         });
 
         const result = await documentPipeline.extractFromDocument(buffer, mimetype);
 
-        // Persist in-memory for subsequent verify/lookup
-        extractionStore.set(result.documentId, result);
+        // Persist durably in VerificationArtifact (replaces in-memory Map)
+        await storeExtraction(clerkUserId, result);
+
+        // Emit audit event for compliance ledger
+        auditParse(clerkUserId, result, originalname);
 
         log('info', 'document_parse_complete', {
           documentId: result.documentId,
@@ -94,8 +133,8 @@ export function registerDocumentRoutes(app: Express): void {
   /**
    * POST /api/documents/verify
    * Body: { documentId: string, npi?: string }
-   * Retrieves the stored extraction, optionally injects the provided NPI,
-   * then runs primary-source verification via sourceVerifier.verifyDocument().
+   * Retrieves the stored extraction from the database, optionally injects the
+   * provided NPI, then runs primary-source verification via sourceVerifier.verifyDocument().
    */
   app.post(
     '/api/documents/verify',
@@ -111,7 +150,7 @@ export function registerDocumentRoutes(app: Express): void {
           return;
         }
 
-        const extraction = extractionStore.get(documentId);
+        const extraction = await getExtraction(documentId);
         if (!extraction) {
           res.status(404).json({ error: `No extraction found for documentId: ${documentId}` });
           return;
@@ -130,13 +169,18 @@ export function registerDocumentRoutes(app: Express): void {
           };
         }
 
+        const clerkUserId = req.headers['x-clerk-user-id'] as string;
+
         log('info', 'document_verify_start', {
           documentId,
           npi: npi || '(not provided)',
-          userId: req.headers['x-clerk-user-id'],
+          userId: clerkUserId,
         });
 
         const result = await sourceVerifier.verifyDocument(effectiveExtraction);
+
+        // Emit audit event for compliance ledger
+        auditVerify(clerkUserId, documentId, result.verified, result.discrepancies.length);
 
         log('info', 'document_verify_complete', {
           documentId,
@@ -164,21 +208,30 @@ export function registerDocumentRoutes(app: Express): void {
   app.get(
     '/api/documents/:id',
     requireClerkUser,
-    (req: Request, res: Response): void => {
-      const { id } = req.params;
+    async (req: Request, res: Response): Promise<void> => {
+      try {
+        const { id } = req.params;
 
-      const extraction = extractionStore.get(id);
-      if (!extraction) {
-        res.status(404).json({ error: `No document found with id: ${id}` });
-        return;
+        const extraction = await getExtraction(id);
+        if (!extraction) {
+          res.status(404).json({ error: `No document found with id: ${id}` });
+          return;
+        }
+
+        log('info', 'document_get', {
+          documentId: id,
+          userId: req.headers['x-clerk-user-id'],
+        });
+
+        res.status(200).json(extraction);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Document retrieval failed';
+        log('error', 'document_get_error', {
+          error: message,
+          userId: req.headers['x-clerk-user-id'],
+        });
+        res.status(500).json({ error: message });
       }
-
-      log('info', 'document_get', {
-        documentId: id,
-        userId: req.headers['x-clerk-user-id'],
-      });
-
-      res.status(200).json(extraction);
     },
   );
 }

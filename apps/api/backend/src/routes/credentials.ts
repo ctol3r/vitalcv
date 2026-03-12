@@ -45,6 +45,12 @@ import { log } from '../obs/logger';
 import { getIssuer } from '../services/registry/trustRegistry';
 import { computeSubstrateTrustState } from '../services/trust/trustSubstrate';
 import { acceptCredentialPresentation } from '../services/verifier/credentialAcceptance';
+import {
+  confirmCredential,
+  ingestCredential,
+  listCredentials as listCandidateCredentials,
+} from '../services/documents/credentialIngestion';
+import { getExtraction } from '../services/documents/documentStore';
 
 type RecordValue = Record<string, unknown>;
 
@@ -950,6 +956,92 @@ export function registerCredentialRoutes(app: Express): void {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       log('error', 'credential_fields_list_failed', { error: msg });
       res.status(500).json({ error: 'Failed to list credential fields', detail: msg });
+    }
+  });
+
+  // ── Wave 238: Holder Credential Onboarding ────────────────────────
+
+  /**
+   * POST /api/credentials/ingest
+   * Body: { documentId: string }
+   * Fetches the stored extraction by documentId and creates a CandidateCredential.
+   */
+  app.post('/api/credentials/ingest', async (req: Request, res: Response): Promise<void> => {
+    try {
+      const clerkUserId = req.headers['x-clerk-user-id'] as string | undefined;
+      if (!clerkUserId) {
+        res.status(401).json({ error: 'unauthorized', error_description: 'x-clerk-user-id header required' });
+        return;
+      }
+
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const documentId = typeof body.documentId === 'string' ? body.documentId.trim() : '';
+      if (!documentId) {
+        res.status(400).json({ error: 'documentId is required' });
+        return;
+      }
+
+      const extraction = await getExtraction(documentId);
+      if (!extraction) {
+        res.status(404).json({ error: `No extraction found for documentId: ${documentId}` });
+        return;
+      }
+
+      const result = await ingestCredential(clerkUserId, extraction);
+      res.status(201).json(result);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'credential_ingest_failed', { error: msg });
+      res.status(500).json({ error: 'Failed to ingest credential', detail: msg });
+    }
+  });
+
+  /**
+   * PATCH /api/credentials/:id/confirm
+   * Body: { corrections: Record<string, string> }
+   * Merges corrections and sets status to PENDING_VERIFICATION.
+   */
+  app.patch('/api/credentials/:id/confirm', async (req: Request, res: Response): Promise<void> => {
+    try {
+      const clerkUserId = req.headers['x-clerk-user-id'] as string | undefined;
+      if (!clerkUserId) {
+        res.status(401).json({ error: 'unauthorized', error_description: 'x-clerk-user-id header required' });
+        return;
+      }
+
+      const { id } = req.params;
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const corrections = (typeof body.corrections === 'object' && body.corrections !== null && !Array.isArray(body.corrections))
+        ? (body.corrections as Record<string, string>)
+        : {};
+
+      const result = await confirmCredential(id, corrections);
+      res.status(200).json(result);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'credential_confirm_failed', { error: msg });
+      res.status(500).json({ error: 'Failed to confirm credential', detail: msg });
+    }
+  });
+
+  /**
+   * GET /api/credentials/mine
+   * Lists CandidateCredential records for the authenticated user.
+   */
+  app.get('/api/credentials/mine', async (req: Request, res: Response): Promise<void> => {
+    try {
+      const clerkUserId = req.headers['x-clerk-user-id'] as string | undefined;
+      if (!clerkUserId) {
+        res.status(401).json({ error: 'unauthorized', error_description: 'x-clerk-user-id header required' });
+        return;
+      }
+
+      const credentials = await listCandidateCredentials(clerkUserId);
+      res.status(200).json({ credentials, total: credentials.length });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'credential_list_failed', { error: msg });
+      res.status(500).json({ error: 'Failed to list credentials', detail: msg });
     }
   });
 }

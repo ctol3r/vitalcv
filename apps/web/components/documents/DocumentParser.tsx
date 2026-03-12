@@ -11,6 +11,7 @@
 
 import React, { useCallback, useRef, useState } from 'react';
 import { ParseAnimation } from './ParseAnimation';
+import { CredentialReview } from './CredentialReview';
 
 /* ─── Types ─────────────────────────────────────────────────── */
 
@@ -155,6 +156,7 @@ export function DocumentParser() {
   const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [showReview, setShowReview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   /* ── Upload + parse ─────────────────────────────────────── */
@@ -280,6 +282,7 @@ export function DocumentParser() {
     setErrorMsg(null);
     setFileName(null);
     setUploadProgress(0);
+    setShowReview(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -293,6 +296,19 @@ export function DocumentParser() {
   };
 
   /* ── Render ─────────────────────────────────────────────── */
+
+  /* ── CredentialReview overlay ───────────────────────────── */
+
+  if (showReview && parseResult) {
+    return (
+      <CredentialReview
+        documentId={parseResult.documentId}
+        documentType={parseResult.documentType}
+        fields={parseResult.fields}
+        onBack={() => setShowReview(false)}
+      />
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -653,35 +669,60 @@ export function DocumentParser() {
             </div>
           </div>
 
-          {/* Verify button */}
+          {/* Verify + Save as Credential buttons */}
           {(stage === 'parsed') && (
-            <button
-              onClick={handleVerify}
-              style={{
-                alignSelf: 'flex-start',
-                padding: '11px 28px',
-                borderRadius: '9999px',
-                border: 'none',
-                background: 'linear-gradient(135deg, #10b981, #059669)',
-                color: '#fff',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                boxShadow: '0 0 20px rgba(16,185,129,0.3)',
-                transition: 'all 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                (e.target as HTMLButtonElement).style.boxShadow = '0 0 30px rgba(16,185,129,0.5)';
-                (e.target as HTMLButtonElement).style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                (e.target as HTMLButtonElement).style.boxShadow = '0 0 20px rgba(16,185,129,0.3)';
-                (e.target as HTMLButtonElement).style.transform = 'translateY(0)';
-              }}
-            >
-              ✓ Verify Against Source
-            </button>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <button
+                onClick={handleVerify}
+                style={{
+                  padding: '11px 28px',
+                  borderRadius: '9999px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  color: '#fff',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  boxShadow: '0 0 20px rgba(16,185,129,0.3)',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLButtonElement).style.boxShadow = '0 0 30px rgba(16,185,129,0.5)';
+                  (e.target as HTMLButtonElement).style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLButtonElement).style.boxShadow = '0 0 20px rgba(16,185,129,0.3)';
+                  (e.target as HTMLButtonElement).style.transform = 'translateY(0)';
+                }}
+              >
+                ✓ Verify Against Source
+              </button>
+
+              <button
+                onClick={() => setShowReview(true)}
+                style={{
+                  padding: '11px 28px',
+                  borderRadius: '9999px',
+                  border: '1px solid rgba(16,185,129,0.35)',
+                  background: 'rgba(16,185,129,0.08)',
+                  color: '#10b981',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLButtonElement).style.background = 'rgba(16,185,129,0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLButtonElement).style.background = 'rgba(16,185,129,0.08)';
+                }}
+              >
+                ⊕ Save as Credential
+              </button>
+            </div>
           )}
 
           {/* Verifying spinner */}
