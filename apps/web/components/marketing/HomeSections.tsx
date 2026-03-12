@@ -479,3 +479,179 @@ export function WhyNowSection() {
     </section>
   );
 }
+
+/* ─────────────────────────────────────────────────────────────
+   5. MONEYBALL THESIS — The founding scientific hypothesis
+   "It's not a talent problem. It's a speed problem."
+───────────────────────────────────────────────────────────── */
+
+export function MoneballSection() {
+  return (
+    <section className="relative px-6 py-28 overflow-hidden" style={{ background: '#070c18' }}>
+      {/* Subtle diagonal lines — scientific graph paper feel */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.025]"
+        style={{
+          backgroundImage: 'repeating-linear-gradient(45deg, #a0c4ff 0px, #a0c4ff 1px, transparent 0px, transparent 50%)',
+          backgroundSize: '32px 32px',
+        }}
+      />
+
+      {/* Accent glow */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: 'radial-gradient(ellipse 60% 50% at 30% 50%, rgba(245,158,11,0.05) 0%, transparent 70%)',
+        }}
+      />
+
+      <div className="relative mx-auto max-w-5xl">
+
+        {/* Label */}
+        <FadeIn className="mb-14">
+          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/8 px-4 py-1.5 mb-6">
+            <TrendingUp className="h-3.5 w-3.5 text-amber-400" />
+            <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-amber-400">
+              The Hypothesis
+            </span>
+          </div>
+
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight max-w-3xl">
+            The 2032 provider shortage isn&apos;t a talent problem.
+            <br />
+            <span className="text-amber-400">It&apos;s a speed problem.</span>
+          </h2>
+        </FadeIn>
+
+        {/* Two-column: argument + proof */}
+        <div className="grid gap-10 md:grid-cols-[1fr_1fr]">
+
+          {/* Left: The argument */}
+          <FadeIn delay={0.1} className="space-y-6">
+            <div className="rounded-2xl border border-white/8 bg-white/3 p-7 space-y-5">
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/30">The Argument</p>
+
+              <p className="text-white/70 leading-relaxed">
+                The US is projected to face a shortage of{' '}
+                <span className="text-white font-semibold">124,000 physicians by 2032.</span>{' '}
+                Every major health system is recruiting harder. More job boards, more
+                sourcers, more interviews. The pipeline looks full.
+              </p>
+
+              <p className="text-white/70 leading-relaxed">
+                But look at what happens after the offer letter. A clinician
+                accepts a position in January. She doesn&apos;t start until{' '}
+                <span className="text-red-400 font-semibold">May or June.</span>{' '}
+                Not because she wasn&apos;t ready. Because the hospital spent
+                90 days re-verifying credentials it could have confirmed in 24 hours.
+              </p>
+
+              <p className="text-white/70 leading-relaxed">
+                Nobody is connecting{' '}
+                <span className="text-white font-semibold">credentialing speed</span>{' '}
+                to{' '}
+                <span className="text-white font-semibold">hiring capacity.</span>{' '}
+                If a health system wants to onboard 50 physicians this year, they
+                need every single one to clear credentialing — not 35 of them, six months late.
+              </p>
+            </div>
+
+            {/* The Moneyball quote */}
+            <div className="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-6">
+              <p className="text-lg text-white/80 leading-relaxed italic mb-3">
+                &ldquo;We&apos;re not buying players. We&apos;re buying runs.
+                As long as they get on first base.&rdquo;
+              </p>
+              <p className="text-xs text-amber-400/70 font-medium">
+                — Moneyball (2011) · Applied to healthcare recruiting
+              </p>
+            </div>
+          </FadeIn>
+
+          {/* Right: The proof + funnel */}
+          <FadeIn delay={0.2} className="space-y-5">
+            <div className="rounded-2xl border border-white/8 bg-white/3 p-7 space-y-5">
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/30">The Proof</p>
+
+              <p className="text-white/70 leading-relaxed">
+                As a clinician sourcing recruiter, I ran this experiment.
+                Thousands of leads. Full pipelines. Strong interviewers.
+                The ATS data was clear:{' '}
+                <span className="text-white font-semibold">
+                  talent wasn&apos;t the constraint.
+                </span>{' '}
+                Recruiters weren&apos;t the constraint. Interviews weren&apos;t
+                the constraint.
+              </p>
+
+              <p className="text-white/70 leading-relaxed">
+                The drop-off was at the very bottom of the funnel —
+                after the hire, before the start.{' '}
+                <span className="text-amber-400 font-semibold">Credentialing.</span>{' '}
+                Every time.
+              </p>
+            </div>
+
+            {/* Funnel visualization */}
+            <div className="rounded-2xl border border-white/8 bg-white/3 p-6">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/25 mb-5">
+                The recruiting funnel
+              </p>
+              {[
+                { label: 'Sourced leads',     pct: 100, color: 'bg-blue-400',    dim: false },
+                { label: 'Applications',      pct: 68,  color: 'bg-blue-400',    dim: false },
+                { label: 'Interviews',        pct: 42,  color: 'bg-blue-400',    dim: false },
+                { label: 'Offers accepted',   pct: 28,  color: 'bg-amber-400',   dim: false },
+                { label: 'Credentialing ← bottleneck', pct: 28, color: 'bg-red-400', dim: false },
+                { label: 'Day 1 starts',      pct: 11,  color: 'bg-emerald-400', dim: false },
+              ].map((row, i) => (
+                <div key={row.label} className="mb-2.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className={`text-xs ${row.label.includes('bottleneck') ? 'text-red-400 font-semibold' : 'text-white/45'}`}>
+                      {row.label}
+                    </span>
+                    <span className={`text-xs font-mono ${row.label.includes('bottleneck') ? 'text-red-400' : 'text-white/25'}`}>
+                      {row.pct}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-white/5">
+                    <div
+                      className={`h-full rounded-full ${row.color} ${row.label.includes('bottleneck') ? 'opacity-70' : 'opacity-50'}`}
+                      style={{ width: `${row.pct}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+              <p className="text-[10px] text-white/25 mt-4 leading-relaxed">
+                The gap between &ldquo;offers accepted&rdquo; and &ldquo;Day 1 starts&rdquo; is
+                entirely credentialing delay. VitalCV closes it.
+              </p>
+            </div>
+
+          </FadeIn>
+        </div>
+
+        {/* Conclusion */}
+        <FadeIn delay={0.3} className="mt-12">
+          <div className="rounded-2xl border border-emerald-500/15 bg-emerald-500/5 p-7 text-center">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400/70 mb-4">
+              The Conclusion
+            </p>
+            <p className="text-xl sm:text-2xl font-bold text-white leading-tight max-w-3xl mx-auto">
+              Fix credentialing speed, and you don&apos;t just hire faster —
+              you solve the shortage.
+            </p>
+            <p className="text-white/45 mt-3 max-w-2xl mx-auto">
+              Every week a credentialed physician can&apos;t start is a week of care
+              that doesn&apos;t happen. VitalCV compresses that gap from months to hours —
+              and in doing so, unlocks the capacity the healthcare system already has.
+            </p>
+          </div>
+        </FadeIn>
+
+      </div>
+    </section>
+  );
+}

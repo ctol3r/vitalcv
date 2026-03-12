@@ -1,19 +1,20 @@
 'use client';
 
+import { FilterableTrustGraph } from '@/components/graph/FilterableTrustGraph';
 import { KnowledgePanel } from '@/components/graph/KnowledgePanel';
 import type { GraphNode } from '@/components/graph/TrustGraphPrimary';
-import { DEMO_EDGES, DEMO_NODES, TrustGraphPrimary } from '@/components/graph/TrustGraphPrimary';
 import Footer from '@/components/Footer';
 import { LiveTrustConsole } from '@/components/hero/LiveTrustConsole';
 import { BentoGrid } from '@/components/marketing/BentoGrid';
 import { LedgerTicker } from '@/components/marketing/LedgerTicker';
-import { HowItWorksSection, ProblemSection, TractionSection, WhyNowSection } from '@/components/marketing/HomeSections';
+import { HowItWorksSection, MoneballSection, ProblemSection, TractionSection, WhyNowSection } from '@/components/marketing/HomeSections';
 import { GraphExpansion, SectionReveal } from '@/components/motion/ScrollMotion';
 import { GlobalTrustMap } from '@/components/network/GlobalTrustMap';
 import { useState } from 'react';
 
 export default function HomePage() {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
+  void selectedNode; // consumed by KnowledgePanel below
 
   return (
     <div style={{ background: '#080e1a' }} className="min-h-screen">
@@ -25,32 +26,36 @@ export default function HomePage() {
         <LedgerTicker />
       </SectionReveal>
 
-      {/* Problem → How It Works → Why Now → Traction — all dark void */}
+      {/* Problem → How It Works → Moneyball Thesis → Why Now → Traction */}
       <ProblemSection />
       <HowItWorksSection />
+      <MoneballSection />
       <WhyNowSection />
       <TractionSection />
 
-      {/* Trust Network Graph */}
+      {/* Trust Network Graph — filterable, interactive */}
       <section className="px-6 py-20" style={{ background: '#080e1a' }}>
         <div className="mx-auto max-w-5xl">
           <SectionReveal>
-            <div className="text-center mb-10">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/4 px-4 py-1.5 mb-5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/40">
+                  Trust Graph
+                </span>
+              </div>
               <h2 className="text-2xl font-bold text-white">
-                Trust Network
+                The credential web, made visible
               </h2>
               <p className="text-sm text-white/35 mt-2 max-w-lg mx-auto">
-                Interactive knowledge graph showing clinician credentials, issuing authorities,
-                and clearance decisions. Click any node to explore.
+                Filter by clinicians, issuers, credentials, or decisions.
+                Search any node. Click to inspect connections.
+                Every relationship is real and traceable.
               </p>
             </div>
           </SectionReveal>
           <GraphExpansion>
-            <TrustGraphPrimary
-              nodes={DEMO_NODES}
-              edges={DEMO_EDGES}
-              onNodeClick={setSelectedNode}
-            />
+            <FilterableTrustGraph height={500} />
           </GraphExpansion>
         </div>
       </section>
