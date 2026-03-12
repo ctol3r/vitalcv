@@ -11,7 +11,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import fetch from 'node-fetch';
+
 import { matchOpportunities, scoreOpportunity } from './matchaEngine';
 import type {
   ClinicianProfile,
@@ -233,7 +233,7 @@ export async function getLiveMatchesForNpi(
       band: m.explanation.matchBand,
       score: m.explanation.matchScore,
       blockers: m.explanation.blockers.map(b => ({ label: b.label, action: b.actionLabel })),
-      fitReasons: m.explanation.fitReasons.map(f => f.reason),
+      fitReasons: m.explanation.fitReasons.map(f => f.label),
     })),
     profileCompleteness: {
       level: profile.credentials.some(c => c.claimLevel === 'L1') ? 'partial' : 'full',
@@ -263,6 +263,6 @@ export async function scoreOpportunityForNpi(npi: string, opportunityId: string)
     band: explanation.matchBand,
     score: explanation.matchScore,
     blockers: explanation.blockers.map(b => ({ label: b.label, action: b.actionLabel })),
-    fitReasons: explanation.fitReasons.map(f => f.reason),
+    fitReasons: explanation.fitReasons.map(f => f.label),
   };
 }

@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { href: '/employers',   label: 'Employers' },
   { href: '/search',      label: 'Search' },
   { href: '/network',     label: 'Network' },
+  { href: '/documents',   label: 'Document Parser' },
   { href: '/developers',  label: 'Developers' },
 ] as const;
 
