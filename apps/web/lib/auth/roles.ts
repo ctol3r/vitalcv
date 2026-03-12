@@ -52,6 +52,10 @@ export const PUBLIC_ROUTE_PATTERNS = [
   /^\/partners(\/.*)?$/, // public partners page
   /^\/sign-in(\/.*)?$/,
   /^\/sign-up(\/.*)?$/,
+  /^\/get-ready(\/.*)?$/, // clinician onboarding — public so unauthenticated users can land
+  /^\/explore(\/.*)?$/, // public opportunities board
+  /^\/search(\/.*)?$/, // public search
+  /^\/p\/(\/.*)?$/, // public clinician profiles
   /^\/intake(\/.*)?$/,
   /^\/verify(\/.*)?$/,
   /^\/trust-state(\/.*)?$/,
