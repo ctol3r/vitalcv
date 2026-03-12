@@ -1,0 +1,612 @@
+/* ═════════════════════════════════════════════════════════════
+ *  ANTIGRAVITY DESIGN SYSTEM — VitalCV
+ *  Complete token set extracted from antigravity.google
+ *  Dark-adapted for VitalCV's #080e1a surface.
+ *
+ *  Sections:
+ *    1. @font-face (Google Sans Flex + Code)
+ *    2. Color palette (dark-adapted from Google's grey scale)
+ *    3. Typography scale (9xl → xs, pixel-perfect from source)
+ *    4. Spacing, shape, grid
+ *    5. Easing curves (14 production curves)
+ *    6. Breakpoint-responsive overrides
+ *    7. Typography classes
+ *    8. Grid system (12-col)
+ *    9. Button system (primary/secondary/nav + states)
+ *   10. Utility classes
+ * ═════════════════════════════════════════════════════════════ */
+
+/* ── 1. @font-face ──────────────────────────────────────────── */
+
+@font-face {
+  font-family: 'Google Sans Flex';
+  font-style: oblique 0deg 10deg;
+  font-weight: 400 500;
+  font-stretch: 25% 150%;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/googlesansflex/v16/t5t2IQcYNIWbFgDgAAzZ34auoVyXkJCOvp3SFWJbN5hF8LG572o.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Google Sans Flex';
+  font-style: oblique 0deg 10deg;
+  font-weight: 400 500;
+  font-stretch: 25% 150%;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/googlesansflex/v16/t5t2IQcYNIWbFgDgAAzZ34auoVyXkJCOvp3SFWJbN5hF8LG372qutw.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Google Sans Flex';
+  font-style: oblique 0deg 10deg;
+  font-weight: 400 500;
+  font-stretch: 25% 150%;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/googlesansflex/v16/t5t2IQcYNIWbFgDgAAzZ34auoVyXkJCOvp3SFWJbN5hF8LG272qutw.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+
+@font-face {
+  font-family: 'Google Sans Code';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/googlesanscode/v14/pxiSyogzv91QhV44Z_GQBHsGf5PuckJMXr41HfVaiXFhgjF58LQ.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Google Sans Code';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/googlesanscode/v14/pxiSyogzv91QhV44Z_GQBHsGf5PuckJMXr41HfVaiXFhgjF38LSsgg.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* ── 2. Color palette ─────────────────────────────────────── */
+/* Google source uses light grey-0 (#FFF) through grey-1200 (#121317).
+   VitalCV inverts: surface is #080e1a, on-surface is near-white.
+   We keep Google's naming but dark-adapt the semantic mappings.     */
+
+:root {
+  /* --- Raw palette (from source, kept for reference/light pages) --- */
+  --ag-grey-0:    #FFFFFF;
+  --ag-grey-10:   #F8F9FC;
+  --ag-grey-15:   #F0F1F5;
+  --ag-grey-20:   #EFF2F7;
+  --ag-grey-50:   #E6EAF0;
+  --ag-grey-100:  #E1E6EC;
+  --ag-grey-200:  #CDD4DC;
+  --ag-grey-300:  #B2BBC5;
+  --ag-grey-400:  #B7BFD9;
+  --ag-grey-600:  #AAB1CC;
+  --ag-grey-800:  #45474D;
+  --ag-grey-900:  #2F3034;
+  --ag-grey-1000: #212226;
+  --ag-grey-1100: #18191D;
+  --ag-grey-1200: #121317;
+  --ag-blue-600:  #3279F9;
+
+  /* --- RGB channels for alpha compositing --- */
+  --ag-grey-0-rgb:    255, 255, 255;
+  --ag-grey-50-rgb:   230, 234, 240;
+  --ag-grey-400-rgb:  183, 191, 217;
+  --ag-grey-600-rgb:  170, 177, 204;
+  --ag-grey-1000-rgb: 33, 34, 38;
+  --ag-grey-1200-rgb: 18, 19, 23;
+
+  /* --- Dark theme semantic tokens --- */
+  /* Surface: dark navy instead of white */
+  --ag-surface:                 #080e1a;
+  --ag-surface-container:       #0c1424;
+  --ag-surface-container-high:  #111b2e;
+  --ag-surface-container-higher:#182438;
+  --ag-on-surface:              rgba(255, 255, 255, 0.92);
+  --ag-on-surface-variant:      rgba(255, 255, 255, 0.55);
+  --ag-inverse-surface:         var(--ag-grey-10);
+  --ag-inverse-on-surface:      var(--ag-grey-1200);
+
+  /* Overlay system */
+  --ag-overlay:         rgba(255, 255, 255, 0.95);
+  --ag-overlay-low:     rgba(255, 255, 255, 0.06);
+  --ag-overlay-high:    rgba(255, 255, 255, 0.12);
+  --ag-overlay-higher:  rgba(255, 255, 255, 0.20);
+  --ag-overlay-highest: rgba(255, 255, 255, 0.40);
+
+  /* Outline */
+  --ag-outline:         rgba(255, 255, 255, 0.12);
+  --ag-outline-variant:  rgba(255, 255, 255, 0.06);
+  --ag-divider:         var(--ag-outline-variant);
+
+  /* Primary button: on-surface → surface (dark on light) */
+  --ag-primary:         rgba(255, 255, 255, 0.92);
+  --ag-on-primary:      #080e1a;
+  --ag-primary-hover:   rgba(255, 255, 255, 0.80);
+
+  /* Secondary button: glass */
+  --ag-secondary:            rgba(var(--ag-grey-400-rgb), 0.10);
+  --ag-secondary-hover:      rgba(var(--ag-grey-400-rgb), 0.20);
+  --ag-secondary-border:     var(--ag-outline-variant);
+  --ag-on-secondary:         rgba(255, 255, 255, 0.80);
+
+  /* Nav button */
+  --ag-nav-btn:         rgba(var(--ag-grey-400-rgb), 0.09);
+  --ag-nav-btn-hover:   rgba(var(--ag-grey-400-rgb), 0.20);
+
+  /* Disabled state */
+  --ag-disabled:        rgba(255, 255, 255, 0.06);
+  --ag-on-disabled:     rgba(255, 255, 255, 0.20);
+
+  /* VitalCV accent (trust green) */
+  --ag-accent:          #10b981;
+  --ag-accent-hover:    #059669;
+  --ag-accent-active:   #047857;
+  --ag-on-accent:       #000000;
+
+  /* ── 3. Typography scale ────────────────────────────────── */
+  /* Pixel-perfect from antigravity.google source.              */
+
+  --ag-font-sans:  'Google Sans Flex', 'Google Sans', var(--font-plus-jakarta, 'Plus Jakarta Sans'), Arial, Helvetica, sans-serif;
+  --ag-font-code:  'Google Sans Code', var(--font-jetbrains, 'JetBrains Mono'), 'Roboto Mono', monospace;
+
+  --ag-landing-main-size:   107px;
+  --ag-landing-main-lh:     107px;
+  --ag-landing-main-ls:     -2.14px;
+
+  --ag-9xl-size: 148px;   --ag-9xl-lh: 145.04px;  --ag-9xl-ls: -2.96px;
+  --ag-8xl-size: 124px;   --ag-8xl-lh: 121.52px;  --ag-8xl-ls: -2.48px;
+  --ag-7xl-size: 98px;    --ag-7xl-lh: 82.04px;   --ag-7xl-ls: -1.8px;
+  --ag-6xl-size: 72px;    --ag-6xl-lh: 72px;      --ag-6xl-ls: -1.44px;
+  --ag-5xl-size: 54px;    --ag-5xl-lh: 56.16px;   --ag-5xl-ls: -0.95px;
+  --ag-4xl-size: 42px;    --ag-4xl-lh: 43.68px;   --ag-4xl-ls: -0.73px;
+  --ag-3xl-size: 32px;    --ag-3xl-lh: 33.92px;   --ag-3xl-ls: -0.15px;
+  --ag-2xl-size: 28px;    --ag-2xl-lh: 30.24px;   --ag-2xl-ls: -0.1px;
+  --ag-xl-size:  24px;    --ag-xl-lh:  25.92px;   --ag-xl-ls:  -0.07px;
+  --ag-lg-size:  22px;    --ag-lg-lh:  24.64px;   --ag-lg-ls:  -0.08px;
+  --ag-md-size:  20px;    --ag-md-lh:  26px;      --ag-md-ls:  -0.05px;
+  --ag-base-size: 17.5px; --ag-base-lh: 25.38px;  --ag-base-ls: 0.18px;
+  --ag-sm-size:  14.5px;  --ag-sm-lh:  21.02px;   --ag-sm-ls:  0.16px;
+  --ag-xs-size:  12.5px;  --ag-xs-lh:  15.5px;    --ag-xs-ls:  0.11px;
+
+  --ag-cta-size:    17.5px;  --ag-cta-lh:    25.38px;  --ag-cta-ls: 0.18px;
+  --ag-cta-sm-size: 14.5px;  --ag-cta-sm-lh: 21.02px;  --ag-cta-sm-ls: 0.11px;
+
+  /* ── 4. Spacing, shape, grid ────────────────────────────── */
+
+  --ag-space-none: 0px;
+  --ag-space-xs:  4px;
+  --ag-space-sm:  8px;
+  --ag-space-md:  16px;
+  --ag-space-lg:  24px;
+  --ag-space-xl:  36px;
+  --ag-space-2xl: 48px;
+  --ag-space-3xl: 60px;
+  --ag-space-4xl: 80px;
+  --ag-space-5xl: 88px;
+  --ag-space-6xl: 120px;
+  --ag-space-7xl: 180px;
+
+  --ag-corner-xs:      4px;
+  --ag-corner-sm:      8px;
+  --ag-corner-md:      16px;
+  --ag-corner-lg:      24px;
+  --ag-corner-xl:      36px;
+  --ag-corner-2xl:     48px;
+  --ag-corner-rounded: 9999px;
+
+  --ag-grid-gutter:  64px;
+  --ag-grid-columns: 12;
+  --ag-page-margin:  72px;
+  --ag-nav-height:   52px;
+  --ag-max-width:    1600px;
+
+  /* ── 5. Easing curves ───────────────────────────────────── */
+
+  --ag-ease-in-quad:      cubic-bezier(.55, .085, .68, .53);
+  --ag-ease-in-cubic:     cubic-bezier(.55, .055, .675, .19);
+  --ag-ease-in-quart:     cubic-bezier(.895, .03, .685, .22);
+  --ag-ease-in-quint:     cubic-bezier(.755, .05, .855, .06);
+  --ag-ease-in-expo:      cubic-bezier(.95, .05, .795, .035);
+  --ag-ease-in-circ:      cubic-bezier(.6, .04, .98, .335);
+  --ag-ease-out-quad:     cubic-bezier(.25, .46, .45, .94);
+  --ag-ease-out-cubic:    cubic-bezier(.215, .61, .355, 1);
+  --ag-ease-out-quart:    cubic-bezier(.165, .84, .44, 1);
+  --ag-ease-out-quint:    cubic-bezier(.23, 1, .32, 1);
+  --ag-ease-out-expo:     cubic-bezier(.19, 1, .22, 1);
+  --ag-ease-out-circ:     cubic-bezier(.075, .82, .165, 1);
+  --ag-ease-in-out-quad:  cubic-bezier(.455, .03, .515, .955);
+  --ag-ease-in-out-cubic: cubic-bezier(.645, .045, .355, 1);
+  --ag-ease-in-out-quart: cubic-bezier(.77, 0, .175, 1);
+  --ag-ease-in-out-quint: cubic-bezier(.86, 0, .07, 1);
+  --ag-ease-in-out-expo:  cubic-bezier(1, 0, 0, 1);
+  --ag-ease-in-out-circ:  cubic-bezier(.785, .135, .15, .86);
+  --ag-ease-out-back:     cubic-bezier(.34, 1.85, .64, 1);
+
+  /* ── Button geometry ────────────────────────────────────── */
+
+  --ag-btn-radius:     var(--ag-corner-rounded);
+  --ag-btn-height:     48px;
+  --ag-btn-min-width:  96px;
+  --ag-btn-padding:    10px 24px;
+  --ag-btn-compact-pad: 6px 16px;
+  --ag-btn-font-wt:    450;
+
+  /* ── Shadows (dark-adapted) ─────────────────────────────── */
+
+  --ag-shadow-1: 0 1px 2px 0 rgba(0,0,0,.4), 0 1px 3px 1px rgba(0,0,0,.25);
+  --ag-shadow-2: 0 2px 3px 0 rgba(0,0,0,.4), 0 6px 10px 4px rgba(0,0,0,.25);
+  --ag-shadow-3: 0 4px 8px 3px rgba(0,0,0,.4), 0 1px 3px 0 rgba(0,0,0,.3);
+
+  /* ── Focus rings ────────────────────────────────────────── */
+
+  --ag-focus-ring:       0 0 0 2px #080e1a, 0 0 0 4px rgba(255,255,255,.4);
+  --ag-focus-ring-accent: 0 0 0 2px #080e1a, 0 0 0 4px rgba(16,185,129,.7);
+}
+
+/* ── 6. Responsive overrides ──────────────────────────────── */
+
+@media (max-width: 1600px) {
+  :root {
+    --ag-landing-main-size: 72px;
+    --ag-landing-main-lh:   72.04px;
+    --ag-landing-main-ls:   -1.44px;
+    --ag-grid-gutter: 48px;
+  }
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --ag-landing-main-size: 56px;
+    --ag-landing-main-lh:   56.04px;
+    --ag-landing-main-ls:   -1.12px;
+    --ag-grid-gutter:  40px;
+    --ag-grid-columns: 8;
+    --ag-page-margin:  40px;
+
+    --ag-9xl-size: 38px;  --ag-9xl-lh: 40.28px;  --ag-9xl-ls: -0.76px;
+    --ag-8xl-size: 36px;  --ag-8xl-lh: 38.16px;  --ag-8xl-ls: -0.72px;
+    --ag-7xl-size: 34px;  --ag-7xl-lh: 36.04px;  --ag-7xl-ls: -0.68px;
+    --ag-6xl-size: 32px;  --ag-6xl-lh: 33.92px;  --ag-6xl-ls: -0.64px;
+    --ag-5xl-size: 28px;  --ag-5xl-lh: 29.6px;   --ag-5xl-ls: -0.28px;
+    --ag-4xl-size: 26px;  --ag-4xl-lh: 28.08px;  --ag-4xl-ls: -0.26px;
+    --ag-3xl-size: 26px;  --ag-3xl-lh: 28.08px;  --ag-3xl-ls: -0.26px;
+    --ag-2xl-size: 24px;  --ag-2xl-lh: 25.92px;  --ag-2xl-ls: -0.14px;
+    --ag-xl-size:  22px;  --ag-xl-lh:  24.64px;  --ag-xl-ls:  -0.13px;
+    --ag-lg-size:  20px;  --ag-lg-lh:  22.8px;   --ag-lg-ls:  -0.08px;
+    --ag-md-size:  18px;  --ag-md-lh:  23.4px;   --ag-md-ls:  -0.07px;
+    --ag-base-size: 16px; --ag-base-lh: 23px;    --ag-base-ls: 0.16px;
+    --ag-cta-size:    16px; --ag-cta-lh:    23px;  --ag-cta-ls:    0.16px;
+    --ag-cta-sm-size: 16px; --ag-cta-sm-lh: 23px;  --ag-cta-sm-ls: 0.16px;
+  }
+}
+
+@media (max-width: 767px) {
+  :root {
+    --ag-landing-main-size: 46px;
+    --ag-landing-main-lh:   46.04px;
+    --ag-landing-main-ls:   -0.92px;
+    --ag-grid-gutter:  16px;
+    --ag-grid-columns: 4;
+    --ag-page-margin:  16px;
+  }
+}
+
+@media (max-width: 425px) {
+  :root {
+    --ag-landing-main-size: 30px;
+    --ag-landing-main-lh:   32.04px;
+    --ag-landing-main-ls:   -0.6px;
+    --ag-grid-columns: 4;
+    --ag-corner-xl: 24px;
+  }
+}
+
+/* ── 7. Typography classes ────────────────────────────────── */
+/* Exact Google weight (450) and optical sizing from source.    */
+
+.ag-landing-main {
+  font-size: var(--ag-landing-main-size);
+  line-height: var(--ag-landing-main-lh);
+  letter-spacing: var(--ag-landing-main-ls);
+  font-weight: 450;
+  font-variation-settings: "wdth" 100, "opsz" 144;
+}
+
+.ag-heading-00 { font-size: var(--ag-9xl-size); line-height: var(--ag-9xl-lh); letter-spacing: var(--ag-9xl-ls); font-weight: 450; font-variation-settings: "wdth" 100, "opsz" 144; }
+.ag-heading-0  { font-size: var(--ag-8xl-size); line-height: var(--ag-8xl-lh); letter-spacing: var(--ag-8xl-ls); font-weight: 450; font-variation-settings: "wdth" 100, "opsz" 124; }
+.ag-heading-1  { font-size: var(--ag-7xl-size); line-height: var(--ag-7xl-lh); letter-spacing: var(--ag-7xl-ls); font-weight: 450; font-variation-settings: "wdth" 100, "opsz" 98; }
+.ag-heading-2  { font-size: var(--ag-6xl-size); line-height: var(--ag-6xl-lh); letter-spacing: var(--ag-6xl-ls); font-weight: 450; font-variation-settings: "wdth" 100, "opsz" 72; }
+.ag-heading-3  { font-size: var(--ag-5xl-size); line-height: var(--ag-5xl-lh); letter-spacing: var(--ag-5xl-ls); font-weight: 450; font-variation-settings: "wdth" 100, "opsz" 54; }
+.ag-heading-4  { font-size: var(--ag-4xl-size); line-height: var(--ag-4xl-lh); letter-spacing: var(--ag-4xl-ls); font-weight: 450; font-variation-settings: "wdth" 100, "opsz" 42; }
+.ag-heading-5  { font-size: var(--ag-3xl-size); line-height: var(--ag-3xl-lh); letter-spacing: var(--ag-3xl-ls); font-weight: 450; font-variation-settings: "wdth" 100, "opsz" 32; }
+.ag-heading-6  { font-size: var(--ag-2xl-size); line-height: var(--ag-2xl-lh); letter-spacing: var(--ag-2xl-ls); font-weight: 450; font-variation-settings: "wdth" 100, "opsz" 28; }
+.ag-heading-7  { font-size: var(--ag-xl-size);  line-height: var(--ag-xl-lh);  letter-spacing: var(--ag-xl-ls);  font-weight: 450; font-variation-settings: "wdth" 100, "opsz" 24; }
+.ag-heading-8  { font-size: var(--ag-lg-size);  line-height: var(--ag-lg-lh);  letter-spacing: var(--ag-lg-ls);  font-weight: 450; font-variation-settings: "wdth" 100, "opsz" 22; }
+.ag-heading-9  { font-size: var(--ag-md-size);  line-height: var(--ag-md-lh);  letter-spacing: var(--ag-md-ls);  font-weight: 450; font-variation-settings: "wdth" 100, "opsz" 20; }
+
+.ag-body {
+  font-size: var(--ag-base-size);
+  line-height: var(--ag-base-lh);
+  letter-spacing: var(--ag-base-ls);
+  font-weight: 400;
+  font-variation-settings: "wdth" 100, "opsz" 17.5;
+}
+
+.ag-caption {
+  font-size: var(--ag-sm-size);
+  line-height: var(--ag-sm-lh);
+  letter-spacing: var(--ag-sm-ls);
+  font-weight: 400;
+  font-variation-settings: "wdth" 100, "opsz" 15;
+}
+
+.ag-small {
+  font-size: var(--ag-xs-size);
+  line-height: var(--ag-xs-lh);
+  letter-spacing: var(--ag-xs-ls);
+  font-weight: 450;
+}
+
+.ag-cta {
+  font-size: var(--ag-cta-size);
+  line-height: var(--ag-cta-lh);
+  letter-spacing: var(--ag-cta-ls);
+  font-weight: 450;
+  font-variation-settings: "wdth" 100, "opsz" 17.5;
+}
+
+.ag-cta-nav {
+  cursor: pointer;
+  font-size: var(--ag-cta-sm-size);
+  line-height: var(--ag-cta-sm-lh);
+  letter-spacing: var(--ag-cta-sm-ls);
+  font-weight: 450;
+  font-variation-settings: "wdth" 100, "opsz" 14.5;
+}
+
+.ag-code {
+  font-family: var(--ag-font-code);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 28px;
+  letter-spacing: -0.08px;
+}
+
+/* ── 8. Grid system ───────────────────────────────────────── */
+
+.ag-container {
+  width: 100%;
+  max-width: calc(var(--ag-max-width) + var(--ag-page-margin) * 2);
+  margin: 0 auto;
+  padding: 0 var(--ag-page-margin);
+}
+
+.ag-grid-row {
+  display: flex;
+  flex-flow: row wrap;
+  margin-left: calc(-1 * var(--ag-grid-gutter) / 2);
+  margin-right: calc(-1 * var(--ag-grid-gutter) / 2);
+}
+
+.ag-grid-col {
+  flex: 1 1 auto;
+  padding-left: calc(var(--ag-grid-gutter) / 2);
+  padding-right: calc(var(--ag-grid-gutter) / 2);
+}
+
+/* 12-column widths */
+.ag-col-1  { flex-basis: 8.3333%;  max-width: 8.3333%;  }
+.ag-col-2  { flex-basis: 16.6667%; max-width: 16.6667%; }
+.ag-col-3  { flex-basis: 25%;      max-width: 25%;      }
+.ag-col-4  { flex-basis: 33.3333%; max-width: 33.3333%; }
+.ag-col-5  { flex-basis: 41.6667%; max-width: 41.6667%; }
+.ag-col-6  { flex-basis: 50%;      max-width: 50%;      }
+.ag-col-7  { flex-basis: 58.3333%; max-width: 58.3333%; }
+.ag-col-8  { flex-basis: 66.6667%; max-width: 66.6667%; }
+.ag-col-9  { flex-basis: 75%;      max-width: 75%;      }
+.ag-col-10 { flex-basis: 83.3333%; max-width: 83.3333%; }
+.ag-col-11 { flex-basis: 91.6667%; max-width: 91.6667%; }
+.ag-col-12 { flex-basis: 100%;     max-width: 100%;     }
+
+/* ── 9. Button system ─────────────────────────────────────── */
+
+.ag-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--ag-btn-radius);
+  min-height: var(--ag-btn-height);
+  padding: var(--ag-btn-padding);
+  font-family: var(--ag-font-sans);
+  font-size: var(--ag-base-size);
+  line-height: var(--ag-base-lh);
+  letter-spacing: var(--ag-base-ls);
+  font-weight: var(--ag-btn-font-wt);
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  text-align: center;
+  transition: .15s all ease-out;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.ag-btn:disabled {
+  cursor: not-allowed;
+  background: var(--ag-disabled);
+  color: var(--ag-on-disabled);
+}
+
+.ag-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ag-focus-ring);
+}
+
+/* Primary: light text on dark → solid white btn */
+.ag-btn-primary {
+  background: var(--ag-primary);
+  color: var(--ag-on-primary);
+}
+.ag-btn-primary:hover,
+.ag-btn-primary:focus-visible {
+  background: var(--ag-primary-hover);
+}
+
+/* Primary accent: emerald */
+.ag-btn-accent {
+  background: var(--ag-accent);
+  color: var(--ag-on-accent);
+}
+.ag-btn-accent:hover {
+  background: var(--ag-accent-hover);
+}
+.ag-btn-accent:active {
+  background: var(--ag-accent-active);
+}
+.ag-btn-accent:focus-visible {
+  box-shadow: var(--ag-focus-ring-accent);
+}
+
+/* Secondary: glass */
+.ag-btn-secondary {
+  background: var(--ag-secondary);
+  border-color: var(--ag-secondary-border);
+  color: var(--ag-on-secondary);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.ag-btn-secondary:hover,
+.ag-btn-secondary:focus-visible {
+  background: var(--ag-secondary-hover);
+}
+
+/* Nav button */
+.ag-btn-nav {
+  background: transparent;
+  color: var(--ag-on-surface-variant);
+  font-size: var(--ag-cta-sm-size);
+  line-height: var(--ag-cta-sm-lh);
+  letter-spacing: var(--ag-cta-sm-ls);
+}
+.ag-btn-nav:hover,
+.ag-btn-nav:focus-visible {
+  color: var(--ag-on-surface);
+  background: var(--ag-nav-btn-hover);
+}
+
+/* Text button */
+.ag-btn-text {
+  background: transparent;
+  color: var(--ag-on-surface);
+  min-width: auto;
+}
+.ag-btn-text:hover {
+  background: var(--ag-overlay-low);
+}
+
+/* Compact */
+.ag-btn-compact {
+  padding: var(--ag-btn-compact-pad);
+  min-height: 36px;
+}
+
+/* ── 10. Utility classes ──────────────────────────────────── */
+
+/* Arrow link (Google's → hover animation) */
+.ag-arrow-link {
+  display: inline-flex;
+  align-items: center;
+  transition: 0.2s opacity;
+}
+.ag-arrow-link::after {
+  content: "→";
+  display: inline-flex;
+  margin: 0 0 0 var(--ag-space-xs);
+  transition: 0.3s transform;
+}
+.ag-arrow-link:hover::after,
+.ag-arrow-link:focus::after {
+  transform: translateX(50%);
+}
+
+/* Glass card */
+.ag-card {
+  border-radius: var(--ag-corner-xl);
+  border: 1px solid var(--ag-outline-variant);
+  background: var(--ag-overlay-low);
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+.ag-card:hover {
+  background: var(--ag-overlay-high);
+  box-shadow: var(--ag-shadow-2);
+}
+
+/* Glass card elevated */
+.ag-card-elevated {
+  border-radius: var(--ag-corner-xl);
+  border: 1px solid var(--ag-outline);
+  background: var(--ag-surface-container);
+  box-shadow: var(--ag-shadow-1);
+}
+
+/* Pill / badge */
+.ag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--ag-corner-rounded);
+  border: 1px solid var(--ag-outline);
+  background: var(--ag-overlay-low);
+  color: var(--ag-on-surface-variant);
+  font-family: var(--ag-font-sans);
+  font-size: var(--ag-xs-size);
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  white-space: nowrap;
+}
+
+/* Divider */
+.ag-divider {
+  border: none;
+  border-top: 1px solid var(--ag-outline-variant);
+  margin: 0;
+}
+
+/* Label */
+.ag-label {
+  font-family: var(--ag-font-sans);
+  font-size: var(--ag-xs-size);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ag-on-surface-variant);
+}
+
+/* Input */
+.ag-input {
+  font-family: var(--ag-font-sans);
+  font-size: var(--ag-base-size);
+  line-height: 1.5;
+  border-radius: var(--ag-corner-md);
+  border: 1px solid var(--ag-outline);
+  background: var(--ag-overlay-low);
+  color: var(--ag-on-surface);
+  padding: 12px 16px;
+  width: 100%;
+  transition: border-color .2s, background .2s, box-shadow .2s;
+}
+.ag-input::placeholder { color: var(--ag-on-disabled); }
+.ag-input:focus {
+  outline: none;
+  border-color: var(--ag-overlay-higher);
+  background: var(--ag-overlay-high);
+  box-shadow: var(--ag-focus-ring);
+}
+
+/* Hidden at breakpoints */
+@media (max-width: 1024px) { .ag-hidden-md { display: none !important; } }
+@media (max-width: 767px)  { .ag-hidden-sm { display: none !important; } }
