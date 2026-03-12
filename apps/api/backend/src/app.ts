@@ -128,6 +128,7 @@ import { registerMissionOpsRoutes } from './routes/missionOps';             // W
 import { registerWorkspaceRoutes } from './routes/workspace';               // Wave 180: Identity workspace graph
 import { registerIntakeRoutes } from './routes/intake';                     // Wave 183: Resume + NPI + Links + Work Auth ingestion
 import { registerSearchRoutes } from './routes/search';                     // Wave 184: Unified Search Index & Content Graph
+import { registerRoleRoutes } from './routes/role';                         // Clerk auth: GET /api/me/role
 import { registerAskRoutes } from './routes/ask';                           // Wave 185: Ask VitalCV answer engine
 import { registerEmployerRoutes } from './routes/employers';                 // Wave 186: Employer Knowledge Layer
 import { registerPrequalificationRoutes } from './routes/prequalification';  // Wave 189: AI Interview, Assessments, Prequalification
@@ -3533,6 +3534,7 @@ registerMissionOpsRoutes(app);        // Wave 123 — Mission Ops + onboarding f
 registerWorkspaceRoutes(app);         // Wave 180 — Dual-Entity Identity + workspace switching
 registerIntakeRoutes(app);            // Wave 183 — Resume + NPI + Links + Work Auth ingestion
 registerSearchRoutes(app);            // Wave 184 — Unified Search Index + hybrid retrieval
+registerRoleRoutes(app);              // Clerk auth — GET /api/me/role (role resolution)
 registerAskRoutes(app);               // Wave 185 — Ask VitalCV natural language answer engine
 registerEmployerRoutes(app);          // Wave 186 — Employer Knowledge Layer
 registerPrequalificationRoutes(app);  // Wave 189 — AI Interview, Assessments, Prequalification
