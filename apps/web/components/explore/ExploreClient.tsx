@@ -232,6 +232,10 @@ export default function ExploreClient() {
 }
 
 /* ── Opportunity Card ────────────────────────────────────────── */
+// TODO Wave 239+: Add MATCHA match badge per card when user is logged in.
+// Pattern: after opportunities load, POST /api/matcha/score for each visible opp.
+// Badge: green "Strong Match" / yellow "Partial Match" / red "Not Yet Eligible" / grey "Log in to see match"
+// Only show when user has an NPI from /api/me/workspaces.
 
 function OpportunityCard({ opp, onApply }: { opp: ApiOpportunity; onApply: () => void }) {
   const levelColor = LEVEL_COLORS[opp.requirementLevel] ?? LEVEL_COLORS.L1;

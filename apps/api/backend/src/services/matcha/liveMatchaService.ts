@@ -133,6 +133,61 @@ async function buildClinicianProfile(npi: string): Promise<ClinicianProfile> {
     },
   ];
 
+  // ── Enrich from CandidateCredential records (Wave 238) ──────────
+  // If the clinician uploaded + confirmed credentials via Document Intelligence,
+  // upgrade the claim level. This is the key loop: upload → parse → verify → better matches.
+  try {
+    const candidateCreds = await prisma.candidateCredential.findMany({
+      where: { clinicianId: npi },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    for (const cc of candidateCreds) {
+      const data = cc.data as Record<string, unknown> | null;
+      if (!data) continue;
+      const docType = (data.documentType as string) ?? '';
+      const confidence = (data.overallConfidence as number) ?? 0;
+      const ccStatus = cc.status; // UNVERIFIED, PENDING_VERIFICATION, VERIFIED
+
+      // Map document type to credential key
+      const typeToKey: Record<string, string> = {
+        MEDICAL_LICENSE: 'state_license',
+        DEA_CERTIFICATE: 'dea',
+        BOARD_CERTIFICATION: 'board_cert',
+      };
+
+      const credKey = typeToKey[docType];
+      if (!credKey) continue;
+
+      // Determine claim level based on verification status + confidence
+      let upgradedLevel: string;
+      if (ccStatus === 'VERIFIED' || (ccStatus === 'PENDING_VERIFICATION' && confidence > 0.9)) {
+        upgradedLevel = 'L3'; // Document verified or high-confidence confirmed
+      } else if (ccStatus === 'PENDING_VERIFICATION') {
+        upgradedLevel = 'L2'; // Confirmed by clinician, pending PSV
+      } else {
+        upgradedLevel = 'L2'; // Uploaded but unconfirmed — still better than L1
+      }
+
+      // Find and upgrade the credential entry
+      const idx = credentials.findIndex(c => c.key === credKey);
+      if (idx >= 0) {
+        const existing = credentials[idx];
+        // Only upgrade, never downgrade
+        const levelOrder = ['L1', 'L2', 'L3'];
+        if (levelOrder.indexOf(upgradedLevel) > levelOrder.indexOf(existing.claimLevel)) {
+          credentials[idx] = {
+            ...existing,
+            status: 'active',
+            claimLevel: upgradedLevel as 'L1' | 'L2' | 'L3',
+          };
+        }
+      }
+    }
+  } catch (err) {
+    // CandidateCredential enrichment is best-effort — don't fail the whole profile
+  }
+
   return { npi, name, specialty, states: [state], credentials };
 }
 
