@@ -6,6 +6,7 @@ import {
   getWorkspacesForUser,
   switchWorkspace,
 } from '../services/workspace/workspaceService';
+import { log } from '../obs/logger';
 import { HttpError } from '../utils/httpError';
 
 const NPI_RE = /^\d{10}$/;
