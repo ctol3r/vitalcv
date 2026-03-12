@@ -197,13 +197,13 @@ function ApplicationDetail({
             onChange={e => setNote(e.target.value)}
             placeholder="Optional review note (visible to applicant on status change)…"
             rows={2}
-            className="w-full rounded-xl border border-white/8 bg-white/3 px-4 py-3 text-sm text-white/70 placeholder:text-white/20 focus:outline-none focus:border-white/20 resize-none transition"
+            className="glue-input resize-none"
           />
           <div className="flex flex-wrap gap-3">
             <button
               onClick={() => onReview('ACCEPTED', note)}
               disabled={reviewing}
-              className="flex-1 min-w-[120px] flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 px-5 py-3 text-sm font-bold text-black transition-colors"
+              className="glue-btn glue-btn-primary flex-1 min-w-[120px] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {reviewing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
               Accept
@@ -378,7 +378,7 @@ export default function VerifierInbox() {
                     value={query}
                     onChange={e => setQuery(e.target.value)}
                     placeholder="Search NPI, role, specialty…"
-                    className="w-full rounded-xl border border-white/8 bg-white/4 pl-9 pr-4 py-2.5 text-sm text-white/70 placeholder:text-white/20 focus:outline-none focus:border-white/15 transition"
+                    className="glue-input pl-9 pr-4 py-2.5 text-sm"
                   />
                 </div>
               </div>

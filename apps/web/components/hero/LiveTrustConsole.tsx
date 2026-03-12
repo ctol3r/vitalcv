@@ -165,12 +165,10 @@ export function LiveTrustConsole() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
           >
-            {/* Eyebrow — understated, not flashy */}
-            <div className="inline-flex items-center gap-2.5 rounded-full border border-emerald-500/25 bg-emerald-500/8 px-4 py-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-400">
-                Clinician Credentialing
-              </span>
+            {/* Eyebrow — Glue pill */}
+            <div className="glue-pill" style={{ borderColor: 'rgba(16,185,129,0.25)', background: 'rgba(16,185,129,0.08)', color: '#34d399' }}>
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+              Clinician Credentialing
             </div>
 
             {/* Headline — human, outcome-first, no jargon */}
@@ -188,22 +186,16 @@ export function LiveTrustConsole() {
               carries that proof wherever your career takes you.
             </p>
 
-            {/* CTAs */}
+            {/* CTAs — Google Glue pill buttons */}
             <div className="flex flex-wrap items-center gap-4 pt-1">
               <MagneticButton>
-                <Link
-                  href="/demo"
-                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-7 py-3.5 text-sm font-semibold text-black transition-colors"
-                >
+                <Link href="/demo" className="glue-btn glue-btn-primary">
                   See how it works
                   <Zap className="h-4 w-4" />
                 </Link>
               </MagneticButton>
               <MagneticButton>
-                <Link
-                  href="/get-ready"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/12 hover:border-white/22 px-7 py-3.5 text-sm font-semibold text-white/60 hover:text-white/90 transition-all"
-                >
+                <Link href="/get-ready" className="glue-btn glue-btn-secondary">
                   Check my readiness →
                 </Link>
               </MagneticButton>

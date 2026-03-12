@@ -4,6 +4,7 @@
 @import '../styles/typography.css';
 @import '../styles/tokens.css';
 @import '../styles/vitalTokens.css';
+@import '../styles/glue.css';
 
 @custom-variant dark (&:is(.dark *));
 

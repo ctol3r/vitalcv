@@ -102,7 +102,7 @@ export function ProblemSection() {
 
       <div className="relative mx-auto max-w-5xl">
         <FadeIn className="text-center mb-14">
-          <div className="inline-flex items-center gap-2 rounded-full border border-red-900/60 bg-red-950/40 px-4 py-1.5 mb-5">
+          <div className="glue-pill mb-5" style={{borderColor:"rgba(239,68,68,0.3)",background:"rgba(239,68,68,0.08)",color:"#f87171"}}>
             <AlertTriangle className="h-3.5 w-3.5 text-red-400" />
             <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-red-400">
               The Problem
@@ -223,7 +223,7 @@ export function HowItWorksSection() {
       />
       <div className="relative mx-auto max-w-5xl">
         <FadeIn className="text-center mb-14">
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/8 px-4 py-1.5 mb-5">
+          <div className="glue-pill mb-5" style={{borderColor:"rgba(59,130,246,0.2)",background:"rgba(59,130,246,0.08)",color:"#60a5fa"}}>
             <CheckCircle2 className="h-3.5 w-3.5 text-blue-400" />
             <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-blue-400">
               How It Works
@@ -315,7 +315,7 @@ export function TractionSection() {
     <section className="relative px-6 py-24" style={{ background: '#080e1a' }}>
       <div className="mx-auto max-w-5xl">
         <FadeIn className="text-center mb-14">
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/8 px-4 py-1.5 mb-5">
+          <div className="glue-pill mb-5" style={{borderColor:"rgba(16,185,129,0.2)",background:"rgba(16,185,129,0.08)",color:"#34d399"}}>
             <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
             <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-emerald-400">
               The Opportunity
@@ -385,20 +385,14 @@ export function TractionSection() {
 
         {/* CTA */}
         <FadeIn delay={0.4} className="text-center mt-12">
-          <p className="text-white/30 mb-5 text-sm">
+          <p className="glue-body text-sm mb-5">
             See the product working in real time.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <Link
-              href="/demo"
-              className="inline-flex items-center gap-2 rounded-2xl bg-emerald-500 hover:bg-emerald-400 px-7 py-3.5 text-sm font-bold text-black transition-colors"
-            >
+            <Link href="/demo" className="glue-btn glue-btn-primary">
               Live demo <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link
-              href="/employers"
-              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 hover:border-white/20 px-7 py-3.5 text-sm font-semibold text-white/60 hover:text-white transition-all"
-            >
+            <Link href="/employers" className="glue-btn glue-btn-secondary">
               For employers
             </Link>
           </div>
@@ -445,7 +439,7 @@ export function WhyNowSection() {
 
       <div className="relative mx-auto max-w-5xl">
         <FadeIn className="text-center mb-14">
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 mb-5">
+          <div className="glue-pill mb-5" style={{borderColor:"rgba(245,158,11,0.3)",background:"rgba(245,158,11,0.08)",color:"#fbbf24"}}>
             <Zap className="h-3.5 w-3.5 text-amber-400" />
             <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-amber-400">
               Why Now
@@ -511,7 +505,7 @@ export function MoneballSection() {
 
         {/* Label */}
         <FadeIn className="mb-14">
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/8 px-4 py-1.5 mb-6">
+          <div className="glue-pill mb-6" style={{borderColor:"rgba(245,158,11,0.2)",background:"rgba(245,158,11,0.08)",color:"#fbbf24"}}>
             <TrendingUp className="h-3.5 w-3.5 text-amber-400" />
             <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-amber-400">
               The Hypothesis
@@ -743,7 +737,7 @@ export function PlatformVisionSection() {
 
         {/* Header */}
         <FadeIn className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/8 px-4 py-1.5 mb-6">
+          <div className="glue-pill mb-6" style={{borderColor:"rgba(139,92,246,0.2)",background:"rgba(139,92,246,0.08)",color:"#a78bfa"}}>
             <Globe className="h-3.5 w-3.5 text-violet-400" />
             <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-violet-400">
               The Platform
