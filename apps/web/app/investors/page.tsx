@@ -180,11 +180,59 @@ export default function InvestorsPage() {
         </div>
       </section>
 
+      {/* Founder */}
+      <section className="py-20 px-6 bg-white border-t border-slate-100">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-400 mb-8">The Builder</p>
+          <blockquote className="text-xl md:text-2xl font-medium text-slate-800 leading-relaxed mb-8">
+            &ldquo;I watched a brilliant physician wait 11 weeks to start a locums contract — 
+            not because of anything she did wrong, but because the system had no memory. 
+            Her credentials existed. The verification had been done. 
+            Nobody had a way to prove it. VitalCV fixes that permanently.&rdquo;
+          </blockquote>
+          <div className="flex items-center justify-center gap-3">
+            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-lg">
+              C
+            </div>
+            <div className="text-left">
+              <p className="font-semibold text-slate-900">Christopher Toler</p>
+              <p className="text-sm text-slate-500">Founder &amp; CEO, VitalCV</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Roadmap strip */}
+      <section className="py-16 px-6 bg-slate-900">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-center text-[11px] font-bold uppercase tracking-[0.25em] text-slate-400 mb-10">What&apos;s Next</p>
+          <div className="grid sm:grid-cols-4 gap-6 text-center">
+            {[
+              { phase: 'Now', label: 'MVP Live', desc: 'Two-sided marketplace, live NPI verification, cryptographic credentials', done: true },
+              { phase: 'Q2 2026', label: 'Pilot Hospitals', desc: '3–5 health systems onboarded, measurable time-to-start reduction', done: false },
+              { phase: 'Q3 2026', label: 'Mobile App', desc: 'React Native clinician passport — credentials on your phone at every desk', done: false },
+              { phase: 'Q4 2026', label: 'Series A', desc: '$8M to scale sales, compliance, and federation network', done: false },
+            ].map((item) => (
+              <div key={item.phase} className="rounded-xl border border-slate-700 bg-slate-800/50 p-5">
+                <div className={`text-xs font-bold uppercase tracking-widest mb-2 ${item.done ? 'text-emerald-400' : 'text-slate-400'}`}>
+                  {item.phase} {item.done && '✓'}
+                </div>
+                <p className="text-white font-semibold mb-2">{item.label}</p>
+                <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Contact Form */}
       <section id="contact" className="py-20 px-6">
         <div className="max-w-xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-slate-900 mb-2">Get in Touch</h2>
-          <p className="text-slate-400 text-center mb-8">Interested in participating in our seed round? Let&apos;s talk.</p>
+          <h2 className="text-3xl font-bold text-center text-slate-900 mb-2">Let&apos;s Talk</h2>
+          <p className="text-slate-400 text-center mb-8">
+            I&apos;m Christopher, the founder. If you&apos;re interested in what we&apos;re building — 
+            whether as an investor, pilot partner, or advisor — I respond personally.
+          </p>
           {submitted ? (
             <div className="text-center py-12">
               <div className="text-4xl mb-4">✅</div>

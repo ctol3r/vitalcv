@@ -11,6 +11,7 @@ import {
   MapPin, DollarSign, Users, ShieldCheck,
   Zap, Building2, ChevronRight, X, Filter, Loader2,
 } from 'lucide-react';
+import ApplyModal from './ApplyModal';
 
 /* ── API shape ───────────────────────────────────────────────── */
 
@@ -77,6 +78,7 @@ export default function ExploreClient() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isSeeded, setIsSeeded] = useState(false);
+  const [applyTarget, setApplyTarget] = useState<ApiOpportunity | null>(null);
 
   const fetchOpportunities = useCallback(async () => {
     setLoading(true);
@@ -192,7 +194,9 @@ export default function ExploreClient() {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {opportunities.map(opp => <OpportunityCard key={opp.id} opp={opp} />)}
+          {opportunities.map(opp => (
+            <OpportunityCard key={opp.id} opp={opp} onApply={() => setApplyTarget(opp)} />
+          ))}
         </div>
       )}
 
@@ -208,13 +212,28 @@ export default function ExploreClient() {
           Check My Readiness
         </Link>
       </div>
+
+      {/* Apply Modal */}
+      {applyTarget && (
+        <ApplyModal
+          opportunity={{
+            id: applyTarget.id,
+            title: applyTarget.title,
+            specialty: applyTarget.specialty,
+            hiringType: applyTarget.hiringType,
+            state: applyTarget.state,
+            organizationName: applyTarget.organizationName,
+          }}
+          onClose={() => setApplyTarget(null)}
+        />
+      )}
     </main>
   );
 }
 
 /* ── Opportunity Card ────────────────────────────────────────── */
 
-function OpportunityCard({ opp }: { opp: ApiOpportunity }) {
+function OpportunityCard({ opp, onApply }: { opp: ApiOpportunity; onApply: () => void }) {
   const levelColor = LEVEL_COLORS[opp.requirementLevel] ?? LEVEL_COLORS.L1;
   const isSeeded = opp.id.startsWith('s-');
 
@@ -275,12 +294,12 @@ function OpportunityCard({ opp }: { opp: ApiOpportunity }) {
 
       {/* CTAs */}
       <div className="flex gap-2 mt-auto pt-3 border-t border-white/5">
-        <Link
-          href={isSeeded ? '/get-ready' : `/opportunities/${opp.id}`}
+        <button
+          onClick={isSeeded ? () => window.location.href = '/get-ready' : onApply}
           className="flex-1 flex items-center justify-center gap-1 px-4 py-2.5 rounded-xl bg-vt-success text-black text-sm font-semibold hover:bg-vt-success/90 transition-colors"
         >
           Apply with VitalCV <ChevronRight className="w-4 h-4" />
-        </Link>
+        </button>
         {!isSeeded && (
           <Link
             href={`/employers/${opp.organizationId}`}
