@@ -1,110 +1,140 @@
 # ROADMAP.md — VitalCV Strategic Sequence
-_Last updated: 2026-03-12. Current wave: 233._
+_Last updated: 2026-03-12 14:50 PDT. Current wave: 238 (in progress)._
 
 **Sequencing principle:** Each phase must create standalone value AND compound the next phase.
+**Priority filter:** time-to-start compression > trust-state durability > verifier confidence > buyer proof > aesthetic.
 
 ---
 
-## Current State (Wave 233)
+## Current State (Wave 238)
 
-✅ Clinical identity via NPI  
-✅ PSV pipeline (Nursys, BreEZe, FSMB, NPPES live)  
-✅ SD-JWT VC credentials + OID4VCI/VP  
-✅ Trust Passport at `/p/:npi`  
-✅ Free job board — employers post, clinicians browse  
-✅ Apply with VitalCV (Wave 229 — ApplyModal)  
-✅ Knowledge graph (filterable — Wave 232)  
-✅ MATCHA service (built, not front-and-center)  
-✅ Audit ledger, revocation, continuous monitoring  
-✅ Homepage: Moneyball thesis + 5 pillars + antigravity design  
-🔶 Verifier inbox: seeded data only  
-🔶 MATCHA: not connected to live opportunities  
-❌ Clinic capacity model  
-❌ Mobile app  
-❌ PubMed / ABMS / full identity enrichment  
-❌ Specialty job board aggregation  
+✅ Clinical identity via NPI
+✅ PSV pipeline (Nursys, BreEZe, FSMB, NPPES live)
+✅ SD-JWT VC credentials + OID4VCI/VP
+✅ Trust Passport at `/p/:npi`
+✅ Free job board — employers post, clinicians browse
+✅ Apply with VitalCV (Wave 229 — ApplyModal, real DB)
+✅ Knowledge graph (filterable — Wave 232)
+✅ MATCHA engine (built, sophisticated scoring — Wave 187)
+✅ Audit ledger, revocation, continuous monitoring
+✅ Homepage: Moneyball thesis + 5 pillars + antigravity design (Wave 230-233)
+✅ Google Sans Flex + antigravity design system (Wave 235-236)
+✅ Document Intelligence — drop credential, AI parses it (Wave 237)
+✅ Live verifier inbox — real applications from DB (Wave 234)
+🔄 Wave 237 hardening — durable storage, audit, tests (in progress)
+🔄 Wave 238 — credential onboarding: parse → review → ingest → PSV (in progress)
+🔶 MATCHA: not connected to live opportunity DB
+❌ Clinic capacity model
+❌ Mobile app
+❌ PubMed / ABMS / full identity enrichment
+❌ Specialty job board aggregation
 
 ---
 
-## Phase 1 — Close the Loop (NOW, pre-YC)
-_Goal: Every core user flow works end-to-end. Demo is airtight._
+## What Changed Since Last Update
 
-| Wave | What | Why |
+| Wave | Planned | Actual |
 |---|---|---|
-| **234** | Live verifier inbox — real applications from DB | Closes the marketplace loop completely |
-| **235** | MATCHA connected to live opportunities — readiness score on explore page | Shows AI layer is real, not a demo |
-| **236** | Capacity score MVP — "You can start X more physicians this month" | First instance of the enterprise metric |
+| 234 | Live verifier inbox | ✅ Done — real applications from DB |
+| 235-236 | MATCHA connection | ⏭ Deferred — built antigravity design system instead (YC visual) |
+| 237 | OIG/LEIE integration (roadmap) | ⏭ Pivoted — built Document Intelligence (Qomplement-style parser) instead |
+| 238 | NPDB completion (roadmap) | ⏭ Pivoted — building credential onboarding flow (parse → ingest → PSV) |
+
+**Why the pivot:** Document Intelligence is higher leverage than individual source integrations because it:
+1. Enables ANY credential type to be ingested (not just one source at a time)
+2. Creates the upload → verify loop that makes the product feel real
+3. Feeds CandidateCredential records into the system, which MATCHA and capacity need
+4. Is the user-facing "wow" moment missing from the demo
 
 ---
 
-## Phase 2 — Identity Depth (Q2 2026)
-_Goal: Clinical identity graph becomes genuinely rich and differentiated._
+## Phase 1 — Close the Loop (NOW, pre-YC) — REVISED
 
-| Wave | What | Why |
-|---|---|---|
-| **237** | OIG/LEIE integration (public dataset, easy) | PSV completeness, safety signal for employers |
-| **238** | NPDB completion — full malpractice check | Employers care most about this |
-| **239** | PubMed researcher profile — publications on Trust Passport | Differentiates VitalCV from any other platform |
-| **240** | ABMS board certification integration | The credential employers care about most |
-| **241** | All 50 state boards via PSV adapter framework | True national coverage |
+| Wave | What | Status | Why |
+|---|---|---|---|
+| **234** | Live verifier inbox | ✅ Done | Marketplace loop closed |
+| **237** | Document Intelligence (parse/extract/verify) | ✅ Done | Credential ingestion — the missing input |
+| **237h** | Harden: durable storage, audit, file validation | 🔄 Building | Trust-state durability |
+| **238** | Credential onboarding: parse → review → ingest → PSV trigger | 🔄 Building | End-to-end credential flow |
+| **239** | MATCHA → live opportunities (replace mock data) | ⏳ Next | Intelligence layer activation |
+| **240** | Capacity score MVP | ⏳ After 239 | Enterprise wedge (only if real data feeds it) |
+
+**Gate for 239:** MATCHA only goes live when real `Opportunity` + `Application` + `CandidateCredential` records feed it. No mock data in production intelligence.
+
+**Gate for 240:** Capacity score only ships when real application + start data exists. It must compute from actual records, not seed data.
 
 ---
 
-## Phase 3 — Intelligence Layer (Q2–Q3 2026)
-_Goal: MATCHA becomes the career engine, not just a matching widget._
+## Phase 2 — Identity Depth (Q2 2026) — RE-RANKED by leverage
 
-| Wave | What | Why |
+| Priority | Wave | What | Why |
+|---|---|---|---|
+| 1 | **241** | OIG/LEIE exclusion check (public dataset) | Safety signal — employers ask for this first |
+| 2 | **242** | NPDB malpractice check | Second most-asked employer question |
+| 3 | **243** | ABMS board certification API | The credential that matters most |
+| 4 | **244** | PubMed publications on Trust Passport | Differentiator for academic clinicians |
+| 5 | **245** | All 50 state boards via PSV adapter framework | National coverage claim |
+
+---
+
+## Phase 3 — Intelligence Layer (Q2-Q3 2026)
+
+| Wave | What | Depends On |
 |---|---|---|
-| **242** | MATCHA v2 — credential gap analysis + career path modeling | "You're 6 months from being eligible for these 14 roles" |
-| **243** | Specialty job board aggregation — auto-pull from ASCO, ACEP, AMA, etc. | The Sutter model automated |
-| **244** | Ask VitalCV — AI career Q&A (enable flag, polish UI) | Natural language over the knowledge base |
-| **245** | Employer capacity dashboard — starts-per-quarter, credentialing velocity | Enterprise sales wedge |
+| **246** | MATCHA v2 — credential gap analysis | Phase 2 sources live |
+| **247** | Specialty job board aggregation | Job board data pipeline |
+| **248** | Ask VitalCV (enable flag, polish UI) | Knowledge graph populated |
+| **249** | Employer capacity dashboard | Application + start data real |
 
 ---
 
 ## Phase 4 — Mobile (Q3 2026)
-_Goal: Trust Passport lives on the clinician's phone._
 
-| Wave | What | Why |
-|---|---|---|
-| **250** | React Native / Expo app scaffold | Foundation |
-| **251** | Clinician passport + credential viewer | Core mobile use case |
-| **252** | Apply from mobile + push notifications | Marketplace on mobile |
-| **253** | NFC / QR credential share | Physical world interaction |
-| **254** | Apple / Google Wallet deep integration | Credential at hospital check-in |
-
----
-
-## Phase 5 — Network & Distribution (Q3–Q4 2026)
-_Goal: VitalCV becomes unavoidable to medical organizations._
-
-| Wave | What | Why |
-|---|---|---|
-| **260** | Doximity partnership integration | 80% of US physicians |
-| **261** | Hospital EHR bridge (Epic, Cerner webhook) | Credentialing starts inside the workflow |
-| **262** | Government agency integration (CMS, TEFCA) | Regulatory legitimacy |
-| **263** | Credentialing body white-label SDK | MSOs and CVOs become distribution |
-| **264** | Open API + developer portal launch | Ecosystem moat |
+| Wave | What |
+|---|---|
+| **250** | React Native / Expo scaffold |
+| **251** | Passport + credential viewer |
+| **252** | Apply from mobile + push |
+| **253** | NFC / QR credential share |
+| **254** | Apple / Google Wallet deep integration |
 
 ---
 
-## Phase 6 — Category Definition (2027)
-_Goal: PSV anchored on blockchain becomes the regulatory standard._
+## Phase 5 — Network & Distribution (Q3-Q4 2026)
 
-- Blockchain PSV anchor: verifiable once, trusted everywhere, by anyone
-- TEFCA QHIN integration: VitalCV as a trust node in the national health information network
-- International expansion: Canada, UK, Australia (common-law medical credential frameworks)
-- Series A: $8M → sales, compliance, federation network
+| Wave | What |
+|---|---|
+| **260** | Doximity partnership integration |
+| **261** | Hospital EHR bridge (Epic, Cerner) |
+| **262** | Government agency integration (CMS, TEFCA) |
+| **263** | Credentialing body white-label SDK |
+| **264** | Open API + developer portal launch |
 
 ---
 
 ## Decision Rule for Wave Selection
 
 Before choosing the next wave, answer:
-1. Does it reduce time-to-start?
-2. Does it improve demo quality?
+1. Does it reduce time-to-start for a real clinician?
+2. Does it create durable trust-state records (not just UI)?
 3. Does it close an open loop (broken flow, seeded data, disconnected layer)?
-4. Does it compound a future phase?
-5. Is there a smaller version that gets 80% of the value in 20% of the time?
+4. Is real data feeding the experience? (No mock data in production intelligence.)
+5. Does it improve verifier confidence or buyer proof?
+6. Is there a smaller version that gets 80% of the value in 20% of the time?
 
-If none of the above — it's not the next wave.
+If none of the above — it's not the next wave. Aesthetic work only justified when substance is solid.
+
+---
+
+## Known Weaknesses (updated)
+
+| Weakness | Impact | Status |
+|---|---|---|
+| ~~Verifier inbox uses seeded data~~ | ~~Breaks marketplace loop~~ | ✅ Fixed (Wave 234) |
+| ~~No credential upload flow~~ | ~~System has no inputs~~ | ✅ Fixed (Wave 237) |
+| Document store is in-memory | Data lost on restart | 🔄 Fixing (Wave 237h) |
+| MATCHA uses mock data | Intelligence layer is fake | ⏳ Wave 239 |
+| Clinical identity is NPI-only | Graph is thin | Phase 2 |
+| Capacity modeling doesn't exist | Missing enterprise wedge | Wave 240 (gated) |
+| Mobile app not built | "Not portable" | Phase 4 |
+| Ask VitalCV flag-gated | AI layer invisible | Phase 3 |

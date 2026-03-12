@@ -80,7 +80,8 @@ _Last updated: 2026-03-12._
 | Explore opportunities | `/explore` | ✅ Live |
 | Apply modal (Wave 229) | Within `/explore` | ✅ Live |
 | Verifier home | `/verifier/home` | ✅ Live |
-| Verifier inbox (seeded) | `/verifier/inbox` | 🔶 Not live data |
+| Verifier inbox (live) | `/verifier/inbox` | ✅ Live (Wave 234) |
+| Document Intelligence | `/documents` | ✅ Live (Wave 237) |
 | Employer onboarding | `/verifier/company` | ✅ Built |
 | Post opportunity | `/verifier/home` | ✅ Built |
 | Prequalify flow | Modal (Wave 182) | ✅ Built |
@@ -137,12 +138,14 @@ _Last updated: 2026-03-12._
 
 ## Known Weaknesses (as of 2026-03-12)
 
-| Weakness | Impact | Priority |
-|---|---|---|
-| Verifier inbox uses seeded data | Breaks marketplace loop | HIGH |
-| Clinical identity is NPI-only | Graph is thin | MEDIUM |
-| MATCHA not connected to live opportunities | Intelligence layer disconnected | HIGH |
-| Capacity modeling doesn't exist | Missing enterprise wedge | HIGH |
-| PubMed / Doximity not integrated | Identity graph incomplete | MEDIUM |
-| Mobile app not built | "Not portable" — founder's words | HIGH |
-| Ask VitalCV flag-gated | AI layer invisible | MEDIUM |
+| Weakness | Impact | Priority | Status |
+|---|---|---|---|
+| ~~Verifier inbox seeded~~ | ~~Marketplace broken~~ | ~~HIGH~~ | ✅ Fixed Wave 234 |
+| ~~No credential upload~~ | ~~No inputs to system~~ | ~~HIGH~~ | ✅ Fixed Wave 237 |
+| Document store in-memory | Data lost on restart | HIGH | 🔄 Wave 237h |
+| MATCHA uses mock data | Intelligence layer fake | HIGH | ⏳ Wave 239 |
+| Clinical identity NPI-only | Graph is thin | MEDIUM | Phase 2 |
+| Capacity modeling missing | No enterprise wedge | HIGH | Wave 240 (gated) |
+| PubMed / Doximity missing | Identity graph incomplete | MEDIUM | Phase 2 |
+| Mobile app not built | "Not portable" | HIGH | Phase 4 |
+| Ask VitalCV flag-gated | AI layer invisible | MEDIUM | Phase 3 |
