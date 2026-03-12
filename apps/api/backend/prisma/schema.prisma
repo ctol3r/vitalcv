@@ -337,6 +337,28 @@ model Organization {
   updatedAt     DateTime @updatedAt
   organizationProfile OrganizationProfile?
   activeWorkspacePreferences WorkspacePreference[] @relation("WorkspacePreferenceActiveOrganization")
+  opportunities Opportunity[]
+}
+
+model Opportunity {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @db.Uuid @map("organization_id")
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title           String
+  specialty       String
+  hiringType      String   @map("hiring_type")   // locums | perm | telehealth | contract
+  state           String
+  payRange        String?  @map("pay_range")
+  requirementLevel String  @default("L1") @map("requirement_level") // L1 | L2 | L3
+  description     String?
+  remote          Boolean  @default(false)
+  status          String   @default("ACTIVE")    // ACTIVE | PAUSED | CLOSED
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([organizationId])
+  @@index([specialty, state])
+  @@index([status])
 }
 
 /// NPI classification
