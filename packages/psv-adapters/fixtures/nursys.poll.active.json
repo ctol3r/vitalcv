@@ -1,0 +1,15 @@
+{
+  "nextCursor": "cursor-002",
+  "events": [
+    {
+      "eventId": "evt-1",
+      "npi": "1234567893",
+      "licenseNumber": "RN987654",
+      "state": "CA",
+      "eventType": "LICENSE_UPDATED",
+      "licenseStatus": "ACTIVE",
+      "expirationDate": "2027-06-30T00:00:00.000Z",
+      "eventTimestamp": "2026-03-12T18:00:00.000Z"
+    }
+  ]
+}

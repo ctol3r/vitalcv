@@ -32,6 +32,7 @@
     "@types/multer": "^2.1.0",
     "@vitalcv/command-registry": "workspace:*",
     "@vitalcv/poe-engine": "workspace:*",
+    "@vitalcv/psv-adapters": "workspace:*",
     "apollo-server": "^3.13.0",
     "apollo-server-express": "^3.12.2",
     "archiver": "^7.0.1",

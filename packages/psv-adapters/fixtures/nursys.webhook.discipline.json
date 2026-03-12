@@ -1,0 +1,12 @@
+{
+  "event": {
+    "id": "evt-discipline-1",
+    "npi": "1234567893",
+    "licenseNumber": "RN987654",
+    "state": "CA",
+    "eventType": "DISCIPLINE_ADDED",
+    "status": "ACTIVE",
+    "discipline": ["Probation"],
+    "updatedAt": "2026-03-12T19:00:00.000Z"
+  }
+}

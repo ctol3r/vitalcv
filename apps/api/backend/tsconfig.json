@@ -14,6 +14,8 @@
       "@vitalcv/domain-common": ["packages/domain-common/src"],
       "@vitalcv/psv": ["packages/psv"],
       "@vitalcv/psv/*": ["packages/psv/*"],
+      "@vitalcv/psv-adapters": ["packages/psv-adapters"],
+      "@vitalcv/psv-adapters/*": ["packages/psv-adapters/*"],
       "@vitalcv/crs": ["packages/crs"],
       "@vitalcv/crs/*": ["packages/crs/*"],
       "@vitalcv/trust-state/*": ["packages/trust-state/*"],
