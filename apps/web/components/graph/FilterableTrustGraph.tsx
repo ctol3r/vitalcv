@@ -148,7 +148,7 @@ export function FilterableTrustGraph({
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Search nodes…"
-              className="w-full rounded-xl border border-white/8 bg-white/4 pl-9 pr-4 py-2 text-sm text-white/80 placeholder:text-white/20 focus:outline-none focus:border-white/20 focus:bg-white/6 transition"
+              className="glue-input pl-9 pr-4 py-2 text-sm"
             />
             {query && (
               <button

@@ -127,7 +127,7 @@ export default function ApplyModal({ opportunity, onClose }: Props) {
                 </p>
                 <button
                   onClick={onClose}
-                  className="w-full rounded-xl bg-zinc-900 text-white font-semibold py-3 hover:bg-zinc-800 transition-colors"
+                  className="glue-btn glue-btn-primary w-full justify-center"
                 >
                   Done
                 </button>
@@ -145,7 +145,7 @@ export default function ApplyModal({ opportunity, onClose }: Props) {
                     placeholder="10-digit NPI"
                     maxLength={10}
                     required
-                    className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition"
+                    className="glue-input glue-input--emerald font-mono"
                   />
                   <p className="text-xs text-zinc-400 mt-1">Your credentials will be verified automatically via NPPES.</p>
                 </div>
@@ -159,7 +159,7 @@ export default function ApplyModal({ opportunity, onClose }: Props) {
                     onChange={e => setCoverNote(e.target.value)}
                     rows={3}
                     placeholder="Briefly introduce yourself or highlight relevant experience…"
-                    className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition resize-none"
+                    className="glue-input glue-input--emerald resize-none"
                   />
                 </div>
 
@@ -172,7 +172,7 @@ export default function ApplyModal({ opportunity, onClose }: Props) {
                 <button
                   type="submit"
                   disabled={phase === 'submitting' || npi.length < 10}
-                  className="w-full rounded-xl bg-zinc-900 text-white font-semibold py-3 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  className="glue-btn glue-btn-primary w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {phase === 'submitting' ? (
                     <>
