@@ -1,0 +1,30 @@
+{
+  "result_count": 1,
+  "results": [
+    {
+      "number": 1234567893,
+      "enumeration_type": "NPI-1",
+      "basic": {
+        "first_name": "JANE",
+        "last_name": "DOE",
+        "status": "A"
+      },
+      "taxonomies": [
+        {
+          "code": "363LF0000X",
+          "desc": "Family Nurse Practitioner"
+        }
+      ],
+      "addresses": [
+        {
+          "address_purpose": "LOCATION",
+          "state": "CA"
+        },
+        {
+          "address_purpose": "MAILING",
+          "state": "NV"
+        }
+      ]
+    }
+  ]
+}

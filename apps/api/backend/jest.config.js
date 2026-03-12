@@ -16,6 +16,10 @@ module.exports = {
   transformIgnorePatterns: [
     '<rootDir>/.*node_modules/(?!.*jose)',
   ],
+  moduleNameMapper: {
+    '^@vitalcv/psv-adapters$': '<rootDir>/../../../packages/psv-adapters/index.ts',
+    '^@vitalcv/psv-adapters/(.*)$': '<rootDir>/../../../packages/psv-adapters/$1',
+  },
   transform: {
     '\\.m?[jt]sx?$': ['ts-jest', {
       tsconfig: {
