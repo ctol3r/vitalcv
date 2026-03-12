@@ -1,21 +1,21 @@
 /**
- * Wave 187 — MATCHA Refoundation: Routes
+ * Wave 239 — MATCHA Live Connection: Routes
  *
- * GET  /api/matcha/opportunities/:npi       — matched opportunities for a clinician
- * POST /api/matcha/explain                  — explain a specific match
- * POST /api/matcha/intent                   — save / update candidate intent
- * GET  /api/matcha/instant-offer/:npi/:id   — check instant offer eligibility
+ * GET  /api/matcha/opportunities/:npi       — matched opportunities (LIVE via liveMatchaService)
+ * POST /api/matcha/explain                  — explain a specific match (LIVE via liveMatchaService)
+ * POST /api/matcha/intent                   — save / update candidate intent (in-memory, TODO: migrate to DB)
+ * GET  /api/matcha/instant-offer/:npi/:id   — check instant offer eligibility (TODO: migrate to live)
  * GET  /api/matcha/analytics                — aggregate analytics (operator)
  */
 
 import type { Express, Request, Response } from 'express';
-import { matchOpportunities, scoreOpportunity, buildDecisionAudit, checkInstantOfferEligibility } from '../services/matcha/matchaEngine';
+import { scoreOpportunity, buildDecisionAudit, checkInstantOfferEligibility } from '../services/matcha/matchaEngine';
 import { getMockProfile } from '../services/matcha/mockData';
-import { OPPORTUNITIES, getOpportunity, listOpportunities } from '../services/matcha/opportunityRegistry';
+import { OPPORTUNITIES, getOpportunity } from '../services/matcha/opportunityRegistry';
+import { getLiveMatchesForNpi, scoreOpportunityForNpi } from '../services/matcha/liveMatchaService';
 import type { CandidateIntent } from '../services/matcha/matchaModels';
-import { getEmployerBySlug } from '../services/employers/employerService';
 
-// In-memory intent store — Wave 190 migrates to DB
+// In-memory intent store — TODO: Wave 190+ migrate to DB
 const intentStore = new Map<string, CandidateIntent>();
 
 // In-memory decision audit log
@@ -25,8 +25,8 @@ export function registerMatchaRoutes(app: Express): void {
 
   /**
    * GET /api/matcha/opportunities/:npi
-   * Returns ranked matched opportunities for a clinician.
-   * Query: specialty, state, hiringType, remote
+   * Returns ranked matched opportunities for a clinician via live DB + NPPES.
+   * Query: specialty, state, hiringType
    */
   app.get('/api/matcha/opportunities/:npi', async (req: Request, res: Response) => {
     try {
@@ -36,66 +36,21 @@ export function registerMatchaRoutes(app: Express): void {
         return;
       }
 
-      const clinician = getMockProfile(npi);
-      const intent = intentStore.get(npi) ?? null;
-
-      const { specialty, state, hiringType, remote } = req.query;
-      const filtered = listOpportunities({
+      const { specialty, state, hiringType } = req.query;
+      const filters = {
         specialty: specialty as string | undefined,
         state: state as string | undefined,
         hiringType: hiringType as string | undefined,
-        remote: remote === 'true' ? true : remote === 'false' ? false : undefined,
-      });
+      };
 
-      const matches = matchOpportunities(clinician, intent, filtered);
-
-      for (const match of matches) {
-        decisionLog.push(buildDecisionAudit(npi, match.opportunity, match.explanation));
-      }
-
-      const opportunities = await Promise.all(matches.map(async (match) => {
-        const employer = await getEmployerBySlug(match.opportunity.employerSlug);
-        return {
-          ...match.opportunity,
-          employerSlug: match.opportunity.employerSlug,
-          employer: employer
-            ? {
-              slug: employer.slug,
-              name: employer.name,
-              trustScore: employer.trustScore,
-              hiringStatus: employer.hiringStatus,
-              timeToStart: employer.timeToStart,
-            }
-            : {
-              slug: match.opportunity.employerSlug,
-              name: match.opportunity.facility,
-            },
-          askContext: {
-            employerSlug: match.opportunity.employerSlug,
-            employerName: employer?.name ?? match.opportunity.facility,
-            opportunityId: match.opportunity.id,
-          },
-          matchScore: match.explanation.matchScore,
-          matchBand: match.explanation.matchBand,
-          confidence: match.explanation.confidence,
-          instantOfferEligible: match.explanation.instantOfferEligible,
-          blockerCount: match.explanation.blockers.length,
-          fitSummary: match.explanation.fitReasons.filter((reason) => reason.positive).slice(0, 3).map((reason) => reason.label),
-          topBlocker: match.explanation.blockers[0]?.label ?? null,
-        };
-      }));
+      const result = await getLiveMatchesForNpi(npi, filters);
 
       res.json({
-        npi,
-        clinician: { name: clinician.name, specialty: clinician.specialty },
-        totalOpportunities: matches.length,
-        clearToStart: matches.filter((match) => match.explanation.matchBand === 'CLEAR').length,
-        nearClear: matches.filter((match) => match.explanation.matchBand === 'NEAR_CLEAR').length,
-        instantOfferEligible: matches.filter((match) => match.explanation.instantOfferEligible).length,
-        opportunities,
+        ...result,
         generatedAt: new Date().toISOString(),
       });
     } catch (error) {
+      console.error('[MATCHA] getLiveMatchesForNpi failed:', error);
       res.status(500).json({
         error: 'Failed to load MATCHA opportunities',
         detail: error instanceof Error ? error.message : String(error),
@@ -106,39 +61,36 @@ export function registerMatchaRoutes(app: Express): void {
   /**
    * POST /api/matcha/explain
    * Body: { npi, opportunityId }
-   * Returns full MatchExplanation for a specific opportunity.
+   * Returns MatchExplanation for a specific opportunity using live scoring.
    */
-  app.post('/api/matcha/explain', (req: Request, res: Response) => {
+  app.post('/api/matcha/explain', async (req: Request, res: Response) => {
     const { npi, opportunityId } = req.body ?? {};
     if (!npi || !opportunityId) {
       res.status(400).json({ error: 'npi and opportunityId required' });
       return;
     }
 
-    const clinician = getMockProfile(npi);
-    const intent = intentStore.get(npi) ?? null;
-    const opp = getOpportunity(opportunityId);
-    if (!opp) {
-      res.status(404).json({ error: 'Opportunity not found' });
-      return;
+    try {
+      const result = await scoreOpportunityForNpi(npi, opportunityId);
+      if (!result) {
+        res.status(404).json({ error: 'Opportunity not found' });
+        return;
+      }
+      res.json(result);
+    } catch (error) {
+      console.error('[MATCHA] scoreOpportunityForNpi failed:', error);
+      res.status(500).json({
+        error: 'Failed to score opportunity',
+        detail: error instanceof Error ? error.message : String(error),
+      });
     }
-
-    const explanation = scoreOpportunity(clinician, intent, opp);
-    const audit = buildDecisionAudit(npi, opp, explanation);
-    decisionLog.push(audit);
-
-    res.json({
-      npi,
-      opportunity: opp,
-      explanation,
-      auditRef: audit.decisionId,
-    });
   });
 
   /**
    * POST /api/matcha/intent
    * Body: CandidateIntent
    * Saves / updates a clinician's job search preferences.
+   * TODO: migrate to DB
    */
   app.post('/api/matcha/intent', (req: Request, res: Response) => {
     const body = req.body ?? {};
@@ -168,7 +120,8 @@ export function registerMatchaRoutes(app: Express): void {
 
   /**
    * GET /api/matcha/instant-offer/:npi/:opportunityId
-   * Returns instant offer eligibility for a specific opportunity.
+   * Returns instant offer eligibility.
+   * TODO: migrate to liveMatchaService for real DB lookups
    */
   app.get('/api/matcha/instant-offer/:npi/:opportunityId', (req: Request, res: Response) => {
     const { npi, opportunityId } = req.params;
