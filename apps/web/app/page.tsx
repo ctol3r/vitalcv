@@ -16,7 +16,7 @@ export default function HomePage() {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
 
   return (
-    <div style={{ background: '#060609' }} className="min-h-screen">
+    <div style={{ background: '#080e1a' }} className="min-h-screen">
       {/* Hero — Void black, floating credentials, massive type */}
       <LiveTrustConsole />
 
@@ -32,7 +32,7 @@ export default function HomePage() {
       <TractionSection />
 
       {/* Trust Network Graph */}
-      <section className="px-6 py-20" style={{ background: '#060609' }}>
+      <section className="px-6 py-20" style={{ background: '#080e1a' }}>
         <div className="mx-auto max-w-5xl">
           <SectionReveal>
             <div className="text-center mb-10">
@@ -56,7 +56,7 @@ export default function HomePage() {
       </section>
 
       {/* Global Trust Map */}
-      <section className="px-6 py-20" style={{ background: '#080b0e' }}>
+      <section className="px-6 py-20" style={{ background: '#07101e' }}>
         <div className="mx-auto max-w-5xl">
           <SectionReveal>
             <div className="text-center mb-10">
@@ -76,7 +76,7 @@ export default function HomePage() {
       </section>
 
       {/* Entry paths — Who are you? */}
-      <section className="px-6 py-20" style={{ background: '#060609' }}>
+      <section className="px-6 py-20" style={{ background: '#080e1a' }}>
         <div className="mx-auto max-w-4xl">
           <SectionReveal>
             <div className="text-center mb-10">
@@ -129,7 +129,7 @@ export default function HomePage() {
       </section>
 
       {/* Bento Grid */}
-      <div style={{ background: '#060609' }}>
+      <div style={{ background: '#080e1a' }}>
         <SectionReveal>
           <BentoGrid />
         </SectionReveal>
@@ -142,7 +142,7 @@ export default function HomePage() {
       />
 
       {/* Footer */}
-      <div className="px-6" style={{ background: '#060609' }}>
+      <div className="px-6" style={{ background: '#080e1a' }}>
         <Footer />
       </div>
     </div>

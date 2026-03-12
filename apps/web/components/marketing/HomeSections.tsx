@@ -88,7 +88,7 @@ const PAIN_STATS = [
 
 export function ProblemSection() {
   return (
-    <section className="relative px-6 py-24 overflow-hidden" style={{ background: '#060609' }}>
+    <section className="relative px-6 py-24 overflow-hidden" style={{ background: '#080e1a' }}>
       {/* Subtle noise texture */}
       <div
         aria-hidden
@@ -109,14 +109,14 @@ export function ProblemSection() {
             </span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
-            Healthcare credentialing is{' '}
-            <span className="text-red-400">fundamentally broken.</span>
+            Every hospital reverifies you{' '}
+            <span className="text-red-400">from scratch. Every time.</span>
           </h2>
-          <p className="mt-4 text-zinc-400 max-w-2xl mx-auto text-lg leading-relaxed">
-            Every hospital re-verifies the same clinician from scratch. Paper
-            packets. Fax machines. Manual lookups. Committees that{' '}
-            <em>think</em> they're verifying credentials — but are really just
-            hoping the documents are real.
+          <p className="mt-4 text-white/45 max-w-2xl mx-auto text-lg leading-relaxed">
+            You've already proven your credentials. But every new hospital,
+            staffing agency, and locums contract makes you do it again — paper
+            packets, fax machines, weeks of waiting. Your career shouldn't
+            depend on a committee hoping your documents are real.
           </p>
         </FadeIn>
 
@@ -161,56 +161,56 @@ const STEPS = [
   {
     step: '01',
     icon: Search,
-    title: 'Clinician submits NPI',
+    title: 'Enter your NPI',
     description:
-      'Clinician enters their NPI. VitalCV instantly queries NPPES, pulls verified demographics, and bootstraps their trust passport — zero forms, zero uploads.',
+      'Physicians enter their 10-digit NPI. VitalCV pulls your verified identity from NPPES in seconds — no forms, no document uploads, no starting from scratch.',
     accent: 'blue',
-    detail: 'Takes ~3 seconds',
+    detail: 'Ready in under 30 seconds',
   },
   {
     step: '02',
     icon: ShieldCheck,
-    title: 'Primary sources verified',
+    title: 'We verify with primary sources',
     description:
-      'We query state medical boards, NPDB, DEA, OIG/LEIE, and board certification bodies directly. Every result is cryptographically signed and anchored to an immutable audit trail.',
+      'We query state medical boards, NPDB, DEA, OIG, and board certification registries directly. The same sources hospitals use — done automatically, without the paperwork.',
     accent: 'emerald',
-    detail: 'Direct API, no manual review',
+    detail: 'Real sources, not document copies',
   },
   {
     step: '03',
     icon: Zap,
-    title: 'Employer receives trust passport',
+    title: 'Carry it anywhere you practice',
     description:
-      'The employer sees a real-time verified credential bundle — not a packet of PDFs. Continuous monitoring flags any status change the moment it happens.',
+      'Your Trust Passport travels with you. Any employer — hospital, group practice, locums agency — can confirm your standing instantly. No committee. No 90-day wait.',
     accent: 'violet',
-    detail: '3–6 weeks faster than traditional',
+    detail: '3–6 weeks faster to start',
   },
 ] as const;
 
 const STEP_ACCENT: Record<string, { border: string; text: string; bg: string; stepText: string }> = {
   blue: {
-    border: 'border-blue-200 group-hover:border-blue-300',
-    text: 'text-blue-600',
-    bg: 'bg-blue-50',
-    stepText: 'text-blue-300',
+    border: 'border-blue-500/20 group-hover:border-blue-500/40',
+    text: 'text-blue-400',
+    bg: 'bg-blue-500/10',
+    stepText: 'text-blue-500',
   },
   emerald: {
-    border: 'border-emerald-200 group-hover:border-emerald-300',
-    text: 'text-emerald-600',
-    bg: 'bg-emerald-50',
-    stepText: 'text-emerald-300',
+    border: 'border-emerald-500/20 group-hover:border-emerald-500/40',
+    text: 'text-emerald-400',
+    bg: 'bg-emerald-500/10',
+    stepText: 'text-emerald-500',
   },
   violet: {
-    border: 'border-violet-200 group-hover:border-violet-300',
-    text: 'text-violet-600',
-    bg: 'bg-violet-50',
-    stepText: 'text-violet-300',
+    border: 'border-violet-500/20 group-hover:border-violet-500/40',
+    text: 'text-violet-400',
+    bg: 'bg-violet-500/10',
+    stepText: 'text-violet-500',
   },
 };
 
 export function HowItWorksSection() {
   return (
-    <section className="relative px-6 py-24" style={{ background: '#060609' }}>
+    <section className="relative px-6 py-24" style={{ background: '#080e1a' }}>
       {/* Faint grid texture */}
       <div
         aria-hidden
@@ -230,13 +230,13 @@ export function HowItWorksSection() {
             </span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
-            From NPI to verified in{' '}
-            <span className="text-blue-400">days, not months.</span>
+            Verified in hours.{' '}
+            <span className="text-blue-400">Trusted for your career.</span>
           </h2>
           <p className="mt-4 text-white/40 max-w-xl mx-auto text-lg leading-relaxed">
-            VitalCV replaces inferred trust — the "we hope this document is
-            real" model — with cryptographically issued proof from authoritative
-            sources.
+            VitalCV queries state medical boards, NPDB, DEA, and board
+            certification bodies directly — then produces a verified credential
+            that any hospital can confirm instantly, without calling anyone.
           </p>
         </FadeIn>
 
@@ -312,7 +312,7 @@ const COMPLIANCE_BADGES = [
 
 export function TractionSection() {
   return (
-    <section className="relative px-6 py-24" style={{ background: '#060609' }}>
+    <section className="relative px-6 py-24" style={{ background: '#080e1a' }}>
       <div className="mx-auto max-w-5xl">
         <FadeIn className="text-center mb-14">
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/8 px-4 py-1.5 mb-5">
