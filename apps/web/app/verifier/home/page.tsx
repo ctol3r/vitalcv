@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { auth } from '@clerk/nextjs/server';
 import NextBestAction from '@/components/workspace/NextBestAction';
 import Breadcrumb from '@/components/ui/Breadcrumb';
+import CapacityPanel from '@/components/capacity/CapacityPanel';
 import { Users, Briefcase, Building2, PlusCircle } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -55,7 +57,12 @@ const NEXT_BEST = [
   },
 ];
 
-export default function VerifierHomePage() {
+export default async function VerifierHomePage() {
+  // Attempt to read org from Clerk session (best-effort; panel handles missing org gracefully)
+  const session = await auth();
+  // orgId may be available via session claims; fall back to empty string to render panel in loading state
+  const orgId = (session as { orgId?: string }).orgId ?? '';
+
   return (
     <div className="min-h-screen bg-ops-gradient text-white surface-operator">
       <main className="mx-auto max-w-5xl px-6 py-10">
@@ -87,7 +94,8 @@ export default function VerifierHomePage() {
               ))}
             </div>
           </div>
-          <div>
+          <div className="space-y-6">
+            {orgId && <CapacityPanel organizationId={orgId} />}
             <NextBestAction actions={NEXT_BEST} heading="Next Best Action" />
           </div>
         </div>

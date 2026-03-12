@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRef } from 'react';
+import SystemCapacityBadge from '@/components/capacity/SystemCapacityBadge';
 
 /* ─────────────────────────────────────────────────────────────
    Shared helpers
@@ -345,6 +346,9 @@ export function TractionSection() {
             </FadeIn>
           ))}
         </div>
+
+        {/* Wave 240: Live system capacity badge */}
+        <SystemCapacityBadge />
 
         {/* What's built */}
         <FadeIn delay={0.25}>

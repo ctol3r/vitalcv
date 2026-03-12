@@ -140,6 +140,7 @@ import { registerAmbassadorRoutes } from './routes/ambassador';              // 
 import { registerGrowthRoutes } from './routes/growth';                      // Wave 193: Instant Offers + Growth Loops
 import { registerMarketplaceAnalyticsRoutes } from './routes/marketplaceAnalytics'; // Wave 194: Marketplace Analytics
 import { registerDocumentRoutes } from './routes/documents';                       // Wave 237: Document Intelligence API
+import { registerCapacityRoutes } from './routes/capacity';                         // Wave 240: Capacity Score MVP
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3550,6 +3551,7 @@ registerAmbassadorRoutes(app);        // Wave 192 — Ambassador Program
 registerGrowthRoutes(app);            // Wave 193 — Instant Offers + Growth Loops
 registerMarketplaceAnalyticsRoutes(app); // Wave 194 — Marketplace Analytics
 registerDocumentRoutes(app);             // Wave 237 — Document Intelligence API
+registerCapacityRoutes(app);             // Wave 240 — Capacity Score MVP
 registerPayerVerificationRoutes(app); // Wave 142 — Payer Network Integration
 registerProviderDirectoryRoutes(app);  // Wave 143 — Provider Directory Distribution
 registerGraphScalingRoutes(app);       // Wave 144 — Trust Graph Performance Scaling
