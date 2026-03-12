@@ -12,6 +12,7 @@ import type { Metadata } from 'next';
 import { Fraunces, Inter, JetBrains_Mono, Plus_Jakarta_Sans } from 'next/font/google';
 import type React from 'react';
 import './globals.css';
+import '../styles/antigravity.css';
 import '../styles/typography.css';
 import Providers from './providers';
 
