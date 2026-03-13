@@ -26,6 +26,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { CredentialWallet } from '@/components/wallet/CredentialWallet'; // Wave 104
 import PassportShareActions from '@/components/passport/PassportShareActions'; // Wave 139
+import { TrustStatePanel } from '@/components/trust-state/TrustStatePanel'; // Wave 243
 
 // ── Shared types ──────────────────────────────────────────────────────────
 
@@ -562,6 +563,14 @@ export default async function PublicTrustProfilePage({ params }: Props) {
                   )}
                 </section>
               )}
+
+              {/* Wave 243: Trust State Panel — read-only for public profile */}
+              <section className="mb-8">
+                <p className="mb-3 text-center text-[10px] font-semibold uppercase tracking-widest text-vt-neutral-800">
+                  Trust State
+                </p>
+                <TrustStatePanel npi={profile.npi} readOnly />
+              </section>
 
               {/* Wave 104: Credential Wallet embedded in public profile */}
               <section className="mb-8">
