@@ -14,6 +14,7 @@
 import { GlobalTrustMap } from '@/components/network/GlobalTrustMap';
 import NetworkTelemetryIntelligence from '@/components/telemetry/NetworkTelemetryIntelligence';
 import TrustGraphExplorer from '@/components/network/TrustGraphExplorer';
+import { LiveTrustGraph } from '@/components/graph/LiveTrustGraph';
 import { Grid, GridCol } from '@/components/layout/Grid';
 import { motion } from 'framer-motion';
 
@@ -44,6 +45,15 @@ export default function NetworkPage() {
               className="rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-base overflow-hidden"
             >
               <GlobalTrustMap />
+            </motion.div>
+          </GridCol>
+        </Grid>
+
+        {/* ── Wave 247: Live Trust Graph ───────────────────────── */}
+        <Grid cols={1} gap="lg">
+          <GridCol span="full">
+            <motion.div {...fadeUp(0.15)}>
+              <LiveTrustGraph height={520} />
             </motion.div>
           </GridCol>
         </Grid>

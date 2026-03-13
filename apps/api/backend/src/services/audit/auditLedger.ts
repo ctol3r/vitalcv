@@ -30,7 +30,8 @@ export type AuditCategory =
   | 'ADMIN'
   | 'SYSTEM'
   | 'TRUST_STATE_CHANGE'
-  | 'BUNDLE_EXPORT';
+  | 'BUNDLE_EXPORT'
+  | 'SIMULATION';
 
 export type AuditSeverity = 'INFO' | 'WARNING' | 'CRITICAL' | 'EMERGENCY';
 
