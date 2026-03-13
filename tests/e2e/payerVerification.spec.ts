@@ -45,9 +45,18 @@ function buildIssuer(params: {
 }
 
 function tamperCompactJws(jwt: string): string {
-  const lastCharacter = jwt.slice(-1);
-  const replacement = lastCharacter === 'a' ? 'b' : 'a';
-  return `${jwt.slice(0, -1)}${replacement}`;
+  const segments = jwt.split('.');
+  if (segments.length !== 3) {
+    throw new Error('Expected compact JWS with three segments');
+  }
+
+  const signature = segments[2];
+  const index = Math.max(0, Math.floor(signature.length / 2));
+  const current = signature[index] ?? 'a';
+  const replacement = current === 'a' ? 'b' : 'a';
+  segments[2] = `${signature.slice(0, index)}${replacement}${signature.slice(index + 1)}`;
+
+  return segments.join('.');
 }
 
 describe('Wave CX-145 payer verification', () => {

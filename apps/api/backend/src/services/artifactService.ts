@@ -119,6 +119,33 @@ type GenerateAuditBundleOptions = {
   organizationId?: string;
 };
 
+const artifactRecordSelect = {
+  id: true,
+  npi: true,
+  source: true,
+  status: true,
+  rawPayload: true,
+  revokedAt: true,
+  suspendedAt: true,
+  revocationReason: true,
+  lifecycleState: true,
+  statusLastChecked: true,
+  checksum: true,
+  merkleRoot: true,
+  claimHashes: true,
+  verifiedAt: true,
+  expiresAt: true,
+  monitoring: true,
+  trustState: true,
+  organizationId: true,
+  psvWindowStart: true,
+  psvWindowDeadline: true,
+  psvWindowCompliant: true,
+  daysUntilExpiration: true,
+  forecastRiskLevel: true,
+  createdAt: true,
+} satisfies Prisma.VerificationArtifactSelect;
+
 type SnapshotArtifact = {
   id: string;
   npi: string;
@@ -237,6 +264,7 @@ export async function createArtifactFromNursys(
         trustState,
         ...(organizationId ? { organizationId } : {}),
       },
+      select: artifactRecordSelect,
     });
 
     await appendArtifactLifecycleEntry(
@@ -286,6 +314,7 @@ export async function getLatestArtifact(
       ...(organizationId ? { organizationId } : {}),
     },
     orderBy: { createdAt: 'desc' },
+    select: artifactRecordSelect,
   });
 
   if (!artifact) {

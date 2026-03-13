@@ -101,4 +101,8 @@ export NODE_ENV="${NODE_ENV:-test}"
 cd "${REPO_ROOT}"
 cd "${REPO_ROOT}/apps/api/backend"
 pnpm exec prisma migrate deploy --schema prisma/schema.prisma >/dev/null
-pnpm exec jest "${JEST_ARGS[@]}"
+if [[ ${#JEST_ARGS[@]} -gt 0 ]]; then
+  pnpm exec jest "${JEST_ARGS[@]}"
+else
+  pnpm exec jest
+fi
