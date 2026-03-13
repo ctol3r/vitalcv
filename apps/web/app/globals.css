@@ -333,6 +333,7 @@
   html {
     scroll-behavior: smooth;
     scroll-padding-top: 4.5rem;
+    overflow-x: hidden; /* Wave 243: prevent horizontal scroll on mobile */
   }
 
   * {
@@ -344,6 +345,7 @@
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     overscroll-behavior: contain;
+    overflow-x: hidden; /* Wave 243: prevent horizontal scroll on mobile */
   }
 }
 

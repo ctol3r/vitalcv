@@ -156,7 +156,7 @@ export function LiveTrustConsole() {
 
       {/* Main content */}
       <div className="relative z-10 mx-auto max-w-6xl px-6 py-24 sm:py-32">
-        <div className="grid gap-16 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+        <div className="grid gap-8 lg:gap-16 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
 
           {/* Left — clear, authoritative copy */}
           <motion.div
@@ -187,22 +187,22 @@ export function LiveTrustConsole() {
             </p>
 
             {/* CTAs — Google Glue pill buttons */}
-            <div className="flex flex-wrap items-center gap-4 pt-1">
-              <MagneticButton>
-                <Link href="/demo" className="glue-btn glue-btn-primary">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-1">
+              <MagneticButton className="w-full sm:w-auto">
+                <Link href="/demo" className="glue-btn glue-btn-primary w-full justify-center">
                   See how it works
                   <Zap className="h-4 w-4" />
                 </Link>
               </MagneticButton>
-              <MagneticButton>
-                <Link href="/get-ready" className="glue-btn glue-btn-secondary">
+              <MagneticButton className="w-full sm:w-auto">
+                <Link href="/get-ready" className="glue-btn glue-btn-secondary w-full justify-center">
                   Check my readiness →
                 </Link>
               </MagneticButton>
             </div>
 
             {/* Social proof strip — understated */}
-            <div className="flex flex-wrap items-center gap-5 pt-1 border-t border-white/6 pt-5">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/6 pt-5">
               <span className="text-xs text-white/25">Designed for:</span>
               {['Physicians', 'Nurse Practitioners', 'Physician Assistants', 'CRNAs', 'Locums'].map(t => (
                 <span key={t} className="text-xs text-white/35 font-medium">{t}</span>

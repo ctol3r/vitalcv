@@ -66,7 +66,7 @@ export function TrustGraph({ npi }: TrustGraphProps) {
   useEffect(() => {
     async function fetchGraph() {
       try {
-        const res = await fetch(`http://localhost:3000/api/graph/${npi}`);
+        const res = await fetch(`/api/graph/${npi}`);
         if (!res.ok) throw new Error('Failed to fetch graph');
         const data = await res.json();
         setNodes(data.nodes || []);

@@ -19,21 +19,21 @@ const BAND_CONFIG: Record<
 > = {
   GREEN: {
     dot: 'bg-green-600',
-    label: 'Compliant',
+    label: 'Clear to Start',
     badgeBg: 'bg-green-50',
     badgeText: 'text-green-800',
     badgeBorder: 'border-green-200',
   },
   YELLOW: {
     dot: 'bg-amber-500',
-    label: 'Expiring Soon',
+    label: 'Needs Review',
     badgeBg: 'bg-amber-50',
     badgeText: 'text-amber-800',
     badgeBorder: 'border-amber-200',
   },
   RED: {
     dot: 'bg-red-600',
-    label: 'Non-Compliant',
+    label: 'Action Required',
     badgeBg: 'bg-red-50',
     badgeText: 'text-red-800',
     badgeBorder: 'border-red-200',
@@ -41,9 +41,9 @@ const BAND_CONFIG: Record<
 };
 
 const WINDOW_LABEL: Record<WindowStatus, string> = {
-  WITHIN_WINDOW: 'Within NCQA 120-Day Window',
-  EXPIRING_SOON: 'NCQA Window Expiring Soon',
-  EXPIRED: 'NCQA 120-Day Window Expired',
+  WITHIN_WINDOW: 'Continuously Monitored',
+  EXPIRING_SOON: 'Monitoring Window Expiring Soon',
+  EXPIRED: 'Stale (Monitoring Expired)',
   NOT_YET_VALID: 'Verification Not Yet Valid',
 };
 
@@ -112,12 +112,12 @@ export function TrustStateCard({ data }: { data: TrustStateCardData }) {
 
           {/* Verification age */}
           <div className="rounded-md border border-slate-200 p-3 space-y-2">
-            <div className="flex items-baseline justify-between">
+            <div className="flex items-baseline justify-between mb-1">
               <span className="text-sm font-medium text-slate-700">
-                Primary License Verified {verifiedDaysAgo} Day{verifiedDaysAgo !== 1 ? 's' : ''} Ago
+                Verified At
               </span>
-              <span className="text-xs text-slate-400 font-mono">
-                {formatDate(data.verifiedAt)}
+              <span className="text-xs text-slate-500 font-mono">
+                {formatDate(data.verifiedAt)} ({verifiedDaysAgo} day{verifiedDaysAgo !== 1 ? 's' : ''} ago)
               </span>
             </div>
             <div className="flex items-baseline justify-between">
