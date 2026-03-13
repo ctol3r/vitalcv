@@ -28,6 +28,7 @@ import { CredentialWallet } from '@/components/wallet/CredentialWallet'; // Wave
 import PassportShareActions from '@/components/passport/PassportShareActions'; // Wave 139
 import { TrustStatePanel } from '@/components/trust-state/TrustStatePanel'; // Wave 243
 import DecisionTimeline from '@/components/decisions/DecisionTimeline'; // Wave 244
+import { ApplyWithVitalCV } from '@/components/apply/ApplyWithVitalCV'; // Wave 246
 
 // ── Shared types ──────────────────────────────────────────────────────────
 
@@ -637,6 +638,11 @@ export default async function PublicTrustProfilePage({ params }: Props) {
                   npi={profile.npi}
                   credentialCount={profile.activeCredentials.length}
                 />
+              </section>
+
+              {/* Wave 246: Apply with VitalCV — Share credentials action */}
+              <section className="mb-8 flex justify-center">
+                <ApplyWithVitalCV npi={profile.npi} label="Share Credentials" />
               </section>
 
               <footer className="text-center">
