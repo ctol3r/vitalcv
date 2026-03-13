@@ -28,6 +28,7 @@ import QRCode from 'react-qr-code';
 interface PassportShareActionsProps {
   npi: string;
   credentialCount: number;
+  downloadUrl?: string;
 }
 
 // ── Analytics helpers ──────────────────────────────────────────────────────────
@@ -45,7 +46,7 @@ async function fireAnalyticsEvent(npi: string, event: 'share' | 'qr' | 'download
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-export default function PassportShareActions({ npi, credentialCount }: PassportShareActionsProps) {
+export default function PassportShareActions({ npi, credentialCount, downloadUrl }: PassportShareActionsProps) {
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -85,31 +86,38 @@ export default function PassportShareActions({ npi, credentialCount }: PassportS
   const downloadBundle = useCallback(async () => {
     setDownloading(true);
     try {
-      const bundle = {
-        version: '1.0',
-        npi,
-        generatedAt: new Date().toISOString(),
-        shareUrl: typeof window !== 'undefined' ? window.location.href : `https://vitalcv.ai/p/${npi}`,
-        credentialCount,
-        attestedBy: 'VitalCV Trust Network',
-        bundleType: 'PUBLIC_PASSPORT_BUNDLE',
-        instructions: 'To verify credentials, visit the share URL above or contact VitalCV.',
-      };
+      if (downloadUrl) {
+        await fireAnalyticsEvent(npi, 'download');
+        window.location.assign(downloadUrl);
+      } else {
+        const bundle = {
+          version: '1.0',
+          npi,
+          generatedAt: new Date().toISOString(),
+          shareUrl: typeof window !== 'undefined' ? window.location.href : `https://vitalcv.ai/p/${npi}`,
+          credentialCount,
+          attestedBy: 'VitalCV Trust Network',
+          bundleType: 'PUBLIC_PASSPORT_BUNDLE',
+          instructions: 'To verify credentials, visit the share URL above or contact VitalCV.',
+        };
 
-      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `vitalcv-passport-npi-${npi}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+        const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `vitalcv-passport-npi-${npi}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
 
       // Fire analytics
-      await fireAnalyticsEvent(npi, 'download');
+      if (!downloadUrl) {
+        await fireAnalyticsEvent(npi, 'download');
+      }
     } finally {
       setDownloading(false);
     }
-  }, [npi, credentialCount]);
+  }, [credentialCount, downloadUrl, npi]);
 
   return (
     <>

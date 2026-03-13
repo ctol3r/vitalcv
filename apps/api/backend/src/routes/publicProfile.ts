@@ -1,94 +1,146 @@
 /**
- * publicProfile.ts — Wave 43: Public Trust Profile
+ * publicProfile.ts — Wave 251
  *
- * GET /api/public/profile/npi/:npi
- *
- * Zero-friction, NPI-keyed public profile endpoint.  Clinicians share
- * `vitalcv.com/p/<NPI>` with recruiters; this route backs that page.
- *
- * DATA MINIMISATION GUARANTEES
- * ────────────────────────────
- * • `ClinicianPiiVault` is NEVER queried — SSN, DOB, home address are
- *   architecturally unreachable here.
- * • Only source names (e.g. "NPPES", "CA-BRN") are returned, not raw payloads.
- * • NPI is public (CMS NPI Registry); no identity fields are derived here.
- *
- * PIPELINE
- * ────────
- *  1. Validate NPI (10-digit).
- *  2. Rate-limit (100 req / 10 min / IP via publicApiRateLimit).
- *  3. Fetch all active VerificationArtifacts for the NPI.
- *  4. Cross-reference the Wave 40 Bitstring Status List:
- *       for each artifact with a statusListIndex, call isRevoked(index).
- *       Any revoked artifact removes its source from activeCredentials.
- *  5. Find the latest anchored AuditEvent for the NPI (lastAnchored).
- *  6. Run a best-effort ReadinessEvaluator pass (Wave 37 GraphRAG).
- *       Falls back gracefully if state/specialty cannot be inferred.
- *  7. Determine status:
- *       CLEARED  — ≥1 active non-revoked artifact AND evaluator eligible
- *                  (or no compliance rules found — open-policy default).
- *       PENDING  — no artifacts, all revoked, or evaluator finds gaps.
- *  8. Return sanitized JSON with Cache-Control: public, max-age=60.
+ * Public, redacted clinician passport profile keyed by NPI.
+ * Returns trust band, readiness score, artifact provenance, monitoring
+ * summary, audit events, and trust-proof links without exposing raw claims.
  */
 
 import type { Express, Request, Response } from 'express';
 import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
 import { publicApiRateLimit } from '../middleware/publicSafety';
-import { isRevoked } from '../services/ledger/statusListManager';
 import { ReadinessEvaluator } from '../services/intelligence/graphRagEvaluator';
+import { buildCanonicalClaimsFromArtifact, buildClaimDigests, buildSelectiveDisclosurePlaceholder } from '../services/auditBundleClaims';
+import { computeClinicianTrustState, type ClinicianTrustState } from '../services/trust/trustStateEngine';
 
-// ── Constants ──────────────────────────────────────────────────────────────
+const NPI_RE = /^\d{10}$/;
+const evaluator = new ReadinessEvaluator();
+const MAX_EVENTS = 5;
+const MAX_ARTIFACTS = 8;
 
-const NPI_RE         = /^\d{10}$/;
-const evaluator      = new ReadinessEvaluator();
-const MAX_EVENTS     = 5;
-
-// ── Response type ──────────────────────────────────────────────────────────
+type TrustBand = 'L0' | 'L1' | 'L2' | 'L3';
 
 export interface NpiProfileResponse {
-  npi:               string;
-  /** CLEARED = all checks pass; PENDING = gaps or no data yet. */
-  status:            'CLEARED' | 'PENDING';
-  /** ISO timestamp of the most recent Merkle-anchored AuditEvent. */
-  lastAnchored:      string | null;
-  /** Source names of active, non-revoked credentials. */
+  npi: string;
+  status: 'CLEARED' | 'PENDING';
+  trustBand: TrustBand;
+  readinessScore: number;
+  lastAnchored: string | null;
   activeCredentials: string[];
-  /** Lightweight Superbrain readiness result (best-effort). */
   readiness: {
-    evaluated:           boolean;
-    isEligible:          boolean | null;
+    evaluated: boolean;
+    isEligible: boolean | null;
     missingRequirements: string[];
-    traceCount:          number;
+    traceCount: number;
   };
-  /** Recent Merkle-anchored audit events for the timeline. */
+  artifactSummaries: Array<{
+    artifactId: string;
+    issuer: string;
+    status: string;
+    lifecycleState: string;
+    verifiedAt: string;
+    expiresAt: string | null;
+    monitoring: boolean;
+    checksum: string;
+    claimCount: number;
+    claimHashes: string[];
+    selectiveDisclosure: {
+      algorithm: 'SD-JWT';
+      hashAlgorithm: 'sha-256';
+      claimCount: number;
+    } | null;
+  }>;
+  issuerProvenance: Array<{
+    issuer: string;
+    artifactCount: number;
+    latestVerifiedAt: string;
+    monitored: boolean;
+    statuses: string[];
+  }>;
+  monitoringSummary: {
+    monitoredArtifactCount: number;
+    totalArtifactCount: number;
+    coverageRate: number;
+    activeAlertCount: number;
+    latestAlertAt: string | null;
+  };
+  proof: {
+    jsonUrl: string;
+    pdfUrl: string;
+    auditBundleJson: string;
+    auditBundleDownload: string;
+  };
   events: Array<{
-    type:      string;
-    hash:      string;
+    type: string;
+    hash: string;
     createdAt: string;
   }>;
   generatedAt: string;
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
 
-/**
- * Try to infer a US state abbreviation from an artifact source name.
- * Examples: "CA-BRN" → "CA", "TX-TMB" → "TX", "NPPES" → null.
- */
 function inferStateFromSource(source: string): string | null {
   const match = /^([A-Z]{2})-/.exec(source);
   return match ? match[1] : null;
 }
 
-// ── Route registration ─────────────────────────────────────────────────────
+function safeRate(numerator: number, denominator: number): number {
+  if (denominator <= 0) {
+    return 0;
+  }
+  return Number((numerator / denominator).toFixed(4));
+}
+
+function parseStoredTrustState(rawPayload: unknown): ClinicianTrustState | null {
+  if (!isRecord(rawPayload)) {
+    return null;
+  }
+
+  const trustBandValue = rawPayload.readiness_level ?? rawPayload.trustBand;
+  const readinessScoreValue = rawPayload.readiness_score ?? rawPayload.trustScore;
+  const computedAtValue = rawPayload.computed_at ?? rawPayload.computedAt;
+  const trustBand = trustBandValue === 'L0' || trustBandValue === 'L1' || trustBandValue === 'L2' || trustBandValue === 'L3'
+    ? trustBandValue
+    : 'L0';
+  const readinessScore = typeof readinessScoreValue === 'number' ? readinessScoreValue : 0;
+  const computedAt = typeof computedAtValue === 'string' ? computedAtValue : new Date(0).toISOString();
+
+  return {
+    npi: typeof rawPayload.npi === 'string' ? rawPayload.npi : '',
+    identityVerified: rawPayload.identityVerified === true,
+    licensureStatus: rawPayload.licensureStatus === 'verified'
+      || rawPayload.licensureStatus === 'pending'
+      || rawPayload.licensureStatus === 'expired'
+      || rawPayload.licensureStatus === 'unknown'
+      ? rawPayload.licensureStatus
+      : 'unknown',
+    exclusionClear: rawPayload.exclusionClear === true,
+    credentialCount: typeof rawPayload.credentialCount === 'number' ? rawPayload.credentialCount : 0,
+    readiness_level: trustBand,
+    readiness_status: typeof rawPayload.readiness_status === 'string' ? rawPayload.readiness_status : '',
+    readiness_score: readinessScore,
+    gap_summary: Array.isArray(rawPayload.gap_summary)
+      ? rawPayload.gap_summary.filter((value): value is string => typeof value === 'string')
+      : [],
+    methodology_version: typeof rawPayload.methodology_version === 'string'
+      ? rawPayload.methodology_version
+      : 'unknown',
+    computed_at: computedAt,
+    trustBand,
+    trustScore: readinessScore,
+    facts: [],
+    gaps: Array.isArray(rawPayload.gaps)
+      ? rawPayload.gaps.filter((value): value is string => typeof value === 'string')
+      : [],
+    computedAt,
+  };
+}
 
 export function registerPublicProfileRoutes(app: Express): void {
-  /**
-   * GET /api/public/profile/npi/:npi
-   *
-   * Public, cached, NPI-keyed clinician trust profile.
-   */
   app.get(
     '/api/public/profile/npi/:npi',
     publicApiRateLimit,
@@ -97,131 +149,203 @@ export function registerPublicProfileRoutes(app: Express): void {
 
       if (!npi || !NPI_RE.test(npi)) {
         return res.status(400).json({
-          error:             'invalid_npi',
+          error: 'invalid_npi',
           error_description: 'NPI must be a 10-digit string.',
         });
       }
 
       const generatedAt = new Date().toISOString();
 
-      // ── 3. Fetch active VerificationArtifacts ─────────────────────────────
-      const artifacts = await prisma.verificationArtifact.findMany({
-        where: {
-          npi,
-          lifecycleState: { notIn: ['revoked', 'suspended'] },
-          status:         { notIn: ['REVOKED', 'SUSPENDED', 'Expired'] },
-        },
-        select: {
-          id:              true,
-          source:          true,
-          status:          true,
-          lifecycleState:  true,
-          statusListIndex: true,
-          verifiedAt:      true,
-          merkleRoot:      true,
-        },
-        orderBy: { verifiedAt: 'desc' },
-        take: 20,
-      });
-
-      // ── 4. Revocation check via Wave 40 Bitstring Status List ─────────────
-      const activeCredentials: string[] = [];
-
-      await Promise.all(
-        artifacts.map(async (artifact) => {
-          // If artifact has a status list index, verify it isn't revoked.
-          if (artifact.statusListIndex !== null && artifact.statusListIndex !== undefined) {
-            try {
-              const revoked = await isRevoked(artifact.statusListIndex);
-              if (revoked) {
-                log('info', 'public_profile_revoked_artifact', {
-                  npi: npi.slice(0, 4) + '····',
-                  artifactId: artifact.id,
-                  index: artifact.statusListIndex,
-                });
-                return; // skip this credential
-              }
-            } catch {
-              // Status list not yet initialised for this artifact — treat as active.
-            }
-          }
-
-          // Dedup by source name
-          if (!activeCredentials.includes(artifact.source)) {
-            activeCredentials.push(artifact.source);
-          }
+      const [trustSnapshot, artifacts, anchoredEvents, alertSummary] = await Promise.all([
+        prisma.verificationArtifact.findFirst({
+          where: { npi, source: 'TRUST_STATE_ENGINE' },
+          select: { rawPayload: true },
+          orderBy: { verifiedAt: 'desc' },
         }),
-      );
+        prisma.verificationArtifact.findMany({
+          where: {
+            npi,
+            source: { not: 'TRUST_STATE_ENGINE' },
+            lifecycleState: { notIn: ['revoked', 'suspended'] },
+            status: { notIn: ['REVOKED', 'SUSPENDED', 'Expired'] },
+          },
+          select: {
+            id: true,
+            source: true,
+            status: true,
+            lifecycleState: true,
+            verifiedAt: true,
+            expiresAt: true,
+            checksum: true,
+            monitoring: true,
+            rawPayload: true,
+            merkleRoot: true,
+          },
+          orderBy: { verifiedAt: 'desc' },
+          take: MAX_ARTIFACTS,
+        }),
+        prisma.auditEvent.findMany({
+          where: { clinicianId: npi, anchored: true },
+          orderBy: { createdAt: 'desc' },
+          take: MAX_EVENTS,
+          select: { type: true, hash: true, createdAt: true },
+        }),
+        prisma.trustAlertRecord.aggregate({
+          where: { subject: npi },
+          _count: { _all: true },
+          _max: { createdAt: true },
+        }),
+      ]);
 
-      // ── 5. Latest anchored AuditEvent → lastAnchored + events ────────────
-      const anchoredEvents = await prisma.auditEvent.findMany({
-        where:   { clinicianId: npi, anchored: true },
-        orderBy: { createdAt: 'desc' },
-        take:    MAX_EVENTS,
-        select:  { type: true, hash: true, createdAt: true },
-      });
+      const trustState = parseStoredTrustState(trustSnapshot?.rawPayload)
+        ?? await computeClinicianTrustState(npi);
 
-      const lastAnchored = anchoredEvents[0]?.createdAt.toISOString() ?? null;
+      const activeCredentials: string[] = [];
+      for (const artifact of artifacts) {
+        if (!activeCredentials.includes(artifact.source)) {
+          activeCredentials.push(artifact.source);
+        }
+      }
 
-      const events = anchoredEvents.map((e) => ({
-        type:      e.type,
-        hash:      e.hash,
-        createdAt: e.createdAt.toISOString(),
-      }));
-
-      // ── 6. Best-effort ReadinessEvaluator pass ────────────────────────────
       let readiness: NpiProfileResponse['readiness'] = {
-        evaluated:           false,
-        isEligible:          null,
+        evaluated: false,
+        isEligible: null,
         missingRequirements: [],
-        traceCount:          0,
+        traceCount: 0,
       };
 
-      // Infer state from a state-board artifact source if available.
-      const stateSource = artifacts.find((a) => inferStateFromSource(a.source) !== null);
+      const stateSource = artifacts.find((artifact) => inferStateFromSource(artifact.source) !== null);
       const inferredState = stateSource ? inferStateFromSource(stateSource.source) : null;
-
       if (inferredState) {
         try {
-          // Use a generic specialty code; evaluator falls back gracefully if unknown.
           const evalResult = await evaluator.evaluateCandidate(npi, inferredState, 'general');
           readiness = {
-            evaluated:           true,
-            isEligible:          evalResult.isEligible,
+            evaluated: true,
+            isEligible: evalResult.isEligible,
             missingRequirements: evalResult.missingRequirements,
-            traceCount:          evalResult.reasoningTrace.length,
+            traceCount: evalResult.reasoningTrace.length,
           };
-        } catch (err) {
+        } catch (error) {
           log('warn', 'public_profile_evaluator_failed', {
-            npi:   npi.slice(0, 4) + '····',
-            error: err instanceof Error ? err.message : String(err),
+            npi: npi.slice(0, 4) + '····',
+            error: error instanceof Error ? error.message : String(error),
           });
         }
       }
 
-      // ── 7. Determine CLEARED vs PENDING ───────────────────────────────────
+      const artifactSummaries = artifacts.map((artifact) => {
+        const claimDigests = buildClaimDigests(buildCanonicalClaimsFromArtifact({
+          npi,
+          status: artifact.status,
+          rawPayload: artifact.rawPayload,
+        }));
+        const selectiveDisclosure = artifact.merkleRoot
+          ? buildSelectiveDisclosurePlaceholder(buildCanonicalClaimsFromArtifact({
+              npi,
+              status: artifact.status,
+              rawPayload: artifact.rawPayload,
+            }))
+          : null;
+
+        return {
+          artifactId: artifact.id,
+          issuer: artifact.source,
+          status: artifact.status,
+          lifecycleState: artifact.lifecycleState,
+          verifiedAt: artifact.verifiedAt.toISOString(),
+          expiresAt: artifact.expiresAt?.toISOString() ?? null,
+          monitoring: artifact.monitoring,
+          checksum: artifact.checksum,
+          claimCount: claimDigests.length,
+          claimHashes: claimDigests.map((claim) => claim.hash),
+          selectiveDisclosure: selectiveDisclosure
+            ? {
+                algorithm: selectiveDisclosure.algorithm,
+                hashAlgorithm: selectiveDisclosure.hashAlgorithm,
+                claimCount: selectiveDisclosure.claims.length,
+              }
+            : null,
+        };
+      });
+
+      const provenanceMap = new Map<string, {
+        artifactCount: number;
+        latestVerifiedAt: string;
+        monitored: boolean;
+        statuses: Set<string>;
+      }>();
+      for (const artifact of artifactSummaries) {
+        const current = provenanceMap.get(artifact.issuer) ?? {
+          artifactCount: 0,
+          latestVerifiedAt: artifact.verifiedAt,
+          monitored: false,
+          statuses: new Set<string>(),
+        };
+        current.artifactCount += 1;
+        if (artifact.verifiedAt > current.latestVerifiedAt) {
+          current.latestVerifiedAt = artifact.verifiedAt;
+        }
+        current.monitored = current.monitored || artifact.monitoring;
+        current.statuses.add(artifact.status);
+        provenanceMap.set(artifact.issuer, current);
+      }
+
+      const issuerProvenance = [...provenanceMap.entries()].map(([issuer, details]) => ({
+        issuer,
+        artifactCount: details.artifactCount,
+        latestVerifiedAt: details.latestVerifiedAt,
+        monitored: details.monitored,
+        statuses: [...details.statuses].sort(),
+      })).sort((left, right) => left.issuer.localeCompare(right.issuer));
+
       const hasActiveCredentials = activeCredentials.length > 0;
-      const evaluatorPass        = !readiness.evaluated || readiness.isEligible !== false;
+      const evaluatorPass = !readiness.evaluated || readiness.isEligible !== false;
+      const trustPass = trustState.readiness_level === 'L2' || trustState.readiness_level === 'L3';
+      const status: 'CLEARED' | 'PENDING' = hasActiveCredentials && evaluatorPass && trustPass
+        ? 'CLEARED'
+        : 'PENDING';
 
-      const status: 'CLEARED' | 'PENDING' =
-        hasActiveCredentials && evaluatorPass ? 'CLEARED' : 'PENDING';
+      const events = anchoredEvents.map((event) => ({
+        type: event.type,
+        hash: event.hash,
+        createdAt: event.createdAt.toISOString(),
+      }));
 
-      // ── 8. Build and return response ──────────────────────────────────────
+      const monitoredArtifactCount = artifactSummaries.filter((artifact) => artifact.monitoring).length;
+
       const body: NpiProfileResponse = {
         npi,
         status,
-        lastAnchored,
+        trustBand: trustState.readiness_level,
+        readinessScore: trustState.readiness_score,
+        lastAnchored: anchoredEvents[0]?.createdAt.toISOString() ?? null,
         activeCredentials,
         readiness,
+        artifactSummaries,
+        issuerProvenance,
+        monitoringSummary: {
+          monitoredArtifactCount,
+          totalArtifactCount: artifactSummaries.length,
+          coverageRate: safeRate(monitoredArtifactCount, artifactSummaries.length),
+          activeAlertCount: alertSummary._count._all,
+          latestAlertAt: alertSummary._max.createdAt?.toISOString() ?? null,
+        },
+        proof: {
+          jsonUrl: `/api/trust-proof/${encodeURIComponent(npi)}`,
+          pdfUrl: `/api/trust-proof/${encodeURIComponent(npi)}?format=pdf`,
+          auditBundleJson: `/api/artifact/bundle/${encodeURIComponent(npi)}`,
+          auditBundleDownload: `/api/artifact/bundle/${encodeURIComponent(npi)}/download`,
+        },
         events,
         generatedAt,
       };
 
       log('info', 'public_profile_npi_served', {
-        npi_prefix:         npi.slice(0, 4) + '····',
+        npi_prefix: npi.slice(0, 4) + '····',
         status,
-        credential_count:   activeCredentials.length,
-        anchored_event_count: events.length,
+        trustBand: trustState.readiness_level,
+        readinessScore: trustState.readiness_score,
+        artifactCount: artifactSummaries.length,
       });
 
       res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
