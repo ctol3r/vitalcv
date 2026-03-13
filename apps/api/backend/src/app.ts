@@ -143,6 +143,8 @@ import { registerDocumentRoutes } from './routes/documents';                    
 import { registerCapacityRoutes } from './routes/capacity';                         // Wave 240: Capacity Score MVP
 import { registerOigRoutes } from './routes/oig';                                   // Wave 241: OIG/LEIE Exclusion Check
 import { registerTrustStateEngineRoutes } from './routes/trustStateEngine';          // Wave 243: Trust State Engine
+import { registerAsyncTrustRoutes } from './routes/asyncTrust';                      // Wave 245: Async Trust Engine
+import { startMonitoringScheduler } from './services/async/monitoringScheduler';    // Wave 245: Monitoring Scheduler
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3556,6 +3558,8 @@ registerDocumentRoutes(app);             // Wave 237 — Document Intelligence A
 registerCapacityRoutes(app);             // Wave 240 — Capacity Score MVP
 registerOigRoutes(app);                  // Wave 241 — OIG/LEIE Exclusion Check
 registerTrustStateEngineRoutes(app);     // Wave 243 — Trust State Engine
+registerAsyncTrustRoutes(app);           // Wave 245 — Async Trust Engine
+startMonitoringScheduler();              // Wave 245 — Monitoring Scheduler (MONITORING_ENABLED gated)
 registerPayerVerificationRoutes(app); // Wave 142 — Payer Network Integration
 registerProviderDirectoryRoutes(app);  // Wave 143 — Provider Directory Distribution
 registerGraphScalingRoutes(app);       // Wave 144 — Trust Graph Performance Scaling
