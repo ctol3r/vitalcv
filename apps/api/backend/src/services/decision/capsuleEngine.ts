@@ -14,6 +14,11 @@ import { sha256Hex } from '../../utils/deterministic';
 import { log } from '../../obs/logger';
 import { computeClinicianTrustState } from '../trust/trustStateEngine';
 import { appendAuditEvent } from '../audit/auditLedger';
+// Wave 249: Trust Spine Hardening — pipeline enforcement
+import {
+  ensureTrustStateBeforeCapsule,
+  ensureGraphEdgesForCapsule,
+} from '../integrity/pipelineEnforcer';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -222,8 +227,8 @@ async function createDecisionFromApplication(params: {
     throw new Error(`Application ${applicationId} has no valid NPI — cannot create Decision Capsule`);
   }
 
-  // Step 2: Compute current trust state snapshot
-  const trustState = await computeClinicianTrustState(npi);
+  // Step 2: Ensure fresh trust state via pipeline enforcer (Wave 249)
+  const trustState = await ensureTrustStateBeforeCapsule(npi);
 
   // Step 3: Look up VerificationArtifacts for this clinician
   const artifacts = await prisma.verificationArtifact.findMany({
@@ -295,6 +300,14 @@ async function createDecisionFromApplication(params: {
       trustScore: trustState.readiness_score,
       credentialCount: credentialIds.length,
     },
+  });
+
+  // Step 8: Ensure graph edges are created after capsule (Wave 249, async non-fatal)
+  ensureGraphEdgesForCapsule(capsule.id, npi).catch((err) => {
+    log('warn', 'capsule_engine: graph_edge_ensure_error', {
+      capsuleId: capsule.id,
+      error: String(err),
+    });
   });
 
   log('info', 'capsule_engine: created_from_application', {
