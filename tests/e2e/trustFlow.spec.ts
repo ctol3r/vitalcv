@@ -100,6 +100,10 @@ describe('Wave 124 trust flow', () => {
 
     const artifact = await prisma.verificationArtifact.findUnique({
       where: { id: credentialId },
+      select: {
+        id: true,
+        status: true,
+      },
     });
     expect(artifact).not.toBeNull();
     expect(artifact?.status).toBe('ACTIVE');
@@ -192,6 +196,11 @@ describe('Wave 124 trust flow', () => {
 
     const revokedArtifact = await prisma.verificationArtifact.findUnique({
       where: { id: credentialId },
+      select: {
+        id: true,
+        status: true,
+        lifecycleState: true,
+      },
     });
     expect(revokedArtifact?.status).toBe('REVOKED');
     expect(revokedArtifact?.lifecycleState).toBe('revoked');

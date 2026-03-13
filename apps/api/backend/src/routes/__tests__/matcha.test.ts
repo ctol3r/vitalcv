@@ -11,6 +11,25 @@ jest.mock('../../services/employers/employerService', () => ({
   }),
 }));
 
+jest.mock('../../services/matcha/liveMatchaService', () => ({
+  getLiveMatchesForNpi: jest.fn().mockResolvedValue({
+    opportunities: [
+      {
+        opportunityId: 'opp-1',
+        employerSlug: 'bay-area-cardiac-group',
+        employer: {
+          name: 'Bay Area Cardiac Group',
+        },
+        askContext: {
+          opportunityId: 'opp-1',
+          employerSlug: 'bay-area-cardiac-group',
+        },
+      },
+    ],
+  }),
+  scoreOpportunityForNpi: jest.fn(),
+}));
+
 import { registerMatchaRoutes } from '../matcha';
 
 describe('GET /api/matcha/opportunities/:npi', () => {

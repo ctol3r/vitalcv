@@ -10,7 +10,7 @@
     "dev": "pnpm exec prisma generate && ts-node src/server.ts",
     "build": "pnpm exec prisma generate && tsc",
     "start": "node dist/apps/api/backend/src/server.js",
-    "test": "bash ../../scripts/backend-test-db.sh",
+    "test": "bash ../../../scripts/backend-test-db.sh",
     "seed": "pnpm exec prisma migrate deploy && ts-node -P tsconfig.seed.json prisma/seed.ts",
     "prisma:generate": "pnpm exec prisma generate"
   },
