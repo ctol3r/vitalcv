@@ -8,7 +8,7 @@
  */
 
 import { isPublicSurfacePath, isRouteActive } from '@/components/layout/publicSurfaceRoutes';
-import { Menu, X, Search, ChevronDown } from 'lucide-react';
+import { Menu, X, Search, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
@@ -16,6 +16,7 @@ import { useState } from 'react';
 const NAV_ITEMS = [
   { href: '/explore',     label: 'Explore' },
   { href: '/employers',   label: 'Employers' },
+  { href: '/velocity',    label: 'Velocity' },
   { href: '/search',      label: 'Search' },
   { href: '/network',     label: 'Network' },
   { href: '/documents',   label: 'Document Parser' },
