@@ -27,6 +27,7 @@ import { notFound } from 'next/navigation';
 import { CredentialWallet } from '@/components/wallet/CredentialWallet'; // Wave 104
 import PassportShareActions from '@/components/passport/PassportShareActions'; // Wave 139
 import { TrustStatePanel } from '@/components/trust-state/TrustStatePanel'; // Wave 243
+import DecisionTimeline from '@/components/decisions/DecisionTimeline'; // Wave 244
 
 // ── Shared types ──────────────────────────────────────────────────────────
 
@@ -125,6 +126,20 @@ async function fetchProfile(slug: string): Promise<DisplayProfile | null> {
     return { mode: 'slug', ...data };
   } catch {
     return null;
+  }
+}
+
+// ── Wave 244: Fetch Decision Capsules for NPI ─────────────────────────────
+
+async function fetchDecisionCapsules(npi: string): Promise<import('@/components/decisions/DecisionTimeline').DecisionCapsuleEntry[]> {
+  try {
+    const apiBase = process.env.BACKEND_URL ?? BACKEND;
+    const res = await fetch(`${apiBase}/api/decisions/${npi}`, { next: { revalidate: 60 } });
+    if (!res.ok) return [];
+    const data = await res.json() as { capsules?: import('@/components/decisions/DecisionTimeline').DecisionCapsuleEntry[] };
+    return data.capsules ?? [];
+  } catch {
+    return [];
   }
 }
 
@@ -482,6 +497,11 @@ export default async function PublicTrustProfilePage({ params }: Props) {
 
   if (!profile) notFound();
 
+  // Wave 244: Pre-fetch decision capsules for NPI profiles
+  const decisionCapsules = profile.mode === 'npi'
+    ? await fetchDecisionCapsules(profile.npi)
+    : [];
+
   return (
     <main className="min-h-screen bg-passport-gradient pb-28">
       {/* Ambient glows */}
@@ -571,6 +591,20 @@ export default async function PublicTrustProfilePage({ params }: Props) {
                 </p>
                 <TrustStatePanel npi={profile.npi} readOnly />
               </section>
+
+              {/* Wave 244: Decision Capsule Timeline */}
+              {decisionCapsules.length > 0 && (
+                <section className="mb-8">
+                  <p className="mb-3 text-center text-[10px] font-semibold uppercase tracking-widest text-vt-neutral-800">
+                    Decision History
+                  </p>
+                  <DecisionTimeline
+                    capsules={decisionCapsules}
+                    heading=""
+                    compact={false}
+                  />
+                </section>
+              )}
 
               {/* Wave 104: Credential Wallet embedded in public profile */}
               <section className="mb-8">

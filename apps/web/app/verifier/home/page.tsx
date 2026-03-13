@@ -4,6 +4,7 @@ import { auth } from '@clerk/nextjs/server';
 import NextBestAction from '@/components/workspace/NextBestAction';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import CapacityPanel from '@/components/capacity/CapacityPanel';
+import RecentDecisionsPanel from '@/components/decisions/RecentDecisionsPanel';
 import { Users, Briefcase, Building2, PlusCircle } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -76,23 +77,28 @@ export default async function VerifierHomePage() {
         </header>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <h2 className="heading-sm mb-4 text-vt-neutral-200">Quick Actions</h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {QUICK_ACTIONS.map(({ icon: Icon, label, description, href, color }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className="group rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 p-5 hover:border-vt-neutral-700 transition-colors"
-                >
-                  <div className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl ring-1 ${color}`}>
-                    <Icon className="h-4.5 w-4.5" />
-                  </div>
-                  <p className="heading-sm text-white">{label}</p>
-                  <p className="body-sm mt-1 text-vt-neutral-200">{description}</p>
-                </Link>
-              ))}
+          <div className="lg:col-span-2 space-y-8">
+            <div>
+              <h2 className="heading-sm mb-4 text-vt-neutral-200">Quick Actions</h2>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {QUICK_ACTIONS.map(({ icon: Icon, label, description, href, color }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="group rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 p-5 hover:border-vt-neutral-700 transition-colors"
+                  >
+                    <div className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl ring-1 ${color}`}>
+                      <Icon className="h-4.5 w-4.5" />
+                    </div>
+                    <p className="heading-sm text-white">{label}</p>
+                    <p className="body-sm mt-1 text-vt-neutral-200">{description}</p>
+                  </Link>
+                ))}
+              </div>
             </div>
+
+            {/* Wave 244: Decision Capsule Timeline */}
+            <RecentDecisionsPanel heading="Recent Decisions" limit={5} />
           </div>
           <div className="space-y-6">
             {orgId && <CapacityPanel organizationId={orgId} />}
