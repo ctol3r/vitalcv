@@ -1,17 +1,27 @@
 /**
- * simulation.ts — Wave 84: Trust Simulation API
+ * simulation.ts — Wave 248: Trust Simulation API (Live)
  *
- * POST /api/simulation/run — Run a trust simulation.
+ * POST /api/simulation/run        — Legacy graph-based simulation (Wave 84)
+ * POST /api/simulation/revocation — Live: simulate credential revocation
+ * POST /api/simulation/expiration — Live: simulate license expiration
+ * POST /api/simulation/compliance — Live: simulate new compliance rule
  */
 
 import type { Express, Request, Response } from 'express';
 import { runTrustSimulation } from '../services/simulation/simulationEngine';
 import type { SimulationEvent } from '../services/simulation/graphSimulation';
+import {
+  simulateCredentialRevocation,
+  simulateLicenseExpiration,
+  simulateComplianceRule,
+} from '../services/simulation/liveSimulationEngine';
 import { log } from '../obs/logger';
 
 const VALID_EVENT_TYPES = ['credential_expired', 'credential_revoked', 'credential_added', 'issuer_revoked'] as const;
 
 export function registerSimulationRoutes(app: Express): void {
+
+  // ── Legacy: graph-based simulation ────────────────────────────────────────
   app.post('/api/simulation/run', async (req: Request, res: Response) => {
     const { npi, eventType, credentialId, issuerNodeId, label } = req.body ?? {};
 
@@ -25,7 +35,6 @@ export function registerSimulationRoutes(app: Express): void {
       return;
     }
 
-    // Build the simulation event
     let event: SimulationEvent;
     switch (eventType) {
       case 'credential_expired':
@@ -52,6 +61,83 @@ export function registerSimulationRoutes(app: Express): void {
       const message = err instanceof Error ? err.message : 'Unknown error';
       log('error', 'simulation_route: failed', { npi, eventType, error: message });
       res.status(500).json({ error: 'Simulation failed' });
+    }
+  });
+
+  // ── Live: credential revocation simulation ─────────────────────────────────
+  app.post('/api/simulation/revocation', async (req: Request, res: Response) => {
+    const { npi, credentialType } = req.body ?? {};
+
+    if (!npi || !credentialType) {
+      res.status(400).json({ error: 'npi and credentialType are required' });
+      return;
+    }
+
+    if (!/^\d{10}$/.test(String(npi))) {
+      res.status(400).json({ error: 'npi must be a 10-digit number' });
+      return;
+    }
+
+    try {
+      const result = await simulateCredentialRevocation({ npi: String(npi), credentialType: String(credentialType) });
+      res.json(result);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'simulation_route: revocation_failed', { npi, credentialType, error: message });
+      res.status(500).json({ error: 'Revocation simulation failed' });
+    }
+  });
+
+  // ── Live: license expiration simulation ───────────────────────────────────
+  app.post('/api/simulation/expiration', async (req: Request, res: Response) => {
+    const { npi, expirationDate } = req.body ?? {};
+
+    if (!npi || !expirationDate) {
+      res.status(400).json({ error: 'npi and expirationDate are required' });
+      return;
+    }
+
+    if (!/^\d{10}$/.test(String(npi))) {
+      res.status(400).json({ error: 'npi must be a 10-digit number' });
+      return;
+    }
+
+    const parsed = new Date(String(expirationDate));
+    if (isNaN(parsed.getTime())) {
+      res.status(400).json({ error: 'expirationDate must be a valid ISO date string' });
+      return;
+    }
+
+    try {
+      const result = await simulateLicenseExpiration({ npi: String(npi), expirationDate: String(expirationDate) });
+      res.json(result);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'simulation_route: expiration_failed', { npi, expirationDate, error: message });
+      res.status(500).json({ error: 'Expiration simulation failed' });
+    }
+  });
+
+  // ── Live: compliance rule simulation ──────────────────────────────────────
+  app.post('/api/simulation/compliance', async (req: Request, res: Response) => {
+    const { rule, specialty, state } = req.body ?? {};
+
+    if (!rule) {
+      res.status(400).json({ error: 'rule is required' });
+      return;
+    }
+
+    try {
+      const result = await simulateComplianceRule({
+        rule: String(rule),
+        specialty: specialty ? String(specialty) : undefined,
+        state: state ? String(state) : undefined,
+      });
+      res.json(result);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'simulation_route: compliance_failed', { rule, error: message });
+      res.status(500).json({ error: 'Compliance simulation failed' });
     }
   });
 }

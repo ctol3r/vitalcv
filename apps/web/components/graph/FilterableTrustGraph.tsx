@@ -9,7 +9,7 @@
  */
 
 import { Search, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   DEMO_EDGES,
   DEMO_NODES,
@@ -18,6 +18,56 @@ import {
   type GraphNode,
   type NodeType,
 } from './TrustGraphPrimary';
+
+// ── Live data adapter ──────────────────────────────────────────────────────────
+
+/** Map liveGraphBuilder NodeType → TrustGraphPrimary NodeType */
+function mapLiveNodeType(raw: string): NodeType {
+  switch (raw) {
+    case 'clinician': return 'clinician';
+    case 'issuer':    return 'issuer';
+    case 'credential': return 'credential';
+    case 'hospital':  return 'employer';
+    case 'license':   return 'credential';
+    default:          return 'credential';
+  }
+}
+
+interface LiveNode {
+  id: string;
+  type: string;
+  label: string;
+  trustLevel: string;
+  status: string;
+}
+interface LiveEdge {
+  id: string;
+  source: string;
+  target: string;
+  type: string;
+  weight: number;
+}
+interface LiveGraph {
+  nodes: LiveNode[];
+  edges: LiveEdge[];
+}
+
+function adaptLiveGraph(live: LiveGraph): { nodes: GraphNode[]; edges: GraphEdge[] } {
+  const nodes: GraphNode[] = live.nodes.map(n => ({
+    id: n.id,
+    label: n.label,
+    type: mapLiveNodeType(n.type),
+    status: n.status,
+    meta: { trustLevel: n.trustLevel, status: n.status },
+  }));
+  const edges: GraphEdge[] = live.edges.map(e => ({
+    source: e.source,
+    target: e.target,
+    label: e.type.toLowerCase().replace(/_/g, ' '),
+    type: 'verification' as const,
+  }));
+  return { nodes, edges };
+}
 
 /* ── Node type config ───────────────────────────────────────── */
 
@@ -74,14 +124,42 @@ interface Props {
   height?: number;
   /** Show a compact version without stats bar (e.g. embedded in page sections) */
   compact?: boolean;
+  /** Fetch live data from /api/graph/network instead of using mock data */
+  live?: boolean;
 }
 
 export function FilterableTrustGraph({
-  nodes: rawNodes = DEMO_NODES,
-  edges: rawEdges = DEMO_EDGES,
+  nodes: rawNodesProp,
+  edges: rawEdgesProp,
   height = 480,
   compact = false,
+  live = false,
 }: Props) {
+  const [liveNodes, setLiveNodes] = useState<GraphNode[]>([]);
+  const [liveEdges, setLiveEdges] = useState<GraphEdge[]>([]);
+  const [liveLoading, setLiveLoading] = useState(live);
+
+  useEffect(() => {
+    if (!live) return;
+    setLiveLoading(true);
+    fetch('/api/graph/network')
+      .then(r => r.json())
+      .then((data: LiveGraph) => {
+        const adapted = adaptLiveGraph(data);
+        setLiveNodes(adapted.nodes);
+        setLiveEdges(adapted.edges);
+      })
+      .catch(() => {
+        // Fall back to demo data on error
+        setLiveNodes(DEMO_NODES);
+        setLiveEdges(DEMO_EDGES);
+      })
+      .finally(() => setLiveLoading(false));
+  }, [live]);
+
+  const rawNodes = live ? liveNodes : (rawNodesProp ?? DEMO_NODES);
+  const rawEdges = live ? liveEdges : (rawEdgesProp ?? DEMO_EDGES);
+
   const [activeTypes, setActiveTypes] = useState<Set<NodeType>>(new Set(ALL_TYPES));
   const [query, setQuery] = useState('');
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
