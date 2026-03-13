@@ -12,6 +12,8 @@
 import prisma from '../../graphql/prisma_client';
 import { sha256Hex } from '../../utils/deterministic';
 import { log } from '../../obs/logger';
+import { computeClinicianTrustState } from '../trust/trustStateEngine';
+import { appendAuditEvent } from '../audit/auditLedger';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -194,8 +196,124 @@ function mapCapsule(c: {
   };
 }
 
+/**
+ * Create a Decision Capsule automatically from an accepted Application.
+ * Snapshots the clinician's current trust state + credentials at decision time.
+ */
+async function createDecisionFromApplication(params: {
+  applicationId: string;
+  verifierClerkUserId: string;
+  decisionType: DecisionType;
+}): Promise<DecisionCapsuleRecord> {
+  const { applicationId, verifierClerkUserId, decisionType } = params;
+
+  // Step 1: Look up the Application to get NPI and opportunityId
+  const application = await prisma.application.findUnique({
+    where: { id: applicationId },
+    select: { id: true, npi: true, opportunityId: true, clerkUserId: true },
+  });
+
+  if (!application) {
+    throw new Error(`Application not found: ${applicationId}`);
+  }
+
+  const npi = application.npi;
+  if (!npi || !/^\d{10}$/.test(npi)) {
+    throw new Error(`Application ${applicationId} has no valid NPI — cannot create Decision Capsule`);
+  }
+
+  // Step 2: Compute current trust state snapshot
+  const trustState = await computeClinicianTrustState(npi);
+
+  // Step 3: Look up VerificationArtifacts for this clinician
+  const artifacts = await prisma.verificationArtifact.findMany({
+    where: { npi },
+    select: { id: true, source: true, status: true },
+  });
+
+  // Step 4: Look up CandidateCredentials for this clinician
+  const candidateCredentials = await prisma.candidateCredential.findMany({
+    where: { clinicianId: npi },
+    select: { id: true, candidateCredentialId: true },
+  });
+
+  const credentialIds = artifacts.map((a) => a.id);
+  const issuerIds = [...new Set(artifacts.map((a) => a.source))];
+
+  // Step 5: Build artifact hash over trust state + credential bundle
+  const bundleForHash = {
+    applicationId,
+    subjectNpi: npi,
+    subjectDid: `did:vitalcv:${npi}`,
+    decisionType,
+    trustState: {
+      readiness_level: trustState.readiness_level,
+      readiness_score: trustState.readiness_score,
+      methodology_version: trustState.methodology_version,
+      computed_at: trustState.computed_at,
+    },
+    credentialCount: credentialIds.length,
+    candidateCredentialCount: candidateCredentials.length,
+    verifierClerkUserId,
+    opportunityId: application.opportunityId,
+  };
+  const artifactHash = sha256Hex(JSON.stringify(bundleForHash));
+
+  // Step 6: Persist the capsule with trust_state_snapshot in metadata
+  const capsule = await prisma.decisionCapsule.create({
+    data: {
+      subjectDid: `did:vitalcv:${npi}`,
+      subjectNpi: npi,
+      decisionType,
+      decisionTimestamp: new Date(),
+      credentialIds,
+      issuerIds,
+      artifactHash,
+      methodology: METHODOLOGY_VERSION,
+      status: 'VALID',
+      metadata: JSON.parse(JSON.stringify({
+        applicationId,
+        opportunityId: application.opportunityId,
+        verifierClerkUserId,
+        trust_state_snapshot: trustState,
+        candidateCredentialIds: candidateCredentials.map((c) => c.id),
+      })),
+    },
+  });
+
+  // Step 7: Emit audit event
+  appendAuditEvent({
+    category: 'DECISION',
+    severity: 'INFO',
+    actor: verifierClerkUserId,
+    resource: `decision-capsule:${capsule.id}`,
+    requestFields: { applicationId, decisionType, npi: npi.slice(0, 4) + '****' },
+    resultFields: {
+      capsuleId: capsule.id,
+      artifactHash: artifactHash.slice(0, 16),
+      trustBand: trustState.readiness_level,
+      trustScore: trustState.readiness_score,
+      credentialCount: credentialIds.length,
+    },
+  });
+
+  log('info', 'capsule_engine: created_from_application', {
+    capsuleId: capsule.id,
+    applicationId,
+    npi: npi.slice(0, 4) + '****',
+    decisionType,
+    trustBand: trustState.readiness_level,
+    trustScore: trustState.readiness_score,
+    credentialCount: credentialIds.length,
+    artifactHash: artifactHash.slice(0, 16),
+  });
+
+  return mapCapsule(capsule);
+}
+
 export const capsuleEngine = {
   createDecisionCapsule,
+  createDecisionFromApplication,
   getCapsulesByNpi,
   getCapsuleById,
   countCapsules,

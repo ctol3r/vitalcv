@@ -20,7 +20,9 @@ import {
   listApplicationsForOpportunity,
   reviewApplication,
 } from '../services/opportunities/applicationService';
+import { capsuleEngine } from '../services/decision/capsuleEngine';
 import { HttpError } from '../utils/httpError';
+import { log } from '../obs/logger';
 
 function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
   return (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
@@ -106,6 +108,22 @@ export function registerApplicationRoutes(app: Express): void {
         status: status as 'REVIEWED' | 'ACCEPTED' | 'DECLINED',
         reviewNote,
       });
+
+      // Wave 244: Auto-create Decision Capsule when application is ACCEPTED
+      if (status === 'ACCEPTED') {
+        capsuleEngine.createDecisionFromApplication({
+          applicationId,
+          verifierClerkUserId: clerkUserId,
+          decisionType: 'HIRING',
+        }).catch((err: unknown) => {
+          // Non-fatal: log but don't block the response
+          log('warn', 'applications: decision_capsule_creation_failed', {
+            applicationId,
+            error: String(err),
+          });
+        });
+      }
+
       res.json(updated);
     }),
   );
