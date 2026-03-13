@@ -148,6 +148,8 @@ import { startMonitoringScheduler } from './services/async/monitoringScheduler';
 import { registerApplyRoutes } from './routes/apply';                                // Wave 246: Apply-with-VitalCV
 import { registerLiveGraphRoutes } from './routes/liveGraph';                          // Wave 247: Live Trust Graph
 import { registerSystemHealthRoutes } from './routes/systemHealth';                    // Wave 249: Trust Spine Hardening
+import { registerVelocityRoutes } from './routes/velocity';                              // Wave 250: Time-to-Start Velocity Dashboard
+import { registerTrustProofRoutes } from './routes/trustProof';                        // Wave 252: Trust Proof Bundle
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3566,6 +3568,8 @@ startMonitoringScheduler();              // Wave 245 — Monitoring Scheduler (M
 registerApplyRoutes(app);                // Wave 246 — Apply-with-VitalCV Distribution Wedge
 registerLiveGraphRoutes(app);            // Wave 247 — Live Trust Graph
 registerSystemHealthRoutes(app);         // Wave 249 — Trust Spine Hardening
+registerVelocityRoutes(app);             // Wave 250 — Time-to-Start Velocity Dashboard
+registerTrustProofRoutes(app);           // Wave 252 — Trust Proof Bundle
 registerPayerVerificationRoutes(app); // Wave 142 — Payer Network Integration
 registerProviderDirectoryRoutes(app);  // Wave 143 — Provider Directory Distribution
 registerGraphScalingRoutes(app);       // Wave 144 — Trust Graph Performance Scaling
