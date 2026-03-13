@@ -20,14 +20,12 @@
  * file — this is correct; both URL forms are /p/<identifier>.
  */
 
+import React from 'react';
 import { AnimatedTimeline, type TimelineEvent } from '@/components/ui/AnimatedTimeline';
 import type { BadgeLevel } from '@/components/ui/BadgeStatus';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { CredentialWallet } from '@/components/wallet/CredentialWallet'; // Wave 104
 import PassportShareActions from '@/components/passport/PassportShareActions'; // Wave 139
-import { TrustStatePanel } from '@/components/trust-state/TrustStatePanel'; // Wave 243
-import DecisionTimeline from '@/components/decisions/DecisionTimeline'; // Wave 244
 import { ApplyWithVitalCV } from '@/components/apply/ApplyWithVitalCV'; // Wave 246
 
 // ── Shared types ──────────────────────────────────────────────────────────
@@ -72,6 +70,8 @@ interface NpiProfile {
   mode:               'npi';
   npi:                string;
   status:             ClearedStatus;
+  trustBand:          L3Status;
+  readinessScore:     number;
   lastAnchored:       string | null;
   activeCredentials:  string[];
   readiness: {
@@ -79,6 +79,43 @@ interface NpiProfile {
     isEligible:          boolean | null;
     missingRequirements: string[];
     traceCount:          number;
+  };
+  artifactSummaries: Array<{
+    artifactId: string;
+    issuer: string;
+    status: string;
+    lifecycleState: string;
+    verifiedAt: string;
+    expiresAt: string | null;
+    monitoring: boolean;
+    checksum: string;
+    claimCount: number;
+    claimHashes: string[];
+    selectiveDisclosure: {
+      algorithm: 'SD-JWT';
+      hashAlgorithm: 'sha-256';
+      claimCount: number;
+    } | null;
+  }>;
+  issuerProvenance: Array<{
+    issuer: string;
+    artifactCount: number;
+    latestVerifiedAt: string;
+    monitored: boolean;
+    statuses: string[];
+  }>;
+  monitoringSummary: {
+    monitoredArtifactCount: number;
+    totalArtifactCount: number;
+    coverageRate: number;
+    activeAlertCount: number;
+    latestAlertAt: string | null;
+  };
+  proof: {
+    jsonUrl: string;
+    pdfUrl: string;
+    auditBundleJson: string;
+    auditBundleDownload: string;
   };
   events:      AuditEvent[];
   generatedAt: string;
@@ -127,20 +164,6 @@ async function fetchProfile(slug: string): Promise<DisplayProfile | null> {
     return { mode: 'slug', ...data };
   } catch {
     return null;
-  }
-}
-
-// ── Wave 244: Fetch Decision Capsules for NPI ─────────────────────────────
-
-async function fetchDecisionCapsules(npi: string): Promise<import('@/components/decisions/DecisionTimeline').DecisionCapsuleEntry[]> {
-  try {
-    const apiBase = process.env.BACKEND_URL ?? BACKEND;
-    const res = await fetch(`${apiBase}/api/decisions/${npi}`, { next: { revalidate: 60 } });
-    if (!res.ok) return [];
-    const data = await res.json() as { capsules?: import('@/components/decisions/DecisionTimeline').DecisionCapsuleEntry[] };
-    return data.capsules ?? [];
-  } catch {
-    return [];
   }
 }
 
@@ -339,6 +362,169 @@ function EventTimeline({ events, lastAnchored }: { events: AuditEvent[]; lastAnc
   );
 }
 
+function TrustBandCard({ trustBand, readinessScore }: { trustBand: L3Status; readinessScore: number }) {
+  return (
+    <div className="rounded-2xl vt-glass-subtle p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-vt-neutral-800">Clinician Trust Band</p>
+          <p className="mt-1 text-sm text-vt-neutral-200">Current trust-state snapshot from the VitalCV trust engine</p>
+        </div>
+        <span className="rounded-full bg-vt-success/15 px-3 py-1 heading-sm text-vt-success">{trustBand}</span>
+      </div>
+      <div className="rounded-xl bg-black/20 p-4 ring-1 ring-vt-glass-ring">
+        <div className="mb-2 flex items-center justify-between text-xs text-vt-neutral-800">
+          <span>Credential Readiness Score</span>
+          <span className="font-semibold text-vt-neutral-200">{readinessScore}/100</span>
+        </div>
+        <div className="h-2 rounded-full bg-white/10">
+          <div className="h-2 rounded-full bg-vt-success" style={{ width: `${Math.max(0, Math.min(100, readinessScore))}%` }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ArtifactGrid({
+  artifacts,
+}: {
+  artifacts: NpiProfile['artifactSummaries'];
+}) {
+  if (artifacts.length === 0) {
+    return <p className="rounded-2xl vt-glass-subtle px-5 py-4 text-sm text-vt-neutral-800">No verified credential artifacts available yet.</p>;
+  }
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      {artifacts.map((artifact) => (
+        <article key={artifact.artifactId} className="rounded-2xl vt-glass-subtle p-5">
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <p className="heading-sm text-white">{artifact.issuer}</p>
+              <p className="mt-1 text-xs text-vt-neutral-800">Verified {formatDate(artifact.verifiedAt)}</p>
+            </div>
+            <span className="rounded-full bg-vt-success/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-vt-success">
+              {artifact.status}
+            </span>
+          </div>
+          <dl className="space-y-2 text-xs text-vt-neutral-800">
+            <div className="flex items-center justify-between gap-4">
+              <dt>Monitoring</dt>
+              <dd className={artifact.monitoring ? 'text-vt-success' : 'text-vt-neutral-800'}>
+                {artifact.monitoring ? 'Active' : 'Off'}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <dt>Lifecycle</dt>
+              <dd className="text-vt-neutral-200">{artifact.lifecycleState}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <dt>Redacted claims</dt>
+              <dd className="text-vt-neutral-200">{artifact.claimCount}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <dt>Artifact hash</dt>
+              <dd className="font-mono text-vt-neutral-200">{artifact.checksum.slice(0, 12)}…</dd>
+            </div>
+          </dl>
+          {artifact.selectiveDisclosure ? (
+            <div className="mt-4 rounded-xl bg-vt-brand-primary/5 px-3 py-2 ring-1 ring-vt-brand-primary/20">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-vt-brand-secondary">
+                Selective Disclosure Ready
+              </p>
+              <p className="mt-1 text-[11px] text-vt-brand-primary/70">
+                {artifact.selectiveDisclosure.algorithm} compatible · {artifact.selectiveDisclosure.claimCount} hashed claim descriptors
+              </p>
+            </div>
+          ) : null}
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function IssuerProvenanceList({
+  provenance,
+}: {
+  provenance: NpiProfile['issuerProvenance'];
+}) {
+  return (
+    <div className="space-y-3">
+      {provenance.map((issuer) => (
+        <div key={issuer.issuer} className="rounded-2xl vt-glass-subtle px-5 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="heading-sm text-white">{issuer.issuer}</p>
+              <p className="mt-1 text-xs text-vt-neutral-800">Last verified {formatDate(issuer.latestVerifiedAt)}</p>
+            </div>
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-vt-success">
+              {issuer.artifactCount} artifact{issuer.artifactCount === 1 ? '' : 's'}
+            </span>
+          </div>
+          <p className="mt-3 text-xs text-vt-neutral-200">
+            Statuses: {issuer.statuses.join(', ')} {issuer.monitored ? '· monitoring active' : ''}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MonitoringSummaryCard({
+  summary,
+}: {
+  summary: NpiProfile['monitoringSummary'];
+}) {
+  return (
+    <div className="rounded-2xl vt-glass-subtle p-5">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-vt-neutral-800">Monitoring Status</p>
+      <div className="mt-4 grid grid-cols-2 gap-4">
+        <div className="rounded-xl bg-black/20 p-4 ring-1 ring-vt-glass-ring">
+          <p className="text-xl font-semibold text-white">{summary.monitoredArtifactCount}/{summary.totalArtifactCount}</p>
+          <p className="mt-1 text-xs text-vt-neutral-800">Artifacts under monitoring</p>
+        </div>
+        <div className="rounded-xl bg-black/20 p-4 ring-1 ring-vt-glass-ring">
+          <p className="text-xl font-semibold text-white">{(summary.coverageRate * 100).toFixed(1)}%</p>
+          <p className="mt-1 text-xs text-vt-neutral-800">Coverage</p>
+        </div>
+      </div>
+      <p className="mt-4 text-xs text-vt-neutral-200">
+        {summary.activeAlertCount} alerts on record
+        {summary.latestAlertAt ? ` · latest ${formatDate(summary.latestAlertAt)}` : ''}
+      </p>
+    </div>
+  );
+}
+
+function ProofCard({
+  proof,
+}: {
+  proof: NpiProfile['proof'];
+}) {
+  return (
+    <div className="rounded-2xl vt-glass-subtle p-5">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-vt-neutral-800">Shareable Verification Proof</p>
+      <p className="mt-2 text-sm text-vt-neutral-200">
+        Export the deterministic trust-proof bundle or download a human-readable PDF generated from the same canonical payload.
+      </p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <a
+          href={proof.jsonUrl}
+          className="rounded-xl bg-vt-success px-4 py-3 text-center heading-sm text-black transition-colors hover:bg-vt-success/90"
+        >
+          Download JSON Proof
+        </a>
+        <a
+          href={proof.pdfUrl}
+          className="rounded-xl border border-vt-glass-ring px-4 py-3 text-center heading-sm text-white transition-colors hover:border-vt-success/40"
+        >
+          Download PDF Proof
+        </a>
+      </div>
+    </div>
+  );
+}
+
 // ── Wave 43: Accept & Start CTA ───────────────────────────────────────────
 
 function AcceptStartCta({ npi, cleared }: { npi: string; cleared: boolean }) {
@@ -498,11 +684,6 @@ export default async function PublicTrustProfilePage({ params }: Props) {
 
   if (!profile) notFound();
 
-  // Wave 244: Pre-fetch decision capsules for NPI profiles
-  const decisionCapsules = profile.mode === 'npi'
-    ? await fetchDecisionCapsules(profile.npi)
-    : [];
-
   return (
     <main className="min-h-screen bg-passport-gradient pb-28">
       {/* Ambient glows */}
@@ -553,6 +734,10 @@ export default async function PublicTrustProfilePage({ params }: Props) {
 
               <div className="mb-8 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
+              <section className="mb-8">
+                <TrustBandCard trustBand={profile.trustBand} readinessScore={profile.readinessScore} />
+              </section>
+
               {/* Merkle events timeline */}
               <section className="mb-8">
                 <EventTimeline events={profile.events} lastAnchored={profile.lastAnchored} />
@@ -585,64 +770,39 @@ export default async function PublicTrustProfilePage({ params }: Props) {
                 </section>
               )}
 
-              {/* Wave 243: Trust State Panel — read-only for public profile */}
               <section className="mb-8">
                 <p className="mb-3 text-center text-[10px] font-semibold uppercase tracking-widest text-vt-neutral-800">
-                  Trust State
+                  Verified Credential Artifacts
                 </p>
-                <TrustStatePanel npi={profile.npi} readOnly />
+                <ArtifactGrid artifacts={profile.artifactSummaries} />
               </section>
 
-              {/* Wave 244: Decision Capsule Timeline */}
-              {decisionCapsules.length > 0 && (
-                <section className="mb-8">
-                  <p className="mb-3 text-center text-[10px] font-semibold uppercase tracking-widest text-vt-neutral-800">
-                    Decision History
-                  </p>
-                  <DecisionTimeline
-                    capsules={decisionCapsules}
-                    heading=""
-                    compact={false}
-                  />
-                </section>
-              )}
-
-              {/* Wave 104: Credential Wallet embedded in public profile */}
               <section className="mb-8">
                 <p className="mb-3 text-center text-[10px] font-semibold uppercase tracking-widest text-vt-neutral-800">
-                  Credential Wallet
+                  Issuer Provenance
                 </p>
-                <div className="rounded-xl overflow-hidden ring-1 ring-vt-glass-ring bg-vt-surface-raised">
-                  <CredentialWallet subject={profile.npi} pollIntervalMs={120_000} />
-                </div>
+                <IssuerProvenanceList provenance={profile.issuerProvenance} />
               </section>
 
-              {/* Wave 139: HAIP compliance indicator */}
-              <section className="mb-6">
-                <div className="flex items-center gap-3 rounded-xl bg-vt-brand-primary/5 ring-1 ring-vt-brand-primary/20 px-4 py-3">
-                  <svg className="h-4 w-4 text-vt-brand-primary shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fillRule="evenodd" d="M16.403 12.652a3 3 0 000-5.304 3 3 0 00-3.75-3.751 3 3 0 00-5.305 0 3 3 0 00-3.751 3.75 3 3 0 000 5.305 3 3 0 003.75 3.751 3 3 0 005.305 0 3 3 0 003.751-3.75zm-2.546-4.46a.75.75 0 00-1.214-.883l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
-                  </svg>
-                  <div>
-                    <p className="heading-sm text-vt-brand-secondary">HAIP Conformance Profile</p>
-                    <p className="text-[10px] text-vt-brand-primary/70 mt-0.5">
-                      Credentials verified against Healthcare Attestation Interoperability Profile
-                    </p>
-                  </div>
-                </div>
+              <section className="mb-8">
+                <MonitoringSummaryCard summary={profile.monitoringSummary} />
               </section>
 
-              {/* Wave 139: Share passport actions */}
               <section className="mb-8">
                 <PassportShareActions
                   npi={profile.npi}
                   credentialCount={profile.activeCredentials.length}
+                  downloadUrl={profile.proof.jsonUrl}
                 />
+              </section>
+
+              <section className="mb-8">
+                <ProofCard proof={profile.proof} />
               </section>
 
               {/* Wave 246: Apply with VitalCV — Share credentials action */}
               <section className="mb-8 flex justify-center">
-                <ApplyWithVitalCV npi={profile.npi} label="Share Credentials" />
+                <ApplyWithVitalCV npi={profile.npi} label="Apply with VitalCV" />
               </section>
 
               <footer className="text-center">
