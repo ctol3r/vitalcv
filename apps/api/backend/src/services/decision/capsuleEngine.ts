@@ -49,6 +49,17 @@ export interface DecisionCapsuleRecord {
   createdAt: string;
 }
 
+export interface CreateHireDecisionInput {
+  subjectNpi: string;
+  employerId: string;
+  acceptanceId: string;
+  startAttestationId: string;
+  role: string;
+  facility: string;
+  startedAt: string;
+  organizationId?: string;
+}
+
 // ── Constants ─────────────────────────────────────────────────────────────
 
 const METHODOLOGY_VERSION = 'CRS_v1.0';
@@ -215,7 +226,18 @@ async function createDecisionFromApplication(params: {
   // Step 1: Look up the Application to get NPI and opportunityId
   const application = await prisma.application.findUnique({
     where: { id: applicationId },
-    select: { id: true, npi: true, opportunityId: true, clerkUserId: true },
+    select: {
+      id: true,
+      npi: true,
+      opportunityId: true,
+      clerkUserId: true,
+      opportunity: {
+        select: {
+          organizationId: true,
+          organization: { select: { name: true } },
+        },
+      },
+    },
   });
 
   if (!application) {
@@ -279,6 +301,9 @@ async function createDecisionFromApplication(params: {
       metadata: JSON.parse(JSON.stringify({
         applicationId,
         opportunityId: application.opportunityId,
+        organizationId: application.opportunity.organizationId,
+        organizationName: application.opportunity.organization.name,
+        employerId: application.opportunity.organizationId,
         verifierClerkUserId,
         trust_state_snapshot: trustState,
         candidateCredentialIds: candidateCredentials.map((c) => c.id),
@@ -324,9 +349,59 @@ async function createDecisionFromApplication(params: {
   return mapCapsule(capsule);
 }
 
+async function createDecisionFromHire(
+  input: CreateHireDecisionInput,
+): Promise<DecisionCapsuleRecord> {
+  const existingCapsules = await prisma.decisionCapsule.findMany({
+    where: { subjectNpi: input.subjectNpi },
+    orderBy: { decisionTimestamp: 'desc' },
+    take: 20,
+  });
+
+  const existing = existingCapsules.find((capsule) => {
+    const metadata = capsule.metadata as Record<string, unknown> | null;
+    return metadata?.startAttestationId === input.startAttestationId;
+  });
+  if (existing) {
+    return mapCapsule(existing);
+  }
+
+  const trustState = await ensureTrustStateBeforeCapsule(input.subjectNpi);
+  const [artifacts, candidateCredentials] = await Promise.all([
+    prisma.verificationArtifact.findMany({
+      where: { npi: input.subjectNpi },
+      select: { id: true, source: true },
+    }),
+    prisma.candidateCredential.findMany({
+      where: { clinicianId: input.subjectNpi },
+      select: { id: true },
+    }),
+  ]);
+
+  return createDecisionCapsule({
+    subjectDid: `did:vitalcv:${input.subjectNpi}`,
+    subjectNpi: input.subjectNpi,
+    decisionType: 'HIRING',
+    credentialIds: artifacts.map((artifact) => artifact.id),
+    issuerIds: [...new Set(artifacts.map((artifact) => artifact.source))],
+    metadata: {
+      acceptanceId: input.acceptanceId,
+      startAttestationId: input.startAttestationId,
+      employerId: input.employerId,
+      organizationId: input.organizationId ?? input.employerId,
+      role: input.role,
+      facility: input.facility,
+      startedAt: input.startedAt,
+      trust_state_snapshot: trustState,
+      candidateCredentialIds: candidateCredentials.map((credential) => credential.id),
+    },
+  });
+}
+
 export const capsuleEngine = {
   createDecisionCapsule,
   createDecisionFromApplication,
+  createDecisionFromHire,
   getCapsulesByNpi,
   getCapsuleById,
   countCapsules,

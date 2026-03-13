@@ -9,8 +9,16 @@
  *   clerkUserId → User → PersonProfile → WorkspaceMembership → OrganizationProfile → Organization
  */
 
+import { Prisma } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import { HttpError } from '../../utils/httpError';
+import type { EmployerRequirementSpec } from '../employers/employerCatalog';
+import {
+  buildOrganizationRequirementsEnvelope,
+  parseOrganizationRequirementsEnvelope,
+  type OrganizationAcceptanceRules,
+  type TrustAcceptanceContracts,
+} from '../employers/pilotPolicy';
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -84,6 +92,10 @@ export async function upsertOrgProfile(
     description?: string;
     website?: string;
     hiringTypes?: string[];
+    requirements?: EmployerRequirementSpec[];
+    pilotMode?: boolean;
+    organizationAcceptanceRules?: OrganizationAcceptanceRules;
+    trustAcceptanceContracts?: TrustAcceptanceContracts;
   },
 ): Promise<{ organizationId: string }> {
   const { user, profile: existingProfile } = await getPersonProfile(clerkUserId);
@@ -100,6 +112,19 @@ export async function upsertOrgProfile(
   });
 
   if (existingMembership) {
+    const existingEnvelope = parseOrganizationRequirementsEnvelope(
+      existingMembership.organizationProfile.requirements,
+      [],
+    );
+    const nextEnvelope = buildOrganizationRequirementsEnvelope({
+      requirements: input.requirements ?? existingEnvelope.requirements,
+      pilotMode: input.pilotMode ?? existingEnvelope.pilotMode,
+      organizationAcceptanceRules:
+        input.organizationAcceptanceRules ?? existingEnvelope.organizationAcceptanceRules,
+      trustAcceptanceContracts:
+        input.trustAcceptanceContracts ?? existingEnvelope.trustAcceptanceContracts,
+    });
+
     // Update existing org profile
     await prisma.organization.update({
       where: { id: existingMembership.organizationProfile.organizationId },
@@ -115,6 +140,7 @@ export async function upsertOrgProfile(
         description: input.description,
         website: input.website,
         hiringTypes: input.hiringTypes ?? [],
+        requirements: nextEnvelope as unknown as Prisma.InputJsonValue,
       },
     });
     return { organizationId: existingMembership.organizationProfile.organizationId };
@@ -136,16 +162,34 @@ export async function upsertOrgProfile(
           description: input.description,
           website: input.website,
           hiringTypes: input.hiringTypes ?? [],
+          requirements: buildOrganizationRequirementsEnvelope({
+            requirements: input.requirements ?? [],
+            pilotMode: input.pilotMode ?? false,
+            organizationAcceptanceRules: input.organizationAcceptanceRules ?? {
+              acceptL3CredentialsAutomatically: false,
+              requirePsvOnlyForGaps: false,
+            },
+            trustAcceptanceContracts: input.trustAcceptanceContracts ?? {
+              triggerDecisionCapsuleOnHire: false,
+            },
+          }) as unknown as Prisma.InputJsonValue,
         },
       },
     },
-    include: { organizationProfile: true },
   });
+
+  const orgProfile = await prisma.organizationProfile.findUnique({
+    where: { organizationId: org.id },
+    select: { id: true },
+  });
+  if (!orgProfile) {
+    throw new HttpError(500, 'Organization profile was not created.');
+  }
 
   await prisma.workspaceMembership.create({
     data: {
       personProfileId: personProfile.id,
-      organizationProfileId: org.organizationProfile!.id,
+      organizationProfileId: orgProfile.id,
       role: 'ADMIN',
       active: true,
     },
@@ -164,6 +208,8 @@ export async function getOrgProfile(clerkUserId: string) {
   });
   if (!op) return null;
 
+  const requirementsEnvelope = parseOrganizationRequirementsEnvelope(op.requirements, []);
+
   return {
     organizationId: op.organizationId,
     name: op.organization.name,
@@ -174,6 +220,10 @@ export async function getOrgProfile(clerkUserId: string) {
     description: op.description,
     website: op.website,
     hiringTypes: op.hiringTypes,
+    requirements: requirementsEnvelope.requirements,
+    pilotMode: requirementsEnvelope.pilotMode,
+    organizationAcceptanceRules: requirementsEnvelope.organizationAcceptanceRules,
+    trustAcceptanceContracts: requirementsEnvelope.trustAcceptanceContracts,
   };
 }
 
