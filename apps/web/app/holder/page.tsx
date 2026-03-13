@@ -16,6 +16,7 @@ import { WalletPassport } from '@/components/wallet/WalletPassport';
 import { CredentialWallet } from '@/components/wallet/CredentialWallet';
 import { CredentialPresentationActions } from '@/components/clinician/CredentialPresentationActions';
 import ImpactPanel from '@/components/impact/ImpactPanel';
+import { TrustStatePanel } from '@/components/trust-state/TrustStatePanel';
 
 type WorkspaceProfile = {
   npi?: string | null;
@@ -141,6 +142,11 @@ export default function HolderPage() {
           <Upload className="h-3.5 w-3.5" />
           Upload Credential
         </Link>
+      </div>
+
+      {/* Trust State */}
+      <div className="px-6 pt-4 pb-0 max-w-3xl mx-auto">
+        <TrustStatePanel npi={npi!} />
       </div>
 
       {/* Passport */}
