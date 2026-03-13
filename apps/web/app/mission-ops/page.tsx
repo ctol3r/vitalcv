@@ -28,6 +28,7 @@ import OpsTelemetryPanel from '@/components/ops/TelemetryPanel';
 import TrustGraphConsole from '@/components/ops/TrustGraphConsole';
 import { FederationHealthPanel } from '@/components/substrate/FederationHealthPanel';
 import { RevocationCascadePanel } from '@/components/substrate/RevocationCascadePanel';
+import MonitoringStatusPanel from '@/components/monitoring/MonitoringStatusPanel';
 import NetworkTelemetryDashboard from '@/components/telemetry/NetworkTelemetryDashboard';
 import NetworkTelemetryIntelligence from '@/components/telemetry/NetworkTelemetryIntelligence';
 import TelemetryPanel from '@/components/telemetry/TelemetryPanel';
@@ -411,6 +412,18 @@ export default function MissionOpsPage() {
               </span>
             </div>
             <RevocationCascadePanel />
+          </motion.div>
+
+          {/* Wave 245: Async Trust Monitor */}
+          <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.38 }}>
+            <div className="flex items-center gap-2 mb-4">
+              <Shield className="h-4 w-4 text-blue-400" />
+              <h2 className="heading-md text-vt-neutral-100">Async Trust Monitor</h2>
+              <span className="text-[10px] code text-vt-neutral-800 border border-vt-neutral-800 rounded px-1.5 py-0.5">
+                Wave 245
+              </span>
+            </div>
+            <MonitoringStatusPanel />
           </motion.div>
 
           {/* Wave 143: Provider Directory Distribution */}
