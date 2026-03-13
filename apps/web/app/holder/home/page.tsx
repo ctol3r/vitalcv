@@ -3,6 +3,7 @@ import Link from 'next/link';
 import NextBestAction from '@/components/workspace/NextBestAction';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import { ShieldCheck, Compass, Share2, Users } from 'lucide-react';
+import { ApplyWidgetSection } from '@/components/apply/ApplyWidgetSection'; // Wave 246
 
 export const metadata: Metadata = {
   title: 'Your Workspace — VitalCV',
@@ -103,6 +104,11 @@ export default function HolderHomePage() {
           {/* Next Best Action (1/3 width) */}
           <div>
             <NextBestAction actions={NEXT_BEST_ACTIONS} heading="Next Best Action" />
+
+            {/* Wave 246: Apply with VitalCV */}
+            <div className="mt-4">
+              <ApplyWidgetSection npi={null} />
+            </div>
 
             {/* Workspace switcher hint */}
             <div className="mt-4 rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-base p-4">
