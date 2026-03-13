@@ -17,6 +17,25 @@ const HIRING_TYPES = ['locums', 'perm', 'telehealth', 'contract', 'per_diem'];
 
 type Phase = 'loading' | 'form' | 'saving' | 'saved' | 'error';
 
+type EmployerProfileResponse = {
+  name?: string;
+  facilityType?: string;
+  specialties?: string[];
+  statesCovered?: string[];
+  hiringTypes?: string[];
+  tagline?: string;
+  description?: string;
+  website?: string;
+  pilotMode?: boolean;
+  organizationAcceptanceRules?: {
+    acceptL3CredentialsAutomatically?: boolean;
+    requirePsvOnlyForGaps?: boolean;
+  };
+  trustAcceptanceContracts?: {
+    triggerDecisionCapsuleOnHire?: boolean;
+  };
+};
+
 export default function VerifierCompanyPage() {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>('loading');
@@ -28,12 +47,16 @@ export default function VerifierCompanyPage() {
   const [tagline, setTagline] = useState('');
   const [description, setDescription] = useState('');
   const [website, setWebsite] = useState('');
+  const [pilotMode, setPilotMode] = useState(false);
+  const [acceptL3Automatically, setAcceptL3Automatically] = useState(false);
+  const [requirePsvOnlyForGaps, setRequirePsvOnlyForGaps] = useState(false);
+  const [triggerDecisionCapsuleOnHire, setTriggerDecisionCapsuleOnHire] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     fetch('/api/employer/profile')
       .then(r => r.ok ? r.json() : null)
-      .then((data: { name?: string; facilityType?: string; specialties?: string[]; statesCovered?: string[]; hiringTypes?: string[]; tagline?: string; description?: string; website?: string } | null) => {
+      .then((data: EmployerProfileResponse | null) => {
         if (data) {
           setName(data.name ?? '');
           setFacilityType(data.facilityType ?? 'hospital');
@@ -43,6 +66,10 @@ export default function VerifierCompanyPage() {
           setTagline(data.tagline ?? '');
           setDescription(data.description ?? '');
           setWebsite(data.website ?? '');
+          setPilotMode(data.pilotMode ?? false);
+          setAcceptL3Automatically(data.organizationAcceptanceRules?.acceptL3CredentialsAutomatically ?? false);
+          setRequirePsvOnlyForGaps(data.organizationAcceptanceRules?.requirePsvOnlyForGaps ?? false);
+          setTriggerDecisionCapsuleOnHire(data.trustAcceptanceContracts?.triggerDecisionCapsuleOnHire ?? false);
         }
         setPhase('form');
       })
@@ -61,7 +88,24 @@ export default function VerifierCompanyPage() {
       const res = await fetch('/api/employer/setup', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), facilityType, specialties, statesCovered, hiringTypes, tagline, description, website }),
+        body: JSON.stringify({
+          name: name.trim(),
+          facilityType,
+          specialties,
+          statesCovered,
+          hiringTypes,
+          tagline,
+          description,
+          website,
+          pilotMode,
+          organizationAcceptanceRules: {
+            acceptL3CredentialsAutomatically: acceptL3Automatically,
+            requirePsvOnlyForGaps,
+          },
+          trustAcceptanceContracts: {
+            triggerDecisionCapsuleOnHire,
+          },
+        }),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({})) as { error?: string };
@@ -167,6 +211,49 @@ export default function VerifierCompanyPage() {
           <Field label="Website">
             <input value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://yourfacility.com" className={INPUT} />
           </Field>
+
+          <div className="rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-base/70 p-5">
+            <div className="mb-4">
+              <h2 className="text-sm font-semibold text-white">Pilot Readiness Mode</h2>
+              <p className="mt-1 text-xs text-vt-neutral-200">
+                Configure how your organization accepts high-trust clinicians during pilot onboarding.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <label className="flex items-start gap-3 rounded-xl border border-vt-neutral-800 px-4 py-3">
+                <input type="checkbox" checked={pilotMode} onChange={e => setPilotMode(e.target.checked)} className="mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-white">Enable pilot mode</p>
+                  <p className="mt-1 text-xs text-vt-neutral-200">Turns on pilot acceptance rules and hire-time capsule automation.</p>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3 rounded-xl border border-vt-neutral-800 px-4 py-3">
+                <input type="checkbox" checked={acceptL3Automatically} onChange={e => setAcceptL3Automatically(e.target.checked)} className="mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-white">Accept L3 credentials automatically</p>
+                  <p className="mt-1 text-xs text-vt-neutral-200">Auto-accept clinicians whose latest trust snapshot is already at L3.</p>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3 rounded-xl border border-vt-neutral-800 px-4 py-3">
+                <input type="checkbox" checked={requirePsvOnlyForGaps} onChange={e => setRequirePsvOnlyForGaps(e.target.checked)} className="mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-white">Require PSV only for gaps</p>
+                  <p className="mt-1 text-xs text-vt-neutral-200">Escalate only the missing evidence instead of re-running PSV on fully backed artifacts.</p>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3 rounded-xl border border-vt-neutral-800 px-4 py-3">
+                <input type="checkbox" checked={triggerDecisionCapsuleOnHire} onChange={e => setTriggerDecisionCapsuleOnHire(e.target.checked)} className="mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-white">Trigger Decision Capsule on hire</p>
+                  <p className="mt-1 text-xs text-vt-neutral-200">Create a hospital-specific decision capsule automatically when a hire is attested to start.</p>
+                </div>
+              </label>
+            </div>
+          </div>
 
           {error && (
             <div className="flex items-center gap-2 text-sm text-red-400">

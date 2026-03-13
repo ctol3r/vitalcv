@@ -20,6 +20,13 @@ import {
   upsertOrgProfile,
 } from '../services/opportunities/opportunityService';
 import { HttpError } from '../utils/httpError';
+import prisma from '../graphql/prisma_client';
+import { sha256ForPayload } from '../utils/deterministic';
+import type { EmployerRequirementSpec } from '../services/employers/employerCatalog';
+import type {
+  OrganizationAcceptanceRules,
+  TrustAcceptanceContracts,
+} from '../services/employers/pilotPolicy';
 
 function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
   return (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
@@ -52,6 +59,10 @@ export function registerOpportunityRoutes(app: Express): void {
         description?: string;
         website?: string;
         hiringTypes?: string[];
+        requirements?: EmployerRequirementSpec[];
+        pilotMode?: boolean;
+        organizationAcceptanceRules?: OrganizationAcceptanceRules;
+        trustAcceptanceContracts?: TrustAcceptanceContracts;
       };
 
       if (!body.name?.trim()) throw new HttpError(400, 'Organization name is required.');
@@ -65,7 +76,37 @@ export function registerOpportunityRoutes(app: Express): void {
         description: body.description,
         website: body.website,
         hiringTypes: body.hiringTypes,
+        requirements: body.requirements,
+        pilotMode: body.pilotMode,
+        organizationAcceptanceRules: body.organizationAcceptanceRules,
+        trustAcceptanceContracts: body.trustAcceptanceContracts,
       });
+
+      if (
+        body.pilotMode !== undefined
+        || body.organizationAcceptanceRules !== undefined
+        || body.trustAcceptanceContracts !== undefined
+      ) {
+        await prisma.auditEvent.create({
+          data: {
+            type: 'PILOT_POLICY_UPDATED',
+            hash: sha256ForPayload({
+              organizationId: result.organizationId,
+              pilotMode: body.pilotMode ?? false,
+              organizationAcceptanceRules: body.organizationAcceptanceRules ?? null,
+              trustAcceptanceContracts: body.trustAcceptanceContracts ?? null,
+            }),
+            organizationId: result.organizationId,
+            metadata: JSON.parse(JSON.stringify({
+              pilotMode: body.pilotMode ?? false,
+              organizationAcceptanceRules: body.organizationAcceptanceRules ?? null,
+              trustAcceptanceContracts: body.trustAcceptanceContracts ?? null,
+            })),
+          },
+        }).catch((error: unknown) => {
+          throw new HttpError(500, `Failed to persist pilot policy audit event: ${String(error)}`);
+        });
+      }
 
       res.status(201).json(result);
     }),

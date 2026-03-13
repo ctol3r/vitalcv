@@ -19,6 +19,7 @@ import {
   EMPLOYER_KNOWLEDGE_SEEDS,
   getEmployerSeedBySlug,
 } from './employerCatalog';
+import { parseOrganizationRequirementsEnvelope } from './pilotPolicy';
 
 type EmployerProfileRecord = Prisma.OrganizationProfileGetPayload<{
   include: {
@@ -111,32 +112,8 @@ function normalizeRequirements(
   value: Prisma.JsonValue | null | undefined,
   fallback: EmployerRequirementSpec[],
 ): EmployerRequirementSpec[] {
-  if (!Array.isArray(value)) {
-    return fallback;
-  }
-
-  const parsed: EmployerRequirementSpec[] = [];
-  for (const item of value) {
-    if (!item || typeof item !== 'object' || Array.isArray(item)) {
-      continue;
-    }
-
-    const label = typeof item.label === 'string' ? item.label.trim() : '';
-    if (!label) {
-      continue;
-    }
-
-    const level = item.level === 'L1' || item.level === 'L2' || item.level === 'L3'
-      ? item.level
-      : 'L1';
-    const note = typeof item.note === 'string' && item.note.trim().length > 0
-      ? item.note.trim()
-      : undefined;
-
-    parsed.push(note ? { label, level, note } : { label, level });
-  }
-
-  return parsed.length > 0 ? parsed : fallback;
+  const envelope = parseOrganizationRequirementsEnvelope(value, fallback);
+  return envelope.requirements.length > 0 ? envelope.requirements : fallback;
 }
 
 function buildTrustIndicators(detail: {

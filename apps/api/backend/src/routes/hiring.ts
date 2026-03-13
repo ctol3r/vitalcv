@@ -38,6 +38,14 @@ import { log } from '../obs/logger';
 import { apiKeyAuth, publicApiRateLimit } from '../middleware/publicSafety';
 import { sha256ForPayload } from '../utils/deterministic';
 import { recordSuccessfulHire, VERIFIED_HIRE_AMOUNT_CENTS, VERIFIED_HIRE_CURRENCY } from '../services/billing/stripeClient';
+import { computeClinicianTrustState } from '../services/trust/trustStateEngine';
+import { capsuleEngine } from '../services/decision/capsuleEngine';
+import {
+  DEFAULT_PILOT_POLICY,
+  evaluatePilotReadiness,
+  parseOrganizationRequirementsEnvelope,
+  type PilotReadinessEvaluation,
+} from '../services/employers/pilotPolicy';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -66,6 +74,43 @@ interface StartBody {
   facility:     string;
   /** ISO 8601 timestamp — may be future-dated for pre-scheduled starts. */
   startedAt:    string;
+}
+
+async function getEmployerPilotContext(employerId: string): Promise<{
+  organizationId?: string;
+  policy: typeof DEFAULT_PILOT_POLICY;
+}> {
+  const profile = await prisma.organizationProfile.findUnique({
+    where: { organizationId: employerId },
+    select: { organizationId: true, requirements: true },
+  });
+
+  if (!profile) {
+    return { policy: DEFAULT_PILOT_POLICY };
+  }
+
+  const envelope = parseOrganizationRequirementsEnvelope(profile.requirements, []);
+  return {
+    organizationId: profile.organizationId,
+    policy: {
+      pilotMode: envelope.pilotMode,
+      organizationAcceptanceRules: envelope.organizationAcceptanceRules,
+      trustAcceptanceContracts: envelope.trustAcceptanceContracts,
+    },
+  };
+}
+
+async function buildPilotReadinessEvaluation(
+  employerId: string,
+  clinicianNpi: string,
+): Promise<PilotReadinessEvaluation | null> {
+  const { policy } = await getEmployerPilotContext(employerId);
+  if (!policy.pilotMode) {
+    return null;
+  }
+
+  const trustState = await computeClinicianTrustState(clinicianNpi);
+  return evaluatePilotReadiness(trustState, policy);
 }
 
 // ── Route registration ─────────────────────────────────────────────────────
@@ -129,11 +174,24 @@ export function registerHiringRoutes(app: Express): void {
         },
       });
 
+      const pilotReadiness = await buildPilotReadinessEvaluation(
+        acceptance.employerId,
+        acceptance.clinicianNpi,
+      ).catch((error: unknown) => {
+        log('warn', 'hiring_accept_pilot_readiness_failed', {
+          acceptanceId: acceptance.id,
+          employerId: acceptance.employerId,
+          error: String(error),
+        });
+        return null;
+      });
+
       log('info', 'hiring_accept', {
         acceptanceId: acceptance.id,
         employerId:   acceptance.employerId,
         npi_prefix:   clinicianNpi.slice(0, 4) + '····',
         artifactId:   artifactId ?? null,
+        pilotReadiness,
       });
 
       return res.status(201).json({
@@ -143,6 +201,7 @@ export function registerHiringRoutes(app: Express): void {
         clinicianNpi: acceptance.clinicianNpi,
         status:       acceptance.status,
         acceptedAt:   acceptance.acceptedAt.toISOString(),
+        pilotReadiness,
       });
     },
   );
@@ -351,6 +410,48 @@ export function registerHiringRoutes(app: Express): void {
         });
       });
 
+      const pilotContext = await getEmployerPilotContext(acceptance.employerId).catch((error: unknown) => {
+        log('warn', 'hiring_start_pilot_policy_lookup_failed', {
+          acceptanceId,
+          employerId: acceptance.employerId,
+          error: String(error),
+        });
+        return { organizationId: undefined, policy: DEFAULT_PILOT_POLICY };
+      });
+
+      const pilotReadiness = pilotContext.policy.pilotMode
+        ? await computeClinicianTrustState(acceptance.clinicianNpi)
+            .then((trustState) => evaluatePilotReadiness(trustState, pilotContext.policy))
+            .catch((error: unknown) => {
+              log('warn', 'hiring_start_pilot_readiness_failed', {
+                acceptanceId,
+                employerId: acceptance.employerId,
+                error: String(error),
+              });
+              return null;
+            })
+        : null;
+
+      if (pilotReadiness?.triggerDecisionCapsuleOnHire) {
+        void capsuleEngine.createDecisionFromHire({
+          subjectNpi: acceptance.clinicianNpi,
+          employerId: acceptance.employerId,
+          organizationId: pilotContext.organizationId,
+          acceptanceId,
+          startAttestationId: attestation.id,
+          role: attestation.role,
+          facility: attestation.facility,
+          startedAt: attestation.startedAt.toISOString(),
+        }).catch((error: unknown) => {
+          log('warn', 'hiring_start_decision_capsule_creation_failed', {
+            acceptanceId,
+            startAttestationId: attestation.id,
+            employerId: acceptance.employerId,
+            error: String(error),
+          });
+        });
+      }
+
       // ── 201 response ─────────────────────────────────────────────────────
       return res.status(201).json({
         ok:                 true,
@@ -373,6 +474,7 @@ export function registerHiringRoutes(app: Express): void {
           currency:        VERIFIED_HIRE_CURRENCY,
         },
         on_loop_delta_ms: onLoopDeltaMs,
+        pilotReadiness,
       });
     },
   );
