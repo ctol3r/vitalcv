@@ -157,6 +157,7 @@ import { registerCredentialIndexRoutes } from './routes/credentialIndex';  // Wa
 import { registerAuthorityGraphRoutes } from './routes/authorityGraph';       // Wave 500: Authority Graph Engine
 import { registerVerificationAgentRoutes } from './routes/verificationAgents'; // Wave 500+: AI Verification Agents
 import { registerVerifyProfessionalRoutes } from './routes/verifyProfessional';   // Wave: AI Professional Verification
+import { registerDeploymentRoutes } from './routes/deployment';                    // Wave: Deployable Workforce
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3584,6 +3585,7 @@ registerCredentialIndexRoutes(app);       // Wave Index — global credential re
 registerAuthorityGraphRoutes(app);         // Wave 500 — Authority Graph Engine
 registerVerificationAgentRoutes(app);      // Wave 500+ — AI Verification Agent Swarm
 registerVerifyProfessionalRoutes(app);     // Wave: AI Professional Verification API
+registerDeploymentRoutes(app);             // Wave: Credential-based deployment matching
 registerPayerVerificationRoutes(app); // Wave 142 — Payer Network Integration
 registerProviderDirectoryRoutes(app);  // Wave 143 — Provider Directory Distribution
 registerGraphScalingRoutes(app);       // Wave 144 — Trust Graph Performance Scaling
