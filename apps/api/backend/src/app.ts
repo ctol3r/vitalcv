@@ -152,6 +152,7 @@ import { registerLiveGraphRoutes } from './routes/liveGraph';                   
 import { registerSystemHealthRoutes } from './routes/systemHealth';                    // Wave 249: Trust Spine Hardening
 import { registerVelocityRoutes } from './routes/velocity';                              // Wave 250: Time-to-Start Velocity Dashboard
 import { registerTrustProofRoutes } from './routes/trustProof';                        // Wave 252: Trust Proof Bundle
+import { registerPsvRoutes } from './routes/psv';
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3574,6 +3575,7 @@ registerLiveGraphRoutes(app);            // Wave 247 — Live Trust Graph
 registerSystemHealthRoutes(app);         // Wave 249 — Trust Spine Hardening
 registerVelocityRoutes(app);             // Wave 250 — Time-to-Start Velocity Dashboard
 registerTrustProofRoutes(app);           // Wave 252 — Trust Proof Bundle
+registerPsvRoutes(app);                  // Wave PSV-Engine — unified PSV API
 registerPayerVerificationRoutes(app); // Wave 142 — Payer Network Integration
 registerProviderDirectoryRoutes(app);  // Wave 143 — Provider Directory Distribution
 registerGraphScalingRoutes(app);       // Wave 144 — Trust Graph Performance Scaling
