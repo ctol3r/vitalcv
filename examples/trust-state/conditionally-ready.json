@@ -1,0 +1,47 @@
+{
+  "subjectDid": "did:vitalcv:npi:conditional-demo",
+  "subjectNpi": "2234567890",
+  "contextOrgId": "org-conditional",
+  "workflowContext": "locums",
+  "readinessScore": 88,
+  "readinessLevel": "L2",
+  "readinessStatus": "CONDITIONALLY_READY",
+  "artifactStatuses": [
+    {
+      "canonicalArtifactKey": "identity_binding",
+      "requirementLabel": "Identity Binding",
+      "requirementWeight": 3,
+      "resolvedLevel": "L3",
+      "artifactScore": 100,
+      "revoked": false,
+      "freshness": "not_applicable",
+      "matchedEvidenceIds": [
+        "binding-conditional"
+      ],
+      "reasons": [
+        "active DID to NPI identity anchor found"
+      ]
+    },
+    {
+      "canonicalArtifactKey": "dea_registration",
+      "requirementLabel": "DEA Registration",
+      "requirementWeight": 2,
+      "resolvedLevel": "L2",
+      "artifactScore": 75,
+      "revoked": false,
+      "freshness": "stale",
+      "matchedEvidenceIds": [
+        "artifact-dea-stale"
+      ],
+      "reasons": [
+        "artifact is older than the 90-day freshness window",
+        "primary-source verification is current"
+      ]
+    }
+  ],
+  "warnings": [
+    "Requirement \"DEA Registration\" is stale and requires refresh."
+  ],
+  "methodologyVersion": "wave253.v1",
+  "generatedAt": "2026-03-13T00:00:00.000Z"
+}

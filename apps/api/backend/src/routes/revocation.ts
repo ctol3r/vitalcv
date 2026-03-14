@@ -16,10 +16,8 @@ import {
   updateCredentialStatus,
 } from '../services/credentials/credentialWallet';
 import { emitAlert } from '../services/alerts/trustAlerts';
-import { getRequestOrganizationId } from '../middleware/organizationContext';
 import { log } from '../obs/logger';
 import { auditRevocation, newTraceId } from '../services/audit/auditLedger';
-import { revokeVerificationArtifact } from '../services/credentials/credentialArtifactBridge';
 
 export function registerRevocationRoutes(app: Express): void {
 
@@ -56,12 +54,6 @@ export function registerRevocationRoutes(app: Express): void {
       });
 
       updateCredentialStatus(credentialId, 'REVOKED');
-      await revokeVerificationArtifact(
-        credentialId,
-        reason,
-        new Date(entry.revokedAt),
-        getRequestOrganizationId(req),
-      );
 
       try {
         await emitAlert({

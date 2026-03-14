@@ -75,6 +75,10 @@ export const fontSize = {
   '6xl': '3.75rem',  // 60px
   '7xl': '4.5rem',   // 72px
   '8xl': '6rem',     // 96px
+  '9xl': '8rem',     // 128px
+  '10xl': '10rem',   // 160px
+  '11xl': '12rem',   // 192px
+  '12xl': '14rem',   // 224px
 } as const;
 
 export const lineHeight = {
@@ -113,6 +117,9 @@ export const spacing = {
   20: '5rem',         // 80px
   24: '6rem',         // 96px
   32: '8rem',         // 128px
+  40: '10rem',        // 160px
+  48: '12rem',        // 192px
+  64: '16rem',        // 256px
 } as const;
 
 /* ── Z-index layers ────────────────────────────────────── */

@@ -1,7 +1,10 @@
 import prisma, { Prisma } from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
+import { sha256Hex } from '../../utils/deterministic';
 import { computeTrustState } from '../trustState';
+import { PrismaBackedPsvStore } from '../psv/PrismaBackedPsvStore';
 import {
+  buildDeterministicId,
   evaluateRetentionWindows,
   getSourcePolicy,
   hashSensitiveInput,
@@ -13,6 +16,7 @@ import {
   type PersistBatchInput,
   type PersistedBatchRecord,
 } from '@vitalcv/psv-adapters';
+import { PSVReceipt, type SourceAuthority } from '../../../../../../packages/psv';
 
 type VerificationArtifactRecord = Readonly<{
   id: string;
@@ -97,6 +101,56 @@ function trustStateForBatch(batch: CredentialFactBatch): string {
   });
 }
 
+function sourceIncludes(source: string, needle: string): boolean {
+  return source.toLowerCase().includes(needle.toLowerCase());
+}
+
+function deriveReceiptSourceAuthority(batch: CredentialFactBatch): SourceAuthority {
+  if (sourceIncludes(batch.source, 'npi')) {
+    return 'NPI';
+  }
+
+  if (sourceIncludes(batch.source, 'oig')) {
+    return 'LEIE';
+  }
+
+  return 'OTHER';
+}
+
+function deriveVerificationCheck(batch: CredentialFactBatch): string {
+  if (sourceIncludes(batch.source, 'npi')) {
+    return 'NPI_IDENTITY';
+  }
+
+  if (sourceIncludes(batch.source, 'oig')) {
+    return 'OIG_LEIE';
+  }
+
+  return 'PSV_CHECK';
+}
+
+function deriveVerificationOutcome(batch: CredentialFactBatch): 'PASS' | 'FAIL' {
+  const normalizedStatus = String(batch.summary.status).toUpperCase();
+  return normalizedStatus === 'ACTIVE' || normalizedStatus === 'PASS' ? 'PASS' : 'FAIL';
+}
+
+function deriveReceiptTtlSeconds(batch: CredentialFactBatch): number {
+  return sourceIncludes(batch.source, 'oig') ? 3600 : 86400;
+}
+
+function toDeterministicUuidV4(seed: string): string {
+  const hex = sha256Hex(seed);
+  const variant = ['8', '9', 'a', 'b'][parseInt(hex.slice(16, 17), 16) % 4];
+
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    `4${hex.slice(13, 16)}`,
+    `${variant}${hex.slice(17, 20)}`,
+    hex.slice(20, 32),
+  ].join('-');
+}
+
 export class BackendCanonicalCredentialFactStore implements CanonicalCredentialFactStore {
   constructor(private readonly prismaClient: PrismaClientLike = prisma as unknown as PrismaClientLike) {}
 
@@ -158,6 +212,38 @@ export class BackendCanonicalCredentialFactStore implements CanonicalCredentialF
         ...(input.organizationId ? { organizationId: input.organizationId } : {}),
       },
     });
+
+    try {
+      const receiptStore = new PrismaBackedPsvStore();
+      const receipt = PSVReceipt.create({
+        receipt_id: toDeterministicUuidV4(buildDeterministicId('psv-receipt', input.batch.batchId)),
+        source_authority: deriveReceiptSourceAuthority(input.batch),
+        access_or_license_id: input.batch.subjectId,
+        transaction_id: input.batch.batchId,
+        fetched_at: input.batch.retrievalTime,
+        raw_response:
+          typeof input.batch.rawResponseHash === 'string' && input.batch.rawResponseHash.length > 0
+            ? input.batch.rawResponseHash
+            : input.batch.batchId,
+        ttl_seconds: deriveReceiptTtlSeconds(input.batch),
+        revoked: false,
+      });
+
+      await receiptStore.appendReceipt({
+        clinician_id: input.batch.subjectId,
+        receipt,
+        lane: 'PUBLIC',
+        verification_check: deriveVerificationCheck(input.batch),
+        verification_outcome: deriveVerificationOutcome(input.batch),
+      });
+    } catch (error) {
+      log('error', 'psv_interop_receipt_bridge_error', {
+        batchId: input.batch.batchId,
+        source: input.batch.source,
+        subjectHash: hashSensitiveInput(input.batch.subjectId),
+        error: String(error),
+      });
+    }
 
     const auditEvents = input.batch.events.map((event) =>
       this.prismaClient.auditEvent.create({

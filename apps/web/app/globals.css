@@ -321,6 +321,15 @@
   --spacing-20: var(--space-20);
   --spacing-24: var(--space-24);
   --spacing-32: var(--space-32);
+  --spacing-40: 10rem;
+  --spacing-48: 12rem;
+  --spacing-64: 16rem;
+
+  /* ── Extended typography tokens ─────────────────────── */
+  --text-9xl: 8rem;
+  --text-10xl: 10rem;
+  --text-11xl: 12rem;
+  --text-12xl: 14rem;
 
   /* ── Extended radius tokens ──────────────────────────── */
   --radius-none: var(--radius-none, 0);

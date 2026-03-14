@@ -1,0 +1,44 @@
+{
+  "subjectDid": "did:vitalcv:npi:ready-demo",
+  "subjectNpi": "1234567890",
+  "contextOrgId": "org-ready",
+  "workflowContext": "job_application",
+  "readinessScore": 100,
+  "readinessLevel": "L3",
+  "readinessStatus": "READY",
+  "artifactStatuses": [
+    {
+      "canonicalArtifactKey": "identity_binding",
+      "requirementLabel": "Identity Binding",
+      "requirementWeight": 3,
+      "resolvedLevel": "L3",
+      "artifactScore": 100,
+      "revoked": false,
+      "freshness": "not_applicable",
+      "matchedEvidenceIds": [
+        "binding-ready"
+      ],
+      "reasons": [
+        "active DID to NPI identity anchor found"
+      ]
+    },
+    {
+      "canonicalArtifactKey": "state_license",
+      "requirementLabel": "State License",
+      "requirementWeight": 3,
+      "resolvedLevel": "L3",
+      "artifactScore": 100,
+      "revoked": false,
+      "freshness": "current",
+      "matchedEvidenceIds": [
+        "artifact-license-ready"
+      ],
+      "reasons": [
+        "primary-source verification is current"
+      ]
+    }
+  ],
+  "warnings": [],
+  "methodologyVersion": "wave253.v1",
+  "generatedAt": "2026-03-13T00:00:00.000Z"
+}

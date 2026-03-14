@@ -5,6 +5,10 @@ import { computeTrustState } from './trustState';
 import { computeCredentialState } from './credentialStatusEngine';
 import type { Prisma } from '@prisma/client';
 import type { MonitoringEventType } from '../types/auditEventTypes';
+import {
+  propagateCredentialLifecycleChange,
+  type RevocationPropagationTrigger,
+} from './revocation/propagationEngine';
 
 type MonitoringCheckResult = {
   npi: string;
@@ -122,6 +126,31 @@ export async function runMonitoringCheck(
       },
     });
   });
+
+  let trigger: RevocationPropagationTrigger | null = null;
+  if (statusChanged) {
+    if (freshResult.licenseStatus === 'REVOKED') {
+      trigger = 'credential.revoked';
+    } else if (freshResult.licenseStatus === 'EXPIRED') {
+      trigger = 'credential.expired';
+    } else if (!['ACTIVE', 'VERIFIED'].includes(freshResult.licenseStatus)) {
+      trigger = 'verification.invalidated';
+    }
+  }
+
+  if (trigger) {
+    await propagateCredentialLifecycleChange({
+      credentialId: artifact.id,
+      trigger,
+      occurredAt: statusCheckedAt,
+      reason: `monitoring source reported ${freshResult.licenseStatus}`,
+      metadata: {
+        source: artifact.source,
+        previousStatus: artifact.status,
+        newStatus: freshResult.licenseStatus,
+      },
+    });
+  }
 
   return {
     npi,

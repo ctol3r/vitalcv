@@ -17,6 +17,7 @@ import prisma from '../../graphql/prisma_client';
 import { appendAuditEvent } from '../audit/auditLedger';
 import { checkExclusion } from '../psv/oigLeieChecker';
 import { log } from '../../obs/logger';
+import { isCredentialIngestionEnabled } from '../credentials/credentialIngestionConfig';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -60,6 +61,15 @@ export interface ClinicianTrustState {
   gaps: string[];
   computedAt: string;
 }
+
+type IngestedArtifactRecord = {
+  source: string;
+  status: string;
+  verifiedAt: Date;
+  expiresAt: Date | null;
+  psvWindowDeadline: Date | null;
+  rawPayload: unknown;
+};
 
 // ── NPPES fetch (mirrors liveMatchaService pattern) ───────────────────────────
 
@@ -173,6 +183,238 @@ function detectGaps(params: {
   return gaps;
 }
 
+function isSourceArtifactFresh(
+  artifact: IngestedArtifactRecord | undefined,
+  now: Date,
+): boolean {
+  if (!artifact?.psvWindowDeadline) {
+    return false;
+  }
+
+  return artifact.psvWindowDeadline.getTime() > now.getTime();
+}
+
+function sourceFactType(source: string): CanonicalFactSummary['factType'] {
+  const normalized = source.toUpperCase();
+  if (normalized === 'NPPES') return 'IdentityClaim';
+  if (normalized === 'OIG') return 'Sanction';
+  if (normalized === 'STATE_BOARD') return 'License';
+  return 'VerificationRecord';
+}
+
+function sourceDetails(artifact: IngestedArtifactRecord): string | undefined {
+  const payload = typeof artifact.rawPayload === 'object' && artifact.rawPayload !== null
+    ? artifact.rawPayload as Record<string, unknown>
+    : null;
+
+  if (!payload) {
+    return undefined;
+  }
+
+  if (artifact.source === 'NPPES') {
+    return typeof payload.provider_name === 'string' ? payload.provider_name : undefined;
+  }
+  if (artifact.source === 'OIG') {
+    return typeof payload.exclusion_type === 'string'
+      ? payload.exclusion_type
+      : typeof payload.source_url === 'string'
+        ? payload.source_url
+        : undefined;
+  }
+  if (artifact.source === 'STATE_BOARD') {
+    const boardName = typeof payload.board_name === 'string' ? payload.board_name : '';
+    const licenseNumber = typeof payload.license_number === 'string' ? payload.license_number : '';
+    const state = typeof payload.state === 'string' ? payload.state : '';
+    return [boardName, licenseNumber, state].filter(Boolean).join(' · ') || undefined;
+  }
+
+  return undefined;
+}
+
+function appendUniqueGap(gaps: string[], gap: string): void {
+  if (!gaps.includes(gap)) {
+    gaps.push(gap);
+  }
+}
+
+async function computeClinicianTrustStateFromIngestedArtifacts(
+  npi: string,
+): Promise<ClinicianTrustState> {
+  const computedAt = new Date().toISOString();
+  const now = new Date();
+  const facts: CanonicalFactSummary[] = [];
+
+  const artifacts = await prisma.verificationArtifact.findMany({
+    where: {
+      npi,
+      source: { in: ['NPPES', 'OIG', 'STATE_BOARD'] },
+    },
+    select: {
+      source: true,
+      status: true,
+      verifiedAt: true,
+      expiresAt: true,
+      psvWindowDeadline: true,
+      rawPayload: true,
+    },
+    orderBy: [
+      { verifiedAt: 'desc' },
+      { createdAt: 'desc' },
+    ],
+  });
+
+  const latestBySource = new Map<string, IngestedArtifactRecord>();
+  for (const artifact of artifacts) {
+    if (!latestBySource.has(artifact.source)) {
+      latestBySource.set(artifact.source, artifact);
+    }
+  }
+
+  for (const artifact of latestBySource.values()) {
+    facts.push({
+      factType: sourceFactType(artifact.source),
+      source: artifact.source,
+      status: artifact.status,
+      verifiedAt: artifact.verifiedAt.toISOString(),
+      expiresAt: artifact.expiresAt?.toISOString(),
+      details: sourceDetails(artifact),
+    });
+  }
+
+  const nppesArtifact = latestBySource.get('NPPES');
+  const oigArtifact = latestBySource.get('OIG');
+  const licenseArtifact = latestBySource.get('STATE_BOARD');
+
+  const nppesFresh = isSourceArtifactFresh(nppesArtifact, now);
+  const oigFresh = isSourceArtifactFresh(oigArtifact, now);
+  const licenseFresh = isSourceArtifactFresh(licenseArtifact, now);
+
+  const identityVerified = Boolean(
+    nppesArtifact &&
+    (nppesArtifact.status === 'ACTIVE' || nppesArtifact.status === 'VERIFIED') &&
+    nppesFresh,
+  );
+
+  let licensureStatus: LicensureStatus = 'unknown';
+  if (licenseArtifact) {
+    const licenseExpiredByStatus =
+      licenseArtifact.status === 'EXPIRED' ||
+      licenseArtifact.status === 'REVOKED' ||
+      licenseArtifact.status === 'SUSPENDED';
+    const licenseExpiredByDate =
+      Boolean(licenseArtifact.expiresAt) &&
+      licenseArtifact.expiresAt!.getTime() <= now.getTime();
+
+    if (licenseExpiredByStatus || licenseExpiredByDate) {
+      licensureStatus = 'expired';
+    } else if (
+      (licenseArtifact.status === 'ACTIVE' || licenseArtifact.status === 'VERIFIED') &&
+      licenseFresh
+    ) {
+      licensureStatus = 'verified';
+    } else {
+      licensureStatus = 'pending';
+    }
+  }
+
+  const exclusionClear = Boolean(
+    oigArtifact &&
+    oigArtifact.status === 'CLEAR' &&
+    oigFresh,
+  );
+
+  const credentialCount = [nppesArtifact, oigArtifact, licenseArtifact].filter((artifact) => {
+    if (!artifact) {
+      return false;
+    }
+    const fresh = isSourceArtifactFresh(artifact, now);
+    const active = artifact.status === 'ACTIVE' || artifact.status === 'VERIFIED' || artifact.status === 'CLEAR';
+    const unexpired = !artifact.expiresAt || artifact.expiresAt.getTime() > now.getTime();
+    return fresh && active && unexpired;
+  }).length;
+
+  const trustScore = computeScore({
+    identityVerified,
+    licensureStatus,
+    exclusionClear,
+    credentialCount,
+    hasVerifiedArtifacts: credentialCount > 0,
+  });
+
+  const trustBand = deriveBand({
+    identityVerified,
+    licensureStatus,
+    exclusionClear,
+    trustScore,
+  });
+
+  const gaps = detectGaps({
+    identityVerified,
+    licensureStatus,
+    exclusionClear,
+    credentialCount,
+    facts,
+  });
+
+  if (!nppesArtifact) {
+    appendUniqueGap(gaps, 'NPPES identity artifact missing');
+  } else if (!nppesFresh) {
+    appendUniqueGap(gaps, 'NPPES identity verification stale');
+  }
+
+  if (!oigArtifact) {
+    appendUniqueGap(gaps, 'OIG exclusion artifact missing');
+  } else if (!oigFresh) {
+    appendUniqueGap(gaps, 'OIG exclusion check stale');
+  }
+
+  if (!licenseArtifact) {
+    appendUniqueGap(gaps, 'State license artifact missing');
+  } else if (licensureStatus !== 'expired' && !licenseFresh) {
+    appendUniqueGap(gaps, 'State license verification stale');
+  }
+
+  const readinessStatusMap: Record<TrustBand, string> = {
+    L3: 'Ready to credential — all evidence verified',
+    L2: 'Mostly ready — minor gaps remain',
+    L1: 'Provisional — significant evidence gaps',
+    L0: 'Not ready — critical issues detected',
+  };
+
+  const state: ClinicianTrustState = {
+    npi,
+    identityVerified,
+    licensureStatus,
+    exclusionClear,
+    credentialCount,
+    readiness_level: trustBand,
+    readiness_status: readinessStatusMap[trustBand],
+    readiness_score: trustScore,
+    gap_summary: gaps,
+    methodology_version: METHODOLOGY_VERSION,
+    computed_at: computedAt,
+    trustBand,
+    trustScore,
+    facts,
+    gaps,
+    computedAt,
+  };
+
+  log('info', 'trust_state_computed_from_ingested_artifacts', {
+    npi,
+    trustBand,
+    trustScore,
+    identityVerified,
+    licensureStatus,
+    exclusionClear,
+    credentialCount,
+    factCount: facts.length,
+    gapCount: gaps.length,
+  });
+
+  return state;
+}
+
 // ── Core computation ──────────────────────────────────────────────────────────
 
 /**
@@ -180,6 +422,10 @@ function detectGaps(params: {
  * Pure computation — does NOT write to DB.
  */
 export async function computeClinicianTrustState(npi: string): Promise<ClinicianTrustState> {
+  if (isCredentialIngestionEnabled()) {
+    return computeClinicianTrustStateFromIngestedArtifacts(npi);
+  }
+
   const computedAt = new Date().toISOString();
   const facts: CanonicalFactSummary[] = [];
 

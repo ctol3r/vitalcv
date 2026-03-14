@@ -41,9 +41,7 @@ import cron from 'node-cron';
 import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
 import { setRevoked } from '../services/ledger/statusListManager';
-import { dispatchEnterpriseWebhooks } from '../services/integration/webhookDispatcher';
-import { propagateRevocation } from '../services/graph/bidirectional';
-import { revocationCascade } from '../services/decision/revocationCascade';
+import { propagateCredentialLifecycleChange } from '../services/revocation/propagationEngine';
 
 // ── Configuration ──────────────────────────────────────────────────────────
 
@@ -187,22 +185,7 @@ async function runMonitorSweep(): Promise<void> {
       });
     }
 
-    // 3. Dispatch enterprise webhooks (fire-and-forget, non-blocking)
-    void dispatchEnterpriseWebhooks(
-      artifact.npi,
-      artifact.id,
-      pollResult.source,
-      actionAt,
-      pollResult.reason,
-    ).catch(err => {
-      log('warn', 'continuous_monitor_webhook_error', {
-        sweepId,
-        artifact_id: artifact.id,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    });
-
-    // 4. Append monitoring event to append-only ledger
+    // 3. Append monitoring event to append-only ledger
     await prisma.credentialMonitoringEvent.create({
       data: {
         id:             randomUUID(),
@@ -213,18 +196,17 @@ async function runMonitorSweep(): Promise<void> {
       },
     });
 
-    // 5. Propagate BIDIRECTIONAL_FLAG_INVALID to downstream graph nodes
-    void propagateRevocation(artifact.id).catch(err => {
+    // 4. Run the shared propagation engine.
+    void propagateCredentialLifecycleChange({
+      credentialId: artifact.id,
+      trigger: pollResult.kind === 'REVOKED' ? 'credential.revoked' : 'verification.invalidated',
+      occurredAt: new Date(actionAt),
+      reason: pollResult.reason,
+      metadata: {
+        source: pollResult.source,
+      },
+    }).catch(err => {
       log('warn', 'continuous_monitor_propagation_error', {
-        sweepId,
-        artifact_id: artifact.id,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    });
-
-    // 6. Cascade revocation through dependent Decision Capsules (Wave A)
-    void revocationCascade.propagateRevocation(artifact.id).catch(err => {
-      log('warn', 'continuous_monitor_capsule_cascade_error', {
         sweepId,
         artifact_id: artifact.id,
         error: err instanceof Error ? err.message : String(err),
