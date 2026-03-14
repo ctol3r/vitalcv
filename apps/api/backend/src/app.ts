@@ -161,6 +161,7 @@ import { registerDeploymentRoutes } from './routes/deployment';                 
 import { registerWorkforceIntelligenceRoutes } from './routes/workforceIntelligence'; // Wave: Workforce Intelligence
 import { registerAuditReplayRoutes } from './routes/auditReplay';                       // Wave: Decision Accountability
 import { registerCryptoProtocolRoutes } from './routes/cryptoProtocol';               // Wave: PQC Trust Protocol
+import { registerProtocolRoutes } from './routes/protocol';                            // Wave: Open Trust Protocol
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3592,6 +3593,7 @@ registerDeploymentRoutes(app);             // Wave: Credential-based deployment 
 registerWorkforceIntelligenceRoutes(app);  // Wave: Workforce intelligence layer
 registerAuditReplayRoutes(app);            // Wave: Decision accountability layer
 registerCryptoProtocolRoutes(app);         // Wave: PQC crypto suite + resign pipeline
+registerProtocolRoutes(app);               // Wave: open protocol spec + conformance + discovery
 registerPayerVerificationRoutes(app); // Wave 142 — Payer Network Integration
 registerProviderDirectoryRoutes(app);  // Wave 143 — Provider Directory Distribution
 registerGraphScalingRoutes(app);       // Wave 144 — Trust Graph Performance Scaling

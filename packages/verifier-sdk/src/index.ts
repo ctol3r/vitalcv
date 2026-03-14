@@ -415,3 +415,20 @@ export function verifyWebhookSignature(
     return false;
   }
 }
+
+// ── Offline verification (protocol-level, no API dependency) ─────────────────
+export {
+  verifyEnvelope,
+  validateCapsuleStructure,
+  computeTrustBand,
+  verifyArtifactHash,
+  buildArtifactCanonicalPayload,
+  buildCapsuleCanonicalPayload,
+  fetchDiscoveryDocument,
+  fetchIssuerPublicKeys,
+  type CryptoEnvelope as OfflineCryptoEnvelope,
+  type IssuerPublicKey,
+  type EnvelopeVerifyResult,
+  type CapsuleValidation,
+  type TrustBandComputation,
+} from './offline';
