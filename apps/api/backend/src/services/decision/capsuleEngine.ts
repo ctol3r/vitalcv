@@ -22,6 +22,10 @@ import {
 } from '../../../repositories/decisionCapsules.repo';
 import { getCredentialEvidence } from '../../../repositories/auditBundles.repo';
 import { enqueueDecisionCapsuleCreatedEvent } from './decisionOutbox';
+import {
+  ensureDecisionCapsuleAuthorityGraph,
+  ensureDecisionCapsuleVerifierAuthorityGraph,
+} from '../revocation/authorityGraph';
 
 export type DecisionType = 'HIRING' | 'PRIVILEGING' | 'DEPLOYMENT' | 'RENEWAL';
 export type CapsuleStatus = 'VALID' | 'AT_RISK' | 'INVALID';
@@ -680,6 +684,25 @@ async function createDecisionCapsule(
       issuerIds: capsule.issuerIds,
       verifierOrg: verifierOrgId,
     });
+
+    // ── Wire capsule into authority graph (best-effort, non-blocking) ──
+    void ensureDecisionCapsuleAuthorityGraph(capsule.id).catch((err: unknown) => {
+      log('warn', 'capsule_engine: authority_graph_wire_failed', {
+        capsuleId: capsule.id,
+        error: String(err),
+      });
+    });
+    if (verifierOrgId) {
+      void ensureDecisionCapsuleVerifierAuthorityGraph(capsule.id, verifierOrgId).catch(
+        (err: unknown) => {
+          log('warn', 'capsule_engine: authority_graph_verifier_wire_failed', {
+            capsuleId: capsule.id,
+            verifierOrgId,
+            error: String(err),
+          });
+        },
+      );
+    }
 
     log('info', 'capsule_engine: created', {
       capsuleId: capsule.id,
