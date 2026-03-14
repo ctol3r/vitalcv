@@ -9,40 +9,18 @@ import { CursorPhysics } from '@/components/motion/CursorPhysics';
 import { Toaster } from '@/components/ui/toaster';
 import { ClerkProvider, SignedIn } from '@clerk/nextjs';
 import type { Metadata } from 'next';
-import { Fraunces, Inter, JetBrains_Mono, Plus_Jakarta_Sans } from 'next/font/google';
 import type React from 'react';
 import './globals.css';
 import '../styles/antigravity.css';
 import '../styles/typography.css';
 import Providers from './providers';
 
-const fraunces = Fraunces({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-fraunces',
-  weight: ['400', '500', '600', '700'],
-});
-
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-inter',
-});
-
-/** Wave 168 — Interface Authority typography */
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-plus-jakarta',
-  weight: ['400', '500', '600', '700', '800'],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-jetbrains',
-  weight: ['400', '500', '600'],
-});
+const fontVariables = {
+  '--font-fraunces': "'Fraunces', Georgia, serif",
+  '--font-inter': "'Inter', system-ui, sans-serif",
+  '--font-plus-jakarta': "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif",
+  '--font-jetbrains': "'JetBrains Mono', ui-monospace, monospace",
+} as React.CSSProperties;
 
 export const metadata: Metadata = {
   title: 'VitalCV',
@@ -57,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const content = (
-    <html lang="en" className={`${fraunces.variable} ${inter.variable} ${plusJakartaSans.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
+    <html lang="en" style={fontVariables} suppressHydrationWarning>
       <body className="min-h-screen bg-background text-foreground antialiased font-sans">
         {/* Wave 11: Tactile grain overlay — fixed, pointer-events:none, z-50 */}
         <div aria-hidden="true" className="noise-overlay" />

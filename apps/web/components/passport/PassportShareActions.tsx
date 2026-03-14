@@ -1,231 +1,116 @@
 'use client';
 
-/**
- * PassportShareActions.tsx — Wave 167: Passport Viral Sharing
- *
- * Client-side share island embedded in the RSC public passport page (/p/:npi).
- * Provides: copy share link · QR code modal · download credential bundle.
- *
- * Wave 167 additions:
- *   - Fires analytics events to /api/passport/analytics/:npi/* on each action
- *   - Shows live share count badge (fetched from analytics API)
- */
+import { useEffect, useState } from 'react';
 
-import { AnimatePresence, motion } from 'framer-motion';
-import {
-    BarChart2,
-    CheckCircle,
-    Copy,
-    Download,
-    Loader2,
-    QrCode,
-    Share2,
-    X,
-} from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
-import QRCode from 'react-qr-code';
-
-interface PassportShareActionsProps {
+type PassportShareActionsProps = {
   npi: string;
-  credentialCount: number;
+  name?: string;
+  credentialCount?: number;
   downloadUrl?: string;
+};
+
+function escapeHtmlAttribute(value: string): string {
+  return value.replaceAll('"', '&quot;');
 }
 
-// ── Analytics helpers ──────────────────────────────────────────────────────────
-
-async function fireAnalyticsEvent(npi: string, event: 'share' | 'qr' | 'download' | 'accept') {
-  try {
-    await fetch(`/api/passport/analytics/${npi}/${event}`, {
-      method: 'POST',
-      cache: 'no-store',
-    });
-  } catch {
-    // analytics failures are silent — never block the user action
+function buildShareUrl(npi: string): string {
+  if (typeof window === 'undefined') {
+    return `https://app.vitalcv.com/p/${npi}`;
   }
+
+  return `${window.location.origin}/p/${encodeURIComponent(npi)}`;
 }
 
-// ── Component ──────────────────────────────────────────────────────────────────
+function buildEmbedCode(npi: string, name: string): string {
+  const safeName = escapeHtmlAttribute(name);
 
-export default function PassportShareActions({ npi, credentialCount, downloadUrl }: PassportShareActionsProps) {
-  const [copied, setCopied] = useState(false);
-  const [showQR, setShowQR] = useState(false);
-  const [downloading, setDownloading] = useState(false);
-  const [shareCount, setShareCount] = useState<number | null>(null);
+  if (typeof window === 'undefined') {
+    return `<img src="https://app.vitalcv.com/api/passport/${npi}/embed.svg" alt="${safeName} VitalCV passport badge" width="320" height="80" />`;
+  }
 
-  const shareUrl =
-    typeof window !== 'undefined'
-      ? window.location.href
-      : `https://vitalcv.ai/p/${npi}`;
+  const embedUrl = `${window.location.origin}/api/passport/${encodeURIComponent(npi)}/embed.svg`;
+  return `<img src="${embedUrl}" alt="${safeName} VitalCV passport badge" width="320" height="80" />`;
+}
 
-  // Load share count on mount
+function buildLinkedInMarkdown(name: string, shareUrl: string): string {
+  return `[${name} clinician passport](${shareUrl})`;
+}
+
+export default function PassportShareActions({
+  npi,
+  name,
+}: PassportShareActionsProps) {
+  const clinicianName = name?.trim() || `Clinician ${npi}`;
+  const [toast, setToast] = useState<string | null>(null);
+
   useEffect(() => {
-    fetch(`/api/passport/analytics/${npi}`, { cache: 'no-store' })
-      .then((r) => r.ok ? r.json() : null)
-      .then((d: { shareCount?: number } | null) => {
-        if (d?.shareCount !== undefined) setShareCount(d.shareCount);
-      })
-      .catch(() => {});
-  }, [npi]);
-
-  const copyLink = useCallback(async () => {
-    await navigator.clipboard.writeText(
-      typeof window !== 'undefined' ? window.location.href : `https://vitalcv.ai/p/${npi}`,
-    );
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    // Fire analytics
-    await fireAnalyticsEvent(npi, 'share');
-    setShareCount((prev) => (prev !== null ? prev + 1 : 1));
-  }, [npi]);
-
-  const openQR = useCallback(() => {
-    setShowQR(true);
-    fireAnalyticsEvent(npi, 'qr');
-  }, [npi]);
-
-  const downloadBundle = useCallback(async () => {
-    setDownloading(true);
-    try {
-      if (downloadUrl) {
-        await fireAnalyticsEvent(npi, 'download');
-        window.location.assign(downloadUrl);
-      } else {
-        const bundle = {
-          version: '1.0',
-          npi,
-          generatedAt: new Date().toISOString(),
-          shareUrl: typeof window !== 'undefined' ? window.location.href : `https://vitalcv.ai/p/${npi}`,
-          credentialCount,
-          attestedBy: 'VitalCV Trust Network',
-          bundleType: 'PUBLIC_PASSPORT_BUNDLE',
-          instructions: 'To verify credentials, visit the share URL above or contact VitalCV.',
-        };
-
-        const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `vitalcv-passport-npi-${npi}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-      }
-
-      // Fire analytics
-      if (!downloadUrl) {
-        await fireAnalyticsEvent(npi, 'download');
-      }
-    } finally {
-      setDownloading(false);
+    if (!toast) {
+      return;
     }
-  }, [credentialCount, downloadUrl, npi]);
+
+    const timer = window.setTimeout(() => setToast(null), 1800);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
+  async function copyText(value: string, label: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(value);
+      setToast(label);
+    } catch {
+      setToast('Clipboard unavailable');
+    }
+  }
+
+  const shareUrl = buildShareUrl(npi);
+  const embedCode = buildEmbedCode(npi, clinicianName);
+  const linkedInMarkdown = buildLinkedInMarkdown(clinicianName, shareUrl);
 
   return (
-    <>
-      {/* Share strip */}
-      <div className="rounded-2xl bg-white/[0.03] ring-1 ring-white/10 px-5 py-4 space-y-3">
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2">
-            <Share2 className="h-3.5 w-3.5 text-vt-success" />
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500">
-              Share Passport
-            </p>
-          </div>
-          {shareCount !== null && shareCount > 0 && (
-            <div className="flex items-center gap-1 text-[10px] text-vt-neutral-500">
-              <BarChart2 className="h-3 w-3" />
-              <span>{shareCount} share{shareCount !== 1 ? 's' : ''}</span>
-            </div>
-          )}
+    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 shadow-[0_20px_60px_rgba(8,14,26,0.28)]">
+      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-300/80">
+            Share Passport
+          </p>
+          <p className="mt-2 text-sm text-slate-300">
+            Copy the public link, embed badge, or a LinkedIn-ready markdown snippet.
+          </p>
         </div>
-
-        <div className="grid grid-cols-3 gap-2">
-          {/* Copy link */}
-          <button
-            type="button"
-            onClick={copyLink}
-            className="flex flex-col items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.02] py-3 px-2 text-[10px] text-gray-500 hover:text-gray-200 hover:border-vt-success/30 transition-colors"
-          >
-            {copied ? (
-              <CheckCircle className="h-4 w-4 text-vt-success" />
-            ) : (
-              <Copy className="h-4 w-4" />
-            )}
-            {copied ? 'Copied!' : 'Copy link'}
-          </button>
-
-          {/* QR code */}
-          <button
-            type="button"
-            onClick={openQR}
-            className="flex flex-col items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.02] py-3 px-2 text-[10px] text-gray-500 hover:text-gray-200 hover:border-vt-success/30 transition-colors"
-          >
-            <QrCode className="h-4 w-4" />
-            QR code
-          </button>
-
-          {/* Download bundle */}
-          <button
-            type="button"
-            onClick={downloadBundle}
-            disabled={downloading}
-            className="flex flex-col items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.02] py-3 px-2 text-[10px] text-gray-500 hover:text-gray-200 hover:border-vt-success/30 transition-colors disabled:opacity-50"
-          >
-            {downloading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
-            {downloading ? 'Bundling…' : 'Download'}
-          </button>
-        </div>
+        {toast && (
+          <p className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-200">
+            {toast}
+          </p>
+        )}
       </div>
 
-      {/* QR Modal */}
-      <AnimatePresence>
-        {showQR && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-            onClick={() => setShowQR(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="rounded-2xl border border-white/20 bg-black p-6 w-full max-w-xs space-y-4"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold text-white">Scan to Verify</h3>
-                  <p className="text-[10px] text-gray-500 font-mono mt-0.5">NPI {npi}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowQR(false)}
-                  className="text-gray-600 hover:text-gray-400 transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
+      <div className="mt-5 grid gap-3 md:grid-cols-3">
+        <button
+          type="button"
+          onClick={() => copyText(shareUrl, 'Copied link')}
+          className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-4 text-left transition hover:border-emerald-400/40 hover:bg-slate-950/70"
+        >
+          <span className="block text-sm font-semibold text-white">Copy Link</span>
+          <span className="mt-1 block text-xs text-slate-400">Public URL for direct sharing.</span>
+        </button>
 
-              <div className="flex justify-center bg-white p-4 rounded-xl">
-                <QRCode value={shareUrl} size={192} level="M" />
-              </div>
+        <button
+          type="button"
+          onClick={() => copyText(embedCode, 'Copied embed code')}
+          className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-4 text-left transition hover:border-emerald-400/40 hover:bg-slate-950/70"
+        >
+          <span className="block text-sm font-semibold text-white">Copy Embed Code</span>
+          <span className="mt-1 block text-xs text-slate-400">HTML snippet for the SVG badge.</span>
+        </button>
 
-              <p className="text-[9px] text-gray-600 text-center break-all font-mono">
-                {shareUrl}
-              </p>
-
-              <p className="text-[10px] text-gray-600 text-center">
-                Scan to view verified credentials for NPI {npi}
-              </p>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+        <button
+          type="button"
+          onClick={() => copyText(linkedInMarkdown, 'Copied LinkedIn markdown')}
+          className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-4 text-left transition hover:border-emerald-400/40 hover:bg-slate-950/70"
+        >
+          <span className="block text-sm font-semibold text-white">Copy LinkedIn Markdown</span>
+          <span className="mt-1 block text-xs text-slate-400">Short markdown snippet naming the clinician.</span>
+        </button>
+      </div>
+    </div>
   );
 }
