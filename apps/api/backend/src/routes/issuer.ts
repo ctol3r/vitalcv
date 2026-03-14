@@ -21,7 +21,7 @@ import type { Express, Request, Response } from 'express';
 import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
 import { publicApiRateLimit } from '../middleware/publicSafety';
-import { propagateRevocation } from '../services/graph/bidirectional';
+import { propagateCredentialLifecycleChange } from '../services/revocation/propagationEngine';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -110,13 +110,18 @@ export function registerIssuerRoutes(app: Express): void {
 
       // ── Propagate BIDIRECTIONAL_FLAG_INVALID ────────────────────────────
       // Non-fatal: revocation is already committed even if propagation fails.
-      let propagation: Awaited<ReturnType<typeof propagateRevocation>> | null = null;
+      let propagation: Awaited<ReturnType<typeof propagateCredentialLifecycleChange>> | null = null;
       try {
-        propagation = await propagateRevocation(artifactId);
+        propagation = await propagateCredentialLifecycleChange({
+          credentialId: artifactId,
+          trigger: 'credential.revoked',
+          occurredAt: revokedAt,
+          reason: reason.trim(),
+        });
         log('info', 'issuer_revoke_propagated', {
           artifactId,
           npi:          existing.npi,
-          totalFlagged: propagation.totalFlagged,
+          totalFlagged: propagation.bidirectionalFlagged,
           issuerId:     issuerId ?? 'anonymous',
         });
       } catch (err) {
@@ -142,10 +147,10 @@ export function registerIssuerRoutes(app: Express): void {
         revoked_at:  revokedAt.toISOString(),
         propagation: propagation
           ? {
-              total_flagged:       propagation.totalFlagged,
-              flagged_acceptances: propagation.flaggedAcceptances.length,
-              flagged_starts:      propagation.flaggedStarts.length,
-              traversal_hash:      propagation.traversalHash,
+              total_flagged:       propagation.bidirectionalFlagged,
+              flagged_acceptances: propagation.bidirectionalAcceptancesFlagged,
+              flagged_starts:      propagation.bidirectionalStartsFlagged,
+              traversal_hash:      propagation.bidirectionalTraversalHash,
             }
           : null,
       });
