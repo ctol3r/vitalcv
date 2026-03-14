@@ -14,22 +14,40 @@ import {
   type AcceptanceScopeRecord,
   type TrustStateResolverDependencies,
   type TrustStateScope,
+  trustStateLatencyHistogram,
 } from '../../../../../packages/trust-state';
 import prisma from '../graphql/prisma_client';
 import {
-  computeClinicianTrustState,
   refreshTrustState,
   getTrustStateHistory,
   getCachedTrustState,
 } from '../services/trust/trustStateEngine';
 import { appendAuditEvent } from '../services/audit/auditLedger';
 import { PrismaBackedPsvStore } from '../services/psv/PrismaBackedPsvStore';
+import { PrismaCredentialIngestionRepository } from '../../repositories/credentialIngestion.repo';
 import { log } from '../obs/logger';
+import {
+  recordCacheLookup,
+  recordResolverRuntime,
+  recordTrustStateLatency,
+  getPilotTelemetryDashboard,
+} from '../services/system/pilotTelemetry';
+import { getCacheCounters } from '../services/trust/trustStateCache';
 
 // ── NPI validation ────────────────────────────────────────────────────────────
 
 function isValidNpi(npi: string): boolean {
   return /^\d{10}$/.test(npi);
+}
+
+function toResolverBand(trustBand: 'L0' | 'L1' | 'L2' | 'L3'): 'GREEN' | 'YELLOW' | 'RED' {
+  if (trustBand === 'L3') {
+    return 'GREEN';
+  }
+  if (trustBand === 'L2' || trustBand === 'L1') {
+    return 'YELLOW';
+  }
+  return 'RED';
 }
 
 function readScope(req: Request): Partial<TrustStateScope> | undefined {
@@ -76,6 +94,7 @@ function mapAcceptanceRowToScopeRecord(row: {
 
 export function buildTrustStateResolverDeps(): TrustStateResolverDependencies {
   const receipts = new PrismaBackedPsvStore();
+  const ingestionRepository = new PrismaCredentialIngestionRepository();
   const crsEngine = new CrsEngine({
     receipts,
     acceptances: {
@@ -107,6 +126,27 @@ export function buildTrustStateResolverDeps(): TrustStateResolverDependencies {
         return (await prisma.start.count({ where: { subjectId: clinician_id } })) > 0;
       },
     },
+    artifacts: {
+      async listCredentialArtifactsByClinician(clinician_id: string): Promise<readonly unknown[]> {
+        const artifacts = await ingestionRepository.findActiveCredentialsByNpi(clinician_id);
+        return artifacts.map(({ artifactId, artifact }) => ({
+          id: artifactId,
+          source: artifact.source_name,
+          credential_hash: artifact.credential_hash,
+        }));
+      },
+      async listVerificationArtifactsByClinician(clinician_id: string): Promise<readonly unknown[]> {
+        const artifacts = await ingestionRepository.findVerificationArtifactsByNpi(clinician_id);
+        return artifacts.map(({ artifactId, artifact }) => ({
+          id: artifactId,
+          source: artifact.source_name,
+          related_credential_hash: artifact.related_credential_hash,
+          verification_method: artifact.verification_method,
+          fresh_until: artifact.fresh_until,
+          evidence_hash: artifact.evidence_hash,
+        }));
+      },
+    },
     audit: {
       append: async (event) => {
         const auditEntry = appendAuditEvent({
@@ -125,6 +165,16 @@ export function buildTrustStateResolverDeps(): TrustStateResolverDependencies {
         return { audit_packet_id: auditEntry.eventId };
       },
     },
+    telemetry: {
+      recordResolverRuntime: async (measurement) => {
+        recordResolverRuntime({
+          latencyMs: measurement.latency_ms,
+          band: measurement.band,
+          blockingReasonCount: measurement.blocking_reason_count,
+          startReady: measurement.start_ready,
+        });
+      },
+    },
     now: () => new Date(),
   };
 }
@@ -135,8 +185,8 @@ export function registerTrustStateEngineRoutes(app: Express): void {
 
   /**
    * GET /api/trust-state/:npi
-   * Returns the current trust state. Uses cache if computed within the last hour;
-   * otherwise computes fresh (no side effects).
+   * Returns the current trust state. Uses memory/Postgres cache first;
+   * otherwise refreshes, persists, and primes the cache.
    */
   app.get('/api/trust-state/:npi', async (req: Request, res: Response) => {
     const { npi } = req.params;
@@ -145,15 +195,48 @@ export function registerTrustStateEngineRoutes(app: Express): void {
       return res.status(400).json({ error: 'Invalid NPI — must be exactly 10 digits' });
     }
 
+    const startedAtMs = Date.now();
+    let cacheStatus: 'hit' | 'miss' | 'unknown' = 'unknown';
+
+    res.on('finish', () => {
+      const latencyMs = Date.now() - startedAtMs;
+      trustStateLatencyHistogram.record(latencyMs);
+      recordTrustStateLatency({
+        latencyMs,
+        cacheStatus,
+        outcome: res.statusCode >= 500 ? 'error' : 'success',
+      });
+    });
+
     try {
       // Try cache first
       const cached = await getCachedTrustState(npi);
       if (cached) {
+        cacheStatus = 'hit';
+        recordCacheLookup({
+          source: 'trust_state_route',
+          hit: true,
+          context: { npi_prefix: npi.slice(0, 4) },
+        });
         return res.status(200).json({ ...cached, cached: true });
       }
 
-      // Fresh computation (no DB write)
-      const state = await computeClinicianTrustState(npi);
+      cacheStatus = 'miss';
+      recordCacheLookup({
+        source: 'trust_state_route',
+        hit: false,
+        context: { npi_prefix: npi.slice(0, 4) },
+      });
+
+      // Miss — recompute via refresh so the snapshot is persisted and memory cache is primed.
+      const resolverStartedAtMs = Date.now();
+      const state = await refreshTrustState(npi);
+      recordResolverRuntime({
+        latencyMs: Date.now() - resolverStartedAtMs,
+        band: toResolverBand(state.readiness_level),
+        blockingReasonCount: state.gap_summary.length,
+        startReady: state.readiness_level === 'L3',
+      });
       return res.status(200).json({ ...state, cached: false });
     } catch (err) {
       log('error', 'trust_state_get_error', { npi, error: String(err) });
@@ -223,5 +306,50 @@ export function registerTrustStateEngineRoutes(app: Express): void {
       log('error', 'trust_state_domain_get_error', { npi, error: String(err) });
       return res.status(500).json({ error: 'Failed to compute domain trust state' });
     }
+  });
+
+  /**
+   * GET /api/trust-state/cache/stats
+   * Wave 292: Cache integrity audit — LRU metrics, hit ratio breakdown, histogram snapshot.
+   * Memory hits, DB hits, misses, overall hit ratio, p50/p90/p95 latency.
+   */
+  app.get('/api/trust-state/cache/stats', (_req: Request, res: Response) => {
+    const cache = getCacheCounters();
+    const telemetry = getPilotTelemetryDashboard();
+
+    return res.status(200).json({
+      schema: 'vitalcv.cache-stats.v1',
+      generated_at: new Date().toISOString(),
+      cache: {
+        lru: {
+          size: cache.lru_size,
+          max: cache.lru_max,
+          ttl_ms: cache.lru_ttl_ms,
+          utilization: cache.lru_max > 0 ? +(cache.lru_size / cache.lru_max).toFixed(4) : 0,
+        },
+        hits: {
+          memory: cache.memory_hits,
+          db: cache.db_hits,
+          total: cache.memory_hits + cache.db_hits,
+        },
+        misses: cache.misses,
+        total_requests: cache.total_requests,
+        ratios: {
+          memory_hit: cache.memory_hit_ratio,
+          db_hit: cache.db_hit_ratio,
+          overall_hit: cache.overall_hit_ratio,
+          miss: cache.total_requests > 0
+            ? +(cache.misses / cache.total_requests).toFixed(4)
+            : 0,
+        },
+      },
+      latency: {
+        trust_state: telemetry.metrics.trust_state_latency,
+        widget_pas: telemetry.metrics.widget_pas_generation_time,
+        resolver_runtime: telemetry.metrics.resolver_runtime,
+        histogram: trustStateLatencyHistogram.snapshot(),
+      },
+      pilot_dashboard: telemetry.dashboard,
+    });
   });
 }

@@ -1,6 +1,7 @@
 'use client';
 
-import { GraphNode, TrustGraph } from '@/components/clinician/TrustGraph';
+import type { GraphNode } from '@/components/graph/types';
+import { TrustGraph } from '@/components/clinician/TrustGraph';
 import { Button } from '@/components/ui/button';
 import {
     GlassCard,
