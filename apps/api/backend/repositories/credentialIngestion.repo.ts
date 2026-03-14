@@ -4,9 +4,14 @@ import { computeCredentialState } from '../src/services/credentialStatusEngine';
 import { computeTrustState } from '../src/services/trustState';
 import { CredentialLifecycleState } from '../src/utils/lifecycleState';
 import {
+  validateCredentialArtifact,
+  validateVerificationArtifact,
+} from '../../../../packages/trust-state';
+import {
   isCanonicalCredentialArtifact,
   isCanonicalVerificationArtifact,
   type ActiveCredentialArtifactRecord,
+  type ActiveVerificationArtifactRecord,
   type CanonicalCredentialArtifact,
   type CanonicalVerificationArtifact,
   type CompatibilityVerificationArtifactInput,
@@ -26,6 +31,7 @@ export interface CredentialIngestionRepository {
     artifact: PersistableCanonicalArtifact<CanonicalVerificationArtifact>,
   ): Promise<{ id: string }>;
   findActiveCredentialsByNpi(npi: string): Promise<ActiveCredentialArtifactRecord[]>;
+  findVerificationArtifactsByNpi(npi: string): Promise<ActiveVerificationArtifactRecord[]>;
 }
 
 type VerificationRunRecord = {
@@ -105,6 +111,28 @@ function toActiveCredentialArtifactRecord(
     return null;
   }
 
+  validateCredentialArtifact(artifactJson);
+
+  return {
+    artifactId,
+    verificationRunId,
+    artifact: artifactJson,
+    createdAt: createdAt.toISOString(),
+  };
+}
+
+function toActiveVerificationArtifactRecord(
+  verificationRunId: string,
+  artifactId: string,
+  artifactJson: Prisma.JsonValue,
+  createdAt: Date,
+): ActiveVerificationArtifactRecord | null {
+  if (!isCanonicalVerificationArtifact(artifactJson)) {
+    return null;
+  }
+
+  validateVerificationArtifact(artifactJson);
+
   return {
     artifactId,
     verificationRunId,
@@ -126,11 +154,13 @@ function extractPersistedArtifacts(run: VerificationRunRecord): {
 
   for (const artifact of run.artifacts) {
     if (!credentialArtifact && isCanonicalCredentialArtifact(artifact.artifactJson)) {
+      validateCredentialArtifact(artifact.artifactJson);
       credentialArtifact = artifact.artifactJson;
       credentialArtifactId = artifact.id;
       continue;
     }
     if (!verificationArtifact && isCanonicalVerificationArtifact(artifact.artifactJson)) {
+      validateVerificationArtifact(artifact.artifactJson);
       verificationArtifact = artifact.artifactJson;
       verificationArtifactId = artifact.id;
     }
@@ -271,6 +301,41 @@ export class PrismaCredentialIngestionRepository implements CredentialIngestionR
       });
   }
 
+  async findVerificationArtifactsByNpi(npi: string): Promise<ActiveVerificationArtifactRecord[]> {
+    const runs = await prisma.verificationRun.findMany({
+      where: {
+        provider: {
+          npi,
+        },
+      },
+      include: {
+        artifacts: {
+          select: {
+            id: true,
+            artifactJson: true,
+            createdAt: true,
+          },
+        },
+      },
+      orderBy: {
+        retrievedAtUtc: 'desc',
+      },
+    });
+
+    return runs.flatMap((run) =>
+      run.artifacts
+        .map((artifact) =>
+          toActiveVerificationArtifactRecord(
+            run.id,
+            artifact.id,
+            artifact.artifactJson,
+            artifact.createdAt,
+          ),
+        )
+        .filter((artifact): artifact is ActiveVerificationArtifactRecord => Boolean(artifact)),
+    );
+  }
+
   private async upsertProvider(
     tx: Prisma.TransactionClient,
     input: PersistIngestionBundleInput,
@@ -350,6 +415,7 @@ export class PrismaCredentialIngestionRepository implements CredentialIngestionR
     verificationRunId: string,
     artifact: PersistableCanonicalArtifact<CanonicalCredentialArtifact>,
   ): Promise<{ id: string }> {
+    validateCredentialArtifact(artifact.artifact);
     return tx.w2Artifact.create({
       data: {
         id: artifact.id,
@@ -370,6 +436,7 @@ export class PrismaCredentialIngestionRepository implements CredentialIngestionR
     verificationRunId: string,
     artifact: PersistableCanonicalArtifact<CanonicalVerificationArtifact>,
   ): Promise<{ id: string }> {
+    validateVerificationArtifact(artifact.artifact);
     return tx.w2Artifact.create({
       data: {
         id: artifact.id,
@@ -529,6 +596,7 @@ export class InMemoryCredentialIngestionRepository implements CredentialIngestio
     verificationRunId: string,
     artifact: PersistableCanonicalArtifact<CanonicalCredentialArtifact>,
   ): Promise<{ id: string }> {
+    validateCredentialArtifact(artifact.artifact);
     const run = this.runs.get(verificationRunId);
     if (!run) {
       throw new Error(`Verification run not found: ${verificationRunId}`);
@@ -544,6 +612,7 @@ export class InMemoryCredentialIngestionRepository implements CredentialIngestio
     verificationRunId: string,
     artifact: PersistableCanonicalArtifact<CanonicalVerificationArtifact>,
   ): Promise<{ id: string }> {
+    validateVerificationArtifact(artifact.artifact);
     const run = this.runs.get(verificationRunId);
     if (!run) {
       throw new Error(`Verification run not found: ${verificationRunId}`);
@@ -580,6 +649,25 @@ export class InMemoryCredentialIngestionRepository implements CredentialIngestio
             createdAt: run.createdAt,
           })),
       )
+      .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+  }
+
+  async findVerificationArtifactsByNpi(npi: string): Promise<ActiveVerificationArtifactRecord[]> {
+    return Array.from(this.runs.values())
+      .filter((run) => run.providerNpi === npi)
+      .flatMap((run) =>
+        run.artifacts
+          .map((artifact) =>
+            toActiveVerificationArtifactRecord(
+              run.id,
+              artifact.id,
+              artifact.artifactJson as unknown as Prisma.JsonValue,
+              new Date(run.createdAt),
+            ),
+          )
+          .filter((artifact): artifact is ActiveVerificationArtifactRecord => Boolean(artifact)),
+      )
+      .filter((artifact) => artifact.artifact.subject_npi === npi)
       .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
   }
 }

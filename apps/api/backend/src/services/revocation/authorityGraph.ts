@@ -96,6 +96,35 @@ async function ensureDependsOnEdge(
   });
 }
 
+async function ensureDecidedByEdge(
+  decisionNodeId: string,
+  organizationNodeId: string,
+  metadata: Record<string, unknown>,
+): Promise<void> {
+  const existingEdge = await prisma.authorityEdge.findFirst({
+    where: {
+      sourceNodeId: decisionNodeId,
+      targetNodeId: organizationNodeId,
+      relationType: 'DECIDED_BY',
+    },
+    select: { id: true },
+  });
+
+  if (existingEdge) {
+    return;
+  }
+
+  await prisma.authorityEdge.create({
+    data: {
+      sourceNodeId: decisionNodeId,
+      targetNodeId: organizationNodeId,
+      relationType: 'DECIDED_BY',
+      weight: 1.0,
+      metadata: metadata as Prisma.InputJsonValue,
+    },
+  });
+}
+
 async function getVerificationArtifact(credentialId: string): Promise<VerificationArtifactNode> {
   const artifact = await prisma.verificationArtifact.findUnique({
     where: { id: credentialId },
@@ -170,6 +199,44 @@ export async function ensureDecisionCapsuleAuthorityGraph(capsuleId: string): Pr
       decisionType: capsule.decisionType,
     });
   }
+}
+
+export async function ensureDecisionCapsuleVerifierAuthorityGraph(
+  capsuleId: string,
+  verifierOrg: string,
+): Promise<void> {
+  const capsule = await getDecisionCapsule(capsuleId);
+  const normalizedVerifierOrg = verifierOrg.trim();
+  if (normalizedVerifierOrg.length === 0) {
+    return;
+  }
+
+  const decisionNode = await upsertKnowledgeNode({
+    entityType: 'DECISION_CAPSULE',
+    entityId: capsule.id,
+    label: `${capsule.decisionType} Decision Capsule`,
+    attributes: {
+      subjectDid: capsule.subjectDid,
+      subjectNpi: capsule.subjectNpi,
+      status: capsule.status,
+    },
+  });
+
+  const organizationNode = await upsertKnowledgeNode({
+    entityType: 'ORGANIZATION',
+    entityId: normalizedVerifierOrg,
+    label: `Verifier ${normalizedVerifierOrg}`,
+    attributes: {
+      verifierOrg: normalizedVerifierOrg,
+    },
+  });
+
+  await ensureDecidedByEdge(decisionNode.id, organizationNode.id, {
+    capsuleId: capsule.id,
+    verifierOrg: normalizedVerifierOrg,
+    subjectNpi: capsule.subjectNpi,
+    decisionType: capsule.decisionType,
+  });
 }
 
 export async function ensureCredentialDecisionAuthorityGraph(

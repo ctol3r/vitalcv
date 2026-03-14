@@ -159,7 +159,10 @@ export const DEFAULT_SOURCE_POLICIES = Object.freeze({
 } satisfies Record<string, SourcePolicyDefinition>);
 
 export function getSourcePolicy(sourceId: string): SourcePolicyDefinition {
-  const policy = DEFAULT_SOURCE_POLICIES[sourceId as keyof typeof DEFAULT_SOURCE_POLICIES];
+  const normalizedSourceId = sourceId.trim().toLowerCase();
+  const policy = DEFAULT_SOURCE_POLICIES[
+    normalizedSourceId as keyof typeof DEFAULT_SOURCE_POLICIES
+  ];
   if (!policy) {
     throw new SourcePolicyError(`No source policy registered for ${sourceId}`);
   }

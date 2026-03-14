@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vitalcv.com/schemas/audit-scrapbook.bundle.schema.json",
+  "title": "AuditScrapbook Bundle",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "npi",
+    "generatedAt",
+    "methodologyVersion",
+    "verifierAgent",
+    "bundleHash",
+    "entries"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "audit_scrapbook.v1"
+    },
+    "npi": {
+      "type": "string"
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "methodologyVersion": {
+      "type": "string"
+    },
+    "verifierAgent": {
+      "type": "string"
+    },
+    "bundleHash": {
+      "type": "string"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "credentialId",
+          "credentialType",
+          "source",
+          "sourceResponseArtifact",
+          "normalizedCredentialFacts",
+          "verificationMetadata",
+          "verificationMethod",
+          "verifiedAt",
+          "verifierAgent",
+          "evidenceHash",
+          "provenanceChain",
+          "ledgerAnchor",
+          "disclosureFrame",
+          "decisionCapsuleIds",
+          "decisionTypes"
+        ],
+        "properties": {
+          "credentialId": {
+            "type": "string"
+          },
+          "verificationArtifactId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "credentialType": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "sourceResponseArtifact": {
+            "type": "object"
+          },
+          "normalizedCredentialFacts": {
+            "type": "object"
+          },
+          "verificationMetadata": {
+            "type": "object",
+            "required": [
+              "status",
+              "verifiedAt",
+              "freshUntil",
+              "sourceType",
+              "organizationId"
+            ],
+            "properties": {
+              "status": {
+                "type": "string"
+              },
+              "verifiedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "freshUntil": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "sourceType": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "organizationId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "sourceResponseHash": {
+                "type": "string"
+              },
+              "normalizedFactsHash": {
+                "type": "string"
+              }
+            }
+          },
+          "verificationMethod": {
+            "type": "string"
+          },
+          "verifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "verifierAgent": {
+            "type": "string"
+          },
+          "evidenceHash": {
+            "type": "string"
+          },
+          "provenanceChain": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "createdAt",
+                "fingerprint",
+                "merkleRoot",
+                "lifecycleState"
+              ],
+              "properties": {
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "fingerprint": {
+                  "type": "string"
+                },
+                "merkleRoot": {
+                  "type": "string"
+                },
+                "lifecycleState": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "ledgerAnchor": {
+            "type": "object",
+            "required": [
+              "artifactId",
+              "merkleRoot",
+              "checksum",
+              "chainDigest"
+            ],
+            "properties": {
+              "artifactId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "merkleRoot": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "checksum": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "chainDigest": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "disclosureFrame": {
+            "type": "object"
+          },
+          "decisionCapsuleIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "decisionTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -109,6 +109,13 @@ export interface ActiveCredentialArtifactRecord {
   createdAt: string;
 }
 
+export interface ActiveVerificationArtifactRecord {
+  artifactId: string;
+  verificationRunId: string;
+  artifact: CanonicalVerificationArtifact;
+  createdAt: string;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

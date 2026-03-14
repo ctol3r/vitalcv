@@ -19,7 +19,8 @@ export type CredentialEventType =
   | 'DEA_UPDATED'
   | 'CREDENTIAL_VERIFIED'
   | 'CREDENTIAL_REVOKED'
-  | 'MONITORING_ALERT';
+  | 'MONITORING_ALERT'
+  | 'DECISION_CAPSULE_CREATED';
 
 export interface CredentialEvent {
   /** Unique event ID */

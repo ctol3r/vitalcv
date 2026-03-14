@@ -16,12 +16,46 @@ import { revocationCascade } from '../services/decision/revocationCascade';
 import { revocationCascadeEngine } from '../services/revocation/cascadeEngine';
 import { computeClinicianTrustState, type ClinicianTrustState } from '../services/trust/trustStateEngine';
 import prisma from '../graphql/prisma_client';
+import type { DecisionTriggerEvent } from '../../repositories/decisionCapsules.repo';
 
 const VALID_DECISION_TYPES: DecisionType[] = ['HIRING', 'PRIVILEGING', 'DEPLOYMENT', 'RENEWAL'];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isValidDecisionType(v: unknown): v is DecisionType {
   return typeof v === 'string' && (VALID_DECISION_TYPES as string[]).includes(v);
+}
+
+function isDecisionTriggerEvent(value: unknown): value is DecisionTriggerEvent {
+  return value === 'verifier_decision'
+    || value === 'start_attestation'
+    || value === 'employment_acceptance'
+    || value === 'privilege_recommendation';
+}
+
+function enrichCapsule<T extends {
+  metadata: unknown;
+  methodology: string;
+}>(capsule: T): T & {
+  verifierOrgId: string | null;
+  trust_state_snapshot: unknown;
+  trust_state_snapshot_v2: unknown;
+} {
+  const meta = typeof capsule.metadata === 'object' && capsule.metadata !== null
+    ? capsule.metadata as Record<string, unknown>
+    : null;
+
+  return {
+    ...capsule,
+    verifierOrgId: typeof meta?.verifierOrgId === 'string'
+      ? meta.verifierOrgId
+      : typeof meta?.organizationId === 'string'
+        ? meta.organizationId
+        : typeof meta?.employerId === 'string'
+          ? meta.employerId
+          : null,
+    trust_state_snapshot: meta?.trust_state_snapshot ?? null,
+    trust_state_snapshot_v2: meta?.trust_state_snapshot_v2 ?? null,
+  };
 }
 
 export function registerDecisionCapsuleRoutes(app: Express): void {
@@ -63,24 +97,20 @@ export function registerDecisionCapsuleRoutes(app: Express): void {
         orderBy: { decisionTimestamp: 'desc' },
         take: 20,
       });
-      const enriched = capsules.map((c) => {
-        const meta = c.metadata as Record<string, unknown> | null;
-        return {
-          id: c.id,
-          subjectNpi: c.subjectNpi,
-          subjectDid: c.subjectDid,
-          decisionType: c.decisionType,
-          decisionTimestamp: c.decisionTimestamp.toISOString(),
-          status: c.status,
-          credentialIds: c.credentialIds,
-          issuerIds: c.issuerIds,
-          artifactHash: c.artifactHash,
-          methodology: c.methodology,
-          trust_state_snapshot: meta?.trust_state_snapshot ?? null,
-          metadata: c.metadata,
-          createdAt: c.createdAt.toISOString(),
-        };
-      });
+      const enriched = capsules.map((c) => enrichCapsule({
+        id: c.id,
+        subjectNpi: c.subjectNpi,
+        subjectDid: c.subjectDid,
+        decisionType: c.decisionType,
+        decisionTimestamp: c.decisionTimestamp.toISOString(),
+        status: c.status,
+        credentialIds: c.credentialIds,
+        issuerIds: c.issuerIds,
+        artifactHash: c.artifactHash,
+        methodology: c.methodology,
+        metadata: c.metadata,
+        createdAt: c.createdAt.toISOString(),
+      }));
       res.json({ capsules: enriched, totalCount: enriched.length });
     } catch (err) {
       log('error', 'decision_capsules: employer_decisions failed', { error: String(err) });
@@ -176,13 +206,7 @@ export function registerDecisionCapsuleRoutes(app: Express): void {
         if (c.status in statusCounts) statusCounts[c.status as keyof typeof statusCounts]++;
       }
       // Enrich each capsule with trust_state_snapshot from metadata (Wave 244)
-      const enrichedCapsules = capsules.map((capsule) => {
-        const meta = capsule.metadata as Record<string, unknown> | null;
-        return {
-          ...capsule,
-          trust_state_snapshot: meta?.trust_state_snapshot ?? null,
-        };
-      });
+      const enrichedCapsules = capsules.map((capsule) => enrichCapsule(capsule));
       res.json({ npi, capsules: enrichedCapsules, totalCount: capsules.length, statusCounts });
     } catch (err) {
       log('error', 'decision_capsules: list failed', { error: String(err) });
@@ -234,7 +258,7 @@ export function registerDecisionCapsuleRoutes(app: Express): void {
         res.status(404).json({ error: 'Decision capsule not found' });
         return;
       }
-      res.json(capsule);
+      res.json(enrichCapsule(capsule));
     } catch (err) {
       log('error', 'decision_capsules: detail failed', { error: String(err) });
       res.status(500).json({ error: 'Failed to retrieve decision capsule' });
@@ -244,8 +268,10 @@ export function registerDecisionCapsuleRoutes(app: Express): void {
   // ── POST /api/decisions ───────────────────────────────────────────────
   app.post('/api/decisions', async (req: Request, res: Response) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
-    const subjectDid = typeof body.subjectDid === 'string' ? body.subjectDid.trim() : '';
     const subjectNpi = typeof body.subjectNpi === 'string' ? body.subjectNpi.trim() : '';
+    const subjectDid = typeof body.subjectDid === 'string' && body.subjectDid.trim().length > 0
+      ? body.subjectDid.trim()
+      : (subjectNpi ? `did:vitalcv:${subjectNpi}` : '');
     const decisionType = body.decisionType;
     const credentialIds = Array.isArray(body.credentialIds)
       ? body.credentialIds.filter((id): id is string => typeof id === 'string')
@@ -256,27 +282,36 @@ export function registerDecisionCapsuleRoutes(app: Express): void {
     const metadata = typeof body.metadata === 'object' && body.metadata !== null
       ? body.metadata as Record<string, unknown>
       : undefined;
+    const verifierOrgId = typeof body.verifierOrgId === 'string' ? body.verifierOrgId.trim() : undefined;
+    const triggerEventCandidate = body.triggerEvent ?? metadata?.triggerEvent;
+    const triggerEvent = isDecisionTriggerEvent(triggerEventCandidate)
+      ? triggerEventCandidate
+      : undefined;
+    const sourceReferenceId = typeof body.sourceReferenceId === 'string'
+      ? body.sourceReferenceId.trim()
+      : typeof metadata?.sourceReferenceId === 'string'
+        ? metadata.sourceReferenceId.trim()
+        : undefined;
 
     if (!subjectNpi || !/^\d{10}$/.test(subjectNpi)) {
       res.status(400).json({ error: 'Invalid subjectNpi — expected 10 digits' });
-      return;
-    }
-    if (!subjectDid) {
-      res.status(400).json({ error: 'subjectDid is required' });
       return;
     }
     if (!isValidDecisionType(decisionType)) {
       res.status(400).json({ error: `decisionType must be one of: ${VALID_DECISION_TYPES.join(', ')}` });
       return;
     }
-    if (credentialIds.length === 0) {
-      res.status(400).json({ error: 'At least one credentialId is required' });
-      return;
-    }
-
     try {
       const capsule = await capsuleEngine.createDecisionCapsule({
-        subjectDid, subjectNpi, decisionType, credentialIds, issuerIds, metadata,
+        subjectDid,
+        subjectNpi,
+        decisionType,
+        credentialIds,
+        issuerIds,
+        verifierOrgId,
+        metadata,
+        triggerEvent,
+        sourceReferenceId,
       });
       res.status(201).json(capsule);
     } catch (err) {

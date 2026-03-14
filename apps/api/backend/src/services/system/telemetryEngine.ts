@@ -6,6 +6,10 @@
 
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
+import {
+  getPilotTelemetryDashboard,
+  type PilotTelemetryDashboard,
+} from './pilotTelemetry';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -17,6 +21,7 @@ export interface NetworkTelemetry {
   verificationsToday: number;
   artifactsGenerated: number;
   averageLatency: number;
+  trustState: PilotTelemetryDashboard;
   generatedAt: string;
 }
 
@@ -25,6 +30,7 @@ export interface NetworkTelemetry {
 export async function generateNetworkTelemetry(): Promise<NetworkTelemetry> {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
+  const trustStateTelemetry = getPilotTelemetryDashboard();
 
   const [
     clinicianCount,
@@ -47,7 +53,8 @@ export async function generateNetworkTelemetry(): Promise<NetworkTelemetry> {
     decisions: decisionCount,
     verificationsToday: todayArtifacts,
     artifactsGenerated: artifactCount,
-    averageLatency: 142, // Placeholder — would be from request metrics
+    averageLatency: trustStateTelemetry.metrics.trust_state_latency.avg_ms,
+    trustState: trustStateTelemetry,
     generatedAt: new Date().toISOString(),
   };
 

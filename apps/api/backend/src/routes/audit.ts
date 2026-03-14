@@ -4,6 +4,7 @@ import {
   buildMerkleTreeFromLeafHashes,
   hashMerkleConcat,
 } from '../utils/merkle';
+import { buildAuditBundleProof } from '../services/audit/auditBundleProof';
 
 interface InclusionProof {
   eventHash: string;
@@ -76,6 +77,26 @@ function buildVerificationSteps(
 }
 
 export function registerAuditRoutes(app: Express): void {
+  app.get('/api/audit/bundle/:npi', async (req: Request, res: Response) => {
+    const { npi } = req.params;
+
+    if (!npi || !/^\d{10}$/.test(npi)) {
+      return res.status(400).json({ error: 'Invalid NPI' });
+    }
+
+    try {
+      const bundle = await buildAuditBundleProof(npi);
+      res.setHeader('Content-Disposition', 'attachment; filename="audit_bundle.json"');
+      return res.json(bundle);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to build audit bundle';
+      if (message.includes('not found')) {
+        return res.status(404).json({ error: message });
+      }
+      return res.status(500).json({ error: message });
+    }
+  });
+
   /**
    * GET /api/audit/proof/:eventHash
    *

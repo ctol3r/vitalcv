@@ -11,6 +11,7 @@ import prisma from '../../graphql/prisma_client';
 import { appendAuditEvent, newTraceId } from '../audit/auditLedger';
 import type { DocumentExtractionResult } from '../ai/documentPipeline';
 import { log } from '../../obs/logger';
+import { invalidateTrustStateCache } from '../trust/trustStateCache';
 
 // ── ingestCredential ──────────────────────────────────────────────────────────
 
@@ -39,6 +40,7 @@ export async function ingestCredential(
       status: 'UNVERIFIED',
     },
   });
+  invalidateTrustStateCache(credential.clinicianId);
 
   appendAuditEvent({
     traceId,
@@ -111,6 +113,7 @@ export async function confirmCredential(
       status: 'PENDING_VERIFICATION',
     },
   });
+  invalidateTrustStateCache(updated.clinicianId);
 
   appendAuditEvent({
     traceId,

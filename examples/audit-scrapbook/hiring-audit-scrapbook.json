@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "audit_scrapbook.v1",
+  "npi": "1234567890",
+  "generatedAt": "2026-03-14T12:05:00.000Z",
+  "methodologyVersion": "audit_scrapbook.v1",
+  "verifierAgent": "VitalCV Verifier",
+  "bundleHash": "1d7d6cb6c6a2f2bf59d413db5cc510ea16b742f9ccbc80bd3a275f853d3d3c8c",
+  "entries": [
+    {
+      "credentialId": "credential-artifact-1",
+      "verificationArtifactId": "verification-artifact-1",
+      "credentialType": "STATE_LICENSE",
+      "source": "state-board",
+      "sourceResponseArtifact": {
+        "licenseNumber": "CA-RN-1001",
+        "status": "ACTIVE"
+      },
+      "normalizedCredentialFacts": {
+        "subject_npi": "1234567890",
+        "credential_type": "STATE_LICENSE",
+        "issuer_org_id": "issuer.state-board.ca",
+        "status": "ACTIVE",
+        "issued_at": "2026-03-01T00:00:00.000Z",
+        "expires_at": "2027-03-01T00:00:00.000Z"
+      },
+      "verificationMetadata": {
+        "status": "ACTIVE",
+        "verifiedAt": "2026-03-10T00:00:00.000Z",
+        "freshUntil": "2026-06-10T00:00:00.000Z",
+        "sourceType": "STATE_BOARD",
+        "organizationId": "8d44bcbe-9608-4fb8-9c1f-bd95f4c76f89",
+        "sourceResponseHash": "bc5f1ccdc37271ee3ef91be27556d50e019303f5267da8af08afd5778fd3ce7f",
+        "normalizedFactsHash": "eac31986520a71e90bb9f4aa84844d04b282afdb01f2dd1c3c4bd44b0ecfd597"
+      },
+      "verificationMethod": "API",
+      "verifiedAt": "2026-03-10T00:00:00.000Z",
+      "verifierAgent": "VitalCV Verifier",
+      "evidenceHash": "db56eff5592a23dd0e61ee95dceff119e4b415eca2d37ce580fd4c567808713d",
+      "provenanceChain": [
+        {
+          "createdAt": "2026-03-10T00:00:01.000Z",
+          "fingerprint": "evidence-hash-1",
+          "merkleRoot": "merkle-root-1",
+          "lifecycleState": "ACTIVE"
+        }
+      ],
+      "ledgerAnchor": {
+        "artifactId": "compat-artifact-1",
+        "merkleRoot": "merkle-root-1",
+        "checksum": "evidence-hash-1",
+        "chainDigest": "chain-digest-1"
+      },
+      "disclosureFrame": {
+        "disclosureFrameType": "selective_disclosure_placeholder",
+        "disclosedClaimCount": 2,
+        "redactedClaimCount": 0,
+        "digests": []
+      },
+      "decisionCapsuleIds": [
+        "7b8f5ee8-8748-4c39-a971-0e1d9d3a58d4"
+      ],
+      "decisionTypes": [
+        "HIRING"
+      ]
+    }
+  ]
+}

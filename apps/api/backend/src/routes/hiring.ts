@@ -194,6 +194,19 @@ export function registerHiringRoutes(app: Express): void {
         pilotReadiness,
       });
 
+      void capsuleEngine.createDecisionFromAcceptance({
+        subjectNpi: acceptance.clinicianNpi,
+        employerId: acceptance.employerId,
+        acceptanceId: acceptance.id,
+        artifactId: acceptance.artifactId,
+      }).catch((error: unknown) => {
+        log('warn', 'hiring_accept_decision_capsule_creation_failed', {
+          acceptanceId: acceptance.id,
+          employerId: acceptance.employerId,
+          error: String(error),
+        });
+      });
+
       return res.status(201).json({
         ok:           true,
         acceptanceId: acceptance.id,
@@ -432,25 +445,23 @@ export function registerHiringRoutes(app: Express): void {
             })
         : null;
 
-      if (pilotReadiness?.triggerDecisionCapsuleOnHire) {
-        void capsuleEngine.createDecisionFromHire({
-          subjectNpi: acceptance.clinicianNpi,
-          employerId: acceptance.employerId,
-          organizationId: pilotContext.organizationId,
+      void capsuleEngine.createDecisionFromHire({
+        subjectNpi: acceptance.clinicianNpi,
+        employerId: acceptance.employerId,
+        organizationId: pilotContext.organizationId,
+        acceptanceId,
+        startAttestationId: attestation.id,
+        role: attestation.role,
+        facility: attestation.facility,
+        startedAt: attestation.startedAt.toISOString(),
+      }).catch((error: unknown) => {
+        log('warn', 'hiring_start_decision_capsule_creation_failed', {
           acceptanceId,
           startAttestationId: attestation.id,
-          role: attestation.role,
-          facility: attestation.facility,
-          startedAt: attestation.startedAt.toISOString(),
-        }).catch((error: unknown) => {
-          log('warn', 'hiring_start_decision_capsule_creation_failed', {
-            acceptanceId,
-            startAttestationId: attestation.id,
-            employerId: acceptance.employerId,
-            error: String(error),
-          });
+          employerId: acceptance.employerId,
+          error: String(error),
         });
-      }
+      });
 
       // ── 201 response ─────────────────────────────────────────────────────
       return res.status(201).json({

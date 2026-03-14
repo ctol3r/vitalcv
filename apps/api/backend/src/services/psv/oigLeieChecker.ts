@@ -26,6 +26,7 @@ export type ExclusionMatchType = 'NONE' | 'NAME_MATCH' | 'NPI_MATCH' | 'EXACT_MA
 export interface ExclusionResult {
   excluded: boolean;
   matchType: ExclusionMatchType;
+  status?: 'CLEAR' | 'EXCLUDED' | 'UNKNOWN';
   details: string;
   checkedAt: string;
   source: 'OIG_LEIE';
@@ -47,10 +48,24 @@ function clearResult(): ExclusionResult {
   return {
     excluded: false,
     matchType: 'NONE',
+    status: 'CLEAR',
     details: 'No exclusion record found (stub mode — OIG_LEIE_ENABLED not set)',
     checkedAt: new Date().toISOString(),
     source: 'OIG_LEIE',
   };
+}
+
+function isTimeoutError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
+
+  const name = 'name' in error ? String(error.name) : '';
+  const message = 'message' in error ? String(error.message) : String(error);
+
+  return name === 'TimeoutError'
+    || name === 'AbortError'
+    || /timed?\s*out|timeout/i.test(message);
 }
 
 // ── Live OIG check (best-effort HTML parse) ────────────────────────────────────
@@ -73,7 +88,7 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
     if (params.npi) url.searchParams.set('npi', params.npi);
 
     const res = await fetch(url.toString(), {
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(4000),
       headers: { 'User-Agent': 'VitalCV-PSV-LEIE/1.0 (compliance@vitalcv.com)' },
     });
 
@@ -83,6 +98,7 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
       return {
         excluded: false,
         matchType: 'NONE',
+        status: 'CLEAR',
         details: `OIG search returned HTTP ${res.status} — could not confirm. Manual verification required.`,
         checkedAt,
         source: 'OIG_LEIE',
@@ -101,6 +117,7 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
       return {
         excluded: false,
         matchType: 'NONE',
+        status: 'CLEAR',
         details: 'OIG LEIE search returned no matching exclusion records.',
         checkedAt,
         source: 'OIG_LEIE',
@@ -123,6 +140,7 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
       return {
         excluded: true,
         matchType,
+        status: 'EXCLUDED',
         details: `OIG LEIE search returned a potential exclusion match for ${params.firstName} ${params.lastName}. Manual verification required.`,
         checkedAt,
         source: 'OIG_LEIE',
@@ -133,6 +151,7 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
     return {
       excluded: false,
       matchType: 'NONE',
+      status: 'CLEAR',
       details: 'OIG LEIE search completed — no exclusion signals detected.',
       checkedAt,
       source: 'OIG_LEIE',
@@ -141,9 +160,21 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
     const message = err instanceof Error ? err.message : String(err);
     log('warn', 'oig_leie_fetch_error', { error: message, firstName: params.firstName, lastName: params.lastName });
 
+    if (isTimeoutError(err)) {
+      return {
+        excluded: false,
+        matchType: 'NONE',
+        status: 'UNKNOWN',
+        details: 'OIG LEIE check timed out after 4000ms — manual verification required.',
+        checkedAt,
+        source: 'OIG_LEIE',
+      };
+    }
+
     return {
       excluded: false,
       matchType: 'NONE',
+      status: 'CLEAR',
       details: `OIG LEIE check failed (${message}) — manual verification recommended.`,
       checkedAt,
       source: 'OIG_LEIE',
@@ -174,24 +205,32 @@ export async function checkExclusion(params: ExclusionCheckParams): Promise<Excl
   const result = isLiveMode() ? await liveOigCheck(params) : clearResult();
 
   // Emit audit event — always, regardless of mode
-  await appendAuditEvent({
-    category: ['COMPLIANCE'],
-    actor: params.npi ?? `${params.firstName}_${params.lastName}`,
-    resource: `oig:leie:${params.lastName.toUpperCase()}`,
-    severity: result.excluded ? 'CRITICAL' : 'INFO',
-    requestFields: {
-      firstName: params.firstName,
-      lastName: params.lastName,
+  try {
+    await appendAuditEvent({
+      category: ['COMPLIANCE'],
+      actor: params.npi ?? `${params.firstName}_${params.lastName}`,
+      resource: `oig:leie:${params.lastName.toUpperCase()}`,
+      severity: result.excluded ? 'CRITICAL' : 'INFO',
+      requestFields: {
+        firstName: params.firstName,
+        lastName: params.lastName,
+        npi: params.npi,
+        mode: isLiveMode() ? 'live' : 'stub',
+      },
+      resultFields: {
+        excluded: result.excluded,
+        matchType: result.matchType,
+        status: result.status ?? (result.excluded ? 'EXCLUDED' : 'CLEAR'),
+        details: result.details,
+        checkedAt: result.checkedAt,
+      },
+    });
+  } catch (err) {
+    log('warn', 'oig_leie_audit_error', {
+      error: err instanceof Error ? err.message : String(err),
       npi: params.npi,
-      mode: isLiveMode() ? 'live' : 'stub',
-    },
-    resultFields: {
-      excluded: result.excluded,
-      matchType: result.matchType,
-      details: result.details,
-      checkedAt: result.checkedAt,
-    },
-  });
+    });
+  }
 
   log('info', 'oig_leie_check_complete', {
     excluded: result.excluded,
