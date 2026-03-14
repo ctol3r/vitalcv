@@ -35,6 +35,7 @@ import { registerAuthorityRoutes } from './routes/authority';
 // Wave 35: Merkle Anchoring — audit proof endpoint + background worker
 import { registerAuditRoutes } from './routes/audit';
 import { startAnchorWorker } from './workers/anchorWorker';
+import { startRevocationOutboxWorker } from './workers/revocationOutboxWorker';
 // Wave 37: Superbrain GraphRAG intelligence endpoint
 import { registerIntelligenceRoutes } from './routes/intelligence';
 // Wave 40: Continuous Trust & Revocation Engine
@@ -3585,6 +3586,7 @@ if (process.env.NODE_ENV !== 'test') {
   // Avoid open handles and unrelated database chatter during Jest runs.
   startAnchorWorker();
   startContinuousMonitor();
+  startRevocationOutboxWorker();
 }
 
 if (ENTERPRISE_MODE) {
