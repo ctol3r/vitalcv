@@ -13,12 +13,23 @@
  * • Only authority_state summary leaves this service — no PII.
  * • Webhook is HMAC-SHA256 signed (X-VitalCV-Signature).
  * • Rate-limited: publicApiRateLimit (100 req / 10 min / IP).
+ *
+ * PAS TRUTHFULNESS
+ * ────────────────
+ * PAS is derived from live trust state (computeClinicianTrustState /
+ * getCachedTrustState). Mock values are NOT used in production paths.
+ * If trust state is unavailable, a conservative RED/0/C is returned.
  */
 
 import { createHmac, randomUUID } from 'node:crypto';
 import type { Express, Request, Response } from 'express';
 import { log } from '../obs/logger';
 import { publicApiRateLimit } from '../middleware/publicSafety';
+import {
+  getCachedTrustState,
+  computeClinicianTrustState,
+  type TrustBand,
+} from '../services/trust/trustStateEngine';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -57,15 +68,61 @@ function signPayload(body: string): string {
   return `t=${Date.now()},v1=${hmac}`;
 }
 
-/** Simulated PAS — production impl calls the authority engine / prisma. */
-function buildMockPas(): PasSummary {
-  return {
-    status:               'GREEN',
-    score:                97,
-    band:                 'A',
-    as_of:                new Date().toISOString(),
-    credentials_verified: 3,
-  };
+/** Map trust band to PAS status */
+function bandToStatus(band: TrustBand): PasSummary['status'] {
+  if (band === 'L3') return 'GREEN';
+  if (band === 'L2') return 'YELLOW';
+  return 'RED';
+}
+
+/** Map trust band to PAS band grade */
+function bandToGrade(band: TrustBand): PasSummary['band'] {
+  if (band === 'L3') return 'A';
+  if (band === 'L2') return 'B';
+  return 'C';
+}
+
+/**
+ * Derive a live PAS from the clinician's trust state.
+ * Tries the 1-hour cache first; falls back to live computation.
+ * If trust state is unavailable, returns a conservative RED/0/C.
+ * NEVER returns a hardcoded mock value.
+ */
+async function buildLivePas(npi: string): Promise<PasSummary> {
+  try {
+    // Try cache first (1-hour TTL)
+    let state = await getCachedTrustState(npi);
+
+    // Miss — compute live
+    if (!state) {
+      state = await computeClinicianTrustState(npi);
+    }
+
+    const credentialsVerified = (state.facts ?? []).filter(
+      (f) => f.status !== 'expired' && f.status !== 'unknown',
+    ).length;
+
+    return {
+      status:               bandToStatus(state.readiness_level),
+      score:                state.readiness_score,
+      band:                 bandToGrade(state.readiness_level),
+      as_of:                state.computedAt,
+      credentials_verified: credentialsVerified,
+    };
+  } catch (err) {
+    // Conservative fallback — never claim GREEN on error
+    log('warn', 'widget_trust_state_failed', {
+      npi_prefix: npi.slice(0, 4),
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return {
+      status:               'RED',
+      score:                0,
+      band:                 'C',
+      as_of:                new Date().toISOString(),
+      credentials_verified: 0,
+    };
+  }
 }
 
 /** Fire-and-forget to ATS webhook — never blocks the 200 response. */
@@ -139,7 +196,9 @@ export function registerWidgetRoutes(app: Express): void {
 
       const submissionId = randomUUID();
       const issuedAt     = new Date().toISOString();
-      const pas          = buildMockPas();
+
+      // ── Derive live PAS from trust state ───────────────────────────────
+      const pas = await buildLivePas(npi);
 
       // ── Build signed webhook payload ───────────────────────────────────
       const payload: WebhookPayload = {
@@ -166,6 +225,8 @@ export function registerWidgetRoutes(app: Express): void {
         client_id:     clientId,
         org_name:      orgName ?? '(unset)',
         pas_status:    pas.status,
+        pas_score:     pas.score,
+        pas_band:      pas.band,
       });
 
       return res.status(200).json({

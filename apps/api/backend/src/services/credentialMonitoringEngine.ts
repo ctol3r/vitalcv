@@ -4,14 +4,19 @@ import { computeCredentialState } from './credentialStatusEngine';
 import { appendArtifactLifecycleEntry } from './transparencyLedger';
 import { isStrictTransitionMode } from '../utils/environment';
 import { CredentialLifecycleState } from '../utils/lifecycleState';
+import { propagateCredentialLifecycleChange } from './revocation/propagationEngine';
 
 const MONITORING_WARNING_DAYS = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const MONITORING_EVENT_EXPIRATION_WARNING = 'expiration-warning' as const;
+const MONITORING_EVENT_EXPIRATION_DETECTED = 'expiration-detected' as const;
 const MONITORING_EVENT_REVOCATION_DETECTED = 'revocation-detected' as const;
 
-type MonitoringEventType = typeof MONITORING_EVENT_EXPIRATION_WARNING | typeof MONITORING_EVENT_REVOCATION_DETECTED;
+type MonitoringEventType =
+  | typeof MONITORING_EVENT_EXPIRATION_WARNING
+  | typeof MONITORING_EVENT_EXPIRATION_DETECTED
+  | typeof MONITORING_EVENT_REVOCATION_DETECTED;
 
 type MonitoringRunResult = {
   totalActiveCredentials: number;
@@ -24,6 +29,7 @@ type MonitoringEventResult = {
   created: number;
   revoked: number;
   expiring: number;
+  expired: number;
 };
 
 let lastSweepTimestamp: Date | null = null;
@@ -85,14 +91,20 @@ async function appendMonitoringTransparency(
 async function updateArtifactState(
   tx: Prisma.TransactionClient,
   artifactId: string,
-  lifecycleState: string,
-  statusLastChecked: Date,
+  params: {
+    lifecycleState: string;
+    statusLastChecked: Date;
+    status?: string;
+    trustState?: string;
+  },
 ): Promise<void> {
   await tx.verificationArtifact.update({
     where: { id: artifactId },
     data: {
-      lifecycleState,
-      statusLastChecked,
+      lifecycleState: params.lifecycleState,
+      statusLastChecked: params.statusLastChecked,
+      ...(params.status ? { status: params.status } : {}),
+      ...(params.trustState ? { trustState: params.trustState } : {}),
     },
   });
 }
@@ -154,6 +166,7 @@ export async function runMonitoringSweep(organizationId?: string): Promise<Monit
     created: 0,
     revoked: 0,
     expiring: 0,
+    expired: 0,
   };
 
   for (const artifact of activeArtifacts) {
@@ -177,13 +190,17 @@ export async function runMonitoringSweep(organizationId?: string): Promise<Monit
     const hasRevocationDetected =
       artifact.lifecycleState !== CredentialLifecycleState.REVOKED &&
       projectedLifecycle === CredentialLifecycleState.REVOKED;
+    const hasCredentialExpired =
+      artifact.lifecycleState !== CredentialLifecycleState.EXPIRED &&
+      projectedLifecycle === CredentialLifecycleState.EXPIRED;
 
     const hasExpirationWarning =
       artifact.expiresAt !== null &&
+      projectedLifecycle !== CredentialLifecycleState.EXPIRED &&
       artifact.expiresAt.getTime() > now.getTime() &&
       artifact.expiresAt.getTime() <= expirationCutoff.getTime();
 
-    if (!hasRevocationDetected && !hasExpirationWarning) {
+    if (!hasRevocationDetected && !hasCredentialExpired && !hasExpirationWarning) {
       continue;
     }
 
@@ -193,7 +210,23 @@ export async function runMonitoringSweep(organizationId?: string): Promise<Monit
         eventResult.created += 1;
         eventResult.revoked += 1;
         await appendMonitoringTransparency(tx, artifact, projectedLifecycle);
-        await updateArtifactState(tx, artifact.id, projectedLifecycle, now);
+        await updateArtifactState(tx, artifact.id, {
+          lifecycleState: projectedLifecycle,
+          statusLastChecked: now,
+        });
+      }
+
+      if (hasCredentialExpired) {
+        await recordMonitoringEvent(tx, artifact.id, artifactOrgId, MONITORING_EVENT_EXPIRATION_DETECTED);
+        eventResult.created += 1;
+        eventResult.expired += 1;
+        await appendMonitoringTransparency(tx, artifact, projectedLifecycle);
+        await updateArtifactState(tx, artifact.id, {
+          lifecycleState: projectedLifecycle,
+          statusLastChecked: now,
+          status: 'EXPIRED',
+          trustState: 'expired',
+        });
       }
 
       if (hasExpirationWarning) {
@@ -201,9 +234,21 @@ export async function runMonitoringSweep(organizationId?: string): Promise<Monit
         eventResult.created += 1;
         eventResult.expiring += 1;
         await appendMonitoringTransparency(tx, artifact, projectedLifecycle);
-        await updateArtifactState(tx, artifact.id, artifact.lifecycleState, now);
+        await updateArtifactState(tx, artifact.id, {
+          lifecycleState: artifact.lifecycleState,
+          statusLastChecked: now,
+        });
       }
     });
+
+    if (hasCredentialExpired) {
+      await propagateCredentialLifecycleChange({
+        credentialId: artifact.id,
+        trigger: 'credential.expired',
+        occurredAt: now,
+        reason: 'credential expired during monitoring sweep',
+      });
+    }
   }
 
   lastSweepTimestamp = now;

@@ -1114,6 +1114,28 @@ model EmployerWebhookConfig {
   @@index([active])
 }
 
+model RevocationOutboxEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  eventType      String
+  artifactId     String
+  employerId     String
+  organizationId String?  @db.Uuid
+  payload        Json     @db.JsonB
+  dedupeKey      String   @unique
+  status         String   @default("PENDING") // PENDING | PROCESSING | DELIVERED | FAILED
+  attemptCount   Int      @default(0)
+  availableAt    DateTime @default(now())
+  lastError      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  dispatchedAt   DateTime?
+
+  @@index([status, availableAt])
+  @@index([artifactId, status])
+  @@index([employerId, status])
+  @@index([organizationId, status])
+}
+
 // ──────────────────────────────────────────────────────────────
 // Wave 41: Start Attestation Engine — Golden Path / ON Loop
 // ──────────────────────────────────────────────────────────────

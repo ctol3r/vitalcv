@@ -18,6 +18,7 @@ import {
   refreshTrustState,
   type ClinicianTrustState,
 } from '../trust/trustStateEngine';
+import { ensureDecisionCapsuleAuthorityGraph } from '../revocation/authorityGraph';
 import { appendAuditEvent } from '../audit/auditLedger';
 import { log } from '../../obs/logger';
 import type { DecisionCapsuleRecord } from '../decision/capsuleEngine';
@@ -133,6 +134,8 @@ export async function ensureGraphEdgesForCapsule(
       log('warn', 'pipeline_enforcer: capsule_not_found_for_graph_edge', { capsuleId });
       return;
     }
+
+    await ensureDecisionCapsuleAuthorityGraph(capsuleId);
 
     const meta = capsule.metadata as Record<string, unknown> | null;
     const opportunityId = meta?.opportunityId as string | undefined;

@@ -20,6 +20,29 @@ function nextCredentialId(): string {
   return `credential-revocation-${counter}`;
 }
 
+function makeCascadeResult(credentialId: string): CascadeResult {
+  return {
+    trigger: 'credential.revoked',
+    credentialId,
+    subjectNpi: '1234567890',
+    affectedCapsules: [],
+    totalAffected: 0,
+    invalidatedCount: 0,
+    atRiskCount: 0,
+    auditEventIds: [],
+    outbox: {
+      outboxIds: [],
+      totalEnqueued: 0,
+    },
+    trustState: null,
+    bidirectionalFlagged: 0,
+    bidirectionalAcceptancesFlagged: 0,
+    bidirectionalStartsFlagged: 0,
+    bidirectionalTraversalHash: null,
+    cascadedAt: '2026-03-07T00:00:00.000Z',
+  };
+}
+
 describe('revokeCredentialWithCascade', () => {
   beforeEach(() => {
     propagateRevocation.mockReset();
@@ -27,13 +50,7 @@ describe('revokeCredentialWithCascade', () => {
 
   it('stores the revocation entry and propagates the cascade', async () => {
     const credentialId = nextCredentialId();
-    propagateRevocation.mockResolvedValue({
-      credentialId,
-      affectedCapsules: [],
-      totalAffected: 0,
-      auditEventIds: [],
-      cascadedAt: '2026-03-07T00:00:00.000Z',
-    });
+    propagateRevocation.mockResolvedValue(makeCascadeResult(credentialId));
 
     const result = await revokeCredentialWithCascade({
       credentialId,

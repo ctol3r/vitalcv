@@ -13,18 +13,14 @@
  */
 
 import prisma from '../../graphql/prisma_client';
-import { sha256Hex } from '../../utils/deterministic';
-import { log } from '../../obs/logger';
+import {
+  propagateCredentialLifecycleChange,
+  type PropagationResult as CascadeResult,
+} from '../revocation/propagationEngine';
+
+export type { CascadeResult };
 
 // ── Types ─────────────────────────────────────────────────────────────────
-
-export interface CascadeResult {
-  credentialId: string;
-  affectedCapsules: AffectedCapsule[];
-  totalAffected: number;
-  auditEventIds: string[];
-  cascadedAt: string;
-}
 
 export interface AffectedCapsule {
   capsuleId: string;
@@ -49,13 +45,6 @@ export interface BlastRadiusResult {
   totalImpacted: number;
 }
 
-// ── Status Transitions ────────────────────────────────────────────────────
-
-const STATUS_TRANSITIONS: Record<string, string> = {
-  VALID: 'INVALID',
-  AT_RISK: 'INVALID',
-};
-
 // ── Cascade Logic ─────────────────────────────────────────────────────────
 
 /**
@@ -63,78 +52,10 @@ const STATUS_TRANSITIONS: Record<string, string> = {
  *   VALID/AT_RISK → INVALID  (revoked dependencies fail closed)
  */
 async function propagateRevocation(credentialId: string): Promise<CascadeResult> {
-  const cascadedAt = new Date().toISOString();
-  const affectedCapsules: AffectedCapsule[] = [];
-  const auditEventIds: string[] = [];
-
-  const capsules = await prisma.decisionCapsule.findMany({
-    where: {
-      credentialIds: { has: credentialId },
-      status: { in: ['VALID', 'AT_RISK'] },
-    },
+  return propagateCredentialLifecycleChange({
+    credentialId,
+    trigger: 'credential.revoked',
   });
-
-  log('info', 'revocation_cascade: starting', {
-    credentialId: credentialId.slice(0, 8) + '…',
-    affectedCapsuleCount: capsules.length,
-  });
-
-  for (const capsule of capsules) {
-    const previousStatus = capsule.status;
-    const newStatus = STATUS_TRANSITIONS[previousStatus];
-    if (!newStatus) continue;
-
-    await prisma.decisionCapsule.update({
-      where: { id: capsule.id },
-      data: { status: newStatus },
-    });
-
-    const auditHash = sha256Hex(
-      `${capsule.id}:${credentialId}:${previousStatus}:${newStatus}:${cascadedAt}`,
-    );
-
-    const auditEvent = await prisma.auditEvent.create({
-      data: {
-        type: 'DECISION_CASCADE_TRIGGERED',
-        hash: auditHash,
-        referenceId: capsule.id,
-        clinicianId: capsule.subjectNpi,
-        metadata: JSON.parse(JSON.stringify({
-          severity: newStatus === 'INVALID' ? 'CRITICAL' : 'WARNING',
-          capsuleId: capsule.id,
-          credentialId,
-          previousStatus,
-          newStatus,
-          decisionType: capsule.decisionType,
-          cascadedAt,
-        })),
-      },
-    });
-
-    auditEventIds.push(auditEvent.id);
-    affectedCapsules.push({
-      capsuleId: capsule.id,
-      previousStatus,
-      newStatus,
-      subjectNpi: capsule.subjectNpi,
-      decisionType: capsule.decisionType,
-    });
-
-    log('info', 'revocation_cascade: capsule updated', {
-      capsuleId: capsule.id,
-      npi: capsule.subjectNpi.slice(0, 4) + '****',
-      transition: `${previousStatus} → ${newStatus}`,
-    });
-  }
-
-  log('info', 'revocation_cascade: complete', {
-    credentialId: credentialId.slice(0, 8) + '…',
-    totalAffected: affectedCapsules.length,
-    invalidated: affectedCapsules.filter((c) => c.newStatus === 'INVALID').length,
-    atRisk: affectedCapsules.filter((c) => c.newStatus === 'AT_RISK').length,
-  });
-
-  return { credentialId, affectedCapsules, totalAffected: affectedCapsules.length, auditEventIds, cascadedAt };
 }
 
 /**
