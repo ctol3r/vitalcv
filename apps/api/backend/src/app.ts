@@ -154,6 +154,7 @@ import { registerVelocityRoutes } from './routes/velocity';                     
 import { registerTrustProofRoutes } from './routes/trustProof';                        // Wave 252: Trust Proof Bundle
 import { registerPsvRoutes } from './routes/psv';
 import { registerCredentialIndexRoutes } from './routes/credentialIndex';  // Wave Index
+import { registerAuthorityGraphRoutes } from './routes/authorityGraph';       // Wave 500: Authority Graph Engine
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3578,6 +3579,7 @@ registerVelocityRoutes(app);             // Wave 250 — Time-to-Start Velocity 
 registerTrustProofRoutes(app);           // Wave 252 — Trust Proof Bundle
 registerPsvRoutes(app);                  // Wave PSV-Engine — unified PSV API
 registerCredentialIndexRoutes(app);       // Wave Index — global credential readiness index
+registerAuthorityGraphRoutes(app);         // Wave 500 — Authority Graph Engine
 registerPayerVerificationRoutes(app); // Wave 142 — Payer Network Integration
 registerProviderDirectoryRoutes(app);  // Wave 143 — Provider Directory Distribution
 registerGraphScalingRoutes(app);       // Wave 144 — Trust Graph Performance Scaling
