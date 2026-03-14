@@ -10,7 +10,7 @@
  * SECURITY GUARANTEES
  * ───────────────────
  * • NPI validated (10-digit) before any processing.
- * • Only authority_state summary leaves this service — no PII.
+ * • Only PAS + sanitized trust-state summaries leave this service — no raw PII.
  * • Webhook is HMAC-SHA256 signed (X-VitalCV-Signature).
  * • Rate-limited: publicApiRateLimit (100 req / 10 min / IP).
  *
@@ -21,19 +21,24 @@
  * If trust state is unavailable, a conservative RED/0/C is returned.
  */
 
-import { createHmac, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import type { Express, Request, Response } from 'express';
 import { log } from '../obs/logger';
 import { publicApiRateLimit } from '../middleware/publicSafety';
 import {
   getCachedTrustState,
   computeClinicianTrustState,
+  type ClinicianTrustState,
   type TrustBand,
 } from '../services/trust/trustStateEngine';
 import {
   recordCacheLookup,
   recordWidgetPasGenerationTime,
 } from '../services/system/pilotTelemetry';
+import {
+  emitWidgetEvent,
+  type WidgetWebhookEvent,
+} from '../services/integration/widgetWebhookService';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -52,16 +57,6 @@ interface PasSummary {
   credentials_verified: number;
 }
 
-interface WebhookPayload {
-  schema:        'vitalcv.widget.v1';
-  event:         'vitalcv.widget.application_submitted';
-  submission_id: string;
-  issued_at:     string;
-  client_id:     string;
-  clinician:     { npi_prefix: string; authority_state: PasSummary };
-  consent:       { granted: true; granted_at: string };
-}
-
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 const WEBHOOK_SECRET =
@@ -69,11 +64,6 @@ const WEBHOOK_SECRET =
 
 function elapsedMs(startedAtNs: bigint): number {
   return Number(process.hrtime.bigint() - startedAtNs) / 1_000_000;
-}
-
-function signPayload(body: string): string {
-  const hmac = createHmac('sha256', WEBHOOK_SECRET).update(body).digest('hex');
-  return `t=${Date.now()},v1=${hmac}`;
 }
 
 /** Map trust band to PAS status */
@@ -90,13 +80,73 @@ function bandToGrade(band: TrustBand): PasSummary['band'] {
   return 'C';
 }
 
+function toNpiPrefix(npi: string): string {
+  return `${npi.slice(0, 4)}······`;
+}
+
+function buildPasSummary(trustState: ClinicianTrustState): PasSummary {
+  const credentialsVerified = (trustState.facts ?? []).filter(
+    (fact) => fact.status !== 'expired' && fact.status !== 'unknown',
+  ).length;
+
+  return {
+    status: bandToStatus(trustState.readiness_level),
+    score: trustState.readiness_score,
+    band: bandToGrade(trustState.readiness_level),
+    as_of: trustState.computedAt,
+    credentials_verified: credentialsVerified,
+  };
+}
+
+function buildFallbackTrustState(npi: string): ClinicianTrustState {
+  const computedAt = new Date().toISOString();
+
+  return {
+    npi,
+    identityVerified: false,
+    licensureStatus: 'unknown',
+    exclusionClear: false,
+    exclusionStatus: 'UNKNOWN',
+    credentialCount: 0,
+    readiness_level: 'L0',
+    readiness_status: 'Unavailable',
+    readiness_score: 0,
+    gap_summary: ['Trust state unavailable'],
+    methodology_version: 'widget-fallback',
+    computed_at: computedAt,
+    trustBand: 'L0',
+    trustScore: 0,
+    facts: [],
+    gaps: ['Trust state unavailable'],
+    computedAt,
+  };
+}
+
+function sanitizeTrustStateForWebhook(
+  npi: string,
+  trustState: ClinicianTrustState,
+): Omit<ClinicianTrustState, 'npi'> & { npi_prefix: string } {
+  const { npi: _npi, ...rest } = trustState;
+  return {
+    ...rest,
+    npi_prefix: toNpiPrefix(npi),
+  };
+}
+
+export interface BuildLivePasResult {
+  pas: PasSummary;
+  trustState: ClinicianTrustState;
+}
+
 /**
  * Derive a live PAS from the clinician's trust state.
  * Tries the 1-hour cache first; falls back to live computation.
  * If trust state is unavailable, returns a conservative RED/0/C.
  * NEVER returns a hardcoded mock value.
  */
-export async function buildLivePas(npi: string): Promise<PasSummary> {
+export async function buildLivePasWithTrustState(
+  npi: string,
+): Promise<BuildLivePasResult> {
   const startedAtNs = process.hrtime.bigint();
   let cacheStatus: 'hit' | 'miss' | 'unknown' = 'unknown';
 
@@ -116,25 +166,16 @@ export async function buildLivePas(npi: string): Promise<PasSummary> {
       state = await computeClinicianTrustState(npi);
     }
 
-    const credentialsVerified = (state.facts ?? []).filter(
-      (f) => f.status !== 'expired' && f.status !== 'unknown',
-    ).length;
-
-    const pasSummary: PasSummary = {
-      status:               bandToStatus(state.readiness_level),
-      score:                state.readiness_score,
-      band:                 bandToGrade(state.readiness_level),
-      as_of:                state.computedAt,
-      credentials_verified: credentialsVerified,
-    };
-
     recordWidgetPasGenerationTime({
       latencyMs: elapsedMs(startedAtNs),
       cacheStatus,
       outcome: 'success',
     });
 
-    return pasSummary;
+    return {
+      pas: buildPasSummary(state),
+      trustState: state,
+    };
   } catch (err) {
     recordWidgetPasGenerationTime({
       latencyMs: elapsedMs(startedAtNs),
@@ -147,49 +188,17 @@ export async function buildLivePas(npi: string): Promise<PasSummary> {
       npi_prefix: npi.slice(0, 4),
       error: err instanceof Error ? err.message : String(err),
     });
+    const fallbackTrustState = buildFallbackTrustState(npi);
     return {
-      status:               'RED',
-      score:                0,
-      band:                 'C',
-      as_of:                new Date().toISOString(),
-      credentials_verified: 0,
+      pas: buildPasSummary(fallbackTrustState),
+      trustState: fallbackTrustState,
     };
   }
 }
 
-/** Fire-and-forget to ATS webhook — never blocks the 200 response. */
-async function dispatchWebhook(
-  url: string,
-  payload: WebhookPayload,
-): Promise<void> {
-  const body = JSON.stringify(payload);
-  const sig  = signPayload(body);
-
-  try {
-    const res = await fetch(url, {
-      method:  'POST',
-      headers: {
-        'Content-Type':        'application/json',
-        'X-VitalCV-Signature': sig,
-        'X-VitalCV-Event':     payload.event,
-        'User-Agent':          'VitalCV-Widget/1.0',
-      },
-      body,
-      signal: AbortSignal.timeout(5_000),
-    });
-
-    log('info', 'widget_webhook_dispatched', {
-      url,
-      status:        res.status,
-      submission_id: payload.submission_id,
-    });
-  } catch (err) {
-    log('warn', 'widget_webhook_dispatch_failed', {
-      url,
-      message:       err instanceof Error ? err.message : String(err),
-      submission_id: payload.submission_id,
-    });
-  }
+export async function buildLivePas(npi: string): Promise<PasSummary> {
+  const result = await buildLivePasWithTrustState(npi);
+  return result.pas;
 }
 
 // ── Route ─────────────────────────────────────────────────────────────────
@@ -228,28 +237,53 @@ export function registerWidgetRoutes(app: Express): void {
 
       const submissionId = randomUUID();
       const issuedAt     = new Date().toISOString();
+      const webhookUrl   = process.env.WIDGET_ATS_WEBHOOK_URL;
 
-      // ── Derive live PAS from trust state ───────────────────────────────
-      const pas = await buildLivePas(npi);
-
-      // ── Build signed webhook payload ───────────────────────────────────
-      const payload: WebhookPayload = {
-        schema:        'vitalcv.widget.v1',
-        event:         'vitalcv.widget.application_submitted',
-        submission_id: submissionId,
-        issued_at:     issuedAt,
-        client_id:     clientId,
-        clinician: {
-          npi_prefix:      npi.slice(0, 4) + '······',
-          authority_state: pas,
-        },
-        consent: { granted: true, granted_at: issuedAt },
+      const fireWidgetEvent = (
+        event: WidgetWebhookEvent,
+        payload: Record<string, unknown>,
+      ): void => {
+        void emitWidgetEvent(event, payload, webhookUrl, WEBHOOK_SECRET);
       };
 
-      // ── Dispatch (fire-and-forget) ─────────────────────────────────────
-      // Production: look up employer's ATS URL from DB via clientId.
-      const atsUrl = process.env.WIDGET_ATS_WEBHOOK_URL;
-      if (atsUrl) void dispatchWebhook(atsUrl, payload);
+      fireWidgetEvent('candidate.shared', {
+        submission_id: submissionId,
+        issued_at: issuedAt,
+        client_id: clientId,
+        org_name: orgName ?? null,
+        clinician: {
+          npi_prefix: toNpiPrefix(npi),
+        },
+        consent: {
+          granted: true,
+          granted_at: issuedAt,
+        },
+      });
+
+      // ── Derive live PAS from trust state ───────────────────────────────
+      const { pas, trustState } = await buildLivePasWithTrustState(npi);
+
+      fireWidgetEvent('passport.verified', {
+        submission_id: submissionId,
+        issued_at: issuedAt,
+        client_id: clientId,
+        org_name: orgName ?? null,
+        clinician: {
+          npi_prefix: toNpiPrefix(npi),
+          authority_state: pas,
+        },
+      });
+
+      fireWidgetEvent('trust_state.ready', {
+        submission_id: submissionId,
+        issued_at: issuedAt,
+        client_id: clientId,
+        org_name: orgName ?? null,
+        clinician: {
+          npi_prefix: toNpiPrefix(npi),
+        },
+        trust_state: sanitizeTrustStateForWebhook(npi, trustState),
+      });
 
       log('info', 'widget_submit', {
         event:         'widget_submit',
@@ -265,8 +299,13 @@ export function registerWidgetRoutes(app: Express): void {
         ok:             true,
         submission_id:  submissionId,
         issued_at:      issuedAt,
-        webhook_status: atsUrl ? 'dispatched' : 'no_ats_configured',
+        webhook_status: webhookUrl ? 'dispatched' : 'no_ats_configured',
         pas_summary:    pas,
+        events_fired: [
+          'candidate.shared',
+          'passport.verified',
+          'trust_state.ready',
+        ],
       });
     },
   );
