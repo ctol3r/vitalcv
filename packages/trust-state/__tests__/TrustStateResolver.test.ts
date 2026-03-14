@@ -10,11 +10,34 @@ import type {
 
 const FIXED_NOW = '2026-02-06T18:00:00.000Z';
 const VALID_HASH_ANCHOR = 'a'.repeat(64);
+const VALID_CREDENTIAL_HASH = 'b'.repeat(64);
+const VALID_EVIDENCE_HASH = 'c'.repeat(64);
 const VALID_ACCEPTANCE_PROOF = {
   type: 'Ed25519Signature2020',
   verificationMethod: 'did:key:employer#keys-1',
   proofValue: 'z-signature-proof',
 } as const;
+
+function createCredentialArtifact(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'cred-1',
+    source: 'npi-registry',
+    credential_hash: VALID_CREDENTIAL_HASH,
+    ...overrides,
+  };
+}
+
+function createVerificationArtifact(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'ver-1',
+    source: 'npi-registry',
+    related_credential_hash: VALID_CREDENTIAL_HASH,
+    verification_method: 'API',
+    fresh_until: '2026-02-07T18:00:00.000Z',
+    evidence_hash: VALID_EVIDENCE_HASH,
+    ...overrides,
+  };
+}
 
 function createAcceptanceRecord(
   partial: Partial<AcceptanceScopeRecord> = {},
@@ -203,6 +226,68 @@ describe('TrustStateResolver', () => {
     );
   });
 
+  it('fails closed when credential artifacts are missing from configured provenance sources', async () => {
+    const { deps } = createDependencies({
+      artifacts: {
+        listCredentialArtifactsByClinician: vi.fn().mockResolvedValue([]),
+        listVerificationArtifactsByClinician: vi
+          .fn()
+          .mockResolvedValue([createVerificationArtifact()]),
+      },
+    });
+
+    const resolver = new TrustStateResolver(deps);
+    const result = await resolver.resolve('clin-1');
+
+    expect(result.start_ready).toBe(false);
+    expect(result.band).toBe('RED');
+    expect(result.blocking_reasons).toContain('MISSING_PSV');
+  });
+
+  it('rejects verification artifacts that lack provenance fields', async () => {
+    const { deps } = createDependencies({
+      artifacts: {
+        listCredentialArtifactsByClinician: vi
+          .fn()
+          .mockResolvedValue([createCredentialArtifact()]),
+        listVerificationArtifactsByClinician: vi.fn().mockResolvedValue([
+          {
+            id: 'ver-bad',
+            source: 'npi-registry',
+            related_credential_hash: VALID_CREDENTIAL_HASH,
+          },
+        ]),
+      },
+    });
+
+    const resolver = new TrustStateResolver(deps);
+    const result = await resolver.resolve('clin-1');
+
+    expect(result.start_ready).toBe(false);
+    expect(result.blocking_reasons).toContain('FAILED_VERIFICATION');
+  });
+
+  it('marks stale verification provenance as expired', async () => {
+    const { deps } = createDependencies({
+      artifacts: {
+        listCredentialArtifactsByClinician: vi
+          .fn()
+          .mockResolvedValue([createCredentialArtifact()]),
+        listVerificationArtifactsByClinician: vi
+          .fn()
+          .mockResolvedValue([
+            createVerificationArtifact({ fresh_until: '2026-02-06T17:00:00.000Z' }),
+          ]),
+      },
+    });
+
+    const resolver = new TrustStateResolver(deps);
+    const result = await resolver.resolve('clin-1');
+
+    expect(result.start_ready).toBe(false);
+    expect(result.blocking_reasons).toContain('EXPIRED_PSV');
+  });
+
   it('emits TRUST_STATE_DECAY when a revoked receipt is detected', async () => {
     const { deps, spies } = createDependencies({
       receipts: {
@@ -321,6 +406,28 @@ describe('TrustStateResolver', () => {
             blocking_reason_count: 0,
           }),
         }),
+      }),
+    );
+  });
+
+  it('emits resolver runtime telemetry without changing trust-state output', async () => {
+    const recordResolverRuntime = vi.fn().mockResolvedValue(undefined);
+    const { deps } = createDependencies({
+      telemetry: {
+        recordResolverRuntime,
+      },
+    });
+
+    const resolver = new TrustStateResolver(deps);
+    const result = await resolver.resolve('clin-1');
+
+    expect(result.start_ready).toBe(true);
+    expect(recordResolverRuntime).toHaveBeenCalledWith(
+      expect.objectContaining({
+        latency_ms: expect.any(Number),
+        band: 'GREEN',
+        blocking_reason_count: 0,
+        start_ready: true,
       }),
     );
   });

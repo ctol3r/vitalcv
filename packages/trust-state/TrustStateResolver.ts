@@ -5,10 +5,16 @@ import type {
   BlockingReason,
   CrsResult,
   StartScopeRecord,
+  TrustStateCredentialArtifact,
   TrustState,
+  TrustStateVerificationArtifact,
   TrustStateScope,
   TrustStateResolverDependencies,
 } from './contracts';
+import {
+  validateCredentialArtifact,
+  validateVerificationArtifact,
+} from './artifactValidation';
 import { resolveReceiptStatus } from '../psv/validateReceipt';
 import { trustStateLatencyHistogram } from './latencyHistogram';
 
@@ -128,6 +134,74 @@ function isScopeMatch(
   );
 }
 
+type ArtifactProvenanceSummary = {
+  hasAnyArtifacts: boolean;
+  missingCredentialArtifacts: boolean;
+  invalidCredentialArtifacts: number;
+  invalidVerificationArtifacts: number;
+  missingVerificationArtifacts: number;
+  expiredVerificationArtifacts: number;
+};
+
+function summarizeArtifactProvenance(
+  credentialArtifactsRaw: readonly unknown[],
+  verificationArtifactsRaw: readonly unknown[],
+  asOf: string,
+): ArtifactProvenanceSummary {
+  const validCredentialArtifacts: TrustStateCredentialArtifact[] = [];
+  const validVerificationArtifacts: TrustStateVerificationArtifact[] = [];
+
+  let invalidCredentialArtifacts = 0;
+  let invalidVerificationArtifacts = 0;
+  let expiredVerificationArtifacts = 0;
+
+  for (const artifact of credentialArtifactsRaw) {
+    try {
+      validCredentialArtifacts.push(validateCredentialArtifact(artifact));
+    } catch {
+      invalidCredentialArtifacts += 1;
+    }
+  }
+
+  for (const artifact of verificationArtifactsRaw) {
+    try {
+      const validArtifact = validateVerificationArtifact(artifact);
+      if (Date.parse(validArtifact.fresh_until) <= Date.parse(asOf)) {
+        expiredVerificationArtifacts += 1;
+      }
+      validVerificationArtifacts.push(validArtifact);
+    } catch {
+      invalidVerificationArtifacts += 1;
+    }
+  }
+
+  const verificationByCredentialHash = new Map<string, TrustStateVerificationArtifact[]>();
+  for (const artifact of validVerificationArtifacts) {
+    if (!artifact.related_credential_hash) {
+      continue;
+    }
+
+    const current = verificationByCredentialHash.get(artifact.related_credential_hash) ?? [];
+    current.push(artifact);
+    verificationByCredentialHash.set(artifact.related_credential_hash, current);
+  }
+
+  const missingVerificationArtifacts = validCredentialArtifacts.reduce((count, artifact) => {
+    const matches = verificationByCredentialHash.get(artifact.credential_hash) ?? [];
+    return matches.length === 0 ? count + 1 : count;
+  }, 0);
+
+  return {
+    hasAnyArtifacts:
+      credentialArtifactsRaw.length > 0 || verificationArtifactsRaw.length > 0,
+    missingCredentialArtifacts: validCredentialArtifacts.length === 0,
+    invalidCredentialArtifacts,
+    invalidVerificationArtifacts,
+    missingVerificationArtifacts,
+    expiredVerificationArtifacts,
+  };
+}
+
 export class TrustStateResolver {
   constructor(private readonly deps: TrustStateResolverDependencies) {}
 
@@ -200,6 +274,8 @@ export class TrustStateResolver {
       hasIdentityConflict,
       requiredPublicChecks,
       requiredManualChecks,
+      credentialArtifacts,
+      verificationArtifacts,
     ] =
       await Promise.all([
       this.deps.crs.computeForClinician({ clinician_id, as_of: asOf }),
@@ -214,6 +290,12 @@ export class TrustStateResolver {
         : [],
       this.deps.verification?.required_manual_checks
         ? this.deps.verification.required_manual_checks
+        : [],
+      this.deps.artifacts?.listCredentialArtifactsByClinician
+        ? this.deps.artifacts.listCredentialArtifactsByClinician(clinician_id)
+        : [],
+      this.deps.artifacts?.listVerificationArtifactsByClinician
+        ? this.deps.artifacts.listVerificationArtifactsByClinician(clinician_id)
         : [],
     ]);
 
@@ -291,6 +373,36 @@ export class TrustStateResolver {
       const missingRequiredManual = requiredManual.some((check) => !passedManualChecks.has(check));
       if (missingRequiredManual) {
         blockingReasons.add('MISSING_PSV');
+      }
+    }
+
+    const artifactSourceConfigured =
+      Boolean(this.deps.artifacts?.listCredentialArtifactsByClinician) ||
+      Boolean(this.deps.artifacts?.listVerificationArtifactsByClinician);
+    if (artifactSourceConfigured) {
+      const artifactSummary = summarizeArtifactProvenance(
+        Array.isArray(credentialArtifacts) ? credentialArtifacts : [],
+        Array.isArray(verificationArtifacts) ? verificationArtifacts : [],
+        asOf,
+      );
+
+      if (
+        !artifactSummary.hasAnyArtifacts ||
+        artifactSummary.missingCredentialArtifacts ||
+        artifactSummary.missingVerificationArtifacts > 0
+      ) {
+        blockingReasons.add('MISSING_PSV');
+      }
+
+      if (
+        artifactSummary.invalidCredentialArtifacts > 0 ||
+        artifactSummary.invalidVerificationArtifacts > 0
+      ) {
+        blockingReasons.add('FAILED_VERIFICATION');
+      }
+
+      if (artifactSummary.expiredVerificationArtifacts > 0) {
+        blockingReasons.add('EXPIRED_PSV');
       }
     }
 
@@ -396,6 +508,17 @@ export class TrustStateResolver {
         metrics,
       },
     });
+
+    try {
+      await this.deps.telemetry?.recordResolverRuntime?.({
+        latency_ms,
+        band: resolvedBand,
+        blocking_reason_count: orderedReasons.length,
+        start_ready,
+      });
+    } catch {
+      // Ignore telemetry failures so trust-state enforcement remains deterministic.
+    }
 
     return {
       clinician_id,

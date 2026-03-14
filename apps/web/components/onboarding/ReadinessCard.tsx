@@ -78,8 +78,8 @@ export function ReadinessCard({ state, title, summary, passportId, className }: 
 
           <div className="pt-8 w-full border-t border-white/10 mt-8 flex justify-center">
             <MagneticButton>
-              <Link href={`/passport/${passportId}`} className="glue-btn glue-btn-primary">
-                View your credentials
+              <Link href={`/onboarding/success`} className="glue-btn glue-btn-primary">
+                Activate Profile
               </Link>
             </MagneticButton>
           </div>

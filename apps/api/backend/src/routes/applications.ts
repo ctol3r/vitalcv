@@ -109,12 +109,19 @@ export function registerApplicationRoutes(app: Express): void {
         reviewNote,
       });
 
-      // Wave 244: Auto-create Decision Capsule when application is ACCEPTED
-      if (status === 'ACCEPTED') {
+      // Wave 269: Persist verifier decision capsules for approve / reject / conditional approve.
+      const decisionAction = status === 'ACCEPTED'
+        ? 'APPROVE'
+        : status === 'DECLINED'
+          ? 'REJECT'
+          : 'CONDITIONAL_APPROVE';
+
+      if (status === 'REVIEWED' || status === 'ACCEPTED' || status === 'DECLINED') {
         capsuleEngine.createDecisionFromApplication({
           applicationId,
           verifierClerkUserId: clerkUserId,
           decisionType: 'HIRING',
+          decisionAction,
         }).catch((err: unknown) => {
           // Non-fatal: log but don't block the response
           log('warn', 'applications: decision_capsule_creation_failed', {

@@ -29,6 +29,7 @@ import {
   type VerifierAuditBundle,
 } from './verifierAuditBundle';
 import { getTransparencyEntries } from './transparencyLog';
+import type { AuditScrapbookBundle } from './audit/auditScrapbookBundle';
 import {
   attachAuditBundleSignature,
   buildAuditBundleVc,
@@ -37,6 +38,11 @@ import {
   type SignedAuditBundleVerifiableCredential,
 } from './auditBundleVc';
 import { signAuditBundleHash } from './auditBundleSigning';
+import {
+  generateAuditBundle as generateAuditBundleRepo,
+  type AuditBundlePayload as RepositoryAuditBundlePayload,
+  type AuditBundleResult as RepositoryAuditBundleResult,
+} from '../../repositories/auditBundles.repo';
 
 const MONITORING_THRESHOLD_DAYS = 90;
 
@@ -47,31 +53,15 @@ export type AuditBundleMetadataInput = {
   monitoringStatus: string;
 };
 
-export interface AuditBundlePayload {
-  npi: string;
-  artifact: {
-    id: string;
-    source: string;
-    status: string;
-    checksum: string;
-    verifiedAt: string;
-    expiresAt: string | null;
-    monitoring: boolean;
-  };
-  auditMetadata: {
-    source: string;
-    timestamp: string;
-    verifierIdentity: string;
-    checksum: string;
-    methodology: string;
-    monitoringStatus: string;
-  };
+export interface AuditBundlePayload extends RepositoryAuditBundlePayload {
+  auditScrapbookBundle?: AuditScrapbookBundle;
 }
 
-export interface AuditBundleResult extends AuditBundlePayload {
+export interface AuditBundleResult extends RepositoryAuditBundleResult {
   snapshotId: string;
   rawPayload: Prisma.JsonValue;
   verifierAuditBundle: VerifierAuditBundle;
+  auditScrapbookBundle: AuditScrapbookBundle;
 }
 
 export interface AuditBundleExportResult {
@@ -341,91 +331,19 @@ export async function generateAuditBundle(
   npi: string,
   options: GenerateAuditBundleOptions = {},
 ): Promise<AuditBundleResult> {
-  let artifact = await getLatestArtifact(npi, options.organizationId);
-
+  const artifact = await getLatestArtifact(npi, options.organizationId);
   if (!artifact) {
-    artifact = await createArtifactFromNursys(npi, options.organizationId);
+    await createArtifactFromNursys(npi, options.organizationId);
   }
 
-  const timestamp = new Date().toISOString();
-  const verifierIdentity = AUDITSCRAPBOOK_VERIFIER_IDENTITY;
-  const methodology = AUDITSCRAPBOOK_METHOD;
-  const monitoringStatus = artifact.monitoring ? 'ACTIVE_MONITORING' : 'STANDARD';
-
-  const bundlePayload = buildAuditBundlePayload(artifact, {
-    timestamp,
-    verifierIdentity,
-    methodology,
-    monitoringStatus,
-  });
-  const transparencyEntries = await getTransparencyEntries(artifact.id);
-  const verifierAuditBundle = buildVerifierAuditBundle(
-    artifact as unknown as ArtifactForVerifierAuditBundle,
-    {
-      generatedAt: timestamp,
-      verifierIdentity,
-      methodology,
-      monitoringStatus,
-      transparencyEntries,
-    },
-  );
-
-  // Persist snapshot at bundle generation time
-  const snapshot = await prisma.auditSnapshot.create({
-    data: {
-      artifactId: artifact.id,
-      snapshot: bundlePayload as unknown as Prisma.InputJsonValue,
-    },
-  });
-
-  // Emit audit event for bundle generation
-  const bundleEventType: ArtifactEventType = 'BUNDLE_GENERATED';
-  await prisma.auditEvent.create({
-    data: {
-      type: bundleEventType,
-      hash: computeArtifactChecksum(bundlePayload),
-      clinicianId: npi,
-      referenceId: artifact.id,
-      ...(options.organizationId ? { organizationId: options.organizationId } : {}),
-      metadata: {
-        snapshotId: snapshot.id,
-        checksum: artifact.checksum,
-        monitoring: artifact.monitoring,
-        methodologyVersion: AUDITSCRAPBOOK_METHODLOGY_VERSION,
-        complianceProfile: AUDITSCRAPBOOK_COMPLIANCE_PROFILE,
-        tamperAnchor: verifierAuditBundle.tamperAnchoring.chainDigest,
-      } as unknown as Prisma.InputJsonValue,
-    },
-  });
+  const bundle = await generateAuditBundleRepo(npi, options);
 
   if (options.organizationId) {
     await advanceVerifierLifecycleForBundleGeneration(options.organizationId);
     await incrementPilotPlanBundleCount(options.organizationId);
   }
 
-  return {
-    npi,
-    artifact: {
-      id: artifact.id,
-      source: artifact.source,
-      status: artifact.status,
-      checksum: artifact.checksum,
-      verifiedAt: artifact.verifiedAt.toISOString(),
-      expiresAt: artifact.expiresAt ? artifact.expiresAt.toISOString() : null,
-      monitoring: artifact.monitoring,
-    },
-    auditMetadata: {
-      source: artifact.source,
-      timestamp,
-      verifierIdentity,
-      checksum: artifact.checksum,
-      methodology,
-      monitoringStatus,
-    },
-    snapshotId: snapshot.id,
-    rawPayload: artifact.rawPayload,
-    verifierAuditBundle,
-  };
+  return bundle;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

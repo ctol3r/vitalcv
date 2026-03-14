@@ -1,0 +1,99 @@
+{
+  "id": "7b8f5ee8-8748-4c39-a971-0e1d9d3a58d4",
+  "subjectDid": "did:vitalcv:1234567890",
+  "subjectNpi": "1234567890",
+  "verifierOrgId": "8d44bcbe-9608-4fb8-9c1f-bd95f4c76f89",
+  "decisionType": "HIRING",
+  "decisionAction": "APPROVE",
+  "credentialIds": [
+    "credential-artifact-1",
+    "credential-artifact-2"
+  ],
+  "issuerIds": [
+    "issuer.state-board.ca",
+    "issuer.nppes.cms"
+  ],
+  "artifactHash": "a63eb7d31d3fcb3ac2e33caee1f401d3a1281f0984e154f68254fef3e9cc7d28",
+  "methodology": "decision_capsule.v262",
+  "methodologyVersion": "decision_capsule.v262",
+  "status": "VALID",
+  "triggerEvent": "verifier_decision",
+  "sourceReferenceId": "application-9af3a3b6",
+  "decisionTimestamp": "2026-03-14T12:00:00.000Z",
+  "metadata": {
+    "applicationId": "application-9af3a3b6",
+    "opportunityId": "opportunity-4f10d9fd",
+    "organizationId": "8d44bcbe-9608-4fb8-9c1f-bd95f4c76f89",
+    "organizationName": "North Valley Medical",
+    "verifierClerkUserId": "user_2vitalcv",
+    "applicationStatus": "ACCEPTED",
+    "reviewNote": "Ready for hire.",
+    "triggerEvent": "verifier_decision",
+    "sourceReferenceId": "application-9af3a3b6",
+    "decisionAction": "APPROVE",
+    "trustStateHash": "f9fe957f6a8e9fb0b2fc4b66bbf90442da5a72f8e4cbdd77962177de6d5f77b8",
+    "compatibility_credential_ids": [
+      "compat-artifact-1",
+      "compat-artifact-2"
+    ],
+    "trust_state_snapshot": {
+      "npi": "1234567890",
+      "identityVerified": true,
+      "licensureStatus": "verified",
+      "exclusionClear": true,
+      "credentialCount": 2,
+      "readiness_level": "L3",
+      "readiness_status": "READY",
+      "readiness_score": 96,
+      "gap_summary": [],
+      "methodology_version": "trust_state.legacy.v1",
+      "computed_at": "2026-03-14T12:00:00.000Z",
+      "trustBand": "L3",
+      "trustScore": 96,
+      "facts": [],
+      "gaps": [],
+      "computedAt": "2026-03-14T12:00:00.000Z"
+    },
+    "trust_state_snapshot_v2": {
+      "subjectDid": "did:vitalcv:1234567890",
+      "subjectNpi": "1234567890",
+      "contextOrgId": "8d44bcbe-9608-4fb8-9c1f-bd95f4c76f89",
+      "workflowContext": "job_application",
+      "readinessScore": 96,
+      "readinessLevel": "L3",
+      "readinessStatus": "READY",
+      "artifactStatuses": [],
+      "warnings": [],
+      "methodologyVersion": "trust_state.v2",
+      "generatedAt": "2026-03-14T12:00:00.000Z"
+    },
+    "decision_capsule_payload": {
+      "subjectDid": "did:vitalcv:1234567890",
+      "subjectNpi": "1234567890",
+      "trustStateHash": "f9fe957f6a8e9fb0b2fc4b66bbf90442da5a72f8e4cbdd77962177de6d5f77b8",
+      "verifierOrg": "8d44bcbe-9608-4fb8-9c1f-bd95f4c76f89",
+      "decisionType": "HIRING",
+      "decisionAction": "APPROVE",
+      "credentialIds": [
+        "credential-artifact-1",
+        "credential-artifact-2"
+      ],
+      "compatibilityCredentialIds": [
+        "compat-artifact-1",
+        "compat-artifact-2"
+      ],
+      "issuerIds": [
+        "issuer.nppes.cms",
+        "issuer.state-board.ca"
+      ],
+      "status": "VALID",
+      "triggerEvent": "verifier_decision",
+      "sourceReferenceId": "application-9af3a3b6",
+      "methodologyVersion": "decision_capsule.v262",
+      "decisionTimestamp": "2026-03-14T12:00:00.000Z",
+      "artifactHash": "a63eb7d31d3fcb3ac2e33caee1f401d3a1281f0984e154f68254fef3e9cc7d28"
+    }
+  },
+  "createdAt": "2026-03-14T12:00:00.000Z",
+  "updatedAt": "2026-03-14T12:00:00.000Z"
+}

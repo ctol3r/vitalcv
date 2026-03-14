@@ -147,6 +147,38 @@ describe('credential ingestion repository', () => {
       expect(active[0].artifact.credential_type).toBe('NPI_ENROLLMENT');
       expect(active[0].artifact.metadata?.practice_state).toBe('CA');
     });
+
+    test('returns persisted verification artifacts with provenance intact', async () => {
+      const repository = new InMemoryCredentialIngestionRepository();
+      const input = buildPersistInput('1003000126', 'in-memory-verification-hash');
+
+      await repository.persistIngestionBundle(input);
+      const verificationArtifacts = await repository.findVerificationArtifactsByNpi('1003000126');
+
+      expect(verificationArtifacts).toHaveLength(1);
+      expect(verificationArtifacts[0].artifact.source_name).toBe('npi-registry');
+      expect(verificationArtifacts[0].artifact.verification_method).toBe('API');
+      expect(verificationArtifacts[0].artifact.evidence_hash).toBe(
+        input.verificationArtifact.artifact.evidence_hash,
+      );
+    });
+
+    test('rejects malformed verification artifacts without provenance', async () => {
+      const repository = new InMemoryCredentialIngestionRepository();
+      const input = buildPersistInput('1003000126', 'in-memory-invalid-verification-hash');
+
+      input.verificationArtifact = {
+        ...input.verificationArtifact,
+        artifact: {
+          ...input.verificationArtifact.artifact,
+          verification_method: '' as typeof input.verificationArtifact.artifact.verification_method,
+        },
+      };
+
+      await expect(repository.persistIngestionBundle(input)).rejects.toThrow(
+        'verification method is required',
+      );
+    });
   });
 
   describe('prisma repository', () => {
@@ -190,6 +222,21 @@ describe('credential ingestion repository', () => {
       );
       expect(active).toHaveLength(1);
       expect(active[0].artifact.metadata?.practice_state).toBe('CA');
+    });
+
+    test('returns canonical verification artifacts for persisted ingestion runs', async () => {
+      const input = buildPersistInput(npi, 'verification-prisma-hash');
+
+      await repository.persistIngestionBundle(input);
+      const verificationArtifacts = await repository.findVerificationArtifactsByNpi(npi);
+
+      expect(verificationArtifacts).toHaveLength(1);
+      expect(verificationArtifacts[0].artifact.related_credential_hash).toBe(
+        input.credentialArtifact.artifact.credential_hash,
+      );
+      expect(verificationArtifacts[0].artifact.evidence_hash).toBe(
+        input.verificationArtifact.artifact.evidence_hash,
+      );
     });
 
     test('does not duplicate persistence on repeated source hash', async () => {

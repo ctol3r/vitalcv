@@ -136,9 +136,16 @@ describe('ensureArtifactHashOnCapsule', () => {
     issuerIds: [],
     artifactHash: '',
     methodology: 'CRS_v1.0',
+    methodologyVersion: 'decision_capsule.v262',
+    verifierOrgId: null,
+    decisionAction: null,
+    trustStateHash: null,
     status: 'VALID',
+    triggerEvent: null,
+    sourceReferenceId: null,
     metadata: {},
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
 
   it('rejects an empty artifactHash', () => {

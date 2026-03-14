@@ -127,6 +127,7 @@ import { registerHealthStartRoutes } from './routes/healthstart';           // S
 import { registerProviderRoutes } from './routes/providers';                 // Wave 119: Provider Data Integrity Fabric
 import { registerMissionOpsRoutes } from './routes/missionOps';             // Wave 123: Mission Ops + Conversion Engine
 import { registerWorkspaceRoutes } from './routes/workspace';               // Wave 180: Identity workspace graph
+import { registerClinicianRoutes } from './routes/clinician';             // Wave 287: Clinician activation
 import { registerIntakeRoutes } from './routes/intake';                     // Wave 183: Resume + NPI + Links + Work Auth ingestion
 import { registerSearchRoutes } from './routes/search';                     // Wave 184: Unified Search Index & Content Graph
 import { registerRoleRoutes } from './routes/role';                         // Clerk auth: GET /api/me/role
@@ -2871,6 +2872,7 @@ function registerPilotRoutes(app: Express): void {
         auditMetadata: bundle.auditMetadata,
         snapshotId: bundle.snapshotId,
         verifierAuditBundle: bundle.verifierAuditBundle,
+        auditScrapbookBundle: bundle.auditScrapbookBundle,
       });
     } catch (error) {
       log('error', 'artifact_bundle_error', {
@@ -3547,6 +3549,7 @@ registerHealthStartRoutes(app);       // Substrate Consolidation: Phase 3 — He
 registerProviderRoutes(app);          // Wave 119 — Provider data integrity + provenance + smoke tests
 registerMissionOpsRoutes(app);        // Wave 123 — Mission Ops + onboarding flows
 registerWorkspaceRoutes(app);         // Wave 180 — Dual-Entity Identity + workspace switching
+registerClinicianRoutes(app);         // Wave 287 — Clinician activation
 registerIntakeRoutes(app);            // Wave 183 — Resume + NPI + Links + Work Auth ingestion
 registerSearchRoutes(app);            // Wave 184 — Unified Search Index + hybrid retrieval
 registerRoleRoutes(app);              // Clerk auth — GET /api/me/role (role resolution)

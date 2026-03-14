@@ -83,6 +83,21 @@ export type StartScopeRecord = {
   start_id?: string;
 };
 
+export type TrustStateCredentialArtifact = {
+  id?: string;
+  source: string;
+  credential_hash: string;
+};
+
+export type TrustStateVerificationArtifact = {
+  id?: string;
+  source: string;
+  related_credential_hash?: string;
+  verification_method: string;
+  fresh_until: string;
+  evidence_hash: string;
+};
+
 export type CrsResult = {
   clinician_id: string;
   score: number;
@@ -160,6 +175,14 @@ export type TrustStateResolverDependencies = {
       | readonly string[]
       | Promise<readonly string[]>;
   };
+  artifacts?: {
+    listCredentialArtifactsByClinician?(
+      clinician_id: string,
+    ): Promise<readonly unknown[]> | readonly unknown[];
+    listVerificationArtifactsByClinician?(
+      clinician_id: string,
+    ): Promise<readonly unknown[]> | readonly unknown[];
+  };
   audit: {
     append(event: TrustStateAuditEvent): Promise<{ audit_packet_id: string }> | { audit_packet_id: string };
   };
@@ -186,6 +209,14 @@ export type TrustStateResolverDependencies = {
         p99: number;
       };
     };
+  };
+  telemetry?: {
+    recordResolverRuntime?(measurement: {
+      latency_ms: number;
+      band: TrustBand;
+      blocking_reason_count: number;
+      start_ready: boolean;
+    }): Promise<void> | void;
   };
   now?: () => Date;
 };

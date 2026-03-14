@@ -1136,6 +1136,26 @@ model RevocationOutboxEvent {
   @@index([organizationId, status])
 }
 
+model OutboxEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  eventType     String
+  aggregateType String
+  aggregateId   String
+  payload       Json     @db.JsonB
+  dedupeKey     String   @unique
+  status        String   @default("PENDING")
+  attemptCount  Int      @default(0)
+  availableAt   DateTime @default(now())
+  lastError     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  dispatchedAt  DateTime?
+
+  @@index([status, availableAt])
+  @@index([aggregateType, aggregateId])
+  @@map("outbox_events")
+}
+
 // ──────────────────────────────────────────────────────────────
 // Wave 41: Start Attestation Engine — Golden Path / ON Loop
 // ──────────────────────────────────────────────────────────────
