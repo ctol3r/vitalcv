@@ -1044,4 +1044,44 @@ export function registerCredentialRoutes(app: Express): void {
       res.status(500).json({ error: 'Failed to list credentials', detail: msg });
     }
   });
+
+  /**
+   * POST /api/credentials/ingest-npi
+   * Body: { npi: string }
+   *
+   * Wave 286: Onboarding activation — triggers NPPES auto-import for a clinician.
+   * Called from the onboarding fetching page to bootstrap real trust-state.
+   * Returns 409 if NPI already ingested (idempotent).
+   */
+  app.post('/api/credentials/ingest-npi', async (req: Request, res: Response): Promise<void> => {
+    try {
+      const clerkUserId = req.headers['x-clerk-user-id'] as string | undefined;
+      if (!clerkUserId) {
+        res.status(401).json({ error: 'unauthorized', error_description: 'x-clerk-user-id header required' });
+        return;
+      }
+
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const npi = typeof body.npi === 'string' ? body.npi.trim() : '';
+      if (!npi || !/^\d{10}$/.test(npi)) {
+        res.status(400).json({ error: 'npi must be a 10-digit string' });
+        return;
+      }
+
+      const { ingestNpiProfile } = await import('../services/credentials/credentialIngestionService');
+      const result = await ingestNpiProfile(npi);
+
+      log('info', 'npi_profile_ingested', { npi: npi.slice(0, 4) + '******', clerkUserId });
+      res.status(201).json({ ok: true, npi, sourceName: result.sourceName });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      // Treat "already ingested" as idempotent success
+      if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('unique')) {
+        res.status(409).json({ ok: true, message: 'NPI already ingested' });
+        return;
+      }
+      log('error', 'npi_profile_ingest_failed', { error: msg });
+      res.status(500).json({ error: 'NPI ingestion failed', detail: msg });
+    }
+  });
 }

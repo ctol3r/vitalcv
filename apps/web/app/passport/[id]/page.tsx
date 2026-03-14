@@ -33,8 +33,9 @@ const credentials: CredentialCardData[] = [
   },
 ];
 
-export default function PassportPage({ params }: { params: { id: string } }) {
+export default function PassportPage({ params }: { params: Promise<{ id: string }> }) {
   // Use id from params for fetching in a real app
+  void params; // params available via use(params) in Next.js 15 async pages
   
   return (
     <div className="min-h-screen bg-[#080e1a] py-12 px-6">

@@ -30,6 +30,10 @@ import {
   computeClinicianTrustState,
   type TrustBand,
 } from '../services/trust/trustStateEngine';
+import {
+  recordCacheLookup,
+  recordWidgetPasGenerationTime,
+} from '../services/system/pilotTelemetry';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -63,6 +67,10 @@ interface WebhookPayload {
 const WEBHOOK_SECRET =
   process.env.WIDGET_WEBHOOK_SECRET ?? 'dev-secret-change-in-production';
 
+function elapsedMs(startedAtNs: bigint): number {
+  return Number(process.hrtime.bigint() - startedAtNs) / 1_000_000;
+}
+
 function signPayload(body: string): string {
   const hmac = createHmac('sha256', WEBHOOK_SECRET).update(body).digest('hex');
   return `t=${Date.now()},v1=${hmac}`;
@@ -88,13 +96,23 @@ function bandToGrade(band: TrustBand): PasSummary['band'] {
  * If trust state is unavailable, returns a conservative RED/0/C.
  * NEVER returns a hardcoded mock value.
  */
-async function buildLivePas(npi: string): Promise<PasSummary> {
+export async function buildLivePas(npi: string): Promise<PasSummary> {
+  const startedAtNs = process.hrtime.bigint();
+  let cacheStatus: 'hit' | 'miss' | 'unknown' = 'unknown';
+
   try {
     // Try cache first (1-hour TTL)
     let state = await getCachedTrustState(npi);
 
+    if (state) {
+      cacheStatus = 'hit';
+      recordCacheLookup({ source: 'widget_pas', hit: true });
+    }
+
     // Miss — compute live
     if (!state) {
+      cacheStatus = 'miss';
+      recordCacheLookup({ source: 'widget_pas', hit: false });
       state = await computeClinicianTrustState(npi);
     }
 
@@ -102,14 +120,28 @@ async function buildLivePas(npi: string): Promise<PasSummary> {
       (f) => f.status !== 'expired' && f.status !== 'unknown',
     ).length;
 
-    return {
+    const pasSummary: PasSummary = {
       status:               bandToStatus(state.readiness_level),
       score:                state.readiness_score,
       band:                 bandToGrade(state.readiness_level),
       as_of:                state.computedAt,
       credentials_verified: credentialsVerified,
     };
+
+    recordWidgetPasGenerationTime({
+      latencyMs: elapsedMs(startedAtNs),
+      cacheStatus,
+      outcome: 'success',
+    });
+
+    return pasSummary;
   } catch (err) {
+    recordWidgetPasGenerationTime({
+      latencyMs: elapsedMs(startedAtNs),
+      cacheStatus,
+      outcome: 'fallback',
+    });
+
     // Conservative fallback — never claim GREEN on error
     log('warn', 'widget_trust_state_failed', {
       npi_prefix: npi.slice(0, 4),

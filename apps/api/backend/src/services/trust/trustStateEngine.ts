@@ -18,11 +18,19 @@ import { appendAuditEvent } from '../audit/auditLedger';
 import { checkExclusion } from '../psv/oigLeieChecker';
 import { log } from '../../obs/logger';
 import { isCredentialIngestionEnabled } from '../credentials/credentialIngestionConfig';
+import {
+  getTrustStateMemoryCache,
+  setTrustStateMemoryCache,
+  recordMemoryHit,
+  recordDbHit,
+  recordCacheMiss,
+} from './trustStateCache';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export type TrustBand = 'L0' | 'L1' | 'L2' | 'L3';
 export type LicensureStatus = 'verified' | 'pending' | 'expired' | 'unknown';
+export type ExclusionStatus = 'CLEAR' | 'EXCLUDED' | 'UNKNOWN';
 
 export interface CanonicalFactSummary {
   factType: string;
@@ -41,6 +49,7 @@ export interface ClinicianTrustState {
   identityVerified: boolean;
   licensureStatus: LicensureStatus;
   exclusionClear: boolean;
+  exclusionStatus?: ExclusionStatus;
   credentialCount: number;
   /** L0–L3 readiness level */
   readiness_level: TrustBand;
@@ -108,10 +117,13 @@ function computeScore(params: {
   identityVerified: boolean;
   licensureStatus: LicensureStatus;
   exclusionClear: boolean;
+  exclusionStatus?: ExclusionStatus;
   credentialCount: number;
   hasVerifiedArtifacts: boolean;
 }): number {
   let score = 0;
+  const exclusionStatus =
+    params.exclusionStatus ?? (params.exclusionClear ? 'CLEAR' : 'EXCLUDED');
 
   // Identity: 30 points
   if (params.identityVerified) score += 30;
@@ -123,7 +135,7 @@ function computeScore(params: {
   else score += 5; // unknown — small base credit for having NPI
 
   // Exclusion clear: 20 points
-  if (params.exclusionClear) score += 20;
+  if (exclusionStatus === 'CLEAR') score += 20;
 
   // Credentials: up to 20 points
   const credScore = Math.min(params.credentialCount * 5, 20);
@@ -138,10 +150,14 @@ function deriveBand(params: {
   identityVerified: boolean;
   licensureStatus: LicensureStatus;
   exclusionClear: boolean;
+  exclusionStatus?: ExclusionStatus;
   trustScore: number;
 }): TrustBand {
+  const exclusionStatus =
+    params.exclusionStatus ?? (params.exclusionClear ? 'CLEAR' : 'EXCLUDED');
+
   // Hard L0 blockers
-  if (!params.exclusionClear) return 'L0';
+  if (exclusionStatus === 'EXCLUDED') return 'L0';
   if (!params.identityVerified) return 'L0';
   if (params.licensureStatus === 'expired') return 'L0';
 
@@ -157,15 +173,19 @@ function detectGaps(params: {
   identityVerified: boolean;
   licensureStatus: LicensureStatus;
   exclusionClear: boolean;
+  exclusionStatus?: ExclusionStatus;
   credentialCount: number;
   facts: CanonicalFactSummary[];
 }): string[] {
   const gaps: string[] = [];
+  const exclusionStatus =
+    params.exclusionStatus ?? (params.exclusionClear ? 'CLEAR' : 'EXCLUDED');
 
   if (!params.identityVerified) gaps.push('NPI identity not verified');
   if (params.licensureStatus === 'unknown') gaps.push('State licensure not verified');
   if (params.licensureStatus === 'expired') gaps.push('State license expired');
-  if (!params.exclusionClear) gaps.push('OIG/LEIE exclusion check flagged');
+  if (exclusionStatus === 'UNKNOWN') gaps.push('OIG exclusion check timed out');
+  else if (exclusionStatus === 'EXCLUDED') gaps.push('OIG/LEIE exclusion check flagged');
   if (params.credentialCount === 0) gaps.push('No credential documents on file');
 
   const factTypes = params.facts.map((f) => f.factType.toLowerCase());
@@ -235,6 +255,36 @@ function appendUniqueGap(gaps: string[], gap: string): void {
   if (!gaps.includes(gap)) {
     gaps.push(gap);
   }
+}
+
+function isClinicianTrustState(value: unknown): value is ClinicianTrustState {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  return typeof (value as Record<string, unknown>).npi === 'string';
+}
+
+function buildPersistedTrustStatePayload(
+  state: ClinicianTrustState,
+): ClinicianTrustState & { trust_state_snapshot: ClinicianTrustState } {
+  return {
+    ...state,
+    trust_state_snapshot: { ...state },
+  };
+}
+
+function extractPersistedTrustState(rawPayload: unknown): ClinicianTrustState | null {
+  if (typeof rawPayload !== 'object' || rawPayload === null) {
+    return null;
+  }
+
+  const payload = rawPayload as Record<string, unknown>;
+  if (isClinicianTrustState(payload.trust_state_snapshot)) {
+    return payload.trust_state_snapshot;
+  }
+
+  return isClinicianTrustState(payload) ? payload : null;
 }
 
 async function computeClinicianTrustStateFromIngestedArtifacts(
@@ -322,6 +372,7 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
     oigArtifact.status === 'CLEAR' &&
     oigFresh,
   );
+  const exclusionStatus: ExclusionStatus = exclusionClear ? 'CLEAR' : 'EXCLUDED';
 
   const credentialCount = [nppesArtifact, oigArtifact, licenseArtifact].filter((artifact) => {
     if (!artifact) {
@@ -337,6 +388,7 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
     identityVerified,
     licensureStatus,
     exclusionClear,
+    exclusionStatus,
     credentialCount,
     hasVerifiedArtifacts: credentialCount > 0,
   });
@@ -345,6 +397,7 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
     identityVerified,
     licensureStatus,
     exclusionClear,
+    exclusionStatus,
     trustScore,
   });
 
@@ -352,6 +405,7 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
     identityVerified,
     licensureStatus,
     exclusionClear,
+    exclusionStatus,
     credentialCount,
     facts,
   });
@@ -386,6 +440,7 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
     identityVerified,
     licensureStatus,
     exclusionClear,
+    exclusionStatus,
     credentialCount,
     readiness_level: trustBand,
     readiness_status: readinessStatusMap[trustBand],
@@ -407,6 +462,7 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
     identityVerified,
     licensureStatus,
     exclusionClear,
+    exclusionStatus,
     credentialCount,
     factCount: facts.length,
     gapCount: gaps.length,
@@ -582,6 +638,7 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
   // 4. OIG/LEIE exclusion check
   // Only run if we have name data from NPPES to avoid false negatives
   let exclusionClear = true;
+  let exclusionStatus: ExclusionStatus = 'CLEAR';
   if (nppes.found && nppes.firstName && nppes.lastName) {
     try {
       const exclusionResult = await checkExclusion({
@@ -589,12 +646,14 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
         lastName: nppes.lastName,
         npi,
       });
-      exclusionClear = !exclusionResult.excluded;
+      exclusionStatus =
+        exclusionResult.status ?? (exclusionResult.excluded ? 'EXCLUDED' : 'CLEAR');
+      exclusionClear = exclusionStatus === 'CLEAR';
 
       facts.push({
         factType: 'Sanction',
         source: 'OIG_LEIE',
-        status: exclusionResult.excluded ? 'EXCLUDED' : 'CLEAR',
+        status: exclusionStatus,
         verifiedAt: exclusionResult.checkedAt,
         details: exclusionResult.details,
       });
@@ -616,6 +675,7 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
     identityVerified,
     licensureStatus,
     exclusionClear,
+    exclusionStatus,
     credentialCount,
     hasVerifiedArtifacts,
   });
@@ -624,16 +684,19 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
     identityVerified,
     licensureStatus,
     exclusionClear,
+    exclusionStatus,
     trustScore,
   });
   // Stale artifacts cap at L2 — cannot be L3 with outdated evidence
   if (hasStaleArtifact && trustBand === 'L3') trustBand = 'L2';
+  if (exclusionStatus === 'UNKNOWN' && (trustBand === 'L2' || trustBand === 'L3')) trustBand = 'L1';
 
   // 6. Detect gaps
   const gaps = detectGaps({
     identityVerified,
     licensureStatus,
     exclusionClear,
+    exclusionStatus,
     credentialCount,
     facts,
   });
@@ -652,6 +715,7 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
     identityVerified,
     licensureStatus,
     exclusionClear,
+    exclusionStatus,
     credentialCount,
     // Canonical output fields per directive
     readiness_level: trustBand,
@@ -675,6 +739,7 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
     identityVerified,
     licensureStatus,
     exclusionClear,
+    exclusionStatus,
     credentialCount,
     factCount: facts.length,
     gapCount: gaps.length,
@@ -691,6 +756,7 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
  */
 export async function refreshTrustState(npi: string): Promise<ClinicianTrustState> {
   const state = await computeClinicianTrustState(npi);
+  const persistedPayload = buildPersistedTrustStatePayload(state);
 
   // Persist as a VerificationArtifact with source='TRUST_STATE_ENGINE'
   try {
@@ -700,7 +766,7 @@ export async function refreshTrustState(npi: string): Promise<ClinicianTrustStat
         npi,
         source: 'TRUST_STATE_ENGINE',
         status: state.trustBand === 'L3' || state.trustBand === 'L2' ? 'VERIFIED' : 'ACTIVE',
-        rawPayload: JSON.parse(JSON.stringify(state)),
+        rawPayload: JSON.parse(JSON.stringify(persistedPayload)),
         checksum,
         verifiedAt: new Date(state.computedAt),
         trustState: state.trustBand,
@@ -708,8 +774,11 @@ export async function refreshTrustState(npi: string): Promise<ClinicianTrustStat
       },
     });
   } catch (err) {
-    log('warn', 'trust_state_persist_error', { npi, error: String(err) });
+    log('error', 'trust_state_persist_error', { npi, error: String(err) });
+    throw err;
   }
+
+  const cachedState = setTrustStateMemoryCache(npi, state);
 
   // Emit audit event
   try {
@@ -725,6 +794,7 @@ export async function refreshTrustState(npi: string): Promise<ClinicianTrustStat
         identityVerified: state.identityVerified,
         licensureStatus: state.licensureStatus,
         exclusionClear: state.exclusionClear,
+        exclusionStatus: state.exclusionStatus,
         gapCount: state.gaps.length,
       },
     });
@@ -732,7 +802,7 @@ export async function refreshTrustState(npi: string): Promise<ClinicianTrustStat
     log('warn', 'trust_state_audit_error', { npi, error: String(err) });
   }
 
-  return state;
+  return cachedState;
 }
 
 // ── History query ─────────────────────────────────────────────────────────────
@@ -756,11 +826,7 @@ export async function getTrustStateHistory(
     });
 
     return artifacts
-      .map((a) => {
-        const payload = a.rawPayload as Record<string, unknown> | null;
-        if (!payload || typeof payload !== 'object') return null;
-        return payload as unknown as ClinicianTrustState;
-      })
+      .map((a) => extractPersistedTrustState(a.rawPayload))
       .filter((s): s is ClinicianTrustState => s !== null);
   } catch (err) {
     log('warn', 'trust_state_history_error', { npi, error: String(err) });
@@ -777,6 +843,14 @@ const ONE_HOUR_MS = 60 * 60 * 1000;
  * last hour; otherwise return null (caller should recompute).
  */
 export async function getCachedTrustState(npi: string): Promise<ClinicianTrustState | null> {
+  // Tier 1: in-process LRU (60s TTL, sub-millisecond)
+  const memoryCached = getTrustStateMemoryCache(npi);
+  if (memoryCached) {
+    recordMemoryHit();
+    return memoryCached;
+  }
+
+  // Tier 2: DB snapshot (1h TTL) — back-fills LRU on hit
   try {
     const recent = await prisma.verificationArtifact.findFirst({
       where: {
@@ -788,11 +862,19 @@ export async function getCachedTrustState(npi: string): Promise<ClinicianTrustSt
       orderBy: { verifiedAt: 'desc' },
     });
 
-    if (!recent?.rawPayload) return null;
-    const payload = recent.rawPayload as Record<string, unknown>;
-    if (!payload.npi) return null;
-    return payload as unknown as ClinicianTrustState;
+    if (!recent?.rawPayload) {
+      recordCacheMiss();
+      return null;
+    }
+    const payload = extractPersistedTrustState(recent.rawPayload);
+    if (!payload) {
+      recordCacheMiss();
+      return null;
+    }
+    recordDbHit();
+    return setTrustStateMemoryCache(npi, payload);
   } catch {
+    recordCacheMiss();
     return null;
   }
 }

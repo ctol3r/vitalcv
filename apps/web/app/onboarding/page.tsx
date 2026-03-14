@@ -11,7 +11,9 @@ export default function NPIEntryPage() {
 
   const handleAction = () => {
     if (npi.length === 10) {
-      router.push('/onboarding/identity');
+      // Persist NPI across onboarding steps via sessionStorage
+      sessionStorage.setItem('onboarding_npi', npi);
+      router.push('/onboarding/readiness');
     }
   };
 
