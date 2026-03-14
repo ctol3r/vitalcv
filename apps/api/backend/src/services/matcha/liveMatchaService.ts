@@ -238,6 +238,8 @@ function dbOppToMatcha(opp: {
   return {
     id: opp.id,
     title: opp.title,
+    organization: opp.organization?.name ?? 'Healthcare Organization',
+    organizationId: opp.organization?.id,
     employerSlug: opp.organization?.id ?? 'unknown',
     facility: opp.organization?.name ?? 'Healthcare Organization',
     location: `${opp.state}`,
@@ -246,9 +248,17 @@ function dbOppToMatcha(opp: {
     hiringType: (opp.hiringType as HiringType) || 'perm',
     employerType: 'hospital',
     startUrgency: 'flexible',
+    urgency: 'within_90_days',
     payRange: opp.payRange ?? undefined,
     remote: opp.remote ?? false,
     requirements: requirementsFromLevel(opp.requirementLevel, opp.specialty, opp.state),
+    minimumTrustBand: opp.requirementLevel === 'L3'
+      ? 'L3'
+      : opp.requirementLevel === 'L2'
+        ? 'L2'
+        : 'L1',
+    credentialRequirements: requirementsFromLevel(opp.requirementLevel, opp.specialty, opp.state)
+      .map((requirement) => requirement.label),
     postedAt: opp.createdAt.toISOString(),
     active: opp.status === 'ACTIVE',
     tags: [opp.specialty.toLowerCase(), opp.state, opp.hiringType],
