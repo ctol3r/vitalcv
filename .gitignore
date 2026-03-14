@@ -63,3 +63,9 @@ tmp/
 temp/
 *.tmp
 
+# Runtime-generated audit scrapbook artifacts (never commit)
+apps/api/backend/src/audit/scrapbook/
+
+# ZK ceremony artifacts (large binary files, not source)
+apps/api/zk-sample/
+
