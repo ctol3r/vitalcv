@@ -16,6 +16,10 @@ jest.mock('../src/graphql/prisma_client', () => ({
     nursysEvent: {
       create: jest.fn(),
     },
+    psvReceipt: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+    },
   },
 }));
 
@@ -60,6 +64,10 @@ const prismaMock = prisma as unknown as {
   nursysEvent: {
     create: jest.Mock;
   };
+  psvReceipt: {
+    create: jest.Mock;
+    findMany: jest.Mock;
+  };
 };
 
 describe('BackendCanonicalCredentialFactStore', () => {
@@ -71,6 +79,8 @@ describe('BackendCanonicalCredentialFactStore', () => {
     prismaMock.auditEvent.create.mockResolvedValue({ id: 'audit-1' });
     prismaMock.monitoringEvent.create.mockResolvedValue({ id: 'monitor-1' });
     prismaMock.nursysEvent.create.mockResolvedValue({ id: 'nursys-1' });
+    prismaMock.psvReceipt.create.mockResolvedValue({ id: 'psv-receipt-1' });
+    prismaMock.psvReceipt.findMany.mockResolvedValue([]);
   });
 
   it('persists NPI bootstrap batches into VerificationArtifact and AuditEvent with trust signal emission', async () => {
