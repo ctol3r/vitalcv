@@ -1,12 +1,14 @@
 /**
- * decisionCapsules.ts — Wave A (Phase 1 Hardening)
+ * decisionCapsules.ts — Wave A (Phase 1 Hardening) + Wave Decision-Capsule
  * Salvaged + upgraded from feature/interoperability-wave65.
  *
- * GET  /api/decisions/:npi                      — list capsules for a clinician
- * GET  /api/decisions/blast-radius/:credentialId — read-only impact analysis
- * GET  /api/decisions/:capsuleId/detail          — single capsule with dep status
- * POST /api/decisions                            — create decision capsule
- * POST /api/decisions/cascade/:credentialId      — trigger revocation cascade
+ * GET  /api/decisions/:npi                        — list capsules for a clinician
+ * GET  /api/decisions/blast-radius/:credentialId  — read-only impact analysis
+ * GET  /api/decisions/:capsuleId/detail           — single capsule with dep status
+ * GET  /api/decisions/:capsuleId/replay           — cryptographic replay verification ← NEW
+ * GET  /api/decisions/export/:npi                 — audit bundle export (all capsules) ← NEW
+ * POST /api/decisions                             — create decision capsule
+ * POST /api/decisions/cascade/:credentialId       — trigger revocation cascade
  */
 
 import type { Express, Request, Response } from 'express';
@@ -337,6 +339,112 @@ export function registerDecisionCapsuleRoutes(app: Express): void {
     } catch (err) {
       log('error', 'decision_capsules: cascade failed', { error: String(err) });
       res.status(500).json({ error: 'Failed to propagate revocation cascade' });
+    }
+  });
+
+  // ── GET /api/decisions/:capsuleId/replay ─────────────────────────────
+  // Cryptographic replay verification: recomputes artifactHash from stored
+  // decision_capsule_payload and compares against the persisted hash.
+  // Returns { valid: true } if the capsule is unmodified and reproducible.
+  app.get('/api/decisions/:capsuleId/replay', async (req: Request, res: Response) => {
+    const { capsuleId } = req.params;
+    if (!capsuleId || !UUID_RE.test(capsuleId)) {
+      res.status(400).json({ error: 'capsuleId must be a valid UUID' });
+      return;
+    }
+    try {
+      const result = await capsuleEngine.verifyDecisionCapsuleReplay(capsuleId);
+      log('info', 'decision_capsules: replay_verified', {
+        capsuleId: capsuleId.slice(0, 8) + '…',
+        valid: result.valid,
+      });
+      res.status(result.valid ? 200 : 409).json({
+        ...result,
+        verifiedAt: new Date().toISOString(),
+        message: result.valid
+          ? 'Capsule is cryptographically intact and reproducible.'
+          : 'Capsule hash mismatch — possible tampering or data corruption.',
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes('not found')) {
+        res.status(404).json({ error: message });
+        return;
+      }
+      log('error', 'decision_capsules: replay_failed', { capsuleId, error: message });
+      res.status(500).json({ error: 'Replay verification failed' });
+    }
+  });
+
+  // ── GET /api/decisions/export/:npi ───────────────────────────────────
+  // Audit bundle export: all decision capsules for an NPI as a signed
+  // JSON bundle suitable for Joint Commission / CMS compliance audits.
+  // Optional: ?format=json (default) or ?format=ndjson
+  app.get('/api/decisions/export/:npi', async (req: Request, res: Response) => {
+    const { npi } = req.params;
+    const NPI_RE = /^\d{10}$/;
+    if (!npi || !NPI_RE.test(npi)) {
+      res.status(400).json({ error: 'npi must be a 10-digit string' });
+      return;
+    }
+    try {
+      const capsules = await capsuleEngine.getCapsulesByNpi(npi);
+      const format = typeof req.query.format === 'string' ? req.query.format.toLowerCase() : 'json';
+
+      // Compute a bundle-level hash for integrity verification
+      const { sha256ForPayload } = await import('../utils/deterministic');
+      const bundleHash = sha256ForPayload({
+        npi,
+        capsuleCount: capsules.length,
+        capsuleIds: capsules.map((c) => c.id).sort(),
+        exportedAt: new Date().toISOString(),
+      });
+
+      const bundle = {
+        '@context': 'https://vitalcv.com/schema/decision-capsule-bundle/v1',
+        '@type': 'DecisionCapsuleBundle',
+        subject: { npi },
+        exportedAt: new Date().toISOString(),
+        capsuleCount: capsules.length,
+        bundleHash,
+        issuer: 'VitalCV',
+        methodology: 'decision_capsule.v262',
+        capsules: capsules.map((c) => ({
+          id: c.id,
+          decisionType: c.decisionType,
+          decisionAction: c.decisionAction,
+          decisionTimestamp: c.decisionTimestamp,
+          status: c.status,
+          subjectDid: c.subjectDid,
+          subjectNpi: c.subjectNpi,
+          credentialIds: c.credentialIds,
+          issuerIds: c.issuerIds,
+          artifactHash: c.artifactHash,
+          trustStateHash: c.trustStateHash,
+          methodology: c.methodology,
+          verifierOrgId: c.verifierOrgId,
+        })),
+      };
+
+      if (format === 'ndjson') {
+        res.setHeader('Content-Type', 'application/x-ndjson');
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename="capsule-bundle-${npi}.ndjson"`,
+        );
+        for (const capsule of bundle.capsules) {
+          res.write(JSON.stringify(capsule) + '\n');
+        }
+        res.end();
+        return;
+      }
+
+      res.setHeader('Content-Disposition', `attachment; filename="capsule-bundle-${npi}.json"`);
+      log('info', 'decision_capsules: bundle_exported', { npi, capsuleCount: capsules.length });
+      res.json(bundle);
+    } catch (err) {
+      log('error', 'decision_capsules: export_failed', { npi, error: String(err) });
+      res.status(500).json({ error: 'Failed to export capsule bundle' });
     }
   });
 }
