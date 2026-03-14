@@ -1,14 +1,40 @@
-import { getApiBase } from '@/lib/api';
+/**
+ * POST /api/profile/npi/bootstrap
+ * Wave 286: Proxy to backend — bootstraps NPI profile from NPPES.
+ * Body: { npi: string }
+ */
+import { auth } from '@clerk/nextjs/server';
 import { type NextRequest, NextResponse } from 'next/server';
 
-const BACKEND = getApiBase();
+export const runtime = 'nodejs';
+
+const BACKEND =
+  process.env.BACKEND_URL ||
+  process.env.NEXT_PUBLIC_API_BASE ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  'http://localhost:4000';
 
 export async function POST(req: NextRequest) {
-  const url = `${BACKEND}/api/profile/npi/bootstrap`;
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  req.headers.forEach((v, k) => { if (k.startsWith('x-clerk-')) headers[k] = v; });
+  const session = await auth();
+
+  const headers = new Headers({ 'Content-Type': 'application/json' });
+  // Inject Clerk session — required by backend requireUserId()
+  if (session.userId) {
+    headers.set('x-clerk-user-id', session.userId);
+  }
+  const emailClaim = (session.sessionClaims as Record<string, unknown> | undefined)?.email;
+  if (typeof emailClaim === 'string' && emailClaim.length > 0) {
+    headers.set('x-clerk-user-email', emailClaim);
+  }
+
   const body = await req.text();
-  const res = await fetch(url, { method: 'POST', headers, body });
-  const data = await res.json().catch(() => ({}));
+  const res = await fetch(`${BACKEND}/api/profile/npi/bootstrap`, {
+    method: 'POST',
+    headers,
+    body,
+    signal: AbortSignal.timeout(15_000),
+  });
+
+  const data = await res.json().catch(() => ({ error: 'Invalid response from backend' }));
   return NextResponse.json(data, { status: res.status });
 }

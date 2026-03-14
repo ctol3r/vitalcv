@@ -78,13 +78,47 @@ export default async function HolderReadinessPage() {
     redirect('/sign-in?redirect_url=/holder/readiness');
   }
 
-  const workspace = await fetchWorkspace(session);
+  let workspace: WorkspaceResponse;
+  try {
+    workspace = await fetchWorkspace(session);
+  } catch {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-8 text-white">
+        <div className="max-w-sm text-center space-y-4">
+          <AlertTriangle className="h-8 w-8 text-amber-400 mx-auto" />
+          <p className="text-lg font-semibold">Could not load your profile.</p>
+          <p className="text-sm text-zinc-400">Please try again or return to your workspace.</p>
+          <Link href="/holder" className="inline-flex items-center gap-2 text-sm text-emerald-400 hover:underline">
+            Back to workspace <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const npi = workspace.personProfile?.npi?.trim();
   if (!npi) {
     redirect('/onboarding');
   }
 
-  const trustState = await fetchTrustState(npi);
+  let trustState: TrustStateResponse;
+  try {
+    trustState = await fetchTrustState(npi);
+  } catch {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-8 text-white">
+        <div className="max-w-sm text-center space-y-4">
+          <AlertTriangle className="h-8 w-8 text-amber-400 mx-auto" />
+          <p className="text-lg font-semibold">Trust state is still computing.</p>
+          <p className="text-sm text-zinc-400">Your profile was activated. Verification usually takes under 30 seconds.</p>
+          <Link href="/holder/readiness" className="inline-flex items-center gap-2 text-sm text-emerald-400 hover:underline">
+            Refresh <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const greeting = workspace.personProfile?.firstName?.trim();
   const levelStyle = LEVEL_STYLES[trustState.readiness_level];
 
