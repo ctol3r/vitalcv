@@ -1,0 +1,43 @@
+{
+  "subjectDid": "did:vitalcv:npi:not-ready-demo",
+  "subjectNpi": null,
+  "contextOrgId": "org-not-ready",
+  "workflowContext": "job_application",
+  "readinessScore": 0,
+  "readinessLevel": "L0",
+  "readinessStatus": "NOT_READY",
+  "artifactStatuses": [
+    {
+      "canonicalArtifactKey": "identity_binding",
+      "requirementLabel": "Identity Binding",
+      "requirementWeight": 3,
+      "resolvedLevel": "L0",
+      "artifactScore": 0,
+      "revoked": false,
+      "freshness": "not_applicable",
+      "matchedEvidenceIds": [],
+      "reasons": [
+        "subject DID has no DID to NPI binding"
+      ]
+    },
+    {
+      "canonicalArtifactKey": "state_license",
+      "requirementLabel": "State License",
+      "requirementWeight": 3,
+      "resolvedLevel": "L0",
+      "artifactScore": 0,
+      "revoked": false,
+      "freshness": "not_applicable",
+      "matchedEvidenceIds": [],
+      "reasons": [
+        "subject NPI is unavailable because the DID binding is not ACTIVE"
+      ]
+    }
+  ],
+  "warnings": [
+    "Identity anchor unavailable for \"Identity Binding\".",
+    "Requirement \"State License\" cannot be resolved until the DID binding is ACTIVE."
+  ],
+  "methodologyVersion": "wave253.v1",
+  "generatedAt": "2026-03-13T00:00:00.000Z"
+}
