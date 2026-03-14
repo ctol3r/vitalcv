@@ -173,30 +173,26 @@ export function LiveTrustConsole() {
 
             {/* Headline — human, outcome-first, no jargon */}
             <h1 className="text-[clamp(2.6rem,5.5vw,5.2rem)] font-bold leading-[1.05] tracking-tight text-white">
-              Your credentials.
+              Verify once.
               <br />
-              <span className="text-emerald-400">Verified once.</span>
-              <br />
-              <span className="text-white/60">Trusted everywhere.</span>
+              <span className="text-emerald-400">Use everywhere.</span>
             </h1>
 
             <p className="max-w-lg text-lg text-white/45 leading-relaxed">
-              Stop re-credentialing at every new hospital. VitalCV verifies
-              your license, board certification, DEA, and NPDB status — then
-              carries that proof wherever your career takes you.
+              Create your verified clinician credential profile and keep your credentials ready.
             </p>
 
             {/* CTAs — Google Glue pill buttons */}
             <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-1">
               <MagneticButton className="w-full sm:w-auto">
-                <Link href="/demo" className="glue-btn glue-btn-primary w-full justify-center">
-                  See how it works
+                <Link href="/onboarding" className="glue-btn glue-btn-primary w-full justify-center">
+                  Create your profile
                   <Zap className="h-4 w-4" />
                 </Link>
               </MagneticButton>
               <MagneticButton className="w-full sm:w-auto">
-                <Link href="/get-ready" className="glue-btn glue-btn-secondary w-full justify-center">
-                  Check my readiness →
+                <Link href="/demo" className="glue-btn glue-btn-secondary w-full justify-center">
+                  See how it works →
                 </Link>
               </MagneticButton>
             </div>

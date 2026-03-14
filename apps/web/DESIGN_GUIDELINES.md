@@ -4,6 +4,13 @@
 
 The Antigravity UI/UX System (codename "Liquid Glass") is designed to reduce friction and inspire absolute trust. It relies on smooth transitions, structural depth through transparency (glassmorphism), and a warm minimalist palette to guide the user naturally through their verifying flows.
 
+## Core Design Doctrine
+
+1. **Antigravity scale**: Massive typography and massive whitespace.
+2. **Stripe clarity**: Minimal interface chrome; verify once, use everywhere.
+3. **Palantir seriousness**: Data density where it matters, serious infrastructure semantics.
+4. **Apple simplicity**: One dominant element per viewport, progressive trust over progressive burden.
+
 ## Global Style Rules
 
 1. **Colors and Semantic Meaning**:
@@ -15,12 +22,13 @@ The Antigravity UI/UX System (codename "Liquid Glass") is designed to reduce fri
    - Utilize `.glass` and `.glass-heavy` utility classes for surfaces. Do not use stark borders unless grouping interactive list items.
    - Combine `.motion-glass-card` for an elite interactive lift transition.
 
-3. **Motion Constraints**:
+4. **Restrained Motion Constraints**:
+   - Strictly **one dominant animated element** per viewport. Avoid feature soup and excessive gradients.
    - Stagger layout elements on mount using `useScrollReveal` or Framer Motion variant stagger patterns.
    - Use `easings.easeOut` `(0.2, 0.8, 0.2, 1)` for general lift semantics (like hovering cards).
    - Durations should adhere to `durations.normal` (340ms) for most elements to match CSS utility transitions.
 
-4. **Typography hierarchy**:
+5. **Typography hierarchy**:
    - Large hero titles: Setup to `font-heading` (`font-fraunces`).
    - Normal UI: `font-sans` (`font-inter`).
    - Ensure a robust contrast ratio inside dark modes, which swap to a softer "Warm Near-Black" surface (`oklch(0.18 0.012 60)`).
