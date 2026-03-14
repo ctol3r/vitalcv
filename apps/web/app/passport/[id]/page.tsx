@@ -10,6 +10,7 @@ type TrustBand = 'GREEN' | 'YELLOW' | 'RED';
 
 type PassportResponse = {
   npi: string;
+  accessMode?: 'public' | 'wallet' | 'selective';
   public: {
     name: string;
     specialty: string;
@@ -32,10 +33,27 @@ type PassportResponse = {
     expiresAt: string | null;
     isPublic: boolean;
   }>;
+  sanctions?: {
+    status: 'CLEAR' | 'FLAGGED' | 'UNKNOWN';
+    checkedAt: string | null;
+  };
+  privileges?: Array<{
+    facility: string;
+    privilegeType: string;
+    status: 'ACTIVE' | 'AT_RISK' | 'REVOKED';
+    grantedAt: string | null;
+  }>;
+  decisions?: Array<{
+    id: string;
+    decisionType: string;
+    status: 'VALID' | 'AT_RISK' | 'INVALID';
+    organization: string | null;
+    grantedAt: string | null;
+  }>;
   meta: {
     methodology: string;
     computedAt: string;
-    passportVersion: '1.0';
+    passportVersion: string;
   };
 };
 
@@ -307,6 +325,79 @@ export default async function PassportPage({
             )}
           </div>
         </section>
+
+        {/* ── Sanctions status ─────────────────────────────────────────── */}
+        {passport.sanctions && (
+          <section className="rounded-[2rem] border border-white/10 bg-slate-950/50 p-7 md:p-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">Sanctions &amp; Exclusions</p>
+                <h2 className="mt-2 text-xl font-semibold">OIG / LEIE Status</h2>
+              </div>
+              <span className={`rounded-full px-4 py-1.5 text-xs font-bold tracking-widest uppercase border ${
+                passport.sanctions.status === 'CLEAR'   ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' :
+                passport.sanctions.status === 'FLAGGED' ? 'bg-red-500/15 text-red-300 border-red-500/30' :
+                'bg-slate-500/15 text-slate-400 border-slate-500/30'
+              }`}>
+                {passport.sanctions.status === 'CLEAR' ? '✓ Clear' :
+                 passport.sanctions.status === 'FLAGGED' ? '⚠ Flagged' : 'Not Checked'}
+              </span>
+            </div>
+            {passport.sanctions.checkedAt && (
+              <p className="mt-3 text-xs text-slate-500">Last verified {formatDate(passport.sanctions.checkedAt)}</p>
+            )}
+          </section>
+        )}
+
+        {/* ── Privileges ───────────────────────────────────────────────── */}
+        {(passport.privileges?.length ?? 0) > 0 && (
+          <section className="rounded-[2rem] border border-white/10 bg-slate-950/50 p-7 md:p-8">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-violet-300/75">Privileges</p>
+            <h2 className="mt-2 text-xl font-semibold">Hospital &amp; Facility Privileges</h2>
+            <div className="mt-5 grid gap-3">
+              {passport.privileges!.map((priv, i) => (
+                <div key={i} className="flex items-center justify-between rounded-[1.25rem] border border-white/10 bg-white/[0.03] px-5 py-4">
+                  <div>
+                    <p className="font-medium text-white">{priv.privilegeType}</p>
+                    <p className="mt-0.5 text-sm text-slate-400">{priv.facility}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest ${
+                      priv.status === 'ACTIVE'  ? 'bg-emerald-500/15 text-emerald-300' :
+                      priv.status === 'AT_RISK' ? 'bg-yellow-500/15 text-yellow-300'  :
+                      'bg-red-500/15 text-red-300'
+                    }`}>{priv.status}</span>
+                    {priv.grantedAt && <p className="mt-1 text-[11px] text-slate-500">{formatDate(priv.grantedAt)}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Decision capsules ────────────────────────────────────────── */}
+        {(passport.decisions?.length ?? 0) > 0 && (
+          <section className="rounded-[2rem] border border-white/10 bg-slate-950/50 p-7 md:p-8">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-sky-300/75">Decision History</p>
+            <h2 className="mt-2 text-xl font-semibold">Auditable Hiring &amp; Privileging Decisions</h2>
+            <div className="mt-5 space-y-3">
+              {passport.decisions!.map((d) => (
+                <div key={d.id} className="flex items-center justify-between rounded-[1.25rem] border border-white/10 bg-white/[0.03] px-5 py-4">
+                  <div>
+                    <p className="font-medium capitalize text-white">{d.decisionType.toLowerCase().replace(/_/g, ' ')}</p>
+                    {d.organization && <p className="mt-0.5 text-sm text-slate-400">{d.organization}</p>}
+                    {d.grantedAt && <p className="mt-0.5 text-xs text-slate-500">{formatDate(d.grantedAt)}</p>}
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest ${
+                    d.status === 'VALID'   ? 'bg-emerald-500/15 text-emerald-300' :
+                    d.status === 'AT_RISK' ? 'bg-yellow-500/15 text-yellow-300'  :
+                    'bg-red-500/15 text-red-300'
+                  }`}>{d.status}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="rounded-[2rem] border border-white/10 bg-slate-950/50 p-7 md:p-8">

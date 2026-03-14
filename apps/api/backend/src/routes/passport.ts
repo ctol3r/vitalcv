@@ -1,11 +1,17 @@
 /**
- * passport.ts — Portable clinician passport routes
+ * passport.ts — Portable professional authority identity
  *
- * Public routes:
- *   GET /api/passport/:npi
- *   GET /api/passport/:npi/trust
- *   GET /api/passport/:npi/embed.svg
- *   GET /api/passport/:npi/card.json
+ * Access modes:
+ *   public     (default) — publicly verifiable fields, redacted OIG details, deduped credentials
+ *   wallet     (?mode=wallet&token=<npi>) — clinician self-view, all fields, full sanctions detail
+ *   selective  (?mode=selective&disclose=licenses,certifications,privileges,sanctions,decisions)
+ *
+ * Routes:
+ *   GET /api/passport/:npi                                    — full passport (mode param)
+ *   GET /api/passport/:npi/trust                              — trust summary
+ *   GET /api/passport/:npi/disclose?fields=licenses,certs     — selective disclosure
+ *   GET /api/passport/:npi/embed.svg                          — badge SVG
+ *   GET /api/passport/:npi/card.json                          — JSON-LD
  */
 
 import type { Express, Request, Response } from 'express';
@@ -67,8 +73,38 @@ type PassportCredential = {
   isPublic: boolean;
 };
 
+type SanctionsStatus = {
+  status: 'CLEAR' | 'FLAGGED' | 'UNKNOWN';
+  checkedAt: string | null;
+  /** Only present in wallet mode */
+  matchType?: string;
+  /** Only present in wallet mode */
+  detail?: string;
+};
+
+type PassportPrivilege = {
+  facility: string;
+  privilegeType: string;
+  status: 'ACTIVE' | 'AT_RISK' | 'REVOKED';
+  grantedAt: string | null;
+  capsuleId: string;
+};
+
+type PassportDecision = {
+  id: string;
+  decisionType: string;
+  status: 'VALID' | 'AT_RISK' | 'INVALID';
+  /** Redacted in public mode */
+  organization: string | null;
+  grantedAt: string | null;
+  artifactHash: string;
+};
+
+type PassportAccessMode = 'public' | 'wallet' | 'selective';
+
 type PassportDocument = {
   npi: string;
+  accessMode: PassportAccessMode;
   public: {
     name: string;
     specialty: string;
@@ -82,10 +118,14 @@ type PassportDocument = {
     embedUrl: string;
   };
   credentials: PassportCredential[];
+  sanctions: SanctionsStatus;
+  privileges: PassportPrivilege[];
+  decisions: PassportDecision[];
   meta: {
     methodology: string;
     computedAt: string;
-    passportVersion: '1.0';
+    passportVersion: '2.0';
+    disclosedFields?: string[];
   };
 };
 
@@ -388,11 +428,65 @@ function buildBadgeSvg(passport: PassportDocument): string {
   ].join('');
 }
 
+// ── Access mode helpers ──────────────────────────────────────────────────────
+
+/** Wallet mode: simple NPI-as-token for pilot (production = real JWT) */
+function resolveAccessMode(
+  npi: string,
+  mode: string | undefined,
+  token: string | undefined,
+): PassportAccessMode {
+  if (mode === 'wallet' && token === npi) return 'wallet';
+  if (mode === 'selective') return 'selective';
+  return 'public';
+}
+
+// Selective disclosure field groups
+const DISCLOSURE_GROUPS: Record<string, (doc: PassportDocument) => Partial<PassportDocument>> = {
+  identity:       d => ({ public: d.public }),
+  licenses:       d => ({ credentials: d.credentials.filter(c => c.type === 'STATE_LICENSE') }),
+  certifications: d => ({ credentials: d.credentials.filter(c => c.type === 'BOARD_CERTIFICATION') }),
+  privileges:     d => ({ privileges: d.privileges }),
+  sanctions:      d => ({ sanctions: d.sanctions }),
+  decisions:      d => ({ decisions: d.decisions }),
+  trust:          d => ({ public: { ...d.public } }),
+};
+
+function applySelectiveDisclosure(
+  doc: PassportDocument,
+  fields: string[],
+): PassportDocument {
+  const disclosed: Partial<PassportDocument> = { npi: doc.npi, accessMode: 'selective', meta: { ...doc.meta, disclosedFields: fields } };
+  let credentials: PassportCredential[] = [];
+  for (const field of fields) {
+    const fn = DISCLOSURE_GROUPS[field];
+    if (!fn) continue;
+    const partial = fn(doc);
+    if (partial.credentials) credentials = [...credentials, ...partial.credentials];
+    Object.assign(disclosed, partial);
+  }
+  if (fields.some(f => f === 'licenses' || f === 'certifications')) {
+    disclosed.credentials = credentials;
+  }
+  return {
+    npi: doc.npi,
+    accessMode: 'selective',
+    public: disclosed.public ?? { name: '', specialty: '', providerType: '', state: '', trustBand: doc.public.trustBand, readinessScore: doc.public.readinessScore, totalCredentials: 0, activeCredentials: 0, shareUrl: doc.public.shareUrl, embedUrl: doc.public.embedUrl },
+    credentials: disclosed.credentials ?? [],
+    sanctions: fields.includes('sanctions') ? doc.sanctions : { status: 'UNKNOWN', checkedAt: null },
+    privileges: disclosed.privileges ?? [],
+    decisions: disclosed.decisions ?? [],
+    meta: { ...doc.meta, disclosedFields: fields },
+  };
+}
+
+// ── Data loading ─────────────────────────────────────────────────────────────
+
 async function loadPassportData(npi: string): Promise<{
   passport: PassportDocument;
   trust: TrustDocument;
 } | null> {
-  const [provider, artifacts, trustState] = await Promise.all([
+  const [provider, artifacts, trustState, capsules, oigArtifact] = await Promise.all([
     prisma.provider.findFirst({
       where: { npi },
       select: {
@@ -422,6 +516,22 @@ async function loadPassportData(npi: string): Promise<{
       ],
     }),
     getCachedTrustState(npi),
+    // decision capsules for privileges + decisions sections
+    prisma.decisionCapsule.findMany({
+      where: { subjectNpi: npi },
+      orderBy: { decisionTimestamp: 'desc' },
+      take: 30,
+      select: {
+        id: true, decisionType: true, status: true,
+        artifactHash: true, decisionTimestamp: true, metadata: true,
+      },
+    }),
+    // latest OIG/LEIE artifact for sanctions status
+    prisma.verificationArtifact.findFirst({
+      where: { npi, source: { in: ['OIG_LEIE', 'OIG', 'LEIE'] } },
+      orderBy: { verifiedAt: 'desc' },
+      select: { status: true, verifiedAt: true, rawPayload: true },
+    }),
   ]);
 
   if (!trustState) {
@@ -459,8 +569,57 @@ async function loadPassportData(npi: string): Promise<{
   const trustBand = mapReadinessLevel(trustState.readiness_level);
   const { shareUrl, embedUrl } = buildPublicUrls(npi);
 
+  // ── Sanctions status ────────────────────────────────────────────────────────
+  const oigPayload = oigArtifact ? (oigArtifact.rawPayload as Record<string, unknown>) : null;
+  const oigMatchType = typeof oigPayload?.matchType === 'string' ? oigPayload.matchType : 'NONE';
+  const sanctions: SanctionsStatus = {
+    status: !oigArtifact ? 'UNKNOWN'
+      : oigMatchType !== 'NONE' ? 'FLAGGED'
+      : 'CLEAR',
+    checkedAt: oigArtifact?.verifiedAt?.toISOString() ?? null,
+    // matchType + detail only surfaced in wallet mode (stripped in buildPassportForMode)
+    matchType: oigMatchType,
+    detail: typeof oigPayload?.exclusionType === 'string' ? oigPayload.exclusionType : undefined,
+  };
+
+  // ── Privileges (PRIVILEGING decision capsules) ─────────────────────────────
+  const privileges: PassportPrivilege[] = capsules
+    .filter(c => c.decisionType === 'PRIVILEGING')
+    .map(c => {
+      const meta = (c.metadata ?? {}) as Record<string, unknown>;
+      const capsuleStatus: PassportPrivilege['status'] =
+        c.status === 'VALID' ? 'ACTIVE' :
+        c.status === 'AT_RISK' ? 'AT_RISK' : 'REVOKED';
+      return {
+        facility: typeof meta.organizationName === 'string' ? meta.organizationName
+          : typeof meta.facilityName === 'string' ? meta.facilityName : 'Unknown Facility',
+        privilegeType: typeof meta.privilegeType === 'string' ? meta.privilegeType : 'Clinical Privileges',
+        status: capsuleStatus,
+        grantedAt: c.decisionTimestamp?.toISOString() ?? null,
+        capsuleId: c.id,
+      };
+    });
+
+  // ── Decisions (all capsule types) ──────────────────────────────────────────
+  const decisions: PassportDecision[] = capsules.map(c => {
+    const meta = (c.metadata ?? {}) as Record<string, unknown>;
+    const decisionStatus: PassportDecision['status'] =
+      c.status === 'VALID' ? 'VALID' :
+      c.status === 'AT_RISK' ? 'AT_RISK' : 'INVALID';
+    return {
+      id: c.id,
+      decisionType: c.decisionType,
+      status: decisionStatus,
+      // organization redacted in public mode — applied in buildPassportForMode
+      organization: typeof meta.organizationName === 'string' ? meta.organizationName : null,
+      grantedAt: c.decisionTimestamp?.toISOString() ?? null,
+      artifactHash: c.artifactHash,
+    };
+  });
+
   const passport: PassportDocument = {
     npi,
+    accessMode: 'public', // overridden by buildPassportForMode
     public: {
       name: inferClinicianName(npi, provider, artifacts),
       specialty: inferSpecialty(provider, artifacts),
@@ -474,10 +633,13 @@ async function loadPassportData(npi: string): Promise<{
       embedUrl,
     },
     credentials,
+    sanctions,
+    privileges,
+    decisions,
     meta: {
       methodology: trustState.methodology_version,
       computedAt: trustState.computed_at,
-      passportVersion: '1.0',
+      passportVersion: '2.0',
     },
   };
 
@@ -491,6 +653,48 @@ async function loadPassportData(npi: string): Promise<{
   };
 
   return { passport, trust };
+}
+
+// ── Mode-based redaction ──────────────────────────────────────────────────────
+
+/**
+ * Apply access-mode redactions to a passport document:
+ *
+ *   public    — public credentials only, sanctions status without details,
+ *               decisions without org names, privileges without capsuleIds
+ *   wallet    — all credentials, full sanctions (matchType + detail), all decisions
+ *   selective — handled by applySelectiveDisclosure()
+ */
+function buildPassportForMode(
+  doc: PassportDocument,
+  mode: PassportAccessMode,
+): PassportDocument {
+  if (mode === 'wallet') {
+    return { ...doc, accessMode: 'wallet' };
+  }
+
+  // public mode — strip sensitive fields
+  return {
+    ...doc,
+    accessMode: 'public',
+    credentials: doc.credentials.filter(c => c.isPublic),
+    sanctions: {
+      status: doc.sanctions.status,
+      checkedAt: doc.sanctions.checkedAt,
+      // matchType and detail omitted
+    },
+    privileges: doc.privileges.map(p => ({
+      facility: p.facility,
+      privilegeType: p.privilegeType,
+      status: p.status,
+      grantedAt: p.grantedAt,
+      capsuleId: '[redacted]',
+    })),
+    decisions: doc.decisions.map(d => ({
+      ...d,
+      organization: null, // org name redacted in public mode
+    })),
+  };
 }
 
 function validateNpi(res: Response, npi: string | undefined): boolean {
@@ -525,24 +729,91 @@ function logPassportError(route: string, npi: string, error: unknown): void {
 }
 
 export function registerPassportRoutes(app: Express): void {
+
+  /**
+   * GET /api/passport/:npi
+   *
+   * Query params:
+   *   mode=public|wallet    — access mode (default: public)
+   *   token=<npi>           — required for wallet mode (pilot: NPI as token)
+   *
+   * public  → credentials filtered to isPublic, org names redacted from decisions
+   * wallet  → all credentials + full sanctions detail + unredacted decisions
+   */
   app.get('/api/passport/:npi', async (req: Request, res: Response) => {
     const { npi } = req.params;
-    if (!validateNpi(res, npi)) {
+    if (!validateNpi(res, npi)) return;
+
+    const mode = resolveAccessMode(
+      npi,
+      req.query.mode as string | undefined,
+      req.query.token as string | undefined,
+    );
+
+    try {
+      const data = await loadPassportData(npi);
+      if (!data?.passport) { maybeNotFound(res, npi, null); return; }
+
+      const passport = buildPassportForMode(data.passport, mode);
+
+      res.setHeader('X-Passport-Mode', mode);
+      res.setHeader('X-Passport-Version', '2.0');
+      res.json(passport);
+    } catch (error) {
+      logPassportError('passport_route_failed', npi, error);
+      res.status(500).json({ error: 'Failed to generate passport' });
+    }
+  });
+
+  /**
+   * GET /api/passport/:npi/disclose
+   *
+   * Selective disclosure endpoint. Returns only the requested field groups.
+   * Query param: fields=identity,licenses,certifications,privileges,sanctions,decisions,trust
+   *
+   * Suitable for verifier-requested presentations — clinician controls which
+   * sections are revealed without exposing the full passport.
+   */
+  app.get('/api/passport/:npi([0-9]{10})/disclose', async (req: Request, res: Response) => {
+    const { npi } = req.params;
+    if (!validateNpi(res, npi)) return;
+
+    const raw = typeof req.query.fields === 'string' ? req.query.fields : '';
+    const fields = raw.split(',').map(f => f.trim().toLowerCase()).filter(Boolean);
+
+    const validFields = Object.keys(DISCLOSURE_GROUPS);
+    const invalid = fields.filter(f => !validFields.includes(f));
+    if (invalid.length > 0) {
+      res.status(400).json({
+        error: 'invalid_fields',
+        invalid,
+        valid: validFields,
+      });
+      return;
+    }
+
+    if (fields.length === 0) {
+      res.status(400).json({
+        error: 'fields_required',
+        message: 'Specify ?fields=identity,licenses,certifications,privileges,sanctions,decisions,trust',
+        valid: validFields,
+      });
       return;
     }
 
     try {
       const data = await loadPassportData(npi);
-      const passport = data?.passport ?? null;
-      if (passport === null) {
-        maybeNotFound(res, npi, passport);
-        return;
-      }
+      if (!data?.passport) { maybeNotFound(res, npi, null); return; }
 
-      res.json(passport);
+      const disclosed = applySelectiveDisclosure(data.passport, fields);
+
+      res.setHeader('X-Passport-Mode', 'selective');
+      res.setHeader('X-Disclosed-Fields', fields.join(','));
+      res.setHeader('X-Passport-Version', '2.0');
+      res.json(disclosed);
     } catch (error) {
-      logPassportError('passport_route_failed', npi, error);
-      res.status(500).json({ error: 'Failed to generate passport' });
+      logPassportError('passport_disclose_route_failed', npi, error);
+      res.status(500).json({ error: 'Failed to generate selective disclosure' });
     }
   });
 
