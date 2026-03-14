@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "VitalCV Wallet",
+    "slug": "vitalcv-wallet",
+    "scheme": "vitalcv",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#080e1a",
+    "primaryColor": "#080e1a",
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-local-authentication",
+      "expo-notifications",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow VitalCV Wallet to scan verifier QR codes."
+        }
+      ]
+    ],
+    "ios": {
+      "bundleIdentifier": "com.vitalcv.wallet",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.vitalcv.wallet",
+      "adaptiveIcon": {
+        "backgroundColor": "#080e1a"
+      }
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

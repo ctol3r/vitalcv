@@ -41,6 +41,8 @@ export interface VitalCVWalletConfig {
   timeoutMs?: number;
   /** Optional: bearer token or session token for authenticated calls */
   token?: string;
+  /** Enables local wallet-only helpers that do not require the VitalCV API */
+  localMode?: boolean;
 }
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -152,6 +154,7 @@ export class VitalCVWallet {
   private readonly baseUrl: string;
   private readonly headers: Record<string, string>;
   private readonly timeoutMs: number;
+  readonly localMode: boolean;
   readonly npi: string;
   readonly holderDid?: string;
 
@@ -159,6 +162,7 @@ export class VitalCVWallet {
     this.baseUrl = config.baseUrl.replace(/\/$/, '');
     this.npi = config.npi;
     this.holderDid = config.holderDid;
+    this.localMode = config.localMode ?? false;
     this.timeoutMs = config.timeoutMs ?? 10_000;
     this.headers = {
       'Content-Type': 'application/json',
@@ -240,6 +244,39 @@ export class VitalCVWallet {
       method: 'POST',
       body: JSON.stringify({ ...req, npi: this.npi, holderDid: this.holderDid }),
     });
+  }
+
+  /**
+   * Create a local-only presentation envelope for host wallets operating offline.
+   */
+  async createOfflinePresentation(
+    credentialIds: string[],
+    nonce?: string,
+  ): Promise<PresentationResult> {
+    if (!this.localMode) {
+      throw new VitalCVWalletError('LOCAL_MODE_REQUIRED');
+    }
+
+    const createdAt = new Date().toISOString();
+    const expiresAt = new Date(Date.now() + 300_000).toISOString();
+    const subject = this.holderDid ?? this.npi;
+
+    return {
+      presentationId: `offline-${Date.now()}`,
+      vpJwt: JSON.stringify({
+        mode: 'offline',
+        nonce,
+        subject,
+        credentialIds,
+      }),
+      credentials: credentialIds.map((credentialId) => ({
+        credentialId,
+        type: 'VerifiableCredential',
+      })),
+      subject,
+      createdAt,
+      expiresAt,
+    };
   }
 
   /**

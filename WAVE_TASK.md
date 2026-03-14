@@ -1,57 +1,77 @@
-## Wave Passport — Portable Clinician Credential Identity
+## Wave Wallet — Clinician Credential Wallet (Expo)
 
-Build the VitalCV clinician passport. Exit criteria: fully public /p/:npi page with real data, privacy layers, SVG badge, and embeddable share actions.
+Exit criteria: clinician can present credentials WITHOUT VitalCV servers.
 
 ### READ THESE FIRST
-- `apps/api/backend/src/routes/passport.ts` — GET /api/passport/:npi (basic, no privacy layers)
-- `apps/web/app/p/[slug]/page.tsx` — public profile page (NPI mode) calling /api/public/profile/npi/:npi
-- `apps/web/app/passport/[id]/page.tsx` — HARDCODED DUMMY DATA (needs real API)
-- `apps/api/backend/src/routes/publicProfile.ts` — GET /api/public/profile/npi/:npi
+- packages/wallet-sdk/src/index.ts — VitalCVWallet SDK (API-connected)
+- apps/mobile/ — EMPTY (you create the Expo app here)
+- apps/api/backend/src/routes/oid4vp.ts — backend OID4VP routes
 
 ### CONSTRAINTS
-- DO NOT touch apps/api/backend/src/graphql/prisma_client.ts
-- TypeScript strict, pnpm --filter @vitalcv/api build AND pnpm --filter web build must pass
-- No DB migrations
-- Tailwind v4 CSS-based config, Next.js 15 App Router
+- apps/mobile/ must be standalone Expo SDK 52+ React Native app (managed workflow)
+- TypeScript strict. pnpm --filter @vitalcv/wallet-sdk build must still pass.
+- All credential crypto uses jose library
+- NO backend changes
 
 ### BUILD THESE
 
-**1. Extend GET /api/passport/:npi (apps/api/backend/src/routes/passport.ts)**
-Add privacy layers: public facts (NPI_ENROLLMENT, STATE_LICENSE, BOARD_CERTIFICATION) vs restricted facts.
-Pull trustBand + readinessScore from getCachedTrustState(npi) imported from ../services/trust/trustStateEngine.
-Map readiness_level: L3/L2→GREEN, L1→YELLOW, L0→RED.
-Return shape: { npi, public: { name, specialty, providerType, state, trustBand, readinessScore, totalCredentials, activeCredentials, shareUrl, embedUrl }, credentials: [...], meta: { methodology, computedAt, passportVersion: "1.0" } }
+**1. apps/mobile/package.json** — Expo app with expo ~52.0.0, expo-router ~4.0.0, expo-secure-store ~14.0.0, expo-local-authentication ~14.0.0, expo-notifications ~0.29.0, expo-camera ~15.0.0, jose ^5.0.0, react-native 0.76.5
+**apps/mobile/app.json** — name: "VitalCV Wallet", slug: vitalcv-wallet, scheme: vitalcv, dark theme #080e1a, bundleId: com.vitalcv.wallet
+**apps/mobile/tsconfig.json** — extends expo/tsconfig.base, strict: true
 
-**2. Add GET /api/passport/:npi/trust**
-Returns: { npi, trustBand, readinessScore, readinessStatus, computedAt, shareUrl }
-No auth required. Apply proofRateLimit if available.
+**2. apps/mobile/src/services/LocalCredentialStore.ts**
+Stores credentials in expo-secure-store (chunked by 2KB limit).
+Interfaces: StoredCredential { id, npi, type, issuer, status, issuedAt, expiresAt, vcJwt, claims, issuerDid, proofAlgorithm }
+LocalKeyPair { privateKeyJwk, publicKeyJwk, did, createdAt }
+Class LocalCredentialStore:
+- getOrCreateKeyPair(): generate ES256 key pair via jose generateKeyPair, derive did:key, store in SecureStore
+- getHolderDid(): returns did:key from stored key pair
+- storeCredential/listCredentials/getCredential/removeCredential/getExpiringCredentials(daysThreshold)
+- syncFromApi(apiCredentials): upserts credentials from API response
+Export: localCredentialStore singleton
 
-**3. Add GET /api/passport/:npi/embed.svg**
-Returns inline SVG badge (no deps): 320x80px, dark background #080e1a, clinician name + trust band chip (GREEN=#10b981 / YELLOW=#f59e0b / RED=#ef4444), "Verified by VitalCV", score.
-Cache-Control: public, max-age=3600. Content-Type: image/svg+xml.
+**3. apps/mobile/src/services/OfflinePresentationEngine.ts**
+Generates W3C VP JWTs locally using jose (no network).
+Interface: OfflinePresentationRequest { credentialIds, verifierDid?, nonce?, disclosedClaims?, expiresInSeconds? }
+Interface: OfflinePresentation { vpJwt, holderDid, credentialIds, createdAt, expiresAt, qrData }
+Class OfflinePresentationEngine:
+- createPresentation(req): loads key pair → importJWK → builds VP payload → SignJWT with ES256 → returns OfflinePresentation
+- createSelectiveDisclosure(credentialId, disclosedClaims): reveals only specified claims, replaces others with sha256 hash
+Export: offlinePresentationEngine singleton
 
-**4. Add GET /api/passport/:npi/card.json**
-Returns JSON-LD: { "@context": "https://vitalcv.com/schema/v1", "@type": "ClinicianPassport", npi, name, trustBand, readinessScore, shareUrl, badgeUrl, verifiedAt, issuer: "VitalCV" }
+**4. apps/mobile/src/services/NotificationService.ts**
+expo-notifications wrapper.
+Schedule expiry reminders at 90/30/7 days before credential expiry.
+sendImmediateAlert for sanction alerts.
+Types: 'credential_expiring' | 'credential_expired' | 'sanction_alert' | 'license_renewal' | 'trust_state_updated'
+Export: notificationService singleton
 
-**5. Rewrite apps/web/app/passport/[id]/page.tsx as real server component**
-Replace all dummy data ("Dr. Sarah Chen") with real fetches to /api/passport/${npi} and /api/passport/${npi}/trust.
-Error states: 404 → "passport not available" graceful fallback. Network error → same.
-Sections: hero (name/specialty/state), trust band chip (GREEN/YELLOW/RED + score bar), credential list (isPublic=true only), share/embed section.
-NO auth() call — fully public page.
+**5. apps/mobile/src/services/OID4VPHandler.ts**
+Parses openid4vp:// URIs. Selects credentials matching input_descriptors. Creates offline presentation. POSTs to response_uri if network available.
+Interface: OID4VPPresentationRequest { client_id, response_type, nonce, response_uri, presentation_definition }
+Export: oid4vpHandler singleton
 
-**6. Create Next.js proxy routes**
-- apps/web/app/api/passport/[npi]/route.ts — proxies GET to backend /api/passport/:npi
-- apps/web/app/api/passport/[npi]/trust/route.ts — proxies to /api/passport/:npi/trust
-- apps/web/app/api/passport/[npi]/embed.svg/route.ts — proxies SVG, preserves Content-Type
+**6. Four app screens (Expo Router):**
+- apps/mobile/app/_layout.tsx — dark theme #080e1a, tab navigator (Wallet/Present/Scan/Settings)
+- apps/mobile/app/(tabs)/wallet.tsx — lists StoredCredentials, type/status/expiry badges, pull-to-refresh sync
+- apps/mobile/app/(tabs)/present.tsx — select credentials → configure disclosure → biometric gate → show VP QR code
+- apps/mobile/app/(tabs)/scan.tsx — camera (expo-barcode-scanner) → parse OID4VP → select creds → biometric → respond
+- apps/mobile/app/(tabs)/settings.tsx — NPI input, sync button, DID display, clear wallet
 
-**7. Create apps/web/components/passport/PassportShareActions.tsx**
-'use client' component. Props: { npi, name }. Buttons: "Copy Link", "Copy Embed Code", "Copy LinkedIn Markdown".
-Uses navigator.clipboard.writeText(). useState for "Copied!" toast. No external libs.
+**7. apps/mobile/src/services/WalletSyncService.ts**
+sync(npi): fetches from VitalCV API → syncs to local store → schedules notifications.
+isApiReachable(): HEAD check with 3s timeout.
 
-**8. Create 6 tests in apps/api/backend/src/routes/__tests__/passport.test.ts**
+**8. Add localMode to packages/wallet-sdk/src/index.ts**
+Add localMode?: boolean to VitalCVWalletConfig.
+Add createOfflinePresentation(credentialIds, nonce?): throws VitalCVWalletError('LOCAL_MODE_REQUIRED') if localMode false.
+
+**9. 9 tests across 3 test files:**
+LocalCredentialStore: storeCredential+list round-trip, getExpiringCredentials, syncFromApi
+OfflinePresentationEngine: createPresentation JWT structure, selective disclosure omits non-disclosed, works without network
+OID4VPHandler: parseRequest handles openid4vp:// URI, selectCredentials matches by type
 
 ### FINAL STEPS
-1. pnpm --filter @vitalcv/api build — must pass
-2. pnpm --filter web build — must pass  
-3. git add -A && git commit -m "feat(wave-passport): portable clinician passport — public /p/:npi, privacy layers, SVG badge, embeds, share actions"
-4. openclaw system event --text "Done: Passport live — /api/passport/:npi, SVG badge, JSON-LD card, real data replacing dummy Dr. Sarah Chen" --mode now
+1. pnpm --filter @vitalcv/wallet-sdk build — must pass
+2. git add -A && git commit -m "feat(wave-wallet): clinician credential wallet — Expo app, offline VP, OID4VP scanner, push notifications, LocalCredentialStore"
+3. openclaw system event --text "Done: Mobile wallet complete — Expo app, offline VP generation, OID4VP QR scanner, push notifications" --mode now
