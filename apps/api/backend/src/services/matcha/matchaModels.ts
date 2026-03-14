@@ -39,6 +39,7 @@ export interface HeldCredential {
 export type HiringType = 'locums' | 'perm' | 'part-time' | 'telehealth' | 'prn' | 'short-term';
 export type StartUrgency = 'immediate' | 'within_2_weeks' | 'within_month' | 'flexible';
 export type EmployerType = 'hospital' | 'practice' | 'telehealth' | 'agency' | 'health_system';
+export type MarketplaceUrgency = 'immediate' | 'within_30_days' | 'within_90_days';
 
 export interface RequirementSpec {
   key: CredentialKey;
@@ -53,6 +54,8 @@ export interface RequirementSpec {
 export interface Opportunity {
   id: string;
   title: string;
+  organization?: string;
+  organizationId?: string;
   employerSlug: string;
   facility: string;
   location: string;
@@ -65,8 +68,12 @@ export interface Opportunity {
   payRange?: string;
   payMin?: number;   // USD/hr for normalization
   payMax?: number;
+  premiumRate?: number;
   remote: boolean;
   requirements: RequirementSpec[];
+  urgency: MarketplaceUrgency;
+  minimumTrustBand: 'L1' | 'L2' | 'L3';
+  credentialRequirements: string[];
   postedAt: string;
   expiresAt?: string;
   active: boolean;
