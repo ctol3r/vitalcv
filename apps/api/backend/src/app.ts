@@ -158,6 +158,7 @@ import { registerAuthorityGraphRoutes } from './routes/authorityGraph';       //
 import { registerVerificationAgentRoutes } from './routes/verificationAgents'; // Wave 500+: AI Verification Agents
 import { registerVerifyProfessionalRoutes } from './routes/verifyProfessional';   // Wave: AI Professional Verification
 import { registerDeploymentRoutes } from './routes/deployment';                    // Wave: Deployable Workforce
+import { registerWorkforceIntelligenceRoutes } from './routes/workforceIntelligence'; // Wave: Workforce Intelligence
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3586,6 +3587,7 @@ registerAuthorityGraphRoutes(app);         // Wave 500 — Authority Graph Engin
 registerVerificationAgentRoutes(app);      // Wave 500+ — AI Verification Agent Swarm
 registerVerifyProfessionalRoutes(app);     // Wave: AI Professional Verification API
 registerDeploymentRoutes(app);             // Wave: Credential-based deployment matching
+registerWorkforceIntelligenceRoutes(app);  // Wave: Workforce intelligence layer
 registerPayerVerificationRoutes(app); // Wave 142 — Payer Network Integration
 registerProviderDirectoryRoutes(app);  // Wave 143 — Provider Directory Distribution
 registerGraphScalingRoutes(app);       // Wave 144 — Trust Graph Performance Scaling
