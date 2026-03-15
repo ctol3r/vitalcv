@@ -1,4 +1,5 @@
 import express from 'express';
+import { gunzipSync } from 'node:zlib';
 import request from 'supertest';
 import prisma from '../../graphql/prisma_client';
 import { registerGraphRoutes } from '../graph';
@@ -242,5 +243,51 @@ describe('graph routes', () => {
     expect(diagnostics.body.snapshotFreshness).toBeTruthy();
     expect(Array.isArray(diagnostics.body.payloadSizeDiagnostics)).toBe(true);
     expect(Array.isArray(diagnostics.body.recentBuildRuns)).toBe(true);
+  });
+
+  it('serves mobile graph payloads with bounded pagination and compression support', async () => {
+    const clinicianNodeId = await seedRoutesFixture();
+    const app = buildApp();
+
+    const firstPage = await request(app)
+      .get(`/api/graph/local/${encodeURIComponent(clinicianNodeId)}?view=mobile&depth=1&limit=1`)
+      .expect(200);
+
+    expect(firstPage.body.view).toBe('mobile');
+    expect(firstPage.body.nodes).toHaveLength(1);
+    expect(firstPage.body.page.limit).toBe(1);
+    expect(firstPage.body.page.nextCursor).toBeTruthy();
+    expect(Array.isArray(firstPage.body.relationships)).toBe(true);
+
+    const secondPage = await request(app)
+      .get(`/api/graph/local/${encodeURIComponent(clinicianNodeId)}?view=mobile&depth=1&limit=1&cursor=${firstPage.body.page.nextCursor}`)
+      .expect(200);
+
+    expect(secondPage.body.nodes).toHaveLength(1);
+    expect(secondPage.body.nodes[0].id).not.toBe(firstPage.body.nodes[0].id);
+
+    const compressed = await request(app)
+      .get(`/api/graph/mobile/${encodeURIComponent(clinicianNodeId)}?limit=2`)
+      .set('Accept-Encoding', 'gzip')
+      .buffer(true)
+      .parse((res, callback) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+        res.on('end', () => callback(null, Buffer.concat(chunks)));
+      })
+      .expect(200);
+
+    expect(compressed.headers['content-encoding']).toBe('gzip');
+    const compressedBody = Buffer.isBuffer(compressed.body) ? compressed.body : Buffer.from(compressed.body);
+    let decoded = compressedBody.toString('utf8');
+    try {
+      decoded = gunzipSync(compressedBody).toString('utf8');
+    } catch {
+      decoded = compressedBody.toString('utf8');
+    }
+    const inflated = JSON.parse(decoded);
+    expect(inflated.view).toBe('mobile');
+    expect(inflated.nodes.length).toBeLessThanOrEqual(2);
+    expect(Array.isArray(inflated.relationships)).toBe(true);
   });
 });

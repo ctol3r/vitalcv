@@ -36,8 +36,7 @@ import { registerAuthorityRoutes } from './routes/authority';
 import { registerAuditRoutes } from './routes/audit';
 import { startAnchorWorker } from './workers/anchorWorker';
 import { startRevocationOutboxWorker } from './workers/revocationOutboxWorker';
-// Wave 37: Superbrain GraphRAG intelligence endpoint
-import { registerIntelligenceRoutes } from './routes/intelligence';
+// Wave 37: Superbrain GraphRAG intelligence endpoint — now superseded by Intelligence Engine
 // Wave 40: Continuous Trust & Revocation Engine
 import { registerStatusListRoutes } from './routes/statusList';
 import { startContinuousMonitor } from './workers/continuousMonitor';
@@ -164,6 +163,7 @@ import { registerProtocolRoutes } from './routes/protocol';                     
 import { registerDomainRoutes } from './routes/domains';                               // Wave: Universal Authority
 import { registerIdentityLayerRoutes } from './routes/identityLayer';                  // Wave: Canonical Identity
 import { registerTrustIntelligenceRoutes } from './routes/trustIntelligence';          // Wave M: Trust Score V1 + Freshness + Divergence
+import { registerIntelligenceEngineRoutes } from './routes/intelligence';              // Wave I: Intelligence Engine + Learning Loops
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3511,7 +3511,7 @@ registerPoeRoutes(app);
 registerWidgetRoutes(app); // Wave 34: Plaid Widget
 registerIssuerRoutes(app); // Wave 38: Issuer Command Center
 registerAuditRoutes(app); // Wave 35: Merkle Anchoring
-registerIntelligenceRoutes(app); // Wave 37: Superbrain GraphRAG
+// registerIntelligenceRoutes superseded by registerIntelligenceEngineRoutes (Wave I)
 registerStatusListRoutes(app); // Wave 40: W3C Bitstring Status List
 registerHiringRoutes(app);    // Wave 41: ON Loop — EmployerAcceptance + StartAttestation
 registerPublicProfileRoutes(app); // Wave 43: Public Trust Profile — NPI-keyed
@@ -3598,6 +3598,7 @@ registerProtocolRoutes(app);               // Wave: open protocol spec + conform
 registerDomainRoutes(app);                 // Wave: universal domain authority registry
 registerIdentityLayerRoutes(app);          // Wave: canonical clinician identity layer
 registerTrustIntelligenceRoutes(app);      // Wave M: Trust Score V1 + Freshness + Divergence
+registerIntelligenceEngineRoutes(app);     // Wave I: Intelligence Engine + Learning Loops
 registerPayerVerificationRoutes(app); // Wave 142 — Payer Network Integration
 registerProviderDirectoryRoutes(app);  // Wave 143 — Provider Directory Distribution
 registerGraphScalingRoutes(app);       // Wave 144 — Trust Graph Performance Scaling

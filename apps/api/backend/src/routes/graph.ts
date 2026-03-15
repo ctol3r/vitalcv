@@ -32,6 +32,16 @@ import {
   queryGraph,
   searchGraphNodes,
 } from '../services/graph-engine/queryService';
+import { sendCompressedJson } from '../services/mobile/http';
+import {
+  buildGraphMobilePayload,
+  DEFAULT_MOBILE_DEPTH,
+  DEFAULT_MOBILE_LIMIT,
+  MAX_MOBILE_DEPTH,
+  MAX_MOBILE_GRAPH_LIMIT,
+  normalizeMobileView,
+  parseBoundedInteger,
+} from '../services/mobile/payloads';
 
 function parseGraphFilters(req: Request) {
   const defaults = defaultGraphQueryFilters();
@@ -81,6 +91,35 @@ function sendCanonicalResult(res: Response, result: Awaited<ReturnType<typeof qu
   });
 }
 
+function buildGraphMobileSelfLink(
+  basePath: string,
+  result: Awaited<ReturnType<typeof queryGraph>>,
+): string {
+  return `${basePath}?view=mobile&depth=${result.depth}&limit=${result.filters.limit}${result.filters.cursor ? `&cursor=${result.filters.cursor}` : ''}`;
+}
+
+function buildGraphMobileNextLink(
+  basePath: string,
+  result: Awaited<ReturnType<typeof queryGraph>>,
+): string | null {
+  return result.chunk.nextCursor
+    ? `${basePath}?view=mobile&depth=${result.depth}&limit=${result.filters.limit}&cursor=${result.chunk.nextCursor}`
+    : null;
+}
+
+function mobileGraphFilters(req: Request, focusNodeId: string) {
+  return {
+    ...parseGraphFilters(req),
+    graphMode: normalizeGraphMode(req.query.graphMode ?? 'trust'),
+    scope: 'local' as const,
+    focusNodeId,
+    depth: parseBoundedInteger(req.query.depth, DEFAULT_MOBILE_DEPTH, 1, MAX_MOBILE_DEPTH),
+    limit: parseBoundedInteger(req.query.limit, DEFAULT_MOBILE_LIMIT, 1, MAX_MOBILE_GRAPH_LIMIT),
+    clusterMode: 'none' as const,
+    showAiLinks: false,
+  };
+}
+
 function mapLegacyNodeType(type: string): 'clinician' | 'credential' | 'issuer' | 'hospital' | 'license' {
   if (type === 'clinician') return 'clinician';
   if (type === 'license') return 'license';
@@ -125,16 +164,51 @@ export function registerGraphRoutes(app: Express): void {
 
   app.get('/api/graph/local/:nodeId', async (req: Request, res: Response) => {
     try {
+      const nodeId = decodeURIComponent(req.params.nodeId);
+      if (normalizeMobileView(req.query.view) === 'mobile') {
+        const result = await queryGraph(mobileGraphFilters(req, nodeId));
+        const basePath = `/api/graph/local/${encodeURIComponent(nodeId)}`;
+        const payload = buildGraphMobilePayload(result, {
+          self: buildGraphMobileSelfLink(basePath, result),
+          next: buildGraphMobileNextLink(basePath, result),
+          expand: result.focusNodeId
+            ? `/api/graph/node/${encodeURIComponent(result.focusNodeId)}/expand?view=mobile&depth=1&limit=${result.filters.limit}`
+            : null,
+        });
+        sendCompressedJson(req, res, payload, { enabled: true });
+        return;
+      }
+
       const result = await queryGraph({
         ...parseGraphFilters(req),
         scope: 'local',
-        focusNodeId: decodeURIComponent(req.params.nodeId),
+        focusNodeId: nodeId,
       });
       sendCanonicalResult(res, result);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       log('error', 'graph_route: local failed', { nodeId: req.params.nodeId, error: message });
       res.status(500).json({ error: 'Failed to load local graph' });
+    }
+  });
+
+  app.get('/api/graph/mobile/:nodeId', async (req: Request, res: Response) => {
+    try {
+      const nodeId = decodeURIComponent(req.params.nodeId);
+      const result = await queryGraph(mobileGraphFilters(req, nodeId));
+      const basePath = `/api/graph/mobile/${encodeURIComponent(nodeId)}`;
+      const payload = buildGraphMobilePayload(result, {
+        self: buildGraphMobileSelfLink(basePath, result),
+        next: buildGraphMobileNextLink(basePath, result),
+        expand: result.focusNodeId
+          ? `/api/graph/node/${encodeURIComponent(result.focusNodeId)}/expand?view=mobile&depth=1&limit=${result.filters.limit}`
+          : null,
+      });
+      sendCompressedJson(req, res, payload, { enabled: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      log('error', 'graph_route: mobile failed', { nodeId: req.params.nodeId, error: message });
+      res.status(500).json({ error: 'Failed to load mobile graph' });
     }
   });
 
@@ -548,6 +622,18 @@ export function registerGraphRoutes(app: Express): void {
   app.get('/api/graph/:npi([0-9]{10})', async (req: Request, res: Response) => {
     try {
       const nodeId = await ensureClinicianGraph(req.params.npi);
+      if (normalizeMobileView(req.query.view) === 'mobile') {
+        const result = await queryGraph(mobileGraphFilters(req, nodeId));
+        const basePath = `/api/graph/${req.params.npi}`;
+        const payload = buildGraphMobilePayload(result, {
+          self: buildGraphMobileSelfLink(basePath, result),
+          next: buildGraphMobileNextLink(basePath, result),
+          expand: `/api/graph/mobile/${encodeURIComponent(nodeId)}?depth=1&limit=${result.filters.limit}`,
+        });
+        sendCompressedJson(req, res, payload, { enabled: true });
+        return;
+      }
+
       const result = await queryGraph({
         ...parseGraphFilters(req),
         scope: 'local',
@@ -651,8 +737,24 @@ export function registerGraphRoutes(app: Express): void {
 
   app.get('/api/graph/node/:nodeId/expand', async (req: Request, res: Response) => {
     try {
+      const nodeId = decodeURIComponent(req.params.nodeId);
+      if (normalizeMobileView(req.query.view) === 'mobile') {
+        const result = await queryGraph({
+          ...mobileGraphFilters(req, nodeId),
+          depth: parseBoundedInteger(req.query.depth, DEFAULT_MOBILE_DEPTH, 1, MAX_MOBILE_DEPTH),
+        });
+        const basePath = `/api/graph/node/${encodeURIComponent(nodeId)}/expand`;
+        const payload = buildGraphMobilePayload(result, {
+          self: buildGraphMobileSelfLink(basePath, result),
+          next: buildGraphMobileNextLink(basePath, result),
+          expand: null,
+        });
+        sendCompressedJson(req, res, payload, { enabled: true });
+        return;
+      }
+
       const result = await getGraphNodeNeighbors(
-        decodeURIComponent(req.params.nodeId),
+        nodeId,
         Math.max(1, Math.min(2, Number(req.query.depth ?? 1) || 1)),
       );
       res.json({

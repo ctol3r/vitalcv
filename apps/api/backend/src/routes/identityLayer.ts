@@ -28,8 +28,30 @@ import {
   getBuildPriorityOrder, COMPETITIVE_POSITIONING, TRUST_TIER_COPY,
   isAutomationSafe,
 } from '../services/identity/sourceGovernance';
+import { createGraphNodeId } from '../services/graph-engine/ids';
 import { getWatchtowerState, registerWatchlist } from '../services/identity/watchtowerEngine';
 import { listWatchlists } from '../services/identity/watchtowerStore';
+import {
+  DEFAULT_MOBILE_DEPTH,
+  DEFAULT_MOBILE_LIMIT,
+  IDENTITY_MOBILE_SCHEMA,
+  MAX_MOBILE_DEPTH,
+  MAX_MOBILE_LIMIT,
+  WATCHTOWER_MOBILE_SCHEMA,
+  mapAlertToMobileItem,
+  mapClaimToMobileItem,
+  mapReceiptToMobileItem,
+  mapRelationshipClaimToMobileItem,
+  normalizeMobileView,
+  paginateMobileItems,
+  parseBoundedInteger,
+} from '../services/mobile/payloads';
+import {
+  acknowledgeMobileWatchtowerQueueItem,
+  createMobileWatchtowerSubscription,
+  listMobileWatchtowerSubscriptions,
+  loadMobileWatchtowerQueue,
+} from '../services/mobile/watchtowerMobile';
 import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
 
@@ -38,6 +60,20 @@ const CLAIM_RE  = /^claim_[0-9a-f]{32}$/;
 
 // In-flight guard per NPI
 const inFlight = new Set<string>();
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function clinicianGraphNodeIdForNpi(npi: string): string {
+  return createGraphNodeId({
+    type: 'clinician',
+    sourceKind: 'npi',
+    sourceId: npi,
+  });
+}
 
 export function registerIdentityLayerRoutes(app: Express): void {
 
@@ -153,6 +189,119 @@ export function registerIdentityLayerRoutes(app: Express): void {
     }
   });
 
+  app.get('/api/watchtower/mobile/subscriptions', async (req: Request, res: Response) => {
+    try {
+      const ownerOrganizationId = typeof req.query.ownerOrganizationId === 'string'
+        ? req.query.ownerOrganizationId
+        : undefined;
+      const subscriptions = await listMobileWatchtowerSubscriptions(ownerOrganizationId);
+      res.json({
+        total: subscriptions.length,
+        subscriptions,
+      });
+    } catch (err) {
+      log('error', 'watchtower mobile subscriptions GET failed', { error: String(err) });
+      res.status(500).json({ error: 'Mobile subscription fetch failed' });
+    }
+  });
+
+  app.post('/api/watchtower/mobile/subscriptions', async (req: Request, res: Response) => {
+    try {
+      const {
+        name,
+        ownerOrganizationId,
+        monitoredProviders,
+        monitoredInstitutions,
+        trustScoreDrops,
+        anomalyEvents,
+        severityFloor,
+        deviceId,
+        platform,
+      } = req.body ?? {};
+
+      if (!deviceId || typeof deviceId !== 'string') {
+        res.status(400).json({ error: 'deviceId is required' });
+        return;
+      }
+      if (platform !== 'ios' && platform !== 'android') {
+        res.status(400).json({ error: 'platform must be ios or android' });
+        return;
+      }
+
+      const subscription = await createMobileWatchtowerSubscription({
+        ...(typeof name === 'string' ? { name } : {}),
+        ...(typeof ownerOrganizationId === 'string' ? { ownerOrganizationId } : {}),
+        monitoredProviders: Array.isArray(monitoredProviders)
+          ? monitoredProviders.filter((entry): entry is string => typeof entry === 'string')
+          : [],
+        monitoredInstitutions: Array.isArray(monitoredInstitutions)
+          ? monitoredInstitutions.filter((entry): entry is string => typeof entry === 'string')
+          : [],
+        trustScoreDrops: trustScoreDrops !== false,
+        anomalyEvents: anomalyEvents !== false,
+        ...(typeof severityFloor === 'string'
+          ? { severityFloor: severityFloor as 'INFO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' }
+          : {}),
+        deviceId,
+        platform,
+      });
+
+      res.status(201).json({ subscription });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      log('error', 'watchtower mobile subscriptions POST failed', { error: message });
+      res.status(500).json({ error: 'Mobile subscription creation failed', detail: message });
+    }
+  });
+
+  app.get('/api/watchtower/mobile/queue', async (req: Request, res: Response) => {
+    try {
+      const subscriptionId = typeof req.query.subscriptionId === 'string' ? req.query.subscriptionId : null;
+      if (!subscriptionId) {
+        res.status(400).json({ error: 'subscriptionId is required' });
+        return;
+      }
+
+      const payload = await loadMobileWatchtowerQueue({
+        subscriptionId,
+        limit: parseBoundedInteger(req.query.limit, DEFAULT_MOBILE_LIMIT, 1, MAX_MOBILE_LIMIT),
+        cursor: typeof req.query.cursor === 'string' ? req.query.cursor : null,
+        statuses: typeof req.query.status === 'string'
+          ? [req.query.status.toUpperCase() as 'DELIVERED' | 'PENDING' | 'SUPPRESSED' | 'DEDUPED' | 'FAILED' | 'NOT_CONFIGURED']
+          : undefined,
+      });
+      res.json(payload);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      log('error', 'watchtower mobile queue GET failed', { error: message });
+      res.status(500).json({ error: 'Mobile queue fetch failed', detail: message });
+    }
+  });
+
+  app.post('/api/watchtower/mobile/queue/ack', async (req: Request, res: Response) => {
+    try {
+      const subscriptionId = typeof req.body?.subscriptionId === 'string' ? req.body.subscriptionId : null;
+      const deliveryAttemptId = typeof req.body?.deliveryAttemptId === 'string' ? req.body.deliveryAttemptId : null;
+
+      if (!subscriptionId || !deliveryAttemptId) {
+        res.status(400).json({ error: 'subscriptionId and deliveryAttemptId are required' });
+        return;
+      }
+
+      const acknowledged = await acknowledgeMobileWatchtowerQueueItem(subscriptionId, deliveryAttemptId);
+      if (!acknowledged) {
+        res.status(404).json({ error: 'Mobile queue item not found' });
+        return;
+      }
+
+      res.json(acknowledged);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      log('error', 'watchtower mobile queue ACK failed', { error: message });
+      res.status(500).json({ error: 'Mobile queue acknowledgement failed', detail: message });
+    }
+  });
+
   /**
    * GET /api/identity/:npi
    *
@@ -164,12 +313,63 @@ export function registerIdentityLayerRoutes(app: Express): void {
    */
   app.get('/api/identity/:npi([0-9]{10})', async (req: Request, res: Response) => {
     const { npi } = req.params;
+    const view = normalizeMobileView(req.query.view);
+    const depth = parseBoundedInteger(
+      req.query.depth,
+      view === 'mobile' ? DEFAULT_MOBILE_DEPTH : 1,
+      0,
+      MAX_MOBILE_DEPTH,
+    );
+    const limit = parseBoundedInteger(
+      req.query.limit,
+      view === 'mobile' ? DEFAULT_MOBILE_LIMIT : 50,
+      1,
+      MAX_MOBILE_LIMIT,
+    );
+    const graphNodeId = clinicianGraphNodeIdForNpi(npi);
 
     try {
       const claims  = await getClaimsForNpi(npi);
       const summary = buildIdentitySummary(npi, claims);
+      const receipts = view === 'mobile' && depth > 0
+        ? await getVerificationReceiptsForNpi(npi)
+        : [];
 
       if (claims.length === 0) {
+        if (view === 'mobile') {
+          res.json({
+            schema: IDENTITY_MOBILE_SCHEMA,
+            view: 'mobile',
+            npi,
+            status: 'NOT_INGESTED',
+            generatedAt: new Date().toISOString(),
+            depth,
+            identity: null,
+            evidenceSummary: null,
+            previews: {
+              claims: [],
+              receipts: [],
+              relationships: [],
+            },
+            paging: {
+              limit,
+              claimsReturned: 0,
+              receiptsReturned: 0,
+              relationshipsReturned: 0,
+            },
+            links: {
+              self: `/api/identity/${npi}?view=mobile&depth=${depth}&limit=${limit}`,
+              claims: `/api/identity/${npi}/claims?view=mobile&limit=${limit}`,
+              receipts: `/api/identity/${npi}/receipts?view=mobile&limit=${limit}`,
+              relationships: `/api/graph/mobile/${encodeURIComponent(graphNodeId)}?depth=1&limit=${limit}`,
+              watchtower: `/api/identity/${npi}/watchtower?view=mobile&limit=${limit}`,
+              graph: `/api/graph/mobile/${encodeURIComponent(graphNodeId)}?depth=1&limit=${limit}`,
+              ingest: `/api/identity/${npi}/ingest`,
+            },
+          });
+          return;
+        }
+
         res.json({
           schema:   'https://vitalcv.com/identity/v1',
           npi,
@@ -191,10 +391,79 @@ export function registerIdentityLayerRoutes(app: Express): void {
       const enrollment   = activeClaims.find(c => c.claimType === 'ENROLLMENT_STATUS');
       const license      = activeClaims.find(c => c.claimType === 'LICENSE' || c.claimType === 'NURSING_LICENSE');
 
-      const npiVal  = npiClaim?.value  as Record<string, unknown> | undefined;
-      const nameVal = nameClaim?.value as Record<string, unknown> | undefined;
-      const excVal  = exclusion?.value as Record<string, unknown> | undefined;
-      const enrVal  = enrollment?.value as Record<string, unknown> | undefined;
+      const npiVal  = asRecord(npiClaim?.value);
+      const nameVal = asRecord(nameClaim?.value);
+      const excVal  = asRecord(exclusion?.value);
+      const enrVal  = asRecord(enrollment?.value);
+
+      if (view === 'mobile') {
+        const previewClaims = depth > 0 ? claims.slice(0, limit).map(mapClaimToMobileItem) : [];
+        const previewReceipts = depth > 0 ? receipts.slice(0, limit).map(mapReceiptToMobileItem) : [];
+        const previewRelationships = depth > 0
+          ? activeClaims
+              .map(mapRelationshipClaimToMobileItem)
+              .filter((item): item is NonNullable<ReturnType<typeof mapRelationshipClaimToMobileItem>> => Boolean(item))
+              .slice(0, limit)
+          : [];
+
+        const fullName = [nameVal.firstName, nameVal.lastName]
+          .filter((value): value is string => typeof value === 'string' && value.length > 0)
+          .join(' ') || null;
+
+        res.json({
+          schema: IDENTITY_MOBILE_SCHEMA,
+          view: 'mobile',
+          npi,
+          status: 'READY',
+          generatedAt: new Date().toISOString(),
+          depth,
+          identity: {
+            fullName,
+            credential: (typeof nameVal.credential === 'string' ? nameVal.credential : null)
+              ?? (typeof npiVal.credential === 'string' ? npiVal.credential : null),
+            npiStatus: typeof npiVal.status === 'string' ? npiVal.status : 'UNKNOWN',
+            enumerationType: typeof npiVal.enumerationType === 'string' ? npiVal.enumerationType : 'UNKNOWN',
+            specialties: specialties
+              .map((claim) => asRecord(claim.value).taxonomyDescription)
+              .filter((value): value is string => typeof value === 'string' && value.length > 0),
+            practiceStates: locations
+              .map((claim) => asRecord(claim.value).state)
+              .filter((value): value is string => typeof value === 'string' && value.length > 0),
+            exclusionStatus: excVal.excluded === true ? 'EXCLUDED' : Object.keys(excVal).length > 0 ? 'CLEAR' : 'NOT_CHECKED',
+            medicareEnrolled: typeof enrVal.enrolled === 'boolean' ? enrVal.enrolled : null,
+            hasActiveLicense: summary.hasActiveLicense,
+            hasBoardCert: summary.hasBoardCert,
+          },
+          evidenceSummary: {
+            claimCount: summary.claimCount,
+            goldClaimCount: summary.goldClaimCount,
+            highestTier: summary.highestTier,
+            claimsByType: summary.claimsByType,
+            lastIngestedAt: summary.lastIngestedAt,
+          },
+          previews: {
+            claims: previewClaims,
+            receipts: previewReceipts,
+            relationships: previewRelationships,
+          },
+          paging: {
+            limit,
+            claimsReturned: previewClaims.length,
+            receiptsReturned: previewReceipts.length,
+            relationshipsReturned: previewRelationships.length,
+          },
+          links: {
+            self: `/api/identity/${npi}?view=mobile&depth=${depth}&limit=${limit}`,
+            claims: `/api/identity/${npi}/claims?view=mobile&limit=${limit}`,
+            receipts: `/api/identity/${npi}/receipts?view=mobile&limit=${limit}`,
+            relationships: `/api/graph/mobile/${encodeURIComponent(graphNodeId)}?depth=1&limit=${limit}`,
+            watchtower: `/api/identity/${npi}/watchtower?view=mobile&limit=${limit}`,
+            graph: `/api/graph/mobile/${encodeURIComponent(graphNodeId)}?depth=1&limit=${limit}`,
+            ingest: `/api/identity/${npi}/ingest`,
+          },
+        });
+        return;
+      }
 
       res.json({
         schema:   'https://vitalcv.com/identity/v1',
@@ -255,20 +524,49 @@ export function registerIdentityLayerRoutes(app: Express): void {
    */
   app.get('/api/identity/:npi([0-9]{10})/claims', async (req: Request, res: Response) => {
     const { npi } = req.params;
+    const view = normalizeMobileView(req.query.view);
     const typeFilter   = typeof req.query.type === 'string' ? req.query.type : null;
     const tierFilter   = typeof req.query.tier === 'string' ? req.query.tier.toUpperCase() : null;
     const statusFilter = typeof req.query.status === 'string' ? req.query.status.toUpperCase() : null;
+    const limit = parseBoundedInteger(
+      req.query.limit,
+      view === 'mobile' ? DEFAULT_MOBILE_LIMIT : 100,
+      1,
+      view === 'mobile' ? MAX_MOBILE_LIMIT : 200,
+    );
 
     try {
       let claims = await getClaimsForNpi(npi);
       if (typeFilter)   claims = claims.filter(c => c.claimType === typeFilter);
       if (tierFilter)   claims = claims.filter(c => c.tier === tierFilter);
       if (statusFilter) claims = claims.filter(c => c.status === statusFilter);
+      const paged = paginateMobileItems(claims, limit, req.query.cursor);
+
+      if (view === 'mobile') {
+        res.json({
+          schema: `${IDENTITY_MOBILE_SCHEMA}/claims`,
+          view: 'mobile',
+          npi,
+          filters: { type: typeFilter, tier: tierFilter, status: statusFilter },
+          claims: paged.items.map(mapClaimToMobileItem),
+          page: paged.page,
+          links: {
+            self: `/api/identity/${npi}/claims?view=mobile&limit=${limit}${paged.page.cursor ? `&cursor=${paged.page.cursor}` : ''}`,
+            next: paged.page.nextCursor
+              ? `/api/identity/${npi}/claims?view=mobile&limit=${limit}&cursor=${paged.page.nextCursor}`
+              : null,
+          },
+        });
+        return;
+      }
 
       res.json({
-        npi, total: claims.length,
+        npi,
+        total: claims.length,
         filters: { type: typeFilter, tier: tierFilter, status: statusFilter },
-        claims: claims.map(c => ({
+        cursor: paged.page.cursor,
+        nextCursor: paged.page.nextCursor,
+        claims: paged.items.map(c => ({
           claimId:       c.claimId,
           claimType:     c.claimType,
           tier:          c.tier,
@@ -341,14 +639,41 @@ export function registerIdentityLayerRoutes(app: Express): void {
    */
   app.get('/api/identity/:npi([0-9]{10})/receipts', async (req: Request, res: Response) => {
     const { npi } = req.params;
+    const view = normalizeMobileView(req.query.view);
+    const limit = parseBoundedInteger(
+      req.query.limit,
+      view === 'mobile' ? DEFAULT_MOBILE_LIMIT : 100,
+      1,
+      view === 'mobile' ? MAX_MOBILE_LIMIT : 200,
+    );
 
     try {
       const receipts = await getVerificationReceiptsForNpi(npi);
+      const paged = paginateMobileItems(receipts, limit, req.query.cursor);
+
+      if (view === 'mobile') {
+        res.json({
+          schema: `${IDENTITY_MOBILE_SCHEMA}/receipts`,
+          view: 'mobile',
+          npi,
+          receipts: paged.items.map(mapReceiptToMobileItem),
+          page: paged.page,
+          links: {
+            self: `/api/identity/${npi}/receipts?view=mobile&limit=${limit}${paged.page.cursor ? `&cursor=${paged.page.cursor}` : ''}`,
+            next: paged.page.nextCursor
+              ? `/api/identity/${npi}/receipts?view=mobile&limit=${limit}&cursor=${paged.page.nextCursor}`
+              : null,
+          },
+        });
+        return;
+      }
 
       res.json({
         npi,
-        total:    receipts.length,
-        receipts,
+        total: receipts.length,
+        cursor: paged.page.cursor,
+        nextCursor: paged.page.nextCursor,
+        receipts: paged.items,
         note:     'Receipts are append-only. Every claim verdict is permanently traceable.',
       });
     } catch (err) {
@@ -359,9 +684,51 @@ export function registerIdentityLayerRoutes(app: Express): void {
 
   app.get('/api/identity/:npi([0-9]{10})/watchtower', async (req: Request, res: Response) => {
     const { npi } = req.params;
+    const view = normalizeMobileView(req.query.view);
+    const limit = parseBoundedInteger(req.query.limit, DEFAULT_MOBILE_LIMIT, 1, MAX_MOBILE_LIMIT);
 
     try {
       const state = await getWatchtowerState(npi);
+      if (view === 'mobile') {
+        const mobileAlerts = (state.alerts ?? []).map((alert, index) => {
+          const row = alert as Record<string, unknown>;
+          return mapAlertToMobileItem({
+            eventId: typeof row.id === 'string' ? row.id : `${npi}:${index}`,
+            alertId: typeof row.alertId === 'string' ? row.alertId : null,
+            type: typeof row.type === 'string' ? row.type : null,
+            subject: typeof row.subject === 'string' ? row.subject : npi,
+            title: typeof row.title === 'string' ? row.title : null,
+            description: typeof row.description === 'string' ? row.description : null,
+            severity: typeof row.severity === 'string' ? row.severity : null,
+            observedAt: row.observedAt,
+            createdAt: row.createdAt,
+            recommendedAction: typeof row.recommendedAction === 'string' ? row.recommendedAction : null,
+          });
+        });
+        const paged = paginateMobileItems(mobileAlerts, limit, req.query.cursor);
+        res.json({
+          schema: WATCHTOWER_MOBILE_SCHEMA,
+          view: 'mobile',
+          generatedAt: new Date().toISOString(),
+          providerNpi: npi,
+          summary: {
+            totalAlerts: mobileAlerts.length,
+            criticalAlerts: mobileAlerts.filter((alert) => alert.severity === 'critical').length,
+            highAlerts: mobileAlerts.filter((alert) => alert.severity === 'high').length,
+          },
+          alerts: paged.items,
+          page: paged.page,
+          links: {
+            self: `/api/identity/${npi}/watchtower?view=mobile&limit=${limit}${paged.page.cursor ? `&cursor=${paged.page.cursor}` : ''}`,
+            next: paged.page.nextCursor
+              ? `/api/identity/${npi}/watchtower?view=mobile&limit=${limit}&cursor=${paged.page.nextCursor}`
+              : null,
+            subscribe: '/api/watchtower/mobile/subscriptions',
+          },
+        });
+        return;
+      }
+
       res.json({
         npi,
         ...state,

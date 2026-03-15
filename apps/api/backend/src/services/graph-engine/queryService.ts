@@ -40,7 +40,24 @@ import { getGraphCacheEpoch } from './invalidation';
 
 type JsonRecord = Record<string, unknown>;
 
-const responseCache = new LRUCache<string, GraphQueryResult>({
+type CachedGraphSnapshotPayload = {
+  snapshotId: string;
+  graphMode: GraphLayer;
+  scope: GraphQueryFilters['scope'];
+  focusNodeId: string | null;
+  depth: number;
+  generatedAt: string;
+  intelligence?: GraphIntelligenceReport;
+  stats: GraphStats & {
+    payloadBytes: number;
+    clusterMode: ClusterMode;
+    invalidated: boolean;
+  };
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+};
+
+const responseCache = new LRUCache<string, CachedGraphSnapshotPayload>({
   max: 200,
   ttl: 60_000,
 });
@@ -97,6 +114,29 @@ function buildFilterSignature(filters: GraphQueryFilters): string {
 
 function cacheKeyForSignature(querySignature: string): string {
   return `${getGraphCacheEpoch()}:${querySignature}`;
+}
+
+function toGraphQueryResult(
+  payload: CachedGraphSnapshotPayload,
+  filters: GraphQueryFilters,
+  cacheStatus: GraphQueryResult['cacheStatus'],
+): GraphQueryResult {
+  return {
+    snapshotId: payload.snapshotId,
+    graphMode: payload.graphMode,
+    scope: payload.scope,
+    focusNodeId: payload.focusNodeId,
+    depth: payload.depth,
+    generatedAt: payload.generatedAt,
+    cacheStatus,
+    filters,
+    chunk: applyCursor(filters, payload.nodes, payload.edges),
+    intelligence: payload.intelligence,
+    stats: {
+      ...payload.stats,
+      invalidated: false,
+    },
+  };
 }
 
 function toApiNode(row: Awaited<ReturnType<typeof prisma.graphNode.findMany>>[number]): GraphNode {
@@ -788,35 +828,22 @@ async function buildFreshQueryResult(
     edges,
     detectedClusters.assignments,
   );
-  const chunk = applyCursor(filters, nodes, edges);
   const generatedAt = new Date().toISOString();
   const stats = buildStats(nodes, edges, filters.clusterMode, intelligence);
-  const payloadBytes = Buffer.byteLength(JSON.stringify({
+  const cachedPayload: CachedGraphSnapshotPayload = {
     snapshotId,
     graphMode: filters.graphMode,
     scope: filters.scope,
     focusNodeId: filters.focusNodeId ?? null,
     depth: filters.depth,
     generatedAt,
-    filters,
-    chunk,
     intelligence,
     stats,
-  }));
-
-  const result: GraphQueryResult = {
-    snapshotId,
-    graphMode: filters.graphMode,
-    scope: filters.scope,
-    focusNodeId: filters.focusNodeId ?? null,
-    depth: filters.depth,
-    generatedAt,
-    cacheStatus: 'miss',
-    filters,
-    chunk,
-    intelligence,
-    stats,
+    nodes,
+    edges,
   };
+  const payloadBytes = Buffer.byteLength(JSON.stringify(cachedPayload));
+  cachedPayload.stats.payloadBytes = payloadBytes;
 
   await prismaClient.graphSnapshot.upsert({
     where: { querySignature },
@@ -832,7 +859,7 @@ async function buildFreshQueryResult(
       nodeCount: nodes.length,
       edgeCount: edges.length,
       payloadBytes,
-      payload: toJsonValue(result),
+      payload: toJsonValue(cachedPayload),
       stats: toJsonValue(stats),
       invalidatedAt: null,
       lastInvalidationReason: null,
@@ -854,7 +881,7 @@ async function buildFreshQueryResult(
       nodeCount: nodes.length,
       edgeCount: edges.length,
       payloadBytes,
-      payload: toJsonValue(result),
+      payload: toJsonValue(cachedPayload),
       stats: toJsonValue(stats),
       lastInvalidationReason: null,
       lastInvalidationScope: Prisma.JsonNull,
@@ -866,8 +893,8 @@ async function buildFreshQueryResult(
     },
   });
 
-  responseCache.set(cacheKeyForSignature(querySignature), result);
-  return result;
+  responseCache.set(cacheKeyForSignature(querySignature), cachedPayload);
+  return toGraphQueryResult(cachedPayload, filters, 'miss');
 }
 
 export async function queryGraph(
@@ -895,10 +922,7 @@ export async function queryGraph(
 
   const cached = responseCache.get(cacheKeyForSignature(querySignature));
   if (cached) {
-    return {
-      ...cached,
-      cacheStatus: 'hit',
-    };
+    return toGraphQueryResult(cached, filters, 'hit');
   }
 
   const snapshot = await prismaClient.graphSnapshot.findUnique({
@@ -906,20 +930,13 @@ export async function queryGraph(
   });
 
   if (snapshot && !snapshot.invalidatedAt) {
-    const payload = snapshot.payload as unknown as GraphQueryResult;
+    const payload = snapshot.payload as unknown as CachedGraphSnapshotPayload;
     responseCache.set(cacheKeyForSignature(querySignature), payload);
     await prismaClient.graphSnapshot.update({
       where: { id: snapshot.id },
       data: { lastAccessedAt: new Date() },
     }).catch(() => undefined);
-    return {
-      ...payload,
-      cacheStatus: 'hit',
-      stats: {
-        ...payload.stats,
-        invalidated: false,
-      },
-    };
+    return toGraphQueryResult(payload, filters, 'hit');
   }
 
   return buildFreshQueryResult(filters, prismaClient, options?.buildRunId);
