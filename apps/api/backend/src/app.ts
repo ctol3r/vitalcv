@@ -136,8 +136,9 @@ import { registerAskRoutes } from './routes/ask';                           // W
 import { registerCopilotRoutes } from './routes/copilot';                   // Waves C25-C28: Copilot query engine
 import { registerInvestigationRoutes } from './routes/investigation';        // Wave INV: Investigation engine
 import { registerFindingsRoutes } from './routes/findings';                  // Wave AI: Autonomous investigators
+import { registerActionsRoutes } from './routes/actions';                    // Waves C49-C51: Action engine API
 import { registerStorylineRoutes } from './routes/storylines';               // Wave ST: Storyline engine
-import { registerActionRoutes } from './routes/actions';                     // Wave AC: Action + Prediction engine
+import { registerDetailAgentRoutes } from './routes/detailAgents';           // Wave DT: Detail agents
 import { registerEmployerRoutes } from './routes/employers';                 // Wave 186: Employer Knowledge Layer
 import { registerPrequalificationRoutes } from './routes/prequalification';  // Wave 189: AI Interview, Assessments, Prequalification
 import { registerVerifierPipelineRoutes } from './routes/verifierPipeline';  // Wave 190: Apply with VitalCV + ATS + Verifier Pipeline
@@ -3579,8 +3580,9 @@ registerAskRoutes(app);               // Wave 185 — Ask VitalCV natural langua
 registerCopilotRoutes(app);           // Waves C25-C28 — Copilot query engine
 registerInvestigationRoutes(app);    // Wave INV — Investigation engine
 registerFindingsRoutes(app);         // Wave AI — Autonomous investigators + findings feed
+registerActionsRoutes(app);          // Waves C49-C51 — Action engine API
 registerStorylineRoutes(app);        // Wave ST — Storyline intelligence narratives
-registerActionRoutes(app);           // Wave AC — Action + Prediction engine
+registerDetailAgentRoutes(app);      // Wave DT — Detail agents + system health
 registerEmployerRoutes(app);          // Wave 186 — Employer Knowledge Layer
 registerPrequalificationRoutes(app);  // Wave 189 — AI Interview, Assessments, Prequalification
 registerVerifierPipelineRoutes(app);  // Wave 190 — Apply with VitalCV + ATS + Verifier Pipeline
@@ -3670,5 +3672,9 @@ ingestAllTrustLists();
 // ── Initialize autonomous investigators ──────────────────────────────────────
 import { initInvestigators } from './services/investigators/orchestrator';
 initInvestigators();
+
+// ── Initialize detail agents ─────────────────────────────────────────────────
+import { initDetailAgents } from './services/detailAgents/detailAgentEngine';
+initDetailAgents();
 
 export default app;

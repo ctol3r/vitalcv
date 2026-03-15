@@ -25,7 +25,16 @@ const replayTableMock = vi.hoisted(() => {
   };
 });
 
+const nonceTableMock = vi.hoisted(() => ({
+  consumeNonce: vi.fn(async () => 'accepted' as const),
+  issueNonce: vi.fn(async () => ({
+    nonce: 'nonce-test',
+    expiresInSeconds: 300,
+  })),
+}));
+
 vi.mock('../security/dpopReplayTable', () => replayTableMock);
+vi.mock('../security/nonceTable', () => nonceTableMock);
 
 type MockResponse = Response & {
   statusCode: number;

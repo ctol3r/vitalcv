@@ -1,94 +1,154 @@
-/**
- * actions.ts — Action + Prediction API
- *
- * Routes:
- *   GET  /api/actions/:npi             — Recommended actions for provider
- *   GET  /api/predictions/:npi         — Trust predictions for provider
- *   GET  /api/intelligence/:npi        — Combined actions + predictions
- *   POST /api/actions/:actionId/outcome — Record action outcome feedback
- *   GET  /api/actions/completion-rates  — Category completion rates
- */
-
 import type { Express, Request, Response } from 'express';
 import {
-  generateActions,
-  generatePredictions,
-  getProviderIntelligence,
-  recordActionOutcome,
-  getActionCompletionRates,
-  getActionFeedbackHistory,
-  type ActionCategory,
-  type ActionOutcome,
-} from '../services/actions/actionEngine';
+  dismissActionRecommendation,
+  executeActionRecommendation,
+  getActionRecommendation,
+  listActionRecommendations,
+  saveActionRecommendation,
+} from '../services/actions/actionEngineService';
 import { log } from '../obs/logger';
 
-const NPI_RE = /^\d{10}$/;
-const VALID_OUTCOMES: ActionOutcome[] = ['completed', 'skipped', 'deferred', 'failed'];
+function normalizeListParam(value: unknown): string[] {
+  if (typeof value !== 'string') {
+    return [];
+  }
 
-export function registerActionRoutes(app: Express): void {
+  return value
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
 
-  app.get('/api/actions/:npi', async (req: Request, res: Response) => {
-    const { npi } = req.params;
-    if (!NPI_RE.test(npi)) return res.status(400).json({ error: 'Invalid NPI' });
+function parseDateRange(value: unknown): { dateFrom: string | null; dateTo: string | null } {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    return { dateFrom: null, dateTo: null };
+  }
+
+  const [dateFromRaw, dateToRaw] = value.split(',').map((entry) => entry.trim());
+  return {
+    dateFrom: dateFromRaw || null,
+    dateTo: dateToRaw || null,
+  };
+}
+
+function statusBody(req: Request): { actorId?: string | null; note?: string | null } {
+  const body = req.body as { actorId?: unknown; note?: unknown } | undefined;
+  return {
+    actorId: typeof body?.actorId === 'string' ? body.actorId : null,
+    note: typeof body?.note === 'string' ? body.note : null,
+  };
+}
+
+export function registerActionsRoutes(app: Express): void {
+  app.get('/api/actions', async (req: Request, res: Response) => {
     try {
-      const actions = await generateActions(npi);
-      res.json({ schema: 'https://vitalcv.com/actions/v1', npi, count: actions.length, actions });
-    } catch (err) {
-      log('error', `[Actions] Failed for NPI ${npi}: ${(err as Error)?.message}`);
-      res.status(500).json({ error: 'Action generation failed' });
+      const { dateFrom, dateTo } = parseDateRange(req.query.dateRange);
+      const limit = typeof req.query.limit === 'string' ? Number.parseInt(req.query.limit, 10) : undefined;
+      const offset = typeof req.query.offset === 'string' ? Number.parseInt(req.query.offset, 10) : undefined;
+      const result = await listActionRecommendations({
+        priority: normalizeListParam(req.query.priority),
+        entity: typeof req.query.entity === 'string' ? req.query.entity : null,
+        actionType: normalizeListParam(req.query.actionType),
+        dateFrom,
+        dateTo,
+        limit,
+        offset,
+      });
+
+      res.json({
+        schema: 'https://vitalcv.com/actions/v1',
+        total: result.total,
+        actions: result.actions,
+        filters: {
+          priority: normalizeListParam(req.query.priority),
+          entity: typeof req.query.entity === 'string' ? req.query.entity : null,
+          actionType: normalizeListParam(req.query.actionType),
+          dateRange: typeof req.query.dateRange === 'string' ? req.query.dateRange : null,
+        },
+      });
+    } catch (error) {
+      log('error', 'actions: list failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: 'Failed to load actions' });
     }
   });
 
-  app.get('/api/predictions/:npi', async (req: Request, res: Response) => {
-    const { npi } = req.params;
-    if (!NPI_RE.test(npi)) return res.status(400).json({ error: 'Invalid NPI' });
+  app.get('/api/actions/:id', async (req: Request, res: Response) => {
     try {
-      const predictions = await generatePredictions(npi);
-      res.json({ schema: 'https://vitalcv.com/predictions/v1', npi, count: predictions.length, predictions });
-    } catch (err) {
-      log('error', `[Predictions] Failed for NPI ${npi}: ${(err as Error)?.message}`);
-      res.status(500).json({ error: 'Prediction generation failed' });
+      const action = await getActionRecommendation(req.params.id);
+      if (!action) {
+        res.status(404).json({ error: 'Action not found' });
+        return;
+      }
+
+      res.json({
+        schema: 'https://vitalcv.com/action-detail/v1',
+        action,
+      });
+    } catch (error) {
+      log('error', 'actions: detail failed', {
+        error: error instanceof Error ? error.message : String(error),
+        actionId: req.params.id,
+      });
+      res.status(500).json({ error: 'Failed to load action' });
     }
   });
 
-  app.get('/api/provider-intelligence/:npi', async (req: Request, res: Response) => {
-    const { npi } = req.params;
-    if (!NPI_RE.test(npi)) return res.status(400).json({ error: 'Invalid NPI' });
+  app.post('/api/actions/:id/execute', async (req: Request, res: Response) => {
     try {
-      const intelligence = await getProviderIntelligence(npi);
-      res.json({ schema: 'https://vitalcv.com/provider-intelligence/v1', ...intelligence });
-    } catch (err) {
-      log('error', `[Intelligence] Failed for NPI ${npi}: ${(err as Error)?.message}`);
-      res.status(500).json({ error: 'Provider intelligence generation failed' });
+      const action = await executeActionRecommendation(req.params.id, statusBody(req));
+      res.json({ action });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to execute action';
+      if (message.includes('not found')) {
+        res.status(404).json({ error: 'Action not found' });
+        return;
+      }
+      if (message.includes('Invalid action status transition')) {
+        res.status(409).json({ error: message });
+        return;
+      }
+      log('error', 'actions: execute failed', { error: message, actionId: req.params.id });
+      res.status(500).json({ error: 'Failed to execute action' });
     }
   });
 
-  app.post('/api/actions/:actionId/outcome', (req: Request, res: Response) => {
-    const { actionId } = req.params;
-    const { outcome, category, npi } = req.body as {
-      outcome?: string; category?: string; npi?: string;
-    };
-
-    if (!outcome || !VALID_OUTCOMES.includes(outcome as ActionOutcome)) {
-      return res.status(400).json({ error: `outcome must be one of: ${VALID_OUTCOMES.join(', ')}` });
+  app.post('/api/actions/:id/dismiss', async (req: Request, res: Response) => {
+    try {
+      const action = await dismissActionRecommendation(req.params.id, statusBody(req));
+      res.json({ action });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to dismiss action';
+      if (message.includes('not found')) {
+        res.status(404).json({ error: 'Action not found' });
+        return;
+      }
+      if (message.includes('Invalid action status transition')) {
+        res.status(409).json({ error: message });
+        return;
+      }
+      log('error', 'actions: dismiss failed', { error: message, actionId: req.params.id });
+      res.status(500).json({ error: 'Failed to dismiss action' });
     }
-    if (!category || !npi) {
-      return res.status(400).json({ error: 'Body must include category and npi' });
-    }
-
-    recordActionOutcome(actionId, category as ActionCategory, outcome as ActionOutcome, npi);
-    res.json({ recorded: true, actionId, outcome });
   });
 
-  app.get('/api/actions/completion-rates', (_req: Request, res: Response) => {
-    res.json({
-      schema: 'https://vitalcv.com/action-rates/v1',
-      rates: getActionCompletionRates(),
-    });
-  });
-
-  app.get('/api/actions/feedback-history', (req: Request, res: Response) => {
-    const limit = typeof req.query.limit === 'string' ? parseInt(req.query.limit) : 50;
-    res.json({ history: getActionFeedbackHistory(limit) });
+  app.post('/api/actions/:id/save', async (req: Request, res: Response) => {
+    try {
+      const action = await saveActionRecommendation(req.params.id, statusBody(req));
+      res.json({ action });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to save action';
+      if (message.includes('not found')) {
+        res.status(404).json({ error: 'Action not found' });
+        return;
+      }
+      if (message.includes('Invalid action status transition')) {
+        res.status(409).json({ error: message });
+        return;
+      }
+      log('error', 'actions: save failed', { error: message, actionId: req.params.id });
+      res.status(500).json({ error: 'Failed to save action' });
+    }
   });
 }

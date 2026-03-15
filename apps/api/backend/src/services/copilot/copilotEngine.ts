@@ -32,6 +32,7 @@ import { investigateProvider, investigateNetwork, investigateComparison } from '
 import { getFindingsForNpi, queryFindings, getFeedStats } from '../investigators/framework';
 import { getStorylinesForNpi, queryStorylines, getStorylineStats } from '../storylines/storylineEngine';
 import { generateActions, generatePredictions } from '../actions/actionEngine';
+import { getSystemHealthSummary } from '../detailAgents/detailAgentEngine';
 
 // ── Response types ─────────────────────────────────────────────────────────────
 
@@ -303,6 +304,20 @@ async function handleMonitor(classified: ClassifiedQuery, sessionId: string): Pr
       }
     }
 
+    // System health (detail agents)
+    const health = getSystemHealthSummary();
+    if (health.totalIssues > 0) {
+      answer += `**System Health:** ${health.totalIssues} issue(s) detected, ${health.totalAutoRepaired} auto-repaired, ${health.totalSurfaced} surfaced\n`;
+      for (const agent of health.agents) {
+        if (agent.lastIssueCount > 0) {
+          answer += `  🔧 ${agent.name}: ${agent.lastIssueCount} issue(s)\n`;
+        }
+      }
+      answer += '\n';
+    } else {
+      answer += '**System Health:** ✅ All detail agents clear\n\n';
+    }
+
     // Legacy insights
     const staleInsights = insights.filter(i => i.type === 'STALE_COVERAGE_GAP');
     const declining = insights.filter(i => i.type === 'DECLINING_TRUST');
@@ -311,8 +326,8 @@ async function handleMonitor(classified: ClassifiedQuery, sessionId: string): Pr
 
     return makeResponse(classified, 'MONITOR', answer,
       { type: 'insights', payload: insights },
-      ['Show all storylines', 'Show all findings', 'Run investigator scan', 'Check specific NPI'],
-      ['IntelligenceEngine', 'InvestigatorFindings', 'StorylineEngine'],
+      ['Show all storylines', 'Show all findings', 'Run system health scan', 'Check specific NPI'],
+      ['IntelligenceEngine', 'InvestigatorFindings', 'StorylineEngine', 'DetailAgents'],
     );
   }
 

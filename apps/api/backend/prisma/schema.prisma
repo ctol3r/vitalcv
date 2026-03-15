@@ -577,6 +577,63 @@ enum AlertDeliveryStatus {
   NOT_CONFIGURED
 }
 
+enum StorylineType {
+  TRUST_DECLINE
+  RISING_INVESTIGATOR
+  NETWORK_EMERGENCE
+  COMPLIANCE_RISK
+  WORKFORCE_OPPORTUNITY
+  INSTITUTION_SHIFT
+  INDUSTRY_INFLUENCE
+}
+
+enum StorylinePerspective {
+  PROVIDER
+  INSTITUTION
+  NETWORK
+}
+
+enum StorylineSeverity {
+  INFO
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum StorylineStatus {
+  ACTIVE
+  QUIET
+  ESCALATED
+  RESOLVED
+  ARCHIVED
+}
+
+enum StorylineEntityType {
+  PROVIDER
+  INSTITUTION
+  NETWORK
+  GENERIC
+}
+
+enum StorylineEventType {
+  ORIGIN
+  UPDATED
+  QUIET_PERIOD
+  REACTIVATED
+  RESOLVED
+  ESCALATED
+  ARCHIVED
+  ACKNOWLEDGED
+}
+
+enum StorylineActionType {
+  ACKNOWLEDGE
+  ESCALATE
+  ARCHIVE
+  SAVE_INVESTIGATION
+}
+
 /// Links a person to an organization with a role
 model WorkspaceMembership {
   id                    String              @id @default(uuid()) @db.Uuid
@@ -1403,6 +1460,111 @@ model AlertDeliveryAttempt {
   @@index([watchlistId, createdAt])
   @@index([channel, status, createdAt])
   @@map("alert_delivery_attempts")
+}
+
+model Storyline {
+  id                  String                @id @default(uuid()) @db.Uuid
+  storylineId         String                @unique @map("storyline_id")
+  fingerprint         String                @unique
+  storylineType       StorylineType         @map("storyline_type")
+  perspective         StorylinePerspective
+  title               String
+  summary             String
+  whyItMatters        String                @map("why_it_matters")
+  severity            StorylineSeverity
+  confidence          Float
+  entityIds           String[]              @default([]) @map("entity_ids")
+  findingIds          String[]              @default([]) @map("finding_ids")
+  supportingEvidence  Json                  @default("[]") @db.JsonB @map("supporting_evidence")
+  recommendedActions  Json                  @default("[]") @db.JsonB @map("recommended_actions")
+  progressionScore    Float                 @default(0) @map("progression_score")
+  noveltyScore        Float                 @default(0) @map("novelty_score")
+  persistenceScore    Float                 @default(0) @map("persistence_score")
+  escalationThreshold Float                 @default(0.75) @map("escalation_threshold")
+  lastActivityAt      DateTime              @map("last_activity_at")
+  status              StorylineStatus       @default(ACTIVE)
+  metadata            Json?                 @db.JsonB
+  createdAt           DateTime              @default(now()) @map("created_at")
+  updatedAt           DateTime              @updatedAt @map("updated_at")
+  findingLinks        StorylineFindingLink[]
+  entityLinks         StorylineEntityLink[]
+  statusEvents        StorylineStatusEvent[]
+  actionEvents        StorylineActionEvent[]
+
+  @@index([storylineType, status, updatedAt])
+  @@index([perspective, lastActivityAt])
+  @@index([severity, updatedAt])
+  @@map("storylines")
+}
+
+model StorylineFindingLink {
+  id              String            @id @default(uuid()) @db.Uuid
+  storylineRefId  String            @db.Uuid @map("storyline_ref_id")
+  findingId       String            @map("finding_id")
+  findingCategory String            @map("finding_category")
+  findingSeverity StorylineSeverity @map("finding_severity")
+  observedAt      DateTime          @map("observed_at")
+  weight          Float
+  snapshot        Json?             @db.JsonB
+  createdAt       DateTime          @default(now()) @map("created_at")
+  storyline       Storyline         @relation(fields: [storylineRefId], references: [id], onDelete: Cascade)
+
+  @@unique([storylineRefId, findingId])
+  @@index([findingId, observedAt])
+  @@map("storyline_finding_links")
+}
+
+model StorylineEntityLink {
+  id             String              @id @default(uuid()) @db.Uuid
+  storylineRefId String              @db.Uuid @map("storyline_ref_id")
+  entityType     StorylineEntityType @map("entity_type")
+  entityKey      String              @map("entity_key")
+  entityLabel    String?             @map("entity_label")
+  weight         Float
+  firstSeenAt    DateTime            @map("first_seen_at")
+  lastSeenAt     DateTime            @map("last_seen_at")
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+  storyline      Storyline           @relation(fields: [storylineRefId], references: [id], onDelete: Cascade)
+
+  @@unique([storylineRefId, entityType, entityKey])
+  @@index([entityType, entityKey])
+  @@map("storyline_entity_links")
+}
+
+model StorylineStatusEvent {
+  id             String             @id @default(uuid()) @db.Uuid
+  storylineRefId String             @db.Uuid @map("storyline_ref_id")
+  eventKey       String             @unique @map("event_key")
+  eventType      StorylineEventType @map("event_type")
+  summary        String
+  fromStatus     StorylineStatus?   @map("from_status")
+  toStatus       StorylineStatus?   @map("to_status")
+  metadata       Json?              @db.JsonB
+  occurredAt     DateTime           @map("occurred_at")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  storyline      Storyline          @relation(fields: [storylineRefId], references: [id], onDelete: Cascade)
+
+  @@index([storylineRefId, occurredAt])
+  @@index([eventType, occurredAt])
+  @@map("storyline_status_events")
+}
+
+model StorylineActionEvent {
+  id             String              @id @default(uuid()) @db.Uuid
+  storylineRefId String              @db.Uuid @map("storyline_ref_id")
+  eventKey       String              @unique @map("event_key")
+  actionType     StorylineActionType @map("action_type")
+  actorId        String?             @map("actor_id")
+  note           String?
+  payload        Json?               @db.JsonB
+  occurredAt     DateTime            @map("occurred_at")
+  createdAt      DateTime            @default(now()) @map("created_at")
+  storyline      Storyline           @relation(fields: [storylineRefId], references: [id], onDelete: Cascade)
+
+  @@index([storylineRefId, occurredAt])
+  @@index([actionType, occurredAt])
+  @@map("storyline_action_events")
 }
 
 model OrganizationTrust {
@@ -2333,6 +2495,80 @@ model FindingStatusEvent {
   @@index([findingId, createdAt])
   @@index([toStatus, createdAt])
   @@map("finding_status_events")
+}
+
+model ActionRecommendation {
+  id                String   @id @default(uuid()) @db.Uuid
+  actionId          String   @unique @map("action_id")
+  actionType        String   @map("action_type")
+  storylineKey      String?  @map("storyline_key")
+  sourceFindingIds  String[] @default([]) @map("source_finding_ids")
+  predictionIds     String[] @default([]) @map("prediction_ids")
+  targetEntityType  String   @map("target_entity_type")
+  targetEntityId    String   @map("target_entity_id")
+  targetEntityLabel String?  @map("target_entity_label")
+  recommendedAction String   @map("recommended_action")
+  priority          String
+  priorityScore     Float    @default(0) @map("priority_score")
+  confidence        Float
+  explanation       String
+  evidence          Json     @default("[]") @db.JsonB
+  metadata          Json     @default("{}") @db.JsonB
+  status            String   @default("OPEN")
+  executedAt        DateTime? @map("executed_at")
+  dismissedAt       DateTime? @map("dismissed_at")
+  savedAt           DateTime? @map("saved_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  statusEvents ActionStatusEvent[]
+
+  @@index([actionType, createdAt])
+  @@index([priority, status, createdAt])
+  @@index([targetEntityType, targetEntityId])
+  @@index([storylineKey, createdAt])
+  @@index([status, updatedAt])
+  @@map("action_recommendations")
+}
+
+model ActionStatusEvent {
+  id                     String   @id @default(uuid()) @db.Uuid
+  actionRecommendationId String   @db.Uuid @map("action_recommendation_id")
+  fromStatus             String?  @map("from_status")
+  toStatus               String   @map("to_status")
+  actorId                String?  @map("actor_id")
+  note                   String?
+  metadata               Json     @default("{}") @db.JsonB
+  createdAt              DateTime @default(now()) @map("created_at")
+
+  action ActionRecommendation @relation(fields: [actionRecommendationId], references: [id], onDelete: Cascade)
+
+  @@index([actionRecommendationId, createdAt])
+  @@index([toStatus, createdAt])
+  @@map("action_status_events")
+}
+
+model PredictionInsight {
+  id                String   @id @default(uuid()) @db.Uuid
+  predictionId      String   @unique @map("prediction_id")
+  predictionType    String   @map("prediction_type")
+  targetEntityType  String   @map("target_entity_type")
+  targetEntityId    String   @map("target_entity_id")
+  targetEntityLabel String?  @map("target_entity_label")
+  probability       Float
+  confidence        Float
+  timeHorizon       String   @map("time_horizon")
+  evidenceSignals   Json     @default("[]") @db.JsonB @map("evidence_signals")
+  explanation       String
+  metadata          Json     @default("{}") @db.JsonB
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@index([predictionType, createdAt])
+  @@index([targetEntityType, targetEntityId])
+  @@index([probability, confidence])
+  @@index([timeHorizon, createdAt])
+  @@map("prediction_insights")
 }
 
 model InvestigatorRunLog {

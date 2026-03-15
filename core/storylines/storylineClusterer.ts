@@ -110,6 +110,10 @@ function hasKeyword(finding: StorylineFindingInput, pattern: RegExp): boolean {
 
 function inferStorylineType(findings: StorylineFindingInput[]): StorylineType {
   const categories = new Set(findings.map((finding) => finding.category));
+  const trustWeightedCluster =
+    categories.has('TRUST_DECLINE')
+    || categories.has('DIVERGENCE')
+    || categories.has('FRESHNESS');
 
   if (findings.some((finding) => hasKeyword(finding, /\b(grant|nih|trial|publication|research|principal investigator)\b/))) {
     return 'rising investigator';
@@ -132,6 +136,14 @@ function inferStorylineType(findings: StorylineFindingInput[]): StorylineType {
   }
 
   if (
+    trustWeightedCluster
+    && !categories.has('EXCLUSION')
+    && findings.some((finding) => hasKeyword(finding, /\b(trust|freshness|stale|mismatch|decline)\b/))
+  ) {
+    return 'trust decline';
+  }
+
+  if (
     categories.has('COMPLIANCE')
     || categories.has('EXCLUSION')
     || findings.some((finding) => hasKeyword(finding, /\b(compliance|licensure|sanction|exclusion|board action|stale license)\b/))
@@ -139,11 +151,7 @@ function inferStorylineType(findings: StorylineFindingInput[]): StorylineType {
     return 'compliance risk';
   }
 
-  if (
-    categories.has('TRUST_DECLINE')
-    || categories.has('DIVERGENCE')
-    || categories.has('FRESHNESS')
-  ) {
+  if (trustWeightedCluster) {
     return 'trust decline';
   }
 
