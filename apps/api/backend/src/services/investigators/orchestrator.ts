@@ -23,6 +23,7 @@ import {
   type Investigator,
   type InvestigatorResult,
 } from './framework';
+import { ingestFinding } from '../storylines/storylineEngine';
 import { trustDeclineInvestigator } from './trustDeclineInvestigator';
 import { divergenceInvestigator } from './divergenceInvestigator';
 import { networkEmergenceInvestigator } from './networkEmergenceInvestigator';
@@ -68,8 +69,15 @@ function processFindings(result: InvestigatorResult): number {
       continue;
     }
 
-    storeFinding(finding);
+    const storedFinding = storeFinding(finding);
     stored++;
+
+    // Auto-cluster into storylines
+    try {
+      ingestFinding(storedFinding);
+    } catch (err) {
+      log('warn', `[Orchestrator] Storyline ingestion failed: ${(err as Error)?.message}`);
+    }
   }
   return stored;
 }

@@ -30,6 +30,7 @@ import {
 import { generateGraphInsights } from '../intelligence/graphInsightEngine';
 import { investigateProvider, investigateNetwork, investigateComparison } from './investigationEngine';
 import { getFindingsForNpi, queryFindings, getFeedStats } from '../investigators/framework';
+import { getStorylinesForNpi, queryStorylines, getStorylineStats } from '../storylines/storylineEngine';
 
 // ── Response types ─────────────────────────────────────────────────────────────
 
@@ -115,6 +116,16 @@ async function handleLookup(classified: ClassifiedQuery, sessionId: string): Pro
     answer += `\n\nGaps:\n  ${score.gaps.map((g, i) => `${i + 1}. ${g}`).join('\n  ')}`;
   }
 
+  // Surface active storylines (narrative layer)
+  const npiStorylines = getStorylinesForNpi(npi);
+  if (npiStorylines.length > 0) {
+    const stageEmoji = { EMERGING: '🌱', DEVELOPING: '📈', MATURE: '🔶', RESOLVED: '✅' };
+    answer += `\n\n**Active Storylines (${npiStorylines.length}):**`;
+    for (const s of npiStorylines.slice(0, 2)) {
+      answer += `\n  ${stageEmoji[s.stage] ?? '•'} **${s.type.replace(/_/g, ' ')}** [${s.stage}] — ${s.narrative.slice(0, 120)}${s.narrative.length > 120 ? '…' : ''}`;
+    }
+  }
+
   // Surface active findings inline
   if (npiFindings.length > 0) {
     const severityEmoji = { CRITICAL: '🔴', HIGH: '🟠', MEDIUM: '🟡', LOW: '🟢', INFO: 'ℹ️' };
@@ -130,7 +141,7 @@ async function handleLookup(classified: ClassifiedQuery, sessionId: string): Pro
   return makeResponse(classified, 'LOOKUP', answer,
     { type: 'trust_score', payload: score },
     [`What's the freshness status for NPI ${npi}?`, `Investigate NPI ${npi}`, `Show graph connections for NPI ${npi}`],
-    ['TrustScoreV1', 'VerificationArtifact', 'InvestigatorFindings'],
+    ['TrustScoreV1', 'VerificationArtifact', 'InvestigatorFindings', 'StorylineEngine'],
   );
 }
 
@@ -271,6 +282,26 @@ async function handleMonitor(classified: ClassifiedQuery, sessionId: string): Pr
       answer += '✅ No active investigator findings\n\n';
     }
 
+    // Storylines summary
+    const storyStats = getStorylineStats();
+    if (storyStats.active > 0) {
+      const stageEmoji = { EMERGING: '🌱', DEVELOPING: '📈', MATURE: '🔶', RESOLVED: '✅' };
+      answer += `**Active Storylines:** ${storyStats.active}\n`;
+      for (const [stage, count] of Object.entries(storyStats.byStage)) {
+        if (count > 0) answer += `  ${stageEmoji[stage as keyof typeof stageEmoji] ?? '•'} ${stage}: ${count}\n`;
+      }
+      answer += '\n';
+
+      const topStorylines = queryStorylines({ status: ['ACTIVE'], limit: 3 });
+      if (topStorylines.length > 0) {
+        answer += '**Top storylines:**\n';
+        for (const s of topStorylines) {
+          answer += `  ${stageEmoji[s.stage] ?? '•'} ${s.title} (score: ${s.score})\n`;
+        }
+        answer += '\n';
+      }
+    }
+
     // Legacy insights
     const staleInsights = insights.filter(i => i.type === 'STALE_COVERAGE_GAP');
     const declining = insights.filter(i => i.type === 'DECLINING_TRUST');
@@ -279,8 +310,8 @@ async function handleMonitor(classified: ClassifiedQuery, sessionId: string): Pr
 
     return makeResponse(classified, 'MONITOR', answer,
       { type: 'insights', payload: insights },
-      ['Show all findings', 'Run investigator scan', 'Check specific NPI'],
-      ['IntelligenceEngine', 'InvestigatorFindings'],
+      ['Show all storylines', 'Show all findings', 'Run investigator scan', 'Check specific NPI'],
+      ['IntelligenceEngine', 'InvestigatorFindings', 'StorylineEngine'],
     );
   }
 

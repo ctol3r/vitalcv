@@ -57,6 +57,17 @@ export function registerTrustIntelligenceRoutes(app: Express): void {
         metadata: {
           contradictions: score.contradictions.length,
           totalPenalty: score.totalPenalty,
+          bandLabel: score.bandLabel,
+          gaps: score.gaps,
+          trustLimits: score.trustLimits,
+          dimensionScores: Object.fromEntries(
+            Object.entries(score.dimensions).map(([dimension, detail]) => [dimension, {
+              score: detail.score,
+              max: detail.max,
+              status: detail.status,
+              pct: detail.pct,
+            }]),
+          ),
         },
         recordedAt: score.computedAt,
       });

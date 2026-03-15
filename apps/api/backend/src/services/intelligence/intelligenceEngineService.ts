@@ -13,6 +13,7 @@ import type { GraphInsightRecord, IntelligenceGraphEdge, IntelligenceGraphNode }
 import type { LearningEventInput, LearningEventRecord } from '../../../../../../core/intelligence/learningMemory';
 import type { SourceReliabilityComputation, SourceReliabilityEvidence } from '../../../../../../core/intelligence/sourceReliability';
 import type { TrustEvolutionRecord } from '../../../../../../core/intelligence/trustEvolution';
+import { runInvestigatorEvent } from '../investigators/investigatorEngineService';
 
 function toJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
@@ -528,7 +529,19 @@ export async function recordSourceIngestionFeedback(
   },
   prismaClient: PrismaClient = prisma,
 ) {
-  return intelligenceEngine(prismaClient).recordSourceIngestionFeedback(input);
+  const result = await intelligenceEngine(prismaClient).recordSourceIngestionFeedback(input);
+  await runInvestigatorEvent({
+    entityType: input.subjectType,
+    targetEntityIds: [input.subjectId],
+    trigger: 'event_ingestion',
+    metadata: {
+      sourceId: input.sourceId,
+      status: input.status,
+      confidence: input.confidence ?? null,
+      ...(input.metadata ?? {}),
+    },
+  });
+  return result;
 }
 
 export async function recordAlertOutcome(
@@ -594,6 +607,19 @@ export async function recordTrustScoreSnapshot(
         ...(input.metadata ?? {}),
       },
       occurredAt: input.recordedAt,
+    });
+
+    await runInvestigatorEvent({
+      entityType: input.subjectType,
+      targetEntityIds: [input.subjectId],
+      trigger: 'event_trust_change',
+      metadata: {
+        newScore: input.newScore,
+        scoreDelta: result.scoreDelta,
+        band: input.band ?? null,
+        methodologyVersion: input.methodologyVersion ?? null,
+        ...(input.metadata ?? {}),
+      },
     });
   }
 

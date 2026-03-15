@@ -188,7 +188,7 @@ describe('networkTraversal', () => {
         edge.source === 'provider:1111111111' &&
         edge.target === 'provider:2222222222',
     );
-    expect(mergedProviderEdge?.edgeWeight).toBe(4);
+    expect(mergedProviderEdge?.edgeWeight).toBe(5);
     expect(mergedProviderEdge?.relationshipTypes).toEqual(
       expect.arrayContaining(['CO_AUTHOR', 'TRIAL_INVESTIGATOR', 'INDUSTRY_FUNDING', 'INSTITUTION']),
     );

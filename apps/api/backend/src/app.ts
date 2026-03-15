@@ -136,6 +136,7 @@ import { registerAskRoutes } from './routes/ask';                           // W
 import { registerCopilotRoutes } from './routes/copilot';                   // Waves C25-C28: Copilot query engine
 import { registerInvestigationRoutes } from './routes/investigation';        // Wave INV: Investigation engine
 import { registerFindingsRoutes } from './routes/findings';                  // Wave AI: Autonomous investigators
+import { registerStorylineRoutes } from './routes/storylines';               // Wave ST: Storyline engine
 import { registerEmployerRoutes } from './routes/employers';                 // Wave 186: Employer Knowledge Layer
 import { registerPrequalificationRoutes } from './routes/prequalification';  // Wave 189: AI Interview, Assessments, Prequalification
 import { registerVerifierPipelineRoutes } from './routes/verifierPipeline';  // Wave 190: Apply with VitalCV + ATS + Verifier Pipeline
@@ -167,6 +168,8 @@ import { registerDomainRoutes } from './routes/domains';                        
 import { registerIdentityLayerRoutes } from './routes/identityLayer';                  // Wave: Canonical Identity
 import { registerTrustIntelligenceRoutes } from './routes/trustIntelligence';          // Wave M: Trust Score V1 + Freshness + Divergence
 import { registerIntelligenceEngineRoutes } from './routes/intelligence';              // Wave I: Intelligence Engine + Learning Loops
+import { registerInvestigatorRoutes } from './routes/investigators';                   // Waves C41-C44: Investigator findings feed
+import { startInvestigatorScheduler } from './services/investigators/investigatorScheduler';
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3575,6 +3578,7 @@ registerAskRoutes(app);               // Wave 185 — Ask VitalCV natural langua
 registerCopilotRoutes(app);           // Waves C25-C28 — Copilot query engine
 registerInvestigationRoutes(app);    // Wave INV — Investigation engine
 registerFindingsRoutes(app);         // Wave AI — Autonomous investigators + findings feed
+registerStorylineRoutes(app);        // Wave ST — Storyline intelligence narratives
 registerEmployerRoutes(app);          // Wave 186 — Employer Knowledge Layer
 registerPrequalificationRoutes(app);  // Wave 189 — AI Interview, Assessments, Prequalification
 registerVerifierPipelineRoutes(app);  // Wave 190 — Apply with VitalCV + ATS + Verifier Pipeline
@@ -3588,6 +3592,7 @@ registerOigRoutes(app);                  // Wave 241 — OIG/LEIE Exclusion Chec
 registerTrustStateEngineRoutes(app);     // Wave 243 — Trust State Engine
 registerAsyncTrustRoutes(app);           // Wave 245 — Async Trust Engine
 startMonitoringScheduler();              // Wave 245 — Monitoring Scheduler (MONITORING_ENABLED gated)
+startInvestigatorScheduler();            // Waves C41-C44 — Investigator scheduler heartbeat
 registerApplyRoutes(app);                // Wave 246 — Apply-with-VitalCV Distribution Wedge
 registerSystemHealthRoutes(app);         // Wave 249 — Trust Spine Hardening
 registerVelocityRoutes(app);             // Wave 250 — Time-to-Start Velocity Dashboard
@@ -3606,6 +3611,7 @@ registerDomainRoutes(app);                 // Wave: universal domain authority r
 registerIdentityLayerRoutes(app);          // Wave: canonical clinician identity layer
 registerTrustIntelligenceRoutes(app);      // Wave M: Trust Score V1 + Freshness + Divergence
 registerIntelligenceEngineRoutes(app);     // Wave I: Intelligence Engine + Learning Loops
+registerInvestigatorRoutes(app);           // Waves C41-C44: Investigator findings feed
 registerPayerVerificationRoutes(app); // Wave 142 — Payer Network Integration
 registerProviderDirectoryRoutes(app);  // Wave 143 — Provider Directory Distribution
 registerGraphScalingRoutes(app);       // Wave 144 — Trust Graph Performance Scaling
