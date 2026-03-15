@@ -18,9 +18,15 @@ interface GraphLegendProps {
   nodes: GraphNode[];
   edges: GraphEdge[];
   colorMode: GraphColorMode;
+  maxNodeTypes?: number;
 }
 
-export function GraphLegend({ nodes, edges, colorMode }: GraphLegendProps) {
+export function GraphLegend({
+  nodes,
+  edges,
+  colorMode,
+  maxNodeTypes = 8,
+}: GraphLegendProps) {
   const nodeCounts = new Map<string, number>();
   const edgeClassCounts = new Map<string, number>();
 
@@ -48,7 +54,7 @@ export function GraphLegend({ nodes, edges, colorMode }: GraphLegendProps) {
         <div>
           <p className="vital-panel__eyebrow">Node types</p>
           <div className="vital-legend-list mt-2">
-            {[...nodeCounts.entries()].slice(0, 8).map(([nodeType, count]) => (
+            {[...nodeCounts.entries()].slice(0, maxNodeTypes).map(([nodeType, count]) => (
               <div key={nodeType} className="vital-legend-item">
                 <div className="flex items-center gap-3">
                   <span className="vital-swatch" style={{ backgroundColor: colorForNodeType(nodeType as GraphNode['type']) }} />

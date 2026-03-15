@@ -28,8 +28,9 @@ export type QueryIntent =
   | 'MONITOR'   // "Any alerts?" / "Stale data?" / "Exclusion status?"
   | 'COMPARE'   // "Compare these two NPIs" / "Which is more trusted?"
   | 'EXPLAIN'   // "How is trust calculated?" / "What is L3?"
-  | 'INGEST'    // "Refresh data for..." / "Re-verify..."
-  | 'UNKNOWN';  // Fallback
+  | 'INGEST'        // "Refresh data for..." / "Re-verify..."
+  | 'INVESTIGATE'   // "Investigate..." / "Deep dive..." / "Full report..."
+  | 'UNKNOWN';      // Fallback
 
 export interface ClassifiedQuery {
   intent:      QueryIntent;
@@ -191,6 +192,17 @@ function classifyIntent(query: string): ClassifiedQuery {
   // ── INGEST signals ──────────────────────────────────────────────────────
   if (/\b(refresh|re-?verify|ingest|update data|re-?check|re-?scan)\b/.test(lower)) {
     signals.push({ intent: 'INGEST', weight: 0.6, reason: 'Data refresh keyword' });
+  }
+
+  // ── INVESTIGATE signals ────────────────────────────────────────────────
+  if (/\b(investigat|deep dive|full report|dossier|background check|due diligence)\b/.test(lower)) {
+    signals.push({ intent: 'INVESTIGATE', weight: 0.8, reason: 'Investigation keyword' });
+  }
+  if (/\b(unusual relationship|suspicious|anomal|irregularit|red flag)\b/.test(lower)) {
+    signals.push({ intent: 'INVESTIGATE', weight: 0.6, reason: 'Anomaly investigation keyword' });
+  }
+  if (/\b(collaborator|peer network|institutional connection|research cluster)\b/.test(lower)) {
+    signals.push({ intent: 'INVESTIGATE', weight: 0.5, reason: 'Network investigation keyword' });
   }
 
   // ── Resolve winner ──────────────────────────────────────────────────────

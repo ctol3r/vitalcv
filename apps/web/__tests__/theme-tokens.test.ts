@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { motionCssVariables, motionDurations } from '@/ui/animation/motion';
 import { themeTokens, themeCssVariables } from '@/ui/theme/tokens';
 
@@ -21,10 +22,12 @@ describe('theme token system', () => {
   });
 
   it('publishes CSS variables for the graph shell and motion system', () => {
-    expect(themeCssVariables['--ui-light-background-primary']).toBe(themeTokens.colors.light.backgroundPrimary);
-    expect(themeCssVariables['--ui-dark-background-panel']).toBe(themeTokens.colors.dark.backgroundPanel);
-    expect(themeCssVariables['--vital-ops-background']).toBe('var(--ui-dark-background-primary)');
-    expect(themeCssVariables['--font-sans']).toContain('Nunito Sans');
+    const cssVariables = themeCssVariables as Record<string, string>;
+
+    expect(cssVariables['--ui-light-background-primary']).toBe(themeTokens.colors.light.backgroundPrimary);
+    expect(cssVariables['--ui-dark-background-panel']).toBe(themeTokens.colors.dark.backgroundPanel);
+    expect(cssVariables['--vital-ops-background']).toBe('var(--ui-dark-background-primary)');
+    expect(cssVariables['--font-sans']).toContain('Nunito Sans');
     expect(motionCssVariables['--ui-motion-duration-panel']).toBe('140ms');
     expect(motionDurations.panel).toBeLessThanOrEqual(0.14);
   });

@@ -1,8 +1,8 @@
 'use client';
 
-import { RefreshCw, Sparkles, Target } from 'lucide-react';
-import dynamic from 'next/dynamic';
+import { useSearchParams } from 'next/navigation';
 import {
+  Suspense,
   startTransition,
   useCallback,
   useDeferredValue,
@@ -13,36 +13,57 @@ import {
 } from 'react';
 import type { NodeNeighborSummary } from '@/components/graph-system/nodeDetailModel';
 import type { GraphEdge, GraphLayer, GraphNode } from '@/components/graph-system/types';
+import type { GraphViewportState } from '@/components/graph-system/viewportModel';
 import GraphCanvas from '@/components/graph-system/GraphCanvas';
-import { GraphControls } from '@/components/graph/GraphControls';
 import { GraphLegend } from '@/components/graph/GraphLegend';
 import { useGraphInteractions } from '@/components/graph/hooks/useGraphInteractions';
 import { applyPhysicsPreset } from '@/components/graph/physics/presets';
 import {
   classifyEdgeType,
-  collectNodeTypes,
-  collectTrustTiers,
   DEFAULT_GRAPH_DISPLAY_STATE,
   deriveClusterId,
   resolveGraphStats,
   type GraphDisplayState,
 } from '@/components/graph/state/graphDisplayState';
+import { LeftSidebar } from '@/components/intelligence/LeftSidebar';
+import { MainWorkspace } from '@/components/intelligence/MainWorkspace';
+import { RightContextPanel, type IntelligenceCopilotState } from '@/components/intelligence/RightContextPanel';
+import {
+  buildAlertSummaries,
+  buildDashboardMetrics,
+  buildEvidenceList,
+  buildProviderProfiles,
+  buildVerificationRunSummary,
+  buildWatchlist,
+  filterProfilesBySearch,
+  findBestMatchingNode,
+  type MainWorkspaceSection,
+  type ProviderProfileSummary,
+  type VerificationRunSummary,
+} from '@/components/intelligence/intelligenceModel';
 import { AppShell } from '@/components/shell/AppShell';
-import { ContextPanel } from '@/components/shell/ContextPanel';
-import { Sidebar } from '@/components/shell/Sidebar';
 import { TopNav } from '@/components/shell/TopNav';
 
 const GRAPH_API = '/api/graph-engine';
 const GRAPH_SLICE_CACHE_TTL_MS = 60_000;
 
-const GraphInspector = dynamic(
-  () => import('@/components/graph/GraphInspector').then((module) => module.GraphInspector),
-  { ssr: false, loading: () => null },
-);
-
 interface GraphQueryResponse {
   nodes?: GraphNode[];
   edges?: GraphEdge[];
+}
+
+interface CopilotResponsePayload {
+  results?: Array<{
+    id: string;
+    title: string;
+    summary: string;
+    trustScore?: number;
+    sourceCoverage?: string[];
+  }>;
+  graphInsights?: Array<{
+    summary: string;
+  }>;
+  message?: string;
 }
 
 interface NodeDetailState {
@@ -172,7 +193,14 @@ function summarizeNodeDetail(
   };
 }
 
-export default function GraphPage() {
+function GraphWorkspacePage() {
+  const searchParams = useSearchParams();
+  const processedCommandRef = useRef<string | null>(null);
+  const detailRequestRef = useRef(0);
+  const sliceRequestRef = useRef(0);
+  const graphSliceCacheRef = useRef(new Map<string, CachedGraphSlice>());
+  const stageRef = useRef<HTMLDivElement>(null);
+
   const [graphData, setGraphData] = useState<{ nodes: GraphNode[]; edges: GraphEdge[] }>({
     nodes: [],
     edges: [],
@@ -180,40 +208,23 @@ export default function GraphPage() {
   const [displayState, setDisplayState] = useState<GraphDisplayState>(DEFAULT_GRAPH_DISPLAY_STATE);
   const [loading, setLoading] = useState(true);
   const [nodeDetail, setNodeDetail] = useState<NodeDetailState | null>(null);
-  const [dimensions, setDimensions] = useState({ width: 1200, height: 820 });
-
-  const detailRequestRef = useRef(0);
-  const sliceRequestRef = useRef(0);
-  const graphSliceCacheRef = useRef(new Map<string, CachedGraphSlice>());
-  const stageRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 1200, height: 360 });
+  const [activeSection, setActiveSection] = useState<MainWorkspaceSection>('dashboards');
+  const [viewport, setViewport] = useState<GraphViewportState>({
+    x: 0,
+    y: 0,
+    zoom: 1,
+    zoomBand: 'network',
+  });
+  const [copilot, setCopilot] = useState<IntelligenceCopilotState>({
+    query: '',
+    loading: false,
+    error: null,
+    results: [],
+    insights: [],
+  });
+  const [verificationRun, setVerificationRun] = useState<VerificationRunSummary | null>(null);
   const deferredSearchTerm = useDeferredValue(displayState.filters.searchTerm);
-
-  useEffect(() => {
-    const preloadGraphInspector = () => {
-      void import('@/components/graph/GraphInspector');
-    };
-
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    const browserWindow = window as Window & {
-      requestIdleCallback?: (callback: IdleRequestCallback) => number;
-      cancelIdleCallback?: (handle: number) => void;
-    };
-
-    if (typeof browserWindow.requestIdleCallback === 'function') {
-      const handle = browserWindow.requestIdleCallback(preloadGraphInspector);
-      return () => {
-        browserWindow.cancelIdleCallback?.(handle);
-      };
-    }
-
-    const timeoutId = browserWindow.setTimeout(preloadGraphInspector, 250);
-    return () => {
-      browserWindow.clearTimeout(timeoutId);
-    };
-  }, []);
 
   useEffect(() => {
     const element = stageRef.current;
@@ -224,7 +235,7 @@ export default function GraphPage() {
     const updateDimensions = () => {
       setDimensions({
         width: element.clientWidth,
-        height: Math.max(element.clientHeight, 560),
+        height: Math.max(element.clientHeight, 320),
       });
     };
 
@@ -457,10 +468,12 @@ export default function GraphPage() {
       return;
     }
 
+    setActiveSection('profiles');
     await loadNodeDetail(nodeId);
   }, [loadNodeDetail]);
 
   const handleIsolateNode = useCallback(async (nodeId: string) => {
+    setActiveSection('profiles');
     setDisplayState((current) => ({
       ...current,
       viewMode: 'local',
@@ -504,7 +517,7 @@ export default function GraphPage() {
     }));
   }, []);
 
-  const handleResetLayout = useCallback(() => {
+  const handleResetWorkspace = useCallback(() => {
     setGraphData((current) => ({
       ...current,
       nodes: current.nodes.map((node) => ({
@@ -514,6 +527,12 @@ export default function GraphPage() {
         fx: null,
         fy: null,
       })),
+    }));
+    setDisplayState((current) => ({
+      ...current,
+      viewMode: 'global',
+      localRootId: null,
+      physics: applyPhysicsPreset(current.physics.preset, false),
     }));
   }, []);
 
@@ -535,212 +554,329 @@ export default function GraphPage() {
     }
   }, [loadGraphSlice, loadNodeDetail, selectedNodeId]);
 
-  const handleAcceptSuggestion = useCallback(async (suggestionId: string) => {
-    graphSliceCacheRef.current.clear();
-    await fetch(`${GRAPH_API}/ai-links/apply`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ suggestionIds: [suggestionId], action: 'accept' }),
-    });
-    await loadGraphSlice(true);
-    if (selectedNodeId) {
-      await loadNodeDetail(selectedNodeId);
+  const allProfiles = useMemo(
+    () => buildProviderProfiles(graphData.nodes, graphData.edges),
+    [graphData.edges, graphData.nodes],
+  );
+  const alerts = useMemo(
+    () => buildAlertSummaries(graphData.nodes, graphData.edges),
+    [graphData.edges, graphData.nodes],
+  );
+  const watchlist = useMemo(() => buildWatchlist(allProfiles), [allProfiles]);
+  const searchResults = useMemo(
+    () => filterProfilesBySearch(allProfiles, displayState.filters.searchTerm),
+    [allProfiles, displayState.filters.searchTerm],
+  );
+  const selectedProfile = useMemo<ProviderProfileSummary | null>(() => {
+    if (!selectedNodeId) {
+      return null;
     }
-  }, [loadGraphSlice, loadNodeDetail, selectedNodeId]);
 
-  const handleRejectSuggestion = useCallback(async (suggestionId: string) => {
-    graphSliceCacheRef.current.clear();
-    await fetch(`${GRAPH_API}/ai-links/apply`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ suggestionIds: [suggestionId], action: 'reject' }),
-    });
-    await loadGraphSlice(true);
-    if (selectedNodeId) {
-      await loadNodeDetail(selectedNodeId);
+    return allProfiles.find((profile) => profile.id === selectedNodeId) ?? null;
+  }, [allProfiles, selectedNodeId]);
+  const metrics = useMemo(() => buildDashboardMetrics({
+    profiles: allProfiles,
+    alerts,
+    nodes: filteredGraph.nodes,
+    edges: filteredGraph.edges,
+    zoomBand: viewport.zoomBand,
+  }), [alerts, allProfiles, filteredGraph.edges, filteredGraph.nodes, viewport.zoomBand]);
+  const evidence = useMemo(() => buildEvidenceList({
+    node: nodeDetail?.node ?? null,
+    edges: nodeDetail?.edges ?? [],
+    neighbors: nodeDetail?.neighbors ?? [],
+  }), [nodeDetail]);
+
+  const runVerification = useCallback((target: string) => {
+    const matchedNode = findBestMatchingNode(target, graphData.nodes);
+    const matchedProfile = matchedNode
+      ? allProfiles.find((profile) => profile.id === matchedNode.id) ?? null
+      : null;
+
+    setVerificationRun(buildVerificationRunSummary({
+      target,
+      matchedProfile,
+      alerts,
+    }));
+
+    if (matchedNode) {
+      startTransition(() => {
+        setDisplayState((current) => ({
+          ...current,
+          viewMode: 'global',
+          localRootId: null,
+          filters: { ...current.filters, searchTerm: target },
+        }));
+      });
+      setActiveSection('profiles');
+      void interactions.handleNodeClick(matchedNode.id);
     }
-  }, [loadGraphSlice, loadNodeDetail, selectedNodeId]);
+  }, [alerts, allProfiles, graphData.nodes, interactions.handleNodeClick]);
 
-  const handleSavePreset = useCallback(async (name: string) => {
-    const positions = filteredGraph.nodes.reduce<Record<string, { x: number; y: number }>>((accumulator, node) => {
-      if (typeof node.x === 'number' && typeof node.y === 'number') {
-        accumulator[node.id] = { x: node.x, y: node.y };
+  const runCopilot = useCallback(async (queryOverride?: string) => {
+    const query = (queryOverride ?? copilot.query).trim();
+
+    if (query.length < 3) {
+      setCopilot((current) => ({
+        ...current,
+        error: 'Copilot queries must be at least 3 characters.',
+      }));
+      return;
+    }
+
+    setCopilot((current) => ({
+      ...current,
+      query,
+      loading: true,
+      error: null,
+      results: current.query === query ? current.results : [],
+      insights: current.query === query ? current.insights : [],
+    }));
+
+    try {
+      const response = await fetch('/api/copilot/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, limit: 5 }),
+      });
+
+      const payload = await response.json() as CopilotResponsePayload;
+
+      if (!response.ok) {
+        throw new Error(payload.message ?? 'Copilot query failed.');
       }
-      return accumulator;
-    }, {});
 
-    await fetch(`${GRAPH_API}/layout/save`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, positions }),
+      setCopilot({
+        query,
+        loading: false,
+        error: null,
+        results: (payload.results ?? []).map((result) => ({
+          id: result.id,
+          title: result.title,
+          summary: result.summary,
+          trustScore: result.trustScore,
+          sourceCoverage: result.sourceCoverage ?? [],
+        })),
+        insights: (payload.graphInsights ?? []).map((insight) => ({
+          summary: insight.summary,
+        })),
+      });
+    } catch (error) {
+      setCopilot((current) => ({
+        ...current,
+        loading: false,
+        error: error instanceof Error ? error.message : 'Copilot query failed.',
+      }));
+    }
+  }, [copilot.query]);
+
+  const openCommandPalette = useCallback(() => {
+    window.dispatchEvent(new Event('vital:open-command-palette'));
+  }, []);
+
+  const navigateSection = useCallback((section: MainWorkspaceSection) => {
+    setActiveSection(section);
+
+    const element = document.getElementById(`workspace-${section}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
+
+  const setSearchTerm = useCallback((searchTerm: string) => {
+    navigateSection('results');
+    startTransition(() => {
+      setDisplayState((current) => ({
+        ...current,
+        filters: { ...current.filters, searchTerm },
+      }));
     });
-  }, [filteredGraph.nodes]);
+  }, [navigateSection]);
 
-  const sidebarActions = [
-    {
-      id: 'rebuild',
-      label: 'Rebuild slice',
-      icon: <RefreshCw className="h-3.5 w-3.5" />,
-      onClick: handleRebuild,
-    },
-    {
-      id: 'ai',
-      label: 'AI link sweep',
-      icon: <Sparkles className="h-3.5 w-3.5" />,
-      onClick: handleRunAiLinks,
-    },
-    {
-      id: 'reset',
-      label: 'Reset layout',
-      icon: <Target className="h-3.5 w-3.5" />,
-      onClick: handleResetLayout,
-    },
-  ];
+  const selectProfile = useCallback((nodeId: string) => {
+    navigateSection('profiles');
+    void interactions.handleNodeClick(nodeId);
+  }, [interactions, navigateSection]);
 
-  const availableNodeTypes = useMemo(() => collectNodeTypes(graphData.nodes), [graphData.nodes]);
-  const availableTrustTiers = useMemo(() => collectTrustTiers(graphData.nodes), [graphData.nodes]);
+  const focusNode = useMemo(() => {
+    const focusNodeId = interactions.hoveredNodeId ?? selectedNodeId;
+    if (!focusNodeId) {
+      return null;
+    }
+
+    return filteredGraph.nodes.find((node) => node.id === focusNodeId) ?? null;
+  }, [filteredGraph.nodes, interactions.hoveredNodeId, selectedNodeId]);
+
+  const focusSummary = focusNode
+    ? `${focusNode.degree} visible relationships. ${focusNode.sourceRefs.length} source references in the current slice.`
+    : 'Hover a node for focus context. Double-click expands a provider neighborhood into a local graph slice.';
+
+  const searchParamSignature = searchParams.toString();
+
+  useEffect(() => {
+    if (!searchParamSignature) {
+      processedCommandRef.current = null;
+      return;
+    }
+
+    const command = searchParams.get('command');
+    const query = searchParams.get('q')?.trim() ?? '';
+    const prompt = searchParams.get('prompt')?.trim() ?? '';
+    const requestId = searchParams.get('rid') ?? '';
+    const signature = JSON.stringify({ command, query, prompt, requestId });
+
+    if (!command || processedCommandRef.current === signature) {
+      return;
+    }
+
+    processedCommandRef.current = signature;
+
+    if (command === 'provider-search' && query.length > 0) {
+      setSearchTerm(query);
+      const matchedNode = findBestMatchingNode(query, graphData.nodes);
+      if (matchedNode) {
+        void interactions.handleNodeClick(matchedNode.id);
+      }
+      return;
+    }
+
+    if (command === 'copilot' && prompt.length > 0) {
+      navigateSection('dashboards');
+      setCopilot((current) => ({
+        ...current,
+        query: prompt,
+        error: null,
+      }));
+      void runCopilot(prompt);
+      return;
+    }
+
+    if (command === 'verify' && query.length > 0) {
+      runVerification(query);
+    }
+  }, [
+    graphData.nodes,
+    interactions.handleNodeClick,
+    navigateSection,
+    runCopilot,
+    runVerification,
+    searchParamSignature,
+    searchParams,
+    setSearchTerm,
+  ]);
+
+  const graphView = (
+    <div ref={stageRef} className="vital-graph-stage vital-graph-stage--context">
+      {loading ? (
+        <div className="vital-graph-loading">Loading graph slice...</div>
+      ) : null}
+
+      <GraphCanvas
+        edges={filteredGraph.edges}
+        height={dimensions.height}
+        highlightedEdgeIds={interactions.highlightedEdgeIds}
+        highlightedNodeIds={interactions.highlightedNodeIds}
+        hoveredNodeId={interactions.hoveredNodeId}
+        nodes={filteredGraph.nodes}
+        onDoubleClickNode={interactions.handleNodeDoubleClick}
+        onDragNode={handleDragNode}
+        onHoverNode={interactions.handleNodeHover}
+        onPinNode={interactions.handleNodePin}
+        onSelectNode={interactions.handleNodeClick}
+        onViewportChange={setViewport}
+        physics={displayState.physics}
+        selectedNodeId={selectedNodeId}
+        visuals={displayState.visuals}
+        width={dimensions.width}
+      />
+
+      <div className="vital-graph-statusbar">
+        <div className="vital-graph-statusbar__group">
+          <span className="vital-graph-badge vital-graph-badge--accent">{displayState.layer}</span>
+          <span className="vital-graph-badge">{displayState.viewMode}</span>
+          <span className="vital-graph-badge">{viewport.zoomBand}</span>
+        </div>
+        <div className="vital-graph-statusbar__group">
+          <span className="vital-graph-badge">{filteredGraph.stats.totalNodes} nodes</span>
+          <span className="vital-graph-badge">{filteredGraph.stats.totalEdges} edges</span>
+          <span className="vital-graph-badge">{filteredGraph.stats.orphanCount} orphans</span>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <>
-      <AppShell
-        topNav={(
-          <TopNav
-            layer={displayState.layer}
-            onReload={handleRebuild}
-            onResetLayout={handleResetLayout}
-            onRunAiLinks={handleRunAiLinks}
-            onSearchChange={(searchTerm) => {
-              startTransition(() => {
-                setDisplayState((current) => ({
-                  ...current,
-                  filters: { ...current.filters, searchTerm },
-                }));
-              });
-            }}
-            searchValue={displayState.filters.searchTerm}
-            stats={filteredGraph.stats}
-            viewMode={displayState.viewMode}
-          />
-        )}
-        sidebar={(
-          <Sidebar
-            actions={sidebarActions}
-            subtitle="Control link classes, node classes, physics, and focus mode from one panel."
-            title="Graph Controls"
-          >
-            <GraphControls
-              availableNodeTypes={availableNodeTypes}
-              availableTrustTiers={availableTrustTiers}
-              canUseLocalMode={selectedNodeId != null || displayState.localRootId != null}
-              filters={displayState.filters}
-              layer={displayState.layer}
-              onFiltersChange={(filters) => setDisplayState((current) => ({ ...current, filters }))}
-              onLayerChange={(layer) => setDisplayState((current) => ({ ...current, layer }))}
-              onPhysicsChange={(physics) => setDisplayState((current) => ({ ...current, physics }))}
-              onPresetChange={(preset) => setDisplayState((current) => ({
-                ...current,
-                physics: applyPhysicsPreset(preset, current.physics.frozen),
-              }))}
-              onRebuild={handleRebuild}
-              onResetLayout={handleResetLayout}
-              onRunAiLinks={handleRunAiLinks}
-              onSavePreset={handleSavePreset}
-              onViewModeChange={(viewMode) => setDisplayState((current) => ({
-                ...current,
-                viewMode,
-                localRootId: viewMode === 'global'
-                  ? null
-                  : current.localRootId ?? selectedNodeId,
-              }))}
-              onVisualsChange={(visuals) => setDisplayState((current) => ({ ...current, visuals }))}
-              physics={displayState.physics}
-              stats={filteredGraph.stats}
-              viewMode={displayState.viewMode}
-              visuals={displayState.visuals}
-            />
-          </Sidebar>
-        )}
-        context={(
-          <ContextPanel
-            subtitle="Operational context stays visible while the inspector handles the selected node."
-            title="Legend + Focus"
-          >
-            <div className="vital-panel vital-panel--dense">
-              <div className="vital-panel__header">
-                <div>
-                  <p className="vital-panel__eyebrow">Selected node</p>
-                  <h2 className="vital-panel__title">
-                    {nodeDetail?.node.title || nodeDetail?.node.label || 'Nothing selected'}
-                  </h2>
-                </div>
-              </div>
-              <p className="vital-panel__copy">
-                {nodeDetail
-                  ? `${nodeDetail.edges.length} visible relationships and ${nodeDetail.neighbors.length} inspectable neighbors.`
-                  : 'Click a node to open the inspector. Double-click to isolate a local neighborhood.'}
-              </p>
-            </div>
+    <AppShell
+      topNav={(
+        <TopNav
+          layer={displayState.layer}
+          onOpenCommandPalette={openCommandPalette}
+          onReload={handleRebuild}
+          onResetLayout={handleResetWorkspace}
+          onRunAiLinks={handleRunAiLinks}
+          stats={filteredGraph.stats}
+          viewMode={displayState.viewMode}
+          zoomBand={viewport.zoomBand}
+        />
+      )}
+      sidebar={(
+        <LeftSidebar
+          activeSection={activeSection}
+          alerts={alerts}
+          onNavigate={navigateSection}
+          onOpenCommandPalette={openCommandPalette}
+          onSearchChange={setSearchTerm}
+          onSelectNode={selectProfile}
+          resultCount={searchResults.length}
+          searchTerm={displayState.filters.searchTerm}
+          watchlist={watchlist}
+        />
+      )}
+      context={(
+        <RightContextPanel
+          copilot={copilot}
+          evidence={evidence}
+          focusSummary={focusSummary}
+          focusTitle={focusNode?.title || focusNode?.label || 'Graph context'}
+          graphView={graphView}
+          legend={(
             <GraphLegend
               colorMode={displayState.visuals.colorMode}
               edges={filteredGraph.edges}
+              maxNodeTypes={5}
               nodes={filteredGraph.nodes}
             />
-          </ContextPanel>
-        )}
-      >
-        <div ref={stageRef} className="vital-graph-stage">
-          {loading ? (
-            <div className="vital-graph-loading">Loading graph slice...</div>
-          ) : null}
-
-          <GraphCanvas
-            edges={filteredGraph.edges}
-            height={dimensions.height}
-            highlightedEdgeIds={interactions.highlightedEdgeIds}
-            highlightedNodeIds={interactions.highlightedNodeIds}
-            hoveredNodeId={interactions.hoveredNodeId}
-            nodes={filteredGraph.nodes}
-            onDoubleClickNode={interactions.handleNodeDoubleClick}
-            onDragNode={handleDragNode}
-            onHoverNode={interactions.handleNodeHover}
-            onPinNode={interactions.handleNodePin}
-            onSelectNode={interactions.handleNodeClick}
-            physics={displayState.physics}
-            selectedNodeId={interactions.selectedNodeId}
-            visuals={displayState.visuals}
-            width={dimensions.width}
-          />
-
-          <div className="vital-graph-statusbar">
-            <div className="vital-graph-statusbar__group">
-              <span className="vital-graph-badge vital-graph-badge--accent">{displayState.layer}</span>
-              <span className="vital-graph-badge">{displayState.viewMode}</span>
-              <span className="vital-graph-badge">{displayState.physics.preset}</span>
-              {displayState.physics.frozen ? <span className="vital-graph-badge">frozen</span> : null}
-            </div>
-            <div className="vital-graph-statusbar__group">
-              <span className="vital-graph-badge">{filteredGraph.stats.totalNodes} nodes</span>
-              <span className="vital-graph-badge">{filteredGraph.stats.totalEdges} edges</span>
-              <span className="vital-graph-badge">{filteredGraph.stats.orphanCount} orphans</span>
-            </div>
-          </div>
-        </div>
-      </AppShell>
-
-      <GraphInspector
-        edges={nodeDetail?.edges ?? []}
-        neighbors={nodeDetail?.neighbors ?? []}
-        node={nodeDetail?.node ?? null}
-        onAcceptSuggestion={handleAcceptSuggestion}
-        onClose={() => {
-          void interactions.closeInspector();
-        }}
-        onFocusNode={(nodeId) => {
-          void interactions.handleNodeClick(nodeId);
-        }}
-        onRejectSuggestion={handleRejectSuggestion}
-        open={interactions.inspectorOpen}
+          )}
+          onCopilotQueryChange={(value) => {
+            setCopilot((current) => ({ ...current, query: value, error: null }));
+          }}
+          onRunCopilot={() => {
+            void runCopilot();
+          }}
+          viewport={viewport}
+        />
+      )}
+    >
+      <MainWorkspace
+        activeSection={activeSection}
+        metrics={metrics}
+        onNavigate={navigateSection}
+        onRunVerification={runVerification}
+        onSelectProfile={selectProfile}
+        profiles={allProfiles}
+        searchResults={searchResults}
+        searchTerm={displayState.filters.searchTerm}
+        selectedProfile={selectedProfile}
+        verificationRun={verificationRun}
       />
-    </>
+    </AppShell>
+  );
+}
+
+export default function GraphPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background text-foreground" />}>
+      <GraphWorkspacePage />
+    </Suspense>
   );
 }

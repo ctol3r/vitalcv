@@ -28,6 +28,7 @@ import {
   type AnomalyReport,
 } from '../intelligence/intelligenceEngine';
 import { generateGraphInsights } from '../intelligence/graphInsightEngine';
+import { investigateProvider, investigateNetwork, investigateComparison } from './investigationEngine';
 
 // ── Response types ─────────────────────────────────────────────────────────────
 
@@ -364,6 +365,129 @@ function handleExplain(classified: ClassifiedQuery, _sessionId: string): Copilot
   );
 }
 
+async function handleInvestigate(classified: ClassifiedQuery, sessionId: string): Promise<CopilotResponse> {
+  const npi = resolveNpiFromContext(classified, sessionId);
+  if (!npi) {
+    return makeResponse(classified, 'INVESTIGATE',
+      'I need an NPI to investigate. Example: "Investigate NPI 1234567890" or "Deep dive on Dr. Smith"',
+      null, ['Try: "Investigate NPI 1234567890"', 'Try: "Full report on 0987654321"'],
+    );
+  }
+
+  const lower = classified.rawQuery.toLowerCase();
+  const isNetworkFocused = /\b(network|collaborat|connection|peer|institution|cluster)\b/.test(lower);
+  const isComparison = classified.npis.length >= 2;
+
+  if (isComparison) {
+    const report = await investigateComparison(classified.npis);
+    const rankSummary = report.comparison!.ranking
+      .map((r, i) => `${i + 1}. NPI ${r.npi}: **${r.score}/100** (${r.band})`)
+      .join('\n');
+
+    let answer = `📊 **Provider Comparison** (${report.durationMs}ms)\n\n${rankSummary}`;
+
+    if (report.comparison!.strengthDelta.length > 0) {
+      const top = report.comparison!.strengthDelta[0]!;
+      answer += `\n\n**Biggest differentiation:** ${top.dimension} (${top.spread} pt spread, led by NPI ${top.leader})`;
+    }
+    if (report.comparison!.commonGaps.length > 0) {
+      answer += `\n\n**Shared gaps:** ${report.comparison!.commonGaps.join(', ')}`;
+    }
+
+    return makeResponse(classified, 'INVESTIGATE', answer,
+      { type: 'text', payload: { text: JSON.stringify(report.comparison!.ranking) } },
+      report.recommendations,
+      ['TrustScoreV1', 'DivergenceEngine', 'FreshnessModel'],
+    );
+  }
+
+  if (isNetworkFocused) {
+    const report = await investigateNetwork(npi);
+    const net = report.network!;
+    let answer = `🔗 **Network Investigation for NPI ${npi}** (${report.durationMs}ms)\n\n`;
+    answer += `**Network:** ${net.networkStats.totalNodes} nodes, ${net.networkStats.totalEdges} edges\n`;
+    answer += `**Avg degree:** ${net.networkStats.avgDegree.toFixed(1)} | **Max degree:** ${net.networkStats.maxDegree}\n`;
+    answer += `**Clinicians:** ${net.networkStats.clinicianCount} | **Institutions:** ${net.networkStats.institutionCount} | **Credentials:** ${net.networkStats.credentialCount}\n`;
+
+    if (net.collaborators.length > 0) {
+      const top5 = net.collaborators.slice(0, 5);
+      answer += `\n**Top collaborators:**\n`;
+      answer += top5.map((c, i) => `  ${i + 1}. ${c.label} (${c.type}, ${c.sharedEdges} shared edges, degree ${c.degree})`).join('\n');
+    }
+
+    if (net.institutions.length > 0) {
+      answer += `\n\n**Institutional clusters:**\n`;
+      answer += net.institutions.slice(0, 3).map(inst => `  • ${inst.name} (${inst.memberCount} linked providers)`).join('\n');
+    }
+
+    if (net.researchClusters.length > 0) {
+      answer += `\n\n**Research clusters:** ${net.researchClusters.length} identified`;
+    }
+
+    return makeResponse(classified, 'INVESTIGATE', answer,
+      { type: 'text', payload: { text: `Network: ${net.networkStats.totalNodes} nodes` } },
+      [...report.recommendations, `Investigate provider NPI ${npi}`, `Compare peers of NPI ${npi}`],
+      ['GraphEngine', 'QueryService'],
+    );
+  }
+
+  // Full provider investigation
+  const report = await investigateProvider(npi);
+  const p = report.profile!;
+  const bandEmoji = { L3: '🟢', L2: '🟡', L1: '🟠', L0: '🔴' }[p.trustScore.band] ?? '⚪';
+
+  let answer = `🔍 **Investigation Report: NPI ${npi}** (${report.durationMs}ms)\n\n`;
+  answer += `${bandEmoji} **Trust Score:** ${p.trustScore.score}/100 (${p.trustScore.bandLabel}) — confidence ${Math.round(p.trustScore.confidence * 100)}%\n\n`;
+
+  // Freshness
+  answer += `**Freshness:** ${Math.round(p.freshness.overallFreshness * 100)}%`;
+  if (p.freshness.staleDimensions.length > 0) {
+    answer += ` ⚠️ ${p.freshness.staleDimensions.length} stale`;
+  }
+  answer += '\n';
+
+  // Divergence
+  if (p.divergence.conflicts.length > 0) {
+    answer += `**Conflicts:** ${p.divergence.conflicts.length} detected (penalty: −${p.divergence.totalPenalty})\n`;
+    for (const c of p.divergence.conflicts.slice(0, 3)) {
+      answer += `  • [${c.severity}] ${c.description}\n`;
+    }
+  } else {
+    answer += `**Conflicts:** None ✅\n`;
+  }
+
+  // Anomaly
+  const healthEmoji = { HEALTHY: '✅', DEGRADED: '⚠️', CRITICAL: '🔴', UNKNOWN: '❓' }[p.anomalyReport.overallHealth] ?? '❓';
+  answer += `**Health:** ${healthEmoji} ${p.anomalyReport.overallHealth}\n`;
+
+  // Network
+  const net = report.network!;
+  answer += `\n**Network:** ${net.networkStats.totalNodes} nodes, ${net.collaborators.length} collaborators`;
+  if (net.institutions.length > 0) {
+    answer += `, ${net.institutions.length} institutions`;
+  }
+  answer += '\n';
+
+  // Artifacts
+  answer += `**Artifacts:** ${p.artifactCount} verification records\n`;
+
+  // Recommendations
+  if (report.recommendations.length > 0) {
+    answer += `\n**Recommendations:**\n${report.recommendations.map((r, i) => `  ${i + 1}. ${r}`).join('\n')}`;
+  }
+
+  return makeResponse(classified, 'INVESTIGATE', answer,
+    { type: 'trust_score', payload: p.trustScore },
+    [
+      `Show network for NPI ${npi}`,
+      `Compare NPI ${npi} with peers`,
+      `Explain the trust methodology`,
+      `Show graph for NPI ${npi}`,
+    ],
+    ['TrustScoreV1', 'FreshnessModel', 'DivergenceEngine', 'GraphEngine', 'IntelligenceEngine'],
+  );
+}
+
 async function handleIngest(classified: ClassifiedQuery, sessionId: string): Promise<CopilotResponse> {
   const npi = resolveNpiFromContext(classified, sessionId);
   if (!npi) {
@@ -431,7 +555,8 @@ export async function askCopilot(
       case 'MONITOR':  response = await handleMonitor(classified, sessionId); break;
       case 'COMPARE':  response = await handleCompare(classified, sessionId); break;
       case 'EXPLAIN':  response = handleExplain(classified, sessionId); break;
-      case 'INGEST':   response = await handleIngest(classified, sessionId); break;
+      case 'INGEST':      response = await handleIngest(classified, sessionId); break;
+      case 'INVESTIGATE': response = await handleInvestigate(classified, sessionId); break;
       case 'GRAPH':
         // Graph queries redirect to trust for now (graph explorer is visual)
         response = classified.npis.length > 0
@@ -450,9 +575,10 @@ export async function askCopilot(
           `• **Insights** — "Show declining trust scores"\n` +
           `• **Monitoring** — "Any alerts?"\n` +
           `• **Compare** — "Compare NPI X and NPI Y"\n` +
+          `• **Investigate** — "Investigate NPI X" / "Deep dive on provider"\n` +
           `• **Explain** — "How is trust calculated?"`,
           null,
-          ['Who is NPI 1234567890?', 'Show insights', 'Any alerts?', 'How is trust calculated?'],
+          ['Who is NPI 1234567890?', 'Investigate NPI 1234567890', 'Show insights', 'How is trust calculated?'],
         );
     }
   } catch (err) {

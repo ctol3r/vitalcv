@@ -2,6 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { GraphEdge, GraphNode } from './types';
+import {
+  resolveEdgeStrength,
+  resolveGraphZoomBand,
+  type GraphViewportState,
+} from './viewportModel';
 import { LINK_CLASS_STYLES, resolveNodeColor } from '@/components/graph/graphPalette';
 import { useGraphPhysics } from '@/components/graph/hooks/useGraphPhysics';
 import { useTippyGraph } from '@/components/graph/hooks/useTippyGraph';
@@ -27,6 +32,7 @@ interface Props {
   onDoubleClickNode: (id: string) => void;
   onDragNode: (id: string, x: number, y: number) => void;
   onPinNode: (id: string, x: number, y: number) => void;
+  onViewportChange?: (viewport: GraphViewportState) => void;
   width: number;
   height: number;
 }
@@ -62,6 +68,7 @@ export default function GraphCanvas({
   onDoubleClickNode,
   onDragNode,
   onPinNode,
+  onViewportChange,
   width,
   height,
 }: Props) {
@@ -78,6 +85,12 @@ export default function GraphCanvas({
   const dragRef = useRef<DragState | null>(null);
   const panStartRef = useRef({ x: 0, y: 0, cameraX: 0, cameraY: 0 });
   const isPanningRef = useRef(false);
+  const viewportRef = useRef<GraphViewportState>({
+    x: 0,
+    y: 0,
+    zoom: 1,
+    zoomBand: 'network',
+  });
 
   const relationshipCountByNodeId = useMemo(() => {
     const counts = new Map<string, number>();
@@ -101,6 +114,30 @@ export default function GraphCanvas({
   });
 
   const { showTooltip, hideTooltip } = useTippyGraph(canvasRef);
+
+  const emitViewportChange = useCallback(() => {
+    const nextViewport: GraphViewportState = {
+      x: cameraRef.current.x,
+      y: cameraRef.current.y,
+      zoom: cameraRef.current.zoom,
+      zoomBand: resolveGraphZoomBand(cameraRef.current.zoom),
+    };
+
+    const previousViewport = viewportRef.current;
+    const hasMeaningfulChange = (
+      previousViewport.zoomBand !== nextViewport.zoomBand ||
+      Math.abs(previousViewport.zoom - nextViewport.zoom) > 0.01 ||
+      Math.abs(previousViewport.x - nextViewport.x) > 8 ||
+      Math.abs(previousViewport.y - nextViewport.y) > 8
+    );
+
+    if (!hasMeaningfulChange) {
+      return;
+    }
+
+    viewportRef.current = nextViewport;
+    onViewportChange?.(nextViewport);
+  }, [onViewportChange]);
 
   const hitTest = useCallback((clientX: number, clientY: number): string | null => {
     const canvas = canvasRef.current;
@@ -173,6 +210,7 @@ export default function GraphCanvas({
       );
       const highlightLerp = Math.min(1, deltaMs / (motionDurations.highlight * 1000));
       const camera = cameraRef.current;
+      const zoomBand = resolveGraphZoomBand(camera.zoom);
 
       for (const nodeId of highlightProgressRef.current.keys()) {
         if (!nodeMap.has(nodeId)) {
@@ -198,6 +236,7 @@ export default function GraphCanvas({
         const isHighlighted = highlightedEdgeIds.has(edge.id);
         const isDimmed =
           (selectedNodeId != null || hoveredNodeId != null) && !isHighlighted;
+        const edgeStrength = resolveEdgeStrength(edge);
         const sourceX = source.x ?? 0;
         const sourceY = source.y ?? 0;
         const targetX = target.x ?? 0;
@@ -209,8 +248,21 @@ export default function GraphCanvas({
         context.lineTo(targetX, targetY);
         context.setLineDash(style.dash);
         context.strokeStyle = style.stroke;
-        context.globalAlpha = isHighlighted ? 0.92 : isDimmed ? 0.12 : 0.32;
-        context.lineWidth = visuals.linkThickness * (isHighlighted ? 1.8 : 1);
+        context.globalAlpha = isHighlighted
+          ? Math.min(0.96, 0.78 + (edgeStrength * 0.18))
+          : isDimmed
+            ? 0.1
+            : (
+              zoomBand === 'overview'
+                ? 0.16 + (edgeStrength * 0.18)
+                : zoomBand === 'evidence'
+                  ? 0.26 + (edgeStrength * 0.28)
+                  : 0.22 + (edgeStrength * 0.22)
+            );
+        context.lineWidth = visuals.linkThickness
+          * (0.7 + (edgeStrength * 1.35))
+          * (zoomBand === 'overview' ? 0.82 : zoomBand === 'evidence' ? 1.14 : 1)
+          * (isHighlighted ? 1.45 : 1);
         context.stroke();
 
         if (visuals.showArrows && edge.directed) {
@@ -297,8 +349,10 @@ export default function GraphCanvas({
           (
             isSelected ||
             isHovered ||
-            (node.degree >= 4 && zoom >= 0.88) ||
-            zoom >= 1.35
+            (zoomBand === 'overview' && node.degree >= 8 && zoom >= 0.62) ||
+            (zoomBand === 'network' && node.degree >= 4 && zoom >= 0.88) ||
+            (zoomBand === 'evidence' && node.degree >= 2 && zoom >= 1.08) ||
+            zoom >= 1.5
           );
 
         if (shouldShowLabel) {
@@ -342,6 +396,10 @@ export default function GraphCanvas({
     visuals.showLabels,
     width,
   ]);
+
+  useEffect(() => {
+    emitViewportChange();
+  }, [emitViewportChange]);
 
   const handleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const nodeId = hitTest(event.clientX, event.clientY);
@@ -451,6 +509,7 @@ export default function GraphCanvas({
 
     if (isPanningRef.current) {
       isPanningRef.current = false;
+      emitViewportChange();
       return;
     }
 
@@ -483,7 +542,8 @@ export default function GraphCanvas({
     camera.zoom = nextZoom;
     camera.x = mouseX - width / 2 - (worldX - width / 2) * nextZoom;
     camera.y = mouseY - height / 2 - (worldY - height / 2) * nextZoom;
-  }, [height, width]);
+    emitViewportChange();
+  }, [emitViewportChange, height, width]);
 
   return (
     <canvas

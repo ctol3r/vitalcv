@@ -1,25 +1,20 @@
 'use client';
 
-/**
- * Omnibar.tsx — Wave 156: Global Command Palette
- *
- * Palantir-grade command surface with keyboard-driven navigation.
- * Activated via Cmd+K / Ctrl+K. Searches NPIs, triggers actions,
- * navigates to any surface.
- *
- * Uses cmdk/Radix-style patterns without external deps.
- */
-
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
-  Search, Stethoscope, Activity, Download, AlertTriangle,
-  Shield, Terminal, FileText, Globe2, ChevronRight, X,
-  Zap, Users, Building2,
+  Bot,
+  ChevronRight,
+  Command,
+  FileCheck2,
+  Globe2,
+  Search,
+  Shield,
+  Sparkles,
+  Workflow,
+  X,
 } from 'lucide-react';
-
-// ── Types ──────────────────────────────────────────────────────────────────────
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface OmniCommand {
   id: string;
@@ -27,11 +22,22 @@ interface OmniCommand {
   description: string;
   icon: typeof Search;
   group: string;
-  action: () => void;
   keywords: string[];
+  action: () => void;
 }
 
-// ── Component ──────────────────────────────────────────────────────────────────
+function buildGraphHref(params: Record<string, string | null | undefined>): string {
+  const search = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value && value.trim().length > 0) {
+      search.set(key, value);
+    }
+  }
+
+  const serialized = search.toString();
+  return serialized.length > 0 ? `/graph?${serialized}` : '/graph';
+}
 
 export default function Omnibar() {
   const [open, setOpen] = useState(false);
@@ -43,94 +49,227 @@ export default function Omnibar() {
   const navigate = useCallback((path: string) => {
     setOpen(false);
     setQuery('');
+    setSelectedIndex(0);
     router.push(path);
   }, [router]);
 
-  const commands: OmniCommand[] = useMemo(() => [
-    // Navigation
-    { id: 'nav-mission', label: 'Mission Ops', description: 'Trust network operations center', icon: Terminal, group: 'Navigation', action: () => navigate('/mission-ops'), keywords: ['mission', 'ops', 'operations', 'dashboard'] },
-    { id: 'nav-status', label: 'System Status', description: 'Infrastructure health + telemetry', icon: Activity, group: 'Navigation', action: () => navigate('/status'), keywords: ['status', 'health', 'system'] },
-    { id: 'nav-network', label: 'Trust Network', description: 'Global trust graph visualization', icon: Globe2, group: 'Navigation', action: () => navigate('/network'), keywords: ['network', 'graph', 'trust', 'map'] },
-    { id: 'nav-command', label: 'Command Center', description: 'Operator command console', icon: Shield, group: 'Navigation', action: () => navigate('/command-center'), keywords: ['command', 'center', 'console'] },
-    { id: 'nav-developers', label: 'Developers', description: 'API docs + SDK references', icon: FileText, group: 'Navigation', action: () => navigate('/developers'), keywords: ['developers', 'docs', 'api', 'sdk'] },
-    { id: 'nav-analytics', label: 'Analytics', description: 'Credential + verification metrics', icon: Activity, group: 'Navigation', action: () => navigate('/analytics'), keywords: ['analytics', 'metrics', 'charts'] },
-    { id: 'nav-holder', label: 'Holder Dashboard', description: 'Clinician credential wallet', icon: Stethoscope, group: 'Navigation', action: () => navigate('/holder'), keywords: ['holder', 'wallet', 'clinician'] },
-    { id: 'nav-verifier', label: 'Verifier Dashboard', description: 'Credential verification hub', icon: Shield, group: 'Navigation', action: () => navigate('/verifier'), keywords: ['verifier', 'verify', 'check'] },
-    // Actions
-    { id: 'act-search-npi', label: 'Search NPI', description: 'Look up a provider by NPI number', icon: Search, group: 'Actions', action: () => navigate('/verify/search'), keywords: ['search', 'npi', 'provider', 'lookup'] },
-    { id: 'act-simulation', label: 'Run Simulation', description: 'Trust graph simulation engine', icon: Zap, group: 'Actions', action: () => navigate('/simulation'), keywords: ['simulation', 'simulate', 'test'] },
-    { id: 'act-export', label: 'Export Directory', description: 'Download provider directory (FHIR/CSV)', icon: Download, group: 'Actions', action: () => navigate('/mission-ops'), keywords: ['export', 'directory', 'download', 'fhir', 'csv'] },
-    { id: 'act-alerts', label: 'View Alerts', description: 'Trust network alerts + incidents', icon: AlertTriangle, group: 'Actions', action: () => navigate('/command-center'), keywords: ['alerts', 'incidents', 'warnings'] },
-    // Entities
-    { id: 'ent-issuers', label: 'Trusted Issuers', description: 'Browse issuer registry', icon: Building2, group: 'Entities', action: () => navigate('/mission-ops'), keywords: ['issuers', 'registry', 'trusted'] },
-    { id: 'ent-payers', label: 'Payer Network', description: 'Insurance payer integrations', icon: Users, group: 'Entities', action: () => navigate('/mission-ops'), keywords: ['payers', 'insurance', 'network'] },
-  ], [navigate]);
+  const baseCommands: OmniCommand[] = useMemo(() => [
+    {
+      id: 'navigate-graph',
+      label: 'Open intelligence shell',
+      description: 'Three-panel provider intelligence workspace',
+      icon: Workflow,
+      group: 'Navigation',
+      keywords: ['graph', 'workspace', 'intelligence', 'shell'],
+      action: () => navigate('/graph'),
+    },
+    {
+      id: 'navigate-command-center',
+      label: 'Open command center',
+      description: 'Operational monitoring and incident flow',
+      icon: Shield,
+      group: 'Navigation',
+      keywords: ['command', 'center', 'alerts', 'operations'],
+      action: () => navigate('/command-center'),
+    },
+    {
+      id: 'navigate-network',
+      label: 'Open network view',
+      description: 'Network-wide trust topology',
+      icon: Globe2,
+      group: 'Navigation',
+      keywords: ['network', 'topology', 'map'],
+      action: () => navigate('/network'),
+    },
+    {
+      id: 'navigate-developers',
+      label: 'Open developer docs',
+      description: 'SDK and API documentation',
+      icon: Command,
+      group: 'Navigation',
+      keywords: ['developers', 'docs', 'sdk', 'api'],
+      action: () => navigate('/developers'),
+    },
+    {
+      id: 'provider-search',
+      label: 'Search providers',
+      description: 'Jump into the graph workspace and filter provider profiles',
+      icon: Search,
+      group: 'Workspace',
+      keywords: ['providers', 'search', 'profiles'],
+      action: () => navigate(buildGraphHref({
+        command: 'provider-search',
+        q: query || 'cardiology',
+        rid: String(Date.now()),
+      })),
+    },
+    {
+      id: 'ask-copilot',
+      label: 'Ask Copilot',
+      description: 'Open the intelligence shell and run a Copilot query',
+      icon: Bot,
+      group: 'Workspace',
+      keywords: ['copilot', 'ask', 'research', 'trust'],
+      action: () => navigate(buildGraphHref({
+        command: 'copilot',
+        prompt: query || 'Which providers are ready for verification?',
+        rid: String(Date.now()),
+      })),
+    },
+    {
+      id: 'run-verification',
+      label: 'Run verification',
+      description: 'Open the intelligence shell and generate a verification brief',
+      icon: FileCheck2,
+      group: 'Workspace',
+      keywords: ['verify', 'verification', 'trust'],
+      action: () => navigate(buildGraphHref({
+        command: 'verify',
+        q: query || 'Mayo Clinic',
+        rid: String(Date.now()),
+      })),
+    },
+  ], [navigate, query]);
 
-  // Filter commands by query
+  const dynamicCommands = useMemo<OmniCommand[]>(() => {
+    const normalizedQuery = query.trim();
+
+    if (normalizedQuery.length < 3) {
+      return [];
+    }
+
+    return [
+      {
+        id: `search:${normalizedQuery}`,
+        label: `Search providers for "${normalizedQuery}"`,
+        description: 'Apply the query to provider profiles and search results in the intelligence shell',
+        icon: Search,
+        group: 'Search',
+        keywords: ['search', 'providers', normalizedQuery.toLowerCase()],
+        action: () => navigate(buildGraphHref({
+          command: 'provider-search',
+          q: normalizedQuery,
+          rid: String(Date.now()),
+        })),
+      },
+      {
+        id: `copilot:${normalizedQuery}`,
+        label: `Ask Copilot: "${normalizedQuery}"`,
+        description: 'Run the query through the Copilot panel inside the intelligence shell',
+        icon: Bot,
+        group: 'Copilot',
+        keywords: ['copilot', 'ask', normalizedQuery.toLowerCase()],
+        action: () => navigate(buildGraphHref({
+          command: 'copilot',
+          prompt: normalizedQuery,
+          rid: String(Date.now()),
+        })),
+      },
+      {
+        id: `verify:${normalizedQuery}`,
+        label: `Run verification for "${normalizedQuery}"`,
+        description: 'Generate a verification brief against the current graph slice',
+        icon: FileCheck2,
+        group: 'Verification',
+        keywords: ['verification', 'verify', normalizedQuery.toLowerCase()],
+        action: () => navigate(buildGraphHref({
+          command: 'verify',
+          q: normalizedQuery,
+          rid: String(Date.now()),
+        })),
+      },
+    ];
+  }, [navigate, query]);
+
+  const commands = useMemo(() => [...dynamicCommands, ...baseCommands], [baseCommands, dynamicCommands]);
+
   const filtered = useMemo(() => {
-    if (!query.trim()) return commands;
-    const q = query.toLowerCase();
-    return commands.filter((cmd) =>
-      cmd.label.toLowerCase().includes(q) ||
-      cmd.description.toLowerCase().includes(q) ||
-      cmd.keywords.some((k) => k.includes(q)),
-    );
+    if (!query.trim()) {
+      return commands;
+    }
+
+    const normalizedQuery = query.toLowerCase();
+    return commands.filter((command) => (
+      command.label.toLowerCase().includes(normalizedQuery) ||
+      command.description.toLowerCase().includes(normalizedQuery) ||
+      command.keywords.some((keyword) => keyword.toLowerCase().includes(normalizedQuery))
+    ));
   }, [commands, query]);
 
-  // Group commands
   const grouped = useMemo(() => {
     const groups = new Map<string, OmniCommand[]>();
-    for (const cmd of filtered) {
-      if (!groups.has(cmd.group)) groups.set(cmd.group, []);
-      groups.get(cmd.group)!.push(cmd);
+
+    for (const command of filtered) {
+      const existing = groups.get(command.group) ?? [];
+      existing.push(command);
+      groups.set(command.group, existing);
     }
+
     return groups;
   }, [filtered]);
 
-  // Keyboard shortcuts
+  const openPalette = useCallback(() => {
+    setOpen(true);
+    setSelectedIndex(0);
+  }, []);
+
   useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setOpen((o) => !o);
-        setQuery('');
+    function handleShortcut(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setOpen((previous) => !previous);
         setSelectedIndex(0);
       }
-      if (e.key === 'Escape') {
+
+      if (event.key === 'Escape') {
         setOpen(false);
       }
     }
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+
+    window.addEventListener('keydown', handleShortcut);
+    return () => window.removeEventListener('keydown', handleShortcut);
   }, []);
 
-  // Focus input when opened
   useEffect(() => {
-    if (open) {
-      setTimeout(() => inputRef.current?.focus(), 50);
+    function handleProgrammaticOpen() {
+      openPalette();
     }
+
+    window.addEventListener('vital:open-command-palette', handleProgrammaticOpen);
+    return () => window.removeEventListener('vital:open-command-palette', handleProgrammaticOpen);
+  }, [openPalette]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => inputRef.current?.focus(), 20);
+    return () => window.clearTimeout(timeoutId);
   }, [open]);
 
-  // Keyboard navigation within the palette
   useEffect(() => {
-    if (!open) return;
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedIndex((i) => Math.min(i + 1, filtered.length - 1));
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedIndex((i) => Math.max(i - 1, 0));
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
+    if (!open) {
+      return;
+    }
+
+    function handleListNavigation(event: KeyboardEvent) {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setSelectedIndex((current) => Math.min(current + 1, Math.max(filtered.length - 1, 0)));
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setSelectedIndex((current) => Math.max(current - 1, 0));
+      } else if (event.key === 'Enter') {
+        event.preventDefault();
         filtered[selectedIndex]?.action();
       }
     }
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [open, filtered, selectedIndex]);
 
-  // Reset selection on query change
+    window.addEventListener('keydown', handleListNavigation);
+    return () => window.removeEventListener('keydown', handleListNavigation);
+  }, [filtered, open, selectedIndex]);
+
   useEffect(() => {
     setSelectedIndex(0);
   }, [query]);
@@ -139,85 +278,87 @@ export default function Omnibar() {
 
   return (
     <AnimatePresence>
-      {open && (
+      {open ? (
         <>
-          {/* Backdrop */}
           <motion.div
             key="omnibar-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998]"
+            className="fixed inset-0 z-[9998] bg-black/60 backdrop-blur-sm"
             onClick={() => setOpen(false)}
           />
 
-          {/* Palette */}
           <motion.div
             key="omnibar-palette"
             initial={{ opacity: 0, scale: 0.96, y: -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -10 }}
             transition={{ duration: 0.15, ease: [0.2, 0.8, 0.2, 1] }}
-            className="fixed top-[20%] left-1/2 -translate-x-1/2 w-full max-w-lg z-[9999] rounded-2xl border border-infra-border bg-infra-surface shadow-2xl overflow-hidden"
+            className="fixed left-1/2 top-[18%] z-[9999] w-full max-w-2xl -translate-x-1/2 overflow-hidden rounded-2xl border border-infra-border bg-infra-surface shadow-2xl"
           >
-            {/* Input */}
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-infra-border">
-              <Search className="h-4 w-4 text-infra-muted shrink-0" />
+            <div className="flex items-center gap-3 border-b border-infra-border px-4 py-3">
+              <Search className="h-4 w-4 shrink-0 text-infra-muted" />
               <input
                 ref={inputRef}
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search commands, pages, NPIs…"
-                className="flex-1 bg-transparent text-sm text-infra-text placeholder-infra-muted/50 outline-none"
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search providers, ask Copilot, run verification, navigate..."
+                className="flex-1 bg-transparent text-sm text-infra-text outline-none placeholder:text-infra-muted/50"
                 spellCheck={false}
                 autoComplete="off"
               />
               <div className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 rounded bg-infra-bg border border-infra-border text-[10px] text-infra-muted font-mono">
+                <kbd className="rounded border border-infra-border bg-infra-bg px-1.5 py-0.5 font-mono text-[10px] text-infra-muted">
                   esc
                 </kbd>
-                <button onClick={() => setOpen(false)} className="p-0.5 rounded hover:bg-infra-bg transition-colors">
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="rounded p-0.5 transition-colors hover:bg-infra-bg"
+                >
                   <X className="h-3.5 w-3.5 text-infra-muted" />
                 </button>
               </div>
             </div>
 
-            {/* Results */}
-            <div className="max-h-80 overflow-y-auto">
-              {filtered.length === 0 && (
+            <div className="max-h-[26rem] overflow-y-auto">
+              {filtered.length === 0 ? (
                 <div className="px-4 py-8 text-center text-xs text-infra-muted">
                   No matching commands
                 </div>
-              )}
+              ) : null}
 
-              {[...grouped.entries()].map(([group, cmds]) => (
+              {[...grouped.entries()].map(([group, items]) => (
                 <div key={group}>
-                  <div className="px-4 py-1.5 text-[10px] font-semibold text-infra-muted uppercase tracking-widest bg-infra-bg/50">
+                  <div className="bg-infra-bg/50 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-infra-muted">
                     {group}
                   </div>
-                  {cmds.map((cmd) => {
-                    flatIndex++;
+                  {items.map((command) => {
+                    flatIndex += 1;
                     const isSelected = flatIndex === selectedIndex;
-                    const idx = flatIndex;
-                    const Icon = cmd.icon;
+                    const Icon = command.icon;
+                    const commandIndex = flatIndex;
+
                     return (
                       <button
-                        key={cmd.id}
-                        onClick={() => cmd.action()}
-                        onMouseEnter={() => setSelectedIndex(idx)}
-                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                        key={command.id}
+                        type="button"
+                        onClick={() => command.action()}
+                        onMouseEnter={() => setSelectedIndex(commandIndex)}
+                        className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
                           isSelected ? 'bg-infra-bg' : 'hover:bg-infra-bg/50'
                         }`}
                       >
                         <Icon className={`h-4 w-4 shrink-0 ${isSelected ? 'text-blue-400' : 'text-infra-muted'}`} />
-                        <div className="flex-1 min-w-0">
+                        <div className="min-w-0 flex-1">
                           <div className={`text-sm font-medium ${isSelected ? 'text-infra-text' : 'text-infra-muted'}`}>
-                            {cmd.label}
+                            {command.label}
                           </div>
-                          <div className="text-xs text-infra-muted/60 truncate">{cmd.description}</div>
+                          <div className="truncate text-xs text-infra-muted/60">{command.description}</div>
                         </div>
-                        {isSelected && <ChevronRight className="h-3 w-3 text-infra-muted shrink-0" />}
+                        {isSelected ? <ChevronRight className="h-3 w-3 shrink-0 text-infra-muted" /> : null}
                       </button>
                     );
                   })}
@@ -225,18 +366,17 @@ export default function Omnibar() {
               ))}
             </div>
 
-            {/* Footer hint */}
-            <div className="flex items-center justify-between px-4 py-2 border-t border-infra-border bg-infra-bg/50">
+            <div className="flex items-center justify-between border-t border-infra-border bg-infra-bg/50 px-4 py-2">
               <div className="flex items-center gap-3 text-[10px] text-infra-muted">
                 <span>↑↓ navigate</span>
                 <span>↵ select</span>
                 <span>esc close</span>
               </div>
-              <span className="text-[10px] text-infra-muted/50">VitalCV Omnibar</span>
+              <span className="text-[10px] text-infra-muted/50">VitalCV command palette</span>
             </div>
           </motion.div>
         </>
-      )}
+      ) : null}
     </AnimatePresence>
   );
 }

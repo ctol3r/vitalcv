@@ -37,6 +37,11 @@ import {
   createGraphSnapshotQuerySignature,
 } from './ids';
 import { getGraphCacheEpoch } from './invalidation';
+import {
+  buildNetworkMap,
+  type ProviderRelationshipSnapshot,
+} from './networkTraversal';
+import type { NetworkMap, TraversalResult } from '../../../../../../core/investigation/investigationEngine';
 
 type JsonRecord = Record<string, unknown>;
 
