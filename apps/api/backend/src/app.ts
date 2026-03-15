@@ -135,6 +135,7 @@ import { registerApplicationRoutes } from './routes/applications';            //
 import { registerAskRoutes } from './routes/ask';                           // Wave 185: Ask VitalCV answer engine
 import { registerCopilotRoutes } from './routes/copilot';                   // Waves C25-C28: Copilot query engine
 import { registerInvestigationRoutes } from './routes/investigation';        // Wave INV: Investigation engine
+import { registerFindingsRoutes } from './routes/findings';                  // Wave AI: Autonomous investigators
 import { registerEmployerRoutes } from './routes/employers';                 // Wave 186: Employer Knowledge Layer
 import { registerPrequalificationRoutes } from './routes/prequalification';  // Wave 189: AI Interview, Assessments, Prequalification
 import { registerVerifierPipelineRoutes } from './routes/verifierPipeline';  // Wave 190: Apply with VitalCV + ATS + Verifier Pipeline
@@ -3573,6 +3574,7 @@ registerApplicationRoutes(app);       // Wave 229 — Clinician Application Flow
 registerAskRoutes(app);               // Wave 185 — Ask VitalCV natural language answer engine
 registerCopilotRoutes(app);           // Waves C25-C28 — Copilot query engine
 registerInvestigationRoutes(app);    // Wave INV — Investigation engine
+registerFindingsRoutes(app);         // Wave AI — Autonomous investigators + findings feed
 registerEmployerRoutes(app);          // Wave 186 — Employer Knowledge Layer
 registerPrequalificationRoutes(app);  // Wave 189 — AI Interview, Assessments, Prequalification
 registerVerifierPipelineRoutes(app);  // Wave 190 — Apply with VitalCV + ATS + Verifier Pipeline
@@ -3656,5 +3658,9 @@ app.use(errorHandler);
 
 // Wave 197: Ingest trust lists on startup (idempotent)
 ingestAllTrustLists();
+
+// ── Initialize autonomous investigators ──────────────────────────────────────
+import { initInvestigators } from './services/investigators/orchestrator';
+initInvestigators();
 
 export default app;

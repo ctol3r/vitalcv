@@ -29,6 +29,7 @@ import {
 } from '../intelligence/intelligenceEngine';
 import { generateGraphInsights } from '../intelligence/graphInsightEngine';
 import { investigateProvider, investigateNetwork, investigateComparison } from './investigationEngine';
+import { getFindingsForNpi, queryFindings, getFeedStats } from '../investigators/framework';
 
 // ── Response types ─────────────────────────────────────────────────────────────
 
@@ -98,18 +99,38 @@ async function handleLookup(classified: ClassifiedQuery, sessionId: string): Pro
     );
   }
 
-  const score = await computeTrustScoreV1(npi);
+  const [score, npiFindings] = await Promise.all([
+    computeTrustScoreV1(npi),
+    Promise.resolve(getFindingsForNpi(npi)),
+  ]);
   const bandEmoji = { L3: '🟢', L2: '🟡', L1: '🟠', L0: '🔴' }[score.band] ?? '⚪';
 
   const dimSummary = Object.entries(score.dimensions)
     .map(([key, dim]) => `${key}: ${dim.score}/${dim.max} (${dim.status})`)
     .join('\n  ');
 
-  return makeResponse(classified, 'LOOKUP',
-    `${bandEmoji} **NPI ${npi}** — Trust Score: **${score.score}/100** (${score.bandLabel})\n\nConfidence: ${Math.round(score.confidence * 100)}%\n\nDimensions:\n  ${dimSummary}${score.gaps.length > 0 ? `\n\nGaps:\n  ${score.gaps.map((g, i) => `${i + 1}. ${g}`).join('\n  ')}` : ''}`,
+  let answer = `${bandEmoji} **NPI ${npi}** — Trust Score: **${score.score}/100** (${score.bandLabel})\n\nConfidence: ${Math.round(score.confidence * 100)}%\n\nDimensions:\n  ${dimSummary}`;
+
+  if (score.gaps.length > 0) {
+    answer += `\n\nGaps:\n  ${score.gaps.map((g, i) => `${i + 1}. ${g}`).join('\n  ')}`;
+  }
+
+  // Surface active findings inline
+  if (npiFindings.length > 0) {
+    const severityEmoji = { CRITICAL: '🔴', HIGH: '🟠', MEDIUM: '🟡', LOW: '🟢', INFO: 'ℹ️' };
+    answer += `\n\n**Active Findings (${npiFindings.length}):**`;
+    for (const f of npiFindings.slice(0, 3)) {
+      answer += `\n  ${severityEmoji[f.severity] ?? '•'} [${f.category}] ${f.title}`;
+    }
+    if (npiFindings.length > 3) {
+      answer += `\n  ...and ${npiFindings.length - 3} more`;
+    }
+  }
+
+  return makeResponse(classified, 'LOOKUP', answer,
     { type: 'trust_score', payload: score },
-    [`What's the freshness status for NPI ${npi}?`, `Show divergence report for NPI ${npi}`, `Show graph connections for NPI ${npi}`],
-    ['TrustScoreV1', 'VerificationArtifact'],
+    [`What's the freshness status for NPI ${npi}?`, `Investigate NPI ${npi}`, `Show graph connections for NPI ${npi}`],
+    ['TrustScoreV1', 'VerificationArtifact', 'InvestigatorFindings'],
   );
 }
 
@@ -224,20 +245,42 @@ async function handleInsight(classified: ClassifiedQuery, _sessionId: string): P
 async function handleMonitor(classified: ClassifiedQuery, sessionId: string): Promise<CopilotResponse> {
   const npi = resolveNpiFromContext(classified, sessionId);
   if (!npi) {
-    // System-wide monitoring status
+    // System-wide monitoring status — combine insights + findings
     const insights = getCachedInsights();
-    const staleInsights = insights.filter(i => i.type === 'STALE_COVERAGE_GAP');
-    const declining = insights.filter(i => i.type === 'DECLINING_TRUST');
+    const feedStats = getFeedStats();
+    const activeFindings = queryFindings({ status: ['ACTIVE'], limit: 5 });
 
     let answer = '**System Health Summary:**\n\n';
+
+    // Findings summary
+    if (feedStats.active > 0) {
+      const severityEmoji = { CRITICAL: '🔴', HIGH: '🟠', MEDIUM: '🟡', LOW: '🟢', INFO: 'ℹ️' };
+      answer += `**Active Findings:** ${feedStats.active}\n`;
+      for (const [sev, count] of Object.entries(feedStats.bySeverity)) {
+        if (count > 0) answer += `  ${severityEmoji[sev as keyof typeof severityEmoji] ?? '•'} ${sev}: ${count}\n`;
+      }
+      answer += '\n';
+      if (activeFindings.length > 0) {
+        answer += '**Top findings:**\n';
+        for (const f of activeFindings) {
+          answer += `  ${severityEmoji[f.severity] ?? '•'} ${f.title} (score: ${f.score})\n`;
+        }
+        answer += '\n';
+      }
+    } else {
+      answer += '✅ No active investigator findings\n\n';
+    }
+
+    // Legacy insights
+    const staleInsights = insights.filter(i => i.type === 'STALE_COVERAGE_GAP');
+    const declining = insights.filter(i => i.type === 'DECLINING_TRUST');
     answer += `• ${staleInsights.length > 0 ? `⚠️ ${staleInsights[0]?.title}` : '✅ No stale coverage gaps'}\n`;
     answer += `• ${declining.length > 0 ? `🔴 ${declining.length} declining trust score(s)` : '✅ No declining trust scores'}\n`;
-    answer += `• ${insights.length} total insight(s) cached`;
 
     return makeResponse(classified, 'MONITOR', answer,
       { type: 'insights', payload: insights },
-      ['Show all insights', 'Run a full intelligence cycle', 'Check specific NPI'],
-      ['IntelligenceEngine'],
+      ['Show all findings', 'Run investigator scan', 'Check specific NPI'],
+      ['IntelligenceEngine', 'InvestigatorFindings'],
     );
   }
 

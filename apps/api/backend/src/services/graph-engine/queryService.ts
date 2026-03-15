@@ -31,6 +31,7 @@ import {
   type NodeType,
 } from './schema';
 import {
+  createGraphNodeId,
   createGraphEdgeId,
   createGraphClusterAssignmentId,
   createGraphSnapshotId,
@@ -79,6 +80,16 @@ function asString(value: unknown): string | undefined {
 
 function asNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+    .map((entry) => entry.trim());
 }
 
 function toJsonValue(value: unknown): Prisma.InputJsonValue {
@@ -1036,4 +1047,462 @@ export async function primeGraphSnapshots(input: {
   });
 
   return snapshotIds;
+}
+
+type TraversalClaimRow = {
+  subjectNpi: string;
+  claimType: string;
+  value: Prisma.JsonValue;
+};
+
+type TraversalProfileRow = {
+  npi: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  specialty: string | null;
+  stateOfPractice: string | null;
+};
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.filter((value) => value.trim().length > 0))];
+}
+
+function normalizeTraversalText(value: string): string {
+  return value.trim().replace(/\s+/g, ' ');
+}
+
+function publicationIdentifier(value: Prisma.JsonValue): string | null {
+  const record = asRecord(value);
+  return asString(record.pubmedId)
+    ?? asString(record.openAlexId)
+    ?? asString(record.title)?.toLowerCase()
+    ?? null;
+}
+
+function extractGrantIds(value: Prisma.JsonValue): string[] {
+  const record = asRecord(value);
+  const candidates = [
+    ...asStringArray(record.grants),
+    ...asStringArray(record.grantIds),
+    ...asStringArray(record.awardIds),
+    ...asStringArray(record.projectNumbers),
+    asString(record.grantId),
+    asString(record.awardId),
+    asString(record.projectNumber),
+    asString(record.nihProjectId),
+  ].filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0);
+
+  return uniqueStrings(candidates.map(normalizeTraversalText));
+}
+
+function parseAuthorName(value: string): { firstName: string; lastName: string } | null {
+  const normalized = normalizeTraversalText(value.replace(/\./g, ''));
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized.includes(',')) {
+    const [lastName, firstName] = normalized.split(',').map((part) => part.trim());
+    if (firstName && lastName) {
+      return { firstName, lastName };
+    }
+  }
+
+  const parts = normalized.split(' ').filter(Boolean);
+  if (parts.length < 2) {
+    return null;
+  }
+
+  return {
+    firstName: parts[0]!,
+    lastName: parts[parts.length - 1]!,
+  };
+}
+
+function graphAffiliationContext(graph: GraphQueryResult): Map<string, { affiliations: Set<string>; institutions: Set<string> }> {
+  const nodeById = new Map(graph.chunk.nodes.map((node) => [node.id, node]));
+  const context = new Map<string, { affiliations: Set<string>; institutions: Set<string> }>();
+
+  for (const edge of graph.chunk.edges) {
+    const sourceNode = nodeById.get(edge.source);
+    const targetNode = nodeById.get(edge.target);
+
+    const sourceNpi = sourceNode?.type === 'clinician' ? asString(sourceNode.metadata.npi) : undefined;
+    const targetNpi = targetNode?.type === 'clinician' ? asString(targetNode.metadata.npi) : undefined;
+
+    if (sourceNpi && targetNode && (targetNode.type === 'institution' || targetNode.type === 'organization')) {
+      const entry = context.get(sourceNpi) ?? { affiliations: new Set<string>(), institutions: new Set<string>() };
+      entry.affiliations.add(targetNode.label);
+      if (targetNode.type === 'institution') {
+        entry.institutions.add(targetNode.label);
+      }
+      context.set(sourceNpi, entry);
+    }
+
+    if (targetNpi && sourceNode && (sourceNode.type === 'institution' || sourceNode.type === 'organization')) {
+      const entry = context.get(targetNpi) ?? { affiliations: new Set<string>(), institutions: new Set<string>() };
+      entry.affiliations.add(sourceNode.label);
+      if (sourceNode.type === 'institution') {
+        entry.institutions.add(sourceNode.label);
+      }
+      context.set(targetNpi, entry);
+    }
+  }
+
+  return context;
+}
+
+async function loadTraversalClaimRows(
+  npis: string[],
+  prismaClient: PrismaClient,
+): Promise<TraversalClaimRow[]> {
+  if (npis.length === 0) {
+    return [];
+  }
+
+  const rows = await prismaClient.claimRecord.findMany({
+    where: {
+      subjectNpi: { in: npis },
+      claimType: {
+        in: [
+          'SPECIALTY',
+          'INSTITUTION_AFFILIATION',
+          'PUBLICATION',
+          'CLINICAL_TRIAL',
+          'INDUSTRY_PAYMENT',
+        ],
+      },
+      status: { in: ['ACTIVE', 'UNVERIFIED'] },
+    },
+    select: {
+      subjectNpi: true,
+      claimType: true,
+      value: true,
+    },
+    orderBy: { observedAt: 'desc' },
+    take: 5_000,
+  });
+
+  return rows.map((row) => ({
+    subjectNpi: row.subjectNpi,
+    claimType: row.claimType,
+    value: row.value,
+  }));
+}
+
+async function discoverTraversalCandidates(
+  npi: string,
+  seedClaims: TraversalClaimRow[],
+  baseGraph: GraphQueryResult,
+  prismaClient: PrismaClient,
+): Promise<string[]> {
+  const candidates = new Set<string>();
+
+  for (const node of baseGraph.chunk.nodes) {
+    if (node.type !== 'clinician') {
+      continue;
+    }
+
+    const relatedNpi = asString(node.metadata.npi);
+    if (relatedNpi && relatedNpi !== npi) {
+      candidates.add(relatedNpi);
+    }
+  }
+
+  const coAuthorQueries = uniqueStrings(
+    seedClaims
+      .filter((claim) => claim.claimType === 'PUBLICATION')
+      .flatMap((claim) => asStringArray(asRecord(claim.value).coAuthors))
+      .map((author) => author.trim())
+      .slice(0, 20),
+  )
+    .map(parseAuthorName)
+    .filter((author): author is NonNullable<typeof author> => author !== null);
+
+  if (coAuthorQueries.length > 0) {
+    const authorMatches = await prismaClient.personProfile.findMany({
+      where: {
+        npi: { not: null },
+        OR: coAuthorQueries.map((author) => ({
+          firstName: { equals: author.firstName, mode: 'insensitive' },
+          lastName: { equals: author.lastName, mode: 'insensitive' },
+        })),
+      },
+      select: {
+        npi: true,
+      },
+      take: 50,
+    });
+
+    for (const match of authorMatches) {
+      if (match.npi && match.npi !== npi) {
+        candidates.add(match.npi);
+      }
+    }
+  }
+
+  const publicationIds = new Set(
+    seedClaims
+      .filter((claim) => claim.claimType === 'PUBLICATION')
+      .map((claim) => publicationIdentifier(claim.value))
+      .filter((value): value is string => Boolean(value)),
+  );
+  const trialIds = new Set(
+    seedClaims
+      .filter((claim) => claim.claimType === 'CLINICAL_TRIAL')
+      .map((claim) => asString(asRecord(claim.value).nctId))
+      .filter((value): value is string => Boolean(value)),
+  );
+  const institutions = new Set(
+    seedClaims
+      .filter((claim) => claim.claimType === 'INSTITUTION_AFFILIATION')
+      .map((claim) => asString(asRecord(claim.value).institution))
+      .filter((value): value is string => Boolean(value))
+      .map((value) => value.toLowerCase()),
+  );
+  const payers = new Set(
+    seedClaims
+      .filter((claim) => claim.claimType === 'INDUSTRY_PAYMENT')
+      .flatMap((claim) => asStringArray(asRecord(claim.value).topPayers))
+      .map((payer) => payer.toLowerCase()),
+  );
+
+  const globalRows = await prismaClient.claimRecord.findMany({
+    where: {
+      subjectNpi: { not: npi },
+      claimType: {
+        in: ['PUBLICATION', 'CLINICAL_TRIAL', 'INSTITUTION_AFFILIATION', 'INDUSTRY_PAYMENT'],
+      },
+      status: { in: ['ACTIVE', 'UNVERIFIED'] },
+    },
+    select: {
+      subjectNpi: true,
+      claimType: true,
+      value: true,
+    },
+    orderBy: { observedAt: 'desc' },
+    take: 5_000,
+  });
+
+  for (const row of globalRows) {
+    const value = asRecord(row.value);
+    const publicationId = row.claimType === 'PUBLICATION' ? publicationIdentifier(row.value) : null;
+    const trialId = row.claimType === 'CLINICAL_TRIAL' ? asString(value.nctId) : null;
+    const institution = row.claimType === 'INSTITUTION_AFFILIATION' ? asString(value.institution)?.toLowerCase() : null;
+    const rowPayers = row.claimType === 'INDUSTRY_PAYMENT'
+      ? asStringArray(value.topPayers).map((payer) => payer.toLowerCase())
+      : [];
+
+    if (
+      (publicationId && publicationIds.has(publicationId))
+      || (trialId && trialIds.has(trialId))
+      || (institution && institutions.has(institution))
+      || rowPayers.some((payer) => payers.has(payer))
+    ) {
+      candidates.add(row.subjectNpi);
+    }
+  }
+
+  return [...candidates];
+}
+
+async function loadProviderRelationshipSnapshots(
+  npis: string[],
+  baseGraph: GraphQueryResult,
+  prismaClient: PrismaClient,
+): Promise<ProviderRelationshipSnapshot[]> {
+  const uniqueNpis = uniqueStrings(npis);
+  if (uniqueNpis.length === 0) {
+    return [];
+  }
+
+  const [profiles, claims] = await Promise.all([
+    prismaClient.personProfile.findMany({
+      where: { npi: { in: uniqueNpis } },
+      select: {
+        npi: true,
+        firstName: true,
+        lastName: true,
+        specialty: true,
+        stateOfPractice: true,
+      },
+    }),
+    loadTraversalClaimRows(uniqueNpis, prismaClient),
+  ]);
+
+  const profileByNpi = new Map(
+    profiles
+      .filter((profile): profile is TraversalProfileRow & { npi: string } => typeof profile.npi === 'string')
+      .map((profile) => [profile.npi, profile]),
+  );
+  const graphContext = graphAffiliationContext(baseGraph);
+  const graphClinicianNodeByNpi = new Map(
+    baseGraph.chunk.nodes
+      .filter((node) => node.type === 'clinician')
+      .flatMap((node) => {
+        const nodeNpi = asString(node.metadata.npi);
+        return nodeNpi ? [[nodeNpi, node] as const] : [];
+      }),
+  );
+
+  const snapshots = new Map<string, ProviderRelationshipSnapshot>();
+  for (const currentNpi of uniqueNpis) {
+    const profile = profileByNpi.get(currentNpi);
+    const graphNode = graphClinicianNodeByNpi.get(currentNpi);
+    const providerName = [
+      normalizeTraversalText([profile?.firstName ?? '', profile?.lastName ?? ''].join(' ')).trim(),
+      graphNode?.label,
+      `Clinician ${currentNpi}`,
+    ].find((value): value is string => typeof value === 'string' && value.trim().length > 0)!;
+    const graphAffiliations = graphContext.get(currentNpi);
+
+    snapshots.set(currentNpi, {
+      npi: currentNpi,
+      providerName,
+      primarySpecialty: profile?.specialty ?? asString(graphNode?.metadata.specialty) ?? null,
+      secondarySpecialties: [],
+      affiliations: uniqueStrings([
+        ...(graphAffiliations ? [...graphAffiliations.affiliations] : []),
+      ]),
+      institutions: uniqueStrings([
+        ...(graphAffiliations ? [...graphAffiliations.institutions] : []),
+      ]),
+      publications: [],
+      trials: [],
+      payments: [],
+      grants: [],
+      metadata: {
+        state: profile?.stateOfPractice ?? asString(graphNode?.metadata.state) ?? null,
+      },
+    });
+  }
+
+  for (const claim of claims) {
+    const snapshot = snapshots.get(claim.subjectNpi);
+    if (!snapshot) {
+      continue;
+    }
+
+    const value = asRecord(claim.value);
+    if (claim.claimType === 'SPECIALTY') {
+      const specialty = asString(value.taxonomyDescription);
+      if (specialty && specialty !== snapshot.primarySpecialty) {
+        snapshot.secondarySpecialties = uniqueStrings([...snapshot.secondarySpecialties, specialty]);
+      }
+      continue;
+    }
+
+    if (claim.claimType === 'INSTITUTION_AFFILIATION') {
+      const institution = asString(value.institution);
+      if (institution) {
+        snapshot.institutions = uniqueStrings([...snapshot.institutions, institution]);
+        snapshot.affiliations = uniqueStrings([...snapshot.affiliations, institution]);
+      }
+      continue;
+    }
+
+    if (claim.claimType === 'PUBLICATION') {
+      const publicationId = publicationIdentifier(claim.value);
+      if (!publicationId) {
+        continue;
+      }
+
+      snapshot.publications.push({
+        publicationId,
+        title: asString(value.title) ?? publicationId,
+        citationCount: asNumber(value.citationCount) ?? 0,
+        coAuthors: asStringArray(value.coAuthors),
+        publishedDate: asString(value.publishedDate) ?? null,
+      });
+      snapshot.grants = uniqueStrings([...snapshot.grants, ...extractGrantIds(claim.value)]);
+      continue;
+    }
+
+    if (claim.claimType === 'CLINICAL_TRIAL') {
+      const trialId = asString(value.nctId);
+      if (!trialId) {
+        continue;
+      }
+
+      snapshot.trials.push({
+        trialId,
+        title: asString(value.title) ?? trialId,
+        role: asString(value.role) ?? 'OTHER',
+        status: asString(value.status) ?? 'UNKNOWN',
+        startDate: asString(value.startDate) ?? null,
+      });
+      snapshot.grants = uniqueStrings([...snapshot.grants, ...extractGrantIds(claim.value)]);
+      continue;
+    }
+
+    if (claim.claimType === 'INDUSTRY_PAYMENT') {
+      snapshot.payments.push({
+        paymentYear: asNumber(value.paymentYear) ?? 0,
+        totalAmount: asNumber(value.totalAmount) ?? 0,
+        recordCount: asNumber(value.recordCount) ?? 0,
+        topPayers: asStringArray(value.topPayers),
+      });
+    }
+  }
+
+  return [...snapshots.values()];
+}
+
+export async function traceProviderNetwork(
+  npi: string,
+  prismaClient: PrismaClient = prisma,
+): Promise<NetworkMap> {
+  const focusNodeId = createGraphNodeId({
+    type: 'clinician',
+    sourceKind: 'npi',
+    sourceId: npi,
+  });
+  const baseGraph = await queryGraph({
+    graphMode: 'trust',
+    scope: 'local',
+    focusNodeId,
+    depth: 2,
+    limit: 400,
+  }, prismaClient);
+  const seedClaims = await loadTraversalClaimRows([npi], prismaClient);
+  const candidateNpis = await discoverTraversalCandidates(npi, seedClaims, baseGraph, prismaClient);
+  const snapshots = await loadProviderRelationshipSnapshots([npi, ...candidateNpis], baseGraph, prismaClient);
+
+  return buildNetworkMap({
+    npi,
+    graph: baseGraph,
+    providers: snapshots,
+  });
+}
+
+export async function coAuthorNetwork(
+  npi: string,
+  prismaClient: PrismaClient = prisma,
+): Promise<TraversalResult> {
+  const network = await traceProviderNetwork(npi, prismaClient);
+  return network.traversals.coAuthorNetwork;
+}
+
+export async function trialInvestigatorNetwork(
+  npi: string,
+  prismaClient: PrismaClient = prisma,
+): Promise<TraversalResult> {
+  const network = await traceProviderNetwork(npi, prismaClient);
+  return network.traversals.trialInvestigatorNetwork;
+}
+
+export async function institutionNetwork(
+  npi: string,
+  prismaClient: PrismaClient = prisma,
+): Promise<TraversalResult> {
+  const network = await traceProviderNetwork(npi, prismaClient);
+  return network.traversals.institutionNetwork;
+}
+
+export async function industryFundingNetwork(
+  npi: string,
+  prismaClient: PrismaClient = prisma,
+): Promise<TraversalResult> {
+  const network = await traceProviderNetwork(npi, prismaClient);
+  return network.traversals.industryFundingNetwork;
 }

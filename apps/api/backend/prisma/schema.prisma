@@ -2233,6 +2233,138 @@ model GraphInsight {
   @@map("graph_insights")
 }
 
+model InvestigatorFinding {
+  id                 String   @id @default(uuid()) @db.Uuid
+  findingId          String   @unique @map("finding_id")
+  investigatorId     String   @map("investigator_id")
+  findingType        String   @map("finding_type")
+  scope              String
+  severity           String
+  status             String   @default("new")
+  title              String
+  summary            String
+  explanation        String
+  confidence         Float
+  priorityScore      Float    @default(0) @map("priority_score")
+  trustImpact        Float    @default(0) @map("trust_impact")
+  freshness          Float    @default(0)
+  novelty            Float    @default(0)
+  entityImportance   Float    @default(0) @map("entity_importance")
+  graphCentrality    Float    @default(0) @map("graph_centrality")
+  entityIds          String[] @default([]) @map("entity_ids")
+  audienceRoles      String[] @default([]) @map("audience_roles")
+  supportingEvidence Json     @default("[]") @db.JsonB @map("supporting_evidence")
+  rankBreakdown      Json     @default("{}") @db.JsonB @map("rank_breakdown")
+  metadata           Json     @default("{}") @db.JsonB
+  storylineKey       String   @map("storyline_key")
+  dedupeKey          String   @unique @map("dedupe_key")
+  firstSeenAt        DateTime @default(now()) @map("first_seen_at")
+  lastSeenAt         DateTime @default(now()) @map("last_seen_at")
+  occurrenceCount    Int      @default(1) @map("occurrence_count")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  evidenceLinks FindingEvidenceLink[]
+  entityLinks   FindingEntityLink[]
+  statusEvents  FindingStatusEvent[]
+
+  @@index([investigatorId, lastSeenAt])
+  @@index([findingType, lastSeenAt])
+  @@index([severity, status, lastSeenAt])
+  @@index([scope, lastSeenAt])
+  @@index([status, priorityScore, lastSeenAt])
+  @@index([lastSeenAt])
+  @@map("investigator_findings")
+}
+
+model FindingEvidenceLink {
+  id          String   @id @default(uuid()) @db.Uuid
+  findingId   String   @db.Uuid @map("finding_id")
+  evidenceId  String   @map("evidence_id")
+  evidenceType String  @map("evidence_type")
+  sourceId    String?  @map("source_id")
+  sourceLabel String?  @map("source_label")
+  recordType  String?  @map("record_type")
+  recordId    String?  @map("record_id")
+  url         String?
+  snippet     String?
+  observedAt  DateTime? @map("observed_at")
+  metadata    Json     @default("{}") @db.JsonB
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  finding InvestigatorFinding @relation(fields: [findingId], references: [id], onDelete: Cascade)
+
+  @@index([findingId])
+  @@index([recordType, recordId])
+  @@index([sourceId, observedAt])
+  @@map("finding_evidence_links")
+}
+
+model FindingEntityLink {
+  id          String   @id @default(uuid()) @db.Uuid
+  findingId   String   @db.Uuid @map("finding_id")
+  entityType  String   @map("entity_type")
+  entityId    String   @map("entity_id")
+  entityLabel String?  @map("entity_label")
+  relationship String?
+  metadata    Json     @default("{}") @db.JsonB
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  finding InvestigatorFinding @relation(fields: [findingId], references: [id], onDelete: Cascade)
+
+  @@index([findingId])
+  @@index([entityType, entityId])
+  @@index([entityType, entityLabel])
+  @@map("finding_entity_links")
+}
+
+model FindingStatusEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  findingId  String   @db.Uuid @map("finding_id")
+  fromStatus String?  @map("from_status")
+  toStatus   String   @map("to_status")
+  actorId    String?  @map("actor_id")
+  note       String?
+  metadata   Json     @default("{}") @db.JsonB
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  finding InvestigatorFinding @relation(fields: [findingId], references: [id], onDelete: Cascade)
+
+  @@index([findingId, createdAt])
+  @@index([toStatus, createdAt])
+  @@map("finding_status_events")
+}
+
+model InvestigatorRunLog {
+  id                 String   @id @default(uuid()) @db.Uuid
+  runId              String   @unique @map("run_id")
+  investigatorId     String   @map("investigator_id")
+  trigger            String
+  scope              String
+  status             String   @default("running")
+  entityType         String?  @map("entity_type")
+  targetEntityIds    String[] @default([]) @map("target_entity_ids")
+  startedAt          DateTime @default(now()) @map("started_at")
+  completedAt        DateTime? @map("completed_at")
+  durationMs         Int?     @map("duration_ms")
+  entitiesScanned    Int      @default(0) @map("entities_scanned")
+  findingsGenerated  Int      @default(0) @map("findings_generated")
+  findingsCreated    Int      @default(0) @map("findings_created")
+  findingsUpdated    Int      @default(0) @map("findings_updated")
+  findingsResolved   Int      @default(0) @map("findings_resolved")
+  findingsSuppressed Int      @default(0) @map("findings_suppressed")
+  storylinesMerged   Int      @default(0) @map("storylines_merged")
+  errorMessage       String?  @map("error_message")
+  metadata           Json     @default("{}") @db.JsonB
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@index([investigatorId, startedAt])
+  @@index([status, startedAt])
+  @@index([trigger, startedAt])
+  @@map("investigator_run_logs")
+}
+
 // ──────────────────────────────────────────────────────────────
 // Waves 9-11: Durable graph runtime, snapshots, AI link review
 // ──────────────────────────────────────────────────────────────

@@ -147,6 +147,49 @@ function evidenceLines(counts: NetworkEdgeEvidenceCounts): string[] {
   return lines;
 }
 
+function countsForTraversal(
+  counts: NetworkEdgeEvidenceCounts,
+  traversal: TraversalResult['traversal'],
+): NetworkEdgeEvidenceCounts {
+  if (traversal === 'coAuthorNetwork') {
+    return {
+      coPublicationCount: counts.coPublicationCount,
+      sharedGrants: 0,
+      sharedTrials: 0,
+      sharedPayments: 0,
+      sharedInstitutions: 0,
+    };
+  }
+
+  if (traversal === 'trialInvestigatorNetwork') {
+    return {
+      coPublicationCount: 0,
+      sharedGrants: 0,
+      sharedTrials: counts.sharedTrials,
+      sharedPayments: 0,
+      sharedInstitutions: 0,
+    };
+  }
+
+  if (traversal === 'institutionNetwork') {
+    return {
+      coPublicationCount: 0,
+      sharedGrants: 0,
+      sharedTrials: 0,
+      sharedPayments: 0,
+      sharedInstitutions: counts.sharedInstitutions,
+    };
+  }
+
+  return {
+    coPublicationCount: 0,
+    sharedGrants: counts.sharedGrants,
+    sharedTrials: 0,
+    sharedPayments: counts.sharedPayments,
+    sharedInstitutions: 0,
+  };
+}
+
 function pairKey(source: string, target: string): string {
   return [source, target].sort().join('::');
 }
@@ -253,6 +296,7 @@ function buildTraversal(
       const target = buildProviderNode(right);
       relevantNodes.set(source.id, source);
       relevantNodes.set(target.id, target);
+      const traversalCounts = countsForTraversal(counts, traversal);
 
       const relationshipType =
         traversal === 'coAuthorNetwork'
@@ -267,9 +311,9 @@ function buildTraversal(
         source: source.id,
         target: target.id,
         relationshipTypes: [relationshipType],
-        edgeWeight: edgeWeight(counts, traversal === 'institutionNetwork'),
-        evidenceCounts: counts,
-        evidence: evidenceLines(counts),
+        edgeWeight: edgeWeight(traversalCounts, traversal === 'institutionNetwork'),
+        evidenceCounts: traversalCounts,
+        evidence: evidenceLines(traversalCounts),
         metadata: {
           sourceNpi: left.npi,
           targetNpi: right.npi,

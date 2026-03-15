@@ -109,8 +109,12 @@ function dominantSpecialties(inputs: ProviderComparisonInput[]): string[] {
     }
   }
 
-  return [...counts.entries()]
-    .sort((left, right) => right[1].count - left[1].count || left[1].label.localeCompare(right[1].label))
+  const sorted = [...counts.entries()]
+    .sort((left, right) => right[1].count - left[1].count || left[1].label.localeCompare(right[1].label));
+  const maxCount = sorted[0]?.[1].count ?? 0;
+  const repeated = sorted.filter(([, entry]) => entry.count === maxCount || entry.count > 1);
+
+  return (repeated.length > 0 ? repeated : sorted.slice(0, 3))
     .slice(0, 3)
     .map(([, entry]) => entry.label);
 }
