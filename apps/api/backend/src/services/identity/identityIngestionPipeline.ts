@@ -737,6 +737,28 @@ async function executeSourceIngestion(input: {
   }) => ParsedSourceResult;
 }): Promise<IngestionResult> {
   const startedAtMs = Date.now();
+
+  // ── Source governance enforcement ──────────────────────────────────────
+  // RED-risk or human-lookup-only sources are blocked at the pipeline level.
+  try {
+    const { enforceSourcePolicy: enforce } = await import('./sourceGovernance');
+    const violations = enforce(input.sourceId);
+    const blocks = violations.filter(v => v.severity === 'BLOCK');
+    if (blocks.length > 0) {
+      log('warn', 'identityPipeline: source BLOCKED by governance policy', {
+        sourceId: input.sourceId, npi: input.npi,
+        violation: blocks[0]!.message,
+      });
+      return {
+        npi: input.npi, source: input.sourceId, status: 'SKIPPED',
+        artifactId: null, claimsEmitted: 0, deltaEvents: [],
+        latencyMs: Date.now() - startedAtMs,
+        error: `GOVERNANCE BLOCK: ${blocks[0]!.message}`,
+      };
+    }
+  } catch {
+    // Governance module not available — proceed with caution
+  }
   const sourceRunIdempotencyKey = deterministicHex({
     sourceId: input.sourceId,
     npi: input.npi,

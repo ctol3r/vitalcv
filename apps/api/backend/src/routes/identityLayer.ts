@@ -23,6 +23,11 @@ import { buildIdentitySummary } from '../services/identity/evidenceModel';
 import { listSources, getSource } from '../services/identity/sourceCatalog';
 import { monitorClinicianIdentity, monitorAllTrackedClinicians } from '../services/identity/changeMonitor';
 import { getEnrichedTrustIntelligence } from '../services/identity/trustStateBridge';
+import {
+  SOURCE_GOVERNANCE, enforceSourcePolicy, getSourceCautionMap,
+  getBuildPriorityOrder, COMPETITIVE_POSITIONING, TRUST_TIER_COPY,
+  isAutomationSafe,
+} from '../services/identity/sourceGovernance';
 import { getWatchtowerState, registerWatchlist } from '../services/identity/watchtowerEngine';
 import { listWatchlists } from '../services/identity/watchtowerStore';
 import prisma from '../graphql/prisma_client';
@@ -489,6 +494,244 @@ export function registerIdentityLayerRoutes(app: Express): void {
     } catch (err) {
       log('error', 'identity: enriched GET failed', { npi, error: String(err) });
       res.status(500).json({ error: 'Enriched trust intelligence failed' });
+    }
+  });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // SOURCE GOVERNANCE + COVERAGE INTELLIGENCE
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * GET /api/identity/governance
+   *
+   * Source governance registry — access policies, risk levels, automation
+   * rules, build priorities, and competitive positioning.
+   */
+  app.get('/api/identity/governance', (_req: Request, res: Response) => {
+    const sources = listSources();
+    const cautionMap = getSourceCautionMap();
+    const buildOrder = getBuildPriorityOrder();
+
+    res.json({
+      schema: 'https://vitalcv.com/identity-governance/v1',
+      sources: sources.map(s => {
+        const gov = SOURCE_GOVERNANCE[s.id];
+        return {
+          id:                s.id,
+          name:              s.name,
+          tier:              s.tier,
+          phase:             s.phase,
+          // Governance fields
+          sourceType:        gov?.sourceType ?? 'api',
+          accessBoundary:    gov?.accessBoundary ?? 'public',
+          termsRiskLevel:    gov?.termsRiskLevel ?? 'green',
+          automationPolicy:  gov?.automationPolicy ?? 'allowed',
+          connectorComplexity: gov?.connectorComplexity ?? 'low',
+          monitoringMode:    gov?.monitoringMode ?? 'pull',
+          automationSafe:    isAutomationSafe(s.id),
+          // Scoring
+          feasibilityScore:  gov?.feasibilityScore ?? 0,
+          leverageScore:     gov?.leverageScore ?? 0,
+          maintenanceBurden: gov?.maintenanceBurden ?? 0,
+          // Build status
+          buildStatus:       gov?.buildStatus ?? 'planned',
+          implementationPriority: gov?.implementationPriority ?? 99,
+          // Policy
+          automationNotes:   gov?.automationNotes ?? '',
+          openQuestions:     gov?.openQuestions ?? [],
+          // Source catalog
+          liveAvailable:     s.liveAvailable,
+          claimTypes:        s.claimTypes,
+          refreshCadence:    s.refreshCadence,
+        };
+      }),
+      cautionMap,
+      buildOrder,
+      competitive: COMPETITIVE_POSITIONING,
+      trustTierCopy: TRUST_TIER_COPY,
+    });
+  });
+
+  /**
+   * GET /api/identity/governance/caution-map
+   * Machine-readable source caution map — risk levels and policies.
+   */
+  app.get('/api/identity/governance/caution-map', (_req: Request, res: Response) => {
+    res.json(getSourceCautionMap());
+  });
+
+  /**
+   * GET /api/identity/governance/build-order
+   * Recommended build priority order based on truth-pack sequencing.
+   */
+  app.get('/api/identity/governance/build-order', (_req: Request, res: Response) => {
+    res.json({ order: getBuildPriorityOrder() });
+  });
+
+  /**
+   * GET /api/identity/:npi/coverage
+   *
+   * Source coverage for a specific clinician — which sources have been
+   * checked, which are pending, which are unavailable or gated.
+   */
+  app.get('/api/identity/:npi([0-9]{10})/coverage', async (req: Request, res: Response) => {
+    const { npi } = req.params;
+
+    try {
+      // Get all artifacts for this NPI
+      const artifacts = await prisma.verificationArtifact.findMany({
+        where: { npi, lifecycleState: 'active', source: { not: 'IDENTITY_INDEX' } },
+        select: { source: true, createdAt: true, verifiedAt: true, status: true },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      // Dedupe to latest per source
+      const latestBySource = new Map<string, { createdAt: Date; verifiedAt: Date; status: string }>();
+      for (const art of artifacts) {
+        if (!latestBySource.has(art.source)) {
+          latestBySource.set(art.source, { createdAt: art.createdAt, verifiedAt: art.verifiedAt, status: art.status });
+        }
+      }
+
+      const sources = listSources();
+      const now = Date.now();
+
+      const coverage = sources.map(s => {
+        const latest = latestBySource.get(s.id);
+        const gov = SOURCE_GOVERNANCE[s.id];
+        const ageHours = latest ? Math.round((now - latest.verifiedAt.getTime()) / (1000 * 60 * 60)) : null;
+        const isStale = ageHours !== null && ageHours > s.refreshSlaHours;
+        const violations = enforceSourcePolicy(s.id);
+
+        let status: string;
+        if (violations.some(v => v.severity === 'BLOCK')) {
+          status = 'GATED';
+        } else if (latest) {
+          status = isStale ? 'STALE' : 'CHECKED';
+        } else if (!s.liveAvailable && process.env[s.envFlag] !== 'true') {
+          status = 'UNAVAILABLE';
+        } else {
+          status = 'PENDING';
+        }
+
+        return {
+          sourceId:           s.id,
+          name:               s.name,
+          tier:               s.tier,
+          status,
+          lastChecked:        latest?.verifiedAt.toISOString() ?? null,
+          ageHours,
+          isStale,
+          slaHours:           s.refreshSlaHours,
+          automationSafe:     isAutomationSafe(s.id),
+          termsRisk:          gov?.termsRiskLevel ?? 'green',
+          accessBoundary:     gov?.accessBoundary ?? 'public',
+          whyNotUsed:         status === 'GATED' ? violations[0]?.message
+                            : status === 'UNAVAILABLE' ? `Source not enabled — set ${s.envFlag}=true`
+                            : status === 'PENDING' ? 'Not yet ingested — POST /api/identity/:npi/ingest'
+                            : null,
+          confidenceImpact:   status === 'CHECKED' ? null
+                            : `Missing ${s.id} may reduce trust confidence for ${s.claimTypes.join(', ')}`,
+          nextRecommended:    status === 'PENDING' || status === 'STALE'
+                            ? `POST /api/identity/${npi}/ingest with sources=[${s.id}]`
+                            : null,
+        };
+      });
+
+      const checked  = coverage.filter(c => c.status === 'CHECKED').length;
+      const pending  = coverage.filter(c => c.status === 'PENDING').length;
+      const stale    = coverage.filter(c => c.status === 'STALE').length;
+      const gated    = coverage.filter(c => c.status === 'GATED').length;
+      const unavail  = coverage.filter(c => c.status === 'UNAVAILABLE').length;
+
+      const goldChecked = coverage.filter(c => c.tier === 'GOLD' && c.status === 'CHECKED').length;
+      const goldTotal   = coverage.filter(c => c.tier === 'GOLD').length;
+
+      res.json({
+        schema: 'https://vitalcv.com/identity-coverage/v1',
+        npi,
+        summary: {
+          totalSources: coverage.length,
+          checked, pending, stale, gated, unavailable: unavail,
+          goldCoverage: `${goldChecked}/${goldTotal}`,
+          coverageScore: Math.round((checked / coverage.length) * 100),
+        },
+        coverage,
+        recommendations: [
+          ...(stale > 0 ? [`${stale} source(s) are stale — re-ingest recommended`] : []),
+          ...(goldChecked < goldTotal ? [`${goldTotal - goldChecked} Gold source(s) not yet checked — higher trust band possible with full Gold coverage`] : []),
+          ...(gated > 0 ? [`${gated} source(s) are gated — institutional access or API key needed`] : []),
+        ],
+      });
+    } catch (err) {
+      log('error', 'identity: coverage failed', { npi, error: String(err) });
+      res.status(500).json({ error: 'Coverage check failed' });
+    }
+  });
+
+  /**
+   * GET /api/identity/:npi/trust-explanation
+   *
+   * Why this clinician's trust is at a certain level — what sources
+   * were used, what's missing, what the confidence limitations are.
+   */
+  app.get('/api/identity/:npi([0-9]{10})/trust-explanation', async (req: Request, res: Response) => {
+    const { npi } = req.params;
+
+    try {
+      const claims = await getClaimsForNpi(npi);
+      if (claims.length === 0) {
+        res.json({
+          npi,
+          explanation: 'No identity claims have been ingested for this NPI.',
+          trustLimitations: ['No data — cannot compute trust band'],
+          recommendation: `POST /api/identity/${npi}/ingest to begin verification`,
+        });
+        return;
+      }
+
+      const tiers = claims.map(c => c.tier);
+      const hasGold   = tiers.includes('GOLD');
+      const hasSilver = tiers.includes('SILVER');
+      const goldCount = claims.filter(c => c.tier === 'GOLD').length;
+      const silverCount = claims.filter(c => c.tier === 'SILVER').length;
+      const reviewPending = claims.filter(c => c.reviewRequired && !c.humanReviewAt).length;
+      const uncertainClaims = claims.filter(c => c.confidence === 'UNCERTAIN');
+
+      const limitations: string[] = [];
+      if (!hasGold) limitations.push('No Gold-tier claims — trust band capped at L1');
+      if (uncertainClaims.length > 0) limitations.push(`${uncertainClaims.length} claim(s) have UNCERTAIN confidence — manual review needed`);
+      if (reviewPending > 0) limitations.push(`${reviewPending} claim(s) awaiting human review`);
+
+      const exclusionClaim = claims.find(c => c.claimType === 'EXCLUSION_STATUS');
+      if (!exclusionClaim) limitations.push('OIG exclusion status not checked — trust band capped at L1');
+      if (exclusionClaim?.confidence === 'UNCERTAIN') limitations.push('OIG check returned uncertain result — trust band capped at L1');
+
+      const sources = [...new Set(claims.map(c => c.sourceId))];
+      const tierExplanation = hasGold
+        ? TRUST_TIER_COPY.GOLD.description
+        : hasSilver
+        ? TRUST_TIER_COPY.SILVER.description
+        : TRUST_TIER_COPY.BRONZE.description;
+
+      res.json({
+        npi,
+        highestTier: hasGold ? 'GOLD' : hasSilver ? 'SILVER' : 'BRONZE',
+        tierExplanation,
+        claimBreakdown: {
+          gold: goldCount,
+          silver: silverCount,
+          bronze: claims.filter(c => c.tier === 'BRONZE').length,
+          total: claims.length,
+        },
+        sourcesUsed: sources,
+        trustLimitations: limitations,
+        reviewPending,
+        provenance: `${claims.length} claims derived from ${sources.length} source(s). Every claim traces to a source artifact with timestamp, checksum, and parser version.`,
+      });
+    } catch (err) {
+      log('error', 'identity: trust-explanation failed', { npi, error: String(err) });
+      res.status(500).json({ error: 'Trust explanation failed' });
     }
   });
 }

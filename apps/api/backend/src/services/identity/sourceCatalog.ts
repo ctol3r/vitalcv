@@ -209,6 +209,32 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     notes: 'API version 2.0.5. dataTimestamp available. Search by investigator name. No auth required.',
   },
 
+  // ── Phase 1.5: CMS Provider Data NDF Bulk ──────────────────────────────────
+
+  CMS_NDF: {
+    id: 'CMS_NDF', name: 'CMS National Downloadable File (Provider Data)', phase: 1,
+    description: 'Biweekly official bulk file: NPI, credential, medical school, graduation year, specialties, telehealth, Medicare assignment, group affiliation, practice address. Critical Gold-tier bulk backbone.',
+    tier: 'GOLD', accessPattern: 'BULK_FILE', refreshCadence: 'MONTHLY', refreshSlaHours: 360,
+    baseUrl: 'https://data.cms.gov/provider-data/dataset/mj5m-pzi6',
+    bulkFileUrl: 'https://data.cms.gov/provider-data/sites/default/files/resources/',
+    claimTypes: ['ENROLLMENT_STATUS', 'SPECIALTY', 'PRACTICE_LOCATION', 'INSTITUTION_AFFILIATION', 'BOARD_CERT_FLAG', 'GROUP_AFFILIATION'],
+    parserVersion: 'v1.0.0', envFlag: 'CMS_NDF_ENABLED', liveAvailable: false,
+    notes: 'DISTINCT from D&C API — NDF bulk has fields API does not expose (medical school, graduation year, telehealth, assignment). Biweekly refresh. Delta comparison required. This is the Gold-tier bulk backbone.',
+  },
+
+  // ── Phase 3.5: Nursys Split ───────────────────────────────────────────────
+
+  NURSYS_ENOTIFY: {
+    id: 'NURSYS_ENOTIFY', name: 'Nursys e-Notify (NCSBN)', phase: 3,
+    description: 'Push-based real-time monitoring for nurse license status changes. The CORRECT monitoring path for nursing — NOT QuickConfirm scraping.',
+    tier: 'GOLD', accessPattern: 'LICENSED', refreshCadence: 'REALTIME', refreshSlaHours: 24,
+    baseUrl: 'https://www.nursys.com/EN/ENDefault.aspx',
+    bulkFileUrl: null,
+    claimTypes: ['NURSING_LICENSE', 'NURSING_DISCIPLINE'],
+    parserVersion: 'v1.0.0', envFlag: 'NURSYS_ENOTIFY_ENABLED', liveAvailable: false,
+    notes: 'Requires NCSBN institutional enrollment. Push notifications on status changes. This is the path VitalCV should pursue for nursing.',
+  },
+
   // ── Phase 5: Institution Layer ────────────────────────────────────────────────
 
   HOSPITAL_DIRECTORY: {
@@ -218,7 +244,7 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     baseUrl: '', bulkFileUrl: null,
     claimTypes: ['INSTITUTION_AFFILIATION'],
     parserVersion: 'v1.0.0', envFlag: 'HOSPITAL_DIR_ENABLED', liveAvailable: false,
-    notes: 'Requires per-institution scrape pipelines. Silver tier only — corroborate with NPPES/PECOS.',
+    notes: 'Low priority. Requires per-institution scrape pipelines. Silver tier only. Build AFTER all Gold sources are solid.',
   },
 };
 
@@ -246,4 +272,13 @@ export function getActiveSources(): SourceDefinition[] {
 
 export function listSources(): SourceDefinition[] {
   return Object.values(SOURCE_CATALOG).sort((a, b) => a.phase - b.phase || a.name.localeCompare(b.name));
+}
+
+/**
+ * Get sources safe for automated production use (green risk, allowed automation).
+ */
+export function getAutomationSafeSources(): SourceDefinition[] {
+  // Import avoided for circular-dep safety; inline the check
+  const safeIds = ['NPPES_API', 'NPPES_BULK', 'PECOS_PUBLIC', 'DOCTORS_CLINICIANS', 'CMS_NDF', 'OIG_LEIE', 'OPEN_PAYMENTS', 'OPENALEX', 'PUBMED', 'CLINICAL_TRIALS'];
+  return Object.values(SOURCE_CATALOG).filter(s => safeIds.includes(s.id));
 }
