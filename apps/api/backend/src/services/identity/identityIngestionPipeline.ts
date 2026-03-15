@@ -29,6 +29,11 @@ import {
   fetchSamGov, parseSamGovResult,
   fetchDoctorsAndClinicians, parseDoctorsAndClinicians,
 } from './phase2Sources';
+import {
+  fetchNursys, parseNursysResult,
+  fetchStateBoardLicense, parseStateBoardResult,
+  extractPracticeStates,
+} from './phase3Sources';
 import { buildIdentitySummary, type CanonicalIdentitySummary } from './evidenceModel';
 import {
   appendIdentityIndexArtifact,
@@ -1377,9 +1382,65 @@ const handlers: Record<string, SourceHandler> = {
         };
       },
     }),
+
+  NURSYS: async (npi, observedAt) =>
+    executeSourceIngestion({
+      npi,
+      observedAt,
+      sourceId: 'NURSYS',
+      parserVersion: 'v1.0.0',
+      matchingStrategy: 'NPI_EXACT',
+      fetchSource: (_npi: string) => fetchNursys(_npi),
+      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {
+        const { claims, receipts } = parseNursysResult(npi, raw, artifactId, checksum, parsedObservedAt);
+        return {
+          status: 'SUCCESS',
+          claims, receipts,
+          matchingStrategy: 'NPI_EXACT',
+          mergeReason: 'Nursys national nurse licensure database',
+        };
+      },
+    }),
+
+  STATE_BOARD: async (npi, observedAt) => {
+    // Multi-state: fetch existing claims to find practice states, then verify each
+    const existingClaims = await loadClaimRecordsForNpi(npi);
+    const states = extractPracticeStates(existingClaims);
+
+    if (states.length === 0) {
+      return {
+        npi, source: 'STATE_BOARD', status: 'SKIPPED' as const,
+        artifactId: null, claimsEmitted: 0, deltaEvents: [],
+        latencyMs: 0,
+      };
+    }
+
+    // Run first state (most common) through the pipeline
+    const primaryState = states[0]!;
+    const nameClaim = existingClaims.find(c => c.claimType === 'PERSONAL_IDENTITY');
+    const lastName = (nameClaim?.value as Record<string, unknown>)?.lastName as string | undefined;
+
+    return executeSourceIngestion({
+      npi,
+      observedAt,
+      sourceId: 'STATE_BOARD',
+      parserVersion: 'v1.0.0',
+      matchingStrategy: 'NPI_EXACT',
+      fetchSource: (_npi: string) => fetchStateBoardLicense(_npi, primaryState, lastName),
+      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {
+        const { claims, receipts } = parseStateBoardResult(npi, primaryState, raw, artifactId, checksum, parsedObservedAt);
+        return {
+          status: claims.length > 0 ? 'SUCCESS' : 'SKIPPED',
+          claims, receipts,
+          matchingStrategy: 'NPI_EXACT',
+          mergeReason: `State board verification for ${primaryState}${states.length > 1 ? ` (+ ${states.length - 1} additional states pending)` : ''}`,
+        };
+      },
+    });
+  },
 };
 
-export type IngestionSources = 'NPPES_API' | 'OIG_LEIE' | 'PECOS_PUBLIC' | 'OPEN_PAYMENTS' | 'SAM_GOV' | 'DOCTORS_CLINICIANS' | 'OPENALEX' | 'ALL';
+export type IngestionSources = 'NPPES_API' | 'OIG_LEIE' | 'PECOS_PUBLIC' | 'OPEN_PAYMENTS' | 'SAM_GOV' | 'DOCTORS_CLINICIANS' | 'NURSYS' | 'STATE_BOARD' | 'OPENALEX' | 'ALL';
 
 export async function ingestClinicianIdentity(
   npi: string,
