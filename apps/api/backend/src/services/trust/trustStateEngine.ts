@@ -659,13 +659,15 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
       });
     } catch (err) {
       log('warn', 'trust_state_engine_oig_error', { npi, error: String(err) });
-      // Default to clear on error — don't block on OIG failure
+      // OIG failure is NOT a silent pass — cap trust band at L1 max
+      exclusionClear = false;
+      exclusionStatus = 'UNKNOWN' as ExclusionStatus;
       facts.push({
         factType: 'Sanction',
         source: 'OIG_LEIE',
         status: 'CHECK_FAILED',
         verifiedAt: computedAt,
-        details: 'OIG check unavailable — manual verification recommended',
+        details: 'OIG check unavailable — trust band capped at L1 until resolved. Manual verification required.',
       });
     }
   }

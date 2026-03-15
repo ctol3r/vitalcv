@@ -8,16 +8,22 @@
  * POST /api/identity/:npi/ingest             — trigger multi-source ingestion
  * GET  /api/identity/sources                 — source catalog
  * GET  /api/identity/sources/:id             — single source definition
+ * GET  /api/identity/:npi/monitor            — run all alert rules, check SLA freshness
+ * POST /api/identity/monitor/batch           — batch monitoring across all tracked clinicians
  */
 
 import type { Express, Request, Response } from 'express';
 import {
   ingestClinicianIdentity,
   getClaimsForNpi,
+  getVerificationReceiptsForNpi,
   type IngestionSources,
 } from '../services/identity/identityIngestionPipeline';
 import { buildIdentitySummary } from '../services/identity/evidenceModel';
 import { listSources, getSource } from '../services/identity/sourceCatalog';
+import { monitorClinicianIdentity, monitorAllTrackedClinicians } from '../services/identity/changeMonitor';
+import { getWatchtowerState, registerWatchlist } from '../services/identity/watchtowerEngine';
+import { listWatchlists } from '../services/identity/watchtowerStore';
 import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
 
@@ -72,6 +78,73 @@ export function registerIdentityLayerRoutes(app: Express): void {
     const src = getSource(req.params.id!);
     if (!src) { res.status(404).json({ error: `Source not found: ${req.params.id}` }); return; }
     res.json({ ...src, currentlyActive: process.env[src.envFlag] === 'true' || src.liveAvailable });
+  });
+
+  app.get('/api/identity/watchlists', async (_req: Request, res: Response) => {
+    try {
+      const watchlists = await listWatchlists();
+      res.json({
+        total: watchlists.length,
+        watchlists,
+      });
+    } catch (err) {
+      log('error', 'identity: watchlists GET failed', { error: String(err) });
+      res.status(500).json({ error: 'Watchlist fetch failed' });
+    }
+  });
+
+  app.post('/api/identity/watchlists', async (req: Request, res: Response) => {
+    try {
+      const {
+        name,
+        ownerOrganizationId,
+        targetType,
+        targetValue,
+        claimType,
+        fieldPath,
+        severityFloor,
+        suppressionWindowMinutes,
+        deliveryChannels,
+        webhookUrl,
+        metadata,
+      } = req.body ?? {};
+
+      if (!name || typeof name !== 'string') {
+        res.status(400).json({ error: 'name is required' });
+        return;
+      }
+      if (!targetType || !['PROVIDER', 'INSTITUTION', 'CLAIM_CLASS'].includes(String(targetType))) {
+        res.status(400).json({ error: 'targetType must be PROVIDER, INSTITUTION, or CLAIM_CLASS' });
+        return;
+      }
+      if (!targetValue || typeof targetValue !== 'string') {
+        res.status(400).json({ error: 'targetValue is required' });
+        return;
+      }
+
+      const watchlist = await registerWatchlist({
+        name,
+        ...(typeof ownerOrganizationId === 'string' ? { ownerOrganizationId } : {}),
+        targetType: targetType as 'PROVIDER' | 'INSTITUTION' | 'CLAIM_CLASS',
+        targetValue,
+        ...(typeof claimType === 'string' ? { claimType } : {}),
+        ...(typeof fieldPath === 'string' ? { fieldPath } : {}),
+        ...(typeof severityFloor === 'string'
+          ? { severityFloor: severityFloor as 'INFO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' }
+          : {}),
+        ...(typeof suppressionWindowMinutes === 'number' ? { suppressionWindowMinutes } : {}),
+        ...(Array.isArray(deliveryChannels)
+          ? { deliveryChannels: deliveryChannels.filter((entry): entry is string => typeof entry === 'string') }
+          : {}),
+        ...(typeof webhookUrl === 'string' ? { webhookUrl } : {}),
+        ...(metadata && typeof metadata === 'object' && !Array.isArray(metadata) ? { metadata } : {}),
+      });
+
+      res.status(201).json({ watchlist });
+    } catch (err) {
+      log('error', 'identity: watchlist POST failed', { error: String(err) });
+      res.status(500).json({ error: 'Watchlist creation failed' });
+    }
   });
 
   /**
@@ -264,16 +337,7 @@ export function registerIdentityLayerRoutes(app: Express): void {
     const { npi } = req.params;
 
     try {
-      const artifacts = await prisma.verificationArtifact.findMany({
-        where: { npi, lifecycleState: 'active', source: { not: 'TRUST_STATE_ENGINE' } },
-        select: { rawPayload: true, source: true },
-        orderBy: { createdAt: 'desc' },
-        take: 100,
-      });
-
-      const receipts = artifacts.flatMap(a =>
-        ((a.rawPayload as Record<string, unknown>)?._receipts ?? []) as unknown[]
-      );
+      const receipts = await getVerificationReceiptsForNpi(npi);
 
       res.json({
         npi,
@@ -284,6 +348,21 @@ export function registerIdentityLayerRoutes(app: Express): void {
     } catch (err) {
       log('error', 'identity: receipts GET failed', { npi, error: String(err) });
       res.status(500).json({ error: 'Receipts fetch failed' });
+    }
+  });
+
+  app.get('/api/identity/:npi([0-9]{10})/watchtower', async (req: Request, res: Response) => {
+    const { npi } = req.params;
+
+    try {
+      const state = await getWatchtowerState(npi);
+      res.json({
+        npi,
+        ...state,
+      });
+    } catch (err) {
+      log('error', 'identity: watchtower GET failed', { npi, error: String(err) });
+      res.status(500).json({ error: 'Watchtower state fetch failed' });
     }
   });
 
@@ -330,6 +409,51 @@ export function registerIdentityLayerRoutes(app: Express): void {
       res.status(500).json({ error: 'Ingestion failed', detail: String(err) });
     } finally {
       inFlight.delete(npi);
+    }
+  });
+
+  /**
+   * GET /api/identity/:npi/monitor
+   *
+   * Run all alert rules against a clinician's identity claims.
+   * Checks: exclusions, license status, expiring creds, source SLA freshness.
+   * Returns MonitorReport with overall health and actionable alerts.
+   */
+  app.get('/api/identity/:npi([0-9]{10})/monitor', async (req: Request, res: Response) => {
+    const { npi } = req.params;
+    try {
+      const report = await monitorClinicianIdentity(npi);
+      const statusCode = report.overallHealth === 'CRITICAL' ? 207 : 200;
+      res.status(statusCode).json({
+        schema: 'https://vitalcv.com/identity-monitor/v1',
+        ...report,
+      });
+    } catch (err) {
+      log('error', 'identity: monitor failed', { npi, error: String(err) });
+      res.status(500).json({ error: 'Monitor check failed' });
+    }
+  });
+
+  /**
+   * POST /api/identity/monitor/batch
+   *
+   * Run monitoring across all tracked clinicians (those with IDENTITY_INDEX artifacts).
+   * Body: { limit?: number } — defaults to 100.
+   * Returns aggregate health stats + per-clinician reports.
+   */
+  app.post('/api/identity/monitor/batch', async (req: Request, res: Response) => {
+    const body  = req.body as Record<string, unknown>;
+    const limit = typeof body.limit === 'number' ? Math.min(body.limit, 500) : 100;
+
+    try {
+      const result = await monitorAllTrackedClinicians({ limit });
+      res.json({
+        schema: 'https://vitalcv.com/identity-monitor/v1',
+        ...result,
+      });
+    } catch (err) {
+      log('error', 'identity: batch monitor failed', { error: String(err) });
+      res.status(500).json({ error: 'Batch monitor failed' });
     }
   });
 }
