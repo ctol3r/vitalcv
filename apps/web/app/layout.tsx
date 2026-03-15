@@ -1,24 +1,25 @@
-import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher';
-import FeedbackButton from '@/components/feedback/FeedbackButton';
-import PrequalifyBar from '@/components/prequalify/PrequalifyBar';
-import Omnibar from '@/components/ops/Omnibar';
-import Footer from '@/components/layout/Footer';
-import Navbar from '@/components/layout/Navbar';
-import { BackgroundField } from '@/components/motion/BackgroundField';
-import { CursorPhysics } from '@/components/motion/CursorPhysics';
+import RootChrome from '@/components/layout/RootChrome';
 import { Toaster } from '@/components/ui/toaster';
-import { ClerkProvider, SignedIn } from '@clerk/nextjs';
+import { ClerkProvider } from '@clerk/nextjs';
 import type { Metadata } from 'next';
+import { Nunito_Sans } from 'next/font/google';
 import type React from 'react';
 import './globals.css';
 import '../styles/antigravity.css';
 import '../styles/typography.css';
 import Providers from './providers';
 
+const nunitoSans = Nunito_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
+  variable: '--font-nunito-sans',
+});
+
 const fontVariables = {
   '--font-fraunces': "'Fraunces', Georgia, serif",
-  '--font-inter': "'Inter', system-ui, sans-serif",
-  '--font-plus-jakarta': "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif",
+  '--font-inter': "var(--font-nunito-sans), 'Nunito Sans', system-ui, sans-serif",
+  '--font-plus-jakarta': "var(--font-nunito-sans), 'Nunito Sans', system-ui, sans-serif",
   '--font-jetbrains': "'JetBrains Mono', ui-monospace, monospace",
 } as React.CSSProperties;
 
@@ -35,27 +36,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const content = (
-    <html lang="en" style={fontVariables} suppressHydrationWarning>
+    <html
+      lang="en"
+      style={fontVariables}
+      suppressHydrationWarning
+      className={nunitoSans.variable}
+    >
       <body className="min-h-screen bg-background text-foreground antialiased font-sans">
         {/* Wave 11: Tactile grain overlay — fixed, pointer-events:none, z-50 */}
         <div aria-hidden="true" className="noise-overlay" />
         <Providers>
-          <BackgroundField />
-          <CursorPhysics />
-          <div className="relative flex min-h-screen flex-col">
-            <Navbar />
-            {clerkEnabled ? (
-              <SignedIn>
-                <WorkspaceSwitcher />
-              </SignedIn>
-            ) : null}
-            <div className="relative flex-1">{children}</div>
-            <Footer />
-          </div>
+          <RootChrome clerkEnabled={clerkEnabled}>{children}</RootChrome>
           <Toaster />
-          <FeedbackButton />
-          <PrequalifyBar />
-          <Omnibar />
         </Providers>
       </body>
     </html>

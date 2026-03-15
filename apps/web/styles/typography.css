@@ -22,8 +22,6 @@
  *   tag         → badges, chips, timestamps
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@8..144,100..1000&family=Google+Sans+Code:wght@400..700&display=swap');
-
 /* ── Font references (loaded via next/font in layout.tsx, plus Google Sans) ───────────── */
 
 :root {

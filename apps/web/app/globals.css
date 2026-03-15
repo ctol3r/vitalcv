@@ -1,13 +1,25 @@
+@import 'normalize.css/normalize.css';
+@import '@blueprintjs/core/lib/css/blueprint.css';
+@import '@blueprintjs/icons/lib/css/blueprint-icons.css';
+@import '@blueprintjs/table/lib/css/table.css';
+@import 'tippy.js/dist/tippy.css';
+@import 'tippy.js/animations/shift-away-subtle.css';
 @import 'tailwindcss';
 @import '../styles/design-tokens.css';
 @import '../styles/utilities.css';
 @import '../styles/typography.css';
 @import '../styles/tokens.css';
 @import '../styles/vitalTokens.css';
-@import '../styles/graph-foundry.css';
+@import '../styles/blueprint-overrides.css';
+@import '../styles/graph.css';
 /* glue.css superseded by antigravity.css (imported in layout.tsx) */
 
 @custom-variant dark (&:is(.dark *));
+
+html,
+body {
+  font-family: var(--font-body);
+}
 
 /* ─────────────────────────────────────────────────────────────
    VitalCV Design System — Warm Minimalism + Liquid Glass

@@ -258,4 +258,32 @@
 .trust-l3 { color: var(--trust-l3-fg); background: var(--trust-l3-bg); }
 .trust-l2 { color: var(--trust-l2-fg); background: var(--trust-l2-bg); }
 .trust-l1 { color: var(--trust-l1-fg); background: var(--trust-l1-bg); }
+
+/* ── 7. Operational Graph Shell Tokens ───────────────────────────────────── */
+
+:root {
+  --vital-ops-background: rgb(8 14 24);
+  --vital-ops-panel: rgb(12 19 31 / 0.94);
+  --vital-ops-panel-alt: rgb(16 25 40 / 0.96);
+  --vital-ops-hover: rgb(20 32 51 / 0.88);
+  --vital-ops-border: rgb(57 73 96 / 0.7);
+  --vital-ops-border-subtle: rgb(57 73 96 / 0.42);
+  --vital-ops-text-primary: rgb(226 232 240 / 0.94);
+  --vital-ops-text-secondary: rgb(191 203 219 / 0.82);
+  --vital-ops-text-muted: rgb(122 143 166 / 0.82);
+  --vital-ops-accent-blue: rgb(96 165 250);
+  --vital-ops-accent-cyan: rgb(34 211 238);
+  --vital-ops-accent-yellow: rgb(250 204 21);
+  --vital-ops-accent-magenta: rgb(244 114 182);
+  --vital-ops-danger: rgb(248 113 113);
+  --vital-ops-success: rgb(74 222 128);
+  --vital-ops-topbar-height: 3.9rem;
+  --vital-ops-sidebar-width: 20rem;
+  --vital-ops-context-width: 23rem;
+}
+
+.vital-ops-theme {
+  color: var(--vital-ops-text-primary);
+  background-color: var(--vital-ops-background);
+}
 .trust-l0 { color: var(--trust-l0-fg); background: var(--trust-l0-bg); }

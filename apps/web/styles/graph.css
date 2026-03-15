@@ -1,0 +1,246 @@
+.vital-graph-stage {
+  position: relative;
+  height: 100%;
+  min-height: calc(100dvh - var(--vital-ops-topbar-height) - 1.75rem);
+  overflow: hidden;
+  border: 1px solid var(--vital-ops-border-subtle);
+  border-radius: 1.15rem;
+  background:
+    radial-gradient(circle at 20% 14%, rgb(34 211 238 / 0.1), transparent 34%),
+    radial-gradient(circle at 80% 12%, rgb(59 130 246 / 0.12), transparent 28%),
+    linear-gradient(180deg, rgb(6 13 24 / 0.98), rgb(5 10 18));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.03),
+    0 32px 80px rgb(2 6 23 / 0.3);
+}
+
+.vital-graph-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgb(51 65 85 / 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(51 65 85 / 0.16) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: radial-gradient(circle at center, black 30%, transparent 100%);
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.vital-graph-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.vital-graph-loading {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  border: 1px solid rgb(34 211 238 / 0.24);
+  border-radius: 999px;
+  background: rgb(5 17 30 / 0.9);
+  color: var(--vital-ops-accent-cyan);
+  padding: 0.45rem 0.85rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vital-graph-statusbar {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--vital-ops-border-subtle);
+  border-radius: 0.95rem;
+  background: rgb(5 12 21 / 0.74);
+  backdrop-filter: blur(18px);
+  padding: 0.65rem 0.8rem;
+}
+
+.vital-graph-statusbar__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.vital-graph-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  background: rgb(15 23 42 / 0.84);
+  border: 1px solid rgb(71 85 105 / 0.4);
+  color: var(--vital-ops-text-secondary);
+  padding: 0.32rem 0.58rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vital-graph-badge--accent {
+  border-color: rgb(59 130 246 / 0.32);
+  color: var(--vital-ops-accent-blue);
+}
+
+.vital-legend-list,
+.vital-inspector-list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.vital-legend-item,
+.vital-inspector-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--vital-ops-border-subtle);
+  border-radius: 0.85rem;
+  background: rgb(9 16 28 / 0.8);
+  padding: 0.65rem 0.75rem;
+}
+
+.vital-legend-item__meta,
+.vital-inspector-item__meta {
+  display: grid;
+  gap: 0.14rem;
+}
+
+.vital-legend-item__label,
+.vital-inspector-item__label {
+  color: var(--vital-ops-text-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.vital-legend-item__detail,
+.vital-inspector-item__detail {
+  color: var(--vital-ops-text-muted);
+  font-size: 0.72rem;
+}
+
+.vital-swatch {
+  width: 0.72rem;
+  height: 0.72rem;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08);
+}
+
+.vital-swatch--line {
+  width: 1.65rem;
+  height: 0.18rem;
+  border-radius: 999px;
+}
+
+.vital-graph-tooltip {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 16rem;
+}
+
+.vital-graph-tooltip__header {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.vital-graph-tooltip__title {
+  color: var(--vital-ops-text-primary);
+  font-size: 0.94rem;
+  font-weight: 700;
+}
+
+.vital-graph-tooltip__subtitle {
+  color: var(--vital-ops-text-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vital-graph-tooltip__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.vital-graph-tooltip__metric {
+  display: grid;
+  gap: 0.1rem;
+  border: 1px solid rgb(71 85 105 / 0.28);
+  border-radius: 0.7rem;
+  background: rgb(8 14 24 / 0.88);
+  padding: 0.45rem 0.55rem;
+}
+
+.vital-graph-tooltip__metric-label {
+  color: var(--vital-ops-text-muted);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vital-graph-tooltip__metric-value {
+  color: var(--vital-ops-text-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.tippy-box[data-theme~='vital-graph'] {
+  border: 1px solid rgb(56 189 248 / 0.22);
+  border-radius: 0.9rem;
+  background: rgb(5 12 20 / 0.94);
+  color: var(--vital-ops-text-primary);
+  box-shadow: 0 24px 60px rgb(2 6 23 / 0.4);
+  backdrop-filter: blur(18px);
+}
+
+.tippy-box[data-theme~='vital-graph'] > .tippy-content {
+  padding: 0.8rem;
+}
+
+.tippy-box[data-theme~='vital-graph'] > .tippy-arrow::before {
+  color: rgb(5 12 20 / 0.94);
+}
+
+.vital-graph-drawer {
+  background:
+    linear-gradient(180deg, rgb(13 22 35 / 0.98), rgb(8 14 24 / 0.98));
+  color: var(--vital-ops-text-primary);
+}
+
+.vital-graph-tabs {
+  display: grid;
+  gap: 0.875rem;
+}
+
+.vital-empty-state {
+  border: 1px dashed var(--vital-ops-border-subtle);
+  border-radius: 0.85rem;
+  background: rgb(8 14 24 / 0.52);
+  color: var(--vital-ops-text-muted);
+  padding: 0.95rem;
+  text-align: center;
+}
+
+@media (max-width: 980px) {
+  .vital-graph-stage {
+    min-height: 34rem;
+  }
+
+  .vital-graph-statusbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

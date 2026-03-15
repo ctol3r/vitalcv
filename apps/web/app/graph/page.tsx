@@ -1,457 +1,599 @@
 'use client';
 
-/**
- * /graph — Foundry-class graph explorer
- *
- * Dual graph system: Knowledge + Trust + Blended, with:
- * - Named physics presets (balanced / clustered / explore / dense / presentation)
- * - DOM tooltip overlay at hover position
- * - Cluster hull visualization
- * - Semantic edge color vocabulary
- * - Collision-aware force physics
- */
+import { Card } from '@blueprintjs/core';
+import { RefreshCw, Sparkles, Target } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { NodeNeighborSummary } from '@/components/graph-system/nodeDetailModel';
+import type { GraphEdge, GraphLayer, GraphNode } from '@/components/graph-system/types';
+import GraphCanvas from '@/components/graph-system/GraphCanvas';
+import { GraphControls } from '@/components/graph/GraphControls';
+import { GraphInspector } from '@/components/graph/GraphInspector';
+import { GraphLegend } from '@/components/graph/GraphLegend';
+import { useGraphInteractions } from '@/components/graph/hooks/useGraphInteractions';
+import { applyPhysicsPreset } from '@/components/graph/physics/presets';
+import {
+  classifyEdgeType,
+  collectNodeTypes,
+  collectTrustTiers,
+  DEFAULT_GRAPH_DISPLAY_STATE,
+  deriveClusterId,
+  resolveGraphStats,
+  type GraphDisplayState,
+} from '@/components/graph/state/graphDisplayState';
+import { AppShell } from '@/components/shell/AppShell';
+import { ContextPanel } from '@/components/shell/ContextPanel';
+import { Sidebar } from '@/components/shell/Sidebar';
+import { TopNav } from '@/components/shell/TopNav';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import GraphCanvas from '../../components/graph-system/GraphCanvas';
-import GraphControls from '../../components/graph-system/GraphControls';
-import NodeDetail from '../../components/graph-system/NodeDetail';
-import GraphTooltip from '../../components/graph-system/GraphTooltip';
-import type {
-  GraphNode, GraphEdge, FilterConfig, DisplayConfig, PhysicsConfig,
-  GraphLayer, PhysicsPreset,
-} from '../../components/graph-system/types';
-import { PHYSICS_PRESETS } from '../../components/graph-system/types';
-import type { NodeNeighborSummary } from '../../components/graph-system/nodeDetailModel';
-
-// ── Default config ────────────────────────────────────────────────────────────
-
-const defaultFilters: FilterConfig = {
-  nodeTypes:       [],
-  edgeTypes:       [],
-  trustTiers:      ['GOLD', 'SILVER', 'BRONZE'],
-  tags:            [],
-  showOrphans:     false,
-  showAttachments: true,
-  showExplicit:    true,
-  showInferred:    true,
-  showAiLinks:     true,
-  showDirected:    true,
-  searchTerm:      '',
-  groups:          [],
-};
-
-const defaultDisplay: DisplayConfig = {
-  showArrows:        true,
-  showLabels:        true,
-  showClusterHulls:  true,
-  animate:           true,
-  nodeSize:          6,
-  linkThickness:     1.5,
-  textFadeThreshold: 0.5,
-  colorMode:         'type',
-  clusterMode:       'type',
-};
-
-// Start with the "balanced" preset
-const defaultPhysics: PhysicsConfig = PHYSICS_PRESETS[0]!.config;
-
-// ── API helpers ───────────────────────────────────────────────────────────────
-
-const API = '/api/graph-engine';
+const GRAPH_API = '/api/graph-engine';
 
 interface GraphQueryResponse {
   nodes?: GraphNode[];
   edges?: GraphEdge[];
-  stats?: {
-    totalNodes:      number;
-    totalEdges:      number;
-    orphanCount:     number;
-    aiSuggestedLinks: number;
-  };
 }
 
 interface NodeDetailState {
-  node:      GraphNode;
-  edges:     GraphEdge[];
+  node: GraphNode;
+  edges: GraphEdge[];
   neighbors: NodeNeighborSummary[];
 }
 
-async function fetchGraph(layer: GraphLayer, search?: string, fresh?: boolean) {
+async function fetchGlobalGraph(layer: GraphLayer, fresh = false) {
   const params = new URLSearchParams();
-  if (layer !== 'blended') params.set('graphMode', layer);
-  if (search) params.set('search', search);
+  if (layer !== 'blended') {
+    params.set('graphMode', layer);
+  }
   params.set('orphans', 'true');
-  if (fresh) params.set('ts', String(Date.now()));
-  const res = await fetch(`${API}/global?${params}`, { cache: 'no-store' });
-  return res.json() as Promise<GraphQueryResponse>;
+  if (fresh) {
+    params.set('ts', String(Date.now()));
+  }
+
+  const response = await fetch(`${GRAPH_API}/global?${params.toString()}`, { cache: 'no-store' });
+  return response.json() as Promise<GraphQueryResponse>;
 }
 
-async function fetchNodeNeighborhood(id: string, layer: GraphLayer) {
-  const params = new URLSearchParams({ depth: '2', limit: '200', orphans: 'true' });
-  if (layer !== 'blended') params.set('graphMode', layer);
-  const res = await fetch(`${API}/local/${encodeURIComponent(id)}?${params}`, { cache: 'no-store' });
-  return res.json() as Promise<GraphQueryResponse>;
+async function fetchLocalGraph(nodeId: string, layer: GraphLayer, fresh = false) {
+  const params = new URLSearchParams({
+    depth: '2',
+    limit: '240',
+    orphans: 'true',
+  });
+
+  if (layer !== 'blended') {
+    params.set('graphMode', layer);
+  }
+
+  if (fresh) {
+    params.set('ts', String(Date.now()));
+  }
+
+  const response = await fetch(
+    `${GRAPH_API}/local/${encodeURIComponent(nodeId)}?${params.toString()}`,
+    { cache: 'no-store' },
+  );
+  return response.json() as Promise<GraphQueryResponse>;
 }
 
 async function triggerRebuild() {
-  const res = await fetch(`${API}/rebuild`, { method: 'POST' });
-  return res.json();
+  const response = await fetch(`${GRAPH_API}/rebuild`, { method: 'POST' });
+  return response.json();
 }
 
 async function triggerAiLinks(nodeId?: string) {
-  const res = await fetch(`${API}/ai-links/suggest`, {
+  const response = await fetch(`${GRAPH_API}/ai-links/suggest`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(nodeId ? { targetNodeId: nodeId } : { graphMode: 'blended' }),
   });
-  return res.json();
+
+  return response.json();
 }
 
 function summarizeNodeDetail(
   nodeId: string,
-  allNodes: GraphNode[],
-  allEdges: GraphEdge[],
+  nodes: GraphNode[],
+  edges: GraphEdge[],
 ): NodeDetailState | null {
-  const focusNode = allNodes.find(n => n.id === nodeId);
-  if (!focusNode) return null;
+  const focusNode = nodes.find((node) => node.id === nodeId);
+  if (!focusNode) {
+    return null;
+  }
 
-  const connectedEdges = allEdges
-    .filter(e => e.source === nodeId || e.target === nodeId)
-    .sort((a, b) =>
-      (Date.parse(b.createdAt ?? b.updatedAt ?? '') || 0) - (Date.parse(a.createdAt ?? a.updatedAt ?? '') || 0) ||
-      (b.confidence ?? 0) - (a.confidence ?? 0),
+  const connectedEdges = edges
+    .filter((edge) => edge.source === nodeId || edge.target === nodeId)
+    .sort((left, right) =>
+      (Date.parse(right.createdAt ?? right.updatedAt ?? '') || 0) -
+        (Date.parse(left.createdAt ?? left.updatedAt ?? '') || 0) ||
+      (right.confidence ?? 0) - (left.confidence ?? 0)
     );
 
   const neighbors = connectedEdges
-    .map(edge => {
+    .map((edge) => {
       const neighborId = edge.source === nodeId ? edge.target : edge.source;
-      const n = allNodes.find(candidate => candidate.id === neighborId);
-      if (!n) return null;
-      return { id: n.id, label: n.label, type: n.type, degree: n.degree } as NodeNeighborSummary;
-    })
-    .filter((n): n is NodeNeighborSummary => n !== null)
-    .sort((a, b) => b.degree - a.degree || a.label.localeCompare(b.label));
+      const neighbor = nodes.find((node) => node.id === neighborId);
 
-  return { node: focusNode, edges: connectedEdges, neighbors };
+      if (!neighbor) {
+        return null;
+      }
+
+      return {
+        id: neighbor.id,
+        label: neighbor.label,
+        type: neighbor.type,
+        degree: neighbor.degree,
+      } satisfies NodeNeighborSummary;
+    })
+    .filter((neighbor): neighbor is NodeNeighborSummary => neighbor != null)
+    .sort((left, right) => right.degree - left.degree || left.label.localeCompare(right.label));
+
+  return {
+    node: focusNode,
+    edges: connectedEdges,
+    neighbors,
+  };
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
-
 export default function GraphPage() {
-  const [nodes, setNodes] = useState<GraphNode[]>([]);
-  const [edges, setEdges] = useState<GraphEdge[]>([]);
-  const [stats, setStats] = useState({ totalNodes: 0, totalEdges: 0, orphanCount: 0, aiSuggestedLinks: 0 });
+  const [graphData, setGraphData] = useState<{ nodes: GraphNode[]; edges: GraphEdge[] }>({
+    nodes: [],
+    edges: [],
+  });
+  const [displayState, setDisplayState] = useState<GraphDisplayState>(DEFAULT_GRAPH_DISPLAY_STATE);
   const [loading, setLoading] = useState(true);
-
-  const [layer, setLayer] = useState<GraphLayer>('blended');
-  const [filters, setFilters] = useState<FilterConfig>(defaultFilters);
-  const [display, setDisplay] = useState<DisplayConfig>(defaultDisplay);
-  const [physics, setPhysics] = useState<PhysicsConfig>(defaultPhysics);
-
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [nodeDetail, setNodeDetail] = useState<NodeDetailState | null>(null);
+  const [dimensions, setDimensions] = useState({ width: 1200, height: 820 });
 
-  // Tooltip state: hovered node + its screen position
-  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
-  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-
-  const [dimensions, setDimensions] = useState({ width: 1200, height: 800 });
-  const containerRef = useRef<HTMLDivElement>(null);
   const detailRequestRef = useRef(0);
-
-  // ── Resize ──────────────────────────────────────────────────────────────
+  const stageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function onResize() {
-      if (containerRef.current) {
-        setDimensions({
-          width: containerRef.current.clientWidth,
-          height: containerRef.current.clientHeight,
-        });
-      }
+    const element = stageRef.current;
+    if (!element) {
+      return;
     }
-    onResize();
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+
+    const updateDimensions = () => {
+      setDimensions({
+        width: element.clientWidth,
+        height: Math.max(element.clientHeight, 560),
+      });
+    };
+
+    updateDimensions();
+
+    const observer = new ResizeObserver(updateDimensions);
+    observer.observe(element);
+
+    return () => observer.disconnect();
   }, []);
 
-  // ── Load graph ──────────────────────────────────────────────────────────
-
-  const loadGraph = useCallback(async (fresh?: boolean) => {
+  const loadGraphSlice = useCallback(async (fresh = false) => {
     setLoading(true);
+
     try {
-      const data = await fetchGraph(layer, filters.searchTerm || undefined, fresh);
+      const response = displayState.viewMode === 'local' && displayState.localRootId
+        ? await fetchLocalGraph(displayState.localRootId, displayState.layer, fresh)
+        : await fetchGlobalGraph(displayState.layer, fresh);
 
-      let filteredNodes: GraphNode[] = (data.nodes ?? []).map((n: GraphNode) => ({
-        ...n,
+      const nextNodes = (response.nodes ?? []).map((node) => ({
+        ...node,
         visible: true,
-        clusterId: display.clusterMode === 'type'  ? n.type
-                 : display.clusterMode === 'group' ? n.group
-                 : display.clusterMode === 'tier'  ? (n.trustTier ?? 'NONE')
-                 : undefined,
+        clusterId: deriveClusterId(node, displayState.visuals.clusterMode),
+      }));
+      const nextEdges = (response.edges ?? []).map((edge) => ({
+        ...edge,
+        visible: true,
       }));
 
-      let filteredEdges: GraphEdge[] = (data.edges ?? []).map((e: GraphEdge) => ({
-        ...e, visible: true,
-      }));
-
-      // Apply filters
-      if (!filters.showAiLinks) {
-        filteredEdges = filteredEdges.filter(e => e.createdBy !== 'ai');
-      }
-      if (!filters.showInferred) {
-        filteredEdges = filteredEdges.filter(
-          e => e.type !== 'semantic_similarity' && e.type !== 'ai_suggested_link',
-        );
-      }
-      if (!filters.showExplicit) {
-        filteredEdges = filteredEdges.filter(e => e.type !== 'explicit_link');
-      }
-      if (filters.trustTiers.length > 0) {
-        filteredNodes = filteredNodes.filter(
-          n => !n.trustTier || filters.trustTiers.includes(n.trustTier),
-        );
-      }
-
-      // Remove edges to filtered-out nodes
-      const nodeIds = new Set(filteredNodes.map(n => n.id));
-      filteredEdges = filteredEdges.filter(
-        e => nodeIds.has(e.source) && nodeIds.has(e.target),
-      );
-
-      // Remove orphans unless requested
-      if (!filters.showOrphans) {
-        const connected = new Set<string>();
-        for (const e of filteredEdges) { connected.add(e.source); connected.add(e.target); }
-        filteredNodes = filteredNodes.filter(n => connected.has(n.id));
-      }
-
-      setNodes(filteredNodes);
-      setEdges(filteredEdges);
-      setStats({
-        totalNodes:       filteredNodes.length,
-        totalEdges:       filteredEdges.length,
-        orphanCount:      filteredNodes.filter(n => n.degree === 0).length,
-        aiSuggestedLinks: filteredEdges.filter(e => e.type === 'ai_suggested_link').length,
-      });
-    } catch (err) {
-      console.error('Graph load failed:', err);
+      setGraphData({ nodes: nextNodes, edges: nextEdges });
     } finally {
       setLoading(false);
     }
-  }, [layer, filters, display.clusterMode]);
+  }, [
+    displayState.layer,
+    displayState.localRootId,
+    displayState.viewMode,
+    displayState.visuals.clusterMode,
+  ]);
 
-  useEffect(() => { loadGraph(); }, [loadGraph]);
+  useEffect(() => {
+    void loadGraphSlice();
+  }, [loadGraphSlice]);
 
-  // ── Node selection ──────────────────────────────────────────────────────
+  const filteredGraph = useMemo(() => {
+    const query = displayState.filters.searchTerm.trim().toLowerCase();
 
-  const loadNodeDetail = useCallback(async (id: string) => {
-    const reqId = ++detailRequestRef.current;
+    let nodes = graphData.nodes.map((node) => ({
+      ...node,
+      clusterId: deriveClusterId(node, displayState.visuals.clusterMode),
+    }));
+    let edges = graphData.edges.filter((edge) =>
+      displayState.filters.linkClasses.includes(classifyEdgeType(edge)),
+    );
+
+    if (displayState.filters.nodeTypes.length > 0) {
+      nodes = nodes.filter((node) => displayState.filters.nodeTypes.includes(node.type));
+    }
+
+    if (displayState.filters.trustTiers.length > 0) {
+      nodes = nodes.filter((node) =>
+        !node.trustTier || displayState.filters.trustTiers.includes(node.trustTier),
+      );
+    }
+
+    if (!displayState.filters.showDirected) {
+      edges = edges.filter((edge) => !edge.directed || edge.reciprocal);
+    }
+
+    if (query.length > 0) {
+      nodes = nodes.filter((node) => {
+        const searchTargets = [
+          node.id,
+          node.label,
+          node.title,
+          node.group,
+          ...(node.tags ?? []),
+        ].join(' ').toLowerCase();
+
+        return searchTargets.includes(query);
+      });
+    }
+
+    let visibleNodeIds = new Set(nodes.map((node) => node.id));
+    edges = edges.filter((edge) => visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target));
+
+    if (!displayState.filters.showOrphans) {
+      const connectedNodeIds = new Set<string>();
+
+      for (const edge of edges) {
+        connectedNodeIds.add(edge.source);
+        connectedNodeIds.add(edge.target);
+      }
+
+      nodes = nodes.filter((node) => connectedNodeIds.has(node.id));
+      visibleNodeIds = new Set(nodes.map((node) => node.id));
+      edges = edges.filter((edge) => visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target));
+    }
+
+    return {
+      nodes,
+      edges,
+      stats: resolveGraphStats(nodes, edges),
+    };
+  }, [
+    displayState.filters,
+    displayState.visuals.clusterMode,
+    graphData.edges,
+    graphData.nodes,
+  ]);
+
+  const loadNodeDetail = useCallback(async (nodeId: string) => {
+    const requestId = ++detailRequestRef.current;
+
     try {
-      const detailGraph = await fetchNodeNeighborhood(id, layer);
-      if (detailRequestRef.current !== reqId) return;
-      setNodeDetail(summarizeNodeDetail(id, detailGraph.nodes ?? nodes, detailGraph.edges ?? edges));
+      const response = await fetchLocalGraph(nodeId, displayState.layer);
+      if (detailRequestRef.current !== requestId) {
+        return;
+      }
+
+      const detail = summarizeNodeDetail(
+        nodeId,
+        response.nodes ?? filteredGraph.nodes,
+        response.edges ?? filteredGraph.edges,
+      );
+      setNodeDetail(detail);
     } catch {
-      if (detailRequestRef.current === reqId) {
-        setNodeDetail(summarizeNodeDetail(id, nodes, edges));
+      if (detailRequestRef.current === requestId) {
+        setNodeDetail(summarizeNodeDetail(nodeId, filteredGraph.nodes, filteredGraph.edges));
       }
     }
-  }, [edges, layer, nodes]);
+  }, [displayState.layer, filteredGraph.edges, filteredGraph.nodes]);
 
-  const handleSelectNode = useCallback(async (id: string | null) => {
-    setSelectedNodeId(id);
-    if (id) await loadNodeDetail(id);
-    else setNodeDetail(null);
-  }, [loadNodeDetail]);
+  const handlePinNode = useCallback(async (nodeId: string, x: number, y: number) => {
+    setGraphData((current) => ({
+      ...current,
+      nodes: current.nodes.map((node) => (
+        node.id === nodeId
+          ? { ...node, x, y, fx: x, fy: y }
+          : node
+      )),
+    }));
 
-  // ── Hover + tooltip ─────────────────────────────────────────────────────
-
-  const handleHoverNode = useCallback((id: string | null, sx?: number, sy?: number) => {
-    setHoveredNodeId(id);
-    if (id && sx !== undefined && sy !== undefined) {
-      setTooltipPos({ x: sx, y: sy });
+    try {
+      await fetch(`${GRAPH_API}/node/pin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nodeId, x, y }),
+      });
+    } catch {
+      // Keep the local pin even if persistence is not available.
     }
   }, []);
 
-  const hoveredNode = hoveredNodeId ? (nodes.find(n => n.id === hoveredNodeId) ?? null) : null;
+  const handleSelectNode = useCallback(async (nodeId: string | null) => {
+    if (!nodeId) {
+      setNodeDetail(null);
+      return;
+    }
 
-  // ── Physics preset ──────────────────────────────────────────────────────
+    await loadNodeDetail(nodeId);
+  }, [loadNodeDetail]);
 
-  const handlePresetChange = useCallback((preset: PhysicsPreset) => {
-    setPhysics(preset.config);
+  const handleIsolateNode = useCallback(async (nodeId: string) => {
+    setDisplayState((current) => ({
+      ...current,
+      viewMode: 'local',
+      localRootId: nodeId,
+    }));
   }, []);
 
-  // ── Actions ─────────────────────────────────────────────────────────────
+  const interactions = useGraphInteractions({
+    nodes: filteredGraph.nodes,
+    edges: filteredGraph.edges,
+    onSelectNode: handleSelectNode,
+    onIsolateNode: handleIsolateNode,
+    onPinNode: handlePinNode,
+  });
+
+  const selectedNodeId = interactions.selectedNodeId;
+
+  useEffect(() => {
+    if (!selectedNodeId) {
+      setNodeDetail(null);
+      return;
+    }
+
+    setNodeDetail((current) => {
+      if (!current || current.node.id !== selectedNodeId) {
+        return current;
+      }
+
+      return summarizeNodeDetail(selectedNodeId, filteredGraph.nodes, filteredGraph.edges) ?? current;
+    });
+  }, [filteredGraph.edges, filteredGraph.nodes, selectedNodeId]);
+
+  const handleDragNode = useCallback((nodeId: string, x: number, y: number) => {
+    setGraphData((current) => ({
+      ...current,
+      nodes: current.nodes.map((node) => (
+        node.id === nodeId
+          ? { ...node, x, y }
+          : node
+      )),
+    }));
+  }, []);
+
+  const handleResetLayout = useCallback(() => {
+    setGraphData((current) => ({
+      ...current,
+      nodes: current.nodes.map((node) => ({
+        ...node,
+        x: undefined,
+        y: undefined,
+        fx: null,
+        fy: null,
+      })),
+    }));
+  }, []);
 
   const handleRebuild = useCallback(async () => {
     await triggerRebuild();
-    await loadGraph(true);
-    if (selectedNodeId) await loadNodeDetail(selectedNodeId);
-  }, [loadGraph, loadNodeDetail, selectedNodeId]);
+    await loadGraphSlice(true);
+    if (selectedNodeId) {
+      await loadNodeDetail(selectedNodeId);
+    }
+  }, [loadGraphSlice, loadNodeDetail, selectedNodeId]);
 
   const handleRunAiLinks = useCallback(async () => {
     await triggerAiLinks(selectedNodeId ?? undefined);
-    await loadGraph(true);
-    if (selectedNodeId) await loadNodeDetail(selectedNodeId);
-  }, [selectedNodeId, loadGraph, loadNodeDetail]);
-
-  const handleResetLayout = useCallback(() => {
-    setNodes(prev => prev.map(n => ({ ...n, fx: null, fy: null, x: undefined, y: undefined })));
-  }, []);
-
-  const handleSavePreset = useCallback(async (name: string) => {
-    const positions: Record<string, { x: number; y: number }> = {};
-    for (const n of nodes) {
-      if (n.x !== undefined && n.y !== undefined) {
-        positions[n.id] = { x: n.x, y: n.y };
-      }
+    await loadGraphSlice(true);
+    if (selectedNodeId) {
+      await loadNodeDetail(selectedNodeId);
     }
-    await fetch(`${API}/layout/save`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, positions }),
-    });
-  }, [nodes]);
-
-  const handleDragNode = useCallback((_id: string, _x: number, _y: number) => {
-    // Position updated in-canvas; no server sync on drag (only on pin)
-  }, []);
-
-  const handlePinNode = useCallback(async (id: string, x: number, y: number) => {
-    await fetch(`${API}/node/pin`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nodeId: id, x, y }),
-    });
-  }, []);
+  }, [loadGraphSlice, loadNodeDetail, selectedNodeId]);
 
   const handleAcceptSuggestion = useCallback(async (suggestionId: string) => {
-    await fetch(`${API}/ai-links/apply`, {
+    await fetch(`${GRAPH_API}/ai-links/apply`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ suggestionIds: [suggestionId], action: 'accept' }),
     });
-    await loadGraph(true);
-    if (selectedNodeId) await loadNodeDetail(selectedNodeId);
-  }, [loadGraph, loadNodeDetail, selectedNodeId]);
+    await loadGraphSlice(true);
+    if (selectedNodeId) {
+      await loadNodeDetail(selectedNodeId);
+    }
+  }, [loadGraphSlice, loadNodeDetail, selectedNodeId]);
 
   const handleRejectSuggestion = useCallback(async (suggestionId: string) => {
-    await fetch(`${API}/ai-links/apply`, {
+    await fetch(`${GRAPH_API}/ai-links/apply`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ suggestionIds: [suggestionId], action: 'reject' }),
     });
-    await loadGraph(true);
-    if (selectedNodeId) await loadNodeDetail(selectedNodeId);
-  }, [loadGraph, loadNodeDetail, selectedNodeId]);
+    await loadGraphSlice(true);
+    if (selectedNodeId) {
+      await loadNodeDetail(selectedNodeId);
+    }
+  }, [loadGraphSlice, loadNodeDetail, selectedNodeId]);
+
+  const handleSavePreset = useCallback(async (name: string) => {
+    const positions = filteredGraph.nodes.reduce<Record<string, { x: number; y: number }>>((accumulator, node) => {
+      if (typeof node.x === 'number' && typeof node.y === 'number') {
+        accumulator[node.id] = { x: node.x, y: node.y };
+      }
+      return accumulator;
+    }, {});
+
+    await fetch(`${GRAPH_API}/layout/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, positions }),
+    });
+  }, [filteredGraph.nodes]);
+
+  const sidebarActions = [
+    {
+      id: 'rebuild',
+      label: 'Rebuild slice',
+      icon: <RefreshCw className="h-3.5 w-3.5" />,
+      onClick: handleRebuild,
+    },
+    {
+      id: 'ai',
+      label: 'AI link sweep',
+      icon: <Sparkles className="h-3.5 w-3.5" />,
+      onClick: handleRunAiLinks,
+    },
+    {
+      id: 'reset',
+      label: 'Reset layout',
+      icon: <Target className="h-3.5 w-3.5" />,
+      onClick: handleResetLayout,
+    },
+  ];
+
+  const availableNodeTypes = useMemo(() => collectNodeTypes(graphData.nodes), [graphData.nodes]);
+  const availableTrustTiers = useMemo(() => collectTrustTiers(graphData.nodes), [graphData.nodes]);
 
   return (
-    <div
-      ref={containerRef}
-      className="fixed inset-0 overflow-hidden"
-      style={{ background: 'var(--gf-canvas)', fontFamily: 'var(--gf-font-ui)' }}
-    >
-      {/* Loading pill */}
-      {loading && (
-        <div
-          className="absolute top-4 left-1/2 -translate-x-1/2 z-50 text-[11px] px-4 py-1.5 rounded-full gf-statusbar"
-          style={{
-            background: 'rgba(13,20,33,0.9)',
-            border: '1px solid rgba(56,189,248,0.2)',
-            color: '#38bdf8',
-            fontFamily: 'var(--gf-font-ui)',
-          }}
-        >
-          Fetching graph…
-        </div>
-      )}
-
-      {/* Canvas */}
-      <GraphCanvas
-        nodes={nodes}
-        edges={edges}
-        physics={physics}
-        display={display}
-        selectedNodeId={selectedNodeId}
-        hoveredNodeId={hoveredNodeId}
-        onSelectNode={handleSelectNode}
-        onHoverNode={handleHoverNode}
-        onDoubleClickNode={handleSelectNode}
-        onDragNode={handleDragNode}
-        onPinNode={handlePinNode}
-        width={dimensions.width}
-        height={dimensions.height}
-      />
-
-      {/* Tooltip overlay */}
-      {!selectedNodeId && hoveredNode && (
-        <GraphTooltip
-          node={hoveredNode}
-          edges={edges}
-          screenX={tooltipPos.x}
-          screenY={tooltipPos.y}
-          canvasW={dimensions.width}
-          canvasH={dimensions.height}
-        />
-      )}
-
-      {/* Control panel */}
-      <GraphControls
-        filters={filters}
-        display={display}
-        physics={physics}
-        layer={layer}
-        stats={stats}
-        onFiltersChange={setFilters}
-        onDisplayChange={setDisplay}
-        onPhysicsChange={setPhysics}
-        onLayerChange={setLayer}
-        onPresetChange={handlePresetChange}
-        onRebuild={handleRebuild}
-        onRunAiLinks={handleRunAiLinks}
-        onResetLayout={handleResetLayout}
-        onSavePreset={handleSavePreset}
-      />
-
-      {/* Node inspector drawer */}
-      {nodeDetail && selectedNodeId && (
-        <NodeDetail
-          node={nodeDetail.node}
-          edges={nodeDetail.edges}
-          neighbors={nodeDetail.neighbors}
-          onClose={() => handleSelectNode(null)}
-          onFocusNode={handleSelectNode}
-          onAcceptSuggestion={handleAcceptSuggestion}
-          onRejectSuggestion={handleRejectSuggestion}
-        />
-      )}
-
-      {/* Status bar */}
-      <div
-        className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between px-5 py-1.5 gf-statusbar"
-        style={{
-          background: 'rgba(13,20,33,0.85)',
-          borderTop: '1px solid var(--gf-separator)',
-          color: 'var(--gf-text-tertiary)',
-          backdropFilter: 'blur(8px)',
-        }}
+    <>
+      <AppShell
+        topNav={(
+          <TopNav
+            layer={displayState.layer}
+            onReload={handleRebuild}
+            onResetLayout={handleResetLayout}
+            onRunAiLinks={handleRunAiLinks}
+            onSearchChange={(searchTerm) => {
+              setDisplayState((current) => ({
+                ...current,
+                filters: { ...current.filters, searchTerm },
+              }));
+            }}
+            searchValue={displayState.filters.searchTerm}
+            stats={filteredGraph.stats}
+            viewMode={displayState.viewMode}
+          />
+        )}
+        sidebar={(
+          <Sidebar
+            actions={sidebarActions}
+            subtitle="Control link classes, node classes, physics, and focus mode from one panel."
+            title="Graph Controls"
+          >
+            <GraphControls
+              availableNodeTypes={availableNodeTypes}
+              availableTrustTiers={availableTrustTiers}
+              canUseLocalMode={selectedNodeId != null || displayState.localRootId != null}
+              filters={displayState.filters}
+              layer={displayState.layer}
+              onFiltersChange={(filters) => setDisplayState((current) => ({ ...current, filters }))}
+              onLayerChange={(layer) => setDisplayState((current) => ({ ...current, layer }))}
+              onPhysicsChange={(physics) => setDisplayState((current) => ({ ...current, physics }))}
+              onPresetChange={(preset) => setDisplayState((current) => ({
+                ...current,
+                physics: applyPhysicsPreset(preset, current.physics.frozen),
+              }))}
+              onRebuild={handleRebuild}
+              onResetLayout={handleResetLayout}
+              onRunAiLinks={handleRunAiLinks}
+              onSavePreset={handleSavePreset}
+              onViewModeChange={(viewMode) => setDisplayState((current) => ({
+                ...current,
+                viewMode,
+                localRootId: viewMode === 'global'
+                  ? null
+                  : current.localRootId ?? selectedNodeId,
+              }))}
+              onVisualsChange={(visuals) => setDisplayState((current) => ({ ...current, visuals }))}
+              physics={displayState.physics}
+              stats={filteredGraph.stats}
+              viewMode={displayState.viewMode}
+              visuals={displayState.visuals}
+            />
+          </Sidebar>
+        )}
+        context={(
+          <ContextPanel
+            subtitle="Operational context stays visible while the inspector handles the selected node."
+            title="Legend + Focus"
+          >
+            <Card className="vital-panel vital-panel--dense">
+              <div className="vital-panel__header">
+                <div>
+                  <p className="vital-panel__eyebrow">Selected node</p>
+                  <h2 className="vital-panel__title">
+                    {nodeDetail?.node.title || nodeDetail?.node.label || 'Nothing selected'}
+                  </h2>
+                </div>
+              </div>
+              <p className="vital-panel__copy">
+                {nodeDetail
+                  ? `${nodeDetail.edges.length} visible relationships and ${nodeDetail.neighbors.length} inspectable neighbors.`
+                  : 'Click a node to open the inspector. Double-click to isolate a local neighborhood.'}
+              </p>
+            </Card>
+            <GraphLegend
+              colorMode={displayState.visuals.colorMode}
+              edges={filteredGraph.edges}
+              nodes={filteredGraph.nodes}
+            />
+          </ContextPanel>
+        )}
       >
-        <div className="flex gap-5 font-mono">
-          <span>{stats.totalNodes} nodes</span>
-          <span>{stats.totalEdges} edges</span>
-          {stats.orphanCount > 0 && <span>{stats.orphanCount} orphans</span>}
-          {stats.aiSuggestedLinks > 0 && (
-            <span style={{ color: '#f59e0b' }}>{stats.aiSuggestedLinks} AI suggestions</span>
-          )}
+        <div ref={stageRef} className="vital-graph-stage">
+          {loading ? (
+            <div className="vital-graph-loading">Loading graph slice...</div>
+          ) : null}
+
+          <GraphCanvas
+            edges={filteredGraph.edges}
+            height={dimensions.height}
+            highlightedEdgeIds={interactions.highlightedEdgeIds}
+            highlightedNodeIds={interactions.highlightedNodeIds}
+            hoveredNodeId={interactions.hoveredNodeId}
+            nodes={filteredGraph.nodes}
+            onDoubleClickNode={interactions.handleNodeDoubleClick}
+            onDragNode={handleDragNode}
+            onHoverNode={interactions.handleNodeHover}
+            onPinNode={interactions.handleNodePin}
+            onSelectNode={interactions.handleNodeClick}
+            physics={displayState.physics}
+            selectedNodeId={interactions.selectedNodeId}
+            visuals={displayState.visuals}
+            width={dimensions.width}
+          />
+
+          <div className="vital-graph-statusbar">
+            <div className="vital-graph-statusbar__group">
+              <span className="vital-graph-badge vital-graph-badge--accent">{displayState.layer}</span>
+              <span className="vital-graph-badge">{displayState.viewMode}</span>
+              <span className="vital-graph-badge">{displayState.physics.preset}</span>
+              {displayState.physics.frozen ? <span className="vital-graph-badge">frozen</span> : null}
+            </div>
+            <div className="vital-graph-statusbar__group">
+              <span className="vital-graph-badge">{filteredGraph.stats.totalNodes} nodes</span>
+              <span className="vital-graph-badge">{filteredGraph.stats.totalEdges} edges</span>
+              <span className="vital-graph-badge">{filteredGraph.stats.orphanCount} orphans</span>
+            </div>
+          </div>
         </div>
-        <div className="flex gap-4 font-mono">
-          <span className="uppercase tracking-wider">{layer}</span>
-          {display.clusterMode !== 'none' && (
-            <span style={{ color: 'var(--gf-text-secondary)' }}>cluster:{display.clusterMode}</span>
-          )}
-          {physics.frozen && <span style={{ color: '#38bdf8' }}>FROZEN</span>}
-        </div>
-      </div>
-    </div>
+      </AppShell>
+
+      <GraphInspector
+        edges={nodeDetail?.edges ?? []}
+        neighbors={nodeDetail?.neighbors ?? []}
+        node={nodeDetail?.node ?? null}
+        onAcceptSuggestion={handleAcceptSuggestion}
+        onClose={() => {
+          void interactions.closeInspector();
+        }}
+        onFocusNode={(nodeId) => {
+          void interactions.handleNodeClick(nodeId);
+        }}
+        onRejectSuggestion={handleRejectSuggestion}
+        open={interactions.inspectorOpen}
+      />
+    </>
   );
 }

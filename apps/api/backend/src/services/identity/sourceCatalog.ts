@@ -246,6 +246,31 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     parserVersion: 'v1.0.0', envFlag: 'HOSPITAL_DIR_ENABLED', liveAvailable: false,
     notes: 'Low priority. Requires per-institution scrape pipelines. Silver tier only. Build AFTER all Gold sources are solid.',
   },
+
+  // ── Phase 6: Research Identity Layer ─────────────────────────────────────
+  // RESERVED — not yet built. Schema and types exist. Build for AMC/research market.
+
+  ORCID: {
+    id: 'ORCID', name: 'ORCID', phase: 6 as unknown as 5,
+    description: 'Open Researcher and Contributor ID — persistent digital identifier for researchers',
+    tier: 'SILVER', accessPattern: 'API', refreshCadence: 'MONTHLY', refreshSlaHours: 720,
+    baseUrl: 'https://pub.orcid.org/v3.0',
+    bulkFileUrl: 'https://orcid.org/organizations/integrators/API',
+    claimTypes: ['PUBLICATION', 'CITATION_METRIC', 'CLINICAL_TRIAL', 'INSTITUTION_AFFILIATION'],
+    parserVersion: 'v0.0.0', envFlag: 'ORCID_ENABLED', liveAvailable: false,
+    notes: 'RESERVED for Wave M6. ORCID public API is free. Creates moat for AMC/research customers. Requires NPI→ORCID linking heuristic (name + affiliation match). Priority after all healthcare Gold sources stable.',
+  },
+
+  NIH_REPORTER: {
+    id: 'NIH_REPORTER', name: 'NIH RePORTER', phase: 6 as unknown as 5,
+    description: 'NIH Research Portfolio Online Reporting Tools — federal grant awards, PIs, institutions',
+    tier: 'GOLD', accessPattern: 'API', refreshCadence: 'WEEKLY', refreshSlaHours: 168,
+    baseUrl: 'https://api.reporter.nih.gov/v2',
+    bulkFileUrl: 'https://reporter.nih.gov/exporter',
+    claimTypes: ['CLINICAL_TRIAL', 'INSTITUTION_AFFILIATION', 'CITATION_METRIC'],
+    parserVersion: 'v0.0.0', envFlag: 'NIH_REPORTER_ENABLED', liveAvailable: false,
+    notes: 'RESERVED for Wave M6. Free public API. Gold tier — direct government source. Key for research-active clinicians at AMCs. Enables: funded investigator claims, federal funding disclosure, PI verification.',
+  },
 };
 
 // ── Accessors ─────────────────────────────────────────────────────────────────

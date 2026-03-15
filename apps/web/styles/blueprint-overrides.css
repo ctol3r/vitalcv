@@ -1,0 +1,324 @@
+.vital-blueprint {
+  color: var(--vital-ops-text-primary);
+  font-family: var(--font-body);
+}
+
+.vital-shell {
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at top left, rgb(34 211 238 / 0.11), transparent 32%),
+    radial-gradient(circle at top right, rgb(59 130 246 / 0.12), transparent 28%),
+    linear-gradient(180deg, rgb(8 16 28 / 0.96), rgb(8 14 24));
+}
+
+.vital-shell__topnav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(18px);
+}
+
+.vital-shell__body {
+  display: grid;
+  grid-template-columns: var(--vital-ops-sidebar-width) minmax(0, 1fr) var(--vital-ops-context-width);
+  gap: 0.875rem;
+  min-height: calc(100dvh - var(--vital-ops-topbar-height));
+  padding: 0.875rem;
+}
+
+.vital-shell__sidebar,
+.vital-shell__workspace,
+.vital-shell__context {
+  min-height: 0;
+}
+
+.vital-shell__workspace {
+  overflow: hidden;
+}
+
+.vital-topnav {
+  display: grid;
+  grid-template-columns: minmax(12rem, 20rem) minmax(18rem, 1fr) auto;
+  align-items: center;
+  gap: 0.875rem;
+  min-height: var(--vital-ops-topbar-height);
+  border-bottom: 1px solid var(--vital-ops-border-subtle);
+  background: rgb(7 13 23 / 0.88);
+  padding: 0 0.875rem;
+  box-shadow: 0 16px 48px rgb(2 6 23 / 0.22);
+}
+
+.vital-topnav__brand,
+.vital-topnav__search,
+.vital-topnav__metrics {
+  min-width: 0;
+}
+
+.vital-topnav__identity {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.vital-topnav__eyebrow,
+.vital-panel__eyebrow {
+  color: var(--vital-ops-text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.vital-topnav__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.vital-topnav__title,
+.vital-panel__title {
+  margin: 0;
+  color: var(--vital-ops-text-primary);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.vital-topnav__metrics {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.vital-topnav__metric {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 4rem;
+}
+
+.vital-topnav__metric-label {
+  color: var(--vital-ops-text-muted);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.vital-topnav__metric-value {
+  color: var(--vital-ops-text-primary);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.vital-topnav__pulse {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 1px solid rgb(56 189 248 / 0.35);
+  border-radius: 999px;
+  color: var(--vital-ops-accent-cyan);
+  background: rgb(6 22 38 / 0.72);
+  box-shadow: 0 0 0 1px rgb(34 211 238 / 0.08), 0 0 24px rgb(34 211 238 / 0.12);
+}
+
+.vital-search-input input {
+  height: 2.45rem;
+  border: 1px solid var(--vital-ops-border-subtle);
+  border-radius: 0.9rem;
+  background: rgb(7 13 22 / 0.8);
+  color: var(--vital-ops-text-primary);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.03);
+}
+
+.vital-search-input input::placeholder {
+  color: var(--vital-ops-text-muted);
+}
+
+.vital-panel {
+  border: 1px solid var(--vital-ops-border-subtle);
+  border-radius: 1rem;
+  background:
+    linear-gradient(180deg, rgb(14 25 40 / 0.94), rgb(10 18 30 / 0.98));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.03),
+    0 18px 48px rgb(2 6 23 / 0.26);
+}
+
+.vital-panel--dense {
+  padding: 0.95rem;
+}
+
+.vital-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.vital-panel__copy {
+  margin: 0.6rem 0 0;
+  color: var(--vital-ops-text-secondary);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.vital-sidebar-stack,
+.vital-context-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  min-height: 0;
+}
+
+.vital-sidebar-scroll,
+.vital-context-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 0.15rem;
+}
+
+.vital-sidebar-actions {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.95rem;
+}
+
+.vital-action-button {
+  border: 1px solid var(--vital-ops-border-subtle);
+  border-radius: 0.8rem;
+  background: rgb(9 20 33 / 0.84);
+  color: var(--vital-ops-text-secondary);
+  box-shadow: none;
+}
+
+.vital-action-button:hover {
+  background: var(--vital-ops-hover);
+  color: var(--vital-ops-text-primary);
+}
+
+.vital-action-button--full {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.vital-status-pill {
+  border: 1px solid rgb(56 189 248 / 0.24);
+  border-radius: 999px;
+  background: rgb(8 28 47 / 0.74);
+  color: var(--vital-ops-accent-cyan);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.vital-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.vital-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--vital-ops-border-subtle);
+  border-radius: 999px;
+  background: rgb(9 18 29 / 0.76);
+  color: var(--vital-ops-text-secondary);
+  padding: 0.35rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.vital-chip--active {
+  border-color: rgb(59 130 246 / 0.5);
+  background: rgb(23 37 84 / 0.7);
+  color: var(--vital-ops-text-primary);
+}
+
+.vital-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.vital-kpi {
+  display: grid;
+  gap: 0.2rem;
+  border: 1px solid var(--vital-ops-border-subtle);
+  border-radius: 0.85rem;
+  background: rgb(9 16 28 / 0.82);
+  padding: 0.7rem 0.8rem;
+}
+
+.vital-kpi__label {
+  color: var(--vital-ops-text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vital-kpi__value {
+  color: var(--vital-ops-text-primary);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+@media (max-width: 1380px) {
+  .vital-shell__body {
+    grid-template-columns: minmax(17rem, 19rem) minmax(0, 1fr);
+    grid-template-areas:
+      'sidebar workspace'
+      'context workspace';
+  }
+
+  .vital-shell__sidebar {
+    grid-area: sidebar;
+  }
+
+  .vital-shell__workspace {
+    grid-area: workspace;
+  }
+
+  .vital-shell__context {
+    grid-area: context;
+  }
+
+  .vital-topnav {
+    grid-template-columns: minmax(12rem, 18rem) minmax(16rem, 1fr);
+  }
+
+  .vital-topnav__metrics {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    padding-bottom: 0.5rem;
+  }
+}
+
+@media (max-width: 980px) {
+  .vital-shell__body {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'workspace'
+      'sidebar'
+      'context';
+  }
+
+  .vital-topnav {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    padding: 0.75rem;
+  }
+
+  .vital-topnav__metrics {
+    flex-wrap: wrap;
+  }
+}
