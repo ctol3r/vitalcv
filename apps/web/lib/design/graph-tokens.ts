@@ -1,23 +1,25 @@
 import type { Transition } from 'framer-motion';
+import { motionTransitions } from '@/ui/animation/motion';
+import { themeTokens } from '@/ui/theme/tokens';
 
 export const GraphTokens = {
   colors: {
     node: {
-      clinician: '#f59e0b', // Amber/Gold - Center of gravity
-      issuer: '#3b82f6',    // Blue - Institutional weight
-      credential: '#10b981', // Emerald - Verified status
-      employer: '#8b5cf6',   // Violet - Destination/Consumer
-      decision: '#f8fafc',   // Slate/White - Final outcome
+      clinician: themeTokens.colors.dark.accentYellow,
+      issuer: themeTokens.colors.dark.accentBlue,
+      credential: themeTokens.colors.dark.success,
+      employer: themeTokens.colors.dark.accentMagenta,
+      decision: themeTokens.colors.dark.textPrimary,
     },
     edge: {
-      base: '#475569',       // Slate - Subdued
-      highlighted: 'rgba(255, 255, 255, 0.5)',
-      ISSUED_BY: '#3b82f6',
-      VERIFIED_BY: '#10b981',
-      DEPENDS_ON: '#f59e0b',
-      ACCEPTED_BY: '#8b5cf6',
+      base: themeTokens.colors.dark.borderPrimary,
+      highlighted: 'rgba(255, 255, 255, 0.52)',
+      ISSUED_BY: themeTokens.colors.dark.accentBlue,
+      VERIFIED_BY: themeTokens.colors.dark.success,
+      DEPENDS_ON: themeTokens.colors.dark.accentYellow,
+      ACCEPTED_BY: themeTokens.colors.dark.accentMagenta,
     },
-    background: '#020617', // Slate 950
+    background: themeTokens.colors.dark.backgroundPrimary,
   },
   typography: {
     micro: 'text-[10px] uppercase tracking-widest font-bold',
@@ -31,7 +33,7 @@ export const GraphTokens = {
       stiff: { type: 'spring', stiffness: 400, damping: 30 } as Transition,
     },
     tween: {
-      smooth: { type: 'tween', duration: 0.6, ease: 'easeInOut' } as Transition,
+      smooth: { type: 'tween', ...motionTransitions.panel } as Transition,
       packet: { duration: 2, ease: 'linear', repeat: Infinity, times: [0, 0.5, 0.6, 1] } as Transition,
     },
   },

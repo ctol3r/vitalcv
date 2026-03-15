@@ -1,13 +1,20 @@
 'use client';
 
-import { Card } from '@blueprintjs/core';
 import { RefreshCw, Sparkles, Target } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
+import {
+  startTransition,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { NodeNeighborSummary } from '@/components/graph-system/nodeDetailModel';
 import type { GraphEdge, GraphLayer, GraphNode } from '@/components/graph-system/types';
 import GraphCanvas from '@/components/graph-system/GraphCanvas';
 import { GraphControls } from '@/components/graph/GraphControls';
-import { GraphInspector } from '@/components/graph/GraphInspector';
 import { GraphLegend } from '@/components/graph/GraphLegend';
 import { useGraphInteractions } from '@/components/graph/hooks/useGraphInteractions';
 import { applyPhysicsPreset } from '@/components/graph/physics/presets';
@@ -26,6 +33,12 @@ import { Sidebar } from '@/components/shell/Sidebar';
 import { TopNav } from '@/components/shell/TopNav';
 
 const GRAPH_API = '/api/graph-engine';
+const GRAPH_SLICE_CACHE_TTL_MS = 60_000;
+
+const GraphInspector = dynamic(
+  () => import('@/components/graph/GraphInspector').then((module) => module.GraphInspector),
+  { ssr: false, loading: () => null },
+);
 
 interface GraphQueryResponse {
   nodes?: GraphNode[];
@@ -36,6 +49,14 @@ interface NodeDetailState {
   node: GraphNode;
   edges: GraphEdge[];
   neighbors: NodeNeighborSummary[];
+}
+
+interface CachedGraphSlice {
+  graphData: {
+    nodes: GraphNode[];
+    edges: GraphEdge[];
+  };
+  cachedAt: number;
 }
 
 async function fetchGlobalGraph(layer: GraphLayer, fresh = false) {
@@ -87,6 +108,24 @@ async function triggerAiLinks(nodeId?: string) {
   });
 
   return response.json();
+}
+
+function buildGraphSliceCacheKey(
+  viewMode: 'global' | 'local',
+  layer: GraphLayer,
+  localRootId: string | null,
+): string {
+  return viewMode === 'local' && localRootId
+    ? `local:${layer}:${localRootId}`
+    : `global:${layer}`;
+}
+
+function shouldReuseGraphSlice(cacheEntry: CachedGraphSlice | undefined): cacheEntry is CachedGraphSlice {
+  if (!cacheEntry) {
+    return false;
+  }
+
+  return (Date.now() - cacheEntry.cachedAt) < GRAPH_SLICE_CACHE_TTL_MS;
 }
 
 function summarizeNodeDetail(
@@ -144,7 +183,37 @@ export default function GraphPage() {
   const [dimensions, setDimensions] = useState({ width: 1200, height: 820 });
 
   const detailRequestRef = useRef(0);
+  const sliceRequestRef = useRef(0);
+  const graphSliceCacheRef = useRef(new Map<string, CachedGraphSlice>());
   const stageRef = useRef<HTMLDivElement>(null);
+  const deferredSearchTerm = useDeferredValue(displayState.filters.searchTerm);
+
+  useEffect(() => {
+    const preloadGraphInspector = () => {
+      void import('@/components/graph/GraphInspector');
+    };
+
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const browserWindow = window as Window & {
+      requestIdleCallback?: (callback: IdleRequestCallback) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+
+    if (typeof browserWindow.requestIdleCallback === 'function') {
+      const handle = browserWindow.requestIdleCallback(preloadGraphInspector);
+      return () => {
+        browserWindow.cancelIdleCallback?.(handle);
+      };
+    }
+
+    const timeoutId = browserWindow.setTimeout(preloadGraphInspector, 250);
+    return () => {
+      browserWindow.clearTimeout(timeoutId);
+    };
+  }, []);
 
   useEffect(() => {
     const element = stageRef.current;
@@ -168,7 +237,26 @@ export default function GraphPage() {
   }, []);
 
   const loadGraphSlice = useCallback(async (fresh = false) => {
-    setLoading(true);
+    const cacheKey = buildGraphSliceCacheKey(
+      displayState.viewMode,
+      displayState.layer,
+      displayState.localRootId,
+    );
+    const cachedGraphSlice = !fresh ? graphSliceCacheRef.current.get(cacheKey) : undefined;
+    const requestId = ++sliceRequestRef.current;
+
+    if (cachedGraphSlice) {
+      startTransition(() => {
+        setGraphData(cachedGraphSlice.graphData);
+      });
+      setLoading(false);
+
+      if (shouldReuseGraphSlice(cachedGraphSlice)) {
+        return;
+      }
+    } else {
+      setLoading(true);
+    }
 
     try {
       const response = displayState.viewMode === 'local' && displayState.localRootId
@@ -185,9 +273,22 @@ export default function GraphPage() {
         visible: true,
       }));
 
-      setGraphData({ nodes: nextNodes, edges: nextEdges });
+      const nextGraphData = { nodes: nextNodes, edges: nextEdges };
+
+      graphSliceCacheRef.current.set(cacheKey, {
+        graphData: nextGraphData,
+        cachedAt: Date.now(),
+      });
+
+      if (sliceRequestRef.current === requestId) {
+        startTransition(() => {
+          setGraphData(nextGraphData);
+        });
+      }
     } finally {
-      setLoading(false);
+      if (sliceRequestRef.current === requestId) {
+        setLoading(false);
+      }
     }
   }, [
     displayState.layer,
@@ -201,7 +302,7 @@ export default function GraphPage() {
   }, [loadGraphSlice]);
 
   const filteredGraph = useMemo(() => {
-    const query = displayState.filters.searchTerm.trim().toLowerCase();
+    const query = deferredSearchTerm.trim().toLowerCase();
 
     let nodes = graphData.nodes.map((node) => ({
       ...node,
@@ -261,7 +362,12 @@ export default function GraphPage() {
       stats: resolveGraphStats(nodes, edges),
     };
   }, [
-    displayState.filters,
+    deferredSearchTerm,
+    displayState.filters.linkClasses,
+    displayState.filters.nodeTypes,
+    displayState.filters.showDirected,
+    displayState.filters.showOrphans,
+    displayState.filters.trustTiers,
     displayState.visuals.clusterMode,
     graphData.edges,
     graphData.nodes,
@@ -269,6 +375,27 @@ export default function GraphPage() {
 
   const loadNodeDetail = useCallback(async (nodeId: string) => {
     const requestId = ++detailRequestRef.current;
+    const cachedSlice = graphSliceCacheRef.current.get(
+      buildGraphSliceCacheKey('local', displayState.layer, nodeId),
+    );
+
+    if (cachedSlice) {
+      const cachedDetail = summarizeNodeDetail(
+        nodeId,
+        cachedSlice.graphData.nodes,
+        cachedSlice.graphData.edges,
+      );
+
+      if (cachedDetail) {
+        startTransition(() => {
+          setNodeDetail(cachedDetail);
+        });
+      }
+
+      if (shouldReuseGraphSlice(cachedSlice)) {
+        return;
+      }
+    }
 
     try {
       const response = await fetchLocalGraph(nodeId, displayState.layer);
@@ -281,10 +408,24 @@ export default function GraphPage() {
         response.nodes ?? filteredGraph.nodes,
         response.edges ?? filteredGraph.edges,
       );
-      setNodeDetail(detail);
+      graphSliceCacheRef.current.set(
+        buildGraphSliceCacheKey('local', displayState.layer, nodeId),
+        {
+          graphData: {
+            nodes: response.nodes ?? filteredGraph.nodes,
+            edges: response.edges ?? filteredGraph.edges,
+          },
+          cachedAt: Date.now(),
+        },
+      );
+      startTransition(() => {
+        setNodeDetail(detail);
+      });
     } catch {
       if (detailRequestRef.current === requestId) {
-        setNodeDetail(summarizeNodeDetail(nodeId, filteredGraph.nodes, filteredGraph.edges));
+        startTransition(() => {
+          setNodeDetail(summarizeNodeDetail(nodeId, filteredGraph.nodes, filteredGraph.edges));
+        });
       }
     }
   }, [displayState.layer, filteredGraph.edges, filteredGraph.nodes]);
@@ -377,6 +518,7 @@ export default function GraphPage() {
   }, []);
 
   const handleRebuild = useCallback(async () => {
+    graphSliceCacheRef.current.clear();
     await triggerRebuild();
     await loadGraphSlice(true);
     if (selectedNodeId) {
@@ -385,6 +527,7 @@ export default function GraphPage() {
   }, [loadGraphSlice, loadNodeDetail, selectedNodeId]);
 
   const handleRunAiLinks = useCallback(async () => {
+    graphSliceCacheRef.current.clear();
     await triggerAiLinks(selectedNodeId ?? undefined);
     await loadGraphSlice(true);
     if (selectedNodeId) {
@@ -393,6 +536,7 @@ export default function GraphPage() {
   }, [loadGraphSlice, loadNodeDetail, selectedNodeId]);
 
   const handleAcceptSuggestion = useCallback(async (suggestionId: string) => {
+    graphSliceCacheRef.current.clear();
     await fetch(`${GRAPH_API}/ai-links/apply`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -405,6 +549,7 @@ export default function GraphPage() {
   }, [loadGraphSlice, loadNodeDetail, selectedNodeId]);
 
   const handleRejectSuggestion = useCallback(async (suggestionId: string) => {
+    graphSliceCacheRef.current.clear();
     await fetch(`${GRAPH_API}/ai-links/apply`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -465,10 +610,12 @@ export default function GraphPage() {
             onResetLayout={handleResetLayout}
             onRunAiLinks={handleRunAiLinks}
             onSearchChange={(searchTerm) => {
-              setDisplayState((current) => ({
-                ...current,
-                filters: { ...current.filters, searchTerm },
-              }));
+              startTransition(() => {
+                setDisplayState((current) => ({
+                  ...current,
+                  filters: { ...current.filters, searchTerm },
+                }));
+              });
             }}
             searchValue={displayState.filters.searchTerm}
             stats={filteredGraph.stats}
@@ -518,7 +665,7 @@ export default function GraphPage() {
             subtitle="Operational context stays visible while the inspector handles the selected node."
             title="Legend + Focus"
           >
-            <Card className="vital-panel vital-panel--dense">
+            <div className="vital-panel vital-panel--dense">
               <div className="vital-panel__header">
                 <div>
                   <p className="vital-panel__eyebrow">Selected node</p>
@@ -532,7 +679,7 @@ export default function GraphPage() {
                   ? `${nodeDetail.edges.length} visible relationships and ${nodeDetail.neighbors.length} inspectable neighbors.`
                   : 'Click a node to open the inspector. Double-click to isolate a local neighborhood.'}
               </p>
-            </Card>
+            </div>
             <GraphLegend
               colorMode={displayState.visuals.colorMode}
               edges={filteredGraph.edges}

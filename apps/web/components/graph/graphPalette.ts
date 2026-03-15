@@ -4,54 +4,55 @@ import {
   type GraphColorMode,
   type GraphLinkClass,
 } from '@/components/graph/state/graphDisplayState';
+import { themeTokens } from '@/ui/theme/tokens';
 
 const NODE_TYPE_COLORS: Partial<Record<NodeType, string>> = {
-  clinician: '#5ba2ff',
-  organization: '#3b82f6',
-  institution: '#22d3ee',
-  specialty: '#f59e0b',
-  program: '#a78bfa',
-  publication: '#84cc16',
-  trial: '#34d399',
-  claim: '#38bdf8',
-  artifact: '#94a3b8',
-  receipt: '#fbbf24',
-  source: '#64748b',
-  credential: '#10b981',
-  license: '#4ade80',
-  decision: '#f472b6',
-  exclusion: '#f87171',
-  enrollment: '#c084fc',
-  note: '#60a5fa',
-  document: '#93c5fd',
-  tag: '#facc15',
-  attachment: '#cbd5e1',
-  group: '#818cf8',
+  clinician: themeTokens.colors.dark.accentBlue,
+  organization: themeTokens.colors.dark.accentBlue,
+  institution: themeTokens.colors.dark.accentCyan,
+  specialty: themeTokens.colors.dark.accentYellow,
+  program: themeTokens.colors.dark.accentMagenta,
+  publication: themeTokens.colors.dark.success,
+  trial: themeTokens.colors.dark.success,
+  claim: themeTokens.colors.dark.accentCyan,
+  artifact: themeTokens.colors.dark.textSecondary,
+  receipt: themeTokens.colors.dark.accentYellow,
+  source: themeTokens.colors.dark.textMuted,
+  credential: themeTokens.colors.dark.success,
+  license: themeTokens.colors.dark.success,
+  decision: themeTokens.colors.dark.accentMagenta,
+  exclusion: themeTokens.colors.dark.danger,
+  enrollment: themeTokens.colors.dark.accentMagenta,
+  note: themeTokens.colors.dark.accentBlue,
+  document: themeTokens.colors.dark.textSecondary,
+  tag: themeTokens.colors.dark.accentYellow,
+  attachment: themeTokens.colors.dark.textPrimary,
+  group: themeTokens.colors.dark.accentMagenta,
 };
 
 const TRUST_TIER_COLORS: Record<string, string> = {
-  GOLD: '#facc15',
-  SILVER: '#cbd5e1',
-  BRONZE: '#fb923c',
+  GOLD: themeTokens.colors.dark.accentYellow,
+  SILVER: themeTokens.colors.dark.textPrimary,
+  BRONZE: themeTokens.colors.dark.textSecondary,
 };
 
 const GROUP_COLORS = [
-  '#60a5fa',
-  '#22d3ee',
-  '#4ade80',
-  '#f59e0b',
-  '#f472b6',
-  '#a78bfa',
-  '#f87171',
-  '#c084fc',
+  themeTokens.colors.dark.accentBlue,
+  themeTokens.colors.dark.accentCyan,
+  themeTokens.colors.dark.success,
+  themeTokens.colors.dark.accentYellow,
+  themeTokens.colors.dark.accentMagenta,
+  themeTokens.colors.dark.textPrimary,
+  themeTokens.colors.dark.danger,
+  themeTokens.colors.dark.textSecondary,
 ];
 
 export const LINK_CLASS_STYLES: Record<GraphLinkClass, { stroke: string; dash: number[] }> = {
-  explicit: { stroke: '#38bdf8', dash: [] },
-  backlink: { stroke: '#22d3ee', dash: [6, 4] },
-  ai: { stroke: '#f472b6', dash: [3, 5] },
-  inferred: { stroke: '#facc15', dash: [2, 7] },
-  trust: { stroke: '#5ba2ff', dash: [] },
+  explicit: { stroke: themeTokens.colors.dark.accentBlue, dash: [] },
+  backlink: { stroke: themeTokens.colors.dark.accentCyan, dash: [6, 4] },
+  ai: { stroke: themeTokens.colors.dark.accentMagenta, dash: [3, 5] },
+  inferred: { stroke: themeTokens.colors.dark.accentYellow, dash: [2, 7] },
+  trust: { stroke: themeTokens.colors.dark.textPrimary, dash: [] },
 };
 
 function hashSeed(value: string): number {
@@ -66,19 +67,19 @@ function hashSeed(value: string): number {
 }
 
 export function colorForNodeType(type: NodeType): string {
-  return NODE_TYPE_COLORS[type] ?? '#64748b';
+  return NODE_TYPE_COLORS[type] ?? themeTokens.colors.dark.textMuted;
 }
 
 export function colorForTrustTier(trustTier: string | undefined): string {
   if (!trustTier) {
-    return '#64748b';
+    return themeTokens.colors.dark.textMuted;
   }
 
-  return TRUST_TIER_COLORS[trustTier.toUpperCase()] ?? '#94a3b8';
+  return TRUST_TIER_COLORS[trustTier.toUpperCase()] ?? themeTokens.colors.dark.textSecondary;
 }
 
 export function colorForGroup(group: string): string {
-  return GROUP_COLORS[hashSeed(group) % GROUP_COLORS.length] ?? '#64748b';
+  return GROUP_COLORS[hashSeed(group) % GROUP_COLORS.length] ?? themeTokens.colors.dark.textMuted;
 }
 
 export function colorForRelationshipClass(node: GraphNode, edges: GraphEdge[]): string {

@@ -1,18 +1,7 @@
 'use client';
 
-import {
-  Button,
-  ButtonGroup,
-  Card,
-  Collapse,
-  Divider,
-  InputGroup,
-  Slider,
-  Switch,
-  Tag,
-} from '@blueprintjs/core';
 import { ChevronDown, ChevronRight, RefreshCw, Save, Sparkles } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { GraphLayer, NodeType } from '@/components/graph-system/types';
 import { GRAPH_PHYSICS_PRESETS } from '@/components/graph/physics/presets';
 import {
@@ -31,6 +20,8 @@ import {
   type GraphVisualState,
 } from '@/components/graph/state/graphDisplayState';
 
+// ── Shared sub-components ──────────────────────────────────────────────────────
+
 function ControlSection({
   title,
   defaultOpen = true,
@@ -38,25 +29,92 @@ function ControlSection({
 }: {
   title: string;
   defaultOpen?: boolean;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <Card className="vital-panel vital-panel--dense">
-      <Button
-        minimal
-        onClick={() => setOpen((current) => !current)}
+    <div className="vital-panel vital-panel--dense">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
         className="vital-action-button vital-action-button--full"
-        icon={open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-        text={title}
-      />
-      <Collapse isOpen={open}>
-        <div className="mt-3 flex flex-col gap-3">{children}</div>
-      </Collapse>
-    </Card>
+      >
+        {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+        <span>{title}</span>
+      </button>
+      {open && <div className="mt-3 flex flex-col gap-3">{children}</div>}
+    </div>
   );
 }
+
+function VitalSlider({
+  label,
+  min,
+  max,
+  step,
+  value,
+  onChange,
+}: {
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between">
+        <span className="vital-status-pill">{label}</span>
+        <span className="text-[11px] font-mono text-[var(--vital-ops-text-muted)]">{value}</span>
+      </div>
+      <input
+        type="range"
+        className="gf-slider w-full"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+      />
+    </div>
+  );
+}
+
+function VitalSwitch({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="flex items-center justify-between cursor-pointer py-0.5 group">
+      <span className="text-[12px] text-[var(--vital-ops-text-secondary)] group-hover:text-[var(--vital-ops-text-primary)] transition-colors">
+        {label}
+      </span>
+      <div className="relative">
+        <input
+          type="checkbox"
+          className="sr-only peer"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+        />
+        <div className="w-8 h-[18px] rounded-full bg-[var(--vital-ops-border)] peer-checked:bg-[var(--vital-ops-accent-cyan)] transition-colors" />
+        <div className="absolute top-[2px] left-[2px] w-[14px] h-[14px] rounded-full bg-[var(--vital-ops-text-primary)] peer-checked:translate-x-[14px] transition-transform shadow-sm" />
+      </div>
+    </label>
+  );
+}
+
+function Separator() {
+  return <div className="h-px bg-[var(--vital-ops-border-subtle)] my-1" />;
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
 
 interface GraphControlsProps {
   layer: GraphLayer;
@@ -104,40 +162,38 @@ export function GraphControls({
   const [presetName, setPresetName] = useState('');
 
   const toggleNodeType = (nodeType: NodeType) => {
-    const nextNodeTypes = filters.nodeTypes.includes(nodeType)
-      ? filters.nodeTypes.filter((current) => current !== nodeType)
+    const next = filters.nodeTypes.includes(nodeType)
+      ? filters.nodeTypes.filter((c) => c !== nodeType)
       : [...filters.nodeTypes, nodeType];
-
-    onFiltersChange({ ...filters, nodeTypes: nextNodeTypes });
+    onFiltersChange({ ...filters, nodeTypes: next });
   };
 
   const toggleLinkClass = (linkClass: GraphLinkClass) => {
-    const nextLinkClasses = filters.linkClasses.includes(linkClass)
-      ? filters.linkClasses.filter((current) => current !== linkClass)
+    const next = filters.linkClasses.includes(linkClass)
+      ? filters.linkClasses.filter((c) => c !== linkClass)
       : [...filters.linkClasses, linkClass];
-
-    onFiltersChange({ ...filters, linkClasses: nextLinkClasses });
+    onFiltersChange({ ...filters, linkClasses: next });
   };
 
-  const toggleTrustTier = (trustTier: string) => {
-    const nextTrustTiers = filters.trustTiers.includes(trustTier)
-      ? filters.trustTiers.filter((current) => current !== trustTier)
-      : [...filters.trustTiers, trustTier];
-
-    onFiltersChange({ ...filters, trustTiers: nextTrustTiers });
+  const toggleTrustTier = (tier: string) => {
+    const next = filters.trustTiers.includes(tier)
+      ? filters.trustTiers.filter((c) => c !== tier)
+      : [...filters.trustTiers, tier];
+    onFiltersChange({ ...filters, trustTiers: next });
   };
 
-  const updateVisual = <Key extends keyof GraphVisualState>(key: Key, value: GraphVisualState[Key]) => {
+  const updateVisual = <K extends keyof GraphVisualState>(key: K, value: GraphVisualState[K]) => {
     onVisualsChange({ ...visuals, [key]: value });
   };
 
-  const updatePhysics = <Key extends keyof GraphPhysicsState>(key: Key, value: GraphPhysicsState[Key]) => {
+  const updatePhysics = <K extends keyof GraphPhysicsState>(key: K, value: GraphPhysicsState[K]) => {
     onPhysicsChange({ ...physics, [key]: value });
   };
 
   return (
     <>
-      <Card className="vital-panel vital-panel--dense">
+      {/* KPI strip */}
+      <div className="vital-panel vital-panel--dense">
         <div className="vital-kpi-grid">
           <div className="vital-kpi">
             <span className="vital-kpi__label">Visible nodes</span>
@@ -152,136 +208,120 @@ export function GraphControls({
             <span className="vital-kpi__value">{stats.aiSuggestedLinks}</span>
           </div>
         </div>
-      </Card>
+      </div>
 
+      {/* Workspace Modes */}
       <ControlSection title="Workspace Modes">
         <div className="flex flex-col gap-2">
           <span className="vital-panel__eyebrow">Layer</span>
-          <ButtonGroup fill>
-            {(['blended', 'trust', 'knowledge'] as GraphLayer[]).map((currentLayer) => (
-              <Button
-                key={currentLayer}
-                active={layer === currentLayer}
-                className="vital-action-button"
-                onClick={() => onLayerChange(currentLayer)}
-                text={currentLayer}
-              />
+          <div className="vital-btn-group">
+            {(['blended', 'trust', 'knowledge'] as GraphLayer[]).map((l) => (
+              <button
+                key={l}
+                type="button"
+                className={`vital-action-button ${layer === l ? 'vital-action-button--active' : ''}`}
+                onClick={() => onLayerChange(l)}
+              >
+                {l}
+              </button>
             ))}
-          </ButtonGroup>
+          </div>
         </div>
         <div className="flex flex-col gap-2">
           <span className="vital-panel__eyebrow">View mode</span>
-          <ButtonGroup fill>
-            <Button
-              active={viewMode === 'global'}
-              className="vital-action-button"
+          <div className="vital-btn-group">
+            <button
+              type="button"
+              className={`vital-action-button ${viewMode === 'global' ? 'vital-action-button--active' : ''}`}
               onClick={() => onViewModeChange('global')}
-              text="Global"
-            />
-            <Button
-              active={viewMode === 'local'}
-              className="vital-action-button"
+            >
+              Global
+            </button>
+            <button
+              type="button"
+              className={`vital-action-button ${viewMode === 'local' ? 'vital-action-button--active' : ''}`}
               disabled={!canUseLocalMode}
               onClick={() => onViewModeChange('local')}
-              text="Local"
-            />
-          </ButtonGroup>
+            >
+              Local
+            </button>
+          </div>
         </div>
       </ControlSection>
 
+      {/* Filters */}
       <ControlSection title="Filters">
         <div className="flex flex-col gap-2">
           <span className="vital-panel__eyebrow">Link types</span>
           <div className="vital-chip-list">
-            {GRAPH_LINK_CLASS_ORDER.map((linkClass) => (
+            {GRAPH_LINK_CLASS_ORDER.map((lc) => (
               <button
-                key={linkClass}
+                key={lc}
                 type="button"
-                className={`vital-chip ${filters.linkClasses.includes(linkClass) ? 'vital-chip--active' : ''}`}
-                onClick={() => toggleLinkClass(linkClass)}
+                className={`vital-chip ${filters.linkClasses.includes(lc) ? 'vital-chip--active' : ''}`}
+                onClick={() => toggleLinkClass(lc)}
               >
-                {GRAPH_LINK_CLASS_LABELS[linkClass]}
+                {GRAPH_LINK_CLASS_LABELS[lc]}
               </button>
             ))}
           </div>
         </div>
-        <Divider />
+        <Separator />
         <div className="flex flex-col gap-2">
           <span className="vital-panel__eyebrow">Node types</span>
           <div className="vital-chip-list">
-            {availableNodeTypes.map((nodeType) => (
+            {availableNodeTypes.map((nt) => (
               <button
-                key={nodeType}
+                key={nt}
                 type="button"
-                className={`vital-chip ${filters.nodeTypes.includes(nodeType) ? 'vital-chip--active' : ''}`}
-                onClick={() => toggleNodeType(nodeType)}
+                className={`vital-chip ${filters.nodeTypes.includes(nt) ? 'vital-chip--active' : ''}`}
+                onClick={() => toggleNodeType(nt)}
               >
-                {formatGraphNodeType(nodeType)}
+                {formatGraphNodeType(nt)}
               </button>
             ))}
           </div>
         </div>
-        {availableTrustTiers.length > 0 ? (
+        {availableTrustTiers.length > 0 && (
           <>
-            <Divider />
+            <Separator />
             <div className="flex flex-col gap-2">
               <span className="vital-panel__eyebrow">Trust tiers</span>
               <div className="vital-chip-list">
-                {availableTrustTiers.map((trustTier) => (
+                {availableTrustTiers.map((tier) => (
                   <button
-                    key={trustTier}
+                    key={tier}
                     type="button"
-                    className={`vital-chip ${filters.trustTiers.includes(trustTier) ? 'vital-chip--active' : ''}`}
-                    onClick={() => toggleTrustTier(trustTier)}
+                    className={`vital-chip ${filters.trustTiers.includes(tier) ? 'vital-chip--active' : ''}`}
+                    onClick={() => toggleTrustTier(tier)}
                   >
-                    {trustTier}
+                    {tier}
                   </button>
                 ))}
               </div>
             </div>
           </>
-        ) : null}
-        <Switch
-          checked={filters.showOrphans}
-          className="text-sm"
-          label="Show orphan nodes"
-          onChange={(event) => onFiltersChange({ ...filters, showOrphans: event.currentTarget.checked })}
-        />
-        <Switch
-          checked={filters.showDirected}
-          className="text-sm"
-          label="Keep directed edges"
-          onChange={(event) => onFiltersChange({ ...filters, showDirected: event.currentTarget.checked })}
-        />
+        )}
+        <VitalSwitch label="Show orphan nodes" checked={filters.showOrphans} onChange={(v) => onFiltersChange({ ...filters, showOrphans: v })} />
+        <VitalSwitch label="Keep directed edges" checked={filters.showDirected} onChange={(v) => onFiltersChange({ ...filters, showDirected: v })} />
       </ControlSection>
 
+      {/* Display */}
       <ControlSection title="Display">
-        <Switch
-          checked={visuals.showLabels}
-          label="Node labels"
-          onChange={(event) => updateVisual('showLabels', event.currentTarget.checked)}
-        />
-        <Switch
-          checked={visuals.showArrows}
-          label="Directional arrows"
-          onChange={(event) => updateVisual('showArrows', event.currentTarget.checked)}
-        />
-        <Switch
-          checked={visuals.animate}
-          label="Animation"
-          onChange={(event) => updateVisual('animate', event.currentTarget.checked)}
-        />
+        <VitalSwitch label="Node labels" checked={visuals.showLabels} onChange={(v) => updateVisual('showLabels', v)} />
+        <VitalSwitch label="Directional arrows" checked={visuals.showArrows} onChange={(v) => updateVisual('showArrows', v)} />
+        <VitalSwitch label="Animation" checked={visuals.animate} onChange={(v) => updateVisual('animate', v)} />
         <div className="flex flex-col gap-2">
           <span className="vital-panel__eyebrow">Color mode</span>
           <div className="vital-chip-list">
-            {(Object.keys(GRAPH_COLOR_MODE_LABELS) as GraphColorMode[]).map((colorMode) => (
+            {(Object.keys(GRAPH_COLOR_MODE_LABELS) as GraphColorMode[]).map((cm) => (
               <button
-                key={colorMode}
+                key={cm}
                 type="button"
-                className={`vital-chip ${visuals.colorMode === colorMode ? 'vital-chip--active' : ''}`}
-                onClick={() => updateVisual('colorMode', colorMode)}
+                className={`vital-chip ${visuals.colorMode === cm ? 'vital-chip--active' : ''}`}
+                onClick={() => updateVisual('colorMode', cm)}
               >
-                {GRAPH_COLOR_MODE_LABELS[colorMode]}
+                {GRAPH_COLOR_MODE_LABELS[cm]}
               </button>
             ))}
           </div>
@@ -289,129 +329,83 @@ export function GraphControls({
         <div className="flex flex-col gap-2">
           <span className="vital-panel__eyebrow">Cluster mode</span>
           <div className="vital-chip-list">
-            {(['none', 'type', 'group', 'tier'] as GraphClusterMode[]).map((clusterMode) => (
+            {(['none', 'type', 'group', 'tier'] as GraphClusterMode[]).map((cm) => (
               <button
-                key={clusterMode}
+                key={cm}
                 type="button"
-                className={`vital-chip ${visuals.clusterMode === clusterMode ? 'vital-chip--active' : ''}`}
-                onClick={() => updateVisual('clusterMode', clusterMode)}
+                className={`vital-chip ${visuals.clusterMode === cm ? 'vital-chip--active' : ''}`}
+                onClick={() => updateVisual('clusterMode', cm)}
               >
-                {clusterMode}
+                {cm}
               </button>
             ))}
           </div>
         </div>
-        <div className="flex flex-col gap-2">
-          <Tag minimal className="vital-status-pill">Node size</Tag>
-          <Slider
-            min={4}
-            max={18}
-            stepSize={1}
-            labelStepSize={7}
-            onChange={(value) => updateVisual('nodeSize', value)}
-            value={visuals.nodeSize}
-          />
-        </div>
+        <VitalSlider label="Node size" min={4} max={18} step={1} value={visuals.nodeSize} onChange={(v) => updateVisual('nodeSize', v)} />
       </ControlSection>
 
+      {/* Physics */}
       <ControlSection title="Physics">
         <div className="flex flex-col gap-2">
           <span className="vital-panel__eyebrow">Presets</span>
           <div className="vital-chip-list">
-            {(Object.keys(GRAPH_PHYSICS_PRESETS) as GraphPhysicsPresetId[]).map((preset) => (
+            {(Object.keys(GRAPH_PHYSICS_PRESETS) as GraphPhysicsPresetId[]).map((p) => (
               <button
-                key={preset}
+                key={p}
                 type="button"
-                className={`vital-chip ${physics.preset === preset ? 'vital-chip--active' : ''}`}
-                onClick={() => onPresetChange(preset)}
+                className={`vital-chip ${physics.preset === p ? 'vital-chip--active' : ''}`}
+                onClick={() => onPresetChange(p)}
               >
-                {GRAPH_PHYSICS_PRESETS[preset].label}
+                {GRAPH_PHYSICS_PRESETS[p].label}
               </button>
             ))}
           </div>
         </div>
-        <Switch
-          checked={physics.frozen}
-          label="Freeze layout"
-          onChange={(event) => updatePhysics('frozen', event.currentTarget.checked)}
-        />
-        <div className="flex flex-col gap-2">
-          <Tag minimal className="vital-status-pill">Link distance</Tag>
-          <Slider
-            min={90}
-            max={220}
-            stepSize={2}
-            labelStepSize={26}
-            onChange={(value) => updatePhysics('linkDistance', value)}
-            value={physics.linkDistance}
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Tag minimal className="vital-status-pill">Repel force</Tag>
-          <Slider
-            min={80}
-            max={320}
-            stepSize={5}
-            labelStepSize={60}
-            onChange={(value) => updatePhysics('repelForce', value)}
-            value={physics.repelForce}
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Tag minimal className="vital-status-pill">Cluster force</Tag>
-          <Slider
-            min={0}
-            max={0.14}
-            stepSize={0.005}
-            labelStepSize={0.03}
-            onChange={(value) => updatePhysics('clusterForce', value)}
-            value={physics.clusterForce}
-          />
-        </div>
+        <VitalSwitch label="Freeze layout" checked={physics.frozen} onChange={(v) => updatePhysics('frozen', v)} />
+        <VitalSlider label="Link distance" min={90} max={220} step={2} value={physics.linkDistance} onChange={(v) => updatePhysics('linkDistance', v)} />
+        <VitalSlider label="Repel force" min={80} max={320} step={5} value={physics.repelForce} onChange={(v) => updatePhysics('repelForce', v)} />
+        <VitalSlider label="Cluster force" min={0} max={0.14} step={0.005} value={physics.clusterForce} onChange={(v) => updatePhysics('clusterForce', v)} />
       </ControlSection>
 
+      {/* Actions */}
       <ControlSection title="Actions" defaultOpen={false}>
-        <Button
-          className="vital-action-button vital-action-button--full"
-          icon={<Sparkles className="h-3.5 w-3.5" />}
-          onClick={onRunAiLinks}
-          text="Generate AI link suggestions"
-        />
-        <Button
-          className="vital-action-button vital-action-button--full"
-          icon={<RefreshCw className="h-3.5 w-3.5" />}
-          onClick={onRebuild}
-          text="Rebuild graph"
-        />
-        <Button
-          className="vital-action-button vital-action-button--full"
-          onClick={onResetLayout}
-          text="Reset layout"
-        />
-        {onSavePreset ? (
+        <button type="button" className="vital-action-button vital-action-button--full" onClick={onRunAiLinks}>
+          <Sparkles className="h-3.5 w-3.5" />
+          <span>Generate AI link suggestions</span>
+        </button>
+        <button type="button" className="vital-action-button vital-action-button--full" onClick={onRebuild}>
+          <RefreshCw className="h-3.5 w-3.5" />
+          <span>Rebuild graph</span>
+        </button>
+        <button type="button" className="vital-action-button vital-action-button--full" onClick={onResetLayout}>
+          <span>Reset layout</span>
+        </button>
+        {onSavePreset && (
           <>
-            <Divider />
-            <InputGroup
+            <Separator />
+            <input
+              type="text"
+              className="vital-search-input__field"
               placeholder="Preset name"
               value={presetName}
-              onValueChange={setPresetName}
+              onChange={(e) => setPresetName(e.target.value)}
             />
-            <Button
+            <button
+              type="button"
               className="vital-action-button vital-action-button--full"
               disabled={presetName.trim().length === 0}
-              icon={<Save className="h-3.5 w-3.5" />}
               onClick={() => {
-                if (presetName.trim().length === 0) {
-                  return;
+                if (presetName.trim()) {
+                  onSavePreset(presetName.trim());
+                  setPresetName('');
                 }
-
-                onSavePreset(presetName.trim());
-                setPresetName('');
               }}
-              text="Save current preset"
-            />
+            >
+              <Save className="h-3.5 w-3.5" />
+              <span>Save current preset</span>
+            </button>
           </>
-        ) : null}
+        )}
       </ControlSection>
     </>
   );

@@ -19,7 +19,7 @@ export function AppShell({
   className,
 }: AppShellProps) {
   return (
-    <div className={cn('bp5-dark vital-blueprint vital-ops-theme vital-shell', className)}>
+    <div className={cn('vital-ops-theme vital-shell', className)}>
       <div className="vital-shell__topnav">{topNav}</div>
       <div className="vital-shell__body">
         <aside className="vital-shell__sidebar">{sidebar}</aside>

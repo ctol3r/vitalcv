@@ -1,22 +1,14 @@
 'use client';
 
-import {
-  Button,
-  Card,
-  Drawer,
-  Tab,
-  Tabs,
-  Tag,
-} from '@blueprintjs/core';
-import { Cell, Column, Table2 } from '@blueprintjs/table';
-import { X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import type { GraphEdge, GraphNode } from '@/components/graph-system/types';
 import {
   buildNodeDetailModel,
   type NodeNeighborSummary,
 } from '@/components/graph-system/nodeDetailModel';
 import { formatGraphNodeType } from '@/components/graph/state/graphDisplayState';
+import { Drawer } from '@/components/ui/Drawer';
+import { useVirtualList } from '@/ui/hooks/useVirtualList';
 
 interface GraphInspectorProps {
   open: boolean;
@@ -29,6 +21,147 @@ interface GraphInspectorProps {
   onRejectSuggestion: (suggestionId: string) => void;
 }
 
+function VirtualizedInspectorList<Item>({
+  items,
+  emptyState,
+  getKey,
+  itemHeight = 86,
+  maxHeight = 320,
+  renderItem,
+}: {
+  items: Item[];
+  emptyState: string;
+  getKey: (item: Item) => string;
+  itemHeight?: number;
+  maxHeight?: number;
+  renderItem: (item: Item) => ReactNode;
+}) {
+  const virtualization = useVirtualList({
+    itemCount: items.length,
+    itemHeight,
+    viewportHeight: maxHeight,
+  });
+
+  if (items.length === 0) {
+    return <div className="vital-empty-state mt-3">{emptyState}</div>;
+  }
+
+  if (items.length <= 10) {
+    return (
+      <div className="mt-3 vital-inspector-list">
+        {items.map((item) => (
+          <div key={getKey(item)}>{renderItem(item)}</div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="vital-virtual-list mt-3"
+      onScroll={virtualization.onScroll}
+      style={{ maxHeight }}
+    >
+      <div
+        className="vital-virtual-list__inner"
+        style={{ height: virtualization.totalHeight }}
+      >
+        <div style={{ transform: `translateY(${virtualization.offsetTop}px)` }}>
+          {items
+            .slice(virtualization.startIndex, virtualization.endIndex)
+            .map((item) => (
+              <div key={getKey(item)}>{renderItem(item)}</div>
+            ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Tab system ─────────────────────────────────────────────────────────────────
+
+type TabId = 'overview' | 'relationships' | 'evidence';
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'relationships', label: 'Relationships' },
+  { id: 'evidence', label: 'Evidence' },
+];
+
+// ── Metadata table ─────────────────────────────────────────────────────────────
+
+function MetadataTable({ rows }: { rows: [string, unknown][] }) {
+  if (rows.length === 0) {
+    return <div className="vital-empty-state mt-3">No metadata captured on this node.</div>;
+  }
+  return (
+    <div className="mt-3 max-h-[220px] overflow-auto rounded-lg border border-[var(--vital-ops-border-subtle)]">
+      <table className="w-full text-[12px]">
+        <thead>
+          <tr className="border-b border-[var(--vital-ops-border-subtle)]">
+            <th className="px-3 py-1.5 text-left text-[var(--vital-ops-text-muted)] font-medium">Field</th>
+            <th className="px-3 py-1.5 text-left text-[var(--vital-ops-text-muted)] font-medium">Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(([key, value]) => (
+            <tr key={key} className="border-b border-[var(--vital-ops-border-subtle)] last:border-0">
+              <td className="px-3 py-1.5 text-[var(--vital-ops-text-secondary)] font-mono">{key}</td>
+              <td className="px-3 py-1.5 text-[var(--vital-ops-text-primary)] break-all">{String(value ?? '')}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── Relationship table ─────────────────────────────────────────────────────────
+
+function RelationshipTable({
+  relationships,
+  onFocusNode,
+}: {
+  relationships: ReturnType<typeof buildNodeDetailModel>['relationships'];
+  onFocusNode: (id: string) => void;
+}) {
+  if (relationships.length === 0) {
+    return <div className="vital-empty-state mt-3">No visible relationships in the current graph slice.</div>;
+  }
+  return (
+    <div className="mt-3 max-h-[280px] overflow-auto rounded-lg border border-[var(--vital-ops-border-subtle)]">
+      <table className="w-full text-[12px]">
+        <thead>
+          <tr className="border-b border-[var(--vital-ops-border-subtle)]">
+            <th className="px-3 py-1.5 text-left text-[var(--vital-ops-text-muted)] font-medium">Neighbor</th>
+            <th className="px-3 py-1.5 text-left text-[var(--vital-ops-text-muted)] font-medium">Direction</th>
+            <th className="px-3 py-1.5 text-left text-[var(--vital-ops-text-muted)] font-medium">Confidence</th>
+          </tr>
+        </thead>
+        <tbody>
+          {relationships.map((rel) => (
+            <tr key={rel.neighborId} className="border-b border-[var(--vital-ops-border-subtle)] last:border-0 hover:bg-[var(--vital-ops-hover)] transition-colors">
+              <td className="px-3 py-1.5">
+                <button
+                  type="button"
+                  className="text-[var(--vital-ops-accent-cyan)] hover:underline cursor-pointer bg-transparent border-none text-[12px]"
+                  onClick={() => onFocusNode(rel.neighborId)}
+                >
+                  {rel.label}
+                </button>
+              </td>
+              <td className="px-3 py-1.5 text-[var(--vital-ops-text-secondary)]">{rel.direction}</td>
+              <td className="px-3 py-1.5 text-[var(--vital-ops-text-primary)] font-mono">{Math.round(rel.confidence * 100)}%</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
+
 export function GraphInspector({
   open,
   node,
@@ -39,257 +172,202 @@ export function GraphInspector({
   onAcceptSuggestion,
   onRejectSuggestion,
 }: GraphInspectorProps) {
-  const [selectedTabId, setSelectedTabId] = useState('overview');
+  const [selectedTab, setSelectedTab] = useState<TabId>('overview');
 
   const model = useMemo(() => {
-    if (!node) {
-      return null;
-    }
-
+    if (!node) return null;
     return buildNodeDetailModel(node, edges, neighbors);
   }, [edges, neighbors, node]);
 
   const metadataRows = useMemo(() => {
-    if (!node) {
-      return [];
-    }
-
-    return Object.entries(node.metadata ?? {}).slice(0, 8);
+    if (!node) return [];
+    return Object.entries(node.metadata ?? {}).slice(0, 8) as [string, unknown][];
   }, [node]);
 
-  if (!node || !model) {
-    return null;
-  }
+  if (!node || !model) return null;
 
   return (
     <Drawer
-      className="vital-graph-drawer"
-      hasBackdrop={false}
-      isCloseButtonShown={false}
-      isOpen={open}
+      open={open}
       onClose={onClose}
-      position="right"
-      size="38rem"
+      overlay={false}
+      title={(
+        <div className="flex items-center gap-3">
+          <div>
+            <p className="vital-panel__eyebrow">Inspector</p>
+            <h2 className="vital-panel__title">{node.title || node.label}</h2>
+          </div>
+          <span className="vital-status-pill">{formatGraphNodeType(node.type)}</span>
+        </div>
+      )}
+      width="lg"
     >
       <div className="flex h-full flex-col gap-4 p-4">
-        <Card className="vital-panel vital-panel--dense">
+        {/* Header card */}
+        <div className="vital-panel vital-panel--dense">
           <div className="vital-panel__header">
             <div>
               <p className="vital-panel__eyebrow">Inspector</p>
               <h2 className="vital-panel__title">{node.title || node.label}</h2>
             </div>
-            <Button
-              className="vital-action-button"
-              icon={<X className="h-3.5 w-3.5" />}
-              minimal
-              onClick={onClose}
-            />
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Tag minimal className="vital-status-pill">{formatGraphNodeType(node.type)}</Tag>
-            <Tag minimal className="vital-status-pill">{node.trustTier ?? 'Unassigned tier'}</Tag>
-            <Tag minimal className="vital-status-pill">
+            <span className="vital-status-pill">{formatGraphNodeType(node.type)}</span>
+            <span className="vital-status-pill">{node.trustTier ?? 'Unassigned tier'}</span>
+            <span className="vital-status-pill">
               {node.confidence ? `${Math.round(node.confidence * 100)}% confidence` : 'No confidence score'}
-            </Tag>
+            </span>
           </div>
           <p className="vital-panel__copy">
             {neighbors.length} connected neighbors across {edges.length} visible relationships.
           </p>
-        </Card>
+        </div>
 
-        <Tabs
-          id="graph-inspector-tabs"
-          onChange={(tabId) => setSelectedTabId(String(tabId))}
-          selectedTabId={selectedTabId}
-        >
-          <Tab
-            id="overview"
-            title="Overview"
-            panel={
-              <div className="vital-graph-tabs">
-                <Card className="vital-panel vital-panel--dense">
-                  <div className="vital-kpi-grid">
-                    <div className="vital-kpi">
-                      <span className="vital-kpi__label">Claims</span>
-                      <span className="vital-kpi__value">{model.claims.length}</span>
-                    </div>
-                    <div className="vital-kpi">
-                      <span className="vital-kpi__label">Receipts</span>
-                      <span className="vital-kpi__value">{model.receipts.length}</span>
-                    </div>
-                    <div className="vital-kpi">
-                      <span className="vital-kpi__label">Artifacts</span>
-                      <span className="vital-kpi__value">{model.artifacts.length}</span>
-                    </div>
-                  </div>
-                </Card>
+        {/* Tab bar */}
+        <div className="flex gap-1 border-b border-[var(--vital-ops-border-subtle)]">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`px-3 py-1.5 text-[12px] font-medium transition-colors border-b-2 ${
+                selectedTab === tab.id
+                  ? 'border-[var(--vital-ops-accent-cyan)] text-[var(--vital-ops-text-primary)]'
+                  : 'border-transparent text-[var(--vital-ops-text-muted)] hover:text-[var(--vital-ops-text-secondary)]'
+              }`}
+              onClick={() => setSelectedTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-                <Card className="vital-panel vital-panel--dense">
-                  <div className="vital-panel__header">
-                    <div>
-                      <p className="vital-panel__eyebrow">Claims</p>
-                      <h3 className="vital-panel__title">Verification narrative</h3>
+        {/* Tab content */}
+        {selectedTab === 'overview' && (
+          <div className="flex flex-col gap-4">
+            <div className="vital-panel vital-panel--dense">
+              <div className="vital-kpi-grid">
+                <div className="vital-kpi">
+                  <span className="vital-kpi__label">Claims</span>
+                  <span className="vital-kpi__value">{model.claims.length}</span>
+                </div>
+                <div className="vital-kpi">
+                  <span className="vital-kpi__label">Receipts</span>
+                  <span className="vital-kpi__value">{model.receipts.length}</span>
+                </div>
+                <div className="vital-kpi">
+                  <span className="vital-kpi__label">Artifacts</span>
+                  <span className="vital-kpi__value">{model.artifacts.length}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="vital-panel vital-panel--dense">
+              <div className="vital-panel__header">
+                <div>
+                  <p className="vital-panel__eyebrow">Claims</p>
+                  <h3 className="vital-panel__title">Verification narrative</h3>
+                </div>
+              </div>
+              <VirtualizedInspectorList
+                emptyState="No claims attached to this node."
+                getKey={(claim) => claim.id}
+                itemHeight={78}
+                items={model.claims}
+                maxHeight={300}
+                renderItem={(claim) => (
+                  <div className="vital-inspector-item">
+                    <div className="vital-inspector-item__meta">
+                      <span className="vital-inspector-item__label">{claim.label}</span>
+                      <span className="vital-inspector-item__detail line-clamp-2">{claim.summary}</span>
                     </div>
+                    <span className="vital-status-pill">{claim.value}</span>
                   </div>
-                  <div className="mt-3 vital-inspector-list">
-                    {model.claims.slice(0, 6).map((claim) => (
-                      <div key={claim.id} className="vital-inspector-item">
-                        <div className="vital-inspector-item__meta">
-                          <span className="vital-inspector-item__label">{claim.label}</span>
-                          <span className="vital-inspector-item__detail">{claim.summary}</span>
-                        </div>
-                        <Tag minimal className="vital-status-pill">{claim.value}</Tag>
+                )}
+              />
+            </div>
+
+            <div className="vital-panel vital-panel--dense">
+              <div className="vital-panel__header">
+                <div>
+                  <p className="vital-panel__eyebrow">Metadata</p>
+                  <h3 className="vital-panel__title">Node payload</h3>
+                </div>
+              </div>
+              <MetadataTable rows={metadataRows} />
+            </div>
+          </div>
+        )}
+
+        {selectedTab === 'relationships' && (
+          <div className="vital-panel vital-panel--dense">
+            <div className="vital-panel__header">
+              <div>
+                <p className="vital-panel__eyebrow">Relationships</p>
+                <h3 className="vital-panel__title">Connected entities</h3>
+              </div>
+            </div>
+            <RelationshipTable relationships={model.relationships} onFocusNode={onFocusNode} />
+          </div>
+        )}
+
+        {selectedTab === 'evidence' && (
+          <div className="flex flex-col gap-4">
+            <div className="vital-panel vital-panel--dense">
+              <div className="vital-panel__header">
+                <div>
+                  <p className="vital-panel__eyebrow">Evidence stack</p>
+                  <h3 className="vital-panel__title">Receipts and artifacts</h3>
+                </div>
+              </div>
+              <VirtualizedInspectorList
+                emptyState="No receipts or artifacts in the current graph slice."
+                getKey={(entry) => entry.id}
+                itemHeight={86}
+                items={model.evidenceStack}
+                maxHeight={320}
+                renderItem={(entry) => (
+                  <div className="vital-inspector-item">
+                    <div className="vital-inspector-item__meta">
+                      <span className="vital-inspector-item__label">{entry.title}</span>
+                      <span className="vital-inspector-item__detail line-clamp-2">{entry.summary}</span>
+                    </div>
+                    <span className="vital-status-pill">{entry.kind}</span>
+                  </div>
+                )}
+              />
+            </div>
+
+            {model.pendingSuggestions.length > 0 && (
+              <div className="vital-panel vital-panel--dense">
+                <div className="vital-panel__header">
+                  <div>
+                    <p className="vital-panel__eyebrow">Pending AI links</p>
+                    <h3 className="vital-panel__title">Review suggestions</h3>
+                  </div>
+                </div>
+                <VirtualizedInspectorList
+                  emptyState="No pending AI link suggestions."
+                  getKey={(suggestion) => suggestion.id}
+                  itemHeight={94}
+                  items={model.pendingSuggestions}
+                  maxHeight={280}
+                  renderItem={(suggestion) => (
+                    <div className="vital-inspector-item">
+                      <div className="vital-inspector-item__meta">
+                        <span className="vital-inspector-item__label">{suggestion.targetLabel}</span>
+                        <span className="vital-inspector-item__detail line-clamp-2">{suggestion.explanation}</span>
                       </div>
-                    ))}
-                  </div>
-                </Card>
-
-                <Card className="vital-panel vital-panel--dense">
-                  <div className="vital-panel__header">
-                    <div>
-                      <p className="vital-panel__eyebrow">Metadata</p>
-                      <h3 className="vital-panel__title">Node payload</h3>
+                      <div className="flex gap-2">
+                        <button type="button" className="vital-action-button" onClick={() => onAcceptSuggestion(suggestion.id)}>Accept</button>
+                        <button type="button" className="vital-action-button" onClick={() => onRejectSuggestion(suggestion.id)}>Reject</button>
+                      </div>
                     </div>
-                  </div>
-                  {metadataRows.length > 0 ? (
-                    <div className="mt-3 h-[220px] overflow-hidden rounded-xl border border-[var(--vital-ops-border-subtle)]">
-                      <Table2 numRows={metadataRows.length} enableGhostCells={false}>
-                        <Column
-                          name="Field"
-                          cellRenderer={(rowIndex) => (
-                            <Cell>{metadataRows[rowIndex]?.[0] ?? ''}</Cell>
-                          )}
-                        />
-                        <Column
-                          name="Value"
-                          cellRenderer={(rowIndex) => (
-                            <Cell>{String(metadataRows[rowIndex]?.[1] ?? '')}</Cell>
-                          )}
-                        />
-                      </Table2>
-                    </div>
-                  ) : (
-                    <div className="vital-empty-state mt-3">No metadata captured on this node.</div>
                   )}
-                </Card>
+                />
               </div>
-            }
-          />
-          <Tab
-            id="relationships"
-            title="Relationships"
-            panel={
-              <div className="vital-graph-tabs">
-                <Card className="vital-panel vital-panel--dense">
-                  <div className="vital-panel__header">
-                    <div>
-                      <p className="vital-panel__eyebrow">Relationships</p>
-                      <h3 className="vital-panel__title">Connected entities</h3>
-                    </div>
-                  </div>
-                  {model.relationships.length > 0 ? (
-                    <div className="mt-3 h-[280px] overflow-hidden rounded-xl border border-[var(--vital-ops-border-subtle)]">
-                      <Table2 numRows={model.relationships.length} enableGhostCells={false}>
-                        <Column
-                          name="Neighbor"
-                          cellRenderer={(rowIndex) => {
-                            const relationship = model.relationships[rowIndex];
-                            return (
-                              <Cell>
-                                <Button
-                                  minimal
-                                  className="vital-action-button"
-                                  onClick={() => onFocusNode(relationship.neighborId)}
-                                  text={relationship.label}
-                                />
-                              </Cell>
-                            );
-                          }}
-                        />
-                        <Column
-                          name="Direction"
-                          cellRenderer={(rowIndex) => (
-                            <Cell>{model.relationships[rowIndex]?.direction ?? ''}</Cell>
-                          )}
-                        />
-                        <Column
-                          name="Confidence"
-                          cellRenderer={(rowIndex) => (
-                            <Cell>
-                              {Math.round((model.relationships[rowIndex]?.confidence ?? 0) * 100)}%
-                            </Cell>
-                          )}
-                        />
-                      </Table2>
-                    </div>
-                  ) : (
-                    <div className="vital-empty-state mt-3">No visible relationships in the current graph slice.</div>
-                  )}
-                </Card>
-              </div>
-            }
-          />
-          <Tab
-            id="evidence"
-            title="Evidence"
-            panel={
-              <div className="vital-graph-tabs">
-                <Card className="vital-panel vital-panel--dense">
-                  <div className="vital-panel__header">
-                    <div>
-                      <p className="vital-panel__eyebrow">Evidence stack</p>
-                      <h3 className="vital-panel__title">Receipts and artifacts</h3>
-                    </div>
-                  </div>
-                  <div className="mt-3 vital-inspector-list">
-                    {model.evidenceStack.map((entry) => (
-                      <div key={entry.id} className="vital-inspector-item">
-                        <div className="vital-inspector-item__meta">
-                          <span className="vital-inspector-item__label">{entry.title}</span>
-                          <span className="vital-inspector-item__detail">{entry.summary}</span>
-                        </div>
-                        <Tag minimal className="vital-status-pill">{entry.kind}</Tag>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-
-                {model.pendingSuggestions.length > 0 ? (
-                  <Card className="vital-panel vital-panel--dense">
-                    <div className="vital-panel__header">
-                      <div>
-                        <p className="vital-panel__eyebrow">Pending AI links</p>
-                        <h3 className="vital-panel__title">Review suggestions</h3>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex flex-col gap-3">
-                      {model.pendingSuggestions.map((suggestion) => (
-                        <div key={suggestion.id} className="vital-inspector-item">
-                          <div className="vital-inspector-item__meta">
-                            <span className="vital-inspector-item__label">{suggestion.targetLabel}</span>
-                            <span className="vital-inspector-item__detail">{suggestion.explanation}</span>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              className="vital-action-button"
-                              onClick={() => onAcceptSuggestion(suggestion.id)}
-                              text="Accept"
-                            />
-                            <Button
-                              className="vital-action-button"
-                              onClick={() => onRejectSuggestion(suggestion.id)}
-                              text="Reject"
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                ) : null}
-              </div>
-            }
-          />
-        </Tabs>
+            )}
+          </div>
+        )}
       </div>
     </Drawer>
   );

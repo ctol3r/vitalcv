@@ -6,6 +6,7 @@ import type { Instance } from 'tippy.js';
 import tippy from 'tippy.js';
 import type { GraphNode } from '@/components/graph-system/types';
 import { buildGraphTooltipContent } from '@/components/graph/GraphTooltip';
+import { motionDurations } from '@/ui/animation/motion';
 
 interface TooltipPoint {
   clientX: number;
@@ -26,7 +27,8 @@ export function useTippyGraph(canvasRef: RefObject<HTMLCanvasElement | null>) {
       arrow: true,
       theme: 'vital-graph',
       placement: 'top',
-      animation: 'shift-away-subtle',
+      animation: 'fade',
+      duration: Math.round(motionDurations.tooltip * 1000),
       interactive: false,
       offset: [0, 14],
       appendTo: () => document.body,

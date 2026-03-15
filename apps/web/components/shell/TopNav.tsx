@@ -1,9 +1,10 @@
 'use client';
 
-import { Button, InputGroup, Navbar, NavbarDivider, NavbarGroup, Tag } from '@blueprintjs/core';
 import { Activity, Bot, RefreshCw, Search, Target } from 'lucide-react';
+import { startTransition, useEffect, useState } from 'react';
 import type { GraphLayer } from '@/components/graph-system/types';
 import type { GraphStats, GraphViewMode } from '@/components/graph/state/graphDisplayState';
+import { CopilotSearchBar } from '@/components/copilot/CopilotSearchBar';
 
 interface TopNavProps {
   layer: GraphLayer;
@@ -14,45 +15,40 @@ interface TopNavProps {
   onReload: () => void;
   onRunAiLinks: () => void;
   onResetLayout: () => void;
+  onNavigateToNpi?: (npi: string) => void;
 }
 
 export function TopNav({
   layer,
   viewMode,
   stats,
-  searchValue,
-  onSearchChange,
   onReload,
   onRunAiLinks,
   onResetLayout,
+  onNavigateToNpi,
 }: TopNavProps) {
   return (
-    <Navbar className="vital-topnav">
-      <NavbarGroup align="left" className="vital-topnav__brand">
+    <nav className="vital-topnav">
+      <div className="vital-topnav__brand">
         <div className="vital-topnav__identity">
           <p className="vital-topnav__eyebrow">VitalCV Graph Ops</p>
           <div className="vital-topnav__title-row">
             <h1 className="vital-topnav__title">Trust Graph Runtime</h1>
-            <Tag minimal className="vital-status-pill">
-              {layer}
-            </Tag>
-            <Tag minimal className="vital-status-pill">
-              {viewMode}
-            </Tag>
+            <span className="vital-status-pill">{layer}</span>
+            <span className="vital-status-pill">{viewMode}</span>
           </div>
         </div>
-      </NavbarGroup>
-      <NavbarGroup align="left" className="vital-topnav__search">
-        <InputGroup
-          large
-          leftElement={<Search className="h-4 w-4 text-[var(--vital-ops-text-muted)]" />}
-          onValueChange={onSearchChange}
-          placeholder="Search nodes, institutions, evidence..."
-          value={searchValue}
-          className="vital-search-input"
+      </div>
+
+      <div className="vital-topnav__search">
+        <CopilotSearchBar
+          compact
+          sessionId="graph-copilot"
+          onNavigateToNpi={onNavigateToNpi}
         />
-      </NavbarGroup>
-      <NavbarGroup align="right" className="vital-topnav__metrics">
+      </div>
+
+      <div className="vital-topnav__metrics">
         <div className="vital-topnav__metric">
           <span className="vital-topnav__metric-label">Nodes</span>
           <span className="vital-topnav__metric-value">{stats.totalNodes}</span>
@@ -65,32 +61,20 @@ export function TopNav({
           <span className="vital-topnav__metric-label">AI Links</span>
           <span className="vital-topnav__metric-value">{stats.aiSuggestedLinks}</span>
         </div>
-        <NavbarDivider />
-        <Button
-          className="vital-action-button"
-          icon={<RefreshCw className="h-3.5 w-3.5" />}
-          onClick={onReload}
-          small
-          text="Rebuild"
-        />
-        <Button
-          className="vital-action-button"
-          icon={<Bot className="h-3.5 w-3.5" />}
-          onClick={onRunAiLinks}
-          small
-          text="AI Sweep"
-        />
-        <Button
-          className="vital-action-button"
-          icon={<Target className="h-3.5 w-3.5" />}
-          onClick={onResetLayout}
-          small
-          text="Reset"
-        />
+        <div className="vital-topnav__divider" />
+        <button className="vital-action-button" onClick={onReload} type="button">
+          <RefreshCw className="h-3.5 w-3.5" /> Rebuild
+        </button>
+        <button className="vital-action-button" onClick={onRunAiLinks} type="button">
+          <Bot className="h-3.5 w-3.5" /> AI Sweep
+        </button>
+        <button className="vital-action-button" onClick={onResetLayout} type="button">
+          <Target className="h-3.5 w-3.5" /> Reset
+        </button>
         <div className="vital-topnav__pulse">
           <Activity className="h-3.5 w-3.5" />
         </div>
-      </NavbarGroup>
-    </Navbar>
+      </div>
+    </nav>
   );
 }

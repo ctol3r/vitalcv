@@ -1,5 +1,7 @@
 import RootChrome from '@/components/layout/RootChrome';
 import { Toaster } from '@/components/ui/toaster';
+import { motionCssVariables } from '@/ui/animation/motion';
+import { themeCssVariables } from '@/ui/theme/tokens';
 import { ClerkProvider } from '@clerk/nextjs';
 import type { Metadata } from 'next';
 import { Nunito_Sans } from 'next/font/google';
@@ -21,6 +23,8 @@ const fontVariables = {
   '--font-inter': "var(--font-nunito-sans), 'Nunito Sans', system-ui, sans-serif",
   '--font-plus-jakarta': "var(--font-nunito-sans), 'Nunito Sans', system-ui, sans-serif",
   '--font-jetbrains': "'JetBrains Mono', ui-monospace, monospace",
+  ...themeCssVariables,
+  ...motionCssVariables,
 } as React.CSSProperties;
 
 export const metadata: Metadata = {

@@ -1,6 +1,5 @@
 'use client';
 
-import { Card } from '@blueprintjs/core';
 import type { GraphEdge, GraphNode } from '@/components/graph-system/types';
 import {
   classifyEdgeType,
@@ -35,7 +34,7 @@ export function GraphLegend({ nodes, edges, colorMode }: GraphLegendProps) {
   }
 
   return (
-    <Card className="vital-panel vital-panel--dense">
+    <div className="vital-panel vital-panel--dense">
       <div className="vital-panel__header">
         <div>
           <p className="vital-panel__eyebrow">Legend</p>
@@ -84,6 +83,6 @@ export function GraphLegend({ nodes, edges, colorMode }: GraphLegendProps) {
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

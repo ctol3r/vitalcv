@@ -28,6 +28,12 @@ export interface RankedQuerySuggestion {
   source: 'history' | 'pattern' | 'base';
 }
 
+const SOURCE_PRIORITY: Record<RankedQuerySuggestion['source'], number> = {
+  history: 3,
+  pattern: 2,
+  base: 1,
+};
+
 function normalize(value: string): string {
   return value.trim().toLowerCase();
 }
@@ -180,7 +186,14 @@ export function rankQuerySuggestions(input: {
     }
 
     const existing = candidates.get(normalized);
-    if (!existing || existing.score < score) {
+    if (
+      !existing
+      || existing.score < score
+      || (
+        existing.score === score
+        && SOURCE_PRIORITY[source] > SOURCE_PRIORITY[existing.source]
+      )
+    ) {
       candidates.set(normalized, {
         text,
         score,

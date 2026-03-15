@@ -12,6 +12,9 @@
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.03),
     0 32px 80px rgb(2 6 23 / 0.3);
+  transition:
+    border-color var(--ui-motion-duration-panel) var(--ui-motion-ease-out),
+    box-shadow var(--ui-motion-duration-panel) var(--ui-motion-ease-out);
 }
 
 .vital-graph-stage::before {
@@ -66,6 +69,10 @@
   background: rgb(5 12 21 / 0.74);
   backdrop-filter: blur(18px);
   padding: 0.65rem 0.8rem;
+  transition:
+    background-color var(--ui-motion-duration-panel) var(--ui-motion-ease-out),
+    border-color var(--ui-motion-duration-panel) var(--ui-motion-ease-out),
+    box-shadow var(--ui-motion-duration-panel) var(--ui-motion-ease-out);
 }
 
 .vital-graph-statusbar__group {
@@ -110,6 +117,17 @@
   border-radius: 0.85rem;
   background: rgb(9 16 28 / 0.8);
   padding: 0.65rem 0.75rem;
+  transition:
+    transform var(--ui-motion-duration-fast) var(--ui-motion-ease-out),
+    border-color var(--ui-motion-duration-fast) var(--ui-motion-ease-out),
+    background-color var(--ui-motion-duration-fast) var(--ui-motion-ease-out);
+}
+
+.vital-legend-item:hover,
+.vital-inspector-item:hover {
+  transform: translateY(-1px);
+  border-color: rgb(96 165 250 / 0.24);
+  background: rgb(12 22 36 / 0.88);
 }
 
 .vital-legend-item__meta,
@@ -204,6 +222,8 @@
   color: var(--vital-ops-text-primary);
   box-shadow: 0 24px 60px rgb(2 6 23 / 0.4);
   backdrop-filter: blur(18px);
+  transition-duration: var(--ui-motion-duration-tooltip);
+  transition-timing-function: var(--ui-motion-ease-fade-out);
 }
 
 .tippy-box[data-theme~='vital-graph'] > .tippy-content {
@@ -234,6 +254,17 @@
   text-align: center;
 }
 
+.vital-virtual-list {
+  overflow: auto;
+  border: 1px solid var(--vital-ops-border-subtle);
+  border-radius: 0.95rem;
+  background: rgb(8 14 24 / 0.44);
+}
+
+.vital-virtual-list__inner {
+  position: relative;
+}
+
 @media (max-width: 980px) {
   .vital-graph-stage {
     min-height: 34rem;
@@ -242,5 +273,14 @@
   .vital-graph-statusbar {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vital-graph-stage,
+  .vital-graph-statusbar,
+  .vital-legend-item,
+  .vital-inspector-item {
+    transition: none;
   }
 }

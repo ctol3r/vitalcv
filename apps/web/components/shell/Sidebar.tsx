@@ -1,6 +1,5 @@
 'use client';
 
-import { Button, Card } from '@blueprintjs/core';
 import type { ReactElement, ReactNode } from 'react';
 
 export interface SidebarAction {
@@ -20,7 +19,7 @@ interface SidebarProps {
 export function Sidebar({ title, subtitle, actions, children }: SidebarProps) {
   return (
     <div className="vital-sidebar-stack">
-      <Card className="vital-panel vital-panel--dense">
+      <div className="vital-panel vital-panel--dense">
         <div className="vital-panel__header">
           <div>
             <p className="vital-panel__eyebrow">Operations</p>
@@ -30,16 +29,18 @@ export function Sidebar({ title, subtitle, actions, children }: SidebarProps) {
         <p className="vital-panel__copy">{subtitle}</p>
         <div className="vital-sidebar-actions">
           {actions.map((action) => (
-            <Button
+            <button
               key={action.id}
               className="vital-action-button vital-action-button--full"
-              icon={action.icon}
               onClick={action.onClick}
-              text={action.label}
-            />
+              type="button"
+            >
+              {action.icon}
+              {action.label}
+            </button>
           ))}
         </div>
-      </Card>
+      </div>
       <div className="vital-sidebar-scroll">{children}</div>
     </div>
   );

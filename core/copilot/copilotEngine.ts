@@ -59,10 +59,17 @@ export interface ParsedCopilotQuery {
   rankingWeights: CopilotRankingWeights;
 }
 
+export interface CopilotStageBudgets {
+  structured: number;
+  semantic: number;
+  graph: number;
+  trust: number;
+}
+
 export interface CopilotQueryPlan {
   limit: number;
   stageOrder: CopilotSearchEngine[];
-  stageBudgets: Record<CopilotSearchEngine, number>;
+  stageBudgets: CopilotStageBudgets;
   prioritizedTypes: CopilotEntityType[];
   semanticFields: string[];
   graphDepth: number;
@@ -224,7 +231,7 @@ export interface CopilotDependencies {
 }
 
 function dedupeValues(values: string[]): string[] {
-  return [...new Set(values)];
+  return [...new Set(values.filter((value) => value.trim().length > 0))];
 }
 
 function mergeMatches(left: CopilotMatch[], right: CopilotMatch[]): CopilotMatch[] {
@@ -341,7 +348,7 @@ export function prepareCopilotQuery(input: {
   query: string;
   limit?: number;
 }): PreparedCopilotQuery {
-  const limit = Math.min(Math.max(input.limit ?? 20, 1), 50);
+  const limit = Math.min(Math.max(input.limit ?? 20, 1), 20);
   const parsedQuery = interpretCopilotQuery(input.query);
   const plan = planCopilotQuery(parsedQuery, limit);
 

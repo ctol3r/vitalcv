@@ -1,6 +1,5 @@
 'use client';
 
-import { Card } from '@blueprintjs/core';
 import type { ReactNode } from 'react';
 
 interface ContextPanelProps {
@@ -12,7 +11,7 @@ interface ContextPanelProps {
 export function ContextPanel({ title, subtitle, children }: ContextPanelProps) {
   return (
     <div className="vital-context-stack">
-      <Card className="vital-panel vital-panel--dense">
+      <div className="vital-panel vital-panel--dense">
         <div className="vital-panel__header">
           <div>
             <p className="vital-panel__eyebrow">Context</p>
@@ -20,7 +19,7 @@ export function ContextPanel({ title, subtitle, children }: ContextPanelProps) {
           </div>
         </div>
         <p className="vital-panel__copy">{subtitle}</p>
-      </Card>
+      </div>
       <div className="vital-context-scroll">{children}</div>
     </div>
   );

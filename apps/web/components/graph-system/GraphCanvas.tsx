@@ -5,6 +5,8 @@ import type { GraphEdge, GraphNode } from './types';
 import { LINK_CLASS_STYLES, resolveNodeColor } from '@/components/graph/graphPalette';
 import { useGraphPhysics } from '@/components/graph/hooks/useGraphPhysics';
 import { useTippyGraph } from '@/components/graph/hooks/useTippyGraph';
+import { motionDurations } from '@/ui/animation/motion';
+import { themeTypography } from '@/ui/theme/typography';
 import {
   classifyEdgeType,
   type GraphPhysicsState,
@@ -36,6 +38,12 @@ interface DragState {
   moved: boolean;
 }
 
+interface CanvasMetrics {
+  width: number;
+  height: number;
+  devicePixelRatio: number;
+}
+
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
 }
@@ -60,6 +68,13 @@ export default function GraphCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>(0);
   const cameraRef = useRef({ x: 0, y: 0, zoom: 1 });
+  const canvasMetricsRef = useRef<CanvasMetrics>({
+    width: 0,
+    height: 0,
+    devicePixelRatio: 1,
+  });
+  const highlightProgressRef = useRef(new Map<string, number>());
+  const lastFrameTimeRef = useRef<number | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const panStartRef = useRef({ x: 0, y: 0, cameraX: 0, cameraY: 0 });
   const isPanningRef = useRef(false);
@@ -122,16 +137,33 @@ export default function GraphCanvas({
     }
 
     let mounted = true;
-    const devicePixelRatio = window.devicePixelRatio || 1;
 
     const render = () => {
       if (!mounted) {
         return;
       }
 
-      canvas.width = width * devicePixelRatio;
-      canvas.height = height * devicePixelRatio;
-      context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      const devicePixelRatio = window.devicePixelRatio || 1;
+      const shouldResizeCanvas =
+        canvasMetricsRef.current.width !== width ||
+        canvasMetricsRef.current.height !== height ||
+        canvasMetricsRef.current.devicePixelRatio !== devicePixelRatio;
+
+      if (shouldResizeCanvas) {
+        canvas.width = width * devicePixelRatio;
+        canvas.height = height * devicePixelRatio;
+        context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+        canvasMetricsRef.current = {
+          width,
+          height,
+          devicePixelRatio,
+        };
+      }
+
+      const frameStartedAt = performance.now();
+      const previousFrameStartedAt = lastFrameTimeRef.current ?? frameStartedAt;
+      const deltaMs = frameStartedAt - previousFrameStartedAt;
+      lastFrameTimeRef.current = frameStartedAt;
       context.clearRect(0, 0, width, height);
 
       const simulationNodes = visuals.animate && !physics.frozen ? tick() : simNodesRef.current;
@@ -139,7 +171,14 @@ export default function GraphCanvas({
       const colorMap = new Map(
         simulationNodes.map((node) => [node.id, resolveNodeColor(node, edges, visuals.colorMode)]),
       );
+      const highlightLerp = Math.min(1, deltaMs / (motionDurations.highlight * 1000));
       const camera = cameraRef.current;
+
+      for (const nodeId of highlightProgressRef.current.keys()) {
+        if (!nodeMap.has(nodeId)) {
+          highlightProgressRef.current.delete(nodeId);
+        }
+      }
 
       context.save();
       context.translate(width / 2 + camera.x, height / 2 + camera.y);
@@ -204,16 +243,33 @@ export default function GraphCanvas({
         const isHovered = node.id === hoveredNodeId;
         const isFocusedNeighbor = highlightedNodeIds.has(node.id);
         const isDimmed = (selectedNodeId != null || hoveredNodeId != null) && !isFocusedNeighbor;
+        const highlightTarget = isSelected ? 1 : isHovered ? 0.8 : isFocusedNeighbor ? 0.4 : 0;
+        const highlightProgress = (
+          (highlightProgressRef.current.get(node.id) ?? 0) +
+          ((highlightTarget - (highlightProgressRef.current.get(node.id) ?? 0)) * highlightLerp)
+        );
         const nodeColor = colorMap.get(node.id) ?? '#64748b';
         const nodeX = node.x ?? width / 2;
         const nodeY = node.y ?? height / 2;
+        const animatedRadius = radius * (1 + (highlightProgress * 0.12));
+
+        if (highlightProgress > 0.001 || highlightTarget > 0) {
+          highlightProgressRef.current.set(node.id, highlightProgress);
+        } else {
+          highlightProgressRef.current.delete(node.id);
+        }
 
         context.save();
 
-        if (isSelected || isHovered) {
-          const glowRadius = radius + 10;
+        if (highlightProgress > 0.02) {
+          const glowRadius = radius + 10 + (highlightProgress * 6);
           const glow = context.createRadialGradient(nodeX, nodeY, radius, nodeX, nodeY, glowRadius);
-          glow.addColorStop(0, isSelected ? 'rgba(250, 204, 21, 0.42)' : 'rgba(96, 165, 250, 0.28)');
+          glow.addColorStop(
+            0,
+            isSelected
+              ? `rgba(250, 204, 21, ${0.18 + (highlightProgress * 0.24)})`
+              : `rgba(96, 165, 250, ${0.14 + (highlightProgress * 0.18)})`,
+          );
           glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
           context.fillStyle = glow;
           context.beginPath();
@@ -222,12 +278,12 @@ export default function GraphCanvas({
         }
 
         context.beginPath();
-        context.arc(nodeX, nodeY, isSelected ? radius * 1.12 : isHovered ? radius * 1.08 : radius, 0, Math.PI * 2);
+        context.arc(nodeX, nodeY, animatedRadius, 0, Math.PI * 2);
         context.fillStyle = nodeColor;
-        context.globalAlpha = isDimmed ? 0.18 : 0.96;
+        context.globalAlpha = isDimmed ? 0.18 : 0.88 + (highlightProgress * 0.08);
         context.fill();
 
-        context.lineWidth = node.fx != null && node.fy != null ? 2.2 : 1.2;
+        context.lineWidth = node.fx != null && node.fy != null ? 2.2 : 1.2 + (highlightProgress * 0.6);
         context.strokeStyle = isSelected
           ? '#facc15'
           : node.fx != null && node.fy != null
@@ -247,11 +303,11 @@ export default function GraphCanvas({
 
         if (shouldShowLabel) {
           const label = node.label.length > 24 ? `${node.label.slice(0, 23)}…` : node.label;
-          context.font = `${isSelected ? '700' : '600'} ${Math.max(10, 12 / zoom)}px "Nunito Sans", system-ui, sans-serif`;
+          context.font = `${isSelected ? '700' : '600'} ${Math.max(10, 12 / zoom)}px ${themeTypography.family.canvas}`;
           context.fillStyle = isDimmed ? 'rgba(148, 163, 184, 0.45)' : 'rgba(226, 232, 240, 0.95)';
           context.textAlign = 'center';
           context.textBaseline = 'middle';
-          context.fillText(label, nodeX, nodeY + radius + 13);
+          context.fillText(label, nodeX, nodeY + animatedRadius + 13);
         }
 
         context.restore();
@@ -265,6 +321,7 @@ export default function GraphCanvas({
 
     return () => {
       mounted = false;
+      lastFrameTimeRef.current = null;
       cancelAnimationFrame(animationFrameRef.current);
     };
   }, [

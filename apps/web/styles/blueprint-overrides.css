@@ -16,6 +16,10 @@
   top: 0;
   z-index: 20;
   backdrop-filter: blur(18px);
+  transition:
+    background-color var(--ui-motion-duration-panel) var(--ui-motion-ease-out),
+    border-color var(--ui-motion-duration-panel) var(--ui-motion-ease-out),
+    box-shadow var(--ui-motion-duration-panel) var(--ui-motion-ease-out);
 }
 
 .vital-shell__body {
@@ -46,6 +50,10 @@
   background: rgb(7 13 23 / 0.88);
   padding: 0 0.875rem;
   box-shadow: 0 16px 48px rgb(2 6 23 / 0.22);
+  transition:
+    background-color var(--ui-motion-duration-panel) var(--ui-motion-ease-out),
+    border-color var(--ui-motion-duration-panel) var(--ui-motion-ease-out),
+    box-shadow var(--ui-motion-duration-panel) var(--ui-motion-ease-out);
 }
 
 .vital-topnav__brand,
@@ -122,6 +130,9 @@
   color: var(--vital-ops-accent-cyan);
   background: rgb(6 22 38 / 0.72);
   box-shadow: 0 0 0 1px rgb(34 211 238 / 0.08), 0 0 24px rgb(34 211 238 / 0.12);
+  transition:
+    transform var(--ui-motion-duration-highlight) var(--ui-motion-ease-out),
+    box-shadow var(--ui-motion-duration-highlight) var(--ui-motion-ease-out);
 }
 
 .vital-search-input input {
@@ -131,10 +142,21 @@
   background: rgb(7 13 22 / 0.8);
   color: var(--vital-ops-text-primary);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.03);
+  transition:
+    background-color var(--ui-motion-duration-fast) var(--ui-motion-ease-out),
+    border-color var(--ui-motion-duration-fast) var(--ui-motion-ease-out),
+    box-shadow var(--ui-motion-duration-fast) var(--ui-motion-ease-out);
 }
 
 .vital-search-input input::placeholder {
   color: var(--vital-ops-text-muted);
+}
+
+.vital-search-input input:focus {
+  border-color: rgb(34 211 238 / 0.42);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.03),
+    0 0 0 1px rgb(34 211 238 / 0.16);
 }
 
 .vital-panel {
@@ -145,6 +167,10 @@
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.03),
     0 18px 48px rgb(2 6 23 / 0.26);
+  transition:
+    border-color var(--ui-motion-duration-panel) var(--ui-motion-ease-out),
+    box-shadow var(--ui-motion-duration-panel) var(--ui-motion-ease-out),
+    background-color var(--ui-motion-duration-panel) var(--ui-motion-ease-out);
 }
 
 .vital-panel--dense {
@@ -195,16 +221,29 @@
   background: rgb(9 20 33 / 0.84);
   color: var(--vital-ops-text-secondary);
   box-shadow: none;
+  transition:
+    transform var(--ui-motion-duration-fast) var(--ui-motion-ease-out),
+    background-color var(--ui-motion-duration-fast) var(--ui-motion-ease-out),
+    border-color var(--ui-motion-duration-fast) var(--ui-motion-ease-out),
+    color var(--ui-motion-duration-fast) var(--ui-motion-ease-out);
 }
 
 .vital-action-button:hover {
   background: var(--vital-ops-hover);
   color: var(--vital-ops-text-primary);
+  transform: translateY(-1px);
 }
 
 .vital-action-button--full {
   justify-content: flex-start;
   width: 100%;
+}
+
+.vital-topnav__divider {
+  width: 1px;
+  height: 1.5rem;
+  background: var(--vital-ops-border-subtle);
+  margin: 0 0.25rem;
 }
 
 .vital-status-pill {
@@ -216,6 +255,10 @@
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
+  transition:
+    background-color var(--ui-motion-duration-fast) var(--ui-motion-ease-out),
+    border-color var(--ui-motion-duration-fast) var(--ui-motion-ease-out),
+    color var(--ui-motion-duration-fast) var(--ui-motion-ease-out);
 }
 
 .vital-chip-list {
@@ -235,12 +278,21 @@
   padding: 0.35rem 0.65rem;
   font-size: 0.72rem;
   font-weight: 600;
+  transition:
+    transform var(--ui-motion-duration-fast) var(--ui-motion-ease-out),
+    background-color var(--ui-motion-duration-fast) var(--ui-motion-ease-out),
+    border-color var(--ui-motion-duration-fast) var(--ui-motion-ease-out),
+    color var(--ui-motion-duration-fast) var(--ui-motion-ease-out);
 }
 
 .vital-chip--active {
   border-color: rgb(59 130 246 / 0.5);
   background: rgb(23 37 84 / 0.7);
   color: var(--vital-ops-text-primary);
+}
+
+.vital-chip:hover {
+  transform: translateY(-1px);
 }
 
 .vital-kpi-grid {
@@ -256,6 +308,9 @@
   border-radius: 0.85rem;
   background: rgb(9 16 28 / 0.82);
   padding: 0.7rem 0.8rem;
+  transition:
+    border-color var(--ui-motion-duration-panel) var(--ui-motion-ease-out),
+    background-color var(--ui-motion-duration-panel) var(--ui-motion-ease-out);
 }
 
 .vital-kpi__label {
@@ -320,5 +375,19 @@
 
   .vital-topnav__metrics {
     flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vital-shell__topnav,
+  .vital-topnav,
+  .vital-topnav__pulse,
+  .vital-search-input input,
+  .vital-panel,
+  .vital-action-button,
+  .vital-status-pill,
+  .vital-chip,
+  .vital-kpi {
+    transition: none;
   }
 }

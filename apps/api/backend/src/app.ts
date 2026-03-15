@@ -133,6 +133,7 @@ import { registerRoleRoutes } from './routes/role';                         // C
 import { registerOpportunityRoutes } from './routes/opportunities';          // Wave 227: Opportunities + Candidates
 import { registerApplicationRoutes } from './routes/applications';            // Wave 229: Application Flow
 import { registerAskRoutes } from './routes/ask';                           // Wave 185: Ask VitalCV answer engine
+import { registerCopilotRoutes } from './routes/copilot';                   // Waves C25-C28: Copilot query engine
 import { registerEmployerRoutes } from './routes/employers';                 // Wave 186: Employer Knowledge Layer
 import { registerPrequalificationRoutes } from './routes/prequalification';  // Wave 189: AI Interview, Assessments, Prequalification
 import { registerVerifierPipelineRoutes } from './routes/verifierPipeline';  // Wave 190: Apply with VitalCV + ATS + Verifier Pipeline
@@ -164,7 +165,6 @@ import { registerDomainRoutes } from './routes/domains';                        
 import { registerIdentityLayerRoutes } from './routes/identityLayer';                  // Wave: Canonical Identity
 import { registerTrustIntelligenceRoutes } from './routes/trustIntelligence';          // Wave M: Trust Score V1 + Freshness + Divergence
 import { registerIntelligenceEngineRoutes } from './routes/intelligence';              // Wave I: Intelligence Engine + Learning Loops
-import { registerCopilotRoutes } from './routes/copilot';                              // Wave CP: Copilot conversational layer
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -536,6 +536,7 @@ function shouldSkipTenantContext(pathname: string): boolean {
     normalizedPath.startsWith('/api/metrics') ||
     normalizedPath.startsWith('/api/artifact') ||
     normalizedPath.startsWith('/api/ask') ||
+    normalizedPath.startsWith('/api/copilot') ||
     normalizedPath.startsWith('/api/search') ||
     normalizedPath.startsWith('/api/employers') ||
     normalizedPath.startsWith('/bundle') ||
@@ -3569,6 +3570,7 @@ registerRoleRoutes(app);              // Clerk auth — GET /api/me/role (role r
 registerOpportunityRoutes(app);       // Wave 227 — Opportunities + Candidates
 registerApplicationRoutes(app);       // Wave 229 — Clinician Application Flow
 registerAskRoutes(app);               // Wave 185 — Ask VitalCV natural language answer engine
+registerCopilotRoutes(app);           // Waves C25-C28 — Copilot query engine
 registerEmployerRoutes(app);          // Wave 186 — Employer Knowledge Layer
 registerPrequalificationRoutes(app);  // Wave 189 — AI Interview, Assessments, Prequalification
 registerVerifierPipelineRoutes(app);  // Wave 190 — Apply with VitalCV + ATS + Verifier Pipeline
@@ -3600,7 +3602,6 @@ registerDomainRoutes(app);                 // Wave: universal domain authority r
 registerIdentityLayerRoutes(app);          // Wave: canonical clinician identity layer
 registerTrustIntelligenceRoutes(app);      // Wave M: Trust Score V1 + Freshness + Divergence
 registerIntelligenceEngineRoutes(app);     // Wave I: Intelligence Engine + Learning Loops
-registerCopilotRoutes(app);                // Wave CP: Copilot conversational layer
 registerPayerVerificationRoutes(app); // Wave 142 — Payer Network Integration
 registerProviderDirectoryRoutes(app);  // Wave 143 — Provider Directory Distribution
 registerGraphScalingRoutes(app);       // Wave 144 — Trust Graph Performance Scaling

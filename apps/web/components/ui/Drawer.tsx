@@ -1,5 +1,8 @@
 'use client';
+
 import { cn } from '@/lib/utils';
+import { useMotion } from '@/ui/hooks/useMotion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import React, { useEffect, useRef } from 'react';
 
@@ -18,11 +21,12 @@ const WIDTHS = {
   md: 'w-[560px]',
   lg: 'w-[720px]',
   xl: 'w-[960px]',
-  full: 'w-screen'
+  full: 'w-screen',
 };
 
 export function Drawer({ open, onClose, title, width = 'md', children, actions, overlay = true }: DrawerProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const { transition, variant } = useMotion();
 
   useEffect(() => {
     if (!open) return;
@@ -33,50 +37,80 @@ export function Drawer({ open, onClose, title, width = 'md', children, actions, 
   }, [open, onClose]);
 
   return (
-    <>
-      {overlay && (
-        <div
-          className={cn(
-            "fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 transition-opacity duration-300",
-            open ? "opacity-100" : "opacity-0 pointer-events-none"
-          )}
-          onClick={onClose}
-          aria-hidden
-        />
-      )}
-
-      <div
-        role="dialog"
-        aria-modal
-        aria-label={typeof title === 'string' ? title : 'Drawer'}
-        ref={ref}
-        className={cn(
-          "fixed top-0 right-0 h-full z-50 flex flex-col bg-[#0f1115] border-l border-white/10 shadow-[0_0_60px_rgba(0,0,0,0.8)] transition-transform duration-300 cubic-bezier(0.16, 1, 0.3, 1)",
-          WIDTHS[width],
-          open ? 'translate-x-0' : 'translate-x-full'
-        )}
-      >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0 bg-[#0f1115]/80 backdrop-blur-md">
-          <div className="text-sm font-semibold text-white tracking-tight flex items-center gap-2">
-            {title}
-          </div>
-          <div className="flex items-center gap-3">
-            {actions}
-            <button
+    <AnimatePresence initial={false}>
+      {open ? (
+        <>
+          {overlay ? (
+            <motion.div
+              aria-hidden
+              className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm"
+              initial="initial"
+              animate="enter"
+              exit="exit"
               onClick={onClose}
-              aria-label="Close"
-              className="p-1.5 rounded-md hover:bg-white/10 text-white/50 hover:text-white transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+              variants={variant('backdrop')}
+            />
+          ) : null}
 
-        <div className="flex-1 overflow-y-auto p-0 overscroll-contain bg-[#0a0a0f]">
-          {children}
-        </div>
-      </div>
-    </>
+          <motion.div
+            role="dialog"
+            aria-modal
+            aria-label={typeof title === 'string' ? title : 'Drawer'}
+            ref={ref}
+            className={cn(
+              'fixed right-0 top-0 z-50 flex h-full flex-col border-l shadow-[0_0_60px_rgba(0,0,0,0.8)]',
+              WIDTHS[width],
+            )}
+            initial="initial"
+            animate="enter"
+            exit="exit"
+            variants={variant('drawer')}
+            style={{
+              background: 'var(--vital-ops-panel)',
+              borderColor: 'var(--vital-ops-border-subtle)',
+            }}
+          >
+            <div
+              className="flex shrink-0 items-center justify-between border-b px-6 py-4 backdrop-blur-md"
+              style={{
+                background: 'var(--vital-ops-panel)',
+                borderColor: 'var(--vital-ops-border-subtle)',
+              }}
+            >
+              <div
+                className="flex items-center gap-2 text-sm font-semibold tracking-tight"
+                style={{ color: 'var(--vital-ops-text-primary)' }}
+              >
+                {title}
+              </div>
+              <div className="flex items-center gap-3">
+                {actions}
+                <button
+                  onClick={onClose}
+                  aria-label="Close"
+                  className="rounded-md p-1.5 transition-colors hover:bg-white/10 hover:text-white"
+                  style={{
+                    color: 'var(--vital-ops-text-muted)',
+                    transitionDuration: 'var(--ui-motion-duration-fast)',
+                    transitionTimingFunction: 'var(--ui-motion-ease-out)',
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <motion.div
+              className="flex-1 overflow-y-auto overscroll-contain p-0"
+              style={{ background: 'var(--vital-ops-background)' }}
+              transition={transition('panel')}
+            >
+              {children}
+            </motion.div>
+          </motion.div>
+        </>
+      ) : null}
+    </AnimatePresence>
   );
 }
 
