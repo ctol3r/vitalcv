@@ -18,6 +18,11 @@ import type { Express, Request, Response } from 'express';
 import { computeTrustScoreV1, batchTrustScore, TRUST_SCORE_VERSION, DIMENSION_WEIGHTS } from '../services/trust/trustScoreV1';
 import { computeTrustFreshness } from '../services/identity/freshnessModel';
 import { detectDivergence, batchDivergenceScan } from '../services/identity/divergenceEngine';
+import {
+  recordFreshnessDecaySignals,
+  recordTrustScoreSnapshot,
+  syncDivergenceReport,
+} from '../services/intelligence/intelligenceEngineService';
 import { log } from '../obs/logger';
 
 const NPI_RE = /^\d{10}$/;
@@ -41,6 +46,20 @@ export function registerTrustIntelligenceRoutes(app: Express): void {
     if (!validateNpi(res, npi)) return;
     try {
       const score = await computeTrustScoreV1(npi);
+      await recordTrustScoreSnapshot({
+        subjectType: 'NPI',
+        subjectId: npi,
+        newScore: score.score,
+        triggerEvent: 'TRUST_SCORE_COMPUTED',
+        confidence: score.confidence,
+        band: score.band,
+        methodologyVersion: score.methodology,
+        metadata: {
+          contradictions: score.contradictions.length,
+          totalPenalty: score.totalPenalty,
+        },
+        recordedAt: score.computedAt,
+      });
       const statusCode = score.contradictions.some(c => c.severity === 'CRITICAL') ? 207 : 200;
       res.status(statusCode).json({
         schema:   'https://vitalcv.com/trust-score/v1',
@@ -120,6 +139,18 @@ export function registerTrustIntelligenceRoutes(app: Express): void {
     if (!validateNpi(res, npi)) return;
     try {
       const report = await computeTrustFreshness(npi);
+      await recordFreshnessDecaySignals({
+        subjectType: 'NPI',
+        subjectId: npi,
+        computedAt: report.computedAt,
+        dimensions: report.dimensions.map((dimension) => ({
+          claimClass: dimension.claimClass,
+          status: dimension.status,
+          ageHours: dimension.ageHours,
+          freshnessScore: dimension.freshnessScore,
+          sources: dimension.sources,
+        })),
+      });
       const hasStale = report.staleDimensions.length > 0;
       res.status(hasStale ? 207 : 200).json({
         schema: 'https://vitalcv.com/trust-freshness/v1',
@@ -140,6 +171,20 @@ export function registerTrustIntelligenceRoutes(app: Express): void {
     if (!validateNpi(res, npi)) return;
     try {
       const report = await detectDivergence(npi);
+      await syncDivergenceReport({
+        subjectType: 'NPI',
+        subjectId: npi,
+        conflicts: report.conflicts.map((conflict) => ({
+          id: conflict.id,
+          claimType: conflict.claimType,
+          severity: conflict.severity,
+          description: conflict.description,
+          sources: conflict.sources,
+          values: conflict.values,
+          detectedAt: conflict.detectedAt,
+          resolution: conflict.resolution,
+        })),
+      });
       const statusCode = report.hasBlocking ? 207 : 200;
       res.status(statusCode).json({
         schema: 'https://vitalcv.com/trust-divergence/v1',

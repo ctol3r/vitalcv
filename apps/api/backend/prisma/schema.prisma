@@ -2076,6 +2076,163 @@ model SearchIndexRun {
   @@index([objectType])
 }
 
+model LearningEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  dedupeKey      String?  @unique @map("dedupe_key")
+  eventType      String   @map("event_type")
+  loopType       String   @map("loop_type")
+  subjectType    String   @map("subject_type")
+  subjectId      String   @map("subject_id")
+  sourceId       String?  @map("source_id")
+  relatedId      String?  @map("related_id")
+  status         String   @default("RECORDED")
+  confidence     Float?
+  scoreDelta     Float?   @map("score_delta")
+  signalStrength Float?   @map("signal_strength")
+  metadata       Json     @default("{}") @db.JsonB
+  occurredAt     DateTime @default(now()) @map("occurred_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([eventType, occurredAt])
+  @@index([loopType, occurredAt])
+  @@index([subjectType, subjectId, occurredAt])
+  @@index([sourceId, occurredAt])
+  @@map("learning_events")
+}
+
+model AnomalyHistory {
+  id                String   @id @default(uuid()) @db.Uuid
+  anomalyKey        String   @unique @map("anomaly_key")
+  anomalyType       String   @map("anomaly_type")
+  subjectType       String   @map("subject_type")
+  subjectId         String   @map("subject_id")
+  sourceIds         String[] @default([]) @map("source_ids")
+  severity          String
+  status            String   @default("OPEN")
+  confidence        Float    @default(0.5)
+  occurrenceCount   Int      @default(1) @map("occurrence_count")
+  confirmationCount Int      @default(0) @map("confirmation_count")
+  rejectionCount    Int      @default(0) @map("rejection_count")
+  lastFingerprint   String   @map("last_fingerprint")
+  firstDetectedAt   DateTime @default(now()) @map("first_detected_at")
+  lastDetectedAt    DateTime @default(now()) @map("last_detected_at")
+  resolvedAt        DateTime? @map("resolved_at")
+  metadata          Json     @default("{}") @db.JsonB
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@index([anomalyType, lastDetectedAt])
+  @@index([subjectType, subjectId, lastDetectedAt])
+  @@index([status, severity])
+  @@map("anomaly_history")
+}
+
+model SourceReliabilityScore {
+  id                     String   @id @default(uuid()) @db.Uuid
+  sourceId               String   @unique @map("source_id")
+  contradictionFrequency Float    @default(0) @map("contradiction_frequency")
+  freshnessConsistency   Float    @default(0) @map("freshness_consistency")
+  coverageReliability    Float    @default(0) @map("coverage_reliability")
+  verificationAccuracy   Float    @default(0) @map("verification_accuracy")
+  sourceReliabilityScore Float    @default(0) @map("source_reliability_score")
+  evidenceCount          Int      @default(0) @map("evidence_count")
+  explanation            String?
+  metadata               Json     @default("{}") @db.JsonB
+  lastComputedAt         DateTime @default(now()) @map("last_computed_at")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  @@index([sourceReliabilityScore])
+  @@index([lastComputedAt])
+  @@map("source_reliability_scores")
+}
+
+model SuggestionOutcome {
+  id                String   @id @default(uuid()) @db.Uuid
+  suggestionType    String   @map("suggestion_type")
+  suggestionKey     String   @map("suggestion_key")
+  subjectType       String   @map("subject_type")
+  subjectId         String   @map("subject_id")
+  accepted          Boolean
+  confidence        Float?
+  feedbackSource    String?  @map("feedback_source")
+  graphSuggestionId String?  @map("graph_suggestion_id")
+  sourceNodeId      String?  @map("source_node_id")
+  targetNodeId      String?  @map("target_node_id")
+  outcomeScore      Float?   @map("outcome_score")
+  rationale         String?
+  metadata          Json     @default("{}") @db.JsonB
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@index([suggestionType, createdAt])
+  @@index([suggestionKey, createdAt])
+  @@index([subjectType, subjectId, createdAt])
+  @@map("suggestion_outcomes")
+}
+
+model TrustScoreHistory {
+  id                String   @id @default(uuid()) @db.Uuid
+  subjectType       String   @map("subject_type")
+  subjectId         String   @map("subject_id")
+  previousScore     Float?   @map("previous_score")
+  newScore          Float    @map("new_score")
+  scoreDelta        Float    @map("score_delta")
+  triggerEvent      String   @map("trigger_event")
+  confidence        Float?
+  band              String?
+  methodologyVersion String? @map("methodology_version")
+  metadata          Json     @default("{}") @db.JsonB
+  recordedAt        DateTime @default(now()) @map("recorded_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@index([subjectType, subjectId, recordedAt])
+  @@index([triggerEvent, recordedAt])
+  @@map("trust_score_history")
+}
+
+model QueryHistory {
+  id                     String   @id @default(uuid()) @db.Uuid
+  queryHash              String   @map("query_hash")
+  normalizedQuery        String?  @map("normalized_query")
+  queryTemplate          String   @map("query_template")
+  prefixKey              String?  @map("prefix_key")
+  intentType             String?  @map("intent_type")
+  entityType             String?  @map("entity_type")
+  organizationId         String?  @db.Uuid @map("organization_id")
+  aclLevel               String?  @map("acl_level")
+  actorIdHash            String?  @map("actor_id_hash")
+  containsSensitiveTokens Boolean @default(false) @map("contains_sensitive_tokens")
+  resultCount            Int?     @map("result_count")
+  metadata               Json     @default("{}") @db.JsonB
+  createdAt              DateTime @default(now()) @map("created_at")
+
+  @@index([queryHash])
+  @@index([normalizedQuery])
+  @@index([queryTemplate, createdAt])
+  @@index([prefixKey, createdAt])
+  @@index([organizationId, createdAt])
+  @@map("query_history")
+}
+
+model GraphInsight {
+  id             String   @id @default(uuid()) @db.Uuid
+  nodeId         String   @map("node_id")
+  insightType    String   @map("insight_type")
+  confidence     Float
+  explanation    String
+  insightScore   Float?   @map("insight_score")
+  relatedNodeIds String[] @default([]) @map("related_node_ids")
+  metadata       Json     @default("{}") @db.JsonB
+  timestamp      DateTime @default(now())
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([nodeId, timestamp])
+  @@index([insightType, timestamp])
+  @@map("graph_insights")
+}
+
 // ──────────────────────────────────────────────────────────────
 // Waves 9-11: Durable graph runtime, snapshots, AI link review
 // ──────────────────────────────────────────────────────────────

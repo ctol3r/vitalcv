@@ -15,6 +15,10 @@ import {
   seedPublicPages,
   suggestSearch,
 } from '../services/search/searchIndex';
+import {
+  predictSearchSuggestions,
+  recordQueryHistory,
+} from '../services/intelligence/queryPredictionService';
 import { resolveSearchRequestContext } from '../services/search/requestContext';
 import { HttpError } from '../utils/httpError';
 
@@ -55,6 +59,17 @@ export function registerSearchRoutes(app: Express): void {
         filters: body.filters,
       });
 
+      await recordQueryHistory({
+        query: q,
+        resultCount: result.total,
+        context: {
+          aclLevel: requestContext.aclLevel,
+          organizationId: requestContext.organizationId,
+          clerkUserId: requestContext.clerkUserId,
+          clerkUserEmail: requestContext.clerkUserEmail,
+        },
+      });
+
       res.json(result);
     }),
   );
@@ -69,11 +84,34 @@ export function registerSearchRoutes(app: Express): void {
       }
 
       const requestContext = await resolveSearchRequestContext(req, q);
-      const result = await suggestSearch(q, body.limit ?? 5, {
+      const baseResult = await suggestSearch(q, body.limit ?? 5, {
         aclLevel: requestContext.aclLevel,
         orgId: requestContext.organizationId,
         roles: requestContext.membershipRoles,
       });
+      const result = await predictSearchSuggestions({
+        query: q,
+        limit: body.limit ?? 5,
+        baseSuggestions: baseResult.suggestions,
+        context: {
+          aclLevel: requestContext.aclLevel,
+          organizationId: requestContext.organizationId,
+          clerkUserId: requestContext.clerkUserId,
+          clerkUserEmail: requestContext.clerkUserEmail,
+        },
+      });
+
+      await recordQueryHistory({
+        query: q,
+        resultCount: result.suggestions.length,
+        context: {
+          aclLevel: requestContext.aclLevel,
+          organizationId: requestContext.organizationId,
+          clerkUserId: requestContext.clerkUserId,
+          clerkUserEmail: requestContext.clerkUserEmail,
+        },
+      });
+
       res.json(result);
     }),
   );

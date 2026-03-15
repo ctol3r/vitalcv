@@ -3,6 +3,7 @@ import type { Prisma, PrismaClient } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
 import { sha256ForPayload } from '../../utils/deterministic';
+import { recordSuggestionOutcome } from '../intelligence/intelligenceEngineService';
 import {
   createGraphDecisionId,
   createGraphEdgeId,
@@ -835,6 +836,26 @@ async function materializeAcceptedSuggestion(
       edgeIds,
     },
   });
+  await recordSuggestionOutcome({
+    suggestionType: 'GRAPH_LINK',
+    suggestionKey: suggestion.suggestionKey,
+    subjectType: 'GRAPH_NODE',
+    subjectId: suggestion.sourceNodeId,
+    accepted: true,
+    confidence: suggestion.confidence,
+    feedbackSource: 'GRAPH_REVIEW',
+    graphSuggestionId: suggestionId,
+    sourceNodeId: suggestion.sourceNodeId,
+    targetNodeId: suggestion.targetNodeId,
+    outcomeScore: suggestion.confidence,
+    rationale,
+    metadata: {
+      edgeIds,
+      semanticEdgeType: suggestion.edgeType,
+      reviewerId,
+    },
+    createdAt: new Date(),
+  }, prismaClient);
   return edgeIds;
 }
 
@@ -908,6 +929,27 @@ async function rejectSuggestion(
       rejectMemoryId,
     },
   });
+  await recordSuggestionOutcome({
+    suggestionType: 'GRAPH_LINK',
+    suggestionKey: suggestion.suggestionKey,
+    subjectType: 'GRAPH_NODE',
+    subjectId: suggestion.sourceNodeId,
+    accepted: false,
+    confidence: suggestion.confidence,
+    feedbackSource: 'GRAPH_REVIEW',
+    graphSuggestionId: suggestionId,
+    sourceNodeId: suggestion.sourceNodeId,
+    targetNodeId: suggestion.targetNodeId,
+    outcomeScore: 0,
+    rationale,
+    metadata: {
+      rejectMemoryId,
+      semanticEdgeType: suggestion.edgeType,
+      reviewerId,
+      outcome: 'REJECTED',
+    },
+    createdAt: new Date(),
+  }, prismaClient);
   return rejectMemoryId;
 }
 
@@ -937,7 +979,13 @@ async function ignoreSuggestion(
 
   const suggestion = await prismaClient.graphLinkSuggestion.findUnique({
     where: { id: suggestionId },
-    select: { sourceNodeId: true, targetNodeId: true },
+    select: {
+      suggestionKey: true,
+      sourceNodeId: true,
+      targetNodeId: true,
+      confidence: true,
+      edgeType: true,
+    },
   });
   if (suggestion) {
     await invalidateGraphSnapshots(prismaClient, {
@@ -949,6 +997,26 @@ async function ignoreSuggestion(
         suggestionId,
       },
     });
+    await recordSuggestionOutcome({
+      suggestionType: 'GRAPH_LINK',
+      suggestionKey: suggestion.suggestionKey,
+      subjectType: 'GRAPH_NODE',
+      subjectId: suggestion.sourceNodeId,
+      accepted: false,
+      confidence: suggestion.confidence,
+      feedbackSource: 'GRAPH_REVIEW',
+      graphSuggestionId: suggestionId,
+      sourceNodeId: suggestion.sourceNodeId,
+      targetNodeId: suggestion.targetNodeId,
+      outcomeScore: 0,
+      rationale,
+      metadata: {
+        semanticEdgeType: suggestion.edgeType,
+        reviewerId,
+        outcome: 'IGNORED',
+      },
+      createdAt: new Date(),
+    }, prismaClient);
   }
 }
 
