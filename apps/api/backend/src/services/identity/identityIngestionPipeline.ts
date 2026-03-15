@@ -34,6 +34,11 @@ import {
   fetchStateBoardLicense, parseStateBoardResult,
   extractPracticeStates,
 } from './phase3Sources';
+import {
+  fetchOpenAlex, parseOpenAlexResult,
+  fetchClinicalTrials, parseClinicalTrialsResult,
+  fetchPubMed, parsePubMedResult,
+} from './phase4Sources';
 import { buildIdentitySummary, type CanonicalIdentitySummary } from './evidenceModel';
 import {
   appendIdentityIndexArtifact,
@@ -1438,9 +1443,66 @@ const handlers: Record<string, SourceHandler> = {
       },
     });
   },
+
+  OPENALEX: async (npi, observedAt) => {
+    const existingClaims = await loadClaimRecordsForNpi(npi);
+    const nameClaim = existingClaims.find(c => c.claimType === 'PERSONAL_IDENTITY');
+    const val = nameClaim?.value as Record<string, unknown> | undefined;
+    if (!val?.firstName || !val?.lastName) {
+      return { npi, source: 'OPENALEX', status: 'SKIPPED' as const, artifactId: null, claimsEmitted: 0, deltaEvents: [], latencyMs: 0 };
+    }
+
+    return executeSourceIngestion({
+      npi, observedAt, sourceId: 'OPENALEX', parserVersion: 'v1.0.0',
+      matchingStrategy: 'NAME_FUZZY',
+      fetchSource: () => fetchOpenAlex(val.firstName as string, val.lastName as string),
+      parseSource: ({ raw, artifactId, checksum, observedAt: o }) => {
+        const { claims, receipts } = parseOpenAlexResult(npi, raw, artifactId, checksum, o);
+        return { status: claims.length > 0 ? 'SUCCESS' : 'SKIPPED', claims, receipts, matchingStrategy: 'NAME_FUZZY', mergeReason: 'OpenAlex author search by name — Silver-tier, identity verification required' };
+      },
+    });
+  },
+
+  CLINICAL_TRIALS: async (npi, observedAt) => {
+    const existingClaims = await loadClaimRecordsForNpi(npi);
+    const nameClaim = existingClaims.find(c => c.claimType === 'PERSONAL_IDENTITY');
+    const val = nameClaim?.value as Record<string, unknown> | undefined;
+    if (!val?.firstName || !val?.lastName) {
+      return { npi, source: 'CLINICAL_TRIALS', status: 'SKIPPED' as const, artifactId: null, claimsEmitted: 0, deltaEvents: [], latencyMs: 0 };
+    }
+
+    return executeSourceIngestion({
+      npi, observedAt, sourceId: 'CLINICAL_TRIALS', parserVersion: 'v1.0.0',
+      matchingStrategy: 'NAME_FUZZY',
+      fetchSource: () => fetchClinicalTrials(val.firstName as string, val.lastName as string),
+      parseSource: ({ raw, artifactId, checksum, observedAt: o }) => {
+        const { claims, receipts } = parseClinicalTrialsResult(npi, raw, artifactId, checksum, o);
+        return { status: claims.length > 0 ? 'SUCCESS' : 'SKIPPED', claims, receipts, matchingStrategy: 'NAME_FUZZY', mergeReason: 'ClinicalTrials.gov investigator search — Silver-tier, identity verification required' };
+      },
+    });
+  },
+
+  PUBMED: async (npi, observedAt) => {
+    const existingClaims = await loadClaimRecordsForNpi(npi);
+    const nameClaim = existingClaims.find(c => c.claimType === 'PERSONAL_IDENTITY');
+    const val = nameClaim?.value as Record<string, unknown> | undefined;
+    if (!val?.firstName || !val?.lastName) {
+      return { npi, source: 'PUBMED', status: 'SKIPPED' as const, artifactId: null, claimsEmitted: 0, deltaEvents: [], latencyMs: 0 };
+    }
+
+    return executeSourceIngestion({
+      npi, observedAt, sourceId: 'PUBMED', parserVersion: 'v1.0.0',
+      matchingStrategy: 'NAME_FUZZY',
+      fetchSource: () => fetchPubMed(val.firstName as string, val.lastName as string),
+      parseSource: ({ raw, artifactId, checksum, observedAt: o }) => {
+        const { claims, receipts } = parsePubMedResult(npi, raw, artifactId, checksum, o);
+        return { status: claims.length > 0 ? 'SUCCESS' : 'SKIPPED', claims, receipts, matchingStrategy: 'NAME_FUZZY', mergeReason: 'PubMed author search — Silver-tier, broad name match, identity verification required' };
+      },
+    });
+  },
 };
 
-export type IngestionSources = 'NPPES_API' | 'OIG_LEIE' | 'PECOS_PUBLIC' | 'OPEN_PAYMENTS' | 'SAM_GOV' | 'DOCTORS_CLINICIANS' | 'NURSYS' | 'STATE_BOARD' | 'OPENALEX' | 'ALL';
+export type IngestionSources = 'NPPES_API' | 'OIG_LEIE' | 'PECOS_PUBLIC' | 'OPEN_PAYMENTS' | 'SAM_GOV' | 'DOCTORS_CLINICIANS' | 'NURSYS' | 'STATE_BOARD' | 'OPENALEX' | 'CLINICAL_TRIALS' | 'PUBMED' | 'ALL';
 
 export async function ingestClinicianIdentity(
   npi: string,
