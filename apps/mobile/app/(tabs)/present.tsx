@@ -42,7 +42,7 @@ async function authenticate(): Promise<boolean> {
   return result.success;
 }
 
-export default function PresentScreen(): JSX.Element {
+export default function PresentScreen() {
   const [credentials, setCredentials] = useState<StoredCredential[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedClaims, setSelectedClaims] = useState<string[]>([]);

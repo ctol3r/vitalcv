@@ -137,6 +137,7 @@ import { registerCopilotRoutes } from './routes/copilot';                   // W
 import { registerInvestigationRoutes } from './routes/investigation';        // Wave INV: Investigation engine
 import { registerFindingsRoutes } from './routes/findings';                  // Wave AI: Autonomous investigators
 import { registerStorylineRoutes } from './routes/storylines';               // Wave ST: Storyline engine
+import { registerActionRoutes } from './routes/actions';                     // Wave AC: Action + Prediction engine
 import { registerEmployerRoutes } from './routes/employers';                 // Wave 186: Employer Knowledge Layer
 import { registerPrequalificationRoutes } from './routes/prequalification';  // Wave 189: AI Interview, Assessments, Prequalification
 import { registerVerifierPipelineRoutes } from './routes/verifierPipeline';  // Wave 190: Apply with VitalCV + ATS + Verifier Pipeline
@@ -3579,6 +3580,7 @@ registerCopilotRoutes(app);           // Waves C25-C28 — Copilot query engine
 registerInvestigationRoutes(app);    // Wave INV — Investigation engine
 registerFindingsRoutes(app);         // Wave AI — Autonomous investigators + findings feed
 registerStorylineRoutes(app);        // Wave ST — Storyline intelligence narratives
+registerActionRoutes(app);           // Wave AC — Action + Prediction engine
 registerEmployerRoutes(app);          // Wave 186 — Employer Knowledge Layer
 registerPrequalificationRoutes(app);  // Wave 189 — AI Interview, Assessments, Prequalification
 registerVerifierPipelineRoutes(app);  // Wave 190 — Apply with VitalCV + ATS + Verifier Pipeline

@@ -3,7 +3,7 @@ import { Tabs } from 'expo-router';
 
 import { walletTheme } from '../../src/theme';
 
-export default function TabsLayout(): JSX.Element {
+export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{

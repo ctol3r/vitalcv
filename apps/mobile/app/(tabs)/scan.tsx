@@ -34,7 +34,7 @@ async function authenticate(): Promise<boolean> {
   return result.success;
 }
 
-export default function ScanScreen(): JSX.Element {
+export default function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [requestUri, setRequestUri] = useState('');
   const [matchedCredentials, setMatchedCredentials] = useState<StoredCredential[]>([]);

@@ -15,7 +15,7 @@ import { notificationService } from '../../src/services/NotificationService';
 import { walletSyncService } from '../../src/services/WalletSyncService';
 import { walletTheme } from '../../src/theme';
 
-export default function SettingsScreen(): JSX.Element {
+export default function SettingsScreen() {
   const [npi, setNpi] = useState('');
   const [holderDid, setHolderDid] = useState('');
   const [message, setMessage] = useState<string | null>(null);

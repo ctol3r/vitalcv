@@ -31,6 +31,7 @@ import { generateGraphInsights } from '../intelligence/graphInsightEngine';
 import { investigateProvider, investigateNetwork, investigateComparison } from './investigationEngine';
 import { getFindingsForNpi, queryFindings, getFeedStats } from '../investigators/framework';
 import { getStorylinesForNpi, queryStorylines, getStorylineStats } from '../storylines/storylineEngine';
+import { generateActions, generatePredictions } from '../actions/actionEngine';
 
 // ── Response types ─────────────────────────────────────────────────────────────
 
@@ -550,6 +551,28 @@ async function handleInvestigate(classified: ClassifiedQuery, sessionId: string)
     answer += `\n**Recommendations:**\n${report.recommendations.map((r, i) => `  ${i + 1}. ${r}`).join('\n')}`;
   }
 
+  // Actions + Predictions
+  const [actions, predictions] = await Promise.all([
+    generateActions(npi),
+    generatePredictions(npi),
+  ]);
+
+  if (actions.length > 0) {
+    const priorityEmoji = { CRITICAL: '🔴', HIGH: '🟠', MEDIUM: '🟡', LOW: '🟢' };
+    answer += `\n\n**Recommended Actions (${actions.length}):**`;
+    for (const a of actions.slice(0, 4)) {
+      answer += `\n  ${priorityEmoji[a.priority] ?? '•'} ${a.title} — ${a.rationale.slice(0, 80)}`;
+    }
+  }
+
+  if (predictions.length > 0) {
+    const dirEmoji = { DOWN: '📉', UP: '📈', STABLE: '➡️', RISK: '⚠️' };
+    answer += `\n\n**Predictions:**`;
+    for (const pred of predictions.slice(0, 3)) {
+      answer += `\n  ${dirEmoji[pred.direction] ?? '•'} ${pred.title} (${pred.timeframe}, ${pred.confidence} confidence)`;
+    }
+  }
+
   return makeResponse(classified, 'INVESTIGATE', answer,
     { type: 'trust_score', payload: p.trustScore },
     [
@@ -558,7 +581,7 @@ async function handleInvestigate(classified: ClassifiedQuery, sessionId: string)
       `Explain the trust methodology`,
       `Show graph for NPI ${npi}`,
     ],
-    ['TrustScoreV1', 'FreshnessModel', 'DivergenceEngine', 'GraphEngine', 'IntelligenceEngine'],
+    ['TrustScoreV1', 'FreshnessModel', 'DivergenceEngine', 'GraphEngine', 'IntelligenceEngine', 'ActionEngine', 'PredictionEngine'],
   );
 }
 

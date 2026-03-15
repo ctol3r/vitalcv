@@ -41,7 +41,7 @@ function statusColor(status: StoredCredential['status']): string {
   }
 }
 
-export default function WalletScreen(): JSX.Element {
+export default function WalletScreen() {
   const [credentials, setCredentials] = useState<StoredCredential[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [npi, setNpi] = useState<string | null>(null);

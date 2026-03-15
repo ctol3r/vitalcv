@@ -17,7 +17,7 @@ const theme = {
   },
 };
 
-export default function RootLayout(): JSX.Element {
+export default function RootLayout() {
   return (
     <ThemeProvider value={theme}>
       <StatusBar style="light" />
