@@ -4,6 +4,7 @@
 @import '../styles/typography.css';
 @import '../styles/tokens.css';
 @import '../styles/vitalTokens.css';
+@import '../styles/graph-foundry.css';
 /* glue.css superseded by antigravity.css (imported in layout.tsx) */
 
 @custom-variant dark (&:is(.dark *));

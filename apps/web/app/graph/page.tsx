@@ -1,58 +1,59 @@
 'use client';
 
 /**
- * /graph — Full graph explorer page
+ * /graph — Foundry-class graph explorer
  *
- * Dual graph system: Knowledge + Trust, with AI bi-directional linking,
- * full controls, and premium dark-theme visuals.
+ * Dual graph system: Knowledge + Trust + Blended, with:
+ * - Named physics presets (balanced / clustered / explore / dense / presentation)
+ * - DOM tooltip overlay at hover position
+ * - Cluster hull visualization
+ * - Semantic edge color vocabulary
+ * - Collision-aware force physics
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import GraphCanvas from '../../components/graph-system/GraphCanvas';
 import GraphControls from '../../components/graph-system/GraphControls';
 import NodeDetail from '../../components/graph-system/NodeDetail';
+import GraphTooltip from '../../components/graph-system/GraphTooltip';
 import type {
   GraphNode, GraphEdge, FilterConfig, DisplayConfig, PhysicsConfig,
-  GraphLayer,
+  GraphLayer, PhysicsPreset,
 } from '../../components/graph-system/types';
+import { PHYSICS_PRESETS } from '../../components/graph-system/types';
 import type { NodeNeighborSummary } from '../../components/graph-system/nodeDetailModel';
 
 // ── Default config ────────────────────────────────────────────────────────────
 
 const defaultFilters: FilterConfig = {
-  nodeTypes: [],
-  edgeTypes: [],
-  trustTiers: ['GOLD', 'SILVER', 'BRONZE'],
-  tags: [],
-  showOrphans: false,
+  nodeTypes:       [],
+  edgeTypes:       [],
+  trustTiers:      ['GOLD', 'SILVER', 'BRONZE'],
+  tags:            [],
+  showOrphans:     false,
   showAttachments: true,
-  showExplicit: true,
-  showInferred: true,
-  showAiLinks: true,
-  showDirected: true,
-  searchTerm: '',
-  groups: [],
+  showExplicit:    true,
+  showInferred:    true,
+  showAiLinks:     true,
+  showDirected:    true,
+  searchTerm:      '',
+  groups:          [],
 };
 
 const defaultDisplay: DisplayConfig = {
-  showArrows: true,
-  showLabels: true,
-  animate: true,
-  nodeSize: 6,
-  linkThickness: 1.5,
+  showArrows:        true,
+  showLabels:        true,
+  showClusterHulls:  true,
+  animate:           true,
+  nodeSize:          6,
+  linkThickness:     1.5,
   textFadeThreshold: 0.5,
-  colorMode: 'type',
-  clusterMode: 'type',
+  colorMode:         'type',
+  clusterMode:       'type',
 };
 
-const defaultPhysics: PhysicsConfig = {
-  centerForce: 0.3,
-  repelForce: 120,
-  linkForce: 0.4,
-  linkDistance: 100,
-  clusterSpacing: 60,
-  frozen: false,
-};
+// Start with the "balanced" preset
+const defaultPhysics: PhysicsConfig = PHYSICS_PRESETS[0]!.config;
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
@@ -62,16 +63,16 @@ interface GraphQueryResponse {
   nodes?: GraphNode[];
   edges?: GraphEdge[];
   stats?: {
-    totalNodes: number;
-    totalEdges: number;
-    orphanCount: number;
+    totalNodes:      number;
+    totalEdges:      number;
+    orphanCount:     number;
     aiSuggestedLinks: number;
   };
 }
 
 interface NodeDetailState {
-  node: GraphNode;
-  edges: GraphEdge[];
+  node:      GraphNode;
+  edges:     GraphEdge[];
   neighbors: NodeNeighborSummary[];
 }
 
@@ -86,11 +87,7 @@ async function fetchGraph(layer: GraphLayer, search?: string, fresh?: boolean) {
 }
 
 async function fetchNodeNeighborhood(id: string, layer: GraphLayer) {
-  const params = new URLSearchParams({
-    depth: '2',
-    limit: '200',
-    orphans: 'true',
-  });
+  const params = new URLSearchParams({ depth: '2', limit: '200', orphans: 'true' });
   if (layer !== 'blended') params.set('graphMode', layer);
   const res = await fetch(`${API}/local/${encodeURIComponent(id)}?${params}`, { cache: 'no-store' });
   return res.json() as Promise<GraphQueryResponse>;
@@ -115,40 +112,30 @@ function summarizeNodeDetail(
   allNodes: GraphNode[],
   allEdges: GraphEdge[],
 ): NodeDetailState | null {
-  const focusNode = allNodes.find((candidate) => candidate.id === nodeId);
+  const focusNode = allNodes.find(n => n.id === nodeId);
   if (!focusNode) return null;
 
   const connectedEdges = allEdges
-    .filter((edge) => edge.source === nodeId || edge.target === nodeId)
-    .sort((left, right) =>
-      (Date.parse(right.createdAt ?? right.updatedAt ?? '') || 0) - (Date.parse(left.createdAt ?? left.updatedAt ?? '') || 0)
-      || (right.confidence ?? 0) - (left.confidence ?? 0),
+    .filter(e => e.source === nodeId || e.target === nodeId)
+    .sort((a, b) =>
+      (Date.parse(b.createdAt ?? b.updatedAt ?? '') || 0) - (Date.parse(a.createdAt ?? a.updatedAt ?? '') || 0) ||
+      (b.confidence ?? 0) - (a.confidence ?? 0),
     );
 
   const neighbors = connectedEdges
-    .map((edge) => {
+    .map(edge => {
       const neighborId = edge.source === nodeId ? edge.target : edge.source;
-      const neighborNode = allNodes.find((candidate) => candidate.id === neighborId);
-      if (!neighborNode) return null;
-      const neighbor: NodeNeighborSummary = {
-        id: neighborNode.id,
-        label: neighborNode.label,
-        type: neighborNode.type,
-        degree: neighborNode.degree,
-      };
-      return neighbor;
+      const n = allNodes.find(candidate => candidate.id === neighborId);
+      if (!n) return null;
+      return { id: n.id, label: n.label, type: n.type, degree: n.degree } as NodeNeighborSummary;
     })
-    .filter((neighbor): neighbor is NodeNeighborSummary => neighbor !== null)
-    .sort((left, right) => right.degree - left.degree || left.label.localeCompare(right.label));
+    .filter((n): n is NodeNeighborSummary => n !== null)
+    .sort((a, b) => b.degree - a.degree || a.label.localeCompare(b.label));
 
-  return {
-    node: focusNode,
-    edges: connectedEdges,
-    neighbors,
-  };
+  return { node: focusNode, edges: connectedEdges, neighbors };
 }
 
-// ── Page component ────────────────────────────────────────────────────────────
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function GraphPage() {
   const [nodes, setNodes] = useState<GraphNode[]>([]);
@@ -162,14 +149,17 @@ export default function GraphPage() {
   const [physics, setPhysics] = useState<PhysicsConfig>(defaultPhysics);
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [nodeDetail, setNodeDetail] = useState<NodeDetailState | null>(null);
+
+  // Tooltip state: hovered node + its screen position
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const [dimensions, setDimensions] = useState({ width: 1200, height: 800 });
   const containerRef = useRef<HTMLDivElement>(null);
   const detailRequestRef = useRef(0);
 
-  // ── Resize handler ──────────────────────────────────────────────────────
+  // ── Resize ──────────────────────────────────────────────────────────────
 
   useEffect(() => {
     function onResize() {
@@ -185,7 +175,7 @@ export default function GraphPage() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  // ── Load graph data ─────────────────────────────────────────────────────
+  // ── Load graph ──────────────────────────────────────────────────────────
 
   const loadGraph = useCallback(async (fresh?: boolean) => {
     setLoading(true);
@@ -195,58 +185,54 @@ export default function GraphPage() {
       let filteredNodes: GraphNode[] = (data.nodes ?? []).map((n: GraphNode) => ({
         ...n,
         visible: true,
-        clusterId: display.clusterMode === 'type' ? n.type : display.clusterMode === 'group' ? n.group : display.clusterMode === 'tier' ? (n.trustTier ?? 'NONE') : undefined,
+        clusterId: display.clusterMode === 'type'  ? n.type
+                 : display.clusterMode === 'group' ? n.group
+                 : display.clusterMode === 'tier'  ? (n.trustTier ?? 'NONE')
+                 : undefined,
       }));
 
       let filteredEdges: GraphEdge[] = (data.edges ?? []).map((e: GraphEdge) => ({
-        ...e,
-        visible: true,
+        ...e, visible: true,
       }));
 
       // Apply filters
+      if (!filters.showAiLinks) {
+        filteredEdges = filteredEdges.filter(e => e.createdBy !== 'ai');
+      }
+      if (!filters.showInferred) {
+        filteredEdges = filteredEdges.filter(
+          e => e.type !== 'semantic_similarity' && e.type !== 'ai_suggested_link',
+        );
+      }
+      if (!filters.showExplicit) {
+        filteredEdges = filteredEdges.filter(e => e.type !== 'explicit_link');
+      }
+      if (filters.trustTiers.length > 0) {
+        filteredNodes = filteredNodes.filter(
+          n => !n.trustTier || filters.trustTiers.includes(n.trustTier),
+        );
+      }
+
+      // Remove edges to filtered-out nodes
+      const nodeIds = new Set(filteredNodes.map(n => n.id));
+      filteredEdges = filteredEdges.filter(
+        e => nodeIds.has(e.source) && nodeIds.has(e.target),
+      );
+
+      // Remove orphans unless requested
       if (!filters.showOrphans) {
         const connected = new Set<string>();
         for (const e of filteredEdges) { connected.add(e.source); connected.add(e.target); }
         filteredNodes = filteredNodes.filter(n => connected.has(n.id));
       }
 
-      if (!filters.showAiLinks) {
-        filteredEdges = filteredEdges.filter(e => e.createdBy !== 'ai');
-      }
-
-      if (!filters.showInferred) {
-        filteredEdges = filteredEdges.filter(e => e.type !== 'semantic_similarity' && e.type !== 'ai_suggested_link');
-      }
-
-      if (!filters.showExplicit) {
-        filteredEdges = filteredEdges.filter(e => e.type !== 'explicit_link');
-      }
-
-      if (filters.trustTiers.length > 0) {
-        filteredNodes = filteredNodes.filter((node) =>
-          !node.trustTier || filters.trustTiers.includes(node.trustTier),
-        );
-      }
-
-      // Filter to visible node IDs
-      const nodeIds = new Set(filteredNodes.map(n => n.id));
-      filteredEdges = filteredEdges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
-      if (!filters.showOrphans) {
-        const connected = new Set<string>();
-        for (const edge of filteredEdges) {
-          connected.add(edge.source);
-          connected.add(edge.target);
-        }
-        filteredNodes = filteredNodes.filter((node) => connected.has(node.id));
-      }
-
       setNodes(filteredNodes);
       setEdges(filteredEdges);
       setStats({
-        totalNodes: filteredNodes.length,
-        totalEdges: filteredEdges.length,
-        orphanCount: filteredNodes.filter((node) => node.degree === 0).length,
-        aiSuggestedLinks: filteredEdges.filter((edge) => edge.type === 'ai_suggested_link').length,
+        totalNodes:       filteredNodes.length,
+        totalEdges:       filteredEdges.length,
+        orphanCount:      filteredNodes.filter(n => n.degree === 0).length,
+        aiSuggestedLinks: filteredEdges.filter(e => e.type === 'ai_suggested_link').length,
       });
     } catch (err) {
       console.error('Graph load failed:', err);
@@ -257,34 +243,16 @@ export default function GraphPage() {
 
   useEffect(() => { loadGraph(); }, [loadGraph]);
 
-  useEffect(() => {
-    if (!selectedNodeId) return;
-    if (!nodes.some((node) => node.id === selectedNodeId)) {
-      setSelectedNodeId(null);
-      setNodeDetail(null);
-      return;
-    }
-    setNodeDetail((current) => {
-      if (!current || current.node.id !== selectedNodeId) return current;
-      return summarizeNodeDetail(selectedNodeId, nodes, edges) ?? current;
-    });
-  }, [edges, nodes, selectedNodeId]);
-
   // ── Node selection ──────────────────────────────────────────────────────
 
   const loadNodeDetail = useCallback(async (id: string) => {
-    const requestId = ++detailRequestRef.current;
+    const reqId = ++detailRequestRef.current;
     try {
       const detailGraph = await fetchNodeNeighborhood(id, layer);
-      if (detailRequestRef.current !== requestId) return;
-      const detail = summarizeNodeDetail(
-        id,
-        detailGraph.nodes ?? nodes,
-        detailGraph.edges ?? edges,
-      );
-      setNodeDetail(detail);
+      if (detailRequestRef.current !== reqId) return;
+      setNodeDetail(summarizeNodeDetail(id, detailGraph.nodes ?? nodes, detailGraph.edges ?? edges));
     } catch {
-      if (detailRequestRef.current === requestId) {
+      if (detailRequestRef.current === reqId) {
         setNodeDetail(summarizeNodeDetail(id, nodes, edges));
       }
     }
@@ -292,34 +260,39 @@ export default function GraphPage() {
 
   const handleSelectNode = useCallback(async (id: string | null) => {
     setSelectedNodeId(id);
-    if (id) {
-      await loadNodeDetail(id);
-    } else {
-      setNodeDetail(null);
-    }
+    if (id) await loadNodeDetail(id);
+    else setNodeDetail(null);
   }, [loadNodeDetail]);
 
-  const handleDoubleClick = useCallback((id: string) => {
-    // Focus: load local graph around this node
-    handleSelectNode(id);
-  }, [handleSelectNode]);
+  // ── Hover + tooltip ─────────────────────────────────────────────────────
+
+  const handleHoverNode = useCallback((id: string | null, sx?: number, sy?: number) => {
+    setHoveredNodeId(id);
+    if (id && sx !== undefined && sy !== undefined) {
+      setTooltipPos({ x: sx, y: sy });
+    }
+  }, []);
+
+  const hoveredNode = hoveredNodeId ? (nodes.find(n => n.id === hoveredNodeId) ?? null) : null;
+
+  // ── Physics preset ──────────────────────────────────────────────────────
+
+  const handlePresetChange = useCallback((preset: PhysicsPreset) => {
+    setPhysics(preset.config);
+  }, []);
 
   // ── Actions ─────────────────────────────────────────────────────────────
 
   const handleRebuild = useCallback(async () => {
     await triggerRebuild();
     await loadGraph(true);
-    if (selectedNodeId) {
-      await loadNodeDetail(selectedNodeId);
-    }
+    if (selectedNodeId) await loadNodeDetail(selectedNodeId);
   }, [loadGraph, loadNodeDetail, selectedNodeId]);
 
   const handleRunAiLinks = useCallback(async () => {
     await triggerAiLinks(selectedNodeId ?? undefined);
     await loadGraph(true);
-    if (selectedNodeId) {
-      await loadNodeDetail(selectedNodeId);
-    }
+    if (selectedNodeId) await loadNodeDetail(selectedNodeId);
   }, [selectedNodeId, loadGraph, loadNodeDetail]);
 
   const handleResetLayout = useCallback(() => {
@@ -340,8 +313,8 @@ export default function GraphPage() {
     });
   }, [nodes]);
 
-  const handleDragNode = useCallback((id: string, x: number, y: number) => {
-    // Update node position after drag
+  const handleDragNode = useCallback((_id: string, _x: number, _y: number) => {
+    // Position updated in-canvas; no server sync on drag (only on pin)
   }, []);
 
   const handlePinNode = useCallback(async (id: string, x: number, y: number) => {
@@ -359,9 +332,7 @@ export default function GraphPage() {
       body: JSON.stringify({ suggestionIds: [suggestionId], action: 'accept' }),
     });
     await loadGraph(true);
-    if (selectedNodeId) {
-      await loadNodeDetail(selectedNodeId);
-    }
+    if (selectedNodeId) await loadNodeDetail(selectedNodeId);
   }, [loadGraph, loadNodeDetail, selectedNodeId]);
 
   const handleRejectSuggestion = useCallback(async (suggestionId: string) => {
@@ -371,17 +342,27 @@ export default function GraphPage() {
       body: JSON.stringify({ suggestionIds: [suggestionId], action: 'reject' }),
     });
     await loadGraph(true);
-    if (selectedNodeId) {
-      await loadNodeDetail(selectedNodeId);
-    }
+    if (selectedNodeId) await loadNodeDetail(selectedNodeId);
   }, [loadGraph, loadNodeDetail, selectedNodeId]);
 
   return (
-    <div ref={containerRef} className="fixed inset-0 bg-[#080e1a] overflow-hidden">
-      {/* Loading indicator */}
+    <div
+      ref={containerRef}
+      className="fixed inset-0 overflow-hidden"
+      style={{ background: 'var(--gf-canvas)', fontFamily: 'var(--gf-font-ui)' }}
+    >
+      {/* Loading pill */}
       {loading && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 text-xs text-cyan-400 bg-slate-900/80 px-3 py-1.5 rounded-full border border-cyan-800/30">
-          Loading graph…
+        <div
+          className="absolute top-4 left-1/2 -translate-x-1/2 z-50 text-[11px] px-4 py-1.5 rounded-full gf-statusbar"
+          style={{
+            background: 'rgba(13,20,33,0.9)',
+            border: '1px solid rgba(56,189,248,0.2)',
+            color: '#38bdf8',
+            fontFamily: 'var(--gf-font-ui)',
+          }}
+        >
+          Fetching graph…
         </div>
       )}
 
@@ -394,15 +375,27 @@ export default function GraphPage() {
         selectedNodeId={selectedNodeId}
         hoveredNodeId={hoveredNodeId}
         onSelectNode={handleSelectNode}
-        onHoverNode={setHoveredNodeId}
-        onDoubleClickNode={handleDoubleClick}
+        onHoverNode={handleHoverNode}
+        onDoubleClickNode={handleSelectNode}
         onDragNode={handleDragNode}
         onPinNode={handlePinNode}
         width={dimensions.width}
         height={dimensions.height}
       />
 
-      {/* Controls panel */}
+      {/* Tooltip overlay */}
+      {!selectedNodeId && hoveredNode && (
+        <GraphTooltip
+          node={hoveredNode}
+          edges={edges}
+          screenX={tooltipPos.x}
+          screenY={tooltipPos.y}
+          canvasW={dimensions.width}
+          canvasH={dimensions.height}
+        />
+      )}
+
+      {/* Control panel */}
       <GraphControls
         filters={filters}
         display={display}
@@ -413,13 +406,14 @@ export default function GraphPage() {
         onDisplayChange={setDisplay}
         onPhysicsChange={setPhysics}
         onLayerChange={setLayer}
+        onPresetChange={handlePresetChange}
         onRebuild={handleRebuild}
         onRunAiLinks={handleRunAiLinks}
         onResetLayout={handleResetLayout}
         onSavePreset={handleSavePreset}
       />
 
-      {/* Node detail panel */}
+      {/* Node inspector drawer */}
       {nodeDetail && selectedNodeId && (
         <NodeDetail
           node={nodeDetail.node}
@@ -432,18 +426,30 @@ export default function GraphPage() {
         />
       )}
 
-      {/* Bottom status bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-1.5 bg-slate-900/80 border-t border-slate-800/50 text-[10px] text-slate-500">
-        <div className="flex gap-4">
+      {/* Status bar */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between px-5 py-1.5 gf-statusbar"
+        style={{
+          background: 'rgba(13,20,33,0.85)',
+          borderTop: '1px solid var(--gf-separator)',
+          color: 'var(--gf-text-tertiary)',
+          backdropFilter: 'blur(8px)',
+        }}
+      >
+        <div className="flex gap-5 font-mono">
           <span>{stats.totalNodes} nodes</span>
           <span>{stats.totalEdges} edges</span>
-          <span>{stats.orphanCount} orphans</span>
-          {stats.aiSuggestedLinks > 0 && <span className="text-amber-500">{stats.aiSuggestedLinks} AI suggestions</span>}
+          {stats.orphanCount > 0 && <span>{stats.orphanCount} orphans</span>}
+          {stats.aiSuggestedLinks > 0 && (
+            <span style={{ color: '#f59e0b' }}>{stats.aiSuggestedLinks} AI suggestions</span>
+          )}
         </div>
-        <div className="flex gap-4">
-          <span className="uppercase">{layer}</span>
-          <span>{display.clusterMode !== 'none' ? `clustered: ${display.clusterMode}` : 'flat'}</span>
-          {physics.frozen && <span className="text-cyan-400">frozen</span>}
+        <div className="flex gap-4 font-mono">
+          <span className="uppercase tracking-wider">{layer}</span>
+          {display.clusterMode !== 'none' && (
+            <span style={{ color: 'var(--gf-text-secondary)' }}>cluster:{display.clusterMode}</span>
+          )}
+          {physics.frozen && <span style={{ color: '#38bdf8' }}>FROZEN</span>}
         </div>
       </div>
     </div>
