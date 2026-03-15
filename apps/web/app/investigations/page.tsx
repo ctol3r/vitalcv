@@ -2,11 +2,26 @@
 
 import { useInvestigation, useTrustScore } from '@/lib/hooks/useIntelligence';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 export default function InvestigationsPage() {
-  const [npi, setNpi] = useState('');
+  const searchParams = useSearchParams();
+  const initialNpi = searchParams.get('npi') ?? '';
+  const [npi, setNpi] = useState(initialNpi);
   const [activeNpi, setActiveNpi] = useState<string | null>(null);
+
+  // Auto-investigate if NPI passed via query param
+  useEffect(() => {
+    if (initialNpi && /^\d{10}$/.test(initialNpi) && !activeNpi) {
+      setActiveNpi(initialNpi);
+      post('/api/copilot/ask', {
+        query: `investigate ${initialNpi}`,
+        sessionId: `inv_${initialNpi}_${Date.now()}`,
+      });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const { data: investigation, loading, error, post } = useInvestigation();
   const { data: trustScore } = useTrustScore(activeNpi);
 
@@ -32,6 +47,11 @@ export default function InvestigationsPage() {
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-8">
+          <nav className="text-xs text-slate-500 mb-2">
+            <Link href="/intelligence" className="hover:text-slate-300">Intelligence</Link>
+            <span className="mx-2">/</span>
+            <span className="text-slate-400">Investigations</span>
+          </nav>
           <h1 className="text-2xl font-semibold tracking-tight">Investigations</h1>
           <p className="text-sm text-slate-400 mt-1">
             Deep provider intelligence — trust state, conflicts, network, predictions
