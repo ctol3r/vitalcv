@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const BACKEND = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 async function proxy(req: NextRequest, path: string) {
-  const url = `${BACKEND}/api/graph-engine/${path}${req.nextUrl.search}`;
+  const url = `${BACKEND}/api/graph/${path}${req.nextUrl.search}`;
 
   try {
     const headers: Record<string, string> = { 'Accept': 'application/json' };

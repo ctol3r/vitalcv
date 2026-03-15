@@ -1,0 +1,19 @@
+{
+  "id": "c0ec7c71-a851-478d-914d-987ecf1491e7",
+  "source_run_id": null,
+  "source_record_id": "94ae3fbf-99bf-42b6-81ec-d5f56241324b",
+  "verification_artifact_id": null,
+  "subject_npi": "1558302470",
+  "source_id": "OIG_LEIE",
+  "status": "STALE",
+  "severity": "HIGH",
+  "sla_hours": 24,
+  "trust_tier": "GOLD",
+  "last_observed_at": "2026-03-10T09:00:00.000Z",
+  "stale_since": "2026-03-11T09:00:00.000Z",
+  "checksum": "b809b0d4a5c2d8bb31437549690f2f31ac120fda364b028f0fd740c1fdf59d18",
+  "metadata": {
+    "sourceName": "HHS OIG List of Excluded Individuals/Entities (LEIE)"
+  },
+  "created_at": "2026-03-14T12:00:03.000Z"
+}

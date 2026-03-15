@@ -66,6 +66,8 @@ export interface GraphEdge {
   weight:        number;
   metadata:      Record<string, unknown>;
   layer:         GraphLayer;
+  createdAt?:    string;
+  updatedAt?:    string;
   color?:        string;
   opacity?:      number;
   visible?:      boolean;

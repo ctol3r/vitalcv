@@ -11,7 +11,7 @@
 import { log } from '../../../obs/logger';
 import { recordProvenance } from '../providerSourceProvenance';
 import { getConnectorMode } from './connectorFactory';
-import { recordConnectorSuccess, recordConnectorFailure } from './connectorHealthTracker';
+import { runConnectorWithReliability } from './connectorReliability';
 
 export interface ABMSCertificationResult {
   npi: string;
@@ -26,6 +26,14 @@ export interface ABMSCertificationResult {
 }
 
 const ABMS_URL = 'https://www.certificationmatters.org';
+const ABMS_QUOTA_POLICY = {
+  limit: 20,
+  windowMs: 60_000,
+};
+const ABMS_SCHEMA_POLICY = {
+  requiredFields: ['npi', 'certificationStatus', 'lastVerifiedAt', 'sourceUrl'],
+  allowAdditionalFields: true,
+} as const;
 
 // ── Board/Specialty Combos ──────────────────────────────────────────
 
@@ -94,40 +102,49 @@ function sandboxCertification(npi: string): ABMSCertificationResult {
 export async function checkABMSCertification(npi: string): Promise<ABMSCertificationResult> {
   const mode = getConnectorMode('ABMS');
 
-  try {
-    let result: ABMSCertificationResult;
+  return runConnectorWithReliability({
+    connector: 'ABMS',
+    quotaPolicy: ABMS_QUOTA_POLICY,
+    schemaPolicy: ABMS_SCHEMA_POLICY,
+    execute: async () => {
+      if (mode === 'live') {
+        log('info', 'abms_connector: live API not yet implemented', { npi });
+        return {
+          npi,
+          certified: false,
+          boardName: null,
+          specialtyName: null,
+          certificationStatus: 'NOT_AVAILABLE',
+          initialCertDate: null,
+          expirationDate: null,
+          lastVerifiedAt: new Date().toISOString(),
+          sourceUrl: ABMS_URL,
+        };
+      }
 
-    if (mode === 'live') {
-      log('info', 'abms_connector: live API not yet implemented', { npi });
-      result = {
+      return sandboxCertification(npi);
+    },
+    afterSuccess: async (result) => {
+      recordProvenance({
         npi,
-        certified: false,
-        boardName: null,
-        specialtyName: null,
-        certificationStatus: 'NOT_AVAILABLE',
-        initialCertDate: null,
-        expirationDate: null,
-        lastVerifiedAt: new Date().toISOString(),
+        source: 'ABMS',
         sourceUrl: ABMS_URL,
-      };
-    } else {
-      result = sandboxCertification(npi);
-    }
+        rawPayload: result,
+      });
+    },
+    onFailure: ({ reason, stage, error }) => {
+      if (stage === 'quarantine') {
+        log('warn', 'abms_connector: connector quarantined', { npi, reason });
+        return;
+      }
 
-    recordProvenance({
-      npi,
-      source: 'ABMS',
-      sourceUrl: ABMS_URL,
-      rawPayload: result,
-    });
-
-    recordConnectorSuccess('ABMS');
-    return result;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
-    recordConnectorFailure('ABMS', msg);
-    log('error', 'abms_connector: check failed', { npi, error: msg });
-    return {
+      log('error', 'abms_connector: check failed', {
+        npi,
+        error: error?.message ?? reason,
+        stage,
+      });
+    },
+    fallback: () => ({
       npi,
       certified: false,
       boardName: null,
@@ -137,6 +154,6 @@ export async function checkABMSCertification(npi: string): Promise<ABMSCertifica
       expirationDate: null,
       lastVerifiedAt: new Date().toISOString(),
       sourceUrl: ABMS_URL,
-    };
-  }
+    }),
+  });
 }

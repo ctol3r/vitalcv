@@ -176,8 +176,55 @@ export interface GraphStats {
   aiAcceptedLinks:  number;
   explicitLinks:   number;
   inferredLinks:   number;
+  hubCount?:       number;
+  similarityEdgeCount?: number;
+  recommendationCount?: number;
+  avgRelationshipStrength?: number;
   nodesByType:     Record<string, number>;
   edgesByType:     Record<string, number>;
+}
+
+export interface GraphHubSummary {
+  nodeId: string;
+  score: number;
+  rank: number;
+  percentile: number;
+  reason: string;
+}
+
+export interface GraphClusterSummary {
+  clusterId: string;
+  label: string;
+  memberNodeIds: string[];
+  size: number;
+  density: number;
+  bridgeNodeIds: string[];
+}
+
+export interface GraphConnectionRecommendation {
+  sourceNodeId: string;
+  targetNodeId: string;
+  score: number;
+  reasons: string[];
+  sharedNeighborIds: string[];
+  sharedTokens: string[];
+}
+
+export interface GraphIntelligenceMetrics {
+  clusterCount: number;
+  hubCount: number;
+  similarityEdgeCount: number;
+  recommendationCount: number;
+  avgRelationshipStrength: number;
+}
+
+export interface GraphIntelligenceReport {
+  version: string;
+  generatedAt: string;
+  hubs: GraphHubSummary[];
+  clusters: GraphClusterSummary[];
+  recommendations: GraphConnectionRecommendation[];
+  metrics: GraphIntelligenceMetrics;
 }
 
 // ── Graph Preferences (persisted per user) ────────────────────────────────────
@@ -346,7 +393,7 @@ export function edgeLayer(type: EdgeType): GraphLayer {
   return 'trust';
 }
 
-export const GRAPH_SCHEMA_VERSION = '272.0';
+export const GRAPH_SCHEMA_VERSION = '272.2';
 export const GRAPH_FILTER_SCHEMA_VERSION = '1';
 
 export const EXPLICIT_EDGE_TYPES = new Set<EdgeType>(['explicit_link', 'backlink']);
@@ -403,6 +450,7 @@ export interface GraphQueryResult {
   cacheStatus: 'hit' | 'miss';
   filters: GraphQueryFilters;
   chunk: GraphChunk;
+  intelligence?: GraphIntelligenceReport;
   stats: GraphStats & {
     payloadBytes: number;
     clusterMode: ClusterMode;

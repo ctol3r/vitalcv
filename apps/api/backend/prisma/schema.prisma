@@ -486,6 +486,97 @@ enum EmployerHiringStatus {
   NOT_HIRING
 }
 
+enum SourceRunStatus {
+  QUEUED
+  FETCHING
+  FETCHED
+  PARSED
+  NORMALIZED
+  VERIFIED
+  ALERTED
+  QUARANTINED
+  FAILED
+}
+
+enum IdentityResolutionDecisionType {
+  LINK
+  MERGE
+  UNMERGE
+  COLLISION
+  SKIP
+}
+
+enum IdentityDeltaType {
+  CLAIM_ADDED
+  CLAIM_CHANGED
+  CLAIM_EXPIRED
+  EXCLUSION_DETECTED
+  LICENSE_STATUS_CHANGED
+  NEW_SANCTION_HIT
+  NEW_PAYMENT_RELATIONSHIP
+  PROVIDER_MOVED_ORGANIZATION
+  PROVIDER_MOVED_LOCATION
+  LICENSE_STATE_CHANGED
+  BOARD_CERT_STATUS_CHANGED
+}
+
+enum MonitoringSeverity {
+  INFO
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum EntityChangeEventType {
+  CLAIM_VALUE_CHANGED
+  CLAIM_EXPIRED
+  NEW_SANCTION_HIT
+  NEW_PAYMENT_RELATIONSHIP
+  PROVIDER_MOVED_ORGANIZATION
+  PROVIDER_MOVED_LOCATION
+  LICENSE_STATE_CHANGED
+  LICENSE_STATUS_CHANGED
+  BOARD_CERT_STATUS_CHANGED
+}
+
+enum SourceStalenessStatus {
+  STALE
+  DISAPPEARED
+}
+
+enum TrustDegradationReason {
+  CLAIM_EXPIRED
+  NEW_SANCTION_HIT
+  LICENSE_STATUS_CHANGED
+  BOARD_CERT_STATUS_CHANGED
+  SOURCE_STALE
+  SOURCE_DISAPPEARED
+}
+
+enum WatchlistTargetType {
+  PROVIDER
+  INSTITUTION
+  CLAIM_CLASS
+}
+
+enum AlertDeliveryChannel {
+  INTERNAL_FEED
+  WEBHOOK
+  EVENT_SINK
+  EMAIL
+  SLACK
+}
+
+enum AlertDeliveryStatus {
+  DELIVERED
+  PENDING
+  SUPPRESSED
+  DEDUPED
+  FAILED
+  NOT_CONFIGURED
+}
+
 /// Links a person to an organization with a role
 model WorkspaceMembership {
   id                    String              @id @default(uuid()) @db.Uuid
@@ -637,6 +728,22 @@ model VerificationArtifact {
   npi        String
   source     String
   status     String
+  artifactType String  @default("GENERIC") @map("artifact_type")
+  parserVersion String? @map("parser_version")
+  matchingStrategy String? @map("matching_strategy")
+  trustTier  String?   @map("trust_tier")
+  confidenceScore Float? @map("confidence_score")
+  conflictReason String? @map("conflict_reason")
+  mergeReason String? @map("merge_reason")
+  sourceRunId String? @db.Uuid @map("source_run_id")
+  sourceRecordId String? @db.Uuid @map("source_record_id")
+  sourceUrl String? @map("source_url")
+  fetchHeaders Json? @db.JsonB @map("fetch_headers")
+  fetchedAt DateTime? @map("fetched_at")
+  observedAt DateTime? @map("observed_at")
+  generation Int?
+  supersededByArtifactId String? @db.Uuid @map("superseded_by_artifact_id")
+  supersedesArtifactId String? @db.Uuid @map("supersedes_artifact_id")
   rawPayload Json?     @db.JsonB
   checksum   String
   merkleRoot String?
@@ -661,10 +768,29 @@ model VerificationArtifact {
   statusListIndex      Int?
   createdAt  DateTime  @default(now())
 
+  sourceRun SourceRun? @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
+  sourceRecord SourceRecord? @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
+  supersededByArtifact VerificationArtifact? @relation("ArtifactSupersededBy", fields: [supersededByArtifactId], references: [id], onDelete: SetNull)
+  supersedesArtifact VerificationArtifact? @relation("ArtifactSupersedes", fields: [supersedesArtifactId], references: [id], onDelete: SetNull)
   snapshots AuditSnapshot[]
+  claimRecords ClaimRecord[] @relation("ArtifactClaimRecords")
+  verificationReceiptRecords VerificationReceiptRecord[] @relation("ArtifactReceiptRecords")
+  identityResolutionDecisions IdentityResolutionDecision[] @relation("ArtifactResolutionDecisions")
+  identityClaimDeltas IdentityClaimDelta[]
+  trustAlertRecords TrustAlertRecord[]
+  supersededArtifacts VerificationArtifact[] @relation("ArtifactSupersedes")
+  supersedesArtifacts VerificationArtifact[] @relation("ArtifactSupersededBy")
 
   @@index([npi])
   @@index([source])
+  @@index([artifactType])
+  @@index([parserVersion])
+  @@index([matchingStrategy])
+  @@index([trustTier])
+  @@index([sourceRunId])
+  @@index([sourceRecordId])
+  @@index([supersededByArtifactId])
+  @@index([supersedesArtifactId])
   @@index([monitoring])
   @@index([organizationId])
   @@index([lifecycleState])
@@ -680,6 +806,337 @@ model VerificationArtifact {
   @@index([forecastRiskLevel])
   // Wave 40: Status list index
   @@index([statusListIndex])
+}
+
+model SourceRun {
+  id               String          @id @default(uuid()) @db.Uuid
+  sourceId         String          @map("source_id")
+  subjectNpi       String          @map("subject_npi")
+  personProfileId  String?         @db.Uuid @map("person_profile_id")
+  idempotencyKey   String          @unique @map("idempotency_key")
+  status           SourceRunStatus @default(QUEUED)
+  runSummary       Json?           @db.JsonB @map("run_summary")
+  lastError        String?         @map("last_error")
+  quarantineReason String?         @map("quarantine_reason")
+  startedAt        DateTime        @default(now()) @map("started_at")
+  completedAt      DateTime?       @map("completed_at")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  sourceRecords               SourceRecord[]
+  fetchJobs                   FetchJob[]
+  parseJobs                   ParseJob[]
+  claimDerivationJobs         ClaimDerivationJob[]
+  deltaDetectionJobs          DeltaDetectionJob[]
+  alertJobs                   AlertJob[]
+  verificationArtifacts       VerificationArtifact[]
+  claimRecords                ClaimRecord[]
+  verificationReceiptRecords  VerificationReceiptRecord[]
+  identityResolutionDecisions IdentityResolutionDecision[]
+  identityClaimDeltas         IdentityClaimDelta[]
+  trustAlertRecords           TrustAlertRecord[]
+
+  @@index([sourceId, subjectNpi, createdAt])
+  @@index([status, createdAt])
+  @@map("source_runs")
+}
+
+model FetchJob {
+  id             String          @id @default(uuid()) @db.Uuid
+  sourceRunId    String          @db.Uuid @map("source_run_id")
+  state          SourceRunStatus @default(QUEUED)
+  idempotencyKey String          @unique @map("idempotency_key")
+  attemptCount   Int             @default(0) @map("attempt_count")
+  backoffSeconds Int             @default(60) @map("backoff_seconds")
+  checksum       String?
+  sourceUrl      String?         @map("source_url")
+  fetchHeaders   Json?           @db.JsonB @map("fetch_headers")
+  startedAt      DateTime?       @map("started_at")
+  completedAt    DateTime?       @map("completed_at")
+  lastError      String?         @map("last_error")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  sourceRun SourceRun @relation(fields: [sourceRunId], references: [id], onDelete: Cascade)
+
+  @@index([sourceRunId, state])
+  @@index([state, createdAt])
+  @@map("fetch_jobs")
+}
+
+model ParseJob {
+  id                   String          @id @default(uuid()) @db.Uuid
+  sourceRunId          String          @db.Uuid @map("source_run_id")
+  sourceRecordId       String?         @db.Uuid @map("source_record_id")
+  verificationArtifactId String?       @db.Uuid @map("verification_artifact_id")
+  state                SourceRunStatus @default(QUEUED)
+  idempotencyKey       String          @unique @map("idempotency_key")
+  attemptCount         Int             @default(0) @map("attempt_count")
+  backoffSeconds       Int             @default(60) @map("backoff_seconds")
+  parserVersion        String?         @map("parser_version")
+  quarantineReason     String?         @map("quarantine_reason")
+  startedAt            DateTime?       @map("started_at")
+  completedAt          DateTime?       @map("completed_at")
+  lastError            String?         @map("last_error")
+  createdAt            DateTime        @default(now()) @map("created_at")
+  updatedAt            DateTime        @updatedAt @map("updated_at")
+
+  sourceRun SourceRun @relation(fields: [sourceRunId], references: [id], onDelete: Cascade)
+
+  @@index([sourceRunId, state])
+  @@index([sourceRecordId])
+  @@index([verificationArtifactId])
+  @@map("parse_jobs")
+}
+
+model ClaimDerivationJob {
+  id                   String          @id @default(uuid()) @db.Uuid
+  sourceRunId          String          @db.Uuid @map("source_run_id")
+  sourceRecordId       String?         @db.Uuid @map("source_record_id")
+  verificationArtifactId String?       @db.Uuid @map("verification_artifact_id")
+  state                SourceRunStatus @default(QUEUED)
+  idempotencyKey       String          @unique @map("idempotency_key")
+  attemptCount         Int             @default(0) @map("attempt_count")
+  backoffSeconds       Int             @default(60) @map("backoff_seconds")
+  startedAt            DateTime?       @map("started_at")
+  completedAt          DateTime?       @map("completed_at")
+  lastError            String?         @map("last_error")
+  createdAt            DateTime        @default(now()) @map("created_at")
+  updatedAt            DateTime        @updatedAt @map("updated_at")
+
+  sourceRun SourceRun @relation(fields: [sourceRunId], references: [id], onDelete: Cascade)
+
+  @@index([sourceRunId, state])
+  @@index([sourceRecordId])
+  @@index([verificationArtifactId])
+  @@map("claim_derivation_jobs")
+}
+
+model DeltaDetectionJob {
+  id                   String          @id @default(uuid()) @db.Uuid
+  sourceRunId          String          @db.Uuid @map("source_run_id")
+  verificationArtifactId String?       @db.Uuid @map("verification_artifact_id")
+  state                SourceRunStatus @default(QUEUED)
+  idempotencyKey       String          @unique @map("idempotency_key")
+  attemptCount         Int             @default(0) @map("attempt_count")
+  backoffSeconds       Int             @default(60) @map("backoff_seconds")
+  startedAt            DateTime?       @map("started_at")
+  completedAt          DateTime?       @map("completed_at")
+  lastError            String?         @map("last_error")
+  createdAt            DateTime        @default(now()) @map("created_at")
+  updatedAt            DateTime        @updatedAt @map("updated_at")
+
+  sourceRun SourceRun @relation(fields: [sourceRunId], references: [id], onDelete: Cascade)
+
+  @@index([sourceRunId, state])
+  @@index([verificationArtifactId])
+  @@map("delta_detection_jobs")
+}
+
+model AlertJob {
+  id                   String          @id @default(uuid()) @db.Uuid
+  sourceRunId          String          @db.Uuid @map("source_run_id")
+  verificationArtifactId String?       @db.Uuid @map("verification_artifact_id")
+  state                SourceRunStatus @default(QUEUED)
+  idempotencyKey       String          @unique @map("idempotency_key")
+  attemptCount         Int             @default(0) @map("attempt_count")
+  backoffSeconds       Int             @default(60) @map("backoff_seconds")
+  startedAt            DateTime?       @map("started_at")
+  completedAt          DateTime?       @map("completed_at")
+  lastError            String?         @map("last_error")
+  createdAt            DateTime        @default(now()) @map("created_at")
+  updatedAt            DateTime        @updatedAt @map("updated_at")
+
+  sourceRun SourceRun @relation(fields: [sourceRunId], references: [id], onDelete: Cascade)
+
+  @@index([sourceRunId, state])
+  @@index([verificationArtifactId])
+  @@map("alert_jobs")
+}
+
+model SourceRecord {
+  id               String          @id @default(uuid()) @db.Uuid
+  sourceRunId      String?         @db.Uuid @map("source_run_id")
+  sourceId         String          @map("source_id")
+  subjectNpi       String          @map("subject_npi")
+  personProfileId  String?         @db.Uuid @map("person_profile_id")
+  sourceRecordKey  String          @map("source_record_key")
+  sourceUrl        String?         @map("source_url")
+  fetchHeaders     Json?           @db.JsonB @map("fetch_headers")
+  checksum         String
+  trustTier        String?         @map("trust_tier")
+  fetchedAt        DateTime        @map("fetched_at")
+  observedAt       DateTime?       @map("observed_at")
+  expiresAt        DateTime?       @map("expires_at")
+  parserVersion    String?         @map("parser_version")
+  matchingStrategy String?         @map("matching_strategy")
+  schemaVersion    String?         @map("schema_version")
+  status           SourceRunStatus @default(FETCHED)
+  quarantineReason String?         @map("quarantine_reason")
+  metadata         Json?           @db.JsonB
+  createdAt        DateTime        @default(now()) @map("created_at")
+
+  sourceRun                  SourceRun?                  @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
+  verificationArtifacts      VerificationArtifact[]
+  claimRecords               ClaimRecord[]
+  verificationReceiptRecords VerificationReceiptRecord[]
+  identityResolutionDecisions IdentityResolutionDecision[]
+  identityClaimDeltas        IdentityClaimDelta[]
+  trustAlertRecords          TrustAlertRecord[]
+
+  @@unique([sourceId, subjectNpi, checksum])
+  @@index([sourceId, sourceRecordKey])
+  @@index([trustTier])
+  @@index([status, createdAt])
+  @@map("source_records")
+}
+
+model ClaimRecord {
+  id                    String    @id @default(uuid()) @db.Uuid
+  claimId               String    @map("claim_id")
+  sourceRunId           String?   @db.Uuid @map("source_run_id")
+  sourceRecordId        String?   @db.Uuid @map("source_record_id")
+  verificationArtifactId String?  @db.Uuid @map("verification_artifact_id")
+  personProfileId       String?   @db.Uuid @map("person_profile_id")
+  subjectNpi            String    @map("subject_npi")
+  claimType             String    @map("claim_type")
+  value                 Json      @db.JsonB
+  trustTier             String    @map("trust_tier")
+  confidenceLabel       String    @map("confidence_label")
+  confidenceScore       Float     @map("confidence_score")
+  sourceId              String    @map("source_id")
+  parserVersion         String    @map("parser_version")
+  matchingStrategy      String?   @map("matching_strategy")
+  status                String
+  observedAt            DateTime  @map("observed_at")
+  derivedAt             DateTime  @map("derived_at")
+  validFrom             DateTime? @map("valid_from")
+  validUntil            DateTime? @map("valid_until")
+  expiresAt             DateTime? @map("expires_at")
+  supersededByClaimId   String?   @map("superseded_by_claim_id")
+  supersedesClaimId     String?   @map("supersedes_claim_id")
+  reviewRequired        Boolean   @default(false) @map("review_required")
+  reviewReason          String?   @map("review_reason")
+  mergeReason           String?   @map("merge_reason")
+  conflictReason        String?   @map("conflict_reason")
+  createdAt             DateTime  @default(now()) @map("created_at")
+
+  sourceRun                  SourceRun?                  @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
+  sourceRecord               SourceRecord?               @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
+  verificationArtifact       VerificationArtifact?       @relation("ArtifactClaimRecords", fields: [verificationArtifactId], references: [id], onDelete: SetNull)
+  verificationReceiptRecords VerificationReceiptRecord[]
+  identityClaimDeltas        IdentityClaimDelta[]        @relation("CurrentDeltaClaimRecords")
+  previousClaimDeltas        IdentityClaimDelta[]        @relation("PreviousDeltaClaimRecords")
+
+  @@unique([claimId, verificationArtifactId])
+  @@index([claimId])
+  @@index([trustTier])
+  @@index([status, createdAt])
+  @@index([subjectNpi, claimType, createdAt])
+  @@index([sourceRecordId, createdAt])
+  @@map("claim_records")
+}
+
+model VerificationReceiptRecord {
+  id                    String    @id @default(uuid()) @db.Uuid
+  receiptId             String    @unique @map("receipt_id")
+  claimRecordId         String?   @db.Uuid @map("claim_record_id")
+  claimId               String    @map("claim_id")
+  sourceRunId           String?   @db.Uuid @map("source_run_id")
+  sourceRecordId        String?   @db.Uuid @map("source_record_id")
+  verificationArtifactId String?  @db.Uuid @map("verification_artifact_id")
+  personProfileId       String?   @db.Uuid @map("person_profile_id")
+  subjectNpi            String    @map("subject_npi")
+  entityId              String    @map("entity_id")
+  field                 String
+  value                 Json      @db.JsonB
+  trustTier             String    @map("trust_tier")
+  confidence            Float
+  sourceArtifactId      String?   @map("source_artifact_id")
+  sourceSystem          String    @map("source_system")
+  parserVersion         String    @map("parser_version")
+  matchingStrategy      String?   @map("matching_strategy")
+  observedAt            DateTime  @map("observed_at")
+  explanation           String
+  expiresAt             DateTime? @map("expires_at")
+  issuedAt              DateTime  @default(now()) @map("issued_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+
+  claimRecord          ClaimRecord?         @relation(fields: [claimRecordId], references: [id], onDelete: SetNull)
+  sourceRun            SourceRun?           @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
+  sourceRecord         SourceRecord?        @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
+  verificationArtifact VerificationArtifact? @relation("ArtifactReceiptRecords", fields: [verificationArtifactId], references: [id], onDelete: SetNull)
+
+  @@index([claimId])
+  @@index([trustTier])
+  @@index([subjectNpi, issuedAt])
+  @@index([verificationArtifactId])
+  @@map("verification_receipt_records")
+}
+
+model IdentityClaimDelta {
+  id                    String            @id @default(uuid()) @db.Uuid
+  sourceRunId           String?           @db.Uuid @map("source_run_id")
+  sourceRecordId        String?           @db.Uuid @map("source_record_id")
+  verificationArtifactId String?          @db.Uuid @map("verification_artifact_id")
+  previousClaimRecordId String?           @db.Uuid @map("previous_claim_record_id")
+  currentClaimRecordId  String?           @db.Uuid @map("current_claim_record_id")
+  subjectNpi            String            @map("subject_npi")
+  sourceId              String            @map("source_id")
+  claimType             String            @map("claim_type")
+  deltaType             IdentityDeltaType @map("delta_type")
+  severity              String
+  trustTier             String?           @map("trust_tier")
+  previousValue         Json?             @db.JsonB @map("previous_value")
+  currentValue          Json?             @db.JsonB @map("current_value")
+  matchingStrategy      String?           @map("matching_strategy")
+  mergeReason           String?           @map("merge_reason")
+  conflictReason        String?           @map("conflict_reason")
+  checksum              String
+  observedAt            DateTime          @map("observed_at")
+  createdAt             DateTime          @default(now()) @map("created_at")
+
+  sourceRun            SourceRun?           @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
+  sourceRecord         SourceRecord?        @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
+  verificationArtifact VerificationArtifact? @relation(fields: [verificationArtifactId], references: [id], onDelete: SetNull)
+  previousClaimRecord  ClaimRecord?         @relation("PreviousDeltaClaimRecords", fields: [previousClaimRecordId], references: [id], onDelete: SetNull)
+  currentClaimRecord   ClaimRecord?         @relation("CurrentDeltaClaimRecords", fields: [currentClaimRecordId], references: [id], onDelete: SetNull)
+  trustAlertRecords    TrustAlertRecord[]
+
+  @@unique([checksum])
+  @@index([subjectNpi, createdAt])
+  @@index([deltaType, createdAt])
+  @@index([verificationArtifactId])
+  @@index([trustTier])
+  @@map("identity_claim_deltas")
+}
+
+model IdentityResolutionDecision {
+  id                    String                         @id @default(uuid()) @db.Uuid
+  subjectNpi            String                         @map("subject_npi")
+  personProfileId       String?                        @db.Uuid @map("person_profile_id")
+  candidatePersonProfileId String?                     @db.Uuid @map("candidate_person_profile_id")
+  sourceRunId           String?                        @db.Uuid @map("source_run_id")
+  sourceRecordId        String?                        @db.Uuid @map("source_record_id")
+  verificationArtifactId String?                       @db.Uuid @map("verification_artifact_id")
+  decisionType          IdentityResolutionDecisionType @map("decision_type")
+  resolutionKey         String                         @map("resolution_key")
+  matchingStrategy      String                         @map("matching_strategy")
+  confidenceScore       Float                          @map("confidence_score")
+  mergeReason           String?                        @map("merge_reason")
+  conflictReason        String?                        @map("conflict_reason")
+  payload               Json?                          @db.JsonB
+  reversedAt            DateTime?                      @map("reversed_at")
+  createdAt             DateTime                       @default(now()) @map("created_at")
+
+  sourceRun            SourceRun?           @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
+  sourceRecord         SourceRecord?        @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
+  verificationArtifact VerificationArtifact? @relation("ArtifactResolutionDecisions", fields: [verificationArtifactId], references: [id], onDelete: SetNull)
+
+  @@index([subjectNpi, createdAt])
+  @@index([decisionType, createdAt])
+  @@index([resolutionKey])
+  @@map("identity_resolution_decisions")
 }
 
 model TrustedIssuer {
@@ -786,15 +1243,166 @@ model TrustAlertRecord {
   credentialId      String?
   issuerId          String?
   subject           String?
+  sourceRunId       String?  @db.Uuid @map("source_run_id")
+  sourceRecordId    String?  @db.Uuid @map("source_record_id")
+  verificationArtifactId String? @db.Uuid @map("verification_artifact_id")
+  identityDeltaId   String?  @db.Uuid @map("identity_delta_id")
+  checksum          String?
   recommendedAction String
   acknowledged      Boolean  @default(false)
   acknowledgedAt    DateTime?
+  observedAt        DateTime? @map("observed_at")
   createdAt         DateTime @default(now())
+
+  sourceRun            SourceRun?            @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
+  sourceRecord         SourceRecord?         @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
+  verificationArtifact VerificationArtifact? @relation(fields: [verificationArtifactId], references: [id], onDelete: SetNull)
+  identityDelta        IdentityClaimDelta?   @relation(fields: [identityDeltaId], references: [id], onDelete: SetNull)
 
   @@index([severity, createdAt])
   @@index([acknowledged, createdAt])
   @@index([issuerId])
   @@index([subject])
+  @@index([sourceRunId])
+  @@index([verificationArtifactId])
+  @@index([identityDeltaId])
+}
+
+model EntityChangeEvent {
+  id                    String                @id @default(uuid()) @db.Uuid
+  sourceRunId           String?               @db.Uuid @map("source_run_id")
+  sourceRecordId        String?               @db.Uuid @map("source_record_id")
+  verificationArtifactId String?              @db.Uuid @map("verification_artifact_id")
+  identityDeltaId       String?               @db.Uuid @map("identity_delta_id")
+  subjectNpi            String                @map("subject_npi")
+  sourceId              String                @map("source_id")
+  claimType             String?               @map("claim_type")
+  fieldPath             String?               @map("field_path")
+  eventType             EntityChangeEventType @map("event_type")
+  severity              MonitoringSeverity
+  previousValue         Json?                 @db.JsonB @map("previous_value")
+  currentValue          Json?                 @db.JsonB @map("current_value")
+  checksum              String                @unique
+  metadata              Json?                 @db.JsonB
+  observedAt            DateTime              @map("observed_at")
+  createdAt             DateTime              @default(now()) @map("created_at")
+
+  @@index([subjectNpi, createdAt])
+  @@index([sourceId, eventType, createdAt])
+  @@index([claimType, createdAt])
+  @@map("entity_change_events")
+}
+
+model SourceStalenessEvent {
+  id                    String                @id @default(uuid()) @db.Uuid
+  sourceRunId           String?               @db.Uuid @map("source_run_id")
+  sourceRecordId        String?               @db.Uuid @map("source_record_id")
+  verificationArtifactId String?              @db.Uuid @map("verification_artifact_id")
+  subjectNpi            String                @map("subject_npi")
+  sourceId              String                @map("source_id")
+  status                SourceStalenessStatus
+  severity              MonitoringSeverity
+  slaHours              Int                   @map("sla_hours")
+  trustTier             String?               @map("trust_tier")
+  lastObservedAt        DateTime?             @map("last_observed_at")
+  staleSince            DateTime              @map("stale_since")
+  checksum              String                @unique
+  metadata              Json?                 @db.JsonB
+  createdAt             DateTime              @default(now()) @map("created_at")
+
+  @@index([subjectNpi, createdAt])
+  @@index([sourceId, status, createdAt])
+  @@index([severity, createdAt])
+  @@map("source_staleness_events")
+}
+
+model TrustDegradationEvent {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  sourceRunId           String?                @db.Uuid @map("source_run_id")
+  sourceRecordId        String?                @db.Uuid @map("source_record_id")
+  verificationArtifactId String?               @db.Uuid @map("verification_artifact_id")
+  entityChangeEventId   String?                @db.Uuid @map("entity_change_event_id")
+  sourceStalenessEventId String?               @db.Uuid @map("source_staleness_event_id")
+  subjectNpi            String                 @map("subject_npi")
+  claimType             String?                @map("claim_type")
+  reason                TrustDegradationReason
+  severity              MonitoringSeverity
+  checksum              String                 @unique
+  description           String
+  metadata              Json?                  @db.JsonB
+  observedAt            DateTime               @map("observed_at")
+  createdAt             DateTime               @default(now()) @map("created_at")
+
+  @@index([subjectNpi, createdAt])
+  @@index([reason, createdAt])
+  @@index([severity, createdAt])
+  @@map("trust_degradation_events")
+}
+
+model Watchlist {
+  id                       String                @id @default(uuid()) @db.Uuid
+  dedupeKey                String                @unique @map("dedupe_key")
+  name                     String
+  ownerOrganizationId      String?               @db.Uuid @map("owner_organization_id")
+  targetType               WatchlistTargetType   @map("target_type")
+  targetValue              String                @map("target_value")
+  claimType                String?               @map("claim_type")
+  fieldPath                String?               @map("field_path")
+  severityFloor            MonitoringSeverity    @default(LOW) @map("severity_floor")
+  suppressionWindowMinutes Int                   @default(1440) @map("suppression_window_minutes")
+  deliveryChannels         String[]              @default(["INTERNAL_FEED"]) @map("delivery_channels")
+  webhookUrl               String?               @map("webhook_url")
+  active                   Boolean               @default(true)
+  metadata                 Json?                 @db.JsonB
+  createdAt                DateTime              @default(now()) @map("created_at")
+  updatedAt                DateTime              @updatedAt @map("updated_at")
+
+  @@index([targetType, targetValue, active])
+  @@index([claimType, fieldPath, active])
+  @@map("watchlists")
+}
+
+model WatchlistHit {
+  id                    String             @id @default(uuid()) @db.Uuid
+  watchlistId           String             @db.Uuid @map("watchlist_id")
+  trustAlertRecordId    String?            @db.Uuid @map("trust_alert_record_id")
+  entityChangeEventId   String?            @db.Uuid @map("entity_change_event_id")
+  sourceStalenessEventId String?           @db.Uuid @map("source_staleness_event_id")
+  trustDegradationEventId String?          @db.Uuid @map("trust_degradation_event_id")
+  subjectNpi            String?            @map("subject_npi")
+  organizationKey       String?            @map("organization_key")
+  claimType             String?            @map("claim_type")
+  fieldPath             String?            @map("field_path")
+  severity              MonitoringSeverity
+  dedupeKey             String             @unique @map("dedupe_key")
+  payload               Json?              @db.JsonB
+  observedAt            DateTime           @map("observed_at")
+  createdAt             DateTime           @default(now()) @map("created_at")
+
+  @@index([watchlistId, createdAt])
+  @@index([subjectNpi, createdAt])
+  @@index([severity, createdAt])
+  @@map("watchlist_hits")
+}
+
+model AlertDeliveryAttempt {
+  id                 String              @id @default(uuid()) @db.Uuid
+  trustAlertRecordId String?             @db.Uuid @map("trust_alert_record_id")
+  watchlistId        String?             @db.Uuid @map("watchlist_id")
+  channel            AlertDeliveryChannel
+  destination        String?
+  status             AlertDeliveryStatus
+  dedupeKey          String              @unique @map("dedupe_key")
+  payload            Json?               @db.JsonB
+  responseCode       Int?                @map("response_code")
+  errorText          String?             @map("error_text")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+
+  @@index([trustAlertRecordId, createdAt])
+  @@index([watchlistId, createdAt])
+  @@index([channel, status, createdAt])
+  @@map("alert_delivery_attempts")
 }
 
 model OrganizationTrust {
@@ -1466,4 +2074,320 @@ model SearchIndexRun {
 
   @@index([status])
   @@index([objectType])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Waves 9-11: Durable graph runtime, snapshots, AI link review
+// ──────────────────────────────────────────────────────────────
+
+model GraphNode {
+  id              String   @id
+  canonicalKey    String   @unique @map("canonical_key")
+  type            String
+  label           String
+  title           String
+  colorGroup      String   @map("color_group")
+  groupKey        String?  @map("group_key")
+  tags            String[] @default([])
+  metadata        Json     @default("{}") @db.JsonB
+  degree          Int      @default(0)
+  inDegree        Int      @default(0) @map("in_degree")
+  outDegree       Int      @default(0) @map("out_degree")
+  sourceRefs      String[] @default([]) @map("source_refs")
+  sourceChecksum  String?  @map("source_checksum")
+  sourceUpdatedAt DateTime? @map("source_updated_at")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  outgoingEdges       GraphEdge[]            @relation("GraphEdgeSource")
+  incomingEdges       GraphEdge[]            @relation("GraphEdgeTarget")
+  sourceSuggestions   GraphLinkSuggestion[]  @relation("GraphSuggestionSource")
+  targetSuggestions   GraphLinkSuggestion[]  @relation("GraphSuggestionTarget")
+  sourceRejectMemory  GraphRejectMemory[]    @relation("GraphRejectSource")
+  targetRejectMemory  GraphRejectMemory[]    @relation("GraphRejectTarget")
+  clusterAssignments  GraphClusterAssignment[]
+
+  @@index([type])
+  @@index([colorGroup])
+  @@index([groupKey])
+  @@index([active])
+  @@index([sourceUpdatedAt])
+  @@map("graph_nodes")
+}
+
+model GraphEdge {
+  id            String   @id
+  canonicalKey  String   @unique @map("canonical_key")
+  pairKey       String   @map("pair_key")
+  sourceNodeId  String   @map("source_node_id")
+  targetNodeId  String   @map("target_node_id")
+  edgeType      String   @map("edge_type")
+  directed      Boolean  @default(true)
+  reciprocal    Boolean  @default(false)
+  reverseEdgeId String?  @map("reverse_edge_id")
+  confidence    Float    @default(1)
+  status        String   @default("ACTIVE")
+  createdBy     String   @map("created_by")
+  provenance    Json     @default("{}") @db.JsonB
+  explanation   String?
+  materialHash  String?  @map("material_hash")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  sourceNode GraphNode  @relation("GraphEdgeSource", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode GraphNode  @relation("GraphEdgeTarget", fields: [targetNodeId], references: [id], onDelete: Cascade)
+  reverseEdge GraphEdge? @relation("GraphEdgeReverse", fields: [reverseEdgeId], references: [id], onDelete: SetNull)
+  mirroredBy  GraphEdge[] @relation("GraphEdgeReverse")
+
+  @@index([sourceNodeId])
+  @@index([targetNodeId])
+  @@index([edgeType])
+  @@index([status])
+  @@index([pairKey])
+  @@index([sourceNodeId, edgeType])
+  @@map("graph_edges")
+}
+
+model GraphBuildRun {
+  id                  String   @id
+  buildType           String   @map("build_type")
+  status              String   @default("QUEUED")
+  requestedBy         String?  @map("requested_by")
+  requestFingerprint  String?  @map("request_fingerprint")
+  graphMode           String?  @map("graph_mode")
+  scopeType           String?  @map("scope_type")
+  scopeKey            String?  @map("scope_key")
+  targetNodeId        String?  @map("target_node_id")
+  filterSignature     String?  @map("filter_signature")
+  invalidationReasons String[] @default([]) @map("invalidation_reasons")
+  summary             Json     @default("{}") @db.JsonB
+  errorText           String?  @map("error_text")
+  startedAt           DateTime @default(now()) @map("started_at")
+  completedAt         DateTime? @map("completed_at")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  snapshots GraphSnapshot[]
+
+  @@index([status, startedAt])
+  @@index([buildType, createdAt])
+  @@index([graphMode, status])
+  @@index([requestFingerprint, status])
+  @@map("graph_build_runs")
+}
+
+model GraphSnapshot {
+  id              String    @id
+  querySignature  String    @unique @map("query_signature")
+  scopeType       String    @map("scope_type")
+  scopeKey        String    @map("scope_key")
+  graphMode       String    @map("graph_mode")
+  focusNodeId     String?   @map("focus_node_id")
+  depth           Int?
+  filterSignature String    @map("filter_signature")
+  schemaVersion   String    @map("schema_version")
+  nodeCount       Int       @default(0) @map("node_count")
+  edgeCount       Int       @default(0) @map("edge_count")
+  payloadBytes    Int       @default(0) @map("payload_bytes")
+  payload         Json      @db.JsonB
+  stats           Json      @default("{}") @db.JsonB
+  invalidatedAt   DateTime? @map("invalidated_at")
+  lastInvalidationReason String? @map("last_invalidation_reason")
+  lastInvalidationScope  Json?   @db.JsonB @map("last_invalidation_scope")
+  builtAt         DateTime  @default(now()) @map("built_at")
+  lastAccessedAt  DateTime? @map("last_accessed_at")
+  buildRunId      String?   @map("build_run_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  buildRun           GraphBuildRun?           @relation(fields: [buildRunId], references: [id], onDelete: SetNull)
+  clusterAssignments GraphClusterAssignment[]
+
+  @@index([graphMode, invalidatedAt])
+  @@index([scopeType, scopeKey])
+  @@index([focusNodeId, depth])
+  @@index([buildRunId])
+  @@index([payloadBytes])
+  @@map("graph_snapshots")
+}
+
+model GraphPreset {
+  id                  String   @id
+  ownerKey            String   @map("owner_key")
+  name                String
+  graphMode           String   @map("graph_mode")
+  focusNodeId         String?  @map("focus_node_id")
+  depth               Int      @default(2)
+  filterSchemaVersion String   @map("filter_schema_version")
+  filters             Json     @db.JsonB
+  display             Json     @db.JsonB
+  physics             Json     @db.JsonB
+  camera              Json     @db.JsonB
+  pinnedNodes         Json     @default("{}") @db.JsonB @map("pinned_nodes")
+  status              String   @default("ACTIVE")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@unique([ownerKey, name])
+  @@index([ownerKey, status])
+  @@index([graphMode])
+  @@map("graph_presets")
+}
+
+model GraphLayoutState {
+  id              String   @id
+  ownerKey        String   @map("owner_key")
+  scopeType       String   @map("scope_type")
+  scopeKey        String   @map("scope_key")
+  graphMode       String   @map("graph_mode")
+  filterSignature String   @map("filter_signature")
+  positions       Json     @default("{}") @db.JsonB
+  pinnedNodes     Json     @default("{}") @db.JsonB @map("pinned_nodes")
+  frozenNodeIds   String[] @default([]) @map("frozen_node_ids")
+  camera          Json     @db.JsonB
+  display         Json     @db.JsonB
+  metadata        Json     @default("{}") @db.JsonB
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([ownerKey, scopeType, scopeKey, graphMode, filterSignature])
+  @@index([ownerKey, graphMode])
+  @@index([scopeType, scopeKey])
+  @@map("graph_layout_states")
+}
+
+model GraphRejectMemory {
+  id             String   @id
+  pairKey        String   @unique @map("pair_key")
+  sourceNodeId   String   @map("source_node_id")
+  targetNodeId   String   @map("target_node_id")
+  edgeType       String   @map("edge_type")
+  reviewerId     String?  @map("reviewer_id")
+  rationale      String?
+  evidenceHash   String   @map("evidence_hash")
+  reconsiderAfter DateTime? @map("reconsider_after")
+  lastRejectedAt DateTime @default(now()) @map("last_rejected_at")
+  lastSuggestedAt DateTime? @map("last_suggested_at")
+  lastSuppressedAt DateTime? @map("last_suppressed_at")
+  suppressionCount Int @default(0) @map("suppression_count")
+  metadata       Json     @default("{}") @db.JsonB
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  sourceNode GraphNode @relation("GraphRejectSource", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode GraphNode @relation("GraphRejectTarget", fields: [targetNodeId], references: [id], onDelete: Cascade)
+
+  @@index([sourceNodeId, targetNodeId])
+  @@index([edgeType, lastRejectedAt])
+  @@index([suppressionCount])
+  @@map("graph_reject_memory")
+}
+
+model GraphClusterAssignment {
+  id          String   @id
+  nodeId      String   @map("node_id")
+  snapshotId  String?  @map("snapshot_id")
+  clusterMode String   @map("cluster_mode")
+  clusterKey  String   @map("cluster_key")
+  score       Float    @default(1)
+  metadata    Json     @default("{}") @db.JsonB
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  node     GraphNode     @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  snapshot GraphSnapshot? @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
+  @@unique([nodeId, snapshotId, clusterMode])
+  @@index([clusterMode, clusterKey])
+  @@index([snapshotId])
+  @@map("graph_cluster_assignments")
+}
+
+model GraphSuggestionBatch {
+  id                   String   @id
+  status               String   @default("QUEUED")
+  requestFingerprint   String?  @map("request_fingerprint")
+  graphMode            String   @map("graph_mode")
+  targetNodeId         String?  @map("target_node_id")
+  filterSignature      String   @map("filter_signature")
+  maxSuggestionsPerNode Int     @default(10) @map("max_suggestions_per_node")
+  minConfidence        Float    @default(0.3) @map("min_confidence")
+  applyThreshold       Float    @default(0.85) @map("apply_threshold")
+  summary              Json     @default("{}") @db.JsonB
+  errorText            String?  @map("error_text")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  completedAt          DateTime? @map("completed_at")
+
+  suggestions GraphLinkSuggestion[]
+
+  @@index([status, createdAt])
+  @@index([graphMode, targetNodeId])
+  @@index([requestFingerprint, status])
+  @@map("graph_suggestion_batches")
+}
+
+model GraphLinkSuggestion {
+  id                 String   @id
+  suggestionKey      String   @map("suggestion_key")
+  batchId            String?  @map("batch_id")
+  sourceNodeId       String   @map("source_node_id")
+  targetNodeId       String   @map("target_node_id")
+  edgeType           String   @map("edge_type")
+  directed           Boolean  @default(true)
+  reciprocal         Boolean  @default(false)
+  confidence         Float
+  state              String   @default("PENDING")
+  explanation        Json     @db.JsonB
+  signalBreakdown    Json     @default("{}") @db.JsonB @map("signal_breakdown")
+  materialChangeHash String   @map("material_change_hash")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  decidedAt          DateTime? @map("decided_at")
+
+  batch      GraphSuggestionBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  sourceNode GraphNode             @relation("GraphSuggestionSource", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode GraphNode             @relation("GraphSuggestionTarget", fields: [targetNodeId], references: [id], onDelete: Cascade)
+  decisions  GraphLinkDecision[]
+
+  @@unique([suggestionKey, materialChangeHash])
+  @@index([state, createdAt])
+  @@index([batchId])
+  @@index([sourceNodeId, state])
+  @@index([targetNodeId, state])
+  @@map("graph_link_suggestions")
+}
+
+model GraphLinkDecision {
+  id          String   @id
+  suggestionId String  @map("suggestion_id")
+  action      String
+  decidedBy   String?  @map("decided_by")
+  rationale   String?
+  metadata    Json     @default("{}") @db.JsonB
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  suggestion GraphLinkSuggestion @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
+
+  @@index([suggestionId, createdAt])
+  @@index([action, createdAt])
+  @@map("graph_link_decisions")
+}
+
+model ReciprocalEdgeRule {
+  id               String   @id
+  edgeType         String   @unique @map("edge_type")
+  reverseEdgeType  String   @map("reverse_edge_type")
+  relationshipMode String   @map("relationship_mode")
+  directed         Boolean  @default(true)
+  reciprocal       Boolean  @default(false)
+  autoCreate       Boolean  @default(false) @map("auto_create")
+  explanation      String?
+  metadata         Json     @default("{}") @db.JsonB
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@index([relationshipMode, autoCreate])
+  @@map("reciprocal_edge_rules")
 }

@@ -148,7 +148,6 @@ import { registerTrustStateEngineRoutes } from './routes/trustStateEngine';     
 import { registerAsyncTrustRoutes } from './routes/asyncTrust';                      // Wave 245: Async Trust Engine
 import { startMonitoringScheduler } from './services/async/monitoringScheduler';    // Wave 245: Monitoring Scheduler
 import { registerApplyRoutes } from './routes/apply';                                // Wave 246: Apply-with-VitalCV
-import { registerLiveGraphRoutes } from './routes/liveGraph';                          // Wave 247: Live Trust Graph
 import { registerSystemHealthRoutes } from './routes/systemHealth';                    // Wave 249: Trust Spine Hardening
 import { registerVelocityRoutes } from './routes/velocity';                              // Wave 250: Time-to-Start Velocity Dashboard
 import { registerTrustProofRoutes } from './routes/trustProof';                        // Wave 252: Trust Proof Bundle
@@ -164,7 +163,6 @@ import { registerCryptoProtocolRoutes } from './routes/cryptoProtocol';         
 import { registerProtocolRoutes } from './routes/protocol';                            // Wave: Open Trust Protocol
 import { registerDomainRoutes } from './routes/domains';                               // Wave: Universal Authority
 import { registerIdentityLayerRoutes } from './routes/identityLayer';                  // Wave: Canonical Identity
-import { registerGraphEngineRoutes } from './routes/graphEngine';                      // Wave: Graph Engine
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -3583,7 +3581,6 @@ registerTrustStateEngineRoutes(app);     // Wave 243 — Trust State Engine
 registerAsyncTrustRoutes(app);           // Wave 245 — Async Trust Engine
 startMonitoringScheduler();              // Wave 245 — Monitoring Scheduler (MONITORING_ENABLED gated)
 registerApplyRoutes(app);                // Wave 246 — Apply-with-VitalCV Distribution Wedge
-registerLiveGraphRoutes(app);            // Wave 247 — Live Trust Graph
 registerSystemHealthRoutes(app);         // Wave 249 — Trust Spine Hardening
 registerVelocityRoutes(app);             // Wave 250 — Time-to-Start Velocity Dashboard
 registerTrustProofRoutes(app);           // Wave 252 — Trust Proof Bundle
@@ -3599,7 +3596,6 @@ registerCryptoProtocolRoutes(app);         // Wave: PQC crypto suite + resign pi
 registerProtocolRoutes(app);               // Wave: open protocol spec + conformance + discovery
 registerDomainRoutes(app);                 // Wave: universal domain authority registry
 registerIdentityLayerRoutes(app);          // Wave: canonical clinician identity layer
-registerGraphEngineRoutes(app);            // Wave: graph engine
 registerPayerVerificationRoutes(app); // Wave 142 — Payer Network Integration
 registerProviderDirectoryRoutes(app);  // Wave 143 — Provider Directory Distribution
 registerGraphScalingRoutes(app);       // Wave 144 — Trust Graph Performance Scaling

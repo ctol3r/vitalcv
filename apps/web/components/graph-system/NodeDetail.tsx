@@ -1,187 +1,672 @@
 'use client';
 
-/**
- * NodeDetail.tsx — Right-side node inspector panel
- *
- * Shows when a node is selected:
- *   - Node title, type, metadata
- *   - Connected nodes with edge breakdown
- *   - AI suggested links with accept/reject
- *   - Link to underlying record
- */
-
-import type { GraphNode, GraphEdge } from './types';
+import { useEffect, useMemo, useState } from 'react';
+import type { LucideIcon } from 'lucide-react';
+import {
+  BadgeCheck,
+  Box,
+  Building2,
+  ChevronRight,
+  Clock3,
+  FileText,
+  Fingerprint,
+  GitBranch,
+  Link2,
+  Network,
+  Shield,
+  ShieldAlert,
+  ShieldCheck,
+  User,
+  Waypoints,
+  X,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import type { GraphEdge, GraphNode } from './types';
+import {
+  buildNodeDetailModel,
+  type ArtifactDetail,
+  type ClaimDetail,
+  type NodeNeighborSummary,
+  type ReceiptDetail,
+  type RelationshipDetail,
+} from './nodeDetailModel';
 
 interface Props {
   node: GraphNode;
   edges: GraphEdge[];
-  neighbors: { id: string; label: string; type: string; degree: number }[];
-  aiSuggestions: { id: string; targetNodeId: string; targetLabel: string; confidence: number; explanation: string; edgeType: string }[];
+  neighbors: NodeNeighborSummary[];
   onClose: () => void;
   onFocusNode: (id: string) => void;
   onAcceptSuggestion: (id: string) => void;
   onRejectSuggestion: (id: string) => void;
 }
 
-const TYPE_ICONS: Record<string, string> = {
-  clinician: '👤', organization: '🏢', institution: '🏛', specialty: '🎯',
-  program: '📋', publication: '📄', trial: '🧪', claim: '✓', artifact: '📦',
-  receipt: '🧾', source: '🔗', credential: '🏅', license: '📜', decision: '⚖️',
-  exclusion: '🚫', enrollment: '📇', note: '📝', document: '📄', tag: '🏷',
-  attachment: '📎', group: '📁',
+const NODE_TYPE_ICONS: Record<string, LucideIcon> = {
+  clinician: User,
+  organization: Building2,
+  institution: Building2,
+  specialty: BadgeCheck,
+  program: Shield,
+  publication: FileText,
+  trial: ShieldAlert,
+  claim: Fingerprint,
+  artifact: Box,
+  receipt: FileText,
+  source: Link2,
+  credential: ShieldCheck,
+  license: BadgeCheck,
+  decision: GitBranch,
+  exclusion: ShieldAlert,
+  enrollment: Waypoints,
+  note: FileText,
+  document: FileText,
+  tag: Link2,
+  attachment: Box,
+  group: Network,
 };
 
-export default function NodeDetail({
-  node, edges, neighbors, aiSuggestions,
-  onClose, onFocusNode, onAcceptSuggestion, onRejectSuggestion,
-}: Props) {
-  const edgesByType: Record<string, number> = {};
-  for (const e of edges) {
-    edgesByType[e.type] = (edgesByType[e.type] ?? 0) + 1;
+const EVIDENCE_KIND_ICON: Record<'claim' | 'receipt' | 'artifact', LucideIcon> = {
+  claim: Fingerprint,
+  receipt: FileText,
+  artifact: Box,
+};
+
+function humanize(value: string): string {
+  return value
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) return 'Not recorded';
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) return value;
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(parsed));
+}
+
+function formatPercent(value: number | undefined): string {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 'n/a';
+  return `${Math.round(value * 100)}%`;
+}
+
+function statusTone(status: string): string {
+  const normalized = status.toLowerCase();
+  if (normalized.includes('verified') || normalized.includes('active') || normalized.includes('accepted')) {
+    return 'border-white/20 bg-white/10 text-white';
+  }
+  if (normalized.includes('pending') || normalized.includes('observed') || normalized.includes('derived')) {
+    return 'border-white/12 bg-white/[0.04] text-white/70';
+  }
+  if (normalized.includes('rejected') || normalized.includes('revoked')) {
+    return 'border-white/18 bg-white/[0.06] text-white/85';
+  }
+  return 'border-white/10 bg-white/[0.03] text-white/70';
+}
+
+function Section({
+  title,
+  eyebrow,
+  children,
+}: {
+  title: string;
+  eyebrow: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-3 rounded-3xl border border-white/10 bg-white/[0.025] p-4">
+      <div className="space-y-1">
+        <p className="text-[11px] uppercase tracking-[0.24em] text-white/35">{eyebrow}</p>
+        <h2 className="text-sm font-medium tracking-[0.04em] text-white">{title}</h2>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function SummaryCell({
+  label,
+  value,
+  emphasis = false,
+}: {
+  label: string;
+  value: string;
+  emphasis?: boolean;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-3">
+      <p className="text-[10px] uppercase tracking-[0.22em] text-white/35">{label}</p>
+      <p className={cn('mt-2 text-sm text-white/72', emphasis && 'text-base text-white')}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function EvidenceButton({
+  kind,
+  title,
+  summary,
+  stamp,
+  status,
+  active,
+  onClick,
+}: {
+  kind: 'claim' | 'receipt' | 'artifact';
+  title: string;
+  summary: string;
+  stamp: string | null;
+  status: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const Icon = EVIDENCE_KIND_ICON[kind];
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'w-full rounded-2xl border px-3 py-3 text-left transition-colors',
+        active
+          ? 'border-white/28 bg-white/[0.09]'
+          : 'border-white/8 bg-white/[0.02] hover:border-white/16 hover:bg-white/[0.04]',
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 rounded-xl border border-white/10 bg-black/70 p-2">
+          <Icon className="h-3.5 w-3.5 text-white/70" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm text-white">{title}</p>
+            <span className={cn('rounded-full border px-2 py-0.5 text-[9px] uppercase tracking-[0.18em]', statusTone(status))}>
+              {status}
+            </span>
+          </div>
+          <p className="mt-1 text-xs leading-5 text-white/48">{summary}</p>
+          {stamp ? (
+            <p className="mt-2 text-[11px] text-white/34">{formatDateTime(stamp)}</p>
+          ) : null}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function ClaimPreview({ claim }: { claim: ClaimDetail | null }) {
+  if (!claim) {
+    return (
+      <div className="rounded-2xl border border-dashed border-white/10 px-4 py-5 text-sm text-white/45">
+        No claim selected.
+      </div>
+    );
   }
 
   return (
-    <div className="fixed right-4 top-20 z-50 w-80 max-h-[calc(100vh-6rem)] overflow-y-auto rounded-xl bg-slate-900/95 border border-slate-700/50 backdrop-blur-sm shadow-2xl">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-lg">{TYPE_ICONS[node.type] ?? '●'}</span>
-          <div className="min-w-0">
-            <div className="text-sm font-semibold text-white truncate">{node.label}</div>
-            <div className="text-[10px] text-slate-500 uppercase tracking-wider">{node.type}</div>
-          </div>
+    <div className="rounded-2xl border border-white/8 bg-black/35 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-white/35">Selected claim</p>
+          <h3 className="mt-2 text-base text-white">{claim.label}</h3>
         </div>
-        <button onClick={onClose} className="text-slate-500 hover:text-white text-sm shrink-0">✕</button>
-      </div>
-
-      {/* Badges */}
-      <div className="px-4 py-2 border-b border-slate-800 flex flex-wrap gap-1">
-        <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
-          {node.degree} connections
-        </span>
-        <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
-          {node.inDegree}↓ {node.outDegree}↑
-        </span>
-        {node.trustTier && (
-          <span className={`text-[9px] px-1.5 py-0.5 rounded ${
-            node.trustTier === 'GOLD' ? 'bg-amber-900/40 text-amber-400'
-              : node.trustTier === 'SILVER' ? 'bg-slate-600/40 text-slate-300'
-              : 'bg-orange-900/40 text-orange-400'
-          }`}>
-            {node.trustTier}
-          </span>
-        )}
-        {node.trustBand && (
-          <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-900/40 text-emerald-400">
-            {node.trustBand}
-          </span>
-        )}
-        <span className={`text-[9px] px-1.5 py-0.5 rounded ${
-          node.layer === 'trust' ? 'bg-blue-900/40 text-blue-400'
-            : node.layer === 'knowledge' ? 'bg-violet-900/40 text-violet-400'
-            : 'bg-slate-800 text-slate-400'
-        }`}>
-          {node.layer}
+        <span className={cn('rounded-full border px-2 py-1 text-[9px] uppercase tracking-[0.18em]', statusTone(claim.status))}>
+          {claim.status}
         </span>
       </div>
-
-      {/* Metadata */}
-      {Object.keys(node.metadata).length > 0 && (
-        <div className="px-4 py-2 border-b border-slate-800">
-          <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Metadata</div>
-          <div className="space-y-0.5">
-            {Object.entries(node.metadata).slice(0, 8).map(([k, v]) => (
-              <div key={k} className="flex justify-between text-[10px]">
-                <span className="text-slate-500">{k}</span>
-                <span className="text-slate-300 font-mono truncate ml-2 max-w-[60%] text-right">
-                  {typeof v === 'object' ? JSON.stringify(v).slice(0, 30) : String(v).slice(0, 30)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Tags */}
-      {node.tags.length > 0 && (
-        <div className="px-4 py-2 border-b border-slate-800">
-          <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Tags</div>
-          <div className="flex flex-wrap gap-1">
-            {node.tags.map(tag => (
-              <span key={tag} className="text-[9px] px-1.5 py-0.5 rounded bg-violet-900/30 text-violet-400">
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Edge breakdown */}
-      <div className="px-4 py-2 border-b border-slate-800">
-        <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Edges by Type</div>
-        <div className="space-y-0.5">
-          {Object.entries(edgesByType).sort(([,a], [,b]) => b - a).map(([type, count]) => (
-            <div key={type} className="flex justify-between text-[10px]">
-              <span className="text-slate-400">{type.replace(/_/g, ' ')}</span>
-              <span className="text-slate-300 font-mono">{count}</span>
-            </div>
-          ))}
-        </div>
+      <p className="mt-3 text-xl text-white">{claim.value}</p>
+      <p className="mt-3 text-sm leading-6 text-white/54">{claim.summary}</p>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <SummaryCell label="Receipts" value={String(claim.supportingReceiptCount)} />
+        <SummaryCell label="Artifacts" value={String(claim.supportingArtifactCount)} />
       </div>
-
-      {/* Connected nodes */}
-      <div className="px-4 py-2 border-b border-slate-800">
-        <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">
-          Connected ({neighbors.length})
-        </div>
-        <div className="space-y-1 max-h-40 overflow-y-auto">
-          {neighbors.slice(0, 20).map(n => (
-            <button
-              key={n.id}
-              onClick={() => onFocusNode(n.id)}
-              className="w-full flex items-center gap-1.5 text-left hover:bg-slate-800/50 rounded px-1 py-0.5 transition-colors"
-            >
-              <span className="text-[10px]">{TYPE_ICONS[n.type] ?? '●'}</span>
-              <span className="text-[10px] text-slate-300 truncate flex-1">{n.label}</span>
-              <span className="text-[9px] text-slate-600 font-mono">{n.degree}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* AI Suggestions */}
-      {aiSuggestions.length > 0 && (
-        <div className="px-4 py-2">
-          <div className="text-[10px] text-amber-400 uppercase tracking-wider mb-1">
-            AI Suggested Links ({aiSuggestions.length})
-          </div>
-          <div className="space-y-2">
-            {aiSuggestions.map(s => (
-              <div key={s.id} className="rounded-lg bg-slate-800/50 border border-amber-900/30 p-2">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] text-slate-300 truncate">{s.targetLabel}</span>
-                  <span className="text-[9px] text-amber-400 font-mono">{Math.round(s.confidence * 100)}%</span>
-                </div>
-                <div className="text-[9px] text-slate-500 mb-1.5">{s.explanation}</div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => onAcceptSuggestion(s.id)}
-                    className="flex-1 text-[9px] py-0.5 rounded bg-emerald-900/30 text-emerald-400 border border-emerald-800/50 hover:bg-emerald-800/40"
-                  >
-                    Accept
-                  </button>
-                  <button
-                    onClick={() => onRejectSuggestion(s.id)}
-                    className="flex-1 text-[9px] py-0.5 rounded bg-red-900/30 text-red-400 border border-red-800/50 hover:bg-red-800/40"
-                  >
-                    Reject
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
+  );
+}
+
+function ArtifactPreview({ artifact }: { artifact: ArtifactDetail | null }) {
+  if (!artifact) {
+    return (
+      <div className="rounded-2xl border border-dashed border-white/10 px-4 py-5 text-sm text-white/45">
+        No source artifact selected.
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-white/8 bg-black/35 p-4">
+      <p className="text-[11px] uppercase tracking-[0.2em] text-white/35">Source artifact</p>
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <h3 className="text-base text-white">{artifact.title}</h3>
+        <span className="rounded-full border border-white/12 px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-white/60">
+          {artifact.kind}
+        </span>
+      </div>
+      <p className="mt-3 text-sm leading-6 text-white/54">{artifact.summary}</p>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <SummaryCell label="Location" value={artifact.location} />
+        <SummaryCell label="Value" value={artifact.value} />
+      </div>
+    </div>
+  );
+}
+
+function ReceiptViewer({ receipt }: { receipt: ReceiptDetail | null }) {
+  if (!receipt) {
+    return (
+      <div className="rounded-2xl border border-dashed border-white/10 px-4 py-5 text-sm text-white/45">
+        No receipt available for this node.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-2xl border border-white/8 bg-black/35 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-white/35">Receipt header</p>
+            <h3 className="mt-2 text-base text-white">{receipt.title}</h3>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={cn('rounded-full border px-2 py-1 text-[9px] uppercase tracking-[0.18em]', statusTone(receipt.status))}>
+              {receipt.status}
+            </span>
+            <span className="rounded-full border border-white/12 px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-white/60">
+              {receipt.direction}
+            </span>
+          </div>
+        </div>
+        <p className="mt-3 text-sm leading-6 text-white/54">{receipt.summary}</p>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <SummaryCell label="Counterparty" value={receipt.counterparty} emphasis />
+          <SummaryCell label="Confidence" value={formatPercent(receipt.confidence)} emphasis />
+          <SummaryCell label="Observed" value={formatDateTime(receipt.at)} />
+          <SummaryCell label="Receipt type" value={humanize(receipt.edgeType)} />
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/8 bg-black/35 p-4">
+        <p className="text-[11px] uppercase tracking-[0.2em] text-white/35">Raw receipt payload</p>
+        <pre className="mt-3 overflow-x-auto rounded-2xl border border-white/8 bg-black px-3 py-3 text-[11px] leading-6 text-white/56">
+          {JSON.stringify(receipt.payload, null, 2)}
+        </pre>
+      </div>
+    </div>
+  );
+}
+
+function ClaimExplanation({
+  claim,
+  receipt,
+  node,
+  relationship,
+}: {
+  claim: ClaimDetail | null;
+  receipt: ReceiptDetail | null;
+  node: GraphNode;
+  relationship: RelationshipDetail | null;
+}) {
+  const steps = [
+    {
+      label: 'Assertion',
+      value: claim ? `${claim.label}: ${claim.value}` : node.label,
+    },
+    {
+      label: 'Evidence basis',
+      value: claim
+        ? `${claim.supportingReceiptCount} receipt(s) and ${claim.supportingArtifactCount} artifact(s) back this node view.`
+        : 'No claim selected.',
+    },
+    {
+      label: 'Verification receipt',
+      value: receipt
+        ? `${receipt.counterparty} issued a ${humanize(receipt.edgeType)} record at ${formatDateTime(receipt.at)}.`
+        : 'No direct receipt available in the active graph slice.',
+    },
+    {
+      label: 'Relationship effect',
+      value: relationship
+        ? `${relationship.label} keeps this node connected through ${relationship.edgeTypes.map((edgeType) => humanize(edgeType)).join(', ')}.`
+        : `This node currently has ${node.degree} visible relationship${node.degree === 1 ? '' : 's'}.`,
+    },
+  ];
+
+  return (
+    <div className="space-y-2">
+      {steps.map((step, index) => (
+        <div key={step.label} className="flex gap-3 rounded-2xl border border-white/8 bg-black/35 px-4 py-4">
+          <div className="shrink-0 text-[11px] uppercase tracking-[0.2em] text-white/28">
+            {String(index + 1).padStart(2, '0')}
+          </div>
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-white/35">{step.label}</p>
+            <p className="mt-2 text-sm leading-6 text-white/68">{step.value}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RelationshipOrbit({
+  node,
+  relationships,
+}: {
+  node: GraphNode;
+  relationships: RelationshipDetail[];
+}) {
+  const plotted = relationships.slice(0, 6);
+  const positions = [
+    { x: 72, y: 42 },
+    { x: 54, y: 112 },
+    { x: 76, y: 182 },
+    { x: 264, y: 42 },
+    { x: 282, y: 112 },
+    { x: 260, y: 182 },
+  ];
+
+  return (
+    <svg
+      viewBox="0 0 336 224"
+      className="w-full rounded-2xl border border-white/8 bg-black/35"
+      role="img"
+      aria-label="Relationship visualization"
+    >
+      <rect x="0" y="0" width="336" height="224" fill="transparent" />
+      <circle cx="168" cy="112" r="46" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.12)" />
+      <text x="168" y="102" textAnchor="middle" fill="rgba(255,255,255,0.42)" fontSize="9" letterSpacing="2.4">
+        FOCAL NODE
+      </text>
+      <text x="168" y="122" textAnchor="middle" fill="white" fontSize="13">
+        {node.label.length > 16 ? `${node.label.slice(0, 16)}…` : node.label}
+      </text>
+      {plotted.map((relationship, index) => {
+        const position = positions[index]!;
+        const lineWidth = 1 + (relationship.confidence * 2);
+        return (
+          <g key={relationship.id}>
+            <line
+              x1="168"
+              y1="112"
+              x2={position.x}
+              y2={position.y}
+              stroke="rgba(255,255,255,0.22)"
+              strokeWidth={lineWidth}
+            />
+            <circle
+              cx={position.x}
+              cy={position.y}
+              r="24"
+              fill="rgba(255,255,255,0.03)"
+              stroke="rgba(255,255,255,0.14)"
+            />
+            <text
+              x={position.x}
+              y={position.y - 4}
+              textAnchor="middle"
+              fill="rgba(255,255,255,0.9)"
+              fontSize="10"
+            >
+              {relationship.label.length > 10 ? `${relationship.label.slice(0, 10)}…` : relationship.label}
+            </text>
+            <text
+              x={position.x}
+              y={position.y + 11}
+              textAnchor="middle"
+              fill="rgba(255,255,255,0.38)"
+              fontSize="8"
+              letterSpacing="1.4"
+            >
+              {relationship.direction.toUpperCase()}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+export default function NodeDetail({
+  node,
+  edges,
+  neighbors,
+  onClose,
+  onFocusNode,
+  onAcceptSuggestion,
+  onRejectSuggestion,
+}: Props) {
+  const model = useMemo(() => buildNodeDetailModel(node, edges, neighbors), [node, edges, neighbors]);
+  const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(model.defaultEvidenceId);
+
+  useEffect(() => {
+    setSelectedEvidenceId(model.defaultEvidenceId);
+  }, [model.defaultEvidenceId, node.id]);
+
+  const selectedEvidence = model.evidenceStack.find((entry) => entry.id === selectedEvidenceId) ?? null;
+  const selectedClaim = (
+    (selectedEvidence?.kind === 'claim'
+      ? model.claims.find((claim) => claim.id === selectedEvidence.id)
+      : undefined)
+    ?? model.claims[0]
+    ?? null
+  );
+  const selectedArtifact = (
+    (selectedEvidence?.kind === 'artifact'
+      ? model.artifacts.find((artifact) => artifact.id === selectedEvidence.id)
+      : undefined)
+    ?? model.artifacts[0]
+    ?? null
+  );
+  const selectedReceipt = (
+    (selectedEvidence?.kind === 'receipt'
+      ? model.receipts.find((receipt) => receipt.id === selectedEvidence.id)
+      : undefined)
+    ?? model.receipts[0]
+    ?? null
+  );
+  const primaryRelationship = model.relationships[0] ?? null;
+  const NodeIcon = NODE_TYPE_ICONS[node.type] ?? Network;
+
+  return (
+    <aside className="fixed inset-y-4 right-4 z-50 w-[min(38rem,calc(100vw-1rem))] overflow-hidden rounded-[30px] border border-white/12 bg-black/95 text-white shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-md">
+      <div className="flex h-full flex-col">
+        <header className="border-b border-white/10 px-6 py-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+                <NodeIcon className="h-5 w-5 text-white/72" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-[0.28em] text-white/38">{humanize(node.type)}</p>
+                <h1 className="mt-2 truncate text-xl tracking-[0.02em] text-white">{node.label}</h1>
+                <p className="mt-2 text-sm leading-6 text-white/48">
+                  Evidence-grade node detail surface for claims, receipts, source artifacts, and relationship context.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-2xl border border-white/10 bg-white/[0.03] p-2 text-white/45 transition-colors hover:border-white/18 hover:text-white"
+              aria-label="Close node detail"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="rounded-full border border-white/12 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/58">
+              {node.layer}
+            </span>
+            <span className="rounded-full border border-white/12 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/58">
+              {node.degree} links
+            </span>
+            {node.trustBand ? (
+              <span className="rounded-full border border-white/16 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white">
+                {node.trustBand}
+              </span>
+            ) : null}
+            {node.trustTier ? (
+              <span className="rounded-full border border-white/12 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/58">
+                {node.trustTier}
+              </span>
+            ) : null}
+          </div>
+        </header>
+
+        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
+          <Section title="Claim Details" eyebrow="01">
+            <div className="grid gap-2 sm:grid-cols-2">
+              <SummaryCell label="Confidence" value={formatPercent(node.confidence)} emphasis />
+              <SummaryCell label="Source refs" value={String(node.sourceRefs.length)} emphasis />
+              <SummaryCell label="Created" value={formatDateTime(node.createdAt)} />
+              <SummaryCell label="Updated" value={formatDateTime(node.updatedAt)} />
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {model.claims.slice(0, 4).map((claim) => (
+                <div key={claim.id} className="rounded-2xl border border-white/8 bg-black/35 px-3 py-3">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/34">{claim.label}</p>
+                  <p className="mt-2 text-sm text-white">{claim.value}</p>
+                  <p className="mt-2 text-xs leading-5 text-white/46">{claim.summary}</p>
+                </div>
+              ))}
+            </div>
+          </Section>
+
+          <Section title="Evidence Stack" eyebrow="02">
+            <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.18em] text-white/38">
+              <span className="rounded-full border border-white/10 px-2 py-1">{model.claims.length} claims</span>
+              <span className="rounded-full border border-white/10 px-2 py-1">{model.receipts.length} receipts</span>
+              <span className="rounded-full border border-white/10 px-2 py-1">{model.artifacts.length} artifacts</span>
+            </div>
+            <div className="space-y-2">
+              {model.evidenceStack.map((entry) => (
+                <EvidenceButton
+                  key={entry.id}
+                  kind={entry.kind}
+                  title={entry.title}
+                  summary={entry.summary}
+                  stamp={entry.stamp}
+                  status={entry.status}
+                  active={entry.id === selectedEvidenceId}
+                  onClick={() => setSelectedEvidenceId(entry.id)}
+                />
+              ))}
+            </div>
+            <div className="grid gap-3 xl:grid-cols-2">
+              <ClaimPreview claim={selectedClaim} />
+              <ArtifactPreview artifact={selectedArtifact} />
+            </div>
+          </Section>
+
+          <Section title="Receipt Viewer" eyebrow="03">
+            <ReceiptViewer receipt={selectedReceipt} />
+          </Section>
+
+          <Section title="Claim Explanation" eyebrow="04">
+            <ClaimExplanation
+              claim={selectedClaim}
+              receipt={selectedReceipt}
+              node={node}
+              relationship={primaryRelationship}
+            />
+          </Section>
+
+          <Section title="Relationship Visualization" eyebrow="05">
+            <RelationshipOrbit node={node} relationships={model.relationships} />
+            <div className="space-y-2">
+              {model.relationships.slice(0, 6).map((relationship) => (
+                <button
+                  key={relationship.id}
+                  type="button"
+                  onClick={() => onFocusNode(relationship.neighborId)}
+                  className="flex w-full items-start justify-between gap-3 rounded-2xl border border-white/8 bg-black/35 px-4 py-3 text-left transition-colors hover:border-white/16 hover:bg-white/[0.04]"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm text-white">{relationship.label}</p>
+                    <p className="mt-1 text-xs leading-5 text-white/46">{relationship.explanation}</p>
+                    <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-white/32">
+                      {relationship.edgeTypes.map((edgeType) => humanize(edgeType)).join(' · ')}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm text-white">{formatPercent(relationship.confidence)}</p>
+                    <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-white/34">{relationship.direction}</p>
+                    <ChevronRight className="ml-auto mt-2 h-3.5 w-3.5 text-white/38" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </Section>
+
+          <Section title="Change Timeline" eyebrow="06">
+            <div className="space-y-3">
+              {model.timeline.map((event) => (
+                <div key={event.id} className="flex gap-3">
+                  <div className="flex w-10 shrink-0 flex-col items-center">
+                    <div className="rounded-full border border-white/12 bg-black/70 p-1.5">
+                      <Clock3 className="h-3 w-3 text-white/56" />
+                    </div>
+                    <div className="mt-2 h-full w-px bg-white/10" />
+                  </div>
+                  <div className="min-w-0 rounded-2xl border border-white/8 bg-black/35 px-4 py-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm text-white">{event.title}</p>
+                      <span className="rounded-full border border-white/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.18em] text-white/34">
+                        {event.tone}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-white/46">{event.detail}</p>
+                    <p className="mt-2 text-[11px] text-white/32">{formatDateTime(event.at)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Section>
+
+          {model.pendingSuggestions.length > 0 ? (
+            <Section title="Pending Suggested Links" eyebrow="07">
+              <div className="space-y-2">
+                {model.pendingSuggestions.map((suggestion) => (
+                  <div key={suggestion.id} className="rounded-2xl border border-white/8 bg-black/35 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm text-white">{suggestion.targetLabel}</p>
+                        <p className="mt-1 text-xs leading-5 text-white/46">{suggestion.explanation}</p>
+                      </div>
+                      <span className="rounded-full border border-white/12 px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-white/58">
+                        {formatPercent(suggestion.confidence)}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onAcceptSuggestion(suggestion.id)}
+                        className="flex-1 rounded-xl border border-white/14 bg-white/[0.06] px-3 py-2 text-xs text-white transition-colors hover:bg-white/[0.12]"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onRejectSuggestion(suggestion.id)}
+                        className="flex-1 rounded-xl border border-white/10 bg-black px-3 py-2 text-xs text-white/64 transition-colors hover:border-white/16 hover:text-white"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          ) : null}
+        </div>
+      </div>
+    </aside>
   );
 }

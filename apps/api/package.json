@@ -9,7 +9,9 @@
     "build": "pnpm exec prisma generate --schema backend/prisma/schema.prisma && pnpm exec tsc -p backend/tsconfig.json",
     "start": "npm --prefix backend run start",
     "db:migrate:deploy": "pnpm exec prisma migrate deploy --schema backend/prisma/schema.prisma",
+    "graph:bench": "npm --prefix backend run graph:bench",
     "seed": "npm --prefix backend run seed",
+    "watchtower": "pnpm exec ts-node backend/src/tools/watchtower.ts",
     "test": "npm --prefix backend test",
     "test:did": "node --test backend/__tests__/cross_chain_did_resolver.test.js"
   },
@@ -37,6 +39,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@noble/post-quantum": "^0.5.4",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/context-async-hooks": "^2.5.0",
     "@opentelemetry/core": "^2.5.0",

@@ -11,7 +11,7 @@ import { createHash } from 'node:crypto';
 import { log } from '../../../obs/logger';
 import { recordProvenance } from '../providerSourceProvenance';
 import { getConnectorMode } from './connectorFactory';
-import { recordConnectorSuccess, recordConnectorFailure } from './connectorHealthTracker';
+import { runConnectorWithReliability } from './connectorReliability';
 
 export interface StateBoardResult {
   npi: string;
@@ -31,6 +31,16 @@ interface StateBoardAdapterConfig {
   sourceUrl: string;
   liveLookup?: (npi: string, licenseNumber?: string) => Promise<StateBoardResult>;
 }
+
+const STATE_BOARD_QUOTA_POLICY = {
+  limit: 30,
+  windowMs: 60_000,
+};
+
+const STATE_BOARD_SCHEMA_POLICY = {
+  requiredFields: ['npi', 'state', 'licenseStatus', 'boardName', 'lastVerifiedAt', 'sourceUrl'],
+  allowAdditionalFields: true,
+} as const;
 
 // ── State Board Configs ─────────────────────────────────────────────
 
@@ -106,44 +116,56 @@ export async function lookupStateBoard(
     };
   }
 
-  try {
-    let result: StateBoardResult;
+  return runConnectorWithReliability({
+    connector: 'STATE_BOARD',
+    quotaPolicy: STATE_BOARD_QUOTA_POLICY,
+    schemaPolicy: STATE_BOARD_SCHEMA_POLICY,
+    execute: async () => {
+      if (mode === 'live' && config.liveLookup) {
+        return config.liveLookup(npi, licenseNumber);
+      }
 
-    if (mode === 'live' && config.liveLookup) {
-      result = await config.liveLookup(npi, licenseNumber);
-    } else if (mode === 'live') {
-      log('info', 'state_board: live adapter not yet implemented', { npi, state: upperState });
-      result = {
-        npi, state: upperState, licenseNumber: licenseNumber ?? null,
-        licenseStatus: 'NOT_AVAILABLE', licensee: null, expirationDate: null,
-        boardName: config.boardName,
-        lastVerifiedAt: new Date().toISOString(), sourceUrl: config.sourceUrl,
-      };
-    } else {
-      result = sandboxLookup(npi, upperState, config);
-    }
+      if (mode === 'live') {
+        log('info', 'state_board: live adapter not yet implemented', { npi, state: upperState });
+        return {
+          npi, state: upperState, licenseNumber: licenseNumber ?? null,
+          licenseStatus: 'NOT_AVAILABLE', licensee: null, expirationDate: null,
+          boardName: config.boardName,
+          lastVerifiedAt: new Date().toISOString(), sourceUrl: config.sourceUrl,
+        };
+      }
 
-    recordProvenance({
-      npi,
-      source: 'STATE_BOARD',
-      sourceUrl: result.sourceUrl,
-      rawPayload: result,
-      transformations: [{ step: 'STATE_BOARD_LOOKUP', description: `${upperState} board lookup`, appliedAt: new Date().toISOString() }],
-    });
+      return sandboxLookup(npi, upperState, config);
+    },
+    afterSuccess: async (result) => {
+      recordProvenance({
+        npi,
+        source: 'STATE_BOARD',
+        sourceUrl: result.sourceUrl,
+        rawPayload: result,
+        transformations: [{ step: 'STATE_BOARD_LOOKUP', description: `${upperState} board lookup`, appliedAt: new Date().toISOString() }],
+      });
+    },
+    onFailure: ({ reason, stage, error }) => {
+      if (stage === 'quarantine') {
+        log('warn', 'state_board: connector quarantined', { npi, state: upperState, reason });
+        return;
+      }
 
-    recordConnectorSuccess('STATE_BOARD');
-    return result;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
-    recordConnectorFailure('STATE_BOARD', msg);
-    log('error', 'state_board: lookup failed', { npi, state: upperState, error: msg });
-    return {
+      log('error', 'state_board: lookup failed', {
+        npi,
+        state: upperState,
+        error: error?.message ?? reason,
+        stage,
+      });
+    },
+    fallback: () => ({
       npi, state: upperState, licenseNumber: licenseNumber ?? null,
       licenseStatus: 'NOT_AVAILABLE', licensee: null, expirationDate: null,
       boardName: config.boardName,
       lastVerifiedAt: new Date().toISOString(), sourceUrl: config.sourceUrl,
-    };
-  }
+    }),
+  });
 }
 
 export function listAvailableStates(): string[] {

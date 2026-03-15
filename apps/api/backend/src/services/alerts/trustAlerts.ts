@@ -19,9 +19,19 @@ export type TrustAlertType =
   | 'credential_expiring'
   | 'credential_revoked'
   | 'issuer_trust_degradation'
-  | 'verification_failure';
+  | 'verification_failure'
+  | 'identity_delta'
+  | 'source_stale'
+  | 'claim_delta'
+  | 'watchtower_delta';
 
-export type TrustAlertSeverity = 'INFO' | 'WARNING' | 'CRITICAL';
+export type TrustAlertSeverity =
+  | 'INFO'
+  | 'LOW'
+  | 'MEDIUM'
+  | 'HIGH'
+  | 'WARNING'
+  | 'CRITICAL';
 
 export interface TrustAlert {
   /** Unique alert ID */

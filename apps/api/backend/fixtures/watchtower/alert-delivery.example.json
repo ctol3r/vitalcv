@@ -1,0 +1,20 @@
+{
+  "id": "2c3c3a1e-afcb-4807-bd07-441567e4f4e3",
+  "trust_alert_record_id": "b963d240-80cf-435c-a2d1-d2c4f3fc2505",
+  "watchlist_id": "c4c2ad58-b94d-4f43-8d0a-9813f5590dce",
+  "channel": "WEBHOOK",
+  "destination": "https://ops.vitalcv.test/watchtower",
+  "status": "PENDING",
+  "dedupe_key": "f1487e51780fe93afefb363646cd576b12826d7e1ce09d703847f350add6d09c",
+  "payload": {
+    "subject": "1558302470",
+    "severity": "MEDIUM",
+    "type": "watchtower_delta",
+    "title": "Provider location changed",
+    "description": "Provider location changed for 1558302470."
+  },
+  "response_code": null,
+  "error_text": null,
+  "created_at": "2026-03-14T12:00:02.200Z",
+  "updated_at": "2026-03-14T12:00:02.200Z"
+}

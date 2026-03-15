@@ -12,7 +12,7 @@ import { createHash } from 'node:crypto';
 import { log } from '../../../obs/logger';
 import { recordProvenance } from '../providerSourceProvenance';
 import { getConnectorMode } from './connectorFactory';
-import { recordConnectorSuccess, recordConnectorFailure } from './connectorHealthTracker';
+import { runConnectorWithReliability } from './connectorReliability';
 
 export interface NPDBQueryResult {
   npi: string;
@@ -25,6 +25,14 @@ export interface NPDBQueryResult {
 }
 
 const NPDB_URL = 'https://www.npdb.hrsa.gov';
+const NPDB_QUOTA_POLICY = {
+  limit: 250,
+  windowMs: 60_000,
+};
+const NPDB_SCHEMA_POLICY = {
+  requiredFields: ['npi', 'status', 'lastCheckedAt', 'sourceUrl'],
+  allowAdditionalFields: true,
+} as const;
 
 // ── Sandbox ─────────────────────────────────────────────────────────
 
@@ -63,38 +71,47 @@ function sandboxQuery(npi: string): NPDBQueryResult {
 export async function queryNPDB(npi: string): Promise<NPDBQueryResult> {
   const mode = getConnectorMode('NPDB');
 
-  try {
-    let result: NPDBQueryResult;
+  return runConnectorWithReliability({
+    connector: 'NPDB',
+    quotaPolicy: NPDB_QUOTA_POLICY,
+    schemaPolicy: NPDB_SCHEMA_POLICY,
+    execute: async () => {
+      if (mode === 'live') {
+        log('info', 'npdb_connector: live PROACT API not yet implemented', { npi });
+        return {
+          npi,
+          adverseActionCount: 0,
+          malpracticePayments: 0,
+          licenseActions: 0,
+          status: 'NOT_AVAILABLE',
+          lastCheckedAt: new Date().toISOString(),
+          sourceUrl: NPDB_URL,
+        };
+      }
 
-    if (mode === 'live') {
-      log('info', 'npdb_connector: live PROACT API not yet implemented', { npi });
-      result = {
+      return sandboxQuery(npi);
+    },
+    afterSuccess: async (result) => {
+      recordProvenance({
         npi,
-        adverseActionCount: 0,
-        malpracticePayments: 0,
-        licenseActions: 0,
-        status: 'NOT_AVAILABLE',
-        lastCheckedAt: new Date().toISOString(),
+        source: 'NPDB',
         sourceUrl: NPDB_URL,
-      };
-    } else {
-      result = sandboxQuery(npi);
-    }
+        rawPayload: result,
+      });
+    },
+    onFailure: ({ reason, stage, error }) => {
+      if (stage === 'quarantine') {
+        log('warn', 'npdb_connector: connector quarantined', { npi, reason });
+        return;
+      }
 
-    recordProvenance({
-      npi,
-      source: 'NPDB',
-      sourceUrl: NPDB_URL,
-      rawPayload: result,
-    });
-
-    recordConnectorSuccess('NPDB');
-    return result;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
-    recordConnectorFailure('NPDB', msg);
-    log('error', 'npdb_connector: query failed', { npi, error: msg });
-    return {
+      log('error', 'npdb_connector: query failed', {
+        npi,
+        error: error?.message ?? reason,
+        stage,
+      });
+    },
+    fallback: () => ({
       npi,
       adverseActionCount: 0,
       malpracticePayments: 0,
@@ -102,6 +119,6 @@ export async function queryNPDB(npi: string): Promise<NPDBQueryResult> {
       status: 'NOT_AVAILABLE',
       lastCheckedAt: new Date().toISOString(),
       sourceUrl: NPDB_URL,
-    };
-  }
+    }),
+  });
 }

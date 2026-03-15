@@ -13,8 +13,9 @@ import GraphControls from '../../components/graph-system/GraphControls';
 import NodeDetail from '../../components/graph-system/NodeDetail';
 import type {
   GraphNode, GraphEdge, FilterConfig, DisplayConfig, PhysicsConfig,
-  GraphLayer, GraphPreferences,
+  GraphLayer,
 } from '../../components/graph-system/types';
+import type { NodeNeighborSummary } from '../../components/graph-system/nodeDetailModel';
 
 // ── Default config ────────────────────────────────────────────────────────────
 
@@ -57,19 +58,42 @@ const defaultPhysics: PhysicsConfig = {
 
 const API = '/api/graph-engine';
 
-async function fetchGraph(layer: GraphLayer, search?: string, fresh?: boolean) {
-  const params = new URLSearchParams();
-  if (layer !== 'blended') params.set('layer', layer);
-  if (search) params.set('search', search);
-  if (fresh) params.set('fresh', 'true');
-  params.set('showOrphans', 'true');
-  const res = await fetch(`${API}/global?${params}`);
-  return res.json();
+interface GraphQueryResponse {
+  nodes?: GraphNode[];
+  edges?: GraphEdge[];
+  stats?: {
+    totalNodes: number;
+    totalEdges: number;
+    orphanCount: number;
+    aiSuggestedLinks: number;
+  };
 }
 
-async function fetchNodeDetail(id: string) {
-  const res = await fetch(`${API}/node/${id}`);
-  return res.json();
+interface NodeDetailState {
+  node: GraphNode;
+  edges: GraphEdge[];
+  neighbors: NodeNeighborSummary[];
+}
+
+async function fetchGraph(layer: GraphLayer, search?: string, fresh?: boolean) {
+  const params = new URLSearchParams();
+  if (layer !== 'blended') params.set('graphMode', layer);
+  if (search) params.set('search', search);
+  params.set('orphans', 'true');
+  if (fresh) params.set('ts', String(Date.now()));
+  const res = await fetch(`${API}/global?${params}`, { cache: 'no-store' });
+  return res.json() as Promise<GraphQueryResponse>;
+}
+
+async function fetchNodeNeighborhood(id: string, layer: GraphLayer) {
+  const params = new URLSearchParams({
+    depth: '2',
+    limit: '200',
+    orphans: 'true',
+  });
+  if (layer !== 'blended') params.set('graphMode', layer);
+  const res = await fetch(`${API}/local/${encodeURIComponent(id)}?${params}`, { cache: 'no-store' });
+  return res.json() as Promise<GraphQueryResponse>;
 }
 
 async function triggerRebuild() {
@@ -81,9 +105,47 @@ async function triggerAiLinks(nodeId?: string) {
   const res = await fetch(`${API}/ai-links/suggest`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(nodeId ? { nodeId } : { maxNodes: 200 }),
+    body: JSON.stringify(nodeId ? { targetNodeId: nodeId } : { graphMode: 'blended' }),
   });
   return res.json();
+}
+
+function summarizeNodeDetail(
+  nodeId: string,
+  allNodes: GraphNode[],
+  allEdges: GraphEdge[],
+): NodeDetailState | null {
+  const focusNode = allNodes.find((candidate) => candidate.id === nodeId);
+  if (!focusNode) return null;
+
+  const connectedEdges = allEdges
+    .filter((edge) => edge.source === nodeId || edge.target === nodeId)
+    .sort((left, right) =>
+      (Date.parse(right.createdAt ?? right.updatedAt ?? '') || 0) - (Date.parse(left.createdAt ?? left.updatedAt ?? '') || 0)
+      || (right.confidence ?? 0) - (left.confidence ?? 0),
+    );
+
+  const neighbors = connectedEdges
+    .map((edge) => {
+      const neighborId = edge.source === nodeId ? edge.target : edge.source;
+      const neighborNode = allNodes.find((candidate) => candidate.id === neighborId);
+      if (!neighborNode) return null;
+      const neighbor: NodeNeighborSummary = {
+        id: neighborNode.id,
+        label: neighborNode.label,
+        type: neighborNode.type,
+        degree: neighborNode.degree,
+      };
+      return neighbor;
+    })
+    .filter((neighbor): neighbor is NodeNeighborSummary => neighbor !== null)
+    .sort((left, right) => right.degree - left.degree || left.label.localeCompare(right.label));
+
+  return {
+    node: focusNode,
+    edges: connectedEdges,
+    neighbors,
+  };
 }
 
 // ── Page component ────────────────────────────────────────────────────────────
@@ -101,17 +163,11 @@ export default function GraphPage() {
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
-  const [nodeDetail, setNodeDetail] = useState<{
-    node: GraphNode;
-    edges: GraphEdge[];
-    neighbors: { id: string; label: string; type: string; degree: number }[];
-  } | null>(null);
-  const [aiSuggestions, setAiSuggestions] = useState<
-    { id: string; targetNodeId: string; targetLabel: string; confidence: number; explanation: string; edgeType: string }[]
-  >([]);
+  const [nodeDetail, setNodeDetail] = useState<NodeDetailState | null>(null);
 
   const [dimensions, setDimensions] = useState({ width: 1200, height: 800 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const detailRequestRef = useRef(0);
 
   // ── Resize handler ──────────────────────────────────────────────────────
 
@@ -166,13 +222,32 @@ export default function GraphPage() {
         filteredEdges = filteredEdges.filter(e => e.type !== 'explicit_link');
       }
 
+      if (filters.trustTiers.length > 0) {
+        filteredNodes = filteredNodes.filter((node) =>
+          !node.trustTier || filters.trustTiers.includes(node.trustTier),
+        );
+      }
+
       // Filter to visible node IDs
       const nodeIds = new Set(filteredNodes.map(n => n.id));
       filteredEdges = filteredEdges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
+      if (!filters.showOrphans) {
+        const connected = new Set<string>();
+        for (const edge of filteredEdges) {
+          connected.add(edge.source);
+          connected.add(edge.target);
+        }
+        filteredNodes = filteredNodes.filter((node) => connected.has(node.id));
+      }
 
       setNodes(filteredNodes);
       setEdges(filteredEdges);
-      setStats(data.stats ?? { totalNodes: filteredNodes.length, totalEdges: filteredEdges.length, orphanCount: 0, aiSuggestedLinks: 0 });
+      setStats({
+        totalNodes: filteredNodes.length,
+        totalEdges: filteredEdges.length,
+        orphanCount: filteredNodes.filter((node) => node.degree === 0).length,
+        aiSuggestedLinks: filteredEdges.filter((edge) => edge.type === 'ai_suggested_link').length,
+      });
     } catch (err) {
       console.error('Graph load failed:', err);
     } finally {
@@ -182,23 +257,47 @@ export default function GraphPage() {
 
   useEffect(() => { loadGraph(); }, [loadGraph]);
 
+  useEffect(() => {
+    if (!selectedNodeId) return;
+    if (!nodes.some((node) => node.id === selectedNodeId)) {
+      setSelectedNodeId(null);
+      setNodeDetail(null);
+      return;
+    }
+    setNodeDetail((current) => {
+      if (!current || current.node.id !== selectedNodeId) return current;
+      return summarizeNodeDetail(selectedNodeId, nodes, edges) ?? current;
+    });
+  }, [edges, nodes, selectedNodeId]);
+
   // ── Node selection ──────────────────────────────────────────────────────
+
+  const loadNodeDetail = useCallback(async (id: string) => {
+    const requestId = ++detailRequestRef.current;
+    try {
+      const detailGraph = await fetchNodeNeighborhood(id, layer);
+      if (detailRequestRef.current !== requestId) return;
+      const detail = summarizeNodeDetail(
+        id,
+        detailGraph.nodes ?? nodes,
+        detailGraph.edges ?? edges,
+      );
+      setNodeDetail(detail);
+    } catch {
+      if (detailRequestRef.current === requestId) {
+        setNodeDetail(summarizeNodeDetail(id, nodes, edges));
+      }
+    }
+  }, [edges, layer, nodes]);
 
   const handleSelectNode = useCallback(async (id: string | null) => {
     setSelectedNodeId(id);
     if (id) {
-      try {
-        const detail = await fetchNodeDetail(id);
-        setNodeDetail(detail);
-        setAiSuggestions([]); // Clear until AI is run
-      } catch {
-        setNodeDetail(null);
-      }
+      await loadNodeDetail(id);
     } else {
       setNodeDetail(null);
-      setAiSuggestions([]);
     }
-  }, []);
+  }, [loadNodeDetail]);
 
   const handleDoubleClick = useCallback((id: string) => {
     // Focus: load local graph around this node
@@ -210,25 +309,18 @@ export default function GraphPage() {
   const handleRebuild = useCallback(async () => {
     await triggerRebuild();
     await loadGraph(true);
-  }, [loadGraph]);
+    if (selectedNodeId) {
+      await loadNodeDetail(selectedNodeId);
+    }
+  }, [loadGraph, loadNodeDetail, selectedNodeId]);
 
   const handleRunAiLinks = useCallback(async () => {
-    const result = await triggerAiLinks(selectedNodeId ?? undefined);
-    if (selectedNodeId && result.suggestions) {
-      setAiSuggestions(
-        result.suggestions.map((s: Record<string, unknown>) => ({
-          id: s.id as string,
-          targetNodeId: s.targetNodeId as string,
-          targetLabel: nodes.find(n => n.id === s.targetNodeId)?.label ?? String(s.targetNodeId),
-          confidence: s.confidence as number,
-          explanation: s.explanation as string,
-          edgeType: s.edgeType as string,
-        }))
-      );
-    } else {
-      await loadGraph(true);
+    await triggerAiLinks(selectedNodeId ?? undefined);
+    await loadGraph(true);
+    if (selectedNodeId) {
+      await loadNodeDetail(selectedNodeId);
     }
-  }, [selectedNodeId, nodes, loadGraph]);
+  }, [selectedNodeId, loadGraph, loadNodeDetail]);
 
   const handleResetLayout = useCallback(() => {
     setNodes(prev => prev.map(n => ({ ...n, fx: null, fy: null, x: undefined, y: undefined })));
@@ -261,27 +353,28 @@ export default function GraphPage() {
   }, []);
 
   const handleAcceptSuggestion = useCallback(async (suggestionId: string) => {
-    const suggestion = aiSuggestions.find(s => s.id === suggestionId);
-    if (!suggestion) return;
     await fetch(`${API}/ai-links/apply`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ suggestion }),
+      body: JSON.stringify({ suggestionIds: [suggestionId], action: 'accept' }),
     });
-    setAiSuggestions(prev => prev.filter(s => s.id !== suggestionId));
     await loadGraph(true);
-  }, [aiSuggestions, loadGraph]);
+    if (selectedNodeId) {
+      await loadNodeDetail(selectedNodeId);
+    }
+  }, [loadGraph, loadNodeDetail, selectedNodeId]);
 
   const handleRejectSuggestion = useCallback(async (suggestionId: string) => {
-    const suggestion = aiSuggestions.find(s => s.id === suggestionId);
-    if (!suggestion) return;
-    await fetch(`${API}/edge/reject`, {
+    await fetch(`${API}/ai-links/apply`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sourceId: selectedNodeId, targetId: suggestion.targetNodeId, edgeType: suggestion.edgeType }),
+      body: JSON.stringify({ suggestionIds: [suggestionId], action: 'reject' }),
     });
-    setAiSuggestions(prev => prev.filter(s => s.id !== suggestionId));
-  }, [aiSuggestions, selectedNodeId]);
+    await loadGraph(true);
+    if (selectedNodeId) {
+      await loadNodeDetail(selectedNodeId);
+    }
+  }, [loadGraph, loadNodeDetail, selectedNodeId]);
 
   return (
     <div ref={containerRef} className="fixed inset-0 bg-[#080e1a] overflow-hidden">
@@ -332,7 +425,6 @@ export default function GraphPage() {
           node={nodeDetail.node}
           edges={nodeDetail.edges}
           neighbors={nodeDetail.neighbors}
-          aiSuggestions={aiSuggestions}
           onClose={() => handleSelectNode(null)}
           onFocusNode={handleSelectNode}
           onAcceptSuggestion={handleAcceptSuggestion}

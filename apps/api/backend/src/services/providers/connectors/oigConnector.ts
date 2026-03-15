@@ -12,7 +12,7 @@ import { createHash } from 'node:crypto';
 import { log } from '../../../obs/logger';
 import { recordProvenance } from '../providerSourceProvenance';
 import { getConnectorMode } from './connectorFactory';
-import { recordConnectorSuccess, recordConnectorFailure } from './connectorHealthTracker';
+import { runConnectorWithReliability } from './connectorReliability';
 
 export interface OIGExclusionResult {
   npi: string;
@@ -43,6 +43,14 @@ export interface LeieIndexStatus {
 }
 
 const OIG_LEIE_URL = 'https://oig.hhs.gov/exclusions/exclusions_list.asp';
+const OIG_QUOTA_POLICY = {
+  limit: 60,
+  windowMs: 60_000,
+};
+const OIG_SCHEMA_POLICY = {
+  requiredFields: ['npi', 'excluded', 'lastCheckedAt', 'sourceUrl'],
+  allowAdditionalFields: true,
+} as const;
 
 // ── LEIE In-Memory Index ────────────────────────────────────────────
 
@@ -88,50 +96,59 @@ export async function loadLeieData(csvPathOrUrl?: string): Promise<void> {
 }
 
 export async function checkOIGExclusion(npi: string): Promise<OIGExclusionResult> {
-  // Auto-load if index is empty
-  if (leieIndex.size === 0) {
-    await loadLeieData();
-  }
+  return runConnectorWithReliability({
+    connector: 'OIG',
+    quotaPolicy: OIG_QUOTA_POLICY,
+    schemaPolicy: OIG_SCHEMA_POLICY,
+    execute: async () => {
+      if (leieIndex.size === 0) {
+        await loadLeieData();
+      }
 
-  try {
-    const record = leieIndex.get(npi);
+      const record = leieIndex.get(npi);
+      return record
+        ? {
+            npi,
+            excluded: true,
+            exclusionType: record.exclusionType,
+            exclusionDate: record.exclusionDate,
+            reinstatementDate: record.reinstatementDate,
+            waiverState: record.waiverState,
+            lastCheckedAt: new Date().toISOString(),
+            sourceUrl: OIG_LEIE_URL,
+          }
+        : {
+            npi,
+            excluded: false,
+            exclusionType: null,
+            exclusionDate: null,
+            reinstatementDate: null,
+            waiverState: null,
+            lastCheckedAt: new Date().toISOString(),
+            sourceUrl: OIG_LEIE_URL,
+          };
+    },
+    afterSuccess: async (result) => {
+      recordProvenance({
+        npi,
+        source: 'OIG',
+        sourceUrl: OIG_LEIE_URL,
+        rawPayload: result,
+      });
+    },
+    onFailure: ({ reason, stage, error }) => {
+      if (stage === 'quarantine') {
+        log('warn', 'oig_connector: connector quarantined', { npi, reason });
+        return;
+      }
 
-    const result: OIGExclusionResult = record
-      ? {
-          npi,
-          excluded: true,
-          exclusionType: record.exclusionType,
-          exclusionDate: record.exclusionDate,
-          reinstatementDate: record.reinstatementDate,
-          waiverState: record.waiverState,
-          lastCheckedAt: new Date().toISOString(),
-          sourceUrl: OIG_LEIE_URL,
-        }
-      : {
-          npi,
-          excluded: false,
-          exclusionType: null,
-          exclusionDate: null,
-          reinstatementDate: null,
-          waiverState: null,
-          lastCheckedAt: new Date().toISOString(),
-          sourceUrl: OIG_LEIE_URL,
-        };
-
-    recordProvenance({
-      npi,
-      source: 'OIG',
-      sourceUrl: OIG_LEIE_URL,
-      rawPayload: result,
-    });
-
-    recordConnectorSuccess('OIG');
-    return result;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
-    recordConnectorFailure('OIG', msg);
-    log('error', 'oig_connector: check failed', { npi, error: msg });
-    return {
+      log('error', 'oig_connector: check failed', {
+        npi,
+        error: error?.message ?? reason,
+        stage,
+      });
+    },
+    fallback: () => ({
       npi,
       excluded: false,
       exclusionType: null,
@@ -140,8 +157,8 @@ export async function checkOIGExclusion(npi: string): Promise<OIGExclusionResult
       waiverState: null,
       lastCheckedAt: new Date().toISOString(),
       sourceUrl: OIG_LEIE_URL,
-    };
-  }
+    }),
+  });
 }
 
 export function getLeieIndexStatus(): LeieIndexStatus {

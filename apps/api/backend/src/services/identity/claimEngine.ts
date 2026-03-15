@@ -51,6 +51,7 @@ function makeClaim(
     confidence:   ClaimConfidence;
     confidenceScore: number;
     observedAt:   string;
+    derivedAt?:   string;
     validFrom?:   string | null;
     validUntil?:  string | null;
     expiresAt?:   string | null;
@@ -72,7 +73,7 @@ function makeClaim(
     artifactId:       params.artifactId,
     artifactChecksum: params.artifactChecksum,
     parserVersion:    params.parserVersion,
-    derivedAt:        new Date().toISOString(),
+    derivedAt:        params.derivedAt ?? params.observedAt,
     observedAt:       params.observedAt,
     validFrom:        params.validFrom ?? null,
     validUntil:       params.validUntil ?? null,

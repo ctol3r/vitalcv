@@ -1,0 +1,34 @@
+{
+  "id": "7d4306c8-5b6e-4f48-b8a7-1d8ef80e9381",
+  "source_run_id": "9f4d3f5f-e9b8-4b16-b01c-29c8eab05026",
+  "source_record_id": "32002f68-85f6-45f7-aad5-6a24d79570af",
+  "verification_artifact_id": "f64936c4-2a16-4692-b3bf-5952acfc72d3",
+  "identity_delta_id": "8eeb44d4-a1b2-4f42-a2fb-d010c6c6d80e",
+  "subject_npi": "1558302470",
+  "source_id": "NPPES_API",
+  "claim_type": "PRACTICE_LOCATION",
+  "field_path": "city",
+  "event_type": "PROVIDER_MOVED_LOCATION",
+  "severity": "MEDIUM",
+  "previous_value": {
+    "_type": "PRACTICE_LOCATION",
+    "address1": "123 Main St",
+    "city": "San Francisco",
+    "state": "CA",
+    "zip": "94107"
+  },
+  "current_value": {
+    "_type": "PRACTICE_LOCATION",
+    "address1": "456 Mission St",
+    "city": "Oakland",
+    "state": "CA",
+    "zip": "94612"
+  },
+  "checksum": "4d5a658f833f4c619dbcb8964a64f4e9c2ec97d7f9bed6f0c826bd5337df0e4f",
+  "metadata": {
+    "matchingStrategy": "NPI_EXACT",
+    "mergeReason": "Official CMS NPI Registry exact match by NPI"
+  },
+  "observed_at": "2026-03-14T12:00:00.000Z",
+  "created_at": "2026-03-14T12:00:01.500Z"
+}

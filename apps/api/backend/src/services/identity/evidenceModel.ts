@@ -8,10 +8,10 @@
  *   Layer 3: VerificationReceipt — the auditable paper trail for one claim verdict
  *   Layer 4: CanonicalIdentity — the resolved person after entity resolution
  *
- * Storage (no migrations):
- *   NormalizedClaim[]      → VerificationArtifact.rawPayload._claims[]
- *   VerificationReceipt[]  → VerificationArtifact.rawPayload._receipts[]
- *   IdentitySummary        → PersonProfile.metadata.identity
+ * Storage:
+ *   NormalizedClaim[]      → ClaimRecord + VerificationArtifact.rawPayload._claims[] bridge
+ *   VerificationReceipt[]  → VerificationReceiptRecord + VerificationArtifact.rawPayload._receipts[] bridge
+ *   IdentitySummary        → VerificationArtifact where source='IDENTITY_INDEX'
  *
  * Claim IDs are deterministic (hash of claimType+sourceId+value content),
  * so re-ingesting the same source produces the same claim ID — enabling
@@ -322,6 +322,15 @@ export interface CanonicalIdentitySummary {
   claims:         IdentityClaimSummary[];
 }
 
+export interface IdentityIndexArtifactPayload {
+  _identityIndex: true;
+  generatedAt: string;
+  previousArtifactId: string | null;
+  claimRefs: string[];
+  sourceRecordIds: string[];
+  summary: CanonicalIdentitySummary;
+}
+
 export function buildIdentitySummary(npi: string, claims: NormalizedClaim[]): CanonicalIdentitySummary {
   const byType: Record<string, number> = {};
   for (const c of claims) byType[c.claimType] = (byType[c.claimType] ?? 0) + 1;
@@ -330,10 +339,19 @@ export function buildIdentitySummary(npi: string, claims: NormalizedClaim[]): Ca
   const highestTier: EvidenceTier = tiers.includes('GOLD') ? 'GOLD' : tiers.includes('SILVER') ? 'SILVER' : 'BRONZE';
 
   const active = claims.filter(c => c.status === 'ACTIVE');
+  const lastIngestedAt = claims
+    .map((claim) => Date.parse(claim.derivedAt || claim.observedAt))
+    .filter((timestamp) => Number.isFinite(timestamp))
+    .reduce<number | null>((latest, timestamp) => {
+      if (latest === null || timestamp > latest) {
+        return timestamp;
+      }
+      return latest;
+    }, null);
 
   return {
     npi,
-    lastIngestedAt: new Date().toISOString(),
+    lastIngestedAt: new Date(lastIngestedAt ?? Date.now()).toISOString(),
     claimCount:     claims.length,
     claimsByType:   byType,
     highestTier,

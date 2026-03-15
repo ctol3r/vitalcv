@@ -3,6 +3,9 @@
  */
 
 import {
+  getConnectorAlerts,
+  getConnectorDiagnostics,
+  quarantineConnector,
   recordConnectorSuccess,
   recordConnectorFailure,
   getConnectorHealth,
@@ -87,10 +90,11 @@ describe('connectorHealthTracker', () => {
   });
 
   describe('overall report', () => {
-    it('returns all 5 connectors', () => {
+    it('returns all 6 connectors', () => {
       const health = getConnectorHealth();
-      expect(health.connectors.length).toBe(5);
+      expect(health.connectors.length).toBe(6);
       const names = health.connectors.map((c) => c.connector);
+      expect(names).toContain('NPPES');
       expect(names).toContain('STATE_BOARD');
       expect(names).toContain('OIG');
       expect(names).toContain('ABMS');
@@ -138,6 +142,25 @@ describe('connectorHealthTracker', () => {
         expect(entry.errorCount).toBe(0);
         expect(entry.consecutiveErrors).toBe(0);
       }
+    });
+  });
+
+  describe('alerts and diagnostics', () => {
+    it('emits alerts for failures', () => {
+      recordConnectorFailure('STATE_BOARD', 'upstream timeout');
+      const alerts = getConnectorAlerts(10);
+      expect(alerts.length).toBeGreaterThan(0);
+      expect(alerts[0].connector).toBe('STATE_BOARD');
+      expect(alerts[0].message).toContain('timeout');
+    });
+
+    it('reports quarantine in diagnostics', () => {
+      quarantineConnector('OIG', 'Manual quarantine for investigation', 60_000);
+      const diagnostics = getConnectorDiagnostics();
+      const entry = diagnostics.connectors.find((connector) => connector.connector === 'OIG');
+      expect(entry).toBeDefined();
+      expect(entry!.status).toBe('CRITICAL');
+      expect(entry!.recentAlerts.some((alert) => alert.type === 'QUARANTINE')).toBe(true);
     });
   });
 });

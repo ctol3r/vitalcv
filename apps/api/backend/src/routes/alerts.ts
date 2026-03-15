@@ -58,6 +58,9 @@ export function registerTrustAlertRoutes(app: Express): void {
         unacknowledged: unacked.length,
         bySeverity: {
           CRITICAL: unacked.filter((a) => a.severity === 'CRITICAL').length,
+          HIGH: unacked.filter((a) => a.severity === 'HIGH').length,
+          MEDIUM: unacked.filter((a) => a.severity === 'MEDIUM').length,
+          LOW: unacked.filter((a) => a.severity === 'LOW').length,
           WARNING: unacked.filter((a) => a.severity === 'WARNING').length,
           INFO: unacked.filter((a) => a.severity === 'INFO').length,
         },
@@ -115,6 +118,10 @@ export function registerTrustAlertRoutes(app: Express): void {
         'credential_revoked',
         'issuer_trust_degradation',
         'verification_failure',
+        'identity_delta',
+        'source_stale',
+        'claim_delta',
+        'watchtower_delta',
       ];
 
       if (!type || !validTypes.includes(type)) {

@@ -148,12 +148,46 @@ export function createGraphBuildRunId(input: {
   return `gbr_${sha256ForPayload({ ...input, nonce: randomUUID(), at: new Date().toISOString() }).slice(0, 24)}`;
 }
 
+export function createGraphBuildRequestFingerprint(input: {
+  buildType: string;
+  graphMode?: string | null;
+  scopeKey?: string | null;
+  targetNodeId?: string | null;
+  invalidationReasons?: string[];
+}): string {
+  return compactHash('gbrq', {
+    buildType: input.buildType,
+    graphMode: input.graphMode ?? null,
+    scopeKey: input.scopeKey ?? null,
+    targetNodeId: input.targetNodeId ?? null,
+    invalidationReasons: [...(input.invalidationReasons ?? [])].sort(),
+  });
+}
+
 export function createGraphSuggestionBatchId(input: {
   graphMode: string;
   targetNodeId?: string | null;
   filterSignature: string;
 }): string {
   return `gsb_${sha256ForPayload({ ...input, nonce: randomUUID(), at: new Date().toISOString() }).slice(0, 24)}`;
+}
+
+export function createGraphSuggestionBatchFingerprint(input: {
+  graphMode: string;
+  targetNodeId?: string | null;
+  filterSignature: string;
+  maxSuggestionsPerNode?: number;
+  minConfidence?: number;
+  applyThreshold?: number;
+}): string {
+  return compactHash('gsbf', {
+    graphMode: input.graphMode,
+    targetNodeId: input.targetNodeId ?? null,
+    filterSignature: input.filterSignature,
+    maxSuggestionsPerNode: input.maxSuggestionsPerNode ?? null,
+    minConfidence: input.minConfidence ?? null,
+    applyThreshold: input.applyThreshold ?? null,
+  });
 }
 
 export function createGraphSuggestionKey(input: {

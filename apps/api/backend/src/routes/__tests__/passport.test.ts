@@ -6,8 +6,12 @@ jest.mock('../../graphql/prisma_client', () => ({
     provider: {
       findFirst: jest.fn(),
     },
+    decisionCapsule: {
+      findMany: jest.fn(),
+    },
     verificationArtifact: {
       findMany: jest.fn(),
+      findFirst: jest.fn(),
     },
   },
 }));
@@ -60,8 +64,12 @@ const prismaMock = prisma as unknown as {
   provider: {
     findFirst: jest.Mock;
   };
+  decisionCapsule: {
+    findMany: jest.Mock;
+  };
   verificationArtifact: {
     findMany: jest.Mock;
+    findFirst: jest.Mock;
   };
 };
 
@@ -194,6 +202,8 @@ async function invokeGetRoute(
 function seedPassportData(overrides?: {
   provider?: Record<string, unknown> | null;
   artifacts?: Array<Record<string, unknown>>;
+  capsules?: Array<Record<string, unknown>>;
+  oigArtifact?: Record<string, unknown> | null;
   trustState?: Record<string, unknown> | null;
 }) {
   prismaMock.provider.findFirst.mockResolvedValue(Object.prototype.hasOwnProperty.call(overrides ?? {}, 'provider')
@@ -254,6 +264,12 @@ function seedPassportData(overrides?: {
       },
     },
   ]);
+  prismaMock.decisionCapsule.findMany.mockResolvedValue(overrides?.capsules ?? []);
+  prismaMock.verificationArtifact.findFirst.mockResolvedValue(
+    Object.prototype.hasOwnProperty.call(overrides ?? {}, 'oigArtifact')
+      ? overrides?.oigArtifact ?? null
+      : null,
+  );
   trustStateMock.mockResolvedValue(Object.prototype.hasOwnProperty.call(overrides ?? {}, 'trustState')
     ? overrides?.trustState ?? null
     : {
@@ -279,7 +295,9 @@ function seedPassportData(overrides?: {
 describe('passport routes', () => {
   beforeEach(() => {
     prismaMock.provider.findFirst.mockReset();
+    prismaMock.decisionCapsule.findMany.mockReset();
     prismaMock.verificationArtifact.findMany.mockReset();
+    prismaMock.verificationArtifact.findFirst.mockReset();
     trustStateMock.mockReset();
   });
 
@@ -299,7 +317,7 @@ describe('passport routes', () => {
     expect(trust.body).toEqual(expect.objectContaining({ error: 'invalid_npi' }));
   });
 
-  it('returns a privacy-layered public passport with public and restricted credentials', async () => {
+  it('returns a privacy-layered public passport with only public credentials exposed', async () => {
     seedPassportData();
 
     const response = await invokeGetRoute(createApp(), '/api/passport/:npi', {
@@ -324,7 +342,7 @@ describe('passport routes', () => {
       meta: {
         methodology: '243.1',
         computedAt: '2026-03-05T00:00:00.000Z',
-        passportVersion: '1.0',
+        passportVersion: '2.0',
       },
     }));
 
@@ -348,11 +366,10 @@ describe('passport routes', () => {
         issuer: 'American Board of Internal Medicine',
         isPublic: true,
       }),
+    ]));
+    expect(body.credentials).not.toEqual(expect.arrayContaining([
       expect.objectContaining({
         type: 'DEA_REGISTRATION',
-        name: 'Restricted credential',
-        issuer: 'Restricted',
-        isPublic: false,
       }),
     ]));
     expect(JSON.stringify(response.body)).not.toContain('DEA-SECRET-123');

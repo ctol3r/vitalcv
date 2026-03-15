@@ -1,12 +1,29 @@
 /**
- * connectorHealthTracker.ts — Wave 127: Connector Health Tracking
+ * connectorHealthTracker.ts — Wave 127+: Connector Reliability Tracking
  *
- * Tracks success/failure state for each provider connector.
- * Consumed by smoke tests, system status, and mission ops.
+ * Wraps the shared connector reliability controls used by provider
+ * connectors so health routes, mission ops, and system sweep can
+ * consume a single report shape.
  */
 
-import { log } from '../../../obs/logger';
-import type { ConnectorName, ConnectorMode } from './connectorFactory';
+import {
+  buildConnectorDiagnostics,
+  getConnectorAlerts as getSharedConnectorAlerts,
+  type ConnectorDiagnosticsReport,
+} from '../../../../../../../core/connectors/diagnostics';
+import {
+  connectorHealthMonitor,
+  type ConnectorAlert,
+} from '../../../../../../../core/connectors/healthMonitor';
+import {
+  connectorQuotaManager,
+  type ConnectorQuotaSnapshot,
+} from '../../../../../../../core/connectors/quotaManager';
+import {
+  connectorSchemaDriftDetector,
+  type ConnectorSchemaState,
+} from '../../../../../../../core/connectors/schemaDrift';
+import type { ConnectorMode, ConnectorName } from './connectorFactory';
 import { getConnectorMode } from './connectorFactory';
 
 export interface ConnectorHealthEntry {
@@ -19,6 +36,20 @@ export interface ConnectorHealthEntry {
   successCount: number;
   errorCount: number;
   consecutiveErrors: number;
+  quarantined: boolean;
+  quarantinedUntil: string | null;
+  quarantineReason: string | null;
+  alertCount: number;
+  totalRequests: number;
+  totalRetries: number;
+  rateLimitHits: number;
+  remainingQuota: number;
+  quotaResetAt: string | null;
+  lastRetryAfterMs: number | null;
+  lastLatencyMs: number | null;
+  averageLatencyMs: number | null;
+  schemaDriftDetected: boolean;
+  schemaDriftSeverity: ConnectorSchemaState['severity'];
 }
 
 export interface ConnectorHealthReport {
@@ -27,77 +58,174 @@ export interface ConnectorHealthReport {
   reportedAt: string;
 }
 
-// ── In-Memory Tracking ──────────────────────────────────────────────
-
-interface TrackerState {
-  lastSuccessAt: string | null;
-  lastErrorAt: string | null;
-  lastError: string | null;
-  successCount: number;
-  errorCount: number;
-  consecutiveErrors: number;
+export interface ConnectorCallMetrics {
+  latencyMs?: number;
+  retries?: number;
+  details?: Record<string, unknown>;
 }
 
-const ALL_CONNECTORS: ConnectorName[] = ['STATE_BOARD', 'OIG', 'ABMS', 'CAQH', 'NPDB'];
-const trackers = new Map<ConnectorName, TrackerState>();
+export interface ConnectorQuarantineState {
+  active: boolean;
+  until: string | null;
+  reason: string | null;
+}
 
-function getTracker(connector: ConnectorName): TrackerState {
-  if (!trackers.has(connector)) {
-    trackers.set(connector, {
-      lastSuccessAt: null,
-      lastErrorAt: null,
-      lastError: null,
-      successCount: 0,
-      errorCount: 0,
-      consecutiveErrors: 0,
-    });
+export const ALL_CONNECTORS: ConnectorName[] = ['NPPES', 'STATE_BOARD', 'OIG', 'ABMS', 'CAQH', 'NPDB'];
+
+function isQuotaBlocked(snapshot: ConnectorQuotaSnapshot): boolean {
+  return Boolean(snapshot.blockedUntil && Date.parse(snapshot.blockedUntil) > Date.now());
+}
+
+function computeEntryStatus(
+  baseStatus: 'HEALTHY' | 'DEGRADED' | 'UNREACHABLE' | 'QUARANTINED',
+  quota: ConnectorQuotaSnapshot,
+  schema: ConnectorSchemaState,
+): ConnectorHealthEntry['status'] {
+  if (baseStatus === 'QUARANTINED' || baseStatus === 'UNREACHABLE' || schema.severity === 'CRITICAL') {
+    return 'UNREACHABLE';
   }
-  return trackers.get(connector)!;
-}
 
-// ── Public API ──────────────────────────────────────────────────────
+  if (baseStatus === 'DEGRADED' || isQuotaBlocked(quota) || schema.detected) {
+    return 'DEGRADED';
+  }
 
-export function recordConnectorSuccess(connector: ConnectorName): void {
-  const t = getTracker(connector);
-  t.lastSuccessAt = new Date().toISOString();
-  t.successCount++;
-  t.consecutiveErrors = 0;
-  log('debug', `connector_health: ${connector} success`, { total: t.successCount });
-}
-
-export function recordConnectorFailure(connector: ConnectorName, error: string): void {
-  const t = getTracker(connector);
-  t.lastErrorAt = new Date().toISOString();
-  t.lastError = error;
-  t.errorCount++;
-  t.consecutiveErrors++;
-  log('warn', `connector_health: ${connector} failure`, { error, consecutive: t.consecutiveErrors });
-}
-
-function entryStatus(t: TrackerState): ConnectorHealthEntry['status'] {
-  if (t.consecutiveErrors >= 5) return 'UNREACHABLE';
-  if (t.consecutiveErrors >= 2) return 'DEGRADED';
   return 'HEALTHY';
 }
 
+export function recordConnectorSuccess(connector: ConnectorName, metrics: ConnectorCallMetrics = {}): void {
+  connectorHealthMonitor.recordSuccess({
+    connector,
+    latencyMs: metrics.latencyMs,
+    retries: metrics.retries,
+  });
+}
+
+export function recordConnectorFailure(
+  connector: ConnectorName,
+  error: string,
+  metrics: ConnectorCallMetrics = {},
+): void {
+  connectorHealthMonitor.recordFailure({
+    connector,
+    error,
+    latencyMs: metrics.latencyMs,
+    retries: metrics.retries,
+    details: metrics.details,
+  });
+}
+
+export function recordConnectorRetry(
+  connector: ConnectorName,
+  attempt: number,
+  delayMs: number,
+  reason?: string,
+): void {
+  connectorHealthMonitor.recordRetry({
+    connector,
+    attempt,
+    delayMs,
+    reason,
+  });
+}
+
+export function recordConnectorRateLimit(
+  connector: ConnectorName,
+  retryAfterMs?: number | null,
+  message?: string,
+): void {
+  connectorHealthMonitor.recordRateLimit({
+    connector,
+    retryAfterMs: retryAfterMs ?? undefined,
+    message,
+  });
+}
+
+export function recordConnectorSchemaDrift(connector: ConnectorName, state: ConnectorSchemaState): void {
+  if (!state.detected) {
+    return;
+  }
+
+  const detailParts = [
+    state.missingRequiredFields.length > 0 ? `missing required: ${state.missingRequiredFields.join(', ')}` : null,
+    state.typeChanges.length > 0 ? `type changes: ${state.typeChanges.map((change) => change.field).join(', ')}` : null,
+    state.additionalFields.length > 0 ? `additional fields: ${state.additionalFields.join(', ')}` : null,
+    state.missingFields.length > 0 ? `missing fields: ${state.missingFields.join(', ')}` : null,
+  ].filter(Boolean);
+
+  connectorHealthMonitor.recordSchemaDrift({
+    connector,
+    severity: state.severity === 'CRITICAL' ? 'CRITICAL' : 'WARN',
+    message:
+      detailParts.length > 0
+        ? `${connector} schema drift detected (${detailParts.join('; ')})`
+        : `${connector} schema drift detected`,
+    details: {
+      baselineFingerprint: state.baselineFingerprint,
+      currentFingerprint: state.currentFingerprint,
+    },
+  });
+}
+
+export function quarantineConnector(
+  connector: ConnectorName,
+  reason: string,
+  durationMs: number,
+): void {
+  connectorHealthMonitor.quarantine({
+    connector,
+    reason,
+    durationMs,
+  });
+}
+
+export function clearConnectorQuarantine(connector: ConnectorName): void {
+  connectorHealthMonitor.clearQuarantine(connector);
+}
+
+export function getConnectorQuarantineState(connector: ConnectorName): ConnectorQuarantineState {
+  const snapshot = connectorHealthMonitor.getHealth(connector);
+  return {
+    active: snapshot.status === 'QUARANTINED',
+    until: snapshot.quarantinedUntil,
+    reason: snapshot.quarantineReason,
+  };
+}
+
 export function getConnectorHealth(): ConnectorHealthReport {
-  const connectors: ConnectorHealthEntry[] = ALL_CONNECTORS.map((name) => {
-    const t = getTracker(name);
+  const connectors: ConnectorHealthEntry[] = ALL_CONNECTORS.map((connector) => {
+    const snapshot = connectorHealthMonitor.getHealth(connector);
+    const quota = connectorQuotaManager.getSnapshot(connector);
+    const schema = connectorSchemaDriftDetector.getState(connector);
+
     return {
-      connector: name,
-      mode: getConnectorMode(name),
-      status: entryStatus(t),
-      lastSuccessAt: t.lastSuccessAt,
-      lastErrorAt: t.lastErrorAt,
-      lastError: t.lastError,
-      successCount: t.successCount,
-      errorCount: t.errorCount,
-      consecutiveErrors: t.consecutiveErrors,
+      connector,
+      mode: getConnectorMode(connector),
+      status: computeEntryStatus(snapshot.status, quota, schema),
+      lastSuccessAt: snapshot.lastSuccessAt,
+      lastErrorAt: snapshot.lastFailureAt,
+      lastError: snapshot.lastError,
+      successCount: snapshot.successCount,
+      errorCount: snapshot.failureCount,
+      consecutiveErrors: snapshot.consecutiveFailures,
+      quarantined: snapshot.status === 'QUARANTINED',
+      quarantinedUntil: snapshot.quarantinedUntil,
+      quarantineReason: snapshot.quarantineReason,
+      alertCount: snapshot.alertCount,
+      totalRequests: snapshot.telemetry.totalRequests,
+      totalRetries: snapshot.telemetry.totalRetries,
+      rateLimitHits: quota.rateLimitHits,
+      remainingQuota: quota.remaining,
+      quotaResetAt: quota.resetAt,
+      lastRetryAfterMs: quota.lastRetryAfterMs,
+      lastLatencyMs: snapshot.telemetry.lastLatencyMs,
+      averageLatencyMs: snapshot.telemetry.averageLatencyMs,
+      schemaDriftDetected: schema.detected,
+      schemaDriftSeverity: schema.severity,
     };
   });
 
-  const unreachable = connectors.filter((c) => c.status === 'UNREACHABLE').length;
-  const degraded = connectors.filter((c) => c.status === 'DEGRADED').length;
+  const unreachable = connectors.filter((entry) => entry.status === 'UNREACHABLE').length;
+  const degraded = connectors.filter((entry) => entry.status === 'DEGRADED').length;
   const overall: ConnectorHealthReport['overall'] =
     unreachable >= 3 ? 'CRITICAL'
     : unreachable >= 1 || degraded >= 2 ? 'DEGRADED'
@@ -110,6 +238,19 @@ export function getConnectorHealth(): ConnectorHealthReport {
   };
 }
 
+export function getConnectorDiagnostics(): ConnectorDiagnosticsReport {
+  return buildConnectorDiagnostics({
+    connectors: ALL_CONNECTORS,
+    alertsLimit: 10,
+  });
+}
+
+export function getConnectorAlerts(limit = 50): ConnectorAlert[] {
+  return getSharedConnectorAlerts(ALL_CONNECTORS, connectorHealthMonitor, limit);
+}
+
 export function resetConnectorHealth(): void {
-  trackers.clear();
+  connectorHealthMonitor.reset();
+  connectorQuotaManager.reset();
+  connectorSchemaDriftDetector.reset();
 }

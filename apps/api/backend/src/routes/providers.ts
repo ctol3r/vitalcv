@@ -2,6 +2,8 @@
  * providers.ts — Wave 119: Provider Data Integrity Fabric
  *
  * GET /api/providers/health                 — Smoke test all connectors
+ * GET /api/providers/health/diagnostics     — Connector diagnostics + recommendations
+ * GET /api/providers/health/alerts          — Recent connector alerts
  * GET /api/providers/health/:connector      — Smoke test single connector
  * GET /api/providers/provenance/:npi        — Provenance chain for an NPI
  * GET /api/providers/provenance/health      — Provenance freshness summary
@@ -10,9 +12,10 @@
 import type { Express, Request, Response } from 'express';
 import { runProviderSmokeTests, runSingleSmokeTest, type ConnectorId } from '../services/providers/providerSmokeTest';
 import { getProvenanceChain, getProvenanceHealth } from '../services/providers/providerSourceProvenance';
+import { getConnectorAlerts, getConnectorDiagnostics } from '../services/providers/connectors/connectorHealthTracker';
 import { log } from '../obs/logger';
 
-const VALID_CONNECTORS: ConnectorId[] = ['NPPES', 'STATE_BOARD', 'OIG', 'ABMS'];
+const VALID_CONNECTORS: ConnectorId[] = ['NPPES', 'STATE_BOARD', 'OIG', 'ABMS', 'CAQH', 'NPDB'];
 
 export function registerProviderRoutes(app: Express): void {
   app.get('/api/providers/health', async (_req: Request, res: Response) => {
@@ -23,6 +26,29 @@ export function registerProviderRoutes(app: Express): void {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       log('error', 'providers: smoke test failed', { error: msg });
       res.status(500).json({ error: 'Smoke test suite failed' });
+    }
+  });
+
+  app.get('/api/providers/health/diagnostics', (_req: Request, res: Response) => {
+    try {
+      res.json(getConnectorDiagnostics());
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'providers: diagnostics failed', { error: msg });
+      res.status(500).json({ error: 'Diagnostics failed' });
+    }
+  });
+
+  app.get('/api/providers/health/alerts', (_req: Request, res: Response) => {
+    try {
+      res.json({
+        alerts: getConnectorAlerts(50),
+        reportedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'providers: alerts failed', { error: msg });
+      res.status(500).json({ error: 'Alert retrieval failed' });
     }
   });
 

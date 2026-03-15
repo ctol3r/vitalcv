@@ -13,12 +13,30 @@
  */
 
 import { createHash } from 'node:crypto';
+import {
+  ConnectorRateLimitError,
+  executeWithRetry,
+} from '../../../../../../core/connectors/retryPolicy';
+import { ConnectorQuotaExceededError, connectorQuotaManager } from '../../../../../../core/connectors/quotaManager';
+import { connectorSchemaDriftDetector } from '../../../../../../core/connectors/schemaDrift';
 import { log } from '../../obs/logger';
 import { lookupStateBoard } from './connectors/stateBoardConnector';
 import { checkOIGExclusion, getLeieIndexStatus } from './connectors/oigConnector';
 import { checkABMSCertification } from './connectors/abmsConnector';
 import { checkCAQHProfile } from './connectors/caqhConnector';
 import { queryNPDB } from './connectors/npdbConnector';
+import {
+  getConnectorAlerts,
+  getConnectorDiagnostics,
+  getConnectorHealth,
+  getConnectorQuarantineState,
+  quarantineConnector,
+  recordConnectorFailure,
+  recordConnectorRateLimit,
+  recordConnectorRetry,
+  recordConnectorSchemaDrift,
+  recordConnectorSuccess,
+} from './connectors/connectorHealthTracker';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -40,6 +58,9 @@ export interface SmokeTestResult {
 export interface SmokeTestSuite {
   results: SmokeTestResult[];
   overallHealth: 'HEALTHY' | 'DEGRADED' | 'CRITICAL';
+  connectorHealth: ReturnType<typeof getConnectorHealth>;
+  diagnostics: ReturnType<typeof getConnectorDiagnostics>;
+  alerts: ReturnType<typeof getConnectorAlerts>;
   testedAt: string;
 }
 
@@ -56,6 +77,14 @@ const NPPES_FIELD_LIMITS: Record<string, number> = {
   city: 40,
   taxonomy_desc: 100,
 };
+const NPPES_QUOTA_POLICY = {
+  limit: 30,
+  windowMs: 60_000,
+};
+const NPPES_SCHEMA_POLICY = {
+  requiredFields: ['result_count', 'results'],
+  allowAdditionalFields: true,
+} as const;
 
 // ── NPPES Smoke Test ──────────────────────────────────────────────────
 
@@ -63,37 +92,74 @@ async function smokeTestNppes(sampleNpi = '1003000126'): Promise<SmokeTestResult
   const errors: string[] = [];
   const warnings: string[] = [];
   const start = Date.now();
+  const quarantine = getConnectorQuarantineState('NPPES');
+  if (quarantine.active) {
+    warnings.push(quarantine.reason ?? 'Connector quarantine active');
+    return {
+      connector: 'NPPES',
+      reachable: false,
+      responseTimeMs: 0,
+      schemaValid: false,
+      fieldLengthOk: false,
+      utf8Ok: false,
+      sampleNpi,
+      errors,
+      warnings,
+      testedAt: new Date().toISOString(),
+    };
+  }
+
   let reachable = false;
   let schemaValid = false;
   let fieldLengthOk = true;
   let utf8Ok = true;
+  let criticalSchemaDrift = false;
 
   try {
+    connectorQuotaManager.consume({
+      connector: 'NPPES',
+      policy: NPPES_QUOTA_POLICY,
+    });
+
     const url = `https://npiregistry.cms.hhs.gov/api/?version=2.1&number=${sampleNpi}`;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 10_000);
+    const { result: body, attempts } = await executeWithRetry({
+      connector: 'NPPES',
+      operation: async () => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 10_000);
 
-    const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(timer);
+        try {
+          const res = await fetch(url, { signal: controller.signal });
+          if (res.status === 429) {
+            throw new ConnectorRateLimitError('NPPES responded with HTTP 429');
+          }
+          if (!res.ok) {
+            const error = new Error(`HTTP ${res.status}`);
+            Object.assign(error, { statusCode: res.status });
+            throw error;
+          }
 
-    if (!res.ok) {
-      errors.push(`HTTP ${res.status}`);
-      return {
-        connector: 'NPPES',
-        reachable: false,
-        responseTimeMs: Date.now() - start,
-        schemaValid: false,
-        fieldLengthOk: false,
-        utf8Ok: false,
-        sampleNpi,
-        errors,
-        warnings,
-        testedAt: new Date().toISOString(),
-      };
-    }
+          return res.json();
+        } finally {
+          clearTimeout(timer);
+        }
+      },
+      onRetry: async ({ attempt, delayMs, error }) => {
+        recordConnectorRetry('NPPES', attempt, delayMs, error.message);
+      },
+    });
 
     reachable = true;
-    const body = await res.json();
+    const schemaState = connectorSchemaDriftDetector.observe('NPPES', body, NPPES_SCHEMA_POLICY);
+    if (schemaState.detected) {
+      recordConnectorSchemaDrift('NPPES', schemaState);
+      warnings.push(`Schema drift detected (${schemaState.severity})`);
+      if (schemaState.severity === 'CRITICAL') {
+        criticalSchemaDrift = true;
+        errors.push('Critical schema drift detected');
+        quarantineConnector('NPPES', 'Critical NPPES schema drift detected', 15 * 60_000);
+      }
+    }
 
     // Schema check
     if (body.result_count !== undefined && Array.isArray(body.results)) {
@@ -128,9 +194,33 @@ async function smokeTestNppes(sampleNpi = '1003000126'): Promise<SmokeTestResult
       utf8Ok = false;
       errors.push('UTF-8 encoding validation failed');
     }
+
+    if (criticalSchemaDrift) {
+      recordConnectorFailure('NPPES', 'Critical schema drift detected', {
+        latencyMs: Date.now() - start,
+        retries: attempts - 1,
+      });
+    } else {
+      recordConnectorSuccess('NPPES', {
+        latencyMs: Date.now() - start,
+        retries: attempts - 1,
+      });
+    }
   } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Unknown error';
-    errors.push(`Connectivity: ${msg}`);
+    if (e instanceof ConnectorQuotaExceededError) {
+      recordConnectorRateLimit('NPPES', e.retryAfterMs, e.message);
+      quarantineConnector('NPPES', e.message, e.retryAfterMs ?? 60_000);
+      errors.push(e.message);
+    } else if (e instanceof ConnectorRateLimitError) {
+      connectorQuotaManager.recordRateLimit('NPPES', e.retryAfterMs ?? 60_000, undefined, NPPES_QUOTA_POLICY);
+      recordConnectorRateLimit('NPPES', e.retryAfterMs ?? 60_000, e.message);
+      quarantineConnector('NPPES', e.message, e.retryAfterMs ?? 60_000);
+      errors.push(e.message);
+    } else {
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      recordConnectorFailure('NPPES', msg, { latencyMs: Date.now() - start });
+      errors.push(`Connectivity: ${msg}`);
+    }
   }
 
   return {
@@ -292,6 +382,9 @@ export async function runProviderSmokeTests(): Promise<SmokeTestSuite> {
   return {
     results,
     overallHealth,
+    connectorHealth: getConnectorHealth(),
+    diagnostics: getConnectorDiagnostics(),
+    alerts: getConnectorAlerts(25),
     testedAt: new Date().toISOString(),
   };
 }

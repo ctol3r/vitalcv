@@ -1,8 +1,14 @@
 import prisma from '../src/graphql/prisma_client'
 import { seedCredentialIngestionExamples } from './credentialIngestionSeedExamples'
+import { seedIdentityWaveFixtures } from './identityWaveSeedFixtures'
 
 function shouldSeedCredentialIngestionExamples(): boolean {
   const value = process.env.SEED_CREDENTIAL_INGESTION_EXAMPLES?.trim().toLowerCase()
+  return value === '1' || value === 'true'
+}
+
+function shouldSeedIdentityWaveFixtures(): boolean {
+  const value = process.env.SEED_IDENTITY_WAVE_FIXTURES?.trim().toLowerCase()
   return value === '1' || value === 'true'
 }
 
@@ -48,6 +54,11 @@ async function main() {
   if (shouldSeedCredentialIngestionExamples()) {
     const seeded = await seedCredentialIngestionExamples()
     console.log(`Seeded ${seeded.seededRunCount} credential ingestion runs for ${seeded.clinicianCount} clinicians`)
+  }
+
+  if (shouldSeedIdentityWaveFixtures()) {
+    const seeded = await seedIdentityWaveFixtures()
+    console.log(`Seeded ${seeded.seededRunCount} identity wave fixture run(s)`)
   }
 
   console.log('Database seeded successfully')

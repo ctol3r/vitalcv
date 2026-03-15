@@ -10,7 +10,7 @@
 import { log } from '../../../obs/logger';
 import { recordProvenance } from '../providerSourceProvenance';
 import { getConnectorMode } from './connectorFactory';
-import { recordConnectorSuccess, recordConnectorFailure } from './connectorHealthTracker';
+import { runConnectorWithReliability } from './connectorReliability';
 
 export interface CAQHProfileResult {
   npi: string;
@@ -23,6 +23,14 @@ export interface CAQHProfileResult {
 }
 
 const CAQH_URL = 'https://proview.caqh.org';
+const CAQH_QUOTA_POLICY = {
+  limit: 20,
+  windowMs: 60_000,
+};
+const CAQH_SCHEMA_POLICY = {
+  requiredFields: ['npi', 'profileStatus', 'lastVerifiedAt', 'sourceUrl'],
+  allowAdditionalFields: true,
+} as const;
 
 // ── Sandbox ─────────────────────────────────────────────────────────
 
@@ -82,38 +90,47 @@ function sandboxProfile(npi: string): CAQHProfileResult {
 export async function checkCAQHProfile(npi: string): Promise<CAQHProfileResult> {
   const mode = getConnectorMode('CAQH');
 
-  try {
-    let result: CAQHProfileResult;
+  return runConnectorWithReliability({
+    connector: 'CAQH',
+    quotaPolicy: CAQH_QUOTA_POLICY,
+    schemaPolicy: CAQH_SCHEMA_POLICY,
+    execute: async () => {
+      if (mode === 'live') {
+        log('info', 'caqh_connector: live API not yet implemented', { npi });
+        return {
+          npi,
+          caqhProviderId: null,
+          profileStatus: 'NOT_AVAILABLE',
+          attestationDate: null,
+          reattestationDueDate: null,
+          lastVerifiedAt: new Date().toISOString(),
+          sourceUrl: CAQH_URL,
+        };
+      }
 
-    if (mode === 'live') {
-      log('info', 'caqh_connector: live API not yet implemented', { npi });
-      result = {
+      return sandboxProfile(npi);
+    },
+    afterSuccess: async (result) => {
+      recordProvenance({
         npi,
-        caqhProviderId: null,
-        profileStatus: 'NOT_AVAILABLE',
-        attestationDate: null,
-        reattestationDueDate: null,
-        lastVerifiedAt: new Date().toISOString(),
+        source: 'CAQH',
         sourceUrl: CAQH_URL,
-      };
-    } else {
-      result = sandboxProfile(npi);
-    }
+        rawPayload: result,
+      });
+    },
+    onFailure: ({ reason, stage, error }) => {
+      if (stage === 'quarantine') {
+        log('warn', 'caqh_connector: connector quarantined', { npi, reason });
+        return;
+      }
 
-    recordProvenance({
-      npi,
-      source: 'CAQH',
-      sourceUrl: CAQH_URL,
-      rawPayload: result,
-    });
-
-    recordConnectorSuccess('CAQH');
-    return result;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
-    recordConnectorFailure('CAQH', msg);
-    log('error', 'caqh_connector: check failed', { npi, error: msg });
-    return {
+      log('error', 'caqh_connector: check failed', {
+        npi,
+        error: error?.message ?? reason,
+        stage,
+      });
+    },
+    fallback: () => ({
       npi,
       caqhProviderId: null,
       profileStatus: 'NOT_AVAILABLE',
@@ -121,6 +138,6 @@ export async function checkCAQHProfile(npi: string): Promise<CAQHProfileResult> 
       reattestationDueDate: null,
       lastVerifiedAt: new Date().toISOString(),
       sourceUrl: CAQH_URL,
-    };
-  }
+    }),
+  });
 }
