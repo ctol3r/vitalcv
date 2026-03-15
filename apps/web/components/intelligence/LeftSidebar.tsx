@@ -1,54 +1,24 @@
 'use client';
 
-import { AlertTriangle, Command, Layers3, Search, Sparkles } from 'lucide-react';
+import { AlertTriangle, Layers3, LayoutPanelLeft, Search } from 'lucide-react';
 import { Sidebar, type SidebarAction } from '@/components/shell/Sidebar';
 import type {
-  IntelligenceAlertSummary,
-  MainWorkspaceSection,
-  ProviderProfileSummary,
-} from './intelligenceModel';
-import { formatGraphNodeType } from '@/components/graph/state/graphDisplayState';
+  IntelligenceAlert,
+  IntelligenceProvider,
+  WorkspaceSectionId,
+} from '@/lib/intelligence/contracts';
+import { WORKSPACE_SECTIONS } from '@/lib/intelligence/layout';
+import { ToneBadge } from './shared';
 
 interface LeftSidebarProps {
   searchTerm: string;
   resultCount: number;
-  activeSection: MainWorkspaceSection;
-  watchlist: ProviderProfileSummary[];
-  alerts: IntelligenceAlertSummary[];
+  activeSection: WorkspaceSectionId;
+  watchlist: IntelligenceProvider[];
+  alerts: IntelligenceAlert[];
   onSearchChange: (value: string) => void;
-  onNavigate: (section: MainWorkspaceSection) => void;
-  onSelectNode: (nodeId: string) => void;
-  onOpenCommandPalette: () => void;
-}
-
-const NAV_ITEMS: Array<{ id: MainWorkspaceSection; label: string; detail: string }> = [
-  {
-    id: 'dashboards',
-    label: 'Dashboards',
-    detail: 'Portfolio health, verification velocity, and alert pressure.',
-  },
-  {
-    id: 'profiles',
-    label: 'Provider profiles',
-    detail: 'Focused provider summaries and trust posture.',
-  },
-  {
-    id: 'results',
-    label: 'Search results',
-    detail: 'Filtered providers matching the current workspace query.',
-  },
-];
-
-function severityCopy(severity: IntelligenceAlertSummary['severity']): string {
-  switch (severity) {
-    case 'critical':
-      return 'critical';
-    case 'elevated':
-      return 'elevated';
-    case 'watch':
-    default:
-      return 'watch';
-  }
+  onNavigate: (section: WorkspaceSectionId) => void;
+  onSelectProvider: (providerNpi: string) => void;
 }
 
 export function LeftSidebar({
@@ -59,22 +29,21 @@ export function LeftSidebar({
   alerts,
   onSearchChange,
   onNavigate,
-  onSelectNode,
-  onOpenCommandPalette,
+  onSelectProvider,
 }: LeftSidebarProps) {
   const actions: SidebarAction[] = [
     {
-      id: 'palette',
-      label: 'Open command palette',
-      icon: <Command className="h-3.5 w-3.5" />,
-      onClick: onOpenCommandPalette,
+      id: 'dashboard',
+      label: 'Open dashboard',
+      icon: <LayoutPanelLeft className="h-3.5 w-3.5" />,
+      onClick: () => onNavigate('dashboard'),
     },
   ];
 
   return (
     <Sidebar
       actions={actions}
-      subtitle="Search providers, pin watchlist entities, and keep operational alerts in view."
+      subtitle="Search providers, pin a watchlist, and move between dashboard, profile, investigation, and comparison views."
       title="LeftSidebar"
     >
       <section className="vital-panel vital-panel--dense">
@@ -93,17 +62,12 @@ export function LeftSidebar({
             type="search"
             value={searchTerm}
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Search providers, NPIs, institutions, evidence"
+            placeholder="Search providers, NPIs, specialties, issuers"
           />
         </label>
-        <button
-          type="button"
-          className="vital-inline-action mt-3"
-          onClick={onOpenCommandPalette}
-        >
-          <Sparkles className="h-3.5 w-3.5" aria-hidden />
-          <span>Search providers, ask Copilot, or run verification with `Cmd+K`.</span>
-        </button>
+        <p className="mt-3 text-xs leading-5 text-white/55">
+          Search scopes the provider feed. Selecting a provider pivots the graph, investigation workspace, and right-panel sources.
+        </p>
       </section>
 
       <section className="vital-panel vital-panel--dense">
@@ -119,17 +83,15 @@ export function LeftSidebar({
               key={profile.id}
               type="button"
               className="vital-entity-row"
-              onClick={() => onSelectNode(profile.id)}
+              onClick={() => onSelectProvider(profile.npi)}
             >
               <div className="vital-entity-row__meta">
-                <span className="vital-entity-row__title">{profile.title}</span>
+                <span className="vital-entity-row__title">{profile.name}</span>
                 <span className="vital-entity-row__detail">
-                  {formatGraphNodeType(profile.type)} • {profile.degree} relationships
+                  {profile.summary || profile.specialties.join(', ') || 'Provider'}
                 </span>
               </div>
-              <span className={`vital-status-pill vital-status-pill--${profile.riskLevel}`}>
-                {profile.trustTier ?? 'untiered'}
-              </span>
+              <ToneBadge tone={profile.risk} label={`${profile.trustScore}`} />
             </button>
           ))}
         </div>
@@ -152,15 +114,20 @@ export function LeftSidebar({
                 key={alert.id}
                 type="button"
                 className="vital-alert-row"
-                onClick={() => onSelectNode(alert.nodeId)}
+                onClick={() => {
+                  if (alert.providerNpi) {
+                    onSelectProvider(alert.providerNpi);
+                  }
+                }}
               >
                 <div className="vital-entity-row__meta">
                   <span className="vital-entity-row__title">{alert.title}</span>
                   <span className="vital-entity-row__detail">{alert.summary}</span>
                 </div>
-                <span className={`vital-status-pill vital-status-pill--${severityCopy(alert.severity)}`}>
-                  {alert.severity}
-                </span>
+                <ToneBadge
+                  tone={alert.severity === 'critical' ? 'critical' : alert.severity === 'high' || alert.severity === 'medium' ? 'degraded' : 'neutral'}
+                  label={alert.source}
+                />
               </button>
             ))
           )}
@@ -176,7 +143,7 @@ export function LeftSidebar({
           <Layers3 className="h-4 w-4 text-[var(--vital-ops-accent-cyan)]" aria-hidden />
         </div>
         <div className="vital-stack-list">
-          {NAV_ITEMS.map((item) => (
+          {WORKSPACE_SECTIONS.map((item) => (
             <button
               key={item.id}
               type="button"

@@ -14,17 +14,12 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 const NAV_ITEMS = [
+  { href: '/intelligence',   label: 'Intelligence' },
   { href: '/explore',        label: 'Explore' },
-  { href: '/employers',      label: 'Employers' },
-  { href: '/velocity',       label: 'Velocity' },
-  { href: '/search',         label: 'Search' },
-  { href: '/network',        label: 'Network' },
   { href: '/graph',          label: 'Graph' },
-  { href: '/findings',       label: 'Findings' },
-  { href: '/storylines',     label: 'Storylines' },
-  { href: '/investigations', label: 'Investigations' },
+  { href: '/network',        label: 'Network' },
+  { href: '/documents',      label: 'Documents' },
   { href: '/system-health',  label: 'System Health' },
-  { href: '/documents',      label: 'Document Parser' },
   { href: '/developers',     label: 'Developers' },
 ] as const;
 

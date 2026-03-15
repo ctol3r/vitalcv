@@ -12,7 +12,7 @@ import Omnibar from '@/components/ops/Omnibar';
 import PrequalifyBar from '@/components/prequalify/PrequalifyBar';
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher';
 
-const OPERATIONAL_ROUTES = ['/graph'] as const;
+const OPERATIONAL_ROUTES = ['/graph', '/intelligence'] as const;
 
 function isOperationalRoute(pathname: string | null): boolean {
   if (!pathname) {

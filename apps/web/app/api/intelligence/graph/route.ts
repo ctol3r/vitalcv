@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import type { GraphEdge, GraphNode } from '@/components/graph-system/types';
 import { findGraphNodeIdForProvider, summarizeGraph, type IntelligenceProvider } from '@/lib/intelligence/contracts';
 import { fetchBackendJson, parsePositiveInt } from '../_shared';
 
@@ -41,8 +42,8 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const nodes = (upstream.payload.nodes ?? []) as never[];
-    const edges = (upstream.payload.edges ?? []) as never[];
+    const nodes = (upstream.payload.nodes ?? []) as GraphNode[];
+    const edges = (upstream.payload.edges ?? []) as GraphEdge[];
     const focusNodeId = npi
       ? findGraphNodeIdForProvider(
         {
@@ -60,14 +61,14 @@ export async function GET(req: NextRequest) {
           tags: [],
           risk: 'neutral',
         } satisfies IntelligenceProvider,
-        nodes as never[],
+        nodes,
       )
       : null;
 
     return NextResponse.json({
       nodes,
       edges,
-      stats: summarizeGraph(nodes as never[], edges as never[]),
+      stats: summarizeGraph(nodes, edges),
       focusNodeId,
       generatedAt: upstream.payload.generatedAt ?? new Date().toISOString(),
     });
