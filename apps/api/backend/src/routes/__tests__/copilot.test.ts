@@ -170,4 +170,78 @@ describe('copilot routes', () => {
     }));
     expect(() => copilotQueryResponseSchema.parse(response.body)).not.toThrow();
   });
+
+  it('rejects structurally invalid copilot cross-references', async () => {
+    const app = buildApp();
+
+    executeCopilotQueryMock.mockResolvedValue({
+      parsedQuery: {
+        rawQuery: 'cardiologists in texas with high trust score',
+        normalizedQuery: 'cardiologists in texas with high trust score',
+        intent: 'DUE_DILIGENCE',
+        keywords: ['cardiologists', 'texas'],
+        structuredFilters: {
+          specialties: ['Cardiology'],
+          states: ['TX'],
+          institutions: [],
+          licenseStatuses: [],
+          trustScore: { min: 80 },
+          boardCertified: undefined,
+          researchTopics: [],
+          payments: undefined,
+          affiliations: [],
+        },
+        semanticTopics: ['Cardiology', 'TX'],
+        graphTraversal: [],
+        rankingWeights: {
+          relevance: 0.35,
+          trustScore: 0.35,
+          freshness: 0.15,
+          sourceCoverage: 0.15,
+        },
+      },
+      results: [
+        {
+          id: 'clinician:1234567890',
+          rank: 1,
+          type: 'CLINICIAN',
+          title: 'Dr. High Trust',
+          summary: 'Cardiology clinician in TX.',
+          scores: {
+            relevance: 0.91,
+            trustScore: 0.91,
+            freshness: 0.8,
+            sourceCoverage: 0.75,
+            total: 0.87,
+          },
+          sourceCoverage: ['NPPES'],
+        },
+      ],
+      explanations: [
+        {
+          resultId: 'clinician:does-not-exist',
+          title: 'Broken explanation',
+          summary: 'Broken explanation',
+          because: ['specialty = Cardiology'],
+          matchedFilters: [],
+          verifiedSources: ['NPPES'],
+          scoring: {
+            relevance: 0.91,
+            trustScore: 0.91,
+            freshness: 0.8,
+            sourceCoverage: 0.75,
+            total: 0.87,
+          },
+        },
+      ],
+      graphInsights: [],
+    });
+
+    const response = await request(app)
+      .post('/api/copilot/query')
+      .send({ query: 'cardiologists in texas with high trust score' })
+      .expect(502);
+
+    expect(response.body.message ?? response.body.error).toContain('structured output');
+  });
 });

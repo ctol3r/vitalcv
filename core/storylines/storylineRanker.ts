@@ -4,6 +4,10 @@ import type {
   StorylineSeverity,
   StorylineSnapshot,
 } from './storylineEngine';
+import {
+  type StorylineGraphSignal,
+  weightStorylineSeverity,
+} from '../graph/intelligence';
 
 function clamp(value: number): number {
   return Math.max(0, Math.min(1, value));
@@ -53,6 +57,22 @@ function averageEvidenceConfidence(cluster: StorylineCluster): number {
   return evidence.reduce((sum, value) => sum + value, 0) / evidence.length;
 }
 
+function readGraphSignal(cluster: StorylineCluster): StorylineGraphSignal | null {
+  const candidate = cluster.metadata?.graphSignal;
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+    return null;
+  }
+
+  const signal = candidate as Record<string, unknown>;
+  return {
+    influencePercentile: typeof signal.influencePercentile === 'number' ? clamp(signal.influencePercentile) : 0,
+    bridgePercentile: typeof signal.bridgePercentile === 'number' ? clamp(signal.bridgePercentile) : 0,
+    articulationPoint: signal.articulationPoint === true,
+    centralityShift: typeof signal.centralityShift === 'number' ? clamp(signal.centralityShift) : 0,
+    communityShift: typeof signal.communityShift === 'number' ? clamp(signal.communityShift) : 0,
+  };
+}
+
 export interface StorylineRanking {
   severity: StorylineSeverity;
   confidence: number;
@@ -96,12 +116,19 @@ export function rankStoryline(input: {
       + cluster.featureScores.graphProximity * 0.1
       + cluster.featureScores.recurrence * 0.08,
   );
-  const severityScore = clamp(
+  const baseSeverityScore = clamp(
     severityBase * 0.68
       + confidence * 0.12
       + persistenceScore * 0.12
       + cluster.featureScores.entityOverlap * 0.08,
   );
+  const graphSignal = readGraphSignal(cluster);
+  const severityScore = graphSignal
+    ? weightStorylineSeverity({
+      baselineScore: baseSeverityScore,
+      signal: graphSignal,
+    }).adjustedScore
+    : baseSeverityScore;
   const progressionScore = clamp(
     severityScore * 0.38
       + recencyScore * 0.24

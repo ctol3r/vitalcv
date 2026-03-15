@@ -1,6 +1,8 @@
 import type { Express, NextFunction, Request, Response } from 'express';
 import { invokeAgentModel } from '../llm';
 import { publicApiRateLimit } from '../middleware/publicSafety';
+import { log } from '../obs/logger';
+import { recordCopilotResponseSample } from '../qa/performanceWatchers';
 import {
   copilotQueryRequestSchema,
   copilotQueryResponseSchema,
@@ -8,6 +10,7 @@ import {
 import { executeCopilotQuery } from '../services/copilot/copilotQueryService';
 import { resolveSearchRequestContext } from '../services/search/requestContext';
 import { HttpError } from '../utils/httpError';
+import { validateCopilotStructuredResponse } from '../../../../../core/qa/copilotResponseValidator';
 
 function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
   return (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
@@ -18,6 +21,7 @@ export function registerCopilotRoutes(app: Express): void {
     '/api/copilot/query',
     publicApiRateLimit,
     asyncHandler(async (req, res) => {
+      const startedAt = Date.now();
       const parsedBody = copilotQueryRequestSchema.safeParse(req.body);
       if (!parsedBody.success) {
         throw new HttpError(400, parsedBody.error.issues[0]?.message ?? 'Invalid copilot query payload.');
@@ -48,7 +52,30 @@ export function registerCopilotRoutes(app: Express): void {
         }),
       );
 
-      res.json(copilotQueryResponseSchema.parse(response));
+      const validation = validateCopilotStructuredResponse(response, {
+        safeParse: (input) => copilotQueryResponseSchema.safeParse(input),
+      });
+      if (!validation.valid) {
+        log('error', 'copilot_structured_output_invalid', {
+          event: 'copilot_structured_output_invalid',
+          findings: validation.findings,
+        });
+        throw new HttpError(502, 'Copilot response failed structured output validation.');
+      }
+
+      if (validation.findings.length > 0) {
+        log('warn', 'copilot_structured_output_warnings', {
+          event: 'copilot_structured_output_warnings',
+          findings: validation.findings,
+        });
+      }
+
+      recordCopilotResponseSample({
+        latencyMs: Date.now() - startedAt,
+        resultCount: validation.data?.results.length ?? 0,
+      });
+
+      res.json(copilotQueryResponseSchema.parse(validation.data ?? response));
     }),
   );
 }

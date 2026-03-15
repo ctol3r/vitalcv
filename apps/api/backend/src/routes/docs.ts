@@ -7,7 +7,7 @@
 
 import type { Express, Request, Response } from 'express';
 
-const OPENAPI_SPEC = {
+export const OPENAPI_SPEC = {
   openapi: '3.1.0',
   info: {
     title: 'VitalCV Trust Infrastructure API',
@@ -206,7 +206,7 @@ const OPENAPI_SPEC = {
   },
 };
 
-const ENDPOINTS_SUMMARY = [
+export const ENDPOINTS_SUMMARY = [
   { method: 'POST', path: '/api/credentials/issue', description: 'Issue a W3C Verifiable Credential (ES256 JWS)', tags: ['Credentials'] },
   { method: 'POST', path: '/api/credentials/verify', description: 'Verify credential JWT and check revocation', tags: ['Credentials'] },
   { method: 'GET',  path: '/api/credentials/wallet/:clinicianId', description: 'List wallet contents with expiry status', tags: ['Credentials'] },

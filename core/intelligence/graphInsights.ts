@@ -1,3 +1,11 @@
+import {
+  articulationPoints,
+  betweennessCentrality,
+  pageRank,
+} from '../graph/algorithms';
+import type { GraphProjection } from '../graph/types';
+import { rankScores } from '../graph/utils';
+
 export type IntelligenceInsightType =
   | 'HIGH_INFLUENCE_NODE'
   | 'LIKELY_INVESTIGATOR'
@@ -86,6 +94,33 @@ function readMetadataString(node: IntelligenceGraphNode, key: string): string | 
 
 function normalizeToken(value: string): string {
   return value.trim().toLowerCase();
+}
+
+function toProjection(
+  nodes: IntelligenceGraphNode[],
+  edges: IntelligenceGraphEdge[],
+): GraphProjection {
+  return {
+    nodes: nodes.map((node) => ({
+      id: node.id,
+      kind: node.type,
+      label: node.label,
+      layer: 'dual',
+      confidence: 1,
+      metadata: node.metadata ?? {},
+    })),
+    edges: edges.map((edge, index) => ({
+      id: `edge:${index}:${edge.source}:${edge.target}:${edge.type}`,
+      source: edge.source,
+      target: edge.target,
+      relation: edge.type,
+      directed: true,
+      weight: edge.confidence ?? 0.5,
+      confidence: edge.confidence ?? 0.5,
+      layer: 'dual',
+      metadata: edge.metadata ?? {},
+    })),
+  };
 }
 
 export function graphCentrality(
@@ -299,6 +334,25 @@ export function deriveGraphInsights(
   const timestamp = now.toISOString();
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   const centrality = graphCentrality(nodes, edges);
+  const projection = toProjection(nodes, edges);
+  const advancedPageRank = new Map(pageRank(projection).map((entry) => [entry.nodeId, entry]));
+  const advancedBetweenness = new Map(
+    betweennessCentrality(projection).map((entry) => [entry.nodeId, entry]),
+  );
+  const articulationPointIds = new Set(articulationPoints(projection));
+  const influenceScores = rankScores(nodes.map((node) => {
+    const pageRankScore = advancedPageRank.get(node.id)?.score ?? 0;
+    const betweennessScore = advancedBetweenness.get(node.id)?.score ?? 0;
+    const articulationBoost = articulationPointIds.has(node.id) ? 0.15 : 0;
+    return {
+      nodeId: node.id,
+      score: clamp01(
+        (pageRankScore * 0.55)
+          + (betweennessScore * 0.3)
+          + articulationBoost,
+      ),
+    };
+  }));
   const clusters = clusterDetection(nodes, edges);
   const strengths = relationshipStrength(nodes, edges);
   const clusterByNode = new Map<string, GraphCluster>();
@@ -319,21 +373,38 @@ export function deriveGraphInsights(
 
   const insights: GraphInsightRecord[] = [];
 
-  for (const entry of centrality.slice(0, Math.max(1, Math.ceil(centrality.length * 0.1)))) {
+  for (const entry of influenceScores.slice(0, Math.max(1, Math.ceil(influenceScores.length * 0.1)))) {
     if (entry.score < 0.45) {
       continue;
+    }
+
+    const pageRankScore = advancedPageRank.get(entry.nodeId)?.score ?? 0;
+    const betweennessScore = advancedBetweenness.get(entry.nodeId)?.score ?? 0;
+    const reasons = [];
+    if (pageRankScore >= 0.5) {
+      reasons.push('pagerank');
+    }
+    if (betweennessScore >= 0.5) {
+      reasons.push('betweenness');
+    }
+    if (articulationPointIds.has(entry.nodeId)) {
+      reasons.push('articulation_point');
     }
 
     insights.push({
       nodeId: entry.nodeId,
       insightType: 'HIGH_INFLUENCE_NODE',
       confidence: entry.score,
-      explanation: `${nodeById.get(entry.nodeId)?.label ?? entry.nodeId} influences a disproportionate share of graph relationships.`,
+      explanation: `${nodeById.get(entry.nodeId)?.label ?? entry.nodeId} sits on high-traffic trust paths and exerts disproportionate network influence.`,
       relatedNodeIds: [...(buildAdjacency(edges).get(entry.nodeId) ?? [])].slice(0, 8),
       insightScore: entry.score,
       timestamp,
       metadata: {
         rank: entry.rank,
+        pageRank: pageRankScore,
+        betweennessCentrality: betweennessScore,
+        articulationPoint: articulationPointIds.has(entry.nodeId),
+        reasons,
       },
     });
   }

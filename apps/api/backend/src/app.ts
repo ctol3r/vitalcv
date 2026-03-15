@@ -139,6 +139,7 @@ import { registerFindingsRoutes } from './routes/findings';                  // 
 import { registerActionsRoutes } from './routes/actions';                    // Waves C49-C51: Action engine API
 import { registerStorylineRoutes } from './routes/storylines';               // Wave ST: Storyline engine
 import { registerDetailAgentRoutes } from './routes/detailAgents';           // Wave DT: Detail agents
+import { registerPollingRoutes } from './routes/polling';                    // Wave POLL: Polling scheduler
 import { registerEmployerRoutes } from './routes/employers';                 // Wave 186: Employer Knowledge Layer
 import { registerPrequalificationRoutes } from './routes/prequalification';  // Wave 189: AI Interview, Assessments, Prequalification
 import { registerVerifierPipelineRoutes } from './routes/verifierPipeline';  // Wave 190: Apply with VitalCV + ATS + Verifier Pipeline
@@ -432,6 +433,9 @@ const ENTERPRISE_MODE = parseBooleanEnv(process.env.ENTERPRISE_MODE, false);
 const PILOT_MODE = parseBooleanEnv(process.env.PILOT_MODE, false);
 const SYSTEM_FROZEN = parseBooleanEnv(process.env.SYSTEM_FROZEN, false);
 const YC_DEMO_MODE = parseBooleanEnv(process.env.YC_DEMO_MODE, false);
+const BACKGROUND_JOBS_ENABLED =
+  process.env.NODE_ENV !== 'test'
+  && !parseBooleanEnv(process.env.DISABLE_BACKGROUND_JOBS, false);
 
 const COMPLIANCE_SUMMARY: ComplianceSummary = {
   ncqaAlignment: true,
@@ -3583,6 +3587,7 @@ registerFindingsRoutes(app);         // Wave AI — Autonomous investigators + f
 registerActionsRoutes(app);          // Waves C49-C51 — Action engine API
 registerStorylineRoutes(app);        // Wave ST — Storyline intelligence narratives
 registerDetailAgentRoutes(app);      // Wave DT — Detail agents + system health
+registerPollingRoutes(app);          // Wave POLL — Polling scheduler
 registerEmployerRoutes(app);          // Wave 186 — Employer Knowledge Layer
 registerPrequalificationRoutes(app);  // Wave 189 — AI Interview, Assessments, Prequalification
 registerVerifierPipelineRoutes(app);  // Wave 190 — Apply with VitalCV + ATS + Verifier Pipeline
@@ -3595,8 +3600,10 @@ registerCapacityRoutes(app);             // Wave 240 — Capacity Score MVP
 registerOigRoutes(app);                  // Wave 241 — OIG/LEIE Exclusion Check
 registerTrustStateEngineRoutes(app);     // Wave 243 — Trust State Engine
 registerAsyncTrustRoutes(app);           // Wave 245 — Async Trust Engine
-startMonitoringScheduler();              // Wave 245 — Monitoring Scheduler (MONITORING_ENABLED gated)
-startInvestigatorScheduler();            // Waves C41-C44 — Investigator scheduler heartbeat
+if (BACKGROUND_JOBS_ENABLED) {
+  startMonitoringScheduler();            // Wave 245 — Monitoring Scheduler (MONITORING_ENABLED gated)
+  startInvestigatorScheduler();          // Waves C41-C44 — Investigator scheduler heartbeat
+}
 registerApplyRoutes(app);                // Wave 246 — Apply-with-VitalCV Distribution Wedge
 registerSystemHealthRoutes(app);         // Wave 249 — Trust Spine Hardening
 registerVelocityRoutes(app);             // Wave 250 — Time-to-Start Velocity Dashboard
@@ -3627,7 +3634,7 @@ registerPassportAnalyticsRoutes(app);   // Wave 167 — Passport Analytics
 registerWalletExportRoutes(app);       // Wave 154 — Wallet Interoperability Bridge
 registerComplianceCopilotRoutes(app);  // Wave 157 — Compliance Co-Pilot
 
-if (process.env.NODE_ENV !== 'test') {
+if (BACKGROUND_JOBS_ENABLED) {
   // Avoid open handles and unrelated database chatter during Jest runs.
   startAnchorWorker();
   startContinuousMonitor();
@@ -3676,5 +3683,11 @@ initInvestigators();
 // ── Initialize detail agents ─────────────────────────────────────────────────
 import { initDetailAgents } from './services/detailAgents/detailAgentEngine';
 initDetailAgents();
+
+// ── Initialize polling scheduler ─────────────────────────────────────────────
+import { initPollingScheduler } from './services/polling/pollingScheduler';
+if (process.env.POLLING_ENABLED === 'true') {
+  initPollingScheduler();
+}
 
 export default app;

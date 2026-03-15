@@ -8,7 +8,7 @@
   "scripts": {
     "db:migrate:deploy": "pnpm exec prisma migrate deploy",
     "dev": "pnpm exec prisma generate && ts-node src/server.ts",
-    "build": "pnpm exec prisma generate && tsc",
+    "build": "pnpm exec prisma generate && tsc && pnpm exec ts-node src/qa/runQaSuite.ts",
     "graph:bench": "pnpm exec ts-node src/tools/graphBench.ts",
     "start": "node dist/apps/api/backend/src/server.js",
     "test": "bash ../../../scripts/backend-test-db.sh",

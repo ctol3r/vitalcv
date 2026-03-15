@@ -2,8 +2,15 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import { invalidateGraphSnapshots } from '../services/graph-engine/invalidation';
 import { createGraphNodeId } from '../services/graph-engine/ids';
 import { invalidateTrustStateCache } from '../services/trust/trustStateCache';
+import { recordDatabaseQuerySample } from '../qa/performanceWatchers';
 
 const prisma = new PrismaClient();
+
+type PrismaMiddlewareParams = {
+  model?: string;
+  action: string;
+  args?: unknown;
+};
 
 const INVALIDATION_ACTIONS = new Set(['create', 'update', 'upsert', 'delete']);
 const GRAPH_INVALIDATION_MODELS = new Set([
@@ -133,7 +140,7 @@ async function resolveWorkspaceMembershipGraphNodes(
 
 async function extractGraphInvalidationTargets(
   prismaClient: PrismaClient,
-  params: Prisma.MiddlewareParams,
+  params: PrismaMiddlewareParams,
   result: unknown,
 ): Promise<null | {
   reason: string;
@@ -298,7 +305,7 @@ async function extractGraphInvalidationTargets(
 }
 
 function extractTrustStateCacheKey(
-  params: Prisma.MiddlewareParams,
+  params: PrismaMiddlewareParams,
   result: unknown,
 ): string | null {
   if (params.model === 'CandidateCredential') {
@@ -323,12 +330,27 @@ function extractTrustStateCacheKey(
 }
 
 const prismaWithMiddleware = prisma as PrismaClient & {
-  $use?: (middleware: (params: Prisma.MiddlewareParams, next: (params: Prisma.MiddlewareParams) => Promise<unknown>) => Promise<unknown>) => void;
+  $use?: (
+    middleware: (
+      params: PrismaMiddlewareParams,
+      next: (params: PrismaMiddlewareParams) => Promise<unknown>,
+    ) => Promise<unknown>,
+  ) => void;
 };
 
 if (typeof prismaWithMiddleware.$use === 'function') {
   prismaWithMiddleware.$use(async (params, next) => {
+    const startedAt = Date.now();
     const result = await next(params);
+    const durationMs = Date.now() - startedAt;
+
+    if (params.model) {
+      recordDatabaseQuerySample({
+        model: params.model,
+        action: params.action,
+        durationMs,
+      });
+    }
 
     if (
       params.model

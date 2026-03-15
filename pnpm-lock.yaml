@@ -819,6 +819,12 @@ importers:
         specifier: ^5.0.0
         version: 5.9.3
 
+  packages/graph-core:
+    devDependencies:
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+
   packages/haip-config:
     devDependencies:
       '@types/node':

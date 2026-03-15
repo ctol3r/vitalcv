@@ -12,8 +12,13 @@ const APP_READY_MESSAGE = 'Server ready';
 // Minimal structured logger for the early boot phase — no dependencies.
 function earlyLog(level: string, message: string, fields?: Record<string, unknown>): void {
   const payload = { level, message, timestamp: new Date().toISOString(), ...fields };
-  // eslint-disable-next-line no-console
-  console[level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log'](JSON.stringify(payload));
+  const line = `${JSON.stringify(payload)}\n`;
+  if (level === 'error' || level === 'warn') {
+    process.stderr.write(line);
+    return;
+  }
+
+  process.stdout.write(line);
 }
 
 // ── Bind a bare HTTP server immediately so the health probe passes ──
@@ -173,6 +178,7 @@ async function bootstrapApp() {
   const { loadEnv } = await import('./config/env');
   const { initializeTelemetry, shutdownTelemetry } = await import('./telemetry');
   const { runMonitoringCycle } = await import('../jobs/monitoringJob');
+  const { startQaAutomationRuntime } = await import('./qa/qaRuntime');
   const Sentry = await import('@sentry/node');
   const cronMod = await import('node-cron');
 
@@ -244,6 +250,10 @@ async function bootstrapApp() {
       frozen: config.SYSTEM_FROZEN,
       railway_branch: RAILWAY_BRANCH,
       railway_sha: RAILWAY_SHA,
+    });
+    startQaAutomationRuntime({
+      app,
+      baseUrl: `http://127.0.0.1:${PORT}`,
     });
 
     // Wave 2D: Schedule monitoring cycle every 24 hours (midnight UTC)

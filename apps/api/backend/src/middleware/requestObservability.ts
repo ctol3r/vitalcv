@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import type { NextFunction, Request, Response } from 'express';
 import { requestLatencyMetrics } from '../observability/requestMetrics';
 import { log } from '../obs/logger';
+import { recordApiLatencySample } from '../qa/performanceWatchers';
 
 function buildRequestLog(
   requestId: string,
@@ -33,6 +34,11 @@ export function requestObservability(req: Request, res: Response, next: NextFunc
     const elapsedNs = process.hrtime.bigint() - startedAt;
     const latencyMs = Number(elapsedNs) / 1_000_000;
     requestLatencyMetrics.record(latencyMs, res.statusCode);
+    recordApiLatencySample({
+      routeKey: `${req.method} ${req.route?.path ?? req.path}`,
+      latencyMs,
+      statusCode: res.statusCode,
+    });
 
     if (res.statusCode >= 500) {
       log('error', 'http_request_error', buildRequestLog(requestId, req, res, latencyMs));

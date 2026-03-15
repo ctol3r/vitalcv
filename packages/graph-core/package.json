@@ -1,0 +1,15 @@
+{
+  "name": "@vitalcv/graph-core",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "scripts": {
+    "build": "../../packages/domain/node_modules/.bin/tsc --noEmit",
+    "typecheck": "../../packages/domain/node_modules/.bin/tsc --noEmit",
+    "test": "../../apps/api/backend/node_modules/.bin/ts-node --transpile-only __tests__/graphCore.test.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

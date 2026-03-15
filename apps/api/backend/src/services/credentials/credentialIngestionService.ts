@@ -38,6 +38,7 @@ import {
   CredentialIngestionRepository,
   PrismaCredentialIngestionRepository,
 } from '../../../repositories/credentialIngestion.repo';
+import { queueQaSweep } from '../../qa/qaRuntime';
 
 const NPI_RE = /^\d{10}$/;
 const npiRegistryAdapter = new NpiRegistryAdapter();
@@ -213,6 +214,13 @@ function buildCredentialIngestionResult(
   };
 }
 
+function queuePostIngestionQaSweep(npi: string): void {
+  queueQaSweep({
+    trigger: 'ingestion',
+    targetNpi: npi,
+  });
+}
+
 async function getActiveCredentials(npi: string): Promise<ActiveCredentialArtifactRecord[]> {
   return repository.findActiveCredentialsByNpi(npi);
 }
@@ -316,6 +324,7 @@ export async function ingestNpiProfile(npi: string): Promise<CredentialIngestion
     idempotent: persisted.idempotent,
     verificationRunId: persisted.verificationRunId,
   });
+  queuePostIngestionQaSweep(normalizedNpi);
 
   return buildCredentialIngestionResult(persisted, normalizedNpi, 'npi-registry');
 }
@@ -417,6 +426,7 @@ export async function ingestOigStatus(npi: string): Promise<CredentialIngestionR
     idempotent: persisted.idempotent,
     verificationRunId: persisted.verificationRunId,
   });
+  queuePostIngestionQaSweep(normalizedNpi);
 
   return buildCredentialIngestionResult(persisted, normalizedNpi, 'oig');
 }
@@ -522,6 +532,7 @@ export async function ingestLicenseVerification(
     idempotent: persisted.idempotent,
     verificationRunId: persisted.verificationRunId,
   });
+  queuePostIngestionQaSweep(normalizedNpi);
 
   return buildCredentialIngestionResult(persisted, normalizedNpi, 'state-board');
 }
