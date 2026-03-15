@@ -22,6 +22,7 @@ import {
 import { buildIdentitySummary } from '../services/identity/evidenceModel';
 import { listSources, getSource } from '../services/identity/sourceCatalog';
 import { monitorClinicianIdentity, monitorAllTrackedClinicians } from '../services/identity/changeMonitor';
+import { getEnrichedTrustIntelligence } from '../services/identity/trustStateBridge';
 import { getWatchtowerState, registerWatchlist } from '../services/identity/watchtowerEngine';
 import { listWatchlists } from '../services/identity/watchtowerStore';
 import prisma from '../graphql/prisma_client';
@@ -454,6 +455,40 @@ export function registerIdentityLayerRoutes(app: Express): void {
     } catch (err) {
       log('error', 'identity: batch monitor failed', { error: String(err) });
       res.status(500).json({ error: 'Batch monitor failed' });
+    }
+  });
+
+  /**
+   * GET /api/identity/:npi/enriched
+   *
+   * Identity-enriched trust intelligence — the bridge between the identity
+   * layer and the trust state engine. Returns structured verdicts,
+   * confidence scores, monitoring alerts, and actionable recommendations.
+   *
+   * Query: ?ingestIfStale=true — re-ingest sources past their SLA
+   */
+  app.get('/api/identity/:npi([0-9]{10})/enriched', async (req: Request, res: Response) => {
+    const { npi } = req.params;
+    const ingestIfStale = req.query.ingestIfStale === 'true';
+
+    try {
+      const result = await getEnrichedTrustIntelligence(npi, { ingestIfStale });
+      const statusCode = result.enrichment.criticalAlerts > 0 ? 207 : 200;
+
+      res.status(statusCode).json({
+        schema: 'https://vitalcv.com/identity-enriched/v1',
+        ...result,
+        links: {
+          identity:   `/api/identity/${npi}`,
+          claims:     `/api/identity/${npi}/claims`,
+          monitor:    `/api/identity/${npi}/monitor`,
+          trustState: `/api/trust-state/${npi}`,
+          ingest:     `/api/identity/${npi}/ingest`,
+        },
+      });
+    } catch (err) {
+      log('error', 'identity: enriched GET failed', { npi, error: String(err) });
+      res.status(500).json({ error: 'Enriched trust intelligence failed' });
     }
   });
 }

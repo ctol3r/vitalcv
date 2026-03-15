@@ -1,417 +1,1508 @@
 /**
- * identityIngestionPipeline.ts — Multi-Source Identity Ingestion Orchestrator
+ * identityIngestionPipeline.ts — Multi-source identity ingestion orchestrator
  *
  * Pipeline stages for each source:
- *   1. FETCH    — call the source API; capture raw response + checksum
- *   2. STORE    — persist raw artifact to VerificationArtifact (append-only)
- *   3. PARSE    — run the source parser → NormalizedClaim[] + VerificationReceipt[]
- *   4. EMBED    — attach claims + receipts to the artifact rawPayload._claims
- *   5. DELTA    — compare new claims to prior claims; emit change events
- *   6. INDEX    — update PersonProfile.metadata.identity (canonical summary)
+ *   1. FETCH    — capture raw response + checksum + source metadata
+ *   2. STORE    — persist append-only VerificationArtifact + SourceRecord
+ *   3. PARSE    — derive claims + receipts with parser_version
+ *   4. NORMALIZE — persist ClaimRecord + VerificationReceiptRecord
+ *   5. DELTA    — compare against the prior artifact for the same source
+ *   6. INDEX    — append a new IDENTITY_INDEX VerificationArtifact
  *
- * Sources run concurrently per stage. If a source fails, it is quarantined
- * with status='FAILED' — it does not corrupt other sources or the index.
- *
- * Gold sources that fail do NOT degrade the canonical index;
- * they mark the affected claim types as stale pending retry.
+ * PersonProfile remains canonical and stable; resolver/index metadata never
+ * leaks into it. Identity index state lives in append-only artifacts.
  */
 
 import { createHash } from 'node:crypto';
-import prisma from '../../graphql/prisma_client';
+import prisma, { Prisma } from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
 import {
+  checksumOf,
   parseNppesResult,
   parseOigResult,
   parsePecosRecord,
-  parseOpenAlexAuthor,
-  checksumOf,
   type NormalizedClaim,
+  type VerificationReceipt,
 } from './claimEngine';
 import {
-  buildIdentitySummary,
-  type CanonicalIdentitySummary,
-} from './evidenceModel';
-import { getSource } from './sourceCatalog';
-
-// ── Types ─────────────────────────────────────────────────────────────────────
+  fetchOpenPayments, parseOpenPayments,
+  fetchSamGov, parseSamGovResult,
+  fetchDoctorsAndClinicians, parseDoctorsAndClinicians,
+} from './phase2Sources';
+import { buildIdentitySummary, type CanonicalIdentitySummary } from './evidenceModel';
+import {
+  appendIdentityIndexArtifact,
+  loadClaimRecordsForNpi,
+  loadVerificationReceiptRecordsForNpi,
+  persistClaimRecords,
+  persistIdentityClaimDeltas,
+  persistSourceRecord,
+  persistVerificationReceiptRecords,
+  recordIdentityResolutionDecision,
+  updateClaimRecordState,
+  type IdentityIngestionStatus,
+} from './identityStore';
+import { getSource, type EvidenceTier } from './sourceCatalog';
+import {
+  emitWatchtowerArtifactsForPersistedDeltas,
+  recordSkippedSourceWatchtower,
+  scanSourceStalenessForNpi,
+} from './watchtowerEngine';
 
 export interface IngestionResult {
-  npi:          string;
-  source:       string;
-  artifactId:   string | null;
+  npi: string;
+  source: string;
+  artifactId: string | null;
+  sourceRunId?: string;
+  sourceRecordId?: string;
+  claimIds?: readonly string[];
   claimsEmitted: number;
-  deltaEvents:  DeltaEvent[];
-  status:       'SUCCESS' | 'SKIPPED' | 'FAILED';
-  latencyMs:    number;
-  error?:       string;
+  deltaEvents: DeltaEvent[];
+  status: 'SUCCESS' | 'SKIPPED' | 'FAILED';
+  latencyMs: number;
+  error?: string;
 }
 
 export interface DeltaEvent {
-  type: 'CLAIM_ADDED' | 'CLAIM_CHANGED' | 'CLAIM_EXPIRED' | 'EXCLUSION_DETECTED' | 'LICENSE_STATUS_CHANGED';
+  type:
+    | 'CLAIM_ADDED'
+    | 'CLAIM_CHANGED'
+    | 'CLAIM_EXPIRED'
+    | 'EXCLUSION_DETECTED'
+    | 'LICENSE_STATUS_CHANGED'
+    | 'NEW_SANCTION_HIT'
+    | 'NEW_PAYMENT_RELATIONSHIP'
+    | 'PROVIDER_MOVED_ORGANIZATION'
+    | 'PROVIDER_MOVED_LOCATION'
+    | 'LICENSE_STATE_CHANGED'
+    | 'BOARD_CERT_STATUS_CHANGED'
+    | 'SOURCE_STALE'
+    | 'SOURCE_DISAPPEARED';
   claimType: string;
   previous: unknown;
-  current:  unknown;
+  current: unknown;
   severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+  fieldPath?: string;
 }
 
 export interface FullIngestionReport {
-  npi:           string;
-  triggeredAt:   string;
-  durationMs:    number;
-  sourcesRun:    number;
-  sourcesOk:     number;
+  npi: string;
+  triggeredAt: string;
+  durationMs: number;
+  sourcesRun: number;
+  sourcesOk: number;
   sourcesFailed: number;
-  claimsTotal:   number;
-  deltaEvents:   DeltaEvent[];
-  results:       IngestionResult[];
-  identity:      CanonicalIdentitySummary | null;
+  claimsTotal: number;
+  deltaEvents: DeltaEvent[];
+  results: IngestionResult[];
+  identity: CanonicalIdentitySummary | null;
 }
 
-// ── NPPES API fetcher ─────────────────────────────────────────────────────────
+type SourceFetchResult = Readonly<{
+  raw: unknown;
+  checksum: string;
+  fetchedAt: string;
+  sourceUrl: string;
+  fetchHeaders: Record<string, string>;
+}>;
 
-async function fetchNppes(npi: string): Promise<{ raw: unknown; checksum: string }> {
-  const url  = `https://npiregistry.cms.hhs.gov/api/?number=${npi}&version=2.1`;
-  const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
-  if (!resp.ok) throw new Error(`NPPES API returned ${resp.status}`);
-  const raw  = await resp.json();
-  return { raw, checksum: checksumOf(raw) };
+type ParsedSourceResult = Readonly<{
+  status: 'SUCCESS' | 'SKIPPED';
+  claims: readonly NormalizedClaim[];
+  receipts: readonly VerificationReceipt[];
+  matchingStrategy: string;
+  mergeReason?: string;
+  conflictReason?: string;
+}>;
+
+type ExistingArtifactRecord = Readonly<{
+  id: string;
+  checksum: string;
+  rawPayload: Prisma.JsonValue | null;
+}>;
+
+type DeltaEventWithLineage = DeltaEvent & Readonly<{
+  previousClaimId?: string | null;
+  currentClaimId?: string | null;
+  trustTier?: EvidenceTier | null;
+  matchingStrategy?: string;
+  mergeReason?: string;
+  conflictReason?: string;
+}>;
+
+type PersistableDeltaEventWithLineage = DeltaEventWithLineage & Readonly<{
+  type:
+    | 'CLAIM_ADDED'
+    | 'CLAIM_CHANGED'
+    | 'CLAIM_EXPIRED'
+    | 'EXCLUSION_DETECTED'
+    | 'LICENSE_STATUS_CHANGED'
+    | 'NEW_SANCTION_HIT'
+    | 'NEW_PAYMENT_RELATIONSHIP'
+    | 'PROVIDER_MOVED_ORGANIZATION'
+    | 'PROVIDER_MOVED_LOCATION'
+    | 'LICENSE_STATE_CHANGED'
+    | 'BOARD_CERT_STATUS_CHANGED';
+}>;
+
+type ClaimTransition = Readonly<{
+  claimId: string;
+  status: 'SUPERSEDED' | 'EXPIRED';
+  supersededByClaimId?: string | null;
+  expiresAt?: string | null;
+}>;
+
+type ClaimComparisonResult = Readonly<{
+  claims: readonly NormalizedClaim[];
+  deltaEvents: readonly DeltaEventWithLineage[];
+  transitions: readonly ClaimTransition[];
+}>;
+
+type SourceHandler = (npi: string, observedAt: string) => Promise<IngestionResult>;
+
+type IdentityPipelinePrismaClient = {
+  sourceRun: {
+    create(args: Record<string, unknown>): Promise<{ id: string }>;
+    update(args: Record<string, unknown>): Promise<unknown>;
+  };
+  fetchJob: {
+    create(args: Record<string, unknown>): Promise<{ id: string }>;
+    update(args: Record<string, unknown>): Promise<unknown>;
+  };
+  parseJob: {
+    create(args: Record<string, unknown>): Promise<{ id: string }>;
+    update(args: Record<string, unknown>): Promise<unknown>;
+  };
+  claimDerivationJob: {
+    create(args: Record<string, unknown>): Promise<{ id: string }>;
+    update(args: Record<string, unknown>): Promise<unknown>;
+  };
+  deltaDetectionJob: {
+    create(args: Record<string, unknown>): Promise<{ id: string }>;
+    update(args: Record<string, unknown>): Promise<unknown>;
+  };
+  alertJob: {
+    create(args: Record<string, unknown>): Promise<{ id: string }>;
+    update(args: Record<string, unknown>): Promise<unknown>;
+  };
+  sourceRecord: {
+    update(args: Record<string, unknown>): Promise<unknown>;
+  };
+  verificationArtifact: {
+    findFirst(args: Record<string, unknown>): Promise<ExistingArtifactRecord | null>;
+    create(args: Record<string, unknown>): Promise<{ id: string }>;
+    update(args: Record<string, unknown>): Promise<unknown>;
+  };
+  auditEvent: {
+    create(args: Record<string, unknown>): Promise<unknown>;
+  };
+};
+
+const identityPrisma = prisma as unknown as IdentityPipelinePrismaClient;
+
+function toJsonValue(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
-// ── OIG LEIE fetcher ──────────────────────────────────────────────────────────
+function deterministicHex(value: unknown): string {
+  return createHash('sha256').update(JSON.stringify(value)).digest('hex');
+}
 
-async function fetchOig(npi: string): Promise<{ raw: unknown; checksum: string }> {
-  // OIG has a public search endpoint; try NPI lookup via the exclusion search API
-  const url  = `https://oig.hhs.gov/exclusions/api/?npi=${npi}`;
-  try {
-    const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
-    if (!resp.ok) {
-      // OIG API not available — return uncertain result rather than silently passing
-      return { raw: { matchType: undefined, excluded: false, _apiUnavailable: true }, checksum: checksumOf({ npi, status: 'API_UNAVAILABLE' }) };
-    }
-    const raw = await resp.json();
-    return { raw, checksum: checksumOf(raw) };
-  } catch {
-    return { raw: { matchType: undefined, excluded: false, _apiUnavailable: true }, checksum: checksumOf({ npi, ts: Date.now() }) };
+function isPersistableDeltaEvent(event: DeltaEventWithLineage): event is PersistableDeltaEventWithLineage {
+  return event.type !== 'SOURCE_STALE' && event.type !== 'SOURCE_DISAPPEARED';
+}
+
+function deterministicUuid(seed: string): string {
+  const hex = deterministicHex(seed);
+  const variant = ['8', '9', 'a', 'b'][parseInt(hex.slice(16, 17), 16) % 4];
+
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    `4${hex.slice(13, 16)}`,
+    `${variant}${hex.slice(17, 20)}`,
+    hex.slice(20, 32),
+  ].join('-');
+}
+
+function headersToObject(headers: Headers): Record<string, string> {
+  const result: Record<string, string> = {};
+  headers.forEach((value, key) => {
+    result[key] = value;
+  });
+  return result;
+}
+
+function asObject(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
   }
+
+  return { value };
 }
 
-// ── PECOS public enrollment fetcher ──────────────────────────────────────────
-
-async function fetchPecos(npi: string): Promise<{ raw: unknown; checksum: string }> {
-  // CMS data.cms.gov API — query the public enrollment file by NPI
-  const url = `https://data.cms.gov/data-api/v1/dataset/2457ea29-fc82-48b0-86ec-3b0755de7515/data?filter[NPI]=${npi}&size=5`;
-  try {
-    const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
-    if (!resp.ok) throw new Error(`PECOS API ${resp.status}`);
-    const data = await resp.json() as unknown[];
-    const row  = Array.isArray(data) && data.length > 0 ? data[0] as Record<string, unknown> : null;
-    const raw  = row
-      ? { enrolled: true, enrollmentType: row['ENRLMT_CLSFCTN_TYPE_DESC'] ?? null, eligibleToOrderRefer: row['GNDR_CD'] !== undefined, source: 'PECOS', npi }
-      : { enrolled: false, enrollmentType: null, eligibleToOrderRefer: null, source: 'PECOS', npi };
-    return { raw, checksum: checksumOf(raw) };
-  } catch (err) {
-    // PECOS API unavailable — return unverified enrollment
-    log('warn', 'identityPipeline: PECOS fetch failed', { npi, error: String(err) });
-    return { raw: { enrolled: false, enrollmentType: null, source: 'PECOS_UNAVAILABLE', npi }, checksum: checksumOf({ npi, ts: Date.now() }) };
+function computeRefreshExpiry(sourceId: string, timestamp: string): string | null {
+  const source = getSource(sourceId);
+  if (!source) {
+    return null;
   }
+
+  const base = Date.parse(timestamp);
+  if (!Number.isFinite(base)) {
+    return null;
+  }
+
+  return new Date(base + source.refreshSlaHours * 60 * 60 * 1000).toISOString();
 }
 
-// ── OpenAlex author fetcher ───────────────────────────────────────────────────
+function extractClaimsFromArtifact(artifact: ExistingArtifactRecord): {
+  claims: NormalizedClaim[];
+  receipts: VerificationReceipt[];
+} {
+  const rawPayload = asObject(artifact.rawPayload);
 
-async function fetchOpenAlexByName(
-  firstName: string,
-  lastName: string,
-): Promise<{ raw: unknown; checksum: string }> {
-  const query = encodeURIComponent(`${firstName} ${lastName}`);
-  const url   = `https://api.openalex.org/authors?search=${query}&per_page=1&mailto=hello@vitalcv.com`;
-  const resp  = await fetch(url, { headers: { 'Accept': 'application/json' } });
-  if (!resp.ok) throw new Error(`OpenAlex API ${resp.status}`);
-  const data  = await resp.json() as { results?: unknown[] };
-  const first = data.results?.[0] ?? null;
-  return { raw: first, checksum: checksumOf(first) };
+  return {
+    claims: ((rawPayload._claims ?? []) as NormalizedClaim[]).map((claim) => ({
+      ...claim,
+      artifactId: claim.artifactId || artifact.id,
+      artifactChecksum: claim.artifactChecksum || artifact.checksum,
+    })),
+    receipts: ((rawPayload._receipts ?? []) as VerificationReceipt[]).map((receipt) => ({
+      ...receipt,
+      source_artifact_id: receipt.source_artifact_id || artifact.id,
+    })),
+  };
 }
 
-// ── Store artifact ────────────────────────────────────────────────────────────
+function computeIdentityIndexConfidence(claims: readonly NormalizedClaim[]): number {
+  if (claims.length === 0) {
+    return 0;
+  }
 
-async function storeArtifact(
+  const weightedScore = claims.reduce((total, claim) => {
+    if (claim.tier === 'GOLD') return total + 1;
+    if (claim.tier === 'SILVER') return total + 0.66;
+    return total + 0.33;
+  }, 0);
+
+  return Number((weightedScore / claims.length).toFixed(2));
+}
+
+async function updateSourceRun(
+  sourceRunId: string,
+  status: IdentityIngestionStatus,
+  data?: {
+    lastError?: string | null;
+    quarantineReason?: string | null;
+    runSummary?: Record<string, unknown>;
+    completedAt?: Date | null;
+  },
+): Promise<void> {
+  await identityPrisma.sourceRun.update({
+    where: { id: sourceRunId },
+    data: {
+      status,
+      ...(typeof data?.lastError !== 'undefined' ? { lastError: data.lastError } : {}),
+      ...(typeof data?.quarantineReason !== 'undefined'
+        ? { quarantineReason: data.quarantineReason }
+        : {}),
+      ...(typeof data?.completedAt !== 'undefined' ? { completedAt: data.completedAt } : {}),
+      ...(data?.runSummary ? { runSummary: toJsonValue(data.runSummary) } : {}),
+    },
+  });
+}
+
+async function findExistingArtifact(
   npi: string,
   sourceId: string,
-  raw: unknown,
   checksum: string,
-  claims: NormalizedClaim[],
-  receipts: unknown[],
-): Promise<string> {
-  const source = getSource(sourceId);
-
-  // Check if identical artifact already exists
-  const existing = await prisma.verificationArtifact.findFirst({
+): Promise<ExistingArtifactRecord | null> {
+  return identityPrisma.verificationArtifact.findFirst({
     where: { npi, source: sourceId, checksum },
-    select: { id: true },
+    select: { id: true, checksum: true, rawPayload: true },
   });
-  if (existing) return existing.id;  // idempotent — same raw = no new artifact
+}
 
-  const rawWithMeta = {
-    ...(raw as Record<string, unknown>),
-    _sourceId:      sourceId,
-    _sourceTier:    source?.tier ?? 'BRONZE',
-    _parserVersion: source?.parserVersion ?? 'unknown',
-    _claims:        claims,
-    _receipts:      receipts,
-    _ingestedAt:    new Date().toISOString(),
+async function storeArtifact(input: {
+  artifactId: string;
+  npi: string;
+  sourceId: string;
+  raw: unknown;
+  checksum: string;
+  claims: readonly NormalizedClaim[];
+  receipts: readonly VerificationReceipt[];
+  fetchedAt: string;
+  observedAt: string;
+  sourceUrl: string;
+  fetchHeaders: Record<string, string>;
+  sourceRunId: string;
+  sourceRecordId?: string;
+  parserVersion: string;
+  matchingStrategy: string;
+  status: 'ACTIVE' | 'NOT_FOUND';
+  mergeReason?: string;
+  conflictReason?: string;
+}): Promise<{ id: string }> {
+  const source = getSource(input.sourceId);
+  const rawPayload = {
+    ...asObject(input.raw),
+    _sourceId: input.sourceId,
+    _sourceTier: source?.tier ?? 'BRONZE',
+    _parserVersion: input.parserVersion,
+    _claims: input.claims,
+    _receipts: input.receipts,
+    _ingestedAt: input.observedAt,
+    _sourceRunId: input.sourceRunId,
+    _sourceRecordId: input.sourceRecordId ?? null,
   };
 
-  const artifact = await prisma.verificationArtifact.create({
+  const artifact = await identityPrisma.verificationArtifact.create({
     data: {
-      npi,
-      source:      sourceId,
-      status:      'ACTIVE',
-      rawPayload:  JSON.parse(JSON.stringify(rawWithMeta)),
-      checksum,
-      merkleRoot:  null,
+      id: input.artifactId,
+      npi: input.npi,
+      source: input.sourceId,
+      status: input.status,
+      artifactType: 'SOURCE_CAPTURE',
+      parserVersion: input.parserVersion,
+      matchingStrategy: input.matchingStrategy,
+      trustTier: source?.tier ?? 'BRONZE',
+      mergeReason: input.mergeReason ?? null,
+      conflictReason: input.conflictReason ?? null,
+      sourceRunId: input.sourceRunId,
+      sourceRecordId: input.sourceRecordId ?? null,
+      sourceUrl: input.sourceUrl,
+      fetchHeaders: toJsonValue(input.fetchHeaders),
+      fetchedAt: new Date(input.fetchedAt),
+      observedAt: new Date(input.observedAt),
+      rawPayload: toJsonValue(rawPayload),
+      checksum: input.checksum,
+      claimHashes: toJsonValue(
+        input.claims.map((claim) => ({
+          claimId: claim.claimId,
+          claimType: claim.claimType,
+        })),
+      ),
       lifecycleState: 'active',
-      verifiedAt:  new Date(),
+      verifiedAt: new Date(input.observedAt),
+      expiresAt: computeRefreshExpiry(input.sourceId, input.observedAt)
+        ? new Date(computeRefreshExpiry(input.sourceId, input.observedAt)!)
+        : null,
     },
     select: { id: true },
   });
 
-  return artifact.id;
+  return { id: artifact.id };
 }
 
-// ── Delta detection (claim-level) ─────────────────────────────────────────────
+async function fetchNppes(npi: string): Promise<SourceFetchResult> {
+  const sourceUrl = `https://npiregistry.cms.hhs.gov/api/?number=${npi}&version=2.1`;
+  const resp = await fetch(sourceUrl, { headers: { Accept: 'application/json' } });
+  if (!resp.ok) {
+    throw new Error(`NPPES API returned ${resp.status}`);
+  }
 
-async function detectClaimDelta(npi: string, sourceId: string, newClaims: NormalizedClaim[]): Promise<DeltaEvent[]> {
-  // Find the most recent prior artifact for this source
-  const prior = await prisma.verificationArtifact.findFirst({
-    where: { npi, source: sourceId, lifecycleState: 'active' },
+  const raw = await resp.json();
+  return {
+    raw,
+    checksum: checksumOf(raw),
+    fetchedAt: new Date().toISOString(),
+    sourceUrl,
+    fetchHeaders: headersToObject(resp.headers),
+  };
+}
+
+async function fetchOig(npi: string): Promise<SourceFetchResult> {
+  const sourceUrl = `https://oig.hhs.gov/exclusions/api/?npi=${npi}`;
+  try {
+    const resp = await fetch(sourceUrl, { headers: { Accept: 'application/json' } });
+    if (!resp.ok) {
+      const raw = { matchType: undefined, excluded: false, _apiUnavailable: true };
+      return {
+        raw,
+        checksum: checksumOf({ npi, status: 'API_UNAVAILABLE' }),
+        fetchedAt: new Date().toISOString(),
+        sourceUrl,
+        fetchHeaders: headersToObject(resp.headers),
+      };
+    }
+
+    const raw = await resp.json();
+    return {
+      raw,
+      checksum: checksumOf(raw),
+      fetchedAt: new Date().toISOString(),
+      sourceUrl,
+      fetchHeaders: headersToObject(resp.headers),
+    };
+  } catch {
+    const raw = { matchType: undefined, excluded: false, _apiUnavailable: true };
+    return {
+      raw,
+      checksum: checksumOf({ npi, status: 'API_UNAVAILABLE' }),
+      fetchedAt: new Date().toISOString(),
+      sourceUrl,
+      fetchHeaders: {},
+    };
+  }
+}
+
+async function fetchPecos(npi: string): Promise<SourceFetchResult> {
+  const sourceUrl =
+    `https://data.cms.gov/data-api/v1/dataset/2457ea29-fc82-48b0-86ec-3b0755de7515/data?filter[NPI]=${npi}&size=5`;
+
+  try {
+    const resp = await fetch(sourceUrl, { headers: { Accept: 'application/json' } });
+    if (!resp.ok) {
+      throw new Error(`PECOS API ${resp.status}`);
+    }
+
+    const data = (await resp.json()) as unknown[];
+    const row =
+      Array.isArray(data) && data.length > 0 ? (data[0] as Record<string, unknown>) : null;
+    const raw = row
+      ? {
+          enrolled: true,
+          enrollmentType: row.ENRLMT_CLSFCTN_TYPE_DESC ?? null,
+          eligibleToOrderRefer: row.GNDR_CD !== undefined,
+          source: 'PECOS',
+          npi,
+        }
+      : {
+          enrolled: false,
+          enrollmentType: null,
+          eligibleToOrderRefer: null,
+          source: 'PECOS',
+          npi,
+        };
+
+    return {
+      raw,
+      checksum: checksumOf(raw),
+      fetchedAt: new Date().toISOString(),
+      sourceUrl,
+      fetchHeaders: headersToObject(resp.headers),
+    };
+  } catch (error) {
+    log('warn', 'identityPipeline: PECOS fetch failed', { npi, error: String(error) });
+    const raw = { enrolled: false, enrollmentType: null, source: 'PECOS_UNAVAILABLE', npi };
+
+    return {
+      raw,
+      checksum: checksumOf({ npi, status: 'PECOS_UNAVAILABLE' }),
+      fetchedAt: new Date().toISOString(),
+      sourceUrl,
+      fetchHeaders: {},
+    };
+  }
+}
+
+function deltaSeverityForClaim(
+  claimType: string,
+  currentValue: unknown,
+): DeltaEvent['severity'] {
+  const value = asObject(currentValue);
+
+  if (claimType === 'EXCLUSION_STATUS') {
+    return value.excluded === true ? 'CRITICAL' : 'HIGH';
+  }
+
+  if (claimType === 'LICENSE' || claimType === 'NURSING_LICENSE') {
+    const status = typeof value.licenseStatus === 'string' ? value.licenseStatus.toUpperCase() : 'UNKNOWN';
+    if (status === 'REVOKED') return 'CRITICAL';
+    if (status === 'SUSPENDED' || status === 'EXPIRED') return 'HIGH';
+    return 'HIGH';
+  }
+
+  if (claimType === 'BOARD_CERTIFICATION') {
+    return 'MEDIUM';
+  }
+
+  if (
+    claimType === 'INDUSTRY_PAYMENT'
+    || claimType === 'OWNERSHIP_INTEREST'
+    || claimType === 'RESEARCH_PAYMENT'
+  ) {
+    return 'LOW';
+  }
+
+  if (
+    claimType === 'NPI_IDENTITY'
+    || claimType === 'PERSONAL_IDENTITY'
+    || claimType === 'ENROLLMENT_STATUS'
+  ) {
+    return 'HIGH';
+  }
+
+  if (claimType === 'SPECIALTY' || claimType === 'PRACTICE_LOCATION' || claimType === 'MAILING_ADDRESS') {
+    return 'MEDIUM';
+  }
+
+  return 'LOW';
+}
+
+function claimValueChanged(left: unknown, right: unknown): boolean {
+  return deterministicHex(left) !== deterministicHex(right);
+}
+
+function firstChangedField(
+  previousValue: Record<string, unknown>,
+  currentValue: Record<string, unknown>,
+  fields: readonly string[],
+): string | undefined {
+  return fields.find((field) => claimValueChanged(previousValue[field] ?? null, currentValue[field] ?? null));
+}
+
+async function compareClaimsAgainstPriorArtifact(
+  npi: string,
+  sourceId: string,
+  newArtifactId: string,
+  newClaims: readonly NormalizedClaim[],
+  observedAt: string,
+  matchingStrategy: string,
+  mergeReason?: string,
+  conflictReason?: string,
+): Promise<ClaimComparisonResult> {
+  const prior = await identityPrisma.verificationArtifact.findFirst({
+    where: {
+      npi,
+      source: sourceId,
+      lifecycleState: 'active',
+      id: { not: newArtifactId },
+    },
     orderBy: { createdAt: 'desc' },
-    select: { rawPayload: true, createdAt: true },
-    skip: 1, // skip the one we just created
+    select: { rawPayload: true },
   });
 
-  if (!prior) return [];
+  if (!prior) {
+    return {
+      claims: newClaims,
+      deltaEvents: [],
+      transitions: [],
+    };
+  }
 
-  const priorClaims = ((prior.rawPayload as Record<string, unknown>)?._claims ?? []) as NormalizedClaim[];
-  const priorByType = new Map(priorClaims.map(c => [c.claimType, c]));
-  const newByType   = new Map(newClaims.map(c => [c.claimType, c]));
+  const priorClaims = ((asObject(prior.rawPayload)._claims ?? []) as NormalizedClaim[]);
+  const priorByType = new Map(priorClaims.map((claim) => [claim.claimType, claim]));
+  const newByType = new Map(newClaims.map((claim) => [claim.claimType, claim]));
+  const events: DeltaEventWithLineage[] = [];
+  const transitions: ClaimTransition[] = [];
+  const claims = newClaims.map((claim) => ({ ...claim }));
 
-  const events: DeltaEvent[] = [];
-
-  // Check for exclusion status change — CRITICAL
-  const priorExclusion = priorByType.get('EXCLUSION_STATUS');
-  const newExclusion   = newByType.get('EXCLUSION_STATUS');
-  if (priorExclusion && newExclusion) {
-    const prevExcluded = (priorExclusion.value as { excluded?: boolean }).excluded;
-    const newExcluded  = (newExclusion.value  as { excluded?: boolean }).excluded;
-    if (prevExcluded !== newExcluded) {
+  for (const claim of claims) {
+    const priorClaim = priorByType.get(claim.claimType);
+    if (!priorClaim) {
+      const addedValue = asObject(claim.value);
+      const addedType: DeltaEvent['type'] =
+        claim.claimType === 'EXCLUSION_STATUS' && addedValue.excluded === true
+          ? 'NEW_SANCTION_HIT'
+          : claim.claimType === 'INDUSTRY_PAYMENT'
+              || claim.claimType === 'OWNERSHIP_INTEREST'
+              || claim.claimType === 'RESEARCH_PAYMENT'
+            ? 'NEW_PAYMENT_RELATIONSHIP'
+            : 'CLAIM_ADDED';
       events.push({
-        type: 'EXCLUSION_DETECTED', claimType: 'EXCLUSION_STATUS',
-        previous: prevExcluded, current: newExcluded,
-        severity: newExcluded ? 'CRITICAL' : 'HIGH',
+        type: addedType,
+        claimType: claim.claimType,
+        previous: null,
+        current: claim.value,
+        severity: deltaSeverityForClaim(claim.claimType, claim.value),
+        currentClaimId: claim.claimId,
+        trustTier: claim.tier,
+        matchingStrategy,
+        mergeReason,
+        conflictReason,
       });
+      continue;
     }
+
+    if (priorClaim.claimId === claim.claimId || !claimValueChanged(priorClaim.value, claim.value)) {
+      continue;
+    }
+
+    claim.supersedes = priorClaim.claimId;
+
+    const priorValue = asObject(priorClaim.value);
+    const currentValue = asObject(claim.value);
+    let type: DeltaEvent['type'] = 'CLAIM_CHANGED';
+    let fieldPath: string | undefined;
+
+    if (claim.claimType === 'EXCLUSION_STATUS') {
+      type = currentValue.excluded === true && priorValue.excluded !== true
+        ? 'NEW_SANCTION_HIT'
+        : 'EXCLUSION_DETECTED';
+      fieldPath = 'excluded';
+    } else if (claim.claimType === 'LICENSE' || claim.claimType === 'NURSING_LICENSE') {
+      if (priorValue.state !== currentValue.state) {
+        type = 'LICENSE_STATE_CHANGED';
+        fieldPath = 'state';
+      } else if (priorValue.licenseStatus !== currentValue.licenseStatus) {
+        type = 'LICENSE_STATUS_CHANGED';
+        fieldPath = 'licenseStatus';
+      }
+    } else if (claim.claimType === 'BOARD_CERTIFICATION') {
+      type = 'BOARD_CERT_STATUS_CHANGED';
+      fieldPath = 'certificationStatus';
+    } else if (claim.claimType === 'PRACTICE_LOCATION' || claim.claimType === 'MAILING_ADDRESS') {
+      type = 'PROVIDER_MOVED_LOCATION';
+      fieldPath = firstChangedField(priorValue, currentValue, ['address1', 'address2', 'city', 'state', 'zip']);
+    } else if (claim.claimType === 'INSTITUTION_AFFILIATION' || claim.claimType === 'GROUP_AFFILIATION') {
+      type = 'PROVIDER_MOVED_ORGANIZATION';
+      fieldPath = firstChangedField(priorValue, currentValue, ['institution', 'department', 'title', 'affiliationType']);
+    } else if (
+      claim.claimType === 'INDUSTRY_PAYMENT'
+      || claim.claimType === 'OWNERSHIP_INTEREST'
+      || claim.claimType === 'RESEARCH_PAYMENT'
+    ) {
+      type = 'NEW_PAYMENT_RELATIONSHIP';
+      fieldPath = firstChangedField(priorValue, currentValue, ['totalAmount', 'topPayers', 'paymentTypes']);
+    }
+
+    events.push({
+      type,
+      claimType: claim.claimType,
+      previous: priorClaim.value,
+      current: claim.value,
+      severity: deltaSeverityForClaim(claim.claimType, claim.value),
+      ...(fieldPath ? { fieldPath } : {}),
+      previousClaimId: priorClaim.claimId,
+      currentClaimId: claim.claimId,
+      trustTier: claim.tier,
+      matchingStrategy,
+      mergeReason,
+      conflictReason,
+    });
+    transitions.push({
+      claimId: priorClaim.claimId,
+      status: 'SUPERSEDED',
+      supersededByClaimId: claim.claimId,
+      expiresAt: observedAt,
+    });
   }
 
-  // Check for new claims
-  for (const [claimType, claim] of newByType) {
-    if (!priorByType.has(claimType)) {
-      events.push({ type: 'CLAIM_ADDED', claimType, previous: null, current: claim.value, severity: 'LOW' });
+  for (const priorClaim of priorClaims) {
+    if (newByType.has(priorClaim.claimType)) {
+      continue;
     }
+
+    events.push({
+      type: 'CLAIM_EXPIRED',
+      claimType: priorClaim.claimType,
+      previous: priorClaim.value,
+      current: null,
+      severity: deltaSeverityForClaim(priorClaim.claimType, priorClaim.value),
+      previousClaimId: priorClaim.claimId,
+      currentClaimId: null,
+      trustTier: priorClaim.tier,
+      matchingStrategy,
+      mergeReason,
+      conflictReason,
+    });
+    transitions.push({
+      claimId: priorClaim.claimId,
+      status: 'EXPIRED',
+      expiresAt: observedAt,
+    });
   }
 
-  return events;
+  return {
+    claims,
+    deltaEvents: events,
+    transitions,
+  };
 }
 
-// ── Update canonical identity index ──────────────────────────────────────────
-
-async function updateIdentityIndex(npi: string, allClaims: NormalizedClaim[]): Promise<void> {
-  const summary   = buildIdentitySummary(npi, allClaims);
-  const checksum  = createHash('sha256').update(JSON.stringify({ npi, updatedAt: summary.lastIngestedAt })).digest('hex');
-  const rawPayload = { _identityIndex: true, summary, updatedAt: summary.lastIngestedAt };
-
-  // Upsert identity index artifact
-  const existing = await prisma.verificationArtifact.findFirst({
-    where: { npi, source: 'IDENTITY_INDEX' },
+async function executeSourceIngestion(input: {
+  npi: string;
+  observedAt: string;
+  sourceId: string;
+  parserVersion: string;
+  matchingStrategy: string;
+  fetchSource: (npi: string) => Promise<SourceFetchResult>;
+  parseSource: (args: {
+    npi: string;
+    raw: unknown;
+    artifactId: string;
+    checksum: string;
+    observedAt: string;
+  }) => ParsedSourceResult;
+}): Promise<IngestionResult> {
+  const startedAtMs = Date.now();
+  const sourceRunIdempotencyKey = deterministicHex({
+    sourceId: input.sourceId,
+    npi: input.npi,
+    observedAt: input.observedAt,
+  });
+  const sourceRun = await identityPrisma.sourceRun.create({
+    data: {
+      sourceId: input.sourceId,
+      subjectNpi: input.npi,
+      idempotencyKey: sourceRunIdempotencyKey,
+      status: 'QUEUED',
+      runSummary: toJsonValue({ stage: 'QUEUED' }),
+    },
     select: { id: true },
-    orderBy: { createdAt: 'desc' },
   });
 
-  if (existing) {
-    await prisma.verificationArtifact.update({
-      where: { id: existing.id },
-      data: { rawPayload: JSON.parse(JSON.stringify(rawPayload)), checksum, verifiedAt: new Date() },
+  const fetchJob = await identityPrisma.fetchJob.create({
+    data: {
+      sourceRunId: sourceRun.id,
+      state: 'QUEUED',
+      idempotencyKey: deterministicHex({
+        sourceRunId: sourceRun.id,
+        phase: 'fetch',
+      }),
+    },
+    select: { id: true },
+  });
+  const parseJob = await identityPrisma.parseJob.create({
+    data: {
+      sourceRunId: sourceRun.id,
+      state: 'QUEUED',
+      idempotencyKey: deterministicHex({
+        sourceRunId: sourceRun.id,
+        phase: 'parse',
+      }),
+      parserVersion: input.parserVersion,
+    },
+    select: { id: true },
+  });
+  const claimDerivationJob = await identityPrisma.claimDerivationJob.create({
+    data: {
+      sourceRunId: sourceRun.id,
+      state: 'QUEUED',
+      idempotencyKey: deterministicHex({
+        sourceRunId: sourceRun.id,
+        phase: 'claim-derivation',
+      }),
+    },
+    select: { id: true },
+  });
+  const deltaDetectionJob = await identityPrisma.deltaDetectionJob.create({
+    data: {
+      sourceRunId: sourceRun.id,
+      state: 'QUEUED',
+      idempotencyKey: deterministicHex({
+        sourceRunId: sourceRun.id,
+        phase: 'delta-detection',
+      }),
+    },
+    select: { id: true },
+  });
+  const alertJob = await identityPrisma.alertJob.create({
+    data: {
+      sourceRunId: sourceRun.id,
+      state: 'QUEUED',
+      idempotencyKey: deterministicHex({
+        sourceRunId: sourceRun.id,
+        phase: 'alert',
+      }),
+    },
+    select: { id: true },
+  });
+
+  let sourceRecordId: string | undefined;
+  let artifactId: string | null = null;
+
+  try {
+    await updateSourceRun(sourceRun.id, 'FETCHING', {
+      runSummary: { stage: 'FETCHING' },
     });
-  } else {
-    await prisma.verificationArtifact.create({
-      data: {
-        npi, source: 'IDENTITY_INDEX', status: 'ACTIVE',
-        rawPayload: JSON.parse(JSON.stringify(rawPayload)),
-        checksum, merkleRoot: null, lifecycleState: 'active', verifiedAt: new Date(),
+    await identityPrisma.fetchJob.update({
+      where: { id: fetchJob.id },
+      data: { state: 'FETCHING', startedAt: new Date() },
+    });
+
+    const fetched = await input.fetchSource(input.npi);
+
+    const sourceRecord = await persistSourceRecord({
+      sourceRunId: sourceRun.id,
+      sourceId: input.sourceId,
+      subjectNpi: input.npi,
+      sourceRecordKey: input.npi,
+      sourceUrl: fetched.sourceUrl,
+      fetchHeaders: fetched.fetchHeaders,
+      checksum: fetched.checksum,
+      trustTier: getSource(input.sourceId)?.tier ?? 'BRONZE',
+      fetchedAt: fetched.fetchedAt,
+      observedAt: input.observedAt,
+      expiresAt: computeRefreshExpiry(input.sourceId, input.observedAt) ?? undefined,
+      parserVersion: input.parserVersion,
+      matchingStrategy: input.matchingStrategy,
+      status: 'FETCHED',
+      metadata: {
+        sourceUrl: fetched.sourceUrl,
       },
     });
+    sourceRecordId = sourceRecord.id;
+
+    await identityPrisma.fetchJob.update({
+      where: { id: fetchJob.id },
+      data: {
+        state: 'FETCHED',
+        checksum: fetched.checksum,
+        sourceUrl: fetched.sourceUrl,
+        fetchHeaders: toJsonValue(fetched.fetchHeaders),
+        completedAt: new Date(),
+      },
+    });
+    await updateSourceRun(sourceRun.id, 'FETCHED', {
+      runSummary: {
+        stage: 'FETCHED',
+        checksum: fetched.checksum,
+        sourceRecordId,
+      },
+    });
+
+    const existingArtifact = await findExistingArtifact(input.npi, input.sourceId, fetched.checksum);
+    let parsed: ParsedSourceResult;
+
+    if (existingArtifact) {
+      artifactId = existingArtifact.id;
+      const extracted = extractClaimsFromArtifact(existingArtifact);
+      parsed =
+        extracted.claims.length > 0 || extracted.receipts.length > 0
+          ? {
+              status: 'SUCCESS',
+              claims: extracted.claims,
+              receipts: extracted.receipts,
+              matchingStrategy: input.matchingStrategy,
+              mergeReason: 'Reused append-only artifact with matching checksum',
+            }
+          : input.parseSource({
+              npi: input.npi,
+              raw: existingArtifact.rawPayload,
+              artifactId: existingArtifact.id,
+              checksum: existingArtifact.checksum,
+              observedAt: input.observedAt,
+            });
+    } else {
+      artifactId = deterministicUuid(`${input.sourceId}:${input.npi}:${fetched.checksum}`);
+      parsed = input.parseSource({
+        npi: input.npi,
+        raw: fetched.raw,
+        artifactId,
+        checksum: fetched.checksum,
+        observedAt: input.observedAt,
+      });
+
+      await storeArtifact({
+        artifactId,
+        npi: input.npi,
+        sourceId: input.sourceId,
+        raw: fetched.raw,
+        checksum: fetched.checksum,
+        claims: parsed.claims,
+        receipts: parsed.receipts,
+        fetchedAt: fetched.fetchedAt,
+        observedAt: input.observedAt,
+        sourceUrl: fetched.sourceUrl,
+        fetchHeaders: fetched.fetchHeaders,
+        sourceRunId: sourceRun.id,
+        sourceRecordId,
+        parserVersion: input.parserVersion,
+        matchingStrategy: parsed.matchingStrategy,
+        status: parsed.status === 'SKIPPED' ? 'NOT_FOUND' : 'ACTIVE',
+        mergeReason: parsed.mergeReason,
+        conflictReason: parsed.conflictReason,
+      });
+    }
+
+    await identityPrisma.parseJob.update({
+      where: { id: parseJob.id },
+      data: {
+        sourceRecordId,
+        verificationArtifactId: artifactId,
+        state: 'PARSED',
+        parserVersion: input.parserVersion,
+        completedAt: new Date(),
+      },
+    });
+    await updateSourceRun(sourceRun.id, 'PARSED', {
+      runSummary: {
+        stage: 'PARSED',
+        artifactId,
+        claimsEmitted: parsed.claims.length,
+      },
+    });
+
+    const claimComparison =
+      existingArtifact || parsed.status === 'SKIPPED'
+        ? {
+            claims: parsed.claims,
+            deltaEvents: [],
+            transitions: [],
+          }
+        : await compareClaimsAgainstPriorArtifact(
+            input.npi,
+            input.sourceId,
+            artifactId,
+            parsed.claims,
+            input.observedAt,
+            parsed.matchingStrategy,
+            parsed.mergeReason,
+            parsed.conflictReason,
+          );
+
+    const claimIds = await persistClaimRecords({
+      sourceRunId: sourceRun.id,
+      sourceRecordId,
+      verificationArtifactId: artifactId,
+      subjectNpi: input.npi,
+      claims: claimComparison.claims,
+      matchingStrategy: parsed.matchingStrategy,
+      mergeReason: parsed.mergeReason,
+      conflictReason: parsed.conflictReason,
+    });
+    for (const transition of claimComparison.transitions) {
+      await updateClaimRecordState({
+        claimId: transition.claimId,
+        subjectNpi: input.npi,
+        status: transition.status,
+        supersededByClaimId: transition.supersededByClaimId,
+        expiresAt: transition.expiresAt,
+      });
+    }
+    await persistVerificationReceiptRecords({
+      sourceRunId: sourceRun.id,
+      sourceRecordId,
+      verificationArtifactId: artifactId,
+      subjectNpi: input.npi,
+      claims: claimComparison.claims,
+      receipts: parsed.receipts,
+      matchingStrategy: parsed.matchingStrategy,
+    });
+
+    await identityPrisma.claimDerivationJob.update({
+      where: { id: claimDerivationJob.id },
+      data: {
+        sourceRecordId,
+        verificationArtifactId: artifactId,
+        state: 'NORMALIZED',
+        completedAt: new Date(),
+      },
+    });
+    await updateSourceRun(sourceRun.id, 'NORMALIZED', {
+      runSummary: {
+        stage: 'NORMALIZED',
+        artifactId,
+        claimIds,
+      },
+    });
+
+    let deltaEvents = [...claimComparison.deltaEvents];
+    const deltaChecksums = new Map<DeltaEventWithLineage, string>();
+    const persistableDeltaEvents = deltaEvents.filter(isPersistableDeltaEvent);
+    const persistedDeltas = parsed.status === 'SKIPPED'
+      ? []
+      : await persistIdentityClaimDeltas(
+          persistableDeltaEvents.map((event) => {
+            const checksum = deterministicHex({
+              sourceRunId: sourceRun.id,
+              sourceId: input.sourceId,
+              claimType: event.claimType,
+              deltaType: event.type,
+              previousClaimId: event.previousClaimId ?? null,
+              currentClaimId: event.currentClaimId ?? null,
+              previous: event.previous ?? null,
+              current: event.current ?? null,
+            });
+            deltaChecksums.set(event, checksum);
+            return {
+              sourceRunId: sourceRun.id,
+              sourceRecordId,
+              verificationArtifactId: artifactId,
+              subjectNpi: input.npi,
+              sourceId: input.sourceId,
+              claimType: event.claimType,
+              deltaType: event.type,
+              severity: event.severity,
+              trustTier: event.trustTier ?? null,
+              previousClaimId: event.previousClaimId ?? null,
+              currentClaimId: event.currentClaimId ?? null,
+              previousValue: event.previous,
+              currentValue: event.current,
+              matchingStrategy: event.matchingStrategy,
+              mergeReason: event.mergeReason,
+              conflictReason: event.conflictReason,
+              observedAt: input.observedAt,
+              checksum,
+            };
+          }),
+        );
+
+    if (parsed.status === 'SKIPPED' && !existingArtifact) {
+      const skippedWatchtower = await recordSkippedSourceWatchtower({
+        npi: input.npi,
+        sourceId: input.sourceId,
+        sourceRunId: sourceRun.id,
+        sourceRecordId,
+        verificationArtifactId: artifactId,
+        observedAt: input.observedAt,
+        matchingStrategy: parsed.matchingStrategy,
+        mergeReason: parsed.mergeReason,
+        conflictReason: parsed.conflictReason,
+        status: parsed.status,
+      });
+      deltaEvents = [...skippedWatchtower.deltaEvents];
+    } else if (persistedDeltas.length > 0) {
+      const persistedDeltaByChecksum = new Map(
+        persistedDeltas.map((delta) => [delta.checksum, delta]),
+      );
+      await emitWatchtowerArtifactsForPersistedDeltas({
+        npi: input.npi,
+        sourceId: input.sourceId,
+        sourceRunId: sourceRun.id,
+        sourceRecordId,
+        verificationArtifactId: artifactId,
+        observedAt: input.observedAt,
+        events: deltaEvents.map((event) => ({
+          checksum: deltaChecksums.get(event) ?? deterministicHex(event),
+          persistedDeltaId:
+            persistedDeltaByChecksum.get(deltaChecksums.get(event) ?? '')?.id ?? null,
+          event,
+        })),
+      });
+    }
+
+    await identityPrisma.deltaDetectionJob.update({
+      where: { id: deltaDetectionJob.id },
+      data: {
+        verificationArtifactId: artifactId,
+        state: 'VERIFIED',
+        completedAt: new Date(),
+      },
+    });
+
+    await identityPrisma.alertJob.update({
+      where: { id: alertJob.id },
+      data: {
+        verificationArtifactId: artifactId,
+        state: deltaEvents.some((event) => event.severity === 'CRITICAL') ? 'ALERTED' : 'VERIFIED',
+        completedAt: new Date(),
+        lastError:
+          deltaEvents.filter((event) => event.severity === 'CRITICAL').length > 0
+            ? 'critical_identity_delta_detected'
+            : null,
+      },
+    });
+
+    const terminalStatus: IdentityIngestionStatus =
+      deltaEvents.some((event) => event.severity === 'CRITICAL') ? 'ALERTED' : 'VERIFIED';
+    await updateSourceRun(sourceRun.id, terminalStatus, {
+      completedAt: new Date(),
+      runSummary: {
+        stage: terminalStatus,
+        artifactId,
+        sourceRecordId,
+        claimCount: claimComparison.claims.length,
+        deltaCount: deltaEvents.length,
+        duplicateArtifact: Boolean(existingArtifact),
+      },
+    });
+
+    return {
+      npi: input.npi,
+      source: input.sourceId,
+      artifactId,
+      sourceRunId: sourceRun.id,
+      sourceRecordId,
+      claimIds,
+      claimsEmitted: claimComparison.claims.length,
+      deltaEvents: deltaEvents.map(({ type, claimType, previous, current, severity, fieldPath }) => ({
+        type,
+        claimType,
+        previous,
+        current,
+        severity,
+        ...(fieldPath ? { fieldPath } : {}),
+      })),
+      status: parsed.status,
+      latencyMs: Date.now() - startedAtMs,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+
+    if (sourceRecordId) {
+      await identityPrisma.sourceRecord.update({
+        where: { id: sourceRecordId },
+        data: {
+          status: 'QUARANTINED',
+          quarantineReason: message,
+        },
+      }).catch(() => null);
+    }
+
+    if (artifactId) {
+      await identityPrisma.verificationArtifact.update({
+        where: { id: artifactId },
+        data: {
+          status: 'QUARANTINED',
+          lifecycleState: 'quarantined',
+          conflictReason: message,
+        },
+      }).catch(() => null);
+    }
+
+    await identityPrisma.parseJob.update({
+      where: { id: parseJob.id },
+      data: {
+        sourceRecordId: sourceRecordId ?? null,
+        verificationArtifactId: artifactId,
+        state: 'QUARANTINED',
+        quarantineReason: message,
+        lastError: message,
+        completedAt: new Date(),
+      },
+    }).catch(() => null);
+    await identityPrisma.claimDerivationJob.update({
+      where: { id: claimDerivationJob.id },
+      data: {
+        sourceRecordId: sourceRecordId ?? null,
+        verificationArtifactId: artifactId,
+        state: 'FAILED',
+        lastError: message,
+        completedAt: new Date(),
+      },
+    }).catch(() => null);
+    await identityPrisma.deltaDetectionJob.update({
+      where: { id: deltaDetectionJob.id },
+      data: {
+        verificationArtifactId: artifactId,
+        state: 'FAILED',
+        lastError: message,
+        completedAt: new Date(),
+      },
+    }).catch(() => null);
+    await identityPrisma.alertJob.update({
+      where: { id: alertJob.id },
+      data: {
+        verificationArtifactId: artifactId,
+        state: 'FAILED',
+        lastError: message,
+        completedAt: new Date(),
+      },
+    }).catch(() => null);
+    await identityPrisma.fetchJob.update({
+      where: { id: fetchJob.id },
+      data: {
+        lastError: message,
+        completedAt: new Date(),
+      },
+    }).catch(() => null);
+    await updateSourceRun(sourceRun.id, 'QUARANTINED', {
+      lastError: message,
+      quarantineReason: message,
+      completedAt: new Date(),
+      runSummary: {
+        stage: 'QUARANTINED',
+        artifactId,
+        sourceRecordId,
+        error: message,
+      },
+    }).catch(() => null);
+
+    return {
+      npi: input.npi,
+      source: input.sourceId,
+      artifactId,
+      sourceRunId: sourceRun.id,
+      sourceRecordId,
+      claimsEmitted: 0,
+      deltaEvents: [],
+      status: 'FAILED',
+      latencyMs: Date.now() - startedAtMs,
+      error: message,
+    };
   }
 }
 
-// ── Per-source ingestion handlers ─────────────────────────────────────────────
-
-type SourceHandler = (npi: string, observedAt: string) => Promise<IngestionResult>;
-
 const handlers: Record<string, SourceHandler> = {
+  NPPES_API: async (npi, observedAt) =>
+    executeSourceIngestion({
+      npi,
+      observedAt,
+      sourceId: 'NPPES_API',
+      parserVersion: 'v1.0.0',
+      matchingStrategy: 'NPI_EXACT',
+      fetchSource: fetchNppes,
+      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {
+        const apiResult = raw as { results?: unknown[] };
+        const result = apiResult.results?.[0];
 
-  NPPES_API: async (npi, observedAt) => {
-    const start = Date.now();
-    const { raw, checksum } = await fetchNppes(npi);
-    const apiResult = raw as { results?: unknown[] };
-    const result = apiResult.results?.[0];
-    if (!result) return { npi, source: 'NPPES_API', artifactId: null, claimsEmitted: 0, deltaEvents: [], status: 'SKIPPED', latencyMs: Date.now() - start };
+        if (!result) {
+          return {
+            status: 'SKIPPED',
+            claims: [],
+            receipts: [],
+            matchingStrategy: 'NPI_EXACT',
+            mergeReason: 'No official NPPES record returned for this NPI',
+          };
+        }
 
-    const { claims, receipts } = parseNppesResult(npi, result as Parameters<typeof parseNppesResult>[1], '', '', observedAt);
-    const artifactId = await storeArtifact(npi, 'NPPES_API', raw, checksum, claims, receipts);
-    // Re-parse with actual artifactId
-    const { claims: c2, receipts: r2 } = parseNppesResult(npi, result as Parameters<typeof parseNppesResult>[1], artifactId, checksum, observedAt);
-    await prisma.verificationArtifact.update({ where: { id: artifactId }, data: { rawPayload: JSON.parse(JSON.stringify({ ...(raw as object), _claims: c2, _receipts: r2, _ingestedAt: observedAt })) } });
+        const { claims, receipts } = parseNppesResult(
+          npi,
+          result as Parameters<typeof parseNppesResult>[1],
+          artifactId,
+          checksum,
+          parsedObservedAt,
+        );
 
-    const delta = await detectClaimDelta(npi, 'NPPES_API', c2);
-    return { npi, source: 'NPPES_API', artifactId, claimsEmitted: c2.length, deltaEvents: delta, status: 'SUCCESS', latencyMs: Date.now() - start };
-  },
+        return {
+          status: 'SUCCESS',
+          claims,
+          receipts,
+          matchingStrategy: 'NPI_EXACT',
+          mergeReason: 'Official CMS NPI Registry exact match by NPI',
+        };
+      },
+    }),
 
-  OIG_LEIE: async (npi, observedAt) => {
-    const start = Date.now();
-    const { raw, checksum } = await fetchOig(npi);
-    const { claims, receipts } = parseOigResult(npi, raw as Parameters<typeof parseOigResult>[1], '', '', observedAt);
-    const artifactId = await storeArtifact(npi, 'OIG_LEIE', raw, checksum, claims, receipts);
-    const { claims: c2, receipts: r2 } = parseOigResult(npi, raw as Parameters<typeof parseOigResult>[1], artifactId, checksum, observedAt);
-    await prisma.verificationArtifact.update({ where: { id: artifactId }, data: { rawPayload: JSON.parse(JSON.stringify({ ...(raw as object), _claims: c2, _receipts: r2 })) } });
+  OIG_LEIE: async (npi, observedAt) =>
+    executeSourceIngestion({
+      npi,
+      observedAt,
+      sourceId: 'OIG_LEIE',
+      parserVersion: 'v1.0.0',
+      matchingStrategy: 'NPI_EXACT',
+      fetchSource: fetchOig,
+      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {
+        const { claims, receipts } = parseOigResult(
+          npi,
+          raw as Parameters<typeof parseOigResult>[1],
+          artifactId,
+          checksum,
+          parsedObservedAt,
+        );
 
-    const delta = await detectClaimDelta(npi, 'OIG_LEIE', c2);
-    return { npi, source: 'OIG_LEIE', artifactId, claimsEmitted: c2.length, deltaEvents: delta, status: 'SUCCESS', latencyMs: Date.now() - start };
-  },
+        return {
+          status: 'SUCCESS',
+          claims,
+          receipts,
+          matchingStrategy: 'NPI_EXACT',
+          mergeReason: 'Official OIG LEIE check tied to the requested NPI',
+        };
+      },
+    }),
 
-  PECOS_PUBLIC: async (npi, observedAt) => {
-    const start = Date.now();
-    const { raw, checksum } = await fetchPecos(npi);
-    const { claims, receipts } = parsePecosRecord(npi, raw as Parameters<typeof parsePecosRecord>[1], '', '', observedAt);
-    const artifactId = await storeArtifact(npi, 'PECOS_PUBLIC', raw, checksum, claims, receipts);
-    const { claims: c2, receipts: r2 } = parsePecosRecord(npi, raw as Parameters<typeof parsePecosRecord>[1], artifactId, checksum, observedAt);
-    await prisma.verificationArtifact.update({ where: { id: artifactId }, data: { rawPayload: JSON.parse(JSON.stringify({ ...(raw as object), _claims: c2, _receipts: r2 })) } });
-    const delta = await detectClaimDelta(npi, 'PECOS_PUBLIC', c2);
-    return { npi, source: 'PECOS_PUBLIC', artifactId, claimsEmitted: c2.length, deltaEvents: delta, status: 'SUCCESS', latencyMs: Date.now() - start };
-  },
+  PECOS_PUBLIC: async (npi, observedAt) =>
+    executeSourceIngestion({
+      npi,
+      observedAt,
+      sourceId: 'PECOS_PUBLIC',
+      parserVersion: 'v1.0.0',
+      matchingStrategy: 'NPI_EXACT',
+      fetchSource: fetchPecos,
+      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {
+        const { claims, receipts } = parsePecosRecord(
+          npi,
+          raw as Parameters<typeof parsePecosRecord>[1],
+          artifactId,
+          checksum,
+          parsedObservedAt,
+        );
+
+        return {
+          status: 'SUCCESS',
+          claims,
+          receipts,
+          matchingStrategy: 'NPI_EXACT',
+          mergeReason: 'Official CMS enrollment record exact match by NPI',
+        };
+      },
+    }),
+
+  OPEN_PAYMENTS: async (npi, observedAt) =>
+    executeSourceIngestion({
+      npi,
+      observedAt,
+      sourceId: 'OPEN_PAYMENTS',
+      parserVersion: 'v1.0.0',
+      matchingStrategy: 'NPI_EXACT',
+      fetchSource: (_npi: string) => fetchOpenPayments(_npi),
+      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {
+        const { claims, receipts } = parseOpenPayments(npi, raw, artifactId, checksum, parsedObservedAt);
+        return {
+          status: claims.length > 0 ? 'SUCCESS' : 'SKIPPED',
+          claims, receipts,
+          matchingStrategy: 'NPI_EXACT',
+          mergeReason: claims.length > 0
+            ? 'CMS Open Payments records matched by NPI'
+            : 'No Open Payments records found for this NPI',
+        };
+      },
+    }),
+
+  SAM_GOV: async (npi, observedAt) =>
+    executeSourceIngestion({
+      npi,
+      observedAt,
+      sourceId: 'SAM_GOV',
+      parserVersion: 'v1.0.0',
+      matchingStrategy: 'NAME_FUZZY',
+      fetchSource: async (_npi: string) => {
+        // Need name for SAM search — try to get from existing NPPES claims
+        const existingClaims = await loadClaimRecordsForNpi(_npi);
+        const nameClaim = existingClaims.find(c => c.claimType === 'PERSONAL_IDENTITY');
+        const val = nameClaim?.value as Record<string, unknown> | undefined;
+        return fetchSamGov(_npi, val?.firstName as string | undefined, val?.lastName as string | undefined);
+      },
+      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {
+        const { claims, receipts } = parseSamGovResult(npi, raw, artifactId, checksum, parsedObservedAt);
+        return {
+          status: 'SUCCESS',
+          claims, receipts,
+          matchingStrategy: 'NAME_FUZZY',
+          mergeReason: 'SAM.gov exclusion check — name-based search (requires identity verification)',
+        };
+      },
+    }),
+
+  DOCTORS_CLINICIANS: async (npi, observedAt) =>
+    executeSourceIngestion({
+      npi,
+      observedAt,
+      sourceId: 'DOCTORS_CLINICIANS',
+      parserVersion: 'v1.0.0',
+      matchingStrategy: 'NPI_EXACT',
+      fetchSource: (_npi: string) => fetchDoctorsAndClinicians(_npi),
+      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {
+        const { claims, receipts } = parseDoctorsAndClinicians(npi, raw, artifactId, checksum, parsedObservedAt);
+        return {
+          status: claims.length > 0 ? 'SUCCESS' : 'SKIPPED',
+          claims, receipts,
+          matchingStrategy: 'NPI_EXACT',
+          mergeReason: claims.length > 0
+            ? 'CMS Doctors & Clinicians dataset matched by NPI'
+            : 'No D&C records found for this NPI',
+        };
+      },
+    }),
 };
 
-// ── Main pipeline entry point ─────────────────────────────────────────────────
-
-export type IngestionSources = 'NPPES_API' | 'OIG_LEIE' | 'PECOS_PUBLIC' | 'OPENALEX' | 'ALL';
+export type IngestionSources = 'NPPES_API' | 'OIG_LEIE' | 'PECOS_PUBLIC' | 'OPEN_PAYMENTS' | 'SAM_GOV' | 'DOCTORS_CLINICIANS' | 'OPENALEX' | 'ALL';
 
 export async function ingestClinicianIdentity(
   npi: string,
   sources: IngestionSources[] = ['ALL'],
 ): Promise<FullIngestionReport> {
-  const start       = Date.now();
+  const startedAt = Date.now();
   const triggeredAt = new Date().toISOString();
-  const observedAt  = triggeredAt;
-
-  const runAll     = sources.includes('ALL');
-  const toRun      = runAll ? Object.keys(handlers) : sources.filter(s => s in handlers);
+  const runAll = sources.includes('ALL');
+  const toRun = runAll ? Object.keys(handlers) : sources.filter((source) => source in handlers);
 
   log('info', 'identityPipeline: starting', { npi, sources: toRun });
 
-  // Run all sources in parallel; never let one failure abort others
-  const settled = await Promise.allSettled(
-    toRun.map(src => handlers[src]!(npi, observedAt))
+  const settled = await Promise.allSettled(toRun.map((sourceId) => handlers[sourceId]!(npi, triggeredAt)));
+  const results: IngestionResult[] = settled.map((result, index) =>
+    result.status === 'fulfilled'
+      ? result.value
+      : {
+          npi,
+          source: toRun[index]!,
+          artifactId: null,
+          claimsEmitted: 0,
+          deltaEvents: [],
+          status: 'FAILED',
+          latencyMs: 0,
+          error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+        },
   );
 
-  const results: IngestionResult[] = settled.map((r, i) =>
-    r.status === 'fulfilled' ? r.value : {
-      npi, source: toRun[i]!, artifactId: null,
-      claimsEmitted: 0, deltaEvents: [],
-      status: 'FAILED' as const,
-      latencyMs: 0,
-      error: r.reason instanceof Error ? r.reason.message : String(r.reason),
-    }
-  );
-
-  // Collect all claims from successful sources for index update
-  const allClaims: NormalizedClaim[] = [];
-  for (const result of results) {
-    if (result.status === 'SUCCESS' && result.artifactId) {
-      const art = await prisma.verificationArtifact.findUnique({
-        where: { id: result.artifactId },
-        select: { rawPayload: true },
-      });
-      const claims = ((art?.rawPayload as Record<string, unknown>)?._claims ?? []) as NormalizedClaim[];
-      allClaims.push(...claims);
-    }
-  }
-
-  // Update canonical identity index
   let identity: CanonicalIdentitySummary | null = null;
   try {
+    const allClaims = await loadClaimRecordsForNpi(npi);
     if (allClaims.length > 0) {
-      await updateIdentityIndex(npi, allClaims);
       identity = buildIdentitySummary(npi, allClaims);
+      const sourceRecordIds = [...new Set(results.map((result) => result.sourceRecordId).filter(Boolean))] as string[];
+      const claimRefs = [...new Set(allClaims.map((claim) => claim.claimId))];
+      const identityIndex = await appendIdentityIndexArtifact({
+        npi,
+        sourceRunId: results.find((result) => result.status === 'SUCCESS')?.sourceRunId,
+        summary: identity,
+        claimRefs,
+        sourceRecordIds,
+        matchingStrategy: 'CANONICAL_AGGREGATION',
+        confidenceScore: computeIdentityIndexConfidence(allClaims),
+        mergeReason:
+          sourceRecordIds.length > 1
+            ? `Merged ${sourceRecordIds.length} source records using conservative NPI exact linkage`
+            : 'Identity index derived from a single authoritative source record',
+      });
+
+      if (sourceRecordIds.length > 1) {
+        await recordIdentityResolutionDecision({
+          subjectNpi: npi,
+          sourceRunId: results.find((result) => result.status === 'SUCCESS')?.sourceRunId,
+          sourceRecordId: sourceRecordIds[0],
+          verificationArtifactId: identityIndex.id,
+          decisionType: 'MERGE',
+          resolutionKey: deterministicHex({
+            npi,
+            sourceRecordIds: [...sourceRecordIds].sort(),
+          }),
+          matchingStrategy: 'NPI_EXACT',
+          confidenceScore: computeIdentityIndexConfidence(allClaims),
+          mergeReason: 'Merged authoritative source records using exact NPI linkage',
+          payload: {
+            sourceRecordIds,
+            claimRefs,
+            identityIndexArtifactId: identityIndex.id,
+          },
+        });
+      }
     }
-  } catch (err) {
-    log('error', 'identityPipeline: index update failed', { npi, error: String(err) });
+  } catch (error) {
+    log('error', 'identityPipeline: index update failed', { npi, error: String(error) });
   }
 
-  const allDelta = results.flatMap(r => r.deltaEvents);
+  const staleSourceEvents = await scanSourceStalenessForNpi(npi, triggeredAt).catch((error) => {
+    log('warn', 'identityPipeline: source staleness scan failed', { npi, error: String(error) });
+    return [];
+  });
+  const deltaEvents = [...results.flatMap((result) => result.deltaEvents), ...staleSourceEvents];
+  const criticalDeltas = deltaEvents.filter((event) => event.severity === 'CRITICAL');
 
-  // Emit audit event for critical deltas
-  const criticals = allDelta.filter(d => d.severity === 'CRITICAL');
-  for (const delta of criticals) {
-    await prisma.auditEvent.create({
+  for (const delta of criticalDeltas) {
+    await identityPrisma.auditEvent.create({
       data: {
-        type:       `IDENTITY_DELTA_${delta.type}`,
-        hash:       createHash('sha256').update(JSON.stringify(delta)).digest('hex'),
+        type: `IDENTITY_DELTA_${delta.type}`,
+        hash: deterministicHex(delta),
         clinicianId: npi,
-        metadata:   JSON.parse(JSON.stringify(delta)),
+        metadata: toJsonValue(delta),
       },
     }).catch(() => null);
   }
 
   const report: FullIngestionReport = {
-    npi, triggeredAt,
-    durationMs:    Date.now() - start,
-    sourcesRun:    results.length,
-    sourcesOk:     results.filter(r => r.status === 'SUCCESS').length,
-    sourcesFailed: results.filter(r => r.status === 'FAILED').length,
-    claimsTotal:   results.reduce((s, r) => s + r.claimsEmitted, 0),
-    deltaEvents:   allDelta,
+    npi,
+    triggeredAt,
+    durationMs: Date.now() - startedAt,
+    sourcesRun: results.length,
+    sourcesOk: results.filter((result) => result.status === 'SUCCESS').length,
+    sourcesFailed: results.filter((result) => result.status === 'FAILED').length,
+    claimsTotal: results.reduce((total, result) => total + result.claimsEmitted, 0),
+    deltaEvents,
     results,
     identity,
   };
 
   log('info', 'identityPipeline: complete', {
-    npi, durationMs: report.durationMs,
-    claimsTotal: report.claimsTotal, sourcesFailed: report.sourcesFailed,
-    criticalDeltas: criticals.length,
+    npi,
+    durationMs: report.durationMs,
+    claimsTotal: report.claimsTotal,
+    sourcesFailed: report.sourcesFailed,
+    criticalDeltas: criticalDeltas.length,
   });
 
   return report;
 }
 
-// ── Retrieve all claims for a NPI (from stored artifacts) ─────────────────────
-
 export async function getClaimsForNpi(npi: string): Promise<NormalizedClaim[]> {
-  const artifacts = await prisma.verificationArtifact.findMany({
-    where: { npi, lifecycleState: 'active', source: { not: 'TRUST_STATE_ENGINE' } },
-    select: { rawPayload: true, source: true, id: true },
-    orderBy: { createdAt: 'desc' },
-    take: 200,
-  });
+  return loadClaimRecordsForNpi(npi);
+}
 
-  const claims: NormalizedClaim[] = [];
-  const seen = new Set<string>();
-
-  for (const art of artifacts) {
-    const rawClaims = ((art.rawPayload as Record<string, unknown>)?._claims ?? []) as NormalizedClaim[];
-    for (const claim of rawClaims) {
-      if (!seen.has(claim.claimId)) {
-        seen.add(claim.claimId);
-        claims.push(claim);
-      }
-    }
-  }
-
-  return claims;
+export async function getVerificationReceiptsForNpi(
+  npi: string,
+): Promise<VerificationReceipt[]> {
+  return loadVerificationReceiptRecordsForNpi(npi);
 }
