@@ -127,7 +127,7 @@ export function GraphExplorationPanel() {
                   node.type === 'claim' && "-rotate-45",
                   node.alert ? "text-vt-warning" : "text-white/80"
                 )}>
-                  {node.type === 'claim' ? <DollarSign className="w-4 h-4" /> : node.label.substring(0,2)}
+                  {node.type === 'claim' ? <span className="w-4 h-4 text-xs">$</span> : node.label.substring(0,2)}
                 </span>
               </div>
               
