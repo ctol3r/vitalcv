@@ -32,6 +32,7 @@
     "@vitalcv/shared": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "framer-motion": "^12.34.3",
     "lucide-react": "^0.454.0",
     "next": "15.2.8",
@@ -41,6 +42,8 @@
     "react-countup": "^6.5.3",
     "react-dom": "^19",
     "react-qr-code": "^2.0.18",
+    "sonner": "^2.0.7",
+    "swr": "^2.3.6",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "tippy.js": "^6.3.7"

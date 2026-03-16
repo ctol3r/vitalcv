@@ -5,9 +5,38 @@ export type InvestigatorSeverity = 'low' | 'medium' | 'high' | 'critical';
 export type InvestigatorFindingStatus =
   | 'new'
   | 'acknowledged'
+  | 'investigating'
   | 'dismissed'
-  | 'resolved'
-  | 'escalated';
+  | 'resolved';
+
+export type InvestigatorFindingStatusInput = InvestigatorFindingStatus | 'escalated';
+
+export function normalizeInvestigatorFindingStatus(
+  status: string | null | undefined,
+): InvestigatorFindingStatus {
+  switch ((status ?? '').toLowerCase()) {
+    case 'acknowledged':
+      return 'acknowledged';
+    case 'investigating':
+    case 'escalated':
+      return 'investigating';
+    case 'dismissed':
+      return 'dismissed';
+    case 'resolved':
+      return 'resolved';
+    case 'new':
+    default:
+      return 'new';
+  }
+}
+
+export function isInvestigatorFindingStatus(
+  status: string | null | undefined,
+): status is InvestigatorFindingStatusInput {
+  return ['new', 'acknowledged', 'investigating', 'dismissed', 'resolved', 'escalated'].includes(
+    (status ?? '').toLowerCase(),
+  );
+}
 
 export type InvestigatorRunTrigger =
   | 'scheduled'

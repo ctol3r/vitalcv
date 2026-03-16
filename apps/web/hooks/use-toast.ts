@@ -139,7 +139,18 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, 'id'>
 
-function toast({ ...props }: Toast) {
+type ToastHandle = {
+  id: string
+  dismiss: () => void
+  update: (props: ToasterToast) => void
+}
+
+type ToastFn = ((props: Toast) => ToastHandle) & {
+  success: (title: string, description?: string) => ToastHandle
+  error: (title: string, description?: string) => ToastHandle
+}
+
+function createToast({ ...props }: Toast): ToastHandle {
   const id = genId()
 
   const update = (props: ToasterToast) =>
@@ -167,6 +178,13 @@ function toast({ ...props }: Toast) {
     update,
   }
 }
+
+const toast = Object.assign(createToast, {
+  success: (title: string, description?: string) =>
+    createToast({ title, description, variant: 'success' }),
+  error: (title: string, description?: string) =>
+    createToast({ title, description, variant: 'destructive' }),
+}) satisfies ToastFn
 
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { ArrowRightCircle, ShieldAlert, Target } from 'lucide-react';
 import type { IntelligenceAction } from '@/lib/intelligence/contracts';
 import { SurfaceState, ToneBadge } from './shared';
@@ -47,6 +48,25 @@ export function ActionCard({
           </div>
 
           <p className="mt-3 text-sm leading-6 text-white/70">{action.explanation}</p>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {action.providerNpi ? (
+              <Link
+                href={`/providers/${action.providerNpi}`}
+                className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-medium text-white/80 transition hover:bg-white/[0.08] hover:text-white"
+              >
+                {action.targetLabel ?? `Provider ${action.providerNpi}`}
+              </Link>
+            ) : null}
+            {action.sourceFindingIds[0] ? (
+              <Link
+                href={`/findings/${action.sourceFindingIds[0]}`}
+                className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-medium text-white/80 transition hover:bg-white/[0.08] hover:text-white"
+              >
+                Finding {action.sourceFindingIds[0]}
+              </Link>
+            ) : null}
+          </div>
 
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             <div className="rounded-xl border border-white/10 bg-slate-950/50 p-3">

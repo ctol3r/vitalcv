@@ -1,5 +1,6 @@
 import {
   buildSourceEntries,
+  normalizeActionsPayload,
   normalizeFindingsPayload,
   normalizeProvidersPayload,
   normalizeSystemHealthPayload,
@@ -40,6 +41,9 @@ describe('intelligence contracts', () => {
   });
 
   it('maps findings into alerts and source entries', () => {
+    const storylineLinksByFindingId = new Map([
+      ['finding-1', { storylineId: 'storyline-1', storylineTitle: 'Trust decline' }],
+    ]);
     const findings = normalizeFindingsPayload({
       findings: [
         {
@@ -52,6 +56,13 @@ describe('intelligence contracts', () => {
           summary: 'Licensure source is stale.',
           explanation: 'Confidence degraded after stale source detection.',
           entityIds: ['provider:1234567890'],
+          entities: [
+            {
+              entityType: 'provider',
+              entityId: '1234567890',
+              entityLabel: 'Ada Lovelace',
+            },
+          ],
           metadata: { npi: '1234567890' },
           priorityScore: 0.96,
           confidence: 0.91,
@@ -69,10 +80,14 @@ describe('intelligence contracts', () => {
         },
       ],
       total: 1,
+    }, {
+      storylineLinksByFindingId,
     });
 
     expect(findings.alerts[0]?.severity).toBe('critical');
     expect(findings.findings[0]?.providerNpi).toBe('1234567890');
+    expect(findings.findings[0]?.providerLabel).toBe('Ada Lovelace');
+    expect(findings.findings[0]?.storylineId).toBe('storyline-1');
 
     const sources = buildSourceEntries({
       provider: null,
@@ -83,6 +98,42 @@ describe('intelligence contracts', () => {
 
     expect(sources[0]?.kind).toBe('finding');
     expect(sources[0]?.source).toBe('State Board');
+  });
+
+  it('preserves source finding links on action normalization', () => {
+    const actions = normalizeActionsPayload({
+      actions: [
+        {
+          actionId: 'action-1',
+          actionType: 'VERIFY_LICENSE',
+          priority: 'HIGH',
+          priorityScore: 0.88,
+          status: 'PENDING',
+          recommendedAction: 'Verify license',
+          explanation: 'A linked finding requires follow-up.',
+          confidence: 0.86,
+          createdAt: '2026-03-15T12:00:00.000Z',
+          sourceFindingIds: ['finding-1'],
+          targetEntity: {
+            entityType: 'provider',
+            entityId: '1234567890',
+            entityLabel: 'Ada Lovelace',
+          },
+          evidence: [
+            {
+              label: 'state_board',
+              snippet: 'License freshness degraded.',
+              source: 'State Board',
+            },
+          ],
+        },
+      ],
+      total: 1,
+    });
+
+    expect(actions.actions[0]?.providerNpi).toBe('1234567890');
+    expect(actions.actions[0]?.targetLabel).toBe('Ada Lovelace');
+    expect(actions.actions[0]?.sourceFindingIds).toEqual(['finding-1']);
   });
 
   it('derives system health cards and overall tone from mixed payloads', () => {
@@ -126,5 +177,6 @@ describe('intelligence contracts', () => {
     expect(health.overall).toBe('critical');
     expect(health.cards[0]?.label).toBeDefined();
     expect(health.incidents[0]?.title).toBe('Connector outage');
+    expect(health.sources[0]?.source).toBe('NPPES');
   });
 });

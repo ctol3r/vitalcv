@@ -1,0 +1,331 @@
+export interface InvestigatorFindingEntity {
+  entityType: string;
+  entityId: string;
+  entityLabel?: string | null;
+  relationship?: string | null;
+  metadata?: Record<string, unknown>;
+}
+
+export interface InvestigatorFindingEvidence {
+  evidenceId: string;
+  evidenceType: string;
+  sourceId?: string | null;
+  sourceLabel?: string | null;
+  recordType?: string | null;
+  recordId?: string | null;
+  url?: string | null;
+  snippet?: string | null;
+  observedAt?: string | null;
+  metadata?: Record<string, unknown>;
+}
+
+export interface InvestigatorFindingStatusEvent {
+  fromStatus: string | null;
+  toStatus: string;
+  actorId?: string | null;
+  note?: string | null;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface InvestigatorFindingDetail {
+  findingId: string;
+  investigatorId: string;
+  findingType: string;
+  scope: string;
+  severity: string;
+  title: string;
+  summary: string;
+  entityIds: string[];
+  entities: InvestigatorFindingEntity[];
+  supportingEvidence: InvestigatorFindingEvidence[];
+  confidence: number;
+  explanation: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  occurrenceCount: number;
+  priorityScore: number;
+  storylineKey: string;
+  storylineId?: string | null;
+  storylineTitle?: string | null;
+  audienceRoles: string[];
+  metadata: Record<string, unknown>;
+  statusEvents: InvestigatorFindingStatusEvent[];
+}
+
+export interface InvestigatorFindingDetailResponse {
+  finding: InvestigatorFindingDetail;
+  relatedStoryline?: {
+    storylineId: string;
+    title: string;
+    severity: string;
+    status: string;
+  } | null;
+}
+
+export interface StorylineTimelineEvent {
+  eventKey: string;
+  type: string;
+  summary: string;
+  occurredAt: string;
+  findingIds: string[];
+  fromStatus?: string;
+  toStatus?: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface StorylineActionEvent {
+  eventKey: string;
+  actionType: string;
+  actorId: string | null;
+  note: string | null;
+  payload: Record<string, unknown>;
+  occurredAt: string;
+}
+
+export interface StorylineFindingLink {
+  findingId: string;
+  findingCategory: string;
+  findingSeverity: string;
+  observedAt: string;
+  weight: number;
+  snapshot: Record<string, unknown>;
+}
+
+export interface StorylineEntityLink {
+  entityType: string;
+  entityKey: string;
+  entityLabel: string | null;
+  weight: number;
+  firstSeenAt: string;
+  lastSeenAt: string;
+}
+
+export interface StorylineDetailResponse {
+  storyline: {
+    storylineId: string;
+    fingerprint: string;
+    storylineType: string;
+    perspective: string;
+    title: string;
+    summary: string;
+    whyItMatters: string;
+    recommendedActions: string[];
+    severity: string;
+    confidence: number;
+    entityIds: string[];
+    findingIds: string[];
+    supportingEvidence: Array<{
+      bullet: string;
+      source: string;
+      confidence: number;
+      observedAt: string;
+      findingId?: string;
+      artifactId?: string;
+    }>;
+    createdAt: string;
+    updatedAt: string;
+    lastActivityAt: string;
+    status: string;
+    progressionScore: number;
+    noveltyScore: number;
+    persistenceScore: number;
+    escalationThreshold: number;
+    timeline: {
+      originEvent: StorylineTimelineEvent;
+      events: StorylineTimelineEvent[];
+      quietPeriods: number;
+      reactivations: number;
+      lastEventAt: string;
+      lastActivityAt: string;
+      currentStatus: string;
+    };
+    metadata: Record<string, unknown>;
+  };
+  findingLinks: StorylineFindingLink[];
+  entityLinks: StorylineEntityLink[];
+  statusEvents: StorylineTimelineEvent[];
+  actionEvents: StorylineActionEvent[];
+}
+
+export interface ActionStatusEvent {
+  fromStatus: string | null;
+  toStatus: string;
+  actorId: string | null;
+  note: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface ActionDetailResponse {
+  action: {
+    actionId: string;
+    actionType: string;
+    targetEntity: {
+      entityType: string;
+      entityId: string;
+      entityLabel: string | null;
+    };
+    recommendedAction: string;
+    priority: string;
+    priorityScore: number;
+    confidence: number;
+    explanation: string;
+    createdAt: string;
+    updatedAt: string;
+    status: string;
+    storylineKey: string | null;
+    sourceFindingIds: string[];
+    predictionIds: string[];
+    evidence: Array<{
+      label: string;
+      snippet: string | null;
+      source: string | null;
+    }>;
+    metadata: Record<string, unknown>;
+    executedAt: string | null;
+    dismissedAt: string | null;
+    savedAt: string | null;
+    dueAt?: string | null;
+    statusEvents?: ActionStatusEvent[];
+    linkedPredictions?: Array<{
+      predictionId: string;
+      predictionType: string;
+      targetEntity: {
+        entityType: string;
+        entityId: string;
+        entityLabel: string | null;
+      };
+      probability: number;
+      confidence: number;
+      timeHorizon: string;
+      evidenceSignals: Array<{
+        label: string;
+        value: string | number | boolean | null;
+      }>;
+      explanation: string;
+      createdAt: string;
+      updatedAt: string;
+      metadata: Record<string, unknown>;
+    }>;
+  };
+}
+
+export interface PublicProviderProfile {
+  npi: string;
+  status: 'CLEARED' | 'PENDING';
+  trustBand: string;
+  readinessScore: number;
+  lastAnchored: string | null;
+  activeCredentials: string[];
+  readiness: {
+    evaluated: boolean;
+    isEligible: boolean | null;
+    missingRequirements: string[];
+    traceCount: number;
+  };
+  artifactSummaries: Array<{
+    artifactId: string;
+    issuer: string;
+    status: string;
+    lifecycleState: string;
+    verifiedAt: string;
+    expiresAt: string | null;
+    monitoring: boolean;
+    checksum: string;
+    claimCount: number;
+    claimHashes: string[];
+    selectiveDisclosure: {
+      algorithm: string;
+      hashAlgorithm: string;
+      claimCount: number;
+    } | null;
+  }>;
+  issuerProvenance: Array<{
+    issuer: string;
+    artifactCount: number;
+    latestVerifiedAt: string;
+    monitored: boolean;
+    statuses: string[];
+  }>;
+  monitoringSummary: {
+    monitoredArtifactCount: number;
+    totalArtifactCount: number;
+    coverageRate: number;
+    activeAlertCount: number;
+    latestAlertAt: string | null;
+  };
+  proof: {
+    jsonUrl: string;
+    pdfUrl: string;
+    auditBundleJson: string;
+    auditBundleDownload: string;
+  };
+  events: Array<{
+    type: string;
+    hash: string;
+    createdAt: string;
+  }>;
+  generatedAt: string;
+}
+
+export interface ProviderDetailResponse {
+  provider: {
+    npi: string;
+    fullName: string;
+    providerType: string | null;
+    credential: string | null;
+    npiStatus: string | null;
+    enumerationType: string | null;
+    specialties: string[];
+    identifiers: Array<{
+      label: string;
+      value: string;
+    }>;
+    locations: Array<{
+      label: string;
+      state: string | null;
+    }>;
+    trustScore: number;
+    riskScore: number;
+    findingCount: number;
+    activeStorylineCount: number;
+    totalCredentialCount: number;
+    activeCredentialCount: number;
+  };
+  profile: PublicProviderProfile;
+  credentials: Array<{
+    id: string;
+    type: string;
+    name: string;
+    issuer: string;
+    status: string;
+    verifiedAt: string | null;
+    expiresAt: string | null;
+    isPublic: boolean;
+  }>;
+  findings: Array<{
+    findingId: string;
+    title: string;
+    severity: string;
+    status: string;
+    updatedAt: string;
+  }>;
+  storylines: Array<{
+    storylineId: string;
+    title: string;
+    severity: string;
+    status: string;
+    lastActivityAt: string;
+  }>;
+  actions: Array<{
+    actionId: string;
+    recommendedAction: string;
+    priority: string;
+    status: string;
+    createdAt: string;
+  }>;
+}

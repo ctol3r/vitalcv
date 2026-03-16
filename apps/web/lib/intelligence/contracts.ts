@@ -42,6 +42,13 @@ export interface ProvidersResponse {
   total: number;
   query: string;
   generatedAt: string;
+  pageInfo?: {
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    returned: number;
+  };
 }
 
 export interface IntelligenceEvidence {
@@ -62,9 +69,12 @@ export interface IntelligenceFinding {
   summary: string;
   explanation: string;
   providerNpi: string | null;
+  providerLabel: string | null;
   priorityScore: number;
   confidence: number;
   storylineKey: string | null;
+  storylineId: string | null;
+  storylineTitle: string | null;
   evidence: IntelligenceEvidence[];
   updatedAt: string;
 }
@@ -74,6 +84,13 @@ export interface FindingsResponse {
   alerts: IntelligenceAlert[];
   total: number;
   generatedAt: string;
+  pageInfo?: {
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    returned: number;
+  };
 }
 
 export interface IntelligenceStoryline {
@@ -98,6 +115,14 @@ export interface StorylinesResponse {
   storylines: IntelligenceStoryline[];
   total: number;
   generatedAt: string;
+  pageInfo?: {
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    returned: number;
+  };
+  degraded?: boolean;
 }
 
 export interface IntelligenceAction {
@@ -111,6 +136,7 @@ export interface IntelligenceAction {
   confidence: number;
   providerNpi: string | null;
   targetLabel: string | null;
+  sourceFindingIds: string[];
   evidence: IntelligenceEvidence[];
   createdAt: string;
 }
@@ -119,6 +145,13 @@ export interface ActionsResponse {
   actions: IntelligenceAction[];
   total: number;
   generatedAt: string;
+  pageInfo?: {
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    returned: number;
+  };
 }
 
 export interface HealthStatusCardData {
@@ -135,6 +168,12 @@ export interface IntelligenceSystemHealth {
   generatedAt: string;
   cards: HealthStatusCardData[];
   incidents: IntelligenceAlert[];
+  sources: Array<{
+    source: string;
+    status: 'OPERATIONAL' | 'DEGRADED' | 'OUTAGE';
+    lastSeen: string | null;
+    artifactCount: number;
+  }>;
 }
 
 export interface IntelligenceGraphStats {
@@ -187,6 +226,11 @@ interface InvestigatorFindingPayload {
   summary: string;
   explanation: string;
   entityIds?: string[];
+  entities?: Array<{
+    entityType?: string;
+    entityId?: string;
+    entityLabel?: string | null;
+  }>;
   metadata?: Record<string, unknown>;
   priorityScore: number;
   confidence: number;
@@ -245,7 +289,9 @@ interface ActionPayload {
   explanation: string;
   confidence: number;
   createdAt: string;
+  sourceFindingIds?: string[];
   targetEntity?: {
+    entityType?: string;
     entityId?: string;
     entityLabel?: string | null;
   };
@@ -259,6 +305,15 @@ interface ActionPayload {
 interface ActionListPayload {
   actions?: ActionPayload[];
   total?: number;
+}
+
+export interface StorylineNavigationLink {
+  storylineId: string;
+  storylineTitle: string | null;
+}
+
+export interface NormalizeFindingsOptions {
+  storylineLinksByFindingId?: ReadonlyMap<string, StorylineNavigationLink>;
 }
 
 interface SystemStatusPayload {
@@ -322,6 +377,41 @@ function severityRank(value: IntelligenceSeverity): number {
     case 'info':
     default:
       return 1;
+  }
+}
+
+export function normalizeFindingStatus(value: string | null | undefined): string {
+  switch ((value ?? '').toLowerCase()) {
+    case 'escalated':
+    case 'investigating':
+      return 'investigating';
+    case 'acknowledged':
+      return 'acknowledged';
+    case 'resolved':
+      return 'resolved';
+    case 'dismissed':
+      return 'dismissed';
+    case 'new':
+    default:
+      return 'new';
+  }
+}
+
+export function normalizeActionStatus(value: string | null | undefined): string {
+  switch ((value ?? '').toLowerCase()) {
+    case 'saved':
+    case 'in_progress':
+      return 'in_progress';
+    case 'executed':
+    case 'completed':
+      return 'completed';
+    case 'dismissed':
+    case 'skipped':
+      return 'skipped';
+    case 'open':
+    case 'pending':
+    default:
+      return 'pending';
   }
 }
 
@@ -400,7 +490,42 @@ function maybeNpi(value: string | null | undefined): string | null {
   return NPI_RE.test(value) ? value : null;
 }
 
-function findProviderNpi(entityIds: string[] | undefined, metadata: Record<string, unknown> | undefined): string | null {
+function findProviderLabel(
+  entities: Array<{ entityType?: string; entityId?: string; entityLabel?: string | null }> | undefined,
+  metadata: Record<string, unknown> | undefined,
+  providerNpi: string | null,
+): string | null {
+  const providerEntity = (entities ?? []).find((entity) => {
+    if (entity.entityType?.toLowerCase() !== 'provider') {
+      return false;
+    }
+
+    if (!providerNpi || !entity.entityId) {
+      return true;
+    }
+
+    return entity.entityId === providerNpi || entity.entityId.endsWith(`:${providerNpi}`);
+  });
+
+  if (typeof providerEntity?.entityLabel === 'string' && providerEntity.entityLabel.trim().length > 0) {
+    return providerEntity.entityLabel.trim();
+  }
+
+  for (const candidate of [
+    metadata?.providerName,
+    metadata?.fullName,
+    metadata?.subjectName,
+    metadata?.name,
+  ]) {
+    if (typeof candidate === 'string' && candidate.trim().length > 0) {
+      return candidate.trim();
+    }
+  }
+
+  return providerNpi ? `Provider ${providerNpi}` : null;
+}
+
+export function findProviderNpi(entityIds: string[] | undefined, metadata: Record<string, unknown> | undefined): string | null {
   const metadataNpi = typeof metadata?.npi === 'string' ? metadata.npi : null;
   if (maybeNpi(metadataNpi)) {
     return metadataNpi;
@@ -505,24 +630,35 @@ function normalizeEvidenceList(
   }));
 }
 
-export function normalizeFindingsPayload(payload: InvestigatorFindingsPayload): FindingsResponse {
+export function normalizeFindingsPayload(
+  payload: InvestigatorFindingsPayload,
+  options: NormalizeFindingsOptions = {},
+): FindingsResponse {
   const findings = (payload.findings ?? [])
-    .map((finding): IntelligenceFinding => ({
-      id: finding.findingId,
-      investigatorId: finding.investigatorId,
-      findingType: finding.findingType,
-      severity: severityFromString(finding.severity),
-      status: finding.status,
-      title: finding.title,
-      summary: finding.summary,
-      explanation: finding.explanation,
-      providerNpi: findProviderNpi(finding.entityIds, finding.metadata),
-      priorityScore: finding.priorityScore,
-      confidence: finding.confidence,
-      storylineKey: finding.storylineKey,
-      evidence: normalizeEvidenceList(finding.supportingEvidence),
-      updatedAt: finding.updatedAt,
-    }))
+    .map((finding): IntelligenceFinding => {
+      const providerNpi = findProviderNpi(finding.entityIds, finding.metadata);
+      const storylineLink = options.storylineLinksByFindingId?.get(finding.findingId);
+
+      return {
+        id: finding.findingId,
+        investigatorId: finding.investigatorId,
+        findingType: finding.findingType,
+        severity: severityFromString(finding.severity),
+        status: normalizeFindingStatus(finding.status),
+        title: finding.title,
+        summary: finding.summary,
+        explanation: finding.explanation,
+        providerNpi,
+        providerLabel: findProviderLabel(finding.entities, finding.metadata, providerNpi),
+        priorityScore: finding.priorityScore,
+        confidence: finding.confidence,
+        storylineKey: finding.storylineKey,
+        storylineId: storylineLink?.storylineId ?? null,
+        storylineTitle: storylineLink?.storylineTitle ?? null,
+        evidence: normalizeEvidenceList(finding.supportingEvidence),
+        updatedAt: finding.updatedAt,
+      };
+    })
     .sort((left, right) => (
       severityRank(right.severity) - severityRank(left.severity) ||
       right.priorityScore - left.priorityScore ||
@@ -590,12 +726,13 @@ export function normalizeActionsPayload(payload: ActionListPayload): ActionsResp
       actionType: action.actionType,
       priority: action.priority,
       priorityScore: action.priorityScore,
-      status: action.status,
+      status: normalizeActionStatus(action.status),
       title: action.recommendedAction,
       explanation: action.explanation,
       confidence: action.confidence,
       providerNpi: maybeNpi(action.targetEntity?.entityId),
       targetLabel: action.targetEntity?.entityLabel ?? null,
+      sourceFindingIds: [...(action.sourceFindingIds ?? [])],
       evidence: (action.evidence ?? []).map((evidence, index) => ({
         id: `${action.actionId}:${index}`,
         label: evidence.label ?? 'evidence',
@@ -691,6 +828,7 @@ export function normalizeSystemHealthPayload(input: {
     generatedAt: systemStatus?.generatedAt ?? new Date().toISOString(),
     cards,
     incidents,
+    sources: connectivity,
   };
 }
 

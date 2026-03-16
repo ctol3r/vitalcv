@@ -38,7 +38,7 @@ export function explainActionCandidates(
     confidence: candidate.confidence,
     explanation: `${cleanSentence(candidate.recommendedAction)} because ${joinReasons(candidate.reasonFragments)}.`,
     createdAt: now,
-    status: 'OPEN',
+    status: 'pending',
     storylineKey: candidate.storylineKey ?? null,
     sourceFindingIds: [...candidate.sourceFindingIds],
     predictionIds: [...candidate.predictionIds],

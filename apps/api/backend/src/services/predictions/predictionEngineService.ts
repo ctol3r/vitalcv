@@ -15,7 +15,7 @@ import {
 
 const predictionTracer = trace.getTracer('vitalcv.predictions');
 
-const ACTIVE_FINDING_STATUSES = ['new', 'acknowledged', 'escalated'] as const;
+const ACTIVE_FINDING_STATUSES = ['new', 'acknowledged', 'investigating', 'escalated'] as const;
 const COLLABORATION_EDGE_TYPES = ['co_author', 'co_pi', 'co_investigator', 'published_with', 'related_to'];
 const RESEARCH_SOURCES = ['OPENALEX', 'PUBMED', 'CLINICAL_TRIALS', 'NIH_REPORTER'];
 const NPI_RE = /^\d{10}$/;

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { AlertTriangle, Bot, GitBranch } from 'lucide-react';
 import type { IntelligenceFinding } from '@/lib/intelligence/contracts';
 import { SurfaceState, ToneBadge } from './shared';
@@ -42,6 +43,26 @@ export function FindingCard({
 
           <p className="mt-3 text-sm leading-6 text-white/70">{finding.summary}</p>
           <p className="mt-3 text-xs leading-5 text-white/50">{finding.explanation}</p>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {finding.providerNpi ? (
+              <Link
+                href={`/providers/${finding.providerNpi}`}
+                className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-medium text-white/80 transition hover:bg-white/[0.08] hover:text-white"
+              >
+                {finding.providerLabel ?? `Provider ${finding.providerNpi}`}
+              </Link>
+            ) : null}
+            {finding.storylineId ? (
+              <Link
+                href={`/storylines/${finding.storylineId}`}
+                title={finding.storylineTitle ?? 'Open storyline'}
+                className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-medium text-white/80 transition hover:bg-white/[0.08] hover:text-white"
+              >
+                Storyline
+              </Link>
+            ) : null}
+          </div>
 
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             <div className="rounded-xl border border-white/10 bg-slate-950/50 p-3">

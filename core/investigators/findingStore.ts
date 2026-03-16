@@ -16,6 +16,7 @@ export interface FindingStoreQuery {
   status?: string[];
   dateFrom?: string | null;
   dateTo?: string | null;
+  minConfidence?: number | null;
   limit?: number;
   offset?: number;
 }

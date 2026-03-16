@@ -5,12 +5,20 @@ import { fetchBackendJson, parsePositiveInt } from '../_shared';
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
-  const limit = parsePositiveInt(req.nextUrl.searchParams.get('limit'), 6, 50);
+  const limit = parsePositiveInt(
+    req.nextUrl.searchParams.get('limit') ?? req.nextUrl.searchParams.get('pageSize'),
+    8,
+    100,
+  );
+  const page = parsePositiveInt(req.nextUrl.searchParams.get('page'), 1, 100);
   const provider = req.nextUrl.searchParams.get('provider');
   const severity = req.nextUrl.searchParams.get('severity');
   const status = req.nextUrl.searchParams.get('status');
+  const storylineType = req.nextUrl.searchParams.get('storylineType');
+  const perspective = req.nextUrl.searchParams.get('perspective');
+  const requiredWindow = Math.min(page * limit, 100);
   const params = new URLSearchParams({
-    limit: String(limit),
+    limit: String(Math.max(limit, requiredWindow)),
     sync: 'false',
   });
 
@@ -24,6 +32,14 @@ export async function GET(req: NextRequest) {
 
   if (status) {
     params.set('status', status);
+  }
+
+  if (storylineType) {
+    params.set('storylineType', storylineType);
+  }
+
+  if (perspective) {
+    params.set('perspective', perspective);
   }
 
   try {
@@ -60,7 +76,23 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json(normalizeStorylinesPayload(upstream.payload));
+    const normalized = normalizeStorylinesPayload(upstream.payload);
+    const sliceStart = Math.max(0, (page - 1) * limit);
+    const sliceEnd = sliceStart + limit;
+    const pageStorylines = normalized.storylines.slice(sliceStart, sliceEnd);
+
+    return NextResponse.json({
+      ...normalized,
+      storylines: pageStorylines,
+      pageInfo: {
+        page,
+        pageSize: limit,
+        totalPages: Math.max(1, Math.ceil(normalized.total / limit)),
+        hasNextPage: sliceEnd < normalized.total,
+        returned: pageStorylines.length,
+      },
+      degraded: requiredWindow > 100,
+    });
   } catch (error) {
     return NextResponse.json(
       {

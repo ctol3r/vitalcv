@@ -7,18 +7,21 @@ import type {
   FindingStoreQuery,
 } from '../../../../../../core/investigators/findingStore';
 import { createInvestigatorEngine } from '../../../../../../core/investigators/investigatorEngine';
+import { normalizeInvestigatorFindingStatus } from '../../../../../../core/investigators/investigatorTypes';
 import type {
   FindingEntityLink,
   FindingEvidence,
   InvestigatorFindingDetail,
   InvestigatorFindingRecord,
   InvestigatorFindingStatus,
+  InvestigatorFindingStatusInput,
 } from '../../../../../../core/investigators/investigatorTypes';
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
 import { buildDefaultInvestigators, type BackendInvestigatorDependencies } from './defaultInvestigators';
 
 const investigatorTracer = trace.getTracer('vitalcv.investigators');
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 type PrismaFindingRow = Awaited<ReturnType<typeof prisma.investigatorFinding.findFirst>>;
 type PrismaEntityLinkRow = {
@@ -95,7 +98,7 @@ function findingRecordFromRow(
     supportingEvidence: asEvidenceList(row.supportingEvidence),
     confidence: row.confidence,
     explanation: row.explanation,
-    status: row.status as InvestigatorFindingStatus,
+    status: normalizeInvestigatorFindingStatus(row.status),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     firstSeenAt: row.firstSeenAt.toISOString(),
@@ -140,8 +143,8 @@ function detailFromRow(row: PrismaFindingDetailRow): InvestigatorFindingDetail {
       metadata: asRecord(entity.metadata),
     })),
     statusEvents: row.statusEvents.map((event) => ({
-      fromStatus: (event.fromStatus as InvestigatorFindingStatus | null) ?? null,
-      toStatus: event.toStatus as InvestigatorFindingStatus,
+      fromStatus: event.fromStatus ? normalizeInvestigatorFindingStatus(event.fromStatus) : null,
+      toStatus: normalizeInvestigatorFindingStatus(event.toStatus),
       actorId: event.actorId,
       note: event.note,
       metadata: asRecord(event.metadata),
@@ -342,7 +345,8 @@ class PrismaFindingStore implements FindingStore {
       }
 
       findingsUpdated += 1;
-      const statusChanged = existing.status !== finding.status;
+      const existingStatus = normalizeInvestigatorFindingStatus(existing.status);
+      const statusChanged = existingStatus !== finding.status;
       const updated = await this.prismaClient.investigatorFinding.update({
         where: { dedupeKey: finding.dedupeKey },
         data: {
@@ -397,7 +401,7 @@ class PrismaFindingStore implements FindingStore {
           statusEvents: statusChanged
             ? {
               create: [{
-                fromStatus: existing.status,
+                fromStatus: existingStatus,
                 toStatus: finding.status,
                 note: 'Finding status reopened by investigator rerun.',
                 metadata: {},
@@ -426,7 +430,7 @@ class PrismaFindingStore implements FindingStore {
     const rows = await this.prismaClient.investigatorFinding.findMany({
       where: {
         investigatorId: input.investigatorId,
-        status: { in: ['new', 'acknowledged', 'escalated'] },
+        status: { in: ['new', 'acknowledged', 'investigating', 'escalated'] },
         entityIds: { hasSome: input.coveredEntityIds },
         dedupeKey: input.activeDedupeKeys.length > 0 ? { notIn: input.activeDedupeKeys } : undefined,
       },
@@ -525,7 +529,7 @@ class PrismaFindingStore implements FindingStore {
         status: input.status,
         statusEvents: {
           create: [{
-            fromStatus: existing.status,
+            fromStatus: normalizeInvestigatorFindingStatus(existing.status),
             toStatus: input.status,
             actorId: input.actorId ?? null,
             note: input.note ?? null,
@@ -555,6 +559,21 @@ function normalizeList(value: string[] | string | undefined): string[] {
   return raw.flatMap((entry) => entry.split(',')).map((entry) => entry.trim()).filter((entry) => entry.length > 0);
 }
 
+function parseDateBoundary(value: string | null | undefined, boundary: 'start' | 'end'): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  if (DATE_ONLY_RE.test(value)) {
+    const suffix = boundary === 'start' ? 'T00:00:00.000Z' : 'T23:59:59.999Z';
+    const parsed = new Date(`${value}${suffix}`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 function buildFindingWhere(query: FindingStoreQuery): Prisma.InvestigatorFindingWhereInput {
   const and: Prisma.InvestigatorFindingWhereInput[] = [];
 
@@ -575,14 +594,33 @@ function buildFindingWhere(query: FindingStoreQuery): Prisma.InvestigatorFinding
 
   const statuses = normalizeList(query.status);
   if (statuses.length > 0) {
-    and.push({ status: { in: statuses } });
+    and.push({
+      status: {
+        in: [...new Set(statuses.flatMap((status) => {
+          const normalized = normalizeInvestigatorFindingStatus(status);
+          return normalized === 'investigating'
+            ? ['investigating', 'escalated']
+            : [normalized];
+        }))],
+      },
+    });
   }
 
-  if (query.dateFrom || query.dateTo) {
+  const dateFrom = parseDateBoundary(query.dateFrom, 'start');
+  const dateTo = parseDateBoundary(query.dateTo, 'end');
+  if (dateFrom || dateTo) {
     and.push({
-      lastSeenAt: {
-        ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
-        ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
+      updatedAt: {
+        ...(dateFrom ? { gte: dateFrom } : {}),
+        ...(dateTo ? { lte: dateTo } : {}),
+      },
+    });
+  }
+
+  if (typeof query.minConfidence === 'number' && Number.isFinite(query.minConfidence)) {
+    and.push({
+      confidence: {
+        gte: Math.max(0, Math.min(query.minConfidence, 1)),
       },
     });
   }
@@ -661,35 +699,31 @@ export async function acknowledgeInvestigatorFinding(
   findingId: string,
   input: { actorId?: string | null; note?: string | null },
 ) {
-  return engine.updateFindingStatus({
-    findingId,
-    status: 'acknowledged',
-    actorId: input.actorId ?? null,
-    note: input.note ?? null,
-    changedAt: new Date().toISOString(),
-  });
+  return setInvestigatorFindingStatus(findingId, 'acknowledged', input);
 }
 
 export async function dismissInvestigatorFinding(
   findingId: string,
   input: { actorId?: string | null; note?: string | null },
 ) {
-  return engine.updateFindingStatus({
-    findingId,
-    status: 'dismissed',
-    actorId: input.actorId ?? null,
-    note: input.note ?? null,
-    changedAt: new Date().toISOString(),
-  });
+  return setInvestigatorFindingStatus(findingId, 'dismissed', input);
 }
 
 export async function escalateInvestigatorFinding(
   findingId: string,
   input: { actorId?: string | null; note?: string | null },
 ) {
+  return setInvestigatorFindingStatus(findingId, 'investigating', input);
+}
+
+export async function setInvestigatorFindingStatus(
+  findingId: string,
+  status: InvestigatorFindingStatusInput,
+  input: { actorId?: string | null; note?: string | null },
+) {
   return engine.updateFindingStatus({
     findingId,
-    status: 'escalated',
+    status: normalizeInvestigatorFindingStatus(status),
     actorId: input.actorId ?? null,
     note: input.note ?? null,
     changedAt: new Date().toISOString(),

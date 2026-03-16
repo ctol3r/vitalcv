@@ -162,6 +162,37 @@ describe('investigator routes', () => {
 
     const findingId = list.body.findings[0].findingId as string;
 
+    await prisma.investigatorFinding.update({
+      where: { findingId },
+      data: {
+        updatedAt: new Date('2026-03-15T12:00:00.000Z'),
+        lastSeenAt: new Date('2026-03-15T12:00:00.000Z'),
+      },
+    });
+
+    const typedAndConfident = await request(app)
+      .get('/api/investigators/findings')
+      .query({
+        type: 'trust_decline',
+        minConfidence: '0.9',
+        dateFrom: '2026-03-15',
+        dateTo: '2026-03-15',
+      })
+      .expect(200);
+
+    expect(typedAndConfident.body.total).toBe(1);
+    expect(typedAndConfident.body.findings[0].findingId).toBe(findingId);
+
+    const filteredOutByConfidence = await request(app)
+      .get('/api/investigators/findings')
+      .query({
+        type: 'trust_decline',
+        minConfidence: '0.95',
+      })
+      .expect(200);
+
+    expect(filteredOutByConfidence.body.total).toBe(0);
+
     const detail = await request(app)
       .get(`/api/investigators/findings/${findingId}`)
       .expect(200);
@@ -182,7 +213,7 @@ describe('investigator routes', () => {
       .send({ actorId: 'operator-2', note: 'Escalating to compliance' })
       .expect(200);
 
-    expect(escalated.body.finding.status).toBe('escalated');
+    expect(escalated.body.finding.status).toBe('investigating');
 
     const dismissed = await request(app)
       .post(`/api/investigators/findings/${findingId}/dismiss`)
@@ -191,10 +222,17 @@ describe('investigator routes', () => {
 
     expect(dismissed.body.finding.status).toBe('dismissed');
 
+    const reopened = await request(app)
+      .patch(`/api/investigators/findings/${findingId}/status`)
+      .send({ status: 'resolved', actorId: 'operator-4', note: 'Closed after review.' })
+      .expect(200);
+
+    expect(reopened.body.finding.status).toBe('resolved');
+
     const filtered = await request(app)
       .get('/api/investigators/findings')
       .query({
-        status: 'dismissed',
+        status: 'resolved',
         institution: 'Mayo Clinic',
       })
       .expect(200);
@@ -206,7 +244,7 @@ describe('investigator routes', () => {
       .get(`/api/investigators/findings/${findingId}`)
       .expect(200);
 
-    expect(refreshedDetail.body.finding.statusEvents.length).toBeGreaterThanOrEqual(4);
-    expect(refreshedDetail.body.finding.statusEvents[0].toStatus).toBe('dismissed');
+    expect(refreshedDetail.body.finding.statusEvents.length).toBeGreaterThanOrEqual(5);
+    expect(refreshedDetail.body.finding.statusEvents[0].toStatus).toBe('resolved');
   });
 });

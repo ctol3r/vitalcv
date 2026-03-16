@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import type { ActionType, ActionTargetEntity } from './actionEngine';
 
-export type ActionStatus = 'OPEN' | 'SAVED' | 'DISMISSED' | 'EXECUTED';
+export type ActionStatus = 'pending' | 'in_progress' | 'completed' | 'skipped';
+export type ActionStatusInput = ActionStatus | 'OPEN' | 'SAVED' | 'DISMISSED' | 'EXECUTED';
 
 export interface ActionHistoryEvent {
   fromStatus: ActionStatus | null;
@@ -10,6 +11,30 @@ export interface ActionHistoryEvent {
   note?: string | null;
   metadata?: Record<string, unknown>;
   createdAt: string;
+}
+
+export function normalizeActionStatus(status: string | null | undefined): ActionStatus {
+  switch ((status ?? '').toLowerCase()) {
+    case 'saved':
+    case 'in_progress':
+      return 'in_progress';
+    case 'executed':
+    case 'completed':
+      return 'completed';
+    case 'dismissed':
+    case 'skipped':
+      return 'skipped';
+    case 'open':
+    case 'pending':
+    default:
+      return 'pending';
+  }
+}
+
+export function isActionStatus(status: string | null | undefined): status is ActionStatusInput {
+  return ['pending', 'in_progress', 'completed', 'skipped', 'open', 'saved', 'executed', 'dismissed'].includes(
+    (status ?? '').toLowerCase(),
+  );
 }
 
 function stableStringify(value: unknown): string {
@@ -45,21 +70,24 @@ export function buildActionId(input: {
 }
 
 export function canTransitionActionStatus(
-  fromStatus: ActionStatus,
-  toStatus: ActionStatus,
+  fromStatus: ActionStatusInput,
+  toStatus: ActionStatusInput,
 ): boolean {
-  if (fromStatus === toStatus) {
+  const from = normalizeActionStatus(fromStatus);
+  const to = normalizeActionStatus(toStatus);
+
+  if (from === to) {
     return true;
   }
 
   const validTransitions: Record<ActionStatus, ActionStatus[]> = {
-    OPEN: ['SAVED', 'DISMISSED', 'EXECUTED'],
-    SAVED: ['OPEN', 'DISMISSED', 'EXECUTED'],
-    DISMISSED: ['OPEN', 'SAVED'],
-    EXECUTED: ['OPEN', 'SAVED'],
+    pending: ['in_progress', 'completed', 'skipped'],
+    in_progress: ['pending', 'completed', 'skipped'],
+    completed: ['pending', 'in_progress'],
+    skipped: ['pending', 'in_progress'],
   };
 
-  return validTransitions[fromStatus].includes(toStatus);
+  return validTransitions[from].includes(to);
 }
 
 export function buildActionHistoryEvent(input: {
@@ -71,8 +99,8 @@ export function buildActionHistoryEvent(input: {
   createdAt?: string;
 }): ActionHistoryEvent {
   return {
-    fromStatus: input.fromStatus ?? null,
-    toStatus: input.toStatus,
+    fromStatus: input.fromStatus ? normalizeActionStatus(input.fromStatus) : null,
+    toStatus: normalizeActionStatus(input.toStatus),
     actorId: input.actorId ?? null,
     note: input.note ?? null,
     metadata: input.metadata ?? {},

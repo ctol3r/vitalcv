@@ -5,8 +5,10 @@ import {
   getActionRecommendation,
   listActionRecommendations,
   saveActionRecommendation,
+  setActionRecommendationStatus,
 } from '../services/actions/actionEngineService';
 import { log } from '../obs/logger';
+import { isActionStatus, normalizeActionStatus } from '../../../../../core/actions/actionHistory';
 
 function normalizeListParam(value: unknown): string[] {
   if (typeof value !== 'string') {
@@ -49,6 +51,7 @@ export function registerActionsRoutes(app: Express): void {
         priority: normalizeListParam(req.query.priority),
         entity: typeof req.query.entity === 'string' ? req.query.entity : null,
         actionType: normalizeListParam(req.query.actionType),
+        status: normalizeListParam(req.query.status),
         dateFrom,
         dateTo,
         limit,
@@ -63,6 +66,7 @@ export function registerActionsRoutes(app: Express): void {
           priority: normalizeListParam(req.query.priority),
           entity: typeof req.query.entity === 'string' ? req.query.entity : null,
           actionType: normalizeListParam(req.query.actionType),
+          status: normalizeListParam(req.query.status),
           dateRange: typeof req.query.dateRange === 'string' ? req.query.dateRange : null,
         },
       });
@@ -92,6 +96,39 @@ export function registerActionsRoutes(app: Express): void {
         actionId: req.params.id,
       });
       res.status(500).json({ error: 'Failed to load action' });
+    }
+  });
+
+  app.patch('/api/actions/:id/status', async (req: Request, res: Response) => {
+    const body = req.body as { status?: unknown; actorId?: unknown; note?: unknown } | undefined;
+    const rawStatus = typeof body?.status === 'string' ? body.status : null;
+
+    if (!rawStatus || !isActionStatus(rawStatus)) {
+      res.status(400).json({
+        error: 'status must be one of: pending, in_progress, completed, skipped',
+      });
+      return;
+    }
+
+    try {
+      const action = await setActionRecommendationStatus(
+        req.params.id,
+        normalizeActionStatus(rawStatus),
+        statusBody(req),
+      );
+      res.json({ action });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to update action status';
+      if (message.includes('not found')) {
+        res.status(404).json({ error: 'Action not found' });
+        return;
+      }
+      if (message.includes('Invalid action status transition')) {
+        res.status(409).json({ error: message });
+        return;
+      }
+      log('error', 'actions: status update failed', { error: message, actionId: req.params.id });
+      res.status(500).json({ error: 'Failed to update action status' });
     }
   });
 

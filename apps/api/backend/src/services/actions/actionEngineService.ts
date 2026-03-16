@@ -13,8 +13,11 @@ import {
 import {
   buildActionHistoryEvent,
   canTransitionActionStatus,
+  isActionStatus,
+  normalizeActionStatus,
   type ActionHistoryEvent,
   type ActionStatus,
+  type ActionStatusInput,
 } from '../../../../../../core/actions/actionHistory';
 import {
   listPredictionInsightsByIds,
@@ -23,7 +26,7 @@ import {
 } from '../predictions/predictionEngineService';
 
 const actionTracer = trace.getTracer('vitalcv.actions');
-const ACTIVE_FINDING_STATUSES = ['new', 'acknowledged', 'escalated'] as const;
+const ACTIVE_FINDING_STATUSES = ['new', 'acknowledged', 'investigating', 'escalated'] as const;
 const NPI_RE = /^\d{10}$/;
 
 function toJsonValue(value: unknown): Prisma.InputJsonValue {
@@ -132,8 +135,8 @@ function parseActionStatusEvents(value: Array<{
   createdAt: Date;
 }>): ActionHistoryEvent[] {
   return value.map((event) => ({
-    fromStatus: (event.fromStatus as ActionStatus | null) ?? null,
-    toStatus: event.toStatus as ActionStatus,
+    fromStatus: event.fromStatus ? normalizeActionStatus(event.fromStatus) : null,
+    toStatus: normalizeActionStatus(event.toStatus),
     actorId: event.actorId,
     note: event.note,
     metadata: asRecord(event.metadata),
@@ -367,7 +370,7 @@ function mapActionRow(row: {
     explanation: row.explanation,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
-    status: row.status as ActionStatus,
+    status: normalizeActionStatus(row.status),
     storylineKey: row.storylineKey ?? null,
     sourceFindingIds: [...row.sourceFindingIds],
     predictionIds: [...row.predictionIds],
@@ -452,6 +455,29 @@ function buildActionWhere(
     and.push({ actionType: { in: actionTypes } });
   }
 
+  const statuses = normalizeList(query.status)
+    .filter((status) => isActionStatus(status))
+    .map((status) => normalizeActionStatus(status));
+  if (statuses.length > 0) {
+    and.push({
+      status: {
+        in: [...new Set(statuses.flatMap((status) => {
+          switch (status) {
+            case 'in_progress':
+              return ['in_progress', 'SAVED'];
+            case 'completed':
+              return ['completed', 'EXECUTED'];
+            case 'skipped':
+              return ['skipped', 'DISMISSED'];
+            case 'pending':
+            default:
+              return ['pending', 'OPEN'];
+          }
+        }))],
+      },
+    });
+  }
+
   if (query.entity) {
     and.push({
       OR: [
@@ -498,6 +524,7 @@ export interface ActionListQuery {
   priority?: string[] | string;
   entity?: string | null;
   actionType?: string[] | string;
+  status?: string[] | string;
   dateFrom?: string | null;
   dateTo?: string | null;
   limit?: number;
@@ -597,7 +624,7 @@ export async function getActionRecommendation(
 
 async function updateActionStatus(
   actionId: string,
-  status: ActionStatus,
+  status: ActionStatusInput,
   input: {
     actorId?: string | null;
     note?: string | null;
@@ -618,14 +645,17 @@ async function updateActionStatus(
     throw new Error(`Action not found: ${actionId}`);
   }
 
-  if (!canTransitionActionStatus(existing.status as ActionStatus, status)) {
-    throw new Error(`Invalid action status transition from ${existing.status} to ${status}`);
+  const existingStatus = normalizeActionStatus(existing.status);
+  const nextStatus = normalizeActionStatus(status);
+
+  if (!canTransitionActionStatus(existingStatus, nextStatus)) {
+    throw new Error(`Invalid action status transition from ${existingStatus} to ${nextStatus}`);
   }
 
   const changedAt = new Date().toISOString();
   const event = buildActionHistoryEvent({
-    fromStatus: existing.status as ActionStatus,
-    toStatus: status,
+    fromStatus: existingStatus,
+    toStatus: nextStatus,
     actorId: input.actorId ?? null,
     note: input.note ?? null,
     metadata: input.metadata ?? {},
@@ -635,10 +665,10 @@ async function updateActionStatus(
   const updated = await prismaClient.actionRecommendation.update({
     where: { actionId },
     data: {
-      status,
-      executedAt: status === 'EXECUTED' ? new Date(changedAt) : existing.executedAt,
-      dismissedAt: status === 'DISMISSED' ? new Date(changedAt) : existing.dismissedAt,
-      savedAt: status === 'SAVED' ? new Date(changedAt) : existing.savedAt,
+      status: nextStatus,
+      executedAt: nextStatus === 'completed' ? new Date(changedAt) : existing.executedAt,
+      dismissedAt: nextStatus === 'skipped' ? new Date(changedAt) : existing.dismissedAt,
+      savedAt: nextStatus === 'in_progress' ? new Date(changedAt) : existing.savedAt,
       statusEvents: {
         create: [{
           fromStatus: event.fromStatus,
@@ -660,6 +690,19 @@ async function updateActionStatus(
   return hydrateActionDetail(mapActionRow(updated), prismaClient);
 }
 
+export async function setActionRecommendationStatus(
+  actionId: string,
+  status: ActionStatusInput,
+  input: { actorId?: string | null; note?: string | null },
+  prismaClient: PrismaClient = prisma,
+): Promise<StoredActionRecommendation> {
+  return withActionSpan(
+    'actions.set_status',
+    { 'vitalcv.actions.action_id': actionId, 'vitalcv.actions.status': normalizeActionStatus(status) },
+    async () => updateActionStatus(actionId, status, input, prismaClient),
+  );
+}
+
 export async function executeActionRecommendation(
   actionId: string,
   input: { actorId?: string | null; note?: string | null },
@@ -668,7 +711,7 @@ export async function executeActionRecommendation(
   return withActionSpan(
     'actions.execute',
     { 'vitalcv.actions.action_id': actionId },
-    async () => updateActionStatus(actionId, 'EXECUTED', input, prismaClient),
+    async () => updateActionStatus(actionId, 'completed', input, prismaClient),
   );
 }
 
@@ -680,7 +723,7 @@ export async function dismissActionRecommendation(
   return withActionSpan(
     'actions.dismiss',
     { 'vitalcv.actions.action_id': actionId },
-    async () => updateActionStatus(actionId, 'DISMISSED', input, prismaClient),
+    async () => updateActionStatus(actionId, 'skipped', input, prismaClient),
   );
 }
 
@@ -692,6 +735,6 @@ export async function saveActionRecommendation(
   return withActionSpan(
     'actions.save',
     { 'vitalcv.actions.action_id': actionId },
-    async () => updateActionStatus(actionId, 'SAVED', input, prismaClient),
+    async () => updateActionStatus(actionId, 'in_progress', input, prismaClient),
   );
 }

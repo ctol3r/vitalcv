@@ -32,7 +32,10 @@ export const metadata: Metadata = {
   description: 'Reusable trust state for clinician credentialing.',
 };
 
-const clerkEnabled = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
+const localBackendConfigured = (process.env.NEXT_PUBLIC_BACKEND_URL ?? '').includes('localhost');
+const clerkEnabled = Boolean(clerkPublishableKey)
+  && !(localBackendConfigured && clerkPublishableKey.startsWith('pk_live_'));
 
 export default function RootLayout({
   children,

@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+import useSWR, { mutate as mutateSWR } from 'swr';
 
 export interface UseIntelligenceResourceOptions {
   pollIntervalMs?: number;
   retryIntervalMs?: number;
   maxRetryIntervalMs?: number;
   paused?: boolean;
+  initialData?: unknown;
 }
 
 export interface UseIntelligenceResourceResult<T> {
@@ -18,6 +20,98 @@ export interface UseIntelligenceResourceResult<T> {
   refresh: () => void;
 }
 
+const resourceLastUpdated = new Map<string, string>();
+const knownResourceKeys = new Set<string>();
+
+function stampResource(url: string, at = new Date().toISOString()) {
+  knownResourceKeys.add(url);
+  resourceLastUpdated.set(url, at);
+}
+
+function errorMessage(error: unknown): string | null {
+  if (!error) {
+    return null;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return typeof error === 'string' ? error : 'Unknown request failure';
+}
+
+async function fetchIntelligenceResource<T>(url: string): Promise<T> {
+  const response = await fetch(url, {
+    cache: 'no-store',
+    headers: {
+      Accept: 'application/json',
+    },
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = (
+      payload && typeof payload === 'object' && 'error' in payload && typeof payload.error === 'string' && payload.error.length > 0
+        ? payload.error
+        : `Request failed with ${response.status}`
+    );
+    throw new Error(message);
+  }
+
+  return payload as T;
+}
+
+export function primeIntelligenceResource<T>(url: string, data: T, lastUpdated?: string | null) {
+  stampResource(url, lastUpdated ?? new Date().toISOString());
+  void mutateSWR(url, data, {
+    populateCache: true,
+    revalidate: false,
+    rollbackOnError: false,
+  });
+}
+
+export function mutateIntelligenceResource<T>(
+  url: string,
+  updater: T | ((current: T | null) => T | null),
+) {
+  stampResource(url);
+  void mutateSWR(
+    url,
+    (current: T | undefined) => (
+      typeof updater === 'function'
+        ? (updater as (value: T | null) => T | null)(current ?? null) ?? undefined
+        : updater
+    ),
+    {
+      populateCache: true,
+      revalidate: false,
+      rollbackOnError: false,
+    },
+  );
+}
+
+export function mutateMatchingIntelligenceResources(
+  predicate: (url: string) => boolean,
+  updater: (current: unknown, url: string) => unknown,
+) {
+  for (const url of knownResourceKeys) {
+    if (!predicate(url)) {
+      continue;
+    }
+
+    stampResource(url);
+    void mutateSWR(
+      url,
+      (current: unknown) => updater(current, url),
+      {
+        populateCache: true,
+        revalidate: false,
+        rollbackOnError: false,
+      },
+    );
+  }
+}
+
 export function useIntelligenceResource<T>(
   url: string | null,
   options: UseIntelligenceResourceOptions = {},
@@ -27,128 +121,96 @@ export function useIntelligenceResource<T>(
     retryIntervalMs = 5_000,
     maxRetryIntervalMs = 60_000,
     paused = false,
+    initialData = null,
   } = options;
 
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [recovering, setRecovering] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [refreshNonce, setRefreshNonce] = useState(0);
-
-  const abortRef = useRef<AbortController | null>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const retryCountRef = useRef(0);
-  const dataRef = useRef<T | null>(null);
-
-  useEffect(() => {
-    dataRef.current = data;
-  }, [data]);
-
-  const clearTimer = () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  };
-
-  const refresh = () => {
-    retryCountRef.current = 0;
-    setRefreshNonce((value) => value + 1);
-  };
-
-  useEffect(() => {
-    if (!url || paused) {
-      clearTimer();
-      abortRef.current?.abort();
-      setLoading(false);
-      setRecovering(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    const scheduleNext = (delayMs: number) => {
-      clearTimer();
-      timerRef.current = setTimeout(() => {
-        void runRequest();
-      }, delayMs);
-    };
-
-    const runRequest = async () => {
-      if (cancelled) {
-        return;
-      }
-
-      clearTimer();
-      abortRef.current?.abort();
-
-      const controller = new AbortController();
-      abortRef.current = controller;
-
-      const hasData = dataRef.current !== null;
-      setLoading(!hasData);
-      setRecovering(hasData);
-
-      try {
-        const response = await fetch(url, {
-          cache: 'no-store',
-          headers: {
-            Accept: 'application/json',
-          },
-          signal: controller.signal,
-        });
-
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          const message = (
-            typeof payload?.error === 'string' && payload.error.length > 0
-              ? payload.error
-              : `Request failed with ${response.status}`
-          );
-          throw new Error(message);
-        }
-
-        retryCountRef.current = 0;
-        setData(payload as T);
-        setError(null);
-        setLastUpdated(new Date().toISOString());
-        setLoading(false);
-        setRecovering(false);
-        scheduleNext(pollIntervalMs);
-      } catch (requestError) {
-        if (cancelled || (requestError instanceof Error && requestError.name === 'AbortError')) {
+  const [lastUpdated, setLastUpdated] = useState<string | null>(url ? resourceLastUpdated.get(url) ?? null : null);
+  const {
+    data,
+    error,
+    isLoading,
+    isValidating,
+    mutate,
+  } = useSWR<T>(
+    url,
+    fetchIntelligenceResource,
+    {
+      fallbackData: initialData === null ? undefined : initialData as T,
+      refreshInterval: paused ? 0 : pollIntervalMs,
+      revalidateOnFocus: false,
+      keepPreviousData: true,
+      isPaused: () => paused,
+      onErrorRetry: (_error, _key, _config, revalidate, { retryCount }) => {
+        if (paused) {
           return;
         }
 
-        retryCountRef.current += 1;
         const nextDelay = Math.min(
-          retryIntervalMs * (2 ** (retryCountRef.current - 1)),
+          retryIntervalMs * (2 ** retryCount),
           maxRetryIntervalMs,
         );
 
-        setError(requestError instanceof Error ? requestError.message : 'Unknown request failure');
-        setLoading(false);
-        setRecovering(dataRef.current !== null);
-        scheduleNext(nextDelay);
-      }
-    };
+        setTimeout(() => {
+          void revalidate({ retryCount });
+        }, nextDelay);
+      },
+    },
+  );
 
-    void runRequest();
+  useEffect(() => {
+    if (!url) {
+      setLastUpdated(null);
+      return;
+    }
 
-    return () => {
-      cancelled = true;
-      clearTimer();
-      abortRef.current?.abort();
-    };
-  }, [maxRetryIntervalMs, paused, pollIntervalMs, refreshNonce, retryIntervalMs, url]);
+    knownResourceKeys.add(url);
+    setLastUpdated(resourceLastUpdated.get(url) ?? null);
+  }, [url]);
+
+  useEffect(() => {
+    if (!url || initialData === null) {
+      return;
+    }
+
+    if (!resourceLastUpdated.has(url)) {
+      stampResource(url);
+      setLastUpdated(resourceLastUpdated.get(url) ?? null);
+    }
+
+    void mutateSWR(
+      url,
+      (current: T | undefined) => current ?? initialData as T,
+      {
+        populateCache: true,
+        revalidate: false,
+        rollbackOnError: false,
+      },
+    );
+  }, [initialData, url]);
+
+  useEffect(() => {
+    if (!url || data === undefined || data === null) {
+      return;
+    }
+
+    const nextUpdated = new Date().toISOString();
+    stampResource(url, nextUpdated);
+    setLastUpdated(nextUpdated);
+  }, [data, url]);
+
+  const resolvedData = (data ?? (initialData as T | null) ?? null) as T | null;
+  const hasData = resolvedData !== null;
 
   return {
-    data,
-    loading,
-    recovering,
-    error,
+    data: resolvedData,
+    loading: !paused && !hasData && isLoading,
+    recovering: !paused && hasData && isValidating,
+    error: errorMessage(error),
     lastUpdated,
-    refresh,
+    refresh: () => {
+      if (url) {
+        void mutate();
+      }
+    },
   };
 }

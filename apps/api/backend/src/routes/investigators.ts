@@ -5,10 +5,21 @@ import {
   escalateInvestigatorFinding,
   getInvestigatorFinding,
   listInvestigatorFindings,
+  setInvestigatorFindingStatus,
 } from '../services/investigators/investigatorEngineService';
 import { log } from '../obs/logger';
+import {
+  isInvestigatorFindingStatus,
+  normalizeInvestigatorFindingStatus,
+} from '../../../../../core/investigators/investigatorTypes';
 
 function normalizeListParam(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .flatMap((entry) => normalizeListParam(entry))
+      .filter((entry, index, items) => items.indexOf(entry) === index);
+  }
+
   if (typeof value !== 'string') {
     return [];
   }
@@ -17,6 +28,19 @@ function normalizeListParam(value: unknown): string[] {
     .split(',')
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
+}
+
+function parseUnitIntervalParam(value: unknown): number | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const parsed = Number.parseFloat(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  return Math.max(0, Math.min(parsed, 1));
 }
 
 function statusBody(req: Request): { actorId?: string | null; note?: string | null } {
@@ -34,15 +58,19 @@ export function registerInvestigatorRoutes(app: Express): void {
       const parsedOffset = typeof req.query.offset === 'string' ? Number.parseInt(req.query.offset, 10) : undefined;
       const limit = typeof parsedLimit === 'number' && Number.isFinite(parsedLimit) ? parsedLimit : undefined;
       const offset = typeof parsedOffset === 'number' && Number.isFinite(parsedOffset) ? parsedOffset : undefined;
+      const findingType = normalizeListParam(req.query.type ?? req.query.findingType);
+      const minConfidence = parseUnitIntervalParam(req.query.minConfidence);
+
       const result = await listInvestigatorFindings({
         severity: normalizeListParam(req.query.severity),
-        findingType: normalizeListParam(req.query.findingType),
+        findingType,
         investigatorId: normalizeListParam(req.query.investigatorId),
         status: normalizeListParam(req.query.status),
         provider: typeof req.query.provider === 'string' ? req.query.provider : null,
         institution: typeof req.query.institution === 'string' ? req.query.institution : null,
         dateFrom: typeof req.query.dateFrom === 'string' ? req.query.dateFrom : null,
         dateTo: typeof req.query.dateTo === 'string' ? req.query.dateTo : null,
+        minConfidence,
         limit,
         offset,
       });
@@ -53,13 +81,15 @@ export function registerInvestigatorRoutes(app: Express): void {
         findings: result.findings,
         filters: {
           severity: normalizeListParam(req.query.severity),
-          findingType: normalizeListParam(req.query.findingType),
+          type: findingType,
+          findingType,
           investigatorId: normalizeListParam(req.query.investigatorId),
           status: normalizeListParam(req.query.status),
           provider: typeof req.query.provider === 'string' ? req.query.provider : null,
           institution: typeof req.query.institution === 'string' ? req.query.institution : null,
           dateFrom: typeof req.query.dateFrom === 'string' ? req.query.dateFrom : null,
           dateTo: typeof req.query.dateTo === 'string' ? req.query.dateTo : null,
+          minConfidence,
         },
       });
     } catch (error) {
@@ -88,6 +118,32 @@ export function registerInvestigatorRoutes(app: Express): void {
         findingId: req.params.id,
       });
       res.status(500).json({ error: 'Failed to load investigator finding' });
+    }
+  });
+
+  app.patch('/api/investigators/findings/:id/status', async (req: Request, res: Response) => {
+    const body = req.body as { status?: unknown; actorId?: unknown; note?: unknown } | undefined;
+    const rawStatus = typeof body?.status === 'string' ? body.status : null;
+    const normalizedStatus = normalizeInvestigatorFindingStatus(rawStatus);
+
+    if (!rawStatus || !isInvestigatorFindingStatus(rawStatus)) {
+      res.status(400).json({
+        error: 'status must be one of: new, acknowledged, investigating, resolved, dismissed',
+      });
+      return;
+    }
+
+    try {
+      const finding = await setInvestigatorFindingStatus(req.params.id, normalizedStatus, statusBody(req));
+      res.json({ finding });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to update finding status';
+      if (message.includes('not found')) {
+        res.status(404).json({ error: 'Finding not found' });
+        return;
+      }
+      log('error', 'investigators: status update failed', { error: message, findingId: req.params.id });
+      res.status(500).json({ error: 'Failed to update finding status' });
     }
   });
 

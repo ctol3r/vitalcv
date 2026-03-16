@@ -267,25 +267,31 @@ describe('action routes', () => {
       .post(`/api/actions/${exportReport.actionId}/save`)
       .send({ actorId: 'ops-user', note: 'Keep for staffing review.' })
       .expect(200);
-    expect(saved.body.action.status).toBe('SAVED');
+    expect(saved.body.action.status).toBe('in_progress');
 
     const executed = await request(app)
       .post(`/api/actions/${runVerification.actionId}/execute`)
       .send({ actorId: 'ops-user', note: 'Verification requested.' })
       .expect(200);
-    expect(executed.body.action.status).toBe('EXECUTED');
+    expect(executed.body.action.status).toBe('completed');
 
     const dismissed = await request(app)
       .post(`/api/actions/${monitorProvider.actionId}/dismiss`)
       .send({ actorId: 'ops-user', note: 'No longer needed.' })
       .expect(200);
-    expect(dismissed.body.action.status).toBe('DISMISSED');
+    expect(dismissed.body.action.status).toBe('skipped');
+
+    const reprioritized = await request(app)
+      .patch(`/api/actions/${exportReport.actionId}/status`)
+      .send({ status: 'pending', actorId: 'ops-user', note: 'Return to backlog.' })
+      .expect(200);
+    expect(reprioritized.body.action.status).toBe('pending');
 
     const updatedDetail = await request(app)
       .get(`/api/actions/${runVerification.actionId}`)
       .expect(200);
 
-    expect(updatedDetail.body.action.status).toBe('EXECUTED');
+    expect(updatedDetail.body.action.status).toBe('completed');
     expect(updatedDetail.body.action.statusEvents.length).toBeGreaterThanOrEqual(2);
   });
 });
