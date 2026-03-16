@@ -16,10 +16,18 @@ import type { Express, Request, Response } from 'express';
 import {
   recordFeedback,
   getFeedbackHistory,
-  getFeedStats,
-  listInvestigators,
   type FeedbackAction,
 } from '../services/investigators/framework';
+import {
+  recordOutcome,
+  getCalibrationStats,
+  getLearningLoopStats,
+  getOutcomeHistory,
+  isValidOutcome,
+  isValidEvidenceQuality,
+  VALID_OUTCOMES,
+  VALID_EVIDENCE_QUALITIES,
+} from '../services/investigators/learningLoopService';
 import {
   getInvestigatorFinding,
   listInvestigatorFindings,
@@ -28,6 +36,7 @@ import {
 import { isInvestigatorFindingStatus, normalizeInvestigatorFindingStatus } from '../../../../../core/investigators/investigatorTypes';
 import { runAllScans } from '../services/investigators/orchestrator';
 import { log } from '../obs/logger';
+import { listInvestigatorRuntimeSummaries } from '../services/investigation/investigatorRuntimeService';
 
 const NPI_RE = /^\d{10}$/;
 const VALID_FEEDBACK: FeedbackAction[] = ['acknowledge', 'dismiss', 'escalate', 'save', 'compare', 'follow_up'];
@@ -193,12 +202,25 @@ export function registerFindingsRoutes(app: Express): void {
   });
 
   // ── GET /api/investigators ────────────────────────────────────────────────
-  app.get('/api/investigators', (_req: Request, res: Response) => {
-    res.json({
-      schema: 'https://vitalcv.com/investigators/v1',
-      investigators: listInvestigators(),
-      stats: getFeedStats(),
-    });
+  app.get('/api/investigators', async (_req: Request, res: Response) => {
+    try {
+      const investigators = await listInvestigatorRuntimeSummaries();
+      res.json({
+        schema: 'https://vitalcv.com/investigators/runtime/v2',
+        generatedAt: new Date().toISOString(),
+        investigators,
+        stats: {
+          total: investigators.length,
+          activeFindings: investigators.reduce((sum, investigator) => sum + investigator.activeFindingCount, 0),
+          recentFindings: investigators.reduce((sum, investigator) => sum + investigator.recentFindingCount, 0),
+        },
+      });
+    } catch (error) {
+      log('error', '[Findings] investigator runtime list failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: 'Failed to load investigator runtime' });
+    }
   });
 
   // ── POST /api/investigators/scan ──────────────────────────────────────────
@@ -212,6 +234,91 @@ export function registerFindingsRoutes(app: Express): void {
     } catch (err) {
       log('error', `[Findings] Scan failed: ${(err as Error)?.message}`);
       res.status(500).json({ error: 'Investigator scan failed' });
+    }
+  });
+
+  // ── Learning Loop ──────────────────────────────────────────────────────────
+
+  // POST /api/findings/:id/outcome — Record analyst resolution outcome
+  app.post('/api/findings/:id/outcome', async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const body = req.body as {
+      outcome?: unknown;
+      evidenceQuality?: unknown;
+      falsePositiveReason?: string;
+      missedSignals?: string[];
+      analystNote?: string;
+      resolvedBy?: string;
+    };
+
+    if (!isValidOutcome(body.outcome)) {
+      return res.status(400).json({
+        error: `outcome must be one of: ${VALID_OUTCOMES.join(', ')}`,
+      });
+    }
+    if (!isValidEvidenceQuality(body.evidenceQuality)) {
+      return res.status(400).json({
+        error: `evidenceQuality must be one of: ${VALID_EVIDENCE_QUALITIES.join(', ')}`,
+      });
+    }
+
+    try {
+      const record = await recordOutcome(
+        id,
+        body.outcome,
+        body.evidenceQuality,
+        {
+          falsePositiveReason: body.falsePositiveReason,
+          missedSignals: body.missedSignals,
+          analystNote: body.analystNote,
+          resolvedBy: body.resolvedBy,
+        },
+      );
+
+      if (!record) {
+        return res.status(404).json({ error: 'Finding not found' });
+      }
+
+      res.json({ schema: 'https://vitalcv.com/finding-outcome/v1', ...record });
+    } catch (err) {
+      log('error', `[LearningLoop] Outcome recording failed: ${(err as Error)?.message}`);
+      res.status(500).json({ error: 'Failed to record outcome' });
+    }
+  });
+
+  // GET /api/findings/calibration — Investigator calibration stats
+  app.get('/api/findings/calibration', (_req: Request, res: Response) => {
+    try {
+      const stats = getCalibrationStats();
+      const summary = getLearningLoopStats();
+      res.json({
+        schema: 'https://vitalcv.com/calibration/v1',
+        stats,
+        summary,
+        generatedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      log('error', `[LearningLoop] Calibration stats failed: ${(err as Error)?.message}`);
+      res.status(500).json({ error: 'Failed to get calibration stats' });
+    }
+  });
+
+  // GET /api/findings/outcomes — Outcome history
+  app.get('/api/findings/outcomes', (req: Request, res: Response) => {
+    const { investigatorId, limit } = req.query as Record<string, string | undefined>;
+    const parsedLimit = limit ? Math.min(parseInt(limit, 10), 200) : 50;
+
+    try {
+      const history = getOutcomeHistory(parsedLimit, investigatorId);
+      res.json({
+        schema: 'https://vitalcv.com/outcome-history/v1',
+        outcomes: history,
+        total: history.length,
+        generatedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      log('error', `[LearningLoop] Outcome history failed: ${(err as Error)?.message}`);
+      res.status(500).json({ error: 'Failed to get outcome history' });
     }
   });
 }

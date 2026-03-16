@@ -719,13 +719,14 @@ export async function escalateInvestigatorFinding(
 export async function setInvestigatorFindingStatus(
   findingId: string,
   status: InvestigatorFindingStatusInput,
-  input: { actorId?: string | null; note?: string | null },
+  input: { actorId?: string | null; note?: string | null; metadata?: Record<string, unknown> },
 ) {
   return engine.updateFindingStatus({
     findingId,
     status: normalizeInvestigatorFindingStatus(status),
     actorId: input.actorId ?? null,
     note: input.note ?? null,
+    metadata: input.metadata ?? {},
     changedAt: new Date().toISOString(),
   });
 }

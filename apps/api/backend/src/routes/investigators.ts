@@ -12,6 +12,8 @@ import {
   isInvestigatorFindingStatus,
   normalizeInvestigatorFindingStatus,
 } from '../../../../../core/investigators/investigatorTypes';
+import { getInvestigatorRuntimeDetail } from '../services/investigation/investigatorRuntimeService';
+import { buildFindingsBusDispatchBundle } from '../services/investigation/findingsBus';
 
 function normalizeListParam(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -189,6 +191,29 @@ export function registerInvestigatorRoutes(app: Express): void {
       }
       log('error', 'investigators: escalate failed', { error: message, findingId: req.params.id });
       res.status(500).json({ error: 'Failed to escalate finding' });
+    }
+  });
+
+  app.get('/api/investigators/:id', async (req: Request, res: Response) => {
+    try {
+      const detail = await getInvestigatorRuntimeDetail(req.params.id);
+      if (!detail) {
+        res.status(404).json({ error: 'Investigator not found' });
+        return;
+      }
+
+      const recentBusEvents = detail.recentFindings.map((finding) => buildFindingsBusDispatchBundle(finding));
+      res.json({
+        schema: 'https://vitalcv.com/investigators/runtime-detail/v2',
+        ...detail,
+        recentBusEvents,
+      });
+    } catch (error) {
+      log('error', 'investigators: runtime detail failed', {
+        error: error instanceof Error ? error.message : String(error),
+        investigatorId: req.params.id,
+      });
+      res.status(500).json({ error: 'Failed to load investigator runtime detail' });
     }
   });
 }

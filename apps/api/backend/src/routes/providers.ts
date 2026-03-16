@@ -14,6 +14,7 @@ import { runProviderSmokeTests, runSingleSmokeTest, type ConnectorId } from '../
 import { getProvenanceChain, getProvenanceHealth } from '../services/providers/providerSourceProvenance';
 import { getConnectorAlerts, getConnectorDiagnostics } from '../services/providers/connectors/connectorHealthTracker';
 import { log } from '../obs/logger';
+import { buildProviderInvestigationPayload } from '../services/investigation/investigationWorkbenchService';
 
 const VALID_CONNECTORS: ConnectorId[] = ['NPPES', 'STATE_BOARD', 'OIG', 'ABMS', 'CAQH', 'NPDB'];
 
@@ -79,5 +80,24 @@ export function registerProviderRoutes(app: Express): void {
       return;
     }
     res.json(getProvenanceChain(npi));
+  });
+
+  app.get('/api/providers/:id/investigation', async (req: Request, res: Response) => {
+    const providerId = req.params.id.trim();
+    if (!/^\d{10}$/.test(providerId)) {
+      res.status(400).json({ error: 'Provider investigation requires a 10-digit NPI' });
+      return;
+    }
+
+    try {
+      res.json({
+        schema: 'https://vitalcv.com/providers/investigation/v1',
+        ...(await buildProviderInvestigationPayload(providerId)),
+      });
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      log('error', 'providers: investigation failed', { providerId, error: detail });
+      res.status(500).json({ error: 'Failed to build provider investigation', detail });
+    }
   });
 }

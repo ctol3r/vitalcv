@@ -9,6 +9,10 @@ jest.mock('../../services/copilot/copilotQueryService', () => ({
   executeCopilotQuery: jest.fn(),
 }));
 
+jest.mock('../../services/investigation/copilotInvestigationService', () => ({
+  buildCopilotInvestigationPayload: jest.fn(),
+}));
+
 jest.mock('../../llm', () => ({
   invokeAgentModel: jest.fn(),
 }));
@@ -18,6 +22,7 @@ import {
   copilotQueryResponseSchema,
 } from '../../services/copilot/contracts';
 import { executeCopilotQuery } from '../../services/copilot/copilotQueryService';
+import { buildCopilotInvestigationPayload } from '../../services/investigation/copilotInvestigationService';
 import { resolveSearchRequestContext } from '../../services/search/requestContext';
 import { registerCopilotRoutes } from '../copilot';
 
@@ -25,6 +30,8 @@ const resolveSearchRequestContextMock =
   resolveSearchRequestContext as jest.MockedFunction<typeof resolveSearchRequestContext>;
 const executeCopilotQueryMock =
   executeCopilotQuery as jest.MockedFunction<typeof executeCopilotQuery>;
+const buildCopilotInvestigationPayloadMock =
+  buildCopilotInvestigationPayload as jest.MockedFunction<typeof buildCopilotInvestigationPayload>;
 const invokeAgentModelMock =
   invokeAgentModel as jest.MockedFunction<typeof invokeAgentModel>;
 
@@ -42,6 +49,7 @@ describe('copilot routes', () => {
   beforeEach(() => {
     resolveSearchRequestContextMock.mockReset();
     executeCopilotQueryMock.mockReset();
+    buildCopilotInvestigationPayloadMock.mockReset();
     invokeAgentModelMock.mockReset();
 
     resolveSearchRequestContextMock.mockResolvedValue({
@@ -67,6 +75,42 @@ describe('copilot routes', () => {
 
     expect(response.body.message ?? response.body.error).toBeTruthy();
     expect(executeCopilotQueryMock).not.toHaveBeenCalled();
+  });
+
+  it('returns the structured copilot investigation payload', async () => {
+    const app = buildApp();
+    buildCopilotInvestigationPayloadMock.mockResolvedValue({
+      generatedAt: '2026-03-15T12:00:00.000Z',
+      objective: 'Assess provider 1234567890 for escalation readiness.',
+      keyQuestions: ['What changed most recently?'],
+      signalChecks: [],
+      evidenceSummary: [],
+      networkContext: {
+        focusNodeId: null,
+        highlights: [],
+        topPaths: [],
+      },
+      confidenceAssessment: {
+        score: 0.81,
+        level: 'high',
+        reasoning: ['Signals are corroborated across findings and storyline context.'],
+      },
+      recommendedAction: 'Escalate to analyst review.',
+      followUpQueries: ['Show supporting findings for provider 1234567890'],
+    });
+
+    const response = await request(app)
+      .post('/api/copilot/investigation')
+      .send({ providerId: '1234567890' })
+      .expect(200);
+
+    expect(buildCopilotInvestigationPayloadMock).toHaveBeenCalledWith({
+      providerId: '1234567890',
+      storylineId: null,
+      objective: null,
+    });
+    expect(response.body.schema).toBe('https://vitalcv.com/copilot/investigation/v1');
+    expect(response.body.confidenceAssessment.level).toBe('high');
   });
 
   it('returns the new copilot query contract', async () => {

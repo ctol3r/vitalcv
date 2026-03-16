@@ -6,6 +6,7 @@ import type { SearchRequestContext } from '../search/requestContext';
 import { SOURCE_CATALOG } from '../identity/sourceCatalog';
 import { maybeExecuteIntelligenceContextQuery } from './intelligenceContextAdapter';
 import { maybeExecutePredictionCopilotQuery } from './predictionQueryService';
+import { maybeExecuteStorylineCopilotQuery } from './storylineCopilotAdapter';
 import { computeTrustScoreV1 } from '../trust/trustScoreV1';
 import { withToolSpan } from '../../tools/tracing';
 import {
@@ -1491,6 +1492,18 @@ export async function executeCopilotQuery(params: {
     query: params.query,
     limit: params.limit,
   });
+
+  // Storyline-first: if query references a storyline ID, return narrative directly
+  const storylineResponse = await maybeExecuteStorylineCopilotQuery(preparedQuery, params.limit);
+  if (storylineResponse) {
+    log('info', 'copilot.query', {
+      queryHash: params.requestContext.queryHash,
+      intent: storylineResponse.parsedQuery.intent,
+      resultCount: storylineResponse.results.length,
+      storylineMode: true,
+    });
+    return storylineResponse;
+  }
 
   const intelligenceContextResponse = await maybeExecuteIntelligenceContextQuery(preparedQuery, params.limit);
   if (intelligenceContextResponse) {

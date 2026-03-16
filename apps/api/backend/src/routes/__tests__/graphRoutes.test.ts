@@ -290,4 +290,24 @@ describe('graph routes', () => {
     expect(inflated.nodes.length).toBeLessThanOrEqual(2);
     expect(Array.isArray(inflated.relationships)).toBe(true);
   });
+
+  it('builds the investigation graph payload for a provider', async () => {
+    await seedRoutesFixture();
+    const app = buildApp();
+
+    const response = await request(app)
+      .get('/api/graph/investigation')
+      .query({
+        providerId: '3334567890',
+        depth: 2,
+        relationshipTypes: 'institutional,co_author',
+      })
+      .expect(200);
+
+    expect(response.body.schema).toBe('https://vitalcv.com/graph/investigation/v1');
+    expect(Array.isArray(response.body.nodes)).toBe(true);
+    expect(Array.isArray(response.body.edges)).toBe(true);
+    expect(response.body.highlights).toBeTruthy();
+    expect(response.body.semanticZoom).toBeTruthy();
+  });
 });

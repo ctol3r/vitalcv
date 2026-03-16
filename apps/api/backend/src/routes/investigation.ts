@@ -13,11 +13,48 @@ import {
   investigateNetwork,
   investigateComparison,
 } from '../services/copilot/investigationEngine';
+import { getWorkbenchContext } from '../services/investigation/workbenchContextService';
 import { log } from '../obs/logger';
 
 const NPI_RE = /^\d{10}$/;
 
 export function registerInvestigationRoutes(app: Express): void {
+
+  // ── GET /api/investigation/workbench ──────────────────────────────────────
+  //
+  // Returns a unified, linked-context investigation payload given any
+  // combination of anchors: npi, findingId, storylineId.
+  //
+  // Query params:
+  //   npi          - 10-digit NPI string
+  //   findingId    - finding ID string
+  //   storylineId  - storyline ID string
+  //
+  app.get('/api/investigation/workbench', async (req: Request, res: Response) => {
+    const { npi, findingId, storylineId } = req.query as Record<string, string | undefined>;
+
+    if (!npi && !findingId && !storylineId) {
+      return res.status(400).json({
+        error: 'At least one anchor (npi, findingId, storylineId) is required',
+      });
+    }
+
+    if (npi && !NPI_RE.test(npi)) {
+      return res.status(400).json({ error: 'Invalid NPI — must be 10 digits' });
+    }
+
+    try {
+      const context = await getWorkbenchContext({
+        npi: npi ?? undefined,
+        findingId: findingId ?? undefined,
+        storylineId: storylineId ?? undefined,
+      });
+      res.json({ schema: 'https://vitalcv.com/workbench/v1', ...context });
+    } catch (err) {
+      log('error', `[Workbench] Context failed: ${(err as Error)?.message}`);
+      res.status(500).json({ error: 'Workbench context unavailable' });
+    }
+  });
 
   // ── POST /api/investigation/provider/:npi ─────────────────────────────────
   //

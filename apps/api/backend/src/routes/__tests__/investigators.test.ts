@@ -247,4 +247,18 @@ describe('investigator routes', () => {
     expect(refreshedDetail.body.finding.statusEvents.length).toBeGreaterThanOrEqual(5);
     expect(refreshedDetail.body.finding.statusEvents[0].toStatus).toBe('resolved');
   });
+
+  it('returns investigator runtime detail for the new runtime registry', async () => {
+    await seedFixture();
+    const app = buildApp();
+
+    const response = await request(app)
+      .get('/api/investigators/workforce_shift')
+      .expect(200);
+
+    expect(response.body.schema).toBe('https://vitalcv.com/investigators/runtime-detail/v2');
+    expect(response.body.descriptor.id).toBe('workforce_shift');
+    expect(Array.isArray(response.body.recentFindings)).toBe(true);
+    expect(Array.isArray(response.body.recentBusEvents)).toBe(true);
+  });
 });

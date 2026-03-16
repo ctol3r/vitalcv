@@ -13,6 +13,7 @@ import {
   storylineListResponseSchema,
 } from '../services/storylines/contracts';
 import { log } from '../obs/logger';
+import { buildStorylineInvestigationPayload as buildWorkbenchStorylinePayload } from '../services/investigation/investigationWorkbenchService';
 
 const NPI_RE = /^\d{10}$/;
 const VALID_FEEDBACK = new Set([
@@ -147,6 +148,25 @@ export function registerStorylineRoutes(app: Express): void {
       const message = error instanceof Error ? error.message : 'Unknown error';
       log('error', 'storylines_npi_failed', { npi: req.params.npi, error: message });
       res.status(500).json({ error: 'Failed to list provider storylines', detail: message });
+    }
+  });
+
+  app.get('/api/storylines/:id/investigation', async (req: Request, res: Response) => {
+    try {
+      const payload = await buildWorkbenchStorylinePayload(req.params.id);
+      if (!payload) {
+        res.status(404).json({ error: 'Storyline not found' });
+        return;
+      }
+
+      res.json({
+        schema: 'https://vitalcv.com/storylines/investigation/v1',
+        ...payload,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      log('error', 'storylines_investigation_failed', { storylineId: req.params.id, error: message });
+      res.status(500).json({ error: 'Failed to load storyline investigation', detail: message });
     }
   });
 

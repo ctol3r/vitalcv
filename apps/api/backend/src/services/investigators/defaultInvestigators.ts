@@ -1156,6 +1156,482 @@ async function buildIndustryInfluenceFindings(
   return findings;
 }
 
+// ── Sanctions Investigator ─────────────────────────────────────────────────────
+
+async function buildSanctionsFindings(
+  prisma: PrismaClient,
+  nowIso: string,
+  batchSize: number,
+  targetNpis: string[],
+  markCovered: (entityId: string) => void,
+): Promise<InvestigatorFindingDraft[]> {
+  // Query VerificationArtifacts from exclusion/sanctions sources
+  const npiFilter = targetNpis.length > 0 ? { in: targetNpis } : undefined;
+
+  const [exclusionArtifacts, exclusionClaims] = await Promise.all([
+    prisma.verificationArtifact.findMany({
+      where: {
+        ...(npiFilter ? { npi: npiFilter } : {}),
+        source: { in: ['OIG_LEIE', 'NPDB', 'STATE_LICENSE_BOARD', 'SAM_GOV'] },
+      },
+      orderBy: { verifiedAt: 'desc' },
+      take: batchSize * 4,
+    }),
+    prisma.claimRecord.findMany({
+      where: {
+        ...(npiFilter ? { subjectNpi: npiFilter } : {}),
+        claimType: 'EXCLUSION',
+        status: { in: ['ACTIVE', 'UNVERIFIED'] },
+      },
+      orderBy: { observedAt: 'desc' },
+      take: batchSize * 2,
+    }),
+  ]);
+
+  const findings: InvestigatorFindingDraft[] = [];
+  const coveredNpis = new Set<string>();
+
+  // Process exclusion artifacts
+  for (const artifact of exclusionArtifacts) {
+    if (!artifact.npi || coveredNpis.has(artifact.npi)) continue;
+
+    const payload = asRecord(artifact.rawPayload);
+    const isExcluded =
+      payload.exclusionStatus === 'EXCLUDED' ||
+      payload.excluded === true ||
+      payload.matchedExclusion === true ||
+      payload.status === 'EXCLUDED' ||
+      payload.sanctioned === true ||
+      (typeof payload.exclusionType === 'string' && payload.exclusionType.length > 0);
+
+    if (!isExcluded) continue;
+
+    coveredNpis.add(artifact.npi);
+    markCovered(artifact.npi);
+
+    const provider = await loadProviderContext(prisma, artifact.npi);
+    const exclusionType = asString(payload.exclusionType) ?? asString(payload.type) ?? 'exclusion';
+    const exclusionDate = asString(payload.exclusionDate) ?? asString(payload.effectiveDate) ?? null;
+    const isCritical = artifact.source === 'OIG_LEIE' || artifact.source === 'SAM_GOV';
+
+    findings.push({
+      findingType: 'sanctions',
+      severity: isCritical ? 'critical' : 'high',
+      title: `Sanctions record detected for ${provider.label}`,
+      summary: `${provider.label} has an active ${exclusionType} record from ${artifact.source}${exclusionDate ? ` (effective ${exclusionDate})` : ''}. This provider should not receive federal program payments.`,
+      entityIds: [artifact.npi],
+      entities: [providerEntity(artifact.npi, provider.label)],
+      supportingEvidence: [artifactEvidence(artifact, `${exclusionType} detected from ${artifact.source}`)],
+      confidence: isCritical ? 0.97 : 0.88,
+      explanation: `Source ${artifact.source} returned an exclusion signal for ${provider.label}. Exclusion type: ${exclusionType}. This finding is generated automatically and should be verified against the primary registry.`,
+      dedupeKey: `sanctions:${artifact.npi}:${artifact.source}`,
+      storylineKey: `sanctions:${artifact.npi}`,
+      scoreSignals: {
+        trustImpact: isCritical ? 1.0 : 0.85,
+        freshness: recencyScore(nowIso, [artifact.verifiedAt]),
+        novelty: 1.0,
+        entityImportance: clamp01(0.9 + provider.graphCentrality),
+        graphCentrality: provider.graphCentrality,
+      },
+      metadata: {
+        npi: artifact.npi,
+        source: artifact.source,
+        exclusionType,
+        exclusionDate,
+        rawPayload: payload,
+      },
+    });
+
+    if (findings.length >= batchSize) break;
+  }
+
+  // Process exclusion claims (may have additional signals not in artifacts)
+  for (const claim of exclusionClaims) {
+    if (!claim.subjectNpi || coveredNpis.has(claim.subjectNpi)) continue;
+    if (findings.length >= batchSize) break;
+
+    coveredNpis.add(claim.subjectNpi);
+    markCovered(claim.subjectNpi);
+
+    const provider = await loadProviderContext(prisma, claim.subjectNpi);
+    const claimVal = asRecord(claim.value);
+    const exclusionType = asString(claimVal.exclusionType) ?? asString(claimVal.type) ?? 'exclusion';
+
+    findings.push({
+      findingType: 'sanctions',
+      severity: 'high',
+      title: `Exclusion claim on record for ${provider.label}`,
+      summary: `A ${exclusionType} claim record exists for ${provider.label}. This may indicate a regulatory exclusion or adverse action.`,
+      entityIds: [claim.subjectNpi],
+      entities: [providerEntity(claim.subjectNpi, provider.label)],
+      supportingEvidence: [claimEvidence(claim, `${exclusionType} claim record`)],
+      confidence: 0.78,
+      explanation: `A claim record of type EXCLUSION was found for ${provider.label} from source ${claim.sourceId ?? 'unknown'}. Confirm against primary exclusion registries (OIG LEIE, SAM.gov).`,
+      dedupeKey: `sanctions_claim:${claim.subjectNpi}:${claim.id}`,
+      storylineKey: `sanctions:${claim.subjectNpi}`,
+      scoreSignals: {
+        trustImpact: 0.75,
+        freshness: recencyScore(nowIso, [claim.observedAt?.toISOString() ?? nowIso]),
+        novelty: 0.85,
+        entityImportance: clamp01(0.7 + provider.graphCentrality),
+        graphCentrality: provider.graphCentrality,
+      },
+      metadata: {
+        npi: claim.subjectNpi,
+        sourceId: claim.sourceId,
+        exclusionType,
+        claimValue: claimVal,
+      },
+    });
+  }
+
+  return findings;
+}
+
+// ── Clinical Trial Investigator ────────────────────────────────────────────────
+
+async function buildClinicalTrialFindings(
+  prisma: PrismaClient,
+  nowIso: string,
+  batchSize: number,
+  targetNpis: string[],
+  markCovered: (entityId: string) => void,
+): Promise<InvestigatorFindingDraft[]> {
+  const npiFilter = targetNpis.length > 0 ? { in: targetNpis } : undefined;
+
+  const trialClaims = await prisma.claimRecord.findMany({
+    where: {
+      ...(npiFilter ? { subjectNpi: npiFilter } : {}),
+      claimType: 'CLINICAL_TRIAL',
+      status: { in: ['ACTIVE', 'UNVERIFIED'] },
+    },
+    orderBy: { observedAt: 'desc' },
+    take: batchSize * 5,
+  });
+
+  const findings: InvestigatorFindingDraft[] = [];
+
+  // Group claims by NPI
+  const claimsByNpi = new Map<string, typeof trialClaims>();
+  for (const claim of trialClaims) {
+    if (!claim.subjectNpi) continue;
+    const group = claimsByNpi.get(claim.subjectNpi) ?? [];
+    group.push(claim);
+    claimsByNpi.set(claim.subjectNpi, group);
+  }
+
+  for (const [npi, claims] of claimsByNpi) {
+    if (findings.length >= batchSize) break;
+    markCovered(npi);
+
+    const terminatedTrials = claims.filter(c => {
+      const val = asRecord(c.value);
+      const status = (asString(val.status) ?? '').toUpperCase();
+      return ['TERMINATED', 'WITHDRAWN', 'SUSPENDED', 'CANCELLED'].includes(status);
+    });
+
+    // Detect PI role downgrades (had PI role, now no PI role for same nctId)
+    const nctIdToLatestRole = new Map<string, string>();
+    for (const claim of claims) {
+      const val = asRecord(claim.value);
+      const nctId = asString(val.nctId);
+      const role = (asString(val.role) ?? 'OTHER').toUpperCase();
+      if (!nctId) continue;
+      if (!nctIdToLatestRole.has(nctId)) {
+        nctIdToLatestRole.set(nctId, role);
+      }
+    }
+    const piDowngrades = [...nctIdToLatestRole.entries()].filter(([, role]) =>
+      role !== 'PRINCIPAL_INVESTIGATOR' && role !== 'PI'
+    );
+
+    if (terminatedTrials.length === 0 && piDowngrades.length === 0) continue;
+
+    const provider = await loadProviderContext(prisma, npi);
+
+    if (terminatedTrials.length > 0) {
+      const severity = terminatedTrials.length >= 3 ? 'high' : 'medium';
+      const trialTitles = terminatedTrials.slice(0, 3).map(c => {
+        const val = asRecord(c.value);
+        return asString(val.title) ?? asString(val.nctId) ?? 'unknown trial';
+      });
+
+      findings.push({
+        findingType: 'clinical_trial',
+        severity,
+        title: `${terminatedTrials.length} terminated clinical trial${terminatedTrials.length === 1 ? '' : 's'} for ${provider.label}`,
+        summary: `${provider.label} has ${terminatedTrials.length} terminated, withdrawn, or suspended clinical trial${terminatedTrials.length === 1 ? '' : 's'}: ${trialTitles.join('; ')}.`,
+        entityIds: [npi],
+        entities: [providerEntity(npi, provider.label)],
+        supportingEvidence: terminatedTrials.slice(0, 3).map(c =>
+          claimEvidence(c, `Trial ${asString(asRecord(c.value).nctId) ?? 'unknown'} status: ${asString(asRecord(c.value).status) ?? 'TERMINATED'}`)
+        ),
+        confidence: 0.82,
+        explanation: `${provider.label} has ${terminatedTrials.length} clinical trial${terminatedTrials.length === 1 ? '' : 's'} with adverse status (TERMINATED/WITHDRAWN/SUSPENDED). Trial terminations may indicate protocol violations, safety concerns, or funding loss.`,
+        dedupeKey: `clinical_trial_terminated:${npi}:${terminatedTrials.length}`,
+        storylineKey: `clinical_trial:${npi}`,
+        scoreSignals: {
+          trustImpact: terminatedTrials.length >= 3 ? 0.7 : 0.5,
+          freshness: recencyScore(nowIso, terminatedTrials.map(c => c.observedAt?.toISOString() ?? nowIso)),
+          novelty: 0.75,
+          entityImportance: clamp01(0.5 + provider.graphCentrality),
+          graphCentrality: provider.graphCentrality,
+        },
+        metadata: {
+          npi,
+          terminatedCount: terminatedTrials.length,
+          trialTitles,
+        },
+      });
+    }
+  }
+
+  return findings;
+}
+
+// ── Workforce Shift Investigator ───────────────────────────────────────────────
+
+async function buildWorkforceShiftFindings(
+  prisma: PrismaClient,
+  nowIso: string,
+  batchSize: number,
+  targetNpis: string[],
+  markCovered: (entityId: string) => void,
+): Promise<InvestigatorFindingDraft[]> {
+  const npiFilter = targetNpis.length > 0 ? { in: targetNpis } : undefined;
+  const movementClaims = await prisma.claimRecord.findMany({
+    where: {
+      ...(npiFilter ? { subjectNpi: npiFilter } : {}),
+      claimType: { in: ['PRACTICE_LOCATION', 'MAILING_ADDRESS', 'INSTITUTION_AFFILIATION', 'GROUP_AFFILIATION'] },
+      status: { in: ['ACTIVE', 'UNVERIFIED'] },
+      observedAt: { gte: daysAgo(nowIso, 365) },
+    },
+    orderBy: [
+      { subjectNpi: 'asc' },
+      { observedAt: 'desc' },
+      { createdAt: 'desc' },
+    ],
+    take: Math.max(batchSize * 10, 120),
+  });
+
+  const claimsByNpi = new Map<string, typeof movementClaims>();
+  for (const claim of movementClaims) {
+    if (!claim.subjectNpi) {
+      continue;
+    }
+    const group = claimsByNpi.get(claim.subjectNpi) ?? [];
+    group.push(claim);
+    claimsByNpi.set(claim.subjectNpi, group);
+  }
+
+  const findings: InvestigatorFindingDraft[] = [];
+  for (const [npi, claims] of claimsByNpi) {
+    if (findings.length >= batchSize) {
+      break;
+    }
+
+    const locationClaims = claims.filter((claim) => (
+      claim.claimType === 'PRACTICE_LOCATION' || claim.claimType === 'MAILING_ADDRESS'
+    ));
+    const affiliationClaims = claims.filter((claim) => (
+      claim.claimType === 'INSTITUTION_AFFILIATION' || claim.claimType === 'GROUP_AFFILIATION'
+    ));
+
+    const latestLocationClaim = locationClaims.find((claim) => extractState(claim.value));
+    const priorLocationClaim = locationClaims.find((claim) => {
+      const currentState = latestLocationClaim ? extractState(latestLocationClaim.value) : null;
+      const candidateState = extractState(claim.value);
+      return Boolean(candidateState && currentState && candidateState !== currentState && claim.id !== latestLocationClaim?.id);
+    });
+    const latestAffiliationClaim = affiliationClaims.find((claim) => extractInstitution(claim.value));
+    const priorAffiliationClaim = affiliationClaims.find((claim) => {
+      const currentInstitution = latestAffiliationClaim ? extractInstitution(latestAffiliationClaim.value) : null;
+      const candidateInstitution = extractInstitution(claim.value);
+      return Boolean(
+        candidateInstitution
+          && currentInstitution
+          && candidateInstitution !== currentInstitution
+          && claim.id !== latestAffiliationClaim?.id,
+      );
+    });
+
+    const latestState = latestLocationClaim ? extractState(latestLocationClaim.value) : null;
+    const priorState = priorLocationClaim ? extractState(priorLocationClaim.value) : null;
+    const latestInstitution = latestAffiliationClaim ? extractInstitution(latestAffiliationClaim.value) : null;
+    const priorInstitution = priorAffiliationClaim ? extractInstitution(priorAffiliationClaim.value) : null;
+    const stateChanged = Boolean(latestState && priorState && latestState !== priorState);
+    const institutionChanged = Boolean(latestInstitution && priorInstitution && latestInstitution !== priorInstitution);
+
+    if (!stateChanged && !institutionChanged) {
+      continue;
+    }
+
+    markCovered(npi);
+    const provider = await loadProviderContext(prisma, npi);
+    const movementClauses = [
+      stateChanged ? `${priorState} -> ${latestState}` : null,
+      institutionChanged ? `${priorInstitution} -> ${latestInstitution}` : null,
+    ].filter((value): value is string => Boolean(value));
+    const evidenceClaims = [
+      latestLocationClaim,
+      priorLocationClaim,
+      latestAffiliationClaim,
+      priorAffiliationClaim,
+    ].filter((claim): claim is NonNullable<typeof claim> => Boolean(claim));
+
+    findings.push({
+      findingType: 'workforce_shift',
+      severity: stateChanged && institutionChanged ? 'high' : institutionChanged ? 'medium' : 'low',
+      title: `${provider.label} shows a workforce movement signal`,
+      summary: `${provider.label} appears to have shifted ${movementClauses.join(' and ')} based on recent provider directory and affiliation records.`,
+      entityIds: [npi],
+      entities: [
+        providerEntity(npi, provider.label),
+        ...(latestInstitution ? [institutionEntity(latestInstitution)] : []),
+        ...(priorInstitution && priorInstitution !== latestInstitution ? [institutionEntity(priorInstitution)] : []),
+      ],
+      supportingEvidence: evidenceClaims.slice(0, 4).map((claim) => claimEvidence(
+        claim,
+        `${claim.claimType} observed ${claim.observedAt?.toISOString().slice(0, 10) ?? claim.createdAt.toISOString().slice(0, 10)}`,
+      )),
+      confidence: stateChanged && institutionChanged ? 0.89 : institutionChanged ? 0.79 : 0.71,
+      explanation: `${provider.label} was flagged because the most recent provider location or institution-affiliation record differs from the prior known state. This is an explainable movement delta intended to trigger downstream review, including sanctions re-checks when affiliations materially change.`,
+      dedupeKey: `workforce_shift:${npi}:${latestState ?? 'na'}:${latestInstitution ?? 'na'}`,
+      storylineKey: `workforce_shift:${npi}`,
+      scoreSignals: {
+        trustImpact: stateChanged && institutionChanged ? 0.52 : 0.36,
+        freshness: recencyScore(nowIso, evidenceClaims.map((claim) => claim.observedAt?.toISOString() ?? claim.createdAt.toISOString())),
+        novelty: institutionChanged ? 0.9 : 0.72,
+        entityImportance: clamp01(0.35 + provider.graphCentrality),
+        graphCentrality: provider.graphCentrality,
+      },
+      metadata: {
+        npi,
+        latestState,
+        priorState,
+        latestInstitution,
+        priorInstitution,
+        movementClauses,
+      },
+    });
+  }
+
+  return findings;
+}
+
+// ── Institution Expansion Investigator ────────────────────────────────────────
+
+async function buildInstitutionExpansionFindings(
+  prisma: PrismaClient,
+  nowIso: string,
+  batchSize: number,
+  targetNpis: string[],
+  markCovered: (entityId: string) => void,
+): Promise<InvestigatorFindingDraft[]> {
+  const thirtyDaysAgo = daysAgo(nowIso, 30);
+  const npiFilter = targetNpis.length > 0 ? targetNpis : null;
+
+  // Look for new institution-type edges added in last 30 days
+  const AFFILIATION_EDGE_TYPES = [
+    'affiliated_with', 'employed_by', 'member_of', 'practices_at', 'works_at', 'credentialed_at',
+  ];
+
+  let newEdges: Array<Pick<GraphEdge, 'id' | 'edgeType' | 'createdAt' | 'confidence' | 'sourceNodeId' | 'targetNodeId'>> = [];
+
+  if (npiFilter) {
+    // Targeted: look up edges for specific NPIs
+    const nodeIds = npiFilter.map(npi => clinicianNodeIdForNpi(npi));
+    newEdges = await prisma.graphEdge.findMany({
+      where: {
+        sourceNodeId: { in: nodeIds },
+        edgeType: { in: AFFILIATION_EDGE_TYPES },
+        createdAt: { gte: thirtyDaysAgo },
+      },
+      select: { id: true, edgeType: true, createdAt: true, confidence: true, sourceNodeId: true, targetNodeId: true },
+      take: batchSize * 5,
+    });
+  } else {
+    newEdges = await prisma.graphEdge.findMany({
+      where: {
+        edgeType: { in: AFFILIATION_EDGE_TYPES },
+        createdAt: { gte: thirtyDaysAgo },
+      },
+      select: { id: true, edgeType: true, createdAt: true, confidence: true, sourceNodeId: true, targetNodeId: true },
+      orderBy: { createdAt: 'desc' },
+      take: batchSize * 8,
+    });
+  }
+
+  if (newEdges.length === 0) return [];
+
+  // Group by source node (clinician)
+  const edgesByNode = new Map<string, typeof newEdges>();
+  for (const edge of newEdges) {
+    const group = edgesByNode.get(edge.sourceNodeId) ?? [];
+    group.push(edge);
+    edgesByNode.set(edge.sourceNodeId, group);
+  }
+
+  const findings: InvestigatorFindingDraft[] = [];
+
+  for (const [nodeId, edges] of edgesByNode) {
+    if (findings.length >= batchSize) break;
+
+    // Extract NPI from node ID
+    const nodeIdMatch = nodeId.match(/npi:(\d{10})/);
+    if (!nodeIdMatch) continue;
+    const npi = nodeIdMatch[1]!;
+
+    markCovered(npi);
+    const provider = await loadProviderContext(prisma, npi);
+
+    // Get institution labels from target nodes
+    const targetNodeIds = edges.map(e => e.targetNodeId);
+    const institutionNodes = await prisma.graphNode.findMany({
+      where: { id: { in: targetNodeIds } },
+      select: { id: true, label: true, type: true },
+    });
+    const institutionMap = new Map(institutionNodes.map(n => [n.id, n.label ?? 'Unknown Institution']));
+
+    const institutionLabels = [...new Set(edges.map(e => institutionMap.get(e.targetNodeId) ?? 'Unknown Institution'))];
+    const severity = edges.length >= 5 ? 'medium' : 'low';
+
+    findings.push({
+      findingType: 'institution_expansion',
+      severity,
+      title: `${provider.label} added ${edges.length} new institutional affiliation${edges.length === 1 ? '' : 's'}`,
+      summary: `${provider.label} has established ${edges.length} new institutional connection${edges.length === 1 ? '' : 's'} in the past 30 days: ${institutionLabels.slice(0, 3).join(', ')}${institutionLabels.length > 3 ? ` and ${institutionLabels.length - 3} more` : ''}.`,
+      entityIds: [npi, ...targetNodeIds.slice(0, 5)],
+      entities: [
+        providerEntity(npi, provider.label),
+        ...institutionLabels.slice(0, 3).map((label, i) => institutionEntity(label)),
+      ],
+      supportingEvidence: edges.slice(0, 3).map(e =>
+        graphEvidence(e, `New ${e.edgeType} edge to ${institutionMap.get(e.targetNodeId) ?? 'institution'}`)
+      ),
+      confidence: 0.84,
+      explanation: `${provider.label}'s network graph shows ${edges.length} new institutional affiliation edge${edges.length === 1 ? '' : 's'} created in the last 30 days. This may reflect a recent practice site change, hospital credentialing, or research collaboration.`,
+      dedupeKey: `institution_expansion:${npi}:${new Date(thirtyDaysAgo).toISOString().slice(0, 10)}`,
+      storylineKey: `institution_expansion:${npi}`,
+      scoreSignals: {
+        trustImpact: 0.2,
+        freshness: recencyScore(nowIso, edges.map(e => e.createdAt.toISOString())),
+        novelty: 0.88,
+        entityImportance: clamp01(0.4 + provider.graphCentrality),
+        graphCentrality: provider.graphCentrality,
+      },
+      metadata: {
+        npi,
+        newEdgeCount: edges.length,
+        institutionLabels,
+        edgeTypes: [...new Set(edges.map(e => e.edgeType))],
+      },
+    });
+  }
+
+  return findings;
+}
+
 export function buildDefaultInvestigators(): InvestigatorDefinition<BackendInvestigatorDependencies>[] {
   return [
     {
@@ -1255,6 +1731,30 @@ export function buildDefaultInvestigators(): InvestigatorDefinition<BackendInves
       },
     },
     {
+      id: 'workforce_shift',
+      name: 'Workforce Shift Investigator',
+      description: 'Detects provider movement across states and affiliated institutions from authoritative directory deltas.',
+      scope: 'provider',
+      enabled: true,
+      audienceRoles: ['operations', 'recruiting', 'compliance'],
+      schedule: {
+        cadenceMinutes: 720,
+        batchSize: 35,
+        suppressionWindowMinutes: 720,
+        storylineWindowMinutes: 2_880,
+        triggers: ['scheduled', 'targeted', 'event_ingestion'],
+      },
+      async run(context) {
+        return buildWorkforceShiftFindings(
+          context.dependencies.prisma,
+          context.now,
+          context.batchSize,
+          resolveTargetNpis(context.targetEntityIds),
+          context.markEntityCovered,
+        );
+      },
+    },
+    {
       id: 'workforce_pressure',
       name: 'Workforce Pressure Investigator',
       description: 'Combines specialty, location, and shortage demand to flag providers inside high-need workforce pockets.',
@@ -1294,6 +1794,78 @@ export function buildDefaultInvestigators(): InvestigatorDefinition<BackendInves
       },
       async run(context) {
         return buildIndustryInfluenceFindings(
+          context.dependencies.prisma,
+          context.now,
+          context.batchSize,
+          resolveTargetNpis(context.targetEntityIds),
+          context.markEntityCovered,
+        );
+      },
+    },
+    {
+      id: 'sanctions',
+      name: 'Sanctions Investigator',
+      description: 'Detects OIG/LEIE exclusions, NPDB adverse actions, SAM.gov debarments, and state board sanctions.',
+      scope: 'provider',
+      enabled: true,
+      audienceRoles: ['compliance', 'credentialing'],
+      schedule: {
+        cadenceMinutes: 120,
+        batchSize: 50,
+        suppressionWindowMinutes: 1_440,
+        storylineWindowMinutes: 4_320,
+        triggers: ['scheduled', 'targeted', 'event_ingestion'],
+      },
+      async run(context) {
+        return buildSanctionsFindings(
+          context.dependencies.prisma,
+          context.now,
+          context.batchSize,
+          resolveTargetNpis(context.targetEntityIds),
+          context.markEntityCovered,
+        );
+      },
+    },
+    {
+      id: 'clinical_trial',
+      name: 'Clinical Trial Investigator',
+      description: 'Surfaces trial terminations, PI role changes, withdrawn studies, and enrollment anomalies.',
+      scope: 'provider',
+      enabled: true,
+      audienceRoles: ['research', 'executive', 'compliance'],
+      schedule: {
+        cadenceMinutes: 240,
+        batchSize: 30,
+        suppressionWindowMinutes: 720,
+        storylineWindowMinutes: 2_880,
+        triggers: ['scheduled', 'targeted', 'event_ingestion'],
+      },
+      async run(context) {
+        return buildClinicalTrialFindings(
+          context.dependencies.prisma,
+          context.now,
+          context.batchSize,
+          resolveTargetNpis(context.targetEntityIds),
+          context.markEntityCovered,
+        );
+      },
+    },
+    {
+      id: 'institution_expansion',
+      name: 'Institution Expansion Investigator',
+      description: 'Detects new institutional affiliations and practice site changes from graph signals within a rolling 30-day window.',
+      scope: 'provider',
+      enabled: true,
+      audienceRoles: ['recruiting', 'operations', 'executive'],
+      schedule: {
+        cadenceMinutes: 480,
+        batchSize: 25,
+        suppressionWindowMinutes: 1_440,
+        storylineWindowMinutes: 4_320,
+        triggers: ['scheduled', 'targeted', 'event_ingestion'],
+      },
+      async run(context) {
+        return buildInstitutionExpansionFindings(
           context.dependencies.prisma,
           context.now,
           context.batchSize,

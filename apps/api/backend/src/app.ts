@@ -136,6 +136,7 @@ import { registerApplicationRoutes } from './routes/applications';            //
 import { registerAskRoutes } from './routes/ask';                           // Wave 185: Ask VitalCV answer engine
 import { registerCopilotRoutes } from './routes/copilot';                   // Waves C25-C28: Copilot query engine
 import { registerInvestigationRoutes } from './routes/investigation';        // Wave INV: Investigation engine
+import { registerInvestigationWorkbenchRoutes } from './routes/investigationWorkbench'; // Wave INV+: Investigation workbench APIs
 import { registerFindingsRoutes } from './routes/findings';                  // Wave AI: Autonomous investigators
 import { registerActionsRoutes } from './routes/actions';                    // Waves C49-C51: Action engine API
 import { registerStorylineRoutes } from './routes/storylines';               // Wave ST: Storyline engine
@@ -3596,6 +3597,7 @@ registerApplicationRoutes(app);       // Wave 229 — Clinician Application Flow
 registerAskRoutes(app);               // Wave 185 — Ask VitalCV natural language answer engine
 registerCopilotRoutes(app);           // Waves C25-C28 — Copilot query engine
 registerInvestigationRoutes(app);    // Wave INV — Investigation engine
+registerInvestigationWorkbenchRoutes(app); // Wave INV+ — Investigation workbench APIs
 registerFindingsRoutes(app);         // Wave AI — Autonomous investigators + findings feed
 registerActionsRoutes(app);          // Waves C49-C51 — Action engine API
 registerStorylineRoutes(app);        // Wave ST — Storyline intelligence narratives

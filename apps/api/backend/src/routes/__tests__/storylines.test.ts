@@ -10,6 +10,10 @@ jest.mock('../../services/storylines/storylineService', () => ({
   saveStorylineInvestigation: jest.fn(),
 }));
 
+jest.mock('../../services/investigation/investigationWorkbenchService', () => ({
+  buildStorylineInvestigationPayload: jest.fn(),
+}));
+
 import {
   acknowledgeStoryline,
   archiveStoryline,
@@ -22,6 +26,7 @@ import {
   storylineDetailResponseSchema,
   storylineListResponseSchema,
 } from '../../services/storylines/contracts';
+import { buildStorylineInvestigationPayload } from '../../services/investigation/investigationWorkbenchService';
 import { registerStorylineRoutes } from '../storylines';
 
 const listStorylinesMock = listStorylines as jest.MockedFunction<typeof listStorylines>;
@@ -30,6 +35,7 @@ const acknowledgeStorylineMock = acknowledgeStoryline as jest.MockedFunction<typ
 const escalateStorylineMock = escalateStoryline as jest.MockedFunction<typeof escalateStoryline>;
 const archiveStorylineMock = archiveStoryline as jest.MockedFunction<typeof archiveStoryline>;
 const saveStorylineInvestigationMock = saveStorylineInvestigation as jest.MockedFunction<typeof saveStorylineInvestigation>;
+const buildStorylineInvestigationPayloadMock = buildStorylineInvestigationPayload as jest.MockedFunction<typeof buildStorylineInvestigationPayload>;
 
 function sampleStoryline(status: 'active' | 'quiet' | 'escalated' | 'resolved' | 'archived' = 'active') {
   return {
@@ -147,6 +153,7 @@ describe('storyline routes', () => {
     escalateStorylineMock.mockReset();
     archiveStorylineMock.mockReset();
     saveStorylineInvestigationMock.mockReset();
+    buildStorylineInvestigationPayloadMock.mockReset();
   });
 
   it('returns the storyline list contract and forwards filters', async () => {
@@ -192,5 +199,88 @@ describe('storyline routes', () => {
       note: 'Reviewed by trust ops',
     });
     expect(() => storylineDetailResponseSchema.parse(response.body)).not.toThrow();
+  });
+
+  it('returns the storyline investigation payload', async () => {
+    const app = buildApp();
+    buildStorylineInvestigationPayloadMock.mockResolvedValue({
+      generatedAt: '2026-03-15T12:00:00.000Z',
+      storylineId: 'stl_123',
+      detail: {
+        ...sampleDetail(),
+        lifecycleStage: 'developing',
+        score: {
+          maxFindingConfidence: 0.92,
+          findingCount: 1,
+          investigatorDiversity: 1,
+          recency: 0.9,
+          riskTierWeighting: 0.8,
+          total: 0.84,
+        },
+        scoreHistory: [],
+        mergeSuggestions: [],
+        splitSuggestions: [],
+        timelineNodes: [],
+        evidenceRefs: [],
+        linkedEntities: sampleDetail().entityLinks,
+        narrativeVersions: [],
+        analystAnnotations: [],
+      },
+      console: {
+        generatedAt: '2026-03-15T12:00:00.000Z',
+        storylineId: 'stl_123',
+        headline: 'Trust risk rising for provider 1558302470',
+        summary: 'Trust pressure is building around provider 1558302470.',
+        severityScore: 0.84,
+        lifecycleStage: 'developing',
+        timelineNodes: [],
+        linkedProviders: ['1558302470'],
+        narrativeText: 'Trust pressure is building around provider 1558302470.',
+        lastUpdated: '2026-03-15T12:00:00.000Z',
+        mergeSuggestions: [],
+        splitSuggestions: [],
+        score: {
+          maxFindingConfidence: 0.92,
+          findingCount: 1,
+          investigatorDiversity: 1,
+          recency: 0.9,
+          riskTierWeighting: 0.8,
+          total: 0.84,
+        },
+      },
+      findingsInbox: {
+        generatedAt: '2026-03-15T12:00:00.000Z',
+        total: 0,
+        rows: [],
+      },
+      feed: [],
+      network: {
+        generatedAt: '2026-03-15T12:00:00.000Z',
+        focusNodeId: null,
+        nodes: [],
+        edges: [],
+        highlights: {
+          nodeIds: [],
+          edgeIds: [],
+        },
+        paths: {
+          shortestPath: null,
+          rankedPaths: [],
+        },
+        semanticZoom: {
+          overviewClusters: [],
+          detailNodeCount: 0,
+          detailEdgeCount: 0,
+        },
+      },
+    } as Awaited<ReturnType<typeof buildStorylineInvestigationPayload>>);
+
+    const response = await request(app)
+      .get('/api/storylines/stl_123/investigation')
+      .expect(200);
+
+    expect(response.body.schema).toBe('https://vitalcv.com/storylines/investigation/v1');
+    expect(response.body.storylineId).toBe('stl_123');
+    expect(response.body.console.lifecycleStage).toBe('developing');
   });
 });

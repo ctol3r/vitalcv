@@ -8,6 +8,7 @@ import {
   copilotQueryResponseSchema,
 } from '../services/copilot/contracts';
 import { executeCopilotQuery } from '../services/copilot/copilotQueryService';
+import { buildCopilotInvestigationPayload } from '../services/investigation/copilotInvestigationService';
 import { resolveSearchRequestContext } from '../services/search/requestContext';
 import { HttpError } from '../utils/httpError';
 import { validateCopilotStructuredResponse } from '../../../../../core/qa/copilotResponseValidator';
@@ -17,6 +18,31 @@ function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => P
 }
 
 export function registerCopilotRoutes(app: Express): void {
+  app.post(
+    '/api/copilot/investigation',
+    publicApiRateLimit,
+    asyncHandler(async (req, res) => {
+      const providerId = typeof req.body?.providerId === 'string' ? req.body.providerId : null;
+      const storylineId = typeof req.body?.storylineId === 'string' ? req.body.storylineId : null;
+      const objective = typeof req.body?.objective === 'string' ? req.body.objective : null;
+
+      if (!providerId && !storylineId) {
+        throw new HttpError(400, 'providerId or storylineId is required.');
+      }
+
+      const response = await buildCopilotInvestigationPayload({
+        providerId,
+        storylineId,
+        objective,
+      });
+
+      res.json({
+        schema: 'https://vitalcv.com/copilot/investigation/v1',
+        ...response,
+      });
+    }),
+  );
+
   app.post(
     '/api/copilot/query',
     publicApiRateLimit,
