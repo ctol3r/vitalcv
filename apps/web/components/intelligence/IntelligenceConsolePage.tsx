@@ -14,6 +14,7 @@ import type {
   WorkspaceSectionId,
 } from '@/lib/intelligence/contracts';
 import { buildSourceEntries } from '@/lib/intelligence/contracts';
+import { CommandPalette } from '@/components/ui/CommandPalette';
 import { IntelligenceTopNav } from './IntelligenceTopNav';
 import { LeftSidebar } from './LeftSidebar';
 import { MainWorkspace } from './MainWorkspace';
@@ -98,6 +99,7 @@ export function IntelligenceConsolePage() {
   }
 
   return (
+    <>
     <AppShell
       topNav={(
         <IntelligenceTopNav
@@ -187,5 +189,9 @@ export function IntelligenceConsolePage() {
         onRefreshSystemHealth={systemHealth.refresh}
       />
     </AppShell>
+
+    {/* Global command palette — ⌘K / Ctrl+K anywhere in the console */}
+    <CommandPalette />
+    </>
   );
 }

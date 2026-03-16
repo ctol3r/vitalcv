@@ -58,7 +58,7 @@ export function RightContextPanel({
   return (
     <ContextPanel
       subtitle="Graph exploration, Copilot reasoning, and source evidence stay co-located."
-      title="RightContextPanel"
+      title="Context Panel"
     >
       <section className="vital-panel vital-panel--dense">
         <div className="vital-panel__header">

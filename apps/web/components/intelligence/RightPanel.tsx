@@ -1,6 +1,6 @@
 'use client';
 
-import { Bot, Link2, ShieldCheck } from 'lucide-react';
+import { Link2, ShieldCheck } from 'lucide-react';
 import { ContextPanel } from '@/components/shell/ContextPanel';
 import type {
   IntelligenceAlert,
@@ -47,8 +47,8 @@ export function RightPanel({
 }: RightPanelProps) {
   return (
     <ContextPanel
-      title="RightPanel"
-      subtitle="Graph, Copilot, source evidence, and system health stay visible without leaving the current provider context."
+      title="Context Panel"
+      subtitle="Trust graph, Copilot, source evidence, and system health for the selected provider."
     >
       <div className="grid gap-4">
         <GraphPanel
@@ -127,10 +127,10 @@ export function RightPanel({
                     <h3 className="text-sm font-semibold text-white">{incident.title}</h3>
                     <p className="mt-1 text-xs leading-5 text-white/60">{incident.summary}</p>
                   </div>
-                  <div className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/75">
-                    <Bot className="mr-1 inline h-3 w-3" />
-                    {incident.severity}
-                  </div>
+                  <ToneBadge
+                    tone={incident.severity === 'critical' ? 'critical' : incident.severity === 'high' ? 'degraded' : 'neutral'}
+                    label={incident.severity}
+                  />
                 </div>
               </article>
             ))}

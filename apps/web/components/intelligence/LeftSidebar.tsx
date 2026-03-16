@@ -43,8 +43,8 @@ export function LeftSidebar({
   return (
     <Sidebar
       actions={actions}
-      subtitle="Search providers, pin a watchlist, and move between dashboard, profile, investigation, and comparison views."
-      title="LeftSidebar"
+      subtitle="Search providers, pin a watchlist, and navigate between workspace sections."
+      title="Provider Search"
     >
       <section className="vital-panel vital-panel--dense">
         <div className="vital-panel__header">

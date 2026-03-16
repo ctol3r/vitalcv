@@ -64,7 +64,7 @@ export function ProviderDetailView({
             <div className="flex flex-wrap items-center gap-2">
               <OpsBadge label={current.profile.status} tone={severityTone(current.profile.status)} />
               <OpsBadge label={current.profile.trustBand} tone="info" />
-              <span className="text-sm text-slate-400">NPI {current.provider.npi}</span>
+              <span className="font-mono text-sm text-slate-400">NPI {current.provider.npi}</span>
               {current.provider.credential ? <span className="text-sm text-slate-400">{current.provider.credential}</span> : null}
             </div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">

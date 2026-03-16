@@ -71,9 +71,9 @@ export function MainWorkspace({
   return (
     <div className="flex h-full flex-col gap-4 overflow-auto pr-1">
       <SectionFrame
-        eyebrow="Main Workspace"
-        title="MainWorkspace"
-        detail="The main workspace is configuration-driven. Each section reuses the same data hooks and reusable cards."
+        eyebrow="Navigation"
+        title="Workspace"
+        detail="Switch between dashboard, provider profile, investigation, comparison, and system health views."
       >
         <div className="flex flex-wrap gap-2">
           {WORKSPACE_SECTIONS.map((section) => (

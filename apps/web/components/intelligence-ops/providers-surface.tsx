@@ -199,7 +199,7 @@ export function ProvidersSurface() {
                 </Link>
                 <div className="flex flex-wrap items-center gap-2">
                   <OpsBadge label={provider.credentialHealth} tone={severityTone(provider.credentialHealth)} />
-                  <span className="text-sm text-slate-400">NPI {provider.npi}</span>
+                  <span className="font-mono text-sm text-slate-400">NPI {provider.npi}</span>
                 </div>
               </div>
               <div className="rounded-3xl border border-white/10 bg-black/20 px-4 py-3 text-right">

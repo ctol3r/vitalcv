@@ -37,7 +37,7 @@ export function InvestigationPanel({
   return (
     <SectionFrame
       eyebrow="Investigation"
-      title="Investigation Panel"
+      title="Live Investigation"
       detail={provider
         ? `Operational evidence for ${provider.name}. Findings, storylines, and actions stay aligned to the same provider scope.`
         : 'Select a provider to open an investigation workspace.'}

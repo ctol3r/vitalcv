@@ -33,11 +33,11 @@ export function IntelligenceTopNav({
           VitalCV Intelligence
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-xl font-semibold text-white">Frontend App Shell</h1>
+          <h1 className="text-xl font-semibold text-white">Intelligence Console</h1>
           <ToneBadge tone={overallHealth} label={focusLabel} />
         </div>
         <p className="mt-2 max-w-2xl text-sm text-white/60">
-          Investigators, findings, storylines, trust graph, and Copilot are surfaced inside one operator shell.
+          Investigators, findings, storylines, trust graph, and Copilot — one operational surface.
         </p>
       </div>
 

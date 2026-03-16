@@ -89,13 +89,13 @@ export function SectionFrame({
   return (
     <section className={cn('vital-panel vital-panel--dense', className)}>
       <div className="vital-panel__header">
-        <div>
+        <div className="min-w-0">
           <p className="vital-panel__eyebrow">{eyebrow}</p>
-          <h2 className="vital-panel__title">{title}</h2>
+          <h2 className="vital-panel__title truncate">{title}</h2>
         </div>
-        {action}
+        {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      {detail ? <p className="vital-panel__copy">{detail}</p> : null}
+      {detail ? <p className="vital-panel__copy line-clamp-2">{detail}</p> : null}
       <div className="mt-4">{children}</div>
     </section>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import { startTransition, useEffect, useState } from 'react';
-import { Bot, Sparkles } from 'lucide-react';
+import { Bot, Loader2, Send, Sparkles } from 'lucide-react';
 import type { IntelligenceProvider } from '@/lib/intelligence/contracts';
 import { SectionFrame, SurfaceState } from './shared';
 
@@ -91,24 +91,44 @@ export function CopilotPanel({ provider }: CopilotPanelProps) {
   return (
     <SectionFrame
       eyebrow="Copilot"
-      title="Copilot Panel"
-      detail="Ask the trust engine for synthesized explanations without leaving the current shell scope."
-      action={<Bot className="h-4 w-4 text-fuchsia-200" />}
+      title={provider ? `Ask about ${provider.name.split(' ')[0]}` : 'Ask Copilot'}
+      detail={provider
+        ? `Context-scoped to ${provider.name} (NPI ${provider.npi}). Ask about trust posture, findings, or next actions.`
+        : 'Ask the trust engine for synthesized explanations without leaving the current scope.'}
+      action={<Bot className="h-4 w-4 text-fuchsia-300" />}
     >
       <div className="grid gap-3">
-        <textarea
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            setError(null);
-          }}
-          rows={4}
-          className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition focus:border-fuchsia-200/30"
-          placeholder="Ask Copilot about provider readiness, trust gaps, or system pressure."
-        />
+        {/* Input row */}
+        <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 transition focus-within:border-fuchsia-300/30">
+          <Sparkles className="h-4 w-4 shrink-0 text-fuchsia-300/60" />
+          <input
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setError(null);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                void runCopilot();
+              }
+            }}
+            className="flex-1 bg-transparent py-1 text-sm text-white outline-none placeholder:text-white/25"
+            placeholder="Ask about trust posture, findings, or next actions…"
+          />
+          <button
+            type="button"
+            onClick={() => void runCopilot()}
+            disabled={loading || query.trim().length < 3}
+            className="flex h-7 w-7 items-center justify-center rounded-xl border border-fuchsia-300/20 bg-fuchsia-300/10 text-fuchsia-200 transition hover:bg-fuchsia-300/20 disabled:opacity-40"
+          >
+            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+          </button>
+        </div>
 
-        <div className="flex flex-wrap gap-2">
-          {suggestions.map((suggestion) => (
+        {/* Contextual suggestions */}
+        <div className="flex flex-col gap-1">
+          {suggestions.slice(0, 3).map((suggestion) => (
             <button
               key={suggestion}
               type="button"
@@ -116,27 +136,15 @@ export function CopilotPanel({ provider }: CopilotPanelProps) {
                 setQuery(suggestion);
                 setError(null);
               }}
-              className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs font-medium text-white/70 transition hover:bg-white/[0.08]"
+              className="truncate rounded-xl border border-transparent px-3 py-1.5 text-left text-xs text-white/50 transition hover:border-white/10 hover:bg-white/[0.04] hover:text-white/80"
             >
               {suggestion}
             </button>
           ))}
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            void runCopilot();
-          }}
-          disabled={loading}
-          className="inline-flex items-center justify-center gap-2 rounded-full border border-fuchsia-200/20 bg-fuchsia-200/[0.12] px-4 py-2 text-sm font-semibold text-fuchsia-50 transition hover:bg-fuchsia-200/[0.18] disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          <Sparkles className="h-4 w-4" />
-          {loading ? 'Running Copilot...' : 'Ask Copilot'}
-        </button>
-
         <SurfaceState
-          loading={false}
+          loading={loading}
           error={error}
           empty={!loading && results.length === 0 && insights.length === 0}
           emptyTitle="Copilot is ready"
