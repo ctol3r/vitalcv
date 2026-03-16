@@ -1,11 +1,8 @@
 /**
  * investigationStore.ts — Investigation Context Store
  *
- * React context + useReducer store for the Investigation Workbench.
- * All panels subscribe to shared state: selectedFinding, selectedProvider,
- * selectedStoryline, selectedEvidence.
- *
- * No external deps (no Zustand) — pure React.
+ * React context + useReducer with caching. Panels read from cache
+ * and only fetch missing pieces, eliminating full-workbench refetch jitter.
  */
 
 'use client';
@@ -19,21 +16,74 @@ import {
 } from 'react';
 import React from 'react';
 
+// ── Cached data types ──────────────────────────────────────────────────────────
+
+export interface CachedProvider {
+  npi: string;
+  label: string | null;
+  specialty: string | null;
+  state: string | null;
+  trustScore: number;
+  trustBand: string;
+  trustConfidence: number;
+  activeFindings: number;
+  fetchedAt: number;
+}
+
+export interface CachedFinding {
+  id: string;
+  findingType: string;
+  title: string;
+  severity: string;
+  status: string;
+  summary: string;
+  explanation: string;
+  confidence: number;
+  evidence: Array<{ source: string; claim: string; confidence: number; observedAt?: string | null }>;
+  storylineId: string | null;
+  storylineTitle: string | null;
+  npis: string[];
+  fetchedAt: number;
+}
+
+export interface CachedStoryline {
+  id: string;
+  title: string;
+  storylineType: string;
+  severity: string;
+  status: string;
+  whyItMatters: string;
+  findingCount: number;
+  confidence: number;
+  recommendedActions: string[];
+  fetchedAt: number;
+}
+
+export interface CachedGraph {
+  nodes: Array<{ id: string; label: string; type: string }>;
+  edges: Array<{ source: string; target: string; type: string }>;
+  focusNodeId: string | null;
+  fetchedAt: number;
+}
+
 // ── State ──────────────────────────────────────────────────────────────────────
 
 export interface InvestigationState {
-  /** Provider NPI currently under investigation */
   selectedProvider: string | null;
-  /** Active finding ID */
   selectedFinding: string | null;
-  /** Active storyline ID */
   selectedStoryline: string | null;
-  /** Index of expanded evidence item (-1 = none) */
   selectedEvidence: number;
-  /** Copilot panel collapsed */
   copilotCollapsed: boolean;
-  /** Evidence panel collapsed */
   evidenceCollapsed: boolean;
+
+  // Caches
+  providerCache: Record<string, CachedProvider>;
+  findingCache: Record<string, CachedFinding>;
+  storylineCache: Record<string, CachedStoryline>;
+  graphCache: Record<string, CachedGraph>;
+
+  // Staleness tracking
+  lastActivity: number;
 }
 
 const INITIAL_STATE: InvestigationState = {
@@ -43,6 +93,11 @@ const INITIAL_STATE: InvestigationState = {
   selectedEvidence: -1,
   copilotCollapsed: false,
   evidenceCollapsed: false,
+  providerCache: {},
+  findingCache: {},
+  storylineCache: {},
+  graphCache: {},
+  lastActivity: Date.now(),
 };
 
 // ── Actions ────────────────────────────────────────────────────────────────────
@@ -54,33 +109,40 @@ export type InvestigationAction =
   | { type: 'SELECT_EVIDENCE'; index: number }
   | { type: 'TOGGLE_COPILOT' }
   | { type: 'TOGGLE_EVIDENCE' }
+  | { type: 'CACHE_PROVIDER'; provider: CachedProvider }
+  | { type: 'CACHE_FINDING'; finding: CachedFinding }
+  | { type: 'CACHE_STORYLINE'; storyline: CachedStoryline }
+  | { type: 'CACHE_GRAPH'; npi: string; graph: CachedGraph }
   | { type: 'RESET' };
 
 function investigationReducer(
   state: InvestigationState,
   action: InvestigationAction,
 ): InvestigationState {
+  const now = Date.now();
   switch (action.type) {
     case 'SELECT_PROVIDER':
-      return {
-        ...state,
-        selectedProvider: action.npi,
-        selectedFinding: null,
-        selectedStoryline: null,
-        selectedEvidence: -1,
-      };
+      return { ...state, selectedProvider: action.npi, selectedFinding: null, selectedStoryline: null, selectedEvidence: -1, lastActivity: now };
     case 'SELECT_FINDING':
-      return { ...state, selectedFinding: action.findingId, selectedEvidence: -1 };
+      return { ...state, selectedFinding: action.findingId, selectedEvidence: -1, lastActivity: now };
     case 'SELECT_STORYLINE':
-      return { ...state, selectedStoryline: action.storylineId };
+      return { ...state, selectedStoryline: action.storylineId, lastActivity: now };
     case 'SELECT_EVIDENCE':
-      return { ...state, selectedEvidence: action.index };
+      return { ...state, selectedEvidence: action.index, lastActivity: now };
     case 'TOGGLE_COPILOT':
       return { ...state, copilotCollapsed: !state.copilotCollapsed };
     case 'TOGGLE_EVIDENCE':
       return { ...state, evidenceCollapsed: !state.evidenceCollapsed };
+    case 'CACHE_PROVIDER':
+      return { ...state, providerCache: { ...state.providerCache, [action.provider.npi]: action.provider } };
+    case 'CACHE_FINDING':
+      return { ...state, findingCache: { ...state.findingCache, [action.finding.id]: action.finding } };
+    case 'CACHE_STORYLINE':
+      return { ...state, storylineCache: { ...state.storylineCache, [action.storyline.id]: action.storyline } };
+    case 'CACHE_GRAPH':
+      return { ...state, graphCache: { ...state.graphCache, [action.npi]: action.graph } };
     case 'RESET':
-      return INITIAL_STATE;
+      return { ...INITIAL_STATE, lastActivity: now };
     default:
       return state;
   }
@@ -96,11 +158,7 @@ export function InvestigationProvider({ children }: { children: ReactNode }) {
   return React.createElement(
     InvestigationStateCtx.Provider,
     { value: state },
-    React.createElement(
-      InvestigationDispatchCtx.Provider,
-      { value: dispatch },
-      children,
-    ),
+    React.createElement(InvestigationDispatchCtx.Provider, { value: dispatch }, children),
   );
 }
 
@@ -112,15 +170,24 @@ export function useInvestigationDispatch(): Dispatch<InvestigationAction> {
   return useContext(InvestigationDispatchCtx);
 }
 
-export function initStateFromParams(params: {
-  npi?: string;
-  findingId?: string;
-  storylineId?: string;
-}): InvestigationState {
-  return {
-    ...INITIAL_STATE,
-    selectedProvider: params.npi ?? null,
-    selectedFinding: params.findingId ?? null,
-    selectedStoryline: params.storylineId ?? null,
-  };
+// ── Cache helpers ──────────────────────────────────────────────────────────────
+
+const STALE_MS = 60_000; // 60s
+
+export function isCacheStale(fetchedAt: number): boolean {
+  return Date.now() - fetchedAt > STALE_MS;
+}
+
+export function getCachedProvider(state: InvestigationState, npi: string): CachedProvider | null {
+  const cached = state.providerCache[npi];
+  return cached && !isCacheStale(cached.fetchedAt) ? cached : null;
+}
+
+export function getCachedGraph(state: InvestigationState, npi: string): CachedGraph | null {
+  const cached = state.graphCache[npi];
+  return cached && !isCacheStale(cached.fetchedAt) ? cached : null;
+}
+
+export function getTimeSinceActivity(state: InvestigationState): number {
+  return Math.round((Date.now() - state.lastActivity) / 1000);
 }

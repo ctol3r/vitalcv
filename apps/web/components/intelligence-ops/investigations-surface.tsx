@@ -504,11 +504,19 @@ function CopilotPanel({
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="flex shrink-0 items-center justify-between px-3 py-2">
-        <p className="text-xs uppercase tracking-[0.15em] text-[var(--vt-text-3)]">Copilot</p>
-        <button onClick={onToggle} className="text-xs text-[var(--vt-text-3)] transition hover:text-[var(--vt-text-1)]">
-          {collapsed ? 'Expand' : 'Collapse'}
-        </button>
+      <div className="shrink-0 space-y-1.5 px-3 py-2">
+        <div className="flex items-center justify-between">
+          <p className="text-xs uppercase tracking-[0.15em] text-[var(--vt-text-3)]">Copilot</p>
+          <button onClick={onToggle} className="text-xs text-[var(--vt-text-3)] transition hover:text-[var(--vt-text-1)]">
+            {collapsed ? 'Expand' : 'Collapse'}
+          </button>
+        </div>
+        {/* Context chips */}
+        <div className="flex flex-wrap gap-1">
+          <span className="rounded-full border border-cyan-400/30 bg-cyan-400/5 px-2 py-0.5 text-[10px] text-cyan-400">NPI {npi}</span>
+          {findingId ? <span className="rounded-full border border-amber-400/30 bg-amber-400/5 px-2 py-0.5 text-[10px] text-amber-400">Finding</span> : null}
+          {storylineId ? <span className="rounded-full border border-violet-400/30 bg-violet-400/5 px-2 py-0.5 text-[10px] text-violet-400">Storyline</span> : null}
+        </div>
       </div>
       {!collapsed ? (
         <div className="flex-1 overflow-y-auto px-3 pb-3">
@@ -677,7 +685,20 @@ export function InvestigationsSurface() {
       title="Investigation Workbench"
       description="Four-panel investigation surface. Select findings, inspect evidence, explore the provider network, and query the Copilot — all in one view."
       breadcrumbs={[{ label: 'Investigations' }]}
-      banner={actionMsg ? <SurfaceBanner tone="info">{actionMsg}</SurfaceBanner> : error ? <SurfaceBanner tone="warning">{error}</SurfaceBanner> : null}
+      banner={actionMsg ? (
+        <SurfaceBanner tone="info">
+          <span className="animate-pulse">{actionMsg}</span>
+        </SurfaceBanner>
+      ) : error ? (
+        <SurfaceBanner tone="warning">{error}</SurfaceBanner>
+      ) : context?.generatedAt ? (() => {
+        const ageSec = Math.round((Date.now() - new Date(context.generatedAt).getTime()) / 1000);
+        return ageSec > 60 ? (
+          <SurfaceBanner tone="neutral">
+            Data last refreshed {ageSec}s ago · <button onClick={() => { if (context.anchor.npi) void fetchWorkbench(context.anchor as { npi?: string; findingId?: string; storylineId?: string }); }} className="underline">Refresh</button>
+          </SurfaceBanner>
+        ) : null;
+      })() : null}
     >
       {/* NPI input */}
       <OpsCard className="space-y-2">

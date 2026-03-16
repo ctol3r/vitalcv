@@ -1,5 +1,6 @@
 import RootChrome from '@/components/layout/RootChrome';
 import { Toaster } from '@/components/ui/toaster';
+import { CommandPalette } from '@/components/command/command-palette';
 import { vdsCssVariables } from '@/src/styles';
 import { ClerkProvider } from '@clerk/nextjs';
 import type { Metadata } from 'next';
@@ -51,6 +52,7 @@ export default function RootLayout({
         {/* Grain overlay removed — FE12 design simplification */}
         <Providers>
           <RootChrome clerkEnabled={clerkEnabled}>{children}</RootChrome>
+          <CommandPalette />
           <Toaster />
         </Providers>
       </body>
