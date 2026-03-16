@@ -6,8 +6,6 @@ import type { ReactNode } from 'react';
 import FeedbackButton from '@/components/feedback/FeedbackButton';
 import Footer from '@/components/layout/Footer';
 import Navbar from '@/components/layout/Navbar';
-import { BackgroundField } from '@/components/motion/BackgroundField';
-import { CursorPhysics } from '@/components/motion/CursorPhysics';
 import Omnibar from '@/components/ops/Omnibar';
 import PrequalifyBar from '@/components/prequalify/PrequalifyBar';
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher';
@@ -24,11 +22,10 @@ const OPERATIONAL_ROUTES = [
 ] as const;
 
 function isOperationalRoute(pathname: string | null): boolean {
-  if (!pathname) {
-    return false;
-  }
-
-  return OPERATIONAL_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+  if (!pathname) return false;
+  return OPERATIONAL_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
 }
 
 interface RootChromeProps {
@@ -50,22 +47,18 @@ export default function RootChrome({ children, clerkEnabled }: RootChromeProps) 
   }
 
   return (
-    <>
-      <BackgroundField />
-      <CursorPhysics />
-      <div className="relative flex min-h-screen flex-col">
-        <Navbar />
-        {clerkEnabled ? (
-          <SignedIn>
-            <WorkspaceSwitcher />
-          </SignedIn>
-        ) : null}
-        <div className="relative flex-1">{children}</div>
-        <Footer />
-      </div>
+    <div className="relative flex min-h-screen flex-col">
+      <Navbar />
+      {clerkEnabled ? (
+        <SignedIn>
+          <WorkspaceSwitcher />
+        </SignedIn>
+      ) : null}
+      <div className="relative flex-1">{children}</div>
+      <Footer />
       <FeedbackButton />
       <PrequalifyBar />
       <Omnibar />
-    </>
+    </div>
   );
 }

@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { MagneticButton } from '@/components/ui/MagneticButton';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
@@ -100,16 +99,12 @@ export default function Navbar() {
 
         {/* Desktop CTAs */}
         <div className="hidden md:flex items-center gap-3">
-          <MagneticButton>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/holder">Clinician Login</Link>
-            </Button>
-          </MagneticButton>
-          <MagneticButton>
-            <Button asChild size="sm">
-              <Link href="/demo">Try VitalCV</Link>
-            </Button>
-          </MagneticButton>
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/holder">Clinician Login</Link>
+          </Button>
+          <Button asChild size="sm">
+            <Link href="/demo">Try VitalCV</Link>
+          </Button>
         </div>
 
         {/* Mobile hamburger */}
@@ -146,16 +141,12 @@ export default function Navbar() {
                 </Link>
               ))}
               <div className="flex flex-col gap-2 pt-2">
-                <MagneticButton className="flex">
-                  <Button asChild variant="ghost" size="sm" onClick={closeMobile} className="w-full">
-                    <Link href="/holder">Clinician Login</Link>
-                  </Button>
-                </MagneticButton>
-                <MagneticButton className="flex">
-                  <Button asChild size="sm" onClick={closeMobile} className="w-full">
-                    <Link href="/demo">Try VitalCV</Link>
-                  </Button>
-                </MagneticButton>
+                <Button asChild variant="ghost" size="sm" onClick={closeMobile} className="w-full">
+                  <Link href="/holder">Clinician Login</Link>
+                </Button>
+                <Button asChild size="sm" onClick={closeMobile} className="w-full">
+                  <Link href="/demo">Try VitalCV</Link>
+                </Button>
               </div>
             </div>
           </motion.div>

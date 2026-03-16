@@ -50,8 +50,7 @@ export default function RootLayout({
       className={nunitoSans.variable}
     >
       <body className="min-h-screen bg-background text-foreground antialiased font-sans">
-        {/* Wave 11: Tactile grain overlay — fixed, pointer-events:none, z-50 */}
-        <div aria-hidden="true" className="noise-overlay" />
+        {/* Grain overlay removed — FE12 design simplification */}
         <Providers>
           <RootChrome clerkEnabled={clerkEnabled}>{children}</RootChrome>
           <Toaster />

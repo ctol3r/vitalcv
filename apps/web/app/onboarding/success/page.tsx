@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { fadeInUp, staggerContainer } from '@/animations/motionVariants';
 import { Check, ArrowRight } from 'lucide-react';
-import { MagneticButton } from '@/components/ui/MagneticButton';
 import Link from 'next/link';
 
 export default function ActivationSuccessPage() {
@@ -52,15 +51,13 @@ export default function ActivationSuccessPage() {
       </motion.div>
 
       <motion.div variants={fadeInUp} className="mt-16 relative">
-        <MagneticButton>
-          <Link
+        <Link
             href={`/passport/${passportId}`}
             className="group flex items-center gap-4 bg-white hover:bg-white/90 text-slate-900 px-8 py-5 rounded-full text-lg md:text-xl font-bold transition-all shadow-[0_0_40px_rgba(255,255,255,0.1)] hover:shadow-[0_0_60px_rgba(255,255,255,0.2)]"
           >
             Enter your Passport
             <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </MagneticButton>
+        </Link>
       </motion.div>
     </motion.div>
   );

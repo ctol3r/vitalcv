@@ -8,7 +8,8 @@
  */
 
 import { isPublicSurfacePath, isRouteActive } from '@/components/layout/publicSurfaceRoutes';
-import { Menu, X, Search, Zap } from 'lucide-react';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { Menu, X, Search } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
@@ -75,6 +76,7 @@ export default function Navbar() {
           >
             <Search className="h-4 w-4" />
           </Link>
+          <ThemeToggle />
           <Link
             href="/sign-in"
             className="rounded-full border border-white/20 px-4 py-1.5 text-sm font-medium text-white/80 hover:border-white/40 hover:text-white transition"

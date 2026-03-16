@@ -1,0 +1,165 @@
+/**
+ * VitalCV Theme System
+ * ─────────────────────────────────────────────────────────────
+ * Architecture:
+ *   - CSS custom properties keyed on [data-theme] attribute
+ *   - Tailwind's `dark:` variant reads the `.dark` class (set by next-themes)
+ *   - Four themes: default (light) · dark · midnight · graphite
+ *
+ * Usage:
+ *   ThemeProvider sets `class` attribute on <html>
+ *   Themes: "light" | "dark" | "midnight" | "graphite"
+ *
+ * Variable naming:
+ *   --vt-bg           Page background
+ *   --vt-surface      Card / panel surface
+ *   --vt-surface-2    Elevated surface (hover, nested)
+ *   --vt-border       Default border
+ *   --vt-border-2     Subtle border (inner, dividers)
+ *   --vt-text-1       Primary text
+ *   --vt-text-2       Secondary / label text
+ *   --vt-text-3       Muted / placeholder text
+ *   --vt-accent       Interactive accent (buttons, links, focus)
+ *   --vt-critical     Danger / error
+ *   --vt-warning      Warning
+ *   --vt-success      Positive / verified
+ *   --vt-info         Informational
+ */
+
+/* ── Light (default) ──────────────────────────────────────── */
+:root,
+[data-theme="light"],
+.light {
+  --vt-bg:        #F7F7F7;
+  --vt-surface:   #FFFFFF;
+  --vt-surface-2: #F0F0F0;
+  --vt-border:    #E6E6E6;
+  --vt-border-2:  #EFEFEF;
+  --vt-text-1:    #111111;
+  --vt-text-2:    #6B6B6B;
+  --vt-text-3:    #A8A8A8;
+  --vt-accent:    #1A56DB;
+  --vt-critical:  #DC2626;
+  --vt-warning:   #D97706;
+  --vt-success:   #059669;
+  --vt-info:      #2563EB;
+
+  /* Surface shadows */
+  --vt-shadow-sm:  0 1px 2px rgba(0,0,0,0.04);
+  --vt-shadow-md:  0 4px 12px rgba(0,0,0,0.06);
+  --vt-shadow-lg:  0 8px 24px rgba(0,0,0,0.08);
+}
+
+/* ── Dark ─────────────────────────────────────────────────── */
+[data-theme="dark"],
+.dark {
+  --vt-bg:        #0A0A0B;
+  --vt-surface:   #141414;
+  --vt-surface-2: #1E1E1F;
+  --vt-border:    #2A2A2A;
+  --vt-border-2:  #222222;
+  --vt-text-1:    #F4F4F4;
+  --vt-text-2:    #9A9A9A;
+  --vt-text-3:    #5A5A5A;
+  --vt-accent:    #4A9EFF;
+  --vt-critical:  #F87171;
+  --vt-warning:   #FBBF24;
+  --vt-success:   #34D399;
+  --vt-info:      #60A5FA;
+
+  --vt-shadow-sm:  0 1px 2px rgba(0,0,0,0.3);
+  --vt-shadow-md:  0 4px 12px rgba(0,0,0,0.4);
+  --vt-shadow-lg:  0 8px 24px rgba(0,0,0,0.5);
+}
+
+/* ── Midnight ─────────────────────────────────────────────── */
+[data-theme="midnight"] {
+  --vt-bg:        #060608;
+  --vt-surface:   #0E0E12;
+  --vt-surface-2: #16161C;
+  --vt-border:    #23232B;
+  --vt-border-2:  #1A1A20;
+  --vt-text-1:    #EEEEF4;
+  --vt-text-2:    #8888A0;
+  --vt-text-3:    #4A4A5A;
+  --vt-accent:    #818CF8; /* indigo */
+  --vt-critical:  #F87171;
+  --vt-warning:   #FBBF24;
+  --vt-success:   #34D399;
+  --vt-info:      #818CF8;
+
+  --vt-shadow-sm:  0 1px 2px rgba(0,0,0,0.5);
+  --vt-shadow-md:  0 4px 12px rgba(0,0,0,0.6);
+  --vt-shadow-lg:  0 8px 24px rgba(0,0,0,0.7);
+}
+
+/* ── Graphite ─────────────────────────────────────────────── */
+[data-theme="graphite"] {
+  --vt-bg:        #1A1A1A;
+  --vt-surface:   #242424;
+  --vt-surface-2: #2E2E2E;
+  --vt-border:    #383838;
+  --vt-border-2:  #303030;
+  --vt-text-1:    #F0F0F0;
+  --vt-text-2:    #909090;
+  --vt-text-3:    #606060;
+  --vt-accent:    #A8A8A8; /* neutral accent — near-monochrome */
+  --vt-critical:  #F87171;
+  --vt-warning:   #FBBF24;
+  --vt-success:   #34D399;
+  --vt-info:      #94A3B8;
+
+  --vt-shadow-sm:  0 1px 2px rgba(0,0,0,0.4);
+  --vt-shadow-md:  0 4px 12px rgba(0,0,0,0.5);
+  --vt-shadow-lg:  0 8px 24px rgba(0,0,0,0.6);
+}
+
+/* ── Semantic badge tones (theme-aware) ───────────────────── */
+:root,
+[data-theme="light"],
+.light {
+  --vt-badge-critical-bg:   rgba(220, 38, 38, 0.08);
+  --vt-badge-critical-text: #B91C1C;
+  --vt-badge-critical-border: rgba(220, 38, 38, 0.2);
+
+  --vt-badge-warning-bg:    rgba(217, 119, 6, 0.08);
+  --vt-badge-warning-text:  #92400E;
+  --vt-badge-warning-border: rgba(217, 119, 6, 0.2);
+
+  --vt-badge-success-bg:    rgba(5, 150, 105, 0.08);
+  --vt-badge-success-text:  #065F46;
+  --vt-badge-success-border: rgba(5, 150, 105, 0.2);
+
+  --vt-badge-info-bg:       rgba(37, 99, 235, 0.08);
+  --vt-badge-info-text:     #1E40AF;
+  --vt-badge-info-border:   rgba(37, 99, 235, 0.2);
+
+  --vt-badge-neutral-bg:    rgba(0, 0, 0, 0.04);
+  --vt-badge-neutral-text:  #374151;
+  --vt-badge-neutral-border: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"],
+.dark,
+[data-theme="midnight"],
+[data-theme="graphite"] {
+  --vt-badge-critical-bg:   rgba(248, 113, 113, 0.1);
+  --vt-badge-critical-text: #FCA5A5;
+  --vt-badge-critical-border: rgba(248, 113, 113, 0.25);
+
+  --vt-badge-warning-bg:    rgba(251, 191, 36, 0.1);
+  --vt-badge-warning-text:  #FDE68A;
+  --vt-badge-warning-border: rgba(251, 191, 36, 0.25);
+
+  --vt-badge-success-bg:    rgba(52, 211, 153, 0.1);
+  --vt-badge-success-text:  #6EE7B7;
+  --vt-badge-success-border: rgba(52, 211, 153, 0.25);
+
+  --vt-badge-info-bg:       rgba(96, 165, 250, 0.1);
+  --vt-badge-info-text:     #BAE6FD;
+  --vt-badge-info-border:   rgba(96, 165, 250, 0.25);
+
+  --vt-badge-neutral-bg:    rgba(255, 255, 255, 0.05);
+  --vt-badge-neutral-text:  #D1D5DB;
+  --vt-badge-neutral-border: rgba(255, 255, 255, 0.1);
+}

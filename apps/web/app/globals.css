@@ -1,5 +1,6 @@
 @import 'normalize.css/normalize.css';
 @import 'tailwindcss';
+@import '../styles/themes/index.css';
 @import '../styles/design-tokens.css';
 @import '../styles/utilities.css';
 @import '../styles/typography.css';
@@ -11,6 +12,21 @@
 /* glue.css superseded by antigravity.css (imported in layout.tsx) */
 
 @custom-variant dark (&:is(.dark *));
+
+/* Smooth theme transition — color/background only, no layout shifts */
+*,
+*::before,
+*::after {
+  transition-property: color, background-color, border-color, fill, stroke;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Reset transition for elements that need instant response */
+input, textarea, select,
+[data-no-theme-transition] {
+  transition: none !important;
+}
 
 html,
 body {
