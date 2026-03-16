@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { OperationsShell } from './shell';
 import { EntityLink, OpsBadge, OpsCard, SurfaceBanner, severityTone } from './primitives';
 import { CopilotSearchBar } from '@/components/copilot/CopilotSearchBar';
+import { EvidenceViewerPanel } from './evidence-viewer-panel';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -708,6 +709,12 @@ export function InvestigationsSurface() {
             ) : null}
             {context.finding ? (
               <FindingContextCard finding={context.finding} />
+            ) : null}
+            {context.finding && context.finding.evidence.length > 0 ? (
+              <EvidenceViewerPanel
+                evidence={context.finding.evidence}
+                findingId={context.finding.id}
+              />
             ) : null}
             {context.storyline ? (
               <StorylineContextCard storyline={context.storyline} />
