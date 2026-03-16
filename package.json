@@ -4,7 +4,8 @@
   "packageManager": "pnpm@10.6.1",
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "services/*"
   ],
   "scripts": {
     "build:web": "pnpm --filter web build",

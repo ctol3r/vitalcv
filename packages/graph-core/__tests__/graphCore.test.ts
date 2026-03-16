@@ -4,6 +4,13 @@ import {
   communityDetection,
   createDualGraph,
   createEventGraph,
+  createIdentityEntity,
+  createIdentityGraph,
+  createIdentityRelation,
+  createIntelligenceGraph,
+  createNetworkEdge,
+  createNetworkEntity,
+  createNetworkGraph,
   createOntologyEntity,
   createOntologyGraph,
   createOntologyRelation,
@@ -16,6 +23,7 @@ import {
   betweennessCentrality,
   articulationPoints,
   projectDualGraph,
+  projectIntelligenceGraph,
   scoreProviderInfluence,
   storeWeeklyGraphSnapshot,
   type GraphProjection,
@@ -150,6 +158,58 @@ function run(): void {
   assert.equal(projection.nodes.some((node) => node.id === 'provider:ada' && node.layer === 'dual'), true);
   assert.equal(projection.nodes.some((node) => node.id === 'event:pub:ada' && node.kind === 'publication'), true);
   assert.equal(projection.edges.some((edge) => edge.relation === 'describes_entity'), true);
+
+  const identity = createIdentityGraph({
+    entities: [
+      createIdentityEntity({
+        entityId: 'provider:ada',
+        entityType: 'provider',
+        label: 'Dr. Ada',
+        keys: { NPI: '1234567890', ORCID: '0000-0001' },
+      }),
+      createIdentityEntity({
+        entityId: 'institution:alpha',
+        entityType: 'institution',
+        label: 'Alpha Health',
+        keys: { ROR_ID: '01alpha' },
+      }),
+    ],
+    relations: [
+      createIdentityRelation({
+        sourceEntityId: 'provider:ada',
+        targetEntityId: 'institution:alpha',
+        relationType: 'provider_to_institution',
+      }),
+    ],
+  });
+  const network = createNetworkGraph({
+    entities: [
+      createNetworkEntity({ entityId: 'provider:ada', label: 'Dr. Ada' }),
+      createNetworkEntity({ entityId: 'provider:ben', label: 'Dr. Ben' }),
+    ],
+    edges: [
+      createNetworkEdge({
+        sourceEntityId: 'provider:ada',
+        targetEntityId: 'provider:ben',
+        relationshipType: 'co_author',
+        weight: 2,
+        firstSeen: '2026-03-10T00:00:00.000Z',
+        lastSeen: '2026-03-15T00:00:00.000Z',
+      }),
+    ],
+  });
+  const intelligenceGraph = createIntelligenceGraph({
+    createdAt: '2026-03-15T12:00:00.000Z',
+    identity,
+    events: dualGraph.events,
+    network,
+  });
+  const intelligenceProjection = projectIntelligenceGraph(intelligenceGraph, {
+    now: '2026-03-15T12:00:00.000Z',
+  });
+
+  assert.equal(intelligenceProjection.nodes.some((node) => node.id === 'provider:ada' && node.layer === 'intelligence'), true);
+  assert.equal(intelligenceProjection.edges.some((edge) => edge.relation === 'co_author' && edge.layer === 'intelligence'), true);
 
   const graph = buildWeightedTestGraph();
   const pageRanks = pageRank(graph);

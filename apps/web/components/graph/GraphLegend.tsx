@@ -13,6 +13,7 @@ import {
   colorForNodeType,
   LINK_CLASS_STYLES,
 } from '@/components/graph/graphPalette';
+import { GraphLegend as VdsGraphLegend } from '@/src/ui/components';
 
 interface GraphLegendProps {
   nodes: GraphNode[];
@@ -40,55 +41,32 @@ export function GraphLegend({
   }
 
   return (
-    <div className="vital-panel vital-panel--dense">
-      <div className="vital-panel__header">
-        <div>
-          <p className="vital-panel__eyebrow">Legend</p>
-          <h2 className="vital-panel__title">Rendering semantics</h2>
-        </div>
-      </div>
-      <p className="vital-panel__copy">
-        Active color mode: {GRAPH_COLOR_MODE_LABELS[colorMode]}.
-      </p>
-      <div className="mt-4 flex flex-col gap-3">
-        <div>
-          <p className="vital-panel__eyebrow">Node types</p>
-          <div className="vital-legend-list mt-2">
-            {[...nodeCounts.entries()].slice(0, maxNodeTypes).map(([nodeType, count]) => (
-              <div key={nodeType} className="vital-legend-item">
-                <div className="flex items-center gap-3">
-                  <span className="vital-swatch" style={{ backgroundColor: colorForNodeType(nodeType as GraphNode['type']) }} />
-                  <div className="vital-legend-item__meta">
-                    <span className="vital-legend-item__label">{formatGraphNodeType(nodeType as GraphNode['type'])}</span>
-                    <span className="vital-legend-item__detail">{count} nodes</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div>
-          <p className="vital-panel__eyebrow">Link classes</p>
-          <div className="vital-legend-list mt-2">
-            {GRAPH_LINK_CLASS_ORDER.map((linkClass) => (
-              <div key={linkClass} className="vital-legend-item">
-                <div className="flex items-center gap-3">
-                  <span
-                    className="vital-swatch vital-swatch--line"
-                    style={{ backgroundColor: LINK_CLASS_STYLES[linkClass].stroke }}
-                  />
-                  <div className="vital-legend-item__meta">
-                    <span className="vital-legend-item__label">{GRAPH_LINK_CLASS_LABELS[linkClass]}</span>
-                    <span className="vital-legend-item__detail">
-                      {edgeClassCounts.get(linkClass) ?? 0} visible edges
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+    <VdsGraphLegend
+      description={`Active color mode: ${GRAPH_COLOR_MODE_LABELS[colorMode]}.`}
+      sections={[
+        {
+          id: 'nodes',
+          label: 'Node types',
+          items: [...nodeCounts.entries()].slice(0, maxNodeTypes).map(([nodeType, count]) => ({
+            id: nodeType,
+            label: formatGraphNodeType(nodeType as GraphNode['type']),
+            detail: `${count} nodes`,
+            color: colorForNodeType(nodeType as GraphNode['type']),
+          })),
+        },
+        {
+          id: 'edges',
+          label: 'Link classes',
+          items: GRAPH_LINK_CLASS_ORDER.map((linkClass) => ({
+            id: linkClass,
+            label: GRAPH_LINK_CLASS_LABELS[linkClass],
+            detail: `${edgeClassCounts.get(linkClass) ?? 0} visible edges`,
+            color: LINK_CLASS_STYLES[linkClass].stroke,
+            line: true,
+          })),
+        },
+      ]}
+      title="Rendering semantics"
+    />
   );
 }

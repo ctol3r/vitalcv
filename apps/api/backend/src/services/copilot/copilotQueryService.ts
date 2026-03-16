@@ -4,8 +4,26 @@ import { log } from '../../obs/logger';
 import { querySearch, type SearchResponse, type SearchResult } from '../search/searchIndex';
 import type { SearchRequestContext } from '../search/requestContext';
 import { SOURCE_CATALOG } from '../identity/sourceCatalog';
+import { maybeExecuteIntelligenceContextQuery } from './intelligenceContextAdapter';
+import { maybeExecutePredictionCopilotQuery } from './predictionQueryService';
 import { computeTrustScoreV1 } from '../trust/trustScoreV1';
 import { withToolSpan } from '../../tools/tracing';
+import {
+  listDecisionRecommendations,
+  summarizeDecisionForCopilot,
+  type StoredDecisionRecommendation,
+} from '../decisions/decisionRecommendationService';
+import {
+  searchStrategyInsightsForCopilot,
+  strategyInsightAffiliations,
+  strategyInsightGraphSignals,
+  strategyInsightInstitution,
+  strategyInsightResearchTopics,
+  strategyInsightSourceCoverage,
+  strategyInsightSpecialty,
+  strategyInsightState,
+} from '../strategy/strategyEngineService';
+import { searchStrategyAgentArtifacts } from '../strategyAgents/strategyAgentService';
 import {
   executeCopilotPlan,
   prepareCopilotQuery,
@@ -20,6 +38,11 @@ import {
   type CopilotTrustEnrichment,
   type ParsedCopilotQuery,
 } from '../../../../../../core/copilot/copilotEngine';
+import type { StrategyInsight } from '../../../../../../core/strategy/strategyEngine';
+import type {
+  StrategyInsight as StrategyAgentInsight,
+  StrategyReport as StrategyAgentReport,
+} from '../strategyAgents/contracts';
 
 type ExtractedCandidateFields = {
   specialty?: string;
@@ -47,6 +70,10 @@ function tokenize(value: string): string[] {
 
 function dedupeStrings(values: string[]): string[] {
   return [...new Set(values.filter((value) => value.trim().length > 0))];
+}
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
 }
 
 function asString(value: unknown): string | undefined {
@@ -92,6 +119,528 @@ function sanitizeMetadata(
 
 function sourceTypeFor(source: string): CopilotEvidence['sourceType'] {
   return SOURCE_CATALOG[source]?.tier ?? 'INTERNAL';
+}
+
+function decisionIntentRequested(query: string): boolean {
+  return /\b(what should (?:we|i) do|what actions|recommended action|recommendation|require attention|needs attention|which providers|what institutions|should we monitor|monitor|escalat|verify|investigat)\b/i.test(query);
+}
+
+function providerIdFromResultId(resultId: string): string | null {
+  const match = resultId.match(/^clinician:(\d{10})$/);
+  return match?.[1] ?? null;
+}
+
+function decisionSources(recommendation: StoredDecisionRecommendation): string[] {
+  return dedupeStrings(
+    recommendation.supportingSignals.flatMap((signal) => signal.sources ?? []),
+  );
+}
+
+function decisionScores(recommendation: StoredDecisionRecommendation) {
+  const sourceCoverage = decisionSources(recommendation);
+  const total = clamp01(recommendation.priorityScore);
+  return {
+    relevance: clamp01(0.58 + (recommendation.confidence * 0.3)),
+    trustScore: clamp01(recommendation.confidence),
+    freshness: recommendation.sourceFindingIds.length === 0 ? 0.42 : 0.81,
+    sourceCoverage: clamp01(sourceCoverage.length / 4),
+    total,
+  };
+}
+
+function synthesizeDecisionResult(
+  recommendation: StoredDecisionRecommendation,
+  rank: number,
+): CopilotQueryResponse['results'][number] {
+  const scores = decisionScores(recommendation);
+  const title = recommendation.targetEntity.entityLabel ?? recommendation.targetEntity.entityId;
+  const type: CopilotEntityType = recommendation.targetEntity.entityType === 'provider'
+    ? 'CLINICIAN'
+    : recommendation.targetEntity.entityType === 'institution'
+      ? 'ORGANIZATION'
+      : ['market', 'specialty'].includes(recommendation.targetEntity.entityType)
+        ? 'PROGRAM'
+        : 'DOCUMENT';
+
+  return {
+    id: `decision:${recommendation.decisionId}`,
+    rank,
+    type,
+    title,
+    subtitle: `${recommendation.actionType} · ${recommendation.priority.toUpperCase()}`,
+    summary: recommendation.rationale,
+    scores,
+    sourceCoverage: decisionSources(recommendation),
+  };
+}
+
+function synthesizeDecisionExplanation(
+  recommendation: StoredDecisionRecommendation,
+  resultId: string,
+): CopilotQueryResponse['explanations'][number] {
+  const scores = decisionScores(recommendation);
+  const because = dedupeStrings([
+    `action = ${recommendation.actionType}`,
+    `priority = ${recommendation.priority}`,
+    ...recommendation.supportingSignals
+      .slice(0, 3)
+      .map((signal) => `${signal.label}${signal.value !== undefined && signal.value !== null ? ` = ${signal.value}` : ''}`),
+  ]).slice(0, 5);
+
+  return {
+    resultId,
+    title: recommendation.targetEntity.entityLabel ?? recommendation.targetEntity.entityId,
+    summary: summarizeDecisionForCopilot(recommendation),
+    because,
+    matchedFilters: [],
+    verifiedSources: decisionSources(recommendation),
+    scoring: scores,
+  };
+}
+
+async function augmentWithDecisionSupport(
+  response: CopilotQueryResponse,
+  rawQuery: string,
+): Promise<CopilotQueryResponse> {
+  if (!decisionIntentRequested(rawQuery)) {
+    return response;
+  }
+
+  const nextResults = [...response.results];
+  const nextExplanations = [...response.explanations];
+
+  const providerResults = nextResults
+    .map((result) => ({
+      result,
+      providerId: providerIdFromResultId(result.id),
+    }))
+    .filter((entry): entry is { result: CopilotQueryResponse['results'][number]; providerId: string } => Boolean(entry.providerId))
+    .slice(0, 5);
+
+  if (providerResults.length > 0) {
+    const providerDecisionList = await listDecisionRecommendations({
+      entityType: ['provider'],
+      limit: 200,
+    });
+    const mapped = new Map<string, StoredDecisionRecommendation>();
+    for (const recommendation of providerDecisionList.recommendations) {
+      const providerId = recommendation.targetEntity.entityId;
+      const existing = mapped.get(providerId);
+      if (!existing || recommendation.priorityScore > existing.priorityScore) {
+        mapped.set(providerId, recommendation);
+      }
+    }
+
+    for (const entry of providerResults) {
+      const decision = mapped.get(entry.providerId);
+      if (!decision) {
+        continue;
+      }
+
+      entry.result.summary = `${entry.result.summary} Top action: ${decision.actionType.toLowerCase()} (${decision.priority}).`;
+      const explanation = nextExplanations.find((item) => item.resultId === entry.result.id);
+      if (explanation) {
+        explanation.summary = `${explanation.summary} ${summarizeDecisionForCopilot(decision)}`;
+        explanation.because = dedupeStrings([
+          ...explanation.because,
+          `action = ${decision.actionType}`,
+          `priority = ${decision.priority}`,
+        ]).slice(0, 6);
+        explanation.verifiedSources = dedupeStrings([
+          ...explanation.verifiedSources,
+          ...decisionSources(decision),
+        ]).slice(0, 6);
+      }
+    }
+
+    return {
+      ...response,
+      results: nextResults,
+      explanations: nextExplanations,
+    };
+  }
+
+  const lower = rawQuery.toLowerCase();
+  const listResult = await listDecisionRecommendations({
+    limit: 3,
+    actionType: lower.includes('verify')
+      ? ['VERIFY_SOURCE']
+      : lower.includes('escalat')
+        ? ['ESCALATE']
+        : lower.includes('compare') || lower.includes('peer')
+          ? ['COMPARE_WITH_PEERS']
+          : lower.includes('monitor')
+            ? ['MONITOR', 'SAVE_TO_WATCHLIST']
+            : lower.includes('defer') || lower.includes('wait')
+              ? ['DEFER_ACTION', 'REQUEST_MORE_EVIDENCE']
+              : undefined,
+    entityType: lower.includes('institution')
+      ? ['institution']
+      : lower.includes('specialty') || lower.includes('shortage')
+        ? ['specialty']
+        : ['provider'],
+  });
+
+  if (listResult.recommendations.length === 0) {
+    return response;
+  }
+
+  const syntheticResults = listResult.recommendations.map((recommendation, index) =>
+    synthesizeDecisionResult(recommendation, index + 1));
+  const syntheticExplanations = syntheticResults.map((result, index) =>
+    synthesizeDecisionExplanation(listResult.recommendations[index]!, result.id));
+
+  return {
+    ...response,
+    results: [...syntheticResults, ...nextResults].slice(0, Math.max(response.results.length, syntheticResults.length)),
+    explanations: [...syntheticExplanations, ...nextExplanations],
+  };
+}
+
+function strategyIntentRequested(query: string): boolean {
+  return /\b(influential|influence|trajectory|future leader|future leaders|recruit|recruiting|momentum|growing fastest|institution growth|cluster|clusters|research cluster|emerging network|shortage|shortages|talent movement|migration|provider opportunity|specialty shift|strategy|strategic)\b/i.test(query);
+}
+
+function strategyEntityTypeHint(query: string): string | undefined {
+  const lower = query.toLowerCase();
+  if (/\b(provider|providers|influential|thought leader|researcher|trajectory|future leader|future leaders)\b/.test(lower)) {
+    return 'provider';
+  }
+  if (/\b(institution|institutions|hospital|system|growing fastest|momentum)\b/.test(lower)) {
+    return 'institution';
+  }
+  if (/\b(specialty|shortage|shortages|recruit)\b/.test(lower)) {
+    return 'specialty';
+  }
+  if (/\b(network|cluster|clusters|collaboration)\b/.test(lower)) {
+    return 'network';
+  }
+  return undefined;
+}
+
+function strategySources(insight: StrategyInsight): string[] {
+  return strategyInsightSourceCoverage(insight);
+}
+
+function strategyScores(insight: StrategyInsight) {
+  const impactWeight = (() => {
+    switch (insight.impactLevel) {
+      case 'strategic':
+        return 1;
+      case 'major':
+        return 0.82;
+      case 'moderate':
+        return 0.64;
+      case 'minor':
+      default:
+        return 0.46;
+    }
+  })();
+
+  const sourceCoverage = strategySources(insight);
+  const total = clamp01((impactWeight * 0.55) + (insight.confidence * 0.45));
+  return {
+    relevance: clamp01((impactWeight * 0.52) + (insight.confidence * 0.3) + 0.18),
+    trustScore: clamp01(insight.confidence),
+    freshness: computeFreshnessScore(insight.updatedAt),
+    sourceCoverage: clamp01(sourceCoverage.length / 4),
+    total,
+  };
+}
+
+function strategyResultType(insight: StrategyInsight): CopilotEntityType {
+  if (insight.scope.entityType === 'provider') {
+    return 'CLINICIAN';
+  }
+  if (insight.scope.entityType === 'institution') {
+    return 'ORGANIZATION';
+  }
+  return 'DOCUMENT';
+}
+
+function synthesizeStrategyResult(
+  insight: StrategyInsight,
+  rank: number,
+): CopilotQueryResponse['results'][number] {
+  const specialty = strategyInsightSpecialty(insight);
+  const state = strategyInsightState(insight);
+  const institution = strategyInsightInstitution(insight);
+  const scores = strategyScores(insight);
+
+  return {
+    id: `strategy:${insight.id}`,
+    rank,
+    type: strategyResultType(insight),
+    title: insight.title,
+    subtitle: `${insight.impactLevel.toUpperCase()} ${insight.type.replace(/_/g, ' ')}`,
+    summary: insight.summary,
+    specialty,
+    state,
+    institution,
+    scores,
+    sourceCoverage: strategySources(insight),
+  };
+}
+
+function synthesizeStrategyExplanation(
+  insight: StrategyInsight,
+  resultId: string,
+): CopilotQueryResponse['explanations'][number] {
+  return {
+    resultId,
+    title: insight.title,
+    summary: insight.explanation,
+    because: dedupeStrings([
+      ...insight.drivers.slice(0, 3).map((driver) => driver.explanation),
+      ...insight.supportingPredictions.slice(0, 2).map((prediction) => prediction.explanation),
+    ]).slice(0, 5),
+    matchedFilters: [],
+    verifiedSources: strategySources(insight),
+    scoring: strategyScores(insight),
+  };
+}
+
+function synthesizeStrategyGraphInsights(
+  insight: StrategyInsight,
+  resultId: string,
+): CopilotQueryResponse['graphInsights'] {
+  const graphSignals = strategyInsightGraphSignals(insight);
+  if (graphSignals.length === 0) {
+    return [];
+  }
+
+  return [{
+    resultId,
+    type: insight.scope.entityType === 'network' ? 'PUBLICATION_NETWORK' : 'SOURCE_COVERAGE',
+    summary: graphSignals[0]!,
+    path: [insight.title, ...graphSignals.slice(0, 2)],
+    depth: 1,
+  }];
+}
+
+function strategyAgentSources(match: { report?: StrategyAgentReport; insight?: StrategyAgentInsight }): string[] {
+  if (match.insight) {
+    return dedupeStrings(match.insight.signals.map((signal) => signal.source));
+  }
+
+  if (match.report) {
+    return dedupeStrings(match.report.signals.map((signal) => signal.source));
+  }
+
+  return [];
+}
+
+function strategyAgentScores(match: { report?: StrategyAgentReport; insight?: StrategyAgentInsight }) {
+  const confidence = match.insight?.confidence ?? match.report?.confidence ?? 0.35;
+  const impactLevel = match.insight?.impactLevel ?? match.report?.impactLevel ?? 'LOW';
+  const impactWeight = impactLevel === 'CRITICAL'
+    ? 1
+    : impactLevel === 'HIGH'
+      ? 0.84
+      : impactLevel === 'MEDIUM'
+        ? 0.66
+        : 0.48;
+  const sources = strategyAgentSources(match);
+  return {
+    relevance: clamp01((impactWeight * 0.58) + (confidence * 0.3) + 0.12),
+    trustScore: clamp01(confidence),
+    freshness: computeFreshnessScore(match.insight?.generatedAt ?? match.report?.generatedAt),
+    sourceCoverage: clamp01(Math.min(sources.length, 4) / 4),
+    total: clamp01((impactWeight * 0.55) + (confidence * 0.45)),
+  };
+}
+
+function strategyAgentResultType(match: { report?: StrategyAgentReport; insight?: StrategyAgentInsight }): CopilotEntityType {
+  const entityType = match.insight?.entities[0]?.entityType ?? match.report?.entities[0]?.entityType;
+  if (entityType === 'provider') {
+    return 'CLINICIAN';
+  }
+  if (entityType === 'institution') {
+    return 'ORGANIZATION';
+  }
+  return 'DOCUMENT';
+}
+
+function synthesizeStrategyAgentResult(
+  match: { report?: StrategyAgentReport; insight?: StrategyAgentInsight },
+  rank: number,
+): CopilotQueryResponse['results'][number] {
+  const insight = match.insight;
+  const report = match.report;
+  const title = insight?.headline ?? report?.headline ?? 'Strategy agent report';
+  const summary = insight?.summary ?? report?.summary ?? 'Strategy agent output.';
+  const subtitle = insight
+    ? `${insight.agentType.replace(/_/g, ' ')} ${insight.impactLevel}`
+    : `${report?.reportName ?? 'Agent report'} ${report?.impactLevel ?? 'LOW'}`;
+  const specialty = insight?.entities[0]?.entityType === 'market'
+    ? undefined
+    : undefined;
+  const state = insight?.entities[0]?.entityLabel?.slice(0, 2);
+
+  return {
+    id: `strategy-agent:${insight?.insightId ?? report?.reportId}`,
+    rank,
+    type: strategyAgentResultType(match),
+    title,
+    subtitle,
+    summary,
+    specialty,
+    state,
+    institution: report?.agentType === 'INSTITUTION_MOMENTUM'
+      ? report.entities[0]?.entityLabel ?? undefined
+      : insight?.entities[0]?.entityType === 'institution'
+        ? insight.entities[0]?.entityLabel ?? undefined
+        : undefined,
+    scores: strategyAgentScores(match),
+    sourceCoverage: strategyAgentSources(match),
+  };
+}
+
+function synthesizeStrategyAgentExplanation(
+  match: { report?: StrategyAgentReport; insight?: StrategyAgentInsight },
+  resultId: string,
+): CopilotQueryResponse['explanations'][number] {
+  const insight = match.insight;
+  const report = match.report;
+  return {
+    resultId,
+    title: insight?.headline ?? report?.headline ?? 'Strategy agent report',
+    summary: insight?.summary ?? report?.summary ?? 'Strategy agent output.',
+    because: dedupeStrings([
+      ...(insight?.drivers ?? report?.drivers ?? []).slice(0, 3),
+      ...(insight?.predictions ?? report?.predictions ?? []).slice(0, 2).map((prediction) => (
+        `${prediction.predictionType.replace(/_/g, ' ').toLowerCase()} prediction ${Math.round(prediction.probability * 100)}% over ${prediction.timeHorizon}`
+      )),
+      ...(insight?.reasoningLog ?? report?.reasoningLog ?? []).slice(0, 2).map((entry) => entry.detail),
+    ]).slice(0, 5),
+    matchedFilters: [],
+    verifiedSources: strategyAgentSources(match),
+    scoring: strategyAgentScores(match),
+  };
+}
+
+function synthesizeStrategyAgentGraphInsights(
+  match: { report?: StrategyAgentReport; insight?: StrategyAgentInsight },
+  resultId: string,
+): CopilotQueryResponse['graphInsights'] {
+  const insight = match.insight;
+  const report = match.report;
+  const predictions = insight?.predictions ?? report?.predictions ?? [];
+  if (predictions.length === 0) {
+    return [];
+  }
+
+  const type: CopilotGraphInsight['type'] = (insight?.agentType ?? report?.agentType) === 'NETWORK_EVOLUTION'
+    ? 'PUBLICATION_NETWORK'
+    : 'SOURCE_COVERAGE';
+  const title = insight?.headline ?? report?.headline ?? 'Strategy agent report';
+
+  return [{
+    resultId,
+    type,
+    summary: `${title} cites ${predictions.length} linked prediction(s) from the strategy agent layer.`,
+    path: [title, ...predictions.slice(0, 2).map((prediction) => prediction.predictionId)],
+    depth: 1,
+  }];
+}
+
+export async function augmentWithStrategySupport(
+  response: CopilotQueryResponse,
+  rawQuery: string,
+): Promise<CopilotQueryResponse> {
+  if (!strategyIntentRequested(rawQuery)) {
+    return response;
+  }
+
+  const insights = await searchStrategyInsightsForCopilot({
+    query: rawQuery,
+    limit: 3,
+    entityType: strategyEntityTypeHint(rawQuery),
+  });
+
+  if (insights.length === 0) {
+    const agentMatches = await searchStrategyAgentArtifacts(rawQuery, 3);
+    if (agentMatches.length === 0) {
+      return response;
+    }
+
+    const agentResults = agentMatches.map((match, index) => (
+      synthesizeStrategyAgentResult(
+        {
+          report: match.report,
+          insight: match.insight,
+        },
+        index + 1,
+      )
+    ));
+    const agentExplanations = agentResults.map((result, index) => (
+      synthesizeStrategyAgentExplanation(
+        {
+          report: agentMatches[index]?.report,
+          insight: agentMatches[index]?.insight,
+        },
+        result.id,
+      )
+    ));
+    const agentGraphInsights = agentResults.flatMap((result, index) => (
+      synthesizeStrategyAgentGraphInsights(
+        {
+          report: agentMatches[index]?.report,
+          insight: agentMatches[index]?.insight,
+        },
+        result.id,
+      )
+    ));
+
+    return {
+      ...response,
+      results: [...agentResults, ...response.results].slice(0, Math.max(response.results.length, agentResults.length)),
+      explanations: [...agentExplanations, ...response.explanations],
+      graphInsights: [...agentGraphInsights, ...response.graphInsights].slice(0, Math.max(response.graphInsights.length, agentGraphInsights.length, 5)),
+    };
+  }
+
+  const syntheticResults = insights.map((insight, index) =>
+    synthesizeStrategyResult(insight, index + 1));
+  const syntheticExplanations = syntheticResults.map((result, index) =>
+    synthesizeStrategyExplanation(insights[index]!, result.id));
+  const syntheticGraphInsights = syntheticResults.flatMap((result, index) =>
+    synthesizeStrategyGraphInsights(insights[index]!, result.id));
+  const agentMatches = await searchStrategyAgentArtifacts(rawQuery, 2);
+  const agentResults = agentMatches.map((match, index) => (
+    synthesizeStrategyAgentResult(
+      {
+        report: match.report,
+        insight: match.insight,
+      },
+      syntheticResults.length + index + 1,
+    )
+  ));
+  const agentExplanations = agentResults.map((result, index) => (
+    synthesizeStrategyAgentExplanation(
+      {
+        report: agentMatches[index]?.report,
+        insight: agentMatches[index]?.insight,
+      },
+      result.id,
+    )
+  ));
+  const agentGraphInsights = agentResults.flatMap((result, index) => (
+    synthesizeStrategyAgentGraphInsights(
+      {
+        report: agentMatches[index]?.report,
+        insight: agentMatches[index]?.insight,
+      },
+      result.id,
+    )
+  ));
+
+  return {
+    ...response,
+    results: [...syntheticResults, ...agentResults, ...response.results].slice(0, Math.max(response.results.length, syntheticResults.length + agentResults.length)),
+    explanations: [...syntheticExplanations, ...agentExplanations, ...response.explanations],
+    graphInsights: [...syntheticGraphInsights, ...agentGraphInsights, ...response.graphInsights].slice(0, Math.max(response.graphInsights.length, syntheticGraphInsights.length + agentGraphInsights.length, 5)),
+  };
 }
 
 function computeFreshnessScore(isoValue: string | undefined): number {
@@ -943,17 +1492,45 @@ export async function executeCopilotQuery(params: {
     limit: params.limit,
   });
 
+  const intelligenceContextResponse = await maybeExecuteIntelligenceContextQuery(preparedQuery, params.limit);
+  if (intelligenceContextResponse) {
+    log('info', 'copilot.query', {
+      queryHash: params.requestContext.queryHash,
+      intent: intelligenceContextResponse.parsedQuery.intent,
+      resultCount: intelligenceContextResponse.results.length,
+      graphInsightCount: intelligenceContextResponse.graphInsights.length,
+      intelligenceContextMode: true,
+    });
+
+    return intelligenceContextResponse;
+  }
+
+  const predictionResponse = await maybeExecutePredictionCopilotQuery(preparedQuery, params.limit);
+  if (predictionResponse) {
+    log('info', 'copilot.query', {
+      queryHash: params.requestContext.queryHash,
+      intent: predictionResponse.parsedQuery.intent,
+      resultCount: predictionResponse.results.length,
+      graphInsightCount: predictionResponse.graphInsights.length,
+      predictionMode: true,
+    });
+
+    return predictionResponse;
+  }
+
   const response = await executeCopilotPlan(
     preparedQuery,
     buildDependencies(params.requestContext),
   );
+  const decisionEnrichedResponse = await augmentWithDecisionSupport(response, params.query);
+  const enrichedResponse = await augmentWithStrategySupport(decisionEnrichedResponse, params.query);
 
   log('info', 'copilot.query', {
     queryHash: params.requestContext.queryHash,
-    intent: response.parsedQuery.intent,
-    resultCount: response.results.length,
-    graphInsightCount: response.graphInsights.length,
+    intent: enrichedResponse.parsedQuery.intent,
+    resultCount: enrichedResponse.results.length,
+    graphInsightCount: enrichedResponse.graphInsights.length,
   });
 
-  return response;
+  return enrichedResponse;
 }

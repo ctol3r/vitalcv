@@ -12,6 +12,7 @@ import type {
   InvestigatorDefinition,
   InvestigatorFindingDraft,
 } from '../../../../../../core/investigators/investigatorTypes';
+import { buildAutonomousInvestigatorDefinitions } from './autonomousInvestigatorEngine';
 import { createGraphNodeId } from '../graph-engine/ids';
 import { detectDivergence } from '../identity/divergenceEngine';
 import { computeTrustFreshness } from '../identity/freshnessModel';
@@ -1301,5 +1302,6 @@ export function buildDefaultInvestigators(): InvestigatorDefinition<BackendInves
         );
       },
     },
+    ...buildAutonomousInvestigatorDefinitions(),
   ];
 }

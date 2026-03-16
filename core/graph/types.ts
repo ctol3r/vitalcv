@@ -1,4 +1,4 @@
-export type GraphLayer = 'ontology' | 'events' | 'dual';
+export type GraphLayer = 'ontology' | 'events' | 'network' | 'dual' | 'intelligence';
 
 export interface GraphNode {
   id: string;

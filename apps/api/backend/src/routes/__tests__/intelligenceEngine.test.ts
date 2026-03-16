@@ -28,6 +28,7 @@ async function resetState(): Promise<void> {
   await prisma.sourceRun.deleteMany({});
   await prisma.searchObjectACL.deleteMany({});
   await prisma.searchObject.deleteMany({});
+  await prisma.auditSnapshot.deleteMany({});
   await prisma.verificationArtifact.deleteMany({});
 }
 

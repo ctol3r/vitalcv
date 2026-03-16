@@ -1,17 +1,17 @@
 import type {
-  AggregatedEmergingInvestigatorSignal,
-  AggregatedInstitutionResearchSignal,
-  AggregatedNetworkExpansionSignal,
+  AggregatedInstitutionMomentumSignal,
+  AggregatedNetworkShiftSignal,
   AggregatedPredictionSignals,
-  AggregatedTrustDeclineSignal,
-  AggregatedWorkforceShortageSignal,
-  EmergingInvestigatorPredictionInput,
-  InstitutionResearchGrowthPredictionInput,
-  NetworkClusterExpansionPredictionInput,
+  AggregatedProviderTrajectorySignal,
+  AggregatedSpecialtyPressureSignal,
+  AggregatedTrustRiskSignal,
+  InstitutionMomentumPredictionInput,
+  NetworkShiftPredictionInput,
   PredictionEngineInput,
   PredictionEvidenceSignal,
-  TrustDeclinePredictionInput,
-  WorkforceShortagePredictionInput,
+  ProviderTrajectoryPredictionInput,
+  SpecialtyPressurePredictionInput,
+  TrustRiskAccelerationPredictionInput,
 } from './predictionEngine';
 
 function clamp01(value: number): number {
@@ -22,174 +22,289 @@ function clamp01(value: number): number {
   return Math.max(0, Math.min(1, Math.round(value * 10_000) / 10_000));
 }
 
-function aggregateTrustSignal(input: TrustDeclinePredictionInput): AggregatedTrustDeclineSignal {
-  const previousScore = input.previousScore ?? input.recentScore;
-  const declineMagnitude = Math.max(0, previousScore - input.recentScore, Math.abs(Math.min(input.scoreDelta, 0)));
-  const signalStrength = clamp01(
-    (declineMagnitude / 15) * 0.55
-    + Math.min(input.staleSourceCount, 4) * 0.08
-    + Math.min(input.divergenceCount, 4) * 0.12
-    + Math.min(input.recentDeclines, 5) * 0.05,
-  );
+function normalizeSigned(value: number | null | undefined, scale: number): number {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return 0;
+  }
 
-  const evidenceSignals: PredictionEvidenceSignal[] = [
-    { label: 'trust_score_delta', value: Number(input.scoreDelta.toFixed(1)), direction: input.scoreDelta < 0 ? 'DOWN' : 'FLAT', source: 'TRUST_SCORE_HISTORY' },
-    { label: 'recent_declines', value: input.recentDeclines, direction: input.recentDeclines > 0 ? 'UP' : 'FLAT', source: 'TRUST_SCORE_HISTORY' },
-    { label: 'stale_sources', value: input.staleSourceCount, direction: input.staleSourceCount > 0 ? 'UP' : 'FLAT', source: 'INVESTIGATOR_FINDINGS' },
-    { label: 'divergence_signals', value: input.divergenceCount, direction: input.divergenceCount > 0 ? 'UP' : 'FLAT', source: 'INVESTIGATOR_FINDINGS' },
+  return clamp01((value + scale) / (scale * 2));
+}
+
+function normalizePositive(value: number | null | undefined, scale: number): number {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return 0;
+  }
+
+  return clamp01(value / scale);
+}
+
+function signalDirection(value: number | null | undefined): PredictionEvidenceSignal['direction'] {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return 'FLAT';
+  }
+
+  if (value > 0) {
+    return 'UP';
+  }
+
+  if (value < 0) {
+    return 'DOWN';
+  }
+
+  return 'FLAT';
+}
+
+function coverage(values: Array<number | null | undefined>): number {
+  if (values.length === 0) {
+    return 0;
+  }
+
+  const observed = values.filter((value) => value !== null && value !== undefined && Number.isFinite(value)).length;
+  return clamp01(observed / values.length);
+}
+
+function positiveSignals(values: Array<number | null | undefined>): number {
+  return values.filter((value) => value !== null && value !== undefined && Number.isFinite(value) && value > 0).length;
+}
+
+function negativeSignals(values: Array<number | null | undefined>): number {
+  return values.filter((value) => value !== null && value !== undefined && Number.isFinite(value) && value < 0).length;
+}
+
+function evidenceSignal(
+  label: string,
+  value: number | string | null | undefined,
+  source: string,
+  observedAt: string,
+): PredictionEvidenceSignal {
+  const numericValue = typeof value === 'number' ? value : null;
+  return {
+    label,
+    value: typeof value === 'number' ? Number(value.toFixed(4)) : value ?? 'n/a',
+    direction: signalDirection(numericValue),
+    source,
+    observedAt,
+  };
+}
+
+function aggregateProviderTrajectorySignal(
+  input: ProviderTrajectoryPredictionInput,
+): AggregatedProviderTrajectorySignal {
+  const values = [
+    input.publicationAcceleration,
+    input.citationQualityTrend,
+    input.trialLeadershipProgression,
+    input.grantFundingTrajectory,
+    input.industryPaymentDiversification,
+    input.networkCentralityChange,
   ];
 
+  const trajectoryIndex = clamp01(
+    normalizeSigned(input.publicationAcceleration, 2) * 0.24
+    + normalizeSigned(input.citationQualityTrend, 2) * 0.18
+    + normalizeSigned(input.trialLeadershipProgression, 3) * 0.18
+    + normalizeSigned(input.grantFundingTrajectory, 3) * 0.16
+    + normalizeSigned(input.industryPaymentDiversification, 3) * 0.1
+    + normalizeSigned(input.networkCentralityChange, 2) * 0.14,
+  );
+
+  const volatilityIndex = clamp01(
+    Math.abs((input.publicationAcceleration ?? 0) - (input.citationQualityTrend ?? 0)) * 0.14
+    + Math.abs((input.trialLeadershipProgression ?? 0) - (input.grantFundingTrajectory ?? 0)) * 0.12
+    + Math.abs((input.industryPaymentDiversification ?? 0) - (input.networkCentralityChange ?? 0)) * 0.1,
+  );
+
   return {
-    predictionType: 'TRUST_SCORE_DECLINE',
+    predictionType: 'PROVIDER_TRAJECTORY',
     targetEntity: input.targetEntity,
-    signalStrength,
-    evidenceSignals,
+    signalStrength: trajectoryIndex,
+    coverage: coverage(values),
+    positiveSignals: positiveSignals(values),
+    negativeSignals: negativeSignals(values),
+    volatilityIndex,
+    evidenceSignals: [
+      evidenceSignal('publication_acceleration', input.publicationAcceleration, 'OPENALEX/PUBMED', input.lastObservedAt),
+      evidenceSignal('citation_quality_trend', input.citationQualityTrend, 'OPENALEX/PUBMED', input.lastObservedAt),
+      evidenceSignal('trial_leadership_progression', input.trialLeadershipProgression, 'CLINICAL_TRIALS', input.lastObservedAt),
+      evidenceSignal('grant_funding_trajectory', input.grantFundingTrajectory, 'NIH_REPORTER', input.lastObservedAt),
+      evidenceSignal('industry_payment_diversification', input.industryPaymentDiversification, 'OPEN_PAYMENTS', input.lastObservedAt),
+      evidenceSignal('network_centrality_change', input.networkCentralityChange, 'GRAPH_RUNTIME', input.lastObservedAt),
+    ],
     metrics: {
-      declineMagnitude: Number(declineMagnitude.toFixed(1)),
-      staleSourceCount: input.staleSourceCount,
-      divergenceCount: input.divergenceCount,
+      publicationAcceleration: input.publicationAcceleration,
+      citationQualityTrend: input.citationQualityTrend,
+      trialLeadershipProgression: input.trialLeadershipProgression,
+      grantFundingTrajectory: input.grantFundingTrajectory,
+      industryPaymentDiversification: input.industryPaymentDiversification,
+      networkCentralityChange: input.networkCentralityChange,
+    },
+    lastObservedAt: input.lastObservedAt,
+  };
+}
+
+function aggregateSpecialtyPressureSignal(
+  input: SpecialtyPressurePredictionInput,
+): AggregatedSpecialtyPressureSignal {
+  const pressureIndex = clamp01(
+    normalizePositive(input.shortageProjection, 4) * 0.32
+    + normalizePositive(input.demandSupplyRatio, 4) * 0.28
+    + normalizePositive(input.wageGrowth, 1.2) * 0.18
+    + normalizePositive(input.matchTension, 1) * 0.12
+    + (1 - normalizePositive(input.trainingPipelineCoverage, 1.5)) * 0.1,
+  );
+
+  return {
+    predictionType: 'SPECIALTY_PRESSURE',
+    targetEntity: input.targetEntity,
+    signalStrength: pressureIndex,
+    coverage: coverage([
+      input.shortageProjection,
+      input.demandSupplyRatio,
+      input.wageGrowth,
+      input.trainingPipelineCoverage,
+      input.matchTension,
+    ]),
+    evidenceSignals: [
+      evidenceSignal('shortage_projection', input.shortageProjection, 'VITALCV_DEMAND_MODEL', input.lastObservedAt),
+      evidenceSignal('demand_supply_ratio', input.demandSupplyRatio, 'OPPORTUNITIES/PERSON_PROFILES', input.lastObservedAt),
+      evidenceSignal('wage_growth', input.wageGrowth, 'OPPORTUNITY_PAY', input.lastObservedAt),
+      evidenceSignal('training_pipeline_coverage', input.trainingPipelineCoverage, 'ACGME', input.lastObservedAt),
+      evidenceSignal('match_tension', input.matchTension, 'VITALCV_MATCH_PROXY', input.lastObservedAt),
+    ],
+    metrics: {
+      shortageProjection: input.shortageProjection,
+      demandSupplyRatio: input.demandSupplyRatio,
+      wageGrowth: input.wageGrowth,
+      trainingPipelineCoverage: input.trainingPipelineCoverage,
+      matchTension: input.matchTension,
+    },
+    lastObservedAt: input.lastObservedAt,
+  };
+}
+
+function aggregateInstitutionMomentumSignal(
+  input: InstitutionMomentumPredictionInput,
+): AggregatedInstitutionMomentumSignal {
+  const values = [
+    input.publicationOutputTrend,
+    input.grantFundingTrend,
+    input.trialSiteGrowth,
+    input.providerHeadcountChange,
+    input.trainingPipelineExpansion,
+  ];
+
+  const momentumIndex = clamp01(
+    normalizeSigned(input.publicationOutputTrend, 3) * 0.28
+    + normalizeSigned(input.grantFundingTrend, 3) * 0.22
+    + normalizeSigned(input.trialSiteGrowth, 3) * 0.2
+    + normalizeSigned(input.providerHeadcountChange, 3) * 0.18
+    + normalizeSigned(input.trainingPipelineExpansion, 3) * 0.12,
+  );
+
+  return {
+    predictionType: 'INSTITUTION_MOMENTUM',
+    targetEntity: input.targetEntity,
+    signalStrength: momentumIndex,
+    coverage: coverage(values),
+    positiveSignals: positiveSignals(values),
+    negativeSignals: negativeSignals(values),
+    evidenceSignals: [
+      evidenceSignal('publication_output_trend', input.publicationOutputTrend, 'OPENALEX/PUBMED', input.lastObservedAt),
+      evidenceSignal('grant_funding_trend', input.grantFundingTrend, 'NIH_REPORTER', input.lastObservedAt),
+      evidenceSignal('trial_site_growth', input.trialSiteGrowth, 'CLINICAL_TRIALS', input.lastObservedAt),
+      evidenceSignal('provider_headcount_change', input.providerHeadcountChange, 'CLAIM_RECORDS', input.lastObservedAt),
+      evidenceSignal('training_pipeline_expansion', input.trainingPipelineExpansion, 'ACGME', input.lastObservedAt),
+    ],
+    metrics: {
+      publicationOutputTrend: input.publicationOutputTrend,
+      grantFundingTrend: input.grantFundingTrend,
+      trialSiteGrowth: input.trialSiteGrowth,
+      providerHeadcountChange: input.providerHeadcountChange,
+      trainingPipelineExpansion: input.trainingPipelineExpansion,
+    },
+    lastObservedAt: input.lastObservedAt,
+  };
+}
+
+function aggregateNetworkShiftSignal(
+  input: NetworkShiftPredictionInput,
+): AggregatedNetworkShiftSignal {
+  const shiftIndex = clamp01(
+    normalizePositive(input.newEdges, 8) * 0.26
+    + normalizePositive(input.lostEdges, 8) * 0.16
+    + normalizeSigned(input.centralityChange, 6) * 0.2
+    + normalizePositive(input.clusterMerges, 3) * 0.12
+    + normalizePositive(input.clusterSplits, 3) * 0.14
+    + normalizePositive(input.bridgeNodeChange, 4) * 0.12,
+  );
+
+  return {
+    predictionType: 'NETWORK_SHIFT',
+    targetEntity: input.targetEntity,
+    signalStrength: shiftIndex,
+    coverage: coverage([
+      input.newEdges,
+      input.lostEdges,
+      input.centralityChange,
+      input.clusterMerges,
+      input.clusterSplits,
+      input.bridgeNodeChange,
+    ]),
+    evidenceSignals: [
+      evidenceSignal('new_edges', input.newEdges, 'GRAPH_RUNTIME', input.lastObservedAt),
+      evidenceSignal('lost_edges', input.lostEdges, 'GRAPH_RUNTIME', input.lastObservedAt),
+      evidenceSignal('centrality_change', input.centralityChange, 'GRAPH_RUNTIME', input.lastObservedAt),
+      evidenceSignal('cluster_merges', input.clusterMerges, 'GRAPH_RUNTIME', input.lastObservedAt),
+      evidenceSignal('cluster_splits', input.clusterSplits, 'GRAPH_RUNTIME', input.lastObservedAt),
+      evidenceSignal('bridge_node_change', input.bridgeNodeChange, 'GRAPH_RUNTIME', input.lastObservedAt),
+    ],
+    metrics: {
+      newEdges: input.newEdges,
+      lostEdges: input.lostEdges,
+      centralityChange: input.centralityChange,
+      clusterMerges: input.clusterMerges,
+      clusterSplits: input.clusterSplits,
+      bridgeNodeChange: input.bridgeNodeChange,
+    },
+    lastObservedAt: input.lastObservedAt,
+  };
+}
+
+function aggregateTrustRiskSignal(
+  input: TrustRiskAccelerationPredictionInput,
+): AggregatedTrustRiskSignal {
+  const riskIndex = clamp01(
+    normalizePositive(input.trustScoreVelocity, 12) * 0.34
+    + normalizePositive(input.recentDeclines, 5) * 0.18
+    + normalizePositive(input.divergenceCount, 5) * 0.18
+    + normalizePositive(input.staleSourceCount, 5) * 0.14
+    + normalizePositive(input.alertCount, 4) * 0.16,
+  );
+
+  return {
+    predictionType: 'TRUST_RISK_ACCELERATION',
+    targetEntity: input.targetEntity,
+    signalStrength: riskIndex,
+    coverage: coverage([
+      input.trustScoreVelocity,
+      input.recentDeclines,
+      input.divergenceCount,
+      input.staleSourceCount,
+      input.alertCount,
+    ]),
+    evidenceSignals: [
+      evidenceSignal('trust_score_velocity', input.trustScoreVelocity, 'TRUST_SCORE_HISTORY', input.lastObservedAt),
+      evidenceSignal('recent_declines', input.recentDeclines, 'TRUST_SCORE_HISTORY', input.lastObservedAt),
+      evidenceSignal('divergence_count', input.divergenceCount, 'INVESTIGATOR_FINDINGS', input.lastObservedAt),
+      evidenceSignal('stale_source_count', input.staleSourceCount, 'INVESTIGATOR_FINDINGS', input.lastObservedAt),
+      evidenceSignal('alert_count', input.alertCount, 'TRUST_ALERTS', input.lastObservedAt),
+    ],
+    metrics: {
+      trustScoreVelocity: input.trustScoreVelocity,
       recentDeclines: input.recentDeclines,
-    },
-    lastObservedAt: input.lastObservedAt,
-  };
-}
-
-function aggregateEmergingInvestigatorSignal(
-  input: EmergingInvestigatorPredictionInput,
-): AggregatedEmergingInvestigatorSignal {
-  const publicationGrowth = Math.max(0, input.recentPublications - input.previousPublications);
-  const signalStrength = clamp01(
-    (publicationGrowth / 6) * 0.35
-    + Math.min(input.recentTrials, 4) * 0.1
-    + Math.min(input.recentGrantCount, 4) * 0.11
-    + Math.min(input.citationCount / 250, 1) * 0.24
-    + Math.min(input.graphDegree / 12, 1) * 0.2,
-  );
-
-  const evidenceSignals: PredictionEvidenceSignal[] = [
-    { label: 'publication_growth', value: publicationGrowth, direction: publicationGrowth > 0 ? 'UP' : 'FLAT', source: 'CLAIM_RECORDS' },
-    { label: 'recent_trials', value: input.recentTrials, direction: input.recentTrials > 0 ? 'UP' : 'FLAT', source: 'CLAIM_RECORDS' },
-    { label: 'recent_grants', value: input.recentGrantCount, direction: input.recentGrantCount > 0 ? 'UP' : 'FLAT', source: 'CLAIM_RECORDS' },
-    { label: 'citation_count', value: input.citationCount, direction: input.citationCount > 0 ? 'UP' : 'FLAT', source: 'CLAIM_RECORDS' },
-    { label: 'graph_degree', value: input.graphDegree, direction: input.graphDegree > 0 ? 'UP' : 'FLAT', source: 'GRAPH_RUNTIME' },
-  ];
-
-  return {
-    predictionType: 'EMERGING_INVESTIGATOR',
-    targetEntity: input.targetEntity,
-    signalStrength,
-    evidenceSignals,
-    metrics: {
-      publicationGrowth,
-      recentTrials: input.recentTrials,
-      recentGrantCount: input.recentGrantCount,
-      citationCount: input.citationCount,
-      graphDegree: input.graphDegree,
-    },
-    lastObservedAt: input.lastObservedAt,
-  };
-}
-
-function aggregateInstitutionSignal(
-  input: InstitutionResearchGrowthPredictionInput,
-): AggregatedInstitutionResearchSignal {
-  const researchGrowth = Math.max(0, input.recentResearchCount - input.previousResearchCount);
-  const signalStrength = clamp01(
-    (researchGrowth / 10) * 0.45
-    + Math.min(input.contributingProviders / 8, 1) * 0.25
-    + Math.min(input.leadInvestigatorCount / 4, 1) * 0.15
-    + Math.min(input.recentResearchCount / 12, 1) * 0.15,
-  );
-
-  const evidenceSignals: PredictionEvidenceSignal[] = [
-    { label: 'research_growth', value: researchGrowth, direction: researchGrowth > 0 ? 'UP' : 'FLAT', source: 'CLAIM_RECORDS' },
-    { label: 'recent_research_signals', value: input.recentResearchCount, direction: input.recentResearchCount > 0 ? 'UP' : 'FLAT', source: 'CLAIM_RECORDS' },
-    { label: 'contributing_providers', value: input.contributingProviders, direction: input.contributingProviders > 0 ? 'UP' : 'FLAT', source: 'CLAIM_RECORDS' },
-    { label: 'lead_investigators', value: input.leadInvestigatorCount, direction: input.leadInvestigatorCount > 0 ? 'UP' : 'FLAT', source: 'CLAIM_RECORDS' },
-  ];
-
-  return {
-    predictionType: 'INSTITUTION_RESEARCH_GROWTH',
-    targetEntity: input.targetEntity,
-    signalStrength,
-    evidenceSignals,
-    metrics: {
-      researchGrowth,
-      contributingProviders: input.contributingProviders,
-      leadInvestigatorCount: input.leadInvestigatorCount,
-      recentResearchCount: input.recentResearchCount,
-    },
-    lastObservedAt: input.lastObservedAt,
-  };
-}
-
-function aggregateNetworkSignal(
-  input: NetworkClusterExpansionPredictionInput,
-): AggregatedNetworkExpansionSignal {
-  const expansionDelta = Math.max(0, input.recentConnections - input.previousConnections);
-  const signalStrength = clamp01(
-    (expansionDelta / 8) * 0.45
-    + Math.min(input.peerGrowth / 6, 1) * 0.2
-    + Math.min(input.anchorCount / 6, 1) * 0.15
-    + clamp01(input.averageConfidence) * 0.2,
-  );
-
-  const evidenceSignals: PredictionEvidenceSignal[] = [
-    { label: 'connection_growth', value: expansionDelta, direction: expansionDelta > 0 ? 'UP' : 'FLAT', source: 'GRAPH_RUNTIME' },
-    { label: 'recent_connections', value: input.recentConnections, direction: input.recentConnections > 0 ? 'UP' : 'FLAT', source: 'GRAPH_RUNTIME' },
-    { label: 'peer_growth', value: input.peerGrowth, direction: input.peerGrowth > 0 ? 'UP' : 'FLAT', source: 'GRAPH_RUNTIME' },
-    { label: 'anchor_count', value: input.anchorCount, direction: input.anchorCount > 0 ? 'UP' : 'FLAT', source: 'GRAPH_RUNTIME' },
-    { label: 'average_confidence', value: Number(input.averageConfidence.toFixed(2)), direction: 'UP', source: 'GRAPH_RUNTIME' },
-  ];
-
-  return {
-    predictionType: 'NETWORK_CLUSTER_EXPANSION',
-    targetEntity: input.targetEntity,
-    signalStrength,
-    evidenceSignals,
-    metrics: {
-      expansionDelta,
-      peerGrowth: input.peerGrowth,
-      anchorCount: input.anchorCount,
-      averageConfidence: Number(input.averageConfidence.toFixed(2)),
-      recentConnections: input.recentConnections,
-    },
-    lastObservedAt: input.lastObservedAt,
-  };
-}
-
-function aggregateWorkforceSignal(
-  input: WorkforceShortagePredictionInput,
-): AggregatedWorkforceShortageSignal {
-  const demandGrowth = Math.max(0, input.demand - input.previousDemand);
-  const shortageRatio = input.supply <= 0 ? input.demand : input.demand / input.supply;
-  const signalStrength = clamp01(
-    Math.min(input.pressureScore / 100, 1) * 0.45
-    + Math.min(demandGrowth / 6, 1) * 0.2
-    + Math.min(shortageRatio / 4, 1) * 0.35,
-  );
-
-  const evidenceSignals: PredictionEvidenceSignal[] = [
-    { label: 'active_demand', value: input.demand, direction: input.demand > 0 ? 'UP' : 'FLAT', source: 'OPPORTUNITIES' },
-    { label: 'demand_growth', value: demandGrowth, direction: demandGrowth > 0 ? 'UP' : 'FLAT', source: 'OPPORTUNITIES' },
-    { label: 'mapped_supply', value: input.supply, direction: input.supply === 0 ? 'DOWN' : 'FLAT', source: 'PERSON_PROFILES' },
-    { label: 'shortage_ratio', value: Number(shortageRatio.toFixed(2)), direction: shortageRatio > 1 ? 'UP' : 'FLAT', source: 'OPPORTUNITIES' },
-    { label: 'pressure_score', value: Number(input.pressureScore.toFixed(1)), direction: input.pressureScore > 0 ? 'UP' : 'FLAT', source: 'OPPORTUNITIES' },
-  ];
-
-  return {
-    predictionType: 'WORKFORCE_SHORTAGE_ESCALATION',
-    targetEntity: input.targetEntity,
-    signalStrength,
-    evidenceSignals,
-    metrics: {
-      demandGrowth,
-      demand: input.demand,
-      supply: input.supply,
-      pressureScore: Number(input.pressureScore.toFixed(1)),
-      shortageRatio: Number(shortageRatio.toFixed(2)),
-      specialty: input.specialty,
-      state: input.state,
+      divergenceCount: input.divergenceCount,
+      staleSourceCount: input.staleSourceCount,
+      alertCount: input.alertCount,
     },
     lastObservedAt: input.lastObservedAt,
   };
@@ -200,10 +315,10 @@ export function aggregatePredictionSignals(
   _now: string,
 ): AggregatedPredictionSignals {
   return {
-    trustSignals: (input.trustSignals ?? []).map(aggregateTrustSignal),
-    emergingInvestigatorSignals: (input.emergingInvestigatorSignals ?? []).map(aggregateEmergingInvestigatorSignal),
-    institutionSignals: (input.institutionResearchSignals ?? []).map(aggregateInstitutionSignal),
-    networkSignals: (input.networkExpansionSignals ?? []).map(aggregateNetworkSignal),
-    workforceSignals: (input.workforceShortageSignals ?? []).map(aggregateWorkforceSignal),
+    providerTrajectorySignals: (input.providerTrajectorySignals ?? []).map(aggregateProviderTrajectorySignal),
+    specialtyPressureSignals: (input.specialtyPressureSignals ?? []).map(aggregateSpecialtyPressureSignal),
+    institutionMomentumSignals: (input.institutionMomentumSignals ?? []).map(aggregateInstitutionMomentumSignal),
+    networkShiftSignals: (input.networkShiftSignals ?? []).map(aggregateNetworkShiftSignal),
+    trustRiskSignals: (input.trustRiskSignals ?? []).map(aggregateTrustRiskSignal),
   };
 }

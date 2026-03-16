@@ -37,18 +37,18 @@ export function SurfaceState({
 
   if (error) {
     return (
-      <div className={cn('rounded-2xl border border-red-400/20 bg-red-400/[0.08] p-4', className)}>
+      <div className={cn('rounded-2xl border border-[var(--vt-badge-critical-border)] bg-[var(--vt-badge-critical-bg)] p-4', className)}>
         <div className="flex items-start gap-3">
-          <AlertTriangle className="mt-0.5 h-4 w-4 text-red-300" />
+          <AlertTriangle className="mt-0.5 h-4 w-4 text-[var(--vt-critical)]" />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-red-100">Unable to load panel</p>
-            <p className="mt-1 text-xs leading-5 text-red-200/80">{error}</p>
+            <p className="text-sm font-semibold text-[var(--vt-badge-critical-text)]">Unable to load panel</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--vt-text-2)]">{error}</p>
           </div>
           {onRetry ? (
             <button
               type="button"
               onClick={onRetry}
-              className="inline-flex items-center gap-2 rounded-full border border-red-300/20 px-3 py-1.5 text-xs font-semibold text-red-100 transition hover:bg-red-200/10"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-badge-critical-border)] px-3 py-1.5 text-xs font-semibold text-[var(--vt-badge-critical-text)] transition hover:bg-[var(--vt-surface-2)]"
             >
               <RefreshCw className="h-3 w-3" />
               Retry
@@ -109,11 +109,11 @@ export function ToneBadge({
   label: string;
 }) {
   const classes = tone === 'healthy'
-    ? 'border-emerald-400/20 bg-emerald-400/[0.12] text-emerald-100'
+    ? 'border-[var(--vt-badge-success-border)] bg-[var(--vt-badge-success-bg)] text-[var(--vt-badge-success-text)]'
     : tone === 'degraded'
-      ? 'border-amber-300/20 bg-amber-300/[0.12] text-amber-100'
+      ? 'border-[var(--vt-badge-warning-border)] bg-[var(--vt-badge-warning-bg)] text-[var(--vt-badge-warning-text)]'
       : tone === 'critical'
-        ? 'border-red-300/20 bg-red-300/[0.12] text-red-100'
+        ? 'border-[var(--vt-badge-critical-border)] bg-[var(--vt-badge-critical-bg)] text-[var(--vt-badge-critical-text)]'
         : 'border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-2)]';
 
   return (
@@ -132,15 +132,15 @@ export function ScoreBar({
 }) {
   const width = `${Math.max(4, Math.min(100, Math.round(value)))}%`;
   const color = tone === 'healthy'
-    ? 'bg-emerald-300'
+    ? 'bg-[var(--vt-success)]'
     : tone === 'degraded'
-      ? 'bg-amber-300'
+      ? 'bg-[var(--vt-warning)]'
       : tone === 'critical'
-        ? 'bg-red-300'
-        : 'bg-cyan-200';
+        ? 'bg-[var(--vt-critical)]'
+        : 'bg-[var(--vt-info)]';
 
   return (
-    <div className="h-2 rounded-full bg-white/[0.08]">
+    <div className="h-2 rounded-full bg-[var(--vt-border)]">
       <div className={cn('h-full rounded-full', color)} style={{ width }} />
     </div>
   );

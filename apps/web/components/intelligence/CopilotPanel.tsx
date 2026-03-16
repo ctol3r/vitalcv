@@ -4,6 +4,18 @@ import { startTransition, useEffect, useState } from 'react';
 import { Bot, Loader2, Send, Sparkles } from 'lucide-react';
 import type { IntelligenceProvider } from '@/lib/intelligence/contracts';
 import { SectionFrame, SurfaceState } from './shared';
+import { DecisionCard } from '@/components/decision/DecisionCard';
+
+interface CopilotDecision {
+  id: string;
+  action: string;
+  entity: string;
+  priority: "urgent" | "high" | "medium" | "low";
+  confidence: number;
+  rationale: string;
+  signalCount: number;
+  timing: string;
+}
 
 interface CopilotResult {
   id: string;
@@ -11,6 +23,7 @@ interface CopilotResult {
   summary: string;
   trustScore?: number;
   sourceCoverage?: string[];
+  decisions?: CopilotDecision[];
 }
 
 interface CopilotInsight {
@@ -176,6 +189,25 @@ export function CopilotPanel({ provider }: CopilotPanelProps) {
                     ))}
                   </div>
                 ) : null}
+
+                {result.decisions && result.decisions.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-[var(--vt-border)] space-y-3">
+                    <h4 className="text-xs font-semibold uppercase tracking-widest text-[var(--vt-text-3)] mb-2">Recommended Actions</h4>
+                    {result.decisions.map(decision => (
+                      <DecisionCard
+                        key={decision.id}
+                        id={decision.id}
+                        action={decision.action}
+                        entity={decision.entity}
+                        priority={decision.priority}
+                        confidence={decision.confidence}
+                        rationale={decision.rationale}
+                        signalCount={decision.signalCount}
+                        timing={decision.timing}
+                      />
+                    ))}
+                  </div>
+                )}
               </article>
             ))}
 

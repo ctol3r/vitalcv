@@ -1,6 +1,7 @@
 @import 'normalize.css/normalize.css';
 @import 'tailwindcss';
 @import '../styles/themes/index.css';
+@import '../styles/vds.css';
 @import '../styles/design-tokens.css';
 @import '../styles/utilities.css';
 @import '../styles/typography.css';
@@ -35,181 +36,78 @@ body {
   font-family: var(--font-body);
 }
 
-/* ─────────────────────────────────────────────────────────────
-   VitalCV Design System — Warm Minimalism + Liquid Glass
-   Palette: Cloud Dancer · Warm Paper · Mist Blue · Terracotta
-   ───────────────────────────────────────────────────────────── */
-
 :root {
-  /* ── Core surfaces ─────────────────────────────────────── */
-  --background: oklch(0.957 0.008 90);        /* Cloud Dancer #F0EEE9 */
-  --foreground: oklch(0.22 0.01 60);          /* Warm Charcoal */
-  --card: oklch(0.971 0.006 85);              /* Warm Paper #F7F3EE */
-  --card-foreground: oklch(0.22 0.01 60);
-  --popover: oklch(0.971 0.006 85);
-  --popover-foreground: oklch(0.22 0.01 60);
-
-  /* ── Brand ─────────────────────────────────────────────── */
-  --primary: oklch(0.30 0.015 60);            /* Deep warm charcoal */
-  --primary-foreground: oklch(0.96 0.006 85);
-  --secondary: oklch(0.935 0.008 85);         /* Lighter warm tone */
-  --secondary-foreground: oklch(0.30 0.015 60);
-
-  /* ── Subdued / interactive ─────────────────────────────── */
-  --muted: oklch(0.935 0.008 85);
-  --muted-foreground: oklch(0.52 0.01 60);
-  --accent: oklch(0.855 0.032 230);           /* Mist Blue #BFD3E7 */
-  --accent-foreground: oklch(0.22 0.01 60);
-
-  /* ── Feedback ──────────────────────────────────────────── */
-  --destructive: oklch(0.55 0.14 35);         /* Muted terracotta */
-  --destructive-foreground: oklch(0.96 0.006 85);
-
-  /* ── Borders & inputs ──────────────────────────────────── */
-  --border: oklch(0.90 0.008 80);
-  --input: oklch(0.90 0.008 80);
-  --ring: oklch(0.55 0.06 230);               /* Mist Blue focus ring */
-
-  /* ── Trust bands (CRS) ─────────────────────────────────── */
-  --trust-green: oklch(0.72 0.15 155);        /* Reassuring sage-green */
-  --trust-green-foreground: oklch(0.20 0.04 155);
-  --trust-yellow: oklch(0.82 0.13 85);        /* Warm amber */
-  --trust-yellow-foreground: oklch(0.28 0.04 85);
-  --trust-red: oklch(0.55 0.14 35);           /* Muted terracotta */
-  --trust-red-foreground: oklch(0.96 0.006 85);
-
-  /* ── Claim status levels (L0–L3) ───────────────────────── */
-  --claim-l0: oklch(0.75 0.01 60);            /* Grey, unverified */
-  --claim-l0-foreground: oklch(0.40 0.01 60);
-  --claim-l1: oklch(0.72 0.10 240);           /* Soft blue, pending */
-  --claim-l1-foreground: oklch(0.25 0.04 240);
-  --claim-l2: oklch(0.68 0.12 180);           /* Teal, mostly verified */
-  --claim-l2-foreground: oklch(0.20 0.04 180);
-  --claim-l3: oklch(0.72 0.15 155);           /* Green, fully verified */
-  --claim-l3-foreground: oklch(0.20 0.04 155);
-
-  /* ── Semantic surfaces ─────────────────────────────────── */
-  --surface-elevated: oklch(0.98 0.004 85);   /* Raised bento cards */
-  --sage: oklch(0.82 0.06 155);               /* Soft sage accent */
-
-  /* ── Liquid Glass material ─────────────────────────────── */
-  --glass-bg: oklch(0.98 0.005 85 / 0.6);
-  --glass-bg-heavy: oklch(0.98 0.005 85 / 0.82);
-  --glass-border: oklch(0.85 0.008 80 / 0.3);
+  --background: var(--vt-bg);
+  --foreground: var(--vt-text-primary);
+  --card: var(--vt-surface);
+  --card-foreground: var(--vt-text-primary);
+  --popover: var(--vt-surface);
+  --popover-foreground: var(--vt-text-primary);
+  --primary: var(--vt-accent);
+  --primary-foreground: white;
+  --secondary: var(--vt-surface-subtle);
+  --secondary-foreground: var(--vt-text-primary);
+  --muted: var(--vt-surface-subtle);
+  --muted-foreground: var(--vt-text-secondary);
+  --accent: var(--vt-accent);
+  --accent-foreground: white;
+  --destructive: var(--vt-severity-critical);
+  --destructive-foreground: white;
+  --border: var(--vt-border);
+  --input: var(--vt-border);
+  --ring: var(--vt-focus-ring);
+  --trust-green: var(--vt-risk-low);
+  --trust-green-foreground: white;
+  --trust-yellow: var(--vt-risk-medium);
+  --trust-yellow-foreground: var(--vt-text-primary);
+  --trust-red: var(--vt-risk-high);
+  --trust-red-foreground: white;
+  --claim-l0: var(--vt-border-subtle);
+  --claim-l0-foreground: var(--vt-text-secondary);
+  --claim-l1: var(--vt-status-new);
+  --claim-l1-foreground: white;
+  --claim-l2: var(--vt-status-investigating);
+  --claim-l2-foreground: var(--vt-text-primary);
+  --claim-l3: var(--vt-status-resolved);
+  --claim-l3-foreground: white;
+  --surface-elevated: var(--vt-surface);
+  --sage: var(--vt-status-resolved);
+  --glass-bg: color-mix(in oklab, var(--vt-surface) 88%, transparent);
+  --glass-bg-heavy: color-mix(in oklab, var(--vt-surface) 94%, transparent);
+  --glass-border: color-mix(in oklab, var(--vt-border) 70%, transparent);
   --glass-blur: 20px;
-  --glass-shadow: 0 4px 24px oklch(0.30 0.01 60 / 0.06);
-  --shadow-glow: 0 0 40px oklch(0.72 0.15 155 / 0.12);
-  --shadow-elevated: 0 8px 32px oklch(0.30 0.01 60 / 0.10);
-
-  /* ── Infrastructure palette ────────────────────────────── */
-  --infra-blue: oklch(0.45 0.18 255);         /* Deep trust blue */
-  --infra-blue-light: oklch(0.65 0.14 255);   /* Light trust blue */
-  --infra-blue-muted: oklch(0.92 0.03 255);   /* Blue tint surface */
-  --infra-red: oklch(0.55 0.20 25);           /* Revocation red */
-  --infra-red-light: oklch(0.70 0.15 25);     /* Light revocation */
-  --infra-red-muted: oklch(0.95 0.02 25);     /* Red tint surface */
-  --infra-green: oklch(0.55 0.18 155);        /* Attestation green */
-  --infra-green-light: oklch(0.70 0.14 155);  /* Light attestation */
-  --infra-green-muted: oklch(0.93 0.03 155);  /* Green tint surface */
-  --infra-amber: oklch(0.72 0.16 80);         /* Clinician amber */
-  --infra-violet: oklch(0.55 0.18 290);       /* Employer violet */
-  --infra-surface: oklch(0.98 0.003 250);     /* Cool white surface */
-  --infra-surface-alt: oklch(0.96 0.005 250); /* Slightly tinted */
-  --infra-grid: oklch(0.90 0.01 250);         /* Grid line color */
-  --infra-border: oklch(0.88 0.01 250);       /* Subtle cool border */
-
-  /* ── Charts ────────────────────────────────────────────── */
-  --chart-1: oklch(0.55 0.14 35);             /* Terracotta */
-  --chart-2: oklch(0.72 0.15 155);            /* Sage green */
-  --chart-3: oklch(0.55 0.06 230);            /* Mist blue */
-  --chart-4: oklch(0.82 0.13 85);             /* Amber */
-  --chart-5: oklch(0.68 0.12 180);            /* Teal */
-
-  /* ── Layout ────────────────────────────────────────────── */
+  --glass-shadow: var(--vt-shadow-card);
+  --shadow-glow: 0 0 30px color-mix(in oklab, var(--vt-accent) 24%, transparent);
+  --shadow-elevated: var(--vt-shadow-panel);
+  --infra-blue: var(--vt-node-provider);
+  --infra-blue-light: var(--vt-accent);
+  --infra-blue-muted: color-mix(in oklab, var(--vt-node-provider) 18%, var(--vt-surface));
+  --infra-red: var(--vt-severity-critical);
+  --infra-red-light: var(--vt-risk-high);
+  --infra-red-muted: color-mix(in oklab, var(--vt-severity-critical) 16%, var(--vt-surface));
+  --infra-green: var(--vt-status-resolved);
+  --infra-green-light: var(--vt-risk-low);
+  --infra-green-muted: color-mix(in oklab, var(--vt-status-resolved) 16%, var(--vt-surface));
+  --infra-amber: var(--vt-risk-medium);
+  --infra-violet: var(--vt-node-company);
+  --infra-surface: var(--vt-surface);
+  --infra-surface-alt: var(--vt-surface-subtle);
+  --infra-grid: var(--vt-border-subtle);
+  --infra-border: var(--vt-border);
+  --chart-1: var(--vt-severity-critical);
+  --chart-2: var(--vt-status-resolved);
+  --chart-3: var(--vt-accent);
+  --chart-4: var(--vt-risk-medium);
+  --chart-5: var(--vt-node-institution);
   --radius: 0.75rem;
-
-  /* ── Sidebar ───────────────────────────────────────────── */
-  --sidebar: oklch(0.965 0.006 85);
-  --sidebar-foreground: oklch(0.22 0.01 60);
-  --sidebar-primary: oklch(0.30 0.015 60);
-  --sidebar-primary-foreground: oklch(0.96 0.006 85);
-  --sidebar-accent: oklch(0.935 0.008 85);
-  --sidebar-accent-foreground: oklch(0.30 0.015 60);
-  --sidebar-border: oklch(0.90 0.008 80);
-  --sidebar-ring: oklch(0.55 0.06 230);
-}
-
-.dark {
-  /* ── Core surfaces (warm dark, not pure black) ─────────── */
-  --background: oklch(0.18 0.012 60);         /* Warm near-black */
-  --foreground: oklch(0.94 0.006 85);
-  --card: oklch(0.20 0.012 60);
-  --card-foreground: oklch(0.94 0.006 85);
-  --popover: oklch(0.20 0.012 60);
-  --popover-foreground: oklch(0.94 0.006 85);
-
-  --primary: oklch(0.94 0.006 85);
-  --primary-foreground: oklch(0.20 0.012 60);
-  --secondary: oklch(0.26 0.012 60);
-  --secondary-foreground: oklch(0.94 0.006 85);
-
-  --muted: oklch(0.26 0.012 60);
-  --muted-foreground: oklch(0.65 0.008 60);
-  --accent: oklch(0.50 0.06 230);
-  --accent-foreground: oklch(0.94 0.006 85);
-
-  --destructive: oklch(0.50 0.14 30);
-  --destructive-foreground: oklch(0.94 0.006 85);
-
-  --border: oklch(0.28 0.012 60);
-  --input: oklch(0.28 0.012 60);
-  --ring: oklch(0.50 0.06 230);
-
-  /* ── Trust bands (dark mode) ───────────────────────────── */
-  --trust-green: oklch(0.65 0.14 155);
-  --trust-green-foreground: oklch(0.94 0.006 85);
-  --trust-yellow: oklch(0.75 0.12 85);
-  --trust-yellow-foreground: oklch(0.20 0.012 60);
-  --trust-red: oklch(0.55 0.14 30);
-  --trust-red-foreground: oklch(0.94 0.006 85);
-
-  /* ── Claim levels (dark mode) ──────────────────────────── */
-  --claim-l0: oklch(0.50 0.01 60);
-  --claim-l0-foreground: oklch(0.75 0.01 60);
-  --claim-l1: oklch(0.55 0.10 240);
-  --claim-l1-foreground: oklch(0.94 0.006 85);
-  --claim-l2: oklch(0.55 0.12 180);
-  --claim-l2-foreground: oklch(0.94 0.006 85);
-  --claim-l3: oklch(0.65 0.14 155);
-  --claim-l3-foreground: oklch(0.94 0.006 85);
-
-  /* ── Glass (dark mode) ─────────────────────────────────── */
-  --glass-bg: oklch(0.22 0.012 60 / 0.6);
-  --glass-bg-heavy: oklch(0.22 0.012 60 / 0.82);
-  --glass-border: oklch(0.35 0.012 60 / 0.3);
-  --glass-shadow: 0 4px 24px oklch(0 0 0 / 0.2);
-  --shadow-glow: 0 0 40px oklch(0.65 0.14 155 / 0.18);
-  --shadow-elevated: 0 8px 32px oklch(0 0 0 / 0.20);
-
-  --surface-elevated: oklch(0.23 0.012 60);
-  --sage: oklch(0.60 0.06 155);
-
-  /* ── Charts (dark mode) ────────────────────────────────── */
-  --chart-1: oklch(0.60 0.14 35);
-  --chart-2: oklch(0.65 0.14 155);
-  --chart-3: oklch(0.55 0.08 230);
-  --chart-4: oklch(0.75 0.12 85);
-  --chart-5: oklch(0.60 0.12 180);
-
-  /* ── Sidebar (dark mode) ───────────────────────────────── */
-  --sidebar: oklch(0.20 0.012 60);
-  --sidebar-foreground: oklch(0.94 0.006 85);
-  --sidebar-primary: oklch(0.55 0.06 230);
-  --sidebar-primary-foreground: oklch(0.94 0.006 85);
-  --sidebar-accent: oklch(0.26 0.012 60);
-  --sidebar-accent-foreground: oklch(0.94 0.006 85);
-  --sidebar-border: oklch(0.28 0.012 60);
-  --sidebar-ring: oklch(0.50 0.06 230);
+  --sidebar: var(--vt-surface);
+  --sidebar-foreground: var(--vt-text-primary);
+  --sidebar-primary: var(--vt-accent);
+  --sidebar-primary-foreground: white;
+  --sidebar-accent: var(--vt-surface-subtle);
+  --sidebar-accent-foreground: var(--vt-text-primary);
+  --sidebar-border: var(--vt-border);
+  --sidebar-ring: var(--vt-focus-ring);
 }
 
 /* ─── Tailwind v4 theme bridge ──────────────────────────── */

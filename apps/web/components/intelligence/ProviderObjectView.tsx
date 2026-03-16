@@ -4,6 +4,7 @@ import React from 'react';
 import { Shield, BookOpen, AlertCircle, Network, Award, DollarSign, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
+import { DecisionCard } from '@/components/decision/DecisionCard';
 
 export function ProviderObjectView() {
   return (
@@ -59,6 +60,37 @@ export function ProviderObjectView() {
               </p>
             </div>
           </div>
+
+          {/* Recommended Actions */}
+          <section>
+            <h3 className="text-sm font-bold uppercase tracking-widest text-[var(--vt-text-1)]0 mb-4 flex items-center gap-2">
+              <Shield className="w-4 h-4" /> Recommended Actions
+            </h3>
+            <div className="space-y-3">
+              <DecisionCard
+                id="doc-action-1"
+                action="INVESTIGATE_NETWORK"
+                entity="Mercy General Partners"
+                priority="high"
+                confidence={88}
+                rationale="Provider trajectory rising and specialty pressure severe. Direct link to ST-8991 target."
+                signalCount={12}
+                timing="Immediate"
+                drivers={["Medicare billing deviance +2.4σ", "Shared trial funding with indicted entity"]}
+              />
+              <DecisionCard
+                id="doc-action-2"
+                action="MONITOR_PRESCRIBING"
+                entity="High Risk Scripts"
+                priority="medium"
+                confidence={72}
+                rationale="Schedule II volume increased 40% month-over-month."
+                signalCount={4}
+                timing="Next 30 days"
+                drivers={["Volume spike unaligned with local specialty average"]}
+              />
+            </div>
+          </section>
 
           {/* Practice Patterns */}
           <section>

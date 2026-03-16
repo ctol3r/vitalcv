@@ -30,6 +30,7 @@ export type QueryIntent =
   | 'EXPLAIN'   // "How is trust calculated?" / "What is L3?"
   | 'INGEST'        // "Refresh data for..." / "Re-verify..."
   | 'INVESTIGATE'   // "Investigate..." / "Deep dive..." / "Full report..."
+  | 'PREDICT'       // "Who is rising?" / "Forecast..." / "Trajectory..." / "Pressure..."
   | 'UNKNOWN';      // Fallback
 
 export interface ClassifiedQuery {
@@ -187,6 +188,26 @@ function classifyIntent(query: string): ClassifiedQuery {
   }
   if (/\b(what.s (l[0-3]|trust band|trust score|verification freshness|divergence))\b/.test(lower)) {
     signals.push({ intent: 'EXPLAIN', weight: 0.7, reason: 'Methodology question' });
+  }
+
+  // ── PREDICT signals ─────────────────────────────────────────────────────
+  if (/\b(rising|declining|trajectory|forecast|predict|projection)\b/.test(lower)) {
+    signals.push({ intent: 'PREDICT', weight: 0.6, reason: 'Prediction keyword' });
+  }
+  if (/\b(pressure|shortage|workforce pressure|severe pressure)\b/.test(lower)) {
+    signals.push({ intent: 'PREDICT', weight: 0.6, reason: 'Workforce pressure keyword' });
+  }
+  if (/\b(momentum|expanding|contracting|institutional power)\b/.test(lower)) {
+    signals.push({ intent: 'PREDICT', weight: 0.6, reason: 'Institutional momentum keyword' });
+  }
+  if (/\b(influence score|network hub|centrality|bridge provider)\b/.test(lower)) {
+    signals.push({ intent: 'PREDICT', weight: 0.5, reason: 'Network influence keyword' });
+  }
+  if (/\b(rising fastest|who is rising|fastest growing|accelerating)\b/.test(lower)) {
+    signals.push({ intent: 'PREDICT', weight: 0.8, reason: 'Prediction ranking query' });
+  }
+  if (/\b(early warning|warning system|predictive alert)\b/.test(lower)) {
+    signals.push({ intent: 'PREDICT', weight: 0.7, reason: 'Early warning keyword' });
   }
 
   // ── INGEST signals ──────────────────────────────────────────────────────

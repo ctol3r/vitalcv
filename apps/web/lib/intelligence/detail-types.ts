@@ -328,4 +328,186 @@ export interface ProviderDetailResponse {
     status: string;
     createdAt: string;
   }>;
+  signals?: {
+    npi: string;
+    providerId: string;
+    providerLabel: string;
+    specialty: string | null;
+    geography: string | null;
+    trust: {
+      score: number | null;
+      tier: string;
+      confidence: number;
+      drivers: Array<{
+        label: string;
+        value: number | string;
+        direction: string;
+        source: string;
+        explanation: string;
+      }>;
+      sourceSignals: string[];
+      last_updated: string;
+      explanation: string;
+      insufficientSignal: boolean;
+    };
+    influence: {
+      score: number | null;
+      percentile: number | null;
+      tier: string;
+      confidence: number;
+      drivers: Array<{
+        label: string;
+        value: number | string;
+        direction: string;
+        source: string;
+        explanation: string;
+      }>;
+      sourceSignals: string[];
+      centrality_delta: number | null;
+      last_updated: string;
+      explanation: string;
+      insufficientSignal: boolean;
+    };
+    workforcePressure: {
+      state: string;
+      score: number | null;
+      confidence: number;
+      drivers: Array<{
+        label: string;
+        value: number | string;
+        direction: string;
+        source: string;
+        explanation: string;
+      }>;
+      sourceSignals: string[];
+      geography: string | null;
+      specialty: string | null;
+      last_updated: string;
+      explanation: string;
+      insufficientSignal: boolean;
+    };
+    institutionMomentum: {
+      institutionId: string;
+      institutionLabel: string;
+      state: string;
+      score: number | null;
+      confidence: number;
+      trend_summary: string;
+      last_updated: string;
+      explanation: string;
+      insufficientSignal: boolean;
+    } | null;
+    earlyWarnings: Array<{
+      id: string;
+      headline: string;
+      type: string;
+      state: string;
+      score: number | null;
+      confidence: number;
+      timestamp: string;
+      explanation: string;
+      recommendedAction: string;
+    }>;
+    feed: {
+      generatedAt: string;
+      total: number;
+      counts: {
+        finding: number;
+        storyline: number;
+        prediction: number;
+        insight: number;
+        early_warning: number;
+      };
+      items: Array<{
+        id: string;
+        headline: string;
+        type: string;
+        explanation: string;
+        confidence: number;
+        recommendedAction: string | null;
+        created_at: string;
+        state: string | null;
+        score: number | null;
+      }>;
+    };
+    summary: string;
+    generatedAt: string;
+  } | null;
+  intelligence?: {
+    generatedAt: string;
+    entity: {
+      entityType: string;
+      entityId: string;
+      entityLabel: string | null;
+    };
+    trustScore: {
+      id: string;
+      type: string;
+      state: string;
+      score: number;
+      lastUpdated: string;
+      explanation: {
+        summary: string;
+        details: string[];
+      };
+    } | null;
+    influenceScore: {
+      id: string;
+      type: string;
+      state: string;
+      score: number;
+      lastUpdated: string;
+      explanation: {
+        summary: string;
+        details: string[];
+      };
+    } | null;
+    trajectorySignals: Array<{
+      id: string;
+      type: string;
+      state: string;
+      score: number;
+      lastUpdated: string;
+      explanation: {
+        summary: string;
+        details: string[];
+      };
+    }>;
+    recentWarnings: Array<{
+      id: string;
+      type: string;
+      state: string;
+      score: number;
+      lastUpdated: string;
+      explanation: {
+        summary: string;
+        details: string[];
+      };
+    }>;
+    recentFeed: Array<{
+      id: string;
+      type: string;
+      headline: string;
+      summary: string;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+    recentFindings: Array<{
+      id: string;
+      type: string;
+      headline: string;
+      summary: string;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+    recentStorylines: Array<{
+      id: string;
+      type: string;
+      headline: string;
+      summary: string;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+    recommendedWatchItems: string[];
+  } | null;
 }

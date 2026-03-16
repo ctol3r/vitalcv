@@ -9,6 +9,7 @@ import {
 import { formatGraphNodeType } from '@/components/graph/state/graphDisplayState';
 import { Drawer } from '@/components/ui/Drawer';
 import { useVirtualList } from '@/ui/hooks/useVirtualList';
+import { DecisionCard } from '@/components/decision/DecisionCard';
 
 interface GraphInspectorProps {
   open: boolean;
@@ -80,12 +81,13 @@ function VirtualizedInspectorList<Item>({
 
 // ── Tab system ─────────────────────────────────────────────────────────────────
 
-type TabId = 'overview' | 'relationships' | 'evidence';
+type TabId = 'overview' | 'relationships' | 'evidence' | 'decisions';
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'relationships', label: 'Relationships' },
   { id: 'evidence', label: 'Evidence' },
+  { id: 'decisions', label: 'Decisions' },
 ];
 
 // ── Metadata table ─────────────────────────────────────────────────────────────
@@ -366,6 +368,51 @@ export function GraphInspector({
                 />
               </div>
             )}
+          </div>
+        )}
+
+        {selectedTab === 'decisions' && (
+          <div className="flex flex-col gap-4">
+            <div className="vital-panel vital-panel--dense">
+              <div className="vital-panel__header mb-3">
+                <div>
+                  <p className="vital-panel__eyebrow">Predictions</p>
+                  <h3 className="vital-panel__title">Graph Inference</h3>
+                </div>
+              </div>
+              <div className="space-y-2">
+                 <div className="flex justify-between items-center bg-[var(--vital-ops-surface-tertiary)] hover:bg-[var(--vital-ops-hover)] border border-[var(--vital-ops-border-subtle)] rounded-md p-3 transition-colors">
+                   <span className="text-[12px] font-medium text-[var(--vital-ops-text-secondary)]">Network Shift Probability</span>
+                   <span className="text-[12px] text-amber-500 font-mono">85% HIGH</span>
+                 </div>
+                 <div className="flex justify-between items-center bg-[var(--vital-ops-surface-tertiary)] hover:bg-[var(--vital-ops-hover)] border border-[var(--vital-ops-border-subtle)] rounded-md p-3 transition-colors">
+                   <span className="text-[12px] font-medium text-[var(--vital-ops-text-secondary)]">New Cluster Emergence</span>
+                   <span className="text-[12px] text-amber-500 font-mono">72% LIKELY</span>
+                 </div>
+              </div>
+            </div>
+            
+            <div className="vital-panel vital-panel--dense">
+              <div className="vital-panel__header mb-3">
+                <div>
+                  <p className="vital-panel__eyebrow">Recommended Actions</p>
+                  <h3 className="vital-panel__title">Autonomous Triggers</h3>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <DecisionCard 
+                  id={`action-1-${node.id}`}
+                  action="INVESTIGATE_NETWORK"
+                  entity={node.title || node.label}
+                  priority="urgent"
+                  confidence={88}
+                  rationale="Network connections indicating high-risk collaboration."
+                  signalCount={7}
+                  timing="Immediate"
+                  drivers={["Unusual cluster density", "Shared high-risk neighbors"]}
+                />
+              </div>
+            </div>
           </div>
         )}
       </div>

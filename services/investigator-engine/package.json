@@ -1,0 +1,11 @@
+{
+  "name": "@vitalcv/investigator-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "PATH=../../node_modules/.pnpm/node_modules/.bin:$PATH tsc -p tsconfig.json",
+    "typecheck": "PATH=../../node_modules/.pnpm/node_modules/.bin:$PATH tsc -p tsconfig.json --noEmit"
+  }
+}

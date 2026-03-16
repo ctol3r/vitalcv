@@ -4,10 +4,15 @@ import { clamp01, createDeterministicId, normalizeTimestamp, roundTo } from '../
 export const PROVIDER_EVENT_TYPES = [
   'publication',
   'trial_registration',
+  'industry_payment',
   'payment_change',
   'grant_award',
   'licensure_action',
+  'licensure_change',
+  'sanction_exclusion',
   'address_change',
+  'location_change',
+  'credential_update',
 ] as const;
 
 export type ProviderEventType = (typeof PROVIDER_EVENT_TYPES)[number];
@@ -20,6 +25,8 @@ export interface ProviderEvent {
   timestamp: string;
   confidence: number;
   rawEvidence: unknown;
+  rawData?: unknown;
+  diffSnapshot?: Record<string, unknown> | null;
   metadata: Record<string, unknown>;
 }
 
@@ -59,6 +66,8 @@ export function createProviderEvent(input: {
   timestamp: string;
   confidence?: number;
   rawEvidence: unknown;
+  rawData?: unknown;
+  diffSnapshot?: Record<string, unknown> | null;
   metadata?: Record<string, unknown>;
 }): ProviderEvent {
   if (!PROVIDER_EVENT_TYPES.includes(input.eventType)) {
@@ -73,6 +82,8 @@ export function createProviderEvent(input: {
     timestamp: normalizeTimestamp(input.timestamp),
     confidence: roundTo(clamp01(input.confidence ?? 1)),
     rawEvidence: input.rawEvidence,
+    rawData: input.rawData ?? input.rawEvidence,
+    diffSnapshot: input.diffSnapshot ?? null,
     metadata: input.metadata ?? {},
   };
 }
@@ -178,6 +189,8 @@ export function toEventProjection(graph: EventGraph): GraphProjection {
       entityId: event.entityId,
       source: event.source,
       rawEvidence: event.rawEvidence,
+      rawData: event.rawData ?? event.rawEvidence,
+      diffSnapshot: event.diffSnapshot ?? null,
       ...event.metadata,
     },
   }));

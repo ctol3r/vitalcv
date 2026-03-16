@@ -6,9 +6,9 @@ import type { ReactNode } from 'react';
 import FeedbackButton from '@/components/feedback/FeedbackButton';
 import Footer from '@/components/layout/Footer';
 import Navbar from '@/components/layout/Navbar';
-import Omnibar from '@/components/ops/Omnibar';
 import PrequalifyBar from '@/components/prequalify/PrequalifyBar';
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher';
+import VCommandBar from '@/components/ops/VCommandBar';
 
 const OPERATIONAL_ROUTES = [
   '/graph',
@@ -41,7 +41,7 @@ export default function RootChrome({ children, clerkEnabled }: RootChromeProps) 
     return (
       <>
         <div className="relative min-h-screen">{children}</div>
-        <Omnibar />
+        <VCommandBar />
       </>
     );
   }
@@ -58,7 +58,7 @@ export default function RootChrome({ children, clerkEnabled }: RootChromeProps) 
       <Footer />
       <FeedbackButton />
       <PrequalifyBar />
-      <Omnibar />
+      <VCommandBar />
     </div>
   );
 }

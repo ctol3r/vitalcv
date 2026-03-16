@@ -40,6 +40,20 @@ const NODE_TYPE_LABELS: Partial<Record<NodeType, string>> = {
   note:         'Note',
 };
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function asNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
 function TierBadge({ tier }: { tier?: string }) {
   if (!tier) return null;
   const styles: Record<string, string> = {
@@ -72,7 +86,14 @@ function BandBadge({ band }: { band?: string }) {
 export default function GraphTooltip({ node, edges, screenX, screenY, canvasW, canvasH }: Props) {
   // Adjust position to keep tooltip on screen
   const TOOLTIP_W = 220;
-  const TOOLTIP_H = 160;
+  const preview = node ? asRecord(asRecord(node.metadata).signalPreview) : {};
+  const previewTrust = asRecord(preview.trust);
+  const previewInfluence = asRecord(preview.influence);
+  const previewPressure = asRecord(preview.workforcePressure);
+  const previewMomentum = asRecord(preview.institutionMomentum);
+  const previewWarnings = Array.isArray(preview.earlyWarnings) ? preview.earlyWarnings : [];
+  const hasPreview = Object.keys(preview).length > 0;
+  const TOOLTIP_H = hasPreview ? 240 : 160;
   const OFFSET = 14;
 
   const x = screenX + OFFSET + TOOLTIP_W > canvasW
@@ -162,6 +183,52 @@ export default function GraphTooltip({ node, edges, screenX, screenY, canvasW, c
               <BandBadge band={node.trustBand} />
             </div>
           </div>
+
+          {hasPreview && (
+            <div className="px-3 pb-3 border-t border-white/5 pt-2 space-y-1.5">
+              {previewTrust && (
+                <div className="flex items-center justify-between gap-2 text-[9px] text-slate-400">
+                  <span className="uppercase tracking-wide text-slate-500">trust</span>
+                  <span className="text-slate-200">
+                    {asNumber(previewTrust.score) ?? 'N/A'} · {asString(previewTrust.tier) ?? 'Insufficient signal'}
+                  </span>
+                </div>
+              )}
+              {previewInfluence && (
+                <div className="flex items-center justify-between gap-2 text-[9px] text-slate-400">
+                  <span className="uppercase tracking-wide text-slate-500">influence</span>
+                  <span className="text-slate-200">
+                    {asNumber(previewInfluence.score) ?? 'N/A'} · {asString(previewInfluence.tier) ?? 'Insufficient signal'}
+                  </span>
+                </div>
+              )}
+              {previewPressure && (
+                <div className="flex items-center justify-between gap-2 text-[9px] text-slate-400">
+                  <span className="uppercase tracking-wide text-slate-500">pressure</span>
+                  <span className="text-slate-200">
+                    {asString(previewPressure.state) ?? 'Insufficient signal'}
+                  </span>
+                </div>
+              )}
+              {previewMomentum && (
+                <div className="flex items-center justify-between gap-2 text-[9px] text-slate-400">
+                  <span className="uppercase tracking-wide text-slate-500">momentum</span>
+                  <span className="text-slate-200">
+                    {asString(previewMomentum.state) ?? 'Insufficient signal'}
+                  </span>
+                </div>
+              )}
+              {previewWarnings.length > 0 && (
+                <div className="flex items-center justify-between gap-2 text-[9px] text-slate-400">
+                  <span className="uppercase tracking-wide text-slate-500">warnings</span>
+                  <span className="text-amber-300">{previewWarnings.length}</span>
+                </div>
+              )}
+              {asString(preview.summary) && (
+                <p className="pt-1 text-[9px] leading-relaxed text-slate-500 line-clamp-3">{asString(preview.summary)}</p>
+              )}
+            </div>
+          )}
 
           {/* Top edge types */}
           {topEdgeTypes.length > 0 && (

@@ -3,11 +3,36 @@ import { forecastPredictions } from './forecastModel';
 import { detectPredictionCandidates } from './trendDetector';
 
 export type PredictionType =
-  | 'TRUST_SCORE_DECLINE'
-  | 'EMERGING_INVESTIGATOR'
-  | 'INSTITUTION_RESEARCH_GROWTH'
-  | 'NETWORK_CLUSTER_EXPANSION'
-  | 'WORKFORCE_SHORTAGE_ESCALATION';
+  | 'PROVIDER_TRAJECTORY'
+  | 'SPECIALTY_PRESSURE'
+  | 'INSTITUTION_MOMENTUM'
+  | 'NETWORK_SHIFT'
+  | 'TRUST_RISK_ACCELERATION';
+
+export type PredictionState =
+  | 'rising'
+  | 'stable'
+  | 'declining'
+  | 'volatile'
+  | 'low'
+  | 'moderate'
+  | 'high'
+  | 'severe'
+  | 'expanding'
+  | 'contracting'
+  | 'mixed'
+  | 'emerging cluster'
+  | 'emerging_cluster'
+  | 'expanding collaboration'
+  | 'collaboration_expansion'
+  | 'network fragmentation'
+  | 'network_fragmentation'
+  | 'bridge provider shift'
+  | 'bridge_provider_shift'
+  | 'accelerating'
+  | 'watch'
+  | 'stabilizing'
+  | 'insufficient_signal';
 
 export interface PredictionTargetEntity {
   entityType: string;
@@ -20,160 +45,178 @@ export interface PredictionEvidenceSignal {
   value: number | string;
   direction: 'UP' | 'DOWN' | 'FLAT';
   source?: string | null;
+  observedAt?: string;
 }
 
-export interface TrustDeclinePredictionInput {
+export interface ProviderTrajectoryPredictionInput {
   targetEntity: PredictionTargetEntity;
-  recentScore: number;
-  previousScore: number | null;
-  scoreDelta: number;
-  recentDeclines: number;
-  staleSourceCount: number;
-  divergenceCount: number;
+  publicationAcceleration: number | null;
+  citationQualityTrend: number | null;
+  trialLeadershipProgression: number | null;
+  grantFundingTrajectory: number | null;
+  industryPaymentDiversification: number | null;
+  networkCentralityChange: number | null;
   lastObservedAt: string;
 }
 
-export interface EmergingInvestigatorPredictionInput {
+export interface SpecialtyPressurePredictionInput {
   targetEntity: PredictionTargetEntity;
-  recentPublications: number;
-  previousPublications: number;
-  recentTrials: number;
-  recentGrantCount: number;
-  citationCount: number;
-  graphDegree: number;
+  shortageProjection: number | null;
+  demandSupplyRatio: number | null;
+  wageGrowth: number | null;
+  trainingPipelineCoverage: number | null;
+  matchTension: number | null;
   lastObservedAt: string;
 }
 
-export interface InstitutionResearchGrowthPredictionInput {
+export interface InstitutionMomentumPredictionInput {
   targetEntity: PredictionTargetEntity;
-  recentResearchCount: number;
-  previousResearchCount: number;
-  contributingProviders: number;
-  leadInvestigatorCount: number;
+  publicationOutputTrend: number | null;
+  grantFundingTrend: number | null;
+  trialSiteGrowth: number | null;
+  providerHeadcountChange: number | null;
+  trainingPipelineExpansion: number | null;
   lastObservedAt: string;
 }
 
-export interface NetworkClusterExpansionPredictionInput {
+export interface NetworkShiftPredictionInput {
   targetEntity: PredictionTargetEntity;
-  recentConnections: number;
-  previousConnections: number;
-  peerGrowth: number;
-  anchorCount: number;
-  averageConfidence: number;
+  newEdges: number | null;
+  lostEdges: number | null;
+  centralityChange: number | null;
+  clusterMerges: number | null;
+  clusterSplits: number | null;
+  bridgeNodeChange: number | null;
   lastObservedAt: string;
 }
 
-export interface WorkforceShortagePredictionInput {
+export interface TrustRiskAccelerationPredictionInput {
   targetEntity: PredictionTargetEntity;
-  specialty: string;
-  state: string;
-  demand: number;
-  previousDemand: number;
-  supply: number;
-  pressureScore: number;
+  trustScoreVelocity: number | null;
+  recentDeclines: number | null;
+  divergenceCount: number | null;
+  staleSourceCount: number | null;
+  alertCount: number | null;
   lastObservedAt: string;
 }
 
-export interface AggregatedTrustDeclineSignal {
-  predictionType: 'TRUST_SCORE_DECLINE';
+export interface AggregatedProviderTrajectorySignal {
+  predictionType: 'PROVIDER_TRAJECTORY';
   targetEntity: PredictionTargetEntity;
   signalStrength: number;
+  coverage: number;
+  positiveSignals: number;
+  negativeSignals: number;
+  volatilityIndex: number;
   evidenceSignals: PredictionEvidenceSignal[];
   metrics: {
-    declineMagnitude: number;
-    staleSourceCount: number;
-    divergenceCount: number;
-    recentDeclines: number;
+    publicationAcceleration: number | null;
+    citationQualityTrend: number | null;
+    trialLeadershipProgression: number | null;
+    grantFundingTrajectory: number | null;
+    industryPaymentDiversification: number | null;
+    networkCentralityChange: number | null;
   };
   lastObservedAt: string;
 }
 
-export interface AggregatedEmergingInvestigatorSignal {
-  predictionType: 'EMERGING_INVESTIGATOR';
+export interface AggregatedSpecialtyPressureSignal {
+  predictionType: 'SPECIALTY_PRESSURE';
   targetEntity: PredictionTargetEntity;
   signalStrength: number;
+  coverage: number;
   evidenceSignals: PredictionEvidenceSignal[];
   metrics: {
-    publicationGrowth: number;
-    recentTrials: number;
-    recentGrantCount: number;
-    citationCount: number;
-    graphDegree: number;
+    shortageProjection: number | null;
+    demandSupplyRatio: number | null;
+    wageGrowth: number | null;
+    trainingPipelineCoverage: number | null;
+    matchTension: number | null;
   };
   lastObservedAt: string;
 }
 
-export interface AggregatedInstitutionResearchSignal {
-  predictionType: 'INSTITUTION_RESEARCH_GROWTH';
+export interface AggregatedInstitutionMomentumSignal {
+  predictionType: 'INSTITUTION_MOMENTUM';
   targetEntity: PredictionTargetEntity;
   signalStrength: number;
+  coverage: number;
+  positiveSignals: number;
+  negativeSignals: number;
   evidenceSignals: PredictionEvidenceSignal[];
   metrics: {
-    researchGrowth: number;
-    contributingProviders: number;
-    leadInvestigatorCount: number;
-    recentResearchCount: number;
+    publicationOutputTrend: number | null;
+    grantFundingTrend: number | null;
+    trialSiteGrowth: number | null;
+    providerHeadcountChange: number | null;
+    trainingPipelineExpansion: number | null;
   };
   lastObservedAt: string;
 }
 
-export interface AggregatedNetworkExpansionSignal {
-  predictionType: 'NETWORK_CLUSTER_EXPANSION';
+export interface AggregatedNetworkShiftSignal {
+  predictionType: 'NETWORK_SHIFT';
   targetEntity: PredictionTargetEntity;
   signalStrength: number;
+  coverage: number;
   evidenceSignals: PredictionEvidenceSignal[];
   metrics: {
-    expansionDelta: number;
-    peerGrowth: number;
-    anchorCount: number;
-    averageConfidence: number;
-    recentConnections: number;
+    newEdges: number | null;
+    lostEdges: number | null;
+    centralityChange: number | null;
+    clusterMerges: number | null;
+    clusterSplits: number | null;
+    bridgeNodeChange: number | null;
   };
   lastObservedAt: string;
 }
 
-export interface AggregatedWorkforceShortageSignal {
-  predictionType: 'WORKFORCE_SHORTAGE_ESCALATION';
+export interface AggregatedTrustRiskSignal {
+  predictionType: 'TRUST_RISK_ACCELERATION';
   targetEntity: PredictionTargetEntity;
   signalStrength: number;
+  coverage: number;
   evidenceSignals: PredictionEvidenceSignal[];
   metrics: {
-    demandGrowth: number;
-    demand: number;
-    supply: number;
-    pressureScore: number;
-    shortageRatio: number;
-    specialty: string;
-    state: string;
+    trustScoreVelocity: number | null;
+    recentDeclines: number | null;
+    divergenceCount: number | null;
+    staleSourceCount: number | null;
+    alertCount: number | null;
   };
   lastObservedAt: string;
 }
 
 export interface AggregatedPredictionSignals {
-  trustSignals: AggregatedTrustDeclineSignal[];
-  emergingInvestigatorSignals: AggregatedEmergingInvestigatorSignal[];
-  institutionSignals: AggregatedInstitutionResearchSignal[];
-  networkSignals: AggregatedNetworkExpansionSignal[];
-  workforceSignals: AggregatedWorkforceShortageSignal[];
+  providerTrajectorySignals: AggregatedProviderTrajectorySignal[];
+  specialtyPressureSignals: AggregatedSpecialtyPressureSignal[];
+  institutionMomentumSignals: AggregatedInstitutionMomentumSignal[];
+  networkShiftSignals: AggregatedNetworkShiftSignal[];
+  trustRiskSignals: AggregatedTrustRiskSignal[];
 }
 
 export interface PredictionCandidate {
   predictionType: PredictionType;
   targetEntity: PredictionTargetEntity;
+  state: PredictionState;
   signalStrength: number;
-  baseProbability: number;
+  coverage: number;
+  baseScore: number;
   baseConfidence: number;
   timeHorizon: string;
   evidenceSignals: PredictionEvidenceSignal[];
   explanationFragments: string[];
   metadata: Record<string, unknown>;
   createdAt: string;
+  lastObservedAt: string;
 }
 
 export interface PredictionInsight {
   predictionId: string;
   predictionType: PredictionType;
   targetEntity: PredictionTargetEntity;
+  state: PredictionState;
+  score: number;
   probability: number;
   confidence: number;
   timeHorizon: string;
@@ -184,11 +227,11 @@ export interface PredictionInsight {
 }
 
 export interface PredictionEngineInput {
-  trustSignals?: readonly TrustDeclinePredictionInput[];
-  emergingInvestigatorSignals?: readonly EmergingInvestigatorPredictionInput[];
-  institutionResearchSignals?: readonly InstitutionResearchGrowthPredictionInput[];
-  networkExpansionSignals?: readonly NetworkClusterExpansionPredictionInput[];
-  workforceShortageSignals?: readonly WorkforceShortagePredictionInput[];
+  providerTrajectorySignals?: readonly ProviderTrajectoryPredictionInput[];
+  specialtyPressureSignals?: readonly SpecialtyPressurePredictionInput[];
+  institutionMomentumSignals?: readonly InstitutionMomentumPredictionInput[];
+  networkShiftSignals?: readonly NetworkShiftPredictionInput[];
+  trustRiskSignals?: readonly TrustRiskAccelerationPredictionInput[];
   now?: string;
 }
 

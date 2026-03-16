@@ -2,4 +2,5 @@ packages:
   - apps/*
   - apps/api/*
   - packages/*
+  - services/*
   - blockchain/*

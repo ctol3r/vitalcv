@@ -15,7 +15,6 @@ import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time'
 import { OperationsShell } from './shell';
 import {
   EntityLink,
-  OpsBadge,
   OpsCard,
   OpsCardSkeleton,
   ConfidenceMeter,
@@ -23,10 +22,10 @@ import {
   SurfaceEmptyState,
   SurfaceErrorState,
   TimestampPair,
-  severityTone,
 } from './primitives';
 import { ActionMutationControls } from './mutation-controls';
 import { formatPaginationSummary, Pagination } from './pagination';
+import { ActionCard } from '@/src/ui/components';
 
 const PAGE_SIZE = 10;
 
@@ -233,26 +232,20 @@ export function ActionsSurface() {
 
       <div className="grid gap-4">
         {items.map((action) => (
-          <OpsCard key={action.id} className="space-y-4">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div className="min-w-0 space-y-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <OpsBadge label={action.priority} tone={severityTone(action.priority)} />
-                  <OpsBadge label={action.status} tone={severityTone(action.status)} />
-                  <OpsBadge label={action.actionType.replace(/_/g, ' ')} />
-                </div>
-                <div className="space-y-2">
-                  <Link
-                    href={{
-                      pathname: `/actions/${action.id}`,
-                      query: { from: currentHref },
-                    }}
-                    className="block text-xl font-semibold text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]"
-                  >
-                    {action.title}
-                  </Link>
-                  <p className="max-w-3xl text-sm leading-6 text-[var(--vt-text-2)]">{action.explanation}</p>
-                </div>
+          <ActionCard
+            key={action.id}
+            confidence={action.confidence}
+            detail={(
+              <div className="space-y-3">
+                <Link
+                  href={{
+                    pathname: `/actions/${action.id}`,
+                    query: { from: currentHref },
+                  }}
+                  className="block text-xl font-semibold text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]"
+                >
+                  Open detail
+                </Link>
                 <div className="flex flex-wrap gap-2">
                   {action.providerNpi ? (
                     <>
@@ -276,39 +269,46 @@ export function ActionsSurface() {
                   ) : null}
                 </div>
               </div>
-
-              <div className="flex min-w-[15rem] flex-col gap-3 rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
-                <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Queue signals</p>
-                  <p className="text-sm text-[var(--vt-text-2)]">Priority score {Math.round(action.priorityScore)}</p>
-                  <ConfidenceMeter confidence={action.confidence} />
-                  <TimestampPair label="Created" value={action.createdAt} />
+            )}
+            explanation={action.explanation}
+            footer={(
+              <div className="w-full space-y-4">
+                <div className="flex min-w-[15rem] flex-col gap-3 rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
+                  <div className="space-y-1">
+                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Queue signals</p>
+                    <p className="text-sm text-[var(--vt-text-2)]">Priority score {Math.round(action.priorityScore)}</p>
+                    <ConfidenceMeter confidence={action.confidence} />
+                    <TimestampPair label="Created" value={action.createdAt} />
+                  </div>
+                  <ActionMutationControls actionId={action.id} status={action.status} compact />
                 </div>
-                <ActionMutationControls actionId={action.id} status={action.status} compact />
+                {action.evidence.length > 0 ? (
+                  <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Evidence preview</p>
+                    <ul className="space-y-2 text-sm text-[var(--vt-text-2)]">
+                      {action.evidence.slice(0, 2).map((evidence) => (
+                        <li key={`${evidence.id}-${evidence.label}`} className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium text-[var(--vt-text-1)]">{evidence.label}</span>
+                            {evidence.observedAt ? (
+                              <span className="text-xs text-[var(--vt-text-3)]" title={formatAbsoluteTime(evidence.observedAt)}>
+                                {formatRelativeTime(evidence.observedAt)}
+                              </span>
+                            ) : null}
+                          </div>
+                          {evidence.snippet ? <p className="text-[var(--vt-text-3)]">{evidence.snippet}</p> : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </div>
-            </div>
-
-            {action.evidence.length > 0 ? (
-              <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Evidence preview</p>
-                <ul className="space-y-2 text-sm text-[var(--vt-text-2)]">
-                  {action.evidence.slice(0, 2).map((evidence) => (
-                    <li key={`${evidence.id}-${evidence.label}`} className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium text-[var(--vt-text-1)]">{evidence.label}</span>
-                        {evidence.observedAt ? (
-                          <span className="text-xs text-[var(--vt-text-3)]" title={formatAbsoluteTime(evidence.observedAt)}>
-                            {formatRelativeTime(evidence.observedAt)}
-                          </span>
-                        ) : null}
-                      </div>
-                      {evidence.snippet ? <p className="text-[var(--vt-text-3)]">{evidence.snippet}</p> : null}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-          </OpsCard>
+            )}
+            priority={action.priority}
+            status={action.status}
+            title={action.title}
+            typeLabel={action.actionType.replace(/_/g, ' ')}
+          />
         ))}
       </div>
 

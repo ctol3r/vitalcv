@@ -26,17 +26,16 @@ import {
   BadgeLink,
   ConfidenceMeter,
   EntityLink,
-  OpsBadge,
   OpsCard,
   OpsCardSkeleton,
   SurfaceBanner,
   SurfaceEmptyState,
   SurfaceErrorState,
   TimestampPair,
-  severityTone,
 } from './primitives';
 import { FindingMutationControls } from './mutation-controls';
 import { formatPaginationSummary, Pagination } from './pagination';
+import { FindingCard } from '@/src/ui/components';
 
 const PAGE_SIZE = 10;
 
@@ -169,80 +168,83 @@ export function FindingsSurface() {
 
       <div className="grid gap-4">
         {items.map((finding) => (
-          <OpsCard key={finding.id} className="space-y-4">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div className="min-w-0 space-y-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <OpsBadge label={finding.severity} tone={severityTone(finding.severity)} />
-                  <OpsBadge label={finding.status} tone={severityTone(finding.status)} />
-                  <OpsBadge label={finding.findingType.replace(/_/g, ' ')} />
-                  <span className="text-xs text-[var(--vt-text-3)]">{finding.investigatorId}</span>
+          <FindingCard
+            key={finding.id}
+            confidence={finding.confidence}
+            footer={(
+              <div className="w-full space-y-4">
+                <div className="flex min-w-[14rem] flex-col gap-3 rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
+                  <div className="space-y-1">
+                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Signals</p>
+                    <p className="text-sm text-[var(--vt-text-2)]">Priority {Math.round(finding.priorityScore)}</p>
+                    <ConfidenceMeter confidence={finding.confidence} />
+                    <TimestampPair label="Updated" value={finding.updatedAt} />
+                  </div>
+                  <FindingMutationControls findingId={finding.id} status={finding.status} compact />
                 </div>
-                <div className="space-y-2">
-                  <Link
-                    href={{
-                      pathname: `/findings/${finding.id}`,
-                      query: { from: currentHref },
-                    }}
-                    className="block truncate text-xl font-semibold text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]"
-                  >
-                    {finding.title}
-                  </Link>
-                  <p className="max-w-3xl text-sm leading-6 text-[var(--vt-text-2)]">{finding.summary}</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {finding.providerNpi ? (
-                    <>
-                      <EntityLink
-                        href={`/providers/${finding.providerNpi}?from=${encodeURIComponent(currentHref)}`}
-                        label={finding.providerLabel ?? `Provider ${finding.providerNpi}`}
-                      />
-                      <EntityLink href={`/investigations?npi=${finding.providerNpi}`} label="Open investigation" />
-                    </>
-                  ) : null}
-                  {finding.storylineId ? (
-                    <BadgeLink
-                      href={`/storylines/${finding.storylineId}?from=${encodeURIComponent(currentHref)}`}
-                      label="Storyline"
-                      tone="info"
-                      title={finding.storylineTitle ?? 'Open storyline'}
+                {finding.evidence.length > 0 ? (
+                  <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Evidence preview</p>
+                    <ul className="space-y-2 text-sm text-[var(--vt-text-2)]">
+                      {finding.evidence.slice(0, 2).map((evidence) => (
+                        <li key={evidence.id} className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium text-[var(--vt-text-1)]">{evidence.label}</span>
+                            {evidence.observedAt ? (
+                              <span className="text-xs text-[var(--vt-text-3)]" title={formatAbsoluteTime(evidence.observedAt)}>
+                                {formatRelativeTime(evidence.observedAt)}
+                              </span>
+                            ) : null}
+                          </div>
+                          {evidence.snippet ? <p className="text-[var(--vt-text-3)]">{evidence.snippet}</p> : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            )}
+            links={(
+              <>
+                {finding.providerNpi ? (
+                  <>
+                    <EntityLink
+                      href={`/providers/${finding.providerNpi}?from=${encodeURIComponent(currentHref)}`}
+                      label={finding.providerLabel ?? `Provider ${finding.providerNpi}`}
                     />
-                  ) : null}
-                </div>
+                    <EntityLink href={`/investigations?npi=${finding.providerNpi}`} label="Open investigation" />
+                  </>
+                ) : null}
+                {finding.storylineId ? (
+                  <BadgeLink
+                    href={`/storylines/${finding.storylineId}?from=${encodeURIComponent(currentHref)}`}
+                    label="Storyline"
+                    tone="info"
+                    title={finding.storylineTitle ?? 'Open storyline'}
+                  />
+                ) : null}
+              </>
+            )}
+            metadata={(
+              <div className="space-y-2">
+                <Link
+                  href={{
+                    pathname: `/findings/${finding.id}`,
+                    query: { from: currentHref },
+                  }}
+                  className="block truncate text-xl font-semibold text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]"
+                >
+                  Open detail
+                </Link>
+                <span className="text-xs text-[var(--vt-text-3)]">{finding.investigatorId}</span>
               </div>
-
-              <div className="flex min-w-[14rem] flex-col gap-3 rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
-                <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Signals</p>
-                  <p className="text-sm text-[var(--vt-text-2)]">Priority {Math.round(finding.priorityScore)}</p>
-                  <ConfidenceMeter confidence={finding.confidence} />
-                  <TimestampPair label="Updated" value={finding.updatedAt} />
-                </div>
-                <FindingMutationControls findingId={finding.id} status={finding.status} compact />
-              </div>
-            </div>
-
-            {finding.evidence.length > 0 ? (
-              <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Evidence preview</p>
-                <ul className="space-y-2 text-sm text-[var(--vt-text-2)]">
-                  {finding.evidence.slice(0, 2).map((evidence) => (
-                    <li key={evidence.id} className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium text-[var(--vt-text-1)]">{evidence.label}</span>
-                        {evidence.observedAt ? (
-                          <span className="text-xs text-[var(--vt-text-3)]" title={formatAbsoluteTime(evidence.observedAt)}>
-                            {formatRelativeTime(evidence.observedAt)}
-                          </span>
-                        ) : null}
-                      </div>
-                      {evidence.snippet ? <p className="text-[var(--vt-text-3)]">{evidence.snippet}</p> : null}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-          </OpsCard>
+            )}
+            severity={finding.severity}
+            status={finding.status}
+            summary={finding.summary}
+            title={finding.title}
+            typeLabel={finding.findingType.replace(/_/g, ' ')}
+          />
         ))}
       </div>
 

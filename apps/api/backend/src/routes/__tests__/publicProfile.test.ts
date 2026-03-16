@@ -56,6 +56,61 @@ jest.mock('../../services/trust/trustStateEngine', () => ({
   }),
 }));
 
+jest.mock('../../services/predictions/predictionEngineService', () => ({
+  getPredictionSummaryForEntity: jest.fn().mockResolvedValue({
+    available: true,
+    total: 1,
+    updatedAt: '2026-03-04T00:00:00.000Z',
+    topPrediction: {
+      id: 'pred_provider_1234567890',
+      type: 'TRUST_RISK_ACCELERATION',
+      entityType: 'provider',
+      entityId: '1234567890',
+      entityLabel: 'Provider 1234567890',
+      state: 'watch',
+      score: 0.71,
+      confidence: 0.82,
+      explanation: 'Forecast: Trust risk acceleration is Watch.',
+      signals: [
+        {
+          label: 'trust_score_velocity',
+          value: 6,
+          direction: 'UP',
+          source: 'TRUST_SCORE_HISTORY',
+        },
+      ],
+      createdAt: '2026-03-04T00:00:00.000Z',
+      updatedAt: '2026-03-04T00:00:00.000Z',
+      forecast: true,
+      insufficientSignal: false,
+      summary: 'Trust risk acceleration is Watch because trust score velocity is elevated.',
+      predictionId: 'pred_provider_1234567890',
+      predictionType: 'TRUST_RISK_ACCELERATION',
+      probability: 0.71,
+      targetEntity: {
+        entityType: 'provider',
+        entityId: '1234567890',
+        entityLabel: 'Provider 1234567890',
+      },
+      timeHorizon: '45d',
+      evidenceSignals: [
+        {
+          label: 'trust_score_velocity',
+          value: 6,
+          direction: 'UP',
+          source: 'TRUST_SCORE_HISTORY',
+        },
+      ],
+      metadata: {
+        state: 'watch',
+      },
+    },
+    predictions: [],
+    byType: [{ key: 'TRUST_RISK_ACCELERATION', count: 1 }],
+    byState: [{ key: 'watch', count: 1 }],
+  }),
+}));
+
 jest.mock('../../obs/logger', () => ({
   log: jest.fn(),
 }));
@@ -157,6 +212,14 @@ describe('public profile routes', () => {
       auditBundleJson: '/api/artifact/bundle/1234567890',
       auditBundleDownload: '/api/artifact/bundle/1234567890/download',
     });
+    expect(response.body.predictionSummary).toEqual(expect.objectContaining({
+      available: true,
+      total: 1,
+      topPrediction: expect.objectContaining({
+        type: 'TRUST_RISK_ACCELERATION',
+        state: 'watch',
+      }),
+    }));
     expect(response.body).not.toHaveProperty('wallet');
     expect(JSON.stringify(response.body)).not.toContain('licenseNumber');
     expect(JSON.stringify(response.body)).not.toContain('A12345');

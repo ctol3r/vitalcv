@@ -12,6 +12,8 @@ import { log } from '../obs/logger';
 import { publicApiRateLimit } from '../middleware/publicSafety';
 import { ReadinessEvaluator } from '../services/intelligence/graphRagEvaluator';
 import { buildCanonicalClaimsFromArtifact, buildClaimDigests, buildSelectiveDisclosurePlaceholder } from '../services/auditBundleClaims';
+import type { PredictionSummaryContract } from '../services/predictions/contracts';
+import { getPredictionSummaryForEntity } from '../services/predictions/predictionEngineService';
 import { computeClinicianTrustState, type ClinicianTrustState } from '../services/trust/trustStateEngine';
 
 const NPI_RE = /^\d{10}$/;
@@ -71,6 +73,7 @@ export interface NpiProfileResponse {
     auditBundleJson: string;
     auditBundleDownload: string;
   };
+  predictionSummary: PredictionSummaryContract;
   events: Array<{
     type: string;
     hash: string;
@@ -156,7 +159,7 @@ export function registerPublicProfileRoutes(app: Express): void {
 
       const generatedAt = new Date().toISOString();
 
-      const [trustSnapshot, artifacts, anchoredEvents, alertSummary] = await Promise.all([
+      const [trustSnapshot, artifacts, anchoredEvents, alertSummary, predictionSummary] = await Promise.all([
         prisma.verificationArtifact.findFirst({
           where: { npi, source: 'TRUST_STATE_ENGINE' },
           select: { rawPayload: true },
@@ -195,6 +198,7 @@ export function registerPublicProfileRoutes(app: Express): void {
           _count: { _all: true },
           _max: { createdAt: true },
         }),
+        getPredictionSummaryForEntity('provider', npi),
       ]);
 
       const trustState = parseStoredTrustState(trustSnapshot?.rawPayload)
@@ -336,6 +340,7 @@ export function registerPublicProfileRoutes(app: Express): void {
           auditBundleJson: `/api/artifact/bundle/${encodeURIComponent(npi)}`,
           auditBundleDownload: `/api/artifact/bundle/${encodeURIComponent(npi)}/download`,
         },
+        predictionSummary,
         events,
         generatedAt,
       };

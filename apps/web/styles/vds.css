@@ -1,0 +1,38 @@
+/* Accessibility and shared VDS utility layer. */
+
+:where(
+  button,
+  [href],
+  input,
+  select,
+  textarea,
+  [role='button'],
+  [role='tab'],
+  [tabindex]:not([tabindex='-1'])
+):focus-visible {
+  outline: 2px solid var(--vt-focus-ring);
+  outline-offset: 2px;
+}
+
+.vds-graph-cluster-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--vt-border);
+  border-radius: var(--vt-radius-pill);
+  background: color-mix(in oklab, var(--vt-surface) 92%, transparent);
+  color: var(--vt-text-secondary);
+  font-size: var(--vt-graph-cluster-font-size);
+  font-weight: var(--vt-graph-cluster-font-weight);
+  letter-spacing: var(--vt-graph-cluster-letter-spacing);
+  padding: var(--vt-graph-cluster-padding-block) var(--vt-graph-cluster-padding-inline);
+  text-transform: uppercase;
+}
+
+.vds-graph-dimmed {
+  opacity: var(--vt-graph-dim-opacity);
+}
+
+.vds-graph-focused {
+  opacity: var(--vt-graph-focus-opacity);
+}

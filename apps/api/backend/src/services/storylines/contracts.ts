@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { predictionSummarySchema } from '../predictions/contracts';
 
 export const storylineTypeSchema = z.enum([
   'trust decline',
@@ -79,11 +80,13 @@ export const storylineSchema = z.object({
   fingerprint: z.string(),
   storylineType: storylineTypeSchema,
   perspective: storylinePerspectiveSchema,
+  headline: z.string().optional(),
   title: z.string(),
   summary: z.string(),
   whyItMatters: z.string(),
   recommendedActions: z.array(z.string()),
   severity: storylineSeveritySchema,
+  maxSeverity: storylineSeveritySchema.optional(),
   confidence: z.number(),
   entityIds: z.array(z.string()),
   findingIds: z.array(z.string()),
@@ -91,12 +94,16 @@ export const storylineSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   lastActivityAt: z.string(),
+  firstEvent: z.string().optional(),
+  lastEvent: z.string().optional(),
+  groupingStrategy: z.enum(['entity_anchored', 'event_anchored', 'trend_anchored']).optional(),
   status: storylineStatusSchema,
   progressionScore: z.number(),
   noveltyScore: z.number(),
   persistenceScore: z.number(),
   escalationThreshold: z.number(),
   timeline: storylineTimelineSchema,
+  predictionSummary: predictionSummarySchema.optional(),
   metadata: z.record(z.string(), z.unknown()),
 });
 

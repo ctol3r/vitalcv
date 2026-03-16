@@ -3,6 +3,7 @@
 import { Activity, GitMerge, Radar } from 'lucide-react';
 import type { IntelligenceStoryline } from '@/lib/intelligence/contracts';
 import { ScoreBar, SurfaceState, ToneBadge } from './shared';
+import { DecisionBadge } from '@/components/decision/DecisionBadge';
 
 interface StorylineCardProps {
   storyline?: IntelligenceStoryline | null;
@@ -80,14 +81,17 @@ export function StorylineCard({
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-col gap-2">
             {storyline.recommendedActions.slice(0, 3).map((action) => (
-              <span
+              <div
                 key={`${storyline.id}-${action}`}
-                className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-2.5 py-1 text-[11px] font-medium text-[var(--vt-text-2)]"
+                className="flex items-center gap-3 rounded-lg border border-[var(--vt-border)] bg-[var(--vt-surface)]/50 px-3 py-2"
               >
-                {action}
-              </span>
+                <DecisionBadge 
+                  type={action.toLowerCase().includes('monitor') ? 'monitor' : action.toLowerCase().includes('escalate') ? 'escalate' : 'investigate'} 
+                />
+                <span className="text-xs font-medium text-[var(--vt-text-2)]">{action}</span>
+              </div>
             ))}
           </div>
 

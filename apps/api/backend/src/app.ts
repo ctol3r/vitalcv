@@ -120,6 +120,7 @@ import { registerDocsRoutes } from './routes/docs';                        // Wa
 import { registerFeedbackRoutes } from './routes/feedback';                // Wave 119: Feedback
 import { registerWebAuthnRoutes } from './routes/webauthn';                // Wave 122: WebAuthn
 import { registerDecisionCapsuleRoutes } from './routes/decisionCapsules'; // Wave A: Decision Capsules
+import { registerDecisionRoutes } from './routes/decisions'; // Wave FE19-A: Decision Intelligence
 import { registerTrustSubstrateRoutes } from './routes/trustSubstrate';   // Substrate Consolidation: Phase 1
 import { registerAuditStreamRoutes } from './routes/auditStream';          // Substrate Consolidation: Phase 2
 import { registerHealthStartRoutes } from './routes/healthstart';           // Substrate Consolidation: Phase 3
@@ -171,8 +172,17 @@ import { registerDomainRoutes } from './routes/domains';                        
 import { registerIdentityLayerRoutes } from './routes/identityLayer';                  // Wave: Canonical Identity
 import { registerTrustIntelligenceRoutes } from './routes/trustIntelligence';          // Wave M: Trust Score V1 + Freshness + Divergence
 import { registerIntelligenceEngineRoutes } from './routes/intelligence';              // Wave I: Intelligence Engine + Learning Loops
+import { registerIntelligenceInsightRoutes } from './routes/insights';                 // Wave FE0-FE21: Intelligence insight surfaces
+import { registerIntelligenceAggregateRoutes } from './routes/intelligenceAggregates'; // Wave FE21-B: Intelligence feed + aggregate APIs
+import { registerIntelligenceSignalRoutes } from './routes/intelligenceSignals';       // Wave FE22: Explainable intelligence signal APIs
+import { registerIntelligenceLayerRoutes } from './routes/intelligenceLayer';          // Wave FE-next: Compounding intelligence layer APIs
+import { registerPredictionRoutes } from './routes/predictions';                      // Wave FE17: Predictive Intelligence
+import { registerStrategyRoutes } from './routes/strategy';                           // Wave FE20-A: Strategic Intelligence Engine
 import { registerInvestigatorRoutes } from './routes/investigators';                   // Waves C41-C44: Investigator findings feed
+import { registerInvestigatorApiRoutes } from './routes/investigatorApi';              // FE16-A: Autonomous investigator engine API
 import { startInvestigatorScheduler } from './services/investigators/investigatorScheduler';
+import { registerAgentRoutes } from './routes/agents';                                 // FE21-A: Autonomous strategy agents API
+import { startStrategyAgentScheduler } from './services/strategyAgents/strategyAgentScheduler';
 import {
     createArtifactFromNursys,
     generateAuditBundle,
@@ -548,6 +558,8 @@ function shouldSkipTenantContext(pathname: string): boolean {
     normalizedPath.startsWith('/api/artifact') ||
     normalizedPath.startsWith('/api/ask') ||
     normalizedPath.startsWith('/api/copilot') ||
+    normalizedPath.startsWith('/api/agents') ||
+    normalizedPath.startsWith('/api/watch') ||
     normalizedPath.startsWith('/api/search') ||
     normalizedPath.startsWith('/api/employers') ||
     normalizedPath.startsWith('/bundle') ||
@@ -3568,6 +3580,7 @@ registerDocsRoutes(app);              // Wave 117: Developer Docs & OpenAPI
 registerFeedbackRoutes(app);          // Wave 119: Feedback Loop
 registerWebAuthnRoutes(app);          // Wave 122: WebAuthn Biometric Auth
 registerDecisionCapsuleRoutes(app);   // Wave A: Decision Capsules + Blast Radius
+registerDecisionRoutes(app);             // Wave FE19-A: Decision recommendations + state model
 registerTrustSubstrateRoutes(app);    // Substrate Consolidation: Phase 1 — unified trust substrate
 registerAuditStreamRoutes(app);       // Substrate Consolidation: Phase 2 — audit OS, cursor export, SIEM stream
 registerHealthStartRoutes(app);       // Substrate Consolidation: Phase 3 — HealthStart deployment profiles + evidence
@@ -3603,6 +3616,7 @@ registerAsyncTrustRoutes(app);           // Wave 245 — Async Trust Engine
 if (BACKGROUND_JOBS_ENABLED) {
   startMonitoringScheduler();            // Wave 245 — Monitoring Scheduler (MONITORING_ENABLED gated)
   startInvestigatorScheduler();          // Waves C41-C44 — Investigator scheduler heartbeat
+  startStrategyAgentScheduler();         // FE21-A — Strategy agent scheduler heartbeat
 }
 registerApplyRoutes(app);                // Wave 246 — Apply-with-VitalCV Distribution Wedge
 registerSystemHealthRoutes(app);         // Wave 249 — Trust Spine Hardening
@@ -3622,7 +3636,15 @@ registerDomainRoutes(app);                 // Wave: universal domain authority r
 registerIdentityLayerRoutes(app);          // Wave: canonical clinician identity layer
 registerTrustIntelligenceRoutes(app);      // Wave M: Trust Score V1 + Freshness + Divergence
 registerIntelligenceEngineRoutes(app);     // Wave I: Intelligence Engine + Learning Loops
+registerIntelligenceInsightRoutes(app);    // Wave FE0-FE21 — Provider intelligence insight APIs
+registerIntelligenceAggregateRoutes(app);  // Wave FE21-B — Intelligence feed + entity aggregate APIs
+registerIntelligenceSignalRoutes(app);     // Wave FE22 — Trust, influence, pressure, momentum, and provider summary APIs
+registerIntelligenceLayerRoutes(app);      // Wave FE-next — Compounding intelligence layer APIs
+registerPredictionRoutes(app);             // Wave FE17: Predictive Intelligence
+registerStrategyRoutes(app);               // Wave FE20-A: Strategic Intelligence Engine
 registerInvestigatorRoutes(app);           // Waves C41-C44: Investigator findings feed
+registerInvestigatorApiRoutes(app);        // FE16-A: Autonomous investigator engine API
+registerAgentRoutes(app);                  // FE21-A: Autonomous strategy agents API
 registerPayerVerificationRoutes(app); // Wave 142 — Payer Network Integration
 registerProviderDirectoryRoutes(app);  // Wave 143 — Provider Directory Distribution
 registerGraphScalingRoutes(app);       // Wave 144 — Trust Graph Performance Scaling

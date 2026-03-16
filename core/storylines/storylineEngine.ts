@@ -95,11 +95,13 @@ export interface StorylineSnapshot {
   fingerprint: string;
   storylineType: StorylineType;
   perspective: StorylinePerspective;
+  headline?: string;
   title: string;
   summary: string;
   whyItMatters: string;
   recommendedActions: string[];
   severity: StorylineSeverity;
+  maxSeverity?: StorylineSeverity;
   confidence: number;
   entityIds: string[];
   findingIds: string[];
@@ -107,6 +109,9 @@ export interface StorylineSnapshot {
   createdAt: string;
   updatedAt: string;
   lastActivityAt: string;
+  firstEvent?: string;
+  lastEvent?: string;
+  groupingStrategy?: 'entity_anchored' | 'event_anchored' | 'trend_anchored';
   status: StorylineStatus;
   progressionScore: number;
   noveltyScore: number;

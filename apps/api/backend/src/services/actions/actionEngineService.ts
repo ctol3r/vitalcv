@@ -21,9 +21,9 @@ import {
 } from '../../../../../../core/actions/actionHistory';
 import {
   listPredictionInsightsByIds,
-  refreshPredictionInsights,
   type StoredPredictionInsight,
 } from '../predictions/predictionEngineService';
+import { refreshDecisionRecommendations } from '../decisions/decisionEngineService';
 
 const actionTracer = trace.getTracer('vitalcv.actions');
 const ACTIVE_FINDING_STATUSES = ['new', 'acknowledged', 'investigating', 'escalated'] as const;
@@ -355,9 +355,19 @@ function mapActionRow(row: {
     createdAt: Date;
   }>;
 }): StoredActionRecommendation {
+  const intelligenceActionType = row.actionType === 'MONITOR_PROVIDER'
+    ? 'monitor_provider'
+    : row.actionType === 'ESCALATE_RISK' || row.actionType === 'ALERT_TEAM'
+      ? 'escalate_risk'
+      : row.actionType === 'TRACK_SPECIALTY'
+        ? 'watch_specialty'
+        : row.actionType === 'REVIEW_INSTITUTION'
+          ? 'watch_institution'
+          : 'investigate_provider';
   return {
     actionId: row.actionId,
     actionType: row.actionType as ActionType,
+    intelligenceActionType,
     targetEntity: {
       entityType: row.targetEntityType,
       entityId: row.targetEntityId,
@@ -539,14 +549,10 @@ export async function refreshActionRecommendations(
     'actions.refresh',
     { 'vitalcv.actions.refresh': true },
     async () => {
-      const [predictions, storylines] = await Promise.all([
-        refreshPredictionInsights(now, prismaClient),
-        loadActionStorylines(prismaClient, now),
-      ]);
+      const decisions = await refreshDecisionRecommendations(now, prismaClient);
 
       const actions = createActionEngine().generate({
-        storylines,
-        predictions,
+        decisions,
         now,
       });
 

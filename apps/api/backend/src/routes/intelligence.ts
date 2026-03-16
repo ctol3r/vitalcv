@@ -31,6 +31,7 @@ import {
   predictSearchSuggestions,
   recordQuerySuggestionFeedback,
 } from '../services/intelligence/queryPredictionService';
+import { getProviderIntelligenceGraph } from '../services/intelligence/providerIntelligenceService';
 import type { LearningEventInput } from '../../../../../core/intelligence/learningMemory';
 import { log } from '../obs/logger';
 
@@ -305,6 +306,28 @@ export function registerIntelligenceEngineRoutes(app: Express): void {
       const message = err instanceof Error ? err.message : 'Unknown error';
       log('error', `[Intelligence] graph insight rebuild failed: ${message}`);
       res.status(500).json({ error: 'Failed to rebuild graph insights' });
+    }
+  });
+
+  app.get('/api/intelligence/graph', async (req: Request, res: Response) => {
+    try {
+      const sync = req.query.sync !== 'false';
+      const graph = await getProviderIntelligenceGraph({ sync });
+      res.json({
+        schema: 'https://vitalcv.com/intelligence/graph/v1',
+        generatedAt: graph.generatedAt,
+        connectors: graph.connectors,
+        identity: graph.identity,
+        events: graph.events,
+        network: graph.network,
+        projection: graph.projection,
+        findings: graph.findings,
+        storylines: graph.storylines,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      log('error', `[Intelligence] graph load failed: ${message}`);
+      res.status(500).json({ error: 'Failed to load provider intelligence graph' });
     }
   });
 

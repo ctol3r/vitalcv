@@ -1,6 +1,7 @@
 'use client';
 
 import { startTransition, useDeferredValue, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/shell/AppShell';
 import { useActions } from '@/hooks/useActions';
 import { useFindings } from '@/hooks/useFindings';
@@ -14,13 +15,13 @@ import type {
   WorkspaceSectionId,
 } from '@/lib/intelligence/contracts';
 import { buildSourceEntries } from '@/lib/intelligence/contracts';
-import { CommandPalette } from '@/components/ui/CommandPalette';
 import { IntelligenceTopNav } from './IntelligenceTopNav';
 import { LeftSidebar } from './LeftSidebar';
 import { MainWorkspace } from './MainWorkspace';
 import { RightPanel } from './RightPanel';
 
 export function IntelligenceConsolePage() {
+  const searchParams = useSearchParams();
   const [activeSection, setActiveSection] = useState<WorkspaceSectionId>('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProviderNpi, setSelectedProviderNpi] = useState<string | null>(null);
@@ -49,6 +50,26 @@ export function IntelligenceConsolePage() {
     layer: 'blended',
     limit: 240,
   });
+
+  useEffect(() => {
+    const seededQuery = searchParams.get('q') ?? '';
+    const seededNpi = searchParams.get('npi');
+
+    if (seededNpi && /^\d{10}$/.test(seededNpi)) {
+      startTransition(() => {
+        setSearchTerm(seededNpi);
+        setSelectedProviderNpi(seededNpi);
+        setActiveSection('provider-profile');
+      });
+      return;
+    }
+
+    if (seededQuery) {
+      startTransition(() => {
+        setSearchTerm(seededQuery);
+      });
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const firstProvider = providers.data?.providers[0] ?? null;
@@ -189,9 +210,6 @@ export function IntelligenceConsolePage() {
         onRefreshSystemHealth={systemHealth.refresh}
       />
     </AppShell>
-
-    {/* Global command palette — ⌘K / Ctrl+K anywhere in the console */}
-    <CommandPalette />
     </>
   );
 }

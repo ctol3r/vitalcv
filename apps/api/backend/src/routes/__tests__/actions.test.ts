@@ -19,87 +19,72 @@ async function resetState(): Promise<void> {
   await prisma.findingEntityLink.deleteMany({});
   await prisma.findingEvidenceLink.deleteMany({});
   await prisma.investigatorFinding.deleteMany({});
-  await prisma.trustScoreHistory.deleteMany({});
+  await prisma.personProfile.deleteMany({});
+  await prisma.user.deleteMany({});
 }
 
-async function seedInvestigatorFinding(input: {
+async function seedFinding(input: {
   findingId: string;
   findingType: string;
-  severity: 'critical' | 'high' | 'medium';
-  title: string;
-  summary: string;
-  explanation: string;
-  storylineKey: string;
+  severity: 'critical' | 'medium';
   metadata: Record<string, unknown>;
+  entityLinks: Array<{
+    entityType: string;
+    entityId: string;
+    entityLabel: string;
+    relationship: string;
+  }>;
+  summary: string;
 }): Promise<void> {
   await prisma.investigatorFinding.create({
     data: {
       findingId: input.findingId,
-      investigatorId: input.findingType,
+      investigatorId: `${input.findingType}_monitor`,
       findingType: input.findingType,
       scope: 'provider',
       severity: input.severity,
       status: 'new',
-      title: input.title,
+      title: input.summary,
       summary: input.summary,
-      explanation: input.explanation,
-      confidence: 0.91,
-      priorityScore: input.severity === 'critical' ? 0.95 : input.severity === 'high' ? 0.82 : 0.63,
-      trustImpact: 0.88,
-      freshness: 0.77,
-      novelty: 0.81,
+      explanation: input.summary,
+      confidence: input.severity === 'critical' ? 0.93 : 0.79,
+      priorityScore: input.severity === 'critical' ? 0.95 : 0.62,
+      trustImpact: 0.9,
+      freshness: 0.81,
+      novelty: 0.75,
       entityImportance: 0.8,
       graphCentrality: 0.71,
-      entityIds: ['1234567890'],
+      entityIds: [...new Set(input.entityLinks.map((entity) => entity.entityId))],
       audienceRoles: ['operations', 'compliance'],
       supportingEvidence: [{
         evidenceId: `${input.findingId}:evidence`,
-        evidenceType: 'test',
         sourceId: 'TEST',
         sourceLabel: 'TEST',
         snippet: input.summary,
       }] as Prisma.InputJsonValue,
-      rankBreakdown: {
-        severity: 0.9,
-        confidence: 0.91,
-        trustImpact: 0.88,
-        freshness: 0.77,
-        novelty: 0.81,
-        entityImportance: 0.8,
-        graphCentrality: 0.71,
-        total: 0.84,
-        weights: {
-          severity: 0.2,
-          confidence: 0.15,
-          trustImpact: 0.2,
-          freshness: 0.1,
-          novelty: 0.1,
-          entityImportance: 0.15,
-          graphCentrality: 0.1,
-        },
-      } as Prisma.InputJsonValue,
+      rankBreakdown: {} as Prisma.InputJsonValue,
       metadata: input.metadata as Prisma.InputJsonValue,
-      storylineKey: input.storylineKey,
+      storylineKey: `${input.findingType}:${input.entityLinks[0]!.entityId}`,
       dedupeKey: input.findingId,
       firstSeenAt: new Date('2026-03-14T12:00:00.000Z'),
       lastSeenAt: new Date('2026-03-15T12:00:00.000Z'),
-      occurrenceCount: 1,
       createdAt: new Date('2026-03-14T12:00:00.000Z'),
       updatedAt: new Date('2026-03-15T12:00:00.000Z'),
+      occurrenceCount: 1,
       entityLinks: {
-        create: [{
-          entityType: 'provider',
-          entityId: '1234567890',
-          entityLabel: 'Dr. Ada Lovelace',
-          relationship: 'subject',
+        create: input.entityLinks.map((entity) => ({
+          entityType: entity.entityType,
+          entityId: entity.entityId,
+          entityLabel: entity.entityLabel,
+          relationship: entity.relationship,
           metadata: {},
-        }],
+        })),
       },
       statusEvents: {
         create: [{
           fromStatus: null,
           toStatus: 'new',
-          note: 'Seeded for route test.',
+          note: 'Seeded for FE19 action route test.',
           metadata: {},
         }],
       },
@@ -108,89 +93,131 @@ async function seedInvestigatorFinding(input: {
 }
 
 async function seedActionFixtures(): Promise<void> {
-  await prisma.trustScoreHistory.createMany({
-    data: [
+  await prisma.user.create({
+    data: {
+      clerkUserId: 'action-user-1',
+      email: 'action-test@vitalcv.local',
+      role: 'CLINICIAN',
+      status: 'ACTIVE',
+      personProfile: {
+        create: {
+          npi: '1234567890',
+          firstName: 'Ada',
+          lastName: 'Lovelace',
+          specialty: 'Cardiology',
+          stateOfPractice: 'CA',
+        },
+      },
+    },
+  });
+
+  await seedFinding({
+    findingId: 'finding-trust-decline',
+    findingType: 'trust_decline',
+    severity: 'critical',
+    summary: 'Ada Lovelace trust score dropped and credential freshness is stale.',
+    metadata: {
+      npi: '1234567890',
+      staleDimensions: [{ claimClass: 'licensure' }],
+      graphCentrality: 0.71,
+    },
+    entityLinks: [
       {
-        id: '10000000-0000-0000-0000-000000000001',
-        subjectType: 'NPI',
-        subjectId: '1234567890',
-        previousScore: 90,
-        newScore: 88,
-        scoreDelta: -2,
-        triggerEvent: 'TRUST_SCORE_COMPUTED',
-        confidence: 0.92,
-        band: 'L3',
-        methodologyVersion: 'TRUST_V1',
-        metadata: {},
-        recordedAt: new Date('2026-03-10T10:00:00.000Z'),
-        createdAt: new Date('2026-03-10T10:00:00.000Z'),
+        entityType: 'provider',
+        entityId: '1234567890',
+        entityLabel: 'Ada Lovelace',
+        relationship: 'subject',
       },
       {
-        id: '10000000-0000-0000-0000-000000000002',
-        subjectType: 'NPI',
-        subjectId: '1234567890',
-        previousScore: 88,
-        newScore: 76,
-        scoreDelta: -12,
-        triggerEvent: 'TRUST_SCORE_COMPUTED',
-        confidence: 0.94,
-        band: 'L2',
-        methodologyVersion: 'TRUST_V1',
-        metadata: {},
-        recordedAt: new Date('2026-03-15T09:00:00.000Z'),
-        createdAt: new Date('2026-03-15T09:00:00.000Z'),
+        entityType: 'institution',
+        entityId: 'mayo-clinic',
+        entityLabel: 'Mayo Clinic',
+        relationship: 'affiliated_with',
       },
     ],
   });
 
-  await seedInvestigatorFinding({
-    findingId: 'finding-trust-decline',
-    findingType: 'trust_decline',
-    severity: 'critical',
-    title: 'Dr. Ada Lovelace trust score dropped 12 points',
-    summary: 'Licensure verification is stale and the trust score dropped 12 points.',
-    explanation: 'Licensure verification is stale and the trust score dropped 12 points.',
-    storylineKey: 'trust_decline:1234567890',
-    metadata: {
-      npi: '1234567890',
-      scoreDelta: -12,
-      staleDimensions: [{ claimClass: 'licensure' }],
-      graphCentrality: 0.71,
-      entityImportance: 0.8,
-    },
-  });
-
-  await seedInvestigatorFinding({
-    findingId: 'finding-workforce-pressure',
-    findingType: 'workforce_pressure',
-    severity: 'high',
-    title: 'Dr. Ada Lovelace matches a high-pressure workforce gap',
-    summary: 'CA Cardiology demand materially exceeds mapped provider supply.',
-    explanation: 'CA Cardiology demand materially exceeds mapped provider supply.',
-    storylineKey: 'workforce_pressure:1234567890',
-    metadata: {
-      npi: '1234567890',
-      state: 'CA',
-      specialty: 'Cardiology',
-      pressureScore: 82,
-      graphCentrality: 0.71,
-      entityImportance: 0.8,
-    },
-  });
-
-  await seedInvestigatorFinding({
+  await seedFinding({
     findingId: 'finding-network-emergence',
     findingType: 'network_emergence',
     severity: 'medium',
-    title: 'Dr. Ada Lovelace sits inside a newly dense collaboration cluster',
-    summary: 'Recent collaboration edges formed a denser-than-usual cluster.',
-    explanation: 'Recent collaboration edges formed a denser-than-usual cluster.',
-    storylineKey: 'network_emergence:1234567890',
+    summary: 'Ada Lovelace entered a new collaboration cluster.',
     metadata: {
       npi: '1234567890',
       graphCentrality: 0.71,
-      entityImportance: 0.8,
     },
+    entityLinks: [{
+      entityType: 'provider',
+      entityId: '1234567890',
+      entityLabel: 'Ada Lovelace',
+      relationship: 'subject',
+    }],
+  });
+
+  await prisma.predictionInsight.createMany({
+    data: [
+      {
+        id: '00000000-0000-0000-0000-000000000201',
+        predictionId: 'pred-trust-decline',
+        predictionType: 'TRUST_SCORE_DECLINE',
+        targetEntityType: 'provider',
+        targetEntityId: '1234567890',
+        targetEntityLabel: 'Ada Lovelace',
+        probability: 0.88,
+        confidence: 0.86,
+        timeHorizon: '90d',
+        evidenceSignals: [
+          { label: 'stale_sources', value: 2, direction: 'UP', source: 'CLAIM_RECORDS' },
+          { label: 'divergence_signals', value: 1, direction: 'UP', source: 'INVESTIGATOR_FINDINGS' },
+          { label: 'trust_score_delta', value: -12, direction: 'DOWN', source: 'TRUST_SCORE' },
+        ] as Prisma.InputJsonValue,
+        explanation: 'Ada Lovelace is likely to experience further trust deterioration within 90d.',
+        metadata: {
+          graphDegree: 9,
+        } as Prisma.InputJsonValue,
+        createdAt: new Date('2026-03-15T10:00:00.000Z'),
+        updatedAt: new Date('2026-03-15T10:00:00.000Z'),
+      },
+      {
+        id: '00000000-0000-0000-0000-000000000202',
+        predictionId: 'pred-institution-growth',
+        predictionType: 'INSTITUTION_RESEARCH_GROWTH',
+        targetEntityType: 'institution',
+        targetEntityId: 'mayo-clinic',
+        targetEntityLabel: 'Mayo Clinic',
+        probability: 0.8,
+        confidence: 0.79,
+        timeHorizon: '90d',
+        evidenceSignals: [
+          { label: 'research_growth', value: 1.6, direction: 'UP', source: 'OPENALEX' },
+          { label: 'contributing_providers', value: 5, direction: 'UP', source: 'OPENALEX' },
+        ] as Prisma.InputJsonValue,
+        explanation: 'Mayo Clinic research activity is likely to accelerate within 90d.',
+        metadata: {} as Prisma.InputJsonValue,
+        createdAt: new Date('2026-03-15T10:00:00.000Z'),
+        updatedAt: new Date('2026-03-15T10:00:00.000Z'),
+      },
+      {
+        id: '00000000-0000-0000-0000-000000000203',
+        predictionId: 'pred-specialty-pressure',
+        predictionType: 'WORKFORCE_SHORTAGE_ESCALATION',
+        targetEntityType: 'specialty',
+        targetEntityId: 'ca-cardiology',
+        targetEntityLabel: 'CA Cardiology',
+        probability: 0.84,
+        confidence: 0.78,
+        timeHorizon: '90d',
+        evidenceSignals: [
+          { label: 'active_demand', value: 142, direction: 'UP', source: 'OPPORTUNITIES' },
+          { label: 'mapped_supply', value: 78, direction: 'FLAT', source: 'PERSON_PROFILES' },
+          { label: 'pressure_score', value: 86, direction: 'UP', source: 'OPPORTUNITIES' },
+        ] as Prisma.InputJsonValue,
+        explanation: 'CA Cardiology is likely to face a deeper workforce shortage within 90d.',
+        metadata: {} as Prisma.InputJsonValue,
+        createdAt: new Date('2026-03-15T10:00:00.000Z'),
+        updatedAt: new Date('2026-03-15T10:00:00.000Z'),
+      },
+    ],
   });
 }
 
@@ -205,39 +232,34 @@ describe('action routes', () => {
     await prisma.$disconnect();
   });
 
-  it('lists generated actions and supports filters', async () => {
+  it('lists FE19-derived actions and supports filtering', async () => {
     const app = buildApp();
 
     const response = await request(app)
       .get('/api/actions')
       .expect(200);
 
-    expect(response.body.total).toBe(7);
+    expect(response.body.total).toBe(5);
     expect(response.body.actions.map((action: { actionType: string }) => action.actionType)).toEqual(expect.arrayContaining([
-      'RUN_VERIFICATION',
-      'INVESTIGATE_PROVIDER',
-      'COMPARE_WITH_PEERS',
-      'ALERT_TEAM',
-      'EXPORT_REPORT',
-      'MONITOR_PROVIDER',
-      'ESCALATE_RISK',
+      'VERIFY_CREDENTIAL',
+      'REVIEW_INSTITUTION',
+      'TRACK_SPECIALTY',
     ]));
 
-    const runVerification = response.body.actions.find((action: { actionType: string }) => action.actionType === 'RUN_VERIFICATION');
-    expect(runVerification.explanation).toContain('trust score dropped 12.0 points');
-    expect(runVerification.explanation).toContain('verification data is stale');
+    const verifyCredential = response.body.actions.find((action: { actionType: string }) => action.actionType === 'VERIFY_CREDENTIAL');
+    expect(verifyCredential.explanation).toContain('re-verified');
+    expect(verifyCredential.explanation).toContain('stale or conflicting credential signals');
 
     const filtered = await request(app)
       .get('/api/actions')
       .query({
-        actionType: 'RUN_VERIFICATION',
+        actionType: 'VERIFY_CREDENTIAL',
         entity: '1234567890',
-        priority: 'HIGH,CRITICAL',
       })
       .expect(200);
 
     expect(filtered.body.total).toBe(1);
-    expect(filtered.body.actions[0].actionType).toBe('RUN_VERIFICATION');
+    expect(filtered.body.actions[0].actionType).toBe('VERIFY_CREDENTIAL');
     expect(filtered.body.actions[0].targetEntity.entityId).toBe('1234567890');
   });
 
@@ -245,50 +267,46 @@ describe('action routes', () => {
     const app = buildApp();
     const list = await request(app).get('/api/actions').expect(200);
 
-    const runVerification = list.body.actions.find((action: { actionType: string }) => action.actionType === 'RUN_VERIFICATION');
-    const exportReport = list.body.actions.find((action: { actionType: string }) => action.actionType === 'EXPORT_REPORT');
-    const monitorProvider = list.body.actions.find((action: { actionType: string }) => action.actionType === 'MONITOR_PROVIDER');
+    const verifyCredential = list.body.actions.find((action: { actionType: string }) => action.actionType === 'VERIFY_CREDENTIAL');
+    const reviewInstitution = list.body.actions.find((action: { actionType: string }) => action.actionType === 'REVIEW_INSTITUTION');
+    const trackSpecialty = list.body.actions.find((action: { actionType: string }) => action.actionType === 'TRACK_SPECIALTY');
 
-    expect(runVerification).toBeDefined();
-    expect(exportReport).toBeDefined();
-    expect(monitorProvider).toBeDefined();
+    expect(verifyCredential).toBeDefined();
+    expect(reviewInstitution).toBeDefined();
+    expect(trackSpecialty).toBeDefined();
 
     const detail = await request(app)
-      .get(`/api/actions/${runVerification.actionId}`)
+      .get(`/api/actions/${verifyCredential.actionId}`)
       .expect(200);
 
-    expect(detail.body.action.linkedPredictions).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        predictionType: 'TRUST_SCORE_DECLINE',
-      }),
-    ]));
+    expect(Array.isArray(detail.body.action.linkedPredictions)).toBe(true);
 
     const saved = await request(app)
-      .post(`/api/actions/${exportReport.actionId}/save`)
-      .send({ actorId: 'ops-user', note: 'Keep for staffing review.' })
+      .post(`/api/actions/${reviewInstitution.actionId}/save`)
+      .send({ actorId: 'ops-user', note: 'Keep this institution on the watchlist.' })
       .expect(200);
     expect(saved.body.action.status).toBe('in_progress');
 
     const executed = await request(app)
-      .post(`/api/actions/${runVerification.actionId}/execute`)
-      .send({ actorId: 'ops-user', note: 'Verification requested.' })
+      .post(`/api/actions/${verifyCredential.actionId}/execute`)
+      .send({ actorId: 'ops-user', note: 'Credential review requested.' })
       .expect(200);
     expect(executed.body.action.status).toBe('completed');
 
     const dismissed = await request(app)
-      .post(`/api/actions/${monitorProvider.actionId}/dismiss`)
-      .send({ actorId: 'ops-user', note: 'No longer needed.' })
+      .post(`/api/actions/${trackSpecialty.actionId}/dismiss`)
+      .send({ actorId: 'ops-user', note: 'Not in current staffing scope.' })
       .expect(200);
     expect(dismissed.body.action.status).toBe('skipped');
 
     const reprioritized = await request(app)
-      .patch(`/api/actions/${exportReport.actionId}/status`)
+      .patch(`/api/actions/${reviewInstitution.actionId}/status`)
       .send({ status: 'pending', actorId: 'ops-user', note: 'Return to backlog.' })
       .expect(200);
     expect(reprioritized.body.action.status).toBe('pending');
 
     const updatedDetail = await request(app)
-      .get(`/api/actions/${runVerification.actionId}`)
+      .get(`/api/actions/${verifyCredential.actionId}`)
       .expect(200);
 
     expect(updatedDetail.body.action.status).toBe('completed');

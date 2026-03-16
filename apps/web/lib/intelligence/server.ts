@@ -70,6 +70,12 @@ type ActionListResponse = {
   total?: number;
 };
 
+type ProviderIntelligenceAggregateResponse = {
+  aggregate?: NonNullable<ProviderDetailResponse['intelligence']>;
+};
+
+type ProviderSignalSummaryResponse = NonNullable<ProviderDetailResponse['signals']>;
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -369,7 +375,7 @@ export async function loadActionDetail(actionId: string) {
 }
 
 export async function loadProviderDetail(npi: string): Promise<ProviderDetailResponse | null> {
-  const [profile, passport, identity, claims, findings, storylines, actions] = await Promise.all([
+  const [profile, passport, identity, claims, findings, storylines, actions, intelligenceAggregate, signalSummary] = await Promise.all([
     fetchBackendJson<PublicProviderProfile>(`/api/public/profile/npi/${encodeURIComponent(npi)}`),
     fetchBackendJson<ProviderPassportResponse>(`/api/passport/${encodeURIComponent(npi)}`),
     fetchBackendJson<IdentitySummaryResponse>(`/api/identity/${encodeURIComponent(npi)}`),
@@ -389,6 +395,13 @@ export async function loadProviderDetail(npi: string): Promise<ProviderDetailRes
       '/api/actions',
       new URLSearchParams({ entity: npi, limit: '12' }),
     ),
+    fetchBackendJson<ProviderIntelligenceAggregateResponse>(
+      `/api/intelligence/aggregates/providers/${encodeURIComponent(npi)}`,
+    ),
+    fetchBackendJson<ProviderSignalSummaryResponse>(
+      `/api/provider-intelligence/${encodeURIComponent(npi)}`,
+      new URLSearchParams({ limit: '20', sync: 'false' }),
+    ),
   ]);
 
   if (profile.status === 404) {
@@ -402,14 +415,17 @@ export async function loadProviderDetail(npi: string): Promise<ProviderDetailRes
   const identitySummary = identity.ok ? identity.payload.identity ?? null : null;
   const activeClaims = claims.ok ? claims.payload.claims ?? [] : [];
   const passportPublic = passport.ok ? passport.payload.public : undefined;
+  const providerSignals = signalSummary.ok ? signalSummary.payload : null;
   const trustScore = Math.max(
     0,
     Math.min(
       100,
       Math.round(
-        typeof passportPublic?.readinessScore === 'number'
-          ? passportPublic.readinessScore
-          : profile.payload.readinessScore,
+        typeof providerSignals?.trust.score === 'number'
+          ? providerSignals.trust.score
+          : typeof passportPublic?.readinessScore === 'number'
+            ? passportPublic.readinessScore
+            : profile.payload.readinessScore,
       ),
     ),
   );
@@ -457,5 +473,7 @@ export async function loadProviderDetail(npi: string): Promise<ProviderDetailRes
     findings: findings.ok ? (findings.payload.findings ?? []).slice(0, 6) : [],
     storylines: storylineItems.slice(0, 6),
     actions: actions.ok ? (actions.payload.actions ?? []).slice(0, 6) : [],
+    signals: providerSignals,
+    intelligence: intelligenceAggregate.ok ? intelligenceAggregate.payload.aggregate ?? null : null,
   };
 }

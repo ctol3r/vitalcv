@@ -312,20 +312,20 @@ function predictionActions(prediction: PredictionInsight): ActionCandidate[] {
   });
 
   switch (prediction.predictionType) {
-    case 'TRUST_SCORE_DECLINE':
+    case 'TRUST_RISK_ACCELERATION':
       return [
         build('RUN_VERIFICATION', `Run verification for ${label}`, {
           riskWeight: Math.max(probability, 0.6),
           urgencyWeight: Math.max(probability, 0.68),
         }),
-        ...(probability >= 0.75 ? [
+        ...(prediction.state === 'accelerating' || probability >= 0.75 ? [
           build('ESCALATE_RISK', `Escalate risk for ${label}`, {
             riskWeight: Math.max(probability, 0.85),
             urgencyWeight: Math.max(probability, 0.82),
           }),
         ] : []),
       ];
-    case 'EMERGING_INVESTIGATOR':
+    case 'PROVIDER_TRAJECTORY':
       return [
         build('COMPARE_WITH_PEERS', `Compare ${label} with peers`, {
           riskWeight: 0.2,
@@ -338,7 +338,7 @@ function predictionActions(prediction: PredictionInsight): ActionCandidate[] {
           opportunityWeight: Math.max(probability, 0.62),
         }),
       ];
-    case 'INSTITUTION_RESEARCH_GROWTH':
+    case 'INSTITUTION_MOMENTUM':
       return [
         build('ALERT_TEAM', `Alert the team about ${label}`, {
           riskWeight: 0.15,
@@ -351,7 +351,7 @@ function predictionActions(prediction: PredictionInsight): ActionCandidate[] {
           opportunityWeight: Math.max(probability, 0.78),
         }),
       ];
-    case 'NETWORK_CLUSTER_EXPANSION':
+    case 'NETWORK_SHIFT':
       return [
         build('MONITOR_PROVIDER', `Monitor ${label}`, {
           riskWeight: 0.28,
@@ -359,7 +359,7 @@ function predictionActions(prediction: PredictionInsight): ActionCandidate[] {
           opportunityWeight: 0.34,
         }),
       ];
-    case 'WORKFORCE_SHORTAGE_ESCALATION':
+    case 'SPECIALTY_PRESSURE':
       return [
         build('ALERT_TEAM', `Alert the team about ${label}`, {
           riskWeight: 0.25,
@@ -373,6 +373,8 @@ function predictionActions(prediction: PredictionInsight): ActionCandidate[] {
         }),
       ];
   }
+
+  return [];
 }
 
 export function generateActionCandidates(

@@ -13,8 +13,9 @@ import {
 } from '@/lib/intelligence/state';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import { OperationsShell } from './shell';
-import { EntityLink, OpsBadge, OpsCard, OpsCardSkeleton, SurfaceBanner, SurfaceEmptyState, SurfaceErrorState, TimestampPair, trustScoreColor, severityTone } from './primitives';
+import { EntityLink, OpsCard, OpsCardSkeleton, SurfaceBanner, SurfaceEmptyState, SurfaceErrorState, TimestampPair, trustScoreColor } from './primitives';
 import { formatPaginationSummary, Pagination } from './pagination';
+import { ProviderCard } from '@/src/ui/components';
 
 const PAGE_SIZE = 12;
 
@@ -185,49 +186,33 @@ export function ProvidersSurface() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {items.map((provider) => (
-          <OpsCard key={provider.npi} className="space-y-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-2">
-                <Link
-                  href={{
-                    pathname: `/providers/${provider.npi}`,
-                    query: { from: currentHref },
-                  }}
-                  className="block truncate text-xl font-semibold text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]"
-                >
-                  {provider.name}
-                </Link>
-                <div className="flex flex-wrap items-center gap-2">
-                  <OpsBadge label={provider.credentialHealth} tone={severityTone(provider.credentialHealth)} />
-                  <span className="font-mono text-sm text-[var(--vt-text-3)]">NPI {provider.npi}</span>
+          <ProviderCard
+            key={provider.npi}
+            credentialHealth={provider.credentialHealth}
+            footer={(
+              <div className="flex flex-wrap gap-2">
+                <EntityLink href={`/providers/${provider.npi}?from=${encodeURIComponent(currentHref)}`} label="Open profile" />
+                <EntityLink href={`/investigations?npi=${provider.npi}`} label="Investigate" />
+              </div>
+            )}
+            meta={(
+              <div className="space-y-3">
+                <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-3 text-right">
+                  <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Trust</p>
+                  <p className={`text-2xl font-semibold tabular-nums ${trustScoreColor(provider.trustScore)}`}>{provider.trustScore}</p>
+                </div>
+                <div className="space-y-1 text-sm text-[var(--vt-text-2)]">
+                  <p className="font-mono text-sm text-[var(--vt-text-3)]">NPI {provider.npi}</p>
+                  <p>{provider.activeCredentials}/{provider.credentialCount} active credentials</p>
+                  <TimestampPair label="Verified" value={provider.lastVerifiedAt} />
                 </div>
               </div>
-              <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-3 text-right">
-                <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Trust</p>
-                <p className={`text-2xl font-semibold tabular-nums ${trustScoreColor(provider.trustScore)}`}>{provider.trustScore}</p>
-              </div>
-            </div>
-
-            <p className="text-sm leading-6 text-[var(--vt-text-2)]">{provider.summary}</p>
-
-            <div className="flex flex-wrap gap-2">
-              {provider.specialties.slice(0, 3).map((specialty) => (
-                <span key={specialty} className="inline-flex items-center rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-1 text-xs text-[var(--vt-text-2)]">
-                  {specialty}
-                </span>
-              ))}
-            </div>
-
-            <div className="space-y-1 text-sm text-[var(--vt-text-2)]">
-              <p>{provider.activeCredentials}/{provider.credentialCount} active credentials</p>
-              <TimestampPair label="Verified" value={provider.lastVerifiedAt} />
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <EntityLink href={`/providers/${provider.npi}?from=${encodeURIComponent(currentHref)}`} label="Open profile" />
-              <EntityLink href={`/investigations?npi=${provider.npi}`} label="Investigate" />
-            </div>
-          </OpsCard>
+            )}
+            name={provider.name}
+            specialties={provider.specialties.slice(0, 3)}
+            summary={provider.summary}
+            trustScore={provider.trustScore}
+          />
         ))}
       </div>
 

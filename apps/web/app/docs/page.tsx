@@ -29,6 +29,13 @@ const SECTIONS = [
     href: '/docs/webhooks',
     badge: 'Events',
   },
+  {
+    icon: Shield,
+    title: 'Design System',
+    desc: 'Canonical tokens, themes, components, layouts, and graph rules for VitalCV product surfaces.',
+    href: '/docs/design-system',
+    badge: 'VDS',
+  },
 ] as const;
 
 const QUICK_LINKS = [

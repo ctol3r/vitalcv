@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type {
   PredictionCandidate,
   PredictionInsight,
+  PredictionState,
   PredictionType,
 } from './predictionEngine';
 
@@ -35,33 +36,51 @@ function buildPredictionId(candidate: PredictionCandidate): string {
   return `pred_${hashPredictionSeed({
     predictionType: candidate.predictionType,
     targetEntity: candidate.targetEntity,
+    state: candidate.state,
     timeHorizon: candidate.timeHorizon,
   }).slice(0, 24)}`;
+}
+
+function typeLabel(predictionType: PredictionType): string {
+  switch (predictionType) {
+    case 'PROVIDER_TRAJECTORY':
+      return 'Provider trajectory';
+    case 'SPECIALTY_PRESSURE':
+      return 'Specialty demand pressure';
+    case 'INSTITUTION_MOMENTUM':
+      return 'Institution momentum';
+    case 'NETWORK_SHIFT':
+      return 'Network shift';
+    case 'TRUST_RISK_ACCELERATION':
+      return 'Trust risk acceleration';
+  }
+}
+
+function stateLabel(state: PredictionState): string {
+  return state === 'insufficient_signal'
+    ? 'insufficient signal'
+    : state.charAt(0).toUpperCase() + state.slice(1);
 }
 
 function subjectLabel(candidate: PredictionCandidate): string {
   return candidate.targetEntity.entityLabel ?? candidate.targetEntity.entityId;
 }
 
-function verbForPrediction(predictionType: PredictionType): string {
-  switch (predictionType) {
-    case 'TRUST_SCORE_DECLINE':
-      return 'is likely to deteriorate further';
-    case 'EMERGING_INVESTIGATOR':
-      return 'is likely to emerge as a higher-visibility investigator';
-    case 'INSTITUTION_RESEARCH_GROWTH':
-      return 'is likely to keep accelerating research output';
-    case 'NETWORK_CLUSTER_EXPANSION':
-      return 'is likely to keep expanding its collaboration cluster';
-    case 'WORKFORCE_SHORTAGE_ESCALATION':
-      return 'is likely to face a deeper workforce shortage';
+function buildSummary(candidate: PredictionCandidate): string {
+  const why = candidate.explanationFragments.slice(0, 2).join(' and ');
+  if (candidate.state === 'insufficient_signal') {
+    return `${typeLabel(candidate.predictionType)} is Insufficient signal because only ${Math.round(candidate.coverage * 100)}% of expected signals are present.`;
   }
+
+  return `${typeLabel(candidate.predictionType)} is ${stateLabel(candidate.state)} because ${why || 'the current signal mix supports that forecast'}.`;
 }
 
 function buildExplanation(candidate: PredictionCandidate): string {
-  const parts = candidate.explanationFragments.slice(0, 3);
-  const suffix = parts.length > 0 ? ` because ${parts.join(', ')}` : '';
-  return `${subjectLabel(candidate)} ${verbForPrediction(candidate.predictionType)} within ${candidate.timeHorizon}${suffix}.`;
+  const summary = buildSummary(candidate);
+  const confidenceLabel = `${Math.round(candidate.baseConfidence * 100)}% confidence`;
+  const forecastWindow = `Forecast window: ${candidate.timeHorizon}.`;
+  const forecastNotice = 'This is a forecast, not an observed outcome.';
+  return `${summary} ${confidenceLabel}. ${forecastWindow} ${forecastNotice}`;
 }
 
 export function forecastPredictions(
@@ -70,26 +89,38 @@ export function forecastPredictions(
 ): PredictionInsight[] {
   return candidates
     .map((candidate) => {
-      const evidenceBonus = Math.min(candidate.evidenceSignals.length * 0.025, 0.1);
-      const probability = clamp01(candidate.baseProbability + (candidate.signalStrength * 0.1) + evidenceBonus);
-      const confidence = clamp01(candidate.baseConfidence + (candidate.signalStrength * 0.08));
+      const evidenceBonus = Math.min(candidate.evidenceSignals.length * 0.02, 0.08);
+      const score = clamp01(candidate.baseScore + evidenceBonus);
+      const confidence = clamp01(candidate.baseConfidence + Math.min(candidate.coverage * 0.08, 0.08));
+      const summary = buildSummary(candidate);
+      const insufficientSignal = candidate.state === 'insufficient_signal' || candidate.coverage < 0.34;
 
       return {
         predictionId: buildPredictionId(candidate),
         predictionType: candidate.predictionType,
         targetEntity: candidate.targetEntity,
-        probability,
+        state: candidate.state,
+        score,
+        probability: score,
         confidence,
         timeHorizon: candidate.timeHorizon,
         evidenceSignals: candidate.evidenceSignals,
         explanation: buildExplanation(candidate),
         createdAt: candidate.createdAt,
-        metadata: candidate.metadata,
+        metadata: {
+          ...candidate.metadata,
+          state: candidate.state,
+          summary,
+          forecast: true,
+          insufficientSignal,
+          lastObservedAt: candidate.lastObservedAt,
+          coverage: candidate.coverage,
+        },
       };
     })
     .sort((left, right) => {
-      if (right.probability !== left.probability) {
-        return right.probability - left.probability;
+      if (right.score !== left.score) {
+        return right.score - left.score;
       }
 
       if (right.confidence !== left.confidence) {

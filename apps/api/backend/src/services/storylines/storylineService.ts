@@ -12,8 +12,8 @@ import type {
   StorylineType,
 } from '../../../../../../core/storylines/storylineEngine';
 import { createStorylineEngine } from '../../../../../../core/storylines/storylineEngine';
-import type { Finding } from '../investigators/framework';
-import { queryFindings } from '../investigators/framework';
+import type { InvestigatorFindingRecord } from '../../../../../../core/investigators/investigatorTypes';
+import { listInvestigatorFindings } from '../investigators/investigatorEngineService';
 import type {
   StorylineActionEventRow,
   StorylineActionTypeRecord,
@@ -34,6 +34,8 @@ import {
   mutateStorylineRecord,
   upsertStorylineRecord,
 } from './storylineStore';
+import type { PredictionSummaryContract } from '../predictions/contracts';
+import { getPredictionSummariesForEntityKeys } from '../predictions/predictionEngineService';
 
 function stableStringify(value: unknown): string {
   if (Array.isArray(value)) {
@@ -307,16 +309,27 @@ function toCoreTimeline(row: StorylineRecordRow): StorylineTimeline {
 }
 
 function toCoreSnapshot(row: StorylineRecordRow): StorylineSnapshot {
+  const metadata = asRecord(row.metadata);
+  const groupingStrategy: 'entity_anchored' | 'event_anchored' | 'trend_anchored' =
+    metadata.groupingStrategy === 'trend_anchored' || metadata.groupingStrategy === 'event_anchored'
+      ? metadata.groupingStrategy
+      : row.entityIds.length > 1
+        ? 'trend_anchored'
+        : typeof metadata.storylineAnchorType === 'string' && metadata.storylineAnchorType === 'event'
+          ? 'event_anchored'
+          : 'entity_anchored';
   return {
     storylineId: row.storylineId,
     fingerprint: row.fingerprint,
     storylineType: toCoreType(row.storylineType),
     perspective: toCorePerspective(row.perspective),
+    headline: row.title,
     title: row.title,
     summary: row.summary,
     whyItMatters: row.whyItMatters,
     recommendedActions: asStringArray(row.recommendedActions),
     severity: toCoreSeverity(row.severity),
+    maxSeverity: toCoreSeverity(row.severity),
     confidence: row.confidence,
     entityIds: row.entityIds,
     findingIds: row.findingIds,
@@ -324,13 +337,16 @@ function toCoreSnapshot(row: StorylineRecordRow): StorylineSnapshot {
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     lastActivityAt: row.lastActivityAt.toISOString(),
+    firstEvent: row.createdAt.toISOString(),
+    lastEvent: row.lastActivityAt.toISOString(),
+    groupingStrategy,
     status: toCoreStatus(row.status),
     progressionScore: row.progressionScore,
     noveltyScore: row.noveltyScore,
     persistenceScore: row.persistenceScore,
     escalationThreshold: row.escalationThreshold,
     timeline: toCoreTimeline(row),
-    metadata: asRecord(row.metadata),
+    metadata,
   };
 }
 
@@ -348,7 +364,7 @@ function normalizeInstitutionKey(raw: string): string {
     : slugify(raw);
 }
 
-function extractFindingEntities(finding: Finding): {
+function extractFindingEntities(finding: InvestigatorFindingRecord): {
   entityIds: string[];
   providerIds: string[];
   institutionIds: string[];
@@ -360,14 +376,20 @@ function extractFindingEntities(finding: Finding): {
   const graphValues = new Set<string>();
   const entityValues = new Set<string>();
 
-  for (const npi of finding.npis) {
-    providerValues.add(npi);
+  for (const entity of finding.entities) {
+    if (entity.entityType === 'provider') {
+      providerValues.add(entity.entityId);
+    }
+    if (entity.entityType === 'institution') {
+      institutionValues.add(normalizeInstitutionKey(entity.entityLabel ?? entity.entityId));
+    }
   }
 
   for (const candidate of [
     metadata.npi,
     metadata.providerNpi,
     metadata.subjectNpi,
+    metadata.providerId,
   ]) {
     const value = stringValue(candidate);
     if (value) {
@@ -436,11 +458,11 @@ function extractFindingEntities(finding: Finding): {
   };
 }
 
-function toStorylineFindingInput(finding: Finding): StorylineFindingInput {
+function toStorylineFindingInput(finding: InvestigatorFindingRecord): StorylineFindingInput {
   const entities = extractFindingEntities(finding);
   return {
-    findingId: finding.id,
-    category: finding.category,
+    findingId: finding.findingId,
+    category: finding.findingType.toUpperCase(),
     severity: toCoreSeverity(finding.severity),
     title: finding.title,
     summary: finding.summary,
@@ -449,21 +471,17 @@ function toStorylineFindingInput(finding: Finding): StorylineFindingInput {
     providerIds: entities.providerIds,
     institutionIds: entities.institutionIds,
     graphEntityIds: entities.graphEntityIds,
-    relatedFindingIds: [...finding.relatedFindings],
-    evidence: finding.evidence.map((item) => ({
-      source: item.source,
-      claim: item.claim,
-      confidence: item.confidence,
-      timestamp: item.timestamp,
-      artifactId: item.artifactId,
+    relatedFindingIds: [],
+    evidence: finding.supportingEvidence.map((item) => ({
+      source: item.sourceLabel ?? item.sourceId ?? 'unknown',
+      claim: item.snippet ?? item.evidenceType,
+      confidence: finding.confidence,
+      timestamp: item.observedAt ?? finding.updatedAt,
+      artifactId: item.recordType === 'verification_artifact' ? item.recordId ?? undefined : undefined,
     })),
-    actions: finding.actions.map((action) => ({
-      label: action.label,
-      type: action.type,
-      payload: action.payload,
-    })),
+    actions: [],
     metadata: finding.metadata,
-    createdAt: finding.createdAt,
+    createdAt: finding.updatedAt,
   };
 }
 
@@ -569,10 +587,12 @@ async function syncStorylines(): Promise<string> {
 
   syncInFlight = (async () => {
     const now = new Date().toISOString();
-    const findings = queryFindings({
-      status: ['ACTIVE', 'ACKNOWLEDGED', 'ESCALATED'],
+    const findingsResponse = await listInvestigatorFindings({
+      status: ['new', 'acknowledged', 'investigating'],
       limit: 500,
-    }).map(toStorylineFindingInput);
+      offset: 0,
+    });
+    const findings = findingsResponse.findings.map(toStorylineFindingInput);
     const existingRows = await listStorylineRecords({
       includeDetails: true,
       limit: 500,
@@ -676,7 +696,7 @@ export interface StorylineQueryFilters {
 }
 
 export async function listStorylines(filters: StorylineQueryFilters = {}): Promise<{
-  storylines: StorylineSnapshot[];
+  storylines: StorylineWithPredictionSnapshot[];
   syncedAt: string;
 }> {
   const syncedAt = filters.sync === false
@@ -695,10 +715,28 @@ export async function listStorylines(filters: StorylineQueryFilters = {}): Promi
     limit: filters.limit,
   });
 
+  const storylines = rows.map(toCoreSnapshot);
+  const predictionSummaries = await getPredictionSummariesForEntityKeys(
+    storylines.flatMap((storyline) => storyline.entityIds),
+    { sync: filters.sync },
+  );
+
   return {
-    storylines: rows.map(toCoreSnapshot),
+    storylines: storylines.map((storyline) => ({
+      ...storyline,
+      predictionSummary: summarizeStorylinePredictions(storyline.entityIds, predictionSummaries),
+    })),
     syncedAt,
   };
+}
+
+export interface StorylineWithPredictionSnapshot extends StorylineSnapshot {
+  predictionSummary?: PredictionSummaryContract;
+  headline?: string;
+  maxSeverity?: StorylineSeverity;
+  firstEvent?: string;
+  lastEvent?: string;
+  groupingStrategy?: 'entity_anchored' | 'event_anchored' | 'trend_anchored';
 }
 
 export interface StorylineFindingLinkContract {
@@ -774,17 +812,64 @@ function toActionEventContract(row: StorylineActionEventRow): StorylineActionEve
 }
 
 export interface StorylineDetailContract {
-  storyline: StorylineSnapshot;
+  storyline: StorylineWithPredictionSnapshot;
   findingLinks: StorylineFindingLinkContract[];
   entityLinks: StorylineEntityLinkContract[];
   statusEvents: StorylineTimelineEvent[];
   actionEvents: StorylineActionEventContract[];
 }
 
-function toDetailContract(row: StorylineRecordRow): StorylineDetailContract {
+function summarizeStorylinePredictions(
+  entityIds: string[],
+  summaries: Map<string, PredictionSummaryContract>,
+): PredictionSummaryContract {
+  const relevant = entityIds
+    .map((entityId) => summaries.get(entityId))
+    .filter((summary): summary is PredictionSummaryContract => Boolean(summary?.available))
+    .flatMap((summary) => summary.predictions);
+
+  if (relevant.length === 0) {
+    return {
+      available: false,
+      total: 0,
+      updatedAt: null,
+      topPrediction: null,
+      predictions: [],
+      byType: [],
+      byState: [],
+    };
+  }
+
+  const deduped = [...new Map(relevant.map((prediction) => [prediction.id, prediction])).values()]
+    .sort((left, right) => right.score - left.score || left.id.localeCompare(right.id));
+  const byType = new Map<string, number>();
+  const byState = new Map<string, number>();
+  for (const prediction of deduped) {
+    byType.set(prediction.type, (byType.get(prediction.type) ?? 0) + 1);
+    byState.set(prediction.state, (byState.get(prediction.state) ?? 0) + 1);
+  }
+
+  return {
+    available: true,
+    total: deduped.length,
+    updatedAt: deduped[0]?.updatedAt ?? null,
+    topPrediction: deduped[0] ?? null,
+    predictions: deduped.slice(0, 5),
+    byType: [...byType.entries()].map(([key, count]) => ({ key, count })),
+    byState: [...byState.entries()].map(([key, count]) => ({ key, count })),
+  };
+}
+
+function toDetailContract(
+  row: StorylineRecordRow,
+  predictionSummary: PredictionSummaryContract,
+): StorylineDetailContract {
   const storyline = toCoreSnapshot(row);
   return {
-    storyline,
+    storyline: {
+      ...storyline,
+      predictionSummary,
+    },
     findingLinks: (row.findingLinks ?? []).map((link) => toFindingLinkContract(link)),
     entityLinks: (row.entityLinks ?? []).map(toEntityLinkContract),
     statusEvents: storyline.timeline.events,
@@ -801,7 +886,12 @@ export async function getStorylineDetail(
   }
 
   const row = await getStorylineRecord(storylineId);
-  return row ? toDetailContract(row) : null;
+  if (!row) {
+    return null;
+  }
+
+  const predictionSummaries = await getPredictionSummariesForEntityKeys(row.entityIds, { sync: options.sync });
+  return toDetailContract(row, summarizeStorylinePredictions(row.entityIds, predictionSummaries));
 }
 
 async function applyAction(input: {
@@ -873,7 +963,12 @@ async function applyAction(input: {
       : undefined,
   });
 
-  return updated ? toDetailContract(updated) : null;
+  if (!updated) {
+    return null;
+  }
+
+  const predictionSummaries = await getPredictionSummariesForEntityKeys(updated.entityIds, { sync: false });
+  return toDetailContract(updated, summarizeStorylinePredictions(updated.entityIds, predictionSummaries));
 }
 
 export async function acknowledgeStoryline(input: {
