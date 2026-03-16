@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { OperationsShell } from './shell';
 import { EntityLink, OpsBadge, OpsCard, SurfaceBanner, severityTone } from './primitives';
 
@@ -246,6 +246,296 @@ function StorylineContextCard({ storyline }: { storyline: WorkbenchStorylineCont
   );
 }
 
+// ── Provider Network Preview ──────────────────────────────────────────────────
+
+interface MiniGraphNode {
+  id: string;
+  label: string;
+  type: string;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  color: string;
+  isFocus: boolean;
+}
+
+interface MiniGraphEdge {
+  source: string;
+  target: string;
+  type: string;
+}
+
+// Import node colors from graph system types (data file, exempt from hex lint)
+import { NODE_COLORS, getNodeColor } from '@/components/graph-system/types';
+
+// Adapted for string-keyed lookup
+const NODE_TYPE_COLORS: Record<string, string> = NODE_COLORS as Record<string, string>;
+
+function simpleForceLayout(
+  nodes: MiniGraphNode[],
+  edges: MiniGraphEdge[],
+  width: number,
+  height: number,
+  iterations: number,
+): void {
+  const cx = width / 2;
+  const cy = height / 2;
+  const edgeMap = new Map<string, string[]>();
+  for (const e of edges) {
+    edgeMap.set(e.source, [...(edgeMap.get(e.source) ?? []), e.target]);
+    edgeMap.set(e.target, [...(edgeMap.get(e.target) ?? []), e.source]);
+  }
+
+  // Seed positions in a circle
+  const angleStep = (2 * Math.PI) / Math.max(nodes.length, 1);
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i]!;
+    if (n.isFocus) {
+      n.x = cx;
+      n.y = cy;
+    } else {
+      const r = Math.min(width, height) * 0.35;
+      n.x = cx + r * Math.cos(i * angleStep);
+      n.y = cy + r * Math.sin(i * angleStep);
+    }
+  }
+
+  const nodeMap = new Map(nodes.map(n => [n.id, n]));
+
+  for (let iter = 0; iter < iterations; iter++) {
+    const alpha = 1 - iter / iterations;
+    // Repulsion
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i]!;
+        const b = nodes[j]!;
+        let dx = b.x - a.x;
+        let dy = b.y - a.y;
+        const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
+        const force = (80 * alpha) / dist;
+        dx = (dx / dist) * force;
+        dy = (dy / dist) * force;
+        if (!a.isFocus) { a.vx -= dx; a.vy -= dy; }
+        if (!b.isFocus) { b.vx += dx; b.vy += dy; }
+      }
+    }
+    // Attraction along edges
+    for (const e of edges) {
+      const a = nodeMap.get(e.source);
+      const b = nodeMap.get(e.target);
+      if (!a || !b) continue;
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
+      const force = (dist - 60) * 0.02 * alpha;
+      const fx = (dx / dist) * force;
+      const fy = (dy / dist) * force;
+      if (!a.isFocus) { a.vx += fx; a.vy += fy; }
+      if (!b.isFocus) { b.vx -= fx; b.vy -= fy; }
+    }
+    // Center gravity
+    for (const n of nodes) {
+      if (n.isFocus) continue;
+      n.vx += (cx - n.x) * 0.01 * alpha;
+      n.vy += (cy - n.y) * 0.01 * alpha;
+    }
+    // Apply velocity
+    for (const n of nodes) {
+      if (n.isFocus) continue;
+      n.x += n.vx * 0.6;
+      n.y += n.vy * 0.6;
+      n.vx *= 0.5;
+      n.vy *= 0.5;
+      // Bound
+      n.x = Math.max(n.size + 4, Math.min(width - n.size - 4, n.x));
+      n.y = Math.max(n.size + 4, Math.min(height - n.size - 4, n.y));
+    }
+  }
+}
+
+function ProviderNetworkPreview({ npi }: { npi: string }) {
+  const [graphNodes, setGraphNodes] = useState<MiniGraphNode[]>([]);
+  const [graphEdges, setGraphEdges] = useState<MiniGraphEdge[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [tooltip, setTooltip] = useState<{ label: string; type: string; x: number; y: number } | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const WIDTH = 560;
+  const HEIGHT = 250;
+
+  useEffect(() => {
+    if (!npi || !/^\d{10}$/.test(npi)) return;
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/intelligence/graph?npi=${npi}&limit=30`);
+        if (!res.ok) throw new Error(`Graph unavailable (${res.status})`);
+        const data = await res.json() as {
+          nodes?: Array<{ id: string; label?: string; type?: string; degree?: number }>;
+          edges?: Array<{ source: string; target: string; type?: string }>;
+          focusNodeId?: string | null;
+        };
+        if (cancelled) return;
+
+        const rawNodes = (data.nodes ?? []).slice(0, 30);
+        const rawEdges = (data.edges ?? []).slice(0, 60);
+        const focusId = data.focusNodeId ?? null;
+
+        // Build mini nodes
+        const nodeIds = new Set(rawNodes.map(n => n.id));
+        const miniNodes: MiniGraphNode[] = rawNodes.map(n => ({
+          id: n.id,
+          label: (n.label ?? n.id).slice(0, 24),
+          type: n.type ?? 'clinician',
+          x: 0, y: 0, vx: 0, vy: 0,
+          size: n.id === focusId ? 10 : Math.min(4 + (n.degree ?? 1), 8),
+          color: NODE_TYPE_COLORS[n.type ?? 'clinician'] ?? getNodeColor('clinician'),
+          isFocus: n.id === focusId,
+        }));
+
+        const miniEdges: MiniGraphEdge[] = rawEdges
+          .filter(e => nodeIds.has(e.source) && nodeIds.has(e.target))
+          .map(e => ({ source: e.source, target: e.target, type: e.type ?? 'related_to' }));
+
+        simpleForceLayout(miniNodes, miniEdges, WIDTH, HEIGHT, 80);
+        setGraphNodes(miniNodes);
+        setGraphEdges(miniEdges);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void load();
+    return () => { cancelled = true; };
+  }, [npi]);
+
+  const nodeMap = new Map(graphNodes.map(n => [n.id, n]));
+
+  return (
+    <OpsCard className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs uppercase tracking-[0.15em] text-[var(--vt-text-3)]">Provider Network</p>
+        <Link
+          href={`/graph?npi=${npi}`}
+          className="text-xs text-cyan-400 transition hover:text-cyan-300"
+        >
+          Open Full Graph →
+        </Link>
+      </div>
+
+      {loading ? (
+        <div className="flex h-[250px] items-center justify-center text-xs text-[var(--vt-text-3)]">
+          Loading graph…
+        </div>
+      ) : error ? (
+        <div className="flex h-[250px] items-center justify-center text-xs text-red-300">
+          {error}
+        </div>
+      ) : graphNodes.length === 0 ? (
+        <div className="flex h-[250px] items-center justify-center text-xs text-[var(--vt-text-3)]">
+          No network data available for this provider.
+        </div>
+      ) : (
+        <div className="relative">
+          <svg
+            ref={svgRef}
+            viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+            className="h-[250px] w-full"
+            style={{ background: 'transparent' }}
+          >
+            {/* Edges */}
+            {graphEdges.map((e, i) => {
+              const s = nodeMap.get(e.source);
+              const t = nodeMap.get(e.target);
+              if (!s || !t) return null;
+              return (
+                <line
+                  key={i}
+                  x1={s.x} y1={s.y} x2={t.x} y2={t.y}
+                  stroke="var(--vt-border)"
+                  strokeWidth={0.8}
+                  strokeOpacity={0.5}
+                />
+              );
+            })}
+            {/* Nodes */}
+            {graphNodes.map((n) => (
+              <g key={n.id}>
+                <circle
+                  cx={n.x} cy={n.y} r={n.size}
+                  fill={n.color}
+                  fillOpacity={n.isFocus ? 1 : 0.75}
+                  stroke={n.isFocus ? 'var(--vt-accent, cyan)' : 'none'}
+                  strokeWidth={n.isFocus ? 2 : 0}
+                  className="cursor-pointer transition-opacity hover:opacity-100"
+                  style={{ opacity: n.isFocus ? 1 : 0.8 }}
+                  onMouseEnter={(ev) => {
+                    const rect = svgRef.current?.getBoundingClientRect();
+                    if (rect) {
+                      setTooltip({
+                        label: n.label,
+                        type: n.type,
+                        x: ev.clientX - rect.left,
+                        y: ev.clientY - rect.top,
+                      });
+                    }
+                  }}
+                  onMouseLeave={() => setTooltip(null)}
+                  onClick={() => {
+                    // Navigate to entity profile
+                    const npiMatch = n.id.match(/npi:(\d{10})/);
+                    if (npiMatch) {
+                      window.location.href = `/providers/${npiMatch[1]}`;
+                    }
+                  }}
+                />
+                {n.isFocus ? (
+                  <text
+                    x={n.x} y={n.y + n.size + 12}
+                    textAnchor="middle"
+                    className="fill-[var(--vt-text-2)] text-[9px] font-medium"
+                  >
+                    {n.label.slice(0, 18)}
+                  </text>
+                ) : null}
+              </g>
+            ))}
+          </svg>
+
+          {/* Tooltip */}
+          {tooltip ? (
+            <div
+              className="pointer-events-none absolute z-10 rounded-lg border border-[var(--vt-border)] bg-[var(--vt-surface)] px-2.5 py-1.5 text-xs shadow-lg"
+              style={{ left: tooltip.x + 12, top: tooltip.y - 8 }}
+            >
+              <p className="font-medium text-[var(--vt-text-1)]">{tooltip.label}</p>
+              <p className="text-[var(--vt-text-3)]">{tooltip.type}</p>
+            </div>
+          ) : null}
+
+          {/* Legend */}
+          <div className="flex flex-wrap gap-x-3 gap-y-1 pt-2">
+            {[...new Set(graphNodes.map(n => n.type))].slice(0, 5).map(t => (
+              <div key={t} className="flex items-center gap-1 text-[10px] text-[var(--vt-text-3)]">
+                <span className="inline-block h-2 w-2 rounded-full" style={{ background: NODE_TYPE_COLORS[t] ?? getNodeColor('clinician') }} />
+                {t}
+              </div>
+            ))}
+            <span className="text-[10px] text-[var(--vt-text-3)]">{graphNodes.length} nodes · {graphEdges.length} edges</span>
+          </div>
+        </div>
+      )}
+    </OpsCard>
+  );
+}
+
 // ── Main Surface ──────────────────────────────────────────────────────────────
 
 export function InvestigationsSurface() {
@@ -360,6 +650,9 @@ export function InvestigationsSurface() {
           <div className="space-y-4">
             {context.provider ? (
               <ProviderContextCard provider={context.provider} navigation={context.navigation} />
+            ) : null}
+            {context.provider ? (
+              <ProviderNetworkPreview npi={context.provider.npi} />
             ) : null}
             {context.finding ? (
               <FindingContextCard finding={context.finding} />
