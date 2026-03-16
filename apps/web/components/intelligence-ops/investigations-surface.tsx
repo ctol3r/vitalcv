@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { OperationsShell } from './shell';
 import { EntityLink, OpsBadge, OpsCard, SurfaceBanner, severityTone } from './primitives';
+import { CopilotSearchBar } from '@/components/copilot/CopilotSearchBar';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -536,6 +537,57 @@ function ProviderNetworkPreview({ npi }: { npi: string }) {
   );
 }
 
+// ── Investigation Copilot ─────────────────────────────────────────────────────
+
+function WorkbenchCopilot({
+  npi,
+  findingId,
+  storylineId,
+}: {
+  npi: string;
+  findingId: string | null;
+  storylineId: string | null;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  const sessionId = `investigation_${npi}_${Date.now().toString(36)}`;
+
+  // Build context-aware placeholder
+  const contextParts: string[] = [`NPI ${npi}`];
+  if (findingId) contextParts.push(`finding ${findingId.slice(0, 12)}`);
+  if (storylineId) contextParts.push(`storyline ${storylineId.slice(0, 12)}`);
+  const placeholder = `Ask about ${contextParts.join(', ')}…`;
+
+  return (
+    <OpsCard className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs uppercase tracking-[0.15em] text-[var(--vt-text-3)]">Investigation Copilot</p>
+        <button
+          onClick={() => setCollapsed(c => !c)}
+          className="text-xs text-[var(--vt-text-3)] transition hover:text-[var(--vt-text-1)]"
+        >
+          {collapsed ? 'Expand' : 'Collapse'}
+        </button>
+      </div>
+
+      {!collapsed ? (
+        <CopilotSearchBar
+          compact
+          sessionId={sessionId}
+          placeholder={placeholder}
+          onNavigateToNpi={(targetNpi) => {
+            window.location.href = `/investigations?npi=${targetNpi}`;
+          }}
+          autoFocus={false}
+        />
+      ) : (
+        <p className="text-xs text-[var(--vt-text-3)]">
+          Copilot ready — {contextParts.join(' · ')}
+        </p>
+      )}
+    </OpsCard>
+  );
+}
+
 // ── Main Surface ──────────────────────────────────────────────────────────────
 
 export function InvestigationsSurface() {
@@ -659,6 +711,15 @@ export function InvestigationsSurface() {
             ) : null}
             {context.storyline ? (
               <StorylineContextCard storyline={context.storyline} />
+            ) : null}
+
+            {/* Investigation Copilot */}
+            {context.provider ? (
+              <WorkbenchCopilot
+                npi={context.provider.npi}
+                findingId={context.finding?.id ?? null}
+                storylineId={context.storyline?.id ?? null}
+              />
             ) : null}
 
             {/* Empty state */}

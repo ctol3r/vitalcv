@@ -13,6 +13,7 @@ const DEFAULT_NAV = [
   { href: '/actions', label: 'Actions' },
   { href: '/providers', label: 'Providers' },
   { href: '/investigations', label: 'Investigations' },
+  { href: '/calibration', label: 'Calibration' },
   { href: '/system-health', label: 'System Health' },
 ] as const;
 
