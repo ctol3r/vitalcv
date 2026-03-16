@@ -76,20 +76,20 @@ export function RightPanel({
           </p>
           <div className="mt-4 grid gap-3">
             {sources.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-white/60">
+              <div className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-4 text-sm text-[var(--vt-text-2)]">
                 No source evidence is available for the current scope.
               </div>
             ) : (
               sources.map((source) => (
-                <article key={source.id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                <article key={source.id} className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h3 className="text-sm font-semibold text-white">{source.title}</h3>
-                      <p className="mt-1 text-xs leading-5 text-white/60">{source.detail}</p>
+                      <h3 className="text-sm font-semibold text-[var(--vt-text-1)]">{source.title}</h3>
+                      <p className="mt-1 text-xs leading-5 text-[var(--vt-text-2)]">{source.detail}</p>
                     </div>
                     <ToneBadge tone="neutral" label={source.kind} />
                   </div>
-                  <div className="mt-3 text-[11px] uppercase tracking-[0.16em] text-white/40">
+                  <div className="mt-3 text-[11px] uppercase tracking-[0.16em] text-[var(--vt-text-3)]">
                     {source.source ?? 'Unspecified source'}
                     {source.observedAt ? ` • ${new Date(source.observedAt).toLocaleString('en-US')}` : ''}
                   </div>
@@ -121,11 +121,11 @@ export function RightPanel({
               />
             ))}
             {(systemHealth?.incidents ?? alerts.filter((alert) => alert.source === 'system')).slice(0, 3).map((incident) => (
-              <article key={incident.id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <article key={incident.id} className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 className="text-sm font-semibold text-white">{incident.title}</h3>
-                    <p className="mt-1 text-xs leading-5 text-white/60">{incident.summary}</p>
+                    <h3 className="text-sm font-semibold text-[var(--vt-text-1)]">{incident.title}</h3>
+                    <p className="mt-1 text-xs leading-5 text-[var(--vt-text-2)]">{incident.summary}</p>
                   </div>
                   <ToneBadge
                     tone={incident.severity === 'critical' ? 'critical' : incident.severity === 'high' ? 'degraded' : 'neutral'}

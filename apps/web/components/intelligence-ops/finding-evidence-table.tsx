@@ -31,15 +31,15 @@ export function FindingEvidenceTable({
   return (
     <OpsCard className="space-y-4 overflow-hidden">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-white">Evidence</h2>
-        <span className="text-sm text-slate-400">{rows.length} sources</span>
+        <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Evidence</h2>
+        <span className="text-sm text-[var(--vt-text-3)]">{rows.length} sources</span>
       </div>
 
       {rows.length > 0 ? (
         <>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-white/10 text-sm">
-              <thead className="text-left text-xs uppercase tracking-[0.18em] text-slate-500">
+              <thead className="text-left text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">
                 <tr>
                   <th className="pb-3 pr-4 font-medium">Source</th>
                   <th className="pb-3 pr-4 font-medium">Field</th>
@@ -58,12 +58,12 @@ export function FindingEvidenceTable({
                               href={row.url}
                               target="_blank"
                               rel="noreferrer"
-                              className="font-medium text-cyan-200 transition hover:text-cyan-100"
+                              className="font-medium text-cyan-200 transition hover:text-[var(--vt-accent)]"
                             >
                               {row.sourceName}
                             </Link>
                           ) : (
-                            <span className="font-medium text-slate-200">{row.sourceName}</span>
+                            <span className="font-medium text-[var(--vt-text-2)]">{row.sourceName}</span>
                           )}
                           {row.degraded ? (
                             <span title="This source is currently degraded." className="inline-flex items-center text-amber-200">
@@ -74,13 +74,13 @@ export function FindingEvidenceTable({
                         <ConfidenceMeter confidence={row.confidence} />
                       </div>
                     </td>
-                    <td className="py-3 pr-4 text-slate-300">{row.field}</td>
-                    <td className="py-3 pr-4 text-slate-300">
+                    <td className="py-3 pr-4 text-[var(--vt-text-2)]">{row.field}</td>
+                    <td className="py-3 pr-4 text-[var(--vt-text-2)]">
                       <div className="max-w-xl whitespace-pre-wrap break-words leading-6">
                         {row.value}
                       </div>
                     </td>
-                    <td className="py-3 text-slate-400">
+                    <td className="py-3 text-[var(--vt-text-3)]">
                       {row.retrievedAt ? (
                         <span title={formatAbsoluteTime(row.retrievedAt)}>
                           {formatRelativeTime(row.retrievedAt)}
@@ -97,14 +97,14 @@ export function FindingEvidenceTable({
             <button
               type="button"
               onClick={() => setExpanded((current) => !current)}
-              className="text-sm text-cyan-200 transition hover:text-cyan-100"
+              className="text-sm text-cyan-200 transition hover:text-[var(--vt-accent)]"
             >
               {expanded ? 'Show fewer sources' : `Show ${hiddenCount} more sources`}
             </button>
           ) : null}
         </>
       ) : (
-        <p className="text-sm text-slate-400">Evidence pending — sources still corroborating</p>
+        <p className="text-sm text-[var(--vt-text-3)]">Evidence pending — sources still corroborating</p>
       )}
     </OpsCard>
   );

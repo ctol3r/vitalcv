@@ -99,7 +99,7 @@ export function CopilotPanel({ provider }: CopilotPanelProps) {
     >
       <div className="grid gap-3">
         {/* Input row */}
-        <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 transition focus-within:border-fuchsia-300/30">
+        <div className="flex items-center gap-2 rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 transition focus-within:border-fuchsia-300/30">
           <Sparkles className="h-4 w-4 shrink-0 text-fuchsia-300/60" />
           <input
             value={query}
@@ -113,7 +113,7 @@ export function CopilotPanel({ provider }: CopilotPanelProps) {
                 void runCopilot();
               }
             }}
-            className="flex-1 bg-transparent py-1 text-sm text-white outline-none placeholder:text-white/25"
+            className="flex-1 bg-transparent py-1 text-sm text-[var(--vt-text-1)] outline-none placeholder:text-[var(--vt-text-3)]"
             placeholder="Ask about trust posture, findings, or next actions…"
           />
           <button
@@ -136,7 +136,7 @@ export function CopilotPanel({ provider }: CopilotPanelProps) {
                 setQuery(suggestion);
                 setError(null);
               }}
-              className="truncate rounded-xl border border-transparent px-3 py-1.5 text-left text-xs text-white/50 transition hover:border-white/10 hover:bg-white/[0.04] hover:text-white/80"
+              className="truncate rounded-xl border border-transparent px-3 py-1.5 text-left text-xs text-[var(--vt-text-3)] transition hover:border-[var(--vt-border)] hover:bg-[var(--vt-surface-2)] hover:text-[var(--vt-text-2)]"
             >
               {suggestion}
             </button>
@@ -152,14 +152,14 @@ export function CopilotPanel({ provider }: CopilotPanelProps) {
         >
           <div className="grid gap-3">
             {results.map((result) => (
-              <article key={result.id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <article key={result.id} className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 className="text-sm font-semibold text-white">{result.title}</h3>
-                    <p className="mt-1 text-xs leading-5 text-white/60">{result.summary}</p>
+                    <h3 className="text-sm font-semibold text-[var(--vt-text-1)]">{result.title}</h3>
+                    <p className="mt-1 text-xs leading-5 text-[var(--vt-text-2)]">{result.summary}</p>
                   </div>
                   {typeof result.trustScore === 'number' ? (
-                    <span className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/80">
+                    <span className="rounded-full border border-[var(--vt-border)] px-2.5 py-1 text-[11px] font-semibold text-[var(--vt-text-2)]">
                       {Math.round(result.trustScore)}
                     </span>
                   ) : null}
@@ -169,7 +169,7 @@ export function CopilotPanel({ provider }: CopilotPanelProps) {
                     {result.sourceCoverage.map((source) => (
                       <span
                         key={`${result.id}-${source}`}
-                        className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] font-medium text-white/75"
+                        className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-2.5 py-1 text-[11px] font-medium text-[var(--vt-text-2)]"
                       >
                         {source}
                       </span>

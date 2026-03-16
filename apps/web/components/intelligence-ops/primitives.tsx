@@ -7,11 +7,11 @@ import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time'
 type BadgeTone = 'neutral' | 'critical' | 'warning' | 'success' | 'info';
 
 const BADGE_TONES: Record<BadgeTone, string> = {
-  neutral: 'border-white/10 bg-white/5 text-slate-200',
-  critical: 'border-red-400/25 bg-red-500/10 text-red-200',
-  warning: 'border-amber-400/25 bg-amber-500/10 text-amber-100',
-  success: 'border-emerald-400/25 bg-emerald-500/10 text-emerald-100',
-  info: 'border-cyan-400/25 bg-cyan-500/10 text-cyan-100',
+  neutral:  'border-[var(--vt-badge-neutral-border)] bg-[var(--vt-badge-neutral-bg)] text-[var(--vt-badge-neutral-text)]',
+  critical: 'border-[var(--vt-badge-critical-border)] bg-[var(--vt-badge-critical-bg)] text-[var(--vt-badge-critical-text)]',
+  warning:  'border-[var(--vt-badge-warning-border)] bg-[var(--vt-badge-warning-bg)] text-[var(--vt-badge-warning-text)]',
+  success:  'border-[var(--vt-badge-success-border)] bg-[var(--vt-badge-success-bg)] text-[var(--vt-badge-success-text)]',
+  info:     'border-[var(--vt-badge-info-border)] bg-[var(--vt-badge-info-bg)] text-[var(--vt-badge-info-text)]',
 };
 
 export function severityTone(value: string): BadgeTone {
@@ -50,27 +50,23 @@ export function severityTone(value: string): BadgeTone {
   }
 }
 
-/** Returns a Tailwind text-color class based on a 0–100 risk score.
- *  High risk → red, medium → amber, low → emerald, minimal → slate.
- */
+/** Returns a CSS color style for a 0–100 risk score. */
 export function riskScoreColor(score: number): string {
-  if (score >= 75) return 'text-red-300';
-  if (score >= 50) return 'text-amber-200';
-  if (score >= 25) return 'text-emerald-300';
-  return 'text-slate-300';
+  if (score >= 75) return 'text-[var(--vt-critical)]';
+  if (score >= 50) return 'text-[var(--vt-warning)]';
+  if (score >= 25) return 'text-[var(--vt-success)]';
+  return 'text-[var(--vt-text-2)]';
 }
 
-/** Returns a Tailwind text-color class based on a 0–100 trust score.
- *  High trust → emerald, medium → cyan, low → amber, minimal → slate.
- */
+/** Returns a CSS color style for a 0–100 trust score. */
 export function trustScoreColor(score: number): string {
-  if (score >= 75) return 'text-emerald-300';
-  if (score >= 50) return 'text-cyan-300';
-  if (score >= 25) return 'text-amber-200';
-  return 'text-slate-300';
+  if (score >= 75) return 'text-[var(--vt-success)]';
+  if (score >= 50) return 'text-[var(--vt-info)]';
+  if (score >= 25) return 'text-[var(--vt-warning)]';
+  return 'text-[var(--vt-text-2)]';
 }
 
-/** Confidence meter — renders a small labeled bar in place of a plain badge. */
+/** Confidence meter — renders a small labeled bar. */
 export function ConfidenceMeter({
   confidence,
   className,
@@ -80,17 +76,17 @@ export function ConfidenceMeter({
 }) {
   const pct = Math.round(Math.max(0, Math.min(1, confidence)) * 100);
   const colorClass =
-    pct >= 80 ? 'bg-emerald-400' :
-    pct >= 60 ? 'bg-cyan-400' :
-    pct >= 40 ? 'bg-amber-400' :
-    'bg-red-400';
+    pct >= 80 ? 'bg-[var(--vt-success)]' :
+    pct >= 60 ? 'bg-[var(--vt-info)]' :
+    pct >= 40 ? 'bg-[var(--vt-warning)]' :
+    'bg-[var(--vt-critical)]';
 
   return (
     <div className={cn('flex items-center gap-2', className)}>
-      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-white/10">
+      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[var(--vt-border)]">
         <div className={cn('h-full rounded-full transition-all', colorClass)} style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-xs tabular-nums text-slate-400">{pct}%</span>
+      <span className="text-xs tabular-nums text-[var(--vt-text-3)]">{pct}%</span>
     </div>
   );
 }
@@ -104,7 +100,7 @@ export function OpsCard({
 }) {
   return (
     <section className={cn(
-      'rounded-[24px] border border-white/10 bg-slate-950/60 p-5 shadow-[0_22px_60px_rgba(2,6,23,0.35)] backdrop-blur',
+      'rounded-[24px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-5 shadow-[var(--vt-shadow-md)]',
       className,
     )}
     >
@@ -119,9 +115,9 @@ export function OpsCardSkeleton({ rows = 3 }: { rows?: number }) {
     <OpsCard className="space-y-4">
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="space-y-2 animate-pulse">
-          <div className="h-3 w-24 rounded-full bg-white/10" />
-          <div className="h-5 w-3/4 rounded-full bg-white/8" />
-          <div className="h-3 w-1/2 rounded-full bg-white/5" />
+          <div className="h-3 w-24 rounded-full bg-[var(--vt-border)]" />
+          <div className="h-5 w-3/4 rounded-full bg-[var(--vt-surface-2)]" />
+          <div className="h-3 w-1/2 rounded-full bg-[var(--vt-surface-2)]" />
         </div>
       ))}
     </OpsCard>
@@ -161,7 +157,7 @@ export function TimestampPair({
   }
 
   return (
-    <span title={formatAbsoluteTime(value)} className="text-xs text-slate-400">
+    <span title={formatAbsoluteTime(value)} className="text-xs text-[var(--vt-text-3)]">
       {label} {formatRelativeTime(value)}
     </span>
   );
@@ -177,8 +173,8 @@ export function SurfaceEmptyState({
   return (
     <OpsCard className="border-dashed text-center">
       <div className="mx-auto max-w-xl space-y-2 py-8">
-        <h2 className="text-lg font-semibold text-white">{title}</h2>
-        <p className="text-sm leading-6 text-slate-400">{description}</p>
+        <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">{title}</h2>
+        <p className="text-sm leading-6 text-[var(--vt-text-2)]">{description}</p>
       </div>
     </OpsCard>
   );
@@ -194,20 +190,20 @@ export function SurfaceErrorState({
   onRetry?: () => void;
 }) {
   return (
-    <OpsCard className="border-red-400/20">
+    <OpsCard className="border-[var(--vt-badge-critical-border)]">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <AlertTriangle className="mt-0.5 h-5 w-5 text-red-300" />
+          <AlertTriangle className="mt-0.5 h-5 w-5 text-[var(--vt-critical)]" />
           <div className="space-y-1">
-            <h2 className="text-lg font-semibold text-white">{title}</h2>
-            <p className="text-sm leading-6 text-slate-300">{description}</p>
+            <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">{title}</h2>
+            <p className="text-sm leading-6 text-[var(--vt-text-2)]">{description}</p>
           </div>
         </div>
         {onRetry ? (
           <button
             type="button"
             onClick={onRetry}
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-4 py-2 text-sm font-medium text-[var(--vt-text-1)] transition hover:bg-[var(--vt-border)]"
           >
             <RefreshCw className="h-4 w-4" />
             Retry
@@ -219,8 +215,8 @@ export function SurfaceErrorState({
 }
 
 const BANNER_ICONS: Partial<Record<BadgeTone, React.ReactNode>> = {
-  critical: <AlertTriangle className="h-4 w-4 shrink-0 text-red-300" />,
-  warning: <AlertTriangle className="h-4 w-4 shrink-0 text-amber-300" />,
+  critical: <AlertTriangle className="h-4 w-4 shrink-0 text-[var(--vt-critical)]" />,
+  warning: <AlertTriangle className="h-4 w-4 shrink-0 text-[var(--vt-warning)]" />,
 };
 
 export function SurfaceBanner({
@@ -257,7 +253,7 @@ export function PaginationControls({
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-300">
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-3 text-sm text-[var(--vt-text-2)]">
       <span>
         Page {page} of {totalPages}
       </span>
@@ -268,8 +264,8 @@ export function PaginationControls({
           className={cn(
             'rounded-full border px-3 py-1.5 transition',
             page <= 1
-              ? 'pointer-events-none border-white/5 text-slate-600'
-              : 'border-white/10 bg-white/5 text-white hover:bg-white/10',
+              ? 'pointer-events-none border-[var(--vt-border-2)] text-[var(--vt-text-3)]'
+              : 'border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-1)] hover:bg-[var(--vt-border)]',
           )}
         >
           Previous
@@ -280,8 +276,8 @@ export function PaginationControls({
           className={cn(
             'rounded-full border px-3 py-1.5 transition',
             page >= totalPages
-              ? 'pointer-events-none border-white/5 text-slate-600'
-              : 'border-white/10 bg-white/5 text-white hover:bg-white/10',
+              ? 'pointer-events-none border-[var(--vt-border-2)] text-[var(--vt-text-3)]'
+              : 'border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-1)] hover:bg-[var(--vt-border)]',
           )}
         >
           Next
@@ -301,7 +297,7 @@ export function BackLink({
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:text-white"
+      className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-1.5 text-sm font-medium text-[var(--vt-text-2)] transition hover:bg-[var(--vt-border)] hover:text-[var(--vt-text-1)]"
     >
       <ArrowLeft className="h-4 w-4" />
       {label}
@@ -319,7 +315,7 @@ export function EntityLink({
   return (
     <Link
       href={href}
-      className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-200 transition hover:bg-white/10 hover:text-white"
+      className="inline-flex items-center rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-1 text-xs font-medium text-[var(--vt-text-2)] transition hover:bg-[var(--vt-border)] hover:text-[var(--vt-text-1)]"
     >
       {label}
     </Link>
@@ -342,7 +338,7 @@ export function BadgeLink({
       <OpsBadge
         label={label}
         tone={tone}
-        className="cursor-pointer hover:border-white/20 hover:text-white"
+        className="cursor-pointer"
       />
     </Link>
   );

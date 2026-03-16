@@ -96,7 +96,7 @@ export function ActionsSurface() {
       breadcrumbs={[{ label: 'Actions' }]}
       meta={(
         <div className="space-y-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Action queue</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Action queue</p>
           <p>{actions.data?.total ?? 0} total actions</p>
           {actions.lastUpdated ? (
             <p title={formatAbsoluteTime(actions.lastUpdated)}>Updated {formatRelativeTime(actions.lastUpdated)}</p>
@@ -107,7 +107,7 @@ export function ActionsSurface() {
         <button
           type="button"
           onClick={actions.refresh}
-          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+          className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-4 py-2 text-sm font-medium text-[var(--vt-text-1)] transition hover:bg-[var(--vt-surface-2)]"
         >
           <RefreshCw className="h-4 w-4" />
           Refresh
@@ -142,20 +142,20 @@ export function ActionsSurface() {
           }}
         >
           <label className="space-y-1 text-sm">
-            <span className="text-slate-400">Target entity</span>
+            <span className="text-[var(--vt-text-3)]">Target entity</span>
             <input
               value={draftFilters.entity}
               onChange={(event) => setDraftFilters((current) => ({ ...current, entity: event.target.value }))}
               placeholder="NPI or label"
-              className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-white placeholder:text-slate-500"
+              className="w-full rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-[var(--vt-text-1)] placeholder:text-[var(--vt-text-3)]"
             />
           </label>
           <label className="space-y-1 text-sm">
-            <span className="text-slate-400">Priority</span>
+            <span className="text-[var(--vt-text-3)]">Priority</span>
             <select
               value={draftFilters.priority}
               onChange={(event) => setDraftFilters((current) => ({ ...current, priority: event.target.value }))}
-              className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-white"
+              className="w-full rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-[var(--vt-text-1)]"
             >
               <option value="">All priorities</option>
               <option value="critical">Critical</option>
@@ -165,11 +165,11 @@ export function ActionsSurface() {
             </select>
           </label>
           <label className="space-y-1 text-sm">
-            <span className="text-slate-400">Status</span>
+            <span className="text-[var(--vt-text-3)]">Status</span>
             <select
               value={draftFilters.status}
               onChange={(event) => setDraftFilters((current) => ({ ...current, status: event.target.value }))}
-              className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-white"
+              className="w-full rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-[var(--vt-text-1)]"
             >
               <option value="">All statuses</option>
               <option value="pending">Pending</option>
@@ -179,18 +179,18 @@ export function ActionsSurface() {
             </select>
           </label>
           <label className="space-y-1 text-sm">
-            <span className="text-slate-400">Action type</span>
+            <span className="text-[var(--vt-text-3)]">Action type</span>
             <input
               value={draftFilters.actionType}
               onChange={(event) => setDraftFilters((current) => ({ ...current, actionType: event.target.value }))}
               placeholder="VERIFY_LICENSE"
-              className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-white placeholder:text-slate-500"
+              className="w-full rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-[var(--vt-text-1)] placeholder:text-[var(--vt-text-3)]"
             />
           </label>
           <div className="flex flex-wrap items-end gap-2 md:col-span-2 xl:col-span-4">
             <button
               type="submit"
-              className="rounded-full bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
+              className="rounded-full bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-[var(--vt-accent)]"
             >
               Apply filters
             </button>
@@ -206,7 +206,7 @@ export function ActionsSurface() {
                 setDraftFilters(cleared);
                 pushWithParams(1, cleared);
               }}
-              className="rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/5 hover:text-white"
+              className="rounded-full border border-[var(--vt-border)] px-4 py-2 text-sm font-medium text-[var(--vt-text-2)] transition hover:bg-[var(--vt-surface-2)] hover:text-[var(--vt-text-1)]"
             >
               Clear
             </button>
@@ -247,11 +247,11 @@ export function ActionsSurface() {
                       pathname: `/actions/${action.id}`,
                       query: { from: currentHref },
                     }}
-                    className="block text-xl font-semibold text-white transition hover:text-cyan-200"
+                    className="block text-xl font-semibold text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]"
                   >
                     {action.title}
                   </Link>
-                  <p className="max-w-3xl text-sm leading-6 text-slate-300">{action.explanation}</p>
+                  <p className="max-w-3xl text-sm leading-6 text-[var(--vt-text-2)]">{action.explanation}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {action.providerNpi ? (
@@ -270,17 +270,17 @@ export function ActionsSurface() {
                     />
                   ) : null}
                   {action.targetLabel && !action.providerNpi ? (
-                    <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
+                    <span className="inline-flex items-center rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-1 text-xs text-[var(--vt-text-2)]">
                       {action.targetLabel}
                     </span>
                   ) : null}
                 </div>
               </div>
 
-              <div className="flex min-w-[15rem] flex-col gap-3 rounded-3xl border border-white/10 bg-black/20 p-4">
+              <div className="flex min-w-[15rem] flex-col gap-3 rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
                 <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Queue signals</p>
-                  <p className="text-sm text-slate-200">Priority score {Math.round(action.priorityScore)}</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Queue signals</p>
+                  <p className="text-sm text-[var(--vt-text-2)]">Priority score {Math.round(action.priorityScore)}</p>
                   <ConfidenceMeter confidence={action.confidence} />
                   <TimestampPair label="Created" value={action.createdAt} />
                 </div>
@@ -289,20 +289,20 @@ export function ActionsSurface() {
             </div>
 
             {action.evidence.length > 0 ? (
-              <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Evidence preview</p>
-                <ul className="space-y-2 text-sm text-slate-300">
+              <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Evidence preview</p>
+                <ul className="space-y-2 text-sm text-[var(--vt-text-2)]">
                   {action.evidence.slice(0, 2).map((evidence) => (
                     <li key={`${evidence.id}-${evidence.label}`} className="space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium text-white">{evidence.label}</span>
+                        <span className="font-medium text-[var(--vt-text-1)]">{evidence.label}</span>
                         {evidence.observedAt ? (
-                          <span className="text-xs text-slate-500" title={formatAbsoluteTime(evidence.observedAt)}>
+                          <span className="text-xs text-[var(--vt-text-3)]" title={formatAbsoluteTime(evidence.observedAt)}>
                             {formatRelativeTime(evidence.observedAt)}
                           </span>
                         ) : null}
                       </div>
-                      {evidence.snippet ? <p className="text-slate-400">{evidence.snippet}</p> : null}
+                      {evidence.snippet ? <p className="text-[var(--vt-text-3)]">{evidence.snippet}</p> : null}
                     </li>
                   ))}
                 </ul>
@@ -322,7 +322,7 @@ export function ActionsSurface() {
 
       {total > 0 ? (
         <OpsCard className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <p className="text-sm text-slate-300">
+          <p className="text-sm text-[var(--vt-text-2)]">
             {formatPaginationSummary({
               page,
               limit: PAGE_SIZE,

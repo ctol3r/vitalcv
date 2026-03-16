@@ -57,7 +57,7 @@ export function StorylineDetailClient({
       ]}
       meta={(
         <div className="space-y-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Storyline detail</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Storyline detail</p>
           <p title={formatAbsoluteTime(detail.storyline.lastActivityAt)}>
             Active {formatRelativeTime(detail.storyline.lastActivityAt)}
           </p>
@@ -86,9 +86,9 @@ export function StorylineDetailClient({
               <OpsBadge label={detail.storyline.severity} tone={severityTone(detail.storyline.severity)} />
               <OpsBadge label={detail.storyline.status} tone={severityTone(detail.storyline.status)} />
               <OpsBadge label={detail.storyline.storylineType} />
-              <span className="text-sm text-slate-400">{detail.storyline.perspective}</span>
+              <span className="text-sm text-[var(--vt-text-3)]">{detail.storyline.perspective}</span>
             </div>
-            <p className="text-sm leading-7 text-slate-300">{detail.storyline.whyItMatters}</p>
+            <p className="text-sm leading-7 text-[var(--vt-text-2)]">{detail.storyline.whyItMatters}</p>
             <div className="flex flex-wrap gap-2">
               {providerLinks.map((entity) => (
                 <EntityLink
@@ -102,8 +102,8 @@ export function StorylineDetailClient({
 
           <OpsCard className="space-y-4">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-white">Timeline</h2>
-              <span className="text-sm text-slate-400">{detail.storyline.timeline.events.length} events</span>
+              <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Timeline</h2>
+              <span className="text-sm text-[var(--vt-text-3)]">{detail.storyline.timeline.events.length} events</span>
             </div>
             <VerticalTimeline
               items={detail.storyline.timeline.events.map((event) => ({
@@ -122,19 +122,19 @@ export function StorylineDetailClient({
 
           <OpsCard className="space-y-4">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-white">Evidence</h2>
-              <span className="text-sm text-slate-400">{detail.storyline.supportingEvidence.length} items</span>
+              <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Evidence</h2>
+              <span className="text-sm text-[var(--vt-text-3)]">{detail.storyline.supportingEvidence.length} items</span>
             </div>
             {detail.storyline.supportingEvidence.length > 0 ? (
               <div className="space-y-3">
                 {detail.storyline.supportingEvidence.map((evidence) => (
-                  <div key={`${evidence.source}-${evidence.observedAt}-${evidence.bullet}`} className="rounded-3xl border border-white/10 bg-black/20 p-4">
+                  <div key={`${evidence.source}-${evidence.observedAt}-${evidence.bullet}`} className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <OpsBadge label={evidence.source} />
-                      <span className="text-sm text-slate-400">Confidence {Math.round(evidence.confidence * 100)}%</span>
+                      <span className="text-sm text-[var(--vt-text-3)]">Confidence {Math.round(evidence.confidence * 100)}%</span>
                       <TimestampPair label="Observed" value={evidence.observedAt} />
                     </div>
-                    <p className="mt-3 text-sm leading-6 text-slate-300">{evidence.bullet}</p>
+                    <p className="mt-3 text-sm leading-6 text-[var(--vt-text-2)]">{evidence.bullet}</p>
                     {evidence.findingId ? (
                       <div className="mt-3">
                         <EntityLink href={`/findings/${evidence.findingId}?from=/storylines/${storylineId}`} label={`Finding ${evidence.findingId}`} />
@@ -144,37 +144,37 @@ export function StorylineDetailClient({
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-slate-400">No supporting evidence has been attached to this storyline.</p>
+              <p className="text-sm text-[var(--vt-text-3)]">No supporting evidence has been attached to this storyline.</p>
             )}
           </OpsCard>
 
           <OpsCard className="space-y-4">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-white">Linked findings</h2>
-              <span className="text-sm text-slate-400">{detail.findingLinks.length} findings</span>
+              <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Linked findings</h2>
+              <span className="text-sm text-[var(--vt-text-3)]">{detail.findingLinks.length} findings</span>
             </div>
             {detail.findingLinks.length > 0 ? (
               <div className="space-y-3">
                 {detail.findingLinks.map((link) => (
-                  <div key={link.findingId} className="rounded-3xl border border-white/10 bg-black/20 p-4">
+                  <div key={link.findingId} className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <OpsBadge label={link.findingSeverity} tone={severityTone(link.findingSeverity)} />
                       <OpsBadge label={link.findingCategory.replace(/_/g, ' ')} />
-                      <span className="text-sm text-slate-400">Weight {Math.round(link.weight * 100)}%</span>
+                      <span className="text-sm text-[var(--vt-text-3)]">Weight {Math.round(link.weight * 100)}%</span>
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-3">
-                      <Link href={`/findings/${link.findingId}?from=/storylines/${storylineId}`} className="text-sm font-medium text-cyan-200 transition hover:text-cyan-100">
+                      <Link href={`/findings/${link.findingId}?from=/storylines/${storylineId}`} className="text-sm font-medium text-cyan-200 transition hover:text-[var(--vt-accent)]">
                         Open finding {link.findingId}
                       </Link>
                       {providerLinks[0] ? (
                         <Link
                           href={`/providers/${providerLinks[0].entityKey}?from=/storylines/${storylineId}`}
-                          className="text-sm font-medium text-slate-300 transition hover:text-white"
+                          className="text-sm font-medium text-[var(--vt-text-2)] transition hover:text-[var(--vt-text-1)]"
                         >
                           Open provider
                         </Link>
                       ) : null}
-                      <span className="text-sm text-slate-400" title={formatAbsoluteTime(link.observedAt)}>
+                      <span className="text-sm text-[var(--vt-text-3)]" title={formatAbsoluteTime(link.observedAt)}>
                         {formatRelativeTime(link.observedAt)}
                       </span>
                     </div>
@@ -182,21 +182,21 @@ export function StorylineDetailClient({
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-slate-400">No finding links were recorded for this storyline.</p>
+              <p className="text-sm text-[var(--vt-text-3)]">No finding links were recorded for this storyline.</p>
             )}
           </OpsCard>
         </div>
 
         <div className="space-y-4">
           <OpsCard className="space-y-4">
-            <h2 className="text-lg font-semibold text-white">Triage</h2>
+            <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Triage</h2>
             <StorylineMutationControls storylineId={detail.storyline.storylineId} status={detail.storyline.status} />
           </OpsCard>
 
           <OpsCard className="space-y-3">
-            <h2 className="text-lg font-semibold text-white">Provider reference</h2>
-            <p className="text-sm text-slate-300">Finding count {detail.findingLinks.length}</p>
-            <p className="text-sm text-slate-300">Max severity {maxFindingSeverity}</p>
+            <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Provider reference</h2>
+            <p className="text-sm text-[var(--vt-text-2)]">Finding count {detail.findingLinks.length}</p>
+            <p className="text-sm text-[var(--vt-text-2)]">Max severity {maxFindingSeverity}</p>
             <TimestampPair label="Created" value={detail.storyline.createdAt} />
             <TimestampPair label="Updated" value={detail.storyline.updatedAt} />
             {providerLinks.length > 0 ? (
@@ -210,20 +210,20 @@ export function StorylineDetailClient({
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-slate-400">No provider reference was attached to this storyline.</p>
+              <p className="text-sm text-[var(--vt-text-3)]">No provider reference was attached to this storyline.</p>
             )}
           </OpsCard>
 
           <OpsCard className="space-y-3">
-            <h2 className="text-lg font-semibold text-white">Narrative metrics</h2>
-            <p className="text-sm text-slate-300">Progression {Math.round(detail.storyline.progressionScore * 100)}%</p>
-            <p className="text-sm text-slate-300">Novelty {Math.round(detail.storyline.noveltyScore * 100)}%</p>
-            <p className="text-sm text-slate-300">Persistence {Math.round(detail.storyline.persistenceScore * 100)}%</p>
-            <p className="text-sm text-slate-300">Confidence {Math.round(detail.storyline.confidence * 100)}%</p>
+            <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Narrative metrics</h2>
+            <p className="text-sm text-[var(--vt-text-2)]">Progression {Math.round(detail.storyline.progressionScore * 100)}%</p>
+            <p className="text-sm text-[var(--vt-text-2)]">Novelty {Math.round(detail.storyline.noveltyScore * 100)}%</p>
+            <p className="text-sm text-[var(--vt-text-2)]">Persistence {Math.round(detail.storyline.persistenceScore * 100)}%</p>
+            <p className="text-sm text-[var(--vt-text-2)]">Confidence {Math.round(detail.storyline.confidence * 100)}%</p>
           </OpsCard>
 
           <OpsCard className="space-y-3">
-            <h2 className="text-lg font-semibold text-white">Action events</h2>
+            <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Action events</h2>
             <VerticalTimeline
               items={detail.actionEvents.map((event) => ({
                 id: event.eventKey,

@@ -152,14 +152,14 @@ export function GraphPanel({
                   <Layers className="h-3 w-3" />
                 </ToolbarButton>
               </div>
-              <div className="flex items-center gap-1 text-[10px] text-white/30">
+              <div className="flex items-center gap-1 text-[10px] text-[var(--vt-text-3)]">
                 <Maximize2 className="h-2.5 w-2.5" />
                 <span>scroll to zoom · drag to pan · click to select</span>
               </div>
             </div>
 
             {/* Canvas */}
-            <div className="relative rounded-2xl border border-white/10 bg-slate-950/70 p-2 overflow-hidden">
+            <div className="relative rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-2 overflow-hidden">
               <GraphCanvas
                 key={resetKey}
                 nodes={graph.nodes}
@@ -193,7 +193,7 @@ export function GraphPanel({
               {/* Focus label overlay */}
               {selectedNodeId && (
                 <div className="pointer-events-none absolute bottom-3 left-3">
-                  <span className="rounded-full border border-yellow-400/20 bg-slate-950/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-yellow-200/80 backdrop-blur">
+                  <span className="rounded-full border border-yellow-400/20 bg-[var(--vt-surface)]/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-yellow-200/80 backdrop-blur">
                     focus
                   </span>
                 </div>
@@ -202,8 +202,8 @@ export function GraphPanel({
 
             {/* Legend */}
             {showLegend && legendEntries.length > 0 && (
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">Node types</p>
+              <div className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-3">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-1)]/35">Node types</p>
                 <div className="flex flex-wrap gap-2">
                   {legendEntries.map((entry) => (
                     <div key={entry.type} className="flex items-center gap-1.5">
@@ -211,7 +211,7 @@ export function GraphPanel({
                         className="h-2 w-2 rounded-full shrink-0"
                         style={{ backgroundColor: entry.color }}
                       />
-                      <span className="text-[10px] text-white/55">{entry.label}</span>
+                      <span className="text-[10px] text-[var(--vt-text-3)]">{entry.label}</span>
                     </div>
                   ))}
                 </div>
@@ -255,7 +255,7 @@ function ToolbarButton({
       className={`flex h-6 w-6 items-center justify-center rounded-lg border transition ${
         active
           ? 'border-cyan-400/30 bg-cyan-400/10 text-cyan-300'
-          : 'border-white/10 bg-white/[0.04] text-white/40 hover:border-white/20 hover:text-white/70'
+          : 'border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-3)] hover:border-[var(--vt-border)] hover:text-[var(--vt-text-2)]'
       }`}
     >
       {children}
@@ -285,16 +285,16 @@ function EdgeLegendItem({
           strokeDasharray={dash ? '3,3' : undefined}
         />
       </svg>
-      <span className="text-[10px] text-white/50">{label}</span>
+      <span className="text-[10px] text-[var(--vt-text-3)]">{label}</span>
     </div>
   );
 }
 
 function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
-      <p className="text-[10px] uppercase tracking-[0.18em] text-white/40">{label}</p>
-      <p className="mt-1.5 text-sm font-semibold tabular-nums text-white">{value}</p>
+    <div className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-3">
+      <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">{label}</p>
+      <p className="mt-1.5 text-sm font-semibold tabular-nums text-[var(--vt-text-1)]">{value}</p>
     </div>
   );
 }

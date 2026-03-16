@@ -14,18 +14,20 @@
 @custom-variant dark (&:is(.dark *));
 
 /* Smooth theme transition — color/background only, no layout shifts */
-*,
-*::before,
-*::after {
-  transition-property: color, background-color, border-color, fill, stroke;
-  transition-duration: 150ms;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
+@media (prefers-reduced-motion: no-preference) {
+  *,
+  *::before,
+  *::after {
+    transition-property: color, background-color, border-color, fill, stroke;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
 
-/* Reset transition for elements that need instant response */
-input, textarea, select,
-[data-no-theme-transition] {
-  transition: none !important;
+  /* Reset transition for elements that need instant response */
+  input, textarea, select,
+  [data-no-theme-transition] {
+    transition: none !important;
+  }
 }
 
 html,

@@ -84,7 +84,7 @@ export function MainWorkspace({
               className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] transition ${
                 activeSection === section.id
                   ? 'border-cyan-200/20 bg-cyan-200/[0.12] text-cyan-50'
-                  : 'border-white/10 bg-white/[0.04] text-white/60 hover:bg-white/[0.08]'
+                  : 'border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-2)] hover:bg-[var(--vt-surface-2)]'
               }`}
             >
               {section.label}

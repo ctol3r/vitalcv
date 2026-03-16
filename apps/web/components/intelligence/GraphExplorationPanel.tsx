@@ -17,7 +17,7 @@ export function GraphExplorationPanel() {
   };
 
   return (
-    <div className="relative w-full h-screen bg-[#000000] overflow-hidden text-slate-300 font-sans selection:bg-vt-info/30">
+    <div className="relative w-full h-screen bg-[#000000] overflow-hidden text-[var(--vt-text-2)] font-sans selection:bg-vt-info/30">
       
       {/* Background Canvas Grid */}
       <div 
@@ -33,16 +33,16 @@ export function GraphExplorationPanel() {
       />
 
       {/* Floating Header */}
-      <div className="absolute top-6 left-6 z-40 bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-4 w-80 shadow-2xl">
-        <h2 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+      <div className="absolute top-6 left-6 z-40 bg-black/60 backdrop-blur-md border border-[var(--vt-border)] rounded-xl p-4 w-80 shadow-2xl">
+        <h2 className="text-lg font-bold text-[var(--vt-text-1)] mb-2 flex items-center gap-2">
           <Share2 className="w-5 h-5 text-vt-info" /> Network Explorer
         </h2>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--vt-text-1)]0" />
           <input 
             type="text" 
             placeholder="Search nodes, clusters..." 
-            className="w-full bg-white/5 border border-white/10 rounded-md py-1.5 pl-9 pr-3 text-sm text-white focus:outline-none focus:border-vt-info transition-colors"
+            className="w-full bg-[var(--vt-surface-2)] border border-[var(--vt-border)] rounded-md py-1.5 pl-9 pr-3 text-sm text-[var(--vt-text-1)] focus:outline-none focus:border-vt-info transition-colors"
           />
         </div>
       </div>
@@ -87,14 +87,14 @@ export function GraphExplorationPanel() {
           >
             <div className={cn(
               "w-16 h-16 rounded-full bg-[#0D1117] border-2 flex items-center justify-center transition-all duration-300 cursor-pointer",
-              focusedNode === 'hub' ? "border-vt-info shadow-[0_0_40px_rgba(0,229,255,0.6)] scale-110 z-50" : "border-white/20 hover:border-white/50 z-20"
+              focusedNode === 'hub' ? "border-vt-info shadow-[0_0_40px_rgba(0,229,255,0.6)] scale-110 z-50" : "border-[var(--vt-border)] hover:border-[var(--vt-border-2)]0 z-20"
             )}>
-              <span className="font-bold text-white">Hub</span>
+              <span className="font-bold text-[var(--vt-text-1)]">Hub</span>
             </div>
             {zoomLevel === 'micro' && (
-              <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur border border-white/10 p-2 rounded text-xs whitespace-nowrap z-50">
-                <div className="text-white font-bold">Mercy General</div>
-                <div className="text-slate-400">ID: FAC-0041 • Score: 92</div>
+              <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur border border-[var(--vt-border)] p-2 rounded text-xs whitespace-nowrap z-50">
+                <div className="text-[var(--vt-text-1)] font-bold">Mercy General</div>
+                <div className="text-[var(--vt-text-3)]">ID: FAC-0041 • Score: 92</div>
               </div>
             )}
           </div>
@@ -119,13 +119,13 @@ export function GraphExplorationPanel() {
                 node.type === 'provider' ? "w-12 h-12 rounded-full" : 
                 node.type === 'institution' ? "w-12 h-12 rounded-lg" : 
                 "w-10 h-10 rotate-45", // Diamond for claim
-                "bg-[#0D1117] border border-white/20 hover:border-vt-info",
+                "bg-[#0D1117] border border-[var(--vt-border)] hover:border-vt-info",
                 node.alert && "border-vt-warning shadow-[0_0_20px_rgba(255,176,32,0.4)]"
               )}>
                 <span className={cn(
                   "text-xs font-bold",
                   node.type === 'claim' && "-rotate-45",
-                  node.alert ? "text-vt-warning" : "text-white/80"
+                  node.alert ? "text-vt-warning" : "text-[var(--vt-text-2)]"
                 )}>
                   {node.type === 'claim' ? <span className="w-4 h-4 text-xs">$</span> : node.label.substring(0,2)}
                 </span>
@@ -135,7 +135,7 @@ export function GraphExplorationPanel() {
               {(zoomLevel === 'micro' || zoomLevel === 'meso') && (
                 <div className={cn(
                   "absolute top-full mt-2 whitespace-nowrap text-xs transition-opacity",
-                  focusedNode === node.id ? "opacity-100 font-bold text-white z-50" : "opacity-60 text-slate-400"
+                  focusedNode === node.id ? "opacity-100 font-bold text-[var(--vt-text-1)] z-50" : "opacity-60 text-[var(--vt-text-3)]"
                 )}>
                   {node.label}
                 </div>
@@ -146,27 +146,27 @@ export function GraphExplorationPanel() {
       </div>
 
       {/* Control Dock (Bottom Center) */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 bg-black/80 backdrop-blur-xl border border-white/10 rounded-full px-6 py-3 flex items-center justify-between gap-6 shadow-2xl">
-        <div className="flex items-center gap-2 border-r border-white/10 pr-6">
-          <button className="p-2 hover:bg-white/10 rounded-full transition-colors text-slate-400 hover:text-white group relative">
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 bg-black/80 backdrop-blur-xl border border-[var(--vt-border)] rounded-full px-6 py-3 flex items-center justify-between gap-6 shadow-2xl">
+        <div className="flex items-center gap-2 border-r border-[var(--vt-border)] pr-6">
+          <button className="p-2 hover:bg-[var(--vt-surface-2)] rounded-full transition-colors text-[var(--vt-text-3)] hover:text-[var(--vt-text-1)] group relative">
             <ZoomOut className="w-5 h-5" />
           </button>
-          <button onClick={toggleZoom} className="px-4 py-1.5 hover:bg-white/10 rounded-full transition-colors font-mono text-sm text-vt-info font-bold uppercase tracking-wider">
+          <button onClick={toggleZoom} className="px-4 py-1.5 hover:bg-[var(--vt-surface-2)] rounded-full transition-colors font-mono text-sm text-vt-info font-bold uppercase tracking-wider">
             {zoomLevel}
           </button>
-          <button className="p-2 hover:bg-white/10 rounded-full transition-colors text-slate-400 hover:text-white">
+          <button className="p-2 hover:bg-[var(--vt-surface-2)] rounded-full transition-colors text-[var(--vt-text-3)] hover:text-[var(--vt-text-1)]">
             <ZoomIn className="w-5 h-5" />
           </button>
-          <button className="p-2 hover:bg-white/10 rounded-full transition-colors text-slate-400 hover:text-white ml-2">
+          <button className="p-2 hover:bg-[var(--vt-surface-2)] rounded-full transition-colors text-[var(--vt-text-3)] hover:text-[var(--vt-text-1)] ml-2">
             <Maximize className="w-4 h-4" />
           </button>
         </div>
 
         <div className="flex items-center gap-4">
-          <button className="p-2 hover:bg-white/10 rounded-full transition-colors text-slate-400 hover:text-white flex items-center gap-2 text-xs font-bold uppercase tracking-wide">
+          <button className="p-2 hover:bg-[var(--vt-surface-2)] rounded-full transition-colors text-[var(--vt-text-3)] hover:text-[var(--vt-text-1)] flex items-center gap-2 text-xs font-bold uppercase tracking-wide">
             <Layers className="w-4 h-4" /> Layouts
           </button>
-          <button className="p-2 hover:bg-white/10 rounded-full transition-colors text-slate-400 hover:text-white flex items-center gap-2 text-xs font-bold uppercase tracking-wide border-l border-white/10 pl-4">
+          <button className="p-2 hover:bg-[var(--vt-surface-2)] rounded-full transition-colors text-[var(--vt-text-3)] hover:text-[var(--vt-text-1)] flex items-center gap-2 text-xs font-bold uppercase tracking-wide border-l border-[var(--vt-border)] pl-4">
             <SlidersHorizontal className="w-4 h-4" /> Filters
           </button>
         </div>

@@ -19,7 +19,7 @@ export function VerticalTimeline({
   className?: string;
 }) {
   if (items.length === 0) {
-    return <p className="text-sm text-slate-400">{emptyMessage}</p>;
+    return <p className="text-sm text-[var(--vt-text-3)]">{emptyMessage}</p>;
   }
 
   const sortedItems = [...items].sort((left, right) => {
@@ -40,19 +40,19 @@ export function VerticalTimeline({
   return (
     <ol className={cn('space-y-4', className)}>
       {sortedItems.map((item) => (
-        <li key={item.id} className="relative ml-2 border-l border-white/10 pl-6 pb-4 last:pb-0">
-          <span className="absolute -left-[0.4375rem] top-1.5 h-3.5 w-3.5 rounded-full border border-cyan-300/40 bg-cyan-300 ring-4 ring-slate-950" />
+        <li key={item.id} className="relative ml-2 border-l border-[var(--vt-border)] pl-6 pb-4 last:pb-0">
+          <span className="absolute -left-[0.4375rem] top-1.5 h-3.5 w-3.5 rounded-full border border-[var(--vt-accent)]/40 bg-[var(--vt-accent)] ring-4 ring-[var(--vt-bg)]" />
           <div className="space-y-1">
             {item.label ? (
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100/80">{item.label}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-accent)]">{item.label}</p>
             ) : null}
             {item.occurredAt ? (
-              <p className="text-xs text-slate-400" title={formatAbsoluteTime(item.occurredAt)}>
+              <p className="text-xs text-[var(--vt-text-3)]" title={formatAbsoluteTime(item.occurredAt)}>
                 {formatRelativeTime(item.occurredAt)}
               </p>
             ) : null}
-            <p className="text-sm leading-6 text-slate-300">{item.description}</p>
-            {item.meta ? <p className="text-xs text-slate-500">{item.meta}</p> : null}
+            <p className="text-sm leading-6 text-[var(--vt-text-2)]">{item.description}</p>
+            {item.meta ? <p className="text-xs text-[var(--vt-text-3)]">{item.meta}</p> : null}
           </div>
         </li>
       ))}

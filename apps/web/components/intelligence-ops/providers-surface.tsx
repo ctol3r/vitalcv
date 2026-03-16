@@ -81,7 +81,7 @@ export function ProvidersSurface() {
       breadcrumbs={[{ label: 'Providers' }]}
       meta={(
         <div className="space-y-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Directory state</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Directory state</p>
           <p>{providers.data?.total ?? 0} matching providers</p>
           {providers.lastUpdated ? (
             <p title={formatAbsoluteTime(providers.lastUpdated)}>Updated {formatRelativeTime(providers.lastUpdated)}</p>
@@ -92,7 +92,7 @@ export function ProvidersSurface() {
         <button
           type="button"
           onClick={providers.refresh}
-          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+          className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-4 py-2 text-sm font-medium text-[var(--vt-text-1)] transition hover:bg-[var(--vt-surface-2)]"
         >
           <RefreshCw className="h-4 w-4" />
           Refresh
@@ -127,27 +127,27 @@ export function ProvidersSurface() {
           }}
         >
           <label className="space-y-1 text-sm">
-            <span className="text-slate-400">Search</span>
+            <span className="text-[var(--vt-text-3)]">Search</span>
             <input
               value={draftFilters.q}
               onChange={(event) => setDraftFilters((current) => ({ ...current, q: event.target.value }))}
               placeholder="Name, NPI, specialty, issuer"
-              className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-white placeholder:text-slate-500"
+              className="w-full rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-[var(--vt-text-1)] placeholder:text-[var(--vt-text-3)]"
             />
           </label>
           <label className="space-y-1 text-sm">
-            <span className="text-slate-400">Minimum trust score</span>
+            <span className="text-[var(--vt-text-3)]">Minimum trust score</span>
             <input
               value={draftFilters.minTrustScore}
               onChange={(event) => setDraftFilters((current) => ({ ...current, minTrustScore: event.target.value }))}
               placeholder="0-100"
-              className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-white placeholder:text-slate-500"
+              className="w-full rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-[var(--vt-text-1)] placeholder:text-[var(--vt-text-3)]"
             />
           </label>
           <div className="flex flex-wrap items-end gap-2">
             <button
               type="submit"
-              className="rounded-full bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
+              className="rounded-full bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-[var(--vt-accent)]"
             >
               Apply
             </button>
@@ -158,7 +158,7 @@ export function ProvidersSurface() {
                 setDraftFilters(cleared);
                 pushWithParams(1, cleared);
               }}
-              className="rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/5 hover:text-white"
+              className="rounded-full border border-[var(--vt-border)] px-4 py-2 text-sm font-medium text-[var(--vt-text-2)] transition hover:bg-[var(--vt-surface-2)] hover:text-[var(--vt-text-1)]"
             >
               Clear
             </button>
@@ -193,32 +193,32 @@ export function ProvidersSurface() {
                     pathname: `/providers/${provider.npi}`,
                     query: { from: currentHref },
                   }}
-                  className="block truncate text-xl font-semibold text-white transition hover:text-cyan-200"
+                  className="block truncate text-xl font-semibold text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]"
                 >
                   {provider.name}
                 </Link>
                 <div className="flex flex-wrap items-center gap-2">
                   <OpsBadge label={provider.credentialHealth} tone={severityTone(provider.credentialHealth)} />
-                  <span className="font-mono text-sm text-slate-400">NPI {provider.npi}</span>
+                  <span className="font-mono text-sm text-[var(--vt-text-3)]">NPI {provider.npi}</span>
                 </div>
               </div>
-              <div className="rounded-3xl border border-white/10 bg-black/20 px-4 py-3 text-right">
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Trust</p>
+              <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-3 text-right">
+                <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Trust</p>
                 <p className={`text-2xl font-semibold tabular-nums ${trustScoreColor(provider.trustScore)}`}>{provider.trustScore}</p>
               </div>
             </div>
 
-            <p className="text-sm leading-6 text-slate-300">{provider.summary}</p>
+            <p className="text-sm leading-6 text-[var(--vt-text-2)]">{provider.summary}</p>
 
             <div className="flex flex-wrap gap-2">
               {provider.specialties.slice(0, 3).map((specialty) => (
-                <span key={specialty} className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
+                <span key={specialty} className="inline-flex items-center rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-1 text-xs text-[var(--vt-text-2)]">
                   {specialty}
                 </span>
               ))}
             </div>
 
-            <div className="space-y-1 text-sm text-slate-300">
+            <div className="space-y-1 text-sm text-[var(--vt-text-2)]">
               <p>{provider.activeCredentials}/{provider.credentialCount} active credentials</p>
               <TimestampPair label="Verified" value={provider.lastVerifiedAt} />
             </div>
@@ -241,7 +241,7 @@ export function ProvidersSurface() {
 
       {total > 0 ? (
         <OpsCard className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <p className="text-sm text-slate-300">
+          <p className="text-sm text-[var(--vt-text-2)]">
             {formatPaginationSummary({
               page,
               limit: PAGE_SIZE,

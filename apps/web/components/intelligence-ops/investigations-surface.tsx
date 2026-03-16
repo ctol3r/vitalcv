@@ -81,12 +81,12 @@ export function InvestigationsSurface() {
             value={npi}
             onChange={(event) => setNpi(event.target.value)}
             placeholder="Enter provider NPI"
-            className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white placeholder:text-slate-500"
+            className="min-w-0 flex-1 rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-3 text-[var(--vt-text-1)] placeholder:text-[var(--vt-text-3)]"
           />
           <button
             type="submit"
             disabled={loading || !/^\d{10}$/.test(npi.trim())}
-            className="rounded-full bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-[var(--vt-accent)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? 'Investigating…' : 'Investigate'}
           </button>
@@ -100,13 +100,13 @@ export function InvestigationsSurface() {
             <OpsBadge label={`NPI ${activeNpi}`} />
             {result.confidence ? <OpsBadge label={`${Math.round(result.confidence * 100)}% confidence`} /> : null}
           </div>
-          <pre className="overflow-x-auto whitespace-pre-wrap text-sm leading-7 text-slate-300">
+          <pre className="overflow-x-auto whitespace-pre-wrap text-sm leading-7 text-[var(--vt-text-2)]">
             {result.answer}
           </pre>
           {result.sources && result.sources.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {result.sources.map((source) => (
-                <span key={source} className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
+                <span key={source} className="inline-flex items-center rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-1 text-xs text-[var(--vt-text-2)]">
                   {source}
                 </span>
               ))}

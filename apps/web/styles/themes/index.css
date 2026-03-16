@@ -163,3 +163,24 @@
   --vt-badge-neutral-text:  #D1D5DB;
   --vt-badge-neutral-border: rgba(255, 255, 255, 0.1);
 }
+
+/* ── Operations shell background ──────────────────────────── */
+.ops-shell {
+  background:
+    radial-gradient(circle at top left,  rgba(var(--vt-accent-rgb, 37 99 235) / 0.06), transparent 24%),
+    radial-gradient(circle at top right, rgba(var(--vt-accent-rgb, 37 99 235) / 0.08), transparent 22%),
+    var(--vt-bg);
+}
+
+:root, .light {
+  --vt-accent-rgb: 26 86 219;
+}
+.dark {
+  --vt-accent-rgb: 74 158 255;
+}
+[data-theme="midnight"] {
+  --vt-accent-rgb: 129 140 248;
+}
+[data-theme="graphite"] {
+  --vt-accent-rgb: 168 168 168;
+}

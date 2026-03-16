@@ -97,7 +97,7 @@ function FilterToggleGroup({
                 'rounded-full border px-3 py-1.5 text-sm transition',
                 active
                   ? 'border-cyan-300/50 bg-cyan-400/15 text-cyan-100'
-                  : 'border-white/10 bg-black/20 text-slate-300 hover:bg-white/5 hover:text-white',
+                  : 'border-[var(--vt-border)] bg-[var(--vt-surface)] text-[var(--vt-text-2)] hover:bg-[var(--vt-surface-2)] hover:text-[var(--vt-text-1)]',
               )}
             >
               {humanizeValue(option)}
@@ -203,9 +203,9 @@ export function FindingFilters({ filters, onApply }: FindingFiltersProps) {
             value={draft.typeInput}
             onChange={(event) => setDraft((current) => ({ ...current, typeInput: event.target.value }))}
             placeholder="trust_decline, research_momentum"
-            className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-white placeholder:text-slate-500"
+            className="w-full rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-[var(--vt-text-1)] placeholder:text-[var(--vt-text-3)]"
           />
-          <span className="block text-xs text-slate-500">Comma-separated finding types</span>
+          <span className="block text-xs text-[var(--vt-text-3)]">Comma-separated finding types</span>
         </label>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -215,7 +215,7 @@ export function FindingFilters({ filters, onApply }: FindingFiltersProps) {
               type="date"
               value={draft.dateFrom}
               onChange={(event) => setDraft((current) => ({ ...current, dateFrom: event.target.value }))}
-              className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-white"
+              className="w-full rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-[var(--vt-text-1)]"
             />
           </label>
           <label className="space-y-1 text-sm">
@@ -224,7 +224,7 @@ export function FindingFilters({ filters, onApply }: FindingFiltersProps) {
               type="date"
               value={draft.dateTo}
               onChange={(event) => setDraft((current) => ({ ...current, dateTo: event.target.value }))}
-              className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-white"
+              className="w-full rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-[var(--vt-text-1)]"
             />
           </label>
         </div>
@@ -239,7 +239,7 @@ export function FindingFilters({ filters, onApply }: FindingFiltersProps) {
             value={draft.minConfidence}
             onChange={(event) => setDraft((current) => ({ ...current, minConfidence: event.target.value }))}
             placeholder="0.60"
-            className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-white placeholder:text-slate-500"
+            className="w-full rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-[var(--vt-text-1)] placeholder:text-[var(--vt-text-3)]"
           />
         </label>
 
@@ -256,7 +256,7 @@ export function FindingFilters({ filters, onApply }: FindingFiltersProps) {
               setDraft(createDraft(EMPTY_FINDING_FILTERS));
               onApply(EMPTY_FINDING_FILTERS);
             }}
-            className="rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/5 hover:text-white"
+            className="rounded-full border border-[var(--vt-border)] px-4 py-2 text-sm font-medium text-[var(--vt-text-2)] transition hover:bg-[var(--vt-surface-2)] hover:text-[var(--vt-text-1)]"
           >
             Clear all
           </button>
@@ -264,7 +264,7 @@ export function FindingFilters({ filters, onApply }: FindingFiltersProps) {
       </form>
 
       {activeFilters ? (
-        <div className="space-y-3 border-t border-white/10 pt-4">
+        <div className="space-y-3 border-t border-[var(--vt-border)] pt-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-slate-400">Active filters</p>
             <button

@@ -16,7 +16,7 @@
   width: 100%;
   border: 1px solid var(--vital-ops-border-subtle);
   border-radius: 0.95rem;
-  background: rgb(8 18 30 / 0.78);
+  background: var(--vt-surface, rgb(8 18 30 / 0.78));
   color: var(--vital-ops-text-primary);
   padding: 0.68rem 0.8rem;
   font-size: 0.82rem;
@@ -30,13 +30,13 @@
 .vital-command-trigger:hover {
   transform: translateY(-1px);
   border-color: rgb(56 189 248 / 0.38);
-  background: rgb(10 23 38 / 0.88);
+  background: var(--vt-surface-2, rgb(10 23 38 / 0.88));
 }
 
 .vital-command-trigger kbd {
   border: 1px solid rgb(71 85 105 / 0.48);
   border-radius: 999px;
-  background: rgb(3 8 15 / 0.88);
+  background: var(--vt-bg, rgb(3 8 15 / 0.88));
   color: var(--vital-ops-text-muted);
   padding: 0.18rem 0.5rem;
   font-size: 0.68rem;
@@ -91,7 +91,7 @@
   gap: 0.22rem;
   border: 1px solid var(--vital-ops-border-subtle);
   border-radius: 0.95rem;
-  background: rgb(8 16 27 / 0.86);
+  background: var(--vt-surface, rgb(8 16 27 / 0.86));
   padding: 0.85rem;
 }
 
@@ -113,7 +113,7 @@
   margin-top: 1rem;
   border: 1px solid var(--vital-ops-border-subtle);
   border-radius: 0.95rem;
-  background: rgb(5 16 28 / 0.82);
+  background: var(--vt-surface, rgb(5 16 28 / 0.82));
   padding: 0.9rem;
 }
 
@@ -178,7 +178,7 @@
   width: 100%;
   border: 1px solid var(--vital-ops-border-subtle);
   border-radius: 0.9rem;
-  background: rgb(9 17 28 / 0.8);
+  background: var(--vt-surface, rgb(9 17 28 / 0.8));
   color: inherit;
   padding: 0.85rem;
   text-align: left;
@@ -195,12 +195,12 @@
 .vital-nav-row:hover {
   transform: translateY(-1px);
   border-color: rgb(96 165 250 / 0.28);
-  background: rgb(12 22 36 / 0.88);
+  background: var(--vt-surface-2, rgb(12 22 36 / 0.88));
 }
 
 .vital-nav-row--active {
   border-color: rgb(56 189 248 / 0.3);
-  background: rgb(7 21 36 / 0.9);
+  background: var(--vt-surface-2, rgb(7 21 36 / 0.9));
 }
 
 .vital-entity-row__meta {

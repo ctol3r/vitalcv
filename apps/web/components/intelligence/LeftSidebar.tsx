@@ -65,7 +65,7 @@ export function LeftSidebar({
             placeholder="Search providers, NPIs, specialties, issuers"
           />
         </label>
-        <p className="mt-3 text-xs leading-5 text-white/55">
+        <p className="mt-3 text-xs leading-5 text-[var(--vt-text-3)]">
           Search scopes the provider feed. Selecting a provider pivots the graph, investigation workspace, and right-panel sources.
         </p>
       </section>

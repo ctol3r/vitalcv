@@ -98,7 +98,7 @@ export function StorylinesSurface() {
       breadcrumbs={[{ label: 'Storylines' }]}
       meta={(
         <div className="space-y-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Storyline sync</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Storyline sync</p>
           <p>{storylines.data?.total ?? 0} total storylines</p>
           {storylines.lastUpdated ? (
             <p title={formatAbsoluteTime(storylines.lastUpdated)}>Updated {formatRelativeTime(storylines.lastUpdated)}</p>
@@ -109,7 +109,7 @@ export function StorylinesSurface() {
         <button
           type="button"
           onClick={storylines.refresh}
-          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+          className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-4 py-2 text-sm font-medium text-[var(--vt-text-1)] transition hover:bg-[var(--vt-surface-2)]"
         >
           <RefreshCw className="h-4 w-4" />
           Refresh
@@ -149,20 +149,20 @@ export function StorylinesSurface() {
           }}
         >
           <label className="space-y-1 text-sm">
-            <span className="text-slate-400">Provider NPI</span>
+            <span className="text-[var(--vt-text-3)]">Provider NPI</span>
             <input
               value={draftFilters.provider}
               onChange={(event) => setDraftFilters((current) => ({ ...current, provider: event.target.value }))}
               placeholder="1234567890"
-              className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-white placeholder:text-slate-500"
+              className="w-full rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-[var(--vt-text-1)] placeholder:text-[var(--vt-text-3)]"
             />
           </label>
           <label className="space-y-1 text-sm">
-            <span className="text-slate-400">Severity</span>
+            <span className="text-[var(--vt-text-3)]">Severity</span>
             <select
               value={draftFilters.severity}
               onChange={(event) => setDraftFilters((current) => ({ ...current, severity: event.target.value }))}
-              className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-white"
+              className="w-full rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-[var(--vt-text-1)]"
             >
               <option value="">All severities</option>
               <option value="critical">Critical</option>
@@ -172,11 +172,11 @@ export function StorylinesSurface() {
             </select>
           </label>
           <label className="space-y-1 text-sm">
-            <span className="text-slate-400">Status</span>
+            <span className="text-[var(--vt-text-3)]">Status</span>
             <select
               value={draftFilters.status}
               onChange={(event) => setDraftFilters((current) => ({ ...current, status: event.target.value }))}
-              className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-white"
+              className="w-full rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-[var(--vt-text-1)]"
             >
               <option value="">All statuses</option>
               <option value="active">Active</option>
@@ -187,11 +187,11 @@ export function StorylinesSurface() {
             </select>
           </label>
           <label className="space-y-1 text-sm">
-            <span className="text-slate-400">Perspective</span>
+            <span className="text-[var(--vt-text-3)]">Perspective</span>
             <select
               value={draftFilters.perspective}
               onChange={(event) => setDraftFilters((current) => ({ ...current, perspective: event.target.value }))}
-              className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-white"
+              className="w-full rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-[var(--vt-text-1)]"
             >
               <option value="">All perspectives</option>
               <option value="provider">Provider</option>
@@ -200,18 +200,18 @@ export function StorylinesSurface() {
             </select>
           </label>
           <label className="space-y-1 text-sm">
-            <span className="text-slate-400">Storyline type</span>
+            <span className="text-[var(--vt-text-3)]">Storyline type</span>
             <input
               value={draftFilters.storylineType}
               onChange={(event) => setDraftFilters((current) => ({ ...current, storylineType: event.target.value }))}
               placeholder="compliance risk"
-              className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-white placeholder:text-slate-500"
+              className="w-full rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-[var(--vt-text-1)] placeholder:text-[var(--vt-text-3)]"
             />
           </label>
           <div className="flex flex-wrap items-end gap-2 md:col-span-2 xl:col-span-5">
             <button
               type="submit"
-              className="rounded-full bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
+              className="rounded-full bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-[var(--vt-accent)]"
             >
               Apply filters
             </button>
@@ -228,7 +228,7 @@ export function StorylinesSurface() {
                 setDraftFilters(cleared);
                 pushWithParams(1, cleared);
               }}
-              className="rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/5 hover:text-white"
+              className="rounded-full border border-[var(--vt-border)] px-4 py-2 text-sm font-medium text-[var(--vt-text-2)] transition hover:bg-[var(--vt-surface-2)] hover:text-[var(--vt-text-1)]"
             >
               Clear
             </button>
@@ -262,7 +262,7 @@ export function StorylinesSurface() {
                   <OpsBadge label={storyline.severity} tone={severityTone(storyline.severity)} />
                   <OpsBadge label={storyline.status} tone={severityTone(storyline.status)} />
                   <OpsBadge label={storyline.storylineType} />
-                  <span className="text-xs text-slate-500">{storyline.perspective}</span>
+                  <span className="text-xs text-[var(--vt-text-3)]">{storyline.perspective}</span>
                 </div>
                 <div className="space-y-2">
                   <Link
@@ -270,12 +270,12 @@ export function StorylinesSurface() {
                       pathname: `/storylines/${storyline.id}`,
                       query: { from: currentHref },
                     }}
-                    className="block truncate text-xl font-semibold text-white transition hover:text-cyan-200"
+                    className="block truncate text-xl font-semibold text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]"
                   >
                     {storyline.title}
                   </Link>
-                  <p className="max-w-3xl text-sm leading-6 text-slate-300">{storyline.summary}</p>
-                  <p className="max-w-3xl text-sm leading-6 text-slate-400">{storyline.whyItMatters}</p>
+                  <p className="max-w-3xl text-sm leading-6 text-[var(--vt-text-2)]">{storyline.summary}</p>
+                  <p className="max-w-3xl text-sm leading-6 text-[var(--vt-text-3)]">{storyline.whyItMatters}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {storyline.providerNpi ? (
@@ -290,10 +290,10 @@ export function StorylinesSurface() {
                 </div>
               </div>
 
-              <div className="flex min-w-[15rem] flex-col gap-3 rounded-3xl border border-white/10 bg-black/20 p-4">
+              <div className="flex min-w-[15rem] flex-col gap-3 rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
                 <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Narrative stats</p>
-                  <p className="text-sm text-slate-200">Progression {Math.round(storyline.progressionScore * 100)}%</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Narrative stats</p>
+                  <p className="text-sm text-[var(--vt-text-2)]">Progression {Math.round(storyline.progressionScore * 100)}%</p>
                   <ConfidenceMeter confidence={storyline.confidence} />
                   <TimestampPair label="Activity" value={storyline.lastActivityAt} />
                 </div>
@@ -302,9 +302,9 @@ export function StorylinesSurface() {
             </div>
 
             {storyline.recommendedActions.length > 0 ? (
-              <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Recommended actions</p>
-                <ul className="space-y-2 text-sm text-slate-300">
+              <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Recommended actions</p>
+                <ul className="space-y-2 text-sm text-[var(--vt-text-2)]">
                   {storyline.recommendedActions.slice(0, 3).map((action) => (
                     <li key={action}>{action}</li>
                   ))}
@@ -325,7 +325,7 @@ export function StorylinesSurface() {
 
       {total > 0 ? (
         <OpsCard className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <p className="text-sm text-slate-300">
+          <p className="text-sm text-[var(--vt-text-2)]">
             {formatPaginationSummary({
               page,
               limit: PAGE_SIZE,

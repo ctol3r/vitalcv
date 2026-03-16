@@ -66,7 +66,7 @@ export function SystemHealthSurface() {
       breadcrumbs={[{ label: 'System Health' }]}
       meta={(
         <div className="space-y-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Platform state</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Platform state</p>
           <p>{health.data?.headline ?? 'Waiting for telemetry'}</p>
           {health.lastUpdated ? (
             <p title={formatAbsoluteTime(health.lastUpdated)}>Updated {formatRelativeTime(health.lastUpdated)}</p>
@@ -78,7 +78,7 @@ export function SystemHealthSurface() {
           <button
             type="button"
             onClick={health.refresh}
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-4 py-2 text-sm font-medium text-[var(--vt-text-1)] transition hover:bg-[var(--vt-surface-2)]"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -86,14 +86,14 @@ export function SystemHealthSurface() {
           <button
             type="button"
             onClick={() => void runScan()}
-            className="rounded-full bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
+            className="rounded-full bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-[var(--vt-accent)]"
           >
             {scanState === 'running' ? 'Scanning…' : 'Run scan'}
           </button>
           <button
             type="button"
             onClick={() => void triggerPolls()}
-            className="rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/5 hover:text-white"
+            className="rounded-full border border-[var(--vt-border)] px-4 py-2 text-sm font-medium text-[var(--vt-text-2)] transition hover:bg-[var(--vt-surface-2)] hover:text-[var(--vt-text-1)]"
           >
             {pollState === 'running' ? 'Triggering…' : 'Trigger polls'}
           </button>
@@ -136,34 +136,34 @@ export function SystemHealthSurface() {
         {(health.data?.cards ?? []).map((card) => (
           <OpsCard key={card.id} className="space-y-2">
             <OpsBadge label={card.tone} tone={severityTone(card.tone)} />
-            <h2 className="text-lg font-semibold text-white">{card.label}</h2>
-            <p className="text-sm text-slate-300">{card.summary}</p>
-            <p className="text-sm text-slate-400">{card.detail}</p>
+            <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">{card.label}</h2>
+            <p className="text-sm text-[var(--vt-text-2)]">{card.summary}</p>
+            <p className="text-sm text-[var(--vt-text-3)]">{card.detail}</p>
           </OpsCard>
         ))}
       </div>
 
       <OpsCard className="space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-white">Active incidents</h2>
-          <span className="text-sm text-slate-400">{health.data?.incidents.length ?? 0} incidents</span>
+          <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Active incidents</h2>
+          <span className="text-sm text-[var(--vt-text-3)]">{health.data?.incidents.length ?? 0} incidents</span>
         </div>
         <div className="space-y-3">
           {(health.data?.incidents ?? []).length === 0 ? (
-            <p className="text-sm text-slate-400">No active incidents are currently being surfaced by the intelligence health layer.</p>
+            <p className="text-sm text-[var(--vt-text-3)]">No active incidents are currently being surfaced by the intelligence health layer.</p>
           ) : (
             health.data?.incidents.map((incident) => (
-              <div key={incident.id} className="rounded-3xl border border-white/10 bg-black/20 p-4">
+              <div key={incident.id} className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <OpsBadge label={incident.severity} tone={severityTone(incident.severity)} />
-                  <span className="text-sm text-white">{incident.title}</span>
+                  <span className="text-sm text-[var(--vt-text-1)]">{incident.title}</span>
                   {incident.occurredAt ? (
-                    <span className="text-sm text-slate-400" title={formatAbsoluteTime(incident.occurredAt)}>
+                    <span className="text-sm text-[var(--vt-text-3)]" title={formatAbsoluteTime(incident.occurredAt)}>
                       {formatRelativeTime(incident.occurredAt)}
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-2 text-sm text-slate-300">{incident.summary}</p>
+                <p className="mt-2 text-sm text-[var(--vt-text-2)]">{incident.summary}</p>
               </div>
             ))
           )}

@@ -34,7 +34,7 @@ export function ActionDetailClient({
       ]}
       meta={(
         <div className="space-y-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Action detail</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Action detail</p>
           <p title={formatAbsoluteTime(detail.action.updatedAt)}>Updated {formatRelativeTime(detail.action.updatedAt)}</p>
           <p>{detail.action.sourceFindingIds.length} source findings</p>
         </div>
@@ -73,7 +73,7 @@ export function ActionDetailClient({
                 </>
               ) : null}
               {detail.action.targetEntity.entityLabel && !providerNpi ? (
-                <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
+                <span className="inline-flex items-center rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-1 text-xs text-[var(--vt-text-2)]">
                   {detail.action.targetEntity.entityLabel}
                 </span>
               ) : null}
@@ -84,35 +84,35 @@ export function ActionDetailClient({
                 />
               ) : null}
             </div>
-            <p className="text-sm leading-7 text-slate-300">{detail.action.explanation}</p>
+            <p className="text-sm leading-7 text-[var(--vt-text-2)]">{detail.action.explanation}</p>
           </OpsCard>
 
           <OpsCard className="space-y-4">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-white">Evidence</h2>
-              <span className="text-sm text-slate-400">{detail.action.evidence.length} items</span>
+              <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Evidence</h2>
+              <span className="text-sm text-[var(--vt-text-3)]">{detail.action.evidence.length} items</span>
             </div>
             {detail.action.evidence.length > 0 ? (
               <div className="space-y-3">
                 {detail.action.evidence.map((evidence, index) => (
-                  <div key={`${evidence.label}-${index}`} className="rounded-3xl border border-white/10 bg-black/20 p-4">
+                  <div key={`${evidence.label}-${index}`} className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <OpsBadge label={evidence.label} />
-                      {evidence.source ? <span className="text-sm text-slate-400">{evidence.source}</span> : null}
+                      {evidence.source ? <span className="text-sm text-[var(--vt-text-3)]">{evidence.source}</span> : null}
                     </div>
-                    <p className="mt-3 text-sm leading-6 text-slate-300">{evidence.snippet ?? 'No evidence snippet recorded.'}</p>
+                    <p className="mt-3 text-sm leading-6 text-[var(--vt-text-2)]">{evidence.snippet ?? 'No evidence snippet recorded.'}</p>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-slate-400">No evidence has been attached to this action.</p>
+              <p className="text-sm text-[var(--vt-text-3)]">No evidence has been attached to this action.</p>
             )}
           </OpsCard>
 
           <OpsCard className="space-y-4">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-white">Related findings</h2>
-              <span className="text-sm text-slate-400">{detail.action.sourceFindingIds.length} linked findings</span>
+              <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Related findings</h2>
+              <span className="text-sm text-[var(--vt-text-3)]">{detail.action.sourceFindingIds.length} linked findings</span>
             </div>
             {detail.action.sourceFindingIds.length > 0 ? (
               <div className="flex flex-wrap gap-2">
@@ -121,61 +121,61 @@ export function ActionDetailClient({
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-slate-400">This action is not linked to any finding records.</p>
+              <p className="text-sm text-[var(--vt-text-3)]">This action is not linked to any finding records.</p>
             )}
           </OpsCard>
         </div>
 
         <div className="space-y-4">
           <OpsCard className="space-y-4">
-            <h2 className="text-lg font-semibold text-white">Triage</h2>
+            <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Triage</h2>
             <ActionMutationControls actionId={detail.action.actionId} status={detail.action.status} />
           </OpsCard>
 
           <OpsCard className="space-y-3">
-            <h2 className="text-lg font-semibold text-white">Queue metrics</h2>
-            <p className="text-sm text-slate-300">Priority score {Math.round(detail.action.priorityScore)}</p>
-            <p className="text-sm text-slate-300">Confidence {Math.round(detail.action.confidence * 100)}%</p>
+            <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Queue metrics</h2>
+            <p className="text-sm text-[var(--vt-text-2)]">Priority score {Math.round(detail.action.priorityScore)}</p>
+            <p className="text-sm text-[var(--vt-text-2)]">Confidence {Math.round(detail.action.confidence * 100)}%</p>
             <TimestampPair label="Due" value={detail.action.dueAt ?? null} />
             <TimestampPair label="Created" value={detail.action.createdAt} />
             <TimestampPair label="Updated" value={detail.action.updatedAt} />
             <TimestampPair label="Executed" value={detail.action.executedAt} />
             <TimestampPair label="Started" value={detail.action.savedAt} />
             <TimestampPair label="Skipped" value={detail.action.dismissedAt} />
-            {!detail.action.dueAt ? <p className="text-sm text-slate-400">No due date is assigned to this action.</p> : null}
+            {!detail.action.dueAt ? <p className="text-sm text-[var(--vt-text-3)]">No due date is assigned to this action.</p> : null}
           </OpsCard>
 
           <OpsCard className="space-y-3">
-            <h2 className="text-lg font-semibold text-white">Status history</h2>
+            <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Status history</h2>
             {detail.action.statusEvents && detail.action.statusEvents.length > 0 ? detail.action.statusEvents.map((event) => (
-              <div key={`${event.createdAt}-${event.toStatus}`} className="rounded-3xl border border-white/10 bg-black/20 p-4">
+              <div key={`${event.createdAt}-${event.toStatus}`} className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <OpsBadge label={event.toStatus} tone={severityTone(event.toStatus)} />
-                  {event.actorId ? <span className="text-sm text-slate-400">{event.actorId}</span> : null}
-                  <span className="text-sm text-slate-400" title={formatAbsoluteTime(event.createdAt)}>
+                  {event.actorId ? <span className="text-sm text-[var(--vt-text-3)]">{event.actorId}</span> : null}
+                  <span className="text-sm text-[var(--vt-text-3)]" title={formatAbsoluteTime(event.createdAt)}>
                     {formatRelativeTime(event.createdAt)}
                   </span>
                 </div>
-                {event.note ? <p className="mt-2 text-sm text-slate-300">{event.note}</p> : null}
+                {event.note ? <p className="mt-2 text-sm text-[var(--vt-text-2)]">{event.note}</p> : null}
               </div>
             )) : (
-              <p className="text-sm text-slate-400">No status transitions have been recorded for this action yet.</p>
+              <p className="text-sm text-[var(--vt-text-3)]">No status transitions have been recorded for this action yet.</p>
             )}
           </OpsCard>
 
           <OpsCard className="space-y-3">
-            <h2 className="text-lg font-semibold text-white">Prediction context</h2>
+            <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Prediction context</h2>
             {detail.action.linkedPredictions && detail.action.linkedPredictions.length > 0 ? detail.action.linkedPredictions.map((prediction) => (
-              <div key={prediction.predictionId} className="rounded-3xl border border-white/10 bg-black/20 p-4">
+              <div key={prediction.predictionId} className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <OpsBadge label={prediction.predictionType.replace(/_/g, ' ')} />
-                  <span className="text-sm text-slate-400">Probability {Math.round(prediction.probability * 100)}%</span>
-                  <span className="text-sm text-slate-400">Confidence {Math.round(prediction.confidence * 100)}%</span>
+                  <span className="text-sm text-[var(--vt-text-3)]">Probability {Math.round(prediction.probability * 100)}%</span>
+                  <span className="text-sm text-[var(--vt-text-3)]">Confidence {Math.round(prediction.confidence * 100)}%</span>
                 </div>
-                <p className="mt-3 text-sm leading-6 text-slate-300">{prediction.explanation}</p>
+                <p className="mt-3 text-sm leading-6 text-[var(--vt-text-2)]">{prediction.explanation}</p>
               </div>
             )) : (
-              <p className="text-sm text-slate-400">No linked prediction insights were returned for this action.</p>
+              <p className="text-sm text-[var(--vt-text-3)]">No linked prediction insights were returned for this action.</p>
             )}
           </OpsCard>
         </div>

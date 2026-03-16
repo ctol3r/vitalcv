@@ -47,7 +47,7 @@
   gap: 0.875rem;
   min-height: var(--vital-ops-topbar-height);
   border-bottom: 1px solid var(--vital-ops-border-subtle);
-  background: rgb(7 13 23 / 0.88);
+  background: var(--vt-surface, rgb(7 13 23 / 0.88));
   padding: 0 0.875rem;
   box-shadow: 0 16px 48px rgb(2 6 23 / 0.22);
   transition:
@@ -128,7 +128,7 @@
   border: 1px solid rgb(56 189 248 / 0.35);
   border-radius: 999px;
   color: var(--vital-ops-accent-cyan);
-  background: rgb(6 22 38 / 0.72);
+  background: var(--vt-surface, rgb(6 22 38 / 0.72));
   box-shadow: 0 0 0 1px rgb(34 211 238 / 0.08), 0 0 24px rgb(34 211 238 / 0.12);
   transition:
     transform var(--ui-motion-duration-highlight) var(--ui-motion-ease-out),
@@ -139,7 +139,7 @@
   height: 2.45rem;
   border: 1px solid var(--vital-ops-border-subtle);
   border-radius: 0.9rem;
-  background: rgb(7 13 22 / 0.8);
+  background: var(--vt-surface, rgb(7 13 22 / 0.8));
   color: var(--vital-ops-text-primary);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.03);
   transition:
@@ -160,13 +160,10 @@
 }
 
 .vital-panel {
-  border: 1px solid var(--vital-ops-border-subtle);
+  border: 1px solid var(--vt-border, var(--vital-ops-border-subtle));
   border-radius: 1rem;
-  background:
-    linear-gradient(180deg, rgb(14 25 40 / 0.94), rgb(10 18 30 / 0.98));
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.03),
-    0 18px 48px rgb(2 6 23 / 0.26);
+  background: var(--vt-surface, rgb(14 25 40 / 0.94));
+  box-shadow: var(--vt-shadow-md, 0 18px 48px rgb(2 6 23 / 0.26));
   transition:
     border-color var(--ui-motion-duration-panel) var(--ui-motion-ease-out),
     box-shadow var(--ui-motion-duration-panel) var(--ui-motion-ease-out),
@@ -218,7 +215,7 @@
 .vital-action-button {
   border: 1px solid var(--vital-ops-border-subtle);
   border-radius: 0.8rem;
-  background: rgb(9 20 33 / 0.84);
+  background: var(--vt-surface, rgb(9 20 33 / 0.84));
   color: var(--vital-ops-text-secondary);
   box-shadow: none;
   transition:
@@ -249,7 +246,7 @@
 .vital-status-pill {
   border: 1px solid rgb(56 189 248 / 0.24);
   border-radius: 999px;
-  background: rgb(8 28 47 / 0.74);
+  background: var(--vt-surface-2, rgb(8 28 47 / 0.74));
   color: var(--vital-ops-accent-cyan);
   font-size: 0.68rem;
   font-weight: 700;
@@ -273,7 +270,7 @@
   gap: 0.35rem;
   border: 1px solid var(--vital-ops-border-subtle);
   border-radius: 999px;
-  background: rgb(9 18 29 / 0.76);
+  background: var(--vt-surface, rgb(9 18 29 / 0.76));
   color: var(--vital-ops-text-secondary);
   padding: 0.35rem 0.65rem;
   font-size: 0.72rem;
@@ -287,7 +284,7 @@
 
 .vital-chip--active {
   border-color: rgb(59 130 246 / 0.5);
-  background: rgb(23 37 84 / 0.7);
+  background: var(--vt-surface-2, rgb(23 37 84 / 0.7));
   color: var(--vital-ops-text-primary);
 }
 
@@ -306,7 +303,7 @@
   gap: 0.2rem;
   border: 1px solid var(--vital-ops-border-subtle);
   border-radius: 0.85rem;
-  background: rgb(9 16 28 / 0.82);
+  background: var(--vt-surface, rgb(9 16 28 / 0.82));
   padding: 0.7rem 0.8rem;
   transition:
     border-color var(--ui-motion-duration-panel) var(--ui-motion-ease-out),

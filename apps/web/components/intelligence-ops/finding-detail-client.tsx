@@ -71,7 +71,7 @@ export function FindingDetailClient({
       ]}
       meta={(
         <div className="space-y-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Finding detail</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Finding detail</p>
           <p title={formatAbsoluteTime(finding.updatedAt)}>Updated {formatRelativeTime(finding.updatedAt)}</p>
           <p>{finding.occurrenceCount} occurrence{finding.occurrenceCount === 1 ? '' : 's'}</p>
         </div>
@@ -98,10 +98,10 @@ export function FindingDetailClient({
               <OpsBadge label={finding.severity} tone={severityTone(finding.severity)} />
               <OpsBadge label={finding.status} tone={severityTone(finding.status)} />
               <OpsBadge label={finding.findingType.replace(/_/g, ' ')} />
-              <span className="text-sm text-slate-400">{finding.investigatorId}</span>
+              <span className="text-sm text-[var(--vt-text-3)]">{finding.investigatorId}</span>
             </div>
             <div className="space-y-3">
-              <p className="text-sm leading-7 text-slate-300">{finding.explanation}</p>
+              <p className="text-sm leading-7 text-[var(--vt-text-2)]">{finding.explanation}</p>
               <div className="flex flex-wrap gap-2">
                 {providerNpi ? (
                   <>
@@ -136,38 +136,38 @@ export function FindingDetailClient({
 
           <OpsCard className="space-y-4">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-white">Status history</h2>
-              <span className="text-sm text-slate-400">{finding.statusEvents.length} events</span>
+              <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Status history</h2>
+              <span className="text-sm text-[var(--vt-text-3)]">{finding.statusEvents.length} events</span>
             </div>
             {finding.statusEvents.length > 0 ? (
               <div className="space-y-3">
                 {finding.statusEvents.map((event) => (
-                  <div key={`${event.createdAt}-${event.toStatus}`} className="rounded-3xl border border-white/10 bg-black/20 p-4">
+                  <div key={`${event.createdAt}-${event.toStatus}`} className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <OpsBadge label={event.toStatus} tone={severityTone(event.toStatus)} />
-                      {event.actorId ? <span className="text-sm text-slate-400">{event.actorId}</span> : null}
-                      <span className="text-sm text-slate-400" title={formatAbsoluteTime(event.createdAt)}>
+                      {event.actorId ? <span className="text-sm text-[var(--vt-text-3)]">{event.actorId}</span> : null}
+                      <span className="text-sm text-[var(--vt-text-3)]" title={formatAbsoluteTime(event.createdAt)}>
                         {formatRelativeTime(event.createdAt)}
                       </span>
                     </div>
-                    {event.note ? <p className="mt-2 text-sm text-slate-300">{event.note}</p> : null}
+                    {event.note ? <p className="mt-2 text-sm text-[var(--vt-text-2)]">{event.note}</p> : null}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-slate-400">No status events have been recorded for this finding yet.</p>
+              <p className="text-sm text-[var(--vt-text-3)]">No status events have been recorded for this finding yet.</p>
             )}
           </OpsCard>
         </div>
 
         <div className="space-y-4">
           <OpsCard className="space-y-4">
-            <h2 className="text-lg font-semibold text-white">Triage</h2>
+            <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Triage</h2>
             <FindingMutationControls findingId={finding.findingId} status={finding.status} />
           </OpsCard>
 
           <OpsCard className="space-y-3">
-            <h2 className="text-lg font-semibold text-white">Related entities</h2>
+            <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Related entities</h2>
             {finding.entities.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {finding.entities.map((entity) => {
@@ -179,7 +179,7 @@ export function FindingDetailClient({
                   ) : (
                     <span
                       key={`${entity.entityType}-${entity.entityId}`}
-                      className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300"
+                      className="inline-flex items-center rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-1 text-xs text-[var(--vt-text-2)]"
                     >
                       {entity.entityLabel ?? entity.entityId}
                     </span>
@@ -187,22 +187,22 @@ export function FindingDetailClient({
                 })}
               </div>
             ) : (
-              <p className="text-sm text-slate-400">No related entities were persisted for this finding.</p>
+              <p className="text-sm text-[var(--vt-text-3)]">No related entities were persisted for this finding.</p>
             )}
           </OpsCard>
 
           <OpsCard className="space-y-2">
-            <h2 className="text-lg font-semibold text-white">Scoring</h2>
-            <p className="text-sm text-slate-300">Priority {Math.round(finding.priorityScore)}</p>
-            <div className="flex items-center gap-2 text-sm text-slate-300">
+            <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Scoring</h2>
+            <p className="text-sm text-[var(--vt-text-2)]">Priority {Math.round(finding.priorityScore)}</p>
+            <div className="flex items-center gap-2 text-sm text-[var(--vt-text-2)]">
               <span>Confidence</span>
               <ConfidenceMeter confidence={finding.confidence} />
             </div>
-            <p className="text-sm text-slate-300">Audience {finding.audienceRoles.join(', ') || 'None'}</p>
+            <p className="text-sm text-[var(--vt-text-2)]">Audience {finding.audienceRoles.join(', ') || 'None'}</p>
           </OpsCard>
 
           <OpsCard className="space-y-2">
-            <h2 className="text-lg font-semibold text-white">Timestamps</h2>
+            <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Timestamps</h2>
             <TimestampPair label="Created" value={finding.createdAt} />
             <TimestampPair label="Updated" value={finding.updatedAt} />
             <TimestampPair label="First seen" value={finding.firstSeenAt} />

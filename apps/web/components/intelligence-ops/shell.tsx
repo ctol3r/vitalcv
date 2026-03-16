@@ -40,9 +40,9 @@ export function OperationsShell({
   children,
 }: OperationsShellProps) {
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.12),transparent_24%),radial-gradient(circle_at_top_right,rgba(59,130,246,0.16),transparent_22%),linear-gradient(180deg,#060b13,#09101b_42%,#070c14)] text-slate-50">
+    <main className="ops-shell min-h-screen text-[var(--vt-text-1)]">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-        <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_28px_60px_rgba(2,6,23,0.35)] backdrop-blur">
+        <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 shadow-[var(--vt-shadow-md)]">
           <div className="flex flex-wrap gap-2">
             {OPERATIONS_NAV.map((item) => {
               const active = activeHref === item.href || activeHref.startsWith(item.href + '/');
@@ -53,8 +53,8 @@ export function OperationsShell({
                   className={cn(
                     'rounded-full border px-3 py-1.5 text-sm font-medium transition',
                     active
-                      ? 'border-cyan-400/50 bg-cyan-400/15 text-cyan-100'
-                      : 'border-white/10 bg-black/20 text-slate-300 hover:border-white/20 hover:text-white',
+                      ? 'border-[var(--vt-accent)]/50 bg-[var(--vt-accent)]/15 text-[var(--vt-text-1)]'
+                      : 'border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-2)] hover:border-[var(--vt-border-2)] hover:text-[var(--vt-text-1)]',
                   )}
                 >
                   {item.label}
@@ -64,20 +64,20 @@ export function OperationsShell({
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-white/10 bg-slate-950/55 p-5 shadow-[0_28px_80px_rgba(2,6,23,0.45)] backdrop-blur sm:p-6">
+        <div className="rounded-[28px] border border-[var(--vt-border)] bg-[var(--vt-surface)]/80 p-5 shadow-[var(--vt-shadow-lg)] backdrop-blur sm:p-6">
           {breadcrumbs.length > 0 ? (
-            <nav aria-label="Breadcrumb" className="mb-4 flex flex-wrap items-center gap-2 text-sm text-slate-400">
+            <nav aria-label="Breadcrumb" className="mb-4 flex flex-wrap items-center gap-2 text-sm text-[var(--vt-text-2)]">
               {breadcrumbs.map((crumb, index) => {
                 const last = index === breadcrumbs.length - 1;
                 return (
                   <span key={`${crumb.label}-${index}`} className="flex items-center gap-2">
-                    {index > 0 ? <ChevronRight className="h-3.5 w-3.5 text-slate-600" /> : null}
+                    {index > 0 ? <ChevronRight className="h-3.5 w-3.5 text-[var(--vt-text-3)]" /> : null}
                     {crumb.href && !last ? (
-                      <Link href={crumb.href} className="transition hover:text-white">
+                      <Link href={crumb.href} className="transition hover:text-[var(--vt-text-1)]">
                         {crumb.label}
                       </Link>
                     ) : (
-                      <span className={last ? 'text-white' : undefined}>{crumb.label}</span>
+                      <span className={last ? 'text-[var(--vt-text-1)]' : undefined}>{crumb.label}</span>
                     )}
                   </span>
                 );
@@ -87,14 +87,14 @@ export function OperationsShell({
 
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0 space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-300/80">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--vt-accent)]">
                 Intelligence Operations
               </p>
               <div className="space-y-1">
-                <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                <h1 className="text-3xl font-semibold tracking-tight text-[var(--vt-text-1)] sm:text-4xl">
                   {title}
                 </h1>
-                <p className="max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">
+                <p className="max-w-3xl text-sm leading-6 text-[var(--vt-text-2)] sm:text-base">
                   {description}
                 </p>
               </div>
@@ -103,7 +103,7 @@ export function OperationsShell({
             {(meta || actions) ? (
               <div className="flex min-w-0 flex-col gap-3 lg:max-w-sm lg:items-end">
                 {meta ? (
-                  <div className="text-sm text-slate-300 lg:text-right">
+                  <div className="text-sm text-[var(--vt-text-2)] lg:text-right">
                     {meta}
                   </div>
                 ) : null}

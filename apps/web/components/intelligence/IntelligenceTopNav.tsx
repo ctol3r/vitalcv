@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { Bot, Network, RefreshCw, ShieldCheck } from 'lucide-react';
 import type { IntelligenceGraphStats, IntelligenceTone } from '@/lib/intelligence/contracts';
+import { ThemePicker } from '@/components/ui/ThemeToggle';
 import { ToneBadge } from './shared';
 
 interface IntelligenceTopNavProps {
@@ -29,14 +30,14 @@ export function IntelligenceTopNav({
   return (
     <nav className="vital-topnav" role="navigation" aria-label="Intelligence workspace navigation">
       <div className="min-w-0">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/45">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--vt-text-3)]">
           VitalCV Intelligence
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-xl font-semibold text-white">Intelligence Console</h1>
+          <h1 className="text-xl font-semibold text-[var(--vt-text-1)]">Intelligence Console</h1>
           <ToneBadge tone={overallHealth} label={focusLabel} />
         </div>
-        <p className="mt-2 max-w-2xl text-sm text-white/60">
+        <p className="mt-2 max-w-2xl text-sm text-[var(--vt-text-1)]/60">
           Investigators, findings, storylines, trust graph, and Copilot — one operational surface.
         </p>
       </div>
@@ -47,6 +48,7 @@ export function IntelligenceTopNav({
         <MetricPill icon={<Network className="h-3.5 w-3.5" />} label="Storylines" value={storylineCount} />
         <MetricPill icon={<Network className="h-3.5 w-3.5" />} label="Actions" value={actionCount} />
         {graphStats ? <MetricPill icon={<Network className="h-3.5 w-3.5" />} label="Graph" value={graphStats.totalNodes} suffix="nodes" /> : null}
+        <ThemePicker />
         <button
           type="button"
           onClick={onRefreshAll}
@@ -73,12 +75,12 @@ function MetricPill({
   suffix?: string;
 }) {
   return (
-    <div className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-2">
-      <div className="flex items-center gap-2 text-xs text-white/55">
+    <div className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-2">
+      <div className="flex items-center gap-2 text-xs text-[var(--vt-text-1)]/55">
         {icon}
         <span>{label}</span>
       </div>
-      <p className="mt-1 text-sm font-semibold text-white">
+      <p className="mt-1 text-sm font-semibold text-[var(--vt-text-1)]">
         {value} {suffix ?? ''}
       </p>
     </div>

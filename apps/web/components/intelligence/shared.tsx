@@ -29,8 +29,8 @@ export function SurfaceState({
   if (loading) {
     return (
       <div className={cn('grid gap-3', className)}>
-        <div className="h-20 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]" />
-        <div className="h-20 animate-pulse rounded-2xl border border-white/10 bg-white/[0.03]" />
+        <div className="h-20 animate-pulse rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)]" />
+        <div className="h-20 animate-pulse rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)]" />
       </div>
     );
   }
@@ -61,9 +61,9 @@ export function SurfaceState({
 
   if (empty) {
     return (
-      <div className={cn('rounded-2xl border border-white/10 bg-white/[0.03] p-4', className)}>
-        <p className="text-sm font-semibold text-white">{emptyTitle}</p>
-        <p className="mt-1 text-xs leading-5 text-white/60">{emptyCopy}</p>
+      <div className={cn('rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-4', className)}>
+        <p className="text-sm font-semibold text-[var(--vt-text-1)]">{emptyTitle}</p>
+        <p className="mt-1 text-xs leading-5 text-[var(--vt-text-2)]">{emptyCopy}</p>
       </div>
     );
   }
@@ -114,7 +114,7 @@ export function ToneBadge({
       ? 'border-amber-300/20 bg-amber-300/[0.12] text-amber-100'
       : tone === 'critical'
         ? 'border-red-300/20 bg-red-300/[0.12] text-red-100'
-        : 'border-white/10 bg-white/[0.06] text-white/80';
+        : 'border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-2)]';
 
   return (
     <span className={cn('inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]', classes)}>

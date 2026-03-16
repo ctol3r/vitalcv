@@ -93,8 +93,8 @@ export function Pagination({
         className={cn(
           'inline-flex items-center gap-1 rounded-full border px-3 py-2 text-sm transition',
           currentPage <= 1
-            ? 'cursor-not-allowed border-white/5 bg-transparent text-slate-600'
-            : 'border-white/10 bg-white/5 text-white hover:bg-white/10',
+            ? 'cursor-not-allowed border-[var(--vt-border-2)] bg-transparent text-[var(--vt-text-3)]'
+            : 'border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-1)] hover:bg-[var(--vt-surface-2)]',
         )}
       >
         <ChevronLeft className="h-4 w-4" />
@@ -103,7 +103,7 @@ export function Pagination({
 
       {items.map((item, index) => (
         item === 'ellipsis' ? (
-          <span key={`ellipsis-${index}`} aria-hidden="true" className="px-2 text-sm text-slate-500">
+          <span key={`ellipsis-${index}`} aria-hidden="true" className="px-2 text-sm text-[var(--vt-text-3)]">
             ...
           </span>
         ) : (
@@ -116,8 +116,8 @@ export function Pagination({
             className={cn(
               'min-w-10 rounded-full border px-3 py-2 text-sm transition',
               item === currentPage
-                ? 'cursor-default border-cyan-400/30 bg-cyan-500/15 text-cyan-100'
-                : 'border-white/10 bg-white/5 text-white hover:bg-white/10',
+                ? 'cursor-default border-cyan-400/30 bg-cyan-500/15 text-[var(--vt-accent)]'
+                : 'border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-1)] hover:bg-[var(--vt-surface-2)]',
             )}
           >
             {item}
@@ -132,8 +132,8 @@ export function Pagination({
         className={cn(
           'inline-flex items-center gap-1 rounded-full border px-3 py-2 text-sm transition',
           currentPage >= totalPages
-            ? 'cursor-not-allowed border-white/5 bg-transparent text-slate-600'
-            : 'border-white/10 bg-white/5 text-white hover:bg-white/10',
+            ? 'cursor-not-allowed border-[var(--vt-border-2)] bg-transparent text-[var(--vt-text-3)]'
+            : 'border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-1)] hover:bg-[var(--vt-surface-2)]',
         )}
       >
         Next

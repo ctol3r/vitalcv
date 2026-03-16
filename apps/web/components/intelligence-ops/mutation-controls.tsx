@@ -40,8 +40,8 @@ function MutationButtonRow({
               'rounded-full border px-3 py-1.5 font-medium transition',
               compact ? 'text-xs' : 'text-sm',
               active
-                ? 'border-cyan-400/30 bg-cyan-400/10 text-cyan-100'
-                : 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-white',
+                ? 'border-cyan-400/30 bg-cyan-400/10 text-[var(--vt-accent)]'
+                : 'border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-2)] hover:bg-[var(--vt-surface-2)] hover:text-[var(--vt-text-1)]',
               pendingAction === button.action ? 'animate-pulse' : '',
             )}
           >

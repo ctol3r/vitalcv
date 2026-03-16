@@ -36,21 +36,21 @@ export function HealthStatusCard({
       onRetry={onRetry}
     >
       {card ? (
-        <article className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+        <article className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">
                 Health Status Card
               </p>
-              <h3 className="mt-2 text-base font-semibold text-white">{card.label}</h3>
+              <h3 className="mt-2 text-base font-semibold text-[var(--vt-text-1)]">{card.label}</h3>
             </div>
             <ToneBadge tone={card.tone} label={card.summary} />
           </div>
           <div className="mt-4 flex items-start gap-3">
-            <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-3">
+            <div className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)]/50 p-3">
               <Icon className="h-5 w-5 text-cyan-100" />
             </div>
-            <p className="text-sm leading-6 text-white/65">{card.detail}</p>
+            <p className="text-sm leading-6 text-[var(--vt-text-1)]/65">{card.detail}</p>
           </div>
         </article>
       ) : null}
