@@ -81,7 +81,8 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   // 6. Check role matches route
-  if (userRole !== requiredRole) {
+  //    AUTHENTICATED routes accept any authenticated user regardless of role
+  if (requiredRole !== 'AUTHENTICATED' && userRole !== requiredRole) {
     const redirectPath = getMismatchRedirect(pathname, userRole);
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = redirectPath;

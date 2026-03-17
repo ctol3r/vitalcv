@@ -8,6 +8,8 @@ export const UserRole = {
   VERIFIER: 'VERIFIER',
   ISSUER: 'ISSUER',
   ADMIN: 'ADMIN',
+  /** Any authenticated user — used for intelligence surfaces */
+  AUTHENTICATED: 'AUTHENTICATED',
 } as const;
 
 export type UserRoleType = (typeof UserRole)[keyof typeof UserRole];
@@ -20,6 +22,7 @@ export const ROLE_LANDING: Record<UserRoleType, string> = {
   VERIFIER: '/verifier',
   ISSUER: '/issuer',
   ADMIN: '/internal/metrics',
+  AUTHENTICATED: '/intelligence',
 };
 
 /**
@@ -35,6 +38,17 @@ export const PROTECTED_ROUTES: Array<{ pattern: RegExp; role: UserRoleType }> = 
   { pattern: /^\/mission-ops(\/.*)?$/, role: UserRole.ADMIN },
   { pattern: /^\/analytics(\/.*)?$/, role: UserRole.ADMIN },
   { pattern: /^\/command-center(\/.*)?$/, role: UserRole.ADMIN },
+  // Intelligence surfaces — any authenticated user
+  { pattern: /^\/intelligence(\/.*)?$/, role: UserRole.AUTHENTICATED },
+  { pattern: /^\/findings(\/.*)?$/, role: UserRole.AUTHENTICATED },
+  { pattern: /^\/storylines(\/.*)?$/, role: UserRole.AUTHENTICATED },
+  { pattern: /^\/providers(\/.*)?$/, role: UserRole.AUTHENTICATED },
+  { pattern: /^\/actions(\/.*)?$/, role: UserRole.AUTHENTICATED },
+  { pattern: /^\/investigations(\/.*)?$/, role: UserRole.AUTHENTICATED },
+  { pattern: /^\/calibration(\/.*)?$/, role: UserRole.AUTHENTICATED },
+  { pattern: /^\/system-health(\/.*)?$/, role: UserRole.AUTHENTICATED },
+  { pattern: /^\/graph(\/.*)?$/, role: UserRole.AUTHENTICATED },
+  { pattern: /^\/network(\/.*)?$/, role: UserRole.AUTHENTICATED },
 ];
 
 /**
@@ -42,7 +56,7 @@ export const PROTECTED_ROUTES: Array<{ pattern: RegExp; role: UserRoleType }> = 
  */
 export const PUBLIC_ROUTE_PATTERNS = [
   /^\/$/, // landing
-  /^\/network(\/.*)?$/, // public trust network map
+  // /network moved to protected intelligence routes
   /^\/simulation(\/.*)?$/, // public simulation surface
   /^\/mobile(\/.*)?$/, // mobile landing
   /^\/status(\/.*)?$/, // public system status
