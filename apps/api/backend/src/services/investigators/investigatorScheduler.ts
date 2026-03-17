@@ -1,4 +1,5 @@
 import * as cron from 'node-cron';
+import { isAutomatedTestRuntime } from '../../config/runtimeMode';
 import { log } from '../../obs/logger';
 import { runScheduledInvestigators } from './investigatorEngineService';
 
@@ -41,7 +42,7 @@ async function runCycle(): Promise<void> {
 }
 
 export function startInvestigatorScheduler(): void {
-  const enabled = process.env.NODE_ENV !== 'test' && process.env.INVESTIGATORS_ENABLED !== 'false';
+  const enabled = !isAutomatedTestRuntime() && process.env.INVESTIGATORS_ENABLED !== 'false';
   if (!enabled) {
     log('info', 'investigator_scheduler: disabled');
     return;

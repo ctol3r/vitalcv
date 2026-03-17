@@ -1,8 +1,8 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import { DashboardSurface } from '@/components/intelligence-ops/dashboard-surface';
 import { ActionsSurface } from '@/components/intelligence-ops/actions-surface';
 import { FindingsSurface } from '@/components/intelligence-ops/findings-surface';
+import { IntelligenceOverviewSurface } from '@/components/intelligence-ops/intelligence-overview-surface';
 import { InvestigationsSurface } from '@/components/intelligence-ops/investigations-surface';
 import { ProvidersSurface } from '@/components/intelligence-ops/providers-surface';
 import { StorylinesSurface } from '@/components/intelligence-ops/storylines-surface';
@@ -10,7 +10,6 @@ import { SystemHealthSurface } from '@/components/intelligence-ops/system-health
 import { CalibrationDashboard } from '@/app/calibration/CalibrationDashboard';
 import {
   buildLegacyRedirectHref,
-  isIntelligenceView,
   resolveIntelligenceView,
 } from '@/lib/intelligence/routes';
 
@@ -21,6 +20,8 @@ export const metadata = {
 
 function renderSurface(view: ReturnType<typeof resolveIntelligenceView>) {
   switch (view) {
+    case 'dashboard':
+      return <IntelligenceOverviewSurface />;
     case 'findings':
       return <FindingsSurface />;
     case 'storylines':
@@ -35,9 +36,8 @@ function renderSurface(view: ReturnType<typeof resolveIntelligenceView>) {
       return <CalibrationDashboard />;
     case 'system-health':
       return <SystemHealthSurface />;
-    case 'dashboard':
     default:
-      return <DashboardSurface />;
+      return <IntelligenceOverviewSurface />;
   }
 }
 
@@ -47,10 +47,11 @@ export default async function IntelligencePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const resolvedSearchParams = await searchParams;
+  const rawTab = typeof resolvedSearchParams.tab === 'string' ? resolvedSearchParams.tab : null;
   const rawView = typeof resolvedSearchParams.view === 'string' ? resolvedSearchParams.view : null;
-  const view = resolveIntelligenceView(rawView);
+  const view = resolveIntelligenceView(rawView ?? rawTab);
 
-  if (!isIntelligenceView(rawView) || rawView !== view) {
+  if (rawTab !== null || (rawView !== null && rawView !== view)) {
     redirect(buildLegacyRedirectHref(view, resolvedSearchParams));
   }
 

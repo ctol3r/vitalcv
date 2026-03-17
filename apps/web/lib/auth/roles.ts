@@ -60,6 +60,7 @@ export const PUBLIC_ROUTE_PATTERNS = [
   // /network moved to protected intelligence routes
   /^\/intelligence\/?$/, // public seeded intelligence shell
   /^\/findings\/?$/, // public seeded findings shell
+  /^\/providers\/?$/, // public provider redirect shell
   /^\/investigations\/?$/, // public seeded investigations shell
   /^\/simulation(\/.*)?$/, // public simulation surface
   /^\/mobile(\/.*)?$/, // mobile landing

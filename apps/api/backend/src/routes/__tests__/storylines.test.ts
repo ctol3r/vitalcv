@@ -160,6 +160,7 @@ describe('storyline routes', () => {
     const app = buildApp();
     listStorylinesMock.mockResolvedValue({
       storylines: [sampleStoryline()],
+      total: 7,
       syncedAt: '2026-03-15T12:00:00.000Z',
     });
 
@@ -182,6 +183,7 @@ describe('storyline routes', () => {
       sync: false,
     }));
     expect(() => storylineListResponseSchema.parse(response.body)).not.toThrow();
+    expect(response.body.total).toBe(7);
   });
 
   it('acknowledges a storyline and returns the detail contract', async () => {

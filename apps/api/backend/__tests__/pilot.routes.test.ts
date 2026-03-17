@@ -59,6 +59,15 @@ runPilotRouteSuite('pilot routes', () => {
     expect(res.body.acceptedAt).toBeTruthy();
   });
 
+  it('rejects invalid verifier acceptance requests without crashing the process', async () => {
+    const res = await request(app).post('/api/verifier/accept').send({});
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({
+      error: 'organization is required',
+    });
+  });
+
   it('returns YC and pilot metrics aggregates', async () => {
     await prisma.shareLink.createMany({
       data: [
@@ -149,6 +158,17 @@ runPilotRouteSuite('pilot routes', () => {
     expect(report.body.pilotOrgs[0]).toMatchObject({
       name: 'Regional Health Center',
       bundlesGenerated: 0,
+    });
+  });
+
+  it('rejects invalid pilot activation requests without crashing the process', async () => {
+    const res = await request(app).post('/api/pilot/activate').send({
+      contactEmail: 'pilot-access@regional.example',
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({
+      error: 'organizationName is required',
     });
   });
 

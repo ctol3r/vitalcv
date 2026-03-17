@@ -142,6 +142,8 @@ export default React.memo(function GraphCanvas({
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>(0);
+  const nodeSpawnTimesRef = useRef(new Map<string, number>());
+  const edgeSpawnTimesRef = useRef(new Map<string, number>());
   const cameraRef = useRef({ x: 0, y: 0, zoom: 1 });
   const canvasMetricsRef = useRef<CanvasMetrics>({
     width: 0,
@@ -423,12 +425,20 @@ export default React.memo(function GraphCanvas({
       context.translate(-width / 2, -height / 2);
 
       for (const edge of edges) {
+        if (!edgeSpawnTimesRef.current.has(edge.id)) {
+          edgeSpawnTimesRef.current.set(edge.id, frameStartedAt);
+        }
+
         const source = nodeMap.get(edge.source);
         const target = nodeMap.get(edge.target);
 
         if (!source || !target || edge.visible === false) {
           continue;
         }
+
+        const spawnTime = edgeSpawnTimesRef.current.get(edge.id) ?? frameStartedAt;
+        const edgeAgeMs = frameStartedAt - spawnTime;
+        const edgeSpawnProgress = Math.min(1, edgeAgeMs / 800); // 800ms spawn animation
 
         const linkClass = classifyEdgeType(edge);
         const style = LINK_CLASS_STYLES[linkClass];
@@ -452,7 +462,7 @@ export default React.memo(function GraphCanvas({
         context.lineTo(targetX, targetY);
         context.setLineDash(style.dash);
         context.strokeStyle = style.stroke;
-        context.globalAlpha = isFocused
+        context.globalAlpha = (isFocused
           ? Math.min(0.96, 0.78 + (edgeStrength * 0.18))
           : isDimmed
             ? 0.1
@@ -462,7 +472,7 @@ export default React.memo(function GraphCanvas({
                 : zoomBand === 'evidence'
                   ? 0.26 + (edgeStrength * 0.28)
                   : 0.22 + (edgeStrength * 0.22)
-            );
+            )) * edgeSpawnProgress;
         context.lineWidth = visuals.linkThickness
           * (0.7 + (edgeStrength * 1.35))
           * (zoomBand === 'overview' ? 0.82 : zoomBand === 'evidence' ? 1.14 : 1)
@@ -494,6 +504,18 @@ export default React.memo(function GraphCanvas({
       }
 
       for (const node of simulationNodes) {
+        if (!nodeSpawnTimesRef.current.has(node.id)) {
+          nodeSpawnTimesRef.current.set(node.id, frameStartedAt);
+        }
+
+        const spawnTime = nodeSpawnTimesRef.current.get(node.id) ?? frameStartedAt;
+        const nodeAgeMs = frameStartedAt - spawnTime;
+        
+        // Easing function for smooth pop-in
+        const t = Math.min(1, nodeAgeMs / 600);
+        const nodeSpawnScale = 1 - Math.pow(1 - t, 3);
+        const nodeSpawnAlpha = Math.min(1, nodeAgeMs / 400);
+
         const radius = Math.max(8, node.radius ?? visuals.nodeSize);
         const isSelected = node.id === selectedNodeIdCurrent;
         const isHovered = node.id === hoveredNodeIdCurrent;
@@ -512,7 +534,13 @@ export default React.memo(function GraphCanvas({
         const nodeColor = colorMap.get(node.id) ?? '#64748b';
         const nodeX = node.x ?? width / 2;
         const nodeY = node.y ?? height / 2;
-        const animatedRadius = radius * (1 + (highlightProgress * 0.12));
+        
+        // Active node pulsing (breathing)
+        const pulse = (isSelected || isFocusedNeighbor) 
+          ? 1 + Math.sin(frameStartedAt / 400 + (nodeX + nodeY) * 0.05) * 0.05 
+          : 1;
+
+        const animatedRadius = radius * nodeSpawnScale * pulse * (1 + (highlightProgress * 0.12));
 
         if (highlightProgress > 0.001 || highlightTarget > 0) {
           highlightProgressRef.current.set(node.id, highlightProgress);
@@ -541,7 +569,7 @@ export default React.memo(function GraphCanvas({
         context.beginPath();
         context.arc(nodeX, nodeY, animatedRadius, 0, Math.PI * 2);
         context.fillStyle = nodeColor;
-        context.globalAlpha = isDimmed ? 0.18 : 0.88 + (highlightProgress * 0.08);
+        context.globalAlpha = (isDimmed ? 0.18 : 0.88 + (highlightProgress * 0.08)) * nodeSpawnAlpha;
         context.fill();
 
         context.lineWidth = node.fx != null && node.fy != null ? 2.2 : 1.2 + (highlightProgress * 0.6);
@@ -550,6 +578,9 @@ export default React.memo(function GraphCanvas({
           : node.fx != null && node.fy != null
             ? '#22d3ee'
             : 'rgba(226, 232, 240, 0.18)';
+        
+        // Also apply alpha to stroke
+        context.globalAlpha *= 0.8;
         context.stroke();
 
         const shouldShowLabel = visuals.showLabels && (

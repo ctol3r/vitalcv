@@ -31,6 +31,7 @@ import type {
   StorylineTypeRecord,
 } from './storylineStore';
 import {
+  countStorylineRecords,
   getStorylineRecord,
   listStorylineRecords,
   mutateStorylineRecord,
@@ -874,12 +875,13 @@ export interface StorylineQueryFilters {
 
 export async function listStorylines(filters: StorylineQueryFilters = {}): Promise<{
   storylines: StorylineWithPredictionSnapshot[];
+  total: number;
   syncedAt: string;
 }> {
   const syncedAt = filters.sync === false
     ? (lastSyncedAt ?? new Date().toISOString())
     : await syncStorylines();
-  const rows = await listStorylineRecords({
+  const recordFilters = {
     storylineType: filters.storylineType ? toDbType(filters.storylineType) : undefined,
     severity: filters.severity ? toDbSeverity(filters.severity) : undefined,
     status: filters.status ? toDbStatus(filters.status) : undefined,
@@ -888,9 +890,15 @@ export async function listStorylines(filters: StorylineQueryFilters = {}): Promi
     institution: filters.institution ? normalizeInstitutionKey(filters.institution) : undefined,
     dateFrom: filters.dateFrom,
     dateTo: filters.dateTo,
-    includeDetails: true,
-    limit: filters.limit,
-  });
+  };
+  const [rows, total] = await Promise.all([
+    listStorylineRecords({
+      ...recordFilters,
+      includeDetails: true,
+      limit: filters.limit,
+    }),
+    countStorylineRecords(recordFilters),
+  ]);
 
   const storylines = rows.map(toCoreSnapshot);
   const predictionSummaries = await getPredictionSummariesForEntityKeys(
@@ -903,6 +911,7 @@ export async function listStorylines(filters: StorylineQueryFilters = {}): Promi
       ...storyline,
       predictionSummary: summarizeStorylinePredictions(storyline.entityIds, predictionSummaries),
     })),
+    total,
     syncedAt,
   };
 }

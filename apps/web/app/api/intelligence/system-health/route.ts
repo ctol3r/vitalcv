@@ -36,8 +36,8 @@ export async function GET(req: NextRequest) {
     if (!upstream.ok) {
       return NextResponse.json(
         coerceRouteErrorPayload(upstream.payload, {
-          error: 'backend_unavailable',
-          error_description: 'System health is unavailable. Try again when the backend is reachable.',
+          error: 'backend_request_failed',
+          error_description: `System health backend returned ${upstream.status}.`,
         }),
         { status: upstream.status >= 400 ? upstream.status : 503 },
       );
@@ -50,11 +50,11 @@ export async function GET(req: NextRequest) {
         reason: 'ok',
       },
     ));
-  } catch {
+  } catch (error) {
     return NextResponse.json(
       {
-        error: 'backend_unavailable',
-        error_description: 'System health is unavailable. Try again when the backend is reachable.',
+        error: 'backend_request_failed',
+        error_description: error instanceof Error ? error.message : 'System health request failed.',
       },
       { status: 503 },
     );

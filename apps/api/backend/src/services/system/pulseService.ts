@@ -79,6 +79,16 @@ export async function generateSystemPulse(): Promise<SystemPulse> {
   ]);
 
   if (findings === 0) {
+    log('warn', 'intelligence_failure_detected', {
+      event: 'intelligence_failure_detected',
+      layer: 'db',
+      route: '/api/system/pulse',
+      reason: 'finding_count_zero',
+      providers,
+      findings,
+      storylines,
+      recoveryTriggered: true,
+    });
     maybeTriggerInvestigatorRecovery();
   }
 

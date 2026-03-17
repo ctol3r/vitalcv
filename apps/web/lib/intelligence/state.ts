@@ -23,6 +23,11 @@ export interface AccessBannerState {
   description: string;
 }
 
+export interface AccessEmptyState {
+  title: string;
+  description: string;
+}
+
 export type SystemHealthSurfaceMode = 'healthy' | 'empty' | 'degraded' | 'broken';
 
 export interface SystemHealthSurfaceState {
@@ -66,6 +71,40 @@ export function getAccessBannerState(
     default:
       return null;
   }
+}
+
+export function getAccessEmptyState(input: {
+  error: string | null | undefined;
+  resourceLabel: string;
+}): AccessEmptyState | null {
+  const description = input.error?.trim();
+  if (!description) {
+    return null;
+  }
+
+  const normalized = description.toLowerCase();
+
+  if (
+    normalized.includes('organization workspace required')
+    || normalized.includes('organization context is required')
+  ) {
+    return {
+      title: `Switch workspace to load ${input.resourceLabel}`,
+      description,
+    };
+  }
+
+  if (
+    normalized.includes('sign in')
+    || normalized.includes('authentication required')
+  ) {
+    return {
+      title: `Sign in to load ${input.resourceLabel}`,
+      description,
+    };
+  }
+
+  return null;
 }
 
 function parseTimestamp(input: string | null | undefined): number | null {

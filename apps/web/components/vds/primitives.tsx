@@ -112,12 +112,16 @@ export function VBadge({
 export function VCard({
   children,
   className,
+  style,
 }: {
   children: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   return (
-    <section className={cn(
+    <section 
+      style={style}
+      className={cn(
       'rounded-md border border-[var(--vt-border)] bg-[var(--vt-surface)] p-3 shadow-sm',
       className,
     )}>
@@ -173,14 +177,18 @@ export function VEmptyState({
   title,
   description,
 }: {
-  title: string;
-  description: string;
+  title?: string;
+  description?: string;
 }) {
+  const resolvedTitle = title?.trim() || 'No data available';
+  const resolvedDescription = description?.trim() || 'No records are available for the current scope.';
+
   return (
     <VCard className="border-dashed text-center">
-      <div className="mx-auto max-w-xl space-y-2 py-8">
-        <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">{title}</h2>
-        <p className="text-sm leading-6 text-[var(--vt-text-2)]">{description}</p>
+      <div className="mx-auto max-w-xl space-y-3 py-8">
+        <div className="mx-auto h-6 w-6 animate-pulse rounded-full bg-cyan-400/20 ring-1 ring-cyan-400/50" />
+        <h2 className="text-sm font-semibold text-[var(--vt-text-1)]">{resolvedTitle}</h2>
+        <p className="text-sm leading-6 text-[var(--vt-text-2)]">{resolvedDescription}</p>
       </div>
     </VCard>
   );
@@ -268,7 +276,7 @@ export function VButton({
   className?: string;
   type?: 'button' | 'submit';
 }) {
-  const base = 'inline-flex items-center gap-2 rounded-sm border font-medium transition disabled:opacity-50 disabled:cursor-not-allowed';
+  const base = 'vt-btn-micro inline-flex items-center gap-2 rounded-sm border font-medium transition disabled:opacity-50 disabled:cursor-not-allowed';
   const sizes = {
     sm: 'px-2 py-1 text-xs',
     md: 'px-3 py-1.5 text-sm',

@@ -24,6 +24,7 @@ import { extractExpressRoutes, looksLikeApiRoute, type RuntimeRoute } from './ro
 import { runDataSanityAgents } from './dataSanityAgents';
 import { evaluatePerformanceWatchers } from './performanceWatchers';
 import { runAutoFixUtilities } from './autoFixUtilities';
+import { isAutomatedTestRuntime } from '../config/runtimeMode';
 
 interface QaSweepOptions {
   trigger: 'build' | 'ingestion' | 'schedule' | 'manual';
@@ -402,6 +403,10 @@ export function startQaAutomationRuntime(input: {
   baseUrl: string;
   intervalMs?: number;
 }): void {
+  if (isAutomatedTestRuntime()) {
+    return;
+  }
+
   runtimeState.app = input.app;
   runtimeState.baseUrl = input.baseUrl;
 
@@ -446,6 +451,10 @@ export function queueQaSweep(input: {
   trigger: 'ingestion' | 'manual';
   targetNpi?: string;
 }): void {
+  if (isAutomatedTestRuntime()) {
+    return;
+  }
+
   runtimeState.pendingRequest = input;
 
   if (runtimeState.debounceTimer) {

@@ -1,6 +1,7 @@
 /**
  * providers.ts — Wave 119: Provider Data Integrity Fabric
  *
+ * GET /api/providers                        — Structured provider listing
  * GET /api/providers/health                 — Smoke test all connectors
  * GET /api/providers/health/diagnostics     — Connector diagnostics + recommendations
  * GET /api/providers/health/alerts          — Recent connector alerts
@@ -15,10 +16,194 @@ import { getProvenanceChain, getProvenanceHealth } from '../services/providers/p
 import { getConnectorAlerts, getConnectorDiagnostics } from '../services/providers/connectors/connectorHealthTracker';
 import { log } from '../obs/logger';
 import { buildProviderInvestigationPayload } from '../services/investigation/investigationWorkbenchService';
+import prisma from '../graphql/prisma_client';
 
 const VALID_CONNECTORS: ConnectorId[] = ['NPPES', 'STATE_BOARD', 'OIG', 'ABMS', 'CAQH', 'NPDB'];
+const AFFILIATION_EDGE_TYPES = [
+  'affiliated_with',
+  'employed_by',
+  'member_of',
+  'practices_at',
+  'works_at',
+  'credentialed_at',
+] as const;
+
+function readQueryValue(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function readPositiveInt(value: unknown, fallback: number, max: number): number {
+  const raw = readQueryValue(value);
+  if (!raw) {
+    return fallback;
+  }
+
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return fallback;
+  }
+
+  return Math.min(parsed, max);
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function uniqueStrings(values: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+
+  for (const value of values) {
+    if (typeof value !== 'string') {
+      continue;
+    }
+
+    const trimmed = value.trim();
+    if (trimmed.length === 0 || seen.has(trimmed)) {
+      continue;
+    }
+
+    seen.add(trimmed);
+    ordered.push(trimmed);
+  }
+
+  return ordered;
+}
 
 export function registerProviderRoutes(app: Express): void {
+  app.get('/api/providers', async (req: Request, res: Response) => {
+    const limit = readPositiveInt(req.query.limit, 50, 100);
+    const offset = readPositiveInt(req.query.offset, 0, 10_000);
+    const query = readQueryValue(req.query.q);
+    const providerWhere = query
+      ? {
+          OR: [
+            { npi: { contains: query } },
+            { fullName: { contains: query, mode: 'insensitive' as const } },
+            { providerType: { contains: query, mode: 'insensitive' as const } },
+            { taxonomyCode: { contains: query, mode: 'insensitive' as const } },
+            { stateOfPractice: { contains: query, mode: 'insensitive' as const } },
+          ],
+        }
+      : undefined;
+
+    try {
+      const [total, providerRows] = await Promise.all([
+        prisma.provider.count({ where: providerWhere }),
+        prisma.provider.findMany({
+          where: providerWhere,
+          orderBy: { npi: 'asc' },
+          skip: offset,
+          take: limit,
+          select: {
+            npi: true,
+            fullName: true,
+            providerType: true,
+            taxonomyCode: true,
+            stateOfPractice: true,
+          },
+        }),
+      ]);
+
+      const graphNodes = providerRows.length === 0
+        ? []
+        : await prisma.graphNode.findMany({
+            where: {
+              OR: providerRows.map((provider) => ({
+                type: 'clinician',
+                metadata: {
+                  path: ['npi'],
+                  equals: provider.npi,
+                },
+              })),
+            },
+            select: {
+              id: true,
+              metadata: true,
+            },
+          });
+
+      const nodeByNpi = new Map<string, { id: string; metadata: Record<string, unknown> }>();
+      for (const node of graphNodes) {
+        const metadata = asRecord(node.metadata);
+        const npi = typeof metadata.npi === 'string' ? metadata.npi : null;
+        if (npi) {
+          nodeByNpi.set(npi, {
+            id: node.id,
+            metadata,
+          });
+        }
+      }
+
+      const affiliationEdges = graphNodes.length === 0
+        ? []
+        : await prisma.graphEdge.findMany({
+            where: {
+              sourceNodeId: { in: graphNodes.map((node) => node.id) },
+              edgeType: { in: [...AFFILIATION_EDGE_TYPES] },
+            },
+            orderBy: { createdAt: 'asc' },
+            select: {
+              sourceNodeId: true,
+              targetNode: {
+                select: {
+                  label: true,
+                },
+              },
+            },
+          });
+
+      const affiliationsByNodeId = new Map<string, string[]>();
+      for (const edge of affiliationEdges) {
+        const current = affiliationsByNodeId.get(edge.sourceNodeId) ?? [];
+        current.push(edge.targetNode.label);
+        affiliationsByNodeId.set(edge.sourceNodeId, current);
+      }
+
+      const providers = providerRows.map((provider) => {
+        const graphNode = nodeByNpi.get(provider.npi);
+        const specialty = (
+          typeof graphNode?.metadata.specialty === 'string' && graphNode.metadata.specialty.trim().length > 0
+            ? graphNode.metadata.specialty.trim()
+            : provider.taxonomyCode
+        );
+        const affiliations = uniqueStrings([
+          ...(graphNode ? affiliationsByNodeId.get(graphNode.id) ?? [] : []),
+          typeof graphNode?.metadata.institution === 'string' ? graphNode.metadata.institution : null,
+        ]);
+
+        return {
+          npi: provider.npi,
+          fullName: provider.fullName,
+          providerType: provider.providerType,
+          specialty,
+          taxonomyCode: provider.taxonomyCode,
+          stateOfPractice: provider.stateOfPractice,
+          affiliations,
+        };
+      });
+
+      res.json({
+        schema: 'https://vitalcv.com/providers/v1',
+        count: providers.length,
+        total,
+        providers,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      log('error', 'providers: list failed', { error: message, query, limit, offset });
+      res.status(500).json({ error: 'Failed to list providers', detail: message });
+    }
+  });
+
   app.get('/api/providers/health', async (_req: Request, res: Response) => {
     try {
       const suite = await runProviderSmokeTests();

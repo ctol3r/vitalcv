@@ -69,3 +69,20 @@ apps/api/backend/src/audit/scrapbook/
 # ZK ceremony artifacts (large binary files, not source)
 apps/api/zk-sample/
 
+apps/web/.next.stale.*
+.next.stale.*
+.next
+apps/web/.next
+apps/web/.next.stale*
+
+# Next.js
+.next/
+.next.stale/
+apps/web/.next/
+apps/web/.next.stale/
+
+# Build + cache
+node_modules/
+dist/
+.cache/
+

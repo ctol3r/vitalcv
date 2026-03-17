@@ -2,6 +2,7 @@ import {
   DEFAULT_STALE_DATA_THRESHOLD_MS,
   deriveSystemHealthSurfaceState,
   formatLastRefreshMessage,
+  getAccessEmptyState,
   getFindingsEmptyState,
   getSurfaceFreshnessState,
   hasDegradedDataSources,
@@ -95,6 +96,26 @@ describe('intelligence surface state helpers', () => {
     expect(formatLastRefreshMessage(1)).toBe('Data last refreshed 1 min ago.');
     expect(formatLastRefreshMessage(16)).toBe('Data last refreshed 16 min ago.');
     expect(formatLastRefreshMessage(120)).toBe('Data last refreshed 2 hours ago.');
+  });
+
+  it('maps organization access failures to a neutral empty state', () => {
+    expect(getAccessEmptyState({
+      error: 'Organization workspace required. Switch to /workspace/switch.',
+      resourceLabel: 'actions',
+    })).toEqual({
+      title: 'Switch workspace to load actions',
+      description: 'Organization workspace required. Switch to /workspace/switch.',
+    });
+  });
+
+  it('maps sign-in requirements to a neutral empty state', () => {
+    expect(getAccessEmptyState({
+      error: 'Sign in to access intelligence.',
+      resourceLabel: 'actions',
+    })).toEqual({
+      title: 'Sign in to load actions',
+      description: 'Sign in to access intelligence.',
+    });
   });
 
   it('distinguishes empty-but-functioning system health', () => {

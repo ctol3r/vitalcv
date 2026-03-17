@@ -93,7 +93,7 @@ export function IntelligenceConsolePage() {
   useEffect(() => {
     const seededQuery = searchParams.get('q') ?? '';
     const seededNpi = searchParams.get('npi');
-    const seededView = searchParams.get('view');
+    const seededView = searchParams.get('view') ?? searchParams.get('tab');
     const seededCopilot = searchParams.get('copilot') ?? '';
     const nextSection = (
       seededView && VALID_WORKSPACE_SECTIONS.has(seededView as WorkspaceSectionId)

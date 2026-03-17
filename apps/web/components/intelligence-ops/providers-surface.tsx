@@ -172,10 +172,10 @@ export function ProvidersSurface() {
 
       {!providers.loading && !providers.error && !items.length ? (
         <SurfaceEmptyState
-          title={hasFilters ? 'No providers match the current filters' : 'Add providers to begin monitoring.'}
+          title={hasFilters ? 'No providers match the current filters' : 'System warming...'}
           description={hasFilters
             ? 'Adjust the search terms or score threshold to widen the result set.'
-            : 'Connect providers to populate the directory, generate findings, and activate storyline monitoring.'}
+            : 'Establishing network connections and indexing provider profiles...'}
         />
       ) : null}
 

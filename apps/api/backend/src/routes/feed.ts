@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from 'express';
 import { log } from '../obs/logger';
-import { buildLiveFeed } from '../services/feed/liveFeedService';
+import { buildLiveFeed, getCachedLiveFeedSnapshot } from '../services/feed/liveFeedService';
 
 function readLimit(value: unknown): number {
   if (typeof value !== 'string') {
@@ -22,7 +22,26 @@ export function registerFeedRoutes(app: Express): void {
       res.json(feed);
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
-      log('error', 'feed_live_failed', { error: detail });
+      const cached = getCachedLiveFeedSnapshot('backend_failure');
+      if (cached) {
+        log('warn', 'feed_live_cache_fallback', {
+          event: 'intelligence_failure_detected',
+          layer: 'api',
+          route: '/api/feed/live',
+          reason: 'backend_failure',
+          error: detail,
+          recoveryTriggered: false,
+        });
+        return res.json(cached);
+      }
+
+      log('error', 'feed_live_failed', {
+        event: 'intelligence_failure_detected',
+        layer: 'api',
+        route: '/api/feed/live',
+        reason: 'backend_failure',
+        error: detail,
+      });
       res.status(500).json({ error: 'Failed to build live feed', detail });
     }
   });

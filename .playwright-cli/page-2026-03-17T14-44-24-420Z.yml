@@ -1,0 +1,134 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e10]: System Live
+        - generic [ref=e15]: Live feed backend unavailable. Retrying.
+        - generic [ref=e17]:
+          - img [ref=e18]
+          - text: "Last updated: 0s ago"
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - generic [ref=e22]: Active Corpus
+          - generic [ref=e23]:
+            - generic [ref=e24]: "--- providers"
+            - generic [ref=e26]: "--- findings"
+            - generic [ref=e28]: "--- storylines"
+        - generic [ref=e30]: System Online
+      - generic [ref=e34]:
+        - paragraph [ref=e35]: Intelligence navigation
+        - navigation "Console navigation" [ref=e36]:
+          - link "Dashboard" [ref=e37] [cursor=pointer]:
+            - /url: /intelligence?view=dashboard
+          - link "Graph" [ref=e38] [cursor=pointer]:
+            - /url: /graph
+          - link "Findings" [ref=e39] [cursor=pointer]:
+            - /url: /intelligence?view=findings
+          - link "Storylines" [ref=e40] [cursor=pointer]:
+            - /url: /intelligence?view=storylines
+          - link "Providers" [ref=e41] [cursor=pointer]:
+            - /url: /intelligence?view=providers
+          - link "Actions" [ref=e42] [cursor=pointer]:
+            - /url: /intelligence?view=actions
+          - link "Investigations" [ref=e43] [cursor=pointer]:
+            - /url: /intelligence?view=investigations
+          - link "Calibration" [ref=e44] [cursor=pointer]:
+            - /url: /intelligence?view=calibration
+          - link "System Health" [ref=e45] [cursor=pointer]:
+            - /url: /intelligence?view=system-health
+      - generic [ref=e46]:
+        - navigation "Breadcrumb" [ref=e47]:
+          - generic [ref=e49]: Intelligence
+        - generic [ref=e50]:
+          - generic [ref=e51]:
+            - paragraph [ref=e52]: VitalCV Intelligence
+            - heading "Intelligence" [level=1] [ref=e53]
+            - paragraph [ref=e54]: Live findings, providers, storylines, actions, and graph context sourced directly from the backend.
+          - generic [ref=e55]:
+            - generic [ref=e57]:
+              - generic [ref=e58]:
+                - generic [ref=e59]:
+                  - generic [ref=e60]: LIVE SIGNALS ACTIVE
+                  - generic [ref=e62]: WARMING
+                - paragraph [ref=e63]: Waiting for system health telemetry to return.
+                - paragraph [ref=e64]: Last updated No updates yet
+              - generic [ref=e65]:
+                - paragraph [ref=e66]: Console state
+                - paragraph [ref=e67]: 0 providers in scope
+            - button "Refresh" [ref=e69]:
+              - img [ref=e70]
+              - text: Refresh
+    - generic [ref=e75]:
+      - generic [ref=e76]:
+        - generic [ref=e77]:
+          - generic [ref=e79]:
+            - paragraph [ref=e80]: Trust Graph
+            - heading "Network Graph" [level=2] [ref=e81]
+          - paragraph [ref=e82]: Global trust graph. Select a provider from the dashboard to pivot into its local neighborhood.
+          - generic [ref=e85]:
+            - img [ref=e86]
+            - generic [ref=e91]:
+              - paragraph [ref=e92]: Loading live intelligence
+              - paragraph [ref=e93]: Waiting for the latest surface snapshot to arrive.
+        - generic [ref=e94]:
+          - generic [ref=e95]:
+            - paragraph [ref=e96]: Active scope
+            - heading "Global intelligence" [level=2] [ref=e97]
+            - paragraph [ref=e98]: The operator console is pulling live results from the findings, providers, storylines, actions, and graph backends.
+          - generic [ref=e99]:
+            - generic [ref=e100]:
+              - paragraph [ref=e101]: Findings
+              - paragraph [ref=e102]: "0"
+            - generic [ref=e103]:
+              - paragraph [ref=e104]: Providers
+              - paragraph [ref=e105]: "0"
+            - generic [ref=e106]:
+              - paragraph [ref=e107]: Storylines
+              - paragraph [ref=e108]: "0"
+            - generic [ref=e109]:
+              - paragraph [ref=e110]: Actions
+              - paragraph [ref=e111]: "0"
+      - generic [ref=e112]:
+        - generic [ref=e113]:
+          - generic [ref=e114]:
+            - generic [ref=e115]:
+              - paragraph [ref=e116]: Findings
+              - paragraph [ref=e117]: "0"
+            - link "Open" [ref=e118] [cursor=pointer]:
+              - /url: /intelligence?view=findings
+          - generic [ref=e120]:
+            - heading "No findings yet" [level=2] [ref=e122]
+            - paragraph [ref=e123]: The backend has not generated findings for the current scope.
+        - generic [ref=e124]:
+          - generic [ref=e125]:
+            - generic [ref=e126]:
+              - paragraph [ref=e127]: Providers
+              - paragraph [ref=e128]: "0"
+            - link "Open" [ref=e129] [cursor=pointer]:
+              - /url: /intelligence?view=providers
+          - generic [ref=e131]:
+            - heading "No providers yet" [level=2] [ref=e133]
+            - paragraph [ref=e134]: The directory has not returned any providers for the current scope.
+        - generic [ref=e135]:
+          - generic [ref=e136]:
+            - generic [ref=e137]:
+              - paragraph [ref=e138]: Storylines
+              - paragraph [ref=e139]: "0"
+            - link "Open" [ref=e140] [cursor=pointer]:
+              - /url: /intelligence?view=storylines
+          - generic [ref=e142]:
+            - heading "No storylines yet" [level=2] [ref=e144]
+            - paragraph [ref=e145]: The backend has not linked any storyline clusters for the current scope.
+        - generic [ref=e146]:
+          - generic [ref=e147]:
+            - generic [ref=e148]:
+              - paragraph [ref=e149]: Actions
+              - paragraph [ref=e150]: "0"
+            - link "Open" [ref=e151] [cursor=pointer]:
+              - /url: /intelligence?view=actions
+          - generic [ref=e153]:
+            - heading "No actions queued" [level=2] [ref=e155]
+            - paragraph [ref=e156]: The action backend has not recommended any active next steps for the current scope.
+  - region "Notifications":
+    - list
+  - alert [ref=e157]

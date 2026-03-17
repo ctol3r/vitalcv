@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { normalizeActionsPayload } from '@/lib/intelligence/contracts';
 import {
+  attachAccessMetadata,
   authFailureStatus,
   buildAuthFailurePayload,
   canReadIntelligence,
@@ -91,8 +92,8 @@ export async function GET(req: NextRequest) {
       logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
       return NextResponse.json(
         coerceRouteErrorPayload(upstream.payload, {
-          error: 'backend_unavailable',
-          error_description: 'Action queue unavailable. Try again when the backend is reachable.',
+          error: 'backend_request_failed',
+          error_description: `Action queue backend returned ${upstream.status}.`,
         }),
         { status: upstream.status >= 400 ? upstream.status : 503 },
       );
@@ -111,7 +112,7 @@ export async function GET(req: NextRequest) {
       : filteredActions;
     const total = status ? filteredActions.length : normalized.total;
 
-    return NextResponse.json({
+    return NextResponse.json(attachAccessMetadata({
       ...normalized,
       actions: pagedActions,
       total,
@@ -122,13 +123,16 @@ export async function GET(req: NextRequest) {
         hasNextPage: offset + limit < total,
         returned: pagedActions.length,
       },
-    });
+    }, {
+      accessMode: 'full',
+      reason: 'ok',
+    }));
   } catch (error) {
     logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
     return NextResponse.json(
       {
-        error: 'backend_unavailable',
-        error_description: 'Action queue unavailable. Try again when the backend is reachable.',
+        error: 'backend_request_failed',
+        error_description: error instanceof Error ? error.message : 'Action queue request failed.',
         message: error instanceof Error ? error.message : 'Unknown request failure',
       },
       { status: 503 },

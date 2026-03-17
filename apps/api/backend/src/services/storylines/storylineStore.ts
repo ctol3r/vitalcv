@@ -213,6 +213,7 @@ export interface StorylineActionMutationInput {
 
 type StorylineStorePrismaClient = {
   storyline: {
+    count(args: Record<string, unknown>): Promise<number>;
     findMany(args: Record<string, unknown>): Promise<StorylineRecordRow[]>;
     findUnique(args: Record<string, unknown>): Promise<StorylineRecordRow | null>;
     upsert(args: Record<string, unknown>): Promise<StorylineRecordRow>;
@@ -253,6 +254,52 @@ async function hydrateStorylineByInternalId(
   });
 }
 
+function buildStorylineWhere(options?: {
+  storylineType?: StorylineTypeRecord;
+  severity?: StorylineSeverityRecord;
+  status?: StorylineStatusRecord;
+  perspective?: StorylinePerspectiveRecord;
+  provider?: string;
+  institution?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}): Prisma.StorylineWhereInput {
+  return {
+    ...(options?.storylineType ? { storylineType: options.storylineType } : {}),
+    ...(options?.severity ? { severity: options.severity } : {}),
+    ...(options?.status ? { status: options.status } : {}),
+    ...(options?.perspective ? { perspective: options.perspective } : {}),
+    ...(options?.dateFrom || options?.dateTo
+      ? {
+          lastActivityAt: {
+            ...(options.dateFrom ? { gte: new Date(options.dateFrom) } : {}),
+            ...(options.dateTo ? { lte: new Date(options.dateTo) } : {}),
+          },
+        }
+      : {}),
+    ...(options?.provider
+      ? {
+          entityLinks: {
+            some: {
+              entityType: 'PROVIDER',
+              entityKey: options.provider,
+            },
+          },
+        }
+      : {}),
+    ...(options?.institution
+      ? {
+          entityLinks: {
+            some: {
+              entityType: 'INSTITUTION',
+              entityKey: options.institution,
+            },
+          },
+        }
+      : {}),
+  };
+}
+
 export async function listStorylineRecords(options?: {
   storylineType?: StorylineTypeRecord;
   severity?: StorylineSeverityRecord;
@@ -265,6 +312,7 @@ export async function listStorylineRecords(options?: {
   includeDetails?: boolean;
   limit?: number;
 }): Promise<StorylineRecordRow[]> {
+  const where = buildStorylineWhere(options);
   const include = options?.includeDetails
     ? DETAIL_INCLUDE
     : {
@@ -272,43 +320,25 @@ export async function listStorylineRecords(options?: {
       };
 
   return storylinePrisma.storyline.findMany({
-    where: {
-      ...(options?.storylineType ? { storylineType: options.storylineType } : {}),
-      ...(options?.severity ? { severity: options.severity } : {}),
-      ...(options?.status ? { status: options.status } : {}),
-      ...(options?.perspective ? { perspective: options.perspective } : {}),
-      ...(options?.dateFrom || options?.dateTo
-        ? {
-            lastActivityAt: {
-              ...(options.dateFrom ? { gte: new Date(options.dateFrom) } : {}),
-              ...(options.dateTo ? { lte: new Date(options.dateTo) } : {}),
-            },
-          }
-        : {}),
-      ...(options?.provider
-        ? {
-            entityLinks: {
-              some: {
-                entityType: 'PROVIDER',
-                entityKey: options.provider,
-              },
-            },
-          }
-        : {}),
-      ...(options?.institution
-        ? {
-            entityLinks: {
-              some: {
-                entityType: 'INSTITUTION',
-                entityKey: options.institution,
-              },
-            },
-          }
-        : {}),
-    },
+    where,
     include,
     orderBy: [{ updatedAt: 'desc' }],
     take: options?.limit ?? 50,
+  });
+}
+
+export async function countStorylineRecords(options?: {
+  storylineType?: StorylineTypeRecord;
+  severity?: StorylineSeverityRecord;
+  status?: StorylineStatusRecord;
+  perspective?: StorylinePerspectiveRecord;
+  provider?: string;
+  institution?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}): Promise<number> {
+  return storylinePrisma.storyline.count({
+    where: buildStorylineWhere(options),
   });
 }
 

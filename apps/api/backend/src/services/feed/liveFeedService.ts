@@ -2,11 +2,26 @@ import type { Prisma } from '@prisma/client';
 import type { EventEnvelope, VitalEvent } from '../../core/events/eventBus';
 import { listRecentEvents } from '../../core/events/eventBus';
 import prisma from '../../graphql/prisma_client';
+import { log } from '../../obs/logger';
+import { runIntelligenceAutoWarm } from '../intelligence/intelligenceAutoWarmService';
 import { syncPersistedStorylines } from '../storylines/storylineService';
 
 export type LiveFeedEvent =
+  | (EventEnvelope<'PROVIDER_UPDATED'> & { source: 'event_bus' | 'db_backfill' })
   | (EventEnvelope<'FINDING_CREATED'> & { source: 'event_bus' | 'db_backfill' })
   | (EventEnvelope<'STORYLINE_UPDATED'> & { source: 'event_bus' | 'db_backfill' });
+
+export interface LiveFeedResponse {
+  schema: string;
+  generatedAt: string;
+  total: number;
+  cached: boolean;
+  degradedReason: 'backend_failure' | 'empty_feed' | null;
+  recoveryTriggered: boolean;
+  events: LiveFeedEvent[];
+}
+
+let lastSuccessfulLiveFeed: LiveFeedResponse | null = null;
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -19,14 +34,53 @@ function timestampValue(value: string): number {
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
-function compareByTimestampDesc<TEvent extends { id: string; timestamp: string }>(left: TEvent, right: TEvent): number {
-  return timestampValue(right.timestamp) - timestampValue(left.timestamp) || right.id.localeCompare(left.id);
+function severityWeight(value: string | null | undefined): number {
+  switch ((value ?? '').toLowerCase()) {
+    case 'critical':
+      return 5;
+    case 'high':
+      return 4;
+    case 'medium':
+      return 3;
+    case 'low':
+      return 2;
+    case 'info':
+    default:
+      return 1;
+  }
+}
+
+function eventSeverityWeight(event: LiveFeedEvent): number {
+  switch (event.type) {
+    case 'FINDING_CREATED':
+      return severityWeight(event.payload.severity);
+    case 'STORYLINE_UPDATED':
+      return severityWeight(event.payload.severity);
+    case 'PROVIDER_UPDATED':
+    default:
+      return severityWeight('info');
+  }
+}
+
+function compareLiveFeedEvents(left: LiveFeedEvent, right: LiveFeedEvent): number {
+  return (
+    timestampValue(right.timestamp) - timestampValue(left.timestamp)
+    || eventSeverityWeight(right) - eventSeverityWeight(left)
+    || right.id.localeCompare(left.id)
+  );
+}
+
+function logFeedFailure(fields: Record<string, unknown>): void {
+  log('warn', 'intelligence_failure_detected', {
+    event: 'intelligence_failure_detected',
+    ...fields,
+  });
 }
 
 function isLiveFeedEvent(
   event: VitalEvent,
-): event is EventEnvelope<'FINDING_CREATED'> | EventEnvelope<'STORYLINE_UPDATED'> {
-  return event.type === 'FINDING_CREATED' || event.type === 'STORYLINE_UPDATED';
+): event is EventEnvelope<'PROVIDER_UPDATED'> | EventEnvelope<'FINDING_CREATED'> | EventEnvelope<'STORYLINE_UPDATED'> {
+  return event.type === 'PROVIDER_UPDATED' || event.type === 'FINDING_CREATED' || event.type === 'STORYLINE_UPDATED';
 }
 
 function findingOperationFromRow(row: {
@@ -35,6 +89,15 @@ function findingOperationFromRow(row: {
   occurrenceCount: number;
 }): 'created' | 'updated' {
   return row.occurrenceCount > 1 || row.updatedAt.getTime() > row.createdAt.getTime()
+    ? 'updated'
+    : 'created';
+}
+
+function providerOperationFromRow(row: {
+  createdAt: Date;
+  updatedAt: Date;
+}): 'created' | 'updated' {
+  return row.updatedAt.getTime() > row.createdAt.getTime()
     ? 'updated'
     : 'created';
 }
@@ -106,13 +169,19 @@ function storylineOperationFromEventType(
 }
 
 function liveFeedKey(event: LiveFeedEvent): string {
-  return event.type === 'FINDING_CREATED'
-    ? `finding:${event.payload.findingId}:${event.payload.operation}`
-    : `storyline:${event.payload.storylineId}:${event.payload.operation}`;
+  switch (event.type) {
+    case 'PROVIDER_UPDATED':
+      return `provider:${event.payload.npi ?? event.payload.providerId}:${event.payload.operation}`;
+    case 'FINDING_CREATED':
+      return `finding:${event.payload.findingId}:${event.payload.operation}`;
+    case 'STORYLINE_UPDATED':
+    default:
+      return `storyline:${event.payload.storylineId}:${event.payload.operation}`;
+  }
 }
 
 function dedupeAndSortEvents(events: LiveFeedEvent[], limit: number): LiveFeedEvent[] {
-  const sorted = [...events].sort(compareByTimestampDesc);
+  const sorted = [...events].sort(compareLiveFeedEvents);
   const deduped = new Map<string, LiveFeedEvent>();
 
   for (const event of sorted) {
@@ -122,11 +191,11 @@ function dedupeAndSortEvents(events: LiveFeedEvent[], limit: number): LiveFeedEv
     }
   }
 
-  return [...deduped.values()].sort(compareByTimestampDesc).slice(0, limit);
+  return [...deduped.values()].sort(compareLiveFeedEvents).slice(0, limit);
 }
 
 function busEventToLiveFeedEvent(
-  event: EventEnvelope<'FINDING_CREATED'> | EventEnvelope<'STORYLINE_UPDATED'>,
+  event: EventEnvelope<'PROVIDER_UPDATED'> | EventEnvelope<'FINDING_CREATED'> | EventEnvelope<'STORYLINE_UPDATED'>,
 ): LiveFeedEvent {
   return {
     ...event,
@@ -138,7 +207,7 @@ async function loadBackfillEvents(limit: number): Promise<LiveFeedEvent[]> {
   const queryLimit = Math.max(limit, 50);
   await syncPersistedStorylines();
 
-  const [findingRows, storylineRows] = await Promise.all([
+  const [findingRows, storylineRows, providerRows] = await Promise.all([
     prisma.investigatorFinding.findMany({
       orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
       take: queryLimit,
@@ -176,6 +245,16 @@ async function loadBackfillEvents(limit: number): Promise<LiveFeedEvent[]> {
         },
       },
     }),
+    prisma.provider.findMany({
+      orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+      take: queryLimit,
+      select: {
+        npi: true,
+        fullName: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
   ]);
 
   const findingEvents: LiveFeedEvent[] = findingRows.map((row) => {
@@ -198,6 +277,19 @@ async function loadBackfillEvents(limit: number): Promise<LiveFeedEvent[]> {
     };
   });
 
+  const providerEvents: LiveFeedEvent[] = providerRows.map((row) => ({
+    id: `dbf_provider_${row.npi}`,
+    type: 'PROVIDER_UPDATED',
+    timestamp: (row.updatedAt.getTime() > row.createdAt.getTime() ? row.updatedAt : row.createdAt).toISOString(),
+    source: 'db_backfill',
+    payload: {
+      providerId: `provider:${row.npi}`,
+      npi: row.npi,
+      providerLabel: row.fullName,
+      operation: providerOperationFromRow(row),
+    },
+  }));
+
   const storylineEvents: LiveFeedEvent[] = storylineRows.map((row) => ({
     id: `dbf_storyline_${row.storylineId}`,
     type: 'STORYLINE_UPDATED',
@@ -214,33 +306,102 @@ async function loadBackfillEvents(limit: number): Promise<LiveFeedEvent[]> {
     },
   }));
 
-  return [...findingEvents, ...storylineEvents];
+  return [...providerEvents, ...findingEvents, ...storylineEvents];
 }
 
-export async function buildLiveFeed(limit = 50): Promise<{
-  schema: string;
-  generatedAt: string;
-  total: number;
-  events: LiveFeedEvent[];
-}> {
-  const normalizedLimit = Math.min(Math.max(limit, 1), 50);
+async function collectLiveFeedEvents(limit: number): Promise<LiveFeedEvent[]> {
   const busEvents = listRecentEvents({
     limit: 200,
-    types: ['FINDING_CREATED', 'STORYLINE_UPDATED'],
+    types: ['PROVIDER_UPDATED', 'FINDING_CREATED', 'STORYLINE_UPDATED'],
   })
     .filter(isLiveFeedEvent)
     .map((event) => busEventToLiveFeedEvent(event));
 
-  const backfillEvents = busEvents.length >= normalizedLimit
+  const backfillEvents = busEvents.length >= limit
     ? []
-    : await loadBackfillEvents(normalizedLimit);
+    : await loadBackfillEvents(limit);
 
-  const events = dedupeAndSortEvents([...busEvents, ...backfillEvents], normalizedLimit);
+  return dedupeAndSortEvents([...busEvents, ...backfillEvents], limit);
+}
 
+function buildLiveFeedResponse(
+  events: LiveFeedEvent[],
+  input: {
+    cached?: boolean;
+    degradedReason?: LiveFeedResponse['degradedReason'];
+    recoveryTriggered?: boolean;
+  } = {},
+): LiveFeedResponse {
   return {
     schema: 'https://vitalcv.com/feed/live/v1',
     generatedAt: new Date().toISOString(),
     total: events.length,
+    cached: input.cached ?? false,
+    degradedReason: input.degradedReason ?? null,
+    recoveryTriggered: input.recoveryTriggered ?? false,
     events,
   };
+}
+
+function rememberSuccessfulLiveFeed(feed: LiveFeedResponse): void {
+  if (feed.events.length === 0) {
+    return;
+  }
+
+  lastSuccessfulLiveFeed = {
+    ...feed,
+    cached: false,
+    degradedReason: null,
+    recoveryTriggered: false,
+  };
+}
+
+export function getCachedLiveFeedSnapshot(
+  degradedReason: LiveFeedResponse['degradedReason'] = 'backend_failure',
+): LiveFeedResponse | null {
+  if (!lastSuccessfulLiveFeed) {
+    return null;
+  }
+
+  return buildLiveFeedResponse(lastSuccessfulLiveFeed.events, {
+    cached: true,
+    degradedReason,
+  });
+}
+
+export function resetLiveFeedStateForTests(): void {
+  lastSuccessfulLiveFeed = null;
+}
+
+export async function buildLiveFeed(limit = 50): Promise<LiveFeedResponse> {
+  const normalizedLimit = Math.min(Math.max(limit, 1), 50);
+  let recoveryTriggered = false;
+  let events = await collectLiveFeedEvents(normalizedLimit);
+
+  if (events.length === 0) {
+    logFeedFailure({
+      layer: 'db',
+      route: '/api/feed/live',
+      reason: 'live_feed_empty',
+      recoveryTriggered: true,
+    });
+
+    const recovery = await runIntelligenceAutoWarm('feed_live_empty');
+    recoveryTriggered = recovery.triggered;
+    events = await collectLiveFeedEvents(normalizedLimit);
+
+    if (events.length === 0) {
+      const cached = getCachedLiveFeedSnapshot('empty_feed');
+      if (cached) {
+        return {
+          ...cached,
+          recoveryTriggered,
+        };
+      }
+    }
+  }
+
+  const response = buildLiveFeedResponse(events, { recoveryTriggered });
+  rememberSuccessfulLiveFeed(response);
+  return response;
 }

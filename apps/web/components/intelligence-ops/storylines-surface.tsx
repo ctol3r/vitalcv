@@ -261,10 +261,10 @@ export function StorylinesSurface() {
 
       {!storylines.loading && !storylines.error && items.length === 0 ? (
         <SurfaceEmptyState
-          title={hasFilters ? 'No storylines match the current filters' : 'No storylines returned'}
+          title={hasFilters ? 'No storylines match the current filters' : 'Clustering intelligence...'}
           description={hasFilters
             ? 'The current backend query returned zero storyline clusters for this scope.'
-            : 'Storylines will render here once related findings are clustered by the backend.'}
+            : 'Synthesizing emerging narrative clusters...'}
         />
       ) : null}
 

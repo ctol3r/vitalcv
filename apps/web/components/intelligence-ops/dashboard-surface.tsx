@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowUpRight, RefreshCw, Search } from 'lucide-react';
 import { CopilotSearchBar } from '@/components/copilot/CopilotSearchBar';
+import { LiveFeedRibbon } from '@/components/intelligence/LiveFeedRibbon';
 import { useActions } from '@/hooks/useActions';
 import { useFindings } from '@/hooks/useFindings';
 import { useGraph } from '@/hooks/useGraph';
@@ -538,65 +539,20 @@ export function DashboardSurface() {
   }
 
   return (
-    <OperationsShell
-      activeHref="/intelligence"
-      activeNavKey="dashboard"
-      title="Operator Workbench"
-      description="Canonical intelligence surface for provider posture, live findings, storylines, action queue state, graph context, and Copilot guidance."
-      breadcrumbs={[{ label: 'Dashboard' }]}
-      meta={(
-        <div className="space-y-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Workbench state</p>
-          <p>{providers.data?.total ?? 0} providers in scope</p>
-          {providers.lastUpdated ? (
-            <p title={formatAbsoluteTime(providers.lastUpdated)}>
-              Updated {formatRelativeTime(providers.lastUpdated)}
-            </p>
-          ) : null}
+    <div className="flex flex-col h-screen min-h-0 w-full overflow-hidden bg-[var(--vt-bg)] text-[var(--vt-text-1)] font-sans">
+      {/* ZONE A — SIGNAL HEADER */}
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--vt-border)] bg-[var(--vt-surface)] px-5">
+        <div className="flex items-center gap-6 overflow-hidden">
+          <LiveFeedRibbon />
+          <div className="flex gap-5 text-[10px] font-mono uppercase tracking-widest text-[var(--vt-text-3)]">
+            <span className="flex items-center gap-2"><span className="text-[var(--vt-text-1)]">{providers.data?.total ?? 0}</span> PROVIDERS</span>
+            <span className="flex items-center gap-2"><span className="text-[var(--vt-text-1)]">{findings.data?.total ?? 0}</span> FINDINGS</span>
+            <span className="flex items-center gap-2"><span className="text-[var(--vt-text-1)]">{storylines.data?.total ?? 0}</span> STORYLINES</span>
+          </div>
         </div>
-      )}
-      actions={(
-        <>
-          <button
-            type="button"
-            onClick={refreshAll}
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-4 py-2 text-sm font-medium text-[var(--vt-text-1)] transition hover:bg-[var(--vt-surface-2)]"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Refresh all
-          </button>
-          <Link
-            href={buildIntelligenceHref('investigations', providerScope ? { npi: providerScope } : undefined)}
-            className="inline-flex items-center rounded-full bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-[var(--vt-accent)]"
-          >
-            Open investigations
-          </Link>
-        </>
-      )}
-      banner={(
-        <>
-          {accessBanner ? (
-            <SurfaceBanner tone={accessBanner.tone}>
-              {accessBanner.description}
-            </SurfaceBanner>
-          ) : null}
-          {(providers.recovering || findings.recovering || storylines.recovering || actions.recovering) ? (
-            <SurfaceBanner tone="warning">
-              One or more dashboard feeds are serving the last successful snapshot while live refresh recovers.
-            </SurfaceBanner>
-          ) : null}
-          {staleState.isStale && staleState.ageMinutes !== null ? (
-            <SurfaceBanner tone="info">
-              {formatLastRefreshMessage(staleState.ageMinutes)}
-            </SurfaceBanner>
-          ) : null}
-        </>
-      )}
-    >
-      <OpsCard className="space-y-4">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+        <div className="flex items-center gap-5">
           <form
-            className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]"
+            className="flex items-center gap-2 rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-2 py-1 transition-colors focus-within:border-[var(--vt-text-3)]"
             onSubmit={(event) => {
               event.preventDefault();
               pushDashboard((params) => {
@@ -613,416 +569,239 @@ export function DashboardSurface() {
               });
             }}
           >
-            <label className="space-y-1 text-sm">
-              <span className="text-[var(--vt-text-3)]">Provider or issuer search</span>
-              <div className="flex items-center gap-2 rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2">
-                <Search className="h-4 w-4 text-[var(--vt-text-3)]" />
-                <input
-                  value={draftQuery}
-                  onChange={(event) => setDraftQuery(event.target.value)}
-                  placeholder="Name, NPI, specialty, issuer"
-                  className="w-full bg-transparent text-[var(--vt-text-1)] outline-none placeholder:text-[var(--vt-text-3)]"
-                />
-              </div>
-            </label>
-            <div className="flex flex-wrap items-end gap-2">
-              <button
-                type="submit"
-                className="rounded-sm bg-cyan-400 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-[var(--vt-accent)]"
-              >
-                Apply scope
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setDraftQuery('');
-                  pushDashboard((params) => {
-                    params.delete('q');
-                    params.delete('npi');
-                    params.delete('findingId');
-                    params.delete('storylineId');
-                    params.delete('panel');
-                  });
-                }}
-                className="rounded-sm border border-[var(--vt-border)] px-3 py-1.5 text-xs font-medium text-[var(--vt-text-2)] transition hover:bg-[var(--vt-surface-2)] hover:text-[var(--vt-text-1)]"
-              >
-                Clear
-              </button>
-            </div>
+            <Search className="h-3.5 w-3.5 text-[var(--vt-text-3)]" />
+            <input
+              value={draftQuery}
+              onChange={(event) => setDraftQuery(event.target.value)}
+              placeholder="Search scope..."
+              className="w-48 bg-transparent text-xs text-[var(--vt-text-1)] outline-none placeholder:text-[var(--vt-text-3)]"
+            />
           </form>
 
-          <div className="flex flex-wrap gap-2">
-            {DASHBOARD_VIEWS.map((item) => (
-              <Link
-                key={item.view}
-                href={buildIntelligenceHref(item.view, providerScope ? { npi: providerScope } : undefined)}
-                className="inline-flex items-center rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] px-2 py-1 text-xs font-medium text-[var(--vt-text-2)] transition hover:text-[var(--vt-text-1)]"
-              >
-                {item.label}
-                <ArrowUpRight className="ml-1 h-3 w-3" />
-              </Link>
-            ))}
+          <div className="h-4 w-px bg-[var(--vt-border)]"></div>
+
+          <span className="text-[10px] text-[var(--vt-text-3)] uppercase tracking-widest">
+            Last seen {providers.lastUpdated ? formatRelativeTime(providers.lastUpdated) : '...'}
+          </span>
+          <button 
+            type="button" 
+            onClick={refreshAll}
+            className="flex items-center justify-center rounded-sm text-[var(--vt-text-3)] transition hover:text-[var(--vt-text-1)]"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </header>
+
+      {/* ZONE B & C AREA */}
+      <main className="flex flex-1 min-h-0 overflow-hidden">
+        {/* ZONE B — PRIMARY WORK AREA */}
+        <section className="flex flex-1 flex-col overflow-y-auto border-r border-[var(--vt-border)] bg-[var(--vt-surface-dim)]">
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--vt-border)] bg-[var(--vt-surface)]/95 px-5 py-3 backdrop-blur-sm">
+            <h1 className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-1)]">Signal Queue</h1>
+            <div className="flex items-center gap-1 rounded-sm border border-[var(--vt-border)] p-0.5 bg-[var(--vt-surface-dim)]">
+              <button className="rounded-[2px] bg-[var(--vt-surface-2)] px-3 py-1 text-[9px] font-semibold tracking-widest uppercase text-[var(--vt-text-1)] shadow-sm">Ranked</button>
+              <button className="rounded-[2px] px-3 py-1 text-[9px] font-semibold tracking-widest uppercase text-[var(--vt-text-3)] transition hover:text-[var(--vt-text-1)]">Latest</button>
+              <button className="rounded-[2px] px-3 py-1 text-[9px] font-semibold tracking-widest uppercase text-[var(--vt-text-3)] transition hover:text-[var(--vt-text-1)]">Critical Only</button>
+            </div>
           </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {selectedProvider ? <ContextChip label="Provider" value={`${selectedProvider.name} · ${selectedProvider.npi}`} /> : null}
-          {selectedFinding ? <ContextChip label="Finding" value={selectedFinding.title} /> : null}
-          {selectedStoryline ? <ContextChip label="Storyline" value={selectedStoryline.title} /> : null}
-          {!selectedProvider && !selectedFinding && !selectedStoryline ? (
-            <ContextChip label="Scope" value="Global operator dashboard" />
-          ) : null}
-        </div>
-      </OpsCard>
-
-      {(providers.error && !providers.data) ? (
-        <SurfaceErrorState
-          title="Workbench unavailable"
-          description={providers.error}
-          onRetry={providers.refresh}
-        />
-      ) : null}
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <DashboardMetricCard
-          label="Providers"
-          value={String(providers.data?.total ?? 0)}
-          detail={searchQuery ? `Filtered by "${searchQuery}"` : 'Current launch-scoped directory'}
-        />
-        <DashboardMetricCard
-          label="Findings"
-          value={findingsUnavailable ? 'ERR' : String(findings.data?.total ?? 0)}
-          detail={findingsUnavailable ? findings.error ?? 'Feed unavailable' : providerScope ? `Active for NPI ${providerScope}` : 'Current operator feed'}
-        />
-        <DashboardMetricCard
-          label="Storylines"
-          value={storylinesUnavailable ? 'ERR' : String(storylines.data?.total ?? 0)}
-          detail={storylinesUnavailable ? storylines.error ?? 'Feed unavailable' : providerScope ? 'Scoped narrative clusters' : 'Live clustering window'}
-        />
-        <DashboardMetricCard
-          label="Actions"
-          value={actionsUnavailable ? 'ERR' : String(actions.data?.total ?? 0)}
-          detail={actionsUnavailable ? actions.error ?? 'Feed unavailable' : providerScope ? 'Recommended follow-up queue' : 'System-wide queue state'}
-        />
-        <DashboardMetricCard
-          label="Health"
-          value={systemHealth.data?.overall?.toUpperCase() ?? 'PENDING'}
-          detail={systemHealth.data?.headline ?? 'Waiting for telemetry'}
-        />
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(22rem,0.9fr)]">
-        <div className="space-y-4">
-          <OpsCard className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Provider focus</p>
-                <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">
-                  {selectedProvider ? selectedProvider.name : 'Select a provider'}
-                </h2>
-              </div>
-              {selectedProvider ? (
-                <span className={`text-3xl font-semibold tabular-nums ${trustScoreColor(selectedProvider.trustScore)}`}>
-                  {selectedProvider.trustScore}
-                </span>
-              ) : null}
-            </div>
-
-            {selectedProvider ? (
-              <>
-                <div className="flex flex-wrap gap-2">
-                  <OpsBadge label={selectedProvider.credentialHealth} tone="info" />
-                  <OpsBadge label={selectedProvider.risk} tone="info" />
-                  <span className="font-mono text-sm text-[var(--vt-text-3)]">NPI {selectedProvider.npi}</span>
-                </div>
-                <p className="text-sm text-[var(--vt-text-2)]">{selectedProvider.summary}</p>
-                <div className="flex flex-wrap gap-2">
-                  <EntityLink href={`/providers/${selectedProvider.npi}?from=${encodeURIComponent(currentHref)}`} label="Open profile" />
-                  <EntityLink href={buildIntelligenceHref('investigations', { npi: selectedProvider.npi })} label="Investigate" />
-                  <EntityLink href={buildIntelligenceHref('providers', { q: selectedProvider.npi })} label="Directory view" />
-                </div>
-                <div className="grid gap-2 md:grid-cols-3">
-                  <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-3">
-                    <p className="text-[10px] uppercase tracking-widest text-[var(--vt-text-3)]">Specialties</p>
-                    <p className="mt-1 text-sm text-[var(--vt-text-1)]">
-                      {selectedProvider.specialties.slice(0, 3).join(', ') || 'Not surfaced'}
-                    </p>
-                  </div>
-                  <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-3">
-                    <p className="text-[10px] uppercase tracking-widest text-[var(--vt-text-3)]">Credentials</p>
-                    <p className="mt-1 text-sm text-[var(--vt-text-1)]">
-                      {selectedProvider.activeCredentials}/{selectedProvider.credentialCount} active
-                    </p>
-                  </div>
-                  <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-3">
-                    <p className="text-[10px] uppercase tracking-widest text-[var(--vt-text-3)]">Verified</p>
-                    <div className="mt-1"><TimestampPair label="Last" value={selectedProvider.lastVerifiedAt} /></div>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <SurfaceEmptyState
-                title="No provider is currently selected"
-                description="Apply a provider search or choose a provider from the scoped results below to activate graph and Copilot context."
-              />
-            )}
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Scoped providers</h3>
-                <Link
-                  href={buildIntelligenceHref('providers', searchQuery ? { q: searchQuery } : undefined)}
-                  className="text-sm text-cyan-300 transition hover:text-[var(--vt-accent)]"
-                >
-                  Open full view
-                </Link>
-              </div>
-              {(providers.data?.providers ?? []).length > 0 ? (
-                <div className="grid gap-3 md:grid-cols-2">
-                  {(providers.data?.providers ?? []).slice(0, 4).map((provider) => {
-                    const active = selectedProvider?.npi === provider.npi;
-                    return (
-                      <button
-                        key={provider.npi}
-                        type="button"
-                        onClick={() => setProviderScope(provider.npi)}
-                        className={`rounded-sm border p-3 text-left transition ${
-                          active
-                            ? 'border-cyan-400/40 bg-cyan-400/5'
-                            : 'border-[var(--vt-border)] bg-[var(--vt-surface)] hover:border-[var(--vt-text-3)]/40'
-                        }`}
-                      >
-                        <div className="flex flex-col gap-1">
-                          <div>
-                            <p className="font-semibold text-[var(--vt-text-1)]">{provider.name}</p>
-                            <p className="text-xs text-[var(--vt-text-3)]">NPI {provider.npi}</p>
-                          </div>
-                          <span className={`text-xl font-semibold tabular-nums ${trustScoreColor(provider.trustScore)}`}>
-                            {provider.trustScore}
-                          </span>
-                        </div>
-                        <p className="mt-2 line-clamp-2 text-sm text-[var(--vt-text-2)]">{provider.summary}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <SurfaceEmptyState
-                  title="No providers match the current scope"
-                  description="Broaden the query or clear it to bring providers into the operator workbench."
+          
+          <div className="flex-1 overflow-y-auto p-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+            {/* Findings List */}
+            <div className="flex flex-col gap-2 relative">
+              {findingsUnavailable ? (
+                <SurfaceErrorState
+                  title="Signals unavailable"
+                  description={findings.error ?? 'Signal queue failed to load'}
+                  onRetry={findings.refresh}
                 />
-              )}
-            </div>
-          </OpsCard>
-
-          <OpsCard className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Findings</p>
-                <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Current signal queue</h2>
-              </div>
-              <Link
-                href={buildIntelligenceHref('findings', providerScope ? { provider: providerScope } : undefined)}
-                className="text-sm text-cyan-300 transition hover:text-[var(--vt-accent)]"
-              >
-                Open full view
-              </Link>
-            </div>
-            {findingsUnavailable ? (
-              <SurfaceErrorState
-                title="Findings unavailable"
-                description={findings.error ?? 'The findings feed did not return data.'}
-                onRetry={findings.refresh}
-              />
-            ) : (findings.data?.findings ?? []).length > 0 ? (
-              <div className="space-y-3">
-                {(findings.data?.findings ?? []).map((finding) => {
+              ) : (findings.data?.findings ?? []).length > 0 ? (
+                (findings.data?.findings ?? []).map((finding) => {
                   const active = selectedFinding?.id === finding.id;
+                  
+                  let railColor = "bg-[var(--vt-border)]";
+                  let typeColorClass = "border-[var(--vt-border)] bg-[var(--vt-surface-dim)] text-[var(--vt-text-3)]";
+                  
+                  const typeLower = finding.findingType.toLowerCase();
+                  if (typeLower.includes('sanction') || typeLower.includes('exclusion') || typeLower.includes('action')) {
+                    railColor = "bg-red-500/80";
+                    typeColorClass = "border-red-500/30 bg-red-500/10 text-red-400";
+                  } else if (typeLower.includes('research') || typeLower.includes('publication') || typeLower.includes('trial')) {
+                    railColor = "bg-blue-500/80";
+                    typeColorClass = "border-blue-500/30 bg-blue-500/10 text-blue-400";
+                  } else if (typeLower.includes('workforce') || typeLower.includes('pressure') || typeLower.includes('staff')) {
+                    railColor = "bg-amber-500/80";
+                    typeColorClass = "border-amber-500/30 bg-amber-500/10 text-amber-500";
+                  } else if (typeLower.includes('clinical') || typeLower.includes('quality') || typeLower.includes('patient')) {
+                    railColor = "bg-emerald-500/80";
+                    typeColorClass = "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
+                  } else {
+                    if (['critical', 'outage', 'revoked'].includes(finding.severity.toLowerCase())) railColor = "bg-[var(--vt-critical)]";
+                    else if (['high', 'escalated'].includes(finding.severity.toLowerCase())) railColor = "bg-[var(--vt-warning)]";
+                    else if (['low', 'verified', 'healthy'].includes(finding.severity.toLowerCase())) railColor = "bg-[var(--vt-success)]";
+                    else if (['medium', 'pending'].includes(finding.severity.toLowerCase())) railColor = "bg-[var(--vt-info)]";
+                  }
+                  
                   return (
-                    <div
+                    <button
                       key={finding.id}
-                      className={`rounded-3xl border p-4 ${
-                        active ? 'border-cyan-400/40 bg-cyan-400/5' : 'border-[var(--vt-border)] bg-[var(--vt-surface)]'
+                      type="button"
+                      onClick={() => setFindingScope(finding)}
+                      className={`group relative w-full flex-col overflow-hidden rounded-sm border bg-[var(--vt-surface)] text-left transition-all hover:-translate-y-[1px] ${
+                        active ? 'border-[var(--vt-border)] shadow-sm ring-1 ring-inset ring-[var(--vt-info)]' : 'border-[var(--vt-border)] hover:border-[var(--vt-text-3)] hover:shadow-md'
                       }`}
                     >
-                      <button type="button" onClick={() => setFindingScope(finding)} className="w-full text-left">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <OpsBadge label={finding.severity} tone={severityTone(finding.severity)} />
-                          <OpsBadge label={finding.status} tone={severityTone(finding.status)} />
-                          <span className="text-xs text-[var(--vt-text-3)]">{finding.findingType.replace(/_/g, ' ')}</span>
-                        </div>
-                        <p className="mt-3 text-base font-semibold text-[var(--vt-text-1)]">{finding.title}</p>
-                        <p className="mt-1 text-sm text-[var(--vt-text-2)]">{finding.summary}</p>
-                      </button>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <EntityLink href={`/findings/${finding.id}?from=${encodeURIComponent(currentHref)}`} label="Open detail" />
-                        {finding.providerNpi ? (
-                          <EntityLink href={buildIntelligenceHref('investigations', { npi: finding.providerNpi })} label="Investigate" />
-                        ) : null}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <SurfaceEmptyState
-                title="No findings are active in this scope"
-                description="Use the provider directory or broaden the query to inspect a wider signal set."
-              />
-            )}
-          </OpsCard>
-
-          <div className="grid gap-4 lg:grid-cols-2">
-            <OpsCard className="space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Storylines</p>
-                  <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Narrative clusters</h2>
-                </div>
-                <Link
-                  href={buildIntelligenceHref('storylines', providerScope ? { provider: providerScope } : undefined)}
-                  className="text-sm text-cyan-300 transition hover:text-[var(--vt-accent)]"
-                >
-                  Open full view
-                </Link>
-              </div>
-              {storylinesUnavailable ? (
-                <SurfaceErrorState
-                  title="Storylines unavailable"
-                  description={storylines.error ?? 'The storyline feed did not return data.'}
-                  onRetry={storylines.refresh}
-                />
-              ) : (storylines.data?.storylines ?? []).length > 0 ? (
-                <div className="space-y-3">
-                  {(storylines.data?.storylines ?? []).map((storyline) => {
-                    const active = selectedStoryline?.id === storyline.id;
-                    return (
-                      <div
-                        key={storyline.id}
-                        className={`rounded-3xl border p-4 ${
-                          active ? 'border-cyan-400/40 bg-cyan-400/5' : 'border-[var(--vt-border)] bg-[var(--vt-surface)]'
-                        }`}
-                      >
-                        <button type="button" onClick={() => setStorylineScope(storyline)} className="w-full text-left">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <OpsBadge label={storyline.severity} tone={severityTone(storyline.severity)} />
-                            <OpsBadge label={storyline.status} tone={severityTone(storyline.status)} />
+                      <div className="flex h-full">
+                        <div className={`w-[3px] shrink-0 transition-opacity ${active ? 'opacity-100' : 'opacity-60'} ${railColor}`} />
+                        <div className="flex flex-1 flex-col p-3.5">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                               <p className="mb-1 text-[9px] font-semibold uppercase tracking-widest text-[var(--vt-text-3)]">
+                                 {finding.providerNpi ? `Provider ${finding.providerNpi}` : 'Global Signal'}
+                               </p>
+                               <p className={`text-sm font-medium leading-snug ${active ? 'text-[var(--vt-text-1)]' : 'text-[var(--vt-text-1)]'}`}>
+                                 {finding.summary || finding.title}
+                               </p>
+                            </div>
+                            <span className={`shrink-0 rounded-[2px] border px-1.5 py-0.5 text-[9px] uppercase tracking-widest ${typeColorClass}`}>
+                              {finding.findingType.replace(/_/g, ' ')}
+                            </span>
                           </div>
-                          <p className="mt-3 text-base font-semibold text-[var(--vt-text-1)]">{storyline.title}</p>
-                          <p className="mt-1 text-sm text-[var(--vt-text-2)]">{storyline.whyItMatters}</p>
-                        </button>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <EntityLink href={`/storylines/${storyline.id}?from=${encodeURIComponent(currentHref)}`} label="Open detail" />
-                          {storyline.providerNpi ? (
-                            <EntityLink href={buildIntelligenceHref('investigations', { npi: storyline.providerNpi })} label="Investigate" />
-                          ) : null}
+                          
+                          <div className="mt-3.5 flex items-center justify-between border-t border-[var(--vt-border)]/50 pt-2.5">
+                             <div className="flex items-center gap-2 pl-0.5">
+                               <div className="h-1 w-12 overflow-hidden rounded-full bg-[var(--vt-surface-2)]">
+                                 <div className={`h-full transition-colors duration-300 ${active ? 'bg-[var(--vt-info)]' : 'bg-[var(--vt-text-3)] group-hover:bg-[var(--vt-text-2)]'}`} style={{ width: `${Math.round(finding.confidence * 100)}%` }} />
+                               </div>
+                               <span className="text-[9px] font-mono tracking-widest text-[var(--vt-text-3)]">{Math.round(finding.confidence * 100)}%</span>
+                             </div>
+                             <div className="flex items-center gap-2">
+                               {finding.storylineTitle && (
+                                 <span className="rounded-[2px] border border-[var(--vt-border)]/50 bg-[var(--vt-surface-2)] px-1.5 py-0.5 text-[9px] uppercase tracking-widest text-[var(--vt-text-2)]">
+                                   {finding.storylineTitle}
+                                 </span>
+                               )}
+                               <span className="text-[9px] uppercase tracking-widest text-[var(--vt-text-3)]">
+                                 {formatRelativeTime(finding.updatedAt)}
+                               </span>
+                             </div>
+                          </div>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                      {active && <div className="absolute inset-0 pointer-events-none rounded-sm bg-[var(--vt-info)]/5" />}
+                    </button>
+                  );
+                })
               ) : (
-                <SurfaceEmptyState
-                  title="No storylines are clustered here yet"
-                  description="Storylines appear once related findings are synchronized into a narrative cluster."
-                />
-              )}
-            </OpsCard>
-
-            <OpsCard className="space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Actions</p>
-                  <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Follow-up queue</h2>
+                <div className="flex h-full flex-col items-center justify-center p-12 text-center">
+                  <div className="mb-4 flex h-6 w-6 items-center justify-center">
+                    <span className="absolute h-6 w-6 animate-ping rounded-full bg-[var(--vt-text-3)] opacity-20"></span>
+                    <span className="relative h-2 w-2 rounded-full bg-[var(--vt-text-3)] opacity-50"></span>
+                  </div>
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--vt-text-3)]">System warming — ingesting trust data</p>
                 </div>
-                <Link
-                  href={buildIntelligenceHref('actions', providerScope ? { entity: providerScope } : undefined)}
-                  className="text-sm text-cyan-300 transition hover:text-[var(--vt-accent)]"
-                >
-                  Open full view
-                </Link>
+              )}
+            </div>
+            
+            {/* Graph Preview */}
+            <div className="hidden lg:block">
+              <div className="sticky top-0 h-[calc(100vh-8rem)] w-full relative rounded-sm border border-[var(--vt-border)] bg-black shadow-inner overflow-hidden">
+                <div className="absolute left-3 top-3 z-10 pointer-events-none">
+                   <p className="text-[9px] uppercase tracking-[0.2em] text-[var(--vt-text-2)] mix-blend-difference">Network Context</p>
+                </div>
+                <GraphWorkbenchPanel
+                  graph={graph.data}
+                  providers={providers.data?.providers ?? []}
+                  selectedProvider={selectedProvider}
+                  selectedFindingId={selectedFinding?.id ?? selectedFindingId}
+                  selectedStorylineId={selectedStoryline?.id ?? selectedStorylineId}
+                  openFullGraphHref={openFullGraphHref}
+                  loading={graph.loading}
+                  error={graph.error}
+                  onRetry={graph.refresh}
+                  onSelectProvider={(provider) => setProviderScope(provider.npi)}
+                  focusNodeId={copilotFocusNodeId}
+                  highlightNodeId={copilotHighlightNodeId}
+                  highlightNodeIds={useMemo(() => {
+                    if (!findings.data?.findings || !graph.data?.nodes) return [];
+                    const npis = new Set(findings.data.findings.map(f => f.providerNpi).filter(Boolean));
+                    return graph.data.nodes.filter(n => npis.has(n.id) || npis.has(n.metadata?.npi as string)).map(n => n.id);
+                  }, [findings.data?.findings, graph.data?.nodes])}
+                  onSelectGraphNode={setCopilotFocusNodeId}
+                />
               </div>
-              {actionsUnavailable ? (
-                <SurfaceErrorState
-                  title="Actions unavailable"
-                  description={actions.error ?? 'The action queue did not return data.'}
-                  onRetry={actions.refresh}
-                />
-              ) : (actions.data?.actions ?? []).length > 0 ? (
-                <div className="space-y-3">
-                  {(actions.data?.actions ?? []).map((action) => (
-                    <div key={action.id} className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <OpsBadge label={action.priority} tone={severityTone(action.priority)} />
-                        <OpsBadge label={action.status} tone={severityTone(action.status)} />
-                      </div>
-                      <p className="mt-3 text-base font-semibold text-[var(--vt-text-1)]">{action.title}</p>
-                      <p className="mt-1 text-sm text-[var(--vt-text-2)]">{action.explanation}</p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <EntityLink href={`/actions/${action.id}?from=${encodeURIComponent(currentHref)}`} label="Open detail" />
-                        {action.providerNpi ? (
-                          <EntityLink href={buildIntelligenceHref('investigations', { npi: action.providerNpi })} label="Investigate" />
-                        ) : null}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <SurfaceEmptyState
-                  title="No actions are queued"
-                  description="The current scope has no recommended action backlog."
-                />
-              )}
-            </OpsCard>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div className="space-y-4">
-          <div
-            ref={graphPanelRef}
-            className={focusedPanel === 'graph' ? 'rounded-[28px] ring-2 ring-cyan-400/40 ring-offset-4 ring-offset-transparent' : undefined}
-          >
-            <GraphWorkbenchPanel
-              graph={graph.data}
-              providers={providers.data?.providers ?? []}
-              selectedProvider={selectedProvider}
-              selectedFindingId={selectedFinding?.id ?? selectedFindingId}
-              selectedStorylineId={selectedStoryline?.id ?? selectedStorylineId}
-              openFullGraphHref={openFullGraphHref}
-              loading={graph.loading}
-              error={graph.error}
-              onRetry={graph.refresh}
-              onSelectProvider={(provider) => setProviderScope(provider.npi)}
-              focusNodeId={copilotFocusNodeId}
-              highlightNodeId={copilotHighlightNodeId}
-              onSelectGraphNode={setCopilotFocusNodeId}
+        {/* ZONE C — CONTEXT / ACTION RAIL */}
+        <aside className="no-scrollbar z-20 flex w-[380px] shrink-0 flex-col overflow-y-auto border-l border-[var(--vt-border)] bg-[var(--vt-surface)] p-5 shadow-xl">
+          <div className="flex flex-col gap-6">
+            <WorkbenchCopilotPanel
+              provider={selectedProvider}
+              finding={selectedFinding}
+              storyline={selectedStoryline}
+              onNavigateToNpi={setProviderScope}
+              onSelectFinding={selectFindingById}
+              onSelectStoryline={selectStorylineById}
+              onFocusGraphNode={(nodeId) => {
+                setCopilotFocusNodeId(nodeId);
+                pushDashboard((params) => {
+                  params.set('panel', 'graph');
+                });
+              }}
+              onHighlightGraphNode={(nodeId) => {
+                setCopilotHighlightNodeId(nodeId);
+                pushDashboard((params) => {
+                  params.set('panel', 'graph');
+                });
+              }}
+              onOpenEvidence={openEvidenceForFinding}
+              context={copilotContext}
             />
-          </div>
 
-          <WorkbenchCopilotPanel
-            provider={selectedProvider}
-            finding={selectedFinding}
-            storyline={selectedStoryline}
-            onNavigateToNpi={setProviderScope}
-            onSelectFinding={selectFindingById}
-            onSelectStoryline={selectStorylineById}
-            onFocusGraphNode={(nodeId) => {
-              setCopilotFocusNodeId(nodeId);
-              pushDashboard((params) => {
-                params.set('panel', 'graph');
-              });
-            }}
-            onHighlightGraphNode={(nodeId) => {
-              setCopilotHighlightNodeId(nodeId);
-              pushDashboard((params) => {
-                params.set('panel', 'graph');
-              });
-            }}
-            onOpenEvidence={openEvidenceForFinding}
-            context={copilotContext}
-          />
-        </div>
-      </div>
-    </OperationsShell>
+            {selectedProvider && (
+              <div className="space-y-3 pt-5 border-t border-[var(--vt-border)]/50">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Provider Profile</p>
+                  <span className={`text-base font-semibold tabular-nums ${trustScoreColor(selectedProvider.trustScore)}`}>
+                    {selectedProvider.trustScore}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-[var(--vt-text-1)]">{selectedProvider.name}</h3>
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--vt-text-2)] font-mono mt-0.5">NPI {selectedProvider.npi}</p>
+                </div>
+                <p className="text-xs leading-relaxed text-[var(--vt-text-2)] line-clamp-4">{selectedProvider.summary}</p>
+                
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <EntityLink href={`/providers/${selectedProvider.npi}?from=${encodeURIComponent(currentHref)}`} label="View Full Profile" />
+                  <EntityLink href={buildIntelligenceHref('investigations', { npi: selectedProvider.npi })} label="Launch Investigation" />
+                </div>
+              </div>
+            )}
+            
+            {selectedStoryline && (
+              <div className="space-y-3 pt-5 border-t border-[var(--vt-border)]/50">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Active Storyline</p>
+                </div>
+                <h3 className="text-sm font-medium text-[var(--vt-text-1)]">{selectedStoryline.title}</h3>
+                <p className="text-xs leading-relaxed text-[var(--vt-text-2)] line-clamp-4">{selectedStoryline.whyItMatters}</p>
+                <div className="pt-2">
+                  <EntityLink href={`/storylines/${selectedStoryline.id}?from=${encodeURIComponent(currentHref)}`} label="Analyze Cluster" />
+                </div>
+              </div>
+            )}
+
+            {!selectedProvider && !selectedStoryline && (
+               <div className="flex flex-col items-center justify-center pt-8 opacity-40">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--vt-text-3)] text-center">Select signal to load context</p>
+               </div>
+            )}
+          </div>
+        </aside>
+      </main>
+    </div>
   );
 }

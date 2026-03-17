@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import GraphCanvas, { type GraphHoverDetail } from '@/components/graph-system/GraphCanvas';
 import GraphTooltip from '@/components/graph-system/GraphTooltip';
@@ -22,6 +23,26 @@ import { useGraph } from '@/hooks/useGraph';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import { OperationsShell } from './shell';
 import { OpsCard, SurfaceBanner, SurfaceEmptyState, SurfaceErrorState } from './primitives';
+
+function extractNpi(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function getNodeNpi(node: GraphNode | null): string | null {
+  if (!node) {
+    return null;
+  }
+
+  const metadata = node.metadata as Record<string, unknown>;
+  return extractNpi(metadata?.providerNpi)
+    ?? extractNpi(metadata?.npi)
+    ?? (node.type === 'provider' ? extractNpi(node.id) : null);
+}
 
 function filterGraph(
   nodes: GraphNode[],
@@ -261,6 +282,7 @@ export function GraphSurface() {
     () => filteredGraph.nodes.find((node) => node.id === selectedNodeId) ?? null,
     [filteredGraph.nodes, selectedNodeId],
   );
+  const selectedNodeNpi = useMemo(() => getNodeNpi(selectedNode), [selectedNode]);
   const selectedNodeEdges = useMemo(
     () => selectedNode ? filteredGraph.edges.filter((edge) => edge.source === selectedNode.id || edge.target === selectedNode.id) : [],
     [filteredGraph.edges, selectedNode],
@@ -269,6 +291,22 @@ export function GraphSurface() {
     () => selectedNode ? buildNodeNeighbors(selectedNode, filteredGraph.nodes, filteredGraph.edges) : [],
     [filteredGraph.edges, filteredGraph.nodes, selectedNode],
   );
+  const openFullGraphHref = useMemo(() => {
+    const params = new URLSearchParams();
+    const nodeNpi = selectedNodeNpi ?? focusedNpi;
+
+    if (nodeNpi) {
+      params.set('npi', nodeNpi);
+      params.set('providerId', nodeNpi);
+    }
+
+    if (selectedNodeId) {
+      params.set('focusNodeId', selectedNodeId);
+    }
+
+    const serialized = params.toString();
+    return serialized.length > 0 ? `/graph?${serialized}` : '/graph';
+  }, [focusedNpi, selectedNodeId, selectedNodeNpi]);
 
   return (
     <OperationsShell
@@ -287,14 +325,22 @@ export function GraphSurface() {
         </div>
       )}
       actions={(
-        <button
-          type="button"
-          onClick={graph.refresh}
-          className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-4 py-2 text-sm font-medium text-[var(--vt-text-1)] transition hover:bg-[var(--vt-surface-2)]"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={graph.refresh}
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-4 py-2 text-sm font-medium text-[var(--vt-text-1)] transition hover:bg-[var(--vt-surface-2)]"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </button>
+          <Link
+            href={openFullGraphHref}
+            className="inline-flex items-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/15"
+          >
+            Open full graph
+          </Link>
+        </div>
       )}
       banner={(
         <>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useSystemHealth } from '@/hooks/useSystemHealth';
 import {
@@ -13,16 +13,206 @@ import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time'
 import { OperationsShell } from './shell';
 import { OpsBadge, OpsCard, SurfaceBanner, SurfaceErrorState, severityTone } from './primitives';
 
+interface HealthCountPayload {
+  providers?: unknown;
+  findings?: unknown;
+  storylines?: unknown;
+}
+
+interface HealthTickerSource {
+  incidents?: Array<{
+    title: string;
+    summary: string;
+  }>;
+  cards?: Array<{
+    id: string;
+    summary?: string;
+    detail?: string;
+    label?: string;
+  }>;
+}
+
+interface HealthTrafficCounts {
+  providerCount: number | null;
+  findingCount: number | null;
+  storylineCount: number | null;
+}
+
+function parseCountValue(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Math.max(0, Math.floor(value));
+  }
+
+  if (typeof value === 'string') {
+    const normalized = Number.parseInt(value.replace(/,/g, ''), 10);
+    return Number.isFinite(normalized) ? Math.max(0, normalized) : null;
+  }
+
+  return null;
+}
+
+function parseCountFromText(value: string | undefined): number | null {
+  if (!value) {
+    return null;
+  }
+
+  const match = value.match(/(\d[\d,]*)/);
+  if (!match) {
+    return null;
+  }
+
+  const normalized = Number.parseInt(match[1] ?? '', 10);
+  return Number.isFinite(normalized) ? Math.max(0, normalized) : null;
+}
+
+function resolveHealthTrafficCounts(
+  health: (HealthCountPayload & HealthTickerSource & { cards?: unknown }) | null,
+): HealthTrafficCounts {
+  const providerFromPayload = parseCountValue(health?.providers);
+  const findingFromPayload = parseCountValue(health?.findings);
+  const storylineFromPayload = parseCountValue(health?.storylines);
+  const cards = Array.isArray(health?.cards) ? health.cards as Array<{ id: string; summary?: string; detail?: string }> : [];
+  const providerCard = cards.find((card) => card.id === 'providers');
+  const findingCard = cards.find((card) => card.id === 'findings');
+  const storylineCard = cards.find((card) => card.id === 'storylines');
+
+  return {
+    providerCount: providerFromPayload
+      ?? parseCountFromText(providerCard?.summary)
+      ?? parseCountFromText(providerCard?.detail),
+    findingCount: findingFromPayload
+      ?? parseCountFromText(findingCard?.summary)
+      ?? parseCountFromText(findingCard?.detail),
+    storylineCount: storylineFromPayload
+      ?? parseCountFromText(storylineCard?.summary)
+      ?? parseCountFromText(storylineCard?.detail),
+  };
+}
+
+function buildHealthTickerMessages(health: HealthTickerSource | null, counts: HealthTrafficCounts): string[] {
+  if (!health) {
+    return ['Waiting for system health telemetry to return.'];
+  }
+
+  const providersLabel = counts.providerCount === null ? 'n/a' : `${counts.providerCount} providers`;
+  const findingLabel = counts.findingCount === null ? 'n/a' : `${counts.findingCount} findings`;
+  const storylineLabel = counts.storylineCount === null ? 'n/a' : `${counts.storylineCount} storylines`;
+
+  const messages: string[] = [
+    `Provider network: ${providersLabel}`,
+    `Finding stream: ${findingLabel}`,
+    `Storyline stream: ${storylineLabel}`,
+  ];
+
+  const cards = Array.isArray(health.cards) ? health.cards : [];
+  const verificationCard = cards.find((card) => card.id === 'verification');
+  if (verificationCard?.summary) {
+    messages.push(`Verification throughput: ${verificationCard.summary}`);
+  }
+
+  const cardSourceStatus = cards.find((card) => card.id === 'connectivity')?.summary;
+  if (typeof cardSourceStatus === 'string') {
+    messages.push(`Sources: ${cardSourceStatus}`);
+  }
+
+  if (Array.isArray(health.incidents) && health.incidents.length > 0) {
+    const firstIncident = health.incidents[0];
+    if (firstIncident?.title) {
+      messages.push(`Active incident: ${firstIncident.title}`);
+    }
+  }
+
+  if (messages.length === 0) {
+    messages.push('System health plane is active with no high-priority events.');
+  }
+
+  return messages.slice(0, 6);
+}
+
+function formatCount(value: number | null): string {
+  return value === null ? '—' : `${value}`;
+}
+
+function formatLastUpdatedLabel(lastUpdated: string | null): string {
+  if (!lastUpdated) {
+    return 'No updates yet';
+  }
+
+  const timestamp = Date.parse(lastUpdated);
+  if (!Number.isFinite(timestamp)) {
+    return 'No updates yet';
+  }
+
+  const ageSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+  if (ageSeconds < 60) {
+    return `${ageSeconds} sec ago`;
+  }
+
+  const ageMinutes = Math.max(1, Math.floor(ageSeconds / 60));
+  return `${ageMinutes} min ago`;
+}
+
 export function SystemHealthSurface() {
   const health = useSystemHealth();
   const [scanState, setScanState] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
   const [pollState, setPollState] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
+  const [tickerIndex, setTickerIndex] = useState(0);
   const staleState = getSurfaceFreshnessState({
     generatedAt: health.data?.generatedAt,
     lastUpdated: health.lastUpdated,
   });
   const degradedSources = hasDegradedDataSources(health.data);
   const surfaceState = deriveSystemHealthSurfaceState(health.data, Boolean(health.error && !health.data));
+  const trafficCounts = resolveHealthTrafficCounts((health.data ?? null) as (HealthCountPayload & HealthTickerSource) | null);
+  const providerCount = trafficCounts.providerCount ?? 0;
+  const findingCount = trafficCounts.findingCount ?? 0;
+  const storylineCount = trafficCounts.storylineCount ?? 0;
+  const countsAvailable = trafficCounts.providerCount !== null
+    && trafficCounts.findingCount !== null
+    && trafficCounts.storylineCount !== null;
+  const isHeartbeatHealthy = countsAvailable
+    && providerCount > 0
+    && findingCount > 0
+    && storylineCount > 0;
+  const healthReadinessLabel = surfaceState.mode === 'broken'
+    ? 'BROKEN'
+    : isHeartbeatHealthy
+      ? 'HEALTHY'
+      : 'WARMING';
+  const healthReadinessTone = surfaceState.mode === 'broken'
+    ? 'critical'
+    : isHeartbeatHealthy
+      ? 'success'
+      : 'warning';
+  const healthReadinessDescription = surfaceState.mode === 'broken'
+    ? 'System health is degraded and requires operator attention.'
+    : isHeartbeatHealthy
+      ? 'Provider, finding, and storyline counts are live and non-zero.'
+      : 'System signals are warming up or still ramping.';
+  const tickerMessages = buildHealthTickerMessages(health.data ? {
+    incidents: health.data.incidents,
+    cards: health.data.cards,
+  } : null, trafficCounts);
+  const tickerSignature = tickerMessages.join('||');
+  const lastUpdatedLabel = formatLastUpdatedLabel(health.lastUpdated ?? health.data?.generatedAt ?? null);
+
+  useEffect(() => {
+    setTickerIndex(0);
+  }, [tickerSignature]);
+
+  useEffect(() => {
+    if (tickerMessages.length <= 1) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setTickerIndex((current) => (current + 1) % tickerMessages.length);
+    }, 6500);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [tickerSignature, tickerMessages.length]);
 
   async function runScan() {
     setScanState('running');
@@ -74,21 +264,23 @@ export function SystemHealthSurface() {
             <div className={`h-2.5 w-2.5 rounded-full ${
               surfaceState.mode === 'broken'
                 ? 'bg-red-500 animate-pulse'
-                : surfaceState.mode === 'degraded'
-                  ? 'bg-amber-500'
-                  : surfaceState.mode === 'empty'
-                    ? 'bg-sky-500'
-                    : 'bg-emerald-500 shadow-sm shadow-emerald-500/30'
+                : isHeartbeatHealthy
+                  ? 'bg-emerald-500 shadow-sm shadow-emerald-500/30'
+                  : 'bg-cyan-400 animate-pulse'
             }`} />
-            <p className="font-medium text-[var(--vt-text-1)]">
-              {surfaceState.label}
+            <p className="font-medium text-[var(--vt-text-1)]">{surfaceState.label}</p>
+          </div>
+          <p className="text-xs text-[var(--vt-text-2)]">{health.data?.headline ?? 'Waiting for telemetry'}</p>
+          <div className="space-y-1 border-t border-[var(--vt-border)] pt-1 text-[10px] text-[var(--vt-text-3)]">
+            <p className="inline-flex items-center gap-2 uppercase tracking-wider text-[9px]">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              LIVE SIGNALS ACTIVE
+            </p>
+            <p>Readiness: {healthReadinessLabel}</p>
+            <p title={health.lastUpdated ? formatAbsoluteTime(health.lastUpdated) : undefined}>
+              Last updated {lastUpdatedLabel}
             </p>
           </div>
-          <p className="text-xs text-[var(--vt-text-2)]">{surfaceState.description}</p>
-          <p className="text-xs text-[var(--vt-text-3)]">{health.data?.headline ?? 'Waiting for telemetry'}</p>
-          {health.lastUpdated ? (
-            <p className="text-[10px] text-[var(--vt-text-3)]" title={formatAbsoluteTime(health.lastUpdated)}>Updated {formatRelativeTime(health.lastUpdated)}</p>
-          ) : null}
         </div>
       )}
       actions={(
@@ -163,14 +355,37 @@ export function SystemHealthSurface() {
       <OpsCard className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Current state</h2>
-          <OpsBadge
-            label={surfaceState.label}
-            tone={surfaceState.mode === 'healthy' ? 'success' : surfaceState.mode === 'empty' ? 'info' : surfaceState.mode === 'degraded' ? 'warning' : 'critical'}
-          />
+          <OpsBadge label={healthReadinessLabel} tone={healthReadinessTone} />
         </div>
-        <p className="text-sm text-[var(--vt-text-2)]">{surfaceState.description}</p>
+        <p className="text-sm text-[var(--vt-text-2)]">{healthReadinessDescription}</p>
+        <p className="text-sm text-[var(--vt-text-3)]">{health.data?.headline ?? 'Waiting for telemetry'}</p>
         <p className="text-sm text-[var(--vt-text-3)]">
-          {health.data?.sources.length ?? 0} connector{(health.data?.sources.length ?? 0) === 1 ? '' : 's'} • {health.data?.incidents.length ?? 0} active incident{(health.data?.incidents.length ?? 0) === 1 ? '' : 's'}
+          {formatCount(trafficCounts.providerCount)} providers • {formatCount(trafficCounts.findingCount)} findings • {formatCount(trafficCounts.storylineCount)} storylines
+        </p>
+      </OpsCard>
+
+      <OpsCard className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Live signal ticker</h2>
+          <span className="text-xs text-[var(--vt-text-3)]">{formatRelativeTime(health.lastUpdated ?? new Date().toISOString())}</span>
+        </div>
+        <p className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-2 text-sm text-[var(--vt-text-2)]">
+          {tickerMessages[tickerIndex % Math.max(1, tickerMessages.length)]}
+        </p>
+      </OpsCard>
+
+      <OpsCard className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">System heartbeat counts</h2>
+          <span className="text-sm text-[var(--vt-text-3)]">
+            {health.data?.sources.length ?? 0} connector{(health.data?.sources.length ?? 0) === 1 ? '' : 's'}
+          </span>
+        </div>
+        <p className="text-sm text-[var(--vt-text-2)]">
+          Provider {formatCount(trafficCounts.providerCount)} • Finding {formatCount(trafficCounts.findingCount)} • Storyline {formatCount(trafficCounts.storylineCount)}
+        </p>
+        <p className="text-sm text-[var(--vt-text-3)]">
+          {health.data?.incidents.length ?? 0} active incident{(health.data?.incidents.length ?? 0) === 1 ? '' : 's'}
         </p>
       </OpsCard>
 

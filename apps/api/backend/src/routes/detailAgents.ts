@@ -19,17 +19,34 @@ import {
   type DetailAgentId,
 } from '../services/detailAgents/detailAgentEngine';
 import { log } from '../obs/logger';
+import { generateSystemPulse } from '../services/system/pulseService';
 
 const VALID_AGENTS: DetailAgentId[] = ['qa', 'data-sanity', 'performance', 'schema-consistency', 'api-validation'];
 
 export function registerDetailAgentRoutes(app: Express): void {
 
-  app.get('/api/system-health', (_req: Request, res: Response) => {
-    res.json({
-      schema: 'https://vitalcv.com/system-health/v1',
-      ...getSystemHealthSummary(),
-      generatedAt: new Date().toISOString(),
-    });
+  app.get('/api/system-health', async (_req: Request, res: Response) => {
+    try {
+      const [summary, pulse] = await Promise.all([
+        Promise.resolve(getSystemHealthSummary()),
+        generateSystemPulse(),
+      ]);
+
+      res.json({
+        schema: 'https://vitalcv.com/system-health/v1',
+        ...summary,
+        providers: pulse.providers,
+        findings: pulse.findings,
+        storylines: pulse.storylines,
+        status: pulse.findings > 0 ? 'HEALTHY' : 'WARMING',
+        systemState: pulse.systemState,
+        lastEventAt: pulse.lastEventAt,
+        generatedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      log('error', `[DetailAgents] system health failed: ${(err as Error)?.message}`);
+      res.status(500).json({ error: 'System health unavailable' });
+    }
   });
 
   app.get('/api/system-health/reports', (req: Request, res: Response) => {

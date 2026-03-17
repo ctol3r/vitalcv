@@ -102,6 +102,7 @@ describe('prediction copilot query service', () => {
       ] as unknown as Awaited<ReturnType<typeof listInvestigatorFindings>>['findings'],
     });
     listStorylinesMock.mockResolvedValue({
+      total: 1,
       syncedAt: '2026-03-15T00:00:00.000Z',
       storylines: [
         {

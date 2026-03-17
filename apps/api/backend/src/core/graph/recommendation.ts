@@ -42,7 +42,13 @@ export function recommendNodeConnections(
   const directConnections = new Set<string>();
 
   for (const edge of baseEdges) {
-    if (edge.type === 'tagged_with' || edge.type === 'attached_to') continue;
+    if (
+      edge.type === 'tagged_with'
+      || edge.type === 'attached_to'
+      || edge.type === 'semantic_similarity'
+    ) {
+      continue;
+    }
     directConnections.add(createUndirectedPairKey(edge.source, edge.target));
   }
 
@@ -95,11 +101,17 @@ export function recommendNodeConnections(
 
   return [...drafts.values()]
     .map((draft) => {
+      const leftNode = nodes.find((node) => node.id === draft.sourceNodeId);
+      const rightNode = nodes.find((node) => node.id === draft.targetNodeId);
+      if (!leftNode || !rightNode) return null;
+
       const sameCluster = options.clusterAssignments
         && options.clusterAssignments.get(draft.sourceNodeId)
         && options.clusterAssignments.get(draft.sourceNodeId) === options.clusterAssignments.get(draft.targetNodeId)
         ? 1
         : 0;
+      const sameGroup = leftNode.group === rightNode.group ? 1 : 0;
+      const sameType = leftNode.type === rightNode.type ? 1 : 0;
       const centralitySignal = Math.min(
         1,
         ((options.centrality.get(draft.sourceNodeId)?.composite ?? 0)
@@ -111,6 +123,8 @@ export function recommendNodeConnections(
         draft.similarityScore * 0.55
         + sharedNeighborScore * 0.25
         + sameCluster * 0.1
+        + sameType * 0.06
+        + sameGroup * 0.04
         + centralitySignal * 0.1,
       );
 
@@ -120,6 +134,8 @@ export function recommendNodeConnections(
       if (draft.similarityScore > 0) reasons.push(`similarity=${draft.similarityScore.toFixed(2)}`);
       if (draft.sharedNeighborIds.size > 0) reasons.push(`shared_neighbors=${draft.sharedNeighborIds.size}`);
       if (draft.sharedTokens.size > 0) reasons.push(`shared_tokens=${[...draft.sharedTokens].slice(0, 4).join(',')}`);
+      if (sameType) reasons.push(`same_type=${leftNode.type}`);
+      if (sameGroup) reasons.push(`same_group=${leftNode.group}`);
       if (sameCluster) reasons.push('same_cluster');
 
       return {

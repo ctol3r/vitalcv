@@ -14,6 +14,23 @@ USE_LOCAL_POSTGRES=0
 LOCAL_DATA_DIR=""
 LOCAL_SOCKET_DIR=""
 LOCAL_PORT=""
+LOCK_ROOT="${TMPDIR:-/tmp}/vitalcv-backend-test-locks"
+LOCK_DIR="${LOCK_ROOT}/backend-suite"
+
+mkdir -p "${LOCK_ROOT}"
+
+for _ in $(seq 1 1800); do
+  if mkdir "${LOCK_DIR}" 2>/dev/null; then
+    break
+  fi
+
+  sleep 0.2
+done
+
+if [[ ! -d "${LOCK_DIR}" ]]; then
+  echo "Timed out waiting for backend test lock" >&2
+  exit 1
+fi
 
 cleanup() {
   if [[ "${USE_LOCAL_POSTGRES}" == "1" && -n "${LOCAL_DATA_DIR}" ]]; then
@@ -31,6 +48,10 @@ cleanup() {
   if docker info >/dev/null 2>&1 && docker ps -a --format '{{.Names}}' | grep -qx "${CONTAINER_NAME}"; then
     docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
   fi
+
+  rmdir "${LOCK_DIR}" >/dev/null 2>&1 || true
+
+  return 0
 }
 
 trap cleanup EXIT
@@ -96,13 +117,19 @@ else
   export DATABASE_URL="postgresql://${POSTGRES_USER}@127.0.0.1:${LOCAL_PORT}/${POSTGRES_DB}"
 fi
 
-export NODE_ENV="${NODE_ENV:-test}"
+export NODE_ENV="test"
 
 cd "${REPO_ROOT}"
 cd "${REPO_ROOT}/apps/api/backend"
 pnpm exec prisma migrate deploy --schema prisma/schema.prisma >/dev/null
+set +e
 if [[ ${#JEST_ARGS[@]} -gt 0 ]]; then
   pnpm exec jest "${JEST_ARGS[@]}"
+  TEST_EXIT=$?
 else
   pnpm exec jest
+  TEST_EXIT=$?
 fi
+set -e
+
+exit "${TEST_EXIT}"

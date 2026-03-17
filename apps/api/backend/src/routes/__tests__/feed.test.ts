@@ -4,6 +4,9 @@ import request from 'supertest';
 jest.mock('../../graphql/prisma_client', () => ({
   __esModule: true,
   default: {
+    provider: {
+      findMany: jest.fn(),
+    },
     investigatorFinding: {
       findMany: jest.fn(),
     },
@@ -17,12 +20,23 @@ jest.mock('../../services/storylines/storylineService', () => ({
   syncPersistedStorylines: jest.fn(),
 }));
 
+jest.mock('../../services/intelligence/intelligenceAutoWarmService', () => ({
+  runIntelligenceAutoWarm: jest.fn(),
+}));
+
 import prisma from '../../graphql/prisma_client';
 import { publish, resetEventBusForTests } from '../../core/events/eventBus';
+import {
+  resetLiveFeedStateForTests,
+} from '../../services/feed/liveFeedService';
+import { runIntelligenceAutoWarm } from '../../services/intelligence/intelligenceAutoWarmService';
 import { syncPersistedStorylines } from '../../services/storylines/storylineService';
 import { registerFeedRoutes } from '../feed';
 
 const prismaMock = prisma as unknown as {
+  provider: {
+    findMany: jest.Mock;
+  };
   investigatorFinding: {
     findMany: jest.Mock;
   };
@@ -33,6 +47,8 @@ const prismaMock = prisma as unknown as {
 
 const syncPersistedStorylinesMock =
   syncPersistedStorylines as jest.MockedFunction<typeof syncPersistedStorylines>;
+const runIntelligenceAutoWarmMock =
+  runIntelligenceAutoWarm as jest.MockedFunction<typeof runIntelligenceAutoWarm>;
 
 function buildApp() {
   const app = express();
@@ -43,16 +59,34 @@ function buildApp() {
 describe('feed routes', () => {
   beforeEach(() => {
     resetEventBusForTests();
+    resetLiveFeedStateForTests();
+    prismaMock.provider.findMany.mockReset();
     prismaMock.investigatorFinding.findMany.mockReset();
     prismaMock.storyline.findMany.mockReset();
     syncPersistedStorylinesMock.mockReset();
+    runIntelligenceAutoWarmMock.mockReset();
 
+    prismaMock.provider.findMany.mockResolvedValue([]);
     prismaMock.investigatorFinding.findMany.mockResolvedValue([]);
     prismaMock.storyline.findMany.mockResolvedValue([]);
     syncPersistedStorylinesMock.mockResolvedValue('2026-03-17T09:00:00.000Z');
+    runIntelligenceAutoWarmMock.mockResolvedValue({
+      trigger: 'feed_live_empty',
+      triggered: false,
+      reason: 'cooldown',
+      seeded: false,
+      providersBefore: 0,
+      findingsBefore: 0,
+      storylinesBefore: 0,
+      providersAfter: 0,
+      findingsAfter: 0,
+      storylinesAfter: 0,
+      findingsGenerated: 0,
+      targetProviders: 0,
+    });
   });
 
-  it('returns live event bus items in descending timestamp order', async () => {
+  it('returns live provider, finding, and storyline events in descending timestamp order', async () => {
     const app = buildApp();
 
     await publish({
@@ -61,6 +95,7 @@ describe('feed routes', () => {
       payload: {
         providerId: 'provider-1',
         npi: '1234567890',
+        providerLabel: 'Ada Lovelace',
         operation: 'updated',
       },
     });
@@ -119,16 +154,26 @@ describe('feed routes', () => {
       .get('/api/feed/live')
       .expect(200);
 
-    expect(response.body.total).toBe(2);
+    expect(response.body.total).toBe(3);
+    expect(response.body.cached).toBe(false);
     expect(response.body.events.map((event: { type: string }) => event.type)).toEqual([
       'STORYLINE_UPDATED',
       'FINDING_CREATED',
+      'PROVIDER_UPDATED',
     ]);
     expect(response.body.events.every((event: { source: string }) => event.source === 'event_bus')).toBe(true);
   });
 
-  it('backfills from persisted findings and storylines when the bus is empty', async () => {
+  it('backfills from persisted providers, findings, and storylines when the bus is empty', async () => {
     const app = buildApp();
+    prismaMock.provider.findMany.mockResolvedValue([
+      {
+        npi: '1902301456',
+        fullName: 'Amelia Hart',
+        createdAt: new Date('2026-03-17T09:00:00.000Z'),
+        updatedAt: new Date('2026-03-17T10:05:00.000Z'),
+      },
+    ]);
     prismaMock.investigatorFinding.findMany.mockResolvedValue([
       {
         findingId: 'finding-2',
@@ -162,8 +207,17 @@ describe('feed routes', () => {
       .expect(200);
 
     expect(syncPersistedStorylinesMock).toHaveBeenCalledTimes(1);
-    expect(response.body.total).toBe(2);
+    expect(response.body.total).toBe(3);
     expect(response.body.events[0]).toMatchObject({
+      type: 'PROVIDER_UPDATED',
+      source: 'db_backfill',
+      payload: {
+        npi: '1902301456',
+        providerLabel: 'Amelia Hart',
+        operation: 'updated',
+      },
+    });
+    expect(response.body.events[1]).toMatchObject({
       type: 'STORYLINE_UPDATED',
       source: 'db_backfill',
       payload: {
@@ -171,7 +225,7 @@ describe('feed routes', () => {
         operation: 'status_changed',
       },
     });
-    expect(response.body.events[1]).toMatchObject({
+    expect(response.body.events[2]).toMatchObject({
       type: 'FINDING_CREATED',
       source: 'db_backfill',
       payload: {
@@ -185,14 +239,6 @@ describe('feed routes', () => {
   it('excludes non-feed event types even when they are recent', async () => {
     const app = buildApp();
 
-    await publish({
-      type: 'PROVIDER_UPDATED',
-      payload: {
-        providerId: 'provider-1',
-        npi: '1234567890',
-        operation: 'created',
-      },
-    });
     await publish({
       type: 'INVESTIGATOR_RUN_COMPLETE',
       payload: {
@@ -222,5 +268,43 @@ describe('feed routes', () => {
 
     expect(response.body.total).toBe(0);
     expect(response.body.events).toEqual([]);
+  });
+
+  it('returns the last successful feed snapshot when a later build fails', async () => {
+    const app = buildApp();
+
+    await publish({
+      type: 'FINDING_CREATED',
+      timestamp: '2026-03-17T10:00:00.000Z',
+      payload: {
+        runId: 'run-1',
+        findingId: 'finding-1',
+        investigatorId: 'trust_decline',
+        severity: 'critical',
+        status: 'new',
+        entityIds: ['1234567890'],
+        storylineKey: 'storyline-1',
+        operation: 'created',
+      },
+    });
+
+    const warm = await request(app)
+      .get('/api/feed/live')
+      .expect(200);
+
+    expect(warm.body.total).toBe(1);
+    expect(warm.body.cached).toBe(false);
+
+    resetEventBusForTests();
+    syncPersistedStorylinesMock.mockRejectedValueOnce(new Error('db offline'));
+
+    const fallback = await request(app)
+      .get('/api/feed/live')
+      .expect(200);
+
+    expect(fallback.body.total).toBe(1);
+    expect(fallback.body.cached).toBe(true);
+    expect(fallback.body.degradedReason).toBe('backend_failure');
+    expect(fallback.body.events[0].payload.findingId).toBe('finding-1');
   });
 });

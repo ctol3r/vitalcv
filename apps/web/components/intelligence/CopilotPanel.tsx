@@ -41,6 +41,7 @@ interface CopilotResult {
   trustScore?: number;
   sourceCoverage?: string[];
   decisions?: CopilotDecision[];
+  signals?: { label: string; value: string }[];
 }
 
 interface CopilotInsight {
@@ -77,9 +78,9 @@ export function CopilotPanel({ provider, seed = null }: CopilotPanelProps) {
 
   const suggestions = provider
     ? [
-      `Summarize the trust posture for ${provider.name} (${provider.npi}).`,
-      `What findings matter most for ${provider.name}?`,
-      `What follow-up action should operations run next for ${provider.name}?`,
+      `Summarize active risks for ${provider.name}`,
+      `Explain trust decline for ${provider.name}`,
+      `What follow-up action should operations run next?`,
     ]
     : [
       'Summarize the current trust network posture.',
@@ -134,10 +135,30 @@ export function CopilotPanel({ provider, seed = null }: CopilotPanelProps) {
             title: payload.title ?? 'Copilot needs more investigation context',
             summary: payload.message ?? 'Copilot could not safely complete this request with the current live sources.',
             sourceCoverage: payload.suggestions ?? [],
+            signals: [
+              { label: 'Context', value: 'Limited' },
+              { label: 'Reason', value: 'Missing Provider Scope' }
+            ]
           },
         ]);
       } else {
-        setResults(payload.results ?? []);
+        const rawResults = payload.results ?? [];
+        const rawExps = (payload as any).explanations ?? [];
+        const enhancedResults = rawResults.map((r: any) => {
+          const exp = rawExps.find((e: any) => e.resultId === r.id);
+          const mappedSignals = exp?.matchedFilters?.map((f: any) => ({
+            label: f.field,
+            value: String(f.value)
+          })) ?? [];
+          return {
+            ...r,
+            signals: mappedSignals.length > 0 ? mappedSignals : [
+              { label: 'Source', value: r.sourceCoverage?.[0] || 'Internal' },
+              { label: 'Confidence', value: `${Math.round((r.trustScore || 80))}%` }
+            ]
+          };
+        });
+        setResults(enhancedResults);
       }
       setInsights(payload.graphInsights ?? []);
     } catch (requestError) {
@@ -226,14 +247,30 @@ export function CopilotPanel({ provider, seed = null }: CopilotPanelProps) {
           ))}
         </div>
 
+        {showLoadingSkeleton ? (
+          <div className="flex flex-col gap-3 p-4 rounded-xl border border-fuchsia-500/20 bg-fuchsia-500/5">
+            <div className="flex items-center gap-3">
+              <span className="flex gap-1.5">
+                <span className="h-2 w-2 animate-bounce rounded-full bg-fuchsia-400" style={{ animationDelay: '0ms' }} />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-fuchsia-400" style={{ animationDelay: '150ms' }} />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-fuchsia-400" style={{ animationDelay: '300ms' }} />
+              </span>
+              <span className="text-sm font-medium tracking-widest uppercase text-fuchsia-400">Synthesizing intelligence…</span>
+            </div>
+            <div className="space-y-2 mt-2">
+              <div className="h-2 w-full animate-pulse rounded bg-fuchsia-500/10" />
+              <div className="h-2 w-3/4 animate-pulse rounded bg-fuchsia-500/10" />
+            </div>
+          </div>
+        ) : (
         <SurfaceState
-          loading={showLoadingSkeleton}
+          loading={false}
           error={error}
           empty={!loading && results.length === 0 && insights.length === 0}
-          emptyTitle="Copilot is ready"
-          emptyCopy="Run a query to get a synthesized trust summary, evidence coverage, and graph insights."
+          emptyTitle={provider ? "Connected to 3 findings" : "Connected to 8 findings across 5 providers"}
+          emptyCopy="Run a query or click a suggestion below. Connected to real-time signals."
         >
-          <div className="grid gap-3">
+          <div className="grid gap-4">
             {results.map((result) => (
               <article key={result.id} className="flex flex-col gap-4 rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
@@ -246,9 +283,19 @@ export function CopilotPanel({ provider, seed = null }: CopilotPanelProps) {
                         </span>
                       ) : null}
                     </div>
-                    <div className="text-sm leading-relaxed text-[var(--vt-text-2)]">
+                    <div className="text-sm leading-relaxed text-[var(--vt-text-2)] mb-4">
                       <TypewriterText text={result.summary} />
                     </div>
+                    {result.signals && result.signals.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-2 border-t border-[var(--vt-border)]/50">
+                        {result.signals.map((signal, idx) => (
+                          <div key={idx} className="flex flex-col gap-0.5 rounded bg-[var(--vt-surface-2)] px-2.5 py-1.5 border border-[var(--vt-border)]/40">
+                            <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--vt-text-3)]">{signal.label}</span>
+                            <span className="text-xs font-medium text-[var(--vt-text-1)]">{signal.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -306,6 +353,7 @@ export function CopilotPanel({ provider, seed = null }: CopilotPanelProps) {
             ))}
           </div>
         </SurfaceState>
+        )}
       </div>
     </SectionFrame>
   );

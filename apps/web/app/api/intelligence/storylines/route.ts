@@ -79,13 +79,18 @@ export async function GET(req: NextRequest) {
     }>('/api/storylines', params, 12_000, { context: authContext });
 
     if (!upstream.ok) {
+      console.warn('[intelligence/storylines] backend returned non-ok', {
+        status: upstream.status,
+        authStatus: authContext.status,
+        userId: authContext.userId ? '***' : null,
+      });
       logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
       return NextResponse.json(
         coerceRouteErrorPayload(upstream.payload, {
-          error: 'backend_unavailable',
-          error_description: 'Storylines unavailable. Try again when the backend is reachable.',
+          error: 'backend_request_failed',
+          error_description: `Storylines backend returned ${upstream.status}.`,
         }),
-        { status: upstream.status >= 400 ? upstream.status : 503 },
+        { status: upstream.status >= 400 ? upstream.status : 502 },
       );
     }
 
@@ -94,7 +99,7 @@ export async function GET(req: NextRequest) {
     const sliceEnd = sliceStart + limit;
     const pageStorylines = normalized.storylines.slice(sliceStart, sliceEnd);
 
-    return NextResponse.json(attachAccessMetadata({
+    const payload = attachAccessMetadata({
       ...normalized,
       storylines: pageStorylines,
       pageInfo: {
@@ -107,14 +112,20 @@ export async function GET(req: NextRequest) {
     }, {
       accessMode: 'full',
       reason: 'ok',
-    }));
+    });
+
+    return NextResponse.json(payload);
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.warn('[intelligence/storylines] backend fetch failed', {
+      error: message,
+      authStatus: authContext.status,
+    });
     logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
     return NextResponse.json(
       {
-        error: 'backend_unavailable',
-        error_description: 'Storylines unavailable. Try again when the backend is reachable.',
-        message: error instanceof Error ? error.message : 'Unknown request failure',
+        error: 'backend_request_failed',
+        error_description: `Storylines backend request failed: ${message}`,
       },
       { status: 503 },
     );

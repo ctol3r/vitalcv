@@ -11,6 +11,7 @@ export type VitalEventType =
 export interface ProviderUpdatedPayload {
   providerId: string;
   npi: string | null;
+  providerLabel?: string | null;
   operation: 'created' | 'updated';
 }
 

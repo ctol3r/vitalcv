@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import {
-  buildReadOnlyFallbackPayload,
   fetchBackendJson,
   logIntelligenceFallbackUsage,
   resolveIntelligenceAuthContext,
@@ -8,10 +7,29 @@ import {
 
 export const runtime = 'nodejs';
 
+function buildEmptyCalibrationPayload() {
+  const generatedAt = new Date().toISOString();
+
+  return {
+    schema: 'https://vitalcv.com/calibration/v1',
+    stats: [],
+    summary: {
+      totalOutcomes: 0,
+      resolvedTodayCount: 0,
+      overallTruePositiveRate: 0,
+      overallFalsePositiveRate: 0,
+      worstPerformingInvestigators: [],
+      bestPerformingInvestigators: [],
+      generatedAt,
+    },
+    generatedAt,
+  };
+}
+
 export async function GET(req: NextRequest) {
   const authContext = await resolveIntelligenceAuthContext();
   if (authContext.status !== 'authenticated') {
-    return NextResponse.json(buildReadOnlyFallbackPayload('calibration', req, authContext));
+    return NextResponse.json(buildEmptyCalibrationPayload());
   }
 
   try {
@@ -20,13 +38,13 @@ export async function GET(req: NextRequest) {
     });
     if (!ok) {
       logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
-      return NextResponse.json(buildReadOnlyFallbackPayload('calibration', req, authContext, { log: false }));
+      return NextResponse.json(buildEmptyCalibrationPayload());
     }
 
     return NextResponse.json(payload, { status: 200 });
   } catch (error) {
     void error;
     logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
-    return NextResponse.json(buildReadOnlyFallbackPayload('calibration', req, authContext, { log: false }));
+    return NextResponse.json(buildEmptyCalibrationPayload());
   }
 }

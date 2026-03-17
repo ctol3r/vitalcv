@@ -13,6 +13,7 @@
  * Agents run on configurable intervals and produce DetailReports.
  */
 
+import { isAutomatedTestRuntime } from '../../config/runtimeMode';
 import { log } from '../../obs/logger';
 import prisma from '../../graphql/prisma_client';
 import { storeFinding, type FindingCategory, type FindingSeverity } from '../investigators/framework';
@@ -441,6 +442,10 @@ const AGENTS: Record<DetailAgentId, {
 const agentTimers = new Map<string, ReturnType<typeof setInterval>>();
 
 export function initDetailAgents(): void {
+  if (isAutomatedTestRuntime()) {
+    return;
+  }
+
   for (const [id, agent] of Object.entries(AGENTS)) {
     if (!agent.config.enabled || agent.config.intervalMs <= 0) continue;
     if (agentTimers.has(id)) continue;
@@ -455,6 +460,7 @@ export function initDetailAgents(): void {
       }
     }, agent.config.intervalMs);
 
+    timer.unref?.();
     agentTimers.set(id, timer);
     log('info', `[DetailAgent] Scheduled ${id} every ${agent.config.intervalMs / 3600000}h`);
   }

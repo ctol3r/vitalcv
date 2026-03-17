@@ -99,7 +99,7 @@ export function registerStorylineRoutes(app: Express): void {
 
       res.json(storylineListResponseSchema.parse({
         storylines: result.storylines,
-        total: result.storylines.length,
+        total: result.total,
         syncedAt: result.syncedAt,
       }));
     } catch (error) {
@@ -141,7 +141,7 @@ export function registerStorylineRoutes(app: Express): void {
       });
       res.json(storylineListResponseSchema.parse({
         storylines: result.storylines,
-        total: result.storylines.length,
+        total: result.total,
         syncedAt: result.syncedAt,
       }));
     } catch (error) {

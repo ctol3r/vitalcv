@@ -30,13 +30,20 @@ function isDemoPath(p: string): p is keyof typeof DEMO_PATHS {
   return p in DEMO_PATHS;
 }
 
-/** Single source of truth for API base URL. */
+/** Single source of truth for API base URL (empty string if no env var set). */
 export function getApiBase(): string {
   const raw =
+    process.env.BACKEND_URL ||
     process.env.NEXT_PUBLIC_API_BASE ||
     process.env.NEXT_PUBLIC_BACKEND_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
     '';
   return normalizeApiBase(raw);
+}
+
+/** Backend base URL with localhost:4000 fallback — safe for server-side proxy routes. */
+export function getBackendBase(): string {
+  return getApiBase() || 'http://localhost:4000';
 }
 
 /** Build a full API URL for any path (not limited to ApiPath type). */

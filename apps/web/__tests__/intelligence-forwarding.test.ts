@@ -11,6 +11,7 @@ vi.mock('@clerk/nextjs/server', () => ({
 
 vi.mock('@/lib/api', () => ({
   getApiBase: () => 'http://backend.test',
+  getBackendBase: () => 'http://backend.test',
 }));
 
 vi.mock('@/lib/intelligence/server', () => ({
@@ -32,9 +33,11 @@ describe('intelligence auth forwarding', () => {
   });
 
   it('buildForwardHeaders resolves the active workspace org and forwards role aliases', async () => {
+    const getToken = vi.fn().mockResolvedValue('clerk-session-token');
     authMock.mockResolvedValue({
       userId: 'clerk-user-1',
       orgId: null,
+      getToken,
       sessionClaims: {
         email: 'ada@example.com',
         vitalcv: { role: 'operator' },
@@ -59,8 +62,11 @@ describe('intelligence auth forwarding', () => {
         headers: expect.any(Headers),
       }),
     );
+    const [, workspaceInit] = fetchMock.mock.calls[0] as [string, { headers: Headers }];
+    expect(workspaceInit.headers.get('authorization')).toBe('Bearer clerk-session-token');
     expect(headers.get('content-type')).toBe('application/json');
     expect(headers.get('accept')).toBe('application/json');
+    expect(headers.get('authorization')).toBe('Bearer clerk-session-token');
     expect(headers.get('x-clerk-user-id')).toBe('clerk-user-1');
     expect(headers.get('x-clerk-user-email')).toBe('ada@example.com');
     expect(headers.get('x-clerk-user-role')).toBe('operator');
@@ -170,7 +176,7 @@ describe('intelligence auth forwarding', () => {
     });
   });
 
-  it('fails findings requests with a real error response instead of an empty fallback payload', async () => {
+  it('surfaces findings backend errors without synthesizing a fallback payload', async () => {
     authMock.mockResolvedValue({
       userId: 'clerk-user-1',
       orgId: 'org-clerk-1',
@@ -178,8 +184,8 @@ describe('intelligence auth forwarding', () => {
     });
     const fetchMock = vi.fn().mockResolvedValue(new Response(
       JSON.stringify({
-        error: 'backend_unavailable',
-        error_description: 'Findings feed unavailable. Try again when the backend is reachable.',
+        error: 'findings_feed_failed',
+        error_description: 'Findings feed unavailable upstream.',
       }),
       {
         status: 503,
@@ -192,9 +198,9 @@ describe('intelligence auth forwarding', () => {
     const response = await GET(new NextRequest('http://localhost/api/intelligence/findings') as never);
 
     expect(response.status).toBe(503);
-    await expect(response.json()).resolves.toEqual({
-      error: 'backend_unavailable',
-      error_description: 'Findings feed unavailable. Try again when the backend is reachable.',
+    await expect(response.json()).resolves.toMatchObject({
+      error: 'findings_feed_failed',
+      error_description: 'Findings feed unavailable upstream.',
     });
   });
 
@@ -247,6 +253,69 @@ describe('intelligence auth forwarding', () => {
       reason: 'ok',
       total: 1,
       findings: [expect.objectContaining({ id: 'finding-1' })],
+    });
+  });
+
+  it('does not reuse stale findings payloads when the backend later fails', async () => {
+    authMock.mockResolvedValue({
+      userId: 'clerk-user-1',
+      orgId: 'org-clerk-1',
+      sessionClaims: {},
+    });
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(
+        JSON.stringify({
+          findings: [{
+            findingId: 'finding-1',
+            investigatorId: 'trust_decline',
+            findingType: 'trust_decline',
+            severity: 'critical',
+            status: 'new',
+            title: 'Trust score dropped',
+            summary: 'Licensure source is stale.',
+            explanation: 'Confidence degraded after stale source detection.',
+            entityIds: ['provider:1234567890'],
+            metadata: { npi: '1234567890' },
+            priorityScore: 0.96,
+            confidence: 0.91,
+            storylineKey: null,
+            supportingEvidence: [],
+            updatedAt: '2026-03-15T12:00:00.000Z',
+          }],
+          total: 1,
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ))
+      .mockResolvedValueOnce(new Response(
+        JSON.stringify({
+          error: 'findings_feed_failed',
+          error_description: 'Findings feed unavailable upstream.',
+        }),
+        {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { GET } = await import('../app/api/intelligence/findings/route');
+
+    const seededResponse = await GET(new NextRequest('http://localhost/api/intelligence/findings?limit=1') as never);
+    await expect(seededResponse.json()).resolves.toMatchObject({
+      accessMode: 'full',
+      reason: 'ok',
+      total: 1,
+      findings: [expect.objectContaining({ id: 'finding-1' })],
+    });
+
+    const fallbackResponse = await GET(new NextRequest('http://localhost/api/intelligence/findings?limit=1') as never);
+    expect(fallbackResponse.status).toBe(503);
+    await expect(fallbackResponse.json()).resolves.toMatchObject({
+      error: 'findings_feed_failed',
+      error_description: 'Findings feed unavailable upstream.',
     });
   });
 
@@ -355,6 +424,73 @@ describe('intelligence auth forwarding', () => {
     await expect(response.json()).resolves.toMatchObject({
       total: 1,
       providers: [{ npi: '1234567890' }],
+    });
+  });
+
+  it('proxies intelligence actions and annotates successful live responses', async () => {
+    authMock.mockResolvedValue({
+      userId: 'clerk-user-1',
+      orgId: 'org-clerk-1',
+      sessionClaims: {
+        email: 'ada@example.com',
+        role: 'investigator',
+      },
+    });
+    const fetchMock = vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({
+        total: 1,
+        actions: [{
+          actionId: 'action-1',
+          actionType: 'VERIFY_CREDENTIAL',
+          priority: 'critical',
+          priorityScore: 99,
+          status: 'pending',
+          recommendedAction: 'Verify credential for Clinician 1003000126',
+          explanation: 'Conflicting credential evidence detected.',
+          confidence: 0.94,
+          createdAt: '2026-03-17T11:00:00.000Z',
+          sourceFindingIds: ['finding-1'],
+          targetEntity: {
+            entityType: 'provider',
+            entityId: '1003000126',
+            entityLabel: 'Clinician 1003000126',
+          },
+          evidence: [],
+        }],
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { GET } = await import('../app/api/intelligence/actions/route');
+    const response = await GET(new NextRequest('http://localhost/api/intelligence/actions?limit=1') as never);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://backend.test/api/actions?limit=1&offset=0',
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: expect.any(Headers),
+      }),
+    );
+
+    await expect(response.json()).resolves.toMatchObject({
+      accessMode: 'full',
+      reason: 'ok',
+      total: 1,
+      actions: [expect.objectContaining({
+        id: 'action-1',
+        title: 'Verify credential for Clinician 1003000126',
+      })],
+      pageInfo: {
+        page: 1,
+        pageSize: 1,
+        totalPages: 1,
+        hasNextPage: false,
+        returned: 1,
+      },
     });
   });
 

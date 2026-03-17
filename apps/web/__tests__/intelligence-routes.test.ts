@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildIntelligenceHref,
+  buildLegacyRedirectHref,
   deriveIntelligenceNavKey,
   resolveIntelligenceView,
 } from '../lib/intelligence/routes';
@@ -13,6 +15,28 @@ describe('intelligence routes', () => {
 
   it('does not treat graph as an intelligence view', () => {
     expect(resolveIntelligenceView('graph')).toBe('dashboard');
+    expect(resolveIntelligenceView(undefined)).toBe('dashboard');
+  });
+
+  it('builds canonical view-based intelligence hrefs', () => {
+    const href = new URL(buildIntelligenceHref('findings', { provider: '1234567890' }), 'https://vitalcv.local');
+    expect(href.pathname).toBe('/intelligence');
+    expect(href.searchParams.get('view')).toBe('findings');
+    expect(href.searchParams.get('tab')).toBeNull();
+    expect(href.searchParams.get('provider')).toBe('1234567890');
+  });
+
+  it('normalizes legacy redirects by removing view and preserving remaining params', () => {
+    const href = new URL(buildLegacyRedirectHref('providers', {
+      q: 'cardiology',
+      tab: 'findings',
+      view: 'dashboard',
+    }), 'https://vitalcv.local');
+
+    expect(href.pathname).toBe('/intelligence');
+    expect(href.searchParams.get('view')).toBe('providers');
+    expect(href.searchParams.get('tab')).toBeNull();
+    expect(href.searchParams.get('q')).toBe('cardiology');
   });
 });
 

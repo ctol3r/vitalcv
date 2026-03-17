@@ -658,3 +658,22 @@ body {
     --muted-foreground: oklch(0.35 0.01 60);
   }
 }
+
+@keyframes alive-slide {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes critical-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+@layer utilities {
+  .animate-alive-slide {
+    animation: alive-slide 0.4s ease-out forwards;
+  }
+  .animate-critical-pulse {
+    animation: critical-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}

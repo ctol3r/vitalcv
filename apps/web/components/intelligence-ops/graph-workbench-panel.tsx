@@ -157,7 +157,10 @@ export function GraphWorkbenchPanel({
         onRetry={onRetry}
       >
         {(!graph || graph.nodes.length === 0) ? (
-          <PlaceholderMiniNetwork />
+          <PlaceholderMiniNetwork
+            openFullGraphHref={openFullGraphHref}
+            selectedProviderName={selectedProvider?.name ?? null}
+          />
         ) : (
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
@@ -320,28 +323,30 @@ function MetricCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function PlaceholderMiniNetwork() {
+function PlaceholderMiniNetwork({
+  openFullGraphHref,
+  selectedProviderName,
+}: {
+  openFullGraphHref: string;
+  selectedProviderName: string | null;
+}) {
   return (
-    <div className="relative flex h-full min-h-[300px] w-full flex-col items-center justify-center overflow-hidden rounded-md border border-[var(--vt-border)] bg-[var(--vt-surface)] p-6">
-      <svg className="absolute inset-0 h-full w-full opacity-30" viewBox="0 0 100 100" preserveAspectRatio="none">
-        <circle cx="50" cy="50" r="1.5" fill="var(--vt-text-3)" className="animate-pulse" />
-        <circle cx="30" cy="40" r="1" fill="var(--vt-text-3)" className="animate-pulse" style={{ animationDelay: '150ms' }} />
-        <circle cx="70" cy="30" r="0.8" fill="var(--vt-text-3)" className="animate-pulse" style={{ animationDelay: '300ms' }} />
-        <circle cx="40" cy="70" r="0.6" fill="var(--vt-text-3)" className="animate-pulse" style={{ animationDelay: '450ms' }} />
-        <circle cx="65" cy="65" r="1.2" fill="var(--vt-text-3)" className="animate-pulse" style={{ animationDelay: '600ms' }} />
-        
-        <line x1="50" y1="50" x2="30" y2="40" stroke="var(--vt-border)" strokeWidth="0.2" />
-        <line x1="50" y1="50" x2="70" y2="30" stroke="var(--vt-border)" strokeWidth="0.2" />
-        <line x1="50" y1="50" x2="40" y2="70" stroke="var(--vt-border)" strokeWidth="0.2" />
-        <line x1="50" y1="50" x2="65" y2="65" stroke="var(--vt-border)" strokeWidth="0.2" />
-        <line x1="30" y1="40" x2="40" y2="70" stroke="var(--vt-border)" strokeWidth="0.1" strokeDasharray="1,1" />
-        <line x1="70" y1="30" x2="65" y2="65" stroke="var(--vt-border)" strokeWidth="0.1" strokeDasharray="1,1" />
-      </svg>
-      
-      <div className="relative z-10 flex flex-col items-center justify-center space-y-1 rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)]/80 px-4 py-3 text-center backdrop-blur-sm">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--vt-text-1)]">Graph priming...</p>
-        <p className="max-w-[180px] text-[10px] text-[var(--vt-text-2)]">Network context resolving. Apply a scope to activate topology.</p>
+    <div className="flex min-h-[300px] flex-col items-center justify-center rounded-md border border-dashed border-[var(--vt-border)] bg-[var(--vt-surface)] p-6 text-center">
+      <div className="mb-4 h-2.5 w-2.5 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400/40" />
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-[var(--vt-text-1)]">
+          Graph warming — no nodes yet{selectedProviderName ? ` for ${selectedProviderName}` : ''}.
+        </p>
+        <p className="max-w-[24rem] text-xs leading-5 text-[var(--vt-text-2)]">
+          The graph will appear as providers, findings, storylines, and evidence are linked by the backend.
+        </p>
       </div>
+      <Link
+        href={openFullGraphHref}
+        className="mt-4 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/15"
+      >
+        Open full graph
+      </Link>
     </div>
   );
 }

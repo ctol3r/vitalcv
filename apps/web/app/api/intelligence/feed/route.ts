@@ -1,37 +1,44 @@
-import { getApiBase } from '@/lib/api';
 import { type NextRequest, NextResponse } from 'next/server';
 import {
-  buildForwardHeaders,
-  buildReadOnlyFallbackPayload,
-  decorateAuthFailurePayload,
+  coerceRouteErrorPayload,
+  fetchBackendJson,
   logIntelligenceFallbackUsage,
   resolveIntelligenceAuthContext,
 } from '../_shared';
 
 export const runtime = 'nodejs';
 
-const BACKEND = getApiBase();
-
 export async function GET(req: NextRequest) {
   const authContext = await resolveIntelligenceAuthContext();
-  if (authContext.status !== 'authenticated') {
-    return NextResponse.json(buildReadOnlyFallbackPayload('feed', req, authContext));
-  }
 
   try {
-    const res = await fetch(`${BACKEND}/api/intelligence/feed${req.nextUrl.search}`, {
-      headers: await buildForwardHeaders(undefined, { context: authContext }),
-      cache: 'no-store',
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) {
+    const upstream = await fetchBackendJson<Record<string, unknown>>(
+      '/api/intelligence/feed',
+      req.nextUrl.searchParams,
+      8_000,
+      { context: authContext },
+    );
+
+    if (!upstream.ok) {
       logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
-      return NextResponse.json(buildReadOnlyFallbackPayload('feed', req, authContext, { log: false }));
+      return NextResponse.json(
+        coerceRouteErrorPayload(upstream.payload, {
+          error: 'backend_request_failed',
+          error_description: `Intelligence feed backend returned ${upstream.status}.`,
+        }),
+        { status: upstream.status >= 400 ? upstream.status : 502 },
+      );
     }
-    const payload = decorateAuthFailurePayload(await res.json().catch(() => ({})), res.status);
-    return NextResponse.json(payload, { status: res.status });
-  } catch {
+
+    return NextResponse.json(upstream.payload, { status: upstream.status });
+  } catch (error) {
     logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
-    return NextResponse.json(buildReadOnlyFallbackPayload('feed', req, authContext, { log: false }));
+    return NextResponse.json(
+      {
+        error: 'backend_request_failed',
+        error_description: error instanceof Error ? error.message : 'Intelligence feed request failed.',
+      },
+      { status: 503 },
+    );
   }
 }

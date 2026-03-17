@@ -1,11 +1,5 @@
 import { getApiBase } from '@/lib/api';
 import {
-  normalizeActionsPayload,
-  normalizeFindingsPayload,
-  normalizeProvidersPayload,
-  normalizeStorylinesPayload,
-  normalizeSystemHealthPayload,
-  summarizeGraph,
   type IntelligenceAccessMode,
   type IntelligenceAccessReason,
 } from '@/lib/intelligence/contracts';
@@ -34,26 +28,8 @@ export interface IntelligenceAuthContext {
   email: string | null;
   role: string | null;
   orgId: string | null;
+  authToken: string | null;
 }
-
-export type ReadOnlyFallbackKind =
-  | 'actions'
-  | 'calibration'
-  | 'feed'
-  | 'findings'
-  | 'graph'
-  | 'investigation-workbench'
-  | 'outcomes'
-  | 'providers'
-  | 'storylines'
-  | 'system-health';
-
-export type PublicSnapshotKind =
-  | 'findings'
-  | 'graph'
-  | 'investigation-workbench'
-  | 'providers'
-  | 'storylines';
 
 interface BuildForwardHeadersOptions {
   context?: IntelligenceAuthContext;
@@ -116,6 +92,7 @@ function parseSessionOrgId(session: Awaited<ReturnType<typeof auth>>): string | 
 
 async function resolveActiveWorkspaceOrgId(
   session: Awaited<ReturnType<typeof auth>>,
+  authToken: string | null,
 ): Promise<string | null> {
   if (!session.userId) {
     return null;
@@ -127,6 +104,10 @@ async function resolveActiveWorkspaceOrgId(
   const email = parseSessionEmail(session);
   if (email) {
     headers.set('x-clerk-user-email', email);
+  }
+
+  if (authToken) {
+    headers.set('Authorization', `Bearer ${authToken}`);
   }
 
   try {
@@ -144,6 +125,25 @@ async function resolveActiveWorkspaceOrgId(
     return typeof activeOrgId === 'string' && activeOrgId.trim().length > 0
       ? activeOrgId
       : null;
+  } catch {
+    return null;
+  }
+}
+
+async function resolveSessionAuthToken(
+  session: Awaited<ReturnType<typeof auth>>,
+): Promise<string | null> {
+  const sessionWithToken = session as Awaited<ReturnType<typeof auth>> & {
+    getToken?: () => Promise<string | null> | string | null;
+  };
+
+  if (typeof sessionWithToken.getToken !== 'function') {
+    return null;
+  }
+
+  try {
+    const token = await sessionWithToken.getToken();
+    return typeof token === 'string' && token.trim().length > 0 ? token : null;
   } catch {
     return null;
   }
@@ -195,13 +195,15 @@ export async function resolveIntelligenceAuthContext(): Promise<IntelligenceAuth
       email: null,
       role: null,
       orgId: null,
+      authToken: null,
     };
   }
   const userId = session.userId ?? null;
   const email = parseSessionEmail(session);
   const role = parseSessionRole(session);
+  const authToken = userId ? await resolveSessionAuthToken(session) : null;
   const orgId = userId
-    ? (parseSessionOrgId(session) ?? await resolveActiveWorkspaceOrgId(session))
+    ? (parseSessionOrgId(session) ?? await resolveActiveWorkspaceOrgId(session, authToken))
     : null;
 
   if (!userId) {
@@ -211,6 +213,7 @@ export async function resolveIntelligenceAuthContext(): Promise<IntelligenceAuth
       email,
       role,
       orgId: null,
+      authToken: null,
     };
   }
 
@@ -221,6 +224,7 @@ export async function resolveIntelligenceAuthContext(): Promise<IntelligenceAuth
       email,
       role,
       orgId: null,
+      authToken,
     };
   }
 
@@ -230,6 +234,7 @@ export async function resolveIntelligenceAuthContext(): Promise<IntelligenceAuth
     email,
     role,
     orgId,
+    authToken,
   };
 }
 
@@ -274,191 +279,6 @@ export function logIntelligenceFallbackUsage(
   }
 
   console.info(JSON.stringify(event));
-}
-
-export function buildPageInfo(page: number, pageSize: number, total: number) {
-  return {
-    page,
-    pageSize,
-    totalPages: Math.max(1, Math.ceil(total / pageSize)),
-    hasNextPage: page * pageSize < total,
-    returned: total === 0 ? 0 : Math.min(pageSize, Math.max(0, total - ((page - 1) * pageSize))),
-  };
-}
-
-function parsePage(searchParams: URLSearchParams, fallback: number) {
-  return parsePositiveInt(searchParams.get('page'), fallback, 1_000);
-}
-
-function parsePageSize(searchParams: URLSearchParams, fallback: number, max: number) {
-  return parsePositiveInt(
-    searchParams.get('limit') ?? searchParams.get('pageSize'),
-    fallback,
-    max,
-  );
-}
-
-export function buildReadOnlyFallbackPayload(
-  kind: ReadOnlyFallbackKind,
-  request: Pick<NextRequest, 'nextUrl'>,
-  context: IntelligenceAuthContext,
-  options: {
-    log?: boolean;
-  } = {},
-) {
-  const generatedAt = new Date().toISOString();
-  const searchParams = request.nextUrl.searchParams;
-
-  if (options.log !== false) {
-    logIntelligenceFallbackUsage(request.nextUrl.pathname, context, 'read_fallback');
-  }
-
-  switch (kind) {
-    case 'providers': {
-      const page = parsePage(searchParams, 1);
-      const pageSize = parsePageSize(searchParams, 12, 100);
-      const query = searchParams.get('q') ?? '';
-      return {
-        ...normalizeProvidersPayload({ entries: [] }, query),
-        pageInfo: buildPageInfo(page, pageSize, 0),
-        accessMode: 'public_snapshot',
-        reason: context.status === 'authenticated' ? 'warming_up' : context.status,
-      };
-    }
-    case 'findings': {
-      const pageSize = parsePageSize(searchParams, 10, 100);
-      const page = searchParams.get('offset')
-        ? Math.floor(parsePositiveInt(searchParams.get('offset'), 0, 10_000) / pageSize) + 1
-        : parsePage(searchParams, 1);
-      return {
-        ...normalizeFindingsPayload({ findings: [], total: 0 }),
-        pageInfo: buildPageInfo(page, pageSize, 0),
-        accessMode: 'public_snapshot',
-        reason: context.status === 'authenticated' ? 'warming_up' : context.status,
-      };
-    }
-    case 'storylines': {
-      const page = parsePage(searchParams, 1);
-      const pageSize = parsePageSize(searchParams, 8, 100);
-      return {
-        ...normalizeStorylinesPayload({ storylines: [], total: 0 }),
-        pageInfo: buildPageInfo(page, pageSize, 0),
-        accessMode: 'public_snapshot',
-        reason: context.status === 'authenticated' ? 'warming_up' : context.status,
-      };
-    }
-    case 'actions': {
-      const pageSize = parsePageSize(searchParams, 10, 100);
-      const page = searchParams.get('offset')
-        ? Math.floor(parsePositiveInt(searchParams.get('offset'), 0, 10_000) / pageSize) + 1
-        : parsePage(searchParams, 1);
-      return {
-        ...normalizeActionsPayload({ actions: [], total: 0 }),
-        pageInfo: buildPageInfo(page, pageSize, 0),
-        accessMode: context.status === 'authenticated' ? 'full' : 'public_snapshot',
-        reason: context.status === 'authenticated' ? 'warming_up' : context.status,
-      };
-    }
-    case 'graph':
-      return {
-        nodes: [],
-        edges: [],
-        stats: summarizeGraph([], []),
-        focusNodeId: null,
-        generatedAt,
-        accessMode: 'public_snapshot',
-        reason: context.status === 'authenticated' ? 'warming_up' : context.status,
-      };
-    case 'system-health':
-      return {
-        ...normalizeSystemHealthPayload({
-        systemStatus: null,
-        integrity: null,
-        graphIntegrity: null,
-        }),
-        accessMode: context.status === 'authenticated' ? 'full' : 'public_snapshot',
-        reason: context.status === 'authenticated' ? 'warming_up' : context.status,
-      };
-    case 'feed':
-      return {
-        generatedAt,
-        total: 0,
-        counts: {
-          finding: 0,
-          storyline: 0,
-          prediction: 0,
-          insight: 0,
-          early_warning: 0,
-        },
-        items: [],
-      };
-    case 'calibration':
-      return {
-        schema: 'https://vitalcv.com/calibration/v1',
-        stats: [],
-        summary: {
-          totalOutcomes: 0,
-          resolvedTodayCount: 0,
-          overallTruePositiveRate: 0,
-          overallFalsePositiveRate: 0,
-          worstPerformingInvestigators: [],
-          bestPerformingInvestigators: [],
-          generatedAt,
-        },
-        generatedAt,
-      };
-    case 'outcomes':
-      return {
-        schema: 'https://vitalcv.com/outcome-history/v1',
-        outcomes: [],
-        total: 0,
-        generatedAt,
-      };
-    case 'investigation-workbench':
-      return {
-        anchor: {
-          npi: searchParams.get('npi') ?? undefined,
-          findingId: searchParams.get('findingId') ?? undefined,
-          storylineId: searchParams.get('storylineId') ?? undefined,
-        },
-        provider: null,
-        finding: null,
-        storyline: null,
-        relatedFindings: [],
-        navigation: null,
-        generatedAt,
-        uiHints: {
-          copilotPrompt: 'Summarize risk posture for this provider',
-          copilotSummary: null,
-          highlightNodeIds: [],
-        },
-        accessMode: 'public_snapshot',
-        reason: context.status === 'authenticated' ? 'warming_up' : context.status,
-      };
-    default:
-      return {
-        generatedAt,
-        accessMode: context.status === 'authenticated' ? 'full' : 'public_snapshot',
-        reason: context.status === 'authenticated' ? 'warming_up' : context.status,
-      };
-  }
-}
-
-function publicSnapshotPath(kind: PublicSnapshotKind): string {
-  switch (kind) {
-    case 'providers':
-      return '/api/intelligence/public/providers';
-    case 'findings':
-      return '/api/intelligence/public/findings';
-    case 'storylines':
-      return '/api/intelligence/public/storylines';
-    case 'graph':
-      return '/api/intelligence/public/graph';
-    case 'investigation-workbench':
-      return '/api/intelligence/public/investigation-workbench';
-    default:
-      return '/api/intelligence/public/providers';
-  }
 }
 
 export function resolveAccessReason(
@@ -528,20 +348,6 @@ export function coerceRouteErrorPayload(
   return fallback;
 }
 
-export async function fetchPublicSnapshotJson<T>(
-  kind: PublicSnapshotKind,
-  searchParams: URLSearchParams | undefined,
-  context: IntelligenceAuthContext,
-  timeoutMs = 12_000,
-) {
-  return fetchBackendJson<T>(
-    publicSnapshotPath(kind),
-    searchParams,
-    timeoutMs,
-    { context },
-  );
-}
-
 export function requireAuthenticatedOrgContext(
   request: Pick<NextRequest, 'method' | 'nextUrl' | 'url'>,
   context: IntelligenceAuthContext,
@@ -583,6 +389,10 @@ export function buildForwardHeadersFromContext(
 
   if (context.orgId) {
     headers.set('x-org-id', context.orgId);
+  }
+
+  if (context.authToken && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${context.authToken}`);
   }
 
   return headers;

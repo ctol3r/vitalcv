@@ -19,6 +19,7 @@ import {
   ingestClinicianIdentity,
   type DeltaEvent,
 } from '../identity/identityIngestionPipeline';
+import { isAutomatedTestRuntime } from '../../config/runtimeMode';
 import { persistSourceRecord } from '../identity/identityStore';
 import { queryNPDB } from '../providers/connectors/npdbConnector';
 
@@ -506,7 +507,7 @@ async function executePipelineSource(
   provider: ProviderProfile,
   nowIso: string,
 ): Promise<SourceExecutionResult> {
-  if (process.env.NODE_ENV === 'test') {
+  if (isAutomatedTestRuntime()) {
     return { sourceId, signals: [] };
   }
 
@@ -637,7 +638,7 @@ function semanticScholarSnapshotSourceUrl(firstName: string, lastName: string): 
 async function fetchSemanticScholarSnapshot(
   provider: ProviderProfile,
 ): Promise<ManualSourceSnapshot | null> {
-  if (!provider.firstName || !provider.lastName || process.env.NODE_ENV === 'test') {
+  if (!provider.firstName || !provider.lastName || isAutomatedTestRuntime()) {
     return null;
   }
 
@@ -1338,7 +1339,7 @@ async function executeSource(
   provider: ProviderProfile,
   nowIso: string,
 ): Promise<SourceExecutionResult> {
-  if (process.env.NODE_ENV === 'test') {
+  if (isAutomatedTestRuntime()) {
     return { sourceId, signals: [] };
   }
 
@@ -1370,7 +1371,7 @@ export async function buildAutonomousInvestigatorFindings(input: {
   now: string;
   markEntityCovered: (entityId: string) => void;
 }): Promise<InvestigatorFindingDraft[]> {
-  if (process.env.NODE_ENV === 'test') {
+  if (isAutomatedTestRuntime()) {
     return [];
   }
 

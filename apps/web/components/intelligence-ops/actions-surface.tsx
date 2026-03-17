@@ -6,6 +6,7 @@ import { startTransition, useEffect, useMemo, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useActions } from '@/hooks/useActions';
 import {
+  getAccessEmptyState,
   formatLastRefreshMessage,
   getSurfaceFreshnessState,
 } from '@/lib/intelligence/state';
@@ -83,6 +84,10 @@ export function ActionsSurface() {
   const total = actions.data?.total ?? 0;
   const hasFilters = Object.values(filters).some((value) => value.length > 0);
   const items = actions.data?.actions ?? [];
+  const accessState = getAccessEmptyState({
+    error: actions.error,
+    resourceLabel: 'actions',
+  });
   const staleState = getSurfaceFreshnessState({
     generatedAt: actions.data?.generatedAt,
     lastUpdated: actions.lastUpdated,
@@ -210,7 +215,14 @@ export function ActionsSurface() {
         </form>
       </OpsCard>
 
-      {actions.error && !items.length ? (
+      {accessState && !items.length ? (
+        <SurfaceEmptyState
+          title={accessState.title}
+          description={accessState.description}
+        />
+      ) : null}
+
+      {actions.error && !items.length && !accessState ? (
         <SurfaceErrorState
           title="Actions unavailable"
           description={actions.error}

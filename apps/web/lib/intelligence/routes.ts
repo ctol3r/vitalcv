@@ -66,6 +66,7 @@ export function buildIntelligenceHref(
   input?: URLSearchParams | ParamRecord,
 ): string {
   const params = toSearchParams(input);
+  params.delete('tab');
   params.set('view', view);
   return `/intelligence?${params.toString()}`;
 }
@@ -77,7 +78,7 @@ export function buildLegacyRedirectHref(
   const params = new URLSearchParams();
 
   for (const [key, value] of Object.entries(searchParams)) {
-    if (key === 'view' || value === undefined) {
+    if ((key === 'view' || key === 'tab') || value === undefined) {
       continue;
     }
 

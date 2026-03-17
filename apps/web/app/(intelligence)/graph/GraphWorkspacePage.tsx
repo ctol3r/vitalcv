@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowRight,
   CircleDot,
@@ -46,7 +46,7 @@ import {
   type InvestigationGraphResponse,
 } from '@/lib/intelligence/contracts';
 import { useInvestigationGraph } from '@/hooks/useInvestigationGraph';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 type TimeRange = '30d' | '90d' | '365d' | 'all';
 type InvestigationPresetId = 'risk' | 'research' | 'industry' | 'clinical' | 'all' | 'custom';
@@ -623,12 +623,15 @@ function EdgeDetailDrawer({
 
 export function GraphWorkspacePage() {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
   const requestedNpi = searchParams.get('npi');
   const requestedProviderId = searchParams.get('providerId');
   const findingId = searchParams.get('findingId');
   const storylineId = searchParams.get('storylineId');
   const querySourceNodeId = searchParams.get('sourceNodeId');
   const queryTargetNodeId = searchParams.get('targetNodeId');
+  const requestedFocusNodeId = searchParams.get('focusNodeId');
 
   const [toolbarFilters, setToolbarFilters] = useState<InvestigationToolbarState>(DEFAULT_TOOLBAR_STATE);
   const [viewMode, setViewMode] = useState<GraphViewMode>('global');
@@ -654,6 +657,7 @@ export function GraphWorkspacePage() {
     providerId: requestedProviderId,
     findingId,
     storylineId,
+    focusNodeId: requestedFocusNodeId,
     sourceNodeId: querySourceNodeId,
     targetNodeId: queryTargetNodeId,
     entityTypes: toolbarFilters.entityTypes,
@@ -705,21 +709,42 @@ export function GraphWorkspacePage() {
       return;
     }
 
-    if (!selectedNodeId || !graph.data.nodes.some((node) => node.id === selectedNodeId)) {
-      const defaultProviderNodeId = graph.data.nodes.find((node) => node.type === 'provider')?.id ?? null;
+    const requestedFocusNode = requestedFocusNodeId ? graph.data.nodes.find((node) => node.id === requestedFocusNodeId) ?? null : null;
+    const candidateNodeId = requestedFocusNode?.id
+      ?? graph.data.focusNodeId
+      ?? graph.data.highlights.nodeIds[0]
+      ?? graph.data.nodes.find((node) => node.type === 'provider')?.id
+      ?? graph.data.nodes[0]?.id
+      ?? null;
+
+    if (
+      !selectedNodeId
+      || (requestedFocusNodeId && requestedFocusNodeId !== selectedNodeId)
+      || !graph.data.nodes.some((node) => node.id === selectedNodeId)
+    ) {
       setSelectedNodeId(
-        graph.data.focusNodeId
-        ?? graph.data.highlights.nodeIds[0]
-        ?? defaultProviderNodeId
-        ?? graph.data.nodes[0]?.id
-        ?? null,
+        candidateNodeId
       );
     }
 
     if (!pathSourceNodeId && graph.data.focusNodeId) {
       setPathSourceNodeId(graph.data.focusNodeId);
     }
-  }, [graph.data, pathSourceNodeId, selectedNodeId]);
+  }, [graph.data, pathSourceNodeId, requestedFocusNodeId, selectedNodeId]);
+
+  function syncFocusNodeContext(nodeId: string | null) {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    if (nodeId) {
+      nextParams.set('focusNodeId', nodeId);
+    } else {
+      nextParams.delete('focusNodeId');
+    }
+    const query = nextParams.toString();
+    const nextUrl = query.length > 0 ? `${pathname}?${query}` : pathname;
+    startTransition(() => {
+      router.replace(nextUrl, { scroll: false });
+    });
+  }
 
   const availableEntityTypes = useMemo(
     () => [...new Set((graph.data?.nodes ?? []).map((node) => (node.projectedType ?? node.type) as InvestigationNodeKind))],
@@ -1085,6 +1110,7 @@ export function GraphWorkspacePage() {
                     nodes={filteredGraph.nodes}
                     onDoubleClickNode={async (nodeId) => {
                       setSelectedNodeId(nodeId);
+                      syncFocusNodeContext(nodeId);
                       await graph.expandNode(nodeId);
                       setExpansionVersion((current) => current + 1);
                     }}
@@ -1098,6 +1124,7 @@ export function GraphWorkspacePage() {
                     onSelectEdge={setSelectedEdgeId}
                     onSelectNode={(nodeId) => {
                       setSelectedNodeId(nodeId);
+                      syncFocusNodeContext(nodeId);
                       if (!pathSourceNodeId) {
                         setPathSourceNodeId(nodeId);
                       }
@@ -1206,9 +1233,13 @@ export function GraphWorkspacePage() {
                 neighbors={neighbors}
                 node={selectedDetailNode}
                 onAcceptSuggestion={() => {}}
-                onClose={() => setSelectedNodeId(null)}
+                onClose={() => {
+                  setSelectedNodeId(null);
+                  syncFocusNodeContext(null);
+                }}
                 onFocusNode={(nodeId) => {
                   setSelectedNodeId(nodeId);
+                  syncFocusNodeContext(nodeId);
                   setViewMode('local');
                 }}
                 onRejectSuggestion={() => {}}

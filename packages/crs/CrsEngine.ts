@@ -1,5 +1,5 @@
 /** YC MVP — behavior frozen. Do not modify without scope approval. */
-import { validateReceiptSet, type TrustStateReceiptRecord } from '../psv';
+import { validateReceiptSet, type TrustStateReceiptRecord } from '@vitalcv/psv';
 
 export const CRS_START_THRESHOLD = 80;
 

@@ -1,4 +1,4 @@
-import { getApiBase } from '@/lib/api';
+import { getBackendBase } from '@/lib/api';
 import type {
   CopilotAskResponsePayload,
   CopilotDocument,
@@ -12,7 +12,7 @@ import {
   resolveIntelligenceAuthContext,
 } from '../intelligence/_shared';
 
-const BACKEND = getApiBase();
+const BACKEND = getBackendBase();
 
 export const COPILOT_FALLBACK_MESSAGE = 'Copilot requires active investigation context.';
 export const COPILOT_FALLBACK_SUGGESTIONS = [

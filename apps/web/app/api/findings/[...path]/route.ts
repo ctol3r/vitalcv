@@ -1,4 +1,4 @@
-import { getApiBase } from '@/lib/api';
+import { getBackendBase } from '@/lib/api';
 import { type NextRequest, NextResponse } from 'next/server';
 import {
   buildForwardHeaders,
@@ -8,7 +8,6 @@ import {
 } from '../../intelligence/_shared';
 
 export const runtime = 'nodejs';
-const BACKEND = getApiBase();
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
@@ -19,7 +18,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ path
   }
 
   const qs = req.nextUrl.search;
-  const url = `${BACKEND}/api/findings/${path.join('/')}${qs}`;
+  const url = `${getBackendBase()}/api/findings/${path.join('/')}${qs}`;
   try {
     const res = await fetch(url, {
       headers: await buildForwardHeaders(undefined, { context: authContext }),
@@ -44,7 +43,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pat
     const headers = await buildForwardHeaders({
       'Content-Type': req.headers.get('content-type') ?? 'application/json',
     }, { context: authContext });
-    const res = await fetch(`${BACKEND}/api/findings/${path.join('/')}`, {
+    const res = await fetch(`${getBackendBase()}/api/findings/${path.join('/')}`, {
       method: 'POST',
       headers,
       body: body || '{}',

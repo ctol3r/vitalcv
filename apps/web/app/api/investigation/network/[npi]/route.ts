@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { getApiBase } from '@/lib/api';
+import { getBackendBase } from '@/lib/api';
 import {
   buildForwardHeaders,
   decorateAuthFailurePayload,
@@ -10,7 +10,7 @@ import {
 
 export const runtime = 'nodejs';
 
-const BACKEND = getApiBase();
+const BACKEND = getBackendBase();
 
 export async function POST(
   req: NextRequest,

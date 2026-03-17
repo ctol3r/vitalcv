@@ -2,9 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { startTransition, useMemo, useState } from 'react';
+import { startTransition, useEffect, useMemo, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useFindings } from '@/hooks/useFindings';
+import { useGraph } from '@/hooks/useGraph';
+import { useProviders } from '@/hooks/useProviders';
+import {
+  findGraphNodeIdForProvider,
+  findProviderForGraphNode,
+} from '@/lib/intelligence/contracts';
 import {
   hasFindingFilters,
   parseFindingFilters,
@@ -15,9 +21,11 @@ import { buildIntelligenceHref } from '@/lib/intelligence/routes';
 import {
   formatLastRefreshMessage,
   getAccessBannerState,
+  getFindingsEmptyState,
   getSurfaceFreshnessState,
 } from '@/lib/intelligence/state';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
+import { GraphWorkbenchPanel } from './graph-workbench-panel';
 import { FindingMutationControls } from './mutation-controls';
 import { OperationsShell } from './shell';
 import { formatPaginationSummary, Pagination } from './pagination';
@@ -26,9 +34,7 @@ import {
   EntityLink,
   OpsBadge,
   OpsCard,
-  OpsCardSkeleton,
   SurfaceBanner,
-  SurfaceEmptyState,
   SurfaceErrorState,
   TimestampPair,
   severityTone,
@@ -38,6 +44,41 @@ const PAGE_SIZE = 10;
 
 function formatFindingType(findingType: string) {
   return findingType.replace(/_/g, ' ');
+}
+
+function getFindingTypeColor(findingType: string) {
+  switch (findingType.toLowerCase()) {
+    case 'oig_exclusion':
+    case 'sanction':
+    case 'license_disciplinary_action':
+      return 'border-l-4 border-l-rose-500';
+    case 'npi_deactivation':
+    case 'npi_discrepancy':
+    case 'credential_mismatch':
+      return 'border-l-4 border-l-amber-500';
+    case 'network_anomaly':
+    case 'billing_anomaly':
+      return 'border-l-4 border-l-purple-500';
+    default:
+      return 'border-l-4 border-l-cyan-500';
+  }
+}
+
+function FindingsMessageCard({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <OpsCard className="border-dashed">
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-[var(--vt-text-1)]">{title}</p>
+        <p className="max-w-2xl text-sm leading-6 text-[var(--vt-text-2)]">{description}</p>
+      </div>
+    </OpsCard>
+  );
 }
 
 export function FindingsSurface() {
@@ -51,6 +92,8 @@ export function FindingsSurface() {
   const filters = useMemo(() => parseFindingFilters(searchParams), [searchQuery]);
   const hasScopedFilters = hasFindingFilters(filters) || Boolean(providerScope);
   const [criticalOnly, setCriticalOnly] = useState(false);
+  const [graphFindingId, setGraphFindingId] = useState<string | null>(null);
+  const [selectedGraphNodeId, setSelectedGraphNodeId] = useState<string | null>(null);
 
   const findings = useFindings({
     provider: providerScope,
@@ -63,10 +106,20 @@ export function FindingsSurface() {
     page,
     limit: PAGE_SIZE,
   });
+  const providers = useProviders({
+    limit: 100,
+    pollIntervalMs: 60_000,
+  });
 
   const currentHref = useMemo(() => {
     return `${pathname}${searchQuery ? `?${searchQuery}` : ''}`;
   }, [pathname, searchQuery]);
+
+  function buildSurfaceHref(params: URLSearchParams) {
+    return pathname === '/intelligence'
+      ? buildIntelligenceHref('findings', params)
+      : `${pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+  }
 
   function pushWithParams(nextPage = 1) {
     const params = serializeFindingFilters(filters, { page: nextPage });
@@ -75,11 +128,16 @@ export function FindingsSurface() {
     }
 
     startTransition(() => {
-      router.push(
-        pathname === '/intelligence'
-          ? buildIntelligenceHref('findings', params)
-          : `${pathname}${params.toString() ? `?${params.toString()}` : ''}`,
-      );
+      router.push(buildSurfaceHref(params));
+    });
+  }
+
+  function pushProviderScope(nextProviderNpi: string) {
+    const params = serializeFindingFilters(filters, { page: 1 });
+    params.set('provider', nextProviderNpi);
+
+    startTransition(() => {
+      router.push(buildSurfaceHref(params));
     });
   }
 
@@ -89,28 +147,152 @@ export function FindingsSurface() {
     lastUpdated: findings.lastUpdated,
   });
   const rawItems = findings.data?.findings ?? [];
-  const items = criticalOnly
-    ? rawItems.filter((finding) => finding.severity === 'critical')
-    : rawItems;
+  const items = useMemo(
+    () => (criticalOnly ? rawItems.filter((finding) => finding.severity === 'critical') : rawItems),
+    [criticalOnly, rawItems],
+  );
+  const graphItems = items.length > 0 ? items : rawItems;
+
+  useEffect(() => {
+    if (graphItems.length === 0) {
+      setGraphFindingId(null);
+      return;
+    }
+
+    if (graphFindingId && graphItems.some((finding) => finding.id === graphFindingId)) {
+      return;
+    }
+
+    setGraphFindingId(graphItems[0]?.id ?? null);
+  }, [graphFindingId, graphItems]);
+
+  const graphFinding = useMemo(
+    () => graphItems.find((finding) => finding.id === graphFindingId) ?? graphItems[0] ?? null,
+    [graphFindingId, graphItems],
+  );
+  const graphScopeNpi = providerScope ?? graphFinding?.providerNpi ?? null;
+  const graph = useGraph({
+    npi: graphScopeNpi,
+    layer: 'blended',
+    limit: graphScopeNpi ? 64 : 40,
+    pollIntervalMs: 45_000,
+  });
+  const selectedGraphProvider = useMemo(() => {
+    if (!graphScopeNpi) {
+      return null;
+    }
+
+    return (providers.data?.providers ?? []).find((provider) => provider.npi === graphScopeNpi) ?? null;
+  }, [graphScopeNpi, providers.data?.providers]);
+  const graphFocusNodeId = useMemo(() => {
+    const nodes = graph.data?.nodes ?? [];
+
+    if (nodes.length === 0) {
+      return null;
+    }
+
+    if (selectedGraphNodeId && nodes.some((node) => node.id === selectedGraphNodeId)) {
+      return selectedGraphNodeId;
+    }
+
+    return (
+      findGraphNodeIdForProvider(selectedGraphProvider, nodes)
+      ?? graph.data?.focusNodeId
+      ?? nodes[0]?.id
+      ?? null
+    );
+  }, [graph.data?.focusNodeId, graph.data?.nodes, selectedGraphNodeId, selectedGraphProvider]);
+  const selectedGraphNode = useMemo(
+    () => (graph.data?.nodes ?? []).find((node) => node.id === graphFocusNodeId) ?? null,
+    [graph.data?.nodes, graphFocusNodeId],
+  );
+  const graphRelationshipCount = useMemo(() => {
+    if (!graphFocusNodeId) {
+      return 0;
+    }
+
+    return (graph.data?.edges ?? []).filter((edge) => (
+      edge.source === graphFocusNodeId || edge.target === graphFocusNodeId
+    )).length;
+  }, [graph.data?.edges, graphFocusNodeId]);
+  const graphContextProvider = useMemo(() => (
+    findProviderForGraphNode(
+      graphFocusNodeId,
+      graph.data?.nodes ?? [],
+      providers.data?.providers ?? [],
+    ) ?? selectedGraphProvider
+  ), [graph.data?.nodes, graphFocusNodeId, providers.data?.providers, selectedGraphProvider]);
+  const graphContextFinding = useMemo(() => {
+    const candidateFindingIds = new Set<string>(selectedGraphNode?.findingIds ?? []);
+
+    for (const edge of graph.data?.edges ?? []) {
+      if (!graphFocusNodeId || (edge.source !== graphFocusNodeId && edge.target !== graphFocusNodeId)) {
+        continue;
+      }
+
+      for (const findingId of edge.findingIds ?? []) {
+        candidateFindingIds.add(findingId);
+      }
+    }
+
+    return rawItems.find((finding) => candidateFindingIds.has(finding.id)) ?? graphFinding ?? null;
+  }, [graph.data?.edges, graphFinding, graphFocusNodeId, rawItems, selectedGraphNode?.findingIds]);
+  const graphContextStorylineId = graphContextFinding?.storylineId ?? selectedGraphNode?.storylineIds?.[0] ?? null;
+  const graphContextStorylineTitle = graphContextFinding?.storylineId === graphContextStorylineId
+    ? graphContextFinding.storylineTitle
+    : null;
+  const openFullGraphHref = useMemo(() => {
+    const params = new URLSearchParams();
+
+    if (graphScopeNpi) {
+      params.set('npi', graphScopeNpi);
+      params.set('providerId', graphScopeNpi);
+    }
+
+    if (graphContextFinding?.id) {
+      params.set('findingId', graphContextFinding.id);
+    }
+
+    if (graphContextStorylineId) {
+      params.set('storylineId', graphContextStorylineId);
+    }
+
+    if (graphFocusNodeId) {
+      params.set('focusNodeId', graphFocusNodeId);
+    }
+
+    const serialized = params.toString();
+    return serialized.length > 0 ? `/graph?${serialized}` : '/graph';
+  }, [graphContextFinding?.id, graphContextStorylineId, graphFocusNodeId, graphScopeNpi]);
+
   const total = findings.data?.total ?? 0;
   const totalPages = findings.data?.pageInfo?.totalPages ?? 1;
   const apiReturnedEmpty = !findings.loading && !findings.error && rawItems.length === 0;
-  const criticalFilterRemovedAll = !findings.loading && !findings.error && rawItems.length > 0 && items.length === 0;
+  const criticalFilterRemovedAll = !findings.loading && !findings.error && rawItems.length > 0 && criticalOnly && items.length === 0;
+  const emptyState = getFindingsEmptyState({
+    findingCount: rawItems.length,
+    hasFilters: hasScopedFilters,
+    providerCount: providers.data?.total ?? null,
+  });
 
   return (
     <OperationsShell
       activeHref={pathname === '/intelligence' ? '/intelligence' : '/findings'}
       activeNavKey="findings"
       title="Findings"
-      description="Live investigator findings with direct links across providers, storylines, and actions as soon as the backend feed is available."
+      description="Live investigator findings with direct links across providers, storylines, evidence, and graph context."
       breadcrumbs={[{ label: 'Findings' }]}
       meta={(
         <div className="space-y-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Feed health</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Feed state</p>
           <p>{findings.data?.total ?? 0} total findings</p>
           {findings.lastUpdated ? (
-            <p title={formatAbsoluteTime(findings.lastUpdated)}>Updated {formatRelativeTime(findings.lastUpdated)}</p>
-          ) : null}
+            <p className="text-sm text-[var(--vt-text-3)]" title={formatAbsoluteTime(findings.lastUpdated)}>
+              Last update: {formatRelativeTime(findings.lastUpdated)}
+            </p>
+          ) : (
+            <p className="text-sm text-[var(--vt-text-3)]">Last update: Just now</p>
+          )}
         </div>
       )}
       actions={(
@@ -153,30 +335,116 @@ export function FindingsSurface() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="inline-flex items-center rounded-full border border-[var(--vt-border)] p-1">
-            {[
-              { label: 'All Findings', critical: false },
-              { label: 'Critical Only', critical: true },
-            ].map((option) => (
-              <button
-                key={option.label}
-                type="button"
-                onClick={() => setCriticalOnly(option.critical)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                  criticalOnly === option.critical
-                    ? 'bg-cyan-400/12 text-[var(--vt-text-1)]'
-                    : 'text-[var(--vt-text-3)] hover:text-[var(--vt-text-1)]'
+          <button
+            type="button"
+            role="switch"
+            aria-checked={criticalOnly}
+            onClick={() => setCriticalOnly((current) => !current)}
+            className={`inline-flex items-center gap-3 rounded-full border px-3 py-2 text-xs font-medium transition ${
+              criticalOnly
+                ? 'border-cyan-400/30 bg-cyan-400/10 text-[var(--vt-text-1)]'
+                : 'border-[var(--vt-border)] bg-[var(--vt-surface)] text-[var(--vt-text-2)]'
+            }`}
+          >
+            <span
+              className={`relative h-5 w-9 rounded-full transition ${
+                criticalOnly ? 'bg-cyan-400/30' : 'bg-[var(--vt-surface-2)]'
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-4 w-4 rounded-full bg-cyan-300 transition ${
+                  criticalOnly ? 'left-4' : 'left-0.5'
                 }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
+              />
+            </span>
+            Critical Only
+          </button>
           <span className="text-xs text-[var(--vt-text-3)]">
-            {criticalOnly ? `${items.length} visible on this page` : 'Severity, confidence, and relative time are live.'}
+            {criticalOnly
+              ? `${items.length} critical finding${items.length === 1 ? '' : 's'} visible on this page`
+              : 'Severity, confidence, and timestamps are live from /api/intelligence/findings.'}
           </span>
         </div>
       </OpsCard>
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
+        <GraphWorkbenchPanel
+          graph={graph.data ?? null}
+          providers={providers.data?.providers ?? []}
+          selectedProvider={graphContextProvider}
+          selectedFindingId={graphContextFinding?.id ?? graphFinding?.id ?? null}
+          selectedStorylineId={graphContextStorylineId}
+          openFullGraphHref={openFullGraphHref}
+          loading={graph.loading && !graph.data}
+          error={graph.error}
+          onRetry={graph.refresh}
+          focusNodeId={graphFocusNodeId}
+          highlightNodeId={graphFocusNodeId}
+          onSelectProvider={(provider) => {
+            setSelectedGraphNodeId(null);
+            pushProviderScope(provider.npi);
+          }}
+          onSelectGraphNode={setSelectedGraphNodeId}
+        />
+
+        <OpsCard className="space-y-4">
+          <div className="space-y-1">
+            <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Investigation context</p>
+            <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">
+              {selectedGraphNode ? selectedGraphNode.label : 'Select a node to inspect'}
+            </h2>
+            <p className="text-sm leading-6 text-[var(--vt-text-2)]">
+              {selectedGraphNode
+                ? selectedGraphNode.title || 'This node is now driving the embedded investigation context.'
+                : 'The embedded graph highlights the first-degree network around the current provider scope. Click any node to update this context panel.'}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {selectedGraphNode ? <OpsBadge label={selectedGraphNode.type.replace(/_/g, ' ')} /> : null}
+            {graphContextFinding ? (
+              <OpsBadge label={graphContextFinding.severity} tone={severityTone(graphContextFinding.severity)} />
+            ) : null}
+            <span className="text-sm text-[var(--vt-text-3)]">
+              {graphRelationshipCount} relationship{graphRelationshipCount === 1 ? '' : 's'} in scope
+            </span>
+          </div>
+
+          <div className="space-y-2 text-sm text-[var(--vt-text-2)]">
+            <p>
+              Provider: {graphContextProvider ? `${graphContextProvider.name} (${graphContextProvider.npi})` : 'No provider mapped'}
+            </p>
+            <p>
+              Finding: {graphContextFinding ? graphContextFinding.title : 'No linked finding in the current page payload'}
+            </p>
+            <p>
+              Storyline: {graphContextStorylineTitle ?? graphContextStorylineId ?? 'No linked storyline'}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {graphContextProvider ? (
+              <EntityLink
+                href={buildIntelligenceHref('findings', { provider: graphContextProvider.npi })}
+                label={graphContextProvider.name}
+              />
+            ) : null}
+            {graphContextFinding ? (
+              <EntityLink
+                href={`/findings/${graphContextFinding.id}?from=${encodeURIComponent(currentHref)}`}
+                label="Open finding"
+              />
+            ) : null}
+            {graphContextStorylineId ? (
+              <EntityLink
+                href={`/storylines/${graphContextStorylineId}?from=${encodeURIComponent(currentHref)}`}
+                label={graphContextStorylineTitle ?? 'Open storyline'}
+              />
+            ) : null}
+            <EntityLink href={openFullGraphHref} label="Open full graph" />
+          </div>
+        </OpsCard>
+      </div>
 
       {findings.error && rawItems.length === 0 ? (
         <SurfaceErrorState
@@ -186,27 +454,27 @@ export function FindingsSurface() {
         />
       ) : null}
 
-      {apiReturnedEmpty ? (
-        <SurfaceEmptyState
-          title="No findings returned"
-          description={hasScopedFilters
-            ? 'The current backend query returned zero findings for this scope.'
-            : 'No investigator findings are available yet for the current environment.'}
+      {apiReturnedEmpty && emptyState ? (
+        <FindingsMessageCard
+          title={emptyState.title}
+          description={emptyState.description}
         />
       ) : null}
 
       {criticalFilterRemovedAll ? (
-        <OpsCard className="border-dashed">
-          <div className="space-y-1 text-sm text-[var(--vt-text-2)]">
-            <p className="font-semibold text-[var(--vt-text-1)]">No critical findings on this page</p>
-            <p>The API returned findings, but none of them are currently marked `critical`.</p>
-          </div>
-        </OpsCard>
+        <FindingsMessageCard
+          title="No critical findings on this page"
+          description="The live feed returned findings, but none of them are currently marked critical."
+        />
       ) : null}
 
       <div className="grid gap-4">
-        {items.map((finding) => (
-          <OpsCard key={finding.id} className="overflow-hidden">
+        {items.map((finding, index) => (
+          <OpsCard
+            key={finding.id}
+            className={`overflow-hidden opacity-0 animate-alive-slide ${getFindingTypeColor(finding.findingType)} ${finding.severity === 'critical' ? 'animate-critical-pulse' : ''}`}
+            style={{ animationDelay: `${index * 40}ms` }}
+          >
             <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
               <div className="min-w-0 flex-1 space-y-4">
                 <div className="flex flex-wrap items-center gap-2">
@@ -252,6 +520,20 @@ export function FindingsSurface() {
                       label="Provider findings"
                     />
                   ) : null}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGraphFindingId(finding.id);
+                      setSelectedGraphNodeId(null);
+                    }}
+                    className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition ${
+                      graphFinding?.id === finding.id
+                        ? 'border-cyan-400/30 bg-cyan-400/10 text-cyan-200'
+                        : 'border-[var(--vt-border)] bg-[var(--vt-surface)] text-[var(--vt-text-2)] hover:text-[var(--vt-text-1)]'
+                    }`}
+                  >
+                    Focus graph
+                  </button>
                 </div>
 
                 {finding.evidence.length > 0 ? (
@@ -302,11 +584,12 @@ export function FindingsSurface() {
       </div>
 
       {findings.loading && rawItems.length === 0 ? (
-        <>
-          <OpsCardSkeleton />
-          <OpsCardSkeleton />
-          <OpsCardSkeleton />
-        </>
+        <FindingsMessageCard
+          title="Loading live findings"
+          description={providerScope
+            ? `Fetching the latest findings for provider ${providerScope}.`
+            : 'Fetching the latest findings feed and graph context from the intelligence APIs.'}
+        />
       ) : null}
 
       {total > 0 ? (

@@ -7,11 +7,11 @@ import {
 } from '@/app/api/intelligence/_shared';
 import { normalizeActionDetailResponse } from '@/lib/intelligence/detail-normalizers';
 import type { ActionDetailResponse } from '@/lib/intelligence/detail-types';
-import { getApiBase } from '@/lib/api';
+import { getBackendBase } from '@/lib/api';
 
 export const runtime = 'nodejs';
 
-const BACKEND = getApiBase();
+const BACKEND = getBackendBase();
 
 export async function PATCH(
   req: NextRequest,

@@ -78,7 +78,7 @@ function buildBackendInvestigationParams(searchParams: URLSearchParams): URLSear
 
 export async function GET(req: NextRequest) {
   const authContext = await resolveIntelligenceAuthContext();
-  if (authContext.status !== 'authenticated') {
+  if (!authContext.userId) {
     return NextResponse.json(
       buildAuthFailurePayload(authContext),
       { status: authFailureStatus(authContext) },

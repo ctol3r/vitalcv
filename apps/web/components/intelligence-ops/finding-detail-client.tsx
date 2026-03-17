@@ -8,10 +8,11 @@ import { buildFindingEvidenceRows, summarizeFindingEvidenceRows } from '@/lib/in
 import { buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import { OperationsShell } from './shell';
-import { BackLink, BadgeLink, ConfidenceMeter, EntityLink, OpsBadge, OpsCard, SurfaceBanner, SurfaceErrorState, TimestampPair, severityTone } from './primitives';
+import { BackLink, ConfidenceMeter, EntityLink, OpsBadge, OpsCard, SurfaceBanner, SurfaceErrorState, TimestampPair, severityTone } from './primitives';
 import { FindingMutationControls } from './mutation-controls';
 import { TrustSignalChips } from './trust-signal-chips';
-import { EvidenceSection } from './EvidenceSection';
+import { EvidenceViewer } from '@/components/intelligence/evidence-viewer';
+import { StorylineMini } from '@/components/intelligence/storyline-mini';
 
 export function FindingDetailClient({
   findingId,
@@ -70,6 +71,28 @@ export function FindingDetailClient({
     () => summarizeFindingEvidenceRows(evidenceRows, finding.confidence),
     [evidenceRows, finding.confidence],
   );
+  const storylineId = finding.storylineId || relatedStoryline?.storylineId || null;
+  const storylineTitle = finding.storylineTitle || relatedStoryline?.title || 'Related storyline';
+  const storylineSeverity = relatedStoryline?.severity || finding.severity;
+  const storylineTimeline = useMemo(() => {
+    if (finding.statusEvents.length > 0) {
+      return finding.statusEvents.map((event, index) => ({
+        id: `${finding.findingId}-status-${index}`,
+        occurredAt: event.createdAt,
+        label: event.toStatus,
+        description: event.fromStatus ? `Status updated from ${event.fromStatus} to ${event.toStatus}.` : `Status set to ${event.toStatus}.`,
+        meta: event.actorId ?? undefined,
+      }));
+    }
+
+    return [
+      {
+        id: `${finding.findingId}-created`,
+        occurredAt: finding.createdAt,
+        description: 'Finding record created.',
+      },
+    ];
+  }, [finding.createdAt, finding.findingId, finding.statusEvents]);
 
   return (
     <OperationsShell
@@ -123,26 +146,23 @@ export function FindingDetailClient({
                     <EntityLink href={buildIntelligenceHref('investigations', { npi: providerNpi })} label="Open investigation" />
                   </>
                 ) : null}
-                {finding.storylineId ? (
-                  <BadgeLink
-                    href={`/storylines/${finding.storylineId}?from=/findings/${findingId}`}
-                    label="Storyline"
-                    tone="info"
-                    title={finding.storylineTitle ?? 'Open storyline'}
-                  />
-                ) : relatedStoryline ? (
-                  <BadgeLink
-                    href={`/storylines/${relatedStoryline.storylineId}?from=/findings/${findingId}`}
-                    label="Storyline"
-                    tone="info"
-                    title={relatedStoryline.title}
-                  />
-                ) : null}
               </div>
             </div>
           </OpsCard>
 
-          <EvidenceSection rows={evidenceRows} summary={trustSummary} />
+          {storylineId ? (
+            <StorylineMini
+              title={storylineTitle}
+              severity={storylineSeverity}
+              findingsCount={1}
+              storylineId={storylineId}
+              providerNpi={providerNpi}
+              from={`/findings/${findingId}`}
+              timeline={storylineTimeline}
+            />
+          ) : null}
+
+          <EvidenceViewer rows={evidenceRows} />
 
           <OpsCard className="space-y-4">
             <div className="flex items-center justify-between gap-3">

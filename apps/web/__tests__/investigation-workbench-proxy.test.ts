@@ -117,7 +117,7 @@ describe('/api/investigation/workbench proxy', () => {
     });
   });
 
-  it('returns the seeded public workbench payload for unauthenticated requests', async () => {
+  it('forwards unauthenticated workbench reads to the real backend instead of a seeded snapshot', async () => {
     authMock.mockResolvedValue({ userId: null, orgId: null, sessionClaims: {} });
     const fetchMock = vi.fn().mockResolvedValueOnce(new Response(
       JSON.stringify({
@@ -150,7 +150,7 @@ describe('/api/investigation/workbench proxy', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://backend.test/api/intelligence/public/investigation-workbench?npi=1234567890',
+      'http://backend.test/api/investigation/workbench?npi=1234567890',
       expect.objectContaining({
         cache: 'no-store',
         headers: expect.any(Headers),
@@ -158,7 +158,7 @@ describe('/api/investigation/workbench proxy', () => {
     );
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
-      accessMode: 'public_snapshot',
+      accessMode: 'full',
       anchor: {
         npi: '1234567890',
         findingId: undefined,
@@ -170,7 +170,7 @@ describe('/api/investigation/workbench proxy', () => {
       relatedFindings: [],
       navigation: null,
       generatedAt: '2026-03-16T00:00:00.000Z',
-      reason: 'missing_session',
+      reason: 'ok',
       uiHints: {
         copilotPrompt: 'Summarize risk posture for this provider',
         copilotSummary: 'Seeded demo summary',

@@ -1,4 +1,5 @@
 import * as cron from 'node-cron';
+import { isAutomatedTestRuntime } from '../../config/runtimeMode';
 import type { StrategyAgentType } from './contracts';
 import { STRATEGY_AGENT_SPECS, runStrategyAgents } from './strategyAgentService';
 
@@ -81,7 +82,7 @@ async function runScheduledAgent(agentType: StrategyAgentType): Promise<void> {
 }
 
 export function startStrategyAgentScheduler(): void {
-  const enabled = process.env.NODE_ENV !== 'test' && process.env.STRATEGY_AGENTS_ENABLED !== 'false';
+  const enabled = !isAutomatedTestRuntime() && process.env.STRATEGY_AGENTS_ENABLED !== 'false';
   if (!enabled || tasks.size > 0) {
     return;
   }

@@ -40,6 +40,8 @@ export interface IntelligenceConsoleLayoutProps {
   children: React.ReactNode;
 }
 
+import { GlobalTrustSignals } from './GlobalTrustSignals';
+
 export function IntelligenceConsoleLayout({
   activeHref,
   activeNavKey,
@@ -57,6 +59,7 @@ export function IntelligenceConsoleLayout({
     <div className="flex w-full flex-col">
       <div className="space-y-4 mb-4">
         <LiveFeedRibbon />
+        <GlobalTrustSignals />
         <Panel className="space-y-3">
           <p className="text-[10px] uppercase tracking-widest text-[var(--vt-text-muted)]">
             Intelligence navigation

@@ -177,6 +177,7 @@ async function bootstrapApp() {
   const { log } = await import('./obs/logger');
   const { loadEnv } = await import('./config/env');
   const { ensureInvestigationSeedDataBootstrapped } = await import('./services/investigators/seedInvestigationData');
+  const { requestIntelligenceAutoWarm } = await import('./services/intelligence/intelligenceAutoWarmService');
   const { initializeTelemetry, shutdownTelemetry } = await import('./telemetry');
   const { runMonitoringCycle } = await import('../jobs/monitoringJob');
   const { startQaAutomationRuntime } = await import('./qa/qaRuntime');
@@ -257,6 +258,7 @@ async function bootstrapApp() {
       app,
       baseUrl: `http://127.0.0.1:${PORT}`,
     });
+    requestIntelligenceAutoWarm('startup');
 
     // Wave 2D: Schedule monitoring cycle every 24 hours (midnight UTC)
     if (!config.SYSTEM_FROZEN) {

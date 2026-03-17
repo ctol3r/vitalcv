@@ -5,9 +5,11 @@ import { useProvider } from '@/hooks/useIntelligenceDetail';
 import type { ProviderDetailResponse } from '@/lib/intelligence/detail-types';
 import { buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
+import { useGraph } from '@/hooks/useGraph';
 import type { BadgeTone } from './primitives';
 import { BackLink, EntityLink, OpsBadge, OpsCard, SurfaceBanner, SurfaceErrorState, TimestampPair, riskScoreColor, trustScoreColor, severityTone } from './primitives';
 import { OperationsShell } from './shell';
+import { GraphWorkbenchPanel } from './graph-workbench-panel';
 
 function intelligenceTone(value: string): BadgeTone {
   const normalized = value.trim().toLowerCase();
@@ -276,6 +278,10 @@ export function ProviderDetailView({
         </div>
 
         <div className="space-y-4">
+          <div className="rounded-[28px] ring-2 ring-cyan-400/10 transition-all hover:ring-cyan-400/40 bg-[var(--vt-surface)] overflow-hidden">
+            <ProviderNetworkSnapshot npi={current.provider.npi} />
+          </div>
+
           <OpsCard className="space-y-4">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -437,5 +443,26 @@ export function ProviderDetailView({
         </div>
       </div>
     </OperationsShell>
+  );
+}
+
+function ProviderNetworkSnapshot({ npi }: { npi: string }) {
+  const graph = useGraph({
+    npi,
+    layer: 'blended',
+    limit: 25,
+  });
+
+  return (
+    <GraphWorkbenchPanel
+      graph={graph.data}
+      providers={[]}
+      selectedProvider={null}
+      openFullGraphHref={`/graph?npi=${npi}`}
+      loading={graph.loading}
+      error={graph.error}
+      onRetry={graph.refresh}
+      onSelectProvider={() => {}}
+    />
   );
 }

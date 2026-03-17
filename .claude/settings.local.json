@@ -153,7 +153,12 @@
       "Skill(gsd:execute-phase)",
       "mcp__Desktop_Commander__get_file_info",
       "Bash(wc -l /Users/christoler/vitalcv/apps/web/lib/intelligence/*.ts /Users/christoler/vitalcv/apps/web/lib/auth/roles.ts /Users/christoler/vitalcv/apps/api/backend/src/services/investigation/contracts.ts /Users/christoler/vitalcv/apps/api/backend/src/services/copilot/contracts.ts)",
-      "mcp__Desktop_Commander__start_process"
+      "mcp__Desktop_Commander__start_process",
+      "Bash(cp apps/web/middleware.ts /tmp/middleware.ts.bak)",
+      "Bash(cp apps/web/app/api/intelligence/_shared.ts /tmp/_shared.ts.bak)",
+      "Bash(git checkout:*)",
+      "Bash(cp /tmp/middleware.ts.bak apps/web/middleware.ts)",
+      "Bash(cp /tmp/_shared.ts.bak apps/web/app/api/intelligence/_shared.ts)"
     ],
     "deny": [],
     "ask": []

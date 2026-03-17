@@ -424,7 +424,7 @@ function addSemanticEdges(context: ProjectionContext, now: Date): void {
 
   const pairScores = new Map<string, { score: number; tags: Set<string> }>();
   for (const [tag, nodeIds] of tagIndex.entries()) {
-    const limited = nodeIds.slice(0, 24).sort((left, right) => left.localeCompare(right));
+    const limited = [...nodeIds].sort((left, right) => left.localeCompare(right)).slice(0, 24);
     for (let index = 0; index < limited.length; index += 1) {
       for (let inner = index + 1; inner < limited.length; inner += 1) {
         const left = limited[index];
@@ -439,7 +439,9 @@ function addSemanticEdges(context: ProjectionContext, now: Date): void {
   }
 
   const perNodeBudget = new Map<string, number>();
-  const sortedPairs = [...pairScores.entries()].sort((left, right) => right[1].score - left[1].score);
+  const sortedPairs = [...pairScores.entries()].sort((left, right) =>
+    right[1].score - left[1].score
+    || left[0].localeCompare(right[0]));
   for (const [pairKey, value] of sortedPairs) {
     if (value.score < 2) continue;
     const [sourceNodeId, targetNodeId] = pairKey.split('|');

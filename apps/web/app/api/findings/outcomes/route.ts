@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import {
-  buildReadOnlyFallbackPayload,
   fetchBackendJson,
   logIntelligenceFallbackUsage,
   resolveIntelligenceAuthContext,
@@ -8,10 +7,19 @@ import {
 
 export const runtime = 'nodejs';
 
+function buildEmptyOutcomesPayload() {
+  return {
+    schema: 'https://vitalcv.com/outcome-history/v1',
+    outcomes: [],
+    total: 0,
+    generatedAt: new Date().toISOString(),
+  };
+}
+
 export async function GET(req: NextRequest) {
   const authContext = await resolveIntelligenceAuthContext();
   if (authContext.status !== 'authenticated') {
-    return NextResponse.json(buildReadOnlyFallbackPayload('outcomes', req, authContext));
+    return NextResponse.json(buildEmptyOutcomesPayload());
   }
 
   const params = new URLSearchParams();
@@ -29,13 +37,13 @@ export async function GET(req: NextRequest) {
     );
     if (!ok) {
       logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
-      return NextResponse.json(buildReadOnlyFallbackPayload('outcomes', req, authContext, { log: false }));
+      return NextResponse.json(buildEmptyOutcomesPayload());
     }
 
     return NextResponse.json(payload, { status: 200 });
   } catch (error) {
     void error;
     logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
-    return NextResponse.json(buildReadOnlyFallbackPayload('outcomes', req, authContext, { log: false }));
+    return NextResponse.json(buildEmptyOutcomesPayload());
   }
 }

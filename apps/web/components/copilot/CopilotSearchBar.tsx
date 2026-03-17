@@ -142,6 +142,7 @@ export function CopilotSearchBar({
     setDraft,
     loading,
     entries,
+    events,
     quickSuggestions,
     submitDraft,
     submitPrompt,
@@ -329,6 +330,42 @@ export function CopilotSearchBar({
     );
   }
 
+  function renderThinkingEntry() {
+    const recentEvents = events.slice(-4);
+    
+    return (
+      <article className="space-y-3 rounded-md border border-cyan-400/30 bg-cyan-400/5 p-3 animate-pulse">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-cyan-400 animate-spin" style={{ animationDuration: '3s' }} />
+              <h3 className="text-sm font-semibold text-[var(--vt-text-1)]">Copilot thinking...</h3>
+            </div>
+            
+            <div className="mt-4 flex flex-col gap-2 relative pl-2 border-l border-cyan-400/20">
+              {recentEvents.length === 0 ? (
+                <div className="flex items-center gap-2 text-xs text-[var(--vt-text-3)] animate-in fade-in slide-in-from-left-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/50" />
+                  Analyzing context and parameters...
+                </div>
+              ) : (
+                recentEvents.map((evt, idx) => (
+                  <div key={evt.id} className="flex flex-col gap-0.5 animate-in fade-in slide-in-from-left-1" style={{ animationDelay: `${idx * 150}ms`, animationFillMode: 'forwards' }}>
+                    <div className="flex items-center gap-2 text-xs font-medium text-[var(--vt-text-2)]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/70" />
+                      {evt.label}
+                    </div>
+                    {evt.detail && <span className="pl-3.5 text-[10px] text-[var(--vt-text-3)] line-clamp-1">{evt.detail}</span>}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </article>
+    );
+  }
+
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void submitDraft();
@@ -398,8 +435,11 @@ export function CopilotSearchBar({
         </p>
       </form>
 
-      {visibleEntries.length > 0 ? (
-        <div className="space-y-3">{visibleEntries.map(renderEntry)}</div>
+      {visibleEntries.length > 0 || loading ? (
+        <div className="space-y-3">
+          {loading && renderThinkingEntry()}
+          {visibleEntries.map(renderEntry)}
+        </div>
       ) : (
         <div className="rounded-md border border-dashed border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-6">
           <div className="flex items-start gap-3">
