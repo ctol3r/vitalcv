@@ -16,6 +16,10 @@ interface WorkbenchEvidenceItem {
   claim: string;
   confidence: number;
   observedAt?: string | null;
+  field?: string;
+  provenanceChain?: string[];
+  qualityRating?: 'STRONG' | 'ADEQUATE' | 'WEAK' | 'MISSING';
+  corroborationCount?: number;
 }
 
 interface WorkbenchFindingContext {

@@ -456,7 +456,37 @@ body {
   }
 }
 
+/* Status Pulse - Restrained micro-interaction */
+@keyframes pulse-subtle {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 var(--pulse-color, oklch(0.72 0.10 240 / 0.4)); }
+  70% { transform: scale(1); box-shadow: 0 0 0 4px var(--pulse-color, oklch(0.72 0.10 240 / 0)); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 var(--pulse-color, oklch(0.72 0.10 240 / 0)); }
+}
+
+/* Subtle panel enter/exit transitions */
+@keyframes panel-enter {
+  0% { opacity: 0; transform: translateY(4px) scale(0.99); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 @layer utilities {
+  .animate-pulse-subtle {
+    animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  .animate-panel-enter {
+    animation: panel-enter 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  
+  /* Hover hierarchy */
+  .hover-hierarchy {
+    transition: background-color 150ms ease-out, transform 150ms ease-out;
+  }
+  .hover-hierarchy:hover {
+    background-color: var(--vt-surface-2);
+    transform: translateX(2px);
+  }
+
   .animate-trust-panel-enter {
     animation: trust-panel-enter 320ms ease-out both;
   }

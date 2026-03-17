@@ -1,6 +1,6 @@
 'use client';
 
-import { startTransition, useDeferredValue, useEffect, useState } from 'react';
+import { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/shell/AppShell';
 import { useActions } from '@/hooks/useActions';
@@ -15,16 +15,27 @@ import type {
   WorkspaceSectionId,
 } from '@/lib/intelligence/contracts';
 import { buildSourceEntries } from '@/lib/intelligence/contracts';
+import { WORKSPACE_SECTIONS } from '@/lib/intelligence/layout';
 import { IntelligenceTopNav } from './IntelligenceTopNav';
 import { LeftSidebar } from './LeftSidebar';
 import { MainWorkspace } from './MainWorkspace';
 import { RightPanel } from './RightPanel';
+
+interface CopilotSeed {
+  query: string;
+  token: number;
+}
+
+const VALID_WORKSPACE_SECTIONS = new Set<WorkspaceSectionId>(
+  WORKSPACE_SECTIONS.map((section) => section.id),
+);
 
 export function IntelligenceConsolePage() {
   const searchParams = useSearchParams();
   const [activeSection, setActiveSection] = useState<WorkspaceSectionId>('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProviderNpi, setSelectedProviderNpi] = useState<string | null>(null);
+  const [copilotSeed, setCopilotSeed] = useState<CopilotSeed | null>(null);
   const deferredQuery = useDeferredValue(searchTerm);
 
   const providers = useProviders({
@@ -51,22 +62,69 @@ export function IntelligenceConsolePage() {
     limit: 240,
   });
 
+  const refreshAll = useCallback(() => {
+    providers.refresh();
+    findings.refresh();
+    storylines.refresh();
+    actions.refresh();
+    systemHealth.refresh();
+    graph.refresh();
+  }, [actions, findings, graph, providers, storylines, systemHealth]);
+
+  const lastUpdatedSignature = useMemo(
+    () => [
+      providers.lastUpdated,
+      findings.lastUpdated,
+      storylines.lastUpdated,
+      actions.lastUpdated,
+      systemHealth.lastUpdated,
+      graph.lastUpdated,
+    ].filter(Boolean).join('|'),
+    [
+      actions.lastUpdated,
+      findings.lastUpdated,
+      graph.lastUpdated,
+      providers.lastUpdated,
+      storylines.lastUpdated,
+      systemHealth.lastUpdated,
+    ],
+  );
+
   useEffect(() => {
     const seededQuery = searchParams.get('q') ?? '';
     const seededNpi = searchParams.get('npi');
+    const seededView = searchParams.get('view');
+    const seededCopilot = searchParams.get('copilot') ?? '';
+    const nextSection = (
+      seededView && VALID_WORKSPACE_SECTIONS.has(seededView as WorkspaceSectionId)
+        ? seededView as WorkspaceSectionId
+        : null
+    );
 
     if (seededNpi && /^\d{10}$/.test(seededNpi)) {
       startTransition(() => {
         setSearchTerm(seededNpi);
         setSelectedProviderNpi(seededNpi);
-        setActiveSection('provider-profile');
+        setActiveSection(nextSection ?? 'provider-profile');
       });
-      return;
+    } else if (nextSection) {
+      startTransition(() => {
+        setActiveSection(nextSection);
+      });
     }
 
     if (seededQuery) {
       startTransition(() => {
         setSearchTerm(seededQuery);
+      });
+    }
+
+    if (seededCopilot.trim().length > 0) {
+      startTransition(() => {
+        setCopilotSeed({
+          query: seededCopilot.trim(),
+          token: Date.now(),
+        });
       });
     }
   }, [searchParams]);
@@ -86,6 +144,15 @@ export function IntelligenceConsolePage() {
 
     setSelectedProviderNpi(firstProvider.npi);
   }, [providers.data?.providers, selectedProviderNpi]);
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      refreshAll();
+    };
+
+    window.addEventListener('vital:intelligence:refresh', handleRefresh);
+    return () => window.removeEventListener('vital:intelligence:refresh', handleRefresh);
+  }, [refreshAll]);
 
   const sourceEntries = buildSourceEntries({
     provider: selectedProvider,
@@ -110,17 +177,7 @@ export function IntelligenceConsolePage() {
     selectProvider(provider.npi);
   }
 
-  function refreshAll() {
-    providers.refresh();
-    findings.refresh();
-    storylines.refresh();
-    actions.refresh();
-    systemHealth.refresh();
-    graph.refresh();
-  }
-
   return (
-    <>
     <AppShell
       topNav={(
         <IntelligenceTopNav
@@ -131,6 +188,7 @@ export function IntelligenceConsolePage() {
           findingCount={findings.data?.total ?? 0}
           storylineCount={storylines.data?.total ?? 0}
           actionCount={actions.data?.total ?? 0}
+          lastUpdatedSignature={lastUpdatedSignature}
           onRefreshAll={refreshAll}
         />
       )}
@@ -164,6 +222,7 @@ export function IntelligenceConsolePage() {
           systemHealth={systemHealth.data}
           systemHealthLoading={systemHealth.loading}
           systemHealthError={systemHealth.error}
+          copilotSeed={copilotSeed}
           sources={sourceEntries}
           alerts={sidebarAlerts}
           onSelectProvider={selectProviderRecord}
@@ -210,6 +269,5 @@ export function IntelligenceConsolePage() {
         onRefreshSystemHealth={systemHealth.refresh}
       />
     </AppShell>
-    </>
   );
 }

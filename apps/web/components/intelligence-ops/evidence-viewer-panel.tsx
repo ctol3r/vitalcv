@@ -8,9 +8,13 @@ import { formatRelativeTime } from '@/lib/intelligence/time';
 
 export interface EvidenceItem {
   source: string;
-  claim: string;
+  claim: string; // Used as the value
   confidence: number;
-  observedAt?: string | null;
+  observedAt?: string | null; // Retrieval timestamp
+  field?: string;
+  provenanceChain?: string[];
+  qualityRating?: EvidenceQuality;
+  corroborationCount?: number;
 }
 
 export type EvidenceQuality = 'STRONG' | 'ADEQUATE' | 'WEAK' | 'MISSING';
@@ -51,7 +55,34 @@ function summarizeEvidence(evidence: EvidenceItem[]): string {
     ? Math.round(evidence.reduce((s, e) => s + e.confidence, 0) / evidence.length * 100)
     : 0;
   const highConf = evidence.filter(e => e.confidence >= 0.8).length;
-  return `${sources.size} source${sources.size === 1 ? '' : 's'} · ${evidence.length} record${evidence.length === 1 ? '' : 's'} · ${avgConf}% avg confidence${highConf > 0 ? ` · ${highConf} high-confidence` : ''}`;
+  const corroborationCount = evidence.reduce((s, e) => s + (e.corroborationCount ?? 0), 0);
+  return `${sources.size} source${sources.size === 1 ? '' : 's'} · ${evidence.length} record${evidence.length === 1 ? '' : 's'} · ${corroborationCount} corroborations · ${avgConf}% avg confidence${highConf > 0 ? ` · ${highConf} high-confidence` : ''}`;
+}
+
+function corroborationLevel(evidence: EvidenceItem[]): {
+  label: string;
+  tone: 'success' | 'warning' | 'critical' | 'neutral';
+  detail: string;
+} {
+  const sources = new Set(evidence.map(e => e.source));
+  const highConf = evidence.filter(e => e.confidence >= 0.7);
+  const avgConf = evidence.length > 0
+    ? evidence.reduce((s, e) => s + e.confidence, 0) / evidence.length
+    : 0;
+
+  if (sources.size >= 3 && highConf.length >= 2 && avgConf >= 0.7) {
+    return { label: 'Strong corroboration', tone: 'success', detail: `${sources.size} independent sources agree with high confidence` };
+  }
+  if (sources.size >= 2 && avgConf >= 0.5) {
+    return { label: 'Moderate corroboration', tone: 'neutral', detail: `${sources.size} sources with moderate agreement` };
+  }
+  if (sources.size === 1 && evidence.length > 0) {
+    return { label: 'Single source', tone: 'warning', detail: 'Only one data source — consider additional verification' };
+  }
+  if (evidence.length === 0) {
+    return { label: 'No evidence', tone: 'critical', detail: 'No supporting evidence found' };
+  }
+  return { label: 'Weak corroboration', tone: 'warning', detail: `${sources.size} source${sources.size === 1 ? '' : 's'} with low agreement` };
 }
 
 function sortEvidence(items: EvidenceItem[], mode: SortMode): EvidenceItem[] {
@@ -92,6 +123,7 @@ export function EvidenceViewerPanel({
   const sorted = useMemo(() => sortEvidence(evidence, sortMode), [evidence, sortMode]);
   const grouped = useMemo(() => groupMode === 'source' ? groupBySource(sorted) : null, [sorted, groupMode]);
   const summary = useMemo(() => summarizeEvidence(evidence), [evidence]);
+  const corroboration = useMemo(() => corroborationLevel(evidence), [evidence]);
 
   const handleSubmitQuality = useCallback(async () => {
     if (!findingId || !selectedQuality) return;
@@ -138,12 +170,36 @@ export function EvidenceViewerPanel({
             <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
               <span className="text-[var(--vt-text-3)]">Source</span>
               <span className="font-medium text-[var(--vt-text-1)]">{ev.source}</span>
+              {ev.field && (
+                <>
+                  <span className="text-[var(--vt-text-3)]">Field</span>
+                  <span className="text-[var(--vt-text-2)]">{ev.field}</span>
+                </>
+              )}
               <span className="text-[var(--vt-text-3)]">Value</span>
               <span className="text-[var(--vt-text-2)]">{ev.claim}</span>
               <span className="text-[var(--vt-text-3)]">Confidence</span>
               <span className="tabular-nums text-[var(--vt-text-1)]">{Math.round(ev.confidence * 100)}%</span>
-              <span className="text-[var(--vt-text-3)]">Observed</span>
+              <span className="text-[var(--vt-text-3)]">Retrieved</span>
               <span className="text-[var(--vt-text-2)]">{ev.observedAt ? formatRelativeTime(ev.observedAt) : '—'}</span>
+              {ev.qualityRating && (
+                <>
+                  <span className="text-[var(--vt-text-3)]">Quality Rating</span>
+                  <span className="text-[var(--vt-text-2)]">{ev.qualityRating}</span>
+                </>
+              )}
+              {ev.corroborationCount !== undefined && (
+                <>
+                  <span className="text-[var(--vt-text-3)]">Corroborations</span>
+                  <span className="text-[var(--vt-text-2)]">{ev.corroborationCount}</span>
+                </>
+              )}
+              {ev.provenanceChain && ev.provenanceChain.length > 0 && (
+                <>
+                  <span className="text-[var(--vt-text-3)]">Provenance</span>
+                  <span className="text-[var(--vt-text-2)]">{ev.provenanceChain.join(' → ')}</span>
+                </>
+              )}
             </div>
             <div className="flex gap-2">
               <button className="rounded-full border border-[var(--vt-border)] px-2.5 py-1 text-[10px] text-[var(--vt-text-3)] transition hover:border-cyan-400/40 hover:text-cyan-400">
@@ -166,6 +222,16 @@ export function EvidenceViewerPanel({
         <div>
           <p className="text-xs uppercase tracking-[0.15em] text-[var(--vt-text-3)]">Evidence ({evidence.length})</p>
           <p className="mt-0.5 text-[10px] text-[var(--vt-text-3)]">{summary}</p>
+          <div className="mt-1 flex items-center gap-1.5">
+            <span className={`inline-block h-1.5 w-1.5 rounded-full ${
+              corroboration.tone === 'success' ? 'bg-emerald-500' :
+              corroboration.tone === 'warning' ? 'bg-amber-500' :
+              corroboration.tone === 'critical' ? 'bg-red-500' :
+              'bg-sky-500'
+            }`} />
+            <span className="text-[10px] font-medium text-[var(--vt-text-2)]">{corroboration.label}</span>
+            <span className="text-[10px] text-[var(--vt-text-3)]">— {corroboration.detail}</span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {/* Sort toggle */}

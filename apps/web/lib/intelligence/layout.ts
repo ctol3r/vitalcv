@@ -11,19 +11,44 @@ export const WORKSPACE_SECTIONS: Array<{
     detail: 'System-wide provider readiness, active investigations, and trust pressure.',
   },
   {
-    id: 'provider-profile',
-    label: 'Provider Profile',
-    detail: 'Focused provider posture with trust score, issuer coverage, and evidence.',
+    id: 'findings',
+    label: 'Findings',
+    detail: 'Operational investigator findings with real filters and triage actions.',
   },
   {
-    id: 'investigation-workspace',
-    label: 'Investigation Workspace',
-    detail: 'Findings, storylines, and recommended actions for current review.',
+    id: 'storylines',
+    label: 'Storylines',
+    detail: 'Narrative summaries of related findings with progression history.',
   },
   {
-    id: 'comparison-view',
-    label: 'Comparison View',
-    detail: 'Side-by-side provider comparison for launch and routing decisions.',
+    id: 'actions',
+    label: 'Actions',
+    detail: 'Actionable intelligence recommendations for entities and storylines.',
+  },
+  {
+    id: 'providers',
+    label: 'Providers',
+    detail: 'Global provider directory with posture, verifications, and trust scoring.',
+  },
+  {
+    id: 'investigations',
+    label: 'Investigations',
+    detail: 'Four-panel investigation surface for exploring entities and finding context.',
+  },
+  {
+    id: 'calibration',
+    label: 'Calibration',
+    detail: 'Tune scoring rules, confidence thresholds, and system health checks.',
+  },
+  {
+    id: 'system-health',
+    label: 'System Health',
+    detail: 'Pipeline integrity, verification throughput, and connector stability.',
+  },
+  {
+    id: 'graph',
+    label: 'Trust Graph',
+    detail: 'Zoomable canvas visualizing credential links and trust networks.',
   },
 ];
 

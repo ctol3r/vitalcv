@@ -1,7 +1,8 @@
 'use client';
 
-import { Activity, GitMerge, Radar } from 'lucide-react';
+import { Activity, GitMerge, Radar, Clock } from 'lucide-react';
 import type { IntelligenceStoryline } from '@/lib/intelligence/contracts';
+import { formatRelativeTime } from '@/lib/intelligence/time';
 import { ScoreBar, SurfaceState, ToneBadge } from './shared';
 import { DecisionBadge } from '@/components/decision/DecisionBadge';
 
@@ -43,6 +44,27 @@ export function StorylineCard({
 
           <p className="mt-3 text-sm leading-6 text-[var(--vt-text-2)]">{storyline.summary}</p>
           <p className="mt-3 text-xs leading-5 text-[var(--vt-text-3)]">{storyline.whyItMatters}</p>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {/* Phase 2: Trust Signals */}
+            <div className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium ${Math.round(storyline.confidence * 100) >= 80 ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-500' : 'border-amber-500/30 bg-amber-500/5 text-amber-500'}`} title="Confidence Score">
+              <Activity className="h-3 w-3" />
+              {Math.round(storyline.confidence * 100)}% Conf
+            </div>
+            {storyline.lastActivityAt && (
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-2 py-0.5 text-[10px] font-medium text-[var(--vt-text-3)]" title="Freshness Marker">
+                <Clock className="h-3 w-3" />
+                {formatRelativeTime(storyline.lastActivityAt)}
+              </div>
+            )}
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-2 py-0.5 text-[10px] font-medium text-[var(--vt-text-3)]" title="Corroboration Indicator">
+              <GitMerge className="h-3 w-3" />
+              {storyline.findingIds.length} Linked {storyline.findingIds.length === 1 ? 'Finding' : 'Findings'}
+            </div>
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-2 py-0.5 text-[10px] font-medium text-[var(--vt-text-3)]" title="Evidence Count">
+              {storyline.evidence.length} Evidence Items
+            </div>
+          </div>
 
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             <div className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)]/50 p-3">

@@ -416,7 +416,7 @@ export function CalibrationDashboard() {
         <SurfaceBanner tone="warning">{error}</SurfaceBanner>
       ) : !loading && stats.length === 0 ? (
         <SurfaceBanner tone="info">
-          No calibration data yet. Use <strong>POST /api/findings/:id/outcome</strong> to record analyst resolution outcomes, or resolve findings in the workbench.
+          No calibration data yet. Open a finding in the <a href="/investigations" className="underline font-medium">Investigation Workbench</a>, review the evidence, and record an outcome (true positive, false positive, or inconclusive). Calibration metrics populate as you resolve findings.
         </SurfaceBanner>
       ) : null}
     >

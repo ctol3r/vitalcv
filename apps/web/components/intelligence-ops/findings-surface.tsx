@@ -227,7 +227,12 @@ export function FindingsSurface() {
                 </div>
                 {finding.evidence.length > 0 ? (
                   <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
-                    <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Evidence preview</p>
+                    <div className="mb-3 flex items-center gap-2">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Evidence</p>
+                      <span className="rounded-full bg-[var(--vt-surface-2)] px-1.5 py-0.5 text-[10px] tabular-nums text-[var(--vt-text-3)]">
+                        {finding.evidence.length} source{finding.evidence.length === 1 ? '' : 's'}
+                      </span>
+                    </div>
                     <ul className="space-y-2 text-sm text-[var(--vt-text-2)]">
                       {finding.evidence.slice(0, 2).map((evidence) => (
                         <li key={evidence.id} className="space-y-1">

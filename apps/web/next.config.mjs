@@ -14,6 +14,19 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  async redirects() {
+    return [
+      { source: '/dashboard', destination: '/intelligence?view=dashboard', permanent: false },
+      { source: '/findings', destination: '/intelligence?view=findings', permanent: false },
+      { source: '/storylines', destination: '/intelligence?view=storylines', permanent: false },
+      { source: '/providers', destination: '/intelligence?view=providers', permanent: false },
+      { source: '/actions', destination: '/intelligence?view=actions', permanent: false },
+      { source: '/investigations', destination: '/intelligence?view=investigations', permanent: false },
+      { source: '/calibration', destination: '/intelligence?view=calibration', permanent: false },
+      { source: '/system-health', destination: '/intelligence?view=system-health', permanent: false },
+      { source: '/graph', destination: '/intelligence?view=graph', permanent: false },
+    ];
+  },
   webpack: (config, { isServer }) => {
     if (process.env.NEXT_DISABLE_PWA === '1') {
       config.optimization = {

@@ -2,8 +2,15 @@ import type { GraphEdge, GraphNode } from '@/components/graph-system/types';
 
 export type WorkspaceSectionId =
   | 'dashboard'
+  | 'findings'
+  | 'storylines'
+  | 'actions'
+  | 'providers'
+  | 'investigations'
+  | 'calibration'
+  | 'system-health'
+  | 'graph'
   | 'provider-profile'
-  | 'investigation-workspace'
   | 'comparison-view';
 
 export type IntelligenceSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { GraphEdge, GraphNode } from './types';
 import {
   resolveEdgeStrength,
@@ -54,9 +54,9 @@ function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
 }
 
-export default function GraphCanvas({
-  nodes,
-  edges,
+export default React.memo(function GraphCanvas({
+  nodes: rawNodes,
+  edges: rawEdges,
   physics,
   visuals,
   selectedNodeId,
@@ -72,6 +72,15 @@ export default function GraphCanvas({
   width,
   height,
 }: Props) {
+  // Cap node and edge counts for performance
+  const nodes = useMemo(() => rawNodes.length > 500 ? rawNodes.slice(0, 500) : rawNodes, [rawNodes]);
+  const edges = useMemo(() => {
+    const subset = rawEdges.length > 1000 ? rawEdges.slice(0, 1000) : rawEdges;
+    // ensure edges only reference nodes that exist after cap
+    const nodeIds = new Set(nodes.map(n => n.id));
+    return subset.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
+  }, [rawEdges, nodes]);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>(0);
   const cameraRef = useRef({ x: 0, y: 0, zoom: 1 });
@@ -571,4 +580,4 @@ export default function GraphCanvas({
       width={width}
     />
   );
-}
+});

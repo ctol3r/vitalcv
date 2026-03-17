@@ -232,6 +232,17 @@ export function initInvestigators(): void {
   }
 
   log('info', `[Orchestrator] ${investigators.length} investigators initialized, ${allTriggers.size} event triggers wired`);
+
+  // Run initial scan after a short delay (let DB connections warm up)
+  setTimeout(async () => {
+    log('info', '[Orchestrator] Running initial scan on startup...');
+    try {
+      const result = await runAllScans();
+      log('info', `[Orchestrator] Initial scan complete: ${result.totalFindings} finding(s) from ${result.investigators.length} investigator(s)`);
+    } catch (err) {
+      log('warn', `[Orchestrator] Initial scan failed (non-fatal): ${(err as Error)?.message}`);
+    }
+  }, 5_000);
 }
 
 export function shutdownInvestigators(): void {

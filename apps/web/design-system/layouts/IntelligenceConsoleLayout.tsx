@@ -3,18 +3,22 @@ import { ChevronRight } from 'lucide-react';
 import type React from 'react';
 import { Button } from '../components/Button';
 import { Panel } from '../components/Panel';
-import { AppLayout } from './AppLayout';
+import {
+  buildIntelligenceHref,
+  deriveIntelligenceNavKey,
+  type IntelligenceView,
+} from '@/lib/intelligence/routes';
 import { cn } from '@/lib/utils';
 
 const DEFAULT_NAV = [
-  { href: '/intelligence', label: 'Console' },
-  { href: '/findings', label: 'Findings' },
-  { href: '/storylines', label: 'Storylines' },
-  { href: '/actions', label: 'Actions' },
-  { href: '/providers', label: 'Providers' },
-  { href: '/investigations', label: 'Investigations' },
-  { href: '/calibration', label: 'Calibration' },
-  { href: '/system-health', label: 'System Health' },
+  { key: 'dashboard', href: buildIntelligenceHref('dashboard'), label: 'Dashboard' },
+  { key: 'findings', href: buildIntelligenceHref('findings'), label: 'Findings' },
+  { key: 'storylines', href: buildIntelligenceHref('storylines'), label: 'Storylines' },
+  { key: 'providers', href: buildIntelligenceHref('providers'), label: 'Providers' },
+  { key: 'actions', href: buildIntelligenceHref('actions'), label: 'Actions' },
+  { key: 'investigations', href: buildIntelligenceHref('investigations'), label: 'Investigations' },
+  { key: 'calibration', href: buildIntelligenceHref('calibration'), label: 'Calibration' },
+  { key: 'system-health', href: buildIntelligenceHref('system-health'), label: 'System Health' },
 ] as const;
 
 export interface ConsoleBreadcrumb {
@@ -24,6 +28,7 @@ export interface ConsoleBreadcrumb {
 
 export interface IntelligenceConsoleLayoutProps {
   activeHref: string;
+  activeNavKey?: IntelligenceView;
   title: string;
   description: string;
   breadcrumbs?: ConsoleBreadcrumb[];
@@ -35,6 +40,7 @@ export interface IntelligenceConsoleLayoutProps {
 
 export function IntelligenceConsoleLayout({
   activeHref,
+  activeNavKey,
   actions,
   banner,
   breadcrumbs = [],
@@ -43,34 +49,33 @@ export function IntelligenceConsoleLayout({
   meta,
   title,
 }: IntelligenceConsoleLayoutProps) {
-  const navigation = (
-    <Panel className="space-y-[var(--vt-space-12)]">
-      <p className="text-[length:var(--vt-type-caption-size)] uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
-        Intelligence navigation
-      </p>
-      <nav className="flex flex-wrap gap-[var(--vt-space-8)]" aria-label="Console navigation">
-        {DEFAULT_NAV.map((item) => {
-          const active = activeHref === item.href || activeHref.startsWith(`${item.href}/`);
-          return (
-            <Button
-              key={item.href}
-              asChild
-              className={cn(active ? '' : 'opacity-90')}
-              size="sm"
-              variant={active ? 'primary' : 'secondary'}
-            >
-              <Link href={item.href}>{item.label}</Link>
-            </Button>
-          );
-        })}
-      </nav>
-    </Panel>
-  );
+  const resolvedNavKey = activeNavKey ?? deriveIntelligenceNavKey(activeHref);
 
   return (
-    <AppLayout header={null} sidebar={null} aside={null} className="ops-shell">
-      <div className="space-y-[var(--vt-space-16)]">
-        {navigation}
+    <div className="flex w-full flex-col">
+      <div className="space-y-[var(--vt-space-16)] mb-6">
+        <Panel className="space-y-[var(--vt-space-12)]">
+          <p className="text-[length:var(--vt-type-caption-size)] uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
+            Intelligence navigation
+          </p>
+          <nav className="flex flex-wrap gap-[var(--vt-space-8)]" aria-label="Console navigation">
+            {DEFAULT_NAV.map((item) => {
+              const active = resolvedNavKey === item.key;
+
+              return (
+                <Button
+                  key={item.href}
+                  asChild
+                  className={cn(active ? '' : 'opacity-90')}
+                  size="sm"
+                  variant={active ? 'primary' : 'secondary'}
+                >
+                  <Link href={item.href}>{item.label}</Link>
+                </Button>
+              );
+            })}
+          </nav>
+        </Panel>
         <Panel className="space-y-[var(--vt-space-16)]">
           {breadcrumbs.length > 0 ? (
             <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-[var(--vt-space-8)] text-[length:var(--vt-type-meta-size)] text-[var(--vt-text-secondary)]">
@@ -117,8 +122,10 @@ export function IntelligenceConsoleLayout({
           </div>
         </Panel>
         {banner}
+      </div>
+      <div className="flex-1 w-full">
         {children}
       </div>
-    </AppLayout>
+    </div>
   );
 }

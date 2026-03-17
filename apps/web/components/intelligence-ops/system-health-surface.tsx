@@ -67,9 +67,15 @@ export function SystemHealthSurface() {
       meta={(
         <div className="space-y-1">
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Platform state</p>
-          <p>{health.data?.headline ?? 'Waiting for telemetry'}</p>
+          <div className="flex items-center gap-2">
+            <div className={`h-2.5 w-2.5 rounded-full ${health.error && !health.data ? 'bg-red-500 animate-pulse' : degradedSources ? 'bg-amber-500' : health.data?.cards?.length === 0 ? 'bg-sky-500' : 'bg-emerald-500 shadow-sm shadow-emerald-500/30'}`} />
+            <p className="font-medium text-[var(--vt-text-1)]">
+              {health.error && !health.data ? 'Broken (Telemetry Offline)' : degradedSources ? 'Degraded' : health.data?.cards?.length === 0 ? 'Empty but functioning' : 'Healthy'}
+            </p>
+          </div>
+          <p className="text-xs text-[var(--vt-text-2)]">{health.data?.headline ?? 'Waiting for telemetry'}</p>
           {health.lastUpdated ? (
-            <p title={formatAbsoluteTime(health.lastUpdated)}>Updated {formatRelativeTime(health.lastUpdated)}</p>
+            <p className="text-[10px] text-[var(--vt-text-3)]" title={formatAbsoluteTime(health.lastUpdated)}>Updated {formatRelativeTime(health.lastUpdated)}</p>
           ) : null}
         </div>
       )}
@@ -133,14 +139,29 @@ export function SystemHealthSurface() {
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {(health.data?.cards ?? []).map((card) => (
-          <OpsCard key={card.id} className="space-y-2">
-            <OpsBadge label={card.tone} tone={severityTone(card.tone)} />
-            <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">{card.label}</h2>
-            <p className="text-sm text-[var(--vt-text-2)]">{card.summary}</p>
-            <p className="text-sm text-[var(--vt-text-3)]">{card.detail}</p>
+        {(health.data?.cards ?? []).length > 0 ? (
+          (health.data?.cards ?? []).map((card) => (
+            <OpsCard key={card.id} className="space-y-2">
+              <OpsBadge label={card.tone} tone={severityTone(card.tone)} />
+              <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">{card.label}</h2>
+              <p className="text-sm text-[var(--vt-text-2)]">{card.summary}</p>
+              <p className="text-sm text-[var(--vt-text-3)]">{card.detail}</p>
+            </OpsCard>
+          ))
+        ) : !health.loading && !health.error ? (
+          <OpsCard className="col-span-full space-y-3">
+            <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">System online — awaiting data</h2>
+            <p className="text-sm text-[var(--vt-text-2)]">
+              The intelligence layer is running but no health cards are reporting yet. This is normal for a fresh deployment.
+            </p>
+            <div className="space-y-1.5 text-sm text-[var(--vt-text-3)]">
+              <p>To populate health data:</p>
+              <p>1. Add providers via the <a href="/onboarding" className="underline">onboarding flow</a> or NPI lookup</p>
+              <p>2. Click <strong>Run scan</strong> above to trigger investigators</p>
+              <p>3. Click <strong>Trigger polls</strong> to refresh data sources</p>
+            </div>
           </OpsCard>
-        ))}
+        ) : null}
       </div>
 
       <OpsCard className="space-y-4">

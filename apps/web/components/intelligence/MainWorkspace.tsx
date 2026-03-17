@@ -15,6 +15,15 @@ import { InvestigationPanel } from './InvestigationPanel';
 import { ProviderCard } from './ProviderCard';
 import { SectionFrame, ToneBadge } from './shared';
 import { StorylineCard } from './StorylineCard';
+import { FindingsSurface } from '@/components/intelligence-ops/findings-surface';
+import { StorylinesSurface } from '@/components/intelligence-ops/storylines-surface';
+import { ActionsSurface } from '@/components/intelligence-ops/actions-surface';
+import { ProvidersSurface } from '@/components/intelligence-ops/providers-surface';
+import { InvestigationsSurface } from '@/components/intelligence-ops/investigations-surface';
+import { CalibrationDashboard } from '@/app/calibration/CalibrationDashboard';
+import { SystemHealthSurface } from '@/components/intelligence-ops/system-health-surface';
+import { GraphPanel } from './GraphPanel';
+import type { IntelligenceGraphResponse } from '@/lib/intelligence/contracts';
 
 interface MainWorkspaceProps {
   activeSection: WorkspaceSectionId;
@@ -44,6 +53,8 @@ interface MainWorkspaceProps {
   onRefreshProviders: () => void;
   onRefreshInvestigation: () => void;
   onRefreshSystemHealth: () => void;
+  graph?: IntelligenceGraphResponse | null;
+  graphLoading?: boolean;
 }
 
 export function MainWorkspace({
@@ -62,6 +73,8 @@ export function MainWorkspace({
   onRefreshProviders,
   onRefreshInvestigation,
   onRefreshSystemHealth,
+  graph,
+  graphLoading,
 }: MainWorkspaceProps) {
   const featuredProviders = providers.slice(0, 3);
   const comparisonSet = selectedProvider
@@ -179,21 +192,7 @@ export function MainWorkspace({
         </SectionFrame>
       </section>
 
-      <section
-        id="workspace-investigation-workspace"
-        className={activeSection === 'investigation-workspace' ? 'scroll-mt-28' : 'hidden'}
-      >
-        <InvestigationPanel
-          provider={selectedProvider}
-          findings={findings?.findings ?? []}
-          storylines={storylines?.storylines ?? []}
-          actions={actions?.actions ?? []}
-          loading={loading.findings || loading.storylines || loading.actions}
-          error={errors.findings ?? errors.storylines ?? errors.actions}
-          onFocusProvider={onSelectProvider}
-          onRetry={onRefreshInvestigation}
-        />
-      </section>
+      {/* The old investigation-workspace was removed in favor of the full InvestigationsSurface */}
 
       <section
         id="workspace-comparison-view"
@@ -228,6 +227,47 @@ export function MainWorkspace({
             ))}
           </div>
         </SectionFrame>
+      </section>
+
+      {/* New Consolidated Tabs */}
+      <section id="workspace-findings" className={activeSection === 'findings' ? 'scroll-mt-28' : 'hidden'}>
+        {activeSection === 'findings' && <FindingsSurface />}
+      </section>
+
+      <section id="workspace-storylines" className={activeSection === 'storylines' ? 'scroll-mt-28' : 'hidden'}>
+        {activeSection === 'storylines' && <StorylinesSurface />}
+      </section>
+
+      <section id="workspace-actions" className={activeSection === 'actions' ? 'scroll-mt-28' : 'hidden'}>
+        {activeSection === 'actions' && <ActionsSurface />}
+      </section>
+
+      <section id="workspace-providers" className={activeSection === 'providers' ? 'scroll-mt-28' : 'hidden'}>
+        {activeSection === 'providers' && <ProvidersSurface />}
+      </section>
+
+      <section id="workspace-investigations" className={activeSection === 'investigations' ? 'scroll-mt-28' : 'hidden'}>
+        {activeSection === 'investigations' && <InvestigationsSurface />}
+      </section>
+
+      <section id="workspace-calibration" className={activeSection === 'calibration' ? 'scroll-mt-28' : 'hidden'}>
+        {activeSection === 'calibration' && <CalibrationDashboard />}
+      </section>
+
+      <section id="workspace-system-health" className={activeSection === 'system-health' ? 'scroll-mt-28' : 'hidden'}>
+        {activeSection === 'system-health' && <SystemHealthSurface />}
+      </section>
+
+      <section id="workspace-graph" className={activeSection === 'graph' ? 'scroll-mt-28' : 'hidden'}>
+        {activeSection === 'graph' && (
+          <GraphPanel
+            graph={graph ?? null}
+            providers={providers}
+            selectedProvider={selectedProvider}
+            loading={graphLoading}
+            onSelectProvider={(p) => onSelectProvider(p.npi)}
+          />
+        )}
       </section>
     </div>
   );

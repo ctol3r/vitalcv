@@ -28,6 +28,10 @@ function getBuiltinCommands(router: ReturnType<typeof useRouter>): CommandResult
     { id: 'cmd-intelligence', type: 'command', icon: Terminal, title: 'Intelligence Console', subtitle: '/intelligence', href: '/intelligence' },
     { id: 'cmd-providers', type: 'command', icon: Terminal, title: 'Providers', subtitle: '/providers', href: '/providers' },
     { id: 'cmd-investigations', type: 'command', icon: Terminal, title: 'Investigation Workbench', subtitle: '/investigations', href: '/investigations' },
+    
+    // Workbench actions
+    { id: 'action-reverify', type: 'command', icon: Terminal, title: 'Trigger Re-verification', subtitle: 'Action', action: () => alert('Triggering network re-verification...') },
+    { id: 'action-sweep', type: 'command', icon: Terminal, title: 'Launch Intelligence Sweep', subtitle: 'Action', action: () => alert('Initiating ecosystem intelligence sweep...') },
   ];
 }
 
