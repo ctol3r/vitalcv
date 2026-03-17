@@ -3704,6 +3704,20 @@ ingestAllTrustLists();
 import { initInvestigators } from './services/investigators/orchestrator';
 initInvestigators();
 
+// ── Initialize investigator engine (all 10 investigators) ────────────────────
+import { runScheduledInvestigators } from './services/investigators/investigatorEngineService';
+// First scan 8s after boot (non-blocking), then every 30 minutes
+setTimeout(() => {
+  runScheduledInvestigators().catch((err) =>
+    log('warn', `[InvestigatorEngine] Initial scan failed: ${(err as Error)?.message}`),
+  );
+}, 8_000);
+setInterval(() => {
+  runScheduledInvestigators().catch((err) =>
+    log('warn', `[InvestigatorEngine] Scheduled scan failed: ${(err as Error)?.message}`),
+  );
+}, 30 * 60 * 1000);
+
 // ── Initialize detail agents ─────────────────────────────────────────────────
 import { initDetailAgents } from './services/detailAgents/detailAgentEngine';
 initDetailAgents();
