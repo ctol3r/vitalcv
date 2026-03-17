@@ -588,7 +588,9 @@ function shouldSkipTenantContext(pathname: string): boolean {
     normalizedPath.startsWith('/api/integrity/') ||
     // Program Gravity Well: read-only protocol validation and schema surfaces.
     normalizedPath.startsWith('/api/validate/') ||
-    normalizedPath.startsWith('/api/schemas')
+    normalizedPath.startsWith('/api/schemas') ||
+    // Wave M: Trust intelligence endpoints are read-only; auth forwarded via x-clerk-user-id header.
+    normalizedPath.startsWith('/api/trust/')
   );
 }
 

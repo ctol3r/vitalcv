@@ -1,4 +1,4 @@
-import type { CryptoKey as JoseCryptoKey } from 'jose';
+type JoseCryptoKey = CryptoKey;
 import { importPKCS8, SignJWT } from 'jose';
 import { HttpError } from '../../utils/httpError';
 import { log } from '../../obs/logger';

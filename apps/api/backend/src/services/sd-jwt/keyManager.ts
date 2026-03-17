@@ -39,7 +39,7 @@ export interface KeyEntry {
 
 function coerceJsonObject(value: Prisma.JsonValue): Record<string, unknown> {
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
+    return value as unknown as Record<string, unknown>;
   }
 
   throw new Error('Issuer signing key JWK payload is malformed');
@@ -82,7 +82,7 @@ async function toKeyEntry(
 ): Promise<KeyEntry> {
   const algorithm = row.algorithm as SigningAlgorithm;
   const publicKeyJwk = coerceJsonObject(row.publicKeyJwk);
-  const publicKey = await importJWK(publicKeyJwk as Parameters<typeof importJWK>[0], algorithm) as CryptoKey;
+  const publicKey = await importJWK(publicKeyJwk as unknown as Parameters<typeof importJWK>[0], algorithm) as CryptoKey;
   const privateKey = includePrivateKey
     ? await decryptPrivateKeyJwk(row.encryptedPrivateKeyJwk, algorithm)
     : undefined;
@@ -135,7 +135,7 @@ async function createPersistedKey(
   const kid = randomUUID();
   const now = new Date();
   const expiresAt = new Date(now.getTime() + KEY_TTL_MS);
-  const publicKeyJwk = await exportJWK(publicKey) as Record<string, unknown>;
+  const publicKeyJwk = await exportJWK(publicKey) as unknown as Record<string, unknown>;
   const privateKeyJwk = await exportJWK(privateKey);
 
   const row = await prisma.issuerSigningKey.create({

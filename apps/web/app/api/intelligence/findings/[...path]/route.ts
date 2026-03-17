@@ -1,7 +1,11 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import {
   buildForwardHeaders,
+  canReadIntelligence,
   fetchBackendJson,
+  buildAuthFailurePayload,
+  authFailureStatus,
+  logIntelligenceFallbackUsage,
   requireAuthenticatedOrgContext,
   resolveIntelligenceAuthContext,
 } from '../../_shared';
@@ -26,9 +30,13 @@ export async function GET(
 ) {
   const { path } = await params;
   const authContext = await resolveIntelligenceAuthContext();
-  const blocked = requireAuthenticatedOrgContext(req, authContext);
-  if (blocked) {
-    return NextResponse.json(blocked.payload, { status: blocked.status });
+
+  // READ access: allow authenticated users even without org context
+  if (!canReadIntelligence(authContext)) {
+    logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'write_block');
+    return NextResponse.json(buildAuthFailurePayload(authContext), {
+      status: authFailureStatus(authContext),
+    });
   }
 
   const search = req.nextUrl.searchParams;

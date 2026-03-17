@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import type { CryptoKey as JoseCryptoKey } from 'jose';
+type JoseCryptoKey = CryptoKey;
 import { exportJWK, importSPKI } from 'jose';
 import { getJwks as getIssuerJwks } from '../../services/sd-jwt/keyManager';
 import { HttpError } from '../../utils/httpError';

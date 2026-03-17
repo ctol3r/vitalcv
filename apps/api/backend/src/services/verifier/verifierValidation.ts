@@ -85,7 +85,7 @@ export async function validateSdJwt(
       return result;
     }
 
-    const publicKey = await importJWK(kidEntry.publicKeyJwk as Parameters<typeof importJWK>[0], 'ES256');
+    const publicKey = await importJWK(kidEntry.publicKeyJwk as unknown as Parameters<typeof importJWK>[0], 'ES256');
     const { payload } = await jwtVerify(jwt, publicKey, {
       audience: opts?.expectedAud,
       clockTolerance: 60,

@@ -44,7 +44,7 @@
     "ethr-did-resolver": "^11.0.4",
     "express": "^4.19.2",
     "express-validator": "^6.15.0",
-    "jose": "^6.1.0",
+    "jose": "4",
     "jsonwebtoken": "^9.0.2",
     "key-did-resolver": "^4.0.0",
     "lru-cache": "^10.4.3",

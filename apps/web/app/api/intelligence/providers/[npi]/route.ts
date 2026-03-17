@@ -1,7 +1,10 @@
 import { loadProviderDetail } from '@/lib/intelligence/server';
 import { type NextRequest, NextResponse } from 'next/server';
 import {
-  requireAuthenticatedOrgContext,
+  authFailureStatus,
+  buildAuthFailurePayload,
+  canReadIntelligence,
+  logIntelligenceFallbackUsage,
   resolveIntelligenceAuthContext,
 } from '../../_shared';
 
@@ -14,9 +17,12 @@ export async function GET(
   { params }: { params: Promise<{ npi: string }> },
 ) {
   const authContext = await resolveIntelligenceAuthContext();
-  const blocked = requireAuthenticatedOrgContext(req, authContext);
-  if (blocked) {
-    return NextResponse.json(blocked.payload, { status: blocked.status });
+
+  if (!canReadIntelligence(authContext)) {
+    logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'write_block');
+    return NextResponse.json(buildAuthFailurePayload(authContext), {
+      status: authFailureStatus(authContext),
+    });
   }
 
   const { npi } = await params;

@@ -292,7 +292,7 @@ export async function verifySdJwt(
     }
 
     const publicKey = await importJWK(
-      keyEntry.publicKeyJwk as Parameters<typeof importJWK>[0],
+      keyEntry.publicKeyJwk as unknown as Parameters<typeof importJWK>[0],
       'ES256',
     );
     const { payload } = await jwtVerify(jwt, publicKey);
