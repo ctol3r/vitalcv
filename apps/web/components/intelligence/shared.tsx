@@ -104,9 +104,13 @@ export function SectionFrame({
 export function ToneBadge({
   tone,
   label,
+  pulse = false,
+  className,
 }: {
   tone: IntelligenceTone;
   label: string;
+  pulse?: boolean;
+  className?: string;
 }) {
   const classes = tone === 'healthy'
     ? 'border-[var(--vt-badge-success-border)] bg-[var(--vt-badge-success-bg)] text-[var(--vt-badge-success-text)]'
@@ -117,7 +121,14 @@ export function ToneBadge({
         : 'border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-2)]';
 
   return (
-    <span className={cn('inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]', classes)}>
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]',
+        classes,
+        pulse && 'vital-tone-badge--pulse',
+        className,
+      )}
+    >
       {label}
     </span>
   );

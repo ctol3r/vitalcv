@@ -61,7 +61,14 @@ interface OutcomesResponse {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-type SortKey = 'investigatorId' | 'totalResolved' | 'truePositiveRate' | 'falsePositiveRate' | 'calibrationScore' | 'feedbackBias';
+type SortKey =
+  | 'investigatorId'
+  | 'totalResolved'
+  | 'truePositiveRate'
+  | 'falsePositiveRate'
+  | 'averageEvidenceQuality'
+  | 'calibrationScore'
+  | 'feedbackBias';
 type SortDir = 'asc' | 'desc';
 
 function accuracyTone(rate: number): 'success' | 'warning' | 'critical' | 'neutral' {
@@ -78,6 +85,13 @@ function pct(v: number): string {
 function fmtBias(v: number): string {
   if (v > 0) return `+${v}`;
   return String(v);
+}
+
+function evidenceQualityLabel(value: number): string {
+  if (value >= 0.85) return 'Strong';
+  if (value >= 0.6) return 'Adequate';
+  if (value > 0) return 'Weak';
+  return 'Missing';
 }
 
 function bar(value: number, max: number, color: string) {
@@ -112,9 +126,20 @@ function evidenceColor(q: string): string {
 
 // ── Components ───────────────────────────────────────────────────────────────
 
-function SummaryCards({ summary }: { summary: LearningLoopSummary }) {
+function SummaryCards({
+  summary,
+  stats,
+}: {
+  summary: LearningLoopSummary;
+  stats: InvestigatorCalibrationStats[];
+}) {
+  const totalResolved = stats.reduce((sum, item) => sum + item.totalResolved, 0);
+  const weightedEvidenceQuality = totalResolved > 0
+    ? stats.reduce((sum, item) => sum + (item.averageEvidenceQuality * item.totalResolved), 0) / totalResolved
+    : 0;
+
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
       <OpsCard className="space-y-1">
         <p className="text-xs uppercase tracking-[0.15em] text-[var(--vt-text-3)]">Total Outcomes</p>
         <p className="text-2xl font-semibold tabular-nums text-[var(--vt-text-1)]">{summary.totalOutcomes}</p>
@@ -129,6 +154,11 @@ function SummaryCards({ summary }: { summary: LearningLoopSummary }) {
         <p className="text-xs uppercase tracking-[0.15em] text-[var(--vt-text-3)]">False Positive Rate</p>
         <p className="text-2xl font-semibold tabular-nums text-red-400">{pct(summary.overallFalsePositiveRate)}</p>
         <p className="text-xs text-[var(--vt-text-3)]">lower is better</p>
+      </OpsCard>
+      <OpsCard className="space-y-1">
+        <p className="text-xs uppercase tracking-[0.15em] text-[var(--vt-text-3)]">Evidence Quality</p>
+        <p className="text-2xl font-semibold tabular-nums text-sky-300">{pct(weightedEvidenceQuality)}</p>
+        <p className="text-xs text-[var(--vt-text-3)]">{evidenceQualityLabel(weightedEvidenceQuality)} on average</p>
       </OpsCard>
       <OpsCard className="space-y-1">
         <p className="text-xs uppercase tracking-[0.15em] text-[var(--vt-text-3)]">Best Performer</p>
@@ -183,6 +213,7 @@ function AccuracyTable({
             {th('Resolved', 'totalResolved')}
             {th('TP Rate', 'truePositiveRate')}
             {th('FP Rate', 'falsePositiveRate')}
+            {th('Evidence', 'averageEvidenceQuality')}
             {th('Score', 'calibrationScore')}
             {th('Bias', 'feedbackBias')}
           </tr>
@@ -190,7 +221,7 @@ function AccuracyTable({
         <tbody>
           {sorted.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-3 py-8 text-center text-sm text-[var(--vt-text-3)]">
+              <td colSpan={7} className="px-3 py-8 text-center text-sm text-[var(--vt-text-3)]">
                 No calibration data yet. Record finding outcomes to populate this table.
               </td>
             </tr>
@@ -209,6 +240,17 @@ function AccuracyTable({
                   label={pct(s.falsePositiveRate)}
                   tone={s.falsePositiveRate > 0.4 ? 'critical' : s.falsePositiveRate > 0.2 ? 'warning' : 'success'}
                 />
+              </td>
+              <td className="px-3 py-2.5">
+                <div className="space-y-1">
+                  <OpsBadge
+                    label={`${evidenceQualityLabel(s.averageEvidenceQuality)} ${pct(s.averageEvidenceQuality)}`}
+                    tone={s.averageEvidenceQuality >= 0.85 ? 'success' : s.averageEvidenceQuality >= 0.6 ? 'info' : s.averageEvidenceQuality > 0 ? 'warning' : 'neutral'}
+                  />
+                  <div className="w-20">
+                    {bar(s.averageEvidenceQuality, 1, s.averageEvidenceQuality >= 0.85 ? 'bg-emerald-500' : s.averageEvidenceQuality >= 0.6 ? 'bg-sky-500' : s.averageEvidenceQuality > 0 ? 'bg-amber-500' : 'bg-slate-500')}
+                  </div>
+                </div>
               </td>
               <td className="px-3 py-2.5">
                 <div className="flex items-center gap-2">
@@ -267,7 +309,15 @@ function OutcomeDistribution({ outcomes }: { outcomes: OutcomeRecord[] }) {
             {entries.map(([outcome, count]) => (
               <div key={outcome} className="flex items-center gap-1.5 text-xs text-[var(--vt-text-2)]">
                 <span className={`inline-block h-2.5 w-2.5 rounded-full ${colorMap[outcome] ?? 'bg-slate-400'}`} />
-                {outcomeLabel(outcome)} <span className="tabular-nums text-[var(--vt-text-3)]">({count})</span>
+                {outcomeLabel(outcome)} <span className="tabular-nums text-[var(--vt-text-3)]">({count}, {pct(count / total)})</span>
+              </div>
+            ))}
+          </div>
+          <div className="space-y-2 border-t border-[var(--vt-border)] pt-3">
+            {entries.map(([outcome, count]) => (
+              <div key={outcome} className="flex items-center justify-between gap-3 text-xs">
+                <span className="text-[var(--vt-text-2)]">{outcomeLabel(outcome)}</span>
+                <span className="tabular-nums text-[var(--vt-text-3)]">{count} / {pct(count / total)}</span>
               </div>
             ))}
           </div>
@@ -298,10 +348,64 @@ function EvidenceQualityDistribution({ outcomes }: { outcomes: OutcomeRecord[] }
             <div key={q} className="flex items-center gap-3">
               <span className="w-20 text-xs text-[var(--vt-text-2)]">{q}</span>
               <div className="flex-1">{bar(counts[q] ?? 0, max, evidenceColor(q))}</div>
-              <span className="w-8 text-right text-xs tabular-nums text-[var(--vt-text-3)]">{counts[q]}</span>
+              <span className="w-20 text-right text-xs tabular-nums text-[var(--vt-text-3)]">{counts[q]} / {pct((counts[q] ?? 0) / Math.max(outcomes.length, 1))}</span>
             </div>
           ))}
         </div>
+      )}
+    </OpsCard>
+  );
+}
+
+function FalsePositiveSummary({ stats }: { stats: InvestigatorCalibrationStats[] }) {
+  if (stats.length === 0) {
+    return null;
+  }
+
+  const ranked = [...stats]
+    .filter((item) => item.falsePositiveCount > 0)
+    .sort((left, right) => (
+      right.falsePositiveRate - left.falsePositiveRate
+      || right.falsePositiveCount - left.falsePositiveCount
+      || left.investigatorId.localeCompare(right.investigatorId)
+    ));
+  const flagged = stats.filter((item) => item.falsePositiveRate >= 0.2).length;
+  const worst = ranked[0] ?? null;
+
+  return (
+    <OpsCard className="space-y-4">
+      <div className="space-y-1">
+        <p className="text-xs uppercase tracking-[0.15em] text-[var(--vt-text-3)]">False Positive Pressure</p>
+        <p className="text-sm text-[var(--vt-text-2)]">Investigators trending toward false alarms need tighter evidence thresholds before launch.</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-3">
+          <p className="text-xs uppercase tracking-[0.12em] text-[var(--vt-text-3)]">Watchlist</p>
+          <p className="mt-1 text-xl font-semibold tabular-nums text-[var(--vt-text-1)]">{flagged}</p>
+          <p className="text-xs text-[var(--vt-text-3)]">investigator{flagged === 1 ? '' : 's'} at or above 20% FP rate</p>
+        </div>
+        <div className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-3">
+          <p className="text-xs uppercase tracking-[0.12em] text-[var(--vt-text-3)]">Worst FP Rate</p>
+          <p className="mt-1 text-xl font-semibold tabular-nums text-red-400">{worst ? pct(worst.falsePositiveRate) : '0%'}</p>
+          <p className="text-xs text-[var(--vt-text-3)]">{worst ? worst.investigatorId.replace(/_/g, ' ') : 'No false positives recorded'}</p>
+        </div>
+        <div className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-3">
+          <p className="text-xs uppercase tracking-[0.12em] text-[var(--vt-text-3)]">Top FP Count</p>
+          <p className="mt-1 text-xl font-semibold tabular-nums text-[var(--vt-text-1)]">{worst?.falsePositiveCount ?? 0}</p>
+          <p className="text-xs text-[var(--vt-text-3)]">cases needing threshold review</p>
+        </div>
+      </div>
+      {ranked.length > 0 ? (
+        <div className="space-y-2 border-t border-[var(--vt-border)] pt-3">
+          {ranked.slice(0, 3).map((item) => (
+            <div key={item.investigatorId} className="flex items-center justify-between gap-3 text-sm">
+              <span className="min-w-0 truncate text-[var(--vt-text-2)]">{item.investigatorId.replace(/_/g, ' ')}</span>
+              <span className="tabular-nums text-[var(--vt-text-3)]">{item.falsePositiveCount} FP • {pct(item.falsePositiveRate)}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-[var(--vt-text-3)]">No false positives have been recorded yet.</p>
       )}
     </OpsCard>
   );
@@ -408,7 +512,8 @@ export function CalibrationDashboard() {
 
   return (
     <OperationsShell
-      activeHref="/calibration"
+      activeHref="/intelligence"
+      activeNavKey="calibration"
       title="Investigator Calibration"
       description="Learning loop metrics: investigator accuracy, false positive rates, evidence quality, and resolution outcomes. Record finding outcomes to calibrate investigators over time."
       breadcrumbs={[{ label: 'Calibration' }]}
@@ -427,14 +532,15 @@ export function CalibrationDashboard() {
       ) : (
         <div className="space-y-4">
           {/* Summary cards */}
-          {summary ? <SummaryCards summary={summary} /> : null}
+          {summary ? <SummaryCards summary={summary} stats={stats} /> : null}
 
           {/* Accuracy table */}
           <AccuracyTable stats={stats} sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
 
           {/* Charts row */}
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="grid gap-4 xl:grid-cols-3">
             <OutcomeDistribution outcomes={outcomeList} />
+            <FalsePositiveSummary stats={stats} />
             <EvidenceQualityDistribution outcomes={outcomeList} />
           </div>
 

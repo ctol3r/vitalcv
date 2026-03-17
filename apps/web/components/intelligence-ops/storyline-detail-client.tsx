@@ -1,12 +1,16 @@
 'use client';
 
 import Link from 'next/link';
+import { useMemo } from 'react';
 import { useStoryline } from '@/hooks/useIntelligenceDetail';
 import type { StorylineDetailResponse } from '@/lib/intelligence/detail-types';
+import { buildIntelligenceHref } from '@/lib/intelligence/routes';
+import { summarizeTrustSignals } from '@/lib/intelligence/trust-signals';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import { StorylineMutationControls } from './mutation-controls';
 import { BackLink, EntityLink, OpsBadge, OpsCard, SurfaceBanner, SurfaceErrorState, TimestampPair, severityTone } from './primitives';
 import { OperationsShell } from './shell';
+import { TrustSignalChips } from './trust-signal-chips';
 import { VerticalTimeline } from './vertical-timeline';
 
 function titleCase(value: string): string {
@@ -45,10 +49,22 @@ export function StorylineDetailClient({
   const maxFindingSeverity = detail.findingLinks.reduce((current, link) => (
     severityRank(link.findingSeverity) > severityRank(current) ? link.findingSeverity : current
   ), detail.storyline.severity);
+  const trustSummary = useMemo(
+    () => summarizeTrustSignals(
+      detail.storyline.supportingEvidence.map((evidence) => ({
+        source: evidence.source,
+        observedAt: evidence.observedAt,
+        confidence: evidence.confidence,
+      })),
+      detail.storyline.confidence,
+    ),
+    [detail.storyline.confidence, detail.storyline.supportingEvidence],
+  );
 
   return (
     <OperationsShell
       activeHref="/storylines"
+      activeNavKey="storylines"
       title={detail.storyline.title}
       description={detail.storyline.summary}
       breadcrumbs={[
@@ -86,9 +102,11 @@ export function StorylineDetailClient({
               <OpsBadge label={detail.storyline.severity} tone={severityTone(detail.storyline.severity)} />
               <OpsBadge label={detail.storyline.status} tone={severityTone(detail.storyline.status)} />
               <OpsBadge label={detail.storyline.storylineType} />
+              <OpsBadge label={`${Math.round(detail.storyline.confidence * 100)}% confidence`} tone={trustSummary.confidenceBand === 'HIGH' ? 'success' : trustSummary.confidenceBand === 'MEDIUM' ? 'info' : 'warning'} />
               <span className="text-sm text-[var(--vt-text-3)]">{detail.storyline.perspective}</span>
             </div>
             <p className="text-sm leading-7 text-[var(--vt-text-2)]">{detail.storyline.whyItMatters}</p>
+            <TrustSignalChips summary={trustSummary} />
             <div className="flex flex-wrap gap-2">
               {providerLinks.map((entity) => (
                 <EntityLink
@@ -220,6 +238,10 @@ export function StorylineDetailClient({
             <p className="text-sm text-[var(--vt-text-2)]">Novelty {Math.round(detail.storyline.noveltyScore * 100)}%</p>
             <p className="text-sm text-[var(--vt-text-2)]">Persistence {Math.round(detail.storyline.persistenceScore * 100)}%</p>
             <p className="text-sm text-[var(--vt-text-2)]">Confidence {Math.round(detail.storyline.confidence * 100)}%</p>
+            <TrustSignalChips summary={trustSummary} />
+            <p className="text-sm text-[var(--vt-text-2)]">
+              {detail.storyline.supportingEvidence.length} evidence item{detail.storyline.supportingEvidence.length === 1 ? '' : 's'} • {trustSummary.uniqueSourceCount} source{trustSummary.uniqueSourceCount === 1 ? '' : 's'}
+            </p>
           </OpsCard>
 
           <OpsCard className="space-y-3">

@@ -4,11 +4,14 @@ import { useMemo } from 'react';
 import { useFinding } from '@/hooks/useIntelligenceDetail';
 import { useSystemHealth } from '@/hooks/useSystemHealth';
 import type { InvestigatorFindingDetailResponse } from '@/lib/intelligence/detail-types';
+import { buildFindingEvidenceRows, summarizeFindingEvidenceRows } from '@/lib/intelligence/evidence';
+import { buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import { OperationsShell } from './shell';
 import { BackLink, BadgeLink, ConfidenceMeter, EntityLink, OpsBadge, OpsCard, SurfaceBanner, SurfaceErrorState, TimestampPair, severityTone } from './primitives';
 import { FindingMutationControls } from './mutation-controls';
 import { FindingEvidenceTable } from './finding-evidence-table';
+import { TrustSignalChips } from './trust-signal-chips';
 
 export function FindingDetailClient({
   findingId,
@@ -59,10 +62,19 @@ export function FindingDetailClient({
 
     return providerNpi ? `Provider ${providerNpi}` : null;
   }, [finding.entities, finding.metadata, providerNpi]);
+  const evidenceRows = useMemo(
+    () => buildFindingEvidenceRows(finding.supportingEvidence, finding.confidence, systemHealth.data),
+    [finding.confidence, finding.supportingEvidence, systemHealth.data],
+  );
+  const trustSummary = useMemo(
+    () => summarizeFindingEvidenceRows(evidenceRows, finding.confidence),
+    [evidenceRows, finding.confidence],
+  );
 
   return (
     <OperationsShell
       activeHref="/findings"
+      activeNavKey="findings"
       title={finding.title}
       description={finding.summary}
       breadcrumbs={[
@@ -98,15 +110,17 @@ export function FindingDetailClient({
               <OpsBadge label={finding.severity} tone={severityTone(finding.severity)} />
               <OpsBadge label={finding.status} tone={severityTone(finding.status)} />
               <OpsBadge label={finding.findingType.replace(/_/g, ' ')} />
+              <OpsBadge label={`${Math.round(finding.confidence * 100)}% confidence`} tone={trustSummary.confidenceBand === 'HIGH' ? 'success' : trustSummary.confidenceBand === 'MEDIUM' ? 'info' : 'warning'} />
               <span className="text-sm text-[var(--vt-text-3)]">{finding.investigatorId}</span>
             </div>
             <div className="space-y-3">
               <p className="text-sm leading-7 text-[var(--vt-text-2)]">{finding.explanation}</p>
+              <TrustSignalChips summary={trustSummary} />
               <div className="flex flex-wrap gap-2">
                 {providerNpi ? (
                   <>
                     <EntityLink href={`/providers/${providerNpi}?from=/findings/${findingId}`} label={providerLabel ?? `Provider ${providerNpi}`} />
-                    <EntityLink href={`/investigations?npi=${providerNpi}`} label="Open investigation" />
+                    <EntityLink href={buildIntelligenceHref('investigations', { npi: providerNpi })} label="Open investigation" />
                   </>
                 ) : null}
                 {finding.storylineId ? (
@@ -192,12 +206,16 @@ export function FindingDetailClient({
           </OpsCard>
 
           <OpsCard className="space-y-2">
-            <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Scoring</h2>
+            <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Scoring & trust</h2>
             <p className="text-sm text-[var(--vt-text-2)]">Priority {Math.round(finding.priorityScore)}</p>
             <div className="flex items-center gap-2 text-sm text-[var(--vt-text-2)]">
               <span>Confidence</span>
               <ConfidenceMeter confidence={finding.confidence} />
             </div>
+            <TrustSignalChips summary={trustSummary} />
+            <p className="text-sm text-[var(--vt-text-2)]">
+              {finding.supportingEvidence.length} evidence item{finding.supportingEvidence.length === 1 ? '' : 's'} • {trustSummary.uniqueSourceCount} source{trustSummary.uniqueSourceCount === 1 ? '' : 's'}
+            </p>
             <p className="text-sm text-[var(--vt-text-2)]">Audience {finding.audienceRoles.join(', ') || 'None'}</p>
           </OpsCard>
 

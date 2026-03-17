@@ -14,6 +14,11 @@ import { GraphPanel } from './GraphPanel';
 import { HealthStatusCard } from './HealthStatusCard';
 import { ToneBadge } from './shared';
 
+interface CopilotSeed {
+  query: string;
+  token: number;
+}
+
 interface RightPanelProps {
   providers: IntelligenceProvider[];
   selectedProvider: IntelligenceProvider | null;
@@ -23,6 +28,7 @@ interface RightPanelProps {
   systemHealth: IntelligenceSystemHealth | null;
   systemHealthLoading: boolean;
   systemHealthError: string | null;
+  copilotSeed: CopilotSeed | null;
   sources: IntelligenceSource[];
   alerts: IntelligenceAlert[];
   onSelectProvider: (provider: IntelligenceProvider) => void;
@@ -39,6 +45,7 @@ export function RightPanel({
   systemHealth,
   systemHealthLoading,
   systemHealthError,
+  copilotSeed,
   sources,
   alerts,
   onSelectProvider,
@@ -61,7 +68,7 @@ export function RightPanel({
           onRetry={onRefreshGraph}
         />
 
-        <CopilotPanel provider={selectedProvider} />
+        <CopilotPanel provider={selectedProvider} seed={copilotSeed} />
 
         <section className="vital-panel vital-panel--dense">
           <div className="vital-panel__header">

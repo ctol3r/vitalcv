@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { OperationsShell } from './shell';
 import { EntityLink, OpsBadge, OpsCard, SurfaceBanner, severityTone } from './primitives';
 import { CopilotSearchBar } from '@/components/copilot/CopilotSearchBar';
@@ -212,7 +213,7 @@ function ProviderInvestigationPanel({
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
             <EntityLink href={`/providers/${provider.npi}`} label="Profile" />
-            {navigation?.graphHref ? <EntityLink href={navigation.graphHref} label="Graph" /> : null}
+            <EntityLink href={buildIntelligenceHref('dashboard', { npi: provider.npi, panel: 'graph' })} label="Graph" />
           </div>
         </div>
       ) : null}
@@ -432,7 +433,7 @@ function NetworkGraphPanel({ npi }: { npi: string }) {
     <div className="flex h-full flex-col overflow-hidden">
       <div className="flex shrink-0 items-center justify-between px-3 py-2">
         <p className="text-xs uppercase tracking-[0.15em] text-[var(--vt-text-3)]">Network</p>
-        <Link href={`/graph?npi=${npi}`} className="text-xs text-cyan-400 transition hover:text-cyan-300">
+        <Link href={buildIntelligenceHref('dashboard', { npi, panel: 'graph' })} className="text-xs text-cyan-400 transition hover:text-cyan-300">
           Full Graph →
         </Link>
       </div>
@@ -562,7 +563,7 @@ function CopilotPanel({
             sessionId={`inv_${npi}`}
             placeholder={`Ask about ${contextParts.join(', ')}…`}
             onNavigateToNpi={(targetNpi) => {
-              window.location.href = `/investigations?npi=${targetNpi}`;
+              window.location.href = buildIntelligenceHref('investigations', { npi: targetNpi });
             }}
             autoFocus={false}
           />
@@ -733,7 +734,8 @@ export function InvestigationsSurface() {
 
   return (
     <OperationsShell
-      activeHref="/investigations"
+      activeHref="/intelligence"
+      activeNavKey="investigations"
       title="Investigation Workbench"
       description="Four-panel investigation surface. Select findings, inspect evidence, explore the provider network, and query the Copilot — all in one view."
       breadcrumbs={[{ label: 'Investigations' }]}

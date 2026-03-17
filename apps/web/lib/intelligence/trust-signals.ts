@@ -112,7 +112,6 @@ export function formatFreshnessLabel(
       return 'Aging evidence';
     case 'STALE':
       return 'Stale evidence';
-    case 'UNKNOWN':
     default:
       return 'Freshness unknown';
   }

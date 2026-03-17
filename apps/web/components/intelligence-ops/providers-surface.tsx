@@ -11,6 +11,7 @@ import {
   getSurfaceFreshnessState,
   hasDegradedDataSources,
 } from '@/lib/intelligence/state';
+import { buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import { OperationsShell } from './shell';
 import { EntityLink, OpsCard, OpsCardSkeleton, SurfaceBanner, SurfaceEmptyState, SurfaceErrorState, TimestampPair, trustScoreColor } from './primitives';
@@ -60,7 +61,11 @@ export function ProvidersSurface() {
       params.set('page', String(nextPage));
     }
     startTransition(() => {
-      router.push(`${pathname}${params.toString() ? `?${params.toString()}` : ''}`);
+      router.push(
+        pathname === '/intelligence'
+          ? buildIntelligenceHref('providers', params)
+          : `${pathname}${params.toString() ? `?${params.toString()}` : ''}`,
+      );
     });
   }
 
@@ -76,7 +81,8 @@ export function ProvidersSurface() {
 
   return (
     <OperationsShell
-      activeHref="/providers"
+      activeHref={pathname === '/intelligence' ? '/intelligence' : '/providers'}
+      activeNavKey="providers"
       title="Providers"
       description="Provider directory surface with search, trust-score filtering, detail routes, and cross-navigation into investigations."
       breadcrumbs={[{ label: 'Providers' }]}
@@ -192,7 +198,7 @@ export function ProvidersSurface() {
             footer={(
               <div className="flex flex-wrap gap-2">
                 <EntityLink href={`/providers/${provider.npi}?from=${encodeURIComponent(currentHref)}`} label="Open profile" />
-                <EntityLink href={`/investigations?npi=${provider.npi}`} label="Investigate" />
+                <EntityLink href={buildIntelligenceHref('investigations', { npi: provider.npi })} label="Investigate" />
               </div>
             )}
             meta={(

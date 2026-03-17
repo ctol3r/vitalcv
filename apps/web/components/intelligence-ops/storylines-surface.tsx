@@ -11,6 +11,8 @@ import {
   getSurfaceFreshnessState,
   hasDegradedDataSources,
 } from '@/lib/intelligence/state';
+import { buildIntelligenceHref } from '@/lib/intelligence/routes';
+import { summarizeTrustSignals } from '@/lib/intelligence/trust-signals';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import { OperationsShell } from './shell';
 import {
@@ -25,6 +27,7 @@ import {
 } from './primitives';
 import { StorylineMutationControls } from './mutation-controls';
 import { formatPaginationSummary, Pagination } from './pagination';
+import { TrustSignalChips } from './trust-signal-chips';
 import { StorylineCard } from '@/src/ui/components';
 
 const PAGE_SIZE = 8;
@@ -75,7 +78,11 @@ export function StorylinesSurface() {
       params.set('page', String(nextPage));
     }
     startTransition(() => {
-      router.push(`${pathname}${params.toString() ? `?${params.toString()}` : ''}`);
+      router.push(
+        pathname === '/intelligence'
+          ? buildIntelligenceHref('storylines', params)
+          : `${pathname}${params.toString() ? `?${params.toString()}` : ''}`,
+      );
     });
   }
 
@@ -91,7 +98,8 @@ export function StorylinesSurface() {
 
   return (
     <OperationsShell
-      activeHref="/storylines"
+      activeHref={pathname === '/intelligence' ? '/intelligence' : '/storylines'}
+      activeNavKey="storylines"
       title="Storylines"
       description="Narrative clusters over the finding feed, with cross-links back to findings, providers, and investigations."
       breadcrumbs={[{ label: 'Storylines' }]}
@@ -260,11 +268,22 @@ export function StorylinesSurface() {
             footer={(
               <div className="w-full space-y-4">
                 <div className="flex min-w-[15rem] flex-col gap-3 rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
-                  <div className="space-y-1">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Narrative stats</p>
-                    <p className="text-sm text-[var(--vt-text-2)]">Progression {Math.round(storyline.progressionScore * 100)}%</p>
-                    <ConfidenceMeter confidence={storyline.confidence} />
-                    <TimestampPair label="Activity" value={storyline.lastActivityAt} />
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Narrative stats</p>
+                      <p className="text-sm text-[var(--vt-text-2)]">Progression {Math.round(storyline.progressionScore * 100)}%</p>
+                      <ConfidenceMeter confidence={storyline.confidence} />
+                      <TimestampPair label="Activity" value={storyline.lastActivityAt} />
+                    </div>
+                    <TrustSignalChips
+                      summary={summarizeTrustSignals(
+                        storyline.evidence.map((evidence) => ({
+                          source: evidence.source,
+                          observedAt: evidence.observedAt,
+                        })),
+                        storyline.confidence,
+                      )}
+                    />
                   </div>
                   <StorylineMutationControls storylineId={storyline.id} status={storyline.status} compact />
                 </div>
@@ -297,7 +316,7 @@ export function StorylinesSurface() {
                   {storyline.providerNpi ? (
                     <>
                       <EntityLink href={`/providers/${storyline.providerNpi}?from=${encodeURIComponent(currentHref)}`} label={`Provider ${storyline.providerNpi}`} />
-                      <EntityLink href={`/investigations?npi=${storyline.providerNpi}`} label="Open investigation" />
+                      <EntityLink href={buildIntelligenceHref('investigations', { npi: storyline.providerNpi })} label="Open investigation" />
                     </>
                   ) : null}
                   {storyline.findingIds.length > 0 ? (

@@ -1,6 +1,6 @@
 'use client';
 
-import { startTransition, useEffect, useState } from 'react';
+import { startTransition, useCallback, useEffect, useRef, useState } from 'react';
 import { Bot, Loader2, Send, Sparkles } from 'lucide-react';
 import type { IntelligenceProvider } from '@/lib/intelligence/contracts';
 import { SectionFrame, SurfaceState } from './shared';
@@ -30,26 +30,33 @@ interface CopilotInsight {
   summary: string;
 }
 
-interface CopilotPanelProps {
-  provider: IntelligenceProvider | null;
+interface CopilotSeed {
+  query: string;
+  token: number;
 }
 
-export function CopilotPanel({ provider }: CopilotPanelProps) {
+interface CopilotPanelProps {
+  provider: IntelligenceProvider | null;
+  seed?: CopilotSeed | null;
+}
+
+export function CopilotPanel({ provider, seed = null }: CopilotPanelProps) {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<CopilotResult[]>([]);
   const [insights, setInsights] = useState<CopilotInsight[]>([]);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    if (!provider) {
+    if (!provider || seed?.query) {
       return;
     }
 
     startTransition(() => {
       setQuery(`Summarize the trust posture for ${provider.name} (${provider.npi}).`);
     });
-  }, [provider]);
+  }, [provider, seed?.query]);
 
   const suggestions = provider
     ? [
@@ -63,19 +70,23 @@ export function CopilotPanel({ provider }: CopilotPanelProps) {
       'What investigations need attention first?',
     ];
 
-  async function runCopilot() {
-    const trimmed = query.trim();
+  const runCopilot = useCallback(async (input = query) => {
+    const trimmed = input.trim();
     if (trimmed.length < 3) {
       setError('Copilot queries must be at least 3 characters.');
       return;
     }
 
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     setLoading(true);
     setError(null);
 
     try {
       const response = await fetch('/api/copilot/query', {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -95,11 +106,29 @@ export function CopilotPanel({ provider }: CopilotPanelProps) {
       setResults(payload.results ?? []);
       setInsights(payload.graphInsights ?? []);
     } catch (requestError) {
+      if (controller.signal.aborted) {
+        return;
+      }
       setError(requestError instanceof Error ? requestError.message : 'Copilot query failed.');
     } finally {
-      setLoading(false);
+      if (abortControllerRef.current === controller) {
+        setLoading(false);
+      }
     }
-  }
+  }, [query]);
+
+  useEffect(() => {
+    if (!seed?.query) {
+      return;
+    }
+
+    setQuery(seed.query);
+    void runCopilot(seed.query);
+  }, [runCopilot, seed]);
+
+  useEffect(() => () => abortControllerRef.current?.abort(), []);
+
+  const showLoadingSkeleton = loading && results.length === 0 && insights.length === 0;
 
   return (
     <SectionFrame
@@ -111,7 +140,6 @@ export function CopilotPanel({ provider }: CopilotPanelProps) {
       action={<Bot className="h-4 w-4 text-fuchsia-300" />}
     >
       <div className="grid gap-3">
-        {/* Input row */}
         <div className="flex items-center gap-2 rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 transition focus-within:border-fuchsia-300/30">
           <Sparkles className="h-4 w-4 shrink-0 text-fuchsia-300/60" />
           <input
@@ -139,7 +167,13 @@ export function CopilotPanel({ provider }: CopilotPanelProps) {
           </button>
         </div>
 
-        {/* Contextual suggestions */}
+        <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.16em] text-[var(--vt-text-3)]">
+          <span>{provider ? 'Scoped to current provider' : 'Global operator scope'}</span>
+          <span className={loading ? 'text-fuchsia-200/80' : ''}>
+            {loading ? 'Refreshing response' : 'Ready'}
+          </span>
+        </div>
+
         <div className="flex flex-col gap-1">
           {suggestions.slice(0, 3).map((suggestion) => (
             <button
@@ -148,6 +182,7 @@ export function CopilotPanel({ provider }: CopilotPanelProps) {
               onClick={() => {
                 setQuery(suggestion);
                 setError(null);
+                void runCopilot(suggestion);
               }}
               className="truncate rounded-xl border border-transparent px-3 py-1.5 text-left text-xs text-[var(--vt-text-3)] transition hover:border-[var(--vt-border)] hover:bg-[var(--vt-surface-2)] hover:text-[var(--vt-text-2)]"
             >
@@ -157,7 +192,7 @@ export function CopilotPanel({ provider }: CopilotPanelProps) {
         </div>
 
         <SurfaceState
-          loading={loading}
+          loading={showLoadingSkeleton}
           error={error}
           empty={!loading && results.length === 0 && insights.length === 0}
           emptyTitle="Copilot is ready"

@@ -1,5 +1,6 @@
 import {
   DEFAULT_STALE_DATA_THRESHOLD_MS,
+  deriveSystemHealthSurfaceState,
   formatLastRefreshMessage,
   getFindingsEmptyState,
   getSurfaceFreshnessState,
@@ -94,5 +95,36 @@ describe('intelligence surface state helpers', () => {
     expect(formatLastRefreshMessage(1)).toBe('Data last refreshed 1 minute ago.');
     expect(formatLastRefreshMessage(16)).toBe('Data last refreshed 16 minutes ago.');
     expect(formatLastRefreshMessage(120)).toBe('Data last refreshed 2 hours ago.');
+  });
+
+  it('distinguishes empty-but-functioning system health', () => {
+    expect(deriveSystemHealthSurfaceState({
+      overall: 'healthy',
+      headline: 'No source telemetry yet',
+      generatedAt: '2026-03-15T12:00:00.000Z',
+      cards: [
+        { id: 'pipeline', label: 'Trust pipeline', tone: 'healthy', summary: 'HEALTHY', detail: 'Checks clear.' },
+        { id: 'verification', label: 'Verification throughput', tone: 'healthy', summary: '0 verifications in the last hour', detail: '0 verifications in the last 24 hours' },
+      ],
+      incidents: [],
+      sources: [],
+    }).mode).toBe('empty');
+  });
+
+  it('marks system health as broken when critical failures stack up', () => {
+    expect(deriveSystemHealthSurfaceState({
+      overall: 'critical',
+      headline: 'Trust telemetry is failing closed',
+      generatedAt: '2026-03-15T12:00:00.000Z',
+      cards: [
+        { id: 'pipeline', label: 'Trust pipeline', tone: 'critical', summary: 'Critical', detail: 'Checks failed.' },
+        { id: 'connectivity', label: 'Source connectivity', tone: 'critical', summary: '0/2 sources nominal', detail: 'All sources offline.' },
+      ],
+      incidents: [],
+      sources: [
+        { source: 'STATE_BOARD', status: 'OUTAGE', lastSeen: null, artifactCount: 0 },
+        { source: 'NPPES', status: 'OUTAGE', lastSeen: null, artifactCount: 0 },
+      ],
+    }).mode).toBe('broken');
   });
 });

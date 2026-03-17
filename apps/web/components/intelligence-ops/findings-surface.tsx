@@ -19,6 +19,8 @@ import {
   getSurfaceFreshnessState,
   hasDegradedDataSources,
 } from '@/lib/intelligence/state';
+import { buildIntelligenceHref } from '@/lib/intelligence/routes';
+import { summarizeTrustSignals } from '@/lib/intelligence/trust-signals';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import { FindingFilters } from './finding-filters';
 import { OperationsShell } from './shell';
@@ -35,6 +37,7 @@ import {
 } from './primitives';
 import { FindingMutationControls } from './mutation-controls';
 import { formatPaginationSummary, Pagination } from './pagination';
+import { TrustSignalChips } from './trust-signal-chips';
 import { FindingCard } from '@/src/ui/components';
 
 const PAGE_SIZE = 10;
@@ -77,7 +80,9 @@ export function FindingsSurface() {
     if (providerScope) {
       params.set('provider', providerScope);
     }
-    const href = `${pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+    const href = pathname === '/intelligence'
+      ? buildIntelligenceHref('findings', params)
+      : `${pathname}${params.toString() ? `?${params.toString()}` : ''}`;
     if (href === currentHref) {
       findings.refresh();
       return;
@@ -129,7 +134,8 @@ export function FindingsSurface() {
 
   return (
     <OperationsShell
-      activeHref="/findings"
+      activeHref={pathname === '/intelligence' ? '/intelligence' : '/findings'}
+      activeNavKey="findings"
       title="Findings"
       description="Operational investigator findings with real filters, pagination, triage actions, and detail links into the underlying evidence."
       breadcrumbs={[{ label: 'Findings' }]}
@@ -217,11 +223,22 @@ export function FindingsSurface() {
             footer={(
               <div className="w-full space-y-4">
                 <div className="flex min-w-[14rem] flex-col gap-3 rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
-                  <div className="space-y-1">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Signals</p>
-                    <p className="text-sm text-[var(--vt-text-2)]">Priority {Math.round(finding.priorityScore)}</p>
-                    <ConfidenceMeter confidence={finding.confidence} />
-                    <TimestampPair label="Updated" value={finding.updatedAt} />
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Signals</p>
+                      <p className="text-sm text-[var(--vt-text-2)]">Priority {Math.round(finding.priorityScore)}</p>
+                      <ConfidenceMeter confidence={finding.confidence} />
+                      <TimestampPair label="Updated" value={finding.updatedAt} />
+                    </div>
+                    <TrustSignalChips
+                      summary={summarizeTrustSignals(
+                        finding.evidence.map((evidence) => ({
+                          source: evidence.source,
+                          observedAt: evidence.observedAt,
+                        })),
+                        finding.confidence,
+                      )}
+                    />
                   </div>
                   <FindingMutationControls findingId={finding.id} status={finding.status} compact />
                 </div>
@@ -260,7 +277,7 @@ export function FindingsSurface() {
                       href={`/providers/${finding.providerNpi}?from=${encodeURIComponent(currentHref)}`}
                       label={finding.providerLabel ?? `Provider ${finding.providerNpi}`}
                     />
-                    <EntityLink href={`/investigations?npi=${finding.providerNpi}`} label="Open investigation" />
+                    <EntityLink href={buildIntelligenceHref('investigations', { npi: finding.providerNpi })} label="Open investigation" />
                   </>
                 ) : null}
                 {finding.storylineId ? (

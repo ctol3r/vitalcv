@@ -1,4 +1,5 @@
 import { extractNpiFromValue } from './parser';
+import { buildIntelligenceHref } from '@/lib/intelligence/routes';
 import type {
   VCommandActionDefinition,
   VCommandInput,
@@ -6,16 +7,11 @@ import type {
 } from './types';
 
 function graphHref(context: VCommandNavigationContext): string {
-  const params = new URLSearchParams();
-
-  if (context.npi) {
-    params.set('npi', context.npi);
-  } else if (context.query.trim().length > 0) {
-    params.set('q', context.query.trim());
-  }
-
-  const serialized = params.toString();
-  return serialized.length > 0 ? `/graph?${serialized}` : '/graph';
+  return buildIntelligenceHref('dashboard', {
+    panel: 'graph',
+    npi: context.npi ?? undefined,
+    q: !context.npi && context.query.trim().length > 0 ? context.query.trim() : undefined,
+  });
 }
 
 export const VITAL_COMMANDS: VCommandActionDefinition[] = [
@@ -27,9 +23,7 @@ export const VITAL_COMMANDS: VCommandActionDefinition[] = [
     aliases: ['run verification', 'verify provider', 'start verification'],
     keywords: ['verification', 'investigate', 'provider'],
     buildHref: (context) => (
-      context.npi
-        ? `/investigations?npi=${encodeURIComponent(context.npi)}`
-        : '/investigations'
+      buildIntelligenceHref('investigations', context.npi ? { npi: context.npi } : undefined)
     ),
     buildGraphHref: graphHref,
   },
@@ -44,7 +38,7 @@ export const VITAL_COMMANDS: VCommandActionDefinition[] = [
     buildHref: (context) => (
       context.npi
         ? `/api/trust-proof/${encodeURIComponent(context.npi)}?format=pdf`
-        : '/providers'
+        : buildIntelligenceHref('providers')
     ),
     buildGraphHref: graphHref,
   },
@@ -66,9 +60,7 @@ export const VITAL_COMMANDS: VCommandActionDefinition[] = [
     aliases: ['open providers', 'providers', 'provider directory'],
     keywords: ['providers', 'directory', 'search'],
     buildHref: (context) => (
-      context.query.trim().length > 0
-        ? `/providers?q=${encodeURIComponent(context.query.trim())}`
-        : '/providers'
+      buildIntelligenceHref('providers', context.query.trim().length > 0 ? { q: context.query.trim() } : undefined)
     ),
     buildGraphHref: graphHref,
   },
@@ -80,9 +72,7 @@ export const VITAL_COMMANDS: VCommandActionDefinition[] = [
     aliases: ['open findings', 'findings', 'show findings'],
     keywords: ['findings', 'alerts', 'risk'],
     buildHref: (context) => (
-      context.npi
-        ? `/findings?provider=${encodeURIComponent(context.npi)}`
-        : '/findings'
+      buildIntelligenceHref('findings', context.npi ? { provider: context.npi } : undefined)
     ),
     buildGraphHref: graphHref,
   },

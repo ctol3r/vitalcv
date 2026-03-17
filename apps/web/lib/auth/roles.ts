@@ -49,6 +49,7 @@ export const PROTECTED_ROUTES: Array<{ pattern: RegExp; role: UserRoleType }> = 
   { pattern: /^\/system-health(\/.*)?$/, role: UserRole.AUTHENTICATED },
   { pattern: /^\/graph(\/.*)?$/, role: UserRole.AUTHENTICATED },
   { pattern: /^\/network(\/.*)?$/, role: UserRole.AUTHENTICATED },
+  { pattern: /^\/documents(\/.*)?$/, role: UserRole.AUTHENTICATED },
 ];
 
 /**

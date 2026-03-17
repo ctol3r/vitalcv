@@ -1,6 +1,6 @@
 import RootChrome from '@/components/layout/RootChrome';
+import { CommandPalette } from '@/components/ui/CommandPalette';
 import { Toaster } from '@/components/ui/toaster';
-import { CommandPalette } from '@/components/command/command-palette';
 import { vdsCssVariables } from '@/src/styles';
 import { ClerkProvider } from '@clerk/nextjs';
 import type { Metadata } from 'next';

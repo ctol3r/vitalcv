@@ -1,22 +1,21 @@
 'use client';
 
-import type { ReactNode } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Layers, Maximize2, RefreshCw } from 'lucide-react';
 import GraphCanvas from '@/components/graph-system/GraphCanvas';
+import { colorForNodeType } from '@/components/graph/graphPalette';
 import {
   DEFAULT_GRAPH_PHYSICS,
   DEFAULT_GRAPH_VISUALS,
 } from '@/components/graph/state/graphDisplayState';
-import { colorForNodeType } from '@/components/graph/graphPalette';
+import { SectionFrame, SurfaceState, ToneBadge } from '@/components/intelligence/shared';
 import type {
   IntelligenceGraphResponse,
   IntelligenceProvider,
 } from '@/lib/intelligence/contracts';
 import { findProviderForGraphNode } from '@/lib/intelligence/contracts';
-import { SectionFrame, SurfaceState, ToneBadge } from './shared';
 
-interface GraphPanelProps {
+interface GraphWorkbenchPanelProps {
   graph: IntelligenceGraphResponse | null;
   providers: IntelligenceProvider[];
   selectedProvider: IntelligenceProvider | null;
@@ -34,10 +33,7 @@ const LEGEND_ENTRIES: Array<{ type: string; label: string; color: string }> = [
   { type: 'exclusion', label: 'Exclusion', color: colorForNodeType('exclusion') },
 ];
 
-const MAX_CONTEXT_NODES = 180;
-const MAX_CONTEXT_EDGES = 320;
-
-export function GraphPanel({
+export function GraphWorkbenchPanel({
   graph,
   providers,
   selectedProvider,
@@ -45,7 +41,7 @@ export function GraphPanel({
   error,
   onSelectProvider,
   onRetry,
-}: GraphPanelProps) {
+}: GraphWorkbenchPanelProps) {
   const [dimensions, setDimensions] = useState({ width: 340, height: 380 });
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [showLegend, setShowLegend] = useState(false);
@@ -55,12 +51,11 @@ export function GraphPanel({
 
   useEffect(() => {
     const handleResize = () => {
-      const width =
-        window.innerWidth >= 1280
-          ? 380
-          : window.innerWidth >= 1024
-            ? 340
-            : Math.max(280, window.innerWidth - 72);
+      const width = window.innerWidth >= 1280
+        ? 380
+        : window.innerWidth >= 1024
+          ? 340
+          : Math.max(280, window.innerWidth - 72);
       setDimensions({ width, height: Math.round(width * 1.05) });
     };
 
@@ -69,52 +64,8 @@ export function GraphPanel({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const panelGraph = useMemo(() => {
-    if (!graph) {
-      return null;
-    }
-
-    const focusNodeId = graph.focusNodeId
-      ?? graph.nodes.find((node) => (
-        node.id === selectedProvider?.npi
-        || (typeof node.metadata?.npi === 'string' && node.metadata.npi === selectedProvider?.npi)
-      ))?.id
-      ?? null;
-    const sortedNodes = [...graph.nodes].sort((left, right) => (
-      Number(right.id === focusNodeId) - Number(left.id === focusNodeId) ||
-      right.degree - left.degree ||
-      left.label.localeCompare(right.label)
-    ));
-    const cappedNodes = sortedNodes.slice(0, MAX_CONTEXT_NODES);
-    const cappedNodeIds = new Set(cappedNodes.map((node) => node.id));
-    const sortedEdges = [...graph.edges]
-      .filter((edge) => cappedNodeIds.has(edge.source) && cappedNodeIds.has(edge.target))
-      .sort((left, right) => (
-        Number(right.source === focusNodeId || right.target === focusNodeId) -
-          Number(left.source === focusNodeId || left.target === focusNodeId) ||
-        right.weight - left.weight ||
-        right.confidence - left.confidence
-      ))
-      .slice(0, MAX_CONTEXT_EDGES);
-
-    const connectedNodeIds = new Set<string>();
-    for (const edge of sortedEdges) {
-      connectedNodeIds.add(edge.source);
-      connectedNodeIds.add(edge.target);
-    }
-
-    const visibleNodes = cappedNodes.filter((node) => connectedNodeIds.has(node.id) || node.id === focusNodeId);
-    return {
-      focusNodeId,
-      nodes: visibleNodes,
-      edges: sortedEdges,
-      cappedNodeCount: Math.max(0, graph.nodes.length - visibleNodes.length),
-      cappedEdgeCount: Math.max(0, graph.edges.length - sortedEdges.length),
-    };
-  }, [graph, selectedProvider?.npi]);
-
   useEffect(() => {
-    if (!panelGraph || !hoveredNodeId) {
+    if (!graph || !hoveredNodeId) {
       highlightedNodeIds.current = new Set();
       highlightedEdgeIds.current = new Set();
       return;
@@ -123,7 +74,7 @@ export function GraphPanel({
     const neighborNodeIds = new Set<string>([hoveredNodeId]);
     const neighborEdgeIds = new Set<string>();
 
-    for (const edge of panelGraph.edges) {
+    for (const edge of graph.edges) {
       if (edge.source === hoveredNodeId || edge.target === hoveredNodeId) {
         neighborNodeIds.add(edge.source);
         neighborNodeIds.add(edge.target);
@@ -133,12 +84,10 @@ export function GraphPanel({
 
     highlightedNodeIds.current = neighborNodeIds;
     highlightedEdgeIds.current = neighborEdgeIds;
-  }, [hoveredNodeId, panelGraph]);
+  }, [graph, hoveredNodeId]);
 
-  const visibleTypes = useMemo(
-    () => panelGraph ? [...new Set(panelGraph.nodes.map((node) => node.type))].slice(0, 5) : [],
-    [panelGraph],
-  );
+  const selectedNodeId = graph?.focusNodeId ?? selectedProvider?.npi ?? null;
+  const visibleTypes = graph ? [...new Set(graph.nodes.map((node) => node.type))].slice(0, 5) : [];
   const legendEntries = LEGEND_ENTRIES.filter((entry) => (
     visibleTypes.includes(entry.type as (typeof visibleTypes)[number])
   ));
@@ -147,39 +96,29 @@ export function GraphPanel({
     <SectionFrame
       eyebrow="Trust Graph"
       title={selectedProvider ? selectedProvider.name : 'Network Graph'}
-      detail={
-        selectedProvider
-          ? `Panel-optimized graph context for ${selectedProvider.name} (NPI ${selectedProvider.npi}). Hover highlights neighbors without disturbing layout.`
-          : 'Global trust graph. Select a provider from the sidebar to pivot into a local neighborhood.'
-      }
-      action={
-        panelGraph ? (
-          <div className="flex items-center gap-1.5">
-            <ToneBadge tone="neutral" label={`${panelGraph.nodes.length}n`} />
-            <ToneBadge tone="neutral" label={`${panelGraph.edges.length}e`} />
-            {(panelGraph.cappedNodeCount > 0 || panelGraph.cappedEdgeCount > 0) ? (
-              <ToneBadge tone="neutral" label="Panel cap" />
-            ) : null}
-          </div>
-        ) : null
-      }
+      detail={selectedProvider
+        ? `Live graph context for ${selectedProvider.name} (NPI ${selectedProvider.npi}). Hover a node to highlight its local neighborhood and click a provider node to re-scope the workbench.`
+        : 'Global trust graph. Select a provider from the dashboard to pivot into its local neighborhood.'}
+      action={graph ? (
+        <div className="flex items-center gap-1.5">
+          <ToneBadge tone="neutral" label={`${graph.stats.totalNodes}n`} />
+          <ToneBadge tone="neutral" label={`${graph.stats.totalEdges}e`} />
+        </div>
+      ) : null}
     >
       <SurfaceState
         loading={loading}
         error={error}
-        empty={!panelGraph || panelGraph.nodes.length === 0}
+        empty={!graph || graph.nodes.length === 0}
         emptyTitle="Graph not available"
         emptyCopy="The graph engine has not returned any visible nodes for this scope."
         onRetry={onRetry}
       >
-        {panelGraph ? (
+        {graph ? (
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1">
-                <ToolbarButton
-                  title="Reset graph layout"
-                  onClick={() => setResetKey((current) => current + 1)}
-                >
+                <ToolbarButton title="Reset graph layout" onClick={() => setResetKey((key) => key + 1)}>
                   <RefreshCw className="h-3 w-3" />
                 </ToolbarButton>
                 <ToolbarButton
@@ -199,28 +138,18 @@ export function GraphPanel({
             <div className="relative overflow-hidden rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-2">
               <GraphCanvas
                 key={resetKey}
-                nodes={panelGraph.nodes}
-                edges={panelGraph.edges}
-                layoutVersion={resetKey}
-                physics={{
-                  ...DEFAULT_GRAPH_PHYSICS,
-                  preset: 'presentation',
-                  centerForce: 0.011,
-                  repelForce: 120,
-                  linkForce: 0.065,
-                  linkDistance: 128,
-                  clusterForce: 0.038,
-                  frozen: true,
-                }}
+                nodes={graph.nodes}
+                edges={graph.edges}
+                physics={DEFAULT_GRAPH_PHYSICS}
                 visuals={{
                   ...DEFAULT_GRAPH_VISUALS,
-                  animate: false,
+                  animate: true,
                   clusterMode: 'type',
                   showArrows: false,
                   nodeSize: 6,
                   linkThickness: 1.2,
                 }}
-                selectedNodeId={panelGraph.focusNodeId}
+                selectedNodeId={selectedNodeId}
                 hoveredNodeId={hoveredNodeId}
                 highlightedNodeIds={highlightedNodeIds.current}
                 highlightedEdgeIds={highlightedEdgeIds.current}
@@ -229,7 +158,7 @@ export function GraphPanel({
                     return;
                   }
 
-                  const provider = findProviderForGraphNode(nodeId, panelGraph.nodes, providers);
+                  const provider = findProviderForGraphNode(nodeId, graph.nodes, providers);
                   if (provider) {
                     onSelectProvider(provider);
                   }
@@ -242,10 +171,10 @@ export function GraphPanel({
                 height={dimensions.height}
               />
 
-              {panelGraph.focusNodeId ? (
+              {selectedNodeId ? (
                 <div className="pointer-events-none absolute bottom-3 left-3">
                   <span className="rounded-full border border-yellow-400/20 bg-[var(--vt-surface)]/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-yellow-200/80 backdrop-blur">
-                    focus locked
+                    focus
                   </span>
                 </div>
               ) : null}
@@ -257,26 +186,23 @@ export function GraphPanel({
                 <div className="flex flex-wrap gap-2">
                   {legendEntries.map((entry) => (
                     <div key={entry.type} className="flex items-center gap-1.5">
-                      <span
-                        className="h-2 w-2 shrink-0 rounded-full"
-                        style={{ backgroundColor: entry.color }}
-                      />
+                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
                       <span className="text-[10px] text-[var(--vt-text-3)]">{entry.label}</span>
                     </div>
                   ))}
                 </div>
                 <div className="mt-3 flex flex-wrap gap-3">
-                  <EdgeLegendItem color="rgba(96,165,250,0.7)" dash={false} label="Explicit" />
-                  <EdgeLegendItem color="rgba(34,211,238,0.7)" dash label="Backlink" />
-                  <EdgeLegendItem color="rgba(192,132,252,0.7)" dash label="AI link" />
+                  <EdgeLegendItem color="var(--vt-info)" dash={false} label="Explicit" />
+                  <EdgeLegendItem color="var(--vt-accent)" dash label="Backlink" />
+                  <EdgeLegendItem color="var(--vt-warning)" dash label="AI link" />
                 </div>
               </div>
             ) : null}
 
             <div className="grid grid-cols-3 gap-2">
-              <MetricCard label="Nodes" value={String(panelGraph.nodes.length)} />
-              <MetricCard label="Edges" value={String(panelGraph.edges.length)} />
-              <MetricCard label="AI links" value={String(panelGraph.edges.filter((edge) => edge.type === 'ai_suggested_link').length)} />
+              <MetricCard label="Nodes" value={String(graph.stats.totalNodes)} />
+              <MetricCard label="Edges" value={String(graph.stats.totalEdges)} />
+              <MetricCard label="AI links" value={String(graph.stats.aiSuggestedLinks)} />
             </div>
           </div>
         ) : null}
@@ -291,7 +217,7 @@ function ToolbarButton({
   title,
   active = false,
 }: {
-  children: ReactNode;
+  children: React.ReactNode;
   onClick: () => void;
   title: string;
   active?: boolean;

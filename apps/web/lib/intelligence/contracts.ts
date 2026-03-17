@@ -7,6 +7,7 @@ export type WorkspaceSectionId =
   | 'actions'
   | 'providers'
   | 'investigations'
+  | 'investigation-workspace'
   | 'calibration'
   | 'system-health'
   | 'graph'
@@ -828,10 +829,22 @@ export function normalizeSystemHealthPayload(input: {
     cards[0]?.tone ?? 'neutral',
   ];
   const overall = [...overallCandidates].sort((left, right) => toneRank(right) - toneRank(left))[0] ?? 'neutral';
+  const lastHourVerifications = systemStatus?.verificationHealth?.last1h ?? 0;
+  const lastDayVerifications = systemStatus?.verificationHealth?.last24h ?? 0;
+  const hasArtifactTraffic = connectivity.some((entry) => entry.artifactCount > 0);
+  const headline = overall === 'critical'
+    ? 'Trust telemetry is failing closed in one or more core subsystems.'
+    : degradedSources > 0
+      ? 'Trust telemetry is live, but some connectors are degraded or offline.'
+      : connectivity.length === 0 && lastHourVerifications === 0 && !hasArtifactTraffic
+        ? 'Health checks are online, but no source telemetry has been reported yet.'
+        : lastHourVerifications === 0 && lastDayVerifications === 0
+          ? 'Connectors are online, but no recent verification traffic has been observed yet.'
+          : `${systemStatus?.uptime ?? '0h'} uptime • ${connectivity.length} connected systems`;
 
   return {
     overall,
-    headline: `${systemStatus?.uptime ?? '0h'} uptime • ${connectivity.length} connected systems`,
+    headline,
     generatedAt: systemStatus?.generatedAt ?? new Date().toISOString(),
     cards,
     incidents,

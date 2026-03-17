@@ -2,15 +2,22 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { OpsCard, OpsBadge } from './primitives';
-import { formatRelativeTime } from '@/lib/intelligence/time';
-
-// ── Types ──────────────────────────────────────────────────────────────────────
+import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
+import {
+  classifyFreshness,
+  classifySourceQuality,
+  deriveEvidenceQuality,
+  summarizeTrustSignals,
+  type FreshnessMarker,
+  type SourceQualityMarker,
+} from '@/lib/intelligence/trust-signals';
+import { TrustSignalChips } from './trust-signal-chips';
 
 export interface EvidenceItem {
   source: string;
-  claim: string; // Used as the value
+  claim: string;
   confidence: number;
-  observedAt?: string | null; // Retrieval timestamp
+  observedAt?: string | null;
   field?: string;
   provenanceChain?: string[];
   qualityRating?: EvidenceQuality;
@@ -27,13 +34,11 @@ interface EvidenceViewerPanelProps {
   onQualitySubmit?: (findingId: string, quality: EvidenceQuality) => void;
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
 const QUALITY_OPTIONS: { value: EvidenceQuality; label: string; desc: string }[] = [
-  { value: 'STRONG',   label: 'Strong',   desc: 'Multiple corroborating primary sources' },
+  { value: 'STRONG', label: 'Strong', desc: 'Multiple corroborating primary sources' },
   { value: 'ADEQUATE', label: 'Adequate', desc: 'Single primary source with context' },
-  { value: 'WEAK',     label: 'Weak',     desc: 'Secondary or inferred only' },
-  { value: 'MISSING',  label: 'Missing',  desc: 'No supporting evidence' },
+  { value: 'WEAK', label: 'Weak', desc: 'Secondary or inferred only' },
+  { value: 'MISSING', label: 'Missing', desc: 'No supporting evidence' },
 ];
 
 function confidenceBar(confidence: number) {
@@ -50,53 +55,31 @@ function confidenceBar(confidence: number) {
 }
 
 function summarizeEvidence(evidence: EvidenceItem[]): string {
-  const sources = new Set(evidence.map(e => e.source));
+  const sources = new Set(evidence.map((item) => item.source));
   const avgConf = evidence.length > 0
-    ? Math.round(evidence.reduce((s, e) => s + e.confidence, 0) / evidence.length * 100)
+    ? Math.round((evidence.reduce((sum, item) => sum + item.confidence, 0) / evidence.length) * 100)
     : 0;
-  const highConf = evidence.filter(e => e.confidence >= 0.8).length;
-  const corroborationCount = evidence.reduce((s, e) => s + (e.corroborationCount ?? 0), 0);
-  return `${sources.size} source${sources.size === 1 ? '' : 's'} · ${evidence.length} record${evidence.length === 1 ? '' : 's'} · ${corroborationCount} corroborations · ${avgConf}% avg confidence${highConf > 0 ? ` · ${highConf} high-confidence` : ''}`;
+  const corroborationCount = evidence.some((item) => typeof item.corroborationCount === 'number')
+    ? Math.max(...evidence.map((item) => item.corroborationCount ?? 0))
+    : Math.max(0, sources.size - 1);
+
+  return `${sources.size} source${sources.size === 1 ? '' : 's'} · ${evidence.length} record${evidence.length === 1 ? '' : 's'} · ${corroborationCount} corroborations · ${avgConf}% avg confidence`;
 }
 
-function corroborationLevel(evidence: EvidenceItem[]): {
-  label: string;
-  tone: 'success' | 'warning' | 'critical' | 'neutral';
-  detail: string;
-} {
-  const sources = new Set(evidence.map(e => e.source));
-  const highConf = evidence.filter(e => e.confidence >= 0.7);
-  const avgConf = evidence.length > 0
-    ? evidence.reduce((s, e) => s + e.confidence, 0) / evidence.length
-    : 0;
+function sortEvidence(items: EvidenceRow[], mode: SortMode): EvidenceRow[] {
+  return [...items].sort((left, right) => {
+    if (mode === 'confidence') {
+      return right.confidence - left.confidence;
+    }
 
-  if (sources.size >= 3 && highConf.length >= 2 && avgConf >= 0.7) {
-    return { label: 'Strong corroboration', tone: 'success', detail: `${sources.size} independent sources agree with high confidence` };
-  }
-  if (sources.size >= 2 && avgConf >= 0.5) {
-    return { label: 'Moderate corroboration', tone: 'neutral', detail: `${sources.size} sources with moderate agreement` };
-  }
-  if (sources.size === 1 && evidence.length > 0) {
-    return { label: 'Single source', tone: 'warning', detail: 'Only one data source — consider additional verification' };
-  }
-  if (evidence.length === 0) {
-    return { label: 'No evidence', tone: 'critical', detail: 'No supporting evidence found' };
-  }
-  return { label: 'Weak corroboration', tone: 'warning', detail: `${sources.size} source${sources.size === 1 ? '' : 's'} with low agreement` };
-}
-
-function sortEvidence(items: EvidenceItem[], mode: SortMode): EvidenceItem[] {
-  return [...items].sort((a, b) => {
-    if (mode === 'confidence') return b.confidence - a.confidence;
-    // newest: by observedAt descending
-    const ta = a.observedAt ? new Date(a.observedAt).getTime() : 0;
-    const tb = b.observedAt ? new Date(b.observedAt).getTime() : 0;
-    return tb - ta;
+    const leftTs = left.observedAt ? new Date(left.observedAt).getTime() : 0;
+    const rightTs = right.observedAt ? new Date(right.observedAt).getTime() : 0;
+    return rightTs - leftTs;
   });
 }
 
-function groupBySource(items: EvidenceItem[]): Map<string, EvidenceItem[]> {
-  const groups = new Map<string, EvidenceItem[]>();
+function groupBySource(items: EvidenceRow[]): Map<string, EvidenceRow[]> {
+  const groups = new Map<string, EvidenceRow[]>();
   for (const item of items) {
     const group = groups.get(item.source) ?? [];
     group.push(item);
@@ -105,7 +88,78 @@ function groupBySource(items: EvidenceItem[]): Map<string, EvidenceItem[]> {
   return groups;
 }
 
-// ── Component ──────────────────────────────────────────────────────────────────
+type EvidenceRow = EvidenceItem & {
+  field: string;
+  qualityRating: EvidenceQuality;
+  corroborationCount: number;
+  provenanceChain: string[];
+  freshness: FreshnessMarker;
+  sourceQuality: SourceQualityMarker;
+};
+
+function normalizeEvidenceItem(item: EvidenceItem, sourceCount: number): EvidenceRow {
+  const field = item.field?.trim() ? item.field.trim() : 'Claim';
+  const corroborationCount = item.corroborationCount ?? Math.max(0, sourceCount - 1);
+  const sourceQuality = classifySourceQuality(item.source);
+
+  return {
+    ...item,
+    field,
+    qualityRating: item.qualityRating ?? deriveEvidenceQuality({
+      confidence: item.confidence,
+      corroborationCount,
+      sourceQuality,
+    }),
+    corroborationCount,
+    provenanceChain: item.provenanceChain?.length
+      ? item.provenanceChain
+      : [item.source, field, 'finding context'],
+    freshness: classifyFreshness(item.observedAt),
+    sourceQuality,
+  };
+}
+
+function badgeToneForQuality(value: EvidenceQuality): 'success' | 'warning' | 'critical' | 'neutral' | 'info' {
+  switch (value) {
+    case 'STRONG':
+      return 'success';
+    case 'ADEQUATE':
+      return 'info';
+    case 'WEAK':
+      return 'warning';
+    case 'MISSING':
+    default:
+      return 'neutral';
+  }
+}
+
+function badgeToneForFreshness(value: FreshnessMarker): 'success' | 'warning' | 'critical' | 'neutral' {
+  switch (value) {
+    case 'FRESH':
+      return 'success';
+    case 'AGING':
+      return 'warning';
+    case 'STALE':
+      return 'critical';
+    case 'UNKNOWN':
+    default:
+      return 'neutral';
+  }
+}
+
+function badgeToneForSourceQuality(value: SourceQualityMarker): 'success' | 'warning' | 'critical' | 'neutral' | 'info' {
+  switch (value) {
+    case 'AUTHORITATIVE':
+      return 'success';
+    case 'DERIVED':
+      return 'warning';
+    case 'MIXED':
+      return 'info';
+    case 'UNKNOWN':
+    default:
+      return 'neutral';
+  }
+}
 
 export function EvidenceViewerPanel({
   evidence,
@@ -120,13 +174,30 @@ export function EvidenceViewerPanel({
   const [sortMode, setSortMode] = useState<SortMode>('confidence');
   const [groupMode, setGroupMode] = useState<GroupMode>('none');
 
-  const sorted = useMemo(() => sortEvidence(evidence, sortMode), [evidence, sortMode]);
+  const normalizedEvidence = useMemo(() => {
+    const sourceCount = new Set(evidence.map((item) => item.source)).size;
+    return evidence.map((item) => normalizeEvidenceItem(item, sourceCount));
+  }, [evidence]);
+  const sorted = useMemo(() => sortEvidence(normalizedEvidence, sortMode), [normalizedEvidence, sortMode]);
   const grouped = useMemo(() => groupMode === 'source' ? groupBySource(sorted) : null, [sorted, groupMode]);
-  const summary = useMemo(() => summarizeEvidence(evidence), [evidence]);
-  const corroboration = useMemo(() => corroborationLevel(evidence), [evidence]);
+  const summary = useMemo(() => summarizeEvidence(normalizedEvidence), [normalizedEvidence]);
+  const trustSummary = useMemo(
+    () => summarizeTrustSignals(normalizedEvidence.map((item) => ({
+      source: item.source,
+      observedAt: item.observedAt,
+      confidence: item.confidence,
+      qualityRating: item.qualityRating,
+      corroborationCount: item.corroborationCount,
+      sourceQuality: item.sourceQuality,
+    }))),
+    [normalizedEvidence],
+  );
 
   const handleSubmitQuality = useCallback(async () => {
-    if (!findingId || !selectedQuality) return;
+    if (!findingId || !selectedQuality) {
+      return;
+    }
+
     setSubmitting(true);
     try {
       if (onQualitySubmit) {
@@ -143,63 +214,76 @@ export function EvidenceViewerPanel({
         });
       }
       setSubmitted(true);
-    } catch { /* silent */ } finally {
+    } catch {
+      // Intentionally silent: the surrounding workbench already exposes the action state.
+    } finally {
       setSubmitting(false);
     }
-  }, [findingId, selectedQuality, onQualitySubmit]);
+  }, [findingId, onQualitySubmit, selectedQuality]);
 
-  if (evidence.length === 0) return null;
+  if (evidence.length === 0) {
+    return null;
+  }
 
-  function renderEvidenceRow(ev: EvidenceItem, idx: number) {
+  function renderEvidenceRow(item: EvidenceRow, idx: number) {
     const isExpanded = expandedIdx === idx;
+
     return (
       <div
         key={idx}
         className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-2.5 transition-all duration-120 hover:border-[var(--vt-text-3)]/30"
       >
-        <button className="flex w-full items-center gap-2.5 text-left" onClick={() => setExpandedIdx(isExpanded ? null : idx)}>
+        <button
+          className="flex w-full items-center gap-2.5 text-left"
+          onClick={() => setExpandedIdx(isExpanded ? null : idx)}
+        >
           <span className="shrink-0 rounded border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--vt-text-2)]">
-            {ev.source}
+            {item.source}
           </span>
-          <span className={`flex-1 text-xs text-[var(--vt-text-2)] ${isExpanded ? '' : 'truncate'}`}>{ev.claim}</span>
-          <span className="shrink-0">{confidenceBar(ev.confidence)}</span>
-          <span className="shrink-0 text-[10px] text-[var(--vt-text-3)] transition-transform duration-120" style={{ transform: isExpanded ? 'rotate(90deg)' : 'none' }}>▸</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--vt-text-3)]">{item.field}</p>
+            <span className={`block text-xs text-[var(--vt-text-2)] ${isExpanded ? '' : 'truncate'}`}>{item.claim}</span>
+          </div>
+          <span className="shrink-0">
+            <OpsBadge label={item.qualityRating.toLowerCase()} tone={badgeToneForQuality(item.qualityRating)} />
+          </span>
+          <span className="shrink-0">{confidenceBar(item.confidence)}</span>
+          <span
+            className="shrink-0 text-[10px] text-[var(--vt-text-3)] transition-transform duration-120"
+            style={{ transform: isExpanded ? 'rotate(90deg)' : 'none' }}
+          >
+            ▸
+          </span>
         </button>
         {isExpanded ? (
           <div className="mt-2.5 space-y-2 border-t border-[var(--vt-border)] pt-2.5 transition-opacity duration-120">
+            <div className="flex flex-wrap gap-1.5">
+              <OpsBadge label={item.freshness.toLowerCase()} tone={badgeToneForFreshness(item.freshness)} />
+              <OpsBadge label={item.sourceQuality.toLowerCase()} tone={badgeToneForSourceQuality(item.sourceQuality)} />
+              <OpsBadge label={`${item.corroborationCount} corroborations`} tone={item.corroborationCount > 0 ? 'success' : 'neutral'} />
+            </div>
             <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
               <span className="text-[var(--vt-text-3)]">Source</span>
-              <span className="font-medium text-[var(--vt-text-1)]">{ev.source}</span>
-              {ev.field && (
-                <>
-                  <span className="text-[var(--vt-text-3)]">Field</span>
-                  <span className="text-[var(--vt-text-2)]">{ev.field}</span>
-                </>
-              )}
+              <span className="font-medium text-[var(--vt-text-1)]">{item.source}</span>
+              <span className="text-[var(--vt-text-3)]">Field</span>
+              <span className="text-[var(--vt-text-2)]">{item.field}</span>
               <span className="text-[var(--vt-text-3)]">Value</span>
-              <span className="text-[var(--vt-text-2)]">{ev.claim}</span>
+              <span className="text-[var(--vt-text-2)]">{item.claim}</span>
               <span className="text-[var(--vt-text-3)]">Confidence</span>
-              <span className="tabular-nums text-[var(--vt-text-1)]">{Math.round(ev.confidence * 100)}%</span>
+              <span className="tabular-nums text-[var(--vt-text-1)]">{Math.round(item.confidence * 100)}%</span>
               <span className="text-[var(--vt-text-3)]">Retrieved</span>
-              <span className="text-[var(--vt-text-2)]">{ev.observedAt ? formatRelativeTime(ev.observedAt) : '—'}</span>
-              {ev.qualityRating && (
-                <>
-                  <span className="text-[var(--vt-text-3)]">Quality Rating</span>
-                  <span className="text-[var(--vt-text-2)]">{ev.qualityRating}</span>
-                </>
-              )}
-              {ev.corroborationCount !== undefined && (
-                <>
-                  <span className="text-[var(--vt-text-3)]">Corroborations</span>
-                  <span className="text-[var(--vt-text-2)]">{ev.corroborationCount}</span>
-                </>
-              )}
-              {ev.provenanceChain && ev.provenanceChain.length > 0 && (
-                <>
-                  <span className="text-[var(--vt-text-3)]">Provenance</span>
-                  <span className="text-[var(--vt-text-2)]">{ev.provenanceChain.join(' → ')}</span>
-                </>
-              )}
+              <span className="text-[var(--vt-text-2)]">
+                {item.observedAt ? (
+                  <>
+                    <span title={formatAbsoluteTime(item.observedAt)}>{formatRelativeTime(item.observedAt)}</span>
+                    <span className="block text-[10px] text-[var(--vt-text-3)]">{formatAbsoluteTime(item.observedAt)}</span>
+                  </>
+                ) : '—'}
+              </span>
+              <span className="text-[var(--vt-text-3)]">Provenance</span>
+              <span className="text-[var(--vt-text-2)]">{item.provenanceChain.join(' → ')}</span>
+              <span className="text-[var(--vt-text-3)]">Quality rating</span>
+              <span className="text-[var(--vt-text-2)]">{item.qualityRating}</span>
             </div>
             <div className="flex gap-2">
               <button className="rounded-full border border-[var(--vt-border)] px-2.5 py-1 text-[10px] text-[var(--vt-text-3)] transition hover:border-cyan-400/40 hover:text-cyan-400">
@@ -217,24 +301,12 @@ export function EvidenceViewerPanel({
 
   return (
     <OpsCard className="space-y-2.5">
-      {/* Header with controls */}
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.15em] text-[var(--vt-text-3)]">Evidence ({evidence.length})</p>
           <p className="mt-0.5 text-[10px] text-[var(--vt-text-3)]">{summary}</p>
-          <div className="mt-1 flex items-center gap-1.5">
-            <span className={`inline-block h-1.5 w-1.5 rounded-full ${
-              corroboration.tone === 'success' ? 'bg-emerald-500' :
-              corroboration.tone === 'warning' ? 'bg-amber-500' :
-              corroboration.tone === 'critical' ? 'bg-red-500' :
-              'bg-sky-500'
-            }`} />
-            <span className="text-[10px] font-medium text-[var(--vt-text-2)]">{corroboration.label}</span>
-            <span className="text-[10px] text-[var(--vt-text-3)]">— {corroboration.detail}</span>
-          </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* Sort toggle */}
           <div className="flex rounded-lg border border-[var(--vt-border)] text-[10px]">
             <button
               onClick={() => setSortMode('confidence')}
@@ -249,52 +321,54 @@ export function EvidenceViewerPanel({
               Newest
             </button>
           </div>
-          {/* Group toggle */}
           <button
-            onClick={() => setGroupMode(g => g === 'none' ? 'source' : 'none')}
+            onClick={() => setGroupMode((current) => current === 'none' ? 'source' : 'none')}
             className={`rounded-lg border border-[var(--vt-border)] px-2 py-1 text-[10px] transition ${groupMode === 'source' ? 'bg-cyan-400/10 text-[var(--vt-text-1)]' : 'text-[var(--vt-text-3)]'}`}
           >
             Group
           </button>
-          {/* Collapse */}
-          <button onClick={() => setCollapsed(c => !c)} className="text-xs text-[var(--vt-text-3)] transition hover:text-[var(--vt-text-1)]">
+          <button
+            onClick={() => setCollapsed((current) => !current)}
+            className="text-xs text-[var(--vt-text-3)] transition hover:text-[var(--vt-text-1)]"
+          >
             {collapsed ? 'Expand' : 'Collapse'}
           </button>
         </div>
       </div>
 
+      <TrustSignalChips summary={trustSummary} />
+
       {!collapsed ? (
         <div className="max-h-[320px] space-y-1.5 overflow-y-auto">
           {grouped ? (
-            // Grouped by source
             [...grouped.entries()].map(([source, items]) => (
               <div key={source} className="space-y-1">
-                <p className="px-1 text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--vt-text-3)]">{source} ({items.length})</p>
-                {items.map((ev, idx) => renderEvidenceRow(ev, sorted.indexOf(ev)))}
+                <p className="px-1 text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--vt-text-3)]">
+                  {source} ({items.length})
+                </p>
+                {items.map((item, idx) => renderEvidenceRow(item, sorted.indexOf(item)))}
               </div>
             ))
           ) : (
-            // Flat list
-            sorted.map((ev, idx) => renderEvidenceRow(ev, idx))
+            sorted.map((item, idx) => renderEvidenceRow(item, idx))
           )}
 
-          {/* Quality selector */}
           {findingId ? (
             <div className="border-t border-[var(--vt-border)] pt-2.5">
               <p className="mb-1.5 text-xs text-[var(--vt-text-3)]">Rate evidence quality:</p>
               <div className="flex flex-wrap gap-1.5">
-                {QUALITY_OPTIONS.map((opt) => (
+                {QUALITY_OPTIONS.map((option) => (
                   <button
-                    key={opt.value}
-                    onClick={() => setSelectedQuality(opt.value)}
-                    title={opt.desc}
+                    key={option.value}
+                    onClick={() => setSelectedQuality(option.value)}
+                    title={option.desc}
                     className={`rounded-full border px-2.5 py-1 text-[10px] transition ${
-                      selectedQuality === opt.value
+                      selectedQuality === option.value
                         ? 'border-cyan-400/60 bg-cyan-400/10 text-[var(--vt-text-1)]'
                         : 'border-[var(--vt-border)] text-[var(--vt-text-3)] hover:border-[var(--vt-text-3)]/40'
                     }`}
                   >
-                    {opt.label}
+                    {option.label}
                   </button>
                 ))}
               </div>

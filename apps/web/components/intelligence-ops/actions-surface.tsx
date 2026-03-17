@@ -11,6 +11,7 @@ import {
   getSurfaceFreshnessState,
   hasDegradedDataSources,
 } from '@/lib/intelligence/state';
+import { buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import { OperationsShell } from './shell';
 import {
@@ -73,7 +74,11 @@ export function ActionsSurface() {
       params.set('page', String(nextPage));
     }
     startTransition(() => {
-      router.push(`${pathname}${params.toString() ? `?${params.toString()}` : ''}`);
+      router.push(
+        pathname === '/intelligence'
+          ? buildIntelligenceHref('actions', params)
+          : `${pathname}${params.toString() ? `?${params.toString()}` : ''}`,
+      );
     });
   }
 
@@ -89,7 +94,8 @@ export function ActionsSurface() {
 
   return (
     <OperationsShell
-      activeHref="/actions"
+      activeHref={pathname === '/intelligence' ? '/intelligence' : '/actions'}
+      activeNavKey="actions"
       title="Actions"
       description="Recommendation queue with direct status mutations, detail routes, and links back to the providers and findings that triggered each action."
       breadcrumbs={[{ label: 'Actions' }]}
@@ -253,7 +259,7 @@ export function ActionsSurface() {
                         href={`/providers/${action.providerNpi}?from=${encodeURIComponent(currentHref)}`}
                         label={action.targetLabel ?? `Provider ${action.providerNpi}`}
                       />
-                      <EntityLink href={`/investigations?npi=${action.providerNpi}`} label="Open investigation" />
+                      <EntityLink href={buildIntelligenceHref('investigations', { npi: action.providerNpi })} label="Open investigation" />
                     </>
                   ) : null}
                   {action.sourceFindingIds[0] ? (

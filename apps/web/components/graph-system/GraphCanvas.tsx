@@ -35,6 +35,7 @@ interface Props {
   onViewportChange?: (viewport: GraphViewportState) => void;
   width: number;
   height: number;
+  layoutVersion?: number;
 }
 
 interface DragState {
@@ -71,15 +72,17 @@ export default React.memo(function GraphCanvas({
   onViewportChange,
   width,
   height,
+  layoutVersion = 0,
 }: Props) {
-  // Cap node and edge counts for performance
-  const nodes = useMemo(() => rawNodes.length > 500 ? rawNodes.slice(0, 500) : rawNodes, [rawNodes]);
+  const nodes = useMemo(
+    () => (rawNodes.length > 500 ? rawNodes.slice(0, 500) : rawNodes),
+    [rawNodes],
+  );
   const edges = useMemo(() => {
     const subset = rawEdges.length > 1000 ? rawEdges.slice(0, 1000) : rawEdges;
-    // ensure edges only reference nodes that exist after cap
-    const nodeIds = new Set(nodes.map(n => n.id));
-    return subset.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
-  }, [rawEdges, nodes]);
+    const nodeIds = new Set(nodes.map((node) => node.id));
+    return subset.filter((edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target));
+  }, [nodes, rawEdges]);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>(0);
@@ -100,6 +103,7 @@ export default React.memo(function GraphCanvas({
     zoom: 1,
     zoomBand: 'network',
   });
+  const hoveredNodeRef = useRef<string | null>(null);
 
   const relationshipCountByNodeId = useMemo(() => {
     const counts = new Map<string, number>();
@@ -120,6 +124,7 @@ export default React.memo(function GraphCanvas({
     physics,
     visuals,
     selectedNodeId,
+    layoutVersion,
   });
 
   const { showTooltip, hideTooltip } = useTippyGraph(canvasRef);
@@ -243,8 +248,7 @@ export default React.memo(function GraphCanvas({
         const linkClass = classifyEdgeType(edge);
         const style = LINK_CLASS_STYLES[linkClass];
         const isHighlighted = highlightedEdgeIds.has(edge.id);
-        const isDimmed =
-          (selectedNodeId != null || hoveredNodeId != null) && !isHighlighted;
+        const isDimmed = (selectedNodeId != null || hoveredNodeId != null) && !isHighlighted;
         const edgeStrength = resolveEdgeStrength(edge);
         const sourceX = source.x ?? 0;
         const sourceY = source.y ?? 0;
@@ -352,21 +356,18 @@ export default React.memo(function GraphCanvas({
             : 'rgba(226, 232, 240, 0.18)';
         context.stroke();
 
-        const zoom = camera.zoom;
-        const shouldShowLabel =
-          visuals.showLabels &&
-          (
-            isSelected ||
-            isHovered ||
-            (zoomBand === 'overview' && node.degree >= 8 && zoom >= 0.62) ||
-            (zoomBand === 'network' && node.degree >= 4 && zoom >= 0.88) ||
-            (zoomBand === 'evidence' && node.degree >= 2 && zoom >= 1.08) ||
-            zoom >= 1.5
-          );
+        const shouldShowLabel = visuals.showLabels && (
+          isSelected ||
+          isHovered ||
+          (zoomBand === 'overview' && node.degree >= 8 && camera.zoom >= 0.62) ||
+          (zoomBand === 'network' && node.degree >= 4 && camera.zoom >= 0.88) ||
+          (zoomBand === 'evidence' && node.degree >= 2 && camera.zoom >= 1.08) ||
+          camera.zoom >= 1.5
+        );
 
         if (shouldShowLabel) {
           const label = node.label.length > 24 ? `${node.label.slice(0, 23)}…` : node.label;
-          context.font = `${isSelected ? '700' : '600'} ${Math.max(10, 12 / zoom)}px ${themeTypography.family.canvas}`;
+          context.font = `${isSelected ? '700' : '600'} ${Math.max(10, 12 / camera.zoom)}px ${themeTypography.family.canvas}`;
           context.fillStyle = isDimmed ? 'rgba(148, 163, 184, 0.45)' : 'rgba(226, 232, 240, 0.95)';
           context.textAlign = 'center';
           context.textBaseline = 'middle';
@@ -443,7 +444,7 @@ export default React.memo(function GraphCanvas({
       cameraX: cameraRef.current.x,
       cameraY: cameraRef.current.y,
     };
-  }, [hitTest, simNodesRef, width]);
+  }, [height, hitTest, simNodesRef, width]);
 
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -473,7 +474,10 @@ export default React.memo(function GraphCanvas({
     }
 
     const nodeId = hitTest(event.clientX, event.clientY);
-    onHoverNode(nodeId);
+    if (hoveredNodeRef.current !== nodeId) {
+      hoveredNodeRef.current = nodeId;
+      onHoverNode(nodeId);
+    }
 
     if (!nodeId) {
       hideTooltip();
@@ -486,7 +490,11 @@ export default React.memo(function GraphCanvas({
       return;
     }
 
-    showTooltip(node, { clientX: event.clientX, clientY: event.clientY }, relationshipCountByNodeId.get(nodeId) ?? 0);
+    showTooltip(
+      node,
+      { clientX: event.clientX, clientY: event.clientY },
+      relationshipCountByNodeId.get(nodeId) ?? 0,
+    );
   }, [
     hideTooltip,
     hitTest,
@@ -495,6 +503,7 @@ export default React.memo(function GraphCanvas({
     showTooltip,
     simNodesRef,
     updateNodePosition,
+    height,
     width,
   ]);
 
@@ -523,7 +532,7 @@ export default React.memo(function GraphCanvas({
     }
 
     onSelectNode(hitTest(event.clientX, event.clientY));
-  }, [hitTest, onDragNode, onPinNode, onSelectNode, simNodesRef]);
+  }, [emitViewportChange, hitTest, onDragNode, onPinNode, onSelectNode, simNodesRef]);
 
   const handleDoubleClick = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const nodeId = hitTest(event.clientX, event.clientY);
@@ -562,6 +571,7 @@ export default React.memo(function GraphCanvas({
       onDoubleClick={handleDoubleClick}
       onMouseDown={handleMouseDown}
       onMouseLeave={() => {
+        hoveredNodeRef.current = null;
         onHoverNode(null);
         hideTooltip();
       }}

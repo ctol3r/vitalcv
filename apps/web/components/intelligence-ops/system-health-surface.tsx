@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useSystemHealth } from '@/hooks/useSystemHealth';
 import {
+  deriveSystemHealthSurfaceState,
   formatLastRefreshMessage,
   getSurfaceFreshnessState,
   hasDegradedDataSources,
@@ -21,6 +22,7 @@ export function SystemHealthSurface() {
     lastUpdated: health.lastUpdated,
   });
   const degradedSources = hasDegradedDataSources(health.data);
+  const surfaceState = deriveSystemHealthSurfaceState(health.data, Boolean(health.error && !health.data));
 
   async function runScan() {
     setScanState('running');
@@ -60,7 +62,8 @@ export function SystemHealthSurface() {
 
   return (
     <OperationsShell
-      activeHref="/system-health"
+      activeHref="/intelligence"
+      activeNavKey="system-health"
       title="System Health"
       description="Connector, graph, and pipeline posture with degraded-state messaging and direct operator triggers for scans and polling."
       breadcrumbs={[{ label: 'System Health' }]}
@@ -68,12 +71,21 @@ export function SystemHealthSurface() {
         <div className="space-y-1">
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Platform state</p>
           <div className="flex items-center gap-2">
-            <div className={`h-2.5 w-2.5 rounded-full ${health.error && !health.data ? 'bg-red-500 animate-pulse' : degradedSources ? 'bg-amber-500' : health.data?.cards?.length === 0 ? 'bg-sky-500' : 'bg-emerald-500 shadow-sm shadow-emerald-500/30'}`} />
+            <div className={`h-2.5 w-2.5 rounded-full ${
+              surfaceState.mode === 'broken'
+                ? 'bg-red-500 animate-pulse'
+                : surfaceState.mode === 'degraded'
+                  ? 'bg-amber-500'
+                  : surfaceState.mode === 'empty'
+                    ? 'bg-sky-500'
+                    : 'bg-emerald-500 shadow-sm shadow-emerald-500/30'
+            }`} />
             <p className="font-medium text-[var(--vt-text-1)]">
-              {health.error && !health.data ? 'Broken (Telemetry Offline)' : degradedSources ? 'Degraded' : health.data?.cards?.length === 0 ? 'Empty but functioning' : 'Healthy'}
+              {surfaceState.label}
             </p>
           </div>
-          <p className="text-xs text-[var(--vt-text-2)]">{health.data?.headline ?? 'Waiting for telemetry'}</p>
+          <p className="text-xs text-[var(--vt-text-2)]">{surfaceState.description}</p>
+          <p className="text-xs text-[var(--vt-text-3)]">{health.data?.headline ?? 'Waiting for telemetry'}</p>
           {health.lastUpdated ? (
             <p className="text-[10px] text-[var(--vt-text-3)]" title={formatAbsoluteTime(health.lastUpdated)}>Updated {formatRelativeTime(health.lastUpdated)}</p>
           ) : null}
@@ -117,6 +129,16 @@ export function SystemHealthSurface() {
               Some data sources are degraded. Findings may be incomplete.
             </SurfaceBanner>
           ) : null}
+          {surfaceState.mode === 'empty' ? (
+            <SurfaceBanner tone="info">
+              The health plane is reachable, but it has not observed meaningful verification traffic yet.
+            </SurfaceBanner>
+          ) : null}
+          {surfaceState.mode === 'broken' && health.data ? (
+            <SurfaceBanner tone="critical">
+              Multiple trust subsystems are failing closed. Treat evidence freshness and connector coverage as incomplete until operators remediate the outage.
+            </SurfaceBanner>
+          ) : null}
           {staleState.isStale && staleState.ageMinutes !== null ? (
             <SurfaceBanner tone="info">
               {formatLastRefreshMessage(staleState.ageMinutes)}
@@ -137,6 +159,20 @@ export function SystemHealthSurface() {
           onRetry={health.refresh}
         />
       ) : null}
+
+      <OpsCard className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Current state</h2>
+          <OpsBadge
+            label={surfaceState.label}
+            tone={surfaceState.mode === 'healthy' ? 'success' : surfaceState.mode === 'empty' ? 'info' : surfaceState.mode === 'degraded' ? 'warning' : 'critical'}
+          />
+        </div>
+        <p className="text-sm text-[var(--vt-text-2)]">{surfaceState.description}</p>
+        <p className="text-sm text-[var(--vt-text-3)]">
+          {health.data?.sources.length ?? 0} connector{(health.data?.sources.length ?? 0) === 1 ? '' : 's'} • {health.data?.incidents.length ?? 0} active incident{(health.data?.incidents.length ?? 0) === 1 ? '' : 's'}
+        </p>
+      </OpsCard>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {(health.data?.cards ?? []).length > 0 ? (

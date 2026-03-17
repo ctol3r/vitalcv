@@ -1,4 +1,5 @@
 import { ProviderDetailView } from '@/components/intelligence-ops/provider-detail-view';
+import { buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { loadProviderDetail } from '@/lib/intelligence/server';
 import { safeLocalHref } from '@/lib/intelligence/time';
 import { notFound } from 'next/navigation';
@@ -27,7 +28,7 @@ export default async function ProviderDetailPage({
   return (
     <ProviderDetailView
       detail={detail}
-      backHref={safeLocalHref(typeof resolvedSearchParams.from === 'string' ? resolvedSearchParams.from : null, '/providers')}
+      backHref={safeLocalHref(typeof resolvedSearchParams.from === 'string' ? resolvedSearchParams.from : null, buildIntelligenceHref('providers'))}
     />
   );
 }

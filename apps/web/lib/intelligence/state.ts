@@ -14,6 +14,14 @@ export interface FindingsEmptyState {
   title: string;
 }
 
+export type SystemHealthSurfaceMode = 'healthy' | 'empty' | 'degraded' | 'broken';
+
+export interface SystemHealthSurfaceState {
+  mode: SystemHealthSurfaceMode;
+  label: string;
+  description: string;
+}
+
 function parseTimestamp(input: string | null | undefined): number | null {
   if (!input) {
     return null;
@@ -65,6 +73,77 @@ export function hasDegradedDataSources(
     card.id === 'connectivity' &&
     (card.tone === 'degraded' || card.tone === 'critical')
   ));
+}
+
+function parseLeadingInt(value: string | null | undefined): number | null {
+  if (!value) {
+    return null;
+  }
+
+  const match = value.match(/(\d+)/);
+  if (!match) {
+    return null;
+  }
+
+  return Number.parseInt(match[1] ?? '', 10);
+}
+
+export function deriveSystemHealthSurfaceState(
+  health: IntelligenceSystemHealth | null | undefined,
+  hasHardError = false,
+): SystemHealthSurfaceState {
+  if (hasHardError || !health) {
+    return {
+      mode: 'broken',
+      label: 'Broken',
+      description: 'Core trust telemetry is unavailable. Operators should treat downstream evidence as incomplete until health recovers.',
+    };
+  }
+
+  const criticalCards = health.cards.filter((card) => card.tone === 'critical').length;
+  const degradedCards = health.cards.filter((card) => card.tone === 'degraded').length;
+  const outageSources = health.sources.filter((source) => source.status === 'OUTAGE').length;
+  const nonOperationalSources = health.sources.filter((source) => source.status !== 'OPERATIONAL').length;
+  const verificationCard = health.cards.find((card) => card.id === 'verification');
+  const lastHourVerifications = parseLeadingInt(verificationCard?.summary) ?? 0;
+  const hasArtifactTraffic = health.sources.some((source) => source.artifactCount > 0);
+  const hasOperatorSignals = health.incidents.length > 0 || lastHourVerifications > 0 || hasArtifactTraffic;
+  const hasSourceCoverage = health.sources.length > 0;
+
+  if (
+    health.overall === 'critical'
+    && (criticalCards >= 2 || (hasSourceCoverage && outageSources === health.sources.length))
+  ) {
+    return {
+      mode: 'broken',
+      label: 'Broken',
+      description: 'Multiple trust subsystems are failing closed. Evidence freshness and source coverage should be considered unreliable until remediation completes.',
+    };
+  }
+
+  if (!hasOperatorSignals && criticalCards === 0 && degradedCards === 0) {
+    return {
+      mode: 'empty',
+      label: 'Empty but functioning',
+      description: hasSourceCoverage
+        ? 'Health checks are responding, but no recent verification traffic or source artifacts have been observed yet.'
+        : 'The health plane is reachable, but no sources have reported telemetry yet.',
+    };
+  }
+
+  if (criticalCards > 0 || degradedCards > 0 || nonOperationalSources > 0 || health.incidents.length > 0) {
+    return {
+      mode: 'degraded',
+      label: 'Degraded',
+      description: 'The trust plane is still serving data, but one or more connectors, integrity checks, or incidents require operator attention.',
+    };
+  }
+
+  return {
+    mode: 'healthy',
+    label: 'Healthy',
+    description: 'Connectors, verification throughput, and graph integrity are operating normally with live telemetry.',
+  };
 }
 
 export function getFindingsEmptyState(input: {

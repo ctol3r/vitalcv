@@ -2,6 +2,7 @@
 
 import { useAction } from '@/hooks/useIntelligenceDetail';
 import type { ActionDetailResponse } from '@/lib/intelligence/detail-types';
+import { buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import { OperationsShell } from './shell';
 import { ActionMutationControls } from './mutation-controls';
@@ -26,6 +27,7 @@ export function ActionDetailClient({
   return (
     <OperationsShell
       activeHref="/actions"
+      activeNavKey="actions"
       title={detail.action.recommendedAction}
       description={detail.action.explanation}
       breadcrumbs={[
@@ -69,7 +71,7 @@ export function ActionDetailClient({
                     href={`/providers/${providerNpi}?from=/actions/${actionId}`}
                     label={detail.action.targetEntity.entityLabel ?? `Provider ${providerNpi}`}
                   />
-                  <EntityLink href={`/investigations?npi=${providerNpi}`} label="Open investigation" />
+                  <EntityLink href={buildIntelligenceHref('investigations', { npi: providerNpi })} label="Open investigation" />
                 </>
               ) : null}
               {detail.action.targetEntity.entityLabel && !providerNpi ? (

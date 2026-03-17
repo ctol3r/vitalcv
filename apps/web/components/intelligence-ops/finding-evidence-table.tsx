@@ -5,9 +5,10 @@ import { AlertTriangle } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { IntelligenceSystemHealth } from '@/lib/intelligence/contracts';
 import type { InvestigatorFindingEvidence } from '@/lib/intelligence/detail-types';
-import { buildFindingEvidenceRows } from '@/lib/intelligence/evidence';
+import { buildFindingEvidenceRows, summarizeFindingEvidenceRows } from '@/lib/intelligence/evidence';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
-import { ConfidenceMeter, OpsCard } from './primitives';
+import { ConfidenceMeter, OpsBadge, OpsCard } from './primitives';
+import { TrustSignalChips } from './trust-signal-chips';
 import { Button, EvidenceTable } from '@/src/ui/components';
 
 const DEFAULT_VISIBLE_ROWS = 5;
@@ -26,15 +27,26 @@ export function FindingEvidenceTable({
     () => buildFindingEvidenceRows(evidence, confidence, health),
     [confidence, evidence, health],
   );
+  const summary = useMemo(
+    () => summarizeFindingEvidenceRows(rows, confidence),
+    [confidence, rows],
+  );
   const visibleRows = expanded ? rows : rows.slice(0, DEFAULT_VISIBLE_ROWS);
   const hiddenCount = Math.max(0, rows.length - DEFAULT_VISIBLE_ROWS);
 
   return (
     <OpsCard className="space-y-4 overflow-hidden">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Evidence</h2>
-        <span className="text-sm text-[var(--vt-text-3)]">{rows.length} sources</span>
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Evidence</h2>
+          <p className="text-sm text-[var(--vt-text-3)]">
+            {rows.length} record{rows.length === 1 ? '' : 's'} • {summary.uniqueSourceCount} source{summary.uniqueSourceCount === 1 ? '' : 's'}
+          </p>
+        </div>
+        <span className="text-sm text-[var(--vt-text-3)]">{summary.corroborationCount} corroboration{summary.corroborationCount === 1 ? '' : 's'}</span>
       </div>
+
+      <TrustSignalChips summary={summary} />
 
       {rows.length > 0 ? (
         <>
@@ -64,33 +76,69 @@ export function FindingEvidenceTable({
                         </span>
                       ) : null}
                     </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <OpsBadge
+                        label={row.sourceQuality.toLowerCase()}
+                        tone={row.sourceQuality === 'AUTHORITATIVE' ? 'success' : row.sourceQuality === 'DERIVED' ? 'warning' : row.sourceQuality === 'MIXED' ? 'info' : 'neutral'}
+                      />
+                    </div>
                     <ConfidenceMeter confidence={row.confidence} />
                   </div>
                 ),
               },
               {
-                key: 'field',
-                label: 'Field',
-                render: (row) => row.field,
-              },
-              {
-                key: 'value',
-                label: 'Value',
+                key: 'claim',
+                label: 'Field / Value',
                 render: (row) => (
-                  <div className="max-w-xl whitespace-pre-wrap break-words leading-6">
-                    {row.value}
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--vt-text-3)]">{row.field}</p>
+                    <div className="max-w-xl whitespace-pre-wrap break-words leading-6">
+                      {row.value}
+                    </div>
                   </div>
                 ),
               },
               {
                 key: 'retrieved',
-                label: 'Retrieved',
+                label: 'Retrieval',
                 render: (row) => (
-                  row.retrievedAt ? (
-                    <span title={formatAbsoluteTime(row.retrievedAt)}>
-                      {formatRelativeTime(row.retrievedAt)}
-                    </span>
-                  ) : 'Not recorded'
+                  <div className="space-y-2">
+                    <div className="text-sm text-[var(--vt-text-2)]">
+                      {row.retrievedAt ? (
+                        <>
+                          <div title={formatAbsoluteTime(row.retrievedAt)}>
+                            {formatRelativeTime(row.retrievedAt)}
+                          </div>
+                          <div className="text-xs text-[var(--vt-text-3)]">{formatAbsoluteTime(row.retrievedAt)}</div>
+                        </>
+                      ) : 'Not recorded'}
+                    </div>
+                    <OpsBadge
+                      label={row.freshness.toLowerCase()}
+                      tone={row.freshness === 'FRESH' ? 'success' : row.freshness === 'AGING' ? 'warning' : row.freshness === 'STALE' ? 'critical' : 'neutral'}
+                    />
+                  </div>
+                ),
+              },
+              {
+                key: 'trust',
+                label: 'Trust Signals',
+                render: (row) => (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-1.5">
+                      <OpsBadge
+                        label={row.qualityRating.toLowerCase()}
+                        tone={row.qualityRating === 'STRONG' ? 'success' : row.qualityRating === 'ADEQUATE' ? 'info' : row.qualityRating === 'WEAK' ? 'warning' : 'neutral'}
+                      />
+                      <OpsBadge
+                        label={`${row.corroborationCount} corroborations`}
+                        tone={row.corroborationCount > 0 ? 'success' : 'neutral'}
+                      />
+                    </div>
+                    <div className="max-w-sm text-xs leading-5 text-[var(--vt-text-3)]">
+                      {row.provenanceChain.join(' -> ')}
+                    </div>
+                  </div>
                 ),
               },
             ]}

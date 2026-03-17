@@ -1,4 +1,5 @@
 import { FindingDetailClient } from '@/components/intelligence-ops/finding-detail-client';
+import { buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { safeLocalHref } from '@/lib/intelligence/time';
 import { loadFindingDetail } from '@/lib/intelligence/server';
 import { notFound } from 'next/navigation';
@@ -21,7 +22,7 @@ export default async function FindingDetailPage({
     <FindingDetailClient
       findingId={id}
       initialData={detail}
-      backHref={safeLocalHref(typeof resolvedSearchParams.from === 'string' ? resolvedSearchParams.from : null, '/findings')}
+      backHref={safeLocalHref(typeof resolvedSearchParams.from === 'string' ? resolvedSearchParams.from : null, buildIntelligenceHref('findings'))}
     />
   );
 }

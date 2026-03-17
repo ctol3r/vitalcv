@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { GraphEdge, GraphNode } from '@/components/graph-system/types';
 import {
   seedSimulationNodes,
@@ -20,6 +20,28 @@ interface UseGraphPhysicsOptions {
   physics: GraphPhysicsState;
   visuals: GraphVisualState;
   selectedNodeId: string | null;
+  layoutVersion?: number;
+}
+
+const layoutCache = new Map<string, SimulationNode[]>();
+const MAX_LAYOUT_CACHE_ENTRIES = 18;
+
+function cloneSimulationNodes(nodes: SimulationNode[]): SimulationNode[] {
+  return nodes.map((node) => ({ ...node }));
+}
+
+function rememberLayout(layoutKey: string, nodes: SimulationNode[]) {
+  layoutCache.delete(layoutKey);
+  layoutCache.set(layoutKey, cloneSimulationNodes(nodes));
+
+  if (layoutCache.size <= MAX_LAYOUT_CACHE_ENTRIES) {
+    return;
+  }
+
+  const oldestKey = layoutCache.keys().next().value;
+  if (oldestKey) {
+    layoutCache.delete(oldestKey);
+  }
 }
 
 export function useGraphPhysics({
@@ -30,12 +52,38 @@ export function useGraphPhysics({
   physics,
   visuals,
   selectedNodeId,
+  layoutVersion = 0,
 }: UseGraphPhysicsOptions) {
   const simNodesRef = useRef<SimulationNode[]>([]);
+  const layoutKey = useMemo(() => {
+    const nodeSignature = nodes.map((node) => node.id).join('|');
+    const edgeSignature = edges.map((edge) => edge.id).join('|');
+    return [
+      width,
+      height,
+      visuals.nodeSize,
+      physics.preset,
+      layoutVersion,
+      nodes.length,
+      edges.length,
+      nodeSignature,
+      edgeSignature,
+    ].join('::');
+  }, [edges, height, layoutVersion, nodes, physics.preset, visuals.nodeSize, width]);
 
   useEffect(() => {
-    simNodesRef.current = seedSimulationNodes(nodes, width, height, visuals.nodeSize / 7);
-  }, [height, nodes, visuals.nodeSize, width]);
+    const cachedLayout = layoutCache.get(layoutKey);
+
+    simNodesRef.current = cachedLayout
+      ? cloneSimulationNodes(cachedLayout)
+      : seedSimulationNodes(nodes, width, height, visuals.nodeSize / 7);
+
+    return () => {
+      if (simNodesRef.current.length > 0) {
+        rememberLayout(layoutKey, simNodesRef.current);
+      }
+    };
+  }, [height, layoutKey, nodes, visuals.nodeSize, width]);
 
   const tick = useCallback(() => {
     if (!physics.frozen) {
@@ -83,7 +131,8 @@ export function useGraphPhysics({
       height,
       visuals.nodeSize / 7,
     );
-  }, [height, nodes, visuals.nodeSize, width]);
+    layoutCache.delete(layoutKey);
+  }, [height, layoutKey, nodes, visuals.nodeSize, width]);
 
   return {
     simNodesRef,

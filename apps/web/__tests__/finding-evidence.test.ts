@@ -14,6 +14,7 @@ describe('finding evidence helpers', () => {
           claimType: 'license_status',
           value: 'Expired',
           confidence: 0.81,
+          corroborationSourceIds: ['ABMS'],
         },
       },
       {
@@ -43,12 +44,18 @@ describe('finding evidence helpers', () => {
       field: 'Shared License',
       value: 'Shared state license reference',
       degraded: false,
+      qualityRating: 'ADEQUATE',
+      sourceQuality: 'DERIVED',
     });
     expect(rows[1]).toMatchObject({
       field: 'License Status',
       value: 'Expired',
       degraded: true,
+      corroborationCount: 1,
+      sourceQuality: 'AUTHORITATIVE',
     });
+    expect(rows[1]?.provenanceChain[0]).toBe('State Board');
+    expect(rows[1]?.freshness).toBeDefined();
   });
 
   it('matches degraded sources by normalized source key', () => {

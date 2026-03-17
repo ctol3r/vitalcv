@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useProvider } from '@/hooks/useIntelligenceDetail';
 import type { ProviderDetailResponse } from '@/lib/intelligence/detail-types';
+import { buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import type { BadgeTone } from './primitives';
 import { BackLink, EntityLink, OpsBadge, OpsCard, SurfaceBanner, SurfaceErrorState, TimestampPair, riskScoreColor, trustScoreColor, severityTone } from './primitives';
@@ -47,6 +48,7 @@ export function ProviderDetailView({
   return (
     <OperationsShell
       activeHref="/providers"
+      activeNavKey="providers"
       title={current.provider.fullName}
       description={`${current.provider.providerType ?? 'Provider'} profile for NPI ${current.provider.npi} with credential evidence, trust state, and related intelligence.`}
       breadcrumbs={[
@@ -64,7 +66,7 @@ export function ProviderDetailView({
         <>
           <BackLink href={backHref} label="Back to providers" />
           <Link
-            href={`/investigations?npi=${current.provider.npi}`}
+            href={buildIntelligenceHref('investigations', { npi: current.provider.npi })}
             className="inline-flex items-center rounded-full bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-[var(--vt-accent)]"
           >
             Open investigation
@@ -210,7 +212,7 @@ export function ProviderDetailView({
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Findings</h3>
-                  <EntityLink href={`/findings?provider=${encodeURIComponent(current.provider.npi)}`} label="Open list" />
+                  <EntityLink href={buildIntelligenceHref('findings', { provider: current.provider.npi })} label="Open list" />
                 </div>
                 {current.findings.length > 0 ? current.findings.map((finding) => (
                   <div key={finding.findingId} className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
@@ -230,7 +232,7 @@ export function ProviderDetailView({
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Storylines</h3>
-                  <EntityLink href={`/storylines?provider=${encodeURIComponent(current.provider.npi)}`} label="Open list" />
+                  <EntityLink href={buildIntelligenceHref('storylines', { provider: current.provider.npi })} label="Open list" />
                 </div>
                 {current.storylines.length > 0 ? current.storylines.map((storyline) => (
                   <div key={storyline.storylineId} className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">

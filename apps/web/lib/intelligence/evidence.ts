@@ -193,9 +193,9 @@ function deriveQualityRating(
   sourceQuality: SourceQualityMarker,
 ): EvidenceQualityRating {
   const metadata = asRecord(evidence.metadata);
-  const explicit = asString(metadata.qualityRating)
+  const explicit = (asString(metadata.qualityRating)
     ?? asString(metadata.evidenceQuality)
-    ?? asString(metadata.quality);
+    ?? asString(metadata.quality))?.toUpperCase();
 
   if (explicit === 'STRONG' || explicit === 'ADEQUATE' || explicit === 'WEAK' || explicit === 'MISSING') {
     return explicit;

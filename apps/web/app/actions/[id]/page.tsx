@@ -1,4 +1,5 @@
 import { ActionDetailClient } from '@/components/intelligence-ops/action-detail-client';
+import { buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { loadActionDetail } from '@/lib/intelligence/server';
 import { safeLocalHref } from '@/lib/intelligence/time';
 import { notFound } from 'next/navigation';
@@ -21,7 +22,7 @@ export default async function ActionDetailPage({
     <ActionDetailClient
       actionId={id}
       initialData={detail}
-      backHref={safeLocalHref(typeof resolvedSearchParams.from === 'string' ? resolvedSearchParams.from : null, '/actions')}
+      backHref={safeLocalHref(typeof resolvedSearchParams.from === 'string' ? resolvedSearchParams.from : null, buildIntelligenceHref('actions'))}
     />
   );
 }

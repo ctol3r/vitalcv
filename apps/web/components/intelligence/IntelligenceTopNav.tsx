@@ -1,7 +1,7 @@
 'use client';
 
-import type { ReactNode } from 'react';
-import { Bot, Network, RefreshCw, ShieldCheck } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Activity, Bot, Command, Network, RefreshCw, ShieldCheck } from 'lucide-react';
 import type { IntelligenceGraphStats, IntelligenceTone } from '@/lib/intelligence/contracts';
 import { ThemePicker } from '@/components/ui/ThemeToggle';
 import { ToneBadge } from './shared';
@@ -14,6 +14,7 @@ interface IntelligenceTopNavProps {
   findingCount: number;
   storylineCount: number;
   actionCount: number;
+  lastUpdatedSignature: string;
   onRefreshAll: () => void;
 }
 
@@ -25,8 +26,21 @@ export function IntelligenceTopNav({
   findingCount,
   storylineCount,
   actionCount,
+  lastUpdatedSignature,
   onRefreshAll,
 }: IntelligenceTopNavProps) {
+  const [pulseActive, setPulseActive] = useState(false);
+
+  useEffect(() => {
+    if (!lastUpdatedSignature) {
+      return;
+    }
+
+    setPulseActive(true);
+    const timeoutId = window.setTimeout(() => setPulseActive(false), 950);
+    return () => window.clearTimeout(timeoutId);
+  }, [lastUpdatedSignature]);
+
   return (
     <nav className="vital-topnav" role="navigation" aria-label="Intelligence workspace navigation">
       <div className="min-w-0">
@@ -38,7 +52,23 @@ export function IntelligenceTopNav({
           <ToneBadge tone={overallHealth} label={focusLabel} />
         </div>
         <p className="mt-2 max-w-2xl text-sm text-[var(--vt-text-1)]/60">
-          Investigators, findings, storylines, trust graph, and Copilot — one operational surface.
+          Investigators, findings, storylines, trust graph, and Copilot in one operator surface.
+        </p>
+      </div>
+
+      <div className="vital-topnav__command">
+        <button
+          type="button"
+          className="vital-command-trigger"
+          onClick={() => window.dispatchEvent(new Event('vital:open-command-palette'))}
+          aria-label="Open command palette"
+        >
+          <Command className="h-4 w-4" aria-hidden />
+          <span>Search providers, findings, storylines</span>
+          <kbd>⌘K</kbd>
+        </button>
+        <p className="vital-topnav__command-copy">
+          Jump views, open workbench context, or seed Copilot without leaving the current operator flow.
         </p>
       </div>
 
@@ -58,6 +88,9 @@ export function IntelligenceTopNav({
           <RefreshCw className="h-3.5 w-3.5" />
           <span>Refresh all</span>
         </button>
+        <div className={`vital-topnav__pulse ${pulseActive ? 'vital-topnav__pulse--active' : ''}`} aria-hidden>
+          <Activity className="h-3.5 w-3.5" />
+        </div>
       </div>
     </nav>
   );

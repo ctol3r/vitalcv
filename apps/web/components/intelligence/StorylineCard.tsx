@@ -1,10 +1,10 @@
 'use client';
 
-import { Activity, GitMerge, Radar, Clock } from 'lucide-react';
-import type { IntelligenceStoryline } from '@/lib/intelligence/contracts';
+import { Activity, Clock3, GitMerge, Radar } from 'lucide-react';
+import { DecisionBadge } from '@/components/decision/DecisionBadge';
+import type { IntelligenceStoryline, IntelligenceTone } from '@/lib/intelligence/contracts';
 import { formatRelativeTime } from '@/lib/intelligence/time';
 import { ScoreBar, SurfaceState, ToneBadge } from './shared';
-import { DecisionBadge } from '@/components/decision/DecisionBadge';
 
 interface StorylineCardProps {
   storyline?: IntelligenceStoryline | null;
@@ -12,6 +12,18 @@ interface StorylineCardProps {
   error?: string | null;
   onFocusProvider?: (providerNpi: string) => void;
   onRetry?: () => void;
+}
+
+function toneFromSeverity(severity: IntelligenceStoryline['severity']): IntelligenceTone {
+  if (severity === 'critical') {
+    return 'critical';
+  }
+
+  if (severity === 'high' || severity === 'medium') {
+    return 'degraded';
+  }
+
+  return 'neutral';
 }
 
 export function StorylineCard({
@@ -31,57 +43,60 @@ export function StorylineCard({
       onRetry={onRetry}
     >
       {storyline ? (
-        <article className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-4">
+        <article className={`vital-feed-card ${storyline.severity === 'critical' ? 'vital-feed-card--critical' : 'vital-feed-card--latest'}`}>
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">
-                Storyline Card
-              </p>
-              <h3 className="mt-2 text-base font-semibold text-[var(--vt-text-1)]">{storyline.title}</h3>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="vital-feed-card__eyebrow">Storyline</span>
+                <span className="vital-feed-card__signal">
+                  <Clock3 className="h-3 w-3" />
+                  {formatRelativeTime(storyline.lastActivityAt)}
+                </span>
+                <span className="vital-feed-card__signal">{storyline.status}</span>
+              </div>
+              <h3 className="mt-2 line-clamp-2 text-base font-semibold text-[var(--vt-text-1)]">{storyline.title}</h3>
             </div>
-            <ToneBadge tone={storyline.severity === 'critical' ? 'critical' : storyline.severity === 'high' || storyline.severity === 'medium' ? 'degraded' : 'neutral'} label={storyline.status} />
+            <ToneBadge
+              tone={toneFromSeverity(storyline.severity)}
+              label={storyline.severity}
+              pulse={storyline.severity === 'critical'}
+            />
           </div>
 
-          <p className="mt-3 text-sm leading-6 text-[var(--vt-text-2)]">{storyline.summary}</p>
-          <p className="mt-3 text-xs leading-5 text-[var(--vt-text-3)]">{storyline.whyItMatters}</p>
+          <p className="mt-3 line-clamp-3 text-sm leading-6 text-[var(--vt-text-2)]">{storyline.summary}</p>
+          <p className="mt-2 line-clamp-2 text-xs leading-5 text-[var(--vt-text-3)]">{storyline.whyItMatters}</p>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            {/* Phase 2: Trust Signals */}
-            <div className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium ${Math.round(storyline.confidence * 100) >= 80 ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-500' : 'border-amber-500/30 bg-amber-500/5 text-amber-500'}`} title="Confidence Score">
-              <Activity className="h-3 w-3" />
-              {Math.round(storyline.confidence * 100)}% Conf
-            </div>
-            {storyline.lastActivityAt && (
-              <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-2 py-0.5 text-[10px] font-medium text-[var(--vt-text-3)]" title="Freshness Marker">
-                <Clock className="h-3 w-3" />
-                {formatRelativeTime(storyline.lastActivityAt)}
-              </div>
-            )}
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-2 py-0.5 text-[10px] font-medium text-[var(--vt-text-3)]" title="Corroboration Indicator">
-              <GitMerge className="h-3 w-3" />
-              {storyline.findingIds.length} Linked {storyline.findingIds.length === 1 ? 'Finding' : 'Findings'}
-            </div>
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-2 py-0.5 text-[10px] font-medium text-[var(--vt-text-3)]" title="Evidence Count">
-              {storyline.evidence.length} Evidence Items
-            </div>
+            <span className="vital-feed-card__signal">
+              <Activity className="h-3.5 w-3.5" />
+              {Math.round(storyline.confidence * 100)}% confidence
+            </span>
+            <span className="vital-feed-card__signal">
+              <GitMerge className="h-3.5 w-3.5" />
+              {storyline.findingIds.length} linked {storyline.findingIds.length === 1 ? 'finding' : 'findings'}
+            </span>
+            <span className="vital-feed-card__signal">
+              <Radar className="h-3.5 w-3.5" />
+              {storyline.evidence.length} evidence items
+            </span>
           </div>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            <div className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)]/50 p-3">
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            <div className="hover-hierarchy rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)]/60 p-3">
               <div className="flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-[var(--vt-text-3)]">
                 <Activity className="h-3.5 w-3.5" />
                 <span>Confidence</span>
               </div>
               <p className="mt-2 text-sm font-semibold text-[var(--vt-text-1)]">{Math.round(storyline.confidence * 100)}%</p>
             </div>
-            <div className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)]/50 p-3">
+            <div className="hover-hierarchy rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)]/60 p-3">
               <div className="flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-[var(--vt-text-3)]">
                 <GitMerge className="h-3.5 w-3.5" />
                 <span>Findings</span>
               </div>
-              <p className="mt-2 text-sm font-semibold text-[var(--vt-text-1)]">{storyline.findingIds.length} linked findings</p>
+              <p className="mt-2 text-sm font-semibold text-[var(--vt-text-1)]">{storyline.findingIds.length} connected</p>
             </div>
-            <div className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)]/50 p-3">
+            <div className="hover-hierarchy rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)]/60 p-3">
               <div className="flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-[var(--vt-text-3)]">
                 <Radar className="h-3.5 w-3.5" />
                 <span>Progression</span>
@@ -98,7 +113,7 @@ export function StorylineCard({
             <div className="mt-2">
               <ScoreBar
                 value={storyline.progressionScore * 100}
-                tone={storyline.severity === 'critical' ? 'critical' : storyline.severity === 'high' || storyline.severity === 'medium' ? 'degraded' : 'neutral'}
+                tone={toneFromSeverity(storyline.severity)}
               />
             </div>
           </div>
@@ -109,10 +124,10 @@ export function StorylineCard({
                 key={`${storyline.id}-${action}`}
                 className="flex items-center gap-3 rounded-lg border border-[var(--vt-border)] bg-[var(--vt-surface)]/50 px-3 py-2"
               >
-                <DecisionBadge 
-                  type={action.toLowerCase().includes('monitor') ? 'monitor' : action.toLowerCase().includes('escalate') ? 'escalate' : 'investigate'} 
+                <DecisionBadge
+                  type={action.toLowerCase().includes('monitor') ? 'monitor' : action.toLowerCase().includes('escalate') ? 'escalate' : 'investigate'}
                 />
-                <span className="text-xs font-medium text-[var(--vt-text-2)]">{action}</span>
+                <span className="line-clamp-1 text-xs font-medium text-[var(--vt-text-2)]">{action}</span>
               </div>
             ))}
           </div>

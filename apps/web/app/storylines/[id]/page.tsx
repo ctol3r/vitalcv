@@ -1,4 +1,5 @@
 import { StorylineDetailClient } from '@/components/intelligence-ops/storyline-detail-client';
+import { buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { loadStorylineDetail } from '@/lib/intelligence/server';
 import { safeLocalHref } from '@/lib/intelligence/time';
 import { notFound } from 'next/navigation';
@@ -21,7 +22,7 @@ export default async function StorylineDetailPage({
     <StorylineDetailClient
       storylineId={id}
       initialData={detail}
-      backHref={safeLocalHref(typeof resolvedSearchParams.from === 'string' ? resolvedSearchParams.from : null, '/storylines')}
+      backHref={safeLocalHref(typeof resolvedSearchParams.from === 'string' ? resolvedSearchParams.from : null, buildIntelligenceHref('storylines'))}
     />
   );
 }
