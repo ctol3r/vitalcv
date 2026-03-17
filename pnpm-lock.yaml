@@ -206,6 +206,9 @@ importers:
       '@vitalcv/command-registry':
         specifier: workspace:*
         version: link:../../../packages/command-registry
+      '@vitalcv/crs':
+        specifier: workspace:*
+        version: link:../../../packages/crs
       '@vitalcv/poe-engine':
         specifier: workspace:*
         version: link:../../../packages/poe-engine
@@ -956,6 +959,10 @@ importers:
       typescript:
         specifier: ^5.0.0
         version: 5.9.3
+
+  services/decision-engine: {}
+
+  services/investigator-engine: {}
 
 packages:
 
