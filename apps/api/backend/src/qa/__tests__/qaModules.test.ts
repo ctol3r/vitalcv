@@ -102,6 +102,10 @@ describe('qa modules', () => {
 
   it('rejects structured copilot responses with dangling references', () => {
     const validBase = {
+      status: 'ok' as const,
+      answer: 'Example answer',
+      sources: ['NPPES'],
+      confidence: 0.85,
       parsedQuery: {
         rawQuery: 'cardiologists in texas',
         normalizedQuery: 'cardiologists in texas',
@@ -162,6 +166,51 @@ describe('qa modules', () => {
         },
       ],
       graphInsights: [],
+      document: {
+        mode: 'summary' as const,
+        title: 'Copilot response',
+        subtitle: 'cardiologists in texas',
+        generatedAt: '2026-03-15T12:00:00.000Z',
+        suggestions: ['What should I do next?'],
+        sections: [
+          {
+            key: 'summary' as const,
+            title: 'Summary',
+            availability: 'ready' as const,
+            items: [{ id: 'summary-1', body: 'Summary body.' }],
+          },
+          {
+            key: 'evidence' as const,
+            title: 'Evidence',
+            availability: 'ready' as const,
+            items: [{ id: 'evidence-1', body: 'Evidence body.' }],
+          },
+          {
+            key: 'signals' as const,
+            title: 'Signals',
+            availability: 'ready' as const,
+            items: [{ id: 'signals-1', body: 'Signals body.' }],
+          },
+          {
+            key: 'network_context' as const,
+            title: 'Network Context',
+            availability: 'ready' as const,
+            items: [{ id: 'network-1', body: 'Network body.' }],
+          },
+          {
+            key: 'recommended_action' as const,
+            title: 'Recommended Action',
+            availability: 'ready' as const,
+            items: [{ id: 'action-1', body: 'Action body.' }],
+          },
+          {
+            key: 'follow_up_questions' as const,
+            title: 'Follow-up Questions',
+            availability: 'ready' as const,
+            items: [{ id: 'followup-1', body: 'Follow-up body.' }],
+          },
+        ],
+      },
     };
 
     const validation = validateCopilotStructuredResponse(validBase, {

@@ -43,96 +43,66 @@ export function FindingCard({
       onRetry={onRetry}
     >
       {finding ? (
-        <article className={`vital-feed-card ${finding.severity === 'critical' ? 'vital-feed-card--critical' : 'vital-feed-card--ranked'}`}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="vital-feed-card__eyebrow">Finding</span>
-                <span className="vital-feed-card__signal">Priority {Math.round(finding.priorityScore)}</span>
-                {finding.updatedAt ? (
-                  <span className="vital-feed-card__signal">
-                    <Clock3 className="h-3 w-3" />
-                    {formatRelativeTime(finding.updatedAt)}
-                  </span>
-                ) : null}
-              </div>
-              <h3 className="mt-2 line-clamp-2 text-base font-semibold text-[var(--vt-text-1)]">{finding.title}</h3>
+        <article 
+          className="group relative flex flex-col gap-3 rounded-lg border border-transparent border-b-[var(--vt-border)] bg-transparent p-4 transition-all duration-200 ease-out hover:bg-[var(--vt-surface)] hover:border-[var(--vt-border)] active:scale-[0.99] hover:shadow-[0_0_20px_0_rgba(255,255,255,0.02)] cursor-pointer"
+          onClick={() => onFocusProvider && finding.providerNpi && onFocusProvider(finding.providerNpi)}
+        >
+          {/* Header Row: [Severity dot] Provider Name | Trust */}
+          <div className="flex items-center gap-3">
+            <div className={`h-2.5 w-2.5 rounded-full shadow-[0_0_8px_currentColor] ${
+              finding.severity === 'critical' ? 'bg-[var(--vt-severity-critical)] text-[var(--vt-severity-critical)]' :
+              finding.severity === 'high' ? 'bg-[var(--vt-severity-high)] text-[var(--vt-severity-high)]' :
+              finding.severity === 'medium' ? 'bg-[var(--vt-severity-medium)] text-[var(--vt-severity-medium)]' :
+              'bg-[var(--vt-severity-low)] text-[var(--vt-severity-low)]'
+            }`} />
+            <h3 className="text-lg font-medium text-[var(--vt-text-1)] tracking-tight">
+              {finding.providerLabel ?? `Provider ${finding.providerNpi}`}
+            </h3>
+            <div className="ml-auto text-sm font-mono text-[var(--vt-text-2)] tabular-nums">
+              {Math.round(finding.priorityScore ?? 0)} SCORE
             </div>
-            <ToneBadge
-              tone={toneFromSeverity(finding.severity)}
-              label={finding.severity}
-              pulse={finding.severity === 'critical' || finding.status === 'investigating'}
+          </div>
+
+          {/* Summary */}
+          <p className="text-sm leading-relaxed text-[var(--vt-text-1)]">
+            {finding.summary ?? finding.title}
+          </p>
+
+          {/* Confidence bar */}
+          <div className="h-0.5 w-full bg-[var(--vt-border)] rounded-full overflow-hidden mt-1 opacity-60">
+            <div 
+              className={`h-full transition-all duration-1000 ease-out ${
+                finding.severity === 'critical' ? 'bg-[var(--vt-severity-critical)]' :
+                finding.severity === 'high' ? 'bg-[var(--vt-severity-high)]' :
+                finding.severity === 'medium' ? 'bg-[var(--vt-severity-medium)]' :
+                'bg-[var(--vt-severity-low)]'
+              }`} 
+              style={{ width: `${Math.round((finding.confidence ?? 0) * 100)}%` }}
             />
           </div>
 
-          <p className="mt-3 line-clamp-3 text-sm leading-6 text-[var(--vt-text-2)]">{finding.summary}</p>
-          <p className="mt-2 line-clamp-2 text-xs leading-5 text-[var(--vt-text-3)]">{finding.explanation}</p>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            <span className="vital-feed-card__signal vital-feed-card__signal--investigator">
-              <Bot className="h-3.5 w-3.5" />
-              {finding.investigatorId}
+          {/* Meta row */}
+          <div className="flex items-center gap-4 mt-2 text-xs font-mono uppercase tracking-wider text-[var(--vt-text-3)]">
+            {finding.updatedAt && (
+              <span className="flex items-center gap-1.5">
+                <Clock3 className="h-3 w-3" />
+                {formatRelativeTime(finding.updatedAt)}
+              </span>
+            )}
+            <span className="flex items-center gap-1.5">
+              <Bot className="h-3 w-3" />
+              {finding.investigatorId || 'SYS'}
             </span>
-            <span className="vital-feed-card__signal">
-              <Activity className="h-3.5 w-3.5" />
-              {Math.round(finding.confidence * 100)}% confidence
+            {finding.storylineId && (
+              <span className="flex items-center gap-1.5 truncate">
+                <GitBranch className="h-3 w-3" />
+                {finding.storylineTitle ?? 'STORYLINE'}
+              </span>
+            )}
+            <span className="flex items-center gap-1.5 ml-auto">
+              {Math.round((finding.confidence ?? 0) * 100)}% CONF
             </span>
-            <span className="vital-feed-card__signal">
-              <GitBranch className="h-3.5 w-3.5" />
-              {finding.evidence.length} corroborating {finding.evidence.length === 1 ? 'source' : 'sources'}
-            </span>
-            {finding.providerNpi ? (
-              <Link
-                href={`/providers/${finding.providerNpi}`}
-                className="inline-flex items-center rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-1 text-xs font-medium text-[var(--vt-text-2)] transition hover:bg-[var(--vt-surface-2)] hover:text-[var(--vt-text-1)]"
-              >
-                {finding.providerLabel ?? `Provider ${finding.providerNpi}`}
-              </Link>
-            ) : null}
-            {finding.storylineId ? (
-              <Link
-                href={`/storylines/${finding.storylineId}`}
-                title={finding.storylineTitle ?? 'Open storyline'}
-                className="inline-flex items-center rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-1 text-xs font-medium text-[var(--vt-text-2)] transition hover:bg-[var(--vt-surface-2)] hover:text-[var(--vt-text-1)]"
-              >
-                {finding.storylineTitle ?? 'Storyline'}
-              </Link>
-            ) : null}
           </div>
-
-          <div className="mt-5 grid gap-3 md:grid-cols-3">
-            <div className="hover-hierarchy rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)]/60 p-4 shadow-sm">
-              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-[var(--vt-text-3)]">
-                <AlertTriangle className="h-3.5 w-3.5" />
-                <span>Status</span>
-              </div>
-              <p className="mt-2 text-sm font-medium capitalize text-[var(--vt-text-1)]">{finding.status}</p>
-            </div>
-            <div className="hover-hierarchy rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)]/80 p-4 shadow-sm ring-1 ring-inset ring-cyan-400/14 shadow-cyan-400/8">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-cyan-200/80">
-                <Bot className="h-4 w-4" />
-                <span>Investigator</span>
-              </div>
-              <p className="mt-2 line-clamp-1 text-sm font-semibold text-[var(--vt-text-1)]">{finding.investigatorId}</p>
-            </div>
-            <div className="hover-hierarchy rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)]/60 p-4 shadow-sm">
-              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-[var(--vt-text-3)]">
-                <GitBranch className="h-3.5 w-3.5" />
-                <span>Evidence</span>
-              </div>
-              <p className="mt-2 text-sm font-medium text-[var(--vt-text-1)]">{finding.evidence.length} linked items</p>
-            </div>
-          </div>
-
-          {finding.providerNpi && onFocusProvider ? (
-            <button
-              type="button"
-              onClick={() => onFocusProvider(finding.providerNpi!)}
-              className="mt-4 inline-flex items-center justify-center rounded-full border border-[var(--vt-border)] px-3 py-1.5 text-xs font-semibold text-[var(--vt-text-2)] transition hover:bg-[var(--vt-surface-2)]"
-            >
-              Focus provider {finding.providerNpi}
-            </button>
-          ) : null}
         </article>
       ) : null}
     </SurfaceState>

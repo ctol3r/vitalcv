@@ -19,8 +19,8 @@ describe('/api/investigation/workbench proxy', () => {
     process.env.BACKEND_URL = 'http://backend.test';
   });
 
-  it('rejects requests without any investigation anchor', async () => {
-    authMock.mockResolvedValue({ userId: 'clerk-user-1' });
+  it('rejects authenticated requests without any investigation anchor', async () => {
+    authMock.mockResolvedValue({ userId: 'clerk-user-1', orgId: 'org-active-1', sessionClaims: {} });
     const { GET } = await import('../app/api/investigation/workbench/route');
 
     const response = await GET(new NextRequest('http://localhost/api/investigation/workbench') as never);
@@ -101,6 +101,7 @@ describe('/api/investigation/workbench proxy', () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
+      accessMode: 'full',
       anchor: {
         npi: '1234567890',
         findingId: 'finding-1',
@@ -112,20 +113,52 @@ describe('/api/investigation/workbench proxy', () => {
       relatedFindings: [],
       navigation: null,
       generatedAt: '2026-03-16T00:00:00.000Z',
+      reason: 'ok',
     });
   });
 
-  it('returns an empty workbench payload for unauthenticated requests', async () => {
+  it('returns the seeded public workbench payload for unauthenticated requests', async () => {
     authMock.mockResolvedValue({ userId: null, orgId: null, sessionClaims: {} });
-    const fetchMock = vi.fn();
+    const fetchMock = vi.fn().mockResolvedValueOnce(new Response(
+      JSON.stringify({
+        anchor: {
+          npi: '1234567890',
+          findingId: undefined,
+          storylineId: undefined,
+        },
+        provider: null,
+        finding: null,
+        storyline: null,
+        relatedFindings: [],
+        navigation: null,
+        generatedAt: '2026-03-16T00:00:00.000Z',
+        uiHints: {
+          copilotPrompt: 'Summarize risk posture for this provider',
+          copilotSummary: 'Seeded demo summary',
+          highlightNodeIds: ['provider:1234567890'],
+        },
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    ));
     vi.stubGlobal('fetch', fetchMock);
 
     const { GET } = await import('../app/api/investigation/workbench/route');
     const response = await GET(new NextRequest('http://localhost/api/investigation/workbench?npi=1234567890') as never);
 
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://backend.test/api/intelligence/public/investigation-workbench?npi=1234567890',
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: expect.any(Headers),
+      }),
+    );
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
+      accessMode: 'public_snapshot',
       anchor: {
         npi: '1234567890',
         findingId: undefined,
@@ -136,11 +169,17 @@ describe('/api/investigation/workbench proxy', () => {
       storyline: null,
       relatedFindings: [],
       navigation: null,
-      generatedAt: expect.any(String),
+      generatedAt: '2026-03-16T00:00:00.000Z',
+      reason: 'missing_session',
+      uiHints: {
+        copilotPrompt: 'Summarize risk posture for this provider',
+        copilotSummary: 'Seeded demo summary',
+        highlightNodeIds: ['provider:1234567890'],
+      },
     });
   });
 
-  it('returns an empty workbench payload when org context is unavailable', async () => {
+  it('forwards to real backend when org context is unavailable but user is authenticated', async () => {
     authMock.mockResolvedValue({
       userId: 'clerk-user-1',
       orgId: null,
@@ -155,15 +194,56 @@ describe('/api/investigation/workbench proxy', () => {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
         },
+      ))
+      .mockResolvedValueOnce(new Response(
+        JSON.stringify({
+          anchor: {
+            npi: undefined,
+            findingId: 'finding-1',
+            storylineId: undefined,
+          },
+          provider: null,
+          finding: null,
+          storyline: null,
+          relatedFindings: [],
+          navigation: null,
+          generatedAt: '2026-03-16T00:00:00.000Z',
+          uiHints: {
+            copilotPrompt: 'Summarize risk posture for this provider',
+            copilotSummary: null,
+            highlightNodeIds: [],
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
       ));
     vi.stubGlobal('fetch', fetchMock);
 
     const { GET } = await import('../app/api/investigation/workbench/route');
     const response = await GET(new NextRequest('http://localhost/api/investigation/workbench?findingId=finding-1') as never);
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'http://backend.test/api/me/workspaces',
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: expect.any(Headers),
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'http://backend.test/api/investigation/workbench?findingId=finding-1',
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: expect.any(Headers),
+      }),
+    );
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
+      accessMode: 'full',
       anchor: {
         npi: undefined,
         findingId: 'finding-1',
@@ -174,7 +254,13 @@ describe('/api/investigation/workbench proxy', () => {
       storyline: null,
       relatedFindings: [],
       navigation: null,
-      generatedAt: expect.any(String),
+      generatedAt: '2026-03-16T00:00:00.000Z',
+      reason: 'ok',
+      uiHints: {
+        copilotPrompt: 'Summarize risk posture for this provider',
+        copilotSummary: null,
+        highlightNodeIds: [],
+      },
     });
   });
 });

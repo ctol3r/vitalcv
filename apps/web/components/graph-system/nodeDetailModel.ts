@@ -105,6 +105,7 @@ const CLAIM_PRIORITY_KEYS = [
 
 const ARTIFACT_LIKE_TYPES = new Set([
   'artifact',
+  'evidence',
   'source',
   'document',
   'attachment',
@@ -131,6 +132,13 @@ const RECEIPT_EDGE_TYPES = new Set([
   'trained_at',
   'privileged_at',
   'published_with',
+  'co_author',
+  'co_investigator',
+  'financial',
+  'institutional',
+  'regulatory',
+  'storyline_related',
+  'evidence_link',
 ]);
 
 function asRecord(value: unknown): Record<string, unknown> {

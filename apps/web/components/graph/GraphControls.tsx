@@ -136,6 +136,10 @@ interface GraphControlsProps {
   onRunAiLinks: () => void;
   onRebuild: () => void;
   onSavePreset?: (name: string) => void;
+  hideLayerControls?: boolean;
+  hideTrustTierFilters?: boolean;
+  tertiaryMetricLabel?: string;
+  tertiaryMetricValue?: string | number;
 }
 
 export function GraphControls({
@@ -158,6 +162,10 @@ export function GraphControls({
   onRunAiLinks,
   onRebuild,
   onSavePreset,
+  hideLayerControls = false,
+  hideTrustTierFilters = false,
+  tertiaryMetricLabel = 'AI suggestions',
+  tertiaryMetricValue = stats.aiSuggestedLinks,
 }: GraphControlsProps) {
   const [presetName, setPresetName] = useState('');
 
@@ -204,29 +212,31 @@ export function GraphControls({
             <span className="vital-kpi__value">{stats.totalEdges}</span>
           </div>
           <div className="vital-kpi">
-            <span className="vital-kpi__label">AI suggestions</span>
-            <span className="vital-kpi__value">{stats.aiSuggestedLinks}</span>
+            <span className="vital-kpi__label">{tertiaryMetricLabel}</span>
+            <span className="vital-kpi__value">{tertiaryMetricValue}</span>
           </div>
         </div>
       </div>
 
       {/* Workspace Modes */}
       <ControlSection title="Workspace Modes">
-        <div className="flex flex-col gap-2">
-          <span className="vital-panel__eyebrow">Layer</span>
-          <div className="vital-btn-group">
-            {(['blended', 'trust', 'knowledge'] as GraphLayer[]).map((l) => (
-              <button
-                key={l}
-                type="button"
-                className={`vital-action-button ${layer === l ? 'vital-action-button--active' : ''}`}
-                onClick={() => onLayerChange(l)}
-              >
-                {l}
-              </button>
-            ))}
+        {!hideLayerControls ? (
+          <div className="flex flex-col gap-2">
+            <span className="vital-panel__eyebrow">Layer</span>
+            <div className="vital-btn-group">
+              {(['blended', 'trust', 'knowledge'] as GraphLayer[]).map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  className={`vital-action-button ${layer === l ? 'vital-action-button--active' : ''}`}
+                  onClick={() => onLayerChange(l)}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : null}
         <div className="flex flex-col gap-2">
           <span className="vital-panel__eyebrow">View mode</span>
           <div className="vital-btn-group">
@@ -282,7 +292,7 @@ export function GraphControls({
             ))}
           </div>
         </div>
-        {availableTrustTiers.length > 0 && (
+        {!hideTrustTierFilters && availableTrustTiers.length > 0 && (
           <>
             <Separator />
             <div className="flex flex-col gap-2">

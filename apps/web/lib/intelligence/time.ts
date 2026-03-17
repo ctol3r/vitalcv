@@ -1,7 +1,12 @@
-import { differenceInCalendarDays, format, formatDistanceStrict } from 'date-fns';
+import { differenceInCalendarDays, format } from 'date-fns';
 
 const MINUTE_MS = 60 * 1000;
+const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+function pluralize(value: number, singular: string, plural = `${singular}s`) {
+  return `${value} ${value === 1 ? singular : plural}`;
+}
 
 function toValidDate(input: string | Date | null | undefined): Date | null {
   if (!input) {
@@ -26,23 +31,38 @@ export function formatRelativeTime(input: string | Date | null | undefined, now:
 
   const diffMs = date.getTime() - referenceDate.getTime();
   const absMs = Math.abs(diffMs);
+  const inFuture = diffMs > 0;
 
   if (absMs < MINUTE_MS) {
     return 'just now';
   }
 
+  if (absMs < HOUR_MS) {
+    const minutes = Math.round(absMs / MINUTE_MS);
+    return inFuture ? `in ${minutes} min` : `${minutes} min ago`;
+  }
+
+  if (absMs < DAY_MS) {
+    const hours = Math.round(absMs / HOUR_MS);
+    const label = pluralize(hours, 'hour');
+    return inFuture ? `in ${label}` : `${label} ago`;
+  }
+
   const calendarDayDelta = differenceInCalendarDays(date, referenceDate);
-  if (calendarDayDelta === -1 && absMs >= DAY_MS) {
+  if (calendarDayDelta === -1) {
     return 'Yesterday';
   }
-  if (calendarDayDelta === 1 && absMs >= DAY_MS) {
+  if (calendarDayDelta === 1) {
     return 'Tomorrow';
   }
 
-  return formatDistanceStrict(date, referenceDate, {
-    addSuffix: true,
-    roundingMethod: 'round',
-  });
+  if (absMs < 7 * DAY_MS) {
+    const days = Math.round(absMs / DAY_MS);
+    const label = pluralize(days, 'day');
+    return inFuture ? `in ${label}` : `${label} ago`;
+  }
+
+  return format(date, date.getFullYear() === referenceDate.getFullYear() ? 'MMM d' : 'MMM d, yyyy');
 }
 
 export function formatAbsoluteTime(input: string | Date | null | undefined): string {

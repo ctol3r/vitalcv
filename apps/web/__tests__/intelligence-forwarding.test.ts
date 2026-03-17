@@ -68,6 +68,83 @@ describe('intelligence auth forwarding', () => {
     expect(headers.get('x-org-id')).toBe('org-active-1');
   });
 
+  it('returns the seeded public providers snapshot when the session is missing', async () => {
+    authMock.mockResolvedValue({ userId: null, orgId: null, sessionClaims: {} });
+    const fetchMock = vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({
+        entries: [{
+          npi: '1902301456',
+          fullName: 'Amelia Hart',
+          specialties: ['Medical Oncology'],
+          credentialCount: 3,
+          activeCredentials: 3,
+          primaryIssuer: 'Mayo Clinic Jacksonville',
+          credentialHealth: 'VERIFIED',
+          lastVerifiedAt: '2026-03-17T00:00:00.000Z',
+          trustScore: 61,
+        }],
+        totalProviders: 1,
+        pageInfo: {
+          totalAvailable: 1,
+        },
+        snapshotReady: true,
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { GET } = await import('../app/api/intelligence/providers/route');
+    const response = await GET(new NextRequest('http://localhost/api/intelligence/providers') as never);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('http://backend.test/api/intelligence/public/providers'),
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: expect.any(Headers),
+      }),
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      accessMode: 'public_snapshot',
+      reason: 'missing_session',
+      total: 1,
+      providers: [{
+        npi: '1902301456',
+        name: 'Amelia Hart',
+      }],
+    });
+  });
+
+  it('fails findings requests with a real error response instead of an empty fallback payload', async () => {
+    authMock.mockResolvedValue({
+      userId: 'clerk-user-1',
+      orgId: 'org-clerk-1',
+      sessionClaims: {},
+    });
+    const fetchMock = vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({
+        error: 'backend_unavailable',
+        error_description: 'Findings feed unavailable. Try again when the backend is reachable.',
+      }),
+      {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { GET } = await import('../app/api/intelligence/findings/route');
+    const response = await GET(new NextRequest('http://localhost/api/intelligence/findings') as never);
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      error: 'backend_unavailable',
+      error_description: 'Findings feed unavailable. Try again when the backend is reachable.',
+    });
+  });
+
   it('uses the authenticated storyline detail loader for single-item refresh requests', async () => {
     authMock.mockResolvedValue({ userId: 'clerk-user-1', orgId: 'org-clerk-1' });
     loadStorylineDetailMock.mockResolvedValue({
@@ -192,10 +269,14 @@ describe('intelligence auth forwarding', () => {
 
     expect(queryResponse.status).toBe(200);
     await expect(queryResponse.json()).resolves.toMatchObject({
-      type: 'system_response',
-      message: 'Copilot requires active investigation context.',
+      status: 'limited',
+      title: 'Copilot requires authentication',
+      message: 'Sign in before running Copilot investigation workflows.',
       results: [],
       graphInsights: [],
+      document: {
+        mode: 'summary',
+      },
     });
 
     const { POST: askPost } = await import('../app/api/copilot/ask/route');
@@ -207,9 +288,94 @@ describe('intelligence auth forwarding', () => {
 
     expect(askResponse.status).toBe(200);
     await expect(askResponse.json()).resolves.toMatchObject({
-      answer: 'Copilot requires active investigation context.',
-      intent: 'SYSTEM_RESPONSE',
+      answer: 'Sign in before running Copilot investigation workflows.',
+      intent: 'LIMITED',
       suggestions: expect.any(Array),
+      data: {
+        status: 'limited',
+      },
+    });
+  });
+
+  it('forwards authenticated copilot investigation planning requests', async () => {
+    authMock.mockResolvedValue({
+      userId: 'clerk-user-1',
+      orgId: 'org-clerk-1',
+      sessionClaims: {
+        email: 'ada@example.com',
+        role: 'investigator',
+      },
+    });
+
+    const fetchMock = vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({
+        schema: 'https://vitalcv.com/copilot/investigation/v1',
+        objective: 'Assess provider 1234567890',
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { POST } = await import('../app/api/copilot/investigation/route');
+    const response = await POST(new NextRequest('http://localhost/api/copilot/investigation', {
+      method: 'POST',
+      body: JSON.stringify({ providerId: '1234567890' }),
+      headers: { 'Content-Type': 'application/json' },
+    }) as never);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://backend.test/api/copilot/investigation',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.any(Headers),
+        body: JSON.stringify({ providerId: '1234567890' }),
+        cache: 'no-store',
+      }),
+    );
+
+    const [, init] = fetchMock.mock.calls[0] as [string, { headers: Headers }];
+    expect(init.headers.get('x-clerk-user-id')).toBe('clerk-user-1');
+    expect(init.headers.get('x-org-id')).toBe('org-clerk-1');
+    expect(response.status).toBe(200);
+  });
+
+  it('fails closed for investigation network proxy when org context is missing', async () => {
+    authMock.mockResolvedValue({
+      userId: 'clerk-user-1',
+      orgId: null,
+      sessionClaims: {
+        email: 'ada@example.com',
+        role: 'investigator',
+      },
+    });
+
+    const fetchMock = vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({ activeOrgId: null }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { POST } = await import('../app/api/investigation/network/[npi]/route');
+    const response = await POST(new NextRequest('http://localhost/api/investigation/network/1234567890?depth=2', {
+      method: 'POST',
+      body: JSON.stringify({ depth: 2 }),
+      headers: { 'Content-Type': 'application/json' },
+    }) as never, {
+      params: Promise.resolve({ npi: '1234567890' }),
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: 'organization_context_required',
+      error_description: 'Organization workspace required. Switch to an organization workspace to continue.',
+      workspaceSwitchHref: '/workspace/switch',
     });
   });
 

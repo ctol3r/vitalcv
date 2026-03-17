@@ -2,10 +2,14 @@ import { type NextRequest, NextResponse } from 'next/server';
 import type { GraphEdge, GraphNode } from '@/components/graph-system/types';
 import { findGraphNodeIdForProvider, summarizeGraph, type IntelligenceProvider } from '@/lib/intelligence/contracts';
 import {
+  attachAccessMetadata,
   buildReadOnlyFallbackPayload,
+  canReadIntelligence,
   fetchBackendJson,
+  fetchPublicSnapshotJson,
   logIntelligenceFallbackUsage,
   parsePositiveInt,
+  resolveAccessReason,
   resolveIntelligenceAuthContext,
 } from '../_shared';
 
@@ -71,10 +75,6 @@ function enrichFocusedProviderNode(
 
 export async function GET(req: NextRequest) {
   const authContext = await resolveIntelligenceAuthContext();
-  if (authContext.status !== 'authenticated') {
-    return NextResponse.json(buildReadOnlyFallbackPayload('graph', req, authContext));
-  }
-
   const npi = req.nextUrl.searchParams.get('npi');
   const layer = req.nextUrl.searchParams.get('layer') ?? 'blended';
   const limit = parsePositiveInt(req.nextUrl.searchParams.get('limit'), 240, 600);
@@ -88,25 +88,48 @@ export async function GET(req: NextRequest) {
   try {
     const graphPath = npi && NPI_RE.test(npi) ? `/api/graph/${npi}` : '/api/graph/global';
     const [upstream, signalSummary] = await Promise.all([
-      fetchBackendJson<{
-        nodes?: Array<{
-          id: string;
-          metadata?: Record<string, unknown>;
-        }>;
-        edges?: Array<{
-          id: string;
-          source: string;
-          target: string;
-          type: string;
-        }>;
-        generatedAt?: string;
-      }>(
-        graphPath,
-        params,
-        20_000,
-        { context: authContext },
-      ),
+      canReadIntelligence(authContext)
+        ? fetchBackendJson<{
+          nodes?: Array<{
+            id: string;
+            metadata?: Record<string, unknown>;
+          }>;
+          edges?: Array<{
+            id: string;
+            source: string;
+            target: string;
+            type: string;
+          }>;
+          generatedAt?: string;
+          snapshotReady?: boolean;
+        }>(
+          graphPath,
+          params,
+          20_000,
+          { context: authContext },
+        )
+        : fetchPublicSnapshotJson<{
+          nodes?: Array<{
+            id: string;
+            metadata?: Record<string, unknown>;
+          }>;
+          edges?: Array<{
+            id: string;
+            source: string;
+            target: string;
+            type: string;
+          }>;
+          generatedAt?: string;
+          focusNodeId?: string | null;
+          snapshotReady?: boolean;
+        }>(
+          'graph',
+          new URLSearchParams({ ...(npi ? { npi } : {}), limit: String(limit) }),
+          authContext,
+          20_000,
+        ),
       npi && NPI_RE.test(npi)
+        && canReadIntelligence(authContext)
         ? fetchBackendJson<ProviderSignalPreview & {
           trust: ProviderSignalPreview['trust'];
           influence: ProviderSignalPreview['influence'];
@@ -125,7 +148,13 @@ export async function GET(req: NextRequest) {
 
     if (!upstream.ok) {
       logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
-      return NextResponse.json(buildReadOnlyFallbackPayload('graph', req, authContext, { log: false }));
+      return NextResponse.json(attachAccessMetadata(
+        buildReadOnlyFallbackPayload('graph', req, authContext, { log: false }),
+        {
+          accessMode: canReadIntelligence(authContext) ? 'full' : 'public_snapshot',
+          reason: 'backend_unavailable',
+        },
+      ));
     }
 
     const nodes = (upstream.payload.nodes ?? []) as GraphNode[];
@@ -165,16 +194,29 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({
+    return NextResponse.json(attachAccessMetadata({
       nodes,
       edges,
       stats: summarizeGraph(nodes, edges),
       focusNodeId,
       generatedAt: upstream.payload.generatedAt ?? new Date().toISOString(),
-    });
+    }, {
+      accessMode: canReadIntelligence(authContext) ? 'full' : 'public_snapshot',
+      reason: resolveAccessReason(
+        authContext,
+        canReadIntelligence(authContext) ? 'full' : 'public_snapshot',
+        upstream.payload,
+      ),
+    }));
   } catch (error) {
     void error;
     logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
-    return NextResponse.json(buildReadOnlyFallbackPayload('graph', req, authContext, { log: false }));
+    return NextResponse.json(attachAccessMetadata(
+      buildReadOnlyFallbackPayload('graph', req, authContext, { log: false }),
+      {
+        accessMode: canReadIntelligence(authContext) ? 'full' : 'public_snapshot',
+        reason: 'backend_unavailable',
+      },
+    ));
   }
 }

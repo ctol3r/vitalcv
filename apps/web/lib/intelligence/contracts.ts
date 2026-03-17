@@ -1,4 +1,10 @@
-import type { GraphEdge, GraphNode } from '@/components/graph-system/types';
+import type {
+  GraphEdge,
+  GraphEvidenceRef,
+  GraphNode,
+  InvestigationEdgeKind,
+  InvestigationNodeKind,
+} from '@/components/graph-system/types';
 
 export type WorkspaceSectionId =
   | 'dashboard'
@@ -16,6 +22,18 @@ export type WorkspaceSectionId =
 
 export type IntelligenceSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 export type IntelligenceTone = 'healthy' | 'degraded' | 'critical' | 'neutral';
+export type IntelligenceAccessMode = 'full' | 'public_snapshot';
+export type IntelligenceAccessReason =
+  | 'ok'
+  | 'missing_session'
+  | 'missing_org'
+  | 'warming_up'
+  | 'backend_unavailable';
+
+export interface IntelligenceAccessMetadata {
+  accessMode?: IntelligenceAccessMode;
+  reason?: IntelligenceAccessReason;
+}
 
 export interface IntelligenceProvider {
   id: string;
@@ -43,7 +61,7 @@ export interface IntelligenceAlert {
   occurredAt: string | null;
 }
 
-export interface ProvidersResponse {
+export interface ProvidersResponse extends IntelligenceAccessMetadata {
   providers: IntelligenceProvider[];
   watchlist: IntelligenceProvider[];
   comparison: IntelligenceProvider[];
@@ -88,7 +106,7 @@ export interface IntelligenceFinding {
   updatedAt: string;
 }
 
-export interface FindingsResponse {
+export interface FindingsResponse extends IntelligenceAccessMetadata {
   findings: IntelligenceFinding[];
   alerts: IntelligenceAlert[];
   total: number;
@@ -120,7 +138,7 @@ export interface IntelligenceStoryline {
   lastActivityAt: string;
 }
 
-export interface StorylinesResponse {
+export interface StorylinesResponse extends IntelligenceAccessMetadata {
   storylines: IntelligenceStoryline[];
   total: number;
   generatedAt: string;
@@ -131,7 +149,6 @@ export interface StorylinesResponse {
     hasNextPage: boolean;
     returned: number;
   };
-  degraded?: boolean;
 }
 
 export interface IntelligenceAction {
@@ -150,7 +167,7 @@ export interface IntelligenceAction {
   createdAt: string;
 }
 
-export interface ActionsResponse {
+export interface ActionsResponse extends IntelligenceAccessMetadata {
   actions: IntelligenceAction[];
   total: number;
   generatedAt: string;
@@ -171,7 +188,7 @@ export interface HealthStatusCardData {
   detail: string;
 }
 
-export interface IntelligenceSystemHealth {
+export interface IntelligenceSystemHealth extends IntelligenceAccessMetadata {
   overall: IntelligenceTone;
   headline: string;
   generatedAt: string;
@@ -192,12 +209,53 @@ export interface IntelligenceGraphStats {
   aiSuggestedLinks: number;
 }
 
-export interface IntelligenceGraphResponse {
+export interface IntelligenceGraphResponse extends IntelligenceAccessMetadata {
   nodes: GraphNode[];
   edges: GraphEdge[];
   stats: IntelligenceGraphStats;
   focusNodeId: string | null;
   generatedAt: string;
+}
+
+export interface InvestigationGraphPath {
+  pathId: string;
+  nodeIds: string[];
+  edgeIds: string[];
+  relationshipTypes: InvestigationEdgeKind[];
+  score: number;
+  explanation: string;
+}
+
+export interface InvestigationGraphResponse {
+  schema?: string;
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  stats: IntelligenceGraphStats & {
+    flaggedNodes: number;
+    evidenceEdges: number;
+    storylineEdges: number;
+  };
+  focusNodeId: string | null;
+  generatedAt: string;
+  highlights: {
+    nodeIds: string[];
+    edgeIds: string[];
+  };
+  paths: {
+    shortestPath: InvestigationGraphPath | null;
+    rankedPaths: InvestigationGraphPath[];
+  };
+  semanticZoom: {
+    overviewClusters: Array<{
+      id: string;
+      label: string;
+      nodeCount: number;
+      edgeCount: number;
+      nodeTypes: string[];
+    }>;
+    detailNodeCount: number;
+    detailEdgeCount: number;
+  };
 }
 
 export interface IntelligenceSource {
@@ -499,6 +557,487 @@ function maybeNpi(value: string | null | undefined): string | null {
   }
 
   return NPI_RE.test(value) ? value : null;
+}
+
+function asObject(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0
+    ? value.trim()
+    : null;
+}
+
+function asStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => asString(entry))
+    .filter((entry): entry is string => Boolean(entry));
+}
+
+function asNumber(value: unknown, fallback = 0): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values)];
+}
+
+function metadataKeywords(metadata: Record<string, unknown>): string {
+  return JSON.stringify(metadata).toLowerCase();
+}
+
+function isInvestigationNodeKind(value: string): value is InvestigationNodeKind {
+  return [
+    'provider',
+    'institution',
+    'company',
+    'trial',
+    'publication',
+    'payment',
+    'regulatory',
+    'evidence',
+  ].includes(value);
+}
+
+function isInvestigationEdgeKind(value: string): value is InvestigationEdgeKind {
+  return [
+    'co_author',
+    'co_investigator',
+    'financial',
+    'institutional',
+    'regulatory',
+    'storyline_related',
+    'evidence_link',
+  ].includes(value);
+}
+
+function inferInvestigationNodeKind(
+  rawType: string | null,
+  metadata: Record<string, unknown>,
+): InvestigationNodeKind {
+  const normalizedType = rawType?.toLowerCase() ?? '';
+  const keywords = metadataKeywords(metadata);
+
+  if (rawType && isInvestigationNodeKind(rawType as InvestigationNodeKind)) {
+    return rawType as InvestigationNodeKind;
+  }
+
+  if (normalizedType === 'clinician' || normalizedType === 'provider') {
+    return 'provider';
+  }
+
+  if (normalizedType === 'publication') {
+    return 'publication';
+  }
+
+  if (normalizedType === 'trial' || normalizedType === 'program') {
+    return 'trial';
+  }
+
+  if (normalizedType === 'payment' || normalizedType === 'receipt') {
+    return 'payment';
+  }
+
+  if (normalizedType === 'regulatory' || normalizedType === 'decision' || normalizedType === 'exclusion') {
+    return 'regulatory';
+  }
+
+  if (['artifact', 'source', 'document', 'attachment', 'evidence'].includes(normalizedType)) {
+    return 'evidence';
+  }
+
+  if (normalizedType === 'claim') {
+    if (keywords.includes('payment') || keywords.includes('transfer') || keywords.includes('honoraria')) {
+      return 'payment';
+    }
+    if (keywords.includes('regulator') || keywords.includes('disciplin') || keywords.includes('sanction')) {
+      return 'regulatory';
+    }
+    return 'evidence';
+  }
+
+  if (normalizedType === 'organization' || normalizedType === 'company') {
+    if (
+      keywords.includes('company')
+      || keywords.includes('manufacturer')
+      || keywords.includes('sponsor')
+      || keywords.includes('industry')
+      || keywords.includes('vendor')
+      || keywords.includes('payer')
+    ) {
+      return 'company';
+    }
+
+    return 'institution';
+  }
+
+  return 'institution';
+}
+
+function inferInvestigationEdgeKind(input: {
+  rawType: string | null;
+  metadata: Record<string, unknown>;
+  evidenceRefs: GraphEvidenceRef[];
+  findingIds: string[];
+  storylineIds: string[];
+  sourceNodeType: GraphNode['type'] | undefined;
+  targetNodeType: GraphNode['type'] | undefined;
+}): InvestigationEdgeKind {
+  const normalizedType = input.rawType?.toLowerCase() ?? '';
+  const keywords = metadataKeywords(input.metadata);
+
+  if (input.rawType && isInvestigationEdgeKind(input.rawType as InvestigationEdgeKind)) {
+    return input.rawType as InvestigationEdgeKind;
+  }
+
+  if (normalizedType === 'published_with' || normalizedType === 'co_author') {
+    return 'co_author';
+  }
+
+  if (
+    normalizedType === 'co_investigator'
+    || normalizedType.includes('investigator')
+    || keywords.includes('trial')
+    || keywords.includes('principal investigator')
+  ) {
+    return 'co_investigator';
+  }
+
+  if (
+    normalizedType === 'financial'
+    || keywords.includes('payment')
+    || keywords.includes('sponsor')
+    || keywords.includes('honoraria')
+    || keywords.includes('transfer')
+  ) {
+    return 'financial';
+  }
+
+  if (
+    normalizedType === 'storyline_related'
+    || input.storylineIds.length > 0
+    || keywords.includes('storyline')
+  ) {
+    return 'storyline_related';
+  }
+
+  if (
+    normalizedType === 'regulatory'
+    || normalizedType === 'issued_by'
+    || normalizedType === 'verified_by'
+    || normalizedType === 'sanctioned_by'
+    || keywords.includes('regulator')
+    || keywords.includes('sanction')
+    || keywords.includes('board action')
+  ) {
+    return 'regulatory';
+  }
+
+  if (
+    normalizedType === 'evidence_link'
+    || input.evidenceRefs.length > 0
+    || input.sourceNodeType === 'evidence'
+    || input.targetNodeType === 'evidence'
+  ) {
+    return 'evidence_link';
+  }
+
+  if (
+    normalizedType === 'works_at'
+    || normalizedType === 'affiliated_with'
+    || normalizedType === 'trained_at'
+    || normalizedType === 'institutional'
+  ) {
+    return 'institutional';
+  }
+
+  return 'institutional';
+}
+
+function summarizeMetadata(metadata: Record<string, unknown>): string | null {
+  const priorityKeys: Array<{ key: string; labeled: boolean }> = [
+    { key: 'summary', labeled: false },
+    { key: 'rationale', labeled: false },
+    { key: 'relationshipSummary', labeled: false },
+    { key: 'context', labeled: false },
+    { key: 'institutionName', labeled: true },
+    { key: 'companyName', labeled: true },
+    { key: 'paymentType', labeled: true },
+    { key: 'regulator', labeled: true },
+  ];
+
+  for (const { key, labeled } of priorityKeys) {
+    const value = asString(metadata[key]);
+    if (value) {
+      return labeled ? `${key}: ${value}` : value;
+    }
+  }
+
+  const entries = Object.entries(metadata)
+    .filter(([, value]) => value !== null && value !== undefined)
+    .slice(0, 3)
+    .map(([key, value]) => `${key}: ${typeof value === 'string' ? value : JSON.stringify(value)}`);
+
+  return entries.length > 0 ? entries.join(' • ') : null;
+}
+
+function normalizeEvidenceRefs(input: unknown): GraphEvidenceRef[] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+
+  return input.reduce<GraphEvidenceRef[]>((items, entry, index) => {
+    if (typeof entry === 'string') {
+      items.push({
+        evidenceId: entry,
+        source: null,
+        summary: entry,
+        observedAt: null,
+      });
+      return items;
+    }
+
+    const record = asObject(entry);
+    const evidenceId = asString(record.evidenceId) ?? asString(record.id) ?? `evidence-${index}`;
+    const source = asString(record.source) ?? asString(record.sourceLabel) ?? null;
+    const summary = asString(record.summary) ?? asString(record.snippet) ?? asString(record.label) ?? evidenceId;
+
+    items.push({
+      evidenceId,
+      source,
+      summary,
+      observedAt: asString(record.observedAt),
+      findingId: asString(record.findingId),
+      storylineId: asString(record.storylineId),
+      artifactId: asString(record.artifactId),
+      url: asString(record.url),
+    });
+    return items;
+  }, []);
+}
+
+function fallbackOverviewClusters(nodes: GraphNode[], edges: GraphEdge[]) {
+  const nodeTypesByCluster = new Map<string, Set<string>>();
+  const edgeCountsByCluster = new Map<string, number>();
+
+  for (const node of nodes) {
+    const clusterId = node.communityId ?? node.group ?? node.type;
+    const nodeTypes = nodeTypesByCluster.get(clusterId) ?? new Set<string>();
+    nodeTypes.add(node.type);
+    nodeTypesByCluster.set(clusterId, nodeTypes);
+  }
+
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  for (const edge of edges) {
+    const sourceCluster = nodeById.get(edge.source)?.communityId ?? nodeById.get(edge.source)?.group ?? null;
+    if (!sourceCluster) {
+      continue;
+    }
+    edgeCountsByCluster.set(sourceCluster, (edgeCountsByCluster.get(sourceCluster) ?? 0) + 1);
+  }
+
+  return [...nodeTypesByCluster.entries()].map(([id, nodeTypes]) => ({
+    id,
+    label: id,
+    nodeCount: nodes.filter((node) => (node.communityId ?? node.group ?? node.type) === id).length,
+    edgeCount: edgeCountsByCluster.get(id) ?? 0,
+    nodeTypes: [...nodeTypes],
+  }));
+}
+
+export function normalizeInvestigationGraphPayload(payload: unknown): InvestigationGraphResponse {
+  const record = asObject(payload);
+  const rawNodes = Array.isArray(record.nodes) ? record.nodes : [];
+  const rawEdges = Array.isArray(record.edges) ? record.edges : [];
+  const generatedAt = asString(record.generatedAt) ?? new Date().toISOString();
+
+  const nodes = rawNodes.map((entry, index): GraphNode => {
+    const rawNode = asObject(entry);
+    const metadata = asObject(rawNode.metadata);
+    const findingIds = uniqueStrings([
+      ...asStringList(rawNode.findingIds),
+      ...asStringList(metadata.findingIds),
+    ]);
+    const storylineIds = uniqueStrings([
+      ...asStringList(rawNode.storylineIds),
+      ...asStringList(metadata.storylineIds),
+    ]);
+    const rawType = asString(rawNode.projectedType) ?? asString(rawNode.type);
+    const projectedType = inferInvestigationNodeKind(rawType, metadata);
+    const label = asString(rawNode.label) ?? asString(metadata.label) ?? `Entity ${index + 1}`;
+    const communityId = asString(rawNode.communityId) ?? asString(metadata.communityId) ?? asString(metadata.institutionName) ?? asString(rawNode.group);
+
+    return {
+      id: asString(rawNode.id) ?? `node-${index}`,
+      type: projectedType,
+      projectedType,
+      label,
+      title: asString(rawNode.title) ?? label,
+      color: asString(rawNode.color) ?? '',
+      group: asString(rawNode.group) ?? communityId ?? projectedType,
+      degree: asNumber(rawNode.degree),
+      inDegree: asNumber(rawNode.inDegree),
+      outDegree: asNumber(rawNode.outDegree),
+      layer: (asString(rawNode.layer) as GraphNode['layer']) ?? 'blended',
+      metadata,
+      tags: asStringList(rawNode.tags),
+      sourceRefs: asStringList(rawNode.sourceRefs),
+      trustTier: asString(rawNode.trustTier) ?? undefined,
+      trustBand: asString(rawNode.trustBand) ?? undefined,
+      confidence: typeof rawNode.confidence === 'number' ? rawNode.confidence : undefined,
+      createdAt: asString(rawNode.createdAt) ?? generatedAt,
+      updatedAt: asString(rawNode.updatedAt) ?? generatedAt,
+      x: typeof rawNode.x === 'number' ? rawNode.x : undefined,
+      y: typeof rawNode.y === 'number' ? rawNode.y : undefined,
+      fx: typeof rawNode.fx === 'number' ? rawNode.fx : rawNode.fx === null ? null : undefined,
+      fy: typeof rawNode.fy === 'number' ? rawNode.fy : rawNode.fy === null ? null : undefined,
+      size: typeof rawNode.size === 'number' ? rawNode.size : undefined,
+      visible: typeof rawNode.visible === 'boolean' ? rawNode.visible : true,
+      highlighted: typeof rawNode.highlighted === 'boolean' ? rawNode.highlighted : false,
+      selected: typeof rawNode.selected === 'boolean' ? rawNode.selected : false,
+      clusterId: asString(rawNode.clusterId) ?? undefined,
+      flagged: typeof rawNode.flagged === 'boolean' ? rawNode.flagged : findingIds.length > 0 || storylineIds.length > 0,
+      findingIds,
+      storylineIds,
+      communityId,
+      originNodeIds: asStringList(rawNode.originNodeIds),
+    };
+  });
+
+  const nodesById = new Map(nodes.map((node) => [node.id, node]));
+  const edges = rawEdges.map((entry, index): GraphEdge => {
+    const rawEdge = asObject(entry);
+    const metadata = asObject(rawEdge.metadata);
+    const evidenceRefs = normalizeEvidenceRefs(rawEdge.evidenceRefs ?? metadata.evidenceRefs ?? metadata.evidence);
+    const findingIds = uniqueStrings([
+      ...asStringList(rawEdge.findingIds),
+      ...asStringList(metadata.findingIds),
+      ...evidenceRefs.flatMap((ref) => ref.findingId ? [ref.findingId] : []),
+    ]);
+    const storylineIds = uniqueStrings([
+      ...asStringList(rawEdge.storylineIds),
+      ...asStringList(metadata.storylineIds),
+      ...evidenceRefs.flatMap((ref) => ref.storylineId ? [ref.storylineId] : []),
+    ]);
+    const projectedType = inferInvestigationEdgeKind({
+      rawType: asString(rawEdge.projectedType) ?? asString(rawEdge.investigationRelationshipType) ?? asString(rawEdge.type),
+      metadata,
+      evidenceRefs,
+      findingIds,
+      storylineIds,
+      sourceNodeType: nodesById.get(asString(rawEdge.source) ?? '')?.type,
+      targetNodeType: nodesById.get(asString(rawEdge.target) ?? '')?.type,
+    });
+    const metadataSummary = asString(rawEdge.metadataSummary) ?? summarizeMetadata(metadata) ?? asString(rawEdge.explanation) ?? projectedType.replace(/_/g, ' ');
+
+    return {
+      id: asString(rawEdge.id) ?? `edge-${index}`,
+      source: asString(rawEdge.source) ?? '',
+      target: asString(rawEdge.target) ?? '',
+      type: projectedType,
+      projectedType,
+      directed: typeof rawEdge.directed === 'boolean' ? rawEdge.directed : projectedType !== 'co_author',
+      reciprocal: typeof rawEdge.reciprocal === 'boolean' ? rawEdge.reciprocal : projectedType === 'co_author',
+      confidence: asNumber(rawEdge.confidence),
+      createdBy: asString(rawEdge.createdBy) ?? 'investigation-graph',
+      explanation: asString(rawEdge.explanation) ?? metadataSummary,
+      status: asString(rawEdge.status) ?? 'ACTIVE',
+      weight: asNumber(rawEdge.weight, 1),
+      metadata,
+      layer: (asString(rawEdge.layer) as GraphEdge['layer']) ?? 'blended',
+      createdAt: asString(rawEdge.createdAt) ?? undefined,
+      updatedAt: asString(rawEdge.updatedAt) ?? generatedAt,
+      color: asString(rawEdge.color) ?? undefined,
+      opacity: typeof rawEdge.opacity === 'number' ? rawEdge.opacity : undefined,
+      visible: typeof rawEdge.visible === 'boolean' ? rawEdge.visible : true,
+      highlighted: typeof rawEdge.highlighted === 'boolean' ? rawEdge.highlighted : false,
+      flagged: typeof rawEdge.flagged === 'boolean' ? rawEdge.flagged : findingIds.length > 0 || storylineIds.length > 0,
+      findingIds,
+      storylineIds,
+      evidenceCount: typeof rawEdge.evidenceCount === 'number' ? rawEdge.evidenceCount : evidenceRefs.length,
+      evidenceRefs,
+      firstSeenAt: asString(rawEdge.firstSeenAt) ?? asString(rawEdge.createdAt),
+      lastSeenAt: asString(rawEdge.lastSeenAt) ?? asString(rawEdge.updatedAt),
+      metadataSummary,
+      openEvidenceTarget: asString(rawEdge.openEvidenceTarget) ?? evidenceRefs[0]?.url ?? null,
+      relationshipStrength: typeof rawEdge.relationshipStrength === 'number' ? rawEdge.relationshipStrength : undefined,
+      recencyWeight: typeof rawEdge.recencyWeight === 'number' ? rawEdge.recencyWeight : undefined,
+      animatedFromNodeId: asString(rawEdge.animatedFromNodeId),
+    };
+  }).filter((edge) => edge.source.length > 0 && edge.target.length > 0);
+
+  const rawHighlights = asObject(record.highlights);
+  const rawPaths = asObject(record.paths);
+  const normalizedShortestPath = asObject(rawPaths.shortestPath);
+  const rawRankedPaths = Array.isArray(rawPaths.rankedPaths) ? rawPaths.rankedPaths : [];
+  const rawSemanticZoom = asObject(record.semanticZoom);
+  const rawOverviewClusters = Array.isArray(rawSemanticZoom.overviewClusters)
+    ? rawSemanticZoom.overviewClusters
+    : [];
+
+  return {
+    schema: asString(record.schema) ?? undefined,
+    nodes,
+    edges,
+    stats: {
+      ...summarizeGraph(nodes, edges),
+      flaggedNodes: nodes.filter((node) => node.flagged).length,
+      evidenceEdges: edges.filter((edge) => edge.type === 'evidence_link').length,
+      storylineEdges: edges.filter((edge) => edge.type === 'storyline_related').length,
+    },
+    focusNodeId: asString(record.focusNodeId),
+    generatedAt,
+    highlights: {
+      nodeIds: uniqueStrings(asStringList(rawHighlights.nodeIds)),
+      edgeIds: uniqueStrings(asStringList(rawHighlights.edgeIds)),
+    },
+    paths: {
+      shortestPath: Object.keys(normalizedShortestPath).length === 0 ? null : {
+        pathId: asString(normalizedShortestPath.pathId) ?? 'shortest',
+        nodeIds: asStringList(normalizedShortestPath.nodeIds),
+        edgeIds: asStringList(normalizedShortestPath.edgeIds),
+        relationshipTypes: asStringList(normalizedShortestPath.relationshipTypes)
+          .filter((value): value is InvestigationEdgeKind => isInvestigationEdgeKind(value)),
+        score: asNumber(normalizedShortestPath.score),
+        explanation: asString(normalizedShortestPath.explanation) ?? 'Path resolved from the current graph slice.',
+      },
+      rankedPaths: rawRankedPaths.map((path, index): InvestigationGraphPath => {
+        const recordPath = asObject(path);
+        return {
+          pathId: asString(recordPath.pathId) ?? `ranked-${index}`,
+          nodeIds: asStringList(recordPath.nodeIds),
+          edgeIds: asStringList(recordPath.edgeIds),
+          relationshipTypes: asStringList(recordPath.relationshipTypes)
+            .filter((value): value is InvestigationEdgeKind => isInvestigationEdgeKind(value)),
+          score: asNumber(recordPath.score),
+          explanation: asString(recordPath.explanation) ?? 'Candidate path resolved from the current graph slice.',
+        };
+      }),
+    },
+    semanticZoom: {
+      overviewClusters: rawOverviewClusters.length > 0
+        ? rawOverviewClusters.map((cluster, index) => {
+          const recordCluster = asObject(cluster);
+          return {
+            id: asString(recordCluster.id) ?? `cluster-${index}`,
+            label: asString(recordCluster.label) ?? asString(recordCluster.id) ?? `Cluster ${index + 1}`,
+            nodeCount: asNumber(recordCluster.nodeCount),
+            edgeCount: asNumber(recordCluster.edgeCount),
+            nodeTypes: asStringList(recordCluster.nodeTypes),
+          };
+        })
+        : fallbackOverviewClusters(nodes, edges),
+      detailNodeCount: asNumber(rawSemanticZoom.detailNodeCount, nodes.length),
+      detailEdgeCount: asNumber(rawSemanticZoom.detailEdgeCount, edges.length),
+    },
+  };
 }
 
 function findProviderLabel(

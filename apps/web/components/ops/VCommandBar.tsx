@@ -42,6 +42,13 @@ type CopilotPreviewState = {
   graphInsights: CopilotGraphInsight[];
 };
 
+type CopilotRuntimeResponse = CopilotQueryResponse & {
+  status?: 'ok' | 'limited';
+  title?: string;
+  message?: string;
+  suggestions?: string[];
+};
+
 function isEditableTarget(target: EventTarget | null): boolean {
   const element = target instanceof HTMLElement ? target : null;
   if (!element) {
@@ -390,13 +397,32 @@ export default function VCommandBar() {
           }),
           signal: controller.signal,
         });
-        const payload = await response.json().catch(() => ({})) as CopilotQueryResponse & { error?: string; message?: string };
+        const payload = await response.json().catch(() => ({})) as CopilotRuntimeResponse & { error?: string; message?: string };
 
         if (!response.ok) {
-          throw new Error(payload.error ?? payload.message ?? 'Copilot query failed.');
+          throw new Error(payload.error ?? payload.message ?? 'Copilot source unavailable.');
         }
 
-        setResults(buildCopilotResults(input.normalized, payload.results ?? [], payload.explanations ?? []));
+        const copilotResults = buildCopilotResults(input.normalized, payload.results ?? [], payload.explanations ?? []);
+        if (payload.status === 'limited' && copilotResults.length === 0) {
+          const limitedNpi = extractNpiFromValue(input.normalized);
+          setResults([
+            {
+              id: 'copilot:limited',
+              kind: 'copilot',
+              title: payload.title ?? 'Copilot needs more investigation context',
+              subtitle: 'Limited response',
+              summary: payload.message ?? 'Copilot could not safely complete this request with the current live sources.',
+              badges: ['limited'],
+              href: limitedNpi ? `/providers/${encodeURIComponent(limitedNpi)}` : null,
+              graphHref: limitedNpi ? `/graph?npi=${encodeURIComponent(limitedNpi)}` : null,
+              npi: limitedNpi,
+              sourceCoverage: [],
+            },
+          ]);
+        } else {
+          setResults(copilotResults);
+        }
         setCopilotPreview({
           parsedQuery: payload.parsedQuery ?? null,
           explanations: payload.explanations ?? [],

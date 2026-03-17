@@ -25,19 +25,29 @@ interface Props {
   visuals: GraphVisualState;
   selectedNodeId: string | null;
   hoveredNodeId: string | null;
+  selectedEdgeId?: string | null;
+  hoveredEdgeId?: string | null;
   highlightedNodeIds: Set<string>;
   highlightedEdgeIds: Set<string>;
   onSelectNode: (id: string | null) => void;
+  onSelectEdge?: (id: string | null) => void;
   onHoverNode: (id: string | null) => void;
+  onHoverEdge?: (id: string | null) => void;
   onDoubleClickNode: (id: string) => void;
   onDragNode: (id: string, x: number, y: number) => void;
   onPinNode: (id: string, x: number, y: number) => void;
   onViewportChange?: (viewport: GraphViewportState) => void;
   onHoverDetailChange?: (detail: GraphHoverDetail | null) => void;
+  onEdgeHoverDetailChange?: (detail: GraphEdgeHoverDetail | null) => void;
+  onLayoutSnapshotChange?: (snapshot: GraphLayoutSnapshot | null) => void;
   disableInternalTooltip?: boolean;
   width: number;
   height: number;
   layoutVersion?: number;
+  layoutScopeKey?: string;
+  nodeCap?: number;
+  edgeCap?: number;
+  miniMapThrottleMs?: number;
 }
 
 export interface GraphHoverDetail {
@@ -45,6 +55,31 @@ export interface GraphHoverDetail {
   screenX: number;
   screenY: number;
   relationshipCount: number;
+}
+
+export interface GraphEdgeHoverDetail {
+  edge: GraphEdge;
+  screenX: number;
+  screenY: number;
+  sourceNode: GraphNode | null;
+  targetNode: GraphNode | null;
+}
+
+export interface GraphLayoutSnapshot {
+  nodes: Array<{
+    id: string;
+    x: number;
+    y: number;
+    type: GraphNode['type'];
+    highlighted: boolean;
+  }>;
+  bounds: {
+    minX: number;
+    maxX: number;
+    minY: number;
+    maxY: number;
+  };
+  viewport: GraphViewportState;
 }
 
 interface DragState {
@@ -71,29 +106,39 @@ export default React.memo(function GraphCanvas({
   visuals,
   selectedNodeId,
   hoveredNodeId,
+  selectedEdgeId = null,
+  hoveredEdgeId = null,
   highlightedNodeIds,
   highlightedEdgeIds,
   onSelectNode,
+  onSelectEdge,
   onHoverNode,
+  onHoverEdge,
   onDoubleClickNode,
   onDragNode,
   onPinNode,
   onViewportChange,
   onHoverDetailChange,
+  onEdgeHoverDetailChange,
+  onLayoutSnapshotChange,
   disableInternalTooltip = false,
   width,
   height,
   layoutVersion = 0,
+  layoutScopeKey,
+  nodeCap = 500,
+  edgeCap = 1000,
+  miniMapThrottleMs = 140,
 }: Props) {
   const nodes = useMemo(
-    () => (rawNodes.length > 500 ? rawNodes.slice(0, 500) : rawNodes),
-    [rawNodes],
+    () => (rawNodes.length > nodeCap ? rawNodes.slice(0, nodeCap) : rawNodes),
+    [nodeCap, rawNodes],
   );
   const edges = useMemo(() => {
-    const subset = rawEdges.length > 1000 ? rawEdges.slice(0, 1000) : rawEdges;
+    const subset = rawEdges.length > edgeCap ? rawEdges.slice(0, edgeCap) : rawEdges;
     const nodeIds = new Set(nodes.map((node) => node.id));
     return subset.filter((edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target));
-  }, [nodes, rawEdges]);
+  }, [edgeCap, nodes, rawEdges]);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>(0);
@@ -115,6 +160,25 @@ export default React.memo(function GraphCanvas({
     zoomBand: 'network',
   });
   const hoveredNodeRef = useRef<string | null>(null);
+  const hoveredEdgeRef = useRef<string | null>(null);
+  const interactionRef = useRef({
+    selectedNodeId,
+    hoveredNodeId,
+    selectedEdgeId,
+    hoveredEdgeId,
+    highlightedNodeIds,
+    highlightedEdgeIds,
+  });
+  const callbacksRef = useRef({
+    onSelectNode,
+    onSelectEdge,
+    onHoverNode,
+    onHoverEdge,
+    onHoverDetailChange,
+    onEdgeHoverDetailChange,
+    onLayoutSnapshotChange,
+  });
+  const lastMiniMapEmitRef = useRef(0);
 
   const relationshipCountByNodeId = useMemo(() => {
     const counts = new Map<string, number>();
@@ -127,6 +191,49 @@ export default React.memo(function GraphCanvas({
     return counts;
   }, [edges]);
 
+  const nodesById = useMemo(
+    () => new Map(nodes.map((node) => [node.id, node])),
+    [nodes],
+  );
+
+  useEffect(() => {
+    interactionRef.current = {
+      selectedNodeId,
+      hoveredNodeId,
+      selectedEdgeId,
+      hoveredEdgeId,
+      highlightedNodeIds,
+      highlightedEdgeIds,
+    };
+  }, [
+    highlightedEdgeIds,
+    highlightedNodeIds,
+    hoveredEdgeId,
+    hoveredNodeId,
+    selectedEdgeId,
+    selectedNodeId,
+  ]);
+
+  useEffect(() => {
+    callbacksRef.current = {
+      onSelectNode,
+      onSelectEdge,
+      onHoverNode,
+      onHoverEdge,
+      onHoverDetailChange,
+      onEdgeHoverDetailChange,
+      onLayoutSnapshotChange,
+    };
+  }, [
+    onEdgeHoverDetailChange,
+    onHoverDetailChange,
+    onHoverEdge,
+    onHoverNode,
+    onLayoutSnapshotChange,
+    onSelectEdge,
+    onSelectNode,
+  ]);
+
   const { simNodesRef, tick, updateNodePosition } = useGraphPhysics({
     nodes,
     edges,
@@ -136,6 +243,7 @@ export default React.memo(function GraphCanvas({
     visuals,
     selectedNodeId,
     layoutVersion,
+    layoutScopeKey,
   });
 
   const { showTooltip, hideTooltip } = useTippyGraph(canvasRef);
@@ -164,7 +272,7 @@ export default React.memo(function GraphCanvas({
     onViewportChange?.(nextViewport);
   }, [onViewportChange]);
 
-  const hitTest = useCallback((clientX: number, clientY: number): string | null => {
+  const screenToWorld = useCallback((clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) {
       return null;
@@ -172,8 +280,19 @@ export default React.memo(function GraphCanvas({
 
     const rect = canvas.getBoundingClientRect();
     const { x, y, zoom } = cameraRef.current;
-    const worldX = ((clientX - rect.left - width / 2 - x) / zoom) + width / 2;
-    const worldY = ((clientY - rect.top - height / 2 - y) / zoom) + height / 2;
+    return {
+      worldX: ((clientX - rect.left - width / 2 - x) / zoom) + width / 2,
+      worldY: ((clientY - rect.top - height / 2 - y) / zoom) + height / 2,
+    };
+  }, [height, width]);
+
+  const hitTest = useCallback((clientX: number, clientY: number): string | null => {
+    const world = screenToWorld(clientX, clientY);
+    if (!world) {
+      return null;
+    }
+
+    const { worldX, worldY } = world;
 
     for (const node of simNodesRef.current) {
       const dx = (node.x ?? 0) - worldX;
@@ -185,7 +304,54 @@ export default React.memo(function GraphCanvas({
     }
 
     return null;
-  }, [height, simNodesRef, width]);
+  }, [screenToWorld, simNodesRef]);
+
+  const hitTestEdge = useCallback((clientX: number, clientY: number): string | null => {
+    const world = screenToWorld(clientX, clientY);
+    if (!world) {
+      return null;
+    }
+
+    const tolerance = Math.max(10, 14 / Math.max(cameraRef.current.zoom, 0.6));
+    let bestEdgeId: string | null = null;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    const simNodesById = new Map(simNodesRef.current.map((node) => [node.id, node]));
+
+    for (const edge of edges) {
+      const source = simNodesById.get(edge.source);
+      const target = simNodesById.get(edge.target);
+      if (!source || !target || edge.visible === false) {
+        continue;
+      }
+
+      const startX = source.x ?? 0;
+      const startY = source.y ?? 0;
+      const endX = target.x ?? 0;
+      const endY = target.y ?? 0;
+      const dx = endX - startX;
+      const dy = endY - startY;
+      const lengthSquared = (dx * dx) + (dy * dy);
+      if (lengthSquared === 0) {
+        continue;
+      }
+
+      const projection = clamp(
+        (((world.worldX - startX) * dx) + ((world.worldY - startY) * dy)) / lengthSquared,
+        0,
+        1,
+      );
+      const projectedX = startX + (projection * dx);
+      const projectedY = startY + (projection * dy);
+      const distance = Math.hypot(world.worldX - projectedX, world.worldY - projectedY);
+
+      if (distance <= tolerance && distance < bestDistance) {
+        bestDistance = distance;
+        bestEdgeId = edge.id;
+      }
+    }
+
+    return bestEdgeId;
+  }, [edges, screenToWorld, simNodesRef]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -233,6 +399,14 @@ export default React.memo(function GraphCanvas({
       const colorMap = new Map(
         simulationNodes.map((node) => [node.id, resolveNodeColor(node, edges, visuals.colorMode)]),
       );
+      const {
+        selectedNodeId: selectedNodeIdCurrent,
+        hoveredNodeId: hoveredNodeIdCurrent,
+        selectedEdgeId: selectedEdgeIdCurrent,
+        hoveredEdgeId: hoveredEdgeIdCurrent,
+        highlightedNodeIds: highlightedNodeIdsCurrent,
+        highlightedEdgeIds: highlightedEdgeIdsCurrent,
+      } = interactionRef.current;
       const highlightLerp = Math.min(1, deltaMs / (motionDurations.highlight * 1000));
       const camera = cameraRef.current;
       const zoomBand = resolveGraphZoomBand(camera.zoom);
@@ -258,8 +432,14 @@ export default React.memo(function GraphCanvas({
 
         const linkClass = classifyEdgeType(edge);
         const style = LINK_CLASS_STYLES[linkClass];
-        const isHighlighted = highlightedEdgeIds.has(edge.id);
-        const isDimmed = (selectedNodeId != null || hoveredNodeId != null) && !isHighlighted;
+        const isHighlighted = highlightedEdgeIdsCurrent.has(edge.id);
+        const isFocused = isHighlighted || edge.id === selectedEdgeIdCurrent || edge.id === hoveredEdgeIdCurrent;
+        const isDimmed = (
+          selectedNodeIdCurrent != null
+          || hoveredNodeIdCurrent != null
+          || selectedEdgeIdCurrent != null
+          || hoveredEdgeIdCurrent != null
+        ) && !isFocused;
         const edgeStrength = resolveEdgeStrength(edge);
         const sourceX = source.x ?? 0;
         const sourceY = source.y ?? 0;
@@ -272,7 +452,7 @@ export default React.memo(function GraphCanvas({
         context.lineTo(targetX, targetY);
         context.setLineDash(style.dash);
         context.strokeStyle = style.stroke;
-        context.globalAlpha = isHighlighted
+        context.globalAlpha = isFocused
           ? Math.min(0.96, 0.78 + (edgeStrength * 0.18))
           : isDimmed
             ? 0.1
@@ -286,7 +466,7 @@ export default React.memo(function GraphCanvas({
         context.lineWidth = visuals.linkThickness
           * (0.7 + (edgeStrength * 1.35))
           * (zoomBand === 'overview' ? 0.82 : zoomBand === 'evidence' ? 1.14 : 1)
-          * (isHighlighted ? 1.45 : 1);
+          * (isFocused ? 1.45 : 1);
         context.stroke();
 
         if (visuals.showArrows && edge.directed) {
@@ -315,10 +495,15 @@ export default React.memo(function GraphCanvas({
 
       for (const node of simulationNodes) {
         const radius = Math.max(8, node.radius ?? visuals.nodeSize);
-        const isSelected = node.id === selectedNodeId;
-        const isHovered = node.id === hoveredNodeId;
-        const isFocusedNeighbor = highlightedNodeIds.has(node.id);
-        const isDimmed = (selectedNodeId != null || hoveredNodeId != null) && !isFocusedNeighbor;
+        const isSelected = node.id === selectedNodeIdCurrent;
+        const isHovered = node.id === hoveredNodeIdCurrent;
+        const isFocusedNeighbor = highlightedNodeIdsCurrent.has(node.id);
+        const isDimmed = (
+          selectedNodeIdCurrent != null
+          || hoveredNodeIdCurrent != null
+          || selectedEdgeIdCurrent != null
+          || hoveredEdgeIdCurrent != null
+        ) && !isFocusedNeighbor;
         const highlightTarget = isSelected ? 1 : isHovered ? 0.8 : isFocusedNeighbor ? 0.4 : 0;
         const highlightProgress = (
           (highlightProgressRef.current.get(node.id) ?? 0) +
@@ -389,6 +574,39 @@ export default React.memo(function GraphCanvas({
       }
 
       context.restore();
+
+      const snapshotCallback = callbacksRef.current.onLayoutSnapshotChange;
+      if (
+        snapshotCallback
+        && simulationNodes.length > 0
+        && frameStartedAt - lastMiniMapEmitRef.current >= miniMapThrottleMs
+      ) {
+        const bounds = simulationNodes.reduce((accumulator, node) => ({
+          minX: Math.min(accumulator.minX, node.x ?? 0),
+          maxX: Math.max(accumulator.maxX, node.x ?? 0),
+          minY: Math.min(accumulator.minY, node.y ?? 0),
+          maxY: Math.max(accumulator.maxY, node.y ?? 0),
+        }), {
+          minX: Number.POSITIVE_INFINITY,
+          maxX: Number.NEGATIVE_INFINITY,
+          minY: Number.POSITIVE_INFINITY,
+          maxY: Number.NEGATIVE_INFINITY,
+        });
+
+        snapshotCallback({
+          nodes: simulationNodes.map((node) => ({
+            id: node.id,
+            x: node.x ?? 0,
+            y: node.y ?? 0,
+            type: node.type,
+            highlighted: highlightedNodeIdsCurrent.has(node.id),
+          })),
+          bounds,
+          viewport: viewportRef.current,
+        });
+        lastMiniMapEmitRef.current = frameStartedAt;
+      }
+
       animationFrameRef.current = requestAnimationFrame(render);
     };
 
@@ -402,13 +620,10 @@ export default React.memo(function GraphCanvas({
   }, [
     edges,
     height,
-    highlightedEdgeIds,
-    highlightedNodeIds,
-    hoveredNodeId,
     physics.frozen,
-    selectedNodeId,
     simNodesRef,
     tick,
+    miniMapThrottleMs,
     visuals.animate,
     visuals.colorMode,
     visuals.linkThickness,
@@ -425,22 +640,17 @@ export default React.memo(function GraphCanvas({
   const handleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const nodeId = hitTest(event.clientX, event.clientY);
     if (nodeId) {
-      const canvas = canvasRef.current;
-      if (!canvas) {
+      const world = screenToWorld(event.clientX, event.clientY);
+      if (!world) {
         return;
       }
-
-      const rect = canvas.getBoundingClientRect();
-      const { x, y, zoom } = cameraRef.current;
-      const worldX = ((event.clientX - rect.left - width / 2 - x) / zoom) + width / 2;
-      const worldY = ((event.clientY - rect.top - height / 2 - y) / zoom) + height / 2;
       const node = simNodesRef.current.find((candidate) => candidate.id === nodeId);
 
       if (node) {
         dragRef.current = {
           nodeId,
-          offsetX: (node.x ?? 0) - worldX,
-          offsetY: (node.y ?? 0) - worldY,
+          offsetX: (node.x ?? 0) - world.worldX,
+          offsetY: (node.y ?? 0) - world.worldY,
           moved: false,
         };
       }
@@ -455,25 +665,21 @@ export default React.memo(function GraphCanvas({
       cameraX: cameraRef.current.x,
       cameraY: cameraRef.current.y,
     };
-  }, [height, hitTest, simNodesRef, width]);
+  }, [hitTest, screenToWorld, simNodesRef]);
 
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      return;
-    }
-
     if (dragRef.current) {
-      const rect = canvas.getBoundingClientRect();
-      const { x, y, zoom } = cameraRef.current;
-      const worldX = ((event.clientX - rect.left - width / 2 - x) / zoom) + width / 2;
-      const worldY = ((event.clientY - rect.top - height / 2 - y) / zoom) + height / 2;
-      const nextX = worldX + dragRef.current.offsetX;
-      const nextY = worldY + dragRef.current.offsetY;
+      const world = screenToWorld(event.clientX, event.clientY);
+      if (!world) {
+        return;
+      }
+      const nextX = world.worldX + dragRef.current.offsetX;
+      const nextY = world.worldY + dragRef.current.offsetY;
 
       dragRef.current.moved = true;
       updateNodePosition(dragRef.current.nodeId, nextX, nextY, true);
-      onHoverDetailChange?.(null);
+      callbacksRef.current.onHoverDetailChange?.(null);
+      callbacksRef.current.onEdgeHoverDetailChange?.(null);
       hideTooltip();
       return;
     }
@@ -481,7 +687,8 @@ export default React.memo(function GraphCanvas({
     if (isPanningRef.current) {
       cameraRef.current.x = panStartRef.current.cameraX + (event.clientX - panStartRef.current.x);
       cameraRef.current.y = panStartRef.current.cameraY + (event.clientY - panStartRef.current.y);
-      onHoverDetailChange?.(null);
+      callbacksRef.current.onHoverDetailChange?.(null);
+      callbacksRef.current.onEdgeHoverDetailChange?.(null);
       hideTooltip();
       return;
     }
@@ -489,51 +696,74 @@ export default React.memo(function GraphCanvas({
     const nodeId = hitTest(event.clientX, event.clientY);
     if (hoveredNodeRef.current !== nodeId) {
       hoveredNodeRef.current = nodeId;
-      onHoverNode(nodeId);
+      callbacksRef.current.onHoverNode(nodeId);
     }
 
-    if (!nodeId) {
-      onHoverDetailChange?.(null);
-      hideTooltip();
+    if (nodeId) {
+      const node = simNodesRef.current.find((candidate) => candidate.id === nodeId);
+      if (!node) {
+        callbacksRef.current.onHoverDetailChange?.(null);
+        callbacksRef.current.onEdgeHoverDetailChange?.(null);
+        hideTooltip();
+        return;
+      }
+
+      const relationshipCount = relationshipCountByNodeId.get(nodeId) ?? 0;
+      callbacksRef.current.onHoverDetailChange?.({
+        node,
+        screenX: event.clientX,
+        screenY: event.clientY,
+        relationshipCount,
+      });
+      callbacksRef.current.onHoverEdge?.(null);
+      callbacksRef.current.onEdgeHoverDetailChange?.(null);
+      hoveredEdgeRef.current = null;
+
+      if (!disableInternalTooltip) {
+        showTooltip(
+          node,
+          { clientX: event.clientX, clientY: event.clientY },
+          relationshipCount,
+        );
+      } else {
+        hideTooltip();
+      }
       return;
     }
 
-    const node = simNodesRef.current.find((candidate) => candidate.id === nodeId);
-    if (!node) {
-      onHoverDetailChange?.(null);
-      hideTooltip();
-      return;
+    callbacksRef.current.onHoverDetailChange?.(null);
+    hideTooltip();
+
+    const edgeId = hitTestEdge(event.clientX, event.clientY);
+    if (hoveredEdgeRef.current !== edgeId) {
+      hoveredEdgeRef.current = edgeId;
+      callbacksRef.current.onHoverEdge?.(edgeId);
     }
 
-    const relationshipCount = relationshipCountByNodeId.get(nodeId) ?? 0;
-    onHoverDetailChange?.({
-      node,
+    if (!edgeId) {
+      callbacksRef.current.onEdgeHoverDetailChange?.(null);
+      return;
+    }
+    const edge = edges.find((candidate) => candidate.id === edgeId) ?? null;
+    callbacksRef.current.onEdgeHoverDetailChange?.(edge ? {
+      edge,
       screenX: event.clientX,
       screenY: event.clientY,
-      relationshipCount,
-    });
-
-    if (!disableInternalTooltip) {
-      showTooltip(
-        node,
-        { clientX: event.clientX, clientY: event.clientY },
-        relationshipCount,
-      );
-    } else {
-      hideTooltip();
-    }
+      sourceNode: nodesById.get(edge.source) ?? null,
+      targetNode: nodesById.get(edge.target) ?? null,
+    } : null);
   }, [
     disableInternalTooltip,
+    edges,
     hideTooltip,
     hitTest,
-    onHoverDetailChange,
-    onHoverNode,
+    hitTestEdge,
+    nodesById,
     relationshipCountByNodeId,
+    screenToWorld,
     showTooltip,
     simNodesRef,
     updateNodePosition,
-    height,
-    width,
   ]);
 
   const handleMouseUp = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -546,7 +776,8 @@ export default React.memo(function GraphCanvas({
         if (moved) {
           onPinNode(nodeId, node.x ?? 0, node.y ?? 0);
         } else {
-          onSelectNode(nodeId);
+          callbacksRef.current.onSelectEdge?.(null);
+          callbacksRef.current.onSelectNode(nodeId);
         }
       }
 
@@ -560,8 +791,23 @@ export default React.memo(function GraphCanvas({
       return;
     }
 
-    onSelectNode(hitTest(event.clientX, event.clientY));
-  }, [emitViewportChange, hitTest, onDragNode, onPinNode, onSelectNode, simNodesRef]);
+    const nodeId = hitTest(event.clientX, event.clientY);
+    if (nodeId) {
+      callbacksRef.current.onSelectEdge?.(null);
+      callbacksRef.current.onSelectNode(nodeId);
+      return;
+    }
+
+    const edgeId = hitTestEdge(event.clientX, event.clientY);
+    if (edgeId) {
+      callbacksRef.current.onSelectNode(null);
+      callbacksRef.current.onSelectEdge?.(edgeId);
+      return;
+    }
+
+    callbacksRef.current.onSelectNode(null);
+    callbacksRef.current.onSelectEdge?.(null);
+  }, [emitViewportChange, hitTest, hitTestEdge, onDragNode, onPinNode, simNodesRef]);
 
   const handleDoubleClick = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const nodeId = hitTest(event.clientX, event.clientY);
@@ -601,8 +847,11 @@ export default React.memo(function GraphCanvas({
       onMouseDown={handleMouseDown}
       onMouseLeave={() => {
         hoveredNodeRef.current = null;
-        onHoverNode(null);
-        onHoverDetailChange?.(null);
+        hoveredEdgeRef.current = null;
+        callbacksRef.current.onHoverNode(null);
+        callbacksRef.current.onHoverEdge?.(null);
+        callbacksRef.current.onHoverDetailChange?.(null);
+        callbacksRef.current.onEdgeHoverDetailChange?.(null);
         hideTooltip();
       }}
       onMouseMove={handleMouseMove}
@@ -611,7 +860,7 @@ export default React.memo(function GraphCanvas({
       style={{
         cursor: dragRef.current || isPanningRef.current
           ? 'grabbing'
-          : hoveredNodeId
+          : hoveredNodeId || hoveredEdgeId
             ? 'pointer'
             : 'grab',
         height,

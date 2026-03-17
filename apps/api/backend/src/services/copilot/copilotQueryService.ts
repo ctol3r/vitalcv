@@ -34,16 +34,24 @@ import {
   type CopilotEvidence,
   type CopilotGraphInsight,
   type CopilotMatch,
+  type PreparedCopilotQuery,
   type CopilotQueryResponse,
   type CopilotSearchContext,
   type CopilotTrustEnrichment,
   type ParsedCopilotQuery,
 } from '../../../../../../core/copilot/copilotEngine';
+import type { CopilotContext, CopilotContextAnchor } from '../../../../../../core/copilot/contextBuilder';
+import { hasCopilotContext } from '../../../../../../core/copilot/contextBuilder';
 import type { StrategyInsight } from '../../../../../../core/strategy/strategyEngine';
 import type {
   StrategyInsight as StrategyAgentInsight,
   StrategyReport as StrategyAgentReport,
 } from '../strategyAgents/contracts';
+import {
+  buildContextualCopilotResponse,
+  buildWarmCopilotResponse,
+  finalizeCopilotResponse,
+} from './contextualResponse';
 
 type ExtractedCandidateFields = {
   specialty?: string;
@@ -1487,11 +1495,36 @@ export async function executeCopilotQuery(params: {
   query: string;
   limit: number;
   requestContext: SearchRequestContext;
+  preparedQuery?: PreparedCopilotQuery;
+  anchor?: CopilotContextAnchor;
+  context?: CopilotContext;
 }): Promise<CopilotQueryResponse> {
-  const preparedQuery = prepareCopilotQuery({
+  const preparedQuery = params.preparedQuery ?? prepareCopilotQuery({
     query: params.query,
     limit: params.limit,
   });
+
+  if (params.anchor && (params.anchor.providerId || params.anchor.findingId || params.anchor.storylineId)) {
+    if (!params.context || !hasCopilotContext(params.context)) {
+      return buildWarmCopilotResponse(preparedQuery);
+    }
+
+    const contextualResponse = buildContextualCopilotResponse(
+      preparedQuery,
+      params.context,
+      params.anchor,
+    );
+
+    log('info', 'copilot.query', {
+      queryHash: params.requestContext.queryHash,
+      intent: contextualResponse.parsedQuery.intent,
+      resultCount: contextualResponse.results.length,
+      graphInsightCount: contextualResponse.graphInsights.length,
+      contextualMode: true,
+    });
+
+    return finalizeCopilotResponse(contextualResponse);
+  }
 
   // Storyline-first: if query references a storyline ID, return narrative directly
   const storylineResponse = await maybeExecuteStorylineCopilotQuery(preparedQuery, params.limit);
@@ -1502,7 +1535,7 @@ export async function executeCopilotQuery(params: {
       resultCount: storylineResponse.results.length,
       storylineMode: true,
     });
-    return storylineResponse;
+    return finalizeCopilotResponse(storylineResponse);
   }
 
   const intelligenceContextResponse = await maybeExecuteIntelligenceContextQuery(preparedQuery, params.limit);
@@ -1515,7 +1548,7 @@ export async function executeCopilotQuery(params: {
       intelligenceContextMode: true,
     });
 
-    return intelligenceContextResponse;
+    return finalizeCopilotResponse(intelligenceContextResponse);
   }
 
   const predictionResponse = await maybeExecutePredictionCopilotQuery(preparedQuery, params.limit);
@@ -1528,7 +1561,7 @@ export async function executeCopilotQuery(params: {
       predictionMode: true,
     });
 
-    return predictionResponse;
+    return finalizeCopilotResponse(predictionResponse);
   }
 
   const response = await executeCopilotPlan(
@@ -1545,5 +1578,5 @@ export async function executeCopilotQuery(params: {
     graphInsightCount: enrichedResponse.graphInsights.length,
   });
 
-  return enrichedResponse;
+  return finalizeCopilotResponse(enrichedResponse);
 }

@@ -50,6 +50,7 @@ export function GraphPanel({
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [showLegend, setShowLegend] = useState(false);
   const [resetKey, setResetKey] = useState(0);
+  const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(new Set());
   const highlightedNodeIds = useRef(new Set<string>());
   const highlightedEdgeIds = useRef(new Set<string>());
 
@@ -80,15 +81,13 @@ export function GraphPanel({
         || (typeof node.metadata?.npi === 'string' && node.metadata.npi === selectedProvider?.npi)
       ))?.id
       ?? null;
-    const sortedNodes = [...graph.nodes].sort((left, right) => (
-      Number(right.id === focusNodeId) - Number(left.id === focusNodeId) ||
-      right.degree - left.degree ||
-      left.label.localeCompare(right.label)
-    ));
-    const cappedNodes = sortedNodes.slice(0, MAX_CONTEXT_NODES);
-    const cappedNodeIds = new Set(cappedNodes.map((node) => node.id));
-    const sortedEdges = [...graph.edges]
-      .filter((edge) => cappedNodeIds.has(edge.source) && cappedNodeIds.has(edge.target))
+    const expandedIds = new Set([focusNodeId, ...Array.from(expandedNodeIds)]);
+    
+    const relevantEdges = graph.edges.filter(
+      (edge) => expandedIds.has(edge.source) || expandedIds.has(edge.target)
+    );
+
+    const sortedEdges = relevantEdges
       .sort((left, right) => (
         Number(right.source === focusNodeId || right.target === focusNodeId) -
           Number(left.source === focusNodeId || left.target === focusNodeId) ||
@@ -102,8 +101,17 @@ export function GraphPanel({
       connectedNodeIds.add(edge.source);
       connectedNodeIds.add(edge.target);
     }
+    if (focusNodeId) connectedNodeIds.add(focusNodeId);
 
-    const visibleNodes = cappedNodes.filter((node) => connectedNodeIds.has(node.id) || node.id === focusNodeId);
+    const sortedNodes = [...graph.nodes]
+      .filter((node) => connectedNodeIds.has(node.id))
+      .sort((left, right) => (
+        Number(right.id === focusNodeId) - Number(left.id === focusNodeId) ||
+        right.degree - left.degree ||
+        left.label.localeCompare(right.label)
+      ));
+
+    const visibleNodes = sortedNodes.slice(0, MAX_CONTEXT_NODES);
     return {
       focusNodeId,
       nodes: visibleNodes,
@@ -218,7 +226,7 @@ export function GraphPanel({
                   clusterMode: 'type',
                   showArrows: false,
                   nodeSize: 6,
-                  linkThickness: 1.2,
+                  linkThickness: 1,
                 }}
                 selectedNodeId={panelGraph.focusNodeId}
                 hoveredNodeId={hoveredNodeId}
@@ -235,7 +243,16 @@ export function GraphPanel({
                   }
                 }}
                 onHoverNode={setHoveredNodeId}
-                onDoubleClickNode={() => {}}
+                onDoubleClickNode={(nodeId) => {
+                  if (nodeId) {
+                    setExpandedNodeIds(prev => {
+                      const next = new Set(prev);
+                      if (next.has(nodeId)) next.delete(nodeId);
+                      else next.add(nodeId);
+                      return next;
+                    });
+                  }
+                }}
                 onDragNode={() => {}}
                 onPinNode={() => {}}
                 width={dimensions.width}
@@ -244,8 +261,8 @@ export function GraphPanel({
 
               {panelGraph.focusNodeId ? (
                 <div className="pointer-events-none absolute bottom-3 left-3">
-                  <span className="rounded-full border border-yellow-400/20 bg-[var(--vt-surface)]/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-yellow-200/80 backdrop-blur">
-                    focus locked
+                  <span className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)]/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--vt-text-2)] backdrop-blur shadow-sm">
+                    focus isolated
                   </span>
                 </div>
               ) : null}
@@ -303,8 +320,8 @@ function ToolbarButton({
       onClick={onClick}
       className={`flex h-6 w-6 items-center justify-center rounded-lg border transition ${
         active
-          ? 'border-cyan-400/30 bg-cyan-400/10 text-cyan-300'
-          : 'border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-3)] hover:border-[var(--vt-border)] hover:text-[var(--vt-text-2)]'
+          ? 'border-[var(--vt-border)] bg-[var(--vt-surface-3)] text-[var(--vt-text-1)] shadow-sm'
+          : 'border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-3)] hover:bg-[var(--vt-surface-3)] hover:text-[var(--vt-text-2)]'
       }`}
     >
       {children}

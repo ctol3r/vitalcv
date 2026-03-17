@@ -3,21 +3,20 @@ import { findProviderNpi, normalizeFindingsPayload } from '@/lib/intelligence/co
 import { parseMinConfidenceNumber } from '@/lib/intelligence/finding-filters';
 import { loadFindingStorylineLinks } from '@/lib/intelligence/navigation-links';
 import {
-  buildReadOnlyFallbackPayload,
+  attachAccessMetadata,
+  canReadIntelligence,
+  coerceRouteErrorPayload,
   fetchBackendJson,
+  fetchPublicSnapshotJson,
   logIntelligenceFallbackUsage,
   parsePositiveInt,
+  resolveAccessReason,
   resolveIntelligenceAuthContext,
 } from '../_shared';
 
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
-  const authContext = await resolveIntelligenceAuthContext();
-  if (authContext.status !== 'authenticated') {
-    return NextResponse.json(buildReadOnlyFallbackPayload('findings', req, authContext));
-  }
-
   const limit = parsePositiveInt(
     req.nextUrl.searchParams.get('limit') ?? req.nextUrl.searchParams.get('pageSize'),
     10,
@@ -73,9 +72,11 @@ export async function GET(req: NextRequest) {
   if (minConfidence !== null) {
     params.set('minConfidence', minConfidence.toString());
   }
+  const authContext = await resolveIntelligenceAuthContext();
 
   try {
-    const upstream = await fetchBackendJson<{
+    const upstream = canReadIntelligence(authContext)
+      ? await fetchBackendJson<{
       findings?: Array<{
         findingId: string;
         investigatorId: string;
@@ -106,11 +107,51 @@ export async function GET(req: NextRequest) {
         updatedAt: string;
       }>;
       total?: number;
-    }>('/api/investigators/findings', params, 12_000, { context: authContext });
+      snapshotReady?: boolean;
+    }>('/api/investigators/findings', params, 12_000, { context: authContext })
+      : await fetchPublicSnapshotJson<{
+      findings?: Array<{
+        findingId: string;
+        investigatorId: string;
+        findingType: string;
+        severity: string;
+        status: string;
+        title: string;
+        summary: string;
+        explanation: string;
+        entityIds?: string[];
+        entities?: Array<{
+          entityType?: string;
+          entityId?: string;
+          entityLabel?: string | null;
+        }>;
+        metadata?: Record<string, unknown>;
+        priorityScore: number;
+        confidence: number;
+        storylineKey: string | null;
+        supportingEvidence?: Array<{
+          evidenceId?: string;
+          evidenceType?: string;
+          snippet?: string | null;
+          sourceLabel?: string | null;
+          sourceId?: string | null;
+          observedAt?: string | null;
+        }>;
+        updatedAt: string;
+      }>;
+      total?: number;
+      snapshotReady?: boolean;
+    }>('findings', params, authContext, 12_000);
 
     if (!upstream.ok) {
       logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
-      return NextResponse.json(buildReadOnlyFallbackPayload('findings', req, authContext, { log: false }));
+      return NextResponse.json(
+        coerceRouteErrorPayload(upstream.payload, {
+          error: 'backend_unavailable',
+          error_description: 'Findings feed unavailable. Try again when the backend is reachable.',
+        }),
+        { status: upstream.status >= 400 ? upstream.status : 503 },
+      );
     }
 
     const findings = upstream.payload.findings ?? [];
@@ -137,7 +178,7 @@ export async function GET(req: NextRequest) {
     const normalized = normalizeFindingsPayload(upstream.payload, {
       storylineLinksByFindingId,
     });
-    return NextResponse.json({
+    return NextResponse.json(attachAccessMetadata({
       ...normalized,
       pageInfo: {
         page,
@@ -146,10 +187,23 @@ export async function GET(req: NextRequest) {
         hasNextPage: offset + limit < normalized.total,
         returned: normalized.findings.length,
       },
-    });
+    }, {
+      accessMode: canReadIntelligence(authContext) ? 'full' : 'public_snapshot',
+      reason: resolveAccessReason(
+        authContext,
+        canReadIntelligence(authContext) ? 'full' : 'public_snapshot',
+        upstream.payload,
+      ),
+    }));
   } catch (error) {
-    void error;
     logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
-    return NextResponse.json(buildReadOnlyFallbackPayload('findings', req, authContext, { log: false }));
+    return NextResponse.json(
+      {
+        error: 'backend_unavailable',
+        error_description: 'Findings feed unavailable. Try again when the backend is reachable.',
+        message: error instanceof Error ? error.message : 'Unknown request failure',
+      },
+      { status: 503 },
+    );
   }
 }

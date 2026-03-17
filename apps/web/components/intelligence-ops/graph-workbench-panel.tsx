@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Layers, Maximize2, RefreshCw } from 'lucide-react';
 import GraphCanvas from '@/components/graph-system/GraphCanvas';
@@ -13,34 +15,41 @@ import type {
   IntelligenceGraphResponse,
   IntelligenceProvider,
 } from '@/lib/intelligence/contracts';
-import { findProviderForGraphNode } from '@/lib/intelligence/contracts';
+import { findGraphNodeIdForProvider, findProviderForGraphNode } from '@/lib/intelligence/contracts';
+import type { NodeType } from '@/components/graph-system/types';
 
 interface GraphWorkbenchPanelProps {
   graph: IntelligenceGraphResponse | null;
   providers: IntelligenceProvider[];
   selectedProvider: IntelligenceProvider | null;
+  selectedFindingId?: string | null;
+  selectedStorylineId?: string | null;
+  openFullGraphHref?: string;
   loading?: boolean;
   error?: string | null;
   onSelectProvider: (provider: IntelligenceProvider) => void;
   onRetry?: () => void;
+  focusNodeId?: string | null;
+  highlightNodeId?: string | null;
+  highlightNodeIds?: string[];
+  onSelectGraphNode?: (nodeId: string | null) => void;
 }
-
-const LEGEND_ENTRIES: Array<{ type: string; label: string; color: string }> = [
-  { type: 'clinician', label: 'Clinician', color: colorForNodeType('clinician') },
-  { type: 'credential', label: 'Credential', color: colorForNodeType('credential') },
-  { type: 'institution', label: 'Institution', color: colorForNodeType('institution') },
-  { type: 'specialty', label: 'Specialty', color: colorForNodeType('specialty') },
-  { type: 'exclusion', label: 'Exclusion', color: colorForNodeType('exclusion') },
-];
 
 export function GraphWorkbenchPanel({
   graph,
   providers,
   selectedProvider,
+  selectedFindingId = null,
+  selectedStorylineId = null,
+  openFullGraphHref = '/graph',
   loading,
   error,
   onSelectProvider,
   onRetry,
+  focusNodeId = null,
+  highlightNodeId = null,
+  highlightNodeIds = [],
+  onSelectGraphNode,
 }: GraphWorkbenchPanelProps) {
   const [dimensions, setDimensions] = useState({ width: 340, height: 380 });
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
@@ -65,17 +74,41 @@ export function GraphWorkbenchPanel({
   }, []);
 
   useEffect(() => {
-    if (!graph || !hoveredNodeId) {
+    const contextNodeIds = new Set<string>();
+    const selectedProviderNodeId = findGraphNodeIdForProvider(selectedProvider, graph?.nodes ?? []);
+
+    if (selectedProviderNodeId) {
+      contextNodeIds.add(selectedProviderNodeId);
+    }
+
+    for (const node of graph?.nodes ?? []) {
+      if (selectedFindingId && node.findingIds?.includes(selectedFindingId)) {
+        contextNodeIds.add(node.id);
+      }
+      if (selectedStorylineId && node.storylineIds?.includes(selectedStorylineId)) {
+        contextNodeIds.add(node.id);
+      }
+    }
+
+    const activeNodeId = highlightNodeId ?? hoveredNodeId;
+    for (const nodeId of highlightNodeIds) {
+      contextNodeIds.add(nodeId);
+    }
+    if (activeNodeId) {
+      contextNodeIds.add(activeNodeId);
+    }
+
+    if (!graph || contextNodeIds.size === 0) {
       highlightedNodeIds.current = new Set();
       highlightedEdgeIds.current = new Set();
       return;
     }
 
-    const neighborNodeIds = new Set<string>([hoveredNodeId]);
+    const neighborNodeIds = new Set<string>(contextNodeIds);
     const neighborEdgeIds = new Set<string>();
 
     for (const edge of graph.edges) {
-      if (edge.source === hoveredNodeId || edge.target === hoveredNodeId) {
+      if (contextNodeIds.has(edge.source) || contextNodeIds.has(edge.target)) {
         neighborNodeIds.add(edge.source);
         neighborNodeIds.add(edge.target);
         neighborEdgeIds.add(edge.id);
@@ -84,13 +117,18 @@ export function GraphWorkbenchPanel({
 
     highlightedNodeIds.current = neighborNodeIds;
     highlightedEdgeIds.current = neighborEdgeIds;
-  }, [graph, hoveredNodeId]);
+  }, [graph, highlightNodeId, highlightNodeIds, hoveredNodeId, selectedFindingId, selectedProvider, selectedStorylineId]);
 
-  const selectedNodeId = graph?.focusNodeId ?? selectedProvider?.npi ?? null;
+  const selectedNodeId = focusNodeId
+    ?? graph?.focusNodeId
+    ?? findGraphNodeIdForProvider(selectedProvider, graph?.nodes ?? [])
+    ?? null;
   const visibleTypes = graph ? [...new Set(graph.nodes.map((node) => node.type))].slice(0, 5) : [];
-  const legendEntries = LEGEND_ENTRIES.filter((entry) => (
-    visibleTypes.includes(entry.type as (typeof visibleTypes)[number])
-  ));
+  const legendEntries = visibleTypes.map((type) => ({
+    type,
+    label: type.replace(/_/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase()),
+    color: colorForNodeType(type as NodeType),
+  }));
 
   return (
     <SectionFrame
@@ -103,18 +141,24 @@ export function GraphWorkbenchPanel({
         <div className="flex items-center gap-1.5">
           <ToneBadge tone="neutral" label={`${graph.stats.totalNodes}n`} />
           <ToneBadge tone="neutral" label={`${graph.stats.totalEdges}e`} />
+          <Link
+            href={openFullGraphHref}
+            className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/15"
+          >
+            Open full graph
+          </Link>
         </div>
       ) : null}
     >
       <SurfaceState
         loading={loading}
         error={error}
-        empty={!graph || graph.nodes.length === 0}
-        emptyTitle="Graph not available"
-        emptyCopy="The graph engine has not returned any visible nodes for this scope."
+        empty={false}
         onRetry={onRetry}
       >
-        {graph ? (
+        {(!graph || graph.nodes.length === 0) ? (
+          <PlaceholderMiniNetwork />
+        ) : (
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1">
@@ -154,6 +198,8 @@ export function GraphWorkbenchPanel({
                 highlightedNodeIds={highlightedNodeIds.current}
                 highlightedEdgeIds={highlightedEdgeIds.current}
                 onSelectNode={(nodeId) => {
+                  onSelectGraphNode?.(nodeId);
+
                   if (!nodeId) {
                     return;
                   }
@@ -202,10 +248,10 @@ export function GraphWorkbenchPanel({
             <div className="grid grid-cols-3 gap-2">
               <MetricCard label="Nodes" value={String(graph.stats.totalNodes)} />
               <MetricCard label="Edges" value={String(graph.stats.totalEdges)} />
-              <MetricCard label="AI links" value={String(graph.stats.aiSuggestedLinks)} />
+              <MetricCard label="Flagged" value={String(graph.nodes.filter((node) => node.flagged).length)} />
             </div>
           </div>
-        ) : null}
+        )}
       </SurfaceState>
     </SectionFrame>
   );
@@ -217,7 +263,7 @@ function ToolbarButton({
   title,
   active = false,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   onClick: () => void;
   title: string;
   active?: boolean;
@@ -267,9 +313,35 @@ function EdgeLegendItem({
 
 function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-3">
-      <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">{label}</p>
-      <p className="mt-1.5 text-sm font-semibold tabular-nums text-[var(--vt-text-1)]">{value}</p>
+    <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-2">
+      <p className="text-[10px] uppercase tracking-widest text-[var(--vt-text-3)]">{label}</p>
+      <p className="mt-1 text-xs font-semibold tabular-nums text-[var(--vt-text-1)]">{value}</p>
+    </div>
+  );
+}
+
+function PlaceholderMiniNetwork() {
+  return (
+    <div className="relative flex h-full min-h-[300px] w-full flex-col items-center justify-center overflow-hidden rounded-md border border-[var(--vt-border)] bg-[var(--vt-surface)] p-6">
+      <svg className="absolute inset-0 h-full w-full opacity-30" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <circle cx="50" cy="50" r="1.5" fill="var(--vt-text-3)" className="animate-pulse" />
+        <circle cx="30" cy="40" r="1" fill="var(--vt-text-3)" className="animate-pulse" style={{ animationDelay: '150ms' }} />
+        <circle cx="70" cy="30" r="0.8" fill="var(--vt-text-3)" className="animate-pulse" style={{ animationDelay: '300ms' }} />
+        <circle cx="40" cy="70" r="0.6" fill="var(--vt-text-3)" className="animate-pulse" style={{ animationDelay: '450ms' }} />
+        <circle cx="65" cy="65" r="1.2" fill="var(--vt-text-3)" className="animate-pulse" style={{ animationDelay: '600ms' }} />
+        
+        <line x1="50" y1="50" x2="30" y2="40" stroke="var(--vt-border)" strokeWidth="0.2" />
+        <line x1="50" y1="50" x2="70" y2="30" stroke="var(--vt-border)" strokeWidth="0.2" />
+        <line x1="50" y1="50" x2="40" y2="70" stroke="var(--vt-border)" strokeWidth="0.2" />
+        <line x1="50" y1="50" x2="65" y2="65" stroke="var(--vt-border)" strokeWidth="0.2" />
+        <line x1="30" y1="40" x2="40" y2="70" stroke="var(--vt-border)" strokeWidth="0.1" strokeDasharray="1,1" />
+        <line x1="70" y1="30" x2="65" y2="65" stroke="var(--vt-border)" strokeWidth="0.1" strokeDasharray="1,1" />
+      </svg>
+      
+      <div className="relative z-10 flex flex-col items-center justify-center space-y-1 rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)]/80 px-4 py-3 text-center backdrop-blur-sm">
+        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--vt-text-1)]">Graph priming...</p>
+        <p className="max-w-[180px] text-[10px] text-[var(--vt-text-2)]">Network context resolving. Apply a scope to activate topology.</p>
+      </div>
     </div>
   );
 }

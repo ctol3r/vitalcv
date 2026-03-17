@@ -22,6 +22,17 @@ jest.mock('../../services/investigators/autonomousInvestigatorEngine', () => ({
   getAutonomousInvestigatorStatus: jest.fn(),
 }));
 
+jest.mock('../../services/investigators/ignitionInvestigators', () => ({
+  IGNITION_INVESTIGATOR_IDS: [
+    'sanctions',
+    'clinical_trial',
+    'institution_expansion',
+    'workforce_shift',
+    'research_momentum',
+    'industry_influence',
+  ],
+}));
+
 import { runTargetedInvestigators } from '../../services/investigators/investigatorEngineService';
 import { getInvestigatorSchedulerState } from '../../services/investigators/investigatorScheduler';
 import { getAutonomousInvestigatorStatus } from '../../services/investigators/autonomousInvestigatorEngine';
@@ -45,11 +56,11 @@ describe('investigatorApi routes', () => {
     getAutonomousInvestigatorStatusMock.mockReset();
   });
 
-  it('runs the autonomous investigator set and normalizes provider targets', async () => {
+  it('runs the ignition investigator set and normalizes provider targets', async () => {
     runTargetedInvestigatorsMock.mockResolvedValue([
       {
         runId: 'run_123',
-        investigatorId: 'autonomous_investigator_daily',
+        investigatorId: 'sanctions',
         trigger: 'manual',
         startedAt: '2026-03-15T12:00:00.000Z',
         completedAt: '2026-03-15T12:00:03.000Z',
@@ -61,6 +72,7 @@ describe('investigatorApi routes', () => {
         findingsSuppressed: 0,
         storylinesMerged: 1,
         coveredEntityIds: ['1234567890'],
+        persistedFindings: [],
       },
     ]);
 
@@ -74,15 +86,26 @@ describe('investigatorApi routes', () => {
     expect(runTargetedInvestigatorsMock).toHaveBeenCalledWith({
       entityType: 'provider',
       targetEntityIds: ['1234567890'],
-      investigatorIds: ['autonomous_investigator_daily', 'autonomous_investigator_weekly'],
+      investigatorIds: [
+        'sanctions',
+        'clinical_trial',
+        'institution_expansion',
+        'workforce_shift',
+        'research_momentum',
+        'industry_influence',
+      ],
       trigger: 'manual',
       metadata: {
         source: 'api_investigator_run',
       },
     });
     expect(response.body.investigatorIds).toEqual([
-      'autonomous_investigator_daily',
-      'autonomous_investigator_weekly',
+      'sanctions',
+      'clinical_trial',
+      'institution_expansion',
+      'workforce_shift',
+      'research_momentum',
+      'industry_influence',
     ]);
     expect(response.body.targetEntityIds).toEqual(['1234567890']);
     expect(response.body.runs).toHaveLength(1);
@@ -126,6 +149,14 @@ describe('investigatorApi routes', () => {
     expect(response.body.scheduler.running).toBe(true);
     expect(response.body.jobs[0].id).toBe('daily-provider-poll');
     expect(response.body.sources[0].sourceId).toBe('LEIE');
-    expect(response.body.investigatorCount).toBe(2);
+    expect(response.body.investigatorCount).toBe(6);
+    expect(response.body.ignitionInvestigators).toEqual([
+      'sanctions',
+      'clinical_trial',
+      'institution_expansion',
+      'workforce_shift',
+      'research_momentum',
+      'industry_influence',
+    ]);
   });
 });

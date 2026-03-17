@@ -25,6 +25,25 @@ export type InvestigationRelationshipType =
   | 'corporate'
   | 'unknown';
 
+export type InvestigationProjectedNodeKind =
+  | 'provider'
+  | 'institution'
+  | 'company'
+  | 'trial'
+  | 'publication'
+  | 'payment'
+  | 'regulatory'
+  | 'evidence';
+
+export type InvestigationProjectedEdgeKind =
+  | 'co_author'
+  | 'co_investigator'
+  | 'financial'
+  | 'institutional'
+  | 'regulatory'
+  | 'storyline_related'
+  | 'evidence_link';
+
 export type StorylineLifecycleStage =
   | 'emerging'
   | 'developing'
@@ -257,21 +276,51 @@ export interface NetworkGraphPath {
   pathId: string;
   nodeIds: string[];
   edgeIds: string[];
-  relationshipTypes: InvestigationRelationshipType[];
+  relationshipTypes: InvestigationProjectedEdgeKind[];
   score: number;
   explanation: string;
 }
 
-export interface InvestigationGraphEdge extends GraphEdge {
-  investigationRelationshipType: InvestigationRelationshipType;
+export interface InvestigationProjectedEvidenceRef {
+  evidenceId: string;
+  source: string | null;
+  summary: string;
+  observedAt: string | null;
+  findingId?: string | null;
+  storylineId?: string | null;
+  artifactId?: string | null;
+  url?: string | null;
+}
+
+export interface InvestigationGraphNode extends Omit<GraphNode, 'type'> {
+  type: InvestigationProjectedNodeKind;
+  projectedType: InvestigationProjectedNodeKind;
+  flagged: boolean;
+  findingIds: string[];
+  storylineIds: string[];
+  communityId: string | null;
+}
+
+export interface InvestigationGraphEdge extends Omit<GraphEdge, 'type'> {
+  type: InvestigationProjectedEdgeKind;
+  projectedType: InvestigationProjectedEdgeKind;
   recencyWeight: number;
   relationshipStrength: number;
+  flagged: boolean;
+  findingIds: string[];
+  storylineIds: string[];
+  evidenceCount: number;
+  evidenceRefs: InvestigationProjectedEvidenceRef[];
+  firstSeenAt: string | null;
+  lastSeenAt: string | null;
+  metadataSummary: string;
+  openEvidenceTarget: string | null;
 }
 
 export interface NetworkGraphInvestigationPayload {
   generatedAt: string;
   focusNodeId: string | null;
-  nodes: GraphNode[];
+  nodes: InvestigationGraphNode[];
   edges: InvestigationGraphEdge[];
   highlights: {
     nodeIds: string[];

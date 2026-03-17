@@ -1,8 +1,12 @@
+'use client';
+
 import type React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './Card';
 import { ConfidenceBadge } from './ConfidenceBadge';
 import { SeverityBadge } from './SeverityBadge';
 import { Badge } from './Badge';
+
+import { motion } from 'framer-motion';
 
 /** Investigator → left-border color mapping (VDS token names) */
 const INVESTIGATOR_COLORS: Record<string, string> = {
@@ -58,11 +62,16 @@ export function FindingCard({
   const investigatorLabel = investigatorId?.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
   return (
-    <Card
-      className={className}
-      interactive
-      style={stripeColor ? { borderLeft: `3px solid ${stripeColor}` } : undefined}
+    <motion.div
+      initial={{ opacity: 0, y: 10, boxShadow: '0 0 0 0 rgba(255,255,255,0)' }}
+      animate={{ opacity: 1, y: 0, boxShadow: ['0 0 0 0 rgba(255,255,255,0)', '0 0 12px 1px rgba(255,255,255,0.1)', '0 0 0 0 rgba(255,255,255,0)'] }}
+      transition={{ duration: 0.4, times: [0, 0.5, 1] }}
     >
+      <Card
+        className={className}
+        interactive
+        style={stripeColor ? { borderLeft: `3px solid ${stripeColor}` } : undefined}
+      >
       <CardHeader>
         <div className="flex flex-wrap items-center gap-[var(--vt-space-8)]">
           <SeverityBadge severity={severity} />
@@ -85,5 +94,6 @@ export function FindingCard({
       ) : null}
       {footer ? <CardFooter>{footer}</CardFooter> : null}
     </Card>
+    </motion.div>
   );
 }

@@ -1,17 +1,19 @@
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import type React from 'react';
+import { LiveFeedRibbon } from '@/components/intelligence/LiveFeedRibbon';
 import { Button } from '../components/Button';
 import { Panel } from '../components/Panel';
 import {
   buildIntelligenceHref,
   deriveIntelligenceNavKey,
-  type IntelligenceView,
+  type IntelligenceNavKey,
 } from '@/lib/intelligence/routes';
 import { cn } from '@/lib/utils';
 
 const DEFAULT_NAV = [
   { key: 'dashboard', href: buildIntelligenceHref('dashboard'), label: 'Dashboard' },
+  { key: 'graph', href: '/graph', label: 'Graph' },
   { key: 'findings', href: buildIntelligenceHref('findings'), label: 'Findings' },
   { key: 'storylines', href: buildIntelligenceHref('storylines'), label: 'Storylines' },
   { key: 'providers', href: buildIntelligenceHref('providers'), label: 'Providers' },
@@ -28,7 +30,7 @@ export interface ConsoleBreadcrumb {
 
 export interface IntelligenceConsoleLayoutProps {
   activeHref: string;
-  activeNavKey?: IntelligenceView;
+  activeNavKey?: IntelligenceNavKey;
   title: string;
   description: string;
   breadcrumbs?: ConsoleBreadcrumb[];
@@ -53,12 +55,13 @@ export function IntelligenceConsoleLayout({
 
   return (
     <div className="flex w-full flex-col">
-      <div className="space-y-[var(--vt-space-16)] mb-6">
-        <Panel className="space-y-[var(--vt-space-12)]">
-          <p className="text-[length:var(--vt-type-caption-size)] uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
+      <div className="space-y-4 mb-4">
+        <LiveFeedRibbon />
+        <Panel className="space-y-3">
+          <p className="text-[10px] uppercase tracking-widest text-[var(--vt-text-muted)]">
             Intelligence navigation
           </p>
-          <nav className="flex flex-wrap gap-[var(--vt-space-8)]" aria-label="Console navigation">
+          <nav className="flex flex-wrap gap-2" aria-label="Console navigation">
             {DEFAULT_NAV.map((item) => {
               const active = resolvedNavKey === item.key;
 
@@ -76,14 +79,14 @@ export function IntelligenceConsoleLayout({
             })}
           </nav>
         </Panel>
-        <Panel className="space-y-[var(--vt-space-16)]">
+        <Panel className="space-y-3">
           {breadcrumbs.length > 0 ? (
-            <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-[var(--vt-space-8)] text-[length:var(--vt-type-meta-size)] text-[var(--vt-text-secondary)]">
+            <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-xs text-[var(--vt-text-secondary)]">
               {breadcrumbs.map((crumb, index) => {
                 const last = index === breadcrumbs.length - 1;
 
                 return (
-                  <span key={`${crumb.label}-${index}`} className="flex items-center gap-[var(--vt-space-8)]">
+                  <span key={`${crumb.label}-${index}`} className="flex items-center gap-2">
                     {index > 0 ? <ChevronRight className="h-3.5 w-3.5 text-[var(--vt-text-muted)]" /> : null}
                     {crumb.href && !last ? (
                       <Link href={crumb.href} className="transition hover:text-[var(--vt-text-primary)]">
@@ -97,26 +100,26 @@ export function IntelligenceConsoleLayout({
               })}
             </nav>
           ) : null}
-          <div className="flex flex-col gap-[var(--vt-space-16)] lg:flex-row lg:items-start lg:justify-between">
-            <div className="space-y-[var(--vt-space-8)]">
-              <p className="text-[length:var(--vt-type-caption-size)] uppercase tracking-[0.24em] text-[var(--vt-accent)]">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-1">
+              <p className="text-[10px] uppercase tracking-widest text-[var(--vt-accent)]">
                 VitalCV Intelligence
               </p>
-              <h1 className="text-[length:var(--vt-type-h1-size)] leading-[var(--vt-line-tight)] font-[var(--vt-font-weight-semibold)] text-[var(--vt-text-primary)]">
+              <h1 className="text-xl leading-tight font-semibold text-[var(--vt-text-primary)]">
                 {title}
               </h1>
-              <p className="max-w-3xl text-[length:var(--vt-type-body-size)] leading-[var(--vt-line-normal)] text-[var(--vt-text-secondary)]">
+              <p className="max-w-3xl text-sm leading-snug text-[var(--vt-text-secondary)]">
                 {description}
               </p>
             </div>
             {(meta || actions) ? (
-              <div className="flex min-w-0 flex-col gap-[var(--vt-space-12)] lg:max-w-sm lg:items-end">
+              <div className="flex min-w-0 flex-col gap-3 lg:max-w-sm lg:items-end">
                 {meta ? (
-                  <div className="text-[length:var(--vt-type-meta-size)] text-[var(--vt-text-secondary)] lg:text-right">
+                  <div className="text-xs text-[var(--vt-text-secondary)] lg:text-right">
                     {meta}
                   </div>
                 ) : null}
-                {actions ? <div className="flex flex-wrap gap-[var(--vt-space-8)]">{actions}</div> : null}
+                {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
               </div>
             ) : null}
           </div>

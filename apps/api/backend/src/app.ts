@@ -54,6 +54,7 @@ import { registerDecisionInsightsRoutes } from './routes/decisionInsights';
 import { registerSimulationRoutes } from './routes/simulation';
 // Wave 85: Monitoring Events
 import { registerMonitoringEventsRoutes } from './routes/monitoringEvents';
+import { registerFeedRoutes } from './routes/feed';
 // Wave 87: Trust Operations
 import { registerTrustOperationsRoutes } from './routes/trustOperations';
 // Wave 88: Clinician Passport
@@ -175,6 +176,7 @@ import { registerTrustIntelligenceRoutes } from './routes/trustIntelligence';   
 import { registerIntelligenceEngineRoutes } from './routes/intelligence';              // Wave I: Intelligence Engine + Learning Loops
 import { registerIntelligenceInsightRoutes } from './routes/insights';                 // Wave FE0-FE21: Intelligence insight surfaces
 import { registerIntelligenceAggregateRoutes } from './routes/intelligenceAggregates'; // Wave FE21-B: Intelligence feed + aggregate APIs
+import { registerIntelligencePublicSnapshotRoutes } from './routes/intelligencePublicSnapshot';
 import { registerIntelligenceSignalRoutes } from './routes/intelligenceSignals';       // Wave FE22: Explainable intelligence signal APIs
 import { registerIntelligenceLayerRoutes } from './routes/intelligenceLayer';          // Wave FE-next: Compounding intelligence layer APIs
 import { registerPredictionRoutes } from './routes/predictions';                      // Wave FE17: Predictive Intelligence
@@ -571,6 +573,14 @@ function shouldSkipTenantContext(pathname: string): boolean {
     normalizedPath.startsWith('/api/audit/') ||
     // Wave 37: Superbrain intelligence endpoint.
     normalizedPath.startsWith('/api/intelligence/') ||
+    // Intelligence data paths — read-only, auth forwarded via x-clerk-user-id header.
+    normalizedPath.startsWith('/api/findings') ||
+    normalizedPath.startsWith('/api/investigators') ||
+    normalizedPath.startsWith('/api/storylines') ||
+    normalizedPath.startsWith('/api/directory') ||
+    normalizedPath.startsWith('/api/graph/') ||
+    normalizedPath.startsWith('/api/investigation/') ||
+    normalizedPath.startsWith('/api/provider-intelligence/') ||
     // Wave B: integrity probes are read-only operational endpoints.
     normalizedPath.startsWith('/api/integrity/') ||
     // Program Gravity Well: read-only protocol validation and schema surfaces.
@@ -3598,6 +3608,7 @@ registerAskRoutes(app);               // Wave 185 — Ask VitalCV natural langua
 registerCopilotRoutes(app);           // Waves C25-C28 — Copilot query engine
 registerInvestigationRoutes(app);    // Wave INV — Investigation engine
 registerInvestigationWorkbenchRoutes(app); // Wave INV+ — Investigation workbench APIs
+registerFeedRoutes(app);             // Wave 1 — Live feed event stream
 registerFindingsRoutes(app);         // Wave AI — Autonomous investigators + findings feed
 registerActionsRoutes(app);          // Waves C49-C51 — Action engine API
 registerStorylineRoutes(app);        // Wave ST — Storyline intelligence narratives
@@ -3640,6 +3651,7 @@ registerTrustIntelligenceRoutes(app);      // Wave M: Trust Score V1 + Freshness
 registerIntelligenceEngineRoutes(app);     // Wave I: Intelligence Engine + Learning Loops
 registerIntelligenceInsightRoutes(app);    // Wave FE0-FE21 — Provider intelligence insight APIs
 registerIntelligenceAggregateRoutes(app);  // Wave FE21-B — Intelligence feed + entity aggregate APIs
+registerIntelligencePublicSnapshotRoutes(app); // Wave FE-Ignition — seeded public snapshot APIs
 registerIntelligenceSignalRoutes(app);     // Wave FE22 — Trust, influence, pressure, momentum, and provider summary APIs
 registerIntelligenceLayerRoutes(app);      // Wave FE-next — Compounding intelligence layer APIs
 registerPredictionRoutes(app);             // Wave FE17: Predictive Intelligence
@@ -3699,24 +3711,6 @@ app.use(errorHandler);
 
 // Wave 197: Ingest trust lists on startup (idempotent)
 ingestAllTrustLists();
-
-// ── Initialize autonomous investigators ──────────────────────────────────────
-import { initInvestigators } from './services/investigators/orchestrator';
-initInvestigators();
-
-// ── Initialize investigator engine (all 10 investigators) ────────────────────
-import { runScheduledInvestigators } from './services/investigators/investigatorEngineService';
-// First scan 8s after boot (non-blocking), then every 30 minutes
-setTimeout(() => {
-  runScheduledInvestigators().catch((err) =>
-    log('warn', `[InvestigatorEngine] Initial scan failed: ${(err as Error)?.message}`),
-  );
-}, 8_000);
-setInterval(() => {
-  runScheduledInvestigators().catch((err) =>
-    log('warn', `[InvestigatorEngine] Scheduled scan failed: ${(err as Error)?.message}`),
-  );
-}, 30 * 60 * 1000);
 
 // ── Initialize detail agents ─────────────────────────────────────────────────
 import { initDetailAgents } from './services/detailAgents/detailAgentEngine';

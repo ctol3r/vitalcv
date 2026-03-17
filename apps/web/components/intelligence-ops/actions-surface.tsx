@@ -5,11 +5,9 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { startTransition, useEffect, useMemo, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useActions } from '@/hooks/useActions';
-import { useSystemHealth } from '@/hooks/useSystemHealth';
 import {
   formatLastRefreshMessage,
   getSurfaceFreshnessState,
-  hasDegradedDataSources,
 } from '@/lib/intelligence/state';
 import { buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
@@ -56,7 +54,6 @@ export function ActionsSurface() {
     page,
     limit: PAGE_SIZE,
   });
-  const systemHealth = useSystemHealth();
 
   const currentHref = useMemo(() => {
     const query = searchParams.toString();
@@ -90,7 +87,6 @@ export function ActionsSurface() {
     generatedAt: actions.data?.generatedAt,
     lastUpdated: actions.lastUpdated,
   });
-  const degradedSources = hasDegradedDataSources(systemHealth.data);
 
   return (
     <OperationsShell
@@ -123,11 +119,6 @@ export function ActionsSurface() {
           {actions.recovering && actions.error ? (
             <SurfaceBanner tone="warning">
               Live refresh failed. Showing the last successful action queue snapshot while retries continue.
-            </SurfaceBanner>
-          ) : null}
-          {degradedSources ? (
-            <SurfaceBanner tone="warning">
-              Some data sources are degraded. Findings may be incomplete.
             </SurfaceBanner>
           ) : null}
           {staleState.isStale && staleState.ageMinutes !== null ? (

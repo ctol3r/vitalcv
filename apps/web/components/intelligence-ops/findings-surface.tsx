@@ -5,57 +5,39 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { startTransition, useMemo, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useFindings } from '@/hooks/useFindings';
-import { useProviders } from '@/hooks/useProviders';
-import { useSystemHealth } from '@/hooks/useSystemHealth';
 import {
   hasFindingFilters,
   parseFindingFilters,
   parseMinConfidenceNumber,
   serializeFindingFilters,
 } from '@/lib/intelligence/finding-filters';
+import { buildIntelligenceHref } from '@/lib/intelligence/routes';
 import {
   formatLastRefreshMessage,
-  getFindingsEmptyState,
+  getAccessBannerState,
   getSurfaceFreshnessState,
-  hasDegradedDataSources,
 } from '@/lib/intelligence/state';
-import { buildIntelligenceHref } from '@/lib/intelligence/routes';
-import { summarizeTrustSignals } from '@/lib/intelligence/trust-signals';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
-import { FindingFilters } from './finding-filters';
+import { FindingMutationControls } from './mutation-controls';
 import { OperationsShell } from './shell';
+import { formatPaginationSummary, Pagination } from './pagination';
 import {
-  BadgeLink,
   ConfidenceMeter,
   EntityLink,
+  OpsBadge,
   OpsCard,
   OpsCardSkeleton,
   SurfaceBanner,
   SurfaceEmptyState,
   SurfaceErrorState,
   TimestampPair,
+  severityTone,
 } from './primitives';
-import { FindingMutationControls } from './mutation-controls';
-import { formatPaginationSummary, Pagination } from './pagination';
-import { TrustSignalChips } from './trust-signal-chips';
-import { FindingCard } from '@/src/ui/components';
 
 const PAGE_SIZE = 10;
 
-function findingAccentClassName(findingType: string): string {
-  if (findingType.includes('sanction')) {
-    return 'border-l-4 border-l-red-500';
-  }
-
-  if (findingType.includes('research')) {
-    return 'border-l-4 border-l-blue-500';
-  }
-
-  if (findingType.includes('clinical')) {
-    return 'border-l-4 border-l-emerald-500';
-  }
-
-  return 'border-l-4 border-l-transparent';
+function formatFindingType(findingType: string) {
+  return findingType.replace(/_/g, ' ');
 }
 
 export function FindingsSurface() {
@@ -67,7 +49,8 @@ export function FindingsSurface() {
   const providerScope = searchParams.get('provider') ?? searchParams.get('providerId');
   const page = Math.max(1, Number.parseInt(searchParams.get('page') ?? '1', 10) || 1);
   const filters = useMemo(() => parseFindingFilters(searchParams), [searchQuery]);
-  const hasFilters = hasFindingFilters(filters) || Boolean(providerScope);
+  const hasScopedFilters = hasFindingFilters(filters) || Boolean(providerScope);
+  const [criticalOnly, setCriticalOnly] = useState(false);
 
   const findings = useFindings({
     provider: providerScope,
@@ -80,84 +63,46 @@ export function FindingsSurface() {
     page,
     limit: PAGE_SIZE,
   });
-  const providers = useProviders({
-    page: 1,
-    limit: 1,
-    paused: hasFilters,
-  });
-  const systemHealth = useSystemHealth();
 
   const currentHref = useMemo(() => {
     return `${pathname}${searchQuery ? `?${searchQuery}` : ''}`;
   }, [pathname, searchQuery]);
 
-  function pushWithParams(nextFilters = filters, nextPage = 1) {
-    const params = serializeFindingFilters(nextFilters, { page: nextPage });
+  function pushWithParams(nextPage = 1) {
+    const params = serializeFindingFilters(filters, { page: nextPage });
     if (providerScope) {
       params.set('provider', providerScope);
     }
-    const href = pathname === '/intelligence'
-      ? buildIntelligenceHref('findings', params)
-      : `${pathname}${params.toString() ? `?${params.toString()}` : ''}`;
-    if (href === currentHref) {
-      findings.refresh();
-      return;
-    }
 
     startTransition(() => {
-      router.push(href);
+      router.push(
+        pathname === '/intelligence'
+          ? buildIntelligenceHref('findings', params)
+          : `${pathname}${params.toString() ? `?${params.toString()}` : ''}`,
+      );
     });
   }
 
-  // ── Ranking / sort mode ────────────────────────────────────────────────
-  type FeedSortMode = 'ranked' | 'latest';
-  const [sortMode, setSortMode] = useState<FeedSortMode>('ranked');
-  const [criticalOnly, setCriticalOnly] = useState(false);
-
-  const totalPages = findings.data?.pageInfo?.totalPages ?? 1;
-  const total = findings.data?.total ?? 0;
-  const rawItems = findings.data?.findings ?? [];
-
-  const items = useMemo(() => {
-    const baseItems = criticalOnly
-      ? rawItems.filter((finding) => finding.severity === 'critical')
-      : rawItems;
-
-    if (sortMode === 'latest') {
-      return [...baseItems].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-    }
-
-    // ranked: composite score = 0.3*priority + 0.3*severity + 0.2*recency + 0.2*confidence
-    const severityWeight: Record<string, number> = { critical: 1, high: 0.75, medium: 0.5, low: 0.25, info: 0.1 };
-    const now = Date.now();
-    return [...baseItems].sort((a, b) => {
-      const recencyA = Math.max(0, 1 - (now - new Date(a.updatedAt).getTime()) / (7 * 86400000));
-      const recencyB = Math.max(0, 1 - (now - new Date(b.updatedAt).getTime()) / (7 * 86400000));
-      const scoreA = 0.3 * (a.priorityScore / 100) + 0.3 * (severityWeight[a.severity] ?? 0.3) + 0.2 * recencyA + 0.2 * a.confidence;
-      const scoreB = 0.3 * (b.priorityScore / 100) + 0.3 * (severityWeight[b.severity] ?? 0.3) + 0.2 * recencyB + 0.2 * b.confidence;
-      return scoreB - scoreA;
-    });
-  }, [criticalOnly, rawItems, sortMode]);
+  const accessBanner = getAccessBannerState(findings.data?.accessMode, findings.data?.reason);
   const staleState = getSurfaceFreshnessState({
     generatedAt: findings.data?.generatedAt,
     lastUpdated: findings.lastUpdated,
   });
-  const hasLocalFilters = criticalOnly;
-  const emptyState = !findings.loading && !findings.error
-    ? getFindingsEmptyState({
-      findingCount: hasLocalFilters ? items.length : (findings.data?.total ?? items.length),
-      hasFilters: hasFilters || hasLocalFilters,
-      providerCount: providers.data?.total,
-    })
-    : null;
-  const degradedSources = hasDegradedDataSources(systemHealth.data);
+  const rawItems = findings.data?.findings ?? [];
+  const items = criticalOnly
+    ? rawItems.filter((finding) => finding.severity === 'critical')
+    : rawItems;
+  const total = findings.data?.total ?? 0;
+  const totalPages = findings.data?.pageInfo?.totalPages ?? 1;
+  const apiReturnedEmpty = !findings.loading && !findings.error && rawItems.length === 0;
+  const criticalFilterRemovedAll = !findings.loading && !findings.error && rawItems.length > 0 && items.length === 0;
 
   return (
     <OperationsShell
       activeHref={pathname === '/intelligence' ? '/intelligence' : '/findings'}
       activeNavKey="findings"
       title="Findings"
-      description="Operational investigator findings with real filters, pagination, triage actions, and detail links into the underlying evidence."
+      description="Live investigator findings with direct links across providers, storylines, and actions as soon as the backend feed is available."
       breadcrumbs={[{ label: 'Findings' }]}
       meta={(
         <div className="space-y-1">
@@ -180,14 +125,14 @@ export function FindingsSurface() {
       )}
       banner={(
         <>
-          {findings.recovering && findings.error ? (
-            <SurfaceBanner tone="warning">
-              Live refresh failed. Showing the last successful finding snapshot while the data plane recovers.
+          {accessBanner ? (
+            <SurfaceBanner tone={accessBanner.tone}>
+              {accessBanner.description}
             </SurfaceBanner>
           ) : null}
-          {degradedSources ? (
+          {findings.recovering && findings.error ? (
             <SurfaceBanner tone="warning">
-              Some data sources are degraded. Findings may be incomplete.
+              Live refresh failed. Showing the last successful findings snapshot while background retries continue.
             </SurfaceBanner>
           ) : null}
           {staleState.isStale && staleState.ageMinutes !== null ? (
@@ -198,44 +143,42 @@ export function FindingsSurface() {
         </>
       )}
     >
-      <FindingFilters filters={filters} onApply={(nextFilters) => pushWithParams(nextFilters, 1)} />
-
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1.5">
-          {(['ranked', 'latest'] as const).map((mode) => (
-            <button
-              key={mode}
-              onClick={() => setSortMode(mode)}
-              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                sortMode === mode
-                  ? 'border-cyan-400/50 bg-cyan-400/10 text-[var(--vt-text-1)]'
-                  : 'border-[var(--vt-border)] text-[var(--vt-text-3)] hover:border-[var(--vt-text-3)]/40'
-              }`}
-            >
-              {mode === 'ranked' ? 'Ranked' : 'Latest'}
-            </button>
-          ))}
+      <OpsCard className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="space-y-1">
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">List controls</p>
+          <p className="text-sm text-[var(--vt-text-2)]">
+            {hasScopedFilters
+              ? 'Query filters from the current route are active.'
+              : 'Rendering the live feed order returned by the backend.'}
+          </p>
         </div>
-        <label className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border)] px-3 py-1.5 text-xs font-medium text-[var(--vt-text-2)]">
-          <input
-            checked={criticalOnly}
-            onChange={(event) => setCriticalOnly(event.target.checked)}
-            type="checkbox"
-          />
-          Critical only
-        </label>
-        <span className="text-[10px] text-[var(--vt-text-3)]">
-          {sortMode === 'ranked' ? 'Priority + Severity + Recency + Confidence' : 'Most recently updated'}
-          {criticalOnly ? ' • Critical only' : null}
-        </span>
-        {criticalOnly ? (
-          <span className="text-[10px] text-[var(--vt-text-3)]">
-            {items.length} visible
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="inline-flex items-center rounded-full border border-[var(--vt-border)] p-1">
+            {[
+              { label: 'All Findings', critical: false },
+              { label: 'Critical Only', critical: true },
+            ].map((option) => (
+              <button
+                key={option.label}
+                type="button"
+                onClick={() => setCriticalOnly(option.critical)}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                  criticalOnly === option.critical
+                    ? 'bg-cyan-400/12 text-[var(--vt-text-1)]'
+                    : 'text-[var(--vt-text-3)] hover:text-[var(--vt-text-1)]'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <span className="text-xs text-[var(--vt-text-3)]">
+            {criticalOnly ? `${items.length} visible on this page` : 'Severity, confidence, and relative time are live.'}
           </span>
-        ) : null}
-      </div>
+        </div>
+      </OpsCard>
 
-      {findings.error && !items.length ? (
+      {findings.error && rawItems.length === 0 ? (
         <SurfaceErrorState
           title="Finding feed unavailable"
           description={findings.error}
@@ -243,52 +186,83 @@ export function FindingsSurface() {
         />
       ) : null}
 
-      {emptyState ? (
+      {apiReturnedEmpty ? (
         <SurfaceEmptyState
-          title={emptyState.title}
-          description={emptyState.description}
+          title="No findings returned"
+          description={hasScopedFilters
+            ? 'The current backend query returned zero findings for this scope.'
+            : 'No investigator findings are available yet for the current environment.'}
         />
+      ) : null}
+
+      {criticalFilterRemovedAll ? (
+        <OpsCard className="border-dashed">
+          <div className="space-y-1 text-sm text-[var(--vt-text-2)]">
+            <p className="font-semibold text-[var(--vt-text-1)]">No critical findings on this page</p>
+            <p>The API returned findings, but none of them are currently marked `critical`.</p>
+          </div>
+        </OpsCard>
       ) : null}
 
       <div className="grid gap-4">
         {items.map((finding) => (
-          <FindingCard
-            key={finding.id}
-            className={findingAccentClassName(finding.findingType)}
-            confidence={finding.confidence}
-            footer={(
-              <div className="w-full space-y-4">
-                <div className="flex min-w-[14rem] flex-col gap-3 rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Signals</p>
-                      <p className="text-sm text-[var(--vt-text-2)]">Priority {Math.round(finding.priorityScore)}</p>
-                      <ConfidenceMeter confidence={finding.confidence} />
-                      <TimestampPair label="Updated" value={finding.updatedAt} />
-                    </div>
-                    <TrustSignalChips
-                      summary={summarizeTrustSignals(
-                        finding.evidence.map((evidence) => ({
-                          source: evidence.source,
-                          observedAt: evidence.observedAt,
-                        })),
-                        finding.confidence,
-                      )}
-                    />
-                  </div>
-                  <FindingMutationControls findingId={finding.id} status={finding.status} compact />
+          <OpsCard key={finding.id} className="overflow-hidden">
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+              <div className="min-w-0 flex-1 space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <OpsBadge label={formatFindingType(finding.findingType)} />
+                  <OpsBadge label={finding.severity} tone={severityTone(finding.severity)} />
+                  <OpsBadge label={finding.status} tone={severityTone(finding.status)} />
+                  <span className="text-xs text-[var(--vt-text-3)]">{finding.investigatorId}</span>
                 </div>
+
+                <div className="space-y-2">
+                  <Link
+                    href={{
+                      pathname: `/findings/${finding.id}`,
+                      query: { from: currentHref },
+                    }}
+                    className="block text-xl font-semibold text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]"
+                  >
+                    {finding.title}
+                  </Link>
+                  <p className="max-w-4xl text-sm leading-6 text-[var(--vt-text-2)]">{finding.summary}</p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  {finding.providerNpi ? (
+                    <Link
+                      href={`/providers/${finding.providerNpi}?from=${encodeURIComponent(currentHref)}`}
+                      className="font-medium text-cyan-300 transition hover:text-[var(--vt-accent)]"
+                    >
+                      {finding.providerLabel ?? `Provider ${finding.providerNpi}`}
+                    </Link>
+                  ) : (
+                    <span className="text-[var(--vt-text-3)]">Provider not attached</span>
+                  )}
+                  {finding.storylineId ? (
+                    <EntityLink
+                      href={`/storylines/${finding.storylineId}?from=${encodeURIComponent(currentHref)}`}
+                      label={finding.storylineTitle ?? 'Open storyline'}
+                    />
+                  ) : null}
+                  {finding.providerNpi ? (
+                    <EntityLink
+                      href={buildIntelligenceHref('findings', { provider: finding.providerNpi })}
+                      label="Provider findings"
+                    />
+                  ) : null}
+                </div>
+
                 {finding.evidence.length > 0 ? (
-                  <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
-                    <div className="mb-3 flex items-center gap-2">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Evidence</p>
-                      <span className="rounded-full bg-[var(--vt-surface-2)] px-1.5 py-0.5 text-[10px] tabular-nums text-[var(--vt-text-3)]">
-                        {finding.evidence.length} source{finding.evidence.length === 1 ? '' : 's'}
-                      </span>
+                  <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Evidence preview</p>
+                      <span className="text-xs text-[var(--vt-text-3)]">{finding.evidence.length} sources</span>
                     </div>
-                    <ul className="space-y-2 text-sm text-[var(--vt-text-2)]">
-                      {finding.evidence.slice(0, 2).map((evidence) => (
-                        <li key={evidence.id} className="space-y-1">
+                    <ul className="space-y-3">
+                      {finding.evidence.slice(0, 3).map((evidence) => (
+                        <li key={evidence.id} className="space-y-1 text-sm">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-medium text-[var(--vt-text-1)]">{evidence.label}</span>
                             {evidence.observedAt ? (
@@ -297,61 +271,37 @@ export function FindingsSurface() {
                               </span>
                             ) : null}
                           </div>
-                          {evidence.snippet ? <p className="text-[var(--vt-text-3)]">{evidence.snippet}</p> : null}
+                          {evidence.snippet ? (
+                            <p className="leading-6 text-[var(--vt-text-2)]">{evidence.snippet}</p>
+                          ) : null}
                         </li>
                       ))}
                     </ul>
                   </div>
                 ) : null}
               </div>
-            )}
-            links={(
-              <>
-                {finding.providerNpi ? (
-                  <>
-                    <EntityLink
-                      href={`/providers/${finding.providerNpi}?from=${encodeURIComponent(currentHref)}`}
-                      label={finding.providerLabel ?? `Provider ${finding.providerNpi}`}
-                    />
-                    <EntityLink href={buildIntelligenceHref('investigations', { npi: finding.providerNpi })} label="Open investigation" />
-                  </>
-                ) : null}
-                {finding.storylineId ? (
-                  <BadgeLink
-                    href={`/storylines/${finding.storylineId}?from=${encodeURIComponent(currentHref)}`}
-                    label="Storyline"
-                    tone="info"
-                    title={finding.storylineTitle ?? 'Open storyline'}
-                  />
-                ) : null}
-              </>
-            )}
-            metadata={(
-              <div className="space-y-2">
-                <Link
-                  href={{
-                    pathname: `/findings/${finding.id}`,
-                    query: { from: currentHref },
-                  }}
-                  className="block truncate text-xl font-semibold text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]"
-                >
-                  Open detail
-                </Link>
-                <span className="text-xs text-[var(--vt-text-3)]">{finding.investigatorId}</span>
+
+              <div className="w-full max-w-sm shrink-0 space-y-4">
+                <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Confidence</p>
+                  <div className="mt-3">
+                    <ConfidenceMeter confidence={finding.confidence} />
+                  </div>
+                  <div className="mt-4 space-y-2 text-sm text-[var(--vt-text-2)]">
+                    <p>Priority {Math.round(finding.priorityScore)}</p>
+                    <TimestampPair label="First seen" value={finding.firstSeenAt} />
+                    <TimestampPair label="Updated" value={finding.updatedAt} />
+                  </div>
+                </div>
+
+                <FindingMutationControls findingId={finding.id} status={finding.status} compact />
               </div>
-            )}
-            investigatorId={finding.investigatorId}
-            firstSeenAt={finding.firstSeenAt}
-            severity={finding.severity}
-            status={finding.status}
-            summary={finding.summary}
-            title={finding.title}
-            typeLabel={finding.findingType.replace(/_/g, ' ')}
-          />
+            </div>
+          </OpsCard>
         ))}
       </div>
 
-      {findings.loading && !items.length ? (
+      {findings.loading && rawItems.length === 0 ? (
         <>
           <OpsCardSkeleton />
           <OpsCardSkeleton />
@@ -369,7 +319,7 @@ export function FindingsSurface() {
               label: 'findings',
             })}
           </p>
-          <Pagination page={page} totalPages={totalPages} onPageChange={(nextPage) => pushWithParams(filters, nextPage)} />
+          <Pagination page={page} totalPages={totalPages} onPageChange={pushWithParams} />
         </OpsCard>
       ) : null}
     </OperationsShell>

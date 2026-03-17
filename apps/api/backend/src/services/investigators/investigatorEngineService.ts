@@ -16,8 +16,10 @@ import type {
   InvestigatorFindingStatus,
   InvestigatorFindingStatusInput,
 } from '../../../../../../core/investigators/investigatorTypes';
+import { publish } from '../../core/events/eventBus';
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
+import { publishMany } from '../investigation/findingsBus';
 import { buildDefaultInvestigators, type BackendInvestigatorDependencies } from './defaultInvestigators';
 
 const investigatorTracer = trace.getTracer('vitalcv.investigators');
@@ -259,7 +261,7 @@ class PrismaFindingStore implements FindingStore {
     errorMessage?: string | null;
     metadata?: Record<string, unknown>;
   }): Promise<void> {
-    await this.prismaClient.investigatorRunLog.update({
+    const updatedRun = await this.prismaClient.investigatorRunLog.update({
       where: { runId: input.runId },
       data: {
         status: input.status,
@@ -274,6 +276,29 @@ class PrismaFindingStore implements FindingStore {
         storylinesMerged: input.storylinesMerged,
         errorMessage: input.errorMessage ?? null,
         metadata: (input.metadata ?? {}) as Prisma.InputJsonValue,
+      },
+    });
+
+    await publish({
+      type: 'INVESTIGATOR_RUN_COMPLETE',
+      payload: {
+        runId: updatedRun.runId,
+        investigatorId: updatedRun.investigatorId,
+        trigger: updatedRun.trigger,
+        status: input.status,
+        entityType: updatedRun.entityType ?? null,
+        targetEntityIds: [...updatedRun.targetEntityIds],
+        startedAt: updatedRun.startedAt.toISOString(),
+        completedAt: input.completedAt,
+        durationMs: input.durationMs,
+        entitiesScanned: input.entitiesScanned,
+        findingsGenerated: input.findingsGenerated,
+        findingsCreated: input.findingsCreated,
+        findingsUpdated: input.findingsUpdated,
+        findingsResolved: input.findingsResolved,
+        findingsSuppressed: input.findingsSuppressed,
+        storylinesMerged: input.storylinesMerged,
+        errorMessage: input.errorMessage ?? null,
       },
     });
   }
@@ -340,7 +365,21 @@ class PrismaFindingStore implements FindingStore {
         const created = await this.prismaClient.investigatorFinding.create({
           data: findingCreateData(finding),
         });
-        persistedFindings.push(findingRecordFromRow(created));
+        const persistedFinding = findingRecordFromRow(created);
+        persistedFindings.push(persistedFinding);
+        await publish({
+          type: 'FINDING_CREATED',
+          payload: {
+            runId: input.runId,
+            findingId: persistedFinding.findingId,
+            investigatorId: persistedFinding.investigatorId,
+            severity: persistedFinding.severity,
+            status: persistedFinding.status,
+            entityIds: [...persistedFinding.entityIds],
+            storylineKey: persistedFinding.storylineKey,
+            operation: 'created',
+          },
+        });
         continue;
       }
 
@@ -410,7 +449,21 @@ class PrismaFindingStore implements FindingStore {
             : undefined,
         },
       });
-      persistedFindings.push(findingRecordFromRow(updated));
+      const persistedFinding = findingRecordFromRow(updated);
+      persistedFindings.push(persistedFinding);
+      await publish({
+        type: 'FINDING_CREATED',
+        payload: {
+          runId: input.runId,
+          findingId: persistedFinding.findingId,
+          investigatorId: persistedFinding.investigatorId,
+          severity: persistedFinding.severity,
+          status: persistedFinding.status,
+          entityIds: [...persistedFinding.entityIds],
+          storylineKey: persistedFinding.storylineKey,
+          operation: 'updated',
+        },
+      });
     }
 
     return { findingsCreated, findingsUpdated, persistedFindings };
@@ -687,6 +740,19 @@ async function withInvestigatorSpan<T>(
   });
 }
 
+function publishPersistedFindings(results: Array<{ persistedFindings: InvestigatorFindingRecord[] }>): void {
+  const persistedFindings = results.flatMap((result) => result.persistedFindings);
+  if (persistedFindings.length === 0) {
+    return;
+  }
+
+  const publications = publishMany(persistedFindings);
+  log('info', 'investigators: findings published', {
+    published: publications.length,
+    investigators: [...new Set(persistedFindings.map((finding) => finding.investigatorId))],
+  });
+}
+
 export async function listInvestigatorFindings(query: FindingStoreQuery) {
   return engine.listFindings(query);
 }
@@ -740,6 +806,7 @@ export async function runScheduledInvestigators(now = new Date().toISOString()) 
         now,
         dependencies: { prisma },
       });
+      publishPersistedFindings(results);
       log('info', 'investigators: scheduled run complete', {
         investigatorsRun: results.length,
         findingsGenerated: results.reduce((sum, result) => sum + result.findingsGenerated, 0),
@@ -763,15 +830,19 @@ export async function runTargetedInvestigators(input: {
       'vitalcv.investigators.trigger': trigger,
       'vitalcv.investigators.targets': input.targetEntityIds.length,
     },
-    async () => engine.runTriggered({
-      now: new Date().toISOString(),
-      trigger,
-      entityType: input.entityType ?? null,
-      targetEntityIds: input.targetEntityIds,
-      investigatorIds: input.investigatorIds,
-      dependencies: { prisma },
-      metadata: input.metadata,
-    }),
+    async () => {
+      const results = await engine.runTriggered({
+        now: new Date().toISOString(),
+        trigger,
+        entityType: input.entityType ?? null,
+        targetEntityIds: input.targetEntityIds,
+        investigatorIds: input.investigatorIds,
+        dependencies: { prisma },
+        metadata: input.metadata,
+      });
+      publishPersistedFindings(results);
+      return results;
+    },
   );
 }
 

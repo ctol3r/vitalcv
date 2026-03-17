@@ -9,6 +9,30 @@ jest.mock('../../services/copilot/copilotQueryService', () => ({
   executeCopilotQuery: jest.fn(),
 }));
 
+jest.mock('../../services/copilot/copilotContextService', () => ({
+  hasRequestedCopilotAnchor: jest.fn((anchor: {
+    providerId?: string | null;
+    findingId?: string | null;
+    storylineId?: string | null;
+  }) => Boolean(anchor.providerId ?? anchor.findingId ?? anchor.storylineId)),
+  loadCopilotContext: jest.fn(),
+  resolveCopilotContextAnchor: jest.fn((input: {
+    providerId?: string | null;
+    findingId?: string | null;
+    storylineId?: string | null;
+    context?: {
+      provider?: { npi?: string };
+      finding?: { id?: string };
+      storyline?: { id?: string };
+    };
+  }) => ({
+    providerId: input.providerId ?? input.context?.provider?.npi ?? null,
+    findingId: input.findingId ?? input.context?.finding?.id ?? null,
+    storylineId: input.storylineId ?? input.context?.storyline?.id ?? null,
+  })),
+  shouldWarmCopilot: jest.fn(),
+}));
+
 jest.mock('../../services/investigation/copilotInvestigationService', () => ({
   buildCopilotInvestigationPayload: jest.fn(),
 }));
@@ -22,14 +46,23 @@ import {
   copilotQueryResponseSchema,
 } from '../../services/copilot/contracts';
 import { executeCopilotQuery } from '../../services/copilot/copilotQueryService';
+import {
+  loadCopilotContext,
+  shouldWarmCopilot,
+} from '../../services/copilot/copilotContextService';
 import { buildCopilotInvestigationPayload } from '../../services/investigation/copilotInvestigationService';
 import { resolveSearchRequestContext } from '../../services/search/requestContext';
 import { registerCopilotRoutes } from '../copilot';
+import { HttpError } from '../../utils/httpError';
 
 const resolveSearchRequestContextMock =
   resolveSearchRequestContext as jest.MockedFunction<typeof resolveSearchRequestContext>;
 const executeCopilotQueryMock =
   executeCopilotQuery as jest.MockedFunction<typeof executeCopilotQuery>;
+const loadCopilotContextMock =
+  loadCopilotContext as jest.MockedFunction<typeof loadCopilotContext>;
+const shouldWarmCopilotMock =
+  shouldWarmCopilot as jest.MockedFunction<typeof shouldWarmCopilot>;
 const buildCopilotInvestigationPayloadMock =
   buildCopilotInvestigationPayload as jest.MockedFunction<typeof buildCopilotInvestigationPayload>;
 const invokeAgentModelMock =
@@ -49,6 +82,8 @@ describe('copilot routes', () => {
   beforeEach(() => {
     resolveSearchRequestContextMock.mockReset();
     executeCopilotQueryMock.mockReset();
+    loadCopilotContextMock.mockReset();
+    shouldWarmCopilotMock.mockReset();
     buildCopilotInvestigationPayloadMock.mockReset();
     invokeAgentModelMock.mockReset();
 
@@ -58,6 +93,28 @@ describe('copilot routes', () => {
       membershipRoles: ['PUBLIC'],
       queryHash: 'hashed-query',
     });
+    loadCopilotContextMock.mockResolvedValue({
+      provider: {
+        providerId: '1234567890',
+        label: 'Dr. High Trust',
+        specialty: 'Cardiology',
+        state: 'TX',
+        trustScore: 91,
+        trustBand: 'L3',
+        trustConfidence: 0.88,
+        activeFindings: 1,
+        anomalyCount: 0,
+        anomalySeverity: null,
+        affiliations: ['Mayo Clinic'],
+        networkHighlights: [],
+        sources: ['NPPES', 'PECOS'],
+      },
+      recentFindings: [],
+      activeStorylines: [],
+      networkSummary: null,
+      riskSignals: [],
+    });
+    shouldWarmCopilotMock.mockReturnValue(false);
 
     invokeAgentModelMock.mockImplementation(async (_options, invoke) => {
       const result = await invoke();
@@ -117,6 +174,9 @@ describe('copilot routes', () => {
     const app = buildApp();
 
     executeCopilotQueryMock.mockResolvedValue({
+      answer: 'Dr. High Trust is the strongest current match for this query.',
+      sources: ['NPPES', 'PECOS', 'OIG'],
+      confidence: 0.87,
       parsedQuery: {
         rawQuery: 'cardiologists in texas with high trust score',
         normalizedQuery: 'cardiologists in texas with high trust score',
@@ -203,22 +263,89 @@ describe('copilot routes', () => {
 
     const response = await request(app)
       .post('/api/copilot/query')
-      .send({ query: 'cardiologists in texas with high trust score' })
+      .send({
+        query: 'cardiologists in texas with high trust score',
+        sessionId: 'session-123',
+        context: {
+          scope: 'provider',
+          provider: {
+            npi: '1234567890',
+            label: 'Dr. High Trust',
+            specialty: 'Cardiology',
+            state: 'TX',
+            trustScore: 91,
+            trustBand: 'L3',
+          },
+          recentFindings: [],
+          evidenceSummary: [],
+          riskSummary: {
+            trustScore: 91,
+            trustBand: 'L3',
+            summary: 'Current provider is under review.',
+          },
+        },
+        command: {
+          name: 'summarize',
+          raw: '/summarize',
+        },
+      })
       .expect(200);
 
     expect(resolveSearchRequestContextMock).toHaveBeenCalled();
-    expect(invokeAgentModelMock).toHaveBeenCalled();
+    expect(invokeAgentModelMock).toHaveBeenCalledWith(expect.objectContaining({
+      input: expect.objectContaining({
+        sessionId: 'session-123',
+        contextScope: 'provider',
+        command: 'summarize',
+      }),
+      attributes: expect.objectContaining({
+        'vitalcv.copilot.context_scope': 'provider',
+        'vitalcv.copilot.command': 'summarize',
+      }),
+    }), expect.any(Function));
     expect(executeCopilotQueryMock).toHaveBeenCalledWith(expect.objectContaining({
       query: 'cardiologists in texas with high trust score',
       limit: 20,
     }));
     expect(() => copilotQueryResponseSchema.parse(response.body)).not.toThrow();
+    expect(response.body.status).toBe('ok');
+    expect(response.body.document.sections).toHaveLength(6);
+  });
+
+  it('returns the warming fallback instead of failing when anchored context is not ready', async () => {
+    const app = buildApp();
+    loadCopilotContextMock.mockResolvedValue({
+      provider: null,
+      recentFindings: [],
+      activeStorylines: [],
+      networkSummary: null,
+      riskSignals: [],
+    });
+    shouldWarmCopilotMock.mockReturnValue(true);
+
+    const response = await request(app)
+      .post('/api/copilot/query')
+      .send({
+        query: 'Explain this provider',
+        providerId: '1234567890',
+      })
+      .expect(200);
+
+    expect(executeCopilotQueryMock).not.toHaveBeenCalled();
+    expect(response.body.status).toBe('limited');
+    expect(response.body.message).toBe('System warming — data loading');
+    expect(response.body.answer).toBe('System warming — data loading');
+    expect(response.body.sources).toEqual([]);
+    expect(response.body.confidence).toBe(0);
   });
 
   it('rejects structurally invalid copilot cross-references', async () => {
     const app = buildApp();
 
     executeCopilotQueryMock.mockResolvedValue({
+      answer: 'Broken explanation response',
+      sources: ['NPPES'],
+      confidence: 0.87,
       parsedQuery: {
         rawQuery: 'cardiologists in texas with high trust score',
         normalizedQuery: 'cardiologists in texas with high trust score',
@@ -284,8 +411,38 @@ describe('copilot routes', () => {
     const response = await request(app)
       .post('/api/copilot/query')
       .send({ query: 'cardiologists in texas with high trust score' })
-      .expect(502);
+      .expect(200);
 
-    expect(response.body.message ?? response.body.error).toContain('structured output');
+    expect(() => copilotQueryResponseSchema.parse(response.body)).not.toThrow();
+    expect(response.body.status).toBe('limited');
+    expect(response.body.title).toBe('Copilot source unavailable');
+    expect(response.body.document.sections).toHaveLength(6);
+  });
+
+  it('returns a limited response for recoverable copilot execution failures', async () => {
+    const app = buildApp();
+    executeCopilotQueryMock.mockRejectedValue(new Error('downstream source unavailable'));
+
+    const response = await request(app)
+      .post('/api/copilot/query')
+      .send({ query: 'cardiologists in texas with high trust score' })
+      .expect(200);
+
+    expect(() => copilotQueryResponseSchema.parse(response.body)).not.toThrow();
+    expect(response.body.status).toBe('limited');
+    expect(response.body.message).toContain('live investigation sources were unavailable');
+    expect(response.body.document.sections).toHaveLength(6);
+  });
+
+  it('preserves non-recoverable http errors from the copilot runtime', async () => {
+    const app = buildApp();
+    invokeAgentModelMock.mockRejectedValue(new HttpError(403, 'Forbidden'));
+
+    const response = await request(app)
+      .post('/api/copilot/query')
+      .send({ query: 'cardiologists in texas with high trust score' })
+      .expect(403);
+
+    expect(response.body.message ?? response.body.error).toContain('Forbidden');
   });
 });

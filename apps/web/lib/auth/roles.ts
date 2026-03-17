@@ -58,6 +58,9 @@ export const PROTECTED_ROUTES: Array<{ pattern: RegExp; role: UserRoleType }> = 
 export const PUBLIC_ROUTE_PATTERNS = [
   /^\/$/, // landing
   // /network moved to protected intelligence routes
+  /^\/intelligence\/?$/, // public seeded intelligence shell
+  /^\/findings\/?$/, // public seeded findings shell
+  /^\/investigations\/?$/, // public seeded investigations shell
   /^\/simulation(\/.*)?$/, // public simulation surface
   /^\/mobile(\/.*)?$/, // mobile landing
   /^\/status(\/.*)?$/, // public system status

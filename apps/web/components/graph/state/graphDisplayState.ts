@@ -135,14 +135,20 @@ const INFERRED_EDGE_TYPES = new Set<EdgeType>([
   'derived_from',
   'sourced_from',
   'references',
+  'storyline_related',
 ]);
-const EXPLICIT_EDGE_TYPES = new Set<EdgeType>(['explicit_link']);
+const EXPLICIT_EDGE_TYPES = new Set<EdgeType>(['explicit_link', 'evidence_link']);
 const TRUST_EDGE_TYPES = new Set<EdgeType>([
   'mentions',
   'affiliated_with',
   'works_at',
   'trained_at',
   'published_with',
+  'co_author',
+  'co_investigator',
+  'financial',
+  'institutional',
+  'regulatory',
   'verifies',
   'issued_by',
   'verified_by',
@@ -228,6 +234,6 @@ export function resolveGraphStats(nodes: GraphNode[], edges: GraphEdge[]): Graph
     totalNodes: nodes.length,
     totalEdges: edges.length,
     orphanCount: nodes.filter((node) => !connectedNodeIds.has(node.id)).length,
-    aiSuggestedLinks: edges.filter((edge) => AI_EDGE_TYPES.has(edge.type)).length,
+    aiSuggestedLinks: edges.filter((edge) => AI_EDGE_TYPES.has(edge.type) || edge.type === 'storyline_related').length,
   };
 }

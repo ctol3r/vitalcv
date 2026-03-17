@@ -1,3 +1,4 @@
+'use client';
 /**
  * VitalCV Design System (VDS) — Canonical Primitives
  * ─────────────────────────────────────────────────────────────
@@ -31,6 +32,7 @@
 import Link from 'next/link';
 import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
 import type React from 'react';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 
@@ -96,7 +98,7 @@ export function VBadge({
 }) {
   return (
     <span className={cn(
-      'inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]',
+      'inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest',
       BADGE_CLASSES[tone],
       className,
     )}>
@@ -116,7 +118,7 @@ export function VCard({
 }) {
   return (
     <section className={cn(
-      'rounded-[24px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-5 shadow-[var(--vt-shadow-md)]',
+      'rounded-md border border-[var(--vt-border)] bg-[var(--vt-surface)] p-3 shadow-sm',
       className,
     )}>
       {children}
@@ -156,7 +158,7 @@ export function VBanner({
 }) {
   return (
     <div className={cn(
-      'flex items-start gap-2.5 rounded-2xl border px-4 py-3 text-sm',
+      'flex items-start gap-2.5 rounded-md border px-3 py-2 text-xs',
       BADGE_CLASSES[tone],
     )}>
       {BANNER_ICONS[tone]}
@@ -266,10 +268,10 @@ export function VButton({
   className?: string;
   type?: 'button' | 'submit';
 }) {
-  const base = 'inline-flex items-center gap-2 rounded-full border font-medium transition disabled:opacity-50 disabled:cursor-not-allowed';
+  const base = 'inline-flex items-center gap-2 rounded-sm border font-medium transition disabled:opacity-50 disabled:cursor-not-allowed';
   const sizes = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-sm',
+    sm: 'px-2 py-1 text-xs',
+    md: 'px-3 py-1.5 text-sm',
   };
   const variants = {
     default: 'border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-1)] hover:bg-[var(--vt-border)]',
@@ -305,7 +307,7 @@ export function VFilterChip({
       type="button"
       onClick={onClick}
       className={cn(
-        'rounded-full border px-3 py-1.5 text-sm font-medium transition',
+        'rounded-sm border px-2 py-1 text-xs font-medium transition',
         active
           ? 'border-[var(--vt-accent)]/50 bg-[var(--vt-accent)]/15 text-[var(--vt-text-1)]'
           : 'border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-2)] hover:border-[var(--vt-border)] hover:text-[var(--vt-text-1)]',
@@ -352,7 +354,12 @@ export function ConfidenceMeter({
   return (
     <div className={cn('flex items-center gap-2', className)}>
       <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[var(--vt-border)]">
-        <div className={cn('h-full rounded-full transition-all', colorClass)} style={{ width: `${pct}%` }} />
+        <motion.div 
+          className={cn('h-full rounded-full', colorClass)}
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        />
       </div>
       <span className="text-xs tabular-nums text-[var(--vt-text-3)]">{pct}%</span>
     </div>
@@ -377,7 +384,12 @@ export function ScoreBar({
 
   return (
     <div className="h-2 rounded-full bg-[var(--vt-border)]">
-      <div className={cn('h-full rounded-full', color)} style={{ width }} />
+      <motion.div 
+        className={cn('h-full rounded-full', color)} 
+        initial={{ width: 0 }}
+        animate={{ width }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+      />
     </div>
   );
 }
@@ -386,7 +398,7 @@ export function ScoreBar({
 
 export function VBackLink({ href, label }: { href: string; label: string }) {
   return (
-    <Link href={href} className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-1.5 text-sm font-medium text-[var(--vt-text-2)] transition hover:bg-[var(--vt-border)] hover:text-[var(--vt-text-1)]">
+    <Link href={href} className="inline-flex items-center gap-2 rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-2 py-1 text-xs font-medium text-[var(--vt-text-2)] transition hover:bg-[var(--vt-border)] hover:text-[var(--vt-text-1)]">
       <ArrowLeft className="h-4 w-4" />
       {label}
     </Link>
@@ -395,7 +407,7 @@ export function VBackLink({ href, label }: { href: string; label: string }) {
 
 export function VEntityLink({ href, label }: { href: string; label: string }) {
   return (
-    <Link href={href} className="inline-flex items-center rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-1 text-xs font-medium text-[var(--vt-text-2)] transition hover:bg-[var(--vt-border)] hover:text-[var(--vt-text-1)]">
+    <Link href={href} className="inline-flex items-center rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-2 py-1 text-[10px] uppercase tracking-widest font-semibold text-[var(--vt-text-2)] transition hover:bg-[var(--vt-border)] hover:text-[var(--vt-text-1)]">
       {label}
     </Link>
   );
@@ -433,7 +445,7 @@ export function VPaginationControls({
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-3 text-sm text-[var(--vt-text-2)]">
+    <div className="flex items-center justify-between gap-3 rounded-md border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-xs text-[var(--vt-text-2)]">
       <span>Page {page} of {totalPages}</span>
       <div className="flex gap-2">
         <Link

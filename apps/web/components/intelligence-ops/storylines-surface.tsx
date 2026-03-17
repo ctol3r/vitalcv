@@ -5,32 +5,51 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { startTransition, useEffect, useMemo, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useStorylines } from '@/hooks/useStorylines';
-import { useSystemHealth } from '@/hooks/useSystemHealth';
-import {
-  formatLastRefreshMessage,
-  getSurfaceFreshnessState,
-  hasDegradedDataSources,
-} from '@/lib/intelligence/state';
 import { buildIntelligenceHref } from '@/lib/intelligence/routes';
-import { summarizeTrustSignals } from '@/lib/intelligence/trust-signals';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
+import { formatLastRefreshMessage, getSurfaceFreshnessState } from '@/lib/intelligence/state';
+import type { IntelligenceStoryline } from '@/lib/intelligence/contracts';
+import { StorylineMutationControls } from './mutation-controls';
 import { OperationsShell } from './shell';
+import { formatPaginationSummary, Pagination } from './pagination';
 import {
   EntityLink,
+  OpsBadge,
   OpsCard,
   OpsCardSkeleton,
-  ConfidenceMeter,
   SurfaceBanner,
   SurfaceEmptyState,
   SurfaceErrorState,
-  TimestampPair,
+  severityTone,
 } from './primitives';
-import { StorylineMutationControls } from './mutation-controls';
-import { formatPaginationSummary, Pagination } from './pagination';
-import { TrustSignalChips } from './trust-signal-chips';
-import { StorylineCard } from '@/src/ui/components';
 
 const PAGE_SIZE = 8;
+
+function buildTimeline(storyline: IntelligenceStoryline) {
+  const evidenceEvents = storyline.evidence
+    .map((evidence, index) => ({
+      id: `${storyline.id}:${index}`,
+      occurredAt: evidence.observedAt ?? storyline.lastActivityAt,
+      label: evidence.source ?? evidence.label,
+      detail: evidence.snippet ?? `${evidence.label} updated this storyline.`,
+    }))
+    .slice(0, 4);
+
+  if (evidenceEvents.length > 0) {
+    return evidenceEvents;
+  }
+
+  return [{
+    id: `${storyline.id}:activity`,
+    occurredAt: storyline.lastActivityAt,
+    label: 'Latest activity',
+    detail: storyline.summary,
+  }];
+}
+
+function formatStorylineType(value: string) {
+  return value.replace(/_/g, ' ');
+}
 
 export function StorylinesSurface() {
   const searchParams = useSearchParams();
@@ -60,7 +79,6 @@ export function StorylinesSurface() {
     page,
     limit: PAGE_SIZE,
   });
-  const systemHealth = useSystemHealth();
 
   const currentHref = useMemo(() => {
     const query = searchParams.toString();
@@ -69,14 +87,15 @@ export function StorylinesSurface() {
 
   function pushWithParams(nextPage = 1, nextFilters = draftFilters) {
     const params = new URLSearchParams();
-    Object.entries(nextFilters).forEach(([key, value]) => {
+    for (const [key, value] of Object.entries(nextFilters)) {
       if (value.trim().length > 0) {
         params.set(key, value.trim());
       }
-    });
+    }
     if (nextPage > 1) {
       params.set('page', String(nextPage));
     }
+
     startTransition(() => {
       router.push(
         pathname === '/intelligence'
@@ -86,22 +105,21 @@ export function StorylinesSurface() {
     });
   }
 
-  const totalPages = storylines.data?.pageInfo?.totalPages ?? 1;
-  const total = storylines.data?.total ?? 0;
-  const hasFilters = Object.values(filters).some((value) => value.length > 0);
   const items = storylines.data?.storylines ?? [];
+  const total = storylines.data?.total ?? 0;
+  const totalPages = storylines.data?.pageInfo?.totalPages ?? 1;
+  const hasFilters = Object.values(filters).some((value) => value.length > 0);
   const staleState = getSurfaceFreshnessState({
     generatedAt: storylines.data?.generatedAt,
     lastUpdated: storylines.lastUpdated,
   });
-  const degradedSources = hasDegradedDataSources(systemHealth.data);
 
   return (
     <OperationsShell
       activeHref={pathname === '/intelligence' ? '/intelligence' : '/storylines'}
       activeNavKey="storylines"
       title="Storylines"
-      description="Narrative clusters over the finding feed, with cross-links back to findings, providers, and investigations."
+      description="Narrative clusters linked to real findings, providers, and action context as soon as the backend feed is available."
       breadcrumbs={[{ label: 'Storylines' }]}
       meta={(
         <div className="space-y-1">
@@ -129,19 +147,9 @@ export function StorylinesSurface() {
               Live refresh failed. Showing the last successful storyline snapshot while background retries continue.
             </SurfaceBanner>
           ) : null}
-          {degradedSources ? (
-            <SurfaceBanner tone="warning">
-              Some data sources are degraded. Findings may be incomplete.
-            </SurfaceBanner>
-          ) : null}
           {staleState.isStale && staleState.ageMinutes !== null ? (
             <SurfaceBanner tone="info">
               {formatLastRefreshMessage(staleState.ageMinutes)}
-            </SurfaceBanner>
-          ) : null}
-          {storylines.data?.degraded ? (
-            <SurfaceBanner tone="info">
-              Deep pagination is being served from the latest synchronized storyline window because the backend list route does not expose native offsets yet.
             </SurfaceBanner>
           ) : null}
         </>
@@ -243,7 +251,7 @@ export function StorylinesSurface() {
         </form>
       </OpsCard>
 
-      {storylines.error && !items.length ? (
+      {storylines.error && items.length === 0 ? (
         <SurfaceErrorState
           title="Storylines unavailable"
           description={storylines.error}
@@ -251,90 +259,122 @@ export function StorylinesSurface() {
         />
       ) : null}
 
-      {!storylines.loading && !storylines.error && !items.length ? (
+      {!storylines.loading && !storylines.error && items.length === 0 ? (
         <SurfaceEmptyState
-          title={hasFilters ? 'No storylines match the current filters' : 'No storyline clusters are active'}
+          title={hasFilters ? 'No storylines match the current filters' : 'No storylines returned'}
           description={hasFilters
-            ? 'Widen the filters or remove them to inspect more of the storyline set.'
-            : 'Storylines will appear here after related findings are synchronized into a cluster.'}
+            ? 'The current backend query returned zero storyline clusters for this scope.'
+            : 'Storylines will render here once related findings are clustered by the backend.'}
         />
       ) : null}
 
       <div className="grid gap-4">
-        {items.map((storyline) => (
-          <StorylineCard
-            key={storyline.id}
-            confidence={storyline.confidence}
-            footer={(
-              <div className="w-full space-y-4">
-                <div className="flex min-w-[15rem] flex-col gap-3 rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Narrative stats</p>
-                      <p className="text-sm text-[var(--vt-text-2)]">Progression {Math.round(storyline.progressionScore * 100)}%</p>
-                      <ConfidenceMeter confidence={storyline.confidence} />
-                      <TimestampPair label="Activity" value={storyline.lastActivityAt} />
-                    </div>
-                    <TrustSignalChips
-                      summary={summarizeTrustSignals(
-                        storyline.evidence.map((evidence) => ({
-                          source: evidence.source,
-                          observedAt: evidence.observedAt,
-                        })),
-                        storyline.confidence,
-                      )}
-                    />
+        {items.map((storyline) => {
+          const timeline = buildTimeline(storyline);
+
+          return (
+            <OpsCard key={storyline.id}>
+              <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                <div className="min-w-0 flex-1 space-y-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <OpsBadge label={storyline.severity} tone={severityTone(storyline.severity)} />
+                    <OpsBadge label={storyline.status} tone={severityTone(storyline.status)} />
+                    <OpsBadge label={formatStorylineType(storyline.storylineType)} />
+                    <span className="text-xs text-[var(--vt-text-3)]">{storyline.perspective}</span>
                   </div>
+
+                  <div className="space-y-2">
+                    <Link
+                      href={{
+                        pathname: `/storylines/${storyline.id}`,
+                        query: { from: currentHref },
+                      }}
+                      className="block text-xl font-semibold text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]"
+                    >
+                      {storyline.title}
+                    </Link>
+                    <p className="text-sm leading-6 text-[var(--vt-text-2)]">{storyline.summary}</p>
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.9fr)]">
+                    <div className="space-y-3 rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Timeline</p>
+                        <span className="text-xs text-[var(--vt-text-3)]">{timeline.length} events</span>
+                      </div>
+                      <ol className="space-y-3 border-l border-[var(--vt-border)] pl-4">
+                        {timeline.map((event) => (
+                          <li key={event.id} className="relative space-y-1">
+                            <span className="absolute -left-[1.15rem] top-1.5 h-2.5 w-2.5 rounded-full bg-cyan-400/70" />
+                            <p className="text-sm font-medium text-[var(--vt-text-1)]">{event.label}</p>
+                            <p className="text-sm leading-6 text-[var(--vt-text-2)]">{event.detail}</p>
+                            <p className="text-xs text-[var(--vt-text-3)]" title={formatAbsoluteTime(event.occurredAt)}>
+                              {formatRelativeTime(event.occurredAt)}
+                            </p>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+
+                    <div className="space-y-3 rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Linked findings</p>
+                        <span className="text-xs text-[var(--vt-text-3)]">{storyline.findingIds.length}</span>
+                      </div>
+                      {storyline.findingIds.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {storyline.findingIds.map((findingId) => (
+                            <EntityLink
+                              key={findingId}
+                              href={`/findings/${findingId}?from=${encodeURIComponent(currentHref)}`}
+                              label={`Finding ${findingId}`}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-[var(--vt-text-2)]">No findings are linked to this storyline yet.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {storyline.providerNpi ? (
+                      <>
+                        <EntityLink
+                          href={`/providers/${storyline.providerNpi}?from=${encodeURIComponent(currentHref)}`}
+                          label={`Provider ${storyline.providerNpi}`}
+                        />
+                        <EntityLink
+                          href={buildIntelligenceHref('findings', { provider: storyline.providerNpi })}
+                          label="Provider findings"
+                        />
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="w-full max-w-sm shrink-0 space-y-4">
+                  <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Storyline health</p>
+                    <div className="mt-3 space-y-2 text-sm text-[var(--vt-text-2)]">
+                      <p>{storyline.findingIds.length} findings</p>
+                      <p>{Math.round(storyline.confidence * 100)}% confidence</p>
+                      <p>Progression {Math.round(storyline.progressionScore * 100)}%</p>
+                      <p title={formatAbsoluteTime(storyline.lastActivityAt)}>
+                        Active {formatRelativeTime(storyline.lastActivityAt)}
+                      </p>
+                    </div>
+                  </div>
+
                   <StorylineMutationControls storylineId={storyline.id} status={storyline.status} compact />
                 </div>
-                {storyline.recommendedActions.length > 0 ? (
-                  <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
-                    <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Recommended actions</p>
-                    <ul className="space-y-2 text-sm text-[var(--vt-text-2)]">
-                      {storyline.recommendedActions.slice(0, 3).map((action) => (
-                        <li key={action}>{action}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
               </div>
-            )}
-            highlights={(
-              <div className="space-y-3">
-                <Link
-                  href={{
-                    pathname: `/storylines/${storyline.id}`,
-                    query: { from: currentHref },
-                  }}
-                  className="block truncate text-xl font-semibold text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]"
-                >
-                  Open detail
-                </Link>
-                <p className="max-w-3xl text-sm leading-6 text-[var(--vt-text-3)]">{storyline.whyItMatters}</p>
-                <p className="text-xs text-[var(--vt-text-3)]">{storyline.perspective}</p>
-                <div className="flex flex-wrap gap-2">
-                  {storyline.providerNpi ? (
-                    <>
-                      <EntityLink href={`/providers/${storyline.providerNpi}?from=${encodeURIComponent(currentHref)}`} label={`Provider ${storyline.providerNpi}`} />
-                      <EntityLink href={buildIntelligenceHref('investigations', { npi: storyline.providerNpi })} label="Open investigation" />
-                    </>
-                  ) : null}
-                  {storyline.findingIds.length > 0 ? (
-                    <EntityLink href={`/findings/${storyline.findingIds[0]}?from=/storylines`} label={`Lead finding ${storyline.findingIds[0]}`} />
-                  ) : null}
-                </div>
-              </div>
-            )}
-            severity={storyline.severity}
-            status={storyline.status}
-            summary={storyline.summary}
-            title={storyline.title}
-            typeLabel={storyline.storylineType}
-          />
-        ))}
+            </OpsCard>
+          );
+        })}
       </div>
 
-      {storylines.loading && !items.length ? (
+      {storylines.loading && items.length === 0 ? (
         <>
           <OpsCardSkeleton />
           <OpsCardSkeleton />

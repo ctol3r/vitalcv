@@ -90,6 +90,10 @@ export function ProviderDetailView({
       <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
         <div className="space-y-4">
           <OpsCard className="space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Identity</h2>
+              <p className="mt-1 text-sm text-[var(--vt-text-3)]">Name, NPI, specialty, and public verification posture.</p>
+            </div>
             <div className="flex flex-wrap items-center gap-2">
               <OpsBadge label={current.profile.status} tone={severityTone(current.profile.status)} />
               <OpsBadge label={current.profile.trustBand} tone="info" />
@@ -104,6 +108,7 @@ export function ProviderDetailView({
               <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Trust score</p>
                 <p className={`mt-2 text-3xl font-semibold tabular-nums ${trustScoreColor(current.provider.trustScore)}`}>{current.provider.trustScore}</p>
+                <p className="mt-2 text-sm text-[var(--vt-text-2)]">Band {current.profile.trustBand}</p>
               </div>
               <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Findings</p>
@@ -271,90 +276,98 @@ export function ProviderDetailView({
         </div>
 
         <div className="space-y-4">
-          {current.signals ? (
-            <OpsCard className="space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Intelligence signals</h2>
-                  <p className="mt-1 text-sm text-[var(--vt-text-3)]">{current.signals.summary}</p>
-                </div>
+          <OpsCard className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Recent signals</h2>
+                <p className="mt-1 text-sm text-[var(--vt-text-3)]">
+                  {current.signals?.summary ?? 'No provider signal summary has been returned yet.'}
+                </p>
+              </div>
+              {current.signals ? (
                 <span className="text-xs text-[var(--vt-text-3)]" title={formatAbsoluteTime(current.signals.generatedAt)}>
                   Updated {formatRelativeTime(current.signals.generatedAt)}
                 </span>
-              </div>
+              ) : null}
+            </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Trust</p>
-                    <OpsBadge label={current.signals.trust.tier} tone={intelligenceTone(current.signals.trust.tier)} />
-                  </div>
-                  <p className={`mt-2 text-2xl font-semibold tabular-nums ${trustScoreColor(current.signals.trust.score ?? current.provider.trustScore)}`}>
-                    {formatSignalScore(current.signals.trust.score)}
-                  </p>
-                  <p className="mt-2 text-sm text-[var(--vt-text-2)]">{current.signals.trust.explanation}</p>
-                </div>
-
-                <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Influence</p>
-                    <OpsBadge label={current.signals.influence.tier} tone={intelligenceTone(current.signals.influence.tier)} />
-                  </div>
-                  <p className="mt-2 text-2xl font-semibold tabular-nums text-cyan-300">{formatSignalScore(current.signals.influence.score)}</p>
-                  <p className="mt-2 text-sm text-[var(--vt-text-2)]">
-                    {formatPercentile(current.signals.influence.percentile)} · {current.signals.influence.explanation}
-                  </p>
-                </div>
-
-                <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Workforce pressure</p>
-                    <OpsBadge label={current.signals.workforcePressure.state} tone={intelligenceTone(current.signals.workforcePressure.state)} />
-                  </div>
-                  <p className="mt-2 text-2xl font-semibold tabular-nums text-[var(--vt-text-1)]">{formatSignalScore(current.signals.workforcePressure.score)}</p>
-                  <p className="mt-2 text-sm text-[var(--vt-text-2)]">{current.signals.workforcePressure.explanation}</p>
-                </div>
-
-                <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Institution momentum</p>
-                    <OpsBadge
-                      label={current.signals.institutionMomentum?.state ?? 'Insufficient signal'}
-                      tone={intelligenceTone(current.signals.institutionMomentum?.state ?? 'Insufficient signal')}
-                    />
-                  </div>
-                  <p className="mt-2 text-sm font-semibold text-[var(--vt-text-1)]">
-                    {current.signals.institutionMomentum?.institutionLabel ?? 'No institution momentum signal'}
-                  </p>
-                  <p className="mt-2 text-sm text-[var(--vt-text-2)]">
-                    {current.signals.institutionMomentum?.explanation ?? 'Institution momentum is unavailable for the current affiliation set.'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Early warnings</h3>
-                  <span className="text-sm text-[var(--vt-text-3)]">{current.signals.earlyWarnings.length}</span>
-                </div>
-                {current.signals.earlyWarnings.length > 0 ? current.signals.earlyWarnings.slice(0, 3).map((warning) => (
-                  <div key={warning.id} className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <OpsBadge label={warning.type.replace(/_/g, ' ')} tone={intelligenceTone(warning.type)} />
-                      <OpsBadge label={warning.state} tone={intelligenceTone(warning.state)} />
+            {current.signals ? (
+              <>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Trust</p>
+                      <OpsBadge label={current.signals.trust.tier} tone={intelligenceTone(current.signals.trust.tier)} />
                     </div>
-                    <p className="mt-3 text-sm font-medium text-[var(--vt-text-1)]">{warning.headline}</p>
-                    <p className="mt-2 text-sm text-[var(--vt-text-2)]">{warning.recommendedAction}</p>
-                    <div className="mt-2">
-                      <TimestampPair label="Observed" value={warning.timestamp} />
-                    </div>
+                    <p className={`mt-2 text-2xl font-semibold tabular-nums ${trustScoreColor(current.signals.trust.score ?? current.provider.trustScore)}`}>
+                      {formatSignalScore(current.signals.trust.score)}
+                    </p>
+                    <p className="mt-2 text-sm text-[var(--vt-text-2)]">{current.signals.trust.explanation}</p>
                   </div>
-                )) : (
-                  <p className="text-sm text-[var(--vt-text-3)]">No early warnings crossed the current alert thresholds.</p>
-                )}
-              </div>
-            </OpsCard>
-          ) : null}
+
+                  <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Influence</p>
+                      <OpsBadge label={current.signals.influence.tier} tone={intelligenceTone(current.signals.influence.tier)} />
+                    </div>
+                    <p className="mt-2 text-2xl font-semibold tabular-nums text-cyan-300">{formatSignalScore(current.signals.influence.score)}</p>
+                    <p className="mt-2 text-sm text-[var(--vt-text-2)]">
+                      {formatPercentile(current.signals.influence.percentile)} · {current.signals.influence.explanation}
+                    </p>
+                  </div>
+
+                  <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Workforce pressure</p>
+                      <OpsBadge label={current.signals.workforcePressure.state} tone={intelligenceTone(current.signals.workforcePressure.state)} />
+                    </div>
+                    <p className="mt-2 text-2xl font-semibold tabular-nums text-[var(--vt-text-1)]">{formatSignalScore(current.signals.workforcePressure.score)}</p>
+                    <p className="mt-2 text-sm text-[var(--vt-text-2)]">{current.signals.workforcePressure.explanation}</p>
+                  </div>
+
+                  <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Institution momentum</p>
+                      <OpsBadge
+                        label={current.signals.institutionMomentum?.state ?? 'Insufficient signal'}
+                        tone={intelligenceTone(current.signals.institutionMomentum?.state ?? 'Insufficient signal')}
+                      />
+                    </div>
+                    <p className="mt-2 text-sm font-semibold text-[var(--vt-text-1)]">
+                      {current.signals.institutionMomentum?.institutionLabel ?? 'No institution momentum signal'}
+                    </p>
+                    <p className="mt-2 text-sm text-[var(--vt-text-2)]">
+                      {current.signals.institutionMomentum?.explanation ?? 'Institution momentum is unavailable for the current affiliation set.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Early warnings</h3>
+                    <span className="text-sm text-[var(--vt-text-3)]">{current.signals.earlyWarnings.length}</span>
+                  </div>
+                  {current.signals.earlyWarnings.length > 0 ? current.signals.earlyWarnings.slice(0, 3).map((warning) => (
+                    <div key={warning.id} className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <OpsBadge label={warning.type.replace(/_/g, ' ')} tone={intelligenceTone(warning.type)} />
+                        <OpsBadge label={warning.state} tone={intelligenceTone(warning.state)} />
+                      </div>
+                      <p className="mt-3 text-sm font-medium text-[var(--vt-text-1)]">{warning.headline}</p>
+                      <p className="mt-2 text-sm text-[var(--vt-text-2)]">{warning.recommendedAction}</p>
+                      <div className="mt-2">
+                        <TimestampPair label="Observed" value={warning.timestamp} />
+                      </div>
+                    </div>
+                  )) : (
+                    <p className="text-sm text-[var(--vt-text-3)]">No early warnings crossed the current alert thresholds.</p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-[var(--vt-text-3)]">The backend has not returned signal data for this provider yet.</p>
+            )}
+          </OpsCard>
 
           <OpsCard className="space-y-3">
             <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Identifiers</h2>

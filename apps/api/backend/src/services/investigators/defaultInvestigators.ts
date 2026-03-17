@@ -727,8 +727,24 @@ async function selectNetworkRootNodeIds(prisma: PrismaClient, nowIso: string, ba
   return [...new Set(edges.flatMap((edge) => [edge.sourceNodeId, edge.targetNodeId]))].slice(0, batchSize * 2);
 }
 
-function extractProviderIdFromNode(node: Pick<GraphNode, 'metadata'>): string | null {
-  return asString(asRecord(node.metadata).npi);
+function extractProviderIdFromNode(node: Pick<GraphNode, 'metadata' | 'canonicalKey'>): string | null {
+  const metadataNpi = asString(asRecord(node.metadata).npi);
+  if (metadataNpi) {
+    return metadataNpi;
+  }
+
+  try {
+    const canonical = JSON.parse(node.canonicalKey) as Record<string, unknown>;
+    const sourceKind = asString(canonical.sourceKind);
+    const sourceId = asString(canonical.sourceId);
+    if (sourceKind === 'npi' && sourceId && NPI_RE.test(sourceId)) {
+      return sourceId;
+    }
+  } catch {
+    // Ignore malformed canonical keys and fall through.
+  }
+
+  return null;
 }
 
 async function buildNetworkEmergenceFindings(
@@ -1572,25 +1588,36 @@ async function buildInstitutionExpansionFindings(
     edgesByNode.set(edge.sourceNodeId, group);
   }
 
+  const nodeIds = [...new Set(newEdges.flatMap((edge) => [edge.sourceNodeId, edge.targetNodeId]))];
+  const nodes = await prisma.graphNode.findMany({
+    where: { id: { in: nodeIds } },
+    select: {
+      id: true,
+      label: true,
+      type: true,
+      metadata: true,
+      canonicalKey: true,
+    },
+  });
+  const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+
   const findings: InvestigatorFindingDraft[] = [];
 
   for (const [nodeId, edges] of edgesByNode) {
     if (findings.length >= batchSize) break;
 
-    // Extract NPI from node ID
-    const nodeIdMatch = nodeId.match(/npi:(\d{10})/);
-    if (!nodeIdMatch) continue;
-    const npi = nodeIdMatch[1]!;
+    const sourceNode = nodeMap.get(nodeId);
+    const npi = sourceNode ? extractProviderIdFromNode(sourceNode) : null;
+    if (!npi) continue;
 
     markCovered(npi);
     const provider = await loadProviderContext(prisma, npi);
 
     // Get institution labels from target nodes
     const targetNodeIds = edges.map(e => e.targetNodeId);
-    const institutionNodes = await prisma.graphNode.findMany({
-      where: { id: { in: targetNodeIds } },
-      select: { id: true, label: true, type: true },
-    });
+    const institutionNodes = targetNodeIds
+      .map((targetNodeId) => nodeMap.get(targetNodeId))
+      .filter((node): node is NonNullable<typeof node> => Boolean(node));
     const institutionMap = new Map(institutionNodes.map(n => [n.id, n.label ?? 'Unknown Institution']));
 
     const institutionLabels = [...new Set(edges.map(e => institutionMap.get(e.targetNodeId) ?? 'Unknown Institution'))];

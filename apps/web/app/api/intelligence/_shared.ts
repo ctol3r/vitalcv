@@ -6,6 +6,8 @@ import {
   normalizeStorylinesPayload,
   normalizeSystemHealthPayload,
   summarizeGraph,
+  type IntelligenceAccessMode,
+  type IntelligenceAccessReason,
 } from '@/lib/intelligence/contracts';
 import type { WorkspaceList } from '@/types/workspace';
 import { auth } from '@clerk/nextjs/server';
@@ -16,6 +18,15 @@ const WORKSPACE_SWITCH_HREF = '/workspace/switch';
 const SIGN_IN_HREF = '/sign-in';
 
 export type IntelligenceAuthStatus = 'authenticated' | 'missing_session' | 'missing_org';
+
+/**
+ * Whether the user has enough auth to read intelligence data.
+ * Both 'authenticated' (with org) and 'missing_org' (user logged in, no org)
+ * can read — the backend skips tenant context for /api/intelligence/* paths.
+ */
+export function canReadIntelligence(context: IntelligenceAuthContext): boolean {
+  return context.status === 'authenticated' || context.status === 'missing_org';
+}
 
 export interface IntelligenceAuthContext {
   status: IntelligenceAuthStatus;
@@ -37,12 +48,30 @@ export type ReadOnlyFallbackKind =
   | 'storylines'
   | 'system-health';
 
+export type PublicSnapshotKind =
+  | 'findings'
+  | 'graph'
+  | 'investigation-workbench'
+  | 'providers'
+  | 'storylines';
+
 interface BuildForwardHeadersOptions {
   context?: IntelligenceAuthContext;
 }
 
 interface FetchBackendJsonOptions extends BuildForwardHeadersOptions {
   headers?: HeadersInit;
+}
+
+interface AccessMetadataShape {
+  accessMode?: IntelligenceAccessMode;
+  reason?: IntelligenceAccessReason;
+}
+
+interface RouteErrorPayload {
+  error?: unknown;
+  error_description?: unknown;
+  message?: unknown;
 }
 
 function backendBase(): string {
@@ -280,6 +309,8 @@ export function buildReadOnlyFallbackPayload(
       return {
         ...normalizeProvidersPayload({ entries: [] }, query),
         pageInfo: buildPageInfo(page, pageSize, 0),
+        accessMode: 'public_snapshot',
+        reason: context.status === 'authenticated' ? 'warming_up' : context.status,
       };
     }
     case 'findings': {
@@ -290,6 +321,8 @@ export function buildReadOnlyFallbackPayload(
       return {
         ...normalizeFindingsPayload({ findings: [], total: 0 }),
         pageInfo: buildPageInfo(page, pageSize, 0),
+        accessMode: 'public_snapshot',
+        reason: context.status === 'authenticated' ? 'warming_up' : context.status,
       };
     }
     case 'storylines': {
@@ -298,7 +331,8 @@ export function buildReadOnlyFallbackPayload(
       return {
         ...normalizeStorylinesPayload({ storylines: [], total: 0 }),
         pageInfo: buildPageInfo(page, pageSize, 0),
-        degraded: true,
+        accessMode: 'public_snapshot',
+        reason: context.status === 'authenticated' ? 'warming_up' : context.status,
       };
     }
     case 'actions': {
@@ -309,6 +343,8 @@ export function buildReadOnlyFallbackPayload(
       return {
         ...normalizeActionsPayload({ actions: [], total: 0 }),
         pageInfo: buildPageInfo(page, pageSize, 0),
+        accessMode: context.status === 'authenticated' ? 'full' : 'public_snapshot',
+        reason: context.status === 'authenticated' ? 'warming_up' : context.status,
       };
     }
     case 'graph':
@@ -318,13 +354,19 @@ export function buildReadOnlyFallbackPayload(
         stats: summarizeGraph([], []),
         focusNodeId: null,
         generatedAt,
+        accessMode: 'public_snapshot',
+        reason: context.status === 'authenticated' ? 'warming_up' : context.status,
       };
     case 'system-health':
-      return normalizeSystemHealthPayload({
+      return {
+        ...normalizeSystemHealthPayload({
         systemStatus: null,
         integrity: null,
         graphIntegrity: null,
-      });
+        }),
+        accessMode: context.status === 'authenticated' ? 'full' : 'public_snapshot',
+        reason: context.status === 'authenticated' ? 'warming_up' : context.status,
+      };
     case 'feed':
       return {
         generatedAt,
@@ -373,10 +415,119 @@ export function buildReadOnlyFallbackPayload(
         relatedFindings: [],
         navigation: null,
         generatedAt,
+        uiHints: {
+          copilotPrompt: 'Summarize risk posture for this provider',
+          copilotSummary: null,
+          highlightNodeIds: [],
+        },
+        accessMode: 'public_snapshot',
+        reason: context.status === 'authenticated' ? 'warming_up' : context.status,
       };
     default:
-      return { generatedAt };
+      return {
+        generatedAt,
+        accessMode: context.status === 'authenticated' ? 'full' : 'public_snapshot',
+        reason: context.status === 'authenticated' ? 'warming_up' : context.status,
+      };
   }
+}
+
+function publicSnapshotPath(kind: PublicSnapshotKind): string {
+  switch (kind) {
+    case 'providers':
+      return '/api/intelligence/public/providers';
+    case 'findings':
+      return '/api/intelligence/public/findings';
+    case 'storylines':
+      return '/api/intelligence/public/storylines';
+    case 'graph':
+      return '/api/intelligence/public/graph';
+    case 'investigation-workbench':
+      return '/api/intelligence/public/investigation-workbench';
+    default:
+      return '/api/intelligence/public/providers';
+  }
+}
+
+export function resolveAccessReason(
+  context: IntelligenceAuthContext,
+  mode: IntelligenceAccessMode,
+  payload?: unknown,
+): IntelligenceAccessReason {
+  const asObject = payload && typeof payload === 'object' ? payload as Record<string, unknown> : null;
+  const ready = typeof asObject?.snapshotReady === 'boolean' ? asObject.snapshotReady : null;
+
+  if (ready === false) {
+    return 'warming_up';
+  }
+
+  if (mode === 'full') {
+    return 'ok';
+  }
+
+  if (context.status === 'missing_session') {
+    return 'missing_session';
+  }
+
+  if (context.status === 'missing_org') {
+    return 'missing_org';
+  }
+
+  return 'ok';
+}
+
+export function attachAccessMetadata<T>(
+  payload: T,
+  input: {
+    accessMode: IntelligenceAccessMode;
+    reason: IntelligenceAccessReason;
+  },
+): T & AccessMetadataShape {
+  if (!payload || typeof payload !== 'object') {
+    return payload as T & AccessMetadataShape;
+  }
+
+  return {
+    ...(payload as Record<string, unknown>),
+    accessMode: input.accessMode,
+    reason: input.reason,
+  } as T & AccessMetadataShape;
+}
+
+export function coerceRouteErrorPayload(
+  payload: unknown,
+  fallback: {
+    error: string;
+    error_description: string;
+    message?: string;
+  },
+) {
+  if (payload && typeof payload === 'object') {
+    const record = payload as RouteErrorPayload;
+    if (
+      typeof record.error === 'string'
+      || typeof record.error_description === 'string'
+      || typeof record.message === 'string'
+    ) {
+      return payload;
+    }
+  }
+
+  return fallback;
+}
+
+export async function fetchPublicSnapshotJson<T>(
+  kind: PublicSnapshotKind,
+  searchParams: URLSearchParams | undefined,
+  context: IntelligenceAuthContext,
+  timeoutMs = 12_000,
+) {
+  return fetchBackendJson<T>(
+    publicSnapshotPath(kind),
+    searchParams,
+    timeoutMs,
+    { context },
+  );
 }
 
 export function requireAuthenticatedOrgContext(

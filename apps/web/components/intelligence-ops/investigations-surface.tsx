@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useGraph } from '@/hooks/useGraph';
+import { useProviders } from '@/hooks/useProviders';
 import { buildIntelligenceHref } from '@/lib/intelligence/routes';
 import {
   buildFindingStatusEndpoint,
@@ -10,11 +12,15 @@ import {
   FINDING_STATUS_METHOD,
   type InvestigationWorkbenchAnchorInput,
 } from '@/lib/intelligence/investigation-workbench-client';
+import type { CopilotContextPayload } from '@/components/copilot/types';
+import type { IntelligenceAccessReason, IntelligenceProvider } from '@/lib/intelligence/contracts';
+import { getAccessBannerState } from '@/lib/intelligence/state';
+import { summarizeTrustSignals } from '@/lib/intelligence/trust-signals';
 import { OperationsShell } from './shell';
 import { EntityLink, OpsBadge, OpsCard, SurfaceBanner, severityTone } from './primitives';
 import { CopilotSearchBar } from '@/components/copilot/CopilotSearchBar';
 import { EvidenceViewerPanel } from './evidence-viewer-panel';
-import { NODE_COLORS, getNodeColor } from '@/components/graph-system/types';
+import { GraphWorkbenchPanel } from './graph-workbench-panel';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -99,6 +105,13 @@ interface WorkbenchContext {
   storyline: WorkbenchStorylineContext | null;
   relatedFindings: WorkbenchRelatedFinding[];
   navigation: WorkbenchNavigation | null;
+  uiHints?: {
+    copilotPrompt: string;
+    copilotSummary: string | null;
+    highlightNodeIds: string[];
+  };
+  accessMode?: 'full' | 'public_snapshot';
+  reason?: IntelligenceAccessReason;
   generatedAt: string;
   error?: string;
 }
@@ -107,6 +120,119 @@ interface WorkbenchErrorPayload {
   error?: string;
   error_description?: string;
   workspaceSwitchHref?: string;
+  accessMode?: 'full' | 'public_snapshot';
+  reason?: IntelligenceAccessReason;
+}
+
+interface InvestigationGraphSelection {
+  focusNodeId: string | null;
+  selectedNodeId: string | null;
+  neighborNodeIds: string[];
+  neighborEdgeIds: string[];
+}
+
+function buildInvestigationCopilotContext(
+  context: WorkbenchContext,
+  graphSelection: InvestigationGraphSelection,
+): CopilotContextPayload {
+  const evidence = context.finding?.evidence ?? context.storyline?.evidence ?? [];
+  const evidenceSignals = evidence.map((item) => ({
+    source: item.source,
+    observedAt: item.observedAt,
+    confidence: item.confidence,
+    qualityRating: item.qualityRating,
+    corroborationCount: item.corroborationCount,
+  }));
+  const evidenceSummaryStats = evidenceSignals.length > 0
+    ? summarizeTrustSignals(evidenceSignals)
+    : null;
+  const scope = graphSelection.selectedNodeId || graphSelection.focusNodeId
+    ? 'graph'
+    : context.finding
+      ? 'finding'
+      : context.storyline
+        ? 'storyline'
+        : context.provider
+          ? 'provider'
+          : 'global';
+
+  return {
+    scope,
+    provider: context.provider
+      ? {
+          npi: context.provider.npi,
+          label: context.provider.label,
+          specialty: context.provider.specialty,
+          state: context.provider.state,
+          trustScore: context.provider.trustScore,
+          trustBand: context.provider.trustBand,
+          trustConfidence: context.provider.trustConfidence,
+          activeFindings: context.provider.activeFindings,
+        }
+      : null,
+    finding: context.finding
+      ? {
+          id: context.finding.id,
+          findingType: context.finding.findingType,
+          title: context.finding.title,
+          severity: context.finding.severity,
+          status: context.finding.status,
+          summary: context.finding.summary,
+          explanation: context.finding.explanation,
+          confidence: context.finding.confidence,
+          priorityScore: context.finding.priorityScore,
+          evidence: context.finding.evidence,
+          storylineId: context.finding.storylineId,
+          storylineTitle: context.finding.storylineTitle,
+          providerNpi: context.provider?.npi ?? context.anchor.npi ?? null,
+          npis: context.finding.npis,
+        }
+      : null,
+    storyline: context.storyline
+      ? {
+          id: context.storyline.id,
+          title: context.storyline.title,
+          storylineType: context.storyline.storylineType,
+          severity: context.storyline.severity,
+          status: context.storyline.status,
+          narrative: context.storyline.narrative,
+          summary: context.storyline.whyItMatters,
+          whyItMatters: context.storyline.whyItMatters,
+          confidence: context.storyline.confidence,
+          findingCount: context.storyline.findingCount,
+          entityCount: context.storyline.entityCount,
+          progressionScore: context.storyline.progressionScore,
+          evidence: context.storyline.evidence,
+          providerNpi: context.provider?.npi ?? context.anchor.npi ?? null,
+          recommendedActions: context.storyline.recommendedActions,
+          lastActivityAt: context.storyline.lastActivityAt,
+        }
+      : null,
+    graph: graphSelection,
+    recentFindings: context.relatedFindings.slice(0, 6).map((finding) => ({
+      id: finding.id,
+      title: finding.title,
+      summary: finding.summary,
+      severity: finding.severity,
+      priorityScore: finding.priorityScore,
+      href: finding.href,
+    })),
+    evidenceSummary: evidence.slice(0, 4).map((item) => ({
+      label: item.field ?? 'Evidence',
+      detail: item.claim,
+      source: item.source,
+      observedAt: item.observedAt,
+    })),
+    evidenceSummaryStats,
+    riskSummary: context.provider
+      ? {
+          trustScore: context.provider.trustScore,
+          trustBand: context.provider.trustBand,
+          trustConfidence: context.provider.trustConfidence,
+          summary: `${context.provider.activeFindings} active finding${context.provider.activeFindings === 1 ? '' : 's'} in the current provider scope.`,
+        }
+      : null,
+  };
 }
 
 // ── Investigation State (lightweight, no external deps) ───────────────────────
@@ -349,249 +475,114 @@ function ProviderInvestigationPanel({
 
 // ── Right Top: Network Graph Mini ─────────────────────────────────────────────
 
-const NODE_TYPE_COLORS: Record<string, string> = NODE_COLORS as Record<string, string>;
-
-interface MiniGraphNode {
-  id: string;
-  label: string;
-  type: string;
-  x: number; y: number;
-  vx: number; vy: number;
-  size: number;
-  color: string;
-  isFocus: boolean;
-}
-
-interface MiniGraphEdge {
-  source: string;
-  target: string;
-  type: string;
-}
-
-function simpleForceLayout(
-  nodes: MiniGraphNode[],
-  edges: MiniGraphEdge[],
-  width: number,
-  height: number,
-  iterations: number,
-): void {
-  const cx = width / 2;
-  const cy = height / 2;
-
-  const angleStep = (2 * Math.PI) / Math.max(nodes.length, 1);
-  for (let i = 0; i < nodes.length; i++) {
-    const n = nodes[i]!;
-    if (n.isFocus) { n.x = cx; n.y = cy; }
-    else {
-      const r = Math.min(width, height) * 0.35;
-      n.x = cx + r * Math.cos(i * angleStep);
-      n.y = cy + r * Math.sin(i * angleStep);
-    }
+function toIntelligenceProvider(provider: WorkbenchProviderContext | null): IntelligenceProvider | null {
+  if (!provider) {
+    return null;
   }
 
-  const nodeMap = new Map(nodes.map(n => [n.id, n]));
-
-  for (let iter = 0; iter < iterations; iter++) {
-    const alpha = 1 - iter / iterations;
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        const a = nodes[i]!;
-        const b = nodes[j]!;
-        let dx = b.x - a.x;
-        let dy = b.y - a.y;
-        const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
-        const force = (80 * alpha) / dist;
-        dx = (dx / dist) * force;
-        dy = (dy / dist) * force;
-        if (!a.isFocus) { a.vx -= dx; a.vy -= dy; }
-        if (!b.isFocus) { b.vx += dx; b.vy += dy; }
-      }
-    }
-    for (const e of edges) {
-      const a = nodeMap.get(e.source);
-      const b = nodeMap.get(e.target);
-      if (!a || !b) continue;
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
-      const force = (dist - 60) * 0.02 * alpha;
-      const fx = (dx / dist) * force;
-      const fy = (dy / dist) * force;
-      if (!a.isFocus) { a.vx += fx; a.vy += fy; }
-      if (!b.isFocus) { b.vx -= fx; b.vy -= fy; }
-    }
-    for (const n of nodes) {
-      if (n.isFocus) continue;
-      n.vx += (cx - n.x) * 0.01 * alpha;
-      n.vy += (cy - n.y) * 0.01 * alpha;
-      n.x += n.vx * 0.6;
-      n.y += n.vy * 0.6;
-      n.vx *= 0.5;
-      n.vy *= 0.5;
-      n.x = Math.max(n.size + 4, Math.min(width - n.size - 4, n.x));
-      n.y = Math.max(n.size + 4, Math.min(height - n.size - 4, n.y));
-    }
-  }
+  return {
+    id: provider.npi,
+    npi: provider.npi,
+    name: provider.label ?? `Provider ${provider.npi}`,
+    specialties: provider.specialty ? [provider.specialty] : [],
+    credentialHealth: 'VERIFIED',
+    trustScore: provider.trustScore,
+    activeCredentials: 1,
+    credentialCount: 1,
+    primaryIssuer: provider.state,
+    lastVerifiedAt: null,
+    summary: `${provider.activeFindings} active finding${provider.activeFindings === 1 ? '' : 's'} in scope.`,
+    tags: [provider.trustBand, provider.state ?? ''],
+    risk: provider.trustScore >= 80 ? 'healthy' : provider.trustScore >= 65 ? 'neutral' : provider.trustScore >= 45 ? 'degraded' : 'critical',
+  };
 }
 
-function NetworkGraphPanel({ npi }: { npi: string }) {
-  const [nodes, setNodes] = useState<MiniGraphNode[]>([]);
-  const [edges, setEdges] = useState<MiniGraphEdge[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [tooltip, setTooltip] = useState<{ label: string; type: string; x: number; y: number } | null>(null);
-  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
-  const W = 380;
-  const H = 260;
-
-  // Precompute neighbor sets for hover highlighting
-  const neighborMap = useMemo(() => {
-    const m = new Map<string, Set<string>>();
-    for (const e of edges) {
-      if (!m.has(e.source)) m.set(e.source, new Set());
-      if (!m.has(e.target)) m.set(e.target, new Set());
-      m.get(e.source)!.add(e.target);
-      m.get(e.target)!.add(e.source);
-    }
-    return m;
-  }, [edges]);
+function NetworkGraphPanel({
+  provider,
+  focusNodeId,
+  highlightNodeIds,
+  selectedFindingId,
+  selectedStorylineId,
+  onFocusNode,
+  onSnapshotChange,
+}: {
+  provider: WorkbenchProviderContext | null;
+  focusNodeId: string | null;
+  highlightNodeIds: string[];
+  selectedFindingId: string | null;
+  selectedStorylineId: string | null;
+  onFocusNode: (nodeId: string) => void;
+  onSnapshotChange: (selection: InvestigationGraphSelection) => void;
+}) {
+  const graph = useGraph({
+    npi: provider?.npi ?? null,
+    layer: 'blended',
+    limit: 48,
+    paused: !provider,
+  });
+  const providers = useProviders({
+    limit: 12,
+    paused: false,
+  });
+  const selectedProvider = useMemo(() => toIntelligenceProvider(provider), [provider]);
+  const primaryHighlightNodeId = highlightNodeIds[0] ?? null;
 
   useEffect(() => {
-    if (!npi || !/^\d{10}$/.test(npi)) return;
-    let cancelled = false;
+    const nodes = graph.data?.nodes ?? [];
+    const edges = graph.data?.edges ?? [];
+    const activeNodeId = focusNodeId ?? primaryHighlightNodeId ?? graph.data?.focusNodeId ?? null;
 
-    (async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/intelligence/graph?npi=${npi}&limit=40`);
-        if (!res.ok) throw new Error('unavailable');
-        const data = await res.json() as {
-          nodes?: Array<{ id: string; label?: string; type?: string; degree?: number }>;
-          edges?: Array<{ source: string; target: string; type?: string }>;
-          focusNodeId?: string | null;
-        };
-        if (cancelled) return;
+    if (!graph.data) {
+      onSnapshotChange({
+        focusNodeId: null,
+        selectedNodeId: focusNodeId ?? null,
+        neighborNodeIds: [],
+        neighborEdgeIds: [],
+      });
+      return;
+    }
 
-        const rawN = (data.nodes ?? []).slice(0, 40);
-        const rawE = (data.edges ?? []).slice(0, 80);
-        const focusId = data.focusNodeId ?? null;
-        const nodeIds = new Set(rawN.map(n => n.id));
+    const neighborEdgeIds = activeNodeId
+      ? edges
+          .filter((edge) => edge.source === activeNodeId || edge.target === activeNodeId)
+          .map((edge) => edge.id)
+      : [];
+    const neighborNodeIds = activeNodeId
+      ? [...new Set(
+          edges
+            .filter((edge) => edge.source === activeNodeId || edge.target === activeNodeId)
+            .flatMap((edge) => [edge.source, edge.target]),
+        )].filter((nodeId) => nodeId !== activeNodeId)
+      : [];
 
-        const mn: MiniGraphNode[] = rawN.map(n => ({
-          id: n.id,
-          label: (n.label ?? n.id).slice(0, 24),
-          type: n.type ?? 'clinician',
-          x: 0, y: 0, vx: 0, vy: 0,
-          size: n.id === focusId ? 10 : Math.min(4 + (n.degree ?? 1), 8),
-          color: NODE_TYPE_COLORS[n.type ?? 'clinician'] ?? getNodeColor('clinician'),
-          isFocus: n.id === focusId,
-        }));
-
-        const me: MiniGraphEdge[] = rawE
-          .filter(e => nodeIds.has(e.source) && nodeIds.has(e.target))
-          .map(e => ({ source: e.source, target: e.target, type: e.type ?? 'related_to' }));
-
-        simpleForceLayout(mn, me, W, H, 80);
-        setNodes(mn);
-        setEdges(me);
-      } catch { /* silent */ } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [npi]);
-
-  const nodeMap = new Map(nodes.map(n => [n.id, n]));
+    onSnapshotChange({
+      focusNodeId: graph.data.focusNodeId,
+      selectedNodeId: activeNodeId,
+      neighborNodeIds,
+      neighborEdgeIds,
+    });
+  }, [focusNodeId, graph.data, onSnapshotChange, primaryHighlightNodeId]);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      <div className="flex shrink-0 items-center justify-between px-3 py-2">
-        <p className="text-xs uppercase tracking-[0.15em] text-[var(--vt-text-3)]">Network</p>
-        <Link href={buildIntelligenceHref('dashboard', { npi, panel: 'graph' })} className="text-xs text-cyan-400 transition hover:text-cyan-300">
-          Full Graph →
-        </Link>
-      </div>
-
-      {loading ? (
-        <div className="flex flex-1 items-center justify-center text-xs text-[var(--vt-text-3)]">Loading…</div>
-      ) : nodes.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center text-xs text-[var(--vt-text-3)]">No network data.</div>
-      ) : (
-        <div className="relative flex-1">
-          <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="h-full w-full" onMouseLeave={() => { setHoveredNodeId(null); setTooltip(null); }}>
-            {edges.map((e, i) => {
-              const s = nodeMap.get(e.source);
-              const t = nodeMap.get(e.target);
-              if (!s || !t) return null;
-              const isHighlighted = hoveredNodeId != null && (e.source === hoveredNodeId || e.target === hoveredNodeId);
-              const isDimmed = hoveredNodeId != null && !isHighlighted;
-              return (
-                <line key={i} x1={s.x} y1={s.y} x2={t.x} y2={t.y}
-                  stroke={isHighlighted ? 'var(--vt-accent, cyan)' : 'var(--vt-border)'}
-                  strokeWidth={isHighlighted ? 1.5 : 0.8}
-                  strokeOpacity={isDimmed ? 0.12 : isHighlighted ? 0.9 : 0.5}
-                  style={{ transition: 'stroke-opacity 120ms, stroke 120ms' }}
-                />
-              );
-            })}
-            {nodes.map((n) => {
-              const neighbors = neighborMap.get(n.id);
-              const isNeighbor = hoveredNodeId != null && (n.id === hoveredNodeId || neighbors?.has(hoveredNodeId) || n.isFocus);
-              const isDimmed = hoveredNodeId != null && !isNeighbor;
-              const isHovered = n.id === hoveredNodeId;
-              return (
-                <g key={n.id}>
-                  <circle
-                    cx={n.x} cy={n.y}
-                    r={isHovered ? n.size * 1.25 : n.size}
-                    fill={n.color}
-                    fillOpacity={isDimmed ? 0.15 : n.isFocus ? 1 : 0.75}
-                    stroke={n.isFocus ? 'var(--vt-accent, cyan)' : isHovered ? n.color : 'none'}
-                    strokeWidth={n.isFocus ? 2 : isHovered ? 1.5 : 0}
-                    className="cursor-pointer"
-                    style={{ transition: 'r 120ms, fill-opacity 120ms, stroke 120ms' }}
-                    onMouseEnter={(ev) => {
-                      setHoveredNodeId(n.id);
-                      const rect = svgRef.current?.getBoundingClientRect();
-                      if (rect) setTooltip({ label: n.label, type: n.type, x: ev.clientX - rect.left, y: ev.clientY - rect.top });
-                    }}
-                    onMouseLeave={() => { setHoveredNodeId(null); setTooltip(null); }}
-                    onClick={() => {
-                      const m = n.id.match(/npi:(\d{10})/);
-                      if (m) window.location.href = `/providers/${m[1]}`;
-                    }}
-                  />
-                  {(n.isFocus || isHovered) ? (
-                    <text x={n.x} y={n.y + (isHovered ? n.size * 1.25 : n.size) + 11} textAnchor="middle"
-                      className="fill-[var(--vt-text-2)] text-[8px] font-medium pointer-events-none"
-                      style={{ opacity: isDimmed ? 0.15 : 1, transition: 'opacity 120ms' }}>
-                      {n.label.slice(0, 16)}
-                    </text>
-                  ) : null}
-                </g>
-              );
-            })}
-          </svg>
-          {tooltip ? (
-            <div className="pointer-events-none absolute z-10 rounded-lg border border-[var(--vt-border)] bg-[var(--vt-surface)] px-2 py-1 text-xs shadow-lg"
-              style={{ left: tooltip.x + 10, top: tooltip.y - 6 }}>
-              <p className="font-medium text-[var(--vt-text-1)]">{tooltip.label}</p>
-              <p className="text-[var(--vt-text-3)]">{tooltip.type}</p>
-            </div>
-          ) : null}
-        </div>
-      )}
-
-      <div className="flex shrink-0 flex-wrap gap-x-3 gap-y-0.5 px-3 pb-2 pt-1">
-        {[...new Set(nodes.map(n => n.type))].slice(0, 4).map(t => (
-          <div key={t} className="flex items-center gap-1 text-[9px] text-[var(--vt-text-3)]">
-            <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: NODE_TYPE_COLORS[t] ?? getNodeColor('clinician') }} />
-            {t}
-          </div>
-        ))}
-        <span className="text-[9px] text-[var(--vt-text-3)]">{nodes.length}n · {edges.length}e</span>
-      </div>
+    <div className="h-full p-3">
+      <GraphWorkbenchPanel
+        graph={graph.data ?? null}
+        providers={providers.data?.providers ?? (selectedProvider ? [selectedProvider] : [])}
+        selectedProvider={selectedProvider}
+        selectedFindingId={selectedFindingId}
+        selectedStorylineId={selectedStorylineId}
+        openFullGraphHref={provider?.npi ? buildIntelligenceHref('dashboard', { npi: provider.npi, panel: 'graph' }) : '/graph'}
+        loading={graph.loading}
+        error={graph.error}
+        onRetry={graph.refresh}
+        onSelectProvider={(nextProvider) => {
+          window.location.href = buildIntelligenceHref('investigations', { npi: nextProvider.npi });
+        }}
+        focusNodeId={focusNodeId}
+        highlightNodeId={primaryHighlightNodeId}
+        highlightNodeIds={highlightNodeIds}
+        onSelectGraphNode={(nodeId) => onFocusNode(nodeId ?? '')}
+      />
     </div>
   );
 }
@@ -602,14 +593,32 @@ function CopilotPanel({
   npi,
   findingId,
   storylineId,
+  context,
+  accessMode,
+  promptSeed,
+  summary,
   collapsed,
   onToggle,
+  onSelectFinding,
+  onSelectStoryline,
+  onFocusGraphNode,
+  onHighlightGraphNode,
+  onOpenEvidence,
 }: {
   npi: string;
   findingId: string | null;
   storylineId: string | null;
+  context: CopilotContextPayload;
+  accessMode: 'full' | 'public_snapshot';
+  promptSeed: string | null;
+  summary: string | null;
   collapsed: boolean;
   onToggle: () => void;
+  onSelectFinding: (findingId: string) => void;
+  onSelectStoryline: (storylineId: string) => void;
+  onFocusGraphNode: (nodeId: string) => void;
+  onHighlightGraphNode: (nodeId: string) => void;
+  onOpenEvidence: (findingId: string, evidenceIndex: number | null) => void;
 }) {
   const contextParts: string[] = [`NPI ${npi}`];
   if (findingId) contextParts.push(`finding`);
@@ -633,13 +642,30 @@ function CopilotPanel({
       </div>
       {!collapsed ? (
         <div className="flex-1 overflow-y-auto px-3 pb-3">
+          {summary ? (
+            <div className="mb-3 rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-xs leading-5 text-[var(--vt-text-2)]">
+              {summary}
+              {accessMode === 'public_snapshot' ? (
+                <p className="mt-2 text-[10px] uppercase tracking-[0.14em] text-[var(--vt-text-3)]">
+                  Sign in to run live Copilot queries.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
           <CopilotSearchBar
             compact
             sessionId={`inv_${npi}`}
-            placeholder={`Ask about ${contextParts.join(', ')}…`}
+            context={context}
+            placeholder={promptSeed ?? `Ask about ${contextParts.join(', ')}…`}
+            seedQuery={promptSeed}
             onNavigateToNpi={(targetNpi) => {
               window.location.href = buildIntelligenceHref('investigations', { npi: targetNpi });
             }}
+            onSelectFinding={onSelectFinding}
+            onSelectStoryline={onSelectStoryline}
+            onFocusGraphNode={onFocusGraphNode}
+            onHighlightGraphNode={onHighlightGraphNode}
+            onOpenEvidence={onOpenEvidence}
             autoFocus={false}
           />
         </div>
@@ -697,6 +723,7 @@ export function InvestigationsSurface() {
   const seededNpi = searchParams.get('npi') ?? '';
   const seededFindingId = searchParams.get('findingId') ?? '';
   const seededStorylineId = searchParams.get('storylineId') ?? '';
+  const defaultNpi = '1902301456';
 
   const [npiInput, setNpiInput] = useState(seededNpi);
   const [loading, setLoading] = useState(false);
@@ -705,6 +732,13 @@ export function InvestigationsSurface() {
   const [context, setContext] = useState<WorkbenchContext | null>(null);
   const [copilotCollapsed, setCopilotCollapsed] = useState(false);
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(seededFindingId || null);
+  const [selectedEvidenceIndex, setSelectedEvidenceIndex] = useState<number | null>(null);
+  const [graphSelection, setGraphSelection] = useState<InvestigationGraphSelection>({
+    focusNodeId: null,
+    selectedNodeId: null,
+    neighborNodeIds: [],
+    neighborEdgeIds: [],
+  });
   const [actionMsg, setActionMsg] = useState<string | null>(null);
 
   // ── Finding detail cache: hydrated from workbench responses ─────────────
@@ -712,9 +746,6 @@ export function InvestigationsSurface() {
 
   const fetchWorkbench = useCallback(async (params: InvestigationWorkbenchAnchorInput) => {
     const requestPath = buildInvestigationWorkbenchRequestPath(params);
-    if (requestPath === '/api/investigation/workbench') {
-      return;
-    }
 
     setLoading(true);
     setError(null);
@@ -739,6 +770,15 @@ export function InvestigationsSurface() {
       setContext(nextContext);
       setNpiInput(nextContext.provider?.npi ?? nextContext.anchor.npi ?? params.npi ?? '');
       setSelectedFindingId(params.findingId ?? nextContext.finding?.id ?? null);
+      setSelectedEvidenceIndex(null);
+      const highlightNodeIds = nextContext.uiHints?.highlightNodeIds ?? [];
+      setCopilotCollapsed(false);
+      setGraphSelection({
+        focusNodeId: highlightNodeIds[0] ?? null,
+        selectedNodeId: highlightNodeIds[0] ?? null,
+        neighborNodeIds: [],
+        neighborEdgeIds: [],
+      });
       // Cache the finding detail for instant hydration on re-select
       if (nextContext.finding) {
         findingCacheRef.current.set(nextContext.finding.id, nextContext.finding);
@@ -751,18 +791,17 @@ export function InvestigationsSurface() {
   }, []);
 
   useEffect(() => {
-    if (seededNpi || seededFindingId || seededStorylineId) {
-      void fetchWorkbench({
-        npi: seededNpi || undefined,
-        findingId: seededFindingId || undefined,
-        storylineId: seededStorylineId || undefined,
-      });
-    }
-  }, [fetchWorkbench, seededFindingId, seededNpi, seededStorylineId]);
+    void fetchWorkbench({
+      npi: seededNpi || (!seededFindingId && !seededStorylineId ? defaultNpi : undefined),
+      findingId: seededFindingId || undefined,
+      storylineId: seededStorylineId || undefined,
+    });
+  }, [defaultNpi, fetchWorkbench, seededFindingId, seededNpi, seededStorylineId]);
 
   // Finding selection from inbox — optimistic hydration from cache
   const handleSelectFinding = useCallback((id: string) => {
     setSelectedFindingId(id);
+    setSelectedEvidenceIndex(null);
 
     // Optimistic: if we have a cached finding detail, hydrate instantly
     const cached = findingCacheRef.current.get(id);
@@ -814,6 +853,34 @@ export function InvestigationsSurface() {
   });
 
   const providerNpi = context?.provider?.npi ?? null;
+  const accessBanner = getAccessBannerState(context?.accessMode, context?.reason);
+  const copilotContext = useMemo(
+    () => context ? buildInvestigationCopilotContext(context, graphSelection) : null,
+    [context, graphSelection],
+  );
+
+  const handleSelectStoryline = useCallback((storylineId: string) => {
+    const npi = context?.provider?.npi ?? undefined;
+    void fetchWorkbench({
+      npi,
+      storylineId,
+    });
+  }, [context?.provider?.npi, fetchWorkbench]);
+
+  const handleOpenEvidence = useCallback((findingId: string, evidenceIndex: number | null) => {
+    setSelectedEvidenceIndex(evidenceIndex);
+    handleSelectFinding(findingId);
+  }, [handleSelectFinding]);
+
+  useEffect(() => {
+    const highlightNodeIds = context?.uiHints?.highlightNodeIds ?? [];
+    setGraphSelection({
+      focusNodeId: highlightNodeIds[0] ?? null,
+      selectedNodeId: highlightNodeIds[0] ?? null,
+      neighborNodeIds: [],
+      neighborEdgeIds: [],
+    });
+  }, [context?.uiHints?.highlightNodeIds, providerNpi]);
 
   return (
     <OperationsShell
@@ -825,6 +892,10 @@ export function InvestigationsSurface() {
       banner={actionMsg ? (
         <SurfaceBanner tone="info">
           <span className="animate-pulse">{actionMsg}</span>
+        </SurfaceBanner>
+      ) : accessBanner ? (
+        <SurfaceBanner tone={accessBanner.tone}>
+          {accessBanner.description}
         </SurfaceBanner>
       ) : error ? (
         <SurfaceBanner tone="warning">
@@ -915,8 +986,19 @@ export function InvestigationsSurface() {
 
           {/* Right top: Network Graph */}
           <div className="bg-[var(--vt-surface)]">
-            {providerNpi ? (
-              <NetworkGraphPanel npi={providerNpi} />
+            {context?.provider ? (
+              <NetworkGraphPanel
+                provider={context.provider}
+                focusNodeId={graphSelection.selectedNodeId}
+                highlightNodeIds={context.uiHints?.highlightNodeIds ?? []}
+                selectedFindingId={context.finding?.id ?? null}
+                selectedStorylineId={context.storyline?.id ?? null}
+                onFocusNode={(nodeId) => setGraphSelection((current) => ({
+                  ...current,
+                  selectedNodeId: nodeId || current.selectedNodeId,
+                }))}
+                onSnapshotChange={setGraphSelection}
+              />
             ) : (
               <div className="flex h-full items-center justify-center text-xs text-[var(--vt-text-3)]">No provider selected</div>
             )}
@@ -929,6 +1011,7 @@ export function InvestigationsSurface() {
                 <EvidenceViewerPanel
                   evidence={context.finding.evidence}
                   findingId={context.finding.id}
+                  selectedEvidenceIndex={selectedEvidenceIndex}
                 />
               </div>
             ) : (
@@ -942,13 +1025,28 @@ export function InvestigationsSurface() {
 
           {/* Right bottom: Copilot */}
           <div className="bg-[var(--vt-surface)]">
-            {providerNpi ? (
+            {providerNpi && copilotContext ? (
               <CopilotPanel
                 npi={providerNpi}
                 findingId={context.finding?.id ?? null}
                 storylineId={context.storyline?.id ?? null}
+                context={copilotContext}
+                accessMode={context.accessMode ?? 'full'}
+                promptSeed={context.uiHints?.copilotPrompt ?? null}
+                summary={context.uiHints?.copilotSummary ?? null}
                 collapsed={copilotCollapsed}
                 onToggle={() => setCopilotCollapsed(c => !c)}
+                onSelectFinding={handleSelectFinding}
+                onSelectStoryline={handleSelectStoryline}
+                onFocusGraphNode={(nodeId) => setGraphSelection((current) => ({
+                  ...current,
+                  selectedNodeId: nodeId,
+                }))}
+                onHighlightGraphNode={(nodeId) => setGraphSelection((current) => ({
+                  ...current,
+                  selectedNodeId: nodeId,
+                }))}
+                onOpenEvidence={handleOpenEvidence}
               />
             ) : (
               <div className="flex h-full items-center justify-center text-xs text-[var(--vt-text-3)]">Copilot ready</div>

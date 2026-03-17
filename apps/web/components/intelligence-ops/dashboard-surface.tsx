@@ -11,8 +11,10 @@ import { useGraph } from '@/hooks/useGraph';
 import { useProviders } from '@/hooks/useProviders';
 import { useStorylines } from '@/hooks/useStorylines';
 import { useSystemHealth } from '@/hooks/useSystemHealth';
+import type { CopilotContextPayload } from '@/components/copilot/types';
 import type {
   IntelligenceFinding,
+  IntelligenceGraphResponse,
   IntelligenceProvider,
   IntelligenceStoryline,
 } from '@/lib/intelligence/contracts';
@@ -22,10 +24,11 @@ import {
 } from '@/lib/intelligence/routes';
 import {
   formatLastRefreshMessage,
+  getAccessBannerState,
   getSurfaceFreshnessState,
-  hasDegradedDataSources,
 } from '@/lib/intelligence/state';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
+import { summarizeTrustSignals } from '@/lib/intelligence/trust-signals';
 import { GraphWorkbenchPanel } from './graph-workbench-panel';
 import { OperationsShell } from './shell';
 import {
@@ -67,16 +70,171 @@ function ContextChip({ label, value }: { label: string; value: string }) {
   );
 }
 
+function buildDashboardCopilotContext(input: {
+  provider: IntelligenceProvider | null;
+  finding: IntelligenceFinding | null;
+  storyline: IntelligenceStoryline | null;
+  graph: IntelligenceGraphResponse | null;
+  graphNodeId: string | null;
+  focusedPanel: string;
+  recentFindings: IntelligenceFinding[];
+}): CopilotContextPayload {
+  const evidence = input.finding?.evidence ?? input.storyline?.evidence ?? [];
+  const finding = input.finding;
+  const storyline = input.storyline;
+  const evidenceSignals = evidence.map((item) => ({
+    source: item.source,
+    observedAt: item.observedAt,
+    confidence: 0.8,
+    corroborationCount: 1,
+  }));
+  const evidenceSummaryStats = evidenceSignals.length > 0
+    ? summarizeTrustSignals(evidenceSignals)
+    : null;
+  const graphNodeId = input.graphNodeId ?? input.graph?.focusNodeId ?? null;
+  const neighborNodeIds = graphNodeId && input.graph
+    ? [...new Set(
+        input.graph.edges
+          .filter((edge) => edge.source === graphNodeId || edge.target === graphNodeId)
+          .flatMap((edge) => [edge.source, edge.target]),
+      )].filter((nodeId) => nodeId !== graphNodeId)
+    : [];
+  const neighborEdgeIds = graphNodeId && input.graph
+    ? input.graph.edges
+        .filter((edge) => edge.source === graphNodeId || edge.target === graphNodeId)
+        .map((edge) => edge.id)
+    : [];
+  const scope = input.focusedPanel === 'graph' && graphNodeId
+    ? 'graph'
+    : input.finding
+      ? 'finding'
+      : input.storyline
+        ? 'storyline'
+        : input.provider
+          ? 'provider'
+          : 'global';
+
+  return {
+    scope,
+    provider: input.provider
+      ? {
+          npi: input.provider.npi,
+          label: input.provider.name,
+          specialty: input.provider.specialties[0] ?? null,
+          state: null,
+          trustScore: input.provider.trustScore,
+          trustBand: input.provider.risk.toUpperCase(),
+          trustConfidence: null,
+          activeFindings: input.recentFindings.filter((finding) => finding.providerNpi === input.provider?.npi).length,
+          summary: input.provider.summary,
+        }
+      : null,
+    finding: finding
+      ? {
+          id: finding.id,
+          findingType: finding.findingType,
+          title: finding.title,
+          severity: finding.severity,
+          status: finding.status,
+          summary: finding.summary,
+          explanation: finding.explanation,
+          confidence: finding.confidence,
+          priorityScore: finding.priorityScore,
+          evidence: finding.evidence.map((item) => ({
+            source: item.source ?? 'Source unavailable',
+            claim: item.snippet ?? item.label,
+            confidence: 0.8,
+            observedAt: item.observedAt,
+            field: item.label,
+            provenanceChain: [item.source ?? 'Unknown source', finding.title],
+          })),
+          storylineId: finding.storylineId,
+          storylineTitle: finding.storylineTitle,
+          providerNpi: finding.providerNpi,
+          npis: finding.providerNpi ? [finding.providerNpi] : [],
+        }
+      : null,
+    storyline: storyline
+      ? {
+          id: storyline.id,
+          title: storyline.title,
+          storylineType: storyline.storylineType,
+          severity: storyline.severity,
+          status: storyline.status,
+          narrative: storyline.summary,
+          summary: storyline.summary,
+          whyItMatters: storyline.whyItMatters,
+          confidence: storyline.confidence,
+          findingCount: storyline.findingIds.length,
+          entityCount: undefined,
+          progressionScore: storyline.progressionScore,
+          evidence: storyline.evidence.map((item) => ({
+            source: item.source ?? 'Source unavailable',
+            claim: item.snippet ?? item.label,
+            confidence: 0.75,
+            observedAt: item.observedAt,
+            field: item.label,
+            provenanceChain: [item.source ?? 'Unknown source', storyline.title],
+          })),
+          providerNpi: storyline.providerNpi,
+          recommendedActions: storyline.recommendedActions,
+          lastActivityAt: storyline.lastActivityAt,
+        }
+      : null,
+    graph: {
+      focusNodeId: input.graph?.focusNodeId ?? null,
+      selectedNodeId: graphNodeId,
+      neighborNodeIds,
+      neighborEdgeIds,
+    },
+    recentFindings: input.recentFindings.slice(0, 5).map((finding) => ({
+      id: finding.id,
+      title: finding.title,
+      summary: finding.summary,
+      severity: finding.severity,
+      priorityScore: finding.priorityScore,
+      href: `/findings/${finding.id}`,
+    })),
+    evidenceSummary: evidence.slice(0, 4).map((item) => ({
+      label: item.label,
+      detail: item.snippet ?? item.label,
+      source: item.source ?? 'Unknown source',
+      observedAt: item.observedAt,
+    })),
+    evidenceSummaryStats,
+    riskSummary: input.provider
+      ? {
+          trustScore: input.provider.trustScore,
+          trustBand: input.provider.risk.toUpperCase(),
+          summary: input.provider.summary,
+          trustConfidence: null,
+        }
+      : null,
+  };
+}
+
 function WorkbenchCopilotPanel({
   provider,
   finding,
   storyline,
   onNavigateToNpi,
+  onSelectFinding,
+  onSelectStoryline,
+  onFocusGraphNode,
+  onHighlightGraphNode,
+  onOpenEvidence,
+  context,
 }: {
   provider: IntelligenceProvider | null;
   finding: IntelligenceFinding | null;
   storyline: IntelligenceStoryline | null;
   onNavigateToNpi: (npi: string) => void;
+  onSelectFinding: (findingId: string) => void;
+  onSelectStoryline: (storylineId: string) => void;
+  onFocusGraphNode: (nodeId: string) => void;
+  onHighlightGraphNode: (nodeId: string) => void;
+  onOpenEvidence: (findingId: string, evidenceIndex: number | null) => void;
+  context: CopilotContextPayload;
 }) {
   const contextLabel = [
     provider ? `${provider.name} (${provider.npi})` : 'global scope',
@@ -105,23 +263,19 @@ function WorkbenchCopilotPanel({
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {provider ? <ContextChip label="Provider" value={`${provider.name} · ${provider.npi}`} /> : null}
-        {finding ? <ContextChip label="Finding" value={finding.title} /> : null}
-        {storyline ? <ContextChip label="Storyline" value={storyline.title} /> : null}
-        {!provider && !finding && !storyline ? <ContextChip label="Scope" value="Global operator view" /> : null}
-      </div>
-
-      <div className="space-y-2">
-        <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Current context</p>
-        <p className="text-sm text-[var(--vt-text-2)]">{contextLabel}</p>
-      </div>
+      <p className="text-sm text-[var(--vt-text-2)]">{contextLabel}</p>
 
       <CopilotSearchBar
         compact={false}
         sessionId={provider ? `workbench:${provider.npi}` : 'workbench:global'}
+        context={context}
         placeholder={placeholder}
         onNavigateToNpi={onNavigateToNpi}
+        onSelectFinding={onSelectFinding}
+        onSelectStoryline={onSelectStoryline}
+        onFocusGraphNode={onFocusGraphNode}
+        onHighlightGraphNode={onHighlightGraphNode}
+        onOpenEvidence={onOpenEvidence}
       />
     </OpsCard>
   );
@@ -148,6 +302,8 @@ export function DashboardSurface() {
   const focusedPanel = searchParams.get('panel') ?? '';
 
   const [draftQuery, setDraftQuery] = useState(searchQuery);
+  const [copilotFocusNodeId, setCopilotFocusNodeId] = useState<string | null>(null);
+  const [copilotHighlightNodeId, setCopilotHighlightNodeId] = useState<string | null>(null);
 
   useEffect(() => {
     setDraftQuery(searchQuery);
@@ -174,6 +330,11 @@ export function DashboardSurface() {
 
   const providerScope = /^\d{10}$/.test(selectedNpi) ? selectedNpi : selectedProvider?.npi ?? null;
 
+  useEffect(() => {
+    setCopilotFocusNodeId(null);
+    setCopilotHighlightNodeId(null);
+  }, [providerScope]);
+
   const findings = useFindings({
     provider: providerScope,
     limit: 6,
@@ -190,7 +351,7 @@ export function DashboardSurface() {
   const graph = useGraph({
     npi: providerScope,
     layer: 'blended',
-    limit: 180,
+    limit: 40,
   });
 
   const selectedFinding = useMemo(() => {
@@ -217,11 +378,77 @@ export function DashboardSurface() {
     return `${pathname}${serialized ? `?${serialized}` : ''}`;
   }, [pathname, searchParams]);
 
+  const openFullGraphHref = useMemo(() => {
+    const params = new URLSearchParams();
+
+    if (providerScope) {
+      params.set('npi', providerScope);
+      params.set('providerId', providerScope);
+    }
+
+    if (selectedFinding?.id) {
+      params.set('findingId', selectedFinding.id);
+    }
+
+    if (selectedStoryline?.id) {
+      params.set('storylineId', selectedStoryline.id);
+    }
+
+    const serialized = params.toString();
+    return serialized.length > 0 ? `/graph?${serialized}` : '/graph';
+  }, [providerScope, selectedFinding?.id, selectedStoryline?.id]);
+
   const staleState = getSurfaceFreshnessState({
     generatedAt: providers.data?.generatedAt ?? findings.data?.generatedAt ?? storylines.data?.generatedAt ?? actions.data?.generatedAt,
     lastUpdated: providers.lastUpdated ?? findings.lastUpdated ?? storylines.lastUpdated ?? actions.lastUpdated,
   });
-  const degradedSources = hasDegradedDataSources(systemHealth.data);
+  const findingsUnavailable = Boolean(findings.error && !findings.data);
+  const storylinesUnavailable = Boolean(storylines.error && !storylines.data);
+  const actionsUnavailable = Boolean(actions.error && !actions.data);
+  const accessBanner = useMemo(() => {
+    const candidates = [
+      providers.data,
+      findings.data,
+      storylines.data,
+      graph.data,
+      actions.data,
+      systemHealth.data,
+    ];
+
+    for (const candidate of candidates) {
+      const banner = getAccessBannerState(candidate?.accessMode, candidate?.reason);
+      if (banner) {
+        return banner;
+      }
+    }
+
+    return null;
+  }, [
+    actions.data,
+    findings.data,
+    graph.data,
+    providers.data,
+    storylines.data,
+    systemHealth.data,
+  ]);
+  const copilotContext = useMemo(() => buildDashboardCopilotContext({
+    provider: selectedProvider,
+    finding: selectedFinding,
+    storyline: selectedStoryline,
+    graph: graph.data ?? null,
+    graphNodeId: copilotFocusNodeId ?? copilotHighlightNodeId,
+    focusedPanel,
+    recentFindings: findings.data?.findings ?? [],
+  }), [
+    selectedProvider,
+    selectedFinding,
+    selectedStoryline,
+    graph.data,
+    copilotFocusNodeId,
+    copilotHighlightNodeId,
+    focusedPanel,
+    findings.data?.findings,
+  ]);
 
   function pushDashboard(updater: (params: URLSearchParams) => void) {
     const nextParams = new URLSearchParams(searchParams.toString());
@@ -272,6 +499,44 @@ export function DashboardSurface() {
     });
   }
 
+  function selectFindingById(findingId: string) {
+    const finding = (findings.data?.findings ?? []).find((entry) => entry.id === findingId);
+    if (finding) {
+      setFindingScope(finding);
+      return;
+    }
+
+    pushDashboard((params) => {
+      params.set('findingId', findingId);
+      params.set('panel', 'graph');
+    });
+  }
+
+  function selectStorylineById(storylineId: string) {
+    const storyline = (storylines.data?.storylines ?? []).find((entry) => entry.id === storylineId);
+    if (storyline) {
+      setStorylineScope(storyline);
+      return;
+    }
+
+    pushDashboard((params) => {
+      params.set('storylineId', storylineId);
+      params.set('panel', 'graph');
+    });
+  }
+
+  function openEvidenceForFinding(findingId: string, _evidenceIndex: number | null) {
+    const finding = (findings.data?.findings ?? []).find((entry) => entry.id === findingId);
+    const npi = finding?.providerNpi ?? selectedProvider?.npi ?? providerScope;
+
+    startTransition(() => {
+      router.push(buildIntelligenceHref('investigations', {
+        npi: npi ?? undefined,
+        findingId,
+      }));
+    });
+  }
+
   return (
     <OperationsShell
       activeHref="/intelligence"
@@ -310,14 +575,14 @@ export function DashboardSurface() {
       )}
       banner={(
         <>
+          {accessBanner ? (
+            <SurfaceBanner tone={accessBanner.tone}>
+              {accessBanner.description}
+            </SurfaceBanner>
+          ) : null}
           {(providers.recovering || findings.recovering || storylines.recovering || actions.recovering) ? (
             <SurfaceBanner tone="warning">
               One or more dashboard feeds are serving the last successful snapshot while live refresh recovers.
-            </SurfaceBanner>
-          ) : null}
-          {degradedSources ? (
-            <SurfaceBanner tone="warning">
-              Some intelligence sources are degraded. Findings, storylines, and graph context may be incomplete.
             </SurfaceBanner>
           ) : null}
           {staleState.isStale && staleState.ageMinutes !== null ? (
@@ -329,9 +594,9 @@ export function DashboardSurface() {
       )}
     >
       <OpsCard className="space-y-4">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
           <form
-            className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
+            className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]"
             onSubmit={(event) => {
               event.preventDefault();
               pushDashboard((params) => {
@@ -363,7 +628,7 @@ export function DashboardSurface() {
             <div className="flex flex-wrap items-end gap-2">
               <button
                 type="submit"
-                className="rounded-full bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-[var(--vt-accent)]"
+                className="rounded-sm bg-cyan-400 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-[var(--vt-accent)]"
               >
                 Apply scope
               </button>
@@ -379,7 +644,7 @@ export function DashboardSurface() {
                     params.delete('panel');
                   });
                 }}
-                className="rounded-full border border-[var(--vt-border)] px-4 py-2 text-sm font-medium text-[var(--vt-text-2)] transition hover:bg-[var(--vt-surface-2)] hover:text-[var(--vt-text-1)]"
+                className="rounded-sm border border-[var(--vt-border)] px-3 py-1.5 text-xs font-medium text-[var(--vt-text-2)] transition hover:bg-[var(--vt-surface-2)] hover:text-[var(--vt-text-1)]"
               >
                 Clear
               </button>
@@ -391,10 +656,10 @@ export function DashboardSurface() {
               <Link
                 key={item.view}
                 href={buildIntelligenceHref(item.view, providerScope ? { npi: providerScope } : undefined)}
-                className="inline-flex items-center rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-1.5 text-xs font-medium text-[var(--vt-text-2)] transition hover:text-[var(--vt-text-1)]"
+                className="inline-flex items-center rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] px-2 py-1 text-xs font-medium text-[var(--vt-text-2)] transition hover:text-[var(--vt-text-1)]"
               >
                 {item.label}
-                <ArrowUpRight className="ml-1.5 h-3 w-3" />
+                <ArrowUpRight className="ml-1 h-3 w-3" />
               </Link>
             ))}
           </div>
@@ -426,18 +691,18 @@ export function DashboardSurface() {
         />
         <DashboardMetricCard
           label="Findings"
-          value={String(findings.data?.total ?? 0)}
-          detail={providerScope ? `Active for NPI ${providerScope}` : 'Current operator feed'}
+          value={findingsUnavailable ? 'ERR' : String(findings.data?.total ?? 0)}
+          detail={findingsUnavailable ? findings.error ?? 'Feed unavailable' : providerScope ? `Active for NPI ${providerScope}` : 'Current operator feed'}
         />
         <DashboardMetricCard
           label="Storylines"
-          value={String(storylines.data?.total ?? 0)}
-          detail={providerScope ? 'Scoped narrative clusters' : 'Live clustering window'}
+          value={storylinesUnavailable ? 'ERR' : String(storylines.data?.total ?? 0)}
+          detail={storylinesUnavailable ? storylines.error ?? 'Feed unavailable' : providerScope ? 'Scoped narrative clusters' : 'Live clustering window'}
         />
         <DashboardMetricCard
           label="Actions"
-          value={String(actions.data?.total ?? 0)}
-          detail={providerScope ? 'Recommended follow-up queue' : 'System-wide queue state'}
+          value={actionsUnavailable ? 'ERR' : String(actions.data?.total ?? 0)}
+          detail={actionsUnavailable ? actions.error ?? 'Feed unavailable' : providerScope ? 'Recommended follow-up queue' : 'System-wide queue state'}
         />
         <DashboardMetricCard
           label="Health"
@@ -476,22 +741,22 @@ export function DashboardSurface() {
                   <EntityLink href={buildIntelligenceHref('investigations', { npi: selectedProvider.npi })} label="Investigate" />
                   <EntityLink href={buildIntelligenceHref('providers', { q: selectedProvider.npi })} label="Directory view" />
                 </div>
-                <div className="grid gap-3 md:grid-cols-3">
-                  <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Specialties</p>
-                    <p className="mt-2 text-sm text-[var(--vt-text-1)]">
+                <div className="grid gap-2 md:grid-cols-3">
+                  <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-3">
+                    <p className="text-[10px] uppercase tracking-widest text-[var(--vt-text-3)]">Specialties</p>
+                    <p className="mt-1 text-sm text-[var(--vt-text-1)]">
                       {selectedProvider.specialties.slice(0, 3).join(', ') || 'Not surfaced'}
                     </p>
                   </div>
-                  <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Credentials</p>
-                    <p className="mt-2 text-sm text-[var(--vt-text-1)]">
+                  <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-3">
+                    <p className="text-[10px] uppercase tracking-widest text-[var(--vt-text-3)]">Credentials</p>
+                    <p className="mt-1 text-sm text-[var(--vt-text-1)]">
                       {selectedProvider.activeCredentials}/{selectedProvider.credentialCount} active
                     </p>
                   </div>
-                  <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Verified</p>
-                    <TimestampPair label="Last" value={selectedProvider.lastVerifiedAt} />
+                  <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-3">
+                    <p className="text-[10px] uppercase tracking-widest text-[var(--vt-text-3)]">Verified</p>
+                    <div className="mt-1"><TimestampPair label="Last" value={selectedProvider.lastVerifiedAt} /></div>
                   </div>
                 </div>
               </>
@@ -521,13 +786,13 @@ export function DashboardSurface() {
                         key={provider.npi}
                         type="button"
                         onClick={() => setProviderScope(provider.npi)}
-                        className={`rounded-3xl border p-4 text-left transition ${
+                        className={`rounded-sm border p-3 text-left transition ${
                           active
                             ? 'border-cyan-400/40 bg-cyan-400/5'
                             : 'border-[var(--vt-border)] bg-[var(--vt-surface)] hover:border-[var(--vt-text-3)]/40'
                         }`}
                       >
-                        <div className="flex items-center justify-between gap-3">
+                        <div className="flex flex-col gap-1">
                           <div>
                             <p className="font-semibold text-[var(--vt-text-1)]">{provider.name}</p>
                             <p className="text-xs text-[var(--vt-text-3)]">NPI {provider.npi}</p>
@@ -563,7 +828,13 @@ export function DashboardSurface() {
                 Open full view
               </Link>
             </div>
-            {(findings.data?.findings ?? []).length > 0 ? (
+            {findingsUnavailable ? (
+              <SurfaceErrorState
+                title="Findings unavailable"
+                description={findings.error ?? 'The findings feed did not return data.'}
+                onRetry={findings.refresh}
+              />
+            ) : (findings.data?.findings ?? []).length > 0 ? (
               <div className="space-y-3">
                 {(findings.data?.findings ?? []).map((finding) => {
                   const active = selectedFinding?.id === finding.id;
@@ -615,7 +886,13 @@ export function DashboardSurface() {
                   Open full view
                 </Link>
               </div>
-              {(storylines.data?.storylines ?? []).length > 0 ? (
+              {storylinesUnavailable ? (
+                <SurfaceErrorState
+                  title="Storylines unavailable"
+                  description={storylines.error ?? 'The storyline feed did not return data.'}
+                  onRetry={storylines.refresh}
+                />
+              ) : (storylines.data?.storylines ?? []).length > 0 ? (
                 <div className="space-y-3">
                   {(storylines.data?.storylines ?? []).map((storyline) => {
                     const active = selectedStoryline?.id === storyline.id;
@@ -665,7 +942,13 @@ export function DashboardSurface() {
                   Open full view
                 </Link>
               </div>
-              {(actions.data?.actions ?? []).length > 0 ? (
+              {actionsUnavailable ? (
+                <SurfaceErrorState
+                  title="Actions unavailable"
+                  description={actions.error ?? 'The action queue did not return data.'}
+                  onRetry={actions.refresh}
+                />
+              ) : (actions.data?.actions ?? []).length > 0 ? (
                 <div className="space-y-3">
                   {(actions.data?.actions ?? []).map((action) => (
                     <div key={action.id} className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
@@ -703,10 +986,16 @@ export function DashboardSurface() {
               graph={graph.data}
               providers={providers.data?.providers ?? []}
               selectedProvider={selectedProvider}
+              selectedFindingId={selectedFinding?.id ?? selectedFindingId}
+              selectedStorylineId={selectedStoryline?.id ?? selectedStorylineId}
+              openFullGraphHref={openFullGraphHref}
               loading={graph.loading}
               error={graph.error}
               onRetry={graph.refresh}
               onSelectProvider={(provider) => setProviderScope(provider.npi)}
+              focusNodeId={copilotFocusNodeId}
+              highlightNodeId={copilotHighlightNodeId}
+              onSelectGraphNode={setCopilotFocusNodeId}
             />
           </div>
 
@@ -715,6 +1004,22 @@ export function DashboardSurface() {
             finding={selectedFinding}
             storyline={selectedStoryline}
             onNavigateToNpi={setProviderScope}
+            onSelectFinding={selectFindingById}
+            onSelectStoryline={selectStorylineById}
+            onFocusGraphNode={(nodeId) => {
+              setCopilotFocusNodeId(nodeId);
+              pushDashboard((params) => {
+                params.set('panel', 'graph');
+              });
+            }}
+            onHighlightGraphNode={(nodeId) => {
+              setCopilotHighlightNodeId(nodeId);
+              pushDashboard((params) => {
+                params.set('panel', 'graph');
+              });
+            }}
+            onOpenEvidence={openEvidenceForFinding}
+            context={copilotContext}
           />
         </div>
       </div>

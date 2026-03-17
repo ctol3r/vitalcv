@@ -1,334 +1,420 @@
 'use client';
 
-import { AnimatePresence, motion } from 'framer-motion';
-import { Loader2, Search, Send, Sparkles, X } from 'lucide-react';
-import {
-  type FormEvent,
-  type KeyboardEvent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
-
-// ── Types ──────────────────────────────────────────────────────────────────────
-
-interface CopilotAnswer {
-  answer: string;
-  intent: string;
-  confidence: number;
-  suggestions: string[];
-  sources: string[];
-  timing: number;
-  data: unknown;
-}
-
-function createFallbackAnswer(): CopilotAnswer {
-  return {
-    answer: 'Copilot requires active investigation context.',
-    intent: 'SYSTEM_RESPONSE',
-    confidence: 1,
-    suggestions: [
-      'Open an investigation with a provider NPI.',
-      'Select a finding to ground the question.',
-      'Load a storyline before asking for synthesis.',
-    ],
-    sources: [],
-    timing: 0,
-    data: {
-      type: 'system_response',
-      message: 'Copilot requires active investigation context.',
-    },
-  };
-}
+import { Loader2, MessageSquareMore, Send, Sparkles } from 'lucide-react';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { useCopilotSession } from './useCopilotSession';
+import type {
+  CopilotContextPayload,
+  CopilotDocumentSection,
+  CopilotGraphAction,
+  CopilotSessionAction,
+  CopilotSessionEntry,
+} from './types';
 
 interface CopilotSearchBarProps {
-  /** Compact mode for TopNav embedding */
   compact?: boolean;
-  /** Session id for conversation continuity */
   sessionId?: string;
-  /** Callback when a result contains an NPI to navigate to */
+  context: CopilotContextPayload;
   onNavigateToNpi?: (npi: string) => void;
-  /** Callback when a graph node should be focused */
+  onSelectFinding?: (findingId: string) => void;
+  onSelectStoryline?: (storylineId: string) => void;
   onFocusGraphNode?: (nodeId: string) => void;
-  /** Placeholder text */
+  onHighlightGraphNode?: (nodeId: string) => void;
+  onOpenEvidence?: (findingId: string, evidenceIndex: number | null) => void;
   placeholder?: string;
-  /** Auto-focus on mount */
+  seedQuery?: string | null;
   autoFocus?: boolean;
 }
 
-const SUGGESTIONS = [
-  'Show declining trust scores',
-  'Find cardiologists in California',
-  'What is L3 verification?',
-  'Any alerts?',
-];
+function ContextChip({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-1 text-[11px] text-[var(--vt-text-2)]">
+      <span className="uppercase tracking-[0.14em] text-[var(--vt-text-3)]">{label}</span>
+      <span className="text-[var(--vt-text-1)]">{value}</span>
+    </span>
+  );
+}
 
-// ── Component ──────────────────────────────────────────────────────────────────
+function availabilityTone(availability: CopilotDocumentSection['availability']) {
+  switch (availability) {
+    case 'ready':
+      return 'border-emerald-400/20 bg-emerald-400/10 text-emerald-300';
+    case 'limited':
+      return 'border-amber-400/20 bg-amber-400/10 text-amber-300';
+    case 'unavailable':
+    default:
+      return 'border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-3)]';
+  }
+}
+
+function statusTone(status: CopilotSessionEntry['status']) {
+  switch (status) {
+    case 'ok':
+      return 'border-emerald-400/20 bg-emerald-400/10 text-emerald-300';
+    case 'limited':
+      return 'border-amber-400/20 bg-amber-400/10 text-amber-300';
+    default:
+      return 'border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-3)]';
+  }
+}
+
+function graphActionLabel(action: CopilotGraphAction | null | undefined): string {
+  switch (action?.kind) {
+    case 'focus-node':
+      return 'Focus graph';
+    case 'highlight-neighborhood':
+      return 'Highlight neighborhood';
+    case 'navigate-provider':
+      return 'Open provider';
+    default:
+      return 'Graph action';
+  }
+}
+
+function contextChips(context: CopilotContextPayload) {
+  const chips: Array<{ label: string; value: string }> = [];
+
+  if (context.provider) {
+    chips.push({
+      label: 'Provider',
+      value: context.provider.label ?? `NPI ${context.provider.npi}`,
+    });
+  }
+
+  if (context.finding) {
+    chips.push({ label: 'Finding', value: context.finding.title });
+  }
+
+  if (context.storyline) {
+    chips.push({ label: 'Storyline', value: context.storyline.title });
+  }
+
+  if (context.graph?.selectedNodeId || context.graph?.focusNodeId) {
+    chips.push({
+      label: 'Graph',
+      value: context.graph.selectedNodeId ?? context.graph.focusNodeId ?? 'Neighborhood',
+    });
+  }
+
+  if (chips.length === 0) {
+    chips.push({ label: 'Scope', value: 'Global operator context' });
+  }
+
+  return chips;
+}
+
+function ActionButton({
+  action,
+  onRun,
+}: {
+  action: CopilotSessionAction;
+  onRun: (action: CopilotSessionAction) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => void onRun(action)}
+      className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-medium text-cyan-200 transition hover:bg-cyan-400/15"
+    >
+      {action.label}
+    </button>
+  );
+}
 
 export function CopilotSearchBar({
   compact = false,
   sessionId = 'copilot-ui',
+  context,
   onNavigateToNpi,
+  onSelectFinding,
+  onSelectStoryline,
   onFocusGraphNode,
-  placeholder = 'Ask about providers, trust scores, or network insights…',
+  onHighlightGraphNode,
+  onOpenEvidence,
+  placeholder = 'Ask Copilot about the current investigation context…',
+  seedQuery = null,
   autoFocus = false,
 }: CopilotSearchBarProps) {
-  const [query, setQuery] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [answer, setAnswer] = useState<CopilotAnswer | null>(null);
-  const [expanded, setExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+  const {
+    draft,
+    setDraft,
+    loading,
+    entries,
+    quickSuggestions,
+    submitDraft,
+    submitPrompt,
+    runAction,
+    handleEntity,
+    handleCitation,
+    handleGraphAction,
+  } = useCopilotSession({
+    sessionId,
+    context,
+    host: {
+      onNavigateToNpi,
+      onSelectFinding,
+      onSelectStoryline,
+      onFocusGraphNode,
+      onHighlightGraphNode,
+      onOpenEvidence,
+    },
+  });
 
-  // ── Keyboard shortcut: Cmd+K / Ctrl+K ────────────────────────────────────
   useEffect(() => {
-    const handler = (e: globalThis.KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
+    const handler = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
         inputRef.current?.focus();
-        setExpanded(true);
-      }
-      if (e.key === 'Escape') {
-        setExpanded(false);
-        inputRef.current?.blur();
       }
     };
+
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, []);
 
-  // ── Click outside to collapse ────────────────────────────────────────────
   useEffect(() => {
-    if (!expanded) return;
-    const handler = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        setExpanded(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [expanded]);
-
-  // ── Submit handler ───────────────────────────────────────────────────────
-  const handleSubmit = useCallback(async (q: string) => {
-    const trimmed = q.trim();
-    if (!trimmed || loading) return;
-
-    setLoading(true);
-    setAnswer(null);
-    setExpanded(true);
-
-    try {
-      const res = await fetch('/api/copilot/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: trimmed, sessionId }),
-      });
-      const data = await res.json().catch(() => null) as CopilotAnswer | null;
-      setAnswer(data ?? createFallbackAnswer());
-
-      // If the answer contains NPI data, allow navigation
-      const npiMatch = (data ?? createFallbackAnswer()).answer.match(/NPI (\d{10})/);
-      if (npiMatch && onNavigateToNpi) {
-        // Don't auto-navigate — let user click
-      }
-    } catch {
-      setAnswer(createFallbackAnswer());
-    } finally {
-      setLoading(false);
+    if (typeof seedQuery === 'string' && seedQuery.trim().length > 0) {
+      setDraft(seedQuery);
     }
-  }, [loading, sessionId, onNavigateToNpi]);
+  }, [seedQuery, setDraft]);
 
-  const onFormSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    handleSubmit(query);
-  };
+  const chips = useMemo(() => contextChips(context), [context]);
+  const visibleEntries = useMemo(() => [...entries].reverse(), [entries]);
 
-  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(query);
-    }
-  };
+  function isSectionCollapsed(entryId: string, section: CopilotDocumentSection) {
+    const key = `${entryId}:${section.id}`;
+    return collapsedSections[key] ?? section.collapsedByDefault ?? (section.id !== 'summary' && section.id !== 'recommended_action');
+  }
 
-  // ── Extract NPIs from answer for clickable links ─────────────────────────
-  const renderAnswer = (text: string) => {
-    // Convert **bold** to <strong>
-    const parts = text.split(/(\*\*[^*]+\*\*)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        const inner = part.slice(2, -2);
-        // Check if it contains an NPI
-        const npiInner = inner.match(/NPI (\d{10})/);
-        if (npiInner && onNavigateToNpi) {
-          return (
-            <strong
-              key={i}
-              className="cursor-pointer text-blue-400 hover:text-blue-300 transition-colors"
-              onClick={() => onNavigateToNpi(npiInner[1]!)}
-              role="button"
-              tabIndex={0}
-            >
-              {inner}
-            </strong>
-          );
-        }
-        return <strong key={i} className="text-white/95">{inner}</strong>;
-      }
-      return <span key={i}>{part}</span>;
+  function toggleSection(entryId: string, section: CopilotDocumentSection) {
+    setCollapsedSections((current) => {
+      const key = `${entryId}:${section.id}`;
+      const currentValue = current[key] ?? section.collapsedByDefault ?? (section.id !== 'summary' && section.id !== 'recommended_action');
+      return {
+        ...current,
+        [key]: !currentValue,
+      };
     });
-  };
+  }
 
-  // ── Render ───────────────────────────────────────────────────────────────
-  return (
-    <div ref={panelRef} className={`relative ${compact ? 'w-full' : 'w-full max-w-3xl mx-auto'}`}>
-      {/* Search input */}
-      <form onSubmit={onFormSubmit} className="relative">
-        <div className={`
-          flex items-center gap-2 rounded-2xl border transition-all duration-200
-          ${expanded
-            ? 'border-blue-500/30 bg-[#0a1020] shadow-[0_0_30px_rgba(59,130,246,0.08)]'
-            : 'border-white/10 bg-[#0c1218] hover:border-white/15'
-          }
-          ${compact ? 'px-3 py-1.5' : 'px-4 py-2'}
-        `}>
-          {loading
-            ? <Loader2 className={`${compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-blue-400 animate-spin shrink-0`} />
-            : <Search className={`${compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-white/30 shrink-0`} />
-          }
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => setExpanded(true)}
-            onKeyDown={onKeyDown}
-            placeholder={compact ? 'Ask Copilot… ⌘K' : placeholder}
-            autoFocus={autoFocus}
-            className={`
-              flex-1 bg-transparent text-white/90 placeholder:text-white/25
-              focus:outline-none
-              ${compact ? 'text-sm py-1' : 'text-base py-2'}
-            `}
-          />
-          {query && (
-            <button
-              type="button"
-              onClick={() => { setQuery(''); setAnswer(null); }}
-              className="p-1 rounded text-white/20 hover:text-white/50 transition-colors"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-          <button
-            type="submit"
-            disabled={!query.trim() || loading}
-            className={`
-              rounded-xl transition-all duration-200 shrink-0
-              ${query.trim()
-                ? 'bg-blue-500/15 text-blue-400 hover:bg-blue-500 hover:text-white'
-                : 'bg-white/5 text-white/15'
-              }
-              ${compact ? 'p-1.5' : 'p-2'}
-            `}
-          >
-            <Send className={`${compact ? 'h-3 w-3' : 'h-4 w-4'}`} />
-          </button>
+  function renderEntry(entry: CopilotSessionEntry) {
+    return (
+      <article
+        key={entry.id}
+        className="space-y-3 rounded-md border border-[var(--vt-border)] bg-[var(--vt-surface)] p-3 animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out fill-mode-forwards"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`rounded-sm border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest ${statusTone(entry.status)}`}>
+                {entry.status}
+              </span>
+              <span className="text-[10px] uppercase tracking-[0.14em] text-[var(--vt-text-3)]">{entry.mode}</span>
+            </div>
+            <h3 className="text-sm font-semibold text-[var(--vt-text-1)]">{entry.title}</h3>
+            <p className="text-xs text-[var(--vt-text-3)]">{entry.query}</p>
+            {entry.message ? <p className="text-sm text-[var(--vt-text-2)]">{entry.message}</p> : null}
+          </div>
+          {entry.actions?.length ? (
+            <div className="flex flex-wrap justify-end gap-2">
+              {entry.actions.map((action) => (
+                <ActionButton key={action.id} action={action} onRun={runAction} />
+              ))}
+            </div>
+          ) : null}
         </div>
 
-        {/* Keyboard hint */}
-        {!compact && !expanded && (
-          <div className="absolute right-14 top-1/2 -translate-y-1/2 pointer-events-none">
-            <kbd className="hidden sm:inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] text-white/25 font-mono">
-              ⌘K
-            </kbd>
+        <div className="space-y-2">
+          {entry.document.sections.map((section) => {
+            const collapsed = isSectionCollapsed(entry.id, section);
+            return (
+              <section
+                key={`${entry.id}:${section.id}`}
+                className="overflow-hidden rounded-md border border-[var(--vt-border)] bg-[var(--vt-surface-2)]"
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleSection(entry.id, section)}
+                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                >
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-1)]">{section.title}</p>
+                      <span className={`rounded-full border px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.14em] ${availabilityTone(section.availability)}`}>
+                        {section.availability}
+                      </span>
+                    </div>
+                    {section.summary ? (
+                      <p className="text-sm text-[var(--vt-text-3)]">{section.summary}</p>
+                    ) : null}
+                  </div>
+                  <span className="text-xs text-[var(--vt-text-3)]">{collapsed ? 'Expand' : 'Collapse'}</span>
+                </button>
+
+                {!collapsed ? (
+                  <div className="space-y-3 border-t border-[var(--vt-border)] px-4 py-3">
+                    {section.items.length === 0 ? (
+                      <p className="text-sm text-[var(--vt-text-3)]">No supported data is available in this section.</p>
+                    ) : null}
+
+                    {section.items.map((item) => (
+                      <div key={item.id} className="space-y-2 rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-3">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-[var(--vt-text-1)]">{item.label}</p>
+                          {item.detail ? <p className="text-sm leading-6 text-[var(--vt-text-2)]">{item.detail}</p> : null}
+                        </div>
+
+                        {item.entities?.length ? (
+                          <div className="flex flex-wrap gap-2">
+                            {item.entities.map((entity) => (
+                              <button
+                                key={entity.id}
+                                type="button"
+                                onClick={() => handleEntity(entity.value)}
+                                className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs text-cyan-100 transition hover:bg-cyan-400/15"
+                              >
+                                {entity.label}
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+
+                        <div className="flex flex-wrap gap-2">
+                          {item.citations?.map((citation) => (
+                            <button
+                              key={citation.id}
+                              type="button"
+                              onClick={() => handleCitation(citation.findingId ?? null, citation.evidenceIndex ?? null)}
+                              className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-1 text-xs text-[var(--vt-text-2)] transition hover:text-[var(--vt-text-1)]"
+                            >
+                              {citation.label}
+                            </button>
+                          ))}
+                          {item.graphAction ? (
+                            <button
+                              type="button"
+                              onClick={() => handleGraphAction(item.graphAction)}
+                              className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-1 text-xs text-[var(--vt-text-2)] transition hover:text-[var(--vt-text-1)]"
+                            >
+                              {graphActionLabel(item.graphAction)}
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
+            );
+          })}
+        </div>
+
+        {entry.suggestions.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {entry.suggestions.slice(0, 4).map((suggestion) => (
+              <button
+                key={`${entry.id}:${suggestion}`}
+                type="button"
+                onClick={() => void submitPrompt(suggestion)}
+                className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-1 text-xs text-[var(--vt-text-2)] transition hover:text-[var(--vt-text-1)]"
+              >
+                {suggestion}
+              </button>
+            ))}
           </div>
-        )}
+        ) : null}
+      </article>
+    );
+  }
+
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void submitDraft();
+  }
+
+  return (
+    <div className={compact ? 'space-y-3' : 'space-y-4'}>
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {chips.map((chip) => (
+            <ContextChip key={`${chip.label}:${chip.value}`} label={chip.label} value={chip.value} />
+          ))}
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {quickSuggestions.map((suggestion) => (
+            <button
+              key={suggestion}
+              type="button"
+              onClick={() => void submitPrompt(suggestion)}
+              className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-1.5 text-xs text-[var(--vt-text-2)] transition hover:border-cyan-400/30 hover:text-[var(--vt-text-1)]"
+            >
+              {suggestion}
+            </button>
+          ))}
+          {(context.provider || context.finding || context.storyline) ? (
+            <button
+              type="button"
+              onClick={() => void submitPrompt('/investigate')}
+              className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-medium text-cyan-100 transition hover:bg-cyan-400/15"
+            >
+              Start Investigation
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      <form onSubmit={onSubmit} className="space-y-3">
+        <div className="group flex items-center gap-2 rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 transition-colors focus-within:border-cyan-400/30 focus-within:bg-[var(--vt-surface-2)]">
+          {loading ? (
+            <div className="flex h-4 w-4 shrink-0 items-center justify-center gap-0.5">
+              <span className="h-1 w-1 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="h-1 w-1 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="h-1 w-1 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          ) : (
+            <Sparkles className="h-4 w-4 shrink-0 text-cyan-400 animate-pulse duration-2000" />
+          )}
+          <input
+            ref={inputRef}
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder={placeholder}
+            autoFocus={autoFocus}
+            className="min-w-0 flex-1 bg-transparent text-sm text-[var(--vt-text-1)] outline-none placeholder:text-[var(--vt-text-3)]"
+          />
+          <button
+            type="submit"
+            disabled={loading || draft.trim().length < 3}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Send className="h-4 w-4" />
+          </button>
+        </div>
+        <p className="text-xs text-[var(--vt-text-3)]">
+          Use structured prompts or slash commands like <code>/investigate</code>, <code>/plan</code>, <code>/check oig</code>, <code>/compare &lt;provider&gt;</code>, <code>/network</code>, and <code>/history</code>.
+        </p>
       </form>
 
-      {/* Expanded results panel */}
-      <AnimatePresence>
-        {expanded && (answer || (!answer && !loading && !query)) && (
-          <motion.div
-            initial={{ opacity: 0, y: -4, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.98 }}
-            transition={{ duration: 0.15 }}
-            className={`
-              absolute left-0 right-0 z-50 mt-2 rounded-2xl border border-white/10
-              bg-[#0a1020]/95 backdrop-blur-xl shadow-2xl overflow-hidden
-              ${compact ? 'max-h-[60vh]' : 'max-h-[70vh]'}
-            `}
-          >
-            <div className="overflow-y-auto max-h-[inherit] p-4">
-              {/* Answer */}
-              {answer && (
-                <div className="space-y-3">
-                  {/* Intent badge + timing */}
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2.5 py-0.5 text-[11px] font-medium text-blue-400 ring-1 ring-blue-500/20">
-                      <Sparkles className="h-2.5 w-2.5" />
-                      {answer.intent}
-                    </span>
-                    <span className="text-[11px] text-white/20">
-                      {answer.timing}ms · {Math.round(answer.confidence * 100)}% confidence
-                    </span>
-                  </div>
-
-                  {/* Answer text */}
-                  <div className="text-sm text-white/70 leading-relaxed whitespace-pre-line">
-                    {renderAnswer(answer.answer)}
-                  </div>
-
-                  {/* Sources */}
-                  {answer.sources.length > 0 && (
-                    <div className="flex items-center gap-1.5 pt-1">
-                      <span className="text-[10px] text-white/20 uppercase tracking-wider">Sources:</span>
-                      {answer.sources.map((s, i) => (
-                        <span key={i} className="text-[10px] text-white/30 bg-white/5 rounded px-1.5 py-0.5">{s}</span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Suggestions */}
-                  {answer.suggestions.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-2 border-t border-white/5">
-                      {answer.suggestions.map((s, i) => (
-                        <button
-                          key={i}
-                          onClick={() => { setQuery(s); handleSubmit(s); }}
-                          className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-white/50 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
-                        >
-                          <Search className="h-2.5 w-2.5" />
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Empty state: show suggestions */}
-              {!answer && !loading && !query && (
-                <div className="space-y-2 py-1">
-                  <p className="text-[11px] text-white/20 uppercase tracking-wider mb-2">Suggested</p>
-                  {SUGGESTIONS.map((s, i) => (
-                    <button
-                      key={i}
-                      onClick={() => { setQuery(s); handleSubmit(s); }}
-                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-white/50 hover:text-white/80 hover:bg-white/[0.04] transition-colors text-left"
-                    >
-                      <Search className="h-3 w-3 shrink-0 text-white/20" />
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              )}
+      {visibleEntries.length > 0 ? (
+        <div className="space-y-3">{visibleEntries.map(renderEntry)}</div>
+      ) : (
+        <div className="rounded-md border border-dashed border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-6">
+          <div className="flex items-start gap-3">
+            <div className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-2">
+              <MessageSquareMore className="h-4 w-4 text-[var(--vt-text-3)]" />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-[var(--vt-text-1)]">Copilot is ready for the current investigation scope.</p>
+              <p className="text-sm leading-6 text-[var(--vt-text-3)]">
+                Ask for a summary, run a targeted check, compare providers, or start an investigation plan. Responses will stack here with structured sections and linked entities.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -17,12 +17,14 @@
  */
 
 import prisma from '../../graphql/prisma_client';
+import { createGraphNodeId } from '../graph-engine/ids';
 import {
   getFeedStats,
   getFindingById,
   queryFindings,
 } from '../investigators/framework';
 import { getStorylineDetail } from '../storylines/storylineService';
+import { listStorylines } from '../storylines/storylineService';
 import { computeTrustScoreV1 } from '../trust/trustScoreV1';
 import { log } from '../../obs/logger';
 import {
@@ -112,6 +114,12 @@ export interface WorkbenchGraphContext {
   investigationHref: string;
 }
 
+export interface WorkbenchUiHints {
+  copilotPrompt: string;
+  copilotSummary: string | null;
+  highlightNodeIds: string[];
+}
+
 export interface WorkbenchContext {
   anchor: WorkbenchAnchor;
   provider: WorkbenchProviderContext | null;
@@ -120,6 +128,7 @@ export interface WorkbenchContext {
   relatedFindings: WorkbenchRelatedFinding[];
   navigation: WorkbenchGraphContext | null;
   feedBusStats: ReturnType<typeof getFeedStats>;
+  uiHints: WorkbenchUiHints;
   generatedAt: string;
 }
 
@@ -127,6 +136,90 @@ export interface WorkbenchContext {
 
 function normalizeText(value: string): string {
   return value.trim().replace(/\s+/g, ' ');
+}
+
+function isNpi(value: string | null | undefined): value is string {
+  return typeof value === 'string' && /^\d{10}$/.test(value);
+}
+
+async function resolveStorylineForFinding(
+  findingId: string,
+  providerNpi?: string | null,
+): Promise<{ storylineId: string; title: string } | null> {
+  const result = await listStorylines({
+    provider: providerNpi ?? undefined,
+    limit: 50,
+    sync: false,
+  });
+
+  const storyline = result.storylines.find((candidate) => candidate.findingIds.includes(findingId));
+  if (!storyline) {
+    return null;
+  }
+
+  return {
+    storylineId: storyline.storylineId,
+    title: storyline.title,
+  };
+}
+
+function buildCopilotSummary(context: Pick<WorkbenchContext, 'provider' | 'finding' | 'storyline' | 'relatedFindings'>): string | null {
+  if (context.provider && context.finding) {
+    return `${context.provider.label ?? `NPI ${context.provider.npi}`} carries ${context.finding.severity} risk via "${context.finding.title}". ${context.relatedFindings.length} related finding${context.relatedFindings.length === 1 ? '' : 's'} remain in scope.`;
+  }
+
+  if (context.provider && context.storyline) {
+    return `${context.provider.label ?? `NPI ${context.provider.npi}`} is tied to storyline "${context.storyline.title}" with ${context.storyline.findingCount} supporting finding${context.storyline.findingCount === 1 ? '' : 's'}.`;
+  }
+
+  if (context.provider) {
+    return `${context.provider.label ?? `NPI ${context.provider.npi}`} currently has ${context.provider.activeFindings} active finding${context.provider.activeFindings === 1 ? '' : 's'} and trust score ${context.provider.trustScore}.`;
+  }
+
+  return null;
+}
+
+async function buildUiHints(
+  context: Pick<WorkbenchContext, 'anchor' | 'provider' | 'finding' | 'storyline' | 'relatedFindings'>,
+): Promise<WorkbenchUiHints> {
+  const providerNpi = context.provider?.npi ?? context.anchor.npi ?? null;
+  const highlightNodeIds = new Set<string>();
+
+  if (isNpi(providerNpi)) {
+    const focusNodeId = createGraphNodeId({
+      type: 'clinician',
+      sourceKind: 'npi',
+      sourceId: providerNpi,
+    });
+    highlightNodeIds.add(focusNodeId);
+
+    const edges = await prisma.graphEdge.findMany({
+      where: {
+        status: 'ACTIVE',
+        OR: [
+          { sourceNodeId: focusNodeId },
+          { targetNodeId: focusNodeId },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 6,
+      select: {
+        sourceNodeId: true,
+        targetNodeId: true,
+      },
+    });
+
+    for (const edge of edges) {
+      highlightNodeIds.add(edge.sourceNodeId);
+      highlightNodeIds.add(edge.targetNodeId);
+    }
+  }
+
+  return {
+    copilotPrompt: 'Summarize risk posture for this provider',
+    copilotSummary: buildCopilotSummary(context),
+    highlightNodeIds: [...highlightNodeIds],
+  };
 }
 
 // ── Workbench Resolution ───────────────────────────────────────────────────────
@@ -142,6 +235,11 @@ export async function getWorkbenchContext(
     relatedFindings: [],
     navigation: null,
     feedBusStats: getFeedStats(),
+    uiHints: {
+      copilotPrompt: 'Summarize risk posture for this provider',
+      copilotSummary: null,
+      highlightNodeIds: [],
+    },
     generatedAt: new Date().toISOString(),
   };
 
@@ -222,6 +320,19 @@ export async function getWorkbenchContext(
       }
     } catch (err) {
       log('warn', `[Workbench] Finding resolution failed: ${(err as Error)?.message}`);
+    }
+  }
+
+  if (!resolvedStorylineId && result.finding) {
+    try {
+      const storyline = await resolveStorylineForFinding(result.finding.id, resolvedNpi);
+      if (storyline) {
+        resolvedStorylineId = storyline.storylineId;
+        result.finding.storylineId = storyline.storylineId;
+        result.finding.storylineTitle = storyline.title;
+      }
+    } catch (err) {
+      log('warn', `[Workbench] Storyline lookup for finding failed: ${(err as Error)?.message}`);
     }
   }
 
@@ -360,6 +471,8 @@ export async function getWorkbenchContext(
       }));
     }
   }
+
+  result.uiHints = await buildUiHints(result);
 
   return result;
 }

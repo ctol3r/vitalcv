@@ -267,8 +267,8 @@ export function ActionMutationControls({
   const buttons = useMemo<ButtonSpec[]>(() => [
     { label: 'Pending', action: 'pending', previewStatus: 'pending' },
     { label: 'In Progress', action: 'in_progress', previewStatus: 'in_progress' },
-    { label: 'Completed', action: 'completed', previewStatus: 'completed' },
-    { label: 'Skipped', action: 'skipped', previewStatus: 'skipped' },
+    { label: 'Complete', action: 'completed', previewStatus: 'completed' },
+    { label: 'Skip', action: 'skipped', previewStatus: 'skipped' },
   ], []);
 
   async function run(button: ButtonSpec) {

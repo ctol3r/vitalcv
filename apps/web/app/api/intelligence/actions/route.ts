@@ -1,7 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { normalizeActionsPayload } from '@/lib/intelligence/contracts';
 import {
-  buildReadOnlyFallbackPayload,
+  authFailureStatus,
+  buildAuthFailurePayload,
+  canReadIntelligence,
+  coerceRouteErrorPayload,
   fetchBackendJson,
   logIntelligenceFallbackUsage,
   parsePositiveInt,
@@ -12,8 +15,10 @@ export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
   const authContext = await resolveIntelligenceAuthContext();
-  if (authContext.status !== 'authenticated') {
-    return NextResponse.json(buildReadOnlyFallbackPayload('actions', req, authContext));
+  if (!canReadIntelligence(authContext)) {
+    return NextResponse.json(buildAuthFailurePayload(authContext), {
+      status: authFailureStatus(authContext),
+    });
   }
 
   const limit = parsePositiveInt(
@@ -84,7 +89,13 @@ export async function GET(req: NextRequest) {
 
     if (!upstream.ok) {
       logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
-      return NextResponse.json(buildReadOnlyFallbackPayload('actions', req, authContext, { log: false }));
+      return NextResponse.json(
+        coerceRouteErrorPayload(upstream.payload, {
+          error: 'backend_unavailable',
+          error_description: 'Action queue unavailable. Try again when the backend is reachable.',
+        }),
+        { status: upstream.status >= 400 ? upstream.status : 503 },
+      );
     }
 
     const normalized = normalizeActionsPayload(upstream.payload);
@@ -113,8 +124,14 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    void error;
     logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
-    return NextResponse.json(buildReadOnlyFallbackPayload('actions', req, authContext, { log: false }));
+    return NextResponse.json(
+      {
+        error: 'backend_unavailable',
+        error_description: 'Action queue unavailable. Try again when the backend is reachable.',
+        message: error instanceof Error ? error.message : 'Unknown request failure',
+      },
+      { status: 503 },
+    );
   }
 }

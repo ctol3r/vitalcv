@@ -10,6 +10,7 @@ export const INTELLIGENCE_VIEWS = [
 ] as const;
 
 export type IntelligenceView = (typeof INTELLIGENCE_VIEWS)[number];
+export type IntelligenceNavKey = IntelligenceView | 'graph';
 
 export const DEFAULT_INTELLIGENCE_VIEW: IntelligenceView = 'dashboard';
 
@@ -97,7 +98,11 @@ export function buildLegacyRedirectHref(
   return buildIntelligenceHref(view, params);
 }
 
-export function deriveIntelligenceNavKey(activeHref: string): IntelligenceView {
+export function deriveIntelligenceNavKey(activeHref: string): IntelligenceNavKey {
+  if (activeHref.startsWith('/graph')) {
+    return 'graph';
+  }
+
   if (activeHref.startsWith('/findings')) {
     return 'findings';
   }

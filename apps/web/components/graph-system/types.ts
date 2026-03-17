@@ -7,7 +7,8 @@ export type NodeType =
   | 'clinician' | 'organization' | 'institution' | 'specialty'
   | 'program' | 'publication' | 'trial' | 'claim' | 'artifact'
   | 'receipt' | 'source' | 'credential' | 'license' | 'decision'
-  | 'exclusion' | 'enrollment';
+  | 'exclusion' | 'enrollment'
+  | 'provider' | 'company' | 'payment' | 'regulatory' | 'evidence';
 
 export type EdgeType =
   | 'explicit_link' | 'backlink' | 'ai_suggested_link' | 'ai_accepted_link'
@@ -16,7 +17,39 @@ export type EdgeType =
   | 'derived_from' | 'sourced_from' | 'verifies' | 'same_as' | 'related_to'
   | 'issued_by' | 'verified_by' | 'depends_on' | 'accepted_by'
   | 'attested_by' | 'sanctioned_by' | 'privileged_at' | 'enrolled_in'
-  | 'parent_of' | 'child_of' | 'tagged_with' | 'attached_to';
+  | 'parent_of' | 'child_of' | 'tagged_with' | 'attached_to'
+  | 'co_author' | 'co_investigator' | 'financial' | 'institutional'
+  | 'regulatory' | 'storyline_related' | 'evidence_link';
+
+export type InvestigationNodeKind =
+  | 'provider'
+  | 'institution'
+  | 'company'
+  | 'trial'
+  | 'publication'
+  | 'payment'
+  | 'regulatory'
+  | 'evidence';
+
+export type InvestigationEdgeKind =
+  | 'co_author'
+  | 'co_investigator'
+  | 'financial'
+  | 'institutional'
+  | 'regulatory'
+  | 'storyline_related'
+  | 'evidence_link';
+
+export interface GraphEvidenceRef {
+  evidenceId: string;
+  source: string | null;
+  summary: string;
+  observedAt: string | null;
+  findingId?: string | null;
+  storylineId?: string | null;
+  artifactId?: string | null;
+  url?: string | null;
+}
 
 export type GraphLayer = 'knowledge' | 'trust' | 'blended';
 export type ColorMode = 'type' | 'group' | 'tier' | 'edge_class' | 'custom';
@@ -50,6 +83,12 @@ export interface GraphNode {
   highlighted?:  boolean;
   selected?:     boolean;
   clusterId?:    string;
+  projectedType?: InvestigationNodeKind;
+  flagged?:      boolean;
+  findingIds?:   string[];
+  storylineIds?: string[];
+  communityId?:  string | null;
+  originNodeIds?: string[];
 }
 
 export interface GraphEdge {
@@ -72,6 +111,19 @@ export interface GraphEdge {
   opacity?:      number;
   visible?:      boolean;
   highlighted?:  boolean;
+  projectedType?: InvestigationEdgeKind;
+  flagged?:      boolean;
+  findingIds?:   string[];
+  storylineIds?: string[];
+  evidenceCount?: number;
+  evidenceRefs?: GraphEvidenceRef[];
+  firstSeenAt?:  string | null;
+  lastSeenAt?:   string | null;
+  metadataSummary?: string | null;
+  openEvidenceTarget?: string | null;
+  relationshipStrength?: number;
+  recencyWeight?: number;
+  animatedFromNodeId?: string | null;
 }
 
 export interface PhysicsConfig {
@@ -203,6 +255,13 @@ export const EDGE_COLORS: Partial<Record<EdgeType, string>> = {
   backlink:             '#06b6d4',
   references:           '#22d3ee',
   mentions:             '#67e8f9',
+  co_author:            '#4ade80',
+  co_investigator:      '#22c55e',
+  financial:            '#f97316',
+  institutional:        '#0ea5e9',
+  regulatory:           '#fb7185',
+  storyline_related:    '#c084fc',
+  evidence_link:        '#facc15',
   same_as:              '#475569',   // Identity slate
   related_to:           '#64748b',
   parent_of:            '#6b7280',   // Hierarchy gray
@@ -219,7 +278,9 @@ export function getEdgeColor(type: EdgeType, fallback = '#1e3a5f'): string {
 
 export const NODE_COLORS: Partial<Record<NodeType, string>> = {
   clinician:    '#f59e0b',
+  provider:     '#f59e0b',
   organization: '#3b82f6',
+  company:      '#2563eb',
   institution:  '#60a5fa',
   credential:   '#10b981',
   license:      '#34d399',
@@ -227,11 +288,14 @@ export const NODE_COLORS: Partial<Record<NodeType, string>> = {
   exclusion:    '#f87171',
   enrollment:   '#a78bfa',
   claim:        '#67e8f9',
+  payment:      '#f97316',
   artifact:     '#94a3b8',
+  evidence:     '#94a3b8',
   source:       '#6b7280',
   specialty:    '#fb923c',
   publication:  '#a3e635',
   trial:        '#4ade80',
+  regulatory:   '#fb7185',
 };
 
 export function getNodeColor(type: NodeType): string {
@@ -243,7 +307,9 @@ export function getNodeColor(type: NodeType): string {
 export function getClusterHullColor(clusterId: string): string {
   const map: Record<string, string> = {
     clinician:    'rgba(245,158,11,0.07)',
+    provider:     'rgba(245,158,11,0.07)',
     organization: 'rgba(59,130,246,0.06)',
+    company:      'rgba(37,99,235,0.06)',
     institution:  'rgba(96,165,250,0.06)',
     credential:   'rgba(16,185,129,0.06)',
     license:      'rgba(52,211,153,0.06)',
@@ -251,8 +317,11 @@ export function getClusterHullColor(clusterId: string): string {
     exclusion:    'rgba(248,113,113,0.06)',
     source:       'rgba(14,116,144,0.05)',
     artifact:     'rgba(100,116,139,0.04)',
+    evidence:     'rgba(100,116,139,0.04)',
     specialty:    'rgba(251,146,60,0.06)',
     claim:        'rgba(103,232,249,0.05)',
+    payment:      'rgba(249,115,22,0.05)',
+    regulatory:   'rgba(251,113,133,0.05)',
   };
   return map[clusterId] ?? 'rgba(100,116,139,0.04)';
 }
@@ -260,13 +329,17 @@ export function getClusterHullColor(clusterId: string): string {
 export function getClusterBorderColor(clusterId: string): string {
   const map: Record<string, string> = {
     clinician:    'rgba(245,158,11,0.15)',
+    provider:     'rgba(245,158,11,0.15)',
     organization: 'rgba(59,130,246,0.12)',
+    company:      'rgba(37,99,235,0.12)',
     institution:  'rgba(96,165,250,0.12)',
     credential:   'rgba(16,185,129,0.12)',
     license:      'rgba(52,211,153,0.12)',
     decision:     'rgba(124,58,237,0.12)',
     exclusion:    'rgba(248,113,113,0.15)',
     source:       'rgba(14,116,144,0.10)',
+    payment:      'rgba(249,115,22,0.10)',
+    regulatory:   'rgba(251,113,133,0.12)',
   };
   return map[clusterId] ?? 'rgba(100,116,139,0.08)';
 }

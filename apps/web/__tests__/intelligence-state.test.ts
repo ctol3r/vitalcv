@@ -92,8 +92,8 @@ describe('intelligence surface state helpers', () => {
   });
 
   it('formats the stale refresh banner copy', () => {
-    expect(formatLastRefreshMessage(1)).toBe('Data last refreshed 1 minute ago.');
-    expect(formatLastRefreshMessage(16)).toBe('Data last refreshed 16 minutes ago.');
+    expect(formatLastRefreshMessage(1)).toBe('Data last refreshed 1 min ago.');
+    expect(formatLastRefreshMessage(16)).toBe('Data last refreshed 16 min ago.');
     expect(formatLastRefreshMessage(120)).toBe('Data last refreshed 2 hours ago.');
   });
 

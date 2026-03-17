@@ -1,6 +1,6 @@
 'use client';
 
-import { Moon, Sun, Monitor } from 'lucide-react';
+import { Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 
@@ -11,14 +11,18 @@ const CYCLE: Record<string, string> = {
 
 /**
  * Compact theme toggle — cycles light ↔ dark.
- * Respects OS preference on first load (next-themes enableSystem).
  */
 export function ThemeToggle({ className = '' }: { className?: string }) {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   // Avoid hydration mismatch — only render icon client-side
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    if (!theme) {
+      setTheme('dark');
+    }
+  }, [theme, setTheme]);
 
   if (!mounted) {
     return (
@@ -28,7 +32,7 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
 
   const resolved = resolvedTheme ?? theme ?? 'dark';
   const next = CYCLE[resolved] ?? 'dark';
-  const isDark = resolved === 'dark' || resolved === 'midnight' || resolved === 'graphite';
+  const isDark = resolved === 'dark';
 
   return (
     <button
@@ -37,10 +41,10 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
       title={`Switch to ${next} mode`}
       aria-label={`Switch to ${next} mode`}
       className={`
-        flex h-8 w-8 items-center justify-center rounded-lg border transition-colors duration-150
-        border-[var(--vt-border,#2A2A2A)] bg-[var(--vt-surface,#141414)]
-        text-[var(--vt-text-2,#9A9A9A)] hover:text-[var(--vt-text-1,#F4F4F4)]
-        hover:bg-[var(--vt-surface-2,#1E1E1F)]
+        flex h-8 w-8 items-center justify-center rounded-lg border transition-colors duration-200 ease-out
+        border-[var(--vt-border,#27272A)] bg-[var(--vt-surface,#121214)]
+        text-[var(--vt-text-2,#A1A1AA)] hover:text-[var(--vt-text-1,#FFFFFF)]
+        hover:bg-[var(--vt-surface-subtle,#18181B)]
         ${className}
       `}
     >
@@ -53,15 +57,9 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
   );
 }
 
-/**
- * Extended theme picker — shows all four themes in a dropdown.
- * Usage: place in header, trigger on click.
- */
 const THEMES = [
-  { id: 'light',    label: 'Light',    icon: Sun },
-  { id: 'dark',     label: 'Dark',     icon: Moon },
-  { id: 'midnight', label: 'Midnight', icon: Moon },
-  { id: 'graphite', label: 'Graphite', icon: Monitor },
+  { id: 'light', label: 'Light', icon: Sun },
+  { id: 'dark', label: 'Dark', icon: Moon },
 ] as const;
 
 export function ThemePicker({ className = '' }: { className?: string }) {
@@ -69,7 +67,13 @@ export function ThemePicker({ className = '' }: { className?: string }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    if (!theme) {
+      setTheme('dark');
+    }
+  }, [theme, setTheme]);
+  
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
@@ -90,7 +94,7 @@ export function ThemePicker({ className = '' }: { className?: string }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--vt-border,#2A2A2A)] bg-[var(--vt-surface,#141414)] px-2.5 text-[11px] font-medium text-[var(--vt-text-2,#9A9A9A)] transition-colors hover:bg-[var(--vt-surface-2)] hover:text-[var(--vt-text-1)]"
+        className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--vt-border)] bg-[var(--vt-surface)] px-2.5 text-[11px] font-medium text-[var(--vt-text-secondary)] transition-colors duration-200 ease-out hover:bg-[var(--vt-surface-subtle)] hover:text-[var(--vt-text-primary)]"
         aria-label="Choose theme"
       >
         <Icon className="h-3.5 w-3.5" />
@@ -98,16 +102,16 @@ export function ThemePicker({ className = '' }: { className?: string }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-10 z-50 w-36 overflow-hidden rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)] shadow-lg">
+        <div className="absolute right-0 top-10 z-[50] w-36 overflow-hidden rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)] shadow-lg">
           {THEMES.map(({ id, label, icon: ItemIcon }) => (
             <button
               key={id}
               type="button"
               onClick={() => { setTheme(id); setOpen(false); }}
-              className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-sm transition-colors hover:bg-[var(--vt-surface-2)] ${
+              className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-sm transition-colors duration-200 ease-out hover:bg-[var(--vt-surface-subtle)] ${
                 theme === id
-                  ? 'text-[var(--vt-text-1)] font-medium'
-                  : 'text-[var(--vt-text-2)]'
+                  ? 'text-[var(--vt-text-primary)] font-medium'
+                  : 'text-[var(--vt-text-secondary)]'
               }`}
             >
               <ItemIcon className="h-3.5 w-3.5 shrink-0" />

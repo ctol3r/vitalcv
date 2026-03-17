@@ -15,6 +15,24 @@ function includesRole(
   return requestedRoles.some((role) => investigatorRoles.includes(role));
 }
 
+function supportsTrigger<TDependencies = Record<string, never>>(
+  investigator: InvestigatorDefinition<TDependencies>,
+  trigger: InvestigatorRunTrigger | undefined,
+): boolean {
+  if (!trigger) {
+    return true;
+  }
+
+  if (investigator.schedule.triggers.includes(trigger)) {
+    return true;
+  }
+
+  // Manual/demo runs should be able to invoke the same investigators that
+  // support targeted execution without forcing every definition to duplicate
+  // trigger declarations.
+  return trigger === 'manual' && investigator.schedule.triggers.includes('targeted');
+}
+
 export class InvestigatorRegistry<TDependencies = Record<string, never>> {
   private readonly investigators = new Map<string, InvestigatorDefinition<TDependencies>>();
 
@@ -50,7 +68,7 @@ export class InvestigatorRegistry<TDependencies = Record<string, never>> {
       if (!includesRole(investigator.audienceRoles, options?.audienceRoles)) {
         return false;
       }
-      if (options?.trigger && !investigator.schedule.triggers.includes(options.trigger)) {
+      if (!supportsTrigger(investigator, options?.trigger)) {
         return false;
       }
       return true;

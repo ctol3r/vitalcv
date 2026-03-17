@@ -253,17 +253,24 @@ export function registerGraphRoutes(app: Express): void {
       const relationshipTypes = typeof req.query.relationshipTypes === 'string'
         ? req.query.relationshipTypes.split(',').map((value) => value.trim()).filter((value) => value.length > 0)
         : [];
+      const entityTypes = typeof req.query.entityTypes === 'string'
+        ? req.query.entityTypes.split(',').map((value) => value.trim()).filter((value) => value.length > 0)
+        : [];
       const payload = await buildGraphInvestigationPayload({
         providerId: typeof req.query.providerId === 'string' ? req.query.providerId : null,
         focusNodeId: typeof req.query.focusNodeId === 'string' ? req.query.focusNodeId : null,
         depth: Math.max(1, Math.min(4, Number(req.query.depth ?? 2) || 2)),
         relationshipTypes: relationshipTypes as Parameters<typeof buildGraphInvestigationPayload>[0]['relationshipTypes'],
+        entityTypes: entityTypes as Parameters<typeof buildGraphInvestigationPayload>[0]['entityTypes'],
         dateFrom: typeof req.query.dateFrom === 'string' ? req.query.dateFrom : null,
         dateTo: typeof req.query.dateTo === 'string' ? req.query.dateTo : null,
         findingId: typeof req.query.findingId === 'string' ? req.query.findingId : null,
         storylineId: typeof req.query.storylineId === 'string' ? req.query.storylineId : null,
         sourceNodeId: typeof req.query.sourceNodeId === 'string' ? req.query.sourceNodeId : null,
         targetNodeId: typeof req.query.targetNodeId === 'string' ? req.query.targetNodeId : null,
+        onlyFlagged: req.query.onlyFlagged === 'true',
+        onlyStorylineRelated: req.query.onlyStorylineRelated === 'true',
+        limit: Math.max(1, Math.min(120, Number(req.query.limit ?? 40) || 40)),
       });
 
       res.json({

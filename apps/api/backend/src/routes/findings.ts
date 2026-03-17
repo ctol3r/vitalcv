@@ -31,12 +31,14 @@ import {
 import {
   getInvestigatorFinding,
   listInvestigatorFindings,
+  runTargetedInvestigators,
   setInvestigatorFindingStatus,
 } from '../services/investigators/investigatorEngineService';
+import { buildFindingExplainPayload } from '../services/investigators/findingExplainService';
 import { isInvestigatorFindingStatus, normalizeInvestigatorFindingStatus } from '../../../../../core/investigators/investigatorTypes';
-import { runAllScans } from '../services/investigators/orchestrator';
 import { log } from '../obs/logger';
 import { listInvestigatorRuntimeSummaries } from '../services/investigation/investigatorRuntimeService';
+import { IGNITION_INVESTIGATOR_IDS } from '../services/investigators/ignitionInvestigators';
 
 const NPI_RE = /^\d{10}$/;
 const VALID_FEEDBACK: FeedbackAction[] = ['acknowledge', 'dismiss', 'escalate', 'save', 'compare', 'follow_up'];
@@ -146,6 +148,23 @@ export function registerFindingsRoutes(app: Express): void {
     }
   });
 
+  // ── GET /api/findings/:id/explain ─────────────────────────────────────────
+  app.get('/api/findings/:id/explain', async (req: Request, res: Response) => {
+    try {
+      const payload = await buildFindingExplainPayload(req.params.id);
+      if (!payload) {
+        return res.status(404).json({ error: 'Finding not found' });
+      }
+      res.json(payload);
+    } catch (error) {
+      log('error', '[Findings] explain failed', {
+        error: error instanceof Error ? error.message : String(error),
+        findingId: req.params.id,
+      });
+      res.status(500).json({ error: 'Failed to explain finding' });
+    }
+  });
+
   // ── GET /api/findings/:id ─────────────────────────────────────────────────
   app.get('/api/findings/:id', async (req: Request, res: Response) => {
     const finding = await getInvestigatorFinding(req.params.id);
@@ -224,12 +243,48 @@ export function registerFindingsRoutes(app: Express): void {
   });
 
   // ── POST /api/investigators/scan ──────────────────────────────────────────
-  app.post('/api/investigators/scan', async (_req: Request, res: Response) => {
+  app.post('/api/investigators/scan', async (req: Request, res: Response) => {
+    const body = (req.body ?? {}) as {
+      investigatorIds?: string[];
+      entityType?: string;
+      targetEntityIds?: string[];
+      npi?: string | string[];
+    };
+    const investigatorIds = Array.isArray(body.investigatorIds) && body.investigatorIds.length > 0
+      ? body.investigatorIds
+      : [...IGNITION_INVESTIGATOR_IDS];
+    const npis = typeof body.npi === 'string'
+      ? [body.npi]
+      : Array.isArray(body.npi)
+        ? body.npi
+        : [];
+    const targetEntityIds = [...new Set([
+      ...(Array.isArray(body.targetEntityIds) ? body.targetEntityIds : []),
+      ...npis,
+    ].filter((value) => /^\d{10}$/.test(value)))];
+
     try {
-      const result = await runAllScans();
+      const runs = await runTargetedInvestigators({
+        entityType: body.entityType ?? 'provider',
+        targetEntityIds,
+        investigatorIds,
+        trigger: 'manual',
+        metadata: {
+          source: 'api_investigators_scan',
+        },
+      });
       res.json({
-        schema: 'https://vitalcv.com/investigators-scan/v1',
-        ...result,
+        schema: 'https://vitalcv.com/investigators-scan/v2',
+        investigatorIds,
+        targetEntityIds,
+        investigators: runs.map((run) => ({
+          id: run.investigatorId,
+          findings: run.persistedFindings.length,
+          scannedNpis: run.coveredEntityIds.filter((entityId) => /^\d{10}$/.test(entityId)).length,
+          durationMs: run.durationMs,
+        })),
+        totalFindings: runs.reduce((sum, run) => sum + run.persistedFindings.length, 0),
+        generatedAt: new Date().toISOString(),
       });
     } catch (err) {
       log('error', `[Findings] Scan failed: ${(err as Error)?.message}`);

@@ -30,6 +30,10 @@ interface CopilotGraphInsightLike {
 }
 
 interface CopilotResponseLike {
+  status: 'ok' | 'limited';
+  answer: string;
+  sources: string[];
+  confidence: number;
   results: CopilotResultLike[];
   explanations: CopilotExplanationLike[];
   graphInsights: CopilotGraphInsightLike[];
@@ -69,6 +73,48 @@ export function validateCopilotStructuredResponse<TResponse extends CopilotRespo
 
   const data = parsed.data;
   const findings: QaFinding[] = [];
+
+  if (typeof data.answer !== 'string' || data.answer.trim().length === 0) {
+    findings.push(
+      createQaFinding({
+        code: 'copilot_answer_missing',
+        severity: 'critical',
+        component: 'copilot-response-validator',
+        summary: 'Copilot response is missing a usable top-level answer.',
+      }),
+    );
+  }
+
+  if (!Array.isArray(data.sources)) {
+    findings.push(
+      createQaFinding({
+        code: 'copilot_sources_missing',
+        severity: 'critical',
+        component: 'copilot-response-validator',
+        summary: 'Copilot response is missing the top-level sources array.',
+      }),
+    );
+  }
+
+  if (!isFiniteRatio(data.confidence)) {
+    findings.push(
+      createQaFinding({
+        code: 'copilot_confidence_out_of_range',
+        severity: 'critical',
+        component: 'copilot-response-validator',
+        summary: 'Copilot response top-level confidence is missing or out of range.',
+      }),
+    );
+  }
+
+  if (data.status === 'limited') {
+    return {
+      valid: findings.every((finding) => finding.severity !== 'critical'),
+      findings,
+      data,
+    };
+  }
+
   const resultIds = new Set<string>();
   const ranks = new Set<number>();
 
@@ -179,4 +225,3 @@ export function validateCopilotStructuredResponse<TResponse extends CopilotRespo
     data,
   };
 }
-

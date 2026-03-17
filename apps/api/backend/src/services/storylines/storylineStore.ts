@@ -444,7 +444,8 @@ export async function mutateStorylineRecord(
     const updated = await store.storyline.update({
       where: { id: current.id },
       data: {
-        ...(input.nextStatus ? { status: input.nextStatus, lastActivityAt: new Date(input.actionEvent.occurredAt) } : {}),
+        lastActivityAt: new Date(input.actionEvent.occurredAt),
+        ...(input.nextStatus ? { status: input.nextStatus } : {}),
         ...(typeof input.patch?.progressionScore === 'number' ? { progressionScore: input.patch.progressionScore } : {}),
         ...(typeof input.patch?.noveltyScore === 'number' ? { noveltyScore: input.patch.noveltyScore } : {}),
         ...(typeof input.patch?.persistenceScore === 'number' ? { persistenceScore: input.patch.persistenceScore } : {}),

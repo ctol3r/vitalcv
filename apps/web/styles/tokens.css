@@ -130,27 +130,27 @@
 
 :root {
   /* Easing curves */
-  --ease-standard:   cubic-bezier(0.2, 0, 0, 1);        /* Material standard */
-  --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);        /* Entering elements */
-  --ease-accelerate: cubic-bezier(0.4, 0, 1, 1);        /* Exiting elements */
-  --ease-spring:     cubic-bezier(0.2, 0.8, 0.2, 1);    /* VitalCV antigravity */
-  --ease-bounce:     cubic-bezier(0.34, 1.56, 0.64, 1); /* Playful expand */
+  --ease-standard:   cubic-bezier(0, 0, 0.2, 1);        /* ease-out */
+  --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);        /* ease-out */
+  --ease-accelerate: cubic-bezier(0.4, 0, 1, 1);        /* ease-in */
+  --ease-spring:     cubic-bezier(0, 0, 0.2, 1);        /* replaced with ease-out */
+  --ease-bounce:     cubic-bezier(0, 0, 0.2, 1);        /* replaced with ease-out */
 
   /* Durations */
-  --duration-instant:  80ms;
+  --duration-instant:  100ms;
   --duration-fast:     150ms;
-  --duration-normal:   250ms;
-  --duration-slow:     350ms;
-  --duration-xslow:    500ms;
-  --duration-stagger:  60ms;     /* Per-item stagger increment */
+  --duration-normal:   200ms;
+  --duration-slow:     300ms;
+  --duration-xslow:    400ms;
+  --duration-stagger:  50ms;
 
   /* Transition presets */
   --transition-colors:    color var(--duration-fast) var(--ease-standard),
                           background-color var(--duration-fast) var(--ease-standard),
                           border-color var(--duration-fast) var(--ease-standard),
                           opacity var(--duration-fast) var(--ease-standard);
-  --transition-transform: transform var(--duration-normal) var(--ease-spring);
-  --transition-all:       all var(--duration-normal) var(--ease-spring);
+  --transition-transform: transform var(--duration-normal) var(--ease-standard);
+  --transition-all:       all var(--duration-normal) var(--ease-standard);
 }
 
 /* ── 4. Shadow / Elevation Tokens ─────────────────────────────────────────── */

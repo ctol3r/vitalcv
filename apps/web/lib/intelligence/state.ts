@@ -1,4 +1,8 @@
-import type { IntelligenceSystemHealth } from './contracts';
+import type {
+  IntelligenceAccessMode,
+  IntelligenceAccessReason,
+  IntelligenceSystemHealth,
+} from './contracts';
 import { formatRelativeTime } from './time';
 
 export const DEFAULT_STALE_DATA_THRESHOLD_MS = 15 * 60 * 1000;
@@ -14,12 +18,54 @@ export interface FindingsEmptyState {
   title: string;
 }
 
+export interface AccessBannerState {
+  tone: 'info' | 'warning' | 'neutral';
+  description: string;
+}
+
 export type SystemHealthSurfaceMode = 'healthy' | 'empty' | 'degraded' | 'broken';
 
 export interface SystemHealthSurfaceState {
   mode: SystemHealthSurfaceMode;
   label: string;
   description: string;
+}
+
+export function getAccessBannerState(
+  accessMode: IntelligenceAccessMode | null | undefined,
+  reason: IntelligenceAccessReason | null | undefined,
+): AccessBannerState | null {
+  if (!accessMode || !reason || (accessMode === 'full' && reason === 'ok')) {
+    return null;
+  }
+
+  switch (reason) {
+    case 'missing_session':
+      return {
+        tone: 'info',
+        description: 'Sign in to access full intelligence. Showing the seeded public snapshot while the live workspace stays protected.',
+      };
+    case 'missing_org':
+      return {
+        tone: 'warning',
+        description: 'Switch to an organization workspace to access full intelligence. Showing the seeded public snapshot until tenant context is resolved.',
+      };
+    case 'warming_up':
+      return {
+        tone: 'info',
+        description: 'System warming up — ingesting provider intelligence.',
+      };
+    case 'backend_unavailable':
+      return {
+        tone: 'warning',
+        description: accessMode === 'public_snapshot'
+          ? 'Public snapshot is temporarily unavailable. Retry when the backend finishes warming up.'
+          : 'Live intelligence is temporarily unavailable. Retry once backend services recover.',
+      };
+    case 'ok':
+    default:
+      return null;
+  }
 }
 
 function parseTimestamp(input: string | null | undefined): number | null {

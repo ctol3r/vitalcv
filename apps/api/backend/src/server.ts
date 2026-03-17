@@ -176,6 +176,7 @@ function runPrismaMigrateDeploy(): void {
 async function bootstrapApp() {
   const { log } = await import('./obs/logger');
   const { loadEnv } = await import('./config/env');
+  const { ensureInvestigationSeedDataBootstrapped } = await import('./services/investigators/seedInvestigationData');
   const { initializeTelemetry, shutdownTelemetry } = await import('./telemetry');
   const { runMonitoringCycle } = await import('../jobs/monitoringJob');
   const { startQaAutomationRuntime } = await import('./qa/qaRuntime');
@@ -183,6 +184,7 @@ async function bootstrapApp() {
   const cronMod = await import('node-cron');
 
   const config = loadEnv();
+  await ensureInvestigationSeedDataBootstrapped({ logger: log });
 
   const productionDeployment = config.NODE_ENV === 'production';
   const skipStartupMigration =

@@ -13,8 +13,10 @@ import type {
 } from '../../../../../../core/storylines/storylineEngine';
 import { createStorylineEngine } from '../../../../../../core/storylines/storylineEngine';
 import type { InvestigatorFindingRecord } from '../../../../../../core/investigators/investigatorTypes';
+import { publish } from '../../core/events/eventBus';
 import { listInvestigatorFindings } from '../investigators/investigatorEngineService';
 import type {
+  PersistStorylineInput,
   StorylineActionEventRow,
   StorylineActionTypeRecord,
   StorylineEntityLinkRow,
@@ -562,6 +564,168 @@ function toActionTypeRecord(actionType: 'acknowledge' | 'escalate' | 'archive' |
   }
 }
 
+function sortedStrings(values: readonly string[]): string[] {
+  return [...values].sort((left, right) => left.localeCompare(right));
+}
+
+function buildPersistedStorylineMaterialSignature(input: PersistStorylineInput): string {
+  return stableStringify({
+    storyline: {
+      storylineId: input.storyline.storylineId,
+      storylineType: input.storyline.storylineType,
+      perspective: input.storyline.perspective,
+      title: input.storyline.title,
+      summary: input.storyline.summary,
+      whyItMatters: input.storyline.whyItMatters,
+      severity: input.storyline.severity,
+      confidence: input.storyline.confidence,
+      entityIds: sortedStrings(input.storyline.entityIds),
+      findingIds: sortedStrings(input.storyline.findingIds),
+      supportingEvidence: input.storyline.supportingEvidence,
+      recommendedActions: sortedStrings(input.storyline.recommendedActions),
+      progressionScore: input.storyline.progressionScore,
+      noveltyScore: input.storyline.noveltyScore,
+      persistenceScore: input.storyline.persistenceScore,
+      escalationThreshold: input.storyline.escalationThreshold,
+      lastActivityAt: input.storyline.lastActivityAt,
+      status: input.storyline.status,
+      metadata: input.storyline.metadata,
+    },
+    findingLinks: (input.findingLinks ?? [])
+      .map((link) => ({
+        findingId: link.findingId,
+        findingCategory: link.findingCategory,
+        findingSeverity: link.findingSeverity,
+        observedAt: link.observedAt,
+        weight: link.weight,
+        snapshot: link.snapshot,
+      }))
+      .sort((left, right) => left.findingId.localeCompare(right.findingId)),
+    entityLinks: (input.entityLinks ?? [])
+      .map((link) => ({
+        entityType: link.entityType,
+        entityKey: link.entityKey,
+        entityLabel: link.entityLabel ?? null,
+        weight: link.weight,
+        firstSeenAt: link.firstSeenAt,
+        lastSeenAt: link.lastSeenAt,
+      }))
+      .sort((left, right) => `${left.entityType}:${left.entityKey}`.localeCompare(`${right.entityType}:${right.entityKey}`)),
+    statusEvents: (input.statusEvents ?? [])
+      .map((event) => ({
+        eventKey: event.eventKey,
+        eventType: event.eventType,
+        summary: event.summary,
+        fromStatus: event.fromStatus ?? null,
+        toStatus: event.toStatus ?? null,
+        metadata: event.metadata ?? {},
+        occurredAt: event.occurredAt,
+      }))
+      .sort((left, right) => left.eventKey.localeCompare(right.eventKey)),
+  });
+}
+
+function buildExistingStorylineMaterialSignature(row: StorylineRecordRow): string {
+  return stableStringify({
+    storyline: {
+      storylineId: row.storylineId,
+      storylineType: row.storylineType,
+      perspective: row.perspective,
+      title: row.title,
+      summary: row.summary,
+      whyItMatters: row.whyItMatters,
+      severity: row.severity,
+      confidence: row.confidence,
+      entityIds: sortedStrings(row.entityIds),
+      findingIds: sortedStrings(row.findingIds),
+      supportingEvidence: row.supportingEvidence ?? [],
+      recommendedActions: sortedStrings(asStringArray(row.recommendedActions)),
+      progressionScore: row.progressionScore,
+      noveltyScore: row.noveltyScore,
+      persistenceScore: row.persistenceScore,
+      escalationThreshold: row.escalationThreshold,
+      lastActivityAt: row.lastActivityAt.toISOString(),
+      status: row.status,
+      metadata: asRecord(row.metadata),
+    },
+    findingLinks: (row.findingLinks ?? [])
+      .map((link) => ({
+        findingId: link.findingId,
+        findingCategory: link.findingCategory,
+        findingSeverity: link.findingSeverity,
+        observedAt: link.observedAt.toISOString(),
+        weight: link.weight,
+        snapshot: asRecord(link.snapshot),
+      }))
+      .sort((left, right) => left.findingId.localeCompare(right.findingId)),
+    entityLinks: (row.entityLinks ?? [])
+      .map((link) => ({
+        entityType: link.entityType,
+        entityKey: link.entityKey,
+        entityLabel: link.entityLabel ?? null,
+        weight: link.weight,
+        firstSeenAt: link.firstSeenAt.toISOString(),
+        lastSeenAt: link.lastSeenAt.toISOString(),
+      }))
+      .sort((left, right) => `${left.entityType}:${left.entityKey}`.localeCompare(`${right.entityType}:${right.entityKey}`)),
+    statusEvents: (row.statusEvents ?? [])
+      .map((event) => ({
+        eventKey: event.eventKey,
+        eventType: event.eventType,
+        summary: event.summary,
+        fromStatus: event.fromStatus ?? null,
+        toStatus: event.toStatus ?? null,
+        metadata: asRecord(event.metadata),
+        occurredAt: event.occurredAt.toISOString(),
+      }))
+      .sort((left, right) => left.eventKey.localeCompare(right.eventKey)),
+  });
+}
+
+function hasMaterialStorylineChange(
+  existing: StorylineRecordRow | undefined,
+  input: PersistStorylineInput,
+): boolean {
+  if (!existing) {
+    return true;
+  }
+
+  return buildExistingStorylineMaterialSignature(existing) !== buildPersistedStorylineMaterialSignature(input);
+}
+
+function storylineUpdateOperationFromEventType(
+  eventType: StorylineEventTypeRecord | undefined,
+): 'created' | 'updated' | 'status_changed' {
+  if (eventType === 'ORIGIN') {
+    return 'created';
+  }
+
+  if (eventType === 'UPDATED') {
+    return 'updated';
+  }
+
+  return 'status_changed';
+}
+
+async function publishStorylineUpdated(
+  row: StorylineRecordRow,
+  operation: 'created' | 'updated' | 'status_changed',
+): Promise<void> {
+  await publish({
+    type: 'STORYLINE_UPDATED',
+    payload: {
+      storylineId: row.storylineId,
+      storylineType: toCoreType(row.storylineType),
+      status: toCoreStatus(row.status),
+      severity: toCoreSeverity(row.severity),
+      entityIds: [...row.entityIds],
+      findingIds: [...row.findingIds],
+      operation,
+    },
+    timestamp: row.lastActivityAt.toISOString(),
+  });
+}
+
 function buildActionEventKey(
   storylineId: string,
   actionType: string,
@@ -610,8 +774,7 @@ async function syncStorylines(): Promise<string> {
       const cluster = result.clusters.find((candidate) => candidate.fingerprint === storyline.fingerprint);
       const existing = existingByFingerprint.get(storyline.fingerprint);
       const existingEventKeys = new Set(existing?.statusEvents?.map((event) => event.eventKey) ?? []);
-
-      await upsertStorylineRecord({
+      const persistInput: PersistStorylineInput = {
         storyline: {
           storylineId: storyline.storylineId,
           fingerprint: storyline.fingerprint,
@@ -670,7 +833,17 @@ async function syncStorylines(): Promise<string> {
             },
             occurredAt: event.occurredAt,
           })),
-      });
+      };
+
+      if (!hasMaterialStorylineChange(existing, persistInput)) {
+        continue;
+      }
+
+      const persistedStoryline = await upsertStorylineRecord(persistInput);
+      await publishStorylineUpdated(
+        persistedStoryline,
+        existing ? 'updated' : 'created',
+      );
     }
 
     lastSyncedAt = result.generatedAt;
@@ -680,6 +853,10 @@ async function syncStorylines(): Promise<string> {
   });
 
   return syncInFlight;
+}
+
+export async function syncPersistedStorylines(): Promise<string> {
+  return syncStorylines();
 }
 
 export interface StorylineQueryFilters {
@@ -966,6 +1143,11 @@ async function applyAction(input: {
   if (!updated) {
     return null;
   }
+
+  await publishStorylineUpdated(
+    updated,
+    input.actionType === 'save-investigation' ? 'updated' : 'status_changed',
+  );
 
   const predictionSummaries = await getPredictionSummariesForEntityKeys(updated.entityIds, { sync: false });
   return toDetailContract(updated, summarizeStorylinePredictions(updated.entityIds, predictionSummaries));

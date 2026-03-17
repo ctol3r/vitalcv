@@ -3,8 +3,8 @@ import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
 import { runTargetedInvestigators } from '../services/investigators/investigatorEngineService';
 import { getInvestigatorSchedulerState } from '../services/investigators/investigatorScheduler';
+import { IGNITION_INVESTIGATOR_IDS } from '../services/investigators/ignitionInvestigators';
 import {
-  AUTONOMOUS_INVESTIGATOR_SPECS,
   getAutonomousInvestigatorStatus,
 } from '../services/investigators/autonomousInvestigatorEngine';
 
@@ -31,7 +31,7 @@ export function registerInvestigatorApiRoutes(app: Express): void {
     } | undefined;
     const investigatorIds = Array.isArray(body?.investigatorIds) && body.investigatorIds.length > 0
       ? body.investigatorIds
-      : AUTONOMOUS_INVESTIGATOR_SPECS.map((spec) => spec.id);
+      : [...IGNITION_INVESTIGATOR_IDS];
     const targetEntityIds = normalizeTargetEntityIds(req);
 
     try {
@@ -71,7 +71,8 @@ export function registerInvestigatorApiRoutes(app: Express): void {
         scheduler,
         jobs: autonomous.jobs,
         sources: autonomous.sources,
-        investigatorCount: AUTONOMOUS_INVESTIGATOR_SPECS.length,
+        investigatorCount: IGNITION_INVESTIGATOR_IDS.length,
+        ignitionInvestigators: [...IGNITION_INVESTIGATOR_IDS],
         generatedAt: new Date().toISOString(),
       });
     } catch (error) {

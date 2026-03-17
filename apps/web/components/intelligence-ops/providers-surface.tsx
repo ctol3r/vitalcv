@@ -1,15 +1,11 @@
 'use client';
-
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { startTransition, useEffect, useMemo, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useProviders } from '@/hooks/useProviders';
-import { useSystemHealth } from '@/hooks/useSystemHealth';
 import {
   formatLastRefreshMessage,
   getSurfaceFreshnessState,
-  hasDegradedDataSources,
 } from '@/lib/intelligence/state';
 import { buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
@@ -42,7 +38,6 @@ export function ProvidersSurface() {
     limit: PAGE_SIZE,
     minTrustScore: filters.minTrustScore ? Number(filters.minTrustScore) : 0,
   });
-  const systemHealth = useSystemHealth();
 
   const currentHref = useMemo(() => {
     const query = searchParams.toString();
@@ -77,7 +72,6 @@ export function ProvidersSurface() {
     generatedAt: providers.data?.generatedAt,
     lastUpdated: providers.lastUpdated,
   });
-  const degradedSources = hasDegradedDataSources(systemHealth.data);
 
   return (
     <OperationsShell
@@ -110,11 +104,6 @@ export function ProvidersSurface() {
           {providers.recovering && providers.error ? (
             <SurfaceBanner tone="warning">
               Live refresh failed. Showing the last successful directory snapshot while retries continue.
-            </SurfaceBanner>
-          ) : null}
-          {degradedSources ? (
-            <SurfaceBanner tone="warning">
-              Some data sources are degraded. Findings may be incomplete.
             </SurfaceBanner>
           ) : null}
           {staleState.isStale && staleState.ageMinutes !== null ? (
@@ -198,6 +187,7 @@ export function ProvidersSurface() {
             footer={(
               <div className="flex flex-wrap gap-2">
                 <EntityLink href={`/providers/${provider.npi}?from=${encodeURIComponent(currentHref)}`} label="Open profile" />
+                <EntityLink href={buildIntelligenceHref('findings', { provider: provider.npi })} label="View findings" />
                 <EntityLink href={buildIntelligenceHref('investigations', { npi: provider.npi })} label="Investigate" />
               </div>
             )}

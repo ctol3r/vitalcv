@@ -198,6 +198,7 @@ export interface InvestigatorRunResult {
   findingsSuppressed: number;
   storylinesMerged: number;
   coveredEntityIds: string[];
+  persistedFindings: InvestigatorFindingRecord[];
 }
 
 export interface InvestigatorRunRequest<TDependencies = Record<string, never>> {

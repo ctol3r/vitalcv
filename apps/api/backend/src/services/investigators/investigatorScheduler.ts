@@ -3,6 +3,7 @@ import { log } from '../../obs/logger';
 import { runScheduledInvestigators } from './investigatorEngineService';
 
 let schedulerTask: cron.ScheduledTask | null = null;
+let initialRunTimer: ReturnType<typeof setTimeout> | null = null;
 let isRunning = false;
 let lastRunAt: string | null = null;
 
@@ -53,13 +54,22 @@ export function startInvestigatorScheduler(): void {
   schedulerTask = cron.schedule('*/15 * * * *', () => {
     void runCycle();
   });
+  initialRunTimer = setTimeout(() => {
+    initialRunTimer = null;
+    void runCycle();
+  }, 8_000);
 
   log('info', 'investigator_scheduler: started', {
     cadence: '*/15 * * * *',
+    initialDelayMs: 8_000,
   });
 }
 
 export function stopInvestigatorScheduler(): void {
   schedulerTask?.stop();
   schedulerTask = null;
+  if (initialRunTimer) {
+    clearTimeout(initialRunTimer);
+    initialRunTimer = null;
+  }
 }

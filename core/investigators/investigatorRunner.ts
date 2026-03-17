@@ -233,6 +233,7 @@ export class InvestigatorRunner<TDependencies = Record<string, never>> {
         },
       };
 
+      console.log('[INVESTIGATOR RUNNING]', investigator.id);
       const rawFindings = await investigator.run(context);
       const merged = mergeStorylines(investigator, rawFindings);
       const dedupeKeys = merged.drafts.map((finding) => finding.dedupeKey ?? createDedupeKey(finding));
@@ -301,6 +302,7 @@ export class InvestigatorRunner<TDependencies = Record<string, never>> {
         findingsSuppressed: suppressedCount,
         storylinesMerged: merged.mergedCount,
         coveredEntityIds: [...coveredEntityIds],
+        persistedFindings: persistResult.persistedFindings,
       };
     } catch (error) {
       const completedAt = new Date().toISOString();

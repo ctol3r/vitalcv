@@ -7,6 +7,18 @@ import type {
 } from './contracts';
 import { listInvestigatorRuntimeDescriptors } from './investigatorRuntimeService';
 
+export interface FindingsBusPublication {
+  publishedAt: string;
+  finding: InvestigatorFindingRecord;
+  event: FindingsBusEvent;
+  dispatches: FindingsBusDispatch[];
+}
+
+type FindingsBusSubscriber = (publication: FindingsBusPublication) => void;
+
+const publicationHistory: FindingsBusPublication[] = [];
+const subscribers = new Set<FindingsBusSubscriber>();
+
 function unique(values: string[]): string[] {
   return [...new Set(values.filter((value) => value.trim().length > 0))];
 }
@@ -132,4 +144,48 @@ export function buildFindingsBusDispatchBundle(
     event: buildFindingsBusEvent(finding),
     dispatches: routeFindingsBusEvent(finding, descriptors),
   };
+}
+
+export function publish(
+  finding: InvestigatorFindingRecord,
+  descriptors = listInvestigatorRuntimeDescriptors(),
+): FindingsBusPublication {
+  const bundle = buildFindingsBusDispatchBundle(finding, descriptors);
+  const publication: FindingsBusPublication = {
+    publishedAt: new Date().toISOString(),
+    finding,
+    event: bundle.event,
+    dispatches: bundle.dispatches,
+  };
+
+  publicationHistory.unshift(publication);
+  if (publicationHistory.length > 200) {
+    publicationHistory.length = 200;
+  }
+
+  for (const subscriber of subscribers) {
+    try {
+      subscriber(publication);
+    } catch {
+      // Best-effort in-process publishing; subscriber failures must not block persisted findings.
+    }
+  }
+
+  return publication;
+}
+
+export function publishMany(
+  findings: InvestigatorFindingRecord[],
+  descriptors = listInvestigatorRuntimeDescriptors(),
+): FindingsBusPublication[] {
+  return findings.map((finding) => publish(finding, descriptors));
+}
+
+export function subscribe(handler: FindingsBusSubscriber): () => void {
+  subscribers.add(handler);
+  return () => subscribers.delete(handler);
+}
+
+export function listRecentPublications(limit = 50): FindingsBusPublication[] {
+  return publicationHistory.slice(0, Math.max(0, limit));
 }

@@ -150,7 +150,10 @@
       "Bash(git status -u)",
       "Bash(git diff apps/web/app/p/\\\\[slug\\\\]/page.tsx)",
       "Bash(git push -u origin feature/start-attestation)",
-      "Skill(gsd:execute-phase)"
+      "Skill(gsd:execute-phase)",
+      "mcp__Desktop_Commander__get_file_info",
+      "Bash(wc -l /Users/christoler/vitalcv/apps/web/lib/intelligence/*.ts /Users/christoler/vitalcv/apps/web/lib/auth/roles.ts /Users/christoler/vitalcv/apps/api/backend/src/services/investigation/contracts.ts /Users/christoler/vitalcv/apps/api/backend/src/services/copilot/contracts.ts)",
+      "mcp__Desktop_Commander__start_process"
     ],
     "deny": [],
     "ask": []

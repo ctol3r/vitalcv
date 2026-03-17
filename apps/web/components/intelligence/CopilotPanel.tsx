@@ -1,7 +1,24 @@
 'use client';
 
 import { startTransition, useCallback, useEffect, useRef, useState } from 'react';
-import { Bot, Loader2, Send, Sparkles } from 'lucide-react';
+import { Bot, Loader2, Send, Sparkles, Network, Fingerprint, ShieldAlert, ArrowRight } from 'lucide-react';
+
+function TypewriterText({ text }: { text: string }) {
+  const [displayed, setDisplayed] = useState('');
+  
+  useEffect(() => {
+    let index = 0;
+    setDisplayed('');
+    const intervalId = setInterval(() => {
+      setDisplayed(text.substring(0, index + 1));
+      index++;
+      if (index >= text.length) clearInterval(intervalId);
+    }, 8);
+    return () => clearInterval(intervalId);
+  }, [text]);
+
+  return <span>{displayed}</span>;
+}
 import type { IntelligenceProvider } from '@/lib/intelligence/contracts';
 import { SectionFrame, SurfaceState } from './shared';
 import { DecisionCard } from '@/components/decision/DecisionCard';
@@ -90,32 +107,50 @@ export function CopilotPanel({ provider, seed = null }: CopilotPanelProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query: trimmed, limit: 4 }),
+        body: JSON.stringify({
+          query: trimmed,
+          limit: 4,
+          providerId: provider?.npi,
+        }),
       });
 
       const payload = await response.json().catch(() => ({})) as {
+        status?: 'ok' | 'limited';
+        title?: string;
         message?: string;
+        suggestions?: string[];
         results?: CopilotResult[];
         graphInsights?: CopilotInsight[];
       };
 
       if (!response.ok) {
-        throw new Error(payload.message ?? 'Copilot query failed.');
+        throw new Error(payload.message ?? 'Copilot source unavailable.');
       }
 
-      setResults(payload.results ?? []);
+      if (payload.status === 'limited' && (payload.results?.length ?? 0) === 0) {
+        setResults([
+          {
+            id: 'copilot-limited',
+            title: payload.title ?? 'Copilot needs more investigation context',
+            summary: payload.message ?? 'Copilot could not safely complete this request with the current live sources.',
+            sourceCoverage: payload.suggestions ?? [],
+          },
+        ]);
+      } else {
+        setResults(payload.results ?? []);
+      }
       setInsights(payload.graphInsights ?? []);
     } catch (requestError) {
       if (controller.signal.aborted) {
         return;
       }
-      setError(requestError instanceof Error ? requestError.message : 'Copilot query failed.');
+      setError(requestError instanceof Error ? requestError.message : 'Copilot source unavailable.');
     } finally {
       if (abortControllerRef.current === controller) {
         setLoading(false);
       }
     }
-  }, [query]);
+  }, [provider?.npi, query]);
 
   useEffect(() => {
     if (!seed?.query) {
@@ -200,34 +235,50 @@ export function CopilotPanel({ provider, seed = null }: CopilotPanelProps) {
         >
           <div className="grid gap-3">
             {results.map((result) => (
-              <article key={result.id} className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-4">
+              <article key={result.id} className="flex flex-col gap-4 rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-semibold text-[var(--vt-text-1)]">{result.title}</h3>
-                    <p className="mt-1 text-xs leading-5 text-[var(--vt-text-2)]">{result.summary}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="text-sm font-medium text-[var(--vt-text-1)]">{result.title}</h3>
+                      {typeof result.trustScore === 'number' ? (
+                        <span className="flex items-center gap-1 rounded border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                          {Math.round(result.trustScore)}% Confidence
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="text-sm leading-relaxed text-[var(--vt-text-2)]">
+                      <TypewriterText text={result.summary} />
+                    </div>
                   </div>
-                  {typeof result.trustScore === 'number' ? (
-                    <span className="rounded-full border border-[var(--vt-border)] px-2.5 py-1 text-[11px] font-semibold text-[var(--vt-text-2)]">
-                      {Math.round(result.trustScore)}
-                    </span>
-                  ) : null}
                 </div>
-                {result.sourceCoverage?.length ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {result.sourceCoverage.map((source) => (
+
+                <div className="flex items-center justify-between gap-4 border-t border-[var(--vt-border)] pt-3">
+                  <div className="flex flex-1 flex-wrap gap-1.5">
+                    {result.sourceCoverage?.map((source) => (
                       <span
                         key={`${result.id}-${source}`}
-                        className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-2.5 py-1 text-[11px] font-medium text-[var(--vt-text-2)]"
+                        className="rounded border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-2 py-0.5 text-[10px] text-[var(--vt-text-3)]"
                       >
                         {source}
                       </span>
                     ))}
                   </div>
-                ) : null}
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button className="flex items-center gap-1.5 rounded-md bg-[var(--vt-surface-2)] border border-[var(--vt-border)] px-3 py-1.5 text-[11px] font-medium text-[var(--vt-text-2)] hover:text-[var(--vt-text-1)] hover:bg-[var(--vt-surface-3)] transition-colors">
+                      <Bot className="h-3 w-3" />
+                      Investigate
+                    </button>
+                    <button className="flex items-center gap-1.5 rounded-md bg-[var(--vt-surface-2)] border border-[var(--vt-border)] px-3 py-1.5 text-[11px] font-medium text-[var(--vt-text-2)] hover:text-[var(--vt-text-1)] hover:bg-[var(--vt-surface-3)] transition-colors">
+                      <Network className="h-3 w-3" />
+                      Open Graph
+                    </button>
+                  </div>
+                </div>
 
                 {result.decisions && result.decisions.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-[var(--vt-border)] space-y-3">
-                    <h4 className="text-xs font-semibold uppercase tracking-widest text-[var(--vt-text-3)] mb-2">Recommended Actions</h4>
+                  <div className="space-y-3">
+                    <h4 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--vt-text-3)] mt-2">Recommended Actions</h4>
                     {result.decisions.map(decision => (
                       <DecisionCard
                         key={decision.id}
@@ -247,8 +298,10 @@ export function CopilotPanel({ provider, seed = null }: CopilotPanelProps) {
             ))}
 
             {insights.map((insight, index) => (
-              <div key={`${insight.summary}-${index}`} className="rounded-2xl border border-cyan-200/10 bg-cyan-200/[0.08] p-4 text-sm text-cyan-50/90">
-                {insight.summary}
+              <div key={`${insight.summary}-${index}`} className="flex items-start gap-3 rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-3 text-sm text-[var(--vt-text-2)] relative overflow-hidden">
+                <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[var(--vt-text-3)] opacity-20" />
+                <Sparkles className="h-4 w-4 mt-0.5 shrink-0 text-[var(--vt-text-3)]" />
+                <p className="leading-relaxed"><TypewriterText text={insight.summary} /></p>
               </div>
             ))}
           </div>

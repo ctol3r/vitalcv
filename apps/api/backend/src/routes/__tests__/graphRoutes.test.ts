@@ -307,6 +307,12 @@ describe('graph routes', () => {
     expect(response.body.schema).toBe('https://vitalcv.com/graph/investigation/v1');
     expect(Array.isArray(response.body.nodes)).toBe(true);
     expect(Array.isArray(response.body.edges)).toBe(true);
+    expect(response.body.nodes.some((node: { type: string }) => node.type === 'provider')).toBe(true);
+    expect(response.body.edges.every((edge: { type: string; metadataSummary: string }) => (
+      ['co_author', 'co_investigator', 'financial', 'institutional', 'regulatory', 'storyline_related', 'evidence_link'].includes(edge.type)
+      && typeof edge.metadataSummary === 'string'
+      && edge.metadataSummary.length > 0
+    ))).toBe(true);
     expect(response.body.highlights).toBeTruthy();
     expect(response.body.semanticZoom).toBeTruthy();
   });

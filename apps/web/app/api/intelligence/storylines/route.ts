@@ -1,10 +1,14 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { normalizeStorylinesPayload } from '@/lib/intelligence/contracts';
 import {
-  buildReadOnlyFallbackPayload,
+  attachAccessMetadata,
+  canReadIntelligence,
+  coerceRouteErrorPayload,
   fetchBackendJson,
+  fetchPublicSnapshotJson,
   logIntelligenceFallbackUsage,
   parsePositiveInt,
+  resolveAccessReason,
   resolveIntelligenceAuthContext,
 } from '../_shared';
 
@@ -12,10 +16,6 @@ export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
   const authContext = await resolveIntelligenceAuthContext();
-  if (authContext.status !== 'authenticated') {
-    return NextResponse.json(buildReadOnlyFallbackPayload('storylines', req, authContext));
-  }
-
   const limit = parsePositiveInt(
     req.nextUrl.searchParams.get('limit') ?? req.nextUrl.searchParams.get('pageSize'),
     8,
@@ -54,7 +54,8 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const upstream = await fetchBackendJson<{
+    const upstream = canReadIntelligence(authContext)
+      ? await fetchBackendJson<{
       storylines?: Array<{
         storylineId: string;
         storylineType: string;
@@ -78,11 +79,44 @@ export async function GET(req: NextRequest) {
         lastActivityAt: string;
       }>;
       total?: number;
-    }>('/api/storylines', params, 12_000, { context: authContext });
+      snapshotReady?: boolean;
+    }>('/api/storylines', params, 12_000, { context: authContext })
+      : await fetchPublicSnapshotJson<{
+      storylines?: Array<{
+        storylineId: string;
+        storylineType: string;
+        perspective: string;
+        title: string;
+        summary: string;
+        whyItMatters: string;
+        severity: string;
+        status: string;
+        confidence: number;
+        entityIds: string[];
+        recommendedActions: string[];
+        supportingEvidence?: Array<{
+          source: string;
+          bullet: string;
+          observedAt: string;
+          confidence: number;
+        }>;
+        findingIds: string[];
+        progressionScore: number;
+        lastActivityAt: string;
+      }>;
+      total?: number;
+      snapshotReady?: boolean;
+    }>('storylines', params, authContext, 12_000);
 
     if (!upstream.ok) {
       logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
-      return NextResponse.json(buildReadOnlyFallbackPayload('storylines', req, authContext, { log: false }));
+      return NextResponse.json(
+        coerceRouteErrorPayload(upstream.payload, {
+          error: 'backend_unavailable',
+          error_description: 'Storylines unavailable. Try again when the backend is reachable.',
+        }),
+        { status: upstream.status >= 400 ? upstream.status : 503 },
+      );
     }
 
     const normalized = normalizeStorylinesPayload(upstream.payload);
@@ -90,7 +124,7 @@ export async function GET(req: NextRequest) {
     const sliceEnd = sliceStart + limit;
     const pageStorylines = normalized.storylines.slice(sliceStart, sliceEnd);
 
-    return NextResponse.json({
+    return NextResponse.json(attachAccessMetadata({
       ...normalized,
       storylines: pageStorylines,
       pageInfo: {
@@ -100,11 +134,23 @@ export async function GET(req: NextRequest) {
         hasNextPage: sliceEnd < normalized.total,
         returned: pageStorylines.length,
       },
-      degraded: requiredWindow > 100,
-    });
+    }, {
+      accessMode: canReadIntelligence(authContext) ? 'full' : 'public_snapshot',
+      reason: resolveAccessReason(
+        authContext,
+        canReadIntelligence(authContext) ? 'full' : 'public_snapshot',
+        upstream.payload,
+      ),
+    }));
   } catch (error) {
-    void error;
     logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
-    return NextResponse.json(buildReadOnlyFallbackPayload('storylines', req, authContext, { log: false }));
+    return NextResponse.json(
+      {
+        error: 'backend_unavailable',
+        error_description: 'Storylines unavailable. Try again when the backend is reachable.',
+        message: error instanceof Error ? error.message : 'Unknown request failure',
+      },
+      { status: 503 },
+    );
   }
 }

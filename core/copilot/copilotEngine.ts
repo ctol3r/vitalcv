@@ -200,6 +200,9 @@ export interface CopilotGraphInsight {
 }
 
 export interface CopilotQueryResponse {
+  answer?: string;
+  sources?: string[];
+  confidence?: number;
   parsedQuery: ParsedCopilotQuery;
   results: CopilotResult[];
   explanations: CopilotExplanation[];

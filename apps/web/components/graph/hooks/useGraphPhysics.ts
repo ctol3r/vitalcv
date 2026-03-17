@@ -21,6 +21,7 @@ interface UseGraphPhysicsOptions {
   visuals: GraphVisualState;
   selectedNodeId: string | null;
   layoutVersion?: number;
+  layoutScopeKey?: string;
 }
 
 const layoutCache = new Map<string, SimulationNode[]>();
@@ -53,12 +54,14 @@ export function useGraphPhysics({
   visuals,
   selectedNodeId,
   layoutVersion = 0,
+  layoutScopeKey,
 }: UseGraphPhysicsOptions) {
   const simNodesRef = useRef<SimulationNode[]>([]);
   const layoutKey = useMemo(() => {
     const nodeSignature = nodes.map((node) => node.id).join('|');
     const edgeSignature = edges.map((edge) => edge.id).join('|');
     return [
+      layoutScopeKey ?? 'default',
       width,
       height,
       visuals.nodeSize,
@@ -69,7 +72,7 @@ export function useGraphPhysics({
       nodeSignature,
       edgeSignature,
     ].join('::');
-  }, [edges, height, layoutVersion, nodes, physics.preset, visuals.nodeSize, width]);
+  }, [edges, height, layoutScopeKey, layoutVersion, nodes, physics.preset, visuals.nodeSize, width]);
 
   useEffect(() => {
     const cachedLayout = layoutCache.get(layoutKey);
@@ -83,7 +86,7 @@ export function useGraphPhysics({
         rememberLayout(layoutKey, simNodesRef.current);
       }
     };
-  }, [height, layoutKey, nodes, visuals.nodeSize, width]);
+  }, [height, layoutKey, visuals.nodeSize, width]);
 
   const tick = useCallback(() => {
     if (!physics.frozen) {
