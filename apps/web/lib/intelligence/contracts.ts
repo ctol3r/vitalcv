@@ -84,6 +84,7 @@ export interface IntelligenceFinding {
   storylineId: string | null;
   storylineTitle: string | null;
   evidence: IntelligenceEvidence[];
+  firstSeenAt: string;
   updatedAt: string;
 }
 
@@ -251,6 +252,8 @@ interface InvestigatorFindingPayload {
     sourceId?: string | null;
     observedAt?: string | null;
   }>;
+  firstSeenAt?: string;
+  createdAt?: string;
   updatedAt: string;
 }
 
@@ -664,6 +667,7 @@ export function normalizeFindingsPayload(
         storylineId: storylineLink?.storylineId ?? null,
         storylineTitle: storylineLink?.storylineTitle ?? null,
         evidence: normalizeEvidenceList(finding.supportingEvidence),
+        firstSeenAt: finding.firstSeenAt ?? finding.createdAt ?? finding.updatedAt,
         updatedAt: finding.updatedAt,
       };
     })

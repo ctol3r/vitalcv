@@ -340,6 +340,8 @@ export function FindingsSurface() {
                 <span className="text-xs text-[var(--vt-text-3)]">{finding.investigatorId}</span>
               </div>
             )}
+            investigatorId={finding.investigatorId}
+            firstSeenAt={finding.firstSeenAt}
             severity={finding.severity}
             status={finding.status}
             summary={finding.summary}
