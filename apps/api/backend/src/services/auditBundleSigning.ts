@@ -107,7 +107,7 @@ export async function signAuditBundleHash(input: AuditBundleSignInput): Promise<
     hash_algorithm: 'SHA-256',
   })
     .setProtectedHeader({ alg: ALG, kid: KID, typ: 'JWT' })
-    .setIssuedAt(toIssuedAt(input.issuedAt))
+    .setIssuedAt(Math.floor(toIssuedAt(input.issuedAt).getTime() / 1000))
     .setIssuer(ISSUER)
     .sign(privateKey);
 }

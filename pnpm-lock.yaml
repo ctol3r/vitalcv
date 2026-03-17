@@ -246,8 +246,8 @@ importers:
         specifier: ^6.15.0
         version: 6.15.0
       jose:
-        specifier: ~5.10.0
-        version: 5.10.0
+        specifier: '4'
+        version: 4.15.9
       jsonwebtoken:
         specifier: ^9.0.2
         version: 9.0.3

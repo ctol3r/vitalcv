@@ -30,13 +30,13 @@ function buildUnsigned(req: IssueCredentialRequest): UnsignedCredential {
   };
 }
 
-function normalizeExpiration(expiresAt: string | undefined): Date | string {
+function normalizeExpiration(expiresAt: string | undefined): number | string {
   if (!expiresAt) {
     return '2y';
   }
 
   const parsed = new Date(expiresAt);
-  return Number.isNaN(parsed.getTime()) ? expiresAt : parsed;
+  return Number.isNaN(parsed.getTime()) ? expiresAt : Math.floor(parsed.getTime() / 1000);
 }
 
 // ── Public API ────────────────────────────────────────────────────────
