@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { startTransition, useMemo } from 'react';
+import { startTransition, useMemo, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useFindings } from '@/hooks/useFindings';
 import { useProviders } from '@/hooks/useProviders';
@@ -88,9 +88,32 @@ export function FindingsSurface() {
     });
   }
 
+  // ── Ranking / sort mode ────────────────────────────────────────────────
+  type FeedSortMode = 'ranked' | 'latest' | 'critical';
+  const [sortMode, setSortMode] = useState<FeedSortMode>('ranked');
+
   const totalPages = findings.data?.pageInfo?.totalPages ?? 1;
   const total = findings.data?.total ?? 0;
-  const items = findings.data?.findings ?? [];
+  const rawItems = findings.data?.findings ?? [];
+
+  const items = useMemo(() => {
+    if (sortMode === 'latest') {
+      return [...rawItems].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    }
+    if (sortMode === 'critical') {
+      return [...rawItems].filter(f => f.severity === 'critical' || f.severity === 'high');
+    }
+    // ranked: composite score = 0.3*priority + 0.3*severity + 0.2*recency + 0.2*confidence
+    const severityWeight: Record<string, number> = { critical: 1, high: 0.75, medium: 0.5, low: 0.25, info: 0.1 };
+    const now = Date.now();
+    return [...rawItems].sort((a, b) => {
+      const recencyA = Math.max(0, 1 - (now - new Date(a.updatedAt).getTime()) / (7 * 86400000));
+      const recencyB = Math.max(0, 1 - (now - new Date(b.updatedAt).getTime()) / (7 * 86400000));
+      const scoreA = 0.3 * (a.priorityScore / 100) + 0.3 * (severityWeight[a.severity] ?? 0.3) + 0.2 * recencyA + 0.2 * a.confidence;
+      const scoreB = 0.3 * (b.priorityScore / 100) + 0.3 * (severityWeight[b.severity] ?? 0.3) + 0.2 * recencyB + 0.2 * b.confidence;
+      return scoreB - scoreA;
+    });
+  }, [rawItems, sortMode]);
   const staleState = getSurfaceFreshnessState({
     generatedAt: findings.data?.generatedAt,
     lastUpdated: findings.lastUpdated,
@@ -150,6 +173,26 @@ export function FindingsSurface() {
       )}
     >
       <FindingFilters filters={filters} onApply={(nextFilters) => pushWithParams(nextFilters, 1)} />
+
+      {/* Sort mode toggles */}
+      <div className="flex items-center gap-1.5">
+        {(['ranked', 'latest', 'critical'] as const).map((mode) => (
+          <button
+            key={mode}
+            onClick={() => setSortMode(mode)}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+              sortMode === mode
+                ? 'border-cyan-400/50 bg-cyan-400/10 text-[var(--vt-text-1)]'
+                : 'border-[var(--vt-border)] text-[var(--vt-text-3)] hover:border-[var(--vt-text-3)]/40'
+            }`}
+          >
+            {mode === 'ranked' ? 'Ranked' : mode === 'latest' ? 'Latest' : 'Critical'}
+          </button>
+        ))}
+        <span className="ml-2 text-[10px] text-[var(--vt-text-3)]">
+          {sortMode === 'ranked' ? 'Priority + Severity + Recency + Confidence' : sortMode === 'latest' ? 'Most recently updated' : 'CRITICAL + HIGH only'}
+        </span>
+      </div>
 
       {findings.error && !items.length ? (
         <SurfaceErrorState

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { OperationsShell } from './shell';
 import { EntityLink, OpsBadge, OpsCard, SurfaceBanner, severityTone } from './primitives';
 import { CopilotSearchBar } from '@/components/copilot/CopilotSearchBar';
@@ -359,9 +359,22 @@ function NetworkGraphPanel({ npi }: { npi: string }) {
   const [edges, setEdges] = useState<MiniGraphEdge[]>([]);
   const [loading, setLoading] = useState(true);
   const [tooltip, setTooltip] = useState<{ label: string; type: string; x: number; y: number } | null>(null);
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const W = 380;
   const H = 260;
+
+  // Precompute neighbor sets for hover highlighting
+  const neighborMap = useMemo(() => {
+    const m = new Map<string, Set<string>>();
+    for (const e of edges) {
+      if (!m.has(e.source)) m.set(e.source, new Set());
+      if (!m.has(e.target)) m.set(e.target, new Set());
+      m.get(e.source)!.add(e.target);
+      m.get(e.target)!.add(e.source);
+    }
+    return m;
+  }, [edges]);
 
   useEffect(() => {
     if (!npi || !/^\d{10}$/.test(npi)) return;
@@ -426,39 +439,59 @@ function NetworkGraphPanel({ npi }: { npi: string }) {
         <div className="flex flex-1 items-center justify-center text-xs text-[var(--vt-text-3)]">No network data.</div>
       ) : (
         <div className="relative flex-1">
-          <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="h-full w-full">
+          <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="h-full w-full" onMouseLeave={() => { setHoveredNodeId(null); setTooltip(null); }}>
             {edges.map((e, i) => {
               const s = nodeMap.get(e.source);
               const t = nodeMap.get(e.target);
               if (!s || !t) return null;
-              return <line key={i} x1={s.x} y1={s.y} x2={t.x} y2={t.y} stroke="var(--vt-border)" strokeWidth={0.8} strokeOpacity={0.5} />;
-            })}
-            {nodes.map((n) => (
-              <g key={n.id}>
-                <circle
-                  cx={n.x} cy={n.y} r={n.size}
-                  fill={n.color}
-                  fillOpacity={n.isFocus ? 1 : 0.75}
-                  stroke={n.isFocus ? 'var(--vt-accent, cyan)' : 'none'}
-                  strokeWidth={n.isFocus ? 2 : 0}
-                  className="cursor-pointer"
-                  onMouseEnter={(ev) => {
-                    const rect = svgRef.current?.getBoundingClientRect();
-                    if (rect) setTooltip({ label: n.label, type: n.type, x: ev.clientX - rect.left, y: ev.clientY - rect.top });
-                  }}
-                  onMouseLeave={() => setTooltip(null)}
-                  onClick={() => {
-                    const m = n.id.match(/npi:(\d{10})/);
-                    if (m) window.location.href = `/providers/${m[1]}`;
-                  }}
+              const isHighlighted = hoveredNodeId != null && (e.source === hoveredNodeId || e.target === hoveredNodeId);
+              const isDimmed = hoveredNodeId != null && !isHighlighted;
+              return (
+                <line key={i} x1={s.x} y1={s.y} x2={t.x} y2={t.y}
+                  stroke={isHighlighted ? 'var(--vt-accent, cyan)' : 'var(--vt-border)'}
+                  strokeWidth={isHighlighted ? 1.5 : 0.8}
+                  strokeOpacity={isDimmed ? 0.12 : isHighlighted ? 0.9 : 0.5}
+                  style={{ transition: 'stroke-opacity 120ms, stroke 120ms' }}
                 />
-                {n.isFocus ? (
-                  <text x={n.x} y={n.y + n.size + 11} textAnchor="middle" className="fill-[var(--vt-text-2)] text-[8px] font-medium">
-                    {n.label.slice(0, 16)}
-                  </text>
-                ) : null}
-              </g>
-            ))}
+              );
+            })}
+            {nodes.map((n) => {
+              const neighbors = neighborMap.get(n.id);
+              const isNeighbor = hoveredNodeId != null && (n.id === hoveredNodeId || neighbors?.has(hoveredNodeId) || n.isFocus);
+              const isDimmed = hoveredNodeId != null && !isNeighbor;
+              const isHovered = n.id === hoveredNodeId;
+              return (
+                <g key={n.id}>
+                  <circle
+                    cx={n.x} cy={n.y}
+                    r={isHovered ? n.size * 1.25 : n.size}
+                    fill={n.color}
+                    fillOpacity={isDimmed ? 0.15 : n.isFocus ? 1 : 0.75}
+                    stroke={n.isFocus ? 'var(--vt-accent, cyan)' : isHovered ? n.color : 'none'}
+                    strokeWidth={n.isFocus ? 2 : isHovered ? 1.5 : 0}
+                    className="cursor-pointer"
+                    style={{ transition: 'r 120ms, fill-opacity 120ms, stroke 120ms' }}
+                    onMouseEnter={(ev) => {
+                      setHoveredNodeId(n.id);
+                      const rect = svgRef.current?.getBoundingClientRect();
+                      if (rect) setTooltip({ label: n.label, type: n.type, x: ev.clientX - rect.left, y: ev.clientY - rect.top });
+                    }}
+                    onMouseLeave={() => { setHoveredNodeId(null); setTooltip(null); }}
+                    onClick={() => {
+                      const m = n.id.match(/npi:(\d{10})/);
+                      if (m) window.location.href = `/providers/${m[1]}`;
+                    }}
+                  />
+                  {(n.isFocus || isHovered) ? (
+                    <text x={n.x} y={n.y + (isHovered ? n.size * 1.25 : n.size) + 11} textAnchor="middle"
+                      className="fill-[var(--vt-text-2)] text-[8px] font-medium pointer-events-none"
+                      style={{ opacity: isDimmed ? 0.15 : 1, transition: 'opacity 120ms' }}>
+                      {n.label.slice(0, 16)}
+                    </text>
+                  ) : null}
+                </g>
+              );
+            })}
           </svg>
           {tooltip ? (
             <div className="pointer-events-none absolute z-10 rounded-lg border border-[var(--vt-border)] bg-[var(--vt-surface)] px-2 py-1 text-xs shadow-lg"
@@ -594,6 +627,9 @@ export function InvestigationsSurface() {
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(seededFindingId || null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
 
+  // ── Finding detail cache: hydrated from workbench responses ─────────────
+  const findingCacheRef = useRef<Map<string, WorkbenchFindingContext>>(new Map());
+
   const fetchWorkbench = useCallback(async (params: {
     npi?: string;
     findingId?: string;
@@ -614,6 +650,10 @@ export function InvestigationsSurface() {
       if (!res.ok) throw new Error((payload as { error?: string }).error ?? `Request failed ${res.status}`);
       setContext(payload);
       if (params.npi) setNpiInput(params.npi);
+      // Cache the finding detail for instant hydration on re-select
+      if (payload.finding) {
+        findingCacheRef.current.set(payload.finding.id, payload.finding);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Investigation failed');
     } finally {
@@ -632,13 +672,21 @@ export function InvestigationsSurface() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seededNpi, seededFindingId, seededStorylineId]);
 
-  // Finding selection from inbox
+  // Finding selection from inbox — optimistic hydration from cache
   const handleSelectFinding = useCallback((id: string) => {
     setSelectedFindingId(id);
+
+    // Optimistic: if we have a cached finding detail, hydrate instantly
+    const cached = findingCacheRef.current.get(id);
+    if (cached && context) {
+      setContext(prev => prev ? { ...prev, finding: cached } : prev);
+    }
+
+    // Lazy-fetch full context in background (will update if different)
     if (context?.provider?.npi) {
       void fetchWorkbench({ npi: context.provider.npi, findingId: id });
     }
-  }, [context?.provider?.npi, fetchWorkbench]);
+  }, [context, fetchWorkbench]);
 
   // Keyboard shortcut actions
   const showAction = useCallback((msg: string) => {
