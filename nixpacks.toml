@@ -1,0 +1,23 @@
+# Force Nixpacks builder for Railway — do not use Railpack.
+# Explicit phases prevent Railway from improvising install/build steps.
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "pnpm"]
+
+[phases.install]
+cmds = ["pnpm install --no-frozen-lockfile"]
+
+[phases.build]
+cmds = [
+  "pnpm --filter @vitalcv/ingest run build",
+  "pnpm --filter @vitalcv/psv run build",
+  "pnpm --filter @vitalcv/poe-engine run build",
+  "pnpm --filter @vitalcv/command-registry run build",
+  "pnpm --filter @vitalcv/crs run build",
+  "pnpm --filter @vitalcv/psv-adapters run build",
+  "pnpm --filter @vitalcv/haip-config run build",
+  "pnpm --filter @vitalcv/api run build",
+]
+
+[start]
+cmd = "SKIP_STARTUP_MIGRATION=1 node -r ./apps/api/backend/register-workspace-paths.js apps/api/backend/dist/apps/api/backend/src/server.js"
