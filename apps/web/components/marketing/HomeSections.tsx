@@ -113,7 +113,7 @@ export function ProblemSection() {
             Every hospital reverifies you{' '}
             <span className="text-red-400">from scratch. Every time.</span>
           </h2>
-          <p className="mt-4 text-white/45 max-w-2xl mx-auto text-lg leading-relaxed">
+          <p className="mt-4 text-white/65 max-w-2xl mx-auto text-lg leading-relaxed">
             You've already proven your credentials. But every new hospital,
             staffing agency, and locums contract makes you do it again — paper
             packets, fax machines, weeks of waiting. Your career shouldn't
@@ -234,7 +234,7 @@ export function HowItWorksSection() {
             Verified in hours.{' '}
             <span className="text-blue-400">Trusted for your career.</span>
           </h2>
-          <p className="mt-4 text-white/40 max-w-xl mx-auto text-lg leading-relaxed">
+          <p className="mt-4 text-white/60 max-w-xl mx-auto text-lg leading-relaxed">
             VitalCV queries state medical boards, NPDB, DEA, and board
             certification bodies directly — then produces a verified credential
             that any hospital can confirm instantly, without calling anyone.
@@ -253,7 +253,7 @@ export function HowItWorksSection() {
                   {/* Connector arrow (not on last) */}
                   {i < STEPS.length - 1 && (
                     <div className="hidden md:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-10 h-7 w-7 items-center justify-center rounded-full bg-zinc-900 border border-white/10">
-                      <ArrowRight className="h-3.5 w-3.5 text-white/30" />
+                      <ArrowRight className="h-3.5 w-3.5 text-white/55" />
                     </div>
                   )}
 
@@ -267,7 +267,7 @@ export function HowItWorksSection() {
                   </div>
 
                   <h3 className="font-semibold text-white mb-2 text-base">{s.title}</h3>
-                  <p className="text-sm text-white/40 leading-relaxed mb-4">{s.description}</p>
+                  <p className="text-sm text-white/60 leading-relaxed mb-4">{s.description}</p>
 
                   <div className={`inline-flex items-center gap-1.5 text-xs font-semibold ${colors.text}`}>
                     <CheckCircle2 className="h-3 w-3" />
@@ -326,7 +326,7 @@ export function TractionSection() {
             A massive, broken market.{' '}
             <span className="text-emerald-400">We have the fix.</span>
           </h2>
-          <p className="mt-4 text-white/40 max-w-xl mx-auto text-lg leading-relaxed">
+          <p className="mt-4 text-white/60 max-w-xl mx-auto text-lg leading-relaxed">
             Every hospital, clinic, and staffing agency re-verifies the same
             clinician from scratch — by fax, by hand, every time. VitalCV
             makes that process permanent, portable, and instant.
@@ -341,7 +341,7 @@ export function TractionSection() {
                 <div className={`text-2xl sm:text-3xl font-black mb-1.5 tracking-tight ${m.color}`}>
                   {m.value}
                 </div>
-                <div className="text-xs text-white/35 leading-relaxed">{m.label}</div>
+                <div className="text-xs text-white/60 leading-relaxed">{m.label}</div>
               </div>
             </FadeIn>
           ))}
@@ -353,7 +353,7 @@ export function TractionSection() {
         {/* What's built */}
         <FadeIn delay={0.25}>
           <div className="rounded-2xl border border-white/6 bg-white/3 p-6 mb-5">
-            <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/25 mb-5">
+            <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/50 mb-5">
               What&apos;s already built &amp; working
             </p>
             <div className="grid sm:grid-cols-2 gap-3">
@@ -370,7 +370,7 @@ export function TractionSection() {
         {/* Compliance badges */}
         <FadeIn delay={0.3}>
           <div className="rounded-2xl border border-white/6 bg-white/3 p-6">
-            <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/25 text-center mb-5">
+            <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/50 text-center mb-5">
               Compliance &amp; Standards
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
@@ -529,7 +529,7 @@ export function MoneballSection() {
           {/* Left: The argument */}
           <FadeIn delay={0.1} className="space-y-6">
             <div className="rounded-2xl border border-white/8 bg-white/3 p-7 space-y-5">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/30">The Argument</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/55">The Argument</p>
 
               <p className="text-white/70 leading-relaxed">
                 The US is projected to face a shortage of{' '}
@@ -571,7 +571,7 @@ export function MoneballSection() {
           {/* Right: The proof + funnel */}
           <FadeIn delay={0.2} className="space-y-5">
             <div className="rounded-2xl border border-white/8 bg-white/3 p-7 space-y-5">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/30">The Proof</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/55">The Proof</p>
 
               <p className="text-white/70 leading-relaxed">
                 As a clinician sourcing recruiter, I ran this experiment.
@@ -594,7 +594,7 @@ export function MoneballSection() {
 
             {/* Funnel visualization */}
             <div className="rounded-2xl border border-white/8 bg-white/3 p-6">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/25 mb-5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/50 mb-5">
                 The recruiting funnel
               </p>
               {[
@@ -607,10 +607,10 @@ export function MoneballSection() {
               ].map((row, i) => (
                 <div key={row.label} className="mb-2.5">
                   <div className="flex items-center justify-between mb-1">
-                    <span className={`text-xs ${row.label.includes('bottleneck') ? 'text-red-400 font-semibold' : 'text-white/45'}`}>
+                    <span className={`text-xs ${row.label.includes('bottleneck') ? 'text-red-400 font-semibold' : 'text-white/65'}`}>
                       {row.label}
                     </span>
-                    <span className={`text-xs font-mono ${row.label.includes('bottleneck') ? 'text-red-400' : 'text-white/25'}`}>
+                    <span className={`text-xs font-mono ${row.label.includes('bottleneck') ? 'text-red-400' : 'text-white/50'}`}>
                       {row.pct}%
                     </span>
                   </div>
@@ -622,7 +622,7 @@ export function MoneballSection() {
                   </div>
                 </div>
               ))}
-              <p className="text-[10px] text-white/25 mt-4 leading-relaxed">
+              <p className="text-[10px] text-white/50 mt-4 leading-relaxed">
                 The gap between &ldquo;offers accepted&rdquo; and &ldquo;Day 1 starts&rdquo; is
                 entirely credentialing delay. VitalCV closes it.
               </p>
@@ -641,7 +641,7 @@ export function MoneballSection() {
               Fix credentialing speed, and you don&apos;t just hire faster —
               you solve the shortage.
             </p>
-            <p className="text-white/45 mt-3 max-w-2xl mx-auto">
+            <p className="text-white/65 mt-3 max-w-2xl mx-auto">
               Every week a credentialed physician can&apos;t start is a week of care
               that doesn&apos;t happen. VitalCV compresses that gap from months to hours —
               and in doing so, unlocks the capacity the healthcare system already has.
@@ -752,7 +752,7 @@ export function PlatformVisionSection() {
             <br />
             <span className="text-violet-400">The infrastructure layer for all of US healthcare.</span>
           </h2>
-          <p className="text-white/40 max-w-2xl mx-auto text-lg leading-relaxed">
+          <p className="text-white/60 max-w-2xl mx-auto text-lg leading-relaxed">
             VitalCV is building the definitive knowledge base for every clinician, every credential,
             every specialty, and every career path in American medicine — powered by AI and anchored
             by cryptographic proof. Free for the people who need it most.
@@ -770,7 +770,7 @@ export function PlatformVisionSection() {
                     <span className={`text-4xl font-black ${c.num}`}>{p.number}</span>
                   </div>
                   <h3 className="text-base font-semibold text-white mb-2">{p.title}</h3>
-                  <p className="text-sm text-white/40 leading-relaxed mb-4">{p.body}</p>
+                  <p className="text-sm text-white/60 leading-relaxed mb-4">{p.body}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {p.tags.map(tag => (
                       <span key={tag} className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${c.tag}`}>
@@ -790,13 +790,13 @@ export function PlatformVisionSection() {
                 <span className="text-4xl font-black text-white/10">06</span>
               </div>
               <h3 className="text-base font-semibold text-white mb-2">Integration Network</h3>
-              <p className="text-sm text-white/40 leading-relaxed mb-4">
+              <p className="text-sm text-white/60 leading-relaxed mb-4">
                 Ingests data from every major medical registry, association, and platform —
                 so clinicians never fill out a form that already exists somewhere.
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {['NPPES', 'NPDB', 'Doximity', 'PubMed', 'DEA', 'OIG', 'ABMS', 'State Boards', 'CMS', 'TEFCA'].map(src => (
-                  <span key={src} className="rounded-full px-2 py-0.5 text-[10px] font-medium bg-white/5 text-white/30">
+                  <span key={src} className="rounded-full px-2 py-0.5 text-[10px] font-medium bg-white/5 text-white/55">
                     {src}
                   </span>
                 ))}
@@ -808,7 +808,7 @@ export function PlatformVisionSection() {
         {/* Novel Tech Claims */}
         <FadeIn delay={0.3}>
           <div className="rounded-2xl border border-white/8 bg-white/3 p-8">
-            <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/25 text-center mb-8">
+            <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/50 text-center mb-8">
               What&apos;s never been done before
             </p>
             <div className="grid sm:grid-cols-2 gap-6">
@@ -821,7 +821,7 @@ export function PlatformVisionSection() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-white mb-1">{item.claim}</p>
-                    <p className="text-xs text-white/35 leading-relaxed">{item.detail}</p>
+                    <p className="text-xs text-white/60 leading-relaxed">{item.detail}</p>
                   </div>
                 </div>
               ))}

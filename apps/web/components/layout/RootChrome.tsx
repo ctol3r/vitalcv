@@ -57,7 +57,11 @@ export default function RootChrome({ children, clerkEnabled }: RootChromeProps) 
       <div className="relative flex-1">{children}</div>
       <Footer />
       <FeedbackButton />
-      <PrequalifyBar />
+      {clerkEnabled ? (
+        <SignedIn>
+          <PrequalifyBar />
+        </SignedIn>
+      ) : null}
       <VCommandBar />
     </div>
   );

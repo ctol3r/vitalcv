@@ -37,7 +37,7 @@ function VerificationPipeline() {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/4 p-5">
       <div className="flex items-center justify-between mb-4">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/35">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">
           Verification running
         </span>
         <span className="flex h-1.5 w-1.5 relative">
@@ -66,9 +66,9 @@ function VerificationPipeline() {
                 transition={{ duration: 0.35 }}
                 className="h-8 w-8 rounded-full border border-white/10 flex items-center justify-center"
               >
-                <Icon className={`h-3.5 w-3.5 ${isActive || isPassed ? 'text-emerald-300' : 'text-white/20'}`} />
+                <Icon className={`h-3.5 w-3.5 ${isActive || isPassed ? 'text-emerald-300' : 'text-white/45'}`} />
               </motion.div>
-              <span className="text-[9px] font-medium text-white/25 uppercase tracking-wider text-center w-16 leading-tight">
+              <span className="text-[9px] font-medium text-white/50 uppercase tracking-wider text-center w-16 leading-tight">
                 {stage.label}
               </span>
             </div>
@@ -96,7 +96,7 @@ function TrustPassportCard() {
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400/70">
             Trust Passport
           </p>
-          <p className="text-xs text-white/30 mt-0.5">Dr. Sarah Chen · NPI 1003000126</p>
+          <p className="text-xs text-white/55 mt-0.5">Dr. Sarah Chen · NPI 1003000126</p>
         </div>
         <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/20 px-2.5 py-1">
           <CheckCircle2 className="h-3 w-3 text-emerald-400" />
@@ -108,7 +108,7 @@ function TrustPassportCard() {
           <div key={item.label} className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-medium text-white/70">{item.label}</p>
-              <p className="text-[10px] text-white/30 mt-0.5">{item.detail}</p>
+              <p className="text-[10px] text-white/55 mt-0.5">{item.detail}</p>
             </div>
             <div className={`flex-shrink-0 h-1.5 w-1.5 rounded-full mt-1.5 ${item.status === 'verified' ? 'bg-emerald-400' : 'bg-blue-400'}`} />
           </div>
@@ -128,16 +128,7 @@ export function LiveTrustConsole() {
         background: 'linear-gradient(145deg, #080e1a 0%, #0b1220 50%, #07101e 100%)',
       }}
     >
-      {/* Precision grid — medical instrument feel */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.025]"
-        style={{
-          backgroundImage:
-            'linear-gradient(to right, #a0c4ff 1px, transparent 1px), linear-gradient(to bottom, #a0c4ff 1px, transparent 1px)',
-          backgroundSize: '72px 72px',
-        }}
-      />
+      {/* Grid removed — cleaner hero */}
 
       {/* Radial glow — deep teal, like a hospital monitor */}
       <div
@@ -149,10 +140,7 @@ export function LiveTrustConsole() {
         }}
       />
 
-      {/* Floating credential chips — subtle, on larger screens only */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <FloatingCredentials />
-      </div>
+      {/* Floating credential chips removed — cleaner hero */}
 
       {/* Main content */}
       <div className="relative z-10 mx-auto max-w-6xl px-6 py-24 sm:py-32">
@@ -178,7 +166,7 @@ export function LiveTrustConsole() {
               <span className="text-emerald-400">Use everywhere.</span>
             </h1>
 
-            <p className="max-w-lg text-lg text-white/45 leading-relaxed">
+            <p className="max-w-lg text-lg text-white/70 leading-relaxed">
               Create your verified clinician credential profile and keep your credentials ready.
             </p>
 
@@ -199,9 +187,9 @@ export function LiveTrustConsole() {
 
             {/* Social proof strip — understated */}
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/6 pt-5">
-              <span className="text-xs text-white/25">Designed for:</span>
+              <span className="text-xs text-white/50">Designed for:</span>
               {['Physicians', 'Nurse Practitioners', 'Physician Assistants', 'CRNAs', 'Locums'].map(t => (
-                <span key={t} className="text-xs text-white/35 font-medium">{t}</span>
+                <span key={t} className="text-xs text-white/60 font-medium">{t}</span>
               ))}
             </div>
           </motion.div>
@@ -231,7 +219,7 @@ export function LiveTrustConsole() {
                   className="rounded-xl border border-white/6 bg-white/3 p-3.5 text-center"
                 >
                   <p className="text-base font-bold text-white leading-none">{s.value}</p>
-                  <p className="text-[10px] text-white/30 uppercase tracking-wider mt-1.5 leading-tight">{s.label}</p>
+                  <p className="text-[10px] text-white/55 uppercase tracking-wider mt-1.5 leading-tight">{s.label}</p>
                 </div>
               ))}
             </div>

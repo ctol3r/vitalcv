@@ -15,12 +15,9 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 const NAV_ITEMS = [
-  { href: '/intelligence',   label: 'Intelligence' },
   { href: '/explore',        label: 'Explore' },
-  { href: '/graph',          label: 'Graph' },
-  { href: '/network',        label: 'Network' },
-  { href: '/documents',      label: 'Documents' },
-  { href: '/system-health',  label: 'System Health' },
+  { href: '/demo',           label: 'Demo' },
+  { href: '/employers',      label: 'Employers' },
   { href: '/developers',     label: 'Developers' },
 ] as const;
 
