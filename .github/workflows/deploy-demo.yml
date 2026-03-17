@@ -34,7 +34,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm exec prisma generate --schema apps/api/backend/prisma/schema.prisma
+        run: pnpm --filter chai-vc-platform-backend exec prisma generate
 
       - name: Typecheck
         run: pnpm --filter web exec tsc --noEmit
