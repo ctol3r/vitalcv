@@ -184,7 +184,19 @@ export function decorateAuthFailurePayload<T>(payload: T, status: number): T {
 }
 
 export async function resolveIntelligenceAuthContext(): Promise<IntelligenceAuthContext> {
-  const session = await auth();
+  let session: Awaited<ReturnType<typeof auth>>;
+  try {
+    session = await auth();
+  } catch {
+    // Clerk context unavailable (middleware bypassed or Clerk misconfigured)
+    return {
+      status: 'missing_session',
+      userId: null,
+      email: null,
+      role: null,
+      orgId: null,
+    };
+  }
   const userId = session.userId ?? null;
   const email = parseSessionEmail(session);
   const role = parseSessionRole(session);

@@ -1,6 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import type { NextFetchEvent, NextRequest } from 'next/server';
 import {
   isPublicRoute,
   getRequiredRole,
@@ -17,12 +17,22 @@ import {
  *           to look up or create the User row in Prisma, then redirects to
  *           force a JWT refresh.
  *
- * /demo is permanently redirected (308) to /.
+ * Intelligence and investigation API routes attempt Clerk but gracefully
+ * degrade when Clerk edge processing fails (missing keys, timeout, etc.).
+ * Route handlers use resolveIntelligenceAuthContext() which returns
+ * missing_session when Clerk is unavailable.
  */
 
 const isSignInPage = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)']);
 
-export default clerkMiddleware(async (auth, req) => {
+/**
+ * API routes that should never 500 due to Clerk edge failures.
+ * Clerk is attempted (so authenticated users get full data), but
+ * failures are caught and the request passes through to route handlers.
+ */
+const INTELLIGENCE_API = /^\/api\/(intelligence|investigation)(\/.*)?$/;
+
+const clerkHandler = clerkMiddleware(async (auth, req) => {
   const { pathname } = req.nextUrl;
 
   // 1. Public routes pass through
@@ -92,6 +102,18 @@ export default clerkMiddleware(async (auth, req) => {
   // 7. Authorized — pass through
   return NextResponse.next();
 });
+
+export default async function middleware(req: NextRequest, event: NextFetchEvent) {
+  if (INTELLIGENCE_API.test(req.nextUrl.pathname)) {
+    try {
+      return await clerkHandler(req, event);
+    } catch {
+      // Clerk edge failed — pass through; route handlers degrade gracefully
+      return NextResponse.next();
+    }
+  }
+  return clerkHandler(req, event);
+}
 
 export const config = {
   matcher: [
