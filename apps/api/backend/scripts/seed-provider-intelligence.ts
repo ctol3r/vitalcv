@@ -394,6 +394,9 @@ async function seedClaims(npi: string, provider: SeedProvider): Promise<number> 
         confidenceLabel: claim.confidenceScore >= 0.9 ? 'HIGH' : 'MODERATE',
         confidenceScore: claim.confidenceScore,
         parserVersion: 'v2.1.0',
+        status: 'ACTIVE',
+        observedAt: daysAgo(Math.floor(Math.random() * 30) + 1),
+        derivedAt: daysAgo(Math.floor(Math.random() * 30) + 1),
         createdAt: daysAgo(Math.floor(Math.random() * 30) + 1),
       },
     });
