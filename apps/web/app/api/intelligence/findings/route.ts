@@ -4,13 +4,10 @@ import { parseMinConfidenceNumber } from '@/lib/intelligence/finding-filters';
 import { loadFindingStorylineLinks } from '@/lib/intelligence/navigation-links';
 import {
   attachAccessMetadata,
-  canReadIntelligence,
   coerceRouteErrorPayload,
   fetchBackendJson,
-  fetchPublicSnapshotJson,
   logIntelligenceFallbackUsage,
   parsePositiveInt,
-  resolveAccessReason,
   resolveIntelligenceAuthContext,
 } from '../_shared';
 
@@ -75,8 +72,7 @@ export async function GET(req: NextRequest) {
   const authContext = await resolveIntelligenceAuthContext();
 
   try {
-    const upstream = canReadIntelligence(authContext)
-      ? await fetchBackendJson<{
+    const upstream = await fetchBackendJson<{
       findings?: Array<{
         findingId: string;
         investigatorId: string;
@@ -108,40 +104,7 @@ export async function GET(req: NextRequest) {
       }>;
       total?: number;
       snapshotReady?: boolean;
-    }>('/api/investigators/findings', params, 12_000, { context: authContext })
-      : await fetchPublicSnapshotJson<{
-      findings?: Array<{
-        findingId: string;
-        investigatorId: string;
-        findingType: string;
-        severity: string;
-        status: string;
-        title: string;
-        summary: string;
-        explanation: string;
-        entityIds?: string[];
-        entities?: Array<{
-          entityType?: string;
-          entityId?: string;
-          entityLabel?: string | null;
-        }>;
-        metadata?: Record<string, unknown>;
-        priorityScore: number;
-        confidence: number;
-        storylineKey: string | null;
-        supportingEvidence?: Array<{
-          evidenceId?: string;
-          evidenceType?: string;
-          snippet?: string | null;
-          sourceLabel?: string | null;
-          sourceId?: string | null;
-          observedAt?: string | null;
-        }>;
-        updatedAt: string;
-      }>;
-      total?: number;
-      snapshotReady?: boolean;
-    }>('findings', params, authContext, 12_000);
+    }>('/api/findings', params, 12_000, { context: authContext });
 
     if (!upstream.ok) {
       logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
@@ -188,12 +151,8 @@ export async function GET(req: NextRequest) {
         returned: normalized.findings.length,
       },
     }, {
-      accessMode: canReadIntelligence(authContext) ? 'full' : 'public_snapshot',
-      reason: resolveAccessReason(
-        authContext,
-        canReadIntelligence(authContext) ? 'full' : 'public_snapshot',
-        upstream.payload,
-      ),
+      accessMode: 'full',
+      reason: 'ok',
     }));
   } catch (error) {
     logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');

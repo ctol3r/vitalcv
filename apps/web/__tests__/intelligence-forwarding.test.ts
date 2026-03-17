@@ -68,7 +68,7 @@ describe('intelligence auth forwarding', () => {
     expect(headers.get('x-org-id')).toBe('org-active-1');
   });
 
-  it('returns the seeded public providers snapshot when the session is missing', async () => {
+  it('returns the live provider directory when the session is missing', async () => {
     authMock.mockResolvedValue({ userId: null, orgId: null, sessionClaims: {} });
     const fetchMock = vi.fn().mockResolvedValue(new Response(
       JSON.stringify({
@@ -100,20 +100,73 @@ describe('intelligence auth forwarding', () => {
     const response = await GET(new NextRequest('http://localhost/api/intelligence/providers') as never);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('http://backend.test/api/intelligence/public/providers'),
+      'http://backend.test/api/directory?page=1&pageSize=12&limit=12&minTrustScore=0',
       expect.objectContaining({
         cache: 'no-store',
         headers: expect.any(Headers),
       }),
     );
     await expect(response.json()).resolves.toMatchObject({
-      accessMode: 'public_snapshot',
-      reason: 'missing_session',
+      accessMode: 'full',
+      reason: 'ok',
       total: 1,
       providers: [{
         npi: '1902301456',
         name: 'Amelia Hart',
       }],
+    });
+  });
+
+  it('proxies intelligence system health to the canonical backend pulse endpoint', async () => {
+    authMock.mockResolvedValue({ userId: null, orgId: null, sessionClaims: {} });
+    const fetchMock = vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({
+        status: 'HEALTHY',
+        providers: 5,
+        findings: 42,
+        storylines: 11,
+        systemState: 'ALIVE',
+        lastEventAt: '2026-03-17T10:46:18.000Z',
+        generatedAt: '2026-03-17T11:00:00.000Z',
+        agents: [{
+          id: 'data-sanity',
+          name: 'Data Sanity Agent',
+          enabled: true,
+          lastRun: '2026-03-17T10:30:00.000Z',
+          lastIssueCount: 0,
+        }],
+        totalIssues: 0,
+        totalAutoRepaired: 0,
+        totalSurfaced: 0,
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { GET } = await import('../app/api/intelligence/system-health/route');
+    const response = await GET(new NextRequest('http://localhost/api/intelligence/system-health') as never);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://backend.test/api/system-health',
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: expect.any(Headers),
+      }),
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      accessMode: 'full',
+      reason: 'ok',
+      overall: 'healthy',
+      headline: '42 findings across 11 storylines are live.',
+      cards: expect.arrayContaining([
+        expect.objectContaining({
+          id: 'findings',
+          summary: '42 active findings',
+        }),
+      ]),
     });
   });
 
@@ -142,6 +195,166 @@ describe('intelligence auth forwarding', () => {
     await expect(response.json()).resolves.toEqual({
       error: 'backend_unavailable',
       error_description: 'Findings feed unavailable. Try again when the backend is reachable.',
+    });
+  });
+
+  it('proxies intelligence findings to the canonical findings feed', async () => {
+    authMock.mockResolvedValue({
+      userId: 'clerk-user-1',
+      orgId: 'org-clerk-1',
+      sessionClaims: {},
+    });
+    const fetchMock = vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({
+        findings: [{
+          findingId: 'finding-1',
+          investigatorId: 'trust_decline',
+          findingType: 'trust_decline',
+          severity: 'critical',
+          status: 'new',
+          title: 'Trust score dropped',
+          summary: 'Licensure source is stale.',
+          explanation: 'Confidence degraded after stale source detection.',
+          entityIds: ['provider:1234567890'],
+          metadata: { npi: '1234567890' },
+          priorityScore: 0.96,
+          confidence: 0.91,
+          storylineKey: 'storyline-1',
+          supportingEvidence: [],
+          updatedAt: '2026-03-15T12:00:00.000Z',
+        }],
+        total: 1,
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { GET } = await import('../app/api/intelligence/findings/route');
+    const response = await GET(new NextRequest('http://localhost/api/intelligence/findings?limit=1') as never);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://backend.test/api/findings?limit=1&offset=0',
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: expect.any(Headers),
+      }),
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      accessMode: 'full',
+      reason: 'ok',
+      total: 1,
+      findings: [expect.objectContaining({ id: 'finding-1' })],
+    });
+  });
+
+  it('proxies the bare findings route to the backend findings feed', async () => {
+    authMock.mockResolvedValue({
+      userId: 'clerk-user-1',
+      orgId: 'org-clerk-1',
+      sessionClaims: {
+        email: 'ada@example.com',
+      },
+    });
+    const fetchMock = vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({
+        schema: 'https://vitalcv.com/findings/v2',
+        total: 1,
+        findings: [{ findingId: 'finding-1', title: 'Escalation window' }],
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { GET } = await import('../app/api/findings/route');
+    const response = await GET(new NextRequest('http://localhost/api/findings?limit=1') as never);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://backend.test/api/findings?limit=1',
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: expect.any(Headers),
+      }),
+    );
+
+    const [, init] = fetchMock.mock.calls[0] as [string, { headers: Headers }];
+    expect(init.headers.get('x-org-id')).toBe('org-clerk-1');
+    await expect(response.json()).resolves.toMatchObject({
+      total: 1,
+      findings: [{ findingId: 'finding-1' }],
+    });
+  });
+
+  it('proxies the bare storylines route to the backend storyline feed', async () => {
+    authMock.mockResolvedValue({
+      userId: 'clerk-user-1',
+      orgId: 'org-clerk-1',
+      sessionClaims: {},
+    });
+    const fetchMock = vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({
+        total: 1,
+        storylines: [{ storylineId: 'story-1', title: 'Escalation window' }],
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { GET } = await import('../app/api/storylines/route');
+    const response = await GET(new NextRequest('http://localhost/api/storylines?limit=1') as never);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://backend.test/api/storylines?limit=1',
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: expect.any(Headers),
+      }),
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      total: 1,
+      storylines: [{ storylineId: 'story-1' }],
+    });
+  });
+
+  it('proxies the bare providers route to the backend provider listing', async () => {
+    authMock.mockResolvedValue({
+      userId: 'clerk-user-1',
+      orgId: 'org-clerk-1',
+      sessionClaims: {},
+    });
+    const fetchMock = vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({
+        total: 1,
+        providers: [{ npi: '1234567890', fullName: 'Ada Lovelace' }],
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { GET } = await import('../app/api/providers/route');
+    const response = await GET(new NextRequest('http://localhost/api/providers?limit=1') as never);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://backend.test/api/providers?limit=1',
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: expect.any(Headers),
+      }),
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      total: 1,
+      providers: [{ npi: '1234567890' }],
     });
   });
 

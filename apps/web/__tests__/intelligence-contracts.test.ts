@@ -1,6 +1,7 @@
 import {
   buildSourceEntries,
   normalizeActionsPayload,
+  normalizeCanonicalSystemHealthPayload,
   normalizeFindingsPayload,
   normalizeProvidersPayload,
   normalizeSystemHealthPayload,
@@ -178,5 +179,37 @@ describe('intelligence contracts', () => {
     expect(health.cards[0]?.label).toBeDefined();
     expect(health.incidents[0]?.title).toBe('Connector outage');
     expect(health.sources[0]?.source).toBe('NPPES');
+  });
+
+  it('maps the canonical system pulse into intelligence health cards', () => {
+    const health = normalizeCanonicalSystemHealthPayload({
+      status: 'HEALTHY',
+      providers: 5,
+      findings: 42,
+      storylines: 11,
+      systemState: 'ALIVE',
+      lastEventAt: '2026-03-17T10:46:18.000Z',
+      generatedAt: '2026-03-17T11:00:00.000Z',
+      agents: [{
+        id: 'data-sanity',
+        name: 'Data Sanity Agent',
+        enabled: true,
+        lastRun: '2026-03-17T10:30:00.000Z',
+        lastIssueCount: 0,
+      }],
+      totalIssues: 0,
+      totalAutoRepaired: 0,
+      totalSurfaced: 0,
+    });
+
+    expect(health.overall).toBe('healthy');
+    expect(health.headline).toBe('42 findings across 11 storylines are live.');
+    expect(health.cards).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: 'findings',
+        summary: '42 active findings',
+      }),
+    ]));
+    expect(health.sources[0]?.source).toBe('Data Sanity Agent');
   });
 });

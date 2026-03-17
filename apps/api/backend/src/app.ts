@@ -8,6 +8,7 @@ import swaggerUi from 'swagger-ui-express';
 import { registerIngestRoutes } from '../../routes/ingest';
 import { registerWedgeRoutes } from '../routes/wedge';
 import { env, getProductionEnvCheck } from './config/env';
+import { isAutomatedTestRuntime } from './config/runtimeMode';
 import { validateEnv } from './config/envValidation'; // Wave 196
 import prisma, { Prisma, PrismaClient } from './graphql/prisma_client';
 import { errorHandler } from './middleware/errorHandler';
@@ -447,7 +448,7 @@ const PILOT_MODE = parseBooleanEnv(process.env.PILOT_MODE, false);
 const SYSTEM_FROZEN = parseBooleanEnv(process.env.SYSTEM_FROZEN, false);
 const YC_DEMO_MODE = parseBooleanEnv(process.env.YC_DEMO_MODE, false);
 const BACKGROUND_JOBS_ENABLED =
-  process.env.NODE_ENV !== 'test'
+  !isAutomatedTestRuntime()
   && !parseBooleanEnv(process.env.DISABLE_BACKGROUND_JOBS, false);
 
 const COMPLIANCE_SUMMARY: ComplianceSummary = {
@@ -574,10 +575,12 @@ function shouldSkipTenantContext(pathname: string): boolean {
     // Wave 37: Superbrain intelligence endpoint.
     normalizedPath.startsWith('/api/intelligence/') ||
     // Intelligence data paths — read-only, auth forwarded via x-clerk-user-id header.
+    normalizedPath === '/api/providers' ||
     normalizedPath.startsWith('/api/findings') ||
     normalizedPath.startsWith('/api/investigators') ||
     normalizedPath.startsWith('/api/storylines') ||
     normalizedPath.startsWith('/api/directory') ||
+    normalizedPath === '/api/system-health' ||
     normalizedPath.startsWith('/api/graph/') ||
     normalizedPath.startsWith('/api/investigation/') ||
     normalizedPath.startsWith('/api/provider-intelligence/') ||
@@ -2714,10 +2717,10 @@ function registerPilotRoutes(app: Express): void {
 
   app.post('/api/verifier/accept', walletRateLimit, async (req: Request, res: Response) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
-    const organization = parseRequiredString(body.organization, 'organization');
     let acceptedAt = new Date();
 
     try {
+      const organization = parseRequiredString(body.organization, 'organization');
       acceptedAt = parseDateField(body.acceptedAt);
       const created = await prisma.verifierAcceptance.create({
         data: {
@@ -2740,14 +2743,15 @@ function registerPilotRoutes(app: Express): void {
   app.post('/api/pilot/activate', walletRateLimit, async (req: Request, res: Response) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
     const organizationId = getRequestOrganizationId(req);
-    const organizationName = parseRequiredString(body.organizationName, 'organizationName');
-    const contactEmail = parseEmail(body.contactEmail, 'contactEmail');
     const ctaVariant = normalizeFunnelVariant(body.ctaVariant ?? body.cta_variant);
     const ref = normalizeFunnelRef(body.ref);
     const eventNpi =
       typeof body.npi === 'string' && body.npi.trim().length > 0 ? body.npi.trim() : 'pilot_activation';
 
     try {
+      const organizationName = parseRequiredString(body.organizationName, 'organizationName');
+      const contactEmail = parseEmail(body.contactEmail, 'contactEmail');
+
       void logFunnelEvent('pilot_activation_click', eventNpi, {
         cta_variant: ctaVariant,
         ...(ref ? { ref } : {}),

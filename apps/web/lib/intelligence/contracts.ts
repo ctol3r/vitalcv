@@ -431,6 +431,26 @@ interface GraphIntegrityPayload {
   missingCapsuleEdges?: string[];
 }
 
+interface CanonicalSystemHealthPayload {
+  status?: 'HEALTHY' | 'WARMING' | string;
+  providers?: number;
+  findings?: number;
+  storylines?: number;
+  systemState?: string | null;
+  lastEventAt?: string | null;
+  generatedAt?: string;
+  agents?: Array<{
+    id: string;
+    name: string;
+    enabled: boolean;
+    lastRun: string | null;
+    lastIssueCount: number;
+  }>;
+  totalIssues?: number;
+  totalAutoRepaired?: number;
+  totalSurfaced?: number;
+}
+
 const NPI_RE = /^\d{10}$/;
 
 function severityRank(value: IntelligenceSeverity): number {
@@ -1392,6 +1412,82 @@ export function normalizeSystemHealthPayload(input: {
     cards,
     incidents,
     sources: connectivity,
+  };
+}
+
+export function normalizeCanonicalSystemHealthPayload(
+  payload: CanonicalSystemHealthPayload,
+): IntelligenceSystemHealth {
+  const providers = payload.providers ?? 0;
+  const findings = payload.findings ?? 0;
+  const storylines = payload.storylines ?? 0;
+  const agents = payload.agents ?? [];
+  const enabledAgents = agents.filter((agent) => agent.enabled).length;
+  const overall: IntelligenceTone = payload.status === 'HEALTHY'
+    ? 'healthy'
+    : payload.status === 'WARMING'
+      ? 'neutral'
+      : toneFromStatus(payload.status);
+
+  const cards: HealthStatusCardData[] = [
+    {
+      id: 'findings',
+      label: 'Findings',
+      tone: (findings > 0 ? 'healthy' : 'neutral') as IntelligenceTone,
+      summary: `${findings} active findings`,
+      detail: `${storylines} storylines tracking ${providers} providers`,
+    },
+    {
+      id: 'providers',
+      label: 'Provider graph',
+      tone: (providers > 0 ? 'healthy' : 'neutral') as IntelligenceTone,
+      summary: `${providers} indexed providers`,
+      detail: payload.lastEventAt
+        ? `Last system event ${new Date(payload.lastEventAt).toLocaleString('en-US')}`
+        : 'No system event has been recorded yet.',
+    },
+    {
+      id: 'storylines',
+      label: 'Storylines',
+      tone: (storylines > 0 ? 'healthy' : 'neutral') as IntelligenceTone,
+      summary: `${storylines} live storylines`,
+      detail: `${payload.systemState ?? 'UNKNOWN'} state`,
+    },
+    {
+      id: 'agents',
+      label: 'Detail agents',
+      tone: (enabledAgents > 0 ? 'healthy' : 'degraded') as IntelligenceTone,
+      summary: `${enabledAgents}/${agents.length} agents enabled`,
+      detail: `${payload.totalSurfaced ?? 0} surfaced • ${payload.totalAutoRepaired ?? 0} auto-repaired • ${payload.totalIssues ?? 0} total issues`,
+    },
+  ].sort((left, right) => toneRank(right.tone) - toneRank(left.tone));
+
+  const incidents: IntelligenceAlert[] = (payload.totalSurfaced ?? 0) > 0
+    ? [{
+        id: 'system-health-surfaced',
+        source: 'system',
+        severity: (payload.totalSurfaced ?? 0) > 5 ? 'high' : 'medium',
+        title: 'Detail agents surfaced issues',
+        summary: `${payload.totalSurfaced} issues are awaiting remediation.`,
+        providerNpi: null,
+        occurredAt: payload.lastEventAt ?? payload.generatedAt ?? null,
+      }]
+    : [];
+
+  return {
+    overall,
+    headline: payload.status === 'HEALTHY'
+      ? `${findings} findings across ${storylines} storylines are live.`
+      : `${providers} providers are indexed and the system is warming for fresh findings.`,
+    generatedAt: payload.generatedAt ?? new Date().toISOString(),
+    cards,
+    incidents,
+    sources: agents.map((agent) => ({
+      source: agent.name,
+      status: agent.enabled ? 'OPERATIONAL' : 'DEGRADED',
+      lastSeen: agent.lastRun,
+      artifactCount: agent.lastIssueCount,
+    })),
   };
 }
 

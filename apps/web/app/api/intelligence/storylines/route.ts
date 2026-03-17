@@ -2,13 +2,10 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { normalizeStorylinesPayload } from '@/lib/intelligence/contracts';
 import {
   attachAccessMetadata,
-  canReadIntelligence,
   coerceRouteErrorPayload,
   fetchBackendJson,
-  fetchPublicSnapshotJson,
   logIntelligenceFallbackUsage,
   parsePositiveInt,
-  resolveAccessReason,
   resolveIntelligenceAuthContext,
 } from '../_shared';
 
@@ -54,8 +51,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const upstream = canReadIntelligence(authContext)
-      ? await fetchBackendJson<{
+    const upstream = await fetchBackendJson<{
       storylines?: Array<{
         storylineId: string;
         storylineType: string;
@@ -80,33 +76,7 @@ export async function GET(req: NextRequest) {
       }>;
       total?: number;
       snapshotReady?: boolean;
-    }>('/api/storylines', params, 12_000, { context: authContext })
-      : await fetchPublicSnapshotJson<{
-      storylines?: Array<{
-        storylineId: string;
-        storylineType: string;
-        perspective: string;
-        title: string;
-        summary: string;
-        whyItMatters: string;
-        severity: string;
-        status: string;
-        confidence: number;
-        entityIds: string[];
-        recommendedActions: string[];
-        supportingEvidence?: Array<{
-          source: string;
-          bullet: string;
-          observedAt: string;
-          confidence: number;
-        }>;
-        findingIds: string[];
-        progressionScore: number;
-        lastActivityAt: string;
-      }>;
-      total?: number;
-      snapshotReady?: boolean;
-    }>('storylines', params, authContext, 12_000);
+    }>('/api/storylines', params, 12_000, { context: authContext });
 
     if (!upstream.ok) {
       logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
@@ -135,12 +105,8 @@ export async function GET(req: NextRequest) {
         returned: pageStorylines.length,
       },
     }, {
-      accessMode: canReadIntelligence(authContext) ? 'full' : 'public_snapshot',
-      reason: resolveAccessReason(
-        authContext,
-        canReadIntelligence(authContext) ? 'full' : 'public_snapshot',
-        upstream.payload,
-      ),
+      accessMode: 'full',
+      reason: 'ok',
     }));
   } catch (error) {
     logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
