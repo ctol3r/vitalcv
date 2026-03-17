@@ -188,7 +188,7 @@ export function ActionsSurface() {
             <input
               value={draftFilters.actionType}
               onChange={(event) => setDraftFilters((current) => ({ ...current, actionType: event.target.value }))}
-              placeholder="VERIFY_LICENSE"
+              placeholder="Enter action type"
               className="w-full rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-[var(--vt-text-1)] placeholder:text-[var(--vt-text-3)]"
             />
           </label>

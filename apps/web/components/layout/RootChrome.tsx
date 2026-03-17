@@ -18,7 +18,9 @@ const OPERATIONAL_ROUTES = [
   '/actions',
   '/providers',
   '/investigations',
+  '/calibration',
   '/system-health',
+  '/network',
 ] as const;
 
 function isOperationalRoute(pathname: string | null): boolean {

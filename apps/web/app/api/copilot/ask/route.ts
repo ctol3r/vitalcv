@@ -1,21 +1,19 @@
-import { getApiBase } from '@/lib/api';
 import { type NextRequest, NextResponse } from 'next/server';
+import {
+  buildCopilotAskFallback,
+  formatCopilotAskResponse,
+  queryCopilot,
+} from '../_shared';
 
 export const runtime = 'nodejs';
 
-const BACKEND = getApiBase();
-
 export async function POST(req: NextRequest) {
+  const startedAt = Date.now();
   try {
-    const body = await req.json();
-    const res = await fetch(`${BACKEND}/api/copilot/ask`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
+    const body = await req.text();
+    const payload = await queryCopilot(body, req.nextUrl.pathname);
+    return NextResponse.json(formatCopilotAskResponse(payload, Date.now() - startedAt));
   } catch {
-    return NextResponse.json({ error: 'Copilot proxy failed' }, { status: 502 });
+    return NextResponse.json(buildCopilotAskFallback());
   }
 }

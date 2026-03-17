@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { OperationsShell } from '@/components/intelligence-ops/shell';
 import { OpsBadge, OpsCard, SurfaceBanner } from '@/components/intelligence-ops/primitives';
+import { errorMessageFromPayload } from '@/hooks/useIntelligenceResource';
 
 // ── API Types ────────────────────────────────────────────────────────────────
 
@@ -57,6 +58,10 @@ interface OutcomesResponse {
   outcomes: OutcomeRecord[];
   total: number;
   generatedAt: string;
+}
+
+interface CalibrationErrorPayload {
+  workspaceSwitchHref?: string;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -472,12 +477,14 @@ export function CalibrationDashboard() {
   const [outcomes, setOutcomes] = useState<OutcomesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorHref, setErrorHref] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>('calibrationScore');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setErrorHref(null);
     try {
       const [calRes, outRes] = await Promise.all([
         fetch('/api/findings/calibration'),
@@ -485,9 +492,24 @@ export function CalibrationDashboard() {
       ]);
       const calData = await calRes.json().catch(() => null) as CalibrationResponse | null;
       const outData = await outRes.json().catch(() => null) as OutcomesResponse | null;
-      if (!calRes.ok) throw new Error('Calibration data unavailable');
+
+      if (!calRes.ok) {
+        const calibrationError = calData as CalibrationErrorPayload | null;
+        setErrorHref(typeof calibrationError?.workspaceSwitchHref === 'string' ? calibrationError.workspaceSwitchHref : null);
+        throw new Error(errorMessageFromPayload(calData, calRes.status));
+      }
+
       setCalibration(calData);
-      setOutcomes(outData);
+
+      if (outRes.ok) {
+        setOutcomes(outData);
+        return;
+      }
+
+      const outcomesError = outData as CalibrationErrorPayload | null;
+      setOutcomes(null);
+      setError(errorMessageFromPayload(outData, outRes.status));
+      setErrorHref(typeof outcomesError?.workspaceSwitchHref === 'string' ? outcomesError.workspaceSwitchHref : null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load calibration data');
     } finally {
@@ -518,7 +540,15 @@ export function CalibrationDashboard() {
       description="Learning loop metrics: investigator accuracy, false positive rates, evidence quality, and resolution outcomes. Record finding outcomes to calibrate investigators over time."
       breadcrumbs={[{ label: 'Calibration' }]}
       banner={error ? (
-        <SurfaceBanner tone="warning">{error}</SurfaceBanner>
+        <SurfaceBanner tone="warning">
+          <span>{error}</span>
+          {errorHref ? (
+            <>
+              {' '}
+              <a href={errorHref} className="underline font-medium">Switch workspace</a>
+            </>
+          ) : null}
+        </SurfaceBanner>
       ) : !loading && stats.length === 0 ? (
         <SurfaceBanner tone="info">
           No calibration data yet. Open a finding in the <a href="/investigations" className="underline font-medium">Investigation Workbench</a>, review the evidence, and record an outcome (true positive, false positive, or inconclusive). Calibration metrics populate as you resolve findings.

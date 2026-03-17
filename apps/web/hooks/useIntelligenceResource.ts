@@ -40,6 +40,60 @@ function errorMessage(error: unknown): string | null {
   return typeof error === 'string' ? error : 'Unknown request failure';
 }
 
+interface ResourceErrorPayload {
+  error?: unknown;
+  error_description?: unknown;
+  message?: unknown;
+  workspaceSwitchHref?: unknown;
+}
+
+class IntelligenceResourceError extends Error {
+  status: number;
+  retryable: boolean;
+
+  constructor(message: string, status: number, retryable: boolean) {
+    super(message);
+    this.name = 'IntelligenceResourceError';
+    this.status = status;
+    this.retryable = retryable;
+  }
+}
+
+export function errorMessageFromPayload(payload: unknown, status: number): string {
+  if (!payload || typeof payload !== 'object') {
+    return `Request failed with ${status}`;
+  }
+
+  const resourceError = payload as ResourceErrorPayload;
+
+  if (resourceError.error === 'organization_context_required') {
+    const description = typeof resourceError.error_description === 'string' && resourceError.error_description.trim().length > 0
+      ? resourceError.error_description.trim()
+      : 'Organization workspace required.';
+    const workspaceSwitchHref = typeof resourceError.workspaceSwitchHref === 'string' && resourceError.workspaceSwitchHref.trim().length > 0
+      ? resourceError.workspaceSwitchHref.trim()
+      : null;
+
+    return workspaceSwitchHref
+      ? `${description} Switch to ${workspaceSwitchHref}.`
+      : description;
+  }
+
+  if (typeof resourceError.error_description === 'string' && resourceError.error_description.trim().length > 0) {
+    return resourceError.error_description.trim();
+  }
+
+  if (typeof resourceError.message === 'string' && resourceError.message.trim().length > 0) {
+    return resourceError.message.trim();
+  }
+
+  if (typeof resourceError.error === 'string' && resourceError.error.trim().length > 0) {
+    return resourceError.error.trim();
+  }
+
+  return `Request failed with ${status}`;
+}
+
 async function fetchIntelligenceResource<T>(url: string): Promise<T> {
   const response = await fetch(url, {
     cache: 'no-store',
@@ -50,12 +104,11 @@ async function fetchIntelligenceResource<T>(url: string): Promise<T> {
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const message = (
-      payload && typeof payload === 'object' && 'error' in payload && typeof payload.error === 'string' && payload.error.length > 0
-        ? payload.error
-        : `Request failed with ${response.status}`
+    throw new IntelligenceResourceError(
+      errorMessageFromPayload(payload, response.status),
+      response.status,
+      response.status >= 500 || response.status === 429,
     );
-    throw new Error(message);
   }
 
   return payload as T;
@@ -140,8 +193,12 @@ export function useIntelligenceResource<T>(
       revalidateOnFocus: false,
       keepPreviousData: true,
       isPaused: () => paused,
-      onErrorRetry: (_error, _key, _config, revalidate, { retryCount }) => {
+      onErrorRetry: (requestError, _key, _config, revalidate, { retryCount }) => {
         if (paused) {
+          return;
+        }
+
+        if (requestError instanceof IntelligenceResourceError && !requestError.retryable) {
           return;
         }
 

@@ -42,6 +42,22 @@ import { FindingCard } from '@/src/ui/components';
 
 const PAGE_SIZE = 10;
 
+function findingAccentClassName(findingType: string): string {
+  if (findingType.includes('sanction')) {
+    return 'border-l-4 border-l-red-500';
+  }
+
+  if (findingType.includes('research')) {
+    return 'border-l-4 border-l-blue-500';
+  }
+
+  if (findingType.includes('clinical')) {
+    return 'border-l-4 border-l-emerald-500';
+  }
+
+  return 'border-l-4 border-l-transparent';
+}
+
 export function FindingsSurface() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -94,39 +110,43 @@ export function FindingsSurface() {
   }
 
   // ── Ranking / sort mode ────────────────────────────────────────────────
-  type FeedSortMode = 'ranked' | 'latest' | 'critical';
+  type FeedSortMode = 'ranked' | 'latest';
   const [sortMode, setSortMode] = useState<FeedSortMode>('ranked');
+  const [criticalOnly, setCriticalOnly] = useState(false);
 
   const totalPages = findings.data?.pageInfo?.totalPages ?? 1;
   const total = findings.data?.total ?? 0;
   const rawItems = findings.data?.findings ?? [];
 
   const items = useMemo(() => {
+    const baseItems = criticalOnly
+      ? rawItems.filter((finding) => finding.severity === 'critical')
+      : rawItems;
+
     if (sortMode === 'latest') {
-      return [...rawItems].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      return [...baseItems].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
     }
-    if (sortMode === 'critical') {
-      return [...rawItems].filter(f => f.severity === 'critical' || f.severity === 'high');
-    }
+
     // ranked: composite score = 0.3*priority + 0.3*severity + 0.2*recency + 0.2*confidence
     const severityWeight: Record<string, number> = { critical: 1, high: 0.75, medium: 0.5, low: 0.25, info: 0.1 };
     const now = Date.now();
-    return [...rawItems].sort((a, b) => {
+    return [...baseItems].sort((a, b) => {
       const recencyA = Math.max(0, 1 - (now - new Date(a.updatedAt).getTime()) / (7 * 86400000));
       const recencyB = Math.max(0, 1 - (now - new Date(b.updatedAt).getTime()) / (7 * 86400000));
       const scoreA = 0.3 * (a.priorityScore / 100) + 0.3 * (severityWeight[a.severity] ?? 0.3) + 0.2 * recencyA + 0.2 * a.confidence;
       const scoreB = 0.3 * (b.priorityScore / 100) + 0.3 * (severityWeight[b.severity] ?? 0.3) + 0.2 * recencyB + 0.2 * b.confidence;
       return scoreB - scoreA;
     });
-  }, [rawItems, sortMode]);
+  }, [criticalOnly, rawItems, sortMode]);
   const staleState = getSurfaceFreshnessState({
     generatedAt: findings.data?.generatedAt,
     lastUpdated: findings.lastUpdated,
   });
+  const hasLocalFilters = criticalOnly;
   const emptyState = !findings.loading && !findings.error
     ? getFindingsEmptyState({
-      findingCount: findings.data?.total ?? items.length,
-      hasFilters,
+      findingCount: hasLocalFilters ? items.length : (findings.data?.total ?? items.length),
+      hasFilters: hasFilters || hasLocalFilters,
       providerCount: providers.data?.total,
     })
     : null;
@@ -180,24 +200,39 @@ export function FindingsSurface() {
     >
       <FindingFilters filters={filters} onApply={(nextFilters) => pushWithParams(nextFilters, 1)} />
 
-      {/* Sort mode toggles */}
-      <div className="flex items-center gap-1.5">
-        {(['ranked', 'latest', 'critical'] as const).map((mode) => (
-          <button
-            key={mode}
-            onClick={() => setSortMode(mode)}
-            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-              sortMode === mode
-                ? 'border-cyan-400/50 bg-cyan-400/10 text-[var(--vt-text-1)]'
-                : 'border-[var(--vt-border)] text-[var(--vt-text-3)] hover:border-[var(--vt-text-3)]/40'
-            }`}
-          >
-            {mode === 'ranked' ? 'Ranked' : mode === 'latest' ? 'Latest' : 'Critical'}
-          </button>
-        ))}
-        <span className="ml-2 text-[10px] text-[var(--vt-text-3)]">
-          {sortMode === 'ranked' ? 'Priority + Severity + Recency + Confidence' : sortMode === 'latest' ? 'Most recently updated' : 'CRITICAL + HIGH only'}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-1.5">
+          {(['ranked', 'latest'] as const).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => setSortMode(mode)}
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                sortMode === mode
+                  ? 'border-cyan-400/50 bg-cyan-400/10 text-[var(--vt-text-1)]'
+                  : 'border-[var(--vt-border)] text-[var(--vt-text-3)] hover:border-[var(--vt-text-3)]/40'
+              }`}
+            >
+              {mode === 'ranked' ? 'Ranked' : 'Latest'}
+            </button>
+          ))}
+        </div>
+        <label className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border)] px-3 py-1.5 text-xs font-medium text-[var(--vt-text-2)]">
+          <input
+            checked={criticalOnly}
+            onChange={(event) => setCriticalOnly(event.target.checked)}
+            type="checkbox"
+          />
+          Critical only
+        </label>
+        <span className="text-[10px] text-[var(--vt-text-3)]">
+          {sortMode === 'ranked' ? 'Priority + Severity + Recency + Confidence' : 'Most recently updated'}
+          {criticalOnly ? ' • Critical only' : null}
         </span>
+        {criticalOnly ? (
+          <span className="text-[10px] text-[var(--vt-text-3)]">
+            {items.length} visible
+          </span>
+        ) : null}
       </div>
 
       {findings.error && !items.length ? (
@@ -219,6 +254,7 @@ export function FindingsSurface() {
         {items.map((finding) => (
           <FindingCard
             key={finding.id}
+            className={findingAccentClassName(finding.findingType)}
             confidence={finding.confidence}
             footer={(
               <div className="w-full space-y-4">

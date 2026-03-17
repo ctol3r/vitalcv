@@ -22,7 +22,6 @@ const TYPE_MAPPING: Record<string, { group: string, icon: any, color: string }> 
 const QUICK_ACTIONS = [
   { id: 'AskVitalCV', label: 'Ask VitalCV AI', desc: 'Ask complex questions about compliance', icon: Sparkles, action: 'ask' },
   { id: 'VerifyNpiCommand', label: 'Verify a Clinician', desc: 'Lookup and verify NPI credentials', icon: Search, action: 'cmd' },
-  { id: 'NetworkExplorer', label: 'Network Explorer', desc: 'View the trust graph', icon: Globe, action: 'nav', href: '/network' },
   { id: 'MissionOps', label: 'Mission Ops', desc: 'Control plane operations', icon: Terminal, action: 'nav', href: '/mission-ops/v2' },
 ];
 
@@ -429,4 +428,3 @@ export function CommandPalette() {
     </>
   );
 }
-

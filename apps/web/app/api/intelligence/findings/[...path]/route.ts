@@ -1,5 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { buildForwardHeaders, fetchBackendJson } from '../../_shared';
+import {
+  buildForwardHeaders,
+  fetchBackendJson,
+  requireAuthenticatedOrgContext,
+  resolveIntelligenceAuthContext,
+} from '../../_shared';
 import { getApiBase } from '@/lib/api';
 import { findProviderNpi } from '@/lib/intelligence/contracts';
 import { normalizeFindingDetailResponse } from '@/lib/intelligence/detail-normalizers';
@@ -20,11 +25,19 @@ export async function GET(
   { params }: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await params;
+  const authContext = await resolveIntelligenceAuthContext();
+  const blocked = requireAuthenticatedOrgContext(req, authContext);
+  if (blocked) {
+    return NextResponse.json(blocked.payload, { status: blocked.status });
+  }
+
   const search = req.nextUrl.searchParams;
   const forwardedParams = new URLSearchParams(search);
   const upstream = await fetchBackendJson<InvestigatorFindingDetailResponse>(
     `/api/investigators/findings/${path.join('/')}`,
     forwardedParams,
+    12_000,
+    { context: authContext },
   );
 
   if (!upstream.ok || path.length !== 1 || !upstream.payload.finding) {
@@ -55,8 +68,14 @@ export async function POST(
   { params }: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await params;
+  const authContext = await resolveIntelligenceAuthContext();
+  const blocked = requireAuthenticatedOrgContext(req, authContext);
+  if (blocked) {
+    return NextResponse.json(blocked.payload, { status: blocked.status });
+  }
+
   const body = await req.json().catch(() => ({}));
-  const headers = await buildForwardHeaders();
+  const headers = await buildForwardHeaders(undefined, { context: authContext });
   headers.set('Content-Type', 'application/json');
 
   const response = await fetch(`${BACKEND}/api/investigators/findings/${path.join('/')}`, {

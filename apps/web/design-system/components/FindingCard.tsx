@@ -14,6 +14,7 @@ export interface FindingCardProps {
   metadata?: React.ReactNode;
   links?: React.ReactNode;
   footer?: React.ReactNode;
+  className?: string;
 }
 
 export function FindingCard({
@@ -26,9 +27,10 @@ export function FindingCard({
   summary,
   title,
   typeLabel,
+  className,
 }: FindingCardProps) {
   return (
-    <Card interactive>
+    <Card className={className} interactive>
       <CardHeader>
         <div className="flex flex-wrap items-center gap-[var(--vt-space-8)]">
           <SeverityBadge severity={severity} />

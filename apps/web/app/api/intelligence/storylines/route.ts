@@ -1,10 +1,21 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { normalizeStorylinesPayload } from '@/lib/intelligence/contracts';
-import { fetchBackendJson, parsePositiveInt } from '../_shared';
+import {
+  buildReadOnlyFallbackPayload,
+  fetchBackendJson,
+  logIntelligenceFallbackUsage,
+  parsePositiveInt,
+  resolveIntelligenceAuthContext,
+} from '../_shared';
 
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
+  const authContext = await resolveIntelligenceAuthContext();
+  if (authContext.status !== 'authenticated') {
+    return NextResponse.json(buildReadOnlyFallbackPayload('storylines', req, authContext));
+  }
+
   const limit = parsePositiveInt(
     req.nextUrl.searchParams.get('limit') ?? req.nextUrl.searchParams.get('pageSize'),
     8,
@@ -67,13 +78,11 @@ export async function GET(req: NextRequest) {
         lastActivityAt: string;
       }>;
       total?: number;
-    }>('/api/storylines', params);
+    }>('/api/storylines', params, 12_000, { context: authContext });
 
     if (!upstream.ok) {
-      return NextResponse.json(
-        { error: `Storyline upstream returned ${upstream.status}` },
-        { status: upstream.status },
-      );
+      logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
+      return NextResponse.json(buildReadOnlyFallbackPayload('storylines', req, authContext, { log: false }));
     }
 
     const normalized = normalizeStorylinesPayload(upstream.payload);
@@ -94,12 +103,8 @@ export async function GET(req: NextRequest) {
       degraded: requiredWindow > 100,
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: 'Failed to load storylines',
-        detail: error instanceof Error ? error.message : String(error),
-      },
-      { status: 503 },
-    );
+    void error;
+    logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
+    return NextResponse.json(buildReadOnlyFallbackPayload('storylines', req, authContext, { log: false }));
   }
 }

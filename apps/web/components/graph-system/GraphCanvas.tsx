@@ -33,9 +33,18 @@ interface Props {
   onDragNode: (id: string, x: number, y: number) => void;
   onPinNode: (id: string, x: number, y: number) => void;
   onViewportChange?: (viewport: GraphViewportState) => void;
+  onHoverDetailChange?: (detail: GraphHoverDetail | null) => void;
+  disableInternalTooltip?: boolean;
   width: number;
   height: number;
   layoutVersion?: number;
+}
+
+export interface GraphHoverDetail {
+  node: GraphNode;
+  screenX: number;
+  screenY: number;
+  relationshipCount: number;
 }
 
 interface DragState {
@@ -70,6 +79,8 @@ export default React.memo(function GraphCanvas({
   onDragNode,
   onPinNode,
   onViewportChange,
+  onHoverDetailChange,
+  disableInternalTooltip = false,
   width,
   height,
   layoutVersion = 0,
@@ -462,6 +473,7 @@ export default React.memo(function GraphCanvas({
 
       dragRef.current.moved = true;
       updateNodePosition(dragRef.current.nodeId, nextX, nextY, true);
+      onHoverDetailChange?.(null);
       hideTooltip();
       return;
     }
@@ -469,6 +481,7 @@ export default React.memo(function GraphCanvas({
     if (isPanningRef.current) {
       cameraRef.current.x = panStartRef.current.cameraX + (event.clientX - panStartRef.current.x);
       cameraRef.current.y = panStartRef.current.cameraY + (event.clientY - panStartRef.current.y);
+      onHoverDetailChange?.(null);
       hideTooltip();
       return;
     }
@@ -480,24 +493,40 @@ export default React.memo(function GraphCanvas({
     }
 
     if (!nodeId) {
+      onHoverDetailChange?.(null);
       hideTooltip();
       return;
     }
 
     const node = simNodesRef.current.find((candidate) => candidate.id === nodeId);
     if (!node) {
+      onHoverDetailChange?.(null);
       hideTooltip();
       return;
     }
 
-    showTooltip(
+    const relationshipCount = relationshipCountByNodeId.get(nodeId) ?? 0;
+    onHoverDetailChange?.({
       node,
-      { clientX: event.clientX, clientY: event.clientY },
-      relationshipCountByNodeId.get(nodeId) ?? 0,
-    );
+      screenX: event.clientX,
+      screenY: event.clientY,
+      relationshipCount,
+    });
+
+    if (!disableInternalTooltip) {
+      showTooltip(
+        node,
+        { clientX: event.clientX, clientY: event.clientY },
+        relationshipCount,
+      );
+    } else {
+      hideTooltip();
+    }
   }, [
+    disableInternalTooltip,
     hideTooltip,
     hitTest,
+    onHoverDetailChange,
     onHoverNode,
     relationshipCountByNodeId,
     showTooltip,
@@ -573,6 +602,7 @@ export default React.memo(function GraphCanvas({
       onMouseLeave={() => {
         hoveredNodeRef.current = null;
         onHoverNode(null);
+        onHoverDetailChange?.(null);
         hideTooltip();
       }}
       onMouseMove={handleMouseMove}

@@ -2,11 +2,22 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { findProviderNpi, normalizeFindingsPayload } from '@/lib/intelligence/contracts';
 import { parseMinConfidenceNumber } from '@/lib/intelligence/finding-filters';
 import { loadFindingStorylineLinks } from '@/lib/intelligence/navigation-links';
-import { fetchBackendJson, parsePositiveInt } from '../_shared';
+import {
+  buildReadOnlyFallbackPayload,
+  fetchBackendJson,
+  logIntelligenceFallbackUsage,
+  parsePositiveInt,
+  resolveIntelligenceAuthContext,
+} from '../_shared';
 
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
+  const authContext = await resolveIntelligenceAuthContext();
+  if (authContext.status !== 'authenticated') {
+    return NextResponse.json(buildReadOnlyFallbackPayload('findings', req, authContext));
+  }
+
   const limit = parsePositiveInt(
     req.nextUrl.searchParams.get('limit') ?? req.nextUrl.searchParams.get('pageSize'),
     10,
@@ -95,13 +106,11 @@ export async function GET(req: NextRequest) {
         updatedAt: string;
       }>;
       total?: number;
-    }>('/api/investigators/findings', params);
+    }>('/api/investigators/findings', params, 12_000, { context: authContext });
 
     if (!upstream.ok) {
-      return NextResponse.json(
-        { error: `Investigator upstream returned ${upstream.status}` },
-        { status: upstream.status },
-      );
+      logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
+      return NextResponse.json(buildReadOnlyFallbackPayload('findings', req, authContext, { log: false }));
     }
 
     const findings = upstream.payload.findings ?? [];
@@ -139,12 +148,8 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: 'Failed to load findings feed',
-        detail: error instanceof Error ? error.message : String(error),
-      },
-      { status: 503 },
-    );
+    void error;
+    logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
+    return NextResponse.json(buildReadOnlyFallbackPayload('findings', req, authContext, { log: false }));
   }
 }

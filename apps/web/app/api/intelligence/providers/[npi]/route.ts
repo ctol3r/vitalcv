@@ -1,14 +1,24 @@
 import { loadProviderDetail } from '@/lib/intelligence/server';
 import { type NextRequest, NextResponse } from 'next/server';
+import {
+  requireAuthenticatedOrgContext,
+  resolveIntelligenceAuthContext,
+} from '../../_shared';
 
 export const runtime = 'nodejs';
 
 const NPI_RE = /^\d{10}$/;
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ npi: string }> },
 ) {
+  const authContext = await resolveIntelligenceAuthContext();
+  const blocked = requireAuthenticatedOrgContext(req, authContext);
+  if (blocked) {
+    return NextResponse.json(blocked.payload, { status: blocked.status });
+  }
+
   const { npi } = await params;
 
   if (!NPI_RE.test(npi)) {

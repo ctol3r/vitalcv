@@ -1,10 +1,19 @@
-import { NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { normalizeSystemHealthPayload } from '@/lib/intelligence/contracts';
-import { fetchBackendJson } from '../_shared';
+import {
+  buildReadOnlyFallbackPayload,
+  fetchBackendJson,
+  resolveIntelligenceAuthContext,
+} from '../_shared';
 
 export const runtime = 'nodejs';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const authContext = await resolveIntelligenceAuthContext();
+  if (authContext.status !== 'authenticated') {
+    return NextResponse.json(buildReadOnlyFallbackPayload('system-health', req, authContext));
+  }
+
   try {
     const [systemStatus, integrity, graphIntegrity] = await Promise.allSettled([
       fetchBackendJson<{
@@ -29,7 +38,7 @@ export async function GET() {
           detectedAt: string;
         }>;
         generatedAt?: string;
-      }>('/api/system/status'),
+      }>('/api/system/status', undefined, 12_000, { context: authContext }),
       fetchBackendJson<{
         status?: 'HEALTHY' | 'DEGRADED' | 'CRITICAL';
         checks?: Array<{
@@ -44,12 +53,12 @@ export async function GET() {
           totalEdges: number;
           totalMonitoringStreams: number;
         };
-      }>('/api/system/trust-health'),
+      }>('/api/system/trust-health', undefined, 12_000, { context: authContext }),
       fetchBackendJson<{
         orphanedNodes?: string[];
         invalidEdges?: string[];
         missingCapsuleEdges?: string[];
-      }>('/api/system/trust-health/graph'),
+      }>('/api/system/trust-health/graph', undefined, 12_000, { context: authContext }),
     ]);
 
     return NextResponse.json(normalizeSystemHealthPayload({
@@ -57,13 +66,7 @@ export async function GET() {
       integrity: integrity.status === 'fulfilled' && integrity.value.ok ? integrity.value.payload : null,
       graphIntegrity: graphIntegrity.status === 'fulfilled' && graphIntegrity.value.ok ? graphIntegrity.value.payload : null,
     }));
-  } catch (error) {
-    return NextResponse.json(
-      {
-        error: 'Failed to load intelligence system health',
-        detail: error instanceof Error ? error.message : String(error),
-      },
-      { status: 503 },
-    );
+  } catch {
+    return NextResponse.json(buildReadOnlyFallbackPayload('system-health', req, authContext));
   }
 }

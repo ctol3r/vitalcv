@@ -202,7 +202,7 @@ export function FindingFilters({ filters, onApply }: FindingFiltersProps) {
           <input
             value={draft.typeInput}
             onChange={(event) => setDraft((current) => ({ ...current, typeInput: event.target.value }))}
-            placeholder="trust_decline, research_momentum"
+            placeholder="Enter finding types"
             className="w-full rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-[var(--vt-text-1)] placeholder:text-[var(--vt-text-3)]"
           />
           <span className="block text-xs text-[var(--vt-text-3)]">Comma-separated finding types</span>
@@ -238,7 +238,7 @@ export function FindingFilters({ filters, onApply }: FindingFiltersProps) {
             step="0.05"
             value={draft.minConfidence}
             onChange={(event) => setDraft((current) => ({ ...current, minConfidence: event.target.value }))}
-            placeholder="0.60"
+            placeholder="0.00 - 1.00"
             className="w-full rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-[var(--vt-text-1)] placeholder:text-[var(--vt-text-3)]"
           />
         </label>

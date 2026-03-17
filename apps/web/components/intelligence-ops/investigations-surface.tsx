@@ -1,9 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildIntelligenceHref } from '@/lib/intelligence/routes';
+import {
+  buildFindingStatusEndpoint,
+  buildInvestigationWorkbenchRequestPath,
+  FINDING_STATUS_METHOD,
+  type InvestigationWorkbenchAnchorInput,
+} from '@/lib/intelligence/investigation-workbench-client';
 import { OperationsShell } from './shell';
 import { EntityLink, OpsBadge, OpsCard, SurfaceBanner, severityTone } from './primitives';
 import { CopilotSearchBar } from '@/components/copilot/CopilotSearchBar';
@@ -97,6 +103,12 @@ interface WorkbenchContext {
   error?: string;
 }
 
+interface WorkbenchErrorPayload {
+  error?: string;
+  error_description?: string;
+  workspaceSwitchHref?: string;
+}
+
 // ── Investigation State (lightweight, no external deps) ───────────────────────
 
 interface InvState {
@@ -131,6 +143,57 @@ function trustBandTone(band: string): 'success' | 'warning' | 'critical' | 'neut
     case 'CRITICAL': case 'L0': return 'critical';
     default: return 'neutral';
   }
+}
+
+function emptyProviderMessage(anchor: WorkbenchContext['anchor']) {
+  if (anchor.npi) {
+    return `No provider context resolved for NPI ${anchor.npi}.`;
+  }
+
+  if (anchor.findingId || anchor.storylineId) {
+    return 'No provider context is attached to the selected investigation anchor.';
+  }
+
+  return 'Enter a provider NPI, finding, or storyline to load provider context.';
+}
+
+function emptyFindingMessage(anchor: WorkbenchContext['anchor']) {
+  if (anchor.findingId) {
+    return `No finding context resolved for finding ${anchor.findingId}.`;
+  }
+
+  if (anchor.npi || anchor.storylineId) {
+    return 'No finding context is attached to the current investigation.';
+  }
+
+  return 'Select a finding or enter an anchor to load finding context.';
+}
+
+function emptyStorylineMessage(anchor: WorkbenchContext['anchor']) {
+  if (anchor.storylineId) {
+    return `No storyline context resolved for storyline ${anchor.storylineId}.`;
+  }
+
+  if (anchor.findingId || anchor.npi) {
+    return 'No storyline context is attached to the current investigation.';
+  }
+
+  return 'Select a storyline or enter an anchor to load storyline context.';
+}
+
+function MissingContextCard({
+  label,
+  message,
+}: {
+  label: string;
+  message: string;
+}) {
+  return (
+    <div className="rounded-xl border border-dashed border-[var(--vt-border)] bg-[var(--vt-surface)] p-3">
+      <p className="text-[10px] uppercase tracking-[0.1em] text-[var(--vt-text-3)]">{label}</p>
+      <p className="mt-2 text-xs leading-5 text-[var(--vt-text-3)]">{message}</p>
+    </div>
+  );
 }
 
 // ── Left Panel: Findings Inbox ────────────────────────────────────────────────
@@ -179,11 +242,13 @@ function FindingsInbox({
 // ── Center Top: Provider Investigation Panel ──────────────────────────────────
 
 function ProviderInvestigationPanel({
+  anchor,
   provider,
   finding,
   storyline,
   navigation,
 }: {
+  anchor: WorkbenchContext['anchor'];
   provider: WorkbenchProviderContext | null;
   finding: WorkbenchFindingContext | null;
   storyline: WorkbenchStorylineContext | null;
@@ -214,9 +279,15 @@ function ProviderInvestigationPanel({
           <div className="mt-2 flex flex-wrap gap-2">
             <EntityLink href={`/providers/${provider.npi}`} label="Profile" />
             <EntityLink href={buildIntelligenceHref('dashboard', { npi: provider.npi, panel: 'graph' })} label="Graph" />
+            {navigation?.copilotHref ? <EntityLink href={navigation.copilotHref} label="Copilot" /> : null}
           </div>
         </div>
-      ) : null}
+      ) : (
+        <MissingContextCard
+          label="Provider"
+          message={emptyProviderMessage(anchor)}
+        />
+      )}
 
       {/* Active finding */}
       {finding ? (
@@ -236,7 +307,12 @@ function ProviderInvestigationPanel({
             ) : null}
           </div>
         </div>
-      ) : null}
+      ) : (
+        <MissingContextCard
+          label="Finding"
+          message={emptyFindingMessage(anchor)}
+        />
+      )}
 
       {/* Storyline */}
       {storyline ? (
@@ -261,13 +337,12 @@ function ProviderInvestigationPanel({
           ) : null}
           <EntityLink href={`/storylines/${storyline.id}`} label="Full Storyline" />
         </div>
-      ) : null}
-
-      {!provider && !finding && !storyline ? (
-        <div className="flex flex-1 items-center justify-center">
-          <p className="text-sm text-[var(--vt-text-3)]">Enter an NPI above to begin investigation.</p>
-        </div>
-      ) : null}
+      ) : (
+        <MissingContextCard
+          label="Storyline"
+          message={emptyStorylineMessage(anchor)}
+        />
+      )}
     </div>
   );
 }
@@ -619,7 +694,6 @@ function useWorkbenchShortcuts(handlers: {
 
 export function InvestigationsSurface() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const seededNpi = searchParams.get('npi') ?? '';
   const seededFindingId = searchParams.get('findingId') ?? '';
   const seededStorylineId = searchParams.get('storylineId') ?? '';
@@ -627,6 +701,7 @@ export function InvestigationsSurface() {
   const [npiInput, setNpiInput] = useState(seededNpi);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorHref, setErrorHref] = useState<string | null>(null);
   const [context, setContext] = useState<WorkbenchContext | null>(null);
   const [copilotCollapsed, setCopilotCollapsed] = useState(false);
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(seededFindingId || null);
@@ -635,29 +710,38 @@ export function InvestigationsSurface() {
   // ── Finding detail cache: hydrated from workbench responses ─────────────
   const findingCacheRef = useRef<Map<string, WorkbenchFindingContext>>(new Map());
 
-  const fetchWorkbench = useCallback(async (params: {
-    npi?: string;
-    findingId?: string;
-    storylineId?: string;
-  }) => {
-    const qs = new URLSearchParams();
-    if (params.npi) qs.set('npi', params.npi);
-    if (params.findingId) qs.set('findingId', params.findingId);
-    if (params.storylineId) qs.set('storylineId', params.storylineId);
-    if (!qs.toString()) return;
+  const fetchWorkbench = useCallback(async (params: InvestigationWorkbenchAnchorInput) => {
+    const requestPath = buildInvestigationWorkbenchRequestPath(params);
+    if (requestPath === '/api/investigation/workbench') {
+      return;
+    }
 
     setLoading(true);
     setError(null);
+    setErrorHref(null);
 
     try {
-      const res = await fetch(`/api/investigation/workbench?${qs.toString()}`);
-      const payload = await res.json().catch(() => ({})) as WorkbenchContext;
-      if (!res.ok) throw new Error((payload as { error?: string }).error ?? `Request failed ${res.status}`);
-      setContext(payload);
-      if (params.npi) setNpiInput(params.npi);
+      const res = await fetch(requestPath, {
+        cache: 'no-store',
+      });
+      const payload = await res.json().catch(() => ({})) as WorkbenchContext | WorkbenchErrorPayload;
+      if (!res.ok) {
+        const workbenchError = payload as WorkbenchErrorPayload;
+        setErrorHref(typeof workbenchError.workspaceSwitchHref === 'string' ? workbenchError.workspaceSwitchHref : null);
+        throw new Error(
+          workbenchError.error_description
+            ?? workbenchError.error
+            ?? `Request failed ${res.status}`,
+        );
+      }
+
+      const nextContext = payload as WorkbenchContext;
+      setContext(nextContext);
+      setNpiInput(nextContext.provider?.npi ?? nextContext.anchor.npi ?? params.npi ?? '');
+      setSelectedFindingId(params.findingId ?? nextContext.finding?.id ?? null);
       // Cache the finding detail for instant hydration on re-select
-      if (payload.finding) {
-        findingCacheRef.current.set(payload.finding.id, payload.finding);
+      if (nextContext.finding) {
+        findingCacheRef.current.set(nextContext.finding.id, nextContext.finding);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Investigation failed');
@@ -674,8 +758,7 @@ export function InvestigationsSurface() {
         storylineId: seededStorylineId || undefined,
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seededNpi, seededFindingId, seededStorylineId]);
+  }, [fetchWorkbench, seededFindingId, seededNpi, seededStorylineId]);
 
   // Finding selection from inbox — optimistic hydration from cache
   const handleSelectFinding = useCallback((id: string) => {
@@ -702,8 +785,8 @@ export function InvestigationsSurface() {
   useWorkbenchShortcuts({
     onEscalate: () => {
       if (context?.finding) {
-        void fetch(`/api/intelligence/findings/${context.finding.id}/status`, {
-          method: 'PUT',
+        void fetch(buildFindingStatusEndpoint(context.finding.id), {
+          method: FINDING_STATUS_METHOD,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'investigating' }),
         });
@@ -712,8 +795,8 @@ export function InvestigationsSurface() {
     },
     onDismiss: () => {
       if (context?.finding) {
-        void fetch(`/api/intelligence/findings/${context.finding.id}/status`, {
-          method: 'PUT',
+        void fetch(buildFindingStatusEndpoint(context.finding.id), {
+          method: FINDING_STATUS_METHOD,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'dismissed' }),
         });
@@ -744,12 +827,22 @@ export function InvestigationsSurface() {
           <span className="animate-pulse">{actionMsg}</span>
         </SurfaceBanner>
       ) : error ? (
-        <SurfaceBanner tone="warning">{error}</SurfaceBanner>
+        <SurfaceBanner tone="warning">
+          <span>{error}</span>
+          {errorHref ? (
+            <>
+              {' '}
+              <Link href={errorHref} className="underline">
+                Switch workspace
+              </Link>
+            </>
+          ) : null}
+        </SurfaceBanner>
       ) : context?.generatedAt ? (() => {
         const ageSec = Math.round((Date.now() - new Date(context.generatedAt).getTime()) / 1000);
         return ageSec > 60 ? (
           <SurfaceBanner tone="neutral">
-            Data last refreshed {ageSec}s ago · <button onClick={() => { if (context.anchor.npi) void fetchWorkbench(context.anchor as { npi?: string; findingId?: string; storylineId?: string }); }} className="underline">Refresh</button>
+            Data last refreshed {ageSec}s ago · <button onClick={() => { void fetchWorkbench(context.anchor); }} className="underline">Refresh</button>
           </SurfaceBanner>
         ) : null;
       })() : null}
@@ -812,6 +905,7 @@ export function InvestigationsSurface() {
           {/* Center top: Provider Investigation */}
           <div className="bg-[var(--vt-surface)]">
             <ProviderInvestigationPanel
+              anchor={context.anchor}
               provider={context.provider}
               finding={context.finding}
               storyline={context.storyline}
@@ -839,7 +933,9 @@ export function InvestigationsSurface() {
               </div>
             ) : (
               <div className="flex h-full items-center justify-center text-xs text-[var(--vt-text-3)]">
-                Select a finding to view evidence.
+                {context.finding
+                  ? 'No evidence is attached to this finding yet.'
+                  : 'No finding context resolved yet.'}
               </div>
             )}
           </div>

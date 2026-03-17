@@ -23,6 +23,25 @@ interface CopilotAnswer {
   data: unknown;
 }
 
+function createFallbackAnswer(): CopilotAnswer {
+  return {
+    answer: 'Copilot requires active investigation context.',
+    intent: 'SYSTEM_RESPONSE',
+    confidence: 1,
+    suggestions: [
+      'Open an investigation with a provider NPI.',
+      'Select a finding to ground the question.',
+      'Load a storyline before asking for synthesis.',
+    ],
+    sources: [],
+    timing: 0,
+    data: {
+      type: 'system_response',
+      message: 'Copilot requires active investigation context.',
+    },
+  };
+}
+
 interface CopilotSearchBarProps {
   /** Compact mode for TopNav embedding */
   compact?: boolean;
@@ -58,7 +77,6 @@ export function CopilotSearchBar({
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [answer, setAnswer] = useState<CopilotAnswer | null>(null);
-  const [error, setError] = useState('');
   const [expanded, setExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -98,7 +116,6 @@ export function CopilotSearchBar({
     if (!trimmed || loading) return;
 
     setLoading(true);
-    setError('');
     setAnswer(null);
     setExpanded(true);
 
@@ -108,17 +125,16 @@ export function CopilotSearchBar({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: trimmed, sessionId }),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: CopilotAnswer = await res.json();
-      setAnswer(data);
+      const data = await res.json().catch(() => null) as CopilotAnswer | null;
+      setAnswer(data ?? createFallbackAnswer());
 
       // If the answer contains NPI data, allow navigation
-      const npiMatch = data.answer.match(/NPI (\d{10})/);
+      const npiMatch = (data ?? createFallbackAnswer()).answer.match(/NPI (\d{10})/);
       if (npiMatch && onNavigateToNpi) {
         // Don't auto-navigate — let user click
       }
     } catch {
-      setError('Copilot unavailable. Try again.');
+      setAnswer(createFallbackAnswer());
     } finally {
       setLoading(false);
     }
@@ -199,7 +215,7 @@ export function CopilotSearchBar({
           {query && (
             <button
               type="button"
-              onClick={() => { setQuery(''); setAnswer(null); setError(''); }}
+              onClick={() => { setQuery(''); setAnswer(null); }}
               className="p-1 rounded text-white/20 hover:text-white/50 transition-colors"
             >
               <X className="h-3.5 w-3.5" />
@@ -233,7 +249,7 @@ export function CopilotSearchBar({
 
       {/* Expanded results panel */}
       <AnimatePresence>
-        {expanded && (answer || error || (!answer && !loading && !query)) && (
+        {expanded && (answer || (!answer && !loading && !query)) && (
           <motion.div
             initial={{ opacity: 0, y: -4, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -246,11 +262,6 @@ export function CopilotSearchBar({
             `}
           >
             <div className="overflow-y-auto max-h-[inherit] p-4">
-              {/* Error */}
-              {error && (
-                <p className="text-sm text-red-400/80 py-2">{error}</p>
-              )}
-
               {/* Answer */}
               {answer && (
                 <div className="space-y-3">

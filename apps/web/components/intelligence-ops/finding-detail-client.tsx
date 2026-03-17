@@ -10,8 +10,8 @@ import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time'
 import { OperationsShell } from './shell';
 import { BackLink, BadgeLink, ConfidenceMeter, EntityLink, OpsBadge, OpsCard, SurfaceBanner, SurfaceErrorState, TimestampPair, severityTone } from './primitives';
 import { FindingMutationControls } from './mutation-controls';
-import { FindingEvidenceTable } from './finding-evidence-table';
 import { TrustSignalChips } from './trust-signal-chips';
+import { EvidenceSection } from './EvidenceSection';
 
 export function FindingDetailClient({
   findingId,
@@ -142,11 +142,7 @@ export function FindingDetailClient({
             </div>
           </OpsCard>
 
-          <FindingEvidenceTable
-            evidence={finding.supportingEvidence}
-            confidence={finding.confidence}
-            health={systemHealth.data}
-          />
+          <EvidenceSection rows={evidenceRows} summary={trustSummary} />
 
           <OpsCard className="space-y-4">
             <div className="flex items-center justify-between gap-3">

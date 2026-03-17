@@ -1,7 +1,13 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import type { GraphEdge, GraphNode } from '@/components/graph-system/types';
 import { findGraphNodeIdForProvider, summarizeGraph, type IntelligenceProvider } from '@/lib/intelligence/contracts';
-import { fetchBackendJson, parsePositiveInt } from '../_shared';
+import {
+  buildReadOnlyFallbackPayload,
+  fetchBackendJson,
+  logIntelligenceFallbackUsage,
+  parsePositiveInt,
+  resolveIntelligenceAuthContext,
+} from '../_shared';
 
 export const runtime = 'nodejs';
 const NPI_RE = /^\d{10}$/;
@@ -64,6 +70,11 @@ function enrichFocusedProviderNode(
 }
 
 export async function GET(req: NextRequest) {
+  const authContext = await resolveIntelligenceAuthContext();
+  if (authContext.status !== 'authenticated') {
+    return NextResponse.json(buildReadOnlyFallbackPayload('graph', req, authContext));
+  }
+
   const npi = req.nextUrl.searchParams.get('npi');
   const layer = req.nextUrl.searchParams.get('layer') ?? 'blended';
   const limit = parsePositiveInt(req.nextUrl.searchParams.get('limit'), 240, 600);
@@ -93,6 +104,7 @@ export async function GET(req: NextRequest) {
         graphPath,
         params,
         20_000,
+        { context: authContext },
       ),
       npi && NPI_RE.test(npi)
         ? fetchBackendJson<ProviderSignalPreview & {
@@ -102,15 +114,18 @@ export async function GET(req: NextRequest) {
           institutionMomentum: ProviderSignalPreview['institutionMomentum'];
           earlyWarnings: ProviderSignalPreview['earlyWarnings'];
           summary: string;
-        }>(`/api/provider-intelligence/${npi}`, new URLSearchParams({ limit: '10', sync: 'false' }), 20_000)
+        }>(
+          `/api/provider-intelligence/${npi}`,
+          new URLSearchParams({ limit: '10', sync: 'false' }),
+          20_000,
+          { context: authContext },
+        )
         : Promise.resolve(null),
     ]);
 
     if (!upstream.ok) {
-      return NextResponse.json(
-        { error: `Graph upstream returned ${upstream.status}` },
-        { status: upstream.status },
-      );
+      logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
+      return NextResponse.json(buildReadOnlyFallbackPayload('graph', req, authContext, { log: false }));
     }
 
     const nodes = (upstream.payload.nodes ?? []) as GraphNode[];
@@ -158,12 +173,8 @@ export async function GET(req: NextRequest) {
       generatedAt: upstream.payload.generatedAt ?? new Date().toISOString(),
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: 'Failed to load graph intelligence',
-        detail: error instanceof Error ? error.message : String(error),
-      },
-      { status: 503 },
-    );
+    void error;
+    logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
+    return NextResponse.json(buildReadOnlyFallbackPayload('graph', req, authContext, { log: false }));
   }
 }

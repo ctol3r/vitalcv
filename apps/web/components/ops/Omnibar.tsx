@@ -6,9 +6,7 @@ import {
   ChevronRight,
   Command,
   FileCheck2,
-  Globe2,
   Search,
-  Shield,
   Sparkles,
   Workflow,
   X,
@@ -26,7 +24,7 @@ interface OmniCommand {
   action: () => void;
 }
 
-function buildGraphHref(params: Record<string, string | null | undefined>): string {
+function buildWorkbenchHref(params: Record<string, string | null | undefined>): string {
   const search = new URLSearchParams();
 
   for (const [key, value] of Object.entries(params)) {
@@ -36,7 +34,7 @@ function buildGraphHref(params: Record<string, string | null | undefined>): stri
   }
 
   const serialized = search.toString();
-  return serialized.length > 0 ? `/graph?${serialized}` : '/graph';
+  return serialized.length > 0 ? `/intelligence?view=dashboard&${serialized}` : '/intelligence?view=dashboard';
 }
 
 export default function Omnibar() {
@@ -55,31 +53,13 @@ export default function Omnibar() {
 
   const baseCommands: OmniCommand[] = useMemo(() => [
     {
-      id: 'navigate-graph',
-      label: 'Open intelligence shell',
-      description: 'Three-panel provider intelligence workspace',
+      id: 'navigate-intelligence',
+      label: 'Open intelligence workspace',
+      description: 'Protected dashboard, findings, providers, and investigations',
       icon: Workflow,
       group: 'Navigation',
-      keywords: ['graph', 'workspace', 'intelligence', 'shell'],
-      action: () => navigate('/graph'),
-    },
-    {
-      id: 'navigate-command-center',
-      label: 'Open command center',
-      description: 'Operational monitoring and incident flow',
-      icon: Shield,
-      group: 'Navigation',
-      keywords: ['command', 'center', 'alerts', 'operations'],
-      action: () => navigate('/command-center'),
-    },
-    {
-      id: 'navigate-network',
-      label: 'Open network view',
-      description: 'Network-wide trust topology',
-      icon: Globe2,
-      group: 'Navigation',
-      keywords: ['network', 'topology', 'map'],
-      action: () => navigate('/network'),
+      keywords: ['workspace', 'intelligence', 'investigations'],
+      action: () => navigate('/intelligence?view=dashboard'),
     },
     {
       id: 'navigate-developers',
@@ -93,11 +73,11 @@ export default function Omnibar() {
     {
       id: 'provider-search',
       label: 'Search providers',
-      description: 'Jump into the graph workspace and filter provider profiles',
+        description: 'Jump into the intelligence workspace and filter provider profiles',
       icon: Search,
       group: 'Workspace',
       keywords: ['providers', 'search', 'profiles'],
-      action: () => navigate(buildGraphHref({
+      action: () => navigate(buildWorkbenchHref({
         command: 'provider-search',
         q: query || 'cardiology',
         rid: String(Date.now()),
@@ -110,7 +90,7 @@ export default function Omnibar() {
       icon: Bot,
       group: 'Workspace',
       keywords: ['copilot', 'ask', 'research', 'trust'],
-      action: () => navigate(buildGraphHref({
+      action: () => navigate(buildWorkbenchHref({
         command: 'copilot',
         prompt: query || 'Which providers are ready for verification?',
         rid: String(Date.now()),
@@ -123,7 +103,7 @@ export default function Omnibar() {
       icon: FileCheck2,
       group: 'Workspace',
       keywords: ['verify', 'verification', 'trust'],
-      action: () => navigate(buildGraphHref({
+      action: () => navigate(buildWorkbenchHref({
         command: 'verify',
         q: query || 'Mayo Clinic',
         rid: String(Date.now()),
@@ -146,7 +126,7 @@ export default function Omnibar() {
         icon: Search,
         group: 'Search',
         keywords: ['search', 'providers', normalizedQuery.toLowerCase()],
-        action: () => navigate(buildGraphHref({
+        action: () => navigate(buildWorkbenchHref({
           command: 'provider-search',
           q: normalizedQuery,
           rid: String(Date.now()),
@@ -159,7 +139,7 @@ export default function Omnibar() {
         icon: Bot,
         group: 'Copilot',
         keywords: ['copilot', 'ask', normalizedQuery.toLowerCase()],
-        action: () => navigate(buildGraphHref({
+        action: () => navigate(buildWorkbenchHref({
           command: 'copilot',
           prompt: normalizedQuery,
           rid: String(Date.now()),
@@ -168,11 +148,11 @@ export default function Omnibar() {
       {
         id: `verify:${normalizedQuery}`,
         label: `Run verification for "${normalizedQuery}"`,
-        description: 'Generate a verification brief against the current graph slice',
+        description: 'Generate a verification brief against the current investigation context',
         icon: FileCheck2,
         group: 'Verification',
         keywords: ['verification', 'verify', normalizedQuery.toLowerCase()],
-        action: () => navigate(buildGraphHref({
+        action: () => navigate(buildWorkbenchHref({
           command: 'verify',
           q: normalizedQuery,
           rid: String(Date.now()),

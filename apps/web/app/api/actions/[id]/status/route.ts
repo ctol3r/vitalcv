@@ -1,5 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { buildForwardHeaders } from '@/app/api/intelligence/_shared';
+import {
+  buildForwardHeaders,
+  decorateAuthFailurePayload,
+  requireAuthenticatedOrgContext,
+  resolveIntelligenceAuthContext,
+} from '@/app/api/intelligence/_shared';
 import { normalizeActionDetailResponse } from '@/lib/intelligence/detail-normalizers';
 import type { ActionDetailResponse } from '@/lib/intelligence/detail-types';
 import { getApiBase } from '@/lib/api';
@@ -13,8 +18,14 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  const authContext = await resolveIntelligenceAuthContext();
+  const blocked = requireAuthenticatedOrgContext(req, authContext);
+  if (blocked) {
+    return NextResponse.json(blocked.payload, { status: blocked.status });
+  }
+
   const body = await req.json().catch(() => ({}));
-  const headers = await buildForwardHeaders();
+  const headers = await buildForwardHeaders(undefined, { context: authContext });
   headers.set('Content-Type', 'application/json');
 
   const response = await fetch(`${BACKEND}/api/actions/${encodeURIComponent(id)}/status`, {
@@ -25,7 +36,7 @@ export async function PATCH(
     signal: AbortSignal.timeout(12_000),
   });
 
-  const payload = await response.json().catch(() => ({}));
+  const payload = decorateAuthFailurePayload(await response.json().catch(() => ({})), response.status);
   const normalizedPayload = (
     payload && typeof payload === 'object' && 'action' in payload
       ? normalizeActionDetailResponse(payload as ActionDetailResponse)

@@ -4,7 +4,6 @@ export const PUBLIC_SURFACE_PATHS = new Set([
   '/documents',
   '/mission-ops',
   '/mobile',
-  '/network',
   '/simulation',
   '/status',
   '/explore',

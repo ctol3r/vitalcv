@@ -1,10 +1,21 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { normalizeProvidersPayload } from '@/lib/intelligence/contracts';
-import { fetchBackendJson, parsePositiveInt } from '../_shared';
+import {
+  buildReadOnlyFallbackPayload,
+  fetchBackendJson,
+  logIntelligenceFallbackUsage,
+  parsePositiveInt,
+  resolveIntelligenceAuthContext,
+} from '../_shared';
 
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
+  const authContext = await resolveIntelligenceAuthContext();
+  if (authContext.status !== 'authenticated') {
+    return NextResponse.json(buildReadOnlyFallbackPayload('providers', req, authContext));
+  }
+
   const query = req.nextUrl.searchParams.get('q') ?? '';
   const page = parsePositiveInt(req.nextUrl.searchParams.get('page'), 1, 200);
   const limit = parsePositiveInt(
@@ -42,13 +53,11 @@ export async function GET(req: NextRequest) {
       pageInfo?: {
         totalAvailable?: number;
       };
-    }>('/api/directory', params);
+    }>('/api/directory', params, 12_000, { context: authContext });
 
     if (!upstream.ok) {
-      return NextResponse.json(
-        { error: `Provider directory upstream returned ${upstream.status}` },
-        { status: upstream.status },
-      );
+      logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
+      return NextResponse.json(buildReadOnlyFallbackPayload('providers', req, authContext, { log: false }));
     }
 
     const response = normalizeProvidersPayload(upstream.payload, query);
@@ -74,12 +83,8 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: 'Failed to load intelligence providers',
-        detail: error instanceof Error ? error.message : String(error),
-      },
-      { status: 503 },
-    );
+    void error;
+    logIntelligenceFallbackUsage(req.nextUrl.pathname, authContext, 'backend_fallback');
+    return NextResponse.json(buildReadOnlyFallbackPayload('providers', req, authContext, { log: false }));
   }
 }

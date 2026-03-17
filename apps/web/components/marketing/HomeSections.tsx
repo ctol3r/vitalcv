@@ -36,18 +36,21 @@ function FadeIn({
   children,
   delay = 0,
   className = '',
+  immediate = false,
 }: {
   children: React.ReactNode;
   delay?: number;
   className?: string;
+  immediate?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: '-80px' });
+  const shouldShow = immediate || inView;
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 24 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
+      initial={immediate ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
+      animate={shouldShow ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.6, delay, ease: 'easeOut' }}
       className={className}
     >
@@ -223,7 +226,7 @@ export function HowItWorksSection() {
         }}
       />
       <div className="relative mx-auto max-w-5xl">
-        <FadeIn className="text-center mb-14">
+        <FadeIn className="text-center mb-14" immediate>
           <div className="glue-pill mb-5" style={{borderColor:"rgba(59,130,246,0.2)",background:"rgba(59,130,246,0.08)",color:"#60a5fa"}}>
             <CheckCircle2 className="h-3.5 w-3.5 text-blue-400" />
             <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-blue-400">
@@ -246,7 +249,7 @@ export function HowItWorksSection() {
             const Icon = s.icon;
             const colors = STEP_ACCENT[s.accent];
             return (
-              <FadeIn key={s.step} delay={i * 0.14} className="h-full">
+              <FadeIn key={s.step} delay={i * 0.14} className="h-full" immediate>
                 <div
                   className={`group relative h-full rounded-2xl border bg-white/3 backdrop-blur-sm p-7 transition-all hover:bg-white/5 ${colors.border}`}
                 >

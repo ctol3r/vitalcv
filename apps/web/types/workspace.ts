@@ -54,6 +54,7 @@ export interface WorkspacePreference {
 export interface WorkspaceList {
   userId: string;
   activePersona: ActivePersona;
+  activeOrgId: string | null;
   personProfile: WorkspacePersonProfile | null;
   memberships: Array<{
     org: WorkspaceOrganizationProfile;

@@ -39,6 +39,7 @@ type WorkspaceUserRecord = Prisma.UserGetPayload<{
 export interface WorkspaceList {
   userId: string;
   activePersona: ActivePersona;
+  activeOrgId: string | null;
   personProfile: PersonProfile | null;
   memberships: Array<{
     org: OrganizationProfile;
@@ -122,10 +123,17 @@ export async function getWorkspacesForUser(
   const hydratedUser = (await getWorkspaceUserById(user.id)) ?? user;
   const canSwitchTo = getAvailablePersonas(hydratedUser);
   const activePersona = await coerceActivePersona(hydratedUser, preference, canSwitchTo);
+  const activeMemberships = hydratedUser.personProfile?.memberships.filter((membership) => membership.active) ?? [];
+  const activeOrgId = (
+    getValidatedActiveOrgId(activeMemberships, preference.activeOrgId)
+    ?? activeMemberships[0]?.organizationProfile.organizationId
+    ?? null
+  );
 
   return {
     userId: hydratedUser.id,
     activePersona,
+    activeOrgId,
     personProfile: hydratedUser.personProfile,
     memberships: hydratedUser.personProfile?.memberships.map((membership) => ({
       org: membership.organizationProfile,

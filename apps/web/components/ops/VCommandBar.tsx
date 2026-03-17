@@ -24,7 +24,6 @@ import {
   ExternalLink,
   FileOutput,
   Loader2,
-  Network,
   Search,
   Sparkles,
   TerminalSquare,
@@ -305,11 +304,6 @@ export default function VCommandBar() {
           return;
         }
 
-        if (event.metaKey || event.ctrlKey) {
-          executeGraphSelection(selected);
-          return;
-        }
-
         executeSelection(selected);
       }
     }
@@ -504,15 +498,6 @@ export default function VCommandBar() {
     }
   }
 
-  function executeGraphSelection(result: VCommandResultItem) {
-    if (!result.graphHref) {
-      return;
-    }
-
-    openHref(router, result.graphHref);
-    setOpen(false);
-  }
-
   const parsePreview = buildParsePreview(
     selectedResult?.kind === 'saved-query' && selectedResult.query
       ? resolveCommandInput(selectedResult.query).parseSummary
@@ -696,16 +681,6 @@ export default function VCommandBar() {
                           <p className="mt-1 text-sm text-slate-400">{selectedResult.subtitle}</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          {selectedResult.graphHref ? (
-                            <button
-                              type="button"
-                              onClick={() => executeGraphSelection(selectedResult)}
-                              className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-300/15"
-                            >
-                              <Network className="h-3.5 w-3.5" />
-                              Open graph
-                            </button>
-                          ) : null}
                           {selectedResult.href ? (
                             <button
                               type="button"
@@ -791,7 +766,7 @@ export default function VCommandBar() {
                           </div>
 
                           <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Network preview</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Relationship preview</p>
                             <div className="mt-4 grid gap-3">
                               <div className="grid grid-cols-3 gap-2">
                                 <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
@@ -815,7 +790,7 @@ export default function VCommandBar() {
                                   </div>
                                 ))}
                                 {!graphNeighbors.length && !graphPreview.loading ? (
-                                  <p className="text-sm text-slate-400">Graph neighbors are not available for this scope yet.</p>
+                                  <p className="text-sm text-slate-400">Relationship neighbors are not available for this scope yet.</p>
                                 ) : null}
                               </div>
                             </div>
@@ -852,7 +827,7 @@ export default function VCommandBar() {
                         </div>
 
                         <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Graph query bridge</p>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Related insights</p>
                           <div className="mt-4 space-y-3">
                             {selectedGraphInsights.slice(0, 4).map((insight, index) => (
                               <div key={`${insight.summary}-${index}`} className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
@@ -867,7 +842,7 @@ export default function VCommandBar() {
                             ))}
                             {!selectedGraphInsights.length ? (
                               <p className="text-sm text-slate-400">
-                                Copilot did not return graph edges for this result, but Cmd+Enter will still open the graph workspace with the current scope.
+                                Copilot did not return additional relationship insights for this result.
                               </p>
                             ) : null}
                           </div>
@@ -887,10 +862,6 @@ export default function VCommandBar() {
                             <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Open entity</p>
                             <p className="mt-2 font-mono text-sm text-slate-200">{selectedResult.href ?? 'Unavailable'}</p>
                           </div>
-                          <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
-                            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Open graph</p>
-                            <p className="mt-2 font-mono text-sm text-slate-200">{selectedResult.graphHref ?? 'Unavailable'}</p>
-                          </div>
                         </div>
                       </div>
                     ) : null}
@@ -899,7 +870,7 @@ export default function VCommandBar() {
                       <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Saved query</p>
                         <p className="mt-4 text-sm leading-7 text-slate-300">
-                          Press Enter to restore this query into the command bar, or Cmd+Enter to open the graph with its current scope.
+                          Press Enter to restore this query into the command bar.
                         </p>
                       </div>
                     ) : null}
@@ -912,7 +883,7 @@ export default function VCommandBar() {
                   </div>
                 ) : (
                   <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-6 text-sm text-slate-400">
-                    Type a provider name, an NPI, a natural-language intelligence query, or a command such as <code>&gt; open graph</code>.
+                    Type a provider name, an NPI, a natural-language intelligence query, or an intelligence command.
                   </div>
                 )}
               </div>
@@ -924,11 +895,11 @@ export default function VCommandBar() {
                 <span>/ quick launch</span>
                 <span>↑↓ navigate</span>
                 <span>Enter open entity</span>
-                <span>⌘Enter open graph</span>
+                <span>Esc close</span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <FileOutput className="h-3.5 w-3.5" />
-                <span>Primary interface for provider intelligence</span>
+                <span>Operational command surface for provider intelligence</span>
               </div>
             </div>
           </motion.div>

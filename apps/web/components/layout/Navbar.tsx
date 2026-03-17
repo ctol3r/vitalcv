@@ -9,16 +9,17 @@
 
 import { isPublicSurfacePath, isRouteActive } from '@/components/layout/publicSurfaceRoutes';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { Menu, X, Search } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 const NAV_ITEMS = [
+  { href: '/',               label: 'Home' },
   { href: '/explore',        label: 'Explore' },
-  { href: '/demo',           label: 'Demo' },
-  { href: '/employers',      label: 'Employers' },
+  { href: '/documents',      label: 'Documents' },
   { href: '/developers',     label: 'Developers' },
+  { href: '/intelligence',   label: 'Intelligence' },
 ] as const;
 
 export default function Navbar() {
@@ -66,13 +67,6 @@ export default function Navbar() {
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-2 shrink-0">
-          <Link
-            href="/search"
-            aria-label="Search VitalCV"
-            className="rounded-full p-2 text-white/60 hover:bg-white/8 hover:text-white transition"
-          >
-            <Search className="h-4 w-4" />
-          </Link>
           <ThemeToggle />
           <Link
             href="/sign-in"
