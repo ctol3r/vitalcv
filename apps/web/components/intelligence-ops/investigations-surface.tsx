@@ -651,11 +651,6 @@ function CopilotPanel({
           {summary ? (
             <div className="mb-3 rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-xs leading-5 text-[var(--vt-text-2)]">
               {summary}
-              {accessMode === 'public_snapshot' ? (
-                <p className="mt-2 text-[10px] uppercase tracking-[0.14em] text-[var(--vt-text-3)]">
-                  Sign in to run live Copilot queries.
-                </p>
-              ) : null}
             </div>
           ) : null}
           <CopilotSearchBar

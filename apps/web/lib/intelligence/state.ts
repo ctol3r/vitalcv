@@ -40,32 +40,21 @@ export function getAccessBannerState(
   accessMode: IntelligenceAccessMode | null | undefined,
   reason: IntelligenceAccessReason | null | undefined,
 ): AccessBannerState | null {
-  if (!accessMode || !reason || (accessMode === 'full' && reason === 'ok')) {
+  // Intelligence is fully public — only show banners for genuine backend issues.
+  if (!accessMode || !reason || reason === 'ok' || reason === 'missing_session' || reason === 'missing_org') {
     return null;
   }
 
   switch (reason) {
-    case 'missing_session':
-      return {
-        tone: 'info',
-        description: 'Sign in to access full intelligence. Showing the seeded public snapshot while the live workspace stays protected.',
-      };
-    case 'missing_org':
-      return {
-        tone: 'warning',
-        description: 'Switch to an organization workspace to access full intelligence. Showing the seeded public snapshot until tenant context is resolved.',
-      };
     case 'warming_up':
       return {
         tone: 'info',
-        description: 'System warming up — ingesting provider intelligence.',
+        description: 'System warming up — ingesting provider intelligence. Live findings will appear shortly.',
       };
     case 'backend_unavailable':
       return {
         tone: 'warning',
-        description: accessMode === 'public_snapshot'
-          ? 'Public snapshot is temporarily unavailable. Retry when the backend finishes warming up.'
-          : 'Live intelligence is temporarily unavailable. Retry once backend services recover.',
+        description: 'Live intelligence is temporarily unavailable. Retry once backend services recover.',
       };
     case 'ok':
     default:

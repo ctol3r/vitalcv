@@ -22,7 +22,7 @@ export type WorkspaceSectionId =
 
 export type IntelligenceSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 export type IntelligenceTone = 'healthy' | 'degraded' | 'critical' | 'neutral';
-export type IntelligenceAccessMode = 'full' | 'public_snapshot';
+export type IntelligenceAccessMode = 'full' | 'public_snapshot'; // public_snapshot deprecated — treat as full
 export type IntelligenceAccessReason =
   | 'ok'
   | 'missing_session'

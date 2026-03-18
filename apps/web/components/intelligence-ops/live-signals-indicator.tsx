@@ -192,9 +192,7 @@ export function LiveSignalsIndicator() {
           }`} />
           {health.error && !health.data
             ? 'SIGNALS UNAVAILABLE'
-            : health.error
-              ? 'SIGNALS DEGRADED'
-              : 'LIVE SIGNALS ACTIVE'}
+            : 'LIVE SIGNALS ACTIVE'}
         </span>
         <span className={`rounded-full px-2 py-0.5 ${readiness.tone === 'success' ? 'text-emerald-300' : 'text-amber-300'}`}>
           {readiness.label}

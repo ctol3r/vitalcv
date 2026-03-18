@@ -57,11 +57,19 @@ export const PROTECTED_ROUTES: Array<{ pattern: RegExp; role: UserRoleType }> = 
  */
 export const PUBLIC_ROUTE_PATTERNS = [
   /^\/$/, // landing
-  // /network moved to protected intelligence routes
-  /^\/intelligence\/?$/, // public seeded intelligence shell
-  /^\/findings\/?$/, // public seeded findings shell
-  /^\/providers\/?$/, // public provider redirect shell
-  /^\/investigations\/?$/, // public seeded investigations shell
+  // ── Intelligence suite — fully public (no auth required) ──────────────────
+  // Backend enforces read-only access; write/mutation routes handle their own auth.
+  /^\/intelligence(\/.*)?$/, // full intelligence surface + subpaths
+  /^\/findings(\/.*)?$/, // findings feed + detail
+  /^\/providers(\/.*)?$/, // provider directory + detail
+  /^\/storylines(\/.*)?$/, // storyline feed + detail
+  /^\/graph(\/.*)?$/, // trust graph explorer
+  /^\/investigations(\/.*)?$/, // investigation workbench
+  /^\/actions(\/.*)?$/, // recommended actions
+  /^\/network(\/.*)?$/, // network telemetry
+  /^\/calibration(\/.*)?$/, // investigator calibration
+  /^\/system-health(\/.*)?$/, // system health surface
+  // ── Other public surfaces ─────────────────────────────────────────────────
   /^\/simulation(\/.*)?$/, // public simulation surface
   /^\/mobile(\/.*)?$/, // mobile landing
   /^\/status(\/.*)?$/, // public system status
@@ -70,7 +78,7 @@ export const PUBLIC_ROUTE_PATTERNS = [
   /^\/partners(\/.*)?$/, // public partners page
   /^\/sign-in(\/.*)?$/,
   /^\/sign-up(\/.*)?$/,
-  /^\/get-ready(\/.*)?$/, // clinician onboarding — public so unauthenticated users can land
+  /^\/get-ready(\/.*)?$/, // clinician onboarding
   /^\/explore(\/.*)?$/, // public opportunities board
   /^\/search(\/.*)?$/, // public search
   /^\/p\/(\/.*)?$/, // public clinician profiles

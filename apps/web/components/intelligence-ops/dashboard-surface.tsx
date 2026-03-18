@@ -549,6 +549,7 @@ export function DashboardSurface() {
             <span className="flex items-center gap-2"><span className="text-[var(--vt-text-1)]">{providers.data?.total ?? 0}</span> PROVIDERS</span>
             <span className="flex items-center gap-2"><span className="text-[var(--vt-text-1)]">{findings.data?.total ?? 0}</span> FINDINGS</span>
             <span className="flex items-center gap-2"><span className="text-[var(--vt-text-1)]">{storylines.data?.total ?? 0}</span> STORYLINES</span>
+            <span className="flex items-center gap-2"><span className="text-[var(--vt-text-1)]">{graph.data?.edges.length ?? 0}</span> EDGES</span>
           </div>
         </div>
         <div className="flex items-center gap-5">
