@@ -82,6 +82,8 @@ export async function createPresentation(
 
   const privateKey = await importPKCS8(signingKeyPem, 'ES256');
 
+  const nowEpoch = Math.floor(Date.now() / 1000);
+
   const jws = await new SignJWT({
     presentationId,
     holder,
@@ -89,7 +91,7 @@ export async function createPresentation(
     credentialCount: credentials.length,
   })
     .setProtectedHeader({ alg: 'ES256', typ: 'vp+jwt' })
-    .setIssuedAt()
+    .setIssuedAt(nowEpoch)
     .setIssuer(holder)
     .setJti(presentationId)
     .setExpirationTime(opts.expiresAt ?? '1h')

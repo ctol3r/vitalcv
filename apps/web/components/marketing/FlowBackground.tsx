@@ -118,10 +118,21 @@ export default function FlowBackground() {
           const dy = particles[i].y - particles[j].y;
           const distance = Math.sqrt(dx * dx + dy * dy);
 
-          if (distance < 120) {
+          // Intensify if near mouse
+          let mouseDist = 1000;
+          if (mouseX !== -1000 && mouseY !== -1000) {
+            const mx = particles[i].x - mouseX;
+            const my = particles[i].y - mouseY;
+            mouseDist = Math.sqrt(mx * mx + my * my);
+          }
+          
+          const interactionBoost = mouseDist < 200 ? 0.15 * (1 - mouseDist / 200) : 0;
+
+          if (distance < 150) {
             ctx.beginPath();
-            ctx.strokeStyle = `rgba(180, 200, 220, ${0.05 * (1 - distance / 120)})`;
-            ctx.lineWidth = 0.5;
+            const alpha = 0.05 * (1 - distance / 150) + interactionBoost;
+            ctx.strokeStyle = `rgba(80, 168, 216, ${alpha})`;
+            ctx.lineWidth = interactionBoost > 0 ? 1 : 0.5;
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
             ctx.stroke();
@@ -132,6 +143,19 @@ export default function FlowBackground() {
       if (!prefersReducedMotion) {
         animationFrameId = requestAnimationFrame(animate);
       }
+    };
+
+    let mouseX = -1000;
+    let mouseY = -1000;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    };
+
+    const handleMouseLeave = () => {
+      mouseX = -1000;
+      mouseY = -1000;
     };
 
     init();
@@ -145,9 +169,13 @@ export default function FlowBackground() {
     };
 
     window.addEventListener("resize", handleResize);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseout", handleMouseLeave);
 
     return () => {
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseout", handleMouseLeave);
       cancelAnimationFrame(animationFrameId);
     };
   }, []);
@@ -155,7 +183,7 @@ export default function FlowBackground() {
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 w-full h-full pointer-events-none -z-50"
+      className="fixed inset-0 w-full h-full pointer-events-none -z-50 opacity-60 transition-opacity duration-1000"
       aria-hidden="true"
     />
   );

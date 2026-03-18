@@ -1,8 +1,8 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { ActionsSurface } from '@/components/intelligence-ops/actions-surface';
+import { DashboardSurface } from '@/components/intelligence-ops/dashboard-surface';
 import { FindingsSurface } from '@/components/intelligence-ops/findings-surface';
-import { IntelligenceOverviewSurface } from '@/components/intelligence-ops/intelligence-overview-surface';
 import { InvestigationsSurface } from '@/components/intelligence-ops/investigations-surface';
 import { ProvidersSurface } from '@/components/intelligence-ops/providers-surface';
 import { StorylinesSurface } from '@/components/intelligence-ops/storylines-surface';
@@ -15,13 +15,14 @@ import {
 
 export const metadata = {
   title: 'Operator Workbench | VitalCV',
-  description: 'Canonical operator surface for dashboard, findings, storylines, providers, actions, graph, investigations, calibration, and system health.',
+  description: 'Live trust intelligence — findings, providers, graph, storylines, investigations in one canvas.',
 };
 
 function renderSurface(view: ReturnType<typeof resolveIntelligenceView>) {
   switch (view) {
+    // Dashboard is the unified canvas — findings + graph + providers + storylines
     case 'dashboard':
-      return <IntelligenceOverviewSurface />;
+      return <DashboardSurface />;
     case 'findings':
       return <FindingsSurface />;
     case 'storylines':
@@ -37,7 +38,7 @@ function renderSurface(view: ReturnType<typeof resolveIntelligenceView>) {
     case 'system-health':
       return <SystemHealthSurface />;
     default:
-      return <IntelligenceOverviewSurface />;
+      return <DashboardSurface />;
   }
 }
 

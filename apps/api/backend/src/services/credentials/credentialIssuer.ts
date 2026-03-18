@@ -56,6 +56,8 @@ export async function issueCredential(
 
   const privateKey = await importPKCS8(pem, 'ES256');
 
+  const nowEpoch = Math.floor(Date.now() / 1000);
+
   const jws = await new SignJWT({
     credentialId: unsigned.credentialId,
     issuer: unsigned.issuer,
@@ -63,7 +65,7 @@ export async function issueCredential(
     claims: unsigned.claims,
   })
     .setProtectedHeader({ alg: 'ES256', typ: 'vc+jwt' })
-    .setIssuedAt()
+    .setIssuedAt(nowEpoch)
     .setIssuer(unsigned.issuer)
     .setSubject(unsigned.subject)
     .setExpirationTime(normalizeExpiration(unsigned.expiresAt))

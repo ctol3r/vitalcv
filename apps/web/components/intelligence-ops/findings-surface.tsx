@@ -11,6 +11,7 @@ import { useStorylines } from '@/hooks/useStorylines';
 import {
   findGraphNodeIdForProvider,
   findProviderForGraphNode,
+  type IntelligenceFinding,
 } from '@/lib/intelligence/contracts';
 import {
   hasFindingFilters,
@@ -22,7 +23,6 @@ import { buildIntelligenceGraphHref, buildIntelligenceHref } from '@/lib/intelli
 import {
   formatLastRefreshMessage,
   getAccessBannerState,
-  getFindingsEmptyState,
   getSurfaceFreshnessState,
 } from '@/lib/intelligence/state';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
@@ -65,75 +65,189 @@ function getFindingTypeColor(findingType: string) {
   }
 }
 
-function FindingsMessageCard({
-  title,
-  description,
+function FeedMetric({
+  label,
+  value,
+  detail,
 }: {
-  title: string;
-  description: string;
+  label: string;
+  value: string;
+  detail: string;
 }) {
   return (
-    <OpsCard className="border-dashed">
-      <div className="space-y-2">
-        <p className="text-sm font-semibold text-[var(--vt-text-1)]">{title}</p>
-        <p className="max-w-2xl text-sm leading-6 text-[var(--vt-text-2)]">{description}</p>
-      </div>
-    </OpsCard>
+    <div className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-2.5">
+      <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">{label}</p>
+      <p className="mt-1 text-lg font-semibold tabular-nums text-[var(--vt-text-1)]">{value}</p>
+      <p className="mt-1 text-[11px] leading-5 text-[var(--vt-text-3)]">{detail}</p>
+    </div>
   );
 }
 
-function collectGraphNodeIdsForFindingId(
-  findingId: string | null,
-  nodes: Array<{ id: string; findingIds?: string[] }>,
-  edges: Array<{ source: string; target: string; findingIds?: string[] }>,
-) {
-  if (!findingId) {
-    return [];
-  }
+function LiveSignalRow({
+  title,
+  detail,
+  href,
+  timestamp,
+}: {
+  title: string;
+  detail: string;
+  href: string | null;
+  timestamp: string | null;
+}) {
+  const content = (
+    <div className="flex min-w-0 items-start justify-between gap-3">
+      <div className="min-w-0 space-y-1">
+        <p className="text-sm font-medium text-[var(--vt-text-1)]">{title}</p>
+        <p className="line-clamp-2 text-xs leading-5 text-[var(--vt-text-2)]">{detail}</p>
+      </div>
+      {timestamp ? (
+        <span className="shrink-0 text-[10px] text-[var(--vt-text-3)]" title={formatAbsoluteTime(timestamp)}>
+          {formatRelativeTime(timestamp)}
+        </span>
+      ) : null}
+    </div>
+  );
 
-  const nodeIds = new Set<string>();
-
-  for (const node of nodes) {
-    if (node.findingIds?.includes(findingId)) {
-      nodeIds.add(node.id);
-    }
-  }
-
-  for (const edge of edges) {
-    if (edge.findingIds?.includes(findingId)) {
-      nodeIds.add(edge.source);
-      nodeIds.add(edge.target);
-    }
-  }
-
-  return [...nodeIds];
+  return href ? (
+    <Link
+      href={href}
+      className="block rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 transition hover:border-cyan-400/30 hover:bg-[var(--vt-surface-2)]"
+    >
+      {content}
+    </Link>
+  ) : (
+    <div className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2">
+      {content}
+    </div>
+  );
 }
 
-function collectGraphNodeIdsForStorylineId(
-  storylineId: string | null,
-  nodes: Array<{ id: string; storylineIds?: string[] }>,
-  edges: Array<{ source: string; target: string; storylineIds?: string[] }>,
-) {
-  if (!storylineId) {
-    return [];
-  }
+function FindingFeedCard({
+  finding,
+  currentHref,
+  isFocused,
+  onFocusGraph,
+}: {
+  finding: IntelligenceFinding;
+  currentHref: string;
+  isFocused: boolean;
+  onFocusGraph: (findingId: string) => void;
+}) {
+  return (
+    <OpsCard className={`overflow-hidden ${getFindingTypeColor(finding.findingType)} ${finding.severity === 'critical' ? 'ring-1 ring-rose-400/20' : ''}`}>
+      <div className="space-y-4">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0 flex-1 space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <OpsBadge label={formatFindingType(finding.findingType)} />
+              <OpsBadge label={finding.severity} tone={severityTone(finding.severity)} />
+              <OpsBadge label={finding.status} tone={severityTone(finding.status)} />
+              <span className="text-[10px] uppercase tracking-[0.16em] text-[var(--vt-text-3)]">
+                {finding.investigatorId}
+              </span>
+            </div>
 
-  const nodeIds = new Set<string>();
+            <div className="space-y-2">
+              <Link
+                href={{
+                  pathname: `/findings/${finding.id}`,
+                  query: { from: currentHref },
+                }}
+                className="block text-lg font-semibold leading-6 text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]"
+              >
+                {finding.title}
+              </Link>
+              <p className="max-w-4xl text-sm leading-6 text-[var(--vt-text-2)]">{finding.summary}</p>
+            </div>
 
-  for (const node of nodes) {
-    if (node.storylineIds?.includes(storylineId)) {
-      nodeIds.add(node.id);
-    }
-  }
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              {finding.providerNpi ? (
+                <Link
+                  href={`/providers/${finding.providerNpi}?from=${encodeURIComponent(currentHref)}`}
+                  className="font-medium text-cyan-300 transition hover:text-[var(--vt-accent)]"
+                >
+                  {finding.providerLabel ?? `Provider ${finding.providerNpi}`}
+                </Link>
+              ) : (
+                <span className="text-[var(--vt-text-3)]">Provider not attached</span>
+              )}
+              {finding.storylineId ? (
+                <EntityLink
+                  href={`/storylines/${finding.storylineId}?from=${encodeURIComponent(currentHref)}`}
+                  label={finding.storylineTitle ?? 'Open storyline'}
+                />
+              ) : null}
+              {finding.providerNpi ? (
+                <EntityLink
+                  href={buildIntelligenceHref('findings', { provider: finding.providerNpi })}
+                  label="Provider findings"
+                />
+              ) : null}
+              <button
+                type="button"
+                onClick={() => onFocusGraph(finding.id)}
+                className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition ${
+                  isFocused
+                    ? 'border-cyan-400/30 bg-cyan-400/10 text-cyan-200'
+                    : 'border-[var(--vt-border)] bg-[var(--vt-surface)] text-[var(--vt-text-2)] hover:text-[var(--vt-text-1)]'
+                }`}
+              >
+                Focus graph
+              </button>
+            </div>
 
-  for (const edge of edges) {
-    if (edge.storylineIds?.includes(storylineId)) {
-      nodeIds.add(edge.source);
-      nodeIds.add(edge.target);
-    }
-  }
+            <div className="grid gap-2 md:grid-cols-2">
+              {finding.evidence.slice(0, 2).map((evidence) => (
+                <div
+                  key={evidence.id}
+                  className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-2"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-xs font-medium text-[var(--vt-text-1)]">{evidence.label}</p>
+                    {evidence.observedAt ? (
+                      <span className="shrink-0 text-[10px] text-[var(--vt-text-3)]" title={formatAbsoluteTime(evidence.observedAt)}>
+                        {formatRelativeTime(evidence.observedAt)}
+                      </span>
+                    ) : null}
+                  </div>
+                  {evidence.snippet ? (
+                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--vt-text-2)]">{evidence.snippet}</p>
+                  ) : null}
+                </div>
+              ))}
+              {finding.evidence.length > 2 ? (
+                <div className="flex items-center rounded-xl border border-dashed border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-xs text-[var(--vt-text-3)]">
+                  {finding.evidence.length - 2} more evidence item{finding.evidence.length - 2 === 1 ? '' : 's'}
+                </div>
+              ) : null}
+            </div>
+          </div>
 
-  return [...nodeIds];
+          <div className="w-full max-w-sm shrink-0 space-y-3">
+            <div className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Confidence</p>
+                <span className="text-xs text-[var(--vt-text-3)]">Priority {Math.round(finding.priorityScore)}</span>
+              </div>
+              <div className="mt-3">
+                <ConfidenceMeter confidence={finding.confidence} />
+              </div>
+              <div className="mt-3 space-y-1 text-sm text-[var(--vt-text-2)]">
+                <TimestampPair label="First seen" value={finding.firstSeenAt} />
+                <TimestampPair label="Updated" value={finding.updatedAt} />
+              </div>
+            </div>
+
+            <FindingMutationControls findingId={finding.id} status={finding.status} compact />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 border-t border-[var(--vt-border)] pt-3 text-[11px] text-[var(--vt-text-3)]">
+          <span>{finding.explanation}</span>
+        </div>
+      </div>
+    </OpsCard>
+  );
 }
 
 export function FindingsSurface() {
@@ -166,9 +280,7 @@ export function FindingsSurface() {
     pollIntervalMs: 60_000,
   });
 
-  const currentHref = useMemo(() => {
-    return `${pathname}${searchQuery ? `?${searchQuery}` : ''}`;
-  }, [pathname, searchQuery]);
+  const currentHref = useMemo(() => `${pathname}${searchQuery ? `?${searchQuery}` : ''}`, [pathname, searchQuery]);
 
   function buildSurfaceHref(params: URLSearchParams) {
     return pathname === '/intelligence'
@@ -201,6 +313,7 @@ export function FindingsSurface() {
     generatedAt: findings.data?.generatedAt,
     lastUpdated: findings.lastUpdated,
   });
+  const alerts = findings.data?.alerts ?? [];
   const rawItems = findings.data?.findings ?? [];
   const items = useMemo(
     () => (criticalOnly ? rawItems.filter((finding) => finding.severity === 'critical') : rawItems),
@@ -263,23 +376,46 @@ export function FindingsSurface() {
       return selectedGraphNodeId;
     }
 
-    const findingNodeId = collectGraphNodeIdsForFindingId(graphFinding?.id ?? null, nodes, edges)[0] ?? null;
-    if (findingNodeId) {
-      return findingNodeId;
+    if (graphFinding?.id) {
+      const nodeIds = new Set<string>();
+      for (const node of nodes) {
+        if (node.findingIds?.includes(graphFinding.id)) {
+          nodeIds.add(node.id);
+        }
+      }
+      for (const edge of edges) {
+        if (edge.findingIds?.includes(graphFinding.id)) {
+          nodeIds.add(edge.source);
+          nodeIds.add(edge.target);
+        }
+      }
+      const firstFindingNodeId = [...nodeIds][0] ?? null;
+      if (firstFindingNodeId) {
+        return firstFindingNodeId;
+      }
     }
 
-    const storylineNodeId = collectGraphNodeIdsForStorylineId(graphFinding?.storylineId ?? null, nodes, edges)[0] ?? null;
-    if (storylineNodeId) {
-      return storylineNodeId;
+    if (graphFinding?.storylineId) {
+      const nodeIds = new Set<string>();
+      for (const node of nodes) {
+        if (node.storylineIds?.includes(graphFinding.storylineId)) {
+          nodeIds.add(node.id);
+        }
+      }
+      for (const edge of edges) {
+        if (edge.storylineIds?.includes(graphFinding.storylineId)) {
+          nodeIds.add(edge.source);
+          nodeIds.add(edge.target);
+        }
+      }
+      const firstStorylineNodeId = [...nodeIds][0] ?? null;
+      if (firstStorylineNodeId) {
+        return firstStorylineNodeId;
+      }
     }
 
-    return (
-      findGraphNodeIdForProvider(selectedGraphProvider, nodes)
-      ?? graph.data?.focusNodeId
-      ?? nodes[0]?.id
-      ?? null
-    );
-  }, [graph.data?.edges, graph.data?.focusNodeId, graph.data?.nodes, graphFinding?.id, graphFinding?.storylineId, selectedGraphNodeId, selectedGraphProvider]);
+    return findGraphNodeIdForProvider(selectedGraphProvider, nodes) ?? graph.data?.focusNodeId ?? nodes[0]?.id ?? null;
+  }, [graph.data?.edges, graph.data?.focusNodeId, graph.data?.nodes, graphFinding?.id, graphFinding?.providerLabel, graphFinding?.providerNpi, graphFinding?.storylineId, selectedGraphNodeId, selectedGraphProvider]);
   const selectedGraphNode = useMemo(
     () => (graph.data?.nodes ?? []).find((node) => node.id === graphFocusNodeId) ?? null,
     [graph.data?.nodes, graphFocusNodeId],
@@ -289,17 +425,17 @@ export function FindingsSurface() {
       return 0;
     }
 
-    return (graph.data?.edges ?? []).filter((edge) => (
-      edge.source === graphFocusNodeId || edge.target === graphFocusNodeId
-    )).length;
+    return (graph.data?.edges ?? []).filter((edge) => edge.source === graphFocusNodeId || edge.target === graphFocusNodeId).length;
   }, [graph.data?.edges, graphFocusNodeId]);
-  const graphContextProvider = useMemo(() => (
-    findProviderForGraphNode(
-      graphFocusNodeId,
-      graph.data?.nodes ?? [],
-      providers.data?.providers ?? [],
-    ) ?? selectedGraphProvider
-  ), [graph.data?.nodes, graphFocusNodeId, providers.data?.providers, selectedGraphProvider]);
+  const graphContextProvider = useMemo(
+    () =>
+      findProviderForGraphNode(
+        graphFocusNodeId,
+        graph.data?.nodes ?? [],
+        providers.data?.providers ?? [],
+      ) ?? selectedGraphProvider,
+    [graph.data?.nodes, graphFocusNodeId, providers.data?.providers, selectedGraphProvider],
+  );
   const graphScopedFindings = graphRelatedFindings.data?.findings ?? [];
   const graphContextFinding = useMemo(() => {
     const candidateFindingIds = new Set<string>(selectedGraphNode?.findingIds ?? []);
@@ -342,13 +478,14 @@ export function FindingsSurface() {
 
   const total = findings.data?.total ?? 0;
   const totalPages = findings.data?.pageInfo?.totalPages ?? 1;
-  const apiReturnedEmpty = !findings.loading && !findings.error && rawItems.length === 0;
-  const criticalFilterRemovedAll = !findings.loading && !findings.error && rawItems.length > 0 && criticalOnly && items.length === 0;
-  const emptyState = getFindingsEmptyState({
-    findingCount: rawItems.length,
-    hasFilters: hasScopedFilters,
-    providerCount: providers.data?.total ?? null,
-  });
+  const pageReturned = findings.data?.pageInfo?.returned ?? items.length;
+  const activeScopeLabel = providerScope ? `Provider ${providerScope}` : hasScopedFilters ? 'Filtered scope' : 'Global feed';
+  const refreshLabel = findings.loading && !findings.data ? 'Loading live feed…' : findings.loading ? 'Refreshing…' : 'Refresh';
+  const liveFeedNote = criticalOnly && rawItems.length > 0 && items.length === 0
+    ? `Critical-only filter is hiding ${rawItems.length} live finding${rawItems.length === 1 ? '' : 's'}.`
+    : findings.loading && findings.data
+      ? `Live feed is refreshing for ${activeScopeLabel}.`
+      : `Feed query active for ${activeScopeLabel}.`;
 
   return (
     <OperationsShell
@@ -360,7 +497,10 @@ export function FindingsSurface() {
       meta={(
         <div className="space-y-1">
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Feed state</p>
-          <p>{findings.data?.total ?? 0} total findings</p>
+          <p>{total} total findings</p>
+          <p className="text-sm text-[var(--vt-text-3)]">
+            {pageReturned} returned on this page · {alerts.length} alert{alerts.length === 1 ? '' : 's'}
+          </p>
           {findings.lastUpdated ? (
             <p className="text-sm text-[var(--vt-text-3)]" title={formatAbsoluteTime(findings.lastUpdated)}>
               Last update: {formatRelativeTime(findings.lastUpdated)}
@@ -377,7 +517,7 @@ export function FindingsSurface() {
           className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-4 py-2 text-sm font-medium text-[var(--vt-text-1)] transition hover:bg-[var(--vt-surface-2)]"
         >
           <RefreshCw className="h-4 w-4" />
-          Refresh
+          {refreshLabel}
         </button>
       )}
       banner={(
@@ -397,50 +537,133 @@ export function FindingsSurface() {
               {formatLastRefreshMessage(staleState.ageMinutes)}
             </SurfaceBanner>
           ) : null}
+          {liveFeedNote ? (
+            <SurfaceBanner tone="neutral">
+              {liveFeedNote}
+            </SurfaceBanner>
+          ) : null}
         </>
       )}
     >
-      <OpsCard className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="space-y-1">
-          <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">List controls</p>
-          <p className="text-sm text-[var(--vt-text-2)]">
-            {hasScopedFilters
-              ? 'Query filters from the current route are active.'
-              : 'Rendering the live feed order returned by the backend.'}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            role="switch"
-            aria-checked={criticalOnly}
-            onClick={() => setCriticalOnly((current) => !current)}
-            className={`inline-flex items-center gap-3 rounded-full border px-3 py-2 text-xs font-medium transition ${
-              criticalOnly
-                ? 'border-cyan-400/30 bg-cyan-400/10 text-[var(--vt-text-1)]'
-                : 'border-[var(--vt-border)] bg-[var(--vt-surface)] text-[var(--vt-text-2)]'
-            }`}
-          >
-            <span
-              className={`relative h-5 w-9 rounded-full transition ${
-                criticalOnly ? 'bg-cyan-400/30' : 'bg-[var(--vt-surface-2)]'
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 h-4 w-4 rounded-full bg-cyan-300 transition ${
-                  criticalOnly ? 'left-4' : 'left-0.5'
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(16rem,0.85fr)]">
+        <OpsCard className="space-y-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Feed controls</p>
+              <p className="text-sm text-[var(--vt-text-2)]">
+                {hasScopedFilters
+                  ? 'Route filters are active and the list is constrained to the current operational scope.'
+                  : 'Rendering the live feed order returned by the backend.'}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={criticalOnly}
+                onClick={() => setCriticalOnly((current) => !current)}
+                className={`inline-flex items-center gap-3 rounded-full border px-3 py-2 text-xs font-medium transition ${
+                  criticalOnly
+                    ? 'border-cyan-400/30 bg-cyan-400/10 text-[var(--vt-text-1)]'
+                    : 'border-[var(--vt-border)] bg-[var(--vt-surface)] text-[var(--vt-text-2)]'
                 }`}
+              >
+                <span
+                  className={`relative h-5 w-9 rounded-full transition ${
+                    criticalOnly ? 'bg-cyan-400/30' : 'bg-[var(--vt-surface-2)]'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 h-4 w-4 rounded-full bg-cyan-300 transition ${
+                      criticalOnly ? 'left-4' : 'left-0.5'
+                    }`}
+                  />
+                </span>
+                Critical Only
+              </button>
+              <span className="text-xs text-[var(--vt-text-3)]">
+                {criticalOnly
+                  ? `${items.length} critical finding${items.length === 1 ? '' : 's'} on this page`
+                  : 'Severity, confidence, and timestamps are live from /api/intelligence/findings.'}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <FeedMetric
+              label="Scope"
+              value={activeScopeLabel}
+              detail={providerScope ? 'Provider-constrained query' : 'All findings in route scope'}
+            />
+            <FeedMetric
+              label="Findings"
+              value={String(total)}
+              detail={`${pageReturned} returned on page ${page}`}
+            />
+            <FeedMetric
+              label="Alerts"
+              value={String(alerts.length)}
+              detail={alerts.length > 0 ? alerts[0]?.title ?? 'Live alert stream' : 'No active alert rows'}
+            />
+            <FeedMetric
+              label="Freshness"
+              value={staleState.isStale && staleState.ageMinutes !== null ? `${staleState.ageMinutes}m` : 'Live'}
+              detail={findings.loading ? 'Refreshing now' : 'Current backend snapshot'}
+            />
+          </div>
+
+          {alerts.length > 0 ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Live alerts</p>
+                <span className="text-xs text-[var(--vt-text-3)]">{alerts.length} active</span>
+              </div>
+              <div className="space-y-2">
+                {alerts.slice(0, 3).map((alert) => (
+                  <LiveSignalRow
+                    key={alert.id}
+                    title={alert.title}
+                    detail={alert.summary}
+                    href={alert.providerNpi ? `/providers/${alert.providerNpi}?from=${encodeURIComponent(currentHref)}` : null}
+                    timestamp={alert.occurredAt}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </OpsCard>
+
+        <OpsCard className="space-y-3">
+          <div className="space-y-1">
+            <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Workbench links</p>
+            <p className="text-sm leading-6 text-[var(--vt-text-2)]">
+              Jump directly into the graph, provider context, or scoped investigation flow without leaving the feed.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <EntityLink href={openFullGraphHref} label="Open graph" />
+            {providerScope ? (
+              <EntityLink href={buildIntelligenceHref('findings', { provider: providerScope })} label="Scoped feed" />
+            ) : null}
+            {graphContextProvider ? (
+              <EntityLink
+                href={`/providers/${graphContextProvider.npi}?from=${encodeURIComponent(currentHref)}`}
+                label="Provider"
               />
-            </span>
-            Critical Only
-          </button>
-          <span className="text-xs text-[var(--vt-text-3)]">
-            {criticalOnly
-              ? `${items.length} critical finding${items.length === 1 ? '' : 's'} visible on this page`
-              : 'Severity, confidence, and timestamps are live from /api/intelligence/findings.'}
-          </span>
-        </div>
-      </OpsCard>
+            ) : null}
+            {graphContextFinding ? (
+              <EntityLink
+                href={`/findings/${graphContextFinding.id}?from=${encodeURIComponent(currentHref)}`}
+                label="Open finding"
+              />
+            ) : null}
+          </div>
+          <div className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-3 text-sm text-[var(--vt-text-2)]">
+            <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Current route</p>
+            <p className="mt-1 break-words">{pathname}{searchQuery ? `?${searchQuery}` : ''}</p>
+          </div>
+        </OpsCard>
+      </div>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
         <GraphWorkbenchPanel
@@ -470,16 +693,14 @@ export function FindingsSurface() {
             </h2>
             <p className="text-sm leading-6 text-[var(--vt-text-2)]">
               {selectedGraphNode
-                ? selectedGraphNode.title || 'This node is now driving the embedded investigation context.'
-                : 'The embedded graph highlights the first-degree network around the current provider scope. Click any node to update this context panel.'}
+                ? selectedGraphNode.title || 'This node is driving the embedded investigation context.'
+                : 'Click any graph node to make the right rail more specific.'}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             {selectedGraphNode ? <OpsBadge label={selectedGraphNode.type.replace(/_/g, ' ')} /> : null}
-            {graphContextFinding ? (
-              <OpsBadge label={graphContextFinding.severity} tone={severityTone(graphContextFinding.severity)} />
-            ) : null}
+            {graphContextFinding ? <OpsBadge label={graphContextFinding.severity} tone={severityTone(graphContextFinding.severity)} /> : null}
             <span className="text-sm text-[var(--vt-text-3)]">
               {graphRelationshipCount} relationship{graphRelationshipCount === 1 ? '' : 's'} in scope
             </span>
@@ -497,9 +718,7 @@ export function FindingsSurface() {
                   : 'No linked finding resolved from the current graph slice'}
             </p>
             <p>
-              Storyline: {graphContextStorylineTitle
-                ?? graphContextStorylineId
-                ?? (graphRelatedStorylines.loading ? 'Loading provider storyline context…' : 'No linked storyline')}
+              Storyline: {graphContextStorylineTitle ?? graphContextStorylineId ?? (graphRelatedStorylines.loading ? 'Loading storyline context…' : 'No linked storyline')}
             </p>
           </div>
 
@@ -551,143 +770,20 @@ export function FindingsSurface() {
         />
       ) : null}
 
-      {apiReturnedEmpty && emptyState ? (
-        <FindingsMessageCard
-          title={emptyState.title}
-          description={emptyState.description}
-        />
-      ) : null}
-
-      {criticalFilterRemovedAll ? (
-        <FindingsMessageCard
-          title="No critical findings on this page"
-          description="The live feed returned findings, but none of them are currently marked critical."
-        />
-      ) : null}
-
-      <div className="grid gap-4">
-        {items.map((finding, index) => (
-          <OpsCard
+      <div className="space-y-3">
+        {items.map((finding) => (
+          <FindingFeedCard
             key={finding.id}
-            className={`overflow-hidden animate-alive-slide ${getFindingTypeColor(finding.findingType)} ${finding.severity === 'critical' ? 'animate-critical-pulse' : ''}`}
-            style={{ animationDelay: `${Math.min(index * 40, 320)}ms` }}
-          >
-            <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-              <div className="min-w-0 flex-1 space-y-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <OpsBadge label={formatFindingType(finding.findingType)} />
-                  <OpsBadge label={finding.severity} tone={severityTone(finding.severity)} />
-                  <OpsBadge label={finding.status} tone={severityTone(finding.status)} />
-                  <span className="text-xs text-[var(--vt-text-3)]">{finding.investigatorId}</span>
-                </div>
-
-                <div className="space-y-2">
-                  <Link
-                    href={{
-                      pathname: `/findings/${finding.id}`,
-                      query: { from: currentHref },
-                    }}
-                    className="block text-xl font-semibold text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]"
-                  >
-                    {finding.title}
-                  </Link>
-                  <p className="max-w-4xl text-sm leading-6 text-[var(--vt-text-2)]">{finding.summary}</p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 text-sm">
-                  {finding.providerNpi ? (
-                    <Link
-                      href={`/providers/${finding.providerNpi}?from=${encodeURIComponent(currentHref)}`}
-                      className="font-medium text-cyan-300 transition hover:text-[var(--vt-accent)]"
-                    >
-                      {finding.providerLabel ?? `Provider ${finding.providerNpi}`}
-                    </Link>
-                  ) : (
-                    <span className="text-[var(--vt-text-3)]">Provider not attached</span>
-                  )}
-                  {finding.storylineId ? (
-                    <EntityLink
-                      href={`/storylines/${finding.storylineId}?from=${encodeURIComponent(currentHref)}`}
-                      label={finding.storylineTitle ?? 'Open storyline'}
-                    />
-                  ) : null}
-                  {finding.providerNpi ? (
-                    <EntityLink
-                      href={buildIntelligenceHref('findings', { provider: finding.providerNpi })}
-                      label="Provider findings"
-                    />
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setGraphFindingId(finding.id);
-                      setSelectedGraphNodeId(null);
-                    }}
-                    className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition ${
-                      graphFinding?.id === finding.id
-                        ? 'border-cyan-400/30 bg-cyan-400/10 text-cyan-200'
-                        : 'border-[var(--vt-border)] bg-[var(--vt-surface)] text-[var(--vt-text-2)] hover:text-[var(--vt-text-1)]'
-                    }`}
-                  >
-                    Focus graph
-                  </button>
-                </div>
-
-                {finding.evidence.length > 0 ? (
-                  <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-4">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Evidence preview</p>
-                      <span className="text-xs text-[var(--vt-text-3)]">{finding.evidence.length} sources</span>
-                    </div>
-                    <ul className="space-y-3">
-                      {finding.evidence.slice(0, 3).map((evidence) => (
-                        <li key={evidence.id} className="space-y-1 text-sm">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-medium text-[var(--vt-text-1)]">{evidence.label}</span>
-                            {evidence.observedAt ? (
-                              <span className="text-xs text-[var(--vt-text-3)]" title={formatAbsoluteTime(evidence.observedAt)}>
-                                {formatRelativeTime(evidence.observedAt)}
-                              </span>
-                            ) : null}
-                          </div>
-                          {evidence.snippet ? (
-                            <p className="leading-6 text-[var(--vt-text-2)]">{evidence.snippet}</p>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="w-full max-w-sm shrink-0 space-y-4">
-                <div className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Confidence</p>
-                  <div className="mt-3">
-                    <ConfidenceMeter confidence={finding.confidence} />
-                  </div>
-                  <div className="mt-4 space-y-2 text-sm text-[var(--vt-text-2)]">
-                    <p>Priority {Math.round(finding.priorityScore)}</p>
-                    <TimestampPair label="First seen" value={finding.firstSeenAt} />
-                    <TimestampPair label="Updated" value={finding.updatedAt} />
-                  </div>
-                </div>
-
-                <FindingMutationControls findingId={finding.id} status={finding.status} compact />
-              </div>
-            </div>
-          </OpsCard>
+            finding={finding}
+            currentHref={currentHref}
+            isFocused={graphFinding?.id === finding.id}
+            onFocusGraph={(findingId) => {
+              setGraphFindingId(findingId);
+              setSelectedGraphNodeId(null);
+            }}
+          />
         ))}
       </div>
-
-      {findings.loading && rawItems.length === 0 ? (
-        <FindingsMessageCard
-          title="Loading live findings"
-          description={providerScope
-            ? `Fetching the latest findings for provider ${providerScope}.`
-            : 'Fetching the latest findings feed and graph context from the intelligence APIs.'}
-        />
-      ) : null}
 
       {total > 0 ? (
         <OpsCard className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

@@ -5,7 +5,6 @@ import {
   buildDocumentFromHistory,
   buildDocumentFromPlanPayload,
   buildDocumentFromQueryPayload,
-  buildLimitedPayload,
 } from './documentBuilders';
 import type {
   CopilotCommandPayload,
@@ -13,6 +12,7 @@ import type {
   CopilotDocument,
   CopilotGraphAction,
   CopilotHistoryEvent,
+  CopilotMode,
   CopilotPlanPayload,
   CopilotQueryPayload,
   CopilotSessionAction,
@@ -207,6 +207,104 @@ function buildQueryContext(context: CopilotContextPayload) {
   };
 }
 
+function describeCurrentScope(context: CopilotContextPayload): string {
+  if (context.finding?.title) {
+    return `Finding ${context.finding.title}`;
+  }
+
+  if (context.storyline?.title) {
+    return `Storyline ${context.storyline.title}`;
+  }
+
+  if (context.provider?.label) {
+    return `Provider ${context.provider.label}`;
+  }
+
+  if (context.provider?.npi) {
+    return `Provider NPI ${context.provider.npi}`;
+  }
+
+  if (context.graph?.selectedNodeId) {
+    return `Graph node ${context.graph.selectedNodeId}`;
+  }
+
+  if (context.graph?.focusNodeId) {
+    return `Graph node ${context.graph.focusNodeId}`;
+  }
+
+  if (context.recentFindings.length > 0) {
+    return `${context.recentFindings.length} recent findings`;
+  }
+
+  return 'Current investigation scope';
+}
+
+function groundedFallbackSuggestions(context: CopilotContextPayload): string[] {
+  const suggestions: string[] = [];
+
+  if (context.finding?.title) {
+    suggestions.push(`Open the evidence chain for ${context.finding.title}`);
+    suggestions.push(`Trace the storyline linked to ${context.finding.title}`);
+  }
+
+  if (context.provider?.npi) {
+    const providerLabel = context.provider.label ?? `NPI ${context.provider.npi}`;
+    suggestions.push(`Review live findings for ${providerLabel}`);
+    suggestions.push(`Focus the graph around ${providerLabel}`);
+  }
+
+  if (context.storyline?.title) {
+    suggestions.push(`Summarize storyline ${context.storyline.title}`);
+    suggestions.push(`Inspect the findings tied to ${context.storyline.title}`);
+  }
+
+  if (context.graph?.selectedNodeId || context.graph?.focusNodeId) {
+    suggestions.push('Highlight the current graph neighborhood');
+  }
+
+  if (suggestions.length === 0) {
+    suggestions.push('Open an investigation');
+    suggestions.push('Review recent findings');
+    suggestions.push('Focus the trust graph');
+  }
+
+  return [...new Set(suggestions)].slice(0, 4);
+}
+
+function buildContextualLimitedEntry(
+  context: CopilotContextPayload,
+  input: {
+    query: string;
+    title: string;
+    message: string;
+    suggestions: string[];
+    mode?: CopilotMode;
+    source?: string;
+  },
+): CopilotSessionEntry {
+  const payload: CopilotQueryPayload = {
+    status: 'limited',
+    title: input.title,
+    message: input.message,
+    suggestions: input.suggestions,
+    results: [],
+    explanations: [],
+    graphInsights: [],
+  };
+  const document = buildDocumentFromQueryPayload(payload, context);
+  document.mode = input.mode ?? document.mode;
+
+  return buildSessionEntry({
+    query: input.query,
+    title: input.title,
+    status: 'limited',
+    suggestions: input.suggestions,
+    document,
+    message: input.message,
+    source: input.source,
+  });
+}
+
 function buildSessionEntry(input: {
   query: string;
   title: string;
@@ -259,13 +357,19 @@ function normalizeQueryPayload(rawValue: unknown): CopilotQueryPayload {
     };
   }
 
-  return buildLimitedPayload(
-    'Copilot needs more investigation context',
-    message ?? 'Copilot could not build a trustworthy response for this request.',
-    Array.isArray(payload.suggestions)
+  return {
+    status: 'limited',
+    title: 'Copilot needs more investigation context',
+    message: message ?? 'Copilot could not build a trustworthy response for this request.',
+    suggestions: Array.isArray(payload.suggestions)
       ? payload.suggestions.filter((entry): entry is string => typeof entry === 'string')
       : ['Open an investigation', 'Select a finding', 'Focus the graph'],
-  );
+    document: undefined,
+    results: Array.isArray(payload.results) ? payload.results as CopilotQueryPayload['results'] : [],
+    explanations: Array.isArray(payload.explanations) ? payload.explanations as CopilotQueryPayload['explanations'] : [],
+    graphInsights: Array.isArray(payload.graphInsights) ? payload.graphInsights as CopilotQueryPayload['graphInsights'] : [],
+    parsedQuery: payload.parsedQuery,
+  };
 }
 
 function buildCheckDocument(title: string, summary: string, lines: string[]): CopilotDocument {
@@ -638,19 +742,15 @@ export function useCopilotSession(input: UseCopilotSessionInput) {
   const runSupportedPlanChecks = useCallback(async (plan: PendingPlanState) => {
     const providerNpi = context.provider?.npi ?? context.finding?.providerNpi ?? context.storyline?.providerNpi ?? null;
     if (!providerNpi) {
-      const limited = buildLimitedPayload(
-        'Investigation checks are unavailable',
-        'This investigation plan does not resolve to a provider-backed check set yet.',
-        ['Focus a provider or finding and try /investigate again.'],
-        'plan',
-      );
-      appendEntry(buildSessionEntry({
+      appendEntry(buildContextualLimitedEntry(context, {
         query: plan.query,
-        title: limited.title,
-        status: 'limited',
-        suggestions: limited.suggestions,
-        document: limited.document!,
-        message: limited.message,
+        title: 'Investigation checks are unavailable',
+        message: `This plan currently resolves to ${describeCurrentScope(context)}, but not yet to a provider-backed check set.`,
+        suggestions: [
+          ...groundedFallbackSuggestions(context),
+          'Retry /investigate after anchoring the workbench.',
+        ].slice(0, 4),
+        mode: 'plan',
         source: 'plan-runner',
       }));
       return;
@@ -711,19 +811,15 @@ export function useCopilotSession(input: UseCopilotSessionInput) {
         }));
         recordEvent('Check completed', check.label);
       } catch (error) {
-        const limited = buildLimitedPayload(
-          'Check unavailable',
-          error instanceof Error ? error.message : 'The requested check could not complete.',
-          ['Run /history', 'Retry /investigate'],
-          'check',
-        );
-        appendEntry(buildSessionEntry({
+        appendEntry(buildContextualLimitedEntry(context, {
           query: check.label,
-          title: limited.title,
-          status: 'limited',
-          suggestions: limited.suggestions,
-          document: limited.document!,
-          message: limited.message,
+          title: 'Check unavailable',
+          message: `${error instanceof Error ? error.message : 'The requested check could not complete.'} ${describeCurrentScope(context)} remains available locally.`,
+          suggestions: [
+            ...groundedFallbackSuggestions(context),
+            'Run /history',
+          ].slice(0, 4),
+          mode: 'check',
           source: 'plan-check',
         }));
         recordEvent('Check limited', check.label);
@@ -787,19 +883,15 @@ export function useCopilotSession(input: UseCopilotSessionInput) {
           : context.finding?.storylineId ?? context.storyline?.id ?? null;
 
         if (!providerId && !storylineId) {
-          const limited = buildLimitedPayload(
-            'Copilot needs more investigation context',
-            'This investigation request does not resolve to a provider or storyline anchor yet.',
-            ['Select a provider, finding, or storyline first.', 'Retry /investigate after anchoring the workbench.'],
-            'plan',
-          );
-          appendEntry(buildSessionEntry({
+          appendEntry(buildContextualLimitedEntry(context, {
             query: trimmed,
-            title: limited.title,
-            status: 'limited',
-            suggestions: limited.suggestions,
-            document: limited.document!,
-            message: limited.message,
+            title: 'Copilot needs more investigation context',
+            message: `This request currently resolves to ${describeCurrentScope(context)}, but not yet to a provider or storyline anchor.`,
+            suggestions: [
+              ...groundedFallbackSuggestions(context),
+              'Retry /investigate after anchoring the workbench.',
+            ].slice(0, 4),
+            mode: 'plan',
             source: 'plan',
           }));
           return;
@@ -859,19 +951,15 @@ export function useCopilotSession(input: UseCopilotSessionInput) {
         const currentNpi = context.provider?.npi ?? context.finding?.providerNpi ?? context.storyline?.providerNpi ?? null;
         const compareNpi = await resolveProviderNpi(command.argument);
         if (!currentNpi || !compareNpi || currentNpi === compareNpi) {
-          const limited = buildLimitedPayload(
-            'Comparison needs two providers',
-            'Copilot can compare the current provider only when a second provider resolves cleanly.',
-            ['Use /compare <provider name or NPI>.', 'Select a provider first if none is active.'],
-            'compare',
-          );
-          appendEntry(buildSessionEntry({
+          appendEntry(buildContextualLimitedEntry(context, {
             query: trimmed,
-            title: limited.title,
-            status: 'limited',
-            suggestions: limited.suggestions,
-            document: limited.document!,
-            message: limited.message,
+            title: 'Comparison needs two providers',
+            message: `The current scope is ${describeCurrentScope(context)}, but a second provider could not be resolved cleanly.`,
+            suggestions: [
+              ...groundedFallbackSuggestions(context),
+              'Use /compare <provider name or NPI>.',
+            ].slice(0, 4),
+            mode: 'compare',
             source: 'compare',
           }));
           return;
@@ -901,19 +989,15 @@ export function useCopilotSession(input: UseCopilotSessionInput) {
       if (command?.name === 'network') {
         const resolvedArgumentNpi = await resolveProviderNpi(command.argument);
         if (command.argument && !resolvedArgumentNpi) {
-          const limited = buildLimitedPayload(
-            'Network path needs a provider-backed entity',
-            'Copilot can only explain network relationships when the requested entity resolves to a supported provider context.',
-            ['Use /network <provider name or NPI>.', 'Select a provider, then retry /network.'],
-            'network',
-          );
-          appendEntry(buildSessionEntry({
+          appendEntry(buildContextualLimitedEntry(context, {
             query: trimmed,
-            title: limited.title,
-            status: 'limited',
-            suggestions: limited.suggestions,
-            document: limited.document!,
-            message: limited.message,
+            title: 'Network path needs a provider-backed entity',
+            message: `The requested network entity does not resolve cleanly, while ${describeCurrentScope(context)} remains in scope.`,
+            suggestions: [
+              ...groundedFallbackSuggestions(context),
+              'Use /network <provider name or NPI>.',
+            ].slice(0, 4),
+            mode: 'network',
             source: 'network',
           }));
           return;
@@ -925,19 +1009,15 @@ export function useCopilotSession(input: UseCopilotSessionInput) {
           ?? context.storyline?.providerNpi
           ?? null;
         if (!npi) {
-          const limited = buildLimitedPayload(
-            'Network analysis needs a provider anchor',
-            'Copilot can only explain graph paths when it can resolve a provider-backed graph scope.',
-            ['Use /network <provider name or NPI>.', 'Select a provider first.'],
-            'network',
-          );
-          appendEntry(buildSessionEntry({
+          appendEntry(buildContextualLimitedEntry(context, {
             query: trimmed,
-            title: limited.title,
-            status: 'limited',
-            suggestions: limited.suggestions,
-            document: limited.document!,
-            message: limited.message,
+            title: 'Network analysis needs a provider anchor',
+            message: `Network analysis could not resolve a provider anchor for ${describeCurrentScope(context)}.`,
+            suggestions: [
+              ...groundedFallbackSuggestions(context),
+              'Use /network <provider name or NPI>.',
+            ].slice(0, 4),
+            mode: 'network',
             source: 'network',
           }));
           return;
@@ -972,19 +1052,15 @@ export function useCopilotSession(input: UseCopilotSessionInput) {
           ?? null;
 
         if (!npi) {
-          const limited = buildLimitedPayload(
-            'Targeted check needs a provider',
-            'Supported checks currently require a resolved provider NPI.',
-            ['Use /check with a provider name or NPI.', 'Select a provider first.'],
-            'check',
-          );
-          appendEntry(buildSessionEntry({
+          appendEntry(buildContextualLimitedEntry(context, {
             query: trimmed,
-            title: limited.title,
-            status: 'limited',
-            suggestions: limited.suggestions,
-            document: limited.document!,
-            message: limited.message,
+            title: 'Targeted check needs a provider',
+            message: `Supported checks require a resolved provider NPI for ${describeCurrentScope(context)}.`,
+            suggestions: [
+              ...groundedFallbackSuggestions(context),
+              'Use /check with a provider name or NPI.',
+            ].slice(0, 4),
+            mode: 'check',
             source: 'check',
           }));
           return;
@@ -1063,29 +1139,32 @@ export function useCopilotSession(input: UseCopilotSessionInput) {
         }),
       });
       const payload = normalizeQueryPayload(await response.json().catch(() => null));
-      const document = buildDocumentFromQueryPayload(payload, context);
+      const displayPayload = payload.status === 'limited' && /requires authentication|requires organization context|source unavailable|needs more investigation context|could not safely continue|could not build a trustworthy response|invalid response/i.test(
+        `${payload.title} ${payload.message}`,
+      )
+        ? {
+            ...payload,
+            title: `${describeCurrentScope(context)} · limited response`,
+            message: `Live Copilot sources are unavailable right now, but ${describeCurrentScope(context)} is still available locally.`,
+            suggestions: payload.suggestions.length > 0 ? payload.suggestions : groundedFallbackSuggestions(context),
+          }
+        : payload;
+      const document = buildDocumentFromQueryPayload(displayPayload, context);
       appendEntry(buildSessionEntry({
         query: trimmed,
-        title: payload.status === 'limited' ? payload.title : 'Copilot response',
-        status: payload.status,
-        suggestions: payload.suggestions ?? [],
+        title: displayPayload.status === 'limited' ? displayPayload.title : 'Copilot response',
+        status: displayPayload.status,
+        suggestions: displayPayload.suggestions ?? [],
         document,
-        message: payload.status === 'limited' ? payload.message : null,
+        message: displayPayload.status === 'limited' ? displayPayload.message : null,
         source: 'query',
       }));
     } catch (error) {
-      const limited = buildLimitedPayload(
-        'Copilot needs more investigation context',
-        error instanceof Error ? error.message : 'Copilot could not complete this request.',
-        ['Retry the request', 'Select a provider, finding, or storyline first.'],
-      );
-      appendEntry(buildSessionEntry({
+      appendEntry(buildContextualLimitedEntry(context, {
         query: trimmed,
-        title: limited.title,
-        status: 'limited',
-        suggestions: limited.suggestions,
-        document: limited.document!,
-        message: limited.message,
+        title: 'Copilot needs more investigation context',
+        message: `${error instanceof Error ? error.message : 'Copilot could not complete this request.'} ${describeCurrentScope(context)} remains available locally.`,
+        suggestions: groundedFallbackSuggestions(context),
         source: 'fallback',
       }));
     } finally {

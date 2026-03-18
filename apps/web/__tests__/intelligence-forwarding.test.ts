@@ -619,8 +619,8 @@ describe('intelligence auth forwarding', () => {
     expect(queryResponse.status).toBe(200);
     await expect(queryResponse.json()).resolves.toMatchObject({
       status: 'limited',
-      title: 'Copilot requires authentication',
-      message: 'Sign in before running Copilot investigation workflows.',
+      title: 'Copilot · limited response',
+      message: 'Live Copilot sources are unavailable right now, but the current investigation context is still available locally.',
       results: [],
       graphInsights: [],
       document: {
@@ -637,7 +637,7 @@ describe('intelligence auth forwarding', () => {
 
     expect(askResponse.status).toBe(200);
     await expect(askResponse.json()).resolves.toMatchObject({
-      answer: 'Sign in before running Copilot investigation workflows.',
+      answer: expect.stringContaining('current investigation context is still available locally'),
       intent: 'LIMITED',
       suggestions: expect.any(Array),
       data: {

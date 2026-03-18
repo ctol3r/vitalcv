@@ -443,7 +443,9 @@ export default React.memo(function GraphCanvas({
         const linkClass = classifyEdgeType(edge);
         const style = LINK_CLASS_STYLES[linkClass];
         const isHighlighted = highlightedEdgeIdsCurrent.has(edge.id);
-        const isFocused = isHighlighted || edge.id === selectedEdgeIdCurrent || edge.id === hoveredEdgeIdCurrent;
+        const isSelectedEdge = edge.id === selectedEdgeIdCurrent;
+        const isHoveredEdge = edge.id === hoveredEdgeIdCurrent;
+        const isFocused = isHighlighted || isSelectedEdge || isHoveredEdge;
         const isDimmed = (
           selectedNodeIdCurrent != null
           || hoveredNodeIdCurrent != null
@@ -461,11 +463,30 @@ export default React.memo(function GraphCanvas({
         context.moveTo(sourceX, sourceY);
         context.lineTo(targetX, targetY);
         context.setLineDash(style.dash);
-        context.strokeStyle = style.stroke;
+        context.lineCap = 'round';
+        
+        // Links glow on hover
+        context.shadowBlur = isSelectedEdge ? 24 : isHoveredEdge ? 18 : isFocused ? 12 : linkClass === 'backlink' ? 16 : 0;
+        context.shadowColor = isSelectedEdge
+          ? 'rgba(80, 168, 216, 0.5)'
+          : isHoveredEdge
+            ? 'rgba(80, 168, 216, 0.4)'
+            : linkClass === 'backlink'
+              ? 'rgba(80, 168, 216, 0.15)'
+              : style.stroke;
+              
+        context.strokeStyle = isSelectedEdge
+          ? '#50a8d8' // Muted blue accent
+          : isHoveredEdge
+            ? '#50a8d8'
+            : linkClass === 'backlink' 
+              ? 'rgba(80, 168, 216, 0.2)' 
+              : style.stroke;
+              
         context.globalAlpha = (isFocused
-          ? Math.min(0.96, 0.78 + (edgeStrength * 0.18))
+          ? Math.min(1, 0.86 + (edgeStrength * 0.2))
           : isDimmed
-            ? 0.1
+            ? 0.05
             : (
               zoomBand === 'overview'
                 ? 0.16 + (edgeStrength * 0.18)
@@ -473,11 +494,22 @@ export default React.memo(function GraphCanvas({
                   ? 0.26 + (edgeStrength * 0.28)
                   : 0.22 + (edgeStrength * 0.22)
             )) * edgeSpawnProgress;
+            
         context.lineWidth = visuals.linkThickness
-          * (0.7 + (edgeStrength * 1.35))
-          * (zoomBand === 'overview' ? 0.82 : zoomBand === 'evidence' ? 1.14 : 1)
-          * (isFocused ? 1.45 : 1);
-        context.stroke();
+          * (0.5 + (edgeStrength * 0.8))
+          * (zoomBand === 'overview' ? 0.6 : zoomBand === 'evidence' ? 0.9 : 0.8)
+          * (isSelectedEdge ? 2.0 : isHoveredEdge ? 1.6 : isFocused ? 1.4 : linkClass === 'backlink' ? 4 : 0.5);
+          
+        if (linkClass === 'backlink' && !isDimmed) {
+           // additional memory cluster glow layer
+           context.stroke();
+           context.lineWidth = context.lineWidth * 3;
+           context.globalAlpha *= 0.3;
+           context.shadowBlur = 30;
+           context.stroke();
+        } else {
+           context.stroke();
+        }
 
         if (visuals.showArrows && edge.directed) {
           const angle = Math.atan2(targetY - sourceY, targetX - sourceX);
@@ -520,13 +552,14 @@ export default React.memo(function GraphCanvas({
         const isSelected = node.id === selectedNodeIdCurrent;
         const isHovered = node.id === hoveredNodeIdCurrent;
         const isFocusedNeighbor = highlightedNodeIdsCurrent.has(node.id);
+        const isActive = isSelected || isHovered;
         const isDimmed = (
           selectedNodeIdCurrent != null
           || hoveredNodeIdCurrent != null
           || selectedEdgeIdCurrent != null
           || hoveredEdgeIdCurrent != null
         ) && !isFocusedNeighbor;
-        const highlightTarget = isSelected ? 1 : isHovered ? 0.8 : isFocusedNeighbor ? 0.4 : 0;
+        const highlightTarget = isSelected ? 1 : isHovered ? 0.92 : isFocusedNeighbor ? 0.48 : 0;
         const highlightProgress = (
           (highlightProgressRef.current.get(node.id) ?? 0) +
           ((highlightTarget - (highlightProgressRef.current.get(node.id) ?? 0)) * highlightLerp)
@@ -535,12 +568,12 @@ export default React.memo(function GraphCanvas({
         const nodeX = node.x ?? width / 2;
         const nodeY = node.y ?? height / 2;
         
-        // Active node pulsing (breathing)
-        const pulse = (isSelected || isFocusedNeighbor) 
-          ? 1 + Math.sin(frameStartedAt / 400 + (nodeX + nodeY) * 0.05) * 0.05 
-          : 1;
+        // All nodes pulsing slightly (breathing)
+        const pulse = 1 + Math.sin(frameStartedAt / 800 + (nodeX + nodeY) * 0.1) * 0.02;
+        const activePulse = isActive ? 1 + Math.sin(frameStartedAt / 400 + (nodeX + nodeY) * 0.05) * 0.05 : 1;
+        const breatheOpacity = 0.95 + Math.sin(frameStartedAt / 600 + (nodeX + nodeY) * 0.05) * 0.05;
 
-        const animatedRadius = radius * nodeSpawnScale * pulse * (1 + (highlightProgress * 0.12));
+        const animatedRadius = radius * nodeSpawnScale * pulse * activePulse * (1 + (highlightProgress * 0.14));
 
         if (highlightProgress > 0.001 || highlightTarget > 0) {
           highlightProgressRef.current.set(node.id, highlightProgress);
@@ -549,15 +582,21 @@ export default React.memo(function GraphCanvas({
         }
 
         context.save();
+        context.shadowBlur = isSelected ? 24 : isHovered ? 16 : isFocusedNeighbor ? 10 : 2;
+        context.shadowColor = (isSelected || isHovered)
+          ? 'rgba(80, 168, 216, 0.45)'
+          : nodeColor;
 
         if (highlightProgress > 0.02) {
-          const glowRadius = radius + 10 + (highlightProgress * 6);
+          const glowRadius = radius + 6 + (highlightProgress * 4);
           const glow = context.createRadialGradient(nodeX, nodeY, radius, nodeX, nodeY, glowRadius);
           glow.addColorStop(
             0,
             isSelected
-              ? `rgba(250, 204, 21, ${0.18 + (highlightProgress * 0.24)})`
-              : `rgba(96, 165, 250, ${0.14 + (highlightProgress * 0.18)})`,
+              ? `rgba(80, 168, 216, ${0.3 + (highlightProgress * 0.26)})`
+              : isHovered
+                ? `rgba(80, 168, 216, ${0.2 + (highlightProgress * 0.22)})`
+                : `rgba(255, 255, 255, ${0.1 + (highlightProgress * 0.15)})`,
           );
           glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
           context.fillStyle = glow;
@@ -569,19 +608,47 @@ export default React.memo(function GraphCanvas({
         context.beginPath();
         context.arc(nodeX, nodeY, animatedRadius, 0, Math.PI * 2);
         context.fillStyle = nodeColor;
-        context.globalAlpha = (isDimmed ? 0.18 : 0.88 + (highlightProgress * 0.08)) * nodeSpawnAlpha;
+        context.globalAlpha = (isDimmed
+          ? 0.08
+          : isSelected
+            ? 0.98
+            : isHovered
+              ? 0.94
+              : 0.88 * breatheOpacity + (highlightProgress * 0.08)) * nodeSpawnAlpha;
         context.fill();
 
-        context.lineWidth = node.fx != null && node.fy != null ? 2.2 : 1.2 + (highlightProgress * 0.6);
+        context.lineWidth = isSelected
+          ? 2.2
+          : isHovered
+            ? 1.8
+            : node.fx != null && node.fy != null
+              ? 1.6
+              : 0.8 + (highlightProgress * 0.4);
         context.strokeStyle = isSelected
-          ? '#facc15'
-          : node.fx != null && node.fy != null
-            ? '#22d3ee'
-            : 'rgba(226, 232, 240, 0.18)';
+          ? '#ffffff'
+          : isHovered
+            ? '#e2e8f0'
+            : node.fx != null && node.fy != null
+              ? '#cbd5e1'
+              : 'rgba(255, 255, 255, 0.15)';
         
         // Also apply alpha to stroke
-        context.globalAlpha *= 0.8;
+        context.globalAlpha *= isActive ? 0.95 : 0.8;
         context.stroke();
+
+        if (isActive) {
+          context.beginPath();
+          context.arc(nodeX, nodeY, animatedRadius + 3, 0, Math.PI * 2);
+          context.strokeStyle = isSelected ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.6)';
+          context.lineWidth = 1.2;
+          context.globalAlpha = 0.95;
+          context.stroke();
+
+          context.beginPath();
+          context.arc(nodeX, nodeY, Math.max(2.5, animatedRadius * 0.2), 0, Math.PI * 2);
+          context.fillStyle = isSelected ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.9)';
+          context.fill();
+        }
 
         const shouldShowLabel = visuals.showLabels && (
           isSelected ||
@@ -594,8 +661,8 @@ export default React.memo(function GraphCanvas({
 
         if (shouldShowLabel) {
           const label = node.label.length > 24 ? `${node.label.slice(0, 23)}…` : node.label;
-          context.font = `${isSelected ? '700' : '600'} ${Math.max(10, 12 / camera.zoom)}px ${themeTypography.family.canvas}`;
-          context.fillStyle = isDimmed ? 'rgba(148, 163, 184, 0.45)' : 'rgba(226, 232, 240, 0.95)';
+          context.font = `${isActive ? '700' : '600'} ${Math.max(10, (12 / camera.zoom) * (isActive ? 1.12 : 1))}px ${themeTypography.family.canvas}`;
+          context.fillStyle = isDimmed ? 'rgba(148, 163, 184, 0.45)' : isActive ? 'rgba(248, 250, 252, 0.98)' : 'rgba(226, 232, 240, 0.95)';
           context.textAlign = 'center';
           context.textBaseline = 'middle';
           context.fillText(label, nodeX, nodeY + animatedRadius + 13);

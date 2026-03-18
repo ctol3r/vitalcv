@@ -99,7 +99,7 @@ describe('Route leak sentinel', () => {
   });
 
   it('no protected route is accidentally public', () => {
-    const protectedPaths = ['/holder', '/verifier', '/issuer', '/internal/metrics', '/findings/abc', '/investigations/abc'];
+    const protectedPaths = ['/holder', '/verifier', '/issuer', '/internal/metrics', '/mission-ops', '/analytics'];
     for (const path of protectedPaths) {
       expect(isPublicRoute(path)).toBe(false);
     }

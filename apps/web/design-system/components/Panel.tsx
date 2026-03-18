@@ -13,11 +13,11 @@ export function Panel({
   return (
     <section
       className={cn(
-        'rounded-sm border shadow-none',
+        'rounded-2xl transition-all duration-300 backdrop-blur-md shadow-sm',
         subtle
-          ? 'border-[var(--vt-border-subtle)] bg-[var(--vt-surface-subtle)]'
-          : 'border-[var(--vt-border)] bg-[var(--vt-surface)]',
-        'p-3 text-[var(--vt-text-primary)]',
+          ? 'bg-[var(--vt-surface-subtle)] ring-1 ring-[var(--vt-border-subtle)]/50'
+          : 'bg-[var(--vt-surface)] ring-1 ring-[var(--vt-border)]/20 shadow-[0_4px_24px_rgba(0,0,0,0.02)]',
+        'p-4 text-[var(--vt-text-primary)]',
         className,
       )}
       {...props}

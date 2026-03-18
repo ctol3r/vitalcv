@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowUpRight, RefreshCw, Search } from 'lucide-react';
+import { CommandPalette } from '@/components/command/command-palette';
 import { CopilotSearchBar } from '@/components/copilot/CopilotSearchBar';
 import { LiveFeedRibbon } from '@/components/intelligence/LiveFeedRibbon';
 import { useActions } from '@/hooks/useActions';
@@ -539,18 +540,41 @@ export function DashboardSurface() {
     });
   }
 
+  // ── Keyboard navigation (j/k = prev/next finding, Enter = open, Esc = clear) ─
+  const findingsList = findings.data?.findings ?? [];
+  const selectedFindingIndex = useMemo(
+    () => findingsList.findIndex((f) => f.id === selectedFinding?.id),
+    [findingsList, selectedFinding?.id],
+  );
+
+  const navigateFinding = useCallback((delta: number) => {
+    const next = Math.max(0, Math.min(findingsList.length - 1, selectedFindingIndex + delta));
+    const nextFinding = findingsList[next];
+    if (nextFinding) setFindingScope(nextFinding);
+  }, [findingsList, selectedFindingIndex]);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea') return;
+      if (e.key === 'j') { e.preventDefault(); navigateFinding(1); }
+      if (e.key === 'k') { e.preventDefault(); navigateFinding(-1); }
+      if (e.key === 'Escape') {
+        pushDashboard((p) => { p.delete('npi'); p.delete('findingId'); p.delete('storylineId'); });
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [navigateFinding, pushDashboard]);
+
   return (
+    <>
+    <CommandPalette />
     <div className="flex flex-col h-screen min-h-0 w-full overflow-hidden bg-[var(--vt-bg)] text-[var(--vt-text-1)] font-sans">
       {/* ZONE A — SIGNAL HEADER */}
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--vt-border)] bg-[var(--vt-surface)] px-5">
         <div className="flex items-center gap-6 overflow-hidden">
           <LiveFeedRibbon />
-          <div className="flex gap-5 text-[10px] font-mono uppercase tracking-widest text-[var(--vt-text-3)]">
-            <span className="flex items-center gap-2"><span className="text-[var(--vt-text-1)]">{providers.data?.total ?? 0}</span> PROVIDERS</span>
-            <span className="flex items-center gap-2"><span className="text-[var(--vt-text-1)]">{findings.data?.total ?? 0}</span> FINDINGS</span>
-            <span className="flex items-center gap-2"><span className="text-[var(--vt-text-1)]">{storylines.data?.total ?? 0}</span> STORYLINES</span>
-            <span className="flex items-center gap-2"><span className="text-[var(--vt-text-1)]">{graph.data?.edges.length ?? 0}</span> EDGES</span>
-          </div>
         </div>
         <div className="flex items-center gap-5">
           <form
@@ -607,6 +631,21 @@ export function DashboardSurface() {
               <button className="rounded-[2px] px-3 py-1 text-[9px] font-semibold tracking-widest uppercase text-[var(--vt-text-3)] transition hover:text-[var(--vt-text-1)]">Critical Only</button>
             </div>
           </div>
+
+          <div className="grid grid-cols-3 gap-6 px-5 py-6 border-b border-[var(--vt-border)] bg-[var(--vt-surface)]">
+            <div>
+              <p className="text-4xl tracking-tighter font-light text-[var(--vt-text-1)]">{findings.data?.total ?? 0}</p>
+              <p className="text-[10px] mt-1 uppercase font-mono tracking-widest text-[var(--vt-text-3)]">Findings</p>
+            </div>
+            <div>
+              <p className="text-4xl tracking-tighter font-light text-[var(--vt-text-1)]">{providers.data?.total ?? 0}</p>
+              <p className="text-[10px] mt-1 uppercase font-mono tracking-widest text-[var(--vt-text-3)]">Providers</p>
+            </div>
+            <div>
+              <p className="text-4xl tracking-tighter font-light text-[var(--vt-text-1)]">{findings.data?.findings.filter(f => f.severity.toLowerCase() === 'critical').length ?? 0}</p>
+              <p className="text-[10px] mt-1 uppercase font-mono tracking-widest text-[var(--vt-text-3)]">Active Risk</p>
+            </div>
+          </div>
           
           <div className="flex-1 overflow-y-auto p-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
             {/* Findings List */}
@@ -621,55 +660,34 @@ export function DashboardSurface() {
                 (findings.data?.findings ?? []).map((finding) => {
                   const active = selectedFinding?.id === finding.id;
                   
-                  let railColor = "bg-[var(--vt-border)]";
-                  let typeColorClass = "border-[var(--vt-border)] bg-[var(--vt-surface-dim)] text-[var(--vt-text-3)]";
+                  // Noise reduction: monochrome palette
+                  let typeColorClass = "border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-2)]";
                   
-                  const typeLower = finding.findingType.toLowerCase();
-                  if (typeLower.includes('sanction') || typeLower.includes('exclusion') || typeLower.includes('action')) {
-                    railColor = "bg-red-500/80";
-                    typeColorClass = "border-red-500/30 bg-red-500/10 text-red-400";
-                  } else if (typeLower.includes('research') || typeLower.includes('publication') || typeLower.includes('trial')) {
-                    railColor = "bg-blue-500/80";
-                    typeColorClass = "border-blue-500/30 bg-blue-500/10 text-blue-400";
-                  } else if (typeLower.includes('workforce') || typeLower.includes('pressure') || typeLower.includes('staff')) {
-                    railColor = "bg-amber-500/80";
-                    typeColorClass = "border-amber-500/30 bg-amber-500/10 text-amber-500";
-                  } else if (typeLower.includes('clinical') || typeLower.includes('quality') || typeLower.includes('patient')) {
-                    railColor = "bg-emerald-500/80";
-                    typeColorClass = "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
-                  } else {
-                    if (['critical', 'outage', 'revoked'].includes(finding.severity.toLowerCase())) railColor = "bg-[var(--vt-critical)]";
-                    else if (['high', 'escalated'].includes(finding.severity.toLowerCase())) railColor = "bg-[var(--vt-warning)]";
-                    else if (['low', 'verified', 'healthy'].includes(finding.severity.toLowerCase())) railColor = "bg-[var(--vt-success)]";
-                    else if (['medium', 'pending'].includes(finding.severity.toLowerCase())) railColor = "bg-[var(--vt-info)]";
-                  }
+                  const activeSelectionExists = selectedFindingId !== '';
                   
                   return (
                     <button
                       key={finding.id}
                       type="button"
                       onClick={() => setFindingScope(finding)}
-                      className={`group relative w-full flex-col overflow-hidden rounded-sm border bg-[var(--vt-surface)] text-left transition-all hover:-translate-y-[1px] ${
-                        active ? 'border-[var(--vt-border)] shadow-sm ring-1 ring-inset ring-[var(--vt-info)]' : 'border-[var(--vt-border)] hover:border-[var(--vt-text-3)] hover:shadow-md'
+                      className={`group relative w-full flex-col overflow-hidden rounded-sm border bg-[var(--vt-surface)] text-left transition-all duration-300 ease-out 
+                      ${active ? 'border-[var(--vt-text-2)] shadow-md ring-1 ring-inset ring-[var(--vt-border)] scale-[1.01] bg-[var(--vt-surface-2)]' 
+                               : activeSelectionExists 
+                                 ? 'border-[var(--vt-border)]/40 opacity-40 hover:opacity-100 hover:border-[var(--vt-text-3)]'
+                                 : 'border-[var(--vt-border)] hover:border-[var(--vt-text-3)] hover:shadow-sm hover:translate-y-[-1px]'
                       }`}
                     >
                       <div className="flex h-full">
-                        <div className={`w-[3px] shrink-0 transition-opacity ${active ? 'opacity-100' : 'opacity-60'} ${railColor}`} />
+                        <div className={`w-[2px] shrink-0 transition-opacity bg-[var(--vt-text-3)] ${active ? 'opacity-100' : 'opacity-30'}`} />
                         <div className="flex flex-1 flex-col p-4">
                           <div className="flex items-start justify-between gap-4">
                             <div>
-                               <div className="flex items-center gap-2 mb-1.5">
+                               <div className="flex items-center gap-2 mb-1.5 opacity-80">
                                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--vt-text-2)]">
                                    {finding.providerNpi ? `Provider NPI ${finding.providerNpi}` : 'Global Signal'}
                                  </p>
-                                 <span className="h-1 w-1 rounded-full bg-[var(--vt-text-3)] opacity-50" />
-                                 <p className={`text-[10px] font-semibold uppercase tracking-widest ${
-                                   finding.severity.toLowerCase() === 'critical' ? 'text-red-400' :
-                                   finding.severity.toLowerCase() === 'high' ? 'text-[var(--vt-warning)]' :
-                                   finding.severity.toLowerCase() === 'medium' ? 'text-amber-500' :
-                                   finding.severity.toLowerCase() === 'low' ? 'text-emerald-400' :
-                                   'text-[var(--vt-text-3)]'
-                                 }`}>
+                                 <span className="h-1 w-1 rounded-full bg-[var(--vt-border)]" />
+                                 <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--vt-text-3)]">
                                    SEVERITY: {finding.severity}
                                  </p>
                                </div>
@@ -686,17 +704,17 @@ export function DashboardSurface() {
                                 <span className={`rounded-[2px] border px-2 py-0.5 text-[10px] uppercase tracking-widest ${typeColorClass}`}>
                                   {finding.findingType.replace(/_/g, ' ')}
                                 </span>
-                                <div className="mt-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--vt-info)] opacity-0 transition-opacity group-hover:opacity-100 flex items-center gap-1">
+                                <div className="mt-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--vt-text-1)] opacity-0 transition-all duration-300 group-hover:opacity-100 flex items-center gap-1">
                                   Investigate <ArrowUpRight className="w-3 h-3 inline" />
                                 </div>
                             </div>
                           </div>
                           
-                          <div className="mt-4 flex items-center justify-between border-t border-[var(--vt-border)]/50 pt-3">
+                          <div className="mt-4 flex items-center justify-between border-t border-[var(--vt-border)] pt-3 opacity-60 group-hover:opacity-100 transition-opacity duration-300">
                              <div className="flex items-center gap-3 pl-0.5">
                                <div className="flex items-center gap-2">
-                                 <div className="h-1.5 w-16 overflow-hidden rounded-[1px] bg-[var(--vt-surface-2)]">
-                                   <div className={`h-full transition-colors duration-300 ${active ? 'bg-[var(--vt-info)]' : 'bg-[var(--vt-text-3)] group-hover:bg-[var(--vt-text-2)]'}`} style={{ width: `${Math.round(finding.confidence * 100)}%` }} />
+                                 <div className="h-1 w-12 overflow-hidden bg-[var(--vt-surface-2)] rounded-full">
+                                   <div className={`h-full transition-all duration-500 ease-out ${active ? 'bg-[var(--vt-text-1)] shadow-[0_0_8px_var(--vt-text-1)]' : 'bg-[var(--vt-text-3)] group-hover:bg-[var(--vt-text-2)]'}`} style={{ width: `${Math.round(finding.confidence * 100)}%` }} />
                                  </div>
                                  <span className="text-[10px] font-mono tracking-widest text-[var(--vt-text-3)]">CONF {Math.round(finding.confidence * 100)}%</span>
                                </div>
@@ -715,25 +733,38 @@ export function DashboardSurface() {
                                    {finding.storylineTitle}
                                  </span>
                                )}
-                               <span className="text-[10px] uppercase tracking-widest text-[var(--vt-text-3)] flex items-center gap-1.5">
-                                 <div className={`w-1.5 h-1.5 rounded-full ${finding.updatedAt > new Date(Date.now() - 3600000).toISOString() ? 'bg-[var(--vt-success)] animate-pulse' : 'bg-[var(--vt-text-3)]'}`} />
+                               <span className="text-[10px] font-mono tracking-widest text-[var(--vt-text-3)] flex items-center gap-1.5">
+                                 <div className={`w-1.5 h-1.5 rounded-full ${finding.updatedAt > new Date(Date.now() - 3600000).toISOString() ? 'bg-[var(--vt-text-2)] animate-pulse' : 'bg-[var(--vt-border)]'}`} />
                                  {formatRelativeTime(finding.updatedAt)}
                                </span>
                              </div>
                           </div>
                         </div>
                       </div>
-                      {active && <div className="absolute inset-0 pointer-events-none rounded-sm bg-[var(--vt-info)]/5 ring-1 ring-inset ring-[var(--vt-info)]" />}
+                      {active && <div className="absolute inset-0 pointer-events-none rounded-sm bg-[var(--vt-text-1)]/5 ring-1 ring-inset ring-[var(--vt-border)]" />}
                     </button>
                   );
                 })
               ) : (
-                <div className="flex h-full flex-col items-center justify-center p-12 text-center">
-                  <div className="mb-4 flex h-6 w-6 items-center justify-center">
-                    <span className="absolute h-6 w-6 animate-ping rounded-full bg-[var(--vt-text-3)] opacity-20"></span>
-                    <span className="relative h-2 w-2 rounded-full bg-[var(--vt-text-3)] opacity-50"></span>
-                  </div>
-                  <p className="text-[10px] uppercase tracking-widest text-[var(--vt-text-3)]">System warming — ingesting trust data</p>
+                /* Always show skeleton rows — never an empty canvas */
+                <div className="flex flex-col gap-2">
+                  {[...Array(5)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="flex overflow-hidden rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] animate-pulse"
+                      style={{ animationDelay: `${i * 80}ms` }}
+                    >
+                      <div className="w-[3px] shrink-0 bg-[var(--vt-border)]" />
+                      <div className="flex flex-1 flex-col gap-3 p-4">
+                        <div className="flex items-center gap-2">
+                          <div className="h-3 w-20 rounded bg-[var(--vt-surface-2)]" />
+                          <div className="h-3 w-14 rounded bg-[var(--vt-surface-2)]" />
+                        </div>
+                        <div className="h-4 w-3/4 rounded bg-[var(--vt-surface-2)]" />
+                        <div className="h-3 w-full rounded bg-[var(--vt-surface-2)]" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -847,14 +878,18 @@ export function DashboardSurface() {
             )}
 
             {!selectedProvider && !selectedStoryline && (
-               <div className="flex flex-col items-center justify-center py-10 opacity-30">
-                  <span className="h-1 w-1 bg-[var(--vt-text-1)] rounded-full animate-pulse mb-3" />
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--vt-text-1)] text-center">No Target Selected</p>
-               </div>
+              <div className="space-y-3 animate-pulse">
+                <div className="h-3 w-24 rounded bg-[var(--vt-surface-2)]" />
+                <div className="h-4 w-40 rounded bg-[var(--vt-surface-2)]" />
+                <div className="h-3 w-full rounded bg-[var(--vt-surface-2)]" />
+                <div className="h-3 w-5/6 rounded bg-[var(--vt-surface-2)]" />
+                <div className="h-3 w-3/4 rounded bg-[var(--vt-surface-2)]" />
+              </div>
             )}
           </div>
         </aside>
       </main>
     </div>
+    </>
   );
 }

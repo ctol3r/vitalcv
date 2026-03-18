@@ -297,6 +297,42 @@ export async function GET(req: NextRequest) {
         const synthesized = synthesizeGraphFromProviders(entries, npi ?? null);
         nodes = synthesized.nodes;
         edges = synthesized.edges;
+
+        // Enrich synthesized provider nodes with finding counts from the investigator engine
+        const findingsResult = await fetchBackendJson<{
+          findings?: Array<{
+            entityIds: string[];
+            severity: string;
+          }>;
+        }>('/api/findings', new URLSearchParams({ limit: '100' }), 10_000, { context: authContext }).catch(() => null);
+
+        if (findingsResult?.ok) {
+          const countsByNpi = new Map<string, { total: number; critical: number }>();
+          for (const finding of findingsResult.payload.findings ?? []) {
+            for (const entityId of finding.entityIds) {
+              const counts = countsByNpi.get(entityId) ?? { total: 0, critical: 0 };
+              counts.total++;
+              if (finding.severity === 'critical' || finding.severity === 'high') {
+                counts.critical++;
+              }
+              countsByNpi.set(entityId, counts);
+            }
+          }
+
+          for (const node of nodes) {
+            if (node.type === 'provider') {
+              const counts = countsByNpi.get(node.id);
+              node.metadata = {
+                ...node.metadata,
+                findingCount: counts?.total ?? 0,
+                hasCriticalFindings: (counts?.critical ?? 0) > 0,
+              };
+              if (counts && counts.critical > 0) {
+                node.flagged = true;
+              }
+            }
+          }
+        }
       }
     }
 

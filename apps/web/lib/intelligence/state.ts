@@ -56,7 +56,6 @@ export function getAccessBannerState(
         tone: 'warning',
         description: 'Live intelligence is temporarily unavailable. Retry once backend services recover.',
       };
-    case 'ok':
     default:
       return null;
   }

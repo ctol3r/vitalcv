@@ -226,13 +226,13 @@ export function LiveFeedRibbon() {
       <div className="shrink-0 flex items-center gap-2">
         {delivery.mode === 'live' ? (
           <div className="relative flex h-1.5 w-1.5 items-center justify-center">
-            <span className="absolute h-full w-full animate-ping rounded-full bg-[var(--vt-success)] opacity-75" />
-            <span className="relative h-1.5 w-1.5 rounded-full bg-[var(--vt-success)]" />
+            <span className="absolute h-full w-full animate-ping rounded-full bg-[var(--vt-text-1)] opacity-75" />
+            <span className="relative h-1.5 w-1.5 rounded-full bg-[var(--vt-text-1)]" />
           </div>
         ) : delivery.mode === 'cached' ? (
-          <div className="h-1.5 w-1.5 rounded-full bg-[var(--vt-warning)]" />
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--vt-text-2)]" />
         ) : (
-           <div className="h-1.5 w-1.5 rounded-full bg-[var(--vt-critical)]" />
+           <div className="h-1.5 w-1.5 rounded-full bg-[var(--vt-border)]" />
         )}
         <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--vt-text-1)]">
           {delivery.mode === 'live' ? 'Pipeline Active' : delivery.mode === 'cached' ? 'Pipeline Waking' : 'System Degraded'}

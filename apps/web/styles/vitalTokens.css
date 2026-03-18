@@ -79,10 +79,10 @@
   --vt-radius-full:           9999px;
 
   /* ── Shadow Tokens ─────────────────────────────────────────── */
-  --vt-shadow-sm:             0 1px 2px oklch(0 0 0 / 0.05);
-  --vt-shadow-md:             0 4px 6px -1px oklch(0 0 0 / 0.1), 0 2px 4px -1px oklch(0 0 0 / 0.06);
-  --vt-shadow-lg:             0 10px 15px -3px oklch(0 0 0 / 0.1), 0 4px 6px -2px oklch(0 0 0 / 0.05);
-  --vt-shadow-glow:           0 0 15px var(--vt-color-brand-primary);
+  --vt-shadow-sm:             0 2px 8px -2px oklch(0 0 0 / 0.03), 0 1px 3px -1px oklch(0 0 0 / 0.02);
+  --vt-shadow-md:             0 8px 16px -4px oklch(0 0 0 / 0.04), 0 4px 8px -2px oklch(0 0 0 / 0.02);
+  --vt-shadow-lg:             0 16px 32px -8px oklch(0 0 0 / 0.06), 0 8px 16px -4px oklch(0 0 0 / 0.03);
+  --vt-shadow-glow:           0 0 30px oklch(0.55 0.20 255 / 0.3);
 }
 
 /* ── Dark Mode Support (Prepared for later) ──────────────────── */

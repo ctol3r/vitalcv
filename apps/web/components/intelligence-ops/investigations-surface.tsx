@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGraph } from '@/hooks/useGraph';
+import { useFindings } from '@/hooks/useFindings';
 import { useProviders } from '@/hooks/useProviders';
 import { buildIntelligenceGraphHref, buildIntelligenceHref } from '@/lib/intelligence/routes';
 import {
@@ -131,6 +132,18 @@ interface InvestigationGraphSelection {
   neighborEdgeIds: string[];
 }
 
+interface LivePrimerFinding {
+  id: string;
+  findingType: string;
+  title: string;
+  severity: string;
+  summary: string;
+  priorityScore: number;
+  providerNpi: string | null;
+  providerLabel: string | null;
+  storylineId: string | null;
+}
+
 function buildInvestigationCopilotContext(
   context: WorkbenchContext,
   graphSelection: InvestigationGraphSelection,
@@ -235,31 +248,7 @@ function buildInvestigationCopilotContext(
   };
 }
 
-// ── Investigation State (lightweight, no external deps) ───────────────────────
-
-interface InvState {
-  npi: string | null;
-  findingId: string | null;
-  storylineId: string | null;
-  evidenceIdx: number;
-  copilotCollapsed: boolean;
-  evidenceCollapsed: boolean;
-}
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function confidenceBar(confidence: number) {
-  const pct = Math.round(confidence * 100);
-  const color = pct >= 80 ? 'bg-emerald-500' : pct >= 60 ? 'bg-yellow-500' : 'bg-slate-500';
-  return (
-    <div className="flex items-center gap-2">
-      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[var(--vt-surface-2)]">
-        <div className={`h-full ${color} transition-all`} style={{ width: `${pct}%` }} />
-      </div>
-      <span className="text-xs tabular-nums text-[var(--vt-text-3)]">{pct}%</span>
-    </div>
-  );
-}
 
 function trustBandTone(band: string): 'success' | 'warning' | 'critical' | 'neutral' {
   switch (band?.toUpperCase()) {
@@ -271,53 +260,11 @@ function trustBandTone(band: string): 'success' | 'warning' | 'critical' | 'neut
   }
 }
 
-function emptyProviderMessage(anchor: WorkbenchContext['anchor']) {
-  if (anchor.npi) {
-    return `No provider context resolved for NPI ${anchor.npi}.`;
-  }
-
-  if (anchor.findingId || anchor.storylineId) {
-    return 'No provider context is attached to the selected investigation anchor.';
-  }
-
-  return 'Enter a provider NPI, finding, or storyline to load provider context.';
-}
-
-function emptyFindingMessage(anchor: WorkbenchContext['anchor']) {
-  if (anchor.findingId) {
-    return `No finding context resolved for finding ${anchor.findingId}.`;
-  }
-
-  if (anchor.npi || anchor.storylineId) {
-    return 'No finding context is attached to the current investigation.';
-  }
-
-  return 'Select a finding or enter an anchor to load finding context.';
-}
-
-function emptyStorylineMessage(anchor: WorkbenchContext['anchor']) {
-  if (anchor.storylineId) {
-    return `No storyline context resolved for storyline ${anchor.storylineId}.`;
-  }
-
-  if (anchor.findingId || anchor.npi) {
-    return 'No storyline context is attached to the current investigation.';
-  }
-
-  return 'Select a storyline or enter an anchor to load storyline context.';
-}
-
-function MissingContextCard({
-  label,
-  message,
-}: {
-  label: string;
-  message: string;
-}) {
+function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-[var(--vt-border)] bg-[var(--vt-surface)] p-3">
-      <p className="text-[10px] uppercase tracking-[0.1em] text-[var(--vt-text-3)]">{label}</p>
-      <p className="mt-2 text-xs leading-5 text-[var(--vt-text-3)]">{message}</p>
+    <div className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-2.5">
+      <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--vt-text-3)]">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-[var(--vt-text-1)]">{value}</p>
     </div>
   );
 }
@@ -328,10 +275,14 @@ function FindingsInbox({
   findings,
   selectedId,
   onSelect,
+  provider,
+  navigation,
 }: {
   findings: WorkbenchRelatedFinding[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  provider: WorkbenchProviderContext | null;
+  navigation: WorkbenchNavigation | null;
 }) {
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -340,27 +291,141 @@ function FindingsInbox({
       </p>
       <div className="flex-1 space-y-1.5 overflow-y-auto px-2 pb-2">
         {findings.length === 0 ? (
-          <p className="px-2 py-4 text-xs text-[var(--vt-text-3)]">No findings for this provider.</p>
+          <div className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--vt-text-3)]">Current scope</p>
+            <p className="mt-2 text-sm font-medium text-[var(--vt-text-1)]">
+              {provider
+                ? `${provider.label ?? `Provider ${provider.npi}`} has no additional linked findings in this slice.`
+                : 'The current investigation scope has no linked findings yet.'}
+            </p>
+            <p className="mt-2 text-xs leading-5 text-[var(--vt-text-2)]">
+              {provider
+                ? `${provider.activeFindings} active finding${provider.activeFindings === 1 ? '' : 's'} remain on the provider record. Use the graph or provider profile to widen the scope.`
+                : 'Select a provider-backed finding or widen the graph scope to pull more evidence into the rail.'}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {provider ? <EntityLink href={`/providers/${provider.npi}`} label="Provider profile" /> : null}
+              {provider ? <EntityLink href={buildIntelligenceHref('findings', { provider: provider.npi })} label="Provider findings" /> : null}
+              {navigation?.graphHref ? <EntityLink href={navigation.graphHref} label="Open graph" /> : null}
+            </div>
+          </div>
         ) : null}
         {findings.map((f) => (
-          <button
+          <div
             key={f.id}
-            onClick={() => onSelect(f.id)}
-            className={`w-full rounded-xl border p-2.5 text-left transition ${
+            className={`rounded-xl border p-2.5 transition ${
               selectedId === f.id
                 ? 'border-cyan-400/50 bg-cyan-400/5'
-                : 'border-[var(--vt-border)] hover:border-[var(--vt-text-3)]/30'
+                : 'border-[var(--vt-border)] bg-[var(--vt-surface)] hover:border-[var(--vt-text-3)]/30'
             }`}
           >
-            <div className="flex items-center gap-1.5">
-              <OpsBadge label={f.severity} tone={severityTone(f.severity)} />
-              <span className="text-[10px] text-[var(--vt-text-3)]">{f.findingType.replace(/_/g, ' ')}</span>
+            <button onClick={() => onSelect(f.id)} className="w-full text-left">
+              <div className="flex items-center gap-1.5">
+                <OpsBadge label={f.severity} tone={severityTone(f.severity)} />
+                <span className="text-[10px] text-[var(--vt-text-3)]">{f.findingType.replace(/_/g, ' ')}</span>
+              </div>
+              <p className="mt-1 line-clamp-2 text-xs font-medium text-[var(--vt-text-1)]">{f.title}</p>
+              <p className="mt-0.5 line-clamp-2 text-[10px] leading-5 text-[var(--vt-text-3)]">{f.summary}</p>
+            </button>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <EntityLink href={f.href} label="Investigate" />
+              <EntityLink href={`/findings/${f.id}`} label="Open detail" />
             </div>
-            <p className="mt-1 line-clamp-2 text-xs font-medium text-[var(--vt-text-1)]">{f.title}</p>
-            <p className="mt-0.5 line-clamp-1 text-[10px] text-[var(--vt-text-3)]">{f.summary}</p>
-          </button>
+          </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function LiveScopePrimer({
+  findings,
+  providers,
+  loading,
+  onSelectFinding,
+  onSelectProvider,
+}: {
+  findings: LivePrimerFinding[];
+  providers: Array<{ npi: string; name: string; trustScore: number; risk: string; summary: string }>;
+  loading: boolean;
+  onSelectFinding: (findingId: string) => void;
+  onSelectProvider: (npi: string) => void;
+}) {
+  const headline = findings[0]?.providerLabel ?? providers[0]?.name ?? 'live investigation scope';
+
+  return (
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+      <OpsCard className="space-y-4">
+        <div className="space-y-1">
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Live launch point</p>
+          <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">
+            {loading ? 'Locking onto the highest-signal live scope' : `Prime scope: ${headline}`}
+          </h2>
+          <p className="text-sm leading-6 text-[var(--vt-text-2)]">
+            The workbench auto-seeds from the live findings and provider feeds. You can take control immediately by selecting a finding or provider below.
+          </p>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-3">
+            <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--vt-text-3)]">Live findings</p>
+            <p className="mt-2 text-2xl font-semibold text-[var(--vt-text-1)]">{findings.length}</p>
+            <p className="mt-1 text-xs text-[var(--vt-text-2)]">Highest-signal rows ready to investigate.</p>
+          </div>
+          <div className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-3">
+            <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--vt-text-3)]">Live providers</p>
+            <p className="mt-2 text-2xl font-semibold text-[var(--vt-text-1)]">{providers.length}</p>
+            <p className="mt-1 text-xs text-[var(--vt-text-2)]">Available as provider-backed pivots for the workbench.</p>
+          </div>
+        </div>
+      </OpsCard>
+
+      <OpsCard className="space-y-4">
+        <div className="space-y-1">
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Immediate actions</p>
+          <p className="text-sm text-[var(--vt-text-2)]">Jump into a live finding or hard-scope the workbench to a provider.</p>
+        </div>
+
+        {findings.length > 0 ? (
+          <div className="space-y-2">
+            {findings.slice(0, 3).map((finding) => (
+              <button
+                key={finding.id}
+                type="button"
+                onClick={() => onSelectFinding(finding.id)}
+                className="w-full rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2.5 text-left transition hover:border-cyan-400/30 hover:bg-cyan-400/5"
+              >
+                <div className="flex items-center gap-2">
+                  <OpsBadge label={finding.severity} tone={severityTone(finding.severity)} />
+                  <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--vt-text-3)]">
+                    {finding.findingType.replace(/_/g, ' ')}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm font-semibold text-[var(--vt-text-1)]">{finding.title}</p>
+                <p className="mt-1 text-xs leading-5 text-[var(--vt-text-2)]">{finding.summary}</p>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-3 text-sm text-[var(--vt-text-2)]">
+            No findings are active in the live feed right now. Use a provider scope below to inspect current graph and trust posture directly.
+          </div>
+        )}
+
+        {providers.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {providers.slice(0, 4).map((provider) => (
+              <button
+                key={provider.npi}
+                type="button"
+                onClick={() => onSelectProvider(provider.npi)}
+                className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-1.5 text-xs font-medium text-[var(--vt-text-2)] transition hover:border-cyan-400/30 hover:text-[var(--vt-text-1)]"
+              >
+                {provider.name} · {provider.trustScore}
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </OpsCard>
     </div>
   );
 }
@@ -373,102 +438,116 @@ function ProviderInvestigationPanel({
   finding,
   storyline,
   navigation,
+  relatedFindings,
 }: {
   anchor: WorkbenchContext['anchor'];
   provider: WorkbenchProviderContext | null;
   finding: WorkbenchFindingContext | null;
   storyline: WorkbenchStorylineContext | null;
   navigation: WorkbenchNavigation | null;
+  relatedFindings: WorkbenchRelatedFinding[];
 }) {
   return (
     <div className="flex h-full flex-col gap-3 overflow-y-auto p-3">
-      {/* Provider header */}
-      {provider ? (
-        <div className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-3">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <h3 className="text-sm font-semibold text-[var(--vt-text-1)]">
-                {provider.label ?? `Provider ${provider.npi}`}
-              </h3>
-              <div className="mt-1 flex flex-wrap gap-2 text-xs text-[var(--vt-text-3)]">
-                {provider.specialty ? <span>{provider.specialty}</span> : null}
-                {provider.state ? <span>{provider.state}</span> : null}
-                <span>NPI {provider.npi}</span>
-                <span>{provider.activeFindings} active finding{provider.activeFindings === 1 ? '' : 's'}</span>
-              </div>
-            </div>
-            <div className="flex flex-col items-end gap-1">
-              <OpsBadge label={provider.trustBand} tone={trustBandTone(provider.trustBand)} />
-              <span className="text-xs tabular-nums text-[var(--vt-text-3)]">score {provider.trustScore}</span>
+      <div className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-2">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Provider context</p>
+            <h3 className="text-base font-semibold text-[var(--vt-text-1)]">
+              {provider?.label ?? (anchor.npi ? `NPI ${anchor.npi}` : 'Investigation scope')}
+            </h3>
+            <div className="flex flex-wrap gap-2 text-xs text-[var(--vt-text-3)]">
+              {provider?.specialty ? <span>{provider.specialty}</span> : null}
+              {provider?.state ? <span>{provider.state}</span> : null}
+              {provider?.npi ? <span>NPI {provider.npi}</span> : null}
+              {finding ? <span>{finding.severity} finding selected</span> : null}
+              {storyline ? <span>{storyline.findingCount} findings in storyline</span> : null}
             </div>
           </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <EntityLink href={`/providers/${provider.npi}`} label="Profile" />
-            <EntityLink href={buildIntelligenceHref('dashboard', { npi: provider.npi, panel: 'graph' })} label="Graph" />
-            {navigation?.copilotHref ? <EntityLink href={navigation.copilotHref} label="Copilot" /> : null}
+          <div className="flex flex-col items-end gap-1">
+            {provider ? (
+              <>
+                <OpsBadge label={provider.trustBand} tone={trustBandTone(provider.trustBand)} />
+                <span className="text-xs tabular-nums text-[var(--vt-text-3)]">score {provider.trustScore}</span>
+              </>
+            ) : (
+              <OpsBadge label="scope" tone="neutral" />
+            )}
           </div>
         </div>
-      ) : (
-        <MissingContextCard
-          label="Provider"
-          message={emptyProviderMessage(anchor)}
-        />
-      )}
 
-      {/* Active finding */}
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard label="Active findings" value={provider ? String(provider.activeFindings) : String(anchor.findingId ? 1 : 0)} />
+          <MetricCard label="Selected evidence" value={finding ? String(finding.evidence.length) : storyline ? String(storyline.evidence.length) : '0'} />
+          <MetricCard label="Storyline confidence" value={storyline ? `${Math.round(storyline.confidence * 100)}%` : '0%'} />
+          <MetricCard label="Related findings" value={String(relatedFindings.length)} />
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {provider ? <EntityLink href={`/providers/${provider.npi}`} label="Profile" /> : null}
+          {provider ? <EntityLink href={buildIntelligenceHref('dashboard', { npi: provider.npi, panel: 'graph' })} label="Graph" /> : null}
+          {navigation?.investigationHref ? <EntityLink href={navigation.investigationHref} label="Workbench" /> : null}
+          {navigation?.copilotHref ? <EntityLink href={navigation.copilotHref} label="Copilot" /> : null}
+        </div>
+      </div>
+
       {finding ? (
-        <div className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-3 space-y-2">
+        <div className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-[0.1em] text-[var(--vt-text-3)]">Finding</span>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Finding</p>
             <OpsBadge label={finding.severity} tone={severityTone(finding.severity)} />
             <OpsBadge label={finding.findingType.replace(/_/g, ' ')} />
           </div>
-          <h4 className="text-sm font-semibold text-[var(--vt-text-1)]">{finding.title}</h4>
-          <p className="text-xs leading-5 text-[var(--vt-text-2)]">{finding.summary}</p>
-          <p className="text-xs leading-5 text-[var(--vt-text-3)]">{finding.explanation}</p>
-          <div className="flex flex-wrap gap-2">
-            <EntityLink href={`/findings/${finding.id}`} label="Full Finding" />
+          <h4 className="mt-2 text-sm font-semibold text-[var(--vt-text-1)]">{finding.title}</h4>
+          <p className="mt-2 text-xs leading-6 text-[var(--vt-text-2)]">{finding.summary}</p>
+          <p className="mt-2 text-xs leading-6 text-[var(--vt-text-3)]">{finding.explanation}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <EntityLink href={`/findings/${finding.id}`} label="Open finding" />
             {finding.storylineId ? (
-              <EntityLink href={`/storylines/${finding.storylineId}`} label={finding.storylineTitle ?? 'Storyline'} />
+              <EntityLink href={`/storylines/${finding.storylineId}`} label={finding.storylineTitle ?? 'Open storyline'} />
             ) : null}
           </div>
         </div>
-      ) : (
-        <MissingContextCard
-          label="Finding"
-          message={emptyFindingMessage(anchor)}
-        />
-      )}
+      ) : null}
 
-      {/* Storyline */}
       {storyline ? (
-        <div className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-3 space-y-2">
+        <div className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-[0.1em] text-[var(--vt-text-3)]">Storyline</span>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Storyline</p>
             <OpsBadge label={storyline.severity} tone={severityTone(storyline.severity)} />
             <OpsBadge label={storyline.status} />
           </div>
-          <h4 className="text-sm font-semibold text-[var(--vt-text-1)]">{storyline.title}</h4>
-          <p className="text-xs leading-5 text-[var(--vt-text-2)]">{storyline.whyItMatters}</p>
-          <div className="flex flex-wrap gap-3 text-xs text-[var(--vt-text-3)]">
+          <h4 className="mt-2 text-sm font-semibold text-[var(--vt-text-1)]">{storyline.title}</h4>
+          <p className="mt-2 text-xs leading-6 text-[var(--vt-text-2)]">{storyline.whyItMatters}</p>
+          <div className="mt-3 flex flex-wrap gap-3 text-xs text-[var(--vt-text-3)]">
             <span>{storyline.findingCount} findings</span>
             <span>{Math.round(storyline.confidence * 100)}% confidence</span>
+            <span>{storyline.entityCount} entities</span>
           </div>
           {storyline.recommendedActions.length > 0 ? (
-            <ul className="space-y-0.5">
+            <div className="mt-3 space-y-1.5">
               {storyline.recommendedActions.slice(0, 3).map((a, i) => (
-                <li key={i} className="text-xs text-[var(--vt-text-2)]">→ {a}</li>
+                <p key={i} className="text-xs leading-5 text-[var(--vt-text-2)]">→ {a}</p>
               ))}
-            </ul>
+            </div>
           ) : null}
-          <EntityLink href={`/storylines/${storyline.id}`} label="Full Storyline" />
+          <div className="mt-3 flex flex-wrap gap-2">
+            <EntityLink href={`/storylines/${storyline.id}`} label="Open storyline" />
+          </div>
         </div>
-      ) : (
-        <MissingContextCard
-          label="Storyline"
-          message={emptyStorylineMessage(anchor)}
-        />
-      )}
+      ) : null}
+
+      {navigation?.graphHref ? (
+        <div className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Graph scope</p>
+          <p className="mt-2 text-sm font-medium text-[var(--vt-text-1)]">
+            {provider ? 'The active provider, finding, and storyline are wired into the graph.' : 'Open the graph to pivot into the current investigation scope.'}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <EntityLink href={navigation.graphHref} label="Open graph" />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -597,84 +676,71 @@ function NetworkGraphPanel({
 
 function CopilotPanel({
   npi,
+  scopeLabel = 'Live scope',
   findingId,
   storylineId,
   context,
-  accessMode,
   promptSeed,
   summary,
-  collapsed,
-  onToggle,
   onSelectFinding,
   onSelectStoryline,
   onFocusGraphNode,
   onHighlightGraphNode,
   onOpenEvidence,
 }: {
-  npi: string;
+  npi: string | null;
+  scopeLabel?: string;
   findingId: string | null;
   storylineId: string | null;
   context: CopilotContextPayload;
-  accessMode: 'full' | 'public_snapshot';
   promptSeed: string | null;
   summary: string | null;
-  collapsed: boolean;
-  onToggle: () => void;
   onSelectFinding: (findingId: string) => void;
   onSelectStoryline: (storylineId: string) => void;
   onFocusGraphNode: (nodeId: string) => void;
   onHighlightGraphNode: (nodeId: string) => void;
   onOpenEvidence: (findingId: string, evidenceIndex: number | null) => void;
 }) {
-  const contextParts: string[] = [`NPI ${npi}`];
+  const contextParts: string[] = [npi ? `NPI ${npi}` : scopeLabel];
   if (findingId) contextParts.push(`finding`);
   if (storylineId) contextParts.push(`storyline`);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      <div className="shrink-0 space-y-1.5 px-3 py-2">
-        <div className="flex items-center justify-between">
-          <p className="text-xs uppercase tracking-[0.15em] text-[var(--vt-text-3)]">Copilot</p>
-          <button onClick={onToggle} className="text-xs text-[var(--vt-text-3)] transition hover:text-[var(--vt-text-1)]">
-            {collapsed ? 'Expand' : 'Collapse'}
-          </button>
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)]">
+      <div className="shrink-0 border-b border-[var(--vt-border)] px-3 py-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Copilot</p>
+            <p className="text-sm font-semibold text-[var(--vt-text-1)]">Ask against live provider, finding, and graph context</p>
+          </div>
+          <div className="flex flex-wrap justify-end gap-1">
+            <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2 py-0.5 text-[10px] text-cyan-100">
+              {contextParts.join(' · ')}
+            </span>
+          </div>
         </div>
-        {/* Context chips */}
-        <div className="flex flex-wrap gap-1">
-          <span className="rounded-full border border-cyan-400/30 bg-cyan-400/5 px-2 py-0.5 text-[10px] text-cyan-400">NPI {npi}</span>
-          {findingId ? <span className="rounded-full border border-amber-400/30 bg-amber-400/5 px-2 py-0.5 text-[10px] text-amber-400">Finding</span> : null}
-          {storylineId ? <span className="rounded-full border border-violet-400/30 bg-violet-400/5 px-2 py-0.5 text-[10px] text-violet-400">Storyline</span> : null}
-        </div>
+        {summary ? (
+          <p className="mt-2 text-xs leading-5 text-[var(--vt-text-3)]">{summary}</p>
+        ) : null}
       </div>
-      {!collapsed ? (
-        <div className="flex-1 overflow-y-auto px-3 pb-3">
-          {summary ? (
-            <div className="mb-3 rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-xs leading-5 text-[var(--vt-text-2)]">
-              {summary}
-            </div>
-          ) : null}
-          <CopilotSearchBar
-            compact
-            sessionId={`inv_${npi}`}
-            context={context}
-            placeholder={promptSeed ?? `Ask about ${contextParts.join(', ')}…`}
-            seedQuery={promptSeed}
-            onNavigateToNpi={(targetNpi) => {
-              window.location.href = buildIntelligenceHref('investigations', { npi: targetNpi });
-            }}
-            onSelectFinding={onSelectFinding}
-            onSelectStoryline={onSelectStoryline}
-            onFocusGraphNode={onFocusGraphNode}
-            onHighlightGraphNode={onHighlightGraphNode}
-            onOpenEvidence={onOpenEvidence}
-            autoFocus={false}
-          />
-        </div>
-      ) : (
-        <div className="flex flex-1 items-center justify-center">
-          <p className="text-xs text-[var(--vt-text-3)]">Copilot ready · {contextParts.join(' · ')}</p>
-        </div>
-      )}
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+        <CopilotSearchBar
+          compact
+          sessionId={`inv_${(npi ?? scopeLabel).replace(/\s+/g, '_').toLowerCase()}`}
+          context={context}
+          placeholder={promptSeed ?? `Ask about ${contextParts.join(', ')}…`}
+          seedQuery={promptSeed}
+          onNavigateToNpi={(targetNpi) => {
+            window.location.href = buildIntelligenceHref('investigations', { npi: targetNpi });
+          }}
+          onSelectFinding={onSelectFinding}
+          onSelectStoryline={onSelectStoryline}
+          onFocusGraphNode={onFocusGraphNode}
+          onHighlightGraphNode={onHighlightGraphNode}
+          onOpenEvidence={onOpenEvidence}
+          autoFocus={false}
+        />
+      </div>
     </div>
   );
 }
@@ -725,13 +791,13 @@ export function InvestigationsSurface() {
   const seededFindingId = searchParams.get('findingId') ?? '';
   const seededStorylineId = searchParams.get('storylineId') ?? '';
   const hasAnchor = Boolean(seededNpi || seededFindingId || seededStorylineId);
+  const autoSeedSignatureRef = useRef<string | null>(null);
 
   const [npiInput, setNpiInput] = useState(seededNpi);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorHref, setErrorHref] = useState<string | null>(null);
   const [context, setContext] = useState<WorkbenchContext | null>(null);
-  const [copilotCollapsed, setCopilotCollapsed] = useState(false);
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(seededFindingId || null);
   const [selectedEvidenceIndex, setSelectedEvidenceIndex] = useState<number | null>(null);
   const [graphSelection, setGraphSelection] = useState<InvestigationGraphSelection>({
@@ -744,6 +810,15 @@ export function InvestigationsSurface() {
 
   // ── Finding detail cache: hydrated from workbench responses ─────────────
   const findingCacheRef = useRef<Map<string, WorkbenchFindingContext>>(new Map());
+  const liveFindings = useFindings({
+    limit: 12,
+    pollIntervalMs: 20_000,
+    paused: Boolean(context && !error),
+  });
+  const liveProviders = useProviders({
+    limit: 8,
+    pollIntervalMs: 45_000,
+  });
 
   const fetchWorkbench = useCallback(async (params: InvestigationWorkbenchAnchorInput) => {
     const requestPath = buildInvestigationWorkbenchRequestPath(params);
@@ -773,7 +848,6 @@ export function InvestigationsSurface() {
       setSelectedFindingId(params.findingId ?? nextContext.finding?.id ?? null);
       setSelectedEvidenceIndex(null);
       const highlightNodeIds = nextContext.uiHints?.highlightNodeIds ?? [];
-      setCopilotCollapsed(false);
       setGraphSelection({
         focusNodeId: highlightNodeIds[0] ?? null,
         selectedNodeId: highlightNodeIds[0] ?? null,
@@ -803,6 +877,60 @@ export function InvestigationsSurface() {
     });
   }, [fetchWorkbench, hasAnchor, seededFindingId, seededNpi, seededStorylineId]);
 
+  const primerFindings = useMemo<LivePrimerFinding[]>(() => (
+    (liveFindings.data?.findings ?? []).map((finding) => ({
+      id: finding.id,
+      findingType: finding.findingType,
+      title: finding.title,
+      severity: finding.severity,
+      summary: finding.summary,
+      priorityScore: finding.priorityScore,
+      providerNpi: finding.providerNpi,
+      providerLabel: finding.providerLabel,
+      storylineId: finding.storylineId,
+    }))
+  ), [liveFindings.data?.findings]);
+  const primerProviders = useMemo(() => (
+    (liveProviders.data?.providers ?? []).map((provider) => ({
+      npi: provider.npi,
+      name: provider.name,
+      trustScore: provider.trustScore,
+      risk: provider.risk,
+      summary: provider.summary,
+    }))
+  ), [liveProviders.data?.providers]);
+  const primerAnchor = useMemo<InvestigationWorkbenchAnchorInput | null>(() => {
+    const firstFinding = primerFindings.find((finding) => finding.providerNpi);
+    if (firstFinding?.providerNpi) {
+      return {
+        npi: firstFinding.providerNpi,
+        findingId: firstFinding.id,
+        storylineId: firstFinding.storylineId,
+      };
+    }
+
+    const firstProvider = primerProviders[0];
+    if (firstProvider?.npi) {
+      return { npi: firstProvider.npi };
+    }
+
+    return null;
+  }, [primerFindings, primerProviders]);
+
+  useEffect(() => {
+    if (hasAnchor || context || loading || error || !primerAnchor) {
+      return;
+    }
+
+    const signature = JSON.stringify(primerAnchor);
+    if (autoSeedSignatureRef.current === signature) {
+      return;
+    }
+
+    autoSeedSignatureRef.current = signature;
+    void fetchWorkbench(primerAnchor);
+  }, [context, error, fetchWorkbench, hasAnchor, loading, primerAnchor]);
+
   // Finding selection from inbox — optimistic hydration from cache
   const handleSelectFinding = useCallback((id: string) => {
     setSelectedFindingId(id);
@@ -815,10 +943,16 @@ export function InvestigationsSurface() {
     }
 
     // Lazy-fetch full context in background (will update if different)
-    if (context?.provider?.npi) {
-      void fetchWorkbench({ npi: context.provider.npi, findingId: id });
-    }
-  }, [context, fetchWorkbench]);
+    const liveFinding = primerFindings.find((finding) => finding.id === id);
+    const providerNpi = context?.provider?.npi
+      ?? liveFinding?.providerNpi
+      ?? null;
+    void fetchWorkbench({
+      npi: providerNpi ?? undefined,
+      findingId: id,
+      storylineId: liveFinding?.storylineId ?? undefined,
+    });
+  }, [context, fetchWorkbench, primerFindings]);
 
   // Keyboard shortcut actions
   const showAction = useCallback((msg: string) => {
@@ -863,6 +997,53 @@ export function InvestigationsSurface() {
     () => context ? buildInvestigationCopilotContext(context, graphSelection) : null,
     [context, graphSelection],
   );
+  const railFindings = useMemo<WorkbenchRelatedFinding[]>(() => {
+    if (context) {
+      const seenIds = new Set<string>();
+      const prioritized: WorkbenchRelatedFinding[] = [];
+
+      if (context.finding) {
+        prioritized.push({
+          id: context.finding.id,
+          findingType: context.finding.findingType,
+          title: context.finding.title,
+          severity: context.finding.severity,
+          summary: context.finding.summary,
+          priorityScore: context.finding.priorityScore,
+          href: buildIntelligenceHref('investigations', {
+            npi: context.provider?.npi ?? context.anchor.npi,
+            findingId: context.finding.id,
+            storylineId: context.finding.storylineId ?? undefined,
+          }),
+        });
+        seenIds.add(context.finding.id);
+      }
+
+      for (const finding of context.relatedFindings) {
+        if (seenIds.has(finding.id)) {
+          continue;
+        }
+        prioritized.push(finding);
+        seenIds.add(finding.id);
+      }
+
+      return prioritized;
+    }
+
+    return primerFindings.map((finding) => ({
+      id: finding.id,
+      findingType: finding.findingType,
+      title: finding.title,
+      severity: finding.severity,
+      summary: finding.summary,
+      priorityScore: finding.priorityScore,
+      href: buildIntelligenceHref('investigations', {
+        npi: finding.providerNpi ?? undefined,
+        findingId: finding.id,
+        storylineId: finding.storylineId ?? undefined,
+      }),
+    }));
+  }, [context, primerFindings]);
 
   const handleSelectStoryline = useCallback((storylineId: string) => {
     const npi = context?.provider?.npi ?? undefined;
@@ -892,7 +1073,7 @@ export function InvestigationsSurface() {
       activeHref="/intelligence"
       activeNavKey="investigations"
       title="Investigation Workbench"
-      description="Four-panel investigation surface. Select findings, inspect evidence, explore the provider network, and query the Copilot — all in one view."
+      description="Three-panel investigation surface with live findings, provider context, graph intelligence, and copilot actions in a single operator lane."
       breadcrumbs={[{ label: 'Investigations' }]}
       banner={actionMsg ? (
         <SurfaceBanner tone="info">
@@ -958,117 +1139,132 @@ export function InvestigationsSurface() {
         ) : null}
       </OpsCard>
 
-      {/* Empty state — no anchor provided */}
-      {!context && !loading && !error ? (
-        <OpsCard className="space-y-3 border-dashed">
-          <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Start an investigation</h2>
-          <p className="max-w-2xl text-sm leading-6 text-[var(--vt-text-2)]">
-            Enter a 10-digit provider NPI above to load the investigation workbench with findings, evidence, graph context, and Copilot.
-          </p>
-          <p className="text-sm text-[var(--vt-text-3)]">
-            You can also navigate here from a provider profile, finding detail, or storyline detail page.
-          </p>
-        </OpsCard>
+      {!context ? (
+        <LiveScopePrimer
+          findings={primerFindings}
+          providers={primerProviders}
+          loading={loading || (liveFindings.loading && primerFindings.length === 0)}
+          onSelectFinding={handleSelectFinding}
+          onSelectProvider={(npi) => {
+            setNpiInput(npi);
+            void fetchWorkbench({ npi });
+          }}
+        />
       ) : null}
 
-      {/* Four-panel grid */}
+      {/* Three-panel grid */}
       {context ? (
         <div
           className="grid gap-px overflow-hidden rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-border)]"
           style={{
-            gridTemplateColumns: '320px 1fr 380px',
-            gridTemplateRows: '1fr 280px',
-            height: 'calc(100vh - 340px)',
-            minHeight: '520px',
+            gridTemplateColumns: '320px minmax(0, 1fr) 400px',
+            minHeight: '720px',
+            height: 'calc(100vh - 280px)',
           }}
         >
-          {/* Left: Findings Inbox (spans both rows) */}
-          <div className="row-span-2 bg-[var(--vt-surface)]">
+          {/* Left: Findings Inbox */}
+          <div className="min-h-0 bg-[var(--vt-surface)]">
             <FindingsInbox
-              findings={context.relatedFindings}
+              findings={railFindings}
               selectedId={selectedFindingId}
               onSelect={handleSelectFinding}
-            />
-          </div>
-
-          {/* Center top: Provider Investigation */}
-          <div className="bg-[var(--vt-surface)]">
-            <ProviderInvestigationPanel
-              anchor={context.anchor}
               provider={context.provider}
-              finding={context.finding}
-              storyline={context.storyline}
               navigation={context.navigation}
             />
           </div>
 
-          {/* Right top: Network Graph */}
-          <div className="bg-[var(--vt-surface)]">
-            {context?.provider ? (
-              <NetworkGraphPanel
+          {/* Center: Provider context + evidence */}
+          <div className="flex min-h-0 flex-col bg-[var(--vt-surface)]">
+            <div className="min-h-0 flex-1 overflow-hidden border-b border-[var(--vt-border)]">
+              <ProviderInvestigationPanel
+                anchor={context.anchor}
                 provider={context.provider}
-                focusNodeId={graphSelection.selectedNodeId}
-                highlightNodeIds={context.uiHints?.highlightNodeIds ?? []}
-                selectedFindingId={context.finding?.id ?? null}
-                selectedStorylineId={context.storyline?.id ?? null}
-                onFocusNode={(nodeId) => setGraphSelection((current) => ({
-                  ...current,
-                  selectedNodeId: nodeId || current.selectedNodeId,
-                }))}
-                onSnapshotChange={setGraphSelection}
+                finding={context.finding}
+                storyline={context.storyline}
+                navigation={context.navigation}
+                relatedFindings={railFindings}
               />
-            ) : (
-              <div className="flex h-full items-center justify-center text-xs text-[var(--vt-text-3)]">No provider selected</div>
-            )}
+            </div>
+            <div className="min-h-[260px] max-h-[340px] overflow-hidden">
+              {context.finding && context.finding.evidence.length > 0 ? (
+                <div className="h-full overflow-y-auto p-3">
+                  <EvidenceViewerPanel
+                    evidence={context.finding.evidence}
+                    findingId={context.finding.id}
+                    selectedEvidenceIndex={selectedEvidenceIndex}
+                  />
+                </div>
+              ) : (
+                <div className="flex h-full items-center justify-between gap-3 p-4">
+                  <div className="space-y-1">
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Evidence rail</p>
+                    <p className="text-sm font-medium text-[var(--vt-text-1)]">
+                      {context.finding
+                        ? 'This finding does not have an evidence bundle attached yet.'
+                        : 'Select a finding to load its evidence stream into the center panel.'}
+                    </p>
+                    <p className="text-xs leading-5 text-[var(--vt-text-3)]">
+                      {railFindings[0]
+                        ? 'Related findings stay live in the left rail while the evidence rail stays anchored to the current scope.'
+                        : 'The current scope is already exhausting the live feed.'}
+                    </p>
+                  </div>
+                  {railFindings[0] ? <EntityLink href={railFindings[0].href} label="Open top finding" /> : null}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Center bottom: Evidence Viewer */}
-          <div className="bg-[var(--vt-surface)] overflow-hidden">
-            {context.finding && context.finding.evidence.length > 0 ? (
-              <div className="h-full overflow-y-auto p-3">
-                <EvidenceViewerPanel
-                  evidence={context.finding.evidence}
-                  findingId={context.finding.id}
-                  selectedEvidenceIndex={selectedEvidenceIndex}
+          {/* Right: Graph + Copilot */}
+          <div className="grid min-h-0 grid-rows-[minmax(320px,1fr)_minmax(280px,0.92fr)] bg-[var(--vt-surface)]">
+            <div className="min-h-0 border-b border-[var(--vt-border)]">
+              {context?.provider ? (
+                <NetworkGraphPanel
+                  provider={context.provider}
+                  focusNodeId={graphSelection.selectedNodeId}
+                  highlightNodeIds={context.uiHints?.highlightNodeIds ?? []}
+                  selectedFindingId={context.finding?.id ?? null}
+                  selectedStorylineId={context.storyline?.id ?? null}
+                  onFocusNode={(nodeId) => setGraphSelection((current) => ({
+                    ...current,
+                    selectedNodeId: nodeId || current.selectedNodeId,
+                  }))}
+                  onSnapshotChange={setGraphSelection}
                 />
-              </div>
-            ) : (
-              <div className="flex h-full items-center justify-center text-xs text-[var(--vt-text-3)]">
-                {context.finding
-                  ? 'No evidence is attached to this finding yet.'
-                  : 'No finding context resolved yet.'}
-              </div>
-            )}
-          </div>
-
-          {/* Right bottom: Copilot */}
-          <div className="bg-[var(--vt-surface)]">
-            {providerNpi && copilotContext ? (
-              <CopilotPanel
-                npi={providerNpi}
-                findingId={context.finding?.id ?? null}
-                storylineId={context.storyline?.id ?? null}
-                context={copilotContext}
-                accessMode={context.accessMode ?? 'full'}
-                promptSeed={context.uiHints?.copilotPrompt ?? null}
-                summary={context.uiHints?.copilotSummary ?? null}
-                collapsed={copilotCollapsed}
-                onToggle={() => setCopilotCollapsed(c => !c)}
-                onSelectFinding={handleSelectFinding}
-                onSelectStoryline={handleSelectStoryline}
-                onFocusGraphNode={(nodeId) => setGraphSelection((current) => ({
-                  ...current,
-                  selectedNodeId: nodeId,
-                }))}
-                onHighlightGraphNode={(nodeId) => setGraphSelection((current) => ({
-                  ...current,
-                  selectedNodeId: nodeId,
-                }))}
-                onOpenEvidence={handleOpenEvidence}
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center text-xs text-[var(--vt-text-3)]">Copilot ready</div>
-            )}
+              ) : (
+                <div className="flex h-full items-center justify-center p-4 text-xs text-[var(--vt-text-3)]">
+                  Open a provider-backed finding to hydrate the graph rail.
+                </div>
+              )}
+            </div>
+            <div className="min-h-0 overflow-hidden">
+              {copilotContext ? (
+                <CopilotPanel
+                  npi={providerNpi ?? context.anchor.npi ?? null}
+                  scopeLabel={context.provider?.label ?? context.storyline?.title ?? context.finding?.title ?? 'Current scope'}
+                  findingId={context.finding?.id ?? null}
+                  storylineId={context.storyline?.id ?? null}
+                  context={copilotContext}
+                  promptSeed={context.uiHints?.copilotPrompt ?? null}
+                  summary={context.uiHints?.copilotSummary ?? null}
+                  onSelectFinding={handleSelectFinding}
+                  onSelectStoryline={handleSelectStoryline}
+                  onFocusGraphNode={(nodeId) => setGraphSelection((current) => ({
+                    ...current,
+                    selectedNodeId: nodeId,
+                  }))}
+                  onHighlightGraphNode={(nodeId) => setGraphSelection((current) => ({
+                    ...current,
+                    selectedNodeId: nodeId,
+                  }))}
+                  onOpenEvidence={handleOpenEvidence}
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center p-4 text-xs text-[var(--vt-text-3)]">
+                  Copilot is ready once a live scope is selected.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       ) : null}

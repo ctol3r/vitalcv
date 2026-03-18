@@ -127,25 +127,53 @@ describe('live feed route forwarding', () => {
     });
   });
 
-  it('returns an explicit degraded payload for missing sessions', async () => {
+  it('forwards missing-session reads to the backend public live feed', async () => {
     authMock.mockResolvedValue({
       userId: null,
       orgId: null,
       sessionClaims: {},
     });
 
-    const fetchMock = vi.fn();
+    const fetchMock = vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({
+        schema: 'https://vitalcv.com/feed/live/v1',
+        generatedAt: '2026-03-17T10:00:00.000Z',
+        total: 1,
+        events: [{
+          id: 'evt-public-1',
+          type: 'FINDING_CREATED',
+          source: 'event_bus',
+          timestamp: '2026-03-17T10:00:00.000Z',
+          payload: {
+            findingId: 'finding-1',
+            investigatorId: 'trust_decline',
+            severity: 'high',
+            operation: 'created',
+          },
+        }],
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    ));
     vi.stubGlobal('fetch', fetchMock);
 
     const { GET } = await import('../app/api/feed/live/route');
     const response = await GET(new NextRequest('http://localhost/api/feed/live') as never);
 
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://backend.test/api/feed/live',
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: expect.any(Headers),
+      }),
+    );
     await expect(response.json()).resolves.toMatchObject({
-      total: 0,
+      total: 1,
       delivery: {
-        mode: 'degraded',
-        reason: 'missing_session',
+        mode: 'live',
+        reason: 'ok',
       },
     });
   });

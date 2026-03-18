@@ -446,15 +446,38 @@ body {
   100% { transform: translateX(-50%); }
 }
 
-/* Gentle float for decorative elements */
-@keyframes float {
+/* Gentle float for decorative elements and nodes */
+@keyframes node-breathe {
   0%, 100% {
     transform: translateY(0);
+    opacity: 0.92;
   }
   50% {
-    transform: translateY(-10px);
+    transform: translateY(-4px);
+    opacity: 1;
   }
 }
+
+.animate-node-breathe {
+  animation: node-breathe 5s ease-in-out infinite;
+}
+
+/* Links glowing on hover */
+.glow-on-hover {
+  transition: all 0.3s ease;
+}
+.glow-on-hover:hover {
+  filter: drop-shadow(0 0 8px var(--vt-accent));
+  stroke: var(--vt-accent) !important;
+  stroke-width: 2px !important;
+}
+
+/* Backlinks grouped softly */
+.memory-cluster {
+  background: radial-gradient(circle, color-mix(in oklab, var(--vt-accent) 15%, transparent) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
 
 /* Status Pulse - Restrained micro-interaction */
 @keyframes pulse-subtle {

@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2, MessageSquareMore, Send, Sparkles } from 'lucide-react';
+import { MessageSquareMore, Send, Sparkles } from 'lucide-react';
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useCopilotSession } from './useCopilotSession';
 import type {
@@ -103,6 +103,80 @@ function contextChips(context: CopilotContextPayload) {
   return chips;
 }
 
+function scopeHeading(context: CopilotContextPayload): string {
+  if (context.provider?.label) {
+    return `Provider ${context.provider.label}`;
+  }
+
+  if (context.finding?.title) {
+    return `Finding ${context.finding.title}`;
+  }
+
+  if (context.storyline?.title) {
+    return `Storyline ${context.storyline.title}`;
+  }
+
+  if (context.graph?.selectedNodeId || context.graph?.focusNodeId) {
+    return `Graph ${context.graph.selectedNodeId ?? context.graph.focusNodeId}`;
+  }
+
+  return 'Current investigation scope';
+}
+
+function scopeSummary(context: CopilotContextPayload): string {
+  if (context.finding?.summary) {
+    return context.finding.summary;
+  }
+
+  if (context.storyline?.whyItMatters) {
+    return context.storyline.whyItMatters;
+  }
+
+  if (context.provider?.summary) {
+    return context.provider.summary;
+  }
+
+  if (context.riskSummary?.summary) {
+    return context.riskSummary.summary;
+  }
+
+  return 'Use the current scope to ask for evidence, relationships, or the next action.';
+}
+
+function scopeFacts(context: CopilotContextPayload): string[] {
+  const facts: string[] = [];
+
+  if (context.provider?.npi) {
+    facts.push(`NPI ${context.provider.npi}`);
+  }
+
+  if (context.provider?.trustBand) {
+    facts.push(context.provider.trustBand);
+  }
+
+  if (typeof context.provider?.activeFindings === 'number') {
+    facts.push(`${context.provider.activeFindings} active finding${context.provider.activeFindings === 1 ? '' : 's'}`);
+  }
+
+  if (context.finding?.severity) {
+    facts.push(context.finding.severity);
+  }
+
+  if (context.storyline?.severity) {
+    facts.push(context.storyline.severity);
+  }
+
+  if (context.graph?.selectedNodeId || context.graph?.focusNodeId) {
+    facts.push(`Graph focus ${context.graph.selectedNodeId ?? context.graph.focusNodeId}`);
+  }
+
+  if (context.recentFindings.length > 0) {
+    facts.push(`${context.recentFindings.length} recent finding${context.recentFindings.length === 1 ? '' : 's'}`);
+  }
+
+  return facts.slice(0, 4);
+}
+
 function ActionButton({
   action,
   onRun,
@@ -183,6 +257,7 @@ export function CopilotSearchBar({
 
   const chips = useMemo(() => contextChips(context), [context]);
   const visibleEntries = useMemo(() => [...entries].reverse(), [entries]);
+  const activeFacts = useMemo(() => scopeFacts(context), [context]);
 
   function isSectionCollapsed(entryId: string, section: CopilotDocumentSection) {
     const key = `${entryId}:${section.id}`;
@@ -257,7 +332,25 @@ export function CopilotSearchBar({
                 {!collapsed ? (
                   <div className="space-y-3 border-t border-[var(--vt-border)] px-4 py-3">
                     {section.items.length === 0 ? (
-                      <p className="text-sm text-[var(--vt-text-3)]">No supported data is available in this section.</p>
+                      <div className="flex flex-wrap gap-2">
+                        {quickSuggestions.slice(0, 2).map((suggestion) => (
+                          <button
+                            key={`${entry.id}:${section.id}:${suggestion}`}
+                            type="button"
+                            onClick={() => void submitPrompt(suggestion)}
+                            className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-1 text-xs text-[var(--vt-text-2)] transition hover:text-[var(--vt-text-1)]"
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => void submitPrompt('/investigate')}
+                          className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-medium text-cyan-100 transition hover:bg-cyan-400/15"
+                        >
+                          Ask for a plan
+                        </button>
+                      </div>
                     ) : null}
 
                     {section.items.map((item) => (
@@ -441,16 +534,51 @@ export function CopilotSearchBar({
           {visibleEntries.map(renderEntry)}
         </div>
       ) : (
-        <div className="rounded-md border border-dashed border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-6">
+        <div className="rounded-md border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-4">
           <div className="flex items-start gap-3">
             <div className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-2">
               <MessageSquareMore className="h-4 w-4 text-[var(--vt-text-3)]" />
             </div>
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-[var(--vt-text-1)]">Copilot is ready for the current investigation scope.</p>
-              <p className="text-sm leading-6 text-[var(--vt-text-3)]">
-                Ask for a summary, run a targeted check, compare providers, or start an investigation plan. Responses will stack here with structured sections and linked entities.
-              </p>
+            <div className="min-w-0 flex-1 space-y-3">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-[var(--vt-text-1)]">{scopeHeading(context)}</p>
+                <p className="text-sm leading-6 text-[var(--vt-text-3)]">
+                  {scopeSummary(context)}
+                </p>
+              </div>
+
+              {activeFacts.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {activeFacts.map((fact) => (
+                    <span
+                      key={fact}
+                      className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--vt-text-3)]"
+                    >
+                      {fact}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap gap-2">
+                {quickSuggestions.slice(0, 3).map((suggestion) => (
+                  <button
+                    key={`scope:${suggestion}`}
+                    type="button"
+                    onClick={() => void submitPrompt(suggestion)}
+                    className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-1.5 text-xs text-[var(--vt-text-2)] transition hover:border-cyan-400/30 hover:text-[var(--vt-text-1)]"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => void submitPrompt('/investigate')}
+                  className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-medium text-cyan-100 transition hover:bg-cyan-400/15"
+                >
+                  Start investigation
+                </button>
+              </div>
             </div>
           </div>
         </div>

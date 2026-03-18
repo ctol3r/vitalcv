@@ -247,6 +247,11 @@ function derivePrimaryIssuer(
   return issuerNameById.get(primaryIssuerId) ?? primaryIssuerId;
 }
 
+/**
+ * Credential-issuer-based trust: average of issuer scores for active credentials.
+ * Findings-based trust adjustments (e.g. trustImpact from the investigator engine)
+ * are handled separately via the copilot context service and investigation workbench.
+ */
 function deriveTrustScore(
   credentials: readonly VerifiableCredential[],
   issuerScoreById: ReadonlyMap<string, number>,

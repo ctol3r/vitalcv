@@ -50,10 +50,9 @@ export function buildGraphTooltipContent({
   const metricGrid = document.createElement('div');
   metricGrid.className = 'vital-graph-tooltip__grid';
 
-  appendMetric(metricGrid, 'Confidence', node.confidence ? `${Math.round(node.confidence * 100)}%` : 'n/a');
-  appendMetric(metricGrid, 'Trust tier', node.trustTier ?? 'Unassigned');
-  appendMetric(metricGrid, 'Links', String(relationshipCount));
-  appendMetric(metricGrid, 'Group', node.group || 'Ungrouped');
+  appendMetric(metricGrid, 'Trust Score', node.trustScore ? String(node.trustScore) : 'n/a');
+  appendMetric(metricGrid, 'Last Signal', node.lastSignal ? new Date(node.lastSignal).toLocaleDateString() : 'Just now');
+  appendMetric(metricGrid, 'Risk Delta', node.riskDelta ? `${node.riskDelta > 0 ? '+' : ''}${node.riskDelta}` : '0');
 
   root.append(metricGrid);
 

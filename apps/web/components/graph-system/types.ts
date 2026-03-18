@@ -71,6 +71,9 @@ export interface GraphNode {
   sourceRefs:    string[];
   trustTier?:    string;
   trustBand?:    string;
+  trustScore?:   number;
+  lastSignal?:   string;
+  riskDelta?:    number;
   confidence?:   number;
   createdAt:     string;
   updatedAt:     string;

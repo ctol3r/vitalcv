@@ -76,12 +76,15 @@ export async function signArtifactHash(
 ): Promise<string> {
   const privateKey = await getPrivateKey();
 
+  const nowEpoch = Math.floor(Date.now() / 1000);
+
   return new SignJWT({
     artifact_hash: artifactHash,
     artifact_id: artifactId,
   })
     .setProtectedHeader({ alg: ALG, kid: KID, typ: 'JWT' })
-    .setIssuedAt()
+    .setIssuedAt(nowEpoch)
+    .setExpirationTime('2y')
     .setIssuer(ISSUER)
     .sign(privateKey);
 }

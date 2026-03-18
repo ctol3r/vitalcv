@@ -79,12 +79,12 @@ function normalizeName(input: string, field: string): string {
 
 function buildCredentialId(subjectDid: string, npi: string): string {
   const now = new Date();
-  const nowSeconds = now.toISOString();
+  const nowIso = now.toISOString();
   const credentialDigest = hashDeterministicPayload({
     did: getControlledIssuerDID(),
     subjectDid,
     npi,
-    issuedAt: nowSeconds,
+    issuedAt: nowIso,
   });
   return `${getControlledIssuerDID()}/credentials/clinician/${credentialDigest.slice(0, 32)}`;
 }

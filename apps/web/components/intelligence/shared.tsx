@@ -30,7 +30,7 @@ export function SurfaceState({
     return (
       <div className={cn('rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-6', className)}>
         <div className="flex items-start gap-3">
-          <RefreshCw className="mt-0.5 h-4 w-4 animate-spin text-cyan-400" />
+          <RefreshCw className="mt-0.5 h-4 w-4 animate-spin text-[var(--vt-text-2)]" />
           <div className="space-y-1">
             <p className="text-sm font-semibold text-[var(--vt-text-1)]">Loading live intelligence</p>
             <p className="text-xs leading-5 text-[var(--vt-text-2)]">
@@ -44,18 +44,18 @@ export function SurfaceState({
 
   if (error) {
     return (
-      <div className={cn('rounded-2xl border border-[var(--vt-badge-critical-border)] bg-[var(--vt-badge-critical-bg)] p-4', className)}>
+      <div className={cn('rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-4', className)}>
         <div className="flex items-start gap-3">
-          <AlertTriangle className="mt-0.5 h-4 w-4 text-[var(--vt-critical)]" />
+          <AlertTriangle className="mt-0.5 h-4 w-4 text-[var(--vt-text-2)]" />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-[var(--vt-badge-critical-text)]">Unable to load panel</p>
-            <p className="mt-1 text-xs leading-5 text-[var(--vt-text-2)]">{error}</p>
+            <p className="text-sm font-semibold text-[var(--vt-text-1)]">Unable to load panel</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--vt-text-3)]">{error}</p>
           </div>
           {onRetry ? (
             <button
               type="button"
               onClick={onRetry}
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-badge-critical-border)] px-3 py-1.5 text-xs font-semibold text-[var(--vt-badge-critical-text)] transition hover:bg-[var(--vt-surface-2)]"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--vt-text-2)] transition hover:text-[var(--vt-text-1)]"
             >
               <RefreshCw className="h-3 w-3" />
               Retry
@@ -69,7 +69,7 @@ export function SurfaceState({
   if (empty) {
     return (
       <div className={cn('rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-6 text-center', className)}>
-        <div className="mx-auto mb-4 h-2.5 w-2.5 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400/40" />
+        <div className="mx-auto mb-4 h-2.5 w-2.5 rounded-full bg-[var(--vt-text-2)] shadow-[0_0_8px_rgba(255,255,255,0.2)]" />
         <h2 className="text-sm font-semibold text-[var(--vt-text-1)]">{emptyTitle}</h2>
         <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-[var(--vt-text-2)]">{emptyCopy}</p>
       </div>
@@ -121,12 +121,12 @@ export function ToneBadge({
   className?: string;
 }) {
   const classes = tone === 'healthy'
-    ? 'border-[var(--vt-badge-success-border)] bg-[var(--vt-badge-success-bg)] text-[var(--vt-badge-success-text)]'
+    ? 'border-[var(--vt-text-1)] bg-[var(--vt-surface-2)] text-[var(--vt-text-1)]'
     : tone === 'degraded'
-      ? 'border-[var(--vt-badge-warning-border)] bg-[var(--vt-badge-warning-bg)] text-[var(--vt-badge-warning-text)]'
+      ? 'border-[var(--vt-text-2)] bg-[var(--vt-surface-2)] text-[var(--vt-text-2)]'
       : tone === 'critical'
-        ? 'border-[var(--vt-badge-critical-border)] bg-[var(--vt-badge-critical-bg)] text-[var(--vt-badge-critical-text)]'
-        : 'border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-2)]';
+        ? 'border-[var(--vt-text-3)] bg-[var(--vt-surface-2)] text-[var(--vt-text-1)]'
+        : 'border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-3)]';
 
   return (
     <span
@@ -151,12 +151,12 @@ export function ScoreBar({
 }) {
   const width = `${Math.max(4, Math.min(100, Math.round(value)))}%`;
   const color = tone === 'healthy'
-    ? 'bg-[var(--vt-success)]'
+    ? 'bg-[var(--vt-text-1)]'
     : tone === 'degraded'
-      ? 'bg-[var(--vt-warning)]'
+      ? 'bg-[var(--vt-text-2)]'
       : tone === 'critical'
-        ? 'bg-[var(--vt-critical)]'
-        : 'bg-[var(--vt-info)]';
+        ? 'bg-[var(--vt-text-3)]'
+        : 'bg-[var(--vt-border)]';
 
   return (
     <div className="h-2 rounded-full bg-[var(--vt-border)]">

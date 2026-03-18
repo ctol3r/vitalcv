@@ -6,58 +6,61 @@ import {
 } from '@/components/graph/state/graphDisplayState';
 import { themeTokens } from '@/ui/theme/tokens';
 
+const MUTED_PRIMARY = 'var(--vt-text-1, #f8fafc)';
+const MUTED_SECONDARY = 'var(--vt-text-2, #94a3b8)';
+const MUTED_TERTIARY = 'var(--vt-text-3, #475569)';
+const MUTED_ACCENT = 'var(--vt-border, #334155)';
+
 const NODE_TYPE_COLORS: Partial<Record<NodeType, string>> = {
-  clinician: themeTokens.colors.dark.accentBlue,
-  provider: '#f59e0b',
-  organization: themeTokens.colors.dark.accentBlue,
-  company: '#2563eb',
-  institution: themeTokens.colors.dark.accentCyan,
-  specialty: themeTokens.colors.dark.accentYellow,
-  program: themeTokens.colors.dark.accentMagenta,
-  publication: themeTokens.colors.dark.success,
-  trial: themeTokens.colors.dark.success,
-  claim: themeTokens.colors.dark.accentCyan,
-  payment: '#f97316',
-  artifact: themeTokens.colors.dark.textSecondary,
-  evidence: '#94a3b8',
-  receipt: themeTokens.colors.dark.accentYellow,
-  source: themeTokens.colors.dark.textMuted,
-  credential: themeTokens.colors.dark.success,
-  license: themeTokens.colors.dark.success,
-  decision: themeTokens.colors.dark.accentMagenta,
-  exclusion: themeTokens.colors.dark.danger,
-  enrollment: themeTokens.colors.dark.accentMagenta,
-  regulatory: '#fb7185',
-  note: themeTokens.colors.dark.accentBlue,
-  document: themeTokens.colors.dark.textSecondary,
-  tag: themeTokens.colors.dark.accentYellow,
-  attachment: themeTokens.colors.dark.textPrimary,
-  group: themeTokens.colors.dark.accentMagenta,
+  clinician: MUTED_PRIMARY,
+  provider: MUTED_PRIMARY,
+  organization: MUTED_PRIMARY,
+  company: MUTED_SECONDARY,
+  institution: MUTED_SECONDARY,
+  specialty: MUTED_TERTIARY,
+  program: MUTED_TERTIARY,
+  publication: MUTED_TERTIARY,
+  trial: MUTED_TERTIARY,
+  claim: MUTED_TERTIARY,
+  payment: MUTED_TERTIARY,
+  artifact: MUTED_TERTIARY,
+  evidence: MUTED_TERTIARY,
+  receipt: MUTED_TERTIARY,
+  source: MUTED_TERTIARY,
+  credential: MUTED_SECONDARY,
+  license: MUTED_SECONDARY,
+  decision: MUTED_SECONDARY,
+  exclusion: MUTED_SECONDARY,
+  enrollment: MUTED_SECONDARY,
+  regulatory: MUTED_SECONDARY,
+  note: MUTED_TERTIARY,
+  document: MUTED_TERTIARY,
+  tag: MUTED_TERTIARY,
+  attachment: MUTED_TERTIARY,
+  group: MUTED_TERTIARY,
 };
 
 const TRUST_TIER_COLORS: Record<string, string> = {
-  GOLD: themeTokens.colors.dark.accentYellow,
-  SILVER: themeTokens.colors.dark.textPrimary,
-  BRONZE: themeTokens.colors.dark.textSecondary,
+  GOLD: MUTED_PRIMARY,
+  SILVER: MUTED_SECONDARY,
+  BRONZE: MUTED_TERTIARY,
 };
 
 const GROUP_COLORS = [
-  themeTokens.colors.dark.accentBlue,
-  themeTokens.colors.dark.accentCyan,
-  themeTokens.colors.dark.success,
-  themeTokens.colors.dark.accentYellow,
-  themeTokens.colors.dark.accentMagenta,
-  themeTokens.colors.dark.textPrimary,
-  themeTokens.colors.dark.danger,
-  themeTokens.colors.dark.textSecondary,
+  MUTED_PRIMARY,
+  MUTED_SECONDARY,
+  MUTED_TERTIARY,
+  '#cbd5e1',
+  '#64748b',
+  '#1e293b',
 ];
 
 export const LINK_CLASS_STYLES: Record<GraphLinkClass, { stroke: string; dash: number[] }> = {
-  explicit: { stroke: themeTokens.colors.dark.accentBlue, dash: [] },
-  backlink: { stroke: themeTokens.colors.dark.accentCyan, dash: [6, 4] },
-  ai: { stroke: themeTokens.colors.dark.accentMagenta, dash: [3, 5] },
-  inferred: { stroke: themeTokens.colors.dark.accentYellow, dash: [2, 7] },
-  trust: { stroke: themeTokens.colors.dark.textPrimary, dash: [] },
+  explicit: { stroke: MUTED_ACCENT, dash: [] },
+  backlink: { stroke: MUTED_ACCENT, dash: [4, 4] },
+  ai: { stroke: MUTED_ACCENT, dash: [2, 4] },
+  inferred: { stroke: MUTED_ACCENT, dash: [2, 6] },
+  trust: { stroke: MUTED_ACCENT, dash: [] },
 };
 
 function hashSeed(value: string): number {

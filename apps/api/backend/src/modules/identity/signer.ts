@@ -36,13 +36,16 @@ export async function signArtifact(
     throw new HttpError(500, 'Failed to import signing key');
   }
 
+  const nowEpoch = Math.floor(Date.now() / 1000);
+
   const jws = await new SignJWT({
     artifact_hash: artifactHash,
     npi: artifact.provider.npi,
     schema_version: artifact.schema_version,
   })
     .setProtectedHeader({ alg: ALG, kid: KID, typ: 'JWT' })
-    .setIssuedAt()
+    .setIssuedAt(nowEpoch)
+    .setExpirationTime('2y')
     .setIssuer('vitalcv')
     .sign(privateKey);
 
