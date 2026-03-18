@@ -7,6 +7,58 @@ export type TenantRequest = Request & {
 
 const SUPER_ADMIN_ROLE = 'super-admin';
 
+/**
+ * Route prefixes that allow READ access without an org context.
+ * Intelligence and investigation surfaces are multi-tenant read-only —
+ * auth is forwarded via x-clerk-user-id header; org is NOT required.
+ * Write/mutation routes under these prefixes must enforce org separately.
+ */
+const INTELLIGENCE_READ_PREFIXES = [
+  '/api/intelligence',
+  '/api/investigation',
+  '/api/provider-intelligence',
+  '/api/findings',
+  '/api/investigators',
+  '/api/storylines',
+  '/api/graph',
+  '/api/directory',
+  '/api/providers',
+] as const;
+
+export function isIntelligenceReadRoute(path: string): boolean {
+  const normalized = path.split('?')[0].toLowerCase();
+  return INTELLIGENCE_READ_PREFIXES.some(
+    (prefix) => normalized.startsWith(prefix) || normalized === prefix,
+  );
+}
+
+/**
+ * Org-optional middleware for intelligence/investigation READ routes.
+ *
+ * Rules:
+ * - Routes matching INTELLIGENCE_READ_PREFIXES: skip org requirement.
+ *   Allow userId OR no auth → READ access. OrgId attached if present (best-effort).
+ * - All other routes: delegate to requireTenantContext (org required).
+ *
+ * Write routes within intelligence paths must call requireTenantContext directly.
+ */
+export function requireTenantContextOrReadAccess(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  if (isIntelligenceReadRoute(req.path)) {
+    const organizationId = getRequestOrganizationId(req);
+    if (organizationId) {
+      (req as TenantRequest).organizationId = organizationId;
+    }
+    next();
+    return;
+  }
+
+  requireTenantContext(req, res, next);
+}
+
 function normalizeRole(value: string | undefined): string | null {
   if (!value) {
     return null;

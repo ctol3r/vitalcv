@@ -12,11 +12,9 @@ export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
+  // READ access: storylines are intelligence-surface data, org not required.
+  // userId forwarded if present; anonymous reads are also allowed.
   const authContext = await resolveIntelligenceAuthContext();
-  const blocked = requireAuthenticatedOrgContext(req, authContext);
-  if (blocked) {
-    return NextResponse.json(blocked.payload, { status: blocked.status });
-  }
 
   if (path.length === 1) {
     try {

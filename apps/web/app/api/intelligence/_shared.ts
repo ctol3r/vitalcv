@@ -15,12 +15,20 @@ export type IntelligenceAuthStatus = 'authenticated' | 'missing_session' | 'miss
 
 /**
  * Whether the user has enough auth to read intelligence data.
- * Both 'authenticated' (with org) and 'missing_org' (user logged in, no org)
- * can read — the backend skips tenant context for /api/intelligence/* paths.
+ *
+ * Policy:
+ * - userId present (authenticated, with or without org) → ALLOW
+ * - no session (demo / unauthenticated) → ALLOW (backend serves public read)
+ * - org is NEVER required for intelligence read routes
+ *
+ * Write/mutation operations must use requireAuthenticatedOrgContext() instead.
  */
 export function canReadIntelligence(context: IntelligenceAuthContext): boolean {
-  // Intelligence surfaces are public-read. Allow all statuses for GET/read.
-  // Write operations should use requireAuthenticatedOrgContext() separately.
+  // userId present → authenticated read (org not required)
+  if (context.userId) {
+    return true;
+  }
+  // No session → allow for demo/public read; backend will serve what it can
   return true;
 }
 

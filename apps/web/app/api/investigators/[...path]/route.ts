@@ -11,12 +11,9 @@ export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
+  // READ access: investigators are intelligence-surface data, org not required.
+  // userId forwarded if present; anonymous reads are also allowed.
   const authContext = await resolveIntelligenceAuthContext();
-  const blocked = requireAuthenticatedOrgContext(req, authContext);
-  if (blocked) {
-    return NextResponse.json(blocked.payload, { status: blocked.status });
-  }
-
   const qs = req.nextUrl.search;
   try {
     const res = await fetch(`${getBackendBase()}/api/investigators/${path.join('/')}${qs}`, {

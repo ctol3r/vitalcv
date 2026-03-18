@@ -21,6 +21,7 @@ import {
     isSuperAdminRequest,
     parseRequestRole as parseTenantRequestRole,
     requireTenantContext,
+    requireTenantContextOrReadAccess,
 } from './middleware/tenantGuard';
 import { log } from './obs/logger';
 import { requestLatencyMetrics } from './observability/requestMetrics';
@@ -3505,13 +3506,9 @@ app.use(
     credentials: corsOrigin !== '*',
   }),
 );
-app.use((req: Request, res: Response, next: express.NextFunction) => {
-  if (shouldSkipTenantContext(req.path)) {
-    next();
-    return;
-  }
-  requireTenantContext(req, res, next);
-});
+// Intelligence/investigation read routes bypass org requirement.
+// All other routes still require org context via requireTenantContext.
+app.use(requireTenantContextOrReadAccess);
 
 // Body parsing with size limits
 app.use(express.json({ limit: '1mb' }));
