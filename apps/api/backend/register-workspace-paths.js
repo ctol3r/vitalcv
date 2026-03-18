@@ -10,13 +10,8 @@
  * packages that have co-located `.js` files (compiled separately), we fall
  * back to loading those directly from the source package.
  *
- * Resolution order for `require("@vitalcv/<pkg>")`:
- *   1. dist/packages/<pkg>/index.js           (tsc output)
- *   2. dist/packages/<pkg>/src/index.js        (tsc output, src layout)
- *   3. packages/<pkg>/index.js                (co-located JS in source)
- *   4. packages/<pkg>/dist/index.js           (package-local build output)
- *   5. packages/<pkg>/src/index.js            (last resort, src layout)
- *   6. Fall through to default Node resolution
+ * Also handles relative imports like `require("../../../packages/ingest")`
+ * which tsc generates from source files outside the backend src/ dir.
  *
  * Usage (in start command):
  *   node -r ./apps/api/backend/register-workspace-paths.js \
@@ -38,7 +33,44 @@ const SRC_PACKAGES_ROOT = path.resolve(REPO_ROOT, 'packages');
 
 const originalResolveFilename = Module._resolveFilename;
 
+/**
+ * Given a package name, return candidates for its index.js.
+ */
+function getCandidates(packageName, entry) {
+  return [
+    // 1. tsc dist output (flat)
+    path.join(DIST_PACKAGES_ROOT, packageName, entry + '.js'),
+    path.join(DIST_PACKAGES_ROOT, packageName, entry, 'index.js'),
+    // 2. tsc dist output (src/ layout)
+    path.join(DIST_PACKAGES_ROOT, packageName, 'src', entry + '.js'),
+    path.join(DIST_PACKAGES_ROOT, packageName, 'src', entry, 'index.js'),
+    // 3. Co-located JS in source package
+    path.join(SRC_PACKAGES_ROOT, packageName, entry + '.js'),
+    path.join(SRC_PACKAGES_ROOT, packageName, entry, 'index.js'),
+    // 4. Package-local dist/ output
+    path.join(SRC_PACKAGES_ROOT, packageName, 'dist', entry + '.js'),
+    path.join(SRC_PACKAGES_ROOT, packageName, 'dist', entry, 'index.js'),
+    // 5. src/ in source package
+    path.join(SRC_PACKAGES_ROOT, packageName, 'src', entry + '.js'),
+    path.join(SRC_PACKAGES_ROOT, packageName, 'src', entry, 'index.js'),
+  ];
+}
+
+function findFirst(candidates) {
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+// Match relative paths that end up in packages/ dir
+// e.g. "../../../packages/ingest" or "../../packages/crs/CrsEngine"
+const RELATIVE_PACKAGES_RE = /(?:^|[/\\])packages[/\\]([^/\\]+)(?:[/\\](.+))?$/;
+
 Module._resolveFilename = function resolveWorkspacePaths(request, parent, isMain, options) {
+  // Handle @vitalcv/* imports
   if (typeof request === 'string' && request.startsWith(WORKSPACE_PREFIX)) {
     const rest = request.slice(WORKSPACE_PREFIX.length);
     const slashIndex = rest.indexOf('/');
@@ -46,28 +78,23 @@ Module._resolveFilename = function resolveWorkspacePaths(request, parent, isMain
     const subpath = slashIndex === -1 ? '' : rest.slice(slashIndex + 1);
     const entry = subpath || 'index';
 
-    const candidates = [
-      // 1. tsc dist output (flat)
-      path.join(DIST_PACKAGES_ROOT, packageName, entry + '.js'),
-      path.join(DIST_PACKAGES_ROOT, packageName, entry, 'index.js'),
-      // 2. tsc dist output (src/ layout)
-      path.join(DIST_PACKAGES_ROOT, packageName, 'src', entry + '.js'),
-      path.join(DIST_PACKAGES_ROOT, packageName, 'src', entry, 'index.js'),
-      // 3. Co-located JS in source package
-      path.join(SRC_PACKAGES_ROOT, packageName, entry + '.js'),
-      path.join(SRC_PACKAGES_ROOT, packageName, entry, 'index.js'),
-      // 4. Package-local dist/ output
-      path.join(SRC_PACKAGES_ROOT, packageName, 'dist', entry + '.js'),
-      path.join(SRC_PACKAGES_ROOT, packageName, 'dist', entry, 'index.js'),
-      // 5. src/ in source package
-      path.join(SRC_PACKAGES_ROOT, packageName, 'src', entry + '.js'),
-      path.join(SRC_PACKAGES_ROOT, packageName, 'src', entry, 'index.js'),
-    ];
+    const found = findFirst(getCandidates(packageName, entry));
+    if (found) return found;
+  }
 
-    for (const candidate of candidates) {
-      if (fs.existsSync(candidate)) {
-        return candidate;
-      }
+  // Handle relative paths that resolve into packages/ directory
+  if (typeof request === 'string' && request.startsWith('.') && parent && parent.filename) {
+    const parentDir = path.dirname(parent.filename);
+    const resolved = path.resolve(parentDir, request);
+    const match = RELATIVE_PACKAGES_RE.exec(resolved);
+
+    if (match) {
+      const packageName = match[1];
+      const subpath = match[2] || '';
+      const entry = subpath || 'index';
+
+      const found = findFirst(getCandidates(packageName, entry));
+      if (found) return found;
     }
   }
 
