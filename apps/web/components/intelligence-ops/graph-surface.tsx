@@ -311,7 +311,7 @@ export function GraphSurface() {
   return (
     <OperationsShell
       activeHref="/intelligence"
-      activeNavKey="dashboard"
+      activeNavKey="graph"
       title="Relationship Graph"
       description="Explore live provider, credential, and evidence relationships with graph-native controls and node-level inspection."
       breadcrumbs={[{ label: 'Graph' }]}

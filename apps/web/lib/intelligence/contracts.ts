@@ -1516,12 +1516,7 @@ export function findGraphNodeIdForProvider(
   }
 
   for (const node of nodes) {
-    if (node.id === provider.npi) {
-      return node.id;
-    }
-
-    const metadataNpi = typeof node.metadata?.npi === 'string' ? node.metadata.npi : null;
-    if (metadataNpi === provider.npi) {
+    if (candidateProviderNpisFromGraphNode(node).includes(provider.npi)) {
       return node.id;
     }
   }
@@ -1543,13 +1538,29 @@ export function findProviderForGraphNode(
     return null;
   }
 
-  const metadataNpi = typeof node.metadata?.npi === 'string' ? node.metadata.npi : null;
-  const matchId = maybeNpi(metadataNpi) ?? maybeNpi(node.id);
-  if (!matchId) {
-    return null;
+  for (const candidateNpi of candidateProviderNpisFromGraphNode(node)) {
+    const provider = providers.find((entry) => entry.npi === candidateNpi);
+    if (provider) {
+      return provider;
+    }
   }
 
-  return providers.find((provider) => provider.npi === matchId) ?? null;
+  return null;
+}
+
+function candidateProviderNpisFromGraphNode(node: GraphNode): string[] {
+  const metadata = node.metadata ?? {};
+  const candidates = [
+    maybeNpi(node.id),
+    maybeNpi(typeof metadata.npi === 'string' ? metadata.npi : null),
+    maybeNpi(typeof metadata.providerNpi === 'string' ? metadata.providerNpi : null),
+    maybeNpi(typeof metadata.providerId === 'string' ? metadata.providerId : null),
+    maybeNpi(typeof metadata.entityId === 'string' ? metadata.entityId : null),
+    maybeNpi(typeof metadata.entityKey === 'string' ? metadata.entityKey : null),
+    maybeNpi(typeof metadata.subjectNpi === 'string' ? metadata.subjectNpi : null),
+  ];
+
+  return uniqueStrings(candidates.filter((candidate): candidate is string => Boolean(candidate)));
 }
 
 export function buildSourceEntries(input: {

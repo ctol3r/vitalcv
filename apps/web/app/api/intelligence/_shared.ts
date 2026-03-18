@@ -19,7 +19,9 @@ export type IntelligenceAuthStatus = 'authenticated' | 'missing_session' | 'miss
  * can read — the backend skips tenant context for /api/intelligence/* paths.
  */
 export function canReadIntelligence(context: IntelligenceAuthContext): boolean {
-  return context.status === 'authenticated' || context.status === 'missing_org';
+  // Intelligence surfaces are public-read. Allow all statuses for GET/read.
+  // Write operations should use requireAuthenticatedOrgContext() separately.
+  return true;
 }
 
 export interface IntelligenceAuthContext {

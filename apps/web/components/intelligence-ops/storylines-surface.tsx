@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { startTransition, useEffect, useMemo, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useStorylines } from '@/hooks/useStorylines';
-import { buildIntelligenceHref } from '@/lib/intelligence/routes';
+import { buildIntelligenceGraphHref, buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import { formatLastRefreshMessage, getSurfaceFreshnessState } from '@/lib/intelligence/state';
 import type { IntelligenceStoryline } from '@/lib/intelligence/contracts';
@@ -350,6 +350,21 @@ export function StorylinesSurface() {
                         />
                       </>
                     ) : null}
+                    <EntityLink
+                      href={buildIntelligenceGraphHref({
+                        npi: storyline.providerNpi,
+                        providerId: storyline.providerNpi,
+                        storylineId: storyline.id,
+                      })}
+                      label="Open graph"
+                    />
+                    <EntityLink
+                      href={buildIntelligenceHref('investigations', {
+                        npi: storyline.providerNpi,
+                        storylineId: storyline.id,
+                      })}
+                      label="Investigate"
+                    />
                   </div>
                 </div>
 

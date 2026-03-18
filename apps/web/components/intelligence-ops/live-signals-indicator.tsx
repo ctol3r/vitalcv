@@ -183,8 +183,18 @@ export function LiveSignalsIndicator() {
     <div className="space-y-2 rounded-lg border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2">
       <div className="flex items-center justify-between gap-3 text-[11px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">
         <span className="flex items-center gap-2 font-semibold text-[var(--vt-text-2)]">
-          <span className={`h-2 w-2 rounded-full ${health.error ? 'bg-amber-400' : 'bg-emerald-400'} animate-pulse`} />
-          LIVE SIGNALS ACTIVE
+          <span className={`h-2 w-2 rounded-full ${
+            health.error && !health.data
+              ? 'bg-red-500'
+              : health.error
+                ? 'bg-amber-400 animate-pulse'
+                : 'bg-emerald-400 animate-pulse'
+          }`} />
+          {health.error && !health.data
+            ? 'SIGNALS UNAVAILABLE'
+            : health.error
+              ? 'SIGNALS DEGRADED'
+              : 'LIVE SIGNALS ACTIVE'}
         </span>
         <span className={`rounded-full px-2 py-0.5 ${readiness.tone === 'success' ? 'text-emerald-300' : 'text-amber-300'}`}>
           {readiness.label}

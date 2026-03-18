@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useProvider } from '@/hooks/useIntelligenceDetail';
 import type { ProviderDetailResponse } from '@/lib/intelligence/detail-types';
-import { buildIntelligenceHref } from '@/lib/intelligence/routes';
+import { buildIntelligenceGraphHref, buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import { useGraph } from '@/hooks/useGraph';
 import type { BadgeTone } from './primitives';
@@ -67,6 +67,12 @@ export function ProviderDetailView({
       actions={(
         <>
           <BackLink href={backHref} label="Back to providers" />
+          <Link
+            href={buildIntelligenceGraphHref({ npi: current.provider.npi, providerId: current.provider.npi })}
+            className="inline-flex items-center rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-4 py-2 text-sm font-medium text-[var(--vt-text-1)] transition hover:bg-[var(--vt-surface-2)]"
+          >
+            Open graph
+          </Link>
           <Link
             href={buildIntelligenceHref('investigations', { npi: current.provider.npi })}
             className="inline-flex items-center rounded-full bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-[var(--vt-accent)]"
@@ -306,7 +312,7 @@ export function ProviderDetailView({
                       <OpsBadge label={current.signals.trust.tier} tone={intelligenceTone(current.signals.trust.tier)} />
                     </div>
                     <p className={`mt-2 text-2xl font-semibold tabular-nums ${trustScoreColor(current.signals.trust.score ?? current.provider.trustScore)}`}>
-                      {formatSignalScore(current.signals.trust.score)}
+                      {formatSignalScore(current.signals.trust.score ?? current.provider.trustScore)}
                     </p>
                     <p className="mt-2 text-sm text-[var(--vt-text-2)]">{current.signals.trust.explanation}</p>
                   </div>
@@ -458,7 +464,7 @@ function ProviderNetworkSnapshot({ npi }: { npi: string }) {
       graph={graph.data}
       providers={[]}
       selectedProvider={null}
-      openFullGraphHref={`/graph?npi=${npi}`}
+      openFullGraphHref={buildIntelligenceGraphHref({ npi, providerId: npi })}
       loading={graph.loading}
       error={graph.error}
       onRetry={graph.refresh}

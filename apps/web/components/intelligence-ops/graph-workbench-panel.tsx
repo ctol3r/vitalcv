@@ -16,6 +16,7 @@ import type {
   IntelligenceProvider,
 } from '@/lib/intelligence/contracts';
 import { findGraphNodeIdForProvider, findProviderForGraphNode } from '@/lib/intelligence/contracts';
+import { buildIntelligenceGraphHref } from '@/lib/intelligence/routes';
 import type { NodeType } from '@/components/graph-system/types';
 
 interface GraphWorkbenchPanelProps {
@@ -41,7 +42,7 @@ export function GraphWorkbenchPanel({
   selectedProvider,
   selectedFindingId = null,
   selectedStorylineId = null,
-  openFullGraphHref = '/graph',
+  openFullGraphHref = buildIntelligenceGraphHref(),
   loading,
   error,
   onSelectProvider,
@@ -53,6 +54,7 @@ export function GraphWorkbenchPanel({
 }: GraphWorkbenchPanelProps) {
   const [dimensions, setDimensions] = useState({ width: 340, height: 380 });
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const [localSelectedNodeId, setLocalSelectedNodeId] = useState<string | null>(null);
   const [showLegend, setShowLegend] = useState(false);
   const [resetKey, setResetKey] = useState(0);
   const highlightedNodeIds = useRef(new Set<string>());
@@ -72,6 +74,16 @@ export function GraphWorkbenchPanel({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (!localSelectedNodeId) {
+      return;
+    }
+
+    if (!(graph?.nodes ?? []).some((node) => node.id === localSelectedNodeId)) {
+      setLocalSelectedNodeId(null);
+    }
+  }, [graph?.nodes, localSelectedNodeId]);
 
   useEffect(() => {
     const contextNodeIds = new Set<string>();
@@ -120,6 +132,7 @@ export function GraphWorkbenchPanel({
   }, [graph, highlightNodeId, highlightNodeIds, hoveredNodeId, selectedFindingId, selectedProvider, selectedStorylineId]);
 
   const selectedNodeId = focusNodeId
+    ?? localSelectedNodeId
     ?? graph?.focusNodeId
     ?? findGraphNodeIdForProvider(selectedProvider, graph?.nodes ?? [])
     ?? null;
@@ -201,6 +214,7 @@ export function GraphWorkbenchPanel({
                 highlightedNodeIds={highlightedNodeIds.current}
                 highlightedEdgeIds={highlightedEdgeIds.current}
                 onSelectNode={(nodeId) => {
+                  setLocalSelectedNodeId(nodeId);
                   onSelectGraphNode?.(nodeId);
 
                   if (!nodeId) {

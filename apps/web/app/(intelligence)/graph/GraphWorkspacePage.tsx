@@ -904,7 +904,7 @@ export function GraphWorkspacePage() {
 
   return (
     <OperationsShell
-      activeHref="/graph"
+      activeHref="/intelligence/graph"
       activeNavKey="graph"
       title="Relationship Graph"
       description="Investigation-native graph workspace for provider-centric risk tracing, evidence linkage, and storyline path exploration."

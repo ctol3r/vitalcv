@@ -273,8 +273,22 @@ export function SystemHealthSurface() {
           <p className="text-xs text-[var(--vt-text-2)]">{health.data?.headline ?? 'Waiting for telemetry'}</p>
           <div className="space-y-1 border-t border-[var(--vt-border)] pt-1 text-[10px] text-[var(--vt-text-3)]">
             <p className="inline-flex items-center gap-2 uppercase tracking-wider text-[9px]">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              LIVE SIGNALS ACTIVE
+              <span className={`h-2 w-2 rounded-full ${
+                surfaceState.mode === 'broken'
+                  ? 'bg-red-500'
+                  : health.error && !health.data
+                    ? 'bg-red-500'
+                    : health.error
+                      ? 'bg-amber-400 animate-pulse'
+                      : 'bg-emerald-500 animate-pulse'
+              }`} />
+              {surfaceState.mode === 'broken'
+                ? 'SIGNALS BROKEN'
+                : health.error && !health.data
+                  ? 'SIGNALS UNAVAILABLE'
+                  : health.error
+                    ? 'SIGNALS DEGRADED'
+                    : 'LIVE SIGNALS ACTIVE'}
             </p>
             <p>Readiness: {healthReadinessLabel}</p>
             <p title={health.lastUpdated ? formatAbsoluteTime(health.lastUpdated) : undefined}>

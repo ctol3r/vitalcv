@@ -2,7 +2,7 @@
 
 import { useAction } from '@/hooks/useIntelligenceDetail';
 import type { ActionDetailResponse } from '@/lib/intelligence/detail-types';
-import { buildIntelligenceHref } from '@/lib/intelligence/routes';
+import { buildIntelligenceGraphHref, buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import { OperationsShell } from './shell';
 import { ActionMutationControls } from './mutation-controls';
@@ -83,6 +83,16 @@ export function ActionDetailClient({
                 <EntityLink
                   href={`/findings/${detail.action.sourceFindingIds[0]}?from=/actions/${actionId}`}
                   label={`Finding ${detail.action.sourceFindingIds[0]}`}
+                />
+              ) : null}
+              {(providerNpi || detail.action.sourceFindingIds[0]) ? (
+                <EntityLink
+                  href={buildIntelligenceGraphHref({
+                    npi: providerNpi,
+                    providerId: providerNpi,
+                    findingId: detail.action.sourceFindingIds[0],
+                  })}
+                  label="Open graph"
                 />
               ) : null}
             </div>

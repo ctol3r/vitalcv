@@ -435,17 +435,6 @@ export async function loadProviderDetail(npi: string): Promise<ProviderDetailRes
     ACTIVE_STORYLINE_STATUSES.has(storyline.status.toLowerCase())
   )).length;
 
-  const fallbackCredentials = profile.payload.artifactSummaries.map((artifact) => ({
-    id: artifact.artifactId,
-    type: artifact.issuer,
-    name: artifact.issuer,
-    issuer: artifact.issuer,
-    status: artifact.status,
-    verifiedAt: artifact.verifiedAt,
-    expiresAt: artifact.expiresAt,
-    isPublic: true,
-  }));
-
   return {
     provider: {
       npi,
@@ -469,7 +458,7 @@ export async function loadProviderDetail(npi: string): Promise<ProviderDetailRes
         : profile.payload.activeCredentials.length,
     },
     profile: profile.payload,
-    credentials: passport.ok ? passport.payload.credentials ?? fallbackCredentials : fallbackCredentials,
+    credentials: passport.ok ? passport.payload.credentials ?? [] : [],
     findings: findings.ok ? (findings.payload.findings ?? []).slice(0, 6) : [],
     storylines: storylineItems.slice(0, 6),
     actions: actions.ok ? (actions.payload.actions ?? []).slice(0, 6) : [],

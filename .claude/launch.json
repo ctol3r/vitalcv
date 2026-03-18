@@ -11,7 +11,8 @@
       "name": "web-dev",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@vitalcv/web", "dev"],
-      "port": 3000
+      "port": 3000,
+      "autoPort": true
     },
     {
       "name": "api-dev",

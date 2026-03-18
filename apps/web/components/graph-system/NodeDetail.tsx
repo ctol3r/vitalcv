@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -23,6 +25,7 @@ import {
   Waypoints,
   X,
 } from 'lucide-react';
+import { buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { cn } from '@/lib/utils';
 import type { GraphEdge, GraphNode } from './types';
 import {
@@ -118,6 +121,76 @@ function statusTone(status: string): string {
   return 'border-white/10 bg-white/[0.03] text-white/70';
 }
 
+function extractString(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function extractStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => extractString(entry))
+    .filter((entry): entry is string => Boolean(entry));
+}
+
+function uniqueStrings(values: Array<string | null | undefined>): string[] {
+  return [...new Set(values.filter((value): value is string => Boolean(value)))];
+}
+
+function maybeNpi(value: string | null | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const match = value.match(/\b\d{10}\b/);
+  return match ? match[0] : null;
+}
+
+function deriveNodeEntityContext(node: GraphNode) {
+  const metadata = node.metadata ?? {};
+  const providerNpi = uniqueStrings([
+    maybeNpi(node.type === 'provider' ? node.id : null),
+    maybeNpi(extractString(metadata.npi)),
+    maybeNpi(extractString(metadata.providerNpi)),
+    maybeNpi(extractString(metadata.providerId)),
+    maybeNpi(extractString(metadata.entityId)),
+    maybeNpi(extractString(metadata.entityKey)),
+    maybeNpi(extractString(metadata.subjectNpi)),
+  ])[0] ?? null;
+  const providerLabel = extractString(metadata.providerName)
+    ?? extractString(metadata.fullName)
+    ?? extractString(metadata.subjectName)
+    ?? extractString(metadata.entityLabel)
+    ?? extractString(metadata.name)
+    ?? (providerNpi ? node.label : null);
+  const findingIds = uniqueStrings([
+    ...(node.findingIds ?? []),
+    ...extractStringList(metadata.findingIds),
+    extractString(metadata.findingId),
+    extractString(metadata.relatedFindingId),
+  ]);
+  const storylineIds = uniqueStrings([
+    ...(node.storylineIds ?? []),
+    ...extractStringList(metadata.storylineIds),
+    extractString(metadata.storylineId),
+    extractString(metadata.relatedStorylineId),
+  ]);
+
+  return {
+    providerNpi,
+    providerLabel,
+    findingIds,
+    storylineIds,
+  };
+}
+
 function Section({
   title,
   eyebrow,
@@ -135,6 +208,23 @@ function Section({
       </div>
       {children}
     </section>
+  );
+}
+
+function ContextLink({
+  href,
+  label,
+}: {
+  href: string;
+  label: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex items-center rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-xs text-white/72 transition-colors hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+    >
+      {label}
+    </Link>
   );
 }
 
@@ -449,6 +539,8 @@ export default function NodeDetail({
   onAcceptSuggestion,
   onRejectSuggestion,
 }: Props) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const model = useMemo(() => buildNodeDetailModel(node, edges, neighbors), [node, edges, neighbors]);
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(model.defaultEvidenceId);
 
@@ -480,6 +572,22 @@ export default function NodeDetail({
   );
   const primaryRelationship = model.relationships[0] ?? null;
   const NodeIcon = NODE_TYPE_ICONS[node.type] ?? Network;
+  const currentHref = useMemo(() => {
+    const query = searchParams.toString();
+    return `${pathname}${query ? `?${query}` : ''}`;
+  }, [pathname, searchParams]);
+  const entityContext = useMemo(() => deriveNodeEntityContext(node), [node]);
+  const investigationHref = useMemo(() => {
+    if (!entityContext.providerNpi && !entityContext.findingIds[0] && !entityContext.storylineIds[0]) {
+      return null;
+    }
+
+    return buildIntelligenceHref('investigations', {
+      npi: entityContext.providerNpi,
+      findingId: entityContext.findingIds[0],
+      storylineId: entityContext.storylineIds[0],
+    });
+  }, [entityContext.findingIds, entityContext.providerNpi, entityContext.storylineIds]);
 
   return (
     <aside className="fixed inset-y-4 right-4 z-50 w-[min(38rem,calc(100vw-1rem))] overflow-hidden rounded-[30px] border border-white/12 bg-black/95 text-white shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-md">
@@ -529,6 +637,81 @@ export default function NodeDetail({
         </header>
 
         <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
+          <Section title="Entity Context" eyebrow="00">
+            <div className="space-y-3">
+              {(entityContext.providerNpi || entityContext.findingIds.length > 0 || entityContext.storylineIds.length > 0) ? (
+                <>
+                  <p className="text-sm leading-6 text-white/54">
+                    Pivot out of the graph without losing the current investigation scope.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {entityContext.providerNpi ? (
+                      <>
+                        <ContextLink
+                          href={`/providers/${entityContext.providerNpi}?from=${encodeURIComponent(currentHref)}`}
+                          label={entityContext.providerLabel ?? `Provider ${entityContext.providerNpi}`}
+                        />
+                        <ContextLink
+                          href={buildIntelligenceHref('findings', { provider: entityContext.providerNpi })}
+                          label="Provider findings"
+                        />
+                        <ContextLink
+                          href={buildIntelligenceHref('storylines', { provider: entityContext.providerNpi })}
+                          label="Provider storylines"
+                        />
+                      </>
+                    ) : null}
+                    {investigationHref ? <ContextLink href={investigationHref} label="Open investigation" /> : null}
+                  </div>
+
+                  {entityContext.findingIds.length > 0 ? (
+                    <div className="space-y-2">
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-white/35">Linked findings</p>
+                      <div className="flex flex-wrap gap-2">
+                        {entityContext.findingIds.slice(0, 4).map((findingId) => (
+                          <ContextLink
+                            key={findingId}
+                            href={`/findings/${findingId}?from=${encodeURIComponent(currentHref)}`}
+                            label={`Finding ${findingId}`}
+                          />
+                        ))}
+                        {entityContext.findingIds.length > 4 ? (
+                          <span className="inline-flex items-center rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/42">
+                            +{entityContext.findingIds.length - 4} more
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {entityContext.storylineIds.length > 0 ? (
+                    <div className="space-y-2">
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-white/35">Linked storylines</p>
+                      <div className="flex flex-wrap gap-2">
+                        {entityContext.storylineIds.slice(0, 4).map((storylineId) => (
+                          <ContextLink
+                            key={storylineId}
+                            href={`/storylines/${storylineId}?from=${encodeURIComponent(currentHref)}`}
+                            label={`Storyline ${storylineId}`}
+                          />
+                        ))}
+                        {entityContext.storylineIds.length > 4 ? (
+                          <span className="inline-flex items-center rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/42">
+                            +{entityContext.storylineIds.length - 4} more
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <p className="text-sm leading-6 text-white/45">
+                  This node does not currently resolve to a provider, finding, or storyline in the graph payload.
+                </p>
+              )}
+            </div>
+          </Section>
+
           <Section title="Claim Details" eyebrow="01">
             <div className="grid gap-2 sm:grid-cols-2">
               <SummaryCell label="Confidence" value={formatPercent(node.confidence)} emphasis />

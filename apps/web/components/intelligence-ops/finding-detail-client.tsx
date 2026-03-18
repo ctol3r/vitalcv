@@ -5,7 +5,7 @@ import { useFinding } from '@/hooks/useIntelligenceDetail';
 import { useSystemHealth } from '@/hooks/useSystemHealth';
 import type { InvestigatorFindingDetailResponse } from '@/lib/intelligence/detail-types';
 import { buildFindingEvidenceRows, summarizeFindingEvidenceRows } from '@/lib/intelligence/evidence';
-import { buildIntelligenceHref } from '@/lib/intelligence/routes';
+import { buildIntelligenceGraphHref, buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import { OperationsShell } from './shell';
 import { BackLink, ConfidenceMeter, EntityLink, OpsBadge, OpsCard, SurfaceBanner, SurfaceErrorState, TimestampPair, severityTone } from './primitives';
@@ -145,6 +145,17 @@ export function FindingDetailClient({
                     <EntityLink href={`/providers/${providerNpi}?from=/findings/${findingId}`} label={providerLabel ?? `Provider ${providerNpi}`} />
                     <EntityLink href={buildIntelligenceHref('investigations', { npi: providerNpi })} label="Open investigation" />
                   </>
+                ) : null}
+                {(providerNpi || storylineId) ? (
+                  <EntityLink
+                    href={buildIntelligenceGraphHref({
+                      npi: providerNpi,
+                      providerId: providerNpi,
+                      findingId,
+                      storylineId,
+                    })}
+                    label="Open graph"
+                  />
                 ) : null}
               </div>
             </div>

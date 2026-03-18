@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGraph } from '@/hooks/useGraph';
 import { useProviders } from '@/hooks/useProviders';
-import { buildIntelligenceHref } from '@/lib/intelligence/routes';
+import { buildIntelligenceGraphHref, buildIntelligenceHref } from '@/lib/intelligence/routes';
 import {
   buildFindingStatusEndpoint,
   buildInvestigationWorkbenchRequestPath,
@@ -571,7 +571,13 @@ function NetworkGraphPanel({
         selectedProvider={selectedProvider}
         selectedFindingId={selectedFindingId}
         selectedStorylineId={selectedStorylineId}
-        openFullGraphHref={provider?.npi ? buildIntelligenceHref('dashboard', { npi: provider.npi, panel: 'graph' }) : '/graph'}
+        openFullGraphHref={buildIntelligenceGraphHref({
+          npi: provider?.npi,
+          providerId: provider?.npi,
+          findingId: selectedFindingId,
+          storylineId: selectedStorylineId,
+          focusNodeId: focusNodeId ?? undefined,
+        })}
         loading={graph.loading}
         error={graph.error}
         onRetry={graph.refresh}
@@ -723,7 +729,7 @@ export function InvestigationsSurface() {
   const seededNpi = searchParams.get('npi') ?? '';
   const seededFindingId = searchParams.get('findingId') ?? '';
   const seededStorylineId = searchParams.get('storylineId') ?? '';
-  const defaultNpi = '1902301456';
+  const hasAnchor = Boolean(seededNpi || seededFindingId || seededStorylineId);
 
   const [npiInput, setNpiInput] = useState(seededNpi);
   const [loading, setLoading] = useState(false);
@@ -791,12 +797,16 @@ export function InvestigationsSurface() {
   }, []);
 
   useEffect(() => {
+    if (!hasAnchor) {
+      return;
+    }
+
     void fetchWorkbench({
-      npi: seededNpi || (!seededFindingId && !seededStorylineId ? defaultNpi : undefined),
+      npi: seededNpi || undefined,
       findingId: seededFindingId || undefined,
       storylineId: seededStorylineId || undefined,
     });
-  }, [defaultNpi, fetchWorkbench, seededFindingId, seededNpi, seededStorylineId]);
+  }, [fetchWorkbench, hasAnchor, seededFindingId, seededNpi, seededStorylineId]);
 
   // Finding selection from inbox — optimistic hydration from cache
   const handleSelectFinding = useCallback((id: string) => {
@@ -952,6 +962,19 @@ export function InvestigationsSurface() {
           </div>
         ) : null}
       </OpsCard>
+
+      {/* Empty state — no anchor provided */}
+      {!context && !loading && !error ? (
+        <OpsCard className="space-y-3 border-dashed">
+          <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Start an investigation</h2>
+          <p className="max-w-2xl text-sm leading-6 text-[var(--vt-text-2)]">
+            Enter a 10-digit provider NPI above to load the investigation workbench with findings, evidence, graph context, and Copilot.
+          </p>
+          <p className="text-sm text-[var(--vt-text-3)]">
+            You can also navigate here from a provider profile, finding detail, or storyline detail page.
+          </p>
+        </OpsCard>
+      ) : null}
 
       {/* Four-panel grid */}
       {context ? (

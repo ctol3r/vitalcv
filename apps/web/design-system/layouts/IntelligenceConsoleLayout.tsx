@@ -5,6 +5,7 @@ import { LiveFeedRibbon } from '@/components/intelligence/LiveFeedRibbon';
 import { Button } from '../components/Button';
 import { Panel } from '../components/Panel';
 import {
+  buildIntelligenceGraphHref,
   buildIntelligenceHref,
   deriveIntelligenceNavKey,
   type IntelligenceNavKey,
@@ -13,7 +14,7 @@ import { cn } from '@/lib/utils';
 
 const DEFAULT_NAV = [
   { key: 'dashboard', href: buildIntelligenceHref('dashboard'), label: 'Dashboard' },
-  { key: 'graph', href: '/graph', label: 'Graph' },
+  { key: 'graph', href: buildIntelligenceGraphHref(), label: 'Graph' },
   { key: 'findings', href: buildIntelligenceHref('findings'), label: 'Findings' },
   { key: 'storylines', href: buildIntelligenceHref('storylines'), label: 'Storylines' },
   { key: 'providers', href: buildIntelligenceHref('providers'), label: 'Providers' },

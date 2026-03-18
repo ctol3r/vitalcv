@@ -7,7 +7,7 @@ import {
   formatLastRefreshMessage,
   getSurfaceFreshnessState,
 } from '@/lib/intelligence/state';
-import { buildIntelligenceHref } from '@/lib/intelligence/routes';
+import { buildIntelligenceGraphHref, buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import { OperationsShell } from './shell';
 import { EntityLink, OpsCard, OpsCardSkeleton, SurfaceBanner, SurfaceEmptyState, SurfaceErrorState, TimestampPair, trustScoreColor } from './primitives';
@@ -188,6 +188,8 @@ export function ProvidersSurface() {
               <div className="flex flex-wrap gap-2">
                 <EntityLink href={`/providers/${provider.npi}?from=${encodeURIComponent(currentHref)}`} label="Open profile" />
                 <EntityLink href={buildIntelligenceHref('findings', { provider: provider.npi })} label="View findings" />
+                <EntityLink href={buildIntelligenceHref('storylines', { provider: provider.npi })} label="View storylines" />
+                <EntityLink href={buildIntelligenceGraphHref({ npi: provider.npi, providerId: provider.npi })} label="Open graph" />
                 <EntityLink href={buildIntelligenceHref('investigations', { npi: provider.npi })} label="Investigate" />
               </div>
             )}

@@ -67,6 +67,7 @@ const STATUS_COLOR: Record<string, { bg: string; text: string; dot: string }> = 
   OPERATIONAL: { bg: 'bg-vt-success/10', text: 'text-vt-success', dot: 'bg-vt-success' },
   DEGRADED: { bg: 'bg-vt-warning/10', text: 'text-vt-warning', dot: 'bg-vt-warning' },
   OUTAGE: { bg: 'bg-vt-danger/10', text: 'text-vt-danger', dot: 'bg-red-400' },
+  LOADING: { bg: 'bg-slate-800/60', text: 'text-slate-400', dot: 'bg-slate-500' },
 };
 
 // ── Component ─────────────────────────────────────────────────────────
@@ -90,8 +91,16 @@ export default function StatusPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const overall = status?.overall ?? 'OPERATIONAL';
-  const style = STATUS_COLOR[overall] ?? STATUS_COLOR.OPERATIONAL;
+  // When telemetry is unavailable, be honest: show "Degraded / Limited visibility"
+  // instead of falsely claiming all systems operational.
+  const overall: string = status?.overall ?? (loading ? 'LOADING' : 'DEGRADED');
+  const overallLabel =
+    overall === 'OPERATIONAL' ? 'All Systems Operational' :
+    overall === 'DEGRADED' ? 'Partial System Degradation' :
+    overall === 'OUTAGE' ? 'System Outage Detected' :
+    overall === 'LOADING' ? 'Loading System Status…' :
+    'Limited Visibility — Telemetry Unavailable';
+  const style = STATUS_COLOR[overall] ?? STATUS_COLOR.DEGRADED;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
@@ -105,16 +114,19 @@ export default function StatusPage() {
           <div className="flex items-center justify-center gap-3 mb-2">
             <span className={`inline-block h-3 w-3 rounded-full ${style.dot} animate-pulse`} />
             <span className={`text-2xl font-semibold ${style.text}`}>
-              {overall === 'OPERATIONAL' ? 'All Systems Operational' :
-               overall === 'DEGRADED' ? 'Partial System Degradation' :
-               'System Outage Detected'}
+              {overallLabel}
             </span>
           </div>
-          {status && (
+          {status ? (
             <p className="text-xs text-vt-neutral-800 code">
               Uptime: {status.uptime} | Last updated: {new Date(status.generatedAt).toLocaleTimeString()}
             </p>
-          )}
+          ) : !loading ? (
+            <p className="mt-2 text-xs text-amber-400/70">
+              Telemetry unavailable — backend may be starting up or unreachable.{' '}
+              <a href="/api/intelligence/system-health" className="underline opacity-70 hover:opacity-100">Check system health →</a>
+            </p>
+          ) : null}
         </motion.div>
 
         {/* Metrics Grid */}

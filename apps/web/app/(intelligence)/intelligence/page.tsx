@@ -15,7 +15,7 @@ import {
 
 export const metadata = {
   title: 'Operator Workbench | VitalCV',
-  description: 'Canonical operator surface for dashboard, findings, storylines, providers, actions, investigations, calibration, and system health.',
+  description: 'Canonical operator surface for dashboard, findings, storylines, providers, actions, graph, investigations, calibration, and system health.',
 };
 
 function renderSurface(view: ReturnType<typeof resolveIntelligenceView>) {
@@ -51,7 +51,7 @@ export default async function IntelligencePage({
   const rawView = typeof resolvedSearchParams.view === 'string' ? resolvedSearchParams.view : null;
   const view = resolveIntelligenceView(rawView ?? rawTab);
 
-  if (rawTab !== null || (rawView !== null && rawView !== view)) {
+  if (view === 'graph' || rawTab !== null || (rawView !== null && rawView !== view)) {
     redirect(buildLegacyRedirectHref(view, resolvedSearchParams));
   }
 

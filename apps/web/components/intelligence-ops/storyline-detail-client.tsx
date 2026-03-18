@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useMemo } from 'react';
 import { useStoryline } from '@/hooks/useIntelligenceDetail';
 import type { StorylineDetailResponse } from '@/lib/intelligence/detail-types';
-import { buildIntelligenceHref } from '@/lib/intelligence/routes';
+import { buildIntelligenceGraphHref, buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { summarizeTrustSignals } from '@/lib/intelligence/trust-signals';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import { StorylineMutationControls } from './mutation-controls';
@@ -115,6 +115,21 @@ export function StorylineDetailClient({
                   label={entity.entityLabel ?? entity.entityKey}
                 />
               ))}
+              <EntityLink
+                href={buildIntelligenceGraphHref({
+                  npi: providerLinks[0]?.entityKey,
+                  providerId: providerLinks[0]?.entityKey,
+                  storylineId,
+                })}
+                label="Open graph"
+              />
+              <EntityLink
+                href={buildIntelligenceHref('investigations', {
+                  npi: providerLinks[0]?.entityKey,
+                  storylineId,
+                })}
+                label="Open investigation"
+              />
             </div>
           </OpsCard>
 

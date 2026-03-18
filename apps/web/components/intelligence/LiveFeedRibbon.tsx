@@ -156,7 +156,6 @@ function emptyFeedMessage(delivery: LiveFeedResponse['delivery']): string {
 
 export function LiveFeedRibbon() {
   const [events, setEvents] = useState<RibbonEvent[]>([]);
-  const [activeEventIndex, setActiveEventIndex] = useState(0);
   const [mounted, setMounted] = useState(false);
   const [refreshSeconds, setRefreshSeconds] = useState(0);
   const [delivery, setDelivery] = useState<LiveFeedResponse['delivery']>(DEFAULT_DELIVERY);
@@ -170,7 +169,7 @@ export function LiveFeedRibbon() {
 
     const loadFeed = async () => {
       try {
-        const response = await fetch('/api/feed/live?limit=18', {
+        const response = await fetch('/api/feed/live?limit=1', {
           cache: 'no-store',
         });
         if (!response.ok) {
@@ -210,82 +209,55 @@ export function LiveFeedRibbon() {
   }, []);
 
   useEffect(() => {
-    if (events.length <= 1) {
-      return;
-    }
-
-    const interval = setInterval(() => {
-      setActiveEventIndex((prev) => (prev + 1) % events.length);
-      setRefreshSeconds(0);
-    }, FEED_ROTATE_INTERVAL_MS);
-
-    return () => clearInterval(interval);
-  }, [events]);
-
-  useEffect(() => {
-    if (activeEventIndex < events.length) {
-      return;
-    }
-
-    setActiveEventIndex(0);
-  }, [activeEventIndex, events.length]);
-
-  useEffect(() => {
     const interval = setInterval(() => {
       setRefreshSeconds((prev) => prev + 1);
     }, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  const pulseColor =
-    delivery.mode === 'live'
-      ? 'bg-[var(--vt-success)] shadow-[0_0_8px_var(--vt-success)]'
-      : delivery.mode === 'cached'
-        ? 'bg-[var(--vt-warning)] shadow-[0_0_8px_var(--vt-warning)]'
-        : 'bg-[var(--vt-critical)] shadow-[0_0_8px_var(--vt-critical)]';
-
-  const activeEvent = events[activeEventIndex];
-  const tickerText = activeEvent ? activeEvent.text : emptyFeedMessage(delivery);
-  const tickerSource = activeEvent ? activeEvent.source : null;
-
   if (!mounted) {
     return null;
   }
 
+  const latestEvent = events[0] || null;
+
   return (
-    <div className="flex items-center gap-4 h-[36px] rounded-sm bg-transparent">
-      <div className="shrink-0 flex items-center gap-2 pr-3">
-        <div className={cn('relative flex h-2 w-2 items-center justify-center')}>
-          <span className={cn('absolute h-full w-full animate-ping rounded-full opacity-75', pulseColor)} />
-          <span className={cn('relative h-2 w-2 rounded-full', pulseColor)} />
-        </div>
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--vt-text-1)]">
-          System Live
+    <div className="flex items-center gap-4 h-[30px] px-3 rounded-sm bg-[var(--vt-surface-dim)] border border-[var(--vt-border)]">
+      <div className="shrink-0 flex items-center gap-2">
+        {delivery.mode === 'live' ? (
+          <div className="relative flex h-1.5 w-1.5 items-center justify-center">
+            <span className="absolute h-full w-full animate-ping rounded-full bg-[var(--vt-success)] opacity-75" />
+            <span className="relative h-1.5 w-1.5 rounded-full bg-[var(--vt-success)]" />
+          </div>
+        ) : delivery.mode === 'cached' ? (
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--vt-warning)]" />
+        ) : (
+           <div className="h-1.5 w-1.5 rounded-full bg-[var(--vt-critical)]" />
+        )}
+        <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--vt-text-1)]">
+          {delivery.mode === 'live' ? 'Pipeline Active' : delivery.mode === 'cached' ? 'Pipeline Waking' : 'System Degraded'}
         </span>
       </div>
 
-      <div className="h-4 w-px bg-[var(--vt-border)]" />
-
-        <div className="flex-1 w-64 overflow-hidden relative group">
-          <div
-            key={activeEvent?.id ?? `${delivery.mode}-${delivery.reason}`}
-            className="flex items-center whitespace-nowrap h-full animate-alive-slide"
-          >
-            <span className="text-xs font-mono text-[var(--vt-text-secondary)] flex items-center gap-2">
-              {tickerSource ? (
-                <span className="uppercase tracking-widest text-[9px] text-[var(--vt-text-muted)]">{tickerSource}</span>
-              ) : null}
-              <span className="text-[var(--vt-text-primary)] font-medium">{tickerText}</span>
+      {latestEvent && (
+        <>
+          <div className="h-3 w-px bg-[var(--vt-border)]" />
+          
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] uppercase tracking-widest text-[var(--vt-text-3)] font-mono">LATEST INGEST:</span>
+            <span className="text-[9px] uppercase tracking-widest text-[var(--vt-text-2)] line-clamp-1 max-w-[300px]">
+              {latestEvent.text}
             </span>
           </div>
-        </div>
-
-        <div className="h-4 w-px bg-[var(--vt-border)]" />
-
-        <div className="shrink-0 flex items-center gap-2 text-xs text-[var(--vt-text-muted)] font-mono pl-1">
-          <Activity className="h-3 w-3" />
-          Last updated: {refreshSeconds}s ago
-        </div>
-      </div>
+          
+          <div className="h-3 w-px bg-[var(--vt-border)]" />
+          
+          <div className="flex items-center gap-1.5 text-[9px] text-[var(--vt-text-3)] font-mono uppercase tracking-widest">
+            <Activity className="h-2.5 w-2.5" />
+            00:{refreshSeconds.toString().padStart(2, '0')}
+          </div>
+        </>
+      )}
+    </div>
   );
 }

@@ -158,7 +158,8 @@
       "Bash(cp apps/web/app/api/intelligence/_shared.ts /tmp/_shared.ts.bak)",
       "Bash(git checkout:*)",
       "Bash(cp /tmp/middleware.ts.bak apps/web/middleware.ts)",
-      "Bash(cp /tmp/_shared.ts.bak apps/web/app/api/intelligence/_shared.ts)"
+      "Bash(cp /tmp/_shared.ts.bak apps/web/app/api/intelligence/_shared.ts)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

@@ -17,7 +17,10 @@ export function resolveOperationsNavKey(
   activeHref: string,
   activeNavKey?: IntelligenceNavKey,
 ): IntelligenceNavKey | undefined {
-  if (activeHref.startsWith('/graph') && (!activeNavKey || activeNavKey === 'dashboard')) {
+  if (
+    (activeHref.startsWith('/intelligence/graph') || activeHref.startsWith('/graph'))
+    && (!activeNavKey || activeNavKey === 'dashboard')
+  ) {
     return 'graph';
   }
 

@@ -7,6 +7,7 @@ import { RefreshCw } from 'lucide-react';
 import { useFindings } from '@/hooks/useFindings';
 import { useGraph } from '@/hooks/useGraph';
 import { useProviders } from '@/hooks/useProviders';
+import { useStorylines } from '@/hooks/useStorylines';
 import {
   findGraphNodeIdForProvider,
   findProviderForGraphNode,
@@ -17,7 +18,7 @@ import {
   parseMinConfidenceNumber,
   serializeFindingFilters,
 } from '@/lib/intelligence/finding-filters';
-import { buildIntelligenceHref } from '@/lib/intelligence/routes';
+import { buildIntelligenceGraphHref, buildIntelligenceHref } from '@/lib/intelligence/routes';
 import {
   formatLastRefreshMessage,
   getAccessBannerState,
@@ -79,6 +80,60 @@ function FindingsMessageCard({
       </div>
     </OpsCard>
   );
+}
+
+function collectGraphNodeIdsForFindingId(
+  findingId: string | null,
+  nodes: Array<{ id: string; findingIds?: string[] }>,
+  edges: Array<{ source: string; target: string; findingIds?: string[] }>,
+) {
+  if (!findingId) {
+    return [];
+  }
+
+  const nodeIds = new Set<string>();
+
+  for (const node of nodes) {
+    if (node.findingIds?.includes(findingId)) {
+      nodeIds.add(node.id);
+    }
+  }
+
+  for (const edge of edges) {
+    if (edge.findingIds?.includes(findingId)) {
+      nodeIds.add(edge.source);
+      nodeIds.add(edge.target);
+    }
+  }
+
+  return [...nodeIds];
+}
+
+function collectGraphNodeIdsForStorylineId(
+  storylineId: string | null,
+  nodes: Array<{ id: string; storylineIds?: string[] }>,
+  edges: Array<{ source: string; target: string; storylineIds?: string[] }>,
+) {
+  if (!storylineId) {
+    return [];
+  }
+
+  const nodeIds = new Set<string>();
+
+  for (const node of nodes) {
+    if (node.storylineIds?.includes(storylineId)) {
+      nodeIds.add(node.id);
+    }
+  }
+
+  for (const edge of edges) {
+    if (edge.storylineIds?.includes(storylineId)) {
+      nodeIds.add(edge.source);
+      nodeIds.add(edge.target);
+    }
+  }
+
+  return [...nodeIds];
 }
 
 export function FindingsSurface() {
@@ -177,6 +232,18 @@ export function FindingsSurface() {
     limit: graphScopeNpi ? 64 : 40,
     pollIntervalMs: 45_000,
   });
+  const graphRelatedFindings = useFindings({
+    provider: graphScopeNpi,
+    limit: 50,
+    pollIntervalMs: 30_000,
+    paused: !graphScopeNpi,
+  });
+  const graphRelatedStorylines = useStorylines({
+    provider: graphScopeNpi,
+    limit: 50,
+    pollIntervalMs: 30_000,
+    paused: !graphScopeNpi,
+  });
   const selectedGraphProvider = useMemo(() => {
     if (!graphScopeNpi) {
       return null;
@@ -186,6 +253,7 @@ export function FindingsSurface() {
   }, [graphScopeNpi, providers.data?.providers]);
   const graphFocusNodeId = useMemo(() => {
     const nodes = graph.data?.nodes ?? [];
+    const edges = graph.data?.edges ?? [];
 
     if (nodes.length === 0) {
       return null;
@@ -195,13 +263,23 @@ export function FindingsSurface() {
       return selectedGraphNodeId;
     }
 
+    const findingNodeId = collectGraphNodeIdsForFindingId(graphFinding?.id ?? null, nodes, edges)[0] ?? null;
+    if (findingNodeId) {
+      return findingNodeId;
+    }
+
+    const storylineNodeId = collectGraphNodeIdsForStorylineId(graphFinding?.storylineId ?? null, nodes, edges)[0] ?? null;
+    if (storylineNodeId) {
+      return storylineNodeId;
+    }
+
     return (
       findGraphNodeIdForProvider(selectedGraphProvider, nodes)
       ?? graph.data?.focusNodeId
       ?? nodes[0]?.id
       ?? null
     );
-  }, [graph.data?.focusNodeId, graph.data?.nodes, selectedGraphNodeId, selectedGraphProvider]);
+  }, [graph.data?.edges, graph.data?.focusNodeId, graph.data?.nodes, graphFinding?.id, graphFinding?.storylineId, selectedGraphNodeId, selectedGraphProvider]);
   const selectedGraphNode = useMemo(
     () => (graph.data?.nodes ?? []).find((node) => node.id === graphFocusNodeId) ?? null,
     [graph.data?.nodes, graphFocusNodeId],
@@ -222,6 +300,7 @@ export function FindingsSurface() {
       providers.data?.providers ?? [],
     ) ?? selectedGraphProvider
   ), [graph.data?.nodes, graphFocusNodeId, providers.data?.providers, selectedGraphProvider]);
+  const graphScopedFindings = graphRelatedFindings.data?.findings ?? [];
   const graphContextFinding = useMemo(() => {
     const candidateFindingIds = new Set<string>(selectedGraphNode?.findingIds ?? []);
 
@@ -235,34 +314,30 @@ export function FindingsSurface() {
       }
     }
 
-    return rawItems.find((finding) => candidateFindingIds.has(finding.id)) ?? graphFinding ?? null;
-  }, [graph.data?.edges, graphFinding, graphFocusNodeId, rawItems, selectedGraphNode?.findingIds]);
+    return graphScopedFindings.find((finding) => candidateFindingIds.has(finding.id))
+      ?? rawItems.find((finding) => candidateFindingIds.has(finding.id))
+      ?? graphFinding
+      ?? null;
+  }, [graph.data?.edges, graphFinding, graphFocusNodeId, graphScopedFindings, rawItems, selectedGraphNode?.findingIds]);
   const graphContextStorylineId = graphContextFinding?.storylineId ?? selectedGraphNode?.storylineIds?.[0] ?? null;
+  const graphContextStoryline = useMemo(() => {
+    if (!graphContextStorylineId) {
+      return null;
+    }
+
+    return (graphRelatedStorylines.data?.storylines ?? []).find((storyline) => storyline.id === graphContextStorylineId) ?? null;
+  }, [graphContextStorylineId, graphRelatedStorylines.data?.storylines]);
   const graphContextStorylineTitle = graphContextFinding?.storylineId === graphContextStorylineId
     ? graphContextFinding.storylineTitle
-    : null;
+    : graphContextStoryline?.title ?? null;
   const openFullGraphHref = useMemo(() => {
-    const params = new URLSearchParams();
-
-    if (graphScopeNpi) {
-      params.set('npi', graphScopeNpi);
-      params.set('providerId', graphScopeNpi);
-    }
-
-    if (graphContextFinding?.id) {
-      params.set('findingId', graphContextFinding.id);
-    }
-
-    if (graphContextStorylineId) {
-      params.set('storylineId', graphContextStorylineId);
-    }
-
-    if (graphFocusNodeId) {
-      params.set('focusNodeId', graphFocusNodeId);
-    }
-
-    const serialized = params.toString();
-    return serialized.length > 0 ? `/graph?${serialized}` : '/graph';
+    return buildIntelligenceGraphHref({
+      npi: graphScopeNpi,
+      providerId: graphScopeNpi,
+      findingId: graphContextFinding?.id,
+      storylineId: graphContextStorylineId,
+      focusNodeId: graphFocusNodeId,
+    });
   }, [graphContextFinding?.id, graphContextStorylineId, graphFocusNodeId, graphScopeNpi]);
 
   const total = findings.data?.total ?? 0;
@@ -415,18 +490,30 @@ export function FindingsSurface() {
               Provider: {graphContextProvider ? `${graphContextProvider.name} (${graphContextProvider.npi})` : 'No provider mapped'}
             </p>
             <p>
-              Finding: {graphContextFinding ? graphContextFinding.title : 'No linked finding in the current page payload'}
+              Finding: {graphContextFinding
+                ? graphContextFinding.title
+                : graphRelatedFindings.loading
+                  ? 'Loading provider finding context…'
+                  : 'No linked finding resolved from the current graph slice'}
             </p>
             <p>
-              Storyline: {graphContextStorylineTitle ?? graphContextStorylineId ?? 'No linked storyline'}
+              Storyline: {graphContextStorylineTitle
+                ?? graphContextStorylineId
+                ?? (graphRelatedStorylines.loading ? 'Loading provider storyline context…' : 'No linked storyline')}
             </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
             {graphContextProvider ? (
               <EntityLink
-                href={buildIntelligenceHref('findings', { provider: graphContextProvider.npi })}
+                href={`/providers/${graphContextProvider.npi}?from=${encodeURIComponent(currentHref)}`}
                 label={graphContextProvider.name}
+              />
+            ) : null}
+            {graphContextProvider ? (
+              <EntityLink
+                href={buildIntelligenceHref('findings', { provider: graphContextProvider.npi })}
+                label="Provider findings"
               />
             ) : null}
             {graphContextFinding ? (
@@ -439,6 +526,16 @@ export function FindingsSurface() {
               <EntityLink
                 href={`/storylines/${graphContextStorylineId}?from=${encodeURIComponent(currentHref)}`}
                 label={graphContextStorylineTitle ?? 'Open storyline'}
+              />
+            ) : null}
+            {(graphContextProvider || graphContextFinding || graphContextStorylineId) ? (
+              <EntityLink
+                href={buildIntelligenceHref('investigations', {
+                  npi: graphContextProvider?.npi,
+                  findingId: graphContextFinding?.id,
+                  storylineId: graphContextStorylineId,
+                })}
+                label="Investigate scope"
               />
             ) : null}
             <EntityLink href={openFullGraphHref} label="Open full graph" />
@@ -472,8 +569,8 @@ export function FindingsSurface() {
         {items.map((finding, index) => (
           <OpsCard
             key={finding.id}
-            className={`overflow-hidden opacity-0 animate-alive-slide ${getFindingTypeColor(finding.findingType)} ${finding.severity === 'critical' ? 'animate-critical-pulse' : ''}`}
-            style={{ animationDelay: `${index * 40}ms` }}
+            className={`overflow-hidden animate-alive-slide ${getFindingTypeColor(finding.findingType)} ${finding.severity === 'critical' ? 'animate-critical-pulse' : ''}`}
+            style={{ animationDelay: `${Math.min(index * 40, 320)}ms` }}
           >
             <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
               <div className="min-w-0 flex-1 space-y-4">

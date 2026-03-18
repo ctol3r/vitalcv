@@ -10,7 +10,7 @@ import { useFindings } from '@/hooks/useFindings';
 import { useGraph } from '@/hooks/useGraph';
 import { useProviders } from '@/hooks/useProviders';
 import { useStorylines } from '@/hooks/useStorylines';
-import { buildIntelligenceHref } from '@/lib/intelligence/routes';
+import { buildIntelligenceGraphHref, buildIntelligenceHref } from '@/lib/intelligence/routes';
 import {
   getAccessEmptyState,
   formatLastRefreshMessage,
@@ -119,9 +119,12 @@ export function IntelligenceOverviewSurface() {
 
   const selectedFinding = findings.data?.findings[0] ?? null;
   const selectedStoryline = storylines.data?.storylines[0] ?? null;
-  const openFullGraphHref = providerScope
-    ? `/graph?npi=${encodeURIComponent(providerScope)}`
-    : '/graph';
+  const openFullGraphHref = buildIntelligenceGraphHref({
+    npi: providerScope,
+    providerId: providerScope,
+    findingId: selectedFinding?.id,
+    storylineId: selectedStoryline?.id,
+  });
   const staleState = getSurfaceFreshnessState({
     generatedAt: findings.data?.generatedAt
       ?? providers.data?.generatedAt
@@ -251,7 +254,9 @@ export function IntelligenceOverviewSurface() {
 
       <div className="grid gap-4 xl:grid-cols-2">
         <OverviewPanel title="Findings" total={findings.data?.total ?? 0} href={findingsHref}>
-          {findings.error && (findings.data?.findings.length ?? 0) === 0 ? (
+          {findings.loading && (findings.data?.findings.length ?? 0) === 0 ? (
+            <p className="text-sm text-[var(--vt-text-2)]">Loading findings for the current intelligence scope…</p>
+          ) : findings.error && (findings.data?.findings.length ?? 0) === 0 ? (
             <SurfaceErrorState
               title="Findings unavailable"
               description={findings.error}
@@ -267,6 +272,7 @@ export function IntelligenceOverviewSurface() {
               <table className="min-w-full text-left text-sm">
                 <thead className="text-xs uppercase tracking-[0.16em] text-[var(--vt-text-3)]">
                   <tr>
+                    <th className="pb-3 font-medium">Finding</th>
                     <th className="pb-3 font-medium">Provider</th>
                     <th className="pb-3 font-medium">Type</th>
                     <th className="pb-3 font-medium">Confidence</th>
@@ -277,15 +283,23 @@ export function IntelligenceOverviewSurface() {
                   {(findings.data?.findings ?? []).map((finding) => (
                     <tr key={finding.id}>
                       <td className="py-3 pr-4">
+                        <Link
+                          href={`/findings/${finding.id}?from=${encodeURIComponent(currentHref)}`}
+                          className="font-medium text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]"
+                        >
+                          {finding.title}
+                        </Link>
+                      </td>
+                      <td className="py-3 pr-4">
                         {finding.providerNpi ? (
                           <Link
-                            href={`/findings/${finding.id}?from=${encodeURIComponent(currentHref)}`}
-                            className="font-medium text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]"
+                            href={`/providers/${finding.providerNpi}?from=${encodeURIComponent(currentHref)}`}
+                            className="text-[var(--vt-text-2)] transition hover:text-[var(--vt-text-1)]"
                           >
                             {finding.providerLabel ?? finding.providerNpi}
                           </Link>
                         ) : (
-                          <span className="text-[var(--vt-text-2)]">{finding.title}</span>
+                          <span className="text-[var(--vt-text-3)]">Not attached</span>
                         )}
                       </td>
                       <td className="py-3 pr-4">
@@ -308,7 +322,9 @@ export function IntelligenceOverviewSurface() {
         </OverviewPanel>
 
         <OverviewPanel title="Providers" total={providers.data?.total ?? 0} href={providersHref}>
-          {providers.error && (providers.data?.providers.length ?? 0) === 0 ? (
+          {providers.loading && (providers.data?.providers.length ?? 0) === 0 ? (
+            <p className="text-sm text-[var(--vt-text-2)]">Loading provider directory records…</p>
+          ) : providers.error && (providers.data?.providers.length ?? 0) === 0 ? (
             <SurfaceErrorState
               title="Providers unavailable"
               description={providers.error}
@@ -346,7 +362,9 @@ export function IntelligenceOverviewSurface() {
         </OverviewPanel>
 
         <OverviewPanel title="Storylines" total={storylines.data?.total ?? 0} href={storylinesHref}>
-          {storylines.error && (storylines.data?.storylines.length ?? 0) === 0 ? (
+          {storylines.loading && (storylines.data?.storylines.length ?? 0) === 0 ? (
+            <p className="text-sm text-[var(--vt-text-2)]">Loading storyline clusters…</p>
+          ) : storylines.error && (storylines.data?.storylines.length ?? 0) === 0 ? (
             <SurfaceErrorState
               title="Storylines unavailable"
               description={storylines.error}
@@ -383,7 +401,9 @@ export function IntelligenceOverviewSurface() {
         </OverviewPanel>
 
         <OverviewPanel title="Actions" total={actions.data?.total ?? 0} href={actionsHref}>
-          {actionAccessState && (actions.data?.actions.length ?? 0) === 0 ? (
+          {actions.loading && (actions.data?.actions.length ?? 0) === 0 ? (
+            <p className="text-sm text-[var(--vt-text-2)]">Loading the operator action queue…</p>
+          ) : actionAccessState && (actions.data?.actions.length ?? 0) === 0 ? (
             <SurfaceEmptyState
               title={actionAccessState.title}
               description={actionAccessState.description}
@@ -414,7 +434,7 @@ export function IntelligenceOverviewSurface() {
                       <p className="text-sm leading-6 text-[var(--vt-text-2)]">{action.explanation}</p>
                     </div>
                     <div className="space-y-2 text-right">
-                      <OpsBadge label={action.status} tone={severityTone(action.priority)} />
+                      <OpsBadge label={action.status} tone={severityTone(action.status)} />
                       <TimestampPair label="Created" value={action.createdAt} />
                     </div>
                   </div>

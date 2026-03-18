@@ -238,33 +238,34 @@ function WorkbenchCopilotPanel({
   context: CopilotContextPayload;
 }) {
   const contextLabel = [
-    provider ? `${provider.name} (${provider.npi})` : 'global scope',
-    finding ? `finding ${finding.id}` : null,
-    storyline ? `storyline ${storyline.id}` : null,
+    provider ? `TARGET: ${provider.name} (${provider.npi})` : null,
+    finding ? `FINDING: ${finding.id}` : null,
+    storyline ? `STORYLINE: ${storyline.id}` : null,
   ].filter(Boolean).join(' · ');
 
   const placeholder = provider
-    ? `Ask Copilot about ${provider.name}${finding ? `, finding ${finding.id}` : ''}${storyline ? `, and storyline ${storyline.id}` : ''}…`
-    : 'Ask Copilot about provider readiness, graph anomalies, or open findings…';
+    ? `Ask Copilot about ${provider.name}...`
+    : 'Ask Copilot about provider readiness, graph anomalies, or open findings...';
 
   return (
-    <OpsCard className="space-y-4">
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Copilot</p>
-            <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Context-aware operator assist</h2>
-          </div>
-          <span className="rounded-full border border-cyan-400/30 bg-cyan-400/5 px-3 py-1 text-xs text-cyan-300">
-            {provider ? 'Scoped' : 'Global'}
-          </span>
+    <div className="space-y-4 rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] p-4 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--vt-text-3)] mb-0.5">Copilot</p>
+          <h2 className="text-sm font-medium text-[var(--vt-text-1)]">Analyst Assistant</h2>
         </div>
-        <p className="text-sm text-[var(--vt-text-2)]">
-          The prompt input stays tied to the current workbench selection so responses can be read against the same provider, finding, and storyline context.
-        </p>
+        <span className="rounded-[2px] border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-2 py-0.5 text-[9px] font-mono tracking-widest uppercase text-[var(--vt-text-2)]">
+          {provider ? 'TARGET LOCKED' : 'GLOBAL CONTEXT'}
+        </span>
       </div>
 
-      <p className="text-sm text-[var(--vt-text-2)]">{contextLabel}</p>
+      {contextLabel && (
+        <div className="border-l-2 border-[var(--vt-border)] pl-2">
+          <p className="text-[9px] font-mono uppercase tracking-widest text-[var(--vt-text-3)] truncate leading-relaxed">
+            {contextLabel}
+          </p>
+        </div>
+      )}
 
       <CopilotSearchBar
         compact={false}
@@ -278,7 +279,7 @@ function WorkbenchCopilotPanel({
         onHighlightGraphNode={onHighlightGraphNode}
         onOpenEvidence={onOpenEvidence}
       />
-    </OpsCard>
+    </div>
   );
 }
 
@@ -653,42 +654,75 @@ export function DashboardSurface() {
                     >
                       <div className="flex h-full">
                         <div className={`w-[3px] shrink-0 transition-opacity ${active ? 'opacity-100' : 'opacity-60'} ${railColor}`} />
-                        <div className="flex flex-1 flex-col p-3.5">
+                        <div className="flex flex-1 flex-col p-4">
                           <div className="flex items-start justify-between gap-4">
                             <div>
-                               <p className="mb-1 text-[9px] font-semibold uppercase tracking-widest text-[var(--vt-text-3)]">
-                                 {finding.providerNpi ? `Provider ${finding.providerNpi}` : 'Global Signal'}
-                               </p>
+                               <div className="flex items-center gap-2 mb-1.5">
+                                 <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--vt-text-2)]">
+                                   {finding.providerNpi ? `Provider NPI ${finding.providerNpi}` : 'Global Signal'}
+                                 </p>
+                                 <span className="h-1 w-1 rounded-full bg-[var(--vt-text-3)] opacity-50" />
+                                 <p className={`text-[10px] font-semibold uppercase tracking-widest ${
+                                   finding.severity.toLowerCase() === 'critical' ? 'text-red-400' :
+                                   finding.severity.toLowerCase() === 'high' ? 'text-[var(--vt-warning)]' :
+                                   finding.severity.toLowerCase() === 'medium' ? 'text-amber-500' :
+                                   finding.severity.toLowerCase() === 'low' ? 'text-emerald-400' :
+                                   'text-[var(--vt-text-3)]'
+                                 }`}>
+                                   SEVERITY: {finding.severity}
+                                 </p>
+                               </div>
                                <p className={`text-sm font-medium leading-snug ${active ? 'text-[var(--vt-text-1)]' : 'text-[var(--vt-text-1)]'}`}>
-                                 {finding.summary || finding.title}
+                                 {finding.title || finding.summary}
                                </p>
+                               {finding.explanation && (
+                                 <p className="mt-1.5 text-xs text-[var(--vt-text-2)] line-clamp-2 leading-relaxed">
+                                   {finding.explanation}
+                                 </p>
+                               )}
                             </div>
-                            <span className={`shrink-0 rounded-[2px] border px-1.5 py-0.5 text-[9px] uppercase tracking-widest ${typeColorClass}`}>
-                              {finding.findingType.replace(/_/g, ' ')}
-                            </span>
+                            <div className="flex flex-col items-end gap-2 shrink-0">
+                                <span className={`rounded-[2px] border px-2 py-0.5 text-[10px] uppercase tracking-widest ${typeColorClass}`}>
+                                  {finding.findingType.replace(/_/g, ' ')}
+                                </span>
+                                <div className="mt-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--vt-info)] opacity-0 transition-opacity group-hover:opacity-100 flex items-center gap-1">
+                                  Investigate <ArrowUpRight className="w-3 h-3 inline" />
+                                </div>
+                            </div>
                           </div>
                           
-                          <div className="mt-3.5 flex items-center justify-between border-t border-[var(--vt-border)]/50 pt-2.5">
-                             <div className="flex items-center gap-2 pl-0.5">
-                               <div className="h-1 w-12 overflow-hidden rounded-full bg-[var(--vt-surface-2)]">
-                                 <div className={`h-full transition-colors duration-300 ${active ? 'bg-[var(--vt-info)]' : 'bg-[var(--vt-text-3)] group-hover:bg-[var(--vt-text-2)]'}`} style={{ width: `${Math.round(finding.confidence * 100)}%` }} />
+                          <div className="mt-4 flex items-center justify-between border-t border-[var(--vt-border)]/50 pt-3">
+                             <div className="flex items-center gap-3 pl-0.5">
+                               <div className="flex items-center gap-2">
+                                 <div className="h-1.5 w-16 overflow-hidden rounded-[1px] bg-[var(--vt-surface-2)]">
+                                   <div className={`h-full transition-colors duration-300 ${active ? 'bg-[var(--vt-info)]' : 'bg-[var(--vt-text-3)] group-hover:bg-[var(--vt-text-2)]'}`} style={{ width: `${Math.round(finding.confidence * 100)}%` }} />
+                                 </div>
+                                 <span className="text-[10px] font-mono tracking-widest text-[var(--vt-text-3)]">CONF {Math.round(finding.confidence * 100)}%</span>
                                </div>
-                               <span className="text-[9px] font-mono tracking-widest text-[var(--vt-text-3)]">{Math.round(finding.confidence * 100)}%</span>
+                               {(finding.evidence?.length ?? 0) > 0 && (
+                                 <>
+                                   <div className="w-px h-3 bg-[var(--vt-text-3)] opacity-30" />
+                                   <span className="text-[10px] uppercase tracking-widest text-[var(--vt-text-3)]">
+                                      {finding.evidence.length} Evidence {finding.evidence.length === 1 ? 'Item' : 'Items'}
+                                   </span>
+                                 </>
+                               )}
                              </div>
-                             <div className="flex items-center gap-2">
+                             <div className="flex items-center gap-3">
                                {finding.storylineTitle && (
-                                 <span className="rounded-[2px] border border-[var(--vt-border)]/50 bg-[var(--vt-surface-2)] px-1.5 py-0.5 text-[9px] uppercase tracking-widest text-[var(--vt-text-2)]">
+                                 <span className="rounded-[2px] border border-[var(--vt-border)]/50 bg-[var(--vt-surface-2)] px-2 py-0.5 text-[10px] uppercase tracking-widest text-[var(--vt-text-2)]">
                                    {finding.storylineTitle}
                                  </span>
                                )}
-                               <span className="text-[9px] uppercase tracking-widest text-[var(--vt-text-3)]">
+                               <span className="text-[10px] uppercase tracking-widest text-[var(--vt-text-3)] flex items-center gap-1.5">
+                                 <div className={`w-1.5 h-1.5 rounded-full ${finding.updatedAt > new Date(Date.now() - 3600000).toISOString() ? 'bg-[var(--vt-success)] animate-pulse' : 'bg-[var(--vt-text-3)]'}`} />
                                  {formatRelativeTime(finding.updatedAt)}
                                </span>
                              </div>
                           </div>
                         </div>
                       </div>
-                      {active && <div className="absolute inset-0 pointer-events-none rounded-sm bg-[var(--vt-info)]/5" />}
+                      {active && <div className="absolute inset-0 pointer-events-none rounded-sm bg-[var(--vt-info)]/5 ring-1 ring-inset ring-[var(--vt-info)]" />}
                     </button>
                   );
                 })
@@ -706,8 +740,19 @@ export function DashboardSurface() {
             {/* Graph Preview */}
             <div className="hidden lg:block">
               <div className="sticky top-0 h-[calc(100vh-8rem)] w-full relative rounded-sm border border-[var(--vt-border)] bg-black shadow-inner overflow-hidden">
-                <div className="absolute left-3 top-3 z-10 pointer-events-none">
-                   <p className="text-[9px] uppercase tracking-[0.2em] text-[var(--vt-text-2)] mix-blend-difference">Network Context</p>
+                <div className="absolute left-3 top-3 z-10 pointer-events-none flex flex-col gap-1.5">
+                   <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-1)] mix-blend-difference">Network Context</p>
+                   {graph.data && (
+                     <p className="text-[9px] font-mono tracking-widest text-[var(--vt-info)] mix-blend-difference opacity-80">
+                       {graph.data.nodes.length} NODES · {graph.data.edges.length} EDGES
+                     </p>
+                   )}
+                </div>
+                <div className="absolute top-3 right-3 z-10 pointer-events-none">
+                  <span className="flex items-center gap-1.5 rounded-[2px] bg-black/40 px-2 py-1 text-[9px] uppercase tracking-widest text-[var(--vt-success)] backdrop-blur-md border border-[var(--vt-success)]/20 shadow-sm">
+                    <div className="h-1 w-1 rounded-full bg-[var(--vt-success)] animate-pulse" />
+                    LIVE TRACE
+                  </span>
                 </div>
                 <GraphWorkbenchPanel
                   graph={graph.data}
@@ -735,8 +780,8 @@ export function DashboardSurface() {
         </section>
 
         {/* ZONE C — CONTEXT / ACTION RAIL */}
-        <aside className="no-scrollbar z-20 flex w-[380px] shrink-0 flex-col overflow-y-auto border-l border-[var(--vt-border)] bg-[var(--vt-surface)] p-5 shadow-xl">
-          <div className="flex flex-col gap-6">
+        <aside className="no-scrollbar z-20 flex w-[380px] shrink-0 flex-col overflow-y-auto border-l border-[var(--vt-border)] bg-[var(--vt-surface-dim)]">
+          <div className="flex flex-col gap-6 p-5">
             <WorkbenchCopilotPanel
               provider={selectedProvider}
               finding={selectedFinding}
@@ -761,42 +806,49 @@ export function DashboardSurface() {
             />
 
             {selectedProvider && (
-              <div className="space-y-3 pt-5 border-t border-[var(--vt-border)]/50">
+              <div className="space-y-4 pt-5 border-t border-[var(--vt-border)]/50">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Provider Profile</p>
-                  <span className={`text-base font-semibold tabular-nums ${trustScoreColor(selectedProvider.trustScore)}`}>
-                    {selectedProvider.trustScore}
+                  <div className="flex items-center gap-2">
+                    <span className="h-1 w-1 bg-[var(--vt-text-3)] rounded-full" />
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-2)]">Profile Context</p>
+                  </div>
+                  <span className={`text-sm font-mono tracking-widest ${trustScoreColor(selectedProvider.trustScore)}`}>
+                    TRUST {selectedProvider.trustScore}
                   </span>
                 </div>
-                <div>
-                  <h3 className="text-sm font-medium text-[var(--vt-text-1)]">{selectedProvider.name}</h3>
-                  <p className="text-[10px] uppercase tracking-widest text-[var(--vt-text-2)] font-mono mt-0.5">NPI {selectedProvider.npi}</p>
+                <div className="space-y-1">
+                  <h3 className="text-[15px] font-medium text-[var(--vt-text-1)]">{selectedProvider.name}</h3>
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--vt-text-3)] font-mono">NPI {selectedProvider.npi}</p>
                 </div>
-                <p className="text-xs leading-relaxed text-[var(--vt-text-2)] line-clamp-4">{selectedProvider.summary}</p>
+                <p className="text-[13px] leading-relaxed text-[var(--vt-text-2)] line-clamp-4">{selectedProvider.summary}</p>
                 
-                <div className="flex flex-wrap gap-2 pt-2">
-                  <EntityLink href={`/providers/${selectedProvider.npi}?from=${encodeURIComponent(currentHref)}`} label="View Full Profile" />
-                  <EntityLink href={buildIntelligenceHref('investigations', { npi: selectedProvider.npi })} label="Launch Investigation" />
+                <div className="flex flex-col gap-1.5 pt-2">
+                  <EntityLink href={`/providers/${selectedProvider.npi}?from=${encodeURIComponent(currentHref)}`} label="View Complete Profile" />
+                  <EntityLink href={buildIntelligenceHref('investigations', { npi: selectedProvider.npi })} label="Launch Specific Investigation" />
                 </div>
               </div>
             )}
             
             {selectedStoryline && (
-              <div className="space-y-3 pt-5 border-t border-[var(--vt-border)]/50">
+              <div className="space-y-4 pt-5 border-t border-[var(--vt-border)]/50">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Active Storyline</p>
+                  <div className="flex items-center gap-2">
+                    <span className="h-1 w-1 bg-[var(--vt-text-3)] rounded-full" />
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-2)]">Active Cluster</p>
+                  </div>
                 </div>
-                <h3 className="text-sm font-medium text-[var(--vt-text-1)]">{selectedStoryline.title}</h3>
-                <p className="text-xs leading-relaxed text-[var(--vt-text-2)] line-clamp-4">{selectedStoryline.whyItMatters}</p>
-                <div className="pt-2">
-                  <EntityLink href={`/storylines/${selectedStoryline.id}?from=${encodeURIComponent(currentHref)}`} label="Analyze Cluster" />
+                <h3 className="text-[15px] font-medium text-[var(--vt-text-1)]">{selectedStoryline.title}</h3>
+                <p className="text-[13px] leading-relaxed text-[var(--vt-text-2)] line-clamp-4">{selectedStoryline.whyItMatters}</p>
+                <div className="flex flex-col gap-1.5 pt-2">
+                  <EntityLink href={`/storylines/${selectedStoryline.id}?from=${encodeURIComponent(currentHref)}`} label="Expand Storyline" />
                 </div>
               </div>
             )}
 
             {!selectedProvider && !selectedStoryline && (
-               <div className="flex flex-col items-center justify-center pt-8 opacity-40">
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--vt-text-3)] text-center">Select signal to load context</p>
+               <div className="flex flex-col items-center justify-center py-10 opacity-30">
+                  <span className="h-1 w-1 bg-[var(--vt-text-1)] rounded-full animate-pulse mb-3" />
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--vt-text-1)] text-center">No Target Selected</p>
                </div>
             )}
           </div>

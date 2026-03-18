@@ -4,13 +4,14 @@ export const INTELLIGENCE_VIEWS = [
   'storylines',
   'providers',
   'actions',
+  'graph',
   'investigations',
   'calibration',
   'system-health',
 ] as const;
 
 export type IntelligenceView = (typeof INTELLIGENCE_VIEWS)[number];
-export type IntelligenceNavKey = IntelligenceView | 'graph';
+export type IntelligenceNavKey = IntelligenceView;
 
 export const DEFAULT_INTELLIGENCE_VIEW: IntelligenceView = 'dashboard';
 
@@ -71,6 +72,14 @@ export function buildIntelligenceHref(
   return `/intelligence?${params.toString()}`;
 }
 
+export function buildIntelligenceGraphHref(
+  input?: URLSearchParams | ParamRecord,
+): string {
+  const params = toSearchParams(input);
+  const query = params.toString();
+  return query.length > 0 ? `/intelligence/graph?${query}` : '/intelligence/graph';
+}
+
 export function buildLegacyRedirectHref(
   view: IntelligenceView,
   searchParams: Record<string, string | string[] | undefined>,
@@ -96,11 +105,15 @@ export function buildLegacyRedirectHref(
     }
   }
 
+  if (view === 'graph') {
+    return buildIntelligenceGraphHref(params);
+  }
+
   return buildIntelligenceHref(view, params);
 }
 
 export function deriveIntelligenceNavKey(activeHref: string): IntelligenceNavKey {
-  if (activeHref.startsWith('/graph')) {
+  if (activeHref.startsWith('/intelligence/graph') || activeHref.startsWith('/graph')) {
     return 'graph';
   }
 
