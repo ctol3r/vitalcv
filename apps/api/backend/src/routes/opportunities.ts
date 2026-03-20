@@ -11,8 +11,10 @@
  */
 
 import type { Express, NextFunction, Request, Response } from 'express';
+import { seedLaunchOpportunities } from '../services/opportunities/launchOpportunitySeed';
 import {
   createOpportunity,
+  getPublicOpportunityById,
   getOrgProfile,
   listCandidates,
   listOpportunitiesForOrg,
@@ -168,15 +170,33 @@ export function registerOpportunityRoutes(app: Express): void {
   app.get(
     '/api/opportunities',
     asyncHandler(async (req, res) => {
-      const { specialty, state, hiringType } = req.query;
+      const { specialty, state, hiringType, organizationSlug } = req.query;
       const result = await listPublicOpportunities({
         specialty: typeof specialty === 'string' ? specialty : undefined,
         state: typeof state === 'string' ? state : undefined,
         hiringType: typeof hiringType === 'string' ? hiringType : undefined,
+        organizationSlug: typeof organizationSlug === 'string' ? organizationSlug : undefined,
         limit: parsePositiveInt(req.query.limit, 20),
         offset: parsePositiveInt(req.query.offset, 0),
       });
       res.json(result);
+    }),
+  );
+
+  app.get(
+    '/api/opportunities/:id',
+    asyncHandler(async (req, res) => {
+      const opportunityId = req.params.id?.trim();
+      if (!opportunityId) {
+        throw new HttpError(400, 'Opportunity id is required.');
+      }
+
+      const opportunity = await getPublicOpportunityById(opportunityId);
+      if (!opportunity) {
+        throw new HttpError(404, 'Opportunity not found.');
+      }
+
+      res.json({ opportunity });
     }),
   );
 
@@ -202,6 +222,25 @@ export function registerOpportunityRoutes(app: Express): void {
         offset: parsePositiveInt(req.query.offset, 0),
       });
       res.json(result);
+    }),
+  );
+
+  /* ── Admin: Seed launch opportunities ── */
+  app.post(
+    '/api/admin/seed-opportunities',
+    asyncHandler(async (req, res, _next) => {
+      const authHeader = req.headers.authorization ?? '';
+      const expected = process.env.ADMIN_SEED_TOKEN;
+      if (!expected || authHeader !== `Bearer ${expected}`) {
+        res.status(401).json({ error: 'unauthorized' });
+        return;
+      }
+      const logs: string[] = [];
+      const summary = await seedLaunchOpportunities(
+        undefined!,
+        (level, message) => { logs.push(`[${level}] ${message}`); },
+      );
+      res.json({ ...summary, logs });
     }),
   );
 }
