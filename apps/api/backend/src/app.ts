@@ -3506,6 +3506,31 @@ app.use(
     credentials: corsOrigin !== '*',
   }),
 );
+// Health + readyz must be reachable without any org context (infra probes, Railway, Vercel).
+app.get(['/health', '/health/'], (_req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    metrics: requestLatencyMetrics.snapshot(),
+    git_branch: process.env.RAILWAY_GIT_BRANCH ?? null,
+    git_sha: process.env.RAILWAY_GIT_COMMIT_SHA ?? null,
+  });
+});
+app.get('/readyz', (_req, res) => {
+  prisma
+    .$queryRaw`SELECT 1`
+    .then(() => {
+      res.status(200).json({
+        status: 'ready',
+        service: 'api',
+        git_branch: process.env.RAILWAY_GIT_BRANCH ?? null,
+        git_sha: process.env.RAILWAY_GIT_COMMIT_SHA ?? null,
+      });
+    })
+    .catch(() => {
+      res.status(503).json({ status: 'not_ready', service: 'api' });
+    });
+});
+
 // Intelligence/investigation read routes bypass org requirement.
 // All other routes still require org context via requireTenantContext.
 app.use(requireTenantContextOrReadAccess);
