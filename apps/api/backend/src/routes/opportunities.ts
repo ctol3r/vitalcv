@@ -24,6 +24,7 @@ import prisma from '../graphql/prisma_client';
 import { sha256ForPayload } from '../utils/deterministic';
 import type { EmployerRequirementSpec } from '../services/employers/employerCatalog';
 import type {
+  AutomationRules,
   OrganizationAcceptanceRules,
   TrustAcceptanceContracts,
 } from '../services/employers/pilotPolicy';
@@ -63,6 +64,7 @@ export function registerOpportunityRoutes(app: Express): void {
         pilotMode?: boolean;
         organizationAcceptanceRules?: OrganizationAcceptanceRules;
         trustAcceptanceContracts?: TrustAcceptanceContracts;
+        automationRules?: AutomationRules;
       };
 
       if (!body.name?.trim()) throw new HttpError(400, 'Organization name is required.');
@@ -80,12 +82,14 @@ export function registerOpportunityRoutes(app: Express): void {
         pilotMode: body.pilotMode,
         organizationAcceptanceRules: body.organizationAcceptanceRules,
         trustAcceptanceContracts: body.trustAcceptanceContracts,
+        automationRules: body.automationRules,
       });
 
       if (
         body.pilotMode !== undefined
         || body.organizationAcceptanceRules !== undefined
         || body.trustAcceptanceContracts !== undefined
+        || body.automationRules !== undefined
       ) {
         await prisma.auditEvent.create({
           data: {
@@ -95,12 +99,14 @@ export function registerOpportunityRoutes(app: Express): void {
               pilotMode: body.pilotMode ?? false,
               organizationAcceptanceRules: body.organizationAcceptanceRules ?? null,
               trustAcceptanceContracts: body.trustAcceptanceContracts ?? null,
+              automationRules: body.automationRules ?? null,
             }),
             organizationId: result.organizationId,
             metadata: JSON.parse(JSON.stringify({
               pilotMode: body.pilotMode ?? false,
               organizationAcceptanceRules: body.organizationAcceptanceRules ?? null,
               trustAcceptanceContracts: body.trustAcceptanceContracts ?? null,
+              automationRules: body.automationRules ?? null,
             })),
           },
         }).catch((error: unknown) => {

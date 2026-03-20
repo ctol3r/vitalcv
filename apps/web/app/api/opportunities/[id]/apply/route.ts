@@ -1,12 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { type NextRequest, NextResponse } from 'next/server';
+import {
+  buildMarketplaceHeaders,
+  MARKETPLACE_BACKEND,
+} from '@/lib/server/marketplace-proxy';
+
 export const runtime = 'nodejs';
-const B = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+  if (!session.userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { id } = await params;
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  req.headers.forEach((v, k) => { if (k.startsWith('x-clerk-')) headers[k] = v; });
   const body = await req.text();
-  const res = await fetch(`${B}/api/opportunities/${id}/apply`, { method: 'POST', headers, body });
+  const res = await fetch(`${MARKETPLACE_BACKEND}/api/opportunities/${id}/apply`, {
+    method: 'POST',
+    headers: buildMarketplaceHeaders(session, { 'Content-Type': 'application/json' }),
+    body,
+    cache: 'no-store',
+    signal: AbortSignal.timeout(12_000),
+  });
   return NextResponse.json(await res.json().catch(() => ({})), { status: res.status });
 }

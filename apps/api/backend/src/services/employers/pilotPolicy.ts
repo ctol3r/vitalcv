@@ -10,6 +10,16 @@ export interface TrustAcceptanceContracts {
   triggerDecisionCapsuleOnHire: boolean;
 }
 
+export interface AutomationRules {
+  enabled: boolean;
+  minReadinessScore: number;
+  requiredCredentials: string[];
+  readyToInterviewThreshold: number;
+  autoAcceptThreshold: number | null;
+  notifyEmployer: boolean;
+  notifyClinician: boolean;
+}
+
 export interface PilotPolicyConfig {
   pilotMode: boolean;
   organizationAcceptanceRules: OrganizationAcceptanceRules;
@@ -18,6 +28,7 @@ export interface PilotPolicyConfig {
 
 export interface OrganizationRequirementsEnvelope extends PilotPolicyConfig {
   requirements: EmployerRequirementSpec[];
+  automationRules: AutomationRules;
 }
 
 export interface PilotReadinessEvaluation {
@@ -37,6 +48,16 @@ const DEFAULT_ORGANIZATION_ACCEPTANCE_RULES: OrganizationAcceptanceRules = {
 
 const DEFAULT_TRUST_ACCEPTANCE_CONTRACTS: TrustAcceptanceContracts = {
   triggerDecisionCapsuleOnHire: false,
+};
+
+export const DEFAULT_AUTOMATION_RULES: AutomationRules = {
+  enabled: false,
+  minReadinessScore: 60,
+  requiredCredentials: [],
+  readyToInterviewThreshold: 85,
+  autoAcceptThreshold: null,
+  notifyEmployer: true,
+  notifyClinician: true,
 };
 
 export const DEFAULT_PILOT_POLICY: PilotPolicyConfig = {
@@ -101,6 +122,66 @@ function parseTrustAcceptanceContracts(value: unknown): TrustAcceptanceContracts
   };
 }
 
+function clampScore(value: unknown, fallback: number): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function normalizeRequiredCredentials(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+
+  for (const item of value) {
+    if (typeof item !== 'string') {
+      continue;
+    }
+
+    const trimmed = item.trim();
+    const key = trimmed.toLowerCase();
+    if (trimmed.length === 0 || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    normalized.push(trimmed);
+  }
+
+  return normalized;
+}
+
+function parseAutomationRules(value: unknown): AutomationRules {
+  if (!isRecord(value)) {
+    return {
+      ...DEFAULT_AUTOMATION_RULES,
+      requiredCredentials: [...DEFAULT_AUTOMATION_RULES.requiredCredentials],
+    };
+  }
+
+  const autoAcceptThreshold = typeof value.autoAcceptThreshold === 'number' && Number.isFinite(value.autoAcceptThreshold)
+    ? Math.max(0, Math.min(100, Math.round(value.autoAcceptThreshold)))
+    : null;
+
+  return {
+    enabled: value.enabled === true,
+    minReadinessScore: clampScore(value.minReadinessScore, DEFAULT_AUTOMATION_RULES.minReadinessScore),
+    requiredCredentials: normalizeRequiredCredentials(value.requiredCredentials),
+    readyToInterviewThreshold: clampScore(
+      value.readyToInterviewThreshold,
+      DEFAULT_AUTOMATION_RULES.readyToInterviewThreshold,
+    ),
+    autoAcceptThreshold,
+    notifyEmployer: value.notifyEmployer !== false,
+    notifyClinician: value.notifyClinician !== false,
+  };
+}
+
 export function parseOrganizationRequirementsEnvelope(
   value: unknown,
   fallbackRequirements: EmployerRequirementSpec[] = [],
@@ -113,6 +194,10 @@ export function parseOrganizationRequirementsEnvelope(
       pilotMode: DEFAULT_PILOT_POLICY.pilotMode,
       organizationAcceptanceRules: { ...DEFAULT_ORGANIZATION_ACCEPTANCE_RULES },
       trustAcceptanceContracts: { ...DEFAULT_TRUST_ACCEPTANCE_CONTRACTS },
+      automationRules: {
+        ...DEFAULT_AUTOMATION_RULES,
+        requiredCredentials: [...DEFAULT_AUTOMATION_RULES.requiredCredentials],
+      },
     };
   }
 
@@ -122,6 +207,10 @@ export function parseOrganizationRequirementsEnvelope(
       pilotMode: DEFAULT_PILOT_POLICY.pilotMode,
       organizationAcceptanceRules: { ...DEFAULT_ORGANIZATION_ACCEPTANCE_RULES },
       trustAcceptanceContracts: { ...DEFAULT_TRUST_ACCEPTANCE_CONTRACTS },
+      automationRules: {
+        ...DEFAULT_AUTOMATION_RULES,
+        requiredCredentials: [...DEFAULT_AUTOMATION_RULES.requiredCredentials],
+      },
     };
   }
 
@@ -132,6 +221,7 @@ export function parseOrganizationRequirementsEnvelope(
     pilotMode: value.pilotMode === true,
     organizationAcceptanceRules: parseOrganizationAcceptanceRules(value.organizationAcceptanceRules),
     trustAcceptanceContracts: parseTrustAcceptanceContracts(value.trustAcceptanceContracts),
+    automationRules: parseAutomationRules(value.automationRules),
   };
 }
 
@@ -149,6 +239,23 @@ export function buildOrganizationRequirementsEnvelope(
     trustAcceptanceContracts: {
       triggerDecisionCapsuleOnHire:
         input.trustAcceptanceContracts.triggerDecisionCapsuleOnHire,
+    },
+    automationRules: {
+      enabled: input.automationRules.enabled,
+      minReadinessScore: clampScore(
+        input.automationRules.minReadinessScore,
+        DEFAULT_AUTOMATION_RULES.minReadinessScore,
+      ),
+      requiredCredentials: normalizeRequiredCredentials(input.automationRules.requiredCredentials),
+      readyToInterviewThreshold: clampScore(
+        input.automationRules.readyToInterviewThreshold,
+        DEFAULT_AUTOMATION_RULES.readyToInterviewThreshold,
+      ),
+      autoAcceptThreshold: typeof input.automationRules.autoAcceptThreshold === 'number'
+        ? clampScore(input.automationRules.autoAcceptThreshold, DEFAULT_AUTOMATION_RULES.readyToInterviewThreshold)
+        : null,
+      notifyEmployer: input.automationRules.notifyEmployer,
+      notifyClinician: input.automationRules.notifyClinician,
     },
   };
 }

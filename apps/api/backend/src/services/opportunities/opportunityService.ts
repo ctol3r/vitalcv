@@ -14,8 +14,10 @@ import prisma from '../../graphql/prisma_client';
 import { HttpError } from '../../utils/httpError';
 import type { EmployerRequirementSpec } from '../employers/employerCatalog';
 import {
+  DEFAULT_AUTOMATION_RULES,
   buildOrganizationRequirementsEnvelope,
   parseOrganizationRequirementsEnvelope,
+  type AutomationRules,
   type OrganizationAcceptanceRules,
   type TrustAcceptanceContracts,
 } from '../employers/pilotPolicy';
@@ -96,6 +98,7 @@ export async function upsertOrgProfile(
     pilotMode?: boolean;
     organizationAcceptanceRules?: OrganizationAcceptanceRules;
     trustAcceptanceContracts?: TrustAcceptanceContracts;
+    automationRules?: AutomationRules;
   },
 ): Promise<{ organizationId: string }> {
   const { user, profile: existingProfile } = await getPersonProfile(clerkUserId);
@@ -123,6 +126,8 @@ export async function upsertOrgProfile(
         input.organizationAcceptanceRules ?? existingEnvelope.organizationAcceptanceRules,
       trustAcceptanceContracts:
         input.trustAcceptanceContracts ?? existingEnvelope.trustAcceptanceContracts,
+      automationRules:
+        input.automationRules ?? existingEnvelope.automationRules,
     });
 
     // Update existing org profile
@@ -171,6 +176,10 @@ export async function upsertOrgProfile(
             },
             trustAcceptanceContracts: input.trustAcceptanceContracts ?? {
               triggerDecisionCapsuleOnHire: false,
+            },
+            automationRules: input.automationRules ?? {
+              ...DEFAULT_AUTOMATION_RULES,
+              requiredCredentials: [...DEFAULT_AUTOMATION_RULES.requiredCredentials],
             },
           }) as unknown as Prisma.InputJsonValue,
         },
@@ -224,6 +233,7 @@ export async function getOrgProfile(clerkUserId: string) {
     pilotMode: requirementsEnvelope.pilotMode,
     organizationAcceptanceRules: requirementsEnvelope.organizationAcceptanceRules,
     trustAcceptanceContracts: requirementsEnvelope.trustAcceptanceContracts,
+    automationRules: requirementsEnvelope.automationRules,
   };
 }
 

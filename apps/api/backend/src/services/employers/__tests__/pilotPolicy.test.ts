@@ -1,4 +1,5 @@
 import {
+  DEFAULT_AUTOMATION_RULES,
   buildOrganizationRequirementsEnvelope,
   evaluatePilotReadiness,
   parseOrganizationRequirementsEnvelope,
@@ -27,6 +28,7 @@ describe('pilotPolicy', () => {
       trustAcceptanceContracts: {
         triggerDecisionCapsuleOnHire: true,
       },
+      automationRules: DEFAULT_AUTOMATION_RULES,
     });
 
     const parsed = parseOrganizationRequirementsEnvelope(envelope);

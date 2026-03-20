@@ -8,6 +8,7 @@
  * a lightweight profile fetch. Falls back gracefully if NPI is not yet set.
  */
 
+import Link from 'next/link';
 import { ApplyWithVitalCV } from './ApplyWithVitalCV';
 
 interface Props {
@@ -19,9 +20,12 @@ export function ApplyWidgetSection({ npi }: Props) {
     return (
       <div className="rounded-2xl border border-white/8 bg-white/3 px-5 py-4">
         <p className="text-xs font-semibold text-zinc-500 mb-1">Apply with VitalCV</p>
-        <p className="text-xs text-zinc-600">
-          Complete your NPI bootstrap to generate a shareable credential bundle.
+        <p className="text-xs text-zinc-600 mb-3">
+          Complete onboarding to activate your clinician profile and generate a shareable credential bundle.
         </p>
+        <Link href="/onboarding" className="text-xs font-semibold text-emerald-400 hover:text-emerald-300">
+          Finish onboarding →
+        </Link>
       </div>
     );
   }

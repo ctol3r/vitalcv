@@ -8,7 +8,7 @@
  * monitoring status, and integrity verification stamp.
  */
 
-import { useState } from 'react';
+import Link from 'next/link';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -107,7 +107,6 @@ function CredentialTypeLabel({ type }: { type: string }) {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function ApplyBundleView({ bundle }: Props) {
-  const [accepted, setAccepted] = useState(false);
   const levelMeta = LEVEL_META[bundle.trustState.readiness_level] ?? LEVEL_META.L0;
   const monitorMeta = MONITORING_META[bundle.monitoringStatus];
 
@@ -269,23 +268,16 @@ export function ApplyBundleView({ bundle }: Props) {
           </a>
         </div>
 
-        {/* Accept CTA */}
+        {/* Employer action CTA */}
         <div className="pb-4">
-          {!accepted ? (
-            <button
-              type="button"
-              onClick={() => setAccepted(true)}
-              className="w-full rounded-xl bg-emerald-500 py-3.5 text-sm font-semibold text-white shadow-xl shadow-emerald-500/20 ring-1 ring-emerald-400/50 transition-all hover:bg-emerald-400 active:scale-[0.98]"
-            >
-              Accept Candidate ✓
-            </button>
-          ) : (
-            <div className="w-full rounded-xl border border-emerald-500/30 bg-emerald-500/8 py-3.5 text-center text-sm font-semibold text-emerald-400">
-              ✓ Candidate Accepted — ATS integration coming soon
-            </div>
-          )}
+          <Link
+            href={`/sign-in?redirect_url=${encodeURIComponent('/verifier/inbox')}`}
+            className="block w-full rounded-xl bg-emerald-500 py-3.5 text-center text-sm font-semibold text-white shadow-xl shadow-emerald-500/20 ring-1 ring-emerald-400/50 transition-all hover:bg-emerald-400"
+          >
+            Sign in to review this candidate
+          </Link>
           <p className="mt-2 text-center text-[10px] text-zinc-600">
-            ATS integration · No account required · Powered by VitalCV
+            Real employer actions happen inside the Employer Dashboard.
           </p>
         </div>
 

@@ -1,13 +1,17 @@
 'use client';
 
-/**
- * ApplyModal — Wave 229
- * Clinician applies to an opportunity. Shows confirmation + optional cover note.
- */
-
+import { useRoleContext } from '@/components/auth/RoleContext';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2, Loader2, X } from 'lucide-react';
-import { useState } from 'react';
+import {
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  Loader2,
+  ShieldCheck,
+  X,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 
 interface Opportunity {
   id: string;
@@ -23,36 +27,93 @@ interface Props {
   onClose: () => void;
 }
 
+interface TrustStateResponse {
+  readiness_score?: number;
+  readiness_level?: string;
+  readiness_status?: string;
+  gap_summary?: string[];
+}
+
 type Phase = 'form' | 'submitting' | 'success' | 'error';
 
 export default function ApplyModal({ opportunity, onClose }: Props) {
-  const [npi, setNpi] = useState('');
+  const {
+    clinicianNpi,
+    isClinician,
+    isLoaded,
+    isSignedIn,
+    role,
+  } = useRoleContext();
   const [coverNote, setCoverNote] = useState('');
   const [phase, setPhase] = useState<Phase>('form');
   const [errorMsg, setErrorMsg] = useState('');
+  const [loadingTrustState, setLoadingTrustState] = useState(false);
+  const [trustState, setTrustState] = useState<TrustStateResponse | null>(null);
 
-  if (!opportunity) return null;
+  const returnUrl = useMemo(
+    () => `/explore?apply=${encodeURIComponent(opportunity?.id ?? '')}`,
+    [opportunity?.id],
+  );
+  const signInHref = `/sign-in?redirect_url=${encodeURIComponent(returnUrl)}`;
+  const onboardingHref = `/onboarding?returnTo=${encodeURIComponent(returnUrl)}`;
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!npi.trim()) return;
+  useEffect(() => {
+    if (!clinicianNpi || !isSignedIn || !isClinician) {
+      setTrustState(null);
+      return;
+    }
+
+    setLoadingTrustState(true);
+    void fetch(`/api/trust-state/${encodeURIComponent(clinicianNpi)}`, {
+      cache: 'no-store',
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error('Unable to load readiness.');
+        }
+
+        const payload = await response.json() as TrustStateResponse;
+        setTrustState(payload);
+      })
+      .catch(() => {
+        setTrustState(null);
+      })
+      .finally(() => {
+        setLoadingTrustState(false);
+      });
+  }, [clinicianNpi, isClinician, isSignedIn]);
+
+  if (!opportunity) {
+    return null;
+  }
+
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!clinicianNpi || !opportunity) {
+      return;
+    }
+
     setPhase('submitting');
+    setErrorMsg('');
 
     try {
-      const res = await fetch(`/api/opportunities/${opportunity!.id}/apply`, {
+      const response = await fetch(`/api/opportunities/${opportunity.id}/apply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ npi: npi.trim(), coverNote: coverNote.trim() || undefined }),
+        body: JSON.stringify({
+          npi: clinicianNpi,
+          coverNote: coverNote.trim() || undefined,
+        }),
       });
 
-      if (res.ok || res.status === 409) {
-        // 409 = already applied — treat as success
+      if (response.ok || response.status === 409) {
         setPhase('success');
-      } else {
-        const data = await res.json().catch(() => ({}));
-        setErrorMsg(data?.error || 'Something went wrong. Please try again.');
-        setPhase('error');
+        return;
       }
+
+      const payload = await response.json().catch(() => ({})) as { error?: string };
+      setErrorMsg(payload.error ?? 'Something went wrong. Please try again.');
+      setPhase('error');
     } catch {
       setErrorMsg('Network error. Please check your connection and try again.');
       setPhase('error');
@@ -67,112 +128,179 @@ export default function ApplyModal({ opportunity, onClose }: Props) {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
       >
-        {/* Backdrop */}
         <motion.div
           className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           onClick={onClose}
         />
 
-        {/* Modal */}
         <motion.div
-          className="relative z-10 w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden"
+          className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
           initial={{ opacity: 0, y: 20, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 10, scale: 0.98 }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
         >
-          {/* Header */}
-          <div className="flex items-start justify-between p-6 pb-4 border-b border-zinc-100">
+          <div className="flex items-start justify-between border-b border-zinc-100 p-6 pb-4">
             <div>
-              <h2 className="text-lg font-bold text-zinc-900">Apply for this role</h2>
-              <p className="text-sm text-zinc-500 mt-0.5">{opportunity.title} · {opportunity.state}</p>
+              <h2 className="text-lg font-bold text-zinc-900">Apply with VitalCV</h2>
+              <p className="mt-0.5 text-sm text-zinc-500">
+                {opportunity.title} · {opportunity.state}
+              </p>
             </div>
             <button
               onClick={onClose}
-              className="text-zinc-400 hover:text-zinc-600 transition-colors p-1 rounded-lg hover:bg-zinc-100"
+              className="rounded-lg p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
 
-          {/* Opportunity summary */}
-          <div className="px-6 py-4 bg-zinc-50 border-b border-zinc-100">
+          <div className="border-b border-zinc-100 bg-zinc-50 px-6 py-4">
             <div className="flex flex-wrap gap-2 text-xs">
-              <span className="rounded-full bg-white border border-zinc-200 px-3 py-1 font-medium text-zinc-600">
+              <span className="rounded-full border border-zinc-200 bg-white px-3 py-1 font-medium text-zinc-600">
                 {opportunity.specialty}
               </span>
-              <span className="rounded-full bg-white border border-zinc-200 px-3 py-1 font-medium text-zinc-600">
+              <span className="rounded-full border border-zinc-200 bg-white px-3 py-1 font-medium text-zinc-600">
                 {opportunity.hiringType}
               </span>
-              {opportunity.organizationName && (
-                <span className="rounded-full bg-white border border-zinc-200 px-3 py-1 font-medium text-zinc-600">
+              {opportunity.organizationName ? (
+                <span className="rounded-full border border-zinc-200 bg-white px-3 py-1 font-medium text-zinc-600">
                   {opportunity.organizationName}
                 </span>
-              )}
+              ) : null}
             </div>
           </div>
 
-          {/* Content */}
           <div className="p-6">
             {phase === 'success' ? (
               <motion.div
-                className="text-center py-4"
-                initial={{ opacity: 0, scale: 0.9 }}
+                className="space-y-4 py-4 text-center"
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
               >
-                <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto mb-3" />
-                <h3 className="text-lg font-bold text-zinc-900 mb-1">Application submitted!</h3>
-                <p className="text-sm text-zinc-500 mb-6">
-                  The employer will be notified. You can track your application status in your dashboard.
-                </p>
-                <button
-                  onClick={onClose}
-                  className="glue-btn glue-btn-primary w-full justify-center"
-                >
-                  Done
-                </button>
+                <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
+                <div>
+                  <h3 className="text-lg font-bold text-zinc-900">Application submitted</h3>
+                  <p className="mt-1 text-sm text-zinc-500">
+                    The employer can review your readiness, credentials, and trust signals immediately.
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <Link
+                    href="/holder/home"
+                    className="glue-btn glue-btn-primary w-full justify-center"
+                    onClick={onClose}
+                  >
+                    Open my dashboard
+                  </Link>
+                  <button
+                    onClick={onClose}
+                    className="glue-btn w-full justify-center border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                  >
+                    Keep browsing
+                  </button>
+                </div>
               </motion.div>
+            ) : !isLoaded ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+              </div>
+            ) : !isSignedIn ? (
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4">
+                  <p className="text-sm font-semibold text-zinc-900">Sign in to apply</p>
+                  <p className="mt-1 text-sm text-zinc-600">
+                    We&apos;ll bring you back to this job and apply using your verified clinician profile.
+                  </p>
+                </div>
+                <Link href={signInHref} className="glue-btn glue-btn-primary w-full justify-center">
+                  Sign in and continue
+                </Link>
+              </div>
+            ) : !isClinician || role === 'employer' ? (
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-4">
+                  <p className="text-sm font-semibold text-zinc-900">Switch to your clinician workspace</p>
+                  <p className="mt-1 text-sm text-zinc-600">
+                    Applications only submit from a clinician profile with an active NPI.
+                  </p>
+                </div>
+                <Link href="/workspace/switch" className="glue-btn glue-btn-primary w-full justify-center">
+                  Open workspace switcher
+                </Link>
+              </div>
+            ) : !clinicianNpi ? (
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-4">
+                  <p className="text-sm font-semibold text-zinc-900">Finish onboarding to apply</p>
+                  <p className="mt-1 text-sm text-zinc-600">
+                    We need your NPI-linked clinician profile before this employer can review you.
+                  </p>
+                </div>
+                <Link href={onboardingHref} className="glue-btn glue-btn-primary w-full justify-center">
+                  Complete onboarding
+                </Link>
+              </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-zinc-700 block mb-1.5">
-                    NPI Number <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={npi}
-                    onChange={e => setNpi(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                    placeholder="10-digit NPI"
-                    maxLength={10}
-                    required
-                    className="glue-input glue-input--emerald font-mono"
-                  />
-                  <p className="text-xs text-zinc-400 mt-1">Your credentials will be verified automatically via NPPES.</p>
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4">
+                  <div className="flex items-start gap-3">
+                    <ShieldCheck className="mt-0.5 h-5 w-5 text-emerald-500" />
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-zinc-900">
+                        Applying as NPI {clinicianNpi}
+                      </p>
+                      <p className="text-sm text-zinc-600">
+                        This application uses your signed-in clinician workspace, not a manual NPI field.
+                      </p>
+                      {loadingTrustState ? (
+                        <p className="text-xs text-zinc-500">Loading readiness…</p>
+                      ) : trustState ? (
+                        <div className="space-y-1">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                            Readiness {trustState.readiness_level ?? 'L0'} · {trustState.readiness_score ?? 0}/100
+                          </p>
+                          <p className="text-xs text-zinc-600">
+                            {trustState.readiness_status ?? 'Readiness will be attached when you submit.'}
+                          </p>
+                          {(trustState.gap_summary ?? []).slice(0, 2).map((gap) => (
+                            <p key={gap} className="text-xs text-zinc-500">
+                              • {gap}
+                            </p>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-zinc-500">
+                          Your latest readiness state will be attached automatically.
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-zinc-700 block mb-1.5">
-                    Cover note <span className="text-zinc-400 font-normal">(optional)</span>
+                  <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+                    Cover note <span className="font-normal text-zinc-400">(optional)</span>
                   </label>
                   <textarea
                     value={coverNote}
-                    onChange={e => setCoverNote(e.target.value)}
+                    onChange={(event) => setCoverNote(event.target.value)}
                     rows={3}
                     placeholder="Briefly introduce yourself or highlight relevant experience…"
                     className="glue-input glue-input--emerald resize-none"
                   />
                 </div>
 
-                {phase === 'error' && (
-                  <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700">
+                {phase === 'error' ? (
+                  <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
                     {errorMsg}
                   </div>
-                )}
+                ) : null}
 
                 <button
                   type="submit"
-                  disabled={phase === 'submitting' || npi.length < 10}
-                  className="glue-btn glue-btn-primary w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={phase === 'submitting'}
+                  className="glue-btn glue-btn-primary w-full justify-center disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {phase === 'submitting' ? (
                     <>
@@ -180,13 +308,23 @@ export default function ApplyModal({ opportunity, onClose }: Props) {
                       Submitting…
                     </>
                   ) : (
-                    'Submit Application'
+                    <>
+                      Apply with VitalCV
+                      <ArrowRight className="h-4 w-4" />
+                    </>
                   )}
                 </button>
 
-                <p className="text-[11px] text-zinc-400 text-center">
-                  Your NPI and credentials are verified cryptographically. No data is shared without your consent.
-                </p>
+                {(trustState?.gap_summary?.length ?? 0) > 0 ? (
+                  <div className="flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-3 text-xs text-amber-900">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <p>Employers will still see your missing credentials and current readiness after you apply.</p>
+                  </div>
+                ) : (
+                  <p className="text-center text-[11px] text-zinc-400">
+                    Your readiness and trust signals travel with this application automatically.
+                  </p>
+                )}
               </form>
             )}
           </div>

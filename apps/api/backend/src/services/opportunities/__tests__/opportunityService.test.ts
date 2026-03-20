@@ -88,6 +88,15 @@ describe('opportunityService org profile pilot policy', () => {
         trustAcceptanceContracts: {
           triggerDecisionCapsuleOnHire: true,
         },
+        automationRules: {
+          enabled: true,
+          minReadinessScore: 68,
+          requiredCredentials: ['CA License', 'Board Certification'],
+          readyToInterviewThreshold: 88,
+          autoAcceptThreshold: 94,
+          notifyEmployer: true,
+          notifyClinician: false,
+        },
       },
     });
 
@@ -103,6 +112,15 @@ describe('opportunityService org profile pilot policy', () => {
       },
       trustAcceptanceContracts: {
         triggerDecisionCapsuleOnHire: true,
+      },
+      automationRules: {
+        enabled: true,
+        minReadinessScore: 68,
+        requiredCredentials: ['CA License', 'Board Certification'],
+        readyToInterviewThreshold: 88,
+        autoAcceptThreshold: 94,
+        notifyEmployer: true,
+        notifyClinician: false,
       },
     }));
   });
@@ -132,6 +150,15 @@ describe('opportunityService org profile pilot policy', () => {
       trustAcceptanceContracts: {
         triggerDecisionCapsuleOnHire: true,
       },
+      automationRules: {
+        enabled: true,
+        minReadinessScore: 70,
+        requiredCredentials: ['CA License', 'Board Certification'],
+        readyToInterviewThreshold: 90,
+        autoAcceptThreshold: 96,
+        notifyEmployer: true,
+        notifyClinician: true,
+      },
     });
 
     expect(prismaMock.organizationProfile.update).toHaveBeenCalledWith(expect.objectContaining({
@@ -146,6 +173,15 @@ describe('opportunityService org profile pilot policy', () => {
           },
           trustAcceptanceContracts: {
             triggerDecisionCapsuleOnHire: true,
+          },
+          automationRules: {
+            enabled: true,
+            minReadinessScore: 70,
+            requiredCredentials: ['CA License', 'Board Certification'],
+            readyToInterviewThreshold: 90,
+            autoAcceptThreshold: 96,
+            notifyEmployer: true,
+            notifyClinician: true,
           },
         }),
       }),

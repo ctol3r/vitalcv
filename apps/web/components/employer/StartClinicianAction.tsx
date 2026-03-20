@@ -45,7 +45,6 @@ import {
   GlassCardFooter,
 } from '@/components/ui/glass-card';
 import { cn } from '@/lib/utils';
-import { getApiBase } from '@/lib/api';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -94,11 +93,6 @@ interface StartResult {
 const TC: CSSProperties = { color: 'oklch(0.52 0.11 30)' };
 const TC_BG: CSSProperties = { backgroundColor: 'oklch(0.52 0.11 30 / 0.08)' };
 const TC_BORDER: CSSProperties = { borderColor: 'oklch(0.52 0.11 30 / 0.35)' };
-
-function apiUrl(path: string): string {
-  const base = getApiBase();
-  return base ? `${base}${path}` : path;
-}
 
 function formatDelta(ms: number | null): string {
   if (ms === null || ms < 0) return '—';
@@ -169,7 +163,7 @@ export function StartClinicianAction({
     setPhase('ACCEPTING');
 
     try {
-      const res = await fetch(apiUrl('/api/hiring/accept'), {
+      const res = await fetch('/api/hiring/accept', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ employerId, clinicianNpi: npi, artifactId }),
@@ -208,7 +202,7 @@ export function StartClinicianAction({
     setPhase('STARTING');
 
     try {
-      const res = await fetch(apiUrl('/api/hiring/start'), {
+      const res = await fetch('/api/hiring/start', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
