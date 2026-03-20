@@ -34,7 +34,27 @@ type EmployerProfileResponse = {
   trustAcceptanceContracts?: {
     triggerDecisionCapsuleOnHire?: boolean;
   };
+  automationRules?: {
+    enabled?: boolean;
+    minReadinessScore?: number;
+    requiredCredentials?: string[];
+    readyToInterviewThreshold?: number;
+    autoAcceptThreshold?: number | null;
+    notifyEmployer?: boolean;
+    notifyClinician?: boolean;
+  };
 };
+
+function serializeCredentialList(value: string[] | undefined): string {
+  return Array.isArray(value) ? value.join(', ') : '';
+}
+
+function parseCredentialList(value: string): string[] {
+  return value
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry, index, values) => entry.length > 0 && values.indexOf(entry) === index);
+}
 
 export default function VerifierCompanyPage() {
   const router = useRouter();
@@ -51,6 +71,13 @@ export default function VerifierCompanyPage() {
   const [acceptL3Automatically, setAcceptL3Automatically] = useState(false);
   const [requirePsvOnlyForGaps, setRequirePsvOnlyForGaps] = useState(false);
   const [triggerDecisionCapsuleOnHire, setTriggerDecisionCapsuleOnHire] = useState(false);
+  const [automationEnabled, setAutomationEnabled] = useState(false);
+  const [minReadinessScore, setMinReadinessScore] = useState('60');
+  const [readyToInterviewThreshold, setReadyToInterviewThreshold] = useState('85');
+  const [autoAcceptThreshold, setAutoAcceptThreshold] = useState('');
+  const [requiredCredentials, setRequiredCredentials] = useState('');
+  const [notifyEmployer, setNotifyEmployer] = useState(true);
+  const [notifyClinician, setNotifyClinician] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -70,6 +97,17 @@ export default function VerifierCompanyPage() {
           setAcceptL3Automatically(data.organizationAcceptanceRules?.acceptL3CredentialsAutomatically ?? false);
           setRequirePsvOnlyForGaps(data.organizationAcceptanceRules?.requirePsvOnlyForGaps ?? false);
           setTriggerDecisionCapsuleOnHire(data.trustAcceptanceContracts?.triggerDecisionCapsuleOnHire ?? false);
+          setAutomationEnabled(data.automationRules?.enabled ?? false);
+          setMinReadinessScore(String(data.automationRules?.minReadinessScore ?? 60));
+          setReadyToInterviewThreshold(String(data.automationRules?.readyToInterviewThreshold ?? 85));
+          setAutoAcceptThreshold(
+            typeof data.automationRules?.autoAcceptThreshold === 'number'
+              ? String(data.automationRules.autoAcceptThreshold)
+              : '',
+          );
+          setRequiredCredentials(serializeCredentialList(data.automationRules?.requiredCredentials));
+          setNotifyEmployer(data.automationRules?.notifyEmployer !== false);
+          setNotifyClinician(data.automationRules?.notifyClinician !== false);
         }
         setPhase('form');
       })
@@ -104,6 +142,17 @@ export default function VerifierCompanyPage() {
           },
           trustAcceptanceContracts: {
             triggerDecisionCapsuleOnHire,
+          },
+          automationRules: {
+            enabled: automationEnabled,
+            minReadinessScore: Number(minReadinessScore) || 0,
+            requiredCredentials: parseCredentialList(requiredCredentials),
+            readyToInterviewThreshold: Number(readyToInterviewThreshold) || 0,
+            autoAcceptThreshold: autoAcceptThreshold.trim().length > 0
+              ? Number(autoAcceptThreshold)
+              : null,
+            notifyEmployer,
+            notifyClinician,
           },
         }),
       });
@@ -250,6 +299,63 @@ export default function VerifierCompanyPage() {
                 <div>
                   <p className="text-sm font-medium text-white">Trigger Decision Capsule on hire</p>
                   <p className="mt-1 text-xs text-vt-neutral-200">Create a hospital-specific decision capsule automatically when a hire is attested to start.</p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-base/70 p-5">
+            <div className="mb-4">
+              <h2 className="text-sm font-semibold text-white">Hiring Automation Rules</h2>
+              <p className="mt-1 text-xs text-vt-neutral-200">
+                Configure recommendation thresholds and workflow fan-out for employer-facing automation.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <label className="flex items-start gap-3 rounded-xl border border-vt-neutral-800 px-4 py-3">
+                <input type="checkbox" checked={automationEnabled} onChange={e => setAutomationEnabled(e.target.checked)} className="mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-white">Enable hiring automation</p>
+                  <p className="mt-1 text-xs text-vt-neutral-200">Generates hiring recommendations, queue routing, and employer workflow metadata in real time.</p>
+                </div>
+              </label>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <Field label="Minimum readiness">
+                  <input value={minReadinessScore} onChange={e => setMinReadinessScore(e.target.value)} inputMode="numeric" className={INPUT} />
+                </Field>
+                <Field label="Interview threshold">
+                  <input value={readyToInterviewThreshold} onChange={e => setReadyToInterviewThreshold(e.target.value)} inputMode="numeric" className={INPUT} />
+                </Field>
+                <Field label="Auto-accept preview threshold" hint="Optional">
+                  <input value={autoAcceptThreshold} onChange={e => setAutoAcceptThreshold(e.target.value)} inputMode="numeric" placeholder="90" className={INPUT} />
+                </Field>
+              </div>
+
+              <Field label="Required credentials" hint="Comma-separated labels used by the automation engine">
+                <textarea
+                  value={requiredCredentials}
+                  onChange={e => setRequiredCredentials(e.target.value)}
+                  rows={3}
+                  placeholder="Active CA license, Board certification, DEA registration"
+                  className={`${INPUT} resize-none`}
+                />
+              </Field>
+
+              <label className="flex items-start gap-3 rounded-xl border border-vt-neutral-800 px-4 py-3">
+                <input type="checkbox" checked={notifyEmployer} onChange={e => setNotifyEmployer(e.target.checked)} className="mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-white">Notify employer workflow</p>
+                  <p className="mt-1 text-xs text-vt-neutral-200">Marks recommendations as eligible for employer notification and webhook fan-out.</p>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3 rounded-xl border border-vt-neutral-800 px-4 py-3">
+                <input type="checkbox" checked={notifyClinician} onChange={e => setNotifyClinician(e.target.checked)} className="mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-white">Create clinician credential requests</p>
+                  <p className="mt-1 text-xs text-vt-neutral-200">Turns missing-credential findings into clinician-facing request workflows instead of passive review notes.</p>
                 </div>
               </label>
             </div>

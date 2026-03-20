@@ -5,6 +5,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Sparkles } from 'lucide-react';
+import { Suspense } from 'react';
 import ExploreClient from '@/components/explore/ExploreClient';
 import PrequalifyTrigger from '@/components/prequalify/PrequalifyTrigger';
 
@@ -24,16 +25,16 @@ export default function ExplorePage() {
           Trust-Native Matching
         </span>
         <h1 className="heading-xl mt-3 text-white">
-          Find Your Next<br />
-          <span className="text-vt-success">Clinical Role.</span>
+          Opportunities You&apos;re<br />
+          <span className="text-vt-success">Already Cleared For.</span>
         </h1>
         <p className="body-lg mx-auto mt-4 max-w-xl text-vt-neutral-200">
-          Every opportunity shows your readiness before you apply.
-          Know exactly what's blocking you — and fix it in one click.
+          Every role shows your readiness instantly. Know exactly what&apos;s
+          blocking you — and resolve it before you apply.
         </p>
         <div className="mt-8 flex items-center justify-center gap-3 flex-wrap">
           <PrequalifyTrigger
-            label="Get Prequalified Free"
+            label="Get Verified Free"
             className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-[oklch(0.22_0.01_60)] hover:bg-white/90"
           />
           <Link
@@ -46,7 +47,15 @@ export default function ExplorePage() {
       </section>
 
       {/* Opportunities board */}
-      <ExploreClient />
+      <Suspense
+        fallback={(
+          <div className="flex items-center justify-center px-6 py-16 text-sm text-vt-neutral-300">
+            Loading opportunities…
+          </div>
+        )}
+      >
+        <ExploreClient />
+      </Suspense>
     </div>
   );
 }

@@ -1,33 +1,22 @@
-'use client';
+import { NpiOnboardingStep } from '@/components/onboarding/OnboardingFlowSteps';
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
 
-import * as React from 'react';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ActionInput } from '@/components/onboarding/ActionInput';
+export default async function NPIEntryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ returnTo?: string }>;
+}) {
+  const session = await auth();
+  const params = await searchParams;
+  const returnTo = typeof params.returnTo === 'string' ? params.returnTo : null;
 
-export default function NPIEntryPage() {
-  const [npi, setNpi] = useState('');
-  const router = useRouter();
+  if (!session.userId) {
+    const redirectUrl = returnTo
+      ? `/onboarding?returnTo=${encodeURIComponent(returnTo)}`
+      : '/onboarding';
+    redirect(`/sign-in?redirect_url=${encodeURIComponent(redirectUrl)}`);
+  }
 
-  const handleAction = () => {
-    if (npi.length === 10) {
-      // Persist NPI across onboarding steps via sessionStorage
-      sessionStorage.setItem('onboarding_npi', npi);
-      router.push('/onboarding/readiness');
-    }
-  };
-
-  return (
-    <ActionInput
-      label="What is your NPI number?"
-      value={npi}
-      onChange={setNpi}
-      onAction={handleAction}
-      isValid={npi.length === 10}
-      placeholder="1234567890"
-      type="text"
-      maxLength={10}
-      pattern="\d*"
-    />
-  );
+  return <NpiOnboardingStep returnTo={returnTo} />;
 }

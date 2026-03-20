@@ -1,27 +1,12 @@
-'use client';
+import { IdentityOnboardingStep } from '@/components/onboarding/OnboardingFlowSteps';
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
 
-import * as React from 'react';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+export default async function IdentityPage() {
+  const session = await auth();
+  if (!session.userId) {
+    redirect('/sign-in?redirect_url=%2Fonboarding%2Fidentity');
+  }
 
-/**
- * /onboarding/identity — Identity confirmation step.
- * Reads NPI from sessionStorage (set by /onboarding) and routes to:
- *   - /onboarding/fetching  → if NPI is present (triggers real NPPES ingestion)
- *   - /onboarding           → if no NPI (restart)
- */
-export default function IdentityPage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    const npi = sessionStorage.getItem('onboarding_npi');
-    // Route through fetching (real ingestion) — not directly to readiness
-    router.replace(npi ? '/onboarding/fetching' : '/onboarding');
-  }, [router]);
-
-  return (
-    <div className="w-full max-w-2xl mx-auto flex min-h-[50vh] items-center justify-center">
-      <p className="text-lg text-white/60">Verifying identity…</p>
-    </div>
-  );
+  return <IdentityOnboardingStep />;
 }
