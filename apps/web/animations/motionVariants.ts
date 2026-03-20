@@ -46,13 +46,14 @@ export const hoverElevate: Variants = {
     scale: 1.01,
     boxShadow: '0 8px 32px oklch(0.30 0.01 60 / 0.10)',
     transition: {
-      duration: durations.normal,
-      ease: easings.easeOut,
+      duration: 0.32,
+      ease: [0.2, 0.8, 0.2, 1],
     },
   },
   tap: {
     y: 0,
     scale: 0.995,
+    transition: { duration: 0.28, ease: [0.2, 0.8, 0.2, 1] },
   },
 };
 
@@ -167,6 +168,75 @@ export const heroStagger: Variants = {
       when: 'beforeChildren',
       staggerChildren: 0.15,
       delayChildren: 0.1,
+    },
+  },
+};
+
+/* ── Control Feel variants (instant, resolute — no spring) ── */
+
+/** Instant snap for command surfaces — 80ms, no spring, no bounce */
+export const commandSnap: Variants = {
+  hidden: { opacity: 0, scale: 0.97 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: {
+      duration: 0.08,
+      ease: [0.16, 1, 0.3, 1],
+    },
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.97,
+    transition: { duration: 0.06, ease: [0.33, 1, 0.68, 1] },
+  },
+};
+
+/** Ultra-subtle hover for control surfaces — 1px lift, 320ms system curve */
+export const controlHover: Variants = {
+  rest: {
+    y: 0,
+    scale: 1,
+    boxShadow: '0 1px 4px oklch(0 0 0 / 0.10)',
+  },
+  hover: {
+    y: -1,
+    scale: 1,
+    boxShadow: '0 2px 8px oklch(0 0 0 / 0.15)',
+    transition: {
+      duration: 0.32,
+      ease: [0.2, 0.8, 0.2, 1],
+    },
+  },
+  tap: {
+    y: 0,
+    scale: 0.995,
+    transition: { duration: 0.28, ease: [0.2, 0.8, 0.2, 1] },
+  },
+};
+
+/** Post-action confirmation pulse — brief scale + glow, 280ms total */
+export const commandExecuted: Variants = {
+  idle: { scale: 1, opacity: 1 },
+  executed: {
+    scale: [1, 1.02, 1],
+    opacity: [1, 0.97, 1],
+    transition: {
+      duration: 0.28,
+      ease: [0.2, 0.8, 0.2, 1],
+      times: [0, 0.4, 1],
+    },
+  },
+};
+
+/** Stagger container with instant timing */
+export const controlStagger: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.04,
+      delayChildren: 0.02,
     },
   },
 };

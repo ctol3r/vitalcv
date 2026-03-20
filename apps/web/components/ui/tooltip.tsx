@@ -18,15 +18,16 @@ const TooltipContent = React.forwardRef<
     data-slot="tooltip-content"
     sideOffset={sideOffset}
     className={cn(
-      'z-50 overflow-hidden rounded-md border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md',
+      'z-50 overflow-hidden rounded-md bg-popover px-3 py-1.5 text-sm text-popover-foreground',
       'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
       'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
       'data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
       className,
     )}
     style={{
-      animationDuration: 'var(--ui-motion-duration-tooltip)',
-      animationTimingFunction: 'var(--ui-motion-ease-fade-out)',
+      animationDuration: '180ms',
+      animationTimingFunction: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+      boxShadow: '0 4px 12px oklch(0 0 0 / 0.08), 0 1px 3px oklch(0 0 0 / 0.04)',
     }}
     {...props}
   />

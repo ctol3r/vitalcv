@@ -215,6 +215,46 @@
   font-weight: 700;
 }
 
+.vital-graph-tooltip__entity-context {
+  display: grid;
+  gap: 0.35rem;
+  border-top: 1px solid rgb(71 85 105 / 0.28);
+  padding-top: 0.55rem;
+}
+
+.vital-graph-tooltip__entity-row {
+  color: var(--vital-ops-text-secondary, #94a3b8);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 22rem;
+}
+
+.vital-graph-tooltip__severity-badge {
+  display: inline-block;
+  border-radius: 0.3rem;
+  padding: 0.05rem 0.3rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgb(71 85 105 / 0.3);
+  color: var(--vital-ops-text-primary);
+}
+
+.vital-graph-tooltip__severity-badge[data-severity='critical'] { background: rgb(244 63 94 / 0.3); }
+.vital-graph-tooltip__severity-badge[data-severity='high']     { background: rgb(251 146 60 / 0.3); }
+.vital-graph-tooltip__severity-badge[data-severity='medium']   { background: rgb(250 204 21 / 0.25); }
+
+.vital-graph-tooltip__backlink-count {
+  color: var(--vital-ops-text-muted, #64748b);
+  font-size: 0.64rem;
+  font-style: italic;
+  padding-top: 0.2rem;
+}
+
 .tippy-box[data-theme~='vital-graph'] {
   border: 1px solid rgb(56 189 248 / 0.22);
   border-radius: 0.9rem;

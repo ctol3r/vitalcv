@@ -1,17 +1,12 @@
 'use client';
 
 /**
- * PrequalifyTrigger — Wave 182
- * Button that opens PrequalifyModal. Drop this anywhere: homepage, /explore, employer cards.
+ * PrequalifyTrigger — routes users into the real onboarding flow.
  */
 
 import { FEATURES } from '@/lib/features';
 import { Zap } from 'lucide-react';
-import dynamic from 'next/dynamic';
-import { useState } from 'react';
-
-// Lazy-load to avoid SSR issues with AnimatePresence
-const PrequalifyModal = dynamic(() => import('./PrequalifyModal'), { ssr: false });
+import Link from 'next/link';
 
 interface PrequalifyTriggerProps {
   label?: string;
@@ -24,8 +19,6 @@ export default function PrequalifyTrigger({
   className = '',
   variant = 'primary',
 }: PrequalifyTriggerProps) {
-  const [open, setOpen] = useState(false);
-
   if (!FEATURES.PREQUALIFY_FLOW_V2) return null;
 
   const base = variant === 'primary'
@@ -33,16 +26,9 @@ export default function PrequalifyTrigger({
     : 'inline-flex items-center gap-2 rounded-full vt-glass px-6 py-3 text-sm font-medium text-white hover:bg-vt-surface-ops-raised transition';
 
   return (
-    <>
-      <button
-        onClick={() => setOpen(true)}
-        className={`${base} ${className}`}
-        aria-haspopup="dialog"
-      >
-        <Zap className="h-4 w-4" />
-        {label}
-      </button>
-      <PrequalifyModal open={open} onClose={() => setOpen(false)} />
-    </>
+    <Link href="/onboarding" className={`${base} ${className}`}>
+      <Zap className="h-4 w-4" />
+      {label}
+    </Link>
   );
 }

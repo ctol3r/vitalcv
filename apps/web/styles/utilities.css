@@ -108,6 +108,35 @@
   .divide-ops > * + * {
     border-color: var(--vt-divider-ops);
   }
+
+  /* ─── Control Feel Utilities (instant, resolute) ─────────── */
+
+  /* Instant transition — 80ms snap with sharp decelerate */
+  .instant-transition {
+    transition: all var(--duration-snap, 80ms) var(--ease-control, cubic-bezier(0.16, 1, 0.3, 1));
+  }
+
+  /* Control hover — ultra-subtle 1px lift, no spring */
+  .control-hover {
+    transition: all var(--duration-snap, 80ms) var(--ease-control, cubic-bezier(0.16, 1, 0.3, 1));
+  }
+  .control-hover:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px oklch(0 0 0 / 0.15);
+  }
+  .control-hover:active {
+    transform: translateY(0) scale(0.995);
+  }
+
+  /* Control surface — crisp border response on hover */
+  .control-surface {
+    transition: border-color var(--duration-snap, 80ms) var(--ease-control),
+                background-color var(--duration-snap, 80ms) var(--ease-control);
+  }
+  .control-surface:hover {
+    border-color: var(--palette-neutral-600, oklch(0.442 0 0));
+    background-color: oklch(0.10 0.005 255);
+  }
 }
 
 /* Scroll Revel Animations (Native CSS View Timelines) */
@@ -160,4 +189,35 @@ button:active, .vt-btn-micro:active {
 }
 button:hover, .vt-btn-micro:hover {
   box-shadow: 0 4px 12px rgba(255,255,255,0.05);
+}
+
+/* ── Command Feedback Animations ─────────────────────────── */
+
+@keyframes command-pulse {
+  0% { opacity: 0; transform: scale(0.97); }
+  40% { opacity: 1; transform: scale(1.02); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.command-pulse {
+  animation: command-pulse 200ms cubic-bezier(0.33, 1, 0.68, 1) both;
+}
+
+@keyframes command-ripple {
+  0% { transform: scale(0); opacity: 0.08; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+.command-ripple {
+  animation: command-ripple 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Status indicator pulse (for "system alive" feel) */
+@keyframes status-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.status-pulse {
+  animation: status-pulse 2s ease-in-out infinite;
 }

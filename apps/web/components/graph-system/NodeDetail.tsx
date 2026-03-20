@@ -25,7 +25,7 @@ import {
   Waypoints,
   X,
 } from 'lucide-react';
-import { buildIntelligenceHref } from '@/lib/intelligence/routes';
+import { buildIntelligenceHref, normalizeIntelligenceHref } from '@/lib/intelligence/routes';
 import { cn } from '@/lib/utils';
 import type { GraphEdge, GraphNode } from './types';
 import {
@@ -220,7 +220,7 @@ function ContextLink({
 }) {
   return (
     <Link
-      href={href}
+      href={normalizeIntelligenceHref(href)}
       className="inline-flex items-center rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-xs text-white/72 transition-colors hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
     >
       {label}

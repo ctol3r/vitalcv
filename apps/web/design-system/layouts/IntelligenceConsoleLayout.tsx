@@ -5,13 +5,9 @@ import { buildIntelligenceGraphHref, buildIntelligenceHref, deriveIntelligenceNa
 import { cn } from '@/lib/utils';
 
 const DEFAULT_NAV = [
-  { key: 'dashboard', href: buildIntelligenceHref('dashboard'), label: 'Canvas' },
-  { key: 'findings', href: buildIntelligenceHref('findings'), label: 'Findings' },
-  { key: 'providers', href: buildIntelligenceHref('providers'), label: 'Providers' },
-  { key: 'storylines', href: buildIntelligenceHref('storylines'), label: 'Storylines' },
-  { key: 'graph', href: buildIntelligenceGraphHref(), label: 'Graph' },
+  { key: 'dashboard', href: buildIntelligenceHref('dashboard'), label: 'Monitor' },
   { key: 'investigations', href: buildIntelligenceHref('investigations'), label: 'Investigate' },
-  { key: 'actions', href: buildIntelligenceHref('actions'), label: 'Actions' },
+  { key: 'actions', href: buildIntelligenceHref('actions'), label: 'Decide' },
 ] as const;
 
 export interface ConsoleBreadcrumb {

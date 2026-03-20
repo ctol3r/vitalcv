@@ -30,6 +30,7 @@
  */
 
 import Link from 'next/link';
+import { normalizeIntelligenceHref } from '@/lib/intelligence/routes';
 import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
 import type React from 'react';
 import { motion } from 'framer-motion';
@@ -414,8 +415,9 @@ export function VBackLink({ href, label }: { href: string; label: string }) {
 }
 
 export function VEntityLink({ href, label }: { href: string; label: string }) {
+  const normalizedHref = normalizeIntelligenceHref(href);
   return (
-    <Link href={href} className="inline-flex items-center rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-2 py-1 text-[10px] uppercase tracking-widest font-semibold text-[var(--vt-text-2)] transition hover:bg-[var(--vt-border)] hover:text-[var(--vt-text-1)]">
+    <Link href={normalizedHref} className="inline-flex items-center rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-2 py-1 text-[10px] uppercase tracking-widest font-semibold text-[var(--vt-text-2)] transition hover:bg-[var(--vt-border)] hover:text-[var(--vt-text-1)]">
       {label}
     </Link>
   );

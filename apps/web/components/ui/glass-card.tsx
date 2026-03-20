@@ -3,7 +3,7 @@
 import { HTMLMotionProps, motion } from 'framer-motion';
 import * as React from 'react';
 
-import { hoverElevate } from '@/animations/motionVariants';
+import { controlHover } from '@/animations/motionVariants';
 import { cn } from '@/lib/utils';
 
 type GlassWeight = 'light' | 'heavy';
@@ -30,7 +30,7 @@ const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
       <motion.div
         ref={ref}
         data-slot="glass-card"
-        variants={interactive ? hoverElevate : undefined}
+        variants={interactive ? controlHover : undefined}
         initial={interactive ? 'rest' : undefined}
         whileHover={interactive ? 'hover' : undefined}
         whileTap={interactive ? 'tap' : undefined}

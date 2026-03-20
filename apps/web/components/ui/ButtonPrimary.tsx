@@ -1,6 +1,6 @@
 'use client';
 
-import { hoverElevate } from '@/animations/motionVariants';
+import { controlHover } from '@/animations/motionVariants';
 import { cn } from '@/lib/utils';
 import { HTMLMotionProps, motion } from 'framer-motion';
 import * as React from 'react';
@@ -18,7 +18,7 @@ export const ButtonPrimary = React.forwardRef<HTMLButtonElement, ButtonPrimaryPr
     return (
       <motion.button
         ref={ref}
-        variants={hoverElevate}
+        variants={controlHover}
         initial="rest"
         whileHover={isDisabled ? undefined : 'hover'}
         whileTap={isDisabled ? undefined : 'tap'}

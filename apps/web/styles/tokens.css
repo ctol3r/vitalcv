@@ -127,30 +127,47 @@
 }
 
 /* ── 3. Motion Tokens ─────────────────────────────────────────────────────── */
+/*
+ * SYSTEM CURVE: cubic-bezier(0.2, 0.8, 0.2, 1)
+ * DURATION RANGE: 280ms – 420ms (no motion outside this band)
+ */
 
 :root {
-  /* Easing curves */
-  --ease-standard:   cubic-bezier(0, 0, 0.2, 1);        /* ease-out */
-  --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);        /* ease-out */
-  --ease-accelerate: cubic-bezier(0.4, 0, 1, 1);        /* ease-in */
-  --ease-spring:     cubic-bezier(0, 0, 0.2, 1);        /* replaced with ease-out */
-  --ease-bounce:     cubic-bezier(0, 0, 0.2, 1);        /* replaced with ease-out */
+  /* ── Canonical system easing ─────────────────────────── */
+  --vt-ease-system:    cubic-bezier(0.2, 0.8, 0.2, 1);
+  --vt-duration-interact: 320ms;
 
-  /* Durations */
-  --duration-instant:  100ms;
-  --duration-fast:     150ms;
-  --duration-normal:   200ms;
-  --duration-slow:     300ms;
-  --duration-xslow:    400ms;
+  /* Easing curves (all resolve to system curve) */
+  --ease-standard:   var(--vt-ease-system);
+  --ease-decelerate: var(--vt-ease-system);
+  --ease-accelerate: cubic-bezier(0.4, 0, 1, 1);        /* ease-in (rare) */
+  --ease-spring:     var(--vt-ease-system);
+  --ease-bounce:     var(--vt-ease-system);
+
+  /* Durations — locked to 280–420ms band */
+  --duration-instant:  280ms;
+  --duration-fast:     280ms;
+  --duration-normal:   320ms;
+  --duration-slow:     380ms;
+  --duration-xslow:    420ms;
   --duration-stagger:  50ms;
 
+  /* Control-feel durations */
+  --duration-snap:     280ms;
+  --duration-respond:  280ms;
+
+  /* Control-feel easing */
+  --ease-control:      var(--vt-ease-system);
+  --ease-command:      var(--vt-ease-system);
+
   /* Transition presets */
-  --transition-colors:    color var(--duration-fast) var(--ease-standard),
-                          background-color var(--duration-fast) var(--ease-standard),
-                          border-color var(--duration-fast) var(--ease-standard),
-                          opacity var(--duration-fast) var(--ease-standard);
-  --transition-transform: transform var(--duration-normal) var(--ease-standard);
-  --transition-all:       all var(--duration-normal) var(--ease-standard);
+  --transition-colors:    color var(--duration-fast) var(--vt-ease-system),
+                          background-color var(--duration-fast) var(--vt-ease-system),
+                          border-color var(--duration-fast) var(--vt-ease-system),
+                          opacity var(--duration-fast) var(--vt-ease-system);
+  --transition-transform: transform var(--duration-normal) var(--vt-ease-system);
+  --transition-all:       all var(--duration-normal) var(--vt-ease-system);
+  --transition-control:   all var(--duration-snap) var(--vt-ease-system);
 }
 
 /* ── 4. Shadow / Elevation Tokens ─────────────────────────────────────────── */

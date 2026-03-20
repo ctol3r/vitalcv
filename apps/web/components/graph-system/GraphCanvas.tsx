@@ -41,6 +41,7 @@ interface Props {
   onEdgeHoverDetailChange?: (detail: GraphEdgeHoverDetail | null) => void;
   onLayoutSnapshotChange?: (snapshot: GraphLayoutSnapshot | null) => void;
   disableInternalTooltip?: boolean;
+  getTooltipContext?: ((nodeId: string) => import('@/lib/intelligence/entity-registry').TooltipEntityContext | null) | null;
   width: number;
   height: number;
   layoutVersion?: number;
@@ -122,6 +123,7 @@ export default React.memo(function GraphCanvas({
   onEdgeHoverDetailChange,
   onLayoutSnapshotChange,
   disableInternalTooltip = false,
+  getTooltipContext,
   width,
   height,
   layoutVersion = 0,
@@ -248,7 +250,8 @@ export default React.memo(function GraphCanvas({
     layoutScopeKey,
   });
 
-  const { showTooltip, hideTooltip } = useTippyGraph(canvasRef);
+  const tippyOptions = useMemo(() => ({ getTooltipContext: getTooltipContext ?? null }), [getTooltipContext]);
+  const { showTooltip, hideTooltip } = useTippyGraph(canvasRef, tippyOptions);
 
   const emitViewportChange = useCallback(() => {
     const nextViewport: GraphViewportState = {

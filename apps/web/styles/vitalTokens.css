@@ -83,6 +83,37 @@
   --vt-shadow-md:             0 8px 16px -4px oklch(0 0 0 / 0.04), 0 4px 8px -2px oklch(0 0 0 / 0.02);
   --vt-shadow-lg:             0 16px 32px -8px oklch(0 0 0 / 0.06), 0 8px 16px -4px oklch(0 0 0 / 0.03);
   --vt-shadow-glow:           0 0 30px oklch(0.55 0.20 255 / 0.3);
+
+  /* ── Control Feel — Semantic Tokens (3-color discipline) ──── */
+  --control-surface:          oklch(0.06 0.005 255);   /* near-black */
+  --control-surface-raised:   oklch(0.09 0.006 255);   /* panels */
+  --control-text:             oklch(0.92 0 0);          /* primary text: near-white */
+  --control-text-muted:       oklch(0.50 0 0);          /* secondary text */
+  --control-text-subtle:      oklch(0.35 0 0);          /* tertiary / labels */
+  --control-accent:           oklch(0.55 0.20 255);     /* trust blue — the one accent */
+  --control-accent-muted:     oklch(0.40 0.12 255);     /* accent dimmed */
+  --control-success:          oklch(0.68 0.18 155);     /* green — sparingly */
+  --control-border:           oklch(0.20 0.008 255);    /* default border */
+  --control-border-hover:     oklch(0.30 0.010 255);    /* hover border */
+
+  /* ── Metric Display Typography ───────────────────────────── */
+  --type-metric-xl-size:      clamp(2.5rem, 4vw, 4rem);
+  --type-metric-xl-line:      1.0;
+  --type-metric-xl-weight:    700;
+  --type-metric-xl-tracking:  -0.04em;
+  --type-metric-xl-font:      var(--font-display);
+
+  --type-metric-lg-size:      clamp(1.5rem, 3vw, 2.5rem);
+  --type-metric-lg-line:      1.1;
+  --type-metric-lg-weight:    700;
+  --type-metric-lg-tracking:  -0.03em;
+  --type-metric-lg-font:      var(--font-display);
+
+  --type-metric-sm-size:      clamp(1rem, 2vw, 1.25rem);
+  --type-metric-sm-line:      1.2;
+  --type-metric-sm-weight:    600;
+  --type-metric-sm-tracking:  -0.02em;
+  --type-metric-sm-font:      var(--font-display);
 }
 
 /* ── Dark Mode Support (Prepared for later) ──────────────────── */

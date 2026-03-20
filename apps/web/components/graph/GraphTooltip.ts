@@ -1,9 +1,11 @@
 import type { GraphNode } from '@/components/graph-system/types';
 import { formatGraphNodeType } from '@/components/graph/state/graphDisplayState';
+import type { TooltipEntityContext } from '@/lib/intelligence/entity-registry';
 
 interface GraphTooltipOptions {
   node: GraphNode;
   relationshipCount: number;
+  entityContext?: TooltipEntityContext | null;
 }
 
 function appendMetric(
@@ -29,6 +31,7 @@ function appendMetric(
 export function buildGraphTooltipContent({
   node,
   relationshipCount,
+  entityContext,
 }: GraphTooltipOptions): HTMLElement {
   const root = document.createElement('div');
   root.className = 'vital-graph-tooltip';
@@ -56,5 +59,53 @@ export function buildGraphTooltipContent({
 
   root.append(metricGrid);
 
+  if (entityContext) {
+    appendEntityContext(root, entityContext);
+  }
+
   return root;
+}
+
+function appendEntityContext(root: HTMLElement, ctx: TooltipEntityContext): void {
+  const section = document.createElement('div');
+  section.className = 'vital-graph-tooltip__entity-context';
+
+  if (ctx.provider) {
+    const row = document.createElement('div');
+    row.className = 'vital-graph-tooltip__entity-row';
+    row.textContent = `${ctx.provider.name} (NPI ${ctx.provider.npi}) · Trust ${ctx.provider.trustScore}`;
+    section.append(row);
+  }
+
+  for (const finding of ctx.findings) {
+    const row = document.createElement('div');
+    row.className = 'vital-graph-tooltip__entity-row';
+
+    const badge = document.createElement('span');
+    badge.className = 'vital-graph-tooltip__severity-badge';
+    badge.dataset.severity = finding.severity;
+    badge.textContent = finding.severity;
+
+    const text = document.createElement('span');
+    text.textContent = ` ${finding.title}`;
+
+    row.append(badge, text);
+    section.append(row);
+  }
+
+  for (const storyline of ctx.storylines) {
+    const row = document.createElement('div');
+    row.className = 'vital-graph-tooltip__entity-row';
+    row.textContent = storyline.title;
+    section.append(row);
+  }
+
+  if (ctx.backlinkCount > 0) {
+    const footer = document.createElement('div');
+    footer.className = 'vital-graph-tooltip__backlink-count';
+    footer.textContent = `Referenced by ${ctx.backlinkCount} entit${ctx.backlinkCount === 1 ? 'y' : 'ies'}`;
+    section.append(footer);
+  }
+
+  root.append(section);
 }

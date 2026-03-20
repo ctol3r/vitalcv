@@ -8,11 +8,10 @@
  */
 
 import { FEATURES } from '@/lib/features';
+import { useRoleContext } from '@/components/auth/RoleContext';
 import { X, Zap } from 'lucide-react';
-import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useState } from 'react';
-
-const PrequalifyModal = dynamic(() => import('./PrequalifyModal'), { ssr: false });
 
 interface Step { label: string; done: boolean }
 
@@ -29,10 +28,10 @@ interface PrequalifyBarProps {
 }
 
 export default function PrequalifyBar({ steps = DEFAULT_STEPS, dismissed = false }: PrequalifyBarProps) {
+  const { isEmployer } = useRoleContext();
   const [hidden, setHidden]   = useState(dismissed);
-  const [open, setOpen]       = useState(false);
 
-  if (!FEATURES.PREQUALIFY_FLOW_V2 || hidden) return null;
+  if (!FEATURES.PREQUALIFY_FLOW_V2 || hidden || isEmployer) return null;
 
   const completed = steps.filter((s) => s.done).length;
   const pct       = Math.round((completed / steps.length) * 100);
@@ -74,14 +73,13 @@ export default function PrequalifyBar({ steps = DEFAULT_STEPS, dismissed = false
 
           {/* CTA */}
           <div className="flex shrink-0 items-center gap-2">
-            <button
-              onClick={() => setOpen(true)}
+            <Link
+              href="/onboarding"
               className="inline-flex items-center gap-1.5 rounded-full bg-vt-success px-4 py-2 text-xs font-semibold text-black hover:bg-vt-success/90 transition"
-              aria-haspopup="dialog"
             >
               <Zap className="h-3.5 w-3.5" />
               {completed === 0 ? 'Get Prequalified' : 'Continue'}
-            </button>
+            </Link>
             <button
               onClick={() => setHidden(true)}
               aria-label="Dismiss prequalification bar"
@@ -92,8 +90,6 @@ export default function PrequalifyBar({ steps = DEFAULT_STEPS, dismissed = false
           </div>
         </div>
       </div>
-
-      <PrequalifyModal open={open} onClose={() => setOpen(false)} />
     </>
   );
 }

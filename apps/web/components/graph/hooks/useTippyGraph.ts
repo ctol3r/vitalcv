@@ -6,6 +6,7 @@ import type { Instance } from 'tippy.js';
 import tippy from 'tippy.js';
 import type { GraphNode } from '@/components/graph-system/types';
 import { buildGraphTooltipContent } from '@/components/graph/GraphTooltip';
+import type { TooltipEntityContext } from '@/lib/intelligence/entity-registry';
 import { motionDurations } from '@/ui/animation/motion';
 
 interface TooltipPoint {
@@ -13,7 +14,14 @@ interface TooltipPoint {
   clientY: number;
 }
 
-export function useTippyGraph(canvasRef: RefObject<HTMLCanvasElement | null>) {
+export interface TippyGraphOptions {
+  getTooltipContext?: ((nodeId: string) => TooltipEntityContext | null) | null;
+}
+
+export function useTippyGraph(
+  canvasRef: RefObject<HTMLCanvasElement | null>,
+  options?: TippyGraphOptions,
+) {
   const tooltipRef = useRef<Instance | null>(null);
 
   useEffect(() => {
@@ -69,9 +77,10 @@ export function useTippyGraph(canvasRef: RefObject<HTMLCanvasElement | null>) {
         toJSON: () => '',
       }),
     });
-    tooltip.setContent(buildGraphTooltipContent({ node, relationshipCount }));
+    const entityContext = options?.getTooltipContext?.(node.id) ?? null;
+    tooltip.setContent(buildGraphTooltipContent({ node, relationshipCount, entityContext }));
     tooltip.show();
-  }, []);
+  }, [options]);
 
   return {
     showTooltip,

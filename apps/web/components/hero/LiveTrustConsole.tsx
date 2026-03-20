@@ -1,27 +1,25 @@
 'use client';
 
 /**
- * LiveTrustConsole — Wave 231 / Medical-Grade Antigravity
+ * LiveTrustConsole — "Inevitable" Hero
  *
- * Design language: Apple Health × Stripe × prestigious medical journal.
- * Deep navy authority. Human copy. Clean credential cards.
- * Modern and unconventional — but trustworthy, not techy.
+ * Single message. Single CTA. Real flow preview.
+ * "Get cleared to work in hours, not months."
  */
 
 import { motion } from 'framer-motion';
 import { CheckCircle2, FileCheck, Server, Shield, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { FloatingCredentials } from '../motion/FloatingCredentials';
 import { MagneticButton } from '../ui/MagneticButton';
 
 /* ── Verification pipeline ──────────────────────────────────── */
 
 const PIPELINE_STAGES = [
-  { id: 'ingest', label: 'NPI lookup', icon: Server },
-  { id: 'psv', label: 'Primary source', icon: Shield },
-  { id: 'ledger', label: 'Audit ledger', icon: FileCheck },
-  { id: 'clear', label: 'Cleared', icon: CheckCircle2 },
+  { id: 'ingest', label: 'NPI lookup', source: 'via NPPES', icon: Server },
+  { id: 'psv', label: 'Primary source', source: 'via State Medical Board', icon: Shield },
+  { id: 'ledger', label: 'Audit ledger', source: 'SHA-256 anchored', icon: FileCheck },
+  { id: 'clear', label: 'Cleared', source: 'PSV complete', icon: CheckCircle2 },
 ];
 
 function VerificationPipeline() {
@@ -34,11 +32,13 @@ function VerificationPipeline() {
     return () => clearInterval(interval);
   }, []);
 
+  const allCleared = activeStage === PIPELINE_STAGES.length - 1;
+
   return (
     <div className="rounded-2xl border border-white/10 bg-white/4 p-5">
       <div className="flex items-center justify-between mb-4">
         <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">
-          Verification running
+          Live verification
         </span>
         <span className="flex h-1.5 w-1.5 relative">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
@@ -71,48 +71,26 @@ function VerificationPipeline() {
               <span className="text-[9px] font-medium text-white/50 uppercase tracking-wider text-center w-16 leading-tight">
                 {stage.label}
               </span>
+              {/* Source attribution */}
+              <span className={`text-[8px] text-center w-20 leading-tight transition-opacity duration-300 ${isActive || isPassed ? 'text-emerald-400/60' : 'text-white/20'}`}>
+                {stage.source}
+              </span>
             </div>
           );
         })}
       </div>
-    </div>
-  );
-}
 
-/* ── Trust Passport card ─────────────────────────────────────── */
-
-const CREDENTIAL_ITEMS = [
-  { label: 'Medical License', detail: 'California · Active through 2026', status: 'verified' },
-  { label: 'Board Certification', detail: 'ABIM · Internal Medicine', status: 'verified' },
-  { label: 'DEA Registration', detail: 'Schedules II – V · Current', status: 'verified' },
-  { label: 'NPDB / OIG', detail: 'No adverse actions on file', status: 'clear' },
-];
-
-function TrustPassportCard() {
-  return (
-    <div className="rounded-2xl border border-emerald-500/15 bg-gradient-to-b from-emerald-500/8 to-transparent p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400/70">
-            Trust Passport
-          </p>
-          <p className="text-xs text-white/55 mt-0.5">Dr. Sarah Chen · NPI 1003000126</p>
-        </div>
-        <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/20 px-2.5 py-1">
-          <CheckCircle2 className="h-3 w-3 text-emerald-400" />
-          <span className="text-[10px] font-semibold text-emerald-400">Verified</span>
-        </div>
-      </div>
-      <div className="space-y-2.5">
-        {CREDENTIAL_ITEMS.map(item => (
-          <div key={item.label} className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-medium text-white/70">{item.label}</p>
-              <p className="text-[10px] text-white/55 mt-0.5">{item.detail}</p>
-            </div>
-            <div className={`flex-shrink-0 h-1.5 w-1.5 rounded-full mt-1.5 ${item.status === 'verified' ? 'bg-emerald-400' : 'bg-blue-400'}`} />
-          </div>
-        ))}
+      {/* Verification timestamp + confidence */}
+      <div className="mt-4 pt-3 border-t border-white/6 flex items-center justify-between">
+        <span className="text-[10px] text-white/40">
+          Last verified: {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+        </span>
+        <motion.span
+          animate={{ opacity: allCleared ? 1 : 0.4 }}
+          className="text-[10px] font-medium text-emerald-400/70"
+        >
+          {allCleared ? '4 of 4 primary sources confirmed' : `${activeStage} of 4 sources confirmed`}
+        </motion.span>
       </div>
     </div>
   );
@@ -128,9 +106,7 @@ export function LiveTrustConsole() {
         background: 'linear-gradient(145deg, #080e1a 0%, #0b1220 50%, #07101e 100%)',
       }}
     >
-      {/* Grid removed — cleaner hero */}
-
-      {/* Radial glow — deep teal, like a hospital monitor */}
+      {/* Radial glow */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
@@ -140,71 +116,47 @@ export function LiveTrustConsole() {
         }}
       />
 
-      {/* Floating credential chips removed — cleaner hero */}
-
       {/* Main content */}
       <div className="relative z-10 mx-auto max-w-6xl px-6 py-24 sm:py-32">
         <div className="grid gap-8 lg:gap-16 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
 
-          {/* Left — clear, authoritative copy */}
+          {/* Left — singular, authoritative message */}
           <motion.div
             className="space-y-7"
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
           >
-            {/* Eyebrow — Glue pill */}
-            <div className="glue-pill" style={{ borderColor: 'rgba(16,185,129,0.25)', background: 'rgba(16,185,129,0.08)', color: '#34d399' }}>
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
-              Clinician Credentialing
-            </div>
-
-            {/* Headline — human, outcome-first, no jargon */}
+            {/* Headline — one message */}
             <h1 className="text-[clamp(2.6rem,5.5vw,5.2rem)] font-bold leading-[1.05] tracking-tight text-white">
-              Verify once.
+              Get cleared to work
               <br />
-              <span className="text-emerald-400">Use everywhere.</span>
+              <span className="text-emerald-400">in hours, not months.</span>
             </h1>
 
             <p className="max-w-lg text-lg text-white/70 leading-relaxed">
-              Create your verified clinician credential profile and keep your credentials ready.
+              Your credentials verified once. Accepted everywhere.
             </p>
 
-            {/* CTAs — Google Glue pill buttons */}
-            <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-1">
+            {/* Single CTA */}
+            <div className="pt-1">
               <MagneticButton className="w-full sm:w-auto">
-                <Link href="/onboarding" className="glue-btn glue-btn-primary w-full justify-center">
-                  Create your profile
+                <Link href="/onboarding" className="glue-btn glue-btn-primary w-full sm:w-auto justify-center">
+                  Get Verified Now
                   <Zap className="h-4 w-4" />
                 </Link>
               </MagneticButton>
-              <MagneticButton className="w-full sm:w-auto">
-                <Link href="/demo" className="glue-btn glue-btn-secondary w-full justify-center">
-                  See how it works →
-                </Link>
-              </MagneticButton>
-            </div>
-
-            {/* Social proof strip — understated */}
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/6 pt-5">
-              <span className="text-xs text-white/50">Designed for:</span>
-              {['Physicians', 'Nurse Practitioners', 'Physician Assistants', 'CRNAs', 'Locums'].map(t => (
-                <span key={t} className="text-xs text-white/60 font-medium">{t}</span>
-              ))}
             </div>
           </motion.div>
 
-          {/* Right — trust passport + pipeline */}
+          {/* Right — real flow preview + stats */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
             className="space-y-4"
           >
-            {/* Trust Passport — the product in one card */}
-            <TrustPassportCard />
-
-            {/* Verification pipeline */}
+            {/* Verification pipeline — the product in motion */}
             <VerificationPipeline />
 
             {/* Stats — clean, data-minded */}

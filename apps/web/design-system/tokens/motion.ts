@@ -1,73 +1,83 @@
 import type { Transition, Variants } from 'framer-motion';
 
+/**
+ * Motion Token System — Precision + Flow
+ *
+ * SYSTEM CURVE: [0.2, 0.8, 0.2, 1]  (all motion uses this)
+ * DURATION BAND: 280–420ms           (no motion outside this range)
+ */
+
+/** The one canonical easing array for Framer Motion */
+const SYSTEM_EASE = [0.2, 0.8, 0.2, 1] as const;
+
 export const motionTokens = {
   duration: {
-    fast: '160ms',
-    normal: '240ms',
-    slow: '360ms',
+    fast: '280ms',
+    normal: '320ms',
+    slow: '380ms',
   },
   easing: {
-    standard: 'cubic-bezier(0.2, 0, 0, 1)',
-    out: 'cubic-bezier(0, 0, 0.2, 1)',
+    standard: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+    out: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
     spring: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
   },
 } as const;
 
 export const motionEasings = {
-  standard: [0.2, 0, 0, 1] as const,
-  easeOut: [0, 0, 0.2, 1] as const,
-  spring: [0.2, 0.8, 0.2, 1] as const,
-  swiftOut: [0.2, 0.8, 0.2, 1] as const,
-  fadeOut: [0.2, 0, 0, 1] as const,
+  standard: SYSTEM_EASE,
+  easeOut: SYSTEM_EASE,
+  spring: SYSTEM_EASE,
+  swiftOut: SYSTEM_EASE,
+  fadeOut: SYSTEM_EASE,
 } as const;
 
 export const motionDurations = {
-  instant: 0.08,
-  fast: 0.16,
-  tooltip: 0.1,
-  highlight: 0.12,
-  panel: 0.14,
-  drawer: 0.14,
-  normal: 0.24,
-  slow: 0.36,
+  instant: 0.28,
+  fast: 0.28,
+  tooltip: 0.18,
+  highlight: 0.28,
+  panel: 0.32,
+  drawer: 0.36,
+  normal: 0.32,
+  slow: 0.38,
 } as const;
 
 export const motionTransitions = {
   fast: {
     duration: motionDurations.fast,
-    ease: motionEasings.standard,
+    ease: SYSTEM_EASE,
   } satisfies Transition,
   normal: {
     duration: motionDurations.normal,
-    ease: motionEasings.standard,
+    ease: SYSTEM_EASE,
   } satisfies Transition,
   slow: {
     duration: motionDurations.slow,
-    ease: motionEasings.easeOut,
+    ease: SYSTEM_EASE,
   } satisfies Transition,
   spring: {
     duration: motionDurations.normal,
-    ease: motionEasings.spring,
+    ease: SYSTEM_EASE,
   } satisfies Transition,
   hover: {
     duration: motionDurations.fast,
-    ease: motionEasings.easeOut,
+    ease: SYSTEM_EASE,
   } satisfies Transition,
   tooltip: {
     duration: motionDurations.tooltip,
-    ease: motionEasings.fadeOut,
+    ease: SYSTEM_EASE,
   } satisfies Transition,
   highlight: {
     duration: motionDurations.highlight,
-    ease: motionEasings.standard,
+    ease: SYSTEM_EASE,
   } satisfies Transition,
   panel: {
     duration: motionDurations.panel,
-    ease: motionEasings.easeOut,
+    ease: SYSTEM_EASE,
   } satisfies Transition,
   drawer: {
     duration: motionDurations.drawer,
-    ease: motionEasings.swiftOut,
+    ease: SYSTEM_EASE,
   } satisfies Transition,
 } as const;
 

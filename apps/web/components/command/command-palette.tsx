@@ -13,7 +13,6 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
-  Sparkles,
   Workflow,
 } from 'lucide-react';
 import type {
@@ -23,10 +22,15 @@ import type {
   IntelligenceStoryline,
   StorylinesResponse,
 } from '@/lib/intelligence/contracts';
+import {
+  buildCanvasOpenPanelParams,
+  type CanvasOpenPanel,
+} from '@/lib/intelligence/canvas';
+import { buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { formatRelativeTime } from '@/lib/intelligence/time';
 
 type PaletteGroup = 'Navigate' | 'Providers' | 'Findings' | 'Storylines' | 'Actions';
-type PaletteKind = 'navigation' | 'provider' | 'finding' | 'storyline' | 'action' | 'copilot';
+type PaletteKind = 'navigation' | 'provider' | 'finding' | 'storyline' | 'action';
 
 interface PaletteResult {
   id: string;
@@ -44,6 +48,97 @@ interface ProvidersResponse {
   providers?: IntelligenceProvider[];
 }
 
+interface CanvasHrefOptions {
+  mode?: 'monitor' | 'investigate' | 'decide';
+  npi?: string | null;
+  findingId?: string | null;
+  storylineId?: string | null;
+  actionId?: string | null;
+  openPanels?: readonly CanvasOpenPanel[];
+  compareNpis?: readonly string[];
+}
+
+function buildCanvasHref({
+  mode = 'monitor',
+  npi = null,
+  findingId = null,
+  storylineId = null,
+  actionId = null,
+  openPanels = [],
+  compareNpis = [],
+}: CanvasHrefOptions = {}): string {
+  const params = new URLSearchParams();
+  const focus =
+    actionId ? 'action'
+    : findingId ? 'finding'
+    : storylineId ? 'storyline'
+    : npi ? 'provider'
+    : mode === 'decide' ? 'actions'
+    : mode === 'investigate' ? 'investigations'
+    : 'dashboard';
+
+  if (focus !== 'dashboard') {
+    params.set('focus', focus);
+  }
+
+  if (mode !== 'monitor') {
+    params.set('mode', mode);
+  }
+
+  if (focus === 'provider' && npi) {
+    params.set('id', npi);
+  } else if (focus === 'finding' && findingId) {
+    params.set('id', findingId);
+  } else if (focus === 'storyline' && storylineId) {
+    params.set('id', storylineId);
+  } else if (focus === 'action' && actionId) {
+    params.set('id', actionId);
+  }
+
+  if (npi && !(focus === 'provider' && params.get('id') === npi)) {
+    params.set('provider', npi);
+  }
+  if (findingId && !(focus === 'finding' && params.get('id') === findingId)) {
+    params.set('findingId', findingId);
+  }
+  if (storylineId && !(focus === 'storyline' && params.get('id') === storylineId)) {
+    params.set('storylineId', storylineId);
+  }
+  if (actionId && !(focus === 'action' && params.get('id') === actionId)) {
+    params.set('actionId', actionId);
+  }
+
+  for (const panel of buildCanvasOpenPanelParams(openPanels)) {
+    params.append('open', panel);
+  }
+
+  for (const compareNpi of compareNpis) {
+    params.append('pin', `provider:${compareNpi}`);
+  }
+
+  const query = params.toString();
+  return `/intelligence${query ? `?${query}` : ''}`;
+}
+
+function buildFindingHref(finding: IntelligenceFinding): string {
+  return buildCanvasHref({
+    mode: 'investigate',
+    npi: finding.providerNpi,
+    findingId: finding.id,
+    storylineId: finding.storylineId,
+    openPanels: finding.storylineId ? ['provider', 'finding', 'storyline'] : ['provider', 'finding'],
+  });
+}
+
+function buildStorylineHref(storyline: IntelligenceStoryline): string {
+  return buildCanvasHref({
+    mode: 'investigate',
+    npi: storyline.providerNpi,
+    storylineId: storyline.id,
+    openPanels: ['provider', 'storyline'],
+  });
+}
+
 const NAVIGATION_RESULTS: Array<{
   id: string;
   title: string;
@@ -54,47 +149,29 @@ const NAVIGATION_RESULTS: Array<{
   icon: typeof Search;
 }> = [
   {
-    id: 'nav-dashboard',
-    title: 'Open dashboard',
-    subtitle: 'Intelligence console',
-    detail: 'Launch overview with provider readiness, health posture, and pressure.',
-    href: '/intelligence?view=dashboard',
-    keywords: ['dashboard', 'overview', 'home', 'console'],
+    id: 'nav-monitor',
+    title: 'Open monitor canvas',
+    subtitle: 'Intelligence OS',
+    detail: 'Unified queue of findings, providers, and storylines on top of the persistent graph.',
+    href: buildCanvasHref(),
+    keywords: ['monitor', 'canvas', 'intelligence', 'queue', 'overview', 'home', 'console'],
     icon: LayoutDashboard,
   },
   {
-    id: 'nav-provider-profile',
-    title: 'Open provider profile',
-    subtitle: 'Intelligence console',
-    detail: 'Focused provider posture with direct storylines and action context.',
-    href: '/intelligence?view=provider-profile',
-    keywords: ['provider', 'profile', 'focus'],
+    id: 'nav-decide',
+    title: 'Open decision board',
+    subtitle: 'Intelligence OS',
+    detail: 'Decision blocks for pending actions with direct links back into investigate mode.',
+    href: buildIntelligenceHref('actions'),
+    keywords: ['decide', 'decision', 'actions', 'approvals'],
     icon: ShieldCheck,
-  },
-  {
-    id: 'nav-investigation',
-    title: 'Open investigation workspace',
-    subtitle: 'Intelligence console',
-    detail: 'Findings, storyline pressure, and recommended actions in one view.',
-    href: '/intelligence?view=investigation-workspace',
-    keywords: ['investigation', 'findings', 'workbench', 'triage'],
-    icon: Workflow,
-  },
-  {
-    id: 'nav-comparison',
-    title: 'Open comparison view',
-    subtitle: 'Intelligence console',
-    detail: 'Side-by-side provider comparison for operator routing decisions.',
-    href: '/intelligence?view=comparison-view',
-    keywords: ['comparison', 'compare', 'side by side'],
-    icon: Network,
   },
   {
     id: 'nav-workbench',
     title: 'Open full investigation workbench',
     subtitle: 'Operator route',
     detail: 'Deep four-panel workbench for anchored finding and storyline review.',
-    href: '/investigations',
+    href: buildIntelligenceHref('investigations'),
     keywords: ['investigations', 'workbench', 'anchor'],
     icon: Workflow,
   },
@@ -103,7 +180,7 @@ const NAVIGATION_RESULTS: Array<{
     title: 'Open system health',
     subtitle: 'Operator route',
     detail: 'Connector health, incidents, and integrity signal monitoring.',
-    href: '/system-health',
+    href: buildIntelligenceHref('system-health'),
     keywords: ['health', 'incidents', 'integrity', 'system'],
     icon: RefreshCw,
   },
@@ -385,7 +462,11 @@ export function CommandPalette() {
           subtitle: providerSubtitle(provider),
           detail: provider.summary || 'Open scoped provider profile in the intelligence console.',
           icon: ShieldCheck,
-          href: `/intelligence?view=provider-profile&npi=${provider.npi}`,
+          href: buildCanvasHref({
+            mode: 'investigate',
+            npi: provider.npi,
+            openPanels: ['provider'],
+          }),
         });
       }
 
@@ -415,7 +496,7 @@ export function CommandPalette() {
           subtitle: `${finding.severity} • ${finding.providerLabel ?? finding.investigatorId} • ${formatRelativeTime(finding.updatedAt)}`,
           detail: finding.summary,
           icon: AlertTriangle,
-          href: `/investigations?findingId=${finding.id}`,
+          href: buildFindingHref(finding),
         });
       }
 
@@ -443,34 +524,44 @@ export function CommandPalette() {
           subtitle: `${storyline.severity} • ${formatRelativeTime(storyline.lastActivityAt)} • ${storyline.findingIds.length} findings`,
           detail: storyline.summary,
           icon: GitBranch,
-          href: `/investigations?storylineId=${storyline.id}`,
+          href: buildStorylineHref(storyline),
         });
       }
 
-      if (effectiveQuery.length >= 6) {
+      const topProviders = providerResults.map(({ provider }) => provider);
+      if (topProviders.length >= 2 && effectiveQuery) {
         push({
-          id: 'copilot-query',
+          id: `compare:${topProviders[0]!.npi}:${topProviders[1]!.npi}`,
           group: 'Actions',
-          kind: 'copilot',
-          title: `Ask Copilot about "${effectiveQuery}"`,
+          kind: 'action',
+          title: `Compare ${topProviders[0]!.name} vs ${topProviders[1]!.name}`,
           subtitle: 'Operator action',
-          detail: 'Seed the intelligence Copilot with this prompt and stay in operator scope.',
-          icon: Sparkles,
-          href: `/intelligence?view=dashboard&copilot=${encodeURIComponent(effectiveQuery)}`,
+          detail: 'Open compare mode inside the shared intelligence canvas using the top provider matches.',
+          icon: Network,
+          href: buildCanvasHref({
+            mode: 'investigate',
+            npi: topProviders[0]!.npi,
+            openPanels: ['provider'],
+            compareNpis: [topProviders[0]!.npi, topProviders[1]!.npi],
+          }),
         });
       }
 
-      const leadProvider = providers[0];
+      const leadProvider = topProviders[0] ?? providers[0];
       if (leadProvider && effectiveQuery) {
         push({
           id: `investigate:${leadProvider.npi}`,
           group: 'Actions',
           kind: 'action',
-          title: `Open workbench for ${leadProvider.name}`,
+          title: `Open canvas for ${leadProvider.name}`,
           subtitle: 'Operator action',
-          detail: 'Jump straight into the investigation workbench anchored to the top provider match.',
+          detail: 'Jump straight into investigate mode with the provider panel already opened.',
           icon: Workflow,
-          href: `/investigations?npi=${leadProvider.npi}`,
+          href: buildCanvasHref({
+            mode: 'investigate',
+            npi: leadProvider.npi,
+            openPanels: ['provider'],
+          }),
         });
       }
     }

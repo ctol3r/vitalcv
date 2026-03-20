@@ -33,6 +33,14 @@ const toastVariants = cva(
         default: "border bg-background text-foreground",
         destructive: "destructive group border-destructive bg-destructive text-destructive-foreground",
         success: "border-green-200 bg-green-50 text-green-800",
+        command: [
+          "border-l-2 border-l-[var(--control-accent,oklch(0.55_0.20_255))]",
+          "border-[var(--control-border,oklch(0.20_0.008_255))]",
+          "bg-[var(--control-surface-raised,oklch(0.09_0.006_255))]",
+          "text-[var(--control-text,oklch(0.92_0_0))]",
+          "font-mono text-xs tracking-wide",
+          "shadow-[0_4px_24px_oklch(0_0_0/0.3)]",
+        ].join(" "),
       },
     },
     defaultVariants: {

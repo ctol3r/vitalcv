@@ -6,19 +6,11 @@ import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
-// Primary nav (visible on desktop + mobile)
+// Primary nav — tight, product-focused
 const NAV_LINKS: ReadonlyArray<{ readonly href: string; readonly label: string; readonly isRoute: true }> = [
-  { href: '/demo',        label: 'Demo',        isRoute: true },
-  { href: '/network',     label: 'Network',     isRoute: true },
+  { href: '/explore',     label: 'Explore Jobs', isRoute: true },
+  { href: '/employers',   label: 'For Employers', isRoute: true },
   { href: '/developers',  label: 'Developers',  isRoute: true },
-  { href: '/status',      label: 'Status',      isRoute: true },
-];
-
-// Secondary nav (mobile menu + More dropdown on desktop)
-const NAV_SECONDARY: ReadonlyArray<{ readonly href: string; readonly label: string; readonly isRoute: true }> = [
-  { href: '/simulation',  label: 'Simulation',  isRoute: true },
-  { href: '/mobile',      label: 'Mobile',      isRoute: true },
-  { href: '/mission-ops', label: 'Mission Ops', isRoute: true },
 ];
 
 export default function Navbar() {
@@ -84,26 +76,15 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
-          {/* Secondary links — smaller / muted */}
-          <span className="text-[var(--warm-charcoal)]/20">|</span>
-          {NAV_SECONDARY.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="text-xs hover:text-[var(--warm-charcoal)]/80 transition-colors"
-            >
-              {link.label}
-            </Link>
-          ))}
         </div>
 
         {/* Desktop CTAs */}
         <div className="hidden md:flex items-center gap-3">
           <Button asChild variant="ghost" size="sm">
-            <Link href="/holder">Clinician Login</Link>
+            <Link href="/sign-in">Sign In</Link>
           </Button>
           <Button asChild size="sm">
-            <Link href="/demo">Try VitalCV</Link>
+            <Link href="/onboarding">Get Verified</Link>
           </Button>
         </div>
 
@@ -130,7 +111,7 @@ export default function Navbar() {
             transition={{ duration: 0.25 }}
           >
             <div className="px-6 py-4 space-y-3">
-              {[...NAV_LINKS, ...NAV_SECONDARY].map((link) => (
+              {NAV_LINKS.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
@@ -142,10 +123,10 @@ export default function Navbar() {
               ))}
               <div className="flex flex-col gap-2 pt-2">
                 <Button asChild variant="ghost" size="sm" onClick={closeMobile} className="w-full">
-                  <Link href="/holder">Clinician Login</Link>
+                  <Link href="/sign-in">Sign In</Link>
                 </Button>
                 <Button asChild size="sm" onClick={closeMobile} className="w-full">
-                  <Link href="/demo">Try VitalCV</Link>
+                  <Link href="/onboarding">Get Verified</Link>
                 </Button>
               </div>
             </div>
