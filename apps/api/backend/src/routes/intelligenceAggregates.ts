@@ -48,6 +48,11 @@ export function registerIntelligenceAggregateRoutes(app: Express): void {
         generatedAt: feed.generatedAt,
         items: feed.items,
         total: feed.items.length,
+        delivery: {
+          mode: 'live',
+          reason: 'ok',
+          cachedAt: null,
+        },
       });
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);

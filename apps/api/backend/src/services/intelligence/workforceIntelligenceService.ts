@@ -438,15 +438,14 @@ export async function computeExpertiseScarcity(
   const hit = fromCache<ScarcitySignal[]>(key);
   if (hit) return hit;
 
-  // Pull availability pool
+  // Pull availability pool — PersonProfile has no metadata column; use available fields only
   const profiles = await prisma.$queryRaw<Array<{
     npi: string | null;
     state_of_practice: string | null;
-    metadata: unknown;
   }>>`
-    SELECT npi, state_of_practice, metadata
+    SELECT npi, state_of_practice
     FROM person_profiles
-    WHERE metadata->>'availability' IS NOT NULL
+    WHERE state_of_practice IS NOT NULL
     LIMIT 5000
   `;
 
@@ -454,22 +453,15 @@ export async function computeExpertiseScarcity(
   type BucketEntry = { npi: string; trustBand: string; urgency: string };
   const buckets = new Map<string, BucketEntry[]>();
 
+  // PersonProfile has no metadata/availability column — derive a basic bucket
+  // from (specialty=unknown, state=state_of_practice) with default trust/urgency.
   for (const row of profiles) {
-    if (!row.npi) continue;
-    const meta = (row.metadata as Record<string, unknown>)?.['availability'] as Record<string, unknown> | undefined;
-    if (!meta) continue;
-
-    const specialty = typeof meta.specialty === 'string' ? meta.specialty.toLowerCase().trim() : null;
-    const locations = Array.isArray(meta.locations) ? (meta.locations as unknown[]).filter((l): l is string => typeof l === 'string') : [];
-    const trustBand = typeof meta.trustBand === 'string' ? meta.trustBand : 'L0';
-    const urgency   = typeof meta.urgency   === 'string' ? meta.urgency   : 'exploring';
-
-    if (!specialty) continue;
-    for (const state of locations) {
-      const bucketKey = `${specialty}::${state.toUpperCase()}`;
-      if (!buckets.has(bucketKey)) buckets.set(bucketKey, []);
-      buckets.get(bucketKey)!.push({ npi: row.npi, trustBand, urgency });
-    }
+    if (!row.npi || !row.state_of_practice) continue;
+    const state = row.state_of_practice.toUpperCase().trim();
+    const specialty = 'general'; // no specialty in PersonProfile; use generic bucket
+    const bucketKey = `${specialty}::${state}`;
+    if (!buckets.has(bucketKey)) buckets.set(bucketKey, []);
+    buckets.get(bucketKey)!.push({ npi: row.npi, trustBand: 'L0', urgency: 'exploring' });
   }
 
   // Recent HIRING capsule counts per specialty+state → demand signal

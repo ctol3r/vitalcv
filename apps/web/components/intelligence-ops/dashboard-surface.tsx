@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { CommandPalette } from '@/components/command/command-palette';
+import { Tooltip } from '@/components/ui/lab/Tooltip';
 import { CopilotSearchBar } from '@/components/copilot/CopilotSearchBar';
 import type { CopilotContextPayload } from '@/components/copilot/types';
 import { LiveFeedRibbon } from '@/components/intelligence/LiveFeedRibbon';
@@ -1245,9 +1246,9 @@ export function DashboardSurface() {
               <LiveFeedRibbon />
               <div className="hidden h-5 w-px bg-[var(--vt-border)] lg:block" />
               <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Canvas-first intelligence</p>
-                <p className="text-sm text-[var(--vt-text-2)]">
-                  Findings, providers, storylines, graph, and decisions stay in one connected surface.
+                <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Intelligence OS</p>
+                <p className="text-sm font-medium text-[var(--vt-text-1)]">
+                  Operator Work Surface active.
                 </p>
               </div>
             </div>
@@ -1344,7 +1345,7 @@ export function DashboardSurface() {
                       key="findings-section"
                       title="Findings"
                       detail="Promote the highest-signal findings directly into the canvas."
-                      count={findingItems.length}
+                      count={findings.data?.total ?? findingItems.length}
                     >
                       {findings.error && findingItems.length === 0 ? (
                         <SurfaceErrorState
@@ -1360,42 +1361,68 @@ export function DashboardSurface() {
                         />
                       ) : null}
                       {findingItems.slice(0, 6).map((finding) => (
-                        <button
+                        <Tooltip
                           key={finding.id}
-                          type="button"
-                          onClick={() => focusFinding(finding)}
-                          className={`w-full rounded-sm border px-3 py-3 text-left transition ${
-                            selectedFinding?.id === finding.id
-                              ? 'border-cyan-400/40 bg-cyan-400/10'
-                              : 'border-[var(--vt-border)] bg-[var(--vt-surface)] hover:border-[var(--vt-text-3)]'
-                          }`}
+                          title={finding.title}
+                          trustScore={Math.round(finding.confidence * 100)}
+                          lastSignal={finding.findingType.replace(/_/g, ' ')}
+                          reason={finding.explanation || finding.summary}
+                          side="right"
+                          wrapperClassName="w-full"
                         >
+                          <button
+                            type="button"
+                            onClick={() => focusFinding(finding)}
+                            className={`w-full border-[1px] py-3 pl-3 pr-2 text-left transition select-none ${
+                              selectedFinding?.id === finding.id
+                                ? 'border-cyan-400/40 bg-cyan-400/10'
+                                : 'border-[var(--vt-border)] bg-transparent hover:border-cyan-400/30 hover:bg-[var(--vt-surface)]'
+                            }`}
+                          >
                           <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <div className="flex flex-wrap items-center gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2 mb-1">
                                 <OpsBadge label={finding.severity} tone={severityTone(finding.severity)} />
-                                <span className="text-[10px] uppercase tracking-[0.14em] text-[var(--vt-text-3)]">
+                                <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">
                                   {finding.findingType.replace(/_/g, ' ')}
                                 </span>
+                                <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">
+                                  CONF {Math.round(finding.confidence * 100)}%
+                                </span>
                               </div>
-                              <p className="mt-2 text-sm font-semibold text-[var(--vt-text-1)]">{finding.title}</p>
-                              <p className="mt-1 text-xs leading-5 text-[var(--vt-text-2)]">{finding.summary}</p>
+                              
+                              <p className="text-sm font-semibold text-[var(--vt-text-1)] leading-tight mb-1">
+                                {finding.title}
+                              </p>
+                              
+                              <p className="text-xs text-[var(--vt-text-2)] leading-relaxed mb-2 line-clamp-2">
+                                {finding.summary}
+                              </p>
+
+                              {finding.explanation ? (
+                                <div className="mb-2 pl-2 border-l border-[var(--vt-border)]">
+                                  <p className="text-[10px] italic leading-tight text-[var(--vt-text-3)] line-clamp-2">
+                                    {finding.explanation}
+                                  </p>
+                                </div>
+                              ) : null}
+
+                              <div className="flex flex-wrap gap-1.5 mt-2">
+                                {finding.providerNpi ? (
+                                  <span className="inline-flex items-center gap-1 rounded-[2px] bg-[var(--vt-surface)] border border-[var(--vt-border)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.14em] text-[var(--vt-text-2)]">
+                                    <span className="text-[var(--vt-text-3)]">Target</span> {finding.providerLabel ?? finding.providerNpi}
+                                  </span>
+                                ) : null}
+                                {finding.storylineTitle ? (
+                                  <span className="inline-flex items-center gap-1 rounded-[2px] bg-[var(--vt-surface)] border border-[var(--vt-border)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.14em] text-[var(--vt-text-2)]">
+                                    <span className="text-[var(--vt-text-3)]">Story</span> {finding.storylineTitle}
+                                  </span>
+                                ) : null}
+                              </div>
                             </div>
-                            <AlertTriangle className="mt-1 h-4 w-4 shrink-0 text-[var(--vt-text-3)]" />
-                          </div>
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {finding.providerNpi ? (
-                              <span className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--vt-text-2)]">
-                                {finding.providerLabel ?? finding.providerNpi}
-                              </span>
-                            ) : null}
-                            {finding.storylineTitle ? (
-                              <span className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--vt-text-2)]">
-                                {finding.storylineTitle}
-                              </span>
-                            ) : null}
                           </div>
                         </button>
+                        </Tooltip>
                       ))}
                     </SignalSection>
                   );
@@ -1424,16 +1451,23 @@ export function DashboardSurface() {
                         />
                       ) : null}
                       {storylineItems.slice(0, 5).map((storyline) => (
-                        <button
+                        <Tooltip
                           key={storyline.id}
-                          type="button"
-                          onClick={() => focusStoryline(storyline)}
-                          className={`w-full rounded-sm border px-3 py-3 text-left transition ${
-                            selectedStoryline?.id === storyline.id
-                              ? 'border-cyan-400/40 bg-cyan-400/10'
-                              : 'border-[var(--vt-border)] bg-[var(--vt-surface)] hover:border-[var(--vt-text-3)]'
-                          }`}
+                          title={storyline.title}
+                          lastSignal={`Status: ${storyline.status}`}
+                          reason={storyline.whyItMatters}
+                          side="right"
+                          wrapperClassName="w-full"
                         >
+                          <button
+                            type="button"
+                            onClick={() => focusStoryline(storyline)}
+                            className={`w-full rounded-sm border px-3 py-3 text-left transition ${
+                              selectedStoryline?.id === storyline.id
+                                ? 'border-cyan-400/40 bg-cyan-400/10'
+                                : 'border-[var(--vt-border)] bg-[var(--vt-surface)] hover:border-[var(--vt-text-3)]'
+                            }`}
+                          >
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <div className="flex flex-wrap items-center gap-2">
@@ -1446,6 +1480,7 @@ export function DashboardSurface() {
                             <GitBranch className="mt-1 h-4 w-4 shrink-0 text-[var(--vt-text-3)]" />
                           </div>
                         </button>
+                        </Tooltip>
                       ))}
                     </SignalSection>
                   );
@@ -1475,9 +1510,17 @@ export function DashboardSurface() {
                     {providerItems.slice(0, 5).map((provider) => {
                       const inCompare = activeCompareNpis.includes(provider.npi);
                       return (
-                        <div
+                        <Tooltip
                           key={provider.npi}
-                          className={`rounded-sm border px-3 py-3 transition ${
+                          title={provider.name}
+                          trustScore={provider.trustScore}
+                          lastSignal={`Health: ${provider.credentialHealth}`}
+                          reason={`NPI: ${provider.npi}`}
+                          side="right"
+                          wrapperClassName="w-full"
+                        >
+                        <div
+                          className={`w-full rounded-sm border px-3 py-3 transition ${
                             selectedProvider?.npi === provider.npi
                               ? 'border-cyan-400/40 bg-cyan-400/10'
                               : 'border-[var(--vt-border)] bg-[var(--vt-surface)]'
@@ -1519,6 +1562,7 @@ export function DashboardSurface() {
                             />
                           </div>
                         </div>
+                        </Tooltip>
                       );
                     })}
                   </SignalSection>
@@ -1527,14 +1571,15 @@ export function DashboardSurface() {
             </div>
           </aside>
 
-          <section ref={graphPanelRef} className="min-h-0 overflow-y-auto bg-[var(--vt-surface)] p-4">
-            <div className="space-y-4">
-              <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 shadow-sm">
+          {/* --- PRIMARY WORK AREA: FINDINGS / CASEBOARD CENTER --- */}
+          <section className="min-h-0 overflow-y-auto bg-[var(--vt-surface)] p-4">
+            <div className="mx-auto max-w-3xl space-y-4">
+              <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] p-4 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Shared intelligence canvas</p>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Caseboard Space</p>
                     <p className="mt-1 text-sm text-[var(--vt-text-2)]">
-                      The graph stays mounted while the queue and decision panels change around it.
+                      Evaluate active signals, providers, and storylines to reach decisions.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -1552,18 +1597,71 @@ export function DashboardSurface() {
                         {panel}
                       </button>
                     ))}
-                    <Link
-                      href={graphHref}
-                      className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--vt-text-2)] transition hover:text-[var(--vt-text-1)]"
-                    >
-                      Full graph
-                      <ArrowUpRight className="h-3 w-3" />
-                    </Link>
                   </div>
                 </div>
               </div>
 
+              {compareModeRequested ? (
+                <CompareModePanel
+                  providers={compareProviders}
+                  payload={comparePayload}
+                  loading={compareLoading}
+                  error={compareError}
+                  onFocusProvider={(npi) => focusProvider(npi)}
+                  onRemoveProvider={(npi) => setCompare(toggleCompareSelection(compareSelection, npi), true)}
+                  onClose={clearCompare}
+                />
+              ) : null}
+
+              {panelBlocks.length > 0 ? (
+                <div className="space-y-4">
+                  {panelBlocks}
+                </div>
+              ) : (
+                <SurfaceEmptyState
+                  title="Active caseboard empty"
+                  description="Drop a finding, storyline, or provider here from the queue to start an evaluation."
+                />
+              )}
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 shadow-sm xl:col-span-2">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Decision pressure</p>
+                  <p className="mt-2 text-sm text-[var(--vt-text-2)]">
+                    {actions.data?.actions?.length
+                      ? `${actions.data.actions.length} recommended actions are available for the active slice.`
+                      : 'No recommended actions were returned for the current slice yet.'}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(actions.data?.actions ?? []).slice(0, 3).map((action) => (
+                      <span
+                        key={action.id}
+                        className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-1 text-xs text-[var(--vt-text-2)]"
+                        title={action.explanation}
+                      >
+                        {action.title}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* --- CONTEXT / ACTION RAIL: GRAPH + COPILOT + EVIDENCE --- */}
+          <aside ref={graphPanelRef} className="min-h-0 overflow-y-auto bg-[var(--vt-surface-dim)] p-4">
+            <div className="space-y-4">
               <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-3 shadow-sm">
+                <div className="mb-3 flex items-center justify-between px-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--vt-text-2)]">Trust Network</p>
+                  <Link
+                    href={graphHref}
+                    className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--vt-text-3)] transition hover:text-[var(--vt-text-1)]"
+                  >
+                    Maximize
+                    <ArrowUpRight className="h-3 w-3" />
+                  </Link>
+                </div>
                 <GraphWorkbenchPanel
                   graph={graph.data ?? null}
                   providers={providers.data?.providers ?? []}
@@ -1588,64 +1686,19 @@ export function DashboardSurface() {
                 />
               </div>
 
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 shadow-sm">
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Graph scope</p>
-                  <p className="mt-2 text-sm text-[var(--vt-text-2)]">
-                    {selectedProvider
-                      ? `Focused on ${selectedProvider.name}. Use the open panels to keep provider, finding, and storyline context visible while the graph stays live.`
-                      : 'Global graph scope is live. Pick a provider or finding to tighten the network slice.'}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {selectedProvider ? <OpsBadge label={`NPI ${selectedProvider.npi}`} tone="info" /> : null}
-                    {selectedFinding ? <OpsBadge label={`Finding ${selectedFinding.id}`} tone={severityTone(selectedFinding.severity)} /> : null}
-                    {selectedStoryline ? <OpsBadge label={`Storyline ${selectedStoryline.id}`} tone="info" /> : null}
-                  </div>
-                </div>
-
-                <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 shadow-sm">
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Decision pressure</p>
-                  <p className="mt-2 text-sm text-[var(--vt-text-2)]">
-                    {actions.data?.actions?.length
-                      ? `${actions.data.actions.length} recommended actions are available for the active slice.`
-                      : 'No recommended actions were returned for the current slice yet.'}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {(actions.data?.actions ?? []).slice(0, 3).map((action) => (
-                      <span
-                        key={action.id}
-                        className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-1 text-xs text-[var(--vt-text-2)]"
-                        title={action.explanation}
-                      >
-                        {action.title}
-                      </span>
-                    ))}
-                  </div>
+              <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 shadow-sm">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Scope Integrity</p>
+                <p className="mt-2 text-sm text-[var(--vt-text-2)]">
+                  {selectedProvider
+                    ? `Targeting ${selectedProvider.name}. Network depth trimmed.`
+                    : 'Global graph scope active. High noise ratio without target.'}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {selectedProvider ? <OpsBadge label={`NPI ${selectedProvider.npi}`} tone="info" /> : null}
+                  {selectedFinding ? <OpsBadge label={`Finding ${selectedFinding.id}`} tone={severityTone(selectedFinding.severity)} /> : null}
+                  {selectedStoryline ? <OpsBadge label={`Storyline ${selectedStoryline.id}`} tone="info" /> : null}
                 </div>
               </div>
-            </div>
-          </section>
-
-          <aside className="min-h-0 overflow-y-auto bg-[var(--vt-surface-dim)] p-4">
-            <div className="space-y-4">
-              {compareModeRequested ? (
-                <CompareModePanel
-                  providers={compareProviders}
-                  payload={comparePayload}
-                  loading={compareLoading}
-                  error={compareError}
-                  onFocusProvider={(npi) => focusProvider(npi)}
-                  onRemoveProvider={(npi) => setCompare(toggleCompareSelection(compareSelection, npi), true)}
-                  onClose={clearCompare}
-                />
-              ) : null}
-
-              {panelBlocks.length > 0 ? panelBlocks : (
-                <SurfaceEmptyState
-                  title="Open panels to build context"
-                  description="Use the queue, graph, or command palette to open provider, finding, and storyline panels together."
-                />
-              )}
 
               <WorkbenchCopilotPanel
                 provider={selectedProvider}
@@ -1673,8 +1726,8 @@ export function DashboardSurface() {
               <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Deep links</p>
-                    <p className="mt-1 text-sm text-[var(--vt-text-2)]">Keep legacy detail routes available when you need a dedicated page.</p>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">System State</p>
+                    <p className="mt-1 text-sm text-[var(--vt-text-2)]">Active links available for dedicated detail pages.</p>
                   </div>
                   <Sparkles className="h-4 w-4 text-[var(--vt-text-3)]" />
                 </div>
@@ -1691,7 +1744,7 @@ export function DashboardSurface() {
                   <EntityLink href={graphHref} label="Graph workspace" />
                 </div>
                 <p className="mt-3 text-xs text-[var(--vt-text-3)]" title={staleState.timestamp ? formatAbsoluteTime(staleState.timestamp) : undefined}>
-                  {staleState.timestamp ? `Canvas data refreshed ${formatRelativeTime(staleState.timestamp)}.` : 'Waiting for the first live snapshot.'}
+                  {staleState.timestamp ? `Intelligence fed ${formatRelativeTime(staleState.timestamp)}.` : 'Waiting for connection.'}
                 </p>
               </div>
             </div>
