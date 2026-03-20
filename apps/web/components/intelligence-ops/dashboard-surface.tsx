@@ -2,10 +2,20 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowUpRight, RefreshCw, Search } from 'lucide-react';
+import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  Command,
+  GitBranch,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Sparkles,
+} from 'lucide-react';
 import { CommandPalette } from '@/components/command/command-palette';
 import { CopilotSearchBar } from '@/components/copilot/CopilotSearchBar';
+import type { CopilotContextPayload } from '@/components/copilot/types';
 import { LiveFeedRibbon } from '@/components/intelligence/LiveFeedRibbon';
 import { useActions } from '@/hooks/useActions';
 import { useFindings } from '@/hooks/useFindings';
@@ -13,7 +23,6 @@ import { useGraph } from '@/hooks/useGraph';
 import { useProviders } from '@/hooks/useProviders';
 import { useStorylines } from '@/hooks/useStorylines';
 import { useSystemHealth } from '@/hooks/useSystemHealth';
-import type { CopilotContextPayload } from '@/components/copilot/types';
 import type {
   IntelligenceFinding,
   IntelligenceGraphResponse,
@@ -21,7 +30,24 @@ import type {
   IntelligenceStoryline,
 } from '@/lib/intelligence/contracts';
 import {
+  findGraphNodeIdForProvider,
+  findProviderForGraphNode,
+} from '@/lib/intelligence/contracts';
+import {
+  CANVAS_OPEN_PANEL_VALUES,
+  buildCanvasOpenPanelParams,
+  mergeCanvasOpenPanels,
+  parseCanvasOpenPanels,
+  parseCompareSelection,
+  removeCanvasOpenPanel,
+  serializeCompareSelection,
+  toggleCompareSelection,
+  type CanvasOpenPanel,
+} from '@/lib/intelligence/canvas';
+import {
+  buildIntelligenceGraphHref,
   buildIntelligenceHref,
+  resolveIntelligenceView,
   type IntelligenceView,
 } from '@/lib/intelligence/routes';
 import {
@@ -31,45 +57,27 @@ import {
 } from '@/lib/intelligence/state';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import { summarizeTrustSignals } from '@/lib/intelligence/trust-signals';
+import { CanvasDecisionBlock, type CanvasDecisionAction, type CanvasDecisionBacklink, type CanvasDecisionMetric } from './canvas-decision-block';
 import { GraphWorkbenchPanel } from './graph-workbench-panel';
-import { OperationsShell } from './shell';
 import {
   EntityLink,
   OpsBadge,
-  OpsCard,
   SurfaceBanner,
   SurfaceEmptyState,
   SurfaceErrorState,
-  TimestampPair,
   severityTone,
   trustScoreColor,
 } from './primitives';
 
-function DashboardMetricCard({
-  label,
-  value,
-  detail,
-}: {
-  label: string;
-  value: string;
-  detail: string;
-}) {
-  return (
-    <OpsCard className="space-y-2">
-      <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-3)]">{label}</p>
-      <p className="text-3xl font-semibold tabular-nums text-[var(--vt-text-1)]">{value}</p>
-      <p className="text-sm text-[var(--vt-text-3)]">{detail}</p>
-    </OpsCard>
-  );
-}
+type CanvasSectionKind = 'findings' | 'storylines' | 'providers';
 
-function ContextChip({ label, value }: { label: string; value: string }) {
-  return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-1 text-xs text-[var(--vt-text-2)]">
-      <span className="uppercase tracking-[0.14em] text-[var(--vt-text-3)]">{label}</span>
-      <span className="text-[var(--vt-text-1)]">{value}</span>
-    </span>
-  );
+interface CompareResponse {
+  comparison?: {
+    ranking?: Array<{ npi: string; score: number; band: string }>;
+    commonGaps?: string[];
+    strengthDelta?: Array<{ dimension: string; spread: number; leader: string }>;
+  };
+  recommendations?: string[];
 }
 
 function buildDashboardCopilotContext(input: {
@@ -82,8 +90,6 @@ function buildDashboardCopilotContext(input: {
   recentFindings: IntelligenceFinding[];
 }): CopilotContextPayload {
   const evidence = input.finding?.evidence ?? input.storyline?.evidence ?? [];
-  const finding = input.finding;
-  const storyline = input.storyline;
   const evidenceSignals = evidence.map((item) => ({
     source: item.source,
     observedAt: item.observedAt,
@@ -106,6 +112,64 @@ function buildDashboardCopilotContext(input: {
         .filter((edge) => edge.source === graphNodeId || edge.target === graphNodeId)
         .map((edge) => edge.id)
     : [];
+  const normalizedFinding = input.finding
+    ? (() => {
+        const finding = input.finding;
+        return {
+          id: finding.id,
+          findingType: finding.findingType,
+          title: finding.title,
+          severity: finding.severity,
+          status: finding.status,
+          summary: finding.summary,
+          explanation: finding.explanation,
+          confidence: finding.confidence,
+          priorityScore: finding.priorityScore,
+          evidence: finding.evidence.map((item) => ({
+            source: item.source ?? 'Source unavailable',
+            claim: item.snippet ?? item.label,
+            confidence: 0.8,
+            observedAt: item.observedAt,
+            field: item.label,
+            provenanceChain: [item.source ?? 'Unknown source', finding.title],
+          })),
+          storylineId: finding.storylineId,
+          storylineTitle: finding.storylineTitle,
+          providerNpi: finding.providerNpi,
+          npis: finding.providerNpi ? [finding.providerNpi] : [],
+        };
+      })()
+    : null;
+  const normalizedStoryline = input.storyline
+    ? (() => {
+        const storyline = input.storyline;
+        return {
+          id: storyline.id,
+          title: storyline.title,
+          storylineType: storyline.storylineType,
+          severity: storyline.severity,
+          status: storyline.status,
+          narrative: storyline.summary,
+          summary: storyline.summary,
+          whyItMatters: storyline.whyItMatters,
+          confidence: storyline.confidence,
+          findingCount: storyline.findingIds.length,
+          entityCount: undefined,
+          progressionScore: storyline.progressionScore,
+          evidence: storyline.evidence.map((item) => ({
+            source: item.source ?? 'Source unavailable',
+            claim: item.snippet ?? item.label,
+            confidence: 0.75,
+            observedAt: item.observedAt,
+            field: item.label,
+            provenanceChain: [item.source ?? 'Unknown source', storyline.title],
+          })),
+          providerNpi: storyline.providerNpi,
+          recommendedActions: storyline.recommendedActions,
+          lastActivityAt: storyline.lastActivityAt,
+        };
+      })()
+    : null;
   const scope = input.focusedPanel === 'graph' && graphNodeId
     ? 'graph'
     : input.finding
@@ -131,58 +195,8 @@ function buildDashboardCopilotContext(input: {
           summary: input.provider.summary,
         }
       : null,
-    finding: finding
-      ? {
-          id: finding.id,
-          findingType: finding.findingType,
-          title: finding.title,
-          severity: finding.severity,
-          status: finding.status,
-          summary: finding.summary,
-          explanation: finding.explanation,
-          confidence: finding.confidence,
-          priorityScore: finding.priorityScore,
-          evidence: finding.evidence.map((item) => ({
-            source: item.source ?? 'Source unavailable',
-            claim: item.snippet ?? item.label,
-            confidence: 0.8,
-            observedAt: item.observedAt,
-            field: item.label,
-            provenanceChain: [item.source ?? 'Unknown source', finding.title],
-          })),
-          storylineId: finding.storylineId,
-          storylineTitle: finding.storylineTitle,
-          providerNpi: finding.providerNpi,
-          npis: finding.providerNpi ? [finding.providerNpi] : [],
-        }
-      : null,
-    storyline: storyline
-      ? {
-          id: storyline.id,
-          title: storyline.title,
-          storylineType: storyline.storylineType,
-          severity: storyline.severity,
-          status: storyline.status,
-          narrative: storyline.summary,
-          summary: storyline.summary,
-          whyItMatters: storyline.whyItMatters,
-          confidence: storyline.confidence,
-          findingCount: storyline.findingIds.length,
-          entityCount: undefined,
-          progressionScore: storyline.progressionScore,
-          evidence: storyline.evidence.map((item) => ({
-            source: item.source ?? 'Source unavailable',
-            claim: item.snippet ?? item.label,
-            confidence: 0.75,
-            observedAt: item.observedAt,
-            field: item.label,
-            provenanceChain: [item.source ?? 'Unknown source', storyline.title],
-          })),
-          providerNpi: storyline.providerNpi,
-          recommendedActions: storyline.recommendedActions,
-          lastActivityAt: storyline.lastActivityAt,
-        }
-      : null,
+    finding: normalizedFinding,
+    storyline: normalizedStoryline,
     graph: {
       focusNodeId: input.graph?.focusNodeId ?? null,
       selectedNodeId: graphNodeId,
@@ -249,28 +263,28 @@ function WorkbenchCopilotPanel({
     : 'Ask Copilot about provider readiness, graph anomalies, or open findings...';
 
   return (
-    <div className="space-y-4 rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] p-4 shadow-sm">
+    <div className="space-y-4 rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--vt-text-3)] mb-0.5">Copilot</p>
+          <p className="mb-0.5 text-[10px] uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Copilot</p>
           <h2 className="text-sm font-medium text-[var(--vt-text-1)]">Analyst Assistant</h2>
         </div>
-        <span className="rounded-[2px] border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-2 py-0.5 text-[9px] font-mono tracking-widest uppercase text-[var(--vt-text-2)]">
+        <span className="rounded-[2px] border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-2 py-0.5 text-[9px] font-mono tracking-widest uppercase text-[var(--vt-text-2)]">
           {provider ? 'TARGET LOCKED' : 'GLOBAL CONTEXT'}
         </span>
       </div>
 
-      {contextLabel && (
+      {contextLabel ? (
         <div className="border-l-2 border-[var(--vt-border)] pl-2">
-          <p className="text-[9px] font-mono uppercase tracking-widest text-[var(--vt-text-3)] truncate leading-relaxed">
+          <p className="truncate text-[9px] font-mono uppercase tracking-widest leading-relaxed text-[var(--vt-text-3)]">
             {contextLabel}
           </p>
         </div>
-      )}
+      ) : null}
 
       <CopilotSearchBar
         compact={false}
-        sessionId={provider ? `workbench:${provider.npi}` : 'workbench:global'}
+        sessionId={provider ? `canvas:${provider.npi}` : 'canvas:global'}
         context={context}
         placeholder={placeholder}
         onNavigateToNpi={onNavigateToNpi}
@@ -284,13 +298,188 @@ function WorkbenchCopilotPanel({
   );
 }
 
-const DASHBOARD_VIEWS: Array<{ view: IntelligenceView; label: string }> = [
-  { view: 'findings', label: 'Findings' },
-  { view: 'storylines', label: 'Storylines' },
-  { view: 'providers', label: 'Providers' },
-  { view: 'actions', label: 'Actions' },
-  { view: 'investigations', label: 'Investigations' },
-];
+function SignalSection({
+  title,
+  detail,
+  count,
+  children,
+}: {
+  title: string;
+  detail: string;
+  count: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-3 rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">{title}</p>
+          <p className="mt-1 text-sm text-[var(--vt-text-2)]">{detail}</p>
+        </div>
+        <span className="text-sm font-semibold text-[var(--vt-text-1)]">{count}</span>
+      </div>
+      <div className="space-y-2.5">{children}</div>
+    </section>
+  );
+}
+
+function CompareModePanel({
+  providers,
+  payload,
+  loading,
+  error,
+  onFocusProvider,
+  onRemoveProvider,
+  onClose,
+}: {
+  providers: IntelligenceProvider[];
+  payload: CompareResponse | null;
+  loading: boolean;
+  error: string | null;
+  onFocusProvider: (npi: string) => void;
+  onRemoveProvider: (npi: string) => void;
+  onClose: () => void;
+}) {
+  const ranking = payload?.comparison?.ranking ?? [];
+  const commonGaps = payload?.comparison?.commonGaps ?? [];
+  const strengthDelta = payload?.comparison?.strengthDelta ?? [];
+  const rankedProviders = [...providers].sort((left, right) => (
+    (ranking.find((entry) => entry.npi === right.npi)?.score ?? right.trustScore)
+    - (ranking.find((entry) => entry.npi === left.npi)?.score ?? left.trustScore)
+  ));
+
+  return (
+    <CanvasDecisionBlock
+      eyebrow="Compare Mode"
+      title={providers.length > 1 ? `${providers.length} providers in play` : 'Compare providers'}
+      summary={providers.length > 1
+        ? 'Use compare mode to hold multiple provider profiles against the same graph and decision context.'
+        : 'Pick providers from the queue or use the command palette to enter compare mode.'}
+      badgeLabel={providers.length > 1 ? 'live' : 'waiting'}
+      badgeTone={providers.length > 1 ? 'success' : 'info'}
+      recommendations={payload?.recommendations ?? []}
+      secondaryActions={[
+        {
+          label: 'Close compare',
+          onClick: onClose,
+          tone: 'neutral',
+        },
+      ]}
+      onClose={onClose}
+    >
+      {providers.length > 0 ? (
+        <div className="grid gap-2">
+          {rankedProviders.map((provider) => {
+            const rank = ranking.find((entry) => entry.npi === provider.npi) ?? null;
+            return (
+              <div
+                key={provider.npi}
+                className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] p-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--vt-text-1)]">{provider.name}</p>
+                    <p className="mt-1 text-xs text-[var(--vt-text-3)]">
+                      NPI {provider.npi} · {provider.specialties[0] ?? 'Provider'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onRemoveProvider(provider.npi)}
+                    className="rounded-full border border-[var(--vt-border)] px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-[var(--vt-text-3)] transition hover:text-[var(--vt-text-1)]"
+                  >
+                    Remove
+                  </button>
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--vt-text-3)]">Trust</p>
+                    <p className={`mt-1 text-sm font-semibold ${trustScoreColor(provider.trustScore)}`}>{provider.trustScore}</p>
+                  </div>
+                  <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--vt-text-3)]">Credentials</p>
+                    <p className="mt-1 text-sm font-semibold text-[var(--vt-text-1)]">
+                      {provider.activeCredentials}/{provider.credentialCount}
+                    </p>
+                  </div>
+                  <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--vt-text-3)]">Rank</p>
+                    <p className="mt-1 text-sm font-semibold text-[var(--vt-text-1)]">
+                      {rank ? `${Math.round(rank.score)} · ${rank.band}` : provider.risk.toUpperCase()}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onFocusProvider(provider.npi)}
+                    className="inline-flex items-center rounded-sm border border-cyan-400/40 bg-cyan-400 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-950 transition hover:bg-cyan-300"
+                  >
+                    Focus provider
+                  </button>
+                  <Link
+                    href={buildIntelligenceHref('providers', {
+                      npi: provider.npi,
+                      open: ['provider'],
+                    })}
+                    className="inline-flex items-center rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--vt-text-2)] transition hover:text-[var(--vt-text-1)]"
+                  >
+                    Open panel
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {strengthDelta.length > 0 ? (
+        <div className="mt-4 space-y-2">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Leader deltas</p>
+          {strengthDelta.map((entry) => (
+            <p
+              key={`${entry.dimension}:${entry.leader}`}
+              className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-2 text-sm text-[var(--vt-text-2)]"
+            >
+              {entry.dimension} favors {entry.leader} by {Math.round(entry.spread)}
+            </p>
+          ))}
+        </div>
+      ) : null}
+
+      {commonGaps.length > 0 ? (
+        <div className="mt-4 space-y-2">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Common gaps</p>
+          {commonGaps.map((gap) => (
+            <p
+              key={gap}
+              className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-2 text-sm text-[var(--vt-text-2)]"
+            >
+              {gap}
+            </p>
+          ))}
+        </div>
+      ) : null}
+
+      {loading ? <p className="mt-4 text-sm text-[var(--vt-text-3)]">Loading comparison deltas…</p> : null}
+      {!loading && error ? <p className="mt-4 text-sm text-amber-200">{error}</p> : null}
+    </CanvasDecisionBlock>
+  );
+}
+
+function resolveSectionOrder(view: IntelligenceView): CanvasSectionKind[] {
+  switch (view) {
+    case 'providers':
+      return ['providers', 'findings', 'storylines'];
+    case 'storylines':
+      return ['storylines', 'findings', 'providers'];
+    case 'findings':
+    case 'investigations':
+      return ['findings', 'storylines', 'providers'];
+    default:
+      return ['findings', 'providers', 'storylines'];
+  }
+}
 
 export function DashboardSurface() {
   const pathname = usePathname();
@@ -298,15 +487,52 @@ export function DashboardSurface() {
   const searchParams = useSearchParams();
   const graphPanelRef = useRef<HTMLDivElement | null>(null);
 
+  const view = resolveIntelligenceView(searchParams.get('view'));
   const searchQuery = searchParams.get('q') ?? '';
+  const focusedPanel = searchParams.get('panel') ?? '';
   const selectedNpi = searchParams.get('npi') ?? '';
   const selectedFindingId = searchParams.get('findingId') ?? '';
   const selectedStorylineId = searchParams.get('storylineId') ?? '';
-  const focusedPanel = searchParams.get('panel') ?? '';
+  const compareModeRequested = searchParams.get('compareMode') === '1';
+  const hasExplicitOpenPanels = searchParams.getAll('open').length > 0;
+  const openPanels = useMemo(
+    () => parseCanvasOpenPanels(searchParams.getAll('open')),
+    [searchParams],
+  );
+  const compareSelection = useMemo(
+    () => parseCompareSelection(searchParams.get('compare')),
+    [searchParams],
+  );
+
+  const providerFilters = useMemo(() => ({
+    minTrustScore: view === 'providers'
+      ? Number.parseInt(searchParams.get('minTrustScore') ?? '0', 10) || 0
+      : 0,
+  }), [searchParams, view]);
+
+  const findingFilters = useMemo(() => ({
+    severity: view === 'findings' ? searchParams.get('severity') : null,
+    status: view === 'findings' ? searchParams.get('status') : null,
+    type: view === 'findings' ? (searchParams.get('type') ?? searchParams.get('findingType')) : null,
+    dateFrom: view === 'findings' ? searchParams.get('dateFrom') : null,
+    dateTo: view === 'findings' ? searchParams.get('dateTo') : null,
+    minConfidence: view === 'findings' ? searchParams.get('minConfidence') : null,
+    investigatorId: view === 'findings' ? searchParams.get('investigatorId') : null,
+  }), [searchParams, view]);
+
+  const storylineFilters = useMemo(() => ({
+    severity: view === 'storylines' ? searchParams.get('severity') : null,
+    status: view === 'storylines' ? searchParams.get('status') : null,
+    storylineType: view === 'storylines' ? searchParams.get('storylineType') : null,
+    perspective: view === 'storylines' ? searchParams.get('perspective') : null,
+  }), [searchParams, view]);
 
   const [draftQuery, setDraftQuery] = useState(searchQuery);
   const [copilotFocusNodeId, setCopilotFocusNodeId] = useState<string | null>(null);
   const [copilotHighlightNodeId, setCopilotHighlightNodeId] = useState<string | null>(null);
+  const [comparePayload, setComparePayload] = useState<CompareResponse | null>(null);
+  const [compareLoading, setCompareLoading] = useState(false);
+  const [compareError, setCompareError] = useState<string | null>(null);
 
   useEffect(() => {
     setDraftQuery(searchQuery);
@@ -320,8 +546,41 @@ export function DashboardSurface() {
 
   const providers = useProviders({
     query: searchQuery,
-    limit: 8,
+    limit: view === 'providers' ? 14 : 10,
+    minTrustScore: providerFilters.minTrustScore,
   });
+
+  const findings = useFindings({
+    provider: /^\d{10}$/.test(selectedNpi) ? selectedNpi : null,
+    limit: view === 'findings' || view === 'investigations' ? 10 : 8,
+    severity: findingFilters.severity,
+    status: findingFilters.status,
+    type: findingFilters.type,
+    dateFrom: findingFilters.dateFrom,
+    dateTo: findingFilters.dateTo,
+    minConfidence: findingFilters.minConfidence,
+    investigatorId: findingFilters.investigatorId,
+  });
+
+  const storylines = useStorylines({
+    provider: /^\d{10}$/.test(selectedNpi) ? selectedNpi : null,
+    limit: view === 'storylines' ? 10 : 6,
+    severity: storylineFilters.severity,
+    status: storylineFilters.status,
+    storylineType: storylineFilters.storylineType,
+    perspective: storylineFilters.perspective,
+  });
+
+  const actions = useActions({
+    entity: /^\d{10}$/.test(selectedNpi) ? selectedNpi : null,
+    limit: 6,
+  });
+  const graph = useGraph({
+    npi: /^\d{10}$/.test(selectedNpi) ? selectedNpi : null,
+    layer: 'blended',
+    limit: 48,
+  });
+  const systemHealth = useSystemHealth();
 
   const selectedProvider = useMemo(() => {
     const items = providers.data?.providers ?? [];
@@ -331,83 +590,128 @@ export function DashboardSurface() {
     return items[0] ?? null;
   }, [providers.data?.providers, selectedNpi]);
 
-  const providerScope = /^\d{10}$/.test(selectedNpi) ? selectedNpi : selectedProvider?.npi ?? null;
-
-  useEffect(() => {
-    setCopilotFocusNodeId(null);
-    setCopilotHighlightNodeId(null);
-  }, [providerScope]);
-
-  const findings = useFindings({
-    provider: providerScope,
-    limit: 6,
-  });
-  const storylines = useStorylines({
-    provider: providerScope,
-    limit: 4,
-  });
-  const actions = useActions({
-    entity: providerScope,
-    limit: 5,
-  });
-  const systemHealth = useSystemHealth();
-  const graph = useGraph({
-    npi: providerScope,
-    layer: 'blended',
-    limit: 40,
-  });
-
   const selectedFinding = useMemo(() => {
     const items = findings.data?.findings ?? [];
     if (selectedFindingId) {
-      return items.find((item) => item.id === selectedFindingId) ?? null;
+      return items.find((finding) => finding.id === selectedFindingId) ?? null;
     }
-    return items[0] ?? null;
-  }, [findings.data?.findings, selectedFindingId]);
+    if (view === 'findings' || view === 'investigations' || view === 'dashboard') {
+      return items[0] ?? null;
+    }
+    return null;
+  }, [findings.data?.findings, selectedFindingId, view]);
 
   const selectedStoryline = useMemo(() => {
     const items = storylines.data?.storylines ?? [];
     if (selectedStorylineId) {
-      return items.find((item) => item.id === selectedStorylineId) ?? null;
+      return items.find((storyline) => storyline.id === selectedStorylineId) ?? null;
     }
     if (selectedFinding?.storylineId) {
-      return items.find((item) => item.id === selectedFinding.storylineId) ?? null;
+      return items.find((storyline) => storyline.id === selectedFinding.storylineId) ?? null;
     }
-    return items[0] ?? null;
-  }, [selectedFinding?.storylineId, selectedStorylineId, storylines.data?.storylines]);
+    if (view === 'storylines' || view === 'investigations') {
+      return items[0] ?? null;
+    }
+    return null;
+  }, [selectedFinding?.storylineId, selectedStorylineId, storylines.data?.storylines, view]);
 
+  const sectionOrder = useMemo(() => resolveSectionOrder(view), [view]);
   const currentHref = useMemo(() => {
     const serialized = searchParams.toString();
     return `${pathname}${serialized ? `?${serialized}` : ''}`;
   }, [pathname, searchParams]);
 
-  const openFullGraphHref = useMemo(() => {
-    const params = new URLSearchParams();
+  const defaultPanels = useMemo(() => {
+    const next: CanvasOpenPanel[] = [];
 
-    if (providerScope) {
-      params.set('npi', providerScope);
-      params.set('providerId', providerScope);
+    if (view === 'providers' && selectedProvider) {
+      next.push('provider');
     }
 
-    if (selectedFinding?.id) {
-      params.set('findingId', selectedFinding.id);
+    if ((view === 'findings' || view === 'dashboard' || view === 'investigations') && selectedFinding) {
+      next.push('finding');
     }
 
-    if (selectedStoryline?.id) {
-      params.set('storylineId', selectedStoryline.id);
+    if ((view === 'storylines' || view === 'investigations') && selectedStoryline) {
+      next.push('storyline');
     }
 
-    const serialized = params.toString();
-    return serialized.length > 0 ? `/graph?${serialized}` : '/graph';
-  }, [providerScope, selectedFinding?.id, selectedStoryline?.id]);
+    if (selectedProvider && (next.length === 0 || view === 'investigations' || view === 'dashboard')) {
+      next.push('provider');
+    }
 
-  const staleState = getSurfaceFreshnessState({
-    generatedAt: providers.data?.generatedAt ?? findings.data?.generatedAt ?? storylines.data?.generatedAt ?? actions.data?.generatedAt,
-    lastUpdated: providers.lastUpdated ?? findings.lastUpdated ?? storylines.lastUpdated ?? actions.lastUpdated,
-  });
-  const findingsUnavailable = Boolean(findings.error && !findings.data);
-  const storylinesUnavailable = Boolean(storylines.error && !storylines.data);
-  const actionsUnavailable = Boolean(actions.error && !actions.data);
+    if (selectedStoryline && view === 'dashboard') {
+      next.push('storyline');
+    }
+
+    return parseCanvasOpenPanels(next);
+  }, [selectedFinding, selectedProvider, selectedStoryline, view]);
+
+  const renderedPanels = hasExplicitOpenPanels ? openPanels : defaultPanels;
+  const activeCompareNpis = compareModeRequested
+    ? parseCompareSelection([
+        ...(compareSelection.length === 0 && selectedProvider ? [selectedProvider.npi] : []),
+        ...compareSelection,
+      ].join(','))
+    : [];
+
+  const compareProviders = useMemo(() => {
+    const directoryProviders = providers.data?.providers ?? [];
+    return activeCompareNpis
+      .map((npi) => directoryProviders.find((provider) => provider.npi === npi) ?? null)
+      .filter((provider): provider is IntelligenceProvider => Boolean(provider));
+  }, [activeCompareNpis, providers.data?.providers]);
+
+  useEffect(() => {
+    setCopilotFocusNodeId(null);
+    setCopilotHighlightNodeId(null);
+  }, [selectedNpi]);
+
+  useEffect(() => {
+    if (activeCompareNpis.length < 2) {
+      setComparePayload(null);
+      setCompareError(null);
+      setCompareLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function loadComparison() {
+      setCompareLoading(true);
+      setCompareError(null);
+
+      try {
+        const response = await fetch('/api/investigation/compare', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ npis: activeCompareNpis }),
+          signal: controller.signal,
+        });
+
+        const payload = await response.json().catch(() => null) as CompareResponse | null;
+        if (!response.ok || !payload) {
+          throw new Error('Provider comparison is unavailable.');
+        }
+
+        if (!controller.signal.aborted) {
+          setComparePayload(payload);
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setCompareError(error instanceof Error ? error.message : 'Provider comparison is unavailable.');
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setCompareLoading(false);
+        }
+      }
+    }
+
+    void loadComparison();
+    return () => controller.abort();
+  }, [activeCompareNpis]);
+
   const accessBanner = useMemo(() => {
     const candidates = [
       providers.data,
@@ -426,14 +730,21 @@ export function DashboardSurface() {
     }
 
     return null;
-  }, [
-    actions.data,
-    findings.data,
-    graph.data,
-    providers.data,
-    storylines.data,
-    systemHealth.data,
-  ]);
+  }, [actions.data, findings.data, graph.data, providers.data, storylines.data, systemHealth.data]);
+
+  const staleState = getSurfaceFreshnessState({
+    generatedAt: providers.data?.generatedAt
+      ?? findings.data?.generatedAt
+      ?? storylines.data?.generatedAt
+      ?? actions.data?.generatedAt
+      ?? graph.data?.generatedAt,
+    lastUpdated: providers.lastUpdated
+      ?? findings.lastUpdated
+      ?? storylines.lastUpdated
+      ?? actions.lastUpdated
+      ?? graph.lastUpdated,
+  });
+
   const copilotContext = useMemo(() => buildDashboardCopilotContext({
     provider: selectedProvider,
     finding: selectedFinding,
@@ -443,24 +754,185 @@ export function DashboardSurface() {
     focusedPanel,
     recentFindings: findings.data?.findings ?? [],
   }), [
-    selectedProvider,
-    selectedFinding,
-    selectedStoryline,
-    graph.data,
     copilotFocusNodeId,
     copilotHighlightNodeId,
-    focusedPanel,
     findings.data?.findings,
+    focusedPanel,
+    graph.data,
+    selectedFinding,
+    selectedProvider,
+    selectedStoryline,
   ]);
 
-  function pushDashboard(updater: (params: URLSearchParams) => void) {
+  const highlightedNodeIds = useMemo(() => {
+    const nodeIds = new Set<string>();
+    const graphNodes = graph.data?.nodes ?? [];
+    const graphFindings = selectedFinding?.id ? [selectedFinding.id] : [];
+    const graphStorylines = selectedStoryline?.id ? [selectedStoryline.id] : [];
+
+    for (const provider of compareProviders) {
+      const nodeId = findGraphNodeIdForProvider(provider, graphNodes);
+      if (nodeId) {
+        nodeIds.add(nodeId);
+      }
+    }
+
+    if (selectedProvider) {
+      const nodeId = findGraphNodeIdForProvider(selectedProvider, graphNodes);
+      if (nodeId) {
+        nodeIds.add(nodeId);
+      }
+    }
+
+    for (const node of graphNodes) {
+      if (graphFindings.some((findingId) => node.findingIds?.includes(findingId))) {
+        nodeIds.add(node.id);
+      }
+      if (graphStorylines.some((storylineId) => node.storylineIds?.includes(storylineId))) {
+        nodeIds.add(node.id);
+      }
+    }
+
+    return [...nodeIds];
+  }, [compareProviders, graph.data?.nodes, selectedFinding?.id, selectedProvider, selectedStoryline?.id]);
+
+  function pushCanvas(
+    updater: (params: URLSearchParams) => void,
+    nextView: IntelligenceView = view,
+  ) {
     const nextParams = new URLSearchParams(searchParams.toString());
-    nextParams.set('view', 'dashboard');
+    nextParams.set('view', nextView);
     updater(nextParams);
 
     startTransition(() => {
       router.push(`/intelligence?${nextParams.toString()}`);
     });
+  }
+
+  function setOpenPanels(nextPanels: CanvasOpenPanel[], nextView: IntelligenceView = view) {
+    pushCanvas((params) => {
+      params.delete('open');
+      for (const panel of buildCanvasOpenPanelParams(nextPanels)) {
+        params.append('open', panel);
+      }
+    }, nextView);
+  }
+
+  function openPanel(panel: CanvasOpenPanel, nextView: IntelligenceView = view) {
+    setOpenPanels(mergeCanvasOpenPanels(renderedPanels, panel), nextView);
+  }
+
+  function closePanel(panel: CanvasOpenPanel) {
+    setOpenPanels(removeCanvasOpenPanel(renderedPanels, panel));
+  }
+
+  function setCompare(nextSelection: string[], keepMode = true) {
+    pushCanvas((params) => {
+      const serialized = serializeCompareSelection(nextSelection);
+      if (keepMode) {
+        params.set('compareMode', '1');
+      } else {
+        params.delete('compareMode');
+      }
+
+      if (serialized) {
+        params.set('compare', serialized);
+      } else {
+        params.delete('compare');
+      }
+    }, 'providers');
+  }
+
+  function clearCompare() {
+    pushCanvas((params) => {
+      params.delete('compare');
+      params.delete('compareMode');
+    }, 'providers');
+  }
+
+  function focusProvider(npi: string, nextPanels: CanvasOpenPanel[] = ['provider']) {
+    pushCanvas((params) => {
+      params.set('npi', npi);
+      params.delete('findingId');
+      params.delete('storylineId');
+      params.delete('panel');
+      params.delete('open');
+      for (const panel of buildCanvasOpenPanelParams(nextPanels)) {
+        params.append('open', panel);
+      }
+    }, 'providers');
+  }
+
+  function focusFinding(finding: IntelligenceFinding) {
+    const nextPanels: CanvasOpenPanel[] = ['finding', 'provider'];
+    if (finding.storylineId) {
+      nextPanels.push('storyline');
+    }
+
+    pushCanvas((params) => {
+      if (finding.providerNpi) {
+        params.set('npi', finding.providerNpi);
+      }
+      params.set('findingId', finding.id);
+      if (finding.storylineId) {
+        params.set('storylineId', finding.storylineId);
+      }
+      params.delete('panel');
+      params.delete('open');
+      for (const panel of buildCanvasOpenPanelParams(nextPanels)) {
+        params.append('open', panel);
+      }
+    }, 'findings');
+  }
+
+  function focusStoryline(storyline: IntelligenceStoryline) {
+    pushCanvas((params) => {
+      if (storyline.providerNpi) {
+        params.set('npi', storyline.providerNpi);
+      }
+      params.set('storylineId', storyline.id);
+      params.delete('findingId');
+      params.delete('panel');
+      params.delete('open');
+      for (const panel of buildCanvasOpenPanelParams(['storyline', 'provider'])) {
+        params.append('open', panel);
+      }
+    }, 'storylines');
+  }
+
+  function selectFindingById(findingId: string) {
+    const finding = (findings.data?.findings ?? []).find((candidate) => candidate.id === findingId);
+    if (finding) {
+      focusFinding(finding);
+      return;
+    }
+
+    pushCanvas((params) => {
+      params.set('findingId', findingId);
+      params.set('panel', 'graph');
+    }, 'findings');
+  }
+
+  function selectStorylineById(storylineId: string) {
+    const storyline = (storylines.data?.storylines ?? []).find((candidate) => candidate.id === storylineId);
+    if (storyline) {
+      focusStoryline(storyline);
+      return;
+    }
+
+    pushCanvas((params) => {
+      params.set('storylineId', storylineId);
+      params.set('panel', 'graph');
+    }, 'storylines');
+  }
+
+  function openEvidenceForFinding(findingId: string, _evidenceIndex: number | null) {
+    const finding = (findings.data?.findings ?? []).find((candidate) => candidate.id === findingId);
+    if (finding) {
+      focusFinding(finding);
+    } else {
+      selectFindingById(findingId);
+    }
   }
 
   function refreshAll() {
@@ -472,424 +944,760 @@ export function DashboardSurface() {
     graph.refresh();
   }
 
-  function setProviderScope(npi: string) {
-    pushDashboard((params) => {
-      params.set('npi', npi);
-      params.delete('findingId');
-      params.delete('storylineId');
-      params.delete('panel');
-    });
+  function handleCompareToggle(npi: string) {
+    const seededSelection = compareSelection.length === 0 && selectedProvider && selectedProvider.npi !== npi
+      ? [selectedProvider.npi]
+      : compareSelection;
+    setCompare(toggleCompareSelection(seededSelection, npi), true);
   }
 
-  function setFindingScope(finding: IntelligenceFinding) {
-    pushDashboard((params) => {
-      if (finding.providerNpi) {
-        params.set('npi', finding.providerNpi);
-      }
-      params.set('findingId', finding.id);
-      if (finding.storylineId) {
-        params.set('storylineId', finding.storylineId);
-      }
-    });
+  function openPalette() {
+    window.dispatchEvent(new Event('vital:open-command-palette'));
   }
 
-  function setStorylineScope(storyline: IntelligenceStoryline) {
-    pushDashboard((params) => {
-      if (storyline.providerNpi) {
-        params.set('npi', storyline.providerNpi);
-      }
-      params.set('storylineId', storyline.id);
-    });
-  }
-
-  function selectFindingById(findingId: string) {
-    const finding = (findings.data?.findings ?? []).find((entry) => entry.id === findingId);
-    if (finding) {
-      setFindingScope(finding);
-      return;
+  const providerBacklinks = useMemo<CanvasDecisionBacklink[]>(() => {
+    if (!selectedProvider) {
+      return [];
     }
 
-    pushDashboard((params) => {
-      params.set('findingId', findingId);
-      params.set('panel', 'graph');
-    });
-  }
-
-  function selectStorylineById(storylineId: string) {
-    const storyline = (storylines.data?.storylines ?? []).find((entry) => entry.id === storylineId);
-    if (storyline) {
-      setStorylineScope(storyline);
-      return;
-    }
-
-    pushDashboard((params) => {
-      params.set('storylineId', storylineId);
-      params.set('panel', 'graph');
-    });
-  }
-
-  function openEvidenceForFinding(findingId: string, _evidenceIndex: number | null) {
-    const finding = (findings.data?.findings ?? []).find((entry) => entry.id === findingId);
-    const npi = finding?.providerNpi ?? selectedProvider?.npi ?? providerScope;
-
-    startTransition(() => {
-      router.push(buildIntelligenceHref('investigations', {
-        npi: npi ?? undefined,
-        findingId,
+    const linkedFindings = (findings.data?.findings ?? [])
+      .filter((finding) => finding.providerNpi === selectedProvider.npi)
+      .slice(0, 3)
+      .map((finding) => ({
+        label: `Finding · ${finding.title}`,
+        onClick: () => focusFinding(finding),
       }));
-    });
-  }
+    const linkedStorylines = (storylines.data?.storylines ?? [])
+      .filter((storyline) => storyline.providerNpi === selectedProvider.npi)
+      .slice(0, 2)
+      .map((storyline) => ({
+        label: `Storyline · ${storyline.title}`,
+        onClick: () => focusStoryline(storyline),
+      }));
 
-  // ── Keyboard navigation (j/k = prev/next finding, Enter = open, Esc = clear) ─
-  const findingsList = findings.data?.findings ?? [];
-  const selectedFindingIndex = useMemo(
-    () => findingsList.findIndex((f) => f.id === selectedFinding?.id),
-    [findingsList, selectedFinding?.id],
-  );
+    return [...linkedFindings, ...linkedStorylines];
+  }, [findings.data?.findings, selectedProvider, storylines.data?.storylines]);
 
-  const navigateFinding = useCallback((delta: number) => {
-    const next = Math.max(0, Math.min(findingsList.length - 1, selectedFindingIndex + delta));
-    const nextFinding = findingsList[next];
-    if (nextFinding) setFindingScope(nextFinding);
-  }, [findingsList, selectedFindingIndex]);
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
-      if (tag === 'input' || tag === 'textarea') return;
-      if (e.key === 'j') { e.preventDefault(); navigateFinding(1); }
-      if (e.key === 'k') { e.preventDefault(); navigateFinding(-1); }
-      if (e.key === 'Escape') {
-        pushDashboard((p) => { p.delete('npi'); p.delete('findingId'); p.delete('storylineId'); });
-      }
+  const findingBacklinks = useMemo<CanvasDecisionBacklink[]>(() => {
+    if (!selectedFinding) {
+      return [];
     }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [navigateFinding, pushDashboard]);
+
+    const links: CanvasDecisionBacklink[] = [];
+    if (selectedFinding.providerNpi) {
+      links.push({
+        label: `Provider · ${selectedFinding.providerLabel ?? selectedFinding.providerNpi}`,
+        onClick: () => focusProvider(selectedFinding.providerNpi ?? ''),
+      });
+    }
+    if (selectedFinding.storylineId && selectedStoryline) {
+      links.push({
+        label: `Storyline · ${selectedStoryline.title}`,
+        onClick: () => focusStoryline(selectedStoryline),
+      });
+    }
+
+    const siblingFindings = (findings.data?.findings ?? [])
+      .filter((finding) => finding.id !== selectedFinding.id && (
+        finding.providerNpi === selectedFinding.providerNpi
+        || (selectedFinding.storylineId && finding.storylineId === selectedFinding.storylineId)
+      ))
+      .slice(0, 2);
+
+    for (const finding of siblingFindings) {
+      links.push({
+        label: `Related finding · ${finding.title}`,
+        onClick: () => focusFinding(finding),
+      });
+    }
+
+    return links;
+  }, [findings.data?.findings, selectedFinding, selectedStoryline]);
+
+  const storylineBacklinks = useMemo<CanvasDecisionBacklink[]>(() => {
+    if (!selectedStoryline) {
+      return [];
+    }
+
+    const links: CanvasDecisionBacklink[] = [];
+    if (selectedStoryline.providerNpi) {
+      links.push({
+        label: `Provider · ${selectedStoryline.providerNpi}`,
+        onClick: () => focusProvider(selectedStoryline.providerNpi ?? ''),
+      });
+    }
+
+    const linkedFindings = (findings.data?.findings ?? [])
+      .filter((finding) => selectedStoryline.findingIds.includes(finding.id))
+      .slice(0, 3);
+
+    for (const finding of linkedFindings) {
+      links.push({
+        label: `Finding · ${finding.title}`,
+        onClick: () => focusFinding(finding),
+      });
+    }
+
+    return links;
+  }, [findings.data?.findings, selectedStoryline]);
+
+  const providerPanelMetrics = useMemo<CanvasDecisionMetric[]>(() => (
+    selectedProvider
+      ? [
+          { label: 'Trust', value: String(selectedProvider.trustScore) },
+          { label: 'Credentials', value: `${selectedProvider.activeCredentials}/${selectedProvider.credentialCount}` },
+          { label: 'Findings', value: String((findings.data?.findings ?? []).filter((finding) => finding.providerNpi === selectedProvider.npi).length) },
+          { label: 'Storylines', value: String((storylines.data?.storylines ?? []).filter((storyline) => storyline.providerNpi === selectedProvider.npi).length) },
+        ]
+      : []
+  ), [findings.data?.findings, selectedProvider, storylines.data?.storylines]);
+
+  const findingPanelMetrics = useMemo<CanvasDecisionMetric[]>(() => (
+    selectedFinding
+      ? [
+          { label: 'Severity', value: selectedFinding.severity.toUpperCase() },
+          { label: 'Confidence', value: `${Math.round(selectedFinding.confidence * 100)}%` },
+          { label: 'Priority', value: String(Math.round(selectedFinding.priorityScore)) },
+          { label: 'Evidence', value: String(selectedFinding.evidence.length) },
+        ]
+      : []
+  ), [selectedFinding]);
+
+  const storylinePanelMetrics = useMemo<CanvasDecisionMetric[]>(() => (
+    selectedStoryline
+      ? [
+          { label: 'Severity', value: selectedStoryline.severity.toUpperCase() },
+          { label: 'Confidence', value: `${Math.round(selectedStoryline.confidence * 100)}%` },
+          { label: 'Findings', value: String(selectedStoryline.findingIds.length) },
+          { label: 'Progression', value: `${Math.round(selectedStoryline.progressionScore * 100)}%` },
+        ]
+      : []
+  ), [selectedStoryline]);
+
+  const providerRecommendations = useMemo(() => (
+    (actions.data?.actions ?? [])
+      .filter((action) => action.providerNpi === selectedProvider?.npi)
+      .slice(0, 3)
+      .map((action) => action.title)
+  ), [actions.data?.actions, selectedProvider?.npi]);
+
+  const findingRecommendations = useMemo(() => (
+    (actions.data?.actions ?? [])
+      .filter((action) => action.sourceFindingIds.includes(selectedFinding?.id ?? ''))
+      .slice(0, 3)
+      .map((action) => action.title)
+  ), [actions.data?.actions, selectedFinding?.id]);
+
+  const graphHref = useMemo(() => buildIntelligenceGraphHref({
+    npi: selectedNpi || undefined,
+    providerId: selectedNpi || undefined,
+    findingId: selectedFinding?.id ?? undefined,
+    storylineId: selectedStoryline?.id ?? undefined,
+  }), [selectedFinding?.id, selectedNpi, selectedStoryline?.id]);
+
+  const panelBlocks = useMemo(() => {
+    const blocks: React.ReactNode[] = [];
+
+    if (renderedPanels.includes('provider') && selectedProvider) {
+      const secondaryActions: CanvasDecisionAction[] = [
+        {
+          label: activeCompareNpis.includes(selectedProvider.npi) ? 'Remove compare' : 'Compare',
+          onClick: () => handleCompareToggle(selectedProvider.npi),
+        },
+        {
+          label: 'Open profile',
+          href: `/providers/${selectedProvider.npi}?from=${encodeURIComponent(currentHref)}`,
+        },
+        {
+          label: 'Lock graph',
+          onClick: () => pushCanvas((params) => {
+            params.set('panel', 'graph');
+          }),
+        },
+      ];
+
+      blocks.push(
+        <CanvasDecisionBlock
+          key="provider-panel"
+          eyebrow="Provider Panel"
+          title={selectedProvider.name}
+          summary={selectedProvider.summary}
+          badgeLabel={`Trust ${selectedProvider.trustScore}`}
+          badgeTone="info"
+          metrics={providerPanelMetrics}
+          backlinks={providerBacklinks}
+          recommendations={providerRecommendations}
+          primaryAction={{
+            label: 'Open investigation',
+            href: buildIntelligenceHref('investigations', {
+              npi: selectedProvider.npi,
+              open: ['provider', 'finding', 'storyline'],
+            }),
+            tone: 'primary',
+          }}
+          secondaryActions={secondaryActions}
+          onClose={() => closePanel('provider')}
+        />,
+      );
+    }
+
+    if (renderedPanels.includes('finding') && selectedFinding) {
+      blocks.push(
+        <CanvasDecisionBlock
+          key="finding-panel"
+          eyebrow="Finding Panel"
+          title={selectedFinding.title}
+          summary={selectedFinding.explanation || selectedFinding.summary}
+          badgeLabel={selectedFinding.severity}
+          badgeTone={severityTone(selectedFinding.severity)}
+          metrics={findingPanelMetrics}
+          backlinks={findingBacklinks}
+          recommendations={findingRecommendations}
+          primaryAction={{
+            label: 'Investigate',
+            onClick: () => focusFinding(selectedFinding),
+            tone: 'primary',
+          }}
+          secondaryActions={[
+            {
+              label: 'Open detail',
+              href: `/findings/${selectedFinding.id}?from=${encodeURIComponent(currentHref)}`,
+            },
+            {
+              label: 'Graph trace',
+              onClick: () => pushCanvas((params) => {
+                params.set('panel', 'graph');
+              }),
+            },
+          ]}
+          onClose={() => closePanel('finding')}
+        />,
+      );
+    }
+
+    if (renderedPanels.includes('storyline') && selectedStoryline) {
+      blocks.push(
+        <CanvasDecisionBlock
+          key="storyline-panel"
+          eyebrow="Storyline Panel"
+          title={selectedStoryline.title}
+          summary={selectedStoryline.whyItMatters || selectedStoryline.summary}
+          badgeLabel={selectedStoryline.status}
+          badgeTone="info"
+          metrics={storylinePanelMetrics}
+          backlinks={storylineBacklinks}
+          recommendations={selectedStoryline.recommendedActions.slice(0, 3)}
+          primaryAction={{
+            label: 'Trace storyline',
+            onClick: () => focusStoryline(selectedStoryline),
+            tone: 'primary',
+          }}
+          secondaryActions={[
+            {
+              label: 'Open detail',
+              href: `/storylines/${selectedStoryline.id}?from=${encodeURIComponent(currentHref)}`,
+            },
+            {
+              label: 'Provider lane',
+              onClick: () => {
+                if (selectedStoryline.providerNpi) {
+                  focusProvider(selectedStoryline.providerNpi);
+                }
+              },
+            },
+          ]}
+          onClose={() => closePanel('storyline')}
+        />,
+      );
+    }
+
+    return blocks;
+  }, [
+    activeCompareNpis,
+    closePanel,
+    currentHref,
+    findingBacklinks,
+    findingPanelMetrics,
+    findingRecommendations,
+    focusFinding,
+    focusProvider,
+    focusStoryline,
+    handleCompareToggle,
+    providerBacklinks,
+    providerPanelMetrics,
+    providerRecommendations,
+    pushCanvas,
+    renderedPanels,
+    selectedFinding,
+    selectedProvider,
+    selectedStoryline,
+    storylineBacklinks,
+    storylinePanelMetrics,
+  ]);
 
   return (
     <>
-    <CommandPalette />
-    <div className="flex flex-col h-screen min-h-0 w-full overflow-hidden bg-[var(--vt-bg)] text-[var(--vt-text-1)] font-sans">
-      {/* ZONE A — SIGNAL HEADER */}
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--vt-border)] bg-[var(--vt-surface)] px-5">
-        <div className="flex items-center gap-6 overflow-hidden">
-          <LiveFeedRibbon />
-        </div>
-        <div className="flex items-center gap-5">
-          <form
-            className="flex items-center gap-2 rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-2 py-1 transition-colors focus-within:border-[var(--vt-text-3)]"
-            onSubmit={(event) => {
-              event.preventDefault();
-              pushDashboard((params) => {
-                const trimmed = draftQuery.trim();
-                if (trimmed.length > 0) {
-                  params.set('q', trimmed);
-                } else {
-                  params.delete('q');
-                }
-                params.delete('npi');
-                params.delete('findingId');
-                params.delete('storylineId');
-                params.delete('panel');
-              });
-            }}
-          >
-            <Search className="h-3.5 w-3.5 text-[var(--vt-text-3)]" />
-            <input
-              value={draftQuery}
-              onChange={(event) => setDraftQuery(event.target.value)}
-              placeholder="Search scope..."
-              className="w-48 bg-transparent text-xs text-[var(--vt-text-1)] outline-none placeholder:text-[var(--vt-text-3)]"
-            />
-          </form>
-
-          <div className="h-4 w-px bg-[var(--vt-border)]"></div>
-
-          <span className="text-[10px] text-[var(--vt-text-3)] uppercase tracking-widest">
-            Last seen {providers.lastUpdated ? formatRelativeTime(providers.lastUpdated) : '...'}
-          </span>
-          <button 
-            type="button" 
-            onClick={refreshAll}
-            className="flex items-center justify-center rounded-sm text-[var(--vt-text-3)] transition hover:text-[var(--vt-text-1)]"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </header>
-
-      {/* ZONE B & C AREA */}
-      <main className="flex flex-1 min-h-0 overflow-hidden">
-        {/* ZONE B — PRIMARY WORK AREA */}
-        <section className="flex flex-1 flex-col overflow-y-auto border-r border-[var(--vt-border)] bg-[var(--vt-surface-dim)]">
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--vt-border)] bg-[var(--vt-surface)]/95 px-5 py-3 backdrop-blur-sm">
-            <h1 className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-1)]">Signal Queue</h1>
-            <div className="flex items-center gap-1 rounded-sm border border-[var(--vt-border)] p-0.5 bg-[var(--vt-surface-dim)]">
-              <button className="rounded-[2px] bg-[var(--vt-surface-2)] px-3 py-1 text-[9px] font-semibold tracking-widest uppercase text-[var(--vt-text-1)] shadow-sm">Ranked</button>
-              <button className="rounded-[2px] px-3 py-1 text-[9px] font-semibold tracking-widest uppercase text-[var(--vt-text-3)] transition hover:text-[var(--vt-text-1)]">Latest</button>
-              <button className="rounded-[2px] px-3 py-1 text-[9px] font-semibold tracking-widest uppercase text-[var(--vt-text-3)] transition hover:text-[var(--vt-text-1)]">Critical Only</button>
+      <CommandPalette />
+      <div className="flex h-screen min-h-0 w-full flex-col overflow-hidden bg-[var(--vt-bg)] text-[var(--vt-text-1)]">
+        <header className="border-b border-[var(--vt-border)] bg-[var(--vt-surface)] px-5 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-4">
+              <LiveFeedRibbon />
+              <div className="hidden h-5 w-px bg-[var(--vt-border)] lg:block" />
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Canvas-first intelligence</p>
+                <p className="text-sm text-[var(--vt-text-2)]">
+                  Findings, providers, storylines, graph, and decisions stay in one connected surface.
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-3 gap-6 px-5 py-6 border-b border-[var(--vt-border)] bg-[var(--vt-surface)]">
-            <div>
-              <p className="text-4xl tracking-tighter font-light text-[var(--vt-text-1)]">{findings.data?.total ?? 0}</p>
-              <p className="text-[10px] mt-1 uppercase font-mono tracking-widest text-[var(--vt-text-3)]">Findings</p>
-            </div>
-            <div>
-              <p className="text-4xl tracking-tighter font-light text-[var(--vt-text-1)]">{providers.data?.total ?? 0}</p>
-              <p className="text-[10px] mt-1 uppercase font-mono tracking-widest text-[var(--vt-text-3)]">Providers</p>
-            </div>
-            <div>
-              <p className="text-4xl tracking-tighter font-light text-[var(--vt-text-1)]">{findings.data?.findings.filter(f => f.severity.toLowerCase() === 'critical').length ?? 0}</p>
-              <p className="text-[10px] mt-1 uppercase font-mono tracking-widest text-[var(--vt-text-3)]">Active Risk</p>
-            </div>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto p-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-            {/* Findings List */}
-            <div className="flex flex-col gap-2 relative">
-              {findingsUnavailable ? (
-                <SurfaceErrorState
-                  title="Signals unavailable"
-                  description={findings.error ?? 'Signal queue failed to load'}
-                  onRetry={findings.refresh}
+            <div className="flex flex-wrap items-center gap-2">
+              <form
+                className="flex items-center gap-2 rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  pushCanvas((params) => {
+                    const trimmed = draftQuery.trim();
+                    if (trimmed.length > 0) {
+                      params.set('q', trimmed);
+                    } else {
+                      params.delete('q');
+                    }
+                    params.delete('npi');
+                    params.delete('findingId');
+                    params.delete('storylineId');
+                    params.delete('panel');
+                  });
+                }}
+              >
+                <Search className="h-3.5 w-3.5 text-[var(--vt-text-3)]" />
+                <input
+                  value={draftQuery}
+                  onChange={(event) => setDraftQuery(event.target.value)}
+                  placeholder="Search scope..."
+                  className="w-44 bg-transparent text-xs text-[var(--vt-text-1)] outline-none placeholder:text-[var(--vt-text-3)]"
                 />
-              ) : (findings.data?.findings ?? []).length > 0 ? (
-                (findings.data?.findings ?? []).map((finding) => {
-                  const active = selectedFinding?.id === finding.id;
-                  
-                  // Noise reduction: monochrome palette
-                  let typeColorClass = "border-[var(--vt-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-2)]";
-                  
-                  const activeSelectionExists = selectedFindingId !== '';
-                  
+              </form>
+
+              <button
+                type="button"
+                onClick={openPalette}
+                className="inline-flex items-center gap-2 rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--vt-text-2)] transition hover:text-[var(--vt-text-1)]"
+              >
+                <Command className="h-3.5 w-3.5" />
+                Palette
+              </button>
+
+              <button
+                type="button"
+                onClick={refreshAll}
+                className="inline-flex items-center gap-2 rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--vt-text-2)] transition hover:text-[var(--vt-text-1)]"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-2 md:grid-cols-4">
+            <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-2.5">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--vt-text-3)]">Findings</p>
+              <p className="mt-1 text-2xl font-semibold text-[var(--vt-text-1)]">{findings.data?.total ?? 0}</p>
+            </div>
+            <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-2.5">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--vt-text-3)]">Providers</p>
+              <p className="mt-1 text-2xl font-semibold text-[var(--vt-text-1)]">{providers.data?.total ?? 0}</p>
+            </div>
+            <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-2.5">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--vt-text-3)]">Storylines</p>
+              <p className="mt-1 text-2xl font-semibold text-[var(--vt-text-1)]">{storylines.data?.total ?? 0}</p>
+            </div>
+            <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-2.5">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--vt-text-3)]">Last refresh</p>
+              <p className="mt-1 text-sm font-semibold text-[var(--vt-text-1)]">
+                {providers.lastUpdated ? formatRelativeTime(providers.lastUpdated) : 'Pending'}
+              </p>
+            </div>
+          </div>
+        </header>
+
+        {accessBanner ? (
+          <SurfaceBanner tone={accessBanner.tone}>
+            {accessBanner.description}
+          </SurfaceBanner>
+        ) : null}
+        {staleState.isStale && staleState.ageMinutes !== null ? (
+          <SurfaceBanner tone="info">
+            {formatLastRefreshMessage(staleState.ageMinutes)}
+          </SurfaceBanner>
+        ) : null}
+
+        <main className="grid min-h-0 flex-1 gap-px overflow-hidden bg-[var(--vt-border)] xl:grid-cols-[minmax(0,360px)_minmax(0,1fr)_minmax(0,420px)]">
+          <aside className="min-h-0 overflow-y-auto bg-[var(--vt-surface-dim)] p-4">
+            <div className="space-y-4">
+              {sectionOrder.map((section) => {
+                if (section === 'findings') {
+                  const findingItems = findings.data?.findings ?? [];
                   return (
-                    <button
-                      key={finding.id}
-                      type="button"
-                      onClick={() => setFindingScope(finding)}
-                      className={`group relative w-full flex-col overflow-hidden rounded-sm border bg-[var(--vt-surface)] text-left transition-all duration-300 ease-out 
-                      ${active ? 'border-[var(--vt-text-2)] shadow-md ring-1 ring-inset ring-[var(--vt-border)] scale-[1.01] bg-[var(--vt-surface-2)]' 
-                               : activeSelectionExists 
-                                 ? 'border-[var(--vt-border)]/40 opacity-40 hover:opacity-100 hover:border-[var(--vt-text-3)]'
-                                 : 'border-[var(--vt-border)] hover:border-[var(--vt-text-3)] hover:shadow-sm hover:translate-y-[-1px]'
-                      }`}
+                    <SignalSection
+                      key="findings-section"
+                      title="Findings"
+                      detail="Promote the highest-signal findings directly into the canvas."
+                      count={findingItems.length}
                     >
-                      <div className="flex h-full">
-                        <div className={`w-[2px] shrink-0 transition-opacity bg-[var(--vt-text-3)] ${active ? 'opacity-100' : 'opacity-30'}`} />
-                        <div className="flex flex-1 flex-col p-4">
-                          <div className="flex items-start justify-between gap-4">
+                      {findings.error && findingItems.length === 0 ? (
+                        <SurfaceErrorState
+                          title="Findings unavailable"
+                          description={findings.error}
+                          onRetry={findings.refresh}
+                        />
+                      ) : null}
+                      {!findings.loading && !findings.error && findingItems.length === 0 ? (
+                        <SurfaceEmptyState
+                          title="No findings in scope"
+                          description="Widen the search or lock a provider into scope to pull more signals into the queue."
+                        />
+                      ) : null}
+                      {findingItems.slice(0, 6).map((finding) => (
+                        <button
+                          key={finding.id}
+                          type="button"
+                          onClick={() => focusFinding(finding)}
+                          className={`w-full rounded-sm border px-3 py-3 text-left transition ${
+                            selectedFinding?.id === finding.id
+                              ? 'border-cyan-400/40 bg-cyan-400/10'
+                              : 'border-[var(--vt-border)] bg-[var(--vt-surface)] hover:border-[var(--vt-text-3)]'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
                             <div>
-                               <div className="flex items-center gap-2 mb-1.5 opacity-80">
-                                 <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--vt-text-2)]">
-                                   {finding.providerNpi ? `Provider NPI ${finding.providerNpi}` : 'Global Signal'}
-                                 </p>
-                                 <span className="h-1 w-1 rounded-full bg-[var(--vt-border)]" />
-                                 <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--vt-text-3)]">
-                                   SEVERITY: {finding.severity}
-                                 </p>
-                               </div>
-                               <p className={`text-sm font-medium leading-snug ${active ? 'text-[var(--vt-text-1)]' : 'text-[var(--vt-text-1)]'}`}>
-                                 {finding.title || finding.summary}
-                               </p>
-                               {finding.explanation && (
-                                 <p className="mt-1.5 text-xs text-[var(--vt-text-2)] line-clamp-2 leading-relaxed">
-                                   {finding.explanation}
-                                 </p>
-                               )}
-                            </div>
-                            <div className="flex flex-col items-end gap-2 shrink-0">
-                                <span className={`rounded-[2px] border px-2 py-0.5 text-[10px] uppercase tracking-widest ${typeColorClass}`}>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <OpsBadge label={finding.severity} tone={severityTone(finding.severity)} />
+                                <span className="text-[10px] uppercase tracking-[0.14em] text-[var(--vt-text-3)]">
                                   {finding.findingType.replace(/_/g, ' ')}
                                 </span>
-                                <div className="mt-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--vt-text-1)] opacity-0 transition-all duration-300 group-hover:opacity-100 flex items-center gap-1">
-                                  Investigate <ArrowUpRight className="w-3 h-3 inline" />
-                                </div>
+                              </div>
+                              <p className="mt-2 text-sm font-semibold text-[var(--vt-text-1)]">{finding.title}</p>
+                              <p className="mt-1 text-xs leading-5 text-[var(--vt-text-2)]">{finding.summary}</p>
                             </div>
+                            <AlertTriangle className="mt-1 h-4 w-4 shrink-0 text-[var(--vt-text-3)]" />
                           </div>
-                          
-                          <div className="mt-4 flex items-center justify-between border-t border-[var(--vt-border)] pt-3 opacity-60 group-hover:opacity-100 transition-opacity duration-300">
-                             <div className="flex items-center gap-3 pl-0.5">
-                               <div className="flex items-center gap-2">
-                                 <div className="h-1 w-12 overflow-hidden bg-[var(--vt-surface-2)] rounded-full">
-                                   <div className={`h-full transition-all duration-500 ease-out ${active ? 'bg-[var(--vt-text-1)] shadow-[0_0_8px_var(--vt-text-1)]' : 'bg-[var(--vt-text-3)] group-hover:bg-[var(--vt-text-2)]'}`} style={{ width: `${Math.round(finding.confidence * 100)}%` }} />
-                                 </div>
-                                 <span className="text-[10px] font-mono tracking-widest text-[var(--vt-text-3)]">CONF {Math.round(finding.confidence * 100)}%</span>
-                               </div>
-                               {(finding.evidence?.length ?? 0) > 0 && (
-                                 <>
-                                   <div className="w-px h-3 bg-[var(--vt-text-3)] opacity-30" />
-                                   <span className="text-[10px] uppercase tracking-widest text-[var(--vt-text-3)]">
-                                      {finding.evidence.length} Evidence {finding.evidence.length === 1 ? 'Item' : 'Items'}
-                                   </span>
-                                 </>
-                               )}
-                             </div>
-                             <div className="flex items-center gap-3">
-                               {finding.storylineTitle && (
-                                 <span className="rounded-[2px] border border-[var(--vt-border)]/50 bg-[var(--vt-surface-2)] px-2 py-0.5 text-[10px] uppercase tracking-widest text-[var(--vt-text-2)]">
-                                   {finding.storylineTitle}
-                                 </span>
-                               )}
-                               <span className="text-[10px] font-mono tracking-widest text-[var(--vt-text-3)] flex items-center gap-1.5">
-                                 <div className={`w-1.5 h-1.5 rounded-full ${finding.updatedAt > new Date(Date.now() - 3600000).toISOString() ? 'bg-[var(--vt-text-2)] animate-pulse' : 'bg-[var(--vt-border)]'}`} />
-                                 {formatRelativeTime(finding.updatedAt)}
-                               </span>
-                             </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {finding.providerNpi ? (
+                              <span className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--vt-text-2)]">
+                                {finding.providerLabel ?? finding.providerNpi}
+                              </span>
+                            ) : null}
+                            {finding.storylineTitle ? (
+                              <span className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--vt-text-2)]">
+                                {finding.storylineTitle}
+                              </span>
+                            ) : null}
                           </div>
-                        </div>
-                      </div>
-                      {active && <div className="absolute inset-0 pointer-events-none rounded-sm bg-[var(--vt-text-1)]/5 ring-1 ring-inset ring-[var(--vt-border)]" />}
-                    </button>
+                        </button>
+                      ))}
+                    </SignalSection>
                   );
-                })
-              ) : (
-                /* Always show skeleton rows — never an empty canvas */
-                <div className="flex flex-col gap-2">
-                  {[...Array(5)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="flex overflow-hidden rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] animate-pulse"
-                      style={{ animationDelay: `${i * 80}ms` }}
+                }
+
+                if (section === 'storylines') {
+                  const storylineItems = storylines.data?.storylines ?? [];
+                  return (
+                    <SignalSection
+                      key="storylines-section"
+                      title="Storylines"
+                      detail="Open cluster context without leaving the graph and queue."
+                      count={storylineItems.length}
                     >
-                      <div className="w-[3px] shrink-0 bg-[var(--vt-border)]" />
-                      <div className="flex flex-1 flex-col gap-3 p-4">
-                        <div className="flex items-center gap-2">
-                          <div className="h-3 w-20 rounded bg-[var(--vt-surface-2)]" />
-                          <div className="h-3 w-14 rounded bg-[var(--vt-surface-2)]" />
+                      {storylines.error && storylineItems.length === 0 ? (
+                        <SurfaceErrorState
+                          title="Storylines unavailable"
+                          description={storylines.error}
+                          onRetry={storylines.refresh}
+                        />
+                      ) : null}
+                      {!storylines.loading && !storylines.error && storylineItems.length === 0 ? (
+                        <SurfaceEmptyState
+                          title="No storylines in scope"
+                          description="Storyline clustering has not returned any active narratives for the current slice."
+                        />
+                      ) : null}
+                      {storylineItems.slice(0, 5).map((storyline) => (
+                        <button
+                          key={storyline.id}
+                          type="button"
+                          onClick={() => focusStoryline(storyline)}
+                          className={`w-full rounded-sm border px-3 py-3 text-left transition ${
+                            selectedStoryline?.id === storyline.id
+                              ? 'border-cyan-400/40 bg-cyan-400/10'
+                              : 'border-[var(--vt-border)] bg-[var(--vt-surface)] hover:border-[var(--vt-text-3)]'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <OpsBadge label={storyline.severity} tone={severityTone(storyline.severity)} />
+                                <OpsBadge label={storyline.status} tone="info" />
+                              </div>
+                              <p className="mt-2 text-sm font-semibold text-[var(--vt-text-1)]">{storyline.title}</p>
+                              <p className="mt-1 text-xs leading-5 text-[var(--vt-text-2)]">{storyline.whyItMatters}</p>
+                            </div>
+                            <GitBranch className="mt-1 h-4 w-4 shrink-0 text-[var(--vt-text-3)]" />
+                          </div>
+                        </button>
+                      ))}
+                    </SignalSection>
+                  );
+                }
+
+                const providerItems = providers.data?.providers ?? [];
+                return (
+                  <SignalSection
+                    key="providers-section"
+                    title="Providers"
+                    detail="Lock a provider into scope or pull it into compare mode."
+                    count={providerItems.length}
+                  >
+                    {providers.error && providerItems.length === 0 ? (
+                      <SurfaceErrorState
+                        title="Providers unavailable"
+                        description={providers.error}
+                        onRetry={providers.refresh}
+                      />
+                    ) : null}
+                    {!providers.loading && !providers.error && providerItems.length === 0 ? (
+                      <SurfaceEmptyState
+                        title="No providers returned"
+                        description="Adjust the search scope or trust threshold to widen the provider slice."
+                      />
+                    ) : null}
+                    {providerItems.slice(0, 5).map((provider) => {
+                      const inCompare = activeCompareNpis.includes(provider.npi);
+                      return (
+                        <div
+                          key={provider.npi}
+                          className={`rounded-sm border px-3 py-3 transition ${
+                            selectedProvider?.npi === provider.npi
+                              ? 'border-cyan-400/40 bg-cyan-400/10'
+                              : 'border-[var(--vt-border)] bg-[var(--vt-surface)]'
+                          }`}
+                        >
+                          <button type="button" onClick={() => focusProvider(provider.npi)} className="w-full text-left">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <OpsBadge label={provider.credentialHealth} tone="info" />
+                                  <span className={`text-xs font-semibold ${trustScoreColor(provider.trustScore)}`}>
+                                    {provider.trustScore}
+                                  </span>
+                                </div>
+                                <p className="mt-2 text-sm font-semibold text-[var(--vt-text-1)]">{provider.name}</p>
+                                <p className="mt-1 text-xs leading-5 text-[var(--vt-text-2)]">{provider.summary}</p>
+                              </div>
+                              <ShieldCheck className="mt-1 h-4 w-4 shrink-0 text-[var(--vt-text-3)]" />
+                            </div>
+                          </button>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleCompareToggle(provider.npi)}
+                              className={`inline-flex items-center rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] transition ${
+                                inCompare
+                                  ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-100'
+                                  : 'border-[var(--vt-border)] bg-[var(--vt-surface-dim)] text-[var(--vt-text-2)] hover:text-[var(--vt-text-1)]'
+                              }`}
+                            >
+                              {inCompare ? 'In compare' : 'Compare'}
+                            </button>
+                            <EntityLink
+                              href={buildIntelligenceHref('providers', {
+                                npi: provider.npi,
+                                open: ['provider'],
+                              })}
+                              label="Open panel"
+                            />
+                          </div>
                         </div>
-                        <div className="h-4 w-3/4 rounded bg-[var(--vt-surface-2)]" />
-                        <div className="h-3 w-full rounded bg-[var(--vt-surface-2)]" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                      );
+                    })}
+                  </SignalSection>
+                );
+              })}
             </div>
-            
-            {/* Graph Preview */}
-            <div className="hidden lg:block">
-              <div className="sticky top-0 h-[calc(100vh-8rem)] w-full relative rounded-sm border border-[var(--vt-border)] bg-black shadow-inner overflow-hidden">
-                <div className="absolute left-3 top-3 z-10 pointer-events-none flex flex-col gap-1.5">
-                   <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-1)] mix-blend-difference">Network Context</p>
-                   {graph.data && (
-                     <p className="text-[9px] font-mono tracking-widest text-[var(--vt-info)] mix-blend-difference opacity-80">
-                       {graph.data.nodes.length} NODES · {graph.data.edges.length} EDGES
-                     </p>
-                   )}
+          </aside>
+
+          <section ref={graphPanelRef} className="min-h-0 overflow-y-auto bg-[var(--vt-surface)] p-4">
+            <div className="space-y-4">
+              <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Shared intelligence canvas</p>
+                    <p className="mt-1 text-sm text-[var(--vt-text-2)]">
+                      The graph stays mounted while the queue and decision panels change around it.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {CANVAS_OPEN_PANEL_VALUES.map((panel) => (
+                      <button
+                        key={panel}
+                        type="button"
+                        onClick={() => openPanel(panel)}
+                        className={`rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] transition ${
+                          renderedPanels.includes(panel)
+                            ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-100'
+                            : 'border-[var(--vt-border)] bg-[var(--vt-surface-dim)] text-[var(--vt-text-2)] hover:text-[var(--vt-text-1)]'
+                        }`}
+                      >
+                        {panel}
+                      </button>
+                    ))}
+                    <Link
+                      href={graphHref}
+                      className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--vt-text-2)] transition hover:text-[var(--vt-text-1)]"
+                    >
+                      Full graph
+                      <ArrowUpRight className="h-3 w-3" />
+                    </Link>
+                  </div>
                 </div>
-                <div className="absolute top-3 right-3 z-10 pointer-events-none">
-                  <span className="flex items-center gap-1.5 rounded-[2px] bg-black/40 px-2 py-1 text-[9px] uppercase tracking-widest text-[var(--vt-success)] backdrop-blur-md border border-[var(--vt-success)]/20 shadow-sm">
-                    <div className="h-1 w-1 rounded-full bg-[var(--vt-success)] animate-pulse" />
-                    LIVE TRACE
-                  </span>
-                </div>
+              </div>
+
+              <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-3 shadow-sm">
                 <GraphWorkbenchPanel
-                  graph={graph.data}
+                  graph={graph.data ?? null}
                   providers={providers.data?.providers ?? []}
                   selectedProvider={selectedProvider}
                   selectedFindingId={selectedFinding?.id ?? selectedFindingId}
                   selectedStorylineId={selectedStoryline?.id ?? selectedStorylineId}
-                  openFullGraphHref={openFullGraphHref}
+                  openFullGraphHref={graphHref}
                   loading={graph.loading}
                   error={graph.error}
                   onRetry={graph.refresh}
-                  onSelectProvider={(provider) => setProviderScope(provider.npi)}
+                  onSelectProvider={(provider) => focusProvider(provider.npi)}
                   focusNodeId={copilotFocusNodeId}
                   highlightNodeId={copilotHighlightNodeId}
-                  highlightNodeIds={useMemo(() => {
-                    if (!findings.data?.findings || !graph.data?.nodes) return [];
-                    const npis = new Set(findings.data.findings.map(f => f.providerNpi).filter(Boolean));
-                    return graph.data.nodes.filter(n => npis.has(n.id) || npis.has(n.metadata?.npi as string)).map(n => n.id);
-                  }, [findings.data?.findings, graph.data?.nodes])}
-                  onSelectGraphNode={setCopilotFocusNodeId}
+                  highlightNodeIds={highlightedNodeIds}
+                  onSelectGraphNode={(nodeId) => {
+                    setCopilotFocusNodeId(nodeId);
+                    const provider = findProviderForGraphNode(nodeId, graph.data?.nodes ?? [], providers.data?.providers ?? []);
+                    if (provider) {
+                      focusProvider(provider.npi, renderedPanels.includes('provider') ? renderedPanels : ['provider']);
+                    }
+                  }}
                 />
               </div>
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 shadow-sm">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Graph scope</p>
+                  <p className="mt-2 text-sm text-[var(--vt-text-2)]">
+                    {selectedProvider
+                      ? `Focused on ${selectedProvider.name}. Use the open panels to keep provider, finding, and storyline context visible while the graph stays live.`
+                      : 'Global graph scope is live. Pick a provider or finding to tighten the network slice.'}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {selectedProvider ? <OpsBadge label={`NPI ${selectedProvider.npi}`} tone="info" /> : null}
+                    {selectedFinding ? <OpsBadge label={`Finding ${selectedFinding.id}`} tone={severityTone(selectedFinding.severity)} /> : null}
+                    {selectedStoryline ? <OpsBadge label={`Storyline ${selectedStoryline.id}`} tone="info" /> : null}
+                  </div>
+                </div>
+
+                <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 shadow-sm">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Decision pressure</p>
+                  <p className="mt-2 text-sm text-[var(--vt-text-2)]">
+                    {actions.data?.actions?.length
+                      ? `${actions.data.actions.length} recommended actions are available for the active slice.`
+                      : 'No recommended actions were returned for the current slice yet.'}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(actions.data?.actions ?? []).slice(0, 3).map((action) => (
+                      <span
+                        key={action.id}
+                        className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-1 text-xs text-[var(--vt-text-2)]"
+                        title={action.explanation}
+                      >
+                        {action.title}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* ZONE C — CONTEXT / ACTION RAIL */}
-        <aside className="no-scrollbar z-20 flex w-[380px] shrink-0 flex-col overflow-y-auto border-l border-[var(--vt-border)] bg-[var(--vt-surface-dim)]">
-          <div className="flex flex-col gap-6 p-5">
-            <WorkbenchCopilotPanel
-              provider={selectedProvider}
-              finding={selectedFinding}
-              storyline={selectedStoryline}
-              onNavigateToNpi={setProviderScope}
-              onSelectFinding={selectFindingById}
-              onSelectStoryline={selectStorylineById}
-              onFocusGraphNode={(nodeId) => {
-                setCopilotFocusNodeId(nodeId);
-                pushDashboard((params) => {
-                  params.set('panel', 'graph');
-                });
-              }}
-              onHighlightGraphNode={(nodeId) => {
-                setCopilotHighlightNodeId(nodeId);
-                pushDashboard((params) => {
-                  params.set('panel', 'graph');
-                });
-              }}
-              onOpenEvidence={openEvidenceForFinding}
-              context={copilotContext}
-            />
+          <aside className="min-h-0 overflow-y-auto bg-[var(--vt-surface-dim)] p-4">
+            <div className="space-y-4">
+              {compareModeRequested ? (
+                <CompareModePanel
+                  providers={compareProviders}
+                  payload={comparePayload}
+                  loading={compareLoading}
+                  error={compareError}
+                  onFocusProvider={(npi) => focusProvider(npi)}
+                  onRemoveProvider={(npi) => setCompare(toggleCompareSelection(compareSelection, npi), true)}
+                  onClose={clearCompare}
+                />
+              ) : null}
 
-            {selectedProvider && (
-              <div className="space-y-4 pt-5 border-t border-[var(--vt-border)]/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="h-1 w-1 bg-[var(--vt-text-3)] rounded-full" />
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-2)]">Profile Context</p>
+              {panelBlocks.length > 0 ? panelBlocks : (
+                <SurfaceEmptyState
+                  title="Open panels to build context"
+                  description="Use the queue, graph, or command palette to open provider, finding, and storyline panels together."
+                />
+              )}
+
+              <WorkbenchCopilotPanel
+                provider={selectedProvider}
+                finding={selectedFinding}
+                storyline={selectedStoryline}
+                onNavigateToNpi={(npi) => focusProvider(npi)}
+                onSelectFinding={selectFindingById}
+                onSelectStoryline={selectStorylineById}
+                onFocusGraphNode={(nodeId) => {
+                  setCopilotFocusNodeId(nodeId);
+                  pushCanvas((params) => {
+                    params.set('panel', 'graph');
+                  });
+                }}
+                onHighlightGraphNode={(nodeId) => {
+                  setCopilotHighlightNodeId(nodeId);
+                  pushCanvas((params) => {
+                    params.set('panel', 'graph');
+                  });
+                }}
+                onOpenEvidence={openEvidenceForFinding}
+                context={copilotContext}
+              />
+
+              <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Deep links</p>
+                    <p className="mt-1 text-sm text-[var(--vt-text-2)]">Keep legacy detail routes available when you need a dedicated page.</p>
                   </div>
-                  <span className={`text-sm font-mono tracking-widest ${trustScoreColor(selectedProvider.trustScore)}`}>
-                    TRUST {selectedProvider.trustScore}
-                  </span>
+                  <Sparkles className="h-4 w-4 text-[var(--vt-text-3)]" />
                 </div>
-                <div className="space-y-1">
-                  <h3 className="text-[15px] font-medium text-[var(--vt-text-1)]">{selectedProvider.name}</h3>
-                  <p className="text-[10px] uppercase tracking-widest text-[var(--vt-text-3)] font-mono">NPI {selectedProvider.npi}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {selectedProvider ? (
+                    <EntityLink href={`/providers/${selectedProvider.npi}?from=${encodeURIComponent(currentHref)}`} label="Provider detail" />
+                  ) : null}
+                  {selectedFinding ? (
+                    <EntityLink href={`/findings/${selectedFinding.id}?from=${encodeURIComponent(currentHref)}`} label="Finding detail" />
+                  ) : null}
+                  {selectedStoryline ? (
+                    <EntityLink href={`/storylines/${selectedStoryline.id}?from=${encodeURIComponent(currentHref)}`} label="Storyline detail" />
+                  ) : null}
+                  <EntityLink href={graphHref} label="Graph workspace" />
                 </div>
-                <p className="text-[13px] leading-relaxed text-[var(--vt-text-2)] line-clamp-4">{selectedProvider.summary}</p>
-                
-                <div className="flex flex-col gap-1.5 pt-2">
-                  <EntityLink href={`/providers/${selectedProvider.npi}?from=${encodeURIComponent(currentHref)}`} label="View Complete Profile" />
-                  <EntityLink href={buildIntelligenceHref('investigations', { npi: selectedProvider.npi })} label="Launch Specific Investigation" />
-                </div>
+                <p className="mt-3 text-xs text-[var(--vt-text-3)]" title={staleState.timestamp ? formatAbsoluteTime(staleState.timestamp) : undefined}>
+                  {staleState.timestamp ? `Canvas data refreshed ${formatRelativeTime(staleState.timestamp)}.` : 'Waiting for the first live snapshot.'}
+                </p>
               </div>
-            )}
-            
-            {selectedStoryline && (
-              <div className="space-y-4 pt-5 border-t border-[var(--vt-border)]/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="h-1 w-1 bg-[var(--vt-text-3)] rounded-full" />
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-2)]">Active Cluster</p>
-                  </div>
-                </div>
-                <h3 className="text-[15px] font-medium text-[var(--vt-text-1)]">{selectedStoryline.title}</h3>
-                <p className="text-[13px] leading-relaxed text-[var(--vt-text-2)] line-clamp-4">{selectedStoryline.whyItMatters}</p>
-                <div className="flex flex-col gap-1.5 pt-2">
-                  <EntityLink href={`/storylines/${selectedStoryline.id}?from=${encodeURIComponent(currentHref)}`} label="Expand Storyline" />
-                </div>
-              </div>
-            )}
-
-            {!selectedProvider && !selectedStoryline && (
-              <div className="space-y-3 animate-pulse">
-                <div className="h-3 w-24 rounded bg-[var(--vt-surface-2)]" />
-                <div className="h-4 w-40 rounded bg-[var(--vt-surface-2)]" />
-                <div className="h-3 w-full rounded bg-[var(--vt-surface-2)]" />
-                <div className="h-3 w-5/6 rounded bg-[var(--vt-surface-2)]" />
-                <div className="h-3 w-3/4 rounded bg-[var(--vt-surface-2)]" />
-              </div>
-            )}
-          </div>
-        </aside>
-      </main>
-    </div>
+            </div>
+          </aside>
+        </main>
+      </div>
     </>
   );
 }

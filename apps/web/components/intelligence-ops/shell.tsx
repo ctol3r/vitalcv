@@ -17,8 +17,17 @@ export function resolveOperationsNavKey(
   activeHref: string,
   activeNavKey?: IntelligenceNavKey,
 ): IntelligenceNavKey | undefined {
+  const activeUrl = new URL(activeHref, 'https://vitalcv.local');
+  const requestedView = activeUrl.searchParams.get('view');
+  const requestedFocus = activeUrl.searchParams.get('focus');
+
   if (
-    (activeHref.startsWith('/intelligence/graph') || activeHref.startsWith('/graph'))
+    (
+      activeHref.startsWith('/intelligence/graph')
+      || activeHref.startsWith('/graph')
+      || requestedView === 'graph'
+      || requestedFocus === 'graph'
+    )
     && (!activeNavKey || activeNavKey === 'dashboard')
   ) {
     return 'graph';

@@ -151,7 +151,7 @@ function emptyFeedMessage(delivery: LiveFeedResponse['delivery']): string {
       : 'Live feed backend unavailable. Retrying.';
   }
 
-  return 'System warming. Waiting for the first live feed event.';
+  return 'No live feed events have been observed yet.';
 }
 
 export function LiveFeedRibbon() {

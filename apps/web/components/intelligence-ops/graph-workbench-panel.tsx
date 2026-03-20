@@ -20,7 +20,11 @@ import type {
   IntelligenceProvider,
 } from '@/lib/intelligence/contracts';
 import { findGraphNodeIdForProvider, findProviderForGraphNode } from '@/lib/intelligence/contracts';
-import { buildIntelligenceGraphHref, buildIntelligenceHref } from '@/lib/intelligence/routes';
+import {
+  buildIntelligenceGraphHref,
+  buildIntelligenceHref,
+  normalizeIntelligenceHref,
+} from '@/lib/intelligence/routes';
 
 interface GraphWorkbenchPanelProps {
   graph: IntelligenceGraphResponse | null;
@@ -36,6 +40,7 @@ interface GraphWorkbenchPanelProps {
   focusNodeId?: string | null;
   highlightNodeId?: string | null;
   highlightNodeIds?: string[];
+  getTooltipContext?: ((nodeId: string) => import('@/lib/intelligence/entity-registry').TooltipEntityContext | null) | null;
   onSelectGraphNode?: (nodeId: string | null) => void;
 }
 
@@ -226,7 +231,7 @@ function buildGraphSummary(input: {
     title: summaryTitle,
     description: input.graph
       ? `The backend returned ${nodeCount} node${nodeCount === 1 ? '' : 's'} and ${edgeCount} edge${edgeCount === 1 ? '' : 's'} for this scope.`
-      : 'No graph payload is currently attached to this scope.',
+      : 'No graph payload was returned for the current scope.',
     meta: [
       `${nodeCount} node${nodeCount === 1 ? '' : 's'}`,
       `${edgeCount} edge${edgeCount === 1 ? '' : 's'}`,
@@ -250,6 +255,7 @@ export function GraphWorkbenchPanel({
   focusNodeId = null,
   highlightNodeId = null,
   highlightNodeIds = [],
+  getTooltipContext,
   onSelectGraphNode,
 }: GraphWorkbenchPanelProps) {
   const [dimensions, setDimensions] = useState({ width: 420, height: 420 });
@@ -511,6 +517,7 @@ export function GraphWorkbenchPanel({
               hoveredEdgeId={hoveredEdgeDetail?.edge.id ?? null}
               highlightedNodeIds={highlightedContext.nodeIds}
               highlightedEdgeIds={highlightedContext.edgeIds}
+              getTooltipContext={getTooltipContext}
               onSelectNode={(nodeId) => {
                 setLocalSelectedNodeId(nodeId);
                 setSelectedEdgeId(null);
@@ -615,7 +622,7 @@ export function GraphWorkbenchPanel({
                 {selectedProvider ? (
                   <>
                     <Link
-                      href={`/providers/${selectedProvider.npi}`}
+                      href={normalizeIntelligenceHref(`/providers/${selectedProvider.npi}`)}
                       className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-1.5 text-xs font-medium text-[var(--vt-text-2)] transition hover:border-[var(--vt-text-3)] hover:text-[var(--vt-text-1)]"
                     >
                       Open provider profile
@@ -666,7 +673,7 @@ export function GraphWorkbenchPanel({
                       />
                     )) : (
                       <span className="text-xs text-[var(--vt-text-3)]">
-                        No nodes returned for this slice.
+                        No node types are available for the current slice.
                       </span>
                     )}
                   </div>

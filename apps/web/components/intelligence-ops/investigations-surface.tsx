@@ -14,7 +14,7 @@ import {
   type InvestigationWorkbenchAnchorInput,
 } from '@/lib/intelligence/investigation-workbench-client';
 import type { CopilotContextPayload } from '@/components/copilot/types';
-import type { IntelligenceAccessReason, IntelligenceProvider } from '@/lib/intelligence/contracts';
+import { computeProviderView, type IntelligenceAccessReason, type IntelligenceProvider } from '@/lib/intelligence/contracts';
 import { getAccessBannerState } from '@/lib/intelligence/state';
 import { summarizeTrustSignals } from '@/lib/intelligence/trust-signals';
 import { OperationsShell } from './shell';
@@ -559,21 +559,21 @@ function toIntelligenceProvider(provider: WorkbenchProviderContext | null): Inte
     return null;
   }
 
-  return {
+  return computeProviderView({
     id: provider.npi,
     npi: provider.npi,
     name: provider.label ?? `Provider ${provider.npi}`,
     specialties: provider.specialty ? [provider.specialty] : [],
     credentialHealth: 'VERIFIED',
     trustScore: provider.trustScore,
+    readinessScore: provider.trustScore,
     activeCredentials: 1,
     credentialCount: 1,
     primaryIssuer: provider.state,
     lastVerifiedAt: null,
     summary: `${provider.activeFindings} active finding${provider.activeFindings === 1 ? '' : 's'} in scope.`,
     tags: [provider.trustBand, provider.state ?? ''],
-    risk: provider.trustScore >= 80 ? 'healthy' : provider.trustScore >= 65 ? 'neutral' : provider.trustScore >= 45 ? 'degraded' : 'critical',
-  };
+  });
 }
 
 function NetworkGraphPanel({

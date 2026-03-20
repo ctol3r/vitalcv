@@ -99,6 +99,10 @@ export async function GET(req: NextRequest) {
           sourceLabel?: string | null;
           sourceId?: string | null;
           observedAt?: string | null;
+          confidence?: number | null;
+          relevance?: number | null;
+          url?: string | null;
+          metadata?: Record<string, unknown>;
         }>;
         updatedAt: string;
       }>;

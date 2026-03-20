@@ -105,6 +105,7 @@ export function ProviderDetailView({
             <div className="flex flex-wrap items-center gap-2">
               <OpsBadge label={current.profile.status} tone={severityTone(current.profile.status)} />
               <OpsBadge label={current.profile.trustBand} tone="info" />
+              <OpsBadge label={current.provider.riskLevel} tone={severityTone(current.provider.riskLevel)} />
               <span className="font-mono text-sm text-[var(--vt-text-3)]">NPI {current.provider.npi}</span>
               {current.provider.credential ? <span className="text-sm text-[var(--vt-text-3)]">{current.provider.credential}</span> : null}
             </div>
@@ -129,7 +130,7 @@ export function ProviderDetailView({
             </div>
             <div className="space-y-2 text-sm text-[var(--vt-text-2)]">
               <p>Provider type {current.provider.providerType ?? 'Unknown'}</p>
-              <p>Readiness score {current.profile.readinessScore}</p>
+              <p>Readiness score {current.provider.readinessScore}</p>
               <TimestampPair label="Last updated" value={current.profile.generatedAt} />
             </div>
             <div className="flex flex-wrap gap-2">

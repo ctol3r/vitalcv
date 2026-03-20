@@ -8,6 +8,7 @@ import type {
   PublicProviderProfile,
   StorylineDetailResponse,
 } from './detail-types';
+import { computeProviderView } from './contracts';
 import {
   normalizeActionDetailResponse,
   normalizeFindingDetailResponse,
@@ -416,6 +417,17 @@ export async function loadProviderDetail(npi: string): Promise<ProviderDetailRes
   const activeClaims = claims.ok ? claims.payload.claims ?? [] : [];
   const passportPublic = passport.ok ? passport.payload.public : undefined;
   const providerSignals = signalSummary.ok ? signalSummary.payload : null;
+  const readinessScore = Math.max(
+    0,
+    Math.min(
+      100,
+      Math.round(
+        typeof passportPublic?.readinessScore === 'number'
+          ? passportPublic.readinessScore
+          : profile.payload.readinessScore,
+      ),
+    ),
+  );
   const trustScore = Math.max(
     0,
     Math.min(
@@ -423,9 +435,7 @@ export async function loadProviderDetail(npi: string): Promise<ProviderDetailRes
       Math.round(
         typeof providerSignals?.trust.score === 'number'
           ? providerSignals.trust.score
-          : typeof passportPublic?.readinessScore === 'number'
-            ? passportPublic.readinessScore
-            : profile.payload.readinessScore,
+          : readinessScore,
       ),
     ),
   );
@@ -434,28 +444,48 @@ export async function loadProviderDetail(npi: string): Promise<ProviderDetailRes
   const activeStorylineCount = storylineItems.filter((storyline) => (
     ACTIVE_STORYLINE_STATUSES.has(storyline.status.toLowerCase())
   )).length;
+  const specialties = buildProviderSpecialties(passportPublic, identitySummary, activeClaims);
+  const totalCredentialCount = typeof passportPublic?.totalCredentials === 'number'
+    ? passportPublic.totalCredentials
+    : profile.payload.artifactSummaries.length;
+  const activeCredentialCount = typeof passportPublic?.activeCredentials === 'number'
+    ? passportPublic.activeCredentials
+    : profile.payload.activeCredentials.length;
+  const primaryIssuer = asString(passport.ok ? passport.payload.credentials?.[0]?.issuer : null)
+    ?? asString(profile.payload.issuerProvenance[0]?.issuer)
+    ?? null;
+  const providerView = computeProviderView({
+    npi,
+    fullName: resolveProviderName(npi, passportPublic, identitySummary),
+    specialties,
+    credentialHealth: profile.payload.status === 'CLEARED' ? 'VERIFIED' : 'PENDING',
+    trustScore,
+    readinessScore,
+    activeCredentials: activeCredentialCount,
+    credentialCount: totalCredentialCount,
+    primaryIssuer,
+    lastVerifiedAt: profile.payload.lastAnchored ?? null,
+  });
 
   return {
     provider: {
-      npi,
-      fullName: resolveProviderName(npi, passportPublic, identitySummary),
+      npi: providerView.npi,
+      fullName: providerView.name,
       providerType: asString(passportPublic?.providerType),
       credential: asString(identitySummary?.credential),
       npiStatus: asString(identitySummary?.npiStatus),
       enumerationType: asString(identitySummary?.enumerationType),
-      specialties: buildProviderSpecialties(passportPublic, identitySummary, activeClaims),
+      specialties,
       identifiers: buildProviderIdentifiers(npi, identitySummary, activeClaims),
       locations: buildProviderLocations(identitySummary, activeClaims),
-      trustScore,
-      riskScore: Math.max(0, 100 - trustScore),
+      trustScore: providerView.trustScore,
+      readinessScore: providerView.readinessScore,
+      riskScore: Math.max(0, 100 - providerView.trustScore),
+      riskLevel: providerView.riskLevel,
       findingCount,
       activeStorylineCount,
-      totalCredentialCount: typeof passportPublic?.totalCredentials === 'number'
-        ? passportPublic.totalCredentials
-        : profile.payload.artifactSummaries.length,
-      activeCredentialCount: typeof passportPublic?.activeCredentials === 'number'
-        ? passportPublic.activeCredentials
-        : profile.payload.activeCredentials.length,
+      totalCredentialCount,
+      activeCredentialCount,
     },
     profile: profile.payload,
     credentials: passport.ok ? passport.payload.credentials ?? [] : [],

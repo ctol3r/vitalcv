@@ -416,8 +416,8 @@ export function IntelligenceOverviewSurface() {
             />
           ) : (actions.data?.actions.length ?? 0) === 0 ? (
             <SurfaceEmptyState
-              title="No actions queued"
-              description="The action backend has not recommended any active next steps for the current scope."
+              title="No actions in scope"
+              description="No action records were returned for the current scope."
             />
           ) : (
             <div className="space-y-3">

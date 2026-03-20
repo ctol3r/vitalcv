@@ -40,25 +40,21 @@ export function getAccessBannerState(
   accessMode: IntelligenceAccessMode | null | undefined,
   reason: IntelligenceAccessReason | null | undefined,
 ): AccessBannerState | null {
-  // Intelligence is fully public — only show banners for genuine backend issues.
-  if (!accessMode || !reason || reason === 'ok' || reason === 'missing_session' || reason === 'missing_org') {
+  if (
+    !accessMode
+    || !reason
+    || reason === 'ok'
+    || reason === 'missing_session'
+    || reason === 'missing_org'
+    || reason === 'warming_up'
+  ) {
     return null;
   }
 
-  switch (reason) {
-    case 'warming_up':
-      return {
-        tone: 'info',
-        description: 'System warming up — ingesting provider intelligence. Live findings will appear shortly.',
-      };
-    case 'backend_unavailable':
-      return {
-        tone: 'warning',
-        description: 'Live intelligence is temporarily unavailable. Retry once backend services recover.',
-      };
-    default:
-      return null;
-  }
+  return {
+    tone: 'warning',
+    description: 'Live intelligence is temporarily unavailable. Retry once backend services recover.',
+  };
 }
 
 export function getAccessEmptyState(input: {

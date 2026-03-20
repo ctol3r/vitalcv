@@ -20,6 +20,7 @@ import {
   resolveGraphStats,
 } from '@/components/graph/state/graphDisplayState';
 import { useGraph } from '@/hooks/useGraph';
+import { buildIntelligenceGraphHref } from '@/lib/intelligence/routes';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import { OperationsShell } from './shell';
 import { OpsCard, SurfaceBanner, SurfaceEmptyState, SurfaceErrorState } from './primitives';
@@ -292,20 +293,12 @@ export function GraphSurface() {
     [filteredGraph.edges, filteredGraph.nodes, selectedNode],
   );
   const openFullGraphHref = useMemo(() => {
-    const params = new URLSearchParams();
-    const nodeNpi = selectedNodeNpi ?? focusedNpi;
-
-    if (nodeNpi) {
-      params.set('npi', nodeNpi);
-      params.set('providerId', nodeNpi);
-    }
-
-    if (selectedNodeId) {
-      params.set('focusNodeId', selectedNodeId);
-    }
-
-    const serialized = params.toString();
-    return serialized.length > 0 ? `/graph?${serialized}` : '/graph';
+    const nodeNpi = selectedNodeNpi ?? focusedNpi ?? undefined;
+    return buildIntelligenceGraphHref({
+      npi: nodeNpi,
+      providerId: nodeNpi,
+      focusNodeId: selectedNodeId ?? undefined,
+    });
   }, [focusedNpi, selectedNodeId, selectedNodeNpi]);
 
   return (
@@ -392,8 +385,8 @@ export function GraphSurface() {
               </div>
             ) : filteredGraph.nodes.length === 0 ? (
               <SurfaceEmptyState
-                title="No relationships yet"
-                description="The relationship graph has not observed any visible nodes for this scope."
+                title="No relationships in scope"
+                description="No graph nodes matched the current scope or filters. Clear filters or retry the graph query."
               />
             ) : (
               <>

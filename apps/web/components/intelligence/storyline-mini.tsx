@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { VerticalTimelineItem } from '@/components/intelligence-ops/vertical-timeline';
 import { VerticalTimeline } from '@/components/intelligence-ops/vertical-timeline';
 import { OpsBadge, OpsCard, severityTone } from '@/components/intelligence-ops/primitives';
+import { normalizeIntelligenceHref } from '@/lib/intelligence/routes';
 
 interface StorylineMiniProps {
   title: string;
@@ -30,8 +31,10 @@ export function StorylineMini({
   const normalizedCount = Math.max(0, findingsCount);
   const fromQuery = from ? `?from=${encodeURIComponent(from)}` : '';
   const baseFrom = from ?? '/findings';
-  const storylineHref = storylineId ? `/storylines/${storylineId}${fromQuery}` : null;
-  const providerHref = providerNpi ? `/providers/${providerNpi}?from=${encodeURIComponent(baseFrom)}` : null;
+  const storylineHref = storylineId ? normalizeIntelligenceHref(`/storylines/${storylineId}${fromQuery}`) : null;
+  const providerHref = providerNpi
+    ? normalizeIntelligenceHref(`/providers/${providerNpi}?from=${encodeURIComponent(baseFrom)}`)
+    : null;
 
   return (
     <OpsCard className="space-y-4">

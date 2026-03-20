@@ -69,6 +69,8 @@ export async function GET(req: NextRequest) {
           bullet: string;
           observedAt: string;
           confidence: number;
+          findingId?: string;
+          artifactId?: string;
         }>;
         findingIds: string[];
         progressionScore: number;

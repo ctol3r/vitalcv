@@ -172,10 +172,10 @@ export function ProvidersSurface() {
 
       {!providers.loading && !providers.error && !items.length ? (
         <SurfaceEmptyState
-          title={hasFilters ? 'No providers match the current filters' : 'System warming...'}
+          title={hasFilters ? 'No providers match the current filters' : 'No providers available'}
           description={hasFilters
             ? 'Adjust the search terms or score threshold to widen the result set.'
-            : 'Establishing network connections and indexing provider profiles...'}
+            : 'No provider records were returned for the current environment.'}
         />
       ) : null}
 

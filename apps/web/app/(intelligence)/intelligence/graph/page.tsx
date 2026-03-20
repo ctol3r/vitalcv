@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import { GraphWorkspacePage } from '../../graph/GraphWorkspacePage';
+import { redirect } from 'next/navigation';
+import { buildIntelligenceGraphHref } from '@/lib/intelligence/routes';
 
 export const metadata: Metadata = {
   title: 'Relationship Graph | VitalCV',
@@ -9,10 +10,9 @@ export const metadata: Metadata = {
 /**
  * Intelligence graph page.
  *
- * Previously required auth (session + org), but intelligence surfaces are now
- * public-read. The GraphWorkspacePage is client-side and fetches data through
- * the /api/intelligence/graph proxy which handles auth gracefully.
+ * Compatibility route: graph intent now lands inside the spatial `/intelligence`
+ * workspace rather than a standalone page.
  */
 export default function IntelligenceGraphPage() {
-  return <GraphWorkspacePage />;
+  redirect(buildIntelligenceGraphHref());
 }

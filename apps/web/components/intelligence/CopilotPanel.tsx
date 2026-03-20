@@ -1,7 +1,7 @@
 'use client';
 
 import { startTransition, useCallback, useEffect, useRef, useState } from 'react';
-import { Bot, Loader2, Send, Sparkles, Network, Fingerprint, ShieldAlert, ArrowRight } from 'lucide-react';
+import { Bot, Loader2, Send, Sparkles, Network, Fingerprint, ShieldAlert, ArrowRight, Activity } from 'lucide-react';
 
 function TypewriterText({ text }: { text: string }) {
   const [displayed, setDisplayed] = useState('');
@@ -188,16 +188,30 @@ export function CopilotPanel({ provider, seed = null }: CopilotPanelProps) {
 
   return (
     <SectionFrame
-      eyebrow="Copilot"
-      title={provider ? `Ask about ${provider.name.split(' ')[0]}` : 'Ask Copilot'}
+      eyebrow="Analyst Copilot"
+      title={provider ? `Assisting with ${provider.name.split(' ')[0]}` : 'Global Copilot Assistant'}
       detail={provider
-        ? `Context-scoped to ${provider.name} (NPI ${provider.npi}). Ask about trust posture, findings, or next actions.`
-        : 'Ask the trust engine for synthesized explanations without leaving the current scope.'}
-      action={<Bot className="h-4 w-4 text-fuchsia-300" />}
+        ? `I am actively monitoring findings and storylines for this provider.`
+        : 'I am indexing the global trust network. Ask me to cross-reference signals.'}
+      action={
+        <div className="flex items-center gap-2">
+          {loading ? (
+            <div className="flex items-center gap-1.5 rounded-full border border-fuchsia-500/30 bg-fuchsia-500/10 px-2.5 py-1">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-fuchsia-400" />
+              <span className="text-[9px] font-bold uppercase tracking-widest text-fuchsia-400">Synthesizing</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 rounded-full border border-[var(--vt-accent)]/30 bg-[var(--vt-accent)]/10 px-2.5 py-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--vt-accent)] shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+              <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--vt-accent)]">Active</span>
+            </div>
+          )}
+        </div>
+      }
     >
       <div className="grid gap-3">
-        <div className="flex items-center gap-2 rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 transition focus-within:border-fuchsia-300/30">
-          <Sparkles className="h-4 w-4 shrink-0 text-fuchsia-300/60" />
+        <div className="flex items-center gap-2 rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 transition focus-within:border-[var(--vt-accent)]/30">
+          <Sparkles className="h-4 w-4 shrink-0 text-[var(--vt-accent)]/60" />
           <input
             value={query}
             onChange={(event) => {
@@ -217,17 +231,33 @@ export function CopilotPanel({ provider, seed = null }: CopilotPanelProps) {
             type="button"
             onClick={() => void runCopilot()}
             disabled={loading || query.trim().length < 3}
-            className="flex h-7 w-7 items-center justify-center rounded-xl border border-fuchsia-300/20 bg-fuchsia-300/10 text-fuchsia-200 transition hover:bg-fuchsia-300/20 disabled:opacity-40"
+            className="flex h-7 w-7 items-center justify-center rounded-xl border border-[var(--vt-accent)]/20 bg-[var(--vt-accent)]/10 text-[var(--vt-accent)] transition hover:bg-[var(--vt-accent)]/20 disabled:opacity-40"
           >
             {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
           </button>
         </div>
 
-        <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.16em] text-[var(--vt-text-3)]">
-          <span>{provider ? 'Scoped to current provider' : 'Global operator scope'}</span>
-          <span className={loading ? 'text-fuchsia-200/80' : ''}>
-            {loading ? 'Refreshing response' : 'Ready'}
-          </span>
+        <div className="flex items-center justify-between gap-4 border-b border-[var(--vt-border)]/50 pb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--vt-text-3)]">Reading Context:</span>
+            <div className="flex items-center gap-1.5">
+              {provider ? (
+                <>
+                  <span className="rounded bg-[var(--vt-surface-2)] px-1.5 py-0.5 text-[10px] text-[var(--vt-text-2)] border border-[var(--vt-border)]">Provider Profile</span>
+                  <span className="rounded bg-[var(--vt-surface-2)] px-1.5 py-0.5 text-[10px] text-[var(--vt-text-2)] border border-[var(--vt-border)]">Active Findings</span>
+                </>
+              ) : (
+                <span className="rounded bg-[var(--vt-surface-2)] px-1.5 py-0.5 text-[10px] text-[var(--vt-text-2)] border border-[var(--vt-border)]">Global Substrate</span>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-1.5 text-[10px] text-[var(--vt-text-3)]">
+            <Activity className="h-3 w-3" />
+            <span className={loading ? 'text-[var(--vt-accent)]' : ''}>
+              {loading ? 'Processing Context Streams...' : 'Ready for Analysis'}
+            </span>
+          </div>
         </div>
 
         <div className="flex flex-col gap-1">
@@ -248,18 +278,18 @@ export function CopilotPanel({ provider, seed = null }: CopilotPanelProps) {
         </div>
 
         {showLoadingSkeleton ? (
-          <div className="flex flex-col gap-3 p-4 rounded-xl border border-fuchsia-500/20 bg-fuchsia-500/5">
+          <div className="flex flex-col gap-3 p-4 rounded-xl border border-[var(--vt-accent)]/20 bg-[var(--vt-accent)]/5">
             <div className="flex items-center gap-3">
               <span className="flex gap-1.5">
-                <span className="h-2 w-2 animate-bounce rounded-full bg-fuchsia-400" style={{ animationDelay: '0ms' }} />
-                <span className="h-2 w-2 animate-bounce rounded-full bg-fuchsia-400" style={{ animationDelay: '150ms' }} />
-                <span className="h-2 w-2 animate-bounce rounded-full bg-fuchsia-400" style={{ animationDelay: '300ms' }} />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-[var(--vt-accent)]" style={{ animationDelay: '0ms' }} />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-[var(--vt-accent)]" style={{ animationDelay: '150ms' }} />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-[var(--vt-accent)]" style={{ animationDelay: '300ms' }} />
               </span>
-              <span className="text-sm font-medium tracking-widest uppercase text-fuchsia-400">Synthesizing intelligence…</span>
+              <span className="text-sm font-medium tracking-widest uppercase text-[var(--vt-accent)]">Synthesizing intelligence…</span>
             </div>
             <div className="space-y-2 mt-2">
-              <div className="h-2 w-full animate-pulse rounded bg-fuchsia-500/10" />
-              <div className="h-2 w-3/4 animate-pulse rounded bg-fuchsia-500/10" />
+              <div className="h-2 w-full animate-pulse rounded bg-[var(--vt-accent)]/10" />
+              <div className="h-2 w-3/4 animate-pulse rounded bg-[var(--vt-accent)]/10" />
             </div>
           </div>
         ) : (

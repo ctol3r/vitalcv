@@ -4,13 +4,13 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { startTransition, useEffect, useMemo, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
+import { useEntityRegistry } from '@/hooks/useEntityRegistry';
 import { useFindings } from '@/hooks/useFindings';
 import { useGraph } from '@/hooks/useGraph';
 import { useProviders } from '@/hooks/useProviders';
 import { useStorylines } from '@/hooks/useStorylines';
 import {
   findGraphNodeIdForProvider,
-  findProviderForGraphNode,
   type IntelligenceFinding,
 } from '@/lib/intelligence/contracts';
 import {
@@ -23,6 +23,7 @@ import { buildIntelligenceGraphHref, buildIntelligenceHref } from '@/lib/intelli
 import {
   formatLastRefreshMessage,
   getAccessBannerState,
+  getFindingsEmptyState,
   getSurfaceFreshnessState,
 } from '@/lib/intelligence/state';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
@@ -36,6 +37,7 @@ import {
   OpsBadge,
   OpsCard,
   SurfaceBanner,
+  SurfaceEmptyState,
   SurfaceErrorState,
   TimestampPair,
   severityTone,
@@ -427,45 +429,54 @@ export function FindingsSurface() {
 
     return (graph.data?.edges ?? []).filter((edge) => edge.source === graphFocusNodeId || edge.target === graphFocusNodeId).length;
   }, [graph.data?.edges, graphFocusNodeId]);
-  const graphContextProvider = useMemo(
-    () =>
-      findProviderForGraphNode(
-        graphFocusNodeId,
-        graph.data?.nodes ?? [],
-        providers.data?.providers ?? [],
-      ) ?? selectedGraphProvider,
-    [graph.data?.nodes, graphFocusNodeId, providers.data?.providers, selectedGraphProvider],
-  );
   const graphScopedFindings = graphRelatedFindings.data?.findings ?? [];
+  const allFindings = useMemo(() => {
+    const map = new Map<string, IntelligenceFinding>();
+    for (const f of rawItems) map.set(f.id, f);
+    for (const f of graphScopedFindings) { if (!map.has(f.id)) map.set(f.id, f); }
+    return [...map.values()];
+  }, [rawItems, graphScopedFindings]);
+
+  const { expandGraphNode, getTooltipContext } = useEntityRegistry({
+    providers: providers.data?.providers ?? [],
+    findings: allFindings,
+    storylines: graphRelatedStorylines.data?.storylines ?? [],
+    graph: graph.data ?? null,
+  });
+
+  const nodeContext = useMemo(
+    () => graphFocusNodeId ? expandGraphNode(graphFocusNodeId) : null,
+    [expandGraphNode, graphFocusNodeId],
+  );
+
+  const graphContextProvider = useMemo(() => {
+    const npi = nodeContext?.providers[0]?.sourceId;
+    if (npi) {
+      const match = (providers.data?.providers ?? []).find((p) => p.npi === npi);
+      if (match) return match;
+    }
+    return selectedGraphProvider;
+  }, [nodeContext?.providers, providers.data?.providers, selectedGraphProvider]);
+
   const graphContextFinding = useMemo(() => {
-    const candidateFindingIds = new Set<string>(selectedGraphNode?.findingIds ?? []);
-
-    for (const edge of graph.data?.edges ?? []) {
-      if (!graphFocusNodeId || (edge.source !== graphFocusNodeId && edge.target !== graphFocusNodeId)) {
-        continue;
-      }
-
-      for (const findingId of edge.findingIds ?? []) {
-        candidateFindingIds.add(findingId);
-      }
+    for (const entity of nodeContext?.findings ?? []) {
+      const match = graphScopedFindings.find((f) => f.id === entity.sourceId)
+        ?? rawItems.find((f) => f.id === entity.sourceId);
+      if (match) return match;
     }
+    return graphFinding;
+  }, [graphFinding, graphScopedFindings, nodeContext?.findings, rawItems]);
 
-    return graphScopedFindings.find((finding) => candidateFindingIds.has(finding.id))
-      ?? rawItems.find((finding) => candidateFindingIds.has(finding.id))
-      ?? graphFinding
-      ?? null;
-  }, [graph.data?.edges, graphFinding, graphFocusNodeId, graphScopedFindings, rawItems, selectedGraphNode?.findingIds]);
-  const graphContextStorylineId = graphContextFinding?.storylineId ?? selectedGraphNode?.storylineIds?.[0] ?? null;
-  const graphContextStoryline = useMemo(() => {
-    if (!graphContextStorylineId) {
-      return null;
+  const graphContextStorylineId = graphContextFinding?.storylineId ?? nodeContext?.storylines[0]?.sourceId ?? selectedGraphNode?.storylineIds?.[0] ?? null;
+
+  const graphContextStorylineTitle = useMemo(() => {
+    if (!graphContextStorylineId) return null;
+    if (graphContextFinding?.storylineId === graphContextStorylineId && graphContextFinding.storylineTitle) {
+      return graphContextFinding.storylineTitle;
     }
-
-    return (graphRelatedStorylines.data?.storylines ?? []).find((storyline) => storyline.id === graphContextStorylineId) ?? null;
-  }, [graphContextStorylineId, graphRelatedStorylines.data?.storylines]);
-  const graphContextStorylineTitle = graphContextFinding?.storylineId === graphContextStorylineId
-    ? graphContextFinding.storylineTitle
-    : graphContextStoryline?.title ?? null;
+    const match = (graphRelatedStorylines.data?.storylines ?? []).find((s) => s.id === graphContextStorylineId);
+    return match?.title ?? null;
+  }, [graphContextFinding?.storylineId, graphContextFinding?.storylineTitle, graphContextStorylineId, graphRelatedStorylines.data?.storylines]);
   const openFullGraphHref = useMemo(() => {
     return buildIntelligenceGraphHref({
       npi: graphScopeNpi,
@@ -478,7 +489,7 @@ export function FindingsSurface() {
 
   const total = findings.data?.total ?? 0;
   const totalPages = findings.data?.pageInfo?.totalPages ?? 1;
-  const pageReturned = findings.data?.pageInfo?.returned ?? items.length;
+  const visibleCount = items.length;
   const activeScopeLabel = providerScope ? `Provider ${providerScope}` : hasScopedFilters ? 'Filtered scope' : 'Global feed';
   const refreshLabel = findings.loading && !findings.data ? 'Loading live feed…' : findings.loading ? 'Refreshing…' : 'Refresh';
   const liveFeedNote = criticalOnly && rawItems.length > 0 && items.length === 0
@@ -486,6 +497,26 @@ export function FindingsSurface() {
     : findings.loading && findings.data
       ? `Live feed is refreshing for ${activeScopeLabel}.`
       : `Feed query active for ${activeScopeLabel}.`;
+  const emptyState = !findings.loading && !findings.error && items.length === 0
+    ? (
+      criticalOnly && rawItems.length > 0
+        ? {
+            title: 'No findings match the current filters.',
+            description: 'Clear the critical-only toggle or widen the route filters to show the hidden findings on this page.',
+          }
+        : getFindingsEmptyState({
+            findingCount: rawItems.length,
+            hasFilters: hasScopedFilters,
+            providerCount: providers.data?.total ?? null,
+          })
+    )
+    : null;
+
+  useEffect(() => {
+    if (!findings.loading && !findings.error && totalPages > 0 && page > totalPages) {
+      pushWithParams(totalPages);
+    }
+  }, [findings.error, findings.loading, page, totalPages]);
 
   return (
     <OperationsShell
@@ -497,9 +528,9 @@ export function FindingsSurface() {
       meta={(
         <div className="space-y-1">
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--vt-text-3)]">Feed state</p>
-          <p>{total} total findings</p>
+          <p>{visibleCount} findings on this page</p>
           <p className="text-sm text-[var(--vt-text-3)]">
-            {pageReturned} returned on this page · {alerts.length} alert{alerts.length === 1 ? '' : 's'}
+            {total} total available · {alerts.length} alert{alerts.length === 1 ? '' : 's'}
           </p>
           {findings.lastUpdated ? (
             <p className="text-sm text-[var(--vt-text-3)]" title={formatAbsoluteTime(findings.lastUpdated)}>
@@ -597,8 +628,8 @@ export function FindingsSurface() {
             />
             <FeedMetric
               label="Findings"
-              value={String(total)}
-              detail={`${pageReturned} returned on page ${page}`}
+              value={String(visibleCount)}
+              detail={`${total} total available on page ${page}`}
             />
             <FeedMetric
               label="Alerts"
@@ -678,6 +709,7 @@ export function FindingsSurface() {
           onRetry={graph.refresh}
           focusNodeId={graphFocusNodeId}
           highlightNodeId={graphFocusNodeId}
+          getTooltipContext={getTooltipContext}
           onSelectProvider={(provider) => {
             setSelectedGraphNodeId(null);
             pushProviderScope(provider.npi);
@@ -770,20 +802,29 @@ export function FindingsSurface() {
         />
       ) : null}
 
-      <div className="space-y-3">
-        {items.map((finding) => (
-          <FindingFeedCard
-            key={finding.id}
-            finding={finding}
-            currentHref={currentHref}
-            isFocused={graphFinding?.id === finding.id}
-            onFocusGraph={(findingId) => {
-              setGraphFindingId(findingId);
-              setSelectedGraphNodeId(null);
-            }}
-          />
-        ))}
-      </div>
+      {emptyState ? (
+        <SurfaceEmptyState
+          title={emptyState.title}
+          description={emptyState.description}
+        />
+      ) : null}
+
+      {items.length > 0 ? (
+        <div className="space-y-3">
+          {items.map((finding) => (
+            <FindingFeedCard
+              key={finding.id}
+              finding={finding}
+              currentHref={currentHref}
+              isFocused={graphFinding?.id === finding.id}
+              onFocusGraph={(findingId) => {
+                setGraphFindingId(findingId);
+                setSelectedGraphNodeId(null);
+              }}
+            />
+          ))}
+        </div>
+      ) : null}
 
       {total > 0 ? (
         <OpsCard className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

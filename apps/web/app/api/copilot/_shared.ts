@@ -15,6 +15,7 @@ import {
 const BACKEND = getBackendBase();
 
 export const COPILOT_FALLBACK_MESSAGE = 'Copilot requires active investigation context.';
+export const COPILOT_SIGN_IN_MESSAGE = 'Copilot requires sign-in for full analysis';
 export const COPILOT_FALLBACK_SUGGESTIONS = [
   'Open an investigation',
   'Review recent findings',
@@ -650,14 +651,14 @@ function buildAuthLimitedFallback(
   if (status === 'missing_session') {
     return buildCopilotQueryFallback({
       title: `${scopeLabel(context) ?? 'Copilot'} · limited response`,
-      message: 'Live Copilot sources are unavailable right now, but the current investigation context is still available locally.',
+      message: COPILOT_SIGN_IN_MESSAGE,
       suggestions: buildContextualSuggestions(context),
     }, context);
   }
 
   return buildCopilotQueryFallback({
     title: `${scopeLabel(context) ?? 'Copilot'} · limited response`,
-    message: 'Live Copilot sources are unavailable right now, but the current investigation context is still available locally.',
+    message: COPILOT_SIGN_IN_MESSAGE,
     suggestions: buildContextualSuggestions(context),
   }, context);
 }
