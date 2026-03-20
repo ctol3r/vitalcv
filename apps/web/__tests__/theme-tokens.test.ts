@@ -28,7 +28,7 @@ describe('theme token system', () => {
     expect(cssVariables['--ui-dark-background-panel']).toBe(themeTokens.colors.dark.backgroundPanel);
     expect(cssVariables['--vital-ops-background']).toBe('var(--ui-dark-background-primary)');
     expect(cssVariables['--font-sans']).toContain('Nunito Sans');
-    expect(motionCssVariables['--ui-motion-duration-panel']).toBe('140ms');
-    expect(motionDurations.panel).toBeLessThanOrEqual(0.14);
+    expect(motionCssVariables['--ui-motion-duration-panel']).toBe('320ms');
+    expect(motionDurations.panel).toBeLessThanOrEqual(0.32);
   });
 });

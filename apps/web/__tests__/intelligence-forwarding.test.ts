@@ -436,40 +436,58 @@ describe('intelligence auth forwarding', () => {
         role: 'investigator',
       },
     });
-    const fetchMock = vi.fn().mockResolvedValue(new Response(
-      JSON.stringify({
-        total: 1,
-        actions: [{
-          actionId: 'action-1',
-          actionType: 'VERIFY_CREDENTIAL',
-          priority: 'critical',
-          priorityScore: 99,
-          status: 'pending',
-          recommendedAction: 'Verify credential for Clinician 1003000126',
-          explanation: 'Conflicting credential evidence detected.',
-          confidence: 0.94,
-          createdAt: '2026-03-17T11:00:00.000Z',
-          sourceFindingIds: ['finding-1'],
-          targetEntity: {
-            entityType: 'provider',
-            entityId: '1003000126',
-            entityLabel: 'Clinician 1003000126',
-          },
-          evidence: [],
-        }],
-      }),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      },
-    ));
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(
+        JSON.stringify({
+          total: 1,
+          actions: [{
+            actionId: 'action-1',
+            actionType: 'VERIFY_CREDENTIAL',
+            priority: 'critical',
+            priorityScore: 99,
+            status: 'pending',
+            recommendedAction: 'Verify credential for Clinician 1003000126',
+            explanation: 'Conflicting credential evidence detected.',
+            confidence: 0.94,
+            createdAt: '2026-03-17T11:00:00.000Z',
+            sourceFindingIds: ['finding-1'],
+            targetEntity: {
+              entityType: 'provider',
+              entityId: '1003000126',
+              entityLabel: 'Clinician 1003000126',
+            },
+            evidence: [],
+          }],
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ))
+      .mockResolvedValueOnce(new Response(
+        JSON.stringify({
+          total: 0,
+          findings: [],
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ));
     vi.stubGlobal('fetch', fetchMock);
 
     const { GET } = await import('../app/api/intelligence/actions/route');
     const response = await GET(new NextRequest('http://localhost/api/intelligence/actions?limit=1') as never);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://backend.test/api/actions?limit=1&offset=0',
+      'http://backend.test/api/actions?limit=60&offset=0',
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: expect.any(Headers),
+      }),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://backend.test/api/findings?limit=60&offset=0',
       expect.objectContaining({
         cache: 'no-store',
         headers: expect.any(Headers),
@@ -491,6 +509,172 @@ describe('intelligence auth forwarding', () => {
         hasNextPage: false,
         returned: 1,
       },
+    });
+  });
+
+  it('synthesizes actions from findings when the backend queue is empty', async () => {
+    authMock.mockResolvedValue({
+      userId: 'clerk-user-1',
+      orgId: 'org-clerk-1',
+      sessionClaims: {
+        email: 'ada@example.com',
+        role: 'investigator',
+      },
+    });
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(
+        JSON.stringify({
+          total: 0,
+          actions: [],
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ))
+      .mockResolvedValueOnce(new Response(
+        JSON.stringify({
+          total: 1,
+          findings: [{
+            findingId: 'finding-1',
+            investigatorId: 'trust_decline',
+            findingType: 'TRUST_DECLINE',
+            severity: 'critical',
+            status: 'new',
+            title: 'Trust score dropped',
+            summary: 'Source freshness degraded.',
+            explanation: 'Source freshness degraded.',
+            entityIds: ['provider:1234567890'],
+            entities: [{
+              entityType: 'provider',
+              entityId: '1234567890',
+              entityLabel: 'Ada Lovelace',
+            }],
+            metadata: { npi: '1234567890' },
+            priorityScore: 96,
+            confidence: 0.91,
+            storylineKey: 'storyline-1',
+            supportingEvidence: [],
+            updatedAt: '2026-03-17T11:00:00.000Z',
+          }],
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { GET } = await import('../app/api/intelligence/actions/route');
+    const response = await GET(new NextRequest('http://localhost/api/intelligence/actions?limit=10') as never);
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      total: 1,
+      actions: [expect.objectContaining({
+        actionType: 'REVIEW_REQUIRED',
+        providerNpi: '1234567890',
+        autoGenerated: true,
+      })],
+    });
+  });
+
+  it('synthesizes graph nodes and evidence edges from findings when the graph payload is empty', async () => {
+    authMock.mockResolvedValue({
+      userId: 'clerk-user-1',
+      orgId: 'org-clerk-1',
+      sessionClaims: {
+        email: 'ada@example.com',
+        role: 'investigator',
+      },
+    });
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(
+        JSON.stringify({
+          nodes: [],
+          edges: [],
+          generatedAt: '2026-03-17T11:00:00.000Z',
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ))
+      .mockResolvedValueOnce(new Response(
+        JSON.stringify({
+          trust: { score: 48, tier: 'degraded', confidence: 0.82 },
+          influence: { score: 51, tier: 'watch', percentile: 0.62, confidence: 0.71 },
+          workforcePressure: { state: 'stable', score: 0.21 },
+          institutionMomentum: null,
+          earlyWarnings: [],
+          summary: 'Signal summary',
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ))
+      .mockResolvedValueOnce(new Response(
+        JSON.stringify({
+          total: 1,
+          findings: [{
+            findingId: 'finding-1',
+            investigatorId: 'trust_decline',
+            findingType: 'TRUST_DECLINE',
+            severity: 'critical',
+            status: 'new',
+            title: 'Trust score dropped',
+            summary: 'Source freshness degraded.',
+            explanation: 'Source freshness degraded.',
+            entityIds: ['provider:1234567890'],
+            entities: [{
+              entityType: 'provider',
+              entityId: '1234567890',
+              entityLabel: 'Ada Lovelace',
+            }],
+            metadata: { npi: '1234567890' },
+            priorityScore: 96,
+            confidence: 0.91,
+            storylineKey: 'storyline-1',
+            supportingEvidence: [{
+              evidenceId: 'e1',
+              evidenceType: 'state_board',
+              snippet: 'License source is stale.',
+              sourceLabel: 'State Board',
+              observedAt: '2026-03-17T10:00:00.000Z',
+            }],
+            updatedAt: '2026-03-17T11:00:00.000Z',
+          }],
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { GET } = await import('../app/api/intelligence/graph/route');
+    const response = await GET(new NextRequest('http://localhost/api/intelligence/graph?npi=1234567890') as never);
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      reason: 'ok',
+      focusNodeId: expect.any(String),
+      nodes: expect.arrayContaining([
+        expect.objectContaining({
+          type: 'provider',
+        }),
+        expect.objectContaining({
+          type: 'source',
+          label: 'State Board',
+        }),
+      ]),
+      edges: expect.arrayContaining([
+        expect.objectContaining({
+          type: 'evidence_link',
+          findingIds: ['finding-1'],
+        }),
+      ]),
     });
   });
 
@@ -620,7 +804,7 @@ describe('intelligence auth forwarding', () => {
     await expect(queryResponse.json()).resolves.toMatchObject({
       status: 'limited',
       title: 'Copilot · limited response',
-      message: 'Live Copilot sources are unavailable right now, but the current investigation context is still available locally.',
+      message: 'Copilot requires sign-in for full analysis',
       results: [],
       graphInsights: [],
       document: {
@@ -637,7 +821,7 @@ describe('intelligence auth forwarding', () => {
 
     expect(askResponse.status).toBe(200);
     await expect(askResponse.json()).resolves.toMatchObject({
-      answer: expect.stringContaining('current investigation context is still available locally'),
+      answer: expect.stringContaining('Copilot requires sign-in for full analysis'),
       intent: 'LIMITED',
       suggestions: expect.any(Array),
       data: {
