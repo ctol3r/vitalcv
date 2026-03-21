@@ -1,0 +1,19 @@
+# Railway deploy ignore — keep upload under Cloudflare 100MB limit
+# Target: <100MB payload for Cloudflare proxy
+node_modules
+.next
+.next.*
+.git
+dist
+.vercel
+.turbo
+apps/web/.next
+apps/web/.next.*
+apps/mobile
+apps/marketing
+apps/api/ai-matcher-service
+blockchain
+docs/archive
+*.md
+!README.md
+!ARCHITECTURE.md

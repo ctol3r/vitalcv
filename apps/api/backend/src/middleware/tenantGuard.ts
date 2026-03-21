@@ -23,12 +23,77 @@ const INTELLIGENCE_READ_PREFIXES = [
   '/api/graph',
   '/api/directory',
   '/api/providers',
+  '/api/opportunities',
+  '/api/candidates',
 ] as const;
 
 export function isIntelligenceReadRoute(path: string): boolean {
   const normalized = path.split('?')[0].toLowerCase();
   return INTELLIGENCE_READ_PREFIXES.some(
     (prefix) => normalized.startsWith(prefix) || normalized === prefix,
+  );
+}
+
+function normalizePath(path: string): string {
+  const normalized = path.split('?')[0]?.toLowerCase() ?? '';
+  if (normalized.length <= 1) {
+    return normalized || '/';
+  }
+
+  return normalized.replace(/\/+$/, '');
+}
+
+export function shouldSkipTenantContext(path: string): boolean {
+  const normalized = normalizePath(path);
+
+  return (
+    normalized === '/'
+    || normalized === '/health'
+    || normalized === '/readyz'
+    || normalized === '/metrics/public'
+    || normalized.startsWith('/impact/')
+    || normalized === '/verifier'
+    || normalized === '/verify'
+    || normalized.startsWith('/psv')
+    || normalized.startsWith('/identity')
+    || normalized.startsWith('/demo')
+    || normalized.startsWith('/.well-known')
+    || normalized.startsWith('/api/.well-known')
+    || normalized.startsWith('/api-docs')
+    || normalized === '/openapi.json'
+    || normalized.startsWith('/recognitions')
+    || normalized.startsWith('/acceptances')
+    || normalized.startsWith('/starts')
+    || normalized.startsWith('/status')
+    || normalized.startsWith('/trust-state')
+    || normalized.startsWith('/ingest')
+    || normalized.startsWith('/api/verify')
+    || normalized.startsWith('/api/verifier/accept')
+    || normalized.startsWith('/api/pilot')
+    || normalized.startsWith('/api/metrics')
+    || normalized.startsWith('/api/artifact')
+    || normalized.startsWith('/api/ask')
+    || normalized.startsWith('/api/copilot')
+    || normalized.startsWith('/api/agents')
+    || normalized.startsWith('/api/watch')
+    || normalized.startsWith('/api/search')
+    || normalized.startsWith('/api/employers')
+    || normalized.startsWith('/bundle')
+    || normalized.startsWith('/api/issuer/')
+    || normalized.startsWith('/api/poe/')
+    || normalized.startsWith('/api/audit/')
+    || normalized.startsWith('/api/intelligence/')
+    || normalized === '/api/providers'
+    || normalized.startsWith('/api/findings')
+    || normalized.startsWith('/api/investigators')
+    || normalized.startsWith('/api/storylines')
+    || normalized.startsWith('/api/directory')
+    || normalized === '/api/system-health'
+    || normalized.startsWith('/api/graph/')
+    || normalized.startsWith('/api/investigation/')
+    || normalized.startsWith('/api/provider-intelligence/')
+    || normalized.startsWith('/api/integrity/')
+    || isIntelligenceReadRoute(normalized)
   );
 }
 
@@ -47,7 +112,7 @@ export function requireTenantContextOrReadAccess(
   res: Response,
   next: NextFunction,
 ): void {
-  if (isIntelligenceReadRoute(req.path)) {
+  if (shouldSkipTenantContext(req.path)) {
     const organizationId = getRequestOrganizationId(req);
     if (organizationId) {
       (req as TenantRequest).organizationId = organizationId;
