@@ -3011,3 +3011,144 @@ model ReciprocalEdgeRule {
   @@index([relationshipMode, autoCreate])
   @@map("reciprocal_edge_rules")
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// ENTITY-ROLE MODEL — Wave E1/E3/E4
+// Canonical entity registry, role assignments, and relationship graph.
+// Independent of VCV user accounts — entities exist because sources say so.
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Canonical entity type — matches EntityType union in domain/entity/types.ts
+enum VcvEntityType {
+  PERSON
+  ORGANIZATION
+  FACILITY
+  EDUCATIONAL_INSTITUTION
+  TRAINING_PROGRAM
+  ISSUER_AUTHORITY
+  SOURCE_RECORD
+}
+
+/// Role type — matches RoleType union in domain/entity/types.ts
+enum VcvRoleType {
+  CLINICIAN
+  EMPLOYER
+  VERIFIER
+  ISSUER
+  COORDINATOR
+  SPONSOR
+  TRAINEE
+  ADMIN_REVIEWER
+}
+
+/// Relationship type — matches RelationshipType union in domain/entity/types.ts
+enum VcvRelationshipType {
+  WORKS_FOR
+  EMPLOYED_BY
+  AFFILIATED_WITH
+  PRIVILEGES_AT
+  ENROLLED_WITH
+  TRAINED_AT
+  GRADUATED_FROM
+  COMPLETED_RESIDENCY_AT
+  COMPLETED_FELLOWSHIP_AT
+  SPONSORS
+  LICENSED_BY
+  CERTIFIED_BY
+  REGISTERED_WITH
+  ISSUES
+  VERIFIES
+  REQUESTS_FROM
+  SHARES_WITH
+}
+
+/// Role source — how a role was assigned
+enum VcvRoleSource {
+  NPPES_DERIVED
+  USER_CLAIMED
+  CLAIM_DERIVED
+  ADMIN_ASSIGNED
+  INFERRED
+}
+
+/// Canonical entity — the VCV representation of a real-world entity.
+/// Entities exist independently of VCV user accounts.
+/// Resolved from source artifacts (NPPES, OIG, PECOS, etc.).
+model VcvEntity {
+  id           String         @id @default(uuid()) @db.Uuid
+  entityType   VcvEntityType  @map("entity_type")
+  /// Deterministic: sha256(entityType + primaryKey) — safe lookup key
+  canonicalId  String         @unique @map("canonical_id")
+  displayName  String         @map("display_name")
+  npi          String?
+  npiType      NpiType?       @map("npi_type")
+  orgDid       String?        @map("org_did")
+  /// Source system IDs that reference this entity (NPPES, OIG, etc.)
+  sourceIds    String[]       @map("source_ids")
+  verifiedAt   DateTime?      @map("verified_at")
+  /// Free-form metadata: name parts, addresses, taxonomies, etc.
+  metadata     Json           @default("{}") @db.JsonB
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  roles         VcvEntityRole[]
+  asSubject     VcvEntityRelationship[] @relation("rel_subject")
+  asObject      VcvEntityRelationship[] @relation("rel_object")
+
+  @@index([npi])
+  @@index([entityType])
+  @@index([entityType, npi])
+  @@map("vcv_entities")
+}
+
+/// Time-bounded role assignment for an entity.
+/// An entity may hold multiple roles simultaneously.
+model VcvEntityRole {
+  id         String        @id @default(uuid()) @db.Uuid
+  entityId   String        @db.Uuid @map("entity_id")
+  entity     VcvEntity     @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  roleType   VcvRoleType   @map("role_type")
+  /// Contextual qualifier: state of practice, specialty, program name
+  context    String?
+  validFrom  DateTime?     @map("valid_from")
+  validUntil DateTime?     @map("valid_until")
+  source     VcvRoleSource @default(INFERRED)
+  /// Artifact or claim ID backing this role assignment
+  evidenceId String?       @map("evidence_id")
+  createdAt  DateTime      @default(now()) @map("created_at")
+
+  @@index([entityId, roleType])
+  @@index([roleType])
+  @@map("vcv_entity_roles")
+}
+
+/// Typed, evidence-backed relationship between two entities.
+/// subject → [relationshipType] → object
+/// Example: person:NPI123 → LICENSED_BY → issuer_authority:CA_MEDICAL_BOARD
+model VcvEntityRelationship {
+  id               String               @id @default(uuid()) @db.Uuid
+  subjectId        String               @db.Uuid @map("subject_id")
+  subject          VcvEntity            @relation("rel_subject", fields: [subjectId], references: [id], onDelete: Cascade)
+  objectId         String               @db.Uuid @map("object_id")
+  object           VcvEntity            @relation("rel_object",  fields: [objectId],  references: [id], onDelete: Cascade)
+  relationshipType VcvRelationshipType  @map("relationship_type")
+  /// State context (e.g. for licensed_by, privileges_at)
+  state            String?
+  startDate        DateTime?            @map("start_date")
+  endDate          DateTime?            @map("end_date")
+  /// Source artifact backing this relationship
+  artifactId       String?              @db.Uuid @map("artifact_id")
+  /// Specific claim backing this relationship
+  claimId          String?              @map("claim_id")
+  confidence       Float                @default(0.5)
+  tier             String               @default("SILVER")  // GOLD | SILVER | BRONZE
+  /// Extra metadata (dates, notes, program details)
+  metadata         Json                 @default("{}") @db.JsonB
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+
+  @@index([subjectId, relationshipType])
+  @@index([objectId, relationshipType])
+  @@index([subjectId, objectId])
+  @@map("vcv_entity_relationships")
+}
