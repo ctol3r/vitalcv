@@ -12,6 +12,8 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { PilotFailureSignal } from '@/components/pilot-ops/PilotFailureSignal';
+import { SupportActionButton } from '@/components/pilot-ops/SupportActionButton';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -156,7 +158,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onBundleGe
         setAvailableCredentials(creds);
         setSelectedTypes(new Set(creds.map((c) => c.type)));
       })
-      .catch(() => setError('Failed to load trust state. Please try again.'))
+      .catch(() => setError('Trust engine connection interrupted. Please try again.'))
       .finally(() => setIsLoading(false));
   }, [isOpen, npi, trustState]);
 
@@ -205,13 +207,13 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onBundleGe
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({})) as { error?: string };
-        throw new Error(err?.error ?? 'Failed to generate bundle.');
+        throw new Error(err?.error ?? 'Bundle generation interrupted.');
       }
       const generated = await res.json() as ApplyBundle;
       setBundle(generated);
       onBundleGenerated?.(generated);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'An error occurred.');
+      setError(e instanceof Error ? e.message : 'The process was interrupted. Please try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -236,7 +238,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onBundleGe
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 ring-1 ring-emerald-400/50 transition-all hover:bg-emerald-400 hover:shadow-emerald-400/30 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+        className="inline-flex min-h-[48px] w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 font-semibold text-white shadow-lg shadow-emerald-500/25 ring-1 ring-emerald-400/50 transition-all hover:bg-emerald-400 hover:shadow-emerald-400/30 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
         aria-label="Apply with VitalCV"
       >
         <VitalCVIcon />
@@ -246,7 +248,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onBundleGe
       {/* ── Modal ── */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-4"
+          className="fixed inset-0 z-50 flex flex-col sm:items-center p-0 sm:p-4 justify-end sm:justify-center"
           role="dialog"
           aria-modal="true"
           aria-label="Apply with VitalCV"
@@ -257,13 +259,18 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onBundleGe
             onClick={() => setIsOpen(false)}
           />
 
-          {/* Modal panel */}
+          {/* Modal panel (Bottom sheet on mobile) */}
           <div
             ref={modalRef}
-            className="relative w-full max-w-lg rounded-2xl border border-white/10 bg-zinc-900/95 shadow-2xl shadow-black/60 backdrop-blur-xl overflow-hidden"
+            className="relative w-full max-w-lg mt-auto sm:mt-0 rounded-t-3xl sm:rounded-2xl border-t sm:border border-white/10 bg-zinc-900/95 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] sm:shadow-2xl sm:shadow-black/60 backdrop-blur-xl overflow-hidden animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300 pointer-events-auto"
           >
+            {/* Grabber for mobile */}
+            <div className="absolute top-0 inset-x-0 w-full flex justify-center py-2 sm:hidden cursor-grab active:cursor-grabbing" onTouchMove={() => setIsOpen(false)}>
+              <div className="h-1.5 w-12 rounded-full bg-white/20"></div>
+            </div>
+
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/8 px-6 py-4">
+            <div className="flex items-center justify-between border-b border-white/8 px-6 py-4 mt-2 sm:mt-0">
               <div className="flex items-center gap-2">
                 <VitalCVIcon className="h-5 w-5" />
                 <span className="text-sm font-semibold text-white">Apply with VitalCV</span>
@@ -288,7 +295,21 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onBundleGe
 
               {error && (
                 <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300">
-                  {error}
+                  <PilotFailureSignal
+                    title="Apply with VitalCV interrupted"
+                    message={error}
+                    queueItem={{ source: 'route_failure' }}
+                    dedupeKey={`apply-widget:${npi}:${error}`}
+                  />
+                  <p>{error}</p>
+                  <div className="mt-3">
+                    <SupportActionButton
+                      label="Contact support"
+                      title="Apply with VitalCV interrupted"
+                      messagePrefill={error}
+                      className="inline-flex items-center justify-center rounded-xl border border-red-300/20 bg-red-500/5 px-3 py-2 text-sm font-semibold text-red-100 transition hover:bg-red-500/10"
+                    />
+                  </div>
                 </div>
               )}
 
@@ -331,21 +352,21 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onBundleGe
                             {availableCredentials.map((cred) => (
                               <label
                                 key={cred.type}
-                                className="flex items-center gap-3 rounded-lg border border-white/8 bg-white/3 px-3 py-2.5 cursor-pointer hover:bg-white/6 transition-colors"
+                                className="flex items-center min-h-[52px] gap-3 rounded-xl border border-white/8 bg-white/3 px-4 py-3 cursor-pointer hover:bg-white/6 transition-colors active:scale-[0.99]"
                               >
                                 <input
                                   type="checkbox"
                                   checked={selectedTypes.has(cred.type)}
                                   onChange={() => toggleCredential(cred.type)}
-                                  className="h-4 w-4 rounded border-white/20 bg-white/8 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0"
+                                  className="h-5 w-5 rounded border-white/20 bg-black/20 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0"
                                 />
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-medium text-white truncate">
+                                  <p className="text-sm font-medium text-white truncate">
                                     <CredentialTypeLabel type={cred.type} />
                                   </p>
-                                  <p className="text-[10px] text-zinc-500">{cred.issuer}</p>
+                                  <p className="text-[11px] text-zinc-400 mt-0.5 tracking-wide">{cred.issuer}</p>
                                 </div>
-                                <span className={`text-[10px] font-medium ${STATUS_COLORS[cred.status] ?? 'text-zinc-400'}`}>
+                                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-black/20 ${STATUS_COLORS[cred.status] ?? 'text-zinc-400'}`}>
                                   {cred.status}
                                 </span>
                               </label>
@@ -406,12 +427,12 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onBundleGe
 
             {/* Footer / CTA */}
             {!isLoading && !error && trustState && !bundle && (
-              <div className="border-t border-white/8 px-6 py-4">
+              <div className="border-t border-white/8 px-6 py-5 bg-black/20">
                 <button
                   type="button"
                   onClick={handleGenerate}
                   disabled={isGenerating || selectedTypes.size === 0}
-                  className="w-full rounded-xl bg-emerald-500 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+                  className="w-full flex min-h-[56px] items-center justify-center rounded-xl bg-emerald-500 font-semibold text-white shadow-[0_0_20px_rgba(16,185,129,0.2)] transition-all hover:bg-emerald-400 hover:shadow-[0_0_25px_rgba(16,185,129,0.3)] disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
                 >
                   {isGenerating ? (
                     <span className="flex items-center justify-center gap-2">

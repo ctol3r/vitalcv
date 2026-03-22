@@ -1,6 +1,7 @@
 'use client';
 
 import { StartClinicianAction } from '@/components/employer/StartClinicianAction';
+import { SupportActionButton } from '@/components/pilot-ops/SupportActionButton';
 import { useActions } from '@/hooks/useActions';
 import { useFindings } from '@/hooks/useFindings';
 import { useStorylines } from '@/hooks/useStorylines';
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { trackPilotEvent } from '@/lib/pilot-ops/client';
 
 type AppStatus = 'PENDING' | 'REVIEWED' | 'ACCEPTED' | 'DECLINED' | 'WITHDRAWN';
 
@@ -214,122 +216,164 @@ function ApplicationDetail({
       transition={{ duration: 0.2 }}
       className="flex h-full flex-col"
     >
-      <div className="mb-6 flex items-start justify-between gap-4">
+      <div className="mb-6 flex items-start justify-between gap-4 border-b border-white/10 pb-6">
         <div>
-          <div className="mb-1 flex items-center gap-2">
-            <User className="h-4 w-4 text-white/30" />
-            <span className="text-xs font-medium uppercase tracking-wider text-white/30">Applicant</span>
+          <div className="mb-2 flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/20 text-amber-500">
+              <User className="h-3.5 w-3.5" />
+            </span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-amber-500/80">Active Applicant</span>
+            {app.readiness?.readinessLevel === 'L3' && (
+              <span className="flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-emerald-400">
+                <ShieldCheck className="h-3 w-3" />
+                Verified
+              </span>
+            )}
           </div>
-          <h2 className="text-xl font-bold text-white">{providerLabel}</h2>
-          <p className="mt-1 text-sm text-white/40">
-            {app.opportunity?.title ?? 'Unknown role'}
-            {' · '}
-            {app.opportunity?.state ?? 'Unknown state'}
-            {' · '}
-            {app.opportunity?.specialty ?? 'Unknown specialty'}
+          <h2 className="text-2xl font-bold text-white tracking-tight">{providerLabel}</h2>
+          <p className="mt-2 text-sm text-white/50 font-medium flex items-center gap-2">
+            <span>{app.opportunity?.title ?? 'Unknown role'}</span>
+            <span className="text-white/20">•</span>
+            <span>{app.opportunity?.state ?? 'Unknown state'}</span>
+            <span className="text-white/20">•</span>
+            <span>{app.opportunity?.specialty ?? 'Unknown specialty'}</span>
           </p>
         </div>
-        <StatusPill status={app.status} />
+        <div className="flex flex-col items-end gap-2">
+          <StatusPill status={app.status} />
+          <div className="text-[10px] font-medium uppercase tracking-widest text-white/30">
+            Applied {relativeTime(app.createdAt)}
+          </div>
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border border-emerald-500/15 bg-emerald-500/5 p-4">
-          <div className="mb-2 flex items-center gap-2">
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="col-span-1 rounded-2xl border border-emerald-500/20 bg-[radial-gradient(ellipse_at_top_right,_rgba(16,185,129,0.15),_transparent_60%)] p-5 shadow-[0_4px_24px_rgba(16,185,129,0.08)]">
+          <div className="mb-3 flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-emerald-400" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Readiness</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">System Readiness</span>
           </div>
-          <p className="text-2xl font-semibold text-white">
-            {app.readiness ? `${app.readiness.readinessScore}/100` : 'Unavailable'}
-          </p>
-          <p className="mt-1 text-sm text-white/60">
+          <div className="flex items-baseline gap-2">
+            <p className="text-4xl font-bold tracking-tighter text-white">
+              {app.readiness ? app.readiness.readinessScore : 'N/A'}
+            </p>
+            {app.readiness && <p className="text-sm font-semibold text-emerald-400/80">/ 100</p>}
+          </div>
+          <p className="mt-2 text-sm font-medium text-emerald-100/70">
             {app.readiness
               ? `${app.readiness.readinessLevel} · ${app.readiness.readinessStatus}`
               : 'Readiness is not yet available for this clinician.'}
           </p>
-          {app.readiness?.trustSignals?.length ? (
-            <div className="mt-3 space-y-1">
-              {app.readiness.trustSignals.slice(0, 3).map((signal) => (
-                <p key={signal} className="text-xs text-white/45">• {signal}</p>
-              ))}
-            </div>
-          ) : null}
         </div>
 
-        <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-white/30">Key credentials</p>
-          {app.readiness?.keyCredentials?.length ? (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {app.readiness.keyCredentials.slice(0, 4).map((credential) => (
-                <span
-                  key={credential}
-                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70"
-                >
-                  {credential}
-                </span>
-              ))}
+        <div className="col-span-2 rounded-2xl border border-white/8 bg-white/2 p-5 flex flex-col justify-center">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-4">Verification Breakdown</p>
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40 mb-2">Trust Signals</p>
+              {app.readiness?.trustSignals?.length ? (
+                <div className="space-y-2">
+                  {app.readiness.trustSignals.slice(0, 3).map((signal) => (
+                    <div key={signal} className="flex items-start gap-2">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500/70 mt-0.5 shrink-0" />
+                      <p className="text-xs font-medium text-white/70 leading-relaxed">{signal}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-white/30 font-medium">No signals yet.</p>
+              )}
             </div>
-          ) : (
-            <p className="mt-3 text-sm text-white/35">No credential summary is available yet.</p>
-          )}
-          {app.provider?.specialty || app.provider?.stateOfPractice ? (
-            <p className="mt-4 text-xs text-white/35">
-              {app.provider?.specialty ?? 'Specialty unavailable'}
-              {app.provider?.stateOfPractice ? ` · ${app.provider.stateOfPractice}` : ''}
-            </p>
-          ) : null}
+            
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40 mb-2">Key Credentials</p>
+              {app.readiness?.keyCredentials?.length ? (
+                <div className="flex flex-wrap gap-2">
+                  {app.readiness.keyCredentials.slice(0, 4).map((credential) => (
+                    <span
+                      key={credential}
+                      className="rounded-md border border-white/10 bg-white/5 shadow-sm px-2.5 py-1 text-xs font-medium text-white/80"
+                    >
+                      {credential}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-white/30 font-medium">No credential summary available.</p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
       {app.latestRecommendation ? (
-        <div className="mt-4 rounded-2xl border border-sky-500/20 bg-sky-500/10 p-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-sky-200">VitalCV recommendation</p>
-              <p className="mt-2 text-lg font-semibold text-white">
-                {app.latestRecommendation.label} ({Math.round(app.latestRecommendation.confidence * 100)}% confidence)
-              </p>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/65">
+        <div className="mt-4 rounded-2xl border border-sky-500/20 bg-[radial-gradient(ellipse_at_top_left,_rgba(14,165,233,0.08),_transparent_70%)] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="flex h-5 w-5 items-center justify-center rounded bg-sky-500/20">
+                  <CheckCircle2 className="h-3 w-3 text-sky-400" />
+                </span>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-sky-400/90">Decision Engine Recommendation</p>
+              </div>
+              <div className="flex items-baseline gap-3">
+                <p className="text-xl font-bold text-white tracking-tight">
+                  {app.latestRecommendation.label}
+                </p>
+                <p className="text-sm font-semibold text-sky-400/80">
+                  {Math.round(app.latestRecommendation.confidence * 100)}% Confidence
+                </p>
+              </div>
+              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-white/70">
                 {app.latestRecommendation.explanation}
               </p>
             </div>
             {app.systemBehavesAutonomously ? (
-              <span className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-200">
-                Autonomous
-              </span>
+              <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Autonomous Mode
+              </div>
             ) : null}
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70">
-              Queue: {app.latestRecommendation.workflowEffects.queueDestination.replace(/_/g, ' ')}
+          <div className="mt-6 flex flex-wrap gap-2 border-t border-white/5 pt-5">
+            <span className="rounded-lg border border-white/10 bg-black/20 px-3 py-1.5 text-[11px] font-semibold text-white/70">
+              Queue: <span className="text-white ml-1">{app.latestRecommendation.workflowEffects.queueDestination.replace(/_/g, ' ')}</span>
             </span>
             {app.latestRecommendation.workflowEffects.employerNotification ? (
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70">
-                Employer notify
+              <span className="rounded-lg border border-white/10 bg-black/20 px-3 py-1.5 text-[11px] font-semibold text-white/70">
+                Employer Notify
               </span>
             ) : null}
             {app.latestRecommendation.workflowEffects.clinicianRequest ? (
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70">
-                Clinician request
+              <span className="rounded-lg border border-white/10 bg-black/20 px-3 py-1.5 text-[11px] font-semibold text-white/70">
+                Clinician Request
               </span>
             ) : null}
             {app.latestRecommendation.workflowEffects.webhookQueued ? (
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70">
-                Webhook queued
+              <span className="rounded-lg border border-white/10 bg-black/20 px-3 py-1.5 text-[11px] font-semibold text-white/70">
+                Webhook Queued
               </span>
             ) : null}
           </div>
 
           {app.latestRecommendation.workflowEffects.missingCredentials.length > 0 ? (
-            <p className="mt-3 text-sm text-white/55">
-              Missing credentials: {app.latestRecommendation.workflowEffects.missingCredentials.join(', ')}
-            </p>
+            <div className="mt-3 rounded-lg bg-amber-500/10 border border-amber-500/20 px-4 py-3">
+              <p className="text-xs font-semibold text-amber-500 mb-1">Missing Required Credentials</p>
+              <p className="text-sm text-amber-200/80">
+                {app.latestRecommendation.workflowEffects.missingCredentials.join(', ')}
+              </p>
+            </div>
           ) : null}
 
           {app.latestRecommendation.previewDecision ? (
-            <p className="mt-3 text-sm text-emerald-100/90">
-              Acceptance preview: {app.latestRecommendation.previewDecision.label} ({Math.round(app.latestRecommendation.previewDecision.confidence * 100)}% confidence)
-            </p>
+            <div className="mt-4 flex items-center gap-2">
+              <div className="h-px flex-1 bg-gradient-to-r from-emerald-500/0 via-emerald-500/20 to-emerald-500/0" />
+              <p className="text-[11px] font-semibold tracking-wide text-emerald-400/80">
+                Acceptance Preview: {app.latestRecommendation.previewDecision.label} ({Math.round(app.latestRecommendation.previewDecision.confidence * 100)}% Confidence)
+              </p>
+              <div className="h-px flex-1 bg-gradient-to-r from-emerald-500/0 via-emerald-500/20 to-emerald-500/0" />
+            </div>
           ) : null}
         </div>
       ) : null}
@@ -410,19 +454,29 @@ function ApplicationDetail({
         />
       </div>
 
-      <div className="mt-4 space-y-3 rounded-2xl border border-white/8 bg-white/3 p-4">
-        <p className="text-xs font-semibold uppercase tracking-wider text-white/30">Employer actions</p>
-        <textarea
-          value={note}
-          onChange={(event) => setNote(event.target.value)}
-          placeholder="Optional note for the clinician and employer action log…"
-          rows={2}
-          className="glue-input resize-none"
-        />
+      <div className="mt-6 space-y-4 rounded-2xl border border-white/8 bg-white/3 p-5">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">Employer Actions</p>
+          <textarea
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            placeholder="Optional contextual note for the audit log…"
+            rows={2}
+            className="glue-input resize-none w-full text-sm bg-black/20"
+          />
+        </div>
 
         {actionError ? (
-          <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-            {actionError}
+          <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-200">
+            <p>{actionError}</p>
+            <div className="mt-3">
+              <SupportActionButton
+                label="Contact support"
+                title="Verifier application action failed"
+                messagePrefill={actionError}
+                className="inline-flex items-center justify-center rounded-xl border border-red-300/20 bg-red-500/5 px-3 py-2 text-sm font-semibold text-red-100 transition hover:bg-red-500/10"
+              />
+            </div>
           </div>
         ) : null}
 
@@ -431,51 +485,53 @@ function ApplicationDetail({
             type="button"
             onClick={() => onReviewProvider(note)}
             disabled={reviewing || mutating || app.status === 'DECLINED'}
-            className="rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm font-semibold text-blue-300 transition hover:bg-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-xl border border-blue-500/30 bg-[linear-gradient(180deg,rgba(59,130,246,0.1),rgba(59,130,246,0.05))] px-5 py-3 text-sm font-bold text-blue-300 transition hover:bg-[rgba(59,130,246,0.15)] disabled:cursor-not-allowed disabled:opacity-50 shadow-sm"
           >
-            {mutating ? 'Updating…' : 'Review provider'}
+            {mutating ? 'Processing…' : 'Review Provider'}
           </button>
           <button
             type="button"
             onClick={onVerifyCredential}
             disabled={reviewing || mutating}
-            className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-xl border border-emerald-500/30 bg-[linear-gradient(180deg,rgba(16,185,129,0.1),rgba(16,185,129,0.05))] px-5 py-3 text-sm font-bold text-emerald-300 transition hover:bg-[rgba(16,185,129,0.15)] disabled:cursor-not-allowed disabled:opacity-50 shadow-sm"
           >
-            Verify credential
+            Verify Credential
           </button>
           <button
             type="button"
             onClick={onEscalate}
             disabled={reviewing || mutating}
-            className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-300 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-xl border border-amber-500/30 bg-[linear-gradient(180deg,rgba(245,158,11,0.1),rgba(245,158,11,0.05))] px-5 py-3 text-sm font-bold text-amber-300 transition hover:bg-[rgba(245,158,11,0.15)] disabled:cursor-not-allowed disabled:opacity-50 shadow-sm"
           >
-            Escalate
+            Escalate To Team
           </button>
         </div>
 
         {app.status !== 'DECLINED' && app.status !== 'WITHDRAWN' ? (
-          <div className="flex flex-wrap gap-3 border-t border-white/6 pt-3">
+          <div className="flex flex-wrap gap-3 border-t border-white/10 pt-4 mt-2">
             <button
               type="button"
               onClick={() => onReview('ACCEPTED', note)}
               disabled={reviewing || mutating}
-              className="glue-btn glue-btn-primary min-w-[140px] flex-1 justify-center disabled:cursor-not-allowed disabled:opacity-50"
+              className="group relative flex min-w-[160px] flex-1 items-center justify-center gap-2 overflow-hidden rounded-xl bg-[linear-gradient(180deg,#10b981,#059669)] px-6 py-3.5 text-sm font-bold tracking-wide text-black shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] disabled:pointer-events-none disabled:opacity-50"
             >
-              {reviewing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-              Accept application
+              <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent)] opacity-0 transition-opacity duration-500 group-hover:opacity-100 group-hover:animate-shimmer" />
+              {reviewing ? <Loader2 className="h-4 w-4 animate-spin shrink-0" /> : <CheckCircle2 className="h-4 w-4 shrink-0" />}
+              Accept and Hire
             </button>
             <button
               type="button"
               onClick={() => onReview('DECLINED', note)}
               disabled={reviewing || mutating}
-              className="flex min-w-[140px] flex-1 items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 px-5 py-3 text-sm font-semibold text-red-300 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex min-w-[140px] items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 px-6 py-3.5 text-sm font-bold tracking-wide text-red-300 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <X className="h-4 w-4" />
-              Reject application
+              Reject Queue
             </button>
           </div>
         ) : null}
       </div>
+
 
       {app.status === 'ACCEPTED' && (app.provider?.npi ?? app.npi) ? (
         <div className="mt-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
@@ -572,6 +628,27 @@ export default function VerifierInbox() {
   const primaryAction = actionsResource.data?.actions[0] ?? null;
   const primaryFinding = findingsResource.data?.findings[0] ?? null;
   const primaryStoryline = storylinesResource.data?.storylines[0] ?? null;
+
+  useEffect(() => {
+    if (!active) {
+      return;
+    }
+
+    void trackPilotEvent({
+      eventType: 'application_detail_viewed',
+      entity: {
+        kind: 'application',
+        id: active.id,
+        label: active.opportunity?.title ?? active.id,
+        objectType: 'application',
+      },
+      details: {
+        opportunityId: active.opportunityId,
+        status: active.status,
+      },
+      dedupeKey: `application-detail:${active.id}`,
+    });
+  }, [active]);
 
   async function refreshIntelligence() {
     await Promise.all([

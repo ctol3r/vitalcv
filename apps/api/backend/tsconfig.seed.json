@@ -5,6 +5,7 @@
   },
   "include": [
     "prisma/seed.ts",
-    "prisma/seed-opportunities.ts"
+    "prisma/seed-opportunities.ts",
+    "prisma/seed-demo-accounts.ts"
   ]
 }

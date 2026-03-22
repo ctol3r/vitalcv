@@ -62,7 +62,20 @@ export function EvidenceViewer({
     return (
       <OpsCard className="space-y-3">
         <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Evidence</h2>
-        <p className="text-sm text-[var(--vt-text-3)]">Evidence pending</p>
+        <div className="space-y-3 rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-4">
+          <p className="text-sm text-[var(--vt-text-2)]">
+            No linked evidence is available for this scope yet.
+          </p>
+          <p className="text-sm text-[var(--vt-text-3)]">
+            Next step: open the related finding or storyline and refresh this investigation after the evidence feed catches up.
+          </p>
+          <Link
+            href="/intelligence?view=findings"
+            className="inline-flex text-sm font-medium text-[var(--vt-accent)] transition hover:opacity-80"
+          >
+            Open findings feed
+          </Link>
+        </div>
       </OpsCard>
     );
   }

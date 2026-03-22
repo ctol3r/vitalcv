@@ -38,6 +38,18 @@ export type EvidenceSort = 'newest' | 'strongest';
 export type EvidenceGroup = 'none' | 'source';
 export type EvidenceDensity = 'compact' | 'expanded';
 
+const VIEW_FOCUS_VALUES: IntelligenceFocus[] = [
+  'dashboard',
+  'findings',
+  'providers',
+  'storylines',
+  'actions',
+  'investigations',
+  'graph',
+  'system-health',
+  'calibration',
+];
+
 export interface PinnedEntity {
   type: PinnedEntityType;
   id: string;
@@ -119,6 +131,10 @@ function isWorkspacePanel(value: string | null | undefined): value is WorkspaceP
 
 function isFocus(value: string | null | undefined): value is IntelligenceFocus {
   return Boolean(value) && INTELLIGENCE_FOCUS.includes(value as IntelligenceFocus);
+}
+
+function isViewFocus(value: string | null | undefined): value is IntelligenceFocus {
+  return Boolean(value) && VIEW_FOCUS_VALUES.includes(value as IntelligenceFocus);
 }
 
 function isMode(value: string | null | undefined): value is OSMode {
@@ -271,7 +287,7 @@ export function mergeInvestigationState(
 }
 
 function canonicalSelectionFromRoute(searchParams: URLSearchParams): Partial<InvestigationRouteState> {
-  const focusParam = searchParams.get('focus');
+  const focusParam = searchParams.get('focus') ?? searchParams.get('view');
   const idParam = searchParams.get('id');
   const focus = isFocus(focusParam) ? focusParam : undefined;
 
@@ -321,7 +337,11 @@ export function parseInvestigationRouteState(searchParams: URLSearchParams): Inv
 export function buildInvestigationSearchParams(state: InvestigationRouteState): URLSearchParams {
   const params = new URLSearchParams();
 
-  if (state.focus !== 'dashboard') {
+  if (isViewFocus(state.focus)) {
+    if (state.focus !== 'dashboard') {
+      params.set('view', state.focus);
+    }
+  } else if (state.focus !== 'dashboard') {
     params.set('focus', state.focus);
   }
 

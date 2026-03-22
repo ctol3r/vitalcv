@@ -1,7 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { getBackendBase } from '@/lib/api';
 import { normalizeProvidersPayload } from '@/lib/intelligence/contracts';
 import {
   attachAccessMetadata,
+  buildForwardHeaders,
   coerceRouteErrorPayload,
   fetchBackendJson,
   logIntelligenceFallbackUsage,
@@ -10,6 +12,61 @@ import {
 } from '../_shared';
 
 export const runtime = 'nodejs';
+
+interface DirectoryEntryPayload {
+  npi: string;
+  fullName: string;
+  specialties: string[];
+  credentialCount: number;
+  activeCredentials: number;
+  primaryIssuer: string | null;
+  credentialHealth: 'VERIFIED' | 'EXPIRED' | 'REVOKED' | 'PENDING';
+  lastVerifiedAt: string | null;
+  trustScore: number;
+}
+
+async function loadCanonicalTrustScores(
+  entries: DirectoryEntryPayload[],
+  authContext: Awaited<ReturnType<typeof resolveIntelligenceAuthContext>>,
+): Promise<Map<string, number>> {
+  const npis = [...new Set(entries.map((entry) => entry.npi).filter((npi) => /^\d{10}$/.test(npi)))];
+  if (npis.length === 0) {
+    return new Map();
+  }
+
+  const response = await fetch(`${getBackendBase()}/api/trust/score/batch`, {
+    method: 'POST',
+    headers: await buildForwardHeaders({
+      'Content-Type': 'application/json',
+    }, {
+      context: authContext,
+    }),
+    body: JSON.stringify({ npis }),
+    cache: 'no-store',
+    signal: AbortSignal.timeout(12_000),
+  });
+
+  const payload = await response.json().catch(() => ({})) as {
+    results?: Array<{
+      npi?: string;
+      score?: number;
+    }>;
+  };
+
+  if (!response.ok) {
+    throw new Error(`Canonical provider trust batch returned ${response.status}.`);
+  }
+
+  return new Map(
+    (payload.results ?? [])
+      .filter((entry): entry is { npi: string; score: number } => (
+        typeof entry?.npi === 'string'
+        && typeof entry?.score === 'number'
+        && Number.isFinite(entry.score)
+      ))
+      .map((entry) => [entry.npi, Math.max(0, Math.min(100, Math.round(entry.score)))])
+  );
+}
 
 export async function GET(req: NextRequest) {
   const query = req.nextUrl.searchParams.get('q') ?? '';
@@ -39,17 +96,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const upstream = await fetchBackendJson<{
-      entries?: Array<{
-        npi: string;
-        fullName: string;
-        specialties: string[];
-        credentialCount: number;
-        activeCredentials: number;
-        primaryIssuer: string | null;
-        credentialHealth: 'VERIFIED' | 'EXPIRED' | 'REVOKED' | 'PENDING';
-        lastVerifiedAt: string | null;
-        trustScore: number;
-      }>;
+      entries?: DirectoryEntryPayload[];
       totalProviders?: number;
       pageInfo?: {
         totalAvailable?: number;
@@ -72,7 +119,14 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const response = normalizeProvidersPayload(upstream.payload, query);
+    const canonicalTrustScores = await loadCanonicalTrustScores(upstream.payload.entries ?? [], authContext);
+    const response = normalizeProvidersPayload({
+      ...upstream.payload,
+      entries: (upstream.payload.entries ?? []).map((entry) => ({
+        ...entry,
+        trustScore: canonicalTrustScores.get(entry.npi) ?? entry.trustScore,
+      })),
+    }, query);
     const providers = fetchAllForSearch
       ? response.providers.slice((page - 1) * limit, page * limit)
       : response.providers;

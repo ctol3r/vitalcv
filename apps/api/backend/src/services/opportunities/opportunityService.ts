@@ -21,6 +21,13 @@ import {
   type OrganizationAcceptanceRules,
   type TrustAcceptanceContracts,
 } from '../employers/pilotPolicy';
+import {
+  buildClinicianOpportunityProfile,
+  buildOpportunityTruth,
+  matchesOpportunityTruthFilters,
+  type OpportunityTruth,
+  type OpportunityTruthFilters,
+} from './opportunityTruth';
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -35,21 +42,7 @@ export interface CreateOpportunityInput {
   remote?: boolean;
 }
 
-export interface OpportunityResult {
-  id: string;
-  organizationId: string;
-  organizationName: string;
-  title: string;
-  specialty: string;
-  hiringType: string;
-  state: string;
-  payRange: string | null;
-  requirementLevel: string;
-  description: string | null;
-  remote: boolean;
-  status: string;
-  createdAt: string;
-}
+export type OpportunityResult = OpportunityTruth;
 
 export interface CandidateResult {
   userId: string;
@@ -239,36 +232,44 @@ export async function getOrgProfile(clerkUserId: string) {
 
 /* ── Opportunity CRUD ────────────────────────────────────────── */
 
-function formatOpp(opp: {
-  id: string;
-  organizationId: string;
-  organization: { name: string };
-  title: string;
-  specialty: string;
-  hiringType: string;
-  state: string;
-  payRange: string | null;
-  requirementLevel: string;
-  description: string | null;
-  remote: boolean;
-  status: string;
-  createdAt: Date;
-}): OpportunityResult {
-  return {
-    id: opp.id,
-    organizationId: opp.organizationId,
-    organizationName: opp.organization.name,
-    title: opp.title,
-    specialty: opp.specialty,
-    hiringType: opp.hiringType,
-    state: opp.state,
-    payRange: opp.payRange,
-    requirementLevel: opp.requirementLevel,
-    description: opp.description,
-    remote: opp.remote,
-    status: opp.status,
-    createdAt: opp.createdAt.toISOString(),
-  };
+async function resolveClinicianNpi(input: {
+  clerkUserId?: string | null;
+  clinicianNpi?: string | null;
+}): Promise<string | null> {
+  if (input.clinicianNpi && /^\d{10}$/.test(input.clinicianNpi)) {
+    return input.clinicianNpi;
+  }
+
+  if (!input.clerkUserId) {
+    return null;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { clerkUserId: input.clerkUserId },
+    select: { id: true },
+  });
+  if (!user) {
+    return null;
+  }
+
+  const personProfile = await prisma.personProfile.findUnique({
+    where: { userId: user.id },
+    select: { npi: true },
+  });
+
+  return personProfile?.npi ?? null;
+}
+
+async function resolveClinicianProfile(input: {
+  clerkUserId?: string | null;
+  clinicianNpi?: string | null;
+}) {
+  const npi = await resolveClinicianNpi(input);
+  if (!npi) {
+    return null;
+  }
+
+  return buildClinicianOpportunityProfile({ npi });
 }
 
 export async function createOpportunity(
@@ -294,10 +295,16 @@ export async function createOpportunity(
       remote: input.remote ?? false,
       status: 'ACTIVE',
     },
-    include: { organization: true },
+    include: {
+      organization: {
+        include: {
+          organizationProfile: true,
+        },
+      },
+    },
   });
 
-  return formatOpp(opp);
+  return buildOpportunityTruth({ opportunity: opp });
 }
 
 export async function listOpportunitiesForOrg(clerkUserId: string): Promise<OpportunityResult[]> {
@@ -309,39 +316,108 @@ export async function listOpportunitiesForOrg(clerkUserId: string): Promise<Oppo
 
   const opps = await prisma.opportunity.findMany({
     where: { organizationId: orgProfile.organizationId },
-    include: { organization: true },
-    orderBy: { createdAt: 'desc' },
+    include: {
+      organization: {
+        include: {
+          organizationProfile: true,
+        },
+      },
+    },
+    orderBy: [
+      { updatedAt: 'desc' },
+      { createdAt: 'desc' },
+    ],
   });
 
-  return opps.map(formatOpp);
+  return opps.map((opportunity) => buildOpportunityTruth({ opportunity }));
 }
 
-export async function listPublicOpportunities(filters: {
-  specialty?: string;
-  state?: string;
-  hiringType?: string;
+export async function listPublicOpportunities(filters: OpportunityTruthFilters & {
   limit?: number;
   offset?: number;
+  clinicianNpi?: string;
+  clerkUserId?: string | null;
 }): Promise<{ opportunities: OpportunityResult[]; total: number }> {
-  const where = {
+  const where: Prisma.OpportunityWhereInput = {
     status: 'ACTIVE',
     ...(filters.specialty ? { specialty: { contains: filters.specialty, mode: 'insensitive' as const } } : {}),
     ...(filters.state ? { state: filters.state } : {}),
     ...(filters.hiringType ? { hiringType: filters.hiringType } : {}),
+    ...(filters.organizationSlug ? { organization: { slug: filters.organizationSlug } } : {}),
+    ...(filters.remote ? { remote: true } : {}),
   };
 
-  const [opportunities, total] = await Promise.all([
+  const [clinicianProfile, opportunities] = await Promise.all([
+    resolveClinicianProfile({
+      clerkUserId: filters.clerkUserId,
+      clinicianNpi: filters.clinicianNpi,
+    }),
     prisma.opportunity.findMany({
       where,
-      include: { organization: true },
-      orderBy: { createdAt: 'desc' },
-      take: filters.limit ?? 20,
-      skip: filters.offset ?? 0,
+      include: {
+        organization: {
+          include: {
+            organizationProfile: true,
+          },
+        },
+      },
+      orderBy: [
+        { updatedAt: 'desc' },
+        { createdAt: 'desc' },
+      ],
     }),
-    prisma.opportunity.count({ where }),
   ]);
 
-  return { opportunities: opportunities.map(formatOpp), total };
+  const normalized = opportunities
+    .map((opportunity) => buildOpportunityTruth({
+      opportunity,
+      clinicianProfile,
+    }))
+    .filter((opportunity) => matchesOpportunityTruthFilters(opportunity, filters));
+
+  const offset = filters.offset ?? 0;
+  const limit = filters.limit ?? 20;
+
+  return {
+    opportunities: normalized.slice(offset, offset + limit),
+    total: normalized.length,
+  };
+}
+
+export async function getPublicOpportunityById(
+  id: string,
+  input: {
+    clinicianNpi?: string;
+    clerkUserId?: string | null;
+  } = {},
+): Promise<OpportunityResult | null> {
+  const opportunity = await prisma.opportunity.findFirst({
+    where: {
+      id,
+      status: 'ACTIVE',
+    },
+    include: {
+      organization: {
+        include: {
+          organizationProfile: true,
+        },
+      },
+    },
+  });
+
+  if (!opportunity) {
+    return null;
+  }
+
+  const clinicianProfile = await resolveClinicianProfile({
+    clerkUserId: input.clerkUserId,
+    clinicianNpi: input.clinicianNpi,
+  });
+
+  return buildOpportunityTruth({
+    opportunity,
+    clinicianProfile,
+  });
 }
 
 /* ── Candidates ─────────────────────────────────────────────── */

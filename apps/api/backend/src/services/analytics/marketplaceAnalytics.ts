@@ -55,7 +55,21 @@ export type AnalyticsEventName =
   // MATCHA
   | 'matcha.scored'
   | 'matcha.instant_offer_eligible'
-  | 'matcha.blocker_recorded';
+  | 'matcha.blocker_recorded'
+  // Clinician mobile launch funnel
+  | 'clinician.sign_in'
+  | 'clinician.onboarding_started'
+  | 'clinician.onboarding_completed'
+  | 'clinician.readiness_viewed'
+  | 'clinician.blocker_opened'
+  | 'clinician.blocker_resolved'
+  | 'clinician.opportunity_viewed'
+  | 'clinician.apply_started'
+  | 'clinician.apply_submitted'
+  | 'clinician.application_detail_viewed'
+  | 'clinician.alert_viewed'
+  | 'clinician.application_status_viewed'
+  | 'clinician.wallet_viewed';
 
 export interface AnalyticsEvent {
   eventId: string;
@@ -86,6 +100,19 @@ interface FunnelMetrics {
   matchaDecisions: number;
   instantOfferEligibleCount: number;
   blockerRecords: number;
+  clinicianSignIns: number;
+  clinicianOnboardingStarts: number;
+  clinicianOnboardingCompletes: number;
+  clinicianReadinessViews: number;
+  clinicianBlockerOpens: number;
+  clinicianBlockerResolutions: number;
+  clinicianOpportunityViews: number;
+  clinicianApplyStarts: number;
+  clinicianApplySubmits: number;
+  clinicianApplicationDetailViews: number;
+  clinicianAlertViews: number;
+  clinicianApplicationStatusViews: number;
+  clinicianWalletViews: number;
 }
 
 const counters: FunnelMetrics = {
@@ -96,6 +123,19 @@ const counters: FunnelMetrics = {
   referralLinks: 0, referralSignups: 0, referralPlacements: 0,
   employerPageViews: 0,
   matchaDecisions: 0, instantOfferEligibleCount: 0, blockerRecords: 0,
+  clinicianSignIns: 0,
+  clinicianOnboardingStarts: 0,
+  clinicianOnboardingCompletes: 0,
+  clinicianReadinessViews: 0,
+  clinicianBlockerOpens: 0,
+  clinicianBlockerResolutions: 0,
+  clinicianOpportunityViews: 0,
+  clinicianApplyStarts: 0,
+  clinicianApplySubmits: 0,
+  clinicianApplicationDetailViews: 0,
+  clinicianAlertViews: 0,
+  clinicianApplicationStatusViews: 0,
+  clinicianWalletViews: 0,
 };
 
 // Blocker frequency for MATCHA analytics
@@ -140,6 +180,19 @@ export function emit(name: AnalyticsEventName, props: Record<string, unknown> = 
       counters.blockerRecords++;
       break;
     }
+    case 'clinician.sign_in': counters.clinicianSignIns++; break;
+    case 'clinician.onboarding_started': counters.clinicianOnboardingStarts++; break;
+    case 'clinician.onboarding_completed': counters.clinicianOnboardingCompletes++; break;
+    case 'clinician.readiness_viewed': counters.clinicianReadinessViews++; break;
+    case 'clinician.blocker_opened': counters.clinicianBlockerOpens++; break;
+    case 'clinician.blocker_resolved': counters.clinicianBlockerResolutions++; break;
+    case 'clinician.opportunity_viewed': counters.clinicianOpportunityViews++; break;
+    case 'clinician.apply_started': counters.clinicianApplyStarts++; break;
+    case 'clinician.apply_submitted': counters.clinicianApplySubmits++; break;
+    case 'clinician.application_detail_viewed': counters.clinicianApplicationDetailViews++; break;
+    case 'clinician.alert_viewed': counters.clinicianAlertViews++; break;
+    case 'clinician.application_status_viewed': counters.clinicianApplicationStatusViews++; break;
+    case 'clinician.wallet_viewed': counters.clinicianWalletViews++; break;
   }
 
   // Structured log (production → telemetry pipeline)
@@ -167,6 +220,15 @@ export function getFunnelReport() {
 
   const referralConversion = counters.referralSignups > 0
     ? Math.round((counters.referralPlacements / counters.referralSignups) * 100)
+    : 0;
+  const clinicianOnboardingCompletionRate = counters.clinicianOnboardingStarts > 0
+    ? Math.round((counters.clinicianOnboardingCompletes / counters.clinicianOnboardingStarts) * 100)
+    : 0;
+  const clinicianApplyConversionRate = counters.clinicianApplyStarts > 0
+    ? Math.round((counters.clinicianApplySubmits / counters.clinicianApplyStarts) * 100)
+    : 0;
+  const clinicianBlockerResolutionRate = counters.clinicianBlockerOpens > 0
+    ? Math.round((counters.clinicianBlockerResolutions / counters.clinicianBlockerOpens) * 100)
     : 0;
 
   return {
@@ -212,6 +274,24 @@ export function getFunnelReport() {
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10)
         .map(([blocker, count]) => ({ blocker, count })),
+    },
+    clinicianLaunch: {
+      signIns: counters.clinicianSignIns,
+      onboardingStarts: counters.clinicianOnboardingStarts,
+      onboardingCompletes: counters.clinicianOnboardingCompletes,
+      onboardingCompletionRate: `${clinicianOnboardingCompletionRate}%`,
+      readinessViews: counters.clinicianReadinessViews,
+      blockerOpens: counters.clinicianBlockerOpens,
+      blockerResolutions: counters.clinicianBlockerResolutions,
+      blockerResolutionRate: `${clinicianBlockerResolutionRate}%`,
+      opportunityViews: counters.clinicianOpportunityViews,
+      applyStarts: counters.clinicianApplyStarts,
+      applySubmits: counters.clinicianApplySubmits,
+      applyConversionRate: `${clinicianApplyConversionRate}%`,
+      applicationDetailViews: counters.clinicianApplicationDetailViews,
+      alertViews: counters.clinicianAlertViews,
+      applicationStatusViews: counters.clinicianApplicationStatusViews,
+      walletViews: counters.clinicianWalletViews,
     },
     generatedAt: new Date().toISOString(),
   };

@@ -48,8 +48,8 @@ export function SurfaceState({
         <div className="flex items-start gap-3">
           <AlertTriangle className="mt-0.5 h-4 w-4 text-[var(--vt-text-2)]" />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-[var(--vt-text-1)]">Unable to load panel</p>
-            <p className="mt-1 text-xs leading-5 text-[var(--vt-text-3)]">{error}</p>
+            <p className="text-sm font-semibold text-[var(--vt-text-1)]">Live connection interrupted</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--vt-text-3)]">Retrying securely. Your data is safe. {error ? `(${error})` : ''}</p>
           </div>
           {onRetry ? (
             <button

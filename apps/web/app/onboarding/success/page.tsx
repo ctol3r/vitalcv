@@ -1,6 +1,5 @@
 'use client';
 
-import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { fadeInUp, staggerContainer } from '@/animations/motionVariants';
@@ -11,9 +10,33 @@ export default function ActivationSuccessPage() {
   const [passportId, setPassportId] = useState('');
 
   useEffect(() => {
-    const npi = sessionStorage.getItem('onboarding_npi') || 'DEMO-123';
+    const npi = sessionStorage.getItem('onboarding_npi') ?? '';
     setPassportId(npi);
   }, []);
+
+  if (!passportId) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-6 py-20 text-white">
+        <div className="w-full max-w-2xl rounded-3xl border border-zinc-800 bg-zinc-900/70 p-8 text-center">
+          <h1 className="text-3xl font-semibold tracking-tight text-white">
+            Activation session required
+          </h1>
+          <p className="mt-4 text-base leading-7 text-zinc-400">
+            This screen only reflects a completed onboarding activation. Guest preview mode does not create a passport or a persisted workspace.
+          </p>
+          <div className="mt-8 flex justify-center">
+            <Link
+              href="/onboarding"
+              className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold text-black transition hover:bg-emerald-400"
+            >
+              Return to onboarding
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div

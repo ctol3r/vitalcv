@@ -1,299 +1,659 @@
-/**
- * Wave 188 — Explore Opportunities Surface
- * /opportunities/[id] — Opportunity detail page
- */
 import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { auth } from '@clerk/nextjs/server';
 import {
-  MapPin, Clock, DollarSign, Building2, ShieldCheck,
-  Users, Zap, ChevronRight, ArrowLeft,
+  ArrowLeft,
+  ArrowRight,
+  BriefcaseBusiness,
+  Building2,
+  CircleAlert,
+  Clock3,
+  DollarSign,
+  FileCheck2,
+  MapPin,
+  Sparkles,
+  Stethoscope,
+  Users,
 } from 'lucide-react';
+import { getBackendBase } from '@/lib/api';
+import {
+  fetchLaunchEmployer,
+  fetchLaunchOpportunity,
+  type OpportunitySummary,
+} from '@/lib/launch/marketplace';
+import { buildMarketplaceHeaders } from '@/lib/server/marketplace-proxy';
+import OpportunityViewedTracker from '@/components/mobile/OpportunityViewedTracker';
+import { SupportActionButton } from '@/components/pilot-ops/SupportActionButton';
 
-interface Props { params: Promise<{ id: string }> }
-
-// ── Canonical opportunity data ────────────────────────────────────────────────
-
-interface OppDetail {
-  id: string; title: string; facility: string; employerSlug: string;
-  location: string; state: string; specialty: string;
-  hiringType: string; startUrgency: string;
-  payRange?: string; remote: boolean; recentHires: number;
-  description: string;
-  requirements: Array<{ label: string; level: string; note?: string }>;
-  clearToStart: string;
-  employerTrustScore: number;
-}
-
-const OPPS: Record<string, OppDetail> = {
-  'opp-001': {
-    id: 'opp-001', title: 'Locums Interventional Cardiologist',
-    facility: 'Bay Area Cardiac Group', employerSlug: 'bay-area-cardiac-group',
-    location: 'San Francisco, CA', state: 'CA', specialty: 'Cardiology',
-    hiringType: 'Locums', startUrgency: 'Start in 2 weeks',
-    payRange: '$310–$380/hr', remote: false, recentHires: 3,
-    description: 'Locums interventional cardiology position covering cath lab and clinic. 2–4 week blocks available. Credentialing handled within 5 business days for VitalCV-prequalified candidates.',
-    requirements: [
-      { label: 'CA Medical License', level: 'L3', note: 'Active, no restrictions' },
-      { label: 'ABIM Cardiology Board Certification', level: 'L3' },
-      { label: 'DEA Registration (CA)', level: 'L2' },
-      { label: 'Malpractice Insurance', level: 'L2' },
-      { label: 'NPI Verified', level: 'L3' },
-      { label: 'Sanctions Clear', level: 'L3' },
-    ],
-    clearToStart: 'CA license + ABIM board cert + active DEA + malpractice coverage',
-    employerTrustScore: 94,
-  },
-  'opp-002': {
-    id: 'opp-002', title: 'Perm Electrophysiologist',
-    facility: 'Bay Area Cardiac Group', employerSlug: 'bay-area-cardiac-group',
-    location: 'Oakland, CA', state: 'CA', specialty: 'Cardiology',
-    hiringType: 'Permanent', startUrgency: 'Start within a month',
-    payRange: '$420K–$500K/yr', remote: false, recentHires: 1,
-    description: 'Full-time EP position with a growing interventional group. Partnership track after 2 years. Support staff and modern EP lab included.',
-    requirements: [
-      { label: 'CA Medical License', level: 'L3' },
-      { label: 'ABIM Electrophysiology', level: 'L3' },
-      { label: 'DEA Registration', level: 'L2' },
-      { label: 'Malpractice Insurance', level: 'L3' },
-      { label: 'NPI Verified', level: 'L3' },
-      { label: 'Sanctions Clear', level: 'L3' },
-    ],
-    clearToStart: 'CA license + EP board cert + clean NPDB',
-    employerTrustScore: 94,
-  },
-  'opp-003': {
-    id: 'opp-003', title: 'Telehealth Psychiatrist',
-    facility: 'MindBridge Health', employerSlug: 'mindbridge-health',
-    location: 'Remote — CA licensed', state: 'CA', specialty: 'Psychiatry',
-    hiringType: 'Telehealth', startUrgency: 'Flexible start',
-    payRange: '$200–$270/hr', remote: true, recentHires: 8,
-    description: 'Remote psychiatry with flexible scheduling. MindBridge handles payer enrollment and all credentialing coordination. You see patients — we handle the admin.',
-    requirements: [
-      { label: 'CA State Medical License', level: 'L3' },
-      { label: 'DEA Registration', level: 'L2' },
-      { label: 'NPI Verified', level: 'L3' },
-      { label: 'Board Certification (preferred)', level: 'L1' },
-    ],
-    clearToStart: 'Active CA license + DEA + verified NPI',
-    employerTrustScore: 91,
-  },
-  'opp-004': {
-    id: 'opp-004', title: 'ICU / Critical Care NP',
-    facility: 'Sacramento Medical Center', employerSlug: 'sacramento-medical-center',
-    location: 'Sacramento, CA', state: 'CA', specialty: 'Critical Care',
-    hiringType: 'Locums', startUrgency: 'Start immediately',
-    payRange: '$120–$145/hr', remote: false, recentHires: 1,
-    description: 'Urgent need for a critical care NP in a Level II trauma ICU. Immediate start preferred. Credentialing prioritized for VitalCV-verified candidates.',
-    requirements: [
-      { label: 'CA NP License', level: 'L3' },
-      { label: 'AANP / ANCC Certification', level: 'L3' },
-      { label: 'BLS', level: 'L3' },
-      { label: 'ACLS', level: 'L3' },
-      { label: 'NPI Verified', level: 'L3' },
-      { label: 'Malpractice Insurance', level: 'L2' },
-    ],
-    clearToStart: 'CA NP license + ACLS + malpractice',
-    employerTrustScore: 88,
-  },
-  'opp-005': {
-    id: 'opp-005', title: 'Family Medicine — Rural WA',
-    facility: 'Northwest Locums Alliance', employerSlug: 'northwest-locums-alliance',
-    location: 'Eastern Washington', state: 'WA', specialty: 'Family Medicine',
-    hiringType: 'Locums', startUrgency: 'Start in 2 weeks',
-    payRange: '$180–$220/hr', remote: false, recentHires: 5,
-    description: 'Rural family medicine locums in Eastern WA. Strong community, competitive pay, housing assistance available. NLA handles all credentialing at partner facilities.',
-    requirements: [
-      { label: 'WA Medical License', level: 'L3' },
-      { label: 'DEA Registration', level: 'L2' },
-      { label: 'Malpractice Insurance', level: 'L2' },
-      { label: 'NPI Verified', level: 'L3' },
-      { label: 'NPDB Clear', level: 'L2' },
-    ],
-    clearToStart: 'Active WA license + DEA + malpractice',
-    employerTrustScore: 85,
-  },
-  'opp-006': {
-    id: 'opp-006', title: 'Staff Internist — Perm',
-    facility: 'Kaiser Permanente Northern California', employerSlug: 'kaiser-permanente-northern-california',
-    location: 'Sacramento, CA', state: 'CA', specialty: 'Internal Medicine',
-    hiringType: 'Permanent', startUrgency: 'Start within a month',
-    remote: false, recentHires: 12,
-    description: 'Kaiser Permanente is hiring permanent staff internists across NorCal facilities. Integrated EHR, competitive salary, full benefits, and physician-led culture.',
-    requirements: [
-      { label: 'CA Medical License', level: 'L3' },
-      { label: 'ABIM Internal Medicine', level: 'L3' },
-      { label: 'DEA Registration', level: 'L2' },
-      { label: 'Malpractice History Review', level: 'L3' },
-      { label: 'NPI Verified', level: 'L3' },
-      { label: 'NPDB Clear', level: 'L3' },
-    ],
-    clearToStart: 'CA license + board cert + clean NPDB + KP privileging',
-    employerTrustScore: 97,
-  },
-  'opp-007': {
-    id: 'opp-007', title: 'Telepsychiatry — TX & FL',
-    facility: 'MindBridge Health', employerSlug: 'mindbridge-health',
-    location: 'Remote — TX or FL', state: 'TX', specialty: 'Psychiatry',
-    hiringType: 'Telehealth', startUrgency: 'Flexible start',
-    payRange: '$200–$270/hr', remote: true, recentHires: 4,
-    description: 'Expand your psychiatric practice across TX and FL with MindBridge. Flexible scheduling, no admin burden.',
-    requirements: [
-      { label: 'TX or FL Medical License', level: 'L3' },
-      { label: 'DEA Registration', level: 'L2' },
-      { label: 'NPI Verified', level: 'L3' },
-    ],
-    clearToStart: 'Active TX or FL license + DEA + NPI',
-    employerTrustScore: 91,
-  },
-};
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
-  const opp = OPPS[id];
-  if (!opp) return { title: 'Opportunity Not Found — VitalCV' };
-  return { title: `${opp.title} — VitalCV`, description: opp.description };
-}
-
-export async function generateStaticParams() {
-  return Object.keys(OPPS).map(id => ({ id }));
+interface Props {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 const LEVEL_COLOR: Record<string, string> = {
-  L3: 'text-red-400 bg-red-500/10 border-red-500/20',
-  L2: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
-  L1: 'text-green-400 bg-green-500/10 border-green-500/20',
+  L3: 'border-red-500/20 bg-red-500/10 text-red-300',
+  L2: 'border-amber-500/20 bg-amber-500/10 text-amber-300',
+  L1: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300',
 };
 
-export default async function OpportunityDetailPage({ params }: Props) {
+const READINESS_STATUS_LABELS: Record<string, string> = {
+  ready_now: 'Ready now',
+  needs_review: 'Needs review',
+  requirements_missing: 'Requirements missing',
+};
+
+function formatHiringType(value: string): string {
+  switch (value) {
+    case 'perm':
+      return 'Permanent';
+    case 'locums':
+      return 'Locums';
+    case 'telehealth':
+      return 'Telehealth';
+    case 'contract':
+      return 'Contract';
+    case 'per_diem':
+      return 'Per diem';
+    default:
+      return value.replace(/_/g, ' ');
+  }
+}
+
+function formatPayModel(value: OpportunitySummary['payModel']): string {
+  switch (value) {
+    case 'salary':
+      return 'Salary';
+    case 'hourly':
+      return 'Hourly';
+    case 'locums':
+      return 'Locums';
+    case 'shift':
+      return 'Per shift';
+    default:
+      return 'Not stated';
+  }
+}
+
+function formatVisaStatus(value: OpportunitySummary['visaSponsorshipStatus']): string {
+  switch (value) {
+    case 'available':
+      return 'Sponsor support available';
+    case 'case_by_case':
+      return 'Case-by-case sponsorship';
+    case 'not_available':
+      return 'No sponsor support';
+    default:
+      return 'Not stated';
+  }
+}
+
+function formatBenefitsStatus(value: OpportunitySummary['benefitsAvailability'], summary: string | null | undefined): string {
+  switch (value) {
+    case 'listed':
+      return summary ?? 'Benefits/support listed';
+    case 'limited':
+      return summary ?? 'Some support details listed';
+    default:
+      return 'Benefits not listed';
+  }
+}
+
+function formatFreshness(value: OpportunitySummary['freshness']): string {
+  switch (value?.listingStatus) {
+    case 'fresh':
+      return 'Fresh listing';
+    case 'aging':
+      return 'Aging listing';
+    case 'stale':
+      return 'Potentially stale';
+    default:
+      return 'Freshness unknown';
+  }
+}
+
+function formatDate(value: string | null | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(value));
+}
+
+function firstQueryValue(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+async function fetchOpportunityDetail(id: string, npi?: string): Promise<OpportunitySummary | null> {
+  const session = await auth();
+  const params = new URLSearchParams();
+  if (npi) {
+    params.set('npi', npi);
+  }
+
+  try {
+    const response = await fetch(
+      `${getBackendBase()}/api/opportunities/${encodeURIComponent(id)}${params.toString() ? `?${params.toString()}` : ''}`,
+      {
+        cache: 'no-store',
+        headers: buildMarketplaceHeaders(session, {
+          'Content-Type': 'application/json',
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = await response.json() as { opportunity?: OpportunitySummary };
+    return payload.opportunity ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function generateMetadata({ params }: Pick<Props, 'params'>): Promise<Metadata> {
   const { id } = await params;
-  const opp = OPPS[id];
-  if (!opp) notFound();
+  const opportunity = await fetchLaunchOpportunity(id);
+
+  if (!opportunity) {
+    return {
+      title: 'Opportunity Not Found — VitalCV',
+    };
+  }
+
+  return {
+    title: `${opportunity.title} — VitalCV`,
+    description: opportunity.description ?? `${opportunity.title} at ${opportunity.organizationName}`,
+  };
+}
+
+export default async function OpportunityDetailPage({ params, searchParams }: Props) {
+  const { id } = await params;
+  const resolvedSearchParams = await searchParams;
+  const npi = firstQueryValue(resolvedSearchParams.npi);
+  const opportunity = await fetchOpportunityDetail(id, npi);
+
+  if (!opportunity) {
+    notFound();
+  }
+
+  const employer = await fetchLaunchEmployer(opportunity.organizationSlug);
+  const exploreParams = new URLSearchParams({
+    apply: opportunity.id,
+    organizationSlug: opportunity.organizationSlug,
+  });
+
+  if (npi) {
+    exploreParams.set('npi', npi);
+  }
+  if (opportunity.specialty) {
+    exploreParams.set('specialty', opportunity.specialty);
+  }
+  if (opportunity.state) {
+    exploreParams.set('state', opportunity.state);
+  }
+
+  const applyHref = `/explore?${exploreParams.toString()}`;
+  const onboardingHref = `/onboarding?returnTo=${encodeURIComponent(applyHref)}`;
+  const sourceUpdatedAt = formatDate(opportunity.source?.updatedAt ?? opportunity.freshness?.lastUpdatedAt ?? opportunity.updatedAt);
+  const comparison = opportunity.comparison ?? null;
+  const explanation = opportunity.explanation ?? {
+    whyThisMayFit: [],
+    whatMayBlockYou: [],
+    resolveNext: [],
+    stillUnknown: [],
+  };
 
   return (
     <div className="min-h-screen bg-ops-gradient text-white surface-operator">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-xs text-white/40 mb-6">
-          <Link href="/" className="hover:text-white/70 transition-colors">Home</Link>
+      <OpportunityViewedTracker
+        opportunityId={opportunity.id}
+        organizationName={opportunity.organizationName}
+        title={opportunity.title}
+      />
+      <div className="mx-auto max-w-7xl px-6 py-10">
+        <nav className="flex flex-wrap items-center gap-2 text-xs text-white/45">
+          <Link href="/" className="transition hover:text-white/70">Home</Link>
           <span>/</span>
-          <Link href="/explore" className="hover:text-white/70 transition-colors">Explore</Link>
+          <Link href="/explore" className="transition hover:text-white/70">Explore</Link>
           <span>/</span>
-          <span className="text-white/60 truncate">{opp.title}</span>
+          <span className="text-white/70">{opportunity.title}</span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Hero */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-7">
-              <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
-                  <Building2 className="w-7 h-7 text-white/50" />
-                </div>
-                <div className="flex-1">
-                  <h1 className="heading-xl font-bold text-white">{opp.title}</h1>
-                  <p className="text-white/60 mt-1">{opp.facility}</p>
-                  <div className="flex flex-wrap gap-3 mt-3">
-                    <span className="flex items-center gap-1 text-sm text-white/50">
-                      <MapPin className="w-3.5 h-3.5" /> {opp.location}
-                    </span>
-                    <span className="flex items-center gap-1 text-sm text-white/50">
-                      <Clock className="w-3.5 h-3.5" /> {opp.startUrgency}
-                    </span>
-                    {opp.payRange && (
-                      <span className="flex items-center gap-1 text-sm text-white/50">
-                        <DollarSign className="w-3.5 h-3.5" /> {opp.payRange}
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1 text-sm text-white/50">
-                      <Users className="w-3.5 h-3.5" /> {opp.recentHires} hired recently
-                    </span>
+        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(18rem,0.95fr)]">
+          <section className="space-y-6">
+            <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-8">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="max-w-4xl">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-white/75">
+                      <Building2 className="h-7 w-7" />
+                    </div>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h1 className="text-3xl font-semibold tracking-tight text-white">{opportunity.title}</h1>
+                        <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${LEVEL_COLOR[opportunity.requirementLevel] ?? LEVEL_COLOR.L1}`}>
+                          {opportunity.requirementLevel}
+                        </span>
+                        {comparison ? (
+                          <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-200">
+                            {READINESS_STATUS_LABELS[comparison.status] ?? 'Comparison ready'}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-2 text-sm text-white/60">{opportunity.organizationName}</p>
+                    </div>
                   </div>
+
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4 text-sm text-white/70">
+                    <DetailChip icon={<MapPin className="h-4 w-4" />} label={opportunity.remote ? `Remote (${opportunity.state})` : opportunity.state} />
+                    <DetailChip icon={<Users className="h-4 w-4" />} label={formatHiringType(opportunity.hiringType)} />
+                    <DetailChip icon={<DollarSign className="h-4 w-4" />} label={opportunity.payRange ?? 'Pay not disclosed'} />
+                    <DetailChip icon={<Clock3 className="h-4 w-4" />} label={opportunity.startTimeline ?? employer?.timeToStart ?? 'Start timing not stated'} />
+                  </div>
+
+                  <div className="mt-6 flex flex-wrap gap-2 text-xs text-white/70">
+                    <TagPill>{opportunity.specialty}</TagPill>
+                    <TagPill>{formatPayModel(opportunity.payModel)}</TagPill>
+                    <TagPill>{formatVisaStatus(opportunity.visaSponsorshipStatus)}</TagPill>
+                    <TagPill>{formatFreshness(opportunity.freshness)}</TagPill>
+                  </div>
+
+                  <p className="mt-6 text-sm leading-7 text-white/75">
+                    {opportunity.description ?? 'This active role is live in the marketplace feed. VitalCV is surfacing the employer requirements, compensation visibility, and readiness context from the current source-backed record.'}
+                  </p>
+
+                  {sourceUpdatedAt ? (
+                    <p className="mt-4 text-xs text-white/45">
+                      Source updated {sourceUpdatedAt}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-right">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-white/45">Market truth</p>
+                  <p className="mt-1 text-lg font-semibold text-white">{opportunity.transparency?.employerDataCompleteness ?? 'Source coverage unavailable'}</p>
+                  <p className="mt-2 text-xs text-white/50">{opportunity.transparency?.listingFreshness ?? 'Freshness not stated'}</p>
                 </div>
               </div>
-              <p className="text-white/70 mt-5 leading-relaxed">{opp.description}</p>
             </div>
 
-            {/* What this employer requires */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">What this role requires from you</h2>
-              <div className="space-y-2.5">
-                {opp.requirements.map((req, i) => (
-                  <div key={i} className="flex items-start justify-between gap-3 py-2 border-b border-white/5 last:border-0">
-                    <div>
-                      <p className="text-sm text-white/80">{req.label}</p>
-                      {req.note && <p className="text-xs text-white/40 mt-0.5">{req.note}</p>}
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+              <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">What This Job Is, Really</p>
+                <h2 className="mt-2 text-2xl font-semibold text-white">Clarity before you spend time</h2>
+                <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                  <TruthCard
+                    icon={<DollarSign className="h-4 w-4" />}
+                    title="Compensation"
+                    value={opportunity.payRange ?? 'Not disclosed'}
+                    detail={`Pay model: ${formatPayModel(opportunity.payModel)}`}
+                  />
+                  <TruthCard
+                    icon={<CircleAlert className="h-4 w-4" />}
+                    title="Visa Sponsorship"
+                    value={formatVisaStatus(opportunity.visaSponsorshipStatus)}
+                    detail={opportunity.visaSponsorshipSummary ?? 'Current employer data does not state sponsorship support.'}
+                  />
+                  <TruthCard
+                    icon={<Sparkles className="h-4 w-4" />}
+                    title="Benefits / Support"
+                    value={formatBenefitsStatus(opportunity.benefitsAvailability, opportunity.benefitsSummary)}
+                    detail={opportunity.benefitsItems?.length ? opportunity.benefitsItems.join(', ') : 'No additional benefits were explicitly listed in the current source data.'}
+                  />
+                  <TruthCard
+                    icon={<Clock3 className="h-4 w-4" />}
+                    title="Speed To Start"
+                    value={opportunity.startTimeline ?? 'Not stated'}
+                    detail={opportunity.transparency?.speedToStartEstimate ?? employer?.timeToOnboard ?? 'Onboarding timing not stated.'}
+                  />
+                </div>
+              </section>
+
+              <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Employer Transparency</p>
+                <h2 className="mt-2 text-2xl font-semibold text-white">What the current record proves</h2>
+                <div className="mt-6 grid gap-3">
+                  <SignalRow label="Hiring state" value={opportunity.transparency?.hiringState ?? employer?.hiringStatus ?? 'unknown'} />
+                  <SignalRow label="Listing freshness" value={opportunity.transparency?.listingFreshness ?? 'unknown'} />
+                  <SignalRow label="Benefits visibility" value={opportunity.transparency?.benefitsVisibility ?? 'unknown'} />
+                  <SignalRow label="Sponsorship support" value={opportunity.transparency?.sponsorshipSupport ?? 'unknown'} />
+                  <SignalRow label="Employer data" value={opportunity.transparency?.employerDataCompleteness ?? 'unknown'} />
+                </div>
+                {opportunity.transparency?.evidence?.length ? (
+                  <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/45">Evidence</p>
+                    <div className="mt-3 space-y-2 text-sm text-white/70">
+                      {opportunity.transparency.evidence.map((entry) => (
+                        <p key={entry}>{entry}</p>
+                      ))}
                     </div>
-                    <span className={`px-2 py-0.5 rounded border text-xs flex-shrink-0 ${LEVEL_COLOR[req.level] ?? ''}`}>
-                      {req.level}
+                  </div>
+                ) : null}
+              </section>
+            </div>
+
+            <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Readiness-To-Opportunity</p>
+                  <h2 className="mt-2 text-2xl font-semibold text-white">
+                    {comparison ? 'What you already satisfy, what is still in the way' : 'What this employer checks before you start'}
+                  </h2>
+                </div>
+                {comparison ? (
+                  <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs text-emerald-100">
+                    <FileCheck2 className="h-3.5 w-3.5" />
+                    {READINESS_STATUS_LABELS[comparison.status] ?? 'Comparison ready'}
+                  </div>
+                ) : null}
+              </div>
+
+              {comparison ? (
+                <>
+                  <div className="mt-5 grid gap-4 lg:grid-cols-3">
+                    <ComparisonColumn
+                      title="Already Satisfied"
+                      items={comparison.satisfied}
+                      emptyLabel="No verified matches are confirmed yet."
+                      tone="success"
+                    />
+                    <ComparisonColumn
+                      title="Missing"
+                      items={comparison.missing}
+                      emptyLabel="No confirmed blockers from the current record."
+                      tone="warning"
+                    />
+                    <ComparisonColumn
+                      title="Unknown"
+                      items={comparison.unknown}
+                      emptyLabel="No remaining unknowns from the current record."
+                      tone="neutral"
+                    />
+                  </div>
+
+                  <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                    <SummaryPanel
+                      title="Estimated Readiness Gap"
+                      value={comparison.estimatedGap}
+                      icon={<CircleAlert className="h-4 w-4" />}
+                    />
+                    <SummaryPanel
+                      title="Shortest Path"
+                      value={comparison.shortestPath}
+                      icon={<ArrowRight className="h-4 w-4" />}
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="mt-5 rounded-3xl border border-amber-400/20 bg-amber-400/10 p-5">
+                  <h3 className="text-lg font-semibold text-white">Clinician comparison is not attached yet</h3>
+                  <p className="mt-2 text-sm leading-6 text-white/70">
+                    VitalCV can still show the employer&apos;s stated requirements, but a clinician-specific gap view needs a signed-in clinician context or an `npi` query on this detail page.
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-5 space-y-3">
+                {opportunity.credentialRequirements?.map((requirement) => (
+                  <div
+                    key={`${requirement.label}-${requirement.level}-${requirement.key ?? 'unmapped'}`}
+                    className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-white">{requirement.label}</p>
+                      <p className="mt-1 text-xs leading-5 text-white/50">
+                        {requirement.note ?? (requirement.priority === 'preferred' ? 'Employer marked this as preferred.' : 'Employer marked this as required.')}
+                      </p>
+                    </div>
+                    <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${LEVEL_COLOR[requirement.level] ?? LEVEL_COLOR.L1}`}>
+                      {requirement.level}
                     </span>
                   </div>
                 ))}
               </div>
-              <div className="mt-4 p-3 rounded-xl bg-blue-900/20 border border-blue-500/20">
-                <p className="text-sm text-white/60">
-                  <span className="text-blue-400 font-medium">Clear-to-start: </span>
-                  {opp.clearToStart}
-                </p>
-              </div>
-            </div>
-          </div>
+            </section>
 
-          {/* Sidebar */}
-          <div className="space-y-5">
-            {/* Apply CTA */}
-            <div className="rounded-2xl border border-vt-success/30 bg-vt-success/5 p-5 space-y-3">
+            <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Why This Fits / Doesn&apos;t Fit</p>
+              <h2 className="mt-2 text-2xl font-semibold text-white">Inspectable reasoning only</h2>
+              <div className="mt-6 grid gap-4 xl:grid-cols-2">
+                <ExplanationCard title="Why this may fit" items={explanation.whyThisMayFit} />
+                <ExplanationCard title="What may block you" items={explanation.whatMayBlockYou} />
+                <ExplanationCard title="What to resolve next" items={explanation.resolveNext} />
+                <ExplanationCard title="What is still unknown" items={explanation.stillUnknown} />
+              </div>
+            </section>
+          </section>
+
+          <aside className="space-y-5">
+            <div className="rounded-3xl border border-emerald-500/25 bg-emerald-500/10 p-5">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-vt-success" />
-                <p className="text-sm font-semibold text-white">Apply with VitalCV</p>
+                <BriefcaseBusiness className="h-5 w-5 text-emerald-300" />
+                <p className="text-sm font-semibold text-white">Apply with context</p>
               </div>
-              <p className="text-xs text-white/50 leading-relaxed">
-                Your verified credentials are shared instantly — no forms, no fax.
+              <p className="mt-3 text-sm leading-6 text-emerald-100/85">
+                You should know the pay visibility, requirement gap, freshness, and employer transparency before you spend time here.
               </p>
-              <Link
-                href={`/get-ready?opportunity=${opp.id}`}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-vt-success text-black text-sm font-semibold hover:bg-vt-success/90 transition-colors"
-              >
-                Check My Readiness <ChevronRight className="w-4 h-4" />
-              </Link>
-              <Link
-                href="/holder/share"
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-sm transition-all"
-              >
-                Share My Readiness
-              </Link>
+              <div className="mt-4 space-y-3">
+                <Link
+                  href={applyHref}
+                  className="inline-flex w-full items-center justify-between rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-black transition hover:bg-emerald-400"
+                >
+                  <span>Apply now</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href={onboardingHref}
+                  className="inline-flex items-center gap-2 text-sm font-medium text-emerald-100/85 transition hover:text-white"
+                >
+                  <span>Check readiness first</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
             </div>
 
-            {/* Employer card */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-              <p className="text-xs text-white/40 mb-3">Employer</p>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center">
-                  <Building2 className="w-5 h-5 text-white/50" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-white">{opp.facility}</p>
-                  <div className="flex items-center gap-1 text-xs text-emerald-400">
-                    <ShieldCheck className="w-3 h-3" />
-                    Trust score {opp.employerTrustScore}
-                  </div>
-                </div>
+            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Employer</p>
+              <h2 className="mt-2 text-xl font-semibold text-white">{opportunity.organizationName}</h2>
+              <div className="mt-4 space-y-3 text-sm text-white/65">
+                <p>{employer?.tagline ?? 'Live employer profile is linked to this opportunity.'}</p>
+                {employer ? (
+                  <>
+                    <p>{employer.timeToOnboard} onboarding window</p>
+                    <p>{employer.recentHires} recent hire{employer.recentHires === 1 ? '' : 's'} on the current employer profile</p>
+                  </>
+                ) : null}
               </div>
               <Link
-                href={`/employers/${opp.employerSlug}`}
-                className="w-full flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm text-white/60 hover:text-white transition-all"
+                href={`/employers/${opportunity.organizationSlug}`}
+                className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-emerald-300 transition hover:text-emerald-200"
               >
-                Learn about this employer <ChevronRight className="w-3 h-3" />
+                Review employer profile
+                <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
 
-            {/* Back */}
-            <Link href="/explore" className="flex items-center gap-2 text-sm text-white/40 hover:text-white transition-colors">
-              <ArrowLeft className="w-4 h-4" /> Back to Explore
+            {!employer ? (
+              <div className="rounded-3xl border border-amber-400/20 bg-amber-400/10 p-5">
+                <h3 className="text-lg font-semibold text-white">Employer detail fallback</h3>
+                <p className="mt-2 text-sm leading-6 text-white/65">
+                  The opportunity truth model is live, but the linked employer profile payload did not load for this page.
+                </p>
+                <div className="mt-4">
+                  <SupportActionButton
+                    label="Contact support"
+                    title="Opportunity detail missing employer profile"
+                    messagePrefill={`Opportunity ${opportunity.id} did not load linked employer profile details.`}
+                    className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white/75 transition hover:text-white"
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            <Link
+              href="/explore"
+              className="inline-flex items-center gap-2 text-sm text-white/45 transition hover:text-white"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to live roles
             </Link>
-          </div>
+          </aside>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailChip({
+  icon,
+  label,
+}: {
+  icon: ReactNode;
+  label: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5">
+      {icon}
+      {label}
+    </span>
+  );
+}
+
+function TagPill({ children }: { children: ReactNode }) {
+  return (
+    <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5">
+      {children}
+    </span>
+  );
+}
+
+function TruthCard({
+  icon,
+  title,
+  value,
+  detail,
+}: {
+  icon: ReactNode;
+  title: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-white/45">
+        {icon}
+        {title}
+      </div>
+      <p className="mt-3 text-lg font-semibold text-white">{value}</p>
+      <p className="mt-2 text-sm leading-6 text-white/65">{detail}</p>
+    </div>
+  );
+}
+
+function SignalRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm">
+      <span className="text-white/50">{label}</span>
+      <span className="max-w-[16rem] text-right text-white/80">{value}</span>
+    </div>
+  );
+}
+
+function ComparisonColumn({
+  title,
+  items,
+  emptyLabel,
+  tone,
+}: {
+  title: string;
+  items: Array<{ label: string; detail: string; nextStep?: string | null }>;
+  emptyLabel: string;
+  tone: 'success' | 'warning' | 'neutral';
+}) {
+  const toneClasses = tone === 'success'
+    ? 'border-emerald-400/20 bg-emerald-400/10'
+    : tone === 'warning'
+      ? 'border-amber-400/20 bg-amber-400/10'
+      : 'border-white/10 bg-black/20';
+
+  return (
+    <div className={`rounded-3xl border p-4 ${toneClasses}`}>
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/45">{title}</p>
+      <div className="mt-4 space-y-3">
+        {items.length === 0 ? (
+          <p className="text-sm text-white/60">{emptyLabel}</p>
+        ) : (
+          items.map((item) => (
+            <div key={`${title}-${item.label}-${item.detail}`} className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+              <p className="text-sm font-medium text-white">{item.label}</p>
+              <p className="mt-1 text-sm leading-6 text-white/65">{item.detail}</p>
+              {item.nextStep ? (
+                <p className="mt-2 text-xs font-medium text-emerald-200">{item.nextStep}</p>
+              ) : null}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SummaryPanel({
+  title,
+  value,
+  icon,
+}: {
+  title: string;
+  value: string;
+  icon: ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-white/45">
+        {icon}
+        {title}
+      </div>
+      <p className="mt-3 text-sm leading-6 text-white/75">{value}</p>
+    </div>
+  );
+}
+
+function ExplanationCard({
+  title,
+  items,
+}: {
+  title: string;
+  items: string[];
+}) {
+  return (
+    <div className="rounded-3xl border border-white/10 bg-black/20 p-5">
+      <div className="flex items-center gap-2">
+        {title === 'Why this may fit' ? <Sparkles className="h-4 w-4 text-emerald-300" /> : null}
+        {title === 'What may block you' ? <CircleAlert className="h-4 w-4 text-amber-300" /> : null}
+        {title === 'What to resolve next' ? <ArrowRight className="h-4 w-4 text-cyan-300" /> : null}
+        {title === 'What is still unknown' ? <Stethoscope className="h-4 w-4 text-white/60" /> : null}
+        <h3 className="text-lg font-semibold text-white">{title}</h3>
+      </div>
+      <div className="mt-4 space-y-3 text-sm leading-6 text-white/70">
+        {items.length === 0 ? (
+          <p>No additional signal is available from the current source data.</p>
+        ) : (
+          items.map((item) => <p key={`${title}-${item}`}>{item}</p>)
+        )}
       </div>
     </div>
   );

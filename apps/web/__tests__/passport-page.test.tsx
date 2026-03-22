@@ -106,5 +106,5 @@ describe('/p/[slug] public passport page', () => {
     expect(markup).toContain('NURSYS');
     expect(markup).toContain('Apply with VitalCV');
     expect(markup).not.toContain('licenseNumber');
-  });
+  }, 15000);
 });

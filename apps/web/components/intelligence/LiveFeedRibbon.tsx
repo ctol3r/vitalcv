@@ -235,7 +235,7 @@ export function LiveFeedRibbon() {
            <div className="h-1.5 w-1.5 rounded-full bg-[var(--vt-border)]" />
         )}
         <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--vt-text-1)]">
-          {delivery.mode === 'live' ? 'Pipeline Active' : delivery.mode === 'cached' ? 'Pipeline Waking' : 'System Degraded'}
+          {delivery.mode === 'live' ? 'Pipeline Active' : delivery.mode === 'cached' ? 'Data Synchronized' : 'Awaiting Live Signal'}
         </span>
       </div>
 

@@ -10,7 +10,6 @@ import { useGraph } from '@/hooks/useGraph';
 import { useProviders } from '@/hooks/useProviders';
 import { useStorylines } from '@/hooks/useStorylines';
 import {
-  findGraphNodeIdForProvider,
   type IntelligenceFinding,
 } from '@/lib/intelligence/contracts';
 import {
@@ -27,6 +26,11 @@ import {
   getSurfaceFreshnessState,
 } from '@/lib/intelligence/state';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
+import {
+  buildIntelligenceWorkspacePayload,
+  resolveGraphFocusNodeId,
+  resolveWorkspaceSelectionFromGraphNode,
+} from '@/lib/intelligence/workspace-model';
 import { GraphWorkbenchPanel } from './graph-workbench-panel';
 import { FindingMutationControls } from './mutation-controls';
 import { OperationsShell } from './shell';
@@ -44,10 +48,6 @@ import {
 } from './primitives';
 
 const PAGE_SIZE = 10;
-
-function formatFindingType(findingType: string) {
-  return findingType.replace(/_/g, ' ');
-}
 
 function getFindingTypeColor(findingType: string) {
   switch (findingType.toLowerCase()) {
@@ -127,114 +127,120 @@ function LiveSignalRow({
 function FindingFeedCard({
   finding,
   currentHref,
+  selectionHref,
   isFocused,
+  onSelectFinding,
   onFocusGraph,
 }: {
   finding: IntelligenceFinding;
   currentHref: string;
+  selectionHref: string;
   isFocused: boolean;
+  onSelectFinding: (finding: IntelligenceFinding) => void;
   onFocusGraph: (findingId: string) => void;
 }) {
   return (
-    <OpsCard className={`overflow-hidden ${getFindingTypeColor(finding.findingType)} ${finding.severity === 'critical' ? 'ring-1 ring-rose-400/20' : ''}`}>
-      <div className="space-y-4">
+    <div className={`w-full border-[1px] border-[var(--vt-border)] bg-[var(--vt-surface)] transition select-none ${getFindingTypeColor(finding.findingType)} ${finding.severity === 'critical' ? 'bg-rose-500/5' : ''}`}>
+      <div className="p-4 space-y-4">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0 flex-1 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <OpsBadge label={formatFindingType(finding.findingType)} />
               <OpsBadge label={finding.severity} tone={severityTone(finding.severity)} />
-              <OpsBadge label={finding.status} tone={severityTone(finding.status)} />
-              <span className="text-[10px] uppercase tracking-[0.16em] text-[var(--vt-text-3)]">
-                {finding.investigatorId}
+              <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">
+                {finding.findingType.replace(/_/g, ' ')}
               </span>
+              <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">
+                INV {finding.investigatorId}
+              </span>
+              <OpsBadge label={finding.status} tone={severityTone(finding.status)} />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Link
-                href={{
-                  pathname: `/findings/${finding.id}`,
-                  query: { from: currentHref },
+                href={selectionHref}
+                onClick={(event) => {
+                  event.preventDefault();
+                  onSelectFinding(finding);
                 }}
-                className="block text-lg font-semibold leading-6 text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]"
+                className="block text-base font-semibold text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]"
               >
                 {finding.title}
               </Link>
               <p className="max-w-4xl text-sm leading-6 text-[var(--vt-text-2)]">{finding.summary}</p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 text-sm">
+            <div className="flex flex-wrap gap-1.5 mt-2">
               {finding.providerNpi ? (
                 <Link
                   href={`/providers/${finding.providerNpi}?from=${encodeURIComponent(currentHref)}`}
-                  className="font-medium text-cyan-300 transition hover:text-[var(--vt-accent)]"
+                  className="inline-flex items-center gap-1 rounded-[2px] bg-[var(--vt-surface)] border border-[var(--vt-border)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.14em] text-[var(--vt-text-2)] transition hover:border-[var(--vt-text-3)]"
                 >
-                  {finding.providerLabel ?? `Provider ${finding.providerNpi}`}
+                  <span className="text-[var(--vt-text-3)]">Target</span> {finding.providerLabel ?? `Provider ${finding.providerNpi}`}
                 </Link>
-              ) : (
-                <span className="text-[var(--vt-text-3)]">Provider not attached</span>
-              )}
-              {finding.storylineId ? (
-                <EntityLink
-                  href={`/storylines/${finding.storylineId}?from=${encodeURIComponent(currentHref)}`}
-                  label={finding.storylineTitle ?? 'Open storyline'}
-                />
               ) : null}
-              {finding.providerNpi ? (
-                <EntityLink
-                  href={buildIntelligenceHref('findings', { provider: finding.providerNpi })}
-                  label="Provider findings"
-                />
+              {finding.storylineId ? (
+                <Link
+                  href={`/storylines/${finding.storylineId}?from=${encodeURIComponent(currentHref)}`}
+                  className="inline-flex items-center gap-1 rounded-[2px] bg-[var(--vt-surface)] border border-[var(--vt-border)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.14em] text-[var(--vt-text-2)] transition hover:border-[var(--vt-text-3)]"
+                >
+                   <span className="text-[var(--vt-text-3)]">Story</span> {finding.storylineTitle ?? 'Open storyline'}
+                </Link>
               ) : null}
               <button
                 type="button"
                 onClick={() => onFocusGraph(finding.id)}
-                className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition ${
+                className={`inline-flex items-center gap-1 rounded-[2px] border px-1.5 py-0.5 text-[9px] uppercase tracking-[0.14em] transition ${
                   isFocused
-                    ? 'border-cyan-400/30 bg-cyan-400/10 text-cyan-200'
-                    : 'border-[var(--vt-border)] bg-[var(--vt-surface)] text-[var(--vt-text-2)] hover:text-[var(--vt-text-1)]'
+                    ? 'border-cyan-400 bg-cyan-400/10 text-cyan-200'
+                    : 'border-[var(--vt-border)] bg-[var(--vt-surface)] text-[var(--vt-text-2)] hover:border-[var(--vt-text-3)]'
                 }`}
               >
                 Focus graph
               </button>
             </div>
 
-            <div className="grid gap-2 md:grid-cols-2">
-              {finding.evidence.slice(0, 2).map((evidence) => (
-                <div
-                  key={evidence.id}
-                  className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-2"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs font-medium text-[var(--vt-text-1)]">{evidence.label}</p>
-                    {evidence.observedAt ? (
-                      <span className="shrink-0 text-[10px] text-[var(--vt-text-3)]" title={formatAbsoluteTime(evidence.observedAt)}>
-                        {formatRelativeTime(evidence.observedAt)}
-                      </span>
+            {finding.evidence.length > 0 && (
+              <div className="grid gap-2 md:grid-cols-2 mt-3">
+                {finding.evidence.slice(0, 2).map((evidence) => (
+                  <div
+                    key={evidence.id}
+                    className="border-l-[2px] border-l-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-2"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--vt-text-2)]">{evidence.label}</p>
+                      {evidence.observedAt ? (
+                        <span className="shrink-0 text-[9px] uppercase tracking-[0.1em] text-[var(--vt-text-3)]" title={formatAbsoluteTime(evidence.observedAt)}>
+                          {formatRelativeTime(evidence.observedAt)}
+                        </span>
+                      ) : null}
+                    </div>
+                    {evidence.snippet ? (
+                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--vt-text-2)] italic">"{evidence.snippet}"</p>
                     ) : null}
                   </div>
-                  {evidence.snippet ? (
-                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--vt-text-2)]">{evidence.snippet}</p>
-                  ) : null}
-                </div>
-              ))}
-              {finding.evidence.length > 2 ? (
-                <div className="flex items-center rounded-xl border border-dashed border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-xs text-[var(--vt-text-3)]">
-                  {finding.evidence.length - 2} more evidence item{finding.evidence.length - 2 === 1 ? '' : 's'}
-                </div>
-              ) : null}
-            </div>
+                ))}
+                {finding.evidence.length > 2 ? (
+                  <div className="flex items-center border-[1px] border-dashed border-[var(--vt-border)] bg-transparent px-3 py-2 text-[10px] uppercase tracking-[0.1em] text-[var(--vt-text-3)]">
+                    + {finding.evidence.length - 2} MORE EVIDENCE ITEM{finding.evidence.length - 2 === 1 ? '' : 'S'}
+                  </div>
+                ) : null}
+              </div>
+            )}
           </div>
 
-          <div className="w-full max-w-sm shrink-0 space-y-3">
-            <div className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-3">
+          <div className="w-full max-w-[14rem] shrink-0 space-y-3">
+            <div className="border-[1px] border-[var(--vt-border)] bg-[var(--vt-surface-dim)] p-3">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Confidence</p>
-                <span className="text-xs text-[var(--vt-text-3)]">Priority {Math.round(finding.priorityScore)}</span>
+                <p className="text-[9px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">Confidence</p>
+                <span className="text-[9px] uppercase tracking-[0.18em] text-[var(--vt-text-3)]">PRI {Math.round(finding.priorityScore)}</span>
               </div>
-              <div className="mt-3">
+              <div className="mt-2 text-xs font-semibold text-[var(--vt-text-1)]">
+                {Math.round(finding.confidence * 100)}% Match
+              </div>
+              <div className="mt-2.5">
                 <ConfidenceMeter confidence={finding.confidence} />
               </div>
-              <div className="mt-3 space-y-1 text-sm text-[var(--vt-text-2)]">
+              <div className="mt-3 space-y-1 text-[10px] text-[var(--vt-text-2)]">
                 <TimestampPair label="First seen" value={finding.firstSeenAt} />
                 <TimestampPair label="Updated" value={finding.updatedAt} />
               </div>
@@ -244,11 +250,13 @@ function FindingFeedCard({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 border-t border-[var(--vt-border)] pt-3 text-[11px] text-[var(--vt-text-3)]">
-          <span>{finding.explanation}</span>
-        </div>
+        {finding.explanation && (
+          <div className="flex flex-wrap items-center gap-2 border-t border-[var(--vt-border)] pt-3 text-[10px] uppercase tracking-[0.05em] text-[var(--vt-text-3)]">
+            <span className="font-semibold text-[var(--vt-text-2)]">Why it matters:</span> {finding.explanation}
+          </div>
+        )}
       </div>
-    </OpsCard>
+    </div>
   );
 }
 
@@ -259,12 +267,12 @@ export function FindingsSurface() {
 
   const searchQuery = searchParams.toString();
   const providerScope = searchParams.get('provider') ?? searchParams.get('providerId');
+  const selectedFindingId = searchParams.get('findingId');
+  const selectedGraphFocus = searchParams.get('graphFocus');
   const page = Math.max(1, Number.parseInt(searchParams.get('page') ?? '1', 10) || 1);
   const filters = useMemo(() => parseFindingFilters(searchParams), [searchQuery]);
   const hasScopedFilters = hasFindingFilters(filters) || Boolean(providerScope);
   const [criticalOnly, setCriticalOnly] = useState(false);
-  const [graphFindingId, setGraphFindingId] = useState<string | null>(null);
-  const [selectedGraphNodeId, setSelectedGraphNodeId] = useState<string | null>(null);
 
   const findings = useFindings({
     provider: providerScope,
@@ -301,15 +309,6 @@ export function FindingsSurface() {
     });
   }
 
-  function pushProviderScope(nextProviderNpi: string) {
-    const params = serializeFindingFilters(filters, { page: 1 });
-    params.set('provider', nextProviderNpi);
-
-    startTransition(() => {
-      router.push(buildSurfaceHref(params));
-    });
-  }
-
   const accessBanner = getAccessBannerState(findings.data?.accessMode, findings.data?.reason);
   const staleState = getSurfaceFreshnessState({
     generatedAt: findings.data?.generatedAt,
@@ -323,22 +322,9 @@ export function FindingsSurface() {
   );
   const graphItems = items.length > 0 ? items : rawItems;
 
-  useEffect(() => {
-    if (graphItems.length === 0) {
-      setGraphFindingId(null);
-      return;
-    }
-
-    if (graphFindingId && graphItems.some((finding) => finding.id === graphFindingId)) {
-      return;
-    }
-
-    setGraphFindingId(graphItems[0]?.id ?? null);
-  }, [graphFindingId, graphItems]);
-
   const graphFinding = useMemo(
-    () => graphItems.find((finding) => finding.id === graphFindingId) ?? graphItems[0] ?? null,
-    [graphFindingId, graphItems],
+    () => graphItems.find((finding) => finding.id === selectedFindingId) ?? graphItems[0] ?? null,
+    [graphItems, selectedFindingId],
   );
   const graphScopeNpi = providerScope ?? graphFinding?.providerNpi ?? null;
   const graph = useGraph({
@@ -366,58 +352,29 @@ export function FindingsSurface() {
 
     return (providers.data?.providers ?? []).find((provider) => provider.npi === graphScopeNpi) ?? null;
   }, [graphScopeNpi, providers.data?.providers]);
-  const graphFocusNodeId = useMemo(() => {
-    const nodes = graph.data?.nodes ?? [];
-    const edges = graph.data?.edges ?? [];
-
-    if (nodes.length === 0) {
-      return null;
-    }
-
-    if (selectedGraphNodeId && nodes.some((node) => node.id === selectedGraphNodeId)) {
-      return selectedGraphNodeId;
-    }
-
-    if (graphFinding?.id) {
-      const nodeIds = new Set<string>();
-      for (const node of nodes) {
-        if (node.findingIds?.includes(graphFinding.id)) {
-          nodeIds.add(node.id);
-        }
-      }
-      for (const edge of edges) {
-        if (edge.findingIds?.includes(graphFinding.id)) {
-          nodeIds.add(edge.source);
-          nodeIds.add(edge.target);
-        }
-      }
-      const firstFindingNodeId = [...nodeIds][0] ?? null;
-      if (firstFindingNodeId) {
-        return firstFindingNodeId;
-      }
-    }
-
-    if (graphFinding?.storylineId) {
-      const nodeIds = new Set<string>();
-      for (const node of nodes) {
-        if (node.storylineIds?.includes(graphFinding.storylineId)) {
-          nodeIds.add(node.id);
-        }
-      }
-      for (const edge of edges) {
-        if (edge.storylineIds?.includes(graphFinding.storylineId)) {
-          nodeIds.add(edge.source);
-          nodeIds.add(edge.target);
-        }
-      }
-      const firstStorylineNodeId = [...nodeIds][0] ?? null;
-      if (firstStorylineNodeId) {
-        return firstStorylineNodeId;
-      }
-    }
-
-    return findGraphNodeIdForProvider(selectedGraphProvider, nodes) ?? graph.data?.focusNodeId ?? nodes[0]?.id ?? null;
-  }, [graph.data?.edges, graph.data?.focusNodeId, graph.data?.nodes, graphFinding?.id, graphFinding?.providerLabel, graphFinding?.providerNpi, graphFinding?.storylineId, selectedGraphNodeId, selectedGraphProvider]);
+  const graphScopedFindings = graphRelatedFindings.data?.findings ?? [];
+  const allFindings = useMemo(() => {
+    const map = new Map<string, IntelligenceFinding>();
+    for (const f of rawItems) map.set(f.id, f);
+    for (const f of graphScopedFindings) { if (!map.has(f.id)) map.set(f.id, f); }
+    return [...map.values()];
+  }, [rawItems, graphScopedFindings]);
+  const workspacePayload = useMemo(() => buildIntelligenceWorkspacePayload({
+    providers: providers.data?.providers ?? [],
+    findings: allFindings,
+    storylines: graphRelatedStorylines.data?.storylines ?? [],
+  }), [allFindings, graphRelatedStorylines.data?.storylines, providers.data?.providers]);
+  const selectedGraphStoryline = useMemo(
+    () => (graphFinding?.storylineId ? workspacePayload.storylinesById.get(graphFinding.storylineId) ?? null : null),
+    [graphFinding?.storylineId, workspacePayload.storylinesById],
+  );
+  const graphFocusNodeId = useMemo(() => resolveGraphFocusNodeId({
+    graph: graph.data ?? null,
+    graphFocus: selectedGraphFocus,
+    provider: selectedGraphProvider,
+    finding: graphFinding,
+    storyline: selectedGraphStoryline,
+  }), [graph.data, graphFinding, selectedGraphFocus, selectedGraphProvider, selectedGraphStoryline]);
   const selectedGraphNode = useMemo(
     () => (graph.data?.nodes ?? []).find((node) => node.id === graphFocusNodeId) ?? null,
     [graph.data?.nodes, graphFocusNodeId],
@@ -429,13 +386,6 @@ export function FindingsSurface() {
 
     return (graph.data?.edges ?? []).filter((edge) => edge.source === graphFocusNodeId || edge.target === graphFocusNodeId).length;
   }, [graph.data?.edges, graphFocusNodeId]);
-  const graphScopedFindings = graphRelatedFindings.data?.findings ?? [];
-  const allFindings = useMemo(() => {
-    const map = new Map<string, IntelligenceFinding>();
-    for (const f of rawItems) map.set(f.id, f);
-    for (const f of graphScopedFindings) { if (!map.has(f.id)) map.set(f.id, f); }
-    return [...map.values()];
-  }, [rawItems, graphScopedFindings]);
 
   const { expandGraphNode, getTooltipContext } = useEntityRegistry({
     providers: providers.data?.providers ?? [],
@@ -443,6 +393,13 @@ export function FindingsSurface() {
     storylines: graphRelatedStorylines.data?.storylines ?? [],
     graph: graph.data ?? null,
   });
+  const graphSelection = useMemo(() => resolveWorkspaceSelectionFromGraphNode({
+    graph: graph.data ?? null,
+    nodeId: graphFocusNodeId,
+    providers: providers.data?.providers ?? [],
+    findings: allFindings,
+    storylines: graphRelatedStorylines.data?.storylines ?? [],
+  }), [allFindings, graph.data, graphFocusNodeId, graphRelatedStorylines.data?.storylines, providers.data?.providers]);
 
   const nodeContext = useMemo(
     () => graphFocusNodeId ? expandGraphNode(graphFocusNodeId) : null,
@@ -450,33 +407,55 @@ export function FindingsSurface() {
   );
 
   const graphContextProvider = useMemo(() => {
+    if (graphSelection.provider) {
+      return graphSelection.provider;
+    }
     const npi = nodeContext?.providers[0]?.sourceId;
     if (npi) {
       const match = (providers.data?.providers ?? []).find((p) => p.npi === npi);
       if (match) return match;
     }
     return selectedGraphProvider;
-  }, [nodeContext?.providers, providers.data?.providers, selectedGraphProvider]);
+  }, [graphSelection.provider, nodeContext?.providers, providers.data?.providers, selectedGraphProvider]);
 
   const graphContextFinding = useMemo(() => {
+    if (graphSelection.finding) {
+      return graphSelection.finding;
+    }
     for (const entity of nodeContext?.findings ?? []) {
       const match = graphScopedFindings.find((f) => f.id === entity.sourceId)
         ?? rawItems.find((f) => f.id === entity.sourceId);
       if (match) return match;
     }
     return graphFinding;
-  }, [graphFinding, graphScopedFindings, nodeContext?.findings, rawItems]);
-
-  const graphContextStorylineId = graphContextFinding?.storylineId ?? nodeContext?.storylines[0]?.sourceId ?? selectedGraphNode?.storylineIds?.[0] ?? null;
-
-  const graphContextStorylineTitle = useMemo(() => {
-    if (!graphContextStorylineId) return null;
-    if (graphContextFinding?.storylineId === graphContextStorylineId && graphContextFinding.storylineTitle) {
-      return graphContextFinding.storylineTitle;
+  }, [graphFinding, graphScopedFindings, graphSelection.finding, nodeContext?.findings, rawItems]);
+  const graphContextStoryline = useMemo(() => {
+    if (graphSelection.storyline) {
+      return graphSelection.storyline;
     }
-    const match = (graphRelatedStorylines.data?.storylines ?? []).find((s) => s.id === graphContextStorylineId);
-    return match?.title ?? null;
-  }, [graphContextFinding?.storylineId, graphContextFinding?.storylineTitle, graphContextStorylineId, graphRelatedStorylines.data?.storylines]);
+
+    const storylineId = graphContextFinding?.storylineId
+      ?? nodeContext?.storylines[0]?.sourceId
+      ?? selectedGraphNode?.storylineIds?.[0]
+      ?? null;
+    if (!storylineId) {
+      return selectedGraphStoryline;
+    }
+
+    return workspacePayload.storylinesById.get(storylineId)
+      ?? selectedGraphStoryline;
+  }, [
+    graphContextFinding?.storylineId,
+    graphSelection.storyline,
+    nodeContext?.storylines,
+    selectedGraphNode?.storylineIds,
+    selectedGraphStoryline,
+    workspacePayload.storylinesById,
+  ]);
+  const graphContextStorylineId = graphContextStoryline?.id ?? null;
+  const graphContextStorylineTitle = graphContextStoryline?.title
+    ?? graphContextFinding?.storylineTitle
+    ?? null;
   const openFullGraphHref = useMemo(() => {
     return buildIntelligenceGraphHref({
       npi: graphScopeNpi,
@@ -511,6 +490,78 @@ export function FindingsSurface() {
           })
     )
     : null;
+
+  function buildWorkspaceHref(next: {
+    providerNpi?: string | null;
+    findingId?: string | null;
+    storylineId?: string | null;
+    graphFocus?: string | null;
+  }) {
+    const params = serializeFindingFilters(filters, { page });
+    const nextProviderNpi = next.providerNpi ?? providerScope ?? null;
+
+    params.delete('provider');
+    params.delete('npi');
+    params.delete('findingId');
+    params.delete('storylineId');
+    params.delete('graphFocus');
+
+    if (nextProviderNpi) {
+      params.set('provider', nextProviderNpi);
+      params.set('npi', nextProviderNpi);
+    }
+    if (next.findingId) {
+      params.set('findingId', next.findingId);
+    }
+    if (next.storylineId) {
+      params.set('storylineId', next.storylineId);
+    }
+    if (next.graphFocus) {
+      params.set('graphFocus', next.graphFocus);
+    }
+
+    return buildSurfaceHref(params);
+  }
+
+  function focusFindingInWorkspace(finding: IntelligenceFinding) {
+    startTransition(() => {
+      router.push(buildWorkspaceHref({
+        providerNpi: finding.providerNpi ?? providerScope,
+        findingId: finding.id,
+        storylineId: finding.storylineId,
+        graphFocus: finding.id,
+      }));
+    });
+  }
+
+  function focusGraphNodeInWorkspace(nodeId: string | null) {
+    if (!nodeId) {
+      return;
+    }
+
+    const selection = resolveWorkspaceSelectionFromGraphNode({
+      graph: graph.data ?? null,
+      nodeId,
+      providers: providers.data?.providers ?? [],
+      findings: allFindings,
+      storylines: graphRelatedStorylines.data?.storylines ?? [],
+    });
+
+    startTransition(() => {
+      router.push(buildWorkspaceHref({
+        providerNpi: selection.provider?.npi
+          ?? selection.finding?.providerNpi
+          ?? selection.storyline?.providerNpi
+          ?? providerScope,
+        findingId: selection.finding?.id ?? graphFinding?.id ?? null,
+        storylineId: selection.storyline?.id
+          ?? selection.finding?.storylineId
+          ?? graphFinding?.storylineId
+          ?? null,
+        graphFocus: nodeId,
+      }));
+    });
+  }
 
   useEffect(() => {
     if (!findings.loading && !findings.error && totalPages > 0 && page > totalPages) {
@@ -709,12 +760,19 @@ export function FindingsSurface() {
           onRetry={graph.refresh}
           focusNodeId={graphFocusNodeId}
           highlightNodeId={graphFocusNodeId}
+          highlightNodeIds={graphFocusNodeId ? [graphFocusNodeId] : []}
           getTooltipContext={getTooltipContext}
           onSelectProvider={(provider) => {
-            setSelectedGraphNodeId(null);
-            pushProviderScope(provider.npi);
+            startTransition(() => {
+              router.push(buildWorkspaceHref({
+                providerNpi: provider.npi,
+                findingId: graphContextFinding?.id ?? null,
+                storylineId: graphContextStorylineId,
+                graphFocus: provider.npi,
+              }));
+            });
           }}
-          onSelectGraphNode={setSelectedGraphNodeId}
+          onSelectGraphNode={focusGraphNodeInWorkspace}
         />
 
         <OpsCard className="space-y-4">
@@ -816,10 +874,21 @@ export function FindingsSurface() {
               key={finding.id}
               finding={finding}
               currentHref={currentHref}
+              selectionHref={buildWorkspaceHref({
+                providerNpi: finding.providerNpi ?? providerScope,
+                findingId: finding.id,
+                storylineId: finding.storylineId,
+                graphFocus: finding.id,
+              })}
               isFocused={graphFinding?.id === finding.id}
+              onSelectFinding={focusFindingInWorkspace}
               onFocusGraph={(findingId) => {
-                setGraphFindingId(findingId);
-                setSelectedGraphNodeId(null);
+                const finding = items.find((item) => item.id === findingId)
+                  ?? rawItems.find((item) => item.id === findingId)
+                  ?? null;
+                if (finding) {
+                  focusFindingInWorkspace(finding);
+                }
               }}
             />
           ))}

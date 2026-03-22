@@ -1,0 +1,116 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "VitalCV" [ref=e5] [cursor=pointer]:
+          - /url: /
+        - navigation [ref=e6]:
+          - link "Home" [ref=e7] [cursor=pointer]:
+            - /url: /
+          - link "Explore" [ref=e8] [cursor=pointer]:
+            - /url: /explore
+          - link "Documents" [ref=e9] [cursor=pointer]:
+            - /url: /documents
+          - link "Developers" [ref=e10] [cursor=pointer]:
+            - /url: /developers
+          - link "Intelligence" [ref=e11] [cursor=pointer]:
+            - /url: /intelligence
+        - generic [ref=e12]:
+          - button "Switch to light mode" [ref=e13]:
+            - img [ref=e14]
+          - link "Sign In" [ref=e20] [cursor=pointer]:
+            - /url: /sign-in
+          - link "Get Started" [ref=e21] [cursor=pointer]:
+            - /url: /get-ready
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]: Live Launch Demo
+        - heading "Demo the current launch package without drifting away from live truth." [level=1] [ref=e27]
+        - paragraph [ref=e28]: Every path on this page uses the same seeded employers, opportunities, investigation data, and operator telemetry that the product exposes elsewhere. Guest mode stays read-only and the employer/application loop stays on the live marketplace flow.
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - paragraph [ref=e31]: Employers
+          - paragraph [ref=e32]: "0"
+          - paragraph [ref=e33]: Visible in the public launch cohort.
+        - generic [ref=e34]:
+          - paragraph [ref=e35]: Live Roles
+          - paragraph [ref=e36]: "0"
+          - paragraph [ref=e37]: Available through the real explore/apply loop.
+        - generic [ref=e38]:
+          - paragraph [ref=e39]: Investigation Case
+          - paragraph [ref=e40]: "1902301456"
+          - paragraph [ref=e41]: Seeded provider case for operator demo review.
+      - generic [ref=e42]:
+        - article [ref=e43]:
+          - generic [ref=e44]: Clinician path
+          - heading "Guest onboarding into live role fit" [level=2] [ref=e45]
+          - paragraph [ref=e46]: "Use the three-step guest flow to resolve a real NPI, preview current fit, and land in `/explore` with the matching live role scope already applied."
+          - generic [ref=e47]:
+            - paragraph [ref=e48]:
+              - img [ref=e49]
+              - text: Guest mode is read-only and does not claim persistence.
+            - paragraph [ref=e53]: Falls back to the full live role board if no featured role is available.
+          - link "Open clinician demo" [ref=e54] [cursor=pointer]:
+            - /url: /onboarding?returnTo=%2Fexplore
+            - text: Open clinician demo
+            - img [ref=e55]
+        - article [ref=e57]:
+          - generic [ref=e58]: Employer path
+          - heading "Public employer review plus operator inbox" [level=2] [ref=e59]
+          - paragraph [ref=e60]: Start from the public employer profile to show believable demand, then move into the employer queue where real application state is visible to the hiring team.
+          - generic [ref=e61]:
+            - paragraph [ref=e62]:
+              - img [ref=e63]
+              - text: "Public profile: Live employer directory."
+            - paragraph [ref=e67]:
+              - text: "Operator inbox:"
+              - link "open employer workspace" [ref=e68] [cursor=pointer]:
+                - /url: /verifier/inbox
+          - link "Open employer demo" [ref=e69] [cursor=pointer]:
+            - /url: /employers
+            - text: Open employer demo
+            - img [ref=e70]
+        - article [ref=e72]:
+          - generic [ref=e73]: Investigation path
+          - heading "Seeded provider case for trust review" [level=2] [ref=e74]
+          - paragraph [ref=e75]: Use a seeded investigation with live findings, storylines, graph context, and evidence inspection so the operator demo feels like an actual case review.
+          - generic [ref=e76]:
+            - paragraph [ref=e77]:
+              - img [ref=e78]
+              - text: Anchored to the seeded provider case for NPI 1902301456.
+            - paragraph [ref=e86]: Continue into findings, graph, and evidence from the same operator workspace.
+          - link "Open investigation demo" [ref=e87] [cursor=pointer]:
+            - /url: /intelligence?view=investigations&npi=1902301456
+            - text: Open investigation demo
+            - img [ref=e88]
+        - article [ref=e90]:
+          - generic [ref=e91]: Operator truth
+          - heading "Launch health and rollback confidence" [level=2] [ref=e92]
+          - paragraph [ref=e93]: Show the current route checks, live counts, action/application health, and deployed frontend/backend markers before or after any demo run.
+          - generic [ref=e94]:
+            - paragraph [ref=e95]:
+              - img [ref=e96]
+              - text: Use this view to confirm what is actually live.
+            - paragraph [ref=e99]: Includes route health, graph counts, failed actions, failed applications, auth failures, and version markers.
+          - link "Open launch truth" [ref=e100] [cursor=pointer]:
+            - /url: /intelligence?view=system-health
+            - text: Open launch truth
+            - img [ref=e101]
+    - contentinfo [ref=e103]:
+      - generic [ref=e104]:
+        - paragraph [ref=e105]: © VitalCV
+        - generic [ref=e106]:
+          - link "Docs" [ref=e107] [cursor=pointer]:
+            - /url: /developers#sdks
+          - link "Status" [ref=e108] [cursor=pointer]:
+            - /url: /status
+          - link "Developers" [ref=e109] [cursor=pointer]:
+            - /url: /developers
+    - button "Send feedback" [ref=e110]:
+      - img [ref=e111]
+      - text: Feedback
+  - region "Notifications":
+    - list
+  - button "Open Next.js Dev Tools" [ref=e118] [cursor=pointer]:
+    - img [ref=e119]
+  - alert [ref=e122]

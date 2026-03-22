@@ -94,8 +94,30 @@ function normalizeRequirementArray(value: unknown): EmployerRequirementSpec[] {
     const note = typeof item.note === 'string' && item.note.trim().length > 0
       ? item.note.trim()
       : undefined;
+    const key = typeof item.key === 'string' && item.key.trim().length > 0
+      ? item.key.trim()
+      : undefined;
+    const priority = item.priority === 'preferred'
+      ? 'preferred'
+      : item.priority === 'required'
+        ? 'required'
+        : undefined;
+    const state = typeof item.state === 'string' && item.state.trim().length > 0
+      ? item.state.trim()
+      : undefined;
+    const specialty = typeof item.specialty === 'string' && item.specialty.trim().length > 0
+      ? item.specialty.trim()
+      : undefined;
 
-    parsed.push(note ? { label, level, note } : { label, level });
+    parsed.push({
+      label,
+      level,
+      ...(note ? { note } : {}),
+      ...(key ? { key } : {}),
+      ...(priority ? { priority } : {}),
+      ...(state ? { state } : {}),
+      ...(specialty ? { specialty } : {}),
+    });
   }
 
   return parsed;

@@ -19,8 +19,6 @@ import {
 
 export const runtime = 'nodejs';
 const NPI_RE = /^\d{10}$/;
-const PROVIDER_NODE_COLOR = '#22c55e';
-const SOURCE_NODE_COLOR = '#38bdf8';
 
 type ProviderSignalPreview = {
   trust?: {
@@ -84,164 +82,30 @@ function mergeStringLists(existing: string[] | undefined, incoming: string[] | u
   return merged.length > 0 ? merged : undefined;
 }
 
-function slugify(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 48);
-}
-
-function createProviderNode(finding: IntelligenceFinding): GraphNode {
-  const npi = finding.providerNpi ?? `finding-provider:${finding.id}`;
-  const label = finding.providerLabel ?? (finding.providerNpi ? `Provider ${finding.providerNpi}` : `Finding ${finding.id}`);
-  const trustScore = finding.confidence > 0 ? Math.round(finding.confidence * 100) : 50;
-  const provider = computeProviderView({
-    npi,
-    fullName: label,
-    trustScore,
-    readinessScore: trustScore,
-    credentialHealth: 'PENDING',
-    activeCredentials: 0,
-    credentialCount: 0,
-    summary: finding.summary,
-  });
-  const timestamp = finding.updatedAt ?? finding.firstSeenAt;
-
-  return {
-    id: provider.npi,
-    type: 'provider',
-    label: provider.name,
-    title: finding.summary,
-    color: PROVIDER_NODE_COLOR,
-    group: 'providers',
-    degree: 0,
-    inDegree: 0,
-    outDegree: 0,
-    layer: 'trust',
-    metadata: {
-      npi: provider.npi,
-      providerNpi: provider.npi,
-      trustScore: provider.trustScore,
-      readinessScore: provider.readinessScore,
-      riskLevel: provider.riskLevel,
-      credentialCount: provider.credentialCount,
-    },
-    tags: provider.tags,
-    sourceRefs: [],
-    trustTier: provider.riskLevel,
-    trustBand: provider.riskLevel,
-    trustScore: provider.trustScore,
-    confidence: finding.confidence,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    flagged: finding.severity === 'critical' || finding.severity === 'high',
-    findingIds: [finding.id],
-    storylineIds: finding.storylineId ? [finding.storylineId] : [],
+function annotateNodeWithFinding(
+  node: GraphNode,
+  finding: IntelligenceFinding,
+): void {
+  node.findingIds = mergeStringLists(node.findingIds, [finding.id]);
+  node.storylineIds = mergeStringLists(
+    node.storylineIds,
+    finding.storylineId ? [finding.storylineId] : undefined,
+  );
+  node.flagged = node.flagged || finding.severity === 'critical' || finding.severity === 'high';
+  node.confidence = Math.max(node.confidence ?? 0, finding.confidence);
+  node.metadata = {
+    ...node.metadata,
+    providerNpi: finding.providerNpi ?? (node.metadata as Record<string, unknown>)?.providerNpi ?? null,
+    liveSignalCount: Math.max(
+      (node.findingIds?.length ?? 0),
+      typeof (node.metadata as Record<string, unknown>)?.liveSignalCount === 'number'
+        ? ((node.metadata as Record<string, unknown>).liveSignalCount as number)
+        : 0,
+    ),
   };
 }
 
-function createSourceNode(finding: IntelligenceFinding, sourceLabel: string, evidenceId: string): GraphNode {
-  const timestamp = finding.updatedAt ?? finding.firstSeenAt;
-
-  return {
-    id: `source:${slugify(sourceLabel) || evidenceId}`,
-    type: 'source',
-    label: sourceLabel,
-    title: finding.title,
-    color: SOURCE_NODE_COLOR,
-    group: 'evidence',
-    degree: 0,
-    inDegree: 0,
-    outDegree: 0,
-    layer: 'knowledge',
-    metadata: {
-      findingId: finding.id,
-      providerNpi: finding.providerNpi,
-      storylineId: finding.storylineId,
-    },
-    tags: ['evidence-source'],
-    sourceRefs: [],
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    findingIds: [finding.id],
-    storylineIds: finding.storylineId ? [finding.storylineId] : [],
-  };
-}
-
-function createEvidenceEdge(finding: IntelligenceFinding, providerNodeId: string, sourceNodeId: string, evidenceIndex: number): GraphEdge {
-  const evidence = finding.evidence[evidenceIndex];
-  const timestamp = evidence?.observedAt ?? finding.updatedAt ?? finding.firstSeenAt;
-
-  return {
-    id: `evidence:${finding.id}:${evidence?.id ?? evidenceIndex}`,
-    source: providerNodeId,
-    target: sourceNodeId,
-    type: 'evidence_link',
-    directed: true,
-    reciprocal: false,
-    confidence: evidence?.confidence ?? finding.confidence,
-    createdBy: 'finding-synthesis',
-    explanation: evidence?.snippet ?? finding.summary,
-    status: 'active',
-    weight: 1,
-    metadata: {
-      findingId: finding.id,
-      providerNpi: finding.providerNpi,
-      evidenceId: evidence?.id ?? null,
-      evidenceType: evidence?.type ?? evidence?.label ?? null,
-    },
-    layer: 'blended',
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    findingIds: [finding.id],
-    storylineIds: finding.storylineId ? [finding.storylineId] : [],
-    evidenceCount: 1,
-    evidenceRefs: evidence ? [{
-      evidenceId: evidence.id,
-      source: evidence.source,
-      summary: evidence.snippet ?? evidence.label,
-      observedAt: evidence.observedAt,
-      findingId: finding.id,
-      storylineId: finding.storylineId,
-      url: evidence.url ?? null,
-    }] : [],
-  };
-}
-
-function ensureNode(nodeMap: Map<string, GraphNode>, nextNode: GraphNode): GraphNode {
-  const existing = nodeMap.get(nextNode.id);
-  if (!existing) {
-    nodeMap.set(nextNode.id, nextNode);
-    return nextNode;
-  }
-
-  existing.findingIds = mergeStringLists(existing.findingIds, nextNode.findingIds);
-  existing.storylineIds = mergeStringLists(existing.storylineIds, nextNode.storylineIds);
-  existing.tags = [...new Set([...(existing.tags ?? []), ...(nextNode.tags ?? [])])];
-  existing.metadata = {
-    ...existing.metadata,
-    ...nextNode.metadata,
-  };
-  existing.updatedAt = nextNode.updatedAt ?? existing.updatedAt;
-  return existing;
-}
-
-function ensureEdge(edgeMap: Map<string, GraphEdge>, nextEdge: GraphEdge): void {
-  const existing = edgeMap.get(nextEdge.id);
-  if (!existing) {
-    edgeMap.set(nextEdge.id, nextEdge);
-    return;
-  }
-
-  existing.findingIds = mergeStringLists(existing.findingIds, nextEdge.findingIds);
-  existing.storylineIds = mergeStringLists(existing.storylineIds, nextEdge.storylineIds);
-  existing.evidenceRefs = [...(existing.evidenceRefs ?? []), ...(nextEdge.evidenceRefs ?? [])];
-  existing.evidenceCount = existing.evidenceRefs?.length ?? existing.evidenceCount ?? 0;
-}
-
-function synthesizeGraphFromFindings(
+function annotateGraphFromFindings(
   findings: IntelligenceFinding[],
   input: {
     nodes: GraphNode[];
@@ -249,64 +113,61 @@ function synthesizeGraphFromFindings(
     npi: string | null;
   },
 ): { nodes: GraphNode[]; edges: GraphEdge[] } {
-  const nodeMap = new Map(input.nodes.map((node) => [node.id, node]));
-  const edgeMap = new Map(input.edges.map((edge) => [edge.id, edge]));
-
-  for (const finding of findings) {
-    const providerNode = createProviderNode(finding);
-    const existingProviderNodeId = input.nodes.find((node) => (
-      candidateProviderNpisFromGraphNode(node).includes(providerNode.id)
-    ))?.id;
-    const ensuredProviderNode = ensureNode(
-      nodeMap,
-      existingProviderNodeId
-        ? { ...providerNode, id: existingProviderNodeId }
-        : providerNode,
-    );
-
-    const evidences = finding.evidence.length > 0
-      ? finding.evidence
-      : [{
-          id: `synthetic:${finding.id}`,
-          label: 'evidence',
-          type: 'evidence',
-          snippet: finding.summary,
-          source: finding.providerLabel ?? finding.providerNpi ?? 'finding source',
-          observedAt: finding.updatedAt,
-        }];
-
-    evidences.forEach((evidence, index) => {
-      const sourceLabel = evidence.source ?? evidence.label ?? `Evidence ${index + 1}`;
-      const sourceNode = ensureNode(nodeMap, createSourceNode(finding, sourceLabel, evidence.id));
-      ensureEdge(edgeMap, createEvidenceEdge(finding, ensuredProviderNode.id, sourceNode.id, index));
-    });
-  }
-
-  if (findings.length > 0 && nodeMap.size === 0) {
-    const fallbackFinding = findings[0];
-    const providerNode = ensureNode(nodeMap, createProviderNode(fallbackFinding));
-    const sourceNode = ensureNode(nodeMap, createSourceNode(
-      fallbackFinding,
-      fallbackFinding.providerLabel ?? fallbackFinding.providerNpi ?? 'evidence',
-      `fallback:${fallbackFinding.id}`,
-    ));
-    ensureEdge(edgeMap, createEvidenceEdge(fallbackFinding, providerNode.id, sourceNode.id, 0));
-  }
-
-  const nodes = [...nodeMap.values()];
-  const edges = [...edgeMap.values()];
-  const inbound = new Map<string, number>();
-  const outbound = new Map<string, number>();
-
-  for (const edge of edges) {
-    outbound.set(edge.source, (outbound.get(edge.source) ?? 0) + 1);
-    inbound.set(edge.target, (inbound.get(edge.target) ?? 0) + 1);
-  }
+  const nodes = input.nodes.map((node) => ({
+    ...node,
+    metadata: { ...node.metadata },
+    tags: [...node.tags],
+    findingIds: node.findingIds ? [...node.findingIds] : undefined,
+    storylineIds: node.storylineIds ? [...node.storylineIds] : undefined,
+  }));
+  const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+  const providerNodeIdsByNpi = new Map<string, Set<string>>();
 
   for (const node of nodes) {
-    node.inDegree = inbound.get(node.id) ?? node.inDegree ?? 0;
-    node.outDegree = outbound.get(node.id) ?? node.outDegree ?? 0;
-    node.degree = node.inDegree + node.outDegree;
+    for (const candidateNpi of candidateProviderNpisFromGraphNode(node)) {
+      const ids = providerNodeIdsByNpi.get(candidateNpi) ?? new Set<string>();
+      ids.add(node.id);
+      providerNodeIdsByNpi.set(candidateNpi, ids);
+    }
+  }
+
+  for (const finding of findings) {
+    if (!finding.providerNpi) {
+      continue;
+    }
+
+    const providerNodeIds = providerNodeIdsByNpi.get(finding.providerNpi);
+    if (!providerNodeIds) {
+      continue;
+    }
+
+    for (const nodeId of providerNodeIds) {
+      const node = nodeMap.get(nodeId);
+      if (node) {
+        annotateNodeWithFinding(node, finding);
+      }
+    }
+  }
+
+  const edges = input.edges.map((edge) => {
+    const sourceNode = nodeMap.get(edge.source);
+    const targetNode = nodeMap.get(edge.target);
+
+    return {
+      ...edge,
+      metadata: { ...edge.metadata },
+      findingIds: mergeStringLists(
+        edge.findingIds,
+        mergeStringLists(sourceNode?.findingIds, targetNode?.findingIds),
+      ),
+      storylineIds: mergeStringLists(
+        edge.storylineIds,
+        mergeStringLists(sourceNode?.storylineIds, targetNode?.storylineIds),
+      ),
+    };
+  });
+
+  for (const node of nodes) {
     if (input.npi && candidateProviderNpisFromGraphNode(node).includes(input.npi)) {
       node.selected = true;
     }
@@ -377,61 +238,87 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const findingsUpstream = await fetchBackendJson<{
-      findings?: Array<{
-        findingId: string;
-        investigatorId: string;
-        findingType: string;
-        severity: string;
-        status: string;
-        title: string;
-        summary: string;
-        explanation: string;
-        entityIds?: string[];
-        entities?: Array<{
-          entityType?: string;
-          entityId?: string;
-          entityLabel?: string | null;
-        }>;
-        metadata?: Record<string, unknown>;
-        priorityScore: number;
-        confidence: number;
-        storylineKey: string | null;
-        supportingEvidence?: Array<{
-          evidenceId?: string;
-          evidenceType?: string;
-          snippet?: string | null;
-          sourceLabel?: string | null;
-          sourceId?: string | null;
-          observedAt?: string | null;
-          confidence?: number | null;
-          relevance?: number | null;
-          url?: string | null;
+    const [findingsUpstream, storylinesUpstream] = await Promise.all([
+      fetchBackendJson<{
+        findings?: Array<{
+          findingId: string;
+          investigatorId: string;
+          findingType: string;
+          severity: string;
+          status: string;
+          title: string;
+          summary: string;
+          explanation: string;
+          entityIds?: string[];
+          entities?: Array<{
+            entityType?: string;
+            entityId?: string;
+            entityLabel?: string | null;
+          }>;
           metadata?: Record<string, unknown>;
+          priorityScore: number;
+          confidence: number;
+          storylineKey: string | null;
+          supportingEvidence?: Array<{
+            evidenceId?: string;
+            evidenceType?: string;
+            snippet?: string | null;
+            sourceLabel?: string | null;
+            sourceId?: string | null;
+            observedAt?: string | null;
+            confidence?: number | null;
+            relevance?: number | null;
+            url?: string | null;
+            metadata?: Record<string, unknown>;
+          }>;
+          updatedAt: string;
         }>;
-        updatedAt: string;
-      }>;
-      total?: number;
-    }>('/api/findings', new URLSearchParams({
-      limit: String(Math.min(100, Math.max(20, Math.floor(limit / 2)))),
-      offset: '0',
-      ...(npi && NPI_RE.test(npi) ? { provider: npi } : {}),
-    }), 12_000, { context: authContext }).catch(() => null);
+        total?: number;
+      }>('/api/findings', new URLSearchParams({
+        limit: String(Math.min(100, Math.max(20, Math.floor(limit / 2)))),
+        offset: '0',
+        ...(npi && NPI_RE.test(npi) ? { provider: npi } : {}),
+      }), 12_000, { context: authContext }).catch(() => null),
+      fetchBackendJson<{
+        storylines?: Array<unknown>;
+        total?: number;
+      }>('/api/storylines', new URLSearchParams({
+        limit: '20',
+        ...(npi && NPI_RE.test(npi) ? { provider: npi } : {}),
+      }), 12_000, { context: authContext }).catch(() => null),
+    ]);
 
     let nodes = (upstream.payload.nodes ?? []) as GraphNode[];
     let edges = (upstream.payload.edges ?? []) as GraphEdge[];
     const findings = findingsUpstream?.ok
       ? normalizeFindingsPayload(findingsUpstream.payload).findings
       : [];
+    const storylineCount = storylinesUpstream?.ok
+      ? (
+        storylinesUpstream.payload.total
+        ?? storylinesUpstream.payload.storylines?.length
+        ?? 0
+      )
+      : 0;
+
+    if (nodes.length === 0 && (findings.length > 0 || storylineCount > 0)) {
+      return NextResponse.json(
+        {
+          error: 'graph_data_inconsistent',
+          error_description: `Graph backend returned zero nodes while ${findings.length} finding${findings.length === 1 ? '' : 's'} and ${storylineCount} storyline${storylineCount === 1 ? '' : 's'} remain in scope.`,
+        },
+        { status: 409 },
+      );
+    }
 
     if (findings.length > 0) {
-      const synthesized = synthesizeGraphFromFindings(findings, {
+      const annotated = annotateGraphFromFindings(findings, {
         nodes,
         edges,
         npi: npi ?? null,
       });
-      nodes = synthesized.nodes;
-      edges = synthesized.edges;
+      nodes = annotated.nodes;
+      edges = annotated.edges;
     }
 
     const focusNodeId = npi

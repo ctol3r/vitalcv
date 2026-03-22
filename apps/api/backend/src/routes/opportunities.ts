@@ -46,6 +46,15 @@ function parsePositiveInt(value: unknown, fallback: number): number {
   return Number.isFinite(n) && n >= 0 ? n : fallback;
 }
 
+function parseOptionalNumber(value: unknown): number | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 export function registerOpportunityRoutes(app: Express): void {
   /* ── Employer org setup ── */
 
@@ -170,12 +179,32 @@ export function registerOpportunityRoutes(app: Express): void {
   app.get(
     '/api/opportunities',
     asyncHandler(async (req, res) => {
-      const { specialty, state, hiringType, organizationSlug } = req.query;
+      const { specialty, state, hiringType, organizationSlug, payModel, visaSponsorship, benefits, employerType, startUrgency, readinessStatus, missingRequirement, npi, remote } = req.query;
       const result = await listPublicOpportunities({
         specialty: typeof specialty === 'string' ? specialty : undefined,
         state: typeof state === 'string' ? state : undefined,
         hiringType: typeof hiringType === 'string' ? hiringType : undefined,
         organizationSlug: typeof organizationSlug === 'string' ? organizationSlug : undefined,
+        remote: remote === 'true' || remote === '1',
+        payModel: typeof payModel === 'string' ? payModel as 'salary' | 'hourly' | 'locums' | 'shift' | 'unknown' : undefined,
+        payMin: parseOptionalNumber(req.query.payMin),
+        payMax: parseOptionalNumber(req.query.payMax),
+        visaSponsorship: typeof visaSponsorship === 'string'
+          ? visaSponsorship as 'available' | 'case_by_case' | 'not_available' | 'not_stated'
+          : undefined,
+        benefits: typeof benefits === 'string'
+          ? benefits as 'listed' | 'limited' | 'not_listed'
+          : undefined,
+        employerType: typeof employerType === 'string' ? employerType : undefined,
+        startUrgency: typeof startUrgency === 'string'
+          ? startUrgency as 'immediate' | 'within_2_weeks' | 'within_month' | 'flexible' | 'unknown'
+          : undefined,
+        readinessStatus: typeof readinessStatus === 'string'
+          ? readinessStatus as 'ready_now' | 'needs_review' | 'requirements_missing'
+          : undefined,
+        missingRequirement: typeof missingRequirement === 'string' ? missingRequirement : undefined,
+        clinicianNpi: typeof npi === 'string' ? npi : undefined,
+        clerkUserId: (req.headers['x-clerk-user-id'] as string | undefined)?.trim() ?? null,
         limit: parsePositiveInt(req.query.limit, 20),
         offset: parsePositiveInt(req.query.offset, 0),
       });
@@ -191,7 +220,10 @@ export function registerOpportunityRoutes(app: Express): void {
         throw new HttpError(400, 'Opportunity id is required.');
       }
 
-      const opportunity = await getPublicOpportunityById(opportunityId);
+      const opportunity = await getPublicOpportunityById(opportunityId, {
+        clinicianNpi: typeof req.query.npi === 'string' ? req.query.npi : undefined,
+        clerkUserId: (req.headers['x-clerk-user-id'] as string | undefined)?.trim() ?? null,
+      });
       if (!opportunity) {
         throw new HttpError(404, 'Opportunity not found.');
       }

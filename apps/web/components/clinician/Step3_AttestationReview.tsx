@@ -294,7 +294,7 @@ export function Step3_AttestationReview({
                 <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm text-destructive">
-                    {trustApiError || 'Unable to load trust status.'}
+                    {trustApiError || 'The trust engine connection was interrupted. Please check back in a few minutes.'}
                   </p>
                   <Button
                     variant="ghost"

@@ -74,4 +74,33 @@ describe('detail agent routes', () => {
       lastEventAt: '2026-03-17T10:46:18.000Z',
     });
   });
+
+  it('keeps the canonical warming state when counts are still incomplete', async () => {
+    getSystemHealthSummaryMock.mockReturnValue({
+      agents: [],
+      totalIssues: 0,
+      totalAutoRepaired: 0,
+      totalSurfaced: 0,
+    });
+    generateSystemPulseMock.mockResolvedValue({
+      providers: 5,
+      findings: 2,
+      storylines: 0,
+      lastEventAt: null,
+      systemState: 'WARMING',
+    });
+
+    const response = await request(buildApp())
+      .get('/api/system-health')
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      providers: 5,
+      findings: 2,
+      storylines: 0,
+      status: 'WARMING',
+      systemState: 'WARMING',
+      lastEventAt: null,
+    });
+  });
 });

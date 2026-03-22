@@ -26,6 +26,12 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import {
+  buildEmployerApplicationProofMoments,
+  buildEmployerProofSummary,
+  buildEmployerValueSignalsSummary,
+} from '@/lib/proof/proof-model';
+import type { EmployerValueSignals } from '@/lib/proof/types';
 
 type AppStatus = 'PENDING' | 'REVIEWED' | 'ACCEPTED' | 'DECLINED' | 'WITHDRAWN';
 
@@ -35,6 +41,7 @@ interface EmployerApplication {
   npi: string | null;
   status: AppStatus;
   createdAt: string;
+  updatedAt: string;
   reviewedAt: string | null;
   provider: {
     npi: string | null;
@@ -54,7 +61,7 @@ interface EmployerApplication {
     keyCredentials: string[];
     trustSignals: string[];
   } | null;
-  opportunity?: {
+  opportunity: {
     id: string;
     title: string;
     specialty: string;
@@ -202,41 +209,91 @@ function ResourceState({
   return children;
 }
 
-function ApplicationRow({ application }: { application: EmployerApplication }) {
+function ApplicationRow({
+  application,
+  signalSummary,
+}: {
+  application: EmployerApplication;
+  signalSummary?: EmployerValueSignals['candidateSummaries'][number] | null;
+}) {
   const readiness = application.readiness;
+  const proofMoments = signalSummary
+    ? [signalSummary.summary, ...signalSummary.preparedContext].slice(0, 4)
+    : buildEmployerApplicationProofMoments(application);
 
   return (
-    <div className="rounded-2xl border border-white/8 bg-black/20 p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="rounded-2xl border border-white/8 bg-white/5 p-5 transition-all hover:bg-white/10 hover:border-white/20 group cursor-pointer block">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 pb-4">
         <div>
-          <p className="text-sm font-semibold text-white">{providerLabel(application)}</p>
-          <p className="mt-1 text-sm text-white/45">
+          <div className="flex items-center gap-2">
+            <p className="text-base font-bold text-white group-hover:text-amber-400 transition-colors">
+              {providerLabel(application)}
+            </p>
+            {readiness?.readinessLevel === 'L3' && (
+              <div className="flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+                <ShieldCheck className="h-3 w-3" />
+                Verified
+              </div>
+            )}
+          </div>
+          <p className="mt-1 text-sm text-white/50 font-medium">
             {application.opportunity?.title ?? 'Unknown role'}
             {' · '}
             {application.opportunity?.state ?? 'Unknown state'}
           </p>
         </div>
-        <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${APPLICATION_STATUS_TONE[application.status]}`}>
+        <span className={`rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest ${APPLICATION_STATUS_TONE[application.status]} shadow-sm`}>
           {APPLICATION_STATUS_LABEL[application.status]}
         </span>
       </div>
 
-      <div className="mt-3 grid gap-3 text-sm text-white/55 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
-        <div className="space-y-1">
-          <p>
-            Readiness: {readiness ? `${readiness.readinessLevel} · ${readiness.readinessScore}/100` : 'Unavailable'}
-          </p>
-          <p>
-            Credentials: {readiness?.keyCredentials?.slice(0, 2).join(' · ') || 'No credential summary yet'}
-          </p>
-          <p>
-            Trust signals: {readiness?.trustSignals?.slice(0, 2).join(' · ') || 'No trust signals yet'}
-          </p>
+      <div className="mt-5 grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+        <div className="grid gap-x-6 gap-y-4 sm:grid-cols-3">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-1.5">Live Readiness</p>
+            {readiness ? (
+              <p className="font-mono text-emerald-400 font-semibold text-sm">
+                {readiness.readinessLevel} <span className="text-white/20 px-1 truncate">|</span> {readiness.readinessScore}/100
+              </p>
+            ) : (
+              <p className="text-white/30 font-medium text-sm">Unavailable</p>
+            )}
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-1.5">Key Credentials</p>
+            <p className="text-white/80 font-medium text-sm truncate">
+              {readiness?.keyCredentials?.slice(0, 2).join(', ') || 'Processing...'}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-1.5">Trust Signals</p>
+            <p className="text-white/80 font-medium text-sm truncate">
+              {readiness?.trustSignals?.slice(0, 2).join(', ') || 'Pending'}
+            </p>
+          </div>
         </div>
-        <div className="text-xs text-white/35">
-          Applied {relativeTime(application.createdAt)}
+        <div className="flex items-center gap-4 mt-2 md:mt-0">
+          <div className="text-xs font-medium text-white/40 text-right">
+            Applied {relativeTime(application.createdAt)}
+          </div>
+          <Link href={`/verifier/inbox`} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-white transition-all group-hover:bg-emerald-500 group-hover:text-white group-hover:border-emerald-500">
+            Review & Verify
+          </Link>
         </div>
       </div>
+
+      {proofMoments.length > 0 ? (
+        <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/35">Prepared by VitalCV</p>
+          <div className="mt-3 space-y-2">
+            {proofMoments.map((moment) => (
+              <p key={moment} className="text-sm leading-6 text-white/70">
+                {moment}
+              </p>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -322,6 +379,9 @@ export function EmployerDashboard() {
   const [applications, setApplications] = useState<EmployerApplication[]>([]);
   const [applicationsLoading, setApplicationsLoading] = useState(true);
   const [applicationsError, setApplicationsError] = useState<string | null>(null);
+  const [valueSignals, setValueSignals] = useState<EmployerValueSignals | null>(null);
+  const [valueSignalsLoading, setValueSignalsLoading] = useState(true);
+  const [valueSignalsError, setValueSignalsError] = useState<string | null>(null);
 
   const providers = useProviders({ limit: 6 });
   const findings = useFindings({ limit: 6 });
@@ -342,7 +402,7 @@ export function EmployerDashboard() {
         const payload = await response.json().catch(() => ({})) as EmployerApplication[] & { error?: string };
 
         if (!response.ok) {
-          throw new Error(typeof payload.error === 'string' ? payload.error : 'Unable to load employer applications.');
+          throw new Error(typeof payload.error === 'string' ? payload.error : 'Connection to live feed interrupted. Retrying securely.');
         }
 
         if (!cancelled) {
@@ -350,7 +410,7 @@ export function EmployerDashboard() {
         }
       } catch (error) {
         if (!cancelled) {
-          setApplicationsError(error instanceof Error ? error.message : 'Unable to load employer applications.');
+          setApplicationsError(error instanceof Error ? error.message : 'Connection to live feed interrupted. Retrying securely.');
           setApplications([]);
         }
       } finally {
@@ -366,11 +426,62 @@ export function EmployerDashboard() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadValueSignals() {
+      setValueSignalsLoading(true);
+      setValueSignalsError(null);
+
+      try {
+        const response = await fetch('/api/employer/value-signals', {
+          cache: 'no-store',
+        });
+        const payload = await response.json().catch(() => ({})) as EmployerValueSignals & { error?: string };
+
+        if (!response.ok) {
+          throw new Error(typeof payload.error === 'string' ? payload.error : 'Employer value signals are temporarily unavailable.');
+        }
+
+        if (!cancelled) {
+          setValueSignals(payload);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setValueSignalsError(error instanceof Error ? error.message : 'Employer value signals are temporarily unavailable.');
+          setValueSignals(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setValueSignalsLoading(false);
+        }
+      }
+    }
+
+    void loadValueSignals();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const providerRows = providers.data?.providers ?? [];
   const findingRows = findings.data?.findings ?? [];
   const storylineRows = storylines.data?.storylines ?? [];
   const actionRows = actions.data?.actions ?? [];
   const recentApplications = applications.slice(0, 5);
+  const proofSummary = useMemo(() => (
+    valueSignals
+      ? buildEmployerValueSignalsSummary(valueSignals)
+      : buildEmployerProofSummary({
+          applications,
+          findingCount: findingRows.length,
+          storylineCount: storylineRows.length,
+          actionCount: actionRows.length,
+        })
+  ), [actionRows.length, applications, findingRows.length, storylineRows.length, valueSignals]);
+  const candidateSignalSummaries = useMemo(() => (
+    new Map((valueSignals?.candidateSummaries ?? []).map((entry) => [entry.applicationId, entry]))
+  ), [valueSignals?.candidateSummaries]);
 
   const acceptedCount = applications.filter((application) => application.status === 'ACCEPTED').length;
   const pendingCount = applications.filter((application) => application.status === 'PENDING' || application.status === 'REVIEWED').length;
@@ -428,7 +539,7 @@ export function EmployerDashboard() {
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-200/80">Employer Dashboard</p>
               <h1 className="mt-3 text-4xl font-semibold tracking-tight text-white">Apply, verify, hire, and pay in one loop.</h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-white/55">
-                Incoming VitalCV applications land here with readiness, credentials, trust signals, findings, storylines, and the live action queue your team needs to move clinicians into start.
+                Incoming applications include readiness, verified credentials, and real-time trust signals so your team can confidently move clinicians to start.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -455,22 +566,124 @@ export function EmployerDashboard() {
             label="Providers in motion"
             value={applicationsLoading ? '…' : String(providerCount || providerRows.length)}
             tone="bg-sky-500/15 text-sky-200"
-            detail={providerRows.length > 0 ? `${providerRows.length} tracked in intelligence` : 'Derived from employer applications'}
+            detail={providerRows.length > 0 ? `${providerRows.length} tracked in intelligence` : 'Identified from your application pipeline'}
           />
           <MetricCard
             icon={ShieldCheck}
             label="Average readiness"
             value={readinessAverage === null ? 'N/A' : `${readinessAverage}`}
             tone="bg-violet-500/15 text-violet-200"
-            detail={readinessAverage === null ? 'Waiting for clinician trust states' : 'Across clinicians in your application pipeline'}
+            detail={readinessAverage === null ? 'Waiting for clinician trust states' : `${proofSummary.readinessVisibleCount} candidates already show readiness in queue`}
           />
           <MetricCard
             icon={CheckCircle2}
             label="Accepted to hire/start"
             value={applicationsLoading ? '…' : String(acceptedCount)}
             tone="bg-amber-500/15 text-amber-200"
-            detail={`${actionRows.length} active actions and ${findingRows.length} live findings`}
+            detail={`${proofSummary.actionQueueCount} actions generated and ${proofSummary.issuesIdentifiedBeforeReviewCount} issues caught early`}
           />
+        </section>
+
+        <section className="mt-8 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+          <section className="rounded-3xl border border-white/8 bg-white/[0.04] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-white">Employer value signals</h2>
+                <p className="mt-1 text-sm text-white/45">
+                  Queue facts tied to readiness visibility, issues caught before review, and prepared context.
+                </p>
+              </div>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-white/65">
+                {valueSignalsLoading ? 'Loading…' : 'Real signals only'}
+              </span>
+            </div>
+
+            {valueSignalsError ? (
+              <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                {valueSignalsError}
+              </div>
+            ) : null}
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-white/35">Readiness visible</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{valueSignalsLoading ? '…' : proofSummary.readinessVisibleCount}</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-white/35">Prepared context</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{valueSignalsLoading ? '…' : proofSummary.preparedReviewCount}</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-white/35">Issues caught early</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{valueSignalsLoading ? '…' : proofSummary.issuesIdentifiedBeforeReviewCount}</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-white/35">Review actions</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{valueSignalsLoading ? '…' : proofSummary.reviewActionCount}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-white/35">Applications moving</p>
+                <p className="mt-2 text-lg font-semibold text-white">{valueSignalsLoading ? '…' : proofSummary.applicationsMovingCount}</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-white/35">Live findings</p>
+                <p className="mt-2 text-lg font-semibold text-white">{findings.loading ? '…' : findingRows.length}</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-white/35">Action queue</p>
+                <p className="mt-2 text-lg font-semibold text-white">{valueSignalsLoading ? '…' : proofSummary.actionQueueCount}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 flex justify-end">
+              <Link
+                href="/api/employer/value-signals"
+                className="inline-flex items-center gap-1 rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-white/65 transition hover:border-white/20 hover:text-white"
+              >
+                Export JSON
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-white/8 bg-white/[0.04] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-white">What Changed Because Of VitalCV</h2>
+                <p className="mt-1 text-sm text-white/45">
+                  Candidate, review, and queue movement summarized from live employer state.
+                </p>
+              </div>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-white/65">
+                {proofSummary.applicationsMovingCount} moving
+              </span>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {proofSummary.recentChanges.length > 0 ? proofSummary.recentChanges.slice(0, 4).map((change) => (
+                <Link
+                  key={change.id}
+                  href={change.href}
+                  className="block rounded-2xl border border-white/10 bg-black/20 px-4 py-3 transition hover:border-white/20"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-white">{change.title}</p>
+                      <p className="mt-1 text-sm leading-6 text-white/65">{change.summary}</p>
+                    </div>
+                    <p className="text-xs text-white/40">{relativeTime(change.occurredAt)}</p>
+                  </div>
+                </Link>
+              )) : (
+                <p className="text-sm text-white/45">
+                  Recent employer-side value signals will appear here as clinicians and reviewers move the queue.
+                </p>
+              )}
+            </div>
+          </section>
         </section>
 
         <div className="mt-8 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
@@ -488,7 +701,11 @@ export function EmployerDashboard() {
               {recentApplications.length > 0 ? (
                 <div className="space-y-3">
                   {recentApplications.map((application) => (
-                    <ApplicationRow key={application.id} application={application} />
+                    <ApplicationRow
+                      key={application.id}
+                      application={application}
+                      signalSummary={candidateSignalSummaries.get(application.id) ?? null}
+                    />
                   ))}
                 </div>
               ) : null}
@@ -599,7 +816,7 @@ export function EmployerDashboard() {
               <p className="text-xs font-semibold uppercase tracking-[0.18em]">Intelligence sync</p>
             </div>
             <p className="mt-4 text-sm leading-6 text-white/55">
-              Reviewing, verifying, escalating, accepting, and rejecting from the inbox updates the linked application, storyline, finding, and action state together instead of leaving a dead UI branch behind.
+              Reduce hiring cycles by making confident decisions on verified provider signals instantly. Reviewing or verifying a clinician from the inbox automatically updates storylines and findings.
             </p>
           </div>
 
@@ -614,17 +831,14 @@ export function EmployerDashboard() {
           </div>
         </section>
 
-        {(providers.recovering || findings.recovering || storylines.recovering || actions.recovering) ? (
+        {(providers.recovering || findings.recovering || storylines.recovering || actions.recovering || valueSignalsLoading) ? (
           <div className="mt-6 flex items-center gap-2 text-sm text-white/40">
             <Loader2 className="h-4 w-4 animate-spin" />
             Refreshing live employer intelligence…
           </div>
         ) : null}
 
-        <div className="mt-6 flex items-center gap-2 text-xs text-white/28">
-          <FileText className="h-3.5 w-3.5" />
-          /verifier remains the canonical employer route namespace in this wave.
-        </div>
+
       </div>
     </main>
   );

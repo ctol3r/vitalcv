@@ -9,6 +9,8 @@ vi.mock('@clerk/nextjs/server', () => ({
   auth: authMock,
 }));
 
+vi.mock('server-only', () => ({}));
+
 vi.mock('../app/api/intelligence/_shared', () => ({
   buildForwardHeaders: buildForwardHeadersMock,
   requireAuthenticatedOrgContext: requireAuthenticatedOrgContextMock,

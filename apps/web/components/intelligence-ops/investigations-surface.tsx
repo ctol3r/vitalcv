@@ -17,6 +17,10 @@ import type { CopilotContextPayload } from '@/components/copilot/types';
 import { computeProviderView, type IntelligenceAccessReason, type IntelligenceProvider } from '@/lib/intelligence/contracts';
 import { getAccessBannerState } from '@/lib/intelligence/state';
 import { summarizeTrustSignals } from '@/lib/intelligence/trust-signals';
+import {
+  normalizeInvestigationState,
+  useInvestigationContextStore,
+} from '@/stores/investigation-context';
 import { OperationsShell } from './shell';
 import { EntityLink, OpsBadge, OpsCard, SurfaceBanner, severityTone } from './primitives';
 import { CopilotSearchBar } from '@/components/copilot/CopilotSearchBar';
@@ -787,6 +791,7 @@ function useWorkbenchShortcuts(handlers: {
 
 export function InvestigationsSurface() {
   const searchParams = useSearchParams();
+  const hydrateWorkspace = useInvestigationContextStore((state) => state.hydrateFromRoute);
   const seededNpi = searchParams.get('npi') ?? '';
   const seededFindingId = searchParams.get('findingId') ?? '';
   const seededStorylineId = searchParams.get('storylineId') ?? '';
@@ -1067,6 +1072,38 @@ export function InvestigationsSurface() {
       neighborEdgeIds: [],
     });
   }, [context?.uiHints?.highlightNodeIds, providerNpi]);
+
+  useEffect(() => {
+    if (!context) {
+      return;
+    }
+
+    hydrateWorkspace(normalizeInvestigationState({
+      focus: 'investigations',
+      mode: 'investigate',
+      selectedProvider: context.provider?.npi ?? context.anchor.npi ?? null,
+      selectedFinding: selectedFindingId ?? context.finding?.id ?? null,
+      selectedStoryline: context.storyline?.id ?? context.finding?.storylineId ?? context.anchor.storylineId ?? null,
+      selectedEvidence: context.finding
+        ? (selectedEvidenceIndex === null ? `${context.finding.id}:summary` : `${context.finding.id}:${selectedEvidenceIndex}`)
+        : null,
+      graphFocus: graphSelection.selectedNodeId
+        ?? graphSelection.focusNodeId
+        ?? context.uiHints?.highlightNodeIds?.[0]
+        ?? selectedFindingId
+        ?? context.provider?.npi
+        ?? context.anchor.npi
+        ?? null,
+      openPanels: ['provider', 'finding', 'storyline', 'graph', 'evidence', 'copilot'],
+    }));
+  }, [
+    context,
+    graphSelection.focusNodeId,
+    graphSelection.selectedNodeId,
+    hydrateWorkspace,
+    selectedEvidenceIndex,
+    selectedFindingId,
+  ]);
 
   return (
     <OperationsShell

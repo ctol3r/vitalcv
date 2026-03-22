@@ -2,10 +2,12 @@
 
 import { SignedIn } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import FeedbackButton from '@/components/feedback/FeedbackButton';
 import Footer from '@/components/layout/Footer';
 import Navbar from '@/components/layout/Navbar';
+import { PilotReporterHost } from '@/components/pilot-ops/PilotReporterHost';
+import { PilotSignInTracker } from '@/components/pilot-ops/PilotSignInTracker';
 import PrequalifyBar from '@/components/prequalify/PrequalifyBar';
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher';
 import VCommandBar from '@/components/ops/VCommandBar';
@@ -38,11 +40,19 @@ interface RootChromeProps {
 export default function RootChrome({ children, clerkEnabled }: RootChromeProps) {
   const pathname = usePathname();
   const operationalRoute = isOperationalRoute(pathname);
+  const pilotReporter = (
+    <Suspense fallback={null}>
+      <PilotReporterHost />
+    </Suspense>
+  );
 
   if (operationalRoute) {
     return (
       <>
         <div className="relative min-h-screen">{children}</div>
+        {pilotReporter}
+        <FeedbackButton />
+        <PilotSignInTracker />
         <VCommandBar />
       </>
     );
@@ -64,6 +74,8 @@ export default function RootChrome({ children, clerkEnabled }: RootChromeProps) 
           <PrequalifyBar />
         </SignedIn>
       ) : null}
+      {pilotReporter}
+      <PilotSignInTracker />
       <VCommandBar />
     </div>
   );

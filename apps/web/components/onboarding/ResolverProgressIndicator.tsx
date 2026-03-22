@@ -45,13 +45,13 @@ export function ResolverProgressIndicator({
   }, [currentStepIndex, durationPerStep, onComplete]);
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-6">
-      <div className="text-center mb-8">
-        <h3 className="text-2xl font-heading font-bold text-white mb-2">Activating Trust State</h3>
-        <p className="text-white/50 text-sm font-mono tracking-widest uppercase">Resolving Verifiable Credentials</p>
+    <div className="mx-auto w-full max-w-md space-y-5">
+      <div className="mb-6 text-center">
+        <h3 className="mb-2 text-xl font-heading font-bold text-white sm:text-2xl">Activating trust profile</h3>
+        <p className="text-white/50 text-sm font-mono tracking-widest uppercase">Syncing verified records</p>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {DEFAULT_STEPS.map((step, index) => {
           const isCompleted = index < currentStepIndex;
           const isCurrent = index === currentStepIndex;
@@ -65,14 +65,14 @@ export function ResolverProgressIndicator({
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 }}
               className={cn(
-                "flex items-center gap-4 p-4 rounded-xl border transition-all duration-500",
+                "flex items-center gap-3 rounded-xl border p-3.5 transition-all duration-500 sm:gap-4 sm:p-4",
                 isCompleted ? "bg-emerald-500/10 border-emerald-500/20" :
                 isCurrent ? "bg-white/5 border-white/10" :
                 "bg-transparent border-transparent opacity-40"
               )}
             >
               <div className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors duration-500",
+                "h-9 w-9 rounded-full flex items-center justify-center shrink-0 transition-colors duration-500 sm:h-10 sm:w-10",
                 isCompleted ? "bg-emerald-500 text-white" :
                 isCurrent ? "bg-white/10 text-white" :
                 "bg-transparent text-white/40"

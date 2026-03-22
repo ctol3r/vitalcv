@@ -159,7 +159,19 @@
       "Bash(git checkout:*)",
       "Bash(cp /tmp/middleware.ts.bak apps/web/middleware.ts)",
       "Bash(cp /tmp/_shared.ts.bak apps/web/app/api/intelligence/_shared.ts)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(cat /Users/christoler/vitalcv/apps/web/app/api/opportunities/[id]/route.ts)",
+      "Bash(npm run:*)",
+      "Bash(cat /Users/christoler/vitalcv/apps/web/app/api/opportunities/[id]/apply/route.ts)",
+      "Bash(head -80 /Users/christoler/vitalcv/apps/mobile/app/\\\\\\(tabs\\\\\\)/wallet.tsx)",
+      "Bash(cat /Users/christoler/vitalcv/apps/web/app/api/identity/bootstrap/[npi]/route.ts)",
+      "Bash(npm test:*)",
+      "mcp__Desktop_Commander__write_file",
+      "Bash(head -150 /Users/christoler/vitalcv/apps/mobile/app/\\\\\\(tabs\\\\\\)/scan.tsx)",
+      "Bash(head -100 /Users/christoler/vitalcv/apps/mobile/app/\\\\\\(tabs\\\\\\)/present.tsx)",
+      "Bash(bash ../../../scripts/backend-test-db.sh --testPathPattern=\"detailAgents|hiringAutomation|tenantGuard\" --forceExit)",
+      "Bash(npx vitest:*)",
+      "Bash(cat /Users/christoler/vitalcv/apps/web/app/sign-in/[[...sign-in]]/page.tsx)"
     ],
     "deny": [],
     "ask": []

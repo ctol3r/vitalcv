@@ -1,8 +1,10 @@
 'use client';
 
-import * as Sentry from '@sentry/nextjs';
 import { useEffect } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import Link from 'next/link';
+import { PilotFailureSignal } from '@/components/pilot-ops/PilotFailureSignal';
+import { SupportActionButton } from '@/components/pilot-ops/SupportActionButton';
 
 export default function GlobalError({
   error,
@@ -12,40 +14,62 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    Sentry.captureException(error);
+    console.error(error);
   }, [error]);
 
   return (
     <html lang="en">
-      <body className="min-h-screen flex items-center justify-center bg-slate-50 font-sans">
+      <body className="min-h-screen flex items-center justify-center bg-zinc-950 font-sans">
+        <PilotFailureSignal
+          title="System interruption"
+          message={error.message}
+          queueItem={{ source: 'route_failure' }}
+          details={{
+            digest: error.digest ?? null,
+          }}
+          dedupeKey={`global-error:${error.digest ?? error.message}`}
+        />
         <main className="max-w-xl w-full mx-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-8 space-y-5">
-            <div className="flex items-center gap-2 text-slate-900">
-              <AlertTriangle className="h-5 w-5 text-amber-600" />
-              <h1 className="text-2xl font-semibold">Something went wrong</h1>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 space-y-5">
+            <div className="flex items-center gap-2 text-white">
+              <AlertTriangle className="h-5 w-5 text-amber-300" />
+              <h1 className="text-2xl font-semibold">System Interruption</h1>
             </div>
-            <p className="text-sm text-slate-600">
-              We couldn&apos;t complete this request. Use the retry button below to
-              reload and continue.
+            <p className="text-sm text-white/70">
+              The platform encountered a temporary issue. Your data is safe. Please refresh to continue.
             </p>
-            <p className="text-sm text-slate-500">
-              Our team has been notified automatically, and the error has been logged.
+            <p className="text-sm text-white/50">
+              If this persists, share the reference below in a support request.
             </p>
 
-            <button
-              onClick={reset}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-slate-900 text-white hover:bg-slate-800 transition-colors"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Retry now
-            </button>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <button
+                onClick={reset}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-4 py-2 text-zinc-950 transition-colors hover:bg-zinc-200"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh View
+              </button>
+              <Link
+                href="/"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-4 py-2 text-white/80 transition hover:border-white/20 hover:text-white"
+              >
+                Return home
+              </Link>
+              <SupportActionButton
+                label="Contact support"
+                title="System interruption"
+                messagePrefill={error.message}
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-4 py-2 text-white/80 transition hover:border-white/20 hover:text-white"
+              />
+            </div>
 
             {error.digest && (
-              <details className="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-                <summary className="font-medium text-slate-700">
-                  Error reference for support
+              <details className="rounded-md border border-white/10 bg-white/[0.03] p-3 text-xs text-white/50">
+                <summary className="font-medium text-white/60 cursor-pointer">
+                  Technical Reference
                 </summary>
-                <p className="mt-2 break-all font-mono">digest: {error.digest}</p>
+                <p className="mt-2 break-all font-mono">Digest: {error.digest}</p>
               </details>
             )}
           </div>

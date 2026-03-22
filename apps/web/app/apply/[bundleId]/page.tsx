@@ -119,8 +119,8 @@ function BundleErrorView({ reason }: { reason: 'expired' | 'not_found' | 'error'
     },
     error: {
       emoji: '⚠️',
-      title: 'Unable to load bundle',
-      body: 'There was a problem retrieving this credential bundle. Please try again.',
+      title: 'Connection Interrupted',
+      body: 'We could not fetch this bundle right now. Please try again in a few minutes.',
     },
   };
 

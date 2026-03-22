@@ -98,10 +98,13 @@ function makePrisma(input: {
   applications: unknown[];
   findings?: unknown[];
   webhookEmployerIds?: string[];
+  applicationError?: unknown;
 }): PrismaClient {
   return {
     application: {
-      findMany: jest.fn().mockResolvedValue(input.applications),
+      findMany: input.applicationError
+        ? jest.fn().mockRejectedValue(input.applicationError)
+        : jest.fn().mockResolvedValue(input.applications),
     },
     employerWebhookConfig: {
       findMany: jest.fn().mockResolvedValue(
@@ -203,6 +206,20 @@ describe('hiringAutomationService', () => {
     const missingMetadata = extractHiringAutomationMetadata(byApplicationId.get('app-missing')?.metadata);
     expect(missingMetadata?.workflowEffects.missingCredentials).toEqual(['Board Certification']);
     expect(missingMetadata?.workflowEffects.clinicianRequest).toBe(true);
+  });
+
+  it('skips hiring automation when the optional Application table is unavailable', async () => {
+    const prisma = makePrisma({
+      applications: [],
+      applicationError: {
+        code: 'P2021',
+        meta: {
+          table: 'public.Application',
+        },
+      },
+    });
+
+    await expect(generateHiringAutomationActions('2026-03-19T12:00:00.000Z', prisma)).resolves.toEqual([]);
   });
 
   it('stores auto-accept as preview metadata without changing the generated action type', async () => {

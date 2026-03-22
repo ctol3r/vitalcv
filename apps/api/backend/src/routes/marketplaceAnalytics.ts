@@ -14,10 +14,11 @@ import type { AnalyticsEventName } from '../services/analytics/marketplaceAnalyt
 export function registerMarketplaceAnalyticsRoutes(app: Express): void {
 
   /** POST /api/analytics/event — { name, npi?, properties? } */
-  app.post('/api/analytics/event', (req: Request, res: Response) => {
+  app.post('/api/analytics/event', async (req: Request, res: Response) => {
     const { name, npi, properties = {} } = req.body ?? {};
     if (!name) { res.status(400).json({ error: 'name required' }); return; }
     emit(name as AnalyticsEventName, { npi, ...properties });
+
     res.json({ success: true });
   });
 

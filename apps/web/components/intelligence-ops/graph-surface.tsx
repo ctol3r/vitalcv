@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import GraphCanvas, { type GraphHoverDetail } from '@/components/graph-system/GraphCanvas';
 import GraphTooltip from '@/components/graph-system/GraphTooltip';
 import NodeDetail from '@/components/graph-system/NodeDetail';
@@ -19,9 +19,17 @@ import {
   DEFAULT_GRAPH_VISUALS,
   resolveGraphStats,
 } from '@/components/graph/state/graphDisplayState';
+import { useFindings } from '@/hooks/useFindings';
 import { useGraph } from '@/hooks/useGraph';
-import { buildIntelligenceGraphHref } from '@/lib/intelligence/routes';
+import { useProviders } from '@/hooks/useProviders';
+import { useStorylines } from '@/hooks/useStorylines';
+import { buildIntelligenceGraphHref, buildIntelligenceHref } from '@/lib/intelligence/routes';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
+import {
+  buildIntelligenceWorkspacePayload,
+  resolveGraphFocusNodeId,
+  resolveWorkspaceSelectionFromGraphNode,
+} from '@/lib/intelligence/workspace-model';
 import { OperationsShell } from './shell';
 import { OpsCard, SurfaceBanner, SurfaceEmptyState, SurfaceErrorState } from './primitives';
 
@@ -152,6 +160,7 @@ function buildNodeNeighbors(node: GraphNode, nodes: GraphNode[], edges: GraphEdg
 }
 
 export function GraphSurface() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const containerRef = useRef<HTMLDivElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 960, height: 620 });
@@ -161,17 +170,35 @@ export function GraphSurface() {
   const [filters, setFilters] = useState(DEFAULT_GRAPH_FILTERS);
   const [visuals, setVisuals] = useState(DEFAULT_GRAPH_VISUALS);
   const [physics, setPhysics] = useState(DEFAULT_GRAPH_PHYSICS);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [hoverDetail, setHoverDetail] = useState<GraphHoverDetail | null>(null);
   const [layoutVersion, setLayoutVersion] = useState(0);
   const focusedNpi = searchParams.get('npi');
+  const selectedFindingId = searchParams.get('findingId');
+  const selectedStorylineId = searchParams.get('storylineId');
+  const selectedGraphFocus = searchParams.get('graphFocus');
   const requestedLayer = searchParams.get('layer');
 
   const graph = useGraph({
     npi: focusedNpi,
     layer,
     pollIntervalMs: 45_000,
+  });
+  const providers = useProviders({
+    limit: focusedNpi ? 24 : 100,
+    pollIntervalMs: 60_000,
+  });
+  const findings = useFindings({
+    provider: focusedNpi,
+    limit: 60,
+    pollIntervalMs: 30_000,
+    paused: false,
+  });
+  const storylines = useStorylines({
+    provider: focusedNpi,
+    limit: 40,
+    pollIntervalMs: 30_000,
+    paused: false,
   });
 
   useEffect(() => {
@@ -209,11 +236,30 @@ export function GraphSurface() {
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    if (!selectedNodeId && graph.data?.focusNodeId) {
-      setSelectedNodeId(graph.data.focusNodeId);
-    }
-  }, [graph.data?.focusNodeId, selectedNodeId]);
+  const workspacePayload = useMemo(() => buildIntelligenceWorkspacePayload({
+    providers: providers.data?.providers ?? [],
+    findings: findings.data?.findings ?? [],
+    storylines: storylines.data?.storylines ?? [],
+  }), [findings.data?.findings, providers.data?.providers, storylines.data?.storylines]);
+  const selectedProvider = useMemo(
+    () => (focusedNpi ? workspacePayload.providersByNpi.get(focusedNpi) ?? null : null),
+    [focusedNpi, workspacePayload.providersByNpi],
+  );
+  const selectedFinding = useMemo(
+    () => (selectedFindingId ? workspacePayload.findingsById.get(selectedFindingId) ?? null : null),
+    [selectedFindingId, workspacePayload.findingsById],
+  );
+  const selectedStoryline = useMemo(
+    () => (selectedStorylineId ? workspacePayload.storylinesById.get(selectedStorylineId) ?? null : null),
+    [selectedStorylineId, workspacePayload.storylinesById],
+  );
+  const selectedNodeId = useMemo(() => resolveGraphFocusNodeId({
+    graph: graph.data ?? null,
+    graphFocus: selectedGraphFocus,
+    provider: selectedProvider,
+    finding: selectedFinding,
+    storyline: selectedStoryline,
+  }), [graph.data, selectedFinding, selectedGraphFocus, selectedProvider, selectedStoryline]);
 
   const filteredGraph = useMemo(() => {
     return filterGraph(
@@ -293,13 +339,55 @@ export function GraphSurface() {
     [filteredGraph.edges, filteredGraph.nodes, selectedNode],
   );
   const openFullGraphHref = useMemo(() => {
-    const nodeNpi = selectedNodeNpi ?? focusedNpi ?? undefined;
+    const nodeNpi = selectedNodeNpi ?? focusedNpi ?? selectedProvider?.npi ?? undefined;
     return buildIntelligenceGraphHref({
       npi: nodeNpi,
       providerId: nodeNpi,
+      findingId: selectedFinding?.id ?? undefined,
+      storylineId: selectedStoryline?.id ?? undefined,
       focusNodeId: selectedNodeId ?? undefined,
     });
-  }, [focusedNpi, selectedNodeId, selectedNodeNpi]);
+  }, [focusedNpi, selectedFinding?.id, selectedNodeId, selectedNodeNpi, selectedProvider?.npi, selectedStoryline?.id]);
+
+  function pushGraphSelection(nodeId: string | null) {
+    const params = new URLSearchParams(searchParams.toString());
+    const selection = resolveWorkspaceSelectionFromGraphNode({
+      graph: graph.data ?? null,
+      nodeId,
+      providers: providers.data?.providers ?? [],
+      findings: findings.data?.findings ?? [],
+      storylines: storylines.data?.storylines ?? [],
+    });
+
+    params.delete('npi');
+    params.delete('provider');
+    params.delete('findingId');
+    params.delete('storylineId');
+    params.delete('graphFocus');
+
+    const providerNpi = selection.provider?.npi
+      ?? selection.finding?.providerNpi
+      ?? selection.storyline?.providerNpi
+      ?? focusedNpi;
+
+    if (providerNpi) {
+      params.set('npi', providerNpi);
+      params.set('provider', providerNpi);
+    }
+    if (selection.finding?.id) {
+      params.set('findingId', selection.finding.id);
+    }
+    if (selection.storyline?.id ?? selection.finding?.storylineId) {
+      params.set('storylineId', selection.storyline?.id ?? selection.finding?.storylineId ?? '');
+    }
+    if (nodeId) {
+      params.set('graphFocus', nodeId);
+    }
+
+    startTransition(() => {
+      router.push(buildIntelligenceHref('graph', params));
+    });
+  }
 
   return (
     <OperationsShell
@@ -399,11 +487,11 @@ export function GraphSurface() {
                   hoveredNodeId={hoveredNodeId}
                   highlightedNodeIds={highlightedNodeIds}
                   highlightedEdgeIds={highlightedEdgeIds}
-                  onSelectNode={setSelectedNodeId}
+                  onSelectNode={pushGraphSelection}
                   onHoverNode={setHoveredNodeId}
                   onHoverDetailChange={setHoverDetail}
                   onDoubleClickNode={(nodeId) => {
-                    setSelectedNodeId(nodeId);
+                    pushGraphSelection(nodeId);
                     setViewMode('local');
                   }}
                   onDragNode={() => {}}
@@ -432,9 +520,9 @@ export function GraphSurface() {
               node={selectedNode}
               edges={selectedNodeEdges}
               neighbors={selectedNodeNeighbors}
-              onClose={() => setSelectedNodeId(null)}
+              onClose={() => pushGraphSelection(null)}
               onFocusNode={(nodeId) => {
-                setSelectedNodeId(nodeId);
+                pushGraphSelection(nodeId);
                 setViewMode('local');
               }}
               onAcceptSuggestion={() => {}}

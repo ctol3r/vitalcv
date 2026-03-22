@@ -416,6 +416,7 @@ export function GraphWorkbenchPanel({
     orphanCount: 0,
     aiSuggestedLinks: 0,
   };
+  const hasGraphNodes = graphStats.totalNodes > 0;
 
   const nodeCounterLabel = `${graphStats.totalNodes} node${graphStats.totalNodes === 1 ? '' : 's'}`;
   const edgeCounterLabel = `${graphStats.totalEdges} edge${graphStats.totalEdges === 1 ? '' : 's'}`;
@@ -429,9 +430,10 @@ export function GraphWorkbenchPanel({
       <ToneBadge tone="neutral" label={aiLinkLabel} />
       <Link
         href={openFullGraphHref}
-        className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--vt-text-2)] transition hover:border-[var(--vt-text-3)] hover:text-[var(--vt-text-1)]"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-cyan-300 shadow-sm transition-all hover:bg-cyan-500/20 hover:text-cyan-100"
       >
-        Open full graph
+        <Maximize2 className="h-3.5 w-3.5" />
+        Open Full Graph
       </Link>
     </div>
   );
@@ -446,9 +448,13 @@ export function GraphWorkbenchPanel({
       action={action}
     >
       <SurfaceState
-        loading={loading}
+        loading={false}
         error={error}
-        empty={false}
+        empty={!loading && !error && !hasGraphNodes}
+        emptyTitle="No graph nodes returned"
+        emptyCopy={selectedProvider
+          ? `The live graph slice for ${selectedProvider.name} returned zero nodes. If findings or storylines are still in scope, the graph route will surface that inconsistency instead of fabricating a fallback canvas.`
+          : 'The live graph slice returned zero nodes for the current scope.'}
         onRetry={onRetry}
       >
         <div className="space-y-4">
@@ -497,82 +503,104 @@ export function GraphWorkbenchPanel({
             </div>
           </div>
 
-          <div className="relative overflow-hidden rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-2">
-            <GraphCanvas
-              key={resetKey}
-              nodes={graphNodes}
-              edges={graphEdges}
-              physics={DEFAULT_GRAPH_PHYSICS}
-              visuals={{
-                ...DEFAULT_GRAPH_VISUALS,
-                animate: true,
-                clusterMode: 'type',
-                showArrows: false,
-                nodeSize: 6,
-                linkThickness: 1.2,
-              }}
-              selectedNodeId={selectedNodeId}
-              hoveredNodeId={hoveredNodeDetail?.node.id ?? null}
-              selectedEdgeId={selectedEdgeId}
-              hoveredEdgeId={hoveredEdgeDetail?.edge.id ?? null}
-              highlightedNodeIds={highlightedContext.nodeIds}
-              highlightedEdgeIds={highlightedContext.edgeIds}
-              getTooltipContext={getTooltipContext}
-              onSelectNode={(nodeId) => {
-                setLocalSelectedNodeId(nodeId);
-                setSelectedEdgeId(null);
-                onSelectGraphNode?.(nodeId);
-
-                if (!nodeId) {
-                  return;
-                }
-
-                const provider = findProviderForGraphNode(nodeId, graphNodes, providers);
-                if (provider) {
-                  onSelectProvider(provider);
-                }
-              }}
-              onSelectEdge={setSelectedEdgeId}
-              onHoverNode={(nodeId) => {
-                if (!nodeId) {
-                  setHoveredNodeDetail(null);
-                }
-              }}
-              onHoverEdge={(edgeId) => {
-                if (!edgeId) {
-                  setHoveredEdgeDetail(null);
-                }
-              }}
-              onDoubleClickNode={() => {}}
-              onDragNode={() => {}}
-              onPinNode={() => {}}
-              onHoverDetailChange={setHoveredNodeDetail}
-              onEdgeHoverDetailChange={setHoveredEdgeDetail}
-              width={dimensions.width}
-              height={dimensions.height}
-            />
-
-            <div className={`pointer-events-none absolute left-3 top-3 max-w-[min(34rem,calc(100%-1.5rem))] rounded-2xl border px-3 py-2 shadow-lg backdrop-blur ${toneClasses(summary.tone)}`}>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-80">
-                {summary.eyebrow}
-              </p>
-              <p className="mt-1 text-sm font-semibold text-[var(--vt-text-1)]">
-                {summary.title}
-              </p>
-              <p className="mt-1 text-xs leading-5 text-[var(--vt-text-2)]">
-                {summary.description}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {summary.meta.map((item) => (
-                  <span
-                    key={item}
-                    className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-[var(--vt-text-1)]"
-                  >
-                    {item}
-                  </span>
-                ))}
+          <div className="relative min-h-[440px] overflow-hidden rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-2 shadow-inner">
+            {loading ? (
+              <div className="flex h-full flex-col items-center justify-center py-20">
+                <div className="relative flex h-16 w-16 items-center justify-center mb-8">
+                  <div className="absolute inset-0 block rounded-full border-[1.5px] border-[var(--vt-accent)]/20" />
+                  <div className="absolute inset-0 block rounded-full border-[1.5px] border-[var(--vt-accent)]/40 animate-ping" style={{ animationDuration: '3s' }} />
+                  <div className="absolute inset-2 block rounded-full border-[1.5px] border-[var(--vt-accent)]/40" />
+                  <div className="absolute inset-2 block rounded-full border-[1.5px] border-[var(--vt-accent)]/60 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+                  <Layers className="relative h-5 w-5 text-[var(--vt-accent)]" />
+                </div>
+                <div className="space-y-2 text-center">
+                  <p className="text-[10px] uppercase font-semibold tracking-[0.2em] text-[var(--vt-text-1)]">
+                    Warming Graph Substrate
+                  </p>
+                  <p className="text-xs text-[var(--vt-text-3)] max-w-xs mx-auto">
+                    Resolving entity relationships and computing trust paths...
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <>
+                <GraphCanvas
+                  key={resetKey}
+                  nodes={graphNodes}
+                  edges={graphEdges}
+                  physics={DEFAULT_GRAPH_PHYSICS}
+                  visuals={{
+                    ...DEFAULT_GRAPH_VISUALS,
+                    animate: true,
+                    clusterMode: 'type',
+                    showArrows: false,
+                    nodeSize: 6,
+                    linkThickness: 1.2,
+                  }}
+                  selectedNodeId={selectedNodeId}
+                  hoveredNodeId={hoveredNodeDetail?.node.id ?? null}
+                  selectedEdgeId={selectedEdgeId}
+                  hoveredEdgeId={hoveredEdgeDetail?.edge.id ?? null}
+                  highlightedNodeIds={highlightedContext.nodeIds}
+                  highlightedEdgeIds={highlightedContext.edgeIds}
+                  getTooltipContext={getTooltipContext}
+                  onSelectNode={(nodeId) => {
+                    setLocalSelectedNodeId(nodeId);
+                    setSelectedEdgeId(null);
+                    onSelectGraphNode?.(nodeId);
+
+                    if (!nodeId) {
+                      return;
+                    }
+
+                    const provider = findProviderForGraphNode(nodeId, graphNodes, providers);
+                    if (provider) {
+                      onSelectProvider(provider);
+                    }
+                  }}
+                  onSelectEdge={setSelectedEdgeId}
+                  onHoverNode={(nodeId) => {
+                    if (!nodeId) {
+                      setHoveredNodeDetail(null);
+                    }
+                  }}
+                  onHoverEdge={(edgeId) => {
+                    if (!edgeId) {
+                      setHoveredEdgeDetail(null);
+                    }
+                  }}
+                  onDoubleClickNode={() => {}}
+                  onDragNode={() => {}}
+                  onPinNode={() => {}}
+                  onHoverDetailChange={setHoveredNodeDetail}
+                  onEdgeHoverDetailChange={setHoveredEdgeDetail}
+                  width={dimensions.width}
+                  height={dimensions.height}
+                />
+
+                <div className={`pointer-events-none absolute left-3 top-3 max-w-[min(34rem,calc(100%-1.5rem))] rounded-2xl border px-3 py-2 shadow-lg backdrop-blur ${toneClasses(summary.tone)}`}>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-80">
+                    {summary.eyebrow}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--vt-text-1)]">
+                    {summary.title}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-[var(--vt-text-2)]">
+                    {summary.description}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {summary.meta.map((item) => (
+                      <span
+                        key={item}
+                        className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-[var(--vt-text-1)]"
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="grid gap-3 xl:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)]">
@@ -623,23 +651,23 @@ export function GraphWorkbenchPanel({
                   <>
                     <Link
                       href={normalizeIntelligenceHref(`/providers/${selectedProvider.npi}`)}
-                      className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-1.5 text-xs font-medium text-[var(--vt-text-2)] transition hover:border-[var(--vt-text-3)] hover:text-[var(--vt-text-1)]"
+                      className="inline-flex items-center rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--vt-text-2)] transition hover:bg-[var(--vt-surface)] hover:text-[var(--vt-text-1)]"
                     >
-                      Open provider profile
+                      Provider Profile
                     </Link>
                     <Link
                       href={buildIntelligenceHref('findings', { provider: selectedProvider.npi })}
-                      className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-1.5 text-xs font-medium text-[var(--vt-text-2)] transition hover:text-[var(--vt-text-1)]"
+                      className="inline-flex items-center rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--vt-text-2)] transition hover:bg-[var(--vt-surface)] hover:text-[var(--vt-text-1)]"
                     >
-                      Open findings
+                      View Findings
                     </Link>
                   </>
                 ) : null}
                 <Link
                   href={openFullGraphHref}
-                  className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-1.5 text-xs font-medium text-[var(--vt-text-2)] transition hover:text-[var(--vt-text-1)]"
+                  className="inline-flex items-center rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--vt-text-2)] transition hover:bg-[var(--vt-surface)] hover:text-[var(--vt-text-1)]"
                 >
-                  Open full graph
+                  Open Full Graph
                 </Link>
               </div>
             </div>

@@ -36,6 +36,8 @@ import {
   type ReceiptRow,
   type ReceiptOutcome,
 } from '@/components/VerificationReceipts';
+import { PilotFailureSignal } from '@/components/pilot-ops/PilotFailureSignal';
+import { SupportActionButton } from '@/components/pilot-ops/SupportActionButton';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -294,11 +296,25 @@ function ResultPanel({
   if (state === 'error') {
     return (
       <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+        <PilotFailureSignal
+          title="Intake verification step blocked"
+          message={errorMessage ?? 'The process was interrupted. Please try again.'}
+          queueItem={{ source: 'route_failure' }}
+          dedupeKey={`intake-error:${errorMessage ?? 'generic'}`}
+        />
         <div className="flex items-start gap-2">
           <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
           <p className="text-sm text-red-700">
-            {errorMessage || 'Something went wrong. Please try again.'}
+            {errorMessage || 'The process was interrupted. Please try again.'}
           </p>
+        </div>
+        <div className="mt-3">
+          <SupportActionButton
+            label="Contact support"
+            title="Intake step blocked"
+            messagePrefill={errorMessage ?? 'The intake verification step failed.'}
+            className="inline-flex items-center justify-center rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+          />
         </div>
       </div>
     );

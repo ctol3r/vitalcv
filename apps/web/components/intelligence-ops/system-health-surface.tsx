@@ -13,6 +13,7 @@ import {
 } from '@/lib/intelligence/state';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import { OperationsShell } from './shell';
+import { LaunchReadinessPanel } from './launch-readiness-panel';
 import { OpsBadge, OpsCard, SurfaceBanner, SurfaceErrorState, severityTone } from './primitives';
 
 interface HealthCountPayload {
@@ -467,6 +468,8 @@ export function SystemHealthSurface() {
         />
       ) : null}
 
+      <LaunchReadinessPanel compact />
+
       <OpsCard className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Current state</h2>
@@ -480,8 +483,8 @@ export function SystemHealthSurface() {
           <span>{formatCount(trafficCounts.providerCount)} providers</span>
           <span>{formatCount(trafficCounts.findingCount)} findings</span>
           <span>{formatCount(trafficCounts.storylineCount)} storylines</span>
-          <span>{health.data?.sources.length ?? 0} connectors</span>
-          <span>{health.data?.incidents.length ?? 0} incidents</span>
+          <span>{health.data?.sources?.length ?? 0} connectors</span>
+          <span>{health.data?.incidents?.length ?? 0} incidents</span>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
@@ -579,14 +582,14 @@ export function SystemHealthSurface() {
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">System heartbeat counts</h2>
           <span className="text-sm text-[var(--vt-text-3)]">
-            {health.data?.sources.length ?? 0} connector{(health.data?.sources.length ?? 0) === 1 ? '' : 's'}
+            {health.data?.sources?.length ?? 0} connector{(health.data?.sources?.length ?? 0) === 1 ? '' : 's'}
           </span>
         </div>
         <p className="text-sm text-[var(--vt-text-2)]">
           Provider {formatCount(trafficCounts.providerCount)} • Finding {formatCount(trafficCounts.findingCount)} • Storyline {formatCount(trafficCounts.storylineCount)}
         </p>
         <p className="text-sm text-[var(--vt-text-3)]">
-          {health.data?.incidents.length ?? 0} active incident{(health.data?.incidents.length ?? 0) === 1 ? '' : 's'}
+          {health.data?.incidents?.length ?? 0} active incident{(health.data?.incidents?.length ?? 0) === 1 ? '' : 's'}
         </p>
         <div className="flex flex-wrap gap-2">
           <Link
@@ -656,7 +659,7 @@ export function SystemHealthSurface() {
       <OpsCard className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-[var(--vt-text-1)]">Active incidents</h2>
-          <span className="text-sm text-[var(--vt-text-3)]">{health.data?.incidents.length ?? 0} incidents</span>
+          <span className="text-sm text-[var(--vt-text-3)]">{health.data?.incidents?.length ?? 0} incidents</span>
         </div>
         <div className="space-y-3">
           {(health.data?.incidents ?? []).length === 0 ? (

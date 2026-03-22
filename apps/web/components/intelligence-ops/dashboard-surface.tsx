@@ -32,7 +32,6 @@ import type {
 } from '@/lib/intelligence/contracts';
 import {
   findGraphNodeIdForProvider,
-  findProviderForGraphNode,
 } from '@/lib/intelligence/contracts';
 import {
   CANVAS_OPEN_PANEL_VALUES,
@@ -58,8 +57,14 @@ import {
 } from '@/lib/intelligence/state';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import { summarizeTrustSignals } from '@/lib/intelligence/trust-signals';
+import {
+  buildIntelligenceWorkspacePayload,
+  resolveGraphFocusNodeId,
+  resolveWorkspaceSelectionFromGraphNode,
+} from '@/lib/intelligence/workspace-model';
 import { CanvasDecisionBlock, type CanvasDecisionAction, type CanvasDecisionBacklink, type CanvasDecisionMetric } from './canvas-decision-block';
 import { GraphWorkbenchPanel } from './graph-workbench-panel';
+import { LaunchReadinessPanel } from './launch-readiness-panel';
 import {
   EntityLink,
   OpsBadge,
@@ -615,6 +620,29 @@ export function DashboardSurface() {
     }
     return null;
   }, [selectedFinding?.storylineId, selectedStorylineId, storylines.data?.storylines, view]);
+  const findingItems = findings.data?.findings ?? [];
+  const storylineItems = storylines.data?.storylines ?? [];
+  const providerItems = providers.data?.providers ?? [];
+  const visibleFindingItems = findingItems.slice(0, 6);
+  const visibleStorylineItems = storylineItems.slice(0, 5);
+  const visibleProviderItems = providerItems.slice(0, 5);
+  const totalFindingCount = findings.data?.total ?? findingItems.length;
+  const findingsQueueHref = buildIntelligenceHref('findings', {
+    provider: /^\d{10}$/.test(selectedNpi)
+      ? selectedNpi
+      : selectedFinding?.providerNpi ?? selectedProvider?.npi ?? undefined,
+    findingId: selectedFinding?.id ?? undefined,
+  });
+  const workspacePayload = useMemo(() => buildIntelligenceWorkspacePayload({
+    providers: providers.data?.providers ?? [],
+    findings: findings.data?.findings ?? [],
+    storylines: storylines.data?.storylines ?? [],
+    actions: actions.data?.actions ?? [],
+  }), [actions.data?.actions, findings.data?.findings, providers.data?.providers, storylines.data?.storylines]);
+  const selectedProviderStats = useMemo(
+    () => (selectedProvider ? workspacePayload.providerStatsByNpi.get(selectedProvider.npi) ?? null : null),
+    [selectedProvider, workspacePayload.providerStatsByNpi],
+  );
 
   const sectionOrder = useMemo(() => resolveSectionOrder(view), [view]);
   const currentHref = useMemo(() => {
@@ -796,6 +824,16 @@ export function DashboardSurface() {
 
     return [...nodeIds];
   }, [compareProviders, graph.data?.nodes, selectedFinding?.id, selectedProvider, selectedStoryline?.id]);
+  const currentGraphFocusNodeId = useMemo(() => (
+    copilotFocusNodeId
+    ?? resolveGraphFocusNodeId({
+      graph: graph.data ?? null,
+      graphFocus: searchParams.get('graphFocus'),
+      provider: selectedProvider,
+      finding: selectedFinding,
+      storyline: selectedStoryline,
+    })
+  ), [copilotFocusNodeId, graph.data, searchParams, selectedFinding, selectedProvider, selectedStoryline]);
 
   function pushCanvas(
     updater: (params: URLSearchParams) => void,
@@ -854,6 +892,7 @@ export function DashboardSurface() {
   function focusProvider(npi: string, nextPanels: CanvasOpenPanel[] = ['provider']) {
     pushCanvas((params) => {
       params.set('npi', npi);
+      params.set('graphFocus', npi);
       params.delete('findingId');
       params.delete('storylineId');
       params.delete('panel');
@@ -875,6 +914,7 @@ export function DashboardSurface() {
         params.set('npi', finding.providerNpi);
       }
       params.set('findingId', finding.id);
+      params.set('graphFocus', finding.id);
       if (finding.storylineId) {
         params.set('storylineId', finding.storylineId);
       }
@@ -892,6 +932,7 @@ export function DashboardSurface() {
         params.set('npi', storyline.providerNpi);
       }
       params.set('storylineId', storyline.id);
+      params.set('graphFocus', storyline.id);
       params.delete('findingId');
       params.delete('panel');
       params.delete('open');
@@ -1047,11 +1088,11 @@ export function DashboardSurface() {
       ? [
           { label: 'Trust', value: String(selectedProvider.trustScore) },
           { label: 'Credentials', value: `${selectedProvider.activeCredentials}/${selectedProvider.credentialCount}` },
-          { label: 'Findings', value: String((findings.data?.findings ?? []).filter((finding) => finding.providerNpi === selectedProvider.npi).length) },
-          { label: 'Storylines', value: String((storylines.data?.storylines ?? []).filter((storyline) => storyline.providerNpi === selectedProvider.npi).length) },
+          { label: 'Findings', value: String(selectedProviderStats?.findingCount ?? findings.data?.total ?? 0) },
+          { label: 'Storylines', value: String(selectedProviderStats?.storylineCount ?? storylines.data?.total ?? 0) },
         ]
       : []
-  ), [findings.data?.findings, selectedProvider, storylines.data?.storylines]);
+  ), [findings.data?.total, selectedProvider, selectedProviderStats, storylines.data?.total]);
 
   const findingPanelMetrics = useMemo<CanvasDecisionMetric[]>(() => (
     selectedFinding
@@ -1304,15 +1345,15 @@ export function DashboardSurface() {
           <div className="mt-4 grid gap-2 md:grid-cols-4">
             <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-2.5">
               <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--vt-text-3)]">Findings</p>
-              <p className="mt-1 text-2xl font-semibold text-[var(--vt-text-1)]">{findings.data?.total ?? 0}</p>
+              <p className="mt-1 text-2xl font-semibold text-[var(--vt-text-1)]">{totalFindingCount}</p>
             </div>
             <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-2.5">
               <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--vt-text-3)]">Providers</p>
-              <p className="mt-1 text-2xl font-semibold text-[var(--vt-text-1)]">{providers.data?.total ?? 0}</p>
+              <p className="mt-1 text-2xl font-semibold text-[var(--vt-text-1)]">{visibleProviderItems.length}</p>
             </div>
             <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-2.5">
               <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--vt-text-3)]">Storylines</p>
-              <p className="mt-1 text-2xl font-semibold text-[var(--vt-text-1)]">{storylines.data?.total ?? 0}</p>
+              <p className="mt-1 text-2xl font-semibold text-[var(--vt-text-1)]">{visibleStorylineItems.length}</p>
             </div>
             <div className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-2.5">
               <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--vt-text-3)]">Last refresh</p>
@@ -1337,15 +1378,15 @@ export function DashboardSurface() {
         <main className="grid min-h-0 flex-1 gap-px overflow-hidden bg-[var(--vt-border)] xl:grid-cols-[minmax(0,360px)_minmax(0,1fr)_minmax(0,420px)]">
           <aside className="min-h-0 overflow-y-auto bg-[var(--vt-surface-dim)] p-4">
             <div className="space-y-4">
+              {view === 'dashboard' ? <LaunchReadinessPanel compact /> : null}
               {sectionOrder.map((section) => {
                 if (section === 'findings') {
-                  const findingItems = findings.data?.findings ?? [];
                   return (
                     <SignalSection
                       key="findings-section"
                       title="Findings"
                       detail="Promote the highest-signal findings directly into the canvas."
-                      count={findings.data?.total ?? findingItems.length}
+                      count={totalFindingCount}
                     >
                       {findings.error && findingItems.length === 0 ? (
                         <SurfaceErrorState
@@ -1360,7 +1401,7 @@ export function DashboardSurface() {
                           description="Widen the search or lock a provider into scope to pull more signals into the queue."
                         />
                       ) : null}
-                      {findingItems.slice(0, 6).map((finding) => (
+                      {visibleFindingItems.map((finding) => (
                         <Tooltip
                           key={finding.id}
                           title={finding.title}
@@ -1424,18 +1465,28 @@ export function DashboardSurface() {
                         </button>
                         </Tooltip>
                       ))}
+                      {totalFindingCount > visibleFindingItems.length ? (
+                        <Link
+                          href={findingsQueueHref}
+                          className="flex items-center justify-between border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-3 text-sm font-medium text-[var(--vt-text-2)] transition hover:border-cyan-400/30 hover:text-[var(--vt-text-1)]"
+                        >
+                          <span>View all findings →</span>
+                          <span className="text-xs uppercase tracking-[0.16em] text-[var(--vt-text-3)]">
+                            {totalFindingCount} total
+                          </span>
+                        </Link>
+                      ) : null}
                     </SignalSection>
                   );
                 }
 
                 if (section === 'storylines') {
-                  const storylineItems = storylines.data?.storylines ?? [];
                   return (
                     <SignalSection
                       key="storylines-section"
                       title="Storylines"
                       detail="Open cluster context without leaving the graph and queue."
-                      count={storylineItems.length}
+                      count={visibleStorylineItems.length}
                     >
                       {storylines.error && storylineItems.length === 0 ? (
                         <SurfaceErrorState
@@ -1450,7 +1501,7 @@ export function DashboardSurface() {
                           description="Storyline clustering has not returned any active narratives for the current slice."
                         />
                       ) : null}
-                      {storylineItems.slice(0, 5).map((storyline) => (
+                      {visibleStorylineItems.map((storyline) => (
                         <Tooltip
                           key={storyline.id}
                           title={storyline.title}
@@ -1486,13 +1537,12 @@ export function DashboardSurface() {
                   );
                 }
 
-                const providerItems = providers.data?.providers ?? [];
                 return (
                   <SignalSection
                     key="providers-section"
                     title="Providers"
                     detail="Lock a provider into scope or pull it into compare mode."
-                    count={providerItems.length}
+                    count={visibleProviderItems.length}
                   >
                     {providers.error && providerItems.length === 0 ? (
                       <SurfaceErrorState
@@ -1507,7 +1557,7 @@ export function DashboardSurface() {
                         description="Adjust the search scope or trust threshold to widen the provider slice."
                       />
                     ) : null}
-                    {providerItems.slice(0, 5).map((provider) => {
+                    {visibleProviderItems.map((provider) => {
                       const inCompare = activeCompareNpis.includes(provider.npi);
                       return (
                         <Tooltip
@@ -1545,10 +1595,10 @@ export function DashboardSurface() {
                             <button
                               type="button"
                               onClick={() => handleCompareToggle(provider.npi)}
-                              className={`inline-flex items-center rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] transition ${
+                              className={`inline-flex items-center rounded-sm border px-3 py-1 text-[10px] font-semibold uppercase tracking-widest transition ${
                                 inCompare
                                   ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-100'
-                                  : 'border-[var(--vt-border)] bg-[var(--vt-surface-dim)] text-[var(--vt-text-2)] hover:text-[var(--vt-text-1)]'
+                                  : 'border-[var(--vt-border)] bg-[var(--vt-surface-dim)] text-[var(--vt-text-2)] hover:bg-[var(--vt-surface)] hover:text-[var(--vt-text-1)]'
                               }`}
                             >
                               {inCompare ? 'In compare' : 'Compare'}
@@ -1588,10 +1638,10 @@ export function DashboardSurface() {
                         key={panel}
                         type="button"
                         onClick={() => openPanel(panel)}
-                        className={`rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] transition ${
+                        className={`rounded-sm border px-3 py-1 text-[10px] font-semibold uppercase tracking-widest transition ${
                           renderedPanels.includes(panel)
                             ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-100'
-                            : 'border-[var(--vt-border)] bg-[var(--vt-surface-dim)] text-[var(--vt-text-2)] hover:text-[var(--vt-text-1)]'
+                            : 'border-[var(--vt-border)] bg-[var(--vt-surface-dim)] text-[var(--vt-text-2)] hover:text-[var(--vt-text-1)] hover:bg-[var(--vt-surface)]'
                         }`}
                       >
                         {panel}
@@ -1636,7 +1686,7 @@ export function DashboardSurface() {
                     {(actions.data?.actions ?? []).slice(0, 3).map((action) => (
                       <span
                         key={action.id}
-                        className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-1 text-xs text-[var(--vt-text-2)]"
+                        className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-1 text-xs text-[var(--vt-text-1)]"
                         title={action.explanation}
                       >
                         {action.title}
@@ -1656,9 +1706,9 @@ export function DashboardSurface() {
                   <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--vt-text-2)]">Trust Network</p>
                   <Link
                     href={graphHref}
-                    className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--vt-text-3)] transition hover:text-[var(--vt-text-1)]"
+                    className="inline-flex items-center gap-1.5 rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-dim)] px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--vt-text-2)] transition-all hover:bg-[var(--vt-surface)] hover:text-[var(--vt-text-1)]"
                   >
-                    Maximize
+                    Open Full Graph
                     <ArrowUpRight className="h-3 w-3" />
                   </Link>
                 </div>
@@ -1673,14 +1723,28 @@ export function DashboardSurface() {
                   error={graph.error}
                   onRetry={graph.refresh}
                   onSelectProvider={(provider) => focusProvider(provider.npi)}
-                  focusNodeId={copilotFocusNodeId}
-                  highlightNodeId={copilotHighlightNodeId}
+                  focusNodeId={currentGraphFocusNodeId}
+                  highlightNodeId={copilotHighlightNodeId ?? currentGraphFocusNodeId}
                   highlightNodeIds={highlightedNodeIds}
                   onSelectGraphNode={(nodeId) => {
                     setCopilotFocusNodeId(nodeId);
-                    const provider = findProviderForGraphNode(nodeId, graph.data?.nodes ?? [], providers.data?.providers ?? []);
-                    if (provider) {
-                      focusProvider(provider.npi, renderedPanels.includes('provider') ? renderedPanels : ['provider']);
+                    const selection = resolveWorkspaceSelectionFromGraphNode({
+                      graph: graph.data ?? null,
+                      nodeId,
+                      providers: providers.data?.providers ?? [],
+                      findings: findings.data?.findings ?? [],
+                      storylines: storylines.data?.storylines ?? [],
+                    });
+                    if (selection.finding) {
+                      focusFinding(selection.finding);
+                      return;
+                    }
+                    if (selection.storyline) {
+                      focusStoryline(selection.storyline);
+                      return;
+                    }
+                    if (selection.provider) {
+                      focusProvider(selection.provider.npi, renderedPanels.includes('provider') ? renderedPanels : ['provider']);
                     }
                   }}
                 />

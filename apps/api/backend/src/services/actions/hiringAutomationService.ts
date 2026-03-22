@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { Prisma, type PrismaClient } from '@prisma/client';
 import type { RecommendedAction } from '../../../../../../core/actions/actionEngine';
+import { log } from '../../obs/logger';
 import {
   parseOrganizationRequirementsEnvelope,
   type AutomationRules,
@@ -87,6 +88,31 @@ const hiringApplicationArgs = Prisma.validator<Prisma.ApplicationDefaultArgs>()(
 });
 
 type HiringApplicationRecord = Prisma.ApplicationGetPayload<typeof hiringApplicationArgs>;
+
+function isMissingTableError(
+  error: unknown,
+  tableName: string,
+): boolean {
+  if (
+    !(error instanceof Prisma.PrismaClientKnownRequestError)
+    && !(
+      typeof error === 'object'
+      && error !== null
+      && 'code' in error
+      && (error as { code?: unknown }).code === 'P2021'
+    )
+  ) {
+    return false;
+  }
+
+  const meta = (
+    error instanceof Prisma.PrismaClientKnownRequestError
+      ? error.meta
+      : (error as { meta?: unknown }).meta
+  ) as { table?: unknown } | undefined;
+  const missingTable = typeof meta?.table === 'string' ? meta.table : null;
+  return missingTable?.includes(tableName) ?? false;
+}
 
 function stableHash(value: string): string {
   return createHash('sha256').update(value).digest('hex').slice(0, 24);
@@ -487,6 +513,15 @@ export async function generateHiringAutomationActions(
       },
     },
     ...hiringApplicationArgs,
+  }).catch((error) => {
+    if (isMissingTableError(error, 'Application')) {
+      log('warn', 'hiring_automation_optional_table_unavailable', {
+        table: 'Application',
+      });
+      return [];
+    }
+
+    throw error;
   });
 
   if (applications.length === 0) {

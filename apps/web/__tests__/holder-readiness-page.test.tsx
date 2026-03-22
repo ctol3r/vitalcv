@@ -1,60 +1,133 @@
+import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import { ClinicianMobileProvider } from '../components/mobile/ClinicianMobileProvider';
+import ClinicianReadinessSurface from '../components/mobile/ClinicianReadinessSurface';
+import type { ClinicianMobileData } from '../lib/mobile/clinician-state';
+import { vi } from 'vitest';
 
-const authMock = vi.fn();
+vi.mock('next/navigation', async () => {
+  const actual = await vi.importActual<typeof import('next/navigation')>('next/navigation');
+  return {
+    ...actual,
+    usePathname: () => '/holder/readiness',
+    useSearchParams: () => new URLSearchParams(),
+  };
+});
 
-vi.mock('@clerk/nextjs/server', () => ({
-  auth: authMock,
+vi.mock('../components/mobile/ClinicianSupportCard', () => ({
+  ClinicianSupportCard: () => null,
 }));
 
+function buildSampleData(): ClinicianMobileData {
+  return {
+    signedIn: true,
+    workspace: {
+      personProfile: {
+        npi: '1234567890',
+        firstName: 'Ada',
+        lastName: 'Lovelace',
+        specialty: 'ICU',
+        stateOfPractice: 'OR',
+        completeness: 90,
+      },
+    },
+    trustState: {
+      npi: '1234567890',
+      readinessLevel: 'L3',
+      readinessScore: 91,
+      readinessStatus: 'Ready to credential - all evidence verified',
+      trustBand: 'L3',
+      trustScore: 91,
+      gapSummary: [],
+      computedAt: '2026-03-20T10:30:00.000Z',
+      cached: false,
+    },
+    applications: [],
+    opportunities: [],
+    missingForHigherMatches: [],
+    refreshedAt: '2026-03-20T10:30:00.000Z',
+    profileCompleteness: {
+      score: 90,
+      dimensions: {
+        npiVerified: true,
+        resumeUploaded: true,
+        linksAdded: true,
+        workAuthProvided: true,
+        credentialsImported: true,
+      },
+    },
+    trustHistory: [
+      {
+        id: 'history_1',
+        npi: '1234567890',
+        readinessLevel: 'L3',
+        readinessScore: 91,
+        readinessStatus: 'Ready to credential - all evidence verified',
+        trustBand: 'L3',
+        trustScore: 91,
+        gapSummary: [],
+        computedAt: '2026-03-20T10:30:00.000Z',
+        cached: false,
+        deltaScore: 6,
+        deltaBand: 'up',
+        previousLevel: 'L2',
+        previousScore: 85,
+        newGaps: [],
+        resolvedGaps: ['DEA registration not verified'],
+        reason: 'Resolved dea registration not verified',
+      },
+      {
+        id: 'history_2',
+        npi: '1234567890',
+        readinessLevel: 'L2',
+        readinessScore: 85,
+        readinessStatus: 'Mostly ready - minor gaps remain',
+        trustBand: 'L2',
+        trustScore: 85,
+        gapSummary: ['DEA registration not verified'],
+        computedAt: '2026-03-18T10:30:00.000Z',
+        cached: false,
+        deltaScore: null,
+        deltaBand: null,
+        previousLevel: null,
+        previousScore: null,
+        newGaps: [],
+        resolvedGaps: [],
+        reason: 'DEA registration not verified',
+      },
+    ],
+    notifications: [],
+    blockers: [],
+    activeApplications: [],
+    availableOpportunities: [],
+    recommendedAction: {
+      kind: 'apply_now',
+      title: 'View matched opportunities',
+      description: 'Use your live readiness state to move immediately.',
+      href: '/holder/opportunities',
+      ctaLabel: 'View opportunities',
+    },
+  };
+}
+
 describe('/holder/readiness page', () => {
-  beforeEach(() => {
-    vi.resetModules();
-    vi.unstubAllGlobals();
-    authMock.mockReset();
-    process.env.BACKEND_URL = 'http://backend.test';
-  });
+  it('renders the provider-backed readiness history snapshot', () => {
+    const markup = renderToStaticMarkup(
+      <ClinicianMobileProvider initialData={buildSampleData()}>
+        <ClinicianReadinessSurface />
+      </ClinicianMobileProvider>,
+    );
 
-  it('renders the activated clinician readiness snapshot', async () => {
-    authMock.mockResolvedValue({
-      userId: 'clerk-user-1',
-      sessionClaims: { email: 'ada@example.com' },
-    });
-
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(new Response(
-        JSON.stringify({
-          personProfile: {
-            npi: '1234567890',
-            firstName: 'Ada',
-          },
-        }),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      ))
-      .mockResolvedValueOnce(new Response(
-        JSON.stringify({
-          npi: '1234567890',
-          readiness_level: 'L3',
-          readiness_score: 91,
-          readiness_status: 'Ready to credential — all evidence verified',
-          gap_summary: [],
-        }),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      ));
-    vi.stubGlobal('fetch', fetchMock);
-
-    const { default: HolderReadinessPage } = await import('../app/holder/readiness/page');
-    const markup = renderToStaticMarkup(await HolderReadinessPage());
-
-    expect(markup).toContain('Ada, your readiness is live.');
-    expect(markup).toContain('1234567890');
+    expect(markup).toContain('Readiness');
+    expect(markup).toContain('Ready to move');
     expect(markup).toContain('Ready to credential');
     expect(markup).toContain('91/100');
+    expect(markup).toContain('View opportunities');
+    expect(markup).toContain('Resolved dea registration not verified');
+    expect(markup).toContain('History');
+    expect(markup).toContain('What changed because of VitalCV');
+    expect(markup).toContain('Blockers resolved');
+    expect(markup).toContain('Readiness delta');
   });
 });

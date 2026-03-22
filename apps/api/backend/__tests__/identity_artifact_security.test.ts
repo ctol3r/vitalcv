@@ -1,5 +1,7 @@
 import { exportJWK, exportPKCS8, generateKeyPair } from 'jose';
 import { rm } from 'node:fs/promises';
+import { createServer, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { sha256ForPayload } from '../src/utils/deterministic';
 import { generateIdentityArtifact } from '../src/modules/identity/nppes.artifact.generator';
@@ -38,16 +40,15 @@ describe('identity artifact crypto hardening', () => {
   const originalPrivateKey = process.env.VCV_PRIVATE_KEY;
   const originalPublicKey = process.env.VCV_PUBLIC_KEY;
   const originalJwksUrl = process.env.IDENTITY_JWKS_URL;
-  let fetchSpy: jest.SpiedFunction<typeof fetch>;
+  let jwksServer: Server | null = null;
   const storageProvider = new LocalStorageProvider('/tmp/vitalcv-identity-test');
 
   beforeAll(async () => {
     const { privateKey, publicKey } = await generateKeyPair('ES256', { extractable: true });
     process.env.VCV_PRIVATE_KEY = Buffer.from(await exportPKCS8(privateKey)).toString('base64');
-    process.env.IDENTITY_JWKS_URL = JWKS_URL;
 
     const publicJwk = await exportJWK(publicKey);
-    const jwks = {
+    const jwksBody = JSON.stringify({
       keys: [
         {
           ...publicJwk,
@@ -56,24 +57,57 @@ describe('identity artifact crypto hardening', () => {
           use: 'sig',
         },
       ],
-    };
+    });
 
-    fetchSpy = jest
-      .spyOn(globalThis, 'fetch')
-      .mockImplementation(async () =>
-        new Response(JSON.stringify(jwks), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        }),
-      );
+    jwksServer = createServer((req, res) => {
+      if (req.url !== '/.well-known/jwks.json') {
+        res.writeHead(404).end();
+        return;
+      }
+
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(jwksBody);
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      const server = jwksServer;
+      if (!server) {
+        reject(new Error('JWKS server failed to initialize'));
+        return;
+      }
+
+      server.once('error', reject);
+      server.listen(0, '127.0.0.1', () => {
+        server.off('error', reject);
+        resolve();
+      });
+    });
+
+    const address = jwksServer.address();
+    if (!address || typeof address === 'string') {
+      throw new Error('JWKS server did not expose a TCP address');
+    }
+
+    const { port } = address as AddressInfo;
+    process.env.IDENTITY_JWKS_URL = `http://127.0.0.1:${port}/.well-known/jwks.json`;
   });
 
   afterAll(async () => {
     process.env.VCV_PRIVATE_KEY = originalPrivateKey;
     process.env.VCV_PUBLIC_KEY = originalPublicKey;
     process.env.IDENTITY_JWKS_URL = originalJwksUrl;
-
-    fetchSpy.mockRestore();
+    if (jwksServer) {
+      await new Promise<void>((resolve, reject) => {
+        jwksServer?.close((error) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve();
+        });
+      });
+      jwksServer = null;
+    }
   });
 
   it('returns same hash when key order changes and payload content does not', () => {

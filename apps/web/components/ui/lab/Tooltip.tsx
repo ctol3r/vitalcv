@@ -22,6 +22,7 @@ interface PremiumTooltipProps {
   side?: 'top' | 'bottom' | 'left' | 'right';
   delay?: number;
   className?: string;
+  wrapperClassName?: string;
 }
 
 export function Tooltip({
@@ -35,6 +36,7 @@ export function Tooltip({
   side = 'top',
   delay = 200,
   className,
+  wrapperClassName,
 }: PremiumTooltipProps) {
   const [visible, setVisible] = useState(false);
   let timeout: ReturnType<typeof setTimeout>;
@@ -55,7 +57,7 @@ export function Tooltip({
 
   return (
     <div
-      className="relative inline-flex"
+      className={cn("relative inline-flex", wrapperClassName)}
       onMouseEnter={() => { timeout = setTimeout(() => setVisible(true), delay); }}
       onMouseLeave={() => { clearTimeout(timeout); setVisible(false); }}
       onFocus={() => setVisible(true)}

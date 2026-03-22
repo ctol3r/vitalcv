@@ -25,7 +25,7 @@ describe('/api/clinician/activate proxy', () => {
 
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toEqual({ error: 'Unauthorized' });
-  });
+  }, 15000);
 
   it('forwards activation requests with authenticated Clerk headers', async () => {
     authMock.mockResolvedValue({

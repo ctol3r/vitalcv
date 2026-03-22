@@ -1,451 +1,361 @@
-/**
- * Wave 186 — Employer Knowledge Layer
- * /employers/[slug] — Full employer profile with Ask panel
- */
-import AskAboutEmployer from '@/components/employers/AskAboutEmployer';
-import {
-    Building2,
-    ChevronRight,
-    Clock,
-    DollarSign,
-    ExternalLink,
-    Globe,
-    ShieldCheck,
-    Users,
-    Zap
-} from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import {
+  ArrowRight,
+  BriefcaseBusiness,
+  Building2,
+  Clock,
+  MapPin,
+  ShieldCheck,
+  Stethoscope,
+} from 'lucide-react';
+import RequirementsTable from '@/components/employers/RequirementsTable';
+import {
+  fetchLaunchEmployer,
+  fetchLaunchOpportunities,
+} from '@/lib/launch/marketplace';
 
-interface Props { params: Promise<{ slug: string }> }
-
-// ── Canonical employer data (mirrors employerService.ts) ─────────────────────
-
-interface EmployerProfile {
-  slug: string; name: string; facilityType: string;
-  tagline: string; description: string;
-  states: string[]; specialties: string[];
-  openRoles: number; trustScore: number;
-  timeToStart: string; timeToOnboard: string;
-  hiringStatus: string;
-  hiringTypes: string[];
-  requirements: Array<{ label: string; level: string; note?: string }>;
-  clearToStartThreshold: string;
-  payTransparency: boolean;
-  payRange?: string | null;
-  recentHires: number;
-  website?: string | null;
-  verifiedSince: string;
+interface Props {
+  params: Promise<{ slug: string }>;
 }
 
-const EMPLOYERS: Record<string, EmployerProfile> = {
-  'bay-area-cardiac-group': {
-    slug: 'bay-area-cardiac-group',
-    name: 'Bay Area Cardiac Group',
-    facilityType: 'Specialty Cardiology Practice',
-    tagline: "The Bay Area's premier interventional cardiology group.",
-    description:
-      'Bay Area Cardiac Group operates 4 facilities across San Francisco and the East Bay. We run a locums-friendly practice with rapid credentialing turnaround and a collaborative PA/NP team. Our credentialing coordinator handles all privilege applications within 5 business days.',
-    states: ['CA'],
-    specialties: ['Cardiology', 'Electrophysiology', 'Interventional Cardiology'],
-    openRoles: 4,
-    trustScore: 94,
-    hiringStatus: 'HIRING_NOW',
-    hiringTypes: ['Locums', 'Perm', 'Hybrid'],
-    timeToStart: '2–3 weeks',
-    timeToOnboard: '~5 business days',
-    clearToStartThreshold: 'Active CA license + ABIM board certification + active DEA + malpractice insurance',
-    payTransparency: true,
-    payRange: '$310–$380/hr (locums); $420K–$500K (perm)',
-    recentHires: 6,
-    website: 'https://bayareacardiac.example.com',
-    verifiedSince: '2023-06-01T00:00:00Z',
-    requirements: [
-      { label: 'CA Medical License', level: 'L3', note: 'Active, no restrictions' },
-      { label: 'Board Certification', level: 'L3', note: 'ABIM Cardiology or equivalent' },
-      { label: 'DEA Registration', level: 'L2', note: 'Active in CA' },
-      { label: 'Malpractice Insurance', level: 'L2', note: 'Tail or occurrence-based' },
-      { label: 'NPI Verified', level: 'L3' },
-      { label: 'Sanctions Clear', level: 'L3' },
-    ],
-  },
-  'mindbridge-health': {
-    slug: 'mindbridge-health',
-    name: 'MindBridge Health',
-    facilityType: 'Telehealth Platform',
-    tagline: 'Mental healthcare without geographic limits.',
-    description:
-      'MindBridge connects psychiatric and behavioral health specialists with patients across 14 states. We handle all credentialing coordination and payer enrollment. Clinicians typically start seeing patients within 7 days of completing their VitalCV profile.',
-    states: ['CA', 'TX', 'FL', 'NY', 'WA', 'OR', 'CO', 'AZ', 'NV', 'IL', 'GA', 'NC', 'VA', 'MA'],
-    specialties: ['Psychiatry', 'Psychology', 'Behavioral Health', 'Addiction Medicine'],
-    openRoles: 12,
-    trustScore: 91,
-    hiringStatus: 'HIRING_NOW',
-    hiringTypes: ['Telehealth', 'Locums', 'Part-time'],
-    timeToStart: 'Flexible',
-    timeToOnboard: '3–7 business days',
-    clearToStartThreshold: 'Active state license in target state + DEA (or state CSOS equivalent) + NPI active',
-    payTransparency: true,
-    payRange: '$200–$270/hr',
-    recentHires: 23,
-    website: 'https://mindbridge.example.com',
-    verifiedSince: '2023-09-15T00:00:00Z',
-    requirements: [
-      { label: 'State Medical License', level: 'L3', note: 'Active in target state' },
-      { label: 'DEA Registration', level: 'L2' },
-      { label: 'NPI Verified', level: 'L3' },
-      { label: 'Board Certification', level: 'L2', note: 'Preferred, not required' },
-      { label: 'Telehealth Platform Agreement', level: 'L1' },
-    ],
-  },
-  'sacramento-medical-center': {
-    slug: 'sacramento-medical-center',
-    name: 'Sacramento Medical Center',
-    facilityType: 'Hospital System',
-    tagline: 'Northern California critical care — excellence without compromise.',
-    description:
-      'Sacramento Medical Center is a 620-bed Level II trauma center. We hire critical care, emergency, and internal medicine physicians and APPs on both locums and permanent tracks. Our medical staff office runs a streamlined credentialing workflow with a dedicated VitalCV integration.',
-    states: ['CA'],
-    specialties: ['Critical Care', 'Emergency Medicine', 'Internal Medicine', 'Hospitalist'],
-    openRoles: 7,
-    trustScore: 88,
-    hiringStatus: 'HIRING_NOW',
-    hiringTypes: ['Locums', 'Perm', 'PRN'],
-    timeToStart: 'Immediate',
-    timeToOnboard: '5–10 business days',
-    clearToStartThreshold: 'Active CA license + board certification + BLS/ACLS + credentialing file complete',
-    payTransparency: false,
-    payRange: null,
-    recentHires: 11,
-    website: 'https://sacmedcenter.example.com',
-    verifiedSince: '2022-11-01T00:00:00Z',
-    requirements: [
-      { label: 'CA Medical License', level: 'L3', note: 'Active, unrestricted' },
-      { label: 'Board Certification', level: 'L3' },
-      { label: 'BLS / ACLS', level: 'L3' },
-      { label: 'DEA Registration', level: 'L2', note: 'Active in CA' },
-      { label: 'Hospital Credentialing File', level: 'L3' },
-      { label: 'NPI Verified', level: 'L3' },
-      { label: 'Background Check', level: 'L2' },
-    ],
-  },
-  'northwest-locums-alliance': {
-    slug: 'northwest-locums-alliance',
-    name: 'Northwest Locums Alliance',
-    facilityType: 'Staffing / Locums Agency',
-    tagline: 'Connecting credentialed clinicians with Pacific Northwest opportunities.',
-    description:
-      'NLA places board-certified physicians and APPs in rural and urban facilities across WA, OR, ID, and MT. We specialize in rapid placement with compliant credentialing support. Our average placement time is 9 days from first contact to first shift.',
-    states: ['WA', 'OR', 'ID', 'MT'],
-    specialties: ['Family Medicine', 'Internal Medicine', 'Emergency Medicine', 'Hospitalist', 'Pediatrics'],
-    openRoles: 19,
-    trustScore: 85,
-    hiringStatus: 'ACTIVELY_HIRING',
-    hiringTypes: ['Locums', 'Short-term'],
-    timeToStart: '1–2 weeks',
-    timeToOnboard: '3–5 business days',
-    clearToStartThreshold: 'Active state license + current DEA + current malpractice coverage',
-    payTransparency: true,
-    payRange: '$150–$320/hr depending on specialty',
-    recentHires: 34,
-    website: 'https://nwlocums.example.com',
-    verifiedSince: '2024-01-20T00:00:00Z',
-    requirements: [
-      { label: 'State License (target state)', level: 'L3' },
-      { label: 'DEA Registration', level: 'L2' },
-      { label: 'Malpractice Insurance', level: 'L2' },
-      { label: 'NPI Verified', level: 'L3' },
-      { label: 'NPDB Clear', level: 'L2' },
-    ],
-  },
-  'kaiser-permanente-northern-california': {
-    slug: 'kaiser-permanente-northern-california',
-    name: 'Kaiser Permanente Northern California',
-    facilityType: 'Integrated Health System',
-    tagline: 'Delivering total health for 4.5 million members.',
-    description:
-      'Kaiser Permanente Northern California operates 21 hospitals and 260+ medical offices across Northern California. We hire permanent physicians and APPs across all specialties with robust onboarding, competitive salaries, and comprehensive benefits. Our integrated credentialing system connects directly with VitalCV for seamless verification.',
-    states: ['CA'],
-    specialties: ['All Specialties', 'Primary Care', 'Oncology', 'Surgery', 'Radiology', 'Psychiatry'],
-    openRoles: 38,
-    trustScore: 97,
-    hiringStatus: 'ACTIVELY_HIRING',
-    hiringTypes: ['Perm', 'Part-time'],
-    timeToStart: '4–8 weeks',
-    timeToOnboard: '10–15 business days',
-    clearToStartThreshold: 'CA license + board certification + malpractice history review + KP privileging complete',
-    payTransparency: false,
-    payRange: null,
-    recentHires: 89,
-    website: 'https://kaiserpermanente.org',
-    verifiedSince: '2021-03-01T00:00:00Z',
-    requirements: [
-      { label: 'CA Medical License', level: 'L3', note: 'Active, unrestricted' },
-      { label: 'Board Certification', level: 'L3', note: 'Required for all specialties' },
-      { label: 'DEA Registration', level: 'L2' },
-      { label: 'Malpractice History', level: 'L3', note: 'Reviewed by credentialing committee' },
-      { label: 'KP Privileging', level: 'L3', note: 'System-specific process, ~10 days' },
-      { label: 'NPI Verified', level: 'L3' },
-      { label: 'NPDB Clear', level: 'L3' },
-    ],
-  },
-};
-
-// ── Page ──────────────────────────────────────────────────────────────────────
-
-function LevelBadge({ level }: { level: string }) {
-  const color =
-    level.startsWith('L3') ? 'bg-vt-success/15 text-vt-success ring-vt-success/30' :
-    level.startsWith('L2') ? 'bg-vt-info/15    text-vt-info    ring-vt-info/30'    :
-                             'bg-vt-neutral-800/20 text-vt-neutral-200 ring-vt-neutral-700';
-  return (
-    <span className={`rounded-full px-2 py-0.5 tag ring-1 ${color}`}>{level}</span>
-  );
+function hiringStatusLabel(value: string): string {
+  switch (value) {
+    case 'HIRING_NOW':
+      return 'Hiring now';
+    case 'ACTIVELY_HIRING':
+      return 'Actively hiring';
+    case 'ACCEPTING_APPLICATIONS':
+      return 'Accepting applications';
+    case 'NOT_HIRING':
+      return 'Not hiring';
+    default:
+      return value.replace(/_/g, ' ').toLowerCase();
+  }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const e = EMPLOYERS[slug];
-  if (!e) return { title: 'Employer Not Found — VitalCV' };
+  const employer = await fetchLaunchEmployer(slug);
+
+  if (!employer) {
+    return {
+      title: 'Employer Not Found — VitalCV',
+    };
+  }
+
   return {
-    title: `${e.name} — VitalCV`,
-    description: e.tagline,
+    title: `${employer.name} — VitalCV`,
+    description: employer.tagline,
   };
 }
 
-export async function generateStaticParams() {
-  return Object.keys(EMPLOYERS).map(slug => ({ slug }));
-}
-
-const HIRING_STATUS_COLORS: Record<string, string> = {
-  HIRING_NOW: 'bg-green-500/20 text-green-400 border-green-500/30',
-  ACTIVELY_HIRING: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  ACCEPTING_APPLICATIONS: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-};
-
-const HIRING_STATUS_LABELS: Record<string, string> = {
-  HIRING_NOW: 'Hiring Now',
-  ACTIVELY_HIRING: 'Actively Hiring',
-  ACCEPTING_APPLICATIONS: 'Accepting Applications',
-};
-
-export default async function EmployerProfilePage({ params }: Props) {
-  const { slug } = await params;
-  const employer = EMPLOYERS[slug];
-  if (!employer) notFound();
-
-  const levelColor: Record<string, string> = {
-    L3: 'text-red-400 bg-red-500/10 border-red-500/20',
-    L2: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
-    L1: 'text-green-400 bg-green-500/10 border-green-500/20',
-  };
-
+function StatCard({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+}) {
   return (
-    <div className="min-h-screen bg-ops-gradient text-white surface-operator">
-      {/* Breadcrumb */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-        <nav className="flex items-center gap-2 text-xs text-white/40 mb-6">
-          <Link href="/" className="hover:text-white/70 transition-colors">Home</Link>
-          <span>/</span>
-          <Link href="/employers" className="hover:text-white/70 transition-colors">Employers</Link>
-          <span>/</span>
-          <span className="text-white/60">{employer.name}</span>
-        </nav>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left: Main content */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Hero */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8">
-              <div className="flex items-start gap-5">
-                <div className="w-16 h-16 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
-                  <Building2 className="w-8 h-8 text-white/60" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-start gap-3 mb-2">
-                    <h1 className="heading-xl font-bold text-white">{employer.name}</h1>
-                    {employer.verifiedSince && (
-                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs mt-1">
-                        <ShieldCheck className="w-3 h-3" /> Verified
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-white/60">{employer.facilityType}</p>
-                  <p className="text-white/80 mt-3 leading-relaxed">{employer.tagline}</p>
-
-                  <div className="flex flex-wrap gap-3 mt-4">
-                    <span className={`px-3 py-1 rounded-full text-sm border ${HIRING_STATUS_COLORS[employer.hiringStatus] ?? 'bg-white/10 text-white/40'}`}>
-                      {HIRING_STATUS_LABELS[employer.hiringStatus] ?? employer.hiringStatus}
-                    </span>
-                    <span className="flex items-center gap-1 text-sm text-white/50">
-                      <Users className="w-4 h-4" /> {employer.openRoles} open roles
-                    </span>
-                    <span className="flex items-center gap-1 text-sm text-white/50">
-                      <Zap className="w-4 h-4" /> {employer.recentHires} recent hires
-                    </span>
-                    {employer.website && (
-                      <a
-                        href={employer.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                      >
-                        <Globe className="w-3 h-3" /> Website
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <p className="text-white/70 mt-6 leading-relaxed">{employer.description}</p>
-            </div>
-
-            {/* What this employer requires from you */}
-            <section className="rounded-3xl border border-vt-neutral-800/80 bg-vt-surface-ops-raised/30 p-8 shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
-              <h2 className="heading-sm mb-1 text-vt-neutral-100">
-                What This Employer Requires From You
-              </h2>
-              <p className="body-sm mb-6 text-vt-neutral-800">
-                Clear-to-start threshold: <span className="text-vt-neutral-200">{employer.clearToStartThreshold}</span>
-              </p>
-              <ul className="space-y-3">
-                {employer.requirements.map((req) => (
-                  <li key={req.label} className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 p-3 rounded-2xl bg-vt-surface-ops-base border border-vt-neutral-800/60">
-                    <div className="flex items-center gap-3">
-                      <div className="flex shrink-0 h-8 w-8 items-center justify-center rounded-xl bg-vt-success/10 text-vt-success ring-1 ring-vt-success/20">
-                        <ShieldCheck className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <span className="body-sm font-medium text-white">{req.label}</span>
-                        {req.note && <span className="body-sm ml-2 text-vt-neutral-800 hidden sm:inline">— {req.note}</span>}
-                      </div>
-                    </div>
-                    <LevelBadge level={req.level} />
-                    {req.note && <span className="body-sm text-vt-neutral-800 w-full sm:hidden mt-1">{req.note}</span>}
-                  </li>
-                ))}
-              </ul>
-            </section>
-            {/* Hiring details */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-              <h2 className="text-lg font-semibold text-white mb-5">Hiring details</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <Stat label="Time to Start" value={employer.timeToStart} icon={<Clock className="w-4 h-4" />} />
-                <Stat label="Time to Onboard" value={employer.timeToOnboard} icon={<Zap className="w-4 h-4" />} />
-                <Stat label="Hiring Types" value={employer.hiringTypes.join(', ')} icon={<Users className="w-4 h-4" />} />
-                <Stat label="Trust Score" value={String(employer.trustScore)} icon={<ShieldCheck className="w-4 h-4" />} />
-              </div>
-
-              {employer.payTransparency && employer.payRange && (
-                <div className="mt-5 p-4 rounded-xl bg-emerald-900/20 border border-emerald-500/20 flex items-start gap-3">
-                  <DollarSign className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-emerald-400">Pay Transparency</p>
-                    <p className="text-sm text-white/70 mt-1">{employer.payRange}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Specialties + States */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">Coverage</h2>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xs text-white/40 mb-2">Specialties</p>
-                  <div className="flex flex-wrap gap-2">
-                    {employer.specialties.map(s => (
-                      <span key={s} className="px-2 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-sm text-blue-400">{s}</span>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs text-white/40 mb-2">States</p>
-                  <div className="flex flex-wrap gap-2">
-                    {employer.states.map(s => (
-                      <span key={s} className="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-sm text-white/60">{s}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Sidebar */}
-          <div className="space-y-6">
-            {/* Ask about this employer */}
-            <AskAboutEmployer employerName={employer.name} employerSlug={employer.slug} />
-
-            {/* Quick actions */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-3">
-              <h3 className="text-sm font-semibold text-white/70">Quick actions</h3>
-              <Link
-                href={`/explore?employer=${employer.slug}`}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-500 transition-colors"
-              >
-                <span>View Open Roles</span>
-                <ChevronRight className="w-4 h-4" />
-              </Link>
-              <Link
-                href="/get-ready"
-                className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-sm transition-all"
-              >
-                <span>Check My Readiness</span>
-                <ChevronRight className="w-4 h-4" />
-              </Link>
-              <Link
-                href={`/employers?compare=${employer.slug}`}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-sm transition-all"
-              >
-                <span>Compare with Others</span>
-                <ChevronRight className="w-4 h-4" />
-              </Link>
-            </div>
-
-            {/* Trust metadata */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-              <h3 className="text-sm font-semibold text-white/70 mb-3">Trust registry</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-white/40">Trust Score</span>
-                  <span className="text-emerald-400 font-medium">{employer.trustScore}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-white/40">Verified Since</span>
-                  <span className="text-white/60">
-                    {new Date(employer.verifiedSince).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-white/40">Recent Hires</span>
-                  <span className="text-white/60">{employer.recentHires}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-white/40">Pay Transparent</span>
-                  <span className={employer.payTransparency ? 'text-emerald-400' : 'text-white/30'}>
-                    {employer.payTransparency ? 'Yes' : 'No'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
+      <p className="mt-2 text-sm text-white/55">{detail}</p>
     </div>
   );
 }
 
-function Stat({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
+export default async function EmployerProfilePage({ params }: Props) {
+  const { slug } = await params;
+  const [employer, opportunityPayload] = await Promise.all([
+    fetchLaunchEmployer(slug),
+    fetchLaunchOpportunities({
+      organizationSlug: slug,
+      limit: 20,
+    }),
+  ]);
+
+  if (!employer) {
+    notFound();
+  }
+
+  const scopedExploreHref = `/explore?organizationSlug=${encodeURIComponent(employer.slug)}`;
+  const scopedOnboardingHref = `/onboarding?returnTo=${encodeURIComponent(scopedExploreHref)}`;
+
   return (
-    <div className="p-3 rounded-xl bg-white/5 border border-white/8">
-      <div className="flex items-center gap-1.5 text-white/40 text-xs mb-1">
-        {icon} {label}
+    <div className="min-h-screen bg-ops-gradient text-white surface-operator">
+      <div className="mx-auto max-w-6xl px-6 py-10">
+        <nav className="flex flex-wrap items-center gap-2 text-xs text-white/45">
+          <Link href="/" className="transition hover:text-white/70">Home</Link>
+          <span>/</span>
+          <Link href="/employers" className="transition hover:text-white/70">Employers</Link>
+          <span>/</span>
+          <span className="text-white/70">{employer.name}</span>
+        </nav>
+
+        <section className="mt-6 rounded-[28px] border border-white/10 bg-white/[0.04] p-8">
+          <div className="flex flex-wrap items-start justify-between gap-6">
+            <div className="max-w-3xl">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-white/75">
+                  <Building2 className="h-7 w-7" />
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="text-3xl font-semibold tracking-tight text-white">{employer.name}</h1>
+                    <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300">
+                      {hiringStatusLabel(employer.hiringStatus)}
+                    </span>
+                    {employer.verifiedSince ? (
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65">
+                        Verified
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="mt-2 text-sm text-white/55">{employer.facilityType}</p>
+                </div>
+              </div>
+
+              <p className="mt-6 text-lg leading-8 text-white/75">{employer.tagline}</p>
+              <p className="mt-4 max-w-3xl text-sm leading-7 text-white/60">{employer.description}</p>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                {employer.specialties.slice(0, 5).map((specialty) => (
+                  <span
+                    key={specialty}
+                    className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs text-cyan-100"
+                  >
+                    {specialty}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="w-full max-w-sm space-y-3">
+              <div className="rounded-3xl border border-white/10 bg-black/20 p-5">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Launch-ready actions</p>
+                <div className="mt-4 flex flex-col gap-3">
+                  <Link
+                    href={scopedOnboardingHref}
+                    className="inline-flex items-center justify-between rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-black transition hover:bg-emerald-400"
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <Stethoscope className="h-4 w-4" />
+                      Clinician onboarding
+                    </span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                  <Link
+                    href="/verifier/inbox"
+                    className="inline-flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white/75 transition hover:text-white"
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <BriefcaseBusiness className="h-4 w-4" />
+                      Employer workspace
+                    </span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                  <Link
+                    href="/intelligence?view=dashboard"
+                    className="inline-flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white/75 transition hover:text-white"
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4" />
+                      Operator dashboard
+                    </span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
+
+              {employer.trustIndicators.length > 0 ? (
+                <div className="rounded-3xl border border-white/10 bg-black/20 p-5">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Trust registry</p>
+                  <div className="mt-4 space-y-2">
+                    {employer.trustIndicators.map((indicator) => (
+                      <p key={indicator} className="text-sm text-white/65">{indicator}</p>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-6 grid gap-4 md:grid-cols-4">
+          <StatCard
+            label="Open roles"
+            value={String(opportunityPayload.total > 0 ? opportunityPayload.total : employer.openRoles)}
+            detail="Live roles tied to this employer."
+          />
+          <StatCard
+            label="Trust score"
+            value={String(employer.trustScore)}
+            detail="Current public employer trust signal."
+          />
+          <StatCard
+            label="Time to start"
+            value={employer.timeToStart}
+            detail={`Onboarding: ${employer.timeToOnboard}`}
+          />
+          <StatCard
+            label="Recent hires"
+            value={String(employer.recentHires)}
+            detail={employer.payTransparency && employer.payRange ? employer.payRange : 'Pay range shared on request.'}
+          />
+        </section>
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+          <section className="space-y-6">
+            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Clear-to-start threshold</p>
+                  <h2 className="mt-2 text-2xl font-semibold text-white">What this employer requires</h2>
+                </div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/65">
+                  <Clock className="h-3.5 w-3.5" />
+                  {employer.timeToOnboard}
+                </div>
+              </div>
+              <p className="mt-4 text-sm leading-6 text-white/65">{employer.clearToStartThreshold}</p>
+              <div className="mt-6">
+                <RequirementsTable requirements={employer.requirements} />
+              </div>
+            </div>
+
+            <div id="roles" className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Live opportunity feed</p>
+                  <h2 className="mt-2 text-2xl font-semibold text-white">Current roles from this employer</h2>
+                </div>
+                <Link
+                  href={scopedExploreHref}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white/75 transition hover:text-white"
+                >
+                  Open this employer&apos;s roles
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+
+              {opportunityPayload.opportunities.length === 0 ? (
+                <div className="mt-5 rounded-3xl border border-amber-400/20 bg-amber-400/10 p-5">
+                  <h3 className="text-lg font-semibold text-white">No live roles are attached right now</h3>
+                  <p className="mt-2 text-sm leading-6 text-white/65">
+                    The employer profile is live, but no active public opportunities are currently attached to this organization slug.
+                    Next step: confirm opportunity seeding or browse the broader explore feed.
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-5 space-y-4">
+                  {opportunityPayload.opportunities.map((opportunity) => (
+                    <article
+                      key={opportunity.id}
+                      className="rounded-3xl border border-white/10 bg-black/20 p-5"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <h3 className="text-lg font-semibold text-white">{opportunity.title}</h3>
+                          <p className="mt-2 text-sm text-white/60">
+                            {opportunity.remote ? `Remote (${opportunity.state})` : opportunity.state}
+                            {' · '}
+                            {opportunity.specialty}
+                            {' · '}
+                            {opportunity.hiringType}
+                          </p>
+                        </div>
+                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
+                          {opportunity.requirementLevel}
+                        </span>
+                      </div>
+
+                      {opportunity.description ? (
+                        <p className="mt-4 text-sm leading-6 text-white/65">{opportunity.description}</p>
+                      ) : null}
+
+                      <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-white/60">
+                        {opportunity.payRange ? (
+                          <span>{opportunity.payRange}</span>
+                        ) : (
+                          <span>Compensation shared during review</span>
+                        )}
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="h-4 w-4" />
+                          {opportunity.state}
+                        </span>
+                      </div>
+
+                      <div className="mt-5 flex flex-wrap gap-3">
+                        <Link
+                          href={`${scopedExploreHref}&apply=${encodeURIComponent(opportunity.id)}`}
+                          className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-black transition hover:bg-emerald-400"
+                        >
+                          Apply from explore
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                        <Link
+                          href={`/onboarding?returnTo=${encodeURIComponent(`${scopedExploreHref}&apply=${encodeURIComponent(opportunity.id)}`)}`}
+                          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white/75 transition hover:text-white"
+                        >
+                          Check clinician readiness
+                        </Link>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <aside className="space-y-6">
+            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Coverage</p>
+              <h2 className="mt-2 text-xl font-semibold text-white">Hiring footprint</h2>
+              <div className="mt-5 flex flex-wrap gap-2">
+                {employer.states.map((state) => (
+                  <span
+                    key={state}
+                    className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-white/70"
+                  >
+                    {state}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Hiring model</p>
+              <h2 className="mt-2 text-xl font-semibold text-white">Operational details</h2>
+              <div className="mt-5 space-y-3 text-sm text-white/65">
+                <p>Hiring types: {employer.hiringTypes.join(', ') || 'Not disclosed'}</p>
+                <p>Time to start: {employer.timeToStart}</p>
+                <p>Time to onboard: {employer.timeToOnboard}</p>
+                <p>Verified since: {employer.verifiedSince ? employer.verifiedSince.slice(0, 10) : 'Seeded launch profile'}</p>
+                <p>
+                  Website:{' '}
+                  {employer.website ? (
+                    <a
+                      href={employer.website}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-emerald-300 transition hover:text-emerald-200"
+                    >
+                      {employer.website}
+                    </a>
+                  ) : (
+                    'Not published'
+                  )}
+                </p>
+              </div>
+            </div>
+          </aside>
+        </div>
       </div>
-      <p className="text-sm text-white/80 font-medium">{value}</p>
     </div>
   );
 }

@@ -237,7 +237,23 @@ export function EvidenceViewer({
   }, [findingId, onQualitySubmit, selectedQuality]);
 
   if (evidence.length === 0) {
-    return null;
+    return (
+      <OpsCard className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-[var(--vt-text-1)]">Evidence unavailable</p>
+            <p className="mt-1 text-sm leading-6 text-[var(--vt-text-2)]">
+              No evidence items are attached to this finding yet, so there is nothing to inspect in this panel.
+            </p>
+          </div>
+          <OpsBadge label="support state" tone="warning" />
+        </div>
+        <p className="text-sm leading-6 text-[var(--vt-text-3)]">
+          Next step: return to the active finding or provider context and retry after evidence ingestion completes.
+          {findingId ? ` Finding ${findingId} is still live, but its evidence payload is empty.` : ''}
+        </p>
+      </OpsCard>
+    );
   }
 
   function renderEvidenceRow(item: EvidenceRow, idx: number) {

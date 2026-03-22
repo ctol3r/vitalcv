@@ -13,6 +13,8 @@
     "start": "node dist/apps/api/backend/src/server.js",
     "test": "bash ../../../scripts/backend-test-db.sh",
     "seed": "pnpm exec prisma migrate deploy && ts-node -P tsconfig.seed.json prisma/seed.ts",
+    "seed:opportunities": "ts-node -P tsconfig.seed.json prisma/seed-opportunities.ts",
+    "seed:demo-accounts": "ts-node -P tsconfig.seed.json prisma/seed-demo-accounts.ts",
     "prisma:generate": "bash ../../../scripts/prisma-generate-locked.sh --schema prisma/schema.prisma"
   },
   "keywords": [],

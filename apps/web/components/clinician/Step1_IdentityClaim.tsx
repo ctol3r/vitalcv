@@ -52,7 +52,7 @@ function ResultPanel({
     return (
       <div className="flex items-start gap-3 rounded-xl bg-destructive/5 border border-destructive/20 p-4">
         <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
-        <p className="text-sm text-destructive">{error || 'Something went wrong.'}</p>
+        <p className="text-sm text-destructive">{error || 'Lookup interrupted. Please try again.'}</p>
       </div>
     );
   }

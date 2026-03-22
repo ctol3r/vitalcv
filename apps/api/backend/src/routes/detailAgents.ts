@@ -38,7 +38,7 @@ export function registerDetailAgentRoutes(app: Express): void {
         providers: pulse.providers,
         findings: pulse.findings,
         storylines: pulse.storylines,
-        status: pulse.findings > 0 ? 'HEALTHY' : 'WARMING',
+        status: pulse.systemState === 'ALIVE' ? 'HEALTHY' : 'WARMING',
         systemState: pulse.systemState,
         lastEventAt: pulse.lastEventAt,
         generatedAt: new Date().toISOString(),

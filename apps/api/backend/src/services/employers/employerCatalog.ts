@@ -4,6 +4,10 @@ export interface EmployerRequirementSpec {
   label: string;
   level: 'L1' | 'L2' | 'L3';
   note?: string;
+  key?: string;
+  priority?: 'required' | 'preferred';
+  state?: string;
+  specialty?: string;
 }
 
 export interface EmployerSeedRecord {

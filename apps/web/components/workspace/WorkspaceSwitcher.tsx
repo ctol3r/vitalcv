@@ -62,7 +62,7 @@ export function WorkspaceSwitcher() {
       setWorkspace(payload);
       return payload;
     } catch (fetchError) {
-      setError(fetchError instanceof Error ? fetchError.message : 'Unable to load workspaces');
+      setError(fetchError instanceof Error ? fetchError.message : 'Connection interrupted. Retrying securely.');
       return null;
     } finally {
       setLoading(false);
@@ -94,7 +94,7 @@ export function WorkspaceSwitcher() {
       await loadWorkspace();
       setMenuOpen(false);
     } catch (switchError) {
-      setError(switchError instanceof Error ? switchError.message : 'Unable to switch workspace');
+      setError(switchError instanceof Error ? switchError.message : 'Workspace switch interrupted. Please try again.');
     } finally {
       setPendingPersona(null);
     }

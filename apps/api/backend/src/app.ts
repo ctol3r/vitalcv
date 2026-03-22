@@ -121,6 +121,7 @@ import { registerAnalyticsRoutes } from './routes/analytics';              // Wa
 import { registerNetworkAnalyticsRoutes } from './routes/networkAnalytics'; // Wave 140: Network Telemetry
 import { registerDocsRoutes } from './routes/docs';                        // Wave 117: Developer Docs
 import { registerFeedbackRoutes } from './routes/feedback';                // Wave 119: Feedback
+import { registerPilotOpsRoutes } from './routes/pilotOps';                // Pilot ops: support + feedback + triage
 import { registerWebAuthnRoutes } from './routes/webauthn';                // Wave 122: WebAuthn
 import { registerDecisionCapsuleRoutes } from './routes/decisionCapsules'; // Wave A: Decision Capsules
 import { registerDecisionRoutes } from './routes/decisions'; // Wave FE19-A: Decision Intelligence
@@ -527,72 +528,6 @@ function requireAdminRequest(req: Request, res: Response): boolean {
     error_description: 'RBAC requires admin role.',
   });
   return false;
-}
-
-function shouldSkipTenantContext(pathname: string): boolean {
-  const normalizedPath = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
-
-  return (
-    normalizedPath === '/' ||
-    normalizedPath === '/health' ||
-    normalizedPath === '/metrics/public' ||
-    normalizedPath.startsWith('/impact/') ||
-    normalizedPath === '/readyz' ||
-    normalizedPath === '/verifier' ||
-    normalizedPath === '/verify' ||
-    normalizedPath.startsWith('/psv') ||
-    normalizedPath.startsWith('/identity') ||
-    normalizedPath.startsWith('/demo') ||
-    normalizedPath.startsWith('/.well-known') ||
-    normalizedPath.startsWith('/api/.well-known') ||
-    normalizedPath.startsWith('/api-docs') ||
-    normalizedPath === '/openapi.json' ||
-    // Wedge routes authenticate via apiKeyAuth, not tenant context.
-    normalizedPath.startsWith('/recognitions') ||
-    normalizedPath.startsWith('/acceptances') ||
-    normalizedPath.startsWith('/starts') ||
-    normalizedPath.startsWith('/status') ||
-    normalizedPath.startsWith('/trust-state') ||
-    // Ingest routes authenticate via apiKeyAuth.
-    normalizedPath.startsWith('/ingest') ||
-    // Pilot/verify routes are public-facing or use wallet rate limits.
-    normalizedPath.startsWith('/api/verify') ||
-    normalizedPath.startsWith('/api/verifier/accept') ||
-    normalizedPath.startsWith('/api/pilot') ||
-    normalizedPath.startsWith('/api/metrics') ||
-    normalizedPath.startsWith('/api/artifact') ||
-    normalizedPath.startsWith('/api/ask') ||
-    normalizedPath.startsWith('/api/copilot') ||
-    normalizedPath.startsWith('/api/agents') ||
-    normalizedPath.startsWith('/api/watch') ||
-    normalizedPath.startsWith('/api/search') ||
-    normalizedPath.startsWith('/api/employers') ||
-    normalizedPath.startsWith('/bundle') ||
-    // Wave 31: PoE issuance uses apiKeyAuth; verify is stateless/public.
-    normalizedPath.startsWith('/api/issuer/') ||
-    normalizedPath.startsWith('/api/poe/') ||
-    // Wave 35: Audit proof endpoint is read-only / public for auditors.
-    normalizedPath.startsWith('/api/audit/') ||
-    // Wave 37: Superbrain intelligence endpoint.
-    normalizedPath.startsWith('/api/intelligence/') ||
-    // Intelligence data paths — read-only, auth forwarded via x-clerk-user-id header.
-    normalizedPath === '/api/providers' ||
-    normalizedPath.startsWith('/api/findings') ||
-    normalizedPath.startsWith('/api/investigators') ||
-    normalizedPath.startsWith('/api/storylines') ||
-    normalizedPath.startsWith('/api/directory') ||
-    normalizedPath === '/api/system-health' ||
-    normalizedPath.startsWith('/api/graph/') ||
-    normalizedPath.startsWith('/api/investigation/') ||
-    normalizedPath.startsWith('/api/provider-intelligence/') ||
-    // Wave B: integrity probes are read-only operational endpoints.
-    normalizedPath.startsWith('/api/integrity/') ||
-    // Program Gravity Well: read-only protocol validation and schema surfaces.
-    normalizedPath.startsWith('/api/validate/') ||
-    normalizedPath.startsWith('/api/schemas') ||
-    // Wave M: Trust intelligence endpoints are read-only; auth forwarded via x-clerk-user-id header.
-    normalizedPath.startsWith('/api/trust/')
-  );
 }
 
 function enforceArtifactOrganizationAccess(
@@ -3506,30 +3441,6 @@ app.use(
     credentials: corsOrigin !== '*',
   }),
 );
-// Health + readyz must be reachable without any org context (infra probes, Railway, Vercel).
-app.get(['/health', '/health/'], (_req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    metrics: requestLatencyMetrics.snapshot(),
-    git_branch: process.env.RAILWAY_GIT_BRANCH ?? null,
-    git_sha: process.env.RAILWAY_GIT_COMMIT_SHA ?? null,
-  });
-});
-app.get('/readyz', (_req, res) => {
-  prisma
-    .$queryRaw`SELECT 1`
-    .then(() => {
-      res.status(200).json({
-        status: 'ready',
-        service: 'api',
-        git_branch: process.env.RAILWAY_GIT_BRANCH ?? null,
-        git_sha: process.env.RAILWAY_GIT_COMMIT_SHA ?? null,
-      });
-    })
-    .catch(() => {
-      res.status(503).json({ status: 'not_ready', service: 'api' });
-    });
-});
 
 // Intelligence/investigation read routes bypass org requirement.
 // All other routes still require org context via requireTenantContext.
@@ -3617,6 +3528,7 @@ registerAnalyticsRoutes(app);         // Wave 116: Analytics Dashboard
 registerNetworkAnalyticsRoutes(app);  // Wave 140: Network Telemetry Intelligence
 registerDocsRoutes(app);              // Wave 117: Developer Docs & OpenAPI
 registerFeedbackRoutes(app);          // Wave 119: Feedback Loop
+registerPilotOpsRoutes(app);          // Pilot ops: support, metrics, triage queue
 registerWebAuthnRoutes(app);          // Wave 122: WebAuthn Biometric Auth
 registerDecisionCapsuleRoutes(app);   // Wave A: Decision Capsules + Blast Radius
 registerDecisionRoutes(app);             // Wave FE19-A: Decision recommendations + state model

@@ -76,30 +76,45 @@ describe('intelligence auth forwarding', () => {
 
   it('returns the live provider directory when the session is missing', async () => {
     authMock.mockResolvedValue({ userId: null, orgId: null, sessionClaims: {} });
-    const fetchMock = vi.fn().mockResolvedValue(new Response(
-      JSON.stringify({
-        entries: [{
-          npi: '1902301456',
-          fullName: 'Amelia Hart',
-          specialties: ['Medical Oncology'],
-          credentialCount: 3,
-          activeCredentials: 3,
-          primaryIssuer: 'Mayo Clinic Jacksonville',
-          credentialHealth: 'VERIFIED',
-          lastVerifiedAt: '2026-03-17T00:00:00.000Z',
-          trustScore: 61,
-        }],
-        totalProviders: 1,
-        pageInfo: {
-          totalAvailable: 1,
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(
+        JSON.stringify({
+          entries: [{
+            npi: '1902301456',
+            fullName: 'Amelia Hart',
+            specialties: ['Medical Oncology'],
+            credentialCount: 3,
+            activeCredentials: 3,
+            primaryIssuer: 'Mayo Clinic Jacksonville',
+            credentialHealth: 'VERIFIED',
+            lastVerifiedAt: '2026-03-17T00:00:00.000Z',
+            trustScore: 61,
+          }],
+          totalProviders: 1,
+          pageInfo: {
+            totalAvailable: 1,
+          },
+          snapshotReady: true,
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
         },
-        snapshotReady: true,
-      }),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      },
-    ));
+      ))
+      .mockResolvedValueOnce(new Response(
+        JSON.stringify({
+          results: [{
+            npi: '1902301456',
+            score: 84,
+            band: 'L3',
+            computedAt: '2026-03-17T11:00:00.000Z',
+          }],
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ));
     vi.stubGlobal('fetch', fetchMock);
 
     const { GET } = await import('../app/api/intelligence/providers/route');
@@ -112,6 +127,15 @@ describe('intelligence auth forwarding', () => {
         headers: expect.any(Headers),
       }),
     );
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://backend.test/api/trust/score/batch',
+      expect.objectContaining({
+        method: 'POST',
+        cache: 'no-store',
+        headers: expect.any(Headers),
+        body: JSON.stringify({ npis: ['1902301456'] }),
+      }),
+    );
     await expect(response.json()).resolves.toMatchObject({
       accessMode: 'full',
       reason: 'ok',
@@ -119,6 +143,7 @@ describe('intelligence auth forwarding', () => {
       providers: [{
         npi: '1902301456',
         name: 'Amelia Hart',
+        trustScore: 84,
       }],
     });
   });
@@ -562,6 +587,19 @@ describe('intelligence auth forwarding', () => {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
         },
+      ))
+      .mockResolvedValueOnce(new Response(
+        JSON.stringify({
+          total: 1,
+          storylines: [{
+            storylineId: 'storyline-1',
+            title: 'Trust decline',
+          }],
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
       ));
     vi.stubGlobal('fetch', fetchMock);
 
@@ -579,7 +617,7 @@ describe('intelligence auth forwarding', () => {
     });
   });
 
-  it('synthesizes graph nodes and evidence edges from findings when the graph payload is empty', async () => {
+  it('surfaces a graph inconsistency when findings exist but the graph payload is empty', async () => {
     authMock.mockResolvedValue({
       userId: 'clerk-user-1',
       orgId: 'org-clerk-1',
@@ -656,25 +694,10 @@ describe('intelligence auth forwarding', () => {
     const { GET } = await import('../app/api/intelligence/graph/route');
     const response = await GET(new NextRequest('http://localhost/api/intelligence/graph?npi=1234567890') as never);
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(409);
     await expect(response.json()).resolves.toMatchObject({
-      reason: 'ok',
-      focusNodeId: expect.any(String),
-      nodes: expect.arrayContaining([
-        expect.objectContaining({
-          type: 'provider',
-        }),
-        expect.objectContaining({
-          type: 'source',
-          label: 'State Board',
-        }),
-      ]),
-      edges: expect.arrayContaining([
-        expect.objectContaining({
-          type: 'evidence_link',
-          findingIds: ['finding-1'],
-        }),
-      ]),
+      error: 'graph_data_inconsistent',
+      error_description: expect.stringContaining('finding'),
     });
   });
 

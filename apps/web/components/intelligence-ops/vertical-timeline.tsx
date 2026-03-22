@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
+import { SurfaceEmptyState } from './primitives';
 
 export interface VerticalTimelineItem {
   id: string;
@@ -19,7 +20,12 @@ export function VerticalTimeline({
   className?: string;
 }) {
   if (items.length === 0) {
-    return <p className="text-sm text-[var(--vt-text-3)]">{emptyMessage}</p>;
+    return (
+      <SurfaceEmptyState
+        title="Timeline empty"
+        description={emptyMessage}
+      />
+    );
   }
 
   const sortedItems = [...items].sort((left, right) => {

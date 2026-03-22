@@ -30,6 +30,8 @@
  */
 
 import Link from 'next/link';
+import { PilotFailureSignal } from '@/components/pilot-ops/PilotFailureSignal';
+import { SupportActionButton } from '@/components/pilot-ops/SupportActionButton';
 import { normalizeIntelligenceHref } from '@/lib/intelligence/routes';
 import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
 import type React from 'react';
@@ -177,15 +179,17 @@ export function VBanner({
 export function VEmptyState({
   title,
   description,
+  className,
 }: {
   title?: string;
   description?: string;
+  className?: string;
 }) {
   const resolvedTitle = title?.trim() || 'No data available';
   const resolvedDescription = description?.trim() || 'No records are available for the current scope.';
 
   return (
-    <VCard className="border-dashed text-center">
+    <VCard className={cn("border-dashed text-center", className)}>
       <div className="mx-auto max-w-xl space-y-3 py-8">
         <div className="mx-auto h-6 w-6 animate-pulse rounded-full bg-cyan-400/20 ring-1 ring-cyan-400/50" />
         <h2 className="text-sm font-semibold text-[var(--vt-text-1)]">{resolvedTitle}</h2>
@@ -208,6 +212,7 @@ export function VErrorState({
 }) {
   return (
     <VCard className="border-[var(--vt-badge-critical-border)]">
+      <PilotFailureSignal title={title} message={description} severity="medium" />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           <AlertTriangle className="mt-0.5 h-5 w-5 text-[var(--vt-critical)]" />
@@ -216,12 +221,21 @@ export function VErrorState({
             <p className="text-sm leading-6 text-[var(--vt-text-2)]">{description}</p>
           </div>
         </div>
-        {onRetry ? (
-          <VButton onClick={onRetry} variant="ghost" size="sm">
-            <RefreshCw className="h-4 w-4" />
-            Retry
-          </VButton>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {onRetry ? (
+            <VButton onClick={onRetry} variant="ghost" size="sm">
+              <RefreshCw className="h-4 w-4" />
+              Retry
+            </VButton>
+          ) : null}
+          <SupportActionButton
+            label="Contact support"
+            title={title}
+            messagePrefill={description}
+            severity="medium"
+            className="vt-btn-micro inline-flex items-center gap-2 rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-3 py-1.5 text-sm font-medium text-[var(--vt-text-1)] transition hover:bg-[var(--vt-border)]"
+          />
+        </div>
       </div>
     </VCard>
   );

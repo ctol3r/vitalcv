@@ -100,6 +100,11 @@ export default async function InternalMetricsPage({
         </Link>
       </p>
       <p className="mt-2 text-sm text-neutral-600">
+        <Link href="/internal/pilot-ops" className="underline underline-offset-4">
+          Open pilot ops console
+        </Link>
+      </p>
+      <p className="mt-2 text-sm text-neutral-600">
         <Link href={`/internal/enterprise${orgQuery}`} className="underline underline-offset-4">
           Open enterprise signals
         </Link>

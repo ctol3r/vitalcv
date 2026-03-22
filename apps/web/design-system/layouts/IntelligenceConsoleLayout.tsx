@@ -1,14 +1,17 @@
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import type React from 'react';
-import { buildIntelligenceGraphHref, buildIntelligenceHref, deriveIntelligenceNavKey, type IntelligenceNavKey } from '@/lib/intelligence/routes';
+import { buildIntelligenceHref, deriveIntelligenceNavKey, type IntelligenceNavKey } from '@/lib/intelligence/routes';
+import { getPilotIntelligenceNav } from '@/lib/pilot-flags';
 import { cn } from '@/lib/utils';
 
-const DEFAULT_NAV = [
-  { key: 'dashboard', href: buildIntelligenceHref('dashboard'), label: 'Monitor' },
-  { key: 'investigations', href: buildIntelligenceHref('investigations'), label: 'Investigate' },
-  { key: 'actions', href: buildIntelligenceHref('actions'), label: 'Decide' },
-] as const;
+const DEFAULT_NAV = getPilotIntelligenceNav().map((item) => ({
+  ...item,
+  href:
+    item.key === 'dashboard' ? buildIntelligenceHref('dashboard')
+    : item.key === 'investigations' ? buildIntelligenceHref('investigations')
+    : buildIntelligenceHref('actions'),
+}));
 
 export interface ConsoleBreadcrumb {
   label: string;

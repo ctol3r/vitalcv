@@ -1,12 +1,14 @@
 import { IdentityOnboardingStep } from '@/components/onboarding/OnboardingFlowSteps';
 import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
 
-export default async function IdentityPage() {
+export default async function IdentityPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ returnTo?: string }>;
+}) {
   const session = await auth();
-  if (!session.userId) {
-    redirect('/sign-in?redirect_url=%2Fonboarding%2Fidentity');
-  }
+  const params = await searchParams;
+  const returnTo = typeof params.returnTo === 'string' ? params.returnTo : null;
 
-  return <IdentityOnboardingStep />;
+  return <IdentityOnboardingStep guestMode={!session.userId} returnTo={returnTo} />;
 }

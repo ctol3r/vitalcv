@@ -1,366 +1,170 @@
-'use client';
-
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, CheckCircle2, Loader2, Shield, XCircle, Zap } from 'lucide-react';
-import { useCallback, useState } from 'react';
-import { BackgroundField } from '@/components/ui/BackgroundField';
+import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
+import Link from 'next/link';
+import { ArrowRight, BriefcaseBusiness, ShieldCheck, Stethoscope, Telescope } from 'lucide-react';
 import {
-  TrustGraphPrimary,
-  DEMO_NODES,
-  DEMO_EDGES,
-  type GraphNode,
-  type GraphEdge,
-} from '@/components/graph/TrustGraphPrimary';
-import { KnowledgePanel } from '@/components/graph/KnowledgePanel';
+  fetchLaunchEmployers,
+  fetchLaunchOpportunities,
+} from '@/lib/launch/marketplace';
 
-/* ── Types ────────────────────────────────────────────────── */
+export const metadata: Metadata = {
+  title: 'Demo — VitalCV',
+  description: 'Launch-safe demo entry points using the live employer, opportunity, onboarding, and intelligence surfaces.',
+};
 
-type DemoStep = 'input' | 'processing' | 'graph' | 'decision' | 'revocation';
-
-interface ProcessingPhase {
-  label: string;
-  duration: number;
-}
-
-const PROCESSING_PHASES: ProcessingPhase[] = [
-  { label: 'Resolving NPI identity…', duration: 800 },
-  { label: 'Querying primary sources…', duration: 1200 },
-  { label: 'Verifying medical license…', duration: 1000 },
-  { label: 'Checking NPDB/OIG exclusions…', duration: 900 },
-  { label: 'Building trust graph…', duration: 700 },
-  { label: 'Running readiness evaluator…', duration: 600 },
-];
-
-/* ── Processing animation ─────────────────────────────────── */
-
-function ProcessingView({ onComplete }: { onComplete: () => void }) {
-  const [currentPhase, setCurrentPhase] = useState(0);
-  const [completed, setCompleted] = useState<number[]>([]);
-
-  useState(() => {
-    let elapsed = 0;
-    const timers: ReturnType<typeof setTimeout>[] = [];
-
-    PROCESSING_PHASES.forEach((phase, i) => {
-      elapsed += phase.duration;
-      timers.push(
-        setTimeout(() => {
-          setCompleted((prev) => [...prev, i]);
-          setCurrentPhase(i + 1);
-          if (i === PROCESSING_PHASES.length - 1) {
-            setTimeout(onComplete, 500);
-          }
-        }, elapsed),
-      );
-    });
-
-    return () => timers.forEach(clearTimeout);
-  });
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="max-w-md mx-auto space-y-3"
-    >
-      <div className="text-center mb-6">
-        <div className="inline-flex items-center justify-center rounded-full bg-infra-blue-muted p-3 mb-3">
-          <Loader2 className="h-6 w-6 text-infra-blue animate-spin" />
-        </div>
-        <h2 className="text-lg font-bold font-heading">Trust Engine Processing</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Running primary source verification pipeline
-        </p>
-      </div>
-
-      <div className="space-y-2">
-        {PROCESSING_PHASES.map((phase, i) => {
-          const isCompleted = completed.includes(i);
-          const isActive = currentPhase === i && !isCompleted;
-          return (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className={`flex items-center gap-3 rounded-xl border px-4 py-2.5 transition-colors ${
-                isCompleted
-                  ? 'border-infra-green/30 bg-infra-green-muted'
-                  : isActive
-                    ? 'border-infra-blue/30 bg-infra-blue-muted'
-                    : 'border-infra-border bg-white/50'
-              }`}
-            >
-              {isCompleted ? (
-                <CheckCircle2 className="h-4 w-4 text-infra-green shrink-0" />
-              ) : isActive ? (
-                <Loader2 className="h-4 w-4 text-infra-blue animate-spin shrink-0" />
-              ) : (
-                <div className="h-4 w-4 rounded-full border border-infra-border shrink-0" />
-              )}
-              <span
-                className={`text-sm ${
-                  isCompleted
-                    ? 'text-infra-green font-medium'
-                    : isActive
-                      ? 'text-infra-blue font-medium'
-                      : 'text-muted-foreground'
-                }`}
-              >
-                {phase.label}
-              </span>
-            </motion.div>
-          );
-        })}
-      </div>
-    </motion.div>
-  );
-}
-
-/* ── Decision capsule ─────────────────────────────────────── */
-
-function DecisionCapsule({
-  onRevoke,
+function DemoCard({
+  eyebrow,
+  title,
+  detail,
+  href,
+  action,
+  tone,
+  children,
 }: {
-  onRevoke: () => void;
+  eyebrow: string;
+  title: string;
+  detail: string;
+  href: string;
+  action: string;
+  tone: 'emerald' | 'cyan' | 'amber' | 'violet';
+  children?: ReactNode;
 }) {
+  const toneClasses: Record<typeof tone, string> = {
+    emerald: 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200',
+    cyan: 'border-cyan-400/20 bg-cyan-400/10 text-cyan-100',
+    amber: 'border-amber-400/20 bg-amber-400/10 text-amber-100',
+    violet: 'border-violet-400/20 bg-violet-400/10 text-violet-100',
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-      className="max-w-sm mx-auto rounded-2xl border-2 border-infra-green/30 bg-white shadow-lg overflow-hidden"
-    >
-      <div className="bg-infra-green-muted px-6 py-4 text-center">
-        <div className="inline-flex items-center gap-2 mb-2">
-          <Shield className="h-5 w-5 text-infra-green" />
-          <span className="text-sm font-bold uppercase tracking-wider text-infra-green">
-            Trust Decision
-          </span>
+    <article className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6">
+      <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${toneClasses[tone]}`}>
+        {eyebrow}
+      </span>
+      <h2 className="mt-4 text-2xl font-semibold text-white">{title}</h2>
+      <p className="mt-3 text-sm leading-6 text-white/65">{detail}</p>
+      {children ? (
+        <div className="mt-5 space-y-2 text-sm text-white/60">
+          {children}
         </div>
-        <h3 className="text-2xl font-bold font-heading text-foreground">CLEARED</h3>
-        <p className="text-xs text-muted-foreground mt-1">
-          All primary source verifications passed
-        </p>
-      </div>
-
-      <div className="px-6 py-4 space-y-3">
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Confidence</span>
-          <span className="font-bold font-mono">97.2%</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Trust Band</span>
-          <span className="font-bold text-infra-green">GREEN</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Verification Sources</span>
-          <span className="font-bold font-mono">4/4</span>
-        </div>
-
-        <div className="pt-2">
-          <button
-            onClick={onRevoke}
-            className="w-full rounded-xl border border-infra-red/30 bg-infra-red-muted px-4 py-2.5 text-sm font-semibold text-infra-red transition hover:bg-infra-red/10"
-          >
-            Simulate Revocation
-          </button>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-/* ── Revocation view ──────────────────────────────────────── */
-
-function RevocationView({ onReset }: { onReset: () => void }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="max-w-sm mx-auto text-center space-y-4"
-    >
-      <div className="inline-flex items-center justify-center rounded-full bg-infra-red-muted p-4">
-        <XCircle className="h-8 w-8 text-infra-red" />
-      </div>
-      <h3 className="text-xl font-bold font-heading text-foreground">
-        Credential Revoked
-      </h3>
-      <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-        Medical license CA-2847391 has been revoked by CA Medical Board.
-        Trust band changed from GREEN to RED.
-      </p>
-      <div className="rounded-xl border border-infra-red/30 bg-infra-red-muted px-4 py-3 font-mono text-xs text-infra-red">
-        REVOCATION SIGNAL PROPAGATED → 2 employers notified
-      </div>
-      <button
-        onClick={onReset}
-        className="inline-flex items-center gap-2 rounded-xl bg-foreground text-background px-6 py-2.5 text-sm font-semibold transition hover:opacity-90"
+      ) : null}
+      <Link
+        href={href}
+        className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-emerald-300 transition hover:text-emerald-200"
       >
-        Run Again
+        {action}
         <ArrowRight className="h-4 w-4" />
-      </button>
-    </motion.div>
+      </Link>
+    </article>
   );
 }
 
-/* ── Demo page ────────────────────────────────────────────── */
+export default async function DemoPage() {
+  const [employersPayload, opportunitiesPayload] = await Promise.all([
+    fetchLaunchEmployers(6),
+    fetchLaunchOpportunities({ limit: 6 }),
+  ]);
 
-export default function DemoPage() {
-  const [step, setStep] = useState<DemoStep>('input');
-  const [npi, setNpi] = useState('');
-  const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
-
-  const handleSubmit = useCallback(() => {
-    if (npi.trim().length < 3) return;
-    setStep('processing');
-  }, [npi]);
-
-  const handleProcessingComplete = useCallback(() => {
-    setStep('graph');
-  }, []);
-
-  const handleShowDecision = useCallback(() => {
-    setStep('decision');
-  }, []);
-
-  const handleRevoke = useCallback(() => {
-    setStep('revocation');
-  }, []);
-
-  const handleReset = useCallback(() => {
-    setNpi('');
-    setStep('input');
-    setSelectedNode(null);
-  }, []);
+  const featuredEmployer = employersPayload.employers[0] ?? null;
+  const featuredOpportunity = opportunitiesPayload.opportunities[0] ?? null;
+  const clinicianHref = featuredOpportunity
+    ? `/onboarding?returnTo=${encodeURIComponent(`/explore?apply=${featuredOpportunity.id}&organizationSlug=${featuredOpportunity.organizationSlug}`)}`
+    : '/onboarding?returnTo=%2Fexplore';
+  const employerHref = featuredEmployer ? `/employers/${featuredEmployer.slug}` : '/employers';
+  const employerWorkspaceHref = '/verifier/inbox';
+  const investigationHref = '/intelligence?view=investigations&npi=1902301456';
+  const launchTruthHref = '/intelligence?view=system-health';
 
   return (
-    <BackgroundField className="min-h-screen">
-      <div className="mx-auto max-w-5xl px-6 py-16">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
-        >
-          <div className="inline-flex items-center gap-2 rounded-full border border-infra-border bg-infra-blue-muted px-4 py-1.5 mb-4">
-            <Zap className="h-3.5 w-3.5 text-infra-blue" />
-            <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-infra-blue">
-              Interactive Demo
-            </span>
-          </div>
-          <h1 className="text-3xl font-bold font-heading text-foreground">
-            Trust Engine Demo
+    <div className="min-h-screen bg-ops-gradient px-6 py-14 text-white surface-operator">
+      <div className="mx-auto max-w-6xl">
+        <div className="max-w-3xl">
+          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-300">
+            Live Launch Demo
+          </span>
+          <h1 className="mt-5 text-4xl font-semibold tracking-tight text-white">
+            Demo the current launch package without drifting away from live truth.
           </h1>
-          <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
-            Enter any NPI to see how VitalCV builds a cryptographic trust graph
-            from primary source data.
+          <p className="mt-4 max-w-2xl text-base leading-7 text-white/65">
+            Every path on this page uses the same seeded employers, opportunities, investigation data,
+            and operator telemetry that the product exposes elsewhere. Guest mode stays read-only and
+            the employer/application loop stays on the live marketplace flow.
           </p>
-        </motion.div>
+        </div>
 
-        {/* Steps */}
-        <AnimatePresence mode="wait">
-          {step === 'input' && (
-            <motion.div
-              key="input"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="max-w-md mx-auto"
-            >
-              <div className="rounded-2xl border border-infra-border bg-white/90 backdrop-blur-sm p-6 shadow-sm">
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  NPI Number
-                </label>
-                <div className="flex gap-3">
-                  <input
-                    type="text"
-                    value={npi}
-                    onChange={(e) => setNpi(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                    placeholder="e.g. 1003000126"
-                    className="flex-1 rounded-xl border border-infra-border bg-infra-surface px-4 py-2.5 text-sm font-mono placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-infra-blue focus:border-infra-blue"
-                    onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                  />
-                  <button
-                    onClick={handleSubmit}
-                    disabled={npi.trim().length < 3}
-                    className="rounded-xl bg-infra-blue px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    Verify
-                  </button>
-                </div>
-                <p className="text-[11px] text-muted-foreground mt-2">
-                  Try: 1003000126 (demo data)
-                </p>
-              </div>
-            </motion.div>
-          )}
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Employers</p>
+            <p className="mt-2 text-3xl font-semibold text-white">{employersPayload.total}</p>
+            <p className="mt-2 text-sm text-white/55">Visible in the public launch cohort.</p>
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Live Roles</p>
+            <p className="mt-2 text-3xl font-semibold text-white">{opportunitiesPayload.total}</p>
+            <p className="mt-2 text-sm text-white/55">Available through the real explore/apply loop.</p>
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Investigation Case</p>
+            <p className="mt-2 text-3xl font-semibold text-white">1902301456</p>
+            <p className="mt-2 text-sm text-white/55">Seeded provider case for operator demo review.</p>
+          </div>
+        </div>
 
-          {step === 'processing' && (
-            <motion.div
-              key="processing"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <ProcessingView onComplete={handleProcessingComplete} />
-            </motion.div>
-          )}
+        <div className="mt-10 grid gap-5 xl:grid-cols-2">
+          <DemoCard
+            eyebrow="Clinician path"
+            title="Guest onboarding into live role fit"
+            detail="Use the three-step guest flow to resolve a real NPI, preview current fit, and land in `/explore` with the matching live role scope already applied."
+            href={clinicianHref}
+            action="Open clinician demo"
+            tone="emerald"
+          >
+            <p><Stethoscope className="mr-2 inline h-4 w-4" />Guest mode is read-only and does not claim persistence.</p>
+            <p>{featuredOpportunity ? `Starts with ${featuredOpportunity.title} at ${featuredOpportunity.organizationName}.` : 'Falls back to the full live role board if no featured role is available.'}</p>
+          </DemoCard>
 
-          {step === 'graph' && (
-            <motion.div
-              key="graph"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-6"
-            >
-              <TrustGraphPrimary
-                nodes={DEMO_NODES}
-                edges={DEMO_EDGES}
-                onNodeClick={setSelectedNode}
-              />
-              <div className="text-center">
-                <button
-                  onClick={handleShowDecision}
-                  className="inline-flex items-center gap-2 rounded-xl bg-infra-green px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
-                >
-                  Show Decision Capsule
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-            </motion.div>
-          )}
+          <DemoCard
+            eyebrow="Employer path"
+            title="Public employer review plus operator inbox"
+            detail="Start from the public employer profile to show believable demand, then move into the employer queue where real application state is visible to the hiring team."
+            href={employerHref}
+            action="Open employer demo"
+            tone="cyan"
+          >
+            <p><BriefcaseBusiness className="mr-2 inline h-4 w-4" />Public profile: {featuredEmployer ? featuredEmployer.name : 'Live employer directory'}.</p>
+            <p>
+              Operator inbox:{' '}
+              <Link href={employerWorkspaceHref} className="text-cyan-200 transition hover:text-white">
+                open employer workspace
+              </Link>
+            </p>
+          </DemoCard>
 
-          {step === 'decision' && (
-            <motion.div
-              key="decision"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <DecisionCapsule onRevoke={handleRevoke} />
-            </motion.div>
-          )}
+          <DemoCard
+            eyebrow="Investigation path"
+            title="Seeded provider case for trust review"
+            detail="Use a seeded investigation with live findings, storylines, graph context, and evidence inspection so the operator demo feels like an actual case review."
+            href={investigationHref}
+            action="Open investigation demo"
+            tone="amber"
+          >
+            <p><Telescope className="mr-2 inline h-4 w-4" />Anchored to the seeded provider case for NPI 1902301456.</p>
+            <p>Continue into findings, graph, and evidence from the same operator workspace.</p>
+          </DemoCard>
 
-          {step === 'revocation' && (
-            <motion.div
-              key="revocation"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <RevocationView onReset={handleReset} />
-            </motion.div>
-          )}
-        </AnimatePresence>
+          <DemoCard
+            eyebrow="Operator truth"
+            title="Launch health and rollback confidence"
+            detail="Show the current route checks, live counts, action/application health, and deployed frontend/backend markers before or after any demo run."
+            href={launchTruthHref}
+            action="Open launch truth"
+            tone="violet"
+          >
+            <p><ShieldCheck className="mr-2 inline h-4 w-4" />Use this view to confirm what is actually live.</p>
+            <p>Includes route health, graph counts, failed actions, failed applications, auth failures, and version markers.</p>
+          </DemoCard>
+        </div>
       </div>
-
-      {/* Knowledge Panel */}
-      <KnowledgePanel
-        node={selectedNode}
-        onClose={() => setSelectedNode(null)}
-      />
-    </BackgroundField>
+    </div>
   );
 }
