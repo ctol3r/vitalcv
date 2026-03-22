@@ -229,7 +229,7 @@ export function LiveTrustConsole() {
             <div className="flex flex-col sm:flex-row gap-3 pt-1">
               <Link
                 href="/get-ready"
-                className="flex items-center justify-center gap-2 min-h-[52px] rounded-2xl bg-emerald-500 hover:bg-emerald-400 px-7 font-bold text-white text-sm shadow-[0_0_40px_rgba(16,185,129,0.25)] transition-all active:scale-[0.98]"
+                className="flex items-center justify-center gap-2 min-h-[52px] rounded-2xl bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 px-7 font-bold text-white text-sm shadow-[0_0_40px_rgba(16,185,129,0.25)] transition-all active:scale-[0.98]"
               >
                 Get Verified Now
                 <Zap className="h-4 w-4" />

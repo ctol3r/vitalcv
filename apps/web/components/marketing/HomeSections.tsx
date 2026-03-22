@@ -174,7 +174,7 @@ const STEPS = [
     step: '02',
     icon: ShieldCheck,
     title: 'Primary sources verify you',
-    description: 'We query state medical boards, NPDB, DEA, OIG, and board registries directly — the same sources hospitals use, automated.',
+    description: 'We query state medical boards, NPDB, DEA, OIG, and board registries directly. The same sources hospitals use — automated.',
     accent: 'emerald',
     detail: 'Real sources, not document copies',
   },

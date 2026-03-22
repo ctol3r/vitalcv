@@ -828,7 +828,7 @@ function OpportunityCard({
               : 'bg-gradient-to-b from-vt-success to-emerald-600 text-black shadow-[0_2px_10px_rgba(16,185,129,0.2)] hover:shadow-[0_4px_15px_rgba(16,185,129,0.3)] hover:brightness-110'
           }`}
         >
-          <Zap className="w-4 h-4" /> {application ? 'View application' : 'Apply now'}
+          <Zap className="w-4 h-4" /> {application ? 'View application' : 'Apply with VitalCV'}
         </button>
         {opp.organizationSlug && (
           <Link
