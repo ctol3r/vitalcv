@@ -166,26 +166,23 @@ const STEPS = [
     step: '01',
     icon: Search,
     title: 'Enter your NPI',
-    description:
-      'Physicians enter their 10-digit NPI. VitalCV pulls your verified identity from NPPES in seconds — no forms, no document uploads, no starting from scratch.',
+    description: 'Your 10-digit NPI pulls verified identity from NPPES instantly. No forms, no uploads.',
     accent: 'blue',
     detail: 'Ready in under 30 seconds',
   },
   {
     step: '02',
     icon: ShieldCheck,
-    title: 'We verify with primary sources',
-    description:
-      'We query state medical boards, NPDB, DEA, OIG, and board certification registries directly. The same sources hospitals use — done automatically, without the paperwork.',
+    title: 'Primary sources verify you',
+    description: 'We query state medical boards, NPDB, DEA, OIG, and board registries directly — the same sources hospitals use, automated.',
     accent: 'emerald',
     detail: 'Real sources, not document copies',
   },
   {
     step: '03',
     icon: Zap,
-    title: 'Carry it anywhere you practice',
-    description:
-      'Your Trust Passport travels with you. Any employer — hospital, group practice, locums agency — can confirm your standing instantly. No committee. No 90-day wait.',
+    title: 'Carry it everywhere',
+    description: 'Your Trust Passport travels with you. Any employer confirms your standing instantly — no committee, no 90-day wait.',
     accent: 'violet',
     detail: '3–6 weeks faster to start',
   },
@@ -238,9 +235,7 @@ export function HowItWorksSection() {
             <span className="text-blue-400">Trusted for your career.</span>
           </h2>
           <p className="mt-4 text-white/60 max-w-xl mx-auto text-lg leading-relaxed">
-            VitalCV queries state medical boards, NPDB, DEA, and board
-            certification bodies directly — then produces a verified credential
-            that any hospital can confirm instantly, without calling anyone.
+            Primary sources. Cryptographic proof. Portable forever.
           </p>
         </FadeIn>
 

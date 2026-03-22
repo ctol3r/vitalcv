@@ -1884,6 +1884,43 @@ model EmployerWebhookConfig {
   @@index([active])
 }
 
+// Wave APPLY-FIX: Apply-with-VitalCV share event log
+// Tracks every "Sign & Share" action: who shared, what, where, when,
+// webhook delivery status, email fallback, and provider-initiated revocations.
+model BundleShareEvent {
+  id                   String    @id @default(uuid()) @db.Uuid
+  /// bundleId references VerificationArtifact.id (source='APPLY_BUNDLE')
+  bundleId             String    @db.Uuid @map("bundle_id")
+  npi                  String
+  sharedByClerkUserId  String    @map("shared_by_clerk_user_id")
+  organizationId       String    @map("organization_id")
+  organizationName     String    @map("organization_name")
+  callbackUrl          String?   @map("callback_url")
+  purposeOfUse         String    @map("purpose_of_use")
+  /// JSON summary of credential types included in the bundle
+  credentialsSummary   Json      @db.JsonB @map("credentials_summary")
+  /// Webhook URL dispatched to (if any)
+  webhookUrl           String?   @map("webhook_url")
+  /// DELIVERED | FAILED | SKIPPED
+  webhookStatus        String    @default("SKIPPED") @map("webhook_status")
+  webhookDeliveredAt   DateTime? @map("webhook_delivered_at")
+  webhookError         String?   @map("webhook_error")
+  emailFallbackSent    Boolean   @default(false) @map("email_fallback_sent")
+  emailFallbackTo      String?   @map("email_fallback_to")
+  /// Set by provider to revoke this share
+  revokedAt            DateTime? @map("revoked_at")
+  revokedByClerkUserId String?   @map("revoked_by_clerk_user_id")
+  sharedAt             DateTime  @default(now()) @map("shared_at")
+  expiresAt            DateTime  @map("expires_at")
+
+  @@index([npi, sharedAt])
+  @@index([bundleId])
+  @@index([organizationId])
+  @@index([sharedByClerkUserId])
+  @@index([revokedAt])
+  @@map("bundle_share_events")
+}
+
 model RevocationOutboxEvent {
   id             String   @id @default(uuid()) @db.Uuid
   eventType      String
