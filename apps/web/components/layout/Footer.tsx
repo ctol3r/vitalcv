@@ -1,13 +1,15 @@
 'use client';
 
 import { isPublicSurfacePath } from '@/components/layout/publicSurfaceRoutes';
+import { DeployBadge } from '@/components/layout/DeployBadge';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const FOOTER_LINKS = [
+  { href: '/updates', label: 'Updates' },
   { href: '/developers#sdks', label: 'Docs' },
   { href: '/status', label: 'Status' },
-  { href: '/developers', label: 'Developers' },
+  { href: '/labs', label: 'Labs' },
 ] as const;
 
 export default function Footer() {
@@ -18,19 +20,24 @@ export default function Footer() {
   }
 
   return (
-    <footer className="mt-auto shrink-0 border-t border-white/10 bg-[color:oklch(0.22_0.01_60)] text-white">
-      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-8 text-sm sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-white/70">&copy; VitalCV</p>
-        <div className="flex flex-wrap items-center gap-5">
-          {FOOTER_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="text-white/70 transition hover:text-white"
-            >
-              {link.label}
-            </Link>
-          ))}
+    <footer className="mt-auto shrink-0 border-t border-white/10 bg-vt-surface-ops-base text-white">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <p className="text-white/50 text-sm">&copy; VitalCV</p>
+            <DeployBadge />
+          </div>
+          <div className="flex flex-wrap items-center gap-5">
+            {FOOTER_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-white/50 text-sm transition hover:text-white"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </footer>

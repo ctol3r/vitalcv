@@ -19,7 +19,8 @@ import { useState } from 'react';
 const NAV_ITEMS = [
   { href: '/',            label: 'Home' },
   { href: '/explore',     label: 'Explore' },
-  { href: '/documents',   label: 'Documents' },
+  { href: '/interview',   label: 'Interview Mode' },
+  { href: '/passport',    label: 'Passport' },
   { href: '/developers',  label: 'Developers' },
 ] as const;
 

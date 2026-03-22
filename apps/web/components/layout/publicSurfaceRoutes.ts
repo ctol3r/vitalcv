@@ -17,6 +17,11 @@ export const PUBLIC_SURFACE_PATHS = new Set([
   '/get-ready',
   '/investors',
   '/partners',
+  // Activation wave — product entry points
+  '/interview',
+  '/passport',
+  '/updates',
+  '/labs',
 ]);
 
 // Ops-only paths: these get the AppShell (ops chrome), not Navbar+Footer.
