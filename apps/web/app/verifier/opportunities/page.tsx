@@ -74,7 +74,7 @@ export default function VerifierOpportunitiesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-ops-gradient text-white">
+    <>
       <main className="mx-auto max-w-4xl px-6 py-10">
         <Breadcrumb items={[{ label: 'Employer Dashboard', href: '/verifier/home' }, { label: 'My Opportunities' }]} className="mb-6" />
 
@@ -198,6 +198,6 @@ export default function VerifierOpportunitiesPage() {
           </div>
         )}
       </main>
-    </div>
+    </>
   );
 }

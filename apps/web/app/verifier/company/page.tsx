@@ -169,13 +169,13 @@ export default function VerifierCompanyPage() {
   }
 
   if (phase === 'loading') return (
-    <div className="min-h-screen bg-ops-gradient flex items-center justify-center">
-      <Loader2 className="h-7 w-7 text-zinc-500 animate-spin" />
+    <div className="flex flex-1 items-center justify-center">
+      <Loader2 className="h-7 w-7 text-vt-neutral-500 animate-spin" />
     </div>
   );
 
   if (phase === 'saved') return (
-    <div className="min-h-screen bg-ops-gradient flex items-center justify-center">
+    <div className="flex flex-1 items-center justify-center">
       <div className="text-center space-y-3">
         <CheckCircle2 className="h-10 w-10 text-vt-success mx-auto" />
         <p className="text-white font-semibold">Profile saved. Taking you to post your first opportunity…</p>
@@ -184,7 +184,7 @@ export default function VerifierCompanyPage() {
   );
 
   return (
-    <div className="min-h-screen bg-ops-gradient text-white">
+    <>
       <main className="mx-auto max-w-2xl px-6 py-10">
         <Breadcrumb items={[{ label: 'Employer Dashboard', href: '/verifier/home' }, { label: 'Organization Profile' }]} className="mb-6" />
         <header className="mb-8 flex items-center gap-3">
@@ -373,7 +373,7 @@ export default function VerifierCompanyPage() {
           </button>
         </div>
       </main>
-    </div>
+    </>
   );
 }
 

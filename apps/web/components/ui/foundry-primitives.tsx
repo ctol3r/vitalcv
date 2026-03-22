@@ -7,6 +7,14 @@
  * InputGroup, Slider, Switch, Tag, Navbar, NavbarGroup, NavbarDivider
  *
  * Uses Foundry tokens + Tailwind. Zero external dependencies.
+ *
+ * ⚠️  DEPRECATED — As of Patch Set 2 (2026-03-21), this file has zero
+ * imports in the codebase. Prefer canonical primitives from:
+ *   - components/ui/card.tsx
+ *   - components/ui/button.tsx
+ *   - components/ui/badge.tsx
+ *   - components/ui/glass-card.tsx
+ * If you need something from here, migrate it to a canonical primitive first.
  */
 
 import { AnimatePresence, motion } from 'framer-motion';
@@ -26,8 +34,8 @@ export function Card({ className, children, interactive, onClick }: CardProps) {
   return (
     <div
       className={cn(
-        'rounded-xl border border-white/[0.06] bg-[var(--gf-panel,#0d1421)] p-4',
-        interactive && 'cursor-pointer hover:border-white/[0.12] hover:bg-[var(--gf-panel-raised,#111827)] transition-colors',
+        'rounded-xl border border-white/[0.06] bg-[var(--gf-panel,var(--vt-surface-ops-base))] p-4',
+        interactive && 'cursor-pointer hover:border-white/[0.12] hover:bg-[var(--gf-panel-raised,var(--vt-surface-ops-raised))] transition-colors',
         className,
       )}
       onClick={onClick}

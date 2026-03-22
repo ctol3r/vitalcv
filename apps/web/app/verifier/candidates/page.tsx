@@ -38,7 +38,7 @@ export default function VerifierCandidatesPage() {
   }, [specialty, state]);
 
   return (
-    <div className="min-h-screen bg-ops-gradient text-white">
+    <>
       <main className="mx-auto max-w-5xl px-6 py-10">
         <Breadcrumb items={[{ label: 'Employer Dashboard', href: '/verifier/home' }, { label: 'Candidates' }]} className="mb-6" />
 
@@ -125,6 +125,6 @@ export default function VerifierCandidatesPage() {
           </div>
         )}
       </main>
-    </div>
+    </>
   );
 }
