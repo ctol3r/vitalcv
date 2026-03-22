@@ -8,7 +8,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, CheckCircle2, Loader2, AlertCircle, ChevronRight } from 'lucide-react';
-import Breadcrumb from '@/components/ui/Breadcrumb';
+import VerifierBreadcrumb from '@/components/ui/VerifierBreadcrumb';
 
 const FACILITY_TYPES = ['hospital', 'health_system', 'practice', 'staffing_agency', 'telehealth', 'clinic', 'other'];
 const SPECIALTIES = ['Cardiology', 'Emergency Medicine', 'Family Medicine', 'Internal Medicine', 'Neurology', 'OB/GYN', 'Oncology', 'Orthopedics', 'Pediatrics', 'Psychiatry', 'Radiology', 'Surgery', 'Urology', 'Other'];
@@ -186,7 +186,7 @@ export default function VerifierCompanyPage() {
   return (
     <>
       <main className="mx-auto max-w-2xl px-6 py-10">
-        <Breadcrumb items={[{ label: 'Employer Dashboard', href: '/verifier/home' }, { label: 'Organization Profile' }]} className="mb-6" />
+        <VerifierBreadcrumb label="Organization Profile" className="mb-6" />
         <header className="mb-8 flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-vt-info/10 flex items-center justify-center ring-1 ring-vt-info/20">
             <Building2 className="h-5 w-5 text-vt-info" />

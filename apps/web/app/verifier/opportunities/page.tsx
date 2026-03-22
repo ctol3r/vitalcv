@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Plus, Loader2, AlertCircle, CheckCircle2, Briefcase, ChevronRight } from 'lucide-react';
-import Breadcrumb from '@/components/ui/Breadcrumb';
+import VerifierBreadcrumb from '@/components/ui/VerifierBreadcrumb';
 
 const SPECIALTIES = ['Cardiology','Emergency Medicine','Family Medicine','Internal Medicine','Neurology','OB/GYN','Oncology','Orthopedics','Pediatrics','Psychiatry','Radiology','Surgery','Urology','Other'];
 const STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
@@ -76,7 +76,7 @@ export default function VerifierOpportunitiesPage() {
   return (
     <>
       <main className="mx-auto max-w-4xl px-6 py-10">
-        <Breadcrumb items={[{ label: 'Employer Dashboard', href: '/verifier/home' }, { label: 'My Opportunities' }]} className="mb-6" />
+        <VerifierBreadcrumb label="My Opportunities" className="mb-6" />
 
         <header className="mb-8 flex items-center justify-between">
           <div>
@@ -155,7 +155,7 @@ export default function VerifierOpportunitiesPage() {
 
         {/* Opportunities list */}
         {loading ? (
-          <div className="flex justify-center py-16"><Loader2 className="h-7 w-7 text-zinc-600 animate-spin" /></div>
+          <div className="flex justify-center py-16"><Loader2 className="h-7 w-7 text-muted-foreground animate-spin" /></div>
         ) : opps.length === 0 ? (
           <div className="rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 p-12 text-center">
             <Briefcase className="h-10 w-10 text-vt-neutral-800 mx-auto mb-4" />

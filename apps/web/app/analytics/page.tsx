@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 interface OverviewData {
@@ -49,10 +49,10 @@ function KpiCard({
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm"
+      className="bg-card rounded-2xl border border-border p-5 shadow-sm"
     >
       <div className="flex items-start justify-between mb-3">
-        <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">{label}</p>
+        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{label}</p>
         {trend && (
           <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
             trend.startsWith('+') ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'
@@ -60,7 +60,7 @@ function KpiCard({
         )}
       </div>
       <p className={`text-3xl font-bold mb-1 ${color}`}>{value}</p>
-      {sub && <p className="text-xs text-slate-400">{sub}</p>}
+      {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
       {sparkData && sparkData.length > 1 && (
         <div className="mt-3 -mx-1">
           <SparkLine data={sparkData} />
@@ -104,7 +104,7 @@ const DEMO_TOP_ISSUERS = [
 function TrustScoreBar({ score }: { score: number }) {
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${score}%` }}
@@ -112,7 +112,7 @@ function TrustScoreBar({ score }: { score: number }) {
           className="h-full bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full"
         />
       </div>
-      <span className="text-xs font-medium text-slate-600 w-8 text-right">{score}</span>
+      <span className="text-xs font-medium text-muted-foreground w-8 text-right">{score}</span>
     </div>
   );
 }
@@ -131,21 +131,21 @@ export default function AnalyticsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white px-6 py-12">
+    <div className="min-h-screen bg-background px-6 py-12">
       <div className="max-w-6xl mx-auto">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-10">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900">Platform Analytics</h1>
-            <p className="text-slate-400 text-sm mt-1">Live metrics across the VitalCV trust network.</p>
+            <h1 className="text-2xl font-semibold text-foreground">Platform Analytics</h1>
+            <p className="text-muted-foreground text-sm mt-1">Live metrics across the VitalCV trust network.</p>
           </div>
-          <div className="flex bg-white border border-slate-200 rounded-lg overflow-hidden text-xs font-medium">
+          <div className="flex bg-card border border-border rounded-lg overflow-hidden text-xs font-medium">
             {(['7d', '30d', '90d'] as const).map(r => (
               <button
                 key={r}
                 onClick={() => setRange(r)}
-                className={`px-3 py-2 transition-colors ${range === r ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-800'}`}
+                className={`px-3 py-2 transition-colors ${range === r ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 {r}
               </button>
@@ -189,37 +189,37 @@ export default function AnalyticsPage() {
 
         {/* Secondary stats */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-10">
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-            <p className="text-xs text-slate-400 uppercase tracking-wide font-medium mb-4">Revocation Rate</p>
+          <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-4">Revocation Rate</p>
             <div className="flex items-end gap-2">
-              <span className="text-4xl font-bold text-slate-800">{overview.revocationRate}<span className="text-xl text-slate-400">%</span></span>
+              <span className="text-4xl font-bold text-foreground">{overview.revocationRate}<span className="text-xl text-muted-foreground">%</span></span>
               <span className="text-xs text-emerald-600 mb-1">↓ industry avg 2.1%</span>
             </div>
-            <p className="text-xs text-slate-400 mt-2">Low revocation = high issuer quality</p>
+            <p className="text-xs text-muted-foreground mt-2">Low revocation = high issuer quality</p>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-            <p className="text-xs text-slate-400 uppercase tracking-wide font-medium mb-4">Federated Networks</p>
+          <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-4">Federated Networks</p>
             <div className="space-y-2">
               {['Nursys (Nurse Licensing)', 'CAQH (Provider Credentialing)'].map(n => (
                 <div key={n} className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-teal-400" />
-                  <span className="text-sm text-slate-600">{n}</span>
+                  <span className="text-sm text-muted-foreground">{n}</span>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-slate-400 mt-3">250k+ credentialed clinicians</p>
+            <p className="text-xs text-muted-foreground mt-3">250k+ credentialed clinicians</p>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-            <p className="text-xs text-slate-400 uppercase tracking-wide font-medium mb-4">Compliance Coverage</p>
+          <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-4">Compliance Coverage</p>
             {[['HIPAA', 100], ['HITRUST', 94], ['SOC 2 Type II', 87], ['ONC/TEFCA', 76]].map(([label, pct]) => (
               <div key={String(label)} className="mb-2">
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="text-slate-600">{label}</span>
-                  <span className="text-slate-400">{pct}%</span>
+                  <span className="text-muted-foreground">{label}</span>
+                  <span className="text-muted-foreground">{pct}%</span>
                 </div>
-                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${pct}%` }}
@@ -233,11 +233,11 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Top Issuers */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100">
-            <h2 className="text-base font-semibold text-slate-900">Top Issuers by Trust Score</h2>
+        <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-border">
+            <h2 className="text-base font-semibold text-foreground">Top Issuers by Trust Score</h2>
           </div>
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-border">
             {DEMO_TOP_ISSUERS.map((issuer, i) => (
               <motion.div
                 key={issuer.name}
@@ -246,10 +246,10 @@ export default function AnalyticsPage() {
                 transition={{ delay: i * 0.05 }}
                 className="px-6 py-4 flex items-center gap-4"
               >
-                <span className="text-sm text-slate-300 w-4 font-mono">#{i + 1}</span>
+                <span className="text-sm text-muted-foreground w-4 font-mono">#{i + 1}</span>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-800">{issuer.name}</p>
-                  <p className="text-xs text-slate-400">{issuer.credentialsIssued.toLocaleString()} credentials issued</p>
+                  <p className="text-sm font-medium text-foreground">{issuer.name}</p>
+                  <p className="text-xs text-muted-foreground">{issuer.credentialsIssued.toLocaleString()} credentials issued</p>
                 </div>
                 <div className="w-48">
                   <TrustScoreBar score={issuer.trustScore} />

@@ -8,7 +8,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Users, Loader2, MapPin, Stethoscope, ShieldCheck, ChevronRight } from 'lucide-react';
-import Breadcrumb from '@/components/ui/Breadcrumb';
+import VerifierBreadcrumb from '@/components/ui/VerifierBreadcrumb';
 
 const SPECIALTIES = ['All','Cardiology','Emergency Medicine','Family Medicine','Internal Medicine','Neurology','OB/GYN','Oncology','Orthopedics','Pediatrics','Psychiatry','Radiology','Surgery','Other'];
 const STATES = ['All','CA','TX','NY','FL','IL','PA','OH','GA','NC','MI'];
@@ -40,7 +40,7 @@ export default function VerifierCandidatesPage() {
   return (
     <>
       <main className="mx-auto max-w-5xl px-6 py-10">
-        <Breadcrumb items={[{ label: 'Employer Dashboard', href: '/verifier/home' }, { label: 'Candidates' }]} className="mb-6" />
+        <VerifierBreadcrumb label="Candidates" className="mb-6" />
 
         <header className="mb-6 flex items-center justify-between flex-wrap gap-4">
           <div>
@@ -62,7 +62,7 @@ export default function VerifierCandidatesPage() {
         </header>
 
         {loading ? (
-          <div className="flex justify-center py-20"><Loader2 className="h-7 w-7 text-zinc-600 animate-spin" /></div>
+          <div className="flex justify-center py-20"><Loader2 className="h-7 w-7 text-muted-foreground animate-spin" /></div>
         ) : candidates.length === 0 ? (
           <div className="rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 p-14 text-center">
             <Users className="h-10 w-10 text-vt-neutral-800 mx-auto mb-4" />
