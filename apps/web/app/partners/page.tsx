@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
 
 const TIERS = [
   {
@@ -62,9 +63,9 @@ export default function PartnersPage() {
   const [submitted, setSubmitted] = useState(false);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-vt-surface-ops-base">
       {/* Hero */}
-      <section className="bg-gradient-to-br from-slate-900 to-slate-800 px-6 py-20 text-center">
+      <section className="bg-gradient-to-br from-[var(--vt-ops-from)] to-[var(--vt-ops-via)] px-6 py-20 text-center">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl mx-auto">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
             Build the future of<br />
@@ -72,7 +73,7 @@ export default function PartnersPage() {
               healthcare trust
             </span>{' '}with us.
           </h1>
-          <p className="text-slate-300 text-lg mb-8 max-w-xl mx-auto">
+          <p className="text-vt-neutral-300 text-lg mb-8 max-w-xl mx-auto">
             Join the VitalCV partner ecosystem and help healthcare organizations verify, trust, and hire faster.
           </p>
           <a href="#contact" className="bg-emerald-500 hover:bg-emerald-400 text-white font-semibold px-8 py-3 rounded-xl transition-colors inline-block">
@@ -84,8 +85,8 @@ export default function PartnersPage() {
       {/* Partner Tiers */}
       <section className="py-20 px-6">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-slate-900 mb-3">Partnership Tiers</h2>
-          <p className="text-slate-400 text-center mb-12">Choose the partnership that fits your business model.</p>
+          <h2 className="text-3xl font-bold text-center text-white mb-3">Partnership Tiers</h2>
+          <p className="text-vt-neutral-400 text-center mb-12">Choose the partnership that fits your business model.</p>
           <div className="grid md:grid-cols-3 gap-8">
             {TIERS.map((tier, i) => (
               <motion.div
@@ -94,17 +95,17 @@ export default function PartnersPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow"
+                className="rounded-2xl ring-1 ring-white/10 bg-white/5 p-6 hover:bg-white/[0.08] transition-colors"
               >
                 <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${tier.color} flex items-center justify-center text-xl mb-4`}>
                   {tier.icon}
                 </div>
-                <h3 className="font-semibold text-slate-900 mb-2">{tier.name}</h3>
-                <p className="text-sm text-slate-500 mb-4">{tier.desc}</p>
+                <h3 className="font-semibold text-white mb-2">{tier.name}</h3>
+                <p className="text-sm text-vt-neutral-400 mb-4">{tier.desc}</p>
                 <ul className="space-y-2 mb-6">
                   {tier.benefits.map(b => (
-                    <li key={b} className="flex items-start gap-2 text-sm text-slate-600">
-                      <svg className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <li key={b} className="flex items-start gap-2 text-sm text-vt-neutral-300">
+                      <svg className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                       {b}
@@ -124,29 +125,29 @@ export default function PartnersPage() {
       </section>
 
       {/* Why Partner */}
-      <section className="bg-slate-50 py-16 px-6">
+      <section className="bg-vt-surface-ops-raised py-16 px-6">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-center text-slate-900 mb-10">Why Partner with VitalCV?</h2>
+          <h2 className="text-2xl font-bold text-center text-white mb-10">Why Partner with VitalCV?</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {WHY_PARTNER.map(w => (
               <div key={w.title} className="text-center">
                 <div className="text-3xl mb-3">{w.icon}</div>
-                <h3 className="font-semibold text-slate-800 text-sm mb-1">{w.title}</h3>
-                <p className="text-xs text-slate-400">{w.desc}</p>
+                <h3 className="font-semibold text-white text-sm mb-1">{w.title}</h3>
+                <p className="text-xs text-vt-neutral-400">{w.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Placeholder partner logos */}
-      <section className="py-12 px-6 border-y border-slate-100">
+      {/* Partner logo placeholders */}
+      <section className="py-12 px-6 border-y border-white/10">
         <div className="max-w-4xl mx-auto">
-          <p className="text-center text-xs text-slate-300 uppercase tracking-widest font-medium mb-6">Trusted by leading healthcare organizations</p>
-          <div className="flex flex-wrap justify-center gap-8 opacity-30">
+          <p className="text-center text-xs text-vt-neutral-500 uppercase tracking-widest font-medium mb-6">Trusted by leading healthcare organizations</p>
+          <div className="flex flex-wrap justify-center gap-8 opacity-40">
             {['Epic', 'Cerner', 'CAQH', 'Nursys', 'ABIM', 'Joint Commission'].map(name => (
-              <div key={name} className="h-8 px-4 bg-slate-200 rounded-lg flex items-center justify-center">
-                <span className="text-sm font-medium text-slate-600">{name}</span>
+              <div key={name} className="h-8 px-4 bg-white/10 rounded-lg flex items-center justify-center">
+                <span className="text-sm font-medium text-vt-neutral-300">{name}</span>
               </div>
             ))}
           </div>
@@ -156,13 +157,13 @@ export default function PartnersPage() {
       {/* Contact */}
       <section id="contact" className="py-20 px-6">
         <div className="max-w-xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-slate-900 mb-2">Partner Inquiry</h2>
-          <p className="text-slate-400 text-center mb-8">Tell us about your organization and we&apos;ll be in touch within 2 business days.</p>
+          <h2 className="text-3xl font-bold text-center text-white mb-2">Partner Inquiry</h2>
+          <p className="text-vt-neutral-400 text-center mb-8">Tell us about your organization and we&apos;ll be in touch within 2 business days.</p>
           {submitted ? (
             <div className="text-center py-12">
               <div className="text-4xl mb-4">🤝</div>
-              <h3 className="text-xl font-semibold text-slate-800 mb-2">Inquiry Received</h3>
-              <p className="text-slate-400">Our partnerships team will reach out within 2 business days.</p>
+              <h3 className="text-xl font-semibold text-white mb-2">Inquiry Received</h3>
+              <p className="text-vt-neutral-400">Our partnerships team will reach out within 2 business days.</p>
             </div>
           ) : (
             <form onSubmit={e => { e.preventDefault(); setSubmitted(true); }} className="space-y-4">
@@ -172,41 +173,41 @@ export default function PartnersPage() {
                 { key: 'email', label: 'Work Email', type: 'email', placeholder: 'john@acmehealth.com' },
               ].map(f => (
                 <div key={f.key}>
-                  <label className="text-sm font-medium text-slate-700 mb-1 block">{f.label}</label>
+                  <label className="text-sm font-medium text-vt-neutral-300 mb-1 block">{f.label}</label>
                   <input
                     type={f.type}
                     placeholder={f.placeholder}
                     required
                     value={formData[f.key as keyof typeof formData]}
                     onChange={e => setFormData(p => ({ ...p, [f.key]: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400"
+                    className="w-full rounded-xl bg-white/5 ring-1 ring-white/10 px-4 py-3 text-sm text-white placeholder:text-vt-neutral-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
                   />
                 </div>
               ))}
               <div>
-                <label className="text-sm font-medium text-slate-700 mb-1 block">Partnership Interest</label>
+                <label className="text-sm font-medium text-vt-neutral-300 mb-1 block">Partnership Interest</label>
                 <select
                   value={formData.tier}
                   onChange={e => setFormData(p => ({ ...p, tier: e.target.value }))}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400"
+                  className="w-full rounded-xl bg-white/5 ring-1 ring-white/10 px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
                 >
-                  <option value="">Select a tier...</option>
-                  {TIERS.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
+                  <option value="" className="bg-vt-surface-ops-raised">Select a tier...</option>
+                  {TIERS.map(t => <option key={t.name} value={t.name} className="bg-vt-surface-ops-raised">{t.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-700 mb-1 block">Message</label>
+                <label className="text-sm font-medium text-vt-neutral-300 mb-1 block">Message</label>
                 <textarea
                   rows={3}
                   placeholder="Tell us about your integration use case..."
                   value={formData.message}
                   onChange={e => setFormData(p => ({ ...p, message: e.target.value }))}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 resize-none"
+                  className="w-full rounded-xl bg-white/5 ring-1 ring-white/10 px-4 py-3 text-sm text-white placeholder:text-vt-neutral-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 resize-none"
                 />
               </div>
-              <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 rounded-xl transition-colors">
+              <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white" size="lg">
                 Submit Inquiry
-              </button>
+              </Button>
             </form>
           )}
         </div>

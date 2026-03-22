@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
 
 interface Metrics {
   credentialsIssued: number;
@@ -74,9 +75,9 @@ export default function InvestorsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-vt-surface-ops-base">
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 px-6 py-24 text-center">
+      <section className="relative overflow-hidden bg-gradient-to-br from-[var(--vt-ops-from)] via-[var(--vt-ops-via)] to-emerald-950 px-6 py-24 text-center">
         <div className="absolute inset-0 opacity-10">
           <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
             <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -99,7 +100,7 @@ export default function InvestorsPage() {
             <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">$4.2B problem.</span>
             <br />VitalCV solves it.
           </h1>
-          <p className="text-xl text-slate-300 max-w-2xl mx-auto mb-10">
+          <p className="text-xl text-vt-neutral-300 max-w-2xl mx-auto mb-10">
             Cryptographic trust infrastructure that makes primary source verification instant, auditable, and interoperable — replacing a 30-day manual process with 24-hour automated verification.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
@@ -114,9 +115,9 @@ export default function InvestorsPage() {
       </section>
 
       {/* Live Metrics */}
-      <section className="bg-slate-50 py-16 px-6">
+      <section className="bg-vt-surface-ops-raised py-16 px-6">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-center text-sm font-semibold text-slate-400 uppercase tracking-widest mb-8">Live Platform Metrics</h2>
+          <h2 className="text-center text-xs font-semibold text-vt-neutral-500 uppercase tracking-widest mb-8">Live Platform Metrics</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
               { label: 'Credentials Issued', value: metrics.credentialsIssued, suffix: '+' },
@@ -124,11 +125,11 @@ export default function InvestorsPage() {
               { label: 'Network Nodes', value: metrics.networkNodes, suffix: '+' },
               { label: 'Federated Networks', value: metrics.federatedNetworks, suffix: '' },
             ].map(m => (
-              <div key={m.label} className="text-center bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                <p className="text-3xl font-bold text-slate-900 tabular-nums">
+              <div key={m.label} className="text-center rounded-2xl bg-white/5 ring-1 ring-white/10 p-6">
+                <p className="text-3xl font-bold text-white tabular-nums">
                   <AnimatedCounter end={m.value} suffix={m.suffix} />
                 </p>
-                <p className="text-xs text-slate-400 mt-1">{m.label}</p>
+                <p className="text-xs text-vt-neutral-500 mt-1">{m.label}</p>
               </div>
             ))}
           </div>
@@ -138,15 +139,15 @@ export default function InvestorsPage() {
       {/* Market Opportunity */}
       <section className="py-20 px-6">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-slate-900 mb-4">The Market Opportunity</h2>
-          <p className="text-slate-400 text-center mb-12 max-w-xl mx-auto">
+          <h2 className="text-3xl font-bold text-center text-white mb-4">The Market Opportunity</h2>
+          <p className="text-vt-neutral-400 text-center mb-12 max-w-xl mx-auto">
             Every clinician in America needs to be credentialed. The process is broken. We fix it.
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {MARKET_STATS.map(s => (
               <div key={s.label} className="text-center">
-                <p className="text-4xl font-bold text-emerald-600 mb-2">{s.value}</p>
-                <p className="text-sm text-slate-500">{s.label}</p>
+                <p className="text-4xl font-bold text-emerald-400 mb-2">{s.value}</p>
+                <p className="text-sm text-vt-neutral-500">{s.label}</p>
               </div>
             ))}
           </div>
@@ -154,9 +155,9 @@ export default function InvestorsPage() {
       </section>
 
       {/* Value Props */}
-      <section className="bg-slate-50 py-20 px-6">
+      <section className="bg-vt-surface-ops-raised py-20 px-6">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-slate-900 mb-12">Why VitalCV Wins</h2>
+          <h2 className="text-3xl font-bold text-center text-white mb-12">Why VitalCV Wins</h2>
           <div className="grid md:grid-cols-3 gap-8">
             {VALUE_PROPS.map((vp, i) => (
               <motion.div
@@ -165,14 +166,14 @@ export default function InvestorsPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm"
+                className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-6"
               >
                 <div className="text-3xl mb-4">{vp.icon}</div>
-                <h3 className="font-semibold text-slate-900 mb-2">{vp.title}</h3>
-                <p className="text-sm text-slate-500 mb-4">{vp.desc}</p>
+                <h3 className="font-semibold text-white mb-2">{vp.title}</h3>
+                <p className="text-sm text-vt-neutral-400 mb-4">{vp.desc}</p>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold text-emerald-600">{vp.stat}</span>
-                  <span className="text-xs text-slate-400">{vp.statLabel}</span>
+                  <span className="text-2xl font-bold text-emerald-400">{vp.stat}</span>
+                  <span className="text-xs text-vt-neutral-500">{vp.statLabel}</span>
                 </div>
               </motion.div>
             ))}
@@ -181,10 +182,10 @@ export default function InvestorsPage() {
       </section>
 
       {/* Founder */}
-      <section className="py-20 px-6 bg-white border-t border-slate-100">
+      <section className="py-20 px-6 border-t border-white/10">
         <div className="max-w-3xl mx-auto text-center">
-          <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-400 mb-8">The Builder</p>
-          <blockquote className="text-xl md:text-2xl font-medium text-slate-800 leading-relaxed mb-8">
+          <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-vt-neutral-500 mb-8">The Builder</p>
+          <blockquote className="text-xl md:text-2xl font-medium text-white/80 leading-relaxed mb-8">
             &ldquo;I watched a brilliant physician wait 11 weeks to start a locums contract — 
             not because of anything she did wrong, but because the system had no memory. 
             Her credentials existed. The verification had been done. 
@@ -195,17 +196,17 @@ export default function InvestorsPage() {
               C
             </div>
             <div className="text-left">
-              <p className="font-semibold text-slate-900">Christopher Toler</p>
-              <p className="text-sm text-slate-500">Founder &amp; CEO, VitalCV</p>
+              <p className="font-semibold text-white">Christopher Toler</p>
+              <p className="text-sm text-vt-neutral-500">Founder &amp; CEO, VitalCV</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Roadmap strip */}
-      <section className="py-16 px-6 bg-slate-900">
+      {/* Roadmap */}
+      <section className="py-16 px-6 bg-vt-surface-ops-raised">
         <div className="max-w-5xl mx-auto">
-          <p className="text-center text-[11px] font-bold uppercase tracking-[0.25em] text-slate-400 mb-10">What&apos;s Next</p>
+          <p className="text-center text-[11px] font-bold uppercase tracking-[0.25em] text-vt-neutral-500 mb-10">What&apos;s Next</p>
           <div className="grid sm:grid-cols-4 gap-6 text-center">
             {[
               { phase: 'Now', label: 'MVP Live', desc: 'Two-sided marketplace, live NPI verification, cryptographic credentials', done: true },
@@ -213,12 +214,12 @@ export default function InvestorsPage() {
               { phase: 'Q3 2026', label: 'Mobile App', desc: 'React Native clinician passport — credentials on your phone at every desk', done: false },
               { phase: 'Q4 2026', label: 'Series A', desc: '$8M to scale sales, compliance, and federation network', done: false },
             ].map((item) => (
-              <div key={item.phase} className="rounded-xl border border-slate-700 bg-slate-800/50 p-5">
-                <div className={`text-xs font-bold uppercase tracking-widest mb-2 ${item.done ? 'text-emerald-400' : 'text-slate-400'}`}>
+              <div key={item.phase} className="rounded-xl ring-1 ring-white/10 bg-white/5 p-5">
+                <div className={`text-xs font-bold uppercase tracking-widest mb-2 ${item.done ? 'text-emerald-400' : 'text-vt-neutral-500'}`}>
                   {item.phase} {item.done && '✓'}
                 </div>
                 <p className="text-white font-semibold mb-2">{item.label}</p>
-                <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
+                <p className="text-xs text-vt-neutral-400 leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -228,16 +229,16 @@ export default function InvestorsPage() {
       {/* Contact Form */}
       <section id="contact" className="py-20 px-6">
         <div className="max-w-xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-slate-900 mb-2">Let&apos;s Talk</h2>
-          <p className="text-slate-400 text-center mb-8">
+          <h2 className="text-3xl font-bold text-center text-white mb-2">Let&apos;s Talk</h2>
+          <p className="text-vt-neutral-400 text-center mb-8">
             I&apos;m Christopher, the founder. If you&apos;re interested in what we&apos;re building — 
             whether as an investor, pilot partner, or advisor — I respond personally.
           </p>
           {submitted ? (
             <div className="text-center py-12">
               <div className="text-4xl mb-4">✅</div>
-              <h3 className="text-xl font-semibold text-slate-800 mb-2">Message Received</h3>
-              <p className="text-slate-400">We&apos;ll reach out within 48 hours.</p>
+              <h3 className="text-xl font-semibold text-white mb-2">Message Received</h3>
+              <p className="text-vt-neutral-400">We&apos;ll reach out within 48 hours.</p>
             </div>
           ) : (
             <form onSubmit={e => { e.preventDefault(); setSubmitted(true); }} className="space-y-4">
@@ -247,30 +248,30 @@ export default function InvestorsPage() {
                 { key: 'email', label: 'Email', type: 'email', placeholder: 'jane@acmeventures.com' },
               ].map(f => (
                 <div key={f.key}>
-                  <label className="text-sm font-medium text-slate-700 mb-1 block">{f.label}</label>
+                  <label className="text-sm font-medium text-vt-neutral-300 mb-1 block">{f.label}</label>
                   <input
                     type={f.type}
                     placeholder={f.placeholder}
                     required
                     value={formData[f.key as keyof typeof formData]}
                     onChange={e => setFormData(p => ({ ...p, [f.key]: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400"
+                    className="w-full rounded-xl bg-white/5 ring-1 ring-white/10 px-4 py-3 text-sm text-white placeholder:text-vt-neutral-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
                   />
                 </div>
               ))}
               <div>
-                <label className="text-sm font-medium text-slate-700 mb-1 block">Message</label>
+                <label className="text-sm font-medium text-vt-neutral-300 mb-1 block">Message</label>
                 <textarea
                   rows={4}
                   placeholder="Tell us about your fund and investment thesis..."
                   value={formData.message}
                   onChange={e => setFormData(p => ({ ...p, message: e.target.value }))}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 resize-none"
+                  className="w-full rounded-xl bg-white/5 ring-1 ring-white/10 px-4 py-3 text-sm text-white placeholder:text-vt-neutral-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 resize-none"
                 />
               </div>
-              <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 rounded-xl transition-colors">
+              <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white" size="lg">
                 Send Message
-              </button>
+              </Button>
             </form>
           )}
         </div>
