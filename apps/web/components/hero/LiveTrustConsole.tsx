@@ -118,7 +118,7 @@ export function LiveTrustConsole() {
               onChange={e => { setNpi(e.target.value.replace(/\D/g, '')); }}
               placeholder="Enter your NPI number"
               aria-label="NPI number"
-              className="flex-1 min-w-0 rounded-xl border border-white/12 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-emerald-500/40 focus:bg-white/7 transition-colors disabled:opacity-50"
+              className="flex-1 min-w-0 rounded-xl border border-white/12 bg-white/5 px-4 py-3.5 text-[16px] text-white placeholder:text-white/30 focus:outline-none focus:border-emerald-500/40 focus:bg-white/7 transition-colors disabled:opacity-50"
             />
             <button
               type="submit"

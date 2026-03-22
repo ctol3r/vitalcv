@@ -3,15 +3,9 @@
 /**
  * vcv-accordion.tsx — Headless accordion primitive
  *
- * Animation: CSS grid-rows 0fr → 1fr transition.
- * No max-height guessing. No JS measurement. No deps.
- * Works in all modern browsers (Chromium, Firefox, Safari 16+).
- *
- * Usage:
- *   <Accordion items={[{ id, trigger, content, status }]} />
- *
- * status controls the right-side chip:
- *   'verified' | 'clear' | 'pending' | 'action'
+ * Mobile-first touch targets: trigger min-height 44px (py-3.5 + text).
+ * Animation: CSS grid-rows 0fr → 1fr — no max-height guessing, no deps.
+ * Color rule: status chips use white opacity only, no colour tinting.
  */
 
 import { useState } from 'react';
@@ -20,21 +14,29 @@ export type AccordionStatus = 'verified' | 'clear' | 'pending' | 'action';
 
 export interface AccordionItem {
   id:      string;
-  trigger: string;          // section label
+  trigger: string;
   status:  AccordionStatus;
   content: React.ReactNode;
 }
 
 interface AccordionProps {
   items:        AccordionItem[];
-  defaultOpen?: string;     // id of item open by default (none by default)
+  defaultOpen?: string;
 }
 
-const STATUS_STYLES: Record<AccordionStatus, { label: string; cls: string }> = {
-  verified: { label: 'Verified', cls: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
-  clear:    { label: 'Clear',    cls: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
-  pending:  { label: 'Pending',  cls: 'text-amber-400  bg-amber-500/10  border-amber-500/20'  },
-  action:   { label: 'Action required', cls: 'text-red-400 bg-red-500/10 border-red-500/20'   },
+const STATUS_LABEL: Record<AccordionStatus, string> = {
+  verified: 'Verified',
+  clear:    'Clear',
+  pending:  'Pending',
+  action:   'Action required',
+};
+
+// Neutral opacity — no colour tinting on non-CTA elements
+const STATUS_CLS: Record<AccordionStatus, string> = {
+  verified: 'text-white/55 bg-white/5  border-white/10',
+  clear:    'text-white/55 bg-white/5  border-white/10',
+  pending:  'text-white/45 bg-white/4  border-white/8',
+  action:   'text-white/40 bg-white/3  border-white/6',
 };
 
 function ChevronIcon({ open }: { open: boolean }) {
@@ -49,7 +51,7 @@ function ChevronIcon({ open }: { open: boolean }) {
       strokeWidth="2.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="text-white/30 transition-transform duration-200 shrink-0"
+      className="text-white/25 shrink-0 transition-transform duration-200"
       style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
       aria-hidden
     >
@@ -63,47 +65,43 @@ function AccordionRow({ item, open, onToggle }: {
   open:     boolean;
   onToggle: () => void;
 }) {
-  const s = STATUS_STYLES[item.status];
-
   return (
     <div className="border-b border-white/6 last:border-0">
-      {/* Trigger */}
+
+      {/* Trigger — py-3.5 ensures ≥44px touch target */}
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-white/3 transition-colors"
+        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-white/3 transition-colors"
         aria-expanded={open}
       >
         <div className="flex items-center gap-3 min-w-0">
           <ChevronIcon open={open} />
-          <span className="text-xs font-semibold text-white/70 truncate">{item.trigger}</span>
+          <span className="text-sm text-white/65 truncate">{item.trigger}</span>
         </div>
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${s.cls}`}>
-          {s.label}
+        <span className={`text-xs px-2 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${STATUS_CLS[item.status]}`}>
+          {STATUS_LABEL[item.status]}
         </span>
       </button>
 
-      {/* Collapsible body — grid-rows trick for smooth height animation */}
+      {/* Body — grid-rows height animation */}
       <div
         className="grid transition-[grid-template-rows] duration-200 ease-out"
         style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
       >
         <div className="overflow-hidden">
-          <div className="px-4 pb-3 pt-0.5">
+          <div className="px-4 py-3">
             {item.content}
           </div>
         </div>
       </div>
+
     </div>
   );
 }
 
 export function Accordion({ items, defaultOpen }: AccordionProps) {
   const [openId, setOpenId] = useState<string | null>(defaultOpen ?? null);
-
-  function toggle(id: string) {
-    setOpenId(prev => (prev === id ? null : id));
-  }
 
   return (
     <div className="rounded-xl border border-white/8 bg-white/3 overflow-hidden">
@@ -112,7 +110,7 @@ export function Accordion({ items, defaultOpen }: AccordionProps) {
           key={item.id}
           item={item}
           open={openId === item.id}
-          onToggle={() => toggle(item.id)}
+          onToggle={() => setOpenId(prev => prev === item.id ? null : item.id)}
         />
       ))}
     </div>

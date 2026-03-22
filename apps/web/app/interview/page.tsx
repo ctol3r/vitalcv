@@ -54,7 +54,7 @@ function ShareConfirmation({ recipient, sharedAt }: { recipient: string; sharedA
       <div className="border-t border-white/6 pt-4">
         <Link
           href="/get-ready"
-          className="block text-center w-full rounded-lg border border-white/8 hover:border-white/15 px-4 py-2.5 text-xs font-semibold text-white/55 hover:text-white transition-colors"
+          className="block text-center w-full rounded-lg border border-white/8 hover:border-white/15 px-4 py-3.5 text-sm font-medium text-white/55 hover:text-white transition-colors"
         >
           Build my real profile →
         </Link>
@@ -102,8 +102,8 @@ export default function InterviewPage() {
               <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/25 mb-3">Ready</p>
               <div className="space-y-2">
                 {READY.map(item => (
-                  <div key={item} className="flex items-center gap-2.5">
-                    <span className="text-white/55 text-xs leading-none">✔</span>
+                  <div key={item} className="flex items-center gap-3">
+                    <span className="text-white/50 text-sm leading-none shrink-0">✔</span>
                     <span className="text-sm text-white/70">{item}</span>
                   </div>
                 ))}
@@ -115,8 +115,8 @@ export default function InterviewPage() {
               <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/25 mb-3">Blocked</p>
               <div className="space-y-2">
                 {BLOCKED.map(item => (
-                  <div key={item} className="flex items-center gap-2.5">
-                    <span className="text-white/25 text-xs leading-none">✖</span>
+                  <div key={item} className="flex items-center gap-3">
+                    <span className="text-white/25 text-sm leading-none shrink-0">✖</span>
                     <span className="text-sm text-white/55">{item}</span>
                   </div>
                 ))}
