@@ -155,10 +155,10 @@ function metricCard(
   })();
 
   return (
-    <article className="rounded border border-neutral-200 p-4" key={key}>
-      <p className="text-xs uppercase tracking-[0.14em] text-neutral-400">{metricLabel(key)}</p>
-      <p className="mt-2 text-2xl font-semibold text-neutral-900">{currentValue}</p>
-      <p className="mt-1 text-xs text-neutral-600">{formatCountDelta(currentValue, baselineValue)}</p>
+    <article className="rounded border border-border p-4" key={key}>
+      <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">{metricLabel(key)}</p>
+      <p className="mt-2 text-2xl font-semibold text-foreground">{currentValue}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{formatCountDelta(currentValue, baselineValue)}</p>
     </article>
   );
 }
@@ -179,25 +179,25 @@ export default async function InternalPilotsPage({
   const orgQuery = organizationId ? `?organizationId=${encodeURIComponent(organizationId)}` : '';
 
   return (
-    <main className="min-h-screen bg-white px-6 py-16 text-black">
+    <main className="min-h-screen bg-background px-6 py-16 text-foreground">
       <div className="mx-auto max-w-6xl space-y-8">
         <header className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">YC pilot</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">YC pilot</p>
           <h1 className="text-3xl font-semibold">Pilot Organizations</h1>
-          <p className="text-sm text-neutral-600">Pilot proof, activation records, and drop-off visibility in one readout.</p>
+          <p className="text-sm text-muted-foreground">Pilot proof, activation records, and drop-off visibility in one readout.</p>
         </header>
 
         {proof ? (
           <>
             <section className="space-y-4">
-              <div className="flex flex-wrap items-center gap-3 text-sm text-neutral-600">
-                <span className="rounded border border-neutral-200 px-3 py-2">
+              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                <span className="rounded border border-border px-3 py-2">
                   Baseline established: <span className="font-semibold">{proof.baselineComparison.baselineAt ? formatActivationDate(proof.baselineComparison.baselineAt) : 'Pending'}</span>
                 </span>
-                <span className="rounded border border-neutral-200 px-3 py-2">
+                <span className="rounded border border-border px-3 py-2">
                   Snapshot generated: <span className="font-semibold">{formatActivationDate(proof.generatedAt)}</span>
                 </span>
-                <span className="rounded border border-neutral-200 px-3 py-2">
+                <span className="rounded border border-border px-3 py-2">
                   Lookback window: <span className="font-semibold">{Math.round(proof.lookbackHours / 24)} days</span>
                 </span>
               </div>
@@ -217,93 +217,93 @@ export default async function InternalPilotsPage({
             </section>
 
             <section className="grid gap-4 lg:grid-cols-3">
-              <section className="rounded border border-neutral-200 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-neutral-400">Onboarding outcome</p>
-                <div className="mt-4 space-y-2 text-sm text-neutral-700">
-                  <p>Measured users: <span className="font-semibold text-neutral-900">{proof.onboardingCompletion.sampleSize}</span></p>
-                  <p>Average completion time: <span className="font-semibold text-neutral-900">{formatMinutes(proof.onboardingCompletion.averageMinutes)}</span></p>
-                  <p>Median completion time: <span className="font-semibold text-neutral-900">{formatMinutes(proof.onboardingCompletion.medianMinutes)}</span></p>
+              <section className="rounded border border-border p-4">
+                <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Onboarding outcome</p>
+                <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+                  <p>Measured users: <span className="font-semibold text-foreground">{proof.onboardingCompletion.sampleSize}</span></p>
+                  <p>Average completion time: <span className="font-semibold text-foreground">{formatMinutes(proof.onboardingCompletion.averageMinutes)}</span></p>
+                  <p>Median completion time: <span className="font-semibold text-foreground">{formatMinutes(proof.onboardingCompletion.medianMinutes)}</span></p>
                 </div>
               </section>
 
-              <section className="rounded border border-neutral-200 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-neutral-400">Readiness outcome</p>
-                <div className="mt-4 space-y-2 text-sm text-neutral-700">
-                  <p>Clinicians with snapshots: <span className="font-semibold text-neutral-900">{proof.counts.readinessCompleted}</span></p>
-                  <p>Ready clinicians: <span className="font-semibold text-neutral-900">{proof.readinessProgress.readyUsers}</span></p>
-                  <p>Improved clinicians: <span className="font-semibold text-neutral-900">{proof.readinessProgress.improvedUsers}</span></p>
-                  <p>Average delta: <span className="font-semibold text-neutral-900">{proof.readinessProgress.averageDelta ?? 'Unmeasured'}</span></p>
+              <section className="rounded border border-border p-4">
+                <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Readiness outcome</p>
+                <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+                  <p>Clinicians with snapshots: <span className="font-semibold text-foreground">{proof.counts.readinessCompleted}</span></p>
+                  <p>Ready clinicians: <span className="font-semibold text-foreground">{proof.readinessProgress.readyUsers}</span></p>
+                  <p>Improved clinicians: <span className="font-semibold text-foreground">{proof.readinessProgress.improvedUsers}</span></p>
+                  <p>Average delta: <span className="font-semibold text-foreground">{proof.readinessProgress.averageDelta ?? 'Unmeasured'}</span></p>
                 </div>
               </section>
 
-              <section className="rounded border border-neutral-200 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-neutral-400">Employer value signals</p>
-                <div className="mt-4 space-y-2 text-sm text-neutral-700">
-                  <p>Readiness visible on applications: <span className="font-semibold text-neutral-900">{proof.counts.readinessCompleted}</span></p>
-                  <p>Employer reviews recorded: <span className="font-semibold text-neutral-900">{proof.counts.employerReviews}</span></p>
-                  <p>Applications moving: <span className="font-semibold text-neutral-900">{proof.counts.applicationsMoving}</span></p>
-                  <p>Findings surfaced: <span className="font-semibold text-neutral-900">{proof.counts.findingsSurfaced}</span></p>
-                  <p>Action queue generated: <span className="font-semibold text-neutral-900">{proof.counts.employerActionsGenerated}</span></p>
+              <section className="rounded border border-border p-4">
+                <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Employer value signals</p>
+                <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+                  <p>Readiness visible on applications: <span className="font-semibold text-foreground">{proof.counts.readinessCompleted}</span></p>
+                  <p>Employer reviews recorded: <span className="font-semibold text-foreground">{proof.counts.employerReviews}</span></p>
+                  <p>Applications moving: <span className="font-semibold text-foreground">{proof.counts.applicationsMoving}</span></p>
+                  <p>Findings surfaced: <span className="font-semibold text-foreground">{proof.counts.findingsSurfaced}</span></p>
+                  <p>Action queue generated: <span className="font-semibold text-foreground">{proof.counts.employerActionsGenerated}</span></p>
                 </div>
               </section>
             </section>
 
             <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-              <section className="rounded border border-neutral-200 p-4">
+              <section className="rounded border border-border p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs uppercase tracking-[0.14em] text-neutral-400">What Changed Because Of VitalCV</p>
+                  <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">What Changed Because Of VitalCV</p>
                   <Link href="/api/internal/pilot-proof" className="text-sm underline underline-offset-4">
                     Export JSON snapshot
                   </Link>
                 </div>
                 <div className="mt-4 space-y-3">
                   {proof.recentProgress.length > 0 ? proof.recentProgress.map((change) => (
-                    <div key={change.id} className="rounded border border-neutral-200 p-3">
+                    <div key={change.id} className="rounded border border-border p-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-semibold text-neutral-900">{changeLabel(change.summary)}</p>
-                          <p className="mt-1 text-sm text-neutral-700">{change.summary}</p>
+                          <p className="text-sm font-semibold text-foreground">{changeLabel(change.summary)}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">{change.summary}</p>
                         </div>
-                        <p className="text-xs text-neutral-500">{formatActivationDate(change.occurredAt)}</p>
+                        <p className="text-xs text-muted-foreground">{formatActivationDate(change.occurredAt)}</p>
                       </div>
                     </div>
                   )) : (
-                    <p className="text-sm text-neutral-600">No recent state changes have been measured yet.</p>
+                    <p className="text-sm text-muted-foreground">No recent state changes have been measured yet.</p>
                   )}
                 </div>
               </section>
 
-              <section className="rounded border border-neutral-200 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-neutral-400">Drop-off still visible</p>
+              <section className="rounded border border-border p-4">
+                <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Drop-off still visible</p>
                 <div className="mt-4 space-y-3">
                   {proof.dropOff.length > 0 ? proof.dropOff.map((item) => (
-                    <div key={item.stage} className="rounded border border-neutral-200 p-3">
-                      <p className="text-sm font-semibold text-neutral-900">{dropOffLabel(item.stage)}</p>
-                      <p className="mt-1 text-2xl font-semibold text-neutral-900">{item.count}</p>
-                      <p className="mt-1 text-sm text-neutral-700">{item.detail}</p>
+                    <div key={item.stage} className="rounded border border-border p-3">
+                      <p className="text-sm font-semibold text-foreground">{dropOffLabel(item.stage)}</p>
+                      <p className="mt-1 text-2xl font-semibold text-foreground">{item.count}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{item.detail}</p>
                     </div>
                   )) : (
-                    <p className="text-sm text-neutral-600">No measurable drop-off remains in the current pilot window.</p>
+                    <p className="text-sm text-muted-foreground">No measurable drop-off remains in the current pilot window.</p>
                   )}
                 </div>
               </section>
             </section>
 
-            <section className="rounded border border-neutral-200 p-4">
-              <p className="text-xs uppercase tracking-[0.14em] text-neutral-400">Proof Snapshot Export</p>
+            <section className="rounded border border-border p-4">
+              <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Proof Snapshot Export</p>
               <div className="mt-4 grid gap-4 lg:grid-cols-2">
                 <div>
-                  <p className="text-sm font-semibold text-neutral-900">Recent progress</p>
-                  <div className="mt-2 space-y-2 text-sm text-neutral-700">
-                    <p>Pilot events in lookback: <span className="font-semibold text-neutral-900">{proof.systemActivity.pilotEvents}</span></p>
-                    <p>Support issues in lookback: <span className="font-semibold text-neutral-900">{proof.systemActivity.supportIssues}</span></p>
-                    <p>Route failures in lookback: <span className="font-semibold text-neutral-900">{proof.systemActivity.routeFailures}</span></p>
-                    <p>Recent progress items: <span className="font-semibold text-neutral-900">{proof.recentProgress.length}</span></p>
+                  <p className="text-sm font-semibold text-foreground">Recent progress</p>
+                  <div className="mt-2 space-y-2 text-sm text-muted-foreground">
+                    <p>Pilot events in lookback: <span className="font-semibold text-foreground">{proof.systemActivity.pilotEvents}</span></p>
+                    <p>Support issues in lookback: <span className="font-semibold text-foreground">{proof.systemActivity.supportIssues}</span></p>
+                    <p>Route failures in lookback: <span className="font-semibold text-foreground">{proof.systemActivity.routeFailures}</span></p>
+                    <p>Recent progress items: <span className="font-semibold text-foreground">{proof.recentProgress.length}</span></p>
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-neutral-900">Meaningful deltas</p>
-                  <div className="mt-2 space-y-2 text-sm text-neutral-700">
+                  <p className="text-sm font-semibold text-foreground">Meaningful deltas</p>
+                  <div className="mt-2 space-y-2 text-sm text-muted-foreground">
                     <p>Applications vs baseline: {formatCountDelta(proof.baselineComparison.current.applications, proof.baselineComparison.baseline.applications)}</p>
                     <p>Readiness completions vs baseline: {formatCountDelta(proof.baselineComparison.current.readinessCompleted, proof.baselineComparison.baseline.readinessCompleted)}</p>
                     <p>Findings vs baseline: {formatCountDelta(proof.baselineComparison.current.findings, proof.baselineComparison.baseline.findings)}</p>
@@ -315,7 +315,7 @@ export default async function InternalPilotsPage({
             </section>
           </>
         ) : (
-          <p className="rounded border border-neutral-300 px-4 py-3 text-sm text-neutral-700">
+          <p className="rounded border border-border px-4 py-3 text-sm text-muted-foreground">
             Pilot proof snapshot unavailable. Configure `MONITORING_SECRET` and backend internal pilot proof access.
           </p>
         )}
@@ -323,49 +323,49 @@ export default async function InternalPilotsPage({
         {report ? (
           <>
             <div className="flex flex-wrap gap-2">
-              <p className="rounded border border-neutral-200 px-3 py-2 text-sm">
+              <p className="rounded border border-border px-3 py-2 text-sm">
                 Active organizations: <span className="font-semibold">{count}</span>
               </p>
               {report.isDemoMode ? (
-                <p className="rounded border border-neutral-400 px-3 py-2 text-xs uppercase tracking-[0.15em] text-neutral-600">
+                <p className="rounded border border-border px-3 py-2 text-xs uppercase tracking-[0.15em] text-muted-foreground">
                   Demo Mode
                 </p>
               ) : null}
             </div>
 
             {rows.length > 0 ? (
-              <div className="overflow-x-auto border border-neutral-300">
-                <table className="min-w-full divide-y divide-neutral-200 text-sm">
-                  <thead className="bg-neutral-50">
+              <div className="overflow-x-auto border border-border">
+                <table className="min-w-full divide-y divide-border text-sm">
+                  <thead className="bg-muted">
                     <tr>
-                      <th className="px-4 py-2 text-left font-semibold text-neutral-600">Organization</th>
-                      <th className="px-4 py-2 text-left font-semibold text-neutral-600">Contact</th>
-                      <th className="px-4 py-2 text-left font-semibold text-neutral-600">Activated</th>
-                      <th className="px-4 py-2 text-left font-semibold text-neutral-600">Accepted</th>
-                      <th className="px-4 py-2 text-left font-semibold text-neutral-600">Bundles generated</th>
+                      <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Organization</th>
+                      <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Contact</th>
+                      <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Activated</th>
+                      <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Accepted</th>
+                      <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Bundles generated</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-neutral-100">
+                  <tbody className="divide-y divide-border">
                     {rows.map((pilot) => (
                       <tr key={pilot.id}>
-                        <td className="px-4 py-3 text-sm text-neutral-700">{pilot.name}</td>
-                        <td className="px-4 py-3 text-sm text-neutral-500">{pilot.contactEmail}</td>
-                        <td className="px-4 py-3 text-sm text-neutral-500">{formatActivationDate(pilot.activatedAt)}</td>
-                        <td className="px-4 py-3 text-sm text-neutral-700">{pilot.accepted ? 'yes' : 'pending'}</td>
-                        <td className="px-4 py-3 text-sm text-neutral-700">{pilot.bundlesGenerated}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{pilot.name}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{pilot.contactEmail}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{formatActivationDate(pilot.activatedAt)}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{pilot.accepted ? 'yes' : 'pending'}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{pilot.bundlesGenerated}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             ) : (
-              <p className="rounded border border-neutral-200 px-4 py-3 text-sm text-neutral-700">
+              <p className="rounded border border-border px-4 py-3 text-sm text-muted-foreground">
                 No pilot orgs have been activated yet.
               </p>
             )}
           </>
         ) : (
-          <p className="rounded border border-neutral-300 px-4 py-3 text-sm text-neutral-700">
+          <p className="rounded border border-border px-4 py-3 text-sm text-muted-foreground">
             Pilot report unavailable. Configure NEXT_PUBLIC_BACKEND_URL.
           </p>
         )}

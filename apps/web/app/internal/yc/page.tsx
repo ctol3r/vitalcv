@@ -150,12 +150,12 @@ export default async function YcDashboardPage({
   const orgQuery = organizationId ? `?organizationId=${encodeURIComponent(organizationId)}` : '';
 
   return (
-    <main className="min-h-screen bg-white px-6 py-16 text-black">
+    <main className="min-h-screen bg-background px-6 py-16 text-foreground">
       <div className="mx-auto max-w-5xl space-y-10">
         <header className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">YC metrics</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">YC metrics</p>
           <h1 className="text-3xl font-semibold">YC Pilot Dashboard</h1>
-          <p className="text-sm text-neutral-600">
+          <p className="text-sm text-muted-foreground">
             Black/white readout for pilot readiness and verifier traction.
           </p>
         </header>
@@ -210,7 +210,7 @@ export default async function YcDashboardPage({
 
             {metrics.verifierFunnelMetrics ? (
               <section>
-                <p className="mb-3 text-xs uppercase tracking-[0.2em] text-neutral-500">Verifier funnel</p>
+                <p className="mb-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">Verifier funnel</p>
                 <div className="grid gap-3 sm:grid-cols-3">
                   <Stat label="Funnel views" value={metrics.verifierFunnelMetrics.totalVerifierViews} />
                   <Stat label="Pilot clicks" value={metrics.verifierFunnelMetrics.totalPilotClicks} />
@@ -221,7 +221,7 @@ export default async function YcDashboardPage({
 
             {metrics.trustStateDistribution ? (
               <section>
-                <p className="mb-3 text-xs uppercase tracking-[0.2em] text-neutral-500">Trust state distribution</p>
+                <p className="mb-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">Trust state distribution</p>
                 <div className="grid gap-3 sm:grid-cols-5">
                   <Stat label="Verified" value={metrics.trustStateDistribution.verified} />
                   <Stat label="Monitoring" value={metrics.trustStateDistribution.verified_monitoring} />
@@ -246,7 +246,7 @@ export default async function YcDashboardPage({
 
             {metrics.enterpriseComplianceSummary ? (
               <section>
-                <p className="mb-3 text-xs uppercase tracking-[0.2em] text-neutral-500">Enterprise compliance</p>
+                <p className="mb-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">Enterprise compliance</p>
                 <div className="grid gap-3 sm:grid-cols-5">
                   {(Object.entries(metrics.enterpriseComplianceSummary) as Array<[string, boolean]>).map(
                     ([key, value]) => (
@@ -258,18 +258,18 @@ export default async function YcDashboardPage({
             ) : null}
           </>
         ) : (
-          <p className="rounded border border-neutral-300 px-4 py-3 text-sm text-neutral-700">
+          <p className="rounded border border-border px-4 py-3 text-sm text-muted-foreground">
             Metrics backend unavailable. Configure NEXT_PUBLIC_BACKEND_URL.
           </p>
         )}
 
         {metrics?.isDemoMode ? (
-          <p className="inline-flex items-center rounded-full border border-neutral-400 px-3 py-1 text-xs uppercase tracking-wide text-neutral-600">
+          <p className="inline-flex items-center rounded-full border border-border px-3 py-1 text-xs uppercase tracking-wide text-muted-foreground">
             Demo Mode
           </p>
         ) : null}
 
-        <p className="text-xs text-neutral-500">
+        <p className="text-xs text-muted-foreground">
           No UI experiments. Read-only display only.
         </p>
 
@@ -295,8 +295,8 @@ export default async function YcDashboardPage({
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <article className="border border-neutral-300 p-4">
-      <p className="text-[11px] uppercase tracking-[0.14em] text-neutral-500">{label}</p>
+    <article className="border border-border p-4">
+      <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
       <p className="mt-3 text-xl font-semibold">{value}</p>
     </article>
   );

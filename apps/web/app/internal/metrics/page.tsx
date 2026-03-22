@@ -67,9 +67,9 @@ export default async function InternalMetricsPage({
   const orgQuery = organizationId ? `?organizationId=${encodeURIComponent(organizationId)}` : '';
 
   return (
-    <main className="mx-auto min-h-screen max-w-4xl px-6 py-16 text-neutral-900">
+    <main className="mx-auto min-h-screen max-w-4xl px-6 py-16 text-foreground">
       <header className="space-y-2">
-        <p className="text-sm uppercase tracking-[0.2em] text-neutral-400">YC Pilot</p>
+        <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">YC Pilot</p>
         <h1 className="text-3xl font-semibold">Internal metrics</h1>
       </header>
 
@@ -86,25 +86,25 @@ export default async function InternalMetricsPage({
         />
       </section>
 
-      <p className="mt-8 text-sm text-neutral-600">
+      <p className="mt-8 text-sm text-muted-foreground">
         This page is read-only and is intended for operational monitoring.
       </p>
-      <p className="mt-2 text-sm text-neutral-600">
+      <p className="mt-2 text-sm text-muted-foreground">
         <Link href={`/internal/yc${orgQuery}`} className="underline underline-offset-4">
           Open YC dashboard
         </Link>
       </p>
-      <p className="mt-2 text-sm text-neutral-600">
+      <p className="mt-2 text-sm text-muted-foreground">
         <Link href={`/internal/pilots${orgQuery}`} className="underline underline-offset-4">
           Open Pilot dashboard
         </Link>
       </p>
-      <p className="mt-2 text-sm text-neutral-600">
+      <p className="mt-2 text-sm text-muted-foreground">
         <Link href="/internal/pilot-ops" className="underline underline-offset-4">
           Open pilot ops console
         </Link>
       </p>
-      <p className="mt-2 text-sm text-neutral-600">
+      <p className="mt-2 text-sm text-muted-foreground">
         <Link href={`/internal/enterprise${orgQuery}`} className="underline underline-offset-4">
           Open enterprise signals
         </Link>
@@ -115,9 +115,9 @@ export default async function InternalMetricsPage({
 
 function MetricItem({ label, value }: { label: string; value: string | number }) {
   return (
-    <article className="rounded border border-neutral-200 p-4">
-      <p className="text-xs uppercase tracking-[0.14em] text-neutral-400">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-neutral-900">{value}</p>
+    <article className="rounded border border-border p-4">
+      <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-foreground">{value}</p>
     </article>
   );
 }

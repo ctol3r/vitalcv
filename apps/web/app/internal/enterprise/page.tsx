@@ -83,10 +83,10 @@ export default async function EnterpriseSignalsPage() {
   ]);
 
   return (
-    <main className="min-h-screen bg-white px-6 py-16 text-black">
+    <main className="min-h-screen bg-background px-6 py-16 text-foreground">
       <div className="mx-auto max-w-5xl space-y-10">
         <header className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">enterprise diagnostics</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">enterprise diagnostics</p>
           <h1 className="text-3xl font-semibold">Enterprise Signals</h1>
         </header>
 
@@ -165,13 +165,13 @@ function SignalCard({
   entries: Array<{ label: string; value: string }>;
 }) {
   return (
-    <section className="border border-neutral-300 p-4">
-      <h2 className="text-sm uppercase tracking-[0.15em] text-neutral-500">{title}</h2>
+    <section className="border border-border p-4">
+      <h2 className="text-sm uppercase tracking-[0.15em] text-muted-foreground">{title}</h2>
       <ul className="mt-4 space-y-2 text-sm">
         {entries.map((entry) => (
           <li className="flex justify-between gap-3" key={entry.label}>
             <span>{entry.label}</span>
-            <span className="font-semibold text-neutral-700">{entry.value}</span>
+            <span className="font-semibold text-muted-foreground">{entry.value}</span>
           </li>
         ))}
       </ul>
