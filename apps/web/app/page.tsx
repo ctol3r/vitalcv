@@ -1,7 +1,6 @@
 'use client';
 
 import { HowItWorksSection } from '@/components/marketing/HomeSections';
-import { ReadinessDemo } from '@/components/marketing/ReadinessDemo';
 import { LiveTrustConsole } from '@/components/hero/LiveTrustConsole';
 import { SectionReveal } from '@/components/motion/ScrollMotion';
 import Link from 'next/link';
@@ -43,31 +42,7 @@ function TrustStrip() {
   );
 }
 
-// ── Wave E: Traction signal ───────────────────────────────────
-
-function TractionSignal() {
-  return (
-    <div className="px-4 sm:px-6 py-10 sm:py-12 border-b border-white/6" style={{ background: '#080e1a' }}>
-      <div className="mx-auto max-w-5xl">
-        <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12">
-          {[
-            { value: '1,200+',  label: 'clinicians verified',         accent: 'text-emerald-400' },
-            { value: '4',       label: 'primary data sources live',    accent: 'text-sky-400'     },
-            { value: '< 24h',   label: 'avg. time to verified status', accent: 'text-white'       },
-            { value: 'HIPAA',   label: 'compliant + audit-anchored',   accent: 'text-violet-400'  },
-          ].map(({ value, label, accent }) => (
-            <div key={label} className="text-center">
-              <p className={`text-2xl sm:text-3xl font-bold ${accent}`}>{value}</p>
-              <p className="text-[11px] text-white/35 mt-1 uppercase tracking-wide">{label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Wave F: Interview Mode teaser ─────────────────────────────
+// ── Interview Mode teaser ─────────────────────────────────────
 
 function InterviewModeTeaser() {
   return (
@@ -145,14 +120,8 @@ export default function HomePage() {
       {/* HERO — headline immediately visible, solid CTA, NPI preview */}
       <LiveTrustConsole />
 
-      {/* WAVE C — Trust strip: verified against real sources */}
+      {/* Trust strip — verified against real sources */}
       <TrustStrip />
-
-      {/* WAVE B — Live demo: show identity + sources + readiness + blockers */}
-      <ReadinessDemo />
-
-      {/* WAVE E — Traction signal: real numbers */}
-      <TractionSignal />
 
       {/* How it works — compressed 3-step */}
       <HowItWorksSection />
