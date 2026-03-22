@@ -27,6 +27,7 @@ import {
   type CanonicalEntity,
   type EntityMetadata,
 } from './types';
+import { makeNpiRoutingDecision } from './contracts';
 
 const NPI_RE = /^\d{10}$/;
 const NPPES_URL = 'https://npiregistry.cms.hhs.gov/api/?version=2.1';
@@ -252,7 +253,11 @@ export async function resolveNpi(npi: string): Promise<NpiResolution> {
     const specialty       = extractPrimarySpecialty(record.taxonomies ?? []);
     const status          = mapNppesStatus(basic.status);
 
-    log('info', 'npiRouter: resolved', { npi, npiType, entityType: routing.entityType, displayName, status });
+    const routingDecision = makeNpiRoutingDecision(npi, enumerationType, 'NPPES_API');
+    log('info', 'npiRouter: resolved', {
+      npi, npiType, entityType: routing.entityType, displayName, status,
+      routingEntry: routingDecision.workflowEntry,
+    });
 
     return {
       npi,
@@ -266,6 +271,8 @@ export async function resolveNpi(npi: string): Promise<NpiResolution> {
       status,
       source:          'NPPES_API',
       resolvedAt:      new Date().toISOString(),
+      // S3: canonical routing decision attached for consumers
+      routingDecision,
     };
 
   } catch (err) {

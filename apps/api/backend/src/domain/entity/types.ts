@@ -119,6 +119,13 @@ export interface NpiResolution {
   status:          'ACTIVE' | 'DEACTIVATED' | 'UNKNOWN';
   source:          'NPPES_API' | 'CACHED';
   resolvedAt:      string;                 // ISO
+  /** S3: canonical routing decision for UI/API consumers */
+  routingDecision?: {
+    workflowEntry:  string;
+    subjectLabel:   string;
+    confidence:     'HIGH' | 'MEDIUM' | 'LOW';
+    warning?:       string;
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════

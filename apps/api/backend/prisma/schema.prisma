@@ -3097,6 +3097,15 @@ model VcvEntity {
   asSubject     VcvEntityRelationship[] @relation("rel_subject")
   asObject      VcvEntityRelationship[] @relation("rel_object")
 
+  // S1/S4/S5 back-relations
+  credentialsHeld      VcvCredential[]        @relation("cred_subject")
+  credentialsIssued    VcvCredential[]        @relation("cred_issuer")
+  educationAsSubject   VcvEducationRecord[]   @relation("edu_subject")
+  educationAsInstitution VcvEducationRecord[] @relation("edu_institution")
+  orgContextsRequested VcvOrganizationContext[] @relation("ctx_requestor")
+  orgContextSubjects   VcvOrgContextSubject[] @relation("ctx_subject")
+  userClaims           VcvUserEntityClaim[]   @relation("entity_claims")
+
   @@index([npi])
   @@index([entityType])
   @@index([entityType, npi])
@@ -3191,3 +3200,308 @@ model NpiOwnership {
   @@index([npi])
   @@map("npi_ownership")
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// CANONICAL SCHEMA — Waves S1/S4/S5
+// VcvCredential, VcvEducationRecord, VcvOrganizationContext,
+// VcvOrganizationContextSubject, VcvUserEntityClaim
+// ═══════════════════════════════════════════════════════════════════════
+
+// ── S1/S2 Enums ──────────────────────────────────────────────────────────────
+
+/// Credential domain — the high-level subject area a credential belongs to.
+enum VcvCredentialDomain {
+  LICENSURE          // state medical/nursing/pharmacy license
+  BOARD_CERTIFICATION// ABMS, AOA, specialty board certs
+  DEA_REGISTRATION   // federal controlled substance registration
+  MEDICARE_ENROLLMENT// CMS PECOS enrollment
+  EXCLUSION_CHECK    // OIG/LEIE, SAM.gov negative finding
+  EDUCATION          // medical degree, nursing degree
+  TRAINING           // residency, fellowship, CME
+  MALPRACTICE        // malpractice insurance coverage
+  HOSPITAL_PRIVILEGE // clinical privileges at a facility
+  EMPLOYMENT         // employment/affiliation verification
+  IDENTITY           // NPI, SSN-4, biometric identity anchor
+}
+
+/// Verification level — how strongly a credential has been verified.
+enum VcvVerificationLevel {
+  SELF_REPORTED      // asserted by the subject, not cross-checked
+  SOURCE_MATCHED     // matched against an authoritative source
+  SOURCE_VERIFIED    // confirmed via real-time API query
+  CRYPTOGRAPHICALLY_SIGNED // issuer-signed SD-JWT or VC
+  BIOMETRICALLY_CONFIRMED  // subject confirmed with biometric
+}
+
+/// Organization context type — what the org is doing with the entity.
+enum VcvOrgContextType {
+  APPLICATION        // clinician applying to work
+  EMPLOYMENT_REVIEW  // ongoing employment credentialing
+  PRIVILEGING        // hospital/facility privileges request
+  CREDENTIALING      // initial credentialing with payer/org
+  RECREDENTIALING    // periodic re-credentialing
+  TRAINING_ENROLLMENT// enrolling in a training program
+  ISSUER_REVIEW      // issuer verifying credentials for cert
+  MONITORING         // ongoing passive monitoring
+  COMPLIANCE_AUDIT   // compliance or accreditation audit
+}
+
+/// Organization context status — lifecycle of the org context.
+enum VcvOrgContextStatus {
+  PENDING    // initiated, awaiting subject response
+  ACTIVE     // subject has responded, review in progress
+  COMPLETED  // context resolved (approved/denied/enrolled)
+  EXPIRED    // context timed out without resolution
+  REVOKED    // explicitly revoked by either party
+}
+
+// ── VcvCredential — Wave S1 ───────────────────────────────────────────────────
+
+/// A derived credential claim tied to a specific entity.
+/// Separate from VerificationArtifact (raw source capture) —
+/// this is the app-layer credential: "Entity X holds credential Y".
+///
+/// Every credential must trace to at least one VcvEntity (the subject)
+/// and optionally one issuer entity (the authority that issued it).
+model VcvCredential {
+  id              String                 @id @default(uuid()) @db.Uuid
+  subjectId       String                 @db.Uuid @map("subject_id")
+  subject         VcvEntity              @relation("cred_subject", fields: [subjectId], references: [id], onDelete: Cascade)
+  issuerId        String?                @db.Uuid @map("issuer_id")
+  issuer          VcvEntity?             @relation("cred_issuer",  fields: [issuerId],  references: [id], onDelete: SetNull)
+
+  domain          VcvCredentialDomain    @map("domain")
+  credentialType  String                 @map("credential_type") // e.g. "MD_LICENSE_CA", "ABIM_INTERNAL_MEDICINE"
+  status          String                 @default("ACTIVE")      // ACTIVE | EXPIRED | SUSPENDED | REVOKED
+  verificationLevel VcvVerificationLevel @default(SELF_REPORTED) @map("verification_level")
+
+  /// Raw claim value — structured JSON (license number, state, dates, etc.)
+  claimValue      Json                   @default("{}") @db.JsonB @map("claim_value")
+  /// Source artifact IDs that back this credential
+  artifactIds     String[]               @default([]) @map("artifact_ids")
+  /// The claim ID in the identity pipeline that produced this credential
+  claimId         String?                @map("claim_id")
+
+  issuedAt        DateTime?              @map("issued_at")
+  expiresAt       DateTime?              @map("expires_at")
+  verifiedAt      DateTime?              @map("verified_at")
+  revokedAt       DateTime?              @map("revoked_at")
+  nextReverifyAt  DateTime?              @map("next_reverify_at")
+
+  /// State context (e.g. for state licenses: "CA", "NY")
+  jurisdiction    String?
+  /// Free-form metadata
+  metadata        Json                   @default("{}") @db.JsonB
+  createdAt       DateTime               @default(now()) @map("created_at")
+  updatedAt       DateTime               @updatedAt     @map("updated_at")
+
+  educationRecords VcvEducationRecord[]  @relation("edu_credential")
+  contextLinks     VcvOrgContextSubject[] @relation("ctx_credential")
+
+  @@index([subjectId, domain])
+  @@index([subjectId, status])
+  @@index([issuerId])
+  @@index([credentialType, jurisdiction])
+  @@index([expiresAt])
+  @@map("vcv_credentials")
+}
+
+// ── VcvEducationRecord — Wave S4 ──────────────────────────────────────────────
+
+/// Education and training record — first-class domain object.
+/// Covers: medical degree, residency, fellowship, CME, internship.
+/// Linked to a subject entity, optional institution entity,
+/// and optionally a VcvCredential that represents its verified state.
+model VcvEducationRecord {
+  id              String              @id @default(uuid()) @db.Uuid
+  subjectId       String              @db.Uuid @map("subject_id")
+  subject         VcvEntity           @relation("edu_subject", fields: [subjectId], references: [id], onDelete: Cascade)
+  institutionId   String?             @db.Uuid @map("institution_id")
+  institution     VcvEntity?          @relation("edu_institution", fields: [institutionId], references: [id], onDelete: SetNull)
+  /// The verified credential this education record supports (optional)
+  credentialId    String?             @db.Uuid @map("credential_id")
+  credential      VcvCredential?      @relation("edu_credential", fields: [credentialId], references: [id], onDelete: SetNull)
+
+  recordType      String              @map("record_type")
+  // MEDICAL_DEGREE | NURSING_DEGREE | ADVANCED_PRACTICE_CERT |
+  // RESIDENCY_COMPLETION | FELLOWSHIP_COMPLETION | INTERNSHIP_COMPLETION |
+  // CME_COMPLETION | TRAINING_PROGRAM_STATUS | CLINICAL_ROTATION
+
+  degreeOrTitle   String?             @map("degree_or_title")  // "MD", "DO", "Residency — Internal Medicine"
+  specialty       String?
+  programName     String?             @map("program_name")
+  acgmeCode       String?             @map("acgme_code")       // ACGME program code for residency/fellowship
+  startYear       Int?                @map("start_year")
+  endYear         Int?                @map("end_year")
+  graduationDate  DateTime?           @map("graduation_date")
+  completed       Boolean             @default(false)
+  pgLevel         String?             @map("pg_level")         // PGY-1, PGY-2, etc.
+  countryCode     String              @default("US") @map("country_code")
+  accredited      Boolean?            // LCME / ACGME accreditation status
+  verificationLevel VcvVerificationLevel @default(SELF_REPORTED) @map("verification_level")
+  /// Raw source data (degree conferral letter, ACGME record, etc.)
+  sourceData      Json                @default("{}") @db.JsonB @map("source_data")
+  metadata        Json                @default("{}") @db.JsonB
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt     @map("updated_at")
+
+  @@index([subjectId, recordType])
+  @@index([institutionId])
+  @@index([acgmeCode])
+  @@index([subjectId, completed])
+  @@map("vcv_education_records")
+}
+
+// ── VcvOrganizationContext — Wave S5 ──────────────────────────────────────────
+
+/// The canonical path for org-entity interactions.
+/// Replaces ad-hoc application/review/monitoring flows with a
+/// first-class typed context that carries its own lifecycle,
+/// participants, credentials, and audit trail.
+///
+/// An org context always has:
+///   - A requesting entity (the org/verifier/employer)
+///   - One or more subject entities (the clinicians being reviewed)
+///   - A context type (what is being done)
+///   - A status (where in the lifecycle it is)
+model VcvOrganizationContext {
+  id              String              @id @default(uuid()) @db.Uuid
+  requestorId     String              @db.Uuid @map("requestor_id")
+  requestor       VcvEntity           @relation("ctx_requestor", fields: [requestorId], references: [id], onDelete: Cascade)
+
+  contextType     VcvOrgContextType   @map("context_type")
+  status          VcvOrgContextStatus @default(PENDING) @map("status")
+  title           String?             // human-readable label: "Q2 Re-credentialing — Kaiser SF"
+  description     String?
+
+  /// Deadline or expiration for this context
+  dueAt           DateTime?           @map("due_at")
+  completedAt     DateTime?           @map("completed_at")
+  revokedAt       DateTime?           @map("revoked_at")
+  revokedReason   String?             @map("revoked_reason")
+
+  /// Structured outcome (decision, notes, credential IDs accepted)
+  outcome         Json?               @db.JsonB
+  /// Webhook URL to notify on status changes
+  webhookUrl      String?             @map("webhook_url")
+  /// Auth user who created this context (Clerk user ID)
+  createdByUserId String?             @map("created_by_user_id")
+  /// Org-level external reference ID (for correlation with requester's systems)
+  externalRefId   String?             @map("external_ref_id")
+  metadata        Json                @default("{}") @db.JsonB
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt     @map("updated_at")
+
+  subjects        VcvOrgContextSubject[]
+  statusEvents    VcvOrgContextStatusEvent[]
+
+  @@index([requestorId, contextType])
+  @@index([status])
+  @@index([contextType, status])
+  @@index([createdByUserId])
+  @@index([externalRefId])
+  @@map("vcv_organization_contexts")
+}
+
+/// A subject (entity + optional credential set) participating in an org context.
+/// Subject can be a clinician, trainee, or other entity being reviewed.
+model VcvOrgContextSubject {
+  id              String                @id @default(uuid()) @db.Uuid
+  contextId       String                @db.Uuid @map("context_id")
+  context         VcvOrganizationContext @relation(fields: [contextId], references: [id], onDelete: Cascade)
+  subjectId       String                @db.Uuid @map("subject_id")
+  subject         VcvEntity             @relation("ctx_subject", fields: [subjectId], references: [id], onDelete: Cascade)
+  /// Specific credential(s) being reviewed in this context (nullable = all)
+  credentialId    String?               @db.Uuid @map("credential_id")
+  credential      VcvCredential?        @relation("ctx_credential", fields: [credentialId], references: [id], onDelete: SetNull)
+
+  subjectStatus   String                @default("PENDING") @map("subject_status")
+  // PENDING | SUBMITTED | UNDER_REVIEW | APPROVED | DENIED | WITHDRAWN
+
+  /// Subject's response or submission data
+  submissionData  Json?                 @db.JsonB @map("submission_data")
+  /// Reviewer notes
+  reviewNotes     String?               @map("review_notes")
+  reviewedAt      DateTime?             @map("reviewed_at")
+  reviewedByUserId String?              @map("reviewed_by_user_id")
+  invitedAt       DateTime?             @map("invited_at")
+  respondedAt     DateTime?             @map("responded_at")
+  metadata        Json                  @default("{}") @db.JsonB
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt     @map("updated_at")
+
+  @@unique([contextId, subjectId])
+  @@index([contextId])
+  @@index([subjectId])
+  @@index([subjectStatus])
+  @@map("vcv_org_context_subjects")
+}
+
+/// Audit trail for org context lifecycle transitions.
+model VcvOrgContextStatusEvent {
+  id          String                @id @default(uuid()) @db.Uuid
+  contextId   String                @db.Uuid @map("context_id")
+  context     VcvOrganizationContext @relation(fields: [contextId], references: [id], onDelete: Cascade)
+  fromStatus  VcvOrgContextStatus?  @map("from_status")
+  toStatus    VcvOrgContextStatus   @map("to_status")
+  triggeredBy String?               @map("triggered_by") // clerk user ID or system
+  reason      String?
+  metadata    Json                  @default("{}") @db.JsonB
+  createdAt   DateTime              @default(now()) @map("created_at")
+
+  @@index([contextId])
+  @@map("vcv_org_context_status_events")
+}
+
+// ── VcvUserEntityClaim — Wave S1 ──────────────────────────────────────────────
+
+/// Canonical link: auth user → identity subject (VcvEntity).
+/// Replaces the looser NpiOwnership with a typed, multi-level claim
+/// that supports progressive verification.
+///
+/// A user may claim multiple entities (e.g. a physician who also runs a group).
+/// An entity may have multiple users claiming it (e.g. credentialing coordinator
+/// acting on behalf of a clinician).
+model VcvUserEntityClaim {
+  id                  String              @id @default(uuid()) @db.Uuid
+  /// The VCV auth user (Clerk user ID — NOT the internal User.id UUID)
+  clerkUserId         String              @map("clerk_user_id")
+  /// The entity being claimed
+  entityId            String              @db.Uuid @map("entity_id")
+  entity              VcvEntity           @relation("entity_claims", fields: [entityId], references: [id], onDelete: Cascade)
+
+  /// Why the user is claiming this entity
+  claimType           String              @default("SUBJECT") @map("claim_type")
+  // SUBJECT     — user is the identity subject (clinician claiming their own NPI)
+  // COORDINATOR — user manages on behalf of the subject
+  // EMPLOYER    — user is reviewing/employing this entity
+  // AUDITOR     — read-only access for compliance
+
+  verificationLevel   VcvVerificationLevel @default(SELF_REPORTED) @map("verification_level")
+
+  /// When the claim was verified (if ever)
+  verifiedAt          DateTime?            @map("verified_at")
+  /// How it was verified: PASSKEY, MAGIC_LINK, DOCUMENT, ADMIN_OVERRIDE
+  verificationMethod  String?              @map("verification_method")
+  /// Source artifact that confirmed the claim
+  artifactId          String?              @map("artifact_id")
+
+  revokedAt           DateTime?            @map("revoked_at")
+  revokedReason       String?              @map("revoked_reason")
+  claimedAt           DateTime             @default(now()) @map("claimed_at")
+  metadata            Json                 @default("{}") @db.JsonB
+
+  @@unique([clerkUserId, entityId, claimType])
+  @@index([clerkUserId])
+  @@index([entityId])
+  @@index([verificationLevel])
+  @@map("vcv_user_entity_claims")
+}
+
+// ── Back-relations on VcvEntity (additive) ────────────────────────────────────
+
+// NOTE: Relations below are declared on VcvEntity via back-relation fields.
+// Prisma requires that all relations be declared on both sides.
+// The VcvEntity model was defined earlier in this file — these back-relations
+// are handled by the field declarations on the new models above.
+// (Prisma resolves this at generate time across the full schema.)
