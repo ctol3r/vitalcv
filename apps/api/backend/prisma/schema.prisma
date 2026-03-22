@@ -1887,6 +1887,64 @@ model EmployerWebhookConfig {
 // Wave APPLY-FIX: Apply-with-VitalCV share event log
 // Tracks every "Sign & Share" action: who shared, what, where, when,
 // webhook delivery status, email fallback, and provider-initiated revocations.
+// ── Shape-of-Truth: Canonical Provider Decision State ──────────────────────
+// Persists the latest formal DecisionArtifact for each NPI.
+// Updated by trustStateService after each verification run.
+// Never overwritten — see provider_decision_history for append-only log.
+
+model ProviderDecisionState {
+  id                   String    @id @default(uuid()) @db.Uuid
+  npi                  String    @unique
+  /// TRUSTED_CURRENT | TRUSTED_BUT_STALE_SOON | STALE_REVERIFY_REQUIRED |
+  /// CONFLICT_REQUIRES_REVIEW | NEGATIVE_FINDING_BLOCK | INSUFFICIENT_EVIDENCE
+  decisionClass        String    @map("decision_class")
+  aggregateConfidence  Float     @map("aggregate_confidence")
+  context              String    @default("credentialing")
+  methodologyVersion   String    @map("methodology_version")
+  evaluatedAt          DateTime  @map("evaluated_at")
+  expiresAt            DateTime  @map("expires_at")
+  claimCount           Int       @map("claim_count")
+  goldClaimCount       Int       @map("gold_claim_count")
+  silverClaimCount     Int       @map("silver_claim_count")
+  freshnessEvals       Json      @db.JsonB @map("freshness_evals")
+  negativeFindings     Json      @db.JsonB @map("negative_findings")
+  conflicts            Json      @db.JsonB
+  explanation          String
+  claimIds             Json      @db.JsonB @map("claim_ids")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  history              ProviderDecisionHistory[]
+
+  @@index([decisionClass, evaluatedAt])
+  @@index([expiresAt])
+  @@map("provider_decision_states")
+}
+
+// Append-only audit log of every decision state for a given NPI
+model ProviderDecisionHistory {
+  id                   String    @id @default(uuid()) @db.Uuid
+  npi                  String
+  stateId              String    @db.Uuid @map("state_id")
+  decisionClass        String    @map("decision_class")
+  aggregateConfidence  Float     @map("aggregate_confidence")
+  context              String    @default("credentialing")
+  methodologyVersion   String    @map("methodology_version")
+  evaluatedAt          DateTime  @map("evaluated_at")
+  expiresAt            DateTime  @map("expires_at")
+  explanation          String
+  negativeFindings     Json      @db.JsonB @map("negative_findings")
+  conflicts            Json      @db.JsonB
+  claimIds             Json      @db.JsonB @map("claim_ids")
+  recordedAt           DateTime  @default(now()) @map("recorded_at")
+
+  state                ProviderDecisionState @relation(fields: [stateId], references: [id], onDelete: Cascade)
+
+  @@index([npi, recordedAt])
+  @@index([decisionClass, recordedAt])
+  @@map("provider_decision_history")
+}
+
 model BundleShareEvent {
   id                   String    @id @default(uuid()) @db.Uuid
   /// bundleId references VerificationArtifact.id (source='APPLY_BUNDLE')

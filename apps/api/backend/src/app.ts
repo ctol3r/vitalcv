@@ -160,6 +160,7 @@ import { registerTrustStateEngineRoutes } from './routes/trustStateEngine';     
 import { registerAsyncTrustRoutes } from './routes/asyncTrust';                      // Wave 245: Async Trust Engine
 import { startMonitoringScheduler } from './services/async/monitoringScheduler';    // Wave 245: Monitoring Scheduler
 import { registerApplyRoutes } from './routes/apply';                                // Wave 246: Apply-with-VitalCV
+import { registerTrustDecisionRoutes } from './routes/trustDecision';               // Shape-of-Truth: 6-class decision engine
 import { registerSystemHealthRoutes } from './routes/systemHealth';                    // Wave 249: Trust Spine Hardening
 import { registerVelocityRoutes } from './routes/velocity';                              // Wave 250: Time-to-Start Velocity Dashboard
 import { registerTrustProofRoutes } from './routes/trustProof';                        // Wave 252: Trust Proof Bundle
@@ -3572,6 +3573,7 @@ if (BACKGROUND_JOBS_ENABLED) {
   startStrategyAgentScheduler();         // FE21-A — Strategy agent scheduler heartbeat
 }
 registerApplyRoutes(app);                // Wave 246 — Apply-with-VitalCV Distribution Wedge
+registerTrustDecisionRoutes(app);       // Shape-of-Truth — 6-class trust decision engine
 registerSystemHealthRoutes(app);         // Wave 249 — Trust Spine Hardening
 registerVelocityRoutes(app);             // Wave 250 — Time-to-Start Velocity Dashboard
 registerTrustProofRoutes(app);           // Wave 252 — Trust Proof Bundle
