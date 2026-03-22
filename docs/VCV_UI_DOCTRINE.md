@@ -135,10 +135,23 @@ These rules enforce the ANTIGRAVITY motion principle — clinicians flow into va
 
 ## 9. What Needs to Happen Next (Backlog)
 
-1. Add a dedicated `VerifierLayout` shell for `/verifier/*` (currently bare)
-2. Unify the two Skeleton files (deprecate `ui/lab/Skeleton.tsx`, consolidate to `ui/skeleton.tsx`)
-3. Deprecate `dashboard/cv-builder` or move it into `/holder/*`
-4. Audit `PUBLIC_SURFACE_PATHS` — remove `/mission-ops`, add any missing clinician-facing prefixes
-5. Add `PortalSwitcher` to verifier/employer shell
-6. Replace `ButtonPrimary` usage in non-hero contexts with `Button` variant="default"
-7. Add surface metadata (RSC metadata per layout) for all non-public routes
+> Items marked ✅ were completed in the Wave 3–6 patch bundle (2026-03-22).
+> See `docs/UI_PRIMITIVES.md` for the full stable/remaining breakdown.
+
+- ✅ `foundry-primitives.tsx` deleted (Wave 3)
+- ✅ `analytics` and `billing` pages — full token sweep (Wave 3)
+- ✅ `internal/*` pages — full token sweep (Wave 5)
+- ✅ `verifier/inbox` raw hex background removed (Wave 5)
+- ✅ `VerifierBreadcrumb` helper added; 3 verifier pages updated (Wave 3)
+- ✅ Verifier heading class standardized across all 4 sub-pages (Wave 4)
+- ✅ `/billing` route now ADMIN-gated in middleware (Wave 4)
+- ✅ `/dashboard/cv-builder` deprecated and clinician-gated (Wave 4)
+- ✅ `lab/Skeleton.tsx` annotated deprecated, zero imports confirmed (Wave 6)
+- ✅ `(intelligence)/layout.tsx` confirmed correct as passive passthrough (Wave 5)
+
+1. Add `PortalSwitcher` to verifier/employer shell (requires product decision on employer nav)
+2. Deprecate `dashboard/cv-builder` — **migrate to `/holder/*`** (route exists, just needs relocation)
+3. Delete `ui/lab/Skeleton.tsx` once CI confirms zero imports
+4. Audit `ButtonPrimary` usage — replace with `Button variant="default"` in non-hero contexts
+5. Add surface RSC metadata (`generateMetadata`) per layout for non-public routes
+6. Audit `loading.tsx` files under ops routes — ensure `OpsLoadingScreen` is used consistently

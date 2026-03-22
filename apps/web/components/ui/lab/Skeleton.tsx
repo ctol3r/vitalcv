@@ -1,6 +1,10 @@
 'use client';
 
 /**
+ * @deprecated ui/lab/Skeleton — zero imports as of Wave 6 (2026-03-22).
+ * Use `components/ui/skeleton.tsx` (canonical) instead.
+ * See docs/UI_PRIMITIVES.md for the canonical primitive list.
+ *
  * Skeleton — Wave 129: Uiverse Pattern Adoption
  *
  * Accessible skeleton loader with reduced-motion support.
