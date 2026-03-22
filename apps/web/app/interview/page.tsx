@@ -28,20 +28,67 @@ const BLOCKED = [
 
 const START = '14–28 days';
 
-// ── Shared link mock ──────────────────────────────────────────
+// ── Share confirmation mock ───────────────────────────────────
 
-const MOCK_LINK = 'vitalcv.com/p/demo-jsmith-8f4a';
+const SHARE_RECIPIENT = 'Kaiser Permanente';
+
+// ── Share confirmation ────────────────────────────────────────
+
+function ShareConfirmation({ recipient, sharedAt }: { recipient: string; sharedAt: Date }) {
+  const time = sharedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+  return (
+    <div
+      className="rounded-xl border border-emerald-500/25 bg-emerald-500/6 px-5 py-5"
+      style={{ animation: 'fade-in-up 0.25s ease-out both' }}
+    >
+      {/* Check mark */}
+      <div className="flex justify-center mb-4">
+        <div className="h-10 w-10 rounded-full border border-emerald-500/30 bg-emerald-500/10 flex items-center justify-center">
+          <span className="text-emerald-400 text-lg leading-none">✓</span>
+        </div>
+      </div>
+
+      {/* Rows */}
+      <div className="space-y-3 mb-4">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Shared with</span>
+          <span className="text-sm font-semibold text-white">{recipient}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Time</span>
+          <span className="text-sm text-white/70">Just now · {time}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Status</span>
+          <span className="flex items-center gap-1.5 text-sm font-semibold text-emerald-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Delivered
+          </span>
+        </div>
+      </div>
+
+      <div className="border-t border-white/6 pt-4">
+        <Link
+          href="/get-ready"
+          className="block text-center w-full rounded-lg bg-white/6 hover:bg-white/10 px-4 py-2.5 text-xs font-semibold text-white/70 hover:text-white transition-colors"
+        >
+          Build my real profile →
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 // ── Page ─────────────────────────────────────────────────────
 
 export default function InterviewPage() {
   const [shared, setShared] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [sharedAt, setSharedAt] = useState<Date | null>(null);
 
-  function handleCopy() {
-    navigator.clipboard.writeText(`https://${MOCK_LINK}`).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  function handleShare() {
+    setSharedAt(new Date());
+    setShared(true);
   }
 
   return (
@@ -106,12 +153,12 @@ export default function InterviewPage() {
 
           </div>
 
-          {/* CTA / Share state */}
+          {/* CTA / Confirmation */}
           {!shared ? (
             <>
               <button
                 type="button"
-                onClick={() => setShared(true)}
+                onClick={handleShare}
                 className="w-full rounded-xl bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 px-5 py-3.5 font-semibold text-white text-sm shadow-[0_0_28px_rgba(16,185,129,0.18)] transition-all active:scale-[0.98]"
               >
                 Share with employer
@@ -121,31 +168,7 @@ export default function InterviewPage() {
               </p>
             </>
           ) : (
-            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/6 px-4 py-4">
-              <p className="text-xs font-semibold text-emerald-400 mb-3">
-                Your shareable link
-              </p>
-              {/* Mock link row */}
-              <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/4 px-3 py-2.5 mb-3">
-                <span className="flex-1 text-xs text-white/60 truncate font-mono">{MOCK_LINK}</span>
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  className="shrink-0 text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
-                >
-                  {copied ? 'Copied!' : 'Copy'}
-                </button>
-              </div>
-              <p className="text-[11px] text-white/30 mb-3">
-                Demo link — sign in to generate your real proof bundle.
-              </p>
-              <Link
-                href="/get-ready"
-                className="block text-center w-full rounded-lg bg-white/8 hover:bg-white/12 px-4 py-2.5 text-xs font-semibold text-white transition-colors"
-              >
-                Build my real profile →
-              </Link>
-            </div>
+            <ShareConfirmation recipient={SHARE_RECIPIENT} sharedAt={sharedAt!} />
           )}
 
         </div>
