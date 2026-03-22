@@ -1,5 +1,15 @@
 'use client';
 
+/**
+ * @deprecated /dashboard/cv-builder — Legacy route.
+ *
+ * Per VCV_UI_DOCTRINE §8 and ANTIGRAVITY contract:
+ *   - Do not link to this route from any nav or CTA.
+ *   - The /dashboard prefix is not a valid surface in the current doctrine.
+ *   - This page should be migrated to /holder/* or removed in a future wave.
+ *   - Route is clinician-gated (see lib/auth/roles.ts) to prevent open access.
+ */
+
 import type { GraphNode } from '@/components/graph/types';
 import { TrustGraph } from '@/components/clinician/TrustGraph';
 import { Button } from '@/components/ui/button';

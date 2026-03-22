@@ -28,16 +28,34 @@ export const ROLE_LANDING: Record<UserRoleType, string> = {
 /**
  * Route prefix -> required role mapping.
  * Order matters: more specific prefixes must come first.
+ *
+ * Surface classification (VCV_UI_DOCTRINE §1):
+ *   Public   — /explore, /get-ready, /p/:npi, /verify/:npi, /sign-in, /sign-up, etc.
+ *   Clinician — /holder/*, /passport/*, /onboarding/*     → CLINICIAN role
+ *   Verifier  — /verifier/*, /employers/*, /issuer/*      → VERIFIER role
+ *   Ops/Intel — /intelligence/*, /findings/*, /graph/*, …  → AUTHENTICATED (any)
+ *   Internal  — /internal/*, /analytics, /billing,
+ *               /mission-ops, /command-center             → ADMIN role
+ *
+ * /dashboard/cv-builder is legacy (deprecated per doctrine §8).
+ * Route is kept alive and clinician-gated to prevent open access until
+ * it is migrated to /holder/* or removed.
  */
 export const PROTECTED_ROUTES: Array<{ pattern: RegExp; role: UserRoleType }> = [
   { pattern: /^\/holder(\/.*)?$/, role: UserRole.CLINICIAN },
   { pattern: /^\/verifier(\/.*)?$/, role: UserRole.VERIFIER },
   { pattern: /^\/issuer(\/.*)?$/, role: UserRole.ISSUER },
   { pattern: /^\/internal(\/.*)?$/, role: UserRole.ADMIN },
-  // Wave 136: Operator console — admin only
+  // Internal / operator surfaces — admin only
   { pattern: /^\/mission-ops(\/.*)?$/, role: UserRole.ADMIN },
   { pattern: /^\/analytics(\/.*)?$/, role: UserRole.ADMIN },
+  // Wave 4: /billing was previously unguarded (neither protected nor public).
+  // Internal surface per doctrine §1 — admin only.
+  { pattern: /^\/billing(\/.*)?$/, role: UserRole.ADMIN },
   { pattern: /^\/command-center(\/.*)?$/, role: UserRole.ADMIN },
+  // Legacy / deprecated routes — gated to prevent open access
+  // /dashboard/cv-builder: deprecated per doctrine §8; migrate to /holder/* eventually
+  { pattern: /^\/dashboard(\/.*)?$/, role: UserRole.CLINICIAN },
   // Intelligence surfaces — any authenticated user
   { pattern: /^\/intelligence(\/.*)?$/, role: UserRole.AUTHENTICATED },
   { pattern: /^\/findings(\/.*)?$/, role: UserRole.AUTHENTICATED },

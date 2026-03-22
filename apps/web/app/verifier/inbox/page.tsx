@@ -849,12 +849,12 @@ export default function VerifierInbox() {
   }, [applications]);
 
   return (
-    <main className="min-h-screen px-6 py-12" style={{ background: '#080e1a' }}>
+    <main className="px-6 py-12">
       <div className="mx-auto max-w-6xl">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-white/30">Employer</p>
-            <h1 className="text-3xl font-bold text-white">Incoming Applications</h1>
+            <h1 className="heading-lg text-white">Incoming Applications</h1>
             <p className="mt-1 text-white/40">
               Review providers, verify credentials, escalate concerns, and move accepted clinicians into hire/start.
             </p>
