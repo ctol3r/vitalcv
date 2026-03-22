@@ -35,7 +35,7 @@ export default function ExplorePage() {
         <div className="mt-8 flex items-center justify-center gap-3 flex-wrap">
           <PrequalifyTrigger
             label="Get Verified Free"
-            className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-[oklch(0.22_0.01_60)] hover:bg-white/90"
+            className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-vt-surface-ops-base hover:bg-white/90"
           />
           <Link
             href="/ask"

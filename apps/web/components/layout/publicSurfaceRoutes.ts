@@ -1,8 +1,12 @@
+// Public surface paths: routes that show the Navbar + Footer (no auth required).
+// Rules:
+//   - Do NOT add ops/intelligence routes here (/mission-ops, /intelligence, /graph, etc.)
+//   - Do NOT add auth-gated routes here (/holder, /verifier, etc.)
+// See docs/VCV_UI_DOCTRINE.md §2 for classification rules.
 export const PUBLIC_SURFACE_PATHS = new Set([
   '/',
   '/developers',
   '/documents',
-  '/mission-ops',
   '/mobile',
   '/simulation',
   '/status',
@@ -14,6 +18,22 @@ export const PUBLIC_SURFACE_PATHS = new Set([
   '/investors',
   '/partners',
 ]);
+
+// Ops-only paths: these get the AppShell (ops chrome), not Navbar+Footer.
+// Keep in sync with VCV_UI_DOCTRINE.md §1 Surface Classification.
+export const OPS_SURFACE_PREFIXES = [
+  '/intelligence',
+  '/graph',
+  '/findings',
+  '/storylines',
+  '/actions',
+  '/providers',
+  '/investigations',
+  '/calibration',
+  '/system-health',
+  '/network',
+  '/mission-ops',
+] as const;
 
 const PREFIX_MATCHERS = [
   '/demo',

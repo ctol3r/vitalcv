@@ -1,5 +1,2 @@
-import { IntelligenceDetailLoading } from '@/components/intelligence-ops/detail-loading';
+export { OpsLoadingScreen as default } from '@/components/shell/OpsLoadingScreen';
 
-export default function Loading() {
-  return <IntelligenceDetailLoading title="Provider detail" />;
-}

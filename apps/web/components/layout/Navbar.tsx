@@ -14,12 +14,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
+// Public-only nav items. Never add ops/internal routes here.
+// See docs/VCV_UI_DOCTRINE.md §3 for the full Navbar ruleset.
 const NAV_ITEMS = [
-  { href: '/',               label: 'Home' },
-  { href: '/explore',        label: 'Explore' },
-  { href: '/documents',      label: 'Documents' },
-  { href: '/developers',     label: 'Developers' },
-  { href: '/intelligence',   label: 'Intelligence' },
+  { href: '/',            label: 'Home' },
+  { href: '/explore',     label: 'Explore' },
+  { href: '/documents',   label: 'Documents' },
+  { href: '/developers',  label: 'Developers' },
 ] as const;
 
 export default function Navbar() {
@@ -33,7 +34,7 @@ export default function Navbar() {
   const closeMenu = () => setMenuOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-[color:oklch(0.22_0.01_60_/_0.9)] text-white backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-vt-surface-ops-base/90 text-white backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-6">
 
         {/* Logo */}
