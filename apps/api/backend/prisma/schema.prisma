@@ -50,6 +50,8 @@ model User {
   updatedAt      DateTime   @updatedAt
   personProfile  PersonProfile?
   workspacePreference WorkspacePreference?
+  passkeyCredentials  PasskeyCredential[]
+  npiOwnerships       NpiOwnership[]
 
   @@index([clerkUserId])
   @@index([organizationId])
@@ -3151,4 +3153,41 @@ model VcvEntityRelationship {
   @@index([objectId, relationshipType])
   @@index([subjectId, objectId])
   @@map("vcv_entity_relationships")
+}
+
+// ──────────────────────────────────────────────────────────────
+// Auth: Passkey Credentials (WebAuthn)
+// ──────────────────────────────────────────────────────────────
+
+model PasskeyCredential {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialId   String   @unique @map("credential_id")
+  publicKey      Bytes    @map("public_key")
+  counter        BigInt   @default(0)
+  deviceType     String   @default("platform") @map("device_type")
+  backedUp       Boolean  @default(false) @map("backed_up")
+  rpId           String   @map("rp_id")
+  transports     String[] @default([])
+  createdAt      DateTime @default(now()) @map("created_at")
+  @@map("passkey_credentials")
+}
+
+// ──────────────────────────────────────────────────────────────
+// Auth: NPI Ownership Claims
+// ──────────────────────────────────────────────────────────────
+
+model NpiOwnership {
+  id                 String    @id @default(uuid()) @db.Uuid
+  userId             String    @map("user_id")
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  npi                String
+  verifiedAt         DateTime? @map("verified_at")
+  verificationMethod String    @default("CLAIMED") @map("verification_method")
+  claimedAt          DateTime  @default(now()) @map("claimed_at")
+  revokedAt          DateTime? @map("revoked_at")
+  @@unique([userId, npi])
+  @@index([npi])
+  @@map("npi_ownership")
 }

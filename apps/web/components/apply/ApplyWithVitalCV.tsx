@@ -15,6 +15,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useBiometricConfirmation } from '@/hooks/useBiometricConfirmation';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -133,6 +134,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
   const [isLoading, setIsLoading] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [isRevoking, setIsRevoking] = useState(false);
+  const { confirm: confirmBiometric, isConfirming, biometricError } = useBiometricConfirmation();
   const [trustState, setTrustState] = useState<TrustStateData | null>(null);
   const [credentials, setCredentials] = useState<BundleCredential[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
@@ -226,8 +228,16 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
   // Execute Share
   const handleShare = useCallback(async () => {
     if (!validateOrgCtx()) return;
-    setIsSharing(true);
     setError(null);
+
+    // ── Biometric gate — require Face ID / Touch ID / passkey before sharing ──
+    const confirmed = await confirmBiometric();
+    if (!confirmed) {
+      setError(biometricError ?? 'Biometric confirmation required to share your profile.');
+      return;
+    }
+
+    setIsSharing(true);
     try {
       const id = clerkId();
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -605,10 +615,10 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                 <button
                   type="button"
                   onClick={handleShare}
-                  disabled={isSharing}
+                  disabled={isSharing || isConfirming}
                   className="flex-[3] flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-emerald-500 font-semibold text-white hover:bg-emerald-400 transition-all disabled:opacity-50 active:scale-[0.98]"
                 >
-                  {isSharing ? <><Spinner size="sm" /> Sharing…</> : 'Sign & Share'}
+                  {isConfirming ? <><Spinner size="sm" /> Confirm identity…</> : isSharing ? <><Spinner size="sm" /> Sharing…</> : 'Sign & Share'}
                 </button>
               </div>
             )}

@@ -1,7 +1,7 @@
 'use client';
 
 import { HowItWorksSection } from '@/components/marketing/HomeSections';
-import { LiveTrustConsole } from '@/components/hero/LiveTrustConsole';
+import { HeroWithAuthPrompt } from '@/components/hero/HeroWithAuthPrompt';
 import { SectionReveal } from '@/components/motion/ScrollMotion';
 import Link from 'next/link';
 import { CheckCircle2 } from 'lucide-react';
@@ -117,8 +117,8 @@ export default function HomePage() {
   return (
     <div style={{ background: '#080e1a' }} className="min-h-screen">
 
-      {/* HERO — headline immediately visible, solid CTA, NPI preview */}
-      <LiveTrustConsole />
+      {/* HERO — headline immediately visible, solid CTA, NPI preview + auth prompt */}
+      <HeroWithAuthPrompt />
 
       {/* Trust strip — verified against real sources */}
       <TrustStrip />

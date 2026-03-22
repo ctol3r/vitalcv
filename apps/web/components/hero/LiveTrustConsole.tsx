@@ -79,7 +79,12 @@ interface IngestResponse {
 
 // ── LiveTrustConsole ─────────────────────────────────────────
 
-export function LiveTrustConsole() {
+interface LiveTrustConsoleProps {
+  /** Called when the readiness preview becomes visible — receives resolved NPI + display name */
+  onPreviewReady?: (npi: string, displayName: string) => void;
+}
+
+export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {}) {
   const [npi,       setNpi]       = useState('');
   const [phase,     setPhase]     = useState<Phase>('idle');
   const [stages,    setStages]    = useState<SourceStage[]>(INITIAL_STAGES);
@@ -160,6 +165,15 @@ export function LiveTrustConsole() {
     // ── Step 3: Transition to preview ────────────────────────
     setPhase('preview');
     timers.current.push(setTimeout(() => setPreviewIn(true), 40));
+
+    // Notify parent so it can prompt for account creation (use realState which was just set)
+    if (onPreviewReady) {
+      // ClinicianTrustState.facts use factType/details fields (no label/value)
+      // Extract display name from details of the IDENTITY fact if present
+      const identityFact = realState?.facts?.find(f => f.factType?.toLowerCase().includes('identity'));
+      const name = identityFact?.details ?? 'Provider';
+      onPreviewReady(npi.trim(), name);
+    }
   }
 
   function handleContinue() {

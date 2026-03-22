@@ -135,6 +135,7 @@ import { registerClinicianRoutes } from './routes/clinician';             // Wav
 import { registerIntakeRoutes } from './routes/intake';                     // Wave 183: Resume + NPI + Links + Work Auth ingestion
 import { registerSearchRoutes } from './routes/search';                     // Wave 184: Unified Search Index & Content Graph
 import { registerRoleRoutes } from './routes/role';                         // Clerk auth: GET /api/me/role
+import { registerOwnershipRoutes } from './routes/ownership';               // Auth A1: NPI ownership claims
 import { registerOpportunityRoutes } from './routes/opportunities';          // Wave 227: Opportunities + Candidates
 import { registerApplicationRoutes } from './routes/applications';            // Wave 229: Application Flow
 import { registerAskRoutes } from './routes/ask';                           // Wave 185: Ask VitalCV answer engine
@@ -3543,6 +3544,7 @@ registerClinicianRoutes(app);         // Wave 287 — Clinician activation
 registerIntakeRoutes(app);            // Wave 183 — Resume + NPI + Links + Work Auth ingestion
 registerSearchRoutes(app);            // Wave 184 — Unified Search Index + hybrid retrieval
 registerRoleRoutes(app);              // Clerk auth — GET /api/me/role (role resolution)
+registerOwnershipRoutes(app);         // Auth A1 — NPI ownership claim/revoke
 registerOpportunityRoutes(app);       // Wave 227 — Opportunities + Candidates
 registerApplicationRoutes(app);       // Wave 229 — Clinician Application Flow
 registerAskRoutes(app);               // Wave 185 — Ask VitalCV natural language answer engine

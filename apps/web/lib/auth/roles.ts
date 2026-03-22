@@ -99,7 +99,12 @@ export const PUBLIC_ROUTE_PATTERNS = [
   /^\/get-ready(\/.*)?$/, // clinician onboarding
   /^\/explore(\/.*)?$/, // public opportunities board
   /^\/search(\/.*)?$/, // public search
-  /^\/p\/(\/.*)?$/, // public clinician profiles
+  /^\/p(\/.*)?$/, // public clinician profiles — /p/:npi and subpaths
+  /^\/updates(\/.*)?$/, // public updates / changelog
+  /^\/labs(\/.*)?$/, // public labs / experiments
+  /^\/apply(\/.*)?$/, // public apply flow
+  /^\/interview(\/.*)?$/, // public interview entry
+  /^\/passport(\/.*)?$/, // public passport entry
   /^\/intake(\/.*)?$/,
   /^\/verify(\/.*)?$/,
   /^\/trust-state(\/.*)?$/,
