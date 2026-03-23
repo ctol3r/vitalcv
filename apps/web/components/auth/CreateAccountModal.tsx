@@ -91,7 +91,7 @@ export function CreateAccountModal({ npi, displayName, onDismiss }: CreateAccoun
           {[
             'Face ID or Touch ID to sign in',
             'Share proof with one tap',
-            'Real-time credential monitoring',
+            'Continuous credential monitoring',
           ].map((item) => (
             <li key={item} className="flex items-center gap-2.5 text-white/55 text-sm">
               <span className="w-1 h-1 rounded-full bg-white/25 flex-shrink-0" aria-hidden="true" />

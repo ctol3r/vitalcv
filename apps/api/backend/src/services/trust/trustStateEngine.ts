@@ -19,6 +19,12 @@ import { checkExclusion } from '../psv/oigLeieChecker';
 import { log } from '../../obs/logger';
 import { isCredentialIngestionEnabled } from '../credentials/credentialIngestionConfig';
 import {
+  computeDeterministicTrustReadiness,
+  deriveTrustBandFromReadiness,
+  resolveSourceCoverageState,
+  type TrustSourceCoverage,
+} from './trustCore';
+import {
   boardOrderSeverityBlocksReadiness,
   boardOrderSeverityRequiresReview,
   normalizeBoardOrderSeverity,
@@ -60,6 +66,9 @@ export interface ClinicianTrustState {
   credentialCount: number;
   reviewRequired?: boolean;
   blockers?: string[];
+  nextActions?: string[];
+  confidenceWeighting?: Record<'identity' | 'exclusion' | 'licensure' | 'enrollment', number>;
+  sourceCoverage?: TrustSourceCoverage[];
   /** L0–L3 readiness level */
   readiness_level: TrustBand;
   /** Human-readable status */
@@ -81,8 +90,11 @@ export interface ClinicianTrustState {
 }
 
 type IngestedArtifactRecord = {
+  id?: string;
   source: string;
   status: string;
+  checksum?: string | null;
+  sourceUrl?: string | null;
   verifiedAt: Date;
   expiresAt: Date | null;
   psvWindowDeadline: Date | null;
@@ -124,16 +136,45 @@ interface NppesResult {
   taxonomies: Array<{ code: string; desc?: string; primary: boolean; state?: string }>;
   status: string;
   found: boolean;
+  checked: boolean;
+  unavailable: boolean;
+  sourceUrl: string;
 }
 
 async function fetchNppes(npi: string): Promise<NppesResult> {
   const url = `https://npiregistry.cms.hhs.gov/api/?number=${npi}&version=2.1`;
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
-    if (!res.ok) return { firstName: '', middleName: '', lastName: '', enumerationType: '', taxonomies: [], status: 'UNKNOWN', found: false };
+    if (!res.ok) {
+      return {
+        firstName: '',
+        middleName: '',
+        lastName: '',
+        enumerationType: '',
+        taxonomies: [],
+        status: 'UNKNOWN',
+        found: false,
+        checked: false,
+        unavailable: true,
+        sourceUrl: url,
+      };
+    }
     const data = await res.json() as Record<string, unknown>;
     const result = (data?.results as Record<string, unknown>[])?.[0];
-    if (!result) return { firstName: '', middleName: '', lastName: '', enumerationType: '', taxonomies: [], status: 'UNKNOWN', found: false };
+    if (!result) {
+      return {
+        firstName: '',
+        middleName: '',
+        lastName: '',
+        enumerationType: '',
+        taxonomies: [],
+        status: 'UNKNOWN',
+        found: false,
+        checked: true,
+        unavailable: false,
+        sourceUrl: url,
+      };
+    }
     const basic = (result.basic ?? {}) as Record<string, string>;
     const firstName = basic.first_name ?? basic.authorized_official_first_name ?? '';
     const middleName = basic.middle_name ?? '';
@@ -141,126 +182,32 @@ async function fetchNppes(npi: string): Promise<NppesResult> {
     const enumerationType = (result.enumeration_type as string) ?? '';
     const taxonomies = (result.taxonomies as Array<{ code: string; desc?: string; primary: boolean; state?: string }>) ?? [];
     const status = basic.status ?? 'UNKNOWN';
-    return { firstName, middleName, lastName, enumerationType, taxonomies, status, found: true };
+    return {
+      firstName,
+      middleName,
+      lastName,
+      enumerationType,
+      taxonomies,
+      status,
+      found: true,
+      checked: true,
+      unavailable: false,
+      sourceUrl: url,
+    };
   } catch {
-    return { firstName: '', middleName: '', lastName: '', enumerationType: '', taxonomies: [], status: 'UNKNOWN', found: false };
+    return {
+      firstName: '',
+      middleName: '',
+      lastName: '',
+      enumerationType: '',
+      taxonomies: [],
+      status: 'UNKNOWN',
+      found: false,
+      checked: false,
+      unavailable: true,
+      sourceUrl: url,
+    };
   }
-}
-
-// ── Trust score computation ───────────────────────────────────────────────────
-
-function computeScore(params: {
-  identityVerified: boolean;
-  licensureStatus: LicensureStatus;
-  exclusionClear: boolean;
-  exclusionStatus?: ExclusionStatus;
-  pecosStatus?: PecosStatus;
-  credentialCount: number;
-  hasVerifiedArtifacts: boolean;
-}): number {
-  const exclusionStatus =
-    params.exclusionStatus ?? (params.exclusionClear ? 'CLEAR' : 'EXCLUDED');
-  const pecosStatus = params.pecosStatus ?? 'UNKNOWN';
-
-  if (exclusionStatus === 'EXCLUDED') {
-    return 0;
-  }
-
-  let score = 0;
-
-  // Identity: 20 points
-  if (params.identityVerified) score += 20;
-
-  // Licensure: 30 points
-  if (params.licensureStatus === 'verified') score += 30;
-  else if (params.licensureStatus === 'pending') score += 15;
-
-  // Exclusion clear: 30 points
-  if (exclusionStatus === 'CLEAR') score += 30;
-
-  // PECOS enrollment: 20 points
-  if (pecosStatus === 'ENROLLED') score += 20;
-
-  return Math.min(score, 100);
-}
-
-// ── Trust band from score + signals ──────────────────────────────────────────
-
-function deriveBand(params: {
-  identityVerified: boolean;
-  licensureStatus: LicensureStatus;
-  exclusionClear: boolean;
-  exclusionStatus?: ExclusionStatus;
-  pecosStatus?: PecosStatus;
-  trustScore: number;
-}): TrustBand {
-  const exclusionStatus =
-    params.exclusionStatus ?? (params.exclusionClear ? 'CLEAR' : 'EXCLUDED');
-  const pecosStatus = params.pecosStatus ?? 'UNKNOWN';
-  const reviewRequired =
-    exclusionStatus === 'POSSIBLE_MATCH'
-    || exclusionStatus === 'UNCHECKED'
-    || exclusionStatus === 'UNKNOWN';
-
-  // Hard L0 blockers
-  if (exclusionStatus === 'EXCLUDED') return 'L0';
-  if (!params.identityVerified) return 'L0';
-  if (params.licensureStatus === 'expired') return 'L0';
-  if (reviewRequired) return 'L1';
-  if (pecosStatus === 'ENROLLMENT_NOT_FOUND') return 'L1';
-
-  if (
-    params.trustScore >= 90
-    && exclusionStatus === 'CLEAR'
-    && pecosStatus === 'ENROLLED'
-    && params.licensureStatus === 'verified'
-  ) {
-    return 'L3';
-  }
-  if (params.trustScore >= 60) return 'L2';
-  if (params.trustScore >= 20) return 'L1';
-  return 'L0';
-}
-
-// ── Gaps detection ────────────────────────────────────────────────────────────
-
-function detectGaps(params: {
-  identityVerified: boolean;
-  licensureStatus: LicensureStatus;
-  exclusionClear: boolean;
-  exclusionStatus?: ExclusionStatus;
-  pecosStatus?: PecosStatus;
-  credentialCount: number;
-  facts: CanonicalFactSummary[];
-}): string[] {
-  const gaps: string[] = [];
-  const exclusionStatus =
-    params.exclusionStatus ?? (params.exclusionClear ? 'CLEAR' : 'EXCLUDED');
-  const pecosStatus = params.pecosStatus ?? 'UNKNOWN';
-
-  if (!params.identityVerified) gaps.push('NPI identity not verified');
-  if (params.licensureStatus === 'unknown') gaps.push('State licensure not verified');
-  if (params.licensureStatus === 'expired') gaps.push('State license expired');
-  if (exclusionStatus === 'POSSIBLE_MATCH') gaps.push('OIG/LEIE possible match requires review');
-  else if (exclusionStatus === 'UNCHECKED' || exclusionStatus === 'UNKNOWN') gaps.push('OIG/LEIE exclusion check unchecked');
-  else if (exclusionStatus === 'EXCLUDED') gaps.push('OIG/LEIE exclusion check flagged');
-  if (pecosStatus === 'UNKNOWN') gaps.push('PECOS enrollment not verified');
-  if (pecosStatus === 'ENROLLMENT_NOT_FOUND') gaps.push('PECOS enrollment not found');
-  if (params.credentialCount === 0) gaps.push('No credential documents on file');
-
-  const factTypes = params.facts.map((f) => f.factType.toLowerCase());
-
-  if (!factTypes.some((t) => t.includes('board') || t.includes('certification'))) {
-    gaps.push('No board certification on file');
-  }
-  if (!factTypes.some((t) => t.includes('dea'))) {
-    gaps.push('DEA registration not verified');
-  }
-  if (!factTypes.some((t) => t.includes('malpractice') || t.includes('insurance'))) {
-    gaps.push('Malpractice insurance not on file');
-  }
-
-  return gaps;
 }
 
 function isSourceArtifactFresh(
@@ -328,6 +275,201 @@ function asRecord(value: unknown): Record<string, unknown> {
   }
 
   return {};
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0
+    ? value.trim()
+    : undefined;
+}
+
+function isoDateValue(value: unknown): string | undefined {
+  if (value instanceof Date) {
+    return Number.isFinite(value.getTime()) ? value.toISOString() : undefined;
+  }
+
+  const stringified = stringValue(value);
+  if (!stringified) {
+    return undefined;
+  }
+
+  const parsed = Date.parse(stringified);
+  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : undefined;
+}
+
+function appendUniqueValue(values: string[], value: string): void {
+  if (!values.includes(value)) {
+    values.push(value);
+  }
+}
+
+function authorityScopeLabel(credential: AuthorityCredentialRecord): string {
+  const metadata = asRecord(credential.metadata);
+  const claimValue = asRecord(credential.claimValue);
+  return (
+    stringValue(metadata.sourceScope)
+    ?? stringValue(claimValue.sourceScope)
+    ?? stringValue(metadata.sourceId)
+    ?? credential.credentialType
+  );
+}
+
+function collectAuthoritySignals(
+  credentials: readonly AuthorityCredentialRecord[],
+  now: Date,
+): AuthoritySignalSummary {
+  const facts: CanonicalFactSummary[] = [];
+  const gaps: string[] = [];
+  const blockers: string[] = [];
+  const activeCredentialIds = new Set<string>();
+  let licensureVerified = false;
+  let expiredLicense = false;
+  let disciplinedLicense = false;
+  let boardOrderRequiresReview = false;
+  let boardOrderBlocks = false;
+  let authorityUnavailableLicensure = false;
+
+  for (const credential of credentials) {
+    const metadata = asRecord(credential.metadata);
+    const claimValue = asRecord(credential.claimValue);
+    const authorityClaimCode =
+      stringValue(metadata.authorityClaimCode)
+      ?? stringValue(claimValue.authorityClaimCode);
+    const boardOrderSeverity = normalizeBoardOrderSeverity(
+      stringValue(metadata.boardOrderSeverity)
+      ?? stringValue(claimValue.boardOrderSeverity),
+    );
+    const sourceScope = authorityScopeLabel(credential);
+    const sourceId =
+      stringValue(metadata.sourceId)
+      ?? stringValue(claimValue.source)
+      ?? 'AUTHORITY';
+    const factType =
+      credential.domain === 'BOARD_CERTIFICATION'
+        ? 'Certification'
+        : credential.domain === 'TRAINING'
+          ? 'Training'
+          : 'License';
+    const details = [
+      sourceScope,
+      boardOrderSeverity !== 'NONE' ? `severity=${boardOrderSeverity}` : null,
+      authorityClaimCode ? `claim=${authorityClaimCode}` : null,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+
+    if (authorityClaimCode || credential.domain === 'TRAINING') {
+      facts.push({
+        factType,
+        source: sourceId,
+        status: credential.status,
+        verifiedAt:
+          credential.verifiedAt?.toISOString()
+          ?? isoDateValue(metadata.verifiedAt)
+          ?? isoDateValue(claimValue.verifiedAt),
+        expiresAt:
+          credential.expiresAt?.toISOString()
+          ?? isoDateValue(metadata.expiresAt)
+          ?? isoDateValue(claimValue.expiresAt)
+          ?? isoDateValue(claimValue.expiryDate),
+        details: details || undefined,
+      });
+    }
+
+    const normalizedStatus = credential.status.trim().toUpperCase();
+    const expiresAtIso =
+      credential.expiresAt?.toISOString()
+      ?? isoDateValue(metadata.expiresAt)
+      ?? isoDateValue(claimValue.expiresAt)
+      ?? isoDateValue(claimValue.expiryDate);
+    const expiresAt = expiresAtIso ? new Date(expiresAtIso) : null;
+    const expiredByDate =
+      Boolean(expiresAt)
+      && Number.isFinite(expiresAt!.getTime())
+      && expiresAt!.getTime() <= now.getTime();
+
+    if (credential.domain === 'LICENSURE') {
+      if (authorityClaimCode === 'AUTHORITY_UNAVAILABLE') {
+        authorityUnavailableLicensure = true;
+        appendUniqueGap(
+          gaps,
+          `Authority source unavailable: ${sourceScope} licensure unresolved`,
+        );
+      }
+
+      if (
+        authorityClaimCode === 'RN_LICENSE_DISCIPLINED'
+        || normalizedStatus === 'SUSPENDED'
+        || normalizedStatus === 'REVOKED'
+      ) {
+        disciplinedLicense = true;
+        appendUniqueValue(blockers, 'LICENSE_DISCIPLINED');
+      }
+
+      if (authorityClaimCode === 'BOARD_ORDER_PRESENT') {
+        if (boardOrderSeverityBlocksReadiness(boardOrderSeverity)) {
+          boardOrderBlocks = true;
+          appendUniqueValue(blockers, 'BOARD_ORDER_BLOCK');
+        } else {
+          boardOrderRequiresReview = true;
+          appendUniqueValue(blockers, 'BOARD_ORDER_REVIEW');
+        }
+      }
+
+      if (
+        authorityClaimCode === 'RN_LICENSE_EXPIRED'
+        || normalizedStatus === 'EXPIRED'
+        || expiredByDate
+      ) {
+        expiredLicense = true;
+        appendUniqueValue(blockers, 'LICENSE_EXPIRED');
+      }
+
+      if (
+        authorityClaimCode === 'PHYSICIAN_LICENSE_ACTIVE'
+        || authorityClaimCode === 'RN_LICENSE_ACTIVE'
+        || normalizedStatus === 'ACTIVE'
+      ) {
+        licensureVerified = true;
+        activeCredentialIds.add(credential.id);
+      }
+    }
+
+    if (credential.domain === 'BOARD_CERTIFICATION') {
+      if (authorityClaimCode === 'AUTHORITY_UNAVAILABLE') {
+        appendUniqueGap(
+          gaps,
+          `Authority source unavailable: ${sourceScope} board certification unresolved`,
+        );
+      } else if (normalizedStatus === 'ACTIVE') {
+        activeCredentialIds.add(credential.id);
+      }
+    }
+
+    if (credential.domain === 'TRAINING') {
+      if (authorityClaimCode === 'AUTHORITY_UNAVAILABLE') {
+        appendUniqueGap(
+          gaps,
+          `Authority source unavailable: ${sourceScope} training unresolved`,
+        );
+      } else if (normalizedStatus === 'ACTIVE') {
+        activeCredentialIds.add(credential.id);
+      }
+    }
+  }
+
+  return {
+    facts,
+    gaps,
+    blockers,
+    credentialCount: activeCredentialIds.size,
+    licensureVerified,
+    expiredLicense,
+    disciplinedLicense,
+    boardOrderRequiresReview,
+    boardOrderBlocks,
+    authorityUnavailableLicensure,
+  };
 }
 
 function extractPecosStatus(
@@ -403,6 +545,51 @@ function reviewRequiredForExclusionStatus(status: ExclusionStatus | undefined): 
   return status === 'POSSIBLE_MATCH' || status === 'UNCHECKED' || status === 'UNKNOWN';
 }
 
+function confidenceScoreForLabel(label: 'HIGH' | 'MEDIUM' | 'LOW' | 'UNCERTAIN'): number {
+  if (label === 'HIGH') return 0.95;
+  if (label === 'MEDIUM') return 0.75;
+  if (label === 'LOW') return 0.55;
+  return 0.25;
+}
+
+function exclusionSourceUnavailable(details: string | undefined): boolean {
+  const normalized = (details ?? '').trim().toLowerCase();
+  return normalized.includes('disabled')
+    || normalized.includes('timed out')
+    || normalized.includes('timeout')
+    || normalized.includes('failed')
+    || normalized.includes('could not be loaded')
+    || normalized.includes('did not complete cleanly');
+}
+
+function artifactCoverage(
+  sourceId: string,
+  artifact: IngestedArtifactRecord | undefined,
+  options: {
+    fresh: boolean;
+    unavailable?: boolean;
+    humanRequired?: boolean;
+    reason: string;
+  },
+): TrustSourceCoverage {
+  return {
+    sourceId,
+    state: resolveSourceCoverageState({
+      sourceId,
+      checked: Boolean(artifact),
+      fresh: options.fresh,
+      unavailable: options.unavailable,
+      humanRequired: options.humanRequired,
+    }),
+    reason: options.reason,
+    checkedAt: artifact?.verifiedAt?.toISOString() ?? null,
+    artifactId: artifact?.id ?? null,
+    sourceUrl: artifact?.sourceUrl ?? null,
+    rawArtifactRef: artifact?.id ?? null,
+    checksum: artifact?.checksum ?? null,
+  };
+}
+
 function appendUniqueGap(gaps: string[], gap: string): void {
   if (!gaps.includes(gap)) {
     gaps.push(gap);
@@ -446,24 +633,58 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
   const now = new Date();
   const facts: CanonicalFactSummary[] = [];
 
-  const artifacts = await prisma.verificationArtifact.findMany({
-    where: {
-      npi,
-      source: { in: ['NPPES', 'NPPES_API', 'OIG', 'OIG_LEIE', 'STATE_BOARD', 'PECOS_PUBLIC'] },
-    },
-    select: {
-      source: true,
-      status: true,
-      verifiedAt: true,
-      expiresAt: true,
-      psvWindowDeadline: true,
-      rawPayload: true,
-    },
-    orderBy: [
-      { verifiedAt: 'desc' },
-      { createdAt: 'desc' },
-    ],
-  });
+  const [artifacts, entity] = await Promise.all([
+    prisma.verificationArtifact.findMany({
+      where: {
+        npi,
+        source: { in: ['NPPES', 'NPPES_API', 'OIG', 'OIG_LEIE', 'STATE_BOARD', 'PECOS_PUBLIC'] },
+      },
+      select: {
+        id: true,
+        source: true,
+        status: true,
+        checksum: true,
+        sourceUrl: true,
+        verifiedAt: true,
+        expiresAt: true,
+        psvWindowDeadline: true,
+        rawPayload: true,
+      },
+      orderBy: [
+        { verifiedAt: 'desc' },
+        { createdAt: 'desc' },
+      ],
+    }),
+    prisma.vcvEntity.findFirst({
+      where: { npi },
+      select: { id: true },
+    }),
+  ]);
+  const authorityCredentials: AuthorityCredentialRecord[] = entity
+    ? await prisma.vcvCredential.findMany({
+        where: {
+          subjectId: entity.id,
+          status: { not: 'SUPERSEDED' },
+          domain: { in: ['LICENSURE', 'BOARD_CERTIFICATION', 'TRAINING'] },
+        },
+        select: {
+          id: true,
+          domain: true,
+          status: true,
+          credentialType: true,
+          verifiedAt: true,
+          expiresAt: true,
+          observedAt: true,
+          metadata: true,
+          claimValue: true,
+        },
+        orderBy: [
+          { observedAt: 'desc' },
+          { verifiedAt: 'desc' },
+          { createdAt: 'desc' },
+        ],
+      })
+    : [];
 
   const latestBySource = new Map<string, IngestedArtifactRecord>();
   for (const artifact of artifacts) {
@@ -482,6 +703,9 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
       details: sourceDetails(artifact),
     });
   }
+
+  const authoritySignals = collectAuthoritySignals(authorityCredentials, now);
+  facts.push(...authoritySignals.facts);
 
   const nppesArtifact = latestBySource.get('NPPES_API') ?? latestBySource.get('NPPES');
   const oigArtifact = latestBySource.get('OIG_LEIE') ?? latestBySource.get('OIG');
@@ -521,6 +745,12 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
     }
   }
 
+  if (authoritySignals.expiredLicense) {
+    licensureStatus = 'expired';
+  } else if (authoritySignals.licensureVerified) {
+    licensureStatus = 'verified';
+  }
+
   const exclusionStatus = normalizeExclusionStatus(oigArtifact, oigFresh);
   const exclusionClear = exclusionStatus === 'CLEAR';
   const pecosStatus: PecosStatus = pecosArtifact && pecosFresh
@@ -535,66 +765,238 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
     const active = artifact.status === 'ACTIVE' || artifact.status === 'VERIFIED' || artifact.status === 'CLEAR';
     const unexpired = !artifact.expiresAt || artifact.expiresAt.getTime() > now.getTime();
     return fresh && active && unexpired;
-  }).length;
+  }).length + authoritySignals.credentialCount;
+  const unresolvedAuthorityLicensure =
+    authoritySignals.authorityUnavailableLicensure
+    && licensureStatus !== 'verified';
+  const licensureAuthorityCredential = authorityCredentials.find((credential) => credential.domain === 'LICENSURE');
+  const licensureAuthorityMetadata = asRecord(licensureAuthorityCredential?.metadata);
+  const licensureAuthorityValue = asRecord(licensureAuthorityCredential?.claimValue);
+  const licensureSourceId =
+    stringValue(licensureAuthorityMetadata.sourceId)
+    ?? stringValue(licensureAuthorityValue.sourceId)
+    ?? stringValue(licensureAuthorityValue.source)
+    ?? 'STATE_BOARD';
 
-  const trustScore = computeScore({
-    identityVerified,
-    licensureStatus,
-    exclusionClear,
-    exclusionStatus,
-    pecosStatus,
-    credentialCount,
-    hasVerifiedArtifacts: credentialCount > 0,
+  const identityCoverage = artifactCoverage('NPPES_API', nppesArtifact, {
+    fresh: nppesFresh,
+    reason:
+      !nppesArtifact
+        ? 'NPPES identity source not yet checked'
+        : !nppesFresh
+          ? 'NPPES identity evidence is stale and must be refreshed'
+          : 'NPPES identity checked',
+  });
+  const exclusionCoverage = artifactCoverage('OIG_LEIE', oigArtifact, {
+    fresh: oigFresh,
+    humanRequired: exclusionStatus === 'POSSIBLE_MATCH',
+    reason:
+      !oigArtifact
+        ? 'OIG LEIE source not yet checked'
+        : exclusionStatus === 'POSSIBLE_MATCH'
+          ? 'OIG LEIE returned a possible match and requires human adjudication'
+          : !oigFresh
+            ? 'OIG LEIE evidence is stale and must be re-run'
+            : exclusionStatus === 'EXCLUDED'
+              ? 'OIG LEIE exclusion confirmed'
+              : 'OIG LEIE check clear',
+  });
+  const licensureCoverage: TrustSourceCoverage = {
+    sourceId: licensureSourceId,
+    state: resolveSourceCoverageState({
+      sourceId: licensureSourceId,
+      checked:
+        Boolean(licenseArtifact)
+        || authoritySignals.licensureVerified
+        || authoritySignals.expiredLicense
+        || authoritySignals.disciplinedLicense
+        || authoritySignals.boardOrderBlocks
+        || authoritySignals.boardOrderRequiresReview,
+      fresh: licenseArtifact ? licenseFresh : true,
+      unavailable: unresolvedAuthorityLicensure,
+      humanRequired: authoritySignals.boardOrderRequiresReview,
+    }),
+    reason:
+      authoritySignals.disciplinedLicense
+        ? 'Licensure source returned a disciplinary action'
+        : authoritySignals.boardOrderBlocks
+          ? 'Licensure source returned a board order that blocks readiness'
+          : authoritySignals.boardOrderRequiresReview
+            ? 'Licensure source returned a board order that requires review'
+            : unresolvedAuthorityLicensure
+              ? 'Licensure source is unavailable or gated and requires a manual path'
+              : !licenseArtifact && !authoritySignals.licensureVerified
+                ? 'Licensure source not yet checked'
+                : licenseArtifact && !licenseFresh
+                  ? 'Licensure evidence is stale and must be refreshed'
+                  : 'Licensure checked',
+    checkedAt:
+      licenseArtifact?.verifiedAt?.toISOString()
+      ?? licensureAuthorityCredential?.verifiedAt?.toISOString()
+      ?? licensureAuthorityCredential?.observedAt?.toISOString()
+      ?? null,
+    artifactId: licenseArtifact?.id ?? null,
+    sourceUrl: licenseArtifact?.sourceUrl ?? null,
+    rawArtifactRef: licenseArtifact?.id ?? null,
+    checksum: licenseArtifact?.checksum ?? null,
+  };
+  const enrollmentCoverage = artifactCoverage('PECOS_PUBLIC', pecosArtifact, {
+    fresh: pecosFresh,
+    reason:
+      !pecosArtifact
+        ? 'PECOS enrollment source not yet checked'
+        : pecosStatus === 'ENROLLMENT_NOT_FOUND'
+          ? 'PECOS quarterly release does not show Medicare enrollment for this NPI'
+          : !pecosFresh
+            ? 'PECOS evidence is stale and must be refreshed'
+            : 'PECOS quarterly enrollment checked',
   });
 
-  const trustBand = deriveBand({
-    identityVerified,
-    licensureStatus,
-    exclusionClear,
-    exclusionStatus,
-    pecosStatus,
-    trustScore,
+  const identityAssessment = {
+    dimension: 'identity' as const,
+    status: identityVerified ? 'MET' as const : 'UNMET' as const,
+    confidence: identityVerified ? 0.99 : confidenceScoreForLabel('UNCERTAIN'),
+    blocker: identityVerified ? null : 'Identity not verified',
+    gap:
+      identityVerified
+        ? null
+        : !nppesArtifact
+          ? 'NPPES identity artifact missing'
+          : 'NPPES identity verification stale',
+    sourceCoverage: [identityCoverage],
+  };
+  const exclusionAssessment = {
+    dimension: 'exclusion' as const,
+    status:
+      exclusionStatus === 'EXCLUDED'
+        ? 'BLOCKED' as const
+        : !oigArtifact
+          ? 'UNMET' as const
+          : reviewRequiredForExclusionStatus(exclusionStatus)
+            ? 'REVIEW_REQUIRED' as const
+            : 'MET' as const,
+    confidence:
+      exclusionStatus === 'CLEAR' || exclusionStatus === 'EXCLUDED'
+        ? confidenceScoreForLabel('HIGH')
+        : exclusionStatus === 'POSSIBLE_MATCH'
+          ? confidenceScoreForLabel('MEDIUM')
+          : confidenceScoreForLabel('UNCERTAIN'),
+    blocker:
+      exclusionStatus === 'EXCLUDED'
+        ? 'OIG/LEIE exclusion confirmed'
+        : exclusionStatus === 'POSSIBLE_MATCH'
+          ? 'OIG/LEIE possible match requires review'
+          : exclusionStatus === 'UNCHECKED' && oigArtifact
+            ? 'OIG/LEIE check could not be confirmed'
+            : null,
+    gap:
+      !oigArtifact
+        ? 'OIG exclusion artifact missing'
+        : !oigFresh
+          ? 'OIG exclusion check stale'
+          : null,
+    sourceCoverage: [exclusionCoverage],
+  };
+  const licensureAssessment = {
+    dimension: 'licensure' as const,
+    status:
+      authoritySignals.disciplinedLicense || authoritySignals.boardOrderBlocks || licensureStatus === 'expired'
+        ? 'BLOCKED' as const
+        : authoritySignals.boardOrderRequiresReview || unresolvedAuthorityLicensure
+          ? 'REVIEW_REQUIRED' as const
+          : licensureStatus === 'verified'
+            ? 'MET' as const
+            : 'UNMET' as const,
+    confidence:
+      licensureStatus === 'verified' || authoritySignals.disciplinedLicense || licensureStatus === 'expired'
+        ? confidenceScoreForLabel('HIGH')
+        : authoritySignals.boardOrderRequiresReview || unresolvedAuthorityLicensure
+          ? confidenceScoreForLabel('MEDIUM')
+          : confidenceScoreForLabel('LOW'),
+    blocker:
+      authoritySignals.disciplinedLicense
+        ? 'License discipline requires resolution'
+        : authoritySignals.boardOrderBlocks
+          ? 'Board order severity blocks readiness'
+          : licensureStatus === 'expired'
+            ? 'State license expired'
+            : authoritySignals.boardOrderRequiresReview
+              ? 'Board order requires manual review'
+              : unresolvedAuthorityLicensure
+                ? 'Authority source unavailable for licensure'
+                : null,
+    gap:
+      licensureStatus === 'verified'
+        ? null
+        : licensureStatus === 'expired'
+          ? 'State license expired'
+          : !licenseArtifact && !authoritySignals.licensureVerified && !authoritySignals.authorityUnavailableLicensure
+            ? 'State license artifact missing'
+          : licenseArtifact && !licenseFresh
+            ? 'State license verification stale'
+            : null,
+    sourceCoverage: [licensureCoverage],
+  };
+  const enrollmentAssessment = {
+    dimension: 'enrollment' as const,
+    status:
+      pecosStatus === 'ENROLLED'
+        ? 'MET' as const
+        : pecosStatus === 'ENROLLMENT_NOT_FOUND'
+          ? 'BLOCKED' as const
+          : 'UNMET' as const,
+    confidence:
+      pecosStatus === 'UNKNOWN'
+        ? confidenceScoreForLabel('UNCERTAIN')
+        : confidenceScoreForLabel('HIGH'),
+    blocker:
+      pecosStatus === 'ENROLLMENT_NOT_FOUND'
+        ? 'PECOS enrollment not found'
+        : null,
+    gap:
+      !pecosArtifact
+        ? 'PECOS enrollment artifact missing'
+        : pecosStatus !== 'ENROLLMENT_NOT_FOUND' && !pecosFresh
+          ? 'PECOS enrollment verification stale'
+          : pecosStatus === 'UNKNOWN'
+            ? 'PECOS enrollment not verified'
+            : null,
+    sourceCoverage: [enrollmentCoverage],
+  };
+
+  const readinessBase = computeDeterministicTrustReadiness({
+    identity: identityAssessment,
+    exclusion: exclusionAssessment,
+    licensure: licensureAssessment,
+    enrollment: enrollmentAssessment,
   });
 
-  const gaps = detectGaps({
-    identityVerified,
-    licensureStatus,
-    exclusionClear,
-    exclusionStatus,
-    pecosStatus,
-    credentialCount,
-    facts,
+  const reviewRequired =
+    exclusionAssessment.status === 'REVIEW_REQUIRED'
+    || licensureAssessment.status === 'REVIEW_REQUIRED';
+
+  let trustScore = readinessBase.readinessScore;
+  if (authoritySignals.disciplinedLicense || authoritySignals.boardOrderBlocks || licensureStatus === 'expired') {
+    trustScore = Math.min(trustScore, 10);
+  } else if (reviewRequired || unresolvedAuthorityLicensure || pecosStatus === 'ENROLLMENT_NOT_FOUND') {
+    trustScore = Math.min(trustScore, 59);
+  }
+
+  const blockers = Array.from(new Set([...readinessBase.blockers, ...authoritySignals.blockers]));
+  const gaps = Array.from(new Set([...readinessBase.gaps, ...authoritySignals.gaps]));
+  const readiness = {
+    ...readinessBase,
+    readinessScore: trustScore,
+    readiness_score: trustScore,
+    blockers,
+    gaps,
+  };
+
+  const trustBand = deriveTrustBandFromReadiness({
+    readiness,
+    identityMet: identityAssessment.status === 'MET',
+    reviewRequired,
   });
-  const blockers = [
-    ...(exclusionStatus === 'EXCLUDED' ? ['EXCLUDED'] : []),
-    ...(licensureStatus === 'expired' ? ['LICENSE_EXPIRED'] : []),
-    ...(pecosStatus === 'ENROLLMENT_NOT_FOUND' ? ['ENROLLMENT_NOT_FOUND'] : []),
-  ];
-  const reviewRequired = reviewRequiredForExclusionStatus(exclusionStatus);
-
-  if (!nppesArtifact) {
-    appendUniqueGap(gaps, 'NPPES identity artifact missing');
-  } else if (!nppesFresh) {
-    appendUniqueGap(gaps, 'NPPES identity verification stale');
-  }
-
-  if (!oigArtifact) {
-    appendUniqueGap(gaps, 'OIG exclusion artifact missing');
-  } else if (!oigFresh) {
-    appendUniqueGap(gaps, 'OIG exclusion check stale');
-  }
-
-  if (!licenseArtifact) {
-    appendUniqueGap(gaps, 'State license artifact missing');
-  } else if (licensureStatus !== 'expired' && !licenseFresh) {
-    appendUniqueGap(gaps, 'State license verification stale');
-  }
-
-  if (!pecosArtifact) {
-    appendUniqueGap(gaps, 'PECOS enrollment artifact missing');
-  } else if (pecosStatus !== 'ENROLLMENT_NOT_FOUND' && !pecosFresh) {
-    appendUniqueGap(gaps, 'PECOS enrollment verification stale');
-  }
 
   const readinessStatusMap: Record<TrustBand, string> = {
     L3: 'Ready to credential — all evidence verified',
@@ -604,9 +1006,13 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
   };
 
   let readinessStatus = readinessStatusMap[trustBand];
-  if (blockers.includes('EXCLUDED')) readinessStatus = 'Not ready — excluded from federal healthcare programs';
-  else if (blockers.includes('LICENSE_EXPIRED')) readinessStatus = 'Blocked — state license expired';
-  else if (blockers.includes('ENROLLMENT_NOT_FOUND')) readinessStatus = 'Blocked — PECOS enrollment not found';
+  if (blockers.some((blocker) => /exclusion confirmed|excluded/i.test(blocker))) readinessStatus = 'Not ready — excluded from federal healthcare programs';
+  else if (blockers.some((blocker) => /discipline/i.test(blocker))) readinessStatus = 'Blocked — license discipline requires resolution';
+  else if (blockers.some((blocker) => /board order severity blocks/i.test(blocker))) readinessStatus = 'Blocked — board order severity requires manual resolution';
+  else if (blockers.some((blocker) => /license expired/i.test(blocker))) readinessStatus = 'Blocked — state license expired';
+  else if (blockers.some((blocker) => /pecos enrollment not found/i.test(blocker))) readinessStatus = 'Blocked — PECOS enrollment not found';
+  else if (blockers.some((blocker) => /board order requires manual review/i.test(blocker))) readinessStatus = 'Review required — board order requires adjudication';
+  else if (unresolvedAuthorityLicensure) readinessStatus = 'Unresolved — authority source unavailable for licensure';
   else if (reviewRequired) readinessStatus = 'Review required — OIG/LEIE screening needs manual adjudication';
 
   const state: ClinicianTrustState = {
@@ -618,17 +1024,20 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
     pecosStatus,
     credentialCount,
     reviewRequired,
-    blockers,
+    blockers: readiness.blockers,
+    nextActions: readiness.nextActions,
+    confidenceWeighting: readiness.confidenceWeighting,
+    sourceCoverage: readiness.sourceCoverage,
     readiness_level: trustBand,
     readiness_status: readinessStatus,
     readiness_score: trustScore,
-    gap_summary: gaps,
+    gap_summary: readiness.gaps,
     methodology_version: METHODOLOGY_VERSION,
     computed_at: computedAt,
     trustBand,
     trustScore,
     facts,
-    gaps,
+    gaps: readiness.gaps,
     computedAt,
   };
 
@@ -662,38 +1071,44 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
   }
 
   const computedAt = new Date().toISOString();
+  const now = new Date();
   const facts: CanonicalFactSummary[] = [];
 
   // 1. NPPES identity
   const nppes = await fetchNppes(npi);
   const identityVerified = nppes.found && nppes.status === 'A';
 
-  if (nppes.found) {
+  if (nppes.found || nppes.checked || nppes.unavailable) {
     facts.push({
       factType: 'IdentityClaim',
-      source: 'CMS NPPES',
-      status: nppes.status === 'A' ? 'ACTIVE' : nppes.status,
-      details: [nppes.firstName, nppes.lastName].filter(Boolean).join(' ') || `NPI ${npi}`,
+      source: 'NPPES_API',
+      status:
+        nppes.unavailable
+          ? 'UNAVAILABLE'
+          : nppes.status === 'A'
+            ? 'ACTIVE'
+            : nppes.checked
+              ? 'NOT_FOUND_OR_INACTIVE'
+              : nppes.status,
+      verifiedAt: computedAt,
+      details:
+        nppes.unavailable
+          ? `NPPES lookup unavailable for NPI ${npi}`
+          : [nppes.firstName, nppes.lastName].filter(Boolean).join(' ') || `NPI ${npi}`,
     });
   }
 
   // 2. VerificationArtifacts from DB
-  let artifacts: Array<{
-    source: string;
-    status: string;
-    trustState: string;
-    verifiedAt: Date;
-    expiresAt: Date | null;
-    psvWindowDeadline: Date | null;
-    rawPayload: unknown;
-  }> = [];
+  let artifacts: IngestedArtifactRecord[] = [];
   try {
     artifacts = await prisma.verificationArtifact.findMany({
       where: { npi, source: { not: 'TRUST_STATE_ENGINE' } },
       select: {
+        id: true,
         source: true,
         status: true,
-        trustState: true,
+        checksum: true,
+        sourceUrl: true,
         verifiedAt: true,
         expiresAt: true,
         psvWindowDeadline: true,
@@ -705,39 +1120,8 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
     log('warn', 'trust_state_engine_artifact_query_error', { npi, error: String(err) });
   }
 
-  // Determine licensure from artifacts
-  let licensureStatus: LicensureStatus = 'unknown';
-  let pecosStatus: PecosStatus = 'UNKNOWN';
-  let hasVerifiedArtifacts = false;
-
   for (const artifact of artifacts) {
     const src = artifact.source.toUpperCase();
-    const sts = artifact.status.toUpperCase();
-
-    const isLicenseSource =
-      src.includes('NURSYS') ||
-      src.includes('STATE') ||
-      src.includes('LICENSE') ||
-      src.includes('MEDICAL_BOARD') ||
-      src.includes('FSMB');
-
-    if (isLicenseSource) {
-      if (sts === 'ACTIVE' || sts === 'VERIFIED') {
-        licensureStatus = 'verified';
-        hasVerifiedArtifacts = true;
-      } else if (sts === 'EXPIRED' || sts === 'REVOKED' || sts === 'SUSPENDED') {
-        if (licensureStatus !== 'verified') licensureStatus = 'expired';
-      } else if (licensureStatus === 'unknown') {
-        licensureStatus = 'pending';
-      }
-    }
-
-    if (sts === 'ACTIVE' || sts === 'VERIFIED') hasVerifiedArtifacts = true;
-    if (pecosStatus === 'UNKNOWN' && src.includes('PECOS')) {
-      pecosStatus = extractPecosStatus(artifact);
-    }
-
-    // Map to fact type
     let factType = 'VerificationRecord';
     if (src.includes('NURSYS') || src.includes('LICENSE')) factType = 'License';
     else if (src.includes('DEA')) factType = 'DEARegistration';
@@ -788,43 +1172,54 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
       status: cred.status,
       verifiedAt: cred.createdAt.toISOString(),
     });
+  }
 
-    // Uploaded verified license upgrades licensure status
-    if (
-      factType === 'License' &&
-      (cred.status === 'VERIFIED' || cred.status === 'PENDING_VERIFICATION')
+  const licenseArtifact = artifacts.find((artifact) => {
+    const src = artifact.source.toUpperCase();
+    return src.includes('NURSYS')
+      || src.includes('STATE')
+      || src.includes('LICENSE')
+      || src.includes('MEDICAL_BOARD')
+      || src.includes('FSMB');
+  });
+  const pecosArtifact = artifacts.find((artifact) => artifact.source.toUpperCase().includes('PECOS'));
+  const licenseFresh = isSourceArtifactFresh(licenseArtifact, now);
+  const pecosFresh = isSourceArtifactFresh(pecosArtifact, now);
+
+  let licensureStatus: LicensureStatus = 'unknown';
+  if (licenseArtifact) {
+    const normalizedStatus = licenseArtifact.status.toUpperCase();
+    const expiredByStatus =
+      normalizedStatus === 'EXPIRED'
+      || normalizedStatus === 'REVOKED'
+      || normalizedStatus === 'SUSPENDED';
+    const expiredByDate =
+      Boolean(licenseArtifact.expiresAt)
+      && licenseArtifact.expiresAt!.getTime() <= now.getTime();
+
+    if (expiredByStatus || expiredByDate) {
+      licensureStatus = 'expired';
+    } else if (
+      (normalizedStatus === 'ACTIVE' || normalizedStatus === 'VERIFIED')
+      && licenseFresh
     ) {
-      if (licensureStatus === 'unknown') licensureStatus = 'pending';
+      licensureStatus = 'verified';
     }
   }
 
-  // 4b. Freshness / expiry window checks (stale artifacts downgrade trust)
-  const STALE_THRESHOLD_MS = 180 * 24 * 60 * 60 * 1000; // 180 days
-  const now = new Date();
-  let hasStaleArtifact = false;
-  for (const artifact of artifacts) {
-    // Check expiry
-    if (artifact.expiresAt && artifact.expiresAt.getTime() <= now.getTime()) {
-      const src = artifact.source.toUpperCase();
-      if (src.includes('LICENSE') || src.includes('NURSYS') || src.includes('FSMB') || src.includes('STATE')) {
-        if (licensureStatus === 'verified') licensureStatus = 'expired';
-      }
-    }
-    // Check freshness — artifact verified > 180 days ago without re-verification
-    const age = now.getTime() - artifact.verifiedAt.getTime();
-    if (age > STALE_THRESHOLD_MS && (artifact.status === 'ACTIVE' || artifact.status === 'VERIFIED')) {
-      hasStaleArtifact = true;
-    }
-  }
-
-  const credentialCount = candidateCredentials.length + artifacts.filter(
-    (a) => a.status === 'ACTIVE' || a.status === 'VERIFIED'
-  ).length;
+  const pecosStatus: PecosStatus = pecosArtifact && pecosFresh
+    ? extractPecosStatus(pecosArtifact)
+    : 'UNKNOWN';
+  const credentialCount = candidateCredentials.length + artifacts.filter((artifact) => {
+    const normalizedStatus = artifact.status.toUpperCase();
+    const unexpired = !artifact.expiresAt || artifact.expiresAt.getTime() > now.getTime();
+    return (normalizedStatus === 'ACTIVE' || normalizedStatus === 'VERIFIED' || normalizedStatus === 'CLEAR') && unexpired;
+  }).length;
 
   // 4. OIG/LEIE exclusion check
-  // Only run if we have name data from NPPES to avoid false negatives
-  let exclusionClear = false;
+  let exclusionChecked = false;
   let exclusionStatus: ExclusionStatus = 'UNCHECKED';
+  let exclusionDetails: string | undefined;
   if (nppes.found && nppes.firstName && nppes.lastName) {
     try {
       const primaryTaxonomy = nppes.taxonomies.find((taxonomy) => taxonomy.primary) ?? nppes.taxonomies[0];
@@ -836,6 +1231,7 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
         state: primaryTaxonomy?.state ?? null,
         specialty: primaryTaxonomy?.desc ?? null,
       });
+      exclusionChecked = true;
       switch (exclusionResult.status) {
         case 'CLEAR':
         case 'EXCLUDED':
@@ -847,7 +1243,7 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
           exclusionStatus = exclusionResult.excluded ? 'EXCLUDED' : 'UNCHECKED';
           break;
       }
-      exclusionClear = exclusionStatus === 'CLEAR';
+      exclusionDetails = exclusionResult.details;
 
       facts.push({
         factType: 'Sanction',
@@ -858,64 +1254,210 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
       });
     } catch (err) {
       log('warn', 'trust_state_engine_oig_error', { npi, error: String(err) });
-      // OIG failure is NOT a silent pass — keep status unchecked until resolved.
-      exclusionClear = false;
       exclusionStatus = 'UNCHECKED';
+      exclusionDetails = 'OIG check unavailable — manual verification required.';
       facts.push({
         factType: 'Sanction',
         source: 'OIG_LEIE',
         status: 'CHECK_FAILED',
         verifiedAt: computedAt,
-        details: 'OIG check unavailable — manual verification required.',
+        details: exclusionDetails,
       });
     }
   }
+  const exclusionClear = exclusionStatus === 'CLEAR';
 
-  // 5. Compute composite score & band
-  const trustScore = computeScore({
-    identityVerified,
-    licensureStatus,
-    exclusionClear,
-    exclusionStatus,
-    pecosStatus,
-    credentialCount,
-    hasVerifiedArtifacts,
+  const identityCoverage: TrustSourceCoverage = {
+    sourceId: 'NPPES_API',
+    state: resolveSourceCoverageState({
+      sourceId: 'NPPES_API',
+      checked: nppes.checked,
+      fresh: nppes.checked,
+      unavailable: nppes.unavailable,
+    }),
+    reason:
+      nppes.unavailable
+        ? 'NPPES lookup unavailable'
+        : identityVerified
+          ? 'NPPES identity checked'
+          : nppes.checked
+            ? 'NPPES checked but did not return an active identity record'
+            : 'NPPES identity source not yet checked',
+    checkedAt: nppes.checked || nppes.unavailable ? computedAt : null,
+    artifactId: null,
+    sourceUrl: nppes.sourceUrl,
+    rawArtifactRef: null,
+    checksum: null,
+  };
+  const exclusionCoverage: TrustSourceCoverage = {
+    sourceId: 'OIG_LEIE',
+    state: resolveSourceCoverageState({
+      sourceId: 'OIG_LEIE',
+      checked: exclusionChecked && exclusionStatus !== 'UNCHECKED',
+      fresh: exclusionChecked,
+      unavailable: exclusionStatus === 'UNCHECKED' && exclusionSourceUnavailable(exclusionDetails),
+      humanRequired: exclusionStatus === 'POSSIBLE_MATCH',
+    }),
+    reason:
+      !nppes.found
+        ? 'OIG LEIE check is gated on an active NPPES identity match'
+        : exclusionStatus === 'POSSIBLE_MATCH'
+          ? 'OIG LEIE returned a possible match and requires human adjudication'
+          : exclusionStatus === 'EXCLUDED'
+            ? 'OIG LEIE exclusion confirmed'
+          : exclusionStatus === 'CLEAR'
+              ? 'OIG LEIE check clear'
+              : exclusionDetails ?? 'OIG LEIE check unresolved',
+    checkedAt:
+      exclusionChecked || (nppes.found && Boolean(exclusionDetails))
+        ? computedAt
+        : null,
+    artifactId: null,
+    sourceUrl: 'https://oig.hhs.gov/exclusions/exclusions_list.asp',
+    rawArtifactRef: null,
+    checksum: null,
+  };
+  const licensureCoverage = artifactCoverage('STATE_BOARD', licenseArtifact, {
+    fresh: licenseFresh,
+    reason:
+      !licenseArtifact
+        ? 'Licensure source not yet checked'
+        : licensureStatus === 'expired'
+          ? 'Licensure source reports an expired or inactive credential'
+          : !licenseFresh
+            ? 'Licensure evidence is stale and must be refreshed'
+            : 'Licensure checked',
+  });
+  const enrollmentCoverage = artifactCoverage('PECOS_PUBLIC', pecosArtifact, {
+    fresh: pecosFresh,
+    reason:
+      !pecosArtifact
+        ? 'PECOS enrollment source not yet checked'
+        : pecosStatus === 'ENROLLMENT_NOT_FOUND'
+          ? 'PECOS quarterly release does not show Medicare enrollment for this NPI'
+          : !pecosFresh
+            ? 'PECOS evidence is stale and must be refreshed'
+            : 'PECOS quarterly enrollment checked',
   });
 
-  let trustBand = deriveBand({
-    identityVerified,
-    licensureStatus,
-    exclusionClear,
-    exclusionStatus,
-    pecosStatus,
-    trustScore,
-  });
-  // Stale artifacts cap at L2 — cannot be L3 with outdated evidence
-  if (hasStaleArtifact && trustBand === 'L3') trustBand = 'L2';
-  if (
-    (exclusionStatus === 'POSSIBLE_MATCH' || exclusionStatus === 'UNCHECKED')
-    && (trustBand === 'L2' || trustBand === 'L3')
-  ) {
-    trustBand = 'L1';
-  }
-  if (pecosStatus === 'ENROLLMENT_NOT_FOUND' && (trustBand === 'L2' || trustBand === 'L3')) trustBand = 'L1';
+  const identityAssessment = {
+    dimension: 'identity' as const,
+    status: identityVerified ? 'MET' as const : 'UNMET' as const,
+    confidence: identityVerified ? 0.99 : confidenceScoreForLabel('UNCERTAIN'),
+    blocker: identityVerified ? null : 'Identity not verified',
+    gap:
+      identityVerified
+        ? null
+        : nppes.unavailable
+          ? 'NPPES identity lookup unavailable'
+          : nppes.checked
+            ? 'NPPES identity not found or inactive'
+            : 'NPPES identity artifact missing',
+    sourceCoverage: [identityCoverage],
+  };
+  const exclusionAssessment = {
+    dimension: 'exclusion' as const,
+    status:
+      !nppes.found || !nppes.firstName || !nppes.lastName
+        ? 'UNMET' as const
+        : exclusionStatus === 'EXCLUDED'
+        ? 'BLOCKED' as const
+        : exclusionStatus === 'CLEAR'
+          ? 'MET' as const
+          : exclusionStatus === 'POSSIBLE_MATCH' || exclusionStatus === 'UNCHECKED'
+            ? 'REVIEW_REQUIRED' as const
+            : 'UNMET' as const,
+    confidence:
+      !nppes.found || !nppes.firstName || !nppes.lastName
+        ? confidenceScoreForLabel('UNCERTAIN')
+        : exclusionStatus === 'CLEAR' || exclusionStatus === 'EXCLUDED'
+        ? confidenceScoreForLabel('HIGH')
+        : exclusionStatus === 'POSSIBLE_MATCH'
+          ? confidenceScoreForLabel('MEDIUM')
+          : confidenceScoreForLabel('UNCERTAIN'),
+    blocker:
+      !nppes.found || !nppes.firstName || !nppes.lastName
+        ? null
+        : exclusionStatus === 'EXCLUDED'
+        ? 'OIG/LEIE exclusion confirmed'
+        : exclusionStatus === 'POSSIBLE_MATCH'
+          ? 'OIG/LEIE possible match requires review'
+          : exclusionStatus === 'UNCHECKED'
+            ? 'OIG/LEIE check could not be confirmed'
+            : null,
+    gap:
+      exclusionStatus === 'CLEAR' || exclusionStatus === 'EXCLUDED'
+        ? null
+        : !nppes.found
+          ? 'OIG exclusion check pending identity verification'
+          : 'OIG/LEIE exclusion check unchecked',
+    sourceCoverage: [exclusionCoverage],
+  };
+  const licensureAssessment = {
+    dimension: 'licensure' as const,
+    status:
+      licensureStatus === 'expired'
+        ? 'BLOCKED' as const
+        : licensureStatus === 'verified'
+          ? 'MET' as const
+          : 'UNMET' as const,
+    confidence:
+      licensureStatus === 'verified' || licensureStatus === 'expired'
+        ? confidenceScoreForLabel('HIGH')
+        : confidenceScoreForLabel('LOW'),
+    blocker:
+      licensureStatus === 'expired'
+        ? 'State license expired'
+        : null,
+    gap:
+      licensureStatus === 'verified'
+        ? null
+        : !licenseArtifact
+          ? 'State license artifact missing'
+          : !licenseFresh
+            ? 'State license verification stale'
+            : 'State licensure not verified',
+    sourceCoverage: [licensureCoverage],
+  };
+  const enrollmentAssessment = {
+    dimension: 'enrollment' as const,
+    status:
+      pecosStatus === 'ENROLLED'
+        ? 'MET' as const
+        : pecosStatus === 'ENROLLMENT_NOT_FOUND'
+          ? 'BLOCKED' as const
+          : 'UNMET' as const,
+    confidence:
+      pecosStatus === 'UNKNOWN'
+        ? confidenceScoreForLabel('UNCERTAIN')
+        : confidenceScoreForLabel('HIGH'),
+    blocker:
+      pecosStatus === 'ENROLLMENT_NOT_FOUND'
+        ? 'PECOS enrollment not found'
+        : null,
+    gap:
+      !pecosArtifact
+        ? 'PECOS enrollment artifact missing'
+        : pecosStatus !== 'ENROLLMENT_NOT_FOUND' && !pecosFresh
+          ? 'PECOS enrollment verification stale'
+          : pecosStatus === 'UNKNOWN'
+            ? 'PECOS enrollment not verified'
+            : null,
+    sourceCoverage: [enrollmentCoverage],
+  };
 
-  // 6. Detect gaps
-  const gaps = detectGaps({
-    identityVerified,
-    licensureStatus,
-    exclusionClear,
-    exclusionStatus,
-    pecosStatus,
-    credentialCount,
-    facts,
+  const readiness = computeDeterministicTrustReadiness({
+    identity: identityAssessment,
+    exclusion: exclusionAssessment,
+    licensure: licensureAssessment,
+    enrollment: enrollmentAssessment,
   });
-  const blockers = [
-    ...(exclusionStatus === 'EXCLUDED' ? ['EXCLUDED'] : []),
-    ...(licensureStatus === 'expired' ? ['LICENSE_EXPIRED'] : []),
-    ...(pecosStatus === 'ENROLLMENT_NOT_FOUND' ? ['ENROLLMENT_NOT_FOUND'] : []),
-  ];
-  const reviewRequired = reviewRequiredForExclusionStatus(exclusionStatus);
+  const reviewRequired = exclusionAssessment.status === 'REVIEW_REQUIRED';
+  const trustBand = deriveTrustBandFromReadiness({
+    readiness,
+    identityMet: identityAssessment.status === 'MET',
+    reviewRequired,
+  });
 
   // Derive human-readable readiness status
   const readinessStatusMap: Record<TrustBand, string> = {
@@ -925,9 +1467,9 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
     L0: 'Not ready — critical issues detected',
   };
   let readiness_status = readinessStatusMap[trustBand];
-  if (blockers.includes('EXCLUDED')) readiness_status = 'Not ready — excluded from federal healthcare programs';
-  else if (blockers.includes('LICENSE_EXPIRED')) readiness_status = 'Blocked — state license expired';
-  else if (blockers.includes('ENROLLMENT_NOT_FOUND')) readiness_status = 'Blocked — PECOS enrollment not found';
+  if (readiness.blockers.some((blocker) => /exclusion confirmed|excluded/i.test(blocker))) readiness_status = 'Not ready — excluded from federal healthcare programs';
+  else if (readiness.blockers.some((blocker) => /license expired/i.test(blocker))) readiness_status = 'Blocked — state license expired';
+  else if (readiness.blockers.some((blocker) => /pecos enrollment not found/i.test(blocker))) readiness_status = 'Blocked — PECOS enrollment not found';
   else if (reviewRequired) readiness_status = 'Review required — OIG/LEIE screening needs manual adjudication';
 
   const state: ClinicianTrustState = {
@@ -939,26 +1481,27 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
     pecosStatus,
     credentialCount,
     reviewRequired,
-    blockers,
-    // Canonical output fields per directive
+    blockers: readiness.blockers,
+    nextActions: readiness.nextActions,
+    confidenceWeighting: readiness.confidenceWeighting,
+    sourceCoverage: readiness.sourceCoverage,
     readiness_level: trustBand,
     readiness_status,
-    readiness_score: trustScore,
-    gap_summary: gaps,
+    readiness_score: readiness.readinessScore,
+    gap_summary: readiness.gaps,
     methodology_version: METHODOLOGY_VERSION,
     computed_at: computedAt,
-    // Backward-compat aliases
     trustBand,
-    trustScore,
+    trustScore: readiness.readinessScore,
     facts,
-    gaps,
+    gaps: readiness.gaps,
     computedAt,
   };
 
   log('info', 'trust_state_computed', {
     npi,
     trustBand,
-    trustScore,
+    trustScore: readiness.readinessScore,
     identityVerified,
     licensureStatus,
     exclusionClear,
@@ -966,7 +1509,7 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
     pecosStatus,
     credentialCount,
     factCount: facts.length,
-    gapCount: gaps.length,
+    gapCount: readiness.gaps.length,
     reviewRequired,
   });
 

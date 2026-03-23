@@ -9,6 +9,12 @@ jest.mock('../../graphql/prisma_client', () => ({
       findMany: jest.fn(),
       create: jest.fn(),
     },
+    vcvEntity: {
+      findFirst: jest.fn(),
+    },
+    vcvCredential: {
+      findMany: jest.fn(),
+    },
     candidateCredential: {
       findMany: jest.fn(),
     },
@@ -33,6 +39,12 @@ const prismaMock = prisma as unknown as {
     findFirst: jest.Mock;
     findMany: jest.Mock;
     create: jest.Mock;
+  };
+  vcvEntity: {
+    findFirst: jest.Mock;
+  };
+  vcvCredential: {
+    findMany: jest.Mock;
   };
   candidateCredential: {
     findMany: jest.Mock;
@@ -81,6 +93,8 @@ describe('trustStateEngine route integration', () => {
     prismaMock.verificationArtifact.findFirst.mockReset();
     prismaMock.verificationArtifact.findMany.mockReset();
     prismaMock.verificationArtifact.create.mockReset();
+    prismaMock.vcvEntity.findFirst.mockReset();
+    prismaMock.vcvCredential.findMany.mockReset();
     prismaMock.candidateCredential.findMany.mockReset();
 
     prismaMock.verificationArtifact.findFirst.mockResolvedValue(null);
@@ -118,6 +132,8 @@ describe('trustStateEngine route integration', () => {
         },
       },
     ]);
+    prismaMock.vcvEntity.findFirst.mockResolvedValue(null);
+    prismaMock.vcvCredential.findMany.mockResolvedValue([]);
     prismaMock.candidateCredential.findMany.mockResolvedValue([]);
   });
 

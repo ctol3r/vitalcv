@@ -168,6 +168,95 @@ describe('upsertVcvCredential', () => {
     expect(result?.domain).toBe('MEDICARE_ENROLLMENT');
   });
 
+  it('maps TRAINING_COMPLETION → TRAINING domain with authority metadata', async () => {
+    (mockPrisma.vcvCredential.findFirst as jest.Mock).mockResolvedValue(null);
+    (mockPrisma.vcvCredential.create as jest.Mock).mockResolvedValue({ id: 'cred-training-1' });
+
+    const claim = makeClaim({
+      claimType: 'TRAINING_COMPLETION',
+      value: {
+        _type: 'TRAINING_COMPLETION',
+        programName: 'Residency Program',
+        institution: 'Teaching Hospital',
+        specialty: 'Internal Medicine',
+        trainingType: 'RESIDENCY',
+        completionDate: '2023-06-30T00:00:00.000Z',
+        source: 'FSMB',
+        authorityClaimCode: 'TRAINING_COMPLETED',
+        sourceScope: 'FSMB_TRAINING',
+        issuerEntityId: 'authority:fsmb',
+        effectiveAt: '2023-06-30T00:00:00.000Z',
+        verifiedAt: '2026-03-22T18:00:00.000Z',
+        confidenceLabel: 'Confirmed',
+        dataFreshness: 'Updated weekly',
+        participationStatus: 'verified_result',
+        boardOrderSeverity: 'NONE',
+        connectorState: 'connected',
+      } as unknown as NormalizedClaim['value'],
+    });
+
+    const result = await upsertVcvCredential(claim, 'entity-1');
+
+    expect(result?.domain).toBe('TRAINING');
+    expect(mockPrisma.vcvCredential.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          domain: 'TRAINING',
+          status: 'ACTIVE',
+          metadata: expect.objectContaining({
+            authorityClaimCode: 'TRAINING_COMPLETED',
+            sourceScope: 'FSMB_TRAINING',
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('maps AUTHORITY_UNAVAILABLE → target domain with unresolved status', async () => {
+    (mockPrisma.vcvCredential.findFirst as jest.Mock).mockResolvedValue(null);
+    (mockPrisma.vcvCredential.create as jest.Mock).mockResolvedValue({ id: 'cred-unavailable-1' });
+
+    const claim = makeClaim({
+      claimType: 'AUTHORITY_UNAVAILABLE',
+      value: {
+        _type: 'AUTHORITY_UNAVAILABLE',
+        reason: 'FSMB credential not configured',
+        source: 'FSMB',
+        targetDomain: 'LICENSURE',
+        jurisdiction: null,
+        authorityClaimCode: 'AUTHORITY_UNAVAILABLE',
+        sourceScope: 'FSMB_MED_API',
+        issuerEntityId: 'authority:fsmb',
+        effectiveAt: null,
+        verifiedAt: '2026-03-22T18:00:00.000Z',
+        confidenceLabel: 'Authority unavailable',
+        dataFreshness: 'Freshness unavailable',
+        participationStatus: 'unresolved',
+        boardOrderSeverity: 'NONE',
+        connectorState: 'unavailable',
+      } as unknown as NormalizedClaim['value'],
+      status: 'UNVERIFIED',
+      confidenceScore: 0.4,
+    });
+
+    const result = await upsertVcvCredential(claim, 'entity-1');
+
+    expect(result?.domain).toBe('LICENSURE');
+    expect(mockPrisma.vcvCredential.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          domain: 'LICENSURE',
+          status: 'UNRESOLVED',
+          metadata: expect.objectContaining({
+            authorityClaimCode: 'AUTHORITY_UNAVAILABLE',
+            sourceScope: 'FSMB_MED_API',
+            connectorState: 'unavailable',
+          }),
+        }),
+      }),
+    );
+  });
+
   it('maps NPI_IDENTITY → IDENTITY domain', async () => {
     (mockPrisma.vcvCredential.findFirst as jest.Mock).mockResolvedValue(null);
     (mockPrisma.vcvCredential.create as jest.Mock).mockResolvedValue({ id: 'cred-id-1' });

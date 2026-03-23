@@ -7,6 +7,12 @@ jest.mock('../src/graphql/prisma_client', () => ({
     candidateCredential: {
       findMany: jest.fn(),
     },
+    vcvEntity: {
+      findFirst: jest.fn(),
+    },
+    vcvCredential: {
+      findMany: jest.fn(),
+    },
   },
 }));
 
@@ -25,6 +31,12 @@ const prismaMock = prisma as unknown as {
   candidateCredential: {
     findMany: jest.Mock;
   };
+  vcvEntity: {
+    findFirst: jest.Mock;
+  };
+  vcvCredential: {
+    findMany: jest.Mock;
+  };
 };
 
 const checkExclusionMock = checkExclusion as jest.MockedFunction<typeof checkExclusion>;
@@ -35,8 +47,13 @@ describe('trust state engine with credential ingestion artifacts', () => {
   beforeEach(() => {
     prismaMock.verificationArtifact.findMany.mockReset();
     prismaMock.candidateCredential.findMany.mockReset();
+    prismaMock.vcvEntity.findFirst.mockReset();
+    prismaMock.vcvCredential.findMany.mockReset();
     checkExclusionMock.mockReset();
     fetchSpy = jest.spyOn(globalThis, 'fetch');
+
+    prismaMock.vcvEntity.findFirst.mockResolvedValue(null);
+    prismaMock.vcvCredential.findMany.mockResolvedValue([]);
   });
 
   afterEach(() => {

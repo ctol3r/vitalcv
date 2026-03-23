@@ -330,7 +330,7 @@ function ShareDrawer({
         className="rounded-xl border border-vt-neutral-800 bg-vt-neutral-900/80 p-4 space-y-3"
       >
         <div className="flex items-center justify-between mb-1">
-          <p className="text-[11px] font-medium text-vt-neutral-400">Share this passport</p>
+          <p className="text-[11px] font-medium text-vt-neutral-400">Share verified data</p>
           <button type="button" onClick={onClose} className="text-vt-neutral-600 hover:text-vt-neutral-400">
             <X className="h-3.5 w-3.5" />
           </button>
@@ -528,7 +528,7 @@ export default function ClinicianPassport({
             className="flex items-center gap-2 w-full justify-center rounded-lg border border-vt-neutral-700 bg-vt-neutral-800/40 py-2 text-xs text-vt-neutral-400 hover:text-vt-neutral-100 hover:border-vt-neutral-600 transition-colors"
           >
             <Share2 className="h-3.5 w-3.5" />
-            Share this passport
+            Share verified data
           </button>
 
           <AnimatePresence>

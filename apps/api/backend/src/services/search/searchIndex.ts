@@ -692,7 +692,7 @@ export async function seedPublicPages(): Promise<number> {
   const pages = [
     {
       title: 'VitalCV - Home',
-      body: 'Trust-native credentialing for clinicians and employers. Build your trust passport, get matched, unlock instant offers.',
+      body: 'Trust-native credentialing for clinicians and employers. Build your readiness profile, get matched, unlock instant offers.',
       sourceUrl: '/',
     },
     {

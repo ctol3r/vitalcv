@@ -19,7 +19,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import type { EvidenceTier, ClaimType } from './sourceCatalog';
+import { getSource, type EvidenceTier, type ClaimType } from './sourceCatalog';
 import type {
   AuthorityClaimCode,
   AuthorityConnectorState,
@@ -33,6 +33,90 @@ export type { EvidenceTier, ClaimType };
 
 export type ClaimConfidence = 'HIGH' | 'MEDIUM' | 'LOW' | 'UNCERTAIN';
 export type ClaimStatus     = 'ACTIVE' | 'EXPIRED' | 'SUPERSEDED' | 'UNVERIFIED' | 'BLOCKED';
+
+export interface ClaimArtifactTrace {
+  source_id: string;
+  source_url: string;
+  retrieved_at: string;
+  raw_artifact_ref: string;
+  checksum: string;
+  claim_type: ClaimType;
+  match_confidence: ClaimConfidence;
+}
+
+export interface ClaimArtifactTraceInput {
+  sourceId: string;
+  sourceUrl?: string | null;
+  retrievedAt: string;
+  artifactId: string;
+  checksum: string;
+  claimType: ClaimType;
+  matchConfidence: ClaimConfidence;
+}
+
+function nonEmptyString(value: string | null | undefined): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+export function buildClaimArtifactTrace(input: ClaimArtifactTraceInput): ClaimArtifactTrace {
+  const sourceUrl = nonEmptyString(input.sourceUrl) ?? nonEmptyString(getSource(input.sourceId)?.baseUrl);
+
+  if (!nonEmptyString(input.sourceId)) {
+    throw new Error('Traceable claim requires source_id');
+  }
+  if (!nonEmptyString(input.artifactId)) {
+    throw new Error(`Traceable claim ${input.claimType} requires raw_artifact_ref`);
+  }
+  if (!nonEmptyString(input.checksum)) {
+    throw new Error(`Traceable claim ${input.claimType} requires checksum`);
+  }
+  if (!sourceUrl) {
+    throw new Error(`Traceable claim ${input.claimType} requires source_url`);
+  }
+  if (!nonEmptyString(input.retrievedAt)) {
+    throw new Error(`Traceable claim ${input.claimType} requires retrieved_at`);
+  }
+
+  return {
+    source_id: input.sourceId,
+    source_url: sourceUrl,
+    retrieved_at: input.retrievedAt,
+    raw_artifact_ref: input.artifactId,
+    checksum: input.checksum,
+    claim_type: input.claimType,
+    match_confidence: input.matchConfidence,
+  };
+}
+
+export function resolveClaimArtifactTrace(
+  claim: Pick<
+    NormalizedClaim,
+    | 'claimType'
+    | 'sourceId'
+    | 'artifactId'
+    | 'artifactChecksum'
+    | 'confidence'
+    | 'derivedAt'
+    | 'observedAt'
+    | 'source_id'
+    | 'source_url'
+    | 'retrieved_at'
+    | 'raw_artifact_ref'
+    | 'checksum'
+    | 'claim_type'
+    | 'match_confidence'
+  >,
+): ClaimArtifactTrace {
+  return buildClaimArtifactTrace({
+    sourceId: claim.source_id ?? claim.sourceId,
+    sourceUrl: claim.source_url,
+    retrievedAt: claim.retrieved_at ?? claim.derivedAt ?? claim.observedAt,
+    artifactId: claim.raw_artifact_ref ?? claim.artifactId,
+    checksum: claim.checksum ?? claim.artifactChecksum,
+    claimType: claim.claim_type ?? claim.claimType,
+    matchConfidence: claim.match_confidence ?? claim.confidence,
+  });
+}
 
 // ── Core schema ───────────────────────────────────────────────────────────────
 
@@ -60,6 +144,13 @@ export interface NormalizedClaim {
   artifactChecksum: string;   // VerificationArtifact.checksum
   parserVersion:    string;   // bump when parsing logic changes
   derivedAt:        string;   // ISO timestamp when this claim was derived
+  source_id?:       string;
+  source_url?:      string;
+  retrieved_at?:    string;
+  raw_artifact_ref?: string;
+  checksum?:        string;
+  claim_type?:      ClaimType;
+  match_confidence?: ClaimConfidence;
 
   // Temporal bounds
   observedAt:   string;       // when the source reported this fact
@@ -96,6 +187,12 @@ export interface VerificationReceipt {
   parser_version:      string;
   expires_at:          string | null;
   explanation:         string;         // human-readable provenance sentence
+  source_url?:         string;
+  retrieved_at?:       string;
+  raw_artifact_ref?:   string;
+  checksum?:           string;
+  claim_type?:         ClaimType;
+  match_confidence?:   ClaimConfidence;
 }
 
 // ── Claim value union ─────────────────────────────────────────────────────────
@@ -389,6 +486,7 @@ export function buildReceipt(
   fieldLabel: string,
   explanation: string,
 ): VerificationReceipt {
+  const trace = resolveClaimArtifactTrace(claim);
   return {
     receipt_id:         createHash('sha256').update(claim.claimId + claim.derivedAt).digest('hex').slice(0, 32),
     claim_id:           claim.claimId,
@@ -403,6 +501,12 @@ export function buildReceipt(
     parser_version:     claim.parserVersion,
     expires_at:         claim.expiresAt,
     explanation,
+    source_url:         trace.source_url,
+    retrieved_at:       trace.retrieved_at,
+    raw_artifact_ref:   trace.raw_artifact_ref,
+    checksum:           trace.checksum,
+    claim_type:         trace.claim_type,
+    match_confidence:   trace.match_confidence,
   };
 }
 

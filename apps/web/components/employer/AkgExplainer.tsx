@@ -219,7 +219,7 @@ export function AkgExplainer({ npi, context, backendUrl }: AkgExplainerProps) {
 
     const query = context
       ? `${context} NPI ${npi}`
-      : `Is NPI ${npi} fully credentialed and verified?`;
+      : `Is NPI ${npi} ready to start?`;
 
     try {
       const res = await fetch(

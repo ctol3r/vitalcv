@@ -364,12 +364,13 @@ export default function PassportWallet({ passport }: Props) {
   const verifiedItems: string[] = [];
   const missingItems:  string[] = [];
 
-  if (passport.standing.exclusionClear)               verifiedItems.push('No exclusions or sanctions');
-  if (passport.standing.licensureStatus === 'verified') verifiedItems.push('State license verified');
-  if (passport.standing.deaStatus === 'registered')   verifiedItems.push('DEA registration active');
-  if (passport.standing.pecosStatus === 'enrolled')   verifiedItems.push('Medicare enrolled');
-  if (passport.training.hasDegree)                    verifiedItems.push('Medical degree on file');
-  if (passport.training.hasResidency)                 verifiedItems.push('Residency completed');
+  if (passport.identity.displayName)                  verifiedItems.push('Identity (CMS)');
+  if (passport.standing.exclusionClear)               verifiedItems.push('Not excluded (OIG)');
+  if (passport.standing.pecosStatus === 'enrolled')   verifiedItems.push('Enrollment (PECOS)');
+  if (passport.standing.licensureStatus === 'verified') verifiedItems.push('State license (Board)');
+  if (passport.standing.deaStatus === 'registered')   verifiedItems.push('DEA registration');
+  if (passport.training.hasDegree)                    verifiedItems.push('Medical degree');
+  if (passport.training.hasResidency)                 verifiedItems.push('Residency');
 
   if (passport.standing.exclusionStatus === 'UNCHECKED')                missingItems.push('Exclusion check pending');
   if (passport.standing.exclusionStatus === 'POSSIBLE_MATCH')           missingItems.push('Exclusion review required');
@@ -446,59 +447,35 @@ export default function PassportWallet({ passport }: Props) {
             <p className="text-white/50 text-sm mt-0.5">{identity.specialty}</p>
           )}
 
-          {/* Status pill */}
-          <div className="mt-3 flex items-center justify-between">
-            <span
-              className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border border-white/10 bg-white/4 ${cfg.labelOpacity}`}
-            >
-              {cfg.label}
-            </span>
-            <span className="text-white/25 text-xs tabular-nums">{readiness.score}/100</span>
-          </div>
+          {/* Status pill removed to match spec, keeping just Name and Specialty locally here */}
         </div>
 
         {/* ── Readiness section ─────────────────────────────────────────────── */}
-        <div className="space-y-3">
-          {/* Verified items */}
-          {verifiedItems.length > 0 && (
-            <div className="space-y-2">
-              {verifiedItems.slice(0, 6).map((item, i) => (
-                <VerifiedRow key={i} label={item} />
-              ))}
-            </div>
-          )}
+        <div className="space-y-4">
+          <div className="space-y-2">
+            {verifiedItems.length > 0 && verifiedItems.slice(0, 6).map((item, i) => (
+              <VerifiedRow key={i} label={item} />
+            ))}
+          </div>
 
-          {/* Divider between verified and missing */}
-          {verifiedItems.length > 0 && missingItems.length > 0 && (
-            <div className="border-t border-white/6" />
-          )}
-
-          {/* Missing items */}
           {missingItems.length > 0 && (
-            <div className="space-y-2">
-              {missingItems.slice(0, 4).map((item, i) => (
-                <MissingRow key={i} label={item} />
-              ))}
+            <div className="space-y-2 pt-2 border-t border-white/6">
+              <div className="flex items-center gap-3 text-sm">
+                <span className="text-amber-400 text-xs w-4 text-center select-none" aria-hidden>⚠</span>
+                <span className="text-white/70">Missing / unresolved</span>
+              </div>
+              <div className="pl-7 space-y-1">
+                {missingItems.slice(0, 4).map((item, i) => (
+                  <div key={i} className="text-white/40 text-xs">{item}</div>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Estimated start */}
-          {readiness.estimatedStartDays !== null && (
-            <div className="pt-1 flex items-baseline gap-1.5">
-              <span className="text-white/25 text-xs">Estimated start</span>
-              <span className="text-white/55 text-sm">
-                {readiness.estimatedStartDays === 0
-                  ? 'Ready now'
-                  : `~${readiness.estimatedStartDays} days`}
-              </span>
-            </div>
-          )}
-          {readiness.estimatedStartDays === null && readiness.status === 'BLOCKED' && (
-            <div className="pt-1 flex items-baseline gap-1.5">
-              <span className="text-white/25 text-xs">Estimated start</span>
-              <span className="text-white/35 text-sm">Blocked — resolve issues to continue</span>
-            </div>
-          )}
+          <div className="pt-4 border-t border-white/6 flex items-baseline justify-between">
+            <span className="text-white/50 text-sm font-medium">Readiness:</span>
+            <span className="text-white text-xl font-semibold tabular-nums tracking-tight">{readiness.score}%</span>
+          </div>
         </div>
 
         {/* ── NPI disclaimer — identity anchor clarification ─────────────── */}
@@ -510,12 +487,15 @@ export default function PassportWallet({ passport }: Props) {
 
         {/* ── Next actions (from readiness engine) ──────────────────────────── */}
         {readiness.nextActions && readiness.nextActions.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-white/25 text-xs uppercase tracking-widest">Next steps</p>
+          <div className="space-y-2 border-t border-white/6 pt-4">
+            <p className="text-white/50 text-sm font-medium mb-3">Next steps:</p>
             {readiness.nextActions.slice(0, 4).map(action => (
-              <div key={action.id} className="rounded-xl border border-white/6 bg-white/2 px-4 py-3">
-                <p className="text-white/60 text-sm font-medium">{action.title}</p>
-                <p className="text-white/30 text-xs mt-0.5 leading-relaxed">{action.detail}</p>
+              <div key={action.id} className="flex items-start gap-3">
+                <span className="text-white/25 mt-1 select-none text-xs">—</span>
+                <div>
+                  <p className="text-white/70 text-sm">{action.title}</p>
+                  <p className="text-white/40 text-xs mt-0.5">{action.detail}</p>
+                </div>
               </div>
             ))}
           </div>

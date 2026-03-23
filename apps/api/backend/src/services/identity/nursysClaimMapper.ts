@@ -5,7 +5,7 @@ import type {
   LicenseValue,
   NormalizedClaim,
 } from './evidenceModel';
-import { computeClaimId } from './evidenceModel';
+import { buildClaimArtifactTrace, computeClaimId } from './evidenceModel';
 
 function baseClaim(
   claimType: NormalizedClaim['claimType'],
@@ -14,16 +14,28 @@ function baseClaim(
   value: NormalizedClaim['value'],
   overrides: Partial<NormalizedClaim> = {},
 ): NormalizedClaim {
+  const artifactId = overrides.artifactId ?? `nursys-${claimType.toLowerCase()}-${npi}`;
+  const artifactChecksum = overrides.artifactChecksum ?? `nursys-contract-${npi}`;
+  const confidence = overrides.confidence ?? 'HIGH';
+  const trace = buildClaimArtifactTrace({
+    sourceId: 'NURSYS',
+    sourceUrl: 'https://www.nursys.com/',
+    retrievedAt: overrides.retrieved_at ?? observedAt,
+    artifactId,
+    checksum: artifactChecksum,
+    claimType,
+    matchConfidence: overrides.match_confidence ?? confidence,
+  });
   return {
     claimId: computeClaimId(claimType, 'NURSYS', npi, value),
     claimType,
     sourceId: 'NURSYS',
-    artifactId: `nursys-${claimType.toLowerCase()}-${npi}`,
-    artifactChecksum: `nursys-contract-${npi}`,
+    artifactId,
+    artifactChecksum,
     parserVersion: 'nursys-claim-mapper/v2',
     subjectNpi: npi,
     tier: 'GOLD',
-    confidence: 'HIGH',
+    confidence,
     confidenceScore: 0.92,
     status: 'ACTIVE',
     reviewRequired: false,
@@ -31,6 +43,13 @@ function baseClaim(
     humanReviewAt: null,
     observedAt,
     derivedAt: observedAt,
+    source_id: trace.source_id,
+    source_url: trace.source_url,
+    retrieved_at: trace.retrieved_at,
+    raw_artifact_ref: trace.raw_artifact_ref,
+    checksum: trace.checksum,
+    claim_type: trace.claim_type,
+    match_confidence: trace.match_confidence,
     validFrom: observedAt,
     validUntil: null,
     expiresAt: null,

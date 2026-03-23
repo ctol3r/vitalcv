@@ -74,6 +74,14 @@ function formatProofDate(value?: string | null): string | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed.toLocaleDateString();
 }
 
+function formatQuarter(value?: string | null): string | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  const q = Math.floor(parsed.getMonth() / 3) + 1;
+  return `Q${q} ${parsed.getFullYear()}`;
+}
+
 function exclusionRowState(status: PassportData['standing']['exclusionStatus']): boolean | null {
   if (status === 'CLEAR') return true;
   if (status === 'EXCLUDED') return false;
@@ -192,6 +200,26 @@ function buildProofSections(passport: PassportData): AccordionItem[] {
   return items;
 }
 
+function claimCodeToNote(c: PassportData['authority']['credentials'][0]): string | null {
+  const code = c.authorityClaimCode;
+  const severity = c.boardOrderSeverity;
+  if (code === 'BOARD_ORDER_PRESENT') {
+    const sev = severity && severity !== 'NONE' ? ` Severity: ${severity}.` : '';
+    return `A board order is on file for this license.${sev} Manual employer review required before proceeding.`;
+  }
+  if (code === 'AUTHORITY_UNAVAILABLE') {
+    const p = c.participationStatus;
+    if (p === 'non_participating_state' && c.jurisdiction)
+      return `${c.jurisdiction} does not participate in automated license verification. Request a board-issued verification letter directly.`;
+    if (p === 'institution_access_unavailable')
+      return 'Requires institutional FSMB or Nursys agreement. Contact your administrator.';
+    return 'Authority source access not configured for this record.';
+  }
+  if (code === 'RN_LICENSE_DISCIPLINED')
+    return 'A disciplinary action is recorded on this license. Review required before clinical placement.';
+  return null;
+}
+
 // ── Main review component ──────────────────────────────────────────────────────
 
 interface Props {
@@ -271,12 +299,9 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
               <h2 className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2">Identity</h2>
               <TrustLabel 
                 status={identity.npi ? 'confirmed' : 'unchecked'} 
-                label={identity.npi ? 'NPI registered' : 'NPI missing'} 
+                label={identity.npi ? 'Identity confirmed' : 'Identity missing'} 
                 source={identity.npi ? 'CMS' : undefined} 
-              />
-              <TrustLabel
-                status="info"
-                label="Identity only — not licensure"
+                explanation="Identity confirmed against national registry."
               />
             </div>
 
@@ -287,7 +312,8 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
                 status={exclusionRowState(standing.exclusionStatus) === true ? 'confirmed' : 'review'} 
                 label={exclusionRowState(standing.exclusionStatus) === true ? 'Not excluded' : 'Possible match — review required'} 
                 source="OIG"
-                date={formatProofDate(standing.exclusionCheckedAt) || undefined}
+                timestamp={standing.exclusionCheckedAt ? `checked ${formatProofDate(standing.exclusionCheckedAt)}` : undefined}
+                explanation="Cross-examined against national exclusion list."
               />
             </div>
 
@@ -333,7 +359,8 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
                       status={status}
                       label={label}
                       source={c.issuerName ?? c.sourceId ?? undefined}
-                      date={formatProofDate(c.observedAt ?? c.verifiedAt) ?? undefined}
+                      timestamp={c.observedAt || c.verifiedAt ? `checked ${formatProofDate(c.observedAt ?? c.verifiedAt)}` : undefined}
+                      explanation={claimCodeToNote(c) ?? undefined}
                     />
                   );
                 });
@@ -345,7 +372,7 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
                     status="confirmed"
                     label={`Board certified${c.jurisdiction ? ` — ${c.jurisdiction}` : ''}`}
                     source={c.issuerName ?? c.sourceId ?? 'ABMS'}
-                    date={formatProofDate(c.observedAt ?? c.verifiedAt) ?? undefined}
+                    timestamp={c.observedAt || c.verifiedAt ? `checked ${formatProofDate(c.observedAt ?? c.verifiedAt)}` : undefined}
                   />
                 ));
 
@@ -364,9 +391,9 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
                     {!hasAny && (
                       <TrustLabel
                         status="unchecked"
-                        label="Authority — source not connected"
+                        label="Authority missing"
                         source="FSMB / Nursys"
-                        date={undefined}
+                        explanation="Authority source access required but not configured."
                       />
                     )}
                     {!hasAny && (
@@ -386,7 +413,8 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
               <TrustLabel 
                 status={pecosEnrolled ? 'confirmed' : 'unchecked'} 
                 label={pecosEnrolled ? 'Medicare enrolled' : 'Medicare not enrolled'} 
-                vintage={standing.enrollmentFreshnessLabel || (standing.enrollmentObservedAt ? formatProofDate(standing.enrollmentObservedAt) : undefined) || undefined}
+                timestamp={standing.enrollmentObservedAt ? `As of ${formatQuarter(standing.enrollmentObservedAt)}` : 'Estimated'}
+                explanation="Verified against PECOS provider enrollment."
               />
             </div>
 
@@ -466,7 +494,7 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
                 href={`/passport/${passport.entityId}`}
                 className="text-white/25 hover:text-white/45 text-xs transition-colors min-h-[44px] flex items-center"
               >
-                Full passport
+                Full profile
               </Link>
               <button className="text-white/25 hover:text-white/45 text-xs transition-colors min-h-[44px]">
                 Download bundle

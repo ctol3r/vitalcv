@@ -86,7 +86,7 @@ export default function DeveloperPortalPage() {
           </h1>
 
           <p className="body-lg mt-5 text-vt-neutral-200 max-w-xl mx-auto">
-            Integrate real-time clinician credential verification into your hospital&apos;s
+            Integrate automated clinician credential verification into your hospital&apos;s
             EHR, scheduling, or onboarding systems in minutes — not months.
           </p>
 

@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Webhooks | VitalCV Docs',
-  description: 'Real-time webhook events for credential lifecycle changes.',
+  description: 'Automated webhook events for credential lifecycle changes.',
 };
 
 const EVENTS = [
@@ -107,7 +107,7 @@ export default function WebhooksPage() {
         <p className="text-xs font-mono uppercase tracking-widest text-sky-400 mb-3">Webhooks</p>
         <h1 className="text-3xl font-bold tracking-tight mb-4">Event Webhooks</h1>
         <p className="text-zinc-400 leading-relaxed">
-          VitalCV delivers real-time webhook events for all credential lifecycle changes.
+          VitalCV delivers immediate webhook events for all credential lifecycle changes.
           Events are signed with HMAC-SHA256, delivered with at-least-once semantics,
           and retried with exponential backoff for up to 24 hours.
         </p>

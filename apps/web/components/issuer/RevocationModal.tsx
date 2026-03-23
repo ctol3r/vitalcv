@@ -107,7 +107,7 @@ export function RevocationModal({
             </p>
             <p className="opacity-80">
               All employers and verifiers holding active references to this credential
-              will receive a real-time{' '}
+              will receive an immediate{' '}
               <code className="font-mono text-[10px]">BIDIRECTIONAL_FLAG_INVALID</code>{' '}
               signal.
             </p>

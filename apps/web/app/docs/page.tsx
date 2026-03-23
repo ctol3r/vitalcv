@@ -25,7 +25,7 @@ const SECTIONS = [
   {
     icon: Webhook,
     title: 'Webhooks',
-    desc: 'Real-time event delivery for credential lifecycle changes, trust state alerts, and revocation events.',
+    desc: 'Automated event delivery for credential lifecycle changes, trust state alerts, and revocation events.',
     href: '/docs/webhooks',
     badge: 'Events',
   },

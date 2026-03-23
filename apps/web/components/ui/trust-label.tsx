@@ -18,11 +18,11 @@ import { cn } from '@/lib/utils';
 export type TrustStatus = 'confirmed' | 'review' | 'unchecked' | 'blocked' | 'info';
 
 interface TrustLabelProps extends React.HTMLAttributes<HTMLDivElement> {
-  status:   TrustStatus;
-  label:    string;
-  source?:  string;
-  date?:    string;
-  vintage?: string;
+  status:       TrustStatus;
+  label:        string;
+  source?:      string;
+  timestamp?:   string;
+  explanation?: string;
 }
 
 const STATUS_STYLE: Record<TrustStatus, { glyph: string; text: string; glyph_opacity: string }> = {
@@ -33,23 +33,26 @@ const STATUS_STYLE: Record<TrustStatus, { glyph: string; text: string; glyph_opa
   info:      { glyph: 'i', text: 'text-white/35', glyph_opacity: 'text-white/20' },
 };
 
-export function TrustLabel({ status, label, source, date, vintage, className, ...props }: TrustLabelProps) {
+export function TrustLabel({ status, label, source, timestamp, explanation, className, ...props }: TrustLabelProps) {
   const { glyph, text, glyph_opacity } = STATUS_STYLE[status];
 
-  const detail = [source, date, vintage].filter(Boolean).join(' — ');
-
   return (
-    <div className={cn('flex items-start gap-2.5 text-sm', className)} {...props}>
-      <span
-        className={cn('shrink-0 w-4 text-center text-xs font-mono mt-0.5 select-none', glyph_opacity)}
-        aria-hidden
-      >
+    <div className={cn('flex items-start gap-3 py-1.5', className)} {...props}>
+      <span className={cn('shrink-0 w-4 text-center text-xs font-mono mt-0.5 select-none', glyph_opacity)} aria-hidden>
         {glyph}
       </span>
-      <div className="flex flex-wrap items-baseline gap-1.5 min-w-0">
-        <span className={cn('font-medium', text)}>{label}</span>
-        {detail && (
-          <span className="text-white/25 text-xs">({detail})</span>
+      <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span className={cn('font-medium text-[13px]', text)}>{label}</span>
+          {source && (
+            <span className="text-white/40 text-[11px]">Confirmed via {source}</span>
+          )}
+          {timestamp && (
+            <span className="text-white/25 text-[11px]">{timestamp}</span>
+          )}
+        </div>
+        {explanation && (
+          <p className="text-white/30 text-xs mt-0.5 leading-relaxed">{explanation}</p>
         )}
       </div>
     </div>

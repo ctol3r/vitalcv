@@ -298,7 +298,7 @@ export function CopilotPanel({ provider, seed = null }: CopilotPanelProps) {
           error={error}
           empty={!loading && results.length === 0 && insights.length === 0}
           emptyTitle={provider ? "Connected to 3 findings" : "Connected to 8 findings across 5 providers"}
-          emptyCopy="Run a query or click a suggestion below. Connected to real-time signals."
+          emptyCopy="Run a query or click a suggestion below. Connected to verified signals."
         >
           <div className="grid gap-4">
             {results.map((result) => (

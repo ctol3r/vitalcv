@@ -14,6 +14,7 @@ async function resetShareState(): Promise<void> {
   await prisma.vcvEducationRecord.deleteMany();
   await prisma.vcvCredential.deleteMany();
   await prisma.verificationReceiptRecord.deleteMany();
+  await prisma.auditSnapshot.deleteMany();
   await prisma.verificationArtifact.deleteMany();
   await prisma.vcvEntityRelationship.deleteMany();
   await prisma.vcvEntityRole.deleteMany();

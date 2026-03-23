@@ -482,6 +482,12 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   if (exclusionStatus === 'POSSIBLE_MATCH') negativeFindings.push('OIG/LEIE possible match requires review');
   if (exclusionStatus === 'UNCHECKED') negativeFindings.push('OIG/LEIE check not yet verified');
   if (trustState?.licensureStatus === 'expired') negativeFindings.push('License expired');
+  if (trustState?.blockers?.includes('LICENSE_DISCIPLINED')) negativeFindings.push('License discipline requires resolution');
+  if (trustState?.blockers?.includes('BOARD_ORDER_BLOCK')) negativeFindings.push('Board order severity blocks readiness');
+  if (trustState?.blockers?.includes('BOARD_ORDER_REVIEW')) negativeFindings.push('Board order requires manual review');
+  if (trustState?.gap_summary?.some((gap) => gap.toLowerCase().includes('authority source unavailable'))) {
+    negativeFindings.push('Authority verification source unavailable');
+  }
   if (
     trustState?.blockers?.includes('ENROLLMENT_NOT_FOUND')
     || (

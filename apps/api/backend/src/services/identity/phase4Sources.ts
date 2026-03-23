@@ -15,6 +15,7 @@
 
 import { createHash } from 'node:crypto';
 import {
+  buildClaimArtifactTrace,
   computeClaimId,
   buildReceipt,
   type NormalizedClaim,
@@ -48,19 +49,32 @@ function headersToObject(h: Headers): Record<string, string> {
 
 function makeClaim(params: {
   claimType: ClaimType; subjectNpi: string; value: NormalizedClaim['value'];
-  sourceId: string; artifactId: string; artifactChecksum: string;
+  sourceId: string; sourceUrl?: string; artifactId: string; artifactChecksum: string;
   parserVersion: string; tier: NormalizedClaim['tier'];
-  confidence: ClaimConfidence; confidenceScore: number; observedAt: string;
+  confidence: ClaimConfidence; matchConfidence?: ClaimConfidence; confidenceScore: number; observedAt: string; retrievedAt?: string;
   validFrom?: string | null; validUntil?: string | null; expiresAt?: string | null;
   status?: NormalizedClaim['status']; reviewRequired?: boolean; reviewReason?: string | null;
 }): NormalizedClaim {
   const claimId = computeClaimId(params.claimType, params.sourceId, params.subjectNpi, params.value);
+  const trace = buildClaimArtifactTrace({
+    sourceId: params.sourceId,
+    sourceUrl: params.sourceUrl,
+    retrievedAt: params.retrievedAt ?? params.observedAt,
+    artifactId: params.artifactId,
+    checksum: params.artifactChecksum,
+    claimType: params.claimType,
+    matchConfidence: params.matchConfidence ?? params.confidence,
+  });
   return {
     claimId, claimType: params.claimType, subjectNpi: params.subjectNpi,
     value: params.value, tier: params.tier, confidence: params.confidence,
     confidenceScore: params.confidenceScore, sourceId: params.sourceId,
     artifactId: params.artifactId, artifactChecksum: params.artifactChecksum,
     parserVersion: params.parserVersion, derivedAt: new Date().toISOString(),
+    source_id: trace.source_id, source_url: trace.source_url,
+    retrieved_at: trace.retrieved_at, raw_artifact_ref: trace.raw_artifact_ref,
+    checksum: trace.checksum, claim_type: trace.claim_type,
+    match_confidence: trace.match_confidence,
     observedAt: params.observedAt, validFrom: params.validFrom ?? null,
     validUntil: params.validUntil ?? null, expiresAt: params.expiresAt ?? null,
     status: params.status ?? 'ACTIVE', supersededBy: null, supersedes: null,
@@ -98,6 +112,7 @@ const OPENALEX_PARSER = 'v1.0.0';
 
 export function parseOpenAlexResult(
   npi: string, raw: unknown, artifactId: string, artifactChecksum: string, observedAt: string,
+  sourceMeta?: { sourceUrl?: string; retrievedAt?: string },
 ): { claims: NormalizedClaim[]; receipts: VerificationReceipt[] } {
   const claims: NormalizedClaim[] = [];
   const receipts: VerificationReceipt[] = [];
@@ -107,7 +122,16 @@ export function parseOpenAlexResult(
   const results = (data.results ?? []) as Array<Record<string, unknown>>;
   if (results.length === 0) return { claims, receipts };
 
-  const base = { sourceId: 'OPENALEX', artifactId, artifactChecksum, parserVersion: OPENALEX_PARSER, tier: 'SILVER' as const, observedAt };
+  const base = {
+    sourceId: 'OPENALEX',
+    sourceUrl: sourceMeta?.sourceUrl,
+    retrievedAt: sourceMeta?.retrievedAt ?? observedAt,
+    artifactId,
+    artifactChecksum,
+    parserVersion: OPENALEX_PARSER,
+    tier: 'SILVER' as const,
+    observedAt,
+  };
 
   // Take top match (highest relevance score)
   const author = results[0]!;
@@ -196,6 +220,7 @@ const CT_PARSER = 'v1.0.0';
 
 export function parseClinicalTrialsResult(
   npi: string, raw: unknown, artifactId: string, artifactChecksum: string, observedAt: string,
+  sourceMeta?: { sourceUrl?: string; retrievedAt?: string },
 ): { claims: NormalizedClaim[]; receipts: VerificationReceipt[] } {
   const claims: NormalizedClaim[] = [];
   const receipts: VerificationReceipt[] = [];
@@ -205,7 +230,16 @@ export function parseClinicalTrialsResult(
   const studies = (data.studies ?? []) as Array<Record<string, unknown>>;
   if (studies.length === 0) return { claims, receipts };
 
-  const base = { sourceId: 'CLINICAL_TRIALS', artifactId, artifactChecksum, parserVersion: CT_PARSER, tier: 'SILVER' as const, observedAt };
+  const base = {
+    sourceId: 'CLINICAL_TRIALS',
+    sourceUrl: sourceMeta?.sourceUrl,
+    retrievedAt: sourceMeta?.retrievedAt ?? observedAt,
+    artifactId,
+    artifactChecksum,
+    parserVersion: CT_PARSER,
+    tier: 'SILVER' as const,
+    observedAt,
+  };
 
   for (const study of studies.slice(0, 5)) {  // Cap at 5 trials
     const proto = study.protocolSection as Record<string, unknown> | undefined;
@@ -300,6 +334,7 @@ const PUBMED_PARSER = 'v1.0.0';
 
 export function parsePubMedResult(
   npi: string, raw: unknown, artifactId: string, artifactChecksum: string, observedAt: string,
+  sourceMeta?: { sourceUrl?: string; retrievedAt?: string },
 ): { claims: NormalizedClaim[]; receipts: VerificationReceipt[] } {
   const claims: NormalizedClaim[] = [];
   const receipts: VerificationReceipt[] = [];
@@ -309,7 +344,16 @@ export function parsePubMedResult(
   const totalCount = typeof data.totalCount === 'number' ? data.totalCount : 0;
   const summaries = (data.summaries ?? []) as Array<Record<string, unknown>>;
 
-  const base = { sourceId: 'PUBMED', artifactId, artifactChecksum, parserVersion: PUBMED_PARSER, tier: 'SILVER' as const, observedAt };
+  const base = {
+    sourceId: 'PUBMED',
+    sourceUrl: sourceMeta?.sourceUrl,
+    retrievedAt: sourceMeta?.retrievedAt ?? observedAt,
+    artifactId,
+    artifactChecksum,
+    parserVersion: PUBMED_PARSER,
+    tier: 'SILVER' as const,
+    observedAt,
+  };
 
   // Overall publication count claim
   if (totalCount > 0) {

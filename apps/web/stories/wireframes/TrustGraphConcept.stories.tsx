@@ -20,7 +20,7 @@ export const Concept: StoryObj = {
         <header className="mb-16 z-20 relative">
           <h1 className="text-4xl md:text-6xl font-heading tracking-tight">Trust Graph Engine</h1>
           <p className="text-xl text-muted-foreground mt-2 max-w-2xl font-light">
-             Real-time attestation routing across the VitalCV verified clinician network.
+             Automated attestation routing across the VitalCV verified clinician network.
           </p>
         </header>
 

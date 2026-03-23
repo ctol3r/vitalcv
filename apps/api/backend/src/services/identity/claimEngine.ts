@@ -13,6 +13,7 @@
 
 import { createHash } from 'node:crypto';
 import {
+  buildClaimArtifactTrace,
   computeClaimId,
   buildReceipt,
   type NormalizedClaim,
@@ -44,13 +45,16 @@ function makeClaim(
     subjectNpi:   string;
     value:        NormalizedClaim['value'];
     sourceId:     string;
+    sourceUrl?:   string;
     artifactId:   string;
     artifactChecksum: string;
     parserVersion: string;
     tier:         NormalizedClaim['tier'];
     confidence:   ClaimConfidence;
+    matchConfidence?: ClaimConfidence;
     confidenceScore: number;
     observedAt:   string;
+    retrievedAt?: string;
     derivedAt?:   string;
     validFrom?:   string | null;
     validUntil?:  string | null;
@@ -61,6 +65,15 @@ function makeClaim(
   }
 ): NormalizedClaim {
   const claimId = computeClaimId(params.claimType, params.sourceId, params.subjectNpi, params.value);
+  const trace = buildClaimArtifactTrace({
+    sourceId: params.sourceId,
+    sourceUrl: params.sourceUrl,
+    retrievedAt: params.retrievedAt ?? params.derivedAt ?? params.observedAt,
+    artifactId: params.artifactId,
+    checksum: params.artifactChecksum,
+    claimType: params.claimType,
+    matchConfidence: params.matchConfidence ?? params.confidence,
+  });
   return {
     claimId,
     claimType:        params.claimType,
@@ -74,6 +87,13 @@ function makeClaim(
     artifactChecksum: params.artifactChecksum,
     parserVersion:    params.parserVersion,
     derivedAt:        params.derivedAt ?? params.observedAt,
+    source_id:        trace.source_id,
+    source_url:       trace.source_url,
+    retrieved_at:     trace.retrieved_at,
+    raw_artifact_ref: trace.raw_artifact_ref,
+    checksum:         trace.checksum,
+    claim_type:       trace.claim_type,
+    match_confidence: trace.match_confidence,
     observedAt:       params.observedAt,
     validFrom:        params.validFrom ?? null,
     validUntil:       params.validUntil ?? null,
@@ -130,10 +150,20 @@ export function parseNppesResult(
   artifactId: string,
   artifactChecksum: string,
   observedAt: string,
+  sourceMeta?: { sourceUrl?: string; retrievedAt?: string },
 ): { claims: NormalizedClaim[]; receipts: VerificationReceipt[] } {
   const claims: NormalizedClaim[] = [];
   const receipts: VerificationReceipt[] = [];
-  const base = { sourceId: 'NPPES_API', artifactId, artifactChecksum, parserVersion: NPPES_PARSER_VERSION, tier: 'GOLD' as const, observedAt };
+  const base = {
+    sourceId: 'NPPES_API',
+    sourceUrl: sourceMeta?.sourceUrl,
+    retrievedAt: sourceMeta?.retrievedAt ?? observedAt,
+    artifactId,
+    artifactChecksum,
+    parserVersion: NPPES_PARSER_VERSION,
+    tier: 'GOLD' as const,
+    observedAt,
+  };
 
   try {
     // NPI Identity claim
@@ -313,6 +343,7 @@ export function parseOigResult(
   artifactId: string,
   artifactChecksum: string,
   observedAt: string,
+  sourceMeta?: { sourceUrl?: string; retrievedAt?: string },
 ): { claims: NormalizedClaim[]; receipts: VerificationReceipt[] } {
   const verdict = raw.verdict
     ?? (raw.excluded === true
@@ -375,10 +406,17 @@ export function parseOigResult(
   };
 
   const claim = makeClaim({
-    sourceId: 'OIG_LEIE', artifactId, artifactChecksum,
+    sourceId: 'OIG_LEIE',
+    sourceUrl: sourceMeta?.sourceUrl,
+    retrievedAt: sourceMeta?.retrievedAt ?? observedAt,
+    artifactId,
+    artifactChecksum,
     parserVersion: OIG_PARSER_VERSION, tier: 'GOLD',
     claimType: 'EXCLUSION_STATUS', subjectNpi: npi, value,
-    confidence, confidenceScore, observedAt,
+    confidence,
+    matchConfidence: confidence,
+    confidenceScore,
+    observedAt,
     status: verdict === 'EXCLUDED' ? 'BLOCKED' : reviewRequired ? 'UNVERIFIED' : 'ACTIVE',
     reviewRequired,
     reviewReason: reviewRequired
@@ -464,6 +502,7 @@ export function parsePecosRecord(
   artifactId: string,
   artifactChecksum: string,
   observedAt: string,
+  sourceMeta?: { sourceUrl?: string; retrievedAt?: string },
 ): { claims: NormalizedClaim[]; receipts: VerificationReceipt[] } {
   const value: EnrollmentValue = {
     _type: 'ENROLLMENT_STATUS',
@@ -481,7 +520,11 @@ export function parsePecosRecord(
   };
 
   const claim = makeClaim({
-    sourceId: 'PECOS_PUBLIC', artifactId, artifactChecksum,
+    sourceId: 'PECOS_PUBLIC',
+    sourceUrl: sourceMeta?.sourceUrl,
+    retrievedAt: sourceMeta?.retrievedAt ?? observedAt,
+    artifactId,
+    artifactChecksum,
     parserVersion: PECOS_PARSER_VERSION, tier: 'GOLD',
     claimType: 'ENROLLMENT_STATUS', subjectNpi: npi, value,
     confidence: 'HIGH', confidenceScore: 0.95, observedAt,

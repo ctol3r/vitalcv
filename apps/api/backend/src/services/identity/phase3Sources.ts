@@ -16,6 +16,7 @@
 
 import { createHash } from 'node:crypto';
 import {
+  buildClaimArtifactTrace,
   computeClaimId,
   buildReceipt,
   type NormalizedClaim,
@@ -48,19 +49,32 @@ function headersToObject(h: Headers): Record<string, string> {
 
 function makeClaim(params: {
   claimType: ClaimType; subjectNpi: string; value: NormalizedClaim['value'];
-  sourceId: string; artifactId: string; artifactChecksum: string;
+  sourceId: string; sourceUrl?: string; artifactId: string; artifactChecksum: string;
   parserVersion: string; tier: NormalizedClaim['tier'];
-  confidence: ClaimConfidence; confidenceScore: number; observedAt: string;
+  confidence: ClaimConfidence; matchConfidence?: ClaimConfidence; confidenceScore: number; observedAt: string; retrievedAt?: string;
   validFrom?: string | null; validUntil?: string | null; expiresAt?: string | null;
   status?: NormalizedClaim['status']; reviewRequired?: boolean; reviewReason?: string | null;
 }): NormalizedClaim {
   const claimId = computeClaimId(params.claimType, params.sourceId, params.subjectNpi, params.value);
+  const trace = buildClaimArtifactTrace({
+    sourceId: params.sourceId,
+    sourceUrl: params.sourceUrl,
+    retrievedAt: params.retrievedAt ?? params.observedAt,
+    artifactId: params.artifactId,
+    checksum: params.artifactChecksum,
+    claimType: params.claimType,
+    matchConfidence: params.matchConfidence ?? params.confidence,
+  });
   return {
     claimId, claimType: params.claimType, subjectNpi: params.subjectNpi,
     value: params.value, tier: params.tier, confidence: params.confidence,
     confidenceScore: params.confidenceScore, sourceId: params.sourceId,
     artifactId: params.artifactId, artifactChecksum: params.artifactChecksum,
     parserVersion: params.parserVersion, derivedAt: new Date().toISOString(),
+    source_id: trace.source_id, source_url: trace.source_url,
+    retrieved_at: trace.retrieved_at, raw_artifact_ref: trace.raw_artifact_ref,
+    checksum: trace.checksum, claim_type: trace.claim_type,
+    match_confidence: trace.match_confidence,
     observedAt: params.observedAt, validFrom: params.validFrom ?? null,
     validUntil: params.validUntil ?? null, expiresAt: params.expiresAt ?? null,
     status: params.status ?? 'ACTIVE', supersededBy: null, supersedes: null,
@@ -150,11 +164,21 @@ const NURSYS_PARSER = 'v1.0.0';
 
 export function parseNursysResult(
   npi: string, raw: unknown, artifactId: string, artifactChecksum: string, observedAt: string,
+  sourceMeta?: { sourceUrl?: string; retrievedAt?: string },
 ): { claims: NormalizedClaim[]; receipts: VerificationReceipt[] } {
   const claims: NormalizedClaim[] = [];
   const receipts: VerificationReceipt[] = [];
   const data = raw as Record<string, unknown>;
-  const base = { sourceId: 'NURSYS', artifactId, artifactChecksum, parserVersion: NURSYS_PARSER, tier: 'GOLD' as const, observedAt };
+  const base = {
+    sourceId: 'NURSYS',
+    sourceUrl: sourceMeta?.sourceUrl,
+    retrievedAt: sourceMeta?.retrievedAt ?? observedAt,
+    artifactId,
+    artifactChecksum,
+    parserVersion: NURSYS_PARSER,
+    tier: 'GOLD' as const,
+    observedAt,
+  };
 
   // No credentials / fetch failed
   if (data._noCredentials || data._fetchFailed) {
@@ -387,9 +411,19 @@ const STATE_BOARD_PARSER = 'v1.0.0';
 
 export function parseStateBoardResult(
   npi: string, state: string, raw: unknown, artifactId: string, artifactChecksum: string, observedAt: string,
+  sourceMeta?: { sourceUrl?: string; retrievedAt?: string },
 ): { claims: NormalizedClaim[]; receipts: VerificationReceipt[] } {
   const data = raw as Record<string, unknown>;
-  const base = { sourceId: 'STATE_BOARD', artifactId, artifactChecksum, parserVersion: STATE_BOARD_PARSER, tier: 'GOLD' as const, observedAt };
+  const base = {
+    sourceId: 'STATE_BOARD',
+    sourceUrl: sourceMeta?.sourceUrl,
+    retrievedAt: sourceMeta?.retrievedAt ?? observedAt,
+    artifactId,
+    artifactChecksum,
+    parserVersion: STATE_BOARD_PARSER,
+    tier: 'GOLD' as const,
+    observedAt,
+  };
   const stateUpper = state.toUpperCase();
 
   // Unavailable

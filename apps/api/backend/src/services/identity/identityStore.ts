@@ -1,5 +1,9 @@
 import { createHash, randomUUID } from 'node:crypto';
 import prisma, { Prisma } from '../../graphql/prisma_client';
+import {
+  buildClaimArtifactTrace,
+  resolveClaimArtifactTrace,
+} from './evidenceModel';
 import type {
   CanonicalIdentitySummary,
   NormalizedClaim,
@@ -178,7 +182,13 @@ type IdentityStorePrismaClient = {
     findFirst(args: Record<string, unknown>): Promise<{ id: string; generation: number | null } | null>;
     create(args: Record<string, unknown>): Promise<{ id: string }>;
     update(args: Record<string, unknown>): Promise<{ id: string }>;
-    findMany(args: Record<string, unknown>): Promise<Array<{ id: string; checksum: string }>>;
+    findMany(args: Record<string, unknown>): Promise<Array<{
+      id: string;
+      checksum: string;
+      sourceUrl?: string | null;
+      fetchedAt?: Date | null;
+      observedAt?: Date | null;
+    }>>;
   };
   identityResolutionDecision: {
     create(args: Record<string, unknown>): Promise<{ id: string }>;
@@ -313,6 +323,8 @@ export async function persistClaimRecords(input: {
   const persistedClaimIds: string[] = [];
 
   for (const claim of input.claims) {
+    resolveClaimArtifactTrace(claim);
+
     try {
       await claimClient.create({
         data: {
@@ -696,14 +708,14 @@ export async function loadClaimRecordsForNpi(npi: string): Promise<NormalizedCla
 
     const artifactRows = await prisma.verificationArtifact.findMany({
       where: { npi },
-      select: { id: true, checksum: true },
+      select: { id: true, checksum: true, sourceUrl: true, fetchedAt: true, observedAt: true },
     });
-    const artifactById = new Map(artifactRows.map((artifact) => [artifact.id, artifact.checksum]));
+    const artifactById = new Map(artifactRows.map((artifact) => [artifact.id, artifact]));
     const checksumByClaimId = new Map<string, string>();
     for (const [claimId, artifactId] of artifactByClaimId.entries()) {
       checksumByClaimId.set(
         claimId,
-        artifactById.get(artifactId) ?? '',
+        artifactById.get(artifactId)?.checksum ?? '',
       );
     }
 
@@ -711,6 +723,20 @@ export async function loadClaimRecordsForNpi(npi: string): Promise<NormalizedCla
       ...claim,
       artifactId: artifactByClaimId.get(claim.claimId) ?? claim.artifactId,
       artifactChecksum: checksumByClaimId.get(claim.claimId) ?? claim.artifactChecksum,
+      ...buildClaimArtifactTrace({
+        sourceId: claim.sourceId,
+        sourceUrl: artifactById.get(artifactByClaimId.get(claim.claimId) ?? '')?.sourceUrl ?? claim.source_url,
+        retrievedAt:
+          artifactById.get(artifactByClaimId.get(claim.claimId) ?? '')?.fetchedAt?.toISOString()
+          ?? artifactById.get(artifactByClaimId.get(claim.claimId) ?? '')?.observedAt?.toISOString()
+          ?? claim.retrieved_at
+          ?? claim.derivedAt
+          ?? claim.observedAt,
+        artifactId: artifactByClaimId.get(claim.claimId) ?? claim.artifactId,
+        checksum: checksumByClaimId.get(claim.claimId) ?? claim.artifactChecksum,
+        claimType: claim.claimType,
+        matchConfidence: claim.match_confidence ?? claim.confidence,
+      }),
     }));
   }
 

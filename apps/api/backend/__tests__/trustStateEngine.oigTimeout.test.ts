@@ -140,9 +140,15 @@ describe('trust state engine OIG timeout safeguard', () => {
 
     expect(state.exclusionStatus).toBe('UNCHECKED');
     expect(state.exclusionClear).toBe(false);
-    expect(state.readiness_score).toBe(50);
+    expect(state.readiness_score).toBe(20);
     expect(state.readiness_level).toBe('L1');
     expect(state.gap_summary).toContain('OIG/LEIE exclusion check unchecked');
+    expect(state.sourceCoverage).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        sourceId: 'OIG_LEIE',
+        state: 'UNAVAILABLE',
+      }),
+    ]));
     expect(state.facts).toEqual(expect.arrayContaining([
       expect.objectContaining({
         factType: 'Sanction',

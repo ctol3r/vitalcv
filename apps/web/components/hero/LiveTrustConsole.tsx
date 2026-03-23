@@ -196,15 +196,13 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
 
         {/* Headline */}
         <h1 className="text-[clamp(2rem,5vw,3.5rem)] font-bold leading-[1.08] tracking-tight text-white mb-4">
-          Get cleared to work
-          <br />
-          <span className="text-emerald-400">in hours, not months.</span>
+          Get cleared to <span className="text-emerald-400">start faster.</span>
         </h1>
 
         {/* Subline — hide in preview */}
         {phase !== 'preview' && (
           <p className="text-sm sm:text-base text-white/50 mb-8 leading-relaxed">
-            Your credentials verified once. Portable across employers where accepted.
+            Enter your NPI to see what’s already verified, what’s missing, and what comes next.
           </p>
         )}
 
@@ -228,7 +226,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
               disabled={phase === 'loading'}
               className="shrink-0 rounded-xl bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 disabled:from-emerald-700 disabled:to-emerald-800 px-5 py-3.5 font-semibold text-white text-sm transition-all active:scale-95 disabled:scale-100 whitespace-nowrap"
             >
-              {phase === 'loading' ? 'Checking…' : 'Get Verified'}
+              {phase === 'loading' ? 'Checking…' : 'Check readiness'}
             </button>
           </form>
         )}
@@ -273,7 +271,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
         {/* Footer hint — idle only */}
         {phase === 'idle' && (
           <p className="mt-3 text-[11px] text-white/25">
-            No login required to preview · As fast as the underlying source allows
+            NPI confirms identity only. Other checks vary by source.
           </p>
         )}
 

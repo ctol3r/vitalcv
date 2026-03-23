@@ -273,16 +273,35 @@ function extractClaimsFromArtifact(artifact: ExistingArtifactRecord): {
   receipts: VerificationReceipt[];
 } {
   const rawPayload = asObject(artifact.rawPayload);
+  const sourceUrl =
+    typeof rawPayload._sourceUrl === 'string' && rawPayload._sourceUrl.length > 0
+      ? rawPayload._sourceUrl
+      : undefined;
+  const retrievedAt =
+    typeof rawPayload._retrievedAt === 'string' && rawPayload._retrievedAt.length > 0
+      ? rawPayload._retrievedAt
+      : undefined;
 
   return {
     claims: ((rawPayload._claims ?? []) as NormalizedClaim[]).map((claim) => ({
       ...claim,
       artifactId: claim.artifactId || artifact.id,
       artifactChecksum: claim.artifactChecksum || artifact.checksum,
+      source_id: claim.source_id || claim.sourceId,
+      source_url: claim.source_url || sourceUrl,
+      retrieved_at: claim.retrieved_at || retrievedAt || claim.derivedAt || claim.observedAt,
+      raw_artifact_ref: claim.raw_artifact_ref || claim.artifactId || artifact.id,
+      checksum: claim.checksum || claim.artifactChecksum || artifact.checksum,
+      claim_type: claim.claim_type || claim.claimType,
+      match_confidence: claim.match_confidence || claim.confidence,
     })),
     receipts: ((rawPayload._receipts ?? []) as VerificationReceipt[]).map((receipt) => ({
       ...receipt,
       source_artifact_id: receipt.source_artifact_id || artifact.id,
+      source_url: receipt.source_url || sourceUrl,
+      retrieved_at: receipt.retrieved_at || retrievedAt || receipt.observed_at,
+      raw_artifact_ref: receipt.raw_artifact_ref || receipt.source_artifact_id || artifact.id,
+      checksum: receipt.checksum || artifact.checksum,
     })),
   };
 }
@@ -360,11 +379,13 @@ async function storeArtifact(input: {
   const rawPayload = {
     ...asObject(input.raw),
     _sourceId: input.sourceId,
+    _sourceUrl: input.sourceUrl,
     _sourceTier: source?.tier ?? 'BRONZE',
     _parserVersion: input.parserVersion,
     _claims: input.claims,
     _receipts: input.receipts,
     _ingestedAt: input.observedAt,
+    _retrievedAt: input.fetchedAt,
     _sourceRunId: input.sourceRunId,
     _sourceRecordId: input.sourceRecordId ?? null,
   };
@@ -820,6 +841,8 @@ async function executeSourceIngestion(input: {
     artifactId: string;
     checksum: string;
     observedAt: string;
+    sourceUrl: string;
+    retrievedAt: string;
   }) => ParsedSourceResult;
 }): Promise<IngestionResult> {
   const startedAtMs = Date.now();
@@ -992,6 +1015,8 @@ async function executeSourceIngestion(input: {
               artifactId: existingArtifact.id,
               checksum: existingArtifact.checksum,
               observedAt: input.observedAt,
+              sourceUrl: fetched.sourceUrl,
+              retrievedAt: fetched.fetchedAt,
             });
     } else {
       artifactId = deterministicUuid(`${input.sourceId}:${input.npi}:${fetched.checksum}`);
@@ -1001,6 +1026,8 @@ async function executeSourceIngestion(input: {
         artifactId,
         checksum: fetched.checksum,
         observedAt: input.observedAt,
+        sourceUrl: fetched.sourceUrl,
+        retrievedAt: fetched.fetchedAt,
       });
 
       await storeArtifact({
@@ -1351,7 +1378,7 @@ const handlers: Record<string, SourceHandler> = {
       parserVersion: 'v1.2.0',
       matchingStrategy: 'NPI_EXACT',
       fetchSource: fetchNppes,
-      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {
+      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt, sourceUrl, retrievedAt }) => {
         const apiResult = raw as { results?: unknown[] };
         const result = apiResult.results?.[0];
 
@@ -1371,6 +1398,7 @@ const handlers: Record<string, SourceHandler> = {
           artifactId,
           checksum,
           parsedObservedAt,
+          { sourceUrl, retrievedAt },
         );
 
         return {
@@ -1411,13 +1439,14 @@ const handlers: Record<string, SourceHandler> = {
             : null,
         });
       },
-      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {
+      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt, sourceUrl, retrievedAt }) => {
         const { claims, receipts } = parseOigResult(
           npi,
           raw as Parameters<typeof parseOigResult>[1],
           artifactId,
           checksum,
           parsedObservedAt,
+          { sourceUrl, retrievedAt },
         );
         const oigRaw = raw as Record<string, unknown>;
         const matchType = typeof oigRaw.matchType === 'string' ? oigRaw.matchType : 'UNCHECKED';
@@ -1454,13 +1483,14 @@ const handlers: Record<string, SourceHandler> = {
       parserVersion: 'v1.2.0',
       matchingStrategy: 'NPI_EXACT',
       fetchSource: fetchPecos,
-      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {
+      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt, sourceUrl, retrievedAt }) => {
         const { claims, receipts } = parsePecosRecord(
           npi,
           raw as Parameters<typeof parsePecosRecord>[1],
           artifactId,
           checksum,
           parsedObservedAt,
+          { sourceUrl, retrievedAt },
         );
 
         return {
@@ -1484,8 +1514,8 @@ const handlers: Record<string, SourceHandler> = {
       parserVersion: 'v1.0.0',
       matchingStrategy: 'NPI_EXACT',
       fetchSource: (_npi: string) => fetchOpenPayments(_npi),
-      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {
-        const { claims, receipts } = parseOpenPayments(npi, raw, artifactId, checksum, parsedObservedAt);
+      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt, sourceUrl, retrievedAt }) => {
+        const { claims, receipts } = parseOpenPayments(npi, raw, artifactId, checksum, parsedObservedAt, { sourceUrl, retrievedAt });
         return {
           status: claims.length > 0 ? 'SUCCESS' : 'SKIPPED',
           claims, receipts,
@@ -1511,8 +1541,8 @@ const handlers: Record<string, SourceHandler> = {
         const val = nameClaim?.value as Record<string, unknown> | undefined;
         return fetchSamGov(_npi, val?.firstName as string | undefined, val?.lastName as string | undefined);
       },
-      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {
-        const { claims, receipts } = parseSamGovResult(npi, raw, artifactId, checksum, parsedObservedAt);
+      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt, sourceUrl, retrievedAt }) => {
+        const { claims, receipts } = parseSamGovResult(npi, raw, artifactId, checksum, parsedObservedAt, { sourceUrl, retrievedAt });
         return {
           status: 'SUCCESS',
           claims, receipts,
@@ -1530,8 +1560,8 @@ const handlers: Record<string, SourceHandler> = {
       parserVersion: 'v1.0.0',
       matchingStrategy: 'NPI_EXACT',
       fetchSource: (_npi: string) => fetchDoctorsAndClinicians(_npi),
-      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {
-        const { claims, receipts } = parseDoctorsAndClinicians(npi, raw, artifactId, checksum, parsedObservedAt);
+      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt, sourceUrl, retrievedAt }) => {
+        const { claims, receipts } = parseDoctorsAndClinicians(npi, raw, artifactId, checksum, parsedObservedAt, { sourceUrl, retrievedAt });
         return {
           status: claims.length > 0 ? 'SUCCESS' : 'SKIPPED',
           claims, receipts,
@@ -1551,8 +1581,8 @@ const handlers: Record<string, SourceHandler> = {
       parserVersion: 'v1.0.0',
       matchingStrategy: 'NPI_EXACT',
       fetchSource: (_npi: string) => fetchNursys(_npi),
-      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {
-        const { claims, receipts } = parseNursysResult(npi, raw, artifactId, checksum, parsedObservedAt);
+      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt, sourceUrl, retrievedAt }) => {
+        const { claims, receipts } = parseNursysResult(npi, raw, artifactId, checksum, parsedObservedAt, { sourceUrl, retrievedAt });
         return {
           status: 'SUCCESS',
           claims, receipts,
@@ -1587,8 +1617,8 @@ const handlers: Record<string, SourceHandler> = {
       parserVersion: 'v1.0.0',
       matchingStrategy: 'NPI_EXACT',
       fetchSource: (_npi: string) => fetchStateBoardLicense(_npi, primaryState, lastName),
-      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {
-        const { claims, receipts } = parseStateBoardResult(npi, primaryState, raw, artifactId, checksum, parsedObservedAt);
+      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt, sourceUrl, retrievedAt }) => {
+        const { claims, receipts } = parseStateBoardResult(npi, primaryState, raw, artifactId, checksum, parsedObservedAt, { sourceUrl, retrievedAt });
         return {
           status: claims.length > 0 ? 'SUCCESS' : 'SKIPPED',
           claims, receipts,
@@ -1611,8 +1641,8 @@ const handlers: Record<string, SourceHandler> = {
       npi, observedAt, sourceId: 'OPENALEX', parserVersion: 'v1.0.0',
       matchingStrategy: 'NAME_FUZZY',
       fetchSource: () => fetchOpenAlex(val.firstName as string, val.lastName as string),
-      parseSource: ({ raw, artifactId, checksum, observedAt: o }) => {
-        const { claims, receipts } = parseOpenAlexResult(npi, raw, artifactId, checksum, o);
+      parseSource: ({ raw, artifactId, checksum, observedAt: o, sourceUrl, retrievedAt }) => {
+        const { claims, receipts } = parseOpenAlexResult(npi, raw, artifactId, checksum, o, { sourceUrl, retrievedAt });
         return { status: claims.length > 0 ? 'SUCCESS' : 'SKIPPED', claims, receipts, matchingStrategy: 'NAME_FUZZY', mergeReason: 'OpenAlex author search by name — Silver-tier, identity verification required' };
       },
     });
@@ -1630,8 +1660,8 @@ const handlers: Record<string, SourceHandler> = {
       npi, observedAt, sourceId: 'CLINICAL_TRIALS', parserVersion: 'v1.0.0',
       matchingStrategy: 'NAME_FUZZY',
       fetchSource: () => fetchClinicalTrials(val.firstName as string, val.lastName as string),
-      parseSource: ({ raw, artifactId, checksum, observedAt: o }) => {
-        const { claims, receipts } = parseClinicalTrialsResult(npi, raw, artifactId, checksum, o);
+      parseSource: ({ raw, artifactId, checksum, observedAt: o, sourceUrl, retrievedAt }) => {
+        const { claims, receipts } = parseClinicalTrialsResult(npi, raw, artifactId, checksum, o, { sourceUrl, retrievedAt });
         return { status: claims.length > 0 ? 'SUCCESS' : 'SKIPPED', claims, receipts, matchingStrategy: 'NAME_FUZZY', mergeReason: 'ClinicalTrials.gov investigator search — Silver-tier, identity verification required' };
       },
     });
@@ -1649,8 +1679,8 @@ const handlers: Record<string, SourceHandler> = {
       npi, observedAt, sourceId: 'PUBMED', parserVersion: 'v1.0.0',
       matchingStrategy: 'NAME_FUZZY',
       fetchSource: () => fetchPubMed(val.firstName as string, val.lastName as string),
-      parseSource: ({ raw, artifactId, checksum, observedAt: o }) => {
-        const { claims, receipts } = parsePubMedResult(npi, raw, artifactId, checksum, o);
+      parseSource: ({ raw, artifactId, checksum, observedAt: o, sourceUrl, retrievedAt }) => {
+        const { claims, receipts } = parsePubMedResult(npi, raw, artifactId, checksum, o, { sourceUrl, retrievedAt });
         return { status: claims.length > 0 ? 'SUCCESS' : 'SKIPPED', claims, receipts, matchingStrategy: 'NAME_FUZZY', mergeReason: 'PubMed author search — Silver-tier, broad name match, identity verification required' };
       },
     });
