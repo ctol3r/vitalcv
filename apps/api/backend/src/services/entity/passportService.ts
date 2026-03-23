@@ -117,6 +117,15 @@ export interface PassportEducationRecord {
   verificationLevel: string;
 }
 
+/**
+ * MS16-A: Normalized PECOS enrollment state — distinct from legacy pecosStatus.
+ *   ENROLLED    — found in CMS PECOS data (source-confirmed)
+ *   NOT_FOUND   — source checked, record absent (may indicate not enrolled or data lag)
+ *   UNKNOWN     — source was checked but result inconclusive
+ *   UNCHECKED   — PECOS source has not been queried yet
+ */
+export type PecosEnrollmentStatus = 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED';
+
 export interface PassportStanding {
   exclusionClear:   boolean;
   exclusionStatus:  'CLEAR' | 'EXCLUDED' | 'POSSIBLE_MATCH' | 'UNCHECKED' | 'UNKNOWN';
@@ -124,7 +133,18 @@ export interface PassportStanding {
   exclusionConfidenceLabel?: string;
   licensureStatus:  'verified' | 'pending' | 'expired' | 'unknown';
   deaStatus:        'registered' | 'none' | 'unknown';
+  /** @deprecated Use pecosEnrollmentStatus for canonical state */
   pecosStatus:      'enrolled' | 'not_enrolled' | 'unknown';
+  /** MS16-A: Canonical PECOS enrollment state with full 4-way distinction */
+  pecosEnrollmentStatus: PecosEnrollmentStatus;
+  /** MS16-A: Human-readable source label — always "CMS PECOS" */
+  enrollmentSourceLabel: string;
+  /** MS16-A: Data freshness cadence — always "Quarterly" */
+  enrollmentDataFreshness: string;
+  /** MS16-A: Source latency cadence — PECOS is never real-time */
+  enrollmentSourceLatency?: string;
+  /** MS16-A: Explicit human-readable note for UI labeling */
+  enrollmentNote: string | null;
   enrollmentObservedAt?: string;
   enrollmentDataVersion?: string;
   enrollmentStatusLabel?: string;
@@ -488,14 +508,18 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   if (trustState?.gap_summary?.some((gap) => gap.toLowerCase().includes('authority source unavailable'))) {
     negativeFindings.push('Authority verification source unavailable');
   }
-  if (
-    trustState?.blockers?.includes('ENROLLMENT_NOT_FOUND')
-    || (
-    credList.find((credential) => credential.id === pecosCred?.id)?.claimState === 'ENROLLMENT_NOT_FOUND'
-    || (pecosCred && !isCredentialSatisfied(pecosCred))
-    )
-  ) {
-    negativeFindings.push('PECOS enrollment not found');
+  // MS16-A: PECOS negative findings — explicit per state
+  // Note: derivePecosEnrollmentStatus() is called after negativeFindings, so we compute inline
+  {
+    const pecosCredEntryTemp = credList.find((credential) => credential.id === pecosCred?.id);
+    const pecosStateTemp = pecosCredEntryTemp?.claimState;
+    const isNotFound =
+      trustState?.pecosStatus === 'NOT_FOUND'
+      || pecosStateTemp === 'ENROLLMENT_NOT_FOUND'
+      || pecosStateTemp === 'NOT_FOUND';
+    if (isNotFound) {
+      negativeFindings.push('Medicare enrollment not found in CMS PECOS data');
+    }
   }
 
   const licensureStatus = trustState?.licensureStatus
@@ -509,6 +533,51 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
             : 'unknown'
       : 'unknown');
 
+  // ── MS16-A: PECOS normalized enrollment state ─────────────────────────────
+  const pecosCredEntry = credList.find((credential) => credential.id === pecosCred?.id);
+  const pecosClaimState = pecosCredEntry?.claimState ?? undefined;
+
+  function derivePecosEnrollmentStatus(): PecosEnrollmentStatus {
+    // No PECOS credential at all → UNCHECKED
+    if (!pecosCred) return 'UNCHECKED';
+
+    // Explicit claim state signals (credential-level, highest fidelity)
+    if (pecosClaimState === 'ENROLLMENT_NOT_FOUND' || pecosClaimState === 'NOT_FOUND') return 'NOT_FOUND';
+    if (pecosClaimState === 'UNKNOWN') return 'UNKNOWN';
+    if (pecosClaimState === 'UNCHECKED') return 'UNCHECKED';
+    if (pecosClaimState === 'ENROLLED') return 'ENROLLED';
+
+    // Trust state engine has its own PecosStatus vocabulary — map to canonical
+    if (trustState?.pecosStatus === 'NOT_FOUND') return 'NOT_FOUND';
+    if (trustState?.pecosStatus === 'UNKNOWN') return 'UNKNOWN';
+    if (trustState?.pecosStatus === 'ENROLLED') return 'ENROLLED';
+
+    // Fallback: use credential object state
+    if (isCredentialSatisfied(pecosCred)) return 'ENROLLED';
+    if (pecosCred.status === 'ACTIVE') return 'ENROLLED';
+    if (pecosCred.status === 'REVIEW_REQUIRED' || pecosCred.status === 'UNRESOLVED') return 'UNKNOWN';
+    return 'UNKNOWN';
+  }
+
+  const pecosEnrollmentStatus = derivePecosEnrollmentStatus();
+
+  function buildEnrollmentNote(status: PecosEnrollmentStatus, dataVersion?: string): string | null {
+    const versionSuffix = dataVersion ? ` — ${dataVersion}` : '';
+    switch (status) {
+      case 'ENROLLED':
+        return `Medicare enrolled${versionSuffix}`;
+      case 'NOT_FOUND':
+        return `Not found in the quarterly CMS PECOS release${versionSuffix ? ` (${dataVersion})` : ''} — may indicate non-enrollment or publication lag`;
+      case 'UNKNOWN':
+        return 'Enrollment status could not be resolved from the current quarterly PECOS data';
+      case 'UNCHECKED':
+        return 'Medicare enrollment has not been checked';
+    }
+  }
+
+  const legacyPecosStatus: PassportStanding['pecosStatus'] =
+    pecosEnrollmentStatus === 'ENROLLED' ? 'enrolled' : 'unknown';
+
   const standing: PassportStanding = {
     exclusionClear,
     exclusionStatus,
@@ -517,23 +586,42 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
       credList.find((credential) => credential.id === exclusionCred?.id)?.claimConfidenceLabel,
     licensureStatus,
     deaStatus:  deaCred ? (isCredentialSatisfied(deaCred) ? 'registered' : 'none') : 'unknown',
-    pecosStatus: pecosCred ? (isCredentialSatisfied(pecosCred) ? 'enrolled' : 'not_enrolled') : 'unknown',
-    enrollmentObservedAt:
-      credList.find((credential) => credential.id === pecosCred?.id)?.observedAt,
-    enrollmentDataVersion:
-      credList.find((credential) => credential.id === pecosCred?.id)?.dataVersion,
-    enrollmentStatusLabel:
-      credList.find((credential) => credential.id === pecosCred?.id)?.statusLabel,
-    enrollmentFreshnessLabel:
-      credList.find((credential) => credential.id === pecosCred?.id)?.dataFreshnessLabel,
-    enrollmentConfidenceLabel:
-      credList.find((credential) => credential.id === pecosCred?.id)?.claimConfidenceLabel,
+    pecosStatus: legacyPecosStatus,
+    // MS16-A canonical fields
+    pecosEnrollmentStatus,
+    enrollmentSourceLabel: 'CMS PECOS',
+    // MS16-A: Always human-readable "Quarterly" — normalize raw QUARTERLY token
+    enrollmentDataFreshness: 'Quarterly',
+    enrollmentSourceLatency: pecosCredEntry?.sourceLatency ?? 'QUARTERLY',
+    enrollmentNote: buildEnrollmentNote(
+      pecosEnrollmentStatus,
+      pecosCredEntry?.dataVersion ?? undefined,
+    ),
+    enrollmentObservedAt: pecosCredEntry?.observedAt,
+    enrollmentDataVersion: pecosCredEntry?.dataVersion,
+    enrollmentStatusLabel: pecosCredEntry?.statusLabel,
+    enrollmentFreshnessLabel: pecosCredEntry?.dataFreshnessLabel,
+    enrollmentConfidenceLabel: pecosCredEntry?.claimConfidenceLabel,
     negativeFindings,
   };
 
   // ── Readiness ─────────────────────────────────────────────────────────────
+  // MS16-C: Eligibility layer must produce blockers (NOT just negativeFindings)
+  const eligibilityBlockers: string[] = [];
+  const eligibilityGaps: string[] = [];
+  if (pecosEnrollmentStatus === 'NOT_FOUND') {
+    eligibilityBlockers.push('Medicare enrollment not found — submit PECOS enrollment (45–60 days)');
+  }
+  if (pecosEnrollmentStatus === 'UNKNOWN') {
+    eligibilityGaps.push('Medicare enrollment status unresolved');
+  }
+  if (pecosEnrollmentStatus === 'UNCHECKED') {
+    eligibilityGaps.push('Medicare enrollment not yet checked');
+  }
+
   const blockers: string[] = [
     ...negativeFindings,
+    ...eligibilityBlockers,
     ...missingBlocking.map(d => `Missing: ${d}`),
     ...evidenceGaps,
   ];
@@ -542,6 +630,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
 
   const gaps: string[] = [
     ...(trustState?.gap_summary ?? []),
+    ...eligibilityGaps,
     ...credList
       .filter((credential) => credential.stale && isCredentialCurrentStatus(credential.domain, credential.status))
       .map((credential) => `Stale: ${credential.domain}`),
@@ -554,10 +643,12 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   else if (normalizedGaps.length > 0)  readinessStatus = 'PARTIAL';
   else if (missingBlocking.length > 0) readinessStatus = 'BLOCKED';
   const readinessScore = trustState?.readiness_score ?? (readinessStatus === 'READY' ? 80 : readinessStatus === 'PARTIAL' ? 50 : 20);
+  // MS16-C/D: pass pecosEnrollmentStatus so actions can match without string-matching
   const nextActions = buildReadinessNextActions({
     missingBlockingDomains: missingBlocking,
     blockers: normalizedBlockers,
     gaps: normalizedGaps,
+    pecosEnrollmentStatus,
   });
 
   const readiness: PassportReadiness = {

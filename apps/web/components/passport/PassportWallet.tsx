@@ -100,6 +100,21 @@ function buildIdentitySection(passport: PassportData): AccordionItem {
   };
 }
 
+// ── Unified row display contract (MS16-E) ─────────────────────────────────────
+// All rows (identity, safety, authority, eligibility) use the same shape.
+// This is the canonical contract — do not deviate.
+
+interface TrustRowProps {
+  title:        string;
+  status:       'active' | 'enrolled' | 'not_found' | 'expired' | 'review' | 'unavailable' | 'pending' | 'unchecked';
+  sourceLabel:  string;
+  checkedAt?:   string | null;
+  confidence?:  string | null;
+  freshness?:   string | null;
+  dataVersion?: string | null;
+  note?:        string | null;
+}
+
 // ── Authority row renderer (MS15) ────────────────────────────────────────────
 // Shared display contract: title · status · source · checkedAt · confidence · freshness
 
@@ -311,17 +326,21 @@ function buildTrainingSection(passport: PassportData): AccordionItem {
 
 function buildStandingSection(passport: PassportData): AccordionItem {
   const { standing } = passport;
+  // Standing = exclusion / sanctions only (PECOS moved to Eligibility section)
+  const safetyNegative = standing.negativeFindings.filter(f =>
+    !/pecos|enrollment|medicare/i.test(f)
+  );
   const allClear =
     standing.exclusionClear &&
     standing.licensureStatus === 'verified' &&
-    standing.negativeFindings.length === 0;
+    safetyNegative.length === 0;
 
   return {
     id:      'standing',
-    trigger: 'Standing',
+    trigger: 'Safety',
     status:  allClear                               ? 'clear'
            : standing.exclusionStatus === 'UNCHECKED' ? 'pending'
-           : standing.negativeFindings.length > 0  ? 'action'
+           : safetyNegative.length > 0             ? 'action'
            : 'pending',
     content: (
       <div className="py-1">
@@ -330,17 +349,152 @@ function buildStandingSection(passport: PassportData): AccordionItem {
         <DetailRow label="Confidence"        value={standing.exclusionConfidenceLabel} />
         <DetailRow label="License"           value={standing.licensureStatus} />
         <DetailRow label="DEA"               value={standing.deaStatus} />
-        <DetailRow label="PECOS enrollment"  value={standing.enrollmentStatusLabel ?? standing.pecosStatus} />
-        <DetailRow label="Enrollment as of"  value={formatProofDate(standing.enrollmentObservedAt)} />
-        <DetailRow label="Enrollment freshness" value={standing.enrollmentFreshnessLabel} />
-        {standing.negativeFindings.map((f, i) => (
+        {safetyNegative.map((f, i) => (
           <div key={i} className="flex items-center gap-2 text-xs py-1.5 border-b border-white/5 last:border-0">
             <span className="text-white/25 select-none">⚠</span>
             <span className="text-white/50">{f}</span>
           </div>
         ))}
-        {standing.negativeFindings.length === 0 && (
+        {safetyNegative.length === 0 && (
           <div className="text-white/30 text-xs pt-1">No negative findings.</div>
+        )}
+      </div>
+    ),
+  };
+}
+
+// ── MS16-B: Eligibility row (same contract as AuthorityRow) ──────────────────
+
+interface EligibilityRowProps {
+  title:        string;
+  /** ENROLLED | NOT_FOUND | UNKNOWN | UNCHECKED */
+  status:       'enrolled' | 'not_found' | 'unknown' | 'unchecked';
+  sourceLabel:  string;
+  checkedAt?:   string | null;
+  dataVersion?: string | null;
+  freshness?:   string | null;
+  confidence?:  string | null;
+  note?:        string | null;
+}
+
+function EligibilityRow({
+  title, status, sourceLabel, checkedAt, dataVersion, freshness, confidence, note,
+}: EligibilityRowProps) {
+  const icon =
+    status === 'enrolled'  ? '✔' :
+    status === 'not_found' ? '⚠' :
+    '○';
+
+  const iconOpacity =
+    status === 'enrolled'  ? 'text-white/45' :
+    status === 'not_found' ? 'text-white/35' :
+    'text-white/20';
+
+  const titleOpacity =
+    status === 'enrolled'  ? 'text-white/65' :
+    status === 'not_found' ? 'text-white/50' :
+    'text-white/30';
+
+  const statusText =
+    status === 'enrolled'  ? 'Enrolled' :
+    status === 'not_found' ? 'Not found' :
+    status === 'unknown'   ? 'Unconfirmed' :
+    'Not checked';
+
+  const statusOpacity =
+    status === 'enrolled'  ? 'text-white/45' :
+    status === 'not_found' ? 'text-white/30' :
+    'text-white/20';
+
+  return (
+    <div className="py-1.5 border-b border-white/5 last:border-0">
+      <div className="flex justify-between text-xs gap-2">
+        <span className={`flex items-center gap-1.5 ${titleOpacity}`}>
+          <span className={`${iconOpacity} select-none w-3 shrink-0`} aria-hidden>{icon}</span>
+          {title}
+        </span>
+        <span className={`text-xs shrink-0 ${statusOpacity}`}>{statusText}</span>
+      </div>
+      <div className="flex justify-between text-xs mt-0.5 pl-4">
+        <span className="text-white/25">Source: {sourceLabel}</span>
+        {freshness && <span className="text-white/15">{freshness}</span>}
+      </div>
+      {(checkedAt || dataVersion || confidence) && (
+        <div className="text-white/20 text-xs mt-0.5 pl-4 flex gap-2 flex-wrap">
+          {dataVersion && <span>{dataVersion}</span>}
+          {checkedAt && <span>· Checked {checkedAt}</span>}
+          {confidence && <span>· {confidence}</span>}
+        </div>
+      )}
+      {note && <div className="text-white/15 text-xs mt-0.5 pl-4 leading-relaxed">{note}</div>}
+    </div>
+  );
+}
+
+function buildEligibilitySection(passport: PassportData): AccordionItem {
+  const { standing } = passport;
+  const s = standing.pecosEnrollmentStatus ?? (
+    standing.pecosStatus === 'enrolled' ? 'ENROLLED' :
+    standing.pecosStatus === 'not_enrolled' ? 'NOT_FOUND' : 'UNCHECKED'
+  );
+
+  const rowStatus: EligibilityRowProps['status'] =
+    s === 'ENROLLED'  ? 'enrolled' :
+    s === 'NOT_FOUND' ? 'not_found' :
+    s === 'UNKNOWN'   ? 'unknown' :
+    'unchecked';
+
+  const sectionStatus: AccordionItem['status'] =
+    rowStatus === 'enrolled'  ? 'clear' :
+    rowStatus === 'not_found' ? 'action' :
+    'pending';
+
+  // Build observed-as quarter label
+  function enrolledAsLabel(observedAt?: string | null, dataVersion?: string | null): string | null {
+    if (dataVersion) return dataVersion;
+    if (!observedAt) return null;
+    const d = new Date(observedAt);
+    if (Number.isNaN(d.getTime())) return null;
+    const q = Math.floor(d.getMonth() / 3) + 1;
+    return `Q${q} ${d.getFullYear()}`;
+  }
+
+  const quarterLabel = enrolledAsLabel(standing.enrollmentObservedAt, standing.enrollmentDataVersion);
+  const titleWithQuarter =
+    rowStatus === 'enrolled' && quarterLabel
+      ? `Medicare enrolled — as of ${quarterLabel}`
+      : rowStatus === 'enrolled'
+        ? 'Medicare enrolled'
+        : rowStatus === 'not_found'
+          ? 'Medicare enrollment — not found'
+          : 'Medicare enrollment';
+
+  return {
+    id:      'eligibility',
+    trigger: 'Eligibility',
+    status:  sectionStatus,
+    content: (
+      <div className="py-1 space-y-0">
+        <EligibilityRow
+          title={titleWithQuarter}
+          status={rowStatus}
+          sourceLabel={standing.enrollmentSourceLabel ?? 'CMS PECOS'}
+          checkedAt={standing.enrollmentObservedAt ? formatProofDate(standing.enrollmentObservedAt) : null}
+          dataVersion={quarterLabel}
+          freshness={standing.enrollmentDataFreshness ?? standing.enrollmentFreshnessLabel ?? 'Quarterly'}
+          confidence={standing.enrollmentConfidenceLabel ?? undefined}
+          note={standing.enrollmentNote ?? undefined}
+        />
+        {rowStatus === 'not_found' && (
+          <div className="py-1.5 text-white/20 text-xs pl-4 leading-relaxed">
+            Not finding a provider in PECOS may indicate non-enrollment or a quarterly data lag.
+            Confirm by requesting current enrollment confirmation directly or via pecos.cms.hhs.gov.
+          </div>
+        )}
+        {rowStatus === 'unchecked' && (
+          <div className="py-1.5 text-white/20 text-xs pl-4">
+            PECOS lookup has not been performed. Eligibility is unknown.
+          </div>
         )}
       </div>
     ),
@@ -364,28 +518,39 @@ export default function PassportWallet({ passport }: Props) {
   const verifiedItems: string[] = [];
   const missingItems:  string[] = [];
 
-  if (passport.identity.displayName)                  verifiedItems.push('Identity (CMS)');
-  if (passport.standing.exclusionClear)               verifiedItems.push('Not excluded (OIG)');
-  if (passport.standing.pecosStatus === 'enrolled')   verifiedItems.push('Enrollment (PECOS)');
-  if (passport.standing.licensureStatus === 'verified') verifiedItems.push('State license (Board)');
-  if (passport.standing.deaStatus === 'registered')   verifiedItems.push('DEA registration');
-  if (passport.training.hasDegree)                    verifiedItems.push('Medical degree');
-  if (passport.training.hasResidency)                 verifiedItems.push('Residency');
+  // MS16-B: verifiedItems uses canonical pecosEnrollmentStatus
+  const pecosStatus = passport.standing.pecosEnrollmentStatus ?? (
+    passport.standing.pecosStatus === 'enrolled' ? 'ENROLLED' :
+    passport.standing.pecosStatus === 'not_enrolled' ? 'NOT_FOUND' : 'UNCHECKED'
+  );
+
+  if (passport.identity.displayName)                          verifiedItems.push('Identity (CMS)');
+  if (passport.standing.exclusionClear)                       verifiedItems.push('Not excluded (OIG)');
+  if (pecosStatus === 'ENROLLED')                             verifiedItems.push('Medicare enrolled (PECOS)');
+  if (passport.standing.licensureStatus === 'verified')       verifiedItems.push('State license (Board)');
+  if (passport.standing.deaStatus === 'registered')           verifiedItems.push('DEA registration');
+  if (passport.training.hasDegree)                            verifiedItems.push('Medical degree');
+  if (passport.training.hasResidency)                         verifiedItems.push('Residency');
 
   if (passport.standing.exclusionStatus === 'UNCHECKED')                missingItems.push('Exclusion check pending');
   if (passport.standing.exclusionStatus === 'POSSIBLE_MATCH')           missingItems.push('Exclusion review required');
   if (passport.standing.exclusionStatus === 'EXCLUDED')                 missingItems.push('Exclusion confirmed');
   if (passport.standing.licensureStatus !== 'verified')                 missingItems.push('License unresolved');
-  if (passport.standing.deaStatus === 'none')                          missingItems.push('No DEA registration');
+  if (passport.standing.deaStatus === 'none')                           missingItems.push('No DEA registration');
+  // MS16-B: Eligibility missing items — per canonical state
+  if (pecosStatus === 'NOT_FOUND')   missingItems.push('Medicare enrollment not found — review required');
+  if (pecosStatus === 'UNCHECKED')   missingItems.push('Medicare enrollment not checked');
   [...readiness.blockers, ...passport.authority.summary.missing.map(d =>
     `${d.replace(/_/g, ' ').toLowerCase()} missing`)
   ].forEach(b => { if (!missingItems.includes(b)) missingItems.push(b); });
 
+  // MS16-F: Trust stack order — Identity → Safety → Authority → Eligibility → Readiness
   const accordionItems: AccordionItem[] = [
     buildIdentitySection(passport),
     buildAuthoritySection(passport),
     buildTrainingSection(passport),
     buildStandingSection(passport),
+    buildEligibilitySection(passport),
   ];
 
   async function handleShare() {

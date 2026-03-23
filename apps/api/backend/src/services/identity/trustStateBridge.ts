@@ -30,7 +30,7 @@ export interface IdentityEnrichment {
   /** Key verdicts derived from claims */
   exclusionVerdict:   'CLEAR' | 'EXCLUDED' | 'POSSIBLE_MATCH' | 'UNCHECKED';
   licensureVerdict:   'ACTIVE' | 'EXPIRED' | 'REVOKED' | 'SUSPENDED' | 'UNKNOWN';
-  enrollmentVerdict:  'ENROLLED' | 'NOT_ENROLLED' | 'UNKNOWN';
+  enrollmentVerdict:  'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED';
   boardCertVerdict:   'CERTIFIED' | 'LAPSED' | 'NOT_CERTIFIED' | 'UNKNOWN';
 
   /** Confidence scores (from Gold-tier sources) */
@@ -110,7 +110,7 @@ export function buildEnrichmentFromClaims(
   let enrollmentVerdict: IdentityEnrichment['enrollmentVerdict'] = 'UNKNOWN';
   if (enrollmentClaims.length > 0) {
     const val = enrollmentClaims[0]!.value as EnrollmentValue;
-    enrollmentVerdict = val.enrolled ? 'ENROLLED' : 'NOT_ENROLLED';
+    enrollmentVerdict = val.claimState;
   }
 
   // Board cert verdict
@@ -230,7 +230,7 @@ export async function getEnrichedTrustIntelligence(
   if (enrichment.licensureVerdict === 'REVOKED' || enrichment.licensureVerdict === 'SUSPENDED') {
     recommendations.push(`License ${enrichment.licensureVerdict.toLowerCase()} — trust band degraded. Investigation required.`);
   }
-  if (enrichment.enrollmentVerdict === 'NOT_ENROLLED') {
+  if (enrichment.enrollmentVerdict === 'NOT_FOUND') {
     recommendations.push('Not enrolled in Medicare (PECOS) — may limit deployment to Medicare-accepting facilities');
   }
   if (enrichment.boardCertVerdict === 'LAPSED') {

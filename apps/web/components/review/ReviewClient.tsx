@@ -24,49 +24,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Accordion } from '@/components/ui/vcv-accordion';
 import type { AccordionItem } from '@/components/ui/vcv-accordion';
-import { TrustLabel } from '@/components/ui/trust-label';
-import type { PassportData, ReadinessStatus } from '@/app/passport/[id]/page';
+import { TrustLabel, type TrustStatus } from '@/components/ui/trust-label';
+import type { PassportData } from '@/app/passport/[id]/page';
 import MirofishPanel from '@/components/review/MirofishPanel';
-
-// ── Decision card config ───────────────────────────────────────────────────────
-
-const DECISION_CONFIG: Record<ReadinessStatus, {
-  label:    string;
-  opacity:  string;
-  border:   string;
-  bg:       string;
-  confidence: string;
-}> = {
-  READY:   { label: 'Ready to hire',     opacity: 'text-white/80', border: 'border-white/15', bg: 'bg-white/6',  confidence: 'HIGH' },
-  PARTIAL: { label: 'Conditionally ready', opacity: 'text-white/55', border: 'border-white/10', bg: 'bg-white/4', confidence: 'MEDIUM' },
-  BLOCKED: { label: 'Blocked — action required', opacity: 'text-white/40', border: 'border-white/8', bg: 'bg-white/3', confidence: 'LOW' },
-};
-
-// ── Readiness row ─────────────────────────────────────────────────────────────
-
-function ReadinessRow({
-  label,
-  verified,
-  detail,
-}: {
-  label:    string;
-  verified: boolean | null;  // null = unknown/pending
-  detail?:  string;
-}) {
-  const icon   = verified === true ? '✓' : verified === false ? '✕' : '·';
-  const opacity = verified === true ? 'text-white/65' : verified === false ? 'text-white/35' : 'text-white/30';
-  const iconOp  = verified === true ? 'text-white/35' : 'text-white/15';
-
-  return (
-    <div className="flex items-start justify-between py-2 border-b border-white/5 last:border-0">
-      <div className="flex items-center gap-2.5">
-        <span className={`text-xs w-4 text-center select-none shrink-0 ${iconOp}`} aria-hidden>{icon}</span>
-        <span className={`text-sm ${opacity}`}>{label}</span>
-      </div>
-      {detail && <span className="text-white/25 text-xs shrink-0 ml-2">{detail}</span>}
-    </div>
-  );
-}
 
 function formatProofDate(value?: string | null): string | null {
   if (!value) return null;
@@ -82,10 +42,22 @@ function formatQuarter(value?: string | null): string | null {
   return `Q${q} ${parsed.getFullYear()}`;
 }
 
-function exclusionRowState(status: PassportData['standing']['exclusionStatus']): boolean | null {
-  if (status === 'CLEAR') return true;
-  if (status === 'EXCLUDED') return false;
-  return null;
+function joinNoteParts(parts: Array<string | null | undefined>): string | undefined {
+  const values = parts.filter((part): part is string => Boolean(part && part.trim()));
+  return values.length > 0 ? values.join(' · ') : undefined;
+}
+
+function formatAsOfDate(value?: string | null): string | null {
+  const date = formatProofDate(value);
+  return date ? `as of ${date}` : null;
+}
+
+function formatAsOfQuarter(
+  observedAt?: string | null,
+  dataVersion?: string | null,
+): string | null {
+  const quarter = dataVersion ?? formatQuarter(observedAt);
+  return quarter ? `as of ${quarter}` : null;
 }
 
 function exclusionSectionStatus(status: PassportData['standing']['exclusionStatus']): AccordionItem['status'] {
@@ -220,6 +192,162 @@ function claimCodeToNote(c: PassportData['authority']['credentials'][0]): string
   return null;
 }
 
+function buildSafetyRow(standing: PassportData['standing']): {
+  status: TrustStatus;
+  label: string;
+  note?: string;
+  explanation: string;
+} {
+  // MS16-E: note contract — checkedAt · dataFreshness · confidenceLabel (· action-flag)
+  const checkedNote = formatAsOfDate(standing.exclusionCheckedAt);
+  const confidence  = standing.exclusionConfidenceLabel ?? null;
+
+  switch (standing.exclusionStatus) {
+    case 'CLEAR':
+      return {
+        status: 'confirmed',
+        label: 'Not excluded',
+        note: joinNoteParts([checkedNote, confidence]),
+        explanation: 'No exclusion entry was found in the current OIG LEIE check.',
+      };
+    case 'POSSIBLE_MATCH':
+      return {
+        status: 'review',
+        label: 'Possible exclusion match — review required',
+        note: joinNoteParts([checkedNote, confidence, 'requires verification']),
+        explanation: 'A potential OIG match needs manual adjudication before the employer can rely on this safety layer.',
+      };
+    case 'EXCLUDED':
+      return {
+        status: 'blocked',
+        label: 'Excluded — do not proceed',
+        note: joinNoteParts([checkedNote, confidence, 'requires verification']),
+        explanation: 'An exclusion record is attached to this provider. Employment should not proceed until it is resolved.',
+      };
+    case 'UNKNOWN':
+      return {
+        status: 'review',
+        label: 'Safety status unavailable — review required',
+        note: joinNoteParts([confidence, 'requires verification']),
+        explanation: 'The exclusion result could not be resolved from the current OIG check.',
+      };
+    case 'UNCHECKED':
+    default:
+      return {
+        status: 'unchecked',
+        label: 'Not yet checked',
+        note: 'requires verification',
+        explanation: 'No current OIG exclusion check is attached to this review.',
+      };
+  }
+}
+
+function buildAuthorityRow(credential: PassportData['authority']['credentials'][0]): {
+  status: TrustStatus;
+  label: string;
+  note?: string;
+  explanation?: string;
+} {
+  const code = credential.authorityClaimCode;
+  const isUnavailable =
+    code === 'AUTHORITY_UNAVAILABLE'
+    || credential.connectorState === 'unavailable'
+    || credential.connectorState === 'unresolved';
+  const isBoardOrder = code === 'BOARD_ORDER_PRESENT';
+  const isDisciplined =
+    code === 'RN_LICENSE_DISCIPLINED'
+    || (credential.reviewRequired && credential.domain === 'LICENSURE');
+  const isExpired = code === 'RN_LICENSE_EXPIRED' || credential.status === 'EXPIRED';
+  const isActive =
+    (code === 'PHYSICIAN_LICENSE_ACTIVE' || code === 'RN_LICENSE_ACTIVE')
+    && !isDisciplined
+    && !isBoardOrder;
+
+  const label =
+    isBoardOrder ? `Board order${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}` :
+    isDisciplined ? `License disciplinary action${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}` :
+    isExpired ? `License expired${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}` :
+    isUnavailable ? (
+      credential.participationStatus === 'non_participating_state'
+        ? `License source unavailable${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}`
+        : 'License source not configured'
+    ) :
+    isActive ? `License active${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}` :
+    `License${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}`;
+
+  const status: TrustStatus =
+    isBoardOrder || isDisciplined ? 'review' :
+    isExpired ? 'blocked' :
+    isUnavailable ? 'unchecked' :
+    isActive ? 'confirmed' :
+    'unchecked';
+
+  // MS16-E: note carries dataFreshness + confidenceLabel (row contract)
+  const note = joinNoteParts([
+    formatAsOfDate(credential.observedAt ?? credential.verifiedAt),
+    credential.dataFreshnessLabel ?? null,
+    credential.claimConfidenceLabel ?? null,
+    isBoardOrder || isDisciplined || isExpired || isUnavailable ? 'requires verification' : null,
+  ]);
+
+  return {
+    status,
+    label,
+    note,
+    explanation: claimCodeToNote(credential) ?? undefined,
+  };
+}
+
+function buildEligibilityRow(standing: PassportData['standing'], status: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED'): {
+  status: TrustStatus;
+  label: string;
+  note?: string;
+  explanation: string;
+} {
+  const quarterNote  = formatAsOfQuarter(standing.enrollmentObservedAt, standing.enrollmentDataVersion);
+  // MS16-E: note contract — dataFreshness · confidenceLabel · checkedAt (· action-flag)
+  const freshness    = standing.enrollmentDataFreshness ?? standing.enrollmentFreshnessLabel ?? null;
+  const confidence   = standing.enrollmentConfidenceLabel ?? null;
+
+  switch (status) {
+    case 'ENROLLED':
+      return {
+        status: 'confirmed',
+        label: quarterNote ? `Medicare enrolled — as of ${quarterNote}` : 'Medicare enrolled',
+        // MS16-A explicit label: "Medicare enrolled — as of Q4 2025"
+        note: joinNoteParts([freshness, confidence, quarterNote]),
+        explanation: standing.enrollmentNote ?? 'CMS PECOS confirms an enrolled provider record in the current quarterly release.',
+      };
+    case 'NOT_FOUND':
+      return {
+        status: 'review',
+        label: 'Not found in CMS enrollment data — review required',
+        // MS16-A explicit label: "Not found in CMS enrollment data — may indicate not enrolled or data lag"
+        note: joinNoteParts([freshness, confidence, quarterNote, 'estimated quarterly publication lag possible', 'requires verification']),
+        explanation:
+          standing.enrollmentNote
+          ?? 'Not finding a record may indicate non-enrollment or a quarterly CMS publication lag. Verify at pecos.cms.hhs.gov before relying on this layer.',
+      };
+    case 'UNKNOWN':
+      return {
+        status: 'review',
+        label: 'Enrollment status unconfirmed — review required',
+        note: joinNoteParts([freshness, confidence, quarterNote, 'requires verification']),
+        explanation:
+          standing.enrollmentNote
+          ?? 'The CMS PECOS result could not be resolved from the current quarterly release. Manual verification required.',
+      };
+    case 'UNCHECKED':
+    default:
+      return {
+        status: 'unchecked',
+        label: 'Enrollment not checked',
+        note: joinNoteParts([freshness ?? 'Quarterly', 'Source: CMS PECOS', 'requires verification']),
+        explanation: 'No CMS PECOS lookup has been performed yet. Enrollment eligibility is unknown.',
+      };
+  }
+}
+
 // ── Main review component ──────────────────────────────────────────────────────
 
 interface Props {
@@ -232,30 +360,20 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
   const [action, setAction] = useState<'none' | 'accepted' | 'requested' | 'saved'>('none');
 
   const { identity, readiness, standing, authority } = passport;
-  const cfg = DECISION_CONFIG[readiness.status];
-
-  // Readiness breakdown rows
-  const licenseActive     = authority.credentials.some(c => c.domain === 'LICENSURE' && c.status === 'ACTIVE');
-  const deaActive         = standing.deaStatus === 'registered';
-  const pecosEnrolled     = standing.pecosStatus === 'enrolled';
-  const sanctionsClear    = standing.exclusionStatus === 'CLEAR';
+  const pecosEnrollmentStatus: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED' =
+    standing.pecosEnrollmentStatus ?? (
+      standing.pecosStatus === 'enrolled' ? 'ENROLLED' :
+      standing.pecosStatus === 'not_enrolled' ? 'NOT_FOUND' : 'UNCHECKED'
+    );
 
   const missingDomains    = authority.summary.missing;
   const blocked = Array.from(new Set([
     ...readiness.blockers,
     ...missingDomains.map((domain) => domain.replace(/_/g, ' ').toLowerCase()),
   ]));
-  const nextAction = blocked[0] ?? readiness.gaps[0] ?? 'Proceed to hire';
-  const exclusionDetail = [
-    standing.exclusionConfidenceLabel,
-    formatProofDate(standing.exclusionCheckedAt),
-  ].filter(Boolean).join(' · ');
-  const enrollmentDetail = [
-    standing.enrollmentObservedAt ? `As of ${formatProofDate(standing.enrollmentObservedAt)}` : null,
-    standing.enrollmentFreshnessLabel,
-  ].filter(Boolean).join(' · ');
-
   const proofItems = buildProofSections(passport);
+  const safetyRow = buildSafetyRow(standing);
+  const eligibilityRow = buildEligibilityRow(standing, pecosEnrollmentStatus);
 
   return (
     <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center px-4 pt-10 sm:pt-16 pb-28">
@@ -293,154 +411,139 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
             )}
           </div>
 
+          {/* MS16-F: Employer 6-question flow — strict order */}
           <div className="pt-2 mt-4 space-y-6">
-            {/* Identity */}
+            {/* Q1: Who is this? */}
             <div className="space-y-2">
               <h2 className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2">Identity</h2>
-              <TrustLabel 
-                status={identity.npi ? 'confirmed' : 'unchecked'} 
-                label={identity.npi ? 'Identity confirmed' : 'Identity missing'} 
-                source={identity.npi ? 'CMS' : undefined} 
-                explanation="Identity confirmed against national registry."
+              <TrustLabel
+                status={identity.npi ? 'confirmed' : 'unchecked'}
+                label={identity.npi ? 'Identity confirmed' : 'Identity missing'}
+                source={identity.npi ? 'CMS NPPES' : undefined}
+                note={identity.npi ? formatAsOfDate(passport.lastCheckedAt) ?? undefined : 'requires verification'}
+                explanation={
+                  identity.npi
+                    ? 'Identity confirmed against the national provider registry.'
+                    : 'Identity must resolve to CMS NPPES before the rest of the trust stack can be relied on.'
+                }
               />
             </div>
 
-            {/* Safety */}
-            <div className="border-t border-white/10 pt-4 space-y-2">
-              <h2 className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2">Safety</h2>
-              <TrustLabel 
-                status={exclusionRowState(standing.exclusionStatus) === true ? 'confirmed' : 'review'} 
-                label={exclusionRowState(standing.exclusionStatus) === true ? 'Not excluded' : 'Possible match — review required'} 
-                source="OIG"
-                timestamp={standing.exclusionCheckedAt ? `checked ${formatProofDate(standing.exclusionCheckedAt)}` : undefined}
-                explanation="Cross-examined against national exclusion list."
-              />
-            </div>
+            <div className="border-t border-white/10 pt-4 space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-white/30 text-xs uppercase tracking-widest font-semibold">Trust stack</h2>
+                <span className="text-white/18 text-[11px] uppercase tracking-[0.18em]">Safety · Authority · Eligibility</span>
+              </div>
 
-            {/* Authority — MS15: authority claim code drives every row */}
-            <div className="border-t border-white/10 pt-4 space-y-2">
-              <h2 className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2">Authority</h2>
-              {(() => {
-                const licCreds   = authority.credentials.filter(c => c.domain === 'LICENSURE');
-                const certCreds  = authority.credentials.filter(c => c.domain === 'BOARD_CERTIFICATION');
-                const boardOrder = authority.credentials.find(c => c.authorityClaimCode === 'BOARD_ORDER_PRESENT');
-                const hasAny     = licCreds.length > 0 || certCreds.length > 0;
+              {/* Q2: Safe? */}
+              <div className="space-y-2">
+                <h3 className="text-white/24 text-[10px] uppercase tracking-widest font-semibold">Safety</h3>
+                <TrustLabel
+                  status={safetyRow.status}
+                  label={safetyRow.label}
+                  source="OIG LEIE"
+                  timestamp={standing.exclusionCheckedAt ? `checked ${formatProofDate(standing.exclusionCheckedAt)}` : undefined}
+                  note={safetyRow.note}
+                  explanation={safetyRow.explanation}
+                />
+              </div>
 
-                // License rows — one per credential, claim-code driven
-                const licenseRows = licCreds.map(c => {
-                  const code = c.authorityClaimCode;
-                  const isUnavail  = code === 'AUTHORITY_UNAVAILABLE' || c.connectorState === 'unavailable' || c.connectorState === 'unresolved';
-                  const isBoard    = code === 'BOARD_ORDER_PRESENT';
-                  const isDiscipl  = code === 'RN_LICENSE_DISCIPLINED' || (c.reviewRequired && c.domain === 'LICENSURE');
-                  const isExpired  = code === 'RN_LICENSE_EXPIRED' || c.status === 'EXPIRED';
-                  const isActive   = (code === 'PHYSICIAN_LICENSE_ACTIVE' || code === 'RN_LICENSE_ACTIVE') && !isDiscipl && !isBoard;
-
-                  const label =
-                    isBoard     ? `Board order — ${c.jurisdiction ?? 'license'}` :
-                    isDiscipl   ? `License — disciplinary action${c.jurisdiction ? ` (${c.jurisdiction})` : ''}` :
-                    isExpired   ? `License expired${c.jurisdiction ? ` (${c.jurisdiction})` : ''}` :
-                    isUnavail   ? (
-                      c.participationStatus === 'non_participating_state'
-                        ? `License verification unavailable — ${c.jurisdiction ?? 'state'} not in network`
-                        : 'License verification — source not configured'
-                    ) :
-                    isActive    ? `License${c.jurisdiction ? ` — ${c.jurisdiction}` : ''}` :
-                    `License${c.jurisdiction ? ` (${c.jurisdiction})` : ''}`;
-
-                  const status: 'confirmed'|'review'|'unchecked'|'info' =
-                    isBoard || isDiscipl ? 'review' :
-                    isUnavail           ? 'unchecked' :
-                    isActive            ? 'confirmed' :
-                    'unchecked';
+              {/* Q3: Licensed? */}
+              <div className="space-y-2">
+                <h3 className="text-white/24 text-[10px] uppercase tracking-widest font-semibold">Authority</h3>
+                {(() => {
+                  const licCreds = authority.credentials.filter((credential) => credential.domain === 'LICENSURE');
+                  const certCreds = authority.credentials.filter((credential) => credential.domain === 'BOARD_CERTIFICATION');
+                  const hasAny = licCreds.length > 0 || certCreds.length > 0;
 
                   return (
-                    <TrustLabel
-                      key={c.id}
-                      status={status}
-                      label={label}
-                      source={c.issuerName ?? c.sourceId ?? undefined}
-                      timestamp={c.observedAt || c.verifiedAt ? `checked ${formatProofDate(c.observedAt ?? c.verifiedAt)}` : undefined}
-                      explanation={claimCodeToNote(c) ?? undefined}
-                    />
+                    <div className="space-y-2">
+                      {licCreds.map((credential) => {
+                        const row = buildAuthorityRow(credential);
+                        return (
+                          <TrustLabel
+                            key={credential.id}
+                            status={row.status}
+                            label={row.label}
+                            source={credential.issuerName ?? credential.sourceId ?? 'Authority source'}
+                            timestamp={credential.observedAt || credential.verifiedAt ? `checked ${formatProofDate(credential.observedAt ?? credential.verifiedAt)}` : undefined}
+                            note={row.note}
+                            explanation={row.explanation}
+                          />
+                        );
+                      })}
+
+                      {certCreds.map((credential) => (
+                        <TrustLabel
+                          key={credential.id}
+                          status="confirmed"
+                          label={`Board certified${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}`}
+                          source={credential.issuerName ?? credential.sourceId ?? 'ABMS'}
+                          timestamp={credential.observedAt || credential.verifiedAt ? `checked ${formatProofDate(credential.observedAt ?? credential.verifiedAt)}` : undefined}
+                          note={formatAsOfDate(credential.observedAt ?? credential.verifiedAt) ?? undefined}
+                          explanation="Board certification is on file from the issuing authority."
+                        />
+                      ))}
+
+                      {!hasAny && (
+                        <TrustLabel
+                          status="unchecked"
+                          label="Authority not yet verified"
+                          source="FSMB / Nursys"
+                          note="requires verification"
+                          explanation="No source-backed authority record is attached yet. Institutional access or manual verification is still required."
+                        />
+                      )}
+                    </div>
                   );
-                });
+                })()}
+              </div>
 
-                // Cert rows
-                const certRows = certCreds.map(c => (
-                  <TrustLabel
-                    key={c.id}
-                    status="confirmed"
-                    label={`Board certified${c.jurisdiction ? ` — ${c.jurisdiction}` : ''}`}
-                    source={c.issuerName ?? c.sourceId ?? 'ABMS'}
-                    timestamp={c.observedAt || c.verifiedAt ? `checked ${formatProofDate(c.observedAt ?? c.verifiedAt)}` : undefined}
-                  />
-                ));
-
-                // Board order severity note
-                const boardOrderNote = boardOrder?.boardOrderSeverity && boardOrder.boardOrderSeverity !== 'NONE'
-                  ? `Severity: ${boardOrder.boardOrderSeverity}. Requires written explanation before hire.`
-                  : null;
-
-                return (
-                  <>
-                    {licenseRows}
-                    {certRows}
-                    {boardOrderNote && (
-                      <p className="text-white/25 text-xs pl-5 leading-relaxed">{boardOrderNote}</p>
-                    )}
-                    {!hasAny && (
-                      <TrustLabel
-                        status="unchecked"
-                        label="Authority missing"
-                        source="FSMB / Nursys"
-                        explanation="Authority source access required but not configured."
-                      />
-                    )}
-                    {!hasAny && (
-                      <p className="text-white/20 text-xs pl-5 leading-relaxed">
-                        Requires FSMB or Nursys institutional access.
-                        Contact your administrator to enable authority verification.
-                      </p>
-                    )}
-                  </>
-                );
-              })()}
+              {/* Q4: Eligible? — MS16-B: 4-state canonical rendering */}
+              <div className="space-y-2">
+                <h3 className="text-white/24 text-[10px] uppercase tracking-widest font-semibold">Eligibility</h3>
+                <TrustLabel
+                  status={eligibilityRow.status}
+                  label={eligibilityRow.label}
+                  source={standing.enrollmentSourceLabel ?? 'CMS PECOS'}
+                  timestamp={standing.enrollmentObservedAt ? `checked ${formatProofDate(standing.enrollmentObservedAt)}` : undefined}
+                  note={eligibilityRow.note}
+                  explanation={eligibilityRow.explanation}
+                />
+              </div>
             </div>
 
-            {/* Eligibility */}
-            <div className="border-t border-white/10 pt-4 space-y-2">
-              <h2 className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2">Eligibility</h2>
-              <TrustLabel 
-                status={pecosEnrolled ? 'confirmed' : 'unchecked'} 
-                label={pecosEnrolled ? 'Medicare enrolled' : 'Medicare not enrolled'} 
-                timestamp={standing.enrollmentObservedAt ? `As of ${formatQuarter(standing.enrollmentObservedAt)}` : 'Estimated'}
-                explanation="Verified against PECOS provider enrollment."
-              />
-            </div>
-
-            {/* Readiness */}
+            {/* Q5: What blocks start? + Q6: What do I do? */}
             <div className="border-t border-white/10 pt-4 space-y-1 text-sm">
               <h2 className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2">Readiness</h2>
               <p className="text-white/90 font-medium pb-1">{readiness.score}% ready</p>
+
+              {/* Q5: Blockers */}
               {blocked.length > 0 && (
-                <p className="text-white/45">
-                  Blockers: {blocked.map(b => b.charAt(0).toUpperCase() + b.slice(1).toLowerCase()).join(', ')}
-                </p>
+                <div className="space-y-1 pb-1">
+                  {blocked.slice(0, 4).map((b, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <span className="text-white/20 text-xs w-3 shrink-0 mt-0.5" aria-hidden>·</span>
+                      <span className="text-white/50 text-xs">{b.charAt(0).toUpperCase() + b.slice(1)}</span>
+                    </div>
+                  ))}
+                </div>
               )}
+
               <p className="text-white/50 pt-1">
-                Time: {readiness.estimatedStartDays === null ? 'Unknown' : readiness.estimatedStartDays === 0 ? 'Ready now' : `~${readiness.estimatedStartDays} days (estimated)`}
+                Estimated start: {readiness.estimatedStartDays === null ? 'Cannot estimate while blocked' : readiness.estimatedStartDays === 0 ? 'Ready now' : `~${readiness.estimatedStartDays} days`}
               </p>
 
-              {/* Next actions — sourced from readiness.nextActions[] */}
+              {/* Q6: What do I do? — sourced from readiness.nextActions[] */}
               {readiness.nextActions.length > 0 && (
                 <div className="pt-3 mt-1 border-t border-white/8 space-y-2">
                   <p className="text-white/25 text-[10px] uppercase tracking-widest">Next actions</p>
-                  {readiness.nextActions.slice(0, 3).map(action => (
+                  {readiness.nextActions.slice(0, 4).map(action => (
                     <div key={action.id} className="flex items-start gap-2">
                       <span className="text-white/15 text-xs w-3 shrink-0 mt-0.5">·</span>
                       <div>
                         <p className="text-white/55 text-xs font-medium">{action.title}</p>
-                        <p className="text-white/30 text-xs mt-0.5">{action.detail}</p>
+                        <p className="text-white/30 text-xs mt-0.5 leading-relaxed">{action.detail}</p>
                       </div>
                     </div>
                   ))}

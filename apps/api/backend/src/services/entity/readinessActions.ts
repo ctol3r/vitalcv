@@ -39,6 +39,13 @@ function actionForMissingDomain(domain: string): ReadinessNextAction {
         'Complete an exclusion check so employers can see a current sanctions-clear proof chain.',
         'HIGH',
       );
+    case 'MEDICARE_ENROLLMENT':
+      return buildAction(
+        'submit-pecos-enrollment',
+        'Submit Medicare enrollment (PECOS)',
+        'This provider is not found in CMS PECOS data. Submit an enrollment application at pecos.cms.hhs.gov. Estimated: 45–60 days.',
+        'HIGH',
+      );
     default:
       return buildAction(
         `resolve-${domain.toLowerCase()}`,
@@ -49,10 +56,15 @@ function actionForMissingDomain(domain: string): ReadinessNextAction {
   }
 }
 
+/** MS16-C/D: Direct PECOS enrollment status — avoids string matching */
+export type PecosEnrollmentStatus = 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED';
+
 export function buildReadinessNextActions(input: {
   missingBlockingDomains: readonly string[];
   blockers: readonly string[];
   gaps: readonly string[];
+  /** MS16-C: Direct PECOS status — used to generate eligibility actions without string matching */
+  pecosEnrollmentStatus?: PecosEnrollmentStatus;
 }): ReadinessNextAction[] {
   const actions: ReadinessNextAction[] = [];
   const seen = new Set<string>();
@@ -117,12 +129,40 @@ export function buildReadinessNextActions(input: {
     }
   }
 
-  if (input.blockers.some((blocker) => blocker.toLowerCase().includes('pecos enrollment not found'))) {
+  // MS16-C/D: PECOS enrollment — direct status check (preferred) + string fallback
+  const pecosStatus = input.pecosEnrollmentStatus;
+  const pecosNotFound =
+    pecosStatus === 'NOT_FOUND'
+    || input.blockers.some((blocker) =>
+      /pecos enrollment not found|enrollment not found|medicare enrollment not found/i.test(blocker)
+    );
+  const pecosUnknown =
+    pecosStatus === 'UNKNOWN'
+    || pecosStatus === 'UNCHECKED'
+    || input.gaps.some((gap) =>
+      /pecos enrollment (status unresolved|outcome unresolved|not yet checked|not verified)/i.test(gap)
+    )
+    || input.blockers.some((blocker) =>
+      /enrollment status requires review|enrollment.*review/i.test(blocker)
+    );
+
+  if (pecosNotFound) {
     const action = buildAction(
-      'resolve-pecos-enrollment',
-      'Resolve PECOS enrollment',
-      'Confirm CMS Medicare enrollment against the current quarterly PECOS release before proceeding.',
+      'submit-pecos-enrollment',
+      'Submit Medicare enrollment (PECOS)',
+      'This provider was not found in the quarterly CMS PECOS release. Apply at pecos.cms.hhs.gov if not enrolled, then confirm against a fresh quarterly release after approval.',
       'HIGH',
+    );
+    if (!seen.has(action.id)) {
+      seen.add(action.id);
+      actions.push(action);
+    }
+  } else if (pecosUnknown) {
+    const action = buildAction(
+      'verify-medicare-enrollment',
+      'Verify Medicare enrollment status',
+      'PECOS enrollment is unresolved. Run or refresh the quarterly PECOS check and verify directly if the source remains inconclusive. PECOS is not a real-time feed.',
+      'MEDIUM',
     );
     if (!seen.has(action.id)) {
       seen.add(action.id);
