@@ -106,25 +106,81 @@ function buildRealAccordion(ts: ClinicianTrustState): AccordionItem[] {
   const licStatus  = ts.licensureStatus === 'verified' ? 'verified' : 'pending';
   const exclStatus = ts.exclusionClear    ? 'clear'    : 'pending';
 
+  // M3: Source honesty — only list sources that are actually connected in this run.
+  // NPDB, SAM.gov are not integrated (require institutional subscription).
+  // ABMS board cert and DEA are not connected (require institutional access).
+  // Showing them would imply they were checked — that is trust theater.
   return [
-    { id: 'identity',  trigger: 'Identity',           status: npiStatus,  content: sourceRow('NPPES · CMS NPI Registry v2.1',  npiStatus,  checkedAt) },
-    { id: 'licensure', trigger: 'Licensure',           status: licStatus,  content: sourceRow('State Medical Board (via taxonomy)', licStatus,  checkedAt) },
-    { id: 'board',     trigger: 'Board Certification', status: 'pending',  content: sourceRow('ABMS',                           'pending',  undefined, 'Not yet checked in this run') },
-    { id: 'dea',       trigger: 'DEA Registration',    status: 'pending',  content: sourceRow('DEA',                            'pending',  undefined, 'Not yet checked in this run') },
-    { id: 'sanctions', trigger: 'Sanctions',           status: exclStatus, content: sourceRow('OIG / LEIE · SAM.gov',           exclStatus, checkedAt) },
+    {
+      id: 'identity', trigger: 'Identity', status: npiStatus,
+      content: sourceRow('CMS NPPES · NPI Registry', npiStatus, checkedAt),
+    },
+    {
+      id: 'exclusion', trigger: 'Exclusion (OIG)', status: exclStatus,
+      content: sourceRow('OIG / LEIE', exclStatus, checkedAt,
+        exclStatus !== 'clear'
+          ? 'NPDB and SAM.gov require institutional access — not checked in this run'
+          : undefined,
+      ),
+    },
+    {
+      id: 'licensure', trigger: 'Licensure', status: licStatus,
+      content: sourceRow(
+        licStatus === 'verified' ? 'State Board (Nursys / FSMB)' : 'State Board — access required',
+        licStatus, checkedAt,
+        licStatus !== 'verified'
+          ? 'License verification requires institutional source access (Nursys / FSMB). Not yet configured.'
+          : undefined,
+      ),
+    },
+    {
+      id: 'board', trigger: 'Board Certification', status: 'pending',
+      // M3: ABMS not connected — honest label, not "pending check"
+      content: sourceRow('ABMS — access required', 'pending', undefined,
+        'Board certification check not available without ABMS institutional access.'),
+    },
+    {
+      id: 'dea', trigger: 'DEA Registration', status: 'pending',
+      // M3: DEA not connected — honest label
+      content: sourceRow('DEA — access required', 'pending', undefined,
+        'DEA registration check not available without institutional access.'),
+    },
   ];
 }
 
 function buildDemoAccordion(missing: string[]): AccordionItem[] {
-  const deaStatus   = missing.some(m => m.toLowerCase().includes('dea'))   ? 'pending' : 'verified';
-  const boardStatus = missing.some(m => m.toLowerCase().includes('board')) ? 'pending' : 'verified';
+  const deaStatus   = missing.some(m => m.toLowerCase().includes('dea'))   ? 'pending' : 'pending';
+  const boardStatus = missing.some(m => m.toLowerCase().includes('board')) ? 'pending' : 'pending';
 
+  // M3: Demo accordion also uses honest source names.
+  // ABMS, DEA, NPDB, SAM.gov are not integrated — do not show them as checked.
   return [
-    { id: 'identity',  trigger: 'Identity',           status: 'verified',  content: sourceRow('NPPES · CMS NPI Registry', 'verified') },
-    { id: 'licensure', trigger: 'Licensure',           status: 'verified',  content: sourceRow('State Medical Board',      'verified') },
-    { id: 'board',     trigger: 'Board Certification', status: boardStatus, content: sourceRow('ABMS',                     boardStatus) },
-    { id: 'dea',       trigger: 'DEA Registration',    status: deaStatus,   content: sourceRow('Drug Enforcement Administration', deaStatus) },
-    { id: 'sanctions', trigger: 'Sanctions',           status: 'clear',     content: sourceRow('NPDB · OIG/LEIE · SAM.gov','clear') },
+    {
+      id: 'identity', trigger: 'Identity', status: 'verified',
+      content: sourceRow('CMS NPPES · NPI Registry', 'verified'),
+    },
+    {
+      id: 'exclusion', trigger: 'Exclusion (OIG)', status: 'clear',
+      // M3: removed NPDB and SAM.gov — not checked
+      content: sourceRow('OIG / LEIE', 'clear', undefined,
+        'NPDB and SAM.gov require separate institutional access'),
+    },
+    {
+      id: 'licensure', trigger: 'Licensure', status: 'verified',
+      content: sourceRow('State Board (Nursys / FSMB)', 'verified'),
+    },
+    {
+      id: 'board', trigger: 'Board Certification', status: boardStatus,
+      // M3: ABMS not connected — demo shows honest pending state
+      content: sourceRow('ABMS — access required', boardStatus, undefined,
+        'Not checked in demo — requires ABMS institutional access'),
+    },
+    {
+      id: 'dea', trigger: 'DEA Registration', status: deaStatus,
+      // M3: DEA not connected
+      content: sourceRow('DEA — access required', deaStatus, undefined,
+        'Not checked in demo — requires institutional access'),
+    },
   ];
 }
 

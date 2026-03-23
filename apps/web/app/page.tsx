@@ -74,29 +74,30 @@ function InterviewModeTeaser() {
                   </Link>
                 </div>
 
-                {/* Right — mock proof card */}
+                {/* Right — example proof card (labeled as such) */}
                 <div className="sm:w-64 shrink-0">
                   <div className="rounded-xl border border-white/10 bg-white/4 overflow-hidden">
                     <div className="px-4 py-3 border-b border-white/6 flex items-center justify-between">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-white/30">Proof Card</p>
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      {/* M3: labeled "Example" — not real pilot data */}
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-white/20 bg-white/5 rounded px-1.5 py-0.5">Example</span>
                     </div>
                     <div className="px-4 py-3 space-y-2.5">
                       {[
-                        { label: 'Identity',  status: 'VERIFIED' },
-                        { label: 'License',   status: 'VERIFIED' },
-                        { label: 'Exclusion', status: 'CLEAR'    },
-                        { label: 'PECOS',     status: 'ENROLLED' },
+                        { label: 'Identity',  status: 'Confirmed' },
+                        { label: 'License',   status: 'Active'    },
+                        { label: 'Exclusion', status: 'Clear'     },
+                        { label: 'PECOS',     status: 'Enrolled'  },
                       ].map(r => (
                         <div key={r.label} className="flex items-center justify-between">
                           <span className="text-xs text-white/50">{r.label}</span>
-                          <span className="text-[10px] font-bold text-emerald-400">{r.status}</span>
+                          <span className="text-[10px] font-semibold text-white/45">{r.status}</span>
                         </div>
                       ))}
                     </div>
-                    <div className="px-4 py-3 border-t border-white/6 flex items-center justify-between bg-emerald-500/6">
-                      <span className="text-[10px] text-emerald-400/70 font-semibold">Readiness: 84</span>
-                      <span className="text-[10px] text-white/25">SHA-256 signed</span>
+                    <div className="px-4 py-3 border-t border-white/6 flex items-center justify-between bg-white/2">
+                      <span className="text-[10px] text-white/30">Your score: —</span>
+                      <span className="text-[10px] text-white/20">based on your NPI</span>
                     </div>
                   </div>
                   <p className="text-[10px] text-white/20 text-center mt-2">Shared via secure link · 24h TTL</p>
