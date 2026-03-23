@@ -401,6 +401,7 @@ function mapObservationFromClaim(
     case 'ENROLLMENT_STATUS': {
       const value = claim.value as EnrollmentValue;
       const enrollmentObservedAt = stringValue(value.observedAt) ?? claim.observedAt;
+      const claimState = value.claimState;
       const dataVersion = stringValue(value.dataVersion) ?? stringValue(artifactPayload.dataVersion);
       const trustMetadata = defaultCredentialTrustMetadata({
         claim: {
@@ -414,7 +415,12 @@ function mapObservationFromClaim(
         subjectNpi: claim.subjectNpi,
         domain: 'MEDICARE_ENROLLMENT',
         credentialType: value.source === 'PECOS' ? 'PECOS_ENROLLMENT' : 'MEDICARE_ENROLLMENT',
-        status: claim.reviewRequired ? 'REVIEW_REQUIRED' : value.enrolled ? 'ACTIVE' : 'UNRESOLVED',
+        status:
+          claim.reviewRequired
+            ? 'REVIEW_REQUIRED'
+            : claimState === 'ENROLLED'
+              ? 'ACTIVE'
+              : 'UNRESOLVED',
         verificationLevel: verificationLevelForTier(claim.tier),
         claimValue: {
           enrolled: value.enrolled,
@@ -425,7 +431,7 @@ function mapObservationFromClaim(
           dataVersion,
           label: value.label ?? null,
           statusLabel: value.statusLabel ?? value.label ?? null,
-          claimState: value.enrolled ? 'ENROLLED' : 'ENROLLMENT_NOT_FOUND',
+          claimState,
           sourceLatency: value.sourceLatency ?? trustMetadata.sourceLatency,
           dataFreshness: value.dataFreshness ?? trustMetadata.dataFreshness,
           sourceDisclaimer: value.sourceDisclaimer ?? 'Quarterly CMS PECOS snapshot that may lag current enrollment changes.',
@@ -445,7 +451,7 @@ function mapObservationFromClaim(
           claimType: claim.claimType,
           reviewRequired: claim.reviewRequired,
           reviewReason: claim.reviewReason,
-          claimState: value.enrolled ? 'ENROLLED' : 'ENROLLMENT_NOT_FOUND',
+          claimState,
           label: value.label ?? null,
           statusLabel: value.statusLabel ?? value.label ?? null,
           sourceDisclaimer: value.sourceDisclaimer ?? 'Quarterly CMS PECOS snapshot that may lag current enrollment changes.',

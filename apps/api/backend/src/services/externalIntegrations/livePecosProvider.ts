@@ -59,40 +59,64 @@ export class LivePecosProvider implements PecosProvider {
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'unknown');
         await logSystemFailure('live-pecos-provider', 'error', `PECOS API returned ${response.status}: ${errorText}`);
+        const now = new Date();
         return {
           npi: normalized,
-          enrolled: false,
+          enrolled: null,
+          claimState: 'UNKNOWN',
           enrollmentType: null,
-          checkedAt: new Date(),
-          rawPayload: { error: errorText, status: response.status },
+          observedAt: now,
+          dataVersion: null,
+          dataFreshness: 'QUARTERLY',
+          sourceLatency: 'QUARTERLY',
+          checkedAt: now,
+          rawPayload: { error: errorText, status: response.status, claimState: 'UNKNOWN' },
         };
       }
 
       const data = await response.json() as Record<string, unknown>;
       const now = new Date();
+      const claimState = data.claimState === 'ENROLLED'
+        ? 'ENROLLED'
+        : data.claimState === 'NOT_FOUND'
+          ? 'NOT_FOUND'
+          : Boolean(data.enrolled)
+            ? 'ENROLLED'
+            : 'NOT_FOUND';
 
       log('info', 'pecos_live_fetch_success', {
         event: 'pecos_live_fetch_success',
         npi: normalized,
-        enrolled: Boolean(data.enrolled),
+        claimState,
       });
 
       return {
         npi: normalized,
-        enrolled: Boolean(data.enrolled),
+        enrolled: claimState === 'ENROLLED' ? true : false,
+        claimState,
         enrollmentType: typeof data.enrollmentType === 'string' ? data.enrollmentType : null,
+        observedAt: now,
+        dataVersion: typeof data.dataVersion === 'string' ? data.dataVersion : null,
+        dataFreshness: 'QUARTERLY',
+        sourceLatency: 'QUARTERLY',
         checkedAt: now,
         rawPayload: data,
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'unknown';
       await logSystemFailure('live-pecos-provider', 'error', `PECOS API call failed: ${message}`);
+      const now = new Date();
       return {
         npi: normalized,
-        enrolled: false,
+        enrolled: null,
+        claimState: 'UNKNOWN',
         enrollmentType: null,
-        checkedAt: new Date(),
-        rawPayload: { error: message },
+        observedAt: now,
+        dataVersion: null,
+        dataFreshness: 'QUARTERLY',
+        sourceLatency: 'QUARTERLY',
+        checkedAt: now,
+        rawPayload: { error: message, claimState: 'UNKNOWN' },
       };
     } finally {
       clearTimeout(timeout);

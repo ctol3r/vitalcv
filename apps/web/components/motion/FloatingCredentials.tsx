@@ -37,17 +37,18 @@ const CHIPS: CredentialChip[] = [
     style: { top: '18%', right: '7%' },
     animClass: 'animate-drift-2',
   },
+  // M1: DEA and NPDB are not integrated. Replaced with live-source credentials.
   {
-    label: 'DEA Registration',
-    sublabel: 'Schedules II – V',
+    label: 'OIG/LEIE Clear',
+    sublabel: 'Not excluded',
     icon: 'check',
     color: 'green',
     style: { bottom: '30%', left: '4%' },
     animClass: 'animate-drift-3',
   },
   {
-    label: 'NPDB Clear',
-    sublabel: 'No adverse actions',
+    label: 'Nursys Verified',
+    sublabel: 'License standing confirmed',
     icon: 'shield',
     color: 'amber',
     style: { bottom: '20%', right: '5%' },

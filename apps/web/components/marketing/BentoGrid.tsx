@@ -7,12 +7,15 @@ import { useRef } from 'react';
 /* ── Engine data ───────────────────────────────────────────── */
 
 const ENGINES = [
+  // M1 — Copy must match live source behavior.
+  // Live: NPPES (always on), OIG/LEIE (always on). Gated: Nursys, FSMB.
+  // NOT integrated: NPDB, DEA, ABMS, SAM.gov. Do not add them to copy without adapters.
   {
     icon: Brain,
     title: 'The Superbrain',
     subtitle: 'GraphRAG Ontology',
     description:
-      'A self-evolving knowledge graph maps every credential requirement across all 50 states. The ontology reasons over licensure, board certification, and scope-of-practice rules — resolving compliance in milliseconds, not months.',
+      'A knowledge graph maps credential requirements across licensed states. The ontology reasons over licensure, board certification, and scope-of-practice rules — surfacing compliance gaps automatically.',
     accent: 'emerald',
     span: 'lg:col-span-2',
     visual: SuperbrainVisual,
@@ -22,7 +25,7 @@ const ENGINES = [
     title: 'Primary Source Orchestrator',
     subtitle: 'Zero Human Data Entry',
     description:
-      'Direct API integrations with NPPES, state medical boards, NPDB, OIG/LEIE, and DEA. Every credential is verified at its origin — no manual lookups, no phone calls, no faxes.',
+      'Live integrations with NPPES, OIG/LEIE, and state board networks (via Nursys). Credentials are verified at their origin source — no manual lookups, no phone calls, no faxes.',
     accent: 'cyan',
     span: 'lg:col-span-1',
     visual: OrchestratorVisual,
@@ -30,9 +33,9 @@ const ENGINES = [
   {
     icon: Eye,
     title: 'Continuous Trust Daemon',
-    subtitle: 'Instant Revocation',
+    subtitle: 'Real-Time Monitoring',
     description:
-      'A background process monitors every credentialed clinician 24/7. License suspensions, exclusions, and adverse actions are detected within minutes — not the next recredentialing cycle.',
+      'A background process monitors every credentialed clinician. License suspensions, exclusions, and adverse actions are detected and surfaced — not at the next recredentialing cycle.',
     accent: 'amber',
     span: 'lg:col-span-1',
     visual: DaemonVisual,
@@ -40,9 +43,9 @@ const ENGINES = [
   {
     icon: Link2,
     title: 'Audit Scrapbook',
-    subtitle: 'Merkle-Anchored Compliance',
+    subtitle: 'Cryptographically Signed Compliance',
     description:
-      'Every verification event is hashed, timestamped, and anchored to a Merkle tree. Produces an immutable, cryptographically-provable audit trail that satisfies the most demanding regulators.',
+      'Every verification event is hashed, timestamped, and signed. Produces a cryptographically verifiable audit trail — every employer decision, source check, and readiness update is on the record.',
     accent: 'violet',
     span: 'lg:col-span-2',
     visual: AuditVisual,
@@ -115,7 +118,8 @@ function SuperbrainVisual() {
 }
 
 function OrchestratorVisual() {
-  const sources = ['NPPES', 'CA-BRN', 'NPDB', 'OIG'];
+  // M1: Only live-integrated sources. NPDB not integrated.
+  const sources = ['NPPES', 'CA-BRN', 'OIG/LEIE', 'Nursys'];
   return (
     <div className="flex flex-col gap-1.5 h-32 justify-center">
       {sources.map((src, i) => (

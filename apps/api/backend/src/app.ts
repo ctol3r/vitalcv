@@ -45,6 +45,7 @@ import { startContinuousMonitor } from './workers/continuousMonitor';
 // Wave 41: Start Attestation Engine — ON Loop
 import { registerHiringRoutes } from './routes/hiring';
 import { registerEmployerActionRoutes } from './routes/employerActions'; // M2: Accept with Confidence
+import { registerSealTrainingRoutes }   from './routes/sealTraining';    // SEAL: training pipeline
 // Wave 43: Public Trust Profile — NPI-keyed
 import { registerPublicProfileRoutes } from './routes/publicProfile';
 // Wave 47: Human-in-the-Loop review queue
@@ -3497,6 +3498,7 @@ registerAuditRoutes(app); // Wave 35: Merkle Anchoring
 registerStatusListRoutes(app); // Wave 40: W3C Bitstring Status List
 registerHiringRoutes(app);           // Wave 41: ON Loop — EmployerAcceptance + StartAttestation
 registerEmployerActionRoutes(app);   // M2: Accept with Confidence — accept/refresh/review/packet
+registerSealTrainingRoutes(app);     // SEAL: training event capture + dataset export
 registerPublicProfileRoutes(app); // Wave 43: Public Trust Profile — NPI-keyed
 registerHitlRoutes(app);         // Wave 47: AI HITL Review Queue
 registerGraphRoutes(app);        // Wave 82: Trust Graph Intelligence

@@ -40,7 +40,11 @@ import {
   fetchClinicalTrials, parseClinicalTrialsResult,
   fetchPubMed, parsePubMedResult,
 } from './phase4Sources';
-import { buildIdentitySummary, type CanonicalIdentitySummary } from './evidenceModel';
+import {
+  buildIdentitySummary,
+  normalizeEvidenceBundle,
+  type CanonicalIdentitySummary,
+} from './evidenceModel';
 import {
   appendIdentityIndexArtifact,
   loadClaimRecordsForNpi,
@@ -282,7 +286,7 @@ function extractClaimsFromArtifact(artifact: ExistingArtifactRecord): {
       ? rawPayload._retrievedAt
       : undefined;
 
-  return {
+  return normalizeEvidenceBundle({
     claims: ((rawPayload._claims ?? []) as NormalizedClaim[]).map((claim) => ({
       ...claim,
       artifactId: claim.artifactId || artifact.id,
@@ -303,7 +307,7 @@ function extractClaimsFromArtifact(artifact: ExistingArtifactRecord): {
       raw_artifact_ref: receipt.raw_artifact_ref || receipt.source_artifact_id || artifact.id,
       checksum: receipt.checksum || artifact.checksum,
     })),
-  };
+  });
 }
 
 function computeIdentityIndexConfidence(claims: readonly NormalizedClaim[]): number {
@@ -561,6 +565,7 @@ async function fetchPecos(npi: string): Promise<SourceFetchResult> {
       Array.isArray(data) && data.length > 0 ? (data[0] as Record<string, unknown>) : null;
     const raw = row
       ? {
+          claimState: 'ENROLLED' as const,
           enrolled: true,
           enrollmentType: row.ENRLMT_CLSFCTN_TYPE_DESC ?? null,
           eligibleToOrderRefer: row.GNDR_CD !== undefined,
@@ -572,6 +577,7 @@ async function fetchPecos(npi: string): Promise<SourceFetchResult> {
           dataFreshness: 'QUARTERLY',
         }
       : {
+          claimState: 'NOT_FOUND' as const,
           enrolled: false,
           enrollmentType: null,
           eligibleToOrderRefer: null,
@@ -593,7 +599,8 @@ async function fetchPecos(npi: string): Promise<SourceFetchResult> {
   } catch (error) {
     log('warn', 'identityPipeline: PECOS fetch failed', { npi, error: String(error) });
     const raw = {
-      enrolled: false,
+      claimState: 'UNKNOWN' as const,
+      enrolled: null,
       enrollmentType: null,
       source: 'PECOS_UNAVAILABLE',
       npi,
@@ -669,6 +676,241 @@ function firstChangedField(
   return fields.find((field) => claimValueChanged(previousValue[field] ?? null, currentValue[field] ?? null));
 }
 
+function normalizeFamilyPart(value: unknown): string {
+  if (typeof value === 'string') {
+    return value.trim().toUpperCase();
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  return '';
+}
+
+function stableClaimOrder(left: NormalizedClaim, right: NormalizedClaim): number {
+  return left.claimId.localeCompare(right.claimId);
+}
+
+function computeClaimFamilyKey(claim: NormalizedClaim): string {
+  const value = asObject(claim.value);
+  const parts = [claim.sourceId, claim.claimType];
+
+  switch (claim.claimType) {
+    case 'NPI_IDENTITY':
+    case 'PERSONAL_IDENTITY':
+    case 'ENROLLMENT_STATUS':
+    case 'ORDER_REFERRAL':
+    case 'EXCLUSION_STATUS':
+    case 'BOARD_CERT_FLAG':
+    case 'CITATION_METRIC':
+      return parts.join('|');
+    case 'AUTHORITY_UNAVAILABLE':
+      return [...parts, normalizeFamilyPart(value.targetDomain), normalizeFamilyPart(value.jurisdiction)].join('|');
+    case 'SPECIALTY':
+      return [...parts, normalizeFamilyPart(value.state), normalizeFamilyPart(value.licenseNumber), normalizeFamilyPart(value.isPrimary)].join('|');
+    case 'PRACTICE_LOCATION':
+    case 'MAILING_ADDRESS':
+      return [...parts, normalizeFamilyPart(value.addressType), normalizeFamilyPart(value.phone), normalizeFamilyPart(value.fax)].join('|');
+    case 'ENDPOINT':
+      return [...parts, normalizeFamilyPart(value.endpointType), normalizeFamilyPart(value.endpoint)].join('|');
+    case 'GROUP_AFFILIATION':
+    case 'INSTITUTION_AFFILIATION':
+      return [...parts, normalizeFamilyPart(value.institution), normalizeFamilyPart(value.affiliationType)].join('|');
+    case 'LICENSE':
+    case 'LICENSE_DISCIPLINE':
+    case 'NURSING_LICENSE':
+    case 'NURSING_DISCIPLINE':
+      return [...parts, normalizeFamilyPart(value.state), normalizeFamilyPart(value.licenseNumber), normalizeFamilyPart(value.source)].join('|');
+    case 'BOARD_CERTIFICATION':
+      return [...parts, normalizeFamilyPart(value.certifyingBoard), normalizeFamilyPart(value.specialty)].join('|');
+    case 'TRAINING_COMPLETION':
+      return [...parts, normalizeFamilyPart(value.institution), normalizeFamilyPart(value.programName), normalizeFamilyPart(value.trainingType)].join('|');
+    case 'PUBLICATION':
+      return [...parts, normalizeFamilyPart(value.openAlexId), normalizeFamilyPart(value.pubmedId), normalizeFamilyPart(value.title)].join('|');
+    case 'CLINICAL_TRIAL':
+      return [...parts, normalizeFamilyPart(value.nctId), normalizeFamilyPart(value.role)].join('|');
+    case 'INDUSTRY_PAYMENT':
+    case 'OWNERSHIP_INTEREST':
+    case 'RESEARCH_PAYMENT':
+      return [...parts, normalizeFamilyPart(value.paymentYear)].join('|');
+    default:
+      return [...parts, claim.claimId].join('|');
+  }
+}
+
+export function compareClaimSnapshots(input: {
+  priorClaims: readonly NormalizedClaim[];
+  newClaims: readonly NormalizedClaim[];
+  observedAt: string;
+  matchingStrategy: string;
+  mergeReason?: string;
+  conflictReason?: string;
+}): ClaimComparisonResult {
+  const events: DeltaEventWithLineage[] = [];
+  const transitions: ClaimTransition[] = [];
+  const claims = input.newClaims.map((claim) => ({ ...claim }));
+  const claimsById = new Map(claims.map((claim) => [claim.claimId, claim] as const));
+  const priorFamilies = new Map<string, NormalizedClaim[]>();
+  const newFamilies = new Map<string, NormalizedClaim[]>();
+
+  for (const claim of input.priorClaims) {
+    const familyKey = computeClaimFamilyKey(claim);
+    const existing = priorFamilies.get(familyKey) ?? [];
+    existing.push(claim);
+    priorFamilies.set(familyKey, existing);
+  }
+
+  for (const claim of claims) {
+    const familyKey = computeClaimFamilyKey(claim);
+    const existing = newFamilies.get(familyKey) ?? [];
+    existing.push(claim);
+    newFamilies.set(familyKey, existing);
+  }
+
+  const familyKeys = new Set([...priorFamilies.keys(), ...newFamilies.keys()]);
+
+  for (const familyKey of familyKeys) {
+    const priorFamily = [...(priorFamilies.get(familyKey) ?? [])].sort(stableClaimOrder);
+    const newFamily = [...(newFamilies.get(familyKey) ?? [])].sort(stableClaimOrder);
+    const remainingPrior = [...priorFamily];
+    const remainingNew = [...newFamily];
+
+    for (let index = remainingNew.length - 1; index >= 0; index -= 1) {
+      const nextClaim = remainingNew[index]!;
+      const priorIndex = remainingPrior.findIndex((priorClaim) => priorClaim.claimId === nextClaim.claimId);
+      if (priorIndex >= 0) {
+        remainingNew.splice(index, 1);
+        remainingPrior.splice(priorIndex, 1);
+      }
+    }
+
+    const pairedCount = Math.min(remainingPrior.length, remainingNew.length);
+    for (let index = 0; index < pairedCount; index += 1) {
+      const priorClaim = remainingPrior[index]!;
+      const nextClaim = remainingNew[index]!;
+      const targetClaim = claimsById.get(nextClaim.claimId);
+      if (!targetClaim) {
+        continue;
+      }
+
+      if (!claimValueChanged(priorClaim.value, nextClaim.value)) {
+        continue;
+      }
+
+      targetClaim.supersedes = priorClaim.claimId;
+
+      const priorValue = asObject(priorClaim.value);
+      const currentValue = asObject(nextClaim.value);
+      let type: DeltaEvent['type'] = 'CLAIM_CHANGED';
+      let fieldPath: string | undefined;
+
+      if (nextClaim.claimType === 'EXCLUSION_STATUS') {
+        type = currentValue.excluded === true && priorValue.excluded !== true
+          ? 'NEW_SANCTION_HIT'
+          : 'EXCLUSION_DETECTED';
+        fieldPath = 'excluded';
+      } else if (nextClaim.claimType === 'LICENSE' || nextClaim.claimType === 'NURSING_LICENSE') {
+        if (priorValue.state !== currentValue.state) {
+          type = 'LICENSE_STATE_CHANGED';
+          fieldPath = 'state';
+        } else if (priorValue.licenseStatus !== currentValue.licenseStatus) {
+          type = 'LICENSE_STATUS_CHANGED';
+          fieldPath = 'licenseStatus';
+        }
+      } else if (nextClaim.claimType === 'BOARD_CERTIFICATION') {
+        type = 'BOARD_CERT_STATUS_CHANGED';
+        fieldPath = 'certificationStatus';
+      } else if (nextClaim.claimType === 'PRACTICE_LOCATION' || nextClaim.claimType === 'MAILING_ADDRESS') {
+        type = 'PROVIDER_MOVED_LOCATION';
+        fieldPath = firstChangedField(priorValue, currentValue, ['address1', 'address2', 'city', 'state', 'zip']);
+      } else if (nextClaim.claimType === 'INSTITUTION_AFFILIATION' || nextClaim.claimType === 'GROUP_AFFILIATION') {
+        type = 'PROVIDER_MOVED_ORGANIZATION';
+        fieldPath = firstChangedField(priorValue, currentValue, ['institution', 'department', 'title', 'affiliationType']);
+      } else if (
+        nextClaim.claimType === 'INDUSTRY_PAYMENT'
+        || nextClaim.claimType === 'OWNERSHIP_INTEREST'
+        || nextClaim.claimType === 'RESEARCH_PAYMENT'
+      ) {
+        type = 'NEW_PAYMENT_RELATIONSHIP';
+        fieldPath = firstChangedField(priorValue, currentValue, ['totalAmount', 'topPayers', 'paymentTypes']);
+      }
+
+      events.push({
+        type,
+        claimType: nextClaim.claimType,
+        previous: priorClaim.value,
+        current: nextClaim.value,
+        severity: deltaSeverityForClaim(nextClaim.claimType, nextClaim.value),
+        ...(fieldPath ? { fieldPath } : {}),
+        previousClaimId: priorClaim.claimId,
+        currentClaimId: nextClaim.claimId,
+        trustTier: nextClaim.tier,
+        matchingStrategy: input.matchingStrategy,
+        mergeReason: input.mergeReason,
+        conflictReason: input.conflictReason,
+      });
+      transitions.push({
+        claimId: priorClaim.claimId,
+        status: 'SUPERSEDED',
+        supersededByClaimId: nextClaim.claimId,
+        expiresAt: input.observedAt,
+      });
+    }
+
+    const unmatchedNew = remainingNew.slice(pairedCount);
+    for (const claim of unmatchedNew) {
+      const addedValue = asObject(claim.value);
+      const addedType: DeltaEvent['type'] =
+        claim.claimType === 'EXCLUSION_STATUS' && addedValue.excluded === true
+          ? 'NEW_SANCTION_HIT'
+          : claim.claimType === 'INDUSTRY_PAYMENT'
+              || claim.claimType === 'OWNERSHIP_INTEREST'
+              || claim.claimType === 'RESEARCH_PAYMENT'
+            ? 'NEW_PAYMENT_RELATIONSHIP'
+            : 'CLAIM_ADDED';
+      events.push({
+        type: addedType,
+        claimType: claim.claimType,
+        previous: null,
+        current: claim.value,
+        severity: deltaSeverityForClaim(claim.claimType, claim.value),
+        currentClaimId: claim.claimId,
+        trustTier: claim.tier,
+        matchingStrategy: input.matchingStrategy,
+        mergeReason: input.mergeReason,
+        conflictReason: input.conflictReason,
+      });
+    }
+
+    const unmatchedPrior = remainingPrior.slice(pairedCount);
+    for (const priorClaim of unmatchedPrior) {
+      events.push({
+        type: 'CLAIM_EXPIRED',
+        claimType: priorClaim.claimType,
+        previous: priorClaim.value,
+        current: null,
+        severity: deltaSeverityForClaim(priorClaim.claimType, priorClaim.value),
+        previousClaimId: priorClaim.claimId,
+        currentClaimId: null,
+        trustTier: priorClaim.tier,
+        matchingStrategy: input.matchingStrategy,
+        mergeReason: input.mergeReason,
+        conflictReason: input.conflictReason,
+      });
+      transitions.push({
+        claimId: priorClaim.claimId,
+        status: 'EXPIRED',
+        expiresAt: input.observedAt,
+      });
+    }
+  }
+
+  return {
+    claims,
+    deltaEvents: events,
+    transitions,
+  };
+}
+
 async function compareClaimsAgainstPriorArtifact(
   npi: string,
   sourceId: string,
@@ -698,134 +940,19 @@ async function compareClaimsAgainstPriorArtifact(
     };
   }
 
-  const priorClaims = ((asObject(prior.rawPayload)._claims ?? []) as NormalizedClaim[]);
-  const priorByType = new Map(priorClaims.map((claim) => [claim.claimType, claim]));
-  const newByType = new Map(newClaims.map((claim) => [claim.claimType, claim]));
-  const events: DeltaEventWithLineage[] = [];
-  const transitions: ClaimTransition[] = [];
-  const claims = newClaims.map((claim) => ({ ...claim }));
+  const priorClaims = normalizeEvidenceBundle({
+    claims: ((asObject(prior.rawPayload)._claims ?? []) as NormalizedClaim[]),
+    receipts: [],
+  }).claims;
 
-  for (const claim of claims) {
-    const priorClaim = priorByType.get(claim.claimType);
-    if (!priorClaim) {
-      const addedValue = asObject(claim.value);
-      const addedType: DeltaEvent['type'] =
-        claim.claimType === 'EXCLUSION_STATUS' && addedValue.excluded === true
-          ? 'NEW_SANCTION_HIT'
-          : claim.claimType === 'INDUSTRY_PAYMENT'
-              || claim.claimType === 'OWNERSHIP_INTEREST'
-              || claim.claimType === 'RESEARCH_PAYMENT'
-            ? 'NEW_PAYMENT_RELATIONSHIP'
-            : 'CLAIM_ADDED';
-      events.push({
-        type: addedType,
-        claimType: claim.claimType,
-        previous: null,
-        current: claim.value,
-        severity: deltaSeverityForClaim(claim.claimType, claim.value),
-        currentClaimId: claim.claimId,
-        trustTier: claim.tier,
-        matchingStrategy,
-        mergeReason,
-        conflictReason,
-      });
-      continue;
-    }
-
-    if (priorClaim.claimId === claim.claimId || !claimValueChanged(priorClaim.value, claim.value)) {
-      continue;
-    }
-
-    claim.supersedes = priorClaim.claimId;
-
-    const priorValue = asObject(priorClaim.value);
-    const currentValue = asObject(claim.value);
-    let type: DeltaEvent['type'] = 'CLAIM_CHANGED';
-    let fieldPath: string | undefined;
-
-    if (claim.claimType === 'EXCLUSION_STATUS') {
-      type = currentValue.excluded === true && priorValue.excluded !== true
-        ? 'NEW_SANCTION_HIT'
-        : 'EXCLUSION_DETECTED';
-      fieldPath = 'excluded';
-    } else if (claim.claimType === 'LICENSE' || claim.claimType === 'NURSING_LICENSE') {
-      if (priorValue.state !== currentValue.state) {
-        type = 'LICENSE_STATE_CHANGED';
-        fieldPath = 'state';
-      } else if (priorValue.licenseStatus !== currentValue.licenseStatus) {
-        type = 'LICENSE_STATUS_CHANGED';
-        fieldPath = 'licenseStatus';
-      }
-    } else if (claim.claimType === 'BOARD_CERTIFICATION') {
-      type = 'BOARD_CERT_STATUS_CHANGED';
-      fieldPath = 'certificationStatus';
-    } else if (claim.claimType === 'PRACTICE_LOCATION' || claim.claimType === 'MAILING_ADDRESS') {
-      type = 'PROVIDER_MOVED_LOCATION';
-      fieldPath = firstChangedField(priorValue, currentValue, ['address1', 'address2', 'city', 'state', 'zip']);
-    } else if (claim.claimType === 'INSTITUTION_AFFILIATION' || claim.claimType === 'GROUP_AFFILIATION') {
-      type = 'PROVIDER_MOVED_ORGANIZATION';
-      fieldPath = firstChangedField(priorValue, currentValue, ['institution', 'department', 'title', 'affiliationType']);
-    } else if (
-      claim.claimType === 'INDUSTRY_PAYMENT'
-      || claim.claimType === 'OWNERSHIP_INTEREST'
-      || claim.claimType === 'RESEARCH_PAYMENT'
-    ) {
-      type = 'NEW_PAYMENT_RELATIONSHIP';
-      fieldPath = firstChangedField(priorValue, currentValue, ['totalAmount', 'topPayers', 'paymentTypes']);
-    }
-
-    events.push({
-      type,
-      claimType: claim.claimType,
-      previous: priorClaim.value,
-      current: claim.value,
-      severity: deltaSeverityForClaim(claim.claimType, claim.value),
-      ...(fieldPath ? { fieldPath } : {}),
-      previousClaimId: priorClaim.claimId,
-      currentClaimId: claim.claimId,
-      trustTier: claim.tier,
-      matchingStrategy,
-      mergeReason,
-      conflictReason,
-    });
-    transitions.push({
-      claimId: priorClaim.claimId,
-      status: 'SUPERSEDED',
-      supersededByClaimId: claim.claimId,
-      expiresAt: observedAt,
-    });
-  }
-
-  for (const priorClaim of priorClaims) {
-    if (newByType.has(priorClaim.claimType)) {
-      continue;
-    }
-
-    events.push({
-      type: 'CLAIM_EXPIRED',
-      claimType: priorClaim.claimType,
-      previous: priorClaim.value,
-      current: null,
-      severity: deltaSeverityForClaim(priorClaim.claimType, priorClaim.value),
-      previousClaimId: priorClaim.claimId,
-      currentClaimId: null,
-      trustTier: priorClaim.tier,
-      matchingStrategy,
-      mergeReason,
-      conflictReason,
-    });
-    transitions.push({
-      claimId: priorClaim.claimId,
-      status: 'EXPIRED',
-      expiresAt: observedAt,
-    });
-  }
-
-  return {
-    claims,
-    deltaEvents: events,
-    transitions,
-  };
+  return compareClaimSnapshots({
+    priorClaims,
+    newClaims,
+    observedAt,
+    matchingStrategy,
+    mergeReason,
+    conflictReason,
+  });
 }
 
 async function executeSourceIngestion(input: {
@@ -1020,7 +1147,7 @@ async function executeSourceIngestion(input: {
             });
     } else {
       artifactId = deterministicUuid(`${input.sourceId}:${input.npi}:${fetched.checksum}`);
-      parsed = input.parseSource({
+      const parsedBundle = input.parseSource({
         npi: input.npi,
         raw: fetched.raw,
         artifactId,
@@ -1029,6 +1156,15 @@ async function executeSourceIngestion(input: {
         sourceUrl: fetched.sourceUrl,
         retrievedAt: fetched.fetchedAt,
       });
+      const normalizedBundle = normalizeEvidenceBundle({
+        claims: parsedBundle.claims,
+        receipts: parsedBundle.receipts,
+      });
+      parsed = {
+        ...parsedBundle,
+        claims: normalizedBundle.claims,
+        receipts: normalizedBundle.receipts,
+      };
 
       await storeArtifact({
         artifactId,
@@ -1050,6 +1186,18 @@ async function executeSourceIngestion(input: {
         mergeReason: parsed.mergeReason,
         conflictReason: parsed.conflictReason,
       });
+    }
+
+    if (existingArtifact) {
+      const normalizedBundle = normalizeEvidenceBundle({
+        claims: parsed.claims,
+        receipts: parsed.receipts,
+      });
+      parsed = {
+        ...parsed,
+        claims: normalizedBundle.claims,
+        receipts: normalizedBundle.receipts,
+      };
     }
 
     await identityPrisma.parseJob.update({
@@ -1492,16 +1640,19 @@ const handlers: Record<string, SourceHandler> = {
           parsedObservedAt,
           { sourceUrl, retrievedAt },
         );
+        const claimState = (raw as { claimState?: string }).claimState;
 
         return {
-          status: (raw as { enrolled?: boolean }).enrolled === false ? 'SKIPPED' : 'SUCCESS',
+          status: claimState === 'NOT_FOUND' ? 'SKIPPED' : 'SUCCESS',
           claims,
           receipts,
           matchingStrategy: 'NPI_EXACT',
           mergeReason:
-            (raw as { enrolled?: boolean }).enrolled === false
+            claimState === 'NOT_FOUND'
               ? 'Quarterly CMS PECOS release did not contain an enrollment record for this NPI'
-              : 'Official quarterly CMS enrollment record exact match by NPI',
+              : claimState === 'UNKNOWN'
+                ? 'Quarterly CMS PECOS release could not be resolved for this NPI'
+                : 'Official quarterly CMS enrollment record exact match by NPI',
         };
       },
     }),

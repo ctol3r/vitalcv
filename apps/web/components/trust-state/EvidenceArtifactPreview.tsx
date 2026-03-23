@@ -54,7 +54,7 @@ export function EvidenceArtifactPreview({
               ))}
             </div>
             <p className="text-[10px] text-slate-400 mt-3 leading-relaxed">
-              Certain fields normally present in this artifact have been cryptographically zero-knowledge hidden to enforce minimum necessary disclosure.
+              Certain fields in this artifact have been selectively disclosed — only the claims required for this context are shown (SD-JWT, salted SHA-256 commitments).
             </p>
           </div>
         )}

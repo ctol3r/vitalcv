@@ -27,7 +27,7 @@ export function AuditTerminal({ entries, className }: AuditTerminalProps) {
     >
       <div className="flex items-center gap-2 mb-3 text-white/40">
         <span className="h-2.5 w-2.5 rounded-full bg-[var(--trust-green)]" />
-        <span className="text-[10px] uppercase tracking-widest">ZKP Verification Log</span>
+        <span className="text-[10px] uppercase tracking-widest">Verification Audit Log</span>
       </div>
 
       <motion.ol

@@ -42,6 +42,25 @@ export function registerPassportEntityRoutes(app: Express): void {
       const passport = await buildPassport(id);
       if (!passport) throw new HttpError(404, 'Entity not found.');
       res.json(passport);
+
+      // SEAL: capture passport-view advisory event (fire-and-forget, after response)
+      {
+        const { captureAdvisoryEvent } = await import('../services/seal/sealEventCapture');
+        void captureAdvisoryEvent({
+          entityId:              id,
+          advisoryVersion:       passport.readiness.level ?? 'unknown',
+          eventType:             'PASSPORT_VIEW',
+          blockersAtEvent:       passport.readiness.blockers,
+          readinessScoreAtEvent: passport.readiness.score,
+          sourceCoverageAtEvent: {
+            live:       ['NPPES', 'OIG / LEIE'],
+            gated:      ['Nursys', 'FSMB'],
+            mock:       ['CMS PECOS'],
+            notChecked: ['NPDB', 'DEA', 'ABMS'],
+          },
+          metadata: { npiPrefix: passport.identity.npi?.slice(0, 4) ?? null },
+        }).catch(() => void 0);
+      }
     }),
   );
 

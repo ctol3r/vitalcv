@@ -338,8 +338,13 @@ export async function replayDecision(capsuleId: string): Promise<DecisionReplay>
     methodology:       capsule.methodology,
     methodologyVersion: capsule.methodologyVersion ?? 'decision_capsule.v262',
     verifiedAt:        replayedAt,
-    tamperEvidence:    replayResult.valid ? null
-      : `Hash mismatch — stored: ${capsule.artifactHash.slice(0, 16)}… computed: ${replayResult.actualArtifactHash.slice(0, 16)}…`,
+    tamperEvidence: replayResult.valid
+      ? null
+      : replayResult.actualArtifactHash !== capsule.artifactHash
+        ? `Hash mismatch — stored: ${capsule.artifactHash.slice(0, 16)}… computed: ${replayResult.actualArtifactHash.slice(0, 16)}…`
+        : replayResult.expectedEvidenceSpineDigest !== replayResult.actualEvidenceSpineDigest
+          ? 'Evidence spine digest mismatch — referenced verification artifacts or receipts no longer replay to the stored trust-critical spine.'
+          : 'Decision capsule replay validation failed.',
   };
 
   // ── Verifier identity ──────────────────────────────────────────────────────

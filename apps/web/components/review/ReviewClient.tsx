@@ -26,7 +26,7 @@ import { Accordion } from '@/components/ui/vcv-accordion';
 import type { AccordionItem } from '@/components/ui/vcv-accordion';
 import { TrustLabel, type TrustStatus } from '@/components/ui/trust-label';
 import type { PassportData } from '@/app/passport/[id]/page';
-import MirofishPanel from '@/components/review/MirofishPanel';
+import { EmployerAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
 
 function formatProofDate(value?: string | null): string | null {
   if (!value) return null;
@@ -739,8 +739,8 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
           </div>
         </div>
 
-        {/* ── MiroFish advisory — gated, clearly labeled, below readiness ── */}
-        <MirofishPanel passport={passport} />
+        {/* ── Advisory Panel — gated, clearly labeled, below readiness ── */}
+        <EmployerAdvisoryPanel passport={passport} />
 
         {/* ── Proof panel — collapsible ────────────────────────────────────── */}
         {proofItems.length > 0 && (

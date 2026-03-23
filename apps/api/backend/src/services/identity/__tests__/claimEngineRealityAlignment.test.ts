@@ -85,4 +85,45 @@ describe('claimEngine reality alignment', () => {
       String((claims[0]?.value as Record<string, unknown>).sourceDisclaimer ?? '').toLowerCase(),
     ).toContain('point-in-time');
   });
+
+  it('distinguishes quarterly not-found enrollment from unknown enrollment status', () => {
+    const notFound = parsePecosRecord(
+      '1234567890',
+      {
+        claimState: 'NOT_FOUND',
+        enrolled: false,
+        source: 'PECOS',
+        observedAt: '2026-01-15T00:00:00.000Z',
+        dataVersion: '2026-Q1',
+      },
+      'artifact-not-found',
+      'checksum-not-found',
+      '2026-03-22T12:00:00.000Z',
+    );
+    const unknown = parsePecosRecord(
+      '1234567890',
+      {
+        claimState: 'UNKNOWN',
+        enrolled: null,
+        source: 'PECOS_UNAVAILABLE',
+        observedAt: '2026-01-15T00:00:00.000Z',
+        dataVersion: '2026-Q1',
+      },
+      'artifact-unknown',
+      'checksum-unknown',
+      '2026-03-22T12:00:00.000Z',
+    );
+
+    expect((notFound.claims[0]?.value as Record<string, unknown>).claimState).toBe('NOT_FOUND');
+    expect((notFound.claims[0]?.value as Record<string, unknown>).label).toBe(
+      'Medicare enrollment not found in quarterly PECOS snapshot — as of Q1 2026',
+    );
+    expect(notFound.claims[0]?.confidence).toBe('HIGH');
+
+    expect((unknown.claims[0]?.value as Record<string, unknown>).claimState).toBe('UNKNOWN');
+    expect((unknown.claims[0]?.value as Record<string, unknown>).label).toBe(
+      'Medicare enrollment unresolved — as of Q1 2026',
+    );
+    expect(unknown.claims[0]?.confidence).toBe('UNCERTAIN');
+  });
 });

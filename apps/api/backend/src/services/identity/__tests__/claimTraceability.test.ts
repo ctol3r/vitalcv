@@ -108,6 +108,8 @@ describe('claim traceability', () => {
       checksum: 'checksum-pecos',
       claim_type: 'ENROLLMENT_STATUS',
     });
+    expect((claims[0]?.value as Record<string, unknown>).claimState).toBe('ENROLLED');
+    expect((claims[0]?.value as Record<string, unknown>).sourceLatency).toBe('QUARTERLY');
     expect((claims[0]?.value as Record<string, unknown>).label).toBe('Medicare enrolled — as of Q1 2026');
   });
 });

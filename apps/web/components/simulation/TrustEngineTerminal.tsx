@@ -1,10 +1,13 @@
 'use client';
 
 /**
- * TrustEngineTerminal.tsx — Wave 82: Trust Engine Pipeline Simulator
+ * TrustEngineTerminal.tsx — Trust Engine Pipeline Simulator
  *
- * Animated terminal that simulates the credential verification pipeline:
- * NPI → NPPES → State Board → NPDB → OIG → Merkle Anchor
+ * Animated terminal showing the canonical trust verification pipeline:
+ * NPI → NPPES → OIG/LEIE → Nursys (state boards) → Sign
+ *
+ * M1: NPDB is not integrated. Do not add it back without a live adapter.
+ * Only NPPES and OIG/LEIE are always-on. Nursys is gated (institutional access).
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -29,14 +32,16 @@ interface TrustEngineTerminalProps {
 
 // ── Pipeline Definition ───────────────────────────────────────────────
 
+// M1: Pipeline steps must match live-integrated sources only.
+// NPDB removed (not integrated). Nursys shown as gated (requires institutional access).
+// "Anchor" step produces a signed ES256 bundle, not a blockchain Merkle tree.
 function createPipeline(npi: string): PipelineStep[] {
   return [
-    { id: 'npi', label: 'NPI Lookup', source: 'NPPES Registry', status: 'pending', duration: 600 },
-    { id: 'nppes', label: 'Provider Enumeration', source: 'CMS NPPES', status: 'pending', duration: 800 },
-    { id: 'state', label: 'State Board Verification', source: 'State Medical Board', status: 'pending', duration: 1200 },
-    { id: 'npdb', label: 'NPDB Check', source: 'National Practitioner Data Bank', status: 'pending', duration: 900 },
-    { id: 'oig', label: 'OIG Exclusion Scan', source: 'HHS OIG LEIE', status: 'pending', duration: 700 },
-    { id: 'anchor', label: 'Merkle Anchor', source: `SHA-256 · NPI:${npi}`, status: 'pending', duration: 500 },
+    { id: 'npi',    label: 'NPI Lookup',              source: 'NPPES Registry',          status: 'pending', duration: 600 },
+    { id: 'nppes',  label: 'Provider Enumeration',     source: 'CMS NPPES',               status: 'pending', duration: 800 },
+    { id: 'oig',    label: 'OIG Exclusion Scan',       source: 'HHS OIG / LEIE',          status: 'pending', duration: 700 },
+    { id: 'nursys', label: 'State Board Verification', source: 'Nursys (gated)',           status: 'pending', duration: 1200 },
+    { id: 'sign',   label: 'Credential Bundle Signed', source: `ES256 · NPI:${npi}`,      status: 'pending', duration: 500 },
   ];
 }
 

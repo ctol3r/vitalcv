@@ -2,6 +2,7 @@ import { sha256ForPayload } from '../../../utils/deterministic';
 
 const mockApplicationFindUnique = jest.fn();
 const mockAuditEventCreate = jest.fn();
+const mockVerificationArtifactFindMany = jest.fn();
 const mockEnsureTrustStateBeforeCapsule = jest.fn();
 const mockGetBindingByNpi = jest.fn();
 const mockFindLatestTrustState = jest.fn();
@@ -23,6 +24,9 @@ jest.mock('../../../graphql/prisma_client', () => ({
     },
     auditEvent: {
       create: mockAuditEventCreate,
+    },
+    verificationArtifact: {
+      findMany: mockVerificationArtifactFindMany,
     },
     decisionCapsule: {
       count: jest.fn().mockResolvedValue(0),
@@ -83,6 +87,7 @@ describe('capsuleEngine', () => {
 
     mockApplicationFindUnique.mockReset();
     mockAuditEventCreate.mockReset();
+    mockVerificationArtifactFindMany.mockReset();
     mockEnsureTrustStateBeforeCapsule.mockReset();
     mockGetBindingByNpi.mockReset();
     mockFindLatestTrustState.mockReset();
@@ -108,6 +113,7 @@ describe('capsuleEngine', () => {
       },
     ]);
     mockAuditEventCreate.mockResolvedValue({});
+    mockVerificationArtifactFindMany.mockResolvedValue([]);
     mockAppendAuditEvent.mockResolvedValue(undefined);
     mockCreateAuthorityEdges.mockResolvedValue(undefined);
     mockEnqueueDecisionCapsuleCreatedEvent.mockResolvedValue('outbox-1');
@@ -266,6 +272,84 @@ describe('capsuleEngine', () => {
       valid: true,
       expectedArtifactHash: artifactHash,
       actualArtifactHash: artifactHash,
+      expectedEvidenceSpineDigest: null,
+      actualEvidenceSpineDigest: null,
+    });
+  });
+
+  test('fails replay when the stored evidence spine no longer matches live artifacts', async () => {
+    const storedSpine = [{
+      artifactId: 'compat-1',
+      source: 'STATE_BOARD',
+      checksum: 'checksum-1',
+      parserVersion: 'parser-v1',
+      observedAt: '2026-03-14T12:00:00.000Z',
+      expiresAt: '2026-06-14T12:00:00.000Z',
+      freshnessWindowHours: 2160,
+      claimIds: ['claim-1'],
+      receiptIds: ['receipt-1'],
+      receiptIntegrityHashes: ['integrity-1'],
+    }];
+    const evidenceSpineDigest = sha256ForPayload(storedSpine);
+    const replayPayload = {
+      subjectDid: 'did:vitalcv:1003000126',
+      subjectNpi: '1003000126',
+      trustStateHash: 'a'.repeat(64),
+      verifierOrg: 'org-1',
+      decisionType: 'HIRING',
+      decisionAction: 'APPROVE',
+      credentialIds: ['cred-1'],
+      compatibilityCredentialIds: ['compat-1'],
+      evidenceSpineDigest,
+      issuerIds: ['issuer-1'],
+      status: 'VALID',
+      triggerEvent: 'verifier_decision',
+      sourceReferenceId: 'app-1',
+      methodologyVersion: 'decision_capsule.v262',
+      decisionTimestamp: '2026-03-14T12:00:00.000Z',
+    };
+    const artifactHash = sha256ForPayload(replayPayload);
+
+    mockFindDecisionCapsuleById.mockResolvedValue({
+      id: 'capsule-1',
+      subjectDid: 'did:vitalcv:1003000126',
+      subjectNpi: '1003000126',
+      decisionType: 'HIRING',
+      decisionTimestamp: '2026-03-14T12:00:00.000Z',
+      credentialIds: ['cred-1'],
+      issuerIds: ['issuer-1'],
+      artifactHash,
+      methodology: 'decision_capsule.v262',
+      status: 'VALID',
+      metadata: {
+        decision_capsule_payload: {
+          ...replayPayload,
+          artifactHash,
+        },
+        evidence_spine: storedSpine,
+        evidence_spine_digest: evidenceSpineDigest,
+      },
+      createdAt: '2026-03-14T12:00:00.000Z',
+      updatedAt: '2026-03-14T12:00:00.000Z',
+    });
+    mockVerificationArtifactFindMany.mockResolvedValue([{
+      id: 'compat-1',
+      source: 'STATE_BOARD',
+      checksum: 'checksum-2',
+      parserVersion: 'parser-v1',
+      observedAt: new Date('2026-03-14T12:00:00.000Z'),
+      verifiedAt: new Date('2026-03-14T12:00:00.000Z'),
+      expiresAt: new Date('2026-06-14T12:00:00.000Z'),
+      rawPayload: {},
+    }]);
+
+    await expect(capsuleEngine.verifyDecisionCapsuleReplay('capsule-1')).resolves.toEqual({
+      capsuleId: 'capsule-1',
+      valid: false,
+      expectedArtifactHash: artifactHash,
+      actualArtifactHash: artifactHash,
+      expectedEvidenceSpineDigest: evidenceSpineDigest,
+      actualEvidenceSpineDigest: expect.any(String),
     });
   });
 });

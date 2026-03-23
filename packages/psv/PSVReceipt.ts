@@ -1,8 +1,23 @@
 import crypto from 'crypto';
 
 export const SOURCE_AUTHORITIES = ['ABMS', 'FSMB', 'NPI', 'LEIE', 'OTHER'] as const;
+export const RECEIPT_SOURCE_COVERAGE_STATES = [
+  'live',
+  'gated',
+  'partial',
+  'stale',
+  'mock',
+  'notChecked',
+  'unavailable',
+  'reviewRequired',
+  // Extended to match CanonicalSourceCoverageState in packages/trust-state
+  'notDecisionGrade',
+  'accessRequired',
+] as const;
 
 export type SourceAuthority = (typeof SOURCE_AUTHORITIES)[number];
+export type ReceiptSourceCoverageState =
+  (typeof RECEIPT_SOURCE_COVERAGE_STATES)[number];
 
 export type PSVReceiptSnapshot = Readonly<{
   receipt_id: string;
@@ -13,6 +28,7 @@ export type PSVReceiptSnapshot = Readonly<{
   response_hash: string;
   ttl_seconds: number;
   revoked: boolean;
+  source_coverage_state?: ReceiptSourceCoverageState;
 }>;
 
 export type CreatePSVReceiptInput = Readonly<{
@@ -24,6 +40,7 @@ export type CreatePSVReceiptInput = Readonly<{
   raw_response: string;
   ttl_seconds: number;
   revoked?: boolean;
+  source_coverage_state?: ReceiptSourceCoverageState;
 }>;
 
 const UUID_V4_REGEX =
@@ -40,6 +57,19 @@ function assertNonEmptyString(value: unknown, field: string): asserts value is s
 function assertSourceAuthority(value: unknown): asserts value is SourceAuthority {
   if (!SOURCE_AUTHORITIES.includes(value as SourceAuthority)) {
     throw new Error('source_authority must be one of ABMS | FSMB | NPI | LEIE | OTHER');
+  }
+}
+
+function assertReceiptSourceCoverageState(
+  value: unknown,
+): asserts value is ReceiptSourceCoverageState {
+  if (
+    value !== undefined &&
+    !RECEIPT_SOURCE_COVERAGE_STATES.includes(value as ReceiptSourceCoverageState)
+  ) {
+    throw new Error(
+      'source_coverage_state must be one of: live | gated | partial | stale | mock | notChecked | unavailable | reviewRequired | notDecisionGrade | accessRequired',
+    );
   }
 }
 
@@ -86,6 +116,7 @@ export class PSVReceipt {
   public readonly response_hash: string;
   public readonly ttl_seconds: number;
   public readonly revoked: boolean;
+  public readonly source_coverage_state?: ReceiptSourceCoverageState;
 
   private constructor(snapshot: PSVReceiptSnapshot) {
     assertUuidV4(snapshot.receipt_id, 'receipt_id');
@@ -95,6 +126,7 @@ export class PSVReceipt {
     assertRfc3339Utc(snapshot.fetched_at, 'fetched_at');
     assertSha256Hex(snapshot.response_hash, 'response_hash');
     assertPositiveInteger(snapshot.ttl_seconds, 'ttl_seconds');
+    assertReceiptSourceCoverageState(snapshot.source_coverage_state);
 
     this.receipt_id = snapshot.receipt_id;
     this.source_authority = snapshot.source_authority;
@@ -104,6 +136,7 @@ export class PSVReceipt {
     this.response_hash = snapshot.response_hash;
     this.ttl_seconds = snapshot.ttl_seconds;
     this.revoked = Boolean(snapshot.revoked);
+    this.source_coverage_state = snapshot.source_coverage_state;
 
     Object.freeze(this);
   }
@@ -119,6 +152,7 @@ export class PSVReceipt {
     assertRfc3339Utc(input.fetched_at, 'fetched_at');
     assertPositiveInteger(input.ttl_seconds, 'ttl_seconds');
     assertNonEmptyString(input.raw_response, 'raw_response');
+    assertReceiptSourceCoverageState(input.source_coverage_state);
 
     const receipt_id = input.receipt_id ?? crypto.randomUUID();
     assertUuidV4(receipt_id, 'receipt_id');
@@ -135,6 +169,7 @@ export class PSVReceipt {
       response_hash,
       ttl_seconds: input.ttl_seconds,
       revoked: Boolean(input.revoked),
+      source_coverage_state: input.source_coverage_state,
     });
   }
 
@@ -148,6 +183,9 @@ export class PSVReceipt {
       response_hash: this.response_hash,
       ttl_seconds: this.ttl_seconds,
       revoked: this.revoked,
+      ...(this.source_coverage_state
+        ? { source_coverage_state: this.source_coverage_state }
+        : {}),
     });
   }
 }

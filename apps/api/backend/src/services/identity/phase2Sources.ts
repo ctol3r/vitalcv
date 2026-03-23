@@ -321,6 +321,7 @@ export function parseDoctorsAndClinicians(
   // Enrollment claim
   const enrollValue: EnrollmentValue = {
     _type: 'ENROLLMENT_STATUS',
+    claimState: 'ENROLLED',
     enrolled: true,
     enrollmentType: row.gndr ? 'Individual' : null,
     eligibleToOrderRefer: true,

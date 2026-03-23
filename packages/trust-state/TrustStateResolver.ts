@@ -4,6 +4,7 @@ import type {
   AcceptanceProofRecord,
   BlockingReason,
   CrsResult,
+  PsvReceiptRecord,
   StartScopeRecord,
   TrustStateCredentialArtifact,
   TrustState,
@@ -15,6 +16,10 @@ import {
   validateCredentialArtifact,
   validateVerificationArtifact,
 } from './artifactValidation';
+import {
+  coverageSatisfiesDecisionGradeTruth,
+  type CanonicalSourceCoverageState,
+} from './sourceCoverage';
 import { resolveReceiptStatus } from '../psv/validateReceipt';
 import { trustStateLatencyHistogram } from './latencyHistogram';
 
@@ -67,6 +72,12 @@ function normalizeAttestorId(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : null;
+}
+
+function receiptCoverageState(
+  receipt: { source_coverage_state?: CanonicalSourceCoverageState },
+): CanonicalSourceCoverageState {
+  return receipt.source_coverage_state ?? 'live';
 }
 
 function readHashAnchor(record: AcceptanceScopeRecord): string | null {
@@ -304,14 +315,26 @@ export class TrustStateResolver {
     const passedPublicChecks = new Set<string>();
     const passedManualChecks = new Set<string>();
     const manualAttestorByCheck = new Map<string, string>();
+    let hasDecisionGradeReceipt = false;
+    let hasNonDecisionGradeReceipt = false;
 
     if (!Array.isArray(receipts) || receipts.length === 0) {
       blockingReasons.add('MISSING_PSV');
     } else {
       for (const receipt of receipts) {
+        const coverageState = receiptCoverageState(receipt);
+        const decisionGradeCoverage = coverageSatisfiesDecisionGradeTruth({
+          state: coverageState,
+        });
         const status = resolveReceiptStatus(receipt, asOf);
         if (receipt.verification_outcome === 'FAIL') {
           blockingReasons.add('FAILED_VERIFICATION');
+        }
+
+        if (decisionGradeCoverage) {
+          hasDecisionGradeReceipt = true;
+        } else {
+          hasNonDecisionGradeReceipt = true;
         }
 
         if (status === 'REVOKED') {
@@ -324,10 +347,15 @@ export class TrustStateResolver {
           decayedReceipts.push({ receipt_id: receipt.receipt_id, status });
         }
 
+        if (coverageState === 'stale') {
+          blockingReasons.add('EXPIRED_PSV');
+        }
+
         if (
           receipt.lane === 'PUBLIC' &&
           status === 'VALID' &&
-          receipt.verification_outcome !== 'FAIL'
+          receipt.verification_outcome !== 'FAIL' &&
+          decisionGradeCoverage
         ) {
           const check = normalizeVerificationCheck(receipt.verification_check);
           if (check) {
@@ -338,7 +366,8 @@ export class TrustStateResolver {
         if (
           receipt.lane === 'MANUAL' &&
           status === 'VALID' &&
-          receipt.verification_outcome !== 'FAIL'
+          receipt.verification_outcome !== 'FAIL' &&
+          decisionGradeCoverage
         ) {
           const check = normalizeVerificationCheck(receipt.verification_check);
           if (check) {
@@ -349,6 +378,15 @@ export class TrustStateResolver {
             }
           }
         }
+      }
+
+      if (
+        hasNonDecisionGradeReceipt &&
+        !hasDecisionGradeReceipt &&
+        !blockingReasons.has('EXPIRED_PSV') &&
+        !blockingReasons.has('REVOKED_PSV')
+      ) {
+        blockingReasons.add('MISSING_PSV');
       }
     }
 

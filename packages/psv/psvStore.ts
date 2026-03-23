@@ -17,6 +17,7 @@ export type TrustStateReceiptRecord = Readonly<{
   fetched_at: string;
   ttl_seconds: number;
   revoked: boolean;
+  source_coverage_state?: PSVReceiptSnapshot['source_coverage_state'];
   lane?: 'PUBLIC' | 'PARTNER' | 'MANUAL';
   verification_check?: string;
   verification_outcome?: 'PASS' | 'FAIL';
@@ -162,6 +163,9 @@ export class PsvStore {
           fetched_at: receipt.fetched_at,
           ttl_seconds: receipt.ttl_seconds,
           revoked: receipt.revoked,
+          ...(receipt.source_coverage_state
+            ? { source_coverage_state: receipt.source_coverage_state }
+            : {}),
           ...(this.metadataByReceiptId.get(receipt.receipt_id) ?? {}),
         }),
       ),

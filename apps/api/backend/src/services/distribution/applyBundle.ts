@@ -129,9 +129,10 @@ export async function generateApplyBundle(
 
   // 7. Determine monitoring status
   let monitoringStatus: 'active' | 'inactive' | 'partial';
-  if (reviewPayload.sourceCoverage.sources.length === 0) {
+  const liveSourceCount = reviewPayload.sourceCoverage.summary.live.length;
+  if (liveSourceCount === 0) {
     monitoringStatus = 'inactive';
-  } else if (reviewPayload.sourceCoverage.sources.length >= 3) {
+  } else if (liveSourceCount >= 3) {
     monitoringStatus = 'active';
   } else {
     monitoringStatus = 'partial';

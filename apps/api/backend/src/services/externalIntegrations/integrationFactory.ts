@@ -15,7 +15,6 @@ import type { IntegrationMode, NursysProvider, PecosProvider } from './types';
 import { MockNursysProvider } from './mockNursysProvider';
 import { MockPecosProvider } from './mockPecosProvider';
 import { LiveNursysProvider } from './liveNursysProvider';
-import { LivePecosProvider } from './livePecosProvider';
 import { log } from '../../obs/logger';
 
 // ── Mode parsing ────────────────────────────────────────────
@@ -31,7 +30,14 @@ export function getNursysMode(): IntegrationMode {
 }
 
 export function getPecosMode(): IntegrationMode {
-  return parseIntegrationMode(process.env.PECOS_MODE);
+  const requestedMode = parseIntegrationMode(process.env.PECOS_MODE);
+  if (requestedMode === 'live') {
+    log('warn', 'integration_factory_pecos_live_rejected', {
+      event: 'integration_factory_pecos_live_rejected',
+      reason: 'PECOS is quarterly snapshot data and cannot be used as a real-time authority feed.',
+    });
+  }
+  return 'mock';
 }
 
 // ── Provider singletons ─────────────────────────────────────
@@ -63,18 +69,11 @@ export function getPecosProvider(): PecosProvider {
   if (_pecosProvider) return _pecosProvider;
 
   const mode = getPecosMode();
-
-  if (mode === 'live') {
-    log('info', 'integration_factory_pecos_live', {
-      event: 'integration_factory_pecos_live',
-    });
-    _pecosProvider = new LivePecosProvider();
-  } else {
-    log('info', 'integration_factory_pecos_mock', {
-      event: 'integration_factory_pecos_mock',
-    });
-    _pecosProvider = new MockPecosProvider();
-  }
+  log('info', 'integration_factory_pecos_mock', {
+    event: 'integration_factory_pecos_mock',
+    mode,
+  });
+  _pecosProvider = new MockPecosProvider();
 
   return _pecosProvider;
 }

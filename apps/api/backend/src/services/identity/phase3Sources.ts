@@ -123,41 +123,13 @@ export async function fetchNursys(npi: string): Promise<FetchResult> {
     }
   }
 
-  // Fallback: try Nursys public search (scrape-style)
-  const sourceUrl = `https://www.nursys.com/NLV/NLVSearch.aspx?id=${npi}`;
-  try {
-    const resp = await fetch(sourceUrl, {
-      headers: { 'User-Agent': 'VitalCV/1.0', 'Accept': 'text/html,application/json' },
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!resp.ok) throw new Error(`Nursys public ${resp.status}`);
-    const text = await resp.text();
-
-    // Try JSON parse first, fall back to HTML scraping indicators
-    let parsed: unknown;
-    try { parsed = JSON.parse(text); } catch {
-      // HTML response — extract what we can
-      const hasLicense = text.includes('License Number') || text.includes('license-number');
-      const hasActive  = text.includes('Active') || text.includes('ACTIVE');
-      const hasExpired = text.includes('Expired') || text.includes('EXPIRED');
-
-      parsed = {
-        _scraped: true, npi,
-        hasLicenseIndicator: hasLicense,
-        statusIndicator: hasActive ? 'ACTIVE' : hasExpired ? 'EXPIRED' : 'UNKNOWN',
-        responseLength: text.length,
-      };
-    }
-
-    return { raw: parsed, checksum: checksumOf(parsed), fetchedAt: new Date().toISOString(), sourceUrl, fetchHeaders: headersToObject(resp.headers) };
-  } catch (err) {
-    log('warn', 'phase3: Nursys public fetch failed', { npi, error: String(err) });
-    return {
-      raw: { _noCredentials: true, _fetchFailed: true, npi },
-      checksum: checksumOf({ npi, nursys: 'unavailable', ts: Date.now() }),
-      fetchedAt: new Date().toISOString(), sourceUrl, fetchHeaders: {},
-    };
-  }
+  // Fallback: without credentials, we MUST NOT fall back to scraping.
+  // Ensure gated sources cannot be mistaken for live production coverage.
+  return {
+    raw: { _noCredentials: true, _gated: true, npi },
+    checksum: checksumOf({ npi, nursys: 'gated', ts: Date.now() }),
+    fetchedAt: new Date().toISOString(), sourceUrl: 'GATED_NURSYS_CONFIG_REQUIRED', fetchHeaders: {},
+  };
 }
 
 const NURSYS_PARSER = 'v1.0.0';
@@ -180,8 +152,8 @@ export function parseNursysResult(
     observedAt,
   };
 
-  // No credentials / fetch failed
-  if (data._noCredentials || data._fetchFailed) {
+  // No credentials / fetch failed / gated
+  if (data._noCredentials || data._fetchFailed || data._gated) {
     const value: LicenseValue = {
       _type: 'LICENSE', state: 'NATIONAL', licenseNumber: null,
       issueDate: null, expiryDate: null, licenseStatus: 'UNKNOWN',
@@ -214,27 +186,7 @@ export function parseNursysResult(
     return { claims, receipts };
   }
 
-  // Scraped HTML response
-  if (data._scraped) {
-    const statusInd = String(data.statusIndicator ?? 'UNKNOWN');
-    const licStatus = statusInd === 'ACTIVE' ? 'ACTIVE' : statusInd === 'EXPIRED' ? 'EXPIRED' : 'UNKNOWN';
-    const value: LicenseValue = {
-      _type: 'LICENSE', state: 'NATIONAL', licenseNumber: null,
-      issueDate: null, expiryDate: null, licenseStatus: licStatus,
-      disciplinaryActions: [], source: 'NURSYS_SCRAPE',
-    };
-    const claim = makeClaim({
-      ...base, claimType: 'NURSING_LICENSE', subjectNpi: npi, value,
-      confidence: licStatus !== 'UNKNOWN' ? 'LOW' : 'UNCERTAIN',
-      confidenceScore: licStatus !== 'UNKNOWN' ? 0.4 : 0.15,
-      reviewRequired: true,
-      reviewReason: 'Nursys public page scraped (no API credentials) — low confidence, verify manually',
-    });
-    claims.push(claim);
-    receipts.push(buildReceipt(claim, 'licenseStatus',
-      `Nursys public page scraped for NPI ${npi}: status indicator ${licStatus}. Low confidence — API access recommended.`));
-    return { claims, receipts };
-  }
+
 
   // Live API response — structured event data
   const events = (data.events ?? []) as Array<Record<string, unknown>>;
@@ -370,34 +322,7 @@ export async function fetchStateBoardLicense(npi: string, state: string, lastNam
     }
   }
 
-  // Fall back to state board scrape attempt
-  if (boardUrl) {
-    try {
-      const resp = await fetch(boardUrl, {
-        headers: { 'User-Agent': 'VitalCV/1.0', 'Accept': 'text/html,application/json' },
-        signal: AbortSignal.timeout(15000),
-      });
-      if (resp.ok) {
-        const text = await resp.text();
-        // Extract license status indicators from HTML
-        const hasActive   = /\bactive\b/i.test(text);
-        const hasExpired  = /\bexpired\b/i.test(text);
-        const hasRevoked  = /\brevoked\b/i.test(text);
-        const hasSuspended = /\bsuspended\b/i.test(text);
 
-        const parsed = {
-          _scraped: true, _state: stateUpper, npi,
-          hasActiveIndicator: hasActive,
-          statusIndicator: hasRevoked ? 'REVOKED' : hasSuspended ? 'SUSPENDED' : hasExpired ? 'EXPIRED' : hasActive ? 'ACTIVE' : 'UNKNOWN',
-          boardUrl, responseLength: text.length,
-        };
-
-        return { raw: parsed, checksum: checksumOf(parsed), fetchedAt: new Date().toISOString(), sourceUrl: boardUrl, fetchHeaders: headersToObject(resp.headers) };
-      }
-    } catch (err) {
-      log('warn', 'phase3: state board scrape failed', { npi, state, error: String(err) });
-    }
-  }
 
   // Cannot reach any board source
   return {
@@ -521,36 +446,7 @@ export function parseStateBoardResult(
     return { claims, receipts };
   }
 
-  // Scraped HTML response
-  if (data._scraped) {
-    const statusInd = String(data.statusIndicator ?? 'UNKNOWN');
-    const licStatus: LicenseValue['licenseStatus'] =
-      statusInd === 'REVOKED' ? 'REVOKED' :
-      statusInd === 'SUSPENDED' ? 'SUSPENDED' :
-      statusInd === 'EXPIRED' ? 'EXPIRED' :
-      statusInd === 'ACTIVE' ? 'ACTIVE' : 'UNKNOWN';
 
-    const value: LicenseValue = {
-      _type: 'LICENSE', state: stateUpper, licenseNumber: null,
-      issueDate: null, expiryDate: null, licenseStatus: licStatus,
-      disciplinaryActions: [],
-      source: `STATE_BOARD_${stateUpper}_SCRAPE`,
-    };
-    const confidence: ClaimConfidence = licStatus !== 'UNKNOWN' ? 'LOW' : 'UNCERTAIN';
-    const claim = makeClaim({
-      ...base, claimType: 'LICENSE', subjectNpi: npi, value,
-      confidence, confidenceScore: confidence === 'LOW' ? 0.35 : 0.1,
-      reviewRequired: true,
-      reviewReason: `${stateUpper} board page scraped — low confidence, verify directly at ${data.boardUrl}`,
-      status: licStatus === 'REVOKED' || licStatus === 'SUSPENDED' ? 'BLOCKED' : 'ACTIVE',
-    });
-
-    return {
-      claims: [claim],
-      receipts: [buildReceipt(claim, 'licenseStatus',
-        `${stateUpper} medical board page scraped: status indicator ${licStatus}. Low confidence — direct verification recommended.`)],
-    };
-  }
 
   return { claims: [], receipts: [] };
 }

@@ -1139,6 +1139,8 @@ model ClaimRecord {
   supersedesClaimId      String?   @map("supersedes_claim_id")
   reviewRequired         Boolean   @default(false) @map("review_required")
   reviewReason           String?   @map("review_reason")
+  explanation            String?
+  freshnessWindowHours   Int?      @map("freshness_window_hours")
   mergeReason            String?   @map("merge_reason")
   conflictReason         String?   @map("conflict_reason")
   createdAt              DateTime  @default(now()) @map("created_at")
@@ -1181,6 +1183,14 @@ model VerificationReceiptRecord {
   observedAt             DateTime  @map("observed_at")
   explanation            String
   expiresAt              DateTime? @map("expires_at")
+  sourceUrl              String?   @map("source_url")
+  retrievedAt            DateTime? @map("retrieved_at")
+  rawArtifactRef         String?   @map("raw_artifact_ref")
+  checksum               String?
+  claimType              String?   @map("claim_type")
+  matchConfidence        String?   @map("match_confidence")
+  freshnessWindowHours   Int?      @map("freshness_window_hours")
+  integrityHash          String?   @map("integrity_hash")
   issuedAt               DateTime  @default(now()) @map("issued_at")
   createdAt              DateTime  @default(now()) @map("created_at")
 
@@ -3183,6 +3193,12 @@ model VcvEntity {
   userClaims             VcvUserEntityClaim[]     @relation("entity_claims")
   bundleShareEvents      BundleShareEvent[]       @relation("bundle_share_subject")
 
+  // SEAL training back-relations
+  advisoryOutcomeEvents    AdvisoryOutcomeEvent[]    @relation("advisory_outcome_entity")
+  blockerResolutionEvents  BlockerResolutionEvent[]  @relation("blocker_resolution_entity")
+  employerDecisionEvents   EmployerDecisionEvent[]   @relation("employer_decision_entity")
+  startOutcomeEvents       StartOutcomeEvent[]       @relation("start_outcome_entity")
+
   @@index([npi])
   @@index([entityType])
   @@index([entityType, npi])
@@ -3490,6 +3506,11 @@ model VcvOrganizationContext {
   statusEvents      VcvOrgContextStatusEvent[]
   bundleShareEvents BundleShareEvent[]
 
+  // SEAL training back-relations
+  advisoryOutcomeEvents  AdvisoryOutcomeEvent[]  @relation("advisory_outcome_org_ctx")
+  employerDecisionEvents EmployerDecisionEvent[] @relation("employer_decision_org_ctx")
+  startOutcomeEvents     StartOutcomeEvent[]     @relation("start_outcome_org_ctx")
+
   @@index([requestorId, contextType])
   @@index([status])
   @@index([contextType, status])
@@ -3600,3 +3621,136 @@ model VcvUserEntityClaim {
 // The VcvEntity model was defined earlier in this file — these back-relations
 // are handled by the field declarations on the new models above.
 // (Prisma resolves this at generate time across the full schema.)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SEAL Training Pipeline
+//
+// These tables capture behavioral/outcome signals for SEAL model training.
+// SAFETY CONTRACT:
+//   - These tables are APPEND-ONLY. Rows are never updated by inference.
+//   - Source truth (claims, artifacts, receipts, readiness core) is never
+//     modified by SEAL training. SEAL reads outcomes; it never writes claims.
+//   - advisory_output fields contain "Based on observed patterns" attribution.
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// Captures what advisory state was shown at each product interaction
+/// and what the user/employer subsequently did.
+/// Used to train SEAL on: which advisory states correlate with good outcomes.
+model AdvisoryOutcomeEvent {
+  id                         String   @id @default(uuid()) @db.Uuid
+  entityId                   String   @map("entity_id") @db.Uuid
+  organizationContextId      String?  @map("organization_context_id") @db.Uuid
+  /// Version of the advisory model that produced this output (e.g. "243.1")
+  advisoryVersion            String   @map("advisory_version")
+  /// FK to a snapshot of advisory inputs at the time of the event
+  advisoryInputSnapshotRef   String?  @map("advisory_input_snapshot_ref")
+  /// FK to a snapshot of advisory outputs shown to the user
+  advisoryOutputSnapshotRef  String?  @map("advisory_output_snapshot_ref")
+  /// PASSPORT_VIEW | SHARE_INITIATED | EMPLOYER_REVIEW | INTERVIEW_MODE | PACKET_EXPORT
+  eventType                  String   @map("event_type")
+  eventTimestamp             DateTime @default(now()) @map("event_timestamp")
+  /// Blockers present at time of event — captured for training
+  blockersAtEvent            Json     @default("[]") @db.JsonB @map("blockers_at_event")
+  /// Readiness score at time of event
+  readinessScoreAtEvent      Int?     @map("readiness_score_at_event")
+  /// Which sources were checked at time of event
+  sourceCoverageAtEvent      Json     @default("{}") @db.JsonB @map("source_coverage_at_event")
+  /// Free-form outcome metadata (e.g. employer_decision, share_destination)
+  metadata                   Json     @default("{}") @db.JsonB
+
+  entity              VcvEntity              @relation("advisory_outcome_entity",    fields: [entityId],              references: [id], onDelete: Cascade)
+  organizationContext VcvOrganizationContext? @relation("advisory_outcome_org_ctx",  fields: [organizationContextId], references: [id], onDelete: SetNull)
+
+  @@index([entityId, eventTimestamp])
+  @@index([eventType, eventTimestamp])
+  @@index([organizationContextId, eventTimestamp])
+  @@index([advisoryVersion, eventTimestamp])
+  @@map("advisory_outcome_events")
+}
+
+/// Tracks how long it took to resolve each blocker and which path was used.
+/// Primary signal for SEAL's "fastest path to ready" recommendations.
+model BlockerResolutionEvent {
+  id               String    @id @default(uuid()) @db.Uuid
+  entityId         String    @map("entity_id") @db.Uuid
+  /// Structured blocker code (e.g. "ENROLLMENT_NOT_FOUND", "LICENSE_EXPIRED")
+  blockerCode      String    @map("blocker_code")
+  openedAt         DateTime  @map("opened_at")
+  resolvedAt       DateTime? @map("resolved_at")
+  /// Computed on resolution: resolvedAt - openedAt in whole days
+  resolutionDays   Int?      @map("resolution_days")
+  /// How the blocker was resolved: SOURCE_UPDATE | MANUAL_UPLOAD | WAIVED | EXPIRED | UNKNOWN
+  resolutionMethod String?   @map("resolution_method")
+  /// OPEN | RESOLVED | WAIVED | EXPIRED
+  status           String    @default("OPEN")
+  metadata         Json      @default("{}") @db.JsonB
+
+  entity VcvEntity @relation("blocker_resolution_entity", fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@index([entityId, openedAt])
+  @@index([blockerCode, status])
+  @@index([blockerCode, resolutionDays])
+  @@index([status, openedAt])
+  @@map("blocker_resolution_events")
+}
+
+/// Records the employer's decision at review time with full context snapshot.
+/// Primary signal for SEAL's "conditional proceed" recommendations.
+model EmployerDecisionEvent {
+  id                    String   @id @default(uuid()) @db.Uuid
+  entityId              String   @map("entity_id") @db.Uuid
+  organizationContextId String?  @map("organization_context_id") @db.Uuid
+  /// PROCEED | HOLD | REQUEST_REFRESH | ROUTE_TO_REVIEW | REJECT
+  decision              String
+  decidedAt             DateTime @default(now()) @map("decided_at")
+  /// Role of the reviewer: EMPLOYER | CREDENTIALING_COORDINATOR | RECRUITER | SYSTEM
+  reviewerRole          String   @default("EMPLOYER") @map("reviewer_role")
+  /// Audit event ID from the action that triggered this decision
+  auditEventId          String?  @map("audit_event_id")
+  /// Trust state snapshot at decision time
+  trustSnapshotAtDecision Json   @default("{}") @db.JsonB @map("trust_snapshot_at_decision")
+  /// Blockers present at decision time
+  blockersAtDecision    Json     @default("[]") @db.JsonB @map("blockers_at_decision")
+  /// Readiness score at decision time
+  readinessScoreAtDecision Int?  @map("readiness_score_at_decision")
+  metadata              Json     @default("{}") @db.JsonB
+
+  entity              VcvEntity              @relation("employer_decision_entity",  fields: [entityId],              references: [id], onDelete: Cascade)
+  organizationContext VcvOrganizationContext? @relation("employer_decision_org_ctx", fields: [organizationContextId], references: [id], onDelete: SetNull)
+
+  @@index([entityId, decidedAt])
+  @@index([decision, decidedAt])
+  @@index([organizationContextId, decidedAt])
+  @@map("employer_decision_events")
+}
+
+/// Records actual start outcomes with delta calculations.
+/// Primary signal for SEAL's "time to start" estimates.
+model StartOutcomeEvent {
+  id                    String    @id @default(uuid()) @db.Uuid
+  entityId              String    @map("entity_id") @db.Uuid
+  organizationContextId String?   @map("organization_context_id") @db.Uuid
+  startedAt             DateTime  @map("started_at")
+  /// Days from first employer review event to start
+  daysFromFirstReview   Int?      @map("days_from_first_review")
+  /// Days from first share event to start
+  daysFromShare         Int?      @map("days_from_share")
+  /// Days from readiness score reaching L2+ to start
+  daysFromReady         Int?      @map("days_from_ready")
+  /// Readiness score at time of start
+  readinessScoreAtStart Int?      @map("readiness_score_at_start")
+  /// Blockers present at time of start (should be empty for clean starts)
+  blockersAtStart       Json      @default("[]") @db.JsonB @map("blockers_at_start")
+  /// Source coverage at time of start
+  sourceCoverageAtStart Json      @default("{}") @db.JsonB @map("source_coverage_at_start")
+  metadata              Json      @default("{}") @db.JsonB
+
+  entity              VcvEntity              @relation("start_outcome_entity",    fields: [entityId],              references: [id], onDelete: Cascade)
+  organizationContext VcvOrganizationContext? @relation("start_outcome_org_ctx",  fields: [organizationContextId], references: [id], onDelete: SetNull)
+
+  @@index([entityId, startedAt])
+  @@index([organizationContextId, startedAt])
+  @@index([daysFromFirstReview])
+  @@index([daysFromReady])
+  @@map("start_outcome_events")
+}
