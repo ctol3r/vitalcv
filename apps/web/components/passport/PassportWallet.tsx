@@ -378,26 +378,25 @@ export default function PassportWallet({ passport }: Props) {
           )}
         </div>
 
-        {/* ── Authority: Licensure (Primary) ─────────────────────────────────────────────── */}
-        <div>
-          <p className="text-white/25 text-xs uppercase tracking-widest mb-3">Primary Authority: Licensure</p>
-          <div className="rounded-xl border border-white/10 bg-white/4 p-4 mb-5 shadow-sm">
-             <div className="flex justify-between items-center text-sm mb-2">
-                 <span className="text-white/70">RN License — California</span>
-                 <span className="text-white/45 bg-white/5 px-2 py-0.5 rounded-full border border-white/10 text-xs font-semibold">Active</span>
-             </div>
-             <div className="flex justify-between items-center text-xs mt-2 pt-2 border-t border-white/5">
-                 <div className="flex items-center gap-1.5">
-                   <span className="text-white/30 text-[10px]">Source:</span>
-                   <span className="text-white/50">Nursys</span>
-                 </div>
-                 <div className="flex items-center gap-1.5">
-                   <span className="text-white/30 text-[10px]">Checked:</span>
-                   <span className="text-white/50">Today</span>
-                 </div>
-             </div>
+        {/* ── NPI disclaimer — identity anchor clarification ─────────────── */}
+        {passport.npi && (
+          <p className="text-white/20 text-xs text-center leading-relaxed border border-white/6 rounded-xl px-4 py-2.5">
+            NPI {passport.npi} confirms identity only — does not confirm licensure, enrollment, or credential status.
+          </p>
+        )}
+
+        {/* ── Next actions (from readiness engine) ──────────────────────────── */}
+        {readiness.nextActions && readiness.nextActions.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-white/25 text-xs uppercase tracking-widest">Next steps</p>
+            {readiness.nextActions.slice(0, 4).map(action => (
+              <div key={action.id} className="rounded-xl border border-white/6 bg-white/2 px-4 py-3">
+                <p className="text-white/60 text-sm font-medium">{action.title}</p>
+                <p className="text-white/30 text-xs mt-0.5 leading-relaxed">{action.detail}</p>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
 
         {/* ── Details accordion ─────────────────────────────────────────────── */}
         <div>

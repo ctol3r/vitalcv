@@ -294,10 +294,17 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
             {/* Authority */}
             <div className="border-t border-white/10 pt-4 space-y-2">
               <h2 className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2">Authority</h2>
-              <TrustLabel 
-                status={licenseActive ? 'confirmed' : 'unchecked'} 
-                label={licenseActive ? 'License active' : 'License not yet verified'} 
-                source={licenseActive ? 'source' : undefined}
+              <TrustLabel
+                status={licenseActive ? 'confirmed' : 'unchecked'}
+                label={licenseActive ? 'License on file' : 'License not yet verified'}
+                source={(() => {
+                  const lic = authority.credentials.find(c => c.domain === 'LICENSURE');
+                  return lic?.issuerName ?? lic?.sourceId ?? (licenseActive ? 'State board' : undefined);
+                })()}
+                date={(() => {
+                  const lic = authority.credentials.find(c => c.domain === 'LICENSURE');
+                  return formatProofDate(lic?.observedAt ?? lic?.verifiedAt) ?? undefined;
+                })()}
               />
             </div>
 
@@ -316,13 +323,29 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
               <h2 className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2">Readiness</h2>
               <p className="text-white/90 font-medium pb-1">{readiness.score}% ready</p>
               {blocked.length > 0 && (
-                <p className="text-red-400">
+                <p className="text-white/45">
                   Blockers: {blocked.map(b => b.charAt(0).toUpperCase() + b.slice(1).toLowerCase()).join(', ')}
                 </p>
               )}
               <p className="text-white/50 pt-1">
                 Time: {readiness.estimatedStartDays === null ? 'Unknown' : readiness.estimatedStartDays === 0 ? 'Ready now' : `~${readiness.estimatedStartDays} days (estimated)`}
               </p>
+
+              {/* Next actions — sourced from readiness.nextActions[] */}
+              {readiness.nextActions.length > 0 && (
+                <div className="pt-3 mt-1 border-t border-white/8 space-y-2">
+                  <p className="text-white/25 text-[10px] uppercase tracking-widest">Next actions</p>
+                  {readiness.nextActions.slice(0, 3).map(action => (
+                    <div key={action.id} className="flex items-start gap-2">
+                      <span className="text-white/15 text-xs w-3 shrink-0 mt-0.5">·</span>
+                      <div>
+                        <p className="text-white/55 text-xs font-medium">{action.title}</p>
+                        <p className="text-white/30 text-xs mt-0.5">{action.detail}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

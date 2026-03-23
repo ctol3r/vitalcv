@@ -94,6 +94,12 @@ export interface PassportData {
     blockers:           string[];
     gaps:               string[];
     estimatedStartDays: number | null;
+    nextActions:        Array<{
+      id:       string;
+      title:    string;
+      detail:   string;
+      priority: 'HIGH' | 'MEDIUM' | 'LOW';
+    }>;
   };
   sources: { checked: string[]; lastFetch: Record<string, string> };
   lastCheckedAt: string;
