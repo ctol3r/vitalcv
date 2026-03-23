@@ -62,7 +62,7 @@ type StepId = (typeof STEPS)[number]['id'];
 
 function StepRole({ onNext }: { onNext: (role: Role) => void }) {
   const options: Array<{ role: Role; icon: typeof BriefcaseMedical; title: string; body: string; color: string }> = [
-    { role: 'CLINICIAN', icon: BriefcaseMedical, title: "I'm a Clinician", body: "Build your trust passport, get matched, unlock instant offers.", color: 'ring-vt-success/40 hover:ring-vt-success/80' },
+    { role: 'CLINICIAN', icon: BriefcaseMedical, title: "I'm a Clinician", body: "Build your your readiness, get matched, unlock instant offers.", color: 'ring-vt-success/40 hover:ring-vt-success/80' },
     { role: 'VERIFIER',  icon: Building2,         title: "I'm an Employer",  body: "Publish roles, receive prequalified candidates, hire faster.",   color: 'ring-vt-info/40 hover:ring-vt-info/80' },
     { role: 'BOTH',      icon: Layers3,           title: "I'm Both",         body: "Switch between clinician and employer without logging out.",     color: 'ring-vt-warning/40 hover:ring-vt-warning/80' },
   ];

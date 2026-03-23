@@ -125,7 +125,7 @@ describe('trust state engine OIG timeout safeguard', () => {
     jest.useRealTimers();
   });
 
-  it('returns once the OIG timeout fires and caps trust state at L1 with UNKNOWN exclusion status', async () => {
+  it('returns once the OIG timeout fires and caps trust state at L1 with UNCHECKED exclusion status', async () => {
     let settled = false;
     const statePromise = computeClinicianTrustState('1234567893').then((state) => {
       settled = true;
@@ -138,15 +138,15 @@ describe('trust state engine OIG timeout safeguard', () => {
     await jest.advanceTimersByTimeAsync(1);
     const state = await statePromise;
 
-    expect(state.exclusionStatus).toBe('UNKNOWN');
+    expect(state.exclusionStatus).toBe('UNCHECKED');
     expect(state.exclusionClear).toBe(false);
-    expect(state.readiness_score).toBe(80);
+    expect(state.readiness_score).toBe(50);
     expect(state.readiness_level).toBe('L1');
-    expect(state.gap_summary).toContain('OIG exclusion check timed out');
+    expect(state.gap_summary).toContain('OIG/LEIE exclusion check unchecked');
     expect(state.facts).toEqual(expect.arrayContaining([
       expect.objectContaining({
         factType: 'Sanction',
-        status: 'UNKNOWN',
+        status: 'UNCHECKED',
       }),
     ]));
   });

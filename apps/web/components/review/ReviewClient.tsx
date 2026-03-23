@@ -24,7 +24,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Accordion } from '@/components/ui/vcv-accordion';
 import type { AccordionItem } from '@/components/ui/vcv-accordion';
+import { TrustLabel } from '@/components/ui/trust-label';
 import type { PassportData, ReadinessStatus } from '@/app/passport/[id]/page';
+import MirofishPanel from '@/components/review/MirofishPanel';
 
 // ── Decision card config ───────────────────────────────────────────────────────
 
@@ -251,9 +253,8 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
           </div>
         )}
 
-        {/* ── Decision card — above the fold ──────────────────────────────── */}
-        <div className={`rounded-2xl border ${cfg.border} ${cfg.bg} px-5 py-5 space-y-4 mb-6`}>
-
+        {/* ── Decision card — Exact Layout ──────────────────────────────── */}
+        <div className="rounded-2xl border border-white/8 bg-white/3 p-5 space-y-6 mb-6">
           {/* Identity */}
           <div>
             <h1 className="text-white text-xl font-semibold leading-tight">
@@ -264,30 +265,70 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
             )}
           </div>
 
-          {/* Decision status */}
-          <div className="flex items-center justify-between">
-            <span className={`text-sm font-medium ${cfg.opacity}`}>{cfg.label}</span>
-            <span className="text-white/25 text-xs">Confidence: {cfg.confidence}</span>
+          <div className="pt-2 mt-4 space-y-6">
+            {/* Identity */}
+            <div className="space-y-2">
+              <h2 className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2">Identity</h2>
+              <TrustLabel 
+                status={identity.npi ? 'confirmed' : 'unchecked'} 
+                label={identity.npi ? 'NPI registered' : 'NPI missing'} 
+                source={identity.npi ? 'CMS' : undefined} 
+              />
+              <TrustLabel
+                status="info"
+                label="Identity only — not licensure"
+              />
+            </div>
+
+            {/* Safety */}
+            <div className="border-t border-white/10 pt-4 space-y-2">
+              <h2 className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2">Safety</h2>
+              <TrustLabel 
+                status={exclusionRowState(standing.exclusionStatus) === true ? 'confirmed' : 'review'} 
+                label={exclusionRowState(standing.exclusionStatus) === true ? 'Not excluded' : 'Possible match — review required'} 
+                source="OIG"
+                date={formatProofDate(standing.exclusionCheckedAt) || undefined}
+              />
+            </div>
+
+            {/* Authority */}
+            <div className="border-t border-white/10 pt-4 space-y-2">
+              <h2 className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2">Authority</h2>
+              <TrustLabel 
+                status={licenseActive ? 'confirmed' : 'unchecked'} 
+                label={licenseActive ? 'License active' : 'License not yet verified'} 
+                source={licenseActive ? 'source' : undefined}
+              />
+            </div>
+
+            {/* Eligibility */}
+            <div className="border-t border-white/10 pt-4 space-y-2">
+              <h2 className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2">Eligibility</h2>
+              <TrustLabel 
+                status={pecosEnrolled ? 'confirmed' : 'unchecked'} 
+                label={pecosEnrolled ? 'Medicare enrolled' : 'Medicare not enrolled'} 
+                vintage={standing.enrollmentFreshnessLabel || (standing.enrollmentObservedAt ? formatProofDate(standing.enrollmentObservedAt) : undefined) || undefined}
+              />
+            </div>
+
+            {/* Readiness */}
+            <div className="border-t border-white/10 pt-4 space-y-1 text-sm">
+              <h2 className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2">Readiness</h2>
+              <p className="text-white/90 font-medium pb-1">{readiness.score}% ready</p>
+              {blocked.length > 0 && (
+                <p className="text-red-400">
+                  Blockers: {blocked.map(b => b.charAt(0).toUpperCase() + b.slice(1).toLowerCase()).join(', ')}
+                </p>
+              )}
+              <p className="text-white/50 pt-1">
+                Time: {readiness.estimatedStartDays === null ? 'Unknown' : readiness.estimatedStartDays === 0 ? 'Ready now' : `~${readiness.estimatedStartDays} days (estimated)`}
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* ── Employer Decision Breakdown ──────────────────────────────────── */}
-        <div className="rounded-xl border border-white/8 bg-white/3 px-4 py-3 space-y-1 mb-6">
-          <div className="pt-2 pb-1 text-white/40 text-[10px] font-bold uppercase tracking-[0.2em]">1. Safety</div>
-          <ReadinessRow label="Not excluded" verified={exclusionRowState(standing.exclusionStatus)} detail={exclusionDetail || 'OIG / LEIE'} />
-          <ReadinessRow label="License active" verified={licenseActive} detail={licenseActive ? 'Confirmed' : 'Review required'} />
-
-          <div className="pt-4 pb-1 text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] border-t border-white/5 mt-3">2. Eligibility</div>
-          <ReadinessRow label="Medicare enrolled" verified={pecosEnrolled} detail={enrollmentDetail || 'Point-in-time PECOS'} />
-
-          <div className="pt-4 pb-1 text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] border-t border-white/5 mt-3">3. Readiness</div>
-          <ReadinessRow label={`Readiness: ${readiness.score}%`} verified={readiness.score >= 80} />
-          <ReadinessRow label="Blockers" verified={blocked.length === 0} detail={blocked.length > 0 ? blocked.join(', ') : 'None'} />
-          <ReadinessRow label="Next action" verified={blocked.length === 0} detail={nextAction} />
-
-          <div className="pt-4 pb-1 text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] border-t border-white/5 mt-3">4. Timeline</div>
-          <ReadinessRow label="When they can begin" verified={readiness.estimatedStartDays !== null && readiness.estimatedStartDays <= 14} detail={readiness.estimatedStartDays === null ? 'Blocked' : readiness.estimatedStartDays === 0 ? 'Ready now' : `~${readiness.estimatedStartDays} days`} />
-        </div>
+        {/* ── MiroFish advisory — gated, clearly labeled, below readiness ── */}
+        <MirofishPanel passport={passport} />
 
         {/* ── Proof panel — collapsible ────────────────────────────────────── */}
         {proofItems.length > 0 && (

@@ -863,7 +863,7 @@ function OpportunityCard({
             href={`/employers/${opp.organizationSlug}`}
             className="flex items-center justify-center rounded-xl border border-vt-neutral-800 px-4 py-2.5 text-sm font-medium text-vt-neutral-200 transition-all hover:border-vt-neutral-700 hover:bg-vt-neutral-800/50 hover:text-white vt-glass"
           >
-            Review Trust
+            View proof
           </Link>
         )}
       </div>

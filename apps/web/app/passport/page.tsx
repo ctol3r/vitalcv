@@ -108,7 +108,7 @@ export default function PassportPage() {
         <div className="text-center">
           <span className="text-white/30 text-xs tracking-widest uppercase">VitalCV</span>
           <h1 className="text-white text-2xl font-semibold tracking-tight mt-1">
-            Your trust passport
+            Your your readiness
           </h1>
           {!isActive && (
             <p className="text-white/35 text-sm mt-2">

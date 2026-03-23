@@ -47,7 +47,9 @@ export interface PassportData {
       dataFreshnessLabel: string;
       dataFreshnessCadence?: string;
       claimState?:       string;
+      statusLabel?:      string;
       dataVersion?:      string;
+      identityOnly?:     boolean;
       sourceDisclaimer?: string;
       reviewRequired:    boolean;
     }>;
@@ -80,6 +82,7 @@ export interface PassportData {
     pecosStatus:      'enrolled' | 'not_enrolled' | 'unknown';
     enrollmentObservedAt?: string;
     enrollmentDataVersion?: string;
+    enrollmentStatusLabel?: string;
     enrollmentFreshnessLabel?: string;
     enrollmentConfidenceLabel?: string;
     negativeFindings: string[];

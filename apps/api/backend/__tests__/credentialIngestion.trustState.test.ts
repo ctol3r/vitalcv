@@ -51,9 +51,13 @@ describe('trust state engine with credential ingestion artifacts', () => {
     checkExclusionMock.mockResolvedValue({
       excluded: false,
       matchType: 'NONE',
+      matchConfidence: 'HIGH',
+      status: 'CLEAR',
       details: 'clear',
       checkedAt: '2026-03-13T12:00:00.000Z',
       source: 'OIG_LEIE',
+      leieVersionDate: '2026-03-10',
+      dataVersion: '2026-03',
     });
     fetchSpy.mockResolvedValue({
       ok: true,
@@ -114,6 +118,23 @@ describe('trust state engine with credential ingestion artifacts', () => {
           license_number: 'CA-MD-1234',
         },
       },
+      {
+        source: 'PECOS_PUBLIC',
+        status: 'ACTIVE',
+        verifiedAt: new Date('2026-03-13T15:00:00.000Z'),
+        expiresAt: new Date('2099-06-13T15:00:00.000Z'),
+        psvWindowDeadline: new Date('2099-06-13T15:00:00.000Z'),
+        rawPayload: {
+          _claims: [
+            {
+              claimType: 'ENROLLMENT_STATUS',
+              value: { enrolled: true },
+            },
+          ],
+          statusLabel: 'Medicare enrolled — as of Q1 2026',
+          dataVersion: '2026-Q1',
+        },
+      },
     ]);
 
     const state = await computeClinicianTrustState('1234567893');
@@ -153,12 +174,28 @@ describe('trust state engine with credential ingestion artifacts', () => {
         psvWindowDeadline: new Date('2099-06-11T14:00:00.000Z'),
         rawPayload: {},
       },
+      {
+        source: 'PECOS_PUBLIC',
+        status: 'ACTIVE',
+        verifiedAt: new Date('2026-03-13T15:00:00.000Z'),
+        expiresAt: new Date('2099-06-13T15:00:00.000Z'),
+        psvWindowDeadline: new Date('2099-06-13T15:00:00.000Z'),
+        rawPayload: {
+          _claims: [
+            {
+              claimType: 'ENROLLMENT_STATUS',
+              value: { enrolled: true },
+            },
+          ],
+        },
+      },
     ]);
 
     const state = await computeClinicianTrustState('1234567893');
 
     expect(state.exclusionClear).toBe(false);
-    expect(state.readiness_level).toBe('L0');
+    expect(state.exclusionStatus).toBe('UNCHECKED');
+    expect(state.readiness_level).toBe('L1');
     expect(state.gap_summary).toContain('OIG exclusion check stale');
   });
 

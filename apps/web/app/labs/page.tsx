@@ -30,14 +30,14 @@ const LABS: LabEntry[] = [
     description: 'Share a verified readiness snapshot in real time — designed for the clinical interview moment.',
     href: '/interview',
     status: 'PREVIEW',
-    tags: ['Ring 1', 'Core Wedge'],
+    tags: ['Your readiness'],
   },
   {
     title: 'Passport',
     description: 'Your portable proof of authority. Identity, readiness, and credentials in one object.',
     href: '/passport',
     status: 'PREVIEW',
-    tags: ['Ring 1', 'Core Wedge'],
+    tags: ['Your readiness'],
   },
   {
     title: 'Apply with VitalCV',

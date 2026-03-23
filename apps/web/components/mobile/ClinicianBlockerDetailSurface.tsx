@@ -131,8 +131,24 @@ export default function ClinicianBlockerDetailSurface({
           <div className="min-w-0">
             <p className="text-[11px] uppercase tracking-[0.18em] text-amber-100/75">{blocker.title}</p>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">{blocker.label}</h1>
-            <p className="mt-3 text-sm text-amber-100/70">Last surfaced {formatWhen(blocker.occurredAt)}</p>
-            <p className="mt-3 text-sm leading-6 text-amber-50/85">{blocker.explanation}</p>
+            
+            <div className="mt-6 space-y-5 border-t border-amber-400/10 pt-5">
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-amber-100/50 mb-1">Why it's blocked</h3>
+                <p className="text-sm leading-relaxed text-amber-50/90">{blocker.explanation}</p>
+              </div>
+              
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-amber-100/50 mb-1">How to fix</h3>
+                <p className="text-sm leading-relaxed text-amber-50/90">{blocker.detail} {blocker.nextActionLabel}</p>
+              </div>
+              
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-amber-100/50 mb-1">Estimated time</h3>
+                <p className="text-sm leading-relaxed text-amber-50/90">~1–3 days after action</p>
+              </div>
+            </div>
+            <p className="mt-5 text-[10px] text-amber-100/40">Last surfaced {formatWhen(blocker.occurredAt)}</p>
           </div>
         </div>
 

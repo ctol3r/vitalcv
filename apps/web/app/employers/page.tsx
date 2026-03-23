@@ -284,7 +284,7 @@ export default async function EmployersPage() {
                       href={`/employers/${employer.slug}`}
                       className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-black transition hover:bg-emerald-400"
                     >
-                      View employer profile
+                      View proof
                       <ArrowRight className="h-4 w-4" />
                     </Link>
                     <Link

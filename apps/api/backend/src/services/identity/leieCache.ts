@@ -25,6 +25,7 @@ export interface ExclusionEntry {
   npi: string;
   lastName: string;
   firstName: string;
+  middleName: string;
   busName: string;
   specialty: string;
   state: string;
@@ -37,6 +38,7 @@ export interface ExclusionEntry {
 export interface LookupProviderInput {
   npi: string;
   firstName?: string | null;
+  middleName?: string | null;
   lastName?: string | null;
   state?: string | null;
   specialty?: string | null;
@@ -51,16 +53,19 @@ export interface LeieResult {
   checkedAt: string;
   cacheAge: 'fresh' | 'stale' | 'unavailable';
   verdict: 'CLEAR' | 'EXCLUDED' | 'POSSIBLE_MATCH' | 'UNCHECKED';
-  matchType: 'NPI_MATCH' | 'NAME_MATCH' | 'NO_MATCH' | 'UNCLEAR';
+  matchType: 'EXACT' | 'STRONG_FUZZY' | 'WEAK' | 'NONE' | 'UNCHECKED';
   matchConfidence: 'HIGH' | 'MEDIUM' | 'LOW' | 'UNCERTAIN';
   matchScore: number | null;
   matchedFields: readonly string[];
   dataVersion: string | null;
+  leieVersionDate: string | null;
   sourceLatency: 'MONTHLY';
 }
 
 type MatchCandidate = Readonly<{
   entry: ExclusionEntry;
+  matchType: 'STRONG_FUZZY' | 'WEAK';
+  confidence: 'HIGH' | 'MEDIUM' | 'LOW';
   score: number;
   matchedFields: readonly string[];
 }>;
@@ -74,6 +79,7 @@ let lastRefreshed = 0;
 let refreshing = false;
 let refreshError: string | null = null;
 let dataVersion: string | null = null;
+let leieVersionDate: string | null = null;
 
 // ── Parsing helpers ──────────────────────────────────────────────────────────
 
@@ -90,6 +96,111 @@ function specialtyTokens(value: string): string[] {
     .split(/[^a-z0-9]+/i)
     .map((token) => token.trim().toUpperCase())
     .filter((token) => token.length >= 3);
+}
+
+const SPECIALTY_STOPWORDS = new Set([
+  'AND',
+  'CARE',
+  'CLINIC',
+  'GENERAL',
+  'HEALTH',
+  'MEDICAL',
+  'MEDICINE',
+  'PRACTICE',
+  'PROVIDER',
+  'SPECIALIST',
+  'SURGERY',
+]);
+
+function specialtyFamilyKeys(value: string): readonly string[] {
+  const normalized = value.toUpperCase();
+  const families = new Set<string>();
+
+  if (normalized.includes('FAMILY')) families.add('FAMILY_MEDICINE');
+  if (normalized.includes('INTERNAL') || normalized.includes('HOSPITALIST')) families.add('INTERNAL_MEDICINE');
+  if (normalized.includes('CARDI')) families.add('CARDIOLOGY');
+  if (normalized.includes('DERMAT')) families.add('DERMATOLOGY');
+  if (normalized.includes('ENDOCR')) families.add('ENDOCRINOLOGY');
+  if (normalized.includes('EMERGENCY')) families.add('EMERGENCY_MEDICINE');
+  if (normalized.includes('GASTRO')) families.add('GASTROENTEROLOGY');
+  if (normalized.includes('HEMATO') || normalized.includes('ONCO')) families.add('HEMATOLOGY_ONCOLOGY');
+  if (normalized.includes('NEPHRO')) families.add('NEPHROLOGY');
+  if (normalized.includes('NEURO')) families.add('NEUROLOGY');
+  if (normalized.includes('OBSTET') || normalized.includes('GYNE')) families.add('OBSTETRICS_GYNECOLOGY');
+  if (normalized.includes('ORTHO')) families.add('ORTHOPEDICS');
+  if (normalized.includes('PATHO')) families.add('PATHOLOGY');
+  if (normalized.includes('PEDIATR')) families.add('PEDIATRICS');
+  if (normalized.includes('PSYCH')) families.add('PSYCHIATRY');
+  if (normalized.includes('PULMON')) families.add('PULMONOLOGY');
+  if (normalized.includes('RADIO')) families.add('RADIOLOGY');
+  if (normalized.includes('URO')) families.add('UROLOGY');
+  if (normalized.includes('NURSE PRACTITIONER')) families.add('NURSE_PRACTITIONER');
+  if (normalized.includes('PHYSICIAN ASSISTANT') || normalized.includes('PHYSICIAN ASST')) {
+    families.add('PHYSICIAN_ASSISTANT');
+  }
+
+  if (families.size === 0) {
+    for (const token of specialtyTokens(value)) {
+      if (!SPECIALTY_STOPWORDS.has(token)) {
+        families.add(token);
+        break;
+      }
+    }
+  }
+
+  return Object.freeze(Array.from(families));
+}
+
+function exactSpecialtyMatch(left: string, right: string): boolean {
+  const normalizedLeft = normalizeToken(left);
+  const normalizedRight = normalizeToken(right);
+  return Boolean(normalizedLeft) && normalizedLeft === normalizedRight;
+}
+
+function specialtyFamilyMatch(left: string, right: string): boolean {
+  const leftFamilies = specialtyFamilyKeys(left);
+  const rightFamilies = specialtyFamilyKeys(right);
+
+  return leftFamilies.some((family) => rightFamilies.includes(family));
+}
+
+function partialNameMatch(inputFirst: string, entryFirst: string): boolean {
+  if (!inputFirst || !entryFirst) {
+    return false;
+  }
+
+  if (inputFirst === entryFirst) {
+    return true;
+  }
+
+  return inputFirst[0] === entryFirst[0]
+    || inputFirst.startsWith(entryFirst)
+    || entryFirst.startsWith(inputFirst);
+}
+
+function middleNameMatch(inputMiddle: string, entryMiddle: string): boolean {
+  if (!inputMiddle || !entryMiddle) {
+    return false;
+  }
+
+  if (inputMiddle === entryMiddle) {
+    return true;
+  }
+
+  return inputMiddle[0] === entryMiddle[0];
+}
+
+function toIsoDateOrNull(value: string | null | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) {
+    return null;
+  }
+
+  return new Date(timestamp).toISOString().slice(0, 10);
 }
 
 function checksumOf(value: string): string {
@@ -157,6 +268,7 @@ function entryFromRow(
     npi: npi && npi !== '0000000000' ? npi : '',
     lastName: fieldFromRow(row, headerIndex, ['LASTNAME', 'LAST_NAME'], 0),
     firstName: fieldFromRow(row, headerIndex, ['FIRSTNAME', 'FIRST_NAME'], 1),
+    middleName: fieldFromRow(row, headerIndex, ['MIDNAME', 'MIDDLE_NAME'], 2),
     busName: fieldFromRow(row, headerIndex, ['BUSNAME', 'BUS_NAME', 'ORGANIZATION'], 3),
     specialty: fieldFromRow(row, headerIndex, ['SPECIALTY', 'SPECIALITY'], 5),
     state: normalizeState(fieldFromRow(row, headerIndex, ['STATE'], 11)),
@@ -195,42 +307,6 @@ function buildEntriesFromCsv(csv: string): ExclusionEntry[] {
   return entries;
 }
 
-function entryFromUnknown(record: unknown): ExclusionEntry | null {
-  if (!record || typeof record !== 'object' || Array.isArray(record)) {
-    return null;
-  }
-
-  const row = record as Record<string, unknown>;
-  const stringField = (...keys: string[]): string => {
-    for (const key of keys) {
-      const value = row[key];
-      if (typeof value === 'string' && value.trim().length > 0) {
-        return value.trim();
-      }
-    }
-    return '';
-  };
-
-  const entry: ExclusionEntry = {
-    npi: stringField('npi', 'NPI'),
-    lastName: stringField('lastName', 'last_name', 'LASTNAME', 'LAST_NAME'),
-    firstName: stringField('firstName', 'first_name', 'FIRSTNAME', 'FIRST_NAME'),
-    busName: stringField('busName', 'bus_name', 'organization', 'BUSNAME'),
-    specialty: stringField('specialty', 'SPECIALTY'),
-    state: normalizeState(stringField('state', 'STATE')),
-    exclusionType: stringField('exclusionType', 'exclusion_type', 'EXCLTYPE'),
-    exclusionDate: stringField('exclusionDate', 'exclusion_date', 'EXCLDATE'),
-    reinstatementDate: stringField('reinstatementDate', 'reinstatement_date', 'REINDATE'),
-    waiverState: normalizeState(stringField('waiverState', 'waiver_state', 'WVRSTATE')),
-  };
-
-  if (!entry.npi && !entry.lastName && !entry.busName) {
-    return null;
-  }
-
-  return entry;
-}
-
 async function loadSupplementEntries(): Promise<{ entries: ExclusionEntry[]; version: string | null }> {
   const supplementPath = process.env.LEIE_SUPPLEMENT_PATH?.trim();
   const supplementUrl = process.env.LEIE_SUPPLEMENT_URL?.trim();
@@ -245,7 +321,7 @@ async function loadSupplementEntries(): Promise<{ entries: ExclusionEntry[]; ver
       ? await (async () => {
           const response = await fetch(supplementUrl, {
             signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT),
-            headers: { Accept: 'application/json,text/csv,text/plain,*/*' },
+            headers: { Accept: 'text/csv,text/plain,*/*' },
           });
           if (!response.ok) {
             throw new Error(`LEIE supplement HTTP ${response.status}`);
@@ -254,26 +330,10 @@ async function loadSupplementEntries(): Promise<{ entries: ExclusionEntry[]; ver
         })()
       : await readFile(source, 'utf8');
 
-    try {
-      const parsed = JSON.parse(payload) as unknown;
-      const records = Array.isArray(parsed)
-        ? parsed
-        : parsed && typeof parsed === 'object' && Array.isArray((parsed as { entries?: unknown[] }).entries)
-          ? (parsed as { entries: unknown[] }).entries
-          : [];
-
-      return {
-        entries: records
-          .map((record) => entryFromUnknown(record))
-          .filter((entry): entry is ExclusionEntry => Boolean(entry)),
-        version: `supplement:${checksumOf(payload).slice(0, 12)}`,
-      };
-    } catch {
-      return {
-        entries: buildEntriesFromCsv(payload),
-        version: `supplement:${checksumOf(payload).slice(0, 12)}`,
-      };
-    }
+    return {
+      entries: buildEntriesFromCsv(payload),
+      version: `supplement:${checksumOf(payload).slice(0, 12)}`,
+    };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     log('warn', 'leie_supplement_load_failed', { source, error: message });
@@ -318,63 +378,75 @@ function buildIndexes(entries: readonly ExclusionEntry[]): {
 
 function scoreCandidate(entry: ExclusionEntry, input: LookupProviderInput): MatchCandidate | null {
   const matchedFields = new Set<string>();
-  let score = 0;
-
-  if (input.npi && entry.npi && entry.npi === input.npi) {
-    matchedFields.add('npi');
-    score = 1;
-    return {
-      entry,
-      score,
-      matchedFields: Object.freeze(Array.from(matchedFields)),
-    };
-  }
 
   const inputFirst = normalizeToken(input.firstName ?? '');
+  const inputMiddle = normalizeToken(input.middleName ?? '');
   const inputLast = normalizeToken(input.lastName ?? '');
   const entryFirst = normalizeToken(entry.firstName);
+  const entryMiddle = normalizeToken(entry.middleName);
   const entryLast = normalizeToken(entry.lastName);
 
   if (!inputLast || !entryLast || inputLast !== entryLast) {
     return null;
   }
 
-  matchedFields.add('last_name');
-  score += 0.35;
-
-  if (inputFirst && entryFirst && inputFirst === entryFirst) {
-    matchedFields.add('first_name');
-    score += 0.3;
-  } else if (inputFirst && entryFirst && inputFirst[0] === entryFirst[0]) {
-    matchedFields.add('first_initial');
-    score += 0.15;
-  }
-
   const inputState = normalizeState(input.state ?? '');
-  if (inputState && entry.state && inputState === entry.state) {
+  const stateMatch = Boolean(inputState && entry.state && inputState === entry.state);
+  const firstExact = Boolean(inputFirst && entryFirst && inputFirst === entryFirst);
+  const firstPartial = partialNameMatch(inputFirst, entryFirst);
+  const middleMatch = middleNameMatch(inputMiddle, entryMiddle);
+  const specialtyExact = exactSpecialtyMatch(input.specialty ?? '', entry.specialty);
+  const specialtyFamily = specialtyFamilyMatch(input.specialty ?? '', entry.specialty);
+
+  matchedFields.add('last_name');
+  if (firstExact) {
+    matchedFields.add('first_name');
+  } else if (firstPartial) {
+    matchedFields.add('partial_name');
+  }
+  if (middleMatch) {
+    matchedFields.add('middle_name');
+  }
+  if (stateMatch) {
     matchedFields.add('state');
-    score += 0.2;
+  }
+  if (specialtyExact) {
+    matchedFields.add('specialty');
+  } else if (specialtyFamily) {
+    matchedFields.add('specialty_family');
   }
 
-  const inputSpecialtyTokens = specialtyTokens(input.specialty ?? '');
-  const entrySpecialtyTokens = specialtyTokens(entry.specialty);
-  if (inputSpecialtyTokens.length > 0 && entrySpecialtyTokens.length > 0) {
-    const overlap = inputSpecialtyTokens.filter((token) => entrySpecialtyTokens.includes(token));
-    if (overlap.length > 0) {
-      matchedFields.add('specialty');
-      score += 0.15;
-    }
+  if (firstExact && middleMatch && stateMatch && specialtyExact) {
+    return {
+      entry,
+      matchType: 'STRONG_FUZZY',
+      confidence: 'HIGH',
+      score: 0.9,
+      matchedFields: Object.freeze(Array.from(matchedFields)),
+    };
   }
 
-  if (score < 0.55) {
-    return null;
+  if (firstExact && stateMatch && specialtyFamily) {
+    return {
+      entry,
+      matchType: 'STRONG_FUZZY',
+      confidence: 'MEDIUM',
+      score: 0.76,
+      matchedFields: Object.freeze(Array.from(matchedFields)),
+    };
   }
 
-  return {
-    entry,
-    score: Number(score.toFixed(2)),
-    matchedFields: Object.freeze(Array.from(matchedFields)),
-  };
+  if (!firstExact && firstPartial) {
+    return {
+      entry,
+      matchType: 'WEAK',
+      confidence: 'LOW',
+      score: 0.58,
+      matchedFields: Object.freeze(Array.from(matchedFields)),
+    };
+  }
+
+  return null;
 }
 
 function bestFuzzyCandidate(input: LookupProviderInput): MatchCandidate | null {
@@ -449,6 +521,7 @@ async function refresh(): Promise<void> {
       ?? response.headers.get('etag')
       ?? `csv:${checksumOf(csv).slice(0, 12)}`;
     dataVersion = [responseVersion, supplement.version].filter(Boolean).join('+') || null;
+    leieVersionDate = toIsoDateOrNull(response.headers.get('last-modified'));
 
     log('info', 'leie_cache_refreshed', {
       entries: mergedEntries.length,
@@ -456,6 +529,7 @@ async function refresh(): Promise<void> {
       supplementEntries: supplement.entries.length,
       durationMs: Date.now() - startedAt,
       dataVersion,
+      leieVersionDate,
     });
   } catch (error) {
     refreshError = error instanceof Error ? error.message : String(error);
@@ -500,11 +574,12 @@ export async function lookupProvider(input: LookupProviderInput): Promise<LeieRe
       checkedAt,
       cacheAge: 'unavailable',
       verdict: 'UNCHECKED',
-      matchType: 'UNCLEAR',
+      matchType: 'UNCHECKED',
       matchConfidence: 'UNCERTAIN',
       matchScore: null,
       matchedFields: [],
       dataVersion,
+      leieVersionDate,
       sourceLatency: 'MONTHLY',
     };
   }
@@ -520,22 +595,18 @@ export async function lookupProvider(input: LookupProviderInput): Promise<LeieRe
       checkedAt,
       cacheAge,
       verdict: 'EXCLUDED',
-      matchType: 'NPI_MATCH',
+      matchType: 'EXACT',
       matchConfidence: 'HIGH',
       matchScore: 1,
       matchedFields: ['npi'],
       dataVersion,
+      leieVersionDate,
       sourceLatency: 'MONTHLY',
     };
   }
 
   const candidate = bestFuzzyCandidate(input);
   if (candidate) {
-    const matchConfidence =
-      candidate.score >= 0.75
-        ? 'MEDIUM'
-        : 'LOW';
-
     return {
       npi: input.npi,
       excluded: false,
@@ -545,11 +616,12 @@ export async function lookupProvider(input: LookupProviderInput): Promise<LeieRe
       checkedAt,
       cacheAge,
       verdict: 'POSSIBLE_MATCH',
-      matchType: 'NAME_MATCH',
-      matchConfidence,
+      matchType: candidate.matchType,
+      matchConfidence: candidate.confidence,
       matchScore: candidate.score,
       matchedFields: candidate.matchedFields,
       dataVersion,
+      leieVersionDate,
       sourceLatency: 'MONTHLY',
     };
   }
@@ -563,11 +635,12 @@ export async function lookupProvider(input: LookupProviderInput): Promise<LeieRe
     checkedAt,
     cacheAge,
     verdict: 'CLEAR',
-    matchType: 'NO_MATCH',
+    matchType: 'NONE',
     matchConfidence: 'HIGH',
-    matchScore: 1,
-    matchedFields: ['npi'],
+    matchScore: 0,
+    matchedFields: [],
     dataVersion,
+    leieVersionDate,
     sourceLatency: 'MONTHLY',
   };
 }
@@ -582,6 +655,7 @@ export function leieCacheStats(): {
   ageMs: number;
   error: string | null;
   dataVersion: string | null;
+  leieVersionDate: string | null;
 } {
   return {
     loaded: npiIndex !== null && nameIndex !== null,
@@ -589,7 +663,19 @@ export function leieCacheStats(): {
     ageMs: lastRefreshed ? Date.now() - lastRefreshed : -1,
     error: refreshError,
     dataVersion,
+    leieVersionDate,
   };
+}
+
+export function resetLeieCacheForTests(): void {
+  npiIndex = null;
+  nameIndex = null;
+  allEntries = [];
+  lastRefreshed = 0;
+  refreshing = false;
+  refreshError = null;
+  dataVersion = null;
+  leieVersionDate = null;
 }
 
 export function prewarmLeieCache(): void {

@@ -128,7 +128,7 @@ describe('upsertVcvCredential', () => {
     );
   });
 
-  it('marks OIG uncertain result as PENDING_REVIEW', async () => {
+  it('marks OIG uncertain result as REVIEW_REQUIRED', async () => {
     (mockPrisma.vcvCredential.findFirst as jest.Mock).mockResolvedValue(null);
     (mockPrisma.vcvCredential.create as jest.Mock).mockResolvedValue({ id: 'cred-unc-1' });
 
@@ -145,7 +145,7 @@ describe('upsertVcvCredential', () => {
     expect(mockPrisma.vcvCredential.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          status: 'PENDING_REVIEW',
+          status: 'REVIEW_REQUIRED',
         }),
       }),
     );

@@ -54,7 +54,7 @@ function resumeLabel(path: string | null): { title: string; href: string } | nul
   }
 
   if (path.startsWith('/holder')) {
-    return { title: 'Return to your trust passport', href: path };
+    return { title: 'Return to your your readiness', href: path };
   }
 
   return { title: 'Continue where you left off', href: path };
@@ -135,7 +135,7 @@ export default function ClinicianHomeSurface() {
       }
     : {
         eyebrow: data.recommendedAction?.kind === 'finish_onboarding' ? 'Start here' : 'Next step',
-        title: data.recommendedAction?.title ?? 'Open your trust passport',
+        title: data.recommendedAction?.title ?? 'Open your your readiness',
         detail: highlightedChange
           ? `${data.recommendedAction?.description ?? 'Keep your verified identity ready to share.'} Latest: ${highlightedChange.title}.`
           : data.recommendedAction?.description ?? 'Keep your verified identity ready to share.',

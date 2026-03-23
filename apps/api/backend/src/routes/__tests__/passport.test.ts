@@ -349,8 +349,8 @@ describe('passport routes', () => {
     const body = response.body as { credentials: Array<Record<string, unknown>> };
     expect(body.credentials).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        type: 'NPI_ENROLLMENT',
-        name: 'NPI Enrollment',
+        type: 'NPI_IDENTITY',
+        name: 'NPI Identity',
         issuer: 'CMS NPPES',
         isPublic: true,
       }),

@@ -78,8 +78,8 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     baseUrl: 'https://npiregistry.cms.hhs.gov/api/',
     bulkFileUrl: null,
     claimTypes: ['NPI_IDENTITY', 'PERSONAL_IDENTITY', 'SPECIALTY', 'PRACTICE_LOCATION', 'MAILING_ADDRESS', 'ENDPOINT'],
-    parserVersion: 'v1.1.0', envFlag: 'NPPES_API_ENABLED', liveAvailable: true,
-    notes: 'CMS FOIA-disclosable. NPI issuance does not validate licensure. V2.1 returns addresses, taxonomies, endpoints, identifiers.',
+    parserVersion: 'v1.2.0', envFlag: 'NPPES_API_ENABLED', liveAvailable: true,
+    notes: 'CMS FOIA-disclosable. Treat as identity registration only: NPI issuance does not validate licensure or credential status. V2.1 returns addresses, taxonomies, endpoints, identifiers.',
   },
 
   NPPES_BULK: {
@@ -100,7 +100,7 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     baseUrl: 'https://data.cms.gov/provider-characteristics/medicare-provider-supplier-enrollment/',
     bulkFileUrl: 'https://data.cms.gov/provider-characteristics/medicare-provider-supplier-enrollment/medicare-fee-for-service-public-provider-enrollment',
     claimTypes: ['ENROLLMENT_STATUS', 'ORDER_REFERRAL', 'GROUP_AFFILIATION'],
-    parserVersion: 'v1.1.0', envFlag: 'PECOS_ENABLED', liveAvailable: true,
+    parserVersion: 'v1.2.0', envFlag: 'PECOS_ENABLED', liveAvailable: true,
     notes: 'CMS Public Provider Enrollment file — key PECOS enrollment data. Treat as point-in-time quarterly data, not real-time enrollment.',
   },
 
@@ -118,12 +118,12 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
   OIG_LEIE: {
     id: 'OIG_LEIE', name: 'HHS OIG List of Excluded Individuals/Entities (LEIE)', phase: 1,
     description: 'Authoritative federal exclusion list — updated monthly. Must check before any deployment.',
-    tier: 'GOLD', accessPattern: 'SEARCH', refreshCadence: 'DAILY', refreshSlaHours: 24,
+    tier: 'GOLD', accessPattern: 'BULK_FILE', refreshCadence: 'DAILY', refreshSlaHours: 24,
     baseUrl: 'https://oig.hhs.gov/exclusions/',
     bulkFileUrl: 'https://oig.hhs.gov/exclusions/exclusions_list.asp',
     claimTypes: ['EXCLUSION_STATUS', 'SANCTION_RECORD'],
-    parserVersion: 'v1.1.0', envFlag: 'OIG_LEIE_ENABLED', liveAvailable: true,
-    notes: 'Hard blocker on exact matches only. Bulk CSV updated monthly; name/state/specialty fuzzy matches require manual review.',
+    parserVersion: 'v1.2.0', envFlag: 'OIG_LEIE_ENABLED', liveAvailable: true,
+    notes: 'Monthly bulk CSV with optional CSV supplement ingestion. Hard blocker on exact NPI matches only; name/state/specialty fuzzy matches remain POSSIBLE_MATCH and require manual review.',
   },
 
   // ── Phase 2: Trust Expansion ─────────────────────────────────────────────────

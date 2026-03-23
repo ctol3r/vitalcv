@@ -3,7 +3,7 @@
 import Link from 'next/link';
 
 /**
- * PassportWallet.tsx — The Trust Passport
+ * PassportWallet.tsx — The Your readiness
  *
  * THE PRODUCT. One screen. One truth.
  *
@@ -27,6 +27,7 @@ import { useState } from 'react';
 import { Accordion } from '@/components/ui/vcv-accordion';
 import type { AccordionItem } from '@/components/ui/vcv-accordion';
 import type { PassportData, ReadinessStatus } from '@/app/passport/[id]/page';
+import FastestPathPanel from '@/components/passport/FastestPathPanel';
 
 // ── Status configuration ──────────────────────────────────────────────────────
 // NO colour on status. Hierarchy via opacity only.
@@ -115,7 +116,7 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
             <div className="flex justify-between text-xs">
               <span className="text-white/65 capitalize">{c.domain.replace(/_/g, ' ').toLowerCase()}</span>
               <span className={`text-xs ${c.reviewRequired ? 'text-white/30' : 'text-white/45'}`}>
-                {c.claimState ?? c.status}
+                {c.statusLabel ?? c.claimState ?? c.status}
               </span>
             </div>
             <div className="flex justify-between text-xs mt-0.5">
@@ -206,7 +207,7 @@ function buildStandingSection(passport: PassportData): AccordionItem {
         <DetailRow label="Confidence"        value={standing.exclusionConfidenceLabel} />
         <DetailRow label="License"           value={standing.licensureStatus} />
         <DetailRow label="DEA"               value={standing.deaStatus} />
-        <DetailRow label="PECOS enrollment"  value={standing.pecosStatus} />
+        <DetailRow label="PECOS enrollment"  value={standing.enrollmentStatusLabel ?? standing.pecosStatus} />
         <DetailRow label="Enrollment as of"  value={formatProofDate(standing.enrollmentObservedAt)} />
         <DetailRow label="Enrollment freshness" value={standing.enrollmentFreshnessLabel} />
         {standing.negativeFindings.map((f, i) => (
@@ -404,6 +405,9 @@ export default function PassportWallet({ passport }: Props) {
           <Accordion items={accordionItems} />
         </div>
 
+        {/* ── MiroFish fastest path — clinician-facing, clearly advisory ─── */}
+        <FastestPathPanel passport={passport} />
+
         {/* ── Share section ─────────────────────────────────────────────────── */}
         <div className="space-y-3 pt-2">
           {!shared ? (
@@ -447,4 +451,3 @@ export default function PassportWallet({ passport }: Props) {
     </main>
   );
 }
-

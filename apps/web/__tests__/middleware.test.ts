@@ -35,9 +35,9 @@ describe('Route role mapping', () => {
     { path: '/verify/1234567890', role: null, expected: 'allow' },
     { path: '/trust-state/abc-123', role: null, expected: 'allow' },
     { path: '/auth/error', role: null, expected: 'allow' },
-    { path: '/intelligence', role: null, expected: 'allow' },
-    { path: '/findings', role: null, expected: 'allow' },
-    { path: '/investigations', role: null, expected: 'allow' },
+    { path: '/intelligence', role: 'AUTHENTICATED', expected: 'allow' },
+    { path: '/findings', role: 'AUTHENTICATED', expected: 'allow' },
+    { path: '/investigations', role: 'AUTHENTICATED', expected: 'allow' },
 
     // /holder - CLINICIAN only
     { path: '/holder', role: 'CLINICIAN', expected: 'allow' },

@@ -8,6 +8,9 @@ export interface ReadinessReport {
   npi: string; targetState: string; profession: string;
   overallStatus: 'CLEAR_TO_START' | 'PENDING_VERIFICATION' | 'MISSING_CREDENTIALS' | 'BLOCKED';
   readinessScore: number;
+  blockers: string[];
+  readiness_score: number;
+  nextActions: string[];
   what_you_have: { credential: string; status: string; verifiedAt?: string }[];
   what_is_missing: { credential: string; priority: 'HIGH' | 'MEDIUM' | 'LOW'; instructions: string }[];
   what_is_pending: { credential: string; estimatedDays: number; notes: string }[];
@@ -39,5 +42,11 @@ export function computeReadiness(npi: string, targetState: string, profession: s
   const what_is_pending = estimatedDays > 0 ? [{ credential: `${targetState} ${profession} License Endorsement`, estimatedDays, notes: compact ? 'Compact privilege — expedited' : (delay?.notes ?? 'Standard endorsement') }] : [];
   const overallStatus: ReadinessReport['overallStatus'] = what_is_missing.length === 0 && readinessScore >= 80 ? 'CLEAR_TO_START' : what_is_missing.length > 0 ? 'MISSING_CREDENTIALS' : 'PENDING_VERIFICATION';
 
-  return { npi, targetState, profession, overallStatus, readinessScore, what_you_have, what_is_missing, what_is_pending, endorsement_timeline: { state: targetState, profession, estimatedDays, compactApplicable: compact }, clearToStartDate };
+  const blockers = what_is_missing.map(m => m.credential);
+  const nextActions = what_is_missing.map(m => m.instructions);
+  if (overallStatus === 'CLEAR_TO_START') {
+    nextActions.push('Ready to Apply');
+  }
+
+  return { npi, targetState, profession, overallStatus, readinessScore, readiness_score: readinessScore, blockers, nextActions, what_you_have, what_is_missing, what_is_pending, endorsement_timeline: { state: targetState, profession, estimatedDays, compactApplicable: compact }, clearToStartDate };
 }

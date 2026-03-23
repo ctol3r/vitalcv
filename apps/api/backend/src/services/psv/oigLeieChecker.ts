@@ -6,52 +6,59 @@
  * Employers MUST check this before hiring.
  *
  * Modes:
- *   - Stub mode (default, OIG_LEIE_ENABLED != 'true'): returns CLEAR for all checks
- *   - Production mode (OIG_LEIE_ENABLED=true): queries OIG search endpoint
+ *   - CSV mode (default): uses the monthly LEIE CSV cache
+ *   - Disabled mode (OIG_LEIE_ENABLED='false'): returns UNCHECKED and requires manual review
  *
- * OIG search endpoint:
- *   GET https://oig.hhs.gov/exclusions/search.asp?name=<lastName>&first=<firstName>
- *   (HTML scrape / no clean JSON API — production upgrade: download monthly CSV)
+ * Source of truth:
+ *   https://oig.hhs.gov/exclusions/downloadables/UPDATED.csv
  *
  * Audit: every check emits a COMPLIANCE event.
  */
 
 import { appendAuditEvent } from '../audit/auditLedger';
 import { log } from '../../obs/logger';
+import { lookupProvider } from '../identity/leieCache';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type ExclusionMatchType = 'NONE' | 'NAME_MATCH' | 'NPI_MATCH' | 'EXACT_MATCH';
+export type ExclusionMatchType = 'EXACT' | 'STRONG_FUZZY' | 'WEAK' | 'NONE' | 'UNCHECKED';
 
 export interface ExclusionResult {
   excluded: boolean;
   matchType: ExclusionMatchType;
-  status?: 'CLEAR' | 'EXCLUDED' | 'UNKNOWN';
+  matchConfidence: 'HIGH' | 'MEDIUM' | 'LOW' | 'UNCERTAIN';
+  status: 'CLEAR' | 'EXCLUDED' | 'POSSIBLE_MATCH' | 'UNCHECKED';
   details: string;
   checkedAt: string;
   source: 'OIG_LEIE';
+  leieVersionDate: string | null;
+  dataVersion: string | null;
 }
 
 export interface ExclusionCheckParams {
   firstName: string;
+  middleName?: string | null;
   lastName: string;
   npi?: string;
+  state?: string | null;
+  specialty?: string | null;
 }
 
-// ── OIG search constants ──────────────────────────────────────────────────────
+const OIG_LOOKUP_TIMEOUT_MS = 4_000;
 
-const OIG_SEARCH_URL = 'https://oig.hhs.gov/exclusions/search.asp';
+// ── Disabled / unchecked result ──────────────────────────────────────────────
 
-// ── Stub result ───────────────────────────────────────────────────────────────
-
-function clearResult(): ExclusionResult {
+function uncheckedResult(details: string): ExclusionResult {
   return {
     excluded: false,
-    matchType: 'NONE',
-    status: 'CLEAR',
-    details: 'No exclusion record found (stub mode — OIG_LEIE_ENABLED not set)',
+    matchType: 'UNCHECKED',
+    matchConfidence: 'UNCERTAIN',
+    status: 'UNCHECKED',
+    details,
     checkedAt: new Date().toISOString(),
     source: 'OIG_LEIE',
+    leieVersionDate: null,
+    dataVersion: null,
   };
 }
 
@@ -68,93 +75,98 @@ function isTimeoutError(error: unknown): boolean {
     || /timed?\s*out|timeout/i.test(message);
 }
 
-// ── Live OIG check (best-effort HTML parse) ────────────────────────────────────
+// ── Live OIG check (CSV-backed) ───────────────────────────────────────────────
 
 /**
- * Attempts to query OIG search endpoint and detect if an exclusion record exists.
- * The OIG site returns HTML; we look for the presence of a results table row
- * or the "No results found" string as a signal.
- *
- * NOTE: When the OIG releases a stable JSON API or you download the monthly CSV,
- * replace this function body with a proper lookup.
+ * Queries the monthly LEIE CSV cache and preserves fail-closed semantics:
+ * exact NPI matches become EXCLUDED; fuzzy name matches remain POSSIBLE_MATCH;
+ * cache or lookup failures become UNCHECKED rather than silent clears.
  */
 async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResult> {
-  const checkedAt = new Date().toISOString();
-
   try {
-    const url = new URL(OIG_SEARCH_URL);
-    url.searchParams.set('name', params.lastName.toUpperCase());
-    url.searchParams.set('first', params.firstName.toUpperCase());
-    if (params.npi) url.searchParams.set('npi', params.npi);
-
-    const res = await fetch(url.toString(), {
-      signal: AbortSignal.timeout(4000),
-      headers: { 'User-Agent': 'VitalCV-PSV-LEIE/1.0 (compliance@vitalcv.com)' },
+    const lookup = lookupProvider({
+      npi: params.npi ?? '',
+      firstName: params.firstName,
+      middleName: params.middleName ?? null,
+      lastName: params.lastName,
+      state: params.state ?? null,
+      specialty: params.specialty ?? null,
     });
+    const timeout = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(Object.assign(new Error('timed out'), { name: 'TimeoutError' })), OIG_LOOKUP_TIMEOUT_MS);
+    });
+    const result = await Promise.race([lookup, timeout]);
 
-    if (!res.ok) {
-      log('warn', 'oig_leie_http_error', { status: res.status, url: url.toString() });
-      // On HTTP error, return CLEAR with caveat — do not block
+    if (result.cacheAge === 'unavailable') {
       return {
         excluded: false,
-        matchType: 'NONE',
-        status: 'CLEAR',
-        details: `OIG search returned HTTP ${res.status} — could not confirm. Manual verification required.`,
-        checkedAt,
+        matchType: 'UNCHECKED',
+        matchConfidence: 'UNCERTAIN',
+        status: 'UNCHECKED',
+        details: 'LEIE monthly CSV could not be loaded in time. Manual verification required.',
+        checkedAt: result.checkedAt,
         source: 'OIG_LEIE',
+        leieVersionDate: result.leieVersionDate,
+        dataVersion: result.dataVersion,
       };
     }
 
-    const html = await res.text();
-
-    // Detect "no results" patterns
-    const noResults =
-      html.toLowerCase().includes('no results') ||
-      html.toLowerCase().includes('no records found') ||
-      html.toLowerCase().includes('no exclusions found');
-
-    if (noResults) {
-      return {
-        excluded: false,
-        matchType: 'NONE',
-        status: 'CLEAR',
-        details: 'OIG LEIE search returned no matching exclusion records.',
-        checkedAt,
-        source: 'OIG_LEIE',
-      };
-    }
-
-    // Detect results table — presence of results rows signals a potential match
-    // OIG HTML typically shows name in a <td> within a results table
-    const hasResultRow =
-      html.includes('<table') &&
-      html.toLowerCase().includes(params.lastName.toLowerCase());
-
-    if (hasResultRow) {
-      // Check if NPI matches for higher confidence
-      const npiMatch =
-        params.npi && html.includes(params.npi) ? 'NPI_MATCH' : 'NAME_MATCH';
-      const matchType: ExclusionMatchType =
-        npiMatch === 'NPI_MATCH' && params.npi ? 'EXACT_MATCH' : 'NAME_MATCH';
-
+    if (result.verdict === 'EXCLUDED') {
       return {
         excluded: true,
-        matchType,
+        matchType: result.matchType,
+        matchConfidence: result.matchConfidence,
         status: 'EXCLUDED',
-        details: `OIG LEIE search returned a potential exclusion match for ${params.firstName} ${params.lastName}. Manual verification required.`,
-        checkedAt,
+        details:
+          result.matchType === 'EXACT'
+            ? 'Exact NPI match found in the current monthly LEIE CSV.'
+            : 'LEIE exclusion record found in the current monthly CSV.',
+        checkedAt: result.checkedAt,
         source: 'OIG_LEIE',
+        leieVersionDate: result.leieVersionDate,
+        dataVersion: result.dataVersion,
       };
     }
 
-    // Fallback — response received but couldn't parse
+    if (result.verdict === 'POSSIBLE_MATCH') {
+      const matchedFields = result.matchedFields.join(', ') || 'name fields';
+      return {
+        excluded: false,
+        matchType: result.matchType,
+        matchConfidence: result.matchConfidence,
+        status: 'POSSIBLE_MATCH',
+        details: `Possible LEIE match from the monthly CSV (${result.matchConfidence} confidence; matched ${matchedFields}). Manual review required.`,
+        checkedAt: result.checkedAt,
+        source: 'OIG_LEIE',
+        leieVersionDate: result.leieVersionDate,
+        dataVersion: result.dataVersion,
+      };
+    }
+
+    if (result.verdict === 'UNCHECKED') {
+      return {
+        excluded: false,
+        matchType: 'UNCHECKED',
+        matchConfidence: 'UNCERTAIN',
+        status: 'UNCHECKED',
+        details: 'LEIE lookup did not complete cleanly. Manual verification required.',
+        checkedAt: result.checkedAt,
+        source: 'OIG_LEIE',
+        leieVersionDate: result.leieVersionDate,
+        dataVersion: result.dataVersion,
+      };
+    }
+
     return {
       excluded: false,
-      matchType: 'NONE',
+      matchType: result.matchType,
+      matchConfidence: result.matchConfidence,
       status: 'CLEAR',
-      details: 'OIG LEIE search completed — no exclusion signals detected.',
-      checkedAt,
+      details: 'No exclusion record found in the current monthly LEIE CSV.',
+      checkedAt: result.checkedAt,
       source: 'OIG_LEIE',
+      leieVersionDate: result.leieVersionDate,
+      dataVersion: result.dataVersion,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -163,46 +175,57 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
     if (isTimeoutError(err)) {
       return {
         excluded: false,
-        matchType: 'NONE',
-        status: 'UNKNOWN',
-        details: 'OIG LEIE check timed out after 4000ms — manual verification required.',
-        checkedAt,
+        matchType: 'UNCHECKED',
+        matchConfidence: 'UNCERTAIN',
+        status: 'UNCHECKED',
+        details: `LEIE lookup timed out after ${OIG_LOOKUP_TIMEOUT_MS}ms — manual verification required.`,
+        checkedAt: new Date().toISOString(),
         source: 'OIG_LEIE',
+        leieVersionDate: null,
+        dataVersion: null,
       };
     }
 
     return {
       excluded: false,
-      matchType: 'NONE',
-      status: 'CLEAR',
-      details: `OIG LEIE check failed (${message}) — manual verification recommended.`,
-      checkedAt,
+      matchType: 'UNCHECKED',
+      matchConfidence: 'UNCERTAIN',
+      status: 'UNCHECKED',
+      details: `LEIE lookup failed (${message}) — manual verification required.`,
+      checkedAt: new Date().toISOString(),
       source: 'OIG_LEIE',
+      leieVersionDate: null,
+      dataVersion: null,
     };
   }
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-const isLiveMode = () => process.env.OIG_LEIE_ENABLED === 'true';
+const isLookupEnabled = () => process.env.OIG_LEIE_ENABLED !== 'false';
 
 /**
  * checkExclusion — single provider check against OIG LEIE.
  *
- * In stub mode (default): returns CLEAR immediately.
- * In live mode (OIG_LEIE_ENABLED=true): queries OIG search endpoint.
+ * In disabled mode (OIG_LEIE_ENABLED='false'): returns UNCHECKED immediately.
+ * Otherwise: queries the monthly LEIE CSV cache.
  *
  * Always emits a COMPLIANCE audit event.
  */
 export async function checkExclusion(params: ExclusionCheckParams): Promise<ExclusionResult> {
   log('info', 'oig_leie_check_start', {
     firstName: params.firstName,
+    middleName: params.middleName,
     lastName: params.lastName,
     npi: params.npi,
-    mode: isLiveMode() ? 'live' : 'stub',
+    state: params.state,
+    specialty: params.specialty,
+    mode: isLookupEnabled() ? 'csv' : 'disabled',
   });
 
-  const result = isLiveMode() ? await liveOigCheck(params) : clearResult();
+  const result = isLookupEnabled()
+    ? await liveOigCheck(params)
+    : uncheckedResult('LEIE lookup is disabled. Monthly CSV verification was not performed.');
 
   // Emit audit event — always, regardless of mode
   try {
@@ -214,15 +237,21 @@ export async function checkExclusion(params: ExclusionCheckParams): Promise<Excl
       requestFields: {
         firstName: params.firstName,
         lastName: params.lastName,
+        middleName: params.middleName,
         npi: params.npi,
-        mode: isLiveMode() ? 'live' : 'stub',
+        state: params.state,
+        specialty: params.specialty,
+        mode: isLookupEnabled() ? 'csv' : 'disabled',
       },
       resultFields: {
         excluded: result.excluded,
         matchType: result.matchType,
-        status: result.status ?? (result.excluded ? 'EXCLUDED' : 'CLEAR'),
+        matchConfidence: result.matchConfidence,
+        status: result.status,
         details: result.details,
         checkedAt: result.checkedAt,
+        leieVersionDate: result.leieVersionDate,
+        dataVersion: result.dataVersion,
       },
     });
   } catch (err) {
@@ -248,7 +277,7 @@ export async function checkExclusion(params: ExclusionCheckParams): Promise<Excl
 export async function batchCheckExclusions(
   params: ExclusionCheckParams[],
 ): Promise<ExclusionResult[]> {
-  log('info', 'oig_leie_batch_start', { count: params.length, mode: isLiveMode() ? 'live' : 'stub' });
+  log('info', 'oig_leie_batch_start', { count: params.length, mode: isLookupEnabled() ? 'csv' : 'disabled' });
 
   // Parallel checks with bounded concurrency (max 5 simultaneous)
   const results: ExclusionResult[] = [];

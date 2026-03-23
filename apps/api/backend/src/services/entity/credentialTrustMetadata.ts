@@ -63,14 +63,14 @@ export function dataFreshnessCadenceForSource(
   observedAt?: string | null,
   now: Date = new Date(),
 ): DataFreshnessCadence {
-  if (observedAt) {
+  const latency = sourceLatencyForSource(sourceId);
+  if (latency === 'REALTIME' && observedAt) {
     const observedAtMs = Date.parse(observedAt);
     if (Number.isFinite(observedAtMs) && now.getTime() - observedAtMs < 24 * 60 * 60 * 1000) {
       return 'TODAY';
     }
   }
 
-  const latency = sourceLatencyForSource(sourceId);
   if (latency === 'REALTIME') return 'TODAY';
   if (latency === 'DAILY') return 'DAILY';
   if (latency === 'WEEKLY') return 'WEEKLY';
@@ -108,10 +108,16 @@ export function exclusionClaimState(
   if (value.excluded) {
     return 'EXCLUDED';
   }
-  if (reviewRequired || value.matchType === 'NAME_MATCH' || value.matchType === 'UNCLEAR') {
+  if (
+    reviewRequired
+    || value.matchType === 'STRONG_FUZZY'
+    || value.matchType === 'WEAK'
+    || value.matchType === 'NAME_MATCH'
+    || value.matchType === 'UNCLEAR'
+  ) {
     return 'POSSIBLE_MATCH';
   }
-  if (value.matchType === 'NO_MATCH') {
+  if (value.matchType === 'NONE' || value.matchType === 'NO_MATCH') {
     return 'CLEAR';
   }
   return 'UNCHECKED';

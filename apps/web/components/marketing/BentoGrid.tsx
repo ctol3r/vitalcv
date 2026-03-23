@@ -223,7 +223,7 @@ export function BentoGrid() {
             Architecture
           </p>
           <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Four engines. One trust layer.
+            Four engines. Verified data from official sources.
           </h2>
           <p className="mt-4 text-base text-muted-foreground max-w-2xl mx-auto">
             Purpose-built infrastructure that replaces manual credentialing with

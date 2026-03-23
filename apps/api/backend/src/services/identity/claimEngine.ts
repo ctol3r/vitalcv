@@ -115,7 +115,14 @@ interface NppesResult {
   last_updated_epoch?: string;
 }
 
-const NPPES_PARSER_VERSION = 'v1.1.0';
+const NPPES_PARSER_VERSION = 'v1.2.0';
+const NPPES_IDENTITY_ONLY_EXPLANATION =
+  'NPI confirms identity only — not licensure, enrollment, or credential status';
+const NPPES_USAGE_RESTRICTIONS = Object.freeze([
+  'cannot be used for licensure',
+  'cannot imply credentialing',
+  'cannot imply enrollment',
+]);
 
 export function parseNppesResult(
   npi: string,
@@ -138,11 +145,19 @@ export function parseNppesResult(
       lastUpdated:     raw.basic?.last_updated ?? '',
       status:          raw.basic?.status === 'A' ? 'A' : 'D',
       credential:      raw.basic?.credential ?? null,
-      sourceDisclaimer: 'Identity only, not licensure',
+      claimType:       'IDENTITY',
+      label:           'Registered with CMS NPPES',
+      identityOnly:    true,
+      sourceDisclaimer: NPPES_IDENTITY_ONLY_EXPLANATION,
+      usageRestrictions: [...NPPES_USAGE_RESTRICTIONS],
     };
     const idClaim = makeClaim({ ...base, claimType: 'NPI_IDENTITY', subjectNpi: npi, value: identityValue, confidence: 'HIGH', confidenceScore: 0.99 });
     claims.push(idClaim);
-    receipts.push(buildReceipt(idClaim, 'npi', `NPI ${npi} verified active in NPPES (status: ${identityValue.status}, enumerated: ${identityValue.enumerationDate})`));
+    receipts.push(buildReceipt(
+      idClaim,
+      'npi',
+      `${NPPES_IDENTITY_ONLY_EXPLANATION}. NPI ${npi}, status ${identityValue.status}, enumerated ${identityValue.enumerationDate || 'unknown'}.`,
+    ));
 
     // Personal identity claim (NPI-1 only)
     if (raw.enumeration_type !== 'NPI-2' && raw.basic?.last_name) {
@@ -154,6 +169,9 @@ export function parseNppesResult(
         prefix:     raw.basic.name_prefix ?? null,
         credential: raw.basic.credential ?? null,
         sex:        raw.basic.sex ?? null,
+        identityOnly: true,
+        sourceDisclaimer: NPPES_IDENTITY_ONLY_EXPLANATION,
+        usageRestrictions: [...NPPES_USAGE_RESTRICTIONS],
       };
       const pClaim = makeClaim({ ...base, claimType: 'PERSONAL_IDENTITY', subjectNpi: npi, value: personalValue, confidence: 'HIGH', confidenceScore: 0.97 });
       claims.push(pClaim);
@@ -170,6 +188,9 @@ export function parseNppesResult(
         isPrimary: tax.primary ?? false,
         state: tax.state ?? null,
         licenseNumber: tax.license ?? null,
+        identityOnly: true,
+        sourceDisclaimer: NPPES_IDENTITY_ONLY_EXPLANATION,
+        usageRestrictions: [...NPPES_USAGE_RESTRICTIONS],
       };
       const sClaim = makeClaim({ ...base, claimType: 'SPECIALTY', subjectNpi: npi, value: specialtyValue, confidence: 'HIGH', confidenceScore: 0.95 });
       claims.push(sClaim);
@@ -189,6 +210,9 @@ export function parseNppesResult(
         country: addr.country_code ?? 'US',
         phone: addr.telephone_number ?? null,
         fax: addr.fax_number ?? null,
+        identityOnly: true,
+        sourceDisclaimer: NPPES_IDENTITY_ONLY_EXPLANATION,
+        usageRestrictions: [...NPPES_USAGE_RESTRICTIONS],
       };
       const claimType: ClaimType = addr.address_purpose === 'MAILING' ? 'MAILING_ADDRESS' : 'PRACTICE_LOCATION';
       const lClaim = makeClaim({ ...base, claimType, subjectNpi: npi, value: locValue, confidence: 'HIGH', confidenceScore: 0.90 });
@@ -203,6 +227,9 @@ export function parseNppesResult(
         endpointType: ep.endpointType ?? ep.endpointTypeDescription ?? 'UNKNOWN',
         endpoint: ep.endpoint,
         affiliation: ep.affiliation ?? null,
+        identityOnly: true,
+        sourceDisclaimer: NPPES_IDENTITY_ONLY_EXPLANATION,
+        usageRestrictions: [...NPPES_USAGE_RESTRICTIONS],
       };
       const epClaim = makeClaim({ ...base, claimType: 'ENDPOINT', subjectNpi: npi, value: epValue, confidence: 'MEDIUM', confidenceScore: 0.80 });
       claims.push(epClaim);
@@ -219,7 +246,7 @@ export function parseNppesResult(
 
 interface OigSearchResult {
   verdict?: 'CLEAR' | 'EXCLUDED' | 'POSSIBLE_MATCH' | 'UNCHECKED';
-  matchType?: 'NPI_MATCH' | 'NAME_MATCH' | 'NO_MATCH' | 'UNCLEAR' | string;
+  matchType?: ExclusionValue['matchType'] | string;
   matchConfidence?: ClaimConfidence;
   matchScore?: number | null;
   matchedFields?: string[];
@@ -231,10 +258,54 @@ interface OigSearchResult {
   sourceLatency?: string | null;
   dataFreshness?: string | null;
   dataVersion?: string | null;
+  leieVersionDate?: string | null;
   rawResponse?: unknown;
 }
 
-const OIG_PARSER_VERSION = 'v1.1.0';
+const OIG_PARSER_VERSION = 'v1.2.0';
+
+function normalizeLeieMatchType(
+  matchType: string | undefined,
+  matchScore: number | null | undefined,
+  verdict: OigSearchResult['verdict'] | undefined,
+  excluded: boolean,
+): ExclusionValue['matchType'] {
+  const normalized = (matchType ?? '').trim().toUpperCase();
+
+  if (normalized === 'EXACT' || normalized === 'NPI_MATCH' || normalized === 'EXACT_MATCH') {
+    return 'EXACT';
+  }
+  if (normalized === 'STRONG_FUZZY') {
+    return 'STRONG_FUZZY';
+  }
+  if (normalized === 'WEAK') {
+    return 'WEAK';
+  }
+  if (normalized === 'NONE' || normalized === 'NO_MATCH') {
+    return 'NONE';
+  }
+  if (normalized === 'UNCHECKED' || normalized === 'UNCLEAR') {
+    return 'UNCHECKED';
+  }
+  if (normalized === 'NAME_MATCH') {
+    if (typeof matchScore === 'number') {
+      return matchScore >= 0.75 ? 'STRONG_FUZZY' : 'WEAK';
+    }
+    return excluded ? 'STRONG_FUZZY' : 'WEAK';
+  }
+
+  if (verdict === 'UNCHECKED') {
+    return 'UNCHECKED';
+  }
+  if (verdict === 'EXCLUDED' || excluded) {
+    return 'EXACT';
+  }
+  if (verdict === 'POSSIBLE_MATCH') {
+    return typeof matchScore === 'number' && matchScore >= 0.75 ? 'STRONG_FUZZY' : 'WEAK';
+  }
+
+  return 'NONE';
+}
 
 export function parseOigResult(
   npi: string,
@@ -246,22 +317,28 @@ export function parseOigResult(
   const verdict = raw.verdict
     ?? (raw.excluded === true
       ? 'EXCLUDED'
-      : raw.matchType === 'NAME_MATCH' || raw.matchType === 'UNCLEAR'
+      : raw.matchType === 'NAME_MATCH'
+        || raw.matchType === 'STRONG_FUZZY'
+        || raw.matchType === 'WEAK'
+        || raw.matchType === 'UNCLEAR'
+        || raw.matchType === 'UNCHECKED'
         ? 'POSSIBLE_MATCH'
         : raw.matchType === undefined
           ? 'UNCHECKED'
           : 'CLEAR');
-  const matchType = (raw.matchType ?? 'NO_MATCH') as ExclusionValue['matchType'];
   const excluded = verdict === 'EXCLUDED';
+  const matchType = normalizeLeieMatchType(raw.matchType, raw.matchScore, verdict, excluded);
 
   const confidence: ClaimConfidence = raw.matchConfidence
-    ?? (verdict === 'EXCLUDED'
+    ?? (matchType === 'EXACT'
       ? 'HIGH'
-      : verdict === 'POSSIBLE_MATCH'
+      : matchType === 'STRONG_FUZZY'
         ? 'MEDIUM'
-        : verdict === 'UNCHECKED'
-          ? 'UNCERTAIN'
-          : 'HIGH');
+        : matchType === 'WEAK'
+          ? 'LOW'
+          : matchType === 'UNCHECKED' || verdict === 'UNCHECKED'
+            ? 'UNCERTAIN'
+            : 'HIGH');
   const confidenceScore = typeof raw.matchScore === 'number'
     ? raw.matchScore
     : confidence === 'HIGH'
@@ -271,7 +348,12 @@ export function parseOigResult(
         : confidence === 'LOW'
           ? 0.55
           : 0.25;
-  const reviewRequired = verdict === 'POSSIBLE_MATCH' || verdict === 'UNCHECKED' || matchType === 'UNCLEAR';
+  const reviewRequired =
+    verdict === 'POSSIBLE_MATCH'
+    || verdict === 'UNCHECKED'
+    || matchType === 'STRONG_FUZZY'
+    || matchType === 'WEAK'
+    || matchType === 'UNCHECKED';
 
   const value: ExclusionValue = {
     _type: 'EXCLUSION_STATUS',
@@ -289,6 +371,7 @@ export function parseOigResult(
     sourceLatency: raw.sourceLatency ?? null,
     dataFreshness: raw.dataFreshness ?? null,
     dataVersion: raw.dataVersion ?? null,
+    leieVersionDate: raw.leieVersionDate ?? null,
   };
 
   const claim = makeClaim({
@@ -300,17 +383,17 @@ export function parseOigResult(
     reviewRequired,
     reviewReason: reviewRequired
       ? (verdict === 'UNCHECKED'
-        ? 'OIG check could not be completed — manual verification required'
-        : 'Potential LEIE match requires manual review before treating as excluded')
+        ? 'OIG LEIE monthly CSV check is unavailable or incomplete — manual verification required'
+        : 'Potential LEIE fuzzy match requires manual review before treating as excluded')
       : null,
   });
 
   const explanation = verdict === 'EXCLUDED'
-    ? `OIG/LEIE exclusion confirmed for NPI ${npi} via ${matchType}. Exclusion date: ${raw.exclusionDate ?? 'unknown'}.`
+    ? `OIG/LEIE exclusion confirmed for NPI ${npi} via ${matchType}. LEIE version date: ${raw.leieVersionDate ?? 'unknown'}.`
     : verdict === 'POSSIBLE_MATCH'
-      ? `OIG/LEIE returned a possible match for NPI ${npi}. Manual review required before treating this provider as excluded.`
+      ? `OIG/LEIE returned a ${matchType.toLowerCase()} possible match for NPI ${npi}. Manual review required before treating this provider as excluded.`
       : verdict === 'UNCHECKED'
-        ? `OIG/LEIE could not be checked for NPI ${npi}. Treat as unverified until manually reviewed.`
+        ? `OIG/LEIE monthly CSV could not be checked for NPI ${npi}. Treat as unverified until manually reviewed.`
         : `OIG/LEIE check clear for NPI ${npi} — no exclusion found (${matchType}).`;
 
   return {
@@ -333,7 +416,47 @@ interface PecosRecord {
   dataFreshness?: string | null;
 }
 
-const PECOS_PARSER_VERSION = 'v1.1.0';
+const PECOS_PARSER_VERSION = 'v1.2.0';
+
+function quarterLabelFromVersion(dataVersion: string | null | undefined): string | null {
+  if (!dataVersion) {
+    return null;
+  }
+
+  const normalized = dataVersion.trim();
+  const compactMatch =
+    normalized.match(/\b([12]\d{3})[-_ ]?Q([1-4])\b/i)
+    ?? normalized.match(/\bQ([1-4])[-_ ]?([12]\d{3})\b/i)
+    ?? normalized.match(/\bQ([1-4])\s+([12]\d{3})\b/i)
+    ?? normalized.match(/\b([12]\d{3})\s+Q([1-4])\b/i);
+
+  if (compactMatch) {
+    const first = compactMatch[1] ?? '';
+    const second = compactMatch[2] ?? '';
+    const year = first.length === 4 ? first : second;
+    const quarter = first.toUpperCase().startsWith('Q') ? first.slice(1) : second;
+    if (year && quarter) {
+      return `Q${quarter} ${year}`;
+    }
+  }
+
+  const timestamp = Date.parse(normalized);
+  if (!Number.isNaN(timestamp)) {
+    const date = new Date(timestamp);
+    const quarter = Math.floor(date.getUTCMonth() / 3) + 1;
+    return `Q${quarter} ${date.getUTCFullYear()}`;
+  }
+
+  return normalized;
+}
+
+function pecosLabel(enrolled: boolean, dataVersion: string | null | undefined): string {
+  const quarterLabel = quarterLabelFromVersion(dataVersion);
+  const suffix = quarterLabel ? `as of ${quarterLabel}` : 'as of the latest quarterly CMS PECOS release';
+  return enrolled
+    ? `Medicare enrolled — ${suffix}`
+    : `Medicare enrollment not found — ${suffix}`;
+}
 
 export function parsePecosRecord(
   npi: string,
@@ -350,9 +473,11 @@ export function parsePecosRecord(
     source: 'PECOS',
     observedAt: raw.observedAt ?? observedAt,
     dataVersion: raw.dataVersion ?? null,
+    label: pecosLabel(raw.enrolled ?? false, raw.dataVersion ?? null),
+    statusLabel: pecosLabel(raw.enrolled ?? false, raw.dataVersion ?? null),
     sourceLatency: raw.sourceLatency ?? 'QUARTERLY',
     dataFreshness: raw.dataFreshness ?? 'QUARTERLY',
-    sourceDisclaimer: 'Point-in-time enrollment data, not real-time coverage.',
+    sourceDisclaimer: 'Medicare enrollment status is point-in-time quarterly PECOS data and may lag current enrollment changes.',
   };
 
   const claim = makeClaim({
@@ -363,8 +488,8 @@ export function parsePecosRecord(
   });
 
   const explanation = raw.enrolled
-    ? `NPI ${npi} enrolled in Medicare${raw.enrollmentType ? ` as ${raw.enrollmentType}` : ''}${raw.eligibleToOrderRefer ? '. Eligible to order/refer.' : '.'}`
-    : `NPI ${npi} not found in PECOS public enrollment file.`;
+    ? `${value.label}.${raw.enrollmentType ? ` Enrollment type: ${raw.enrollmentType}.` : ''}${raw.eligibleToOrderRefer ? ' Eligible to order/refer.' : ''}`
+    : `${value.label}.`;
 
   return {
     claims: [claim],

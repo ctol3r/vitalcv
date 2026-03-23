@@ -1,7 +1,7 @@
 -- CreateTable: passkey_credentials
 CREATE TABLE "passkey_credentials" (
     "id" UUID NOT NULL,
-    "user_id" TEXT NOT NULL,
+    "user_id" UUID NOT NULL,
     "credential_id" TEXT NOT NULL,
     "public_key" BYTEA NOT NULL,
     "counter" BIGINT NOT NULL DEFAULT 0,
@@ -17,7 +17,7 @@ CREATE TABLE "passkey_credentials" (
 -- CreateTable: npi_ownership
 CREATE TABLE "npi_ownership" (
     "id" UUID NOT NULL,
-    "user_id" TEXT NOT NULL,
+    "user_id" UUID NOT NULL,
     "npi" TEXT NOT NULL,
     "verified_at" TIMESTAMP(3),
     "verification_method" TEXT NOT NULL DEFAULT 'CLAIMED',

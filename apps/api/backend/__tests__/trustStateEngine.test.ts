@@ -20,23 +20,32 @@
 
 type TrustBand = 'L0' | 'L1' | 'L2' | 'L3';
 type LicensureStatus = 'verified' | 'pending' | 'expired' | 'unknown';
+type ExclusionStatus = 'CLEAR' | 'EXCLUDED' | 'POSSIBLE_MATCH' | 'UNCHECKED' | 'UNKNOWN';
+type PecosStatus = 'ENROLLED' | 'ENROLLMENT_NOT_FOUND' | 'UNKNOWN';
 
 function computeScore(params: {
   identityVerified: boolean;
   licensureStatus: LicensureStatus;
   exclusionClear: boolean;
+  exclusionStatus?: ExclusionStatus;
+  pecosStatus?: PecosStatus;
   credentialCount: number;
   hasVerifiedArtifacts: boolean;
 }): number {
+  const exclusionStatus =
+    params.exclusionStatus ?? (params.exclusionClear ? 'CLEAR' : 'EXCLUDED');
+  const pecosStatus = params.pecosStatus ?? 'UNKNOWN';
+
+  if (exclusionStatus === 'EXCLUDED') {
+    return 0;
+  }
+
   let score = 0;
-  if (params.identityVerified) score += 30;
+  if (params.identityVerified) score += 20;
   if (params.licensureStatus === 'verified') score += 30;
   else if (params.licensureStatus === 'pending') score += 15;
-  else if (params.licensureStatus === 'expired') score += 0;
-  else score += 5;
-  if (params.exclusionClear) score += 20;
-  const credScore = Math.min(params.credentialCount * 5, 20);
-  score += credScore;
+  if (exclusionStatus === 'CLEAR') score += 30;
+  if (pecosStatus === 'ENROLLED') score += 20;
   return Math.min(score, 100);
 }
 
@@ -44,14 +53,33 @@ function deriveBand(params: {
   identityVerified: boolean;
   licensureStatus: LicensureStatus;
   exclusionClear: boolean;
+  exclusionStatus?: ExclusionStatus;
+  pecosStatus?: PecosStatus;
   trustScore: number;
 }): TrustBand {
-  if (!params.exclusionClear) return 'L0';
+  const exclusionStatus =
+    params.exclusionStatus ?? (params.exclusionClear ? 'CLEAR' : 'EXCLUDED');
+  const pecosStatus = params.pecosStatus ?? 'UNKNOWN';
+  const reviewRequired =
+    exclusionStatus === 'POSSIBLE_MATCH'
+    || exclusionStatus === 'UNCHECKED'
+    || exclusionStatus === 'UNKNOWN';
+
+  if (exclusionStatus === 'EXCLUDED') return 'L0';
   if (!params.identityVerified) return 'L0';
   if (params.licensureStatus === 'expired') return 'L0';
-  if (params.trustScore >= 80) return 'L3';
+  if (reviewRequired) return 'L1';
+  if (pecosStatus === 'ENROLLMENT_NOT_FOUND') return 'L1';
+  if (
+    params.trustScore >= 90
+    && exclusionStatus === 'CLEAR'
+    && pecosStatus === 'ENROLLED'
+    && params.licensureStatus === 'verified'
+  ) {
+    return 'L3';
+  }
   if (params.trustScore >= 60) return 'L2';
-  if (params.trustScore >= 30) return 'L1';
+  if (params.trustScore >= 20) return 'L1';
   return 'L0';
 }
 
@@ -59,14 +87,23 @@ function detectGaps(params: {
   identityVerified: boolean;
   licensureStatus: LicensureStatus;
   exclusionClear: boolean;
+  exclusionStatus?: ExclusionStatus;
+  pecosStatus?: PecosStatus;
   credentialCount: number;
   facts: Array<{ factType: string }>;
 }): string[] {
   const gaps: string[] = [];
+  const exclusionStatus =
+    params.exclusionStatus ?? (params.exclusionClear ? 'CLEAR' : 'EXCLUDED');
+  const pecosStatus = params.pecosStatus ?? 'UNKNOWN';
   if (!params.identityVerified) gaps.push('NPI identity not verified');
   if (params.licensureStatus === 'unknown') gaps.push('State licensure not verified');
   if (params.licensureStatus === 'expired') gaps.push('State license expired');
-  if (!params.exclusionClear) gaps.push('OIG/LEIE exclusion check flagged');
+  if (exclusionStatus === 'POSSIBLE_MATCH') gaps.push('OIG/LEIE possible match requires review');
+  else if (exclusionStatus === 'UNCHECKED' || exclusionStatus === 'UNKNOWN') gaps.push('OIG/LEIE exclusion check unchecked');
+  else if (exclusionStatus === 'EXCLUDED') gaps.push('OIG/LEIE exclusion check flagged');
+  if (pecosStatus === 'UNKNOWN') gaps.push('PECOS enrollment not verified');
+  if (pecosStatus === 'ENROLLMENT_NOT_FOUND') gaps.push('PECOS enrollment not found');
   if (params.credentialCount === 0) gaps.push('No credential documents on file');
   const factTypes = params.facts.map((f) => f.factType.toLowerCase());
   if (!factTypes.some((t) => t.includes('board') || t.includes('certification'))) {
@@ -89,6 +126,8 @@ describe('Trust State Engine — excluded clinician', () => {
       identityVerified: true,
       licensureStatus: 'verified',
       exclusionClear: false, // EXCLUDED
+      exclusionStatus: 'EXCLUDED',
+      pecosStatus: 'ENROLLED',
       credentialCount: 5,
       hasVerifiedArtifacts: true,
     });
@@ -97,8 +136,11 @@ describe('Trust State Engine — excluded clinician', () => {
       identityVerified: true,
       licensureStatus: 'verified',
       exclusionClear: false,
+      exclusionStatus: 'EXCLUDED',
+      pecosStatus: 'ENROLLED',
       trustScore: score,
     });
+    expect(score).toBe(0);
     expect(band).toBe('L0');
   });
 
@@ -107,6 +149,8 @@ describe('Trust State Engine — excluded clinician', () => {
       identityVerified: true,
       licensureStatus: 'verified',
       exclusionClear: false,
+      exclusionStatus: 'EXCLUDED',
+      pecosStatus: 'ENROLLED',
       credentialCount: 3,
       facts: [{ factType: 'Certification' }, { factType: 'DEARegistration' }, { factType: 'MalpracticeInsurance' }],
     });
@@ -122,17 +166,21 @@ describe('Trust State Engine — missing credentials', () => {
       identityVerified: true,
       licensureStatus: 'unknown',
       exclusionClear: true,
+      exclusionStatus: 'CLEAR',
       credentialCount: 0,
+      pecosStatus: 'UNKNOWN',
       hasVerifiedArtifacts: false,
     });
     const band = deriveBand({
       identityVerified: true,
       licensureStatus: 'unknown',
       exclusionClear: true,
+      exclusionStatus: 'CLEAR',
+      pecosStatus: 'UNKNOWN',
       trustScore: score,
     });
-    // identity(30) + unknown licensure(5) + exclusion(20) + 0 creds = 55 => L1
-    expect(score).toBe(55);
+    // identity(20) + exclusion(30) = 50 => L1
+    expect(score).toBe(50);
     expect(band).toBe('L1');
   });
 
@@ -141,6 +189,8 @@ describe('Trust State Engine — missing credentials', () => {
       identityVerified: false,
       licensureStatus: 'unknown',
       exclusionClear: true,
+      exclusionStatus: 'CLEAR',
+      pecosStatus: 'UNKNOWN',
       credentialCount: 0,
       hasVerifiedArtifacts: false,
     });
@@ -148,6 +198,8 @@ describe('Trust State Engine — missing credentials', () => {
       identityVerified: false,
       licensureStatus: 'unknown',
       exclusionClear: true,
+      exclusionStatus: 'CLEAR',
+      pecosStatus: 'UNKNOWN',
       trustScore: score,
     });
     expect(band).toBe('L0');
@@ -158,6 +210,8 @@ describe('Trust State Engine — missing credentials', () => {
       identityVerified: true,
       licensureStatus: 'unknown',
       exclusionClear: true,
+      exclusionStatus: 'CLEAR',
+      pecosStatus: 'UNKNOWN',
       credentialCount: 0,
       facts: [],
     });
@@ -165,6 +219,7 @@ describe('Trust State Engine — missing credentials', () => {
     expect(gaps).toContain('No board certification on file');
     expect(gaps).toContain('DEA registration not verified');
     expect(gaps).toContain('State licensure not verified');
+    expect(gaps).toContain('PECOS enrollment not verified');
   });
 });
 
@@ -176,37 +231,45 @@ describe('Trust State Engine — verified fresh credentials', () => {
       identityVerified: true,
       licensureStatus: 'verified',
       exclusionClear: true,
-      credentialCount: 4,
+      exclusionStatus: 'CLEAR',
+      pecosStatus: 'ENROLLED',
+      credentialCount: 0,
       hasVerifiedArtifacts: true,
     });
     const band = deriveBand({
       identityVerified: true,
       licensureStatus: 'verified',
       exclusionClear: true,
+      exclusionStatus: 'CLEAR',
+      pecosStatus: 'ENROLLED',
       trustScore: score,
     });
-    // identity(30) + verified licensure(30) + exclusion(20) + 4*5=20 creds = 100
+    // identity(20) + licensure(30) + exclusion(30) + pecos(20) = 100
     expect(score).toBe(100);
     expect(band).toBe('L3');
   });
 
-  it('returns L3 with minimum evidence for 80+ score', () => {
+  it('returns L2 when PECOS is still unknown even if other sources are clear', () => {
     const score = computeScore({
       identityVerified: true,
       licensureStatus: 'verified',
       exclusionClear: true,
+      exclusionStatus: 'CLEAR',
+      pecosStatus: 'UNKNOWN',
       credentialCount: 0,
       hasVerifiedArtifacts: true,
     });
-    // identity(30) + verified(30) + exclusion(20) = 80
+    // identity(20) + verified(30) + exclusion(30) = 80
     expect(score).toBe(80);
     const band = deriveBand({
       identityVerified: true,
       licensureStatus: 'verified',
       exclusionClear: true,
+      exclusionStatus: 'CLEAR',
+      pecosStatus: 'UNKNOWN',
       trustScore: score,
     });
-    expect(band).toBe('L3');
+    expect(band).toBe('L2');
   });
 });
 
@@ -219,13 +282,17 @@ describe('Trust State Engine — stale credentials', () => {
       identityVerified: true,
       licensureStatus: 'verified',
       exclusionClear: true,
-      credentialCount: 4,
+      exclusionStatus: 'CLEAR',
+      pecosStatus: 'ENROLLED',
+      credentialCount: 0,
       hasVerifiedArtifacts: true,
     });
     let band = deriveBand({
       identityVerified: true,
       licensureStatus: 'verified',
       exclusionClear: true,
+      exclusionStatus: 'CLEAR',
+      pecosStatus: 'ENROLLED',
       trustScore: score,
     });
     expect(band).toBe('L3');
@@ -240,6 +307,8 @@ describe('Trust State Engine — stale credentials', () => {
       identityVerified: true,
       licensureStatus: 'expired',
       exclusionClear: true,
+      exclusionStatus: 'CLEAR',
+      pecosStatus: 'ENROLLED',
       credentialCount: 2,
       hasVerifiedArtifacts: true,
     });
@@ -247,9 +316,66 @@ describe('Trust State Engine — stale credentials', () => {
       identityVerified: true,
       licensureStatus: 'expired',
       exclusionClear: true,
+      exclusionStatus: 'CLEAR',
+      pecosStatus: 'ENROLLED',
       trustScore: score,
     });
     expect(band).toBe('L0');
+  });
+
+  it('caps LEIE possible matches at review-required L1', () => {
+    const score = computeScore({
+      identityVerified: true,
+      licensureStatus: 'verified',
+      exclusionClear: false,
+      exclusionStatus: 'POSSIBLE_MATCH',
+      pecosStatus: 'ENROLLED',
+      credentialCount: 0,
+      hasVerifiedArtifacts: true,
+    });
+    const band = deriveBand({
+      identityVerified: true,
+      licensureStatus: 'verified',
+      exclusionClear: false,
+      exclusionStatus: 'POSSIBLE_MATCH',
+      pecosStatus: 'ENROLLED',
+      trustScore: score,
+    });
+    expect(score).toBe(70);
+    expect(band).toBe('L1');
+  });
+
+  it('treats PECOS enrollment-not-found as a blocker', () => {
+    const score = computeScore({
+      identityVerified: true,
+      licensureStatus: 'verified',
+      exclusionClear: true,
+      exclusionStatus: 'CLEAR',
+      pecosStatus: 'ENROLLMENT_NOT_FOUND',
+      credentialCount: 0,
+      hasVerifiedArtifacts: true,
+    });
+    const band = deriveBand({
+      identityVerified: true,
+      licensureStatus: 'verified',
+      exclusionClear: true,
+      exclusionStatus: 'CLEAR',
+      pecosStatus: 'ENROLLMENT_NOT_FOUND',
+      trustScore: score,
+    });
+    const gaps = detectGaps({
+      identityVerified: true,
+      licensureStatus: 'verified',
+      exclusionClear: true,
+      exclusionStatus: 'CLEAR',
+      pecosStatus: 'ENROLLMENT_NOT_FOUND',
+      credentialCount: 0,
+      facts: [],
+    });
+
+    expect(score).toBe(80);
+    expect(band).toBe('L1');
+    expect(gaps).toContain('PECOS enrollment not found');
   });
 });
 
@@ -261,6 +387,8 @@ describe('Trust State Engine — deterministic recomputation', () => {
       identityVerified: true,
       licensureStatus: 'verified' as LicensureStatus,
       exclusionClear: true,
+      exclusionStatus: 'CLEAR' as ExclusionStatus,
+      pecosStatus: 'ENROLLED' as PecosStatus,
       credentialCount: 3,
       hasVerifiedArtifacts: true,
     };
@@ -272,6 +400,8 @@ describe('Trust State Engine — deterministic recomputation', () => {
       identityVerified: true,
       licensureStatus: 'verified' as LicensureStatus,
       exclusionClear: true,
+      exclusionStatus: 'CLEAR' as ExclusionStatus,
+      pecosStatus: 'ENROLLED' as PecosStatus,
       trustScore: score1,
     };
     const band1 = deriveBand(bandParams);
@@ -282,6 +412,8 @@ describe('Trust State Engine — deterministic recomputation', () => {
       identityVerified: true,
       licensureStatus: 'verified' as LicensureStatus,
       exclusionClear: true,
+      exclusionStatus: 'CLEAR' as ExclusionStatus,
+      pecosStatus: 'ENROLLED' as PecosStatus,
       credentialCount: 3,
       facts: [
         { factType: 'Certification' },
@@ -299,6 +431,8 @@ describe('Trust State Engine — deterministic recomputation', () => {
       identityVerified: true,
       licensureStatus: 'verified',
       exclusionClear: true,
+      exclusionStatus: 'CLEAR',
+      pecosStatus: 'ENROLLED',
       credentialCount: 4,
       hasVerifiedArtifacts: true,
     });
@@ -306,6 +440,8 @@ describe('Trust State Engine — deterministic recomputation', () => {
       identityVerified: false,
       licensureStatus: 'unknown',
       exclusionClear: false,
+      exclusionStatus: 'EXCLUDED',
+      pecosStatus: 'UNKNOWN',
       credentialCount: 0,
       hasVerifiedArtifacts: false,
     });

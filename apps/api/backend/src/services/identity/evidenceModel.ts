@@ -116,7 +116,11 @@ export interface NpiIdentityValue {
   lastUpdated: string;
   status: 'A' | 'D';  // Active / Deactivated
   credential: string | null;  // MD, DO, NP, PA, etc.
+  claimType?: 'IDENTITY';
+  label?: string | null;
+  identityOnly?: boolean;
   sourceDisclaimer?: string | null;
+  usageRestrictions?: string[];
 }
 
 export interface PersonalIdentityValue {
@@ -127,6 +131,9 @@ export interface PersonalIdentityValue {
   prefix: string | null;
   credential: string | null;
   sex: string | null;
+  identityOnly?: boolean;
+  sourceDisclaimer?: string | null;
+  usageRestrictions?: string[];
 }
 
 export interface SpecialtyValue {
@@ -136,6 +143,9 @@ export interface SpecialtyValue {
   isPrimary: boolean;
   state: string | null;
   licenseNumber: string | null;
+  identityOnly?: boolean;
+  sourceDisclaimer?: string | null;
+  usageRestrictions?: string[];
 }
 
 export interface PracticeLocationValue {
@@ -149,6 +159,9 @@ export interface PracticeLocationValue {
   country: string;
   phone: string | null;
   fax: string | null;
+  identityOnly?: boolean;
+  sourceDisclaimer?: string | null;
+  usageRestrictions?: string[];
 }
 
 export interface EndpointValue {
@@ -156,6 +169,9 @@ export interface EndpointValue {
   endpointType: string;       // DIRECT, FHIR, etc.
   endpoint: string;
   affiliation: string | null;
+  identityOnly?: boolean;
+  sourceDisclaimer?: string | null;
+  usageRestrictions?: string[];
 }
 
 export interface EnrollmentValue {
@@ -166,6 +182,8 @@ export interface EnrollmentValue {
   source: 'PECOS' | 'DOCTORS_CLINICIANS';
   observedAt?: string | null;
   dataVersion?: string | null;
+  label?: string | null;
+  statusLabel?: string | null;
   sourceLatency?: string | null;
   dataFreshness?: string | null;
   sourceDisclaimer?: string | null;
@@ -200,7 +218,16 @@ export interface ExclusionValue {
   exclusionType: string | null;
   exclusionDate: string | null;
   reinstatementDate: string | null;
-  matchType: 'NPI_MATCH' | 'NAME_MATCH' | 'NO_MATCH' | 'UNCLEAR';
+  matchType:
+    | 'EXACT'
+    | 'STRONG_FUZZY'
+    | 'WEAK'
+    | 'NONE'
+    | 'UNCHECKED'
+    | 'NPI_MATCH'
+    | 'NAME_MATCH'
+    | 'NO_MATCH'
+    | 'UNCLEAR';
   matchConfidence?: ClaimConfidence;
   matchScore?: number | null;
   matchedFields?: string[];
@@ -209,6 +236,7 @@ export interface ExclusionValue {
   sourceLatency?: string | null;
   dataFreshness?: string | null;
   dataVersion?: string | null;
+  leieVersionDate?: string | null;
 }
 
 export interface IndustryPaymentValue {

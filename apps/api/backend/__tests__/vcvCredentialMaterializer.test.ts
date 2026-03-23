@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import type { NormalizedClaim, VerificationReceipt } from '../src/services/identity/evidenceModel';
 import { computeClaimId } from '../src/services/identity/evidenceModel';
 import prisma from '../src/graphql/prisma_client';
@@ -51,7 +52,7 @@ async function createArtifact(input: {
   observedAt: string;
   verifiedAt?: string;
   expiresAt?: string | null;
-  rawPayload?: Record<string, unknown>;
+  rawPayload?: Prisma.InputJsonValue;
   trustTier?: string;
   confidenceScore?: number;
 }): Promise<{ id: string }> {
@@ -60,7 +61,7 @@ async function createArtifact(input: {
       npi: TEST_NPI,
       source: input.source,
       status: input.status,
-      rawPayload: input.rawPayload ?? {},
+      rawPayload: input.rawPayload ?? ({} as Prisma.InputJsonValue),
       checksum: `${input.source}-${input.status}-${input.observedAt}`,
       observedAt: new Date(input.observedAt),
       verifiedAt: new Date(input.verifiedAt ?? input.observedAt),
@@ -71,6 +72,35 @@ async function createArtifact(input: {
       trustState: 'verified',
     },
     select: { id: true },
+  });
+}
+
+async function createPersistedReceipt(input: {
+  receiptId: string;
+  claimId: string;
+  artifactId: string;
+  sourceSystem: string;
+  field: string;
+  value: Prisma.InputJsonValue;
+  observedAt: string;
+}): Promise<void> {
+  await prisma.verificationReceiptRecord.create({
+    data: {
+      receiptId: input.receiptId,
+      claimId: input.claimId,
+      verificationArtifactId: input.artifactId,
+      subjectNpi: TEST_NPI,
+      entityId: `npi:${TEST_NPI}`,
+      field: input.field,
+      value: input.value,
+      trustTier: 'GOLD',
+      confidence: 0.97,
+      sourceArtifactId: input.artifactId,
+      sourceSystem: input.sourceSystem,
+      parserVersion: 'test/v1',
+      observedAt: new Date(input.observedAt),
+      explanation: 'Persisted receipt for materialization replay',
+    },
   });
 }
 
@@ -157,12 +187,16 @@ function buildLicenseClaim(input: {
   };
 }
 
-function buildReceipt(claim: NormalizedClaim, receiptId: string): VerificationReceipt {
+function buildReceipt(
+  claim: NormalizedClaim,
+  receiptId: string,
+  field = 'identity',
+): VerificationReceipt {
   return {
     receipt_id: receiptId,
     claim_id: claim.claimId,
     entity_id: `npi:${TEST_NPI}`,
-    field: 'identity',
+    field,
     value: claim.value,
     tier: claim.tier,
     confidence: claim.confidenceScore,
@@ -200,6 +234,15 @@ runDbSuite('vcvCredentialMaterializer', () => {
         },
       },
     });
+    await createPersistedReceipt({
+      receiptId: 'receipt-nppes-artifact',
+      claimId: 'artifact-identity',
+      artifactId: artifact.id,
+      sourceSystem: 'NPPES_API',
+      field: 'identity',
+      value: { npi: TEST_NPI },
+      observedAt: '2026-03-22T12:00:00.000Z',
+    });
 
     const result = await materializeVerificationArtifactToVcvCredentials(artifact.id);
     expect(result.credentialIds).toHaveLength(1);
@@ -217,7 +260,7 @@ runDbSuite('vcvCredentialMaterializer', () => {
     });
 
     expect(credential.domain).toBe('IDENTITY');
-    expect(credential.credentialType).toBe('NPI_ENROLLMENT');
+    expect(credential.credentialType).toBe('NPI_IDENTITY');
     expect(credential.status).toBe('ACTIVE');
     expect(credential.issuer?.displayName).toBe('CMS NPPES');
     expect(credential.issuer?.sourceIds).toContain('cms:nppes');
@@ -247,6 +290,15 @@ runDbSuite('vcvCredentialMaterializer', () => {
             source_url: 'https://oig.hhs.gov/exclusions/exclusions_list.asp',
           },
         },
+      });
+      await createPersistedReceipt({
+        receiptId: `receipt-oig-${testCase.status.toLowerCase()}`,
+        claimId: `artifact-oig-${testCase.status.toLowerCase()}`,
+        artifactId: artifact.id,
+        sourceSystem: 'OIG_LEIE',
+        field: 'exclusion',
+        value: { verdict: testCase.status },
+        observedAt: `2026-03-22T12:00:0${cases.indexOf(testCase)}.000Z`,
       });
 
       const result = await materializeVerificationArtifactToVcvCredentials(artifact.id);
@@ -336,19 +388,19 @@ runDbSuite('vcvCredentialMaterializer', () => {
       subjectNpi: TEST_NPI,
       verificationArtifactId: olderArtifact.id,
       claims: [olderClaim],
-      receipts: [],
+      receipts: [buildReceipt(olderClaim, 'receipt-license-older', 'license')],
     });
     await materializeClaimsToVcvCredentials({
       subjectNpi: TEST_NPI,
       verificationArtifactId: newerArtifact.id,
       claims: [newerClaim],
-      receipts: [],
+      receipts: [buildReceipt(newerClaim, 'receipt-license-newer', 'license')],
     });
     await materializeClaimsToVcvCredentials({
       subjectNpi: TEST_NPI,
       verificationArtifactId: olderArtifact.id,
       claims: [olderClaim],
-      receipts: [],
+      receipts: [buildReceipt(olderClaim, 'receipt-license-older', 'license')],
     });
 
     const credentials = await prisma.vcvCredential.findMany({

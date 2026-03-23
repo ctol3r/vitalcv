@@ -2,7 +2,7 @@ import { checkExclusion } from '../src/services/psv/oigLeieChecker';
 import type { ProviderType } from '../types/psv';
 import type { NormalizedCredentialPayload, PsvAdapter } from './types';
 
-const OIG_ENDPOINT = 'https://oig.hhs.gov/exclusions/search.asp';
+const OIG_ENDPOINT = 'https://oig.hhs.gov/exclusions/downloadables/UPDATED.csv';
 
 const ALL_PROVIDER_TYPES: ProviderType[] = [
   'NP',
@@ -46,7 +46,7 @@ function buildPayload(
     },
     retrieval: {
       retrievedAtUtc: new Date().toISOString(),
-      retrievalMethod: 'API',
+      retrievalMethod: 'BatchFile',
       rawPayload,
     },
   };
@@ -67,10 +67,16 @@ export const OigLeieAdapter: PsvAdapter = {
 
       return buildPayload(
         npi,
-        result.matchType === 'NONE' ? 'Active' : 'Suspended',
+        result.status === 'CLEAR'
+          ? 'Active'
+          : result.status === 'EXCLUDED'
+            ? 'Suspended'
+            : result.status === 'POSSIBLE_MATCH'
+              ? 'Pending'
+              : 'Unknown',
         {
           ...result,
-          mode: process.env.OIG_LEIE_ENABLED === 'true' ? 'live' : 'stub',
+          mode: process.env.OIG_LEIE_ENABLED === 'false' ? 'disabled' : 'csv',
         },
       );
     } catch (error) {

@@ -205,10 +205,14 @@ function IssuerTrustBadge({ credential }: { credential: PassportCredential }) {
             />
           </div>
           <span className="text-[9px] font-mono text-vt-neutral-600 shrink-0">{score}</span>
-          <span className={`text-[9px] ${
+          <span className={`text-[9px] mr-2 ${
             credential.status === 'ACTIVE' ? 'text-vt-success' :
             credential.status === 'EXPIRED' ? 'text-vt-danger' : 'text-vt-warning'
           }`}>{credential.status}</span>
+          <a href={`/proof/${credential.credentialId}`} className="text-[9px] font-medium text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1 shrink-0">
+            <ShieldCheck className="h-3 w-3" />
+            View proof
+          </a>
         </div>
       </div>
     </div>

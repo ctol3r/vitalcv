@@ -53,7 +53,7 @@ export function isPublicSafe(path: string): boolean {
  */
 export const CLAIM_REWRITES: Record<string, string> = {
   'accepted everywhere':   'designed for reuse across employers',
-  'under 24 hours':        'as fast as the underlying source allows',
+  'under 24 hours':        'fastest when sources are available',
   '3–6 weeks faster':      'faster than manual credentialing',
   '3-6 weeks faster':      'faster than manual credentialing',
   '99.9% uptime':          'high availability target',

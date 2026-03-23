@@ -251,7 +251,7 @@ export function WalletPassport({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-            Portable Trust Passport
+            Your readiness
           </p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
             Source-backed credential state

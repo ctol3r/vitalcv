@@ -166,7 +166,7 @@ function deriveCredentialType(claimType: ClaimType, value: unknown): string {
     case 'FEDERAL_EXCLUSION':
       return 'SAM_GOV_EXCLUSION_CHECK';
     case 'NPI_IDENTITY':
-      return 'NPI_ENROLLMENT';
+      return 'NPI_IDENTITY';
     case 'PERSONAL_IDENTITY':
       return 'IDENTITY_VERIFICATION';
     case 'INSTITUTION_AFFILIATION':

@@ -182,7 +182,7 @@ const STEPS = [
     step: '03',
     icon: Zap,
     title: 'Portable across employers',
-    description: 'Your Trust Passport travels with you. Any employer confirms your standing instantly — no committee, no 90-day wait.',
+    description: 'Your readiness travels with you. Any employer confirms your standing instantly — no committee, no 90-day wait.',
     accent: 'violet',
     detail: 'Faster time to start',
   },

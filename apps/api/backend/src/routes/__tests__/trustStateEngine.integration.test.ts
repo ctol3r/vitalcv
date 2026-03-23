@@ -148,7 +148,7 @@ describe('trustStateEngine route integration', () => {
       npi: '1234567893',
       trust_state_snapshot: expect.objectContaining({
         npi: '1234567893',
-        readiness_level: 'L3',
+        readiness_level: 'L2',
       }),
     }));
 

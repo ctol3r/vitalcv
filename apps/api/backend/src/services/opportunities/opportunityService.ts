@@ -28,6 +28,10 @@ import {
   type OpportunityTruth,
   type OpportunityTruthFilters,
 } from './opportunityTruth';
+import {
+  buildCanonicalOrganizationIdentity,
+  isPlaceholderOrganizationDomain,
+} from '../employers/employerIntegrity';
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -95,6 +99,14 @@ export async function upsertOrgProfile(
   },
 ): Promise<{ organizationId: string }> {
   const { user, profile: existingProfile } = await getPersonProfile(clerkUserId);
+  const canonicalIdentity = buildCanonicalOrganizationIdentity({
+    name: input.name,
+    website: input.website,
+  });
+
+  if (canonicalIdentity.domain && isPlaceholderOrganizationDomain(canonicalIdentity.domain)) {
+    throw new HttpError(400, 'Public employer profiles must use a real employer domain.');
+  }
 
   // Ensure PersonProfile exists (verifiers may not have NPI yet)
   const personProfile = existingProfile ?? await prisma.personProfile.create({
@@ -108,6 +120,14 @@ export async function upsertOrgProfile(
   });
 
   if (existingMembership) {
+    const conflictingOrg = await prisma.organization.findUnique({
+      where: { slug: canonicalIdentity.slug },
+      select: { id: true },
+    });
+    if (conflictingOrg && conflictingOrg.id !== existingMembership.organizationProfile.organizationId) {
+      throw new HttpError(409, 'An organization with this canonical identity already exists.');
+    }
+
     const existingEnvelope = parseOrganizationRequirementsEnvelope(
       existingMembership.organizationProfile.requirements,
       [],
@@ -126,7 +146,10 @@ export async function upsertOrgProfile(
     // Update existing org profile
     await prisma.organization.update({
       where: { id: existingMembership.organizationProfile.organizationId },
-      data: { name: input.name },
+      data: {
+        name: canonicalIdentity.displayName,
+        slug: canonicalIdentity.slug,
+      },
     });
     await prisma.organizationProfile.update({
       where: { id: existingMembership.organizationProfileId },
@@ -136,7 +159,7 @@ export async function upsertOrgProfile(
         statesCovered: input.statesCovered ?? [],
         tagline: input.tagline,
         description: input.description,
-        website: input.website,
+        website: canonicalIdentity.website,
         hiringTypes: input.hiringTypes ?? [],
         requirements: nextEnvelope as unknown as Prisma.InputJsonValue,
       },
@@ -145,12 +168,18 @@ export async function upsertOrgProfile(
   }
 
   // Create new org + profile + membership
-  const slug = `${input.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${Date.now()}`;
+  const existingOrganization = await prisma.organization.findUnique({
+    where: { slug: canonicalIdentity.slug },
+    select: { id: true },
+  });
+  if (existingOrganization) {
+    throw new HttpError(409, 'An organization with this canonical identity already exists.');
+  }
 
   const org = await prisma.organization.create({
     data: {
-      name: input.name,
-      slug,
+      name: canonicalIdentity.displayName,
+      slug: canonicalIdentity.slug,
       organizationProfile: {
         create: {
           facilityType: input.facilityType ?? 'hospital',
@@ -158,7 +187,7 @@ export async function upsertOrgProfile(
           statesCovered: input.statesCovered ?? [],
           tagline: input.tagline,
           description: input.description,
-          website: input.website,
+          website: canonicalIdentity.website,
           hiringTypes: input.hiringTypes ?? [],
           requirements: buildOrganizationRequirementsEnvelope({
             requirements: input.requirements ?? [],

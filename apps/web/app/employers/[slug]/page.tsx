@@ -180,6 +180,10 @@ export default async function EmployerProfilePage({ params }: Props) {
                       <p key={indicator} className="text-sm text-white/65">{indicator}</p>
                     ))}
                   </div>
+                  <Link href={`/employers/${employer.slug}#proof`} className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-emerald-300 transition hover:text-emerald-200">
+                    <ShieldCheck className="h-4 w-4" />
+                    View proof
+                  </Link>
                 </div>
               ) : null}
             </div>

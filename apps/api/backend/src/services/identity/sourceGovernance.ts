@@ -219,7 +219,7 @@ export const SOURCE_GOVERNANCE: Record<string, SourceGovernance> = {
     maintenanceBurden: 2,
     recommendedConfidence: 'HIGH on NPI match, MEDIUM on name-only match, UNCERTAIN on API error',
     recommendedRefresh: 'Daily — exclusion is a hard trust blocker',
-    automationNotes: 'Monthly CSV bulk + optional local supplement ingestion. Exact NPI matches are HIGH confidence; name/state/specialty matches are POSSIBLE_MATCH and require review. Never silently pass on failure.',
+    automationNotes: 'Monthly CSV bulk + optional CSV supplement ingestion. Exact NPI matches are HIGH confidence; name/state/specialty matches are POSSIBLE_MATCH and require review. Never silently pass on failure.',
     openQuestions: [],
     buildStatus: 'live',
     implementationPriority: 1,

@@ -185,7 +185,7 @@ export function CredentialReview({ documentId, documentType, fields, onBack }: C
             }}
           >
             Your {documentType.replace(/_/g, ' ')} has been queued for primary-source verification.
-            You&apos;ll see the result in your trust passport.
+            You&apos;ll see the result in your your readiness.
           </p>
         </div>
 
@@ -205,7 +205,7 @@ export function CredentialReview({ documentId, documentType, fields, onBack }: C
             boxShadow: '0 0 20px rgba(16,185,129,0.3)',
           }}
         >
-          View your Trust Passport →
+          View your Your readiness →
         </Link>
       </div>
     );

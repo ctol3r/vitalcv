@@ -539,7 +539,7 @@ export function EmployerDashboard() {
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-200/80">Employer Dashboard</p>
               <h1 className="mt-3 text-4xl font-semibold tracking-tight text-white">Apply, verify, hire, and pay in one loop.</h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-white/55">
-                Incoming applications include readiness, verified credentials, and real-time trust signals so your team can confidently move clinicians to start.
+                Incoming applications include readiness, verified credentials, and trust signals as of [date/quarter] so your team can confidently move clinicians to start.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -816,7 +816,7 @@ export function EmployerDashboard() {
               <p className="text-xs font-semibold uppercase tracking-[0.18em]">Intelligence sync</p>
             </div>
             <p className="mt-4 text-sm leading-6 text-white/55">
-              Reduce hiring cycles by making confident decisions on verified provider signals instantly. Reviewing or verifying a clinician from the inbox automatically updates storylines and findings.
+              Reduce hiring cycles by making confident decisions on Registered with CMS NPPES signals instantly. Reviewing or verifying a clinician from the inbox automatically updates storylines and findings.
             </p>
           </div>
 

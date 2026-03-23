@@ -164,12 +164,12 @@ describe('credential ingestion service', () => {
     const result = await ingestOigStatus('1234567893');
 
     expect(result.credentialArtifact.status).toBe('UNCERTAIN');
-    expect(result.verificationArtifact.metadata).toEqual(
+    expect(result.credentialArtifact.metadata).toEqual(
       expect.objectContaining({
         oig_verdict: 'UNCERTAIN',
       }),
     );
-    expect(result.verificationArtifact.raw_payload).toEqual(
+    expect(result.verificationArtifact.payload_json).toEqual(
       expect.objectContaining({
         verdict: 'UNCERTAIN',
       }),

@@ -26,7 +26,7 @@ import {
 } from '../services/trust/trustStateEngine';
 
 const NPI_RE = /^\d{10}$/;
-const PUBLIC_TYPES = new Set(['NPI_ENROLLMENT', 'STATE_LICENSE', 'BOARD_CERTIFICATION']);
+const PUBLIC_TYPES = new Set(['NPI_IDENTITY', 'NPI_ENROLLMENT', 'STATE_LICENSE', 'BOARD_CERTIFICATION']);
 
 type PublicTrustBand = 'GREEN' | 'YELLOW' | 'RED';
 type PassportCredentialStatus =
@@ -38,6 +38,7 @@ type PassportCredentialStatus =
   | 'UNKNOWN';
 
 type CredentialType =
+  | 'NPI_IDENTITY'
   | 'NPI_ENROLLMENT'
   | 'STATE_LICENSE'
   | 'BOARD_CERTIFICATION'
@@ -190,14 +191,14 @@ function mapCredentialType(source: string, payload: Record<string, unknown> | nu
     ? payload.credential_type.trim().toUpperCase()
     : null;
 
-  if (rawType === 'NPI_ENROLLMENT' || rawType === 'STATE_LICENSE' || rawType === 'BOARD_CERTIFICATION'
+  if (rawType === 'NPI_IDENTITY' || rawType === 'NPI_ENROLLMENT' || rawType === 'STATE_LICENSE' || rawType === 'BOARD_CERTIFICATION'
     || rawType === 'DEA_REGISTRATION' || rawType === 'OIG_EXCLUSION') {
     return rawType;
   }
 
   const normalizedSource = source.trim().toUpperCase();
   if (normalizedSource === 'NPPES' || normalizedSource === 'CMS' || normalizedSource === 'NPI_REGISTRY') {
-    return 'NPI_ENROLLMENT';
+    return 'NPI_IDENTITY';
   }
   if (
     normalizedSource === 'STATE_BOARD'
@@ -241,7 +242,7 @@ function inferIssuer(
     return boardName;
   }
 
-  if (credentialType === 'NPI_ENROLLMENT') {
+  if (credentialType === 'NPI_IDENTITY' || credentialType === 'NPI_ENROLLMENT') {
     return 'CMS NPPES';
   }
   if (credentialType === 'DEA_REGISTRATION') {
@@ -263,8 +264,8 @@ function inferName(
     return 'Restricted credential';
   }
 
-  if (credentialType === 'NPI_ENROLLMENT') {
-    return 'NPI Enrollment';
+  if (credentialType === 'NPI_IDENTITY' || credentialType === 'NPI_ENROLLMENT') {
+    return 'NPI Identity';
   }
   if (credentialType === 'STATE_LICENSE') {
     const state = typeof payload?.state === 'string' ? payload.state.trim() : '';

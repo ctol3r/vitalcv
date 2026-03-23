@@ -435,7 +435,7 @@ async function fetchOig(input: LookupProviderInput): Promise<SourceFetchResult> 
     if (result.cacheAge === 'unavailable') {
       const raw = {
         verdict: 'UNCHECKED' as const,
-        matchType: 'UNCLEAR' as const,
+        matchType: 'UNCHECKED' as const,
         matchConfidence: 'UNCERTAIN' as const,
         matchScore: null,
         matchedFields: [],
@@ -443,6 +443,7 @@ async function fetchOig(input: LookupProviderInput): Promise<SourceFetchResult> 
         sourceLatency: result.sourceLatency,
         dataFreshness: 'MONTHLY',
         dataVersion: result.dataVersion,
+        leieVersionDate: result.leieVersionDate,
         _cacheUnavailable: true,
       };
       return {
@@ -468,6 +469,7 @@ async function fetchOig(input: LookupProviderInput): Promise<SourceFetchResult> 
       source: 'LEIE_CSV',
       cacheAge: result.cacheAge,
       dataVersion: result.dataVersion,
+      leieVersionDate: result.leieVersionDate,
       sourceLatency: result.sourceLatency,
       dataFreshness: 'MONTHLY',
       state: result.entry?.state || null,
@@ -485,13 +487,14 @@ async function fetchOig(input: LookupProviderInput): Promise<SourceFetchResult> 
     log('warn', 'identityPipeline: OIG LEIE cache lookup failed', { npi: input.npi, error: String(err) });
     const raw = {
       verdict: 'UNCHECKED' as const,
-      matchType: 'UNCLEAR' as const,
+      matchType: 'UNCHECKED' as const,
       matchConfidence: 'UNCERTAIN' as const,
       matchScore: null,
       matchedFields: [],
       excluded: false,
       sourceLatency: 'MONTHLY' as const,
       dataFreshness: 'MONTHLY',
+      leieVersionDate: null,
       _cacheUnavailable: true,
     };
     return {
@@ -502,6 +505,21 @@ async function fetchOig(input: LookupProviderInput): Promise<SourceFetchResult> 
       fetchHeaders: {},
     };
   }
+}
+
+function quarterVersionFromTimestamp(value: string | null | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) {
+    return null;
+  }
+
+  const date = new Date(timestamp);
+  const quarter = Math.floor(date.getUTCMonth() / 3) + 1;
+  return `${date.getUTCFullYear()}-Q${quarter}`;
 }
 
 async function fetchPecos(npi: string): Promise<SourceFetchResult> {
@@ -517,10 +535,7 @@ async function fetchPecos(npi: string): Promise<SourceFetchResult> {
 
     const data = (await resp.json()) as unknown[];
     const fetchedAt = new Date().toISOString();
-    const dataVersion =
-      resp.headers.get('last-modified')
-      ?? resp.headers.get('etag')
-      ?? checksumOf(JSON.stringify(data)).slice(0, 12);
+    const dataVersion = quarterVersionFromTimestamp(resp.headers.get('last-modified'));
     const row =
       Array.isArray(data) && data.length > 0 ? (data[0] as Record<string, unknown>) : null;
     const raw = row
@@ -1333,7 +1348,7 @@ const handlers: Record<string, SourceHandler> = {
       npi,
       observedAt,
       sourceId: 'NPPES_API',
-      parserVersion: 'v1.1.0',
+      parserVersion: 'v1.2.0',
       matchingStrategy: 'NPI_EXACT',
       fetchSource: fetchNppes,
       parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {
@@ -1373,7 +1388,7 @@ const handlers: Record<string, SourceHandler> = {
       npi,
       observedAt,
       sourceId: 'OIG_LEIE',
-      parserVersion: 'v1.1.0',
+      parserVersion: 'v1.2.0',
       matchingStrategy: 'NPI_EXACT',
       fetchSource: async (_npi: string) => {
         const existingClaims = await loadClaimRecordsForNpi(_npi);
@@ -1384,6 +1399,7 @@ const handlers: Record<string, SourceHandler> = {
         return fetchOig({
           npi: _npi,
           firstName: typeof nameValue.firstName === 'string' ? nameValue.firstName : null,
+          middleName: typeof nameValue.middleName === 'string' ? nameValue.middleName : null,
           lastName: typeof nameValue.lastName === 'string' ? nameValue.lastName : null,
           state: typeof locationValue.state === 'string'
             ? locationValue.state
@@ -1404,12 +1420,21 @@ const handlers: Record<string, SourceHandler> = {
           parsedObservedAt,
         );
         const oigRaw = raw as Record<string, unknown>;
-        const matchingStrategy = oigRaw.matchType === 'NAME_MATCH'
-          ? 'NAME_STATE_SPECIALTY'
-          : 'NPI_EXACT';
-        const mergeReason = oigRaw.matchType === 'NAME_MATCH'
-          ? 'LEIE possible match derived from name + state + specialty review'
-          : 'Official OIG LEIE check tied to the requested NPI';
+        const matchType = typeof oigRaw.matchType === 'string' ? oigRaw.matchType : 'UNCHECKED';
+        const matchingStrategy =
+          matchType === 'STRONG_FUZZY' || matchType === 'WEAK'
+            ? 'NAME_STATE_SPECIALTY'
+            : matchType === 'EXACT'
+              ? 'NPI_EXACT'
+              : 'MANUAL_REVIEW_REQUIRED';
+        const mergeReason =
+          matchType === 'STRONG_FUZZY'
+            ? 'LEIE possible match derived from strong fuzzy name + state + specialty review'
+            : matchType === 'WEAK'
+              ? 'LEIE possible match derived from weak fuzzy name review'
+              : matchType === 'EXACT'
+                ? 'Official OIG LEIE check tied to the requested NPI'
+                : 'LEIE monthly CSV could not produce a conclusive match and remains unchecked';
 
         return {
           status: 'SUCCESS',
@@ -1426,7 +1451,7 @@ const handlers: Record<string, SourceHandler> = {
       npi,
       observedAt,
       sourceId: 'PECOS_PUBLIC',
-      parserVersion: 'v1.1.0',
+      parserVersion: 'v1.2.0',
       matchingStrategy: 'NPI_EXACT',
       fetchSource: fetchPecos,
       parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {
@@ -1439,11 +1464,14 @@ const handlers: Record<string, SourceHandler> = {
         );
 
         return {
-          status: 'SUCCESS',
+          status: (raw as { enrolled?: boolean }).enrolled === false ? 'SKIPPED' : 'SUCCESS',
           claims,
           receipts,
           matchingStrategy: 'NPI_EXACT',
-          mergeReason: 'Official CMS enrollment record exact match by NPI',
+          mergeReason:
+            (raw as { enrolled?: boolean }).enrolled === false
+              ? 'Quarterly CMS PECOS release did not contain an enrollment record for this NPI'
+              : 'Official quarterly CMS enrollment record exact match by NPI',
         };
       },
     }),

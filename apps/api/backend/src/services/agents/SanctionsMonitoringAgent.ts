@@ -39,7 +39,7 @@ export class SanctionsMonitoringAgent extends BaseVerificationAgent {
 
     try {
       const result = await checkExclusion({ npi, firstName, lastName });
-      const isExcluded = result.matchType !== 'NONE';
+      const isExcluded = result.excluded;
 
       return [{
         agentName: this.name,
@@ -50,7 +50,7 @@ export class SanctionsMonitoringAgent extends BaseVerificationAgent {
         confidence: 'HIGH',
         rawData: result as unknown as Record<string, unknown>,
         normalizedFields: {
-          sanctionType: isExcluded ? result.matchType : 'NONE',
+          sanctionType: isExcluded ? result.matchType : 'NO_MATCH',
           issuingBody: 'OIG/LEIE',
         },
         extractedAt: now,

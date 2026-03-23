@@ -29,6 +29,10 @@ import {
   normalizeExclusionCredentialStatus,
 } from '../../domain/entity/contracts';
 import { log } from '../../obs/logger';
+import { resolveCredentialEvidence, type CredentialReceiptEvidence } from './evidenceIntegrity';
+import { buildReadinessNextActions, type ReadinessNextAction } from './readinessActions';
+
+export type { ReadinessNextAction };
 
 type JsonRecord = Record<string, unknown>;
 
@@ -59,6 +63,7 @@ export interface PassportCredential {
   type:              string;
   status:            string;
   verificationLevel: string;
+  label?:            string;
   issuerEntityId?:   string;
   issuerName?:       string;
   sourceId?:         string;
@@ -72,12 +77,16 @@ export interface PassportCredential {
   confidenceLabel:   string;
   claimConfidenceLabel: string;
   matchConfidence?:  string;
+  matchType?:        string;
   sourceLatency?:    string;
   dataFreshness:     string;
   dataFreshnessLabel: string;
   dataFreshnessCadence?: string;
   claimState?:       string;
+  statusLabel?:      string;
   dataVersion?:      string;
+  leieVersionDate?:  string;
+  identityOnly?:     boolean;
   sourceDisclaimer?: string;
   reviewRequired:    boolean;
 }
@@ -112,6 +121,7 @@ export interface PassportStanding {
   pecosStatus:      'enrolled' | 'not_enrolled' | 'unknown';
   enrollmentObservedAt?: string;
   enrollmentDataVersion?: string;
+  enrollmentStatusLabel?: string;
   enrollmentFreshnessLabel?: string;
   enrollmentConfidenceLabel?: string;
   negativeFindings: string[];
@@ -120,9 +130,11 @@ export interface PassportStanding {
 export interface PassportReadiness {
   status:             'READY' | 'PARTIAL' | 'BLOCKED';
   score:              number;    // 0–100
+  readiness_score:    number;
   level:              string;    // L0–L3
   blockers:           string[];
   gaps:               string[];
+  nextActions:        ReadinessNextAction[];
   estimatedStartDays: number | null;
 }
 
@@ -152,6 +164,10 @@ const ESTIMATED_START_DAYS: Record<string, number> = {
   PARTIAL: 14,
   BLOCKED: null as unknown as number,
 };
+
+function dedupeStrings(values: readonly string[]): string[] {
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).sort((left, right) => left.localeCompare(right));
+}
 
 function asRecord(value: unknown): JsonRecord {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -216,6 +232,24 @@ function exclusionStatusFromCredential(
   return 'UNKNOWN';
 }
 
+function getVerificationReceiptRecordClient(): {
+  findMany?: (args: Record<string, unknown>) => Promise<Array<{
+    receiptId: string;
+    sourceArtifactId: string | null;
+    verificationArtifactId: string | null;
+  }>>;
+} {
+  return (prisma as unknown as {
+    verificationReceiptRecord?: {
+      findMany?: (args: Record<string, unknown>) => Promise<Array<{
+        receiptId: string;
+        sourceArtifactId: string | null;
+        verificationArtifactId: string | null;
+      }>>;
+    };
+  }).verificationReceiptRecord ?? {};
+}
+
 // ── Builder ───────────────────────────────────────────────────────────────────
 
 /**
@@ -228,6 +262,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
 
   const { entity } = record;
   const npi = entity.npi ?? undefined;
+  const receiptClient = getVerificationReceiptRecordClient();
   const credentials = await prisma.vcvCredential.findMany({
     where: {
       subjectId: entityId,
@@ -247,6 +282,63 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
       { createdAt: 'desc' },
     ],
   });
+  const artifactIds = dedupeStrings(credentials.flatMap((credential) => credential.artifactIds));
+  const receiptIds = dedupeStrings(credentials.flatMap((credential) => credential.receiptIds));
+  const [artifacts, receipts] = await Promise.all([
+    artifactIds.length > 0
+      ? prisma.verificationArtifact.findMany({
+          where: {
+            id: { in: artifactIds },
+          },
+          select: {
+            id: true,
+            source: true,
+          },
+        })
+      : Promise.resolve([]),
+    receiptIds.length > 0 && receiptClient.findMany
+      ? receiptClient.findMany({
+          where: {
+            receiptId: { in: receiptIds },
+          },
+          select: {
+            receiptId: true,
+            sourceArtifactId: true,
+            verificationArtifactId: true,
+          },
+        })
+      : Promise.resolve([] as CredentialReceiptEvidence[]),
+  ]);
+  const artifactsById = new Map(artifacts.map((artifact) => [artifact.id, artifact]));
+  const receiptsById = new Map(receipts.map((receipt) => [receipt.receiptId, receipt]));
+  const credentialEvidence = new Map(
+    credentials.map((credential) => [credential.id, resolveCredentialEvidence({
+      credential: {
+        id: credential.id,
+        verificationLevel: credential.verificationLevel,
+        artifactIds: credential.artifactIds,
+        receiptIds: credential.receiptIds,
+      },
+      artifactsById,
+      receiptsById,
+    })]),
+  );
+  const evidenceGaps = dedupeStrings(
+    credentials.flatMap((credential) => {
+      const evidence = credentialEvidence.get(credential.id);
+      if (!evidence || evidence.publicSafe) {
+        return [];
+      }
+      if (evidence.issues.includes('missing_artifact')) {
+        return [`Missing artifact source: ${credential.domain}`];
+      }
+      if (evidence.issues.includes('missing_receipt')) {
+        return [`Proof missing: ${credential.domain}`];
+      }
+      return [`Unbacked credential withheld: ${credential.domain}`];
+    }),
+  );
+  const usableCredentials = credentials.filter((credential) => credentialEvidence.get(credential.id)?.publicSafe ?? false);
 
   // ── Education records ─────────────────────────────────────────────────────
   const eduRecords = await prisma.vcvEducationRecord.findMany({
@@ -264,7 +356,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   }
 
   // ── Authority ─────────────────────────────────────────────────────────────
-  const credList: PassportCredential[] = credentials.map(c => {
+  const credList: PassportCredential[] = usableCredentials.map(c => {
     const stale   = isCredentialStale({ domain: c.domain, verifiedAt: c.verifiedAt });
     const expiry  = daysUntilExpiry(c.expiresAt);
     const meta = asRecord(c.metadata);
@@ -289,6 +381,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
       type:              c.credentialType,
       status:            c.status,
       verificationLevel: c.verificationLevel,
+      label:             stringValue(meta.label) ?? stringValue(claimValue.label),
       issuerEntityId:    stringValue(meta.issuerEntityId) ?? c.issuerId ?? undefined,
       issuerName:        c.issuer?.displayName ?? undefined,
       sourceId:          stringValue(meta.sourceId),
@@ -302,6 +395,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
       confidenceLabel:    claimConfidenceLabel,
       claimConfidenceLabel,
       matchConfidence:    stringValue(meta.matchConfidence) ?? stringValue(claimValue.matchConfidence),
+      matchType:          stringValue(meta.matchType) ?? stringValue(claimValue.matchType),
       sourceLatency:      stringValue(meta.sourceLatency) ?? stringValue(claimValue.sourceLatency),
       dataFreshness:      dataFreshnessLabel,
       dataFreshnessLabel,
@@ -310,13 +404,16 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
         stringValue(meta.claimState)
         ?? stringValue(claimValue.claimState)
         ?? stringValue(claimValue.verdict),
+      statusLabel:     stringValue(meta.statusLabel) ?? stringValue(claimValue.statusLabel),
       dataVersion:      stringValue(meta.dataVersion) ?? stringValue(claimValue.dataVersion),
+      leieVersionDate:  stringValue(meta.leieVersionDate) ?? stringValue(claimValue.leieVersionDate),
+      identityOnly:     (meta.identityOnly as boolean | undefined) ?? (claimValue.identityOnly as boolean | undefined),
       sourceDisclaimer: stringValue(meta.sourceDisclaimer) ?? stringValue(claimValue.sourceDisclaimer),
       reviewRequired:   (meta.reviewRequired as boolean | undefined) ?? false,
     };
   });
 
-  const satisfiedCredentials = credentials.filter((credential) => isCredentialSatisfied(credential));
+  const satisfiedCredentials = usableCredentials.filter((credential) => isCredentialSatisfied(credential));
   const activeDomains  = new Set(satisfiedCredentials.map(c => c.domain));
   const missingBlocking = BLOCKING_DOMAINS.filter(d => !activeDomains.has(d as import('@prisma/client').VcvCredentialDomain));
 
@@ -355,10 +452,10 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   };
 
   // ── Standing — from trust state or credential status ──────────────────────
-  const exclusionCred  = credentials.find((credential) => credential.domain === 'EXCLUSION_CHECK');
-  const licensureCred  = credentials.find((credential) => credential.domain === 'LICENSURE');
-  const deaCred        = credentials.find((credential) => credential.domain === 'DEA_REGISTRATION');
-  const pecosCred      = credentials.find((credential) => credential.domain === 'MEDICARE_ENROLLMENT');
+  const exclusionCred  = usableCredentials.find((credential) => credential.domain === 'EXCLUSION_CHECK');
+  const licensureCred  = usableCredentials.find((credential) => credential.domain === 'LICENSURE');
+  const deaCred        = usableCredentials.find((credential) => credential.domain === 'DEA_REGISTRATION');
+  const pecosCred      = usableCredentials.find((credential) => credential.domain === 'MEDICARE_ENROLLMENT');
 
   const trustStateExclusionStatus = normalizePublicExclusionStatus(trustState?.exclusionStatus);
   const credentialExclusionStatus = exclusionStatusFromCredential(exclusionCred);
@@ -373,6 +470,15 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   if (exclusionStatus === 'POSSIBLE_MATCH') negativeFindings.push('OIG/LEIE possible match requires review');
   if (exclusionStatus === 'UNCHECKED') negativeFindings.push('OIG/LEIE check not yet verified');
   if (trustState?.licensureStatus === 'expired') negativeFindings.push('License expired');
+  if (
+    trustState?.blockers?.includes('ENROLLMENT_NOT_FOUND')
+    || (
+    credList.find((credential) => credential.id === pecosCred?.id)?.claimState === 'ENROLLMENT_NOT_FOUND'
+    || (pecosCred && !isCredentialSatisfied(pecosCred))
+    )
+  ) {
+    negativeFindings.push('PECOS enrollment not found');
+  }
 
   const licensureStatus = trustState?.licensureStatus
     ?? (licensureCred
@@ -398,6 +504,8 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
       credList.find((credential) => credential.id === pecosCred?.id)?.observedAt,
     enrollmentDataVersion:
       credList.find((credential) => credential.id === pecosCred?.id)?.dataVersion,
+    enrollmentStatusLabel:
+      credList.find((credential) => credential.id === pecosCred?.id)?.statusLabel,
     enrollmentFreshnessLabel:
       credList.find((credential) => credential.id === pecosCred?.id)?.dataFreshnessLabel,
     enrollmentConfidenceLabel:
@@ -409,8 +517,9 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   const blockers: string[] = [
     ...negativeFindings,
     ...missingBlocking.map(d => `Missing: ${d}`),
+    ...evidenceGaps,
   ];
-  if (credentials.some(isCredentialBlocking)) blockers.push('Credentials require review');
+  if (usableCredentials.some(isCredentialBlocking)) blockers.push('Credentials require review');
   if (credList.some(c => c.status === 'EXPIRED')) blockers.push('Expired credentials');
 
   const gaps: string[] = [
@@ -419,18 +528,28 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
       .filter((credential) => credential.stale && isCredentialCurrentStatus(credential.domain, credential.status))
       .map((credential) => `Stale: ${credential.domain}`),
   ];
+  const normalizedBlockers = dedupeStrings(blockers);
+  const normalizedGaps = dedupeStrings(gaps);
 
   let readinessStatus: 'READY' | 'PARTIAL' | 'BLOCKED' = 'READY';
-  if (blockers.length > 0)             readinessStatus = 'BLOCKED';
-  else if (gaps.length > 0)            readinessStatus = 'PARTIAL';
+  if (normalizedBlockers.length > 0)   readinessStatus = 'BLOCKED';
+  else if (normalizedGaps.length > 0)  readinessStatus = 'PARTIAL';
   else if (missingBlocking.length > 0) readinessStatus = 'BLOCKED';
+  const readinessScore = trustState?.readiness_score ?? (readinessStatus === 'READY' ? 80 : readinessStatus === 'PARTIAL' ? 50 : 20);
+  const nextActions = buildReadinessNextActions({
+    missingBlockingDomains: missingBlocking,
+    blockers: normalizedBlockers,
+    gaps: normalizedGaps,
+  });
 
   const readiness: PassportReadiness = {
     status:             readinessStatus,
-    score:              trustState?.readiness_score ?? (readinessStatus === 'READY' ? 80 : readinessStatus === 'PARTIAL' ? 50 : 20),
+    score:              readinessScore,
+    readiness_score:    readinessScore,
     level:              trustState?.readiness_level ?? 'L1',
-    blockers,
-    gaps,
+    blockers:           normalizedBlockers,
+    gaps:               normalizedGaps,
+    nextActions,
     estimatedStartDays: readinessStatus === 'BLOCKED' ? null : ESTIMATED_START_DAYS[readinessStatus],
   };
 

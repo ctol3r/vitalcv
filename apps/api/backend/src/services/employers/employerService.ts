@@ -19,6 +19,11 @@ import {
   EMPLOYER_KNOWLEDGE_SEEDS,
   getEmployerSeedBySlug,
 } from './employerCatalog';
+import {
+  buildCanonicalOrganizationIdentity,
+  hasPublicSafeOrganizationDomain,
+  reconcileOpenRoleCount,
+} from './employerIntegrity';
 import { parseOrganizationRequirementsEnvelope } from './pilotPolicy';
 
 type EmployerProfileRecord = Prisma.OrganizationProfileGetPayload<{
@@ -179,9 +184,9 @@ function buildEmployerDetail(
     tagline: normalizeText(profile?.tagline, seed?.tagline ?? ''),
     specialties: normalizeArray(profile?.specialties, seed?.specialties ?? []),
     states: normalizeArray(profile?.statesCovered, seed?.states ?? []),
-    openRoles: normalizeCount(
-      profile?.organization?._count?.opportunities ?? profile?.openRoles,
-      seed?.openRoles ?? 0,
+    openRoles: reconcileOpenRoleCount(
+      profile?.openRoles ?? seed?.openRoles ?? 0,
+      profile?.organization?._count?.opportunities,
     ),
     trustScore,
     hiringStatus: profile?.hiringStatus ?? seed?.hiringStatus ?? EmployerHiringStatus.NOT_HIRING,
@@ -251,25 +256,10 @@ function isPublicEmployer(profile: EmployerProfileRecord | undefined, seed: Empl
   if (!verified) {
     return false;
   }
-  
+
   // validation rule: employer must have a real domain OR not be public
   const website = profile?.website ?? seed?.website;
-  if (!website || website.trim() === '') {
-    return false;
-  }
-  
-  // reject placeholder domains from being public
-  const cleanDomain = website.trim().toLowerCase().replace(/^https?:\/\//, '').split('/')[0];
-  if (
-    cleanDomain.includes('example.com') ||
-    cleanDomain.includes('example.org') ||
-    cleanDomain.includes('example.net') ||
-    cleanDomain.includes('test.') ||
-    cleanDomain.includes('localhost') ||
-    cleanDomain.includes('placeholder.com') ||
-    cleanDomain.includes('fake.com') ||
-    cleanDomain.includes('domain.com')
-  ) {
+  if (!hasPublicSafeOrganizationDomain(website)) {
     return false;
   }
 
@@ -320,8 +310,27 @@ async function getPublicProfilesBySlug(): Promise<Map<string, EmployerProfileRec
     include: EMPLOYER_PROFILE_INCLUDE,
   });
 
+  const canonicalProfiles = new Map<string, EmployerProfileRecord>();
+  for (const profile of profiles) {
+    const canonicalKey = buildCanonicalOrganizationIdentity({
+      name: profile.organization.name,
+      website: profile.website,
+    }).canonicalKey;
+    const existing = canonicalProfiles.get(canonicalKey);
+    if (!existing) {
+      canonicalProfiles.set(canonicalKey, profile);
+      continue;
+    }
+
+    const currentScore = Number(profile.verified) * 1000 + profile.trustScore + profile.updatedAt.getTime();
+    const existingScore = Number(existing.verified) * 1000 + existing.trustScore + existing.updatedAt.getTime();
+    if (currentScore > existingScore) {
+      canonicalProfiles.set(canonicalKey, profile);
+    }
+  }
+
   return new Map(
-    profiles.map((profile) => [profile.organization.slug, profile]),
+    [...canonicalProfiles.values()].map((profile) => [profile.organization.slug, profile]),
   );
 }
 
@@ -367,17 +376,11 @@ export async function listEmployers(opts: EmployerListOptions = {}): Promise<Emp
 
 export async function getEmployerBySlug(slug: string): Promise<EmployerDetail | null> {
   const normalizedSlug = slug.trim();
-  const [profile, seed] = await Promise.all([
-    prisma.organizationProfile.findFirst({
-      where: {
-        organization: {
-          slug: normalizedSlug,
-        },
-      },
-      include: EMPLOYER_PROFILE_INCLUDE,
-    }),
+  const [profilesBySlug, seed] = await Promise.all([
+    getPublicProfilesBySlug(),
     Promise.resolve(getEmployerSeedBySlug(normalizedSlug)),
   ]);
+  const profile = profilesBySlug.get(normalizedSlug);
 
   if (!isPublicEmployer(profile ?? undefined, seed)) {
     return null;

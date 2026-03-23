@@ -149,10 +149,13 @@ describe('PSV orchestrator stack', () => {
     checkExclusionMock.mockResolvedValue({
       excluded: false,
       matchType: 'NONE',
+      matchConfidence: 'HIGH',
       status: 'CLEAR',
       details: 'No match',
       checkedAt: '2026-01-01T00:00:00.000Z',
       source: 'OIG_LEIE',
+      leieVersionDate: null,
+      dataVersion: null,
     });
 
     const payload = await OigLeieAdapter.verify({ npi: '1234567890' });
@@ -243,11 +246,14 @@ describe('PSV orchestrator stack', () => {
   it('PsvOrchestrator exclusionClear=false when OIG returns non-NONE matchType', async () => {
     checkExclusionMock.mockResolvedValue({
       excluded: true,
-      matchType: 'NAME_MATCH',
+      matchType: 'STRONG_FUZZY',
+      matchConfidence: 'MEDIUM',
       status: 'EXCLUDED',
       details: 'Potential match',
       checkedAt: '2026-01-01T00:00:00.000Z',
       source: 'OIG_LEIE',
+      leieVersionDate: null,
+      dataVersion: null,
     });
 
     const orchestrator = new PsvOrchestrator(

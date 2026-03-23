@@ -13,6 +13,7 @@ jest.mock('../../../graphql/prisma_client', () => ({
       create: jest.fn(),
     },
     organization: {
+      findUnique: jest.fn(),
       update: jest.fn(),
       create: jest.fn(),
     },
@@ -40,6 +41,7 @@ const prismaMock = prisma as unknown as {
     create: jest.Mock;
   };
   organization: {
+    findUnique: jest.Mock;
     update: jest.Mock;
     create: jest.Mock;
   };
@@ -56,6 +58,7 @@ describe('opportunityService org profile pilot policy', () => {
     prismaMock.personProfile.create.mockReset();
     prismaMock.workspaceMembership.findFirst.mockReset();
     prismaMock.workspaceMembership.create.mockReset();
+    prismaMock.organization.findUnique.mockReset();
     prismaMock.organization.update.mockReset();
     prismaMock.organization.create.mockReset();
     prismaMock.organizationProfile.update.mockReset();
@@ -136,6 +139,7 @@ describe('opportunityService org profile pilot policy', () => {
         organization: { name: 'General Hospital' },
       },
     });
+    prismaMock.organization.findUnique.mockResolvedValue(null);
     prismaMock.organization.update.mockResolvedValue({});
     prismaMock.organizationProfile.update.mockResolvedValue({});
 
@@ -164,6 +168,7 @@ describe('opportunityService org profile pilot policy', () => {
     expect(prismaMock.organizationProfile.update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: 'org-profile-1' },
       data: expect.objectContaining({
+        website: null,
         requirements: expect.objectContaining({
           requirements: [{ label: 'CA License', level: 'L2' }],
           pilotMode: true,
@@ -184,6 +189,41 @@ describe('opportunityService org profile pilot policy', () => {
             notifyClinician: true,
           },
         }),
+      }),
+    }));
+  });
+
+  it('rejects placeholder employer domains before creating a public profile', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ id: 'user-1' });
+    prismaMock.personProfile.findUnique.mockResolvedValue({ id: 'person-1' });
+    prismaMock.workspaceMembership.findFirst.mockResolvedValue(null);
+
+    await expect(upsertOrgProfile('clerk-user-1', {
+      name: 'Placeholder Health',
+      website: 'https://placeholder.example.com',
+    })).rejects.toThrow('real employer domain');
+
+    expect(prismaMock.organization.create).not.toHaveBeenCalled();
+  });
+
+  it('uses a canonical slug instead of a timestamped duplicate slug', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ id: 'user-1' });
+    prismaMock.personProfile.findUnique.mockResolvedValue({ id: 'person-1' });
+    prismaMock.workspaceMembership.findFirst.mockResolvedValue(null);
+    prismaMock.organization.findUnique.mockResolvedValue(null);
+    prismaMock.organization.create.mockResolvedValue({ id: 'org-1' });
+    prismaMock.organizationProfile.findUnique.mockResolvedValue({ id: 'org-profile-1' });
+    prismaMock.workspaceMembership.create.mockResolvedValue({});
+
+    await upsertOrgProfile('clerk-user-1', {
+      name: 'MindBridge Health, LLC',
+      website: 'mindbridgehealth.com',
+    });
+
+    expect(prismaMock.organization.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        name: 'MindBridge Health, LLC',
+        slug: 'mindbridge-health',
       }),
     }));
   });

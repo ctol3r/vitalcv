@@ -10,7 +10,7 @@
  *   - excluded=true   → red alert  + "LEIE EXCLUDED"
  *   - no data         → grey       + "Not Checked"
  *
- * Fits on Trust Passport cards and verifier inbox rows.
+ * Fits on Your readiness cards and verifier inbox rows.
  */
 
 import { AlertTriangle, ShieldCheck, ShieldOff } from 'lucide-react';

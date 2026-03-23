@@ -400,8 +400,8 @@ export function registerIdentityLayerRoutes(app: Express): void {
         ? exclusionClaimState({
             excluded: excVal.excluded === true,
             matchType: typeof excVal.matchType === 'string'
-              ? excVal.matchType as 'NPI_MATCH' | 'NAME_MATCH' | 'NO_MATCH' | 'UNCLEAR'
-              : 'UNCLEAR',
+              ? excVal.matchType as 'EXACT' | 'STRONG_FUZZY' | 'WEAK' | 'NONE' | 'UNCHECKED' | 'NPI_MATCH' | 'NAME_MATCH' | 'NO_MATCH' | 'UNCLEAR'
+              : 'UNCHECKED',
             verdict: typeof excVal.verdict === 'string'
               ? excVal.verdict as 'CLEAR' | 'EXCLUDED' | 'POSSIBLE_MATCH' | 'UNCHECKED'
               : undefined,

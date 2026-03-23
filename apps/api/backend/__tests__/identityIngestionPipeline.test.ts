@@ -289,6 +289,7 @@ const prismaMock = {
 }
 
 const mockMaterializeClaimsToVcvCredentials = jest.fn()
+const mockLeieLookupProvider = jest.fn()
 
 jest.mock('../src/graphql/prisma_client', () => ({
   __esModule: true,
@@ -304,6 +305,10 @@ jest.mock('../src/services/entity/vcvCredentialMaterializer', () => ({
   materializeClaimsToVcvCredentials: (...args: unknown[]) => mockMaterializeClaimsToVcvCredentials(...args),
 }))
 
+jest.mock('../src/services/identity/leieCache', () => ({
+  lookupProvider: (...args: unknown[]) => mockLeieLookupProvider(...args),
+}))
+
 import {
   getClaimsForNpi,
   ingestClinicianIdentity,
@@ -314,11 +319,11 @@ import {
   registerWatchlist,
 } from '../src/services/identity/watchtowerEngine'
 
-function mockJsonResponse(body: unknown): Response {
+function mockJsonResponse(body: unknown, headers?: Record<string, string>): Response {
   return {
     ok: true,
     status: 200,
-    headers: new Headers({ 'content-type': 'application/json' }),
+    headers: new Headers({ 'content-type': 'application/json', ...(headers ?? {}) }),
     json: jest.fn().mockResolvedValue(body),
   } as unknown as Response
 }
@@ -365,7 +370,7 @@ function buildNppesFixture(specialtyDescription = 'Family Medicine'): Record<str
 
 function buildOigFixture(excluded = false): Record<string, unknown> {
   return {
-    matchType: excluded ? 'NPI_MATCH' : 'NO_MATCH',
+    matchType: excluded ? 'EXACT' : 'NONE',
     excluded,
     exclusionType: excluded ? 'MANDATORY_EXCLUSION' : null,
     exclusionDate: excluded ? '2026-03-14' : null,
@@ -396,11 +401,40 @@ function installFetchFixture(): void {
     }
 
     if (url.includes('data.cms.gov')) {
-      return mockJsonResponse(pecosFixture)
+      return mockJsonResponse(pecosFixture, { 'last-modified': 'Mon, 23 Mar 2026 02:09:21 GMT' })
     }
 
     throw new Error(`Unexpected URL: ${url}`)
   }) as jest.Mock
+}
+
+function buildLeieLookupResult(): Record<string, unknown> {
+  const excluded = Boolean(oigFixture.excluded)
+  return {
+    npi: '1558302470',
+    excluded,
+    entry: excluded
+      ? {
+          npi: '1558302470',
+          exclusionType: oigFixture.exclusionType ?? 'MANDATORY_EXCLUSION',
+          exclusionDate: oigFixture.exclusionDate ?? '2026-03-14',
+          reinstatementDate: oigFixture.reinstatementDate ?? null,
+          waiverState: oigFixture.waiverState ?? null,
+        }
+      : null,
+    matchedEntries: excluded ? [{ npi: '1558302470' }] : [],
+    source: 'LEIE_CSV',
+    checkedAt: '2026-03-14T12:00:00.000Z',
+    cacheAge: 'fresh',
+    verdict: excluded ? 'EXCLUDED' : 'CLEAR',
+    matchType: excluded ? 'EXACT' : 'NONE',
+    matchConfidence: 'HIGH',
+    matchScore: 1,
+    matchedFields: ['npi'],
+    dataVersion: '2026-03',
+    leieVersionDate: '2026-03-10',
+    sourceLatency: 'MONTHLY',
+  }
 }
 
 describe('identity ingestion pipeline hardening', () => {
@@ -409,6 +443,7 @@ describe('identity ingestion pipeline hardening', () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-03-14T12:00:00.000Z'))
     jest.clearAllMocks()
     mockMaterializeClaimsToVcvCredentials.mockResolvedValue({ credentialIds: [] })
+    mockLeieLookupProvider.mockImplementation(async () => buildLeieLookupResult())
     nppesFixture = buildNppesFixture()
     oigFixture = buildOigFixture()
     pecosFixture = [
@@ -710,5 +745,28 @@ describe('identity ingestion pipeline hardening', () => {
 
     const receipts = await getVerificationReceiptsForNpi('1558302470')
     expect(receipts.length).toBeGreaterThan(0)
+  })
+
+  test('marks PECOS not-found captures as quarterly NOT_FOUND evidence instead of active enrollment', async () => {
+    pecosFixture = []
+
+    const report = await ingestClinicianIdentity('1558302470', ['PECOS_PUBLIC'])
+
+    expect(report.results[0]?.status).toBe('SKIPPED')
+    expect(
+      [...state.verificationArtifacts]
+        .reverse()
+        .find((artifact) => artifact.source === 'PECOS_PUBLIC'),
+    ).toMatchObject({
+      source: 'PECOS_PUBLIC',
+      status: 'NOT_FOUND',
+    })
+
+    const enrollmentClaim = state.claimRecords.find((claim) => claim.claimType === 'ENROLLMENT_STATUS')
+    expect((enrollmentClaim?.value as Record<string, unknown>).enrolled).toBe(false)
+    expect((enrollmentClaim?.value as Record<string, unknown>).dataFreshness).toBe('QUARTERLY')
+    expect((enrollmentClaim?.value as Record<string, unknown>).label).toBe(
+      'Medicare enrollment not found — as of Q1 2026',
+    )
   })
 })

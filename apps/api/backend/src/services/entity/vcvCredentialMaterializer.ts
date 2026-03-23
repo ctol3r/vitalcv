@@ -27,6 +27,7 @@ import {
   licenseClaimState,
 } from './credentialTrustMetadata';
 import { resolveEntityFromNpi } from './entityResolutionService';
+import { assertCredentialObservationIntegrity } from './evidenceIntegrity';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -83,6 +84,13 @@ type VerificationArtifactSnapshot = Pick<
   | 'trustTier'
   | 'confidenceScore'
 >;
+
+const NPPES_IDENTITY_ONLY_EXPLANATION = 'NPI confirms identity only — not licensure, enrollment, or credential status';
+const NPPES_USAGE_RESTRICTIONS = [
+  'cannot be used for licensure',
+  'cannot imply credentialing',
+  'cannot imply enrollment',
+] as const;
 
 function toJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
@@ -282,7 +290,7 @@ function mapObservationFromClaim(
       return {
         subjectNpi: claim.subjectNpi,
         domain: 'IDENTITY',
-        credentialType: 'NPI_ENROLLMENT',
+        credentialType: 'NPI_IDENTITY',
         status: value.status === 'D' ? 'REVOKED' : 'ACTIVE',
         verificationLevel: verificationLevelForTier(claim.tier),
         claimValue: {
@@ -292,7 +300,14 @@ function mapObservationFromClaim(
           lastUpdated: value.lastUpdated,
           status: value.status,
           credential: value.credential,
-          sourceDisclaimer: value.sourceDisclaimer ?? 'Identity only, not licensure',
+          claimType: 'IDENTITY',
+          label: value.label ?? 'CMS NPPES identity record',
+          identityOnly: value.identityOnly ?? true,
+          usageRestrictions: mergeStrings(
+            value.usageRestrictions,
+            [...NPPES_USAGE_RESTRICTIONS],
+          ),
+          sourceDisclaimer: value.sourceDisclaimer ?? NPPES_IDENTITY_ONLY_EXPLANATION,
         },
         artifactIds: [claim.artifactId],
         receiptIds,
@@ -306,11 +321,18 @@ function mapObservationFromClaim(
         metadata: {
           ...trustMetadata,
           sourceId: claim.sourceId,
-          claimType: claim.claimType,
+          claimType: 'IDENTITY',
+          sourceClaimType: claim.claimType,
+          label: value.label ?? 'CMS NPPES identity record',
+          identityOnly: value.identityOnly ?? true,
           reviewRequired: claim.reviewRequired,
           reviewReason: claim.reviewReason,
-          sourceDisclaimer: value.sourceDisclaimer ?? 'Identity only, not licensure',
-          limitations: ['Identity only, not licensure'],
+          sourceDisclaimer: value.sourceDisclaimer ?? NPPES_IDENTITY_ONLY_EXPLANATION,
+          limitations: [...NPPES_USAGE_RESTRICTIONS],
+          usageRestrictions: mergeStrings(
+            value.usageRestrictions,
+            [...NPPES_USAGE_RESTRICTIONS],
+          ),
         },
         trustTier: claim.tier,
         confidence: claim.confidenceScore,
@@ -348,6 +370,7 @@ function mapObservationFromClaim(
           sourceLatency: value.sourceLatency ?? trustMetadata.sourceLatency,
           dataFreshness: value.dataFreshness ?? trustMetadata.dataFreshness,
           dataVersion,
+          leieVersionDate: value.leieVersionDate ?? null,
         },
         artifactIds: [claim.artifactId],
         receiptIds,
@@ -365,6 +388,7 @@ function mapObservationFromClaim(
           reviewRequired: claim.reviewRequired,
           reviewReason: claim.reviewReason,
           matchType: value.matchType,
+          leieVersionDate: value.leieVersionDate ?? null,
           claimState,
           matchedFields: value.matchedFields ?? [],
         },
@@ -399,9 +423,12 @@ function mapObservationFromClaim(
           source: value.source,
           observedAt: enrollmentObservedAt,
           dataVersion,
+          label: value.label ?? null,
+          statusLabel: value.statusLabel ?? value.label ?? null,
+          claimState: value.enrolled ? 'ENROLLED' : 'ENROLLMENT_NOT_FOUND',
           sourceLatency: value.sourceLatency ?? trustMetadata.sourceLatency,
           dataFreshness: value.dataFreshness ?? trustMetadata.dataFreshness,
-          sourceDisclaimer: value.sourceDisclaimer ?? 'Point-in-time enrollment data, not real-time coverage.',
+          sourceDisclaimer: value.sourceDisclaimer ?? 'Quarterly CMS PECOS snapshot that may lag current enrollment changes.',
         },
         artifactIds: [claim.artifactId],
         receiptIds,
@@ -418,8 +445,10 @@ function mapObservationFromClaim(
           claimType: claim.claimType,
           reviewRequired: claim.reviewRequired,
           reviewReason: claim.reviewReason,
-          claimState: value.enrolled ? 'ENROLLED' : 'NOT_ENROLLED',
-          sourceDisclaimer: value.sourceDisclaimer ?? 'Point-in-time enrollment data, not real-time coverage.',
+          claimState: value.enrolled ? 'ENROLLED' : 'ENROLLMENT_NOT_FOUND',
+          label: value.label ?? null,
+          statusLabel: value.statusLabel ?? value.label ?? null,
+          sourceDisclaimer: value.sourceDisclaimer ?? 'Quarterly CMS PECOS snapshot that may lag current enrollment changes.',
         },
         trustTier: claim.tier,
         confidence: claim.confidenceScore,
@@ -489,6 +518,7 @@ function mapObservationFromClaim(
 
 function materializeFromVerificationArtifact(
   artifact: VerificationArtifactSnapshot,
+  receiptIds: string[],
 ): MaterializedCredentialObservation | null {
   const rawPayload = asRecord(artifact.rawPayload);
   const payloadJson = asRecord(rawPayload.payload_json);
@@ -508,7 +538,7 @@ function materializeFromVerificationArtifact(
     return {
       subjectNpi: artifact.npi,
       domain: 'IDENTITY',
-      credentialType: 'NPI_ENROLLMENT',
+      credentialType: 'NPI_IDENTITY',
       status: normalizeCredentialStatus(artifact.status) === 'ACTIVE' ? 'ACTIVE' : 'UNRESOLVED',
       verificationLevel: 'SOURCE_VERIFIED',
       claimValue: {
@@ -517,9 +547,14 @@ function materializeFromVerificationArtifact(
         providerType: payloadJson.provider_type,
         taxonomyCode: payloadJson.taxonomy_code,
         practiceState: payloadJson.practice_state,
+        claimType: 'IDENTITY',
+        label: 'CMS NPPES identity record',
+        identityOnly: true,
+        usageRestrictions: [...NPPES_USAGE_RESTRICTIONS],
+        sourceDisclaimer: NPPES_IDENTITY_ONLY_EXPLANATION,
       },
       artifactIds: [artifact.id],
-      receiptIds: [],
+      receiptIds,
       issuedAt: observedAt,
       expiresAt: null,
       verifiedAt,
@@ -529,9 +564,13 @@ function materializeFromVerificationArtifact(
       metadata: {
         ...trustMetadata,
         source: artifact.source,
+        claimType: 'IDENTITY',
+        label: 'CMS NPPES identity record',
+        identityOnly: true,
         sourceStatus: payloadJson.source_status,
-        sourceDisclaimer: 'Identity only, not licensure',
-        limitations: ['Identity only, not licensure'],
+        sourceDisclaimer: NPPES_IDENTITY_ONLY_EXPLANATION,
+        limitations: [...NPPES_USAGE_RESTRICTIONS],
+        usageRestrictions: [...NPPES_USAGE_RESTRICTIONS],
       },
       trustTier: artifact.trustTier,
       confidence: artifact.confidenceScore,
@@ -552,11 +591,11 @@ function materializeFromVerificationArtifact(
         ? 'CLEAR'
         : status === 'EXCLUDED'
           ? 'EXCLUDED'
-          : status === 'UNCERTAIN' || status === 'CHECK_FAILED'
+          : status === 'POSSIBLE_MATCH' || status === 'REVIEW_REQUIRED'
+            ? 'REVIEW_REQUIRED'
+            : status === 'UNCHECKED' || status === 'UNCERTAIN' || status === 'CHECK_FAILED'
             ? 'UNCERTAIN'
-            : status === 'REVIEW_REQUIRED'
-              ? 'REVIEW_REQUIRED'
-              : 'UNCERTAIN';
+            : 'UNCERTAIN';
     const trustMetadata = defaultCredentialTrustMetadata({
       claim: {
         confidence:
@@ -564,7 +603,7 @@ function materializeFromVerificationArtifact(
             ? 'HIGH'
             : status === 'CLEAR'
               ? 'HIGH'
-              : status === 'REVIEW_REQUIRED'
+              : status === 'POSSIBLE_MATCH' || status === 'REVIEW_REQUIRED'
                 ? 'MEDIUM'
                 : 'UNCERTAIN',
         observedAt: observedAt?.toISOString() ?? new Date().toISOString(),
@@ -585,12 +624,17 @@ function materializeFromVerificationArtifact(
         exclusionType: payloadJson.exclusion_type,
         exclusionDate: payloadJson.exclusion_date,
         reinstatementDate: payloadJson.reinstatement_date,
+        matchType: payloadJson.matchType ?? rawPayload.matchType,
+        matchConfidence: payloadJson.matchConfidence ?? rawPayload.matchConfidence,
         waiverState: payloadJson.waiver_state,
         sourceUrl: payloadJson.source_url,
+        sourceLatency: payloadJson.sourceLatency ?? rawPayload.sourceLatency ?? trustMetadata.sourceLatency,
+        dataFreshness: payloadJson.dataFreshness ?? rawPayload.dataFreshness ?? trustMetadata.dataFreshness,
         dataVersion: rawPayload.dataVersion,
+        leieVersionDate: payloadJson.leieVersionDate ?? rawPayload.leieVersionDate ?? null,
       },
       artifactIds: [artifact.id],
-      receiptIds: [],
+      receiptIds,
       issuedAt: parseDate(payloadJson.exclusion_date as string | undefined) ?? observedAt,
       expiresAt: null,
       verifiedAt,
@@ -601,6 +645,8 @@ function materializeFromVerificationArtifact(
         ...trustMetadata,
         source: artifact.source,
         sourceUrl: payloadJson.source_url,
+        matchType: payloadJson.matchType ?? rawPayload.matchType,
+        leieVersionDate: payloadJson.leieVersionDate ?? rawPayload.leieVersionDate ?? null,
         claimState:
           materializedStatus === 'CLEAR'
             ? 'CLEAR'
@@ -647,7 +693,7 @@ function materializeFromVerificationArtifact(
         boardName,
       },
       artifactIds: [artifact.id],
-      receiptIds: [],
+      receiptIds,
       issuedAt: observedAt,
       expiresAt: artifact.expiresAt,
       verifiedAt,
@@ -672,6 +718,50 @@ function materializeFromVerificationArtifact(
   }
 
   return null;
+}
+
+async function getPersistedReceiptIds(input: {
+  verificationArtifactId: string;
+  claimIds?: readonly string[];
+}): Promise<{
+  artifactReceiptIds: string[];
+  receiptIdsByClaimId: Map<string, string[]>;
+}> {
+  const rows = await prisma.verificationReceiptRecord.findMany({
+    where: {
+      verificationArtifactId: input.verificationArtifactId,
+      ...(input.claimIds && input.claimIds.length > 0
+        ? {
+            OR: [
+              {
+                claimId: {
+                  in: [...input.claimIds],
+                },
+              },
+              {
+                verificationArtifactId: input.verificationArtifactId,
+              },
+            ],
+          }
+        : {}),
+    },
+    select: {
+      receiptId: true,
+      claimId: true,
+    },
+  });
+
+  const receiptIdsByClaimId = new Map<string, string[]>();
+  for (const row of rows) {
+    const existing = receiptIdsByClaimId.get(row.claimId) ?? [];
+    existing.push(row.receiptId);
+    receiptIdsByClaimId.set(row.claimId, existing);
+  }
+
+  return {
+    artifactReceiptIds: mergeStrings(rows.map((row) => row.receiptId)),
+    receiptIdsByClaimId,
+  };
 }
 
 async function ensureSubjectEntityId(subjectNpi: string): Promise<string> {
@@ -724,6 +814,13 @@ async function ensureIssuerEntityId(authority: MaterializationAuthority): Promis
 export async function upsertVcvCredential(
   observation: MaterializedCredentialObservation,
 ): Promise<VcvCredential> {
+  assertCredentialObservationIntegrity({
+    verificationLevel: observation.verificationLevel,
+    artifactIds: observation.artifactIds,
+    receiptIds: observation.receiptIds,
+    context: `${observation.subjectNpi}:${observation.domain}:${observation.credentialType}`,
+  });
+
   const subjectId = await ensureSubjectEntityId(observation.subjectNpi);
   const issuerId = await ensureIssuerEntityId(observation.authority);
   const familyKey = familyKeyForObservation({
@@ -740,6 +837,24 @@ export async function upsertVcvCredential(
     expiresAt: observation.expiresAt,
     observedAt: observation.observedAt,
   });
+
+  // Data Integrity Guardrails: Megawave M4
+  const isVerified = observation.verificationLevel === 'SOURCE_VERIFIED' || observation.verifiedAt != null;
+  if (isVerified && (!observation.receiptIds || observation.receiptIds.length === 0)) {
+    throw new Error('Data integrity violation: Cannot mark credential as verified without a receipt');
+  }
+
+  if (observation.receiptIds && observation.receiptIds.length > 0) {
+    if (!observation.artifactIds || observation.artifactIds.length === 0) {
+      throw new Error('Data integrity violation: Cannot attach a receipt without a verification artifact');
+    }
+  }
+
+  if (observation.artifactIds && observation.artifactIds.length > 0) {
+    if (!observation.authority || !observation.authority.authorityKey) {
+      throw new Error('Data integrity violation: Cannot create an artifact without a source authority');
+    }
+  }
 
   return prisma.$transaction(async (tx) => {
     const existingExact = await tx.vcvCredential.findUnique({
@@ -865,6 +980,14 @@ export async function materializeClaimsToVcvCredentials(
     existing.push(receipt.receipt_id);
     receiptIdsByClaimId.set(receipt.claim_id, existing);
   }
+  const persistedReceipts = await getPersistedReceiptIds({
+    verificationArtifactId: input.verificationArtifactId,
+    claimIds: input.claims.map((claim) => claim.claimId),
+  });
+  for (const [claimId, receiptIds] of persistedReceipts.receiptIdsByClaimId.entries()) {
+    const existing = receiptIdsByClaimId.get(claimId) ?? [];
+    receiptIdsByClaimId.set(claimId, mergeStrings(existing, receiptIds));
+  }
 
   const credentialIds: string[] = [];
   for (const claim of input.claims) {
@@ -877,15 +1000,33 @@ export async function materializeClaimsToVcvCredentials(
       continue;
     }
 
-    const credential = await upsertVcvCredential(observation);
-    credentialIds.push(credential.id);
+    try {
+      const credential = await upsertVcvCredential(observation);
+      credentialIds.push(credential.id);
+    } catch (error) {
+      log('warn', 'vcv_credential_materialization_skipped', {
+        subjectNpi: claim.subjectNpi,
+        claimId: claim.claimId,
+        claimType: claim.claimType,
+        error: String(error),
+      });
+    }
   }
 
   if (credentialIds.length === 0 && artifact) {
-    const fallback = materializeFromVerificationArtifact(artifact);
+    const fallback = materializeFromVerificationArtifact(artifact, persistedReceipts.artifactReceiptIds);
     if (fallback) {
-      const credential = await upsertVcvCredential(fallback);
-      credentialIds.push(credential.id);
+      try {
+        const credential = await upsertVcvCredential(fallback);
+        credentialIds.push(credential.id);
+      } catch (error) {
+        log('warn', 'vcv_credential_fallback_skipped', {
+          subjectNpi: artifact.npi,
+          artifactId: artifact.id,
+          source: artifact.source,
+          error: String(error),
+        });
+      }
     }
   }
 
@@ -914,13 +1055,29 @@ export async function materializeVerificationArtifactToVcvCredentials(
     return { credentialIds: [] };
   }
 
-  const observation = materializeFromVerificationArtifact(artifact);
+  const persistedReceipts = await getPersistedReceiptIds({
+    verificationArtifactId,
+  });
+  const observation = materializeFromVerificationArtifact(
+    artifact,
+    persistedReceipts.artifactReceiptIds,
+  );
   if (!observation) {
     return { credentialIds: [] };
   }
 
-  const credential = await upsertVcvCredential(observation);
-  return { credentialIds: [credential.id] };
+  try {
+    const credential = await upsertVcvCredential(observation);
+    return { credentialIds: [credential.id] };
+  } catch (error) {
+    log('warn', 'vcv_credential_artifact_only_skipped', {
+      subjectNpi: artifact.npi,
+      artifactId: artifact.id,
+      source: artifact.source,
+      error: String(error),
+    });
+    return { credentialIds: [] };
+  }
 }
 
 export async function replayVcvCredentialsForNpi(npi: string): Promise<MaterializeResult> {

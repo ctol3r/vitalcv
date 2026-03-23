@@ -9,19 +9,32 @@ const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
 // Must import after setting global.fetch
-import { lookupNpi, leieCacheStats } from '../../../services/identity/leieCache';
+import {
+  lookupNpi,
+  lookupProvider,
+  leieCacheStats,
+  resetLeieCacheForTests,
+} from '../../../services/identity/leieCache';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 const CSV_HEADER = 'LASTNAME,FIRSTNAME,MIDNAME,BUSNAME,GENERAL,SPECIALTY,UPIN,NPI,DOB,ADDRESS,CITY,STATE,ZIP,EXCLTYPE,EXCLDATE,REINDATE,WAIVERDATE,WVRSTATE\n';
 
-function makeRow(npi: string, lastName = 'DOE', exclusionType = '1128a1', exclusionDate = '20200101'): string {
-  return `"${lastName}","JOHN","","","INDIVIDUAL","PHYSICIAN","","${npi}","19600101","123 MAIN ST","ANYTOWN","CA","90210","${exclusionType}","${exclusionDate}","00000000","00000000",""\n`;
+function makeRow(
+  npi: string,
+  lastName = 'DOE',
+  exclusionType = '1128a1',
+  exclusionDate = '20200101',
+  specialty = 'PHYSICIAN',
+  middleName = '',
+): string {
+  return `"${lastName}","JOHN","${middleName}","","INDIVIDUAL","${specialty}","","${npi}","19600101","123 MAIN ST","ANYTOWN","CA","90210","${exclusionType}","${exclusionDate}","00000000","00000000",""\n`;
 }
 
 function mockCsvResponse(rows: string): void {
   mockFetch.mockResolvedValueOnce({
     ok:   true,
+    headers: new Headers({ 'last-modified': 'Tue, 10 Mar 2026 13:12:25 GMT' }),
     text: async () => CSV_HEADER + rows,
   } as unknown as Response);
 }
@@ -30,6 +43,7 @@ function mockCsvResponse(rows: string): void {
 beforeEach(() => {
   jest.resetModules();
   mockFetch.mockReset();
+  resetLeieCacheForTests();
 });
 
 // ── Tests ──────────────────────────────────────────────────────────────────────
@@ -45,6 +59,8 @@ describe('leieCache', () => {
     // We test the logic by directly checking what the mock returns
     expect(result.source).toBe('LEIE_CSV');
     expect(result.npi).toBe('1234567890');
+    expect(result.matchConfidence).toBe('HIGH');
+    expect(result.leieVersionDate).toBe('2026-03-10');
   });
 
   it('returns excluded=false for non-matching NPI when cache available', async () => {
@@ -65,6 +81,7 @@ describe('leieCache', () => {
     expect(result).toHaveProperty('excluded');
     expect(result).toHaveProperty('checkedAt');
     expect(result).toHaveProperty('cacheAge');
+    expect(result).toHaveProperty('leieVersionDate');
   });
 
   it('result shape is complete even on HTTP 500', async () => {
@@ -95,6 +112,48 @@ describe('leieCache', () => {
     expect(stats).toHaveProperty('entries');
     expect(stats).toHaveProperty('ageMs');
     expect(stats).toHaveProperty('error');
+    expect(stats).toHaveProperty('leieVersionDate');
+  });
+
+  it('scores state plus specialty-family name matches as MEDIUM confidence', async () => {
+    mockCsvResponse(makeRow('1234567890', 'DOE', '1128a1', '20200101', 'Internal Medicine - Cardiology'));
+    const result = await lookupProvider({
+      npi: '',
+      firstName: 'JOHN',
+      lastName: 'DOE',
+      state: 'CA',
+      specialty: 'Cardiology',
+    });
+
+    expect(result.verdict).toBe('POSSIBLE_MATCH');
+    expect(result.matchConfidence).toBe('MEDIUM');
+  });
+
+  it('scores last, first, middle, state, and specialty matches as HIGH confidence', async () => {
+    mockCsvResponse(makeRow('1234567890', 'DOE', '1128a1', '20200101', 'Cardiology', 'M'));
+    const result = await lookupProvider({
+      npi: '',
+      firstName: 'JOHN',
+      middleName: 'M',
+      lastName: 'DOE',
+      state: 'CA',
+      specialty: 'Cardiology',
+    });
+
+    expect(result.verdict).toBe('POSSIBLE_MATCH');
+    expect(result.matchConfidence).toBe('HIGH');
+  });
+
+  it('scores partial name-only matches as LOW confidence', async () => {
+    mockCsvResponse(makeRow('1234567890', 'DOE'));
+    const result = await lookupProvider({
+      npi: '',
+      firstName: 'J',
+      lastName: 'DOE',
+    });
+
+    expect(result.verdict).toBe('POSSIBLE_MATCH');
+    expect(result.matchConfidence).toBe('LOW');
   });
 });
 

@@ -1,6 +1,7 @@
 import type { Prisma, VcvCredentialDomain } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
-import { buildPassport } from './passportService';
+import { buildPassport, type ReadinessNextAction } from './passportService';
+import { resolveCredentialEvidence } from './evidenceIntegrity';
 
 export interface EmployerReviewCredentialRef {
   credentialId: string;
@@ -19,7 +20,9 @@ export interface EmployerReviewCredentialRef {
   matchConfidence?: string;
   sourceLatency?: string;
   claimState?: string;
+  statusLabel?: string;
   dataVersion?: string;
+  identityOnly?: boolean;
   sourceDisclaimer?: string;
   artifactIds: string[];
   receiptIds: string[];
@@ -37,9 +40,11 @@ export interface EmployerReviewPayloadV1 {
   readinessSummary: {
     status: string;
     score: number;
+    readiness_score: number;
     level: string;
     blockers: string[];
     gaps: string[];
+    nextActions: ReadinessNextAction[];
     estimatedStartDays: number | null;
   };
   authorityStanding: {
@@ -51,10 +56,12 @@ export interface EmployerReviewPayloadV1 {
     pecosStatus: string;
     enrollmentObservedAt?: string;
     enrollmentDataVersion?: string;
+    enrollmentStatusLabel?: string;
     enrollmentFreshnessLabel?: string;
     negativeFindings: string[];
   };
   blockers: string[];
+  nextActions: ReadinessNextAction[];
   credentialsIncluded: EmployerReviewCredentialRef[];
   receiptReferences: string[];
   proofReferences: string[];
@@ -126,23 +133,66 @@ export async function buildEmployerReviewPayload(input: {
   });
 
   const artifactIds = mergeStrings(credentials.map((credential) => credential.artifactIds));
-  const receiptReferences = mergeStrings(credentials.map((credential) => credential.receiptIds));
+  const receiptIds = mergeStrings(credentials.map((credential) => credential.receiptIds));
   const passportCredentialsById = new Map(
     passport.authority.credentials.map((credential) => [credential.id, credential] as const),
   );
-  const artifacts = artifactIds.length > 0
-    ? await prisma.verificationArtifact.findMany({
-        where: {
-          id: {
-            in: artifactIds,
+  const receiptClient = (prisma as unknown as {
+    verificationReceiptRecord?: {
+      findMany?: (args: Record<string, unknown>) => Promise<Array<{
+        receiptId: string;
+        sourceArtifactId: string | null;
+        verificationArtifactId: string | null;
+      }>>;
+    };
+  }).verificationReceiptRecord;
+  const [artifacts, receipts] = await Promise.all([
+    artifactIds.length > 0
+      ? await prisma.verificationArtifact.findMany({
+          where: {
+            id: {
+              in: artifactIds,
+            },
           },
+          select: {
+            id: true,
+            source: true,
+          },
+        })
+      : [],
+    receiptIds.length > 0 && receiptClient?.findMany
+      ? await receiptClient.findMany({
+          where: {
+            receiptId: {
+              in: receiptIds,
+            },
+          },
+          select: {
+            receiptId: true,
+            sourceArtifactId: true,
+            verificationArtifactId: true,
+          },
+        })
+      : [],
+  ]);
+  const artifactsById = new Map(artifacts.map((artifact) => [artifact.id, artifact]));
+  const receiptsById = new Map(receipts.map((receipt) => [receipt.receiptId, receipt]));
+  const reviewableCredentials = credentials
+    .map((credential) => ({
+      credential,
+      evidence: resolveCredentialEvidence({
+        credential: {
+          id: credential.id,
+          verificationLevel: credential.verificationLevel,
+          artifactIds: credential.artifactIds,
+          receiptIds: credential.receiptIds,
         },
-        select: {
-          id: true,
-          source: true,
-        },
-      })
-    : [];
+        artifactsById,
+        receiptsById,
+      }),
+    }))
+    .filter((entry) => entry.evidence.publicSafe);
+  const receiptReferences = mergeStrings(reviewableCredentials.map((entry) => entry.evidence.validReceiptIds));
 
   return {
     schema: 'vitalcv.employer.review.v1',
@@ -156,9 +206,11 @@ export async function buildEmployerReviewPayload(input: {
     readinessSummary: {
       status: passport.readiness.status,
       score: passport.readiness.score,
+      readiness_score: passport.readiness.readiness_score,
       level: passport.readiness.level,
       blockers: [...passport.readiness.blockers],
       gaps: [...passport.readiness.gaps],
+      nextActions: [...passport.readiness.nextActions],
       estimatedStartDays: passport.readiness.estimatedStartDays,
     },
     authorityStanding: {
@@ -170,11 +222,13 @@ export async function buildEmployerReviewPayload(input: {
       pecosStatus: passport.standing.pecosStatus,
       enrollmentObservedAt: passport.standing.enrollmentObservedAt,
       enrollmentDataVersion: passport.standing.enrollmentDataVersion,
+      enrollmentStatusLabel: passport.standing.enrollmentStatusLabel,
       enrollmentFreshnessLabel: passport.standing.enrollmentFreshnessLabel,
       negativeFindings: [...passport.standing.negativeFindings],
     },
     blockers: [...passport.readiness.blockers],
-    credentialsIncluded: credentials.map((credential) => {
+    nextActions: [...passport.readiness.nextActions],
+    credentialsIncluded: reviewableCredentials.map(({ credential, evidence }) => {
       const passportCredential = passportCredentialsById.get(credential.id);
       return {
         credentialId: credential.id,
@@ -193,19 +247,23 @@ export async function buildEmployerReviewPayload(input: {
         matchConfidence: passportCredential?.matchConfidence,
         sourceLatency: passportCredential?.sourceLatency,
         claimState: passportCredential?.claimState,
+        statusLabel: passportCredential?.statusLabel,
         dataVersion: passportCredential?.dataVersion,
+        identityOnly: passportCredential?.identityOnly,
         sourceDisclaimer: passportCredential?.sourceDisclaimer,
-        artifactIds: [...credential.artifactIds],
-        receiptIds: [...credential.receiptIds],
+        artifactIds: [...evidence.validArtifactIds],
+        receiptIds: [...evidence.validReceiptIds],
       };
     }),
     receiptReferences,
     proofReferences: [...receiptReferences],
     checkedAt: passport.lastCheckedAt,
     sourceCoverage: {
-      sources: Array.from(new Set(artifacts.map((artifact) => artifact.source))).sort((left, right) => left.localeCompare(right)),
-      domains: Array.from(new Set(credentials.map((credential) => credential.domain))).sort((left, right) => left.localeCompare(right)),
-      credentialCount: credentials.length,
+      sources: Array.from(new Set(
+        reviewableCredentials.flatMap(({ evidence }) => evidence.validArtifactIds.map((artifactId) => artifactsById.get(artifactId)?.source).filter((source): source is string => Boolean(source))),
+      )).sort((left, right) => left.localeCompare(right)),
+      domains: Array.from(new Set(reviewableCredentials.map(({ credential }) => credential.domain))).sort((left, right) => left.localeCompare(right)),
+      credentialCount: reviewableCredentials.length,
     },
     shareMetadata: {
       organizationContextId: context?.id,

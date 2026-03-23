@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Holder Page — Clinician Trust Passport
+ * Holder Page — Clinician Your readiness
  *
  * Loads the logged-in clinician's real NPI from their workspace profile.
  * If no NPI is set up yet, shows an onboarding empty state → /get-ready.
@@ -77,7 +77,7 @@ export default function HolderPage() {
             <ShieldCheck className="h-7 w-7 text-emerald-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white mb-2">Set up your trust passport</h1>
+            <h1 className="text-2xl font-bold text-white mb-2">Set up your your readiness</h1>
             <p className="text-zinc-400 leading-relaxed text-sm">
               Verify your NPI to activate your clinician profile. Takes 2 minutes.
               VitalCV pulls your credentials directly from public registries — no document uploads required to get started.
@@ -188,7 +188,7 @@ export default function HolderPage() {
           heading="Upload credential evidence"
           description="Attach a license, certificate, or supporting document here if readiness or an active application requests more evidence. Upload attaches immediately, and verification can complete asynchronously."
           returnToHref="/holder"
-          returnToLabel="Return to trust passport"
+          returnToLabel="Return to your readiness"
         />
       </div>
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
