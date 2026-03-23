@@ -85,7 +85,18 @@ export interface PassportData {
     exclusionConfidenceLabel?: string;
     licensureStatus:  'verified' | 'pending' | 'expired' | 'unknown';
     deaStatus:        'registered' | 'none' | 'unknown';
+    /** @deprecated Use pecosEnrollmentStatus */
     pecosStatus:      'enrolled' | 'not_enrolled' | 'unknown';
+    /** MS16-A: Canonical PECOS state — ENROLLED | NOT_FOUND | UNKNOWN | UNCHECKED */
+    pecosEnrollmentStatus: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED';
+    /** MS16-A: Always "CMS PECOS" */
+    enrollmentSourceLabel: string;
+    /** MS16-A: Always "Quarterly" */
+    enrollmentDataFreshness: string;
+    /** MS16-A: Always quarterly for PECOS */
+    enrollmentSourceLatency?: string;
+    /** MS16-A: Explicit human-readable label */
+    enrollmentNote: string | null;
     enrollmentObservedAt?: string;
     enrollmentDataVersion?: string;
     enrollmentStatusLabel?: string;

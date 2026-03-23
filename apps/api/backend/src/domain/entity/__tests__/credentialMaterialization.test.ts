@@ -158,8 +158,11 @@ describe('upsertVcvCredential', () => {
     const claim = makeClaim({
       claimType: 'ENROLLMENT_STATUS',
       value: {
-        _type: 'ENROLLMENT_STATUS', enrolled: true,
-        enrollmentType: 'INDIVIDUAL', eligibleToOrderRefer: true,
+        _type: 'ENROLLMENT_STATUS',
+        claimState: 'ENROLLED' as const,
+        enrolled: true,
+        enrollmentType: 'INDIVIDUAL',
+        eligibleToOrderRefer: true,
         source: 'PECOS',
       },
     });
