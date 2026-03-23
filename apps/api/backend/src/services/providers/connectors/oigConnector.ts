@@ -97,7 +97,7 @@ export async function loadLeieData(csvPathOrUrl?: string): Promise<void> {
 }
 
 export async function checkOIGExclusion(npi: string): Promise<OIGExclusionResult> {
-  return runConnectorWithReliability({
+  return runConnectorWithReliability<OIGExclusionResult>({
     connector: 'OIG',
     quotaPolicy: OIG_QUOTA_POLICY,
     schemaPolicy: OIG_SCHEMA_POLICY,

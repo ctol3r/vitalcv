@@ -39,7 +39,7 @@ const VALUE_PROPS = [
     icon: '⚡',
     title: 'Speed: Source-level verified results',
     desc: 'Traditional credentialing takes 30–90 days. VitalCV delivers cryptographically-verified results as fast as the underlying source allows.',
-    stat: '98%', statLabel: 'faster than manual',
+    stat: '30–90d', statLabel: 'cut to days',
   },
   {
     icon: '🔒',

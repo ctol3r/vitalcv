@@ -8,8 +8,6 @@ export const PUBLIC_SURFACE_PATHS = new Set([
   '/developers',
   '/documents',
   '/mobile',
-  '/simulation',
-  '/status',
   '/explore',
   '/employers',
   '/search',
@@ -17,12 +15,18 @@ export const PUBLIC_SURFACE_PATHS = new Set([
   '/get-ready',
   '/investors',
   '/partners',
-  // Activation wave — product entry points
-  '/interview',
-  '/passport',
   '/updates',
-  '/labs',
 ]);
+
+export function isPublicSafe(route: string): boolean {
+  const unsafePrefixes = [
+    '/intelligence', '/graph', '/findings', '/providers',
+    '/storylines', '/investigations', '/actions', '/network',
+    '/calibration', '/system-health', '/status', '/labs',
+    '/interview', '/passport'
+  ];
+  return !unsafePrefixes.some(p => route === p || route.startsWith(`${p}/`));
+}
 
 // Ops-only paths: these get the AppShell (ops chrome), not Navbar+Footer.
 // Keep in sync with VCV_UI_DOCTRINE.md §1 Surface Classification.

@@ -20,7 +20,7 @@
 
 import { env } from '../../config/env';
 import { queryNursysLicense } from '../nursysAdapter';
-import type { NormalizedClaim } from './evidenceModel';
+import type { LicenseValue, NormalizedClaim } from './evidenceModel';
 import { computeClaimId } from './evidenceModel';
 import { log } from '../../obs/logger';
 
@@ -34,7 +34,7 @@ export async function fetchNursysClaim(
   npi: string,
   observedAt: string,
 ): Promise<NormalizedClaim | null> {
-  if (!env.REAL_NURSYS_ENABLED) {
+  if (!env().REAL_NURSYS_ENABLED) {
     // Not enabled — do not produce fake license claims
     return null;
   }
@@ -45,25 +45,27 @@ export async function fetchNursysClaim(
     // Map license status to claim status
     const claimStatus: NormalizedClaim['status'] =
       result.licenseStatus === 'ACTIVE'    ? 'ACTIVE'   :
-      result.licenseStatus === 'EXPIRED'   ? 'INACTIVE' :
+      result.licenseStatus === 'EXPIRED'   ? 'EXPIRED' :
       result.licenseStatus === 'SUSPENDED' ? 'BLOCKED'  :
-      result.licenseStatus === 'REVOKED'   ? 'SUPERSEDED' :
-                                             'INACTIVE';
+      result.licenseStatus === 'REVOKED'   ? 'BLOCKED' :
+                                             'UNVERIFIED';
 
-    const value = {
-      _type:         'LICENSE' as const,
-      licenseState:  result.jurisdiction,
-      licenseType:   'STATE_LICENSE',
-      licenseStatus: result.licenseStatus,
-      licenseNumber: null,  // Nursys QuickConfirm doesn't expose number publicly
-      expirationDate: result.expirationDate,
+    const value: LicenseValue = {
+      _type:         'LICENSE',
+      state:         result.jurisdiction,
+      licenseNumber: null,
+      issueDate:     null,
+      expiryDate:    result.expirationDate,
+      licenseStatus: result.licenseStatus === 'INACTIVE' ? 'UNKNOWN' : result.licenseStatus,
+      disciplinaryActions: [],
+      source:        'NURSYS',
     };
 
     const claimId = computeClaimId(
       'LICENSE',
       'NURSYS',
       npi,
-      result.licenseStatus + result.jurisdiction,
+      value,
     );
 
     return {
@@ -78,8 +80,18 @@ export async function fetchNursysClaim(
       status:           claimStatus,
       reviewRequired:   false,
       observedAt,
-      value: value as unknown as NormalizedClaim['value'],
-    } as unknown as NormalizedClaim;
+      derivedAt:        observedAt,
+      artifactChecksum: 'nursys-pending-artifact',
+      parserVersion:    'nursys-claim-mapper/v1',
+      validFrom:        observedAt,
+      validUntil:       result.expirationDate,
+      expiresAt:        result.expirationDate,
+      supersededBy:     null,
+      supersedes:       null,
+      reviewReason:     null,
+      humanReviewAt:    null,
+      value,
+    };
 
   } catch (err) {
     log('warn', 'nursys_claim_fetch_failed', { npi, error: String(err) });

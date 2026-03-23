@@ -126,6 +126,7 @@ describe('credential ingestion service', () => {
     mockCheckOigExclusion.mockResolvedValue({
       npi: '1234567893',
       excluded: false,
+      verdict: 'CLEAR',
       exclusionType: null,
       exclusionDate: null,
       reinstatementDate: null,
@@ -143,6 +144,36 @@ describe('credential ingestion service', () => {
     expect(result.verificationArtifact.source_type).toBe('OIG');
     expect(result.verificationArtifact.verification_method).toBe('MOCK_ADAPTER');
     expect(result.verificationArtifact.fresh_until).toBe('2026-03-14T15:00:00.000Z');
+  });
+
+  test('maps OIG uncertainty without silently clearing the subject', async () => {
+    mockLookupByNpi.mockResolvedValue(buildNpiBatch());
+    mockCheckOigExclusion.mockResolvedValue({
+      npi: '1234567893',
+      excluded: false,
+      verdict: 'UNCERTAIN',
+      exclusionType: null,
+      exclusionDate: null,
+      reinstatementDate: null,
+      waiverState: null,
+      lastCheckedAt: '2026-03-13T15:00:00.000Z',
+      sourceUrl: 'https://oig.hhs.gov/exclusions/exclusions_list.asp',
+    });
+
+    await ingestNpiProfile('1234567893');
+    const result = await ingestOigStatus('1234567893');
+
+    expect(result.credentialArtifact.status).toBe('UNCERTAIN');
+    expect(result.verificationArtifact.metadata).toEqual(
+      expect.objectContaining({
+        oig_verdict: 'UNCERTAIN',
+      }),
+    );
+    expect(result.verificationArtifact.raw_payload).toEqual(
+      expect.objectContaining({
+        verdict: 'UNCERTAIN',
+      }),
+    );
   });
 
   test('ingests state license after auto-ingesting NPPES when practice state is missing', async () => {

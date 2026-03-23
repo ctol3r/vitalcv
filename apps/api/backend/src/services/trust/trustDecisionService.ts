@@ -194,9 +194,9 @@ export async function getOrEvaluateTrustDecision(
     claimCount:          existing.claimCount,
     goldClaimCount:      existing.goldClaimCount,
     silverClaimCount:    existing.silverClaimCount,
-    freshnessEvals:      existing.freshnessEvals as DecisionArtifact['freshnessEvals'],
-    negativeFindings:    existing.negativeFindings as DecisionArtifact['negativeFindings'],
-    conflicts:           existing.conflicts as DecisionArtifact['conflicts'],
+    freshnessEvals:      existing.freshnessEvals as unknown as DecisionArtifact['freshnessEvals'],
+    negativeFindings:    existing.negativeFindings as unknown as DecisionArtifact['negativeFindings'],
+    conflicts:           existing.conflicts as unknown as DecisionArtifact['conflicts'],
     explanation:         existing.explanation,
     claimIds:            existing.claimIds as string[],
   };
@@ -233,8 +233,8 @@ export async function getDecisionHistory(
     methodologyVersion:  r.methodologyVersion,
     evaluatedAt:         r.evaluatedAt.toISOString(),
     explanation:         r.explanation,
-    negativeFindings:    r.negativeFindings as DecisionArtifact['negativeFindings'],
-    conflicts:           r.conflicts as DecisionArtifact['conflicts'],
+    negativeFindings:    r.negativeFindings as unknown as DecisionArtifact['negativeFindings'],
+    conflicts:           r.conflicts as unknown as DecisionArtifact['conflicts'],
   }));
 }
 

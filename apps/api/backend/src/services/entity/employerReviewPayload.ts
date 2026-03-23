@@ -13,6 +13,14 @@ export interface EmployerReviewCredentialRef {
   issuerName?: string;
   observedAt?: string;
   expiresAt?: string;
+  claimConfidenceLabel?: string;
+  dataFreshnessLabel?: string;
+  dataFreshnessCadence?: string;
+  matchConfidence?: string;
+  sourceLatency?: string;
+  claimState?: string;
+  dataVersion?: string;
+  sourceDisclaimer?: string;
   artifactIds: string[];
   receiptIds: string[];
 }
@@ -36,9 +44,14 @@ export interface EmployerReviewPayloadV1 {
   };
   authorityStanding: {
     exclusionStatus: string;
+    exclusionCheckedAt?: string;
+    exclusionConfidenceLabel?: string;
     licensureStatus: string;
     deaStatus: string;
     pecosStatus: string;
+    enrollmentObservedAt?: string;
+    enrollmentDataVersion?: string;
+    enrollmentFreshnessLabel?: string;
     negativeFindings: string[];
   };
   blockers: string[];
@@ -114,6 +127,9 @@ export async function buildEmployerReviewPayload(input: {
 
   const artifactIds = mergeStrings(credentials.map((credential) => credential.artifactIds));
   const receiptReferences = mergeStrings(credentials.map((credential) => credential.receiptIds));
+  const passportCredentialsById = new Map(
+    passport.authority.credentials.map((credential) => [credential.id, credential] as const),
+  );
   const artifacts = artifactIds.length > 0
     ? await prisma.verificationArtifact.findMany({
         where: {
@@ -147,26 +163,42 @@ export async function buildEmployerReviewPayload(input: {
     },
     authorityStanding: {
       exclusionStatus: passport.standing.exclusionStatus,
+      exclusionCheckedAt: passport.standing.exclusionCheckedAt,
+      exclusionConfidenceLabel: passport.standing.exclusionConfidenceLabel,
       licensureStatus: passport.standing.licensureStatus,
       deaStatus: passport.standing.deaStatus,
       pecosStatus: passport.standing.pecosStatus,
+      enrollmentObservedAt: passport.standing.enrollmentObservedAt,
+      enrollmentDataVersion: passport.standing.enrollmentDataVersion,
+      enrollmentFreshnessLabel: passport.standing.enrollmentFreshnessLabel,
       negativeFindings: [...passport.standing.negativeFindings],
     },
     blockers: [...passport.readiness.blockers],
-    credentialsIncluded: credentials.map((credential) => ({
-      credentialId: credential.id,
-      domain: credential.domain,
-      credentialType: credential.credentialType,
-      status: credential.status,
-      verificationLevel: credential.verificationLevel,
-      jurisdiction: credential.jurisdiction ?? undefined,
-      issuerEntityId: credential.issuerId ?? undefined,
-      issuerName: credential.issuer?.displayName,
-      observedAt: credential.observedAt?.toISOString(),
-      expiresAt: credential.expiresAt?.toISOString(),
-      artifactIds: [...credential.artifactIds],
-      receiptIds: [...credential.receiptIds],
-    })),
+    credentialsIncluded: credentials.map((credential) => {
+      const passportCredential = passportCredentialsById.get(credential.id);
+      return {
+        credentialId: credential.id,
+        domain: credential.domain,
+        credentialType: credential.credentialType,
+        status: credential.status,
+        verificationLevel: credential.verificationLevel,
+        jurisdiction: credential.jurisdiction ?? undefined,
+        issuerEntityId: passportCredential?.issuerEntityId ?? credential.issuerId ?? undefined,
+        issuerName: passportCredential?.issuerName ?? credential.issuer?.displayName,
+        observedAt: passportCredential?.observedAt ?? credential.observedAt?.toISOString(),
+        expiresAt: credential.expiresAt?.toISOString(),
+        claimConfidenceLabel: passportCredential?.claimConfidenceLabel,
+        dataFreshnessLabel: passportCredential?.dataFreshnessLabel,
+        dataFreshnessCadence: passportCredential?.dataFreshnessCadence,
+        matchConfidence: passportCredential?.matchConfidence,
+        sourceLatency: passportCredential?.sourceLatency,
+        claimState: passportCredential?.claimState,
+        dataVersion: passportCredential?.dataVersion,
+        sourceDisclaimer: passportCredential?.sourceDisclaimer,
+        artifactIds: [...credential.artifactIds],
+        receiptIds: [...credential.receiptIds],
+      };
+    }),
     receiptReferences,
     proofReferences: [...receiptReferences],
     checkedAt: passport.lastCheckedAt,
@@ -185,7 +217,7 @@ export async function buildEmployerReviewPayload(input: {
 }
 
 export function employerReviewPayloadToJson(
-  payload: EmployerReviewPayloadV1,
+  payload: EmployerReviewPayloadV1 | EmployerReviewPayloadV1['sourceCoverage'] | unknown,
 ): Prisma.InputJsonValue {
   return toJsonValue(payload);
 }

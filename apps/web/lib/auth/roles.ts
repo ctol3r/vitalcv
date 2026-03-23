@@ -75,22 +75,9 @@ export const PROTECTED_ROUTES: Array<{ pattern: RegExp; role: UserRoleType }> = 
  */
 export const PUBLIC_ROUTE_PATTERNS = [
   /^\/$/, // landing
-  // ── Intelligence suite — fully public (no auth required) ──────────────────
-  // Backend enforces read-only access; write/mutation routes handle their own auth.
-  /^\/intelligence(\/.*)?$/, // full intelligence surface + subpaths
-  /^\/findings(\/.*)?$/, // findings feed + detail
-  /^\/providers(\/.*)?$/, // provider directory + detail
-  /^\/storylines(\/.*)?$/, // storyline feed + detail
-  /^\/graph(\/.*)?$/, // trust graph explorer
-  /^\/investigations(\/.*)?$/, // investigation workbench
-  /^\/actions(\/.*)?$/, // recommended actions
-  /^\/network(\/.*)?$/, // network telemetry
-  /^\/calibration(\/.*)?$/, // investigator calibration
-  /^\/system-health(\/.*)?$/, // system health surface
   // ── Other public surfaces ─────────────────────────────────────────────────
   /^\/simulation(\/.*)?$/, // public simulation surface
   /^\/mobile(\/.*)?$/, // mobile landing
-  /^\/status(\/.*)?$/, // public system status
   /^\/developers(\/.*)?$/, // public developer docs
   /^\/investors(\/.*)?$/, // public investor page
   /^\/partners(\/.*)?$/, // public partners page
@@ -101,10 +88,7 @@ export const PUBLIC_ROUTE_PATTERNS = [
   /^\/search(\/.*)?$/, // public search
   /^\/p(\/.*)?$/, // public clinician profiles — /p/:npi and subpaths
   /^\/updates(\/.*)?$/, // public updates / changelog
-  /^\/labs(\/.*)?$/, // public labs / experiments
   /^\/apply(\/.*)?$/, // public apply flow
-  /^\/interview(\/.*)?$/, // public interview entry
-  /^\/passport(\/.*)?$/, // public passport entry
   /^\/intake(\/.*)?$/,
   /^\/verify(\/.*)?$/,
   /^\/trust-state(\/.*)?$/,

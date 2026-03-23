@@ -78,7 +78,7 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     baseUrl: 'https://npiregistry.cms.hhs.gov/api/',
     bulkFileUrl: null,
     claimTypes: ['NPI_IDENTITY', 'PERSONAL_IDENTITY', 'SPECIALTY', 'PRACTICE_LOCATION', 'MAILING_ADDRESS', 'ENDPOINT'],
-    parserVersion: 'v1.0.0', envFlag: 'NPPES_API_ENABLED', liveAvailable: true,
+    parserVersion: 'v1.1.0', envFlag: 'NPPES_API_ENABLED', liveAvailable: true,
     notes: 'CMS FOIA-disclosable. NPI issuance does not validate licensure. V2.1 returns addresses, taxonomies, endpoints, identifiers.',
   },
 
@@ -96,12 +96,12 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
   PECOS_PUBLIC: {
     id: 'PECOS_PUBLIC', name: 'CMS Public Provider Enrollment (PECOS)', phase: 1,
     description: 'Publicly available PECOS enrollment data: name, NPI, specialty, enrollment type, limited address',
-    tier: 'GOLD', accessPattern: 'API', refreshCadence: 'MONTHLY', refreshSlaHours: 744,
+    tier: 'GOLD', accessPattern: 'API', refreshCadence: 'QUARTERLY', refreshSlaHours: 2160,
     baseUrl: 'https://data.cms.gov/provider-characteristics/medicare-provider-supplier-enrollment/',
     bulkFileUrl: 'https://data.cms.gov/provider-characteristics/medicare-provider-supplier-enrollment/medicare-fee-for-service-public-provider-enrollment',
     claimTypes: ['ENROLLMENT_STATUS', 'ORDER_REFERRAL', 'GROUP_AFFILIATION'],
-    parserVersion: 'v1.0.0', envFlag: 'PECOS_ENABLED', liveAvailable: true,
-    notes: 'CMS Public Provider Enrollment file — key PECOS enrollment data. Does not include sensitive fields.',
+    parserVersion: 'v1.1.0', envFlag: 'PECOS_ENABLED', liveAvailable: true,
+    notes: 'CMS Public Provider Enrollment file — key PECOS enrollment data. Treat as point-in-time quarterly data, not real-time enrollment.',
   },
 
   DOCTORS_CLINICIANS: {
@@ -122,8 +122,8 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     baseUrl: 'https://oig.hhs.gov/exclusions/',
     bulkFileUrl: 'https://oig.hhs.gov/exclusions/exclusions_list.asp',
     claimTypes: ['EXCLUSION_STATUS', 'SANCTION_RECORD'],
-    parserVersion: 'v1.0.0', envFlag: 'OIG_LEIE_ENABLED', liveAvailable: true,
-    notes: 'Hard blocker — EXCLUDED status immediately caps trust at L0. Check daily. Bulk CSV updated monthly.',
+    parserVersion: 'v1.1.0', envFlag: 'OIG_LEIE_ENABLED', liveAvailable: true,
+    notes: 'Hard blocker on exact matches only. Bulk CSV updated monthly; name/state/specialty fuzzy matches require manual review.',
   },
 
   // ── Phase 2: Trust Expansion ─────────────────────────────────────────────────

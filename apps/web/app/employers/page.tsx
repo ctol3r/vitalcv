@@ -43,7 +43,7 @@ const BACKEND = (
 export const metadata: Metadata = {
   title: 'Employers — VitalCV',
   description:
-    'Live employer directory with trust signals, open roles, and launch-safe entry points for clinicians, employers, and demo reviewers.',
+    'Employer directory with trust signals, open roles, and verified clinician readiness.',
 };
 
 function hiringStatusLabel(value: string): string {

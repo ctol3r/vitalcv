@@ -94,10 +94,11 @@ function tierToLevel(tier: string, confidence: number): VcvVerificationLevel {
 function claimStatusToCredStatus(claimStatus: string, reviewRequired: boolean): string {
   if (claimStatus === 'BLOCKED')    return 'SUSPENDED';
   if (claimStatus === 'SUPERSEDED') return 'REVOKED';
-  if (reviewRequired)               return 'PENDING_REVIEW';
+  if (reviewRequired)               return 'REVIEW_REQUIRED';
   if (claimStatus === 'ACTIVE')     return 'ACTIVE';
-  if (claimStatus === 'INACTIVE')   return 'EXPIRED';
-  return 'UNKNOWN';
+  if (claimStatus === 'EXPIRED')    return 'EXPIRED';
+  if (claimStatus === 'UNVERIFIED') return 'UNRESOLVED';
+  return 'UNRESOLVED';
 }
 
 // ── Freshness window → nextReverifyAt ─────────────────────────────────────────
@@ -220,6 +221,10 @@ export async function upsertVcvCredential(
   const issuerId          = await getIssuerId(claim.sourceId);
 
   const claimValue = JSON.parse(JSON.stringify(claim.value)) as import('@prisma/client').Prisma.InputJsonValue;
+  const credentialFamilyKey = `legacy-family:${entityId}:${domain}:${credentialType}:${jurisdiction ?? 'none'}`;
+  const credentialKey = claim.claimId
+    ? `legacy-claim:${claim.claimId}`
+    : `legacy:${entityId}:${domain}:${credentialType}:${claim.sourceId}`;
 
   try {
     const existing = claim.claimId
@@ -249,6 +254,8 @@ export async function upsertVcvCredential(
       data: {
         subjectId:         entityId,
         issuerId,
+        credentialKey,
+        credentialFamilyKey,
         domain,
         credentialType,
         status,
@@ -256,6 +263,9 @@ export async function upsertVcvCredential(
         claimValue,
         claimId:           claim.claimId ?? undefined,
         artifactIds:       claim.artifactId ? [claim.artifactId] : [],
+        observedAt:        verifiedAt,
+        trustTier:         claim.tier,
+        confidence:        claim.confidenceScore ?? null,
         issuedAt,
         expiresAt,
         verifiedAt,

@@ -72,6 +72,12 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
+function formatProofDate(value?: string | null): string | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toLocaleDateString();
+}
+
 // ── Accordion section builders ─────────────────────────────────────────────────
 
 function buildIdentitySection(passport: PassportData): AccordionItem {
@@ -104,25 +110,30 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
            : 'pending',
     content: (
       <div className="py-1 space-y-1">
-        {authority.credentials.filter(c => c.status === 'ACTIVE').map(c => (
+        {authority.credentials.map(c => (
           <div key={c.id} className="py-1.5 border-b border-white/5 last:border-0">
             <div className="flex justify-between text-xs">
               <span className="text-white/65 capitalize">{c.domain.replace(/_/g, ' ').toLowerCase()}</span>
               <span className={`text-xs ${c.reviewRequired ? 'text-white/30' : 'text-white/45'}`}>
-                {c.confidenceLabel ?? (c.jurisdiction ?? c.type)}
+                {c.claimState ?? c.status}
               </span>
             </div>
             <div className="flex justify-between text-xs mt-0.5">
-              {c.jurisdiction && <span className="text-white/30">{c.jurisdiction}</span>}
-              {c.dataFreshness && (
-                <span className="text-white/20 ml-auto">{c.dataFreshness}</span>
+              <span className="text-white/30">
+                {[c.issuerName ?? c.sourceId, c.jurisdiction].filter(Boolean).join(' · ') || c.type}
+              </span>
+              {c.dataFreshnessLabel && (
+                <span className="text-white/20 ml-auto">{c.dataFreshnessLabel}</span>
               )}
             </div>
-            {c.expiresAt && (
-              <div className="text-white/20 text-xs mt-0.5">
-                Expires {new Date(c.expiresAt).toLocaleDateString()}
-                {c.stale ? <span className="ml-1.5">(stale)</span> : null}
-              </div>
+            <div className="text-white/20 text-xs mt-0.5">
+              {c.claimConfidenceLabel}
+              {c.observedAt ? <span className="ml-1.5">Checked {formatProofDate(c.observedAt)}</span> : null}
+              {c.expiresAt ? <span className="ml-1.5">Expires {formatProofDate(c.expiresAt)}</span> : null}
+              {c.stale ? <span className="ml-1.5">(stale)</span> : null}
+            </div>
+            {c.sourceDisclaimer && (
+              <div className="text-white/25 text-xs mt-0.5">{c.sourceDisclaimer}</div>
             )}
           </div>
         ))}
@@ -185,14 +196,19 @@ function buildStandingSection(passport: PassportData): AccordionItem {
     id:      'standing',
     trigger: 'Standing',
     status:  allClear                               ? 'clear'
+           : standing.exclusionStatus === 'UNCHECKED' ? 'pending'
            : standing.negativeFindings.length > 0  ? 'action'
            : 'pending',
     content: (
       <div className="py-1">
         <DetailRow label="Exclusion check"   value={standing.exclusionStatus} />
+        <DetailRow label="Checked"           value={formatProofDate(standing.exclusionCheckedAt)} />
+        <DetailRow label="Confidence"        value={standing.exclusionConfidenceLabel} />
         <DetailRow label="License"           value={standing.licensureStatus} />
         <DetailRow label="DEA"               value={standing.deaStatus} />
         <DetailRow label="PECOS enrollment"  value={standing.pecosStatus} />
+        <DetailRow label="Enrollment as of"  value={formatProofDate(standing.enrollmentObservedAt)} />
+        <DetailRow label="Enrollment freshness" value={standing.enrollmentFreshnessLabel} />
         {standing.negativeFindings.map((f, i) => (
           <div key={i} className="flex items-center gap-2 text-xs py-1.5 border-b border-white/5 last:border-0">
             <span className="text-white/25 select-none">⚠</span>
@@ -231,7 +247,9 @@ export default function PassportWallet({ passport }: Props) {
   if (passport.training.hasDegree)                    verifiedItems.push('Medical degree on file');
   if (passport.training.hasResidency)                 verifiedItems.push('Residency completed');
 
-  if (!passport.standing.exclusionClear)                                missingItems.push('Exclusion check pending');
+  if (passport.standing.exclusionStatus === 'UNCHECKED')                missingItems.push('Exclusion check pending');
+  if (passport.standing.exclusionStatus === 'POSSIBLE_MATCH')           missingItems.push('Exclusion review required');
+  if (passport.standing.exclusionStatus === 'EXCLUDED')                 missingItems.push('Exclusion confirmed');
   if (passport.standing.licensureStatus !== 'verified')                 missingItems.push('License unresolved');
   if (passport.standing.deaStatus === 'none')                          missingItems.push('No DEA registration');
   [...readiness.blockers, ...passport.authority.summary.missing.map(d =>
@@ -382,7 +400,7 @@ export default function PassportWallet({ passport }: Props) {
 
         {/* ── Details accordion ─────────────────────────────────────────────── */}
         <div>
-          <p className="text-white/25 text-xs uppercase tracking-widest mb-3">Additional Details</p>
+          <p className="text-white/25 text-xs uppercase tracking-widest mb-3">Proof — view source per section</p>
           <Accordion items={accordionItems} />
         </div>
 
@@ -429,5 +447,4 @@ export default function PassportWallet({ passport }: Props) {
     </main>
   );
 }
-
 

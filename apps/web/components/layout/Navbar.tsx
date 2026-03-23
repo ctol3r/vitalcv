@@ -16,11 +16,12 @@ import { useState } from 'react';
 
 // Public-only nav items. Never add ops/internal routes here.
 // See docs/VCV_UI_DOCTRINE.md §3 for the full Navbar ruleset.
+// Three primary paths. Features (passport, interview) are reachable from within flows.
+// Developers is secondary — present but not the wedge.
 const NAV_ITEMS = [
-  { href: '/',            label: 'Home' },
-  { href: '/explore',     label: 'Explore' },
-  { href: '/interview',   label: 'Interview Mode' },
-  { href: '/passport',    label: 'Passport' },
+  { href: '/get-ready',   label: 'Get Verified' },
+  { href: '/explore',     label: 'Explore Roles' },
+  { href: '/employers',   label: 'For Employers' },
   { href: '/developers',  label: 'Developers' },
 ] as const;
 

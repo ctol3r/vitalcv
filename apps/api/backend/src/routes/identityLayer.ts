@@ -31,6 +31,7 @@ import {
 import { createGraphNodeId } from '../services/graph-engine/ids';
 import { getWatchtowerState, registerWatchlist } from '../services/identity/watchtowerEngine';
 import { listWatchlists } from '../services/identity/watchtowerStore';
+import { exclusionClaimState } from '../services/entity/credentialTrustMetadata';
 import {
   DEFAULT_MOBILE_DEPTH,
   DEFAULT_MOBILE_LIMIT,
@@ -395,6 +396,17 @@ export function registerIdentityLayerRoutes(app: Express): void {
       const nameVal = asRecord(nameClaim?.value);
       const excVal  = asRecord(exclusion?.value);
       const enrVal  = asRecord(enrollment?.value);
+      const exclusionStatus = exclusion
+        ? exclusionClaimState({
+            excluded: excVal.excluded === true,
+            matchType: typeof excVal.matchType === 'string'
+              ? excVal.matchType as 'NPI_MATCH' | 'NAME_MATCH' | 'NO_MATCH' | 'UNCLEAR'
+              : 'UNCLEAR',
+            verdict: typeof excVal.verdict === 'string'
+              ? excVal.verdict as 'CLEAR' | 'EXCLUDED' | 'POSSIBLE_MATCH' | 'UNCHECKED'
+              : undefined,
+          }, exclusion.reviewRequired)
+        : 'UNCHECKED';
 
       if (view === 'mobile') {
         const previewClaims = depth > 0 ? claims.slice(0, limit).map(mapClaimToMobileItem) : [];
@@ -429,7 +441,7 @@ export function registerIdentityLayerRoutes(app: Express): void {
             practiceStates: locations
               .map((claim) => asRecord(claim.value).state)
               .filter((value): value is string => typeof value === 'string' && value.length > 0),
-            exclusionStatus: excVal.excluded === true ? 'EXCLUDED' : Object.keys(excVal).length > 0 ? 'CLEAR' : 'NOT_CHECKED',
+            exclusionStatus,
             medicareEnrolled: typeof enrVal.enrolled === 'boolean' ? enrVal.enrolled : null,
             hasActiveLicense: summary.hasActiveLicense,
             hasBoardCert: summary.hasBoardCert,
@@ -482,7 +494,7 @@ export function registerIdentityLayerRoutes(app: Express): void {
             return { code: v.taxonomyCode, description: v.taxonomyDescription, isPrimary: v.isPrimary };
           }),
           practiceStates: locations.map(l => (l.value as Record<string, unknown>).state as string),
-          exclusionStatus: excVal?.excluded ? 'EXCLUDED' : excVal ? 'CLEAR' : 'NOT_CHECKED',
+          exclusionStatus,
           exclusionMatchType: excVal?.matchType ?? null,
           medicareEnrolled: enrVal?.enrolled ?? null,
           hasActiveLicense: summary.hasActiveLicense,

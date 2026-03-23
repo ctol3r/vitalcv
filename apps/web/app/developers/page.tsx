@@ -39,9 +39,9 @@ export const metadata: Metadata = {
 
 const STATS = [
   { icon: Zap,      label: 'Avg. Response',  value: '< 80 ms' },
-  { icon: Globe,    label: 'Uptime SLA',      value: '99.9%'   },
+  { icon: Globe,    label: 'Availability',    value: 'High'    },
   { icon: Lock,     label: 'Encryption',      value: 'TLS 1.3' },
-  { icon: GitBranch,label: 'API Version',     value: 'v1 stable'},
+  { icon: GitBranch,label: 'API Version',     value: 'v1'      },
 ];
 
 // ── Resource links ────────────────────────────────────────────────────────

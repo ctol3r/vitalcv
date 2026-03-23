@@ -16,7 +16,7 @@
 import { createHash } from 'node:crypto';
 import prisma, { Prisma } from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
-import { lookupNpi as leieNpiLookup } from './leieCache';
+import { lookupProvider as leieLookupProvider, type LookupProviderInput } from './leieCache';
 import {
   checksumOf,
   parseNppesResult,
@@ -424,47 +424,55 @@ async function fetchNppes(npi: string): Promise<SourceFetchResult> {
   };
 }
 
-async function fetchOig(npi: string): Promise<SourceFetchResult> {
+async function fetchOig(input: LookupProviderInput): Promise<SourceFetchResult> {
   // The OIG NPI-based REST API endpoint is permanently dead (returns 404).
   // Real exclusion data comes from the monthly LEIE bulk CSV, cached in memory
   // and refreshed every 24h via leieCache.ts.
   const sourceUrl = 'https://oig.hhs.gov/exclusions/downloadables/UPDATED.csv (cached)';
   try {
-    const result = await leieNpiLookup(npi);
+    const result = await leieLookupProvider(input);
 
     if (result.cacheAge === 'unavailable') {
-      // Cache failed to load — return UNCERTAIN so upstream marks PENDING_REVIEW
-      const raw = { matchType: undefined, excluded: false, _cacheUnavailable: true };
+      const raw = {
+        verdict: 'UNCHECKED' as const,
+        matchType: 'UNCLEAR' as const,
+        matchConfidence: 'UNCERTAIN' as const,
+        matchScore: null,
+        matchedFields: [],
+        excluded: false,
+        sourceLatency: result.sourceLatency,
+        dataFreshness: 'MONTHLY',
+        dataVersion: result.dataVersion,
+        _cacheUnavailable: true,
+      };
       return {
         raw,
-        checksum: checksumOf({ npi, status: 'CACHE_UNAVAILABLE' }),
+        checksum: checksumOf({ npi: input.npi, status: 'CACHE_UNAVAILABLE', dataVersion: result.dataVersion }),
         fetchedAt: result.checkedAt,
         sourceUrl,
         fetchHeaders: {},
       };
     }
 
-    const raw = result.excluded && result.entry
-      ? {
-          excluded:         true,
-          matchType:        'NPI_MATCH' as const,
-          exclusionType:    result.entry.exclusionType || null,
-          exclusionDate:    result.entry.exclusionDate || null,
-          reinstatementDate: result.entry.reinstatementDate || null,
-          waiverState:      result.entry.waiverState || null,
-          source:           'LEIE_CSV',
-          cacheAge:         result.cacheAge,
-        }
-      : {
-          excluded:         false,
-          matchType:        'NO_MATCH' as const,
-          exclusionType:    null,
-          exclusionDate:    null,
-          reinstatementDate: null,
-          waiverState:      null,
-          source:           'LEIE_CSV',
-          cacheAge:         result.cacheAge,
-        };
+    const raw = {
+      excluded: result.excluded,
+      verdict: result.verdict,
+      matchType: result.matchType,
+      matchConfidence: result.matchConfidence,
+      matchScore: result.matchScore,
+      matchedFields: result.matchedFields,
+      exclusionType: result.entry?.exclusionType || null,
+      exclusionDate: result.entry?.exclusionDate || null,
+      reinstatementDate: result.entry?.reinstatementDate || null,
+      waiverState: result.entry?.waiverState || null,
+      source: 'LEIE_CSV',
+      cacheAge: result.cacheAge,
+      dataVersion: result.dataVersion,
+      sourceLatency: result.sourceLatency,
+      dataFreshness: 'MONTHLY',
+      state: result.entry?.state || null,
+      specialty: result.entry?.specialty || null,
+    };
 
     return {
       raw,
@@ -474,11 +482,21 @@ async function fetchOig(npi: string): Promise<SourceFetchResult> {
       fetchHeaders: {},
     };
   } catch (err) {
-    log('warn', 'identityPipeline: OIG LEIE cache lookup failed', { npi, error: String(err) });
-    const raw = { matchType: undefined, excluded: false, _cacheUnavailable: true };
+    log('warn', 'identityPipeline: OIG LEIE cache lookup failed', { npi: input.npi, error: String(err) });
+    const raw = {
+      verdict: 'UNCHECKED' as const,
+      matchType: 'UNCLEAR' as const,
+      matchConfidence: 'UNCERTAIN' as const,
+      matchScore: null,
+      matchedFields: [],
+      excluded: false,
+      sourceLatency: 'MONTHLY' as const,
+      dataFreshness: 'MONTHLY',
+      _cacheUnavailable: true,
+    };
     return {
       raw,
-      checksum: checksumOf({ npi, status: 'CACHE_ERROR' }),
+      checksum: checksumOf({ npi: input.npi, status: 'CACHE_ERROR' }),
       fetchedAt: new Date().toISOString(),
       sourceUrl,
       fetchHeaders: {},
@@ -498,6 +516,11 @@ async function fetchPecos(npi: string): Promise<SourceFetchResult> {
     }
 
     const data = (await resp.json()) as unknown[];
+    const fetchedAt = new Date().toISOString();
+    const dataVersion =
+      resp.headers.get('last-modified')
+      ?? resp.headers.get('etag')
+      ?? checksumOf(JSON.stringify(data)).slice(0, 12);
     const row =
       Array.isArray(data) && data.length > 0 ? (data[0] as Record<string, unknown>) : null;
     const raw = row
@@ -507,6 +530,10 @@ async function fetchPecos(npi: string): Promise<SourceFetchResult> {
           eligibleToOrderRefer: row.GNDR_CD !== undefined,
           source: 'PECOS',
           npi,
+          observedAt: fetchedAt,
+          dataVersion,
+          sourceLatency: 'QUARTERLY',
+          dataFreshness: 'QUARTERLY',
         }
       : {
           enrolled: false,
@@ -514,18 +541,31 @@ async function fetchPecos(npi: string): Promise<SourceFetchResult> {
           eligibleToOrderRefer: null,
           source: 'PECOS',
           npi,
+          observedAt: fetchedAt,
+          dataVersion,
+          sourceLatency: 'QUARTERLY',
+          dataFreshness: 'QUARTERLY',
         };
 
     return {
       raw,
       checksum: checksumOf(raw),
-      fetchedAt: new Date().toISOString(),
+      fetchedAt,
       sourceUrl,
       fetchHeaders: headersToObject(resp.headers),
     };
   } catch (error) {
     log('warn', 'identityPipeline: PECOS fetch failed', { npi, error: String(error) });
-    const raw = { enrolled: false, enrollmentType: null, source: 'PECOS_UNAVAILABLE', npi };
+    const raw = {
+      enrolled: false,
+      enrollmentType: null,
+      source: 'PECOS_UNAVAILABLE',
+      npi,
+      observedAt: new Date().toISOString(),
+      dataVersion: null,
+      sourceLatency: 'QUARTERLY',
+      dataFreshness: 'QUARTERLY',
+    };
 
     return {
       raw,
@@ -1293,7 +1333,7 @@ const handlers: Record<string, SourceHandler> = {
       npi,
       observedAt,
       sourceId: 'NPPES_API',
-      parserVersion: 'v1.0.0',
+      parserVersion: 'v1.1.0',
       matchingStrategy: 'NPI_EXACT',
       fetchSource: fetchNppes,
       parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {
@@ -1333,9 +1373,28 @@ const handlers: Record<string, SourceHandler> = {
       npi,
       observedAt,
       sourceId: 'OIG_LEIE',
-      parserVersion: 'v1.0.0',
+      parserVersion: 'v1.1.0',
       matchingStrategy: 'NPI_EXACT',
-      fetchSource: fetchOig,
+      fetchSource: async (_npi: string) => {
+        const existingClaims = await loadClaimRecordsForNpi(_npi);
+        const nameValue = asObject(existingClaims.find((claim) => claim.claimType === 'PERSONAL_IDENTITY')?.value);
+        const locationValue = asObject(existingClaims.find((claim) => claim.claimType === 'PRACTICE_LOCATION')?.value);
+        const specialtyValue = asObject(existingClaims.find((claim) => claim.claimType === 'SPECIALTY')?.value);
+
+        return fetchOig({
+          npi: _npi,
+          firstName: typeof nameValue.firstName === 'string' ? nameValue.firstName : null,
+          lastName: typeof nameValue.lastName === 'string' ? nameValue.lastName : null,
+          state: typeof locationValue.state === 'string'
+            ? locationValue.state
+            : typeof specialtyValue.state === 'string'
+              ? specialtyValue.state
+              : null,
+          specialty: typeof specialtyValue.taxonomyDescription === 'string'
+            ? specialtyValue.taxonomyDescription
+            : null,
+        });
+      },
       parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {
         const { claims, receipts } = parseOigResult(
           npi,
@@ -1344,13 +1403,20 @@ const handlers: Record<string, SourceHandler> = {
           checksum,
           parsedObservedAt,
         );
+        const oigRaw = raw as Record<string, unknown>;
+        const matchingStrategy = oigRaw.matchType === 'NAME_MATCH'
+          ? 'NAME_STATE_SPECIALTY'
+          : 'NPI_EXACT';
+        const mergeReason = oigRaw.matchType === 'NAME_MATCH'
+          ? 'LEIE possible match derived from name + state + specialty review'
+          : 'Official OIG LEIE check tied to the requested NPI';
 
         return {
           status: 'SUCCESS',
           claims,
           receipts,
-          matchingStrategy: 'NPI_EXACT',
-          mergeReason: 'Official OIG LEIE check tied to the requested NPI',
+          matchingStrategy,
+          mergeReason,
         };
       },
     }),
@@ -1360,7 +1426,7 @@ const handlers: Record<string, SourceHandler> = {
       npi,
       observedAt,
       sourceId: 'PECOS_PUBLIC',
-      parserVersion: 'v1.0.0',
+      parserVersion: 'v1.1.0',
       matchingStrategy: 'NPI_EXACT',
       fetchSource: fetchPecos,
       parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {

@@ -30,13 +30,25 @@ export interface PassportData {
       type:              string;
       status:            string;
       verificationLevel: string;
+      issuerEntityId?:   string;
+      issuerName?:       string;
+      sourceId?:         string;
       jurisdiction?:     string;
       issuedAt?:         string;
       expiresAt?:        string;
       verifiedAt?:       string;
+      observedAt?:       string;
       stale:             boolean;
       confidenceLabel:   string;
+      claimConfidenceLabel: string;
+      matchConfidence?:  string;
+      sourceLatency?:    string;
       dataFreshness:     string;
+      dataFreshnessLabel: string;
+      dataFreshnessCadence?: string;
+      claimState?:       string;
+      dataVersion?:      string;
+      sourceDisclaimer?: string;
       reviewRequired:    boolean;
     }>;
     summary: { active: number; expired: number; stale: number; missing: string[] };
@@ -60,10 +72,16 @@ export interface PassportData {
   };
   standing: {
     exclusionClear:   boolean;
-    exclusionStatus:  'CLEAR' | 'EXCLUDED' | 'UNKNOWN';
+    exclusionStatus:  'CLEAR' | 'EXCLUDED' | 'POSSIBLE_MATCH' | 'UNCHECKED' | 'UNKNOWN';
+    exclusionCheckedAt?: string;
+    exclusionConfidenceLabel?: string;
     licensureStatus:  'verified' | 'pending' | 'expired' | 'unknown';
     deaStatus:        'registered' | 'none' | 'unknown';
     pecosStatus:      'enrolled' | 'not_enrolled' | 'unknown';
+    enrollmentObservedAt?: string;
+    enrollmentDataVersion?: string;
+    enrollmentFreshnessLabel?: string;
+    enrollmentConfidenceLabel?: string;
     negativeFindings: string[];
   };
   readiness: {

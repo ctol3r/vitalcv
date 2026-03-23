@@ -183,7 +183,7 @@ export default function HomePage() {
                   href: '/employers',
                   title: 'For Employers',
                   // Wave G: copy compressed
-                  body: 'See readiness instantly. Start credentialed clinicians faster.',
+                  body: 'See verified readiness before the first interview.',
                   cta: 'Learn more',
                   border: 'border-white/8 hover:border-white/15',
                 },

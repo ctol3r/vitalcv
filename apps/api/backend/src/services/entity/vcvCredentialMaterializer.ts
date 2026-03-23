@@ -21,6 +21,11 @@ import type {
   NpiIdentityValue,
   VerificationReceipt,
 } from '../identity/evidenceModel';
+import {
+  defaultCredentialTrustMetadata,
+  exclusionClaimState,
+  licenseClaimState,
+} from './credentialTrustMetadata';
 import { resolveEntityFromNpi } from './entityResolutionService';
 
 type JsonRecord = Record<string, unknown>;
@@ -102,6 +107,10 @@ function parseDate(value: string | Date | null | undefined): Date | null {
 
   const timestamp = Date.parse(value);
   return Number.isFinite(timestamp) ? new Date(timestamp) : null;
+}
+
+function stringValue(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 }
 
 function mergeStrings(...values: Array<readonly string[] | null | undefined>): string[] {
@@ -202,7 +211,9 @@ function issuerForClaim(claim: NormalizedClaim): MaterializationAuthority | null
         metadata: { source: 'PECOS' },
       };
     case 'LICENSE':
-    case 'NURSING_LICENSE': {
+    case 'LICENSE_DISCIPLINE':
+    case 'NURSING_LICENSE':
+    case 'NURSING_DISCIPLINE': {
       const value = claim.value as LicenseValue;
       const state = value.state.trim().toUpperCase();
       return {
@@ -217,19 +228,23 @@ function issuerForClaim(claim: NormalizedClaim): MaterializationAuthority | null
 }
 
 function mapExclusionStatusFromClaim(claim: NormalizedClaim, value: ExclusionValue): string {
-  if (claim.reviewRequired) {
-    return claim.confidence === 'UNCERTAIN' ? 'UNCERTAIN' : 'REVIEW_REQUIRED';
-  }
-  if (value.excluded) {
-    return 'EXCLUDED';
-  }
-  if (value.matchType === 'NO_MATCH') {
+  const claimState = exclusionClaimState(value, claim.reviewRequired);
+  if (claimState === 'CLEAR') {
     return 'CLEAR';
   }
-  return claim.confidence === 'UNCERTAIN' ? 'UNCERTAIN' : 'REVIEW_REQUIRED';
+  if (claimState === 'EXCLUDED') {
+    return 'EXCLUDED';
+  }
+  return claimState === 'UNCHECKED' ? 'UNCERTAIN' : 'REVIEW_REQUIRED';
 }
 
 function mapLicenseStatus(value: LicenseValue, claim: NormalizedClaim): string {
+  if (claim.claimType === 'LICENSE_DISCIPLINE' || claim.claimType === 'NURSING_DISCIPLINE') {
+    const normalizedDisciplineStatus = normalizeCredentialStatus(value.licenseStatus);
+    if (normalizedDisciplineStatus === 'REVOKED') return 'REVOKED';
+    if (normalizedDisciplineStatus === 'SUSPENDED') return 'SUSPENDED';
+    return 'REVIEW_REQUIRED';
+  }
   if (claim.reviewRequired) {
     return 'REVIEW_REQUIRED';
   }
@@ -255,10 +270,15 @@ function mapObservationFromClaim(
   const observedAt = parseDate(claim.observedAt);
   const verifiedAt = parseDate(artifact?.verifiedAt) ?? parseDate(claim.derivedAt);
   const nextReverifyAt = parseDate(artifact?.expiresAt);
+  const artifactPayload = asRecord(artifact?.rawPayload);
 
   switch (claim.claimType) {
     case 'NPI_IDENTITY': {
       const value = claim.value as NpiIdentityValue;
+      const trustMetadata = defaultCredentialTrustMetadata({
+        claim,
+        sourceId: claim.sourceId,
+      });
       return {
         subjectNpi: claim.subjectNpi,
         domain: 'IDENTITY',
@@ -272,6 +292,7 @@ function mapObservationFromClaim(
           lastUpdated: value.lastUpdated,
           status: value.status,
           credential: value.credential,
+          sourceDisclaimer: value.sourceDisclaimer ?? 'Identity only, not licensure',
         },
         artifactIds: [claim.artifactId],
         receiptIds,
@@ -283,10 +304,13 @@ function mapObservationFromClaim(
         nextReverifyAt,
         jurisdiction: null,
         metadata: {
+          ...trustMetadata,
           sourceId: claim.sourceId,
           claimType: claim.claimType,
           reviewRequired: claim.reviewRequired,
           reviewReason: claim.reviewReason,
+          sourceDisclaimer: value.sourceDisclaimer ?? 'Identity only, not licensure',
+          limitations: ['Identity only, not licensure'],
         },
         trustTier: claim.tier,
         confidence: claim.confidenceScore,
@@ -296,6 +320,13 @@ function mapObservationFromClaim(
     }
     case 'EXCLUSION_STATUS': {
       const value = claim.value as ExclusionValue;
+      const dataVersion = stringValue(value.dataVersion) ?? stringValue(artifactPayload.dataVersion);
+      const trustMetadata = defaultCredentialTrustMetadata({
+        claim,
+        sourceId: claim.sourceId,
+        dataVersion,
+      });
+      const claimState = exclusionClaimState(value, claim.reviewRequired);
       return {
         subjectNpi: claim.subjectNpi,
         domain: 'EXCLUSION_CHECK',
@@ -304,12 +335,19 @@ function mapObservationFromClaim(
         verificationLevel: verificationLevelForTier(claim.tier),
         claimValue: {
           excluded: value.excluded,
+          verdict: claimState,
           exclusionType: value.exclusionType,
           exclusionDate: value.exclusionDate,
           reinstatementDate: value.reinstatementDate,
           matchType: value.matchType,
+          matchConfidence: value.matchConfidence ?? claim.confidence,
+          matchScore: value.matchScore ?? null,
+          matchedFields: value.matchedFields ?? [],
           waiverState: value.waiverState,
           source: value.source,
+          sourceLatency: value.sourceLatency ?? trustMetadata.sourceLatency,
+          dataFreshness: value.dataFreshness ?? trustMetadata.dataFreshness,
+          dataVersion,
         },
         artifactIds: [claim.artifactId],
         receiptIds,
@@ -321,11 +359,14 @@ function mapObservationFromClaim(
         nextReverifyAt,
         jurisdiction: value.waiverState,
         metadata: {
+          ...trustMetadata,
           sourceId: claim.sourceId,
           claimType: claim.claimType,
           reviewRequired: claim.reviewRequired,
           reviewReason: claim.reviewReason,
           matchType: value.matchType,
+          claimState,
+          matchedFields: value.matchedFields ?? [],
         },
         trustTier: claim.tier,
         confidence: claim.confidenceScore,
@@ -335,6 +376,16 @@ function mapObservationFromClaim(
     }
     case 'ENROLLMENT_STATUS': {
       const value = claim.value as EnrollmentValue;
+      const enrollmentObservedAt = stringValue(value.observedAt) ?? claim.observedAt;
+      const dataVersion = stringValue(value.dataVersion) ?? stringValue(artifactPayload.dataVersion);
+      const trustMetadata = defaultCredentialTrustMetadata({
+        claim: {
+          confidence: claim.confidence,
+          observedAt: enrollmentObservedAt,
+        },
+        sourceId: claim.sourceId,
+        dataVersion,
+      });
       return {
         subjectNpi: claim.subjectNpi,
         domain: 'MEDICARE_ENROLLMENT',
@@ -346,21 +397,29 @@ function mapObservationFromClaim(
           enrollmentType: value.enrollmentType,
           eligibleToOrderRefer: value.eligibleToOrderRefer,
           source: value.source,
+          observedAt: enrollmentObservedAt,
+          dataVersion,
+          sourceLatency: value.sourceLatency ?? trustMetadata.sourceLatency,
+          dataFreshness: value.dataFreshness ?? trustMetadata.dataFreshness,
+          sourceDisclaimer: value.sourceDisclaimer ?? 'Point-in-time enrollment data, not real-time coverage.',
         },
         artifactIds: [claim.artifactId],
         receiptIds,
         claimId: claim.claimId,
-        issuedAt: observedAt,
+        issuedAt: parseDate(enrollmentObservedAt) ?? observedAt,
         expiresAt: null,
         verifiedAt,
-        observedAt,
+        observedAt: parseDate(enrollmentObservedAt) ?? observedAt,
         nextReverifyAt,
         jurisdiction: null,
         metadata: {
+          ...trustMetadata,
           sourceId: claim.sourceId,
           claimType: claim.claimType,
           reviewRequired: claim.reviewRequired,
           reviewReason: claim.reviewReason,
+          claimState: value.enrolled ? 'ENROLLED' : 'NOT_ENROLLED',
+          sourceDisclaimer: value.sourceDisclaimer ?? 'Point-in-time enrollment data, not real-time coverage.',
         },
         trustTier: claim.tier,
         confidence: claim.confidenceScore,
@@ -369,12 +428,22 @@ function mapObservationFromClaim(
       };
     }
     case 'LICENSE':
-    case 'NURSING_LICENSE': {
+    case 'LICENSE_DISCIPLINE':
+    case 'NURSING_LICENSE':
+    case 'NURSING_DISCIPLINE': {
       const value = claim.value as LicenseValue;
+      const trustMetadata = defaultCredentialTrustMetadata({
+        claim,
+        sourceId: claim.sourceId,
+      });
+      const claimState = licenseClaimState(value);
       return {
         subjectNpi: claim.subjectNpi,
         domain: 'LICENSURE',
-        credentialType: claim.claimType === 'NURSING_LICENSE' ? 'NURSING_LICENSE' : 'STATE_LICENSE',
+        credentialType:
+          claim.claimType === 'NURSING_LICENSE' || claim.claimType === 'NURSING_DISCIPLINE'
+            ? 'NURSING_LICENSE'
+            : 'STATE_LICENSE',
         status: mapLicenseStatus(value, claim),
         verificationLevel: verificationLevelForTier(claim.tier),
         claimValue: {
@@ -385,6 +454,8 @@ function mapObservationFromClaim(
           licenseStatus: value.licenseStatus,
           disciplinaryActions: value.disciplinaryActions,
           source: value.source,
+          sourceDisclaimer: value.sourceDisclaimer ?? null,
+          claimState,
         },
         artifactIds: [claim.artifactId],
         receiptIds,
@@ -396,10 +467,14 @@ function mapObservationFromClaim(
         nextReverifyAt,
         jurisdiction: value.state,
         metadata: {
+          ...trustMetadata,
           sourceId: claim.sourceId,
           claimType: claim.claimType,
           reviewRequired: claim.reviewRequired,
           reviewReason: claim.reviewReason,
+          claimState,
+          disciplineFlag: claimState === 'LICENSE_DISCIPLINED',
+          sourceDisclaimer: value.sourceDisclaimer ?? null,
         },
         trustTier: claim.tier,
         confidence: claim.confidenceScore,
@@ -422,6 +497,14 @@ function materializeFromVerificationArtifact(
   const nextReverifyAt = artifact.expiresAt;
 
   if (artifact.source === 'NPPES' || artifact.source === 'NPPES_API') {
+    const trustMetadata = defaultCredentialTrustMetadata({
+      claim: {
+        confidence: artifact.confidenceScore && artifact.confidenceScore >= 0.9 ? 'HIGH' : 'MEDIUM',
+        observedAt: observedAt?.toISOString() ?? new Date().toISOString(),
+      },
+      sourceId: artifact.source,
+      dataVersion: stringValue(rawPayload.dataVersion),
+    });
     return {
       subjectNpi: artifact.npi,
       domain: 'IDENTITY',
@@ -444,8 +527,11 @@ function materializeFromVerificationArtifact(
       nextReverifyAt,
       jurisdiction: null,
       metadata: {
+        ...trustMetadata,
         source: artifact.source,
         sourceStatus: payloadJson.source_status,
+        sourceDisclaimer: 'Identity only, not licensure',
+        limitations: ['Identity only, not licensure'],
       },
       trustTier: artifact.trustTier,
       confidence: artifact.confidenceScore,
@@ -471,6 +557,21 @@ function materializeFromVerificationArtifact(
             : status === 'REVIEW_REQUIRED'
               ? 'REVIEW_REQUIRED'
               : 'UNCERTAIN';
+    const trustMetadata = defaultCredentialTrustMetadata({
+      claim: {
+        confidence:
+          status === 'EXCLUDED'
+            ? 'HIGH'
+            : status === 'CLEAR'
+              ? 'HIGH'
+              : status === 'REVIEW_REQUIRED'
+                ? 'MEDIUM'
+                : 'UNCERTAIN',
+        observedAt: observedAt?.toISOString() ?? new Date().toISOString(),
+      },
+      sourceId: artifact.source,
+      dataVersion: stringValue(rawPayload.dataVersion),
+    });
 
     return {
       subjectNpi: artifact.npi,
@@ -480,11 +581,13 @@ function materializeFromVerificationArtifact(
       verificationLevel: 'SOURCE_VERIFIED',
       claimValue: {
         excluded,
+        verdict: payloadJson.verdict,
         exclusionType: payloadJson.exclusion_type,
         exclusionDate: payloadJson.exclusion_date,
         reinstatementDate: payloadJson.reinstatement_date,
         waiverState: payloadJson.waiver_state,
         sourceUrl: payloadJson.source_url,
+        dataVersion: rawPayload.dataVersion,
       },
       artifactIds: [artifact.id],
       receiptIds: [],
@@ -495,8 +598,17 @@ function materializeFromVerificationArtifact(
       nextReverifyAt,
       jurisdiction: typeof payloadJson.waiver_state === 'string' ? payloadJson.waiver_state : null,
       metadata: {
+        ...trustMetadata,
         source: artifact.source,
         sourceUrl: payloadJson.source_url,
+        claimState:
+          materializedStatus === 'CLEAR'
+            ? 'CLEAR'
+            : materializedStatus === 'EXCLUDED'
+              ? 'EXCLUDED'
+              : materializedStatus === 'REVIEW_REQUIRED'
+                ? 'POSSIBLE_MATCH'
+                : 'UNCHECKED',
       },
       trustTier: artifact.trustTier,
       confidence: artifact.confidenceScore,
@@ -515,6 +627,14 @@ function materializeFromVerificationArtifact(
       typeof payloadJson.board_name === 'string'
         ? payloadJson.board_name
         : `${jurisdiction ?? 'UNKNOWN'} State Board`;
+    const trustMetadata = defaultCredentialTrustMetadata({
+      claim: {
+        confidence: artifact.confidenceScore && artifact.confidenceScore >= 0.9 ? 'HIGH' : 'MEDIUM',
+        observedAt: observedAt?.toISOString() ?? new Date().toISOString(),
+      },
+      sourceId: artifact.source,
+      dataVersion: stringValue(rawPayload.dataVersion),
+    });
     return {
       subjectNpi: artifact.npi,
       domain: 'LICENSURE',
@@ -535,8 +655,10 @@ function materializeFromVerificationArtifact(
       nextReverifyAt,
       jurisdiction,
       metadata: {
+        ...trustMetadata,
         source: artifact.source,
         boardName,
+        claimState: payloadJson.discipline_flag ? 'LICENSE_DISCIPLINED' : normalizeCredentialStatus(artifact.status) === 'ACTIVE' ? 'LICENSE_ACTIVE' : 'LICENSE_UNKNOWN',
       },
       trustTier: artifact.trustTier,
       confidence: artifact.confidenceScore,
@@ -632,7 +754,7 @@ export async function upsertVcvCredential(
           artifactIds: mergeStrings(existingExact.artifactIds, observation.artifactIds),
           receiptIds: mergeStrings(existingExact.receiptIds, observation.receiptIds),
           claimId: observation.claimId ?? existingExact.claimId,
-          status: observation.status,
+          status: existingExact.supersededByCredentialId ? 'SUPERSEDED' : observation.status,
           claimValue: toJsonValue(observation.claimValue),
           verificationLevel: observation.verificationLevel,
           issuedAt: pickLatestDate(existingExact.issuedAt, observation.issuedAt),
@@ -644,6 +766,7 @@ export async function upsertVcvCredential(
           metadata: toJsonValue({
             ...asRecord(existingExact.metadata),
             ...observation.metadata,
+            issuerEntityId: issuerId,
           }),
           trustTier: observation.trustTier ?? existingExact.trustTier,
           confidence: observation.confidence ?? existingExact.confidence,
@@ -691,7 +814,10 @@ export async function upsertVcvCredential(
         observedAt: observation.observedAt ?? null,
         nextReverifyAt: observation.nextReverifyAt ?? null,
         jurisdiction: observation.jurisdiction ?? null,
-        metadata: toJsonValue(observation.metadata),
+        metadata: toJsonValue({
+          ...observation.metadata,
+          issuerEntityId: issuerId,
+        }),
         trustTier: observation.trustTier ?? null,
         confidence: observation.confidence ?? null,
         supersedesCredentialId: newestFamilyRow?.id ?? null,

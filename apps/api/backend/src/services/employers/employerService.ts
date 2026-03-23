@@ -22,9 +22,7 @@ import {
 import { parseOrganizationRequirementsEnvelope } from './pilotPolicy';
 
 type EmployerProfileRecord = Prisma.OrganizationProfileGetPayload<{
-  include: {
-    organization: true;
-  };
+  include: typeof EMPLOYER_PROFILE_INCLUDE;
 }>;
 
 export interface EmployerSummary {
@@ -91,7 +89,17 @@ export interface EmployerCompareResult {
 }
 
 const EMPLOYER_PROFILE_INCLUDE = {
-  organization: true,
+  organization: {
+    include: {
+      _count: {
+        select: {
+          opportunities: {
+            where: { status: 'ACTIVE' },
+          },
+        },
+      },
+    },
+  },
 } satisfies Prisma.OrganizationProfileInclude;
 
 function normalizeText(value: string | null | undefined, fallback: string): string {
@@ -171,7 +179,10 @@ function buildEmployerDetail(
     tagline: normalizeText(profile?.tagline, seed?.tagline ?? ''),
     specialties: normalizeArray(profile?.specialties, seed?.specialties ?? []),
     states: normalizeArray(profile?.statesCovered, seed?.states ?? []),
-    openRoles: normalizeCount(profile?.openRoles, seed?.openRoles ?? 0),
+    openRoles: normalizeCount(
+      profile?.organization?._count?.opportunities ?? profile?.openRoles,
+      seed?.openRoles ?? 0,
+    ),
     trustScore,
     hiringStatus: profile?.hiringStatus ?? seed?.hiringStatus ?? EmployerHiringStatus.NOT_HIRING,
     timeToStart: normalizeText(profile?.timeToStart, seed?.timeToStart ?? 'Not disclosed'),
@@ -236,11 +247,33 @@ function toSummary(detail: EmployerDetail): EmployerSummary {
 }
 
 function isPublicEmployer(profile: EmployerProfileRecord | undefined, seed: EmployerSeedRecord | undefined): boolean {
-  if (seed) {
-    return true;
+  const verified = seed ? true : Boolean(profile?.verified);
+  if (!verified) {
+    return false;
+  }
+  
+  // validation rule: employer must have a real domain OR not be public
+  const website = profile?.website ?? seed?.website;
+  if (!website || website.trim() === '') {
+    return false;
+  }
+  
+  // reject placeholder domains from being public
+  const cleanDomain = website.trim().toLowerCase().replace(/^https?:\/\//, '').split('/')[0];
+  if (
+    cleanDomain.includes('example.com') ||
+    cleanDomain.includes('example.org') ||
+    cleanDomain.includes('example.net') ||
+    cleanDomain.includes('test.') ||
+    cleanDomain.includes('localhost') ||
+    cleanDomain.includes('placeholder.com') ||
+    cleanDomain.includes('fake.com') ||
+    cleanDomain.includes('domain.com')
+  ) {
+    return false;
   }
 
-  return Boolean(profile?.verified);
+  return true;
 }
 
 function applyListFilters(detail: EmployerDetail, opts: EmployerListOptions): boolean {

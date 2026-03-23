@@ -66,6 +66,24 @@ function ReadinessRow({
   );
 }
 
+function formatProofDate(value?: string | null): string | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toLocaleDateString();
+}
+
+function exclusionRowState(status: PassportData['standing']['exclusionStatus']): boolean | null {
+  if (status === 'CLEAR') return true;
+  if (status === 'EXCLUDED') return false;
+  return null;
+}
+
+function exclusionSectionStatus(status: PassportData['standing']['exclusionStatus']): AccordionItem['status'] {
+  if (status === 'CLEAR') return 'clear';
+  if (status === 'UNCHECKED' || status === 'UNKNOWN') return 'pending';
+  return 'action';
+}
+
 // ── Proof accordion builder ────────────────────────────────────────────────────
 
 function buildProofSections(passport: PassportData): AccordionItem[] {
@@ -88,15 +106,24 @@ function buildProofSections(passport: PassportData): AccordionItem[] {
                 }`}>{c.status}</span>
               </div>
               <div className="flex justify-between text-xs mt-1">
-                <span className="text-white/30">Source: {c.verificationLevel}</span>
-                {c.verifiedAt && (
+                <span className="text-white/30">
+                  Source: {c.issuerName ?? c.sourceId ?? c.verificationLevel}
+                </span>
+                {(c.observedAt ?? c.verifiedAt) && (
                   <span className="text-white/25">
-                    Checked: {new Date(c.verifiedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    Checked: {formatProofDate(c.observedAt ?? c.verifiedAt)}
                   </span>
                 )}
               </div>
-              {c.jurisdiction && (
-                <div className="text-white/25 text-xs mt-0.5">{c.jurisdiction}</div>
+              {(c.claimConfidenceLabel || c.dataFreshnessLabel || c.jurisdiction) && (
+                <div className="text-white/25 text-xs mt-0.5">
+                  {[c.claimConfidenceLabel, c.dataFreshnessLabel, c.jurisdiction].filter(Boolean).join(' · ')}
+                </div>
+              )}
+              {(c.claimState || c.sourceDisclaimer) && (
+                <div className="text-white/20 text-xs mt-0.5">
+                  {[c.claimState, c.sourceDisclaimer].filter(Boolean).join(' · ')}
+                </div>
               )}
             </div>
           ))}
@@ -109,7 +136,7 @@ function buildProofSections(passport: PassportData): AccordionItem[] {
   items.push({
     id:      'sanctions',
     trigger: 'Sanctions check',
-    status:  passport.standing.exclusionClear ? 'clear' : passport.standing.exclusionStatus === 'UNKNOWN' ? 'pending' : 'action',
+    status:  exclusionSectionStatus(passport.standing.exclusionStatus),
     content: (
       <div className="py-1">
         <div className="flex justify-between text-xs py-1.5 border-b border-white/5">
@@ -122,8 +149,16 @@ function buildProofSections(passport: PassportData): AccordionItem[] {
         </div>
         <div className="flex justify-between text-xs py-1.5">
           <span className="text-white/35">Checked</span>
-          <span className="text-white/55">{new Date(passport.lastCheckedAt).toLocaleString()}</span>
+          <span className="text-white/55">
+            {formatProofDate(passport.standing.exclusionCheckedAt ?? passport.lastCheckedAt) ?? 'Unknown'}
+          </span>
         </div>
+        {passport.standing.exclusionConfidenceLabel && (
+          <div className="flex justify-between text-xs py-1.5">
+            <span className="text-white/35">Confidence</span>
+            <span className="text-white/55">{passport.standing.exclusionConfidenceLabel}</span>
+          </div>
+        )}
       </div>
     ),
   });
@@ -163,32 +198,32 @@ interface Props {
   sharedBy?:  string;
 }
 
-export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
+export default function ReviewClient({ passport, contextId: _contextId, sharedBy }: Props) {
   const [action, setAction] = useState<'none' | 'accepted' | 'requested' | 'saved'>('none');
 
-  const { identity, readiness, standing, authority, training } = passport;
+  const { identity, readiness, standing, authority } = passport;
   const cfg = DECISION_CONFIG[readiness.status];
 
   // Readiness breakdown rows
-  const identityVerified  = standing.licensureStatus === 'verified';
   const licenseActive     = authority.credentials.some(c => c.domain === 'LICENSURE' && c.status === 'ACTIVE');
   const deaActive         = standing.deaStatus === 'registered';
   const pecosEnrolled     = standing.pecosStatus === 'enrolled';
-  const sanctionsClear    = standing.exclusionClear;
+  const sanctionsClear    = standing.exclusionStatus === 'CLEAR';
 
   const missingDomains    = authority.summary.missing;
-
-  // Clearances for display
-  const clearances: string[] = [];
-  const blocked: string[]    = [];
-
-  if (licenseActive)                    clearances.push('License active');
-  if (sanctionsClear)                   clearances.push('No sanctions');
-  if (pecosEnrolled)                    clearances.push('Telehealth eligible');
-  if (training.hasResidency)            clearances.push('Residency completed');
-  if (!deaActive && !licenseActive)     blocked.push('DEA (CA)');
-  if (missingDomains.length > 0)
-    missingDomains.slice(0, 2).forEach(d => blocked.push(d.replace(/_/g, ' ')));
+  const blocked = Array.from(new Set([
+    ...readiness.blockers,
+    ...missingDomains.map((domain) => domain.replace(/_/g, ' ').toLowerCase()),
+  ]));
+  const nextAction = blocked[0] ?? readiness.gaps[0] ?? 'Proceed to hire';
+  const exclusionDetail = [
+    standing.exclusionConfidenceLabel,
+    formatProofDate(standing.exclusionCheckedAt),
+  ].filter(Boolean).join(' · ');
+  const enrollmentDetail = [
+    standing.enrollmentObservedAt ? `As of ${formatProofDate(standing.enrollmentObservedAt)}` : null,
+    standing.enrollmentFreshnessLabel,
+  ].filter(Boolean).join(' · ');
 
   const proofItems = buildProofSections(passport);
 
@@ -239,16 +274,16 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
         {/* ── Employer Decision Breakdown ──────────────────────────────────── */}
         <div className="rounded-xl border border-white/8 bg-white/3 px-4 py-3 space-y-1 mb-6">
           <div className="pt-2 pb-1 text-white/40 text-[10px] font-bold uppercase tracking-[0.2em]">1. Safety</div>
-          <ReadinessRow label="Not excluded (checked Feb 2026)" verified={sanctionsClear ?? null} detail="OIG" />
-          <ReadinessRow label="License active" verified={licenseActive} detail={licenseActive ? 'Confirmed' : 'Not on file'} />
+          <ReadinessRow label="Not excluded" verified={exclusionRowState(standing.exclusionStatus)} detail={exclusionDetail || 'OIG / LEIE'} />
+          <ReadinessRow label="License active" verified={licenseActive} detail={licenseActive ? 'Confirmed' : 'Review required'} />
 
           <div className="pt-4 pb-1 text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] border-t border-white/5 mt-3">2. Eligibility</div>
-          <ReadinessRow label="Medicare enrolled (as of Q4 2025)" verified={pecosEnrolled} detail="PECOS" />
+          <ReadinessRow label="Medicare enrolled" verified={pecosEnrolled} detail={enrollmentDetail || 'Point-in-time PECOS'} />
 
           <div className="pt-4 pb-1 text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] border-t border-white/5 mt-3">3. Readiness</div>
           <ReadinessRow label={`Readiness: ${readiness.score}%`} verified={readiness.score >= 80} />
           <ReadinessRow label="Blockers" verified={blocked.length === 0} detail={blocked.length > 0 ? blocked.join(', ') : 'None'} />
-          <ReadinessRow label="Next action" verified={blocked.length === 0} detail={blocked.length > 0 ? 'Review blockers' : 'Proceed to hire'} />
+          <ReadinessRow label="Next action" verified={blocked.length === 0} detail={nextAction} />
 
           <div className="pt-4 pb-1 text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] border-t border-white/5 mt-3">4. Timeline</div>
           <ReadinessRow label="When they can begin" verified={readiness.estimatedStartDays !== null && readiness.estimatedStartDays <= 14} detail={readiness.estimatedStartDays === null ? 'Blocked' : readiness.estimatedStartDays === 0 ? 'Ready now' : `~${readiness.estimatedStartDays} days`} />

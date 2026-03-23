@@ -23,11 +23,14 @@ import { getCachedTrustState } from '../trust/trustStateEngine';
 import {
   daysUntilExpiry,
   isCredentialBlocking,
+  isCredentialCurrentStatus,
   isCredentialSatisfied,
   isCredentialStale,
   normalizeExclusionCredentialStatus,
 } from '../../domain/entity/contracts';
 import { log } from '../../obs/logger';
+
+type JsonRecord = Record<string, unknown>;
 
 // ── Passport shape (spec-aligned) ─────────────────────────────────────────────
 
@@ -56,16 +59,26 @@ export interface PassportCredential {
   type:              string;
   status:            string;
   verificationLevel: string;
+  issuerEntityId?:   string;
+  issuerName?:       string;
+  sourceId?:         string;
   jurisdiction?:     string;
   issuedAt?:         string;
   expiresAt?:        string;
   verifiedAt?:       string;
+  observedAt?:       string;
   daysUntilExpiry?:  number;
   stale:             boolean;
-  issuerName?:       string;
-  // M4: confidence + freshness labels
-  confidenceLabel:   string;   // "Confirmed" | "Likely match" | "Review recommended" | "Unverified"
-  dataFreshness:     string;   // "Updated daily" | "Updated monthly" | "Updated quarterly" etc.
+  confidenceLabel:   string;
+  claimConfidenceLabel: string;
+  matchConfidence?:  string;
+  sourceLatency?:    string;
+  dataFreshness:     string;
+  dataFreshnessLabel: string;
+  dataFreshnessCadence?: string;
+  claimState?:       string;
+  dataVersion?:      string;
+  sourceDisclaimer?: string;
   reviewRequired:    boolean;
 }
 
@@ -91,10 +104,16 @@ export interface PassportEducationRecord {
 
 export interface PassportStanding {
   exclusionClear:   boolean;
-  exclusionStatus:  'CLEAR' | 'EXCLUDED' | 'UNCERTAIN' | 'REVIEW_REQUIRED' | 'UNKNOWN';
+  exclusionStatus:  'CLEAR' | 'EXCLUDED' | 'POSSIBLE_MATCH' | 'UNCHECKED' | 'UNKNOWN';
+  exclusionCheckedAt?: string;
+  exclusionConfidenceLabel?: string;
   licensureStatus:  'verified' | 'pending' | 'expired' | 'unknown';
   deaStatus:        'registered' | 'none' | 'unknown';
   pecosStatus:      'enrolled' | 'not_enrolled' | 'unknown';
+  enrollmentObservedAt?: string;
+  enrollmentDataVersion?: string;
+  enrollmentFreshnessLabel?: string;
+  enrollmentConfidenceLabel?: string;
   negativeFindings: string[];
 }
 
@@ -134,6 +153,69 @@ const ESTIMATED_START_DAYS: Record<string, number> = {
   BLOCKED: null as unknown as number,
 };
 
+function asRecord(value: unknown): JsonRecord {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as JsonRecord;
+  }
+
+  return {};
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function latestIso(left?: string, right?: string): string | undefined {
+  if (!left) return right;
+  if (!right) return left;
+
+  const leftMs = Date.parse(left);
+  const rightMs = Date.parse(right);
+  if (!Number.isFinite(leftMs)) return right;
+  if (!Number.isFinite(rightMs)) return left;
+  return leftMs >= rightMs ? left : right;
+}
+
+function normalizePublicExclusionStatus(
+  status: string | undefined,
+): PassportStanding['exclusionStatus'] | undefined {
+  const normalized = (status ?? '').trim().toUpperCase();
+  if (normalized === 'CLEAR') return 'CLEAR';
+  if (normalized === 'EXCLUDED') return 'EXCLUDED';
+  if (normalized === 'POSSIBLE_MATCH' || normalized === 'REVIEW_REQUIRED') return 'POSSIBLE_MATCH';
+  if (normalized === 'UNCHECKED' || normalized === 'UNCERTAIN' || normalized === 'UNKNOWN') return 'UNCHECKED';
+  return undefined;
+}
+
+function exclusionStatusFromCredential(
+  credential: {
+    status: string;
+    metadata: unknown;
+    claimValue: unknown;
+  } | null | undefined,
+): PassportStanding['exclusionStatus'] {
+  if (!credential) {
+    return 'UNKNOWN';
+  }
+
+  const metadata = asRecord(credential.metadata);
+  const claimValue = asRecord(credential.claimValue);
+  const explicit =
+    normalizePublicExclusionStatus(stringValue(metadata.claimState))
+    ?? normalizePublicExclusionStatus(stringValue(claimValue.claimState))
+    ?? normalizePublicExclusionStatus(stringValue(claimValue.verdict));
+  if (explicit) {
+    return explicit;
+  }
+
+  const normalized = normalizeExclusionCredentialStatus(credential.status);
+  if (normalized === 'CLEAR') return 'CLEAR';
+  if (normalized === 'EXCLUDED') return 'EXCLUDED';
+  if (normalized === 'REVIEW_REQUIRED') return 'POSSIBLE_MATCH';
+  if (normalized === 'UNCERTAIN') return 'UNCHECKED';
+  return 'UNKNOWN';
+}
+
 // ── Builder ───────────────────────────────────────────────────────────────────
 
 /**
@@ -145,8 +227,26 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   if (!record) return null;
 
   const { entity } = record;
-  const credentials = record.credentials.filter((credential) => credential.status !== 'SUPERSEDED');
   const npi = entity.npi ?? undefined;
+  const credentials = await prisma.vcvCredential.findMany({
+    where: {
+      subjectId: entityId,
+      status: { not: 'SUPERSEDED' },
+    },
+    include: {
+      issuer: {
+        select: {
+          id: true,
+          displayName: true,
+        },
+      },
+    },
+    orderBy: [
+      { observedAt: 'desc' },
+      { verifiedAt: 'desc' },
+      { createdAt: 'desc' },
+    ],
+  });
 
   // ── Education records ─────────────────────────────────────────────────────
   const eduRecords = await prisma.vcvEducationRecord.findMany({
@@ -167,22 +267,52 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   const credList: PassportCredential[] = credentials.map(c => {
     const stale   = isCredentialStale({ domain: c.domain, verifiedAt: c.verifiedAt });
     const expiry  = daysUntilExpiry(c.expiresAt);
-    const meta    = (c.metadata ?? {}) as Record<string, unknown>;
+    const meta = asRecord(c.metadata);
+    const claimValue = asRecord(c.claimValue);
+    const dataFreshnessLabel =
+      stringValue(meta.dataFreshnessLabel)
+      ?? stringValue(meta.dataFreshness)
+      ?? stringValue(claimValue.dataFreshness)
+      ?? 'Freshness unavailable';
+    const claimConfidenceLabel =
+      stringValue(meta.claimConfidenceLabel)
+      ?? stringValue(meta.confidenceLabel)
+      ?? 'Unverified';
+    const observedAt =
+      c.observedAt?.toISOString()
+      ?? stringValue(meta.observedAt)
+      ?? stringValue(claimValue.observedAt);
+
     return {
       id:                c.id,
       domain:            c.domain,
       type:              c.credentialType,
       status:            c.status,
       verificationLevel: c.verificationLevel,
+      issuerEntityId:    stringValue(meta.issuerEntityId) ?? c.issuerId ?? undefined,
+      issuerName:        c.issuer?.displayName ?? undefined,
+      sourceId:          stringValue(meta.sourceId),
       jurisdiction:      c.jurisdiction ?? undefined,
       issuedAt:          c.issuedAt?.toISOString(),
       expiresAt:         c.expiresAt?.toISOString(),
       verifiedAt:        c.verifiedAt?.toISOString(),
+      observedAt,
       daysUntilExpiry:   expiry ?? undefined,
       stale,
-      confidenceLabel: (meta.confidenceLabel as string | undefined) ?? 'Unverified',
-      dataFreshness:   (meta.dataFreshness   as string | undefined) ?? 'Freshness unknown',
-      reviewRequired:  (meta.reviewRequired  as boolean | undefined) ?? false,
+      confidenceLabel:    claimConfidenceLabel,
+      claimConfidenceLabel,
+      matchConfidence:    stringValue(meta.matchConfidence) ?? stringValue(claimValue.matchConfidence),
+      sourceLatency:      stringValue(meta.sourceLatency) ?? stringValue(claimValue.sourceLatency),
+      dataFreshness:      dataFreshnessLabel,
+      dataFreshnessLabel,
+      dataFreshnessCadence: stringValue(meta.dataFreshness) ?? stringValue(claimValue.dataFreshness),
+      claimState:
+        stringValue(meta.claimState)
+        ?? stringValue(claimValue.claimState)
+        ?? stringValue(claimValue.verdict),
+      dataVersion:      stringValue(meta.dataVersion) ?? stringValue(claimValue.dataVersion),
+      sourceDisclaimer: stringValue(meta.sourceDisclaimer) ?? stringValue(claimValue.sourceDisclaimer),
+      reviewRequired:   (meta.reviewRequired as boolean | undefined) ?? false,
     };
   });
 
@@ -225,31 +355,28 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   };
 
   // ── Standing — from trust state or credential status ──────────────────────
-  const exclusionCred  = credentials.find(c => c.domain === 'EXCLUSION_CHECK');
-  const licensureCred  = credentials.find(c => c.domain === 'LICENSURE');
-  const deaCred        = credentials.find(c => c.domain === 'DEA_REGISTRATION');
-  const pecosCred      = credentials.find(c => c.domain === 'MEDICARE_ENROLLMENT');
+  const exclusionCred  = credentials.find((credential) => credential.domain === 'EXCLUSION_CHECK');
+  const licensureCred  = credentials.find((credential) => credential.domain === 'LICENSURE');
+  const deaCred        = credentials.find((credential) => credential.domain === 'DEA_REGISTRATION');
+  const pecosCred      = credentials.find((credential) => credential.domain === 'MEDICARE_ENROLLMENT');
 
-  const credentialExclusionStatus = exclusionCred
-    ? normalizeExclusionCredentialStatus(exclusionCred.status)
-    : 'UNKNOWN';
-  const exclusionClear = trustState?.exclusionClear
-    ?? (exclusionCred ? credentialExclusionStatus === 'CLEAR' : undefined)
-    ?? false;
+  const trustStateExclusionStatus = normalizePublicExclusionStatus(trustState?.exclusionStatus);
+  const credentialExclusionStatus = exclusionStatusFromCredential(exclusionCred);
+  const exclusionStatus =
+    credentialExclusionStatus !== 'UNKNOWN'
+      ? credentialExclusionStatus
+      : trustStateExclusionStatus ?? 'UNCHECKED';
+  const exclusionClear = exclusionStatus === 'CLEAR';
 
   const negativeFindings: string[] = [];
-  if (trustState) {
-    if (!trustState.exclusionClear)            negativeFindings.push('OIG/LEIE exclusion flag');
-    if (trustState.licensureStatus === 'expired') negativeFindings.push('License expired');
-  } else {
-    if (credentialExclusionStatus === 'EXCLUDED') negativeFindings.push('OIG/LEIE exclusion flag');
-    if (credentialExclusionStatus === 'UNCERTAIN') negativeFindings.push('OIG/LEIE check uncertain');
-    if (credentialExclusionStatus === 'REVIEW_REQUIRED') negativeFindings.push('OIG/LEIE review required');
-  }
+  if (exclusionStatus === 'EXCLUDED') negativeFindings.push('OIG/LEIE exclusion confirmed');
+  if (exclusionStatus === 'POSSIBLE_MATCH') negativeFindings.push('OIG/LEIE possible match requires review');
+  if (exclusionStatus === 'UNCHECKED') negativeFindings.push('OIG/LEIE check not yet verified');
+  if (trustState?.licensureStatus === 'expired') negativeFindings.push('License expired');
 
   const licensureStatus = trustState?.licensureStatus
     ?? (licensureCred
-      ? licensureCred.status === 'ACTIVE'
+      ? isCredentialSatisfied(licensureCred)
         ? 'verified'
         : licensureCred.status === 'EXPIRED'
           ? 'expired'
@@ -260,10 +387,21 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
 
   const standing: PassportStanding = {
     exclusionClear,
-    exclusionStatus: trustState?.exclusionStatus ?? credentialExclusionStatus,
+    exclusionStatus,
+    exclusionCheckedAt: exclusionCred?.observedAt?.toISOString() ?? exclusionCred?.verifiedAt?.toISOString(),
+    exclusionConfidenceLabel:
+      credList.find((credential) => credential.id === exclusionCred?.id)?.claimConfidenceLabel,
     licensureStatus,
     deaStatus:  deaCred ? (isCredentialSatisfied(deaCred) ? 'registered' : 'none') : 'unknown',
     pecosStatus: pecosCred ? (isCredentialSatisfied(pecosCred) ? 'enrolled' : 'not_enrolled') : 'unknown',
+    enrollmentObservedAt:
+      credList.find((credential) => credential.id === pecosCred?.id)?.observedAt,
+    enrollmentDataVersion:
+      credList.find((credential) => credential.id === pecosCred?.id)?.dataVersion,
+    enrollmentFreshnessLabel:
+      credList.find((credential) => credential.id === pecosCred?.id)?.dataFreshnessLabel,
+    enrollmentConfidenceLabel:
+      credList.find((credential) => credential.id === pecosCred?.id)?.claimConfidenceLabel,
     negativeFindings,
   };
 
@@ -277,7 +415,9 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
 
   const gaps: string[] = [
     ...(trustState?.gap_summary ?? []),
-    ...credList.filter(c => c.stale && c.status === 'ACTIVE').map(c => `Stale: ${c.domain}`),
+    ...credList
+      .filter((credential) => credential.stale && isCredentialCurrentStatus(credential.domain, credential.status))
+      .map((credential) => `Stale: ${credential.domain}`),
   ];
 
   let readinessStatus: 'READY' | 'PARTIAL' | 'BLOCKED' = 'READY';
@@ -295,11 +435,40 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   };
 
   // ── Sources ───────────────────────────────────────────────────────────────
+  const sourceLastFetch = new Map<string, string>();
+  for (const credential of credList) {
+    if (!credential.sourceId) {
+      continue;
+    }
+
+    const latest =
+      latestIso(credential.observedAt, credential.verifiedAt)
+      ?? latestIso(credential.verifiedAt, credential.issuedAt);
+    if (!latest) {
+      continue;
+    }
+
+    const current = sourceLastFetch.get(credential.sourceId);
+    sourceLastFetch.set(credential.sourceId, latestIso(current, latest) ?? latest);
+  }
+
+  if (entity.verifiedAt) {
+    for (const sourceId of entity.sourceIds) {
+      sourceLastFetch.set(
+        sourceId,
+        latestIso(sourceLastFetch.get(sourceId), entity.verifiedAt.toISOString()) ?? entity.verifiedAt.toISOString(),
+      );
+    }
+  }
+
   const sources: PassportSources = {
-    checked:   entity.sourceIds,
-    lastFetch: entity.verifiedAt
-      ? Object.fromEntries(entity.sourceIds.map(s => [s, entity.verifiedAt!.toISOString()]))
-      : {},
+    checked: Array.from(
+      new Set([
+        ...entity.sourceIds,
+        ...credList.map((credential) => credential.sourceId).filter((value): value is string => Boolean(value)),
+      ]),
+    ).sort((left, right) => left.localeCompare(right)),
+    lastFetch: Object.fromEntries(Array.from(sourceLastFetch.entries()).sort(([left], [right]) => left.localeCompare(right))),
   };
 
   const meta = entity.metadata as Record<string, unknown>;

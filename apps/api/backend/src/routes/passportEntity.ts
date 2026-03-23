@@ -12,12 +12,16 @@
 
 import type { Express, NextFunction, Request, Response } from 'express';
 import { buildPassport, buildPassportByNpi } from '../services/entity/passportService';
-import { createOrgContext } from '../domain/entity/orgContextService';
+import { createOrgContext, transitionOrgContextStatus } from '../domain/entity/orgContextService';
 import { isValidNpi } from '../domain/entity/npiRouter';
 import { HttpError } from '../utils/httpError';
 import { log } from '../obs/logger';
 import prisma from '../graphql/prisma_client';
-import { randomUUID } from 'node:crypto';
+import { generateApplyBundle } from '../services/distribution/applyBundle';
+import {
+  buildEmployerReviewPayload,
+  employerReviewPayloadToJson,
+} from '../services/entity/employerReviewPayload';
 
 function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
   return (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
@@ -140,75 +144,127 @@ export function registerPassportEntityRoutes(app: Express): void {
       // Verify context exists
       const context = await prisma.vcvOrganizationContext.findUnique({
         where: { id: organizationContextId },
+        include: {
+          requestor: {
+            select: {
+              id: true,
+              displayName: true,
+            },
+          },
+        },
       });
       if (!context) throw new HttpError(404, 'Organization context not found.');
+      if (context.requestorId === entityId) {
+        throw new HttpError(400, 'Requestor entity cannot also be the shared subject.');
+      }
+      if (!entity.npi) {
+        throw new HttpError(400, 'Entity is missing an NPI and cannot be shared.');
+      }
 
-      // Build the share payload
-      const eventId    = randomUUID();
-      const sharedAt   = new Date();
-      const expiresAt  = new Date(sharedAt.getTime() + 24 * 60 * 60 * 1000); // 24h TTL
+      const bundle = await generateApplyBundle(entity.npi, {
+        selectiveClaims: selectiveDomains,
+      });
+      const reviewPayload = await buildEmployerReviewPayload({
+        entityId,
+        organizationContextId,
+        sharedByUserId: userId,
+        selectiveDomains,
+      });
 
-      // Fetch credentials to include in share
-      const creds = await prisma.vcvCredential.findMany({
-        where: {
-          subjectId: entityId,
-          status:    'ACTIVE',
-          ...(selectiveDomains?.length
-            ? { domain: { in: selectiveDomains as import('@prisma/client').VcvCredentialDomain[] } }
-            : {}),
+      const credentialsSummary = reviewPayload.credentialsIncluded.map((credential) => ({
+        credentialId: credential.credentialId,
+        credentialType: credential.credentialType,
+        domain: credential.domain,
+        status: credential.status,
+        issuerName: credential.issuerName ?? null,
+      }));
+
+      const shareEvent = await prisma.bundleShareEvent.create({
+        data: {
+          bundleId: bundle.bundleId,
+          npi: entity.npi,
+          organizationContextId,
+          subjectEntityId: entityId,
+          sharedByClerkUserId: userId,
+          organizationId: context.requestorId,
+          organizationName: context.requestor.displayName,
+          callbackUrl: context.webhookUrl ?? null,
+          purposeOfUse: context.title ?? context.contextType,
+          credentialsSummary: credentialsSummary as import('@prisma/client').Prisma.InputJsonValue,
+          webhookStatus: 'SKIPPED',
+          deliveryStatus: 'DELIVERED',
+          checkedAt: new Date(reviewPayload.checkedAt),
+          bundlePayload: employerReviewPayloadToJson(reviewPayload),
+          receiptRefs: reviewPayload.receiptReferences,
+          sourceCoverage: employerReviewPayloadToJson(reviewPayload.sourceCoverage),
+          expiresAt: new Date(bundle.expiresAt),
         },
       });
 
-      // Record the share in the org context subject's submission data
       await prisma.vcvOrgContextSubject.upsert({
         where: { contextId_subjectId: { contextId: organizationContextId, subjectId: entityId } },
         create: {
           contextId:    organizationContextId,
           subjectId:    entityId,
           subjectStatus: 'SUBMITTED',
-          respondedAt:  sharedAt,
+          respondedAt:  shareEvent.sharedAt,
           submissionData: {
-            eventId,
+            shareEventId: shareEvent.id,
+            eventId: shareEvent.id,
+            bundleId: bundle.bundleId,
             sharedByUserId: userId,
-            sharedAt:   sharedAt.toISOString(),
-            expiresAt:  expiresAt.toISOString(),
-            credentialIds: creds.map(c => c.id),
-            selectiveDomains: selectiveDomains ?? 'ALL',
+            sharedAt:   shareEvent.sharedAt.toISOString(),
+            expiresAt:  bundle.expiresAt,
+            credentialIds: reviewPayload.credentialsIncluded.map((credential) => credential.credentialId),
+            receiptRefs: reviewPayload.receiptReferences,
+            selectiveDomains: selectiveDomains?.length ? selectiveDomains : 'ALL',
           } as import('@prisma/client').Prisma.InputJsonValue,
         },
         update: {
           subjectStatus: 'SUBMITTED',
-          respondedAt:  sharedAt,
+          respondedAt:  shareEvent.sharedAt,
           submissionData: {
-            eventId,
+            shareEventId: shareEvent.id,
+            eventId: shareEvent.id,
+            bundleId: bundle.bundleId,
             sharedByUserId: userId,
-            sharedAt:   sharedAt.toISOString(),
-            expiresAt:  expiresAt.toISOString(),
-            credentialIds: creds.map(c => c.id),
-            selectiveDomains: selectiveDomains ?? 'ALL',
+            sharedAt:   shareEvent.sharedAt.toISOString(),
+            expiresAt:  bundle.expiresAt,
+            credentialIds: reviewPayload.credentialsIncluded.map((credential) => credential.credentialId),
+            receiptRefs: reviewPayload.receiptReferences,
+            selectiveDomains: selectiveDomains?.length ? selectiveDomains : 'ALL',
           } as import('@prisma/client').Prisma.InputJsonValue,
         },
       });
 
-      // Transition context to ACTIVE if still PENDING
       if (context.status === 'PENDING') {
-        await prisma.vcvOrganizationContext.update({
-          where: { id: organizationContextId },
-          data:  { status: 'ACTIVE' },
-        });
+        await transitionOrgContextStatus(
+          organizationContextId,
+          'ACTIVE',
+          userId,
+          'Share submitted by subject',
+        );
       }
 
       log('info', 'passport_shared', {
-        eventId, entityId, contextId: organizationContextId,
-        userId, credentialCount: creds.length,
+        shareEventId: shareEvent.id,
+        entityId,
+        contextId: organizationContextId,
+        userId,
+        credentialCount: reviewPayload.credentialsIncluded.length,
+        bundleId: bundle.bundleId,
       });
 
       res.status(201).json({
-        eventId,
-        status:    'delivered',
-        timestamp: sharedAt.toISOString(),
-        expiresAt: expiresAt.toISOString(),
-        credentialsShared: creds.length,
+        shareEventId: shareEvent.id,
+        eventId: shareEvent.id,
+        status: 'delivered',
+        deliveryStatus: shareEvent.deliveryStatus,
+        checkedAt: reviewPayload.checkedAt,
+        timestamp: shareEvent.sharedAt.toISOString(),
+        expiresAt: bundle.expiresAt,
+        credentialsShared: reviewPayload.credentialsIncluded.length,
+        bundleId: bundle.bundleId,
       });
     }),
   );

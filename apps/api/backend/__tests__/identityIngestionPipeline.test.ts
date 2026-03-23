@@ -288,6 +288,8 @@ const prismaMock = {
   },
 }
 
+const mockMaterializeClaimsToVcvCredentials = jest.fn()
+
 jest.mock('../src/graphql/prisma_client', () => ({
   __esModule: true,
   default: prismaMock,
@@ -296,6 +298,10 @@ jest.mock('../src/graphql/prisma_client', () => ({
 
 jest.mock('../src/obs/logger', () => ({
   log: jest.fn(),
+}))
+
+jest.mock('../src/services/entity/vcvCredentialMaterializer', () => ({
+  materializeClaimsToVcvCredentials: (...args: unknown[]) => mockMaterializeClaimsToVcvCredentials(...args),
 }))
 
 import {
@@ -402,6 +408,7 @@ describe('identity ingestion pipeline hardening', () => {
     resetState()
     jest.useFakeTimers().setSystemTime(new Date('2026-03-14T12:00:00.000Z'))
     jest.clearAllMocks()
+    mockMaterializeClaimsToVcvCredentials.mockResolvedValue({ credentialIds: [] })
     nppesFixture = buildNppesFixture()
     oigFixture = buildOigFixture()
     pecosFixture = [
@@ -421,6 +428,8 @@ describe('identity ingestion pipeline hardening', () => {
     const report = await ingestClinicianIdentity('1558302470', ['NPPES_API'])
 
     expect(report.sourcesFailed).toBe(0)
+    expect(mockMaterializeClaimsToVcvCredentials).toHaveBeenCalledTimes(1)
+    expect(report.results[0]?.credentialIds).toEqual([])
     expect(prismaMock.personProfile.update).not.toHaveBeenCalled()
 
     const identityIndexArtifact = state.verificationArtifacts.find(

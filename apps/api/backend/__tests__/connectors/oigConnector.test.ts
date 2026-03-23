@@ -36,6 +36,7 @@ describe('oigConnector', () => {
     it('returns excluded=true for known excluded NPI', async () => {
       const result = await checkOIGExclusion('1234567890');
       expect(result.excluded).toBe(true);
+      expect(result.verdict).toBe('EXCLUDED');
       expect(result.exclusionType).toBeTruthy();
       expect(result.exclusionDate).toBeTruthy();
       expect(result.npi).toBe('1234567890');
@@ -44,6 +45,7 @@ describe('oigConnector', () => {
     it('returns excluded=false for non-excluded NPI', async () => {
       const result = await checkOIGExclusion('1003000126');
       expect(result.excluded).toBe(false);
+      expect(result.verdict).toBe('CLEAR');
       expect(result.exclusionType).toBeNull();
       expect(result.exclusionDate).toBeNull();
     });
@@ -57,12 +59,14 @@ describe('oigConnector', () => {
     it('returns waiverState for applicable exclusions', async () => {
       const result = await checkOIGExclusion('3333333333');
       expect(result.excluded).toBe(true);
+      expect(result.verdict).toBe('EXCLUDED');
       expect(result.waiverState).toBe('CA');
     });
 
     it('returns reinstatementDate when applicable', async () => {
       const result = await checkOIGExclusion('4444444444');
       expect(result.excluded).toBe(true);
+      expect(result.verdict).toBe('EXCLUDED');
       expect(result.reinstatementDate).toBe('2025-11-20');
     });
   });

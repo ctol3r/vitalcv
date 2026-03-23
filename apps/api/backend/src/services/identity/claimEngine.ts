@@ -115,7 +115,7 @@ interface NppesResult {
   last_updated_epoch?: string;
 }
 
-const NPPES_PARSER_VERSION = 'v1.0.0';
+const NPPES_PARSER_VERSION = 'v1.1.0';
 
 export function parseNppesResult(
   npi: string,
@@ -138,6 +138,7 @@ export function parseNppesResult(
       lastUpdated:     raw.basic?.last_updated ?? '',
       status:          raw.basic?.status === 'A' ? 'A' : 'D',
       credential:      raw.basic?.credential ?? null,
+      sourceDisclaimer: 'Identity only, not licensure',
     };
     const idClaim = makeClaim({ ...base, claimType: 'NPI_IDENTITY', subjectNpi: npi, value: identityValue, confidence: 'HIGH', confidenceScore: 0.99 });
     claims.push(idClaim);
@@ -217,16 +218,23 @@ export function parseNppesResult(
 // ── OIG LEIE parser ───────────────────────────────────────────────────────────
 
 interface OigSearchResult {
+  verdict?: 'CLEAR' | 'EXCLUDED' | 'POSSIBLE_MATCH' | 'UNCHECKED';
   matchType?: 'NPI_MATCH' | 'NAME_MATCH' | 'NO_MATCH' | 'UNCLEAR' | string;
+  matchConfidence?: ClaimConfidence;
+  matchScore?: number | null;
+  matchedFields?: string[];
   excluded?: boolean;
   exclusionType?: string;
   exclusionDate?: string;
   reinstatementDate?: string | null;
   waiverState?: string | null;
+  sourceLatency?: string | null;
+  dataFreshness?: string | null;
+  dataVersion?: string | null;
   rawResponse?: unknown;
 }
 
-const OIG_PARSER_VERSION = 'v1.0.0';
+const OIG_PARSER_VERSION = 'v1.1.0';
 
 export function parseOigResult(
   npi: string,
@@ -235,24 +243,52 @@ export function parseOigResult(
   artifactChecksum: string,
   observedAt: string,
 ): { claims: NormalizedClaim[]; receipts: VerificationReceipt[] } {
-  const excluded = raw.excluded === true || (!!raw.matchType && raw.matchType !== 'NO_MATCH');
+  const verdict = raw.verdict
+    ?? (raw.excluded === true
+      ? 'EXCLUDED'
+      : raw.matchType === 'NAME_MATCH' || raw.matchType === 'UNCLEAR'
+        ? 'POSSIBLE_MATCH'
+        : raw.matchType === undefined
+          ? 'UNCHECKED'
+          : 'CLEAR');
   const matchType = (raw.matchType ?? 'NO_MATCH') as ExclusionValue['matchType'];
+  const excluded = verdict === 'EXCLUDED';
 
-  // If exclusion status is genuinely unclear (API error or timeout),
-  // mark as UNCERTAIN rather than silently passing as clear.
-  const confidence: ClaimConfidence = raw.matchType === undefined ? 'UNCERTAIN' : 'HIGH';
-  const confidenceScore = confidence === 'UNCERTAIN' ? 0.3 : 0.98;
-  const reviewRequired = confidence === 'UNCERTAIN' || matchType === 'UNCLEAR';
+  const confidence: ClaimConfidence = raw.matchConfidence
+    ?? (verdict === 'EXCLUDED'
+      ? 'HIGH'
+      : verdict === 'POSSIBLE_MATCH'
+        ? 'MEDIUM'
+        : verdict === 'UNCHECKED'
+          ? 'UNCERTAIN'
+          : 'HIGH');
+  const confidenceScore = typeof raw.matchScore === 'number'
+    ? raw.matchScore
+    : confidence === 'HIGH'
+      ? 0.99
+      : confidence === 'MEDIUM'
+        ? 0.78
+        : confidence === 'LOW'
+          ? 0.55
+          : 0.25;
+  const reviewRequired = verdict === 'POSSIBLE_MATCH' || verdict === 'UNCHECKED' || matchType === 'UNCLEAR';
 
   const value: ExclusionValue = {
     _type: 'EXCLUSION_STATUS',
     excluded,
+    verdict,
     exclusionType: raw.exclusionType ?? null,
     exclusionDate: raw.exclusionDate ?? null,
     reinstatementDate: raw.reinstatementDate ?? null,
     matchType,
+    matchConfidence: confidence,
+    matchScore: typeof raw.matchScore === 'number' ? raw.matchScore : null,
+    matchedFields: raw.matchedFields ?? [],
     waiverState: raw.waiverState ?? null,
     source: 'OIG_LEIE',
+    sourceLatency: raw.sourceLatency ?? null,
+    dataFreshness: raw.dataFreshness ?? null,
+    dataVersion: raw.dataVersion ?? null,
   };
 
   const claim = makeClaim({
@@ -260,18 +296,22 @@ export function parseOigResult(
     parserVersion: OIG_PARSER_VERSION, tier: 'GOLD',
     claimType: 'EXCLUSION_STATUS', subjectNpi: npi, value,
     confidence, confidenceScore, observedAt,
-    status: excluded ? 'BLOCKED' : 'ACTIVE',
+    status: verdict === 'EXCLUDED' ? 'BLOCKED' : reviewRequired ? 'UNVERIFIED' : 'ACTIVE',
     reviewRequired,
     reviewReason: reviewRequired
-      ? (confidence === 'UNCERTAIN' ? 'OIG check returned uncertain result — manual verification required' : 'Ambiguous name match — human review required')
+      ? (verdict === 'UNCHECKED'
+        ? 'OIG check could not be completed — manual verification required'
+        : 'Potential LEIE match requires manual review before treating as excluded')
       : null,
   });
 
-  const explanation = excluded
-    ? `OIG/LEIE exclusion detected for NPI ${npi} — match type: ${matchType}. Exclusion date: ${raw.exclusionDate ?? 'unknown'}. Trust band hard-capped at L0.`
-    : confidence === 'UNCERTAIN'
-      ? `OIG/LEIE check result uncertain for NPI ${npi} — treat as unverified until manual review.`
-      : `OIG/LEIE check clear for NPI ${npi} — no exclusion found (${matchType}).`;
+  const explanation = verdict === 'EXCLUDED'
+    ? `OIG/LEIE exclusion confirmed for NPI ${npi} via ${matchType}. Exclusion date: ${raw.exclusionDate ?? 'unknown'}.`
+    : verdict === 'POSSIBLE_MATCH'
+      ? `OIG/LEIE returned a possible match for NPI ${npi}. Manual review required before treating this provider as excluded.`
+      : verdict === 'UNCHECKED'
+        ? `OIG/LEIE could not be checked for NPI ${npi}. Treat as unverified until manually reviewed.`
+        : `OIG/LEIE check clear for NPI ${npi} — no exclusion found (${matchType}).`;
 
   return {
     claims: [claim],
@@ -287,9 +327,13 @@ interface PecosRecord {
   enrollmentType?: string | null;
   eligibleToOrderRefer?: boolean | null;
   source?: string;
+  observedAt?: string | null;
+  dataVersion?: string | null;
+  sourceLatency?: string | null;
+  dataFreshness?: string | null;
 }
 
-const PECOS_PARSER_VERSION = 'v1.0.0';
+const PECOS_PARSER_VERSION = 'v1.1.0';
 
 export function parsePecosRecord(
   npi: string,
@@ -304,6 +348,11 @@ export function parsePecosRecord(
     enrollmentType: raw.enrollmentType ?? null,
     eligibleToOrderRefer: raw.eligibleToOrderRefer ?? false,
     source: 'PECOS',
+    observedAt: raw.observedAt ?? observedAt,
+    dataVersion: raw.dataVersion ?? null,
+    sourceLatency: raw.sourceLatency ?? 'QUARTERLY',
+    dataFreshness: raw.dataFreshness ?? 'QUARTERLY',
+    sourceDisclaimer: 'Point-in-time enrollment data, not real-time coverage.',
   };
 
   const claim = makeClaim({

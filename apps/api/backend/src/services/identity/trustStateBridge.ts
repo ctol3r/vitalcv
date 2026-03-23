@@ -28,7 +28,7 @@ export interface IdentityEnrichment {
   silverClaimCount:   number;
 
   /** Key verdicts derived from claims */
-  exclusionVerdict:   'CLEAR' | 'EXCLUDED' | 'UNCERTAIN' | 'NOT_CHECKED';
+  exclusionVerdict:   'CLEAR' | 'EXCLUDED' | 'POSSIBLE_MATCH' | 'UNCHECKED';
   licensureVerdict:   'ACTIVE' | 'EXPIRED' | 'REVOKED' | 'SUSPENDED' | 'UNKNOWN';
   enrollmentVerdict:  'ENROLLED' | 'NOT_ENROLLED' | 'UNKNOWN';
   boardCertVerdict:   'CERTIFIED' | 'LAPSED' | 'NOT_CERTIFIED' | 'UNKNOWN';
@@ -63,14 +63,16 @@ export function buildEnrichmentFromClaims(
   const exclusionClaims = claims.filter(c =>
     c.claimType === 'EXCLUSION_STATUS' || c.claimType === 'FEDERAL_EXCLUSION'
   );
-  let exclusionVerdict: IdentityEnrichment['exclusionVerdict'] = 'NOT_CHECKED';
+  let exclusionVerdict: IdentityEnrichment['exclusionVerdict'] = 'UNCHECKED';
   let exclusionConfidence = 0;
   if (exclusionClaims.length > 0) {
     const best = exclusionClaims.sort((a, b) => b.confidenceScore - a.confidenceScore)[0]!;
     const val = best.value as ExclusionValue;
-    if (best.confidence === 'UNCERTAIN') {
-      exclusionVerdict = 'UNCERTAIN';
-    } else if (val.excluded) {
+    if (val.verdict === 'POSSIBLE_MATCH' || best.reviewRequired) {
+      exclusionVerdict = 'POSSIBLE_MATCH';
+    } else if (val.verdict === 'UNCHECKED' || best.confidence === 'UNCERTAIN') {
+      exclusionVerdict = 'UNCHECKED';
+    } else if (val.excluded || val.verdict === 'EXCLUDED') {
       exclusionVerdict = 'EXCLUDED';
     } else {
       exclusionVerdict = 'CLEAR';
@@ -213,8 +215,11 @@ export async function getEnrichedTrustIntelligence(
 
   // Generate recommendations
   const recommendations: string[] = [];
-  if (enrichment.exclusionVerdict === 'UNCERTAIN') {
-    recommendations.push('OIG exclusion check returned uncertain result — manual verification required before trust band can exceed L1');
+  if (enrichment.exclusionVerdict === 'POSSIBLE_MATCH') {
+    recommendations.push('OIG exclusion check returned a possible match — manual verification required before treating the provider as excluded');
+  }
+  if (enrichment.exclusionVerdict === 'UNCHECKED') {
+    recommendations.push('OIG exclusion check could not be confirmed — treat as unverified until manual review');
   }
   if (enrichment.exclusionVerdict === 'EXCLUDED') {
     recommendations.push('CRITICAL: Active OIG exclusion — trust band must remain L0. Immediate review required.');

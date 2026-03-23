@@ -7,9 +7,6 @@ import { usePathname } from 'next/navigation';
 
 const FOOTER_LINKS = [
   { href: '/updates', label: 'Updates' },
-  { href: '/developers#sdks', label: 'Docs' },
-  { href: '/status', label: 'Status' },
-  { href: '/labs', label: 'Labs' },
 ] as const;
 
 export default function Footer() {

@@ -17,6 +17,7 @@ import {
   CONTEXT_REQUIRED_DOMAINS,
   ORG_CONTEXT_TYPE_LABELS,
   ORG_CONTEXT_STATUS_LABELS,
+  isCredentialSatisfied,
   type OrgContextSummary,
 } from './contracts';
 import type {
@@ -71,6 +72,28 @@ export async function createOrgContext(input: CreateOrgContextInput) {
   } = input;
 
   const ctx = await prisma.$transaction(async tx => {
+    const requestor = await tx.vcvEntity.findUnique({
+      where: { id: requestorEntityId },
+      select: { id: true },
+    });
+    if (!requestor) {
+      throw new Error(`Requestor entity ${requestorEntityId} not found.`);
+    }
+
+    if (subjectEntityIds.includes(requestorEntityId)) {
+      throw new Error('Requestor entity cannot also be added as a subject.');
+    }
+
+    if (subjectEntityIds.length > 0) {
+      const subjects = await tx.vcvEntity.findMany({
+        where: { id: { in: subjectEntityIds } },
+        select: { id: true },
+      });
+      if (subjects.length !== new Set(subjectEntityIds).size) {
+        throw new Error('One or more subject entities were not found.');
+      }
+    }
+
     const context = await tx.vcvOrganizationContext.create({
       data: {
         requestorId:      requestorEntityId,
@@ -167,6 +190,25 @@ export async function transitionOrgContextStatus(
  */
 export async function addSubjectToContext(input: AddSubjectInput) {
   const { contextId, subjectEntityId, credentialId, invitedAt, metadata = {} } = input;
+
+  const context = await prisma.vcvOrganizationContext.findUnique({
+    where: { id: contextId },
+    select: { id: true, requestorId: true },
+  });
+  if (!context) {
+    throw new Error(`Organization context ${contextId} not found.`);
+  }
+  if (context.requestorId === subjectEntityId) {
+    throw new Error('Requestor entity cannot also be attached as a subject.');
+  }
+
+  const subjectEntity = await prisma.vcvEntity.findUnique({
+    where: { id: subjectEntityId },
+    select: { id: true },
+  });
+  if (!subjectEntity) {
+    throw new Error(`Subject entity ${subjectEntityId} not found.`);
+  }
 
   const subject = await prisma.vcvOrgContextSubject.upsert({
     where: { contextId_subjectId: { contextId, subjectId: subjectEntityId } },
@@ -269,12 +311,24 @@ export async function getMissingCredentials(
   const present = await prisma.vcvCredential.findMany({
     where: {
       subjectId: subjectEntityId,
-      status:    'ACTIVE',
+      status: { not: 'SUPERSEDED' },
       domain:    { in: required as import('@prisma/client').VcvCredentialDomain[] },
     },
-    select: { domain: true },
+    select: {
+      domain: true,
+      status: true,
+      credentialType: true,
+      expiresAt: true,
+    },
   });
 
-  const presentDomains = new Set(present.map(c => c.domain));
+  const presentDomains = new Set(
+    present
+      .filter((credential) => isCredentialSatisfied({
+        domain: credential.domain,
+        status: credential.status,
+      }))
+      .map((credential) => credential.domain),
+  );
   return required.filter(d => !presentDomains.has(d as import('@prisma/client').VcvCredentialDomain));
 }
