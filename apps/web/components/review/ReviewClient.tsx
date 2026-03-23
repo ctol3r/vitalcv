@@ -356,8 +356,94 @@ interface Props {
   sharedBy?:  string;
 }
 
+// ── M2: Freshness helpers ──────────────────────────────────────────────────
+
+interface FreshnessEntry {
+  layer:      string;
+  checkedAt:  string | null | undefined;
+  source:     string;
+  stale:      boolean;   // > staleDays since last check
+  unchecked:  boolean;
+}
+
+/** Return true if the ISO date is older than thresholdDays from now. */
+function isStale(iso: string | null | undefined, thresholdDays: number): boolean {
+  if (!iso) return false;
+  const ms = Date.now() - new Date(iso).getTime();
+  return ms > thresholdDays * 86_400_000;
+}
+
+function FreshnessPanel({ entries }: { entries: FreshnessEntry[] }) {
+  const hasWarning = entries.some(e => e.stale || e.unchecked);
+  if (!hasWarning) return null;
+
+  return (
+    <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 space-y-1.5">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/70 mb-2">
+        Source freshness
+      </p>
+      {entries.map(e => (
+        <div key={e.layer} className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <span className="text-white/25 text-[10px] w-2 shrink-0">
+              {e.stale ? '⚠' : e.unchecked ? '○' : '✔'}
+            </span>
+            <span className={`text-xs ${e.stale || e.unchecked ? 'text-white/55' : 'text-white/35'}`}>
+              {e.layer}
+            </span>
+          </div>
+          <span className="text-[10px] text-white/30 shrink-0 text-right">
+            {e.unchecked
+              ? 'not checked'
+              : e.stale
+                ? `stale — ${e.checkedAt ? new Date(e.checkedAt).toLocaleDateString() : 'date unknown'}`
+                : e.checkedAt
+                  ? new Date(e.checkedAt).toLocaleDateString()
+                  : 'unknown'}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── M2: Action state type ──────────────────────────────────────────────────
+
+type ActionState =
+  | { phase: 'idle' }
+  | { phase: 'loading'; intent: 'accept' | 'refresh' | 'review' | 'download' }
+  | { phase: 'done';    intent: 'accept' | 'refresh' | 'review'; auditEventId: string; timestamp: string }
+  | { phase: 'error';   intent: 'accept' | 'refresh' | 'review'; message: string }
+  | { phase: 'downloading' };
+
+// ── M2: API call helpers ───────────────────────────────────────────────────
+
+const API = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000';
+
+async function postAction(
+  entityId: string,
+  endpoint: 'accept' | 'request-refresh' | 'route-to-review',
+  body?: Record<string, unknown>,
+): Promise<{ ok: boolean; auditEventId: string; timestamp: string }> {
+  const res = await fetch(`${API}/api/employer-review/${entityId}/${endpoint}`, {
+    method:  'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      // Clerk user ID from session cookie — passed by Next.js middleware in production;
+      // in dev/pilot use the anonymous placeholder so the audit event is still written.
+      'x-clerk-user-id': 'employer-review-pilot',
+    },
+    body: JSON.stringify(body ?? {}),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as { error_description?: string };
+    throw new Error(err.error_description ?? `Action failed (${res.status})`);
+  }
+  return res.json() as Promise<{ ok: boolean; auditEventId: string; timestamp: string }>;
+}
+
 export default function ReviewClient({ passport, contextId: _contextId, sharedBy }: Props) {
-  const [action, setAction] = useState<'none' | 'accepted' | 'requested' | 'saved'>('none');
+  const [actionState, setActionState] = useState<ActionState>({ phase: 'idle' });
 
   const { identity, readiness, standing, authority } = passport;
   const pecosEnrollmentStatus: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED' =
@@ -374,6 +460,106 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
   const proofItems = buildProofSections(passport);
   const safetyRow = buildSafetyRow(standing);
   const eligibilityRow = buildEligibilityRow(standing, pecosEnrollmentStatus);
+
+  // M2: Freshness entries for pre-action panel
+  const freshnessEntries: FreshnessEntry[] = [
+    {
+      layer:     'Identity (NPPES)',
+      checkedAt: passport.lastCheckedAt ?? null,
+      source:    'CMS NPPES',
+      stale:     isStale(passport.lastCheckedAt, 30),
+      unchecked: !passport.lastCheckedAt,
+    },
+    {
+      layer:     'Safety (OIG)',
+      checkedAt: standing.exclusionCheckedAt ?? null,
+      source:    'OIG LEIE',
+      stale:     isStale(standing.exclusionCheckedAt, 90),
+      unchecked: standing.exclusionStatus === 'UNCHECKED',
+    },
+    {
+      layer:     'Authority (Licenses)',
+      checkedAt: authority.credentials.length > 0
+        ? authority.credentials[0]?.observedAt ?? null
+        : null,
+      source:    'State Boards / FSMB',
+      stale:     isStale(authority.credentials[0]?.observedAt, 90),
+      unchecked: authority.credentials.length === 0,
+    },
+    {
+      layer:     'Eligibility (PECOS)',
+      checkedAt: standing.enrollmentObservedAt ?? null,
+      source:    standing.enrollmentSourceLabel ?? 'CMS PECOS',
+      stale:     false, // PECOS is quarterly by design — not "stale" on time alone
+      unchecked: pecosEnrollmentStatus === 'UNCHECKED',
+    },
+  ];
+
+  // M2: Handlers with real API calls + mandatory audit
+  async function handleAccept() {
+    setActionState({ phase: 'loading', intent: 'accept' });
+    try {
+      const result = await postAction(passport.entityId, 'accept', {
+        staleSources:   freshnessEntries.filter(e => e.stale).map(e => e.source),
+        missingDomains: authority.summary.missing,
+      });
+      setActionState({ phase: 'done', intent: 'accept', auditEventId: result.auditEventId, timestamp: result.timestamp });
+    } catch (err) {
+      setActionState({ phase: 'error', intent: 'accept', message: (err as Error).message });
+    }
+  }
+
+  async function handleRequestRefresh() {
+    setActionState({ phase: 'loading', intent: 'refresh' });
+    try {
+      const result = await postAction(passport.entityId, 'request-refresh', {
+        staleSources:   freshnessEntries.filter(e => e.stale || e.unchecked).map(e => e.source),
+        missingDomains: authority.summary.missing,
+      });
+      setActionState({ phase: 'done', intent: 'refresh', auditEventId: result.auditEventId, timestamp: result.timestamp });
+    } catch (err) {
+      setActionState({ phase: 'error', intent: 'refresh', message: (err as Error).message });
+    }
+  }
+
+  async function handleRouteToReview() {
+    setActionState({ phase: 'loading', intent: 'review' });
+    try {
+      const result = await postAction(passport.entityId, 'route-to-review', {
+        reason: blocked.length > 0
+          ? `Employer routed to review. Blockers: ${blocked.slice(0, 3).join(', ')}`
+          : 'Employer routed for manual review.',
+        priority: blocked.length > 0 ? 'HIGH' : 'NORMAL',
+      });
+      setActionState({ phase: 'done', intent: 'review', auditEventId: result.auditEventId, timestamp: result.timestamp });
+    } catch (err) {
+      setActionState({ phase: 'error', intent: 'review', message: (err as Error).message });
+    }
+  }
+
+  async function handleDownloadPacket() {
+    setActionState({ phase: 'downloading' });
+    try {
+      const res = await fetch(
+        `${API}/api/employer-review/${passport.entityId}/packet`,
+        {
+          headers: { 'x-clerk-user-id': 'employer-review-pilot' },
+        },
+      );
+      if (!res.ok) throw new Error(`Export failed (${res.status})`);
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      const npi  = passport.identity.npi ?? passport.entityId;
+      a.download = `vitalcv-packet-${npi}-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch { /* download failure is non-fatal */ }
+    setActionState({ phase: 'idle' });
+  }
 
   return (
     <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center px-4 pt-10 sm:pt-16 pb-28">
@@ -564,30 +750,36 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
           </div>
         )}
 
-        {/* ── Action panel ─────────────────────────────────────────────────── */}
-        {action === 'none' ? (
+        {/* ── M2: Freshness panel — visible before any action ───────────────── */}
+        <FreshnessPanel entries={freshnessEntries} />
+
+        {/* ── M2: Action panel — all actions write audit events ────────────── */}
+        {actionState.phase === 'idle' || actionState.phase === 'downloading' ? (
           <div className="space-y-3 pt-2">
-            {/* Primary */}
+            {/* Primary — Accept as head start */}
             <button
-              onClick={() => setAction('accepted')}
-              className="w-full bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-white rounded-xl h-14 text-sm font-medium transition-all"
+              onClick={handleAccept}
+              disabled={actionState.phase === 'downloading'}
+              className="w-full bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 disabled:opacity-40 text-white rounded-xl h-14 text-sm font-medium transition-all"
             >
-              Accept / Proceed
+              Accept as head start
             </button>
 
             {/* Secondary row */}
             <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => setAction('requested')}
-                className="rounded-xl border border-white/10 bg-white/4 text-white/55 hover:text-white/80 hover:bg-white/8 text-xs py-3.5 min-h-[48px] transition-all"
+                onClick={handleRequestRefresh}
+                disabled={actionState.phase === 'downloading'}
+                className="rounded-xl border border-white/10 bg-white/4 text-white/55 hover:text-white/80 hover:bg-white/8 disabled:opacity-40 text-xs py-3.5 min-h-[48px] transition-all"
               >
-                Request missing
+                Request refresh
               </button>
               <button
-                onClick={() => setAction('saved')}
-                className="rounded-xl border border-white/10 bg-white/4 text-white/55 hover:text-white/80 hover:bg-white/8 text-xs py-3.5 min-h-[48px] transition-all"
+                onClick={handleRouteToReview}
+                disabled={actionState.phase === 'downloading'}
+                className="rounded-xl border border-white/10 bg-white/4 text-white/55 hover:text-white/80 hover:bg-white/8 disabled:opacity-40 text-xs py-3.5 min-h-[48px] transition-all"
               >
-                Save / Track
+                Route to review
               </button>
             </div>
 
@@ -599,29 +791,68 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
               >
                 Full profile
               </Link>
-              <button className="text-white/25 hover:text-white/45 text-xs transition-colors min-h-[44px]">
-                Download bundle
+              <button
+                onClick={handleDownloadPacket}
+                disabled={actionState.phase === 'downloading'}
+                className="text-white/25 hover:text-white/45 disabled:opacity-40 text-xs transition-colors min-h-[44px]"
+              >
+                {actionState.phase === 'downloading' ? 'Exporting…' : 'Download packet'}
               </button>
             </div>
           </div>
-        ) : (
-          /* Confirmation state */
-          <div className="rounded-xl border border-white/10 bg-white/4 px-5 py-4 text-center space-y-1">
-            <p className="text-white/70 text-sm font-medium">
-              {action === 'accepted'  ? 'Decision recorded'
-               : action === 'requested' ? 'Request sent'
-               :                          'Saved to your pipeline'}
+
+        ) : actionState.phase === 'loading' ? (
+          /* Loading state */
+          <div className="rounded-xl border border-white/10 bg-white/4 px-5 py-5 text-center">
+            <p className="text-white/40 text-sm animate-pulse">
+              {actionState.intent === 'accept'  ? 'Recording acceptance…'
+               : actionState.intent === 'refresh' ? 'Sending refresh request…'
+               :                                    'Routing to review queue…'}
             </p>
-            <p className="text-white/30 text-xs">
-              {action === 'accepted'  ? `${identity.displayName} — accepted for review`
-               : action === 'requested' ? 'Provider will be notified of missing items'
-               :                          'Added to your tracking queue'}
+            <p className="text-white/20 text-xs mt-1">Writing audit event…</p>
+          </div>
+
+        ) : actionState.phase === 'done' ? (
+          /* Success — show audit event ID for verifiability */
+          <div className="rounded-xl border border-white/12 bg-white/4 px-5 py-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-emerald-400 text-sm">✔</span>
+              <p className="text-white/75 text-sm font-medium">
+                {actionState.intent === 'accept'  ? 'Head start accepted'
+                 : actionState.intent === 'refresh' ? 'Refresh requested'
+                 :                                    'Routed to review'}
+              </p>
+            </div>
+            <p className="text-white/35 text-xs">
+              {actionState.intent === 'accept'
+                ? `${identity.displayName ?? 'Provider'} — acceptance recorded`
+                : actionState.intent === 'refresh'
+                  ? 'Provider will be notified of missing or stale data'
+                  : 'Added to the manual review queue'}
             </p>
+            {/* Audit event ID — verifiable, not just a UI label */}
+            <div className="rounded-lg border border-white/8 bg-white/3 px-3 py-2 mt-1">
+              <p className="text-white/20 text-[10px] uppercase tracking-widest mb-0.5">Audit event</p>
+              <p className="text-white/45 text-[10px] font-mono break-all">{actionState.auditEventId}</p>
+              <p className="text-white/20 text-[10px] mt-0.5">{new Date(actionState.timestamp).toLocaleString()}</p>
+            </div>
             <button
-              onClick={() => setAction('none')}
-              className="text-white/25 hover:text-white/40 text-xs mt-2 transition-colors min-h-[44px] block w-full"
+              onClick={() => setActionState({ phase: 'idle' })}
+              className="text-white/25 hover:text-white/40 text-xs transition-colors min-h-[44px] block w-full"
             >
-              Undo
+              Back
+            </button>
+          </div>
+
+        ) : /* error */ (
+          <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-5 py-4 space-y-2">
+            <p className="text-white/60 text-sm font-medium">Action failed</p>
+            <p className="text-white/35 text-xs">{actionState.message}</p>
+            <button
+              onClick={() => setActionState({ phase: 'idle' })}
+              className="text-white/25 hover:text-white/40 text-xs transition-colors min-h-[44px] block w-full"
+            >
+              Try again
             </button>
           </div>
         )}
