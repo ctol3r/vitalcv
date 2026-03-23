@@ -16,6 +16,7 @@
 import { createHash } from 'node:crypto';
 import prisma, { Prisma } from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
+import { lookupNpi as leieNpiLookup } from './leieCache';
 import {
   checksumOf,
   parseNppesResult,
@@ -52,6 +53,7 @@ import {
   updateClaimRecordState,
   type IdentityIngestionStatus,
 } from './identityStore';
+import { materializeClaimsToVcvCredentials } from '../entity/vcvCredentialMaterializer';
 import { getSource, type EvidenceTier } from './sourceCatalog';
 import {
   emitWatchtowerArtifactsForPersistedDeltas,
@@ -66,6 +68,7 @@ export interface IngestionResult {
   sourceRunId?: string;
   sourceRecordId?: string;
   claimIds?: readonly string[];
+  credentialIds?: readonly string[];
   claimsEmitted: number;
   deltaEvents: DeltaEvent[];
   status: 'SUCCESS' | 'SKIPPED' | 'FAILED';
@@ -422,33 +425,60 @@ async function fetchNppes(npi: string): Promise<SourceFetchResult> {
 }
 
 async function fetchOig(npi: string): Promise<SourceFetchResult> {
-  const sourceUrl = `https://oig.hhs.gov/exclusions/api/?npi=${npi}`;
+  // The OIG NPI-based REST API endpoint is permanently dead (returns 404).
+  // Real exclusion data comes from the monthly LEIE bulk CSV, cached in memory
+  // and refreshed every 24h via leieCache.ts.
+  const sourceUrl = 'https://oig.hhs.gov/exclusions/downloadables/UPDATED.csv (cached)';
   try {
-    const resp = await fetch(sourceUrl, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) {
-      const raw = { matchType: undefined, excluded: false, _apiUnavailable: true };
+    const result = await leieNpiLookup(npi);
+
+    if (result.cacheAge === 'unavailable') {
+      // Cache failed to load — return UNCERTAIN so upstream marks PENDING_REVIEW
+      const raw = { matchType: undefined, excluded: false, _cacheUnavailable: true };
       return {
         raw,
-        checksum: checksumOf({ npi, status: 'API_UNAVAILABLE' }),
-        fetchedAt: new Date().toISOString(),
+        checksum: checksumOf({ npi, status: 'CACHE_UNAVAILABLE' }),
+        fetchedAt: result.checkedAt,
         sourceUrl,
-        fetchHeaders: headersToObject(resp.headers),
+        fetchHeaders: {},
       };
     }
 
-    const raw = await resp.json();
+    const raw = result.excluded && result.entry
+      ? {
+          excluded:         true,
+          matchType:        'NPI_MATCH' as const,
+          exclusionType:    result.entry.exclusionType || null,
+          exclusionDate:    result.entry.exclusionDate || null,
+          reinstatementDate: result.entry.reinstatementDate || null,
+          waiverState:      result.entry.waiverState || null,
+          source:           'LEIE_CSV',
+          cacheAge:         result.cacheAge,
+        }
+      : {
+          excluded:         false,
+          matchType:        'NO_MATCH' as const,
+          exclusionType:    null,
+          exclusionDate:    null,
+          reinstatementDate: null,
+          waiverState:      null,
+          source:           'LEIE_CSV',
+          cacheAge:         result.cacheAge,
+        };
+
     return {
       raw,
       checksum: checksumOf(raw),
-      fetchedAt: new Date().toISOString(),
+      fetchedAt: result.checkedAt,
       sourceUrl,
-      fetchHeaders: headersToObject(resp.headers),
+      fetchHeaders: {},
     };
-  } catch {
-    const raw = { matchType: undefined, excluded: false, _apiUnavailable: true };
+  } catch (err) {
+    log('warn', 'identityPipeline: OIG LEIE cache lookup failed', { npi, error: String(err) });
+    const raw = { matchType: undefined, excluded: false, _cacheUnavailable: true };
     return {
       raw,
-      checksum: checksumOf({ npi, status: 'API_UNAVAILABLE' }),
+      checksum: checksumOf({ npi, status: 'CACHE_ERROR' }),
       fetchedAt: new Date().toISOString(),
       sourceUrl,
       fetchHeaders: {},
@@ -457,8 +487,9 @@ async function fetchOig(npi: string): Promise<SourceFetchResult> {
 }
 
 async function fetchPecos(npi: string): Promise<SourceFetchResult> {
+  // filter[NPI] must be URL-encoded — bare [ ] in query strings fail in some environments
   const sourceUrl =
-    `https://data.cms.gov/data-api/v1/dataset/2457ea29-fc82-48b0-86ec-3b0755de7515/data?filter[NPI]=${npi}&size=5`;
+    `https://data.cms.gov/data-api/v1/dataset/2457ea29-fc82-48b0-86ec-3b0755de7515/data?filter%5BNPI%5D=${npi}&size=5`;
 
   try {
     const resp = await fetch(sourceUrl, { headers: { Accept: 'application/json' } });
@@ -1003,6 +1034,12 @@ async function executeSourceIngestion(input: {
       receipts: parsed.receipts,
       matchingStrategy: parsed.matchingStrategy,
     });
+    const materializedCredentials = await materializeClaimsToVcvCredentials({
+      subjectNpi: input.npi,
+      verificationArtifactId: artifactId,
+      claims: claimComparison.claims,
+      receipts: parsed.receipts,
+    });
 
     await identityPrisma.claimDerivationJob.update({
       where: { id: claimDerivationJob.id },
@@ -1018,6 +1055,7 @@ async function executeSourceIngestion(input: {
         stage: 'NORMALIZED',
         artifactId,
         claimIds,
+        credentialIds: materializedCredentials.credentialIds,
       },
     });
 
@@ -1139,6 +1177,7 @@ async function executeSourceIngestion(input: {
       sourceRunId: sourceRun.id,
       sourceRecordId,
       claimIds,
+      credentialIds: materializedCredentials.credentialIds,
       claimsEmitted: claimComparison.claims.length,
       deltaEvents: deltaEvents.map(({ type, claimType, previous, current, severity, fieldPath }) => ({
         type,

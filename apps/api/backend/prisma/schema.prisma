@@ -894,10 +894,73 @@ model SourceRun {
   identityResolutionDecisions IdentityResolutionDecision[]
   identityClaimDeltas         IdentityClaimDelta[]
   trustAlertRecords           TrustAlertRecord[]
+  ingestSourceRuns            IngestSourceRun[]
 
   @@index([sourceId, subjectNpi, createdAt])
   @@index([status, createdAt])
   @@map("source_runs")
+}
+
+model IngestRun {
+  id          String            @id @default(uuid()) @db.Uuid
+  npi         String
+  status      String            @default("PENDING")
+  entityId    String?           @db.Uuid @map("entity_id")
+  lastError   String?           @map("last_error")
+  startedAt   DateTime          @default(now()) @map("started_at")
+  completedAt DateTime?         @map("completed_at")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  sourceRuns  IngestSourceRun[]
+  events      IngestEvent[]
+
+  @@index([npi, status])
+  @@index([createdAt])
+  @@map("ingest_runs")
+}
+
+model IngestSourceRun {
+  id           String     @id @default(uuid()) @db.Uuid
+  ingestRunId  String     @db.Uuid @map("ingest_run_id")
+  sourceId     String     @map("source_id")
+  status       String     @default("PENDING")
+  sourceRunId  String?    @db.Uuid @map("source_run_id")
+  artifactId   String?    @db.Uuid @map("artifact_id")
+  claimCount   Int        @default(0) @map("claim_count")
+  credentialCount Int     @default(0) @map("credential_count")
+  errorCode    String?    @map("error_code")
+  lastError    String?    @map("last_error")
+  startedAt    DateTime?  @map("started_at")
+  completedAt  DateTime?  @map("completed_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  ingestRun    IngestRun  @relation(fields: [ingestRunId], references: [id], onDelete: Cascade)
+  sourceRun    SourceRun? @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
+
+  @@unique([ingestRunId, sourceId])
+  @@index([sourceRunId])
+  @@index([status, createdAt])
+  @@map("ingest_source_runs")
+}
+
+model IngestEvent {
+  id          String    @id @default(uuid()) @db.Uuid
+  ingestRunId String    @db.Uuid @map("ingest_run_id")
+  sequence    Int
+  eventType   String    @map("event_type")
+  sourceId    String?   @map("source_id")
+  dedupeKey   String    @map("dedupe_key")
+  payload     Json      @db.JsonB
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  ingestRun   IngestRun @relation(fields: [ingestRunId], references: [id], onDelete: Cascade)
+
+  @@unique([ingestRunId, sequence])
+  @@unique([ingestRunId, dedupeKey])
+  @@index([ingestRunId, createdAt])
+  @@map("ingest_events")
 }
 
 model FetchJob {
@@ -1952,6 +2015,8 @@ model BundleShareEvent {
   /// bundleId references VerificationArtifact.id (source='APPLY_BUNDLE')
   bundleId             String    @db.Uuid @map("bundle_id")
   npi                  String
+  organizationContextId String?  @db.Uuid @map("organization_context_id")
+  subjectEntityId      String?   @db.Uuid @map("subject_entity_id")
   sharedByClerkUserId  String    @map("shared_by_clerk_user_id")
   organizationId       String    @map("organization_id")
   organizationName     String    @map("organization_name")
@@ -1967,15 +2032,26 @@ model BundleShareEvent {
   webhookError         String?   @map("webhook_error")
   emailFallbackSent    Boolean   @default(false) @map("email_fallback_sent")
   emailFallbackTo      String?   @map("email_fallback_to")
+  deliveryStatus       String    @default("PENDING") @map("delivery_status")
+  checkedAt            DateTime  @default(now()) @map("checked_at")
+  bundlePayload        Json?     @db.JsonB @map("bundle_payload")
+  receiptRefs          String[]  @default([]) @map("receipt_refs")
+  sourceCoverage       Json?     @db.JsonB @map("source_coverage")
   /// Set by provider to revoke this share
   revokedAt            DateTime? @map("revoked_at")
   revokedByClerkUserId String?   @map("revoked_by_clerk_user_id")
   sharedAt             DateTime  @default(now()) @map("shared_at")
   expiresAt            DateTime  @map("expires_at")
 
+  organizationContext  VcvOrganizationContext? @relation(fields: [organizationContextId], references: [id], onDelete: SetNull)
+  subjectEntity        VcvEntity?              @relation("bundle_share_subject", fields: [subjectEntityId], references: [id], onDelete: SetNull)
+
   @@index([npi, sharedAt])
   @@index([bundleId])
   @@index([organizationId])
+  @@index([organizationContextId])
+  @@index([subjectEntityId])
+  @@index([deliveryStatus, sharedAt])
   @@index([sharedByClerkUserId])
   @@index([revokedAt])
   @@map("bundle_share_events")
@@ -3105,6 +3181,7 @@ model VcvEntity {
   orgContextsRequested VcvOrganizationContext[] @relation("ctx_requestor")
   orgContextSubjects   VcvOrgContextSubject[] @relation("ctx_subject")
   userClaims           VcvUserEntityClaim[]   @relation("entity_claims")
+  bundleShareEvents    BundleShareEvent[]     @relation("bundle_share_subject")
 
   @@index([npi])
   @@index([entityType])
@@ -3269,6 +3346,8 @@ model VcvCredential {
   subject         VcvEntity              @relation("cred_subject", fields: [subjectId], references: [id], onDelete: Cascade)
   issuerId        String?                @db.Uuid @map("issuer_id")
   issuer          VcvEntity?             @relation("cred_issuer",  fields: [issuerId],  references: [id], onDelete: SetNull)
+  credentialKey   String                 @unique @map("credential_key")
+  credentialFamilyKey String             @map("credential_family_key")
 
   domain          VcvCredentialDomain    @map("domain")
   credentialType  String                 @map("credential_type") // e.g. "MD_LICENSE_CA", "ABIM_INTERNAL_MEDICINE"
@@ -3279,14 +3358,21 @@ model VcvCredential {
   claimValue      Json                   @default("{}") @db.JsonB @map("claim_value")
   /// Source artifact IDs that back this credential
   artifactIds     String[]               @default([]) @map("artifact_ids")
+  /// Verification receipt IDs that justify this materialized credential
+  receiptIds      String[]               @default([]) @map("receipt_ids")
   /// The claim ID in the identity pipeline that produced this credential
   claimId         String?                @map("claim_id")
 
   issuedAt        DateTime?              @map("issued_at")
   expiresAt       DateTime?              @map("expires_at")
   verifiedAt      DateTime?              @map("verified_at")
+  observedAt      DateTime?              @map("observed_at")
   revokedAt       DateTime?              @map("revoked_at")
   nextReverifyAt  DateTime?              @map("next_reverify_at")
+  trustTier       String?                @map("trust_tier")
+  confidence      Float?
+  supersededByCredentialId String?       @db.Uuid @map("superseded_by_credential_id")
+  supersedesCredentialId String?         @db.Uuid @map("supersedes_credential_id")
 
   /// State context (e.g. for state licenses: "CA", "NY")
   jurisdiction    String?
@@ -3295,12 +3381,18 @@ model VcvCredential {
   createdAt       DateTime               @default(now()) @map("created_at")
   updatedAt       DateTime               @updatedAt     @map("updated_at")
 
+  supersededByCredential VcvCredential?  @relation("CredentialSupersededBy", fields: [supersededByCredentialId], references: [id], onDelete: SetNull)
+  supersedesCredential VcvCredential?    @relation("CredentialSupersedes", fields: [supersedesCredentialId], references: [id], onDelete: SetNull)
   educationRecords VcvEducationRecord[]  @relation("edu_credential")
   contextLinks     VcvOrgContextSubject[] @relation("ctx_credential")
+  supersededCredentials VcvCredential[]  @relation("CredentialSupersedes")
+  supersedesCredentials VcvCredential[]  @relation("CredentialSupersededBy")
 
   @@index([subjectId, domain])
   @@index([subjectId, status])
   @@index([issuerId])
+  @@index([observedAt])
+  @@index([credentialFamilyKey])
   @@index([credentialType, jurisdiction])
   @@index([expiresAt])
   @@map("vcv_credentials")
@@ -3394,6 +3486,7 @@ model VcvOrganizationContext {
 
   subjects        VcvOrgContextSubject[]
   statusEvents    VcvOrgContextStatusEvent[]
+  bundleShareEvents BundleShareEvent[]
 
   @@index([requestorId, contextType])
   @@index([status])

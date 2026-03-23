@@ -1,6 +1,7 @@
 import app from './app';
 import { log } from './obs/logger';
 import { seedIssuerEntities } from './services/entity/seedIssuers';
+import { prewarmLeieCache } from './services/identity/leieCache';
 
 export default app;
 
@@ -16,6 +17,8 @@ export async function startServer() {
   seedIssuerEntities().catch(err =>
     log('warn', 'issuer_seed_startup_failed', { error: String(err) }),
   );
+  // Pre-warm OIG LEIE cache (downloads CSV async, ~2–5s; ready before first request)
+  prewarmLeieCache();
 }
 
 if (require.main === module) {

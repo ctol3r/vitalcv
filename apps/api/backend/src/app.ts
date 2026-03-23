@@ -139,6 +139,7 @@ import { registerOwnershipRoutes } from './routes/ownership';               // A
 import { registerEntityRoutes }    from './routes/entity';                   // S1/S3: canonical entity resolution
 import { registerPassportEntityRoutes } from './routes/passportEntity';      // S1/S5: entity passport + share
 import { registerIngestStreamRoutes }   from './routes/ingestStream';        // Real-time ingest SSE
+import { leieCacheStats }               from './services/identity/leieCache'; // OIG LEIE cache
 import { registerOpportunityRoutes } from './routes/opportunities';          // Wave 227: Opportunities + Candidates
 import { registerApplicationRoutes } from './routes/applications';            // Wave 229: Application Flow
 import { registerAskRoutes } from './routes/ask';                           // Wave 185: Ask VitalCV answer engine
@@ -3551,6 +3552,9 @@ registerOwnershipRoutes(app);         // Auth A1 — NPI ownership claim/revoke
 registerEntityRoutes(app);            // S1/S3 — canonical entity resolution + roles + relationships
 registerPassportEntityRoutes(app);    // S1/S5 — trust passport + POST /api/share + POST /api/organization-context
 registerIngestStreamRoutes(app);      // Real-time ingest — POST /api/ingest/:npi + GET /api/ingest/:runId/stream
+
+// GET /api/leie/status — OIG LEIE cache health
+app.get('/api/leie/status', (_req, res) => { res.json(leieCacheStats()); });
 registerOpportunityRoutes(app);       // Wave 227 — Opportunities + Candidates
 registerApplicationRoutes(app);       // Wave 229 — Clinician Application Flow
 registerAskRoutes(app);               // Wave 185 — Ask VitalCV natural language answer engine

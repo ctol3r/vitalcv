@@ -93,6 +93,82 @@ export interface CredentialSummary {
   issuerName?:      string;
 }
 
+export type CanonicalCredentialStatus =
+  | 'ACTIVE'
+  | 'EXPIRED'
+  | 'SUSPENDED'
+  | 'REVOKED'
+  | 'SUPERSEDED'
+  | 'UNRESOLVED'
+  | 'REVIEW_REQUIRED'
+  | 'CLEAR'
+  | 'EXCLUDED'
+  | 'UNCERTAIN';
+
+export type ExclusionCredentialStatus =
+  | 'CLEAR'
+  | 'EXCLUDED'
+  | 'UNCERTAIN'
+  | 'REVIEW_REQUIRED'
+  | 'UNKNOWN';
+
+const CURRENT_GENERIC_CREDENTIAL_STATUSES = new Set(['ACTIVE']);
+const CURRENT_EXCLUSION_STATUSES = new Set(['CLEAR']);
+const BLOCKING_GENERIC_CREDENTIAL_STATUSES = new Set([
+  'EXPIRED',
+  'SUSPENDED',
+  'REVOKED',
+  'UNRESOLVED',
+  'REVIEW_REQUIRED',
+]);
+const BLOCKING_EXCLUSION_STATUSES = new Set([
+  'EXCLUDED',
+  'UNCERTAIN',
+  'REVIEW_REQUIRED',
+  'UNRESOLVED',
+]);
+
+export function normalizeCredentialStatus(status: string | null | undefined): string {
+  return (status ?? '').trim().toUpperCase();
+}
+
+export function normalizeExclusionCredentialStatus(
+  status: string | null | undefined,
+): ExclusionCredentialStatus {
+  const normalized = normalizeCredentialStatus(status);
+  if (normalized === 'CLEAR') return 'CLEAR';
+  if (normalized === 'EXCLUDED') return 'EXCLUDED';
+  if (normalized === 'UNCERTAIN') return 'UNCERTAIN';
+  if (normalized === 'REVIEW_REQUIRED') return 'REVIEW_REQUIRED';
+  return 'UNKNOWN';
+}
+
+export function isCredentialCurrentStatus(domain: string, status: string): boolean {
+  const normalized = normalizeCredentialStatus(status);
+  if (domain === 'EXCLUSION_CHECK') {
+    return CURRENT_EXCLUSION_STATUSES.has(normalized);
+  }
+
+  return CURRENT_GENERIC_CREDENTIAL_STATUSES.has(normalized);
+}
+
+export function isCredentialSatisfied(
+  credential: { domain: string; status: string },
+): boolean {
+  return isCredentialCurrentStatus(credential.domain, credential.status);
+}
+
+export function isCredentialBlocking(
+  credential: { domain: string; status: string },
+): boolean {
+  const normalized = normalizeCredentialStatus(credential.status);
+  if (credential.domain === 'EXCLUSION_CHECK') {
+    return BLOCKING_EXCLUSION_STATUSES.has(normalized);
+  }
+
+  return BLOCKING_GENERIC_CREDENTIAL_STATUSES.has(normalized);
+}
+
 /**
  * Compute stale status for a credential given its domain freshness window.
  */
