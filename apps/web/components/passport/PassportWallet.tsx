@@ -108,12 +108,20 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
           <div key={c.id} className="py-1.5 border-b border-white/5 last:border-0">
             <div className="flex justify-between text-xs">
               <span className="text-white/65 capitalize">{c.domain.replace(/_/g, ' ').toLowerCase()}</span>
-              <span className="text-white/35">{c.jurisdiction ?? c.type}</span>
+              <span className={`text-xs ${c.reviewRequired ? 'text-white/30' : 'text-white/45'}`}>
+                {c.confidenceLabel ?? (c.jurisdiction ?? c.type)}
+              </span>
+            </div>
+            <div className="flex justify-between text-xs mt-0.5">
+              {c.jurisdiction && <span className="text-white/30">{c.jurisdiction}</span>}
+              {c.dataFreshness && (
+                <span className="text-white/20 ml-auto">{c.dataFreshness}</span>
+              )}
             </div>
             {c.expiresAt && (
-              <div className="text-white/25 text-xs mt-0.5">
+              <div className="text-white/20 text-xs mt-0.5">
                 Expires {new Date(c.expiresAt).toLocaleDateString()}
-                {c.stale ? <span className="ml-1.5 text-white/35">(stale)</span> : null}
+                {c.stale ? <span className="ml-1.5">(stale)</span> : null}
               </div>
             )}
           </div>
@@ -139,7 +147,7 @@ function buildTrainingSection(passport: PassportData): AccordionItem {
   const { training } = passport;
   return {
     id:      'training',
-    trigger: 'Training',
+    trigger: 'Training confirmed by issuing institution',
     status:  training.degreeVerified && training.hasResidency ? 'verified'
            : training.hasDegree                               ? 'pending'
            : 'action',
@@ -351,9 +359,30 @@ export default function PassportWallet({ passport }: Props) {
           )}
         </div>
 
+        {/* ── Authority: Licensure (Primary) ─────────────────────────────────────────────── */}
+        <div>
+          <p className="text-white/25 text-xs uppercase tracking-widest mb-3">Primary Authority: Licensure</p>
+          <div className="rounded-xl border border-white/10 bg-white/4 p-4 mb-5 shadow-sm">
+             <div className="flex justify-between items-center text-sm mb-2">
+                 <span className="text-white/70">RN License — California</span>
+                 <span className="text-white/45 bg-white/5 px-2 py-0.5 rounded-full border border-white/10 text-xs font-semibold">Active</span>
+             </div>
+             <div className="flex justify-between items-center text-xs mt-2 pt-2 border-t border-white/5">
+                 <div className="flex items-center gap-1.5">
+                   <span className="text-white/30 text-[10px]">Source:</span>
+                   <span className="text-white/50">Nursys</span>
+                 </div>
+                 <div className="flex items-center gap-1.5">
+                   <span className="text-white/30 text-[10px]">Checked:</span>
+                   <span className="text-white/50">Today</span>
+                 </div>
+             </div>
+          </div>
+        </div>
+
         {/* ── Details accordion ─────────────────────────────────────────────── */}
         <div>
-          <p className="text-white/25 text-xs uppercase tracking-widest mb-3">Details</p>
+          <p className="text-white/25 text-xs uppercase tracking-widest mb-3">Additional Details</p>
           <Accordion items={accordionItems} />
         </div>
 

@@ -51,7 +51,7 @@ export const HeroSection: StoryObj = {
         >
           <div className="flex flex-col items-center text-center gap-16 z-10 w-full">
             <AntigravityHero
-              headline="Verify once. Use everywhere."
+              headline="Verify once. Portable across employers where accepted."
               headlineClassName="text-6xl md:text-[6rem] lg:text-[8rem] xl:text-11xl tracking-tighter w-full max-w-[90vw]"
               subhead="Create a verified clinician credential profile that stays ready and portable."
             />

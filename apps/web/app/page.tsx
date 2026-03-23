@@ -175,7 +175,7 @@ export default function HomePage() {
                   href: '/get-ready',
                   title: 'Get Verified',
                   // Wave G: copy compressed ~40%
-                  body: 'Build your trust profile. Carry it everywhere.',
+                  body: 'Build your trust profile. Portable across employers where accepted.',
                   cta: 'Start now',
                   border: 'border-white/8 hover:border-white/15',
                 },

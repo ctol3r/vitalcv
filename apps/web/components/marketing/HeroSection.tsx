@@ -83,13 +83,13 @@ export function HeroSection() {
               style={{ fontFamily: 'var(--font-fraunces, var(--font-sans), Georgia, serif)' }}
               className="text-[clamp(2.2rem,4.8vw,4.5rem)] font-semibold leading-[1.02] tracking-tight text-[var(--warm-charcoal)]"
             >
-              Start clinicians 3–6 weeks faster.
+              Start clinicians faster.
             </h1>
 
             <p className="max-w-2xl text-lg leading-relaxed text-[var(--warm-charcoal)]/75">
               VitalCV automates NCQA-compliant primary source verification —
               generating audit-ready credential artifacts that cut onboarding
-              from months to days.
+              from months to days. Data freshness varies by source (daily to quarterly).
             </p>
 
             <form onSubmit={onSubmit} className="max-w-xl space-y-3">

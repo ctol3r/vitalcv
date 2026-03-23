@@ -4,7 +4,7 @@ export type AgentId = 'sanctions' | 'state_board';
 
 // ── Agent Result Types ────────────────────────────────────────
 
-export type SanctionStatus = 'CLEARED' | 'EXCLUDED';
+export type SanctionStatus = 'CLEARED' | 'EXCLUDED' | 'UNCERTAIN';
 
 export type SanctionResult = {
   agentId: 'sanctions';

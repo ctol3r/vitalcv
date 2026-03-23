@@ -35,6 +35,9 @@ export interface PassportData {
       expiresAt?:        string;
       verifiedAt?:       string;
       stale:             boolean;
+      confidenceLabel:   string;
+      dataFreshness:     string;
+      reviewRequired:    boolean;
     }>;
     summary: { active: number; expired: number; stale: number; missing: string[] };
   };

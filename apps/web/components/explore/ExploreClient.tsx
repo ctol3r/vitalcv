@@ -802,18 +802,46 @@ function OpportunityCard({
         </span>
       </div>
 
-      {opp.comparison ? (
-        <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">Readiness Snapshot</p>
-          <div className="mt-2 flex flex-wrap gap-3 text-xs text-white/65">
-            <span>{opp.comparison.satisfied.length} satisfied</span>
-            <span>{opp.comparison.missing.length} missing</span>
-            <span>{opp.comparison.unknown.length} unknown</span>
+      {opp.comparison ? (() => {
+        const totalReqs = opp.comparison.satisfied.length + opp.comparison.missing.length + opp.comparison.unknown.length;
+        const readinessScore = totalReqs > 0 ? Math.round((opp.comparison.satisfied.length / totalReqs) * 100) : 100;
+        return (
+          <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 px-4 py-3 relative overflow-hidden mt-2">
+            <div className="absolute top-0 right-0 p-3 opacity-[0.03]"><Zap className="w-16 h-16" /></div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400 mb-3 flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5" /> Readiness Engine Match
+            </p>
+            <div className="grid grid-cols-[80px_1fr] gap-y-2 text-sm relative z-10">
+              <span className="text-white/40">Role</span>
+              <span className="text-white font-medium">{opp.specialty}</span>
+              
+              <span className="text-white/40">Readiness</span>
+              <span className={readinessScore >= 80 ? 'text-emerald-400 font-semibold' : 'text-amber-400 font-semibold'}>{readinessScore}% match</span>
+              
+              <span className="text-white/40">Blockers</span>
+              <span className={opp.comparison.missing.length > 0 ? "text-rose-400" : "text-white/70"}>
+                {opp.comparison.missing.length > 0 ? opp.comparison.missing[0]?.label : 'None'}
+              </span>
+              
+              <span className="text-white/40">Time</span>
+              <span className="text-white">{opp.comparison.estimatedGap}</span>
+            </div>
+            <p className="mt-3 text-xs font-medium text-cyan-200 pt-3 border-t border-white/5">{opp.comparison.shortestPath}</p>
           </div>
-          <p className="mt-3 text-sm text-white/80">{opp.comparison.estimatedGap}</p>
-          <p className="mt-2 text-xs font-medium text-emerald-200">{opp.comparison.shortestPath}</p>
+        );
+      })() : (
+        <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4 mt-2 flex items-center justify-between">
+           <div>
+             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 flex items-center gap-1.5">
+               <ShieldCheck className="w-3 h-3" /> Readiness Engine
+             </p>
+             <p className="text-xs text-white/70 mt-1">Unlock your verified start timeline</p>
+           </div>
+           <Link href="/onboarding" className="text-xs font-semibold px-4 py-2 rounded-full bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors shrink-0 ml-4">
+              Calculate Fit
+           </Link>
         </div>
-      ) : null}
+      )}
 
       {/* CTAs */}
       <div className="mt-auto flex flex-col gap-3 border-t border-white/5 pt-4 sm:flex-row relative z-10">

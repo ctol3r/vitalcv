@@ -61,7 +61,13 @@ function mapCompatibilityStatusForState(status: string): string {
   if (normalized === 'CLEAR') {
     return 'VERIFIED';
   }
-  if (normalized === 'DEACTIVATED' || normalized === 'EXCLUDED' || normalized === 'CHECK_FAILED') {
+  if (
+    normalized === 'DEACTIVATED'
+    || normalized === 'EXCLUDED'
+    || normalized === 'CHECK_FAILED'
+    || normalized === 'UNCERTAIN'
+    || normalized === 'REVIEW_REQUIRED'
+  ) {
     return 'PENDING';
   }
   return normalized;
@@ -71,7 +77,12 @@ function deriveCompatibilityLifecycleState(
   artifact: CompatibilityVerificationArtifactInput,
 ): CredentialLifecycleState {
   const normalizedStatus = artifact.status.trim().toUpperCase();
-  if (normalizedStatus === 'EXCLUDED' || normalizedStatus === 'CHECK_FAILED') {
+  if (
+    normalizedStatus === 'EXCLUDED'
+    || normalizedStatus === 'CHECK_FAILED'
+    || normalizedStatus === 'UNCERTAIN'
+    || normalizedStatus === 'REVIEW_REQUIRED'
+  ) {
     return CredentialLifecycleState.SUSPENDED;
   }
   if (normalizedStatus === 'DEACTIVATED' || normalizedStatus === 'NOT_FOUND' || normalizedStatus === 'NOT_AVAILABLE') {

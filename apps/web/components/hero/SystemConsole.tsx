@@ -158,7 +158,7 @@ export function SystemConsole() {
             <p className="max-w-xl body-lg text-muted-foreground">
               VitalCV automates primary source verification, anchors it to a
               cryptographic ledger, and continuously monitors compliance — so
-              clinicians start 3–6 weeks faster.
+              clinicians start faster. Data freshness varies by source (daily to quarterly).
             </p>
 
             {/* CTAs */}

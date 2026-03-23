@@ -1,36 +1,29 @@
-/**
- * ingestStream.ts — Real-time ingest SSE endpoints
- *
- * POST /api/ingest/:npi
- *   Starts an ingest run. Returns { runId } immediately.
- *   Idempotent: if a run is already in-flight for this NPI, returns existing runId.
- *
- * GET /api/ingest/:runId/stream
- *   Server-Sent Events stream.
- *   Replays any events emitted before the client connected, then streams live.
- *   Closes automatically when the run completes ('done' or 'error').
- *
- * CORS note: SSE requires specific headers for cross-origin clients.
- *   These routes run under the same origin in production (Next.js proxy).
- */
-
 import type { Express, Request, Response } from 'express';
-import { startIngestRun, getIngestRun, type IngestEvent } from '../services/ingest/ingestOrchestrator';
 import { isValidNpi } from '../domain/entity/npiRouter';
 import { log } from '../obs/logger';
+import type { PersistedIngestEvent } from '../services/ingest/contracts';
+import { getIngestRun, startIngestRun } from '../services/ingest/ingestOrchestrator';
+import { listIngestEvents } from '../services/ingest/ingestEventStore';
 
-// Track active NPI runs to allow idempotent POST
-const npiRunMap = new Map<string, string>(); // npi → runId
+function parseLastEventId(headerValue: string | undefined): number {
+  if (!headerValue) {
+    return 0;
+  }
+
+  const parsed = Number.parseInt(headerValue, 10);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function isTerminalEvent(event: PersistedIngestEvent): boolean {
+  return event.type === 'done' || event.type === 'error';
+}
+
+function isTerminalRunStatus(status: string): boolean {
+  return status === 'DONE' || status === 'ERROR';
+}
 
 export function registerIngestStreamRoutes(app: Express): void {
-
-  /**
-   * POST /api/ingest/:npi
-   *
-   * Starts (or returns existing) ingest run for an NPI.
-   * Returns: { runId, npi, status }
-   */
-  app.post('/api/ingest/:npi([0-9]{10})', (req: Request, res: Response) => {
+  app.post('/api/ingest/:npi([0-9]{10})', async (req: Request, res: Response) => {
     const { npi } = req.params as { npi: string };
 
     if (!isValidNpi(npi)) {
@@ -38,96 +31,82 @@ export function registerIngestStreamRoutes(app: Express): void {
       return;
     }
 
-    // Return existing run if still in progress
-    const existingRunId = npiRunMap.get(npi);
-    if (existingRunId) {
-      const existing = getIngestRun(existingRunId);
-      if (existing && existing.status !== 'done' && existing.status !== 'error') {
-        res.json({ runId: existingRunId, npi, status: existing.status });
-        return;
-      }
-    }
+    const run = await startIngestRun(npi);
 
-    const runId = startIngestRun(npi);
-    npiRunMap.set(npi, runId);
-
-    // Clean up mapping when run completes
-    const run = getIngestRun(runId);
-    if (run) {
-      run.emitter.once('event', function cleanup(evt: IngestEvent) {
-        if (evt.type === 'done' || evt.type === 'error') {
-          npiRunMap.delete(npi);
-        } else {
-          run.emitter.once('event', cleanup);
-        }
-      });
-    }
-
-    log('info', 'ingest_run_started', { runId, npi });
-    res.status(202).json({ runId, npi, status: 'pending' });
+    log('info', 'ingest_run_started', { runId: run.id, npi, status: run.status });
+    res.status(202).json({
+      runId: run.id,
+      npi,
+      status: run.status.toLowerCase(),
+    });
   });
 
-  /**
-   * GET /api/ingest/:runId/stream
-   *
-   * Server-Sent Events stream for a run.
-   * - Replays buffered events (for clients that connect after events fired)
-   * - Streams live events until 'done' or 'error'
-   * - Sends keepalive comment every 15s to prevent proxy timeouts
-   */
-  app.get('/api/ingest/:runId/stream', (req: Request, res: Response) => {
+  app.get('/api/ingest/:runId/stream', async (req: Request, res: Response) => {
     const { runId } = req.params as { runId: string };
-    const run = getIngestRun(runId);
+    const run = await getIngestRun(runId);
 
     if (!run) {
-      res.status(404).json({ error: 'Run not found. It may have expired (TTL: 5 min).' });
+      res.status(404).json({ error: 'Run not found.' });
       return;
     }
 
-    // SSE headers
-    res.setHeader('Content-Type',  'text/event-stream');
+    res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection',    'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');  // nginx: disable buffering
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders();
 
-    function send(event: IngestEvent): void {
+    let lastSequence = parseLastEventId(req.header('Last-Event-ID'));
+    let polling = false;
+
+    function send(event: PersistedIngestEvent): void {
+      res.write(`id: ${event.sequence}\n`);
+      res.write(`event: ${event.type}\n`);
       res.write(`data: ${JSON.stringify(event)}\n\n`);
     }
 
-    // Replay buffered events for late-connecting clients
-    for (const evt of run.events) {
-      send(evt);
-    }
+    async function flushNewEvents(): Promise<void> {
+      if (polling) {
+        return;
+      }
+      polling = true;
+      try {
+        const events = await listIngestEvents(runId, { afterSequence: lastSequence });
+        for (const event of events) {
+          lastSequence = event.sequence;
+          send(event);
+        }
 
-    // If run already finished, close immediately
-    if (run.status === 'done' || run.status === 'error') {
-      res.end();
-      return;
-    }
-
-    // Stream live events
-    function onEvent(evt: IngestEvent): void {
-      send(evt);
-      if (evt.type === 'done' || evt.type === 'error') {
-        cleanup();
-        res.end();
+        const latestRun = await getIngestRun(runId);
+        const lastEvent = events.at(-1);
+        if (
+          latestRun
+          && isTerminalRunStatus(latestRun.status)
+          && (!lastEvent || isTerminalEvent(lastEvent))
+        ) {
+          cleanup();
+          res.end();
+        }
+      } finally {
+        polling = false;
       }
     }
 
-    // Keepalive ping every 15s
+    const poller = setInterval(() => {
+      void flushNewEvents();
+    }, 1_000);
+
     const keepalive = setInterval(() => {
       res.write(': keepalive\n\n');
     }, 15_000);
 
     function cleanup(): void {
+      clearInterval(poller);
       clearInterval(keepalive);
-      run.emitter.removeListener('event', onEvent);
     }
 
-    run.emitter.on('event', onEvent);
-
-    // Client disconnect
     req.on('close', cleanup);
+
+    void flushNewEvents();
   });
 }

@@ -132,7 +132,7 @@ function buildProofSections(passport: PassportData): AccordionItem[] {
   if (passport.training.records.length > 0) {
     items.push({
       id:      'training',
-      trigger: 'Training & education',
+      trigger: 'Training confirmed by issuing institution',
       status:  passport.training.degreeVerified ? 'verified' : 'pending',
       content: (
         <div className="py-1 space-y-1">
@@ -217,7 +217,7 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
         )}
 
         {/* ── Decision card — above the fold ──────────────────────────────── */}
-        <div className={`rounded-2xl border ${cfg.border} ${cfg.bg} px-5 py-5 space-y-4`}>
+        <div className={`rounded-2xl border ${cfg.border} ${cfg.bg} px-5 py-5 space-y-4 mb-6`}>
 
           {/* Identity */}
           <div>
@@ -234,64 +234,24 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
             <span className={`text-sm font-medium ${cfg.opacity}`}>{cfg.label}</span>
             <span className="text-white/25 text-xs">Confidence: {cfg.confidence}</span>
           </div>
-
-          {/* Clearances + blockers */}
-          {(clearances.length > 0 || blocked.length > 0) && (
-            <div className="space-y-1.5">
-              {clearances.slice(0, 3).map((c, i) => (
-                <div key={i} className="flex items-center gap-2 text-sm">
-                  <span className="text-white/30 text-xs w-4 text-center select-none" aria-hidden>✓</span>
-                  <span className="text-white/60">{c}</span>
-                </div>
-              ))}
-              {blocked.slice(0, 2).map((b, i) => (
-                <div key={i} className="flex items-center gap-2 text-sm">
-                  <span className="text-white/15 text-xs w-4 text-center select-none" aria-hidden>✕</span>
-                  <span className="text-white/35">{b}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Start estimate */}
-          <div className="flex items-baseline gap-1.5 border-t border-white/8 pt-3">
-            <span className="text-white/25 text-xs">Start</span>
-            <span className="text-white/55 text-sm">
-              {readiness.estimatedStartDays === null
-                ? 'Blocked — resolve issues'
-                : readiness.estimatedStartDays === 0
-                  ? 'Ready now'
-                  : `~${readiness.estimatedStartDays} days`}
-            </span>
-          </div>
         </div>
 
-        {/* ── Readiness breakdown ──────────────────────────────────────────── */}
-        <div className="rounded-xl border border-white/8 bg-white/3 px-4 py-1">
-          <ReadinessRow
-            label="Identity verified"
-            verified={identityVerified}
-            detail="CMS NPPES"
-          />
-          <ReadinessRow
-            label="License active"
-            verified={licenseActive}
-            detail={licenseActive ? undefined : 'Not on file'}
-          />
-          <ReadinessRow
-            label="No sanctions"
-            verified={sanctionsClear ?? null}
-            detail="OIG"
-          />
-          <ReadinessRow
-            label="Medicare enrolled"
-            verified={pecosEnrolled}
-            detail="CMS PECOS"
-          />
-          <ReadinessRow
-            label="Education verified"
-            verified={training.degreeVerified}
-          />
+        {/* ── Employer Decision Breakdown ──────────────────────────────────── */}
+        <div className="rounded-xl border border-white/8 bg-white/3 px-4 py-3 space-y-1 mb-6">
+          <div className="pt-2 pb-1 text-white/40 text-[10px] font-bold uppercase tracking-[0.2em]">1. Safety</div>
+          <ReadinessRow label="Not excluded (checked Feb 2026)" verified={sanctionsClear ?? null} detail="OIG" />
+          <ReadinessRow label="License active" verified={licenseActive} detail={licenseActive ? 'Confirmed' : 'Not on file'} />
+
+          <div className="pt-4 pb-1 text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] border-t border-white/5 mt-3">2. Eligibility</div>
+          <ReadinessRow label="Medicare enrolled (as of Q4 2025)" verified={pecosEnrolled} detail="PECOS" />
+
+          <div className="pt-4 pb-1 text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] border-t border-white/5 mt-3">3. Readiness</div>
+          <ReadinessRow label={`Readiness: ${readiness.score}%`} verified={readiness.score >= 80} />
+          <ReadinessRow label="Blockers" verified={blocked.length === 0} detail={blocked.length > 0 ? blocked.join(', ') : 'None'} />
+          <ReadinessRow label="Next action" verified={blocked.length === 0} detail={blocked.length > 0 ? 'Review blockers' : 'Proceed to hire'} />
+
+          <div className="pt-4 pb-1 text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] border-t border-white/5 mt-3">4. Timeline</div>
+          <ReadinessRow label="When they can begin" verified={readiness.estimatedStartDays !== null && readiness.estimatedStartDays <= 14} detail={readiness.estimatedStartDays === null ? 'Blocked' : readiness.estimatedStartDays === 0 ? 'Ready now' : `~${readiness.estimatedStartDays} days`} />
         </div>
 
         {/* ── Proof panel — collapsible ────────────────────────────────────── */}

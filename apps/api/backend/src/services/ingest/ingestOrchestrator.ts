@@ -1,243 +1,280 @@
-/**
- * ingestOrchestrator.ts — Real-time ingest with event emission
- *
- * Wraps `ingestClinicianIdentity` and emits structured SSE events at each
- * pipeline stage so the frontend can progressively hydrate the Passport.
- *
- * Event types:
- *   source_start    — a source fetch has begun
- *   source_complete — a source fetch resolved (with entityId/credentialIds)
- *   claim_update    — new claims derived and stored
- *   done            — pipeline complete; final entityId ready
- *   error           — pipeline error; message included
- *
- * Run lifecycle:
- *   POST /api/ingest/:npi → runId (stored in runStore)
- *   GET  /api/ingest/:runId/stream → SSE (attaches to that run's emitter)
- *   Run completes → emitter emits 'done' → SSE connection closed
- *
- * The in-memory run store expires entries after 5 minutes.
- */
-
-import EventEmitter from 'node:events';
-import { randomUUID } from 'node:crypto';
-import { ingestClinicianIdentity, getClaimsForNpi } from '../identity/identityIngestionPipeline';
-import { resolveEntityFromNpi } from '../entity/entityResolutionService';
-import { materializeCredentials } from '../entity/upsertVcvCredential';
+import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
+import { buildPassport } from '../entity/passportService';
+import { resolveEntityFromNpi } from '../entity/entityResolutionService';
+import { ingestClinicianIdentity, type IngestionResult } from '../identity/identityIngestionPipeline';
+import type { PersistedIngestRun, IngestSourceId } from './contracts';
+import {
+  appendIngestEvent,
+  completeIngestRun,
+  createIngestRun,
+  findOpenIngestRunByNpi,
+  getIngestRun as loadIngestRun,
+  getIngestSourceRunSummary,
+  startIngestRun as markIngestRunStarted,
+  updateIngestRun,
+  updateIngestSourceRun,
+} from './ingestEventStore';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-export type IngestEventType =
-  | 'source_start'
-  | 'source_complete'
-  | 'claim_update'
-  | 'done'
-  | 'error';
-
-export type IngestSource = 'nppes' | 'oig' | 'pecos' | 'entity';
-
-export interface IngestEvent {
-  type:       IngestEventType;
-  source?:    IngestSource;
-  timestamp:  string;
-  payload:    Record<string, unknown>;
+function mapPipelineSourceId(source: string): IngestSourceId | null {
+  if (source === 'NPPES_API') return 'nppes';
+  if (source === 'OIG_LEIE') return 'oig';
+  if (source === 'PECOS_PUBLIC') return 'pecos';
+  return null;
 }
 
-export type RunStatus = 'pending' | 'running' | 'done' | 'error';
-
-export interface IngestRun {
-  runId:     string;
-  npi:       string;
-  status:    RunStatus;
-  emitter:   EventEmitter;
-  events:    IngestEvent[];  // replay buffer for late-connecting clients
-  createdAt: Date;
-  entityId?: string;
+function dedupeKey(
+  type: string,
+  sourceId?: string,
+  suffix?: string,
+): string {
+  return [type, sourceId ?? 'run', suffix ?? 'default'].join(':');
 }
 
-// ── Run store ─────────────────────────────────────────────────────────────────
+async function reviewRequiredCount(claimIds: readonly string[] | undefined): Promise<number> {
+  if (!claimIds || claimIds.length === 0) {
+    return 0;
+  }
 
-const runStore = new Map<string, IngestRun>();
-const RUN_TTL_MS = 5 * 60 * 1000; // 5 minutes
+  return prisma.claimRecord.count({
+    where: {
+      claimId: {
+        in: [...claimIds],
+      },
+      reviewRequired: true,
+    },
+  });
+}
 
-function cleanupExpired(): void {
-  const now = Date.now();
-  for (const [id, run] of runStore) {
-    if (now - run.createdAt.getTime() > RUN_TTL_MS) {
-      run.emitter.removeAllListeners();
-      runStore.delete(id);
-    }
+async function credentialDomains(credentialIds: readonly string[] | undefined): Promise<string[]> {
+  if (!credentialIds || credentialIds.length === 0) {
+    return [];
+  }
+
+  const rows = await prisma.vcvCredential.findMany({
+    where: {
+      id: {
+        in: [...credentialIds],
+      },
+    },
+    select: {
+      domain: true,
+    },
+  });
+
+  return Array.from(new Set(rows.map((row) => row.domain))).sort((left, right) => left.localeCompare(right));
+}
+
+async function emitSourceStart(runId: string, sourceId: IngestSourceId): Promise<void> {
+  await updateIngestSourceRun(runId, sourceId, {
+    status: 'RUNNING',
+    startedAt: new Date(),
+  });
+  await appendIngestEvent({
+    runId,
+    type: 'source_start',
+    sourceId,
+    dedupeKey: dedupeKey('source_start', sourceId),
+    payload: {
+      sourceId,
+      startedAt: new Date().toISOString(),
+    },
+  });
+}
+
+async function finalizeSourceResult(
+  runId: string,
+  sourceId: IngestSourceId,
+  result: IngestionResult | null,
+  extras?: Record<string, unknown>,
+): Promise<void> {
+  const credentialIds = result?.credentialIds ?? [];
+  const claimIds = result?.claimIds ?? [];
+  const status = result?.status === 'FAILED' ? 'ERROR' : 'DONE';
+
+  await updateIngestSourceRun(runId, sourceId, {
+    status,
+    sourceRunId: result?.sourceRunId ?? null,
+    artifactId: result?.artifactId ?? null,
+    claimCount: result?.claimsEmitted ?? 0,
+    credentialCount: credentialIds.length,
+    errorCode: result?.status === 'FAILED' ? 'SOURCE_FAILED' : null,
+    lastError: result?.error ?? null,
+    completedAt: new Date(),
+  });
+
+  await appendIngestEvent({
+    runId,
+    type: 'source_complete',
+    sourceId,
+    dedupeKey: dedupeKey(
+      'source_complete',
+      sourceId,
+      `${result?.sourceRunId ?? 'none'}:${result?.artifactId ?? 'none'}:${result?.status ?? 'missing'}`,
+    ),
+    payload: {
+      sourceId,
+      status: result?.status ?? 'FAILED',
+      sourceRunId: result?.sourceRunId ?? null,
+      artifactId: result?.artifactId ?? null,
+      claimCount: result?.claimsEmitted ?? 0,
+      credentialIds,
+      ...extras,
+    },
+  });
+
+  if ((claimIds.length > 0) || (credentialIds.length > 0)) {
+    await appendIngestEvent({
+      runId,
+      type: 'claim_update',
+      sourceId,
+      dedupeKey: dedupeKey(
+        'claim_update',
+        sourceId,
+        `${claimIds.length}:${credentialIds.length}:${result?.artifactId ?? 'none'}`,
+      ),
+      payload: {
+        sourceId,
+        claimCount: result?.claimsEmitted ?? 0,
+        credentialIds,
+        reviewRequiredCount: await reviewRequiredCount(claimIds),
+        domains: await credentialDomains(credentialIds),
+      },
+    });
   }
 }
 
-// ── Emit helper ───────────────────────────────────────────────────────────────
-
-function emit(run: IngestRun, event: IngestEvent): void {
-  run.events.push(event);
-  run.emitter.emit('event', event);
-}
-
-// ── Orchestrator ──────────────────────────────────────────────────────────────
-
-/**
- * Start a new ingest run for an NPI.
- * Returns the runId immediately; pipeline runs in background.
- */
-export function startIngestRun(npi: string): string {
-  cleanupExpired();
-
-  const runId   = randomUUID();
-  const emitter = new EventEmitter();
-  emitter.setMaxListeners(20);
-
-  const run: IngestRun = {
-    runId,
-    npi,
-    status:    'pending',
-    emitter,
-    events:    [],
-    createdAt: new Date(),
-  };
-
-  runStore.set(runId, run);
-
-  // Fire pipeline asynchronously
-  setImmediate(() => void runPipeline(run));
-
-  return runId;
-}
-
-/**
- * Get an existing run by ID.
- */
-export function getIngestRun(runId: string): IngestRun | undefined {
-  return runStore.get(runId);
-}
-
-// ── Pipeline runner ────────────────────────────────────────────────────────────
-
-async function runPipeline(run: IngestRun): Promise<void> {
-  run.status = 'running';
+async function runPipeline(runId: string, npi: string): Promise<void> {
+  await markIngestRunStarted(runId);
 
   try {
-    // ── Stage 1: NPPES (entity resolution) ──────────────────────────────────
-    emit(run, {
-      type: 'source_start', source: 'nppes',
-      timestamp: new Date().toISOString(),
-      payload: { npi: run.npi },
+    await emitSourceStart(runId, 'nppes');
+
+    const entityRecord = await resolveEntityFromNpi(npi);
+    await updateIngestRun(runId, {
+      entityId: entityRecord.entity.id,
     });
 
-    const record = await resolveEntityFromNpi(run.npi);
-    run.entityId = record.entity.id;
+    await emitSourceStart(runId, 'oig');
+    await emitSourceStart(runId, 'pecos');
 
-    emit(run, {
-      type: 'source_complete', source: 'nppes',
-      timestamp: new Date().toISOString(),
-      payload: {
-        entityId:    record.entity.id,
-        displayName: record.entity.displayName,
-        entityType:  record.entity.entityType,
-        npiType:     record.entity.npiType,
-        specialty:   (record.entity.metadata as Record<string, unknown>)?.specialty,
-      },
-    });
-
-    // ── Stage 2: OIG / PECOS via identity pipeline ───────────────────────────
-    emit(run, {
-      type: 'source_start', source: 'oig',
-      timestamp: new Date().toISOString(),
-      payload: { npi: run.npi },
-    });
-
-    emit(run, {
-      type: 'source_start', source: 'pecos',
-      timestamp: new Date().toISOString(),
-      payload: { npi: run.npi },
-    });
-
-    // Run the full pipeline (NPPES + OIG + PECOS claim derivation)
-    const report = await ingestClinicianIdentity(run.npi, ['NPPES_API', 'OIG_LEIE'] as Parameters<typeof ingestClinicianIdentity>[1]);
-
-    // ── Stage 3: claim update ────────────────────────────────────────────────
-    const claimCount = report.claims?.length ?? 0;
-
-    emit(run, {
-      type: 'source_complete', source: 'oig',
-      timestamp: new Date().toISOString(),
-      payload: {
-        exclusionStatus: report.identitySummary?.exclusionStatus ?? 'UNKNOWN',
-        exclusionClear:  report.identitySummary?.exclusionClear  ?? false,
-      },
-    });
-
-    emit(run, {
-      type: 'source_complete', source: 'pecos',
-      timestamp: new Date().toISOString(),
-      payload: {
-        enrollmentStatus: report.identitySummary?.medicareEnrollmentStatus ?? 'UNKNOWN',
-      },
-    });
-
-    // ── Stage 3: materialize claims → VcvCredential rows ────────────────────
-    let materializedCount = 0;
-    if (run.entityId) {
-      try {
-        const allClaims = await getClaimsForNpi(run.npi);
-        const materialized = await materializeCredentials(allClaims, run.entityId);
-        materializedCount = materialized.created + materialized.updated;
-
-        emit(run, {
-          type: 'claim_update',
-          timestamp: new Date().toISOString(),
-          payload: {
-            claimCount:     allClaims.length,
-            materialized:   materializedCount,
-            readinessScore: report.identitySummary?.readinessScore,
-            readinessLevel: report.identitySummary?.readinessLevel,
-          },
-        });
-      } catch (err) {
-        log('warn', 'credential_materialization_failed', {
-          runId: run.runId, npi: run.npi, error: String(err),
-        });
+    const report = await ingestClinicianIdentity(npi, ['NPPES_API', 'OIG_LEIE', 'PECOS_PUBLIC']);
+    const resultBySource = new Map<IngestSourceId, IngestionResult>();
+    for (const result of report.results) {
+      const sourceId = mapPipelineSourceId(result.source);
+      if (sourceId) {
+        resultBySource.set(sourceId, result);
       }
-    } else if (claimCount > 0) {
-      emit(run, {
-        type: 'claim_update',
-        timestamp: new Date().toISOString(),
+    }
+
+    await finalizeSourceResult(runId, 'nppes', resultBySource.get('nppes') ?? null, {
+      entityId: entityRecord.entity.id,
+      displayName: entityRecord.entity.displayName,
+      entityType: entityRecord.entity.entityType,
+      npiType: entityRecord.entity.npiType,
+    });
+    await finalizeSourceResult(runId, 'oig', resultBySource.get('oig') ?? null);
+    await finalizeSourceResult(runId, 'pecos', resultBySource.get('pecos') ?? null);
+
+    const passport = await buildPassport(entityRecord.entity.id);
+    if (passport) {
+      await appendIngestEvent({
+        runId,
+        type: 'passport_ready',
+        dedupeKey: dedupeKey(
+          'passport_ready',
+          undefined,
+          `${passport.entityId}:${passport.readiness.status}:${passport.authority.credentials.length}`,
+        ),
         payload: {
-          claimCount,
-          readinessScore: report.identitySummary?.readinessScore,
-          readinessLevel: report.identitySummary?.readinessLevel,
+          entityId: passport.entityId,
+          readinessStatus: passport.readiness.status,
+          blockerCount: passport.readiness.blockers.length,
+          credentialCount: passport.authority.credentials.length,
+          checkedAt: passport.lastCheckedAt,
         },
       });
     }
 
-    // ── Done ─────────────────────────────────────────────────────────────────
-    run.status = 'done';
-    emit(run, {
+    const sourceSummary = await getIngestSourceRunSummary(runId);
+    const sourcesFailed = sourceSummary.filter((source) => source.status === 'ERROR').length;
+    const totalClaims = sourceSummary.reduce((total, source) => total + source.claimCount, 0);
+    const totalCredentials = sourceSummary.reduce((total, source) => total + source.credentialCount, 0);
+
+    await completeIngestRun(runId, {
+      status: 'DONE',
+      entityId: entityRecord.entity.id,
+    });
+    await appendIngestEvent({
+      runId,
       type: 'done',
-      timestamp: new Date().toISOString(),
+      dedupeKey: dedupeKey('done', undefined, `${sourcesFailed}:${totalClaims}:${totalCredentials}`),
       payload: {
-        entityId:           run.entityId,
-        npi:                run.npi,
-        claimsStored:       claimCount,
-        credentialRows:     materializedCount,
-        deltaEvents:        report.deltaEvents?.length ?? 0,
+        status: sourcesFailed > 0 ? 'PARTIAL' : 'SUCCESS',
+        entityId: entityRecord.entity.id,
+        sourcesCompleted: sourceSummary.filter((source) => source.status === 'DONE').length,
+        sourcesFailed,
+        claimCount: totalClaims,
+        credentialCount: totalCredentials,
+        checkedAt: new Date().toISOString(),
       },
     });
 
-    log('info', 'ingest_run_done', { runId: run.runId, npi: run.npi, entityId: run.entityId });
-
-  } catch (err) {
-    run.status = 'error';
-    const message = err instanceof Error ? err.message : String(err);
-    emit(run, {
-      type: 'error',
-      timestamp: new Date().toISOString(),
-      payload: { message },
+    log('info', 'ingest_run_done', {
+      runId,
+      npi,
+      entityId: entityRecord.entity.id,
+      sourcesFailed,
+      totalClaims,
+      totalCredentials,
     });
-    log('error', 'ingest_run_error', { runId: run.runId, npi: run.npi, error: message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+
+    for (const sourceId of ['nppes', 'oig', 'pecos'] as const) {
+      await updateIngestSourceRun(runId, sourceId, {
+        status: 'ERROR',
+        errorCode: 'INGEST_RUN_FAILED',
+        lastError: message,
+        completedAt: new Date(),
+      }).catch(() => null);
+    }
+
+    await completeIngestRun(runId, {
+      status: 'ERROR',
+      lastError: message,
+    }).catch(() => null);
+    await appendIngestEvent({
+      runId,
+      type: 'error',
+      dedupeKey: dedupeKey('error', undefined, message),
+      payload: {
+        code: 'INGEST_RUN_FAILED',
+        message,
+      },
+    }).catch(() => null);
+
+    log('error', 'ingest_run_error', {
+      runId,
+      npi,
+      error: message,
+    });
   }
+}
+
+export async function startIngestRun(npi: string): Promise<PersistedIngestRun> {
+  const existing = await findOpenIngestRunByNpi(npi);
+  if (existing) {
+    return existing;
+  }
+
+  const created = await createIngestRun(npi);
+  setImmediate(() => {
+    void runPipeline(created.id, npi);
+  });
+  return created;
+}
+
+export async function getIngestRun(runId: string): Promise<PersistedIngestRun | null> {
+  return loadIngestRun(runId);
 }

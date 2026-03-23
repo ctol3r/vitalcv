@@ -17,6 +17,7 @@ import { runConnectorWithReliability } from './connectorReliability';
 export interface OIGExclusionResult {
   npi: string;
   excluded: boolean;
+  verdict: 'CLEAR' | 'EXCLUDED' | 'UNCERTAIN' | 'REVIEW_REQUIRED';
   exclusionType: string | null;
   exclusionDate: string | null;
   reinstatementDate: string | null;
@@ -110,6 +111,7 @@ export async function checkOIGExclusion(npi: string): Promise<OIGExclusionResult
         ? {
             npi,
             excluded: true,
+            verdict: 'EXCLUDED',
             exclusionType: record.exclusionType,
             exclusionDate: record.exclusionDate,
             reinstatementDate: record.reinstatementDate,
@@ -120,6 +122,7 @@ export async function checkOIGExclusion(npi: string): Promise<OIGExclusionResult
         : {
             npi,
             excluded: false,
+            verdict: 'CLEAR',
             exclusionType: null,
             exclusionDate: null,
             reinstatementDate: null,
@@ -151,6 +154,7 @@ export async function checkOIGExclusion(npi: string): Promise<OIGExclusionResult
     fallback: () => ({
       npi,
       excluded: false,
+      verdict: 'UNCERTAIN',
       exclusionType: null,
       exclusionDate: null,
       reinstatementDate: null,

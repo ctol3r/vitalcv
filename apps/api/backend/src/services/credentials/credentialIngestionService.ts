@@ -339,11 +339,19 @@ export async function ingestOigStatus(npi: string): Promise<CredentialIngestionR
   let status: CredentialArtifactStatus = 'CHECK_FAILED';
   try {
     result = await checkOIGExclusion(normalizedNpi);
-    status = result.excluded ? 'EXCLUDED' : 'CLEAR';
+    status =
+      result.verdict === 'EXCLUDED'
+        ? 'EXCLUDED'
+        : result.verdict === 'CLEAR'
+          ? 'CLEAR'
+          : result.verdict === 'REVIEW_REQUIRED'
+            ? 'REVIEW_REQUIRED'
+            : 'UNCERTAIN';
   } catch (error) {
     result = {
       npi: normalizedNpi,
       excluded: false,
+      verdict: 'UNCERTAIN',
       exclusionType: null,
       exclusionDate: null,
       reinstatementDate: null,
@@ -372,6 +380,7 @@ export async function ingestOigStatus(npi: string): Promise<CredentialIngestionR
     expires_at: null,
     status,
     metadata: {
+      oig_verdict: result.verdict,
       exclusion_type: result.exclusionType,
       exclusion_date: result.exclusionDate,
       reinstatement_date: result.reinstatementDate,
@@ -389,6 +398,7 @@ export async function ingestOigStatus(npi: string): Promise<CredentialIngestionR
     fresh_until: freshUntil,
     payload_json: {
       excluded: result.excluded,
+      verdict: result.verdict,
       exclusion_type: result.exclusionType,
       exclusion_date: result.exclusionDate,
       reinstatement_date: result.reinstatementDate,

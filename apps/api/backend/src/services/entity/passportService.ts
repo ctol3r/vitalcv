@@ -20,7 +20,13 @@
 import prisma from '../../graphql/prisma_client';
 import { getEntityById, resolveEntityFromNpi } from './entityResolutionService';
 import { getCachedTrustState } from '../trust/trustStateEngine';
-import { FRESHNESS_WINDOWS_DAYS, isCredentialStale, daysUntilExpiry } from '../../domain/entity/contracts';
+import {
+  daysUntilExpiry,
+  isCredentialBlocking,
+  isCredentialSatisfied,
+  isCredentialStale,
+  normalizeExclusionCredentialStatus,
+} from '../../domain/entity/contracts';
 import { log } from '../../obs/logger';
 
 // ── Passport shape (spec-aligned) ─────────────────────────────────────────────
@@ -57,6 +63,10 @@ export interface PassportCredential {
   daysUntilExpiry?:  number;
   stale:             boolean;
   issuerName?:       string;
+  // M4: confidence + freshness labels
+  confidenceLabel:   string;   // "Confirmed" | "Likely match" | "Review recommended" | "Unverified"
+  dataFreshness:     string;   // "Updated daily" | "Updated monthly" | "Updated quarterly" etc.
+  reviewRequired:    boolean;
 }
 
 export interface PassportTraining {
@@ -81,7 +91,7 @@ export interface PassportEducationRecord {
 
 export interface PassportStanding {
   exclusionClear:   boolean;
-  exclusionStatus:  'CLEAR' | 'EXCLUDED' | 'UNKNOWN';
+  exclusionStatus:  'CLEAR' | 'EXCLUDED' | 'UNCERTAIN' | 'REVIEW_REQUIRED' | 'UNKNOWN';
   licensureStatus:  'verified' | 'pending' | 'expired' | 'unknown';
   deaStatus:        'registered' | 'none' | 'unknown';
   pecosStatus:      'enrolled' | 'not_enrolled' | 'unknown';
@@ -134,7 +144,8 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   const record = await getEntityById(entityId);
   if (!record) return null;
 
-  const { entity, credentials, roles } = record;
+  const { entity } = record;
+  const credentials = record.credentials.filter((credential) => credential.status !== 'SUPERSEDED');
   const npi = entity.npi ?? undefined;
 
   // ── Education records ─────────────────────────────────────────────────────
@@ -156,6 +167,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   const credList: PassportCredential[] = credentials.map(c => {
     const stale   = isCredentialStale({ domain: c.domain, verifiedAt: c.verifiedAt });
     const expiry  = daysUntilExpiry(c.expiresAt);
+    const meta    = (c.metadata ?? {}) as Record<string, unknown>;
     return {
       id:                c.id,
       domain:            c.domain,
@@ -168,16 +180,20 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
       verifiedAt:        c.verifiedAt?.toISOString(),
       daysUntilExpiry:   expiry ?? undefined,
       stale,
+      confidenceLabel: (meta.confidenceLabel as string | undefined) ?? 'Unverified',
+      dataFreshness:   (meta.dataFreshness   as string | undefined) ?? 'Freshness unknown',
+      reviewRequired:  (meta.reviewRequired  as boolean | undefined) ?? false,
     };
   });
 
-  const activeDomains  = new Set(credentials.filter(c => c.status === 'ACTIVE').map(c => c.domain));
+  const satisfiedCredentials = credentials.filter((credential) => isCredentialSatisfied(credential));
+  const activeDomains  = new Set(satisfiedCredentials.map(c => c.domain));
   const missingBlocking = BLOCKING_DOMAINS.filter(d => !activeDomains.has(d as import('@prisma/client').VcvCredentialDomain));
 
   const authority: PassportAuthority = {
     credentials: credList,
     summary: {
-      active:  credList.filter(c => c.status === 'ACTIVE').length,
+      active:  credList.filter(c => isCredentialSatisfied(c)).length,
       expired: credList.filter(c => c.status === 'EXPIRED').length,
       stale:   credList.filter(c => c.stale).length,
       missing: missingBlocking,
@@ -214,22 +230,40 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   const deaCred        = credentials.find(c => c.domain === 'DEA_REGISTRATION');
   const pecosCred      = credentials.find(c => c.domain === 'MEDICARE_ENROLLMENT');
 
+  const credentialExclusionStatus = exclusionCred
+    ? normalizeExclusionCredentialStatus(exclusionCred.status)
+    : 'UNKNOWN';
   const exclusionClear = trustState?.exclusionClear
-    ?? (exclusionCred?.status === 'ACTIVE' ? true : undefined)
+    ?? (exclusionCred ? credentialExclusionStatus === 'CLEAR' : undefined)
     ?? false;
 
   const negativeFindings: string[] = [];
   if (trustState) {
     if (!trustState.exclusionClear)            negativeFindings.push('OIG/LEIE exclusion flag');
     if (trustState.licensureStatus === 'expired') negativeFindings.push('License expired');
+  } else {
+    if (credentialExclusionStatus === 'EXCLUDED') negativeFindings.push('OIG/LEIE exclusion flag');
+    if (credentialExclusionStatus === 'UNCERTAIN') negativeFindings.push('OIG/LEIE check uncertain');
+    if (credentialExclusionStatus === 'REVIEW_REQUIRED') negativeFindings.push('OIG/LEIE review required');
   }
+
+  const licensureStatus = trustState?.licensureStatus
+    ?? (licensureCred
+      ? licensureCred.status === 'ACTIVE'
+        ? 'verified'
+        : licensureCred.status === 'EXPIRED'
+          ? 'expired'
+          : licensureCred.status === 'REVIEW_REQUIRED' || licensureCred.status === 'UNRESOLVED'
+            ? 'pending'
+            : 'unknown'
+      : 'unknown');
 
   const standing: PassportStanding = {
     exclusionClear,
-    exclusionStatus: trustState?.exclusionStatus ?? (exclusionCred ? 'CLEAR' : 'UNKNOWN'),
-    licensureStatus: trustState?.licensureStatus ?? (licensureCred?.status === 'ACTIVE' ? 'verified' : 'unknown'),
-    deaStatus:  deaCred?.status === 'ACTIVE'  ? 'registered' : deaCred ? 'none' : 'unknown',
-    pecosStatus: pecosCred?.status === 'ACTIVE' ? 'enrolled' : pecosCred ? 'not_enrolled' : 'unknown',
+    exclusionStatus: trustState?.exclusionStatus ?? credentialExclusionStatus,
+    licensureStatus,
+    deaStatus:  deaCred ? (isCredentialSatisfied(deaCred) ? 'registered' : 'none') : 'unknown',
+    pecosStatus: pecosCred ? (isCredentialSatisfied(pecosCred) ? 'enrolled' : 'not_enrolled') : 'unknown',
     negativeFindings,
   };
 
@@ -238,6 +272,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     ...negativeFindings,
     ...missingBlocking.map(d => `Missing: ${d}`),
   ];
+  if (credentials.some(isCredentialBlocking)) blockers.push('Credentials require review');
   if (credList.some(c => c.status === 'EXPIRED')) blockers.push('Expired credentials');
 
   const gaps: string[] = [

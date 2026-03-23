@@ -18,6 +18,7 @@ import { createHash, createHmac, randomUUID } from 'node:crypto';
 import prisma from '../../graphql/prisma_client';
 import { generateApplyBundle, type ApplyBundle } from './applyBundle';
 import { appendAuditEvent } from '../audit/auditLedger';
+import { buildEmployerReviewPayload, employerReviewPayloadToJson } from '../entity/employerReviewPayload';
 import { getNotificationProvider } from '../providers/notificationProvider';
 import { log } from '../../obs/logger';
 
@@ -260,6 +261,17 @@ export async function shareBundle(
 
   // 1. Generate bundle (creates VerificationArtifact)
   const bundle = await generateApplyBundle(npi, { selectiveClaims: options?.selectiveClaims });
+  const subjectEntity = await prisma.vcvEntity.findFirst({
+    where: { npi },
+    select: { id: true },
+  });
+  const reviewPayload = subjectEntity
+    ? await buildEmployerReviewPayload({
+        entityId: subjectEntity.id,
+        sharedByUserId: clerkUserId,
+        selectiveDomains: options?.selectiveClaims,
+      })
+    : null;
 
   // 2. Dispatch webhook
   const webhookResult = await dispatchToOrganization(
@@ -310,6 +322,16 @@ export async function shareBundle(
       webhookError: webhookResult.error ?? null,
       emailFallbackSent: emailResult.sent,
       emailFallbackTo: emailResult.to ?? null,
+      subjectEntityId: subjectEntity?.id ?? null,
+      deliveryStatus: webhookResult.delivered
+        ? 'DELIVERED'
+        : emailResult.sent
+          ? 'MANUAL_FALLBACK'
+          : 'FAILED',
+      checkedAt: reviewPayload ? new Date(reviewPayload.checkedAt) : new Date(),
+      bundlePayload: reviewPayload ? employerReviewPayloadToJson(reviewPayload) : undefined,
+      receiptRefs: reviewPayload?.receiptReferences ?? [],
+      sourceCoverage: reviewPayload ? employerReviewPayloadToJson(reviewPayload.sourceCoverage) : undefined,
       expiresAt: new Date(bundle.expiresAt),
     },
   });

@@ -204,7 +204,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
         {/* Subline — hide in preview */}
         {phase !== 'preview' && (
           <p className="text-sm sm:text-base text-white/50 mb-8 leading-relaxed">
-            Your credentials verified once. Accepted everywhere.
+            Your credentials verified once. Portable across employers where accepted.
           </p>
         )}
 
@@ -273,7 +273,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
         {/* Footer hint — idle only */}
         {phase === 'idle' && (
           <p className="mt-3 text-[11px] text-white/25">
-            No login required to preview · Under 24 hours
+            No login required to preview · As fast as the underlying source allows
           </p>
         )}
 

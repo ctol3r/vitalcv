@@ -15,6 +15,8 @@ export type CredentialArtifactStatus =
   | 'DEACTIVATED'
   | 'CLEAR'
   | 'EXCLUDED'
+  | 'UNCERTAIN'
+  | 'REVIEW_REQUIRED'
   | 'CHECK_FAILED'
   | 'INACTIVE'
   | 'REVOKED'

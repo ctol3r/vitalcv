@@ -37,8 +37,8 @@ function AnimatedCounter({ end, suffix = '' }: { end: number; suffix?: string })
 const VALUE_PROPS = [
   {
     icon: '⚡',
-    title: 'Speed: 24 hours vs. 30 days',
-    desc: 'Traditional credentialing takes 30–90 days. VitalCV delivers cryptographically-verified results in under 24 hours with automated primary source verification.',
+    title: 'Speed: Source-level verified results',
+    desc: 'Traditional credentialing takes 30–90 days. VitalCV delivers cryptographically-verified results as fast as the underlying source allows.',
     stat: '98%', statLabel: 'faster than manual',
   },
   {
@@ -101,7 +101,7 @@ export default function InvestorsPage() {
             <br />VitalCV solves it.
           </h1>
           <p className="text-xl text-vt-neutral-300 max-w-2xl mx-auto mb-10">
-            Cryptographic trust infrastructure that makes primary source verification instant, auditable, and interoperable — replacing a 30-day manual process with 24-hour automated verification.
+            Cryptographic trust infrastructure that makes primary source verification instant, auditable, and interoperable — replacing a 30-day manual process with automated verification. Data freshness varies by source (daily to quarterly).
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <a href="#contact" className="bg-emerald-500 hover:bg-emerald-400 text-white font-semibold px-8 py-3 rounded-xl transition-colors">

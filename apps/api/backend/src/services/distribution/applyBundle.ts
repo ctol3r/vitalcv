@@ -13,8 +13,8 @@
 
 import { createHash, randomUUID } from 'node:crypto';
 import prisma from '../../graphql/prisma_client';
-import { computeClinicianTrustState } from '../trust/trustStateEngine';
 import { appendAuditEvent } from '../audit/auditLedger';
+import { buildEmployerReviewPayload } from '../entity/employerReviewPayload';
 import { log } from '../../obs/logger';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -85,62 +85,34 @@ export async function generateApplyBundle(
 ): Promise<ApplyBundle> {
   log('info', 'apply_bundle_generate_start', { npi, selectiveClaims: options?.selectiveClaims });
 
-  // 1. Fetch current trust state
-  const trustState = await computeClinicianTrustState(npi);
-
-  // 2. Clinician name from NPPES
-  const clinicianName = await resolveClinicianName(npi);
-
-  // 3. Gather VerificationArtifacts
-  const artifacts = await prisma.verificationArtifact.findMany({
-    where: { npi, lifecycleState: 'active' },
-    orderBy: { verifiedAt: 'desc' },
+  const subjectEntity = await prisma.vcvEntity.findFirst({
+    where: { npi },
+    select: { id: true, displayName: true },
   });
-
-  // 4. Gather CandidateCredentials
-  const candidateCredentials = await prisma.candidateCredential.findMany({
-    where: { clinicianId: npi },
-    orderBy: { createdAt: 'desc' },
-  });
-
-  // 5. Build credential list — combine artifact types + candidate types
-  const selectiveClaims = options?.selectiveClaims;
-
-  const artifactCredentials: BundleCredential[] = artifacts
-    .filter((a) => !selectiveClaims || selectiveClaims.includes(a.source))
-    .map((a) => ({
-      type: a.source,
-      issuer: (a.rawPayload as Record<string, unknown> | null)?.issuer as string ?? 'VitalCV Registry',
-      status: a.status,
-      verifiedAt: a.verifiedAt?.toISOString() ?? null,
-      expiresAt: a.expiresAt?.toISOString() ?? null,
-    }));
-
-  const candidateCreds: BundleCredential[] = candidateCredentials
-    .filter((c) => {
-      if (!selectiveClaims) return true;
-      const data = c.data as Record<string, unknown>;
-      return selectiveClaims.includes(data?.type as string ?? c.candidateCredentialId);
-    })
-    .map((c) => {
-      const data = c.data as Record<string, unknown>;
-      return {
-        type: (data?.type as string) ?? 'CANDIDATE_CREDENTIAL',
-        issuer: (data?.issuer as string) ?? 'Self-reported',
-        status: c.status,
-        verifiedAt: (data?.verifiedAt as string) ?? null,
-        expiresAt: (data?.expiresAt as string) ?? null,
-      };
-    });
-
-  const allCredentials = [...artifactCredentials, ...candidateCreds];
-
-  // 6. Gather TrustedIssuers referenced by artifacts
-  const issuerNames = new Set<string>();
-  for (const a of artifacts) {
-    const issuer = (a.rawPayload as Record<string, unknown> | null)?.issuer as string | undefined;
-    if (issuer) issuerNames.add(issuer);
+  if (!subjectEntity) {
+    throw new Error(`No entity found for NPI ${npi}`);
   }
+
+  const reviewPayload = await buildEmployerReviewPayload({
+    entityId: subjectEntity.id,
+    selectiveDomains: options?.selectiveClaims,
+  });
+
+  const clinicianName = reviewPayload.identitySummary.displayName || await resolveClinicianName(npi);
+
+  const allCredentials: BundleCredential[] = reviewPayload.credentialsIncluded.map((credential) => ({
+    type: credential.credentialType,
+    issuer: credential.issuerName ?? 'VitalCV Authority',
+    status: credential.status,
+    verifiedAt: credential.observedAt ?? null,
+    expiresAt: credential.expiresAt ?? null,
+  }));
+
+  const issuerNames = new Set(
+    reviewPayload.credentialsIncluded
+      .map((credential) => credential.issuerName)
+      .filter((issuer): issuer is string => typeof issuer === 'string' && issuer.length > 0),
+  );
 
   const issuers = issuerNames.size > 0
     ? await prisma.trustedIssuer.findMany({
@@ -156,16 +128,13 @@ export async function generateApplyBundle(
   }));
 
   // 7. Determine monitoring status
-  const monitoredCount = artifacts.filter((a) => a.monitoring).length;
   let monitoringStatus: 'active' | 'inactive' | 'partial';
-  if (artifacts.length === 0) {
+  if (reviewPayload.sourceCoverage.sources.length === 0) {
     monitoringStatus = 'inactive';
-  } else if (monitoredCount === artifacts.length) {
+  } else if (reviewPayload.sourceCoverage.sources.length >= 3) {
     monitoringStatus = 'active';
-  } else if (monitoredCount > 0) {
-    monitoringStatus = 'partial';
   } else {
-    monitoringStatus = 'inactive';
+    monitoringStatus = 'partial';
   }
 
   // 8. Assemble bundle (without signature)
@@ -178,10 +147,10 @@ export async function generateApplyBundle(
     npi,
     clinicianName,
     trustState: {
-      readiness_level: trustState.readiness_level,
-      readiness_score: trustState.readiness_score,
-      readiness_status: trustState.readiness_status,
-      computed_at: trustState.computed_at,
+      readiness_level: reviewPayload.readinessSummary.level,
+      readiness_score: reviewPayload.readinessSummary.score,
+      readiness_status: reviewPayload.readinessSummary.status,
+      computed_at: reviewPayload.checkedAt,
     },
     credentials: allCredentials,
     issuerProvenance,
@@ -204,7 +173,7 @@ export async function generateApplyBundle(
       id: bundleId,
       npi,
       source: 'APPLY_BUNDLE',
-      status: 'active',
+      status: 'ACTIVE',
       rawPayload: bundlePayload,
       checksum: signature,
       verifiedAt: new Date(generatedAt),

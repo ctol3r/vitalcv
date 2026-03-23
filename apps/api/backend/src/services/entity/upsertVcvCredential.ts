@@ -33,6 +33,33 @@ import type { VcvCredentialDomain, VcvVerificationLevel } from '@prisma/client';
 import { log } from '../../obs/logger';
 import { FRESHNESS_WINDOWS_DAYS } from '../../domain/entity/contracts';
 
+// ── Source metadata ────────────────────────────────────────────────────────────
+
+/** How often this source publishes new data */
+export const SOURCE_DATA_FRESHNESS: Record<string, string> = {
+  NPPES_API:          'Updated daily',
+  NPPES_BULK:         'Updated daily',
+  OIG_LEIE:           'Updated monthly',
+  PECOS_PUBLIC:       'Updated quarterly',
+  DOCTORS_CLINICIANS: 'Updated quarterly',
+  NURSYS:             'Updated in real-time',
+  DEA:                'Updated in real-time',
+  SAM_GOV:            'Updated daily',
+  STATE_BOARD:        'Varies by state',
+  ACGME:              'Updated annually',
+  LCME:               'Updated annually',
+  CAQH:               'Updated quarterly',
+};
+
+/** Human-readable confidence label */
+export function confidenceLabel(tier: string, score: number, reviewRequired: boolean): string {
+  if (reviewRequired)              return 'Review recommended';
+  if (tier === 'GOLD'  && score >= 0.9) return 'Confirmed';
+  if (tier === 'GOLD'  && score >= 0.5) return 'Likely match';
+  if (tier === 'SILVER'&& score >= 0.8) return 'Likely match';
+  return 'Unverified';
+}
+
 // ── Domain mapping ─────────────────────────────────────────────────────────────
 
 const CLAIM_TO_DOMAIN: Partial<Record<ClaimType, VcvCredentialDomain>> = {
@@ -235,9 +262,13 @@ export async function upsertVcvCredential(
         nextReverifyAt,
         jurisdiction,
         metadata: {
-          sourceId:   claim.sourceId,
-          confidence: claim.confidence,
-          tier:       claim.tier,
+          sourceId:        claim.sourceId,
+          confidence:      claim.confidence,
+          confidenceScore: claim.confidenceScore,
+          tier:            claim.tier,
+          confidenceLabel: confidenceLabel(claim.tier, claim.confidenceScore ?? 0.5, claim.reviewRequired ?? false),
+          dataFreshness:   SOURCE_DATA_FRESHNESS[claim.sourceId] ?? 'Freshness unknown',
+          reviewRequired:  claim.reviewRequired ?? false,
         } as import('@prisma/client').Prisma.InputJsonValue,
       },
     });

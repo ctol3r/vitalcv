@@ -87,7 +87,7 @@ function Screen1NPI({ onComplete }: { onComplete: () => void }) {
       className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center gap-24 z-10"
     >
       <AntigravityHero
-        headline="Verify once. Use everywhere."
+        headline="Verify once. Portable across employers where accepted."
         headlineClassName="text-5xl md:text-8xl lg:text-9xl xl:text-10xl tracking-tighter"
         subhead="Create a verified Clinician credential passport that stays ready."
         subheadClassName="text-xl md:text-2xl mt-4 max-w-2xl text-center"

@@ -267,7 +267,10 @@ async function smokeTestOIG(sampleNpi = '1003000126'): Promise<SmokeTestResult> 
   try {
     const indexStatus = getLeieIndexStatus();
     const result = await checkOIGExclusion(sampleNpi);
-    const valid = !!result.npi && typeof result.excluded === 'boolean' && !!result.lastCheckedAt;
+    const valid = !!result.npi
+      && typeof result.excluded === 'boolean'
+      && !!result.lastCheckedAt
+      && !!result.verdict;
     const warnings: string[] = [];
     if (!indexStatus.loaded) warnings.push('LEIE index not loaded');
     return {

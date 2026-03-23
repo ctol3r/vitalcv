@@ -116,6 +116,7 @@ export interface NpiIdentityValue {
   lastUpdated: string;
   status: 'A' | 'D';  // Active / Deactivated
   credential: string | null;  // MD, DO, NP, PA, etc.
+  sourceDisclaimer?: string | null;
 }
 
 export interface PersonalIdentityValue {
@@ -163,6 +164,11 @@ export interface EnrollmentValue {
   enrollmentType: string | null;
   eligibleToOrderRefer: boolean | null;
   source: 'PECOS' | 'DOCTORS_CLINICIANS';
+  observedAt?: string | null;
+  dataVersion?: string | null;
+  sourceLatency?: string | null;
+  dataFreshness?: string | null;
+  sourceDisclaimer?: string | null;
 }
 
 export interface LicenseValue {
@@ -174,6 +180,7 @@ export interface LicenseValue {
   licenseStatus: 'ACTIVE' | 'EXPIRED' | 'SUSPENDED' | 'REVOKED' | 'UNKNOWN';
   disciplinaryActions: string[];
   source: string;
+  sourceDisclaimer?: string | null;
 }
 
 export interface BoardCertValue {
@@ -189,12 +196,19 @@ export interface BoardCertValue {
 export interface ExclusionValue {
   _type: 'EXCLUSION_STATUS';
   excluded: boolean;
+  verdict?: 'CLEAR' | 'EXCLUDED' | 'POSSIBLE_MATCH' | 'UNCHECKED';
   exclusionType: string | null;
   exclusionDate: string | null;
   reinstatementDate: string | null;
   matchType: 'NPI_MATCH' | 'NAME_MATCH' | 'NO_MATCH' | 'UNCLEAR';
+  matchConfidence?: ClaimConfidence;
+  matchScore?: number | null;
+  matchedFields?: string[];
   waiverState: string | null;
   source: 'OIG_LEIE' | 'SAM_GOV';
+  sourceLatency?: string | null;
+  dataFreshness?: string | null;
+  dataVersion?: string | null;
 }
 
 export interface IndustryPaymentValue {

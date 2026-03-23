@@ -181,10 +181,10 @@ const STEPS = [
   {
     step: '03',
     icon: Zap,
-    title: 'Carry it everywhere',
+    title: 'Portable across employers',
     description: 'Your Trust Passport travels with you. Any employer confirms your standing instantly — no committee, no 90-day wait.',
     accent: 'violet',
-    detail: '3–6 weeks faster to start',
+    detail: 'Faster time to start',
   },
 ] as const;
 
@@ -288,7 +288,7 @@ export function HowItWorksSection() {
 const TRACTION_STATS = [
   { value: '6.8M', label: 'licensed US healthcare workers — every one needs credentialing', color: 'text-emerald-600' },
   { value: '$9K', label: 'lost per day per unfilled physician slot', color: 'text-red-500' },
-  { value: '< 24h', label: 'time-to-verified on VitalCV vs. 45–90 day industry average', color: 'text-infra-blue' },
+  { value: 'Faster', label: 'time-to-verified on VitalCV vs. 45–90 day industry average', color: 'text-infra-blue' },
   { value: '$4.2B', label: 'US healthcare credentialing market, growing 11% YoY', color: 'text-amber-500' },
 ] as const;
 
@@ -541,7 +541,7 @@ export function MoneballSection() {
                 accepts a position in January. She doesn&apos;t start until{' '}
                 <span className="text-red-400 font-semibold">May or June.</span>{' '}
                 Not because she wasn&apos;t ready. Because the hospital spent
-                90 days re-verifying credentials it could have confirmed in 24 hours.
+                90 days re-verifying credentials it could have confirmed automatically.
               </p>
 
               <p className="text-white/70 leading-relaxed">
@@ -690,7 +690,7 @@ const PILLARS = [
   {
     number: '05',
     title: 'Blockchain-Anchored PSV',
-    body: 'Primary source verification results anchored permanently. Once verified, a credential is trusted everywhere — by hospitals, government agencies, and credentialing bodies — without re-verification.',
+    body: 'Primary source verification results anchored permanently. Once verified, a credential is portable across employers where accepted — without re-verification. Data freshness varies by source (daily to quarterly).',
     tags: ['SD-JWT VC', 'W3C Standards', 'OID4VCI', 'Permanent Record'],
     color: 'rose',
   },

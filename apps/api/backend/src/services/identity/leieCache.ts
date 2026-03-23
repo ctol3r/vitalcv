@@ -37,15 +37,6 @@ export interface ExclusionEntry {
   waiverState:    string;
 }
 
-export interface LeieResult {
-  npi:            string;
-  excluded:       boolean;
-  entry:          ExclusionEntry | null;
-  source:         'LEIE_CSV';
-  checkedAt:      string;
-  cacheAge:       'fresh' | 'stale' | 'unavailable';
-}
-
 // ── In-memory index ────────────────────────────────────────────────────────────
 
 let npiIndex:      Map<string, ExclusionEntry> | null = null;
@@ -152,6 +143,17 @@ async function ensureLoaded(): Promise<void> {
   }
 }
 
+// ── Match confidence ───────────────────────────────────────────────────────────
+
+export type MatchConfidence = 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
+
+export interface LeieMatchDetail {
+  matchType:       'NPI_EXACT' | 'NPI_ABSENT' | 'CACHE_UNAVAILABLE';
+  matchConfidence: MatchConfidence;
+  exclusionType?:  string;
+  exclusionDate?:  string;
+}
+
 /**
  * Look up an NPI in the LEIE exclusion list.
  * Returns excluded=true if found, false if not found, with cache metadata.
@@ -174,6 +176,7 @@ export async function lookupNpi(npi: string): Promise<LeieResult> {
   }
 
   const entry = npiIndex.get(npi) ?? null;
+
   return {
     npi,
     excluded: entry !== null,
@@ -181,7 +184,23 @@ export async function lookupNpi(npi: string): Promise<LeieResult> {
     source:   'LEIE_CSV',
     checkedAt,
     cacheAge,
+    matchDetail: {
+      matchType:       entry ? 'NPI_EXACT' : 'NPI_ABSENT',
+      matchConfidence: entry ? 'HIGH' : 'NONE',
+      exclusionType:   entry?.exclusionType,
+      exclusionDate:   entry?.exclusionDate,
+    } satisfies LeieMatchDetail,
   };
+}
+
+export interface LeieResult {
+  npi:            string;
+  excluded:       boolean;
+  entry:          ExclusionEntry | null;
+  source:         'LEIE_CSV';
+  checkedAt:      string;
+  cacheAge:       'fresh' | 'stale' | 'unavailable';
+  matchDetail?:   LeieMatchDetail;
 }
 
 /**

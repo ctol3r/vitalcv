@@ -38,7 +38,12 @@ export class SanctionsAgent extends AgentBase {
 
     const exclusionResult = await checkOIGExclusion(npi);
 
-    const status = exclusionResult.excluded ? 'EXCLUDED' as const : 'CLEARED' as const;
+    const status =
+      exclusionResult.verdict === 'EXCLUDED'
+        ? 'EXCLUDED' as const
+        : exclusionResult.verdict === 'CLEAR'
+          ? 'CLEARED' as const
+          : 'UNCERTAIN' as const;
     const checkedAt = exclusionResult.lastCheckedAt;
     const receiptHash = sha256Hex(`LEIE:${npi}:${status}:${checkedAt}`);
 

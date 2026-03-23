@@ -39,16 +39,16 @@ enum IssuerSigningKeyState {
 }
 
 model User {
-  id             String     @id @default(uuid()) @db.Uuid
-  clerkUserId    String     @unique
-  email          String     @unique
-  role           UserRole   @default(CLINICIAN)
-  roleVersion    Int        @default(1)
-  status         UserStatus @default(INVITED)
-  organizationId String?    @db.Uuid
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-  personProfile  PersonProfile?
+  id                  String               @id @default(uuid()) @db.Uuid
+  clerkUserId         String               @unique
+  email               String               @unique
+  role                UserRole             @default(CLINICIAN)
+  roleVersion         Int                  @default(1)
+  status              UserStatus           @default(INVITED)
+  organizationId      String?              @db.Uuid
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  personProfile       PersonProfile?
   workspacePreference WorkspacePreference?
   passkeyCredentials  PasskeyCredential[]
   npiOwnerships       NpiOwnership[]
@@ -85,16 +85,16 @@ model Recognition {
 }
 
 model Acceptance {
-  id              String   @id @default(uuid()) @db.Uuid
-  acceptanceId    String   @unique
-  recognitionId   String
-  subjectId       String
-  employerId      String
-  facilityId      String
-  acceptedAt      DateTime
-  psvReportId     String
-  eventHash       String
-  createdAt       DateTime @default(now())
+  id            String   @id @default(uuid()) @db.Uuid
+  acceptanceId  String   @unique
+  recognitionId String
+  subjectId     String
+  employerId    String
+  facilityId    String
+  acceptedAt    DateTime
+  psvReportId   String
+  eventHash     String
+  createdAt     DateTime @default(now())
 
   recognition Recognition @relation(fields: [recognitionId], references: [recognitionId])
   starts      Start[]
@@ -128,24 +128,24 @@ model Start {
 // ──────────────────────────────────────────────────────────────
 
 model PsvReceipt {
-  id              String   @id @default(uuid()) @db.Uuid
-  receiptId       String   @unique
-  clinicianId     String
-  sourceAuthority String
-  licenseId       String
-  transactionId   String
-  fetchedAt       DateTime
-  responseHash    String
-  ttlSeconds      Int
-  revoked         Boolean  @default(false)
-  lane            String?
-  verificationCheck   String?
-  verificationOutcome String?
-  failureReason       String?
-  source              String?
-  attestorId          String?
+  id                    String   @id @default(uuid()) @db.Uuid
+  receiptId             String   @unique
+  clinicianId           String
+  sourceAuthority       String
+  licenseId             String
+  transactionId         String
+  fetchedAt             DateTime
+  responseHash          String
+  ttlSeconds            Int
+  revoked               Boolean  @default(false)
+  lane                  String?
+  verificationCheck     String?
+  verificationOutcome   String?
+  failureReason         String?
+  source                String?
+  attestorId            String?
   verificationRequestId String?
-  createdAt       DateTime @default(now())
+  createdAt             DateTime @default(now())
 
   @@index([clinicianId])
   @@index([receiptId])
@@ -156,11 +156,11 @@ model PsvReceipt {
 // ──────────────────────────────────────────────────────────────
 
 model ClinicianIdentity {
-  id           String   @id @default(uuid()) @db.Uuid
-  clinicianId  String   @unique
-  data         Json     @db.JsonB
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String   @id @default(uuid()) @db.Uuid
+  clinicianId String   @unique
+  data        Json     @db.JsonB
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model NpiDidBinding {
@@ -181,34 +181,34 @@ model NpiDidBinding {
 }
 
 model CandidateCredential {
-  id                     String   @id @default(uuid()) @db.Uuid
-  candidateCredentialId  String   @unique
-  clinicianId            String
-  data                   Json     @db.JsonB
-  status                 String   @default("UNVERIFIED")
-  createdAt              DateTime @default(now())
+  id                    String   @id @default(uuid()) @db.Uuid
+  candidateCredentialId String   @unique
+  clinicianId           String
+  data                  Json     @db.JsonB
+  status                String   @default("UNVERIFIED")
+  createdAt             DateTime @default(now())
 
   @@index([clinicianId])
 }
 
 model IngestConflict {
-  id           String   @id @default(uuid()) @db.Uuid
-  conflictId   String   @unique
-  clinicianId  String
-  status       String   @default("UNRESOLVED")
-  data         Json     @db.JsonB
-  createdAt    DateTime @default(now())
+  id          String   @id @default(uuid()) @db.Uuid
+  conflictId  String   @unique
+  clinicianId String
+  status      String   @default("UNRESOLVED")
+  data        Json     @db.JsonB
+  createdAt   DateTime @default(now())
 
   @@index([clinicianId])
 }
 
 model IdempotentResponse {
-  id          String   @id @default(uuid()) @db.Uuid
-  key         String   @unique
-  auditRef    String
-  payload     Json     @db.JsonB
-  createdAt   DateTime @default(now())
-  expiresAt   DateTime
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique
+  auditRef  String
+  payload   Json     @db.JsonB
+  createdAt DateTime @default(now())
+  expiresAt DateTime
 
   @@index([key])
   @@index([expiresAt])
@@ -219,30 +219,30 @@ model IdempotentResponse {
 // ──────────────────────────────────────────────────────────────
 
 model ApiKey {
-  id           String    @id @default(uuid()) @db.Uuid
-  keyHash      String    @unique
-  orgName      String
-  orgId        String
-  permissions  String[]  @default(["write:recognitions", "write:acceptances", "write:starts", "write:ingest"])
-  createdAt    DateTime  @default(now())
-  revokedAt    DateTime?
+  id          String    @id @default(uuid()) @db.Uuid
+  keyHash     String    @unique
+  orgName     String
+  orgId       String
+  permissions String[]  @default(["write:recognitions", "write:acceptances", "write:starts", "write:ingest"])
+  createdAt   DateTime  @default(now())
+  revokedAt   DateTime?
 
   @@index([orgId])
 }
 
 model ParRequest {
-  id                   String   @id @default(uuid()) @db.Uuid
-  requestUri           String   @unique
-  requestType          String
-  requestJson          Json
-  clientId             String
-  codeChallenge        String?
-  codeChallengeMethod  String?
-  redirectUri          String?
-  scope                String?
-  expiresAt            DateTime
-  used                 Boolean  @default(false)
-  createdAt            DateTime @default(now())
+  id                  String   @id @default(uuid()) @db.Uuid
+  requestUri          String   @unique
+  requestType         String
+  requestJson         Json
+  clientId            String
+  codeChallenge       String?
+  codeChallengeMethod String?
+  redirectUri         String?
+  scope               String?
+  expiresAt           DateTime
+  used                Boolean  @default(false)
+  createdAt           DateTime @default(now())
 
   @@index([requestType])
   @@index([expiresAt])
@@ -260,16 +260,16 @@ model JtiReplay {
 }
 
 model RefreshToken {
-  tokenId   String   @id
-  clientId  String?
-  userId    String?
-  scope     String
-  cnfJkt    String?
+  tokenId    String   @id
+  clientId   String?
+  userId     String?
+  scope      String
+  cnfJkt     String?
   clientCert String?
-  issuedAt  DateTime
-  expiresAt DateTime
-  rotated   Boolean  @default(false)
-  rotatedTo String?
+  issuedAt   DateTime
+  expiresAt  DateTime
+  rotated    Boolean  @default(false)
+  rotatedTo  String?
 }
 
 model VerifierNonce {
@@ -297,18 +297,18 @@ enum VerifierLifecycle {
 }
 
 model VerificationRequest {
-  requestId       String                   @id @default(uuid()) @db.Uuid
-  clinicianId     String
-  lane            String
-  source          String
-  attestorId      String?
-  documentHash    String?
-  subject         String
-  status          VerificationRequestStatus @default(PENDING)
-  createdAt       DateTime                 @default(now())
-  completedAt     DateTime?
-  receiptId       String?
-  failureReason   String?
+  requestId     String                    @id @default(uuid()) @db.Uuid
+  clinicianId   String
+  lane          String
+  source        String
+  attestorId    String?
+  documentHash  String?
+  subject       String
+  status        VerificationRequestStatus @default(PENDING)
+  createdAt     DateTime                  @default(now())
+  completedAt   DateTime?
+  receiptId     String?
+  failureReason String?
 
   @@index([clinicianId])
   @@index([status])
@@ -320,11 +320,11 @@ model VerificationRequest {
 // ──────────────────────────────────────────────────────────────
 
 model ShareLink {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String    @id @default(uuid()) @db.Uuid
   npi            String
   firstViewedAt  DateTime?
-  organizationId String?  @db.Uuid
-  createdAt      DateTime @default(now())
+  organizationId String?   @db.Uuid
+  createdAt      DateTime  @default(now())
 
   @@index([npi])
   @@index([organizationId])
@@ -332,32 +332,32 @@ model ShareLink {
 }
 
 model Organization {
-  id            String   @id @default(uuid()) @db.Uuid
-  name          String
-  slug          String   @unique
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  organizationProfile OrganizationProfile?
+  id                         String                @id @default(uuid()) @db.Uuid
+  name                       String
+  slug                       String                @unique
+  createdAt                  DateTime              @default(now())
+  updatedAt                  DateTime              @updatedAt
+  organizationProfile        OrganizationProfile?
   activeWorkspacePreferences WorkspacePreference[] @relation("WorkspacePreferenceActiveOrganization")
-  opportunities Opportunity[]
+  opportunities              Opportunity[]
 }
 
 model Opportunity {
-  id              String   @id @default(uuid()) @db.Uuid
-  organizationId  String   @db.Uuid @map("organization_id")
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  title           String
-  specialty       String
-  hiringType      String   @map("hiring_type")   // locums | perm | telehealth | contract
-  state           String
-  payRange        String?  @map("pay_range")
-  requirementLevel String  @default("L1") @map("requirement_level") // L1 | L2 | L3
-  description     String?
-  remote          Boolean  @default(false)
-  status          String   @default("ACTIVE")    // ACTIVE | PAUSED | CLOSED
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  applications    Application[]
+  id               String        @id @default(uuid()) @db.Uuid
+  organizationId   String        @map("organization_id") @db.Uuid
+  organization     Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title            String
+  specialty        String
+  hiringType       String        @map("hiring_type") // locums | perm | telehealth | contract
+  state            String
+  payRange         String?       @map("pay_range")
+  requirementLevel String        @default("L1") @map("requirement_level") // L1 | L2 | L3
+  description      String?
+  remote           Boolean       @default(false)
+  status           String        @default("ACTIVE") // ACTIVE | PAUSED | CLOSED
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  applications     Application[]
 
   @@index([organizationId])
   @@index([specialty, state])
@@ -375,18 +375,18 @@ enum ApplicationStatus {
 
 /// Clinician application to a job opportunity
 model Application {
-  id             String            @id @default(uuid()) @db.Uuid
-  opportunityId  String            @db.Uuid @map("opportunity_id")
-  opportunity    Opportunity       @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-  clerkUserId    String            @map("clerk_user_id")
-  npi            String?
-  coverNote      String?           @map("cover_note")
-  status         ApplicationStatus @default(PENDING)
-  reviewedBy     String?           @map("reviewed_by")   // verifier clerkUserId
-  reviewedAt     DateTime?         @map("reviewed_at")
-  reviewNote     String?           @map("review_note")
-  createdAt      DateTime          @default(now()) @map("created_at")
-  updatedAt      DateTime          @updatedAt @map("updated_at")
+  id            String            @id @default(uuid()) @db.Uuid
+  opportunityId String            @map("opportunity_id") @db.Uuid
+  opportunity   Opportunity       @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  clerkUserId   String            @map("clerk_user_id")
+  npi           String?
+  coverNote     String?           @map("cover_note")
+  status        ApplicationStatus @default(PENDING)
+  reviewedBy    String?           @map("reviewed_by") // verifier clerkUserId
+  reviewedAt    DateTime?         @map("reviewed_at")
+  reviewNote    String?           @map("review_note")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
 
   @@unique([opportunityId, clerkUserId])
   @@index([clerkUserId])
@@ -420,7 +420,7 @@ enum MembershipRole {
 /// Linked profile for an individual clinician (Type 1 NPI)
 model PersonProfile {
   id              String                @id @default(uuid()) @db.Uuid
-  userId          String                @unique @db.Uuid @map("user_id")
+  userId          String                @unique @map("user_id") @db.Uuid
   user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   npi             String?               @unique
   npiType         NpiType?              @default(TYPE_1) @map("npi_type")
@@ -444,35 +444,35 @@ model PersonProfile {
 
 /// Linked profile for an organization (Type 2 NPI or Org DID)
 model OrganizationProfile {
-  id             String                @id @default(uuid()) @db.Uuid
-  organizationId String                @unique @db.Uuid @map("organization_id")
-  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  npi            String?
-  npiType        NpiType?              @default(TYPE_2) @map("npi_type")
-  orgDid         String?               @map("org_did")
-  facilityType   String?               @map("facility_type")
-  specialties    String[]
-  statesCovered  String[]              @map("states_covered")
-  website        String?
+  id                    String                @id @default(uuid()) @db.Uuid
+  organizationId        String                @unique @map("organization_id") @db.Uuid
+  organization          Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  npi                   String?
+  npiType               NpiType?              @default(TYPE_2) @map("npi_type")
+  orgDid                String?               @map("org_did")
+  facilityType          String?               @map("facility_type")
+  specialties           String[]
+  statesCovered         String[]              @map("states_covered")
+  website               String?
   // Wave 186: Employer intelligence fields
-  tagline        String?
-  description    String?
-  trustScore     Int                   @default(0) @map("trust_score")
-  openRoles      Int                   @default(0) @map("open_roles")
-  recentHires    Int                   @default(0) @map("recent_hires")
-  hiringStatus   EmployerHiringStatus  @default(NOT_HIRING) @map("hiring_status")
-  hiringTypes    String[]              @map("hiring_types")
-  timeToStart    String?               @map("time_to_start")
-  timeToOnboard  String?               @map("time_to_onboard")
-  clearToStartThreshold String?        @map("clear_to_start_threshold")
-  payTransparency Boolean              @default(false) @map("pay_transparency")
-  payRange       String?               @map("pay_range")
-  requirements   Json                  @default("[]") @db.JsonB
-  verifiedSince  DateTime?             @map("verified_since")
-  verified       Boolean               @default(false)
-  createdAt      DateTime              @default(now()) @map("created_at")
-  updatedAt      DateTime              @updatedAt @map("updated_at")
-  memberships    WorkspaceMembership[]
+  tagline               String?
+  description           String?
+  trustScore            Int                   @default(0) @map("trust_score")
+  openRoles             Int                   @default(0) @map("open_roles")
+  recentHires           Int                   @default(0) @map("recent_hires")
+  hiringStatus          EmployerHiringStatus  @default(NOT_HIRING) @map("hiring_status")
+  hiringTypes           String[]              @map("hiring_types")
+  timeToStart           String?               @map("time_to_start")
+  timeToOnboard         String?               @map("time_to_onboard")
+  clearToStartThreshold String?               @map("clear_to_start_threshold")
+  payTransparency       Boolean               @default(false) @map("pay_transparency")
+  payRange              String?               @map("pay_range")
+  requirements          Json                  @default("[]") @db.JsonB
+  verifiedSince         DateTime?             @map("verified_since")
+  verified              Boolean               @default(false)
+  createdAt             DateTime              @default(now()) @map("created_at")
+  updatedAt             DateTime              @updatedAt @map("updated_at")
+  memberships           WorkspaceMembership[]
 
   @@index([npi])
   @@index([organizationId])
@@ -639,9 +639,9 @@ enum StorylineActionType {
 /// Links a person to an organization with a role
 model WorkspaceMembership {
   id                    String              @id @default(uuid()) @db.Uuid
-  personProfileId       String              @db.Uuid @map("person_profile_id")
+  personProfileId       String              @map("person_profile_id") @db.Uuid
   personProfile         PersonProfile       @relation(fields: [personProfileId], references: [id], onDelete: Cascade)
-  organizationProfileId String              @db.Uuid @map("organization_profile_id")
+  organizationProfileId String              @map("organization_profile_id") @db.Uuid
   organizationProfile   OrganizationProfile @relation(fields: [organizationProfileId], references: [id], onDelete: Cascade)
   role                  MembershipRole      @default(VERIFIER)
   active                Boolean             @default(true)
@@ -658,16 +658,16 @@ model WorkspaceMembership {
 
 /// Per-user workspace preferences and active persona state
 model WorkspacePreference {
-  id                String        @id @default(uuid()) @db.Uuid
-  userId            String        @unique @db.Uuid @map("user_id")
-  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  activePersona     ActivePersona @default(CLINICIAN) @map("active_persona")
-  activeOrgId       String?       @db.Uuid @map("active_org_id")
+  id                 String        @id @default(uuid()) @db.Uuid
+  userId             String        @unique @map("user_id") @db.Uuid
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activePersona      ActivePersona @default(CLINICIAN) @map("active_persona")
+  activeOrgId        String?       @map("active_org_id") @db.Uuid
   activeOrganization Organization? @relation("WorkspacePreferenceActiveOrganization", fields: [activeOrgId], references: [id], onDelete: SetNull)
-  sidebarCollapsed  Boolean       @default(false) @map("sidebar_collapsed")
-  lastSwitchedAt    DateTime?     @map("last_switched_at")
-  createdAt         DateTime      @default(now()) @map("created_at")
-  updatedAt         DateTime      @updatedAt @map("updated_at")
+  sidebarCollapsed   Boolean       @default(false) @map("sidebar_collapsed")
+  lastSwitchedAt     DateTime?     @map("last_switched_at")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
 
   @@index([userId])
   @@map("workspace_preferences")
@@ -717,11 +717,11 @@ model VerifierAcceptance {
 }
 
 model PilotOrg {
-  id           String   @id @default(uuid()) @db.Uuid
+  id           String      @id @default(uuid()) @db.Uuid
   name         String
   contactEmail String
-  activatedAt  DateTime @default(now())
-  accepted     Boolean  @default(false)
+  activatedAt  DateTime    @default(now())
+  accepted     Boolean     @default(false)
   plans        PilotPlan[]
 
   @@index([accepted])
@@ -729,12 +729,12 @@ model PilotOrg {
 }
 
 model PilotPlan {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String?  @db.Uuid
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String?   @db.Uuid
   startDate      DateTime
   endDate        DateTime?
-  active         Boolean  @default(true)
-  bundleCount    Int      @default(0)
+  active         Boolean   @default(true)
+  bundleCount    Int       @default(0)
 
   organization PilotOrg? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
@@ -748,13 +748,13 @@ model PilotPlan {
 // ──────────────────────────────────────────────────────────────
 
 model VerifierOrg {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String            @id @default(uuid()) @db.Uuid
   name           String
   contactName    String
   contactEmail   String
-  createdAt      DateTime @default(now())
+  createdAt      DateTime          @default(now())
   lifecycle      VerifierLifecycle @default(REGISTERED)
-  pilotActivated Boolean  @default(false)
+  pilotActivated Boolean           @default(false)
 
   tokens VerifierAccessToken[]
 
@@ -783,62 +783,62 @@ model VerifierAccessToken {
 // ──────────────────────────────────────────────────────────────
 
 model VerificationArtifact {
-  id         String    @id @default(uuid()) @db.Uuid
-  npi        String
-  source     String
-  status     String
-  artifactType String  @default("GENERIC") @map("artifact_type")
-  parserVersion String? @map("parser_version")
-  matchingStrategy String? @map("matching_strategy")
-  trustTier  String?   @map("trust_tier")
-  confidenceScore Float? @map("confidence_score")
-  conflictReason String? @map("conflict_reason")
-  mergeReason String? @map("merge_reason")
-  sourceRunId String? @db.Uuid @map("source_run_id")
-  sourceRecordId String? @db.Uuid @map("source_record_id")
-  sourceUrl String? @map("source_url")
-  fetchHeaders Json? @db.JsonB @map("fetch_headers")
-  fetchedAt DateTime? @map("fetched_at")
-  observedAt DateTime? @map("observed_at")
-  generation Int?
-  supersededByArtifactId String? @db.Uuid @map("superseded_by_artifact_id")
-  supersedesArtifactId String? @db.Uuid @map("supersedes_artifact_id")
-  rawPayload Json?     @db.JsonB
-  checksum   String
-  merkleRoot String?
-  claimHashes Json?
-  lifecycleState String @default("active")
-  revokedAt DateTime?
-  suspendedAt DateTime?
-  revocationReason String?
-  statusLastChecked DateTime @default(now())
-  psvWindowStart    DateTime?
-  psvWindowDeadline DateTime?
-  psvWindowCompliant Boolean?
-  verifiedAt DateTime
-  expiresAt  DateTime?
-  monitoring Boolean   @default(false)
-  organizationId String? @db.Uuid
-  trustState String    @default("needs_review")
+  id                     String    @id @default(uuid()) @db.Uuid
+  npi                    String
+  source                 String
+  status                 String
+  artifactType           String    @default("GENERIC") @map("artifact_type")
+  parserVersion          String?   @map("parser_version")
+  matchingStrategy       String?   @map("matching_strategy")
+  trustTier              String?   @map("trust_tier")
+  confidenceScore        Float?    @map("confidence_score")
+  conflictReason         String?   @map("conflict_reason")
+  mergeReason            String?   @map("merge_reason")
+  sourceRunId            String?   @map("source_run_id") @db.Uuid
+  sourceRecordId         String?   @map("source_record_id") @db.Uuid
+  sourceUrl              String?   @map("source_url")
+  fetchHeaders           Json?     @map("fetch_headers") @db.JsonB
+  fetchedAt              DateTime? @map("fetched_at")
+  observedAt             DateTime? @map("observed_at")
+  generation             Int?
+  supersededByArtifactId String?   @map("superseded_by_artifact_id") @db.Uuid
+  supersedesArtifactId   String?   @map("supersedes_artifact_id") @db.Uuid
+  rawPayload             Json?     @db.JsonB
+  checksum               String
+  merkleRoot             String?
+  claimHashes            Json?
+  lifecycleState         String    @default("active")
+  revokedAt              DateTime?
+  suspendedAt            DateTime?
+  revocationReason       String?
+  statusLastChecked      DateTime  @default(now())
+  psvWindowStart         DateTime?
+  psvWindowDeadline      DateTime?
+  psvWindowCompliant     Boolean?
+  verifiedAt             DateTime
+  expiresAt              DateTime?
+  monitoring             Boolean   @default(false)
+  organizationId         String?   @db.Uuid
+  trustState             String    @default("needs_review")
   // Wave Y: Expiration forecasting
-  daysUntilExpiration  Int?
-  forecastRiskLevel    String?   // low | medium | high
+  daysUntilExpiration    Int?
+  forecastRiskLevel      String? // low | medium | high
   // Wave 40: W3C Bitstring Status List bit assignment
-  statusListIndex      Int?
-  createdAt  DateTime  @default(now())
+  statusListIndex        Int?
+  createdAt              DateTime  @default(now())
 
-  sourceRun SourceRun? @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
-  sourceRecord SourceRecord? @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
-  supersededByArtifact VerificationArtifact? @relation("ArtifactSupersededBy", fields: [supersededByArtifactId], references: [id], onDelete: SetNull)
-  supersedesArtifact VerificationArtifact? @relation("ArtifactSupersedes", fields: [supersedesArtifactId], references: [id], onDelete: SetNull)
-  snapshots AuditSnapshot[]
-  claimRecords ClaimRecord[] @relation("ArtifactClaimRecords")
-  verificationReceiptRecords VerificationReceiptRecord[] @relation("ArtifactReceiptRecords")
+  sourceRun                   SourceRun?                   @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
+  sourceRecord                SourceRecord?                @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
+  supersededByArtifact        VerificationArtifact?        @relation("ArtifactSupersededBy", fields: [supersededByArtifactId], references: [id], onDelete: SetNull)
+  supersedesArtifact          VerificationArtifact?        @relation("ArtifactSupersedes", fields: [supersedesArtifactId], references: [id], onDelete: SetNull)
+  snapshots                   AuditSnapshot[]
+  claimRecords                ClaimRecord[]                @relation("ArtifactClaimRecords")
+  verificationReceiptRecords  VerificationReceiptRecord[]  @relation("ArtifactReceiptRecords")
   identityResolutionDecisions IdentityResolutionDecision[] @relation("ArtifactResolutionDecisions")
-  identityClaimDeltas IdentityClaimDelta[]
-  trustAlertRecords TrustAlertRecord[]
-  supersededArtifacts VerificationArtifact[] @relation("ArtifactSupersedes")
-  supersedesArtifacts VerificationArtifact[] @relation("ArtifactSupersededBy")
+  identityClaimDeltas         IdentityClaimDelta[]
+  trustAlertRecords           TrustAlertRecord[]
+  supersededArtifacts         VerificationArtifact[]       @relation("ArtifactSupersedes")
+  supersedesArtifacts         VerificationArtifact[]       @relation("ArtifactSupersededBy")
 
   @@index([npi])
   @@index([source])
@@ -871,10 +871,10 @@ model SourceRun {
   id               String          @id @default(uuid()) @db.Uuid
   sourceId         String          @map("source_id")
   subjectNpi       String          @map("subject_npi")
-  personProfileId  String?         @db.Uuid @map("person_profile_id")
+  personProfileId  String?         @map("person_profile_id") @db.Uuid
   idempotencyKey   String          @unique @map("idempotency_key")
   status           SourceRunStatus @default(QUEUED)
-  runSummary       Json?           @db.JsonB @map("run_summary")
+  runSummary       Json?           @map("run_summary") @db.JsonB
   lastError        String?         @map("last_error")
   quarantineReason String?         @map("quarantine_reason")
   startedAt        DateTime        @default(now()) @map("started_at")
@@ -902,18 +902,18 @@ model SourceRun {
 }
 
 model IngestRun {
-  id          String            @id @default(uuid()) @db.Uuid
+  id          String    @id @default(uuid()) @db.Uuid
   npi         String
-  status      String            @default("PENDING")
-  entityId    String?           @db.Uuid @map("entity_id")
-  lastError   String?           @map("last_error")
-  startedAt   DateTime          @default(now()) @map("started_at")
-  completedAt DateTime?         @map("completed_at")
-  createdAt   DateTime          @default(now()) @map("created_at")
-  updatedAt   DateTime          @updatedAt @map("updated_at")
+  status      String    @default("PENDING")
+  entityId    String?   @map("entity_id") @db.Uuid
+  lastError   String?   @map("last_error")
+  startedAt   DateTime  @default(now()) @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  sourceRuns  IngestSourceRun[]
-  events      IngestEvent[]
+  sourceRuns IngestSourceRun[]
+  events     IngestEvent[]
 
   @@index([npi, status])
   @@index([createdAt])
@@ -921,23 +921,23 @@ model IngestRun {
 }
 
 model IngestSourceRun {
-  id           String     @id @default(uuid()) @db.Uuid
-  ingestRunId  String     @db.Uuid @map("ingest_run_id")
-  sourceId     String     @map("source_id")
-  status       String     @default("PENDING")
-  sourceRunId  String?    @db.Uuid @map("source_run_id")
-  artifactId   String?    @db.Uuid @map("artifact_id")
-  claimCount   Int        @default(0) @map("claim_count")
-  credentialCount Int     @default(0) @map("credential_count")
-  errorCode    String?    @map("error_code")
-  lastError    String?    @map("last_error")
-  startedAt    DateTime?  @map("started_at")
-  completedAt  DateTime?  @map("completed_at")
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt @map("updated_at")
+  id              String    @id @default(uuid()) @db.Uuid
+  ingestRunId     String    @map("ingest_run_id") @db.Uuid
+  sourceId        String    @map("source_id")
+  status          String    @default("PENDING")
+  sourceRunId     String?   @map("source_run_id") @db.Uuid
+  artifactId      String?   @map("artifact_id") @db.Uuid
+  claimCount      Int       @default(0) @map("claim_count")
+  credentialCount Int       @default(0) @map("credential_count")
+  errorCode       String?   @map("error_code")
+  lastError       String?   @map("last_error")
+  startedAt       DateTime? @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  ingestRun    IngestRun  @relation(fields: [ingestRunId], references: [id], onDelete: Cascade)
-  sourceRun    SourceRun? @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
+  ingestRun IngestRun  @relation(fields: [ingestRunId], references: [id], onDelete: Cascade)
+  sourceRun SourceRun? @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
 
   @@unique([ingestRunId, sourceId])
   @@index([sourceRunId])
@@ -946,16 +946,16 @@ model IngestSourceRun {
 }
 
 model IngestEvent {
-  id          String    @id @default(uuid()) @db.Uuid
-  ingestRunId String    @db.Uuid @map("ingest_run_id")
+  id          String   @id @default(uuid()) @db.Uuid
+  ingestRunId String   @map("ingest_run_id") @db.Uuid
   sequence    Int
-  eventType   String    @map("event_type")
-  sourceId    String?   @map("source_id")
-  dedupeKey   String    @map("dedupe_key")
-  payload     Json      @db.JsonB
-  createdAt   DateTime  @default(now()) @map("created_at")
+  eventType   String   @map("event_type")
+  sourceId    String?  @map("source_id")
+  dedupeKey   String   @map("dedupe_key")
+  payload     Json     @db.JsonB
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  ingestRun   IngestRun @relation(fields: [ingestRunId], references: [id], onDelete: Cascade)
+  ingestRun IngestRun @relation(fields: [ingestRunId], references: [id], onDelete: Cascade)
 
   @@unique([ingestRunId, sequence])
   @@unique([ingestRunId, dedupeKey])
@@ -965,14 +965,14 @@ model IngestEvent {
 
 model FetchJob {
   id             String          @id @default(uuid()) @db.Uuid
-  sourceRunId    String          @db.Uuid @map("source_run_id")
+  sourceRunId    String          @map("source_run_id") @db.Uuid
   state          SourceRunStatus @default(QUEUED)
   idempotencyKey String          @unique @map("idempotency_key")
   attemptCount   Int             @default(0) @map("attempt_count")
   backoffSeconds Int             @default(60) @map("backoff_seconds")
   checksum       String?
   sourceUrl      String?         @map("source_url")
-  fetchHeaders   Json?           @db.JsonB @map("fetch_headers")
+  fetchHeaders   Json?           @map("fetch_headers") @db.JsonB
   startedAt      DateTime?       @map("started_at")
   completedAt    DateTime?       @map("completed_at")
   lastError      String?         @map("last_error")
@@ -987,21 +987,21 @@ model FetchJob {
 }
 
 model ParseJob {
-  id                   String          @id @default(uuid()) @db.Uuid
-  sourceRunId          String          @db.Uuid @map("source_run_id")
-  sourceRecordId       String?         @db.Uuid @map("source_record_id")
-  verificationArtifactId String?       @db.Uuid @map("verification_artifact_id")
-  state                SourceRunStatus @default(QUEUED)
-  idempotencyKey       String          @unique @map("idempotency_key")
-  attemptCount         Int             @default(0) @map("attempt_count")
-  backoffSeconds       Int             @default(60) @map("backoff_seconds")
-  parserVersion        String?         @map("parser_version")
-  quarantineReason     String?         @map("quarantine_reason")
-  startedAt            DateTime?       @map("started_at")
-  completedAt          DateTime?       @map("completed_at")
-  lastError            String?         @map("last_error")
-  createdAt            DateTime        @default(now()) @map("created_at")
-  updatedAt            DateTime        @updatedAt @map("updated_at")
+  id                     String          @id @default(uuid()) @db.Uuid
+  sourceRunId            String          @map("source_run_id") @db.Uuid
+  sourceRecordId         String?         @map("source_record_id") @db.Uuid
+  verificationArtifactId String?         @map("verification_artifact_id") @db.Uuid
+  state                  SourceRunStatus @default(QUEUED)
+  idempotencyKey         String          @unique @map("idempotency_key")
+  attemptCount           Int             @default(0) @map("attempt_count")
+  backoffSeconds         Int             @default(60) @map("backoff_seconds")
+  parserVersion          String?         @map("parser_version")
+  quarantineReason       String?         @map("quarantine_reason")
+  startedAt              DateTime?       @map("started_at")
+  completedAt            DateTime?       @map("completed_at")
+  lastError              String?         @map("last_error")
+  createdAt              DateTime        @default(now()) @map("created_at")
+  updatedAt              DateTime        @updatedAt @map("updated_at")
 
   sourceRun SourceRun @relation(fields: [sourceRunId], references: [id], onDelete: Cascade)
 
@@ -1012,19 +1012,19 @@ model ParseJob {
 }
 
 model ClaimDerivationJob {
-  id                   String          @id @default(uuid()) @db.Uuid
-  sourceRunId          String          @db.Uuid @map("source_run_id")
-  sourceRecordId       String?         @db.Uuid @map("source_record_id")
-  verificationArtifactId String?       @db.Uuid @map("verification_artifact_id")
-  state                SourceRunStatus @default(QUEUED)
-  idempotencyKey       String          @unique @map("idempotency_key")
-  attemptCount         Int             @default(0) @map("attempt_count")
-  backoffSeconds       Int             @default(60) @map("backoff_seconds")
-  startedAt            DateTime?       @map("started_at")
-  completedAt          DateTime?       @map("completed_at")
-  lastError            String?         @map("last_error")
-  createdAt            DateTime        @default(now()) @map("created_at")
-  updatedAt            DateTime        @updatedAt @map("updated_at")
+  id                     String          @id @default(uuid()) @db.Uuid
+  sourceRunId            String          @map("source_run_id") @db.Uuid
+  sourceRecordId         String?         @map("source_record_id") @db.Uuid
+  verificationArtifactId String?         @map("verification_artifact_id") @db.Uuid
+  state                  SourceRunStatus @default(QUEUED)
+  idempotencyKey         String          @unique @map("idempotency_key")
+  attemptCount           Int             @default(0) @map("attempt_count")
+  backoffSeconds         Int             @default(60) @map("backoff_seconds")
+  startedAt              DateTime?       @map("started_at")
+  completedAt            DateTime?       @map("completed_at")
+  lastError              String?         @map("last_error")
+  createdAt              DateTime        @default(now()) @map("created_at")
+  updatedAt              DateTime        @updatedAt @map("updated_at")
 
   sourceRun SourceRun @relation(fields: [sourceRunId], references: [id], onDelete: Cascade)
 
@@ -1035,18 +1035,18 @@ model ClaimDerivationJob {
 }
 
 model DeltaDetectionJob {
-  id                   String          @id @default(uuid()) @db.Uuid
-  sourceRunId          String          @db.Uuid @map("source_run_id")
-  verificationArtifactId String?       @db.Uuid @map("verification_artifact_id")
-  state                SourceRunStatus @default(QUEUED)
-  idempotencyKey       String          @unique @map("idempotency_key")
-  attemptCount         Int             @default(0) @map("attempt_count")
-  backoffSeconds       Int             @default(60) @map("backoff_seconds")
-  startedAt            DateTime?       @map("started_at")
-  completedAt          DateTime?       @map("completed_at")
-  lastError            String?         @map("last_error")
-  createdAt            DateTime        @default(now()) @map("created_at")
-  updatedAt            DateTime        @updatedAt @map("updated_at")
+  id                     String          @id @default(uuid()) @db.Uuid
+  sourceRunId            String          @map("source_run_id") @db.Uuid
+  verificationArtifactId String?         @map("verification_artifact_id") @db.Uuid
+  state                  SourceRunStatus @default(QUEUED)
+  idempotencyKey         String          @unique @map("idempotency_key")
+  attemptCount           Int             @default(0) @map("attempt_count")
+  backoffSeconds         Int             @default(60) @map("backoff_seconds")
+  startedAt              DateTime?       @map("started_at")
+  completedAt            DateTime?       @map("completed_at")
+  lastError              String?         @map("last_error")
+  createdAt              DateTime        @default(now()) @map("created_at")
+  updatedAt              DateTime        @updatedAt @map("updated_at")
 
   sourceRun SourceRun @relation(fields: [sourceRunId], references: [id], onDelete: Cascade)
 
@@ -1056,18 +1056,18 @@ model DeltaDetectionJob {
 }
 
 model AlertJob {
-  id                   String          @id @default(uuid()) @db.Uuid
-  sourceRunId          String          @db.Uuid @map("source_run_id")
-  verificationArtifactId String?       @db.Uuid @map("verification_artifact_id")
-  state                SourceRunStatus @default(QUEUED)
-  idempotencyKey       String          @unique @map("idempotency_key")
-  attemptCount         Int             @default(0) @map("attempt_count")
-  backoffSeconds       Int             @default(60) @map("backoff_seconds")
-  startedAt            DateTime?       @map("started_at")
-  completedAt          DateTime?       @map("completed_at")
-  lastError            String?         @map("last_error")
-  createdAt            DateTime        @default(now()) @map("created_at")
-  updatedAt            DateTime        @updatedAt @map("updated_at")
+  id                     String          @id @default(uuid()) @db.Uuid
+  sourceRunId            String          @map("source_run_id") @db.Uuid
+  verificationArtifactId String?         @map("verification_artifact_id") @db.Uuid
+  state                  SourceRunStatus @default(QUEUED)
+  idempotencyKey         String          @unique @map("idempotency_key")
+  attemptCount           Int             @default(0) @map("attempt_count")
+  backoffSeconds         Int             @default(60) @map("backoff_seconds")
+  startedAt              DateTime?       @map("started_at")
+  completedAt            DateTime?       @map("completed_at")
+  lastError              String?         @map("last_error")
+  createdAt              DateTime        @default(now()) @map("created_at")
+  updatedAt              DateTime        @updatedAt @map("updated_at")
 
   sourceRun SourceRun @relation(fields: [sourceRunId], references: [id], onDelete: Cascade)
 
@@ -1078,13 +1078,13 @@ model AlertJob {
 
 model SourceRecord {
   id               String          @id @default(uuid()) @db.Uuid
-  sourceRunId      String?         @db.Uuid @map("source_run_id")
+  sourceRunId      String?         @map("source_run_id") @db.Uuid
   sourceId         String          @map("source_id")
   subjectNpi       String          @map("subject_npi")
-  personProfileId  String?         @db.Uuid @map("person_profile_id")
+  personProfileId  String?         @map("person_profile_id") @db.Uuid
   sourceRecordKey  String          @map("source_record_key")
   sourceUrl        String?         @map("source_url")
-  fetchHeaders     Json?           @db.JsonB @map("fetch_headers")
+  fetchHeaders     Json?           @map("fetch_headers") @db.JsonB
   checksum         String
   trustTier        String?         @map("trust_tier")
   fetchedAt        DateTime        @map("fetched_at")
@@ -1098,13 +1098,13 @@ model SourceRecord {
   metadata         Json?           @db.JsonB
   createdAt        DateTime        @default(now()) @map("created_at")
 
-  sourceRun                  SourceRun?                  @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
-  verificationArtifacts      VerificationArtifact[]
-  claimRecords               ClaimRecord[]
-  verificationReceiptRecords VerificationReceiptRecord[]
+  sourceRun                   SourceRun?                   @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
+  verificationArtifacts       VerificationArtifact[]
+  claimRecords                ClaimRecord[]
+  verificationReceiptRecords  VerificationReceiptRecord[]
   identityResolutionDecisions IdentityResolutionDecision[]
-  identityClaimDeltas        IdentityClaimDelta[]
-  trustAlertRecords          TrustAlertRecord[]
+  identityClaimDeltas         IdentityClaimDelta[]
+  trustAlertRecords           TrustAlertRecord[]
 
   @@unique([sourceId, subjectNpi, checksum])
   @@index([sourceId, sourceRecordKey])
@@ -1114,34 +1114,34 @@ model SourceRecord {
 }
 
 model ClaimRecord {
-  id                    String    @id @default(uuid()) @db.Uuid
-  claimId               String    @map("claim_id")
-  sourceRunId           String?   @db.Uuid @map("source_run_id")
-  sourceRecordId        String?   @db.Uuid @map("source_record_id")
-  verificationArtifactId String?  @db.Uuid @map("verification_artifact_id")
-  personProfileId       String?   @db.Uuid @map("person_profile_id")
-  subjectNpi            String    @map("subject_npi")
-  claimType             String    @map("claim_type")
-  value                 Json      @db.JsonB
-  trustTier             String    @map("trust_tier")
-  confidenceLabel       String    @map("confidence_label")
-  confidenceScore       Float     @map("confidence_score")
-  sourceId              String    @map("source_id")
-  parserVersion         String    @map("parser_version")
-  matchingStrategy      String?   @map("matching_strategy")
-  status                String
-  observedAt            DateTime  @map("observed_at")
-  derivedAt             DateTime  @map("derived_at")
-  validFrom             DateTime? @map("valid_from")
-  validUntil            DateTime? @map("valid_until")
-  expiresAt             DateTime? @map("expires_at")
-  supersededByClaimId   String?   @map("superseded_by_claim_id")
-  supersedesClaimId     String?   @map("supersedes_claim_id")
-  reviewRequired        Boolean   @default(false) @map("review_required")
-  reviewReason          String?   @map("review_reason")
-  mergeReason           String?   @map("merge_reason")
-  conflictReason        String?   @map("conflict_reason")
-  createdAt             DateTime  @default(now()) @map("created_at")
+  id                     String    @id @default(uuid()) @db.Uuid
+  claimId                String    @map("claim_id")
+  sourceRunId            String?   @map("source_run_id") @db.Uuid
+  sourceRecordId         String?   @map("source_record_id") @db.Uuid
+  verificationArtifactId String?   @map("verification_artifact_id") @db.Uuid
+  personProfileId        String?   @map("person_profile_id") @db.Uuid
+  subjectNpi             String    @map("subject_npi")
+  claimType              String    @map("claim_type")
+  value                  Json      @db.JsonB
+  trustTier              String    @map("trust_tier")
+  confidenceLabel        String    @map("confidence_label")
+  confidenceScore        Float     @map("confidence_score")
+  sourceId               String    @map("source_id")
+  parserVersion          String    @map("parser_version")
+  matchingStrategy       String?   @map("matching_strategy")
+  status                 String
+  observedAt             DateTime  @map("observed_at")
+  derivedAt              DateTime  @map("derived_at")
+  validFrom              DateTime? @map("valid_from")
+  validUntil             DateTime? @map("valid_until")
+  expiresAt              DateTime? @map("expires_at")
+  supersededByClaimId    String?   @map("superseded_by_claim_id")
+  supersedesClaimId      String?   @map("supersedes_claim_id")
+  reviewRequired         Boolean   @default(false) @map("review_required")
+  reviewReason           String?   @map("review_reason")
+  mergeReason            String?   @map("merge_reason")
+  conflictReason         String?   @map("conflict_reason")
+  createdAt              DateTime  @default(now()) @map("created_at")
 
   sourceRun                  SourceRun?                  @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
   sourceRecord               SourceRecord?               @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
@@ -1160,33 +1160,33 @@ model ClaimRecord {
 }
 
 model VerificationReceiptRecord {
-  id                    String    @id @default(uuid()) @db.Uuid
-  receiptId             String    @unique @map("receipt_id")
-  claimRecordId         String?   @db.Uuid @map("claim_record_id")
-  claimId               String    @map("claim_id")
-  sourceRunId           String?   @db.Uuid @map("source_run_id")
-  sourceRecordId        String?   @db.Uuid @map("source_record_id")
-  verificationArtifactId String?  @db.Uuid @map("verification_artifact_id")
-  personProfileId       String?   @db.Uuid @map("person_profile_id")
-  subjectNpi            String    @map("subject_npi")
-  entityId              String    @map("entity_id")
-  field                 String
-  value                 Json      @db.JsonB
-  trustTier             String    @map("trust_tier")
-  confidence            Float
-  sourceArtifactId      String?   @map("source_artifact_id")
-  sourceSystem          String    @map("source_system")
-  parserVersion         String    @map("parser_version")
-  matchingStrategy      String?   @map("matching_strategy")
-  observedAt            DateTime  @map("observed_at")
-  explanation           String
-  expiresAt             DateTime? @map("expires_at")
-  issuedAt              DateTime  @default(now()) @map("issued_at")
-  createdAt             DateTime  @default(now()) @map("created_at")
+  id                     String    @id @default(uuid()) @db.Uuid
+  receiptId              String    @unique @map("receipt_id")
+  claimRecordId          String?   @map("claim_record_id") @db.Uuid
+  claimId                String    @map("claim_id")
+  sourceRunId            String?   @map("source_run_id") @db.Uuid
+  sourceRecordId         String?   @map("source_record_id") @db.Uuid
+  verificationArtifactId String?   @map("verification_artifact_id") @db.Uuid
+  personProfileId        String?   @map("person_profile_id") @db.Uuid
+  subjectNpi             String    @map("subject_npi")
+  entityId               String    @map("entity_id")
+  field                  String
+  value                  Json      @db.JsonB
+  trustTier              String    @map("trust_tier")
+  confidence             Float
+  sourceArtifactId       String?   @map("source_artifact_id")
+  sourceSystem           String    @map("source_system")
+  parserVersion          String    @map("parser_version")
+  matchingStrategy       String?   @map("matching_strategy")
+  observedAt             DateTime  @map("observed_at")
+  explanation            String
+  expiresAt              DateTime? @map("expires_at")
+  issuedAt               DateTime  @default(now()) @map("issued_at")
+  createdAt              DateTime  @default(now()) @map("created_at")
 
-  claimRecord          ClaimRecord?         @relation(fields: [claimRecordId], references: [id], onDelete: SetNull)
-  sourceRun            SourceRun?           @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
-  sourceRecord         SourceRecord?        @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
+  claimRecord          ClaimRecord?          @relation(fields: [claimRecordId], references: [id], onDelete: SetNull)
+  sourceRun            SourceRun?            @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
+  sourceRecord         SourceRecord?         @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
   verificationArtifact VerificationArtifact? @relation("ArtifactReceiptRecords", fields: [verificationArtifactId], references: [id], onDelete: SetNull)
 
   @@index([claimId])
@@ -1197,32 +1197,32 @@ model VerificationReceiptRecord {
 }
 
 model IdentityClaimDelta {
-  id                    String            @id @default(uuid()) @db.Uuid
-  sourceRunId           String?           @db.Uuid @map("source_run_id")
-  sourceRecordId        String?           @db.Uuid @map("source_record_id")
-  verificationArtifactId String?          @db.Uuid @map("verification_artifact_id")
-  previousClaimRecordId String?           @db.Uuid @map("previous_claim_record_id")
-  currentClaimRecordId  String?           @db.Uuid @map("current_claim_record_id")
-  subjectNpi            String            @map("subject_npi")
-  sourceId              String            @map("source_id")
-  claimType             String            @map("claim_type")
-  deltaType             IdentityDeltaType @map("delta_type")
-  severity              String
-  trustTier             String?           @map("trust_tier")
-  previousValue         Json?             @db.JsonB @map("previous_value")
-  currentValue          Json?             @db.JsonB @map("current_value")
-  matchingStrategy      String?           @map("matching_strategy")
-  mergeReason           String?           @map("merge_reason")
-  conflictReason        String?           @map("conflict_reason")
-  checksum              String
-  observedAt            DateTime          @map("observed_at")
-  createdAt             DateTime          @default(now()) @map("created_at")
+  id                     String            @id @default(uuid()) @db.Uuid
+  sourceRunId            String?           @map("source_run_id") @db.Uuid
+  sourceRecordId         String?           @map("source_record_id") @db.Uuid
+  verificationArtifactId String?           @map("verification_artifact_id") @db.Uuid
+  previousClaimRecordId  String?           @map("previous_claim_record_id") @db.Uuid
+  currentClaimRecordId   String?           @map("current_claim_record_id") @db.Uuid
+  subjectNpi             String            @map("subject_npi")
+  sourceId               String            @map("source_id")
+  claimType              String            @map("claim_type")
+  deltaType              IdentityDeltaType @map("delta_type")
+  severity               String
+  trustTier              String?           @map("trust_tier")
+  previousValue          Json?             @map("previous_value") @db.JsonB
+  currentValue           Json?             @map("current_value") @db.JsonB
+  matchingStrategy       String?           @map("matching_strategy")
+  mergeReason            String?           @map("merge_reason")
+  conflictReason         String?           @map("conflict_reason")
+  checksum               String
+  observedAt             DateTime          @map("observed_at")
+  createdAt              DateTime          @default(now()) @map("created_at")
 
-  sourceRun            SourceRun?           @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
-  sourceRecord         SourceRecord?        @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
+  sourceRun            SourceRun?            @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
+  sourceRecord         SourceRecord?         @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
   verificationArtifact VerificationArtifact? @relation(fields: [verificationArtifactId], references: [id], onDelete: SetNull)
-  previousClaimRecord  ClaimRecord?         @relation("PreviousDeltaClaimRecords", fields: [previousClaimRecordId], references: [id], onDelete: SetNull)
-  currentClaimRecord   ClaimRecord?         @relation("CurrentDeltaClaimRecords", fields: [currentClaimRecordId], references: [id], onDelete: SetNull)
+  previousClaimRecord  ClaimRecord?          @relation("PreviousDeltaClaimRecords", fields: [previousClaimRecordId], references: [id], onDelete: SetNull)
+  currentClaimRecord   ClaimRecord?          @relation("CurrentDeltaClaimRecords", fields: [currentClaimRecordId], references: [id], onDelete: SetNull)
   trustAlertRecords    TrustAlertRecord[]
 
   @@unique([checksum])
@@ -1234,25 +1234,25 @@ model IdentityClaimDelta {
 }
 
 model IdentityResolutionDecision {
-  id                    String                         @id @default(uuid()) @db.Uuid
-  subjectNpi            String                         @map("subject_npi")
-  personProfileId       String?                        @db.Uuid @map("person_profile_id")
-  candidatePersonProfileId String?                     @db.Uuid @map("candidate_person_profile_id")
-  sourceRunId           String?                        @db.Uuid @map("source_run_id")
-  sourceRecordId        String?                        @db.Uuid @map("source_record_id")
-  verificationArtifactId String?                       @db.Uuid @map("verification_artifact_id")
-  decisionType          IdentityResolutionDecisionType @map("decision_type")
-  resolutionKey         String                         @map("resolution_key")
-  matchingStrategy      String                         @map("matching_strategy")
-  confidenceScore       Float                          @map("confidence_score")
-  mergeReason           String?                        @map("merge_reason")
-  conflictReason        String?                        @map("conflict_reason")
-  payload               Json?                          @db.JsonB
-  reversedAt            DateTime?                      @map("reversed_at")
-  createdAt             DateTime                       @default(now()) @map("created_at")
+  id                       String                         @id @default(uuid()) @db.Uuid
+  subjectNpi               String                         @map("subject_npi")
+  personProfileId          String?                        @map("person_profile_id") @db.Uuid
+  candidatePersonProfileId String?                        @map("candidate_person_profile_id") @db.Uuid
+  sourceRunId              String?                        @map("source_run_id") @db.Uuid
+  sourceRecordId           String?                        @map("source_record_id") @db.Uuid
+  verificationArtifactId   String?                        @map("verification_artifact_id") @db.Uuid
+  decisionType             IdentityResolutionDecisionType @map("decision_type")
+  resolutionKey            String                         @map("resolution_key")
+  matchingStrategy         String                         @map("matching_strategy")
+  confidenceScore          Float                          @map("confidence_score")
+  mergeReason              String?                        @map("merge_reason")
+  conflictReason           String?                        @map("conflict_reason")
+  payload                  Json?                          @db.JsonB
+  reversedAt               DateTime?                      @map("reversed_at")
+  createdAt                DateTime                       @default(now()) @map("created_at")
 
-  sourceRun            SourceRun?           @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
-  sourceRecord         SourceRecord?        @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
+  sourceRun            SourceRun?            @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
+  sourceRecord         SourceRecord?         @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
   verificationArtifact VerificationArtifact? @relation("ArtifactResolutionDecisions", fields: [verificationArtifactId], references: [id], onDelete: SetNull)
 
   @@index([subjectNpi, createdAt])
@@ -1262,28 +1262,28 @@ model IdentityResolutionDecision {
 }
 
 model TrustedIssuer {
-  id           String    @id @default(uuid()) @db.Uuid
-  name         String
-  did          String    @unique
-  publicKeyJwk Json      @db.JsonB
-  publicKeyPem String    @default("")
-  trustLevel   String    @default("PROVISIONAL")
-  status       String    @default("ACTIVE")
-  trustScore   Int?
-  verificationCount Int?
-  revocationCount   Int?
-  lastScoredAt DateTime?
-  assuranceProfile String?
-  algorithmPolicy String[] @default([])
-  haipCompliant Boolean?
-  federationEntityId String?
-  federationTrustChain String[] @default([])
-  federatedAt DateTime?
-  registryMetadata Json? @db.JsonB
-  active       Boolean   @default(true)
-  organizationId String?  @db.Uuid
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                   String    @id @default(uuid()) @db.Uuid
+  name                 String
+  did                  String    @unique
+  publicKeyJwk         Json      @db.JsonB
+  publicKeyPem         String    @default("")
+  trustLevel           String    @default("PROVISIONAL")
+  status               String    @default("ACTIVE")
+  trustScore           Int?
+  verificationCount    Int?
+  revocationCount      Int?
+  lastScoredAt         DateTime?
+  assuranceProfile     String?
+  algorithmPolicy      String[]  @default([])
+  haipCompliant        Boolean?
+  federationEntityId   String?
+  federationTrustChain String[]  @default([])
+  federatedAt          DateTime?
+  registryMetadata     Json?     @db.JsonB
+  active               Boolean   @default(true)
+  organizationId       String?   @db.Uuid
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   @@index([organizationId])
   @@index([status])
@@ -1314,25 +1314,25 @@ model IssuerSigningKey {
 }
 
 model IssuedCredentialRecord {
-  id                String   @id @default(uuid()) @db.Uuid
-  credentialId      String   @unique
+  id                String    @id @default(uuid()) @db.Uuid
+  credentialId      String    @unique
   issuerDid         String
   holderDid         String
   credentialType    String
   format            String
   kid               String
-  claimDigests      Json     @db.JsonB
-  disclosureDigests String[] @default([])
+  claimDigests      Json      @db.JsonB
+  disclosureDigests String[]  @default([])
   holderBindingHash String
   statusReference   String?
-  receiptId         String   @unique
-  auditEventId      String   @unique
+  receiptId         String    @unique
+  auditEventId      String    @unique
   issuedAt          DateTime
   expiresAt         DateTime?
   revokedAt         DateTime?
-  status            String   @default("ACTIVE")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  status            String    @default("ACTIVE")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   @@index([issuerDid, createdAt])
   @@index([holderDid, createdAt])
@@ -1342,13 +1342,13 @@ model IssuedCredentialRecord {
 }
 
 model CredentialTransparencyLog {
-  id            String    @id @default(uuid()) @db.Uuid
-  artifactId    String
-  fingerprint   String
-  merkleRoot    String
+  id             String   @id @default(uuid()) @db.Uuid
+  artifactId     String
+  fingerprint    String
+  merkleRoot     String
   lifecycleState String
-  organizationId String?   @db.Uuid
-  createdAt     DateTime  @default(now())
+  organizationId String?  @db.Uuid
+  createdAt      DateTime @default(now())
 
   @@index([artifactId])
   @@index([fingerprint])
@@ -1356,25 +1356,25 @@ model CredentialTransparencyLog {
 }
 
 model TrustAlertRecord {
-  id                String   @id @default(uuid()) @db.Uuid
-  alertId           String   @unique
-  type              String
-  severity          String
-  title             String
-  description       String
-  credentialId      String?
-  issuerId          String?
-  subject           String?
-  sourceRunId       String?  @db.Uuid @map("source_run_id")
-  sourceRecordId    String?  @db.Uuid @map("source_record_id")
-  verificationArtifactId String? @db.Uuid @map("verification_artifact_id")
-  identityDeltaId   String?  @db.Uuid @map("identity_delta_id")
-  checksum          String?
-  recommendedAction String
-  acknowledged      Boolean  @default(false)
-  acknowledgedAt    DateTime?
-  observedAt        DateTime? @map("observed_at")
-  createdAt         DateTime @default(now())
+  id                     String    @id @default(uuid()) @db.Uuid
+  alertId                String    @unique
+  type                   String
+  severity               String
+  title                  String
+  description            String
+  credentialId           String?
+  issuerId               String?
+  subject                String?
+  sourceRunId            String?   @map("source_run_id") @db.Uuid
+  sourceRecordId         String?   @map("source_record_id") @db.Uuid
+  verificationArtifactId String?   @map("verification_artifact_id") @db.Uuid
+  identityDeltaId        String?   @map("identity_delta_id") @db.Uuid
+  checksum               String?
+  recommendedAction      String
+  acknowledged           Boolean   @default(false)
+  acknowledgedAt         DateTime?
+  observedAt             DateTime? @map("observed_at")
+  createdAt              DateTime  @default(now())
 
   sourceRun            SourceRun?            @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
   sourceRecord         SourceRecord?         @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
@@ -1391,23 +1391,23 @@ model TrustAlertRecord {
 }
 
 model EntityChangeEvent {
-  id                    String                @id @default(uuid()) @db.Uuid
-  sourceRunId           String?               @db.Uuid @map("source_run_id")
-  sourceRecordId        String?               @db.Uuid @map("source_record_id")
-  verificationArtifactId String?              @db.Uuid @map("verification_artifact_id")
-  identityDeltaId       String?               @db.Uuid @map("identity_delta_id")
-  subjectNpi            String                @map("subject_npi")
-  sourceId              String                @map("source_id")
-  claimType             String?               @map("claim_type")
-  fieldPath             String?               @map("field_path")
-  eventType             EntityChangeEventType @map("event_type")
-  severity              MonitoringSeverity
-  previousValue         Json?                 @db.JsonB @map("previous_value")
-  currentValue          Json?                 @db.JsonB @map("current_value")
-  checksum              String                @unique
-  metadata              Json?                 @db.JsonB
-  observedAt            DateTime              @map("observed_at")
-  createdAt             DateTime              @default(now()) @map("created_at")
+  id                     String                @id @default(uuid()) @db.Uuid
+  sourceRunId            String?               @map("source_run_id") @db.Uuid
+  sourceRecordId         String?               @map("source_record_id") @db.Uuid
+  verificationArtifactId String?               @map("verification_artifact_id") @db.Uuid
+  identityDeltaId        String?               @map("identity_delta_id") @db.Uuid
+  subjectNpi             String                @map("subject_npi")
+  sourceId               String                @map("source_id")
+  claimType              String?               @map("claim_type")
+  fieldPath              String?               @map("field_path")
+  eventType              EntityChangeEventType @map("event_type")
+  severity               MonitoringSeverity
+  previousValue          Json?                 @map("previous_value") @db.JsonB
+  currentValue           Json?                 @map("current_value") @db.JsonB
+  checksum               String                @unique
+  metadata               Json?                 @db.JsonB
+  observedAt             DateTime              @map("observed_at")
+  createdAt              DateTime              @default(now()) @map("created_at")
 
   @@index([subjectNpi, createdAt])
   @@index([sourceId, eventType, createdAt])
@@ -1416,21 +1416,21 @@ model EntityChangeEvent {
 }
 
 model SourceStalenessEvent {
-  id                    String                @id @default(uuid()) @db.Uuid
-  sourceRunId           String?               @db.Uuid @map("source_run_id")
-  sourceRecordId        String?               @db.Uuid @map("source_record_id")
-  verificationArtifactId String?              @db.Uuid @map("verification_artifact_id")
-  subjectNpi            String                @map("subject_npi")
-  sourceId              String                @map("source_id")
-  status                SourceStalenessStatus
-  severity              MonitoringSeverity
-  slaHours              Int                   @map("sla_hours")
-  trustTier             String?               @map("trust_tier")
-  lastObservedAt        DateTime?             @map("last_observed_at")
-  staleSince            DateTime              @map("stale_since")
-  checksum              String                @unique
-  metadata              Json?                 @db.JsonB
-  createdAt             DateTime              @default(now()) @map("created_at")
+  id                     String                @id @default(uuid()) @db.Uuid
+  sourceRunId            String?               @map("source_run_id") @db.Uuid
+  sourceRecordId         String?               @map("source_record_id") @db.Uuid
+  verificationArtifactId String?               @map("verification_artifact_id") @db.Uuid
+  subjectNpi             String                @map("subject_npi")
+  sourceId               String                @map("source_id")
+  status                 SourceStalenessStatus
+  severity               MonitoringSeverity
+  slaHours               Int                   @map("sla_hours")
+  trustTier              String?               @map("trust_tier")
+  lastObservedAt         DateTime?             @map("last_observed_at")
+  staleSince             DateTime              @map("stale_since")
+  checksum               String                @unique
+  metadata               Json?                 @db.JsonB
+  createdAt              DateTime              @default(now()) @map("created_at")
 
   @@index([subjectNpi, createdAt])
   @@index([sourceId, status, createdAt])
@@ -1439,21 +1439,21 @@ model SourceStalenessEvent {
 }
 
 model TrustDegradationEvent {
-  id                    String                 @id @default(uuid()) @db.Uuid
-  sourceRunId           String?                @db.Uuid @map("source_run_id")
-  sourceRecordId        String?                @db.Uuid @map("source_record_id")
-  verificationArtifactId String?               @db.Uuid @map("verification_artifact_id")
-  entityChangeEventId   String?                @db.Uuid @map("entity_change_event_id")
-  sourceStalenessEventId String?               @db.Uuid @map("source_staleness_event_id")
-  subjectNpi            String                 @map("subject_npi")
-  claimType             String?                @map("claim_type")
-  reason                TrustDegradationReason
-  severity              MonitoringSeverity
-  checksum              String                 @unique
-  description           String
-  metadata              Json?                  @db.JsonB
-  observedAt            DateTime               @map("observed_at")
-  createdAt             DateTime               @default(now()) @map("created_at")
+  id                     String                 @id @default(uuid()) @db.Uuid
+  sourceRunId            String?                @map("source_run_id") @db.Uuid
+  sourceRecordId         String?                @map("source_record_id") @db.Uuid
+  verificationArtifactId String?                @map("verification_artifact_id") @db.Uuid
+  entityChangeEventId    String?                @map("entity_change_event_id") @db.Uuid
+  sourceStalenessEventId String?                @map("source_staleness_event_id") @db.Uuid
+  subjectNpi             String                 @map("subject_npi")
+  claimType              String?                @map("claim_type")
+  reason                 TrustDegradationReason
+  severity               MonitoringSeverity
+  checksum               String                 @unique
+  description            String
+  metadata               Json?                  @db.JsonB
+  observedAt             DateTime               @map("observed_at")
+  createdAt              DateTime               @default(now()) @map("created_at")
 
   @@index([subjectNpi, createdAt])
   @@index([reason, createdAt])
@@ -1462,22 +1462,22 @@ model TrustDegradationEvent {
 }
 
 model Watchlist {
-  id                       String                @id @default(uuid()) @db.Uuid
-  dedupeKey                String                @unique @map("dedupe_key")
+  id                       String              @id @default(uuid()) @db.Uuid
+  dedupeKey                String              @unique @map("dedupe_key")
   name                     String
-  ownerOrganizationId      String?               @db.Uuid @map("owner_organization_id")
-  targetType               WatchlistTargetType   @map("target_type")
-  targetValue              String                @map("target_value")
-  claimType                String?               @map("claim_type")
-  fieldPath                String?               @map("field_path")
-  severityFloor            MonitoringSeverity    @default(LOW) @map("severity_floor")
-  suppressionWindowMinutes Int                   @default(1440) @map("suppression_window_minutes")
-  deliveryChannels         String[]              @default(["INTERNAL_FEED"]) @map("delivery_channels")
-  webhookUrl               String?               @map("webhook_url")
-  active                   Boolean               @default(true)
-  metadata                 Json?                 @db.JsonB
-  createdAt                DateTime              @default(now()) @map("created_at")
-  updatedAt                DateTime              @updatedAt @map("updated_at")
+  ownerOrganizationId      String?             @map("owner_organization_id") @db.Uuid
+  targetType               WatchlistTargetType @map("target_type")
+  targetValue              String              @map("target_value")
+  claimType                String?             @map("claim_type")
+  fieldPath                String?             @map("field_path")
+  severityFloor            MonitoringSeverity  @default(LOW) @map("severity_floor")
+  suppressionWindowMinutes Int                 @default(1440) @map("suppression_window_minutes")
+  deliveryChannels         String[]            @default(["INTERNAL_FEED"]) @map("delivery_channels")
+  webhookUrl               String?             @map("webhook_url")
+  active                   Boolean             @default(true)
+  metadata                 Json?               @db.JsonB
+  createdAt                DateTime            @default(now()) @map("created_at")
+  updatedAt                DateTime            @updatedAt @map("updated_at")
 
   @@index([targetType, targetValue, active])
   @@index([claimType, fieldPath, active])
@@ -1485,21 +1485,21 @@ model Watchlist {
 }
 
 model WatchlistHit {
-  id                    String             @id @default(uuid()) @db.Uuid
-  watchlistId           String             @db.Uuid @map("watchlist_id")
-  trustAlertRecordId    String?            @db.Uuid @map("trust_alert_record_id")
-  entityChangeEventId   String?            @db.Uuid @map("entity_change_event_id")
-  sourceStalenessEventId String?           @db.Uuid @map("source_staleness_event_id")
-  trustDegradationEventId String?          @db.Uuid @map("trust_degradation_event_id")
-  subjectNpi            String?            @map("subject_npi")
-  organizationKey       String?            @map("organization_key")
-  claimType             String?            @map("claim_type")
-  fieldPath             String?            @map("field_path")
-  severity              MonitoringSeverity
-  dedupeKey             String             @unique @map("dedupe_key")
-  payload               Json?              @db.JsonB
-  observedAt            DateTime           @map("observed_at")
-  createdAt             DateTime           @default(now()) @map("created_at")
+  id                      String             @id @default(uuid()) @db.Uuid
+  watchlistId             String             @map("watchlist_id") @db.Uuid
+  trustAlertRecordId      String?            @map("trust_alert_record_id") @db.Uuid
+  entityChangeEventId     String?            @map("entity_change_event_id") @db.Uuid
+  sourceStalenessEventId  String?            @map("source_staleness_event_id") @db.Uuid
+  trustDegradationEventId String?            @map("trust_degradation_event_id") @db.Uuid
+  subjectNpi              String?            @map("subject_npi")
+  organizationKey         String?            @map("organization_key")
+  claimType               String?            @map("claim_type")
+  fieldPath               String?            @map("field_path")
+  severity                MonitoringSeverity
+  dedupeKey               String             @unique @map("dedupe_key")
+  payload                 Json?              @db.JsonB
+  observedAt              DateTime           @map("observed_at")
+  createdAt               DateTime           @default(now()) @map("created_at")
 
   @@index([watchlistId, createdAt])
   @@index([subjectNpi, createdAt])
@@ -1508,18 +1508,18 @@ model WatchlistHit {
 }
 
 model AlertDeliveryAttempt {
-  id                 String              @id @default(uuid()) @db.Uuid
-  trustAlertRecordId String?             @db.Uuid @map("trust_alert_record_id")
-  watchlistId        String?             @db.Uuid @map("watchlist_id")
+  id                 String               @id @default(uuid()) @db.Uuid
+  trustAlertRecordId String?              @map("trust_alert_record_id") @db.Uuid
+  watchlistId        String?              @map("watchlist_id") @db.Uuid
   channel            AlertDeliveryChannel
   destination        String?
   status             AlertDeliveryStatus
-  dedupeKey          String              @unique @map("dedupe_key")
-  payload            Json?               @db.JsonB
-  responseCode       Int?                @map("response_code")
-  errorText          String?             @map("error_text")
-  createdAt          DateTime            @default(now()) @map("created_at")
-  updatedAt          DateTime            @updatedAt @map("updated_at")
+  dedupeKey          String               @unique @map("dedupe_key")
+  payload            Json?                @db.JsonB
+  responseCode       Int?                 @map("response_code")
+  errorText          String?              @map("error_text")
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
 
   @@index([trustAlertRecordId, createdAt])
   @@index([watchlistId, createdAt])
@@ -1528,29 +1528,29 @@ model AlertDeliveryAttempt {
 }
 
 model Storyline {
-  id                  String                @id @default(uuid()) @db.Uuid
-  storylineId         String                @unique @map("storyline_id")
-  fingerprint         String                @unique
-  storylineType       StorylineType         @map("storyline_type")
+  id                  String                 @id @default(uuid()) @db.Uuid
+  storylineId         String                 @unique @map("storyline_id")
+  fingerprint         String                 @unique
+  storylineType       StorylineType          @map("storyline_type")
   perspective         StorylinePerspective
   title               String
   summary             String
-  whyItMatters        String                @map("why_it_matters")
+  whyItMatters        String                 @map("why_it_matters")
   severity            StorylineSeverity
   confidence          Float
-  entityIds           String[]              @default([]) @map("entity_ids")
-  findingIds          String[]              @default([]) @map("finding_ids")
-  supportingEvidence  Json                  @default("[]") @db.JsonB @map("supporting_evidence")
-  recommendedActions  Json                  @default("[]") @db.JsonB @map("recommended_actions")
-  progressionScore    Float                 @default(0) @map("progression_score")
-  noveltyScore        Float                 @default(0) @map("novelty_score")
-  persistenceScore    Float                 @default(0) @map("persistence_score")
-  escalationThreshold Float                 @default(0.75) @map("escalation_threshold")
-  lastActivityAt      DateTime              @map("last_activity_at")
-  status              StorylineStatus       @default(ACTIVE)
-  metadata            Json?                 @db.JsonB
-  createdAt           DateTime              @default(now()) @map("created_at")
-  updatedAt           DateTime              @updatedAt @map("updated_at")
+  entityIds           String[]               @default([]) @map("entity_ids")
+  findingIds          String[]               @default([]) @map("finding_ids")
+  supportingEvidence  Json                   @default("[]") @map("supporting_evidence") @db.JsonB
+  recommendedActions  Json                   @default("[]") @map("recommended_actions") @db.JsonB
+  progressionScore    Float                  @default(0) @map("progression_score")
+  noveltyScore        Float                  @default(0) @map("novelty_score")
+  persistenceScore    Float                  @default(0) @map("persistence_score")
+  escalationThreshold Float                  @default(0.75) @map("escalation_threshold")
+  lastActivityAt      DateTime               @map("last_activity_at")
+  status              StorylineStatus        @default(ACTIVE)
+  metadata            Json?                  @db.JsonB
+  createdAt           DateTime               @default(now()) @map("created_at")
+  updatedAt           DateTime               @updatedAt @map("updated_at")
   findingLinks        StorylineFindingLink[]
   entityLinks         StorylineEntityLink[]
   statusEvents        StorylineStatusEvent[]
@@ -1564,7 +1564,7 @@ model Storyline {
 
 model StorylineFindingLink {
   id              String            @id @default(uuid()) @db.Uuid
-  storylineRefId  String            @db.Uuid @map("storyline_ref_id")
+  storylineRefId  String            @map("storyline_ref_id") @db.Uuid
   findingId       String            @map("finding_id")
   findingCategory String            @map("finding_category")
   findingSeverity StorylineSeverity @map("finding_severity")
@@ -1581,7 +1581,7 @@ model StorylineFindingLink {
 
 model StorylineEntityLink {
   id             String              @id @default(uuid()) @db.Uuid
-  storylineRefId String              @db.Uuid @map("storyline_ref_id")
+  storylineRefId String              @map("storyline_ref_id") @db.Uuid
   entityType     StorylineEntityType @map("entity_type")
   entityKey      String              @map("entity_key")
   entityLabel    String?             @map("entity_label")
@@ -1599,7 +1599,7 @@ model StorylineEntityLink {
 
 model StorylineStatusEvent {
   id             String             @id @default(uuid()) @db.Uuid
-  storylineRefId String             @db.Uuid @map("storyline_ref_id")
+  storylineRefId String             @map("storyline_ref_id") @db.Uuid
   eventKey       String             @unique @map("event_key")
   eventType      StorylineEventType @map("event_type")
   summary        String
@@ -1617,7 +1617,7 @@ model StorylineStatusEvent {
 
 model StorylineActionEvent {
   id             String              @id @default(uuid()) @db.Uuid
-  storylineRefId String              @db.Uuid @map("storyline_ref_id")
+  storylineRefId String              @map("storyline_ref_id") @db.Uuid
   eventKey       String              @unique @map("event_key")
   actionType     StorylineActionType @map("action_type")
   actorId        String?             @map("actor_id")
@@ -1633,26 +1633,26 @@ model StorylineActionEvent {
 }
 
 model OrganizationTrust {
-  id                  String   @id @default(uuid()) @db.Uuid
-  sourceOrgId         String   @db.Uuid
-  targetOrgId         String   @db.Uuid
-  trustLevel          String
-  active              Boolean  @default(true)
-  createdAt           DateTime @default(now())
+  id          String   @id @default(uuid()) @db.Uuid
+  sourceOrgId String   @db.Uuid
+  targetOrgId String   @db.Uuid
+  trustLevel  String
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
 
   @@index([sourceOrgId])
   @@index([targetOrgId])
 }
 
 model TrustLedgerEntry {
-  id         String   @id @default(uuid()) @db.Uuid
-  artifactId String?
-  npi        String?
-  action     String
-  hash       String
+  id             String   @id @default(uuid()) @db.Uuid
+  artifactId     String?
+  npi            String?
+  action         String
+  hash           String
   organizationId String?
-  metadata   Json?    @db.JsonB
-  createdAt  DateTime @default(now())
+  metadata       Json?    @db.JsonB
+  createdAt      DateTime @default(now())
 
   @@index([npi])
   @@index([organizationId])
@@ -1702,13 +1702,13 @@ model AuditEvent {
 // ──────────────────────────────────────────────────────────────
 
 model MonitoringEvent {
-  id             String    @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid()) @db.Uuid
   npi            String
   source         String
-  organizationId  String?   @db.Uuid
+  organizationId String?  @db.Uuid
   previousStatus String?
   newStatus      String
-  detectedAt     DateTime  @default(now())
+  detectedAt     DateTime @default(now())
 
   @@index([npi])
   @@index([organizationId])
@@ -1787,7 +1787,7 @@ model AuditReceiptRecord {
 model SystemFailureEvent {
   id             String   @id @default(uuid()) @db.Uuid
   component      String
-  severity       String   // "warning", "error", "critical"
+  severity       String // "warning", "error", "critical"
   message        String
   artifactId     String?
   organizationId String?
@@ -1815,26 +1815,26 @@ model Provider {
 }
 
 model VerificationRun {
-  id              String   @id @default(uuid()) @db.Uuid
-  providerId      String   @db.Uuid
-  sourceName      String
-  retrievedAtUtc  DateTime
-  rawPayloadHash  String
-  artifactHash    String
-  createdAt       DateTime @default(now())
+  id             String   @id @default(uuid()) @db.Uuid
+  providerId     String   @db.Uuid
+  sourceName     String
+  retrievedAtUtc DateTime
+  rawPayloadHash String
+  artifactHash   String
+  createdAt      DateTime @default(now())
 
-  provider  Provider   @relation(fields: [providerId], references: [id])
+  provider  Provider     @relation(fields: [providerId], references: [id])
   artifacts W2Artifact[]
 }
 
 model W2Artifact {
-  id                  String   @id @default(uuid()) @db.Uuid
-  verificationRunId   String   @db.Uuid
-  artifactJson        Json     @db.JsonB
-  signature           String
-  signatureAlgorithm  String
-  signatureIssuedAt   DateTime
-  createdAt           DateTime @default(now())
+  id                 String   @id @default(uuid()) @db.Uuid
+  verificationRunId  String   @db.Uuid
+  artifactJson       Json     @db.JsonB
+  signature          String
+  signatureAlgorithm String
+  signatureIssuedAt  DateTime
+  createdAt          DateTime @default(now())
 
   verificationRun VerificationRun @relation(fields: [verificationRunId], references: [id])
   deltaLogs       DeltaLog[]
@@ -1870,14 +1870,14 @@ model MedicalSchool {
 }
 
 model ResidencyProgram {
-  id                   String        @id @default(uuid()) @db.Uuid
+  id                   String   @id @default(uuid()) @db.Uuid
   name                 String
   specialty            String
-  acgme_code           String        @unique
+  acgme_code           String   @unique
   hospital_affiliation String
-  medicalSchoolId      String?       @db.Uuid
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
+  medicalSchoolId      String?  @db.Uuid
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   medicalSchool MedicalSchool? @relation(fields: [medicalSchoolId], references: [id])
 
@@ -1958,28 +1958,28 @@ model EmployerWebhookConfig {
 // Never overwritten — see provider_decision_history for append-only log.
 
 model ProviderDecisionState {
-  id                   String    @id @default(uuid()) @db.Uuid
-  npi                  String    @unique
+  id                  String   @id @default(uuid()) @db.Uuid
+  npi                 String   @unique
   /// TRUSTED_CURRENT | TRUSTED_BUT_STALE_SOON | STALE_REVERIFY_REQUIRED |
   /// CONFLICT_REQUIRES_REVIEW | NEGATIVE_FINDING_BLOCK | INSUFFICIENT_EVIDENCE
-  decisionClass        String    @map("decision_class")
-  aggregateConfidence  Float     @map("aggregate_confidence")
-  context              String    @default("credentialing")
-  methodologyVersion   String    @map("methodology_version")
-  evaluatedAt          DateTime  @map("evaluated_at")
-  expiresAt            DateTime  @map("expires_at")
-  claimCount           Int       @map("claim_count")
-  goldClaimCount       Int       @map("gold_claim_count")
-  silverClaimCount     Int       @map("silver_claim_count")
-  freshnessEvals       Json      @db.JsonB @map("freshness_evals")
-  negativeFindings     Json      @db.JsonB @map("negative_findings")
-  conflicts            Json      @db.JsonB
-  explanation          String
-  claimIds             Json      @db.JsonB @map("claim_ids")
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
+  decisionClass       String   @map("decision_class")
+  aggregateConfidence Float    @map("aggregate_confidence")
+  context             String   @default("credentialing")
+  methodologyVersion  String   @map("methodology_version")
+  evaluatedAt         DateTime @map("evaluated_at")
+  expiresAt           DateTime @map("expires_at")
+  claimCount          Int      @map("claim_count")
+  goldClaimCount      Int      @map("gold_claim_count")
+  silverClaimCount    Int      @map("silver_claim_count")
+  freshnessEvals      Json     @map("freshness_evals") @db.JsonB
+  negativeFindings    Json     @map("negative_findings") @db.JsonB
+  conflicts           Json     @db.JsonB
+  explanation         String
+  claimIds            Json     @map("claim_ids") @db.JsonB
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
 
-  history              ProviderDecisionHistory[]
+  history ProviderDecisionHistory[]
 
   @@index([decisionClass, evaluatedAt])
   @@index([expiresAt])
@@ -1988,22 +1988,22 @@ model ProviderDecisionState {
 
 // Append-only audit log of every decision state for a given NPI
 model ProviderDecisionHistory {
-  id                   String    @id @default(uuid()) @db.Uuid
-  npi                  String
-  stateId              String    @db.Uuid @map("state_id")
-  decisionClass        String    @map("decision_class")
-  aggregateConfidence  Float     @map("aggregate_confidence")
-  context              String    @default("credentialing")
-  methodologyVersion   String    @map("methodology_version")
-  evaluatedAt          DateTime  @map("evaluated_at")
-  expiresAt            DateTime  @map("expires_at")
-  explanation          String
-  negativeFindings     Json      @db.JsonB @map("negative_findings")
-  conflicts            Json      @db.JsonB
-  claimIds             Json      @db.JsonB @map("claim_ids")
-  recordedAt           DateTime  @default(now()) @map("recorded_at")
+  id                  String   @id @default(uuid()) @db.Uuid
+  npi                 String
+  stateId             String   @map("state_id") @db.Uuid
+  decisionClass       String   @map("decision_class")
+  aggregateConfidence Float    @map("aggregate_confidence")
+  context             String   @default("credentialing")
+  methodologyVersion  String   @map("methodology_version")
+  evaluatedAt         DateTime @map("evaluated_at")
+  expiresAt           DateTime @map("expires_at")
+  explanation         String
+  negativeFindings    Json     @map("negative_findings") @db.JsonB
+  conflicts           Json     @db.JsonB
+  claimIds            Json     @map("claim_ids") @db.JsonB
+  recordedAt          DateTime @default(now()) @map("recorded_at")
 
-  state                ProviderDecisionState @relation(fields: [stateId], references: [id], onDelete: Cascade)
+  state ProviderDecisionState @relation(fields: [stateId], references: [id], onDelete: Cascade)
 
   @@index([npi, recordedAt])
   @@index([decisionClass, recordedAt])
@@ -2011,40 +2011,40 @@ model ProviderDecisionHistory {
 }
 
 model BundleShareEvent {
-  id                   String    @id @default(uuid()) @db.Uuid
+  id                    String    @id @default(uuid()) @db.Uuid
   /// bundleId references VerificationArtifact.id (source='APPLY_BUNDLE')
-  bundleId             String    @db.Uuid @map("bundle_id")
-  npi                  String
-  organizationContextId String?  @db.Uuid @map("organization_context_id")
-  subjectEntityId      String?   @db.Uuid @map("subject_entity_id")
-  sharedByClerkUserId  String    @map("shared_by_clerk_user_id")
-  organizationId       String    @map("organization_id")
-  organizationName     String    @map("organization_name")
-  callbackUrl          String?   @map("callback_url")
-  purposeOfUse         String    @map("purpose_of_use")
+  bundleId              String    @map("bundle_id") @db.Uuid
+  npi                   String
+  organizationContextId String?   @map("organization_context_id") @db.Uuid
+  subjectEntityId       String?   @map("subject_entity_id") @db.Uuid
+  sharedByClerkUserId   String    @map("shared_by_clerk_user_id")
+  organizationId        String    @map("organization_id")
+  organizationName      String    @map("organization_name")
+  callbackUrl           String?   @map("callback_url")
+  purposeOfUse          String    @map("purpose_of_use")
   /// JSON summary of credential types included in the bundle
-  credentialsSummary   Json      @db.JsonB @map("credentials_summary")
+  credentialsSummary    Json      @map("credentials_summary") @db.JsonB
   /// Webhook URL dispatched to (if any)
-  webhookUrl           String?   @map("webhook_url")
+  webhookUrl            String?   @map("webhook_url")
   /// DELIVERED | FAILED | SKIPPED
-  webhookStatus        String    @default("SKIPPED") @map("webhook_status")
-  webhookDeliveredAt   DateTime? @map("webhook_delivered_at")
-  webhookError         String?   @map("webhook_error")
-  emailFallbackSent    Boolean   @default(false) @map("email_fallback_sent")
-  emailFallbackTo      String?   @map("email_fallback_to")
-  deliveryStatus       String    @default("PENDING") @map("delivery_status")
-  checkedAt            DateTime  @default(now()) @map("checked_at")
-  bundlePayload        Json?     @db.JsonB @map("bundle_payload")
-  receiptRefs          String[]  @default([]) @map("receipt_refs")
-  sourceCoverage       Json?     @db.JsonB @map("source_coverage")
+  webhookStatus         String    @default("SKIPPED") @map("webhook_status")
+  webhookDeliveredAt    DateTime? @map("webhook_delivered_at")
+  webhookError          String?   @map("webhook_error")
+  emailFallbackSent     Boolean   @default(false) @map("email_fallback_sent")
+  emailFallbackTo       String?   @map("email_fallback_to")
+  deliveryStatus        String    @default("PENDING") @map("delivery_status")
+  checkedAt             DateTime  @default(now()) @map("checked_at")
+  bundlePayload         Json?     @map("bundle_payload") @db.JsonB
+  receiptRefs           String[]  @default([]) @map("receipt_refs")
+  sourceCoverage        Json?     @map("source_coverage") @db.JsonB
   /// Set by provider to revoke this share
-  revokedAt            DateTime? @map("revoked_at")
-  revokedByClerkUserId String?   @map("revoked_by_clerk_user_id")
-  sharedAt             DateTime  @default(now()) @map("shared_at")
-  expiresAt            DateTime  @map("expires_at")
+  revokedAt             DateTime? @map("revoked_at")
+  revokedByClerkUserId  String?   @map("revoked_by_clerk_user_id")
+  sharedAt              DateTime  @default(now()) @map("shared_at")
+  expiresAt             DateTime  @map("expires_at")
 
-  organizationContext  VcvOrganizationContext? @relation(fields: [organizationContextId], references: [id], onDelete: SetNull)
-  subjectEntity        VcvEntity?              @relation("bundle_share_subject", fields: [subjectEntityId], references: [id], onDelete: SetNull)
+  organizationContext VcvOrganizationContext? @relation(fields: [organizationContextId], references: [id], onDelete: SetNull)
+  subjectEntity       VcvEntity?              @relation("bundle_share_subject", fields: [subjectEntityId], references: [id], onDelete: SetNull)
 
   @@index([npi, sharedAt])
   @@index([bundleId])
@@ -2058,19 +2058,19 @@ model BundleShareEvent {
 }
 
 model RevocationOutboxEvent {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String    @id @default(uuid()) @db.Uuid
   eventType      String
   artifactId     String
   employerId     String
-  organizationId String?  @db.Uuid
-  payload        Json     @db.JsonB
-  dedupeKey      String   @unique
-  status         String   @default("PENDING") // PENDING | PROCESSING | DELIVERED | FAILED
-  attemptCount   Int      @default(0)
-  availableAt    DateTime @default(now())
+  organizationId String?   @db.Uuid
+  payload        Json      @db.JsonB
+  dedupeKey      String    @unique
+  status         String    @default("PENDING") // PENDING | PROCESSING | DELIVERED | FAILED
+  attemptCount   Int       @default(0)
+  availableAt    DateTime  @default(now())
   lastError      String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   dispatchedAt   DateTime?
 
   @@index([status, availableAt])
@@ -2080,18 +2080,18 @@ model RevocationOutboxEvent {
 }
 
 model OutboxEvent {
-  id            String   @id @default(uuid()) @db.Uuid
+  id            String    @id @default(uuid()) @db.Uuid
   eventType     String
   aggregateType String
   aggregateId   String
-  payload       Json     @db.JsonB
-  dedupeKey     String   @unique
-  status        String   @default("PENDING")
-  attemptCount  Int      @default(0)
-  availableAt   DateTime @default(now())
+  payload       Json      @db.JsonB
+  dedupeKey     String    @unique
+  status        String    @default("PENDING")
+  attemptCount  Int       @default(0)
+  availableAt   DateTime  @default(now())
   lastError     String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   dispatchedAt  DateTime?
 
   @@index([status, availableAt])
@@ -2194,9 +2194,9 @@ model BillingEvent {
 /// attributes stores denormalized metadata as JSON for fast graph queries.
 model KnowledgeNode {
   id         String   @id @default(uuid()) @db.Uuid
-  entityType String   // CLINICIAN | ISSUER | CREDENTIAL | POLICY | FACILITY
-  entityId   String   // FK to the source table row
-  label      String   // Human-readable label
+  entityType String // CLINICIAN | ISSUER | CREDENTIAL | POLICY | FACILITY
+  entityId   String // FK to the source table row
+  label      String // Human-readable label
   attributes Json     @default("{}")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -2216,9 +2216,9 @@ model AuthorityEdge {
   id                 String   @id @default(uuid()) @db.Uuid
   sourceNodeId       String   @db.Uuid
   targetNodeId       String   @db.Uuid
-  relationType       String   // VERIFIED_BY | ISSUED_TO | COMPLIES_WITH | REQUIRED_BY | ATTESTED_BY
+  relationType       String // VERIFIED_BY | ISSUED_TO | COMPLIES_WITH | REQUIRED_BY | ATTESTED_BY
   weight             Float    @default(1.0) // Trust weight for scoring
-  cryptographicProof String?  // Optional hash/signature
+  cryptographicProof String? // Optional hash/signature
   metadata           Json     @default("{}")
   createdAt          DateTime @default(now())
 
@@ -2234,14 +2234,14 @@ model AuthorityEdge {
 // ── Wave 115: Subscription Billing & API Keys ────────────────────────
 
 model Subscription {
-  id               String   @id @default(uuid()) @db.Uuid
-  clinicianId      String   @db.Uuid
-  tier             String   // STARTER | GROWTH | ENTERPRISE
-  status           String   @default("active") // active | canceled | past_due
+  id               String    @id @default(uuid()) @db.Uuid
+  clinicianId      String    @db.Uuid
+  tier             String // STARTER | GROWTH | ENTERPRISE
+  status           String    @default("active") // active | canceled | past_due
   stripeSubId      String?
   currentPeriodEnd DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@index([clinicianId])
   @@index([status])
@@ -2266,7 +2266,7 @@ model SubscriptionApiKey {
 
 model Feedback {
   id        String   @id @default(uuid()) @db.Uuid
-  type      String   // nps | bug | feature
+  type      String // nps | bug | feature
   score     Int?
   message   String
   email     String?
@@ -2282,40 +2282,40 @@ model Feedback {
 /// bundle that supported it. Status transitions record revocation cascade
 /// impact: VALID → AT_RISK → INVALID.
 model DecisionCapsule {
-  id                String   @id @default(uuid()) @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
 
   /// Decentralized Identifier of the clinician subject
-  subjectDid        String
+  subjectDid String
 
   /// 10-digit NPI of the clinician subject
-  subjectNpi        String
+  subjectNpi String
 
   /// HIRING | PRIVILEGING | DEPLOYMENT | RENEWAL
-  decisionType      String
+  decisionType String
 
   /// When the decision was made (immutable after creation)
   decisionTimestamp DateTime
 
   /// IDs of VerificationArtifacts that supported this decision
-  credentialIds     String[]
+  credentialIds String[]
 
   /// IDs of trusted issuers involved in this decision
-  issuerIds         String[]
+  issuerIds String[]
 
   /// SHA-256 hash of the full credential bundle snapshot at decision time
-  artifactHash      String
+  artifactHash String
 
   /// Evaluation methodology version (e.g. "CRS_v1.0")
-  methodology       String   @default("CRS_v1.0")
+  methodology String @default("CRS_v1.0")
 
   /// VALID | AT_RISK | INVALID
-  status            String   @default("VALID")
+  status String @default("VALID")
 
   /// Arbitrary context: employerId, deploymentRef, notes
-  metadata          Json     @default("{}")  @db.JsonB
+  metadata Json @default("{}") @db.JsonB
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([subjectNpi])
   @@index([subjectDid])
@@ -2341,36 +2341,36 @@ enum SearchObjectType {
 
 /// ACL visibility levels
 enum SearchAclLevel {
-  PUBLIC        // anyone can see
+  PUBLIC // anyone can see
   AUTHENTICATED // any logged-in user
-  HOLDER        // clinician workspace only
-  VERIFIER      // verifier/employer workspace only
-  ADMIN         // internal only
+  HOLDER // clinician workspace only
+  VERIFIER // verifier/employer workspace only
+  ADMIN // internal only
 }
 
 /// Indexed search object — the core retrieval unit
 model SearchObject {
-  id            String           @id @default(uuid()) @db.Uuid
-  type          SearchObjectType
-  title         String
+  id          String           @id @default(uuid()) @db.Uuid
+  type        SearchObjectType
+  title       String
   /// Plain-text body — used for BM25 keyword search
-  body          String
+  body        String
   /// Source URL or internal path
-  sourceUrl     String?
+  sourceUrl   String?
   /// External reference id (opportunity id, issuer id, etc.)
-  referenceId   String?
+  referenceId String?
   /// ACL gate
-  aclLevel      SearchAclLevel   @default(PUBLIC)
+  aclLevel    SearchAclLevel   @default(PUBLIC)
   /// JSON metadata (specialty, state, pay, etc.)
-  metadata      Json             @default("{}") @db.JsonB
+  metadata    Json             @default("{}") @db.JsonB
   /// Embedding vector stored as float array (pgvector-ready)
-  embedding     Float[]
+  embedding   Float[]
   /// ISO timestamp of source freshness
-  indexedAt     DateTime         @default(now())
-  freshAt       DateTime?
-  active        Boolean          @default(true)
+  indexedAt   DateTime         @default(now())
+  freshAt     DateTime?
+  active      Boolean          @default(true)
 
-  acl           SearchObjectACL[]
+  acl SearchObjectACL[]
 
   @@index([type])
   @@index([aclLevel])
@@ -2381,14 +2381,14 @@ model SearchObject {
 
 /// Fine-grained ACL: which role/org can access which search object
 model SearchObjectACL {
-  id             String          @id @default(uuid()) @db.Uuid
-  searchObjectId String          @db.Uuid
-  searchObject   SearchObject    @relation(fields: [searchObjectId], references: [id], onDelete: Cascade)
+  id             String       @id @default(uuid()) @db.Uuid
+  searchObjectId String       @db.Uuid
+  searchObject   SearchObject @relation(fields: [searchObjectId], references: [id], onDelete: Cascade)
   /// If set, only users with this role can see the object
   roleRequired   String?
   /// If set, only members of this org can see the object
-  orgId          String?         @db.Uuid
-  createdAt      DateTime        @default(now())
+  orgId          String?      @db.Uuid
+  createdAt      DateTime     @default(now())
 
   @@index([searchObjectId])
   @@index([orgId])
@@ -2396,14 +2396,14 @@ model SearchObjectACL {
 
 /// Index job run log
 model SearchIndexRun {
-  id           String   @id @default(uuid()) @db.Uuid
+  id           String    @id @default(uuid()) @db.Uuid
   objectType   String
-  totalIndexed Int      @default(0)
-  totalSkipped Int      @default(0)
-  totalErrors  Int      @default(0)
+  totalIndexed Int       @default(0)
+  totalSkipped Int       @default(0)
+  totalErrors  Int       @default(0)
   durationMs   Int?
-  status       String   @default("PENDING")  // PENDING | RUNNING | DONE | FAILED
-  startedAt    DateTime @default(now())
+  status       String    @default("PENDING") // PENDING | RUNNING | DONE | FAILED
+  startedAt    DateTime  @default(now())
   completedAt  DateTime?
   errorMessage String?
 
@@ -2437,25 +2437,25 @@ model LearningEvent {
 }
 
 model AnomalyHistory {
-  id                String   @id @default(uuid()) @db.Uuid
-  anomalyKey        String   @unique @map("anomaly_key")
-  anomalyType       String   @map("anomaly_type")
-  subjectType       String   @map("subject_type")
-  subjectId         String   @map("subject_id")
-  sourceIds         String[] @default([]) @map("source_ids")
+  id                String    @id @default(uuid()) @db.Uuid
+  anomalyKey        String    @unique @map("anomaly_key")
+  anomalyType       String    @map("anomaly_type")
+  subjectType       String    @map("subject_type")
+  subjectId         String    @map("subject_id")
+  sourceIds         String[]  @default([]) @map("source_ids")
   severity          String
-  status            String   @default("OPEN")
-  confidence        Float    @default(0.5)
-  occurrenceCount   Int      @default(1) @map("occurrence_count")
-  confirmationCount Int      @default(0) @map("confirmation_count")
-  rejectionCount    Int      @default(0) @map("rejection_count")
-  lastFingerprint   String   @map("last_fingerprint")
-  firstDetectedAt   DateTime @default(now()) @map("first_detected_at")
-  lastDetectedAt    DateTime @default(now()) @map("last_detected_at")
+  status            String    @default("OPEN")
+  confidence        Float     @default(0.5)
+  occurrenceCount   Int       @default(1) @map("occurrence_count")
+  confirmationCount Int       @default(0) @map("confirmation_count")
+  rejectionCount    Int       @default(0) @map("rejection_count")
+  lastFingerprint   String    @map("last_fingerprint")
+  firstDetectedAt   DateTime  @default(now()) @map("first_detected_at")
+  lastDetectedAt    DateTime  @default(now()) @map("last_detected_at")
   resolvedAt        DateTime? @map("resolved_at")
-  metadata          Json     @default("{}") @db.JsonB
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  metadata          Json      @default("{}") @db.JsonB
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
   @@index([anomalyType, lastDetectedAt])
   @@index([subjectType, subjectId, lastDetectedAt])
@@ -2507,19 +2507,19 @@ model SuggestionOutcome {
 }
 
 model TrustScoreHistory {
-  id                String   @id @default(uuid()) @db.Uuid
-  subjectType       String   @map("subject_type")
-  subjectId         String   @map("subject_id")
-  previousScore     Float?   @map("previous_score")
-  newScore          Float    @map("new_score")
-  scoreDelta        Float    @map("score_delta")
-  triggerEvent      String   @map("trigger_event")
-  confidence        Float?
-  band              String?
-  methodologyVersion String? @map("methodology_version")
-  metadata          Json     @default("{}") @db.JsonB
-  recordedAt        DateTime @default(now()) @map("recorded_at")
-  createdAt         DateTime @default(now()) @map("created_at")
+  id                 String   @id @default(uuid()) @db.Uuid
+  subjectType        String   @map("subject_type")
+  subjectId          String   @map("subject_id")
+  previousScore      Float?   @map("previous_score")
+  newScore           Float    @map("new_score")
+  scoreDelta         Float    @map("score_delta")
+  triggerEvent       String   @map("trigger_event")
+  confidence         Float?
+  band               String?
+  methodologyVersion String?  @map("methodology_version")
+  metadata           Json     @default("{}") @db.JsonB
+  recordedAt         DateTime @default(now()) @map("recorded_at")
+  createdAt          DateTime @default(now()) @map("created_at")
 
   @@index([subjectType, subjectId, recordedAt])
   @@index([triggerEvent, recordedAt])
@@ -2527,20 +2527,20 @@ model TrustScoreHistory {
 }
 
 model QueryHistory {
-  id                     String   @id @default(uuid()) @db.Uuid
-  queryHash              String   @map("query_hash")
-  normalizedQuery        String?  @map("normalized_query")
-  queryTemplate          String   @map("query_template")
-  prefixKey              String?  @map("prefix_key")
-  intentType             String?  @map("intent_type")
-  entityType             String?  @map("entity_type")
-  organizationId         String?  @db.Uuid @map("organization_id")
-  aclLevel               String?  @map("acl_level")
-  actorIdHash            String?  @map("actor_id_hash")
-  containsSensitiveTokens Boolean @default(false) @map("contains_sensitive_tokens")
-  resultCount            Int?     @map("result_count")
-  metadata               Json     @default("{}") @db.JsonB
-  createdAt              DateTime @default(now()) @map("created_at")
+  id                      String   @id @default(uuid()) @db.Uuid
+  queryHash               String   @map("query_hash")
+  normalizedQuery         String?  @map("normalized_query")
+  queryTemplate           String   @map("query_template")
+  prefixKey               String?  @map("prefix_key")
+  intentType              String?  @map("intent_type")
+  entityType              String?  @map("entity_type")
+  organizationId          String?  @map("organization_id") @db.Uuid
+  aclLevel                String?  @map("acl_level")
+  actorIdHash             String?  @map("actor_id_hash")
+  containsSensitiveTokens Boolean  @default(false) @map("contains_sensitive_tokens")
+  resultCount             Int?     @map("result_count")
+  metadata                Json     @default("{}") @db.JsonB
+  createdAt               DateTime @default(now()) @map("created_at")
 
   @@index([queryHash])
   @@index([normalizedQuery])
@@ -2588,8 +2588,8 @@ model InvestigatorFinding {
   graphCentrality    Float    @default(0) @map("graph_centrality")
   entityIds          String[] @default([]) @map("entity_ids")
   audienceRoles      String[] @default([]) @map("audience_roles")
-  supportingEvidence Json     @default("[]") @db.JsonB @map("supporting_evidence")
-  rankBreakdown      Json     @default("{}") @db.JsonB @map("rank_breakdown")
+  supportingEvidence Json     @default("[]") @map("supporting_evidence") @db.JsonB
+  rankBreakdown      Json     @default("{}") @map("rank_breakdown") @db.JsonB
   metadata           Json     @default("{}") @db.JsonB
   storylineKey       String   @map("storyline_key")
   dedupeKey          String   @unique @map("dedupe_key")
@@ -2613,19 +2613,19 @@ model InvestigatorFinding {
 }
 
 model FindingEvidenceLink {
-  id          String   @id @default(uuid()) @db.Uuid
-  findingId   String   @db.Uuid @map("finding_id")
-  evidenceId  String   @map("evidence_id")
-  evidenceType String  @map("evidence_type")
-  sourceId    String?  @map("source_id")
-  sourceLabel String?  @map("source_label")
-  recordType  String?  @map("record_type")
-  recordId    String?  @map("record_id")
-  url         String?
-  snippet     String?
-  observedAt  DateTime? @map("observed_at")
-  metadata    Json     @default("{}") @db.JsonB
-  createdAt   DateTime @default(now()) @map("created_at")
+  id           String    @id @default(uuid()) @db.Uuid
+  findingId    String    @map("finding_id") @db.Uuid
+  evidenceId   String    @map("evidence_id")
+  evidenceType String    @map("evidence_type")
+  sourceId     String?   @map("source_id")
+  sourceLabel  String?   @map("source_label")
+  recordType   String?   @map("record_type")
+  recordId     String?   @map("record_id")
+  url          String?
+  snippet      String?
+  observedAt   DateTime? @map("observed_at")
+  metadata     Json      @default("{}") @db.JsonB
+  createdAt    DateTime  @default(now()) @map("created_at")
 
   finding InvestigatorFinding @relation(fields: [findingId], references: [id], onDelete: Cascade)
 
@@ -2636,14 +2636,14 @@ model FindingEvidenceLink {
 }
 
 model FindingEntityLink {
-  id          String   @id @default(uuid()) @db.Uuid
-  findingId   String   @db.Uuid @map("finding_id")
-  entityType  String   @map("entity_type")
-  entityId    String   @map("entity_id")
-  entityLabel String?  @map("entity_label")
+  id           String   @id @default(uuid()) @db.Uuid
+  findingId    String   @map("finding_id") @db.Uuid
+  entityType   String   @map("entity_type")
+  entityId     String   @map("entity_id")
+  entityLabel  String?  @map("entity_label")
   relationship String?
-  metadata    Json     @default("{}") @db.JsonB
-  createdAt   DateTime @default(now()) @map("created_at")
+  metadata     Json     @default("{}") @db.JsonB
+  createdAt    DateTime @default(now()) @map("created_at")
 
   finding InvestigatorFinding @relation(fields: [findingId], references: [id], onDelete: Cascade)
 
@@ -2655,7 +2655,7 @@ model FindingEntityLink {
 
 model FindingStatusEvent {
   id         String   @id @default(uuid()) @db.Uuid
-  findingId  String   @db.Uuid @map("finding_id")
+  findingId  String   @map("finding_id") @db.Uuid
   fromStatus String?  @map("from_status")
   toStatus   String   @map("to_status")
   actorId    String?  @map("actor_id")
@@ -2671,28 +2671,28 @@ model FindingStatusEvent {
 }
 
 model ActionRecommendation {
-  id                String   @id @default(uuid()) @db.Uuid
-  actionId          String   @unique @map("action_id")
-  actionType        String   @map("action_type")
-  storylineKey      String?  @map("storyline_key")
-  sourceFindingIds  String[] @default([]) @map("source_finding_ids")
-  predictionIds     String[] @default([]) @map("prediction_ids")
-  targetEntityType  String   @map("target_entity_type")
-  targetEntityId    String   @map("target_entity_id")
-  targetEntityLabel String?  @map("target_entity_label")
-  recommendedAction String   @map("recommended_action")
+  id                String    @id @default(uuid()) @db.Uuid
+  actionId          String    @unique @map("action_id")
+  actionType        String    @map("action_type")
+  storylineKey      String?   @map("storyline_key")
+  sourceFindingIds  String[]  @default([]) @map("source_finding_ids")
+  predictionIds     String[]  @default([]) @map("prediction_ids")
+  targetEntityType  String    @map("target_entity_type")
+  targetEntityId    String    @map("target_entity_id")
+  targetEntityLabel String?   @map("target_entity_label")
+  recommendedAction String    @map("recommended_action")
   priority          String
-  priorityScore     Float    @default(0) @map("priority_score")
+  priorityScore     Float     @default(0) @map("priority_score")
   confidence        Float
   explanation       String
-  evidence          Json     @default("[]") @db.JsonB
-  metadata          Json     @default("{}") @db.JsonB
-  status            String   @default("OPEN")
+  evidence          Json      @default("[]") @db.JsonB
+  metadata          Json      @default("{}") @db.JsonB
+  status            String    @default("OPEN")
   executedAt        DateTime? @map("executed_at")
   dismissedAt       DateTime? @map("dismissed_at")
   savedAt           DateTime? @map("saved_at")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
   statusEvents ActionStatusEvent[]
 
@@ -2706,7 +2706,7 @@ model ActionRecommendation {
 
 model ActionStatusEvent {
   id                     String   @id @default(uuid()) @db.Uuid
-  actionRecommendationId String   @db.Uuid @map("action_recommendation_id")
+  actionRecommendationId String   @map("action_recommendation_id") @db.Uuid
   fromStatus             String?  @map("from_status")
   toStatus               String   @map("to_status")
   actorId                String?  @map("actor_id")
@@ -2731,7 +2731,7 @@ model PredictionInsight {
   probability       Float
   confidence        Float
   timeHorizon       String   @map("time_horizon")
-  evidenceSignals   Json     @default("[]") @db.JsonB @map("evidence_signals")
+  evidenceSignals   Json     @default("[]") @map("evidence_signals") @db.JsonB
   explanation       String
   metadata          Json     @default("{}") @db.JsonB
   createdAt         DateTime @default(now()) @map("created_at")
@@ -2745,28 +2745,28 @@ model PredictionInsight {
 }
 
 model InvestigatorRunLog {
-  id                 String   @id @default(uuid()) @db.Uuid
-  runId              String   @unique @map("run_id")
-  investigatorId     String   @map("investigator_id")
+  id                 String    @id @default(uuid()) @db.Uuid
+  runId              String    @unique @map("run_id")
+  investigatorId     String    @map("investigator_id")
   trigger            String
   scope              String
-  status             String   @default("running")
-  entityType         String?  @map("entity_type")
-  targetEntityIds    String[] @default([]) @map("target_entity_ids")
-  startedAt          DateTime @default(now()) @map("started_at")
+  status             String    @default("running")
+  entityType         String?   @map("entity_type")
+  targetEntityIds    String[]  @default([]) @map("target_entity_ids")
+  startedAt          DateTime  @default(now()) @map("started_at")
   completedAt        DateTime? @map("completed_at")
-  durationMs         Int?     @map("duration_ms")
-  entitiesScanned    Int      @default(0) @map("entities_scanned")
-  findingsGenerated  Int      @default(0) @map("findings_generated")
-  findingsCreated    Int      @default(0) @map("findings_created")
-  findingsUpdated    Int      @default(0) @map("findings_updated")
-  findingsResolved   Int      @default(0) @map("findings_resolved")
-  findingsSuppressed Int      @default(0) @map("findings_suppressed")
-  storylinesMerged   Int      @default(0) @map("storylines_merged")
-  errorMessage       String?  @map("error_message")
-  metadata           Json     @default("{}") @db.JsonB
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
+  durationMs         Int?      @map("duration_ms")
+  entitiesScanned    Int       @default(0) @map("entities_scanned")
+  findingsGenerated  Int       @default(0) @map("findings_generated")
+  findingsCreated    Int       @default(0) @map("findings_created")
+  findingsUpdated    Int       @default(0) @map("findings_updated")
+  findingsResolved   Int       @default(0) @map("findings_resolved")
+  findingsSuppressed Int       @default(0) @map("findings_suppressed")
+  storylinesMerged   Int       @default(0) @map("storylines_merged")
+  errorMessage       String?   @map("error_message")
+  metadata           Json      @default("{}") @db.JsonB
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
 
   @@index([investigatorId, startedAt])
   @@index([status, startedAt])
@@ -2779,32 +2779,32 @@ model InvestigatorRunLog {
 // ──────────────────────────────────────────────────────────────
 
 model GraphNode {
-  id              String   @id
-  canonicalKey    String   @unique @map("canonical_key")
+  id              String    @id
+  canonicalKey    String    @unique @map("canonical_key")
   type            String
   label           String
   title           String
-  colorGroup      String   @map("color_group")
-  groupKey        String?  @map("group_key")
-  tags            String[] @default([])
-  metadata        Json     @default("{}") @db.JsonB
-  degree          Int      @default(0)
-  inDegree        Int      @default(0) @map("in_degree")
-  outDegree       Int      @default(0) @map("out_degree")
-  sourceRefs      String[] @default([]) @map("source_refs")
-  sourceChecksum  String?  @map("source_checksum")
+  colorGroup      String    @map("color_group")
+  groupKey        String?   @map("group_key")
+  tags            String[]  @default([])
+  metadata        Json      @default("{}") @db.JsonB
+  degree          Int       @default(0)
+  inDegree        Int       @default(0) @map("in_degree")
+  outDegree       Int       @default(0) @map("out_degree")
+  sourceRefs      String[]  @default([]) @map("source_refs")
+  sourceChecksum  String?   @map("source_checksum")
   sourceUpdatedAt DateTime? @map("source_updated_at")
-  active          Boolean  @default(true)
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  active          Boolean   @default(true)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  outgoingEdges       GraphEdge[]            @relation("GraphEdgeSource")
-  incomingEdges       GraphEdge[]            @relation("GraphEdgeTarget")
-  sourceSuggestions   GraphLinkSuggestion[]  @relation("GraphSuggestionSource")
-  targetSuggestions   GraphLinkSuggestion[]  @relation("GraphSuggestionTarget")
-  sourceRejectMemory  GraphRejectMemory[]    @relation("GraphRejectSource")
-  targetRejectMemory  GraphRejectMemory[]    @relation("GraphRejectTarget")
-  clusterAssignments  GraphClusterAssignment[]
+  outgoingEdges      GraphEdge[]              @relation("GraphEdgeSource")
+  incomingEdges      GraphEdge[]              @relation("GraphEdgeTarget")
+  sourceSuggestions  GraphLinkSuggestion[]    @relation("GraphSuggestionSource")
+  targetSuggestions  GraphLinkSuggestion[]    @relation("GraphSuggestionTarget")
+  sourceRejectMemory GraphRejectMemory[]      @relation("GraphRejectSource")
+  targetRejectMemory GraphRejectMemory[]      @relation("GraphRejectTarget")
+  clusterAssignments GraphClusterAssignment[]
 
   @@index([type])
   @@index([colorGroup])
@@ -2833,9 +2833,9 @@ model GraphEdge {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  sourceNode GraphNode  @relation("GraphEdgeSource", fields: [sourceNodeId], references: [id], onDelete: Cascade)
-  targetNode GraphNode  @relation("GraphEdgeTarget", fields: [targetNodeId], references: [id], onDelete: Cascade)
-  reverseEdge GraphEdge? @relation("GraphEdgeReverse", fields: [reverseEdgeId], references: [id], onDelete: SetNull)
+  sourceNode  GraphNode   @relation("GraphEdgeSource", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode  GraphNode   @relation("GraphEdgeTarget", fields: [targetNodeId], references: [id], onDelete: Cascade)
+  reverseEdge GraphEdge?  @relation("GraphEdgeReverse", fields: [reverseEdgeId], references: [id], onDelete: SetNull)
   mirroredBy  GraphEdge[] @relation("GraphEdgeReverse")
 
   @@index([sourceNodeId])
@@ -2848,23 +2848,23 @@ model GraphEdge {
 }
 
 model GraphBuildRun {
-  id                  String   @id
-  buildType           String   @map("build_type")
-  status              String   @default("QUEUED")
-  requestedBy         String?  @map("requested_by")
-  requestFingerprint  String?  @map("request_fingerprint")
-  graphMode           String?  @map("graph_mode")
-  scopeType           String?  @map("scope_type")
-  scopeKey            String?  @map("scope_key")
-  targetNodeId        String?  @map("target_node_id")
-  filterSignature     String?  @map("filter_signature")
-  invalidationReasons String[] @default([]) @map("invalidation_reasons")
-  summary             Json     @default("{}") @db.JsonB
-  errorText           String?  @map("error_text")
-  startedAt           DateTime @default(now()) @map("started_at")
+  id                  String    @id
+  buildType           String    @map("build_type")
+  status              String    @default("QUEUED")
+  requestedBy         String?   @map("requested_by")
+  requestFingerprint  String?   @map("request_fingerprint")
+  graphMode           String?   @map("graph_mode")
+  scopeType           String?   @map("scope_type")
+  scopeKey            String?   @map("scope_key")
+  targetNodeId        String?   @map("target_node_id")
+  filterSignature     String?   @map("filter_signature")
+  invalidationReasons String[]  @default([]) @map("invalidation_reasons")
+  summary             Json      @default("{}") @db.JsonB
+  errorText           String?   @map("error_text")
+  startedAt           DateTime  @default(now()) @map("started_at")
   completedAt         DateTime? @map("completed_at")
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
 
   snapshots GraphSnapshot[]
 
@@ -2876,28 +2876,28 @@ model GraphBuildRun {
 }
 
 model GraphSnapshot {
-  id              String    @id
-  querySignature  String    @unique @map("query_signature")
-  scopeType       String    @map("scope_type")
-  scopeKey        String    @map("scope_key")
-  graphMode       String    @map("graph_mode")
-  focusNodeId     String?   @map("focus_node_id")
-  depth           Int?
-  filterSignature String    @map("filter_signature")
-  schemaVersion   String    @map("schema_version")
-  nodeCount       Int       @default(0) @map("node_count")
-  edgeCount       Int       @default(0) @map("edge_count")
-  payloadBytes    Int       @default(0) @map("payload_bytes")
-  payload         Json      @db.JsonB
-  stats           Json      @default("{}") @db.JsonB
-  invalidatedAt   DateTime? @map("invalidated_at")
-  lastInvalidationReason String? @map("last_invalidation_reason")
-  lastInvalidationScope  Json?   @db.JsonB @map("last_invalidation_scope")
-  builtAt         DateTime  @default(now()) @map("built_at")
-  lastAccessedAt  DateTime? @map("last_accessed_at")
-  buildRunId      String?   @map("build_run_id")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id                     String    @id
+  querySignature         String    @unique @map("query_signature")
+  scopeType              String    @map("scope_type")
+  scopeKey               String    @map("scope_key")
+  graphMode              String    @map("graph_mode")
+  focusNodeId            String?   @map("focus_node_id")
+  depth                  Int?
+  filterSignature        String    @map("filter_signature")
+  schemaVersion          String    @map("schema_version")
+  nodeCount              Int       @default(0) @map("node_count")
+  edgeCount              Int       @default(0) @map("edge_count")
+  payloadBytes           Int       @default(0) @map("payload_bytes")
+  payload                Json      @db.JsonB
+  stats                  Json      @default("{}") @db.JsonB
+  invalidatedAt          DateTime? @map("invalidated_at")
+  lastInvalidationReason String?   @map("last_invalidation_reason")
+  lastInvalidationScope  Json?     @map("last_invalidation_scope") @db.JsonB
+  builtAt                DateTime  @default(now()) @map("built_at")
+  lastAccessedAt         DateTime? @map("last_accessed_at")
+  buildRunId             String?   @map("build_run_id")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
 
   buildRun           GraphBuildRun?           @relation(fields: [buildRunId], references: [id], onDelete: SetNull)
   clusterAssignments GraphClusterAssignment[]
@@ -2922,7 +2922,7 @@ model GraphPreset {
   display             Json     @db.JsonB
   physics             Json     @db.JsonB
   camera              Json     @db.JsonB
-  pinnedNodes         Json     @default("{}") @db.JsonB @map("pinned_nodes")
+  pinnedNodes         Json     @default("{}") @map("pinned_nodes") @db.JsonB
   status              String   @default("ACTIVE")
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
@@ -2941,7 +2941,7 @@ model GraphLayoutState {
   graphMode       String   @map("graph_mode")
   filterSignature String   @map("filter_signature")
   positions       Json     @default("{}") @db.JsonB
-  pinnedNodes     Json     @default("{}") @db.JsonB @map("pinned_nodes")
+  pinnedNodes     Json     @default("{}") @map("pinned_nodes") @db.JsonB
   frozenNodeIds   String[] @default([]) @map("frozen_node_ids")
   camera          Json     @db.JsonB
   display         Json     @db.JsonB
@@ -2956,22 +2956,22 @@ model GraphLayoutState {
 }
 
 model GraphRejectMemory {
-  id             String   @id
-  pairKey        String   @unique @map("pair_key")
-  sourceNodeId   String   @map("source_node_id")
-  targetNodeId   String   @map("target_node_id")
-  edgeType       String   @map("edge_type")
-  reviewerId     String?  @map("reviewer_id")
-  rationale      String?
-  evidenceHash   String   @map("evidence_hash")
-  reconsiderAfter DateTime? @map("reconsider_after")
-  lastRejectedAt DateTime @default(now()) @map("last_rejected_at")
-  lastSuggestedAt DateTime? @map("last_suggested_at")
+  id               String    @id
+  pairKey          String    @unique @map("pair_key")
+  sourceNodeId     String    @map("source_node_id")
+  targetNodeId     String    @map("target_node_id")
+  edgeType         String    @map("edge_type")
+  reviewerId       String?   @map("reviewer_id")
+  rationale        String?
+  evidenceHash     String    @map("evidence_hash")
+  reconsiderAfter  DateTime? @map("reconsider_after")
+  lastRejectedAt   DateTime  @default(now()) @map("last_rejected_at")
+  lastSuggestedAt  DateTime? @map("last_suggested_at")
   lastSuppressedAt DateTime? @map("last_suppressed_at")
-  suppressionCount Int @default(0) @map("suppression_count")
-  metadata       Json     @default("{}") @db.JsonB
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  suppressionCount Int       @default(0) @map("suppression_count")
+  metadata         Json      @default("{}") @db.JsonB
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
   sourceNode GraphNode @relation("GraphRejectSource", fields: [sourceNodeId], references: [id], onDelete: Cascade)
   targetNode GraphNode @relation("GraphRejectTarget", fields: [targetNodeId], references: [id], onDelete: Cascade)
@@ -2993,7 +2993,7 @@ model GraphClusterAssignment {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  node     GraphNode     @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  node     GraphNode      @relation(fields: [nodeId], references: [id], onDelete: Cascade)
   snapshot GraphSnapshot? @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
 
   @@unique([nodeId, snapshotId, clusterMode])
@@ -3003,20 +3003,20 @@ model GraphClusterAssignment {
 }
 
 model GraphSuggestionBatch {
-  id                   String   @id
-  status               String   @default("QUEUED")
-  requestFingerprint   String?  @map("request_fingerprint")
-  graphMode            String   @map("graph_mode")
-  targetNodeId         String?  @map("target_node_id")
-  filterSignature      String   @map("filter_signature")
-  maxSuggestionsPerNode Int     @default(10) @map("max_suggestions_per_node")
-  minConfidence        Float    @default(0.3) @map("min_confidence")
-  applyThreshold       Float    @default(0.85) @map("apply_threshold")
-  summary              Json     @default("{}") @db.JsonB
-  errorText            String?  @map("error_text")
-  createdAt            DateTime @default(now()) @map("created_at")
-  updatedAt            DateTime @updatedAt @map("updated_at")
-  completedAt          DateTime? @map("completed_at")
+  id                    String    @id
+  status                String    @default("QUEUED")
+  requestFingerprint    String?   @map("request_fingerprint")
+  graphMode             String    @map("graph_mode")
+  targetNodeId          String?   @map("target_node_id")
+  filterSignature       String    @map("filter_signature")
+  maxSuggestionsPerNode Int       @default(10) @map("max_suggestions_per_node")
+  minConfidence         Float     @default(0.3) @map("min_confidence")
+  applyThreshold        Float     @default(0.85) @map("apply_threshold")
+  summary               Json      @default("{}") @db.JsonB
+  errorText             String?   @map("error_text")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  completedAt           DateTime? @map("completed_at")
 
   suggestions GraphLinkSuggestion[]
 
@@ -3027,21 +3027,21 @@ model GraphSuggestionBatch {
 }
 
 model GraphLinkSuggestion {
-  id                 String   @id
-  suggestionKey      String   @map("suggestion_key")
-  batchId            String?  @map("batch_id")
-  sourceNodeId       String   @map("source_node_id")
-  targetNodeId       String   @map("target_node_id")
-  edgeType           String   @map("edge_type")
-  directed           Boolean  @default(true)
-  reciprocal         Boolean  @default(false)
+  id                 String    @id
+  suggestionKey      String    @map("suggestion_key")
+  batchId            String?   @map("batch_id")
+  sourceNodeId       String    @map("source_node_id")
+  targetNodeId       String    @map("target_node_id")
+  edgeType           String    @map("edge_type")
+  directed           Boolean   @default(true)
+  reciprocal         Boolean   @default(false)
   confidence         Float
-  state              String   @default("PENDING")
-  explanation        Json     @db.JsonB
-  signalBreakdown    Json     @default("{}") @db.JsonB @map("signal_breakdown")
-  materialChangeHash String   @map("material_change_hash")
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
+  state              String    @default("PENDING")
+  explanation        Json      @db.JsonB
+  signalBreakdown    Json      @default("{}") @map("signal_breakdown") @db.JsonB
+  materialChangeHash String    @map("material_change_hash")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
   decidedAt          DateTime? @map("decided_at")
 
   batch      GraphSuggestionBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
@@ -3058,13 +3058,13 @@ model GraphLinkSuggestion {
 }
 
 model GraphLinkDecision {
-  id          String   @id
-  suggestionId String  @map("suggestion_id")
-  action      String
-  decidedBy   String?  @map("decided_by")
-  rationale   String?
-  metadata    Json     @default("{}") @db.JsonB
-  createdAt   DateTime @default(now()) @map("created_at")
+  id           String   @id
+  suggestionId String   @map("suggestion_id")
+  action       String
+  decidedBy    String?  @map("decided_by")
+  rationale    String?
+  metadata     Json     @default("{}") @db.JsonB
+  createdAt    DateTime @default(now()) @map("created_at")
 
   suggestion GraphLinkSuggestion @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
 
@@ -3153,35 +3153,35 @@ enum VcvRoleSource {
 /// Entities exist independently of VCV user accounts.
 /// Resolved from source artifacts (NPPES, OIG, PECOS, etc.).
 model VcvEntity {
-  id           String         @id @default(uuid()) @db.Uuid
-  entityType   VcvEntityType  @map("entity_type")
+  id          String        @id @default(uuid()) @db.Uuid
+  entityType  VcvEntityType @map("entity_type")
   /// Deterministic: sha256(entityType + primaryKey) — safe lookup key
-  canonicalId  String         @unique @map("canonical_id")
-  displayName  String         @map("display_name")
-  npi          String?
-  npiType      NpiType?       @map("npi_type")
-  orgDid       String?        @map("org_did")
+  canonicalId String        @unique @map("canonical_id")
+  displayName String        @map("display_name")
+  npi         String?
+  npiType     NpiType?      @map("npi_type")
+  orgDid      String?       @map("org_did")
   /// Source system IDs that reference this entity (NPPES, OIG, etc.)
-  sourceIds    String[]       @map("source_ids")
-  verifiedAt   DateTime?      @map("verified_at")
+  sourceIds   String[]      @map("source_ids")
+  verifiedAt  DateTime?     @map("verified_at")
   /// Free-form metadata: name parts, addresses, taxonomies, etc.
-  metadata     Json           @default("{}") @db.JsonB
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @updatedAt @map("updated_at")
+  metadata    Json          @default("{}") @db.JsonB
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
 
-  roles         VcvEntityRole[]
-  asSubject     VcvEntityRelationship[] @relation("rel_subject")
-  asObject      VcvEntityRelationship[] @relation("rel_object")
+  roles     VcvEntityRole[]
+  asSubject VcvEntityRelationship[] @relation("rel_subject")
+  asObject  VcvEntityRelationship[] @relation("rel_object")
 
   // S1/S4/S5 back-relations
-  credentialsHeld      VcvCredential[]        @relation("cred_subject")
-  credentialsIssued    VcvCredential[]        @relation("cred_issuer")
-  educationAsSubject   VcvEducationRecord[]   @relation("edu_subject")
-  educationAsInstitution VcvEducationRecord[] @relation("edu_institution")
-  orgContextsRequested VcvOrganizationContext[] @relation("ctx_requestor")
-  orgContextSubjects   VcvOrgContextSubject[] @relation("ctx_subject")
-  userClaims           VcvUserEntityClaim[]   @relation("entity_claims")
-  bundleShareEvents    BundleShareEvent[]     @relation("bundle_share_subject")
+  credentialsHeld        VcvCredential[]          @relation("cred_subject")
+  credentialsIssued      VcvCredential[]          @relation("cred_issuer")
+  educationAsSubject     VcvEducationRecord[]     @relation("edu_subject")
+  educationAsInstitution VcvEducationRecord[]     @relation("edu_institution")
+  orgContextsRequested   VcvOrganizationContext[] @relation("ctx_requestor")
+  orgContextSubjects     VcvOrgContextSubject[]   @relation("ctx_subject")
+  userClaims             VcvUserEntityClaim[]     @relation("entity_claims")
+  bundleShareEvents      BundleShareEvent[]       @relation("bundle_share_subject")
 
   @@index([npi])
   @@index([entityType])
@@ -3193,7 +3193,7 @@ model VcvEntity {
 /// An entity may hold multiple roles simultaneously.
 model VcvEntityRole {
   id         String        @id @default(uuid()) @db.Uuid
-  entityId   String        @db.Uuid @map("entity_id")
+  entityId   String        @map("entity_id") @db.Uuid
   entity     VcvEntity     @relation(fields: [entityId], references: [id], onDelete: Cascade)
   roleType   VcvRoleType   @map("role_type")
   /// Contextual qualifier: state of practice, specialty, program name
@@ -3214,26 +3214,26 @@ model VcvEntityRole {
 /// subject → [relationshipType] → object
 /// Example: person:NPI123 → LICENSED_BY → issuer_authority:CA_MEDICAL_BOARD
 model VcvEntityRelationship {
-  id               String               @id @default(uuid()) @db.Uuid
-  subjectId        String               @db.Uuid @map("subject_id")
-  subject          VcvEntity            @relation("rel_subject", fields: [subjectId], references: [id], onDelete: Cascade)
-  objectId         String               @db.Uuid @map("object_id")
-  object           VcvEntity            @relation("rel_object",  fields: [objectId],  references: [id], onDelete: Cascade)
-  relationshipType VcvRelationshipType  @map("relationship_type")
+  id               String              @id @default(uuid()) @db.Uuid
+  subjectId        String              @map("subject_id") @db.Uuid
+  subject          VcvEntity           @relation("rel_subject", fields: [subjectId], references: [id], onDelete: Cascade)
+  objectId         String              @map("object_id") @db.Uuid
+  object           VcvEntity           @relation("rel_object", fields: [objectId], references: [id], onDelete: Cascade)
+  relationshipType VcvRelationshipType @map("relationship_type")
   /// State context (e.g. for licensed_by, privileges_at)
   state            String?
-  startDate        DateTime?            @map("start_date")
-  endDate          DateTime?            @map("end_date")
+  startDate        DateTime?           @map("start_date")
+  endDate          DateTime?           @map("end_date")
   /// Source artifact backing this relationship
-  artifactId       String?              @db.Uuid @map("artifact_id")
+  artifactId       String?             @map("artifact_id") @db.Uuid
   /// Specific claim backing this relationship
-  claimId          String?              @map("claim_id")
-  confidence       Float                @default(0.5)
-  tier             String               @default("SILVER")  // GOLD | SILVER | BRONZE
+  claimId          String?             @map("claim_id")
+  confidence       Float               @default(0.5)
+  tier             String              @default("SILVER") // GOLD | SILVER | BRONZE
   /// Extra metadata (dates, notes, program details)
-  metadata         Json                 @default("{}") @db.JsonB
-  createdAt        DateTime             @default(now()) @map("created_at")
-  updatedAt        DateTime             @updatedAt @map("updated_at")
+  metadata         Json                @default("{}") @db.JsonB
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
 
   @@index([subjectId, relationshipType])
   @@index([objectId, relationshipType])
@@ -3246,17 +3246,18 @@ model VcvEntityRelationship {
 // ──────────────────────────────────────────────────────────────
 
 model PasskeyCredential {
-  id             String   @id @default(uuid()) @db.Uuid
-  userId         String   @map("user_id")
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  credentialId   String   @unique @map("credential_id")
-  publicKey      Bytes    @map("public_key")
-  counter        BigInt   @default(0)
-  deviceType     String   @default("platform") @map("device_type")
-  backedUp       Boolean  @default(false) @map("backed_up")
-  rpId           String   @map("rp_id")
-  transports     String[] @default([])
-  createdAt      DateTime @default(now()) @map("created_at")
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialId String   @unique @map("credential_id")
+  publicKey    Bytes    @map("public_key")
+  counter      BigInt   @default(0)
+  deviceType   String   @default("platform") @map("device_type")
+  backedUp     Boolean  @default(false) @map("backed_up")
+  rpId         String   @map("rp_id")
+  transports   String[] @default([])
+  createdAt    DateTime @default(now()) @map("created_at")
+
   @@map("passkey_credentials")
 }
 
@@ -3273,6 +3274,7 @@ model NpiOwnership {
   verificationMethod String    @default("CLAIMED") @map("verification_method")
   claimedAt          DateTime  @default(now()) @map("claimed_at")
   revokedAt          DateTime? @map("revoked_at")
+
   @@unique([userId, npi])
   @@index([npi])
   @@map("npi_ownership")
@@ -3288,48 +3290,48 @@ model NpiOwnership {
 
 /// Credential domain — the high-level subject area a credential belongs to.
 enum VcvCredentialDomain {
-  LICENSURE          // state medical/nursing/pharmacy license
-  BOARD_CERTIFICATION// ABMS, AOA, specialty board certs
-  DEA_REGISTRATION   // federal controlled substance registration
-  MEDICARE_ENROLLMENT// CMS PECOS enrollment
-  EXCLUSION_CHECK    // OIG/LEIE, SAM.gov negative finding
-  EDUCATION          // medical degree, nursing degree
-  TRAINING           // residency, fellowship, CME
-  MALPRACTICE        // malpractice insurance coverage
+  LICENSURE // state medical/nursing/pharmacy license
+  BOARD_CERTIFICATION // ABMS, AOA, specialty board certs
+  DEA_REGISTRATION // federal controlled substance registration
+  MEDICARE_ENROLLMENT // CMS PECOS enrollment
+  EXCLUSION_CHECK // OIG/LEIE, SAM.gov negative finding
+  EDUCATION // medical degree, nursing degree
+  TRAINING // residency, fellowship, CME
+  MALPRACTICE // malpractice insurance coverage
   HOSPITAL_PRIVILEGE // clinical privileges at a facility
-  EMPLOYMENT         // employment/affiliation verification
-  IDENTITY           // NPI, SSN-4, biometric identity anchor
+  EMPLOYMENT // employment/affiliation verification
+  IDENTITY // NPI, SSN-4, biometric identity anchor
 }
 
 /// Verification level — how strongly a credential has been verified.
 enum VcvVerificationLevel {
-  SELF_REPORTED      // asserted by the subject, not cross-checked
-  SOURCE_MATCHED     // matched against an authoritative source
-  SOURCE_VERIFIED    // confirmed via real-time API query
+  SELF_REPORTED // asserted by the subject, not cross-checked
+  SOURCE_MATCHED // matched against an authoritative source
+  SOURCE_VERIFIED // confirmed via real-time API query
   CRYPTOGRAPHICALLY_SIGNED // issuer-signed SD-JWT or VC
-  BIOMETRICALLY_CONFIRMED  // subject confirmed with biometric
+  BIOMETRICALLY_CONFIRMED // subject confirmed with biometric
 }
 
 /// Organization context type — what the org is doing with the entity.
 enum VcvOrgContextType {
-  APPLICATION        // clinician applying to work
-  EMPLOYMENT_REVIEW  // ongoing employment credentialing
-  PRIVILEGING        // hospital/facility privileges request
-  CREDENTIALING      // initial credentialing with payer/org
-  RECREDENTIALING    // periodic re-credentialing
-  TRAINING_ENROLLMENT// enrolling in a training program
-  ISSUER_REVIEW      // issuer verifying credentials for cert
-  MONITORING         // ongoing passive monitoring
-  COMPLIANCE_AUDIT   // compliance or accreditation audit
+  APPLICATION // clinician applying to work
+  EMPLOYMENT_REVIEW // ongoing employment credentialing
+  PRIVILEGING // hospital/facility privileges request
+  CREDENTIALING // initial credentialing with payer/org
+  RECREDENTIALING // periodic re-credentialing
+  TRAINING_ENROLLMENT // enrolling in a training program
+  ISSUER_REVIEW // issuer verifying credentials for cert
+  MONITORING // ongoing passive monitoring
+  COMPLIANCE_AUDIT // compliance or accreditation audit
 }
 
 /// Organization context status — lifecycle of the org context.
 enum VcvOrgContextStatus {
-  PENDING    // initiated, awaiting subject response
-  ACTIVE     // subject has responded, review in progress
-  COMPLETED  // context resolved (approved/denied/enrolled)
-  EXPIRED    // context timed out without resolution
-  REVOKED    // explicitly revoked by either party
+  PENDING // initiated, awaiting subject response
+  ACTIVE // subject has responded, review in progress
+  COMPLETED // context resolved (approved/denied/enrolled)
+  EXPIRED // context timed out without resolution
+  REVOKED // explicitly revoked by either party
 }
 
 // ── VcvCredential — Wave S1 ───────────────────────────────────────────────────
@@ -3341,52 +3343,52 @@ enum VcvOrgContextStatus {
 /// Every credential must trace to at least one VcvEntity (the subject)
 /// and optionally one issuer entity (the authority that issued it).
 model VcvCredential {
-  id              String                 @id @default(uuid()) @db.Uuid
-  subjectId       String                 @db.Uuid @map("subject_id")
-  subject         VcvEntity              @relation("cred_subject", fields: [subjectId], references: [id], onDelete: Cascade)
-  issuerId        String?                @db.Uuid @map("issuer_id")
-  issuer          VcvEntity?             @relation("cred_issuer",  fields: [issuerId],  references: [id], onDelete: SetNull)
-  credentialKey   String                 @unique @map("credential_key")
-  credentialFamilyKey String             @map("credential_family_key")
+  id                  String     @id @default(uuid()) @db.Uuid
+  subjectId           String     @map("subject_id") @db.Uuid
+  subject             VcvEntity  @relation("cred_subject", fields: [subjectId], references: [id], onDelete: Cascade)
+  issuerId            String?    @map("issuer_id") @db.Uuid
+  issuer              VcvEntity? @relation("cred_issuer", fields: [issuerId], references: [id], onDelete: SetNull)
+  credentialKey       String     @unique @map("credential_key")
+  credentialFamilyKey String     @map("credential_family_key")
 
-  domain          VcvCredentialDomain    @map("domain")
-  credentialType  String                 @map("credential_type") // e.g. "MD_LICENSE_CA", "ABIM_INTERNAL_MEDICINE"
-  status          String                 @default("ACTIVE")      // ACTIVE | EXPIRED | SUSPENDED | REVOKED
+  domain            VcvCredentialDomain  @map("domain")
+  credentialType    String               @map("credential_type") // e.g. "MD_LICENSE_CA", "ABIM_INTERNAL_MEDICINE"
+  status            String               @default("ACTIVE") // ACTIVE | EXPIRED | SUSPENDED | REVOKED
   verificationLevel VcvVerificationLevel @default(SELF_REPORTED) @map("verification_level")
 
   /// Raw claim value — structured JSON (license number, state, dates, etc.)
-  claimValue      Json                   @default("{}") @db.JsonB @map("claim_value")
+  claimValue  Json     @default("{}") @map("claim_value") @db.JsonB
   /// Source artifact IDs that back this credential
-  artifactIds     String[]               @default([]) @map("artifact_ids")
+  artifactIds String[] @default([]) @map("artifact_ids")
   /// Verification receipt IDs that justify this materialized credential
-  receiptIds      String[]               @default([]) @map("receipt_ids")
+  receiptIds  String[] @default([]) @map("receipt_ids")
   /// The claim ID in the identity pipeline that produced this credential
-  claimId         String?                @map("claim_id")
+  claimId     String?  @map("claim_id")
 
-  issuedAt        DateTime?              @map("issued_at")
-  expiresAt       DateTime?              @map("expires_at")
-  verifiedAt      DateTime?              @map("verified_at")
-  observedAt      DateTime?              @map("observed_at")
-  revokedAt       DateTime?              @map("revoked_at")
-  nextReverifyAt  DateTime?              @map("next_reverify_at")
-  trustTier       String?                @map("trust_tier")
-  confidence      Float?
-  supersededByCredentialId String?       @db.Uuid @map("superseded_by_credential_id")
-  supersedesCredentialId String?         @db.Uuid @map("supersedes_credential_id")
+  issuedAt                 DateTime? @map("issued_at")
+  expiresAt                DateTime? @map("expires_at")
+  verifiedAt               DateTime? @map("verified_at")
+  observedAt               DateTime? @map("observed_at")
+  revokedAt                DateTime? @map("revoked_at")
+  nextReverifyAt           DateTime? @map("next_reverify_at")
+  trustTier                String?   @map("trust_tier")
+  confidence               Float?
+  supersededByCredentialId String?   @map("superseded_by_credential_id") @db.Uuid
+  supersedesCredentialId   String?   @map("supersedes_credential_id") @db.Uuid
 
   /// State context (e.g. for state licenses: "CA", "NY")
-  jurisdiction    String?
+  jurisdiction String?
   /// Free-form metadata
-  metadata        Json                   @default("{}") @db.JsonB
-  createdAt       DateTime               @default(now()) @map("created_at")
-  updatedAt       DateTime               @updatedAt     @map("updated_at")
+  metadata     Json     @default("{}") @db.JsonB
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
-  supersededByCredential VcvCredential?  @relation("CredentialSupersededBy", fields: [supersededByCredentialId], references: [id], onDelete: SetNull)
-  supersedesCredential VcvCredential?    @relation("CredentialSupersedes", fields: [supersedesCredentialId], references: [id], onDelete: SetNull)
-  educationRecords VcvEducationRecord[]  @relation("edu_credential")
-  contextLinks     VcvOrgContextSubject[] @relation("ctx_credential")
-  supersededCredentials VcvCredential[]  @relation("CredentialSupersedes")
-  supersedesCredentials VcvCredential[]  @relation("CredentialSupersededBy")
+  supersededByCredential VcvCredential?         @relation("CredentialSupersededBy", fields: [supersededByCredentialId], references: [id], onDelete: SetNull)
+  supersedesCredential   VcvCredential?         @relation("CredentialSupersedes", fields: [supersedesCredentialId], references: [id], onDelete: SetNull)
+  educationRecords       VcvEducationRecord[]   @relation("edu_credential")
+  contextLinks           VcvOrgContextSubject[] @relation("ctx_credential")
+  supersededCredentials  VcvCredential[]        @relation("CredentialSupersedes")
+  supersedesCredentials  VcvCredential[]        @relation("CredentialSupersededBy")
 
   @@index([subjectId, domain])
   @@index([subjectId, status])
@@ -3405,37 +3407,37 @@ model VcvCredential {
 /// Linked to a subject entity, optional institution entity,
 /// and optionally a VcvCredential that represents its verified state.
 model VcvEducationRecord {
-  id              String              @id @default(uuid()) @db.Uuid
-  subjectId       String              @db.Uuid @map("subject_id")
-  subject         VcvEntity           @relation("edu_subject", fields: [subjectId], references: [id], onDelete: Cascade)
-  institutionId   String?             @db.Uuid @map("institution_id")
-  institution     VcvEntity?          @relation("edu_institution", fields: [institutionId], references: [id], onDelete: SetNull)
+  id            String         @id @default(uuid()) @db.Uuid
+  subjectId     String         @map("subject_id") @db.Uuid
+  subject       VcvEntity      @relation("edu_subject", fields: [subjectId], references: [id], onDelete: Cascade)
+  institutionId String?        @map("institution_id") @db.Uuid
+  institution   VcvEntity?     @relation("edu_institution", fields: [institutionId], references: [id], onDelete: SetNull)
   /// The verified credential this education record supports (optional)
-  credentialId    String?             @db.Uuid @map("credential_id")
-  credential      VcvCredential?      @relation("edu_credential", fields: [credentialId], references: [id], onDelete: SetNull)
+  credentialId  String?        @map("credential_id") @db.Uuid
+  credential    VcvCredential? @relation("edu_credential", fields: [credentialId], references: [id], onDelete: SetNull)
 
-  recordType      String              @map("record_type")
+  recordType String @map("record_type")
   // MEDICAL_DEGREE | NURSING_DEGREE | ADVANCED_PRACTICE_CERT |
   // RESIDENCY_COMPLETION | FELLOWSHIP_COMPLETION | INTERNSHIP_COMPLETION |
   // CME_COMPLETION | TRAINING_PROGRAM_STATUS | CLINICAL_ROTATION
 
-  degreeOrTitle   String?             @map("degree_or_title")  // "MD", "DO", "Residency — Internal Medicine"
-  specialty       String?
-  programName     String?             @map("program_name")
-  acgmeCode       String?             @map("acgme_code")       // ACGME program code for residency/fellowship
-  startYear       Int?                @map("start_year")
-  endYear         Int?                @map("end_year")
-  graduationDate  DateTime?           @map("graduation_date")
-  completed       Boolean             @default(false)
-  pgLevel         String?             @map("pg_level")         // PGY-1, PGY-2, etc.
-  countryCode     String              @default("US") @map("country_code")
-  accredited      Boolean?            // LCME / ACGME accreditation status
+  degreeOrTitle     String?              @map("degree_or_title") // "MD", "DO", "Residency — Internal Medicine"
+  specialty         String?
+  programName       String?              @map("program_name")
+  acgmeCode         String?              @map("acgme_code") // ACGME program code for residency/fellowship
+  startYear         Int?                 @map("start_year")
+  endYear           Int?                 @map("end_year")
+  graduationDate    DateTime?            @map("graduation_date")
+  completed         Boolean              @default(false)
+  pgLevel           String?              @map("pg_level") // PGY-1, PGY-2, etc.
+  countryCode       String               @default("US") @map("country_code")
+  accredited        Boolean? // LCME / ACGME accreditation status
   verificationLevel VcvVerificationLevel @default(SELF_REPORTED) @map("verification_level")
   /// Raw source data (degree conferral letter, ACGME record, etc.)
-  sourceData      Json                @default("{}") @db.JsonB @map("source_data")
-  metadata        Json                @default("{}") @db.JsonB
-  createdAt       DateTime            @default(now()) @map("created_at")
-  updatedAt       DateTime            @updatedAt     @map("updated_at")
+  sourceData        Json                 @default("{}") @map("source_data") @db.JsonB
+  metadata          Json                 @default("{}") @db.JsonB
+  createdAt         DateTime             @default(now()) @map("created_at")
+  updatedAt         DateTime             @updatedAt @map("updated_at")
 
   @@index([subjectId, recordType])
   @@index([institutionId])
@@ -3457,35 +3459,35 @@ model VcvEducationRecord {
 ///   - A context type (what is being done)
 ///   - A status (where in the lifecycle it is)
 model VcvOrganizationContext {
-  id              String              @id @default(uuid()) @db.Uuid
-  requestorId     String              @db.Uuid @map("requestor_id")
-  requestor       VcvEntity           @relation("ctx_requestor", fields: [requestorId], references: [id], onDelete: Cascade)
+  id          String    @id @default(uuid()) @db.Uuid
+  requestorId String    @map("requestor_id") @db.Uuid
+  requestor   VcvEntity @relation("ctx_requestor", fields: [requestorId], references: [id], onDelete: Cascade)
 
-  contextType     VcvOrgContextType   @map("context_type")
-  status          VcvOrgContextStatus @default(PENDING) @map("status")
-  title           String?             // human-readable label: "Q2 Re-credentialing — Kaiser SF"
-  description     String?
+  contextType VcvOrgContextType   @map("context_type")
+  status      VcvOrgContextStatus @default(PENDING) @map("status")
+  title       String? // human-readable label: "Q2 Re-credentialing — Kaiser SF"
+  description String?
 
   /// Deadline or expiration for this context
-  dueAt           DateTime?           @map("due_at")
-  completedAt     DateTime?           @map("completed_at")
-  revokedAt       DateTime?           @map("revoked_at")
-  revokedReason   String?             @map("revoked_reason")
+  dueAt         DateTime? @map("due_at")
+  completedAt   DateTime? @map("completed_at")
+  revokedAt     DateTime? @map("revoked_at")
+  revokedReason String?   @map("revoked_reason")
 
   /// Structured outcome (decision, notes, credential IDs accepted)
-  outcome         Json?               @db.JsonB
+  outcome         Json?    @db.JsonB
   /// Webhook URL to notify on status changes
-  webhookUrl      String?             @map("webhook_url")
+  webhookUrl      String?  @map("webhook_url")
   /// Auth user who created this context (Clerk user ID)
-  createdByUserId String?             @map("created_by_user_id")
+  createdByUserId String?  @map("created_by_user_id")
   /// Org-level external reference ID (for correlation with requester's systems)
-  externalRefId   String?             @map("external_ref_id")
-  metadata        Json                @default("{}") @db.JsonB
-  createdAt       DateTime            @default(now()) @map("created_at")
-  updatedAt       DateTime            @updatedAt     @map("updated_at")
+  externalRefId   String?  @map("external_ref_id")
+  metadata        Json     @default("{}") @db.JsonB
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
-  subjects        VcvOrgContextSubject[]
-  statusEvents    VcvOrgContextStatusEvent[]
+  subjects          VcvOrgContextSubject[]
+  statusEvents      VcvOrgContextStatusEvent[]
   bundleShareEvents BundleShareEvent[]
 
   @@index([requestorId, contextType])
@@ -3499,29 +3501,29 @@ model VcvOrganizationContext {
 /// A subject (entity + optional credential set) participating in an org context.
 /// Subject can be a clinician, trainee, or other entity being reviewed.
 model VcvOrgContextSubject {
-  id              String                @id @default(uuid()) @db.Uuid
-  contextId       String                @db.Uuid @map("context_id")
-  context         VcvOrganizationContext @relation(fields: [contextId], references: [id], onDelete: Cascade)
-  subjectId       String                @db.Uuid @map("subject_id")
-  subject         VcvEntity             @relation("ctx_subject", fields: [subjectId], references: [id], onDelete: Cascade)
+  id           String                 @id @default(uuid()) @db.Uuid
+  contextId    String                 @map("context_id") @db.Uuid
+  context      VcvOrganizationContext @relation(fields: [contextId], references: [id], onDelete: Cascade)
+  subjectId    String                 @map("subject_id") @db.Uuid
+  subject      VcvEntity              @relation("ctx_subject", fields: [subjectId], references: [id], onDelete: Cascade)
   /// Specific credential(s) being reviewed in this context (nullable = all)
-  credentialId    String?               @db.Uuid @map("credential_id")
-  credential      VcvCredential?        @relation("ctx_credential", fields: [credentialId], references: [id], onDelete: SetNull)
+  credentialId String?                @map("credential_id") @db.Uuid
+  credential   VcvCredential?         @relation("ctx_credential", fields: [credentialId], references: [id], onDelete: SetNull)
 
-  subjectStatus   String                @default("PENDING") @map("subject_status")
+  subjectStatus String @default("PENDING") @map("subject_status")
   // PENDING | SUBMITTED | UNDER_REVIEW | APPROVED | DENIED | WITHDRAWN
 
   /// Subject's response or submission data
-  submissionData  Json?                 @db.JsonB @map("submission_data")
+  submissionData   Json?     @map("submission_data") @db.JsonB
   /// Reviewer notes
-  reviewNotes     String?               @map("review_notes")
-  reviewedAt      DateTime?             @map("reviewed_at")
-  reviewedByUserId String?              @map("reviewed_by_user_id")
-  invitedAt       DateTime?             @map("invited_at")
-  respondedAt     DateTime?             @map("responded_at")
-  metadata        Json                  @default("{}") @db.JsonB
-  createdAt       DateTime              @default(now()) @map("created_at")
-  updatedAt       DateTime              @updatedAt     @map("updated_at")
+  reviewNotes      String?   @map("review_notes")
+  reviewedAt       DateTime? @map("reviewed_at")
+  reviewedByUserId String?   @map("reviewed_by_user_id")
+  invitedAt        DateTime? @map("invited_at")
+  respondedAt      DateTime? @map("responded_at")
+  metadata         Json      @default("{}") @db.JsonB
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
   @@unique([contextId, subjectId])
   @@index([contextId])
@@ -3532,15 +3534,15 @@ model VcvOrgContextSubject {
 
 /// Audit trail for org context lifecycle transitions.
 model VcvOrgContextStatusEvent {
-  id          String                @id @default(uuid()) @db.Uuid
-  contextId   String                @db.Uuid @map("context_id")
+  id          String                 @id @default(uuid()) @db.Uuid
+  contextId   String                 @map("context_id") @db.Uuid
   context     VcvOrganizationContext @relation(fields: [contextId], references: [id], onDelete: Cascade)
-  fromStatus  VcvOrgContextStatus?  @map("from_status")
-  toStatus    VcvOrgContextStatus   @map("to_status")
-  triggeredBy String?               @map("triggered_by") // clerk user ID or system
+  fromStatus  VcvOrgContextStatus?   @map("from_status")
+  toStatus    VcvOrgContextStatus    @map("to_status")
+  triggeredBy String?                @map("triggered_by") // clerk user ID or system
   reason      String?
-  metadata    Json                  @default("{}") @db.JsonB
-  createdAt   DateTime              @default(now()) @map("created_at")
+  metadata    Json                   @default("{}") @db.JsonB
+  createdAt   DateTime               @default(now()) @map("created_at")
 
   @@index([contextId])
   @@map("vcv_org_context_status_events")
@@ -3556,33 +3558,33 @@ model VcvOrgContextStatusEvent {
 /// An entity may have multiple users claiming it (e.g. credentialing coordinator
 /// acting on behalf of a clinician).
 model VcvUserEntityClaim {
-  id                  String              @id @default(uuid()) @db.Uuid
+  id          String    @id @default(uuid()) @db.Uuid
   /// The VCV auth user (Clerk user ID — NOT the internal User.id UUID)
-  clerkUserId         String              @map("clerk_user_id")
+  clerkUserId String    @map("clerk_user_id")
   /// The entity being claimed
-  entityId            String              @db.Uuid @map("entity_id")
-  entity              VcvEntity           @relation("entity_claims", fields: [entityId], references: [id], onDelete: Cascade)
+  entityId    String    @map("entity_id") @db.Uuid
+  entity      VcvEntity @relation("entity_claims", fields: [entityId], references: [id], onDelete: Cascade)
 
   /// Why the user is claiming this entity
-  claimType           String              @default("SUBJECT") @map("claim_type")
+  claimType String @default("SUBJECT") @map("claim_type")
   // SUBJECT     — user is the identity subject (clinician claiming their own NPI)
   // COORDINATOR — user manages on behalf of the subject
   // EMPLOYER    — user is reviewing/employing this entity
   // AUDITOR     — read-only access for compliance
 
-  verificationLevel   VcvVerificationLevel @default(SELF_REPORTED) @map("verification_level")
+  verificationLevel VcvVerificationLevel @default(SELF_REPORTED) @map("verification_level")
 
   /// When the claim was verified (if ever)
-  verifiedAt          DateTime?            @map("verified_at")
+  verifiedAt         DateTime? @map("verified_at")
   /// How it was verified: PASSKEY, MAGIC_LINK, DOCUMENT, ADMIN_OVERRIDE
-  verificationMethod  String?              @map("verification_method")
+  verificationMethod String?   @map("verification_method")
   /// Source artifact that confirmed the claim
-  artifactId          String?              @map("artifact_id")
+  artifactId         String?   @map("artifact_id")
 
-  revokedAt           DateTime?            @map("revoked_at")
-  revokedReason       String?              @map("revoked_reason")
-  claimedAt           DateTime             @default(now()) @map("claimed_at")
-  metadata            Json                 @default("{}") @db.JsonB
+  revokedAt     DateTime? @map("revoked_at")
+  revokedReason String?   @map("revoked_reason")
+  claimedAt     DateTime  @default(now()) @map("claimed_at")
+  metadata      Json      @default("{}") @db.JsonB
 
   @@unique([clerkUserId, entityId, claimType])
   @@index([clerkUserId])

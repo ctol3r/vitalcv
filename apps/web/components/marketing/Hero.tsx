@@ -123,7 +123,7 @@ export function Hero() {
             <h1 className="text-[clamp(2.4rem,5vw,4.8rem)] font-bold leading-[1.05] tracking-tight text-white">
               Start clinicians{' '}
               <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-                3–6 weeks faster.
+                faster.
               </span>
             </h1>
 
