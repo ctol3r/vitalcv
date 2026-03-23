@@ -138,6 +138,7 @@ import { registerRoleRoutes } from './routes/role';                         // C
 import { registerOwnershipRoutes } from './routes/ownership';               // Auth A1: NPI ownership claims
 import { registerEntityRoutes }    from './routes/entity';                   // S1/S3: canonical entity resolution
 import { registerPassportEntityRoutes } from './routes/passportEntity';      // S1/S5: entity passport + share
+import { registerIngestStreamRoutes }   from './routes/ingestStream';        // Real-time ingest SSE
 import { registerOpportunityRoutes } from './routes/opportunities';          // Wave 227: Opportunities + Candidates
 import { registerApplicationRoutes } from './routes/applications';            // Wave 229: Application Flow
 import { registerAskRoutes } from './routes/ask';                           // Wave 185: Ask VitalCV answer engine
@@ -3549,6 +3550,7 @@ registerRoleRoutes(app);              // Clerk auth — GET /api/me/role (role r
 registerOwnershipRoutes(app);         // Auth A1 — NPI ownership claim/revoke
 registerEntityRoutes(app);            // S1/S3 — canonical entity resolution + roles + relationships
 registerPassportEntityRoutes(app);    // S1/S5 — trust passport + POST /api/share + POST /api/organization-context
+registerIngestStreamRoutes(app);      // Real-time ingest — POST /api/ingest/:npi + GET /api/ingest/:runId/stream
 registerOpportunityRoutes(app);       // Wave 227 — Opportunities + Candidates
 registerApplicationRoutes(app);       // Wave 229 — Clinician Application Flow
 registerAskRoutes(app);               // Wave 185 — Ask VitalCV natural language answer engine
