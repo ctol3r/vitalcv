@@ -207,7 +207,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const title = cleared
       ? `NPI ${profile.npi} — CLEARED & Ready to Hire | VitalCV`
       : `NPI ${profile.npi} — Verification Pending | VitalCV`;
-    const description = `${profile.activeCredentials.length} active verified credentials. Backed by VitalCV Trust Network.`;
+    // M1: Honest meta — count is source-dependent, not all credentials are from live sources
+    const description = `${profile.activeCredentials.length} credential record${profile.activeCredentials.length !== 1 ? 's' : ''} on file. Verified via connected primary sources.`;
     return {
       title,
       description,

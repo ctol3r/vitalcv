@@ -174,7 +174,8 @@ const STEPS = [
     step: '02',
     icon: ShieldCheck,
     title: 'Primary sources verify you',
-    description: 'We query state medical boards, NPDB, DEA, OIG, and board registries directly. The same sources hospitals use — automated.',
+    // M1: List only live/configured sources. NPDB and DEA are not integrated.
+    description: 'We check NPPES identity, OIG exclusion status, and Medicare enrollment directly. State license verification available with institutional source access.',
     accent: 'emerald',
     detail: 'Real sources, not document copies',
   },
@@ -182,9 +183,10 @@ const STEPS = [
     step: '03',
     icon: Zap,
     title: 'Portable across employers',
-    description: 'Your readiness travels with you. Any employer confirms your standing instantly — no committee, no 90-day wait.',
+    // M1: Remove "instantly — no committee, no 90-day wait" — conditional on source coverage
+    description: 'Your verified readiness travels with you. Where a source is already checked, employers confirm standing without repeating the verification process.',
     accent: 'violet',
-    detail: 'Faster time to start',
+    detail: 'Fewer repeated verifications',
   },
 ] as const;
 
@@ -327,7 +329,7 @@ export function TractionSection() {
           <p className="mt-4 text-white/60 max-w-xl mx-auto text-lg leading-relaxed">
             Every hospital, clinic, and staffing agency re-verifies the same
             clinician from scratch — by fax, by hand, every time. VitalCV
-            makes that process permanent, portable, and instant.
+            makes that process auditable, portable, and interoperable.
           </p>
         </FadeIn>
 
@@ -662,8 +664,9 @@ const PILLARS = [
   {
     number: '01',
     title: 'Universal Clinical Identity',
-    body: 'One verified profile per clinician — NPI, licenses, board certifications, publications, employer history, and career trajectory. Pulled from primary sources, not self-reported.',
-    tags: ['NPPES', 'NPDB', 'DEA', 'State Boards', 'ABMS', 'PubMed'],
+    // M1: Only tag sources that are actually integrated. NPDB/DEA/ABMS are not live.
+    body: 'One verified profile per clinician — NPI, licenses, enrollment status, and career trajectory. Pulled from connected primary sources, not self-reported.',
+    tags: ['NPPES', 'OIG / LEIE', 'CMS PECOS', 'State Boards', 'OpenAlex'],
     color: 'blue',
   },
   {
@@ -689,9 +692,10 @@ const PILLARS = [
   },
   {
     number: '05',
-    title: 'Blockchain-Anchored PSV',
-    body: 'Primary source verification results anchored permanently. Once verified, a credential is portable across employers where accepted — without re-verification. Data freshness varies by source (daily to quarterly).',
-    tags: ['SD-JWT VC', 'W3C Standards', 'OID4VCI', 'Permanent Record'],
+    title: 'Cryptographic PSV',
+    // M1: No blockchain in production. "Permanent" is overclaim — credentials expire and are re-checked.
+    body: 'Primary source verification results signed and portable. Once a source is checked, the signed result travels with the clinician — so employers confirm standing without re-running the same check. Data freshness varies by source (daily to quarterly).',
+    tags: ['SD-JWT VC', 'W3C Standards', 'OID4VCI', 'Source-Signed'],
     color: 'rose',
   },
 ] as const;
@@ -707,15 +711,18 @@ const PILLAR_COLORS: Record<string, { border: string; tag: string; num: string }
 const NOVEL_CLAIMS = [
   {
     claim: 'The first unified clinical identity graph',
-    detail: 'NPI → credentials → publications → career history — one traversable, live, cryptographically-anchored graph. No one has done this.',
+    // M1: "blockchain-anchored" → "cryptographically signed" — no blockchain in prod
+    detail: 'NPI → credentials → publications → career history — one traversable, source-backed, cryptographically-signed graph. No one has built this for healthcare.',
   },
   {
     claim: 'Credential-aware job matching',
     detail: 'MATCHA knows what you\'re qualified for today, what you\'re 6 months from qualifying for, and what your peers pivoted to. That\'s not a job board — it\'s a career engine.',
   },
   {
-    claim: 'PSV that never expires',
-    detail: 'When a credential is verified via primary source and blockchain-anchored, it\'s trusted forever. The re-verification loop — the one that costs $9K/day — ends.',
+    // M1: "trusted forever" removed — credentials expire and sources have freshness windows
+    // M1: "blockchain-anchored" → "cryptographically signed" — no blockchain in prod
+    claim: 'PSV that travels with the clinician',
+    detail: 'When a credential is verified via primary source and cryptographically signed, that result is portable. The duplicated re-verification loop — the one that costs $9K/day per empty slot — ends.',
   },
   {
     claim: 'Clinic hiring capacity as a measurable metric',
@@ -752,8 +759,8 @@ export function PlatformVisionSection() {
           </h2>
           <p className="text-white/60 max-w-2xl mx-auto text-lg leading-relaxed">
             VitalCV is building the definitive knowledge base for every clinician, every credential,
-            every specialty, and every career path in American medicine — powered by AI and anchored
-            by cryptographic proof. Free for the people who need it most.
+            every specialty, and every career path in American medicine — backed by primary source
+            verification and cryptographic signing. Free for the people who need it most.
           </p>
         </FadeIn>
 
@@ -787,15 +794,32 @@ export function PlatformVisionSection() {
               <div className="mb-4">
                 <span className="text-4xl font-black text-white/10">06</span>
               </div>
-              <h3 className="text-base font-semibold text-white mb-2">Integration Network</h3>
+              <h3 className="text-base font-semibold text-white mb-2">Source Layer</h3>
+              {/* M1: Only show sources that are actually integrated or configured.
+                  NPDB and Doximity are not connected. DEA/ABMS have no live provider.
+                  CMS/TEFCA/ONC are standards/interop targets, not data sources. */}
               <p className="text-sm text-white/60 leading-relaxed mb-4">
-                Ingests data from every major medical registry, association, and platform —
-                so clinicians never fill out a form that already exists somewhere.
+                Connected to primary registries — so clinicians never fill out a form
+                that already exists in an official source.
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {['NPPES', 'NPDB', 'Doximity', 'PubMed', 'DEA', 'OIG', 'ABMS', 'State Boards', 'CMS', 'TEFCA'].map(src => (
-                  <span key={src} className="rounded-full px-2 py-0.5 text-[10px] font-medium bg-white/5 text-white/55">
-                    {src}
+                {[
+                  { src: 'NPPES',        live: true  },
+                  { src: 'OIG / LEIE',   live: true  },
+                  { src: 'CMS PECOS',    live: true  },
+                  { src: 'Nursys',       live: false },
+                  { src: 'FSMB',         live: false },
+                  { src: 'OpenAlex',     live: true  },
+                  { src: 'ONC / TEFCA',  live: false },
+                ].map(({ src, live }) => (
+                  <span
+                    key={src}
+                    title={live ? 'Connected' : 'Requires institutional access or configuration'}
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      live ? 'bg-white/8 text-white/70' : 'bg-white/3 text-white/35'
+                    }`}
+                  >
+                    {src}{!live ? ' ·' : ''}
                   </span>
                 ))}
               </div>

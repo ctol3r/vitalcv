@@ -50,8 +50,9 @@ const VALUE_PROPS = [
   {
     icon: '🌐',
     title: 'Scale: Network effects',
-    desc: 'Every issuer and verifier on VitalCV increases the value for every other participant. 250k+ credentialed clinicians and growing.',
-    stat: '250k+', statLabel: 'credentialed clinicians',
+    // M1: "250k+" is a market-size stat, not a platform count. Qualified.
+    desc: 'Every issuer and verifier on VitalCV increases the value for every other participant. Built for a market of 6.8M licensed healthcare workers.',
+    stat: '6.8M', statLabel: 'licensed healthcare workers (US)',
   },
 ];
 
@@ -101,7 +102,8 @@ export default function InvestorsPage() {
             <br />VitalCV solves it.
           </h1>
           <p className="text-xl text-vt-neutral-300 max-w-2xl mx-auto mb-10">
-            Cryptographic trust infrastructure that makes primary source verification instant, auditable, and interoperable — replacing a 30-day manual process with automated verification. Data freshness varies by source (daily to quarterly).
+            {/* M1: "instant" removed — source latency varies (NPPES: live, PECOS: quarterly, boards: access-dependent) */}
+            Cryptographic trust infrastructure for primary source verification — auditable, portable, and interoperable. Replaces repeated manual credentialing with a signed, portable result. Data freshness varies by source (daily to quarterly).
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <a href="#contact" className="bg-emerald-500 hover:bg-emerald-400 text-white font-semibold px-8 py-3 rounded-xl transition-colors">
@@ -117,7 +119,8 @@ export default function InvestorsPage() {
       {/* Live Metrics */}
       <section className="bg-vt-surface-ops-raised py-16 px-6">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-center text-xs font-semibold text-vt-neutral-500 uppercase tracking-widest mb-8">Live Platform Metrics</h2>
+          {/* M1: Demo metrics displayed when live analytics endpoint unavailable — labeled accordingly */}
+          <h2 className="text-center text-xs font-semibold text-vt-neutral-500 uppercase tracking-widest mb-8">Platform Metrics</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
               { label: 'Credentials Issued', value: metrics.credentialsIssued, suffix: '+' },

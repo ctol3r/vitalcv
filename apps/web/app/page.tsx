@@ -9,13 +9,13 @@ import { CheckCircle2 } from 'lucide-react';
 // ── Wave C: Trust Strip ───────────────────────────────────────
 
 function TrustStrip() {
+  // M1: Only sources that are actually connected. NPDB/DEA/ABMS are not integrated.
   const SOURCES = [
-    { name: 'State Medical Boards',  sub: '50 states'       },
-    { name: 'NPDB',                  sub: 'National database' },
-    { name: 'DEA',                   sub: 'Drug Enforcement' },
-    { name: 'OIG / LEIE',            sub: 'Exclusion check'  },
-    { name: 'ABMS',                  sub: 'Board certs'      },
-    { name: 'NPPES',                 sub: '10M+ providers'   },
+    { name: 'NPPES',              sub: 'NPI identity'          },
+    { name: 'OIG / LEIE',        sub: 'Exclusion check'        },
+    { name: 'CMS PECOS',         sub: 'Medicare enrollment'    },
+    { name: 'State Boards',      sub: 'Via Nursys · access req.' },
+    { name: 'FSMB',              sub: 'Physicians · access req.' },
   ];
 
   return (
@@ -83,10 +83,10 @@ function InterviewModeTeaser() {
                     </div>
                     <div className="px-4 py-3 space-y-2.5">
                       {[
-                        { label: 'License', status: 'VERIFIED' },
-                        { label: 'DEA',     status: 'VERIFIED' },
-                        { label: 'Board',   status: 'VERIFIED' },
-                        { label: 'NPDB',    status: 'CLEAR'    },
+                        { label: 'Identity',  status: 'VERIFIED' },
+                        { label: 'License',   status: 'VERIFIED' },
+                        { label: 'Exclusion', status: 'CLEAR'    },
+                        { label: 'PECOS',     status: 'ENROLLED' },
                       ].map(r => (
                         <div key={r.label} className="flex items-center justify-between">
                           <span className="text-xs text-white/50">{r.label}</span>
