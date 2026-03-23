@@ -165,20 +165,44 @@ export async function resolveBlockerEvent(input: ResolveBlockerInput): Promise<v
   }
 }
 
-/** Open a blocker event for each new blocker code if not already open. */
+/**
+ * syncBlockerEvents — idempotent blocker lifecycle sync.
+ *
+ * Called after every readiness recompute (in passportService.buildPassport).
+ * Compares the current blocker list against the open events in the DB:
+ *
+ *   NEW blocker (not in DB as OPEN):
+ *     → openBlockerEvent() — creates OPEN row with openedAt=now
+ *
+ *   GONE blocker (in DB as OPEN, not in current list):
+ *     → resolveBlockerEvent() — stamps resolvedAt, computes resolutionDays
+ *
+ *   RE-OPENED blocker (in DB as RESOLVED, back in current list):
+ *     → openBlockerEvent() — creates a new OPEN row (new episode, new timing)
+ *
+ *   UNCHANGED blocker (OPEN in DB, still in current list):
+ *     → no-op (idempotent — does not create duplicate events)
+ *
+ * Always fire-and-forget. A sync failure must never block passport delivery.
+ */
 export async function syncBlockerEvents(
-  entityId:    string,
+  entityId:     string,
   blockerCodes: string[],
-): Promise<void> {
-  try {
-    const existing = await prisma.blockerResolutionEvent.findMany({
-      where: { entityId, status: 'OPEN' },
-      select: { id: true, blockerCode: true },
-    });
-    const existingCodes = new Set(existing.map(e => e.blockerCode));
+): Promise<{ opened: number; resolved: number; noOp: number }> {
+  const result = { opened: 0, resolved: 0, noOp: 0 };
 
-    // Open new blockers
-    const toOpen = blockerCodes.filter(c => !existingCodes.has(c));
+  try {
+    // Fetch only OPEN rows — RESOLVED rows are historical and immutable
+    const openRows = await prisma.blockerResolutionEvent.findMany({
+      where:  { entityId, status: 'OPEN' },
+      select: { id: true, blockerCode: true, openedAt: true },
+    });
+
+    const openByCode = new Map(openRows.map(r => [r.blockerCode, r]));
+    const currentSet = new Set(blockerCodes);
+
+    // ── NEW blockers: in current list but no OPEN row ──────────────────
+    const toOpen = blockerCodes.filter(code => !openByCode.has(code));
     if (toOpen.length > 0) {
       await prisma.blockerResolutionEvent.createMany({
         data: toOpen.map(blockerCode => ({
@@ -187,23 +211,49 @@ export async function syncBlockerEvents(
           blockerCode,
           openedAt:    new Date(),
           status:      'OPEN',
-          metadata:    {},
+          metadata:    JSON.parse(JSON.stringify({ source: 'readiness_recompute' })),
         })),
-        skipDuplicates: true,
+        skipDuplicates: true, // extra guard against race conditions
+      });
+      result.opened += toOpen.length;
+      log('debug', 'seal_blockers_opened', {
+        entityId: entityId.slice(0, 8) + '…',
+        codes: toOpen,
       });
     }
 
-    // Auto-resolve blockers that are no longer present
-    const toResolve = existing.filter(e => !blockerCodes.includes(e.blockerCode));
+    // ── RESOLVED blockers: OPEN in DB but no longer in current list ────
+    const toResolve = openRows.filter(r => !currentSet.has(r.blockerCode));
     for (const br of toResolve) {
-      await resolveBlockerEvent({ blockerEventId: br.id, resolutionMethod: 'SOURCE_UPDATE' });
+      await resolveBlockerEvent({
+        blockerEventId:   br.id,
+        resolutionMethod: 'SOURCE_UPDATE',
+        metadata:         { source: 'readiness_recompute' },
+      });
+      result.resolved++;
     }
+    if (toResolve.length > 0) {
+      log('debug', 'seal_blockers_resolved', {
+        entityId: entityId.slice(0, 8) + '…',
+        codes: toResolve.map(r => r.blockerCode),
+      });
+    }
+
+    // ── NO-OP: blockers unchanged ──────────────────────────────────────
+    result.noOp = blockerCodes.filter(code => openByCode.has(code)).length;
+
+    // ── RE-OPENED: was previously RESOLVED, now back in current list ───
+    // Handled implicitly: toOpen includes any code that has no current OPEN row,
+    // which covers re-opened blockers (prior RESOLVED rows exist but status≠OPEN).
+
   } catch (err) {
     log('warn', 'seal_blocker_sync_failed', {
       entityId: entityId.slice(0, 8) + '…',
-      error: err instanceof Error ? err.message : String(err),
+      error:    err instanceof Error ? err.message : String(err),
     });
   }
+
+  return result;
 }
 
 // ── 3. Employer Decision Event ────────────────────────────────────────────
