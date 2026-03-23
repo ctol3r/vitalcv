@@ -21,8 +21,9 @@
 
 import EventEmitter from 'node:events';
 import { randomUUID } from 'node:crypto';
-import { ingestClinicianIdentity } from '../identity/identityIngestionPipeline';
+import { ingestClinicianIdentity, getClaimsForNpi } from '../identity/identityIngestionPipeline';
 import { resolveEntityFromNpi } from '../entity/entityResolutionService';
+import { materializeCredentials } from '../entity/upsertVcvCredential';
 import { log } from '../../obs/logger';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -178,7 +179,30 @@ async function runPipeline(run: IngestRun): Promise<void> {
       },
     });
 
-    if (claimCount > 0) {
+    // ── Stage 3: materialize claims → VcvCredential rows ────────────────────
+    let materializedCount = 0;
+    if (run.entityId) {
+      try {
+        const allClaims = await getClaimsForNpi(run.npi);
+        const materialized = await materializeCredentials(allClaims, run.entityId);
+        materializedCount = materialized.created + materialized.updated;
+
+        emit(run, {
+          type: 'claim_update',
+          timestamp: new Date().toISOString(),
+          payload: {
+            claimCount:     allClaims.length,
+            materialized:   materializedCount,
+            readinessScore: report.identitySummary?.readinessScore,
+            readinessLevel: report.identitySummary?.readinessLevel,
+          },
+        });
+      } catch (err) {
+        log('warn', 'credential_materialization_failed', {
+          runId: run.runId, npi: run.npi, error: String(err),
+        });
+      }
+    } else if (claimCount > 0) {
       emit(run, {
         type: 'claim_update',
         timestamp: new Date().toISOString(),
@@ -196,10 +220,11 @@ async function runPipeline(run: IngestRun): Promise<void> {
       type: 'done',
       timestamp: new Date().toISOString(),
       payload: {
-        entityId:      run.entityId,
-        npi:           run.npi,
-        claimsStored:  claimCount,
-        deltaEvents:   report.deltaEvents?.length ?? 0,
+        entityId:           run.entityId,
+        npi:                run.npi,
+        claimsStored:       claimCount,
+        credentialRows:     materializedCount,
+        deltaEvents:        report.deltaEvents?.length ?? 0,
       },
     });
 

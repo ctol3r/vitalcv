@@ -1,5 +1,6 @@
 import app from './app';
 import { log } from './obs/logger';
+import { seedIssuerEntities } from './services/entity/seedIssuers';
 
 export default app;
 
@@ -11,6 +12,10 @@ export async function startServer() {
       url: `http://localhost:${port}`,
     });
   });
+  // Seed canonical issuer entities on startup (idempotent)
+  seedIssuerEntities().catch(err =>
+    log('warn', 'issuer_seed_startup_failed', { error: String(err) }),
+  );
 }
 
 if (require.main === module) {
