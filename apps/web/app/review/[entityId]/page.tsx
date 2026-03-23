@@ -18,6 +18,30 @@ async function fetchPassport(entityId: string): Promise<PassportData | null> {
   } catch { return null; }
 }
 
+/** Fire the employer-review-opened event for KPI tracking (fire-and-forget). */
+async function fireReviewOpenedEvent(
+  entityId: string,
+  passport: { readiness: { score?: number; blockers?: string[] } } | null,
+  contextId?: string,
+): Promise<void> {
+  // POST /api/employer-review/:entityId/view — always 202, non-blocking
+  try {
+    await fetch(`${B}/api/employer-review/${entityId}/view`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        organizationContextId: contextId ?? null,
+        readinessScore:        passport?.readiness?.score ?? null,
+        blockers:              passport?.readiness?.blockers ?? [],
+      }),
+      // Short timeout — never block page render on this
+      signal: AbortSignal.timeout(2000),
+    });
+  } catch {
+    // Intentionally swallowed — KPI capture must never fail the review page
+  }
+}
+
 export default async function ReviewPage({
   params,
   searchParams,
@@ -39,6 +63,9 @@ export default async function ReviewPage({
       </main>
     );
   }
+
+  // KPI: record employer review open — fire-and-forget, never blocks render
+  void fireReviewOpenedEvent(entityId, passport, contextId);
 
   return (
     <ReviewClient
