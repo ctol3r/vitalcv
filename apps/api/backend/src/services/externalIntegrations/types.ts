@@ -25,8 +25,13 @@ export interface NursysProvider {
 
 export type PecosCheck = {
   npi: string;
-  enrolled: boolean;
+  enrolled: boolean | null;
+  claimState: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN';
   enrollmentType: string | null;
+  observedAt: Date;
+  dataVersion: string | null;
+  dataFreshness: 'QUARTERLY';
+  sourceLatency: 'QUARTERLY';
   checkedAt: Date;
   rawPayload: Record<string, unknown>;
 };

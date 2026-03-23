@@ -280,8 +280,13 @@ export function summarizeClaim(claim: NormalizedClaim): string {
     case 'BOARD_CERTIFICATION':
     case 'BOARD_CERT_FLAG':
       return asString(value.specialty) ?? asString(value.certifyingBoard) ?? 'Board certification';
-    case 'ENROLLMENT_STATUS':
-      return asBoolean(value.enrolled) ? 'Enrolled' : 'Not enrolled';
+    case 'ENROLLMENT_STATUS': {
+      const claimState = asString(value.claimState)?.toUpperCase();
+      if (claimState === 'ENROLLED') return 'Enrolled';
+      if (claimState === 'NOT_FOUND') return 'Not found in PECOS snapshot';
+      if (claimState === 'UNCHECKED') return 'Unchecked';
+      return 'Enrollment unresolved';
+    }
     default:
       return asString(value.title) ?? asString(value.name) ?? claim.claimType;
   }

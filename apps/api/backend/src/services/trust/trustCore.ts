@@ -1,12 +1,14 @@
 import { buildReadinessNextActions } from '../entity/readinessActions';
 import { SOURCE_GOVERNANCE } from '../identity/sourceGovernance';
+import {
+  coverageSatisfiesDecisionGradeTruth,
+  createCanonicalSourceCoverage,
+  resolveCanonicalSourceCoverageState,
+  type CanonicalSourceCoverage,
+  type CanonicalSourceCoverageState,
+} from '../../../../../../packages/trust-state';
 
-export type SourceCoverageState =
-  | 'CHECKED'
-  | 'PENDING'
-  | 'UNAVAILABLE'
-  | 'GATED'
-  | 'HUMAN_REQUIRED';
+export type SourceCoverageState = CanonicalSourceCoverageState;
 
 export type TrustDimensionId =
   | 'identity'
@@ -14,16 +16,7 @@ export type TrustDimensionId =
   | 'licensure'
   | 'enrollment';
 
-export interface TrustSourceCoverage {
-  sourceId: string;
-  state: SourceCoverageState;
-  reason: string;
-  checkedAt?: string | null;
-  artifactId?: string | null;
-  sourceUrl?: string | null;
-  rawArtifactRef?: string | null;
-  checksum?: string | null;
-}
+export type TrustSourceCoverage = CanonicalSourceCoverage;
 
 export interface TrustDimensionAssessment {
   dimension: TrustDimensionId;
@@ -63,20 +56,20 @@ function clampConfidence(value: number): number {
 export function defaultCoverageStateForSource(sourceId: string): SourceCoverageState {
   const governance = SOURCE_GOVERNANCE[sourceId];
   if (!governance) {
-    return 'PENDING';
+    return 'notDecisionGrade';
   }
   if (governance.accessBoundary === 'human_lookup_only') {
-    return 'HUMAN_REQUIRED';
+    return 'accessRequired';
   }
   if (
     governance.accessBoundary === 'gated'
     || governance.accessBoundary === 'institutional'
     || governance.accessBoundary === 'registration_required'
   ) {
-    return 'GATED';
+    return 'gated';
   }
 
-  return 'PENDING';
+  return 'notChecked';
 }
 
 export function resolveSourceCoverageState(input: {
@@ -85,26 +78,33 @@ export function resolveSourceCoverageState(input: {
   fresh?: boolean;
   unavailable?: boolean;
   humanRequired?: boolean;
+  gated?: boolean;
+  reviewRequired?: boolean;
+  notDecisionGrade?: boolean;
+  partial?: boolean;
+  accessRequired?: boolean;
+  /** mock: source connected but using stubbed/demo data — not decision-grade */
+  mock?: boolean;
 }): SourceCoverageState {
-  if (input.humanRequired) {
-    return 'HUMAN_REQUIRED';
-  }
-  if (input.unavailable) {
-    return 'UNAVAILABLE';
-  }
-  if (input.checked && input.fresh !== false) {
-    return 'CHECKED';
-  }
-  if (input.checked && input.fresh === false) {
-    return 'PENDING';
-  }
+  const defaultState = defaultCoverageStateForSource(input.sourceId);
+  const isUnsupported = !SOURCE_GOVERNANCE[input.sourceId] && input.sourceId !== 'UNKNOWN' && !input.sourceId.startsWith('MOCK_');
 
-  return defaultCoverageStateForSource(input.sourceId);
+  return resolveCanonicalSourceCoverageState({
+    checked: input.checked,
+    fresh: input.fresh,
+    unavailable: input.unavailable,
+    gated: input.gated ?? (defaultState === 'gated' && !input.checked),
+    accessRequired: input.accessRequired ?? (defaultState === 'accessRequired' && !input.checked),
+    reviewRequired: input.reviewRequired ?? input.humanRequired,
+    notDecisionGrade: input.notDecisionGrade || isUnsupported,
+    partial: input.partial,
+    mock: input.mock,
+  });
 }
 
 function normalizeCoverage(input: TrustSourceCoverage): TrustSourceCoverage {
-  return {
-    ...input,
+  return createCanonicalSourceCoverage({
+    sourceId: input.sourceId,
     state: input.state,
     reason: input.reason,
     checkedAt: input.checkedAt ?? null,
@@ -112,6 +112,52 @@ function normalizeCoverage(input: TrustSourceCoverage): TrustSourceCoverage {
     sourceUrl: input.sourceUrl ?? null,
     rawArtifactRef: input.rawArtifactRef ?? input.artifactId ?? null,
     checksum: input.checksum ?? null,
+    proof: input.proof ?? null,
+  });
+}
+
+function normalizeAssessmentForCoverage(
+  dimension: TrustDimensionAssessment,
+): TrustDimensionAssessment {
+  const sourceCoverage = dimension.sourceCoverage.map(normalizeCoverage);
+  const hasLiveCoverage = sourceCoverage.some(coverageSatisfiesDecisionGradeTruth);
+
+  if (sourceCoverage.length === 0 || hasLiveCoverage) {
+    return {
+      ...dimension,
+      sourceCoverage,
+    };
+  }
+
+  const reviewCoverage = sourceCoverage.find((coverage) => coverage.state === 'reviewRequired');
+  if (reviewCoverage) {
+    return {
+      ...dimension,
+      status: 'REVIEW_REQUIRED',
+      confidence: Math.min(dimension.confidence, 0.55),
+      blocker: dimension.blocker ?? reviewCoverage.reason,
+      gap: dimension.gap ?? reviewCoverage.reason,
+      sourceCoverage,
+    };
+  }
+
+  const fallbackGap = dimension.gap
+    ?? sourceCoverage.find((coverage) => coverage.state === 'stale')?.reason
+    ?? sourceCoverage.find((coverage) => coverage.state === 'accessRequired')?.reason
+    ?? sourceCoverage.find((coverage) => coverage.state === 'gated')?.reason
+    ?? sourceCoverage.find((coverage) => coverage.state === 'notDecisionGrade')?.reason
+    ?? sourceCoverage.find((coverage) => coverage.state === 'partial')?.reason
+    ?? sourceCoverage.find((coverage) => coverage.state === 'unavailable')?.reason
+    ?? sourceCoverage.find((coverage) => coverage.state === 'notChecked')?.reason
+    ?? null;
+
+  return {
+    ...dimension,
+    status: 'UNMET',
+    confidence: Math.min(dimension.confidence, 0.25),
+    blocker: null,
+    gap: fallbackGap,
+    sourceCoverage,
   };
 }
 
@@ -151,10 +197,10 @@ export function computeDeterministicTrustReadiness(input: {
   enrollment: TrustDimensionAssessment;
 }): DeterministicTrustReadiness {
   const dimensions: Record<TrustDimensionId, TrustDimensionAssessment> = {
-    identity: input.identity,
-    exclusion: input.exclusion,
-    licensure: input.licensure,
-    enrollment: input.enrollment,
+    identity: normalizeAssessmentForCoverage(input.identity),
+    exclusion: normalizeAssessmentForCoverage(input.exclusion),
+    licensure: normalizeAssessmentForCoverage(input.licensure),
+    enrollment: normalizeAssessmentForCoverage(input.enrollment),
   };
 
   const sourceCoverage = Object.values(dimensions)

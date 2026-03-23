@@ -65,6 +65,7 @@ export interface VerificationArtifactRecord {
   npi: string;
   source: string;
   status: string;
+  parserVersion: string | null;
   rawPayload: Prisma.JsonValue;
   revokedAt: Date | null;
   suspendedAt: Date | null;
@@ -74,6 +75,7 @@ export interface VerificationArtifactRecord {
   checksum: string;
   merkleRoot: string | null;
   claimHashes: Prisma.JsonValue;
+  observedAt: Date | null;
   verifiedAt: Date;
   expiresAt: Date | null;
   monitoring: boolean;
@@ -91,6 +93,7 @@ export interface CredentialEvidenceRecord {
   credentialId: string;
   verificationArtifactId: string | null;
   relatedCompatibilityArtifactId: string | null;
+  evidenceHash: string | null;
   credentialType: string;
   issuerId: string;
   source: string;
@@ -109,6 +112,7 @@ const verificationArtifactSelect = {
   npi: true,
   source: true,
   status: true,
+  parserVersion: true,
   rawPayload: true,
   revokedAt: true,
   suspendedAt: true,
@@ -118,6 +122,7 @@ const verificationArtifactSelect = {
   checksum: true,
   merkleRoot: true,
   claimHashes: true,
+  observedAt: true,
   verifiedAt: true,
   expiresAt: true,
   monitoring: true,
@@ -338,6 +343,7 @@ export async function getCredentialEvidence(
       credentialId: pair.credentialArtifactId,
       verificationArtifactId: pair.verificationArtifactId,
       relatedCompatibilityArtifactId: compatibilityArtifact?.id ?? null,
+      evidenceHash: compatibilityArtifact?.checksum ?? pair.verificationArtifact.evidence_hash,
       credentialType: pair.credentialArtifact.credential_type,
       issuerId: pair.credentialArtifact.issuer_org_id,
       source: pair.verificationArtifact.source_name,
@@ -366,6 +372,7 @@ export async function getCredentialEvidence(
       credentialId: artifact.id,
       verificationArtifactId: artifact.id,
       relatedCompatibilityArtifactId: artifact.id,
+      evidenceHash: artifact.checksum,
       credentialType: deriveCredentialTypeFromSource(artifact.source),
       issuerId: artifact.source,
       source: artifact.source,

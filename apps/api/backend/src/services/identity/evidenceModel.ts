@@ -167,6 +167,8 @@ export interface NormalizedClaim {
   reviewRequired: boolean;
   reviewReason:   string | null;
   humanReviewAt:  string | null;
+  explanation?:   string;
+  freshnessWindowHours?: number | null;
 }
 
 /**
@@ -193,6 +195,8 @@ export interface VerificationReceipt {
   checksum?:           string;
   claim_type?:         ClaimType;
   match_confidence?:   ClaimConfidence;
+  freshness_window_hours?: number | null;
+  integrity_hash?:     string;
 }
 
 // ── Claim value union ─────────────────────────────────────────────────────────
@@ -283,7 +287,8 @@ export interface EndpointValue {
 
 export interface EnrollmentValue {
   _type: 'ENROLLMENT_STATUS';
-  enrolled: boolean;
+  enrolled: boolean | null;
+  claimState: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED';
   enrollmentType: string | null;
   eligibleToOrderRefer: boolean | null;
   source: 'PECOS' | 'DOCTORS_CLINICIANS';
@@ -451,6 +456,104 @@ export interface GenericValue {
   [key: string]: unknown;
 }
 
+function readFreshnessWindowHours(
+  value: number | null | undefined,
+): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? Math.trunc(value)
+    : null;
+}
+
+export function isTrustCriticalClaim(
+  claim: Pick<NormalizedClaim, 'tier' | 'reviewRequired' | 'status'>,
+): boolean {
+  return (
+    claim.tier === 'GOLD'
+    || claim.reviewRequired
+    || claim.status === 'BLOCKED'
+    || claim.status === 'UNVERIFIED'
+  );
+}
+
+export function computeClaimFreshnessWindowHours(
+  claim: Pick<NormalizedClaim, 'sourceId'>,
+): number | null {
+  return readFreshnessWindowHours(getSource(claim.sourceId)?.refreshSlaHours);
+}
+
+export function buildClaimExplanation(
+  claim: Pick<
+    NormalizedClaim,
+    | 'claimType'
+    | 'sourceId'
+    | 'observedAt'
+    | 'expiresAt'
+    | 'status'
+    | 'reviewRequired'
+    | 'reviewReason'
+    | 'freshnessWindowHours'
+  >,
+): string {
+  const reviewClause = claim.reviewRequired
+    ? `manual review required${claim.reviewReason ? `: ${claim.reviewReason}` : ''}`
+    : `status ${claim.status.toLowerCase()}`;
+  const freshnessClause = claim.expiresAt
+    ? `expires at ${claim.expiresAt}`
+    : claim.freshnessWindowHours
+      ? `freshness window ${claim.freshnessWindowHours}h`
+      : 'freshness window unavailable';
+
+  return `${claim.claimType} from ${claim.sourceId} observed at ${claim.observedAt}; ${reviewClause}; ${freshnessClause}.`;
+}
+
+export function withTraceableClaim(
+  claim: NormalizedClaim,
+  receipts: readonly VerificationReceipt[] = [],
+): NormalizedClaim {
+  const receiptExplanation = receipts.find(
+    (receipt) => receipt.claim_id === claim.claimId && nonEmptyString(receipt.explanation),
+  )?.explanation;
+  const freshnessWindowHours =
+    readFreshnessWindowHours(claim.freshnessWindowHours)
+    ?? computeClaimFreshnessWindowHours(claim);
+  const explanation =
+    nonEmptyString(claim.explanation)
+    ?? nonEmptyString(receiptExplanation)
+    ?? buildClaimExplanation({
+      claimType: claim.claimType,
+      sourceId: claim.sourceId,
+      observedAt: claim.observedAt,
+      expiresAt: claim.expiresAt,
+      status: claim.status,
+      reviewRequired: claim.reviewRequired,
+      reviewReason: claim.reviewReason,
+      freshnessWindowHours,
+    });
+
+  const tracedClaim: NormalizedClaim = {
+    ...claim,
+    freshnessWindowHours,
+    explanation,
+  };
+
+  resolveClaimArtifactTrace(tracedClaim);
+
+  if (!nonEmptyString(tracedClaim.parserVersion)) {
+    throw new Error(`Traceable claim ${tracedClaim.claimType} requires parserVersion`);
+  }
+  if (!nonEmptyString(tracedClaim.observedAt)) {
+    throw new Error(`Traceable claim ${tracedClaim.claimType} requires observedAt`);
+  }
+  if (!tracedClaim.expiresAt && freshnessWindowHours === null) {
+    throw new Error(`Traceable claim ${tracedClaim.claimType} requires expiresAt or freshnessWindowHours`);
+  }
+  if (!nonEmptyString(tracedClaim.explanation)) {
+    throw new Error(`Traceable claim ${tracedClaim.claimType} requires explanation`);
+  }
+
+  return tracedClaim;
+}
+
 // ── Claim ID generation ───────────────────────────────────────────────────────
 
 /**
@@ -479,6 +582,104 @@ function sortedJson(val: unknown): string {
   return '{' + Object.keys(o).sort().map(k => JSON.stringify(k) + ':' + sortedJson(o[k])).join(',') + '}';
 }
 
+export function computeReceiptId(input: {
+  claimId: string;
+  derivedAt: string;
+  fieldLabel: string;
+  sourceArtifactId: string;
+}): string {
+  return createHash('sha256')
+    .update(JSON.stringify({
+      claimId: input.claimId,
+      derivedAt: input.derivedAt,
+      fieldLabel: input.fieldLabel,
+      sourceArtifactId: input.sourceArtifactId,
+    }))
+    .digest('hex')
+    .slice(0, 32);
+}
+
+export function computeReceiptIntegrityHash(
+  receipt: Omit<VerificationReceipt, 'integrity_hash'> | VerificationReceipt,
+): string {
+  return createHash('sha256')
+    .update(sortedJson({
+      receipt_id: receipt.receipt_id,
+      claim_id: receipt.claim_id,
+      entity_id: receipt.entity_id,
+      field: receipt.field,
+      value: receipt.value,
+      tier: receipt.tier,
+      confidence: receipt.confidence,
+      source_artifact_id: receipt.source_artifact_id,
+      source_system: receipt.source_system,
+      observed_at: receipt.observed_at,
+      parser_version: receipt.parser_version,
+      expires_at: receipt.expires_at,
+      explanation: receipt.explanation,
+      source_url: receipt.source_url ?? null,
+      retrieved_at: receipt.retrieved_at ?? null,
+      raw_artifact_ref: receipt.raw_artifact_ref ?? null,
+      checksum: receipt.checksum ?? null,
+      claim_type: receipt.claim_type ?? null,
+      match_confidence: receipt.match_confidence ?? null,
+      freshness_window_hours: readFreshnessWindowHours(receipt.freshness_window_hours) ?? null,
+    }))
+    .digest('hex');
+}
+
+export function finalizeVerificationReceipt(
+  receipt: VerificationReceipt,
+  claim?: NormalizedClaim,
+): VerificationReceipt {
+  const traceSource = claim ? resolveClaimArtifactTrace(withTraceableClaim(claim, [receipt])) : null;
+  const freshnessWindowHours =
+    readFreshnessWindowHours(receipt.freshness_window_hours)
+    ?? (claim ? withTraceableClaim(claim, [receipt]).freshnessWindowHours ?? null : null);
+
+  const finalized: VerificationReceipt = {
+    ...receipt,
+    source_artifact_id: receipt.source_artifact_id || claim?.artifactId || traceSource?.raw_artifact_ref || '',
+    parser_version: receipt.parser_version || claim?.parserVersion || '',
+    source_system: receipt.source_system || claim?.sourceId || traceSource?.source_id || '',
+    observed_at: receipt.observed_at || claim?.observedAt || '',
+    explanation:
+      nonEmptyString(receipt.explanation)
+      ?? nonEmptyString(claim?.explanation)
+      ?? (claim
+        ? buildClaimExplanation(withTraceableClaim(claim, [receipt]))
+        : ''),
+    source_url: receipt.source_url ?? traceSource?.source_url,
+    retrieved_at: receipt.retrieved_at ?? traceSource?.retrieved_at ?? claim?.derivedAt ?? claim?.observedAt,
+    raw_artifact_ref: receipt.raw_artifact_ref ?? traceSource?.raw_artifact_ref ?? claim?.artifactId,
+    checksum: receipt.checksum ?? traceSource?.checksum ?? claim?.artifactChecksum,
+    claim_type: receipt.claim_type ?? traceSource?.claim_type ?? claim?.claimType,
+    match_confidence: receipt.match_confidence ?? traceSource?.match_confidence ?? claim?.confidence,
+    freshness_window_hours: freshnessWindowHours,
+  };
+
+  if (!nonEmptyString(finalized.source_artifact_id)) {
+    throw new Error(`Verification receipt ${finalized.receipt_id} requires source_artifact_id`);
+  }
+  if (!nonEmptyString(finalized.parser_version)) {
+    throw new Error(`Verification receipt ${finalized.receipt_id} requires parser_version`);
+  }
+  if (!nonEmptyString(finalized.observed_at)) {
+    throw new Error(`Verification receipt ${finalized.receipt_id} requires observed_at`);
+  }
+  if (!nonEmptyString(finalized.explanation)) {
+    throw new Error(`Verification receipt ${finalized.receipt_id} requires explanation`);
+  }
+  if (!finalized.expires_at && finalized.freshness_window_hours === null) {
+    throw new Error(`Verification receipt ${finalized.receipt_id} requires expires_at or freshness_window_hours`);
+  }
+
+  return {
+    ...finalized,
+    integrity_hash: computeReceiptIntegrityHash(finalized),
+  };
+}
+
 // ── Receipt construction ──────────────────────────────────────────────────────
 
 export function buildReceipt(
@@ -486,27 +687,70 @@ export function buildReceipt(
   fieldLabel: string,
   explanation: string,
 ): VerificationReceipt {
-  const trace = resolveClaimArtifactTrace(claim);
-  return {
-    receipt_id:         createHash('sha256').update(claim.claimId + claim.derivedAt).digest('hex').slice(0, 32),
-    claim_id:           claim.claimId,
-    entity_id:          `npi:${claim.subjectNpi}`,
-    field:              fieldLabel,
-    value:              (claim.value as Record<string, unknown>)[fieldLabel] ?? claim.value,
-    tier:               claim.tier,
-    confidence:         claim.confidenceScore,
-    source_artifact_id: claim.artifactId,
-    source_system:      claim.sourceId,
-    observed_at:        claim.observedAt,
-    parser_version:     claim.parserVersion,
-    expires_at:         claim.expiresAt,
+  const tracedClaim = withTraceableClaim({
+    ...claim,
+    explanation: claim.explanation ?? explanation,
+  });
+  const trace = resolveClaimArtifactTrace(tracedClaim);
+
+  return finalizeVerificationReceipt({
+    receipt_id: computeReceiptId({
+      claimId: tracedClaim.claimId,
+      derivedAt: tracedClaim.derivedAt,
+      fieldLabel,
+      sourceArtifactId: tracedClaim.artifactId,
+    }),
+    claim_id: tracedClaim.claimId,
+    entity_id: `npi:${tracedClaim.subjectNpi}`,
+    field: fieldLabel,
+    value: (tracedClaim.value as Record<string, unknown>)[fieldLabel] ?? tracedClaim.value,
+    tier: tracedClaim.tier,
+    confidence: tracedClaim.confidenceScore,
+    source_artifact_id: tracedClaim.artifactId,
+    source_system: tracedClaim.sourceId,
+    observed_at: tracedClaim.observedAt,
+    parser_version: tracedClaim.parserVersion,
+    expires_at: tracedClaim.expiresAt,
     explanation,
-    source_url:         trace.source_url,
-    retrieved_at:       trace.retrieved_at,
-    raw_artifact_ref:   trace.raw_artifact_ref,
-    checksum:           trace.checksum,
-    claim_type:         trace.claim_type,
-    match_confidence:   trace.match_confidence,
+    source_url: trace.source_url,
+    retrieved_at: trace.retrieved_at,
+    raw_artifact_ref: trace.raw_artifact_ref,
+    checksum: trace.checksum,
+    claim_type: trace.claim_type,
+    match_confidence: trace.match_confidence,
+    freshness_window_hours: tracedClaim.freshnessWindowHours ?? null,
+  }, tracedClaim);
+}
+
+export function normalizeEvidenceBundle(input: {
+  claims: readonly NormalizedClaim[];
+  receipts: readonly VerificationReceipt[];
+}): { claims: NormalizedClaim[]; receipts: VerificationReceipt[] } {
+  const receiptMap = new Map<string, VerificationReceipt[]>();
+  for (const receipt of input.receipts) {
+    const existing = receiptMap.get(receipt.claim_id) ?? [];
+    existing.push(receipt);
+    receiptMap.set(receipt.claim_id, existing);
+  }
+
+  const claims = input.claims.map((claim) => withTraceableClaim(claim, receiptMap.get(claim.claimId) ?? []));
+  const claimMap = new Map(claims.map((claim) => [claim.claimId, claim] as const));
+
+  const receipts = input.receipts.map((receipt) => finalizeVerificationReceipt(
+    receipt,
+    claimMap.get(receipt.claim_id),
+  ));
+
+  const claimIdsWithReceipts = new Set(receipts.map((receipt) => receipt.claim_id));
+  for (const claim of claims) {
+    if (isTrustCriticalClaim(claim) && !claimIdsWithReceipts.has(claim.claimId)) {
+      receipts.push(buildReceipt(claim, 'claim', claim.explanation ?? buildClaimExplanation(claim)));
+    }
+  }
+
+  return {
+    claims,
+    receipts: receipts.map((receipt) => finalizeVerificationReceipt(receipt, claimMap.get(receipt.claim_id))),
   };
 }
 

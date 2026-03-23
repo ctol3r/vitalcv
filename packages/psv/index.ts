@@ -1,6 +1,8 @@
 export {
   PSVReceipt,
+  RECEIPT_SOURCE_COVERAGE_STATES,
   SOURCE_AUTHORITIES,
+  type ReceiptSourceCoverageState,
   type SourceAuthority,
   type PSVReceiptSnapshot,
   type CreatePSVReceiptInput,

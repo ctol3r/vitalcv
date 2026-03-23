@@ -19,7 +19,10 @@
 
 import prisma from '../../graphql/prisma_client';
 import { getEntityById, resolveEntityFromNpi } from './entityResolutionService';
-import { getCachedTrustState } from '../trust/trustStateEngine';
+import {
+  getCachedTrustState,
+  type ClinicianTrustState,
+} from '../trust/trustStateEngine';
 import {
   daysUntilExpiry,
   isCredentialBlocking,
@@ -29,8 +32,18 @@ import {
   normalizeExclusionCredentialStatus,
 } from '../../domain/entity/contracts';
 import { log } from '../../obs/logger';
-import { resolveCredentialEvidence, type CredentialReceiptEvidence } from './evidenceIntegrity';
+import {
+  resolveCredentialEvidence,
+  type CredentialEvidenceResolution,
+  type CredentialReceiptEvidence,
+} from './evidenceIntegrity';
 import { buildReadinessNextActions, type ReadinessNextAction } from './readinessActions';
+import {
+  createCanonicalSourceCoverage,
+  summarizeCanonicalSourceCoverage,
+  type CanonicalSourceCoverage,
+  type CanonicalSourceCoverageReport,
+} from '../../../../../../packages/trust-state';
 
 export type { ReadinessNextAction };
 
@@ -178,6 +191,7 @@ export interface TrustPassport {
   standing:       PassportStanding;
   readiness:      PassportReadiness;
   sources:        PassportSources;
+  sourceCoverage: CanonicalSourceCoverageReport;
   lastCheckedAt:  string;
 }
 
@@ -274,6 +288,186 @@ function getVerificationReceiptRecordClient(): {
       }>>;
     };
   }).verificationReceiptRecord ?? {};
+}
+
+type SourceProofRefs = {
+  artifactIds: string[];
+  receiptIds: string[];
+};
+
+function buildProofRefsBySource(input: {
+  credentials: readonly Pick<PassportCredential, 'id' | 'sourceId'>[];
+  credentialEvidence: ReadonlyMap<string, CredentialEvidenceResolution>;
+  artifactsById: ReadonlyMap<string, { source: string }>;
+}): ReadonlyMap<string, SourceProofRefs> {
+  const refsBySource = new Map<string, { artifactIds: Set<string>; receiptIds: Set<string> }>();
+
+  for (const credential of input.credentials) {
+    const evidence = input.credentialEvidence.get(credential.id);
+    if (!evidence) {
+      continue;
+    }
+
+    const sourceIds = dedupeStrings([
+      ...(credential.sourceId ? [credential.sourceId] : []),
+      ...evidence.validArtifactIds
+        .map((artifactId) => input.artifactsById.get(artifactId)?.source)
+        .filter((value): value is string => typeof value === 'string' && value.trim().length > 0),
+    ]);
+
+    for (const sourceId of sourceIds) {
+      const current = refsBySource.get(sourceId) ?? {
+        artifactIds: new Set<string>(),
+        receiptIds: new Set<string>(),
+      };
+
+      for (const artifactId of evidence.validArtifactIds) {
+        current.artifactIds.add(artifactId);
+      }
+      for (const receiptId of evidence.validReceiptIds) {
+        current.receiptIds.add(receiptId);
+      }
+
+      refsBySource.set(sourceId, current);
+    }
+  }
+
+  return new Map(
+    Array.from(refsBySource.entries()).map(([sourceId, refs]) => [
+      sourceId,
+      {
+        artifactIds: [...refs.artifactIds].sort((left, right) => left.localeCompare(right)),
+        receiptIds: [...refs.receiptIds].sort((left, right) => left.localeCompare(right)),
+      },
+    ]),
+  );
+}
+
+function buildFallbackPassportSourceCoverage(input: {
+  identity: PassportIdentity;
+  authority: PassportAuthority;
+  standing: PassportStanding;
+  lastCheckedAt: string;
+}): CanonicalSourceCoverage[] {
+  const licensureCredential = input.authority.credentials.find(
+    (credential) => credential.domain === 'LICENSURE',
+  );
+  const licensureSourceId = licensureCredential?.sourceId ?? 'STATE_BOARD';
+  const licensureState = licensureCredential?.connectorState === 'unavailable'
+    || licensureCredential?.connectorState === 'unresolved'
+    ? 'unavailable'
+    : licensureCredential?.reviewRequired
+      ? 'reviewRequired'
+      : licensureCredential?.stale
+        ? 'stale'
+        : licensureCredential
+          ? 'live'
+          : 'notChecked';
+  const pecosState = input.standing.pecosEnrollmentStatus === 'UNCHECKED'
+    ? 'notChecked'
+    : input.standing.pecosEnrollmentStatus === 'UNKNOWN'
+      ? 'partial'
+      : 'live';
+
+  return [
+    createCanonicalSourceCoverage({
+      sourceId: 'NPPES_API',
+      state: input.identity.npi ? 'live' : 'notChecked',
+      reason: input.identity.npi
+        ? 'NPPES identity checked'
+        : 'NPPES identity source not yet checked',
+      checkedAt: input.lastCheckedAt,
+    }),
+    createCanonicalSourceCoverage({
+      sourceId: 'OIG_LEIE',
+      state: input.standing.exclusionStatus === 'UNCHECKED'
+        ? 'notChecked'
+        : input.standing.exclusionStatus === 'POSSIBLE_MATCH'
+          ? 'reviewRequired'
+          : input.standing.exclusionStatus === 'UNKNOWN'
+            ? 'partial'
+            : 'live',
+      reason:
+        input.standing.exclusionStatus === 'CLEAR'
+          ? 'OIG LEIE check clear'
+          : input.standing.exclusionStatus === 'EXCLUDED'
+            ? 'OIG LEIE exclusion confirmed'
+            : input.standing.exclusionStatus === 'POSSIBLE_MATCH'
+              ? 'OIG LEIE returned a possible match and requires human adjudication'
+              : input.standing.exclusionStatus === 'UNKNOWN'
+                ? 'OIG LEIE outcome could not be resolved from the current source result'
+                : 'OIG LEIE source not yet checked',
+      checkedAt: input.standing.exclusionCheckedAt ?? null,
+    }),
+    createCanonicalSourceCoverage({
+      sourceId: licensureSourceId,
+      state: licensureState,
+      reason:
+        licensureState === 'live'
+          ? 'Licensure checked'
+          : licensureState === 'reviewRequired'
+            ? 'Licensure source requires manual review'
+            : licensureState === 'stale'
+              ? 'Licensure evidence is stale and must be refreshed'
+              : licensureState === 'unavailable'
+                ? 'Licensure source is unavailable'
+                : 'Licensure source not yet checked',
+      checkedAt:
+        licensureCredential?.observedAt
+        ?? licensureCredential?.verifiedAt
+        ?? null,
+    }),
+    createCanonicalSourceCoverage({
+      sourceId: 'PECOS_PUBLIC',
+      state: pecosState,
+      reason:
+        input.standing.pecosEnrollmentStatus === 'ENROLLED'
+          ? 'PECOS quarterly enrollment checked'
+          : input.standing.pecosEnrollmentStatus === 'NOT_FOUND'
+            ? 'PECOS quarterly release does not show Medicare enrollment for this NPI'
+            : input.standing.pecosEnrollmentStatus === 'UNKNOWN'
+              ? 'PECOS enrollment outcome could not be resolved from the quarterly release'
+              : 'PECOS enrollment source not yet checked',
+      checkedAt: input.standing.enrollmentObservedAt ?? null,
+    }),
+  ];
+}
+
+function buildPassportSourceCoverage(input: {
+  trustState: ClinicianTrustState | null;
+  identity: PassportIdentity;
+  authority: PassportAuthority;
+  standing: PassportStanding;
+  lastCheckedAt: string;
+  proofBySource: ReadonlyMap<string, SourceProofRefs>;
+}): CanonicalSourceCoverageReport {
+  const baseChecks = input.trustState?.sourceCoverage?.length
+    ? input.trustState.sourceCoverage
+    : buildFallbackPassportSourceCoverage({
+        identity: input.identity,
+        authority: input.authority,
+        standing: input.standing,
+        lastCheckedAt: input.lastCheckedAt,
+      });
+
+  const checks = baseChecks
+    .map((check) => createCanonicalSourceCoverage({
+      sourceId: check.sourceId,
+      state: check.state,
+      reason: check.reason,
+      checkedAt: check.checkedAt ?? null,
+      artifactId: check.artifactId ?? null,
+      sourceUrl: check.sourceUrl ?? null,
+      rawArtifactRef: check.rawArtifactRef ?? check.artifactId ?? null,
+      checksum: check.checksum ?? null,
+      proof: input.proofBySource.get(check.sourceId) ?? null,
+    }))
+    .sort((left, right) => left.sourceId.localeCompare(right.sourceId));
+
+  return {
+    checks,
+    summary: summarizeCanonicalSourceCoverage(checks),
+  };
 }
 
 // ── Builder ───────────────────────────────────────────────────────────────────
@@ -700,6 +894,27 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   };
 
   const meta = entity.metadata as Record<string, unknown>;
+  const lastCheckedAt = entity.verifiedAt?.toISOString() ?? new Date().toISOString();
+  const identity: PassportIdentity = {
+    entityId,
+    displayName: entity.displayName,
+    npi,
+    specialty: meta.specialty as string | undefined,
+    entityType: entity.entityType,
+    status: (meta.status as string | undefined) ?? 'ACTIVE',
+  };
+  const sourceCoverage = buildPassportSourceCoverage({
+    trustState,
+    identity,
+    authority,
+    standing,
+    lastCheckedAt,
+    proofBySource: buildProofRefsBySource({
+      credentials: credList,
+      credentialEvidence,
+      artifactsById,
+    }),
+  });
 
   log('info', 'passport_built', {
     entityId, npi, readinessStatus, score: readiness.score,
@@ -709,20 +924,14 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   return {
     entityId,
     npi,
-    identity: {
-      entityId,
-      displayName: entity.displayName,
-      npi,
-      specialty:   meta.specialty as string | undefined,
-      entityType:  entity.entityType,
-      status:      (meta.status as string | undefined) ?? 'ACTIVE',
-    },
+    identity,
     authority,
     training,
     standing,
     readiness,
     sources,
-    lastCheckedAt: entity.verifiedAt?.toISOString() ?? new Date().toISOString(),
+    sourceCoverage,
+    lastCheckedAt,
   };
 }
 

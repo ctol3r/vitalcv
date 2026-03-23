@@ -2,6 +2,12 @@ import type { Prisma } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
 import { appendAuditEvent } from '../audit/auditLedger';
+import {
+  computeClaimFreshnessWindowHours,
+  finalizeVerificationReceipt,
+  type NormalizedClaim,
+  type VerificationReceipt,
+} from '../identity/evidenceModel';
 import type { ClinicianTrustState } from '../trust/trustStateEngine';
 import { ensureTrustStateBeforeCapsule } from '../integrity/pipelineEnforcer';
 import { getBindingByNpi } from '../identity/npiDidBinding';
@@ -101,12 +107,29 @@ export interface DecisionCapsuleReplayResult {
   valid: boolean;
   expectedArtifactHash: string;
   actualArtifactHash: string;
+  expectedEvidenceSpineDigest: string | null;
+  actualEvidenceSpineDigest: string | null;
 }
 
 type DecisionEvidenceSet = {
   credentialIds: string[];
   compatibilityCredentialIds: string[];
   issuerIds: string[];
+  evidenceSpine: DecisionEvidenceSpineRecord[];
+  evidenceSpineDigest: string | null;
+};
+
+type DecisionEvidenceSpineRecord = {
+  artifactId: string;
+  source: string;
+  checksum: string;
+  parserVersion: string | null;
+  observedAt: string | null;
+  expiresAt: string | null;
+  freshnessWindowHours: number | null;
+  claimIds: string[];
+  receiptIds: string[];
+  receiptIntegrityHashes: string[];
 };
 
 const METHODOLOGY_VERSION = 'decision_capsule.v262';
@@ -126,6 +149,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    : [];
+}
+
 function normalizeOrganizationId(value?: string | null): string | null {
   const trimmed = value?.trim();
   if (!trimmed || !UUID_RE.test(trimmed)) {
@@ -141,6 +170,128 @@ function resolveWorkflowContext(decisionType: DecisionType): WorkflowContext {
   }
 
   return 'job_application';
+}
+
+function computeFreshnessWindowHoursFromTimestamps(
+  observedAt: string | null,
+  expiresAt: string | null,
+): number | null {
+  if (!observedAt || !expiresAt) {
+    return null;
+  }
+
+  const observedAtMs = Date.parse(observedAt);
+  const expiresAtMs = Date.parse(expiresAt);
+  if (!Number.isFinite(observedAtMs) || !Number.isFinite(expiresAtMs) || expiresAtMs <= observedAtMs) {
+    return null;
+  }
+
+  return Math.round((expiresAtMs - observedAtMs) / (60 * 60 * 1000));
+}
+
+function normalizeEvidenceSpineRecord(record: DecisionEvidenceSpineRecord): DecisionEvidenceSpineRecord {
+  return {
+    ...record,
+    artifactId: record.artifactId.trim(),
+    source: record.source.trim(),
+    checksum: record.checksum.trim(),
+    claimIds: uniqueSorted(record.claimIds),
+    receiptIds: uniqueSorted(record.receiptIds),
+    receiptIntegrityHashes: uniqueSorted(record.receiptIntegrityHashes),
+  };
+}
+
+function buildEvidenceSpineDigest(records: readonly DecisionEvidenceSpineRecord[]): string | null {
+  if (records.length === 0) {
+    return null;
+  }
+
+  return sha256ForPayload(
+    [...records]
+      .map(normalizeEvidenceSpineRecord)
+      .sort((left, right) => left.artifactId.localeCompare(right.artifactId)),
+  );
+}
+
+function buildEvidenceSpineRecordFromArtifact(artifact: {
+  id: string;
+  source: string;
+  checksum: string;
+  parserVersion: string | null;
+  observedAt: Date | null;
+  verifiedAt: Date | null;
+  expiresAt: Date | null;
+  rawPayload: unknown;
+}): DecisionEvidenceSpineRecord {
+  const payload = isRecord(artifact.rawPayload) ? artifact.rawPayload : {};
+  const claims = (((payload._claims ?? []) as NormalizedClaim[]) ?? [])
+    .map((claim) => ({
+      ...claim,
+      freshnessWindowHours:
+        claim.freshnessWindowHours
+        ?? computeClaimFreshnessWindowHours(claim),
+    }));
+  const claimMap = new Map(claims.map((claim) => [claim.claimId, claim] as const));
+  const receipts = (((payload._receipts ?? []) as VerificationReceipt[]) ?? []).map((receipt) =>
+    finalizeVerificationReceipt(receipt, claimMap.get(receipt.claim_id)),
+  );
+
+  const observedAt = artifact.observedAt?.toISOString()
+    ?? artifact.verifiedAt?.toISOString()
+    ?? null;
+  const expiresAt = artifact.expiresAt?.toISOString() ?? null;
+
+  return normalizeEvidenceSpineRecord({
+    artifactId: artifact.id,
+    source: artifact.source,
+    checksum: artifact.checksum,
+    parserVersion: artifact.parserVersion ?? null,
+    observedAt,
+    expiresAt,
+    freshnessWindowHours:
+      claims.find((claim) => typeof claim.freshnessWindowHours === 'number')?.freshnessWindowHours
+      ?? computeFreshnessWindowHoursFromTimestamps(observedAt, expiresAt),
+    claimIds: claims.map((claim) => claim.claimId),
+    receiptIds: receipts.map((receipt) => receipt.receipt_id),
+    receiptIntegrityHashes: receipts
+      .map((receipt) => receipt.integrity_hash)
+      .filter((hash): hash is string => typeof hash === 'string' && hash.length > 0),
+  });
+}
+
+function extractStoredEvidenceSpine(
+  metadata: Record<string, unknown>,
+): DecisionEvidenceSpineRecord[] {
+  const raw = Array.isArray(metadata.evidence_spine) ? metadata.evidence_spine : [];
+
+  return raw.flatMap((entry) => {
+    if (!isRecord(entry)) {
+      return [];
+    }
+
+    const artifactId = typeof entry.artifactId === 'string' ? entry.artifactId.trim() : '';
+    const source = typeof entry.source === 'string' ? entry.source.trim() : '';
+    const checksum = typeof entry.checksum === 'string' ? entry.checksum.trim() : '';
+    if (!artifactId || !source || !checksum) {
+      return [];
+    }
+
+    return [normalizeEvidenceSpineRecord({
+      artifactId,
+      source,
+      checksum,
+      parserVersion: typeof entry.parserVersion === 'string' ? entry.parserVersion : null,
+      observedAt: typeof entry.observedAt === 'string' ? entry.observedAt : null,
+      expiresAt: typeof entry.expiresAt === 'string' ? entry.expiresAt : null,
+      freshnessWindowHours:
+        typeof entry.freshnessWindowHours === 'number'
+          ? entry.freshnessWindowHours
+          : null,
+      claimIds: asStringArray(entry.claimIds),
+      receiptIds: asStringArray(entry.receiptIds),
+      receiptIntegrityHashes: asStringArray(entry.receiptIntegrityHashes),
+    })];
+  });
 }
 
 function resolveReadinessStatus(
@@ -296,8 +447,37 @@ async function resolveDecisionEvidence(input: {
   const issuerIds = explicitIssuerIds.length > 0
     ? explicitIssuerIds
     : uniqueSorted(scopedEvidence.map((record) => record.issuerId));
+  const evidenceSpine = uniqueSorted(
+    scopedEvidence
+      .map((record) => record.compatibilityArtifact?.id ?? '')
+      .filter(Boolean),
+  ).map((artifactId) => {
+    const artifact = scopedEvidence.find(
+      (record) => record.compatibilityArtifact?.id === artifactId,
+    )?.compatibilityArtifact;
+    if (!artifact) {
+      throw new Error(`Missing compatibility artifact ${artifactId} for capsule evidence spine`);
+    }
 
-  return { credentialIds, compatibilityCredentialIds, issuerIds };
+    return buildEvidenceSpineRecordFromArtifact({
+      id: artifact.id,
+      source: artifact.source,
+      checksum: artifact.checksum,
+      parserVersion: artifact.parserVersion,
+      observedAt: artifact.observedAt,
+      verifiedAt: artifact.verifiedAt,
+      expiresAt: artifact.expiresAt,
+      rawPayload: artifact.rawPayload,
+    });
+  });
+
+  return {
+    credentialIds,
+    compatibilityCredentialIds,
+    issuerIds,
+    evidenceSpine,
+    evidenceSpineDigest: buildEvidenceSpineDigest(evidenceSpine),
+  };
 }
 
 function resolveVerifierOrgId(
@@ -388,6 +568,8 @@ function buildDecisionMetadata(input: {
   legacySnapshot: ClinicianTrustState;
   v2Snapshot: TrustStateSnapshotPayload;
   compatibilityCredentialIds: string[];
+  evidenceSpine: DecisionEvidenceSpineRecord[];
+  evidenceSpineDigest: string | null;
   verifierOrgId: string | null;
   decisionAction: VerifierDecisionAction | null;
   trustStateHash: string;
@@ -407,6 +589,8 @@ function buildDecisionMetadata(input: {
     trust_state_snapshot: input.legacySnapshot,
     trust_state_snapshot_v2: input.v2Snapshot,
     compatibility_credential_ids: uniqueSorted(input.compatibilityCredentialIds),
+    evidence_spine: input.evidenceSpine.map(normalizeEvidenceSpineRecord),
+    evidence_spine_digest: input.evidenceSpineDigest,
     decision_capsule_payload: cloneMetadata(input.decisionCapsulePayload),
   };
 }
@@ -420,6 +604,7 @@ function buildDecisionHashPayload(input: {
   decisionAction: VerifierDecisionAction | null;
   credentialIds: string[];
   compatibilityCredentialIds: string[];
+  evidenceSpineDigest: string | null;
   issuerIds: string[];
   status: CapsuleStatus;
   triggerEvent: DecisionTriggerEvent;
@@ -436,6 +621,7 @@ function buildDecisionHashPayload(input: {
     decisionAction: input.decisionAction,
     credentialIds: uniqueSorted(input.credentialIds),
     compatibilityCredentialIds: uniqueSorted(input.compatibilityCredentialIds),
+    evidenceSpineDigest: input.evidenceSpineDigest,
     issuerIds: uniqueSorted(input.issuerIds),
     status: input.status,
     triggerEvent: input.triggerEvent,
@@ -599,6 +785,7 @@ async function createDecisionCapsule(
     decisionAction,
     credentialIds: evidence.credentialIds,
     compatibilityCredentialIds: evidence.compatibilityCredentialIds,
+    evidenceSpineDigest: evidence.evidenceSpineDigest,
     issuerIds: evidence.issuerIds,
     status,
     triggerEvent,
@@ -616,6 +803,8 @@ async function createDecisionCapsule(
     legacySnapshot,
     v2Snapshot,
     compatibilityCredentialIds: evidence.compatibilityCredentialIds,
+    evidenceSpine: evidence.evidenceSpine,
+    evidenceSpineDigest: evidence.evidenceSpineDigest,
     verifierOrgId,
     decisionAction,
     trustStateHash,
@@ -749,12 +938,56 @@ async function verifyDecisionCapsuleReplay(
   const payloadForReplay = { ...storedPayload };
   delete payloadForReplay.artifactHash;
   const actualArtifactHash = sha256ForPayload(payloadForReplay);
+  const storedEvidenceSpineDigest =
+    typeof metadata.evidence_spine_digest === 'string'
+      ? metadata.evidence_spine_digest
+      : null;
+  const storedEvidenceSpine = extractStoredEvidenceSpine(metadata);
+  let actualEvidenceSpineDigest = storedEvidenceSpineDigest;
+
+  if (storedEvidenceSpineDigest && storedEvidenceSpine.length > 0) {
+    const artifactIds = storedEvidenceSpine.map((record) => record.artifactId);
+    const artifacts = await prisma.verificationArtifact.findMany({
+      where: { id: { in: artifactIds } },
+      select: {
+        id: true,
+        source: true,
+        checksum: true,
+        parserVersion: true,
+        observedAt: true,
+        verifiedAt: true,
+        expiresAt: true,
+        rawPayload: true,
+      },
+    });
+    const artifactsById = new Map(artifacts.map((artifact) => [artifact.id, artifact] as const));
+    const liveSpine = storedEvidenceSpine.map((record) => {
+      const artifact = artifactsById.get(record.artifactId);
+      return artifact
+        ? buildEvidenceSpineRecordFromArtifact(artifact)
+        : normalizeEvidenceSpineRecord({
+          ...record,
+          parserVersion: record.parserVersion ?? null,
+          observedAt: null,
+          expiresAt: record.expiresAt ?? null,
+          freshnessWindowHours: record.freshnessWindowHours ?? null,
+          claimIds: [],
+          receiptIds: [],
+          receiptIntegrityHashes: [],
+        });
+    });
+    actualEvidenceSpineDigest = buildEvidenceSpineDigest(liveSpine);
+  }
 
   return {
     capsuleId,
-    valid: actualArtifactHash === capsule.artifactHash,
+    valid:
+      actualArtifactHash === capsule.artifactHash
+      && actualEvidenceSpineDigest === storedEvidenceSpineDigest,
     expectedArtifactHash: capsule.artifactHash,
     actualArtifactHash,
+    expectedEvidenceSpineDigest: storedEvidenceSpineDigest,
+    actualEvidenceSpineDigest,
   };
 }
 

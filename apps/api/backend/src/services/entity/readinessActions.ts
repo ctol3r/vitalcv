@@ -140,7 +140,7 @@ export function buildReadinessNextActions(input: {
     pecosStatus === 'UNKNOWN'
     || pecosStatus === 'UNCHECKED'
     || input.gaps.some((gap) =>
-      /pecos enrollment (status unresolved|outcome unresolved|not yet checked|not verified)/i.test(gap)
+      /pecos (enrollment (status unresolved|outcome unresolved|not yet checked|not verified)|evidence is mock)/i.test(gap)
     )
     || input.blockers.some((blocker) =>
       /enrollment status requires review|enrollment.*review/i.test(blocker)

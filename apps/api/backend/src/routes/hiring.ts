@@ -445,6 +445,23 @@ export function registerHiringRoutes(app: Express): void {
             })
         : null;
 
+      // SEAL: fire-and-forget start outcome capture
+      {
+        const { captureStartOutcome } = await import('../services/seal/sealEventCapture');
+        void captureStartOutcome({
+          entityId:              acceptance.clinicianNpi, // NPI as proxy until entityId available
+          startedAt:             attestation.startedAt,
+          blockersAtStart:       [],
+          sourceCoverageAtStart: { live: ['NPPES', 'OIG / LEIE'], gated: [], mock: ['CMS PECOS'], notChecked: [] },
+          metadata:              {
+            startAttestationId: attestation.id,
+            acceptanceId,
+            role:               attestation.role,
+            facility:           attestation.facility,
+          },
+        }).catch(() => void 0); // never fail the hire on SEAL capture error
+      }
+
       void capsuleEngine.createDecisionFromHire({
         subjectNpi: acceptance.clinicianNpi,
         employerId: acceptance.employerId,

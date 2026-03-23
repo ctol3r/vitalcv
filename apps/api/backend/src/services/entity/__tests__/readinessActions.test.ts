@@ -30,4 +30,22 @@ describe('readinessActions', () => {
       }),
     ]);
   });
+
+  it('generates distinct PECOS actions for not-found versus unresolved enrollment', () => {
+    const notFound = buildReadinessNextActions({
+      missingBlockingDomains: [],
+      blockers: ['Medicare enrollment not found — submit PECOS enrollment (45–60 days)'],
+      gaps: [],
+      pecosEnrollmentStatus: 'NOT_FOUND',
+    });
+    const unknown = buildReadinessNextActions({
+      missingBlockingDomains: [],
+      blockers: [],
+      gaps: ['PECOS enrollment outcome unresolved'],
+      pecosEnrollmentStatus: 'UNKNOWN',
+    });
+
+    expect(notFound.map((action) => action.id)).toContain('submit-pecos-enrollment');
+    expect(unknown.map((action) => action.id)).toContain('verify-medicare-enrollment');
+  });
 });

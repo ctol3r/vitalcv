@@ -23,8 +23,12 @@ import type { Express, NextFunction, Request, Response } from 'express';
 import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
 import { HttpError } from '../utils/httpError';
+import {
+  captureAdvisoryEvent,
+  captureEmployerDecision,
+} from '../services/seal/sealEventCapture';
 import { buildPassport } from '../services/entity/passportService';
-import { computeClinicianTrustState } from '../services/trust/trustStateEngine';
+import { buildEmployerEvidencePacket } from '../services/entity/employerPacket';
 import { sha256ForPayload } from '../utils/deterministic';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -181,6 +185,17 @@ export function registerEmployerActionRoutes(app: Express): void {
         npi_prefix:    clinicianNpi.slice(0, 4) + '····',
       });
 
+      // SEAL: fire-and-forget employer decision signal (non-blocking)
+      void captureEmployerDecision({
+        entityId,
+        decision:                'PROCEED',
+        reviewerRole:            'EMPLOYER',
+        auditEventId:            auditEvent.id,
+        trustSnapshotAtDecision: { acceptanceId: acceptance.id },
+        blockersAtDecision:      [],
+        metadata:                { role: role ?? null, facility: facility ?? null },
+      });
+
       void res.status(201).json({
         ok:           true,
         action:       'accepted',
@@ -245,6 +260,17 @@ export function registerEmployerActionRoutes(app: Express): void {
         npi_prefix:    clinicianNpi.slice(0, 4) + '····',
         staleSources,
         missingDomains,
+      });
+
+      // SEAL: fire-and-forget refresh request signal
+      void captureAdvisoryEvent({
+        entityId,
+        advisoryVersion:       'employer-refresh-request',
+        eventType:             'EMPLOYER_REVIEW',
+        blockersAtEvent:       missingDomains ?? [],
+        readinessScoreAtEvent: null,
+        sourceCoverageAtEvent: { staleSources: staleSources ?? [] },
+        metadata:              { actionId, reason: 'refresh_requested' },
       });
 
       void res.status(201).json({
@@ -355,6 +381,17 @@ export function registerEmployerActionRoutes(app: Express): void {
         priority,
       });
 
+      // SEAL: fire-and-forget route-to-review decision signal
+      void captureEmployerDecision({
+        entityId,
+        decision:                'ROUTE_TO_REVIEW',
+        reviewerRole:            'EMPLOYER',
+        auditEventId:            auditEvent.id,
+        trustSnapshotAtDecision: { reason: reason ?? null, priority: priority ?? 'NORMAL' },
+        blockersAtDecision:      [],
+        metadata:                { actionId, reason: reason ?? null },
+      });
+
       void res.status(201).json({
         ok:           true,
         action:       'routed_to_review',
@@ -395,111 +432,16 @@ export function registerEmployerActionRoutes(app: Express): void {
       }
 
       const clinicianNpi = entity.npi;
-
-      // Fetch latest trust state for freshness metadata
-      const trustState = await computeClinicianTrustState(clinicianNpi).catch(() => null);
-
-      const exportedAt = new Date().toISOString();
-
-      // Build the evidence packet — structured for employer download
-      const packet = {
-        exportedAt,
-        exportedBy: employerId,
-        entityId,
-        clinicianNpi,
-        displayName: passport.identity.displayName,
-
-        // ── Identity layer
-        identity: {
-          npi:          passport.identity.npi,
-          displayName:  passport.identity.displayName,
-          specialty:    passport.identity.specialty ?? null,
-          source:       'CMS NPPES',
-          checkedAt:    passport.lastCheckedAt ?? null,
-          status:       passport.identity.npi ? 'confirmed' : 'missing',
-        },
-
-        // ── Safety layer
-        safety: {
-          exclusionStatus:       passport.standing.exclusionStatus,
-          exclusionCheckedAt:    passport.standing.exclusionCheckedAt ?? null,
-          exclusionConfidence:   passport.standing.exclusionConfidenceLabel ?? null,
-          source:                'OIG LEIE',
-          isClear:               passport.standing.exclusionClear,
-          negativeFindings:      passport.standing.negativeFindings.filter((f: string) =>
-            !/pecos|enrollment|medicare/i.test(f)
-          ),
-        },
-
-        // ── Authority layer
-        authority: {
-          credentials: passport.authority.credentials.map((c: {
-            domain:               string;
-            status:               string;
-            jurisdiction?:        string | null;
-            issuerName?:          string | null;
-            sourceId?:            string | null;
-            observedAt?:          string | null;
-            verifiedAt?:          string | null;
-            expiresAt?:           string | null;
-            dataFreshnessLabel?:  string | null;
-            claimConfidenceLabel?: string | null;
-            authorityClaimCode?:  string | null;
-            reviewRequired?:      boolean;
-          }) => ({
-            domain:        c.domain,
-            status:        c.status,
-            jurisdiction:  c.jurisdiction ?? null,
-            issuerName:    c.issuerName ?? null,
-            sourceId:      c.sourceId ?? null,
-            observedAt:    c.observedAt ?? null,
-            verifiedAt:    c.verifiedAt ?? null,
-            expiresAt:     c.expiresAt ?? null,
-            freshnessDays: c.dataFreshnessLabel ?? null,
-            confidence:    c.claimConfidenceLabel ?? null,
-            claimCode:     c.authorityClaimCode ?? null,
-            reviewRequired: c.reviewRequired ?? false,
-          })),
-          summary: {
-            active:  passport.authority.summary.active,
-            missing: passport.authority.summary.missing,
-          },
-        },
-
-        // ── Eligibility layer (MS16)
-        eligibility: {
-          pecosEnrollmentStatus: passport.standing.pecosEnrollmentStatus,
-          enrollmentNote:        passport.standing.enrollmentNote ?? null,
-          enrollmentDataVersion: passport.standing.enrollmentDataVersion ?? null,
-          enrollmentDataFreshness: passport.standing.enrollmentDataFreshness ?? 'Quarterly',
-          enrollmentCheckedAt:   passport.standing.enrollmentObservedAt ?? null,
-          enrollmentConfidence:  passport.standing.enrollmentConfidenceLabel ?? null,
-          source:                passport.standing.enrollmentSourceLabel ?? 'CMS PECOS',
-        },
-
-        // ── Readiness layer
-        readiness: {
-          score:               passport.readiness.score,
-          estimatedStartDays:  passport.readiness.estimatedStartDays,
-          blockers:            passport.readiness.blockers,
-          nextActions:         passport.readiness.nextActions,
-          readinessLevel:      trustState?.readiness_level ?? null,
-        },
-
-        // ── Source coverage — explicit, no assumptions
-        sourceCoverage: {
-          live:     ['NPPES', 'OIG / LEIE'],
-          gated:    ['Nursys', 'FSMB'],
-          mock:     ['CMS PECOS'],
-          notChecked: ['NPDB', 'DEA', 'ABMS'],
-        },
-      };
+      const packet = buildEmployerEvidencePacket({
+        passport,
+        employerId,
+      });
 
       log('info', 'employer_packet_exported', {
         entityId,
         employerId,
         npi_prefix:  clinicianNpi.slice(0, 4) + '····',
-        exportedAt,
+        exportedAt: packet.exportedAt,
         score:       packet.readiness.score,
         blockers:    packet.readiness.blockers.length,
       });

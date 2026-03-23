@@ -149,6 +149,29 @@ describe('TrustStateResolver', () => {
     expect(result.blocking_reasons).toContain('CRS_BELOW_THRESHOLD');
   });
 
+  it('excludes mock receipt provenance from decision-grade readiness', async () => {
+    const { deps } = createDependencies({
+      receipts: {
+        listByClinician: vi.fn().mockResolvedValue([
+          {
+            receipt_id: 'rcpt-mock',
+            fetched_at: '2026-02-06T17:00:00.000Z',
+            ttl_seconds: 7200,
+            revoked: false,
+            source_coverage_state: 'mock',
+          } satisfies PsvReceiptRecord,
+        ]),
+      },
+    });
+
+    const resolver = new TrustStateResolver(deps);
+    const result = await resolver.resolve('clin-1');
+
+    expect(result.start_ready).toBe(false);
+    expect(result.band).toBe('RED');
+    expect(result.blocking_reasons).toContain('MISSING_PSV');
+  });
+
   it('returns start_ready=false when CRS is below threshold', async () => {
     const { deps } = createDependencies({
       crs: {

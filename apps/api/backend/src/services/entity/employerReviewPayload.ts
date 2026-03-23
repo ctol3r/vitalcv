@@ -2,6 +2,7 @@ import type { Prisma, VcvCredentialDomain } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import { buildPassport, type ReadinessNextAction } from './passportService';
 import { resolveCredentialEvidence } from './evidenceIntegrity';
+import type { CanonicalSourceCoverageReport } from '../../../../../../packages/trust-state';
 
 export interface EmployerReviewCredentialRef {
   credentialId: string;
@@ -54,6 +55,11 @@ export interface EmployerReviewPayloadV1 {
     licensureStatus: string;
     deaStatus: string;
     pecosStatus: string;
+    pecosEnrollmentStatus?: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED';
+    enrollmentSourceLabel?: string;
+    enrollmentDataFreshness?: string;
+    enrollmentSourceLatency?: string;
+    enrollmentNote?: string | null;
     enrollmentObservedAt?: string;
     enrollmentDataVersion?: string;
     enrollmentStatusLabel?: string;
@@ -66,7 +72,7 @@ export interface EmployerReviewPayloadV1 {
   receiptReferences: string[];
   proofReferences: string[];
   checkedAt: string;
-  sourceCoverage: {
+  sourceCoverage: CanonicalSourceCoverageReport & {
     sources: string[];
     domains: string[];
     credentialCount: number;
@@ -85,6 +91,22 @@ function toJsonValue(value: unknown): Prisma.InputJsonValue {
 
 function mergeStrings(values: readonly string[][]): string[] {
   return Array.from(new Set(values.flatMap((value) => value))).sort((left, right) => left.localeCompare(right));
+}
+
+export function buildEmployerReviewSourceCoverage(input: {
+  passportSourceCoverage: CanonicalSourceCoverageReport;
+  domains: readonly string[];
+  credentialCount: number;
+}): EmployerReviewPayloadV1['sourceCoverage'] {
+  return {
+    checks: input.passportSourceCoverage.checks,
+    summary: input.passportSourceCoverage.summary,
+    sources: Array.from(new Set(
+      input.passportSourceCoverage.checks.map((check) => check.sourceId),
+    )).sort((left, right) => left.localeCompare(right)),
+    domains: Array.from(new Set(input.domains)).sort((left, right) => left.localeCompare(right)),
+    credentialCount: input.credentialCount,
+  };
 }
 
 export async function buildEmployerReviewPayload(input: {
@@ -220,6 +242,11 @@ export async function buildEmployerReviewPayload(input: {
       licensureStatus: passport.standing.licensureStatus,
       deaStatus: passport.standing.deaStatus,
       pecosStatus: passport.standing.pecosStatus,
+      pecosEnrollmentStatus: passport.standing.pecosEnrollmentStatus,
+      enrollmentSourceLabel: passport.standing.enrollmentSourceLabel,
+      enrollmentDataFreshness: passport.standing.enrollmentDataFreshness,
+      enrollmentSourceLatency: passport.standing.enrollmentSourceLatency,
+      enrollmentNote: passport.standing.enrollmentNote,
       enrollmentObservedAt: passport.standing.enrollmentObservedAt,
       enrollmentDataVersion: passport.standing.enrollmentDataVersion,
       enrollmentStatusLabel: passport.standing.enrollmentStatusLabel,
@@ -258,13 +285,11 @@ export async function buildEmployerReviewPayload(input: {
     receiptReferences,
     proofReferences: [...receiptReferences],
     checkedAt: passport.lastCheckedAt,
-    sourceCoverage: {
-      sources: Array.from(new Set(
-        reviewableCredentials.flatMap(({ evidence }) => evidence.validArtifactIds.map((artifactId) => artifactsById.get(artifactId)?.source).filter((source): source is string => Boolean(source))),
-      )).sort((left, right) => left.localeCompare(right)),
-      domains: Array.from(new Set(reviewableCredentials.map(({ credential }) => credential.domain))).sort((left, right) => left.localeCompare(right)),
+    sourceCoverage: buildEmployerReviewSourceCoverage({
+      passportSourceCoverage: passport.sourceCoverage,
+      domains: reviewableCredentials.map(({ credential }) => credential.domain),
       credentialCount: reviewableCredentials.length,
-    },
+    }),
     shareMetadata: {
       organizationContextId: context?.id,
       requestorEntityId: context?.requestorId,

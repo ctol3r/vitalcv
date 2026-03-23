@@ -242,10 +242,17 @@ export function simulateDecision(
   // ── 5. Medicare enrollment (contextual) ─────────────────────────────────────
 
   const billingReq = context.billingRequired ?? true; // assume billing required unless told otherwise
-  if (billingReq && standing.pecosStatus !== 'enrolled') {
+  const pecosEnrollmentStatus =
+    standing.pecosEnrollmentStatus ?? (
+      standing.pecosStatus === 'enrolled' ? 'ENROLLED' : 'UNCHECKED'
+    );
+  if (billingReq && pecosEnrollmentStatus !== 'ENROLLED') {
     risks.push({
       area: 'Eligibility',
-      description: 'Medicare enrollment not confirmed. Required for billing at most facilities.',
+      description:
+        pecosEnrollmentStatus === 'NOT_FOUND'
+          ? 'Quarterly PECOS release did not show Medicare enrollment for this provider. Billing may be blocked until enrollment is confirmed.'
+          : 'Medicare enrollment is unresolved. PECOS is quarterly data and billing readiness must be confirmed before start.',
       severity: 'MEDIUM',
       mitigable: true,
     });

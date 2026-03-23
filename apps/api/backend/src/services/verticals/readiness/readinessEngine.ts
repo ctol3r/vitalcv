@@ -25,6 +25,35 @@ export interface ReadinessReport {
   clearToStartDate?: string;
 }
 
+type EnrollmentEligibilityState = 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED';
+
+function artifactLooksMock(artifact: PsvArtifact | undefined): boolean {
+  if (!artifact) {
+    return false;
+  }
+
+  const rawPayload = artifact.rawPayload.toLowerCase();
+  return rawPayload.includes('"stub":true')
+    || rawPayload.includes('"source":"mock')
+    || rawPayload.includes('"source":"simulated')
+    || rawPayload.includes('npi-prefix');
+}
+
+function resolveEnrollmentEligibilityState(
+  artifact: PsvArtifact | undefined,
+): EnrollmentEligibilityState {
+  if (!artifact) {
+    return 'UNCHECKED';
+  }
+  if (artifact.status === 'ACTIVE') {
+    return 'ENROLLED';
+  }
+  if (artifact.status === 'NOT_FOUND') {
+    return 'NOT_FOUND';
+  }
+  return 'UNKNOWN';
+}
+
 function compactApplicable(profession: string, fromState: string, toState: string): boolean {
   if (['RN', 'LPN', 'APRN'].includes(profession)) return NLC_COMPACT_STATES.includes(fromState) && NLC_COMPACT_STATES.includes(toState);
   if (['LPC', 'LMHC'].includes(profession)) return COUNSELING_COMPACT_STATES.includes(fromState) && COUNSELING_COMPACT_STATES.includes(toState);
@@ -40,12 +69,17 @@ export function computeReadiness(npi: string, targetState: string, profession: s
     || artifact.source.toUpperCase().includes('NURSYS'),
   );
   const enrollmentArtifact = artifacts.find((artifact) => artifact.source.toUpperCase().includes('PECOS'));
+  const identityMock = artifactLooksMock(identityArtifact);
+  const exclusionMock = artifactLooksMock(exclusionArtifact);
+  const licensureMock = artifactLooksMock(licensureArtifact);
+  const enrollmentMock = artifactLooksMock(enrollmentArtifact);
 
   const licenseArtifact = licensureArtifact?.status === 'ACTIVE' ? licensureArtifact : undefined;
   const fromState = licenseArtifact?.state;
   const compact = fromState ? compactApplicable(profession, fromState, targetState) : false;
   const delay = getEndorsementDelay(targetState, profession);
   const estimatedDays = compact ? 3 : (delay ? Math.round((delay.typicalDaysMin + delay.typicalDaysMax) / 2) : 45);
+  const enrollmentState = resolveEnrollmentEligibilityState(enrollmentArtifact);
 
   const clearToStartDate = new Date(Date.now() + estimatedDays * 86_400_000).toISOString().slice(0, 10);
 
@@ -56,9 +90,12 @@ export function computeReadiness(npi: string, targetState: string, profession: s
       checked: Boolean(identityArtifact),
       fresh: identityArtifact?.status === 'ACTIVE',
       unavailable: identityArtifact?.status === 'ERROR',
+      notDecisionGrade: identityMock,
     }),
     reason:
-      !identityArtifact
+      identityMock
+        ? 'NPPES identity evidence is not decision-grade and excluded'
+        : !identityArtifact
         ? 'NPPES identity source not yet checked'
         : identityArtifact.status === 'ACTIVE'
           ? 'NPPES identity checked'
@@ -76,9 +113,12 @@ export function computeReadiness(npi: string, targetState: string, profession: s
       checked: Boolean(exclusionArtifact),
       fresh: exclusionArtifact?.status === 'ACTIVE',
       unavailable: exclusionArtifact?.status === 'ERROR',
+      notDecisionGrade: exclusionMock,
     }),
     reason:
-      !exclusionArtifact
+      exclusionMock
+        ? 'OIG LEIE evidence is not decision-grade and excluded'
+        : !exclusionArtifact
         ? 'OIG LEIE source not yet checked'
         : exclusionArtifact.status === 'ACTIVE'
           ? 'OIG LEIE check complete'
@@ -96,9 +136,12 @@ export function computeReadiness(npi: string, targetState: string, profession: s
       checked: Boolean(licensureArtifact),
       fresh: licensureArtifact?.status === 'ACTIVE',
       unavailable: licensureArtifact?.status === 'ERROR',
+      notDecisionGrade: licensureMock,
     }),
     reason:
-      !licensureArtifact
+      licensureMock
+        ? 'Licensure evidence is not decision-grade and excluded'
+        : !licensureArtifact
         ? 'Licensure source not yet checked'
         : licensureArtifact.status === 'ACTIVE'
           ? 'Licensure check complete'
@@ -116,17 +159,20 @@ export function computeReadiness(npi: string, targetState: string, profession: s
     state: resolveSourceCoverageState({
       sourceId: 'PECOS_PUBLIC',
       checked: Boolean(enrollmentArtifact),
-      fresh: enrollmentArtifact?.status === 'ACTIVE' || enrollmentArtifact?.status === 'NOT_FOUND',
+      fresh: enrollmentState === 'ENROLLED' || enrollmentState === 'NOT_FOUND',
       unavailable: enrollmentArtifact?.status === 'ERROR',
+      notDecisionGrade: enrollmentMock,
     }),
     reason:
-      !enrollmentArtifact
+      enrollmentMock
+        ? 'PECOS evidence is not decision-grade and excluded'
+        : !enrollmentArtifact
         ? 'PECOS source not yet checked'
-        : enrollmentArtifact.status === 'ACTIVE'
+        : enrollmentState === 'ENROLLED'
           ? 'PECOS quarterly enrollment checked'
-          : enrollmentArtifact.status === 'NOT_FOUND'
+          : enrollmentState === 'NOT_FOUND'
             ? 'PECOS quarterly enrollment not found'
-            : 'PECOS evidence unresolved',
+            : 'PECOS enrollment outcome unresolved',
     checkedAt: enrollmentArtifact?.retrievalTimestampUtc ?? null,
     artifactId: enrollmentArtifact?.artifactId ?? null,
     sourceUrl: enrollmentArtifact?.sourceUrl ?? null,
@@ -172,17 +218,26 @@ export function computeReadiness(npi: string, targetState: string, profession: s
     enrollment: {
       dimension: 'enrollment',
       status:
-        enrollmentArtifact?.status === 'ACTIVE'
+        enrollmentState === 'ENROLLED'
           ? 'MET'
-          : enrollmentArtifact?.status === 'NOT_FOUND'
+          : enrollmentState === 'NOT_FOUND'
             ? 'BLOCKED'
             : 'UNMET',
-      confidence: enrollmentArtifact ? 0.95 : 0.25,
-      blocker: enrollmentArtifact?.status === 'NOT_FOUND' ? 'PECOS enrollment not found' : null,
-      gap: enrollmentArtifact ? null : 'PECOS enrollment artifact missing',
+      confidence: enrollmentState === 'UNKNOWN' || enrollmentState === 'UNCHECKED' ? 0.25 : 0.95,
+      blocker: enrollmentState === 'NOT_FOUND' ? 'PECOS quarterly enrollment not found' : null,
+      gap:
+        enrollmentState === 'UNCHECKED'
+          ? 'PECOS enrollment not yet checked'
+          : enrollmentState === 'UNKNOWN'
+            ? 'PECOS enrollment outcome unresolved'
+            : null,
       sourceCoverage: [enrollmentCoverage],
     },
   });
+  const readinessScore =
+    enrollmentState === 'ENROLLED'
+      ? readiness.readinessScore
+      : Math.min(readiness.readinessScore, 59);
 
   const what_you_have = artifacts
     .filter((artifact) => artifact.status === 'ACTIVE')
@@ -200,8 +255,8 @@ export function computeReadiness(npi: string, targetState: string, profession: s
     targetState,
     profession,
     overallStatus: readiness.overallStatus,
-    readinessScore: readiness.readinessScore,
-    readiness_score: readiness.readiness_score,
+    readinessScore,
+    readiness_score: readinessScore,
     blockers: readiness.blockers,
     nextActions,
     confidenceWeighting: readiness.confidenceWeighting,

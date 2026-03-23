@@ -40,7 +40,24 @@ const prismaMock = prisma as unknown as {
   };
 };
 
-function baseArtifacts() {
+type PecosEnrollmentClaimValue = {
+  claimState: string;
+  enrolled: boolean | null;
+};
+
+function baseArtifacts(): Array<{
+  source: string;
+  status: string;
+  verifiedAt: Date;
+  expiresAt: Date;
+  psvWindowDeadline: Date;
+  rawPayload: Record<string, unknown>;
+}> {
+  const pecosClaimValue: PecosEnrollmentClaimValue = {
+    claimState: 'ENROLLED',
+    enrolled: true,
+  };
+
   return [
     {
       source: 'NPPES_API',
@@ -68,7 +85,7 @@ function baseArtifacts() {
         _claims: [
           {
             claimType: 'ENROLLMENT_STATUS',
-            value: { enrolled: true },
+            value: pecosClaimValue,
           },
         ],
       },
@@ -192,6 +209,80 @@ describe('computeClinicianTrustState authority readiness', () => {
     expect(state.readiness_level).toBe('L1');
     expect(state.readiness_status).toBe('Unresolved — authority source unavailable for licensure');
     expect(state.gap_summary).toContain('Authority source unavailable: FSMB_MED_API licensure unresolved');
+    expect(state.readiness_score).toBeLessThanOrEqual(59);
+  });
+
+  it('treats PECOS not-found as a blocker without implying real-time disenrollment', async () => {
+    const artifacts = baseArtifacts();
+    artifacts[2] = {
+      ...artifacts[2],
+      status: 'NOT_FOUND',
+      rawPayload: {
+        _claims: [
+          {
+            claimType: 'ENROLLMENT_STATUS',
+            value: { claimState: 'NOT_FOUND', enrolled: false },
+          },
+        ],
+      },
+    };
+    prismaMock.verificationArtifact.findMany.mockResolvedValue(artifacts);
+
+    const state = await computeClinicianTrustState('1234567890');
+
+    expect(state.pecosStatus).toBe('NOT_FOUND');
+    expect(state.readiness_status).toBe('Blocked — PECOS quarterly enrollment not found');
+    expect(state.blockers).toContain('PECOS quarterly enrollment not found');
+    expect(state.readiness_score).toBeLessThanOrEqual(59);
+  });
+
+  it('treats PECOS unknown as unresolved instead of not-found', async () => {
+    const artifacts = baseArtifacts();
+    artifacts[2] = {
+      ...artifacts[2],
+      status: 'ACTIVE',
+      rawPayload: {
+        _claims: [
+          {
+            claimType: 'ENROLLMENT_STATUS',
+            value: { claimState: 'UNKNOWN', enrolled: null },
+          },
+        ],
+      },
+    };
+    prismaMock.verificationArtifact.findMany.mockResolvedValue(artifacts);
+
+    const state = await computeClinicianTrustState('1234567890');
+
+    expect(state.pecosStatus).toBe('UNKNOWN');
+    expect(state.readiness_status).toBe('Unresolved — PECOS enrollment outcome is unknown');
+    expect(state.blockers).not.toContain('PECOS quarterly enrollment not found');
+    expect(state.gap_summary).toContain('PECOS enrollment outcome unresolved');
+    expect(state.readiness_score).toBeLessThanOrEqual(59);
+  });
+
+  it('excludes mock PECOS coverage from decision-grade trust', async () => {
+    const artifacts = baseArtifacts();
+    artifacts[2] = {
+      ...artifacts[2],
+      status: 'VERIFIED',
+      rawPayload: {
+        source: 'mock-pecos-provider',
+        _claims: [
+          {
+            claimType: 'ENROLLMENT_STATUS',
+            value: { claimState: 'ENROLLED', enrolled: true },
+          },
+        ],
+      },
+    };
+    prismaMock.verificationArtifact.findMany.mockResolvedValue(artifacts);
+
+    const state = await computeClinicianTrustState('1234567890');
+
+    expect(state.pecosStatus).toBe('ENROLLED');
+    expect(state.readiness_level).toBe('L1');
+    expect(state.gap_summary).toContain('PECOS evidence is mock and excluded from decision-grade trust');
     expect(state.readiness_score).toBeLessThanOrEqual(59);
   });
 });

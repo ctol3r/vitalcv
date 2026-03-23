@@ -5,19 +5,20 @@ import { Shield } from 'lucide-react';
 
 /* ── Simulated ledger events ───────────────────────────────── */
 
+// M1 — Only sources that are actually live: NPPES, OIG/LEIE, Nursys (gated).
+// NPDB, DEA, SAM.gov, Merkle blockchain not integrated — do not add them back.
+// IDs here are audit event UUIDs (truncated), not blockchain hashes.
 const LEDGER_EVENTS = [
-  { hash: '0x7f3a…9bc1', event: 'CA Medical License Verified', accent: 'text-emerald-500' },
-  { hash: '0x4be2…11d0', event: 'Start Attestation Anchored', accent: 'text-cyan-500' },
-  { hash: '0x9a17…f3c8', event: 'NPDB Check Cleared', accent: 'text-emerald-500' },
-  { hash: '0xc41b…7ea9', event: 'DEA Registration Confirmed', accent: 'text-emerald-500' },
-  { hash: '0x2d8f…c4a2', event: 'Board Certification Verified', accent: 'text-cyan-500' },
-  { hash: '0xe573…0b17', event: 'OIG/LEIE Exclusion Check Passed', accent: 'text-emerald-500' },
-  { hash: '0x88a1…d9f5', event: 'TX-TMB License Verified', accent: 'text-emerald-500' },
-  { hash: '0x3fc9…2e84', event: 'Merkle Root Published', accent: 'text-violet-500' },
-  { hash: '0xb120…8a33', event: 'NY-SED License Verified', accent: 'text-emerald-500' },
-  { hash: '0x6d4e…f107', event: 'Continuous Monitor: No Changes', accent: 'text-amber-500' },
-  { hash: '0xa9c2…55be', event: 'FL-DOH License Verified', accent: 'text-emerald-500' },
-  { hash: '0x15d7…cb90', event: 'SAM Exclusion Check Passed', accent: 'text-emerald-500' },
+  { hash: 'evt:7f3a…9b', event: 'CA Medical License Verified', accent: 'text-emerald-500' },
+  { hash: 'evt:4be2…1d', event: 'Start Attestation Signed', accent: 'text-cyan-500' },
+  { hash: 'evt:2d8f…c4', event: 'OIG/LEIE Exclusion Check Passed', accent: 'text-emerald-500' },
+  { hash: 'evt:88a1…d9', event: 'TX-TMB License Verified', accent: 'text-emerald-500' },
+  { hash: 'evt:b120…8a', event: 'NY-SED License Verified', accent: 'text-emerald-500' },
+  { hash: 'evt:6d4e…f1', event: 'Continuous Monitor: No Changes', accent: 'text-amber-500' },
+  { hash: 'evt:a9c2…55', event: 'FL-DOH License Verified', accent: 'text-emerald-500' },
+  { hash: 'evt:e573…01', event: 'Nursys: License Standing Confirmed', accent: 'text-emerald-500' },
+  { hash: 'evt:3fc9…2e', event: 'NPPES Identity Verified', accent: 'text-cyan-500' },
+  { hash: 'evt:c41b…7e', event: 'Employer Acceptance Audited', accent: 'text-cyan-500' },
 ] as const;
 
 /* Duplicate for seamless loop */

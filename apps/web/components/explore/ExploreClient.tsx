@@ -23,6 +23,7 @@ import {
   type MobileApplication,
 } from '@/lib/mobile/dashboard';
 import ApplyModal from './ApplyModal';
+import { AdvisoryPanelUI } from '@/components/advisory/AdvisoryPanel';
 
 /* ── API shape ───────────────────────────────────────────────── */
 
@@ -806,28 +807,31 @@ function OpportunityCard({
         const totalReqs = opp.comparison.satisfied.length + opp.comparison.missing.length + opp.comparison.unknown.length;
         const readinessScore = totalReqs > 0 ? Math.round((opp.comparison.satisfied.length / totalReqs) * 100) : 100;
         return (
-          <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 px-4 py-3 relative overflow-hidden mt-2">
-            <div className="absolute top-0 right-0 p-3 opacity-[0.03]"><Zap className="w-16 h-16" /></div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400 mb-3 flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5" /> Readiness Engine Match
-            </p>
-            <div className="grid grid-cols-[80px_1fr] gap-y-2 text-sm relative z-10">
-              <span className="text-white/40">Role</span>
-              <span className="text-white font-medium">{opp.specialty}</span>
-              
-              <span className="text-white/40">Readiness</span>
-              <span className={readinessScore >= 80 ? 'text-emerald-400 font-semibold' : 'text-amber-400 font-semibold'}>{readinessScore}% match</span>
-              
-              <span className="text-white/40">Blockers</span>
-              <span className={opp.comparison.missing.length > 0 ? "text-rose-400" : "text-white/70"}>
-                {opp.comparison.missing.length > 0 ? opp.comparison.missing[0]?.label : 'None'}
-              </span>
-              
-              <span className="text-white/40">Time</span>
-              <span className="text-white">{opp.comparison.estimatedGap}</span>
+          <>
+            <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 px-4 py-3 relative overflow-hidden mt-2">
+              <div className="grid grid-cols-[80px_1fr] gap-y-2 text-sm relative z-10">
+                <span className="text-white/40">Role</span>
+                <span className="text-white font-medium">{opp.specialty}</span>
+                
+                <span className="text-white/40">Readiness</span>
+                <span className={readinessScore >= 80 ? 'text-emerald-400 font-semibold' : 'text-amber-400 font-semibold'}>{readinessScore}% match</span>
+                
+                <span className="text-white/40">Blockers</span>
+                <span className={opp.comparison.missing.length > 0 ? "text-rose-400" : "text-white/70"}>
+                  {opp.comparison.missing.length > 0 ? opp.comparison.missing[0]?.label : 'None'}
+                </span>
+                
+                <span className="text-white/40">Time</span>
+                <span className="text-white">{opp.comparison.estimatedGap}</span>
+              </div>
             </div>
-            <p className="mt-3 text-xs font-medium text-cyan-200 pt-3 border-t border-white/5">{opp.comparison.shortestPath}</p>
-          </div>
+            
+            <AdvisoryPanelUI 
+              state="AVAILABLE" 
+              variant="light" 
+              summary={opp.comparison.shortestPath}
+            />
+          </>
         );
       })() : (
         <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4 mt-2 flex items-center justify-between">

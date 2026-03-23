@@ -7,19 +7,22 @@ import { useEffect, useState } from 'react';
 
 /* ── Simulated verification terminal ───────────────────────── */
 
+// M1 — Sources shown here must match what is actually live.
+// Live: NPPES (always), OIG/LEIE (always). Gated: Nursys (institutional access).
+// NOT INTEGRATED: NPDB, DEA, ABMS. Do not add them back without live adapters.
 const TERMINAL_LINES = [
   { text: '> Resolving NPI 1003000126…', delay: 0 },
   { text: '  ✓ NPPES identity confirmed', delay: 600 },
   { text: '> Querying CA-BRN primary source…', delay: 1200 },
   { text: '  ✓ Medical license ACTIVE (exp 2027-03-15)', delay: 2000 },
-  { text: '> Querying NPDB…', delay: 2600 },
-  { text: '  ✓ No adverse actions found', delay: 3200 },
-  { text: '> Querying OIG/LEIE…', delay: 3600 },
-  { text: '  ✓ Not excluded', delay: 4100 },
-  { text: '> Anchoring to Merkle ledger…', delay: 4600 },
-  { text: '  ✓ Root: 0x7f3a…9bc1 (block #41,207)', delay: 5400 },
-  { text: '> Running ReadinessEvaluator…', delay: 6000 },
-  { text: '  ✓ CLEARED — ready to start', delay: 6800 },
+  { text: '> Querying OIG/LEIE exclusion registry…', delay: 2600 },
+  { text: '  ✓ Not excluded', delay: 3200 },
+  { text: '> Querying Nursys (state board network)…', delay: 3800 },
+  { text: '  ✓ License standing confirmed', delay: 4500 },
+  { text: '> Signing credential bundle (ES256)…', delay: 5000 },
+  { text: '  ✓ Bundle signed — ready to share', delay: 5700 },
+  { text: '> Running ReadinessEvaluator…', delay: 6200 },
+  { text: '  ✓ CLEARED — ready to start', delay: 6900 },
 ] as const;
 
 function VerificationTerminal() {

@@ -1,4 +1,6 @@
 /** YC MVP — behavior frozen. Do not modify without scope approval. */
+import type { CanonicalSourceCoverageState } from './sourceCoverage';
+
 export type TrustBand = 'GREEN' | 'YELLOW' | 'RED';
 
 export type BlockingReason =
@@ -46,6 +48,7 @@ export type PsvReceiptRecord = {
   fetched_at: string;
   ttl_seconds: number;
   revoked: boolean;
+  source_coverage_state?: CanonicalSourceCoverageState;
   lane?: 'PUBLIC' | 'PARTNER' | 'MANUAL';
   verification_check?: string;
   verification_outcome?: 'PASS' | 'FAIL';

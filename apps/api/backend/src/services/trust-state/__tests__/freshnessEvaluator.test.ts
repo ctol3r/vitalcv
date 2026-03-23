@@ -62,4 +62,26 @@ describe('freshnessEvaluator', () => {
     expect(result.freshness).toBe('stale');
     expect(result.valid).toBe(false);
   });
+
+  it('keeps evidence current until the freshness boundary, then turns stale without requiring expiresAt', () => {
+    const current = determineFreshnessWindowValidity({
+      canonicalArtifactKey: 'board_certification',
+      verifiedAt: new Date('2026-01-01T00:00:00.000Z'),
+      expiresAt: null,
+      psvWindowDeadline: null,
+      psvWindowCompliant: null,
+      now: new Date('2026-12-31T23:59:59.000Z'),
+    });
+    const stale = determineFreshnessWindowValidity({
+      canonicalArtifactKey: 'board_certification',
+      verifiedAt: new Date('2026-01-01T00:00:00.000Z'),
+      expiresAt: null,
+      psvWindowDeadline: null,
+      psvWindowCompliant: null,
+      now: new Date('2027-01-02T00:00:01.000Z'),
+    });
+
+    expect(current.freshness).toBe('current');
+    expect(stale.freshness).toBe('stale');
+  });
 });

@@ -2,7 +2,10 @@ import { createHash, randomUUID } from 'node:crypto';
 import prisma, { Prisma } from '../../graphql/prisma_client';
 import {
   buildClaimArtifactTrace,
+  finalizeVerificationReceipt,
+  normalizeEvidenceBundle,
   resolveClaimArtifactTrace,
+  withTraceableClaim,
 } from './evidenceModel';
 import type {
   CanonicalIdentitySummary,
@@ -91,6 +94,8 @@ type ClaimRecordRow = Readonly<{
   supersedesClaimId: string | null;
   reviewRequired: boolean;
   reviewReason: string | null;
+  explanation: string | null;
+  freshnessWindowHours: number | null;
   mergeReason: string | null;
   conflictReason: string | null;
 }>;
@@ -110,6 +115,14 @@ type VerificationReceiptRecordRow = Readonly<{
   observedAt: Date;
   explanation: string;
   expiresAt: Date | null;
+  sourceUrl: string | null;
+  retrievedAt: Date | null;
+  rawArtifactRef: string | null;
+  checksum: string | null;
+  claimType: string | null;
+  matchConfidence: string | null;
+  freshnessWindowHours: number | null;
+  integrityHash: string | null;
 }>;
 
 export type PersistedIdentityDelta = Readonly<{
@@ -323,37 +336,40 @@ export async function persistClaimRecords(input: {
   const persistedClaimIds: string[] = [];
 
   for (const claim of input.claims) {
-    resolveClaimArtifactTrace(claim);
+    const tracedClaim = withTraceableClaim(claim);
+    resolveClaimArtifactTrace(tracedClaim);
 
     try {
       await claimClient.create({
         data: {
-          claimId: claim.claimId,
+          claimId: tracedClaim.claimId,
           sourceRunId: input.sourceRunId ?? null,
           sourceRecordId: input.sourceRecordId ?? null,
           verificationArtifactId: input.verificationArtifactId,
           personProfileId: input.personProfileId ?? null,
           subjectNpi: input.subjectNpi,
-          claimType: claim.claimType,
-          value: toJsonValue(claim.value),
-          trustTier: claim.tier,
-          confidenceLabel: claim.confidence,
-          confidenceScore: claim.confidenceScore,
-          sourceId: claim.sourceId,
-          parserVersion: claim.parserVersion,
-          matchingStrategy: input.matchingStrategy ?? claim.sourceId,
-          status: claim.status,
-          observedAt: new Date(claim.observedAt),
-          derivedAt: new Date(claim.derivedAt),
-          validFrom: toNullableDate(claim.validFrom),
-          validUntil: toNullableDate(claim.validUntil),
-          expiresAt: toNullableDate(claim.expiresAt),
-          supersededByClaimId: claim.supersededBy ?? null,
-          supersedesClaimId: claim.supersedes ?? null,
-          reviewRequired: claim.reviewRequired,
-          reviewReason: claim.reviewReason ?? null,
+          claimType: tracedClaim.claimType,
+          value: toJsonValue(tracedClaim.value),
+          trustTier: tracedClaim.tier,
+          confidenceLabel: tracedClaim.confidence,
+          confidenceScore: tracedClaim.confidenceScore,
+          sourceId: tracedClaim.sourceId,
+          parserVersion: tracedClaim.parserVersion,
+          matchingStrategy: input.matchingStrategy ?? tracedClaim.sourceId,
+          status: tracedClaim.status,
+          observedAt: new Date(tracedClaim.observedAt),
+          derivedAt: new Date(tracedClaim.derivedAt),
+          validFrom: toNullableDate(tracedClaim.validFrom),
+          validUntil: toNullableDate(tracedClaim.validUntil),
+          expiresAt: toNullableDate(tracedClaim.expiresAt),
+          supersededByClaimId: tracedClaim.supersededBy ?? null,
+          supersedesClaimId: tracedClaim.supersedes ?? null,
+          reviewRequired: tracedClaim.reviewRequired,
+          reviewReason: tracedClaim.reviewReason ?? null,
+          explanation: tracedClaim.explanation ?? null,
+          freshnessWindowHours: tracedClaim.freshnessWindowHours ?? null,
           mergeReason: input.mergeReason ?? null,
-          conflictReason: input.conflictReason ?? claim.reviewReason ?? null,
+          conflictReason: input.conflictReason ?? tracedClaim.reviewReason ?? null,
         },
       });
     } catch (error) {
@@ -385,13 +401,19 @@ export async function persistVerificationReceiptRecords(input: {
     return;
   }
 
+  const claimById = new Map(input.claims.map((claim) => [claim.claimId, claim] as const));
+
   for (const receipt of input.receipts) {
+    const finalizedReceipt = finalizeVerificationReceipt(
+      receipt,
+      claimById.get(receipt.claim_id),
+    );
     let claimRecordId: string | null = null;
 
     if (claimClient.findFirst) {
       const claimRecord = await claimClient.findFirst({
         where: {
-          claimId: receipt.claim_id,
+          claimId: finalizedReceipt.claim_id,
           verificationArtifactId: input.verificationArtifactId,
         },
         select: { id: true },
@@ -402,26 +424,34 @@ export async function persistVerificationReceiptRecords(input: {
     try {
       await receiptClient.create({
         data: {
-          receiptId: receipt.receipt_id,
+          receiptId: finalizedReceipt.receipt_id,
           claimRecordId,
-          claimId: receipt.claim_id,
+          claimId: finalizedReceipt.claim_id,
           sourceRunId: input.sourceRunId ?? null,
           sourceRecordId: input.sourceRecordId ?? null,
           verificationArtifactId: input.verificationArtifactId,
           personProfileId: input.personProfileId ?? null,
           subjectNpi: input.subjectNpi,
-          entityId: receipt.entity_id,
-          field: receipt.field,
-          value: toJsonValue(receipt.value),
-          trustTier: receipt.tier,
-          confidence: receipt.confidence,
-          sourceArtifactId: receipt.source_artifact_id ?? null,
-          sourceSystem: receipt.source_system,
-          parserVersion: receipt.parser_version,
+          entityId: finalizedReceipt.entity_id,
+          field: finalizedReceipt.field,
+          value: toJsonValue(finalizedReceipt.value),
+          trustTier: finalizedReceipt.tier,
+          confidence: finalizedReceipt.confidence,
+          sourceArtifactId: finalizedReceipt.source_artifact_id ?? null,
+          sourceSystem: finalizedReceipt.source_system,
+          parserVersion: finalizedReceipt.parser_version,
           matchingStrategy: input.matchingStrategy ?? null,
-          observedAt: new Date(receipt.observed_at),
-          explanation: receipt.explanation,
-          expiresAt: toNullableDate(receipt.expires_at),
+          observedAt: new Date(finalizedReceipt.observed_at),
+          explanation: finalizedReceipt.explanation,
+          expiresAt: toNullableDate(finalizedReceipt.expires_at),
+          sourceUrl: finalizedReceipt.source_url ?? null,
+          retrievedAt: toNullableDate(finalizedReceipt.retrieved_at),
+          rawArtifactRef: finalizedReceipt.raw_artifact_ref ?? null,
+          checksum: finalizedReceipt.checksum ?? null,
+          claimType: finalizedReceipt.claim_type ?? null,
+          matchConfidence: finalizedReceipt.match_confidence ?? null,
+          freshnessWindowHours: finalizedReceipt.freshness_window_hours ?? null,
+          integrityHash: finalizedReceipt.integrity_hash ?? null,
         },
       });
     } catch (error) {
@@ -703,6 +733,8 @@ export async function loadClaimRecordsForNpi(npi: string): Promise<NormalizedCla
         reviewRequired: record.reviewRequired,
         reviewReason: record.reviewReason,
         humanReviewAt: null,
+        explanation: record.explanation ?? undefined,
+        freshnessWindowHours: record.freshnessWindowHours,
       });
     }
 
@@ -719,25 +751,35 @@ export async function loadClaimRecordsForNpi(npi: string): Promise<NormalizedCla
       );
     }
 
-    return [...deduped.values()].map((claim) => ({
-      ...claim,
-      artifactId: artifactByClaimId.get(claim.claimId) ?? claim.artifactId,
-      artifactChecksum: checksumByClaimId.get(claim.claimId) ?? claim.artifactChecksum,
-      ...buildClaimArtifactTrace({
-        sourceId: claim.sourceId,
-        sourceUrl: artifactById.get(artifactByClaimId.get(claim.claimId) ?? '')?.sourceUrl ?? claim.source_url,
-        retrievedAt:
-          artifactById.get(artifactByClaimId.get(claim.claimId) ?? '')?.fetchedAt?.toISOString()
-          ?? artifactById.get(artifactByClaimId.get(claim.claimId) ?? '')?.observedAt?.toISOString()
-          ?? claim.retrieved_at
-          ?? claim.derivedAt
-          ?? claim.observedAt,
+    return [...deduped.values()].map((claim) => {
+      const hydratedClaim = {
+        ...claim,
         artifactId: artifactByClaimId.get(claim.claimId) ?? claim.artifactId,
-        checksum: checksumByClaimId.get(claim.claimId) ?? claim.artifactChecksum,
-        claimType: claim.claimType,
-        matchConfidence: claim.match_confidence ?? claim.confidence,
-      }),
-    }));
+        artifactChecksum: checksumByClaimId.get(claim.claimId) ?? claim.artifactChecksum,
+      };
+
+      try {
+        return withTraceableClaim({
+          ...hydratedClaim,
+          ...buildClaimArtifactTrace({
+            sourceId: claim.sourceId,
+            sourceUrl: artifactById.get(artifactByClaimId.get(claim.claimId) ?? '')?.sourceUrl ?? claim.source_url,
+            retrievedAt:
+              artifactById.get(artifactByClaimId.get(claim.claimId) ?? '')?.fetchedAt?.toISOString()
+              ?? artifactById.get(artifactByClaimId.get(claim.claimId) ?? '')?.observedAt?.toISOString()
+              ?? claim.retrieved_at
+              ?? claim.derivedAt
+              ?? claim.observedAt,
+            artifactId: artifactByClaimId.get(claim.claimId) ?? claim.artifactId,
+            checksum: checksumByClaimId.get(claim.claimId) ?? claim.artifactChecksum,
+            claimType: claim.claimType,
+            matchConfidence: claim.match_confidence ?? claim.confidence,
+          }),
+        });
+      } catch {
+        return hydratedClaim;
+      }
+    });
   }
 
   const artifacts = await prisma.verificationArtifact.findMany({
@@ -761,7 +803,7 @@ export async function loadClaimRecordsForNpi(npi: string): Promise<NormalizedCla
     }
   }
 
-  return claims;
+  return normalizeEvidenceBundle({ claims, receipts: [] }).claims;
 }
 
 export async function loadVerificationReceiptRecordsForNpi(
@@ -788,6 +830,16 @@ export async function loadVerificationReceiptRecordsForNpi(
       parser_version: row.parserVersion,
       expires_at: row.expiresAt?.toISOString() ?? null,
       explanation: row.explanation,
+      source_url: row.sourceUrl ?? undefined,
+      retrieved_at: row.retrievedAt?.toISOString() ?? undefined,
+      raw_artifact_ref: row.rawArtifactRef ?? undefined,
+      checksum: row.checksum ?? undefined,
+      claim_type: row.claimType ? row.claimType as VerificationReceipt['claim_type'] : undefined,
+      match_confidence: row.matchConfidence
+        ? row.matchConfidence as VerificationReceipt['match_confidence']
+        : undefined,
+      freshness_window_hours: row.freshnessWindowHours,
+      integrity_hash: row.integrityHash ?? undefined,
     }));
   }
 

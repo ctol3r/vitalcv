@@ -54,9 +54,9 @@ const DEMO_CANDIDATES: DemoCandidate[] = [
       { name: 'NPI Enrollment', type: 'NPI_ENROLLMENT', claimLevel: 'L3', status: 'ACTIVE' },
     ],
     auditLog: [
-      { timestamp: '14:32:01', message: 'ZKP proof initiated — CA Medical Board', status: 'VERIFIED' },
+      { timestamp: '14:32:01', message: 'NPPES primary source confirmed — CA Medical Board', status: 'VERIFIED' },
       { timestamp: '14:32:03', message: 'ABIM certification cross-referenced', status: 'VERIFIED', hash: 'a4f8c2d91b3e7f0a6c5d8e2b' },
-      { timestamp: '14:32:04', message: 'DEA schedule authority confirmed', status: 'VERIFIED', hash: '7d2a4f8f91b6d8cfb4e7c8d0' },
+      { timestamp: '14:32:04', message: 'OIG/LEIE exclusion check passed', status: 'VERIFIED', hash: '7d2a4f8f91b6d8cfb4e7c8d0' },
       { timestamp: '14:32:05', message: 'NPI primary source match', status: 'VERIFIED', hash: 'b9a21f4e5a8d7c1f4a3b9a20' },
       { timestamp: '14:32:06', message: 'Credential bundle signed — ES256', status: 'VERIFIED', hash: '3f7d2a4f8f91b6d8cfb4e7c8' },
     ],
@@ -76,9 +76,9 @@ const DEMO_CANDIDATES: DemoCandidate[] = [
       { name: 'NPI Enrollment', type: 'NPI_ENROLLMENT', claimLevel: 'L2', status: 'ACTIVE' },
     ],
     auditLog: [
-      { timestamp: '14:15:22', message: 'ZKP proof initiated — NY Medical Board', status: 'VERIFIED' },
+      { timestamp: '14:15:22', message: 'NPPES primary source confirmed — NY Medical Board', status: 'VERIFIED' },
       { timestamp: '14:15:24', message: 'ABA certification cross-referenced', status: 'VERIFIED', hash: 'c6d5f1e8b3a4c9d0f2a1b7e3' },
-      { timestamp: '14:15:25', message: 'DEA verification pending — awaiting authority response', status: 'PENDING' },
+      { timestamp: '14:15:25', message: 'OIG/LEIE exclusion check passed', status: 'VERIFIED', hash: 'd7b2e4f9a1c3e8b5f6a2c9d1' },
     ],
   },
   {
@@ -306,7 +306,7 @@ export function VerifierCommandCenter() {
                           className="gap-2"
                         >
                           <ShieldCheck className="h-4 w-4" />
-                          {allL3 ? 'Instant Approve' : 'Awaiting Full Verification'}
+                          {allL3 ? 'Accept as Head Start' : 'Awaiting Full Verification'}
                         </Button>
                       )}
                       {!allL3 && !isApproved && (

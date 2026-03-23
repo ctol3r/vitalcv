@@ -27,7 +27,7 @@ import { useState } from 'react';
 import { Accordion } from '@/components/ui/vcv-accordion';
 import type { AccordionItem } from '@/components/ui/vcv-accordion';
 import type { PassportData, ReadinessStatus } from '@/app/passport/[id]/page';
-import FastestPathPanel from '@/components/passport/FastestPathPanel';
+import { PassportAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
 
 // ── Status configuration ──────────────────────────────────────────────────────
 // NO colour on status. Hierarchy via opacity only.
@@ -672,8 +672,8 @@ export default function PassportWallet({ passport }: Props) {
           <Accordion items={accordionItems} />
         </div>
 
-        {/* ── MiroFish fastest path — clinician-facing, clearly advisory ─── */}
-        <FastestPathPanel passport={passport} />
+        {/* ── Advisory Panel — clinician-facing, clearly advisory ─── */}
+        <PassportAdvisoryPanel passport={passport} />
 
         {/* ── Share section ─────────────────────────────────────────────────── */}
         <div className="space-y-3 pt-2">

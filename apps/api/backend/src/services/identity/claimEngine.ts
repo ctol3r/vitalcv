@@ -31,7 +31,15 @@ import {
   type ClinicalTrialValue,
   type BoardCertValue,
 } from './evidenceModel';
-import type { ClaimType } from './sourceCatalog';
+import { getSource, type ClaimType } from './sourceCatalog';
+
+function computeClaimExpiry(sourceId: string, timestamp: string): string | null {
+  const source = getSource(sourceId);
+  if (!source) return null;
+  const base = Date.parse(timestamp);
+  if (!Number.isFinite(base)) return null;
+  return new Date(base + source.refreshSlaHours * 60 * 60 * 1000).toISOString();
+}
 import { log } from '../../obs/logger';
 
 // Re-export for use in pipeline
@@ -163,6 +171,7 @@ export function parseNppesResult(
     parserVersion: NPPES_PARSER_VERSION,
     tier: 'GOLD' as const,
     observedAt,
+    expiresAt: computeClaimExpiry('NPPES_API', observedAt),
   };
 
   try {
@@ -417,6 +426,7 @@ export function parseOigResult(
     matchConfidence: confidence,
     confidenceScore,
     observedAt,
+    expiresAt: computeClaimExpiry('OIG_LEIE', observedAt),
     status: verdict === 'EXCLUDED' ? 'BLOCKED' : reviewRequired ? 'UNVERIFIED' : 'ACTIVE',
     reviewRequired,
     reviewReason: reviewRequired
@@ -444,7 +454,8 @@ export function parseOigResult(
 
 interface PecosRecord {
   npi?: string;
-  enrolled?: boolean;
+  enrolled?: boolean | null;
+  claimState?: EnrollmentValue['claimState'];
   enrollmentType?: string | null;
   eligibleToOrderRefer?: boolean | null;
   source?: string;
@@ -455,6 +466,17 @@ interface PecosRecord {
 }
 
 const PECOS_PARSER_VERSION = 'v1.2.0';
+
+function normalizePecosClaimState(raw: PecosRecord): EnrollmentValue['claimState'] {
+  const explicit = typeof raw.claimState === 'string' ? raw.claimState.trim().toUpperCase() : '';
+  if (explicit === 'ENROLLED') return 'ENROLLED';
+  if (explicit === 'NOT_FOUND') return 'NOT_FOUND';
+  if (explicit === 'UNKNOWN') return 'UNKNOWN';
+  if (explicit === 'UNCHECKED') return 'UNCHECKED';
+  if (raw.enrolled === true) return 'ENROLLED';
+  if (raw.enrolled === false) return raw.source === 'PECOS_UNAVAILABLE' ? 'UNKNOWN' : 'NOT_FOUND';
+  return 'UNKNOWN';
+}
 
 function quarterLabelFromVersion(dataVersion: string | null | undefined): string | null {
   if (!dataVersion) {
@@ -488,12 +510,22 @@ function quarterLabelFromVersion(dataVersion: string | null | undefined): string
   return normalized;
 }
 
-function pecosLabel(enrolled: boolean, dataVersion: string | null | undefined): string {
+function pecosLabel(
+  claimState: EnrollmentValue['claimState'],
+  dataVersion: string | null | undefined,
+): string {
   const quarterLabel = quarterLabelFromVersion(dataVersion);
   const suffix = quarterLabel ? `as of ${quarterLabel}` : 'as of the latest quarterly CMS PECOS release';
-  return enrolled
-    ? `Medicare enrolled — ${suffix}`
-    : `Medicare enrollment not found — ${suffix}`;
+  if (claimState === 'ENROLLED') {
+    return `Medicare enrolled — ${suffix}`;
+  }
+  if (claimState === 'NOT_FOUND') {
+    return `Medicare enrollment not found in quarterly PECOS snapshot — ${suffix}`;
+  }
+  if (claimState === 'UNCHECKED') {
+    return `Medicare enrollment not yet checked — ${suffix}`;
+  }
+  return `Medicare enrollment unresolved — ${suffix}`;
 }
 
 export function parsePecosRecord(
@@ -504,18 +536,31 @@ export function parsePecosRecord(
   observedAt: string,
   sourceMeta?: { sourceUrl?: string; retrievedAt?: string },
 ): { claims: NormalizedClaim[]; receipts: VerificationReceipt[] } {
+  const claimState = normalizePecosClaimState(raw);
+  const enrolled =
+    claimState === 'ENROLLED'
+      ? true
+      : claimState === 'NOT_FOUND'
+        ? false
+        : null;
+  const confidence: ClaimConfidence =
+    claimState === 'ENROLLED' || claimState === 'NOT_FOUND' ? 'HIGH' : 'UNCERTAIN';
+  const confidenceScore =
+    claimState === 'ENROLLED' || claimState === 'NOT_FOUND' ? 0.95 : 0.25;
+  const label = pecosLabel(claimState, raw.dataVersion ?? null);
   const value: EnrollmentValue = {
     _type: 'ENROLLMENT_STATUS',
-    enrolled: raw.enrolled ?? false,
+    enrolled,
+    claimState,
     enrollmentType: raw.enrollmentType ?? null,
-    eligibleToOrderRefer: raw.eligibleToOrderRefer ?? false,
+    eligibleToOrderRefer: raw.eligibleToOrderRefer ?? null,
     source: 'PECOS',
     observedAt: raw.observedAt ?? observedAt,
     dataVersion: raw.dataVersion ?? null,
-    label: pecosLabel(raw.enrolled ?? false, raw.dataVersion ?? null),
-    statusLabel: pecosLabel(raw.enrolled ?? false, raw.dataVersion ?? null),
-    sourceLatency: raw.sourceLatency ?? 'QUARTERLY',
-    dataFreshness: raw.dataFreshness ?? 'QUARTERLY',
+    label,
+    statusLabel: label,
+    sourceLatency: 'QUARTERLY',
+    dataFreshness: 'QUARTERLY',
     sourceDisclaimer: 'Medicare enrollment status is point-in-time quarterly PECOS data and may lag current enrollment changes.',
   };
 
@@ -527,12 +572,21 @@ export function parsePecosRecord(
     artifactChecksum,
     parserVersion: PECOS_PARSER_VERSION, tier: 'GOLD',
     claimType: 'ENROLLMENT_STATUS', subjectNpi: npi, value,
-    confidence: 'HIGH', confidenceScore: 0.95, observedAt,
+    confidence,
+    confidenceScore,
+    observedAt,
+    expiresAt: computeClaimExpiry('PECOS_PUBLIC', observedAt),
+    status: claimState === 'ENROLLED' ? 'ACTIVE' : 'UNVERIFIED',
   });
 
-  const explanation = raw.enrolled
-    ? `${value.label}.${raw.enrollmentType ? ` Enrollment type: ${raw.enrollmentType}.` : ''}${raw.eligibleToOrderRefer ? ' Eligible to order/refer.' : ''}`
-    : `${value.label}.`;
+  const explanation =
+    claimState === 'ENROLLED'
+      ? `${value.label}.${raw.enrollmentType ? ` Enrollment type: ${raw.enrollmentType}.` : ''}${raw.eligibleToOrderRefer ? ' Eligible to order/refer.' : ''}`
+      : claimState === 'NOT_FOUND'
+        ? `${value.label}. This is a quarterly not-found result and must not be treated as real-time disenrollment.`
+        : claimState === 'UNCHECKED'
+          ? `${value.label}. PECOS has not been checked yet.`
+          : `${value.label}. Treat this as unresolved until a fresh quarterly PECOS snapshot is available.`;
 
   return {
     claims: [claim],

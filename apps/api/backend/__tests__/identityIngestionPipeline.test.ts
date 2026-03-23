@@ -766,7 +766,7 @@ describe('identity ingestion pipeline hardening', () => {
     expect((enrollmentClaim?.value as Record<string, unknown>).enrolled).toBe(false)
     expect((enrollmentClaim?.value as Record<string, unknown>).dataFreshness).toBe('QUARTERLY')
     expect((enrollmentClaim?.value as Record<string, unknown>).label).toBe(
-      'Medicare enrollment not found — as of Q1 2026',
+      'Medicare enrollment not found in quarterly PECOS snapshot — as of Q1 2026',
     )
   })
 })
