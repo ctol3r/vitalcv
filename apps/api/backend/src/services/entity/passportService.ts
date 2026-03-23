@@ -88,7 +88,13 @@ export interface PassportCredential {
   leieVersionDate?:  string;
   identityOnly?:     boolean;
   sourceDisclaimer?: string;
-  reviewRequired:    boolean;
+  reviewRequired:      boolean;
+  // Authority truth fields (M14/MS15) — read from metadata JSONB
+  authorityClaimCode?:  string;   // e.g. 'PHYSICIAN_LICENSE_ACTIVE', 'BOARD_ORDER_PRESENT', 'AUTHORITY_UNAVAILABLE'
+  boardOrderSeverity?:  string;   // 'NONE'|'LOW'|'MEDIUM'|'HIGH'|'CRITICAL'
+  connectorState?:      string;   // 'configured'|'connected'|'unavailable'|'unresolved'
+  participationStatus?: string;   // 'verified_result'|'non_participating_state'|'institution_access_unavailable'|...
+  sourceScope?:         string;   // 'FSMB_MED_API'|'NURSYS_AUTHORIZED_PATH'|...
 }
 
 export interface PassportTraining {
@@ -408,8 +414,14 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
       dataVersion:      stringValue(meta.dataVersion) ?? stringValue(claimValue.dataVersion),
       leieVersionDate:  stringValue(meta.leieVersionDate) ?? stringValue(claimValue.leieVersionDate),
       identityOnly:     (meta.identityOnly as boolean | undefined) ?? (claimValue.identityOnly as boolean | undefined),
-      sourceDisclaimer: stringValue(meta.sourceDisclaimer) ?? stringValue(claimValue.sourceDisclaimer),
-      reviewRequired:   (meta.reviewRequired as boolean | undefined) ?? false,
+      sourceDisclaimer:    stringValue(meta.sourceDisclaimer) ?? stringValue(claimValue.sourceDisclaimer),
+      reviewRequired:      (meta.reviewRequired as boolean | undefined) ?? false,
+      // Authority truth fields (M14/MS15)
+      authorityClaimCode:  stringValue(meta.authorityClaimCode) ?? undefined,
+      boardOrderSeverity:  stringValue(meta.boardOrderSeverity) ?? undefined,
+      connectorState:      stringValue(meta.connectorState) ?? undefined,
+      participationStatus: stringValue(meta.participationStatus) ?? undefined,
+      sourceScope:         stringValue(meta.sourceScope) ?? undefined,
     };
   });
 

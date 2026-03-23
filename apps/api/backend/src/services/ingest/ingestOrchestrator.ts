@@ -3,6 +3,11 @@ import { log } from '../../obs/logger';
 import { buildPassport } from '../entity/passportService';
 import { resolveEntityFromNpi } from '../entity/entityResolutionService';
 import { ingestClinicianIdentity, type IngestionResult } from '../identity/identityIngestionPipeline';
+import { fetchFsmbClaims, isFsmbEnabled } from '../identity/fsmbClaimMapper';
+import { fetchNursysClaim } from '../identity/nursysClaimMapper';
+import { env } from '../../config/env';
+import { upsertVcvCredential } from '../entity/upsertVcvCredential';
+import { computeClaimId } from '../identity/evidenceModel';
 import type { PersistedIngestRun, IngestSourceId } from './contracts';
 import {
   appendIngestEvent,
@@ -20,6 +25,8 @@ function mapPipelineSourceId(source: string): IngestSourceId | null {
   if (source === 'NPPES_API') return 'nppes';
   if (source === 'OIG_LEIE') return 'oig';
   if (source === 'PECOS_PUBLIC') return 'pecos';
+  if (source === 'NURSYS' || source === 'NURSYS_ENOTIFY') return 'nursys';
+  if (source === 'FSMB') return 'fsmb';
   return null;
 }
 
@@ -175,6 +182,87 @@ async function runPipeline(runId: string, npi: string): Promise<void> {
     });
     await finalizeSourceResult(runId, 'oig', resultBySource.get('oig') ?? null);
     await finalizeSourceResult(runId, 'pecos', resultBySource.get('pecos') ?? null);
+
+    // ── Authority stage: Nursys (nurse licensure) ────────────────────────────
+    if (env().REAL_NURSYS_ENABLED) {
+      await emitSourceStart(runId, 'nursys');
+      try {
+        const nursysClaim = await fetchNursysClaim(npi, new Date().toISOString());
+        const nursysCredIds: string[] = [];
+        if (nursysClaim) {
+          const cred = await upsertVcvCredential(nursysClaim, entityRecord.entity.id);
+          if (cred) nursysCredIds.push(cred.credentialId);
+        }
+        await finalizeSourceResult(runId, 'nursys', {
+          npi,
+          source: 'NURSYS',
+          status:        nursysClaim ? 'SUCCESS' : 'SKIPPED',
+          claimsEmitted: nursysClaim ? 1 : 0,
+          credentialIds: nursysCredIds,
+          claimIds:      nursysClaim ? [nursysClaim.claimId] : [],
+          artifactId:    nursysClaim?.artifactId ?? null,
+          sourceRunId:   `nursys-${npi}`,
+          deltaEvents:   [],
+          latencyMs:     0,
+        });
+      } catch (err) {
+        log('warn', 'nursys_stage_failed', { npi, error: String(err) });
+        await finalizeSourceResult(runId, 'nursys', {
+          npi,
+          source:        'NURSYS',
+          status:        'FAILED',
+          claimsEmitted: 0,
+          credentialIds: [],
+          claimIds:      [],
+          artifactId:    null,
+          sourceRunId:   undefined,
+          deltaEvents:   [],
+          latencyMs:     0,
+          error:         String(err),
+        });
+      }
+    }
+
+    // ── Authority stage: FSMB (physician licensure + board certs) ────────────
+    if (isFsmbEnabled()) {
+      await emitSourceStart(runId, 'fsmb');
+      try {
+        const fsmbResult = await fetchFsmbClaims(npi, new Date().toISOString());
+        const fsmbCredIds: string[] = [];
+        for (const claim of fsmbResult.claims) {
+          const cred = await upsertVcvCredential(claim, entityRecord.entity.id);
+          if (cred) fsmbCredIds.push(cred.credentialId);
+        }
+        await finalizeSourceResult(runId, 'fsmb', {
+          npi,
+          source:        'FSMB',
+          status:        fsmbResult.sourced ? 'SUCCESS' : 'FAILED',
+          claimsEmitted: fsmbResult.claims.length,
+          credentialIds: fsmbCredIds,
+          claimIds:      fsmbResult.claims.map(c => c.claimId),
+          artifactId:    fsmbResult.claims[0]?.artifactId ?? undefined,
+          sourceRunId:   `fsmb-${npi}`,
+          deltaEvents:   [],
+          latencyMs:     0,
+          error:         fsmbResult.error,
+        });
+      } catch (err) {
+        log('warn', 'fsmb_stage_failed', { npi, error: String(err) });
+        await finalizeSourceResult(runId, 'fsmb', {
+          npi,
+          source:        'FSMB',
+          status:        'FAILED',
+          claimsEmitted: 0,
+          credentialIds: [],
+          claimIds:      [],
+          artifactId:    null,
+          sourceRunId:   undefined,
+          deltaEvents:   [],
+          latencyMs:     0,
+          error:         String(err),
+        });
+      }
+    }
 
     const passport = await buildPassport(entityRecord.entity.id);
     if (passport) {

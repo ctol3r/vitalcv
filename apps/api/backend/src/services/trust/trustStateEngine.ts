@@ -19,6 +19,11 @@ import { checkExclusion } from '../psv/oigLeieChecker';
 import { log } from '../../obs/logger';
 import { isCredentialIngestionEnabled } from '../credentials/credentialIngestionConfig';
 import {
+  boardOrderSeverityBlocksReadiness,
+  boardOrderSeverityRequiresReview,
+  normalizeBoardOrderSeverity,
+} from '../authority/contracts';
+import {
   getTrustStateMemoryCache,
   setTrustStateMemoryCache,
   recordMemoryHit,
@@ -43,7 +48,7 @@ export interface CanonicalFactSummary {
 }
 
 /** Methodology version — bump when scoring logic changes */
-export const METHODOLOGY_VERSION = '243.2';
+export const METHODOLOGY_VERSION = '243.3';
 
 export interface ClinicianTrustState {
   npi: string;
@@ -82,6 +87,31 @@ type IngestedArtifactRecord = {
   expiresAt: Date | null;
   psvWindowDeadline: Date | null;
   rawPayload: unknown;
+};
+
+type AuthorityCredentialRecord = {
+  id: string;
+  domain: string;
+  status: string;
+  credentialType: string;
+  verifiedAt: Date | null;
+  expiresAt: Date | null;
+  observedAt: Date | null;
+  metadata: unknown;
+  claimValue: unknown;
+};
+
+type AuthoritySignalSummary = {
+  facts: CanonicalFactSummary[];
+  gaps: string[];
+  blockers: string[];
+  credentialCount: number;
+  licensureVerified: boolean;
+  expiredLicense: boolean;
+  disciplinedLicense: boolean;
+  boardOrderRequiresReview: boolean;
+  boardOrderBlocks: boolean;
+  authorityUnavailableLicensure: boolean;
 };
 
 // ── NPPES fetch (mirrors liveMatchaService pattern) ───────────────────────────

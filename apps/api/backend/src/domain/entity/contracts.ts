@@ -74,6 +74,15 @@ export interface CredentialClaimValue {
   excluded?:        boolean;
   exclusionBasis?:  string;
   // Common
+  authorityClaimCode?: string;
+  issuerEntityId?: string | null;
+  sourceScope?: string | null;
+  effectiveAt?: string | null;
+  verifiedAt?: string | null;
+  confidenceLabel?: string | null;
+  dataFreshness?: string | null;
+  participationStatus?: string | null;
+  boardOrderSeverity?: string | null;
   issuingAuthority?: string;
   rawSourceData?:   unknown;
 }

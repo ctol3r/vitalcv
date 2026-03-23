@@ -51,7 +51,13 @@ export interface PassportData {
       dataVersion?:      string;
       identityOnly?:     boolean;
       sourceDisclaimer?: string;
-      reviewRequired:    boolean;
+      reviewRequired:      boolean;
+      // Authority truth fields (MS15)
+      authorityClaimCode?:  string;
+      boardOrderSeverity?:  string;
+      connectorState?:      string;
+      participationStatus?: string;
+      sourceScope?:         string;
     }>;
     summary: { active: number; expired: number; stale: number; missing: string[] };
   };

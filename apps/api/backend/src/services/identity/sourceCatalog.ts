@@ -45,7 +45,9 @@ export type ClaimType =
   | 'CLINICAL_TRIAL'         // ClinicalTrials.gov investigator role
   | 'INSTITUTION_AFFILIATION'// hospital, faculty, residency program
   | 'DEA_REGISTRATION'       // DEA controlled substance registration
-  | 'FEDERAL_EXCLUSION';     // SAM.gov federal exclusion
+  | 'FEDERAL_EXCLUSION'      // SAM.gov federal exclusion
+  | 'TRAINING_COMPLETION'    // source-backed training completion
+  | 'AUTHORITY_UNAVAILABLE'; // authority contract unavailable / unresolved
 
 export interface SourceDefinition {
   id:             string;

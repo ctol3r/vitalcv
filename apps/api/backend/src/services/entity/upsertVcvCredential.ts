@@ -27,11 +27,26 @@
  */
 
 import prisma from '../../graphql/prisma_client';
-import type { NormalizedClaim } from '../identity/evidenceModel';
+import type {
+  AuthorityUnavailableValue,
+  BoardCertValue,
+  LicenseValue,
+  NormalizedClaim,
+  TrainingCompletionValue,
+} from '../identity/evidenceModel';
 import type { ClaimType } from '../identity/sourceCatalog';
 import type { VcvCredentialDomain, VcvVerificationLevel } from '@prisma/client';
 import { log } from '../../obs/logger';
 import { FRESHNESS_WINDOWS_DAYS } from '../../domain/entity/contracts';
+import {
+  authorityStatusForClaim,
+  defaultAuthorityTruthFields,
+  type AuthorityClaimCode,
+  type AuthorityParticipationStatus,
+  type AuthoritySourceScope,
+  type AuthorityTargetDomain,
+  type BoardOrderSeverity,
+} from '../authority/contracts';
 
 // ── Source metadata ────────────────────────────────────────────────────────────
 
@@ -43,6 +58,7 @@ export const SOURCE_DATA_FRESHNESS: Record<string, string> = {
   PECOS_PUBLIC:       'Updated quarterly',
   DOCTORS_CLINICIANS: 'Updated quarterly',
   NURSYS:             'Updated in real-time',
+  FSMB:               'Updated weekly',
   DEA:                'Updated in real-time',
   SAM_GOV:            'Updated daily',
   STATE_BOARD:        'Varies by state',
@@ -71,6 +87,7 @@ const CLAIM_TO_DOMAIN: Partial<Record<ClaimType, VcvCredentialDomain>> = {
   NURSING_DISCIPLINE:    'LICENSURE',
   BOARD_CERTIFICATION:   'BOARD_CERTIFICATION',
   BOARD_CERT_FLAG:       'BOARD_CERTIFICATION',
+  TRAINING_COMPLETION:   'TRAINING',
   DEA_REGISTRATION:      'DEA_REGISTRATION',
   ENROLLMENT_STATUS:     'MEDICARE_ENROLLMENT',
   ORDER_REFERRAL:        'MEDICARE_ENROLLMENT',
@@ -101,6 +118,194 @@ function claimStatusToCredStatus(claimStatus: string, reviewRequired: boolean): 
   return 'UNRESOLVED';
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+
+  return {};
+}
+
+function stringValue(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function licenseStatusFromValue(value: unknown): LicenseValue['licenseStatus'] {
+  const normalized = stringValue(asRecord(value)['licenseStatus'])?.toUpperCase();
+  if (normalized === 'ACTIVE') return 'ACTIVE';
+  if (normalized === 'EXPIRED') return 'EXPIRED';
+  if (normalized === 'SUSPENDED') return 'SUSPENDED';
+  if (normalized === 'REVOKED') return 'REVOKED';
+  return 'UNKNOWN';
+}
+
+function boardCertificationStatusFromValue(
+  value: unknown,
+): BoardCertValue['certificationStatus'] {
+  const normalized = stringValue(asRecord(value)['certificationStatus'])?.toUpperCase();
+  if (normalized === 'CERTIFIED') return 'CERTIFIED';
+  if (normalized === 'NOT_CERTIFIED') return 'NOT_CERTIFIED';
+  if (normalized === 'LAPSED') return 'LAPSED';
+  return 'UNKNOWN';
+}
+
+function defaultAuthoritySourceScope(
+  claimType: ClaimType,
+  sourceId: string,
+): AuthoritySourceScope | null {
+  if (sourceId === 'FSMB' && claimType === 'BOARD_CERTIFICATION') return 'FSMB_ABMS_INCLUDED';
+  if (sourceId === 'FSMB' && claimType === 'TRAINING_COMPLETION') return 'FSMB_TRAINING';
+  if (sourceId === 'FSMB') return 'FSMB_MED_API';
+  if (sourceId === 'NURSYS') return 'NURSYS_AUTHORIZED_PATH';
+  return null;
+}
+
+function authorityClaimCodeForClaim(
+  claim: NormalizedClaim,
+): AuthorityClaimCode | null {
+  const value = asRecord(claim.value);
+  const explicit = stringValue(value['authorityClaimCode']);
+  if (explicit) {
+    return explicit as AuthorityClaimCode;
+  }
+
+  if (claim.claimType === 'AUTHORITY_UNAVAILABLE') return 'AUTHORITY_UNAVAILABLE';
+  if (claim.claimType === 'TRAINING_COMPLETION') return 'TRAINING_COMPLETED';
+  if (claim.claimType === 'LICENSE_DISCIPLINE') return 'BOARD_ORDER_PRESENT';
+  if (claim.claimType === 'NURSING_DISCIPLINE') return 'RN_LICENSE_DISCIPLINED';
+
+  if (claim.claimType === 'BOARD_CERTIFICATION') {
+    const status = boardCertificationStatusFromValue(value);
+    return status === 'CERTIFIED' ? 'BOARD_CERTIFIED' : null;
+  }
+
+  if (claim.claimType === 'NURSING_LICENSE') {
+    const status = licenseStatusFromValue(value);
+    if (status === 'ACTIVE') return 'RN_LICENSE_ACTIVE';
+    if (status === 'EXPIRED') return 'RN_LICENSE_EXPIRED';
+    if (status === 'SUSPENDED' || status === 'REVOKED') return 'RN_LICENSE_DISCIPLINED';
+    return null;
+  }
+
+  if (claim.claimType === 'LICENSE') {
+    const status = licenseStatusFromValue(value);
+    return status === 'ACTIVE' ? 'PHYSICIAN_LICENSE_ACTIVE' : null;
+  }
+
+  return null;
+}
+
+function authorityTargetDomainForClaim(
+  claim: NormalizedClaim,
+): AuthorityTargetDomain | null {
+  if (claim.claimType === 'AUTHORITY_UNAVAILABLE') {
+    const value = asRecord(claim.value);
+    const explicit = stringValue(value['targetDomain']);
+    if (explicit === 'LICENSURE' || explicit === 'BOARD_CERTIFICATION' || explicit === 'TRAINING') {
+      return explicit;
+    }
+  }
+
+  if (claim.claimType === 'BOARD_CERTIFICATION') return 'BOARD_CERTIFICATION';
+  if (claim.claimType === 'TRAINING_COMPLETION') return 'TRAINING';
+  if (
+    claim.claimType === 'LICENSE'
+    || claim.claimType === 'LICENSE_DISCIPLINE'
+    || claim.claimType === 'NURSING_LICENSE'
+    || claim.claimType === 'NURSING_DISCIPLINE'
+  ) {
+    return 'LICENSURE';
+  }
+
+  return null;
+}
+
+function authorityMetadataFromClaim(
+  claim: NormalizedClaim,
+): ReturnType<typeof defaultAuthorityTruthFields> | null {
+  const authorityClaimCode = authorityClaimCodeForClaim(claim);
+  const targetDomain = authorityTargetDomainForClaim(claim);
+  if (!authorityClaimCode || !targetDomain) {
+    return null;
+  }
+
+  const value = asRecord(claim.value);
+  const sourceScope = stringValue(value['sourceScope']) as AuthoritySourceScope | null
+    ?? defaultAuthoritySourceScope(claim.claimType, claim.sourceId);
+  if (!sourceScope) {
+    return null;
+  }
+
+  return defaultAuthorityTruthFields({
+    authorityClaimCode,
+    issuerEntityId: stringValue(value['issuerEntityId']),
+    sourceScope,
+    effectiveAt:
+      stringValue(value['effectiveAt'])
+      ?? stringValue(value['issueDate'])
+      ?? stringValue(value['certificationDate'])
+      ?? stringValue(value['completionDate'])
+      ?? claim.observedAt,
+    expiresAt:
+      stringValue(value['expiresAt'])
+      ?? stringValue(value['expiryDate'])
+      ?? claim.expiresAt,
+    verifiedAt: stringValue(value['verifiedAt']) ?? claim.observedAt,
+    dataFreshness: stringValue(value['dataFreshness']) ?? SOURCE_DATA_FRESHNESS[claim.sourceId] ?? 'Freshness unavailable',
+    participationStatus:
+      (stringValue(value['participationStatus']) as AuthorityParticipationStatus | null)
+      ?? (authorityClaimCode === 'AUTHORITY_UNAVAILABLE' ? 'unresolved' : 'verified_result'),
+    boardOrderSeverity: (stringValue(value['boardOrderSeverity']) ?? 'NONE') as BoardOrderSeverity,
+    connectorState:
+      (stringValue(value['connectorState']) as 'configured' | 'unavailable' | 'unresolved' | 'connected' | null)
+      ?? (authorityClaimCode === 'AUTHORITY_UNAVAILABLE' ? 'unresolved' : 'connected'),
+    targetDomain,
+    confidenceLabel: stringValue(value['confidenceLabel']) ?? undefined,
+  });
+}
+
+function credentialStatusFromClaim(claim: NormalizedClaim): string {
+  const authorityMetadata = authorityMetadataFromClaim(claim);
+  if (claim.claimType === 'BOARD_CERTIFICATION') {
+    const certificationStatus = boardCertificationStatusFromValue(claim.value);
+    if (certificationStatus === 'LAPSED') return 'EXPIRED';
+    if (!authorityMetadata?.authorityClaimCode) {
+      return claimStatusToCredStatus(claim.status, claim.reviewRequired ?? false);
+    }
+    return authorityStatusForClaim({
+      claimCode: authorityMetadata.authorityClaimCode,
+    });
+  }
+
+  if (claim.claimType === 'TRAINING_COMPLETION') {
+    if (authorityMetadata?.authorityClaimCode === 'AUTHORITY_UNAVAILABLE') return 'UNRESOLVED';
+    return 'ACTIVE';
+  }
+
+  if (
+    claim.claimType === 'LICENSE'
+    || claim.claimType === 'LICENSE_DISCIPLINE'
+    || claim.claimType === 'NURSING_LICENSE'
+    || claim.claimType === 'NURSING_DISCIPLINE'
+  ) {
+    if (!authorityMetadata?.authorityClaimCode) {
+      const licenseStatus = licenseStatusFromValue(claim.value);
+      if (licenseStatus === 'ACTIVE') return 'ACTIVE';
+      if (licenseStatus === 'EXPIRED') return 'EXPIRED';
+      if (licenseStatus === 'SUSPENDED') return 'SUSPENDED';
+      if (licenseStatus === 'REVOKED') return 'REVOKED';
+      return claimStatusToCredStatus(claim.status, claim.reviewRequired ?? false);
+    }
+
+    return authorityStatusForClaim({
+      claimCode: authorityMetadata.authorityClaimCode,
+      boardOrderSeverity: authorityMetadata?.boardOrderSeverity,
+    });
+  }
+
+  return claimStatusToCredStatus(claim.status, claim.reviewRequired ?? false);
+}
+
 // ── Freshness window → nextReverifyAt ─────────────────────────────────────────
 
 function computeNextReverify(domain: VcvCredentialDomain, verifiedAt: Date): Date {
@@ -114,8 +319,16 @@ function computeNextReverify(domain: VcvCredentialDomain, verifiedAt: Date): Dat
 
 function extractJurisdiction(claimType: ClaimType, value: unknown): string | undefined {
   const v = value as Record<string, unknown>;
-  if (claimType === 'LICENSE' || claimType === 'NURSING_LICENSE') {
+  if (
+    claimType === 'LICENSE'
+    || claimType === 'LICENSE_DISCIPLINE'
+    || claimType === 'NURSING_LICENSE'
+    || claimType === 'NURSING_DISCIPLINE'
+  ) {
     return v['licenseState'] as string ?? v['state'] as string ?? undefined;
+  }
+  if (claimType === 'AUTHORITY_UNAVAILABLE') {
+    return v['jurisdiction'] as string ?? v['state'] as string ?? undefined;
   }
   if (claimType === 'DEA_REGISTRATION') {
     return v['state'] as string ?? undefined;
@@ -136,8 +349,8 @@ function extractDates(claimType: ClaimType, value: unknown): {
   };
 
   return {
-    issuedAt:  parseDate(v['issueDate'] ?? v['issuedAt'] ?? v['enrollmentDate'] ?? v['exclusionDate']),
-    expiresAt: parseDate(v['expirationDate'] ?? v['expiresAt'] ?? v['reinstatementDate']),
+    issuedAt:  parseDate(v['issueDate'] ?? v['issuedAt'] ?? v['enrollmentDate'] ?? v['exclusionDate'] ?? v['certificationDate'] ?? v['completionDate'] ?? v['effectiveAt']),
+    expiresAt: parseDate(v['expirationDate'] ?? v['expiresAt'] ?? v['reinstatementDate'] ?? v['expiryDate']),
   };
 }
 
@@ -145,7 +358,9 @@ function deriveCredentialType(claimType: ClaimType, value: unknown): string {
   const v = value as Record<string, unknown>;
   switch (claimType) {
     case 'LICENSE':
-    case 'NURSING_LICENSE': {
+    case 'LICENSE_DISCIPLINE':
+    case 'NURSING_LICENSE':
+    case 'NURSING_DISCIPLINE': {
       const state = (v['licenseState'] ?? v['state'] ?? '') as string;
       const type  = (v['licenseType']  ?? 'STATE_LICENSE') as string;
       return state ? `${type}_${state}`.toUpperCase() : type.toUpperCase();
@@ -154,6 +369,15 @@ function deriveCredentialType(claimType: ClaimType, value: unknown): string {
     case 'BOARD_CERT_FLAG': {
       const board = (v['boardName'] ?? v['specialty'] ?? 'BOARD_CERT') as string;
       return board.toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+    }
+    case 'TRAINING_COMPLETION': {
+      const trainingType = (v['trainingType'] ?? 'TRAINING') as string;
+      const programName = (v['programName'] ?? v['institution'] ?? 'PROGRAM') as string;
+      return `${trainingType}_${programName}`.toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+    }
+    case 'AUTHORITY_UNAVAILABLE': {
+      const scope = (v['sourceScope'] ?? v['targetDomain'] ?? 'AUTHORITY') as string;
+      return `AUTHORITY_UNAVAILABLE_${scope}`.toUpperCase().replace(/[^A-Z0-9_]/g, '_');
     }
     case 'DEA_REGISTRATION':
       return 'DEA_REGISTRATION';
@@ -208,17 +432,21 @@ export async function upsertVcvCredential(
   claim:    NormalizedClaim,
   entityId: string,
 ): Promise<UpsertResult | null> {
-  const domain = CLAIM_TO_DOMAIN[claim.claimType];
+  const authorityTargetDomain = authorityTargetDomainForClaim(claim);
+  const domain = claim.claimType === 'AUTHORITY_UNAVAILABLE'
+    ? authorityTargetDomain as VcvCredentialDomain | undefined
+    : CLAIM_TO_DOMAIN[claim.claimType];
   if (!domain) return null;
 
   const verificationLevel = tierToLevel(claim.tier, claim.confidenceScore ?? 0.5);
-  const status            = claimStatusToCredStatus(claim.status, claim.reviewRequired ?? false);
+  const status            = credentialStatusFromClaim(claim);
   const credentialType    = deriveCredentialType(claim.claimType, claim.value);
   const jurisdiction      = extractJurisdiction(claim.claimType, claim.value);
   const { issuedAt, expiresAt } = extractDates(claim.claimType, claim.value);
   const verifiedAt        = new Date(claim.observedAt);
   const nextReverifyAt    = computeNextReverify(domain, verifiedAt);
   const issuerId          = await getIssuerId(claim.sourceId);
+  const authorityMetadata = authorityMetadataFromClaim(claim);
 
   const claimValue = JSON.parse(JSON.stringify(claim.value)) as import('@prisma/client').Prisma.InputJsonValue;
   const credentialFamilyKey = `legacy-family:${entityId}:${domain}:${credentialType}:${jurisdiction ?? 'none'}`;
@@ -279,6 +507,20 @@ export async function upsertVcvCredential(
           confidenceLabel: confidenceLabel(claim.tier, claim.confidenceScore ?? 0.5, claim.reviewRequired ?? false),
           dataFreshness:   SOURCE_DATA_FRESHNESS[claim.sourceId] ?? 'Freshness unknown',
           reviewRequired:  claim.reviewRequired ?? false,
+          ...(authorityMetadata ? {
+            authorityClaimCode: authorityMetadata.authorityClaimCode,
+            issuerEntityId: issuerId ?? authorityMetadata.issuerEntityId,
+            sourceScope: authorityMetadata.sourceScope,
+            effectiveAt: authorityMetadata.effectiveAt,
+            expiresAt: authorityMetadata.expiresAt,
+            verifiedAt: authorityMetadata.verifiedAt,
+            confidenceLabel: authorityMetadata.confidenceLabel,
+            dataFreshness: authorityMetadata.dataFreshness,
+            participationStatus: authorityMetadata.participationStatus,
+            boardOrderSeverity: authorityMetadata.boardOrderSeverity,
+            connectorState: authorityMetadata.connectorState,
+            targetDomain: authorityMetadata.targetDomain,
+          } : {}),
         } as import('@prisma/client').Prisma.InputJsonValue,
       },
     });

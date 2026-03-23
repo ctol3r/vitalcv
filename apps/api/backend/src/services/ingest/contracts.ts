@@ -1,4 +1,4 @@
-export const INGEST_SOURCE_IDS = ['nppes', 'oig', 'pecos'] as const;
+export const INGEST_SOURCE_IDS = ['nppes', 'oig', 'pecos', 'nursys', 'fsmb'] as const;
 export type IngestSourceId = (typeof INGEST_SOURCE_IDS)[number];
 
 export type IngestEventType =

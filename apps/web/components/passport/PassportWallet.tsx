@@ -100,56 +100,179 @@ function buildIdentitySection(passport: PassportData): AccordionItem {
   };
 }
 
+// ── Authority row renderer (MS15) ────────────────────────────────────────────
+// Shared display contract: title · status · source · checkedAt · confidence · freshness
+
+interface AuthorityRowProps {
+  title:       string;
+  status:      'active' | 'expired' | 'review' | 'unavailable' | 'pending';
+  sourceLabel: string;
+  checkedAt?:  string | null;
+  confidence?: string | null;
+  freshness?:  string | null;
+  note?:       string | null;
+}
+
+function AuthorityRow({ title, status, sourceLabel, checkedAt, confidence, freshness, note }: AuthorityRowProps) {
+  const statusText = {
+    active:      'Active',
+    expired:     'Expired',
+    review:      'Review required',
+    unavailable: 'Not available',
+    pending:     'Not verified',
+  }[status];
+
+  const statusOpacity = {
+    active:      'text-white/55',
+    expired:     'text-white/35',
+    review:      'text-white/40',
+    unavailable: 'text-white/20',
+    pending:     'text-white/25',
+  }[status];
+
+  return (
+    <div className="py-1.5 border-b border-white/5 last:border-0">
+      <div className="flex justify-between text-xs">
+        <span className="text-white/65">{title}</span>
+        <span className={`text-xs ${statusOpacity}`}>{statusText}</span>
+      </div>
+      <div className="flex justify-between text-xs mt-0.5">
+        <span className="text-white/25">Source: {sourceLabel}</span>
+        {freshness && <span className="text-white/15">{freshness}</span>}
+      </div>
+      {(checkedAt || confidence) && (
+        <div className="text-white/20 text-xs mt-0.5 flex gap-2 flex-wrap">
+          {checkedAt && <span>Checked {checkedAt}</span>}
+          {confidence && <span>· {confidence}</span>}
+        </div>
+      )}
+      {note && <div className="text-white/15 text-xs mt-0.5 leading-relaxed">{note}</div>}
+    </div>
+  );
+}
+
+function claimCodeToStatus(
+  code?: string,
+  reviewRequired?: boolean,
+  credStatus?: string,
+): AuthorityRowProps['status'] {
+  if (code === 'AUTHORITY_UNAVAILABLE')       return 'unavailable';
+  if (code === 'BOARD_ORDER_PRESENT')         return 'review';
+  if (code === 'RN_LICENSE_DISCIPLINED')      return 'review';
+  if (reviewRequired)                         return 'review';
+  if (code === 'RN_LICENSE_EXPIRED')          return 'expired';
+  if (credStatus === 'EXPIRED')               return 'expired';
+  if (code === 'PHYSICIAN_LICENSE_ACTIVE')    return 'active';
+  if (code === 'RN_LICENSE_ACTIVE')           return 'active';
+  if (code === 'BOARD_CERTIFIED')             return 'active';
+  if (code === 'TRAINING_COMPLETED')          return 'active';
+  if (credStatus === 'ACTIVE')                return 'active';
+  return 'pending';
+}
+
+function claimCodeToTitle(c: PassportData['authority']['credentials'][0]): string {
+  const code = c.authorityClaimCode;
+  const state = c.jurisdiction ? ` (${c.jurisdiction})` : '';
+  if (code === 'PHYSICIAN_LICENSE_ACTIVE')    return `Physician license${state}`;
+  if (code === 'RN_LICENSE_ACTIVE')           return `Nursing license${state}`;
+  if (code === 'RN_LICENSE_EXPIRED')          return `Nursing license${state} — expired`;
+  if (code === 'RN_LICENSE_DISCIPLINED')      return `Nursing license${state} — disciplinary record`;
+  if (code === 'BOARD_CERTIFIED')             return `Board certified`;
+  if (code === 'BOARD_ORDER_PRESENT')         return `Board order present${state}`;
+  if (code === 'TRAINING_COMPLETED')          return `Training completed`;
+  if (code === 'AUTHORITY_UNAVAILABLE') {
+    const participation = c.participationStatus;
+    if (participation === 'non_participating_state')       return `License verification — state not in network${state}`;
+    if (participation === 'institution_access_unavailable') return `License verification — source not configured${state}`;
+    return `License verification — unavailable${state}`;
+  }
+  // Fallback: use domain
+  if (c.domain === 'LICENSURE')          return `License${state}`;
+  if (c.domain === 'BOARD_CERTIFICATION') return `Board certification`;
+  return c.domain.replace(/_/g, ' ').toLowerCase();
+}
+
+function claimCodeToNote(c: PassportData['authority']['credentials'][0]): string | null {
+  const code = c.authorityClaimCode;
+  const severity = c.boardOrderSeverity;
+  if (code === 'BOARD_ORDER_PRESENT') {
+    const sev = severity && severity !== 'NONE' ? ` Severity: ${severity}.` : '';
+    return `A board order is on file for this license.${sev} Manual employer review required before proceeding.`;
+  }
+  if (code === 'AUTHORITY_UNAVAILABLE') {
+    const p = c.participationStatus;
+    if (p === 'non_participating_state' && c.jurisdiction)
+      return `${c.jurisdiction} does not participate in automated license verification. Request a board-issued verification letter directly.`;
+    if (p === 'institution_access_unavailable')
+      return 'Requires institutional FSMB or Nursys agreement. Contact your administrator.';
+    return 'Authority source access not configured for this record.';
+  }
+  if (code === 'RN_LICENSE_DISCIPLINED')
+    return 'A disciplinary action is recorded on this license. Review required before clinical placement.';
+  return null;
+}
+
 function buildAuthoritySection(passport: PassportData): AccordionItem {
   const { authority } = passport;
-  const hasActive = authority.summary.active > 0;
+
+  const hasBoardOrder   = authority.credentials.some(c => c.authorityClaimCode === 'BOARD_ORDER_PRESENT' || (c.boardOrderSeverity && c.boardOrderSeverity !== 'NONE'));
+  const hasActive       = authority.summary.active > 0;
+  const hasUnavailable  = authority.credentials.some(c => c.authorityClaimCode === 'AUTHORITY_UNAVAILABLE' || c.connectorState === 'unavailable' || c.connectorState === 'unresolved');
+  const hasLicensure    = authority.credentials.some(c => c.domain === 'LICENSURE');
+  const hasBoardCert    = authority.credentials.some(c => c.domain === 'BOARD_CERTIFICATION');
+
+  const sectionStatus: AccordionItem['status'] =
+    hasBoardOrder                                                ? 'action'
+    : hasActive && !hasUnavailable                               ? 'verified'
+    : hasUnavailable && !hasActive                               ? 'pending'
+    : 'action';
+
   return {
     id:      'authority',
     trigger: 'Authority',
-    status:  hasActive && authority.summary.missing.length === 0 ? 'verified'
-           : authority.summary.missing.length > 0               ? 'action'
-           : 'pending',
+    status:  sectionStatus,
     content: (
-      <div className="py-1 space-y-1">
+      <div className="py-1 space-y-0">
+
+        {/* Real credential rows — authority claim code drives display */}
         {authority.credentials.map(c => (
-          <div key={c.id} className="py-1.5 border-b border-white/5 last:border-0">
-            <div className="flex justify-between text-xs">
-              <span className="text-white/65 capitalize">{c.domain.replace(/_/g, ' ').toLowerCase()}</span>
-              <span className={`text-xs ${c.reviewRequired ? 'text-white/30' : 'text-white/45'}`}>
-                {c.statusLabel ?? c.claimState ?? c.status}
-              </span>
-            </div>
-            <div className="flex justify-between text-xs mt-0.5">
-              <span className="text-white/30">
-                {[c.issuerName ?? c.sourceId, c.jurisdiction].filter(Boolean).join(' · ') || c.type}
-              </span>
-              {c.dataFreshnessLabel && (
-                <span className="text-white/20 ml-auto">{c.dataFreshnessLabel}</span>
-              )}
-            </div>
-            <div className="text-white/20 text-xs mt-0.5">
-              {c.claimConfidenceLabel}
-              {c.observedAt ? <span className="ml-1.5">Checked {formatProofDate(c.observedAt)}</span> : null}
-              {c.expiresAt ? <span className="ml-1.5">Expires {formatProofDate(c.expiresAt)}</span> : null}
-              {c.stale ? <span className="ml-1.5">(stale)</span> : null}
-            </div>
-            {c.sourceDisclaimer && (
-              <div className="text-white/25 text-xs mt-0.5">{c.sourceDisclaimer}</div>
-            )}
-          </div>
+          <AuthorityRow
+            key={c.id}
+            title={claimCodeToTitle(c)}
+            status={claimCodeToStatus(c.authorityClaimCode, c.reviewRequired, c.status)}
+            sourceLabel={c.issuerName ?? c.sourceId ?? 'Unknown source'}
+            checkedAt={c.observedAt ? formatProofDate(c.observedAt) : null}
+            confidence={c.claimConfidenceLabel}
+            freshness={c.dataFreshnessLabel}
+            note={claimCodeToNote(c)}
+          />
         ))}
-        {authority.credentials.length === 0 && (
-          <p className="text-white/25 text-xs py-1">No credentials on file yet.</p>
+
+        {/* Honest placeholder: no licensure credentials at all */}
+        {!hasLicensure && (
+          <AuthorityRow
+            title="License — not yet verified"
+            status="unavailable"
+            sourceLabel="FSMB / Nursys"
+            note="Institutional source access required. Neither FSMB nor Nursys is currently connected."
+          />
         )}
-        {authority.summary.missing.length > 0 && (
-          <div className="pt-1">
-            {authority.summary.missing.map(d => (
-              <div key={d} className="text-white/30 text-xs py-0.5">
-                Missing: {d.replace(/_/g, ' ').toLowerCase()}
-              </div>
-            ))}
+
+        {/* Board cert placeholder */}
+        {!hasBoardCert && (
+          <div className="py-1.5 text-xs text-white/20">
+            · Board certification — not on file
           </div>
         )}
+
+        {/* Missing blocking domains (exclude always-present ones) */}
+        {authority.summary.missing
+          .filter(d => !['IDENTITY', 'EXCLUSION_CHECK'].includes(d))
+          .map(d => (
+            <div key={d} className="text-white/20 text-xs py-0.5">
+              Missing: {d.replace(/_/g, ' ').toLowerCase()}
+            </div>
+          ))}
       </div>
     ),
   };

@@ -20,6 +20,14 @@
 
 import { createHash } from 'node:crypto';
 import type { EvidenceTier, ClaimType } from './sourceCatalog';
+import type {
+  AuthorityClaimCode,
+  AuthorityConnectorState,
+  AuthorityParticipationStatus,
+  AuthoritySourceScope,
+  AuthorityTargetDomain,
+  BoardOrderSeverity,
+} from '../authority/contracts';
 
 export type { EvidenceTier, ClaimType };
 
@@ -101,6 +109,8 @@ export type ClaimValue =
   | EnrollmentValue
   | LicenseValue
   | BoardCertValue
+  | TrainingCompletionValue
+  | AuthorityUnavailableValue
   | ExclusionValue
   | IndustryPaymentValue
   | PublicationValue
@@ -198,6 +208,16 @@ export interface LicenseValue {
   licenseStatus: 'ACTIVE' | 'EXPIRED' | 'SUSPENDED' | 'REVOKED' | 'UNKNOWN';
   disciplinaryActions: string[];
   source: string;
+  authorityClaimCode?: AuthorityClaimCode;
+  sourceScope?: AuthoritySourceScope | null;
+  issuerEntityId?: string | null;
+  effectiveAt?: string | null;
+  verifiedAt?: string | null;
+  confidenceLabel?: string | null;
+  dataFreshness?: string | null;
+  participationStatus?: AuthorityParticipationStatus | null;
+  boardOrderSeverity?: BoardOrderSeverity | null;
+  connectorState?: AuthorityConnectorState | null;
   sourceDisclaimer?: string | null;
 }
 
@@ -209,6 +229,54 @@ export interface BoardCertValue {
   expiryDate: string | null;
   certificationStatus: 'CERTIFIED' | 'NOT_CERTIFIED' | 'LAPSED' | 'UNKNOWN';
   flagSource: 'CMS_DOCTORS_CLINICIANS' | 'ABMS' | 'OTHER';
+  authorityClaimCode?: AuthorityClaimCode;
+  sourceScope?: AuthoritySourceScope | null;
+  issuerEntityId?: string | null;
+  effectiveAt?: string | null;
+  verifiedAt?: string | null;
+  confidenceLabel?: string | null;
+  dataFreshness?: string | null;
+  participationStatus?: AuthorityParticipationStatus | null;
+  boardOrderSeverity?: BoardOrderSeverity | null;
+  connectorState?: AuthorityConnectorState | null;
+}
+
+export interface TrainingCompletionValue {
+  _type: 'TRAINING_COMPLETION';
+  programName: string;
+  institution: string;
+  specialty: string | null;
+  trainingType: 'RESIDENCY' | 'FELLOWSHIP' | 'INTERNSHIP' | 'CME' | 'OTHER';
+  completionDate: string | null;
+  source: string;
+  authorityClaimCode?: AuthorityClaimCode;
+  sourceScope?: AuthoritySourceScope | null;
+  issuerEntityId?: string | null;
+  effectiveAt?: string | null;
+  verifiedAt?: string | null;
+  confidenceLabel?: string | null;
+  dataFreshness?: string | null;
+  participationStatus?: AuthorityParticipationStatus | null;
+  boardOrderSeverity?: BoardOrderSeverity | null;
+  connectorState?: AuthorityConnectorState | null;
+}
+
+export interface AuthorityUnavailableValue {
+  _type: 'AUTHORITY_UNAVAILABLE';
+  reason: string;
+  source: string;
+  targetDomain: AuthorityTargetDomain;
+  jurisdiction: string | null;
+  authorityClaimCode: 'AUTHORITY_UNAVAILABLE';
+  sourceScope: AuthoritySourceScope;
+  issuerEntityId?: string | null;
+  effectiveAt?: string | null;
+  verifiedAt?: string | null;
+  confidenceLabel?: string | null;
+  dataFreshness?: string | null;
+  participationStatus?: AuthorityParticipationStatus | null;
+  boardOrderSeverity?: BoardOrderSeverity | null;
+  connectorState?: AuthorityConnectorState | null;
 }
 
 export interface ExclusionValue {

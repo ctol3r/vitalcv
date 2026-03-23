@@ -143,6 +143,48 @@ export function buildReadinessNextActions(input: {
     }
   }
 
+  // ── Authority-specific blockers ────────────────────────────────────────────
+
+  if (input.blockers.some(b => /board order|disciplin/i.test(b))) {
+    const action = buildAction(
+      'resolve-board-order',
+      'Resolve board disciplinary order',
+      'A board disciplinary order or action is on file. Contact the issuing state medical board directly. Employers will require a written explanation before proceeding.',
+      'HIGH',
+    );
+    if (!seen.has(action.id)) { seen.add(action.id); actions.push(action); }
+  }
+
+  if (input.blockers.some(b => /license.*expired|expired.*license/i.test(b))) {
+    const action = buildAction(
+      'renew-license',
+      'Renew expired license',
+      'At least one state license has expired. Contact the issuing state board to renew before applying to roles requiring that license. Estimated: 2–6 weeks depending on state.',
+      'HIGH',
+    );
+    if (!seen.has(action.id)) { seen.add(action.id); actions.push(action); }
+  }
+
+  if (input.gaps.some(g => /fsmb|nursys|authority.*not.*connected|source.*not.*connected/i.test(g))) {
+    const action = buildAction(
+      'authority-source-pending',
+      'Authority source not yet connected',
+      'License verification requires FSMB or Nursys institutional access. Your administrator must enable the integration before authority claims can be confirmed.',
+      'MEDIUM',
+    );
+    if (!seen.has(action.id)) { seen.add(action.id); actions.push(action); }
+  }
+
+  if (input.blockers.some(b => /license.*not.*available|not.*available.*state/i.test(b))) {
+    const action = buildAction(
+      'verify-state-board-direct',
+      'Verify license via state board directly',
+      'This state does not participate in automated license verification. Contact the state licensing board directly or ask the clinician to provide a board-issued verification letter.',
+      'MEDIUM',
+    );
+    if (!seen.has(action.id)) { seen.add(action.id); actions.push(action); }
+  }
+
   if (actions.length === 0) {
     actions.push(buildAction(
       'share-ready-passport',
@@ -152,5 +194,5 @@ export function buildReadinessNextActions(input: {
     ));
   }
 
-  return actions.slice(0, 4);
+  return actions.slice(0, 5);
 }

@@ -291,21 +291,93 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
               />
             </div>
 
-            {/* Authority */}
+            {/* Authority — MS15: authority claim code drives every row */}
             <div className="border-t border-white/10 pt-4 space-y-2">
               <h2 className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2">Authority</h2>
-              <TrustLabel
-                status={licenseActive ? 'confirmed' : 'unchecked'}
-                label={licenseActive ? 'License on file' : 'License not yet verified'}
-                source={(() => {
-                  const lic = authority.credentials.find(c => c.domain === 'LICENSURE');
-                  return lic?.issuerName ?? lic?.sourceId ?? (licenseActive ? 'State board' : undefined);
-                })()}
-                date={(() => {
-                  const lic = authority.credentials.find(c => c.domain === 'LICENSURE');
-                  return formatProofDate(lic?.observedAt ?? lic?.verifiedAt) ?? undefined;
-                })()}
-              />
+              {(() => {
+                const licCreds   = authority.credentials.filter(c => c.domain === 'LICENSURE');
+                const certCreds  = authority.credentials.filter(c => c.domain === 'BOARD_CERTIFICATION');
+                const boardOrder = authority.credentials.find(c => c.authorityClaimCode === 'BOARD_ORDER_PRESENT');
+                const hasAny     = licCreds.length > 0 || certCreds.length > 0;
+
+                // License rows — one per credential, claim-code driven
+                const licenseRows = licCreds.map(c => {
+                  const code = c.authorityClaimCode;
+                  const isUnavail  = code === 'AUTHORITY_UNAVAILABLE' || c.connectorState === 'unavailable' || c.connectorState === 'unresolved';
+                  const isBoard    = code === 'BOARD_ORDER_PRESENT';
+                  const isDiscipl  = code === 'RN_LICENSE_DISCIPLINED' || (c.reviewRequired && c.domain === 'LICENSURE');
+                  const isExpired  = code === 'RN_LICENSE_EXPIRED' || c.status === 'EXPIRED';
+                  const isActive   = (code === 'PHYSICIAN_LICENSE_ACTIVE' || code === 'RN_LICENSE_ACTIVE') && !isDiscipl && !isBoard;
+
+                  const label =
+                    isBoard     ? `Board order — ${c.jurisdiction ?? 'license'}` :
+                    isDiscipl   ? `License — disciplinary action${c.jurisdiction ? ` (${c.jurisdiction})` : ''}` :
+                    isExpired   ? `License expired${c.jurisdiction ? ` (${c.jurisdiction})` : ''}` :
+                    isUnavail   ? (
+                      c.participationStatus === 'non_participating_state'
+                        ? `License verification unavailable — ${c.jurisdiction ?? 'state'} not in network`
+                        : 'License verification — source not configured'
+                    ) :
+                    isActive    ? `License${c.jurisdiction ? ` — ${c.jurisdiction}` : ''}` :
+                    `License${c.jurisdiction ? ` (${c.jurisdiction})` : ''}`;
+
+                  const status: 'confirmed'|'review'|'unchecked'|'info' =
+                    isBoard || isDiscipl ? 'review' :
+                    isUnavail           ? 'unchecked' :
+                    isActive            ? 'confirmed' :
+                    'unchecked';
+
+                  return (
+                    <TrustLabel
+                      key={c.id}
+                      status={status}
+                      label={label}
+                      source={c.issuerName ?? c.sourceId ?? undefined}
+                      date={formatProofDate(c.observedAt ?? c.verifiedAt) ?? undefined}
+                    />
+                  );
+                });
+
+                // Cert rows
+                const certRows = certCreds.map(c => (
+                  <TrustLabel
+                    key={c.id}
+                    status="confirmed"
+                    label={`Board certified${c.jurisdiction ? ` — ${c.jurisdiction}` : ''}`}
+                    source={c.issuerName ?? c.sourceId ?? 'ABMS'}
+                    date={formatProofDate(c.observedAt ?? c.verifiedAt) ?? undefined}
+                  />
+                ));
+
+                // Board order severity note
+                const boardOrderNote = boardOrder?.boardOrderSeverity && boardOrder.boardOrderSeverity !== 'NONE'
+                  ? `Severity: ${boardOrder.boardOrderSeverity}. Requires written explanation before hire.`
+                  : null;
+
+                return (
+                  <>
+                    {licenseRows}
+                    {certRows}
+                    {boardOrderNote && (
+                      <p className="text-white/25 text-xs pl-5 leading-relaxed">{boardOrderNote}</p>
+                    )}
+                    {!hasAny && (
+                      <TrustLabel
+                        status="unchecked"
+                        label="Authority — source not connected"
+                        source="FSMB / Nursys"
+                        date={undefined}
+                      />
+                    )}
+                    {!hasAny && (
+                      <p className="text-white/20 text-xs pl-5 leading-relaxed">
+                        Requires FSMB or Nursys institutional access.
+                        Contact your administrator to enable authority verification.
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
             </div>
 
             {/* Eligibility */}
