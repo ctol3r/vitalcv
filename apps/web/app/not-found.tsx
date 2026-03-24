@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { NotFoundTracker } from '@/lib/analytics/not-found-tracker';
 
 export default function NotFound() {
   return (
@@ -6,6 +7,7 @@ export default function NotFound() {
       className="flex min-h-screen flex-col items-center justify-center"
       style={{ background: '#080e1a', color: '#e2e8f0' }}
     >
+      <NotFoundTracker />
       <div className="text-center max-w-md px-6">
         <div className="text-6xl font-bold mb-4 text-white/20">404</div>
         <h1 className="text-2xl font-semibold mb-3 text-white">

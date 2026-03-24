@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { PilotFailureSignal } from '@/components/pilot-ops/PilotFailureSignal';
 import { SupportActionButton } from '@/components/pilot-ops/SupportActionButton';
+import { trackPilotEvent } from '@/lib/pilot-ops/client';
 
 export default function Error({
   error,
@@ -14,6 +15,7 @@ export default function Error({
 }) {
   useEffect(() => {
     console.error(error);
+    void trackPilotEvent({ eventType: 'dead_end_reached', oncePerSession: false, details: { page: 'error', digest: error.digest ?? null } });
   }, [error]);
 
   return (
