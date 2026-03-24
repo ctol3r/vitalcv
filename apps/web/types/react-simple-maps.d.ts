@@ -1,10 +1,13 @@
 // Type shim for react-simple-maps@3 (no bundled .d.ts)
 // Provides minimal ambient typings so the build passes without @types/react-simple-maps.
 declare module 'react-simple-maps' {
-  import type { ReactNode, MouseEvent, ComponentType } from 'react';
+  import type { ReactNode, MouseEvent, ComponentType, SVGProps } from 'react';
 
-  export interface ComposableMapProps {
+  export interface ComposableMapProps extends SVGProps<SVGSVGElement> {
+    width?: number;
+    height?: number;
     projection?: string;
+    projectionConfig?: Record<string, unknown>;
     style?: React.CSSProperties;
     className?: string;
     children?: ReactNode;
@@ -32,7 +35,7 @@ declare module 'react-simple-maps' {
     [key: string]: any;
   }
 
-  export interface GeographyProps {
+  export interface GeographyProps extends SVGProps<SVGPathElement> {
     geography: GeographyEntity;
     fill?: string;
     fillOpacity?: number;
@@ -49,7 +52,7 @@ declare module 'react-simple-maps' {
   }
   export const Geography: ComponentType<GeographyProps>;
 
-  export interface MarkerProps {
+  export interface MarkerProps extends SVGProps<SVGGElement> {
     coordinates: [number, number];
     onClick?: (evt: MouseEvent) => void;
     onMouseEnter?: (evt: MouseEvent) => void;
@@ -57,4 +60,19 @@ declare module 'react-simple-maps' {
     children?: ReactNode;
   }
   export const Marker: ComponentType<MarkerProps>;
+
+  export interface LineProps extends SVGProps<SVGPathElement> {
+    from: [number, number];
+    to: [number, number];
+    children?: ReactNode;
+  }
+  export const Line: ComponentType<LineProps>;
+
+  export interface SphereProps extends SVGProps<SVGPathElement> {}
+  export const Sphere: ComponentType<SphereProps>;
+
+  export interface GraticuleProps extends SVGProps<SVGPathElement> {
+    step?: [number, number];
+  }
+  export const Graticule: ComponentType<GraticuleProps>;
 }

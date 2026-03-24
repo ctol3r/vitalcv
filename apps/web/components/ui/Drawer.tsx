@@ -10,7 +10,7 @@ export interface DrawerProps {
   open: boolean;
   onClose: () => void;
   title: React.ReactNode;
-  width?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  width?: 'sm' | 'detail' | 'md' | 'lg' | 'xl' | 'full';
   children: React.ReactNode;
   actions?: React.ReactNode;
   overlay?: boolean;
@@ -18,6 +18,7 @@ export interface DrawerProps {
 
 const WIDTHS = {
   sm: 'w-[400px]',
+  detail: 'w-[460px]',
   md: 'w-[560px]',
   lg: 'w-[720px]',
   xl: 'w-[960px]',
