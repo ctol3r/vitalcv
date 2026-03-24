@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { getBackendBase } from '@/lib/api';
+import { resolveEmployerDirectoryCountSummary } from '@/lib/employers/directory-count-summary';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import {
@@ -33,12 +35,7 @@ interface OpportunityListPayload {
   total: number;
 }
 
-const BACKEND = (
-  process.env.BACKEND_URL
-  || process.env.NEXT_PUBLIC_API_BASE
-  || process.env.NEXT_PUBLIC_BACKEND_URL
-  || 'http://localhost:4000'
-).replace(/\/$/, '');
+const BACKEND = getBackendBase();
 
 export const metadata: Metadata = {
   title: 'Employers — VitalCV',
@@ -129,6 +126,7 @@ export default async function EmployersPage() {
   ]);
 
   const employers = employerPayload.employers;
+  const employerCounts = resolveEmployerDirectoryCountSummary(employerPayload);
   const coveredStates = new Set(employers.flatMap((employer) => employer.states)).size;
   const openRoles = employers.reduce((sum, employer) => sum + employer.openRoles, 0);
 
@@ -151,9 +149,9 @@ export default async function EmployersPage() {
 
           <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Directory employers</p>
-              <p className="mt-2 text-3xl font-semibold text-white">{employerPayload.total}</p>
-              <p className="mt-2 text-sm text-white/55">Organizations currently visible in the public directory.</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Employers shown</p>
+              <p className="mt-2 text-3xl font-semibold text-white">{employerCounts.displayed}</p>
+              <p className="mt-2 text-sm text-white/55">{employerCounts.helperText}</p>
             </div>
             <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
               <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Employer-reported openings</p>

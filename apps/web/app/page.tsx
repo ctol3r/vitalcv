@@ -18,7 +18,6 @@ function TrustStrip() {
     { name: 'OIG / LEIE', sub: 'Exclusion check', status: 'checked' as TrustUiStatus },
     { name: 'CMS PECOS', sub: 'Quarterly enrollment data', status: 'checked' as TrustUiStatus },
     { name: 'State Boards', sub: 'Connector or institutional access', status: 'access_required' as TrustUiStatus },
-    { name: 'FSMB / ABMS / DEA', sub: 'Access required', status: 'access_required' as TrustUiStatus },
   ];
 
   return (

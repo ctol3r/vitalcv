@@ -1,4 +1,6 @@
+import React from 'react';
 import type { Metadata } from 'next';
+import { buildWebhookSubscribeExample } from '@/lib/developers/public-api-reference';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
@@ -39,20 +41,6 @@ const SEVERITY_STYLES: Record<string, string> = {
   critical: 'text-red-400 bg-red-500/10 border-red-500/20',
 };
 
-const SUBSCRIBE_EXAMPLE = `// Register a webhook endpoint
-const response = await fetch('https://api.vitalcv.com/api/network/webhooks/register', {
-  method: 'POST',
-  headers: {
-    'Authorization': 'Bearer <api_key>',
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    organizationId: 'org_demo_hospital',
-    url: 'https://your-app.com/webhooks/vitalcv',
-    events: ['credential_revoked', 'trust_state_changed'],
-  }),
-});`;
-
 const VERIFY_EXAMPLE = `import { createHmac } from 'crypto';
 
 function verifyWebhookSignature(
@@ -82,6 +70,8 @@ app.post('/webhooks/vitalcv', (req, res) => {
 });`;
 
 export default function WebhooksPage() {
+  const subscribeExample = buildWebhookSubscribeExample();
+
   return (
     <div className="space-y-16 max-w-4xl">
       {/* Header */}
@@ -107,7 +97,7 @@ export default function WebhooksPage() {
             <span className="text-xs font-mono text-zinc-600">register-webhook.ts</span>
           </div>
           <pre className="px-5 py-4 text-sm font-mono text-zinc-300 overflow-x-auto leading-relaxed">
-            <code>{SUBSCRIBE_EXAMPLE}</code>
+            <code>{subscribeExample}</code>
           </pre>
         </div>
         <p className="text-sm text-zinc-500">

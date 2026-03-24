@@ -167,9 +167,9 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
   const missingTags = buildMissingTags(passport);
   const hasShareContext = Boolean(contextId);
   const canShare = hasShareContext && isLoaded && isSignedIn;
-  const canOpenEmployerReview =
-    Boolean(passport.entityId)
-    && (passport.readiness.status === 'READY' || passport.readiness.status === 'PARTIAL');
+  // Employer review is available for all readiness states — BLOCKED passports still
+  // need to be reviewable so employers can see blockers and route-to-review decisions.
+  const canOpenEmployerReview = Boolean(passport.entityId);
   const proofHref = passport.identity.npi
     ? `/api/trust-proof/${encodeURIComponent(passport.identity.npi)}?format=pdf`
     : null;

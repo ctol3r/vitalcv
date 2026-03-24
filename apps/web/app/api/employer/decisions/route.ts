@@ -20,7 +20,14 @@ export async function GET(req: NextRequest) {
   });
   try {
     const res = await fetch(`${B}/api/employer/decisions`, { headers });
-    return NextResponse.json(await res.json().catch(() => ({})), { status: res.status });
+    const payload = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      const errorMsg = typeof payload?.error === 'string' ? payload.error : 'Failed to fetch decisions';
+      return NextResponse.json({ error: errorMsg }, { status: res.status });
+    }
+
+    return NextResponse.json(payload ?? {}, { status: res.status });
   } catch {
     return NextResponse.json({ error: 'Backend unavailable' }, { status: 502 });
   }

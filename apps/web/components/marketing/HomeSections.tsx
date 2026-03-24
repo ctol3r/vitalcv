@@ -393,8 +393,8 @@ export function TractionSection() {
             See the product working in real time.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <Link href="/demo" className="glue-btn glue-btn-primary">
-              Live demo <ArrowRight className="h-4 w-4" />
+            <Link href="/onboarding" className="glue-btn glue-btn-primary">
+              Preview my fit <ArrowRight className="h-4 w-4" />
             </Link>
             <Link href="/employers" className="glue-btn glue-btn-secondary">
               For employers
@@ -424,7 +424,7 @@ const WHY_NOW_ITEMS = [
   {
     icon: Rocket,
     title: 'The technology finally exists',
-    body: 'SD-JWT, W3C Verifiable Credentials, and OpenID4VCI are ratified standards. NPI APIs are open. The infrastructure to do this right — portably, verifiably, permanently — is here today.',
+    body: 'SD-JWT, W3C Verifiable Credentials, and OpenID4VCI are ratified standards. NPI APIs are open. The infrastructure to do this right — portably, verifiably, with source-backed freshness windows — is here today.',
   },
 ] as const;
 

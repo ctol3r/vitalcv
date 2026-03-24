@@ -89,71 +89,65 @@ function isFiltered(filter: PilotFilter): boolean {
   return !!(filter.pilotId || filter.workflowLane || filter.orgContextId || filter.geographyTag);
 }
 
-function withMetadataScope<T extends { AND?: unknown }>(
-  where: T,
-  clauses: MetadataPathEquals[],
-): T {
-  if (clauses.length === 0) {
-    return where;
-  }
-
-  return {
-    ...where,
-    AND: clauses.map((clause) => ({ metadata: clause })),
-  };
-}
-
 function advisoryOutcomeWhere(
   since: Date,
   filter: PilotFilter,
   extra: Omit<Prisma.AdvisoryOutcomeEventWhereInput, 'eventTimestamp' | 'organizationContextId' | 'AND'> = {},
 ): Prisma.AdvisoryOutcomeEventWhereInput {
-  return withMetadataScope(
-    {
-      eventTimestamp: { gte: since },
-      ...(filter.orgContextId ? { organizationContextId: filter.orgContextId } : {}),
-      ...extra,
-    },
-    metadataScopeWhere(filter),
-  );
+  const clauses = metadataScopeWhere(filter);
+
+  return {
+    eventTimestamp: { gte: since },
+    ...(filter.orgContextId ? { organizationContextId: filter.orgContextId } : {}),
+    ...extra,
+    ...(clauses.length > 0
+      ? { AND: clauses.map((clause) => ({ metadata: clause })) }
+      : {}),
+  };
 }
 
 function employerDecisionWhere(
   since: Date,
   filter: PilotFilter,
 ): Prisma.EmployerDecisionEventWhereInput {
-  return withMetadataScope(
-    {
-      decidedAt: { gte: since },
-      ...(filter.orgContextId ? { organizationContextId: filter.orgContextId } : {}),
-    },
-    metadataScopeWhere(filter),
-  );
+  const clauses = metadataScopeWhere(filter);
+
+  return {
+    decidedAt: { gte: since },
+    ...(filter.orgContextId ? { organizationContextId: filter.orgContextId } : {}),
+    ...(clauses.length > 0
+      ? { AND: clauses.map((clause) => ({ metadata: clause })) }
+      : {}),
+  };
 }
 
 function blockerResolutionWhere(
   since: Date,
   filter: PilotFilter,
 ): Prisma.BlockerResolutionEventWhereInput {
-  return withMetadataScope(
-    {
-      openedAt: { gte: since },
-    },
-    metadataScopeWhere(filter),
-  );
+  const clauses = metadataScopeWhere(filter);
+
+  return {
+    openedAt: { gte: since },
+    ...(clauses.length > 0
+      ? { AND: clauses.map((clause) => ({ metadata: clause })) }
+      : {}),
+  };
 }
 
 function startOutcomeWhere(
   since: Date,
   filter: PilotFilter,
 ): Prisma.StartOutcomeEventWhereInput {
-  return withMetadataScope(
-    {
-      startedAt: { gte: since },
-      ...(filter.orgContextId ? { organizationContextId: filter.orgContextId } : {}),
-    },
-    metadataScopeWhere(filter),
-  );
+  const clauses = metadataScopeWhere(filter);
+
+  return {
+    startedAt: { gte: since },
+    ...(filter.orgContextId ? { organizationContextId: filter.orgContextId } : {}),
+    ...(clauses.length > 0
+      ? { AND: clauses.map((clause) => ({ metadata: clause })) }
+      : {}),
+  };
 }
 
 const SHARE_EVENT_SELECT = {

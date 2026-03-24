@@ -810,6 +810,9 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
         {/* ── Advisory Panel — gated, clearly labeled, below readiness ── */}
         <EmployerAdvisoryPanel passport={passport} />
 
+        {/* ── M2: Freshness panel — above proof so stale warnings are visible before expanding ── */}
+        <FreshnessPanel entries={freshnessEntries} />
+
         {/* ── Proof panel — collapsible ────────────────────────────────────── */}
         {proofItems.length > 0 && (
           <div>
@@ -818,6 +821,11 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
               <button
                 onClick={handleDownloadPacket}
                 disabled={!canPersistActions || actionState.phase === 'downloading'}
+                title={
+                  !canPersistActions
+                    ? (previewOnlyMessage ?? 'Sign in with an employer workspace to export')
+                    : undefined
+                }
                 className="rounded-xl border border-white/10 px-4 py-2 text-[11px] font-medium text-white/45 transition hover:border-white/20 hover:text-white/70 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {actionState.phase === 'downloading' ? 'Exporting…' : 'Export packet'}
@@ -829,9 +837,6 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
             />
           </div>
         )}
-
-        {/* ── M2: Freshness panel — visible before any action ───────────────── */}
-        <FreshnessPanel entries={freshnessEntries} />
 
         <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-4">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

@@ -108,7 +108,7 @@ export default function PassportPage() {
         <div className="text-center">
           <span className="text-white/30 text-xs tracking-widest uppercase">VitalCV</span>
           <h1 className="text-white text-2xl font-semibold tracking-tight mt-1">
-            Your your readiness
+            Check your readiness
           </h1>
           {!isActive && (
             <p className="text-white/35 text-sm mt-2">
@@ -216,6 +216,18 @@ export default function PassportPage() {
                 >
                   View as employer
                 </Link>
+              </div>
+            )}
+
+            {/* Done but no entityId — NPPES resolved without entity anchor */}
+            {isDone && !identity.entityId && (
+              <div className="rounded-xl border border-white/8 bg-white/3 px-4 py-3 text-center space-y-2">
+                <p className="text-white/45 text-sm">
+                  Profile resolved but not yet anchored.
+                </p>
+                <p className="text-white/25 text-xs">
+                  Run completed — try again in a moment or use a different NPI.
+                </p>
               </div>
             )}
 

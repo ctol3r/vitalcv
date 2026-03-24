@@ -1,14 +1,12 @@
+import React from 'react';
 import type { Metadata } from 'next';
+import { buildApiReferenceUrls } from '@/lib/developers/public-api-reference';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'API Reference | VitalCV Docs',
   description: 'Current REST API routes surfaced by the VitalCV API host.',
 };
-
-const BASE_URL = 'https://api.vitalcv.com';
-const OPENAPI_UI_URL = `${BASE_URL}/api-docs`;
-const OPENAPI_JSON_URL = `${BASE_URL}/api/docs/openapi.json`;
 
 interface Endpoint {
   method: 'GET' | 'POST' | 'DELETE' | 'PATCH';
@@ -165,6 +163,8 @@ const METHOD_COLORS: Record<string, string> = {
 };
 
 export default function ApiReferencePage() {
+  const { baseUrl, openApiUiUrl, openApiJsonUrl } = buildApiReferenceUrls();
+
   return (
     <div className="space-y-16 max-w-4xl">
       {/* Header */}
@@ -172,7 +172,7 @@ export default function ApiReferencePage() {
         <p className="text-xs font-mono uppercase tracking-widest text-violet-400 mb-3">API Reference</p>
         <h1 className="text-3xl font-bold tracking-tight mb-4">REST API</h1>
         <div className="flex flex-wrap gap-4 text-sm text-zinc-400">
-          <span>Base URL: <code className="text-violet-300 bg-violet-500/10 px-1.5 py-0.5 rounded">{BASE_URL}</code></span>
+          <span>Base URL: <code className="text-violet-300 bg-violet-500/10 px-1.5 py-0.5 rounded">{baseUrl}</code></span>
           <span>Auth: <code className="text-violet-300 bg-violet-500/10 px-1.5 py-0.5 rounded">Authorization: Bearer &lt;api_key&gt;</code></span>
           <span>Format: <code className="text-violet-300 bg-violet-500/10 px-1.5 py-0.5 rounded">application/json</code></span>
         </div>
@@ -183,7 +183,7 @@ export default function ApiReferencePage() {
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-semibold text-violet-300">OpenAPI Links</span>
           <Link
-            href={OPENAPI_UI_URL}
+            href={openApiUiUrl}
             className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
             target="_blank"
             rel="noreferrer"
@@ -193,10 +193,10 @@ export default function ApiReferencePage() {
         </div>
         <p className="text-xs text-zinc-400">
           The current API host publishes an OpenAPI UI at{' '}
-          <Link href={OPENAPI_UI_URL} className="text-violet-400 hover:underline" target="_blank" rel="noreferrer">
-            {OPENAPI_UI_URL}
+          <Link href={openApiUiUrl} className="text-violet-400 hover:underline" target="_blank" rel="noreferrer">
+            {openApiUiUrl}
           </Link>
-          . The spec is served from <code className="text-violet-300 bg-violet-500/10 px-1 py-0.5 rounded text-xs">{OPENAPI_JSON_URL}</code>.
+          . The spec is served from <code className="text-violet-300 bg-violet-500/10 px-1 py-0.5 rounded text-xs">{openApiJsonUrl}</code>.
         </p>
       </div>
 

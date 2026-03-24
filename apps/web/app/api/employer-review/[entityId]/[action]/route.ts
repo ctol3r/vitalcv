@@ -46,7 +46,14 @@ export async function POST(
     body,
   });
 
-  return NextResponse.json(await response.json().catch(() => ({})), { status: response.status });
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const errorMsg = typeof payload?.error === 'string' ? payload.error : 'Backend action failed';
+    return NextResponse.json({ error: errorMsg }, { status: response.status });
+  }
+
+  return NextResponse.json(payload ?? {}, { status: response.status });
 }
 
 export async function GET(
@@ -73,7 +80,12 @@ export async function GET(
 
   const contentType = response.headers.get('content-type') ?? 'application/json';
   if (contentType.includes('application/json')) {
-    return NextResponse.json(await response.json().catch(() => ({})), { status: response.status });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      const errorMsg = typeof payload?.error === 'string' ? payload.error : 'Backend fetch failed';
+      return NextResponse.json({ error: errorMsg }, { status: response.status });
+    }
+    return NextResponse.json(payload ?? {}, { status: response.status });
   }
 
   const buffer = Buffer.from(await response.arrayBuffer());

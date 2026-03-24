@@ -192,7 +192,7 @@ export default function InvestorsPage() {
             &ldquo;I watched a brilliant physician wait 11 weeks to start a locums contract — 
             not because of anything she did wrong, but because the system had no memory. 
             Her credentials existed. The verification had been done. 
-            Nobody had a way to prove it. VitalCV fixes that permanently.&rdquo;
+            Nobody had a way to prove it. VitalCV is fixing that.&rdquo;
           </blockquote>
           <div className="flex items-center justify-center gap-3">
             <div className="h-12 w-12 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-lg">

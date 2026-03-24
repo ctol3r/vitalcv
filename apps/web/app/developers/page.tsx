@@ -8,6 +8,7 @@
  * 'use client' boundaries, so this page itself has zero hydration risk.
  */
 
+import React from 'react';
 import { ApiKeyManager } from '@/components/developers/ApiKeyManager';
 import { ApiSandbox } from '@/components/developers/ApiSandbox';
 import { ConformanceReport } from '@/components/developers/ConformanceReport';
@@ -16,6 +17,7 @@ import { HealthStartDocs } from '@/components/developers/HealthStartDocs';
 import { SdkDocs } from '@/components/developers/SdkDocs';
 import { WebhookLog } from '@/components/developers/WebhookLog';
 import { GatewayConnections } from '@/components/network/GatewayConnections';
+import { getPublicApiHostLabel } from '@/lib/api';
 import {
     ArrowRight,
     BookOpen,
@@ -37,12 +39,14 @@ export const metadata: Metadata = {
 
 // ── Quick-stat cards ──────────────────────────────────────────────────────
 
-const STATS = [
-  { icon: Globe,    label: 'API Host',    value: 'api.vitalcv.com' },
-  { icon: GitBranch,label: 'Route Prefix', value: '/api' },
-  { icon: Lock,     label: 'Auth',        value: 'API keys' },
-  { icon: Zap,      label: 'Mode',        value: 'Preview' },
-];
+function buildDeveloperPortalStats() {
+  return [
+    { icon: Globe, label: 'API Host', value: getPublicApiHostLabel() },
+    { icon: GitBranch, label: 'Route Prefix', value: '/api' },
+    { icon: Lock, label: 'Auth', value: 'API keys' },
+    { icon: Zap, label: 'Mode', value: 'Preview' },
+  ] as const;
+}
 
 // ── Resource links ────────────────────────────────────────────────────────
 
@@ -58,6 +62,8 @@ const RESOURCES = [
 // ── Page ──────────────────────────────────────────────────────────────────
 
 export default function DeveloperPortalPage() {
+  const stats = buildDeveloperPortalStats();
+
   return (
     <div className="min-h-screen bg-ops-gradient text-white">
       {/* ── Hero header ──────────────────────────────────── */}
@@ -112,7 +118,7 @@ export default function DeveloperPortalPage() {
       {/* ── Stats row ────────────────────────────────────── */}
       <div className="border-b border-vt-neutral-800 bg-vt-surface-ops-raised/40">
         <div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-y divide-white/8 md:grid-cols-4 md:divide-y-0">
-          {STATS.map(({ icon: Icon, label, value }) => (
+          {stats.map(({ icon: Icon, label, value }) => (
             <div key={label} className="flex items-center gap-3 px-8 py-5">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-vt-success/10 text-vt-success">
                 <Icon className="h-4 w-4" />
