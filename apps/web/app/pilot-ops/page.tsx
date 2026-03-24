@@ -13,7 +13,8 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import type { PilotKpiSnapshot } from '@/lib/pilot/pilotKpiTypes';
+import { ScopeFilterForm, StartOutcomeForm } from './PilotOpsForms';
+import type { PilotFilter, PilotKpiSnapshot } from '@/lib/pilot/pilotKpiTypes';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,11 +41,57 @@ const LAUNCH_GATE_ITEMS = [
   'Source-Health Visibility',
 ] as const;
 
-async function fetchKpis(days: number): Promise<PilotKpiSnapshot | null> {
+function readOptionalSearchParam(value: string | undefined): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function appendPageFilterParams(params: URLSearchParams, filter: PilotFilter): void {
+  if (filter.orgContextId) {
+    params.set('org', filter.orgContextId);
+  }
+  if (filter.pilotId) {
+    params.set('pilotId', filter.pilotId);
+  }
+  if (filter.workflowLane) {
+    params.set('lane', filter.workflowLane);
+  }
+}
+
+function appendBackendFilterParams(params: URLSearchParams, filter: PilotFilter): void {
+  if (filter.orgContextId) {
+    params.set('orgContextId', filter.orgContextId);
+  }
+  if (filter.pilotId) {
+    params.set('pilotId', filter.pilotId);
+  }
+  if (filter.workflowLane) {
+    params.set('workflowLane', filter.workflowLane);
+  }
+}
+
+function buildPilotOpsHref(days: number, filter: PilotFilter): string {
+  const params = new URLSearchParams();
+  params.set('days', String(days));
+  appendPageFilterParams(params, filter);
+  return `/pilot-ops?${params.toString()}`;
+}
+
+function buildExportHref(path: string, days: number, filter: PilotFilter): string {
+  const params = new URLSearchParams();
+  params.set('days', String(days));
+  appendPageFilterParams(params, filter);
+  return `${path}?${params.toString()}`;
+}
+
+async function fetchKpis(days: number, filter: PilotFilter): Promise<PilotKpiSnapshot | null> {
   if (!MONITORING_SECRET) return null;
   try {
+    const params = new URLSearchParams();
+    params.set('days', String(days));
+    appendBackendFilterParams(params, filter);
+
     const res = await fetch(
-      `${B}/api/internal/pilot/kpis?days=${days}`,
+      `${B}/api/internal/pilot/kpis?${params.toString()}`,
       {
         headers: { 'x-monitoring-secret': MONITORING_SECRET },
         cache:   'no-store',
@@ -101,12 +148,28 @@ function velocityLabel(days: number | null, sampleSize: number): string {
 export default async function PilotOpsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ days?: string; secret?: string }>;
+  searchParams: Promise<{
+    days?: string;
+    secret?: string;
+    org?: string;
+    pilotId?: string;
+    lane?: string;
+  }>;
 }) {
-  const { days: daysParam } = await searchParams;
+  const {
+    days: daysParam,
+    org: orgParam,
+    pilotId: pilotIdParam,
+    lane: laneParam,
+  } = await searchParams;
   const days = Math.min(parseInt(daysParam ?? '90', 10) || 90, 365);
+  const filter: PilotFilter = {
+    orgContextId: readOptionalSearchParam(orgParam),
+    pilotId: readOptionalSearchParam(pilotIdParam),
+    workflowLane: readOptionalSearchParam(laneParam),
+  };
 
-  const kpi = await fetchKpis(days);
+  const kpi = await fetchKpis(days, filter);
 
   if (!MONITORING_SECRET) {
     return (
@@ -135,7 +198,14 @@ export default async function PilotOpsPage({
     );
   }
 
-  const exportUrl = `/api/pilot-kpi-export?days=${days}&format=csv`;
+  const exportUrl = buildExportHref('/api/pilot-kpi-export', days, filter);
+  const jsonExportUrl = buildExportHref('/api/pilot-kpi-json', days, filter);
+  const notStartedCount = Math.max(0, kpi.reviewsOpened.distinctEntities - kpi.startOutcomes.distinctEntities);
+  const appliedScope = [
+    { label: 'Org', value: kpi.appliedFilter.orgContextId },
+    { label: 'Pilot', value: kpi.appliedFilter.pilotId },
+    { label: 'Lane', value: kpi.appliedFilter.workflowLane },
+  ].filter((entry): entry is { label: string; value: string } => typeof entry.value === 'string' && entry.value.length > 0);
 
   return (
     <main className="min-h-screen bg-[#080e1a] px-6 py-10 text-white">
@@ -154,7 +224,7 @@ export default async function PilotOpsPage({
             {(['30', '60', '90'] as const).map((d) => (
               <Link
                 key={d}
-                href={`/pilot-ops?days=${d}`}
+                href={buildPilotOpsHref(Number(d), filter)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                   String(days) === d
                     ? 'bg-white/10 text-white'
@@ -170,8 +240,38 @@ export default async function PilotOpsPage({
             >
               ↓ CSV
             </a>
+            <a
+              href={jsonExportUrl}
+              className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-semibold text-white/50 hover:text-white transition"
+            >
+              ↓ JSON
+            </a>
           </div>
         </div>
+
+        <div className="mb-6 rounded-xl border border-white/8 bg-white/[0.03] p-4">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/25">Scope Filters</p>
+          <p className="mt-1 text-xs text-white/30">
+            Narrow the KPI window to a single org context, pilot, or workflow lane.
+          </p>
+          <ScopeFilterForm
+            days={days}
+            initialOrg={filter.orgContextId ?? ''}
+            initialPilotId={filter.pilotId ?? ''}
+            initialLane={filter.workflowLane ?? ''}
+          />
+        </div>
+
+        {appliedScope.length > 0 && (
+          <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2 text-[11px] text-white/55">
+            <span className="font-semibold uppercase tracking-[0.16em] text-white/30">Applied Scope</span>
+            {appliedScope.map((entry) => (
+              <span key={entry.label} className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-white/65">
+                {entry.label}: <span className="font-mono text-white/85">{entry.value}</span>
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Launch Gate Checklist */}
         <div className="mb-6 rounded-xl border border-blue-400/20 bg-blue-400/5 p-5">
@@ -221,7 +321,7 @@ export default async function PilotOpsPage({
 
         {/* KPI 1+2+3 — Funnel */}
         <SectionHeader title="Trust Wedge Funnel" sub="End-to-end: packet → review → decision → start" />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           <KpiTile
             label="Packets Shared"
             value={kpi.packetShares.total}
@@ -245,6 +345,12 @@ export default async function PilotOpsPage({
             value={kpi.startOutcomes.totalStarts}
             sub={`${kpi.startOutcomes.distinctEntities} clinicians started`}
             tone={kpi.startOutcomes.totalStarts > 0 ? 'green' : 'neutral'}
+          />
+          <KpiTile
+            label="Not Yet Started"
+            value={notStartedCount}
+            sub="clinicians reviewed but not started"
+            tone={notStartedCount > 0 ? 'amber' : 'neutral'}
           />
         </div>
 
@@ -343,6 +449,9 @@ export default async function PilotOpsPage({
             </div>
           ))}
         </div>
+
+        <SectionHeader title="Start Outcome Capture" sub="Record confirmed starts from the browser during a live pilot." />
+        <StartOutcomeForm />
 
         {/* Footer */}
         <div className="mt-12 pt-8 border-t border-white/6 flex flex-wrap gap-4 text-xs text-white/20">

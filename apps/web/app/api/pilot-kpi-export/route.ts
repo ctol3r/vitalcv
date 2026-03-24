@@ -18,8 +18,26 @@ const B =
 
 const MONITORING_SECRET = process.env.MONITORING_SECRET ?? '';
 
+function appendScopeParams(source: URLSearchParams, target: URLSearchParams): void {
+  const orgContextId = source.get('orgContextId') ?? source.get('org');
+  const pilotId = source.get('pilotId');
+  const workflowLane = source.get('workflowLane') ?? source.get('lane');
+
+  if (orgContextId) {
+    target.set('orgContextId', orgContextId);
+  }
+  if (pilotId) {
+    target.set('pilotId', pilotId);
+  }
+  if (workflowLane) {
+    target.set('workflowLane', workflowLane);
+  }
+}
+
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const days = req.nextUrl.searchParams.get('days') ?? '90';
+  const params = new URLSearchParams();
+  params.set('days', req.nextUrl.searchParams.get('days') ?? '90');
+  appendScopeParams(req.nextUrl.searchParams, params);
 
   if (!MONITORING_SECRET) {
     return NextResponse.json({ error: 'MONITORING_SECRET not configured.' }, { status: 500 });
@@ -27,7 +45,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   try {
     const upstream = await fetch(
-      `${B}/api/internal/pilot/kpis/export?days=${encodeURIComponent(days)}`,
+      `${B}/api/internal/pilot/kpis/export?${params.toString()}`,
       {
         headers: { 'x-monitoring-secret': MONITORING_SECRET },
         cache:   'no-store',
