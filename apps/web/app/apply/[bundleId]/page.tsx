@@ -26,6 +26,7 @@ interface IssuerProvenance {
 
 interface ApplyBundle {
   bundleId: string;
+  entityId?: string | null;
   npi: string;
   clinicianName: string;
   trustState: {
@@ -127,14 +128,14 @@ function BundleErrorView({ reason }: { reason: 'expired' | 'not_found' | 'error'
   const msg = messages[reason];
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4">
+    <div className="flex min-h-screen items-center justify-center bg-ops-gradient px-4 text-white">
       <div className="w-full max-w-sm text-center space-y-4">
         <div className="text-5xl">{msg.emoji}</div>
         <h1 className="text-xl font-bold text-white">{msg.title}</h1>
-        <p className="text-sm text-zinc-400">{msg.body}</p>
+        <p className="text-sm text-white/40">{msg.body}</p>
         <a
           href="https://vitalcv.com"
-          className="inline-block mt-4 rounded-xl bg-emerald-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-emerald-400 transition-colors"
+          className="mt-4 inline-block rounded-xl border border-white/6 bg-[var(--vt-surface-dim)] px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-white/8"
         >
           Go to VitalCV
         </a>
