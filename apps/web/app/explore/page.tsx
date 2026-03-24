@@ -47,6 +47,17 @@ export default function ExplorePage() {
       </section>
 
       {/* Opportunities board */}
+      <section className="border-b border-amber-500/20 bg-amber-500/5 px-6 py-3">
+        <div className="mx-auto max-w-6xl text-center">
+          <span className="inline-flex rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-200">
+            Demo data
+          </span>
+          <p className="mt-2 text-xs text-amber-100/80">
+            Marketplace results may include seeded launch-cohort employers and opportunities during rollout.
+          </p>
+        </div>
+      </section>
+
       <Suspense
         fallback={(
           <div className="flex items-center justify-center px-6 py-16 text-sm text-vt-neutral-300">

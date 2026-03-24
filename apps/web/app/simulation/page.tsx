@@ -22,6 +22,16 @@ const TAB_LABELS: Record<Tab, string> = {
   legacy: 'Event Simulator',
 };
 
+function DemoBanner() {
+  return (
+    <div className="border-b border-amber-500/20 bg-amber-500/5 px-4 py-2.5 text-center">
+      <p className="text-[11px] font-medium text-amber-400/80">
+        Demo environment - data shown is not real credential verification
+      </p>
+    </div>
+  );
+}
+
 // ── Legacy panel wrapper (preserves old state machine flow) ──────────────────
 
 function LegacySimulationView() {
@@ -106,6 +116,7 @@ export default function SimulationPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-[#080e1a] to-slate-950 text-white">
+      <DemoBanner />
       <main className="mx-auto max-w-6xl px-6 py-10 space-y-8">
         {/* Hero */}
         <motion.div
@@ -117,13 +128,13 @@ export default function SimulationPage() {
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Trust Simulation Engine</h1>
               <p className="mt-1.5 text-sm text-zinc-400 max-w-2xl">
-                Operational intelligence for healthcare credentialing — simulate credential revocation,
-                license expiration, and compliance scenarios before they happen.
+                Operational intelligence for healthcare credentialing in a demo environment - simulate
+                credential revocation, license expiration, and compliance scenarios before they happen.
               </p>
             </div>
             <div className="flex items-center gap-1.5 text-[10px] font-mono text-zinc-600">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              live data
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              demo scenarios
             </div>
           </div>
 
