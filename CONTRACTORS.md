@@ -1,6 +1,8 @@
 # CONTRACTORS.md — VitalCV Handoff Reference
 
 > Written 2026-03-23. Keep this updated when routes, sources, or rules change.
+> 
+> **CRITICAL PILOT DOCS:** Before deploying or modifying logic, read [vitalcv-launch-gate.md](./docs/specs/vitalcv-launch-gate.md) and [vitalcv-pilot-runbook.md](./docs/specs/vitalcv-pilot-runbook.md). **DO NOT reintroduce demo theater. Build for truth.**
 
 ---
 
@@ -102,16 +104,22 @@ If any source is `gated` or `unchecked`, it's honest-unavailable — not decisio
 
 ---
 
-## 6. Demo Artifacts vs Production Routes
+## 6. Demo Artifacts vs Production Routes (WARNING)
 
-Two demo sub-routes are **legacy visual references only** — seeded data, not wired to trust pipeline:
+**DO NOT REINTRODUCE DEMO THEATER.**
+
+Two demo sub-routes exist as **legacy visual references only** — they use seeded data and are NOT wired to the production trust pipeline:
 
 - `/demo/command-center` — Wave 10 VerifierCommandCenter (seeded candidates)
 - `/demo/verifier-portal` — Wave 11 VerifierPortal (seeded candidates)
 
-Both have amber banners marking them as demo artifacts. **Do not wire these to live APIs.**
+Both have amber banners marking them as demo artifacts. **Do not wire these to live APIs.** 
 
-The `/demo` index page is safe — it links to live routes (explore, employers, onboarding, intelligence).
+For the first live pilot, you MUST follow the exact bounds defined in:
+- The [Launch Gate Check](docs/specs/vitalcv-launch-gate.md)
+- The [Pilot Runbook](docs/specs/vitalcv-pilot-runbook.md)
+
+Do not widen the scope or build features solely to make demos look more impressive. If it's not real, it's not shipping.
 
 ---
 

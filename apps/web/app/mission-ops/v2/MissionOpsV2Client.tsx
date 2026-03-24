@@ -1,216 +1,343 @@
 'use client';
-import { cn } from '@/lib/utils';
-import { Anchor, Database, FileText, Filter, Hexagon, Search, Shield, Terminal } from 'lucide-react';
+
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
+import {
+  Activity,
+  Anchor,
+  Database,
+  FileText,
+  Filter,
+  Hexagon,
+  Search,
+  Shield,
+  Terminal,
+} from 'lucide-react';
+import { SourceOpsPanel } from '../../../components/mission-ops/SourceOpsPanel';
 import { DataTable, type ColumnDef } from '../../../components/operator/DataTable';
 import { TelemetryPanel } from '../../../components/operator/TelemetryPanel';
 import { InspectorPanel } from '../../../components/ui/InspectorPanel';
 
 const NAV_SECTIONS = [
+  { key: 'source-ops', label: 'Source Health', icon: Activity },
   { key: 'network', label: 'Network Graph', icon: Hexagon },
   { key: 'credentials', label: 'Credentials', icon: Shield },
   { key: 'psv', label: 'PSV Adapters', icon: Search },
   { key: 'anchors', label: 'Trust Anchors', icon: Anchor },
   { key: 'audit', label: 'Audit Trail', icon: FileText },
-];
+] as const;
 
-const SAVED_VIEWS = ['All Providers', 'Pending Verification', 'Flagged for Review'];
+const SAVED_VIEWS = ['All Providers', 'Pending Verification', 'Flagged for Review'] as const;
+const LIVE_SECTION_KEY = 'source-ops';
+const SAMPLE_NOTICE =
+  'Legacy sample workbench. Only Source Health is wired to live source truth in this shell.';
 
-const COLS: ColumnDef[] = [
-  { key: 'id', label: 'UID', width: 80, render: (r) => <span className="font-mono text-white/40">{String(r.id).slice(0, 8)}</span> },
+type MissionOpsSection = (typeof NAV_SECTIONS)[number]['key'];
+type MissionOpsRecord = {
+  id: string;
+  name: string;
+  status: 'ACTIVE' | 'PENDING' | 'FLAGGED';
+  role: 'RN' | 'LCSW' | 'RT(R)' | 'MD' | 'DO';
+  updatedAt: string;
+  riskScore: string;
+  _raw: string;
+};
+
+const STATUS_BADGE_CLASSES: Record<MissionOpsRecord['status'], string> = {
+  ACTIVE: 'bg-vt-success/10 text-vt-success border border-vt-success/20',
+  PENDING: 'bg-vt-warning/10 text-vt-warning border border-vt-warning/20',
+  FLAGGED: 'bg-vt-danger/10 text-vt-danger border border-vt-danger/20',
+};
+
+const STATUS_BADGE_COLORS: Record<MissionOpsRecord['status'], string> = {
+  ACTIVE: '#22c55e',
+  PENDING: '#f59e0b',
+  FLAGGED: '#ef4444',
+};
+
+const ROLE_SEQUENCE: MissionOpsRecord['role'][] = ['RN', 'LCSW', 'RT(R)', 'MD', 'DO'];
+const STATUS_SEQUENCE: MissionOpsRecord['status'][] = ['FLAGGED', 'ACTIVE', 'ACTIVE', 'PENDING', 'ACTIVE'];
+
+const SAMPLE_RECORDS: MissionOpsRecord[] = Array.from({ length: 45 }, (_, index) => {
+  const sampleDate = new Date(Date.UTC(2026, 2, 23, 16, 0, 0) - index * 21_600_000)
+    .toISOString()
+    .replace('T', ' ')
+    .slice(0, 16);
+
+  return {
+    id: `sample-provider-${String(index + 1).padStart(3, '0')}`,
+    name: `Provider ${String(100 + index).padStart(3, '0')}`,
+    status: STATUS_SEQUENCE[index % STATUS_SEQUENCE.length],
+    role: ROLE_SEQUENCE[index % ROLE_SEQUENCE.length],
+    updatedAt: sampleDate,
+    riskScore: (35 + (index % 12) * 4.5).toFixed(1),
+    _raw: JSON.stringify({
+      metadata: {
+        source: 'Sample Mission Ops dataset',
+        generatedAt: '2026-03-23T16:00:00.000Z',
+        recordIndex: index + 1,
+      },
+    }),
+  };
+});
+
+function matchesQuery(record: MissionOpsRecord, query: string): boolean {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) {
+    return true;
+  }
+
+  return (
+    record.name.toLowerCase().includes(normalizedQuery)
+    || record.role.toLowerCase().includes(normalizedQuery)
+    || record.status.toLowerCase().includes(normalizedQuery)
+  );
+}
+
+function readStatusBadgeClass(status: MissionOpsRecord['status']): string {
+  return STATUS_BADGE_CLASSES[status];
+}
+
+const COLS: ColumnDef<MissionOpsRecord>[] = [
+  {
+    key: 'id',
+    label: 'UID',
+    width: 80,
+    render: (row) => <span className="font-mono text-white/40">{row.id.slice(-8)}</span>,
+  },
   { key: 'name', label: 'Subject Name', sortable: true, width: 200 },
   {
     key: 'status',
     label: 'Status',
-    width: 100,
+    width: 140,
     sortable: true,
-    render: (r) => (
-      <span className={cn(
-        "text-[10px] uppercase tracking-wide font-medium px-2 py-0.5 rounded-sm",
-        String(r.status) === 'ACTIVE' ? 'bg-vt-success/10 text-vt-success border border-vt-success/20' :
-        String(r.status) === 'PENDING' ? 'bg-vt-warning/10 text-vt-warning border border-vt-warning/20' :
-        'bg-vt-danger/10 text-vt-danger border border-vt-danger/20'
-      )}>
-        {String(r.status)}
+    render: (row) => (
+      <span
+        className={cn(
+          'rounded-sm px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide',
+          readStatusBadgeClass(row.status),
+        )}
+      >
+        {row.status}
       </span>
-    )
+    ),
   },
-  { key: 'role', label: 'Role Type', width: 120, render: (r) => <span className="text-white/60">{String(r.role)}</span> },
-  { key: 'updatedAt', label: 'Last Synced', width: 140, align: 'right', render: (r) => <span className="text-white/50">{String(r.updatedAt)}</span> },
-  { key: 'riskScore', label: 'Risk', width: 80, sortable: true, align: 'right', render: (r) => <span className="font-mono">{String(r.riskScore)}</span> },
+  {
+    key: 'role',
+    label: 'Role Type',
+    width: 120,
+    render: (row) => <span className="text-white/60">{row.role}</span>,
+  },
+  {
+    key: 'updatedAt',
+    label: 'Last Synced',
+    width: 140,
+    align: 'right',
+    render: (row) => <span className="text-white/50">{row.updatedAt}</span>,
+  },
+  {
+    key: 'riskScore',
+    label: 'Risk',
+    width: 80,
+    sortable: true,
+    align: 'right',
+    render: (row) => <span className="font-mono">{row.riskScore}</span>,
+  },
 ];
 
-const MOCK_DATA = Array.from({ length: 45 }, (_, i) => ({
-  id: `did:vcv:usr_${Math.random().toString(36).substr(2, 9)}`,
-  name: `Provider ${Math.floor(Math.random() * 1000)}`,
-  status: i % 7 === 0 ? 'FLAGGED' : i % 3 === 0 ? 'PENDING' : 'ACTIVE',
-  role: ['RN', 'LCSW', 'RT(R)', 'MD', 'DO'][i % 5],
-  updatedAt: new Date(Date.now() - Math.random() * 864000000).toISOString().replace('T', ' ').slice(0, 16),
-  riskScore: (Math.random() * 100).toFixed(1),
-  _raw: JSON.stringify({ metadata: { source: 'NPI Registry', lastRefreshed: Date.now() } })
-}));
-
 export default function MissionOpsV2Client() {
-  const [section, setSection] = useState('credentials');
-  const [activeView, setActiveView] = useState(SAVED_VIEWS[0]);
-  const [selected, setSelected] = useState<Record<string, unknown> | null>(null);
+  const [section, setSection] = useState<MissionOpsSection>(LIVE_SECTION_KEY);
+  const [activeView, setActiveView] = useState<(typeof SAVED_VIEWS)[number]>(SAVED_VIEWS[0]);
+  const [selected, setSelected] = useState<MissionOpsRecord | null>(null);
   const [query, setQuery] = useState('');
 
-  return (
-    <div className="flex h-screen bg-[#050508] text-white overflow-hidden font-sans">
+  const isLiveSection = section === LIVE_SECTION_KEY;
+  const filteredRecords = SAMPLE_RECORDS.filter((record) => matchesQuery(record, query));
+  const activeSectionLabel = NAV_SECTIONS.find((item) => item.key === section)?.label ?? section;
 
-      {/* Sidebar Navigation */}
-      <div className="w-[220px] flex-shrink-0 border-r border-white/5 bg-[#0a0a0f] flex flex-col">
-        <div className="p-5 border-b border-white/5 shrink-0 flex items-center justify-between">
+  return (
+    <div className="flex h-screen overflow-hidden bg-[#050508] font-sans text-white">
+      <div className="flex w-[220px] flex-shrink-0 flex-col border-r border-white/5 bg-[#0a0a0f]">
+        <div className="flex shrink-0 items-center justify-between border-b border-white/5 p-5">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-bold mb-1">VitalCV Base</div>
+            <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">
+              VitalCV Base
+            </div>
             <div className="text-sm font-medium tracking-tight">Mission Ops</div>
           </div>
-          <Terminal className="w-4 h-4 text-white/20" />
+          <Terminal className="h-4 w-4 text-white/20" />
         </div>
 
         <div className="flex-1 overflow-y-auto py-4">
-          <div className="px-5 mb-2 text-[10px] uppercase tracking-widest text-white/30 font-semibold">Core Modules</div>
-          <div className="px-2 space-y-0.5 mb-6">
-            {NAV_SECTIONS.map((s) => {
-              const Icon = s.icon;
-              const isActive = section === s.key;
+          <div className="mb-2 px-5 text-[10px] font-semibold uppercase tracking-widest text-white/30">
+            Core Modules
+          </div>
+          <div className="mb-6 space-y-0.5 px-2">
+            {NAV_SECTIONS.map((item) => {
+              const Icon = item.icon;
+              const isActive = section === item.key;
+
               return (
                 <button
-                  key={s.key}
-                  onClick={() => { setSection(s.key); setSelected(null); }}
+                  key={item.key}
+                  type="button"
+                  onClick={() => {
+                    setSection(item.key);
+                    setSelected(null);
+                  }}
+                  aria-pressed={isActive}
                   className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2 text-xs rounded-md transition-all",
-                    isActive ? "bg-vt-info/10 text-vt-info font-medium" : "text-white/50 hover:bg-white/[0.03] hover:text-white/80"
+                    'flex w-full items-center gap-3 rounded-md px-3 py-2 text-xs transition-all',
+                    isActive
+                      ? 'bg-vt-info/10 font-medium text-vt-info'
+                      : 'text-white/50 hover:bg-white/[0.03] hover:text-white/80',
                   )}
                 >
-                  <Icon className="w-3.5 h-3.5" />
-                  {s.label}
+                  <Icon className="h-3.5 w-3.5" />
+                  {item.label}
                 </button>
               );
             })}
           </div>
 
-          <div className="px-5 mb-2 text-[10px] uppercase tracking-widest text-white/30 font-semibold flex items-center justify-between">
+          <div className="mb-2 flex items-center justify-between px-5 text-[10px] font-semibold uppercase tracking-widest text-white/30">
             Saved Views
-            <Filter className="w-3 h-3" />
+            <Filter className="h-3 w-3" />
           </div>
-          <div className="px-2 space-y-0.5">
-            {SAVED_VIEWS.map((v) => (
+          <div className="space-y-0.5 px-2">
+            {SAVED_VIEWS.map((view) => (
               <button
-                key={v}
-                onClick={() => setActiveView(v)}
+                key={view}
+                type="button"
+                onClick={() => setActiveView(view)}
+                aria-pressed={activeView === view}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-1.5 text-xs rounded-md transition-all",
-                  activeView === v ? "text-white bg-white/5" : "text-white/40 hover:text-white/70"
+                  'flex w-full items-center gap-3 rounded-md px-3 py-1.5 text-xs transition-all',
+                  activeView === view ? 'bg-white/5 text-white' : 'text-white/40 hover:text-white/70',
                 )}
               >
-                <Database className="w-3 h-3 shrink-0 opacity-50" />
-                <span className="truncate">{v}</span>
+                <Database className="h-3 w-3 shrink-0 opacity-50" />
+                <span className="truncate">{view}</span>
               </button>
             ))}
           </div>
         </div>
 
-        <div className="p-4 border-t border-white/5 text-[10px] text-white/20 font-mono tracking-widest flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-500/50 animate-pulse" />
+        <div className="flex items-center gap-2 border-t border-white/5 p-4 font-mono text-[10px] tracking-widest text-white/20">
+          <div className="h-1.5 w-1.5 rounded-full bg-green-500/50 motion-safe:animate-pulse" />
           SYSTEM ONLINE
         </div>
       </div>
 
-      {/* Main Content Pane */}
-      <div className="flex-1 flex flex-col min-w-0 bg-[#0a0a0f]">
-
-        {/* Top Header & Telemetry Row */}
-        <div className="flex-shrink-0 border-b border-white/5 shrink-0">
-          <div className="h-14 px-6 flex items-center justify-between">
+      <div className="flex min-w-0 flex-1 flex-col bg-[#0a0a0f]">
+        <div className="flex-shrink-0 border-b border-white/5">
+          <div className="flex h-14 items-center justify-between px-6">
             <div className="flex items-center gap-2">
-              <span className="text-white/40 text-sm">Mission Ops</span>
+              <span className="text-sm text-white/40">Mission Ops</span>
               <span className="text-white/20">/</span>
-              <span className="text-white/90 text-sm font-medium capitalize">{section}</span>
+              <span className="text-sm font-medium text-white/90">{activeSectionLabel}</span>
             </div>
-            <div className="flex items-center gap-4">
+
+            {isLiveSection ? (
+              <div className="rounded-md border border-vt-info/20 bg-vt-info/5 px-3 py-1.5 text-[11px] text-vt-info/90">
+                Live route: <span className="font-mono text-vt-info">/api/internal/mission-ops/sources</span>
+              </div>
+            ) : (
               <div className="relative group">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-vt-info transition-colors" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30 transition-colors group-focus-within:text-vt-info" />
                 <input
                   type="text"
-                  placeholder="Filter records (Cmd+F)..."
+                  aria-label="Filter sample mission ops records"
+                  placeholder="Filter sample records…"
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="bg-white/[0.02] border border-white/10 rounded-md py-1.5 pl-9 pr-4 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-vt-info/50 focus:ring-1 focus:ring-vt-info/50 w-64 transition-all"
+                  onChange={(event) => setQuery(event.target.value)}
+                  className="w-64 rounded-md border border-white/10 bg-white/[0.02] py-1.5 pl-9 pr-4 text-xs text-white placeholder:text-white/30 transition-all focus:border-vt-info/50 focus:outline-none focus:ring-1 focus:ring-vt-info/50"
                 />
               </div>
+            )}
+          </div>
+
+          {!isLiveSection && (
+            <>
+              <div className="grid grid-cols-4 gap-4 bg-[#050508]/50 px-6 py-4">
+                <TelemetryPanel title="Active Nodes" value="2,481" trend={{ value: '+12%', positive: true }} />
+                <TelemetryPanel title="Pending Reviews" value="142" trend={{ value: '-5%', positive: false }} />
+                <TelemetryPanel title="Network Hashrate" value="14.2 TH/s" trend={{ value: 'Stable', positive: undefined }} />
+                <TelemetryPanel title="System Alerts" value="0" trend={{ value: 'All Clear', positive: true }} />
+              </div>
+              <div className="border-t border-amber-400/10 bg-amber-400/5 px-6 py-3 text-xs text-amber-100/75">
+                <span className="mr-2 font-semibold uppercase tracking-[0.16em] text-amber-300">Sample view</span>
+                {SAMPLE_NOTICE}
+              </div>
+            </>
+          )}
+        </div>
+
+        {!isLiveSection && (
+          <div className="flex items-center justify-between border-b border-white/5 bg-white/[0.01] px-6 py-2 text-xs">
+            <div className="flex items-center gap-4 font-medium text-white/50">
+              <span className="text-white">{filteredRecords.length} Sample Records</span>
+              <div className="h-3 w-px bg-white/10" />
+              <span className="text-amber-200/60">Read-only preview</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-white/30">Layout:</span>
+              <span className="rounded bg-white/10 px-2 py-0.5 text-white">Split</span>
             </div>
           </div>
+        )}
 
-          <div className="px-6 py-4 grid grid-cols-4 gap-4 bg-[#050508]/50">
-            <TelemetryPanel title="Active Nodes" value="2,481" trend={{ value: '+12%', positive: true }} />
-            <TelemetryPanel title="Pending Reviews" value="142" trend={{ value: '-5%', positive: false }} />
-            <TelemetryPanel title="Network Hashrate" value="14.2 TH/s" trend={{ value: 'Stable', positive: undefined }} />
-            <TelemetryPanel title="System Alerts" value="0" trend={{ value: 'All Clear', positive: true }} />
-          </div>
-        </div>
-
-        {/* Toolbar */}
-        <div className="px-6 py-2 border-b border-white/5 flex items-center justify-between text-xs bg-white/[0.01]">
-          <div className="flex items-center gap-4 text-white/50 font-medium">
-            <span className="text-white">{MOCK_DATA.length} Records</span>
-            <div className="h-3 w-px bg-white/10" />
-            <button className="hover:text-white transition-colors">Export CSV</button>
-            <button className="hover:text-white transition-colors">Bulk Actions</button>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-white/30">Layout:</span>
-            <button className="px-2 py-0.5 rounded bg-white/10 text-white">Split</button>
-            <button className="px-2 py-0.5 rounded hover:bg-white/5 text-white/50 transition-colors">Table</button>
-          </div>
-        </div>
-
-        {/* Split Table / Inspector Container */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Table Area */}
-          <div className={cn("flex-1 overflow-hidden transition-all duration-300", selected ? "mr-0" : "")}>
-            <DataTable
-              columns={COLS}
-              data={MOCK_DATA.filter(r => r.name.toLowerCase().includes(query.toLowerCase()) || r.role.toLowerCase().includes(query.toLowerCase()))}
-              onRowClick={setSelected}
-              selectedRow={selected}
-              className="border-none bg-transparent"
-            />
-          </div>
-
-          {/* Inline Inspector Area */}
-          {selected && (
-            <div className="w-[400px] flex-shrink-0 border-l border-white/5 bg-[#08080c] flex flex-col transform transition-transform duration-300 shadow-[-10px_0_30px_rgba(0,0,0,0.5)]">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 shrink-0 bg-[#0f1115]">
-                <h3 className="text-xs font-semibold text-white">Record Details</h3>
-                <button
-                  onClick={() => setSelected(null)}
-                  className="text-white/30 hover:text-white/70 p-1"
-                >
-                  ✕
-                </button>
-              </div>
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          {isLiveSection ? (
+            <SourceOpsPanel />
+          ) : (
+            <>
               <div className="flex-1 overflow-hidden">
-                <InspectorPanel
-                  title="Subject Information"
-                  badge={{
-                    text: String(selected.status),
-                    color: String(selected.status) === 'ACTIVE' ? '#22c55e' : String(selected.status) === 'PENDING' ? '#f59e0b' : '#ef4444'
-                  }}
-                  items={[
-                    { label: 'UID', value: String(selected.id ?? ''), mono: true, copy: true, colSpan: 2 },
-                    { label: 'Full Name', value: String(selected.name ?? ''), copy: true, colSpan: 2 },
-                    { label: 'Role', value: String(selected.role ?? '') },
-                    { label: 'Risk Score', value: String(selected.riskScore ?? ''), mono: true },
-                    { label: 'Last Synced', value: String(selected.updatedAt) },
-                    { label: 'Source', value: 'Primary PSV Net' },
-                    { label: 'Raw Payload', value: String(selected._raw ?? ''), mono: true, colSpan: 2, copy: true },
-                  ]}
-                  className="bg-transparent"
+                <DataTable
+                  columns={COLS}
+                  data={filteredRecords}
+                  onRowClick={setSelected}
+                  selectedRow={selected}
+                  className="border-none bg-transparent"
                 />
               </div>
-            </div>
+
+              {selected && (
+                <div className="flex w-[400px] flex-shrink-0 flex-col border-l border-white/5 bg-[#08080c] shadow-[-10px_0_30px_rgba(0,0,0,0.5)]">
+                  <div className="flex shrink-0 items-center justify-between border-b border-white/5 bg-[#0f1115] px-4 py-3">
+                    <h3 className="text-xs font-semibold text-white">Record Details</h3>
+                    <button
+                      type="button"
+                      onClick={() => setSelected(null)}
+                      aria-label="Close record details"
+                      className="p-1 text-white/30 transition hover:text-white/70"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className="flex-1 overflow-hidden">
+                    <InspectorPanel
+                      title="Subject Information"
+                      badge={{
+                        text: selected.status,
+                        color: STATUS_BADGE_COLORS[selected.status],
+                      }}
+                      items={[
+                        { label: 'UID', value: selected.id, mono: true, copy: true, colSpan: 2 },
+                        { label: 'Full Name', value: selected.name, copy: true, colSpan: 2 },
+                        { label: 'Role', value: selected.role },
+                        { label: 'Risk Score', value: selected.riskScore, mono: true },
+                        { label: 'Last Synced', value: selected.updatedAt },
+                        { label: 'Source', value: 'Sample Mission Ops dataset' },
+                        { label: 'Raw Payload', value: selected._raw, mono: true, colSpan: 2, copy: true },
+                      ]}
+                      className="bg-transparent"
+                    />
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

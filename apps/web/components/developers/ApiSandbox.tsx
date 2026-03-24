@@ -4,9 +4,9 @@
  * ApiSandbox — Wave 30: Developer Sandbox
  *
  * Split-pane interactive cURL composer.
- * Left  → NPI input + credential scope checkboxes.
+ * Left  → NPI input + preview-only domain toggles.
  * Right → Live-updating syntax-highlighted cURL command.
- * "Run Request" → Animated simulated JSON response.
+ * "Run Request" → Animated simulated preview payload.
  *
  * Syntax highlighting is hand-rolled with styled <span> elements —
  * no external parser, no hydration risk.
@@ -33,21 +33,19 @@ const SCOPES: CredentialScope[] = [
   { id: 'sanctions',label: 'Sanctions Check',   field: 'sanctions'     },
 ];
 
-const BASE_URL = 'https://api.vitalcv.ai/v1';
+const BASE_URL = 'https://api.vitalcv.com';
 
 // ── Mock response generator ───────────────────────────────────────────────
 
 function buildMockResponse(npi: string, scopes: string[]): object {
   return {
-    object: 'trust_profile',
+    object: 'trust_profile_preview',
+    mode: 'demo',
     npi: npi || '0000000000',
-    trust_state: 'verified_monitoring',
-    crs_score: 95,
-    crs_band: 'GREEN',
-    l3_status: 'L3',
-    requested_credentials: scopes.length > 0 ? scopes : ['state_license'],
-    verified_at: new Date().toISOString(),
-    audit_hash: '3a7f2c8d' + Math.random().toString(16).slice(2, 10),
+    requested_domains: scopes.length > 0 ? scopes : ['state_license'],
+    status: 'preview_only',
+    note: 'Simulated preview payload. Use the configured API host for live results.',
+    generated_at: new Date().toISOString(),
   };
 }
 
@@ -160,9 +158,8 @@ export function ApiSandbox() {
   // Build the cURL command — updates live as inputs change
   const curlCmd = [
     `curl --request GET \\`,
-    `  --url '${BASE_URL}/public/profile/${npi || '<NPI>'}' \\`,
+    `  --url '${BASE_URL}/api/public/profile/npi/${npi || '<NPI>'}' \\`,
     `  --header 'Authorization: Bearer vcv_test_••••••••••••' \\`,
-    `  --header 'X-Requested-Credentials: ${scopeArr.join(',')}' \\`,
     `  --header 'Accept: application/json'`,
   ].join('\n');
 
@@ -184,8 +181,8 @@ export function ApiSandbox() {
       <div className="flex items-center gap-3 border-b border-white/8 px-6 py-4">
         <Terminal className="h-4 w-4 text-emerald-400" />
         <h2 className="text-sm font-semibold text-white">Interactive cURL Sandbox</h2>
-        <span className="ml-auto rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-400 ring-1 ring-emerald-500/30">
-          Sandbox
+        <span className="ml-auto rounded-full bg-sky-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-sky-300 ring-1 ring-sky-500/30">
+          Preview
         </span>
       </div>
 
@@ -214,7 +211,10 @@ export function ApiSandbox() {
 
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Requested Credentials
+              Preview Domains
+            </p>
+            <p className="mb-3 text-xs leading-relaxed text-slate-500">
+              These toggles change the preview payload below. The public lookup route above remains NPI-only.
             </p>
             <div className="space-y-2">
               {SCOPES.map((scope) => {
@@ -289,8 +289,8 @@ export function ApiSandbox() {
                 className="border-t border-white/8 bg-slate-900/40 overflow-hidden"
               >
                 <div className="flex items-center gap-2 px-5 py-2 border-b border-white/5">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                  <span className="font-mono text-[10px] text-emerald-400">200 OK</span>
+                  <span className="h-2 w-2 rounded-full bg-sky-300" />
+                  <span className="font-mono text-[10px] text-sky-300">preview payload</span>
                   <span className="ml-auto font-mono text-[10px] text-slate-600">
                     application/json
                   </span>

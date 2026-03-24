@@ -21,7 +21,18 @@ export type PilotMetricEventType =
   | 'feedback_submitted'
   | 'support_triggered'
   | 'auth_failure'
-  | 'route_failure';
+  | 'route_failure'
+  // UX-8: UX friction telemetry events
+  | 'npi_submitted'
+  | 'source_check_started'
+  | 'readiness_revealed'
+  | 'accordion_expanded'
+  | 'evidence_viewer_opened'
+  | 'share_cta_clicked'
+  | 'employer_action_clicked'
+  | 'page_load_timing'
+  | 'dead_end_reached'
+  | 'nav_item_clicked';
 
 export interface PilotEntityContext {
   kind?: string | null;

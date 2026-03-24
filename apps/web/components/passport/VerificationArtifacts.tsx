@@ -13,6 +13,7 @@ export interface ArtifactEntry {
   issuer: string;
   hash: string | null;
   timestamp: string;
+  decisionGrade?: boolean;
 }
 
 interface VerificationArtifactsProps {
@@ -36,7 +37,19 @@ export function VerificationArtifacts({ artifacts, className = '' }: Verificatio
           className="px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.05]"
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-vt-neutral-300 font-medium truncate">{art.issuer}</span>
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="text-[11px] text-vt-neutral-300 font-medium truncate">{art.issuer}</span>
+              {art.decisionGrade === true ? (
+                <span className="inline-flex shrink-0 rounded-full border border-[var(--vt-badge-success-border)] bg-[var(--vt-badge-success-bg)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--vt-badge-success-text)]">
+                  Decision grade
+                </span>
+              ) : null}
+              {art.decisionGrade === false ? (
+                <span className="inline-flex shrink-0 rounded-full border border-[var(--vt-badge-neutral-border)] bg-[var(--vt-badge-neutral-bg)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--vt-badge-neutral-text)]">
+                  Informational only
+                </span>
+              ) : null}
+            </div>
             <span className="text-[9px] text-vt-neutral-600">{new Date(art.timestamp).toLocaleDateString()}</span>
           </div>
           {art.hash && (

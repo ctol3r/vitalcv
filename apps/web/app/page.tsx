@@ -3,19 +3,22 @@
 import { HowItWorksSection } from '@/components/marketing/HomeSections';
 import { HeroWithAuthPrompt } from '@/components/hero/HeroWithAuthPrompt';
 import { SectionReveal } from '@/components/motion/ScrollMotion';
+import {
+  getTrustStatusBadgeClassName,
+  getTrustStatusLabel,
+  type TrustUiStatus,
+} from '@/lib/trust/status-language';
 import Link from 'next/link';
-import { CheckCircle2 } from 'lucide-react';
 
 // ── Wave C: Trust Strip ───────────────────────────────────────
 
 function TrustStrip() {
-  // M1: Only sources that are actually connected. NPDB/DEA/ABMS are not integrated.
   const SOURCES = [
-    { name: 'NPPES',              sub: 'NPI identity'          },
-    { name: 'OIG / LEIE',        sub: 'Exclusion check'        },
-    { name: 'CMS PECOS',         sub: 'Medicare enrollment'    },
-    { name: 'State Boards',      sub: 'Via Nursys · access req.' },
-    { name: 'FSMB',              sub: 'Physicians · access req.' },
+    { name: 'NPPES', sub: 'NPI identity', status: 'checked' as TrustUiStatus },
+    { name: 'OIG / LEIE', sub: 'Exclusion check', status: 'checked' as TrustUiStatus },
+    { name: 'CMS PECOS', sub: 'Quarterly enrollment data', status: 'checked' as TrustUiStatus },
+    { name: 'State Boards', sub: 'Connector or institutional access', status: 'access_required' as TrustUiStatus },
+    { name: 'FSMB / ABMS / DEA', sub: 'Access required', status: 'access_required' as TrustUiStatus },
   ];
 
   return (
@@ -23,20 +26,25 @@ function TrustStrip() {
       <div className="mx-auto max-w-5xl">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
           <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/30 shrink-0">
-            Verified against
+            Current source coverage
           </p>
           <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto pb-1 sm:pb-0 scrollbar-none flex-wrap sm:flex-nowrap">
             {SOURCES.map((s) => (
               <div key={s.name} className="flex items-center gap-2 shrink-0">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500/50 shrink-0" />
                 <div>
                   <p className="text-xs font-semibold text-white/60 whitespace-nowrap">{s.name}</p>
                   <p className="text-[9px] text-white/25 whitespace-nowrap">{s.sub}</p>
                 </div>
+                <span className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] whitespace-nowrap ${getTrustStatusBadgeClassName(s.status)}`}>
+                  {getTrustStatusLabel(s.status)}
+                </span>
               </div>
             ))}
           </div>
         </div>
+        <p className="mt-3 text-[10px] text-white/20">
+          Homepage preview runs NPPES and OIG first. Other sources appear only when connected and actually checked.
+        </p>
       </div>
     </div>
   );
@@ -60,17 +68,17 @@ function InterviewModeTeaser() {
                     <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400">Interview Mode</span>
                   </div>
                   <h2 className="text-xl sm:text-2xl font-bold text-white leading-tight mb-3">
-                    Use this in your<br className="hidden sm:block" /> next interview.
+                    Preview your<br className="hidden sm:block" /> interview packet.
                   </h2>
                   <p className="text-sm text-white/50 leading-relaxed mb-5">
-                    Walk in with a signed proof card. The employer sees exactly what is verified,
-                    what is pending, and what can proceed — before the conversation starts.
+                    After your NPI lookup, you can turn a readiness record into a concise packet
+                    for employer conversations.
                   </p>
                   <Link
                     href="/interview"
                     className="inline-flex items-center justify-center gap-2 min-h-[48px] rounded-xl bg-emerald-500 hover:bg-emerald-400 px-6 text-sm font-bold text-white transition-all active:scale-[0.98] shadow-[0_0_24px_rgba(16,185,129,0.2)] w-full sm:w-auto"
                   >
-                    Try Interview Mode
+                    Open Interview Preview
                   </Link>
                 </div>
 
@@ -84,10 +92,10 @@ function InterviewModeTeaser() {
                     </div>
                     <div className="px-4 py-3 space-y-2.5">
                       {[
-                        { label: 'Identity',  status: 'Confirmed' },
-                        { label: 'License',   status: 'Active'    },
-                        { label: 'Exclusion', status: 'Clear'     },
-                        { label: 'PECOS',     status: 'Enrolled'  },
+                        { label: 'Identity',  status: 'Live via NPPES' },
+                        { label: 'Sanctions', status: 'Live via OIG' },
+                        { label: 'Enrollment', status: 'Quarterly PECOS' },
+                        { label: 'Licensure', status: 'Access required' },
                       ].map(r => (
                         <div key={r.label} className="flex items-center justify-between">
                           <span className="text-xs text-white/50">{r.label}</span>
@@ -96,11 +104,11 @@ function InterviewModeTeaser() {
                       ))}
                     </div>
                     <div className="px-4 py-3 border-t border-white/6 flex items-center justify-between bg-white/2">
-                      <span className="text-[10px] text-white/30">Your score: —</span>
-                      <span className="text-[10px] text-white/20">based on your NPI</span>
+                      <span className="text-[10px] text-white/30">Example layout</span>
+                      <span className="text-[10px] text-white/20">not a live proof card</span>
                     </div>
                   </div>
-                  <p className="text-[10px] text-white/20 text-center mt-2">Shared via secure link · 24h TTL</p>
+                  <p className="text-[10px] text-white/20 text-center mt-2">Preview only · live shares depend on a real review flow</p>
                 </div>
 
               </div>
@@ -127,82 +135,8 @@ export default function HomePage() {
       {/* How it works — compressed 3-step */}
       <HowItWorksSection />
 
-      {/* WAVE F — Interview Mode teaser: strongest feature made visible */}
+      {/* Interview mode stays below the explainer as a later-step preview */}
       <InterviewModeTeaser />
-
-      {/* Entry paths */}
-      <section className="px-4 sm:px-6 py-16 sm:py-20" style={{ background: '#080e1a' }}>
-        <div className="mx-auto max-w-4xl">
-          <SectionReveal>
-            <div className="text-center mb-8">
-              <h2 className="text-xl sm:text-2xl font-bold text-white">Verified data from official sources. Three paths in.</h2>
-            </div>
-          </SectionReveal>
-          <SectionReveal>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 mb-3">
-              {[
-                {
-                  href: '/interview',
-                  title: 'Interview Mode',
-                  body: 'Share proof in the room. Employer sees what\'s verified, what\'s missing, what can proceed.',
-                  cta: 'Start Interview Mode',
-                  border: 'border-emerald-500/25 hover:border-emerald-500/50',
-                  tag: 'For Clinicians',
-                },
-                {
-                  href: '/passport',
-                  title: 'Your Passport',
-                  body: 'Identity, readiness, and credentials — one portable object.',
-                  cta: 'View your Passport',
-                  border: 'border-sky-500/20 hover:border-sky-500/40',
-                  tag: 'For Clinicians',
-                },
-              ].map(({ href, title, body, cta, border, tag }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`group block rounded-2xl border bg-white/3 p-5 sm:p-6 transition-all hover:bg-white/6 ${border}`}
-                >
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-white/25 mb-2">{tag}</p>
-                  <p className="font-semibold text-white">{title}</p>
-                  <p className="mt-2 text-sm text-white/50 leading-relaxed">{body}</p>
-                  <p className="mt-4 text-xs font-semibold text-emerald-400/60 group-hover:text-emerald-400 transition-colors">{cta} →</p>
-                </Link>
-              ))}
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {[
-                {
-                  href: '/get-ready',
-                  title: 'Get Verified',
-                  // Wave G: copy compressed ~40%
-                  body: 'Build your trust profile. Portable across employers where accepted.',
-                  cta: 'Start now',
-                  border: 'border-white/8 hover:border-white/15',
-                },
-                {
-                  href: '/employers',
-                  title: 'For Employers',
-                  // Wave G: copy compressed
-                  body: 'See verified readiness before the first interview.',
-                  cta: 'Learn more',
-                  border: 'border-white/8 hover:border-white/15',
-                },
-              ].map(({ href, title, body, cta, border }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`group block rounded-2xl border bg-white/2 p-5 transition-all hover:bg-white/4 ${border}`}
-                >
-                  <p className="font-medium text-white/70 group-hover:text-white transition-colors">{title}</p>
-                  <p className="mt-1.5 text-sm text-white/35 leading-relaxed">{body}</p>
-                  <p className="mt-3 text-xs font-medium text-white/30 group-hover:text-white/60 transition-colors">{cta} →</p>
-                </Link>
-              ))}
-            </div>
-          </SectionReveal>
-        </div>
-      </section>
 
     </div>
   );

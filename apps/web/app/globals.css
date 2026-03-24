@@ -36,6 +36,42 @@ body {
   font-family: var(--font-body);
 }
 
+@keyframes vcv-accordion-down {
+  from {
+    height: 0;
+    opacity: 0.45;
+  }
+
+  to {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes vcv-accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+
+  to {
+    height: 0;
+    opacity: 0.45;
+  }
+}
+
+@keyframes vcv-stage-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 :root {
   --background: var(--vt-bg);
   --foreground: var(--vt-text-primary);
@@ -278,7 +314,6 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    overscroll-behavior: contain;
     overflow-x: hidden; /* Wave 243: prevent horizontal scroll on mobile */
   }
 }

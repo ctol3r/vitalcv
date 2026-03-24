@@ -11,11 +11,22 @@ import { useVerifierMachine } from '@/lib/state-machines';
 import { VerifierPortal } from '@/components/employer/VerifierPortal';
 import { AcceptancePanel } from '@/components/verifier/AcceptancePanel';
 
+function DemoBanner() {
+  return (
+    <div className="border-b border-amber-500/20 bg-amber-500/5 px-4 py-2.5 text-center">
+      <p className="text-[11px] font-medium text-amber-400/80">
+        Demo environment - data shown is not real credential verification
+      </p>
+    </div>
+  );
+}
+
 export default function VerifierPage() {
   const verifier = useVerifierMachine();
 
   return (
     <>
+      <DemoBanner />
       <VerifierPortal />
 
       {/* Wave 99: Acceptance panel — always visible; machine state controls internal behaviour */}

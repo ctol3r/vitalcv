@@ -3,51 +3,33 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Webhooks | VitalCV Docs',
-  description: 'Automated webhook events for credential lifecycle changes.',
+  description: 'Current webhook registration routes and event contract.',
 };
 
 const EVENTS = [
   {
-    type: 'credential.issued',
-    desc: 'A new credential was issued to a clinician.',
-    payload: '{ credentialId, npi, type, issuerId, issuedAt }',
+    type: 'credential_verified',
+    desc: 'A credential verification completed for a clinician.',
+    payload: '{ npi, trustBand, verifiedAt }',
     severity: 'info',
   },
   {
-    type: 'credential.verified',
-    desc: 'A credential was successfully verified by a verifier.',
-    payload: '{ credentialId, npi, verifierId, trustBand, verifiedAt }',
-    severity: 'info',
-  },
-  {
-    type: 'credential.revoked',
-    desc: 'A credential was revoked. Cascade impact included.',
-    payload: '{ credentialId, npi, reason, revokedAt, cascadeImpact: { affected, atRisk } }',
+    type: 'credential_revoked',
+    desc: 'A credential was revoked. Downstream reviewers should refresh their view.',
+    payload: '{ credentialId, npi, reason, revokedAt }',
     severity: 'critical',
   },
   {
-    type: 'trust.alert',
-    desc: 'A trust alert was emitted (issuer degradation, anomaly, expiry warning).',
-    payload: '{ alertId, severity, title, subject, recommendedAction, createdAt }',
-    severity: 'warning',
-  },
-  {
-    type: 'issuer.health_changed',
-    desc: 'An issuer trust score changed or HAIP compliance status changed.',
-    payload: '{ issuerId, did, previousScore, newScore, haipCompliant }',
-    severity: 'warning',
-  },
-  {
-    type: 'federation.sync',
-    desc: 'A federated network completed a trust chain sync.',
-    payload: '{ networkId, entityId, trustChainLength, syncedAt }',
+    type: 'decision_created',
+    desc: 'A reviewer created a new decision event from the current workflow.',
+    payload: '{ entityId, decisionType, createdAt }',
     severity: 'info',
   },
   {
-    type: 'audit.anomaly_detected',
-    desc: 'The audit baseline detected a statistical anomaly in event patterns.',
-    payload: '{ eventType, zScore, windowMs, detectedAt }',
-    severity: 'critical',
+    type: 'trust_state_changed',
+    desc: 'A clinician readiness or trust-state snapshot changed.',
+    payload: '{ npi, previous, next, observedAt }',
+    severity: 'warning',
   },
 ];
 
@@ -58,16 +40,16 @@ const SEVERITY_STYLES: Record<string, string> = {
 };
 
 const SUBSCRIBE_EXAMPLE = `// Register a webhook endpoint
-const response = await fetch('https://api.vitalcv.com/v1/webhooks', {
+const response = await fetch('https://api.vitalcv.com/api/network/webhooks/register', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer <api_key>',
     'Content-Type': 'application/json',
   },
   body: JSON.stringify({
+    organizationId: 'org_demo_hospital',
     url: 'https://your-app.com/webhooks/vitalcv',
-    events: ['credential.revoked', 'trust.alert'],
-    secret: 'whsec_your_signing_secret',
+    events: ['credential_revoked', 'trust_state_changed'],
   }),
 });`;
 
@@ -107,9 +89,8 @@ export default function WebhooksPage() {
         <p className="text-xs font-mono uppercase tracking-widest text-sky-400 mb-3">Webhooks</p>
         <h1 className="text-3xl font-bold tracking-tight mb-4">Event Webhooks</h1>
         <p className="text-zinc-400 leading-relaxed">
-          VitalCV delivers immediate webhook events for all credential lifecycle changes.
-          Events are signed with HMAC-SHA256, delivered with at-least-once semantics,
-          and retried with exponential backoff for up to 24 hours.
+          The current backend exposes webhook registration under the network gateway routes.
+          Use the event names below when wiring subscriptions against the current API host.
         </p>
       </div>
 
@@ -130,7 +111,7 @@ export default function WebhooksPage() {
           </pre>
         </div>
         <p className="text-sm text-zinc-500">
-          You can also manage webhooks in the <Link href="/developers" className="text-sky-400 hover:underline">Developer Portal</Link>.
+          You can also preview webhook payloads in the <Link href="/developers" className="text-sky-400 hover:underline">Developer Portal</Link>.
         </p>
       </div>
 
@@ -175,13 +156,13 @@ export default function WebhooksPage() {
       </div>
 
       {/* Delivery */}
-      <div className="rounded-xl border border-white/5 bg-white/2 p-6 space-y-3">
+        <div className="rounded-xl border border-white/5 bg-white/2 p-6 space-y-3">
         <h2 className="font-semibold">Delivery Guarantees</h2>
         <ul className="space-y-2 text-sm text-zinc-400">
-          <li>• <strong className="text-zinc-200">At-least-once delivery</strong> — events may be delivered more than once; use <code className="text-violet-300">id</code> for deduplication</li>
-          <li>• <strong className="text-zinc-200">Retry policy</strong> — exponential backoff, max 10 attempts over 24 hours</li>
-          <li>• <strong className="text-zinc-200">Timeout</strong> — your endpoint must respond within 10 seconds</li>
-          <li>• <strong className="text-zinc-200">Ordering</strong> — not guaranteed; events may arrive out of order</li>
+          <li>• <strong className="text-zinc-200">Preview contract</strong> — event names here match the current backend registration route.</li>
+          <li>• <strong className="text-zinc-200">Signing</strong> — verify the HMAC signature before processing any payload.</li>
+          <li>• <strong className="text-zinc-200">Ordering</strong> — do not assume event ordering when multiple source checks are in flight.</li>
+          <li>• <strong className="text-zinc-200">Retries</strong> — confirm delivery behavior against the API host you are integrating with.</li>
         </ul>
       </div>
 

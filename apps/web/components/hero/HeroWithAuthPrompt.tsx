@@ -7,32 +7,48 @@
  *   1. User enters NPI → LiveTrustConsole runs pipeline
  *   2. Preview appears → onPreviewReady fires with NPI + name
  *   3. useAuthPrompt detects: user is anon, hasn't dismissed → shouldPrompt = true
- *   4. CreateAccountModal slides up (600ms delay — let user read the preview first)
+ *   4. CreateAccountModal waits until the preview is readable before appearing
  *   5. User can claim or dismiss; anonymous flow continues either way
  *
  * Wave A3 — Auth Architecture
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { LiveTrustConsole } from './LiveTrustConsole';
 import { CreateAccountModal } from '@/components/auth/CreateAccountModal';
 import { useAuthPrompt } from '@/hooks/useAuthPrompt';
+import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
 
-export function HeroWithAuthPrompt() {
+function HeroWithPromptShell() {
   const [resolvedNpi,  setResolvedNpi]  = useState<string | null>(null);
   const [displayName,  setDisplayName]  = useState('Provider');
   const [showModal,    setShowModal]    = useState(false);
+  const modalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { shouldPrompt, dismiss } = useAuthPrompt(resolvedNpi);
 
+  useEffect(() => {
+    return () => {
+      if (modalTimer.current) {
+        clearTimeout(modalTimer.current);
+      }
+    };
+  }, []);
+
   const handlePreviewReady = useCallback((npi: string, name: string) => {
+    if (modalTimer.current) {
+      clearTimeout(modalTimer.current);
+    }
     setResolvedNpi(npi);
     setDisplayName(name);
-    // Short delay — let the user read the preview before the modal appears
-    setTimeout(() => setShowModal(true), 700);
+    setShowModal(false);
+    modalTimer.current = setTimeout(() => setShowModal(true), 1200);
   }, []);
 
   const handleDismiss = useCallback(() => {
+    if (modalTimer.current) {
+      clearTimeout(modalTimer.current);
+    }
     dismiss();
     setShowModal(false);
   }, [dismiss]);
@@ -50,4 +66,12 @@ export function HeroWithAuthPrompt() {
       )}
     </>
   );
+}
+
+export function HeroWithAuthPrompt() {
+  if (!CLERK_PROVIDER_ENABLED) {
+    return <LiveTrustConsole />;
+  }
+
+  return <HeroWithPromptShell />;
 }

@@ -28,19 +28,21 @@ import { Accordion } from '@/components/ui/vcv-accordion';
 import type { AccordionItem } from '@/components/ui/vcv-accordion';
 import type { PassportData, ReadinessStatus } from '@/app/passport/[id]/page';
 import { PassportAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
+import {
+  VStatusPill,
+  type TrustStatusLabel,
+} from '@/components/vds/primitives';
 
 // ── Status configuration ──────────────────────────────────────────────────────
 // NO colour on status. Hierarchy via opacity only.
 
 const STATUS_CONFIG: Record<ReadinessStatus, {
-  label:        string;
-  labelOpacity: string;
   cardBorder:   string;
   cardBg:       string;
 }> = {
-  READY:   { label: 'Ready',          labelOpacity: 'text-white/80', cardBorder: 'border-white/15', cardBg: 'bg-white/6' },
-  PARTIAL: { label: 'Partial',        labelOpacity: 'text-white/55', cardBorder: 'border-white/10', cardBg: 'bg-white/4' },
-  BLOCKED: { label: 'Action needed',  labelOpacity: 'text-white/40', cardBorder: 'border-white/8',  cardBg: 'bg-white/3' },
+  READY:   { cardBorder: 'border-white/15', cardBg: 'bg-white/6' },
+  PARTIAL: { cardBorder: 'border-white/10', cardBg: 'bg-white/4' },
+  BLOCKED: { cardBorder: 'border-white/8', cardBg: 'bg-white/3' },
 };
 
 // ── Row primitives ─────────────────────────────────────────────────────────────
@@ -82,7 +84,7 @@ function formatProofDate(value?: string | null): string | null {
 // ── Accordion section builders ─────────────────────────────────────────────────
 
 function buildIdentitySection(passport: PassportData): AccordionItem {
-  const { identity, sources, lastCheckedAt } = passport;
+  const { identity, lastCheckedAt } = passport;
   return {
     id:      'identity',
     trigger: 'Identity',
@@ -100,27 +102,12 @@ function buildIdentitySection(passport: PassportData): AccordionItem {
   };
 }
 
-// ── Unified row display contract (MS16-E) ─────────────────────────────────────
-// All rows (identity, safety, authority, eligibility) use the same shape.
-// This is the canonical contract — do not deviate.
-
-interface TrustRowProps {
-  title:        string;
-  status:       'active' | 'enrolled' | 'not_found' | 'expired' | 'review' | 'unavailable' | 'pending' | 'unchecked';
-  sourceLabel:  string;
-  checkedAt?:   string | null;
-  confidence?:  string | null;
-  freshness?:   string | null;
-  dataVersion?: string | null;
-  note?:        string | null;
-}
-
 // ── Authority row renderer (MS15) ────────────────────────────────────────────
 // Shared display contract: title · status · source · checkedAt · confidence · freshness
 
 interface AuthorityRowProps {
   title:       string;
-  status:      'active' | 'expired' | 'review' | 'unavailable' | 'pending';
+  status:      TrustStatusLabel;
   sourceLabel: string;
   checkedAt?:  string | null;
   confidence?: string | null;
@@ -129,27 +116,11 @@ interface AuthorityRowProps {
 }
 
 function AuthorityRow({ title, status, sourceLabel, checkedAt, confidence, freshness, note }: AuthorityRowProps) {
-  const statusText = {
-    active:      'Active',
-    expired:     'Expired',
-    review:      'Review required',
-    unavailable: 'Not available',
-    pending:     'Not verified',
-  }[status];
-
-  const statusOpacity = {
-    active:      'text-white/55',
-    expired:     'text-white/35',
-    review:      'text-white/40',
-    unavailable: 'text-white/20',
-    pending:     'text-white/25',
-  }[status];
-
   return (
     <div className="py-1.5 border-b border-white/5 last:border-0">
       <div className="flex justify-between text-xs">
         <span className="text-white/65">{title}</span>
-        <span className={`text-xs ${statusOpacity}`}>{statusText}</span>
+        <VStatusPill status={status} size="sm" />
       </div>
       <div className="flex justify-between text-xs mt-0.5">
         <span className="text-white/25">Source: {sourceLabel}</span>
@@ -168,20 +139,25 @@ function AuthorityRow({ title, status, sourceLabel, checkedAt, confidence, fresh
 
 function claimCodeToStatus(
   code?: string,
+  participationStatus?: string,
   reviewRequired?: boolean,
   credStatus?: string,
 ): AuthorityRowProps['status'] {
-  if (code === 'AUTHORITY_UNAVAILABLE')       return 'unavailable';
-  if (code === 'BOARD_ORDER_PRESENT')         return 'review';
-  if (code === 'RN_LICENSE_DISCIPLINED')      return 'review';
-  if (reviewRequired)                         return 'review';
-  if (code === 'RN_LICENSE_EXPIRED')          return 'expired';
-  if (credStatus === 'EXPIRED')               return 'expired';
-  if (code === 'PHYSICIAN_LICENSE_ACTIVE')    return 'active';
-  if (code === 'RN_LICENSE_ACTIVE')           return 'active';
-  if (code === 'BOARD_CERTIFIED')             return 'active';
-  if (code === 'TRAINING_COMPLETED')          return 'active';
-  if (credStatus === 'ACTIVE')                return 'active';
+  if (code === 'AUTHORITY_UNAVAILABLE') {
+    return participationStatus === 'institution_access_unavailable'
+      ? 'access required'
+      : 'unavailable';
+  }
+  if (code === 'BOARD_ORDER_PRESENT')         return 'review required';
+  if (code === 'RN_LICENSE_DISCIPLINED')      return 'review required';
+  if (reviewRequired)                         return 'review required';
+  if (code === 'RN_LICENSE_EXPIRED')          return 'blocked';
+  if (credStatus === 'EXPIRED')               return 'blocked';
+  if (code === 'PHYSICIAN_LICENSE_ACTIVE')    return 'verified';
+  if (code === 'RN_LICENSE_ACTIVE')           return 'verified';
+  if (code === 'BOARD_CERTIFIED')             return 'verified';
+  if (code === 'TRAINING_COMPLETED')          return 'verified';
+  if (credStatus === 'ACTIVE')                return 'verified';
   return 'pending';
 }
 
@@ -219,7 +195,7 @@ function claimCodeToNote(c: PassportData['authority']['credentials'][0]): string
     if (p === 'non_participating_state' && c.jurisdiction)
       return `${c.jurisdiction} does not participate in automated license verification. Request a board-issued verification letter directly.`;
     if (p === 'institution_access_unavailable')
-      return 'Requires institutional FSMB or Nursys agreement. Contact your administrator.';
+      return 'Access required. Institutional FSMB or Nursys agreement is not configured.';
     return 'Authority source access not configured for this record.';
   }
   if (code === 'RN_LICENSE_DISCIPLINED')
@@ -237,10 +213,10 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
   const hasBoardCert    = authority.credentials.some(c => c.domain === 'BOARD_CERTIFICATION');
 
   const sectionStatus: AccordionItem['status'] =
-    hasBoardOrder                                                ? 'action'
+    hasBoardOrder                                                ? 'review_required'
     : hasActive && !hasUnavailable                               ? 'verified'
-    : hasUnavailable && !hasActive                               ? 'pending'
-    : 'action';
+    : hasUnavailable && !hasActive                               ? 'access_required'
+    : 'review_required';
 
   return {
     id:      'authority',
@@ -254,7 +230,7 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
           <AuthorityRow
             key={c.id}
             title={claimCodeToTitle(c)}
-            status={claimCodeToStatus(c.authorityClaimCode, c.reviewRequired, c.status)}
+            status={claimCodeToStatus(c.authorityClaimCode, c.participationStatus, c.reviewRequired, c.status)}
             sourceLabel={c.issuerName ?? c.sourceId ?? 'Unknown source'}
             checkedAt={c.observedAt ? formatProofDate(c.observedAt) : null}
             confidence={c.claimConfidenceLabel}
@@ -266,17 +242,18 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
         {/* Honest placeholder: no licensure credentials at all */}
         {!hasLicensure && (
           <AuthorityRow
-            title="License — not yet verified"
-            status="unavailable"
+            title="License verification"
+            status="access required"
             sourceLabel="FSMB / Nursys"
-            note="Institutional source access required. Neither FSMB nor Nursys is currently connected."
+            note="Access required. Neither FSMB nor Nursys is currently connected."
           />
         )}
 
         {/* Board cert placeholder */}
         {!hasBoardCert && (
-          <div className="py-1.5 text-xs text-white/20">
-            · Board certification — not on file
+          <div className="flex items-center justify-between gap-2 py-1.5 border-b border-white/5 last:border-0">
+            <span className="text-xs text-white/20">Board certification</span>
+            <VStatusPill status="not decision-grade" size="sm" />
           </div>
         )}
 
@@ -284,8 +261,9 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
         {authority.summary.missing
           .filter(d => !['IDENTITY', 'EXCLUSION_CHECK'].includes(d))
           .map(d => (
-            <div key={d} className="text-white/20 text-xs py-0.5">
-              Missing: {d.replace(/_/g, ' ').toLowerCase()}
+            <div key={d} className="flex items-center justify-between gap-2 py-1.5 border-b border-white/5 last:border-0">
+              <span className="text-xs text-white/20">{d.replace(/_/g, ' ').toLowerCase()}</span>
+              <VStatusPill status="blocked" size="sm" />
             </div>
           ))}
       </div>
@@ -300,7 +278,7 @@ function buildTrainingSection(passport: PassportData): AccordionItem {
     trigger: 'Training confirmed by issuing institution',
     status:  training.degreeVerified && training.hasResidency ? 'verified'
            : training.hasDegree                               ? 'pending'
-           : 'action',
+           : 'review_required',
     content: (
       <div className="py-1 space-y-1">
         {training.records.length === 0 && (
@@ -335,20 +313,35 @@ function buildStandingSection(passport: PassportData): AccordionItem {
     standing.licensureStatus === 'verified' &&
     safetyNegative.length === 0;
 
+  const exclusionLabel =
+    standing.exclusionStatus === 'CLEAR' ? 'Clear'
+    : standing.exclusionStatus === 'POSSIBLE_MATCH' ? 'Review required'
+    : standing.exclusionStatus === 'EXCLUDED' ? 'Blocked'
+    : 'Unavailable';
+  const licensureLabel =
+    standing.licensureStatus === 'verified' ? 'Verified'
+    : standing.licensureStatus === 'expired' ? 'Blocked'
+    : standing.licensureStatus === 'pending' ? 'Pending'
+    : 'Unavailable';
+  const deaLabel =
+    standing.deaStatus === 'registered' ? 'Verified'
+    : standing.deaStatus === 'none' ? 'Not decision-grade'
+    : 'Unavailable';
+
   return {
     id:      'standing',
     trigger: 'Safety',
     status:  allClear                               ? 'clear'
            : standing.exclusionStatus === 'UNCHECKED' ? 'pending'
-           : safetyNegative.length > 0             ? 'action'
+           : safetyNegative.length > 0             ? 'review_required'
            : 'pending',
     content: (
       <div className="py-1">
-        <DetailRow label="Exclusion check"   value={standing.exclusionStatus} />
+        <DetailRow label="Exclusion check"   value={exclusionLabel} />
         <DetailRow label="Checked"           value={formatProofDate(standing.exclusionCheckedAt)} />
         <DetailRow label="Confidence"        value={standing.exclusionConfidenceLabel} />
-        <DetailRow label="License"           value={standing.licensureStatus} />
-        <DetailRow label="DEA"               value={standing.deaStatus} />
+        <DetailRow label="License"           value={licensureLabel} />
+        <DetailRow label="DEA"               value={deaLabel} />
         {safetyNegative.map((f, i) => (
           <div key={i} className="flex items-center gap-2 text-xs py-1.5 border-b border-white/5 last:border-0">
             <span className="text-white/25 select-none">⚠</span>
@@ -367,8 +360,7 @@ function buildStandingSection(passport: PassportData): AccordionItem {
 
 interface EligibilityRowProps {
   title:        string;
-  /** ENROLLED | NOT_FOUND | UNKNOWN | UNCHECKED */
-  status:       'enrolled' | 'not_found' | 'unknown' | 'unchecked';
+  status:       TrustStatusLabel;
   sourceLabel:  string;
   checkedAt?:   string | null;
   dataVersion?: string | null;
@@ -380,40 +372,11 @@ interface EligibilityRowProps {
 function EligibilityRow({
   title, status, sourceLabel, checkedAt, dataVersion, freshness, confidence, note,
 }: EligibilityRowProps) {
-  const icon =
-    status === 'enrolled'  ? '✔' :
-    status === 'not_found' ? '⚠' :
-    '○';
-
-  const iconOpacity =
-    status === 'enrolled'  ? 'text-white/45' :
-    status === 'not_found' ? 'text-white/35' :
-    'text-white/20';
-
-  const titleOpacity =
-    status === 'enrolled'  ? 'text-white/65' :
-    status === 'not_found' ? 'text-white/50' :
-    'text-white/30';
-
-  const statusText =
-    status === 'enrolled'  ? 'Enrolled' :
-    status === 'not_found' ? 'Not found' :
-    status === 'unknown'   ? 'Unconfirmed' :
-    'Not checked';
-
-  const statusOpacity =
-    status === 'enrolled'  ? 'text-white/45' :
-    status === 'not_found' ? 'text-white/30' :
-    'text-white/20';
-
   return (
     <div className="py-1.5 border-b border-white/5 last:border-0">
       <div className="flex justify-between text-xs gap-2">
-        <span className={`flex items-center gap-1.5 ${titleOpacity}`}>
-          <span className={`${iconOpacity} select-none w-3 shrink-0`} aria-hidden>{icon}</span>
-          {title}
-        </span>
-        <span className={`text-xs shrink-0 ${statusOpacity}`}>{statusText}</span>
+        <span className="flex items-center gap-1.5 text-white/65">{title}</span>
+        <VStatusPill status={status} size="sm" />
       </div>
       <div className="flex justify-between text-xs mt-0.5 pl-4">
         <span className="text-white/25">Source: {sourceLabel}</span>
@@ -440,13 +403,13 @@ function buildEligibilitySection(passport: PassportData): AccordionItem {
 
   const rowStatus: EligibilityRowProps['status'] =
     s === 'ENROLLED'  ? 'enrolled' :
-    s === 'NOT_FOUND' ? 'not_found' :
-    s === 'UNKNOWN'   ? 'unknown' :
-    'unchecked';
+    s === 'NOT_FOUND' ? 'review required' :
+    s === 'UNKNOWN'   ? 'unavailable' :
+    'unavailable';
 
   const sectionStatus: AccordionItem['status'] =
     rowStatus === 'enrolled'  ? 'clear' :
-    rowStatus === 'not_found' ? 'action' :
+    rowStatus === 'review required' ? 'review_required' :
     'pending';
 
   // Build observed-as quarter label
@@ -462,12 +425,8 @@ function buildEligibilitySection(passport: PassportData): AccordionItem {
   const quarterLabel = enrolledAsLabel(standing.enrollmentObservedAt, standing.enrollmentDataVersion);
   const titleWithQuarter =
     rowStatus === 'enrolled' && quarterLabel
-      ? `Medicare enrolled — as of ${quarterLabel}`
-      : rowStatus === 'enrolled'
-        ? 'Medicare enrolled'
-        : rowStatus === 'not_found'
-          ? 'Medicare enrollment — not found'
-          : 'Medicare enrollment';
+      ? `Medicare enrollment — as of ${quarterLabel}`
+      : 'Medicare enrollment';
 
   return {
     id:      'eligibility',
@@ -485,13 +444,13 @@ function buildEligibilitySection(passport: PassportData): AccordionItem {
           confidence={standing.enrollmentConfidenceLabel ?? undefined}
           note={standing.enrollmentNote ?? undefined}
         />
-        {rowStatus === 'not_found' && (
+        {rowStatus === 'review required' && (
           <div className="py-1.5 text-white/20 text-xs pl-4 leading-relaxed">
             Not finding a provider in PECOS may indicate non-enrollment or a quarterly data lag.
             Confirm by requesting current enrollment confirmation directly or via pecos.cms.hhs.gov.
           </div>
         )}
-        {rowStatus === 'unchecked' && (
+        {rowStatus === 'unavailable' && (
           <div className="py-1.5 text-white/20 text-xs pl-4">
             PECOS lookup has not been performed. Eligibility is unknown.
           </div>
@@ -534,12 +493,12 @@ export default function PassportWallet({ passport }: Props) {
 
   if (passport.standing.exclusionStatus === 'UNCHECKED')                missingItems.push('Exclusion check pending');
   if (passport.standing.exclusionStatus === 'POSSIBLE_MATCH')           missingItems.push('Exclusion review required');
-  if (passport.standing.exclusionStatus === 'EXCLUDED')                 missingItems.push('Exclusion confirmed');
+  if (passport.standing.exclusionStatus === 'EXCLUDED')                 missingItems.push('Exclusion blocked');
   if (passport.standing.licensureStatus !== 'verified')                 missingItems.push('License unresolved');
   if (passport.standing.deaStatus === 'none')                           missingItems.push('No DEA registration');
   // MS16-B: Eligibility missing items — per canonical state
-  if (pecosStatus === 'NOT_FOUND')   missingItems.push('Medicare enrollment not found — review required');
-  if (pecosStatus === 'UNCHECKED')   missingItems.push('Medicare enrollment not checked');
+  if (pecosStatus === 'NOT_FOUND')   missingItems.push('Medicare enrollment review required');
+  if (pecosStatus === 'UNCHECKED')   missingItems.push('Medicare enrollment unavailable');
   [...readiness.blockers, ...passport.authority.summary.missing.map(d =>
     `${d.replace(/_/g, ' ').toLowerCase()} missing`)
   ].forEach(b => { if (!missingItems.includes(b)) missingItems.push(b); });
@@ -626,8 +585,8 @@ export default function PassportWallet({ passport }: Props) {
           {missingItems.length > 0 && (
             <div className="space-y-2 pt-2 border-t border-white/6">
               <div className="flex items-center gap-3 text-sm">
-                <span className="text-amber-400 text-xs w-4 text-center select-none" aria-hidden>⚠</span>
-                <span className="text-white/70">Missing / unresolved</span>
+                <span className="text-[var(--vt-warning)] text-xs w-4 text-center select-none" aria-hidden>⚠</span>
+                <span className="text-white/70">Readiness blockers</span>
               </div>
               <div className="pl-7 space-y-1">
                 {missingItems.slice(0, 4).map((item, i) => (
@@ -682,13 +641,13 @@ export default function PassportWallet({ passport }: Props) {
               <button
                 onClick={handleShare}
                 disabled={sharing}
-                className="w-full bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 disabled:opacity-50 text-white rounded-xl h-14 text-sm font-medium transition-all"
+                className="w-full rounded-xl bg-[var(--vt-success)] h-14 text-sm font-medium text-white transition hover:opacity-90 active:opacity-80 disabled:opacity-50"
                 aria-label="Share passport with employer"
               >
                 {sharing ? 'Confirming…' : 'Share with employer'}
               </button>
               {shareError && (
-                <p className="text-red-400/70 text-xs text-center">{shareError}</p>
+                <p className="text-[var(--vt-critical)] text-xs text-center">{shareError}</p>
               )}
               <p className="text-center text-white/20 text-xs">
                 Requires biometric confirmation

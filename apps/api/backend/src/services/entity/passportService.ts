@@ -38,6 +38,7 @@ import {
   type CredentialReceiptEvidence,
 } from './evidenceIntegrity';
 import { buildReadinessNextActions, type ReadinessNextAction } from './readinessActions';
+import { syncBlockerEvents } from '../seal/sealEventCapture';
 import {
   createCanonicalSourceCoverage,
   summarizeCanonicalSourceCoverage,
@@ -837,6 +838,11 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   else if (normalizedGaps.length > 0)  readinessStatus = 'PARTIAL';
   else if (missingBlocking.length > 0) readinessStatus = 'BLOCKED';
   const readinessScore = trustState?.readiness_score ?? (readinessStatus === 'READY' ? 80 : readinessStatus === 'PARTIAL' ? 50 : 20);
+  // KPI: sync blocker lifecycle events (fire-and-forget — never blocks passport build).
+  // This populates blocker_resolution_events so /pilot-ops blocker metrics are live.
+  // syncBlockerEvents opens new blockers and auto-resolves blockers no longer present.
+  void syncBlockerEvents(entityId, normalizedBlockers).catch(() => void 0);
+
   // MS16-C/D: pass pecosEnrollmentStatus so actions can match without string-matching
   const nextActions = buildReadinessNextActions({
     missingBlockingDomains: missingBlocking,

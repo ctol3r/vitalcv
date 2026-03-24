@@ -8,6 +8,8 @@
  */
 
 import { isPublicSurfacePath, isRouteActive } from '@/components/layout/publicSurfaceRoutes';
+import { useUxTelemetry } from '@/hooks/useUxTelemetry';
+import { UX_EVENTS } from '@/lib/analytics/ux-events';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
@@ -28,12 +30,21 @@ const NAV_ITEMS = [
 export default function Navbar() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { track } = useUxTelemetry();
 
   if (!isPublicSurfacePath(pathname)) {
     return null;
   }
 
   const closeMenu = () => setMenuOpen(false);
+  const handleNavItemClick = (label: string) => {
+    track({
+      eventType: UX_EVENTS.NAV_ITEM_CLICKED,
+      componentId: 'navbar',
+      metadata: { label },
+    });
+    closeMenu();
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-vt-surface-ops-base/90 text-white backdrop-blur-xl">
@@ -56,6 +67,7 @@ export default function Navbar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => handleNavItemClick(item.label)}
                 className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                   active
                     ? 'bg-white/12 text-white'
@@ -104,7 +116,7 @@ export default function Navbar() {
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  onClick={closeMenu}
+                  onClick={() => handleNavItemClick(item.label)}
                   className={`block rounded-xl px-4 py-2.5 text-sm font-medium transition ${
                     isRouteActive(pathname, item.href)
                       ? 'bg-white/12 text-white'

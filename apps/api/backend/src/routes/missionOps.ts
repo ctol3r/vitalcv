@@ -2,6 +2,7 @@
  * missionOps.ts — Wave 123: Mission Ops + Conversion Engine
  *
  * GET  /api/mission-ops/overview              — Full mission ops overview
+ * GET  /api/mission-ops/sources               — Live source ops health report
  * GET  /api/mission-ops/onboarding            — List all onboarding flows
  * GET  /api/mission-ops/onboarding/:role      — List flows by role
  * POST /api/mission-ops/onboarding            — Create onboarding flow
@@ -21,6 +22,7 @@ import {
 import { initializeTrustRegistryPersistence } from '../services/registry/trustRegistry';
 import { log } from '../obs/logger';
 import { getSDKDiagnosticsReport } from '../services/missionOps/sdkDiagnosticsService';
+import { computeSourceOpsReport } from '../services/missionOps/sourceOpsService';
 
 const VALID_ROLES: OnboardingRole[] = ['ISSUER', 'VERIFIER', 'PARTNER'];
 const VALID_STATUSES: StageStatus[] = ['COMPLETE', 'IN_PROGRESS', 'PENDING', 'BLOCKED'];
@@ -48,6 +50,17 @@ export function registerMissionOpsRoutes(app: Express): void {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       log('error', 'mission_ops: overview failed', { error: msg });
       res.status(500).json({ error: 'Failed to compute overview' });
+    }
+  });
+
+  app.get('/api/mission-ops/sources', async (_req: Request, res: Response) => {
+    try {
+      const report = await computeSourceOpsReport();
+      res.json(report);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      log('error', 'mission_ops: sources failed', { error: msg });
+      res.status(500).json({ error: 'Failed to compute source ops report' });
     }
   });
 

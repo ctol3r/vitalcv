@@ -13,8 +13,10 @@
 
 Launch cannot proceed unless all of the following are definitively marked as TRUE:
 
-- [ ] **No unsupported source is shown as decision-grade.** If we don't have a direct, verifiable API or scraping pipeline, the UI must clearly label it as self-reported or partial.
-- [ ] **All wedge surfaces read canonical truth.** The UI accurately reflects backend data states natively. No masking of delays, no placeholder data.
-- [ ] **Packet export is truthful.** The generated PDF or digital packet contains zero hallucinated data and includes timestamped citations for every verified field.
-- [ ] **Employer actions are auditable.** Every view, verification request, or override performed by the employer is immutably logged for compliance purposes.
-- [ ] **Public shell makes no unsupported claims.** The marketing site and public-facing product surfaces precisely match the reality of the Pilot Brief and Source Coverage Matrix. No "coming soon" listed as live.
+- [ ] **Truthful Public Copy:** The marketing site and public-facing product surfaces precisely match the reality of our live routes, sources, and sourceCoverage. No "coming soon" listed as live.
+- [ ] **Canonical Wedge Routes:** All interactions follow the official trust cycle (`/onboarding` → `/passport/[id]` → `/review/[entityId]`). UI accurately reflects backend data natively without masking delays.
+- [ ] **Packet/Export Trustability:** The generated evidence packet (`/api/employer-review/:entityId/packet`) contains zero hallucinated data, including timestamped citations and `sourceCoverage` for every field.
+- [ ] **Employer Decision Persistence:** Every view, decision (accept/reject/route/hold/refresh), and override is immutably logged to an `AuditEvent` with the exact source state at that moment.
+- [ ] **Blocker Resolution Metrics:** The readiness recompute path correctly emits events to capture the time it takes to resolve onboarding blockers.
+- [ ] **Start Outcome Capture:** Application and operator workflows can capture ultimate start dates, reasons for failure, and readiness score at start without workarounds.
+- [ ] **Source-Health Visibility:** Operations and pilots can clearly see when a source is unavailable, gated, or returning partial data—preventing unsupported tools from being silently verified.

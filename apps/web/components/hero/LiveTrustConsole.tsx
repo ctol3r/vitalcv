@@ -28,14 +28,15 @@ type Phase = 'idle' | 'loading' | 'preview';
 // ── Source stage display ──────────────────────────────────────
 
 interface SourceStage {
-  id:     string;
-  label:  string;
-  status: 'waiting' | 'ok' | 'skipped' | 'failed';
+  id: string;
+  label: string;
+  status: 'waiting' | 'loading' | 'ok' | 'skipped' | 'failed';
 }
 
 const INITIAL_STAGES: SourceStage[] = [
-  { id: 'NPPES_API', label: 'NPPES Registry',  status: 'waiting' },
-  { id: 'OIG_LEIE',  label: 'OIG / LEIE',      status: 'waiting' },
+  { id: 'NPPES_API', label: 'Primary identity (NPPES)', status: 'waiting' },
+  { id: 'OIG_LEIE', label: 'Sanctions (OIG / LEIE)', status: 'waiting' },
+  { id: 'READINESS', label: 'Readiness snapshot', status: 'waiting' },
 ];
 
 // Map ingest result status → display status
@@ -48,6 +49,7 @@ function mapStatus(s: string | undefined): SourceStage['status'] {
 
 const STAGE_SYMBOL: Record<SourceStage['status'], string> = {
   waiting: '·',
+  loading: '◌',
   ok:      '✓',
   skipped: '–',
   failed:  '✗',
@@ -55,10 +57,45 @@ const STAGE_SYMBOL: Record<SourceStage['status'], string> = {
 
 const STAGE_COLOR: Record<SourceStage['status'], string> = {
   waiting: 'text-white/20',
-  ok:      'text-white/60',
-  skipped: 'text-white/30',
-  failed:  'text-white/30',
+  loading: 'text-sky-200',
+  ok:      'text-sky-200',
+  skipped: 'text-amber-200',
+  failed:  'text-rose-200',
 };
+
+function setStageStatus(
+  stages: SourceStage[],
+  stageId: string,
+  status: SourceStage['status'],
+): SourceStage[] {
+  return stages.map((stage) => (
+    stage.id === stageId
+      ? { ...stage, status }
+      : stage
+  ));
+}
+
+function setStageStatuses(
+  stages: SourceStage[],
+  updates: Partial<Record<SourceStage['id'], SourceStage['status']>>,
+): SourceStage[] {
+  return stages.map((stage) => (
+    updates[stage.id]
+      ? { ...stage, status: updates[stage.id] as SourceStage['status'] }
+      : stage
+  ));
+}
+
+function resolveLoadingCopy(stages: SourceStage[], isDemo: boolean): string {
+  if (isDemo) return 'Preparing demo preview…';
+  if (stages.find((stage) => stage.id === 'READINESS')?.status === 'loading') {
+    return 'Building your snapshot…';
+  }
+  if (stages.some((stage) => stage.id !== 'READINESS' && stage.status === 'loading')) {
+    return 'Checking primary sources…';
+  }
+  return 'Resolving readiness…';
+}
 
 // ── Ingest response shape (subset) ───────────────────────────
 
@@ -91,6 +128,9 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
   const [previewIn, setPreviewIn] = useState(false);
   const [realState, setRealState] = useState<ClinicianTrustState | null>(null);
   const [isDemo,    setIsDemo]    = useState(false);
+  const [previewNotice, setPreviewNotice] = useState<string | null>(null);
+  const [showLoadingPanel, setShowLoadingPanel] = useState(false);
+  const [loadingPanelFading, setLoadingPanelFading] = useState(false);
   const router   = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const timers   = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -106,12 +146,26 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
     if (phase !== 'idle') return;
 
     const trimmed = npi.trim();
+    let previewName = 'Provider';
 
     setPhase('loading');
     setStages(INITIAL_STAGES.map(s => ({ ...s, status: 'waiting' })));
+    setPreviewIn(false);
     setRealState(null);
     setIsDemo(false);
+    setPreviewNotice(null);
+    setShowLoadingPanel(true);
+    setLoadingPanelFading(false);
     clearTimers();
+    setNpi(trimmed);
+
+    timers.current.push(setTimeout(() => {
+      setStages(prev => setStageStatus(prev, 'NPPES_API', 'loading'));
+      inputRef.current?.focus({ preventScroll: true });
+    }, 0));
+    timers.current.push(setTimeout(() => {
+      setStages(prev => setStageStatus(prev, 'OIG_LEIE', 'loading'));
+    }, 140));
 
     // ── Step 1: Ingest (real sources) ────────────────────────
     let ingestOk = false;
@@ -123,57 +177,74 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
       const ingestData = await ingestRes.json() as IngestResponse;
 
       if (ingestData.fallback) {
-        // Backend down — mark all as skipped, use demo
-        setStages(INITIAL_STAGES.map(s => ({ ...s, status: 'skipped' })));
+        setStages(prev => setStageStatuses(prev, {
+          NPPES_API: 'skipped',
+          OIG_LEIE: 'skipped',
+          READINESS: 'skipped',
+        }));
         setIsDemo(true);
+        setPreviewNotice('Backend unavailable · demo preview only');
       } else {
-        // Map real source results into stage display
         const resultMap: Record<string, string> = {};
         (ingestData.results ?? []).forEach(r => { resultMap[r.source] = r.status; });
 
-        setStages(INITIAL_STAGES.map(s => ({
-          ...s,
-          status: mapStatus(resultMap[s.id]),
-        })));
+        setStages(prev => setStageStatuses(prev, {
+          NPPES_API: mapStatus(resultMap.NPPES_API),
+          OIG_LEIE: mapStatus(resultMap.OIG_LEIE),
+        }));
 
         ingestOk = (ingestData.results ?? []).some(r => r.status === 'SUCCESS');
       }
     } catch {
-      setStages(INITIAL_STAGES.map(s => ({ ...s, status: 'skipped' })));
+      setStages(prev => setStageStatuses(prev, {
+        NPPES_API: 'skipped',
+        OIG_LEIE: 'skipped',
+        READINESS: 'skipped',
+      }));
       setIsDemo(true);
+      setPreviewNotice('Backend unavailable · demo preview only');
     }
 
     // ── Step 2: Fetch real trust state ───────────────────────
     if (ingestOk && /^\d{10}$/.test(trimmed)) {
+      setStages(prev => setStageStatus(prev, 'READINESS', 'loading'));
       try {
         const tsRes  = await fetch(`/api/trust-state/${encodeURIComponent(trimmed)}`);
         const tsData = await tsRes.json() as ClinicianTrustState;
 
         if (tsRes.ok && tsData.npi) {
+          const identityFact = tsData.facts?.find(f => f.factType?.toLowerCase().includes('identity'));
+          previewName = identityFact?.details ?? previewName;
           setRealState(tsData);
           setIsDemo(false);
+          setPreviewNotice(null);
+          setStages(prev => setStageStatus(prev, 'READINESS', 'ok'));
         } else {
           setIsDemo(true);
+          setPreviewNotice('Partial source coverage · demo preview only');
+          setStages(prev => setStageStatus(prev, 'READINESS', 'failed'));
         }
       } catch {
         setIsDemo(true);
+        setPreviewNotice('Partial source coverage · demo preview only');
+        setStages(prev => setStageStatus(prev, 'READINESS', 'failed'));
       }
     } else if (!ingestOk) {
       setIsDemo(true);
+      setPreviewNotice((prev) => prev ?? 'Partial source coverage · demo preview only');
+      setStages(prev => setStageStatus(prev, 'READINESS', 'skipped'));
     }
 
     // ── Step 3: Transition to preview ────────────────────────
     setPhase('preview');
-    timers.current.push(setTimeout(() => setPreviewIn(true), 40));
-
-    // Notify parent so it can prompt for account creation (use realState which was just set)
-    if (onPreviewReady) {
-      // ClinicianTrustState.facts use factType/details fields (no label/value)
-      // Extract display name from details of the IDENTITY fact if present
-      const identityFact = realState?.facts?.find(f => f.factType?.toLowerCase().includes('identity'));
-      const name = identityFact?.details ?? 'Provider';
-      onPreviewReady(npi.trim(), name);
-    }
+    setLoadingPanelFading(true);
+    timers.current.push(setTimeout(() => setPreviewIn(true), 70));
+    timers.current.push(setTimeout(() => {
+      setShowLoadingPanel(false);
+      if (onPreviewReady) {
+        onPreviewReady(trimmed, previewName);
+      }
+    }, 240));
   }
 
   function handleContinue() {
@@ -182,6 +253,9 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
       : '/get-ready';
     router.push(dest);
   }
+
+  const isPreviewPhase = phase === 'preview';
+  const loadingCopy = resolveLoadingCopy(stages, isDemo);
 
   return (
     <section className="relative" style={{ background: '#080e1a' }}>
@@ -192,86 +266,147 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
         style={{ background: 'radial-gradient(ellipse 55% 40% at 50% 45%, rgba(16,185,129,0.05) 0%, transparent 70%)' }}
       />
 
-      <div className="relative z-10 mx-auto w-full max-w-xl px-4 sm:px-6 pt-16 sm:pt-20 pb-14 sm:pb-18">
+      <div className={`relative z-10 mx-auto w-full max-w-xl px-4 sm:px-6 ${isPreviewPhase ? 'pt-5 sm:pt-10 pb-6 sm:pb-10' : 'pt-12 sm:pt-20 pb-10 sm:pb-18'}`}>
 
-        {/* Headline */}
-        <h1 className="text-[clamp(2rem,5vw,3.5rem)] font-bold leading-[1.08] tracking-tight text-white mb-4">
-          Get cleared to <span className="text-emerald-400">start faster.</span>
-        </h1>
-
-        {/* Subline — hide in preview */}
-        {phase !== 'preview' && (
-          <p className="text-sm sm:text-base text-white/50 mb-8 leading-relaxed">
-            Enter your NPI to see what’s already verified, what’s missing, and what comes next.
-          </p>
+        {!isPreviewPhase ? (
+          <>
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/35">
+              NPI first. Honest coverage.
+            </p>
+            <h1 className="mb-3 text-[clamp(2rem,5vw,3.5rem)] font-bold leading-[1.08] tracking-tight text-white">
+              See your readiness snapshot in <span className="text-emerald-400">about 10 seconds.</span>
+            </h1>
+            <p className="mb-6 text-sm leading-relaxed text-white/50 sm:text-base">
+              VitalCV resolves your public NPI identity first, runs connected sources, and clearly labels anything missing, blocked, or preview-only.
+            </p>
+          </>
+        ) : (
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/35">
+                Readiness snapshot
+              </p>
+              <p className="mt-1 text-xs text-white/40 sm:text-sm">
+                Source-backed where available. Explicit when preview-only.
+              </p>
+            </div>
+            {isDemo && (
+              <span className="inline-flex items-center rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-200">
+                Demo preview
+              </span>
+            )}
+          </div>
         )}
 
-        {/* Form — visible during idle and loading */}
-        {phase !== 'preview' && (
-          <form onSubmit={handleSubmit} className="flex gap-2">
+        {!isPreviewPhase && (
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <input
               ref={inputRef}
               type="text"
               inputMode="numeric"
               maxLength={10}
               value={npi}
-              disabled={phase === 'loading'}
+              readOnly={phase === 'loading'}
+              aria-busy={phase === 'loading'}
+              aria-disabled={phase === 'loading'}
               onChange={e => setNpi(e.target.value.replace(/\D/g, ''))}
-              placeholder="Enter your NPI number"
+              placeholder="Enter your 10-digit NPI"
               aria-label="NPI number"
-              className="flex-1 min-w-0 rounded-xl border border-white/12 bg-white/5 px-4 py-3.5 text-[16px] text-white placeholder:text-white/30 focus:outline-none focus:border-emerald-500/40 focus:bg-white/7 transition-colors disabled:opacity-50"
+              className={`flex-1 min-w-0 rounded-xl border border-white/12 bg-white/5 px-4 py-3.5 text-[16px] text-white placeholder:text-white/30 transition-[opacity,border-color,background-color] duration-150 focus:border-emerald-500/40 focus:bg-white/7 focus:outline-none ${
+                phase === 'loading' ? 'cursor-default bg-white/6 opacity-80' : ''
+              }`}
             />
             <button
               type="submit"
               disabled={phase === 'loading'}
-              className="shrink-0 rounded-xl bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 disabled:from-emerald-700 disabled:to-emerald-800 px-5 py-3.5 font-semibold text-white text-sm transition-all active:scale-95 disabled:scale-100 whitespace-nowrap"
+              className="w-full shrink-0 whitespace-nowrap rounded-xl bg-gradient-to-b from-emerald-500 to-emerald-600 px-5 py-3.5 text-sm font-semibold text-white transition-all hover:from-emerald-400 hover:to-emerald-500 active:scale-95 disabled:scale-100 disabled:from-emerald-700 disabled:to-emerald-800 sm:w-auto"
             >
-              {phase === 'loading' ? 'Checking…' : 'Check readiness'}
+              <span aria-live="polite">{phase === 'loading' ? loadingCopy : 'See readiness'}</span>
             </button>
           </form>
         )}
 
-        {/* Source stages — visible during loading */}
-        {phase === 'loading' && (
-          <div aria-live="polite" className="mt-4 space-y-1.5">
-            {stages.map(s => (
-              <div key={s.id} className="flex items-center gap-2.5 transition-opacity duration-300">
-                <span className={`text-sm font-mono w-3 text-center leading-none ${STAGE_COLOR[s.status]}`}>
-                  {STAGE_SYMBOL[s.status]}
-                </span>
-                <span className={`text-xs transition-colors duration-200 ${
-                  s.status === 'waiting' ? 'text-white/20' : 'text-white/45'
-                }`}>
-                  {s.label}
-                </span>
-                {s.status === 'waiting' && (
-                  <span className="text-[10px] text-white/15 animate-pulse">querying…</span>
-                )}
+        {(showLoadingPanel || phase === 'preview') && (
+          <div className={`relative ${showLoadingPanel ? 'min-h-[188px] sm:min-h-[206px]' : ''}`}>
+            {showLoadingPanel && (
+              <div
+                aria-live="polite"
+                className={`absolute left-0 right-0 top-0 z-10 mt-5 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-4 transition-[opacity,transform] duration-150 ease-out ${
+                  loadingPanelFading ? 'pointer-events-none opacity-0 translate-y-1' : 'opacity-100 translate-y-0'
+                }`}
+              >
+                <p className="text-sm font-semibold text-white">{loadingCopy}</p>
+                <p className="mt-1 text-xs text-white/35">
+                  {previewNotice ?? 'Connected sources only flip complete when they actually return.'}
+                </p>
+                <div className="mt-4 space-y-2">
+                  {stages.map((stage, index) => {
+                    const statusLabel =
+                      stage.status === 'loading'
+                        ? 'In progress'
+                        : stage.status === 'ok'
+                          ? 'Complete'
+                          : stage.status === 'skipped'
+                            ? 'Unavailable'
+                            : stage.status === 'failed'
+                              ? 'Needs review'
+                              : 'Queued';
+
+                    return (
+                      <div
+                        key={stage.id}
+                        className="flex items-center justify-between gap-3"
+                        style={{ animation: `vcv-stage-in 150ms ease-out ${index * 140}ms both` }}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          {stage.status === 'loading' ? (
+                            <span className="h-3.5 w-3.5 rounded-full border border-sky-300/50 border-t-transparent animate-spin" />
+                          ) : (
+                            <span className={`w-3 text-center font-mono text-sm leading-none ${STAGE_COLOR[stage.status]}`}>
+                              {STAGE_SYMBOL[stage.status]}
+                            </span>
+                          )}
+                          <span className={`text-xs transition-colors duration-150 ${
+                            stage.status === 'loading' ? 'text-white/72' : stage.status === 'waiting' ? 'text-white/25' : 'text-white/52'
+                          }`}>
+                            {stage.label}
+                          </span>
+                        </div>
+                        <span className={`text-[10px] font-medium uppercase tracking-[0.16em] ${
+                          stage.status === 'loading' ? 'text-sky-200' : stage.status === 'ok' ? 'text-sky-200' : stage.status === 'failed' ? 'text-rose-200' : stage.status === 'skipped' ? 'text-amber-200' : 'text-white/25'
+                        }`}>
+                          {statusLabel}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            ))}
-            {isDemo && (
-              <p className="text-[10px] text-white/20 pt-1">
-                Backend unavailable — showing demo preview
-              </p>
+            )}
+
+            {phase === 'preview' && (
+              <div className="relative z-0">
+                {previewNotice && isDemo && (
+                  <p className="pt-3 text-[10px] font-medium uppercase tracking-[0.16em] text-amber-200/80">
+                    {previewNotice}
+                  </p>
+                )}
+                <ReadinessPreview
+                  npi={npi.trim()}
+                  realState={realState}
+                  isDemo={isDemo}
+                  visible={previewIn}
+                  onContinue={handleContinue}
+                />
+              </div>
             )}
           </div>
-        )}
-
-        {/* Preview — real data or labeled demo fallback */}
-        {phase === 'preview' && (
-          <ReadinessPreview
-            npi={npi.trim()}
-            realState={realState}
-            isDemo={isDemo}
-            visible={previewIn}
-            onContinue={handleContinue}
-          />
         )}
 
         {/* Footer hint — idle only */}
         {phase === 'idle' && (
           <p className="mt-3 text-[11px] text-white/25">
-            NPI confirms identity only. Other checks vary by source.
+            No signup required to preview. Other checks appear only when that source has actually run.
           </p>
         )}
 

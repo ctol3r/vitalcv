@@ -33,8 +33,9 @@ import Link from 'next/link';
 import { PilotFailureSignal } from '@/components/pilot-ops/PilotFailureSignal';
 import { SupportActionButton } from '@/components/pilot-ops/SupportActionButton';
 import { normalizeIntelligenceHref } from '@/lib/intelligence/routes';
-import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ChevronDown, RefreshCw } from 'lucide-react';
 import type React from 'react';
+import { useId, useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
@@ -49,6 +50,49 @@ const BADGE_CLASSES: Record<BadgeTone, string> = {
   warning:  'border-[var(--vt-badge-warning-border)] bg-[var(--vt-badge-warning-bg)] text-[var(--vt-badge-warning-text)]',
   success:  'border-[var(--vt-badge-success-border)] bg-[var(--vt-badge-success-bg)] text-[var(--vt-badge-success-text)]',
   info:     'border-[var(--vt-badge-info-border)] bg-[var(--vt-badge-info-bg)] text-[var(--vt-badge-info-text)]',
+};
+
+const BADGE_ACCENT_CLASSES: Record<BadgeTone, string> = {
+  neutral:  'border-l-[var(--vt-badge-neutral-border)]',
+  critical: 'border-l-[var(--vt-badge-critical-border)]',
+  warning:  'border-l-[var(--vt-badge-warning-border)]',
+  success:  'border-l-[var(--vt-badge-success-border)]',
+  info:     'border-l-[var(--vt-badge-info-border)]',
+};
+
+export type TrustStatusLabel =
+  | 'verified'
+  | 'clear'
+  | 'enrolled'
+  | 'pending'
+  | 'review required'
+  | 'unavailable'
+  | 'access required'
+  | 'not decision-grade'
+  | 'blocked';
+
+const TRUST_STATUS_COPY: Record<TrustStatusLabel, string> = {
+  verified: 'Verified',
+  clear: 'Clear',
+  enrolled: 'Enrolled',
+  pending: 'Pending',
+  'review required': 'Review required',
+  unavailable: 'Unavailable',
+  'access required': 'Access required',
+  'not decision-grade': 'Not decision-grade',
+  blocked: 'Blocked',
+};
+
+const TRUST_STATUS_TONES: Record<TrustStatusLabel, BadgeTone> = {
+  verified: 'success',
+  clear: 'success',
+  enrolled: 'success',
+  pending: 'info',
+  'review required': 'warning',
+  unavailable: 'neutral',
+  'access required': 'neutral',
+  'not decision-grade': 'neutral',
+  blocked: 'warning',
 };
 
 /** Map a severity/status string to a badge tone. */
@@ -110,6 +154,73 @@ export function VBadge({
   );
 }
 
+// ── Trust Status Primitives ───────────────────────────────────────────────────
+
+export interface VStatusPillProps {
+  status: TrustStatusLabel;
+  size?: 'sm' | 'md';
+}
+
+export function VStatusPill({
+  status,
+  size = 'md',
+}: VStatusPillProps) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full border font-medium',
+        size === 'sm' ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs',
+        BADGE_CLASSES[TRUST_STATUS_TONES[status]],
+      )}
+    >
+      {TRUST_STATUS_COPY[status]}
+    </span>
+  );
+}
+
+export interface VEvidenceRowProps {
+  label: string;
+  status: TrustStatusLabel;
+  source?: string;
+  note?: string;
+  action?: { label: string; href: string };
+}
+
+export function VEvidenceRow({
+  label,
+  status,
+  source,
+  note,
+  action,
+}: VEvidenceRowProps) {
+  return (
+    <div className="flex items-start justify-between gap-3 border-b border-[var(--vt-border-2)] py-3 last:border-0">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-[var(--vt-text-1)]">{label}</p>
+        {(source || note || action) ? (
+          <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-[var(--vt-text-3)]">
+            {source ? <span>{source}</span> : null}
+            {source && note ? <span aria-hidden>·</span> : null}
+            {note ? <span>{note}</span> : null}
+            {(source || note) && action ? <span aria-hidden>·</span> : null}
+            {action ? (
+              <Link
+                href={action.href}
+                className="font-medium text-[var(--vt-accent)] transition hover:opacity-80"
+              >
+                {action.label}
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+      <div className="shrink-0">
+        <VStatusPill status={status} size="sm" />
+      </div>
+    </div>
+  );
+}
+
 // ── VCard ──────────────────────────────────────────────────────────────────────
 
 export function VCard({
@@ -139,7 +250,7 @@ export function VCardSkeleton({ rows = 3 }: { rows?: number }) {
   return (
     <VCard className="space-y-4">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="space-y-2 animate-pulse">
+        <div key={i} className="space-y-2 animate-pulse motion-reduce:animate-none">
           <div className="h-3 w-24 rounded-full bg-[var(--vt-border)]" />
           <div className="h-5 w-3/4 rounded-full bg-[var(--vt-surface-2)]" />
           <div className="h-3 w-1/2 rounded-full bg-[var(--vt-surface-2)]" />
@@ -191,7 +302,7 @@ export function VEmptyState({
   return (
     <VCard className={cn("border-dashed text-center", className)}>
       <div className="mx-auto max-w-xl space-y-3 py-8">
-        <div className="mx-auto h-6 w-6 animate-pulse rounded-full bg-cyan-400/20 ring-1 ring-cyan-400/50" />
+        <div className="mx-auto h-6 w-6 animate-pulse rounded-full bg-[var(--vt-surface-2)] ring-1 ring-[var(--vt-border)] motion-reduce:animate-none" />
         <h2 className="text-sm font-semibold text-[var(--vt-text-1)]">{resolvedTitle}</h2>
         <p className="text-sm leading-6 text-[var(--vt-text-2)]">{resolvedDescription}</p>
       </div>
@@ -269,6 +380,64 @@ export function VSectionHeader({
       </div>
       {detail ? <p className="line-clamp-2 text-sm leading-6 text-[var(--vt-text-2)]">{detail}</p> : null}
     </div>
+  );
+}
+
+// ── VAccordion ────────────────────────────────────────────────────────────────
+
+export interface VAccordionProps {
+  title: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  tone?: BadgeTone;
+}
+
+export function VAccordion({
+  title,
+  children,
+  defaultOpen = false,
+  tone = 'neutral',
+}: VAccordionProps) {
+  const [open, setOpen] = useState(defaultOpen);
+  const panelId = useId();
+
+  return (
+    <section
+      className={cn(
+        'overflow-hidden rounded-md border border-[var(--vt-border)] border-l-4 bg-[var(--vt-surface)]',
+        BADGE_ACCENT_CLASSES[tone],
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        aria-expanded={open}
+        aria-controls={panelId}
+        className="flex min-h-11 w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-[var(--vt-surface-2)] motion-reduce:transition-none"
+      >
+        <span className="text-sm font-medium text-[var(--vt-text-1)]">{title}</span>
+        <ChevronDown
+          className={cn(
+            'h-4 w-4 shrink-0 text-[var(--vt-text-3)] transition-transform duration-200 motion-reduce:transition-none',
+            open ? 'rotate-180' : undefined,
+          )}
+          aria-hidden
+        />
+      </button>
+      <div
+        id={panelId}
+        role="region"
+        aria-label={title}
+        className={cn(
+          'overflow-hidden border-t border-[var(--vt-border-2)] transition-[max-height] duration-200 ease-out motion-reduce:transition-none',
+          open ? 'max-h-[48rem]' : 'max-h-0',
+        )}
+      >
+        <div className="px-4 py-3">
+          {children}
+        </div>
+      </div>
+    </section>
   );
 }
 

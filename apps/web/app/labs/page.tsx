@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Lock } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Labs — VitalCV',
@@ -117,6 +118,12 @@ const STATUS_CONFIG: Record<LabStatus, { label: string; dot: string; text: strin
   INTERNAL:   { label: 'Internal',   dot: 'bg-white/20',       text: 'text-white/30',    badge: 'bg-white/5 border-white/10 text-white/30' },
 };
 
+function resolveLabHref(entry: LabEntry): string {
+  return entry.requiresAuth
+    ? `/sign-in?redirect_url=${encodeURIComponent(entry.href)}`
+    : entry.href;
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function LabsPage() {
@@ -154,10 +161,11 @@ export default function LabsPage() {
         <div className="grid grid-cols-1 gap-3 sm:gap-4 mb-12">
           {publicEntries.map((entry) => {
             const cfg = STATUS_CONFIG[entry.status];
+            const href = resolveLabHref(entry);
             return (
               <Link
                 key={entry.href + entry.title}
-                href={entry.href}
+                href={href}
                 className="group relative flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4 rounded-2xl border border-white/6 bg-white/2 p-4 sm:p-5 transition-all hover:bg-white/5 hover:border-white/12 active:scale-[0.99]"
               >
                 {/* Status dot */}
@@ -165,7 +173,10 @@ export default function LabsPage() {
                   <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${cfg.dot}`} />
                   <span className={`text-[10px] font-bold uppercase tracking-wide ${cfg.text}`}>{cfg.label}</span>
                   {entry.requiresAuth && (
-                    <span className="text-[10px] text-white/20 font-medium">· Auth required</span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/20 bg-amber-400/10 px-2 py-0.5 text-[10px] font-medium text-amber-100">
+                      <Lock className="h-3 w-3" />
+                      Locked
+                    </span>
                   )}
                 </div>
 
@@ -175,6 +186,12 @@ export default function LabsPage() {
                     <h2 className="text-sm font-semibold text-white group-hover:text-white transition-colors">
                       {entry.title}
                     </h2>
+                    {entry.requiresAuth ? (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/20 bg-amber-400/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-100">
+                        <Lock className="h-2.5 w-2.5" />
+                        Sign in required
+                      </span>
+                    ) : null}
                     {entry.tags?.map((tag) => (
                       <span key={tag} className="hidden sm:inline-flex text-[9px] font-bold uppercase tracking-wide bg-white/6 text-white/30 px-1.5 py-0.5 rounded">
                         {tag}
@@ -191,7 +208,10 @@ export default function LabsPage() {
                     {cfg.label}
                   </span>
                   {entry.requiresAuth && (
-                    <span className="text-[9px] text-white/20">Auth required</span>
+                    <span className="inline-flex items-center gap-1 text-[9px] text-amber-100/80">
+                      <Lock className="h-3 w-3" />
+                      Sign in required
+                    </span>
                   )}
                 </div>
 

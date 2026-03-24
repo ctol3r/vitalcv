@@ -9,8 +9,12 @@ import {
 
 export const metadata: Metadata = {
   title: 'Demo — VitalCV',
-  description: 'Launch-safe demo entry points using the live employer, opportunity, onboarding, and intelligence surfaces.',
+  description: 'Launch-safe demo entry points using the current employer, opportunity, onboarding, and intelligence surfaces.',
 };
+
+function buildSignInHref(href: string): string {
+  return `/sign-in?redirect_url=${encodeURIComponent(href)}`;
+}
 
 function DemoCard({
   eyebrow,
@@ -71,24 +75,24 @@ export default async function DemoPage() {
     ? `/onboarding?returnTo=${encodeURIComponent(`/explore?apply=${featuredOpportunity.id}&organizationSlug=${featuredOpportunity.organizationSlug}`)}`
     : '/onboarding?returnTo=%2Fexplore';
   const employerHref = featuredEmployer ? `/employers/${featuredEmployer.slug}` : '/employers';
-  const employerWorkspaceHref = '/verifier/inbox';
-  const investigationHref = '/intelligence?view=investigations&npi=1902301456';
-  const launchTruthHref = '/intelligence?view=system-health';
+  const employerWorkspaceHref = buildSignInHref('/verifier/inbox');
+  const investigationHref = buildSignInHref('/intelligence?view=investigations&npi=1902301456');
+  const launchTruthHref = buildSignInHref('/intelligence?view=system-health');
 
   return (
     <div className="min-h-screen bg-ops-gradient px-6 py-14 text-white surface-operator">
       <div className="mx-auto max-w-6xl">
         <div className="max-w-3xl">
           <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-300">
-            Live Launch Demo
+            Launch Demo Environment
           </span>
           <h1 className="mt-5 text-4xl font-semibold tracking-tight text-white">
-            Demo the current launch package without drifting away from live truth.
+            Demo the current launch package inside a launch-safe environment.
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-white/65">
             Every path on this page uses the same seeded employers, opportunities, investigation data,
             and operator telemetry that the product exposes elsewhere. Guest mode stays read-only and
-            the employer/application loop stays on the live marketplace flow.
+            the employer/application loop stays on the current marketplace flow.
           </p>
         </div>
 
@@ -99,9 +103,9 @@ export default async function DemoPage() {
             <p className="mt-2 text-sm text-white/55">Visible in the public launch cohort.</p>
           </div>
           <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Live Roles</p>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Launch Roles</p>
             <p className="mt-2 text-3xl font-semibold text-white">{opportunitiesPayload.total}</p>
-            <p className="mt-2 text-sm text-white/55">Available through the real explore/apply loop.</p>
+            <p className="mt-2 text-sm text-white/55">Available through the current explore/apply loop.</p>
           </div>
           <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
             <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Investigation Case</p>
@@ -114,7 +118,7 @@ export default async function DemoPage() {
           <DemoCard
             eyebrow="Clinician path"
             title="Guest onboarding into live role fit"
-            detail="Use the three-step guest flow to resolve a real NPI, preview current fit, and land in `/explore` with the matching live role scope already applied."
+            detail="Use the three-step guest flow to resolve a real NPI, preview current fit, and land in `/explore` with the matching role scope already applied."
             href={clinicianHref}
             action="Open clinician demo"
             tone="emerald"
@@ -126,7 +130,7 @@ export default async function DemoPage() {
           <DemoCard
             eyebrow="Employer path"
             title="Public employer review plus operator inbox"
-            detail="Start from the public employer profile to show believable demand, then move into the employer queue where real application state is visible to the hiring team."
+            detail="Start from the public employer profile to show believable demand, then move into the employer queue where current application state is visible to the hiring team."
             href={employerHref}
             action="Open employer demo"
             tone="cyan"
@@ -135,7 +139,7 @@ export default async function DemoPage() {
             <p>
               Operator inbox:{' '}
               <Link href={employerWorkspaceHref} className="text-cyan-200 transition hover:text-white">
-                open employer workspace
+                Demo unavailable — sign in to continue
               </Link>
             </p>
           </DemoCard>
@@ -143,13 +147,13 @@ export default async function DemoPage() {
           <DemoCard
             eyebrow="Investigation path"
             title="Seeded provider case for trust review"
-            detail="Use a seeded investigation with live findings, storylines, graph context, and evidence inspection so the operator demo feels like an actual case review."
+            detail="Use a seeded investigation with seeded findings, storylines, graph context, and evidence inspection so the operator demo feels like an actual case review."
             href={investigationHref}
-            action="Open investigation demo"
+            action="Sign in for investigation demo"
             tone="amber"
           >
             <p><Telescope className="mr-2 inline h-4 w-4" />Anchored to the seeded provider case for NPI 1902301456.</p>
-            <p>Continue into findings, graph, and evidence from the same operator workspace.</p>
+            <p>Demo unavailable — sign in to continue.</p>
           </DemoCard>
 
           <DemoCard
@@ -157,11 +161,11 @@ export default async function DemoPage() {
             title="Launch health and rollback confidence"
             detail="Show the current route checks, live counts, action/application health, and deployed frontend/backend markers before or after any demo run."
             href={launchTruthHref}
-            action="Open launch truth"
+            action="Sign in for launch truth"
             tone="violet"
           >
             <p><ShieldCheck className="mr-2 inline h-4 w-4" />Use this view to confirm what is actually live.</p>
-            <p>Includes route health, graph counts, failed actions, failed applications, auth failures, and version markers.</p>
+            <p>Demo unavailable — sign in to continue.</p>
           </DemoCard>
         </div>
       </div>

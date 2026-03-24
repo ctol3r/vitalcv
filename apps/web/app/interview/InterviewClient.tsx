@@ -1,126 +1,129 @@
 'use client';
 
-/**
- * InterviewClient — Interview Mode proof card, real-data path.
- *
- * M3: Renders only data derived from the canonical PassportData object.
- * No hardcoded names, statuses, or readiness scores.
- *
- * Fallback: if passport fetch fails, shows honest "data unavailable" state —
- * never synthesizes a fake profile.
- */
-
 import Link from 'next/link';
 import { useState } from 'react';
 import type { PassportData } from '@/app/passport/[id]/page';
-
-// ── Share confirmation ────────────────────────────────────────────────────
-
-function ShareConfirmation({ entityId, sharedAt }: { entityId: string; sharedAt: Date }) {
-  const time = sharedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-
-  return (
-    <div
-      className="rounded-xl border border-white/8 bg-white/4 px-5 py-5"
-      style={{ animation: 'fade-in-up 0.25s ease-out both' }}
-    >
-      <div className="flex justify-center mb-5">
-        <div className="h-10 w-10 rounded-full border border-white/10 bg-white/6 flex items-center justify-center">
-          <span className="text-white/70 text-base leading-none">✓</span>
-        </div>
-      </div>
-
-      <div className="space-y-3 mb-5">
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Link</span>
-          <span className="text-sm font-semibold text-white/70 font-mono text-xs">
-            vitalcv.com/p/{entityId.slice(0, 8)}…
-          </span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Time</span>
-          <span className="text-sm text-white/60">Just now · {time}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Expires</span>
-          <span className="text-sm text-white/60">24 hours</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Status</span>
-          <span className="text-sm font-semibold text-white/70">Delivered</span>
-        </div>
-      </div>
-
-      <div className="border-t border-white/6 pt-4">
-        <Link
-          href="/get-ready"
-          className="block text-center w-full rounded-lg border border-white/8 hover:border-white/15 px-4 py-3.5 text-sm font-medium text-white/55 hover:text-white transition-colors"
-        >
-          Build my real profile →
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-// ── Honest readiness row ──────────────────────────────────────────────────
-
-function ReadinessRow({
-  label,
-  status,
-  note,
-}: {
-  label:   string;
-  status:  'verified' | 'clear' | 'pending' | 'blocked' | 'unavailable' | 'unchecked';
-  note?:   string;
-}) {
-  const icon =
-    status === 'verified' || status === 'clear' ? '✔' :
-    status === 'blocked'                        ? '✖' :
-    status === 'unavailable'                    ? '—' :
-    '○';
-
-  const iconColor =
-    status === 'verified' || status === 'clear' ? 'text-white/55' :
-    status === 'blocked'                        ? 'text-white/25' :
-    'text-white/20';
-
-  const labelColor =
-    status === 'verified' || status === 'clear' ? 'text-white/70' :
-    status === 'blocked'                        ? 'text-white/50' :
-    'text-white/30';
-
-  return (
-    <div className="flex items-start gap-3">
-      <span className={`${iconColor} text-sm leading-none shrink-0 mt-px`} aria-hidden>{icon}</span>
-      <div>
-        <span className={`text-sm ${labelColor}`}>{label}</span>
-        {note && <p className="text-[10px] text-white/25 mt-0.5">{note}</p>}
-      </div>
-    </div>
-  );
-}
-
-// ── Main component ────────────────────────────────────────────────────────
+import { useRoleContext } from '@/components/auth/RoleContext';
+import {
+  buildPassportProofSections,
+  summarizePassportProofSections,
+} from '@/components/trust/passportProofSections';
+import { Accordion } from '@/components/ui/vcv-accordion';
+import {
+  CLERK_PROVIDER_ENABLED,
+  CLERK_SIGN_IN_URL,
+} from '@/lib/auth/clerkConfig';
+import {
+  VStatusPill,
+  type TrustStatusLabel,
+} from '@/components/vds/primitives';
 
 interface Props {
   entityId: string;
   passport: PassportData | null;
+  contextId?: string;
 }
 
-export default function InterviewClient({ entityId, passport }: Props) {
-  const [shared,   setShared]   = useState(false);
-  const [sharedAt, setSharedAt] = useState<Date | null>(null);
+type ShareState =
+  | { phase: 'idle' }
+  | { phase: 'loading' }
+  | { phase: 'success'; eventId: string; timestamp: string; status: string }
+  | { phase: 'error'; message: string };
 
-  function handleShare() {
-    setSharedAt(new Date());
-    setShared(true);
+function formatDateTime(value?: string | null): string {
+  if (!value) return 'Not checked';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return 'Not checked';
+  return parsed.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function formatShortDate(value?: string | null): string {
+  if (!value) return 'Not checked';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return 'Not checked';
+  return parsed.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function formatEstimatedStart(days: number | null): string {
+  if (days === null) return 'Blocked';
+  if (days === 0) return '0 days';
+  return `~${days} days`;
+}
+
+function dedupe(values: string[]): string[] {
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
+}
+
+function buildVerifiedTags(passport: PassportData): string[] {
+  const tags: string[] = [];
+
+  if (passport.identity.npi) tags.push('Identity anchored');
+  if (passport.authority.credentials.some((credential) => credential.domain === 'LICENSURE' && credential.status === 'ACTIVE')) {
+    tags.push('Licensure attached');
+  }
+  if (passport.authority.credentials.some((credential) => credential.domain === 'BOARD_CERTIFICATION' && credential.status === 'ACTIVE')) {
+    tags.push('Board evidence attached');
+  }
+  if (passport.authority.credentials.some((credential) => credential.domain === 'DEA_REGISTRATION' && credential.status === 'ACTIVE')) {
+    tags.push('DEA evidence attached');
+  }
+  if (passport.standing.exclusionStatus === 'CLEAR') tags.push('Sanctions clear');
+  if (passport.standing.pecosEnrollmentStatus === 'ENROLLED') tags.push('Enrollment checked');
+
+  return dedupe(tags);
+}
+
+function buildMissingTags(passport: PassportData): string[] {
+  const blockers = passport.readiness.blockers.map((blocker) => blocker.replace(/_/g, ' '));
+  const missingDomains = passport.authority.summary.missing.map((domain) => domain.replace(/_/g, ' ').toLowerCase());
+
+  if (passport.standing.exclusionStatus === 'POSSIBLE_MATCH') {
+    blockers.push('sanctions review required');
+  }
+  if (passport.standing.exclusionStatus === 'EXCLUDED') {
+    blockers.push('active exclusion');
+  }
+  if (passport.standing.exclusionStatus === 'UNCHECKED' || passport.standing.exclusionStatus === 'UNKNOWN') {
+    blockers.push('sanctions check unavailable');
+  }
+  if (passport.standing.pecosEnrollmentStatus === 'NOT_FOUND') {
+    blockers.push('enrollment review required');
+  }
+  if (passport.standing.pecosEnrollmentStatus === 'UNCHECKED') {
+    blockers.push('enrollment unavailable');
   }
 
-  // ── Passport unavailable — honest state, no synthetic fallback
+  return dedupe([...blockers, ...missingDomains]).slice(0, 6);
+}
+
+function readinessProceedNote(passport: PassportData): string {
+  switch (passport.readiness.status) {
+    case 'READY':
+      return 'This packet is strong enough for employer review and next-step interview conversations right now.';
+    case 'BLOCKED':
+      return 'Use this packet for review context only. Employment decisions still need the blocking items resolved first.';
+    case 'PARTIAL':
+    default:
+      return 'Identity and completed checks can travel with the packet, but missing domains stay visible until they are resolved.';
+  }
+}
+
+export default function InterviewClient({ entityId, passport, contextId }: Props) {
+  const [shareState, setShareState] = useState<ShareState>({ phase: 'idle' });
+  const { isLoaded, isSignedIn } = useRoleContext();
+
   if (!passport) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#080e1a' }}>
+      <div className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center justify-center px-4">
         <div className="w-full max-w-sm space-y-4 text-center">
           <p className="text-white/40 text-sm">
             Could not load readiness data for this provider.
@@ -139,165 +142,328 @@ export default function InterviewClient({ entityId, passport }: Props) {
     );
   }
 
-  // ── Derive display data from canonical PassportData — no hardcoding
-  const { identity, readiness, standing, authority } = passport;
-  const displayName = identity.displayName ?? `NPI ${identity.npi}`;
-  const specialty   = identity.specialty ?? 'Healthcare Provider';
+  const displayName = passport.identity.displayName ?? `NPI ${passport.identity.npi ?? passport.npi ?? entityId}`;
+  const specialty = passport.identity.specialty ?? 'Healthcare Provider';
+  const readinessStatus: TrustStatusLabel =
+    passport.readiness.status === 'READY' ? 'clear'
+      : passport.readiness.status === 'BLOCKED' ? 'blocked'
+        : 'review required';
+  const proofItems = buildPassportProofSections(passport);
+  const proofSummary = summarizePassportProofSections(proofItems);
+  const verifiedTags = buildVerifiedTags(passport);
+  const missingTags = buildMissingTags(passport);
+  const hasShareContext = Boolean(contextId);
+  const canShare = hasShareContext && isLoaded && isSignedIn;
+  const proofHref = passport.identity.npi
+    ? `/api/trust-proof/${encodeURIComponent(passport.identity.npi)}?format=pdf`
+    : null;
+  const reviewHref = contextId
+    ? `/review/${passport.entityId}?contextId=${encodeURIComponent(contextId)}&from=${encodeURIComponent(displayName)}`
+    : `/review/${passport.entityId}`;
 
-  // Build honest readiness rows from real data
-  const readinessRows: Array<{ label: string; status: 'verified' | 'clear' | 'pending' | 'blocked' | 'unavailable' | 'unchecked'; note?: string }> = [];
+  async function handleShare() {
+    if (!contextId || !canShare) {
+      return;
+    }
 
-  // Identity
-  if (identity.npi) {
-    readinessRows.push({ label: 'Identity confirmed (NPPES)', status: 'verified' });
-  }
+    setShareState({ phase: 'loading' });
 
-  // Exclusion
-  if (standing.exclusionStatus === 'CLEAR') {
-    readinessRows.push({ label: 'No exclusions found (OIG)', status: 'clear' });
-  } else if (standing.exclusionStatus === 'POSSIBLE_MATCH' || standing.exclusionStatus === 'EXCLUDED') {
-    readinessRows.push({
-      label: 'Exclusion — review required',
-      status: 'blocked',
-      note: 'OIG possible match on file',
-    });
-  } else if (standing.exclusionStatus === 'UNCHECKED') {
-    readinessRows.push({ label: 'Exclusion not checked', status: 'unchecked' });
-  }
-
-  // Authority — active credentials
-  const activeCreds = authority.credentials.filter(c => c.status === 'ACTIVE');
-  if (activeCreds.length > 0) {
-    activeCreds.slice(0, 3).forEach(c => {
-      readinessRows.push({
-        label: c.domain === 'LICENSURE'
-          ? `License active${c.jurisdiction ? ` (${c.jurisdiction})` : ''}`
-          : c.domain.toLowerCase().replace(/_/g, ' '),
-        status: 'verified',
-        note: c.issuerName ?? undefined,
+    try {
+      const response = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entityId,
+          organizationContextId: contextId,
+        }),
       });
-    });
-  } else if (authority.summary.missing.length > 0) {
-    authority.summary.missing.slice(0, 2).forEach(domain => {
-      readinessRows.push({
-        label: domain.replace(/_/g, ' ').toLowerCase(),
-        status: 'blocked',
-        note: 'Not yet verified',
+      const payload = await response.json().catch(() => ({})) as {
+        error?: string;
+        shareEventId?: string;
+        eventId?: string;
+        status?: string;
+        timestamp?: string;
+      };
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Sign in to share this interview packet.');
+        }
+        if (response.status === 404) {
+          throw new Error('The employer review context is no longer available.');
+        }
+        throw new Error(payload.error ?? 'Share is unavailable for this packet right now.');
+      }
+
+      setShareState({
+        phase: 'success',
+        eventId: payload.shareEventId ?? payload.eventId ?? 'Recorded',
+        timestamp: payload.timestamp ?? new Date().toISOString(),
+        status: payload.status ?? 'delivered',
       });
-    });
-  }
-
-  // Eligibility
-  const pecosStatus = standing.pecosEnrollmentStatus ?? (
-    standing.pecosStatus === 'enrolled' ? 'ENROLLED' :
-    standing.pecosStatus === 'not_enrolled' ? 'NOT_FOUND' : 'UNCHECKED'
-  );
-  if (pecosStatus === 'ENROLLED') {
-    readinessRows.push({
-      label: `Medicare enrolled${standing.enrollmentDataVersion ? ` (${standing.enrollmentDataVersion})` : ''}`,
-      status: 'clear',
-    });
-  } else if (pecosStatus === 'NOT_FOUND') {
-    readinessRows.push({
-      label: 'Medicare enrollment not found',
-      status: 'blocked',
-      note: standing.enrollmentNote ?? 'Not found in CMS PECOS data',
-    });
-  } else if (pecosStatus === 'UNCHECKED') {
-    readinessRows.push({ label: 'Medicare enrollment not checked', status: 'unchecked' });
-  }
-
-  // Blockers not yet represented
-  const coveredLabels = new Set(readinessRows.map(r => r.label.toLowerCase()));
-  readiness.blockers
-    .filter(b => !Array.from(coveredLabels).some(l => l.includes(b.toLowerCase().slice(0, 10))))
-    .slice(0, 2)
-    .forEach(b => {
-      readinessRows.push({
-        label: b.charAt(0).toUpperCase() + b.slice(1),
-        status: 'blocked',
+    } catch (error) {
+      setShareState({
+        phase: 'error',
+        message: error instanceof Error ? error.message : 'Share is unavailable for this packet right now.',
       });
-    });
-
-  const estimatedStart =
-    readiness.estimatedStartDays === null   ? 'Blocked — see issues above' :
-    readiness.estimatedStartDays === 0      ? 'Ready now' :
-    `~${readiness.estimatedStartDays} days`;
+    }
+  }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#080e1a' }}>
-      <div className="flex-1 flex flex-col items-center px-4 sm:px-6 pt-16 sm:pt-24 pb-16">
-        <div className="w-full max-w-sm">
-
-          {/* Header */}
-          <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight mb-2 text-center">
-            Use this in your<br />next interview.
-          </h1>
-          <p className="text-sm text-white/40 text-center mb-8">
-            Share verified readiness before the conversation starts.
+    <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center px-4 pt-10 sm:pt-16 pb-20">
+      <div className="w-full max-w-3xl space-y-6">
+        <div className="space-y-2 text-center sm:text-left">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/25">
+            Interview packet
           </p>
+          <h1 className="text-3xl font-semibold tracking-tight text-white">
+            Portable readiness for the next employer conversation.
+          </h1>
+          <p className="mx-auto max-w-2xl text-sm leading-relaxed text-white/42 sm:mx-0">
+            This view stays tied to the current passport truth object. Missing sources, stale checks, and blocked domains remain visible.
+          </p>
+        </div>
 
-          {/* Proof card — all data from canonical PassportData */}
-          <div className="rounded-2xl border border-white/8 bg-white/4 overflow-hidden mb-4">
-
-            {/* Identity */}
-            <div className="px-5 py-4 border-b border-white/6">
-              <p className="text-base font-bold text-white">{displayName}</p>
-              <p className="text-xs text-white/40 mt-0.5">{specialty}</p>
+        <section className="rounded-3xl border border-white/8 bg-white/[0.03] p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-2">
+              <div>
+                <p className="text-2xl font-semibold tracking-tight text-white">{displayName}</p>
+                <p className="mt-1 text-sm text-white/45">{specialty}</p>
+              </div>
+              <VStatusPill status={readinessStatus} size="sm" />
             </div>
 
-            {/* Readiness rows — real data only */}
-            <div className="px-5 py-4 border-b border-white/6 space-y-2.5">
-              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/25 mb-3">
-                Verification status
-              </p>
-              {readinessRows.length > 0
-                ? readinessRows.map((r, i) => (
-                    <ReadinessRow key={i} label={r.label} status={r.status} note={r.note} />
-                  ))
-                : <p className="text-white/25 text-xs">No verification data available yet.</p>
-              }
-            </div>
-
-            {/* Score + estimated start */}
-            <div className="px-5 py-4 flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">
-                Estimated start
-              </span>
-              <span className="text-sm font-semibold text-white">{estimatedStart}</span>
-            </div>
-
-            {/* Source footer — explicit */}
-            <div className="px-5 py-3 border-t border-white/6 bg-white/2 flex items-center justify-between">
-              <span className="text-[10px] text-white/20">
-                Readiness: {readiness.score}/100
-              </span>
-              <span className="text-[10px] text-white/20">
-                Sources: NPPES · OIG/LEIE
-              </span>
+            <div className="grid grid-cols-2 gap-3 text-left sm:min-w-[18rem]">
+              <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Readiness</p>
+                <p className="mt-1 text-lg font-semibold text-white">{passport.readiness.score}/100</p>
+              </div>
+              <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Estimated start</p>
+                <p className="mt-1 text-lg font-semibold text-white">{formatEstimatedStart(passport.readiness.estimatedStartDays)}</p>
+              </div>
+              <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Last checked</p>
+                <p className="mt-1 text-sm font-medium text-white">{formatShortDate(passport.lastCheckedAt)}</p>
+              </div>
+              <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Proof coverage</p>
+                <p className="mt-1 text-sm font-medium text-white">
+                  {proofSummary.decisionGradeCount + proofSummary.informationalCount}/{proofSummary.total} sections attached
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* CTA / Confirmation */}
-          {!shared ? (
-            <>
-              <button
-                type="button"
-                onClick={handleShare}
-                className="w-full rounded-xl bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 px-5 py-3.5 font-semibold text-white text-sm transition-all active:scale-[0.98]"
-              >
-                Share with employer
-              </button>
-              <p className="mt-2.5 text-center text-[11px] text-white/20">
-                Generates a signed link · Expires in 24h · No account needed to view
-              </p>
-            </>
-          ) : (
-            <ShareConfirmation entityId={entityId} sharedAt={sharedAt!} />
-          )}
+          <div className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="space-y-4">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Verified now</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {verifiedTags.length > 0 ? verifiedTags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/62"
+                    >
+                      {tag}
+                    </span>
+                  )) : (
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/38">
+                      No decision-grade checks attached yet
+                    </span>
+                  )}
+                </div>
+              </div>
 
-        </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Missing or review</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {missingTags.length > 0 ? missingTags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-white/48"
+                    >
+                      {tag}
+                    </span>
+                  )) : (
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/62">
+                      No visible blockers on this packet
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/8 bg-black/15 p-4">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">What can proceed</p>
+              <p className="mt-2 text-sm leading-relaxed text-white/64">
+                {readinessProceedNote(passport)}
+              </p>
+              <p className="mt-4 text-[11px] leading-relaxed text-white/34">
+                Freshness: {proofSummary.warningCount > 0 ? 'review needed on at least one proof section' : 'no stale or review-required proof sections visible'}.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Link
+                  href={`/passport/${passport.entityId}`}
+                  className="inline-flex min-h-[44px] items-center rounded-xl border border-white/10 px-4 text-sm font-medium text-white/62 transition hover:border-white/20 hover:text-white"
+                >
+                  Open full passport
+                </Link>
+                {proofHref && (
+                  <Link
+                    href={proofHref}
+                    className="inline-flex min-h-[44px] items-center rounded-xl border border-white/10 px-4 text-sm font-medium text-white/62 transition hover:border-white/20 hover:text-white"
+                  >
+                    Download proof PDF
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/25">Proof depth</p>
+              <p className="mt-1 text-sm text-white/42">
+                Expand a section to inspect source, freshness, and attached evidence posture.
+              </p>
+            </div>
+            {proofHref && (
+              <Link
+                href={proofHref}
+                className="hidden rounded-xl border border-white/10 px-4 py-2 text-xs font-medium text-white/48 transition hover:border-white/20 hover:text-white/70 sm:inline-flex"
+              >
+                Export packet
+              </Link>
+            )}
+          </div>
+          <div className="rounded-3xl border border-white/8 bg-white/[0.02] px-5 py-2">
+            <Accordion
+              items={proofItems}
+              defaultOpen={proofItems.find((item) => item.status !== 'verified' && item.status !== 'clear')?.id ?? proofItems[0]?.id}
+            />
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-white/8 bg-white/[0.03] p-5 sm:p-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/25">
+                Share with employer
+              </p>
+              <p className="mt-1 max-w-xl text-sm leading-relaxed text-white/42">
+                Share stays live only when this packet was opened with a real employer review context. No public link or success state is fabricated here.
+              </p>
+            </div>
+            {hasShareContext && (
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-white/42">
+                Review context attached
+              </span>
+            )}
+          </div>
+
+          {shareState.phase === 'success' ? (
+            <div className="mt-5 rounded-2xl border border-white/10 bg-black/15 p-4">
+              <p className="text-sm font-medium text-white/78">Share recorded</p>
+              <p className="mt-1 text-xs leading-relaxed text-white/42">
+                VitalCV returned a real share event for this employer review context.
+              </p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-white/8 bg-white/[0.03] px-3 py-3">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/22">Share event</p>
+                  <p className="mt-1 break-all font-mono text-[11px] text-white/54">{shareState.eventId}</p>
+                </div>
+                <div className="rounded-xl border border-white/8 bg-white/[0.03] px-3 py-3">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/22">Recorded</p>
+                  <p className="mt-1 text-[11px] text-white/54">
+                    {formatDateTime(shareState.timestamp)} · {shareState.status}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Link
+                  href={reviewHref}
+                  className="inline-flex min-h-[44px] items-center rounded-xl bg-[var(--vt-success)] px-4 text-sm font-semibold text-white transition hover:opacity-90"
+                >
+                  Open employer review
+                </Link>
+                <Link
+                  href={`/passport/${passport.entityId}`}
+                  className="inline-flex min-h-[44px] items-center rounded-xl border border-white/10 px-4 text-sm font-medium text-white/56 transition hover:border-white/20 hover:text-white"
+                >
+                  Return to passport
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-5 space-y-3">
+              {!hasShareContext && (
+                <div className="rounded-2xl border border-white/10 bg-black/15 px-4 py-4">
+                  <p className="text-sm font-medium text-white/70">Preview only</p>
+                  <p className="mt-1 text-xs leading-relaxed text-white/38">
+                    A real employer review context is required before this packet can be shared. Continue from your passport flow or from an employer request that carries a valid context.
+                  </p>
+                </div>
+              )}
+
+              {hasShareContext && !CLERK_PROVIDER_ENABLED && (
+                <div className="rounded-2xl border border-white/10 bg-black/15 px-4 py-4">
+                  <p className="text-sm font-medium text-white/70">Authentication unavailable</p>
+                  <p className="mt-1 text-xs leading-relaxed text-white/38">
+                    This preview environment is not mounting Clerk, so the share action is intentionally blocked here.
+                  </p>
+                </div>
+              )}
+
+              {hasShareContext && CLERK_PROVIDER_ENABLED && isLoaded && !isSignedIn && (
+                <div className="rounded-2xl border border-white/10 bg-black/15 px-4 py-4">
+                  <p className="text-sm font-medium text-white/70">Sign in required</p>
+                  <p className="mt-1 text-xs leading-relaxed text-white/38">
+                    Sharing writes a real employer review event, so VitalCV requires an authenticated session before it will proceed.
+                  </p>
+                </div>
+              )}
+
+              {shareState.phase === 'error' && (
+                <div className="rounded-2xl border border-rose-400/20 bg-rose-400/8 px-4 py-4">
+                  <p className="text-sm font-medium text-rose-100">Share blocked</p>
+                  <p className="mt-1 text-xs leading-relaxed text-rose-100/70">{shareState.message}</p>
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-3">
+                {canShare ? (
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    disabled={shareState.phase === 'loading'}
+                    className="inline-flex min-h-[44px] items-center rounded-xl bg-[var(--vt-success)] px-5 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {shareState.phase === 'loading' ? 'Sharing with employer…' : 'Share with employer'}
+                  </button>
+                ) : CLERK_PROVIDER_ENABLED && hasShareContext ? (
+                  <Link
+                    href={CLERK_SIGN_IN_URL}
+                    className="inline-flex min-h-[44px] items-center rounded-xl border border-white/10 px-5 text-sm font-medium text-white/62 transition hover:border-white/20 hover:text-white"
+                  >
+                    Sign in to share
+                  </Link>
+                ) : null}
+
+                <Link
+                  href={`/passport/${passport.entityId}`}
+                  className="inline-flex min-h-[44px] items-center rounded-xl border border-white/10 px-5 text-sm font-medium text-white/56 transition hover:border-white/20 hover:text-white"
+                >
+                  Continue with VitalCV
+                </Link>
+              </div>
+            </div>
+          )}
+        </section>
       </div>
-    </div>
+    </main>
   );
 }

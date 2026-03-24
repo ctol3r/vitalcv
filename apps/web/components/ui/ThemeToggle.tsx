@@ -4,10 +4,27 @@ import { Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 
-const CYCLE: Record<string, string> = {
+type SupportedTheme = 'light' | 'dark';
+
+const CYCLE: Record<SupportedTheme, SupportedTheme> = {
   light: 'dark',
   dark: 'light',
 };
+
+function resolveTheme(
+  theme: string | undefined,
+  resolvedTheme?: string,
+): SupportedTheme {
+  if (theme === 'light' || theme === 'dark') {
+    return theme;
+  }
+
+  if (resolvedTheme === 'light') {
+    return 'light';
+  }
+
+  return 'dark';
+}
 
 /**
  * Compact theme toggle — cycles light ↔ dark.
@@ -30,9 +47,9 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
     );
   }
 
-  const resolved = resolvedTheme ?? theme ?? 'dark';
-  const next = CYCLE[resolved] ?? 'dark';
-  const isDark = resolved === 'dark';
+  const currentTheme = resolveTheme(theme, resolvedTheme);
+  const next = CYCLE[currentTheme];
+  const isDark = currentTheme === 'dark';
 
   return (
     <button
@@ -42,9 +59,9 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
       aria-label={`Switch to ${next} mode`}
       className={`
         flex h-8 w-8 items-center justify-center rounded-lg border transition-colors duration-200 ease-out
-        border-[var(--vt-border,#27272A)] bg-[var(--vt-surface,#121214)]
-        text-[var(--vt-text-2,#A1A1AA)] hover:text-[var(--vt-text-1,#FFFFFF)]
-        hover:bg-[var(--vt-surface-subtle,#18181B)]
+        border-[var(--vt-border)] bg-[var(--vt-surface)]
+        text-[var(--vt-text-secondary)] hover:text-[var(--vt-text-primary)]
+        hover:bg-[var(--vt-surface-subtle)]
         ${className}
       `}
     >
@@ -63,7 +80,7 @@ const THEMES = [
 ] as const;
 
 export function ThemePicker({ className = '' }: { className?: string }) {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -86,7 +103,8 @@ export function ThemePicker({ className = '' }: { className?: string }) {
 
   if (!mounted) return null;
 
-  const current = THEMES.find((t) => t.id === theme) ?? THEMES[1];
+  const currentTheme = resolveTheme(theme, resolvedTheme);
+  const current = THEMES.find((t) => t.id === currentTheme) ?? THEMES[1];
   const Icon = current.icon;
 
   return (
@@ -109,14 +127,14 @@ export function ThemePicker({ className = '' }: { className?: string }) {
               type="button"
               onClick={() => { setTheme(id); setOpen(false); }}
               className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-sm transition-colors duration-200 ease-out hover:bg-[var(--vt-surface-subtle)] ${
-                theme === id
+                currentTheme === id
                   ? 'text-[var(--vt-text-primary)] font-medium'
                   : 'text-[var(--vt-text-secondary)]'
               }`}
             >
               <ItemIcon className="h-3.5 w-3.5 shrink-0" />
               {label}
-              {theme === id && (
+              {currentTheme === id && (
                 <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[var(--vt-accent)]" />
               )}
             </button>

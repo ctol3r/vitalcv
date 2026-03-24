@@ -220,7 +220,7 @@ export class VitalCVVerifier {
    * Get public trust profile for a clinician.
    */
   async getPublicProfile(npi: string): Promise<PublicProfile> {
-    return this.request<PublicProfile>(`/api/public/profile/${encodeURIComponent(npi)}`);
+    return this.request<PublicProfile>(`/api/public/profile/npi/${encodeURIComponent(npi)}`);
   }
 
   // ── Credential Verification ──────────────────────────────────────────

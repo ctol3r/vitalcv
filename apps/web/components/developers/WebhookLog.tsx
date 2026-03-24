@@ -3,7 +3,7 @@
 /**
  * WebhookLog — Wave 30: Developer Sandbox
  *
- * Simulates a live webhook event stream. After a short delay, events
+ * Simulates the current webhook event contract. After a short delay, events
  * arrive every 3–5 s and slide into the list via framer-motion AnimatePresence.
  * Mirrors the UX of Stripe's event log — dark glass, mono timestamps, coloured badges.
  *
@@ -18,11 +18,10 @@ import { Activity, Radio, X } from 'lucide-react';
 // ── Types ─────────────────────────────────────────────────────────────────
 
 type EventKind =
-  | 'verification.completed'
-  | 'credential.revoked'
-  | 'audit.anchored'
-  | 'crs.updated'
-  | 'psv.received';
+  | 'credential_verified'
+  | 'credential_revoked'
+  | 'decision_created'
+  | 'trust_state_changed';
 
 interface WebhookEvent {
   id: string;
@@ -36,29 +35,24 @@ interface WebhookEvent {
 
 const EVENT_TEMPLATES: Array<{ kind: EventKind; status: 200 | 422; payload: Record<string, unknown> }> = [
   {
-    kind: 'verification.completed',
+    kind: 'credential_verified',
     status: 200,
-    payload: { npi: '1234567890', trust_state: 'verified_monitoring', crs_score: 95 },
+    payload: { npi: '1234567890', trustBand: 'L2', verifiedAt: new Date().toISOString() },
   },
   {
-    kind: 'audit.anchored',
+    kind: 'credential_revoked',
     status: 200,
-    payload: { npi: '9876543210', merkle_root: '0xab3f…c991', block: 18_922_411 },
+    payload: { credentialId: 'cred_9876543210', npi: '9876543210', reason: 'voluntary_surrender' },
   },
   {
-    kind: 'crs.updated',
+    kind: 'decision_created',
     status: 200,
-    payload: { npi: '1234567890', previous_score: 88, new_score: 95, band: 'GREEN' },
+    payload: { entityId: '1234567890', decisionType: 'PRIVILEGING', createdAt: new Date().toISOString() },
   },
   {
-    kind: 'psv.received',
+    kind: 'trust_state_changed',
     status: 200,
-    payload: { npi: '5551234567', source: 'NURSYS', license_status: 'ACTIVE' },
-  },
-  {
-    kind: 'credential.revoked',
-    status: 200,
-    payload: { npi: '9876543210', credential_type: 'DEA', reason: 'voluntary_surrender' },
+    payload: { npi: '5551234567', previous: 'PARTIAL', next: 'BLOCKED', observedAt: new Date().toISOString() },
   },
 ];
 
@@ -84,30 +78,25 @@ function buildEvent(): WebhookEvent {
 // ── Badge colours ─────────────────────────────────────────────────────────
 
 const KIND_STYLE: Record<EventKind, { dot: string; badge: string; label: string }> = {
-  'verification.completed': {
+  credential_verified: {
     dot:   'bg-emerald-400',
     badge: 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/30',
-    label: 'verification.completed',
+    label: 'credential_verified',
   },
-  'credential.revoked': {
+  credential_revoked: {
     dot:   'bg-red-400',
     badge: 'bg-red-500/10 text-red-400 ring-red-500/30',
-    label: 'credential.revoked',
+    label: 'credential_revoked',
   },
-  'audit.anchored': {
+  decision_created: {
     dot:   'bg-violet-400',
     badge: 'bg-violet-500/10 text-violet-400 ring-violet-500/30',
-    label: 'audit.anchored',
+    label: 'decision_created',
   },
-  'crs.updated': {
+  trust_state_changed: {
     dot:   'bg-sky-400',
     badge: 'bg-sky-500/10 text-sky-400 ring-sky-500/30',
-    label: 'crs.updated',
-  },
-  'psv.received': {
-    dot:   'bg-amber-400',
-    badge: 'bg-amber-500/10 text-amber-400 ring-amber-500/30',
-    label: 'psv.received',
+    label: 'trust_state_changed',
   },
 };
 
@@ -166,7 +155,7 @@ export function WebhookLog() {
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-white/8 px-6 py-4">
         <Activity className="h-4 w-4 text-emerald-400" />
-        <h2 className="text-sm font-semibold text-white">Webhook Event Log</h2>
+        <h2 className="text-sm font-semibold text-white">Webhook Event Preview</h2>
 
         {/* Live pulse badge */}
         <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold text-emerald-400 ring-1 ring-emerald-500/30">
@@ -223,11 +212,11 @@ export function WebhookLog() {
                 <Radio className="h-5 w-5 text-slate-600" />
               </div>
               <p className="text-sm font-medium text-slate-500">
-                Listening for events…
+                Previewing event shapes…
               </p>
               <p className="max-w-xs text-xs text-slate-600">
-                Webhook events will appear here in real time as VitalCV processes verifications
-                for clinicians on your roster.
+                Example payloads for the current webhook contract will appear here.
+                Use them to verify event names before wiring a real endpoint.
               </p>
             </motion.div>
           ) : (

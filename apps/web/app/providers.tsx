@@ -18,8 +18,8 @@ export default function Providers({
       <ThemeProvider
         attribute="class"
         defaultTheme="dark"
-        enableSystem
-        themes={['light', 'dark', 'midnight', 'graphite']}
+        enableSystem={false}
+        themes={['light', 'dark']}
       >
         {children}
       </ThemeProvider>

@@ -1,6 +1,7 @@
 import RootChrome from '@/components/layout/RootChrome';
 import { CommandPalette } from '@/components/ui/CommandPalette';
 import { Toaster } from '@/components/ui/toaster';
+import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
 import { vdsCssVariables } from '@/src/styles';
 import { ClerkProvider } from '@clerk/nextjs';
 import { auth } from '@clerk/nextjs/server';
@@ -32,10 +33,7 @@ export const metadata: Metadata = {
   description: 'Reusable trust state for clinician credentialing.',
 };
 
-const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
-const localBackendConfigured = (process.env.NEXT_PUBLIC_BACKEND_URL ?? '').includes('localhost');
-const clerkEnabled = Boolean(clerkPublishableKey)
-  && !(localBackendConfigured && clerkPublishableKey.startsWith('pk_live_'));
+const clerkEnabled = CLERK_PROVIDER_ENABLED;
 
 function parseInitialClerkRole(
   claims: Record<string, unknown> | undefined,
