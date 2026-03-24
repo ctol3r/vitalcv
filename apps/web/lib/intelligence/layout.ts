@@ -50,6 +50,11 @@ export const WORKSPACE_SECTIONS: Array<{
     label: 'Trust Graph',
     detail: 'Zoomable canvas visualizing credential links and trust networks.',
   },
+  {
+    id: 'map',
+    label: 'Global Map',
+    detail: 'Geographic intelligence: institutions, shortage areas, and network coverage.',
+  },
 ];
 
 export const RIGHT_PANEL_MODULES = [

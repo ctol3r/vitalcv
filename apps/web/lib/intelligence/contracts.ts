@@ -18,7 +18,8 @@ export type WorkspaceSectionId =
   | 'system-health'
   | 'graph'
   | 'provider-profile'
-  | 'comparison-view';
+  | 'comparison-view'
+  | 'map';
 
 export type IntelligenceSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 export type IntelligenceTone = 'healthy' | 'degraded' | 'critical' | 'neutral';

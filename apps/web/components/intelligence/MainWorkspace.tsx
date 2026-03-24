@@ -1,6 +1,7 @@
 'use client';
 
 import type React from 'react';
+import dynamic from 'next/dynamic';
 import type {
   ActionsResponse,
   FindingsResponse,
@@ -16,6 +17,16 @@ import { InvestigationPanel } from './InvestigationPanel';
 import { ProviderCard } from './ProviderCard';
 import { SectionFrame, ToneBadge } from './shared';
 import { StorylineCard } from './StorylineCard';
+
+// GlobalMapWorkspace uses react-simple-maps which requires SSR disabled
+const GlobalMapWorkspace = dynamic(
+  () => import('./GlobalMapWorkspace').then(m => ({ default: m.GlobalMapWorkspace })),
+  { ssr: false, loading: () => (
+    <div className="flex h-full items-center justify-center text-sm text-white/30">
+      Loading map…
+    </div>
+  )},
+);
 
 interface MainWorkspaceProps {
   activeSection: WorkspaceSectionId;
@@ -153,6 +164,13 @@ export function MainWorkspace({
             ))}
           </div>
         </SectionFrame>
+      );
+      break;
+    case 'map':
+      workspaceContent = (
+        <div className="h-full min-h-[540px]">
+          <GlobalMapWorkspace onSelectProvider={onSelectProvider} />
+        </div>
       );
       break;
     case 'dashboard':

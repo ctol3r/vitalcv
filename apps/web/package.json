@@ -43,6 +43,7 @@
     "react-countup": "^6.5.3",
     "react-dom": "^19",
     "react-qr-code": "^2.0.18",
+    "react-simple-maps": "^3.0.0",
     "server-only": "^0.0.1",
     "sonner": "^2.0.7",
     "swr": "^2.3.6",
