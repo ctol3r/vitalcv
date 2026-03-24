@@ -22,6 +22,7 @@ describe('sourceOpsService', () => {
     process.env.OIG_LEIE_ENABLED = 'true';
     process.env.PECOS_ENABLED = 'true';
     process.env.NURSYS_ENABLED = 'true';
+    delete process.env.OFAC_SDN_ENABLED;
     mockIntegrationHealth();
   });
 
@@ -30,6 +31,7 @@ describe('sourceOpsService', () => {
     delete process.env.OIG_LEIE_ENABLED;
     delete process.env.PECOS_ENABLED;
     delete process.env.NURSYS_ENABLED;
+    delete process.env.OFAC_SDN_ENABLED;
   });
 
   it('marks a source live only after a successful fetch is observed', () => {
@@ -64,6 +66,42 @@ describe('sourceOpsService', () => {
 
     expect(report.alerts).toContain(
       'MISMATCH: Official spine source CMS NPI Registry API has feature flag NPPES_API_ENABLED disabled.',
+    );
+  });
+
+  it('fails closed when a non-spine source is disabled, even if historical success exists', () => {
+    (getConnectorHealth as jest.Mock).mockReturnValue({
+      connectors: [
+        {
+          connector: 'STATE_BOARD',
+          status: 'HEALTHY',
+          lastSuccessAt: new Date().toISOString(),
+          lastErrorAt: null,
+          consecutiveErrors: 0,
+        },
+      ],
+    });
+
+    const report = computeSourceOpsReport();
+    const stateBoard = report.sources.find((entry) => entry.sourceId === 'STATE_BOARD');
+
+    expect(stateBoard?.featureFlag.enabled).toBe(false);
+    expect(stateBoard?.coverageState).toBe('notChecked');
+    expect(stateBoard?.decisionGrade).toBe(false);
+  });
+
+  it('treats flag-enabled but unimplemented sources as unavailable and alerts operators', () => {
+    (getConnectorHealth as jest.Mock).mockReturnValue({ connectors: [] });
+    process.env.OFAC_SDN_ENABLED = 'true';
+
+    const report = computeSourceOpsReport();
+    const ofac = report.sources.find((entry) => entry.sourceId === 'OFAC_SDN');
+
+    expect(ofac?.featureFlag.enabled).toBe(true);
+    expect(ofac?.coverageState).toBe('unavailable');
+    expect(ofac?.decisionGrade).toBe(false);
+    expect(report.alerts).toContain(
+      'UNIMPLEMENTED: Source OFAC Specially Designated Nationals (SDN) List is flag-enabled but has no ingestion handler in the launch lane.',
     );
   });
 

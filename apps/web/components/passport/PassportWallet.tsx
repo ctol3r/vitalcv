@@ -33,7 +33,13 @@ import {
   type TrustStatusLabel,
 } from '@/components/vds/primitives';
 import { formatProofDate } from '@/lib/trust/proof-language';
-import { TrustPostureCard } from '@/components/trust/TrustPostureCard';
+import {
+  resolveAuthorityMethodLabel,
+  resolveAuthorityNote,
+  resolveAuthoritySectionStatus,
+  resolveAuthorityTitle,
+  resolveAuthorityVdsStatus,
+} from '@/lib/trust/passport-truth';
 
 // ── Status configuration ──────────────────────────────────────────────────────
 // NO colour on status. Hierarchy via opacity only.
@@ -133,114 +139,16 @@ function AuthorityRow({ title, status, sourceLabel, checkedAt, confidence, fresh
   );
 }
 
-function claimCodeToStatus(
-  code?: string,
-  participationStatus?: string,
-  reviewRequired?: boolean,
-  credStatus?: string,
-): AuthorityRowProps['status'] {
-  if (code === 'AUTHORITY_UNAVAILABLE') {
-    return participationStatus === 'institution_access_unavailable'
-      ? 'access required'
-      : 'unavailable';
-  }
-  if (code === 'BOARD_ORDER_PRESENT')         return 'review required';
-  if (code === 'RN_LICENSE_DISCIPLINED')      return 'review required';
-  if (reviewRequired)                         return 'review required';
-  if (code === 'RN_LICENSE_EXPIRED')          return 'blocked';
-  if (credStatus === 'EXPIRED')               return 'blocked';
-  if (code === 'PHYSICIAN_LICENSE_ACTIVE')    return 'verified';
-  if (code === 'RN_LICENSE_ACTIVE')           return 'verified';
-  if (code === 'BOARD_CERTIFIED')             return 'verified';
-  if (code === 'TRAINING_COMPLETED')          return 'verified';
-  if (credStatus === 'ACTIVE')                return 'verified';
-  return 'pending';
-}
-
-function authorityMethodLabel(c: PassportData['authority']['credentials'][0]): string {
-  switch (c.sourceScope) {
-    case 'STATE_BOARD_CA_API':
-      return 'Live CA state board';
-    case 'STATE_BOARD_MANUAL':
-      return c.jurisdiction
-        ? `${c.jurisdiction} state board (manual)`
-        : 'State board (manual)';
-    case 'FSMB_MED_API':
-    case 'FSMB_PDC':
-      return 'FSMB';
-    case 'NURSYS_AUTHORIZED_PATH':
-      return 'Nursys';
-    default:
-      return c.issuerName ?? c.sourceId ?? 'Unknown source';
-  }
-}
-
-function claimCodeToTitle(c: PassportData['authority']['credentials'][0]): string {
-  const code = c.authorityClaimCode;
-  const state = c.jurisdiction ? ` (${c.jurisdiction})` : '';
-  if (code === 'PHYSICIAN_LICENSE_ACTIVE')    return `Physician license${state}`;
-  if (code === 'RN_LICENSE_ACTIVE')           return `Nursing license${state}`;
-  if (code === 'RN_LICENSE_EXPIRED')          return `Nursing license${state} — expired`;
-  if (code === 'RN_LICENSE_DISCIPLINED')      return `Nursing license${state} — disciplinary record`;
-  if (code === 'BOARD_CERTIFIED')             return `Board certified`;
-  if (code === 'BOARD_ORDER_PRESENT')         return `Board order present${state}`;
-  if (code === 'TRAINING_COMPLETED')          return `Training completed`;
-  if (code === 'AUTHORITY_UNAVAILABLE') {
-    const participation = c.participationStatus;
-    if (participation === 'non_participating_state')       return `License verification — state not in network${state}`;
-    if (participation === 'manual_verification_required')   return `License verification — manual lane only${state}`;
-    if (participation === 'institution_access_unavailable') return `License verification — access required${state}`;
-    return `License verification — unavailable${state}`;
-  }
-  // Fallback: use domain
-  if (c.domain === 'LICENSURE')          return `License${state}`;
-  if (c.domain === 'BOARD_CERTIFICATION') return `Board certification`;
-  return c.domain.replace(/_/g, ' ').toLowerCase();
-}
-
-function claimCodeToNote(c: PassportData['authority']['credentials'][0]): string | null {
-  const code = c.authorityClaimCode;
-  const severity = c.boardOrderSeverity;
-  if (code === 'BOARD_ORDER_PRESENT') {
-    const sev = severity && severity !== 'NONE' ? ` Severity: ${severity}.` : '';
-    return `A board order is on file for this license.${sev} Manual employer review required before proceeding.`;
-  }
-  if (code === 'AUTHORITY_UNAVAILABLE') {
-    const p = c.participationStatus;
-    if (p === 'non_participating_state' && c.jurisdiction)
-      return `${c.jurisdiction} does not participate in automated license verification. Request a board-issued verification letter directly.`;
-    if (p === 'manual_verification_required' && c.jurisdiction)
-      return `${c.jurisdiction} is outside the current CA physician licensure launch lane. Manual state board verification is required and is not decision-grade.`;
-    if (p === 'institution_access_unavailable')
-      return c.sourceScope === 'STATE_BOARD_MANUAL' || c.sourceScope === 'STATE_BOARD_CA_API'
-        ? 'Access required. CA physician licensure needs live California board access or an institutional FSMB agreement.'
-        : 'Access required. Institutional FSMB or Nursys agreement is not configured.';
-    return 'Authority source access not configured for this record.';
-  }
-  if (code === 'RN_LICENSE_DISCIPLINED')
-    return 'A disciplinary action is recorded on this license. Review required before clinical placement.';
-  return null;
-}
-
 function buildAuthoritySection(passport: PassportData): AccordionItem {
   const { authority } = passport;
 
-  const hasBoardOrder   = authority.credentials.some(c => c.authorityClaimCode === 'BOARD_ORDER_PRESENT' || (c.boardOrderSeverity && c.boardOrderSeverity !== 'NONE'));
-  const hasActive       = authority.summary.active > 0;
-  const hasUnavailable  = authority.credentials.some(c => c.authorityClaimCode === 'AUTHORITY_UNAVAILABLE' || c.connectorState === 'unavailable' || c.connectorState === 'unresolved');
-  const hasLicensure    = authority.credentials.some(c => c.domain === 'LICENSURE');
-  const hasBoardCert    = authority.credentials.some(c => c.domain === 'BOARD_CERTIFICATION');
-
-  const sectionStatus: AccordionItem['status'] =
-    hasBoardOrder                                                ? 'review_required'
-    : hasActive && !hasUnavailable                               ? 'verified'
-    : hasUnavailable && !hasActive                               ? 'access_required'
-    : 'review_required';
+  const hasLicensure = authority.credentials.some(c => c.domain === 'LICENSURE');
+  const hasBoardCert = authority.credentials.some(c => c.domain === 'BOARD_CERTIFICATION');
 
   return {
     id:      'authority',
     trigger: 'Authority',
-    status:  sectionStatus,
+    status:  resolveAuthoritySectionStatus(authority.credentials, authority.summary.missing),
     content: (
       <div className="py-1 space-y-0">
 
@@ -248,13 +156,13 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
         {authority.credentials.map(c => (
           <AuthorityRow
             key={c.id}
-            title={claimCodeToTitle(c)}
-            status={claimCodeToStatus(c.authorityClaimCode, c.participationStatus, c.reviewRequired, c.status)}
-            sourceLabel={authorityMethodLabel(c)}
+            title={resolveAuthorityTitle(c)}
+            status={resolveAuthorityVdsStatus(c)}
+            sourceLabel={resolveAuthorityMethodLabel(c)}
             checkedAt={c.observedAt ? formatProofDate(c.observedAt) : null}
             confidence={c.claimConfidenceLabel}
             freshness={c.dataFreshnessLabel}
-            note={claimCodeToNote(c)}
+            note={resolveAuthorityNote(c)}
           />
         ))}
 
@@ -644,11 +552,6 @@ export default function PassportWallet({ passport }: Props) {
           </div>
         )}
 
-        {/* ── Trust Posture — computed from primary sources ─────────────────── */}
-        {passport.npi && (
-          <TrustPostureCard npi={passport.npi} />
-        )}
-
         {/* ── Details accordion ─────────────────────────────────────────────── */}
         <div>
           <p className="text-white/25 text-xs uppercase tracking-widest mb-3">Proof — view source per section</p>
@@ -657,51 +560,6 @@ export default function PassportWallet({ passport }: Props) {
 
         {/* ── Advisory Panel — clinician-facing, clearly advisory ─── */}
         <PassportAdvisoryPanel passport={passport} />
-
-        {/* ── Contextual enrichment — non-decision-grade, labeled explicitly ── */}
-        {(() => {
-          const enr = (passport as PassportData & { enrichment?: { counts?: Record<string, number>; institutionalContext?: { facilityAffiliations?: Array<{ facilityName: string; verifiedFromCms: boolean }> } | null; researchContext?: { publicationCount?: number; activeTrialCount?: number } | null } | null }).enrichment;
-          if (!enr) return null;
-          const instCount = enr.institutionalContext?.facilityAffiliations?.length ?? 0;
-          const pubCount = enr.researchContext?.publicationCount ?? 0;
-          const trialCount = enr.researchContext?.activeTrialCount ?? 0;
-          if (instCount === 0 && pubCount === 0 && trialCount === 0) return null;
-          return (
-            <div className="rounded-2xl border border-sky-400/12 bg-sky-400/4 px-5 py-4 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-sky-400/60">
-                  Contextual enrichment
-                </p>
-                <span className="text-[10px] text-sky-400/40 border border-sky-400/15 rounded-full px-2 py-0.5">
-                  Not primary-source verification
-                </span>
-              </div>
-              <p className="text-white/30 text-[10px] leading-4">
-                The following context is derived from public data sources. It enriches the profile but does not substitute for trust-core verified claims.
-              </p>
-              <div className="space-y-1.5">
-                {instCount > 0 && (
-                  <div className="flex items-center gap-2 text-xs text-white/50">
-                    <span className="text-sky-400/60">·</span>
-                    <span>{instCount} institutional affiliation{instCount !== 1 ? 's' : ''} — CMS-sourced, non-privilege context</span>
-                  </div>
-                )}
-                {pubCount > 0 && (
-                  <div className="flex items-center gap-2 text-xs text-white/50">
-                    <span className="text-sky-400/60">·</span>
-                    <span>{pubCount} publication{pubCount !== 1 ? 's' : ''} linked — name-match enrichment</span>
-                  </div>
-                )}
-                {trialCount > 0 && (
-                  <div className="flex items-center gap-2 text-xs text-white/50">
-                    <span className="text-sky-400/60">·</span>
-                    <span>{trialCount} active trial{trialCount !== 1 ? 's' : ''} as investigator — name-match enrichment</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })()}
 
         {/* ── Share section ─────────────────────────────────────────────────── */}
         <div className="space-y-3 pt-2">

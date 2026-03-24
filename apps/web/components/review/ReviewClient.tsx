@@ -60,7 +60,13 @@ import {
 } from '@/lib/employer-review-actions';
 import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
 import { VStatusPill } from '@/components/vds/primitives';
-import { TrustPostureCard } from '@/components/trust/TrustPostureCard';
+import {
+  resolveAuthorityMethodLabel,
+  resolveAuthorityNote,
+  resolveAuthorityStatusLead,
+  resolveAuthorityTitle,
+  resolveAuthorityTrustStatus,
+} from '@/lib/trust/passport-truth';
 
 function latestCredentialObservationDate(
   credentials: PassportData['authority']['credentials'],
@@ -72,48 +78,6 @@ function latestCredentialObservationDate(
   if (values.length === 0) return null;
 
   return values.sort((left, right) => Date.parse(right) - Date.parse(left))[0] ?? null;
-}
-
-function authorityMethodLabel(c: PassportData['authority']['credentials'][0]): string {
-  switch (c.sourceScope) {
-    case 'STATE_BOARD_CA_API':
-      return 'Live CA state board';
-    case 'STATE_BOARD_MANUAL':
-      return c.jurisdiction
-        ? `${c.jurisdiction} state board (manual)`
-        : 'State board (manual)';
-    case 'FSMB_MED_API':
-    case 'FSMB_PDC':
-      return 'FSMB';
-    case 'NURSYS_AUTHORIZED_PATH':
-      return 'Nursys';
-    default:
-      return c.issuerName ?? c.sourceId ?? 'Authority source';
-  }
-}
-
-function claimCodeToNote(c: PassportData['authority']['credentials'][0]): string | null {
-  const code = c.authorityClaimCode;
-  const severity = c.boardOrderSeverity;
-  if (code === 'BOARD_ORDER_PRESENT') {
-    const sev = severity && severity !== 'NONE' ? ` Severity: ${severity}.` : '';
-    return `A board order is on file for this license.${sev} Manual employer review required before proceeding.`;
-  }
-  if (code === 'AUTHORITY_UNAVAILABLE') {
-    const p = c.participationStatus;
-    if (p === 'non_participating_state' && c.jurisdiction)
-      return `${c.jurisdiction} does not participate in automated license verification. Request a board-issued verification letter directly.`;
-    if (p === 'manual_verification_required' && c.jurisdiction)
-      return `${c.jurisdiction} is outside the current CA physician licensure launch lane. Manual state board verification is required and is not decision-grade.`;
-    if (p === 'institution_access_unavailable')
-      return c.sourceScope === 'STATE_BOARD_MANUAL' || c.sourceScope === 'STATE_BOARD_CA_API'
-        ? 'CA physician licensure requires live California board access or an institutional FSMB agreement before it becomes decision-grade.'
-        : 'Requires institutional FSMB or Nursys agreement. Contact your administrator.';
-    return 'Authority source access not configured for this record.';
-  }
-  if (code === 'RN_LICENSE_DISCIPLINED')
-    return 'A disciplinary action is recorded on this license. Review required before clinical placement.';
-  return null;
 }
 
 function buildSafetyRow(standing: PassportData['standing']): {
@@ -172,72 +136,22 @@ function buildAuthorityRow(credential: PassportData['authority']['credentials'][
   note?: string;
   explanation?: string;
 } {
-  const code = credential.authorityClaimCode;
-  const isUnavailable =
-    code === 'AUTHORITY_UNAVAILABLE'
-    || credential.connectorState === 'unavailable'
-    || credential.connectorState === 'unresolved';
-  const isBoardOrder = code === 'BOARD_ORDER_PRESENT';
-  const isDisciplined =
-    code === 'RN_LICENSE_DISCIPLINED'
-    || (credential.reviewRequired && credential.domain === 'LICENSURE');
-  const isExpired = code === 'RN_LICENSE_EXPIRED' || credential.status === 'EXPIRED';
-  const isActive =
-    (code === 'PHYSICIAN_LICENSE_ACTIVE' || code === 'RN_LICENSE_ACTIVE')
-    && !isDisciplined
-    && !isBoardOrder;
-
-  const label =
-    isBoardOrder ? `Board order${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}` :
-    isDisciplined ? `License disciplinary action${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}` :
-    isExpired ? `License expired${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}` :
-    isUnavailable ? (
-      credential.participationStatus === 'manual_verification_required'
-        ? `License verification manual only${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}`
-        : (
-      credential.participationStatus === 'non_participating_state'
-        ? `License source unavailable${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}`
-        : 'License source not configured'
-        )
-    ) :
-    isActive ? `License active${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}` :
-    `License${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}`;
-
-  const status: TrustStatus =
-    isBoardOrder || isDisciplined ? 'review' :
-    isExpired ? 'blocked' :
-    isUnavailable ? 'unchecked' :
-    isActive ? 'confirmed' :
-    'unchecked';
-  const availabilityLabel =
-    credential.participationStatus === 'manual_verification_required'
-      ? 'Manual only'
-      : credential.participationStatus === 'institution_access_unavailable'
-        ? 'Access required'
-        : 'Unavailable';
+  const status = resolveAuthorityTrustStatus(credential);
 
   // MS16-E: note carries dataFreshness + confidenceLabel (row contract)
   const note = joinNoteParts([
-    isUnavailable
-      ? availabilityLabel
-      : isExpired
-        ? 'Blocked'
-        : isBoardOrder || isDisciplined
-          ? 'Review required'
-          : isActive
-            ? 'Verified'
-            : 'Pending',
+    resolveAuthorityStatusLead(credential),
     formatAsOfDate(credential.observedAt ?? credential.verifiedAt),
     credential.dataFreshnessLabel ?? null,
     credential.claimConfidenceLabel ?? null,
-    isBoardOrder || isDisciplined || isExpired || isUnavailable ? 'requires verification' : null,
+    status !== 'confirmed' ? 'requires verification' : null,
   ]);
 
   return {
     status,
-    label,
+    label: resolveAuthorityTitle(credential),
     note,
-    explanation: claimCodeToNote(credential) ?? undefined,
+    explanation: resolveAuthorityNote(credential) ?? undefined,
   };
 }
 
@@ -680,11 +594,6 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
             </div>
           </div>
 
-          {/* Trust posture — compact view, inherits passport truth */}
-          {passport.npi && (
-            <TrustPostureCard npi={passport.npi} compact />
-          )}
-
           <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -755,7 +664,7 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
                             key={credential.id}
                             status={row.status}
                             label={row.label}
-                            source={authorityMethodLabel(credential)}
+                            source={resolveAuthorityMethodLabel(credential)}
                             timestamp={credential.observedAt || credential.verifiedAt ? `checked ${formatProofDate(credential.observedAt ?? credential.verifiedAt)}` : undefined}
                             note={row.note}
                             explanation={row.explanation}

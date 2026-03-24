@@ -182,4 +182,27 @@ describe('trust proof language', () => {
       summarizePassportFreshnessEntries(buildPassportFreshnessEntries(degradedPassport)).state,
     ).toBe('stale');
   });
+
+  it('renders manual-only authority as contextual proof instead of verified truth', () => {
+    const manualOnlyPassport = buildPassport({
+      authority: {
+        credentials: [
+          {
+            ...buildPassport().authority.credentials[0],
+            status: 'UNRESOLVED',
+            authorityClaimCode: 'AUTHORITY_UNAVAILABLE',
+            participationStatus: 'manual_verification_required',
+            sourceScope: 'STATE_BOARD_MANUAL',
+            jurisdiction: 'TX',
+          },
+        ],
+        summary: { active: 0, expired: 0, stale: 0, missing: [] },
+      },
+    });
+
+    const proofItems = buildPassportProofSections(manualOnlyPassport);
+    const licensureSection = proofItems.find((item) => item.id === 'licensure');
+
+    expect(licensureSection?.status).toBe('unavailable');
+  });
 });

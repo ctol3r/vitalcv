@@ -10,6 +10,7 @@ describe('trust core readiness', () => {
     expect(resolveSourceCoverageState({ sourceId: 'OIG_LEIE', checked: true, fresh: false })).toBe('stale');
     expect(resolveSourceCoverageState({ sourceId: 'OIG_LEIE', unavailable: true })).toBe('unavailable');
     expect(resolveSourceCoverageState({ sourceId: 'OIG_LEIE', humanRequired: true })).toBe('reviewRequired');
+    expect(resolveSourceCoverageState({ sourceId: 'STATE_BOARD', accessRequired: true })).toBe('accessRequired');
     expect(defaultCoverageStateForSource('NURSYS_ENOTIFY')).toBe('gated');
   });
 

@@ -11,6 +11,12 @@ import {
   renderAttachedRecordFreshness,
   renderCredentialGroupFreshness,
 } from '@/lib/trust/proof-language';
+import {
+  resolveAuthorityAccordionStatus,
+  resolveAuthorityEvidenceLabel,
+  resolveAuthorityMethodLabel,
+  resolveAuthorityNote,
+} from '@/lib/trust/passport-truth';
 
 function accordionMeta(label: string) {
   return (
@@ -40,90 +46,14 @@ function uniqueCredentialSources(credentials: PassportData['authority']['credent
   return sources.length > 0 ? sources.join(' · ') : fallback;
 }
 
-function authorityMethodLabel(
-  credential: PassportData['authority']['credentials'][0],
-): string {
-  switch (credential.sourceScope) {
-    case 'STATE_BOARD_CA_API':
-      return 'Live CA state board';
-    case 'STATE_BOARD_MANUAL':
-      return credential.jurisdiction
-        ? `${credential.jurisdiction} state board (manual)`
-        : 'State board (manual)';
-    case 'FSMB_MED_API':
-    case 'FSMB_PDC':
-      return 'FSMB';
-    case 'NURSYS_AUTHORIZED_PATH':
-      return 'Nursys';
-    default:
-      return credential.issuerName ?? credential.sourceId ?? credential.verificationLevel;
-  }
-}
-
 function credentialAccordionStatus(
   credential: PassportData['authority']['credentials'][0],
 ): NonNullable<AccordionItem['status']> {
-  const code = credential.authorityClaimCode;
-
-  if (code === 'BOARD_ORDER_PRESENT' || code === 'RN_LICENSE_DISCIPLINED' || credential.reviewRequired) {
-    return 'review_required';
-  }
-
-  if (code === 'RN_LICENSE_EXPIRED' || credential.status === 'EXPIRED') {
-    return 'review_required';
-  }
-
-  if (credential.stale) {
-    return 'stale';
-  }
-
-  if (
-    code === 'AUTHORITY_UNAVAILABLE'
-    || credential.connectorState === 'unavailable'
-    || credential.connectorState === 'unresolved'
-  ) {
-    return credential.participationStatus === 'institution_access_unavailable'
-      ? 'access_required'
-      : 'unavailable';
-  }
-
-  if (
-    code === 'PHYSICIAN_LICENSE_ACTIVE'
-    || code === 'RN_LICENSE_ACTIVE'
-    || code === 'BOARD_CERTIFIED'
-    || credential.status === 'ACTIVE'
-  ) {
-    return 'verified';
-  }
-
-  return 'pending';
+  return resolveAuthorityAccordionStatus(credential);
 }
 
 function credentialEvidenceLabel(credential: PassportData['authority']['credentials'][0]): string {
-  const jurisdiction = credential.jurisdiction ? ` (${credential.jurisdiction})` : '';
-
-  switch (credential.authorityClaimCode) {
-    case 'BOARD_ORDER_PRESENT':
-      return `Board order${jurisdiction}`;
-    case 'RN_LICENSE_DISCIPLINED':
-      return `License disciplinary action${jurisdiction}`;
-    case 'RN_LICENSE_EXPIRED':
-      return `License${jurisdiction}`;
-    case 'PHYSICIAN_LICENSE_ACTIVE':
-    case 'RN_LICENSE_ACTIVE':
-      return `License${jurisdiction}`;
-    case 'BOARD_CERTIFIED':
-      return 'Board certification';
-    case 'AUTHORITY_UNAVAILABLE':
-      return credential.participationStatus === 'institution_access_unavailable'
-        ? `License verification${jurisdiction}`
-        : `License source${jurisdiction}`;
-    default:
-      if (credential.domain === 'BOARD_CERTIFICATION') return 'Board certification';
-      if (credential.domain === 'LICENSURE') return `License${jurisdiction}`;
-      if (credential.domain === 'DEA_REGISTRATION') return 'DEA registration';
-      return credential.domain.replace(/_/g, ' ').toLowerCase();
-  }
+  return resolveAuthorityEvidenceLabel(credential);
 }
 
 function credentialGroupStatus(
@@ -161,38 +91,6 @@ function credentialStatusNote(status: AccordionItem['status'], emptyFallback: st
   }
 }
 
-function claimCodeToNote(credential: PassportData['authority']['credentials'][0]): string | null {
-  const code = credential.authorityClaimCode;
-  const severity = credential.boardOrderSeverity;
-
-  if (code === 'BOARD_ORDER_PRESENT') {
-    const severityLabel = severity && severity !== 'NONE' ? ` Severity: ${severity}.` : '';
-    return `A board order is on file for this license.${severityLabel} Manual employer review required before proceeding.`;
-  }
-
-  if (code === 'AUTHORITY_UNAVAILABLE') {
-    const participationStatus = credential.participationStatus;
-    if (participationStatus === 'non_participating_state' && credential.jurisdiction) {
-      return `${credential.jurisdiction} does not participate in automated license verification. Request a board-issued verification letter directly.`;
-    }
-    if (participationStatus === 'manual_verification_required' && credential.jurisdiction) {
-      return `${credential.jurisdiction} is outside the current CA physician licensure launch lane. Manual state board verification is required and should not be treated as decision-grade.`;
-    }
-    if (participationStatus === 'institution_access_unavailable') {
-      return credential.sourceScope === 'STATE_BOARD_MANUAL' || credential.sourceScope === 'STATE_BOARD_CA_API'
-        ? 'CA physician licensure requires live California board access or an institutional FSMB agreement before it becomes decision-grade.'
-        : 'Requires institutional FSMB or Nursys agreement. Contact your administrator.';
-    }
-    return 'Authority source access not configured for this record.';
-  }
-
-  if (code === 'RN_LICENSE_DISCIPLINED') {
-    return 'A disciplinary action is recorded on this license. Review required before clinical placement.';
-  }
-
-  return null;
-}
-
 function credentialRecordsValue(credentials: PassportData['authority']['credentials']) {
   if (credentials.length === 0) return null;
 
@@ -211,14 +109,14 @@ function credentialRecordsValue(credentials: PassportData['authority']['credenti
           </div>
           <p className="mt-1 text-white/45">
             {joinNoteParts([
-              authorityMethodLabel(credential),
+              resolveAuthorityMethodLabel(credential),
               formatAsOfDate(credential.observedAt ?? credential.verifiedAt),
               credential.dataFreshnessLabel,
               credential.claimConfidenceLabel,
             ])}
           </p>
-          {claimCodeToNote(credential) && (
-            <p className="mt-1 text-white/32">{claimCodeToNote(credential)}</p>
+          {resolveAuthorityNote(credential) && (
+            <p className="mt-1 text-white/32">{resolveAuthorityNote(credential)}</p>
           )}
           {credential.sourceDisclaimer && (
             <p className="mt-1 text-white/28">{credential.sourceDisclaimer}</p>

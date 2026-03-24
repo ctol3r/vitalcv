@@ -646,6 +646,101 @@ function artifactCoverage(
   };
 }
 
+function buildEnrollmentAssessment(input: {
+  pecosStatus: PecosStatus;
+  checked: boolean;
+  fresh: boolean;
+  daysRemaining: number | null;
+  coverage: TrustSourceCoverage;
+}) {
+  return {
+    dimension: 'enrollment' as const,
+    status:
+      input.pecosStatus === 'ENROLLED'
+        ? 'MET' as const
+        : input.pecosStatus === 'NOT_FOUND'
+          ? 'BLOCKED' as const
+          : 'UNMET' as const,
+    confidence:
+      unresolvedPecosStatus(input.pecosStatus)
+        ? confidenceScoreForLabel('UNCERTAIN')
+        : confidenceScoreForLabel('HIGH'),
+    blocker: pecosBlocker(input.pecosStatus),
+    gap: pecosGap({
+      status: input.pecosStatus,
+      checked: input.checked,
+      fresh: input.fresh,
+      daysRemaining: input.daysRemaining,
+    }),
+    sourceCoverage: [input.coverage],
+  };
+}
+
+function capTrustScore(input: {
+  baseScore: number;
+  licensureBlocked: boolean;
+  reviewRequired: boolean;
+  unresolvedAuthorityLicensure?: boolean;
+  pecosStatus: PecosStatus;
+}): number {
+  if (input.licensureBlocked) {
+    return Math.min(input.baseScore, 10);
+  }
+
+  if (
+    input.reviewRequired
+    || Boolean(input.unresolvedAuthorityLicensure)
+    || input.pecosStatus !== 'ENROLLED'
+  ) {
+    return Math.min(input.baseScore, 59);
+  }
+
+  return input.baseScore;
+}
+
+function buildReadinessStatusHeadline(input: {
+  trustBand: TrustBand;
+  blockers: readonly string[];
+  reviewRequired: boolean;
+  unresolvedAuthorityLicensure?: boolean;
+  pecosStatus: PecosStatus;
+}): string {
+  const readinessStatusMap: Record<TrustBand, string> = {
+    L3: 'Ready to credential — all evidence verified',
+    L2: 'Mostly ready — minor gaps remain',
+    L1: 'Provisional — significant evidence gaps',
+    L0: 'Not ready — critical issues detected',
+  };
+
+  const pecosReadinessHeadline = pecosReadinessStatus(input.pecosStatus);
+  if (input.blockers.some((blocker) => /exclusion confirmed|excluded/i.test(blocker))) {
+    return 'Not ready — excluded from federal healthcare programs';
+  }
+  if (input.blockers.some((blocker) => /discipline/i.test(blocker))) {
+    return 'Blocked — license discipline requires resolution';
+  }
+  if (input.blockers.some((blocker) => /board order severity blocks/i.test(blocker))) {
+    return 'Blocked — board order severity requires manual resolution';
+  }
+  if (input.blockers.some((blocker) => /license expired/i.test(blocker))) {
+    return 'Blocked — state license expired';
+  }
+  if (pecosReadinessHeadline) {
+    return pecosReadinessHeadline;
+  }
+  if (input.blockers.some((blocker) => /board order requires manual review/i.test(blocker))) {
+    return 'Review required — board order requires adjudication';
+  }
+  if (input.unresolvedAuthorityLicensure) {
+    return 'Unresolved — authority source unavailable for licensure';
+  }
+  if (input.reviewRequired) {
+    return 'Review required — OIG/LEIE screening needs manual adjudication';
+  }
+
+  return readinessStatusMap[input.trustBand];
+}
+
 function appendUniqueGap(gaps: string[], gap: string): void {
   if (!gaps.includes(gap)) {
     gaps.push(gap);
@@ -1024,27 +1119,13 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
             : null,
     sourceCoverage: [licensureCoverage],
   };
-  const enrollmentAssessment = {
-    dimension: 'enrollment' as const,
-    status:
-      pecosStatus === 'ENROLLED'
-        ? 'MET' as const
-        : pecosStatus === 'NOT_FOUND'
-          ? 'BLOCKED' as const
-          : 'UNMET' as const,
-    confidence:
-      unresolvedPecosStatus(pecosStatus)
-        ? confidenceScoreForLabel('UNCERTAIN')
-        : confidenceScoreForLabel('HIGH'),
-    blocker: pecosBlocker(pecosStatus),
-    gap: pecosGap({
-      status: pecosStatus,
-      checked: pecosSnapshot.checked,
-      fresh: pecosFresh,
-      daysRemaining: pecosDaysRemaining,
-    }),
-    sourceCoverage: [enrollmentCoverage],
-  };
+  const enrollmentAssessment = buildEnrollmentAssessment({
+    pecosStatus,
+    checked: pecosSnapshot.checked,
+    fresh: pecosFresh,
+    daysRemaining: pecosDaysRemaining,
+    coverage: enrollmentCoverage,
+  });
 
   const readinessBase = computeDeterministicTrustReadiness({
     identity: identityAssessment,
@@ -1057,12 +1138,16 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
     exclusionAssessment.status === 'REVIEW_REQUIRED'
     || licensureAssessment.status === 'REVIEW_REQUIRED';
 
-  let trustScore = readinessBase.readinessScore;
-  if (authoritySignals.disciplinedLicense || authoritySignals.boardOrderBlocks || licensureStatus === 'expired') {
-    trustScore = Math.min(trustScore, 10);
-  } else if (reviewRequired || unresolvedAuthorityLicensure || pecosStatus !== 'ENROLLED') {
-    trustScore = Math.min(trustScore, 59);
-  }
+  const trustScore = capTrustScore({
+    baseScore: readinessBase.readinessScore,
+    licensureBlocked:
+      authoritySignals.disciplinedLicense
+      || authoritySignals.boardOrderBlocks
+      || licensureStatus === 'expired',
+    reviewRequired,
+    unresolvedAuthorityLicensure,
+    pecosStatus,
+  });
 
   const blockers = Array.from(new Set([...readinessBase.blockers, ...authoritySignals.blockers]));
   const gaps = Array.from(new Set([...readinessBase.gaps, ...authoritySignals.gaps]));
@@ -1080,23 +1165,13 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
     reviewRequired,
   });
 
-  const readinessStatusMap: Record<TrustBand, string> = {
-    L3: 'Ready to credential — all evidence verified',
-    L2: 'Mostly ready — minor gaps remain',
-    L1: 'Provisional — significant evidence gaps',
-    L0: 'Not ready — critical issues detected',
-  };
-
-  let readinessStatus = readinessStatusMap[trustBand];
-  const pecosReadinessHeadline = pecosReadinessStatus(pecosStatus);
-  if (blockers.some((blocker) => /exclusion confirmed|excluded/i.test(blocker))) readinessStatus = 'Not ready — excluded from federal healthcare programs';
-  else if (blockers.some((blocker) => /discipline/i.test(blocker))) readinessStatus = 'Blocked — license discipline requires resolution';
-  else if (blockers.some((blocker) => /board order severity blocks/i.test(blocker))) readinessStatus = 'Blocked — board order severity requires manual resolution';
-  else if (blockers.some((blocker) => /license expired/i.test(blocker))) readinessStatus = 'Blocked — state license expired';
-  else if (pecosReadinessHeadline) readinessStatus = pecosReadinessHeadline;
-  else if (blockers.some((blocker) => /board order requires manual review/i.test(blocker))) readinessStatus = 'Review required — board order requires adjudication';
-  else if (unresolvedAuthorityLicensure) readinessStatus = 'Unresolved — authority source unavailable for licensure';
-  else if (reviewRequired) readinessStatus = 'Review required — OIG/LEIE screening needs manual adjudication';
+  const readinessStatus = buildReadinessStatusHeadline({
+    trustBand,
+    blockers,
+    reviewRequired,
+    unresolvedAuthorityLicensure,
+    pecosStatus,
+  });
 
   const state: ClinicianTrustState = {
     npi,
@@ -1521,27 +1596,13 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
             : 'State licensure not verified',
     sourceCoverage: [licensureCoverage],
   };
-  const enrollmentAssessment = {
-    dimension: 'enrollment' as const,
-    status:
-      pecosStatus === 'ENROLLED'
-        ? 'MET' as const
-        : pecosStatus === 'NOT_FOUND'
-          ? 'BLOCKED' as const
-          : 'UNMET' as const,
-    confidence:
-      unresolvedPecosStatus(pecosStatus)
-        ? confidenceScoreForLabel('UNCERTAIN')
-        : confidenceScoreForLabel('HIGH'),
-    blocker: pecosBlocker(pecosStatus),
-    gap: pecosGap({
-      status: pecosStatus,
-      checked: pecosSnapshot.checked,
-      fresh: pecosFresh,
-      daysRemaining: pecosDaysRemaining,
-    }),
-    sourceCoverage: [enrollmentCoverage],
-  };
+  const enrollmentAssessment = buildEnrollmentAssessment({
+    pecosStatus,
+    checked: pecosSnapshot.checked,
+    fresh: pecosFresh,
+    daysRemaining: pecosDaysRemaining,
+    coverage: enrollmentCoverage,
+  });
 
   const readinessBase = computeDeterministicTrustReadiness({
     identity: identityAssessment,
@@ -1550,12 +1611,12 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
     enrollment: enrollmentAssessment,
   });
   const reviewRequired = exclusionAssessment.status === 'REVIEW_REQUIRED';
-  let trustScore = readinessBase.readinessScore;
-  if (licensureStatus === 'expired') {
-    trustScore = Math.min(trustScore, 10);
-  } else if (reviewRequired || pecosStatus !== 'ENROLLED') {
-    trustScore = Math.min(trustScore, 59);
-  }
+  const trustScore = capTrustScore({
+    baseScore: readinessBase.readinessScore,
+    licensureBlocked: licensureStatus === 'expired',
+    reviewRequired,
+    pecosStatus,
+  });
   const readiness = {
     ...readinessBase,
     readinessScore: trustScore,
@@ -1567,19 +1628,12 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
     reviewRequired,
   });
 
-  // Derive human-readable readiness status
-  const readinessStatusMap: Record<TrustBand, string> = {
-    L3: 'Ready to credential — all evidence verified',
-    L2: 'Mostly ready — minor gaps remain',
-    L1: 'Provisional — significant evidence gaps',
-    L0: 'Not ready — critical issues detected',
-  };
-  let readiness_status = readinessStatusMap[trustBand];
-  const pecosReadinessHeadline = pecosReadinessStatus(pecosStatus);
-  if (readiness.blockers.some((blocker) => /exclusion confirmed|excluded/i.test(blocker))) readiness_status = 'Not ready — excluded from federal healthcare programs';
-  else if (readiness.blockers.some((blocker) => /license expired/i.test(blocker))) readiness_status = 'Blocked — state license expired';
-  else if (pecosReadinessHeadline) readiness_status = pecosReadinessHeadline;
-  else if (reviewRequired) readiness_status = 'Review required — OIG/LEIE screening needs manual adjudication';
+  const readiness_status = buildReadinessStatusHeadline({
+    trustBand,
+    blockers: readiness.blockers,
+    reviewRequired,
+    pecosStatus,
+  });
 
   const state: ClinicianTrustState = {
     npi,

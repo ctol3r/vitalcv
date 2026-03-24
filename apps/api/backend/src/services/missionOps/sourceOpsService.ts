@@ -3,7 +3,12 @@ import {
   type CanonicalSourceCoverageState,
 } from '../../../../../../packages/trust-state/sourceCoverage';
 import { getIntegrationHealth } from '../externalIntegrations/integrationHealthTracker';
-import { listSources, type SourceDefinition } from '../identity/sourceCatalog';
+import {
+  isImplementedIngestSource,
+  isSourceFlagEnabled,
+  listSources,
+  type SourceDefinition,
+} from '../identity/sourceCatalog';
 import { SOURCE_GOVERNANCE } from '../identity/sourceGovernance';
 import {
   getConnectorHealth,
@@ -36,17 +41,7 @@ export interface SourceOpsEntry {
 export const OFFICIAL_SPINE_SOURCES = ['NPPES_API', 'OIG_LEIE', 'PECOS_PUBLIC', 'NURSYS'] as const;
 
 function readSourceEnabled(source: SourceDefinition): boolean {
-  const raw = process.env[source.envFlag];
-
-  if (raw === 'true') {
-    return true;
-  }
-
-  if (raw === 'false') {
-    return false;
-  }
-
-  return source.liveAvailable;
+  return isSourceFlagEnabled(source);
 }
 
 function findConnectorEntry(
@@ -126,22 +121,27 @@ export function computeSourceOpsReport(): SourceOpsReport {
 
   for (const source of catalog) {
     const isSpine = OFFICIAL_SPINE_SOURCES.includes(source.id as (typeof OFFICIAL_SPINE_SOURCES)[number]);
+    const sourceImplemented = isImplementedIngestSource(source.id);
     const connectorEntry = findConnectorEntry(source, connectorHealth.connectors);
     const sourceHealth = readSourceHealth(source, connectorEntry, integrationHealth);
     const sourceEnabled = readSourceEnabled(source);
-    const fresh = isFresh(sourceHealth.lastSuccessAt, source.refreshSlaHours);
+    const fresh = sourceImplemented && isFresh(sourceHealth.lastSuccessAt, source.refreshSlaHours);
     const governance = SOURCE_GOVERNANCE[source.id];
+    const coverageState = !sourceImplemented
+      ? sourceEnabled
+        ? 'unavailable'
+        : 'notChecked'
+      : !sourceEnabled
+        ? 'notChecked'
+        : resolveCanonicalSourceCoverageState({
+            checked: Boolean(sourceHealth.lastSuccessAt),
+            fresh,
+            unavailable: connectorEntry?.status === 'UNREACHABLE',
+            gated: governance?.accessBoundary === 'institutional' || governance?.accessBoundary === 'gated',
+            notDecisionGrade: source.tier !== 'GOLD' && source.tier !== 'SILVER',
+          });
 
-    const coverageState = resolveCanonicalSourceCoverageState({
-      checked: Boolean(sourceHealth.lastSuccessAt),
-      fresh,
-      unavailable: connectorEntry?.status === 'UNREACHABLE',
-      gated: governance?.accessBoundary === 'institutional' || governance?.accessBoundary === 'gated',
-      mock: !sourceEnabled && Boolean(sourceHealth.lastSuccessAt),
-      notDecisionGrade: source.tier !== 'GOLD' && source.tier !== 'SILVER',
-    });
-
-    const decisionGrade = coverageState === 'live' || coverageState === 'partial';
+    const decisionGrade = coverageState === 'live';
     const isUnavailable = coverageState === 'unavailable';
     const isStale = coverageState === 'stale';
 
@@ -155,7 +155,14 @@ export function computeSourceOpsReport(): SourceOpsReport {
       }
     }
 
-    if ((source.tier === 'GOLD' || source.tier === 'SILVER') && sourceHealth.lastSuccessAt && !fresh && !isUnavailable) {
+    if (
+      sourceEnabled
+      && sourceImplemented
+      && (source.tier === 'GOLD' || source.tier === 'SILVER')
+      && sourceHealth.lastSuccessAt
+      && !fresh
+      && !isUnavailable
+    ) {
       alerts.push(
         `STALE: Decision-grade source ${source.name} has missed its freshness SLA of ${source.refreshSlaHours}h.`,
       );
@@ -167,6 +174,12 @@ export function computeSourceOpsReport(): SourceOpsReport {
 
     if (!sourceEnabled && isSpine) {
       alerts.push(`MISMATCH: Official spine source ${source.name} has feature flag ${source.envFlag} disabled.`);
+    }
+
+    if (sourceEnabled && !sourceImplemented) {
+      alerts.push(
+        `UNIMPLEMENTED: Source ${source.name} is flag-enabled but has no ingestion handler in the launch lane.`,
+      );
     }
 
     sources.push({

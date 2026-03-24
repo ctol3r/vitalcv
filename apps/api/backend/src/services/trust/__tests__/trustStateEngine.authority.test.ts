@@ -247,6 +247,15 @@ describe('computeClinicianTrustState authority readiness', () => {
 
     expect(state.readiness_status).toBe('Unresolved — authority source unavailable for licensure');
     expect(state.gap_summary).toContain('Authority source unavailable: STATE_BOARD_MANUAL licensure unresolved');
+    expect(state.sourceCoverage).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceId: 'STATE_BOARD',
+          state: 'unavailable',
+          reason: 'Licensure source is unavailable or gated and requires a manual path',
+        }),
+      ]),
+    );
   });
 
   it('does not let unsupported physician states drag readiness into the launch lane', async () => {

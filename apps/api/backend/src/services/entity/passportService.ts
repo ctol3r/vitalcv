@@ -56,7 +56,6 @@ import {
   PECOS_SOURCE_LABEL,
   type PecosEnrollmentStatus,
 } from '../identity/pecosContract';
-import { buildClinicianEnrichmentEdges, buildEnrichmentSummary } from '../graph/clinicianEnrichmentGraph';
 
 export type { ReadinessNextAction };
 
@@ -199,13 +198,6 @@ export interface TrustPassport {
   sources:        PassportSources;
   sourceCoverage: CanonicalSourceCoverageReport;
   lastCheckedAt:  string;
-  /**
-   * Non-decision-grade enrichment graph context for this clinician.
-   * Populated from CMS institutional, publication, trial, and geography edges.
-   * Always null if no enrichment sources have been ingested.
-   * Never used for readiness decisions — display and context only.
-   */
-  enrichment?:    import('../../../../../../core/graph/enrichment').ClinicianEnrichmentSummary | null;
 }
 
 // ── Blocking domains ──────────────────────────────────────────────────────────
@@ -410,6 +402,7 @@ function buildFallbackPassportSourceCoverage(input: {
         ? 'NPPES identity checked'
         : 'NPPES identity source not yet checked',
       checkedAt: input.lastCheckedAt,
+      freshnessWindowHours: getSourceFreshnessWindowHours('NPPES_API'),
     }),
     createCanonicalSourceCoverage({
       sourceId: 'OIG_LEIE',
@@ -431,6 +424,7 @@ function buildFallbackPassportSourceCoverage(input: {
                 ? 'OIG LEIE outcome could not be resolved from the current source result'
                 : 'OIG LEIE source not yet checked',
       checkedAt: input.standing.exclusionCheckedAt ?? null,
+      freshnessWindowHours: getSourceFreshnessWindowHours('OIG_LEIE'),
     }),
     createCanonicalSourceCoverage({
       sourceId: licensureSourceId,
@@ -447,12 +441,13 @@ function buildFallbackPassportSourceCoverage(input: {
             : licensureState === 'stale'
               ? 'Licensure evidence is stale and must be refreshed'
               : licensureState === 'unavailable'
-                ? 'Licensure source is unavailable'
+              ? 'Licensure source is unavailable'
                 : 'Licensure source not yet checked',
       checkedAt:
         licensureCredential?.observedAt
         ?? licensureCredential?.verifiedAt
         ?? null,
+      freshnessWindowHours: getSourceFreshnessWindowHours(licensureSourceId),
     }),
     createCanonicalSourceCoverage({
       sourceId: 'PECOS_PUBLIC',
@@ -464,6 +459,7 @@ function buildFallbackPassportSourceCoverage(input: {
         daysRemaining: pecosDaysRemaining,
       }),
       checkedAt: input.standing.enrollmentObservedAt ?? null,
+      freshnessWindowHours: getSourceFreshnessWindowHours('PECOS_PUBLIC'),
     }),
   ];
 }
@@ -569,12 +565,6 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   ]);
   const artifactsById = new Map(artifacts.map((artifact) => [artifact.id, artifact]));
   // Build source → parserVersion map from the latest artifact per source (for minimum-contract threading).
-  const parserVersionBySource = new Map<string, string>();
-  for (const artifact of artifacts) {
-    if (artifact.parserVersion && !parserVersionBySource.has(artifact.source)) {
-      parserVersionBySource.set(artifact.source, artifact.parserVersion);
-    }
-  }
   const receiptsById = new Map(receipts.map((receipt) => [receipt.receiptId, receipt]));
   const credentialEvidence = new Map(
     credentials.map((credential) => [credential.id, resolveCredentialEvidence({
@@ -1000,35 +990,6 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     credentials: credList.length, education: eduRecords.length,
   });
 
-  // Build enrichment summary from existing normalized claims — non-blocking, never gates readiness
-  let enrichment: import('../../../../../../core/graph/enrichment').ClinicianEnrichmentSummary | null = null;
-  try {
-    if (npi) {
-      const allClaims = await prisma.normalizedClaim.findMany({
-        where: { subjectNpi: npi },
-        select: {
-          claimType: true, sourceId: true, value: true,
-          confidence: true, reviewRequired: true, observedAt: true,
-        },
-      });
-      const typedClaims = allClaims.map(c => ({
-        claimType: c.claimType as import('../identity/evidenceModel').ClaimType,
-        sourceId: c.sourceId,
-        value: c.value as import('../identity/evidenceModel').ClaimValue,
-        confidence: c.confidence ?? 'MEDIUM' as const,
-        reviewRequired: c.reviewRequired ?? false,
-        observedAt: c.observedAt?.toISOString() ?? null,
-      }));
-      const edges = buildClinicianEnrichmentEdges(npi, typedClaims);
-      if (edges.length > 0) {
-        enrichment = buildEnrichmentSummary(npi, edges);
-      }
-    }
-  } catch {
-    // enrichment is best-effort — never block passport build
-    enrichment = null;
-  }
-
   return {
     entityId,
     npi,
@@ -1039,7 +1000,6 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     readiness,
     sources,
     sourceCoverage,
-    enrichment,
     lastCheckedAt,
   };
 }

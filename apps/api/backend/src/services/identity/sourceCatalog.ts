@@ -341,16 +341,40 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     baseUrl: 'https://www.treasury.gov/ofac/downloads/',
     bulkFileUrl: 'https://www.treasury.gov/ofac/downloads/consolidated/consolidated.json',
     claimTypes: ['SANCTION_RECORD'],
-    parserVersion: 'v1.0.0', envFlag: 'OFAC_SDN_ENABLED', liveAvailable: true,
+    parserVersion: 'v1.0.0', envFlag: 'OFAC_SDN_ENABLED', liveAvailable: false,
     decisionGrade: true,
-    notes: 'Consolidated OFAC list in JSON format. Matching is name-based (not NPI). CONFIRMED matches (exact name+DOB) are hard blockers. POTENTIAL matches (name-only) must be review_required=true and NOT decision-grade. False-positive handling is critical — name-only hits must never auto-block.',
+    notes: 'Consolidated OFAC list in JSON format. Matching is name-based (not NPI). CONFIRMED matches (exact name+DOB) are hard blockers. POTENTIAL matches (name-only) must be review_required=true and NOT decision-grade. False-positive handling is critical — name-only hits must never auto-block. Cataloged here, but launch-lane ingestion wiring is not yet enabled.',
   },
 };
 
 // ── Accessors ─────────────────────────────────────────────────────────────────
 
+export const IMPLEMENTED_INGEST_SOURCE_IDS = [
+  'NPPES_API',
+  'OIG_LEIE',
+  'PECOS_PUBLIC',
+  'OPEN_PAYMENTS',
+  'SAM_GOV',
+  'DOCTORS_CLINICIANS',
+  'NURSYS',
+  'STATE_BOARD',
+  'OPENALEX',
+  'CLINICAL_TRIALS',
+  'PUBMED',
+] as const;
+
+export type ImplementedIngestSourceId = (typeof IMPLEMENTED_INGEST_SOURCE_IDS)[number];
+
 export function getSource(id: string): SourceDefinition | null {
   return SOURCE_CATALOG[id] ?? null;
+}
+
+export function isImplementedIngestSource(id: string): id is ImplementedIngestSourceId {
+  return (IMPLEMENTED_INGEST_SOURCE_IDS as readonly string[]).includes(id);
+}
+
+export function isSourceFlagEnabled(source: SourceDefinition): boolean {
+  return process.env[source.envFlag] === 'true';
 }
 
 export function getSourcesByPhase(phase: 0 | 1 | 2 | 3 | 4 | 5): SourceDefinition[] {
@@ -366,7 +390,9 @@ export function getSourcesByClaimType(claimType: ClaimType): SourceDefinition[] 
 }
 
 export function getActiveSources(): SourceDefinition[] {
-  return Object.values(SOURCE_CATALOG).filter(s => process.env[s.envFlag] === 'true' || s.liveAvailable);
+  return Object.values(SOURCE_CATALOG).filter(
+    (source) => isImplementedIngestSource(source.id) && isSourceFlagEnabled(source),
+  );
 }
 
 export function listSources(): SourceDefinition[] {
@@ -379,7 +405,9 @@ export function listSources(): SourceDefinition[] {
 export function getAutomationSafeSources(): SourceDefinition[] {
   // Import avoided for circular-dep safety; inline the check
   const safeIds = ['NPPES_API', 'NPPES_BULK', 'PECOS_PUBLIC', 'DOCTORS_CLINICIANS', 'CMS_NDF', 'OIG_LEIE', 'OPEN_PAYMENTS', 'OPENALEX', 'PUBMED', 'CLINICAL_TRIALS', 'OFAC_SDN', 'CMS_OPT_OUT', 'CMS_ORDER_REFERRING'];
-  return Object.values(SOURCE_CATALOG).filter(s => safeIds.includes(s.id));
+  return Object.values(SOURCE_CATALOG).filter(
+    (source) => safeIds.includes(source.id) && isImplementedIngestSource(source.id),
+  );
 }
 
 /**
@@ -401,4 +429,3 @@ export function isLaunchSpineSource(id: string): id is LaunchSpineSourceId {
 export function getSourceFreshnessWindowHours(sourceId: string): number {
   return SOURCE_CATALOG[sourceId]?.refreshSlaHours ?? 168;
 }
-

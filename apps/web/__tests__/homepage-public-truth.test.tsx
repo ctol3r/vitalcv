@@ -15,7 +15,7 @@ describe('homepage public truth', () => {
     expect(markup).toContain('NPPES');
     expect(markup).toContain('OIG / LEIE');
     expect(markup).toContain('CMS PECOS');
-    expect(markup).toContain('State Boards');
+    expect(markup).toContain('CA State Board / FSMB');
     expect(markup).toContain('Checked');
     expect(markup).toContain('Access required');
     expect(markup).not.toContain('Verified');
