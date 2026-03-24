@@ -1,77 +1,64 @@
 'use client';
 
-import { useState } from 'react';
+/**
+ * /billing — Pricing & self-serve activation
+ *
+ * Doctrine: clinicians and issuers are always free.
+ * Organizations pay for verified pulls, monitoring, exports, and integration utility.
+ *
+ * Self-serve checkout is gated during pilot — "Get access" flows to a contact form.
+ * No synthetic key data. No dead buttons that look real.
+ */
+
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import {
+  BILLING_FEATURE_LABELS,
+  PRICING_DOCTRINE_LIMITATIONS,
+  formatUsd,
+  listBillingPlans,
+  summarizePricingAccess,
+  type BillingTier,
+} from '@vitalcv/shared/pricing';
 
-const TIERS = [
-  {
-    name: 'Starter',
-    price: '$99',
-    period: '/month',
-    color: 'from-slate-500 to-slate-600',
-    features: [
-      '100 API requests / hour',
-      'Credential issuance',
-      'Basic verification',
-      'Trust registry read',
-      'Email support',
-    ],
-  },
-  {
-    name: 'Growth',
-    price: '$299',
-    period: '/month',
-    color: 'from-emerald-500 to-teal-600',
-    popular: true,
-    features: [
-      '1,000 API requests / hour',
-      'Everything in Starter',
-      'Selective disclosure (SD-JWT)',
-      'OID4VCI / OID4VP flows',
-      'Federation & analytics',
-      'Priority support',
-    ],
-  },
-  {
-    name: 'Enterprise',
-    price: 'Custom',
-    period: '',
-    color: 'from-violet-500 to-purple-600',
-    features: [
-      'Unlimited API requests',
-      'Everything in Growth',
-      'DID management',
-      'Conformance suite',
-      'SLA guarantee',
-      'Dedicated support',
-      'Custom governance',
-    ],
-  },
-];
+const TIER_ACCENTS: Record<BillingTier, { color: string; popular?: boolean }> = {
+  STARTER: { color: 'from-slate-500 to-slate-600' },
+  GROWTH: { color: 'from-emerald-500 to-teal-600', popular: true },
+  ENTERPRISE: { color: 'from-violet-500 to-purple-600' },
+};
 
-const DEMO_KEYS = [
-  { id: '1', name: 'Production Key', tier: 'GROWTH', requestCount: 8423, lastUsedAt: '2026-03-06', revokedAt: null, createdAt: '2026-01-15' },
-  { id: '2', name: 'Staging Key', tier: 'STARTER', requestCount: 234, lastUsedAt: '2026-03-05', revokedAt: null, createdAt: '2026-02-01' },
-  { id: '3', name: 'Test Key', tier: 'STARTER', requestCount: 12, lastUsedAt: '2026-02-20', revokedAt: '2026-02-28', createdAt: '2026-02-10' },
-];
+const PLANS = listBillingPlans();
 
-function TierBadge({ tier }: { tier: string }) {
-  const colors: Record<string, string> = {
-    STARTER: 'bg-muted text-muted-foreground',
-    GROWTH: 'bg-emerald-50 text-emerald-700',
-    ENTERPRISE: 'bg-violet-50 text-violet-700',
-  };
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${colors[tier] ?? colors.STARTER}`}>
-      {tier}
-    </span>
-  );
+// Sample calculator — illustrates no-double-pay logic; not connected to a real account
+const SAMPLE_ACTIVITY = summarizePricingAccess([
+  { activity: 'credential_access', organizationId: 'example-org', credentialKey: 'npi:1111111111', freshnessBand: 'static' },
+  { activity: 'credential_access', organizationId: 'example-org', credentialKey: 'npi:1111111111', freshnessBand: 'static' },
+  { activity: 'credential_access', organizationId: 'example-org', credentialKey: 'npi:1111111111', freshnessBand: 'monthly-monitoring' },
+  { activity: 'credential_access', organizationId: 'example-org', credentialKey: 'npi:2222222222', freshnessBand: 'continuous-monitoring' },
+  { activity: 'credential_access', organizationId: 'example-org', credentialKey: 'npi:2222222222', freshnessBand: 'continuous-monitoring' },
+  { activity: 'monitoring_refresh', organizationId: 'example-org', count: 5 },
+  { activity: 'export_run', organizationId: 'example-org', count: 2 },
+]);
+
+const SAMPLE_GOVERNMENT_FEES = 184.25;
+
+// ── Access tiers email — self-serve before Stripe is wired ─────────────────
+
+const ACCESS_EMAIL = 'access@vitalcv.com';
+
+function accessMailto(plan: BillingTier): string {
+  return `mailto:${ACCESS_EMAIL}?subject=VitalCV+${plan}+access+request&body=Plan+requested:+${plan}%0ANotes:`;
 }
 
 export default function BillingPage() {
-  const [currentPlan] = useState('GROWTH');
   const [newKeyName, setNewKeyName] = useState('');
-  const [showNewKey, setShowNewKey] = useState(false);
+  const [showNewKeyForm, setShowNewKeyForm] = useState(false);
+  const [keyFormSubmitted, setKeyFormSubmitted] = useState(false);
+
+  function handleKeyRequest() {
+    if (!newKeyName.trim()) return;
+    setKeyFormSubmitted(true);
+  }
 
   return (
     <div className="min-h-screen bg-background px-6 py-12">
@@ -81,7 +68,7 @@ export default function BillingPage() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-12"
+          className="mb-8"
         >
           <div className="flex items-center gap-3 mb-2">
             <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center">
@@ -89,77 +76,197 @@ export default function BillingPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
               </svg>
             </div>
-            <h1 className="text-2xl font-semibold text-foreground">Billing & API Access</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Pricing & Access</h1>
           </div>
-          <p className="text-muted-foreground ml-11">Manage your subscription tier and API keys.</p>
+          <p className="text-muted-foreground ml-11">Organization plans. Clinicians and issuers are always free.</p>
         </motion.div>
 
-        {/* Current Plan Banner */}
+        {/* Free for clinicians callout */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3"
+        >
+          {[
+            { label: 'Clinicians', note: 'Free forever', desc: 'Build, share, and own your readiness profile at no cost.' },
+            { label: 'Issuers', note: 'Free forever', desc: 'Issue credentials and connect to the trust network at no cost.' },
+            { label: 'Organizations', note: 'Pay for workflow', desc: 'Verified pulls, monitoring refreshes, exports, and API access.' },
+          ].map(({ label, note, desc }) => (
+            <div key={label} className="rounded-xl border border-border bg-card px-4 py-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm font-semibold text-foreground">{label}</p>
+                <span className={`text-xs font-medium ${note === 'Free forever' ? 'text-emerald-600' : 'text-amber-600'}`}>{note}</span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+            </div>
+          ))}
+        </motion.div>
+
+        {/* Pilot access notice */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mb-10 p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between"
+          className="mb-10 p-4 rounded-xl bg-amber-50 border border-amber-200"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-sm text-emerald-800 font-medium">Active plan: <strong>Growth</strong></span>
-            <span className="text-xs text-emerald-600">Renews April 6, 2026</span>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Pilot access mode — no active plan required</p>
+              <p className="mt-1 text-xs text-amber-700 leading-relaxed">
+                During the pilot phase, access is granted directly. Self-serve card checkout activates after the pilot gate closes.
+                To request organization access now, email <a href={`mailto:${ACCESS_EMAIL}`} className="underline underline-offset-2 hover:text-amber-900">{ACCESS_EMAIL}</a>.
+              </p>
+            </div>
+            <a
+              href={`mailto:${ACCESS_EMAIL}?subject=VitalCV+organization+access+request`}
+              className="shrink-0 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-4 py-2 transition-colors"
+            >
+              Request access →
+            </a>
           </div>
-          <button className="text-xs text-emerald-700 hover:text-emerald-900 underline underline-offset-2">
-            Manage billing →
-          </button>
         </motion.div>
 
         {/* Pricing Tiers */}
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-4">Organization plans</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-          {TIERS.map((tier, i) => (
-            <motion.div
-              key={tier.name}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 + i * 0.08 }}
-              className={`relative rounded-2xl border bg-card p-6 shadow-sm ${
-                tier.popular ? 'border-emerald-300 shadow-emerald-100 shadow-md' : 'border-border'
-              }`}
-            >
-              {tier.popular && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
-                  Most Popular
-                </span>
-              )}
-              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${tier.color} mb-4`} />
-              <h3 className="text-lg font-semibold text-foreground mb-1">{tier.name}</h3>
-              <div className="flex items-baseline gap-1 mb-4">
-                <span className="text-3xl font-bold text-foreground">{tier.price}</span>
-                <span className="text-muted-foreground text-sm">{tier.period}</span>
-              </div>
-              <ul className="space-y-2 mb-6">
-                {tier.features.map(f => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-muted-foreground">
-                    <svg className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <button
-                className={`w-full py-2 rounded-lg text-sm font-medium transition-all ${
-                  currentPlan === tier.name.toUpperCase()
-                    ? 'bg-muted text-muted-foreground cursor-default'
-                    : tier.popular
-                      ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                      : 'border border-border hover:border-foreground/40 text-foreground'
+          {PLANS.map((plan, i) => {
+            const accent = TIER_ACCENTS[plan.tier];
+            const price = plan.priceMonthly === null ? plan.priceLabel : `$${plan.priceMonthly}`;
+            const period = plan.priceMonthly === null ? '' : '/month';
+            const requestLimit = plan.apiRequestsPerHour === null
+              ? 'Unlimited API requests'
+              : `${plan.apiRequestsPerHour.toLocaleString()} API requests / hour`;
+            const features = [
+              requestLimit,
+              ...plan.features.map((feature) => BILLING_FEATURE_LABELS[feature]),
+            ];
+
+            return (
+              <motion.div
+                key={plan.tier}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 + i * 0.08 }}
+                className={`relative rounded-2xl border bg-card p-6 shadow-sm ${
+                  accent.popular ? 'border-emerald-300 shadow-emerald-100 shadow-md' : 'border-border'
                 }`}
               >
-                {currentPlan === tier.name.toUpperCase() ? 'Current Plan' : tier.name === 'Enterprise' ? 'Contact Sales' : `Upgrade to ${tier.name}`}
-              </button>
-            </motion.div>
-          ))}
+                {accent.popular && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                    Most Popular
+                  </span>
+                )}
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${accent.color} mb-4`} />
+                <h3 className="text-lg font-semibold text-foreground mb-1">{plan.name}</h3>
+                <div className="flex items-baseline gap-1 mb-4">
+                  <span className="text-3xl font-bold text-foreground">{price}</span>
+                  <span className="text-muted-foreground text-sm">{period}</span>
+                </div>
+                <ul className="space-y-2 mb-6">
+                  {features.map((feature) => (
+                    <li key={feature} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <svg className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mb-6 rounded-xl border border-dashed border-border bg-muted/40 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Launch Limitations</p>
+                  <ul className="mt-2 space-y-1.5 text-xs text-muted-foreground">
+                    {plan.launchLimitations.map((limitation) => (
+                      <li key={limitation}>{limitation}</li>
+                    ))}
+                  </ul>
+                </div>
+                {plan.checkoutMode === 'contact-sales' ? (
+                  <a
+                    href={accessMailto(plan.tier)}
+                    className="block w-full py-2 rounded-lg text-sm font-medium text-center border border-border hover:border-foreground/40 text-foreground transition-colors"
+                  >
+                    Contact Sales
+                  </a>
+                ) : (
+                  <a
+                    href={accessMailto(plan.tier)}
+                    className={`block w-full py-2 rounded-lg text-sm font-medium text-center transition-colors ${
+                      accent.popular
+                        ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                        : 'border border-border hover:border-foreground/40 text-foreground'
+                    }`}
+                  >
+                    Get {plan.name} access →
+                  </a>
+                )}
+                <p className="mt-2 text-center text-[10px] text-muted-foreground/60">
+                  Self-serve checkout activates after pilot gate closes
+                </p>
+              </motion.div>
+            );
+          })}
         </div>
 
-        {/* API Keys Section */}
+        {/* Doctrine + Calculator */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="mb-16 grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]"
+        >
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Pricing Doctrine</p>
+            <h2 className="mt-2 text-xl font-semibold text-foreground">What we bill, and what we do not</h2>
+            <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
+              {PRICING_DOCTRINE_LIMITATIONS.map((limitation) => (
+                <li key={limitation} className="flex items-start gap-2">
+                  <span className="mt-1 w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                  {limitation}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Sample Usage Calculator</p>
+            <h2 className="mt-2 text-xl font-semibold text-foreground">Billable activity, not implied revenue</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Example month. Same-band repeat access stays free — only new freshness-band pulls count as billable.
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-xl bg-muted/50 p-3">
+                <p className="text-muted-foreground text-xs">Billable pulls</p>
+                <p className="mt-1 text-2xl font-semibold text-foreground">{SAMPLE_ACTIVITY.billableCredentialPulls}</p>
+              </div>
+              <div className="rounded-xl bg-muted/50 p-3">
+                <p className="text-muted-foreground text-xs">No-double-pay repeat views</p>
+                <p className="mt-1 text-2xl font-semibold text-foreground">{SAMPLE_ACTIVITY.includedRepeatViews}</p>
+              </div>
+              <div className="rounded-xl bg-muted/50 p-3">
+                <p className="text-muted-foreground text-xs">Monitoring refreshes</p>
+                <p className="mt-1 text-2xl font-semibold text-foreground">{SAMPLE_ACTIVITY.monitoringRefreshes}</p>
+              </div>
+              <div className="rounded-xl bg-muted/50 p-3">
+                <p className="text-muted-foreground text-xs">Export runs</p>
+                <p className="mt-1 text-2xl font-semibold text-foreground">{SAMPLE_ACTIVITY.exportRuns}</p>
+              </div>
+            </div>
+            <div className="mt-4 rounded-xl border border-dashed border-border p-3 text-sm text-muted-foreground">
+              Government fee pass-through example:{' '}
+              <span className="font-semibold text-foreground">{formatUsd(SAMPLE_GOVERNMENT_FEES)}</span>
+              <p className="mt-1 text-xs">
+                Pass-through fees are itemized at cost, not marked up.
+                Contract-gated source fees appear only when that source is live.
+              </p>
+            </div>
+            <p className="mt-3 text-[10px] text-muted-foreground/60">
+              This calculator shows example data to illustrate the no-double-pay model. It is not connected to a real account.
+            </p>
+          </div>
+        </motion.div>
+
+        {/* API Keys — gated until checkout */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -169,71 +276,74 @@ export default function BillingPage() {
           <div className="px-6 py-4 border-b border-border flex items-center justify-between">
             <div>
               <h2 className="text-base font-semibold text-foreground">API Keys</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Keys are shown once at creation. Store them securely.</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Keys are provisioned after an organization plan is activated.
+                During the pilot, request access by email.
+              </p>
             </div>
             <button
-              onClick={() => setShowNewKey(!showNewKey)}
+              onClick={() => setShowNewKeyForm(!showNewKeyForm)}
               className="flex items-center gap-2 bg-foreground hover:bg-foreground/90 text-background text-xs font-medium px-3 py-2 rounded-lg transition-colors"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              New Key
+              Request key
             </button>
           </div>
 
-          {showNewKey && (
-            <div className="px-6 py-4 bg-muted border-b border-border flex items-center gap-3">
-              <input
-                type="text"
-                value={newKeyName}
-                onChange={e => setNewKeyName(e.target.value)}
-                placeholder="Key name (e.g. Production)"
-                className="flex-1 text-sm border border-input rounded-lg px-3 py-2 bg-card focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring"
-              />
-              <button className="bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-                Generate
-              </button>
+          {showNewKeyForm && !keyFormSubmitted && (
+            <div className="px-6 py-4 bg-muted border-b border-border">
+              <p className="text-xs text-muted-foreground mb-3">
+                API key provisioning is handled manually during the pilot. Enter a name and submit —
+                we will follow up at your account email.
+              </p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={newKeyName}
+                  onChange={e => setNewKeyName(e.target.value)}
+                  placeholder="Key name (e.g. Production, Staging)"
+                  className="flex-1 text-sm border border-input rounded-lg px-3 py-2 bg-card focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring"
+                />
+                <button
+                  onClick={handleKeyRequest}
+                  disabled={!newKeyName.trim()}
+                  className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                >
+                  Submit request
+                </button>
+              </div>
             </div>
           )}
 
-          <div className="divide-y divide-border">
-            {DEMO_KEYS.map(key => (
-              <div key={key.id} className={`px-6 py-4 flex items-center justify-between ${key.revokedAt ? 'opacity-50' : ''}`}>
-                <div className="flex items-center gap-4">
-                  <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
-                    <svg className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground flex items-center gap-2">
-                      {key.name}
-                      {key.revokedAt && <span className="text-xs text-red-500 font-normal">Revoked</span>}
-                    </p>
-                    <p className="text-xs text-muted-foreground font-mono">vk_••••••••••••{key.id}••••</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-6">
-                  <TierBadge tier={key.tier} />
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-foreground">{key.requestCount.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">requests</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground">Last used</p>
-                    <p className="text-xs text-muted-foreground">{key.lastUsedAt}</p>
-                  </div>
-                  {!key.revokedAt && (
-                    <button className="text-xs text-red-500 hover:text-red-700 transition-colors">
-                      Revoke
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+          {showNewKeyForm && keyFormSubmitted && (
+            <div className="px-6 py-4 bg-emerald-50 border-b border-emerald-200">
+              <p className="text-sm font-medium text-emerald-800">Request noted — &ldquo;{newKeyName}&rdquo;</p>
+              <p className="text-xs text-emerald-700 mt-1">
+                API key provisioning happens manually during the pilot. We will follow up to confirm your access.
+              </p>
+            </div>
+          )}
+
+          {/* Empty state — no synthetic keys shown */}
+          <div className="px-6 py-10 text-center">
+            <div className="mx-auto w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-4">
+              <svg className="w-5 h-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-foreground">No API keys provisioned yet</p>
+            <p className="mt-2 text-xs text-muted-foreground max-w-xs mx-auto">
+              Keys are created after an organization plan is active.
+              Pilot participants can request a key above or by emailing{' '}
+              <a href={`mailto:${ACCESS_EMAIL}`} className="text-emerald-600 hover:text-emerald-700 underline underline-offset-2">
+                {ACCESS_EMAIL}
+              </a>.
+            </p>
           </div>
         </motion.div>
+
       </div>
     </div>
   );

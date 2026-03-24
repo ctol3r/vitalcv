@@ -1,6 +1,7 @@
 'use client';
 
-import { type FormEvent, useState } from 'react';
+import React, { type FormEvent, useState } from 'react';
+import type { PilotFilter } from '@/lib/pilot/pilotKpiTypes';
 
 type StartOutcomeState =
   | { kind: 'idle' }
@@ -27,11 +28,13 @@ export function ScopeFilterForm({
   initialOrg,
   initialPilotId,
   initialLane,
+  initialGeo,
 }: {
   days: number;
   initialOrg: string;
   initialPilotId: string;
   initialLane: string;
+  initialGeo: string;
 }) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,6 +46,7 @@ export function ScopeFilterForm({
     const org = String(formData.get('org') ?? '').trim();
     const pilotId = String(formData.get('pilotId') ?? '').trim();
     const lane = String(formData.get('lane') ?? '').trim();
+    const geo = String(formData.get('geo') ?? '').trim();
 
     if (org) {
       params.set('org', org);
@@ -53,12 +57,15 @@ export function ScopeFilterForm({
     if (lane) {
       params.set('lane', lane);
     }
+    if (geo) {
+      params.set('geo', geo);
+    }
 
     window.location.assign(`/pilot-ops?${params.toString()}`);
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+    <form onSubmit={handleSubmit} className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_auto]">
       <label className="block">
         <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">Org Context ID</span>
         <input
@@ -89,6 +96,16 @@ export function ScopeFilterForm({
           className="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-white/20"
         />
       </label>
+      <label className="block">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">Geography</span>
+        <input
+          name="geo"
+          type="text"
+          defaultValue={initialGeo}
+          placeholder="CA"
+          className="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-white/20"
+        />
+      </label>
       <div className="flex items-end gap-2">
         <button
           type="submit"
@@ -107,7 +124,11 @@ export function ScopeFilterForm({
   );
 }
 
-export function StartOutcomeForm() {
+export function StartOutcomeForm({
+  filter,
+}: {
+  filter: PilotFilter;
+}) {
   const [entityId, setEntityId] = useState('');
   const [startedAt, setStartedAt] = useState(todayValue);
   const [note, setNote] = useState('');
@@ -141,6 +162,10 @@ export function StartOutcomeForm() {
           entityId: trimmedEntityId,
           startedAt: new Date(`${startedAt}T00:00:00.000Z`).toISOString(),
           note: trimmedNote || undefined,
+          organizationContextId: filter.orgContextId ?? undefined,
+          pilotId: filter.pilotId ?? undefined,
+          workflowLane: filter.workflowLane ?? undefined,
+          geographyTag: filter.geographyTag ?? undefined,
         }),
       });
 
@@ -183,6 +208,11 @@ export function StartOutcomeForm() {
         <p className="mt-1 text-xs text-white/30">
           Manual operator capture for a confirmed clinician start.
         </p>
+        {(filter.orgContextId || filter.pilotId || filter.workflowLane || filter.geographyTag) && (
+          <p className="mt-2 text-[11px] text-white/45">
+            The active pilot scope will be attached to this start event.
+          </p>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)_minmax(0,1fr)_auto]">

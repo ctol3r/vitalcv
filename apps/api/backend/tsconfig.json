@@ -20,7 +20,8 @@
       "@vitalcv/crs/*": ["packages/crs/*"],
       "@vitalcv/trust-state/*": ["packages/trust-state/*"],
       "@vitalcv/audit/*": ["packages/audit/*"],
-      "@vitalcv/haip-config": ["packages/haip-config"]
+      "@vitalcv/haip-config": ["packages/haip-config"],
+      "@vitalcv/shared/*": ["packages/shared/*"]
     },
 
     "types": ["node", "jest"],

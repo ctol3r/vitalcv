@@ -63,12 +63,24 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   };
 
   const organizationContextId = readOptionalString(payload.organizationContextId);
+  const pilotId = readOptionalString(payload.pilotId);
+  const workflowLane = readOptionalString(payload.workflowLane);
+  const geographyTag = readOptionalString(payload.geographyTag);
   const readinessScoreAtStart = readOptionalNumber(payload.readinessScoreAtStart);
   const blockers = readOptionalStringArray(payload.blockers);
   const note = readOptionalString(payload.note);
 
   if (organizationContextId) {
     body.organizationContextId = organizationContextId;
+  }
+  if (pilotId) {
+    body.pilotId = pilotId;
+  }
+  if (workflowLane) {
+    body.workflowLane = workflowLane;
+  }
+  if (geographyTag) {
+    body.geographyTag = geographyTag;
   }
   if (typeof readinessScoreAtStart === 'number') {
     body.readinessScoreAtStart = readinessScoreAtStart;

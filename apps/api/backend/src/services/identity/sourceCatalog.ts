@@ -309,3 +309,23 @@ export function getAutomationSafeSources(): SourceDefinition[] {
   const safeIds = ['NPPES_API', 'NPPES_BULK', 'PECOS_PUBLIC', 'DOCTORS_CLINICIANS', 'CMS_NDF', 'OIG_LEIE', 'OPEN_PAYMENTS', 'OPENALEX', 'PUBMED', 'CLINICAL_TRIALS'];
   return Object.values(SOURCE_CATALOG).filter(s => safeIds.includes(s.id));
 }
+
+/**
+ * Launch spine — the sources that MUST run on every ingest at launch.
+ * Phase 2+ sources are never automatically added here.
+ * Matches packages/trust-state/sourceCoverage.ts LAUNCH_SPINE_SOURCE_IDS.
+ */
+export const LAUNCH_SPINE_SOURCE_IDS = ['NPPES_API', 'OIG_LEIE', 'PECOS_PUBLIC'] as const;
+export type LaunchSpineSourceId = (typeof LAUNCH_SPINE_SOURCE_IDS)[number];
+
+export function isLaunchSpineSource(id: string): id is LaunchSpineSourceId {
+  return (LAUNCH_SPINE_SOURCE_IDS as readonly string[]).includes(id);
+}
+
+/**
+ * Returns the freshness SLA window (hours) for a given source.
+ * Falls back to 168h (1 week) if the source is unknown.
+ */
+export function getSourceFreshnessWindowHours(sourceId: string): number {
+  return SOURCE_CATALOG[sourceId]?.refreshSlaHours ?? 168;
+}

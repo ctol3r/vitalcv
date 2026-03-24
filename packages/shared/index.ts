@@ -5,6 +5,7 @@ export * from './roles';
 export * from './credentials';
 export * from './onchain';
 export * from './legacy';
+export * from './pricing';
 
 export {
   RecognitionEvent as CanonicalRecognitionEvent,

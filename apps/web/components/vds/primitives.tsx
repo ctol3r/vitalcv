@@ -61,16 +61,7 @@ const BADGE_ACCENT_CLASSES: Record<BadgeTone, string> = {
   info:     'border-l-[var(--vt-badge-info-border)]',
 };
 
-export type TrustStatusLabel =
-  | 'verified'
-  | 'clear'
-  | 'enrolled'
-  | 'pending'
-  | 'review required'
-  | 'unavailable'
-  | 'access required'
-  | 'not decision-grade'
-  | 'blocked';
+export type TrustStatusLabel = Parameters<typeof getVdsTrustStatusLabel>[0];
 
 const TRUST_STATUS_TONES: Record<TrustStatusLabel, BadgeTone> = {
   verified: 'success',

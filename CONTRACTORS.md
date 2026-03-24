@@ -2,7 +2,7 @@
 
 > Written 2026-03-23. Keep this updated when routes, sources, or rules change.
 > 
-> **CRITICAL PILOT DOCS:** Before deploying or modifying logic, read [vitalcv-launch-gate.md](./docs/specs/vitalcv-launch-gate.md) and [vitalcv-pilot-runbook.md](./docs/specs/vitalcv-pilot-runbook.md). **DO NOT reintroduce demo theater. Build for truth.**
+> **CRITICAL PILOT DOCS:** Before deploying or modifying logic, read [vitalcv-launch-gate.md](./docs/specs/vitalcv-launch-gate.md), [vitalcv-pilot-runbook.md](./docs/specs/vitalcv-pilot-runbook.md), [vitalcv-pilot-brief.md](./docs/specs/vitalcv-pilot-brief.md), and [vitalcv-pricing-doctrine.md](./docs/specs/vitalcv-pricing-doctrine.md). **DO NOT reintroduce demo theater. Build for truth.**
 
 ---
 
@@ -100,6 +100,9 @@ If any source is `gated` or `unchecked`, it's honest-unavailable — not decisio
 | "OIG/LEIE exclusion check" | "NPDB check cleared" |
 | "Selectively disclosed (SD-JWT)" | "Zero-knowledge proof" |
 | "Based on observed patterns" (SEAL advisory) | Any claim that SEAL-derived output is source truth |
+| "Same-band repeat access is not re-billed" | "Every review/open is a billable event" |
+| "Government fees pass through at cost" | "Government fees are included in base price" |
+| "Manual invoice/contact flow" when checkout is gated | "Live self-serve checkout" when it is not actually enabled |
 | Honest unavailable / gated labels | Implying a source was checked when it wasn't |
 
 ---
@@ -108,16 +111,19 @@ If any source is `gated` or `unchecked`, it's honest-unavailable — not decisio
 
 **DO NOT REINTRODUCE DEMO THEATER.**
 
-Two demo sub-routes exist as **legacy visual references only** — they use seeded data and are NOT wired to the production trust pipeline:
+Two demo sub-routes exist as **legacy visual references only** — they use seeded data and are NOT wired to the production trust pipeline. They, along with other stale marketing and dashboard shells, have been moved to `apps/web/app/_archive`.
 
-- `/demo/command-center` — Wave 10 VerifierCommandCenter (seeded candidates)
-- `/demo/verifier-portal` — Wave 11 VerifierPortal (seeded candidates)
+- `/demo/command-center` (Archived)
+- `/demo/verifier-portal` (Archived)
+- Mobile, Marketing Dashboard, and Simulation shells are also in `_archive`.
 
 Both have amber banners marking them as demo artifacts. **Do not wire these to live APIs.** 
 
 For the first live pilot, you MUST follow the exact bounds defined in:
 - The [Launch Gate Check](docs/specs/vitalcv-launch-gate.md)
 - The [Pilot Runbook](docs/specs/vitalcv-pilot-runbook.md)
+- The [Pilot Brief](docs/specs/vitalcv-pilot-brief.md)
+- The [Pricing Doctrine](docs/specs/vitalcv-pricing-doctrine.md)
 
 Do not widen the scope or build features solely to make demos look more impressive. If it's not real, it's not shipping.
 
@@ -136,6 +142,8 @@ For a pilot demo run, the complete verification-to-decision flow takes <60 secon
 ```
 
 **Evidence packet:** `GET /api/employer-review/:entityId/packet` — JSON/download of all source evidence with explicit `sourceCoverage` object.
+
+**Scope rule:** If the pilot is filtered by org, pilot, lane, or geography, manually recorded start outcomes must carry that same scope. Do not claim filtered starts from unscoped `StartAttestation` rows.
 
 ---
 

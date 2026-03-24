@@ -1,23 +1,40 @@
-# VitalCV KPI Dashboard (Milestone 5)
+# VitalCV KPI Dashboard
 
 ## Dashboard Philosophy
-The KPI dashboard is strictly for monitoring the single wedge of our Milestone 5 pilot. It avoids vanity metrics and focuses entirely on system truth, monitoring speed, and employer action. 
 
-## The "One KPI" Focus
-As mandated by the Launch Gate, the pilot centers on:
-**One Buyer / One Workflow / One KPI / One Proof Story**
+The dashboard exists to prove one thing: whether the live credentialing wedge is reducing time from employer review to actual clinical start.
 
-The primary dashboard real estate belongs to this single overarching success metric (e.g., *Total Time to Verified Decision* or *Cost Per Verified Refresh*).
+## Primary KPI
 
-## Secondary Operational Metrics
-To ensure the system is operating defensibly without widening our defined scope:
-*   **Time-to-Verification:** Average time to fully verify a clinician profile upon employer pull.
-*   **Manual Intervention Rate:** Percentage of profile pulls requiring human review (target: 0%).
-*   **Freshness Band Status:** Breakdown of credentials monitored continuously vs. strictly static pulls.
-*   **Audit Trail Completeness:** System health metric ensuring 100% of employer actions are successfully logged immutably.
-*   **Government Fee Pass-Through Volume:** Total costs processed via pass-through (at cost) to primary sources.
+**Interview-to-Start Velocity**
+
+- Definition: median days from first employer review to recorded start outcome
+- Scope: may be filtered by `orgContextId`, `pilotId`, `workflowLane`, and `geographyTag`
+- Rule: filtered dashboards must not infer starts from unscoped canonical `start_attestations`
+
+## Supporting Operational Metrics
+
+- Packets shared
+- Reviews opened
+- Decisions made by type
+- Median days, first review to decision
+- Median days, first review to ready
+- Median days, share to decision
+- Blocker open/resolution counts and timing
+- Event-chain health across share, advisory, decision, blocker, and start tables
+
+## Export Contract
+
+Exports are for contractor handoff and buyer reporting, so they must stay machine-readable:
+
+- CSV rows use `section,label,value`
+- JSON exports preserve the applied scope
+- Gaps are explicit, never hidden
+- Source or billing limitations must stay in the surrounding pilot docs, not be inferred from dashboard silence
 
 ## Constraints
-*   *No enterprise theater*: Do not include generalized SaaS metrics (e.g., DAU/MAU, user sentiment surveys) that dilute focus from the core verification workflow.
-*   *No rebrand work*: Ensure visualizations match current dashboard styling.
-*   *Aligned to the single wedge*: Dashboard must exclusively surface metrics evaluating our specific pilot parameters.
+
+- No vanity SaaS metrics
+- No inferred pilot health from unrelated product surfaces
+- No unscoped start inflation in filtered views
+- No KPI wording drift from the pilot brief or runbook

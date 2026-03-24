@@ -69,6 +69,11 @@ const DECISION_BUCKETS = [
   ['rejectCount', 'REJECT'],
   ['holdCount', 'HOLD'],
 ] as const;
+const METADATA_SCOPE_FIELDS = [
+  { key: 'pilotId', path: ['pilotId'] },
+  { key: 'workflowLane', path: ['workflowLane'] },
+  { key: 'geographyTag', path: ['geographyTag'] },
+] as const;
 
 type MetadataPathEquals = {
   path: string[];
@@ -77,11 +82,10 @@ type MetadataPathEquals = {
 
 /** Build Prisma JSONB path filters for metadata-stored scope fields */
 function metadataScopeWhere(filter: PilotFilter): MetadataPathEquals[] {
-  const clauses: MetadataPathEquals[] = [];
-  if (filter.pilotId) clauses.push({ path: ['pilotId'], equals: filter.pilotId });
-  if (filter.workflowLane) clauses.push({ path: ['workflowLane'], equals: filter.workflowLane });
-  if (filter.geographyTag) clauses.push({ path: ['geographyTag'], equals: filter.geographyTag });
-  return clauses;
+  return METADATA_SCOPE_FIELDS.flatMap((field) => {
+    const value = filter[field.key];
+    return value ? [{ path: [...field.path], equals: value }] : [];
+  });
 }
 
 /** True when filter would restrict results */
@@ -264,6 +268,19 @@ export interface BlockerKpi {
   byResolutionMethod: Record<string, number>;
 }
 
+export interface ReadinessDistribution {
+  /** Clinicians with at least one employer review whose latest advisory score is READY (≥60) */
+  ready: number;
+  /** Clinicians whose latest advisory score is PARTIAL (30–59) */
+  partial: number;
+  /** Clinicians whose latest advisory score is BLOCKED (<30) or had explicit blockers at review */
+  blocked: number;
+  /** Total distinct clinicians with at least one review event in the window */
+  total: number;
+  /** Clinicians who were reviewed but have no score recorded (pre-date score capture) */
+  noScore: number;
+}
+
 export interface StartOutcomeStats {
   totalStarts: number;
   distinctEntities: number;
@@ -312,8 +329,17 @@ export interface PilotKpiSnapshot {
     startAttestations: number;
   };
 
+  /** Readiness distribution — READY/PARTIAL/BLOCKED counts for reviewed clinicians */
+  readinessDistribution: ReadinessDistribution;
+
   /** Missing fields in this window — informs what to collect next */
   gaps: string[];
+}
+
+export interface PilotKpiExportRow {
+  section: string;
+  label: string;
+  value: string;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -707,6 +733,46 @@ export async function computePilotKpis(
     },
   };
 
+  // ── Readiness Distribution ────────────────────────────────────────────
+  // For each distinct entity that had at least one EMPLOYER_REVIEW advisory event in the
+  // window, take their LATEST readinessScoreAtEvent and bucket into READY/PARTIAL/BLOCKED.
+  // This is an event-sourced approximation — it reflects readiness at last review, not
+  // current live score. Sufficient for pilot reporting purposes.
+  const READY_MIN = 60;
+  const PARTIAL_MIN = 30;
+
+  // reviewEvents is ordered eventTimestamp asc — iterate forward so the last write
+  // per entityId is the most recent score (last-write-wins).
+  const latestScoreByEntity = new Map<string, number | null>();
+  for (const event of reviewEvents) {
+    const score = event.readinessScoreAtEvent ?? null;
+    // Always overwrite — last event per entity is the latest
+    const prev = latestScoreByEntity.get(event.entityId);
+    if (prev === undefined || score !== null) {
+      latestScoreByEntity.set(event.entityId, score);
+    }
+  }
+
+  let readyCount = 0;
+  let partialCount = 0;
+  let blockedCount = 0;
+  let noScoreCount = 0;
+
+  for (const score of latestScoreByEntity.values()) {
+    if (score === null) { noScoreCount++; continue; }
+    if (score >= READY_MIN) readyCount++;
+    else if (score >= PARTIAL_MIN) partialCount++;
+    else blockedCount++;
+  }
+
+  const readinessDistribution: ReadinessDistribution = {
+    ready: readyCount,
+    partial: partialCount,
+    blocked: blockedCount,
+    total: latestScoreByEntity.size,
+    noScore: noScoreCount,
+  };
+
   // ── Gaps detection ────────────────────────────────────────────────────
   const gaps: string[] = [];
   if (reviewEvents.length === 0) {
@@ -752,6 +818,7 @@ export async function computePilotKpis(
     velocity,
     blockers,
     startOutcomes,
+    readinessDistribution,
     eventChain: {
       bundleShareEvents: bundleShareCount,
       advisoryOutcomeEvents: advisoryOutcomeCount,
@@ -765,87 +832,191 @@ export async function computePilotKpis(
   };
 }
 
+const VELOCITY_EXPORT_DEFINITIONS = [
+  {
+    label: 'median_days_first_review_to_decision',
+    value: (snap: PilotKpiSnapshot) => snap.velocity.medianDaysFirstReviewToDecision,
+    sampleLabel: 'sample_review_to_decision',
+    sampleValue: (snap: PilotKpiSnapshot) => snap.velocity.sampleSizes.reviewToDecision,
+  },
+  {
+    label: 'median_days_first_review_to_ready',
+    value: (snap: PilotKpiSnapshot) => snap.velocity.medianDaysFirstReviewToReady,
+    sampleLabel: 'sample_review_to_ready',
+    sampleValue: (snap: PilotKpiSnapshot) => snap.velocity.sampleSizes.reviewToReady,
+  },
+  {
+    label: 'median_days_first_review_to_start',
+    value: (snap: PilotKpiSnapshot) => snap.velocity.medianDaysFirstReviewToStart,
+    sampleLabel: 'sample_review_to_start',
+    sampleValue: (snap: PilotKpiSnapshot) => snap.velocity.sampleSizes.reviewToStart,
+  },
+  {
+    label: 'median_days_share_to_decision',
+    value: (snap: PilotKpiSnapshot) => snap.velocity.medianDaysShareToDecision,
+    sampleLabel: 'sample_share_to_decision',
+    sampleValue: (snap: PilotKpiSnapshot) => snap.velocity.sampleSizes.shareToDecision,
+  },
+] as const;
+
+function formatExportValue(
+  value: number | string | null | undefined,
+  fallback: string = 'n/a',
+): string {
+  if (typeof value === 'number') {
+    return String(value);
+  }
+
+  if (typeof value === 'string' && value.length > 0) {
+    return value;
+  }
+
+  return fallback;
+}
+
+function csvCell(cell: string): string {
+  return cell.includes(',') || cell.includes('"') || cell.includes('\n')
+    ? `"${cell.replace(/"/g, '""')}"`
+    : cell;
+}
+
 // ── CSV export ─────────────────────────────────────────────────────────────
 // Returns a flat CSV suitable for pasting into a pilot report spreadsheet.
 
-export function kpiSnapshotToCsv(snap: PilotKpiSnapshot): string {
+export function kpiSnapshotToExportRows(snap: PilotKpiSnapshot): PilotKpiExportRow[] {
   const filter = snap.appliedFilter ?? {};
-  const csvCell = (cell: string) => (
-    cell.includes(',') || cell.includes('"') || cell.includes('\n')
-      ? `"${cell.replace(/"/g, '""')}"`
-      : cell
-  );
-
-  const rows: string[][] = [
-    ['VitalCV Pilot KPI Report'],
-    ['Generated At', snap.generatedAt],
-    ['Window (days)', String(snap.windowDays)],
-    ['Since', snap.since],
-    ['Pilot ID', filter.pilotId ?? '(all)'],
-    ['Workflow Lane', filter.workflowLane ?? '(all)'],
-    ['Org Context', filter.orgContextId ?? '(all)'],
-    ['Geography', filter.geographyTag ?? '(all)'],
-    [],
-    ['=== PACKET SHARES ==='],
-    ['Total packets shared', String(snap.packetShares.total)],
-    ['Distinct clinicians', String(snap.packetShares.distinctEntities)],
-    ['Distinct organizations', String(snap.packetShares.distinctOrgs)],
-    ['Earliest share', snap.packetShares.earliestSharedAt ?? 'none'],
-    ['Latest share', snap.packetShares.latestSharedAt ?? 'none'],
-    [],
-    ['=== EMPLOYER REVIEWS OPENED ==='],
-    ['Total review opens', String(snap.reviewsOpened.total)],
-    ['Distinct clinicians reviewed', String(snap.reviewsOpened.distinctEntities)],
-    ['Earliest review open', snap.reviewsOpened.earliestAt ?? 'none'],
-    ['Latest review open', snap.reviewsOpened.latestAt ?? 'none'],
-    [],
-    ['=== EMPLOYER DECISIONS ==='],
-    ['Total decisions', String(snap.decisions.total)],
-    ['Proceed (accept as head start)', String(snap.decisions.proceedCount)],
-    ['Request refresh', String(snap.decisions.refreshCount)],
-    ['Route to review', String(snap.decisions.routeCount)],
-    ['Reject', String(snap.decisions.rejectCount)],
-    ['Hold', String(snap.decisions.holdCount)],
-    [],
-    ['=== VELOCITY (days) ==='],
-    ['Median: first review → decision', snap.velocity.medianDaysFirstReviewToDecision !== null ? String(snap.velocity.medianDaysFirstReviewToDecision) : 'insufficient data'],
-    ['Median: first review → ready (L2+)', snap.velocity.medianDaysFirstReviewToReady !== null ? String(snap.velocity.medianDaysFirstReviewToReady) : 'insufficient data'],
-    ['Median: first review → start', snap.velocity.medianDaysFirstReviewToStart !== null ? String(snap.velocity.medianDaysFirstReviewToStart) : 'insufficient data'],
-    ['Median: share → decision', snap.velocity.medianDaysShareToDecision !== null ? String(snap.velocity.medianDaysShareToDecision) : 'insufficient data'],
-    ['Sample: review→decision', String(snap.velocity.sampleSizes.reviewToDecision)],
-    ['Sample: review→ready', String(snap.velocity.sampleSizes.reviewToReady)],
-    ['Sample: review→start', String(snap.velocity.sampleSizes.reviewToStart)],
-    ['Sample: share→decision', String(snap.velocity.sampleSizes.shareToDecision)],
-    [],
-    ['=== START OUTCOMES ==='],
-    ['Total starts recorded', String(snap.startOutcomes.totalStarts)],
-    ['Distinct clinicians started', String(snap.startOutcomes.distinctEntities)],
-    ['Avg readiness score at start', snap.startOutcomes.readinessAtStart.avgScore !== null ? String(snap.startOutcomes.readinessAtStart.avgScore) : 'n/a'],
-    ['Starts with open blockers', String(snap.startOutcomes.readinessAtStart.withBlockers)],
-    [],
-    ['=== BLOCKERS ==='],
-    ['Code', 'Open', 'Resolved', 'Avg Resolution (days)', 'Median Resolution (days)'],
-    ...snap.blockers.map((blocker) => [
-      blocker.code,
-      String(blocker.openCount),
-      String(blocker.resolvedCount),
-      blocker.avgResolutionDays !== null ? String(blocker.avgResolutionDays) : 'n/a',
-      blocker.medianResolutionDays !== null ? String(blocker.medianResolutionDays) : 'n/a',
-    ]),
-    [],
-    ['=== EVENT CHAIN HEALTH ==='],
-    ['bundle_share_events', String(snap.eventChain.bundleShareEvents)],
-    ['advisory_outcome_events', String(snap.eventChain.advisoryOutcomeEvents)],
-    ['employer_decision_events', String(snap.eventChain.employerDecisionEvents)],
-    ['blocker_resolution_events', String(snap.eventChain.blockerResolutionEvents)],
-    ['start_outcome_events', String(snap.eventChain.startOutcomeEvents)],
-    ['employer_acceptances', String(snap.eventChain.employerAcceptances)],
-    ['start_attestations', String(snap.eventChain.startAttestations)],
-    [],
-    ...(snap.gaps.length > 0
-      ? [['=== GAPS (fields not yet populated) ==='], ...snap.gaps.map((gap) => [gap])]
-      : [['=== GAPS ==='], ['None — all event tables are populating.']]),
+  const rows: PilotKpiExportRow[] = [
+    { section: 'metadata', label: 'generated_at', value: snap.generatedAt },
+    { section: 'metadata', label: 'window_days', value: String(snap.windowDays) },
+    { section: 'metadata', label: 'since', value: snap.since },
+    { section: 'filters', label: 'pilot_id', value: filter.pilotId ?? '(all)' },
+    { section: 'filters', label: 'workflow_lane', value: filter.workflowLane ?? '(all)' },
+    { section: 'filters', label: 'org_context_id', value: filter.orgContextId ?? '(all)' },
+    { section: 'filters', label: 'geography_tag', value: filter.geographyTag ?? '(all)' },
+    { section: 'packet_shares', label: 'total', value: String(snap.packetShares.total) },
+    { section: 'packet_shares', label: 'distinct_entities', value: String(snap.packetShares.distinctEntities) },
+    { section: 'packet_shares', label: 'distinct_organizations', value: String(snap.packetShares.distinctOrgs) },
+    { section: 'packet_shares', label: 'earliest_shared_at', value: snap.packetShares.earliestSharedAt ?? 'none' },
+    { section: 'packet_shares', label: 'latest_shared_at', value: snap.packetShares.latestSharedAt ?? 'none' },
+    { section: 'reviews_opened', label: 'total', value: String(snap.reviewsOpened.total) },
+    { section: 'reviews_opened', label: 'distinct_entities', value: String(snap.reviewsOpened.distinctEntities) },
+    { section: 'reviews_opened', label: 'earliest_at', value: snap.reviewsOpened.earliestAt ?? 'none' },
+    { section: 'reviews_opened', label: 'latest_at', value: snap.reviewsOpened.latestAt ?? 'none' },
+    { section: 'decisions', label: 'total', value: String(snap.decisions.total) },
+    { section: 'decisions', label: 'proceed_count', value: String(snap.decisions.proceedCount) },
+    { section: 'decisions', label: 'refresh_count', value: String(snap.decisions.refreshCount) },
+    { section: 'decisions', label: 'route_count', value: String(snap.decisions.routeCount) },
+    { section: 'decisions', label: 'reject_count', value: String(snap.decisions.rejectCount) },
+    { section: 'decisions', label: 'hold_count', value: String(snap.decisions.holdCount) },
+    { section: 'start_outcomes', label: 'total_starts', value: String(snap.startOutcomes.totalStarts) },
+    { section: 'start_outcomes', label: 'distinct_entities', value: String(snap.startOutcomes.distinctEntities) },
+    {
+      section: 'start_outcomes',
+      label: 'avg_readiness_score',
+      value: formatExportValue(snap.startOutcomes.readinessAtStart.avgScore),
+    },
+    {
+      section: 'start_outcomes',
+      label: 'median_readiness_score',
+      value: formatExportValue(snap.startOutcomes.readinessAtStart.medianScore),
+    },
+    {
+      section: 'start_outcomes',
+      label: 'starts_with_blockers',
+      value: String(snap.startOutcomes.readinessAtStart.withBlockers),
+    },
   ];
 
-  return rows.map((row) => row.map(csvCell).join(',')).join('\n');
+  for (const [deliveryStatus, count] of Object.entries(snap.packetShares.byDeliveryStatus).sort(([left], [right]) => left.localeCompare(right))) {
+    rows.push({
+      section: 'packet_share_delivery_status',
+      label: deliveryStatus.toLowerCase(),
+      value: String(count),
+    });
+  }
+
+  for (const [decisionType, count] of Object.entries(snap.decisions.byType).sort(([left], [right]) => left.localeCompare(right))) {
+    rows.push({
+      section: 'decision_types',
+      label: decisionType.toLowerCase(),
+      value: String(count),
+    });
+  }
+
+  for (const metric of VELOCITY_EXPORT_DEFINITIONS) {
+    rows.push({
+      section: 'velocity',
+      label: metric.label,
+      value: formatExportValue(metric.value(snap), 'insufficient data'),
+    });
+    rows.push({
+      section: 'velocity_samples',
+      label: metric.sampleLabel,
+      value: String(metric.sampleValue(snap)),
+    });
+  }
+
+  for (const blocker of snap.blockers) {
+    const blockerSection = `blocker:${blocker.code.toLowerCase()}`;
+    rows.push(
+      { section: blockerSection, label: 'open_count', value: String(blocker.openCount) },
+      { section: blockerSection, label: 'resolved_count', value: String(blocker.resolvedCount) },
+      { section: blockerSection, label: 'avg_resolution_days', value: formatExportValue(blocker.avgResolutionDays) },
+      { section: blockerSection, label: 'median_resolution_days', value: formatExportValue(blocker.medianResolutionDays) },
+    );
+
+    for (const [method, count] of Object.entries(blocker.byResolutionMethod).sort(([left], [right]) => left.localeCompare(right))) {
+      rows.push({
+        section: `${blockerSection}:resolution_method`,
+        label: method.toLowerCase(),
+        value: String(count),
+      });
+    }
+  }
+
+  rows.push(
+    { section: 'readiness_distribution', label: 'total_reviewed', value: String(snap.readinessDistribution.total) },
+    { section: 'readiness_distribution', label: 'ready', value: String(snap.readinessDistribution.ready) },
+    { section: 'readiness_distribution', label: 'partial', value: String(snap.readinessDistribution.partial) },
+    { section: 'readiness_distribution', label: 'blocked', value: String(snap.readinessDistribution.blocked) },
+    { section: 'readiness_distribution', label: 'no_score_recorded', value: String(snap.readinessDistribution.noScore) },
+  );
+
+  for (const { orgContextId, count } of snap.reviewsOpened.byOrgContext) {
+    rows.push({
+      section: 'review_org_context',
+      label: orgContextId ?? '(none)',
+      value: String(count),
+    });
+  }
+
+  for (const [eventName, count] of Object.entries(snap.eventChain).sort(([left], [right]) => left.localeCompare(right))) {
+    rows.push({
+      section: 'event_chain',
+      label: eventName.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, ''),
+      value: String(count),
+    });
+  }
+
+  if (snap.gaps.length === 0) {
+    rows.push({ section: 'gaps', label: 'status', value: 'none' });
+  } else {
+    snap.gaps.forEach((gap, index) => {
+      rows.push({
+        section: 'gaps',
+        label: `gap_${index + 1}`,
+        value: gap,
+      });
+    });
+  }
+
+  return rows;
+}
+
+export function kpiSnapshotToCsv(snap: PilotKpiSnapshot): string {
+  const rows = kpiSnapshotToExportRows(snap);
+  return [
+    ['section', 'label', 'value'],
+    ...rows.map((row) => [row.section, row.label, row.value]),
+  ].map((row) => row.map(csvCell).join(',')).join('\n');
 }

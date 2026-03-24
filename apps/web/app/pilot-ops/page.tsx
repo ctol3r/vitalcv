@@ -15,6 +15,12 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ScopeFilterForm, StartOutcomeForm } from './PilotOpsForms';
 import type { PilotFilter, PilotKpiSnapshot } from '@/lib/pilot/pilotKpiTypes';
+import {
+  buildBackendPilotKpiParams,
+  buildPilotExportHref,
+  buildPilotOpsHref,
+  readPilotFilterFromPageSearchParams,
+} from '@/lib/pilot/pilotKpiQuery';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,54 +47,10 @@ const LAUNCH_GATE_ITEMS = [
   'Source-Health Visibility',
 ] as const;
 
-function readOptionalSearchParam(value: string | undefined): string | null {
-  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
-}
-
-function appendPageFilterParams(params: URLSearchParams, filter: PilotFilter): void {
-  if (filter.orgContextId) {
-    params.set('org', filter.orgContextId);
-  }
-  if (filter.pilotId) {
-    params.set('pilotId', filter.pilotId);
-  }
-  if (filter.workflowLane) {
-    params.set('lane', filter.workflowLane);
-  }
-}
-
-function appendBackendFilterParams(params: URLSearchParams, filter: PilotFilter): void {
-  if (filter.orgContextId) {
-    params.set('orgContextId', filter.orgContextId);
-  }
-  if (filter.pilotId) {
-    params.set('pilotId', filter.pilotId);
-  }
-  if (filter.workflowLane) {
-    params.set('workflowLane', filter.workflowLane);
-  }
-}
-
-function buildPilotOpsHref(days: number, filter: PilotFilter): string {
-  const params = new URLSearchParams();
-  params.set('days', String(days));
-  appendPageFilterParams(params, filter);
-  return `/pilot-ops?${params.toString()}`;
-}
-
-function buildExportHref(path: string, days: number, filter: PilotFilter): string {
-  const params = new URLSearchParams();
-  params.set('days', String(days));
-  appendPageFilterParams(params, filter);
-  return `${path}?${params.toString()}`;
-}
-
 async function fetchKpis(days: number, filter: PilotFilter): Promise<PilotKpiSnapshot | null> {
   if (!MONITORING_SECRET) return null;
   try {
-    const params = new URLSearchParams();
-    params.set('days', String(days));
-    appendBackendFilterParams(params, filter);
+    const params = buildBackendPilotKpiParams(days, filter);
 
     const res = await fetch(
       `${B}/api/internal/pilot/kpis?${params.toString()}`,
@@ -154,6 +116,7 @@ export default async function PilotOpsPage({
     org?: string;
     pilotId?: string;
     lane?: string;
+    geo?: string;
   }>;
 }) {
   const {
@@ -161,13 +124,15 @@ export default async function PilotOpsPage({
     org: orgParam,
     pilotId: pilotIdParam,
     lane: laneParam,
+    geo: geoParam,
   } = await searchParams;
   const days = Math.min(parseInt(daysParam ?? '90', 10) || 90, 365);
-  const filter: PilotFilter = {
-    orgContextId: readOptionalSearchParam(orgParam),
-    pilotId: readOptionalSearchParam(pilotIdParam),
-    workflowLane: readOptionalSearchParam(laneParam),
-  };
+  const filter: PilotFilter = readPilotFilterFromPageSearchParams({
+    org: orgParam,
+    pilotId: pilotIdParam,
+    lane: laneParam,
+    geo: geoParam,
+  });
 
   const kpi = await fetchKpis(days, filter);
 
@@ -198,13 +163,14 @@ export default async function PilotOpsPage({
     );
   }
 
-  const exportUrl = buildExportHref('/api/pilot-kpi-export', days, filter);
-  const jsonExportUrl = buildExportHref('/api/pilot-kpi-json', days, filter);
+  const exportUrl = buildPilotExportHref('/api/pilot-kpi-export', days, filter);
+  const jsonExportUrl = buildPilotExportHref('/api/pilot-kpi-json', days, filter);
   const notStartedCount = Math.max(0, kpi.reviewsOpened.distinctEntities - kpi.startOutcomes.distinctEntities);
   const appliedScope = [
     { label: 'Org', value: kpi.appliedFilter.orgContextId },
     { label: 'Pilot', value: kpi.appliedFilter.pilotId },
     { label: 'Lane', value: kpi.appliedFilter.workflowLane },
+    { label: 'Geography', value: kpi.appliedFilter.geographyTag },
   ].filter((entry): entry is { label: string; value: string } => typeof entry.value === 'string' && entry.value.length > 0);
 
   return (
@@ -252,13 +218,14 @@ export default async function PilotOpsPage({
         <div className="mb-6 rounded-xl border border-white/8 bg-white/[0.03] p-4">
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/25">Scope Filters</p>
           <p className="mt-1 text-xs text-white/30">
-            Narrow the KPI window to a single org context, pilot, or workflow lane.
+            Narrow the KPI window to a single org context, pilot, workflow lane, or geography.
           </p>
           <ScopeFilterForm
             days={days}
             initialOrg={filter.orgContextId ?? ''}
             initialPilotId={filter.pilotId ?? ''}
             initialLane={filter.workflowLane ?? ''}
+            initialGeo={filter.geographyTag ?? ''}
           />
         </div>
 
@@ -439,6 +406,50 @@ export default async function PilotOpsPage({
           </div>
         )}
 
+        {/* Readiness distribution */}
+        <SectionHeader
+          title="Readiness Distribution"
+          sub="READY/PARTIAL/BLOCKED counts based on latest advisory score per reviewed clinician"
+        />
+        {kpi.readinessDistribution.total === 0 ? (
+          <p className="text-sm text-white/25 mt-2">
+            No reviewed clinicians yet — readiness distribution will populate once employer reviews fire.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+            <KpiTile
+              label="READY (≥60)"
+              value={kpi.readinessDistribution.ready}
+              sub="clinicians ready to start"
+              tone="green"
+            />
+            <KpiTile
+              label="PARTIAL (30–59)"
+              value={kpi.readinessDistribution.partial}
+              sub="some gaps remain"
+              tone="amber"
+            />
+            <KpiTile
+              label="BLOCKED (<30)"
+              value={kpi.readinessDistribution.blocked}
+              sub="hard blockers present"
+              tone="red"
+            />
+            <KpiTile
+              label="No Score"
+              value={kpi.readinessDistribution.noScore}
+              sub="pre-date score capture"
+              tone="neutral"
+            />
+            <KpiTile
+              label="Total Reviewed"
+              value={kpi.readinessDistribution.total}
+              sub="distinct clinicians seen"
+              tone="blue"
+            />
+          </div>
+        )}
+
         {/* Event chain health */}
         <SectionHeader title="Event Chain Health" sub="Confirms all capture points are firing" />
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 text-xs font-mono">
@@ -451,7 +462,7 @@ export default async function PilotOpsPage({
         </div>
 
         <SectionHeader title="Start Outcome Capture" sub="Record confirmed starts from the browser during a live pilot." />
-        <StartOutcomeForm />
+        <StartOutcomeForm filter={filter} />
 
         {/* Footer */}
         <div className="mt-12 pt-8 border-t border-white/6 flex flex-wrap gap-4 text-xs text-white/20">

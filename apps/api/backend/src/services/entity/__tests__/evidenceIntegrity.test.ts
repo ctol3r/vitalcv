@@ -1,6 +1,7 @@
 import {
   assertCredentialObservationIntegrity,
   resolveCredentialEvidence,
+  resolveReceiptLinkedArtifactId,
 } from '../evidenceIntegrity';
 
 describe('evidenceIntegrity', () => {
@@ -43,6 +44,29 @@ describe('evidenceIntegrity', () => {
     expect(result.issues).toContain('missing_receipt');
   });
 
+  it('quarantines replayed receipt links that no longer point at the credential artifact', () => {
+    const result = resolveCredentialEvidence({
+      credential: {
+        id: 'cred-1',
+        verificationLevel: 'SOURCE_VERIFIED',
+        artifactIds: ['artifact-1'],
+        receiptIds: ['receipt-1'],
+      },
+      artifactsById: new Map([
+        ['artifact-1', { id: 'artifact-1', source: 'STATE_BOARD' }],
+      ]),
+      receiptsById: new Map([
+        ['receipt-1', { receiptId: 'receipt-1', sourceArtifactId: 'artifact-999', verificationArtifactId: null }],
+      ]),
+    });
+
+    expect(result.publicSafe).toBe(false);
+    expect(result.validReceiptIds).toEqual([]);
+    expect(result.quarantinedReceiptIds).toEqual(['receipt-1']);
+    expect(result.issues).toContain('quarantined_receipt');
+    expect(result.issues).toContain('missing_receipt');
+  });
+
   it('rejects materialized observations without a backing artifact or receipt', () => {
     expect(() => assertCredentialObservationIntegrity({
       verificationLevel: 'SOURCE_VERIFIED',
@@ -57,5 +81,19 @@ describe('evidenceIntegrity', () => {
       receiptIds: [],
       context: 'test',
     })).toThrow('verification receipt');
+  });
+
+  it('prefers the source artifact link when resolving receipt provenance', () => {
+    expect(resolveReceiptLinkedArtifactId({
+      receiptId: 'receipt-1',
+      sourceArtifactId: 'artifact-source',
+      verificationArtifactId: 'artifact-verification',
+    })).toBe('artifact-source');
+
+    expect(resolveReceiptLinkedArtifactId({
+      receiptId: 'receipt-2',
+      sourceArtifactId: null,
+      verificationArtifactId: 'artifact-verification',
+    })).toBe('artifact-verification');
   });
 });

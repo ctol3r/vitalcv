@@ -6,6 +6,7 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
+import { getTierRateLimit, normalizeBillingTier } from '@vitalcv/shared/pricing';
 import { validateApiKey } from '../services/billing/apiKeyService';
 import { log } from '../obs/logger';
 
@@ -13,12 +14,6 @@ interface RateLimitEntry {
   count: number;
   resetAt: number;
 }
-
-const TIER_LIMITS: Record<string, number> = {
-  STARTER: 100,
-  GROWTH: 1000,
-  ENTERPRISE: -1, // unlimited
-};
 
 const store = new Map<string, RateLimitEntry>();
 const WINDOW_MS = 60 * 60 * 1000; // 1 hour
@@ -74,7 +69,8 @@ export function applyRateLimitByApiKey(req: Request, res: Response, next: NextFu
       return;
     }
 
-    const limit = TIER_LIMITS[tier ?? 'STARTER'] ?? 100;
+    const resolvedTier = normalizeBillingTier(tier);
+    const limit = getTierRateLimit(resolvedTier);
     if (limit === -1) {
       next();
       return;
@@ -84,10 +80,15 @@ export function applyRateLimitByApiKey(req: Request, res: Response, next: NextFu
     entry.count++;
 
     if (entry.count > limit) {
-      log('warn', 'api_key_rate_limit_exceeded', { keyId, tier, count: entry.count, limit });
+      log('warn', 'api_key_rate_limit_exceeded', {
+        keyId,
+        tier: resolvedTier,
+        count: entry.count,
+        limit,
+      });
       res.status(429).json({
         error: 'API key rate limit exceeded',
-        tier,
+        tier: resolvedTier,
         limit,
         retryAfter: Math.ceil((entry.resetAt - Date.now()) / 1000),
       });

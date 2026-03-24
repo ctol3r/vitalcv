@@ -1,35 +1,56 @@
 # VitalCV Pilot Brief
 
-**MISSION:** Lock the pilot scope to a single, highly constrained lens to prove undeniable value.
+**MISSION:** Lock the pilot to one buyer, one workflow, one KPI, and one proof story.
 
-## Core Constraints
-1. **Trust first**, matching second, intelligence third.
-2. **No rebrand work.** Go to market with current identity.
-3. **No platform sprawl.** Ruthless focus on the core wedge.
+## The Pilot In One Page
 
----
+- **Buyer:** Healthcare facility credentialing / onboarding operator
+- **Workflow:** Post-hire credentialing sprint
+- **Default Terrain:** Northern California unless a different geography is explicitly approved
+- **Core KPI:** **Interview-to-Start Velocity** = median days from first employer review to recorded clinical start
+- **Proof Story:** Audit-ready verification removes onboarding delay and pulls revenue forward
 
-## The Lock
+## What The Buyer Gets
 
-### 1. One Buyer
-**Role:** Healthcare Facility Credentialing / Onboarding Operator
-**Why:** They bear the immediate pain of onboarding friction and directly control the start date.
+1. Faster employer review on a single credentialing wedge
+2. Timestamped evidence with explicit source coverage
+3. Clear blocker handling instead of hidden verification gaps
+4. Audit logging for review and decision actions
+5. Pilot reporting scoped by org, pilot, workflow lane, and geography when applicable
 
-### 2. One Workflow
-**Focus:** The Post-Hire Credentialing Sprint.
-**Details:** From the moment a candidate signs an offer to the day they are fully cleared to start working. Zero top-of-funnel sourcing or long-term career management involved.
+## What The Buyer Is Paying For
 
-### 3. One Terrain
-**Location:** Northern California (Default)
-**Details:** High-volume, highly regulated, difficult geography. Proving success here proves it anywhere.
+- Verified pull utility
+- Monitoring refreshes
+- Export utility
+- Integration utility
+- Pass-through government or registry fees at cost
 
-### 4. One KPI
-**Metric:** Time-to-Clear (Days)
-**Definition:** The delta between historic manual onboarding time and the VitalCV-enabled clearance timeline (from contract signature to "ready to schedule").
+## What The Buyer Is Not Paying For
 
-### 5. One Proof Story
-**The Narrative:**
-1. **Intake:** Employer initiates onboarding.
-2. **Truth Assembly:** VitalCV automatically compiles primary source verification (NPI, OIG, State License).
-3. **Audit-Ready Delivery:** Employer instantly receives a fully compliant, dynamically updated packet.
-4. **Result:** Credentialing time is cut by 40%, allowing the clinician to generate revenue weeks earlier.
+- Clinician participation
+- Issuer participation
+- Same-band repeat access to the same credential view
+- Marked-up government fees
+
+## Explicit Limitations
+
+This pilot brief does **not** imply:
+
+- all-source coverage
+- nationwide coverage
+- NPDB / DEA / ABMS support
+- live Nursys or FSMB support unless contract and connector are active
+- automated public credit-card checkout if that path is still gated
+- general recruiting or talent marketplace scope
+
+## Success Criteria
+
+The pilot is successful only if all of the following are true:
+
+- Interview-to-Start Velocity measurably improves
+- Buyer actions are fully audit logged
+- Exported KPI data matches the live pilot scope
+- Operators can explain every unsupported source or billing limit without ambiguity
+
+Anything outside this one-page brief is out of scope until the launch gate explicitly expands.

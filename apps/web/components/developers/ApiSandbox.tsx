@@ -12,9 +12,11 @@
  * no external parser, no hydration risk.
  */
 
+import React from 'react';
 import { useState, useCallback, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckSquare2, Play, Square, Terminal } from 'lucide-react';
+import { getPublicApiBase } from '@/lib/api';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -32,8 +34,6 @@ const SCOPES: CredentialScope[] = [
   { id: 'dea',      label: 'DEA Registration',  field: 'dea_reg'       },
   { id: 'sanctions',label: 'Sanctions Check',   field: 'sanctions'     },
 ];
-
-const BASE_URL = 'https://api.vitalcv.com';
 
 // ── Mock response generator ───────────────────────────────────────────────
 
@@ -134,6 +134,7 @@ function HighlightedJson({ obj }: { obj: object }) {
 
 export function ApiSandbox() {
   const uid = useId();
+  const baseUrl = getPublicApiBase();
   const [npi, setNpi] = useState('1234567890');
   const [selectedScopes, setSelectedScopes] = useState<Set<string>>(
     new Set(['state_license', 'board_cert']),
@@ -158,7 +159,7 @@ export function ApiSandbox() {
   // Build the cURL command — updates live as inputs change
   const curlCmd = [
     `curl --request GET \\`,
-    `  --url '${BASE_URL}/api/public/profile/npi/${npi || '<NPI>'}' \\`,
+    `  --url '${baseUrl}/api/public/profile/npi/${npi || '<NPI>'}' \\`,
     `  --header 'Authorization: Bearer vcv_test_••••••••••••' \\`,
     `  --header 'Accept: application/json'`,
   ].join('\n');

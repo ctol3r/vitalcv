@@ -37,6 +37,7 @@ jest.mock('../../../obs/logger', () => ({
 import prisma from '../../../graphql/prisma_client';
 import {
   computePilotKpis,
+  kpiSnapshotToExportRows,
   kpiSnapshotToCsv,
   type PilotKpiSnapshot,
 } from '../pilotKpiService';
@@ -267,7 +268,7 @@ describe('pilotKpiService', () => {
     );
   });
 
-  it('exports the explicit share-to-decision velocity rows', () => {
+  it('exports normalized row-shaped data for downstream spreadsheets', () => {
     const snapshot: PilotKpiSnapshot = {
       generatedAt: '2026-03-23T21:00:00.000Z',
       windowDays: 90,
@@ -337,9 +338,17 @@ describe('pilotKpiService', () => {
       gaps: [],
     };
 
+    const rows = kpiSnapshotToExportRows(snapshot);
     const csv = kpiSnapshotToCsv(snapshot);
 
-    expect(csv).toContain('Median: share → decision,4');
-    expect(csv).toContain('Sample: share→decision,2');
+    expect(rows).toEqual(expect.arrayContaining([
+      { section: 'filters', label: 'geography_tag', value: '(all)' },
+      { section: 'velocity', label: 'median_days_share_to_decision', value: '4' },
+      { section: 'velocity_samples', label: 'sample_share_to_decision', value: '2' },
+      { section: 'event_chain', label: 'start_outcome_events', value: '1' },
+    ]));
+    expect(csv).toContain('section,label,value');
+    expect(csv).toContain('velocity,median_days_share_to_decision,4');
+    expect(csv).toContain('velocity_samples,sample_share_to_decision,2');
   });
 });

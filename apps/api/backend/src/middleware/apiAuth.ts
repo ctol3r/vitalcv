@@ -17,6 +17,7 @@ import { createHash } from 'node:crypto';
 import type { Request, Response, NextFunction } from 'express';
 import { log } from '../obs/logger';
 import { appendAuditEvent } from '../services/audit/auditLedger';
+import type { BillingTier } from '../services/billing/contracts';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -24,7 +25,7 @@ export interface AuthContext {
   authenticated: boolean;
   method: 'api-key' | 'bearer' | 'none';
   keyId?: string;
-  tier?: string;
+  tier?: BillingTier;
   clinicianId?: string;
   npi?: string;
 }
@@ -43,7 +44,7 @@ interface StoredKey {
   keyId: string;
   keyHash: string;
   clinicianId: string;
-  tier: string;
+  tier: BillingTier;
   name: string;
   active: boolean;
   createdAt: string;
@@ -62,7 +63,7 @@ function hashApiKey(raw: string): string {
  */
 export function registerApiKey(params: {
   clinicianId: string;
-  tier?: string;
+  tier?: BillingTier;
   name?: string;
 }): { rawKey: string; keyId: string } {
   keyCounter++;

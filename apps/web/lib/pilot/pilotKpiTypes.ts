@@ -64,6 +64,14 @@ export interface StartOutcomeStats {
   };
 }
 
+export interface ReadinessDistribution {
+  ready:   number;
+  partial: number;
+  blocked: number;
+  total:   number;
+  noScore: number;
+}
+
 export interface PilotFilter {
   pilotId?: string | null;
   workflowLane?: string | null;
@@ -92,5 +100,6 @@ export interface PilotKpiSnapshot {
     employerAcceptances:     number;
     startAttestations:       number;
   };
+  readinessDistribution: ReadinessDistribution;
   gaps: string[];
 }

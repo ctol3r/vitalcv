@@ -8,8 +8,10 @@
  * Also links to conformance report.
  */
 
+import React from 'react';
 import { useState } from 'react';
 import { Code2, Package, Shield, Award, Wallet } from 'lucide-react';
+import { getPublicApiBase } from '@/lib/api';
 
 type SdkId = 'verifier' | 'issuer' | 'wallet';
 
@@ -25,8 +27,9 @@ interface SdkDef {
   methods: Array<{ sig: string; desc: string }>;
 }
 
-const SDKS: SdkDef[] = [
-  {
+export function buildSdkDefs(baseUrl: string): SdkDef[] {
+  return [
+    {
     id: 'verifier',
     name: 'Verifier SDK',
     package: '@vitalcv/verifier-sdk',
@@ -37,7 +40,7 @@ const SDKS: SdkDef[] = [
     quickstart: `import { createVerifier } from '@vitalcv/verifier-sdk';
 
 const verifier = createVerifier({
-  baseUrl: 'https://api.vitalcv.com',
+  baseUrl: '${baseUrl}',
   apiKey: process.env.VITALCV_API_KEY,
 });
 
@@ -72,7 +75,7 @@ const sd = await verifier.requestSelectiveDisclosure({
       { sig: 'getAuditEvents({ after, limit })', desc: 'Cursor-based audit event export' },
     ],
   },
-  {
+    {
     id: 'issuer',
     name: 'Issuer SDK',
     package: '@vitalcv/issuer-sdk',
@@ -83,7 +86,7 @@ const sd = await verifier.requestSelectiveDisclosure({
     quickstart: `import { createIssuer } from '@vitalcv/issuer-sdk';
 
 const issuer = createIssuer({
-  baseUrl: 'https://api.vitalcv.com',
+  baseUrl: '${baseUrl}',
   apiKey: process.env.VITALCV_ISSUER_KEY!,
   issuerId: 'did:vitalcv:org_ca_medical_board',
 });
@@ -118,7 +121,7 @@ await issuer.revokeCredential(vc.credentialId, {
       { sig: 'getStats()', desc: 'Issuance analytics and trust score' },
     ],
   },
-  {
+    {
     id: 'wallet',
     name: 'Wallet SDK',
     package: '@vitalcv/wallet-sdk',
@@ -129,7 +132,7 @@ await issuer.revokeCredential(vc.credentialId, {
     quickstart: `import { createWallet } from '@vitalcv/wallet-sdk';
 
 const wallet = createWallet({
-  baseUrl: 'https://api.vitalcv.com',
+  baseUrl: '${baseUrl}',
   npi: '1234567890',
   holderDid: 'did:vitalcv:clinician_1234567890',
   token: sessionToken,
@@ -171,7 +174,8 @@ await wallet.respondToOID4VPRequest({
       { sig: 'getTrustState()', desc: 'Current L0–L3 trust band for this NPI' },
     ],
   },
-];
+  ];
+}
 
 const COLOR_MAP: Record<string, string> = {
   emerald: 'border-emerald-500/30 bg-emerald-500/[0.04] text-emerald-400',
@@ -187,7 +191,9 @@ const ACTIVE_MAP: Record<string, string> = {
 
 export function SdkDocs() {
   const [activeSdk, setActiveSdk] = useState<SdkId>('verifier');
-  const sdk = SDKS.find((s) => s.id === activeSdk)!;
+  const baseUrl = getPublicApiBase();
+  const sdks = buildSdkDefs(baseUrl);
+  const sdk = sdks.find((s) => s.id === activeSdk)!;
 
   return (
     <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 overflow-hidden">
@@ -205,7 +211,7 @@ export function SdkDocs() {
         <div className="w-48 border-r border-zinc-800 p-3 shrink-0">
           <p className="text-[9px] text-zinc-700 uppercase tracking-widest px-2 pb-2">Packages</p>
           <div className="space-y-1">
-            {SDKS.map((s) => (
+            {sdks.map((s) => (
               <button
                 key={s.id}
                 onClick={() => setActiveSdk(s.id)}

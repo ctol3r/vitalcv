@@ -1,89 +1,109 @@
 # VitalCV Pilot Runbook
 
-**MISSION:** Execute the first live pilot without widening scope or reintroducing demonstration theater. This runbook defines the exact operational boundaries, internal routes, and fallback behaviors for the pilot.
+**MISSION:** Execute the first live pilot without widening scope or reintroducing demonstration theater. This runbook defines the operator path, KPI rules, commercial truth, and fallback behavior for the pilot.
 
----
+## 1. Pilot Constraint Model
 
-## 1. The Pilot Constraint Model
+If a request falls outside these bounds, it is out of scope for the pilot:
 
-If a request falls outside these four parameters, it is not part of the pilot and must be rejected.
-
-- **One Buyer:** Healthcare Facility Credentialing / Onboarding Operator.
-- **One Workflow:** The Post-Hire Credentialing Sprint (from offer signature to fully cleared to start).
-- **One KPI:** Interview-to-Start Velocity (Median days from first employer review to clinical start).
-- **One Proof Story:** Instant, audit-ready verification cuts credentialing time by 40%, generating revenue earlier.
-
----
+- **One Buyer:** Healthcare facility credentialing / onboarding operator.
+- **One Workflow:** Post-hire credentialing sprint, from accepted offer to cleared clinical start.
+- **One KPI:** **Interview-to-Start Velocity** = median days from first employer review to recorded start outcome.
+- **One Proof Story:** Audit-ready primary-source verification removes start delay and moves revenue earlier.
 
 ## 2. Required Environment Configuration
 
-The live pilot requires a deterministic environment. Do not turn on features unless legal/business agreements are finalized.
+The pilot must run in a deterministic environment:
 
-- `REAL_NURSYS_ENABLED=false` (Set `true` only when institutional E-Notify is active)
-- `FSMB_ENABLED=false` (Set `true` only when institutional agreement is signed)
-- `OIG_LEIE_ENABLED=true` (Must be active for safety checks)
-- `PECOS_ENABLED=true` (Must be active for billing eligibility)
-- `MONITORING_SECRET="<secure-random-string>"` (Required for pilot-ops dashboard)
-- `SEAL_TRAINING_EXPORT_ENABLED=false` (Not required for credentialing workflow)
+- `REAL_NURSYS_ENABLED=false` unless institutional E-Notify access is live.
+- `FSMB_ENABLED=false` unless institutional agreement is signed and the connector is active.
+- `OIG_LEIE_ENABLED=true` for safety checks.
+- `PECOS_ENABLED=true` for eligibility signal handling.
+- `MONITORING_SECRET="<secure-random-string>"` for pilot ops.
+- `SEAL_TRAINING_EXPORT_ENABLED=false` unless explicitly authorized for offline analysis.
 
----
+## 3. Canonical Pilot Routes
 
-## 3. Required Internal Routes
+Operators must use these routes and no archived demo surfaces:
 
-Operators must use these canonical routes during the pilot:
+1. **Intake:** `/onboarding`
+2. **Passport Review:** `/passport/[id]`
+3. **Employer Decision:** `/review/[entityId]`
+4. **Pilot Ops:** `/pilot-ops`
 
-1. **Intake:** `/onboarding` (NPI-driven lookup)
-2. **Passport Review & Readiness:** `/passport/[id]` (Internal/clinician view of readiness score & blockers)
-3. **Employer Decision:** `/review/[entityId]` (The exact surface the buyer uses to securely review and accept)
-4. **Ops Tracking:** `/pilot-ops?secret=XYX` (The internal dashboard tracking funnel and start velocity. *Do not share externally.*)
+## 4. Scope Discipline
 
----
+When the pilot is scoped, operators must carry the same scope everywhere:
 
-## 4. Fallback Behavior (Source Unavailable or Gated)
+- `orgContextId` for organization drilldown
+- `pilotId` for engagement identity
+- `workflowLane` for lane or hire type
+- `geographyTag` for state/region when relevant
 
-Operational reality dictates that sources fail or remain gated. When a primary source is unreachable:
+Manual start capture must preserve the active scope. Filtered pilot reporting must never infer scoped starts from unscoped `start_attestations`.
 
-- **Do Not Hallucinate:** The UI must natively reflect the failure.
-- **Status Display:** The component must read `Gated`, `Unavailable`, or `Unchecked`.
-- **Decision Grade Impact:** The lack of verification prevents a clean L3 Readiness Score until manually resolved or acknowledging by the employer.
-- **Action:** The employer is prompted to "Upload Manual Resource" or "Accept with Exception" depending on their internal policy. The system must not automatically clear them without valid `sourceCoverage`.
+## 5. Fallback Behavior
 
----
+When a source is unavailable or contract-gated:
 
-## 5. KPI Definitions
+- **Do not hallucinate.**
+- Show `Gated`, `Unavailable`, or `Unchecked`.
+- Keep readiness honest; unresolved source gaps block a clean top readiness state unless the employer explicitly accepts an exception.
+- Offer the operator a manual document path or exception path. Never silently clear the clinician.
 
-Our single KPI is **Interview-to-Start Velocity**, broken down internally into funnel steps to track friction:
+## 6. KPI Definitions
 
-- **Packets Shared:** Count of distinct `/passport/[id]` URLs generated and sent to employers.
-- **Reviews Opened:** Count of distinct employer views at `/review/[entityId]`.
-- **Decisions Made:** Count of terminal employer actions (`Accept as Head Start`, `Reject`, `Hold`, `Route to Review`).
-- **Median Days, Review to Decision:** Time between initial employer open and their recorded decision event.
-- **Median Days, Review to Start:** (The Core KPI) Total elapsed time from first employer review to the recorded Start Outcome event.
-- **Blocker Resolution Time:** Mean/median time to resolve explicitly raised credentialing blockers (`NPI_MISMATCH`, `NOT_FOUND`, etc.).
+The supporting operational metrics for the pilot are:
 
----
+- **Packets Shared:** distinct packet/share events sent to employers.
+- **Reviews Opened:** employer opens on `/review/[entityId]`.
+- **Decisions Made:** recorded employer decisions by type.
+- **Median Days, Review to Decision:** first employer review to first recorded decision.
+- **Median Days, Review to Ready:** first employer review to first readiness event at L2+ threshold.
+- **Median Days, Review to Start:** first employer review to recorded start outcome.
+- **Median Days, Share to Decision:** first packet share to first decision.
+- **Blocker Resolution Time:** open/resolved blocker counts plus average and median resolution time.
 
-## 6. Demo Script (Grounded in Live Routes)
+Secondary metrics support the KPI. They do not replace it.
 
-**WARNING:** Do not use `demo/command-center` or any legacy fake mock-ups. Use only the live canonical routes.
+## 7. Pricing And Buyer Truth
 
-**Step 1. The Intake (30 seconds)**
-* "The clinician has accepted the offer. We start credentialing instantly."
-* Navigate to `/onboarding`. Enter a real NPI (or known dev NPI). Click submit.
-* *Talking Point:* "The system is querying CMS, OIG, and state boards right now. No data entry required."
+Operators must describe pricing the same way every time:
 
-**Step 2. The Internal Readiness View (20 seconds)**
-* Land on `/passport/[id]`.
-* *Talking Point:* "We immediately see a Readiness Score and any active blockers. If there's an issue, we resolve it now, before the facility ever sees it."
+- Buyers pay for verified pull utility, monitoring refreshes, exports, and integration utility.
+- Repeat access inside the same freshness band is **not** a second charge.
+- A new freshness band can create a new billable pull.
+- Government and registry fees are pass-through at cost with no markup.
+- If public card checkout is not live, say that plainly and use the approved manual invoice/contact flow.
 
-**Step 3. The Employer Review (45 seconds)**
-* Navigate to `/review/[entityId]`. 
-* *Talking Point:* "This is what you, the credentialing operator, receive. A secure, trust-stacked packet."
-* Scroll through the `FreshnessPanel`. Point out the timestamps and cryptographic certainty.
-* *Talking Point:* "You don't need to re-verify this. It's primary-source verified and completely auditable."
-* Click `Accept as head start`. 
-* *Talking Point:* "Your decision is legally logged, and the clinician progresses instantly toward their start date."
+## 8. Explicit Non-Promises
 
----
+Do not imply any of the following unless they are truly live for the pilot:
 
-*See `vitalcv-launch-gate.md` for pre-flight constraints. Never reintroduce demonstration theater.*
+- Nursys or FSMB coverage
+- NPDB, DEA, ABMS, or SAM checks
+- Nationwide geography beyond the scoped pilot geography
+- Fully automated public checkout
+- General recruiting, sourcing, or top-of-funnel workflow support
+
+## 9. Demo Script (Grounded In Live Routes)
+
+**WARNING:** Do not use archived `/demo/*` surfaces.
+
+1. **Intake**
+   - Go to `/onboarding`.
+   - Enter a real or approved dev NPI.
+   - Explain that the system is querying live or honestly gated sources now.
+2. **Passport**
+   - Go to `/passport/[id]`.
+   - Explain readiness, blockers, and source coverage without overstating what is verified.
+3. **Employer Review**
+   - Go to `/review/[entityId]`.
+   - Show timestamped evidence and source coverage.
+   - Explain that the employer decision is audit logged.
+4. **Pilot Ops**
+   - Go to `/pilot-ops`.
+   - Show the KPI window and the current scope filters.
+   - If a start is recorded manually, confirm the event inherits the active scope.
+
+See `vitalcv-launch-gate.md` for the final go/no-go criteria.

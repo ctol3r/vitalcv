@@ -10,46 +10,24 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import {
+  BILLING_PLANS,
+  checkBillingFeatureAccess,
+} from '@vitalcv/shared/pricing';
 import { log } from '../../obs/logger';
+import type {
+  BillingFeature,
+  BillingPlan,
+  BillingTier,
+} from './contracts';
 
 const prisma = new PrismaClient();
 
-export type SubscriptionTier = 'STARTER' | 'GROWTH' | 'ENTERPRISE';
+export type SubscriptionTier = BillingTier;
 
-export interface TierConfig {
-  tier: SubscriptionTier;
-  priceMonthly: number | null; // null = custom
-  apiRequestsPerHour: number;  // -1 = unlimited
-  features: string[];
-}
+export type TierConfig = BillingPlan;
 
-export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
-  STARTER: {
-    tier: 'STARTER',
-    priceMonthly: 99,
-    apiRequestsPerHour: 100,
-    features: ['credential_issuance', 'basic_verification', 'trust_registry_read'],
-  },
-  GROWTH: {
-    tier: 'GROWTH',
-    priceMonthly: 299,
-    apiRequestsPerHour: 1000,
-    features: [
-      'credential_issuance', 'basic_verification', 'trust_registry_read',
-      'selective_disclosure', 'federation', 'analytics', 'oid4vci', 'oid4vp',
-    ],
-  },
-  ENTERPRISE: {
-    tier: 'ENTERPRISE',
-    priceMonthly: null,
-    apiRequestsPerHour: -1,
-    features: [
-      'credential_issuance', 'basic_verification', 'trust_registry_read',
-      'selective_disclosure', 'federation', 'analytics', 'oid4vci', 'oid4vp',
-      'did_management', 'conformance_suite', 'sla', 'dedicated_support', 'custom_governance',
-    ],
-  },
-};
+export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = BILLING_PLANS;
 
 export async function createSubscription(
   clinicianId: string,
@@ -97,6 +75,6 @@ export async function getSubscriptionByClinicianId(
   });
 }
 
-export function checkFeatureAccess(tier: SubscriptionTier, feature: string): boolean {
-  return TIER_CONFIGS[tier]?.features.includes(feature) ?? false;
+export function checkFeatureAccess(tier: SubscriptionTier, feature: BillingFeature): boolean {
+  return checkBillingFeatureAccess(tier, feature);
 }

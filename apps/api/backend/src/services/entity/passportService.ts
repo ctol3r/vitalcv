@@ -45,6 +45,7 @@ import {
   type CanonicalSourceCoverage,
   type CanonicalSourceCoverageReport,
 } from '../../../../../../packages/trust-state';
+import { getSourceFreshnessWindowHours } from '../identity/sourceCatalog';
 
 export type { ReadinessNextAction };
 
@@ -514,6 +515,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
           select: {
             id: true,
             source: true,
+            parserVersion: true,
           },
         })
       : Promise.resolve([]),
@@ -531,6 +533,13 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
       : Promise.resolve([] as CredentialReceiptEvidence[]),
   ]);
   const artifactsById = new Map(artifacts.map((artifact) => [artifact.id, artifact]));
+  // Build source → parserVersion map from the latest artifact per source (for minimum-contract threading).
+  const parserVersionBySource = new Map<string, string>();
+  for (const artifact of artifacts) {
+    if (artifact.parserVersion && !parserVersionBySource.has(artifact.source)) {
+      parserVersionBySource.set(artifact.source, artifact.parserVersion);
+    }
+  }
   const receiptsById = new Map(receipts.map((receipt) => [receipt.receiptId, receipt]));
   const credentialEvidence = new Map(
     credentials.map((credential) => [credential.id, resolveCredentialEvidence({

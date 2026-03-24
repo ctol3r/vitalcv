@@ -3,15 +3,11 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { getTierRateLimit, normalizeBillingTier } from '@vitalcv/shared/pricing';
 import { log } from '../../obs/logger';
+import type { BillingTier } from './contracts';
 
 const prisma = new PrismaClient();
-
-const TIER_LIMITS: Record<string, number> = {
-  STARTER: 100,
-  GROWTH: 1000,
-  ENTERPRISE: -1, // unlimited
-};
 
 export async function trackRequest(apiKeyId: string): Promise<void> {
   await prisma.subscriptionApiKey.update({
@@ -24,7 +20,7 @@ export async function getMonthlyUsage(apiKeyId: string): Promise<{ total: number
   const apiKey = await prisma.subscriptionApiKey.findUnique({ where: { id: apiKeyId } });
   if (!apiKey) return { total: 0, limit: 0, remaining: 0 };
 
-  const limit = TIER_LIMITS[apiKey.tier] ?? 100;
+  const limit = getTierRateLimit(normalizeBillingTier(apiKey.tier));
   const total = apiKey.requestCount;
 
   return {
@@ -34,8 +30,8 @@ export async function getMonthlyUsage(apiKeyId: string): Promise<{ total: number
   };
 }
 
-export async function isOverLimit(apiKeyId: string, tier: string): Promise<boolean> {
-  const limit = TIER_LIMITS[tier] ?? 100;
+export async function isOverLimit(apiKeyId: string, tier: BillingTier): Promise<boolean> {
+  const limit = getTierRateLimit(tier);
   if (limit === -1) return false;
 
   const apiKey = await prisma.subscriptionApiKey.findUnique({ where: { id: apiKeyId } });

@@ -12,6 +12,7 @@ type ApiPath =
   | '/metrics/public';
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
+export const DEFAULT_PUBLIC_API_BASE = 'https://api.vitalcv.com';
 
 const DEMO_PATHS: Record<
   Extract<ApiPath, '/trust-state' | '/ingest/npi'>,
@@ -24,6 +25,10 @@ const DEMO_PATHS: Record<
 function normalizeApiBase(base: string): string {
   if (!base) return '';
   return base.endsWith('/') ? base.slice(0, -1) : base;
+}
+
+function stripProtocol(value: string): string {
+  return value.replace(/^https?:\/\//, '');
 }
 
 function isDemoPath(p: string): p is keyof typeof DEMO_PATHS {
@@ -44,6 +49,22 @@ export function getApiBase(): string {
 /** Backend base URL with localhost:4000 fallback — safe for server-side proxy routes. */
 export function getBackendBase(): string {
   return getApiBase() || 'http://localhost:4000';
+}
+
+/** Public-facing API base URL for docs and preview surfaces. */
+export function getPublicApiBase(): string {
+  return getApiBase() || DEFAULT_PUBLIC_API_BASE;
+}
+
+/** Human-readable host label for docs and developer stats. */
+export function getPublicApiHostLabel(): string {
+  const base = getPublicApiBase();
+
+  try {
+    return new URL(base).host;
+  } catch {
+    return stripProtocol(base);
+  }
 }
 
 /** Build a full API URL for any path (not limited to ApiPath type). */

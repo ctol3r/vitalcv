@@ -1,22 +1,51 @@
-# VitalCV Pricing Doctrine (Milestone 5)
+# VitalCV Pricing Doctrine
 
-## The Core Principle
-Pricing must reflect the value of truth and monitoring without taxing the creation or provision of data. We monetize the consumption and integration of verified credentials by organizations, entirely free of friction for the supply side.
+## Core Principle
 
-## The Lock
-1. **Clinician Free:** Clinicians never pay to claim, govern, or share their profile.
-2. **Issuer Free:** Primary sources and educators never pay to issue or verify credentials on the network.
-3. **Organization Pays for Utility:** Healthcare organizations pay for:
-   - Initial pull of verified profiles
-   - Refresh / ongoing monitoring of credentials
-   - Export services
-   - API / System Integration
-4. **No Double-Pay:** If an organization has paid for a credential pull, they do not pay to view it again within the same freshness band.
-5. **Freshness-Band Pricing:** Pricing scales with the required frequency of truth (e.g., annual vs. daily monitoring). Higher freshness demands incur higher recurring costs.
-6. **Pass-Through Government Fees:** Any state or federal access fees are passed through to the organization exactly at cost. We do not mark up government fees. Provide full transparency on these line items.
-7. **Self-Serve Standard Motion:** The primary purchasing motion must be self-serve via credit card or standard invoicing. No complex enterprise sales theater or drawn-out negotiations.
+VitalCV monetizes organizational utility, not the creation of truth. Clinicians and issuers stay free. Buyers pay only where the product removes operational credentialing work.
 
-## Constraints
-- *No rebrand work*: Pricing presentation utilizes existing visual systems.
-- *No enterprise theater*: Keep checkout simple and atomic.
-- *Aligned to the single wedge*: Pricing strictly applies to the initial workflow and buyer.
+## Billable Utility
+
+| Item | When it is billable | What it must not imply |
+|---|---|---|
+| **Verified pull** | First buyer access for a credential in a given freshness band | That the buyer is paying for clinician participation |
+| **Monitoring refresh** | A contracted refresh cycle actually runs | That every source in the stack is live |
+| **Export utility** | Operator or buyer requests an export/report packet | That exports contain inferred facts |
+| **Integration utility** | Contracted API or workflow integration support is provided | That unsupported enterprise scope is already included |
+| **Government fees** | A state or federal source charges access fees | Any markup by VitalCV |
+
+## No-Double-Pay Rule
+
+If an organization has already paid for access to a credential in the current freshness band, repeat access in that same band is not billed again.
+
+- Same credential + same organization + same freshness band = included repeat access
+- Same credential + same organization + new freshness band = potentially new billable pull
+- The product must make this rule explicit anywhere pricing is shown or explained
+
+## Buyer-Side Truth Requirements
+
+- Clinicians never pay to claim, govern, or share their profile.
+- Issuers and primary sources are not charged for issuing or participating.
+- Government and registry fees are pass-through at cost.
+- Contract-gated sources remain visibly gated until legal access and connector readiness are both live.
+- Pricing copy must never imply broader coverage than the actual source stack supports.
+
+## Checkout Truth
+
+This doctrine defines pricing behavior. It does **not** by itself prove that checkout automation is live.
+
+If self-serve public credit-card checkout is unavailable, the product and pilot materials must say that plainly and direct buyers to the approved manual invoice/contact path. Never let a plan card or operator script imply otherwise.
+
+## Explicit Non-Promises
+
+Do not use pricing to imply:
+
+- live NPDB / DEA / ABMS coverage
+- live Nursys / FSMB coverage unless contract and connector are active
+- nationwide launch coverage when the pilot is geography-scoped
+- a full enterprise procurement motion for features outside the launch wedge
+- guaranteed savings or ROI beyond the measured pilot KPI
+
+## Launch Standard
+
+Pricing is launch-gate ready only when the product, pilot brief, runbook, billing surface, and contractor handoff all describe the same rules with no ambiguity.

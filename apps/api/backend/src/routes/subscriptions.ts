@@ -14,24 +14,29 @@ import {
   createSubscription, cancelSubscription, getSubscriptionByClinicianId,
   TIER_CONFIGS, type SubscriptionTier,
 } from '../services/billing/subscriptionService';
+import {
+  createApiKeyRequestSchema,
+  createSubscriptionRequestSchema,
+} from '../services/billing/contracts';
 import { generateApiKey, revokeApiKey, getApiKeysByClinicianId } from '../services/billing/apiKeyService';
 import { log } from '../obs/logger';
+
+function readValidationMessage(error: { issues?: Array<{ message?: string }> }): string {
+  return error.issues?.[0]?.message ?? 'Invalid request payload.';
+}
 
 export function registerSubscriptionRoutes(app: Express): void {
 
   // ── POST /api/subscriptions ──────────────────────────────────────
   app.post('/api/subscriptions', async (req: Request, res: Response) => {
     try {
-      const { clinicianId, tier, stripeSubId } = req.body ?? {};
-      if (!clinicianId || !tier) {
-        res.status(400).json({ error: 'clinicianId and tier are required' });
+      const parsed = createSubscriptionRequestSchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        res.status(400).json({ error: readValidationMessage(parsed.error) });
         return;
       }
-      const validTiers: SubscriptionTier[] = ['STARTER', 'GROWTH', 'ENTERPRISE'];
-      if (!validTiers.includes(tier)) {
-        res.status(400).json({ error: `tier must be one of: ${validTiers.join(', ')}` });
-        return;
-      }
+
+      const { clinicianId, tier, stripeSubId } = parsed.data;
       const sub = await createSubscription(clinicianId, tier as SubscriptionTier, stripeSubId);
       res.status(201).json(sub);
     } catch (err) {
@@ -75,11 +80,13 @@ export function registerSubscriptionRoutes(app: Express): void {
   // ── POST /api/api-keys ──────────────────────────────────────────
   app.post('/api/api-keys', async (req: Request, res: Response) => {
     try {
-      const { clinicianId, name, tier } = req.body ?? {};
-      if (!clinicianId || !name) {
-        res.status(400).json({ error: 'clinicianId and name are required' });
+      const parsed = createApiKeyRequestSchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        res.status(400).json({ error: readValidationMessage(parsed.error) });
         return;
       }
+
+      const { clinicianId, name, tier } = parsed.data;
       const result = await generateApiKey(clinicianId, name, tier);
       res.status(201).json(result);
     } catch (err) {

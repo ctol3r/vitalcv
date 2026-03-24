@@ -3,6 +3,7 @@ import { SOURCE_GOVERNANCE } from '../identity/sourceGovernance';
 import {
   coverageSatisfiesDecisionGradeTruth,
   createCanonicalSourceCoverage,
+  findPriorityCanonicalSourceCoverage,
   resolveCanonicalSourceCoverageState,
   type CanonicalSourceCoverage,
   type CanonicalSourceCoverageState,
@@ -44,6 +45,17 @@ const DIMENSION_WEIGHTS: Record<TrustDimensionId, number> = {
   licensure: 30,
   enrollment: 20,
 };
+
+const READINESS_GAP_SOURCE_PRIORITY: readonly SourceCoverageState[] = [
+  'stale',
+  'accessRequired',
+  'gated',
+  'notDecisionGrade',
+  'partial',
+  'unavailable',
+  'notChecked',
+  'mock',
+];
 
 function clampConfidence(value: number): number {
   if (!Number.isFinite(value)) {
@@ -129,7 +141,10 @@ function normalizeAssessmentForCoverage(
     };
   }
 
-  const reviewCoverage = sourceCoverage.find((coverage) => coverage.state === 'reviewRequired');
+  const reviewCoverage = findPriorityCanonicalSourceCoverage(
+    sourceCoverage,
+    ['reviewRequired'],
+  );
   if (reviewCoverage) {
     return {
       ...dimension,
@@ -141,15 +156,11 @@ function normalizeAssessmentForCoverage(
     };
   }
 
-  const fallbackGap = dimension.gap
-    ?? sourceCoverage.find((coverage) => coverage.state === 'stale')?.reason
-    ?? sourceCoverage.find((coverage) => coverage.state === 'accessRequired')?.reason
-    ?? sourceCoverage.find((coverage) => coverage.state === 'gated')?.reason
-    ?? sourceCoverage.find((coverage) => coverage.state === 'notDecisionGrade')?.reason
-    ?? sourceCoverage.find((coverage) => coverage.state === 'partial')?.reason
-    ?? sourceCoverage.find((coverage) => coverage.state === 'unavailable')?.reason
-    ?? sourceCoverage.find((coverage) => coverage.state === 'notChecked')?.reason
-    ?? null;
+  const fallbackCoverage = findPriorityCanonicalSourceCoverage(
+    sourceCoverage,
+    READINESS_GAP_SOURCE_PRIORITY,
+  );
+  const fallbackGap = dimension.gap ?? fallbackCoverage?.reason ?? null;
 
   return {
     ...dimension,

@@ -17,6 +17,8 @@ describe('trust source coverage contract', () => {
     expect(normalizePassportSourceCoverageState('review_required')).toBe('reviewRequired');
     expect(normalizePassportSourceCoverageState('not checked')).toBe('notChecked');
     expect(normalizePassportSourceCoverageState('notDecisionGrade')).toBe('notDecisionGrade');
+    expect(normalizePassportSourceCoverageState('CHECKED')).toBe('live');
+    expect(normalizePassportSourceCoverageState('demo')).toBe('mock');
     expect(normalizePassportSourceCoverageState('bogus')).toBeNull();
   });
 
@@ -77,10 +79,39 @@ describe('trust source coverage contract', () => {
         unavailable: [],
         accessRequired: [],
         reviewRequired: ['OIG_LEIE'],
+        mock: [],
       },
     };
 
     expect(findPassportSourceCoverageCheck(report, ['NPI Registry', 'NPPES'])?.state).toBe('live');
     expect(findPassportSourceCoverageCheck(report, ['OIG', 'LEIE'])?.state).toBe('reviewRequired');
+  });
+
+  it('keeps homepage, passport, and review source aliases on the same canonical report', () => {
+    const report: PassportSourceCoverageReport = {
+      checks: [
+        { sourceId: 'NPPES_API', state: 'live', reason: 'identity checked' },
+        { sourceId: 'OIG_LEIE', state: 'live', reason: 'exclusion checked' },
+        { sourceId: 'PECOS_PUBLIC', state: 'notDecisionGrade', reason: 'quarterly informational dataset' },
+        { sourceId: 'STATE_BOARD', state: 'accessRequired', reason: 'institutional access required' },
+      ],
+      summary: {
+        live: ['NPPES_API', 'OIG_LEIE'],
+        gated: [],
+        partial: [],
+        stale: [],
+        notDecisionGrade: ['PECOS_PUBLIC'],
+        notChecked: [],
+        unavailable: [],
+        accessRequired: ['STATE_BOARD'],
+        reviewRequired: [],
+        mock: [],
+      },
+    };
+
+    expect(findPassportSourceCoverageCheck(report, ['CMS NPPES', 'NPPES', 'NPI Registry'])?.sourceId).toBe('NPPES_API');
+    expect(findPassportSourceCoverageCheck(report, ['OIG / LEIE', 'OIG LEIE'])?.sourceId).toBe('OIG_LEIE');
+    expect(findPassportSourceCoverageCheck(report, ['CMS PECOS', 'PECOS'])?.state).toBe('notDecisionGrade');
+    expect(findPassportSourceCoverageCheck(report, ['State Boards', 'FSMB', 'Nursys'])?.state).toBe('accessRequired');
   });
 });

@@ -10,6 +10,7 @@
     "./crs": "./crs/index.ts",
     "./legacy": "./legacy/index.ts",
     "./onchain": "./onchain/index.ts",
+    "./pricing": "./pricing/index.ts",
     "./receipts": "./receipts/index.ts",
     "./recognition": "./recognition/index.ts",
     "./roles": "./roles/index.ts"
@@ -20,6 +21,7 @@
       "crs": ["./crs/index.ts"],
       "legacy": ["./legacy/index.ts"],
       "onchain": ["./onchain/index.ts"],
+      "pricing": ["./pricing/index.ts"],
       "receipts": ["./receipts/index.ts"],
       "recognition": ["./recognition/index.ts"],
       "roles": ["./roles/index.ts"]

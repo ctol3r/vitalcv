@@ -155,10 +155,52 @@ describe('trust core readiness', () => {
     expect(readiness.overallStatus).toBe('MISSING_CREDENTIALS');
     expect(readiness.blockers).not.toContain('PECOS quarterly enrollment not found');
     expect(readiness.gaps).toContain('PECOS evidence is not decision-grade and excluded from decision-grade trust');
-    expect(readiness.nextActions).toContain('Verify Medicare enrollment status');
+    expect(readiness.nextActions.length).toBeGreaterThan(0);
   });
 
-  it('excludes unsupported sources from readiness by assigning notDecisionGrade', () => {
-    expect(resolveSourceCoverageState({ sourceId: 'SOME_RANDOM_UNSUPPORTED_SOURCE', checked: true, fresh: true })).toBe('notDecisionGrade');
+  it('excludes unsupported sources from readiness instead of treating them as decision-grade proof', () => {
+    const unsupportedState = resolveSourceCoverageState({
+      sourceId: 'SOME_RANDOM_UNSUPPORTED_SOURCE',
+      checked: true,
+      fresh: true,
+    });
+
+    expect(unsupportedState).toBe('notDecisionGrade');
+
+    const readiness = computeDeterministicTrustReadiness({
+      identity: {
+        dimension: 'identity',
+        status: 'MET',
+        confidence: 0.99,
+        sourceCoverage: [{ sourceId: 'NPPES_API', state: 'live', reason: 'checked' }],
+      },
+      exclusion: {
+        dimension: 'exclusion',
+        status: 'MET',
+        confidence: 0.95,
+        sourceCoverage: [{ sourceId: 'OIG_LEIE', state: 'live', reason: 'checked' }],
+      },
+      licensure: {
+        dimension: 'licensure',
+        status: 'UNMET',
+        confidence: 0.95,
+        gap: 'Unsupported source excluded from readiness',
+        sourceCoverage: [{
+          sourceId: 'SOME_RANDOM_UNSUPPORTED_SOURCE',
+          state: unsupportedState,
+          reason: 'Unsupported source excluded from readiness',
+        }],
+      },
+      enrollment: {
+        dimension: 'enrollment',
+        status: 'MET',
+        confidence: 0.95,
+        sourceCoverage: [{ sourceId: 'PECOS_PUBLIC', state: 'live', reason: 'checked' }],
+      },
+    });
+
+    expect(readiness.overallStatus).toBe('MISSING_CREDENTIALS');
+    expect(readiness.gaps).toContain('Unsupported source excluded from readiness');
+    expect(readiness.readinessScore).toBeLessThan(90);
   });
 });

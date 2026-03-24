@@ -16,20 +16,41 @@ export type CredentialReceiptEvidence = {
   verificationArtifactId: string | null | undefined;
 };
 
+export const CREDENTIAL_EVIDENCE_ISSUES = [
+  'missing_artifact',
+  'missing_receipt',
+  'quarantined_receipt',
+] as const;
+
+export type CredentialEvidenceIssue =
+  (typeof CREDENTIAL_EVIDENCE_ISSUES)[number];
+
 export type CredentialEvidenceResolution = {
   publicSafe: boolean;
   requiresReceiptProof: boolean;
   validArtifactIds: string[];
   validReceiptIds: string[];
-  issues: string[];
+  quarantinedReceiptIds: string[];
+  issues: CredentialEvidenceIssue[];
 };
 
 function dedupeStrings(values: readonly string[]): string[] {
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).sort((left, right) => left.localeCompare(right));
 }
 
+function normalizeOptionalString(value: string | null | undefined): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
 export function verificationLevelRequiresReceipt(level: string): boolean {
   return level.trim().toUpperCase() !== 'SELF_REPORTED';
+}
+
+export function resolveReceiptLinkedArtifactId(
+  receipt: CredentialReceiptEvidence,
+): string | null {
+  return normalizeOptionalString(receipt.sourceArtifactId)
+    ?? normalizeOptionalString(receipt.verificationArtifactId);
 }
 
 export function assertCredentialObservationIntegrity(input: {
@@ -62,6 +83,17 @@ export function resolveCredentialEvidence(input: {
   );
 
   const validArtifactIdSet = new Set(validArtifactIds);
+  const quarantinedReceiptIds = dedupeStrings(
+    input.credential.receiptIds.filter((receiptId) => {
+      const receipt = input.receiptsById.get(receiptId);
+      if (!receipt) {
+        return false;
+      }
+
+      const linkedArtifactId = resolveReceiptLinkedArtifactId(receipt);
+      return Boolean(linkedArtifactId && !validArtifactIdSet.has(linkedArtifactId));
+    }),
+  );
   const validReceiptIds = dedupeStrings(
     input.credential.receiptIds.filter((receiptId) => {
       const receipt = input.receiptsById.get(receiptId);
@@ -69,14 +101,17 @@ export function resolveCredentialEvidence(input: {
         return false;
       }
 
-      const linkedArtifactId = receipt.sourceArtifactId?.trim() || receipt.verificationArtifactId?.trim() || null;
+      const linkedArtifactId = resolveReceiptLinkedArtifactId(receipt);
       return Boolean(linkedArtifactId && validArtifactIdSet.has(linkedArtifactId));
     }),
   );
 
-  const issues: string[] = [];
+  const issues: CredentialEvidenceIssue[] = [];
   if (validArtifactIds.length === 0) {
     issues.push('missing_artifact');
+  }
+  if (quarantinedReceiptIds.length > 0) {
+    issues.push('quarantined_receipt');
   }
   if (requiresReceiptProof && validReceiptIds.length === 0) {
     issues.push('missing_receipt');
@@ -87,6 +122,7 @@ export function resolveCredentialEvidence(input: {
     requiresReceiptProof,
     validArtifactIds,
     validReceiptIds,
+    quarantinedReceiptIds,
     issues,
   };
 }
