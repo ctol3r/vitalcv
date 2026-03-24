@@ -198,6 +198,13 @@ export interface TrustPassport {
   sources:        PassportSources;
   sourceCoverage: CanonicalSourceCoverageReport;
   lastCheckedAt:  string;
+  /**
+   * Non-decision-grade enrichment graph context for this clinician.
+   * Populated from CMS institutional, publication, trial, and geography edges.
+   * Always null if no enrichment sources have been ingested.
+   * Never used for readiness decisions — display and context only.
+   */
+  enrichment?:    import('../../../../../../core/graph/enrichment').ClinicianEnrichmentSummary | null;
 }
 
 // ── Blocking domains ──────────────────────────────────────────────────────────
