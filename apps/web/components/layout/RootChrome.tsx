@@ -39,9 +39,9 @@ export default function RootChrome({ children, clerkEnabled }: RootChromeProps) 
     return (
       <>
         <div className="relative min-h-screen">{children}</div>
-        {pilotReporter}
+        {clerkEnabled ? pilotReporter : null}
         <FeedbackButton />
-        <PilotSignInTracker />
+        {clerkEnabled ? <PilotSignInTracker /> : null}
         <VCommandBar />
       </>
     );
@@ -63,8 +63,8 @@ export default function RootChrome({ children, clerkEnabled }: RootChromeProps) 
           <PrequalifyBar />
         </SignedIn>
       ) : null}
-      {pilotReporter}
-      <PilotSignInTracker />
+      {clerkEnabled ? pilotReporter : null}
+      {clerkEnabled ? <PilotSignInTracker /> : null}
       <VCommandBar />
     </div>
   );

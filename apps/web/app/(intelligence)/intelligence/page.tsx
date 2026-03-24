@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { IntelligenceRouteClient } from '@/components/intelligence-ops/intelligence-route-client';
+import { OpsLoadingScreen } from '@/components/shell/OpsLoadingScreen';
 import {
   normalizeIntelligenceHref,
   resolveIntelligenceView,
@@ -53,7 +54,7 @@ export default async function IntelligencePage({
   const view = resolveIntelligenceView(currentParams.get('view'));
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<OpsLoadingScreen label="Preparing intelligence workspace" />}>
       <IntelligenceRouteClient view={view} />
     </Suspense>
   );
