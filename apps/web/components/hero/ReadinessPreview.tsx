@@ -17,8 +17,14 @@
  *   - Source names and checked timestamps shown where available
  */
 
-import Link from 'next/link';
-import { Accordion, type AccordionItem, type AccordionStatus } from '@/components/ui/vcv-accordion';
+import { cn } from '@/lib/utils';
+import { Accordion, type AccordionItem } from '@/components/ui/vcv-accordion';
+import {
+  getTrustStatusBadgeClassName,
+  getTrustStatusLabel,
+  resolveTrustUiStatus,
+  type TrustUiStatus,
+} from '@/lib/trust/status-language';
 
 // ── Real trust-state shape (matches trustStateEngine output) ─
 
@@ -69,30 +75,74 @@ const DEMO_FALLBACK: DemoProfile = {
   readyFor: ['Outpatient', 'Telehealth'], missing: ['DEA (CA)'], estimatedStart: '14–28 days',
 };
 
-// ── Accordion builder — real facts ───────────────────────────
+type ReadinessTone = 'clear' | 'pending' | 'blocked';
 
-function statusFromFact(factType: string, facts: CanonicalFact[]): AccordionStatus {
-  const fact = facts.find(f => f.factType.toLowerCase().includes(factType.toLowerCase()));
-  if (!fact)                              return 'pending';
-  if (fact.status === 'verified')         return 'verified';
-  if (fact.status === 'clear')            return 'clear';
-  if (fact.status === 'pending')          return 'pending';
+const READINESS_TONE_STYLES: Record<ReadinessTone, { badge: string; panel: string }> = {
+  clear: {
+    badge: 'border-sky-500/25 bg-sky-500/10 text-sky-200',
+    panel: 'border-sky-500/15 bg-sky-500/[0.05]',
+  },
+  pending: {
+    badge: 'border-amber-500/25 bg-amber-500/10 text-amber-200',
+    panel: 'border-amber-500/15 bg-amber-500/[0.05]',
+  },
+  blocked: {
+    badge: 'border-rose-500/25 bg-rose-500/10 text-rose-200',
+    panel: 'border-rose-500/15 bg-rose-500/[0.06]',
+  },
+};
+
+const READINESS_TONE_LABELS: Record<ReadinessTone, string> = {
+  clear: 'Clear',
+  pending: 'Pending',
+  blocked: 'Blocked',
+};
+
+function buildConfirmedItems(ts: ClinicianTrustState): string[] {
+  return [
+    ts.identityVerified ? 'Identity verified' : null,
+    ts.exclusionClear ? 'OIG clear' : null,
+    ts.licensureStatus === 'verified' ? 'Licensure confirmed' : null,
+  ].filter((item): item is string => item !== null);
+}
+
+function resolveLiveReadinessTone(ts: ClinicianTrustState, gaps: string[]): ReadinessTone {
+  if (
+    ts.exclusionStatus === 'EXCLUDED'
+    || ts.licensureStatus === 'expired'
+    || /blocked/i.test(ts.readiness_status)
+  ) {
+    return 'blocked';
+  }
+
+  if (gaps.length === 0 && ts.identityVerified && ts.exclusionClear) {
+    return 'clear';
+  }
+
   return 'pending';
 }
 
-function sourceRow(source: string, status: AccordionStatus, checkedAt?: string, note?: string) {
-  const statusLabel = status === 'verified' ? 'Verified' : status === 'clear' ? 'Clear' : 'Pending';
-  const statusColor = status === 'pending' ? 'text-white/45' : 'text-white/60';
+function resolveDemoReadinessTone(demo: DemoProfile): ReadinessTone {
+  return demo.missing.length === 0 ? 'clear' : 'pending';
+}
+
+// ── Accordion builder — real facts ───────────────────────────
+
+function sourceRow(source: string, status: TrustUiStatus, checkedAt?: string, note?: string) {
   const when = checkedAt
     ? new Date(checkedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    : 'Today';
+    : 'Not checked';
 
   return (
     <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[11px]">
       <span className="text-white/25 uppercase tracking-wide">Source</span>
       <span className="text-white/55">{source}</span>
       <span className="text-white/25 uppercase tracking-wide">Status</span>
-      <span className={statusColor}>{statusLabel}</span>
+      <span>
+        <span className={cn('inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em]', getTrustStatusBadgeClassName(status))}>
+          {getTrustStatusLabel(status)}
+        </span>
+      </span>
       <span className="text-white/25 uppercase tracking-wide">Checked</span>
       <span className="text-white/40">{when}</span>
       {note && (<><span className="text-white/25 uppercase tracking-wide">Note</span><span className="text-white/40">{note}</span></>)}
@@ -102,9 +152,9 @@ function sourceRow(source: string, status: AccordionStatus, checkedAt?: string, 
 
 function buildRealAccordion(ts: ClinicianTrustState): AccordionItem[] {
   const checkedAt  = ts.computed_at;
-  const npiStatus  = ts.identityVerified  ? 'verified' : 'pending';
-  const licStatus  = ts.licensureStatus === 'verified' ? 'verified' : 'pending';
-  const exclStatus = ts.exclusionClear    ? 'clear'    : 'pending';
+  const npiStatus  = resolveTrustUiStatus({ state: 'live', kind: 'verification', satisfied: ts.identityVerified });
+  const licStatus  = ts.licensureStatus === 'verified' ? 'verified' : 'access_required';
+  const exclStatus = resolveTrustUiStatus({ state: 'live', kind: 'clearance', satisfied: ts.exclusionClear });
 
   // M3: Source honesty — only list sources that are actually connected in this run.
   // NPDB, SAM.gov are not integrated (require institutional subscription).
@@ -134,40 +184,42 @@ function buildRealAccordion(ts: ClinicianTrustState): AccordionItem[] {
       ),
     },
     {
-      id: 'board', trigger: 'Board Certification', status: 'pending',
+      id: 'board', trigger: 'Board Certification', status: 'access_required',
       // M3: ABMS not connected — honest label, not "pending check"
-      content: sourceRow('ABMS — access required', 'pending', undefined,
+      content: sourceRow('ABMS — access required', 'access_required', undefined,
         'Board certification check not available without ABMS institutional access.'),
     },
     {
-      id: 'dea', trigger: 'DEA Registration', status: 'pending',
+      id: 'dea', trigger: 'DEA Registration', status: 'access_required',
       // M3: DEA not connected — honest label
-      content: sourceRow('DEA — access required', 'pending', undefined,
+      content: sourceRow('DEA — access required', 'access_required', undefined,
         'DEA registration check not available without institutional access.'),
     },
   ];
 }
 
 function buildDemoAccordion(missing: string[]): AccordionItem[] {
-  const deaStatus   = missing.some(m => m.toLowerCase().includes('dea'))   ? 'pending' : 'pending';
-  const boardStatus = missing.some(m => m.toLowerCase().includes('board')) ? 'pending' : 'pending';
+  const deaStatus   = missing.some(m => m.toLowerCase().includes('dea'))   ? 'access_required' : 'access_required';
+  const boardStatus = missing.some(m => m.toLowerCase().includes('board')) ? 'access_required' : 'access_required';
 
   // M3: Demo accordion also uses honest source names.
   // ABMS, DEA, NPDB, SAM.gov are not integrated — do not show them as checked.
   return [
     {
-      id: 'identity', trigger: 'Identity', status: 'verified',
-      content: sourceRow('CMS NPPES · NPI Registry', 'verified'),
+      id: 'identity', trigger: 'Identity', status: 'demo',
+      content: sourceRow('CMS NPPES · NPI Registry', 'demo', undefined,
+        'Preview only — live identity checks run after a real lookup.'),
     },
     {
-      id: 'exclusion', trigger: 'Exclusion (OIG)', status: 'clear',
+      id: 'exclusion', trigger: 'Exclusion (OIG)', status: 'demo',
       // M3: removed NPDB and SAM.gov — not checked
-      content: sourceRow('OIG / LEIE', 'clear', undefined,
-        'NPDB and SAM.gov require separate institutional access'),
+      content: sourceRow('OIG / LEIE', 'demo', undefined,
+        'Preview only — NPDB and SAM.gov require separate institutional access'),
     },
     {
-      id: 'licensure', trigger: 'Licensure', status: 'verified',
-      content: sourceRow('State Board (Nursys / FSMB)', 'verified'),
+      id: 'licensure', trigger: 'Licensure', status: 'demo',
+      content: sourceRow('State Board (Nursys / FSMB)', 'demo', undefined,
+        'Preview only — live licensure checks depend on source access.'),
     },
     {
       id: 'board', trigger: 'Board Certification', status: boardStatus,
@@ -212,6 +264,8 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
 
     // Readable gaps
     const gaps = ts.gap_summary.length > 0 ? ts.gap_summary : ts.gaps;
+    const confirmedItems = buildConfirmedItems(ts);
+    const readinessTone = resolveLiveReadinessTone(ts, gaps);
 
     return (
       <div
@@ -226,7 +280,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
             <div className="flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-white/20" />
               <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/35">
-                {ts.identityVerified ? 'Identity verified' : 'Identity found'}
+                {ts.identityVerified ? 'Identity verified' : 'Identity record found'}
               </span>
             </div>
             <span className="text-[10px] text-white/20 font-mono">
@@ -236,48 +290,52 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
 
           {/* Name + specialty from real data */}
           <div className="px-5 py-4 border-b border-white/6">
-            <p className="text-base font-bold text-white leading-tight">{displayName}</p>
-            <p className="text-xs text-white/40 mt-0.5">{displaySpec}</p>
-          </div>
-
-          {/* Real readiness rows */}
-          <div className="px-5 py-4 border-b border-white/6 grid grid-cols-2 gap-x-6">
-            <div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/25 mb-3">Confirmed</p>
-              <div className="space-y-2">
-                {ts.identityVerified && (
-                  <div className="flex items-center gap-2"><span className="text-white/55 text-sm leading-none shrink-0">✔</span><span className="text-xs text-white/65">NPI identity</span></div>
-                )}
-                {ts.exclusionClear && (
-                  <div className="flex items-center gap-2"><span className="text-white/55 text-sm leading-none shrink-0">✔</span><span className="text-xs text-white/65">No exclusions found</span></div>
-                )}
-                {ts.licensureStatus === 'verified' && (
-                  <div className="flex items-center gap-2"><span className="text-white/55 text-sm leading-none shrink-0">✔</span><span className="text-xs text-white/65">License taxonomy present</span></div>
-                )}
-                {ts.identityVerified === false && ts.exclusionClear === false && (
-                  <span className="text-xs text-white/25">Nothing confirmed yet</span>
-                )}
-              </div>
-            </div>
-            <div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/25 mb-3">Unresolved</p>
-              <div className="space-y-2">
-                {gaps.length === 0 ? (
-                  <div className="flex items-center gap-2"><span className="text-white/55 text-sm leading-none shrink-0">✔</span><span className="text-xs text-white/40">None</span></div>
-                ) : gaps.slice(0, 3).map(gap => (
-                  <div key={gap} className="flex items-start gap-2">
-                    <span className="text-white/25 text-sm leading-none shrink-0 mt-px">✖</span>
-                    <span className="text-xs text-white/55 leading-tight">{gap}</span>
-                  </div>
-                ))}
+            <p className="text-lg font-bold text-white leading-tight">{displayName}</p>
+            <p className="text-sm text-white/40 mt-0.5">{displaySpec}</p>
+            <div className={cn('mt-4 rounded-xl border px-4 py-3', READINESS_TONE_STYLES[readinessTone].panel)}>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">Readiness</p>
+                  <p className="mt-2 text-sm font-semibold text-white">{ts.readiness_status}</p>
+                  <p className="mt-1 text-[11px] text-white/45">{ts.readiness_score}/100 · {ts.readiness_level}</p>
+                </div>
+                <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]', READINESS_TONE_STYLES[readinessTone].badge)}>
+                  {READINESS_TONE_LABELS[readinessTone]}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Estimated start */}
-          <div className="px-5 py-4 border-b border-white/6 flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/25">Readiness</span>
-            <span className="text-sm font-semibold text-white">{ts.readiness_status}</span>
+          {/* Blockers + confirmed state */}
+          <div className="px-5 py-4 border-b border-white/6">
+            <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/25 mb-3">
+              {gaps.length === 0 ? 'Current blockers' : 'What still needs attention'}
+            </p>
+            <div className="space-y-2">
+              {gaps.length === 0 ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-white/55 text-sm leading-none shrink-0">✔</span>
+                  <span className="text-xs text-white/45">No blockers surfaced in this run.</span>
+                </div>
+              ) : gaps.slice(0, 3).map(gap => (
+                <div key={gap} className="flex items-start gap-2">
+                  <span className="text-white/25 text-sm leading-none shrink-0 mt-px">✖</span>
+                  <span className="text-xs text-white/55 leading-tight">{gap}</span>
+                </div>
+              ))}
+            </div>
+            {confirmedItems.length > 0 && (
+              <>
+                <p className="mt-4 text-[9px] font-bold uppercase tracking-[0.18em] text-white/25">Confirmed in this run</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {confirmedItems.map(item => (
+                    <span key={item} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/60">
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Source accordion — real provenance */}
@@ -290,10 +348,10 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
           <div className="px-5 py-4">
             <button type="button" onClick={onContinue}
               className="w-full rounded-xl bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 px-5 py-3.5 font-semibold text-white text-sm transition-all active:scale-[0.98]">
-              Continue with VitalCV →
+              Continue to your passport →
             </button>
             <p className="mt-2 text-center text-[10px] text-white/20">
-              Verified via NPPES · OIG/LEIE · {ts.methodology_version}
+              Snapshot built from connected sources · {ts.methodology_version}
             </p>
           </div>
 
@@ -305,6 +363,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
   // ── Demo fallback path ───────────────────────────────────
   const demo   = DEMO_PROFILES[npi] ?? DEMO_FALLBACK;
   const accordion = buildDemoAccordion(demo.missing);
+  const readinessTone = resolveDemoReadinessTone(demo);
 
   return (
     <div
@@ -314,51 +373,55 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
     >
       <div className="rounded-2xl border border-white/8 bg-white/4 overflow-hidden">
 
-        {/* Demo header — clearly labelled */}
-        <div className="px-5 py-4 border-b border-white/6 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-white/20" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/35">Demo preview</span>
-          </div>
-          <span className="text-[10px] text-white/20 font-mono">Not real data</span>
+        {/* Demo banner — clearly labelled */}
+        <div className="border-b border-amber-500/20 bg-amber-500/10 px-5 py-3">
+          <p className="text-[11px] font-semibold text-amber-100">Example — sign in for real data</p>
         </div>
 
         {/* Name + specialty */}
         <div className="px-5 py-4 border-b border-white/6">
-          <p className="text-base font-bold text-white leading-tight">{demo.name}</p>
-          <p className="text-xs text-white/40 mt-0.5">{demo.specialty}</p>
+          <p className="text-lg font-bold text-white leading-tight">{demo.name}</p>
+          <p className="text-sm text-white/40 mt-0.5">{demo.specialty}</p>
+          <div className={cn('mt-4 rounded-xl border px-4 py-3', READINESS_TONE_STYLES[readinessTone].panel)}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">Readiness</p>
+                <p className="mt-2 text-sm font-semibold text-white">Estimated start: {demo.estimatedStart}</p>
+                <p className="mt-1 text-[11px] text-white/45">Example preview only</p>
+              </div>
+              <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]', READINESS_TONE_STYLES[readinessTone].badge)}>
+                {READINESS_TONE_LABELS[readinessTone]}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Ready / Missing */}
-        <div className="px-5 py-4 border-b border-white/6 grid grid-cols-2 gap-x-6">
-          <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/25 mb-3">Ready for</p>
-            <div className="space-y-2">
-              {demo.readyFor.map(item => (
-                <div key={item} className="flex items-center gap-2">
-                  <span className="text-white/55 text-sm leading-none shrink-0">✔</span>
-                  <span className="text-xs text-white/65">{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/25 mb-3">Missing</p>
+        <div className="px-5 py-4 border-b border-white/6">
+          <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/25 mb-3">
+            {demo.missing.length === 0 ? 'Current blockers' : 'What this example is missing'}
+          </p>
+          <div className="space-y-2">
             {demo.missing.length === 0 ? (
-              <div className="flex items-center gap-2"><span className="text-white/55 text-sm leading-none shrink-0">✔</span><span className="text-xs text-white/40">Nothing</span></div>
-            ) : demo.missing.map(item => (
+              <div className="flex items-center gap-2">
+                <span className="text-white/55 text-sm leading-none shrink-0">✔</span>
+                <span className="text-xs text-white/45">No blockers in this example.</span>
+              </div>
+            ) : demo.missing.slice(0, 3).map(item => (
               <div key={item} className="flex items-center gap-2">
                 <span className="text-white/25 text-sm leading-none shrink-0">✖</span>
                 <span className="text-xs text-white/55">{item}</span>
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Estimated start */}
-        <div className="px-5 py-4 border-b border-white/6 flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/25">Estimated start</span>
-          <span className="text-sm font-semibold text-white">{demo.estimatedStart}</span>
+          <p className="mt-4 text-[9px] font-bold uppercase tracking-[0.18em] text-white/25">Ready in this example</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {demo.readyFor.map(item => (
+              <span key={item} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/60">
+                {item}
+              </span>
+            ))}
+          </div>
         </div>
 
         {/* Source accordion */}
@@ -371,10 +434,10 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
         <div className="px-5 py-4">
           <button type="button" onClick={onContinue}
             className="w-full rounded-xl bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 px-5 py-3.5 font-semibold text-white text-sm transition-all active:scale-[0.98]">
-            Continue with VitalCV →
+            Continue to your passport →
           </button>
           <p className="mt-2 text-center text-[10px] text-white/20">
-            Demo preview · Real data after sign-up
+            Demo preview only · live data appears after a real source run
           </p>
         </div>
 
