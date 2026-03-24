@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import { ChevronLeft, ChevronRight, Layers2, Sparkles } from 'lucide-react';
 import type { MapLayerKey } from '@/lib/intelligence/map-contracts';
 import { cn } from '@/lib/utils';

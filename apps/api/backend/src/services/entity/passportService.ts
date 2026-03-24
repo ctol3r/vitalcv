@@ -56,6 +56,7 @@ import {
   PECOS_SOURCE_LABEL,
   type PecosEnrollmentStatus,
 } from '../identity/pecosContract';
+import { buildClinicianEnrichmentEdges, buildEnrichmentSummary } from '../graph/clinicianEnrichmentGraph';
 
 export type { ReadinessNextAction };
 
@@ -999,6 +1000,35 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     credentials: credList.length, education: eduRecords.length,
   });
 
+  // Build enrichment summary from existing normalized claims — non-blocking, never gates readiness
+  let enrichment: import('../../../../../../core/graph/enrichment').ClinicianEnrichmentSummary | null = null;
+  try {
+    if (npi) {
+      const allClaims = await prisma.normalizedClaim.findMany({
+        where: { subjectNpi: npi },
+        select: {
+          claimType: true, sourceId: true, value: true,
+          confidence: true, reviewRequired: true, observedAt: true,
+        },
+      });
+      const typedClaims = allClaims.map(c => ({
+        claimType: c.claimType as import('../identity/evidenceModel').ClaimType,
+        sourceId: c.sourceId,
+        value: c.value as import('../identity/evidenceModel').ClaimValue,
+        confidence: c.confidence ?? 'MEDIUM' as const,
+        reviewRequired: c.reviewRequired ?? false,
+        observedAt: c.observedAt?.toISOString() ?? null,
+      }));
+      const edges = buildClinicianEnrichmentEdges(npi, typedClaims);
+      if (edges.length > 0) {
+        enrichment = buildEnrichmentSummary(npi, edges);
+      }
+    }
+  } catch {
+    // enrichment is best-effort — never block passport build
+    enrichment = null;
+  }
+
   return {
     entityId,
     npi,
@@ -1009,6 +1039,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     readiness,
     sources,
     sourceCoverage,
+    enrichment,
     lastCheckedAt,
   };
 }

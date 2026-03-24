@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import { invalidateGraphSnapshots } from '../services/graph-engine/invalidation';
 import { createGraphNodeId } from '../services/graph-engine/ids';
+import { invalidateGeospatialCache } from '../services/geospatial/geospatialCache';
 import { invalidateTrustStateCache } from '../services/trust/trustStateCache';
 import { recordDatabaseQuerySample } from '../qa/performanceWatchers';
 
@@ -26,6 +27,18 @@ const GRAPH_INVALIDATION_MODELS = new Set([
   'sourcerecord',
   'claimrecord',
   'searchobject',
+]);
+const GEOSPATIAL_INVALIDATION_MODELS = new Set([
+  'institution',
+  'providerlocation',
+  'geographicboundary',
+  'providerboundaryassignment',
+  'claimrecord',
+  'personprofile',
+  'organizationprofile',
+  'predictioninsight',
+  'graphedge',
+  'vcventity',
 ]);
 
 function readStringValue(value: unknown): string | null {
@@ -361,6 +374,17 @@ if (typeof prismaWithMiddleware.$use === 'function') {
       if (cacheKey) {
         invalidateTrustStateCache(cacheKey);
       }
+    }
+
+    if (
+      params.model
+      && INVALIDATION_ACTIONS.has(params.action)
+      && GEOSPATIAL_INVALIDATION_MODELS.has(params.model.toLowerCase())
+    ) {
+      invalidateGeospatialCache('prisma_write', {
+        model: params.model,
+        action: params.action,
+      });
     }
 
     if (

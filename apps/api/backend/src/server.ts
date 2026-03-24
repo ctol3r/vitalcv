@@ -181,6 +181,7 @@ async function bootstrapApp() {
   const { requestIntelligenceAutoWarm } = await import('./services/intelligence/intelligenceAutoWarmService');
   const { initializeTelemetry, shutdownTelemetry } = await import('./telemetry');
   const { runMonitoringCycle } = await import('../jobs/monitoringJob');
+  const { isGeospatialPipelineEnabled, runGeospatialPipelineCycle } = await import('../jobs/geospatialJob');
   const { startQaAutomationRuntime } = await import('./qa/qaRuntime');
   const Sentry = await import('@sentry/node');
   const cronMod = await import('node-cron');
@@ -319,6 +320,45 @@ async function bootstrapApp() {
         event: 'orchestrator_initialized',
         agents: ['sanctions', 'state_board'],
       });
+
+      if (isGeospatialPipelineEnabled()) {
+        const geospatialCron = process.env.GEOSPATIAL_PIPELINE_CRON ?? '17 * * * *';
+        const geospatialTask = (cronMod.default ?? cronMod).schedule(geospatialCron, async () => {
+          log('info', 'geospatial_cron_triggered', {
+            event: 'geospatial_cron_triggered',
+            schedule: geospatialCron,
+          });
+          try {
+            const result = await runGeospatialPipelineCycle();
+            log('info', 'geospatial_cron_completed', {
+              event: 'geospatial_cron_completed',
+              ...result,
+            });
+          } catch (error) {
+            log('error', 'geospatial_cron_failed', {
+              event: 'geospatial_cron_failed',
+              error: error instanceof Error ? error.message : 'unknown',
+            });
+          }
+        }, { timezone: 'UTC' });
+
+        process.on('SIGTERM', () => geospatialTask.stop());
+        process.on('SIGINT', () => geospatialTask.stop());
+
+        if (process.env.GEOSPATIAL_PIPELINE_RUN_ON_START === 'true') {
+          void runGeospatialPipelineCycle().catch((error) => {
+            log('error', 'geospatial_startup_run_failed', {
+              event: 'geospatial_startup_run_failed',
+              error: error instanceof Error ? error.message : 'unknown',
+            });
+          });
+        }
+
+        log('info', 'geospatial_cron_scheduled', {
+          event: 'geospatial_cron_scheduled',
+          schedule: `${geospatialCron} (UTC)`,
+        });
+      }
     }
   }
 

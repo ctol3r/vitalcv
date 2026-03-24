@@ -400,6 +400,39 @@ enum NpiType {
   TYPE_2
 }
 
+enum GeocodeStatus {
+  PENDING
+  GEOCODED
+  FAILED
+}
+
+enum GeocodePrecision {
+  ROOFTOP
+  STREET
+  ZIP_CENTROID
+  STATE_CENTROID
+  UNRESOLVED
+}
+
+enum ProviderLocationType {
+  PRACTICE
+  MAILING
+  TRAINING
+  EMPLOYER
+}
+
+enum GeographicBoundaryType {
+  HPSA
+  STATE
+}
+
+enum BoundaryAssignmentMethod {
+  ZIP
+  COUNTY_FIPS
+  POINT_IN_POLYGON
+  HRSA_LOOKUP
+}
+
 /// Workspace persona a user is currently operating as
 enum ActivePersona {
   CLINICIAN
@@ -436,6 +469,7 @@ model PersonProfile {
   createdAt       DateTime              @default(now()) @map("created_at")
   updatedAt       DateTime              @updatedAt @map("updated_at")
   memberships     WorkspaceMembership[]
+  providerLocations ProviderLocation[]
 
   @@index([npi])
   @@index([userId])
@@ -473,12 +507,138 @@ model OrganizationProfile {
   createdAt             DateTime              @default(now()) @map("created_at")
   updatedAt             DateTime              @updatedAt @map("updated_at")
   memberships           WorkspaceMembership[]
+  institution           Institution?
 
   @@index([npi])
   @@index([organizationId])
   @@index([hiringStatus])
   @@index([trustScore])
   @@map("organization_profiles")
+}
+
+model Institution {
+  id                  String              @id @default(uuid()) @db.Uuid
+  vcvEntityId         String?             @unique @map("vcv_entity_id") @db.Uuid
+  organizationProfileId String?           @unique @map("organization_profile_id") @db.Uuid
+  canonicalName       String              @map("canonical_name")
+  slug                String              @unique
+  rorId               String?             @unique @map("ror_id")
+  addressLine1        String?             @map("address_line1")
+  addressLine2        String?             @map("address_line2")
+  city                String?
+  stateCode           String?             @map("state_code")
+  postalCode          String?             @map("postal_code")
+  countryCode         String              @default("US") @map("country_code")
+  latitude            Decimal?            @db.Decimal(9, 6)
+  longitude           Decimal?            @db.Decimal(9, 6)
+  geocodeStatus       GeocodeStatus       @default(PENDING) @map("geocode_status")
+  geocodePrecision    GeocodePrecision    @default(UNRESOLVED) @map("geocode_precision")
+  geocodeSource       String?             @map("geocode_source")
+  geocodeAttempts     Int                 @default(0) @map("geocode_attempts")
+  lastGeocodedAt      DateTime?           @map("last_geocoded_at")
+  lastGeocodeError    String?             @map("last_geocode_error")
+  metadata            Json                @default("{}") @db.JsonB
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
+
+  vcvEntity           VcvEntity?          @relation(fields: [vcvEntityId], references: [id], onDelete: SetNull)
+  organizationProfile OrganizationProfile? @relation(fields: [organizationProfileId], references: [id], onDelete: SetNull)
+
+  @@index([latitude, longitude])
+  @@index([stateCode, postalCode])
+  @@index([canonicalName])
+  @@index([geocodeStatus, updatedAt])
+  @@map("institutions")
+}
+
+model ProviderLocation {
+  id                 String                   @id @default(uuid()) @db.Uuid
+  subjectNpi         String                   @map("subject_npi")
+  personProfileId    String?                  @map("person_profile_id") @db.Uuid
+  claimRecordId      String?                  @unique @map("claim_record_id") @db.Uuid
+  locationType       ProviderLocationType     @default(PRACTICE) @map("location_type")
+  isCurrent          Boolean                  @default(true) @map("is_current")
+  sourceId           String                   @map("source_id")
+  trustTier          String                   @map("trust_tier")
+  confidenceScore    Float                    @map("confidence_score")
+  addressHash        String                   @map("address_hash")
+  addressLine1       String?                  @map("address_line1")
+  addressLine2       String?                  @map("address_line2")
+  city               String?
+  stateCode          String?                  @map("state_code")
+  postalCode         String?                  @map("postal_code")
+  countryCode        String                   @default("US") @map("country_code")
+  countyFips         String?                  @map("county_fips")
+  latitude           Decimal?                 @db.Decimal(9, 6)
+  longitude          Decimal?                 @db.Decimal(9, 6)
+  geocodeStatus      GeocodeStatus            @default(PENDING) @map("geocode_status")
+  geocodePrecision   GeocodePrecision         @default(UNRESOLVED) @map("geocode_precision")
+  geocodeSource      String?                  @map("geocode_source")
+  geocodeAttempts    Int                      @default(0) @map("geocode_attempts")
+  lastGeocodedAt     DateTime?                @map("last_geocoded_at")
+  lastGeocodeError   String?                  @map("last_geocode_error")
+  observedAt         DateTime                 @map("observed_at")
+  metadata           Json                     @default("{}") @db.JsonB
+  createdAt          DateTime                 @default(now()) @map("created_at")
+  updatedAt          DateTime                 @updatedAt @map("updated_at")
+
+  personProfile      PersonProfile?           @relation(fields: [personProfileId], references: [id], onDelete: SetNull)
+  claimRecord        ClaimRecord?             @relation(fields: [claimRecordId], references: [id], onDelete: SetNull)
+  boundaryAssignments ProviderBoundaryAssignment[]
+
+  @@index([subjectNpi, isCurrent])
+  @@index([latitude, longitude])
+  @@index([stateCode, postalCode])
+  @@index([geocodeStatus, updatedAt])
+  @@index([addressHash])
+  @@map("provider_locations")
+}
+
+model GeographicBoundary {
+  id               String                 @id @default(uuid()) @db.Uuid
+  boundaryType     GeographicBoundaryType @map("boundary_type")
+  externalId       String                 @map("external_id")
+  name             String
+  stateCode        String?                @map("state_code")
+  countyFips       String?                @map("county_fips")
+  centroidLat      Decimal?               @map("centroid_lat") @db.Decimal(9, 6)
+  centroidLng      Decimal?               @map("centroid_lng") @db.Decimal(9, 6)
+  bboxMinLat       Decimal?               @map("bbox_min_lat") @db.Decimal(9, 6)
+  bboxMinLng       Decimal?               @map("bbox_min_lng") @db.Decimal(9, 6)
+  bboxMaxLat       Decimal?               @map("bbox_max_lat") @db.Decimal(9, 6)
+  bboxMaxLng       Decimal?               @map("bbox_max_lng") @db.Decimal(9, 6)
+  geometryGeoJson  Json                   @map("geometry_geojson") @db.JsonB
+  sourceDataset    String                 @map("source_dataset")
+  dataVersion      String                 @map("data_version")
+  metadata         Json                   @default("{}") @db.JsonB
+  createdAt        DateTime               @default(now()) @map("created_at")
+  updatedAt        DateTime               @updatedAt @map("updated_at")
+
+  providerAssignments ProviderBoundaryAssignment[]
+
+  @@unique([boundaryType, externalId])
+  @@index([stateCode])
+  @@index([boundaryType, stateCode])
+  @@index([bboxMinLat, bboxMaxLat, bboxMinLng, bboxMaxLng])
+  @@map("geographic_boundaries")
+}
+
+model ProviderBoundaryAssignment {
+  id                 String                  @id @default(uuid()) @db.Uuid
+  providerLocationId String                  @map("provider_location_id") @db.Uuid
+  boundaryId         String                  @map("boundary_id") @db.Uuid
+  assignmentMethod   BoundaryAssignmentMethod @map("assignment_method")
+  confidence         Float                   @default(0)
+  createdAt          DateTime                @default(now()) @map("created_at")
+  updatedAt          DateTime                @updatedAt @map("updated_at")
+
+  providerLocation   ProviderLocation        @relation(fields: [providerLocationId], references: [id], onDelete: Cascade)
+  boundary           GeographicBoundary      @relation(fields: [boundaryId], references: [id], onDelete: Cascade)
+
+  @@unique([providerLocationId, boundaryId])
+  @@index([boundaryId])
+  @@index([assignmentMethod, confidence])
+  @@map("provider_boundary_assignments")
 }
 
 enum EmployerHiringStatus {
@@ -1151,6 +1311,7 @@ model ClaimRecord {
   verificationReceiptRecords VerificationReceiptRecord[]
   identityClaimDeltas        IdentityClaimDelta[]        @relation("CurrentDeltaClaimRecords")
   previousClaimDeltas        IdentityClaimDelta[]        @relation("PreviousDeltaClaimRecords")
+  providerLocation           ProviderLocation?
 
   @@unique([claimId, verificationArtifactId])
   @@index([claimId])
@@ -3192,6 +3353,7 @@ model VcvEntity {
   orgContextSubjects     VcvOrgContextSubject[]   @relation("ctx_subject")
   userClaims             VcvUserEntityClaim[]     @relation("entity_claims")
   bundleShareEvents      BundleShareEvent[]       @relation("bundle_share_subject")
+  institution            Institution?
 
   // SEAL training back-relations
   advisoryOutcomeEvents    AdvisoryOutcomeEvent[]    @relation("advisory_outcome_entity")

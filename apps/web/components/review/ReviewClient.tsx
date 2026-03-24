@@ -60,6 +60,7 @@ import {
 } from '@/lib/employer-review-actions';
 import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
 import { VStatusPill } from '@/components/vds/primitives';
+import { TrustPostureCard } from '@/components/trust/TrustPostureCard';
 
 function latestCredentialObservationDate(
   credentials: PassportData['authority']['credentials'],
@@ -678,6 +679,11 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
               </p>
             </div>
           </div>
+
+          {/* Trust posture — compact view, inherits passport truth */}
+          {passport.npi && (
+            <TrustPostureCard npi={passport.npi} compact />
+          )}
 
           <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">

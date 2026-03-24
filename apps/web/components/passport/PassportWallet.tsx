@@ -33,6 +33,7 @@ import {
   type TrustStatusLabel,
 } from '@/components/vds/primitives';
 import { formatProofDate } from '@/lib/trust/proof-language';
+import { TrustPostureCard } from '@/components/trust/TrustPostureCard';
 
 // ── Status configuration ──────────────────────────────────────────────────────
 // NO colour on status. Hierarchy via opacity only.
@@ -643,6 +644,11 @@ export default function PassportWallet({ passport }: Props) {
           </div>
         )}
 
+        {/* ── Trust Posture — computed from primary sources ─────────────────── */}
+        {passport.npi && (
+          <TrustPostureCard npi={passport.npi} />
+        )}
+
         {/* ── Details accordion ─────────────────────────────────────────────── */}
         <div>
           <p className="text-white/25 text-xs uppercase tracking-widest mb-3">Proof — view source per section</p>
@@ -651,6 +657,51 @@ export default function PassportWallet({ passport }: Props) {
 
         {/* ── Advisory Panel — clinician-facing, clearly advisory ─── */}
         <PassportAdvisoryPanel passport={passport} />
+
+        {/* ── Contextual enrichment — non-decision-grade, labeled explicitly ── */}
+        {(() => {
+          const enr = (passport as PassportData & { enrichment?: { counts?: Record<string, number>; institutionalContext?: { facilityAffiliations?: Array<{ facilityName: string; verifiedFromCms: boolean }> } | null; researchContext?: { publicationCount?: number; activeTrialCount?: number } | null } | null }).enrichment;
+          if (!enr) return null;
+          const instCount = enr.institutionalContext?.facilityAffiliations?.length ?? 0;
+          const pubCount = enr.researchContext?.publicationCount ?? 0;
+          const trialCount = enr.researchContext?.activeTrialCount ?? 0;
+          if (instCount === 0 && pubCount === 0 && trialCount === 0) return null;
+          return (
+            <div className="rounded-2xl border border-sky-400/12 bg-sky-400/4 px-5 py-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-sky-400/60">
+                  Contextual enrichment
+                </p>
+                <span className="text-[10px] text-sky-400/40 border border-sky-400/15 rounded-full px-2 py-0.5">
+                  Not primary-source verification
+                </span>
+              </div>
+              <p className="text-white/30 text-[10px] leading-4">
+                The following context is derived from public data sources. It enriches the profile but does not substitute for trust-core verified claims.
+              </p>
+              <div className="space-y-1.5">
+                {instCount > 0 && (
+                  <div className="flex items-center gap-2 text-xs text-white/50">
+                    <span className="text-sky-400/60">·</span>
+                    <span>{instCount} institutional affiliation{instCount !== 1 ? 's' : ''} — CMS-sourced, non-privilege context</span>
+                  </div>
+                )}
+                {pubCount > 0 && (
+                  <div className="flex items-center gap-2 text-xs text-white/50">
+                    <span className="text-sky-400/60">·</span>
+                    <span>{pubCount} publication{pubCount !== 1 ? 's' : ''} linked — name-match enrichment</span>
+                  </div>
+                )}
+                {trialCount > 0 && (
+                  <div className="flex items-center gap-2 text-xs text-white/50">
+                    <span className="text-sky-400/60">·</span>
+                    <span>{trialCount} active trial{trialCount !== 1 ? 's' : ''} as investigator — name-match enrichment</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── Share section ─────────────────────────────────────────────────── */}
         <div className="space-y-3 pt-2">

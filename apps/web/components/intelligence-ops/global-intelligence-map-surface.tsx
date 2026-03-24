@@ -213,18 +213,17 @@ export function GlobalIntelligenceMapSurface() {
     setTooltipAnchor(anchor);
   }, []);
 
-  const handleHoverConnection = useCallback((connectionId: string | null, anchor: { x: number; y: number } | null) => {
+  const handleHoverConnection = useCallback((connectionId: string | null, _anchor: { x: number; y: number } | null) => {
+    void _anchor;
     setHoveredClusterId(null);
     setTooltipAnchor(null);
     setHoveredConnectionId(connectionId);
-    if (!connectionId) {
-      setTooltipAnchor(anchor);
-    }
   }, []);
 
   const handleSelectCluster = useCallback((clusterId: string) => {
     setHoveredConnectionId(null);
     setHoveredClusterId(clusterId);
+    setTooltipAnchor(null);
     setSelectedClusterId(clusterId);
   }, []);
 

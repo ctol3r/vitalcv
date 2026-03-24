@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import { Activity, Radar, Signal } from 'lucide-react';
 import type { MapLayerKey } from '@/lib/intelligence/map-contracts';
 import { formatRelativeTime } from '@/lib/intelligence/time';

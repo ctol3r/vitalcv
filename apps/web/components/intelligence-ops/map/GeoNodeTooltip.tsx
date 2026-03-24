@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { GeoClusterSummary } from '@/lib/intelligence/map-contracts';
 

@@ -1,5 +1,7 @@
 'use client';
 
+import * as React from 'react';
+import type { ReactNode } from 'react';
 import { Building2, Layers2, Sparkles, Users } from 'lucide-react';
 import { Drawer } from '@/components/ui/Drawer';
 import type { GeoRegionDetailPayload } from '@/lib/intelligence/map-contracts';
@@ -34,7 +36,7 @@ function DrawerSection({
 }: {
   eyebrow: string;
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <section className="space-y-3 rounded-2xl border border-[var(--vital-map-border)] bg-[var(--vital-map-panel-raised)] px-4 py-4">

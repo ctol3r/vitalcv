@@ -191,6 +191,7 @@ import { registerIntelligenceAggregateRoutes } from './routes/intelligenceAggreg
 import { registerIntelligencePublicSnapshotRoutes } from './routes/intelligencePublicSnapshot';
 import { registerIntelligenceSignalRoutes } from './routes/intelligenceSignals';       // Wave FE22: Explainable intelligence signal APIs
 import { registerIntelligenceLayerRoutes } from './routes/intelligenceLayer';          // Wave FE-next: Compounding intelligence layer APIs
+import { registerMapRoutes } from './routes/map';                                      // Waves C60-C61: Geospatial intelligence map APIs
 import { registerPredictionRoutes } from './routes/predictions';                      // Wave FE17: Predictive Intelligence
 import { registerStrategyRoutes } from './routes/strategy';                           // Wave FE20-A: Strategic Intelligence Engine
 import { registerInvestigatorRoutes } from './routes/investigators';                   // Waves C41-C44: Investigator findings feed
@@ -3614,6 +3615,7 @@ registerIntelligenceAggregateRoutes(app);  // Wave FE21-B — Intelligence feed 
 registerIntelligencePublicSnapshotRoutes(app); // Wave FE-Ignition — seeded public snapshot APIs
 registerIntelligenceSignalRoutes(app);     // Wave FE22 — Trust, influence, pressure, momentum, and provider summary APIs
 registerIntelligenceLayerRoutes(app);      // Wave FE-next — Compounding intelligence layer APIs
+registerMapRoutes(app);                    // Waves C60-C61 — Geospatial intelligence map APIs
 registerPredictionRoutes(app);             // Wave FE17: Predictive Intelligence
 registerStrategyRoutes(app);               // Wave FE20-A: Strategic Intelligence Engine
 registerInvestigatorRoutes(app);           // Waves C41-C44: Investigator findings feed
