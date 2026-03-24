@@ -1,7 +1,9 @@
 'use client';
 
+import { cn } from '@/lib/utils';
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import styles from './ScrollMotion.module.css';
 
 /* ── Section Reveal ───────────────────────────────────────── */
 
@@ -48,6 +50,40 @@ export function SectionReveal({
     >
       {children}
     </motion.div>
+  );
+}
+
+/* ── Mount Fade (quick fade-up on first render) ───────────────────────── */
+
+interface FadeUpProps {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+}
+
+export function FadeUp({ children, className = '', delay = 0 }: FadeUpProps) {
+  return (
+    <div
+      className={cn(styles.fadeUp, className)}
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/* ── Card Hover (micro lift for panels/cards) ─────────────────────────── */
+
+interface CardHoverProps {
+  children: ReactNode;
+  className?: string;
+}
+
+export function CardHover({ children, className = '' }: CardHoverProps) {
+  return (
+    <div className={cn(styles.cardHover, className)}>
+      {children}
+    </div>
   );
 }
 
@@ -139,3 +175,28 @@ export function TerminalTyping({ text, className = '', speed = 30 }: TerminalTyp
   );
 }
 
+/* ── Inline Loader (3-dot pulse) ─────────────────────────────────────── */
+
+interface InlineLoaderProps {
+  className?: string;
+  label?: string;
+}
+
+export function InlineLoader({
+  className = '',
+  label = 'Loading',
+}: InlineLoaderProps) {
+  return (
+    <span
+      className={cn(styles.inlineLoader, className)}
+      role="status"
+      aria-live="polite"
+      aria-label={label}
+    >
+      <span className={styles.inlineLoaderDot} aria-hidden="true" />
+      <span className={styles.inlineLoaderDot} aria-hidden="true" />
+      <span className={styles.inlineLoaderDot} aria-hidden="true" />
+      <span className="sr-only">{label}</span>
+    </span>
+  );
+}
