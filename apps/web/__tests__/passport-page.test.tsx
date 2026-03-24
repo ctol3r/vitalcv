@@ -101,7 +101,7 @@ describe('/p/[slug] public passport page', () => {
     const markup = renderToStaticMarkup(element);
 
     expect(markup).toContain('Clinician Trust Band');
-    expect(markup).toContain('Shareable Verification Proof');
+    expect(markup).toContain('Shareable Proof Bundle');
     expect(markup).toContain('Monitoring Status');
     expect(markup).toContain('NURSYS');
     expect(markup).toContain('Apply with VitalCV');

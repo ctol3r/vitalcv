@@ -10,12 +10,38 @@ const B =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   'http://localhost:4000';
 
-async function fetchPassport(entityId: string): Promise<PassportData | null> {
+const DEFAULT_REVIEW_ERROR = 'Employer review is unavailable for this packet.';
+
+interface ReviewPageData {
+  passport: PassportData | null;
+  errorMessage: string | null;
+}
+
+async function fetchReviewPageData(entityId: string): Promise<ReviewPageData> {
   try {
     const res = await fetch(`${B}/api/passport/entity/${entityId}`, { cache: 'no-store' });
-    if (!res.ok) return null;
-    return await res.json() as PassportData;
-  } catch { return null; }
+    if (res.ok) {
+      return {
+        passport: await res.json() as PassportData,
+        errorMessage: null,
+      };
+    }
+
+    const data = await res.json().catch(() => ({})) as {
+      error?: string;
+      error_description?: string;
+    };
+
+    return {
+      passport: null,
+      errorMessage: data.error_description ?? data.error ?? DEFAULT_REVIEW_ERROR,
+    };
+  } catch {
+    return {
+      passport: null,
+      errorMessage: DEFAULT_REVIEW_ERROR,
+    };
+  }
 }
 
 /** Fire the employer-review-opened event for KPI tracking (fire-and-forget). */
@@ -51,15 +77,34 @@ export default async function ReviewPage({
 }) {
   const { entityId }          = await params;
   const { contextId, from }   = await searchParams;
-  const passport               = await fetchPassport(entityId);
+  const { passport, errorMessage } = await fetchReviewPageData(entityId);
+  const retryHref = `/review/${entityId}${contextId || from
+    ? `?${new URLSearchParams({
+        ...(contextId ? { contextId } : {}),
+        ...(from ? { from } : {}),
+      }).toString()}`
+    : ''}`;
 
   if (!passport) {
     return (
       <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center justify-center px-4">
-        <p className="text-white/35 text-sm">Provider not found.</p>
-        <Link href="/" className="text-white/40 text-xs mt-4 underline underline-offset-2">
-          Back to home
-        </Link>
+        <div className="w-full max-w-sm rounded-2xl border border-white/8 bg-white/[0.03] px-5 py-5 text-center">
+          <p className="text-white/60 text-sm font-medium">Employer review unavailable</p>
+          <p className="mt-2 text-xs leading-relaxed text-white/38">
+            {errorMessage ?? DEFAULT_REVIEW_ERROR}
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-white/28">
+            No decision card is rendered until VitalCV can hydrate a passport record for this entity. Shared review context must also still be valid when one is supplied.
+          </p>
+          <div className="mt-4 flex items-center justify-center gap-4">
+            <Link href={retryHref} className="inline-flex text-white/52 text-xs underline underline-offset-2">
+              Try again
+            </Link>
+            <Link href="/" className="inline-flex text-white/40 text-xs underline underline-offset-2">
+              Back to home
+            </Link>
+          </div>
+        </div>
       </main>
     );
   }

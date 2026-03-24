@@ -3,7 +3,7 @@
 /**
  * LiveTrustConsole — Hero
  *
- * State machine:  idle → loading → preview → (Continue) → /get-ready
+ * State machine:  idle → loading → preview → (Continue) → /interview?npi=
  *
  * loading:
  *   1. POST /api/identity/[npi]/ingest  — real NPPES + OIG/LEIE query
@@ -21,6 +21,14 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { useRoleContext } from '@/components/auth/RoleContext';
+import {
+  LIVE_PATH_NPI_RE,
+  LIVE_PATH_PREVIEW_NOTICE,
+  resolveLivePathAuthState,
+  resolveLivePathSourceMode,
+} from '@/lib/live-path/contracts';
+import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
 import { ReadinessPreview, type ClinicianTrustState } from './ReadinessPreview';
 
 type Phase = 'idle' | 'loading' | 'preview';
@@ -131,41 +139,138 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
   const [previewNotice, setPreviewNotice] = useState<string | null>(null);
   const [showLoadingPanel, setShowLoadingPanel] = useState(false);
   const [loadingPanelFading, setLoadingPanelFading] = useState(false);
+  const { isLoaded, isSignedIn } = useRoleContext();
   const router   = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const timers   = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const pageLoadTrackedRef = useRef(false);
+  const mountedRef = useRef(true);
+  const activeSubmitIdRef = useRef(0);
+  const previewTrackedSubmitIdRef = useRef<number | null>(null);
+  const submitStartedAtRef = useRef<number | null>(null);
+
+  const authState = resolveLivePathAuthState({ isLoaded, isSignedIn });
+  const sourceMode = resolveLivePathSourceMode({
+    isDemo,
+    hasLiveState: Boolean(realState),
+  });
+
+  useEffect(() => {
+    if (pageLoadTrackedRef.current || !isLoaded) return;
+
+    trackUxEvent({
+      event_name: 'page_loaded',
+      component_id: 'homepage_npi_flow',
+      metadata: {
+        auth_state: authState,
+        source_mode: 'live',
+      },
+    });
+
+    pageLoadTrackedRef.current = true;
+  }, [authState, isLoaded]);
+
+  useEffect(() => {
+    if (!previewIn) return;
+    const submitId = activeSubmitIdRef.current;
+    if (previewTrackedSubmitIdRef.current === submitId) return;
+
+    trackUxEvent({
+      event_name: 'preview_visible',
+      component_id: 'homepage_npi_flow',
+      duration_ms: submitStartedAtRef.current === null
+        ? null
+        : performance.now() - submitStartedAtRef.current,
+      metadata: {
+        auth_state: authState,
+        interaction_result: sourceMode === 'live' ? 'success' : 'fallback',
+        npi_length: npi.trim().length,
+        source_mode: sourceMode,
+      },
+    });
+
+    previewTrackedSubmitIdRef.current = submitId;
+  }, [authState, npi, previewIn, sourceMode]);
 
   function clearTimers() {
     timers.current.forEach(clearTimeout);
     timers.current = [];
   }
-  useEffect(() => () => clearTimers(), []);
+
+  function isActiveSubmit(submitId: number): boolean {
+    return mountedRef.current && activeSubmitIdRef.current === submitId;
+  }
+
+  function queueTimer(callback: () => void, delayMs: number) {
+    timers.current.push(setTimeout(() => {
+      if (!mountedRef.current) return;
+      callback();
+    }, delayMs));
+  }
+
+  function resetPreviewState() {
+    setStages(INITIAL_STAGES.map((stage) => ({ ...stage, status: 'waiting' })));
+    setPreviewIn(false);
+    setRealState(null);
+    setIsDemo(false);
+    setPreviewNotice(null);
+  }
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      activeSubmitIdRef.current += 1;
+      clearTimers();
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (phase !== 'idle') return;
 
     const trimmed = npi.trim();
+    const submitId = activeSubmitIdRef.current + 1;
     let previewName = 'Provider';
 
+    activeSubmitIdRef.current = submitId;
+    previewTrackedSubmitIdRef.current = null;
+    submitStartedAtRef.current = performance.now();
+
+    trackUxEvent({
+      event_name: 'npi_submit',
+      component_id: 'homepage_npi_flow',
+      metadata: {
+        auth_state: authState,
+        npi_length: trimmed.length,
+        source_mode: 'live',
+      },
+    });
+
     setPhase('loading');
-    setStages(INITIAL_STAGES.map(s => ({ ...s, status: 'waiting' })));
-    setPreviewIn(false);
-    setRealState(null);
-    setIsDemo(false);
-    setPreviewNotice(null);
+    resetPreviewState();
+    trackUxEvent({
+      event_name: 'loader_started',
+      component_id: 'homepage_npi_flow',
+      metadata: {
+        auth_state: authState,
+        npi_length: trimmed.length,
+        source_mode: 'live',
+      },
+    });
     setShowLoadingPanel(true);
     setLoadingPanelFading(false);
     clearTimers();
     setNpi(trimmed);
 
-    timers.current.push(setTimeout(() => {
+    queueTimer(() => {
+      if (!isActiveSubmit(submitId)) return;
       setStages(prev => setStageStatus(prev, 'NPPES_API', 'loading'));
       inputRef.current?.focus({ preventScroll: true });
-    }, 0));
-    timers.current.push(setTimeout(() => {
+    }, 0);
+    queueTimer(() => {
+      if (!isActiveSubmit(submitId)) return;
       setStages(prev => setStageStatus(prev, 'OIG_LEIE', 'loading'));
-    }, 140));
+    }, 140);
 
     // ── Step 1: Ingest (real sources) ────────────────────────
     let ingestOk = false;
@@ -175,6 +280,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
       });
 
       const ingestData = await ingestRes.json() as IngestResponse;
+      if (!isActiveSubmit(submitId)) return;
 
       if (ingestData.fallback) {
         setStages(prev => setStageStatuses(prev, {
@@ -183,7 +289,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
           READINESS: 'skipped',
         }));
         setIsDemo(true);
-        setPreviewNotice('Backend unavailable · demo preview only');
+        setPreviewNotice(LIVE_PATH_PREVIEW_NOTICE.backendUnavailable);
       } else {
         const resultMap: Record<string, string> = {};
         (ingestData.results ?? []).forEach(r => { resultMap[r.source] = r.status; });
@@ -196,21 +302,23 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
         ingestOk = (ingestData.results ?? []).some(r => r.status === 'SUCCESS');
       }
     } catch {
+      if (!isActiveSubmit(submitId)) return;
       setStages(prev => setStageStatuses(prev, {
         NPPES_API: 'skipped',
         OIG_LEIE: 'skipped',
         READINESS: 'skipped',
       }));
       setIsDemo(true);
-      setPreviewNotice('Backend unavailable · demo preview only');
+      setPreviewNotice(LIVE_PATH_PREVIEW_NOTICE.backendUnavailable);
     }
 
     // ── Step 2: Fetch real trust state ───────────────────────
-    if (ingestOk && /^\d{10}$/.test(trimmed)) {
+    if (ingestOk && LIVE_PATH_NPI_RE.test(trimmed)) {
       setStages(prev => setStageStatus(prev, 'READINESS', 'loading'));
       try {
         const tsRes  = await fetch(`/api/trust-state/${encodeURIComponent(trimmed)}`);
         const tsData = await tsRes.json() as ClinicianTrustState;
+        if (!isActiveSubmit(submitId)) return;
 
         if (tsRes.ok && tsData.npi) {
           const identityFact = tsData.facts?.find(f => f.factType?.toLowerCase().includes('identity'));
@@ -221,36 +329,42 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
           setStages(prev => setStageStatus(prev, 'READINESS', 'ok'));
         } else {
           setIsDemo(true);
-          setPreviewNotice('Partial source coverage · demo preview only');
+          setPreviewNotice(LIVE_PATH_PREVIEW_NOTICE.partialCoverage);
           setStages(prev => setStageStatus(prev, 'READINESS', 'failed'));
         }
       } catch {
+        if (!isActiveSubmit(submitId)) return;
         setIsDemo(true);
-        setPreviewNotice('Partial source coverage · demo preview only');
+        setPreviewNotice(LIVE_PATH_PREVIEW_NOTICE.partialCoverage);
         setStages(prev => setStageStatus(prev, 'READINESS', 'failed'));
       }
     } else if (!ingestOk) {
       setIsDemo(true);
-      setPreviewNotice((prev) => prev ?? 'Partial source coverage · demo preview only');
+      setPreviewNotice((prev) => prev ?? LIVE_PATH_PREVIEW_NOTICE.partialCoverage);
       setStages(prev => setStageStatus(prev, 'READINESS', 'skipped'));
     }
+
+    if (!isActiveSubmit(submitId)) return;
 
     // ── Step 3: Transition to preview ────────────────────────
     setPhase('preview');
     setLoadingPanelFading(true);
-    timers.current.push(setTimeout(() => setPreviewIn(true), 70));
-    timers.current.push(setTimeout(() => {
+    queueTimer(() => {
+      if (!isActiveSubmit(submitId)) return;
+      setPreviewIn(true);
+    }, 70);
+    queueTimer(() => {
+      if (!isActiveSubmit(submitId)) return;
       setShowLoadingPanel(false);
-      if (onPreviewReady) {
-        onPreviewReady(trimmed, previewName);
-      }
-    }, 240));
+      onPreviewReady?.(trimmed, previewName);
+    }, 240);
   }
 
   function handleContinue() {
-    const dest = /^\d{10}$/.test(npi.trim())
-      ? `/get-ready?npi=${npi.trim()}`
-      : '/get-ready';
+    const trimmed = npi.trim();
+    const dest = LIVE_PATH_NPI_RE.test(trimmed)
+      ? `/interview?npi=${trimmed}`
+      : '/passport';
     router.push(dest);
   }
 

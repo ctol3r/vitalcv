@@ -10,6 +10,10 @@
 import type { PassportData } from '@/app/passport/[id]/page';
 import { VStatusPill, type TrustStatusLabel } from '@/components/vds/primitives';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
+import {
+  findPassportSourceCoverageCheck,
+  sourceCoveragePosture,
+} from '@/lib/trust/source-coverage';
 import { useState, type ReactNode } from 'react';
 import { SourceCoverageTag, type SourceCoverageTagProps } from './SourceCoverageTag';
 
@@ -25,8 +29,8 @@ type DomainStatus =
   | 'unchecked';
 
 type SourceCoverageEntry = {
-  source: string;
-  status: SourceCoverageTagProps['status'];
+  sourceId: string;
+  state: SourceCoverageTagProps['status'];
   decisionGrade: boolean;
   lastChecked?: string | null;
 };
@@ -62,12 +66,6 @@ type BoardCertificationEntry = {
 };
 
 type PassportWithTrustExtensions = PassportData & {
-  sourceCoverage?: Array<{
-    source?: string;
-    status?: string;
-    decisionGrade?: boolean;
-    lastChecked?: string | null;
-  }>;
   identity: PassportData['identity'] & {
     npiVerified?: boolean;
     fullName?: string;
@@ -163,58 +161,19 @@ function humanizeToken(value: string): string {
     .replace(/\b[a-z]/g, (char) => char.toUpperCase());
 }
 
-function normalizeSource(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, '');
-}
-
-function parseCoverageStatus(value: unknown): SourceCoverageTagProps['status'] | null {
-  const normalized = toTrimmedString(value)?.toLowerCase().replace(/_/g, '-');
-  switch (normalized) {
-    case 'live':
-      return 'live';
-    case 'gated':
-      return 'gated';
-    case 'access-required':
-    case 'accessrequired':
-      return 'access-required';
-    case 'unavailable':
-      return 'unavailable';
-    default:
-      return null;
-  }
-}
-
-function normalizeSourceCoverage(passport: PassportData): SourceCoverageEntry[] {
-  const trustPassport = asTrustPassport(passport);
-  const entries = Array.isArray(trustPassport.sourceCoverage) ? trustPassport.sourceCoverage : [];
-
-  return entries.flatMap((entry) => {
-    const source = toTrimmedString(entry.source);
-    const status = parseCoverageStatus(entry.status);
-
-    if (!source || !status || typeof entry.decisionGrade !== 'boolean') {
-      return [];
-    }
-
-    return [{
-      source,
-      status,
-      decisionGrade: entry.decisionGrade,
-      lastChecked: toTrimmedString(entry.lastChecked) ?? null,
-    }];
-  });
-}
-
 function findCoverage(passport: PassportData, aliases: string[]): SourceCoverageEntry | null {
-  const normalizedAliases = aliases.map((alias) => normalizeSource(alias));
-  const entry = normalizeSourceCoverage(passport).find((candidate) => {
-    const normalizedCandidate = normalizeSource(candidate.source);
-    return normalizedAliases.some((alias) => (
-      normalizedCandidate.includes(alias) || alias.includes(normalizedCandidate)
-    ));
-  });
+  const entry = findPassportSourceCoverageCheck(passport.sourceCoverage, aliases);
 
-  return entry ?? null;
+  if (!entry) {
+    return null;
+  }
+
+  return {
+    sourceId: entry.sourceId,
+    state: entry.state,
+    decisionGrade: entry.state === 'live',
+    lastChecked: toTrimmedString(entry.checkedAt) ?? null,
+  };
 }
 
 function formatTimestamp(value?: string | null): string | null {
@@ -322,8 +281,8 @@ function resolveIdentityDomain(passport: PassportData): TrustDomain {
 
   const status: DomainStatus = verified ? 'verified' : (npi ? 'pending' : 'unavailable');
   const coverage = findCoverage(passport, ['NPPES', 'CMS NPPES', 'NPI Registry']) ?? {
-    source: 'NPPES',
-    status: npi || fullName ? 'live' : 'unavailable',
+    sourceId: 'NPPES',
+    state: npi || fullName ? 'live' : 'unavailable',
     decisionGrade: true,
     lastChecked: checkedAt,
   };
@@ -332,7 +291,7 @@ function resolveIdentityDomain(passport: PassportData): TrustDomain {
     id: 'identity',
     title: 'Identity Verification',
     status,
-    sourceLabel: coverage.source,
+    sourceLabel: coverage.sourceId,
     lastChecked: checkedAt ?? coverage.lastChecked,
     coverage,
     rows: [
@@ -353,8 +312,8 @@ function resolveSafetyDomain(passport: PassportData): TrustDomain {
     : (needsReview ? 'review-required' : 'clear');
 
   const coverage = findCoverage(passport, ['OIG', 'LEIE', 'OIG / LEIE']) ?? {
-    source: 'OIG / LEIE',
-    status: checkedAt || passport.standing.exclusionStatus !== 'UNCHECKED' ? 'live' : 'unavailable',
+    sourceId: 'OIG / LEIE',
+    state: checkedAt || passport.standing.exclusionStatus !== 'UNCHECKED' ? 'live' : 'unavailable',
     decisionGrade: true,
     lastChecked: checkedAt,
   };
@@ -363,7 +322,7 @@ function resolveSafetyDomain(passport: PassportData): TrustDomain {
     id: 'safety',
     title: 'Safety & Sanctions',
     status,
-    sourceLabel: coverage.source,
+    sourceLabel: coverage.sourceId,
     lastChecked: checkedAt ?? coverage.lastChecked,
     coverage,
     rows: [
@@ -400,21 +359,27 @@ function resolveLicensureDomain(passport: PassportData): TrustDomain {
   const hasStructuredAuthority = states.length > 0 || licenseNumbers.length > 0 || licensureCredentials.length > 0;
 
   const coverage = findCoverage(passport, ['Nursys', 'FSMB', 'State Board']) ?? {
-    source: fallbackSource,
-    status: hasStructuredAuthority ? 'live' : 'access-required',
+    sourceId: fallbackSource,
+    state: hasStructuredAuthority ? 'live' : 'accessRequired',
     decisionGrade: true,
     lastChecked: checkedAt,
   };
 
-  const status: DomainStatus = coverage.status === 'access-required' || coverage.status === 'gated'
-    ? 'access-required'
-    : (hasVerifiedAuthority ? 'verified' : 'pending');
+  const posture = sourceCoveragePosture(coverage.state);
+  const status: DomainStatus =
+    coverage.state === 'accessRequired' || coverage.state === 'gated'
+      ? 'access-required'
+      : posture === 'degraded'
+        ? 'review-required'
+        : hasVerifiedAuthority
+          ? 'verified'
+          : 'pending';
 
   return {
     id: 'licensure',
     title: 'State Licensure',
     status,
-    sourceLabel: coverage.source,
+    sourceLabel: coverage.sourceId,
     lastChecked: checkedAt ?? coverage.lastChecked,
     coverage,
     rows: [
@@ -450,21 +415,27 @@ function resolveBoardDomain(passport: PassportData): TrustDomain {
   ]);
 
   const coverage = findCoverage(passport, ['ABMS', 'Board Certification']) ?? {
-    source: fallbackSource,
-    status: certificationLabels.length > 0 ? 'live' : 'access-required',
+    sourceId: fallbackSource,
+    state: certificationLabels.length > 0 ? 'live' : 'accessRequired',
     decisionGrade: true,
     lastChecked: checkedAt,
   };
 
-  const status: DomainStatus = coverage.status === 'access-required' || coverage.status === 'gated'
-    ? 'access-required'
-    : (certificationLabels.length > 0 ? 'verified' : 'pending');
+  const posture = sourceCoveragePosture(coverage.state);
+  const status: DomainStatus =
+    coverage.state === 'accessRequired' || coverage.state === 'gated'
+      ? 'access-required'
+      : posture === 'degraded'
+        ? 'review-required'
+        : certificationLabels.length > 0
+          ? 'verified'
+          : 'pending';
 
   return {
     id: 'board',
     title: 'Board Certification',
     status,
-    sourceLabel: coverage.source,
+    sourceLabel: coverage.sourceId,
     lastChecked: checkedAt ?? coverage.lastChecked,
     coverage,
     rows: [
@@ -497,8 +468,8 @@ function resolveEligibilityDomain(passport: PassportData): TrustDomain {
           : 'unchecked';
 
   const coverage = findCoverage(passport, ['PECOS', 'CMS PECOS']) ?? {
-    source: fallbackSource,
-    status: checkedAt || pecosStatus !== 'UNCHECKED' ? 'live' : 'unavailable',
+    sourceId: fallbackSource,
+    state: checkedAt || pecosStatus !== 'UNCHECKED' ? 'live' : 'unavailable',
     decisionGrade: true,
     lastChecked: checkedAt,
   };
@@ -507,7 +478,7 @@ function resolveEligibilityDomain(passport: PassportData): TrustDomain {
     id: 'eligibility',
     title: 'Medicare Eligibility',
     status,
-    sourceLabel: coverage.source,
+    sourceLabel: coverage.sourceId,
     lastChecked: checkedAt ?? coverage.lastChecked,
     coverage,
     rows: [
@@ -587,8 +558,8 @@ function DomainPanel({ domain, compact, isOpen }: { domain: TrustDomain; compact
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <SourceCoverageTag
-            source={domain.coverage.source}
-            status={domain.coverage.status}
+            source={domain.coverage.sourceId}
+            status={domain.coverage.state}
             decisionGrade={domain.coverage.decisionGrade}
             lastChecked={domain.coverage.lastChecked ?? undefined}
           />

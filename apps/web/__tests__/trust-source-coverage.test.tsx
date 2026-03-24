@@ -1,0 +1,86 @@
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, it } from 'vitest';
+import { SourceCoverageTag } from '../components/trust/SourceCoverageTag';
+import {
+  findPassportSourceCoverageCheck,
+  normalizePassportSourceCoverageState,
+  sourceCoverageBadgeLabel,
+  sourceCoveragePosture,
+  type PassportSourceCoverageReport,
+} from '../lib/trust/source-coverage';
+import { mapSourceCoverageStateToTrustStatus } from '../lib/trust/status-language';
+
+describe('trust source coverage contract', () => {
+  it('normalizes canonical source coverage states without dropping aliases', () => {
+    expect(normalizePassportSourceCoverageState('access-required')).toBe('accessRequired');
+    expect(normalizePassportSourceCoverageState('review_required')).toBe('reviewRequired');
+    expect(normalizePassportSourceCoverageState('not checked')).toBe('notChecked');
+    expect(normalizePassportSourceCoverageState('notDecisionGrade')).toBe('notDecisionGrade');
+    expect(normalizePassportSourceCoverageState('bogus')).toBeNull();
+  });
+
+  it('keeps degraded-state meaning aligned across posture, tag copy, and trust status', () => {
+    expect(sourceCoveragePosture('stale')).toBe('degraded');
+    expect(sourceCoveragePosture('reviewRequired')).toBe('degraded');
+    expect(sourceCoverageBadgeLabel({ state: 'stale', decisionGrade: false })).toBe('Stale');
+    expect(sourceCoverageBadgeLabel({ state: 'reviewRequired', decisionGrade: false })).toBe('Review required');
+    expect(mapSourceCoverageStateToTrustStatus('stale')).toBe('stale');
+    expect(mapSourceCoverageStateToTrustStatus('reviewRequired')).toBe('review_required');
+  });
+
+  it('renders stale and review-required coverage instead of collapsing them', () => {
+    const staleMarkup = renderToStaticMarkup(
+      <SourceCoverageTag
+        source="STATE_BOARD"
+        status="stale"
+        decisionGrade={false}
+        lastChecked="2026-03-20T00:00:00.000Z"
+      />,
+    );
+    const reviewMarkup = renderToStaticMarkup(
+      <SourceCoverageTag
+        source="OIG_LEIE"
+        status="reviewRequired"
+        decisionGrade={false}
+      />,
+    );
+
+    expect(staleMarkup).toContain('STATE_BOARD');
+    expect(staleMarkup).toContain('Stale');
+    expect(reviewMarkup).toContain('Review required');
+  });
+
+  it('finds canonical coverage checks by source alias from the passport report', () => {
+    const report: PassportSourceCoverageReport = {
+      checks: [
+        {
+          sourceId: 'NPPES_API',
+          state: 'live',
+          reason: 'identity checked',
+          checkedAt: '2026-03-20T00:00:00.000Z',
+        },
+        {
+          sourceId: 'OIG_LEIE',
+          state: 'reviewRequired',
+          reason: 'possible match',
+          checkedAt: '2026-03-20T00:00:00.000Z',
+        },
+      ],
+      summary: {
+        live: ['NPPES_API'],
+        gated: [],
+        partial: [],
+        stale: [],
+        notDecisionGrade: [],
+        notChecked: [],
+        unavailable: [],
+        accessRequired: [],
+        reviewRequired: ['OIG_LEIE'],
+      },
+    };
+
+    expect(findPassportSourceCoverageCheck(report, ['NPI Registry', 'NPPES'])?.state).toBe('live');
+    expect(findPassportSourceCoverageCheck(report, ['OIG', 'LEIE'])?.state).toBe('reviewRequired');
+  });
+});

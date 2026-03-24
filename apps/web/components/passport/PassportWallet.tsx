@@ -32,6 +32,7 @@ import {
   VStatusPill,
   type TrustStatusLabel,
 } from '@/components/vds/primitives';
+import { formatProofDate } from '@/lib/trust/proof-language';
 
 // ── Status configuration ──────────────────────────────────────────────────────
 // NO colour on status. Hierarchy via opacity only.
@@ -73,12 +74,6 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
       <span className="text-white/65">{value}</span>
     </div>
   );
-}
-
-function formatProofDate(value?: string | null): string | null {
-  if (!value) return null;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed.toLocaleDateString();
 }
 
 // ── Accordion section builders ─────────────────────────────────────────────────

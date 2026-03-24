@@ -1,3 +1,5 @@
+import type { PassportSourceCoverageState } from '@/lib/trust/source-coverage';
+
 /**
  * Shared trust/status language for public VitalCV surfaces.
  *
@@ -22,59 +24,99 @@ export type TrustUiStatus =
 
 export type TrustEvidenceKind = 'verification' | 'clearance' | 'generic';
 
-export type SourceCoverageState =
-  | 'live'
-  | 'gated'
-  | 'partial'
-  | 'stale'
-  | 'notDecisionGrade'
-  | 'notChecked'
-  | 'unavailable'
-  | 'accessRequired'
-  | 'reviewRequired'
-  | 'mock';
+export type SourceCoverageState = PassportSourceCoverageState;
+
+const SHARED_TRUST_STATUS_LABELS = {
+  verified: 'Verified',
+  clear: 'Clear',
+  checked: 'Checked',
+  pending: 'Pending',
+  stale: 'Stale',
+  unavailable: 'Unavailable',
+  access_required: 'Access required',
+  review_required: 'Review required',
+  demo: 'Demo',
+  enrolled: 'Enrolled',
+  blocked: 'Blocked',
+  not_decision_grade: 'Not decision-grade',
+} as const;
+
+type SharedTrustStatusLabelKey = keyof typeof SHARED_TRUST_STATUS_LABELS;
 
 const TRUST_STATUS_META: Record<TrustUiStatus, { label: string; badgeClassName: string }> = {
   verified: {
-    label: 'Verified',
+    label: SHARED_TRUST_STATUS_LABELS.verified,
     badgeClassName: 'border-white/12 bg-white/6 text-white/70',
   },
   clear: {
-    label: 'Clear',
+    label: SHARED_TRUST_STATUS_LABELS.clear,
     badgeClassName: 'border-white/12 bg-white/6 text-white/70',
   },
   checked: {
-    label: 'Checked',
+    label: SHARED_TRUST_STATUS_LABELS.checked,
     badgeClassName: 'border-white/12 bg-white/6 text-white/65',
   },
   pending: {
-    label: 'Pending',
+    label: SHARED_TRUST_STATUS_LABELS.pending,
     badgeClassName: 'border-white/8 bg-white/4 text-white/45',
   },
   stale: {
-    label: 'Stale',
+    label: SHARED_TRUST_STATUS_LABELS.stale,
     badgeClassName: 'border-amber-500/25 bg-amber-500/10 text-amber-200',
   },
   unavailable: {
-    label: 'Unavailable',
+    label: SHARED_TRUST_STATUS_LABELS.unavailable,
     badgeClassName: 'border-white/8 bg-white/4 text-white/35',
   },
   access_required: {
-    label: 'Access required',
+    label: SHARED_TRUST_STATUS_LABELS.access_required,
     badgeClassName: 'border-amber-500/25 bg-amber-500/10 text-amber-200',
   },
   review_required: {
-    label: 'Review required',
+    label: SHARED_TRUST_STATUS_LABELS.review_required,
     badgeClassName: 'border-rose-500/25 bg-rose-500/10 text-rose-200',
   },
   demo: {
-    label: 'Demo',
+    label: SHARED_TRUST_STATUS_LABELS.demo,
     badgeClassName: 'border-sky-500/25 bg-sky-500/10 text-sky-200',
   },
 };
 
+const VDS_TRUST_STATUS_LABELS: Record<
+  | 'verified'
+  | 'clear'
+  | 'enrolled'
+  | 'pending'
+  | 'review required'
+  | 'unavailable'
+  | 'access required'
+  | 'not decision-grade'
+  | 'blocked',
+  SharedTrustStatusLabelKey
+> = {
+  verified: 'verified',
+  clear: 'clear',
+  enrolled: 'enrolled',
+  pending: 'pending',
+  'review required': 'review_required',
+  unavailable: 'unavailable',
+  'access required': 'access_required',
+  'not decision-grade': 'not_decision_grade',
+  blocked: 'blocked',
+};
+
+function sharedTrustStatusLabel(status: SharedTrustStatusLabelKey): string {
+  return SHARED_TRUST_STATUS_LABELS[status];
+}
+
 export function getTrustStatusLabel(status: TrustUiStatus): string {
   return TRUST_STATUS_META[status].label;
+}
+
+export function getVdsTrustStatusLabel(
+  status: keyof typeof VDS_TRUST_STATUS_LABELS,
+): string {
+  return sharedTrustStatusLabel(VDS_TRUST_STATUS_LABELS[status]);
 }
 
 export function getTrustStatusBadgeClassName(status: TrustUiStatus): string {

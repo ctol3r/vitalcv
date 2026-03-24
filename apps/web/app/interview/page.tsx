@@ -4,8 +4,8 @@
  * M3: No synthetic proof cards shown to pilots.
  *
  * Data flow:
- *   ?entityId=<id> → fetch real passport → show real readiness rows
- *   No entityId    → show explicit "enter NPI first" state
+ *   ?entityId=<id> or ?npi=<npi> → fetch real passport → show real readiness rows
+ *   No entityId / npi            → show explicit "enter NPI first" state
  *
  * Design rule: green is used ONLY on the "Share with employer" CTA button.
  * Status is conveyed through opacity, not color.

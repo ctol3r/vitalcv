@@ -39,6 +39,7 @@ import { useId, useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
+import { getVdsTrustStatusLabel } from '@/lib/trust/status-language';
 
 // ── Badge Tone System ──────────────────────────────────────────────────────────
 
@@ -70,18 +71,6 @@ export type TrustStatusLabel =
   | 'access required'
   | 'not decision-grade'
   | 'blocked';
-
-const TRUST_STATUS_COPY: Record<TrustStatusLabel, string> = {
-  verified: 'Verified',
-  clear: 'Clear',
-  enrolled: 'Enrolled',
-  pending: 'Pending',
-  'review required': 'Review required',
-  unavailable: 'Unavailable',
-  'access required': 'Access required',
-  'not decision-grade': 'Not decision-grade',
-  blocked: 'Blocked',
-};
 
 const TRUST_STATUS_TONES: Record<TrustStatusLabel, BadgeTone> = {
   verified: 'success',
@@ -173,7 +162,7 @@ export function VStatusPill({
         BADGE_CLASSES[TRUST_STATUS_TONES[status]],
       )}
     >
-      {TRUST_STATUS_COPY[status]}
+      {getVdsTrustStatusLabel(status)}
     </span>
   );
 }

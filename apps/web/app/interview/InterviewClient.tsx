@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PassportData } from '@/app/passport/[id]/page';
 import { useRoleContext } from '@/components/auth/RoleContext';
 import {
@@ -14,9 +14,13 @@ import {
   CLERK_SIGN_IN_URL,
 } from '@/lib/auth/clerkConfig';
 import {
-  VStatusPill,
-  type TrustStatusLabel,
-} from '@/components/vds/primitives';
+  normalizeLivePathShareResponse,
+  resolveLivePathAuthState,
+  resolveLivePathErrorMessage,
+  resolveLivePathReadinessStatus,
+} from '@/lib/live-path/contracts';
+import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
+import { VStatusPill } from '@/components/vds/primitives';
 
 interface Props {
   entityId: string;
@@ -29,6 +33,8 @@ type ShareState =
   | { phase: 'loading' }
   | { phase: 'success'; eventId: string; timestamp: string; status: string }
   | { phase: 'error'; message: string };
+
+const SHARE_UNAVAILABLE_MESSAGE = 'Share is unavailable for this packet right now.';
 
 function formatDateTime(value?: string | null): string {
   if (!value) return 'Not checked';
@@ -120,6 +126,16 @@ function readinessProceedNote(passport: PassportData): string {
 export default function InterviewClient({ entityId, passport, contextId }: Props) {
   const [shareState, setShareState] = useState<ShareState>({ phase: 'idle' });
   const { isLoaded, isSignedIn } = useRoleContext();
+  const authState = resolveLivePathAuthState({ isLoaded, isSignedIn });
+  const mountedRef = useRef(true);
+  const shareInFlightRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      shareInFlightRef.current = false;
+    };
+  }, []);
 
   if (!passport) {
     return (
@@ -144,16 +160,16 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
 
   const displayName = passport.identity.displayName ?? `NPI ${passport.identity.npi ?? passport.npi ?? entityId}`;
   const specialty = passport.identity.specialty ?? 'Healthcare Provider';
-  const readinessStatus: TrustStatusLabel =
-    passport.readiness.status === 'READY' ? 'clear'
-      : passport.readiness.status === 'BLOCKED' ? 'blocked'
-        : 'review required';
+  const readinessStatus = resolveLivePathReadinessStatus(passport.readiness.status);
   const proofItems = buildPassportProofSections(passport);
   const proofSummary = summarizePassportProofSections(proofItems);
   const verifiedTags = buildVerifiedTags(passport);
   const missingTags = buildMissingTags(passport);
   const hasShareContext = Boolean(contextId);
   const canShare = hasShareContext && isLoaded && isSignedIn;
+  const canOpenEmployerReview =
+    Boolean(passport.entityId)
+    && (passport.readiness.status === 'READY' || passport.readiness.status === 'PARTIAL');
   const proofHref = passport.identity.npi
     ? `/api/trust-proof/${encodeURIComponent(passport.identity.npi)}?format=pdf`
     : null;
@@ -162,11 +178,25 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
     : `/review/${passport.entityId}`;
 
   async function handleShare() {
-    if (!contextId || !canShare) {
+    if (!contextId || !canShare || shareInFlightRef.current) {
       return;
     }
 
-    setShareState({ phase: 'loading' });
+    shareInFlightRef.current = true;
+    const startedAt = performance.now();
+    trackUxEvent({
+      event_name: 'share_click',
+      component_id: 'interview_share_packet',
+      metadata: {
+        auth_state: authState,
+        interaction_result: 'started',
+        source_mode: 'live',
+      },
+    });
+
+    if (mountedRef.current) {
+      setShareState({ phase: 'loading' });
+    }
 
     try {
       const response = await fetch('/api/share', {
@@ -192,20 +222,43 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
         if (response.status === 404) {
           throw new Error('The employer review context is no longer available.');
         }
-        throw new Error(payload.error ?? 'Share is unavailable for this packet right now.');
+        throw new Error(payload.error ?? SHARE_UNAVAILABLE_MESSAGE);
       }
+
+      if (!mountedRef.current) return;
 
       setShareState({
         phase: 'success',
-        eventId: payload.shareEventId ?? payload.eventId ?? 'Recorded',
-        timestamp: payload.timestamp ?? new Date().toISOString(),
-        status: payload.status ?? 'delivered',
+        ...normalizeLivePathShareResponse(payload),
+      });
+      trackUxEvent({
+        event_name: 'share_success',
+        component_id: 'interview_share_packet',
+        duration_ms: performance.now() - startedAt,
+        metadata: {
+          auth_state: authState,
+          interaction_result: 'success',
+          source_mode: 'live',
+        },
       });
     } catch (error) {
-      setShareState({
-        phase: 'error',
-        message: error instanceof Error ? error.message : 'Share is unavailable for this packet right now.',
+      const message = resolveLivePathErrorMessage(error, SHARE_UNAVAILABLE_MESSAGE);
+      if (!mountedRef.current) return;
+
+      setShareState({ phase: 'error', message });
+      trackUxEvent({
+        event_name: 'share_error',
+        component_id: 'interview_share_packet',
+        duration_ms: performance.now() - startedAt,
+        metadata: {
+          auth_state: authState,
+          error_message: message,
+          interaction_result: 'error',
+          source_mode: 'live',
+        },
       });
+    } finally {
+      shareInFlightRef.current = false;
     }
   }
 
@@ -344,6 +397,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
             <Accordion
               items={proofItems}
               defaultOpen={proofItems.find((item) => item.status !== 'verified' && item.status !== 'clear')?.id ?? proofItems[0]?.id}
+              telemetryComponentId="interview_proof_packet"
             />
           </div>
         </section>
@@ -452,6 +506,15 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
                     Sign in to share
                   </Link>
                 ) : null}
+
+                {canOpenEmployerReview && (
+                  <Link
+                    href={reviewHref}
+                    className="inline-flex min-h-[44px] items-center rounded-xl border border-white/10 px-5 text-sm font-medium text-white/62 transition hover:border-white/20 hover:text-white"
+                  >
+                    View employer review
+                  </Link>
+                )}
 
                 <Link
                   href={`/passport/${passport.entityId}`}

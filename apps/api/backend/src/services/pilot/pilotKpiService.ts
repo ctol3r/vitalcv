@@ -17,7 +17,7 @@
  *   bundle_share_events, advisory_outcome_events,
  *   employer_decision_events, start_outcome_events,
  *   blocker_resolution_events, employer_acceptances,
- *   start_attestations, audit_events
+ *   start_attestations
  *
  * It MUST NOT write to:
  *   trust_state, claims, artifacts, receipts, readiness_score
@@ -42,13 +42,13 @@ import { log } from '../../obs/logger';
  */
 export interface PilotFilter {
   /** Filter by pilotId stored in metadata.pilotId */
-  pilotId?:             string | null;
+  pilotId?: string | null;
   /** Filter by workflowLane stored in metadata.workflowLane */
-  workflowLane?:        string | null;
+  workflowLane?: string | null;
   /** Filter by organizationContextId FK (UUID, first-class column) */
-  orgContextId?:        string | null;
+  orgContextId?: string | null;
   /** Filter by geographyTag stored in metadata.geographyTag */
-  geographyTag?:        string | null;
+  geographyTag?: string | null;
 }
 
 function normalizePilotFilter(filter: PilotFilter | undefined): PilotFilter {
@@ -60,6 +60,16 @@ function normalizePilotFilter(filter: PilotFilter | undefined): PilotFilter {
   };
 }
 
+const REVIEW_OPEN_EVENT_TYPE = 'EMPLOYER_REVIEW' as const;
+const READY_READINESS_THRESHOLD = 60;
+const DECISION_BUCKETS = [
+  ['proceedCount', 'PROCEED'],
+  ['refreshCount', 'REQUEST_REFRESH'],
+  ['routeCount', 'ROUTE_TO_REVIEW'],
+  ['rejectCount', 'REJECT'],
+  ['holdCount', 'HOLD'],
+] as const;
+
 type MetadataPathEquals = {
   path: string[];
   equals: string;
@@ -68,44 +78,169 @@ type MetadataPathEquals = {
 /** Build Prisma JSONB path filters for metadata-stored scope fields */
 function metadataScopeWhere(filter: PilotFilter): MetadataPathEquals[] {
   const clauses: MetadataPathEquals[] = [];
-  if (filter.pilotId)      clauses.push({ path: ['pilotId'], equals: filter.pilotId });
+  if (filter.pilotId) clauses.push({ path: ['pilotId'], equals: filter.pilotId });
   if (filter.workflowLane) clauses.push({ path: ['workflowLane'], equals: filter.workflowLane });
   if (filter.geographyTag) clauses.push({ path: ['geographyTag'], equals: filter.geographyTag });
   return clauses;
 }
 
 /** True when filter would restrict results */
-function isFiltered(f: PilotFilter): boolean {
-  return !!(f.pilotId || f.workflowLane || f.orgContextId || f.geographyTag);
+function isFiltered(filter: PilotFilter): boolean {
+  return !!(filter.pilotId || filter.workflowLane || filter.orgContextId || filter.geographyTag);
 }
+
+function withMetadataScope<T extends { AND?: unknown }>(
+  where: T,
+  clauses: MetadataPathEquals[],
+): T {
+  if (clauses.length === 0) {
+    return where;
+  }
+
+  return {
+    ...where,
+    AND: clauses.map((clause) => ({ metadata: clause })),
+  };
+}
+
+function advisoryOutcomeWhere(
+  since: Date,
+  filter: PilotFilter,
+  extra: Omit<Prisma.AdvisoryOutcomeEventWhereInput, 'eventTimestamp' | 'organizationContextId' | 'AND'> = {},
+): Prisma.AdvisoryOutcomeEventWhereInput {
+  return withMetadataScope(
+    {
+      eventTimestamp: { gte: since },
+      ...(filter.orgContextId ? { organizationContextId: filter.orgContextId } : {}),
+      ...extra,
+    },
+    metadataScopeWhere(filter),
+  );
+}
+
+function employerDecisionWhere(
+  since: Date,
+  filter: PilotFilter,
+): Prisma.EmployerDecisionEventWhereInput {
+  return withMetadataScope(
+    {
+      decidedAt: { gte: since },
+      ...(filter.orgContextId ? { organizationContextId: filter.orgContextId } : {}),
+    },
+    metadataScopeWhere(filter),
+  );
+}
+
+function blockerResolutionWhere(
+  since: Date,
+  filter: PilotFilter,
+): Prisma.BlockerResolutionEventWhereInput {
+  return withMetadataScope(
+    {
+      openedAt: { gte: since },
+    },
+    metadataScopeWhere(filter),
+  );
+}
+
+function startOutcomeWhere(
+  since: Date,
+  filter: PilotFilter,
+): Prisma.StartOutcomeEventWhereInput {
+  return withMetadataScope(
+    {
+      startedAt: { gte: since },
+      ...(filter.orgContextId ? { organizationContextId: filter.orgContextId } : {}),
+    },
+    metadataScopeWhere(filter),
+  );
+}
+
+const SHARE_EVENT_SELECT = {
+  id: true,
+  subjectEntityId: true,
+  organizationContextId: true,
+  organizationId: true,
+  deliveryStatus: true,
+  sharedAt: true,
+  npi: true,
+} satisfies Prisma.BundleShareEventSelect;
+
+const ADVISORY_EVENT_SELECT = {
+  id: true,
+  entityId: true,
+  organizationContextId: true,
+  eventType: true,
+  eventTimestamp: true,
+  readinessScoreAtEvent: true,
+  blockersAtEvent: true,
+  metadata: true,
+} satisfies Prisma.AdvisoryOutcomeEventSelect;
+
+const DECISION_EVENT_SELECT = {
+  id: true,
+  entityId: true,
+  organizationContextId: true,
+  decision: true,
+  decidedAt: true,
+  readinessScoreAtDecision: true,
+  blockersAtDecision: true,
+  metadata: true,
+} satisfies Prisma.EmployerDecisionEventSelect;
+
+const BLOCKER_EVENT_SELECT = {
+  id: true,
+  entityId: true,
+  blockerCode: true,
+  openedAt: true,
+  resolvedAt: true,
+  resolutionDays: true,
+  resolutionMethod: true,
+  status: true,
+} satisfies Prisma.BlockerResolutionEventSelect;
+
+const START_OUTCOME_SELECT = {
+  id: true,
+  entityId: true,
+  organizationContextId: true,
+  startedAt: true,
+  daysFromFirstReview: true,
+  daysFromShare: true,
+  daysFromReady: true,
+  readinessScoreAtStart: true,
+  blockersAtStart: true,
+  metadata: true,
+} satisfies Prisma.StartOutcomeEventSelect;
+
+type StartOutcomeRow = Prisma.StartOutcomeEventGetPayload<{ select: typeof START_OUTCOME_SELECT }>;
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
 export interface PacketShareStats {
-  total:              number;
-  distinctEntities:   number;
-  distinctOrgs:       number;
-  byDeliveryStatus:   Record<string, number>;
-  earliestSharedAt:   string | null;
-  latestSharedAt:     string | null;
+  total: number;
+  distinctEntities: number;
+  distinctOrgs: number;
+  byDeliveryStatus: Record<string, number>;
+  earliestSharedAt: string | null;
+  latestSharedAt: string | null;
 }
 
 export interface ReviewOpenedStats {
-  total:            number;
+  total: number;
   distinctEntities: number;
-  byOrgContext:     Array<{ orgContextId: string | null; count: number }>;
-  earliestAt:       string | null;
-  latestAt:         string | null;
+  byOrgContext: Array<{ orgContextId: string | null; count: number }>;
+  earliestAt: string | null;
+  latestAt: string | null;
 }
 
 export interface DecisionStats {
-  total:          number;
-  byType:         Record<string, number>;
-  proceedCount:   number;
-  refreshCount:   number;
-  routeCount:     number;
-  rejectCount:    number;
-  holdCount:      number;
+  total: number;
+  byType: Record<string, number>;
+  proceedCount: number;
+  refreshCount: number;
+  routeCount: number;
+  rejectCount: number;
+  holdCount: number;
 }
 
 export interface VelocityStats {
@@ -113,74 +248,74 @@ export interface VelocityStats {
   medianDaysFirstReviewToDecision: number | null;
   /** Median days from first EMPLOYER_REVIEW advisory event to readiness score ≥ 60 */
   medianDaysFirstReviewToReady: number | null;
-  /** Median days from first EMPLOYER_REVIEW advisory event to StartAttestation */
+  /** Median days from first EMPLOYER_REVIEW advisory event to StartOutcomeEvent */
   medianDaysFirstReviewToStart: number | null;
   /** Median days from BundleShareEvent to first EmployerDecisionEvent */
   medianDaysShareToDecision: number | null;
   /** Sample sizes for each calculation */
   sampleSizes: {
     reviewToDecision: number;
-    reviewToReady:    number;
-    reviewToStart:    number;
-    shareToDecision:  number;
+    reviewToReady: number;
+    reviewToStart: number;
+    shareToDecision: number;
   };
 }
 
 export interface BlockerKpi {
-  code:             string;
-  openCount:        number;
-  resolvedCount:    number;
+  code: string;
+  openCount: number;
+  resolvedCount: number;
   avgResolutionDays: number | null;
   medianResolutionDays: number | null;
   byResolutionMethod: Record<string, number>;
 }
 
 export interface StartOutcomeStats {
-  totalStarts:           number;
-  distinctEntities:      number;
+  totalStarts: number;
+  distinctEntities: number;
   readinessAtStart: {
-    avgScore:   number | null;
+    avgScore: number | null;
     medianScore: number | null;
     withBlockers: number;
   };
 }
 
 export interface PilotKpiSnapshot {
-  generatedAt:      string;
-  windowDays:       number;
-  since:            string;
+  generatedAt: string;
+  windowDays: number;
+  since: string;
   /** Active filter — null values mean unfiltered / global */
-  appliedFilter:    PilotFilter;
+  appliedFilter: PilotFilter;
   /** True when at least one filter field is active */
-  isFiltered:       boolean;
+  isFiltered: boolean;
 
   /** KPI 1 — Packet shares */
-  packetShares:     PacketShareStats;
+  packetShares: PacketShareStats;
 
   /** KPI 2 — Employer review opens */
-  reviewsOpened:    ReviewOpenedStats;
+  reviewsOpened: ReviewOpenedStats;
 
   /** KPI 3 — Employer decisions by type */
-  decisions:        DecisionStats;
+  decisions: DecisionStats;
 
   /** KPI 4–6 — Time-to-X velocity calculations */
-  velocity:         VelocityStats;
+  velocity: VelocityStats;
 
   /** KPI 7 — Blocker categories + resolution time */
-  blockers:         BlockerKpi[];
+  blockers: BlockerKpi[];
 
   /** Start outcomes */
-  startOutcomes:    StartOutcomeStats;
+  startOutcomes: StartOutcomeStats;
 
   /** Audit-trail counts — confirms the event chain is firing */
   eventChain: {
-    bundleShareEvents:      number;
-    advisoryOutcomeEvents:  number;
+    bundleShareEvents: number;
+    advisoryOutcomeEvents: number;
     employerDecisionEvents: number;
     blockerResolutionEvents: number;
-    startOutcomeEvents:     number;
-    employerAcceptances:    number;
-    startAttestations:      number;
+    startOutcomeEvents: number;
+    employerAcceptances: number;
+    startAttestations: number;
   };
 
   /** Missing fields in this window — informs what to collect next */
@@ -204,12 +339,112 @@ function median(values: number[]): number | null {
 
 function average(values: number[]): number | null {
   if (values.length === 0) return null;
-  return Math.round(values.reduce((s, v) => s + v, 0) / values.length);
+  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
 }
 
-function readJson(v: Prisma.JsonValue | null | undefined): Record<string, unknown> {
-  if (!v || Array.isArray(v) || typeof v !== 'object') return {};
-  return v as Record<string, unknown>;
+function readJson(value: Prisma.JsonValue | null | undefined): Record<string, unknown> {
+  if (!value || Array.isArray(value) || typeof value !== 'object') return {};
+  return value as Record<string, unknown>;
+}
+
+function toIso(date: Date | null | undefined): string | null {
+  return date ? date.toISOString() : null;
+}
+
+function groupRowsByKey<T>(
+  rows: T[],
+  keyOf: (row: T) => string | null | undefined,
+): Map<string, T[]> {
+  const grouped = new Map<string, T[]>();
+
+  for (const row of rows) {
+    const key = keyOf(row);
+    if (!key) continue;
+
+    const existing = grouped.get(key) ?? [];
+    existing.push(row);
+    grouped.set(key, existing);
+  }
+
+  return grouped;
+}
+
+function earliestDateByKey<T>(
+  rows: T[],
+  keyOf: (row: T) => string | null | undefined,
+  dateOf: (row: T) => Date,
+): Map<string, Date> {
+  const dates = new Map<string, Date>();
+
+  for (const row of rows) {
+    const key = keyOf(row);
+    if (!key) continue;
+
+    const candidate = dateOf(row);
+    const existing = dates.get(key);
+    if (!existing || candidate < existing) {
+      dates.set(key, candidate);
+    }
+  }
+
+  return dates;
+}
+
+function readTimestampMs(value: unknown): number | null {
+  if (typeof value !== 'string') return null;
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+function startOutcomeCorrectionKey(row: StartOutcomeRow): string {
+  return [
+    row.entityId,
+    row.organizationContextId ?? '(global)',
+    row.startedAt.toISOString(),
+  ].join('|');
+}
+
+function startOutcomeRecordedAtMs(row: StartOutcomeRow): number | null {
+  const metadata = readJson(row.metadata);
+  return readTimestampMs(metadata.capturedAt)
+    ?? readTimestampMs(metadata.recordedAt)
+    ?? readTimestampMs(metadata.monitoredAt);
+}
+
+function shouldReplaceStartOutcome(current: StartOutcomeRow, candidate: StartOutcomeRow): boolean {
+  const currentRecordedAt = startOutcomeRecordedAtMs(current);
+  const candidateRecordedAt = startOutcomeRecordedAtMs(candidate);
+
+  if (currentRecordedAt === null && candidateRecordedAt === null) {
+    return false;
+  }
+
+  if (currentRecordedAt === null) {
+    return true;
+  }
+
+  if (candidateRecordedAt === null) {
+    return false;
+  }
+
+  return candidateRecordedAt >= currentRecordedAt;
+}
+
+function collapseCorrectedStartOutcomes(rows: StartOutcomeRow[]): StartOutcomeRow[] {
+  const effectiveRows = new Map<string, StartOutcomeRow>();
+
+  for (const row of rows) {
+    const key = startOutcomeCorrectionKey(row);
+    const existing = effectiveRows.get(key);
+
+    if (!existing || shouldReplaceStartOutcome(existing, row)) {
+      effectiveRows.set(key, row);
+    }
+  }
+
+  return [...effectiveRows.values()].sort(
+    (left, right) => left.startedAt.getTime() - right.startedAt.getTime(),
+  );
 }
 
 // ── Main query ─────────────────────────────────────────────────────────────
@@ -218,228 +453,168 @@ export async function computePilotKpis(
   options: { windowDays?: number; filter?: PilotFilter } = {},
 ): Promise<PilotKpiSnapshot> {
   const windowDays = options.windowDays ?? 90;
-  const filter     = normalizePilotFilter(options.filter);
-  const since      = new Date(Date.now() - windowDays * 86_400_000);
-  const sinceStr   = since.toISOString();
+  const filter = normalizePilotFilter(options.filter);
+  const filtered = isFiltered(filter);
+  const since = new Date(Date.now() - windowDays * 86_400_000);
+  const sinceStr = since.toISOString();
 
-  // Build JSONB scope clauses — applied to every metadata-bearing table
-  const scopeClauses = metadataScopeWhere(filter);
-  const scopeAnd     = scopeClauses.length > 0
-    ? scopeClauses.map((c) => ({ metadata: c }))
-    : [];
-
-  // orgContextId is a first-class FK column — filter directly when provided
-  const orgWhere = filter.orgContextId
-    ? { organizationContextId: filter.orgContextId }
-    : {};
-
-  // ── Parallel fetch all event tables ──────────────────────────────────
   const [
     shareEvents,
-    reviewOpenedEvents,
+    advisoryEvents,
     decisionEvents,
     blockerEvents,
     startOutcomeRows,
-    acceptances,
-    starts,
     auditCounts,
   ] = await Promise.all([
-
-    // 1. Packet shares — orgContextId is a first-class FK; scope metadata keys not on this table
     prisma.bundleShareEvent.findMany({
       where: {
         sharedAt: { gte: since },
         ...(filter.orgContextId ? { organizationContextId: filter.orgContextId } : {}),
       },
-      select:  {
-        id: true, subjectEntityId: true, organizationContextId: true,
-        organizationId: true, deliveryStatus: true,
-        sharedAt: true, npi: true,
-      },
+      select: SHARE_EVENT_SELECT,
       orderBy: { sharedAt: 'asc' },
     }),
 
-    // 2. Employer review opens — filter by orgContextId (FK) + metadata scope
     prisma.advisoryOutcomeEvent.findMany({
-      where: {
-        eventType:      'EMPLOYER_REVIEW',
-        eventTimestamp: { gte: since },
-        ...orgWhere,
-        AND: scopeAnd.length > 0 ? scopeAnd : undefined,
-      },
-      select:  {
-        id: true, entityId: true, organizationContextId: true,
-        eventTimestamp: true, readinessScoreAtEvent: true,
-        blockersAtEvent: true, metadata: true,
-      },
+      where: advisoryOutcomeWhere(since, filter),
+      select: ADVISORY_EVENT_SELECT,
       orderBy: { eventTimestamp: 'asc' },
     }),
 
-    // 3. Employer decisions — filter by orgContextId + metadata scope
     prisma.employerDecisionEvent.findMany({
-      where: {
-        decidedAt: { gte: since },
-        ...orgWhere,
-        AND: scopeAnd.length > 0 ? scopeAnd : undefined,
-      },
-      select:  {
-        id: true, entityId: true, organizationContextId: true,
-        decision: true, decidedAt: true,
-        readinessScoreAtDecision: true, blockersAtDecision: true,
-        metadata: true,
-      },
+      where: employerDecisionWhere(since, filter),
+      select: DECISION_EVENT_SELECT,
       orderBy: { decidedAt: 'asc' },
     }),
 
-    // 4. Blocker resolution events — orgContextId not on this table; filter by metadata scope
     prisma.blockerResolutionEvent.findMany({
-      where: {
-        openedAt: { gte: since },
-        AND: scopeAnd.length > 0 ? scopeAnd : undefined,
-      },
-      select:  {
-        id: true, entityId: true, blockerCode: true,
-        openedAt: true, resolvedAt: true, resolutionDays: true,
-        resolutionMethod: true, status: true,
-      },
+      where: blockerResolutionWhere(since, filter),
+      select: BLOCKER_EVENT_SELECT,
     }),
 
-    // 5. Start outcome events — filter by orgContextId + metadata scope
     prisma.startOutcomeEvent.findMany({
-      where: {
-        startedAt: { gte: since },
-        ...orgWhere,
-        AND: scopeAnd.length > 0 ? scopeAnd : undefined,
-      },
-      select:  {
-        id: true, entityId: true, organizationContextId: true,
-        startedAt: true, daysFromFirstReview: true,
-        daysFromShare: true, daysFromReady: true,
-        readinessScoreAtStart: true, blockersAtStart: true,
-      },
+      where: startOutcomeWhere(since, filter),
+      select: START_OUTCOME_SELECT,
+      orderBy: { startedAt: 'asc' },
     }),
 
-    // 6. Employer acceptances (canonical accept record)
-    prisma.employerAcceptance.findMany({
-      where:   { acceptedAt: { gte: since } },
-      select:  {
-        id: true, clinicianNpi: true, employerId: true,
-        acceptedAt: true, status: true,
-        startAttestations: { select: { id: true, startedAt: true, createdAt: true } },
-      },
-    }),
-
-    // 7. Start attestations (canonical start record — source of truth for start outcome)
-    prisma.startAttestation.findMany({
-      where:   { startedAt: { gte: since } },
-      select:  { id: true, startedAt: true, createdAt: true, acceptanceId: true },
-    }),
-
-    // 8. Audit counts — scoped to match the main queries
     Promise.all([
       prisma.bundleShareEvent.count({
-        where: { sharedAt: { gte: since }, ...(filter.orgContextId ? { organizationContextId: filter.orgContextId } : {}) },
+        where: {
+          sharedAt: { gte: since },
+          ...(filter.orgContextId ? { organizationContextId: filter.orgContextId } : {}),
+        },
       }),
       prisma.advisoryOutcomeEvent.count({
-        where: { eventTimestamp: { gte: since }, ...orgWhere, AND: scopeAnd.length > 0 ? scopeAnd : undefined },
+        where: advisoryOutcomeWhere(since, filter),
       }),
       prisma.employerDecisionEvent.count({
-        where: { decidedAt: { gte: since }, ...orgWhere, AND: scopeAnd.length > 0 ? scopeAnd : undefined },
+        where: employerDecisionWhere(since, filter),
       }),
       prisma.blockerResolutionEvent.count({
-        where: { openedAt: { gte: since }, AND: scopeAnd.length > 0 ? scopeAnd : undefined },
+        where: blockerResolutionWhere(since, filter),
       }),
       prisma.startOutcomeEvent.count({
-        where: { startedAt: { gte: since }, ...orgWhere, AND: scopeAnd.length > 0 ? scopeAnd : undefined },
+        where: startOutcomeWhere(since, filter),
       }),
-      prisma.employerAcceptance.count({ where: { acceptedAt: { gte: since } } }),
-      prisma.startAttestation.count({ where: { startedAt: { gte: since } } }),
+      prisma.employerAcceptance.count({
+        where: { acceptedAt: { gte: since } },
+      }),
+      prisma.startAttestation.count({
+        where: { startedAt: { gte: since } },
+      }),
     ]),
   ]);
 
+  const effectiveStartOutcomeRows = collapseCorrectedStartOutcomes(startOutcomeRows);
+  const reviewEvents = advisoryEvents.filter((event) => event.eventType === REVIEW_OPEN_EVENT_TYPE);
+
   const [
-    bundleShareCount, advisoryOutcomeCount, employerDecisionCount,
-    blockerCount, startOutcomeCount, acceptanceCount, startAttCount,
+    bundleShareCount,
+    advisoryOutcomeCount,
+    employerDecisionCount,
+    blockerCount,
+    startOutcomeCount,
+    acceptanceCount,
+    startAttestationCount,
   ] = auditCounts;
 
   // ── KPI 1: Packet Shares ──────────────────────────────────────────────
-  const distinctShareEntities = new Set(shareEvents.map((e) => e.subjectEntityId ?? e.npi)).size;
-  const distinctShareOrgs     = new Set(shareEvents.map((e) => e.organizationContextId ?? e.organizationId)).size;
+  const distinctShareEntities = new Set(
+    shareEvents.map((event) => event.subjectEntityId ?? event.npi),
+  ).size;
+  const distinctShareOrgs = new Set(
+    shareEvents.map((event) => event.organizationContextId ?? event.organizationId),
+  ).size;
   const byDeliveryStatus: Record<string, number> = {};
-  shareEvents.forEach((e) => {
-    byDeliveryStatus[e.deliveryStatus] = (byDeliveryStatus[e.deliveryStatus] ?? 0) + 1;
-  });
+
+  for (const event of shareEvents) {
+    byDeliveryStatus[event.deliveryStatus] = (byDeliveryStatus[event.deliveryStatus] ?? 0) + 1;
+  }
+
   const packetShares: PacketShareStats = {
-    total:            shareEvents.length,
+    total: shareEvents.length,
     distinctEntities: distinctShareEntities,
-    distinctOrgs:     distinctShareOrgs,
+    distinctOrgs: distinctShareOrgs,
     byDeliveryStatus,
-    earliestSharedAt: shareEvents[0]?.sharedAt.toISOString() ?? null,
-    latestSharedAt:   shareEvents[shareEvents.length - 1]?.sharedAt.toISOString() ?? null,
+    earliestSharedAt: toIso(shareEvents[0]?.sharedAt),
+    latestSharedAt: toIso(shareEvents[shareEvents.length - 1]?.sharedAt),
   };
 
   // ── KPI 2: Review Opens ───────────────────────────────────────────────
-  const distinctReviewEntities = new Set(reviewOpenedEvents.map((e) => e.entityId)).size;
   const reviewsByOrg = new Map<string | null, number>();
-  reviewOpenedEvents.forEach((e) => {
-    const key = e.organizationContextId ?? null;
+
+  for (const event of reviewEvents) {
+    const key = event.organizationContextId ?? null;
     reviewsByOrg.set(key, (reviewsByOrg.get(key) ?? 0) + 1);
-  });
+  }
+
   const reviewsOpened: ReviewOpenedStats = {
-    total:            reviewOpenedEvents.length,
-    distinctEntities: distinctReviewEntities,
-    byOrgContext:     [...reviewsByOrg.entries()].map(([orgContextId, count]) => ({ orgContextId, count })),
-    earliestAt:       reviewOpenedEvents[0]?.eventTimestamp.toISOString() ?? null,
-    latestAt:         reviewOpenedEvents[reviewOpenedEvents.length - 1]?.eventTimestamp.toISOString() ?? null,
+    total: reviewEvents.length,
+    distinctEntities: new Set(reviewEvents.map((event) => event.entityId)).size,
+    byOrgContext: [...reviewsByOrg.entries()].map(([orgContextId, count]) => ({ orgContextId, count })),
+    earliestAt: toIso(reviewEvents[0]?.eventTimestamp),
+    latestAt: toIso(reviewEvents[reviewEvents.length - 1]?.eventTimestamp),
   };
 
   // ── KPI 3: Decisions by Type ──────────────────────────────────────────
   const byType: Record<string, number> = {};
-  decisionEvents.forEach((d) => {
-    byType[d.decision] = (byType[d.decision] ?? 0) + 1;
-  });
-  const decisions: DecisionStats = {
-    total:        decisionEvents.length,
+
+  for (const event of decisionEvents) {
+    byType[event.decision] = (byType[event.decision] ?? 0) + 1;
+  }
+
+  const decisions = {
+    total: decisionEvents.length,
     byType,
-    proceedCount: byType['PROCEED']        ?? 0,
-    refreshCount: byType['REQUEST_REFRESH'] ?? 0,
-    routeCount:   byType['ROUTE_TO_REVIEW'] ?? 0,
-    rejectCount:  byType['REJECT']          ?? 0,
-    holdCount:    byType['HOLD']            ?? 0,
-  };
+    proceedCount: 0,
+    refreshCount: 0,
+    routeCount: 0,
+    rejectCount: 0,
+    holdCount: 0,
+  } satisfies DecisionStats;
+
+  for (const [bucket, decisionType] of DECISION_BUCKETS) {
+    decisions[bucket] = byType[decisionType] ?? 0;
+  }
 
   // ── KPI 4–6: Velocity calculations ───────────────────────────────────
-  // For each entity, find earliest EMPLOYER_REVIEW, then match to decision/start.
+  const firstReviewByEntity = earliestDateByKey(
+    reviewEvents,
+    (event) => event.entityId,
+    (event) => event.eventTimestamp,
+  );
+  const firstDecisionByEntity = earliestDateByKey(
+    decisionEvents,
+    (event) => event.entityId,
+    (event) => event.decidedAt,
+  );
+  const firstShareByEntity = earliestDateByKey(
+    shareEvents,
+    (event) => event.subjectEntityId,
+    (event) => event.sharedAt,
+  );
 
-  // First review per entity
-  const firstReviewByEntity = new Map<string, Date>();
-  reviewOpenedEvents.forEach((e) => {
-    const existing = firstReviewByEntity.get(e.entityId);
-    if (!existing || e.eventTimestamp < existing) {
-      firstReviewByEntity.set(e.entityId, e.eventTimestamp);
-    }
-  });
-
-  // First decision per entity
-  const firstDecisionByEntity = new Map<string, Date>();
-  decisionEvents.forEach((d) => {
-    const existing = firstDecisionByEntity.get(d.entityId);
-    if (!existing || d.decidedAt < existing) {
-      firstDecisionByEntity.set(d.entityId, d.decidedAt);
-    }
-  });
-
-  // First share per entity (NPI-keyed for share events)
-  const firstShareByNpi = new Map<string, Date>();
-  shareEvents.forEach((e) => {
-    const key = e.npi;
-    const existing = firstShareByNpi.get(key);
-    if (!existing || e.sharedAt < existing) {
-      firstShareByNpi.set(key, e.sharedAt);
-    }
-  });
-
-  // Review → Decision (entities that have both)
   const reviewToDecisionDays: number[] = [];
   firstReviewByEntity.forEach((reviewAt, entityId) => {
     const decisionAt = firstDecisionByEntity.get(entityId);
@@ -448,126 +623,99 @@ export async function computePilotKpis(
     }
   });
 
-  // Review → Start (use StartOutcomeEvent.daysFromFirstReview when available, else calculate)
-  const reviewToStartDays: number[] = [];
-  startOutcomeRows.forEach((row) => {
-    if (row.daysFromFirstReview !== null) {
-      reviewToStartDays.push(row.daysFromFirstReview);
-    }
-  });
-  // Also compute from StartAttestation if start outcome not captured
-  if (reviewToStartDays.length === 0 && starts.length > 0) {
-    starts.forEach((s) => {
-      // We don't have entityId here — accept as proxy
-      const acceptanceDate = acceptances.find((a) =>
-        a.startAttestations.some((sa) => sa.id === s.id),
-      )?.acceptedAt;
-      if (acceptanceDate) {
-        reviewToStartDays.push(daysBetween(acceptanceDate, s.startedAt));
-      }
-    });
-  }
-
-  // Review → Ready (entities where readinessScore crossed 60 after first review)
   const reviewToReadyDays: number[] = [];
-  // Use advisory events sorted by time — find when score first went ≥ 60 after first review
-  const advisoryByEntity = new Map<string, typeof reviewOpenedEvents>();
-  reviewOpenedEvents.forEach((e) => {
-    const arr = advisoryByEntity.get(e.entityId) ?? [];
-    arr.push(e);
-    advisoryByEntity.set(e.entityId, arr);
-  });
-
-  advisoryByEntity.forEach((events, entityId) => {
+  const advisoryEventsByEntity = groupRowsByKey(advisoryEvents, (event) => event.entityId);
+  advisoryEventsByEntity.forEach((events, entityId) => {
     const firstReview = firstReviewByEntity.get(entityId);
     if (!firstReview) return;
-    // Find first event where readiness crossed threshold after first review
-    const sorted = [...events].sort((a, b) =>
-      a.eventTimestamp.getTime() - b.eventTimestamp.getTime(),
+
+    const readyEvent = events.find((event) =>
+      event.eventTimestamp >= firstReview
+      && (event.readinessScoreAtEvent ?? 0) >= READY_READINESS_THRESHOLD,
     );
-    const readyEvent = sorted.find(
-      (e) => e.eventTimestamp >= firstReview && (e.readinessScoreAtEvent ?? 0) >= 60,
-    );
+
     if (readyEvent) {
       reviewToReadyDays.push(daysBetween(firstReview, readyEvent.eventTimestamp));
     }
   });
 
-  // Share → Decision (match by NPI when entityId not available on share events)
-  // Use decisionEvent.entityId and NPI from advisory events to join
-  const npiByEntityId = new Map<string, string>();
-  reviewOpenedEvents.forEach((e) => {
-    const meta = readJson(null); // advisory events don't carry NPI directly
-    void meta;
+  const reviewToStartDays = effectiveStartOutcomeRows
+    .map((row) => row.daysFromFirstReview)
+    .filter((value): value is number => value !== null);
+
+  const shareToDecisionDays: number[] = [];
+  firstShareByEntity.forEach((sharedAt, entityId) => {
+    const decisionAt = firstDecisionByEntity.get(entityId);
+    if (decisionAt && decisionAt >= sharedAt) {
+      shareToDecisionDays.push(daysBetween(sharedAt, decisionAt));
+    }
   });
-  // For now: use daysFromShare from StartOutcomeEvent
-  const shareToDays: number[] = startOutcomeRows
-    .map((r) => r.daysFromShare)
-    .filter((v): v is number => v !== null);
 
   const velocity: VelocityStats = {
     medianDaysFirstReviewToDecision: median(reviewToDecisionDays),
-    medianDaysFirstReviewToReady:    median(reviewToReadyDays),
-    medianDaysFirstReviewToStart:    median(reviewToStartDays),
-    medianDaysShareToDecision:       median(shareToDays),
+    medianDaysFirstReviewToReady: median(reviewToReadyDays),
+    medianDaysFirstReviewToStart: median(reviewToStartDays),
+    medianDaysShareToDecision: median(shareToDecisionDays),
     sampleSizes: {
       reviewToDecision: reviewToDecisionDays.length,
-      reviewToReady:    reviewToReadyDays.length,
-      reviewToStart:    reviewToStartDays.length,
-      shareToDecision:  shareToDays.length,
+      reviewToReady: reviewToReadyDays.length,
+      reviewToStart: reviewToStartDays.length,
+      shareToDecision: shareToDecisionDays.length,
     },
   };
 
   // ── KPI 7: Blocker Categories ─────────────────────────────────────────
-  const blockersByCode = new Map<string, typeof blockerEvents>();
-  blockerEvents.forEach((b) => {
-    const arr = blockersByCode.get(b.blockerCode) ?? [];
-    arr.push(b);
-    blockersByCode.set(b.blockerCode, arr);
-  });
-
+  const blockersByCode = groupRowsByKey(blockerEvents, (event) => event.blockerCode);
   const blockers: BlockerKpi[] = [...blockersByCode.entries()].map(([code, rows]) => {
-    const resolved = rows.filter((r) => r.status === 'RESOLVED');
-    const resolutionDays = resolved
-      .map((r) => r.resolutionDays)
-      .filter((v): v is number => v !== null);
-    const byMethod: Record<string, number> = {};
-    resolved.forEach((r) => {
-      const m = r.resolutionMethod ?? 'UNKNOWN';
-      byMethod[m] = (byMethod[m] ?? 0) + 1;
-    });
+    const resolvedRows = rows.filter((row) => row.status === 'RESOLVED');
+    const resolutionDays = resolvedRows
+      .map((row) => row.resolutionDays)
+      .filter((value): value is number => value !== null);
+    const byResolutionMethod: Record<string, number> = {};
+
+    for (const row of resolvedRows) {
+      const method = row.resolutionMethod ?? 'UNKNOWN';
+      byResolutionMethod[method] = (byResolutionMethod[method] ?? 0) + 1;
+    }
+
     return {
       code,
-      openCount:            rows.filter((r) => r.status === 'OPEN').length,
-      resolvedCount:        resolved.length,
-      avgResolutionDays:    average(resolutionDays),
+      openCount: rows.filter((row) => row.status === 'OPEN').length,
+      resolvedCount: resolvedRows.length,
+      avgResolutionDays: average(resolutionDays),
       medianResolutionDays: median(resolutionDays),
-      byResolutionMethod:   byMethod,
+      byResolutionMethod,
     };
-  }).sort((a, b) => (b.openCount + b.resolvedCount) - (a.openCount + a.resolvedCount));
+  }).sort((left, right) => (
+    (right.openCount + right.resolvedCount) - (left.openCount + left.resolvedCount)
+  ));
 
   // ── Start Outcomes ────────────────────────────────────────────────────
-  const distinctStartEntities = new Set(startOutcomeRows.map((r) => r.entityId)).size;
-  const scoresAtStart = startOutcomeRows
-    .map((r) => r.readinessScoreAtStart)
-    .filter((v): v is number => v !== null);
+  // Filtered views intentionally do not infer pilot scope from canonical starts because
+  // StartAttestation and EmployerAcceptance do not carry pilot metadata today.
+  const totalStarts = effectiveStartOutcomeRows.length || (filtered ? 0 : startAttestationCount);
+  const distinctStartEntities = new Set(
+    effectiveStartOutcomeRows.map((row) => row.entityId),
+  ).size;
+  const scoresAtStart = effectiveStartOutcomeRows
+    .map((row) => row.readinessScoreAtStart)
+    .filter((value): value is number => value !== null);
 
   const startOutcomes: StartOutcomeStats = {
-    totalStarts:      starts.length,
-    distinctEntities: distinctStartEntities || starts.length,
+    totalStarts,
+    distinctEntities: distinctStartEntities || totalStarts,
     readinessAtStart: {
-      avgScore:    average(scoresAtStart),
+      avgScore: average(scoresAtStart),
       medianScore: median(scoresAtStart),
-      withBlockers: startOutcomeRows.filter((r) => {
-        const arr = r.blockersAtStart;
-        return Array.isArray(arr) && arr.length > 0;
-      }).length,
+      withBlockers: effectiveStartOutcomeRows.filter((row) =>
+        Array.isArray(row.blockersAtStart) && row.blockersAtStart.length > 0,
+      ).length,
     },
   };
 
   // ── Gaps detection ────────────────────────────────────────────────────
   const gaps: string[] = [];
-  if (reviewOpenedEvents.length === 0) {
+  if (reviewEvents.length === 0) {
     gaps.push('No EMPLOYER_REVIEW advisory events — ensure /review/[entityId] fires captureAdvisoryEvent on load.');
   }
   if (velocity.sampleSizes.reviewToDecision === 0) {
@@ -582,25 +730,28 @@ export async function computePilotKpis(
   if (shareEvents.length === 0) {
     gaps.push('No bundle share events in the window — confirm ApplyBundle.share() writes BundleShareEvent.');
   }
+  if (filtered && startAttestationCount > 0 && effectiveStartOutcomeRows.length === 0) {
+    gaps.push('Scoped start KPIs rely on start_outcome_events. Canonical start_attestations are unscoped health signals only and are excluded from filtered start metrics.');
+  }
 
   log('info', 'pilot_kpi_computed', {
     windowDays,
-    pilotId:      filter.pilotId      ?? null,
+    pilotId: filter.pilotId ?? null,
     workflowLane: filter.workflowLane ?? null,
     orgContextId: filter.orgContextId ?? null,
-    packets:      packetShares.total,
-    reviews:      reviewsOpened.total,
-    decisions:    decisions.total,
-    starts:       starts.length,
-    gaps:         gaps.length,
+    packets: packetShares.total,
+    reviews: reviewsOpened.total,
+    decisions: decisions.total,
+    starts: startOutcomes.totalStarts,
+    gaps: gaps.length,
   });
 
   return {
-    generatedAt:   new Date().toISOString(),
+    generatedAt: new Date().toISOString(),
     windowDays,
-    since:         sinceStr,
+    since: sinceStr,
     appliedFilter: filter,
-    isFiltered:    isFiltered(filter),
+    isFiltered: filtered,
     packetShares,
     reviewsOpened,
     decisions,
@@ -608,13 +759,13 @@ export async function computePilotKpis(
     blockers,
     startOutcomes,
     eventChain: {
-      bundleShareEvents:       bundleShareCount,
-      advisoryOutcomeEvents:   advisoryOutcomeCount,
-      employerDecisionEvents:  employerDecisionCount,
+      bundleShareEvents: bundleShareCount,
+      advisoryOutcomeEvents: advisoryOutcomeCount,
+      employerDecisionEvents: employerDecisionCount,
       blockerResolutionEvents: blockerCount,
-      startOutcomeEvents:      startOutcomeCount,
-      employerAcceptances:     acceptanceCount,
-      startAttestations:       startAttCount,
+      startOutcomeEvents: startOutcomeCount,
+      employerAcceptances: acceptanceCount,
+      startAttestations: startAttestationCount,
     },
     gaps,
   };
@@ -624,16 +775,22 @@ export async function computePilotKpis(
 // Returns a flat CSV suitable for pasting into a pilot report spreadsheet.
 
 export function kpiSnapshotToCsv(snap: PilotKpiSnapshot): string {
-  const f = snap.appliedFilter ?? {};
+  const filter = snap.appliedFilter ?? {};
+  const csvCell = (cell: string) => (
+    cell.includes(',') || cell.includes('"') || cell.includes('\n')
+      ? `"${cell.replace(/"/g, '""')}"`
+      : cell
+  );
+
   const rows: string[][] = [
     ['VitalCV Pilot KPI Report'],
     ['Generated At', snap.generatedAt],
     ['Window (days)', String(snap.windowDays)],
     ['Since', snap.since],
-    ['Pilot ID', f.pilotId ?? '(all)'],
-    ['Workflow Lane', f.workflowLane ?? '(all)'],
-    ['Org Context', f.orgContextId ?? '(all)'],
-    ['Geography', f.geographyTag ?? '(all)'],
+    ['Pilot ID', filter.pilotId ?? '(all)'],
+    ['Workflow Lane', filter.workflowLane ?? '(all)'],
+    ['Org Context', filter.orgContextId ?? '(all)'],
+    ['Geography', filter.geographyTag ?? '(all)'],
     [],
     ['=== PACKET SHARES ==='],
     ['Total packets shared', String(snap.packetShares.total)],
@@ -660,10 +817,11 @@ export function kpiSnapshotToCsv(snap: PilotKpiSnapshot): string {
     ['Median: first review → decision', snap.velocity.medianDaysFirstReviewToDecision !== null ? String(snap.velocity.medianDaysFirstReviewToDecision) : 'insufficient data'],
     ['Median: first review → ready (L2+)', snap.velocity.medianDaysFirstReviewToReady !== null ? String(snap.velocity.medianDaysFirstReviewToReady) : 'insufficient data'],
     ['Median: first review → start', snap.velocity.medianDaysFirstReviewToStart !== null ? String(snap.velocity.medianDaysFirstReviewToStart) : 'insufficient data'],
-    ['Median: share → start', snap.velocity.medianDaysShareToDecision !== null ? String(snap.velocity.medianDaysShareToDecision) : 'insufficient data'],
+    ['Median: share → decision', snap.velocity.medianDaysShareToDecision !== null ? String(snap.velocity.medianDaysShareToDecision) : 'insufficient data'],
     ['Sample: review→decision', String(snap.velocity.sampleSizes.reviewToDecision)],
     ['Sample: review→ready', String(snap.velocity.sampleSizes.reviewToReady)],
     ['Sample: review→start', String(snap.velocity.sampleSizes.reviewToStart)],
+    ['Sample: share→decision', String(snap.velocity.sampleSizes.shareToDecision)],
     [],
     ['=== START OUTCOMES ==='],
     ['Total starts recorded', String(snap.startOutcomes.totalStarts)],
@@ -673,12 +831,12 @@ export function kpiSnapshotToCsv(snap: PilotKpiSnapshot): string {
     [],
     ['=== BLOCKERS ==='],
     ['Code', 'Open', 'Resolved', 'Avg Resolution (days)', 'Median Resolution (days)'],
-    ...snap.blockers.map((b) => [
-      b.code,
-      String(b.openCount),
-      String(b.resolvedCount),
-      b.avgResolutionDays !== null ? String(b.avgResolutionDays) : 'n/a',
-      b.medianResolutionDays !== null ? String(b.medianResolutionDays) : 'n/a',
+    ...snap.blockers.map((blocker) => [
+      blocker.code,
+      String(blocker.openCount),
+      String(blocker.resolvedCount),
+      blocker.avgResolutionDays !== null ? String(blocker.avgResolutionDays) : 'n/a',
+      blocker.medianResolutionDays !== null ? String(blocker.medianResolutionDays) : 'n/a',
     ]),
     [],
     ['=== EVENT CHAIN HEALTH ==='],
@@ -690,14 +848,10 @@ export function kpiSnapshotToCsv(snap: PilotKpiSnapshot): string {
     ['employer_acceptances', String(snap.eventChain.employerAcceptances)],
     ['start_attestations', String(snap.eventChain.startAttestations)],
     [],
-    ...snap.gaps.length > 0
-      ? [['=== GAPS (fields not yet populated) ==='], ...snap.gaps.map((g) => [g])]
-      : [['=== GAPS ==='], ['None — all event tables are populating.']],
+    ...(snap.gaps.length > 0
+      ? [['=== GAPS (fields not yet populated) ==='], ...snap.gaps.map((gap) => [gap])]
+      : [['=== GAPS ==='], ['None — all event tables are populating.']]),
   ];
 
-  return rows.map((row) =>
-    row.map((cell) => (cell.includes(',') || cell.includes('"') || cell.includes('\n')
-      ? `"${cell.replace(/"/g, '""')}"` : cell),
-    ).join(','),
-  ).join('\n');
+  return rows.map((row) => row.map(csvCell).join(',')).join('\n');
 }

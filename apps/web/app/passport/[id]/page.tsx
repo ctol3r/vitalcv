@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import PassportWallet from '@/components/passport/PassportWallet';
+import type { PassportSourceCoverageReport } from '@/lib/trust/source-coverage';
 
 export const dynamic = 'force-dynamic';
 
@@ -119,6 +120,7 @@ export interface PassportData {
     }>;
   };
   sources: { checked: string[]; lastFetch: Record<string, string> };
+  sourceCoverage?: PassportSourceCoverageReport;
   lastCheckedAt: string;
 }
 

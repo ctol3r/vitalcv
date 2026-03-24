@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { Accordion, type AccordionItem } from '@/components/ui/vcv-accordion';
 import { ProofDetailsList } from '@/components/trust/ProofDetailsList';
 import { getDemoProfile, type DemoProfile } from '@/lib/demo/demoProfiles';
+import { formatCompactProofDate } from '@/lib/trust/proof-language';
 import {
   resolveTrustUiStatus,
 } from '@/lib/trust/status-language';
@@ -121,11 +122,6 @@ function resolveDemoReadinessTone(demo: DemoProfile): ReadinessTone {
 
 // ── Accordion builder — real facts ───────────────────────────
 
-function formatCompactDate(value?: string) {
-  if (!value) return null;
-  return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
 function formatFullDate(value?: string, fallback = 'Not checked in this run') {
   if (!value) return fallback;
   return new Date(value).toLocaleDateString('en-US', {
@@ -145,7 +141,7 @@ function accordionMeta(label: string) {
 
 function buildRealAccordion(ts: ClinicianTrustState): AccordionItem[] {
   const checkedAt = ts.computed_at;
-  const checkedMeta = checkedAt ? `checked ${formatCompactDate(checkedAt)}` : 'not checked';
+  const checkedMeta = checkedAt ? `checked ${formatCompactProofDate(checkedAt)}` : 'not checked';
   const npiStatus = resolveTrustUiStatus({ state: 'live', kind: 'verification', satisfied: ts.identityVerified });
   const licStatus = ts.licensureStatus === 'verified' ? 'verified' : 'access_required';
   const exclStatus = resolveTrustUiStatus({ state: 'live', kind: 'clearance', satisfied: ts.exclusionClear });
@@ -560,7 +556,10 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
           {/* Source accordion — real provenance */}
           <div className="px-5 py-4 border-b border-white/6">
             <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/20 mb-2">Source verification</p>
-            <Accordion items={accordionItems} />
+            <Accordion
+              items={accordionItems}
+              telemetryComponentId="homepage_readiness_proof"
+            />
           </div>
 
           {/* CTA */}
@@ -660,7 +659,10 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
         {/* Source accordion */}
         <div className="px-5 py-4 border-b border-white/6">
           <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/20 mb-2">Source verification</p>
-          <Accordion items={accordion} />
+          <Accordion
+            items={accordion}
+            telemetryComponentId="homepage_readiness_proof"
+          />
         </div>
 
         {/* CTA */}

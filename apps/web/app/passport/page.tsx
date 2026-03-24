@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
  *    - Sanctions status next (OIG, ~2s)
  *    - Enrollment next (PECOS, ~3s)
  *    - Readiness recalculates on claim_update
- * 4. Done → [View full passport] or full card shown inline
+ * 4. Done → [View full passport] or [View as employer]
  *
  * No polling. No full-page reload. No fake refresh.
  */
@@ -209,6 +209,12 @@ export default function PassportPage() {
                   className="block w-full bg-emerald-500 hover:bg-emerald-400 text-white text-center rounded-full py-3.5 text-sm font-medium transition-all min-h-[48px] leading-[48px]"
                 >
                   View full passport
+                </Link>
+                <Link
+                  href={`/review/${identity.entityId}`}
+                  className="block w-full rounded-full border border-white/10 bg-white/4 py-3.5 text-center text-sm font-medium text-white/60 transition-all hover:border-white/20 hover:bg-white/7 hover:text-white"
+                >
+                  View as employer
                 </Link>
               </div>
             )}

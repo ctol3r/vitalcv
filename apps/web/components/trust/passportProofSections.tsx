@@ -1,45 +1,16 @@
+import React from 'react';
 import type { PassportData } from '@/app/passport/[id]/page';
 import { ProofDetailsList } from '@/components/trust/ProofDetailsList';
 import type { AccordionItem } from '@/components/ui/vcv-accordion';
-
-function formatProofDate(value?: string | null): string | null {
-  if (!value) return null;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed.toLocaleDateString();
-}
-
-function formatQuarter(value?: string | null): string | null {
-  if (!value) return null;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return null;
-  const quarter = Math.floor(parsed.getMonth() / 3) + 1;
-  return `Q${quarter} ${parsed.getFullYear()}`;
-}
-
-function joinNoteParts(parts: Array<string | null | undefined>): string | undefined {
-  const values = parts.filter((part): part is string => Boolean(part && part.trim()));
-  return values.length > 0 ? values.join(' · ') : undefined;
-}
-
-function formatAsOfDate(value?: string | null): string | null {
-  const date = formatProofDate(value);
-  return date ? `as of ${date}` : null;
-}
-
-function formatAsOfQuarter(
-  observedAt?: string | null,
-  dataVersion?: string | null,
-): string | null {
-  const quarter = dataVersion ?? formatQuarter(observedAt);
-  return quarter ? `as of ${quarter}` : null;
-}
-
-function formatCompactProofDate(value?: string | null): string | null {
-  if (!value) return null;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
+import {
+  formatAsOfDate,
+  formatCompactProofDate,
+  formatProofDate,
+  joinNoteParts,
+  renderAttachedCheckFreshness,
+  renderAttachedRecordFreshness,
+  renderCredentialGroupFreshness,
+} from '@/lib/trust/proof-language';
 
 function accordionMeta(label: string) {
   return (
@@ -248,7 +219,7 @@ function identityProofSection(passport: PassportData): AccordionItem {
         rows={[
           { id: 'source', label: 'Source', value: 'CMS NPPES', tone: 'strong' },
           { id: 'checked', label: 'Last checked', value: formatProofDate(checkedAt) ?? 'Not checked' },
-          { id: 'freshness', label: 'Freshness', value: checkedAt ? 'Current attached record' : 'No attached record' },
+          { id: 'freshness', label: 'Freshness', value: renderAttachedRecordFreshness(checkedAt) },
           {
             id: 'trust-note',
             label: 'Trust note',
@@ -302,12 +273,7 @@ function authorityProofSection(passport: PassportData): AccordionItem {
           {
             id: 'freshness',
             label: 'Freshness',
-            value:
-              licensureCredentials.length === 0
-                ? 'No attached record'
-                : licensureCredentials.some((credential) => credential.stale)
-                  ? 'Mixed freshness'
-                  : 'Within freshness window',
+            value: renderCredentialGroupFreshness(licensureCredentials),
           },
           {
             id: 'trust-note',
@@ -366,12 +332,7 @@ function boardProofSection(passport: PassportData): AccordionItem {
           {
             id: 'freshness',
             label: 'Freshness',
-            value:
-              boardCredentials.length === 0
-                ? 'No attached record'
-                : boardCredentials.some((credential) => credential.stale)
-                  ? 'Mixed freshness'
-                  : 'Within freshness window',
+            value: renderCredentialGroupFreshness(boardCredentials),
           },
           {
             id: 'trust-note',
@@ -432,12 +393,7 @@ function deaProofSection(passport: PassportData): AccordionItem {
           {
             id: 'freshness',
             label: 'Freshness',
-            value:
-              deaCredentials.length === 0
-                ? 'No attached record'
-                : deaCredentials.some((credential) => credential.stale)
-                  ? 'Mixed freshness'
-                  : 'Within freshness window',
+            value: renderCredentialGroupFreshness(deaCredentials),
           },
           {
             id: 'trust-note',
@@ -500,7 +456,7 @@ function sanctionsProofSection(passport: PassportData): AccordionItem {
           {
             id: 'freshness',
             label: 'Freshness',
-            value: checkedAt ? 'Current attached check' : 'No attached check',
+            value: renderAttachedCheckFreshness(checkedAt),
           },
           {
             id: 'trust-note',

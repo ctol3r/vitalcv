@@ -1,10 +1,16 @@
 'use client';
 
+import React from 'react';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
+import {
+  sourceCoverageBadgeLabel,
+  sourceCoveragePosture,
+  type PassportSourceCoverageState,
+} from '@/lib/trust/source-coverage';
 
 export interface SourceCoverageTagProps {
   source: string;
-  status: 'live' | 'gated' | 'access-required' | 'unavailable';
+  status: PassportSourceCoverageState;
   decisionGrade: boolean;
   lastChecked?: string;
 }
@@ -22,7 +28,7 @@ function resolveTone(status: SourceCoverageTagProps['status'], decisionGrade: bo
       container: 'border-[var(--vt-badge-success-border)] bg-[var(--vt-badge-success-bg)] text-[var(--vt-text-1)]',
       dot: 'bg-[var(--vt-success)]',
       badge: 'border-[var(--vt-badge-success-border)] bg-[var(--vt-surface)] text-[var(--vt-badge-success-text)]',
-      label: 'Decision grade',
+      label: sourceCoverageBadgeLabel({ state: status, decisionGrade }),
     };
   }
 
@@ -31,25 +37,43 @@ function resolveTone(status: SourceCoverageTagProps['status'], decisionGrade: bo
       container: 'border-[var(--vt-badge-warning-border)] bg-[var(--vt-badge-warning-bg)] text-[var(--vt-text-1)]',
       dot: 'bg-[var(--vt-warning)]',
       badge: 'border-[var(--vt-badge-warning-border)] bg-[var(--vt-surface)] text-[var(--vt-badge-warning-text)]',
-      label: 'Not decision-grade',
+      label: sourceCoverageBadgeLabel({ state: status, decisionGrade }),
     };
   }
 
-  if (status === 'gated') {
+  if (status === 'gated' || status === 'notChecked' || status === 'mock') {
     return {
       container: 'border-[var(--vt-badge-neutral-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-2)]',
       dot: 'bg-[var(--vt-text-3)]',
       badge: 'border-[var(--vt-badge-neutral-border)] bg-[var(--vt-surface)] text-[var(--vt-badge-neutral-text)]',
-      label: 'Gated — env flag off',
+      label: sourceCoverageBadgeLabel({ state: status, decisionGrade }),
     };
   }
 
-  if (status === 'access-required') {
+  if (status === 'accessRequired') {
     return {
       container: 'border-[var(--vt-badge-neutral-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-2)]',
       dot: 'bg-[var(--vt-text-3)]',
       badge: 'border-[var(--vt-badge-neutral-border)] bg-[var(--vt-surface)] text-[var(--vt-badge-neutral-text)]',
-      label: 'Access required',
+      label: sourceCoverageBadgeLabel({ state: status, decisionGrade }),
+    };
+  }
+
+  if (sourceCoveragePosture(status) === 'degraded') {
+    return {
+      container: 'border-[var(--vt-badge-critical-border)] bg-[var(--vt-badge-critical-bg)] text-[var(--vt-text-1)]',
+      dot: 'bg-[var(--vt-critical)]',
+      badge: 'border-[var(--vt-badge-critical-border)] bg-[var(--vt-surface)] text-[var(--vt-badge-critical-text)]',
+      label: sourceCoverageBadgeLabel({ state: status, decisionGrade }),
+    };
+  }
+
+  if (status === 'partial' || status === 'notDecisionGrade') {
+    return {
+      container: 'border-[var(--vt-badge-warning-border)] bg-[var(--vt-badge-warning-bg)] text-[var(--vt-text-1)]',
+      dot: 'bg-[var(--vt-warning)]',
+      badge: 'border-[var(--vt-badge-warning-border)] bg-[var(--vt-surface)] text-[var(--vt-badge-warning-text)]',
+      label: sourceCoverageBadgeLabel({ state: status, decisionGrade }),
     };
   }
 
@@ -57,7 +81,7 @@ function resolveTone(status: SourceCoverageTagProps['status'], decisionGrade: bo
     container: 'border-[var(--vt-badge-critical-border)] bg-[var(--vt-badge-critical-bg)] text-[var(--vt-text-1)]',
     dot: 'bg-[var(--vt-critical)]',
     badge: 'border-[var(--vt-badge-critical-border)] bg-[var(--vt-surface)] text-[var(--vt-badge-critical-text)]',
-    label: 'Unavailable',
+    label: sourceCoverageBadgeLabel({ state: status, decisionGrade }),
   };
 }
 

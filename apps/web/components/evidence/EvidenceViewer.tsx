@@ -12,6 +12,11 @@ import {
   type FreshnessMarker,
   type SourceQualityMarker,
 } from '@/lib/intelligence/trust-signals';
+import {
+  normalizePassportSourceCoverageChecks,
+  sourceCoverageBadgeLabel,
+  sourceCoverageStateLabel,
+} from '@/lib/trust/source-coverage';
 import { TrustSignalChips } from '../intelligence-ops/trust-signal-chips';
 
 export interface EvidenceItem {
@@ -422,70 +427,25 @@ export function EvidenceViewer({
   );
 }
 
-type PassportEvidenceCoverageEntry = {
-  source?: string;
-  status?: string;
-  decisionGrade?: boolean;
-  lastChecked?: string | null;
-};
-
-type PassportWithSourceCoverage = PassportData & {
-  sourceCoverage?: PassportEvidenceCoverageEntry[];
-};
-
-function normalizePassportCoverageStatus(value: unknown): 'live' | 'gated' | 'access-required' | 'unavailable' | null {
-  const normalized = typeof value === 'string' ? value.trim().toLowerCase().replace(/_/g, '-') : '';
-
-  switch (normalized) {
-    case 'live':
-      return 'live';
-    case 'gated':
-      return 'gated';
-    case 'access-required':
-    case 'accessrequired':
-      return 'access-required';
-    case 'unavailable':
-      return 'unavailable';
-    default:
-      return null;
+function passportCoverageClaim(
+  state: ReturnType<typeof normalizePassportSourceCoverageChecks>[number]['state'],
+): string {
+  if (state === 'live') {
+    return `${sourceCoverageStateLabel(state)}. Decision grade.`;
   }
-}
 
-function passportCoverageClaim(status: 'live' | 'gated' | 'access-required' | 'unavailable', decisionGrade: boolean): string {
-  const stateLabel = status === 'live'
-    ? 'Live'
-    : status === 'gated'
-      ? 'Gated — env flag off'
-      : status === 'access-required'
-        ? 'Access required'
-        : 'Unavailable';
-
-  return `${stateLabel}. ${decisionGrade ? 'Decision grade.' : 'Informational only.'}`;
+  return `${sourceCoverageBadgeLabel({ state, decisionGrade: false })}.`;
 }
 
 export function passportEvidenceItems(passport: PassportData): EvidenceItem[] {
-  const trustPassport = passport as PassportWithSourceCoverage;
-  const sourceCoverage = Array.isArray(trustPassport.sourceCoverage) ? trustPassport.sourceCoverage : [];
-
-  return sourceCoverage.flatMap((entry) => {
-    const source = typeof entry.source === 'string' && entry.source.trim().length > 0
-      ? entry.source.trim()
-      : null;
-    const status = normalizePassportCoverageStatus(entry.status);
-
-    if (!source || !status || typeof entry.decisionGrade !== 'boolean') {
-      return [];
-    }
-
-    return [{
-      source,
+  return normalizePassportSourceCoverageChecks(passport.sourceCoverage).map((entry) => ({
+      source: entry.sourceId,
       field: 'Source coverage',
-      claim: passportCoverageClaim(status, entry.decisionGrade),
-      confidence: entry.decisionGrade ? 0.92 : 0.56,
-      observedAt: entry.lastChecked ?? null,
-      provenanceChain: [source, 'sourceCoverage'],
-      qualityRating: entry.decisionGrade ? 'ADEQUATE' : 'WEAK',
+      claim: passportCoverageClaim(entry.state),
+      confidence: entry.state === 'live' ? 0.92 : 0.56,
+      observedAt: entry.checkedAt ?? null,
+      provenanceChain: [entry.sourceId, 'sourceCoverage'],
+      qualityRating: entry.state === 'live' ? 'ADEQUATE' : 'WEAK',
       corroborationCount: 0,
-    }];
-  });
+  }));
 }

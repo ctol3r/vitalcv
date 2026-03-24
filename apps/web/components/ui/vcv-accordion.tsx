@@ -11,6 +11,7 @@
 
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import type { ReactNode } from 'react';
+import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
 import { cn } from '@/lib/utils';
 import {
   getTrustStatusBadgeClassName,
@@ -33,6 +34,7 @@ interface AccordionProps {
   items: AccordionItem[];
   defaultOpen?: string;
   className?: string;
+  telemetryComponentId?: string;
   onValueChange?: (value: string | null) => void;
 }
 
@@ -73,6 +75,7 @@ export function Accordion({
   items,
   defaultOpen,
   className,
+  telemetryComponentId,
   onValueChange,
 }: AccordionProps) {
   return (
@@ -80,7 +83,21 @@ export function Accordion({
       type="single"
       collapsible
       defaultValue={defaultOpen}
-      onValueChange={(value) => onValueChange?.(value || null)}
+      onValueChange={(value) => {
+        const nextValue = value || null;
+
+        if (telemetryComponentId && nextValue) {
+          trackUxEvent({
+            event_name: 'accordion_expand',
+            component_id: telemetryComponentId,
+            metadata: {
+              section_id: nextValue,
+            },
+          });
+        }
+
+        onValueChange?.(nextValue);
+      }}
       className={cn('overflow-hidden bg-transparent', className)}
     >
       {items.map(item => (

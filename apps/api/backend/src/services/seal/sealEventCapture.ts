@@ -56,6 +56,118 @@ export interface SourceCoverageSnapshot {
   notChecked: string[];
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const READY_READINESS_THRESHOLD = 60;
+
+function isUuid(value: string): boolean {
+  return UUID_RE.test(value);
+}
+
+function daysFrom(earlier: Date | null | undefined, later: Date): number | null {
+  if (!earlier) return null;
+  const ms = later.getTime() - earlier.getTime();
+  return Math.max(0, Math.ceil(ms / 86_400_000));
+}
+
+async function resolveStartOutcomeEntityId(entityRef: string): Promise<string | null> {
+  if (isUuid(entityRef)) {
+    return entityRef;
+  }
+
+  // Compatibility only: some legacy start callers still pass clinician NPI.
+  // We resolve it here so start_outcome_events always retain the canonical entity FK.
+  const entity = await prisma.vcvEntity.findFirst({
+    where: { npi: entityRef },
+    select: { id: true },
+  });
+
+  if (!entity?.id) {
+    log('warn', 'seal_start_outcome_entity_unresolved', {
+      entityRef: entityRef.slice(0, 8) + '…',
+    });
+    return null;
+  }
+
+  return entity.id;
+}
+
+function scopedOrgWhere(organizationContextId: string | null | undefined): {
+  organizationContextId?: string;
+} {
+  return organizationContextId ? { organizationContextId } : {};
+}
+
+async function findFirstShareTimestamp(
+  entityId: string,
+  organizationContextId: string | null | undefined,
+): Promise<Date | null> {
+  const orgWhere = scopedOrgWhere(organizationContextId);
+  const firstBundleShare = await prisma.bundleShareEvent.findFirst({
+    where: {
+      subjectEntityId: entityId,
+      ...orgWhere,
+    },
+    orderBy: { sharedAt: 'asc' },
+    select: { sharedAt: true },
+  });
+
+  if (firstBundleShare?.sharedAt) {
+    return firstBundleShare.sharedAt;
+  }
+
+  // Legacy fallback for older rows captured before BundleShareEvent was the source of truth.
+  const legacyShare = await prisma.advisoryOutcomeEvent.findFirst({
+    where: {
+      entityId,
+      eventType: 'SHARE_INITIATED',
+      ...orgWhere,
+    },
+    orderBy: { eventTimestamp: 'asc' },
+    select: { eventTimestamp: true },
+  });
+
+  return legacyShare?.eventTimestamp ?? null;
+}
+
+async function deriveStartOutcomeTimings(
+  entityId: string,
+  startedAt: Date,
+  organizationContextId: string | null | undefined,
+): Promise<{
+  daysFromFirstReview: number | null;
+  daysFromShare: number | null;
+  daysFromReady: number | null;
+}> {
+  const orgWhere = scopedOrgWhere(organizationContextId);
+  const [firstReview, firstShareAt, firstReady] = await Promise.all([
+    prisma.advisoryOutcomeEvent.findFirst({
+      where: {
+        entityId,
+        eventType: 'EMPLOYER_REVIEW',
+        ...orgWhere,
+      },
+      orderBy: { eventTimestamp: 'asc' },
+      select: { eventTimestamp: true },
+    }),
+    findFirstShareTimestamp(entityId, organizationContextId),
+    prisma.advisoryOutcomeEvent.findFirst({
+      where: {
+        entityId,
+        readinessScoreAtEvent: { gte: READY_READINESS_THRESHOLD },
+        ...orgWhere,
+      },
+      orderBy: { eventTimestamp: 'asc' },
+      select: { eventTimestamp: true },
+    }),
+  ]);
+
+  return {
+    daysFromFirstReview: daysFrom(firstReview?.eventTimestamp, startedAt),
+    daysFromShare: daysFrom(firstShareAt, startedAt),
+    daysFromReady: daysFrom(firstReady?.eventTimestamp, startedAt),
+  };
+}
+
 // ── 1. Advisory Outcome Event ─────────────────────────────────────────────
 
 export interface CaptureAdvisoryEventInput {
@@ -304,6 +416,7 @@ export async function captureEmployerDecision(input: CaptureEmployerDecisionInpu
 // ── 4. Start Outcome Event ────────────────────────────────────────────────
 
 export interface CaptureStartOutcomeInput {
+  /** Canonical entity UUID. Legacy callers may still pass NPI; this helper resolves it. */
   entityId:              string;
   organizationContextId?: string | null;
   startedAt:             Date;
@@ -316,51 +429,38 @@ export interface CaptureStartOutcomeInput {
 
 export async function captureStartOutcome(input: CaptureStartOutcomeInput): Promise<void> {
   try {
-    // Compute deltas from prior events for this entity
-    const [firstReview, firstShare, firstReady] = await Promise.all([
-      prisma.employerDecisionEvent.findFirst({
-        where:   { entityId: input.entityId },
-        orderBy: { decidedAt: 'asc' },
-        select:  { decidedAt: true },
-      }),
-      prisma.advisoryOutcomeEvent.findFirst({
-        where:   { entityId: input.entityId, eventType: 'SHARE_INITIATED' },
-        orderBy: { eventTimestamp: 'asc' },
-        select:  { eventTimestamp: true },
-      }),
-      // "Ready" = first advisory event where readiness score was L2+ (score >= 60)
-      prisma.advisoryOutcomeEvent.findFirst({
-        where: {
-          entityId:              input.entityId,
-          readinessScoreAtEvent: { gte: 60 },
-        },
-        orderBy: { eventTimestamp: 'asc' },
-        select:  { eventTimestamp: true },
-      }),
-    ]);
+    const entityId = await resolveStartOutcomeEntityId(input.entityId);
+    if (!entityId) return;
 
-    function daysBetween(earlier: Date | null | undefined, later: Date): number | null {
-      if (!earlier) return null;
-      const ms = later.getTime() - earlier.getTime();
-      return Math.max(0, Math.ceil(ms / 86_400_000));
-    }
+    const timings = await deriveStartOutcomeTimings(
+      entityId,
+      input.startedAt,
+      input.organizationContextId ?? null,
+    );
+    const capturedAt = new Date().toISOString();
 
     await prisma.startOutcomeEvent.create({
       data: {
         id:                    randomUUID(),
-        entityId:              input.entityId,
+        entityId,
         organizationContextId: input.organizationContextId ?? null,
         startedAt:             input.startedAt,
-        daysFromFirstReview:   daysBetween(firstReview?.decidedAt, input.startedAt),
-        daysFromShare:         daysBetween(firstShare?.eventTimestamp, input.startedAt),
-        daysFromReady:         daysBetween(firstReady?.eventTimestamp, input.startedAt),
+        daysFromFirstReview:   timings.daysFromFirstReview,
+        daysFromShare:         timings.daysFromShare,
+        daysFromReady:         timings.daysFromReady,
         readinessScoreAtStart: input.readinessScoreAtStart ?? null,
         blockersAtStart:       JSON.parse(JSON.stringify(input.blockersAtStart)),
         sourceCoverageAtStart: JSON.parse(JSON.stringify(input.sourceCoverageAtStart)),
-        metadata:              JSON.parse(JSON.stringify(mergeScope(input.metadata ?? {}, input.scope))),
+        metadata:              JSON.parse(JSON.stringify(mergeScope({
+          ...(input.metadata ?? {}),
+          capturedAt,
+        }, input.scope))),
       },
     });
-    log('info', 'seal_start_outcome_captured', { entityId: input.entityId.slice(0, 8) + '…', startedAt: input.startedAt.toISOString() });
+    log('info', 'seal_start_outcome_captured', {
+      entityId: entityId.slice(0, 8) + '…',
+      startedAt: input.startedAt.toISOString(),
+    });
   } catch (err) {
     log('warn', 'seal_start_outcome_capture_failed', {
       error: err instanceof Error ? err.message : String(err),

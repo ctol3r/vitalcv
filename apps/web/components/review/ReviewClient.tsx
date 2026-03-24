@@ -20,11 +20,10 @@
  *   - Status via opacity only (doctrine)
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRoleContext } from '@/components/auth/RoleContext';
-import { Accordion, type AccordionItem } from '@/components/ui/vcv-accordion';
-import { ProofDetailsList } from '@/components/trust/ProofDetailsList';
+import { Accordion } from '@/components/ui/vcv-accordion';
 import {
   buildPassportProofSections,
   summarizePassportProofSections,
@@ -37,60 +36,34 @@ import {
   CLERK_SIGN_IN_URL,
 } from '@/lib/auth/clerkConfig';
 import {
-  VStatusPill,
-  type TrustStatusLabel,
-} from '@/components/vds/primitives';
+  buildPassportFreshnessEntries,
+  formatAsOfDate,
+  formatAsOfQuarter,
+  formatProofDate,
+  joinNoteParts,
+  type PassportFreshnessEntry,
+  summarizePassportFreshnessEntries,
+} from '@/lib/trust/proof-language';
+import {
+  resolveLivePathAuthState,
+  resolveLivePathErrorMessage,
+  resolveLivePathReadinessStatus,
+} from '@/lib/live-path/contracts';
+import {
+  employerReviewLoadingLabel,
+  formatEmployerReviewPersistedDetail,
+  formatEmployerReviewPersistedLabel,
+  type EmployerReviewActionIntent,
+  type EmployerReviewActionResponse,
+  type EmployerReviewActionState,
+  type EmployerReviewStatusResponse,
+} from '@/lib/employer-review-actions';
+import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
+import { VStatusPill } from '@/components/vds/primitives';
 
-function formatProofDate(value?: string | null): string | null {
-  if (!value) return null;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed.toLocaleDateString();
-}
-
-function formatQuarter(value?: string | null): string | null {
-  if (!value) return null;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return null;
-  const q = Math.floor(parsed.getMonth() / 3) + 1;
-  return `Q${q} ${parsed.getFullYear()}`;
-}
-
-function joinNoteParts(parts: Array<string | null | undefined>): string | undefined {
-  const values = parts.filter((part): part is string => Boolean(part && part.trim()));
-  return values.length > 0 ? values.join(' · ') : undefined;
-}
-
-function formatAsOfDate(value?: string | null): string | null {
-  const date = formatProofDate(value);
-  return date ? `as of ${date}` : null;
-}
-
-function formatAsOfQuarter(
-  observedAt?: string | null,
-  dataVersion?: string | null,
+function latestCredentialObservationDate(
+  credentials: PassportData['authority']['credentials'],
 ): string | null {
-  const quarter = dataVersion ?? formatQuarter(observedAt);
-  return quarter ? `as of ${quarter}` : null;
-}
-
-function formatCompactProofDate(value?: string | null): string | null {
-  if (!value) return null;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-function accordionMeta(label: string) {
-  return (
-    <span className="inline-flex items-center rounded-full border border-white/8 bg-white/4 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">
-      {label}
-    </span>
-  );
-}
-
-// ── Proof accordion builder ────────────────────────────────────────────────────
-
-function latestCredentialDate(credentials: PassportData['authority']['credentials']): string | null {
   const values = credentials
     .map((credential) => credential.observedAt ?? credential.verifiedAt ?? null)
     .filter((value): value is string => Boolean(value));
@@ -98,534 +71,6 @@ function latestCredentialDate(credentials: PassportData['authority']['credential
   if (values.length === 0) return null;
 
   return values.sort((left, right) => Date.parse(right) - Date.parse(left))[0] ?? null;
-}
-
-function uniqueCredentialSources(credentials: PassportData['authority']['credentials'], fallback: string): string {
-  const sources = Array.from(new Set(
-    credentials
-      .map((credential) => credential.issuerName ?? credential.sourceId ?? null)
-      .filter((value): value is string => Boolean(value && value.trim())),
-  ));
-
-  return sources.length > 0 ? sources.join(' · ') : fallback;
-}
-
-function credentialAccordionStatus(
-  credential: PassportData['authority']['credentials'][0],
-): NonNullable<AccordionItem['status']> {
-  const code = credential.authorityClaimCode;
-
-  if (code === 'BOARD_ORDER_PRESENT' || code === 'RN_LICENSE_DISCIPLINED' || credential.reviewRequired) {
-    return 'review_required';
-  }
-
-  if (code === 'RN_LICENSE_EXPIRED' || credential.status === 'EXPIRED') {
-    return 'review_required';
-  }
-
-  if (credential.stale) {
-    return 'stale';
-  }
-
-  if (
-    code === 'AUTHORITY_UNAVAILABLE'
-    || credential.connectorState === 'unavailable'
-    || credential.connectorState === 'unresolved'
-  ) {
-    return credential.participationStatus === 'institution_access_unavailable'
-      ? 'access_required'
-      : 'unavailable';
-  }
-
-  if (
-    code === 'PHYSICIAN_LICENSE_ACTIVE'
-    || code === 'RN_LICENSE_ACTIVE'
-    || code === 'BOARD_CERTIFIED'
-    || credential.status === 'ACTIVE'
-  ) {
-    return 'verified';
-  }
-
-  return 'pending';
-}
-
-function credentialEvidenceLabel(credential: PassportData['authority']['credentials'][0]): string {
-  const state = credential.jurisdiction ? ` (${credential.jurisdiction})` : '';
-
-  switch (credential.authorityClaimCode) {
-    case 'BOARD_ORDER_PRESENT':
-      return `Board order${state}`;
-    case 'RN_LICENSE_DISCIPLINED':
-      return `License disciplinary action${state}`;
-    case 'RN_LICENSE_EXPIRED':
-      return `License${state}`;
-    case 'PHYSICIAN_LICENSE_ACTIVE':
-    case 'RN_LICENSE_ACTIVE':
-      return `License${state}`;
-    case 'BOARD_CERTIFIED':
-      return 'Board certification';
-    case 'AUTHORITY_UNAVAILABLE':
-      return credential.participationStatus === 'institution_access_unavailable'
-        ? `License verification${state}`
-        : `License source${state}`;
-    default:
-      if (credential.domain === 'BOARD_CERTIFICATION') return 'Board certification';
-      if (credential.domain === 'LICENSURE') return `License${state}`;
-      if (credential.domain === 'DEA_REGISTRATION') return `DEA registration${state}`;
-      return credential.domain.replace(/_/g, ' ').toLowerCase();
-  }
-}
-
-function credentialGroupStatus(
-  credentials: PassportData['authority']['credentials'],
-  fallback: AccordionItem['status'] = 'pending',
-): AccordionItem['status'] {
-  if (credentials.length === 0) return fallback;
-
-  const statuses = credentials.map(credentialAccordionStatus);
-  if (statuses.includes('review_required')) return 'review_required';
-  if (statuses.includes('verified')) return 'verified';
-  if (statuses.includes('stale')) return 'stale';
-  if (statuses.includes('access_required')) return 'access_required';
-  if (statuses.includes('unavailable')) return 'unavailable';
-  return 'pending';
-}
-
-function credentialStatusNote(status: AccordionItem['status'], emptyFallback: string): string {
-  switch (status) {
-    case 'verified':
-      return 'Decision-grade proof is attached for this domain.';
-    case 'stale':
-      return 'Attached proof exists, but at least one record is outside the freshness window.';
-    case 'review_required':
-      return 'This domain has attached proof, but an employer should not rely on it without manual review.';
-    case 'access_required':
-      return 'A source exists for this domain, but institutional access is still required to complete it.';
-    case 'unavailable':
-      return 'The current source connection could not return a usable result.';
-    case 'checked':
-      return 'A source-backed result exists, but it is informational rather than fully decision-grade.';
-    case 'pending':
-    default:
-      return emptyFallback;
-  }
-}
-
-function credentialRecordsValue(credentials: PassportData['authority']['credentials']) {
-  if (credentials.length === 0) return null;
-
-  return (
-    <div className="space-y-1.5">
-      {credentials.map((credential) => (
-        <div
-          key={credential.id}
-          className="rounded-lg border border-white/8 bg-white/[0.03] px-2.5 py-2"
-        >
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <span className="text-white/70">{credentialEvidenceLabel(credential)}</span>
-            <span className="text-white/35 uppercase tracking-[0.14em]">
-              {credentialAccordionStatus(credential).replaceAll('_', ' ')}
-            </span>
-          </div>
-          <p className="mt-1 text-white/45">
-            {joinNoteParts([
-              credential.issuerName ?? credential.sourceId ?? credential.verificationLevel,
-              formatAsOfDate(credential.observedAt ?? credential.verifiedAt),
-              credential.dataFreshnessLabel,
-              credential.claimConfidenceLabel,
-            ])}
-          </p>
-          {claimCodeToNote(credential) && (
-            <p className="mt-1 text-white/32">{claimCodeToNote(credential)}</p>
-          )}
-          {credential.sourceDisclaimer && (
-            <p className="mt-1 text-white/28">{credential.sourceDisclaimer}</p>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function identityProofSection(passport: PassportData): AccordionItem {
-  const checkedAt = passport.lastCheckedAt ?? null;
-
-  return {
-    id: 'identity',
-    trigger: 'Identity Verification',
-    triggerRight: accordionMeta(
-      checkedAt ? `checked ${formatCompactProofDate(checkedAt)}` : 'not checked',
-    ),
-    status: passport.identity.npi ? 'verified' : 'pending',
-    content: (
-      <ProofDetailsList
-        rows={[
-          { id: 'source', label: 'Source', value: 'CMS NPPES', tone: 'strong' },
-          { id: 'checked', label: 'Last checked', value: formatProofDate(checkedAt) ?? 'Not checked' },
-          { id: 'freshness', label: 'Freshness', value: checkedAt ? 'Current attached record' : 'No attached record' },
-          {
-            id: 'trust-note',
-            label: 'Trust note',
-            value: passport.identity.npi
-              ? 'The candidate identity resolves to a source-backed NPI record.'
-              : 'The review does not yet have a resolved NPI anchor.',
-          },
-          {
-            id: 'status-note',
-            label: 'Status note',
-            value: passport.identity.npi
-              ? 'Identity can anchor the rest of the employer review.'
-              : 'Identity needs to resolve before the rest of the trust stack can be treated as reliable.',
-            tone: 'muted',
-          },
-        ]}
-      />
-    ),
-  };
-}
-
-function authorityProofSection(passport: PassportData): AccordionItem {
-  const licensureCredentials = passport.authority.credentials.filter(
-    (credential) => credential.domain === 'LICENSURE',
-  );
-  const checkedAt = latestCredentialDate(licensureCredentials);
-  const status = credentialGroupStatus(
-    licensureCredentials,
-    passport.authority.summary.missing.includes('LICENSURE') ? 'pending' : 'access_required',
-  );
-
-  return {
-    id: 'licensure',
-    trigger: 'State Licensure / Authority',
-    triggerRight: accordionMeta(
-      licensureCredentials.length > 0
-        ? `${licensureCredentials.length} record${licensureCredentials.length === 1 ? '' : 's'}`
-        : 'no records',
-    ),
-    status,
-    content: (
-      <ProofDetailsList
-        rows={[
-          {
-            id: 'source',
-            label: 'Source',
-            value: uniqueCredentialSources(licensureCredentials, 'State Board / FSMB'),
-            tone: 'strong',
-          },
-          { id: 'checked', label: 'Last checked', value: formatProofDate(checkedAt) ?? 'Not checked' },
-          {
-            id: 'freshness',
-            label: 'Freshness',
-            value:
-              licensureCredentials.length === 0
-                ? 'No attached record'
-                : licensureCredentials.some((credential) => credential.stale)
-                  ? 'Mixed freshness'
-                  : 'Within freshness window',
-          },
-          {
-            id: 'trust-note',
-            label: 'Trust note',
-            value:
-              licensureCredentials.length > 0
-                ? 'Primary-source authority records are attached for this review.'
-                : 'No decision-grade licensure proof is attached yet.',
-          },
-          {
-            id: 'status-note',
-            label: 'Status note',
-            value: credentialStatusNote(status, 'Licensure remains incomplete until a source-backed record is attached.'),
-            tone: 'muted',
-          },
-          {
-            id: 'records',
-            label: 'Records',
-            value: credentialRecordsValue(licensureCredentials),
-          },
-        ]}
-      />
-    ),
-  };
-}
-
-function boardProofSection(passport: PassportData): AccordionItem {
-  const boardCredentials = passport.authority.credentials.filter(
-    (credential) => credential.domain === 'BOARD_CERTIFICATION',
-  );
-  const checkedAt = latestCredentialDate(boardCredentials);
-  const status = credentialGroupStatus(
-    boardCredentials,
-    passport.authority.summary.missing.includes('BOARD_CERTIFICATION') ? 'pending' : 'access_required',
-  );
-
-  return {
-    id: 'board',
-    trigger: 'Board Certification',
-    triggerRight: accordionMeta(
-      boardCredentials.length > 0
-        ? `${boardCredentials.length} record${boardCredentials.length === 1 ? '' : 's'}`
-        : 'no records',
-    ),
-    status,
-    content: (
-      <ProofDetailsList
-        rows={[
-          {
-            id: 'source',
-            label: 'Source',
-            value: uniqueCredentialSources(boardCredentials, 'ABMS / specialty board'),
-            tone: 'strong',
-          },
-          { id: 'checked', label: 'Last checked', value: formatProofDate(checkedAt) ?? 'Not checked' },
-          {
-            id: 'freshness',
-            label: 'Freshness',
-            value:
-              boardCredentials.length === 0
-                ? 'No attached record'
-                : boardCredentials.some((credential) => credential.stale)
-                  ? 'Mixed freshness'
-                  : 'Within freshness window',
-          },
-          {
-            id: 'trust-note',
-            label: 'Trust note',
-            value:
-              boardCredentials.length > 0
-                ? 'Board evidence is attached from the issuing authority path.'
-                : 'Board coverage is not attached for this review yet.',
-          },
-          {
-            id: 'status-note',
-            label: 'Status note',
-            value: credentialStatusNote(status, 'Board certification remains incomplete until evidence is attached.'),
-            tone: 'muted',
-          },
-          {
-            id: 'records',
-            label: 'Records',
-            value: credentialRecordsValue(boardCredentials),
-          },
-        ]}
-      />
-    ),
-  };
-}
-
-function deaProofSection(passport: PassportData): AccordionItem {
-  const deaCredentials = passport.authority.credentials.filter(
-    (credential) => credential.domain === 'DEA_REGISTRATION',
-  );
-  const checkedAt = latestCredentialDate(deaCredentials);
-  const status = credentialGroupStatus(
-    deaCredentials,
-    passport.standing.deaStatus === 'unknown' ? 'access_required' : 'checked',
-  );
-
-  return {
-    id: 'dea',
-    trigger: 'DEA / Controlled Substance',
-    triggerRight: accordionMeta(
-      deaCredentials.length > 0
-        ? `${deaCredentials.length} record${deaCredentials.length === 1 ? '' : 's'}`
-        : passport.standing.deaStatus === 'unknown'
-          ? 'no records'
-          : 'status only',
-    ),
-    status,
-    content: (
-      <ProofDetailsList
-        rows={[
-          {
-            id: 'source',
-            label: 'Source',
-            value: uniqueCredentialSources(deaCredentials, 'DEA'),
-            tone: 'strong',
-          },
-          { id: 'checked', label: 'Last checked', value: formatProofDate(checkedAt) ?? 'Not checked' },
-          {
-            id: 'freshness',
-            label: 'Freshness',
-            value:
-              deaCredentials.length === 0
-                ? 'No attached record'
-                : deaCredentials.some((credential) => credential.stale)
-                  ? 'Mixed freshness'
-                  : 'Within freshness window',
-          },
-          {
-            id: 'trust-note',
-            label: 'Trust note',
-            value:
-              deaCredentials.length > 0
-                ? 'Controlled-substance authority evidence is attached for this review.'
-                : passport.standing.deaStatus === 'unknown'
-                  ? 'No decision-grade DEA proof is attached yet.'
-                  : `The review carries a DEA status field (${passport.standing.deaStatus}), but no portable record is attached.`,
-          },
-          {
-            id: 'status-note',
-            label: 'Status note',
-            value: credentialStatusNote(status, 'DEA coverage remains incomplete until source-backed evidence is attached.'),
-            tone: 'muted',
-          },
-          {
-            id: 'records',
-            label: 'Records',
-            value: credentialRecordsValue(deaCredentials),
-          },
-        ]}
-      />
-    ),
-  };
-}
-
-function exclusionAccordionStatus(status: PassportData['standing']['exclusionStatus']): AccordionItem['status'] {
-  switch (status) {
-    case 'CLEAR':
-      return 'clear';
-    case 'POSSIBLE_MATCH':
-    case 'EXCLUDED':
-      return 'review_required';
-    case 'UNKNOWN':
-      return 'unavailable';
-    case 'UNCHECKED':
-    default:
-      return 'pending';
-  }
-}
-
-function sanctionsProofSection(passport: PassportData): AccordionItem {
-  const checkedAt = passport.standing.exclusionCheckedAt ?? passport.lastCheckedAt ?? null;
-  const status = exclusionAccordionStatus(passport.standing.exclusionStatus);
-
-  return {
-    id: 'sanctions',
-    trigger: 'Sanctions & Exclusions',
-    triggerRight: accordionMeta(
-      checkedAt ? `checked ${formatCompactProofDate(checkedAt)}` : 'not checked',
-    ),
-    status,
-    content: (
-      <ProofDetailsList
-        rows={[
-          { id: 'source', label: 'Source', value: 'OIG / LEIE', tone: 'strong' },
-          { id: 'checked', label: 'Last checked', value: formatProofDate(checkedAt) ?? 'Not checked' },
-          {
-            id: 'freshness',
-            label: 'Freshness',
-            value: checkedAt ? 'Current attached check' : 'No attached check',
-          },
-          {
-            id: 'trust-note',
-            label: 'Trust note',
-            value:
-              passport.standing.exclusionStatus === 'CLEAR'
-                ? 'The attached OIG LEIE check returned no exclusion entry.'
-                : passport.standing.exclusionStatus === 'POSSIBLE_MATCH'
-                  ? 'A potential exclusion match needs employer review before proceeding.'
-                  : passport.standing.exclusionStatus === 'EXCLUDED'
-                    ? 'An exclusion record is attached to this provider.'
-                    : 'The exclusion layer does not have a reliable result attached yet.',
-          },
-          {
-            id: 'status-note',
-            label: 'Status note',
-            value:
-              passport.standing.negativeFindings.length > 0
-                ? passport.standing.negativeFindings.join(' · ')
-                : 'NPDB and SAM.gov remain separate institutional checks outside this review.',
-            tone: 'muted',
-          },
-        ]}
-      />
-    ),
-  };
-}
-
-function eligibilityProofSection(passport: PassportData): AccordionItem | null {
-  const pecosStatus = passport.standing.pecosEnrollmentStatus ?? (
-    passport.standing.pecosStatus === 'enrolled' ? 'ENROLLED'
-      : passport.standing.pecosStatus === 'not_enrolled' ? 'NOT_FOUND'
-        : 'UNCHECKED'
-  );
-  const relevant = pecosStatus !== 'UNCHECKED'
-    || passport.readiness.blockers.some((blocker) => /pecos|medicare|enrollment/i.test(blocker));
-
-  if (!relevant) {
-    return null;
-  }
-
-  const status: AccordionItem['status'] =
-    pecosStatus === 'ENROLLED' ? 'checked'
-      : pecosStatus === 'UNCHECKED' ? 'pending'
-        : 'review_required';
-
-  return {
-    id: 'eligibility',
-    trigger: 'Enrollment / Eligibility',
-    triggerRight: accordionMeta(
-      passport.standing.enrollmentObservedAt
-        ? `checked ${formatCompactProofDate(passport.standing.enrollmentObservedAt)}`
-        : 'quarterly',
-    ),
-    status,
-    content: (
-      <ProofDetailsList
-        rows={[
-          {
-            id: 'source',
-            label: 'Source',
-            value: passport.standing.enrollmentSourceLabel ?? 'CMS PECOS',
-            tone: 'strong',
-          },
-          {
-            id: 'checked',
-            label: 'Last checked',
-            value: formatProofDate(passport.standing.enrollmentObservedAt) ?? 'Not checked',
-          },
-          {
-            id: 'freshness',
-            label: 'Freshness',
-            value: passport.standing.enrollmentDataFreshness ?? passport.standing.enrollmentFreshnessLabel ?? 'Quarterly',
-          },
-          {
-            id: 'trust-note',
-            label: 'Trust note',
-            value:
-              pecosStatus === 'ENROLLED'
-                ? 'CMS PECOS confirms an enrolled provider record in the current quarterly release.'
-                : passport.standing.enrollmentNote ?? 'Enrollment still needs manual confirmation.',
-          },
-          {
-            id: 'status-note',
-            label: 'Status note',
-            value:
-              pecosStatus === 'ENROLLED'
-                ? 'Enrollment is informative and current, but should still be read in the context of quarterly publication cadence.'
-                : passport.standing.enrollmentNote ?? 'Do not treat eligibility as satisfied until a current PECOS result is attached.',
-            tone: 'muted',
-          },
-        ]}
-      />
-    ),
-  };
-}
-
-function buildProofSections(passport: PassportData): AccordionItem[] {
-  const items: AccordionItem[] = [
-    identityProofSection(passport),
-    authorityProofSection(passport),
-    boardProofSection(passport),
-    deaProofSection(passport),
-    sanctionsProofSection(passport),
-  ];
-  const eligibility = eligibilityProofSection(passport);
-  if (eligibility) {
-    items.push(eligibility);
-  }
-
-  return items;
 }
 
 function claimCodeToNote(c: PassportData['authority']['credentials'][0]): string | null {
@@ -825,22 +270,7 @@ interface Props {
 
 // ── M2: Freshness helpers ──────────────────────────────────────────────────
 
-interface FreshnessEntry {
-  layer:      string;
-  checkedAt:  string | null | undefined;
-  source:     string;
-  stale:      boolean;   // > staleDays since last check
-  unchecked:  boolean;
-}
-
-/** Return true if the ISO date is older than thresholdDays from now. */
-function isStale(iso: string | null | undefined, thresholdDays: number): boolean {
-  if (!iso) return false;
-  const ms = Date.now() - new Date(iso).getTime();
-  return ms > thresholdDays * 86_400_000;
-}
-
-function FreshnessPanel({ entries }: { entries: FreshnessEntry[] }) {
+function FreshnessPanel({ entries }: { entries: PassportFreshnessEntry[] }) {
   const hasWarning = entries.some(e => e.stale || e.unchecked);
   if (!hasWarning) return null;
 
@@ -878,10 +308,12 @@ function FreshnessPanel({ entries }: { entries: FreshnessEntry[] }) {
 
 type ActionState =
   | { phase: 'idle' }
-  | { phase: 'loading'; intent: 'accept' | 'refresh' | 'review' | 'download' }
-  | { phase: 'done';    intent: 'accept' | 'refresh' | 'review'; auditEventId: string; timestamp: string }
-  | { phase: 'error';   intent: 'accept' | 'refresh' | 'review'; message: string }
+  | { phase: 'loading'; intent: EmployerReviewActionIntent }
+  | { phase: 'done'; state: EmployerReviewActionState }
+  | { phase: 'error'; intent: EmployerReviewActionIntent; message: string }
   | { phase: 'downloading' };
+
+type EmployerActionEndpoint = 'accept' | 'request-refresh' | 'route-to-review';
 
 // ── M2: API call helpers ───────────────────────────────────────────────────
 
@@ -891,7 +323,7 @@ async function postAction(
   entityId: string,
   endpoint: 'accept' | 'request-refresh' | 'route-to-review',
   body?: Record<string, unknown>,
-): Promise<{ ok: boolean; auditEventId: string; timestamp: string }> {
+): Promise<EmployerReviewActionResponse> {
   const res = await fetch(`${API}/api/employer-review/${entityId}/${endpoint}`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -901,23 +333,38 @@ async function postAction(
     const err = await res.json().catch(() => ({})) as { error_description?: string };
     throw new Error(err.error_description ?? `Action failed (${res.status})`);
   }
-  return res.json() as Promise<{ ok: boolean; auditEventId: string; timestamp: string }>;
+  return res.json() as Promise<EmployerReviewActionResponse>;
+}
+
+async function getPersistedActionState(entityId: string): Promise<EmployerReviewActionState | null> {
+  const res = await fetch(`${API}/api/employer-review/${entityId}/status`, {
+    headers: { Accept: 'application/json' },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as { error_description?: string };
+    throw new Error(err.error_description ?? `Status lookup failed (${res.status})`);
+  }
+
+  const payload = await res.json() as EmployerReviewStatusResponse;
+  return payload.state ?? null;
 }
 
 export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
   const [actionState, setActionState] = useState<ActionState>({ phase: 'idle' });
+  const [persistedActionState, setPersistedActionState] = useState<EmployerReviewActionState | null>(null);
   const { isLoaded, isSignedIn, isEmployer } = useRoleContext();
+  const mountedRef = useRef(true);
+  const actionInFlightRef = useRef(false);
+  const reviewOpenedTrackedRef = useRef(false);
 
   const { identity, readiness, standing, authority } = passport;
-  const readinessStatus: TrustStatusLabel =
-    readiness.status === 'READY' ? 'clear' :
-    readiness.status === 'BLOCKED' ? 'blocked' :
-    'review required';
+  const readinessStatus = resolveLivePathReadinessStatus(readiness.status);
   const pecosEnrollmentStatus: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED' =
     standing.pecosEnrollmentStatus ?? (
       standing.pecosStatus === 'enrolled' ? 'ENROLLED' :
       standing.pecosStatus === 'not_enrolled' ? 'NOT_FOUND' : 'UNCHECKED'
     );
+  const latestAuthorityObservationAt = latestCredentialObservationDate(authority.credentials);
 
   const missingDomains    = authority.summary.missing;
   const blocked = Array.from(new Set([
@@ -931,7 +378,7 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
   const lastSyncedAt =
     passport.lastCheckedAt
     ?? standing.exclusionCheckedAt
-    ?? authority.credentials[0]?.observedAt
+    ?? latestAuthorityObservationAt
     ?? standing.enrollmentObservedAt
     ?? null;
   const previewOnlyMessage =
@@ -945,94 +392,172 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
             ? 'Preview only. Switch into an employer workspace to persist decisions.'
             : null;
   const canPersistActions = previewOnlyMessage === null;
+  const authState = resolveLivePathAuthState({ isLoaded, isSignedIn, isEmployer });
 
-  // M2: Freshness entries for pre-action panel
-  const freshnessEntries: FreshnessEntry[] = [
-    {
-      layer:     'Identity (NPPES)',
-      checkedAt: passport.lastCheckedAt ?? null,
-      source:    'CMS NPPES',
-      stale:     isStale(passport.lastCheckedAt, 30),
-      unchecked: !passport.lastCheckedAt,
-    },
-    {
-      layer:     'Safety (OIG)',
-      checkedAt: standing.exclusionCheckedAt ?? null,
-      source:    'OIG LEIE',
-      stale:     isStale(standing.exclusionCheckedAt, 90),
-      unchecked: standing.exclusionStatus === 'UNCHECKED',
-    },
-    {
-      layer:     'Authority (Licenses)',
-      checkedAt: authority.credentials.length > 0
-        ? authority.credentials[0]?.observedAt ?? null
-        : null,
-      source:    'State Boards / FSMB',
-      stale:     isStale(authority.credentials[0]?.observedAt, 90),
-      unchecked: authority.credentials.length === 0,
-    },
-    {
-      layer:     'Eligibility (PECOS)',
-      checkedAt: standing.enrollmentObservedAt ?? null,
-      source:    standing.enrollmentSourceLabel ?? 'CMS PECOS',
-      stale:     false, // PECOS is quarterly by design — not "stale" on time alone
-      unchecked: pecosEnrollmentStatus === 'UNCHECKED',
-    },
-  ];
-  const freshnessState = freshnessEntries.some((entry) => entry.stale)
-    ? 'Stale sources present'
-    : freshnessEntries.some((entry) => entry.unchecked)
-      ? 'Partial source coverage'
-      : 'Current attached checks';
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      actionInFlightRef.current = false;
+    };
+  }, []);
 
-  // M2: Handlers with real API calls + mandatory audit
-  async function handleAccept() {
-    if (!canPersistActions) return;
-    setActionState({ phase: 'loading', intent: 'accept' });
-    try {
-      const result = await postAction(passport.entityId, 'accept', {
-        staleSources:   freshnessEntries.filter(e => e.stale).map(e => e.source),
-        missingDomains: authority.summary.missing,
-      });
-      setActionState({ phase: 'done', intent: 'accept', auditEventId: result.auditEventId, timestamp: result.timestamp });
-    } catch (err) {
-      setActionState({ phase: 'error', intent: 'accept', message: (err as Error).message });
+  const freshnessEntries = buildPassportFreshnessEntries(passport);
+  const freshnessState = summarizePassportFreshnessEntries(freshnessEntries).label;
+
+  useEffect(() => {
+    if (reviewOpenedTrackedRef.current || (CLERK_PROVIDER_ENABLED && !isLoaded)) return;
+
+    trackUxEvent({
+      event_name: 'review_opened',
+      component_id: 'employer_review_surface',
+      metadata: {
+        auth_state: authState,
+        blockers_count: blocked.length,
+        interaction_result: canPersistActions ? 'ready' : 'preview_only',
+        shared_context: Boolean(sharedBy || contextId),
+        source_mode: 'live',
+      },
+    });
+
+    reviewOpenedTrackedRef.current = true;
+  }, [authState, blocked.length, canPersistActions, contextId, isLoaded, sharedBy]);
+
+  useEffect(() => {
+    if (!canPersistActions) {
+      if (mountedRef.current) {
+        setPersistedActionState(null);
+      }
+      return;
     }
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const state = await getPersistedActionState(passport.entityId);
+        if (!cancelled && mountedRef.current) {
+          setPersistedActionState(state);
+        }
+      } catch {
+        if (!cancelled && mountedRef.current) {
+          setPersistedActionState(null);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canPersistActions, passport.entityId]);
+
+  function trackEmployerActionClicked(action: EmployerReviewActionIntent) {
+    trackUxEvent({
+      event_name: 'employer_action_clicked',
+      component_id: 'employer_review_actions',
+      metadata: {
+        action,
+        auth_state: authState,
+        interaction_result: canPersistActions ? 'started' : 'blocked',
+        source_mode: 'live',
+      },
+    });
+  }
+
+  function trackEmployerActionResult(
+    action: EmployerReviewActionIntent,
+    result: 'success' | 'error',
+    startedAt: number,
+    errorMessage?: string,
+  ) {
+    trackUxEvent({
+      event_name: 'employer_action_result',
+      component_id: 'employer_review_actions',
+      duration_ms: performance.now() - startedAt,
+      metadata: {
+        action,
+        auth_state: authState,
+        blockers_count: blocked.length,
+        error_message: errorMessage ?? null,
+        interaction_result: result,
+        source_mode: 'live',
+      },
+    });
+  }
+
+  async function runEmployerAction(config: {
+    intent: EmployerReviewActionIntent;
+    endpoint: EmployerActionEndpoint;
+    body: Record<string, unknown>;
+  }) {
+    if (!canPersistActions || actionInFlightRef.current) return;
+
+    actionInFlightRef.current = true;
+    const startedAt = performance.now();
+    trackEmployerActionClicked(config.intent);
+    if (mountedRef.current) {
+      setActionState({ phase: 'loading', intent: config.intent });
+    }
+
+    try {
+      const result = await postAction(passport.entityId, config.endpoint, config.body);
+      if (!mountedRef.current) return;
+
+      setPersistedActionState(result.state);
+      setActionState({
+        phase: 'done',
+        state: result.state,
+      });
+      trackEmployerActionResult(config.intent, 'success', startedAt);
+    } catch (error) {
+      const message = resolveLivePathErrorMessage(error, 'Action failed');
+      if (!mountedRef.current) return;
+
+      setActionState({ phase: 'error', intent: config.intent, message });
+      trackEmployerActionResult(config.intent, 'error', startedAt, message);
+    } finally {
+      actionInFlightRef.current = false;
+    }
+  }
+
+  async function handleAccept() {
+    await runEmployerAction({
+      intent: 'accept',
+      endpoint: 'accept',
+      body: {},
+    });
   }
 
   async function handleRequestRefresh() {
-    if (!canPersistActions) return;
-    setActionState({ phase: 'loading', intent: 'refresh' });
-    try {
-      const result = await postAction(passport.entityId, 'request-refresh', {
-        staleSources:   freshnessEntries.filter(e => e.stale || e.unchecked).map(e => e.source),
+    await runEmployerAction({
+      intent: 'refresh',
+      endpoint: 'request-refresh',
+      body: {
+        staleSources: freshnessEntries
+          .filter((entry) => entry.stale || entry.unchecked)
+          .map((entry) => entry.source),
         missingDomains: authority.summary.missing,
-      });
-      setActionState({ phase: 'done', intent: 'refresh', auditEventId: result.auditEventId, timestamp: result.timestamp });
-    } catch (err) {
-      setActionState({ phase: 'error', intent: 'refresh', message: (err as Error).message });
-    }
+      },
+    });
   }
 
   async function handleRouteToReview() {
-    if (!canPersistActions) return;
-    setActionState({ phase: 'loading', intent: 'review' });
-    try {
-      const result = await postAction(passport.entityId, 'route-to-review', {
+    await runEmployerAction({
+      intent: 'review',
+      endpoint: 'route-to-review',
+      body: {
         reason: blocked.length > 0
           ? `Employer routed to review. Blockers: ${blocked.slice(0, 3).join(', ')}`
           : 'Employer routed for manual review.',
         priority: blocked.length > 0 ? 'HIGH' : 'NORMAL',
-      });
-      setActionState({ phase: 'done', intent: 'review', auditEventId: result.auditEventId, timestamp: result.timestamp });
-    } catch (err) {
-      setActionState({ phase: 'error', intent: 'review', message: (err as Error).message });
-    }
+      },
+    });
   }
 
   async function handleDownloadPacket() {
-    if (!canPersistActions) return;
-    setActionState({ phase: 'downloading' });
+    if (!canPersistActions || actionInFlightRef.current) return;
+    if (mountedRef.current) {
+      setActionState({ phase: 'downloading' });
+    }
     try {
       const res = await fetch(`${API}/api/employer-review/${passport.entityId}/packet`);
       if (!res.ok) throw new Error(`Export failed (${res.status})`);
@@ -1047,7 +572,9 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch { /* download failure is non-fatal */ }
-    setActionState({ phase: 'idle' });
+    if (mountedRef.current) {
+      setActionState({ phase: 'idle' });
+    }
   }
 
   return (
@@ -1296,7 +823,10 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
                 {actionState.phase === 'downloading' ? 'Exporting…' : 'Export packet'}
               </button>
             </div>
-            <Accordion items={proofItems} />
+            <Accordion
+              items={proofItems}
+              telemetryComponentId="employer_review_proof"
+            />
           </div>
         )}
 
@@ -1326,9 +856,27 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
               </p>
             </div>
           </div>
-          <p className="mt-4 text-xs leading-relaxed text-white/36">
-            {previewOnlyMessage ?? 'Employer actions below are real. VitalCV waits for the backend audit event before it renders success.'}
-          </p>
+          {persistedActionState ? (
+            <div className="mt-4 border-t border-white/8 pt-4">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">
+                {formatEmployerReviewPersistedLabel(persistedActionState)}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-white/36">
+                {formatEmployerReviewPersistedDetail(persistedActionState)}
+              </p>
+            </div>
+          ) : previewOnlyMessage ? (
+            <div className="mt-4 border-t border-white/8 pt-4">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Preview only</p>
+              <p className="mt-1 text-xs leading-relaxed text-white/48">
+                {previewOnlyMessage}
+              </p>
+            </div>
+          ) : (
+            <p className="mt-4 text-xs leading-relaxed text-white/36">
+              Employer actions below are real. VitalCV waits for the backend audit event before it renders success.
+            </p>
+          )}
         </div>
 
         {/* ── M2: Action panel — all actions write audit events ────────────── */}
@@ -1363,7 +911,7 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
 
             {!canPersistActions && (
               <div className="flex flex-wrap items-center gap-3 pt-1">
-                {CLERK_PROVIDER_ENABLED && !isSignedIn ? (
+                {CLERK_PROVIDER_ENABLED && isLoaded && !isSignedIn ? (
                   <Link
                     href={CLERK_SIGN_IN_URL}
                     className="text-xs text-white/38 transition-colors hover:text-white/58"
@@ -1386,11 +934,9 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
           /* Loading state */
           <div className="rounded-xl border border-white/10 bg-white/4 px-5 py-5 text-center">
             <p className="text-white/40 text-sm animate-pulse motion-reduce:animate-none">
-              {actionState.intent === 'accept'  ? 'Recording acceptance…'
-               : actionState.intent === 'refresh' ? 'Sending refresh request…'
-               :                                    'Routing to review queue…'}
+              {employerReviewLoadingLabel(actionState.intent)}
             </p>
-            <p className="text-white/20 text-xs mt-1">Writing audit event…</p>
+            <p className="text-white/20 text-xs mt-1">Writing the persisted audit record...</p>
           </div>
 
         ) : actionState.phase === 'done' ? (
@@ -1398,24 +944,14 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
           <div className="rounded-xl border border-white/12 bg-white/4 px-5 py-4 space-y-2">
             <div className="flex items-center gap-2">
               <span className="text-[var(--vt-success)] text-sm">✔</span>
-              <p className="text-white/75 text-sm font-medium">
-                {actionState.intent === 'accept'  ? 'Head start accepted'
-                 : actionState.intent === 'refresh' ? 'Refresh requested'
-                 :                                    'Routed to review'}
-              </p>
+              <p className="text-white/75 text-sm font-medium">{actionState.state.summary.title}</p>
             </div>
-            <p className="text-white/35 text-xs">
-              {actionState.intent === 'accept'
-                ? `${identity.displayName ?? 'Provider'} — acceptance recorded`
-                : actionState.intent === 'refresh'
-                  ? 'Provider will be notified of missing or stale data'
-                  : 'Added to the manual review queue'}
-            </p>
+            <p className="text-white/35 text-xs">{actionState.state.summary.description}</p>
             {/* Audit event ID — verifiable, not just a UI label */}
             <div className="rounded-lg border border-white/8 bg-white/3 px-3 py-2 mt-1">
               <p className="text-white/20 text-[10px] uppercase tracking-widest mb-0.5">Audit event</p>
-              <p className="text-white/45 text-[10px] font-mono break-all">{actionState.auditEventId}</p>
-              <p className="text-white/20 text-[10px] mt-0.5">{new Date(actionState.timestamp).toLocaleString()}</p>
+              <p className="text-white/45 text-[10px] font-mono break-all">{actionState.state.auditEventId}</p>
+              <p className="text-white/20 text-[10px] mt-0.5">{new Date(actionState.state.timestamp).toLocaleString()}</p>
             </div>
             <button
               onClick={() => setActionState({ phase: 'idle' })}

@@ -55,7 +55,7 @@ export async function GET(
 ) {
   const { entityId, action } = await context.params;
 
-  if (action !== 'packet') {
+  if (action !== 'packet' && action !== 'status') {
     return NextResponse.json({ error: 'Unsupported employer-review action.' }, { status: 404 });
   }
 
@@ -64,7 +64,7 @@ export async function GET(
     return unauthorizedResponse();
   }
 
-  const response = await fetch(`${BACKEND}/api/employer-review/${encodeURIComponent(entityId)}/packet`, {
+  const response = await fetch(`${BACKEND}/api/employer-review/${encodeURIComponent(entityId)}/${action}`, {
     headers: {
       Accept: req.headers.get('accept') ?? 'application/json',
       'x-clerk-user-id': userId,
