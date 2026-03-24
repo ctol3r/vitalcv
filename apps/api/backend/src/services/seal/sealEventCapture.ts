@@ -24,6 +24,7 @@
 import { randomUUID } from 'node:crypto';
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
+import { mergeScope, type PilotScope } from './pilotScope';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -68,6 +69,8 @@ export interface CaptureAdvisoryEventInput {
   advisoryInputSnapshotRef?:  string | null;
   advisoryOutputSnapshotRef?: string | null;
   metadata?:             Record<string, unknown>;
+  /** Pilot scoping — stored in metadata.pilotId / .workflowLane / .geographyTag */
+  scope?:                PilotScope | null;
 }
 
 export async function captureAdvisoryEvent(input: CaptureAdvisoryEventInput): Promise<void> {
@@ -85,7 +88,7 @@ export async function captureAdvisoryEvent(input: CaptureAdvisoryEventInput): Pr
         blockersAtEvent:           JSON.parse(JSON.stringify(input.blockersAtEvent)),
         readinessScoreAtEvent:     input.readinessScoreAtEvent ?? null,
         sourceCoverageAtEvent:     JSON.parse(JSON.stringify(input.sourceCoverageAtEvent)),
-        metadata:                  JSON.parse(JSON.stringify(input.metadata ?? {})),
+        metadata:                  JSON.parse(JSON.stringify(mergeScope(input.metadata ?? {}, input.scope))),
       },
     });
     log('debug', 'seal_advisory_event_captured', { eventType: input.eventType, entityId: input.entityId.slice(0, 8) + '…' });
@@ -188,6 +191,7 @@ export async function resolveBlockerEvent(input: ResolveBlockerInput): Promise<v
 export async function syncBlockerEvents(
   entityId:     string,
   blockerCodes: string[],
+  scope?:       PilotScope | null,
 ): Promise<{ opened: number; resolved: number; noOp: number }> {
   const result = { opened: 0, resolved: 0, noOp: 0 };
 
@@ -211,7 +215,7 @@ export async function syncBlockerEvents(
           blockerCode,
           openedAt:    new Date(),
           status:      'OPEN',
-          metadata:    JSON.parse(JSON.stringify({ source: 'readiness_recompute' })),
+          metadata:    JSON.parse(JSON.stringify(mergeScope({ source: 'readiness_recompute' }, scope))),
         })),
         skipDuplicates: true, // extra guard against race conditions
       });
@@ -268,6 +272,7 @@ export interface CaptureEmployerDecisionInput {
   blockersAtDecision:      string[];
   readinessScoreAtDecision?: number | null;
   metadata?:               Record<string, unknown>;
+  scope?:                  PilotScope | null;
 }
 
 export async function captureEmployerDecision(input: CaptureEmployerDecisionInput): Promise<void> {
@@ -284,7 +289,7 @@ export async function captureEmployerDecision(input: CaptureEmployerDecisionInpu
         trustSnapshotAtDecision:  JSON.parse(JSON.stringify(input.trustSnapshotAtDecision)),
         blockersAtDecision:       JSON.parse(JSON.stringify(input.blockersAtDecision)),
         readinessScoreAtDecision: input.readinessScoreAtDecision ?? null,
-        metadata:                 JSON.parse(JSON.stringify(input.metadata ?? {})),
+        metadata:                 JSON.parse(JSON.stringify(mergeScope(input.metadata ?? {}, input.scope))),
       },
     });
     log('debug', 'seal_employer_decision_captured', { decision: input.decision, entityId: input.entityId.slice(0, 8) + '…' });
@@ -306,6 +311,7 @@ export interface CaptureStartOutcomeInput {
   blockersAtStart:       string[];
   sourceCoverageAtStart: SourceCoverageSnapshot | Record<string, unknown>;
   metadata?:             Record<string, unknown>;
+  scope?:                PilotScope | null;
 }
 
 export async function captureStartOutcome(input: CaptureStartOutcomeInput): Promise<void> {
@@ -351,7 +357,7 @@ export async function captureStartOutcome(input: CaptureStartOutcomeInput): Prom
         readinessScoreAtStart: input.readinessScoreAtStart ?? null,
         blockersAtStart:       JSON.parse(JSON.stringify(input.blockersAtStart)),
         sourceCoverageAtStart: JSON.parse(JSON.stringify(input.sourceCoverageAtStart)),
-        metadata:              JSON.parse(JSON.stringify(input.metadata ?? {})),
+        metadata:              JSON.parse(JSON.stringify(mergeScope(input.metadata ?? {}, input.scope))),
       },
     });
     log('info', 'seal_start_outcome_captured', { entityId: input.entityId.slice(0, 8) + '…', startedAt: input.startedAt.toISOString() });

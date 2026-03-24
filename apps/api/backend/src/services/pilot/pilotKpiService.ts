@@ -29,6 +29,56 @@ import type { Prisma } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
 
+// ── Pilot Filter ─────────────────────────────────────────────────────────
+
+/**
+ * PilotFilter — restricts KPI queries to a specific pilot / org / lane.
+ *
+ * All fields are optional. When all are null the query is unfiltered (global view).
+ * Each non-null field narrows the result set via JSONB metadata path equality.
+ *
+ * Safe fallback: events that predate scoping have no metadata keys → they are
+ * excluded from scoped queries and included in global queries.
+ */
+export interface PilotFilter {
+  /** Filter by pilotId stored in metadata.pilotId */
+  pilotId?:             string | null;
+  /** Filter by workflowLane stored in metadata.workflowLane */
+  workflowLane?:        string | null;
+  /** Filter by organizationContextId FK (UUID, first-class column) */
+  orgContextId?:        string | null;
+  /** Filter by geographyTag stored in metadata.geographyTag */
+  geographyTag?:        string | null;
+}
+
+function normalizePilotFilter(filter: PilotFilter | undefined): PilotFilter {
+  return {
+    pilotId: filter?.pilotId ?? null,
+    workflowLane: filter?.workflowLane ?? null,
+    orgContextId: filter?.orgContextId ?? null,
+    geographyTag: filter?.geographyTag ?? null,
+  };
+}
+
+type MetadataPathEquals = {
+  path: string[];
+  equals: string;
+};
+
+/** Build Prisma JSONB path filters for metadata-stored scope fields */
+function metadataScopeWhere(filter: PilotFilter): MetadataPathEquals[] {
+  const clauses: MetadataPathEquals[] = [];
+  if (filter.pilotId)      clauses.push({ path: ['pilotId'], equals: filter.pilotId });
+  if (filter.workflowLane) clauses.push({ path: ['workflowLane'], equals: filter.workflowLane });
+  if (filter.geographyTag) clauses.push({ path: ['geographyTag'], equals: filter.geographyTag });
+  return clauses;
+}
+
+/** True when filter would restrict results */
+function isFiltered(f: PilotFilter): boolean {
+  return !!(f.pilotId || f.workflowLane || f.orgContextId || f.geographyTag);
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────
 
 export interface PacketShareStats {
@@ -99,6 +149,10 @@ export interface PilotKpiSnapshot {
   generatedAt:      string;
   windowDays:       number;
   since:            string;
+  /** Active filter — null values mean unfiltered / global */
+  appliedFilter:    PilotFilter;
+  /** True when at least one filter field is active */
+  isFiltered:       boolean;
 
   /** KPI 1 — Packet shares */
   packetShares:     PacketShareStats;
@@ -161,11 +215,23 @@ function readJson(v: Prisma.JsonValue | null | undefined): Record<string, unknow
 // ── Main query ─────────────────────────────────────────────────────────────
 
 export async function computePilotKpis(
-  options: { windowDays?: number } = {},
+  options: { windowDays?: number; filter?: PilotFilter } = {},
 ): Promise<PilotKpiSnapshot> {
   const windowDays = options.windowDays ?? 90;
+  const filter     = normalizePilotFilter(options.filter);
   const since      = new Date(Date.now() - windowDays * 86_400_000);
   const sinceStr   = since.toISOString();
+
+  // Build JSONB scope clauses — applied to every metadata-bearing table
+  const scopeClauses = metadataScopeWhere(filter);
+  const scopeAnd     = scopeClauses.length > 0
+    ? scopeClauses.map((c) => ({ metadata: c }))
+    : [];
+
+  // orgContextId is a first-class FK column — filter directly when provided
+  const orgWhere = filter.orgContextId
+    ? { organizationContextId: filter.orgContextId }
+    : {};
 
   // ── Parallel fetch all event tables ──────────────────────────────────
   const [
@@ -179,9 +245,12 @@ export async function computePilotKpis(
     auditCounts,
   ] = await Promise.all([
 
-    // 1. Packet shares
+    // 1. Packet shares — orgContextId is a first-class FK; scope metadata keys not on this table
     prisma.bundleShareEvent.findMany({
-      where:   { sharedAt: { gte: since } },
+      where: {
+        sharedAt: { gte: since },
+        ...(filter.orgContextId ? { organizationContextId: filter.orgContextId } : {}),
+      },
       select:  {
         id: true, subjectEntityId: true, organizationContextId: true,
         organizationId: true, deliveryStatus: true,
@@ -190,31 +259,44 @@ export async function computePilotKpis(
       orderBy: { sharedAt: 'asc' },
     }),
 
-    // 2. Employer review opens
+    // 2. Employer review opens — filter by orgContextId (FK) + metadata scope
     prisma.advisoryOutcomeEvent.findMany({
-      where:   { eventType: 'EMPLOYER_REVIEW', eventTimestamp: { gte: since } },
+      where: {
+        eventType:      'EMPLOYER_REVIEW',
+        eventTimestamp: { gte: since },
+        ...orgWhere,
+        AND: scopeAnd.length > 0 ? scopeAnd : undefined,
+      },
       select:  {
         id: true, entityId: true, organizationContextId: true,
         eventTimestamp: true, readinessScoreAtEvent: true,
-        blockersAtEvent: true,
+        blockersAtEvent: true, metadata: true,
       },
       orderBy: { eventTimestamp: 'asc' },
     }),
 
-    // 3. Employer decisions
+    // 3. Employer decisions — filter by orgContextId + metadata scope
     prisma.employerDecisionEvent.findMany({
-      where:   { decidedAt: { gte: since } },
+      where: {
+        decidedAt: { gte: since },
+        ...orgWhere,
+        AND: scopeAnd.length > 0 ? scopeAnd : undefined,
+      },
       select:  {
         id: true, entityId: true, organizationContextId: true,
         decision: true, decidedAt: true,
         readinessScoreAtDecision: true, blockersAtDecision: true,
+        metadata: true,
       },
       orderBy: { decidedAt: 'asc' },
     }),
 
-    // 4. Blocker resolution events
+    // 4. Blocker resolution events — orgContextId not on this table; filter by metadata scope
     prisma.blockerResolutionEvent.findMany({
-      where:   { openedAt: { gte: since } },
+      where: {
+        openedAt: { gte: since },
+        AND: scopeAnd.length > 0 ? scopeAnd : undefined,
+      },
       select:  {
         id: true, entityId: true, blockerCode: true,
         openedAt: true, resolvedAt: true, resolutionDays: true,
@@ -222,9 +304,13 @@ export async function computePilotKpis(
       },
     }),
 
-    // 5. Start outcome events (SEAL table — has precomputed deltas)
+    // 5. Start outcome events — filter by orgContextId + metadata scope
     prisma.startOutcomeEvent.findMany({
-      where:   { startedAt: { gte: since } },
+      where: {
+        startedAt: { gte: since },
+        ...orgWhere,
+        AND: scopeAnd.length > 0 ? scopeAnd : undefined,
+      },
       select:  {
         id: true, entityId: true, organizationContextId: true,
         startedAt: true, daysFromFirstReview: true,
@@ -249,13 +335,23 @@ export async function computePilotKpis(
       select:  { id: true, startedAt: true, createdAt: true, acceptanceId: true },
     }),
 
-    // 8. Audit counts for event chain health
+    // 8. Audit counts — scoped to match the main queries
     Promise.all([
-      prisma.bundleShareEvent.count({ where: { sharedAt: { gte: since } } }),
-      prisma.advisoryOutcomeEvent.count({ where: { eventTimestamp: { gte: since } } }),
-      prisma.employerDecisionEvent.count({ where: { decidedAt: { gte: since } } }),
-      prisma.blockerResolutionEvent.count({ where: { openedAt: { gte: since } } }),
-      prisma.startOutcomeEvent.count({ where: { startedAt: { gte: since } } }),
+      prisma.bundleShareEvent.count({
+        where: { sharedAt: { gte: since }, ...(filter.orgContextId ? { organizationContextId: filter.orgContextId } : {}) },
+      }),
+      prisma.advisoryOutcomeEvent.count({
+        where: { eventTimestamp: { gte: since }, ...orgWhere, AND: scopeAnd.length > 0 ? scopeAnd : undefined },
+      }),
+      prisma.employerDecisionEvent.count({
+        where: { decidedAt: { gte: since }, ...orgWhere, AND: scopeAnd.length > 0 ? scopeAnd : undefined },
+      }),
+      prisma.blockerResolutionEvent.count({
+        where: { openedAt: { gte: since }, AND: scopeAnd.length > 0 ? scopeAnd : undefined },
+      }),
+      prisma.startOutcomeEvent.count({
+        where: { startedAt: { gte: since }, ...orgWhere, AND: scopeAnd.length > 0 ? scopeAnd : undefined },
+      }),
       prisma.employerAcceptance.count({ where: { acceptedAt: { gte: since } } }),
       prisma.startAttestation.count({ where: { startedAt: { gte: since } } }),
     ]),
@@ -489,17 +585,22 @@ export async function computePilotKpis(
 
   log('info', 'pilot_kpi_computed', {
     windowDays,
-    packets: packetShares.total,
-    reviews: reviewsOpened.total,
-    decisions: decisions.total,
-    starts:  starts.length,
-    gaps:    gaps.length,
+    pilotId:      filter.pilotId      ?? null,
+    workflowLane: filter.workflowLane ?? null,
+    orgContextId: filter.orgContextId ?? null,
+    packets:      packetShares.total,
+    reviews:      reviewsOpened.total,
+    decisions:    decisions.total,
+    starts:       starts.length,
+    gaps:         gaps.length,
   });
 
   return {
-    generatedAt:  new Date().toISOString(),
+    generatedAt:   new Date().toISOString(),
     windowDays,
-    since:        sinceStr,
+    since:         sinceStr,
+    appliedFilter: filter,
+    isFiltered:    isFiltered(filter),
     packetShares,
     reviewsOpened,
     decisions,
@@ -523,11 +624,16 @@ export async function computePilotKpis(
 // Returns a flat CSV suitable for pasting into a pilot report spreadsheet.
 
 export function kpiSnapshotToCsv(snap: PilotKpiSnapshot): string {
+  const f = snap.appliedFilter ?? {};
   const rows: string[][] = [
     ['VitalCV Pilot KPI Report'],
     ['Generated At', snap.generatedAt],
     ['Window (days)', String(snap.windowDays)],
     ['Since', snap.since],
+    ['Pilot ID', f.pilotId ?? '(all)'],
+    ['Workflow Lane', f.workflowLane ?? '(all)'],
+    ['Org Context', f.orgContextId ?? '(all)'],
+    ['Geography', f.geographyTag ?? '(all)'],
     [],
     ['=== PACKET SHARES ==='],
     ['Total packets shared', String(snap.packetShares.total)],

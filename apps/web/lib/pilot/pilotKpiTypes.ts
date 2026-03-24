@@ -64,10 +64,19 @@ export interface StartOutcomeStats {
   };
 }
 
+export interface PilotFilter {
+  pilotId?: string | null;
+  workflowLane?: string | null;
+  orgContextId?: string | null;
+  geographyTag?: string | null;
+}
+
 export interface PilotKpiSnapshot {
   generatedAt:   string;
   windowDays:    number;
   since:         string;
+  appliedFilter: PilotFilter;
+  isFiltered:    boolean;
   packetShares:  PacketShareStats;
   reviewsOpened: ReviewOpenedStats;
   decisions:     DecisionStats;

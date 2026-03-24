@@ -199,6 +199,13 @@ describe('kpiSnapshotToCsv — blocker section', () => {
     generatedAt:  '2026-03-23T21:00:00Z',
     windowDays:   90,
     since:        '2026-01-01T00:00:00Z',
+    appliedFilter: {
+      pilotId: null,
+      workflowLane: null,
+      orgContextId: null,
+      geographyTag: null,
+    },
+    isFiltered: false,
     packetShares: {
       total: 5, distinctEntities: 3, distinctOrgs: 2,
       byDeliveryStatus: { DELIVERED: 4, FAILED: 1 },
@@ -253,6 +260,7 @@ describe('kpiSnapshotToCsv — blocker section', () => {
 
   it('includes blocker section in CSV output', () => {
     const csv = kpiSnapshotToCsv(snapshot);
+    expect(csv).toContain('Pilot ID,(all)');
     expect(csv).toContain('=== BLOCKERS ===');
     expect(csv).toContain('LICENSE_EXPIRED');
     expect(csv).toContain('ENROLLMENT_NOT_FOUND');
@@ -290,9 +298,17 @@ describe('kpiSnapshotToCsv — blocker section', () => {
   it('outputs gap messages when gaps are present', () => {
     const withGaps: PilotKpiSnapshot = {
       ...snapshot,
+      appliedFilter: {
+        pilotId: 'acme-q1',
+        workflowLane: 'locum-rn',
+        orgContextId: 'org-ctx-1',
+        geographyTag: 'CA',
+      },
+      isFiltered: true,
       gaps: ['Missing: employer review events.'],
     };
     const csv = kpiSnapshotToCsv(withGaps);
+    expect(csv).toContain('Pilot ID,acme-q1');
     expect(csv).toContain('Missing: employer review events.');
   });
 });
