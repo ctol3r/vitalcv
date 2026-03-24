@@ -22,11 +22,17 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Accordion } from '@/components/ui/vcv-accordion';
-import type { AccordionItem } from '@/components/ui/vcv-accordion';
+import type React from 'react';
 import { TrustLabel, type TrustStatus } from '@/components/ui/trust-label';
 import type { PassportData } from '@/app/passport/[id]/page';
 import { EmployerAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
+import {
+  VAccordion,
+  VEvidenceRow,
+  VStatusPill,
+  type BadgeTone,
+  type TrustStatusLabel,
+} from '@/components/vds/primitives';
 
 function formatProofDate(value?: string | null): string | null {
   if (!value) return null;
@@ -60,54 +66,142 @@ function formatAsOfQuarter(
   return quarter ? `as of ${quarter}` : null;
 }
 
-function exclusionSectionStatus(status: PassportData['standing']['exclusionStatus']): AccordionItem['status'] {
+function exclusionSectionStatus(status: PassportData['standing']['exclusionStatus']): TrustStatusLabel {
   if (status === 'CLEAR') return 'clear';
-  if (status === 'UNCHECKED' || status === 'UNKNOWN') return 'pending';
-  return 'action';
+  if (status === 'POSSIBLE_MATCH') return 'review required';
+  if (status === 'EXCLUDED') return 'blocked';
+  return 'unavailable';
 }
 
 // ── Proof accordion builder ────────────────────────────────────────────────────
 
-function buildProofSections(passport: PassportData): AccordionItem[] {
-  const items: AccordionItem[] = [];
+interface ProofSection {
+  id: string;
+  title: string;
+  status: TrustStatusLabel;
+  content: React.ReactNode;
+}
+
+const PROOF_STATUS_PRIORITY: TrustStatusLabel[] = [
+  'blocked',
+  'review required',
+  'access required',
+  'unavailable',
+  'pending',
+  'not decision-grade',
+  'verified',
+  'clear',
+  'enrolled',
+];
+
+function proofSectionTone(status: TrustStatusLabel): BadgeTone {
+  switch (status) {
+    case 'verified':
+    case 'clear':
+    case 'enrolled':
+      return 'success';
+    case 'pending':
+      return 'info';
+    case 'review required':
+    case 'blocked':
+      return 'warning';
+    case 'unavailable':
+    case 'access required':
+    case 'not decision-grade':
+    default:
+      return 'neutral';
+  }
+}
+
+function prioritizeProofStatus(statuses: TrustStatusLabel[]): TrustStatusLabel {
+  return PROOF_STATUS_PRIORITY.find((status) => statuses.includes(status)) ?? 'pending';
+}
+
+function credentialEvidenceStatus(credential: PassportData['authority']['credentials'][0]): TrustStatusLabel {
+  const code = credential.authorityClaimCode;
+
+  if (code === 'BOARD_ORDER_PRESENT' || code === 'RN_LICENSE_DISCIPLINED' || credential.reviewRequired) {
+    return 'review required';
+  }
+
+  if (
+    code === 'AUTHORITY_UNAVAILABLE'
+    || credential.connectorState === 'unavailable'
+    || credential.connectorState === 'unresolved'
+  ) {
+    return credential.participationStatus === 'institution_access_unavailable'
+      ? 'access required'
+      : 'unavailable';
+  }
+
+  if (code === 'RN_LICENSE_EXPIRED' || credential.status === 'EXPIRED') {
+    return 'blocked';
+  }
+
+  if (
+    code === 'PHYSICIAN_LICENSE_ACTIVE'
+    || code === 'RN_LICENSE_ACTIVE'
+    || code === 'BOARD_CERTIFIED'
+    || credential.status === 'ACTIVE'
+  ) {
+    return 'verified';
+  }
+
+  return 'pending';
+}
+
+function credentialEvidenceLabel(credential: PassportData['authority']['credentials'][0]): string {
+  const state = credential.jurisdiction ? ` (${credential.jurisdiction})` : '';
+
+  switch (credential.authorityClaimCode) {
+    case 'BOARD_ORDER_PRESENT':
+      return `Board order${state}`;
+    case 'RN_LICENSE_DISCIPLINED':
+      return `License disciplinary action${state}`;
+    case 'RN_LICENSE_EXPIRED':
+      return `License${state}`;
+    case 'PHYSICIAN_LICENSE_ACTIVE':
+    case 'RN_LICENSE_ACTIVE':
+      return `License${state}`;
+    case 'BOARD_CERTIFIED':
+      return 'Board certification';
+    case 'AUTHORITY_UNAVAILABLE':
+      return credential.participationStatus === 'institution_access_unavailable'
+        ? `License verification${state}`
+        : `License source${state}`;
+    default:
+      if (credential.domain === 'BOARD_CERTIFICATION') return 'Board certification';
+      if (credential.domain === 'LICENSURE') return `License${state}`;
+      return credential.domain.replace(/_/g, ' ').toLowerCase();
+  }
+}
+
+function buildProofSections(passport: PassportData): ProofSection[] {
+  const items: ProofSection[] = [];
 
   // Credentials
   if (passport.authority.credentials.length > 0) {
+    const credentialStatuses = passport.authority.credentials.map(credentialEvidenceStatus);
     items.push({
-      id:      'credentials',
-      trigger: `Credentials (${passport.authority.credentials.length})`,
-      status:  passport.authority.summary.active > 0 ? 'verified' : 'action',
+      id: 'credentials',
+      title: `Credentials (${passport.authority.credentials.length})`,
+      status: prioritizeProofStatus(credentialStatuses),
       content: (
-        <div className="py-1 space-y-1">
+        <div>
           {passport.authority.credentials.map(c => (
-            <div key={c.id} className="py-2 border-b border-white/5 last:border-0">
-              <div className="flex justify-between text-xs">
-                <span className="text-white/65 capitalize">{c.domain.replace(/_/g, ' ').toLowerCase()}</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full border ${
-                  c.status === 'ACTIVE' ? 'border-white/10 text-white/45 bg-white/4' : 'border-white/6 text-white/25 bg-white/3'
-                }`}>{c.status}</span>
-              </div>
-              <div className="flex justify-between text-xs mt-1">
-                <span className="text-white/30">
-                  Source: {c.issuerName ?? c.sourceId ?? c.verificationLevel}
-                </span>
-                {(c.observedAt ?? c.verifiedAt) && (
-                  <span className="text-white/25">
-                    Checked: {formatProofDate(c.observedAt ?? c.verifiedAt)}
-                  </span>
-                )}
-              </div>
-              {(c.claimConfidenceLabel || c.dataFreshnessLabel || c.jurisdiction) && (
-                <div className="text-white/25 text-xs mt-0.5">
-                  {[c.claimConfidenceLabel, c.dataFreshnessLabel, c.jurisdiction].filter(Boolean).join(' · ')}
-                </div>
-              )}
-              {(c.claimState || c.sourceDisclaimer) && (
-                <div className="text-white/20 text-xs mt-0.5">
-                  {[c.claimState, c.sourceDisclaimer].filter(Boolean).join(' · ')}
-                </div>
-              )}
-            </div>
+            <VEvidenceRow
+              key={c.id}
+              label={credentialEvidenceLabel(c)}
+              status={credentialEvidenceStatus(c)}
+              source={c.issuerName ?? c.sourceId ?? c.verificationLevel}
+              note={joinNoteParts([
+                formatAsOfDate(c.observedAt ?? c.verifiedAt),
+                c.dataFreshnessLabel,
+                c.claimConfidenceLabel,
+                c.claimState,
+                c.sourceDisclaimer,
+              ])}
+            />
           ))}
         </div>
       ),
@@ -116,31 +210,27 @@ function buildProofSections(passport: PassportData): AccordionItem[] {
 
   // Sanctions
   items.push({
-    id:      'sanctions',
-    trigger: 'Sanctions check',
-    status:  exclusionSectionStatus(passport.standing.exclusionStatus),
+    id: 'sanctions',
+    title: 'Sanctions check',
+    status: exclusionSectionStatus(passport.standing.exclusionStatus),
     content: (
-      <div className="py-1">
-        <div className="flex justify-between text-xs py-1.5 border-b border-white/5">
-          <span className="text-white/35">Source</span>
-          <span className="text-white/55">OIG / LEIE</span>
-        </div>
-        <div className="flex justify-between text-xs py-1.5 border-b border-white/5">
-          <span className="text-white/35">Status</span>
-          <span className="text-white/55">{passport.standing.exclusionStatus}</span>
-        </div>
-        <div className="flex justify-between text-xs py-1.5">
-          <span className="text-white/35">Checked</span>
-          <span className="text-white/55">
-            {formatProofDate(passport.standing.exclusionCheckedAt ?? passport.lastCheckedAt) ?? 'Unknown'}
-          </span>
-        </div>
-        {passport.standing.exclusionConfidenceLabel && (
-          <div className="flex justify-between text-xs py-1.5">
-            <span className="text-white/35">Confidence</span>
-            <span className="text-white/55">{passport.standing.exclusionConfidenceLabel}</span>
-          </div>
-        )}
+      <div>
+        <VEvidenceRow
+          label="OIG / LEIE exclusion check"
+          status={exclusionSectionStatus(passport.standing.exclusionStatus)}
+          source="OIG / LEIE"
+          note={joinNoteParts([
+            formatAsOfDate(passport.standing.exclusionCheckedAt ?? passport.lastCheckedAt),
+            passport.standing.exclusionConfidenceLabel,
+            passport.standing.exclusionStatus === 'POSSIBLE_MATCH'
+              ? 'Potential match requires adjudication.'
+              : passport.standing.exclusionStatus === 'EXCLUDED'
+                ? 'Active exclusion record attached.'
+                : passport.standing.exclusionStatus === 'CLEAR'
+                  ? 'No exclusion entry found.'
+                  : 'Current source result is unavailable.',
+          ])}
+        />
       </div>
     ),
   });
@@ -148,21 +238,29 @@ function buildProofSections(passport: PassportData): AccordionItem[] {
   // Training
   if (passport.training.records.length > 0) {
     items.push({
-      id:      'training',
-      trigger: 'Training confirmed by issuing institution',
-      status:  passport.training.degreeVerified ? 'verified' : 'pending',
+      id: 'training',
+      title: 'Training confirmed by issuing institution',
+      status: passport.training.degreeVerified ? 'verified' : 'pending',
       content: (
-        <div className="py-1 space-y-1">
+        <div>
           {passport.training.records.slice(0, 4).map(r => (
-            <div key={r.id} className="py-1.5 border-b border-white/5 last:border-0">
-              <div className="flex justify-between text-xs">
-                <span className="text-white/60">{r.degreeOrTitle ?? r.recordType.replace(/_/g, ' ').toLowerCase()}</span>
-                <span className="text-white/30">{r.endYear ?? '—'}</span>
-              </div>
-              {r.institutionName && (
-                <div className="text-white/25 text-xs mt-0.5">{r.institutionName}</div>
-              )}
-            </div>
+            <VEvidenceRow
+              key={r.id}
+              label={r.degreeOrTitle ?? r.recordType.replace(/_/g, ' ').toLowerCase()}
+              status={
+                passport.training.degreeVerified
+                  ? 'verified'
+                  : r.completed
+                    ? 'pending'
+                    : 'not decision-grade'
+              }
+              source={r.institutionName ?? 'Issuing institution'}
+              note={joinNoteParts([
+                r.specialty,
+                r.endYear ? `Completed ${r.endYear}` : null,
+                r.verificationLevel,
+              ])}
+            />
           ))}
         </div>
       ),
@@ -206,37 +304,37 @@ function buildSafetyRow(standing: PassportData['standing']): {
     case 'CLEAR':
       return {
         status: 'confirmed',
-        label: 'Not excluded',
-        note: joinNoteParts([checkedNote, confidence]),
+        label: 'Exclusion check',
+        note: joinNoteParts(['Clear', checkedNote, confidence]),
         explanation: 'No exclusion entry was found in the current OIG LEIE check.',
       };
     case 'POSSIBLE_MATCH':
       return {
         status: 'review',
-        label: 'Possible exclusion match — review required',
-        note: joinNoteParts([checkedNote, confidence, 'requires verification']),
+        label: 'Exclusion check',
+        note: joinNoteParts(['Review required', checkedNote, confidence, 'requires verification']),
         explanation: 'A potential OIG match needs manual adjudication before the employer can rely on this safety layer.',
       };
     case 'EXCLUDED':
       return {
         status: 'blocked',
-        label: 'Excluded — do not proceed',
-        note: joinNoteParts([checkedNote, confidence, 'requires verification']),
+        label: 'Exclusion check',
+        note: joinNoteParts(['Blocked', checkedNote, confidence, 'requires verification']),
         explanation: 'An exclusion record is attached to this provider. Employment should not proceed until it is resolved.',
       };
     case 'UNKNOWN':
       return {
         status: 'review',
-        label: 'Safety status unavailable — review required',
-        note: joinNoteParts([confidence, 'requires verification']),
+        label: 'Exclusion check',
+        note: joinNoteParts(['Unavailable', confidence, 'requires verification']),
         explanation: 'The exclusion result could not be resolved from the current OIG check.',
       };
     case 'UNCHECKED':
     default:
       return {
         status: 'unchecked',
-        label: 'Not yet checked',
-        note: 'requires verification',
+        label: 'Exclusion check',
+        note: 'Unavailable · requires verification',
         explanation: 'No current OIG exclusion check is attached to this review.',
       };
   }
@@ -284,6 +382,17 @@ function buildAuthorityRow(credential: PassportData['authority']['credentials'][
 
   // MS16-E: note carries dataFreshness + confidenceLabel (row contract)
   const note = joinNoteParts([
+    isUnavailable
+      ? credential.participationStatus === 'institution_access_unavailable'
+        ? 'Access required'
+        : 'Unavailable'
+      : isExpired
+        ? 'Blocked'
+        : isBoardOrder || isDisciplined
+          ? 'Review required'
+          : isActive
+            ? 'Verified'
+            : 'Pending',
     formatAsOfDate(credential.observedAt ?? credential.verifiedAt),
     credential.dataFreshnessLabel ?? null,
     credential.claimConfidenceLabel ?? null,
@@ -313,17 +422,17 @@ function buildEligibilityRow(standing: PassportData['standing'], status: 'ENROLL
     case 'ENROLLED':
       return {
         status: 'confirmed',
-        label: quarterNote ? `Medicare enrolled — as of ${quarterNote}` : 'Medicare enrolled',
+        label: 'Medicare enrollment',
         // MS16-A explicit label: "Medicare enrolled — as of Q4 2025"
-        note: joinNoteParts([freshness, confidence, quarterNote]),
+        note: joinNoteParts(['Enrolled', freshness, confidence, quarterNote]),
         explanation: standing.enrollmentNote ?? 'CMS PECOS confirms an enrolled provider record in the current quarterly release.',
       };
     case 'NOT_FOUND':
       return {
         status: 'review',
-        label: 'Not found in CMS enrollment data — review required',
+        label: 'Medicare enrollment',
         // MS16-A explicit label: "Not found in CMS enrollment data — may indicate not enrolled or data lag"
-        note: joinNoteParts([freshness, confidence, quarterNote, 'estimated quarterly publication lag possible', 'requires verification']),
+        note: joinNoteParts(['Review required', freshness, confidence, quarterNote, 'estimated quarterly publication lag possible', 'requires verification']),
         explanation:
           standing.enrollmentNote
           ?? 'Not finding a record may indicate non-enrollment or a quarterly CMS publication lag. Verify at pecos.cms.hhs.gov before relying on this layer.',
@@ -331,8 +440,8 @@ function buildEligibilityRow(standing: PassportData['standing'], status: 'ENROLL
     case 'UNKNOWN':
       return {
         status: 'review',
-        label: 'Enrollment status unconfirmed — review required',
-        note: joinNoteParts([freshness, confidence, quarterNote, 'requires verification']),
+        label: 'Medicare enrollment',
+        note: joinNoteParts(['Unavailable', freshness, confidence, quarterNote, 'requires verification']),
         explanation:
           standing.enrollmentNote
           ?? 'The CMS PECOS result could not be resolved from the current quarterly release. Manual verification required.',
@@ -341,8 +450,8 @@ function buildEligibilityRow(standing: PassportData['standing'], status: 'ENROLL
     default:
       return {
         status: 'unchecked',
-        label: 'Enrollment not checked',
-        note: joinNoteParts([freshness ?? 'Quarterly', 'Source: CMS PECOS', 'requires verification']),
+        label: 'Medicare enrollment',
+        note: joinNoteParts(['Unavailable', freshness ?? 'Quarterly', 'Source: CMS PECOS', 'requires verification']),
         explanation: 'No CMS PECOS lookup has been performed yet. Enrollment eligibility is unknown.',
       };
   }
@@ -378,23 +487,23 @@ function FreshnessPanel({ entries }: { entries: FreshnessEntry[] }) {
   if (!hasWarning) return null;
 
   return (
-    <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 space-y-1.5">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/70 mb-2">
+    <div className="rounded-xl border border-[var(--vt-badge-warning-border)] bg-[var(--vt-surface-2)] px-4 py-3 space-y-1.5">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--vt-badge-warning-text)]">
         Source freshness
       </p>
       {entries.map(e => (
         <div key={e.layer} className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-1.5">
-            <span className="text-white/25 text-[10px] w-2 shrink-0">
+            <span className="w-2 shrink-0 text-[10px] text-[var(--vt-text-3)]">
               {e.stale ? '⚠' : e.unchecked ? '○' : '✔'}
             </span>
-            <span className={`text-xs ${e.stale || e.unchecked ? 'text-white/55' : 'text-white/35'}`}>
+            <span className={`text-xs ${e.stale || e.unchecked ? 'text-[var(--vt-text-1)]' : 'text-[var(--vt-text-2)]'}`}>
               {e.layer}
             </span>
           </div>
-          <span className="text-[10px] text-white/30 shrink-0 text-right">
+          <span className="shrink-0 text-right text-[10px] text-[var(--vt-text-3)]">
             {e.unchecked
-              ? 'not checked'
+              ? 'Unavailable'
               : e.stale
                 ? `stale — ${e.checkedAt ? new Date(e.checkedAt).toLocaleDateString() : 'date unknown'}`
                 : e.checkedAt
@@ -446,6 +555,10 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
   const [actionState, setActionState] = useState<ActionState>({ phase: 'idle' });
 
   const { identity, readiness, standing, authority } = passport;
+  const readinessStatus: TrustStatusLabel =
+    readiness.status === 'READY' ? 'clear' :
+    readiness.status === 'BLOCKED' ? 'blocked' :
+    'review required';
   const pecosEnrollmentStatus: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED' =
     standing.pecosEnrollmentStatus ?? (
       standing.pecosStatus === 'enrolled' ? 'ENROLLED' :
@@ -595,6 +708,9 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
             {identity.specialty && (
               <p className="text-white/50 text-sm mt-0.5">{identity.specialty}</p>
             )}
+            <div className="mt-3">
+              <VStatusPill status={readinessStatus} size="sm" />
+            </div>
           </div>
 
           {/* MS16-F: Employer 6-question flow — strict order */}
@@ -674,9 +790,9 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
                       {!hasAny && (
                         <TrustLabel
                           status="unchecked"
-                          label="Authority not yet verified"
+                          label="Authority"
                           source="FSMB / Nursys"
-                          note="requires verification"
+                          note="Access required · requires verification"
                           explanation="No source-backed authority record is attached yet. Institutional access or manual verification is still required."
                         />
                       )}
@@ -717,7 +833,7 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
               )}
 
               <p className="text-white/50 pt-1">
-                Estimated start: {readiness.estimatedStartDays === null ? 'Cannot estimate while blocked' : readiness.estimatedStartDays === 0 ? 'Ready now' : `~${readiness.estimatedStartDays} days`}
+                Estimated start: {readiness.estimatedStartDays === null ? 'Cannot estimate while blocked' : readiness.estimatedStartDays === 0 ? '0 days' : `~${readiness.estimatedStartDays} days`}
               </p>
 
               {/* Q6: What do I do? — sourced from readiness.nextActions[] */}
@@ -746,7 +862,18 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
         {proofItems.length > 0 && (
           <div>
             <p className="text-white/25 text-xs uppercase tracking-widest mb-3">Proof</p>
-            <Accordion items={proofItems} />
+            <div className="space-y-3">
+              {proofItems.map((item, index) => (
+                <VAccordion
+                  key={item.id}
+                  title={item.title}
+                  defaultOpen={index === 0}
+                  tone={proofSectionTone(item.status)}
+                >
+                  {item.content}
+                </VAccordion>
+              ))}
+            </div>
           </div>
         )}
 
@@ -760,7 +887,7 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
             <button
               onClick={handleAccept}
               disabled={actionState.phase === 'downloading'}
-              className="w-full bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 disabled:opacity-40 text-white rounded-xl h-14 text-sm font-medium transition-all"
+              className="h-14 w-full rounded-xl bg-[var(--vt-success)] text-sm font-medium text-white transition hover:opacity-90 active:opacity-80 disabled:opacity-40"
             >
               Accept as head start
             </button>
@@ -804,7 +931,7 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
         ) : actionState.phase === 'loading' ? (
           /* Loading state */
           <div className="rounded-xl border border-white/10 bg-white/4 px-5 py-5 text-center">
-            <p className="text-white/40 text-sm animate-pulse">
+            <p className="text-white/40 text-sm animate-pulse motion-reduce:animate-none">
               {actionState.intent === 'accept'  ? 'Recording acceptance…'
                : actionState.intent === 'refresh' ? 'Sending refresh request…'
                :                                    'Routing to review queue…'}
@@ -816,7 +943,7 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
           /* Success — show audit event ID for verifiability */
           <div className="rounded-xl border border-white/12 bg-white/4 px-5 py-4 space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-emerald-400 text-sm">✔</span>
+              <span className="text-[var(--vt-success)] text-sm">✔</span>
               <p className="text-white/75 text-sm font-medium">
                 {actionState.intent === 'accept'  ? 'Head start accepted'
                  : actionState.intent === 'refresh' ? 'Refresh requested'
@@ -845,7 +972,7 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
           </div>
 
         ) : /* error */ (
-          <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-5 py-4 space-y-2">
+          <div className="rounded-xl border border-[var(--vt-badge-critical-border)] bg-[var(--vt-surface-2)] px-5 py-4 space-y-2">
             <p className="text-white/60 text-sm font-medium">Action failed</p>
             <p className="text-white/35 text-xs">{actionState.message}</p>
             <button

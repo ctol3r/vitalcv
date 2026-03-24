@@ -13,6 +13,11 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import type { PassportData } from '@/app/passport/[id]/page';
+import {
+  VEvidenceRow,
+  VStatusPill,
+  type TrustStatusLabel,
+} from '@/components/vds/primitives';
 
 // ── Share confirmation ────────────────────────────────────────────────────
 
@@ -21,8 +26,7 @@ function ShareConfirmation({ entityId, sharedAt }: { entityId: string; sharedAt:
 
   return (
     <div
-      className="rounded-xl border border-white/8 bg-white/4 px-5 py-5"
-      style={{ animation: 'fade-in-up 0.25s ease-out both' }}
+      className="rounded-xl border border-white/8 bg-white/4 px-5 py-5 motion-safe:animate-[fade-in-up_0.25s_ease-out_both]"
     >
       <div className="flex justify-center mb-5">
         <div className="h-10 w-10 rounded-full border border-white/10 bg-white/6 flex items-center justify-center">
@@ -46,8 +50,8 @@ function ShareConfirmation({ entityId, sharedAt }: { entityId: string; sharedAt:
           <span className="text-sm text-white/60">24 hours</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Status</span>
-          <span className="text-sm font-semibold text-white/70">Delivered</span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Profile</span>
+          <VStatusPill status="verified" size="sm" />
         </div>
       </div>
 
@@ -58,44 +62,6 @@ function ShareConfirmation({ entityId, sharedAt }: { entityId: string; sharedAt:
         >
           Build my real profile →
         </Link>
-      </div>
-    </div>
-  );
-}
-
-// ── Honest readiness row ──────────────────────────────────────────────────
-
-function ReadinessRow({
-  label,
-  status,
-  note,
-}: {
-  label:   string;
-  status:  'verified' | 'clear' | 'pending' | 'blocked' | 'unavailable' | 'unchecked';
-  note?:   string;
-}) {
-  const icon =
-    status === 'verified' || status === 'clear' ? '✔' :
-    status === 'blocked'                        ? '✖' :
-    status === 'unavailable'                    ? '—' :
-    '○';
-
-  const iconColor =
-    status === 'verified' || status === 'clear' ? 'text-white/55' :
-    status === 'blocked'                        ? 'text-white/25' :
-    'text-white/20';
-
-  const labelColor =
-    status === 'verified' || status === 'clear' ? 'text-white/70' :
-    status === 'blocked'                        ? 'text-white/50' :
-    'text-white/30';
-
-  return (
-    <div className="flex items-start gap-3">
-      <span className={`${iconColor} text-sm leading-none shrink-0 mt-px`} aria-hidden>{icon}</span>
-      <div>
-        <span className={`text-sm ${labelColor}`}>{label}</span>
-        {note && <p className="text-[10px] text-white/25 mt-0.5">{note}</p>}
       </div>
     </div>
   );
@@ -120,7 +86,7 @@ export default function InterviewClient({ entityId, passport }: Props) {
   // ── Passport unavailable — honest state, no synthetic fallback
   if (!passport) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#080e1a' }}>
+      <div className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center justify-center px-4">
         <div className="w-full max-w-sm space-y-4 text-center">
           <p className="text-white/40 text-sm">
             Could not load readiness data for this provider.
@@ -143,26 +109,53 @@ export default function InterviewClient({ entityId, passport }: Props) {
   const { identity, readiness, standing, authority } = passport;
   const displayName = identity.displayName ?? `NPI ${identity.npi}`;
   const specialty   = identity.specialty ?? 'Healthcare Provider';
+  const overallStatus: TrustStatusLabel =
+    readiness.status === 'READY' ? 'clear' :
+    readiness.status === 'BLOCKED' ? 'blocked' :
+    'review required';
 
   // Build honest readiness rows from real data
-  const readinessRows: Array<{ label: string; status: 'verified' | 'clear' | 'pending' | 'blocked' | 'unavailable' | 'unchecked'; note?: string }> = [];
+  const readinessRows: Array<{
+    label: string;
+    status: TrustStatusLabel;
+    source?: string;
+    note?: string;
+  }> = [];
 
   // Identity
   if (identity.npi) {
-    readinessRows.push({ label: 'Identity confirmed (NPPES)', status: 'verified' });
+    readinessRows.push({
+      label: 'Identity',
+      status: 'verified',
+      source: 'NPPES',
+      note: identity.entityType === 'PERSON' ? 'Individual provider record resolved.' : 'Organization record resolved.',
+    });
   }
 
   // Exclusion
   if (standing.exclusionStatus === 'CLEAR') {
-    readinessRows.push({ label: 'No exclusions found (OIG)', status: 'clear' });
+    readinessRows.push({
+      label: 'Exclusion check',
+      status: 'clear',
+      source: 'OIG / LEIE',
+      note: 'No active exclusion entry found.',
+    });
   } else if (standing.exclusionStatus === 'POSSIBLE_MATCH' || standing.exclusionStatus === 'EXCLUDED') {
     readinessRows.push({
-      label: 'Exclusion — review required',
-      status: 'blocked',
-      note: 'OIG possible match on file',
+      label: 'Exclusion check',
+      status: standing.exclusionStatus === 'EXCLUDED' ? 'blocked' : 'review required',
+      source: 'OIG / LEIE',
+      note: standing.exclusionStatus === 'EXCLUDED'
+        ? 'Active exclusion record attached.'
+        : 'Possible match on file.',
     });
   } else if (standing.exclusionStatus === 'UNCHECKED') {
-    readinessRows.push({ label: 'Exclusion not checked', status: 'unchecked' });
+    readinessRows.push({
+      label: 'Exclusion check',
+      status: 'pending',
+      source: 'OIG / LEIE',
+      note: 'Live source check still pending.',
+    });
   }
 
   // Authority — active credentials
@@ -174,7 +167,8 @@ export default function InterviewClient({ entityId, passport }: Props) {
           ? `License active${c.jurisdiction ? ` (${c.jurisdiction})` : ''}`
           : c.domain.toLowerCase().replace(/_/g, ' '),
         status: 'verified',
-        note: c.issuerName ?? undefined,
+        source: c.issuerName ?? c.sourceId ?? 'Authority source',
+        note: c.claimConfidenceLabel ?? undefined,
       });
     });
   } else if (authority.summary.missing.length > 0) {
@@ -182,7 +176,7 @@ export default function InterviewClient({ entityId, passport }: Props) {
       readinessRows.push({
         label: domain.replace(/_/g, ' ').toLowerCase(),
         status: 'blocked',
-        note: 'Not yet verified',
+        note: 'Required source evidence is missing.',
       });
     });
   }
@@ -194,17 +188,27 @@ export default function InterviewClient({ entityId, passport }: Props) {
   );
   if (pecosStatus === 'ENROLLED') {
     readinessRows.push({
-      label: `Medicare enrolled${standing.enrollmentDataVersion ? ` (${standing.enrollmentDataVersion})` : ''}`,
-      status: 'clear',
+      label: 'Medicare enrollment',
+      status: 'enrolled',
+      source: standing.enrollmentSourceLabel ?? 'CMS PECOS',
+      note: standing.enrollmentDataVersion
+        ? `As of ${standing.enrollmentDataVersion}`
+        : standing.enrollmentNote ?? 'Quarterly CMS enrollment record matched.',
     });
   } else if (pecosStatus === 'NOT_FOUND') {
     readinessRows.push({
-      label: 'Medicare enrollment not found',
-      status: 'blocked',
+      label: 'Medicare enrollment',
+      status: 'review required',
+      source: standing.enrollmentSourceLabel ?? 'CMS PECOS',
       note: standing.enrollmentNote ?? 'Not found in CMS PECOS data',
     });
   } else if (pecosStatus === 'UNCHECKED') {
-    readinessRows.push({ label: 'Medicare enrollment not checked', status: 'unchecked' });
+    readinessRows.push({
+      label: 'Medicare enrollment',
+      status: 'pending',
+      source: standing.enrollmentSourceLabel ?? 'CMS PECOS',
+      note: 'Quarterly eligibility pull still pending.',
+    });
   }
 
   // Blockers not yet represented
@@ -220,12 +224,12 @@ export default function InterviewClient({ entityId, passport }: Props) {
     });
 
   const estimatedStart =
-    readiness.estimatedStartDays === null   ? 'Blocked — see issues above' :
-    readiness.estimatedStartDays === 0      ? 'Ready now' :
+    readiness.estimatedStartDays === null   ? 'Blocked' :
+    readiness.estimatedStartDays === 0      ? '0 days' :
     `~${readiness.estimatedStartDays} days`;
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#080e1a' }}>
+    <div className="min-h-screen bg-vt-surface-ops-base flex flex-col">
       <div className="flex-1 flex flex-col items-center px-4 sm:px-6 pt-16 sm:pt-24 pb-16">
         <div className="w-full max-w-sm">
 
@@ -244,16 +248,25 @@ export default function InterviewClient({ entityId, passport }: Props) {
             <div className="px-5 py-4 border-b border-white/6">
               <p className="text-base font-bold text-white">{displayName}</p>
               <p className="text-xs text-white/40 mt-0.5">{specialty}</p>
+              <div className="mt-3">
+                <VStatusPill status={overallStatus} size="sm" />
+              </div>
             </div>
 
             {/* Readiness rows — real data only */}
-            <div className="px-5 py-4 border-b border-white/6 space-y-2.5">
+            <div className="px-5 py-4 border-b border-white/6">
               <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/25 mb-3">
                 Verification status
               </p>
               {readinessRows.length > 0
                 ? readinessRows.map((r, i) => (
-                    <ReadinessRow key={i} label={r.label} status={r.status} note={r.note} />
+                    <VEvidenceRow
+                      key={`${r.label}-${i}`}
+                      label={r.label}
+                      status={r.status}
+                      source={r.source}
+                      note={r.note}
+                    />
                   ))
                 : <p className="text-white/25 text-xs">No verification data available yet.</p>
               }
@@ -284,7 +297,7 @@ export default function InterviewClient({ entityId, passport }: Props) {
               <button
                 type="button"
                 onClick={handleShare}
-                className="w-full rounded-xl bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 px-5 py-3.5 font-semibold text-white text-sm transition-all active:scale-[0.98]"
+                className="w-full rounded-xl bg-[var(--vt-success)] px-5 py-3.5 text-sm font-semibold text-white transition hover:opacity-90 active:scale-[0.98] active:opacity-80"
               >
                 Share with employer
               </button>
