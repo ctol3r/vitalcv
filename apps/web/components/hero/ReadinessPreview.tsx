@@ -19,11 +19,10 @@
 
 import { cn } from '@/lib/utils';
 import { Accordion, type AccordionItem } from '@/components/ui/vcv-accordion';
+import { ProofDetailsList } from '@/components/trust/ProofDetailsList';
+import { getDemoProfile, type DemoProfile } from '@/lib/demo/demoProfiles';
 import {
-  getTrustStatusBadgeClassName,
-  getTrustStatusLabel,
   resolveTrustUiStatus,
-  type TrustUiStatus,
 } from '@/lib/trust/status-language';
 
 // ── Real trust-state shape (matches trustStateEngine output) ─
@@ -56,23 +55,10 @@ export interface ClinicianTrustState {
 
 // ── Demo fallback profiles ────────────────────────────────────
 
-interface DemoProfile {
-  name:           string;
-  specialty:      string;
-  readyFor:       string[];
-  missing:        string[];
-  estimatedStart: string;
-}
-
-const DEMO_PROFILES: Record<string, DemoProfile> = {
-  '1234567890': { name: 'Sarah Chen, MD',      specialty: 'Internal Medicine',  readyFor: ['Outpatient', 'Telehealth', 'Inpatient consult'], missing: ['DEA (CA)'],                       estimatedStart: '7–14 days'  },
-  '9876543210': { name: 'Marcus Williams, DO', specialty: 'Emergency Medicine', readyFor: ['Outpatient', 'Urgent care'],                       missing: ['Board cert renewal', 'DEA (TX)'], estimatedStart: '21–30 days' },
-  '1111111111': { name: 'Priya Nair, MD',      specialty: 'Hospitalist',        readyFor: ['Inpatient', 'Telehealth', 'Outpatient'],            missing: [],                                estimatedStart: 'Ready now'  },
-};
-
-const DEMO_FALLBACK: DemoProfile = {
-  name: 'John Smith, MD', specialty: 'Emergency Medicine',
-  readyFor: ['Outpatient', 'Telehealth'], missing: ['DEA (CA)'], estimatedStart: '14–28 days',
+const DEMO_PROFILE_ALIASES: Record<string, string> = {
+  '1234567890': '1003000126',
+  '9876543210': '1942788324',
+  '1111111111': '1841498016',
 };
 
 type ReadinessTone = 'clear' | 'pending' | 'blocked';
@@ -123,115 +109,348 @@ function resolveLiveReadinessTone(ts: ClinicianTrustState, gaps: string[]): Read
 }
 
 function resolveDemoReadinessTone(demo: DemoProfile): ReadinessTone {
-  return demo.missing.length === 0 ? 'clear' : 'pending';
+  switch (demo.readiness) {
+    case 'READY':
+      return 'clear';
+    case 'BLOCKED':
+      return 'blocked';
+    default:
+      return 'pending';
+  }
 }
 
 // ── Accordion builder — real facts ───────────────────────────
 
-function sourceRow(source: string, status: TrustUiStatus, checkedAt?: string, note?: string) {
-  const when = checkedAt
-    ? new Date(checkedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    : 'Not checked';
+function formatCompactDate(value?: string) {
+  if (!value) return null;
+  return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 
+function formatFullDate(value?: string, fallback = 'Not checked in this run') {
+  if (!value) return fallback;
+  return new Date(value).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function accordionMeta(label: string) {
   return (
-    <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[11px]">
-      <span className="text-white/25 uppercase tracking-wide">Source</span>
-      <span className="text-white/55">{source}</span>
-      <span className="text-white/25 uppercase tracking-wide">Status</span>
-      <span>
-        <span className={cn('inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em]', getTrustStatusBadgeClassName(status))}>
-          {getTrustStatusLabel(status)}
-        </span>
-      </span>
-      <span className="text-white/25 uppercase tracking-wide">Checked</span>
-      <span className="text-white/40">{when}</span>
-      {note && (<><span className="text-white/25 uppercase tracking-wide">Note</span><span className="text-white/40">{note}</span></>)}
-    </div>
+    <span className="inline-flex items-center rounded-full border border-white/8 bg-white/4 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">
+      {label}
+    </span>
   );
 }
 
 function buildRealAccordion(ts: ClinicianTrustState): AccordionItem[] {
-  const checkedAt  = ts.computed_at;
-  const npiStatus  = resolveTrustUiStatus({ state: 'live', kind: 'verification', satisfied: ts.identityVerified });
-  const licStatus  = ts.licensureStatus === 'verified' ? 'verified' : 'access_required';
+  const checkedAt = ts.computed_at;
+  const checkedMeta = checkedAt ? `checked ${formatCompactDate(checkedAt)}` : 'not checked';
+  const npiStatus = resolveTrustUiStatus({ state: 'live', kind: 'verification', satisfied: ts.identityVerified });
+  const licStatus = ts.licensureStatus === 'verified' ? 'verified' : 'access_required';
   const exclStatus = resolveTrustUiStatus({ state: 'live', kind: 'clearance', satisfied: ts.exclusionClear });
 
-  // M3: Source honesty — only list sources that are actually connected in this run.
-  // NPDB, SAM.gov are not integrated (require institutional subscription).
-  // ABMS board cert and DEA are not connected (require institutional access).
-  // Showing them would imply they were checked — that is trust theater.
   return [
     {
-      id: 'identity', trigger: 'Identity', status: npiStatus,
-      content: sourceRow('CMS NPPES · NPI Registry', npiStatus, checkedAt),
-    },
-    {
-      id: 'exclusion', trigger: 'Exclusion (OIG)', status: exclStatus,
-      content: sourceRow('OIG / LEIE', exclStatus, checkedAt,
-        exclStatus !== 'clear'
-          ? 'NPDB and SAM.gov require institutional access — not checked in this run'
-          : undefined,
+      id: 'identity',
+      trigger: 'Identity Verification',
+      triggerRight: accordionMeta(checkedMeta),
+      status: npiStatus,
+      content: (
+        <ProofDetailsList
+          rows={[
+            { id: 'source', label: 'Source', value: 'CMS NPPES · NPI Registry', tone: 'strong' },
+            { id: 'checked', label: 'Last checked', value: formatFullDate(checkedAt) },
+            { id: 'freshness', label: 'Freshness', value: checkedAt ? 'Current run' : 'Not checked yet' },
+            {
+              id: 'trust-note',
+              label: 'Trust note',
+              value: ts.identityVerified
+                ? 'Decision-grade identity evidence is attached from the public NPI registry.'
+                : 'The current run found a registry record, but identity is not yet strong enough to render a positive verification state.',
+            },
+            {
+              id: 'status-note',
+              label: 'Status note',
+              value: ts.identityVerified
+                ? 'Identity can anchor the rest of this readiness snapshot.'
+                : 'Identity must resolve cleanly before stronger trust claims can be relied on.',
+              tone: 'muted',
+            },
+          ]}
+        />
       ),
     },
     {
-      id: 'licensure', trigger: 'Licensure', status: licStatus,
-      content: sourceRow(
-        licStatus === 'verified' ? 'State Board (Nursys / FSMB)' : 'State Board — access required',
-        licStatus, checkedAt,
-        licStatus !== 'verified'
-          ? 'License verification requires institutional source access (Nursys / FSMB). Not yet configured.'
-          : undefined,
+      id: 'licensure',
+      trigger: 'State Licensure / Authority',
+      triggerRight: accordionMeta(licStatus === 'verified' ? checkedMeta : 'access required'),
+      status: licStatus,
+      content: (
+        <ProofDetailsList
+          rows={[
+            {
+              id: 'source',
+              label: 'Source',
+              value: licStatus === 'verified' ? 'State Board (Nursys / FSMB)' : 'State Board access required',
+              tone: 'strong',
+            },
+            { id: 'checked', label: 'Last checked', value: formatFullDate(licStatus === 'verified' ? checkedAt : undefined) },
+            {
+              id: 'freshness',
+              label: 'Freshness',
+              value: licStatus === 'verified' ? 'Current run' : 'Institutional source required',
+            },
+            {
+              id: 'trust-note',
+              label: 'Trust note',
+              value: licStatus === 'verified'
+                ? 'Primary-source authority evidence is attached for this run.'
+                : 'Licensure needs connected institutional source access before it can become decision-grade proof.',
+            },
+            {
+              id: 'status-note',
+              label: 'Status note',
+              value: licStatus === 'verified'
+                ? 'Authority coverage is present in this snapshot.'
+                : 'Do not treat licensure as verified until a real board source has run.',
+              tone: 'muted',
+            },
+          ]}
+        />
       ),
     },
     {
-      id: 'board', trigger: 'Board Certification', status: 'access_required',
-      // M3: ABMS not connected — honest label, not "pending check"
-      content: sourceRow('ABMS — access required', 'access_required', undefined,
-        'Board certification check not available without ABMS institutional access.'),
+      id: 'board',
+      trigger: 'Board Certification',
+      triggerRight: accordionMeta('access required'),
+      status: 'access_required',
+      content: (
+        <ProofDetailsList
+          rows={[
+            { id: 'source', label: 'Source', value: 'ABMS / specialty board access required', tone: 'strong' },
+            { id: 'checked', label: 'Last checked', value: formatFullDate(undefined) },
+            { id: 'freshness', label: 'Freshness', value: 'Not checked on this branch' },
+            {
+              id: 'trust-note',
+              label: 'Trust note',
+              value: 'Board certification coverage depends on institutional ABMS-style access that is not connected here.',
+            },
+            {
+              id: 'status-note',
+              label: 'Status note',
+              value: 'Unsupported board checks must remain clearly non-verified.',
+              tone: 'muted',
+            },
+          ]}
+        />
+      ),
     },
     {
-      id: 'dea', trigger: 'DEA Registration', status: 'access_required',
-      // M3: DEA not connected — honest label
-      content: sourceRow('DEA — access required', 'access_required', undefined,
-        'DEA registration check not available without institutional access.'),
+      id: 'dea',
+      trigger: 'DEA / Controlled Substance',
+      triggerRight: accordionMeta('access required'),
+      status: 'access_required',
+      content: (
+        <ProofDetailsList
+          rows={[
+            { id: 'source', label: 'Source', value: 'DEA access required', tone: 'strong' },
+            { id: 'checked', label: 'Last checked', value: formatFullDate(undefined) },
+            { id: 'freshness', label: 'Freshness', value: 'Not checked on this branch' },
+            {
+              id: 'trust-note',
+              label: 'Trust note',
+              value: 'Controlled-substance authority is only decision-grade when a real DEA source is attached.',
+            },
+            {
+              id: 'status-note',
+              label: 'Status note',
+              value: 'Do not rely on DEA coverage in this preview until source access is configured.',
+              tone: 'muted',
+            },
+          ]}
+        />
+      ),
+    },
+    {
+      id: 'sanctions',
+      trigger: 'Sanctions & Exclusions',
+      triggerRight: accordionMeta(checkedMeta),
+      status: exclStatus,
+      content: (
+        <ProofDetailsList
+          rows={[
+            { id: 'source', label: 'Source', value: 'OIG / LEIE', tone: 'strong' },
+            { id: 'checked', label: 'Last checked', value: formatFullDate(checkedAt) },
+            { id: 'freshness', label: 'Freshness', value: checkedAt ? 'Current run' : 'Not checked yet' },
+            {
+              id: 'trust-note',
+              label: 'Trust note',
+              value: ts.exclusionClear
+                ? 'The current OIG LEIE check returned no exclusion finding.'
+                : 'This run does not attach enough evidence to render a positive exclusion clearance.',
+            },
+            {
+              id: 'status-note',
+              label: 'Status note',
+              value: ts.exclusionClear
+                ? 'NPDB and SAM.gov remain separate institutional checks outside this preview.'
+                : 'Absence of a clear state is not evidence of exclusion, but it does block a stronger trust claim.',
+              tone: 'muted',
+            },
+          ]}
+        />
+      ),
     },
   ];
 }
 
-function buildDemoAccordion(missing: string[]): AccordionItem[] {
-  const deaStatus   = missing.some(m => m.toLowerCase().includes('dea'))   ? 'access_required' : 'access_required';
-  const boardStatus = missing.some(m => m.toLowerCase().includes('board')) ? 'access_required' : 'access_required';
+function buildDemoAccordion(demo: DemoProfile): AccordionItem[] {
+  const previewMeta = accordionMeta('demo preview');
+  const accessRequiredMeta = accordionMeta('access required');
+  const pecosGap = [...demo.blockers, ...demo.missingItems]
+    .some((item) => item.toLowerCase().includes('medicare enrollment'));
+  const exclusionFlag = demo.blockers
+    .some((item) => item.toLowerCase().includes('exclusion'));
 
-  // M3: Demo accordion also uses honest source names.
-  // ABMS, DEA, NPDB, SAM.gov are not integrated — do not show them as checked.
   return [
     {
-      id: 'identity', trigger: 'Identity', status: 'demo',
-      content: sourceRow('CMS NPPES · NPI Registry', 'demo', undefined,
-        'Preview only — live identity checks run after a real lookup.'),
+      id: 'identity',
+      trigger: 'Identity Verification',
+      triggerRight: previewMeta,
+      status: 'demo',
+      content: (
+        <ProofDetailsList
+          rows={[
+            { id: 'source', label: 'Source', value: 'CMS NPPES · NPI Registry', tone: 'strong' },
+            { id: 'checked', label: 'Last checked', value: 'Demo preview only' },
+            { id: 'freshness', label: 'Freshness', value: 'Preview payload' },
+            {
+              id: 'trust-note',
+              label: 'Trust note',
+              value: 'This section shows how identity proof will appear after a real lookup.',
+            },
+            {
+              id: 'status-note',
+              label: 'Status note',
+              value: 'Demo states never stand in for live evidence.',
+              tone: 'muted',
+            },
+          ]}
+        />
+      ),
     },
     {
-      id: 'exclusion', trigger: 'Exclusion (OIG)', status: 'demo',
-      // M3: removed NPDB and SAM.gov — not checked
-      content: sourceRow('OIG / LEIE', 'demo', undefined,
-        'Preview only — NPDB and SAM.gov require separate institutional access'),
+      id: 'licensure',
+      trigger: 'State Licensure / Authority',
+      triggerRight: accessRequiredMeta,
+      status: 'access_required',
+      content: (
+        <ProofDetailsList
+          rows={[
+            { id: 'source', label: 'Source', value: 'Nursys / state board access required', tone: 'strong' },
+            { id: 'checked', label: 'Last checked', value: formatFullDate(undefined) },
+            { id: 'freshness', label: 'Freshness', value: 'No live source attached' },
+            {
+              id: 'trust-note',
+              label: 'Trust note',
+              value: 'Live licensure proof depends on a real Nursys or state-board source run with institutional coverage.',
+            },
+            {
+              id: 'status-note',
+              label: 'Status note',
+              value: 'This preview keeps licensure explicitly gated until a connected source is available.',
+              tone: 'muted',
+            },
+          ]}
+        />
+      ),
     },
     {
-      id: 'licensure', trigger: 'Licensure', status: 'demo',
-      content: sourceRow('State Board (Nursys / FSMB)', 'demo', undefined,
-        'Preview only — live licensure checks depend on source access.'),
+      id: 'fsmb',
+      trigger: 'FSMB Board History',
+      triggerRight: accessRequiredMeta,
+      status: 'access_required',
+      content: (
+        <ProofDetailsList
+          rows={[
+            { id: 'source', label: 'Source', value: 'FSMB access required', tone: 'strong' },
+            { id: 'checked', label: 'Last checked', value: formatFullDate(undefined) },
+            { id: 'freshness', label: 'Freshness', value: 'No live source attached' },
+            {
+              id: 'trust-note',
+              label: 'Trust note',
+              value: 'Board-history coverage depends on institutional FSMB access that is not connected in this preview.',
+            },
+            {
+              id: 'status-note',
+              label: 'Status note',
+              value: 'Example gaps stay explicitly non-verified until a real board-history source is attached.',
+              tone: 'muted',
+            },
+          ]}
+        />
+      ),
     },
     {
-      id: 'board', trigger: 'Board Certification', status: boardStatus,
-      // M3: ABMS not connected — demo shows honest pending state
-      content: sourceRow('ABMS — access required', boardStatus, undefined,
-        'Not checked in demo — requires ABMS institutional access'),
+      id: 'pecos',
+      trigger: 'Medicare Enrollment',
+      triggerRight: accordionMeta(pecosGap ? 'not found in example' : 'demo preview'),
+      status: pecosGap ? 'pending' : 'demo',
+      content: (
+        <ProofDetailsList
+          rows={[
+            { id: 'source', label: 'Source', value: 'CMS PECOS', tone: 'strong' },
+            { id: 'checked', label: 'Last checked', value: 'Preview payload' },
+            { id: 'freshness', label: 'Freshness', value: demo.sources.pecos.status === 'live' ? 'Live source' : 'Quarterly dataset preview' },
+            {
+              id: 'trust-note',
+              label: 'Trust note',
+              value: pecosGap
+                ? 'This example shows how a Medicare enrollment gap appears when PECOS does not show an active enrollment.'
+                : 'This section shows how Medicare enrollment evidence will appear after a real PECOS-backed run.',
+            },
+            {
+              id: 'status-note',
+              label: 'Status note',
+              value: pecosGap
+                ? 'Preview gaps remain clearly labeled and never stand in for a positive enrollment result.'
+                : 'Demo rows show structure only and never claim decision-grade proof.',
+              tone: 'muted',
+            },
+          ]}
+        />
+      ),
     },
     {
-      id: 'dea', trigger: 'DEA Registration', status: deaStatus,
-      // M3: DEA not connected
-      content: sourceRow('DEA — access required', deaStatus, undefined,
-        'Not checked in demo — requires institutional access'),
+      id: 'sanctions',
+      trigger: 'Sanctions & Exclusions',
+      triggerRight: accordionMeta(exclusionFlag ? 'flagged in example' : 'demo preview'),
+      status: exclusionFlag ? 'review_required' : 'demo',
+      content: (
+        <ProofDetailsList
+          rows={[
+            { id: 'source', label: 'Source', value: 'OIG / LEIE', tone: 'strong' },
+            { id: 'checked', label: 'Last checked', value: 'Preview payload' },
+            { id: 'freshness', label: 'Freshness', value: 'Example only' },
+            {
+              id: 'trust-note',
+              label: 'Trust note',
+              value: exclusionFlag
+                ? 'This example shows how an exclusion blocker will appear when the OIG result is not clear.'
+                : 'A real exclusion result appears only after a live OIG run.',
+            },
+            {
+              id: 'status-note',
+              label: 'Status note',
+              value: exclusionFlag
+                ? 'Blocked examples remain clearly labeled and still require a live source run before anyone can rely on them.'
+                : 'NPDB and SAM.gov remain separate institutional checks outside this preview.',
+              tone: 'muted',
+            },
+          ]}
+        />
+      ),
     },
   ];
 }
@@ -348,7 +567,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
           <div className="px-5 py-4">
             <button type="button" onClick={onContinue}
               className="w-full rounded-xl bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 px-5 py-3.5 font-semibold text-white text-sm transition-all active:scale-[0.98]">
-              Continue to your passport →
+              Continue with VitalCV →
             </button>
             <p className="mt-2 text-center text-[10px] text-white/20">
               Snapshot built from connected sources · {ts.methodology_version}
@@ -361,8 +580,10 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
   }
 
   // ── Demo fallback path ───────────────────────────────────
-  const demo   = DEMO_PROFILES[npi] ?? DEMO_FALLBACK;
-  const accordion = buildDemoAccordion(demo.missing);
+  const demo = getDemoProfile(DEMO_PROFILE_ALIASES[npi] ?? npi);
+  const attentionItems = demo.blockers.length > 0 ? demo.blockers : demo.missingItems;
+  const attentionHeading = demo.blockers.length > 0 ? 'Current blockers' : 'What this example is missing';
+  const accordion = buildDemoAccordion(demo);
   const readinessTone = resolveDemoReadinessTone(demo);
 
   return (
@@ -399,24 +620,36 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
         {/* Ready / Missing */}
         <div className="px-5 py-4 border-b border-white/6">
           <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/25 mb-3">
-            {demo.missing.length === 0 ? 'Current blockers' : 'What this example is missing'}
+            {attentionItems.length === 0 ? 'Current blockers' : attentionHeading}
           </p>
           <div className="space-y-2">
-            {demo.missing.length === 0 ? (
+            {attentionItems.length === 0 ? (
               <div className="flex items-center gap-2">
                 <span className="text-white/55 text-sm leading-none shrink-0">✔</span>
                 <span className="text-xs text-white/45">No blockers in this example.</span>
               </div>
-            ) : demo.missing.slice(0, 3).map(item => (
+            ) : attentionItems.slice(0, 3).map(item => (
               <div key={item} className="flex items-center gap-2">
                 <span className="text-white/25 text-sm leading-none shrink-0">✖</span>
                 <span className="text-xs text-white/55">{item}</span>
               </div>
             ))}
           </div>
+          {demo.gatedItems.length > 0 && (
+            <>
+              <p className="mt-4 text-[9px] font-bold uppercase tracking-[0.18em] text-white/25">Access required in this example</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {demo.gatedItems.map(item => (
+                  <span key={item} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/60">
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
           <p className="mt-4 text-[9px] font-bold uppercase tracking-[0.18em] text-white/25">Ready in this example</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {demo.readyFor.map(item => (
+            {demo.verifiedItems.map(item => (
               <span key={item} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/60">
                 {item}
               </span>
@@ -434,7 +667,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
         <div className="px-5 py-4">
           <button type="button" onClick={onContinue}
             className="w-full rounded-xl bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 px-5 py-3.5 font-semibold text-white text-sm transition-all active:scale-[0.98]">
-            Continue to your passport →
+            Continue with VitalCV →
           </button>
           <p className="mt-2 text-center text-[10px] text-white/20">
             Demo preview only · live data appears after a real source run

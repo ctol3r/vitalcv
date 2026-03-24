@@ -32,24 +32,24 @@ import Link from 'next/link';
 export const metadata: Metadata = {
   title: 'Developer Portal | VitalCV',
   description:
-    'Build hospital integrations on top of the VitalCV Trust Protocol. API keys, interactive sandbox, and live webhook testing.',
+    'Current VitalCV API routes, SDKs, and webhook registration surfaces backed by this branch.',
 };
 
 // ── Quick-stat cards ──────────────────────────────────────────────────────
 
 const STATS = [
-  { icon: Zap,      label: 'Avg. Response',  value: '< 80 ms' },
-  { icon: Globe,    label: 'Availability',    value: 'High'    },
-  { icon: Lock,     label: 'Encryption',      value: 'TLS 1.3' },
-  { icon: GitBranch,label: 'API Version',     value: 'v1'      },
+  { icon: Globe,    label: 'API Host',    value: 'api.vitalcv.com' },
+  { icon: GitBranch,label: 'Route Prefix', value: '/api' },
+  { icon: Lock,     label: 'Auth',        value: 'API keys' },
+  { icon: Zap,      label: 'Mode',        value: 'Preview' },
 ];
 
 // ── Resource links ────────────────────────────────────────────────────────
 
 const RESOURCES = [
-  { icon: BookOpen, label: 'API Reference',   href: '/docs/api',      desc: 'Full endpoint documentation + interactive OpenAPI UI' },
+  { icon: BookOpen, label: 'API Reference',   href: '/docs/api',      desc: 'Current route guide plus API-host links' },
   { icon: Code2,    label: 'SDKs',            href: '/docs/sdk',      desc: 'Verifier SDK, Issuer SDK, Wallet SDK'    },
-  { icon: Webhook,  label: 'Webhook Guide',   href: '/docs/webhooks', desc: 'Event types, signatures & verification'    },
+  { icon: Webhook,  label: 'Webhook Guide',   href: '/docs/webhooks', desc: 'Registration route, event catalog, and signatures'    },
   { icon: Lock,     label: 'Wallet Export',   href: '/docs/api',      desc: 'CHAPI + SMART Health Card export API'   },
   { icon: Globe,    label: 'Compliance API',  href: '/docs/api',      desc: 'AI-assisted compliance checking'         },
   { icon: GitBranch, label: 'Examples',       href: 'https://github.com/ctol3r/vitalcv/tree/main/examples', desc: 'ATS integration, webhook verification' },
@@ -86,8 +86,8 @@ export default function DeveloperPortalPage() {
           </h1>
 
           <p className="body-lg mt-5 text-vt-neutral-200 max-w-xl mx-auto">
-            Integrate automated clinician credential verification into your hospital&apos;s
-            EHR, scheduling, or onboarding systems in minutes — not months.
+            Use the current API host, SDKs, and webhook routes that exist in this branch.
+            Preview surfaces stay clearly labeled when they are simulated.
           </p>
 
           <div className="mt-8 flex items-center justify-center gap-4">

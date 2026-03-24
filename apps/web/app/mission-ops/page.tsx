@@ -323,7 +323,7 @@ export default function MissionOpsPage() {
             {[
               { label: 'Command Center', href: '/command-center', icon: Activity },
               { label: 'Developer Portal', href: '/developers', icon: Building },
-              { label: 'Trust Network', href: '/network', icon: Network },
+              { label: 'Trust Network', href: '/intelligence?view=graph', icon: Network },
               { label: 'Holder Passport', href: '/holder', icon: Shield },
             ].map(({ label, href, icon: Icon }) => (
               <Link

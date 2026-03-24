@@ -198,17 +198,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!profile) {
     return {
       title: 'Clinician Profile | VitalCV',
-      description: 'Verified clinician credentials powered by VitalCV Trust Network.',
+      description: 'Clinician profile powered by the VitalCV trust network.',
     };
   }
 
   if (profile.mode === 'npi') {
     const cleared = profile.status === 'CLEARED';
     const title = cleared
-      ? `NPI ${profile.npi} — CLEARED & Ready to Hire | VitalCV`
-      : `NPI ${profile.npi} — Verification Pending | VitalCV`;
-    // M1: Honest meta — count is source-dependent, not all credentials are from live sources
-    const description = `${profile.activeCredentials.length} credential record${profile.activeCredentials.length !== 1 ? 's' : ''} on file. Verified via connected primary sources.`;
+      ? `NPI ${profile.npi} — Checked Profile | VitalCV`
+      : `NPI ${profile.npi} — Partial Profile | VitalCV`;
+    const description = `${profile.activeCredentials.length} source-backed record${profile.activeCredentials.length !== 1 ? 's' : ''} on file. Coverage varies by source and freshness.`;
     return {
       title,
       description,
@@ -220,8 +219,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  const title = `${profile.name} is 100% Ready to Hire | VitalCV`;
-  const description = `Verified Clinician | ${profile.crsScore}% CRS Score | VitalCV Trust Network`;
+  const title = `${profile.name} — Shared Trust Profile | VitalCV`;
+  const description = 'Shared trust snapshot from VitalCV. Review source coverage and freshness before relying on it.';
   return {
     title,
     description,
@@ -256,36 +255,28 @@ function ShieldIcon() {
 
 function ClearedBadge({ status }: { status: ClearedStatus }) {
   const cleared = status === 'CLEARED';
+  const toneClasses = cleared
+    ? 'bg-white/8 ring-2 ring-white/15 text-white/80'
+    : 'bg-vt-warning/10 ring-2 ring-vt-warning/40 text-vt-warning';
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className={[
-        'relative flex h-28 w-28 items-center justify-center rounded-full',
-        cleared
-          ? 'bg-vt-success/10 ring-2 ring-vt-success/40'
-          : 'bg-vt-warning/10 ring-2 ring-vt-warning/40',
-      ].join(' ')}>
+      <div className={['relative flex h-28 w-28 items-center justify-center rounded-full', toneClasses].join(' ')}>
         {/* Pulse ring — pure CSS, no framer-motion needed in RSC */}
         <span className={[
           'absolute inset-0 rounded-full animate-ping opacity-20',
-          cleared ? 'bg-vt-success' : 'bg-vt-warning',
+          cleared ? 'bg-white' : 'bg-vt-warning',
         ].join(' ')} style={{ animationDuration: '2.5s' }} aria-hidden="true" />
         <div className="relative flex flex-col items-center">
-          <span className={[
-            'text-xl font-black tracking-widest',
-            cleared ? 'text-vt-success' : 'text-vt-warning',
-          ].join(' ')}>
+          <span className={['text-xl font-black tracking-widest', cleared ? 'text-white/80' : 'text-vt-warning'].join(' ')}>
             {cleared ? 'ON' : '···'}
           </span>
-          <span className={[
-            'mt-0.5 text-[9px] font-bold uppercase tracking-widest',
-            cleared ? 'text-vt-success' : 'text-vt-warning',
-          ].join(' ')}>
-            {status}
+          <span className={['mt-0.5 text-[9px] font-bold uppercase tracking-widest', cleared ? 'text-white/65' : 'text-vt-warning'].join(' ')}>
+            {cleared ? 'Checked' : 'Pending'}
           </span>
         </div>
       </div>
       <p className="label uppercase text-vt-neutral-200">
-        Trust Status
+        Profile status
       </p>
     </div>
   );
@@ -295,14 +286,14 @@ function ClearedBadge({ status }: { status: ClearedStatus }) {
 
 function CredentialPills({ creds }: { creds: string[] }) {
   if (creds.length === 0) return (
-    <p className="text-xs text-vt-neutral-800 text-center">No verified credentials on record.</p>
+    <p className="text-xs text-vt-neutral-800 text-center">No source-backed records on file.</p>
   );
   return (
     <div className="flex flex-wrap justify-center gap-2">
       {creds.map((c) => (
         <span key={c}
-          className="inline-flex items-center gap-1.5 rounded-full bg-vt-success/10 px-3 py-1 heading-sm text-vt-success ring-1 ring-vt-success/20">
-          <span className="h-1.5 w-1.5 rounded-full bg-vt-success" aria-hidden="true" />
+          className="inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 heading-sm text-white/70 ring-1 ring-white/10">
+          <span className="h-1.5 w-1.5 rounded-full bg-white/55" aria-hidden="true" />
           {c}
         </span>
       ))}
@@ -314,12 +305,12 @@ function CredentialPills({ creds }: { creds: string[] }) {
 
 function EventTimeline({ events, lastAnchored }: { events: AuditEvent[]; lastAnchored: string | null }) {
   const EVENT_LABELS: Record<string, { label: string; status: BadgeLevel; statusLabel: string }> = {
-    VERIFICATION_COMPLETED:  { label: 'Primary source verified', status: 'L2', statusLabel: 'Verified' },
+    VERIFICATION_COMPLETED:  { label: 'Primary source checked', status: 'L2', statusLabel: 'Checked' },
     VERIFICATION_REQUESTED:  { label: 'Verification initiated', status: 'L1', statusLabel: 'In Progress' },
     START_ATTESTED:          { label: 'Start date attested', status: 'L3', statusLabel: 'Monitored' },
     MONITORING_STATUS_CHANGE:{ label: 'Monitoring update', status: 'L3', statusLabel: 'Monitored' },
     ARTIFACT_VIEWED:         { label: 'Profile accessed', status: 'L0', statusLabel: 'Accessed' },
-    BUNDLE_GENERATED:        { label: 'Credential bundle exported', status: 'L2', statusLabel: 'Verified' },
+    BUNDLE_GENERATED:        { label: 'Credential bundle exported', status: 'L2', statusLabel: 'Checked' },
   };
 
   const timelineEvents: TimelineEvent[] = events.map((e, i) => {
@@ -392,7 +383,7 @@ function ArtifactGrid({
   artifacts: NpiProfile['artifactSummaries'];
 }) {
   if (artifacts.length === 0) {
-    return <p className="rounded-2xl vt-glass-subtle px-5 py-4 text-sm text-vt-neutral-800">No verified credential artifacts available yet.</p>;
+    return <p className="rounded-2xl vt-glass-subtle px-5 py-4 text-sm text-vt-neutral-800">No credential artifacts are available yet.</p>;
   }
 
   return (
@@ -402,9 +393,9 @@ function ArtifactGrid({
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
               <p className="heading-sm text-white">{artifact.issuer}</p>
-              <p className="mt-1 text-xs text-vt-neutral-800">Verified {formatDate(artifact.verifiedAt)}</p>
+              <p className="mt-1 text-xs text-vt-neutral-800">Checked {formatDate(artifact.verifiedAt)}</p>
             </div>
-            <span className="rounded-full bg-vt-success/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-vt-success">
+            <span className="rounded-full bg-white/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-white/70">
               {artifact.status}
             </span>
           </div>
@@ -431,7 +422,7 @@ function ArtifactGrid({
           {artifact.selectiveDisclosure ? (
             <div className="mt-4 rounded-xl bg-vt-brand-primary/5 px-3 py-2 ring-1 ring-vt-brand-primary/20">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-vt-brand-secondary">
-                Selective Disclosure Ready
+                Selective disclosure available
               </p>
               <p className="mt-1 text-[11px] text-vt-brand-primary/70">
                 {artifact.selectiveDisclosure.algorithm} compatible · {artifact.selectiveDisclosure.claimCount} hashed claim descriptors
@@ -456,9 +447,9 @@ function IssuerProvenanceList({
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="heading-sm text-white">{issuer.issuer}</p>
-              <p className="mt-1 text-xs text-vt-neutral-800">Last verified {formatDate(issuer.latestVerifiedAt)}</p>
+              <p className="mt-1 text-xs text-vt-neutral-800">Last checked {formatDate(issuer.latestVerifiedAt)}</p>
             </div>
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-vt-success">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-white/65">
               {issuer.artifactCount} artifact{issuer.artifactCount === 1 ? '' : 's'}
             </span>
           </div>
@@ -504,7 +495,7 @@ function ProofCard({
 }) {
   return (
     <div className="rounded-2xl vt-glass-subtle p-5">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-vt-neutral-800">Shareable Verification Proof</p>
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-vt-neutral-800">Shareable Proof Bundle</p>
       <p className="mt-2 text-sm text-vt-neutral-200">
         Export the deterministic trust-proof bundle or download a human-readable PDF generated from the same canonical payload.
       </p>
@@ -535,12 +526,12 @@ function AcceptStartCta({ npi, cleared }: { npi: string; cleared: boolean }) {
       <div className="mx-auto flex max-w-2xl items-center justify-between gap-4 px-6 py-4">
         <div className="min-w-0">
           <p className="heading-sm text-white">
-            {cleared ? 'Ready to onboard this clinician?' : 'Start verification for this NPI?'}
+            {cleared ? 'Open the employer review flow?' : 'Request more source coverage for this NPI?'}
           </p>
           <p className="text-xs text-vt-success/80">
             {cleared
-              ? 'Accept credentials & attest start date — closes the ON Loop'
-              : 'Run a full PSV sweep and request the credential bundle'}
+              ? 'Move this profile into a real review workspace before making a decision.'
+              : 'Start a deeper verification request and gather the missing bundle.'}
           </p>
         </div>
         <a
@@ -553,7 +544,7 @@ function AcceptStartCta({ npi, cleared }: { npi: string; cleared: boolean }) {
               : 'bg-vt-warning text-black hover:bg-vt-warning focus:ring-vt-warning',
           ].join(' ')}
         >
-          {cleared ? 'Accept & Start →' : 'Request Bundle →'}
+          {cleared ? 'Open Review →' : 'Request Coverage →'}
         </a>
       </div>
     </div>
@@ -600,7 +591,7 @@ function CrsRing({ score, band }: { score: number; band: CrsBand }) {
 
 const LEVELS = ['L0', 'L1', 'L2', 'L3'] as const;
 const LEVEL_LABELS: Record<(typeof LEVELS)[number], string> = {
-  L0: 'Incomplete', L1: 'In Progress', L2: 'Verified', L3: 'Monitored',
+  L0: 'Incomplete', L1: 'In Progress', L2: 'Checked', L3: 'Monitored',
 };
 
 function TrustBadges({ l3Status }: { l3Status: L3Status }) {
@@ -715,8 +706,8 @@ export default async function PublicTrustProfilePage({ params }: Props) {
                 </h1>
                 <p className="body-sm mt-2 text-vt-neutral-200">
                   {profile.activeCredentials.length > 0
-                    ? `${profile.activeCredentials.length} active verified credential${profile.activeCredentials.length !== 1 ? 's' : ''}`
-                    : 'Verification in progress'}
+                    ? `${profile.activeCredentials.length} source-backed credential record${profile.activeCredentials.length !== 1 ? 's' : ''}`
+                    : 'Source checks still in progress'}
                 </p>
               </section>
 
@@ -728,7 +719,7 @@ export default async function PublicTrustProfilePage({ params }: Props) {
               {/* Active credential pills */}
               <section className="mb-8">
                 <p className="mb-3 text-center text-[10px] font-semibold uppercase tracking-widest text-vt-neutral-800">
-                  Verified Sources
+                  Connected Sources
                 </p>
                 <CredentialPills creds={profile.activeCredentials} />
               </section>
@@ -748,11 +739,11 @@ export default async function PublicTrustProfilePage({ params }: Props) {
               {profile.readiness.evaluated && (
                 <section className="mb-8 rounded-xl vt-glass-subtle px-5 py-4">
                   <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-vt-neutral-800">
-                    Superbrain Readiness (Wave 37)
+                    Readiness Snapshot
                   </p>
                   {profile.readiness.isEligible ? (
-                    <p className="text-sm text-vt-success font-medium">
-                      ✓ Eligible — {profile.readiness.traceCount} ontology steps traversed
+                    <p className="text-sm text-white/75 font-medium">
+                      Checked — {profile.readiness.traceCount} ontology steps traversed
                     </p>
                   ) : (
                     <div>
@@ -773,7 +764,7 @@ export default async function PublicTrustProfilePage({ params }: Props) {
 
               <section className="mb-8">
                 <p className="mb-3 text-center text-[10px] font-semibold uppercase tracking-widest text-vt-neutral-800">
-                  Verified Credential Artifacts
+                  Credential Artifacts On File
                 </p>
                 <ArtifactGrid artifacts={profile.artifactSummaries} />
               </section>
@@ -824,8 +815,8 @@ export default async function PublicTrustProfilePage({ params }: Props) {
                   {profile.name}{' '}
                   <span className="text-vt-success">
                     {profile.trustState === 'verified' || profile.trustState === 'verified_monitoring'
-                      ? 'is 100% Ready to Hire.'
-                      : 'is Building Trust State.'}
+                      ? 'shared a trust snapshot.'
+                      : 'shared a partial trust snapshot.'}
                   </span>
                 </h1>
                 <p className="body-lg mt-2 text-vt-neutral-200">{profile.specialty}</p>
@@ -847,7 +838,7 @@ export default async function PublicTrustProfilePage({ params }: Props) {
 
               <footer className="text-center">
                 <p className="text-xs text-vt-neutral-800">
-                  Last verified:{' '}
+                  Last checked:{' '}
                   <span className="text-vt-neutral-800">{formatDate(profile.verifiedAt)}</span>
                   {' · '}Powered by VitalCV
                 </p>

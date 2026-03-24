@@ -43,7 +43,7 @@ const BACKEND = (
 export const metadata: Metadata = {
   title: 'Employers — VitalCV',
   description:
-    'Employer directory with trust signals, open roles, and verified clinician readiness.',
+    'Employer directory with trust signals, role counts, and clinician readiness snapshots.',
 };
 
 function hiringStatusLabel(value: string): string {
@@ -149,18 +149,21 @@ export default async function EmployersPage() {
             </p>
           </div>
 
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
+          <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Employers</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Directory employers</p>
               <p className="mt-2 text-3xl font-semibold text-white">{employerPayload.total}</p>
-              <p className="mt-2 text-sm text-white/55">Visible in the public launch directory.</p>
+              <p className="mt-2 text-sm text-white/55">Organizations currently visible in the public directory.</p>
             </div>
             <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Open Roles</p>
-              <p className="mt-2 text-3xl font-semibold text-white">
-                {opportunityPayload.total > 0 ? opportunityPayload.total : openRoles}
-              </p>
-              <p className="mt-2 text-sm text-white/55">Live roles currently discoverable in explore/apply.</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Employer-reported openings</p>
+              <p className="mt-2 text-3xl font-semibold text-white">{openRoles}</p>
+              <p className="mt-2 text-sm text-white/55">Sum of opening counts attached to the employers shown on this page.</p>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Public role listings</p>
+              <p className="mt-2 text-3xl font-semibold text-white">{opportunityPayload.total}</p>
+              <p className="mt-2 text-sm text-white/55">Listings currently returned by the explore/apply feed.</p>
             </div>
             <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
               <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Coverage</p>
@@ -173,7 +176,7 @@ export default async function EmployersPage() {
             <RoleEntryCard
               icon={<Stethoscope className="h-5 w-5" />}
               title="Clinician entry"
-              detail="Resolve your profile, see current role fit, and apply from a verified workspace."
+              detail="Resolve your profile, see current role fit, and apply from a source-backed readiness workspace."
               href="/onboarding?returnTo=%2Fexplore"
               action="Start clinician onboarding"
             />
@@ -199,7 +202,7 @@ export default async function EmployersPage() {
         <div className="mx-auto max-w-6xl">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Verified Employers</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Current directory employers</p>
               <h2 className="mt-2 text-2xl font-semibold text-white">Current launch cohort</h2>
             </div>
             <Link
@@ -215,7 +218,7 @@ export default async function EmployersPage() {
             <div className="rounded-3xl border border-amber-400/20 bg-amber-400/10 p-6">
               <h3 className="text-lg font-semibold text-white">Employer directory is empty right now</h3>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
-                No verified employers were returned from the live directory. The next step is to
+                No employers were returned from the live directory. The next step is to
                 confirm seeded launch employers finished bootstrapping before using this page for a demo.
               </p>
             </div>
@@ -231,15 +234,15 @@ export default async function EmployersPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="text-xl font-semibold text-white">{employer.name}</h3>
                         {employer.verified ? (
-                          <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300">
-                            Verified
+                          <span className="rounded-full border border-white/12 bg-white/[0.06] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65">
+                            Directory listed
                           </span>
                         ) : null}
                       </div>
                       <p className="mt-2 text-sm text-white/55">{employer.facilityType}</p>
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 text-right">
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-white/45">Trust</p>
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-white/45">Trust signal</p>
                       <p className="mt-1 text-lg font-semibold text-white">{employer.trustScore}</p>
                     </div>
                   </div>

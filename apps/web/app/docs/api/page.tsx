@@ -3,10 +3,12 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'API Reference | VitalCV Docs',
-  description: 'Complete REST API reference for the VitalCV Trust Protocol.',
+  description: 'Current REST API routes surfaced by the VitalCV API host.',
 };
 
-const BASE_URL = 'https://api.vitalcv.com/v1';
+const BASE_URL = 'https://api.vitalcv.com';
+const OPENAPI_UI_URL = `${BASE_URL}/api-docs`;
+const OPENAPI_JSON_URL = `${BASE_URL}/api/docs/openapi.json`;
 
 interface Endpoint {
   method: 'GET' | 'POST' | 'DELETE' | 'PATCH';
@@ -24,8 +26,8 @@ const SECTIONS: { title: string; endpoints: Endpoint[] }[] = [
       {
         id: 'verify',
         method: 'POST',
-        path: '/verify',
-        desc: 'Verify a clinician credential bundle. Returns trust band (L0–L3), verification receipt, and HAIP compliance status.',
+        path: '/api/credentials/verify',
+        desc: 'Verify a credential JWT and check revocation against the current backend routes.',
         params: [
           { name: 'npi', type: 'string', required: true, desc: 'National Provider Identifier (10-digit)' },
           { name: 'credential_types', type: 'string[]', required: false, desc: 'Filter by type: license, board_cert, npi_attest' },
@@ -36,8 +38,8 @@ const SECTIONS: { title: string; endpoints: Endpoint[] }[] = [
       {
         id: 'verify-npi',
         method: 'GET',
-        path: '/verify/:npi',
-        desc: 'Quick NPI lookup — returns current trust state without full credential bundle.',
+        path: '/api/public/profile/npi/:npi',
+        desc: 'Quick NPI lookup — returns the current public readiness and trust snapshot for that NPI.',
         response: '{ npi, trustBand, lastVerified, sourceCount }',
       },
     ],
@@ -48,7 +50,7 @@ const SECTIONS: { title: string; endpoints: Endpoint[] }[] = [
       {
         id: 'issue',
         method: 'POST',
-        path: '/credentials/issue',
+        path: '/api/credentials/issue',
         desc: 'Issue a signed SD-JWT VC credential for a clinician. Requires issuer API key with ISSUE scope.',
         params: [
           { name: 'subject_npi', type: 'string', required: true, desc: 'Clinician NPI' },
@@ -61,7 +63,7 @@ const SECTIONS: { title: string; endpoints: Endpoint[] }[] = [
       {
         id: 'selective-disclosure',
         method: 'POST',
-        path: '/credentials/present/selective',
+        path: '/api/credentials/present/selective',
         desc: 'Generate a selective disclosure presentation — reveal only specified claims.',
         params: [
           { name: 'credential_id', type: 'string', required: true, desc: 'Credential to present' },
@@ -72,7 +74,7 @@ const SECTIONS: { title: string; endpoints: Endpoint[] }[] = [
       {
         id: 'revoke',
         method: 'POST',
-        path: '/credentials/revoke',
+        path: '/api/revocation/revoke',
         desc: 'Revoke a credential. Triggers cascade evaluation across the trust graph.',
         params: [
           { name: 'credential_id', type: 'string', required: true, desc: 'Credential to revoke' },
@@ -88,15 +90,15 @@ const SECTIONS: { title: string; endpoints: Endpoint[] }[] = [
       {
         id: 'registry-list',
         method: 'GET',
-        path: '/registry',
+        path: '/api/registry',
         desc: 'List trusted issuers with trust scores, HAIP compliance, and federation status.',
         response: '{ issuers[], total, federatedCount }',
       },
       {
         id: 'registry-resolve',
         method: 'GET',
-        path: '/registry/:did',
-        desc: 'Resolve a DID to an issuer record.',
+        path: '/api/registry/:issuer',
+        desc: 'Resolve an issuer record from the current registry routes.',
         response: '{ did, name, trustScore, haipCompliant, federationEntityId }',
       },
     ],
@@ -107,7 +109,7 @@ const SECTIONS: { title: string; endpoints: Endpoint[] }[] = [
       {
         id: 'audit-events',
         method: 'GET',
-        path: '/audit/events',
+        path: '/api/audit/events',
         desc: 'Retrieve audit event log. Supports filtering by type, clinician, and time range.',
         params: [
           { name: 'type', type: 'string', required: false, desc: 'Event type filter' },
@@ -125,7 +127,7 @@ const SECTIONS: { title: string; endpoints: Endpoint[] }[] = [
       {
         id: 'wallet-export',
         method: 'POST',
-        path: '/credentials/export/wallet',
+        path: '/api/credentials/export/wallet',
         desc: 'Export credentials in wallet-compatible formats (CHAPI VPR, CHAPI store, SMART Health Card file/deeplink/QR).',
         params: [
           { name: 'subject', type: 'string', required: true, desc: 'NPI or DID of the credential subject' },
@@ -142,7 +144,7 @@ const SECTIONS: { title: string; endpoints: Endpoint[] }[] = [
       {
         id: 'compliance-check',
         method: 'POST',
-        path: '/ai/compliance-check',
+        path: '/api/ai/compliance-check',
         desc: 'Run an AI-assisted compliance readiness check. Returns cited findings against state + facility rules.',
         params: [
           { name: 'npi', type: 'string', required: true, desc: 'NPI of the clinician' },
@@ -176,23 +178,25 @@ export default function ApiReferencePage() {
         </div>
       </div>
 
-      {/* Wave 158: Interactive OpenAPI UI */}
+      {/* Wave 158: OpenAPI links */}
       <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 px-4 py-3">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-semibold text-violet-300">Interactive API Explorer</span>
+          <span className="text-sm font-semibold text-violet-300">OpenAPI Links</span>
           <Link
-            href="/api/docs"
+            href={OPENAPI_UI_URL}
             className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
+            target="_blank"
+            rel="noreferrer"
           >
-            Open full OpenAPI spec →
+            Open API host docs →
           </Link>
         </div>
         <p className="text-xs text-zinc-400">
-          Try API endpoints directly from the{' '}
-          <Link href="/api/docs" className="text-violet-400 hover:underline">
-            interactive OpenAPI UI
+          The current API host publishes an OpenAPI UI at{' '}
+          <Link href={OPENAPI_UI_URL} className="text-violet-400 hover:underline" target="_blank" rel="noreferrer">
+            {OPENAPI_UI_URL}
           </Link>
-          . The spec is served from <code className="text-violet-300 bg-violet-500/10 px-1 py-0.5 rounded text-xs">/openapi.json</code>.
+          . The spec is served from <code className="text-violet-300 bg-violet-500/10 px-1 py-0.5 rounded text-xs">{OPENAPI_JSON_URL}</code>.
         </p>
       </div>
 

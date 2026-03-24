@@ -166,16 +166,16 @@ const STEPS = [
     step: '01',
     icon: Search,
     title: 'Enter your NPI',
-    description: 'Your 10-digit NPI pulls verified identity from NPPES instantly. No forms, no uploads.',
+    description: 'Your 10-digit NPI resolves your public identity record from NPPES. No forms, no uploads.',
     accent: 'blue',
-    detail: 'Ready in under 30 seconds',
+    detail: 'NPI-first entry point',
   },
   {
     step: '02',
     icon: ShieldCheck,
     title: 'Primary sources verify you',
     // M1: List only live/configured sources. NPDB and DEA are not integrated.
-    description: 'We check NPPES identity, OIG exclusion status, and Medicare enrollment directly. State license verification available with institutional source access.',
+    description: 'We run NPPES identity and OIG exclusion first. PECOS and state board coverage appear only when those sources are actually available.',
     accent: 'emerald',
     detail: 'Real sources, not document copies',
   },
@@ -184,7 +184,7 @@ const STEPS = [
     icon: Zap,
     title: 'Portable across employers',
     // M1: Remove "instantly — no committee, no 90-day wait" — conditional on source coverage
-    description: 'Your verified readiness travels with you. Where a source is already checked, employers confirm standing without repeating the verification process.',
+    description: 'Your readiness snapshot travels with you. Connected checks stay source-backed, and missing coverage stays visibly pending.',
     accent: 'violet',
     detail: 'Fewer repeated verifications',
   },
@@ -233,11 +233,11 @@ export function HowItWorksSection() {
             </span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
-            Verified in hours.{' '}
-            <span className="text-blue-400">Trusted for your career.</span>
+            Start with one NPI.{' '}
+            <span className="text-blue-400">See source-backed readiness.</span>
           </h2>
           <p className="mt-4 text-white/60 max-w-xl mx-auto text-lg leading-relaxed">
-            Primary sources. Cryptographic proof. Portable forever.
+            Primary sources first. Signed proof where coverage exists. Explicit gaps where it does not.
           </p>
         </FadeIn>
 
