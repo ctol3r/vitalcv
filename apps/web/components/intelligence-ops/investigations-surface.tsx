@@ -273,6 +273,41 @@ function MetricCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+function buildProviderDetailHref(npi: string) {
+  return buildIntelligenceHref('dashboard', { npi, open: ['provider'] });
+}
+
+function buildFindingDetailHref({
+  findingId,
+  providerNpi,
+  storylineId,
+}: {
+  findingId: string;
+  providerNpi?: string | null;
+  storylineId?: string | null;
+}) {
+  return buildIntelligenceHref('dashboard', {
+    npi: providerNpi ?? undefined,
+    findingId,
+    storylineId: storylineId ?? undefined,
+    open: ['finding'],
+  });
+}
+
+function buildStorylineDetailHref({
+  storylineId,
+  providerNpi,
+}: {
+  storylineId: string;
+  providerNpi?: string | null;
+}) {
+  return buildIntelligenceHref('dashboard', {
+    npi: providerNpi ?? undefined,
+    storylineId,
+    open: ['storyline'],
+  });
+}
+
 // ── Left Panel: Findings Inbox ────────────────────────────────────────────────
 
 function FindingsInbox({
@@ -308,7 +343,7 @@ function FindingsInbox({
                 : 'Select a provider-backed finding or widen the graph scope to pull more evidence into the rail.'}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {provider ? <EntityLink href={`/providers/${provider.npi}`} label="Provider profile" /> : null}
+              {provider ? <EntityLink href={buildProviderDetailHref(provider.npi)} label="Provider profile" /> : null}
               {provider ? <EntityLink href={buildIntelligenceHref('findings', { provider: provider.npi })} label="Provider findings" /> : null}
               {navigation?.graphHref ? <EntityLink href={navigation.graphHref} label="Open graph" /> : null}
             </div>
@@ -333,7 +368,7 @@ function FindingsInbox({
             </button>
             <div className="mt-3 flex flex-wrap gap-2">
               <EntityLink href={f.href} label="Investigate" />
-              <EntityLink href={`/findings/${f.id}`} label="Open detail" />
+              <EntityLink href={buildFindingDetailHref({ findingId: f.id })} label="Open detail" />
             </div>
           </div>
         ))}
@@ -463,7 +498,17 @@ function ProviderInvestigationPanel({
             <div className="flex flex-wrap gap-2 text-xs text-[var(--vt-text-3)]">
               {provider?.specialty ? <span>{provider.specialty}</span> : null}
               {provider?.state ? <span>{provider.state}</span> : null}
-              {provider?.npi ? <span>NPI {provider.npi}</span> : null}
+              {provider?.npi ? (
+                <span className="inline-flex items-center gap-2">
+                  <span>NPI {provider.npi}</span>
+                  <Link
+                    href={`/passport/${provider.npi}`}
+                    className="text-xs underline underline-offset-2 text-[var(--vt-text-3)] hover:text-[var(--vt-text-1)]"
+                  >
+                    Passport
+                  </Link>
+                </span>
+              ) : null}
               {finding ? <span>{finding.severity} finding selected</span> : null}
               {storyline ? <span>{storyline.findingCount} findings in storyline</span> : null}
             </div>
@@ -488,7 +533,7 @@ function ProviderInvestigationPanel({
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          {provider ? <EntityLink href={`/providers/${provider.npi}`} label="Profile" /> : null}
+          {provider ? <EntityLink href={buildProviderDetailHref(provider.npi)} label="Profile" /> : null}
           {provider ? <EntityLink href={buildIntelligenceHref('dashboard', { npi: provider.npi, panel: 'graph' })} label="Graph" /> : null}
           {navigation?.investigationHref ? <EntityLink href={navigation.investigationHref} label="Workbench" /> : null}
           {navigation?.copilotHref ? <EntityLink href={navigation.copilotHref} label="Copilot" /> : null}
@@ -506,9 +551,22 @@ function ProviderInvestigationPanel({
           <p className="mt-2 text-xs leading-6 text-[var(--vt-text-2)]">{finding.summary}</p>
           <p className="mt-2 text-xs leading-6 text-[var(--vt-text-3)]">{finding.explanation}</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <EntityLink href={`/findings/${finding.id}`} label="Open finding" />
+            <EntityLink
+              href={buildFindingDetailHref({
+                findingId: finding.id,
+                providerNpi: provider?.npi ?? anchor.npi,
+                storylineId: finding.storylineId,
+              })}
+              label="Open finding"
+            />
             {finding.storylineId ? (
-              <EntityLink href={`/storylines/${finding.storylineId}`} label={finding.storylineTitle ?? 'Open storyline'} />
+              <EntityLink
+                href={buildStorylineDetailHref({
+                  storylineId: finding.storylineId,
+                  providerNpi: provider?.npi ?? anchor.npi,
+                })}
+                label={finding.storylineTitle ?? 'Open storyline'}
+              />
             ) : null}
           </div>
         </div>
@@ -536,7 +594,13 @@ function ProviderInvestigationPanel({
             </div>
           ) : null}
           <div className="mt-3 flex flex-wrap gap-2">
-            <EntityLink href={`/storylines/${storyline.id}`} label="Open storyline" />
+            <EntityLink
+              href={buildStorylineDetailHref({
+                storylineId: storyline.id,
+                providerNpi: provider?.npi ?? anchor.npi,
+              })}
+              label="Open storyline"
+            />
           </div>
         </div>
       ) : null}

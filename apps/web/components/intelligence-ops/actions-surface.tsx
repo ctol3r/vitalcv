@@ -29,6 +29,24 @@ import { ActionCard } from '@/src/ui/components';
 
 const PAGE_SIZE = 10;
 
+function buildProviderDetailHref(npi: string) {
+  return buildIntelligenceHref('dashboard', { npi, open: ['provider'] });
+}
+
+function buildFindingDetailHref({
+  findingId,
+  providerNpi,
+}: {
+  findingId: string;
+  providerNpi?: string | null;
+}) {
+  return buildIntelligenceHref('dashboard', {
+    npi: providerNpi ?? undefined,
+    findingId,
+    open: ['finding'],
+  });
+}
+
 export function ActionsSurface() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -259,7 +277,7 @@ export function ActionsSurface() {
                   {action.providerNpi ? (
                     <>
                       <EntityLink
-                        href={`/providers/${action.providerNpi}?from=${encodeURIComponent(currentHref)}`}
+                        href={buildProviderDetailHref(action.providerNpi)}
                         label={action.targetLabel ?? `Provider ${action.providerNpi}`}
                       />
                       <EntityLink href={buildIntelligenceHref('investigations', { npi: action.providerNpi })} label="Open investigation" />
@@ -267,7 +285,10 @@ export function ActionsSurface() {
                   ) : null}
                   {action.sourceFindingIds[0] ? (
                     <EntityLink
-                      href={`/findings/${action.sourceFindingIds[0]}?from=${encodeURIComponent(currentHref)}`}
+                      href={buildFindingDetailHref({
+                        findingId: action.sourceFindingIds[0],
+                        providerNpi: action.providerNpi,
+                      })}
                       label={`Finding ${action.sourceFindingIds[0]}`}
                     />
                   ) : null}

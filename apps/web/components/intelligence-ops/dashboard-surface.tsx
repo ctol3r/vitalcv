@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
@@ -84,6 +84,41 @@ interface CompareResponse {
     strengthDelta?: Array<{ dimension: string; spread: number; leader: string }>;
   };
   recommendations?: string[];
+}
+
+function buildProviderDetailHref(npi: string) {
+  return buildIntelligenceHref('dashboard', { npi, open: ['provider'] });
+}
+
+function buildFindingDetailHref({
+  findingId,
+  providerNpi,
+  storylineId,
+}: {
+  findingId: string;
+  providerNpi?: string | null;
+  storylineId?: string | null;
+}) {
+  return buildIntelligenceHref('dashboard', {
+    npi: providerNpi ?? undefined,
+    findingId,
+    storylineId: storylineId ?? undefined,
+    open: ['finding'],
+  });
+}
+
+function buildStorylineDetailHref({
+  storylineId,
+  providerNpi,
+}: {
+  storylineId: string;
+  providerNpi?: string | null;
+}) {
+  return buildIntelligenceHref('dashboard', {
+    npi: providerNpi ?? undefined,
+    storylineId,
+    open: ['storyline'],
+  });
 }
 
 function buildDashboardCopilotContext(input: {
@@ -215,7 +250,11 @@ function buildDashboardCopilotContext(input: {
       summary: finding.summary,
       severity: finding.severity,
       priorityScore: finding.priorityScore,
-      href: `/findings/${finding.id}`,
+      href: buildFindingDetailHref({
+        findingId: finding.id,
+        providerNpi: finding.providerNpi,
+        storylineId: finding.storylineId,
+      }),
     })),
     evidenceSummary: evidence.slice(0, 4).map((item) => ({
       label: item.label,
@@ -488,7 +527,6 @@ function resolveSectionOrder(view: IntelligenceView): CanvasSectionKind[] {
 }
 
 export function DashboardSurface() {
-  const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
   const graphPanelRef = useRef<HTMLDivElement | null>(null);
@@ -645,11 +683,6 @@ export function DashboardSurface() {
   );
 
   const sectionOrder = useMemo(() => resolveSectionOrder(view), [view]);
-  const currentHref = useMemo(() => {
-    const serialized = searchParams.toString();
-    return `${pathname}${serialized ? `?${serialized}` : ''}`;
-  }, [pathname, searchParams]);
-
   const defaultPanels = useMemo(() => {
     const next: CanvasOpenPanel[] = [];
 
@@ -1148,7 +1181,7 @@ export function DashboardSurface() {
         },
         {
           label: 'Open profile',
-          href: `/providers/${selectedProvider.npi}?from=${encodeURIComponent(currentHref)}`,
+          href: buildProviderDetailHref(selectedProvider.npi),
         },
         {
           label: 'Lock graph',
@@ -1203,7 +1236,11 @@ export function DashboardSurface() {
           secondaryActions={[
             {
               label: 'Open detail',
-              href: `/findings/${selectedFinding.id}?from=${encodeURIComponent(currentHref)}`,
+              href: buildFindingDetailHref({
+                findingId: selectedFinding.id,
+                providerNpi: selectedFinding.providerNpi,
+                storylineId: selectedFinding.storylineId,
+              }),
             },
             {
               label: 'Graph trace',
@@ -1218,6 +1255,25 @@ export function DashboardSurface() {
     }
 
     if (renderedPanels.includes('storyline') && selectedStoryline) {
+      const storylineActions: CanvasDecisionAction[] = [
+        {
+          label: 'Open detail',
+          href: buildStorylineDetailHref({
+            storylineId: selectedStoryline.id,
+            providerNpi: selectedStoryline.providerNpi,
+          }),
+        },
+      ];
+
+      if (selectedStoryline.providerNpi) {
+        storylineActions.push({
+          label: 'Provider lane',
+          onClick: () => {
+            focusProvider(selectedStoryline.providerNpi as string);
+          },
+        });
+      }
+
       blocks.push(
         <CanvasDecisionBlock
           key="storyline-panel"
@@ -1234,20 +1290,7 @@ export function DashboardSurface() {
             onClick: () => focusStoryline(selectedStoryline),
             tone: 'primary',
           }}
-          secondaryActions={[
-            {
-              label: 'Open detail',
-              href: `/storylines/${selectedStoryline.id}?from=${encodeURIComponent(currentHref)}`,
-            },
-            {
-              label: 'Provider lane',
-              onClick: () => {
-                if (selectedStoryline.providerNpi) {
-                  focusProvider(selectedStoryline.providerNpi);
-                }
-              },
-            },
-          ]}
+          secondaryActions={storylineActions}
           onClose={() => closePanel('storyline')}
         />,
       );
@@ -1257,7 +1300,6 @@ export function DashboardSurface() {
   }, [
     activeCompareNpis,
     closePanel,
-    currentHref,
     findingBacklinks,
     findingPanelMetrics,
     findingRecommendations,
@@ -1797,13 +1839,26 @@ export function DashboardSurface() {
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {selectedProvider ? (
-                    <EntityLink href={`/providers/${selectedProvider.npi}?from=${encodeURIComponent(currentHref)}`} label="Provider detail" />
+                    <EntityLink href={buildProviderDetailHref(selectedProvider.npi)} label="Provider detail" />
                   ) : null}
                   {selectedFinding ? (
-                    <EntityLink href={`/findings/${selectedFinding.id}?from=${encodeURIComponent(currentHref)}`} label="Finding detail" />
+                    <EntityLink
+                      href={buildFindingDetailHref({
+                        findingId: selectedFinding.id,
+                        providerNpi: selectedFinding.providerNpi,
+                        storylineId: selectedFinding.storylineId,
+                      })}
+                      label="Finding detail"
+                    />
                   ) : null}
                   {selectedStoryline ? (
-                    <EntityLink href={`/storylines/${selectedStoryline.id}?from=${encodeURIComponent(currentHref)}`} label="Storyline detail" />
+                    <EntityLink
+                      href={buildStorylineDetailHref({
+                        storylineId: selectedStoryline.id,
+                        providerNpi: selectedStoryline.providerNpi,
+                      })}
+                      label="Storyline detail"
+                    />
                   ) : null}
                   <EntityLink href={graphHref} label="Graph workspace" />
                 </div>

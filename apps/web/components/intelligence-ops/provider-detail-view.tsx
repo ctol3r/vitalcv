@@ -37,6 +37,29 @@ function formatPercentile(value: number | null | undefined) {
   return typeof value === 'number' ? `${Math.round(value * 100)}th pct` : 'Insufficient signal';
 }
 
+function buildProviderFindingHref(npi: string, findingId: string) {
+  return buildIntelligenceHref('dashboard', {
+    npi,
+    findingId,
+    open: ['finding'],
+  });
+}
+
+function buildProviderStorylineHref(npi: string, storylineId: string) {
+  return buildIntelligenceHref('dashboard', {
+    npi,
+    storylineId,
+    open: ['storyline'],
+  });
+}
+
+function buildProviderActionHref(npi: string, actionId: string) {
+  return buildIntelligenceHref('actions', {
+    entity: npi,
+    actionId,
+  });
+}
+
 export function ProviderDetailView({
   detail,
   backHref,
@@ -67,6 +90,22 @@ export function ProviderDetailView({
       actions={(
         <>
           <BackLink href={backHref} label="Back to providers" />
+          {current.provider.npi ? (
+            <>
+              <Link
+                href={`/passport/${current.provider.npi}`}
+                className="text-xs font-medium text-[var(--vt-text-2)] transition hover:text-[var(--vt-text-1)]"
+              >
+                View Passport →
+              </Link>
+              <Link
+                href={`/review/${current.provider.npi}`}
+                className="text-xs font-medium text-[var(--vt-text-2)] transition hover:text-[var(--vt-text-1)]"
+              >
+                Start Review →
+              </Link>
+            </>
+          ) : null}
           <Link
             href={buildIntelligenceGraphHref({ npi: current.provider.npi, providerId: current.provider.npi })}
             className="inline-flex items-center rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-2)] px-4 py-2 text-sm font-medium text-[var(--vt-text-1)] transition hover:bg-[var(--vt-surface-2)]"
@@ -234,7 +273,7 @@ export function ProviderDetailView({
                       <OpsBadge label={finding.severity} tone={severityTone(finding.severity)} />
                       <OpsBadge label={finding.status} tone={severityTone(finding.status)} />
                     </div>
-                    <Link href={`/findings/${finding.findingId}?from=/providers/${current.provider.npi}`} className="mt-3 block text-sm font-medium text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]">
+                    <Link href={buildProviderFindingHref(current.provider.npi, finding.findingId)} className="mt-3 block text-sm font-medium text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]">
                       {finding.title}
                     </Link>
                     <div className="mt-2">
@@ -254,7 +293,7 @@ export function ProviderDetailView({
                       <OpsBadge label={storyline.severity} tone={severityTone(storyline.severity)} />
                       <OpsBadge label={storyline.status} tone={severityTone(storyline.status)} />
                     </div>
-                    <Link href={`/storylines/${storyline.storylineId}?from=/providers/${current.provider.npi}`} className="mt-3 block text-sm font-medium text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]">
+                    <Link href={buildProviderStorylineHref(current.provider.npi, storyline.storylineId)} className="mt-3 block text-sm font-medium text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]">
                       {storyline.title}
                     </Link>
                     <div className="mt-2">
@@ -271,7 +310,7 @@ export function ProviderDetailView({
                       <OpsBadge label={action.priority} tone={severityTone(action.priority)} />
                       <OpsBadge label={action.status} tone={severityTone(action.status)} />
                     </div>
-                    <Link href={`/actions/${action.actionId}?from=/providers/${current.provider.npi}`} className="mt-3 block text-sm font-medium text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]">
+                    <Link href={buildProviderActionHref(current.provider.npi, action.actionId)} className="mt-3 block text-sm font-medium text-[var(--vt-text-1)] transition hover:text-[var(--vt-accent)]">
                       {action.recommendedAction}
                     </Link>
                     <div className="mt-2">

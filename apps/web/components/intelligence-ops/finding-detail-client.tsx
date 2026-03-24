@@ -5,7 +5,7 @@ import { useFinding } from '@/hooks/useIntelligenceDetail';
 import { useSystemHealth } from '@/hooks/useSystemHealth';
 import type { InvestigatorFindingDetailResponse } from '@/lib/intelligence/detail-types';
 import { buildFindingEvidenceRows, summarizeFindingEvidenceRows } from '@/lib/intelligence/evidence';
-import { buildIntelligenceGraphHref, buildIntelligenceHref } from '@/lib/intelligence/routes';
+import { buildIntelligenceGraphHref, buildIntelligenceHref, normalizeIntelligenceHref } from '@/lib/intelligence/routes';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
 import { OperationsShell } from './shell';
 import { BackLink, ConfidenceMeter, EntityLink, OpsBadge, OpsCard, SurfaceBanner, SurfaceErrorState, TimestampPair, severityTone } from './primitives';
@@ -74,6 +74,20 @@ export function FindingDetailClient({
   const storylineId = finding.storylineId || relatedStoryline?.storylineId || null;
   const storylineTitle = finding.storylineTitle || relatedStoryline?.title || 'Related storyline';
   const storylineSeverity = relatedStoryline?.severity || finding.severity;
+  const canonicalBackHref = useMemo(
+    () => normalizeIntelligenceHref(backHref || buildIntelligenceHref('findings')),
+    [backHref],
+  );
+  const findingDetailHref = useMemo(() => buildIntelligenceHref('dashboard', {
+    npi: providerNpi ?? undefined,
+    findingId,
+    storylineId: storylineId ?? undefined,
+    open: ['finding'],
+  }), [findingId, providerNpi, storylineId]);
+  const providerDetailHref = useMemo(
+    () => providerNpi ? buildIntelligenceHref('dashboard', { npi: providerNpi, open: ['provider'] }) : null,
+    [providerNpi],
+  );
   const storylineTimeline = useMemo(() => {
     if (finding.statusEvents.length > 0) {
       return finding.statusEvents.map((event, index) => ({
@@ -101,7 +115,7 @@ export function FindingDetailClient({
       title={finding.title}
       description={finding.summary}
       breadcrumbs={[
-        { label: 'Findings', href: backHref },
+        { label: 'Findings', href: canonicalBackHref },
         { label: 'Detail' },
       ]}
       meta={(
@@ -111,7 +125,7 @@ export function FindingDetailClient({
           <p>{finding.occurrenceCount} occurrence{finding.occurrenceCount === 1 ? '' : 's'}</p>
         </div>
       )}
-      actions={<BackLink href={backHref} label="Back to findings" />}
+      actions={<BackLink href={canonicalBackHref} label="Back to findings" />}
       banner={resource.recovering && resource.error ? (
         <SurfaceBanner tone="warning">
           Refresh failed. Showing the last confirmed finding detail snapshot.
@@ -142,7 +156,9 @@ export function FindingDetailClient({
               <div className="flex flex-wrap gap-2">
                 {providerNpi ? (
                   <>
-                    <EntityLink href={`/providers/${providerNpi}?from=/findings/${findingId}`} label={providerLabel ?? `Provider ${providerNpi}`} />
+                    {providerDetailHref ? (
+                      <EntityLink href={providerDetailHref} label={providerLabel ?? `Provider ${providerNpi}`} />
+                    ) : null}
                     <EntityLink href={buildIntelligenceHref('investigations', { npi: providerNpi })} label="Open investigation" />
                   </>
                 ) : null}
@@ -168,7 +184,7 @@ export function FindingDetailClient({
               findingsCount={1}
               storylineId={storylineId}
               providerNpi={providerNpi}
-              from={`/findings/${findingId}`}
+              from={findingDetailHref}
               timeline={storylineTimeline}
             />
           ) : null}
@@ -213,7 +229,7 @@ export function FindingDetailClient({
               <div className="flex flex-wrap gap-2">
                 {finding.entities.map((entity) => {
                   const providerHref = entity.entityType === 'provider' && /^\d{10}$/.test(entity.entityId)
-                    ? `/providers/${entity.entityId}`
+                    ? buildIntelligenceHref('dashboard', { npi: entity.entityId, open: ['provider'] })
                     : null;
                   return providerHref ? (
                     <EntityLink key={`${entity.entityType}-${entity.entityId}`} href={providerHref} label={entity.entityLabel ?? entity.entityId} />

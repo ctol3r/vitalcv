@@ -10,6 +10,7 @@
  * In production, protect this route at the infra level (Vercel password, IP allowlist, etc.).
  */
 
+import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { PilotKpiSnapshot } from '@/lib/pilot/pilotKpiTypes';
@@ -29,6 +30,15 @@ const B =
   'http://localhost:4000';
 
 const MONITORING_SECRET = process.env.MONITORING_SECRET ?? '';
+const LAUNCH_GATE_ITEMS = [
+  'Truthful Public Copy',
+  'Canonical Wedge Routes',
+  'Packet/Export Trustability',
+  'Employer Decision Persistence',
+  'Blocker Resolution Metrics',
+  'Start Outcome Capture',
+  'Source-Health Visibility',
+] as const;
 
 async function fetchKpis(days: number): Promise<PilotKpiSnapshot | null> {
   if (!MONITORING_SECRET) return null;
@@ -125,7 +135,7 @@ export default async function PilotOpsPage({
     );
   }
 
-  const exportUrl = `/api/pilot-kpi-export?days=${days}`;
+  const exportUrl = `/api/pilot-kpi-export?days=${days}&format=csv`;
 
   return (
     <main className="min-h-screen bg-[#080e1a] px-6 py-10 text-white">
@@ -161,6 +171,38 @@ export default async function PilotOpsPage({
               ↓ CSV
             </a>
           </div>
+        </div>
+
+        {/* Launch Gate Checklist */}
+        <div className="mb-6 rounded-xl border border-blue-400/20 bg-blue-400/5 p-5">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-blue-300">Launch Gate Readiness</p>
+              <p className="mt-1 text-xs text-blue-200/60">
+                Strict requirements before running a live pilot. No theater.
+              </p>
+            </div>
+            <div className="text-right text-[10px] uppercase tracking-[0.14em] text-blue-300/45">
+              Source of truth
+              <div className="mt-1 font-mono normal-case tracking-normal text-blue-100/55">
+                docs/specs/vitalcv-launch-gate.md
+              </div>
+            </div>
+          </div>
+          <p className="mb-4 text-[11px] text-blue-100/60">
+            Read-only gate criteria. Completion is proven in the linked spec and event data, not toggled on this page.
+          </p>
+          <ul className="grid grid-cols-1 gap-3 text-[11px] text-blue-100/70 sm:grid-cols-2 lg:grid-cols-4">
+            {LAUNCH_GATE_ITEMS.map((item) => (
+              <li
+                key={item}
+                className="flex items-start gap-2 rounded-lg border border-blue-300/12 bg-blue-300/[0.03] px-3 py-2"
+              >
+                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-300/70" aria-hidden="true" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
         </div>
 
         {/* Gaps banner */}

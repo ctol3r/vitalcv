@@ -49,6 +49,41 @@ import {
 
 const PAGE_SIZE = 10;
 
+function buildProviderDetailHref(npi: string) {
+  return buildIntelligenceHref('dashboard', { npi, open: ['provider'] });
+}
+
+function buildFindingDetailHref({
+  findingId,
+  providerNpi,
+  storylineId,
+}: {
+  findingId: string;
+  providerNpi?: string | null;
+  storylineId?: string | null;
+}) {
+  return buildIntelligenceHref('dashboard', {
+    npi: providerNpi ?? undefined,
+    findingId,
+    storylineId: storylineId ?? undefined,
+    open: ['finding'],
+  });
+}
+
+function buildStorylineDetailHref({
+  storylineId,
+  providerNpi,
+}: {
+  storylineId: string;
+  providerNpi?: string | null;
+}) {
+  return buildIntelligenceHref('dashboard', {
+    npi: providerNpi ?? undefined,
+    storylineId,
+    open: ['storyline'],
+  });
+}
+
 function getFindingTypeColor(findingType: string) {
   switch (findingType.toLowerCase()) {
     case 'oig_exclusion':
@@ -126,14 +161,12 @@ function LiveSignalRow({
 
 function FindingFeedCard({
   finding,
-  currentHref,
   selectionHref,
   isFocused,
   onSelectFinding,
   onFocusGraph,
 }: {
   finding: IntelligenceFinding;
-  currentHref: string;
   selectionHref: string;
   isFocused: boolean;
   onSelectFinding: (finding: IntelligenceFinding) => void;
@@ -172,7 +205,7 @@ function FindingFeedCard({
             <div className="flex flex-wrap gap-1.5 mt-2">
               {finding.providerNpi ? (
                 <Link
-                  href={`/providers/${finding.providerNpi}?from=${encodeURIComponent(currentHref)}`}
+                  href={buildProviderDetailHref(finding.providerNpi)}
                   className="inline-flex items-center gap-1 rounded-[2px] bg-[var(--vt-surface)] border border-[var(--vt-border)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.14em] text-[var(--vt-text-2)] transition hover:border-[var(--vt-text-3)]"
                 >
                   <span className="text-[var(--vt-text-3)]">Target</span> {finding.providerLabel ?? `Provider ${finding.providerNpi}`}
@@ -180,7 +213,10 @@ function FindingFeedCard({
               ) : null}
               {finding.storylineId ? (
                 <Link
-                  href={`/storylines/${finding.storylineId}?from=${encodeURIComponent(currentHref)}`}
+                  href={buildStorylineDetailHref({
+                    storylineId: finding.storylineId,
+                    providerNpi: finding.providerNpi,
+                  })}
                   className="inline-flex items-center gap-1 rounded-[2px] bg-[var(--vt-surface)] border border-[var(--vt-border)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.14em] text-[var(--vt-text-2)] transition hover:border-[var(--vt-text-3)]"
                 >
                    <span className="text-[var(--vt-text-3)]">Story</span> {finding.storylineTitle ?? 'Open storyline'}
@@ -706,7 +742,7 @@ export function FindingsSurface() {
                     key={alert.id}
                     title={alert.title}
                     detail={alert.summary}
-                    href={alert.providerNpi ? `/providers/${alert.providerNpi}?from=${encodeURIComponent(currentHref)}` : null}
+                    href={alert.providerNpi ? buildProviderDetailHref(alert.providerNpi) : null}
                     timestamp={alert.occurredAt}
                   />
                 ))}
@@ -729,13 +765,17 @@ export function FindingsSurface() {
             ) : null}
             {graphContextProvider ? (
               <EntityLink
-                href={`/providers/${graphContextProvider.npi}?from=${encodeURIComponent(currentHref)}`}
+                href={buildProviderDetailHref(graphContextProvider.npi)}
                 label="Provider"
               />
             ) : null}
             {graphContextFinding ? (
               <EntityLink
-                href={`/findings/${graphContextFinding.id}?from=${encodeURIComponent(currentHref)}`}
+                href={buildFindingDetailHref({
+                  findingId: graphContextFinding.id,
+                  providerNpi: graphContextFinding.providerNpi ?? graphContextProvider?.npi ?? providerScope,
+                  storylineId: graphContextFinding.storylineId ?? graphContextStorylineId,
+                })}
                 label="Open finding"
               />
             ) : null}
@@ -815,7 +855,7 @@ export function FindingsSurface() {
           <div className="flex flex-wrap gap-2">
             {graphContextProvider ? (
               <EntityLink
-                href={`/providers/${graphContextProvider.npi}?from=${encodeURIComponent(currentHref)}`}
+                href={buildProviderDetailHref(graphContextProvider.npi)}
                 label={graphContextProvider.name}
               />
             ) : null}
@@ -827,13 +867,20 @@ export function FindingsSurface() {
             ) : null}
             {graphContextFinding ? (
               <EntityLink
-                href={`/findings/${graphContextFinding.id}?from=${encodeURIComponent(currentHref)}`}
+                href={buildFindingDetailHref({
+                  findingId: graphContextFinding.id,
+                  providerNpi: graphContextFinding.providerNpi ?? graphContextProvider?.npi ?? providerScope,
+                  storylineId: graphContextFinding.storylineId ?? graphContextStorylineId,
+                })}
                 label="Open finding"
               />
             ) : null}
             {graphContextStorylineId ? (
               <EntityLink
-                href={`/storylines/${graphContextStorylineId}?from=${encodeURIComponent(currentHref)}`}
+                href={buildStorylineDetailHref({
+                  storylineId: graphContextStorylineId,
+                  providerNpi: graphContextProvider?.npi ?? graphContextFinding?.providerNpi ?? providerScope,
+                })}
                 label={graphContextStorylineTitle ?? 'Open storyline'}
               />
             ) : null}
@@ -873,7 +920,6 @@ export function FindingsSurface() {
             <FindingFeedCard
               key={finding.id}
               finding={finding}
-              currentHref={currentHref}
               selectionHref={buildWorkspaceHref({
                 providerNpi: finding.providerNpi ?? providerScope,
                 findingId: finding.id,
