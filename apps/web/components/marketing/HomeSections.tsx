@@ -290,25 +290,25 @@ export function HowItWorksSection() {
 const TRACTION_STATS = [
   { value: '6.8M', label: 'licensed US healthcare workers — every one needs credentialing', color: 'text-emerald-600' },
   { value: '$9K', label: 'lost per day per unfilled physician slot', color: 'text-red-500' },
-  { value: 'Faster', label: 'time-to-verified on VitalCV vs. 45–90 day industry average', color: 'text-infra-blue' },
+  { value: '~10s', label: 'to first readiness snapshot from NPI (NPPES + OIG/LEIE + PECOS)', color: 'text-infra-blue' },
   { value: '$4.2B', label: 'US healthcare credentialing market, growing 11% YoY', color: 'text-amber-500' },
 ] as const;
 
 const BUILD_SIGNALS = [
-  { icon: CheckCircle2, text: 'Live NPI verification via NPPES (250k+ provider database)' },
+  { icon: CheckCircle2, text: 'Live NPI verification via NPPES (7M+ provider registry)' },
   { icon: CheckCircle2, text: 'Cryptographic SD-JWT credentials — W3C VC + OID4VCI compliant' },
-  { icon: CheckCircle2, text: 'Two-sided marketplace: clinicians browse & apply, employers post & hire' },
-  { icon: CheckCircle2, text: 'Apple/Google Wallet passes for portable credential sharing' },
+  { icon: CheckCircle2, text: 'Clinician identity graph: NPI → readiness → portable trust packet' },
+  { icon: CheckCircle2, text: 'Employer acceptance flow — review and accept verified packets' },
   { icon: CheckCircle2, text: 'HIPAA-compliant audit ledger with continuous license monitoring' },
 ] as const;
 
 const COMPLIANCE_BADGES = [
-  'NCQA CR1–CR5',
-  'HIPAA',
-  'CMS CoP §482.12',
+  'HIPAA-aligned',
   'ONC 21st Century Cures',
-  'SD-JWT VC',
+  'SD-JWT VC (W3C)',
   'OpenID4VCI',
+  'CMS NPPES + OIG/LEIE',
+  'PECOS enrollment',
 ] as const;
 
 export function TractionSection() {
@@ -371,7 +371,7 @@ export function TractionSection() {
         <FadeIn delay={0.3}>
           <div className="rounded-2xl border border-white/6 bg-white/3 p-6">
             <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/50 text-center mb-5">
-              Compliance &amp; Standards
+              Standards &amp; Sources
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               {COMPLIANCE_BADGES.map((badge) => (
@@ -379,7 +379,7 @@ export function TractionSection() {
                   key={badge}
                   className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5"
                 >
-                  <CheckCircle2 className="h-3 w-3 text-emerald-400 flex-shrink-0" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-white/30 flex-shrink-0" />
                   <span className="text-xs font-semibold text-white/50">{badge}</span>
                 </div>
               ))}

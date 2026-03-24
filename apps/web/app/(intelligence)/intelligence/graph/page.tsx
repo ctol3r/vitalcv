@@ -3,8 +3,8 @@ import { redirect } from 'next/navigation';
 import { buildIntelligenceGraphHref } from '@/lib/intelligence/routes';
 
 export const metadata: Metadata = {
-  title: 'Relationship Graph | VitalCV',
-  description: 'Dedicated trust and evidence relationship graph workspace.',
+  title: 'Global Intelligence Map | VitalCV',
+  description: 'Dedicated geospatial intelligence workspace for shortage pressure, collaboration networks, and institutional momentum.',
 };
 
 /**

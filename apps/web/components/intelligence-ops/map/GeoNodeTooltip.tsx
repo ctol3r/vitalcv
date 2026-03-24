@@ -37,7 +37,8 @@ export function GeoNodeTooltip({
     return null;
   }
 
-  const left = Math.min(anchor.x + 18, window.innerWidth - 304);
+  const viewportWidth = typeof window === 'undefined' ? 1440 : window.innerWidth;
+  const left = Math.min(anchor.x + 18, viewportWidth - 304);
   const top = Math.max(20, anchor.y - 88);
 
   return (

@@ -47,8 +47,8 @@ export const WORKSPACE_SECTIONS: Array<{
   },
   {
     id: 'graph',
-    label: 'Trust Graph',
-    detail: 'Zoomable canvas visualizing credential links and trust networks.',
+    label: 'Global Intelligence Map',
+    detail: 'Dark geospatial canvas for shortage pressure, institutional momentum, and collaboration networks.',
   },
   {
     id: 'map',
