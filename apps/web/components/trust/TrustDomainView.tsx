@@ -8,9 +8,9 @@
  */
 
 import type { PassportData } from '@/app/passport/[id]/page';
-import * as Vds from '@/components/vds/primitives';
+import { VStatusPill, type TrustStatusLabel } from '@/components/vds/primitives';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';
-import { useState, type ComponentType, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { SourceCoverageTag, type SourceCoverageTagProps } from './SourceCoverageTag';
 
 type DomainStatus =
@@ -119,10 +119,6 @@ const CHIP_CLASSES: Record<'success' | 'warning' | 'critical' | 'neutral' | 'inf
   neutral: 'border-[var(--vt-badge-neutral-border)] bg-[var(--vt-badge-neutral-bg)] text-[var(--vt-badge-neutral-text)]',
   info: 'border-[var(--vt-badge-info-border)] bg-[var(--vt-badge-info-bg)] text-[var(--vt-badge-info-text)]',
 };
-
-const ExternalStatusPill = (Vds as unknown as {
-  VStatusPill?: ComponentType<{ label?: string; status?: string }>;
-}).VStatusPill;
 
 function asTrustPassport(passport: PassportData): PassportWithTrustExtensions {
   return passport as PassportWithTrustExtensions;
@@ -243,6 +239,25 @@ function statusLabel(status: DomainStatus): string {
   }
 }
 
+function domainStatusToTrustStatusLabel(status: DomainStatus): TrustStatusLabel | null {
+  switch (status) {
+    case 'verified':
+    case 'pending':
+    case 'unavailable':
+    case 'clear':
+    case 'enrolled':
+      return status;
+    case 'review-required':
+      return 'review required';
+    case 'access-required':
+      return 'access required';
+    case 'not-found':
+    case 'unchecked':
+    default:
+      return null;
+  }
+}
+
 function StatusChip({ label }: { label: string }) {
   const tone = CHIP_TONES[label.toLowerCase()] ?? 'neutral';
 
@@ -257,9 +272,10 @@ function StatusChip({ label }: { label: string }) {
 
 function DomainStatusPill({ status }: { status: DomainStatus }) {
   const label = statusLabel(status);
+  const trustStatus = domainStatusToTrustStatusLabel(status);
 
-  if (ExternalStatusPill) {
-    return <ExternalStatusPill label={label} status={status} />;
+  if (trustStatus) {
+    return <VStatusPill status={trustStatus} size="sm" />;
   }
 
   return <StatusChip label={label} />;

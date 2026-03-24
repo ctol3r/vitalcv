@@ -92,7 +92,7 @@ const TRUST_STATUS_TONES: Record<TrustStatusLabel, BadgeTone> = {
   unavailable: 'neutral',
   'access required': 'neutral',
   'not decision-grade': 'neutral',
-  blocked: 'warning',
+  blocked: 'critical',
 };
 
 /** Map a severity/status string to a badge tone. */

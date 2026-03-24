@@ -10,6 +10,7 @@
 
 import Link from 'next/link';
 import { EmployerSummaryCard } from '@/components/apply/EmployerSummaryCard';
+import { canonicalCredStatus } from '@/lib/trust/status-language';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -97,23 +98,6 @@ function credentialTypeLabel(type: string): string {
 
 function CredentialTypeLabel({ type }: { type: string }) {
   return <>{credentialTypeLabel(type)}</>;
-}
-
-function canonicalCredStatus(raw: string): string {
-  const map: Record<string, string> = {
-    VERIFIED: 'Verified',
-    verified: 'Verified',
-    ACTIVE: 'Verified',
-    active: 'Verified',
-    PENDING: 'Pending',
-    pending: 'Pending',
-    UNVERIFIED: 'Pending',
-    unverified: 'Pending',
-    EXPIRED: 'Unavailable',
-    expired: 'Unavailable',
-  };
-
-  return map[raw] ?? raw.toLowerCase().replace(/_/g, ' ');
 }
 
 function uniqueStrings(values: string[]): string[] {

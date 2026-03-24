@@ -142,3 +142,32 @@ export function resolveTrustUiStatus(input: {
 export function isDecisionGradePositiveStatus(status: TrustUiStatus): boolean {
   return status === 'verified' || status === 'clear';
 }
+
+/** Maps a raw readiness level code to a human-readable label. */
+export function readinessLevelLabel(level: string | null | undefined): string {
+  switch (level) {
+    case 'L0': return 'Foundation — not ready';
+    case 'L1': return 'Provisional — review required';
+    case 'L2': return 'Verified — ready to proceed';
+    case 'L3': return 'Trust-Native — decision grade';
+    default: return level ?? 'Unknown';
+  }
+}
+
+/** Maps a raw API credential status string to a canonical display label. */
+export function canonicalCredStatus(raw: string): string {
+  const map: Record<string, string> = {
+    VERIFIED: 'Verified',
+    verified: 'Verified',
+    ACTIVE: 'Verified',
+    active: 'Verified',
+    PENDING: 'Pending',
+    pending: 'Pending',
+    UNVERIFIED: 'Pending',
+    unverified: 'Pending',
+    EXPIRED: 'Unavailable',
+    expired: 'Unavailable',
+  };
+
+  return map[raw] ?? raw.toLowerCase().replace(/_/g, ' ');
+}

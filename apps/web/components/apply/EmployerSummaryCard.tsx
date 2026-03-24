@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { readinessLevelLabel } from '@/lib/trust/status-language';
 
 interface EmployerSummaryCardProps {
   clinicianName: string;
@@ -13,22 +14,11 @@ interface EmployerSummaryCardProps {
   dataFreshnessNote: string;
 }
 
-const READINESS_LABELS: Record<string, string> = {
-  L0: 'Foundation — not ready',
-  L1: 'Provisional — review required',
-  L2: 'Verified — ready to proceed',
-  L3: 'Trust-Native — decision grade',
-};
-
 function summarizeItems(items: string[], maxVisible = 3): { visible: string[]; remaining: number } {
   return {
     visible: items.slice(0, maxVisible),
     remaining: Math.max(0, items.length - maxVisible),
   };
-}
-
-function readinessLabel(level: string): string {
-  return READINESS_LABELS[level] ?? level;
 }
 
 function SummaryGroup({
@@ -82,7 +72,7 @@ export function EmployerSummaryCard({
   blockers,
   dataFreshnessNote,
 }: EmployerSummaryCardProps) {
-  const label = readinessLabel(readinessLevel);
+  const label = readinessLevelLabel(readinessLevel);
   const gridClass = blockers.length > 0 ? 'md:grid-cols-3' : 'md:grid-cols-2';
 
   return (
