@@ -50,8 +50,10 @@ export interface PassportData {
       claimState?:       string;
       statusLabel?:      string;
       dataVersion?:      string;
+      revalidationDue?:  string;
       identityOnly?:     boolean;
       sourceDisclaimer?: string;
+      nextReverifyAt?:   string;
       reviewRequired:      boolean;
       // Authority truth fields (MS15)
       authorityClaimCode?:  string;

@@ -58,12 +58,12 @@ export const HOMEPAGE_PUBLIC_TRUTH_SOURCES = [
   {
     id: 'licensure',
     proofLabel: 'Licensure',
-    name: 'State Boards',
-    sublabel: 'Connector or institutional access',
+    name: 'CA State Board / FSMB',
+    sublabel: 'CA physician lane only',
     sourceState: 'accessRequired',
     evidenceKind: 'generic',
     satisfied: false,
-    detailLabel: 'Access required',
+    detailLabel: 'CA lane access required',
   },
 ] as const satisfies readonly HomepagePublicTruthSource[];
 

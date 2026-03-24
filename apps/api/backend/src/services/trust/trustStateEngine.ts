@@ -26,6 +26,21 @@ import {
   type TrustSourceCoverage,
 } from './trustCore';
 import {
+  buildPecosStatusLabel,
+  extractPecosArtifactSnapshot,
+  isPecosFresh,
+  isUnresolvedPecosStatus,
+  pecosBlocker,
+  pecosCoverageReason,
+  pecosGap,
+  pecosRevalidationDaysRemaining,
+  pecosReadinessStatus,
+  resolvePecosCurrentStatus,
+  type PecosEnrollmentStatus,
+} from '../identity/pecosContract';
+import { getSourceFreshnessWindowHours } from '../identity/sourceCatalog';
+import { isProductionEnabledPhysicianLicensureState } from '../identity/physicianLicensureLaunchLane';
+import {
   boardOrderSeverityBlocksReadiness,
   boardOrderSeverityRequiresReview,
   normalizeBoardOrderSeverity,
@@ -43,7 +58,7 @@ import {
 export type TrustBand = 'L0' | 'L1' | 'L2' | 'L3';
 export type LicensureStatus = 'verified' | 'pending' | 'expired' | 'unknown';
 export type ExclusionStatus = 'CLEAR' | 'EXCLUDED' | 'POSSIBLE_MATCH' | 'UNCHECKED' | 'UNKNOWN';
-export type PecosStatus = 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED';
+export type PecosStatus = PecosEnrollmentStatus;
 
 export interface CanonicalFactSummary {
   factType: string;
@@ -96,6 +111,7 @@ type IngestedArtifactRecord = {
   status: string;
   checksum?: string | null;
   sourceUrl?: string | null;
+  parserVersion?: string | null;
   verifiedAt: Date;
   expiresAt: Date | null;
   psvWindowDeadline: Date | null;
@@ -258,13 +274,9 @@ function sourceDetails(artifact: IngestedArtifactRecord): string | undefined {
     return [boardName, licenseNumber, state].filter(Boolean).join(' · ') || undefined;
   }
   if (artifact.source === 'PECOS_PUBLIC') {
-    const statusLabel = typeof payload.statusLabel === 'string'
-      ? payload.statusLabel
-      : typeof payload.label === 'string'
-        ? payload.label
-        : '';
-    const dataVersion = typeof payload.dataVersion === 'string' ? payload.dataVersion : '';
-    return [statusLabel, dataVersion].filter(Boolean).join(' · ') || undefined;
+    const snapshot = extractPecosArtifactSnapshot(artifact);
+    const statusLabel = buildPecosStatusLabel(snapshot.status, snapshot.dataVersion);
+    return statusLabel || undefined;
   }
 
   return undefined;
@@ -312,6 +324,45 @@ function authorityScopeLabel(credential: AuthorityCredentialRecord): string {
     ?? stringValue(claimValue.sourceScope)
     ?? stringValue(metadata.sourceId)
     ?? credential.credentialType
+  );
+}
+
+function authorityJurisdiction(
+  credential: AuthorityCredentialRecord,
+): string | null {
+  const metadata = asRecord(credential.metadata);
+  const claimValue = asRecord(credential.claimValue);
+
+  return (
+    stringValue(claimValue.state)
+    ?? stringValue(claimValue.jurisdiction)
+    ?? stringValue(metadata.jurisdiction)
+  )?.toUpperCase() ?? null;
+}
+
+function authorityScope(
+  credential: AuthorityCredentialRecord,
+): string | null {
+  const metadata = asRecord(credential.metadata);
+  const claimValue = asRecord(credential.claimValue);
+
+  return (
+    stringValue(metadata.sourceScope)
+    ?? stringValue(claimValue.sourceScope)
+  ) ?? null;
+}
+
+function licensureCountsTowardReadiness(
+  credential: AuthorityCredentialRecord,
+  authorityClaimCode: string | null,
+): boolean {
+  const scope = authorityScope(credential);
+  if (scope === 'NURSYS_AUTHORIZED_PATH' || authorityClaimCode?.startsWith('RN_')) {
+    return true;
+  }
+
+  return isProductionEnabledPhysicianLicensureState(
+    authorityJurisdiction(credential),
   );
 }
 
@@ -390,6 +441,10 @@ function collectAuthoritySignals(
       && expiresAt!.getTime() <= now.getTime();
 
     if (credential.domain === 'LICENSURE') {
+      if (!licensureCountsTowardReadiness(credential, authorityClaimCode ?? null)) {
+        continue;
+      }
+
       if (authorityClaimCode === 'AUTHORITY_UNAVAILABLE') {
         authorityUnavailableLicensure = true;
         appendUniqueGap(
@@ -473,91 +528,8 @@ function collectAuthoritySignals(
   };
 }
 
-function extractPecosStatus(
-  artifact: Pick<IngestedArtifactRecord, 'status' | 'rawPayload'>,
-): PecosStatus {
-  const payload = asRecord(artifact.rawPayload);
-  const claims = Array.isArray(payload._claims) ? payload._claims : [];
-
-  for (const claim of claims) {
-    const claimRecord = asRecord(claim);
-    if (claimRecord.claimType !== 'ENROLLMENT_STATUS') {
-      continue;
-    }
-
-    const value = asRecord(claimRecord.value);
-    const claimState = stringValue(value.claimState)?.toUpperCase();
-    if (claimState === 'ENROLLED') {
-      return 'ENROLLED';
-    }
-    if (claimState === 'NOT_FOUND' || claimState === 'ENROLLMENT_NOT_FOUND') {
-      return 'NOT_FOUND';
-    }
-    if (claimState === 'UNKNOWN') {
-      return 'UNKNOWN';
-    }
-    if (claimState === 'UNCHECKED') {
-      return 'UNCHECKED';
-    }
-    if (typeof value.enrolled === 'boolean') {
-      return value.enrolled ? 'ENROLLED' : 'NOT_FOUND';
-    }
-  }
-
-  const normalizedStatus = artifact.status.toUpperCase();
-  if (normalizedStatus === 'NOT_FOUND') {
-    return 'NOT_FOUND';
-  }
-
-  return 'UNKNOWN';
-}
-
 function unresolvedPecosStatus(status: PecosStatus): boolean {
-  return status === 'UNKNOWN' || status === 'UNCHECKED';
-}
-
-function pecosCoverageReason(
-  status: PecosStatus,
-  artifact: IngestedArtifactRecord | undefined,
-  fresh: boolean,
-): string {
-  if (!artifact) {
-    return 'PECOS enrollment source not yet checked';
-  }
-  if (!fresh) {
-    return 'PECOS evidence is stale and must be refreshed';
-  }
-  if (status === 'NOT_FOUND') {
-    return 'PECOS quarterly release does not show Medicare enrollment for this NPI';
-  }
-  if (status === 'UNKNOWN') {
-    return 'PECOS enrollment outcome could not be resolved from the quarterly release';
-  }
-  if (status === 'UNCHECKED') {
-    return 'PECOS enrollment source has not been checked yet';
-  }
-  return 'PECOS quarterly enrollment checked';
-}
-
-function pecosBlocker(status: PecosStatus): string | null {
-  return status === 'NOT_FOUND' ? 'PECOS quarterly enrollment not found' : null;
-}
-
-function pecosGap(
-  status: PecosStatus,
-  artifact: IngestedArtifactRecord | undefined,
-  fresh: boolean,
-): string | null {
-  if (!artifact || status === 'UNCHECKED') {
-    return 'PECOS enrollment not yet checked';
-  }
-  if (!fresh) {
-    return 'PECOS enrollment verification stale';
-  }
-  if (status === 'UNKNOWN') {
-    return 'PECOS enrollment outcome unresolved';
-  }
-  return null;
+  return isUnresolvedPecosStatus(status);
 }
 
 function normalizeExclusionStatus(
@@ -669,6 +641,8 @@ function artifactCoverage(
     sourceUrl: artifact?.sourceUrl ?? null,
     rawArtifactRef: artifact?.id ?? null,
     checksum: artifact?.checksum ?? null,
+    parserVersion: artifact?.parserVersion ?? null,
+    freshnessWindowHours: getSourceFreshnessWindowHours(sourceId),
   };
 }
 
@@ -727,6 +701,7 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
         status: true,
         checksum: true,
         sourceUrl: true,
+        parserVersion: true,
         verifiedAt: true,
         expiresAt: true,
         psvWindowDeadline: true,
@@ -793,11 +768,20 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
   const oigArtifact = latestBySource.get('OIG_LEIE') ?? latestBySource.get('OIG');
   const licenseArtifact = latestBySource.get('STATE_BOARD');
   const pecosArtifact = latestBySource.get('PECOS_PUBLIC');
+  const pecosSnapshot = extractPecosArtifactSnapshot(pecosArtifact);
 
   const nppesFresh = isSourceArtifactFresh(nppesArtifact, now);
   const oigFresh = isSourceArtifactFresh(oigArtifact, now);
   const licenseFresh = isSourceArtifactFresh(licenseArtifact, now);
-  const pecosFresh = isSourceArtifactFresh(pecosArtifact, now);
+  const pecosFresh = isPecosFresh({
+    status: pecosSnapshot.status,
+    revalidationDue: pecosSnapshot.revalidationDue,
+    observedAt: pecosSnapshot.observedAt,
+  }, now);
+  const pecosDaysRemaining = pecosRevalidationDaysRemaining(
+    pecosSnapshot.revalidationDue,
+    now,
+  );
   const nppesMock = artifactLooksMock(nppesArtifact);
   const oigMock = artifactLooksMock(oigArtifact);
   const licenseMock = artifactLooksMock(licenseArtifact);
@@ -839,12 +823,11 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
 
   const exclusionStatus = normalizeExclusionStatus(oigArtifact, oigFresh);
   const exclusionClear = exclusionStatus === 'CLEAR';
-  const pecosStatus: PecosStatus =
-    !pecosArtifact
-      ? 'UNCHECKED'
-      : pecosFresh
-        ? extractPecosStatus(pecosArtifact)
-        : 'UNKNOWN';
+  const pecosStatus: PecosStatus = resolvePecosCurrentStatus({
+    checked: pecosSnapshot.checked,
+    status: pecosSnapshot.status,
+    fresh: pecosFresh,
+  });
 
   const credentialCount = [nppesArtifact, oigArtifact, licenseArtifact, pecosArtifact].filter((artifact) => {
     if (!artifact) {
@@ -947,7 +930,12 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
     reason:
       pecosMock
         ? 'PECOS evidence is mock and excluded from decision-grade trust'
-        : pecosCoverageReason(pecosStatus, pecosArtifact, pecosFresh),
+        : pecosCoverageReason({
+          status: pecosStatus,
+          checked: pecosSnapshot.checked,
+          fresh: pecosFresh,
+          daysRemaining: pecosDaysRemaining,
+        }),
     mock: pecosMock,
   });
 
@@ -1049,7 +1037,12 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
         ? confidenceScoreForLabel('UNCERTAIN')
         : confidenceScoreForLabel('HIGH'),
     blocker: pecosBlocker(pecosStatus),
-    gap: pecosGap(pecosStatus, pecosArtifact, pecosFresh),
+    gap: pecosGap({
+      status: pecosStatus,
+      checked: pecosSnapshot.checked,
+      fresh: pecosFresh,
+      daysRemaining: pecosDaysRemaining,
+    }),
     sourceCoverage: [enrollmentCoverage],
   };
 
@@ -1095,13 +1088,12 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
   };
 
   let readinessStatus = readinessStatusMap[trustBand];
+  const pecosReadinessHeadline = pecosReadinessStatus(pecosStatus);
   if (blockers.some((blocker) => /exclusion confirmed|excluded/i.test(blocker))) readinessStatus = 'Not ready — excluded from federal healthcare programs';
   else if (blockers.some((blocker) => /discipline/i.test(blocker))) readinessStatus = 'Blocked — license discipline requires resolution';
   else if (blockers.some((blocker) => /board order severity blocks/i.test(blocker))) readinessStatus = 'Blocked — board order severity requires manual resolution';
   else if (blockers.some((blocker) => /license expired/i.test(blocker))) readinessStatus = 'Blocked — state license expired';
-  else if (blockers.some((blocker) => /pecos quarterly enrollment not found/i.test(blocker))) readinessStatus = 'Blocked — PECOS quarterly enrollment not found';
-  else if (pecosStatus === 'UNKNOWN') readinessStatus = 'Unresolved — PECOS enrollment outcome is unknown';
-  else if (pecosStatus === 'UNCHECKED') readinessStatus = 'Unresolved — PECOS enrollment has not been checked';
+  else if (pecosReadinessHeadline) readinessStatus = pecosReadinessHeadline;
   else if (blockers.some((blocker) => /board order requires manual review/i.test(blocker))) readinessStatus = 'Review required — board order requires adjudication';
   else if (unresolvedAuthorityLicensure) readinessStatus = 'Unresolved — authority source unavailable for licensure';
   else if (reviewRequired) readinessStatus = 'Review required — OIG/LEIE screening needs manual adjudication';
@@ -1200,6 +1192,7 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
         status: true,
         checksum: true,
         sourceUrl: true,
+        parserVersion: true,
         verifiedAt: true,
         expiresAt: true,
         psvWindowDeadline: true,
@@ -1274,8 +1267,17 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
       || src.includes('FSMB');
   });
   const pecosArtifact = artifacts.find((artifact) => artifact.source.toUpperCase().includes('PECOS'));
+  const pecosSnapshot = extractPecosArtifactSnapshot(pecosArtifact);
   const licenseFresh = isSourceArtifactFresh(licenseArtifact, now);
-  const pecosFresh = isSourceArtifactFresh(pecosArtifact, now);
+  const pecosFresh = isPecosFresh({
+    status: pecosSnapshot.status,
+    revalidationDue: pecosSnapshot.revalidationDue,
+    observedAt: pecosSnapshot.observedAt,
+  }, now);
+  const pecosDaysRemaining = pecosRevalidationDaysRemaining(
+    pecosSnapshot.revalidationDue,
+    now,
+  );
   const licenseMock = artifactLooksMock(licenseArtifact);
   const pecosMock = artifactLooksMock(pecosArtifact);
 
@@ -1300,12 +1302,11 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
     }
   }
 
-  const pecosStatus: PecosStatus =
-    !pecosArtifact
-      ? 'UNCHECKED'
-      : pecosFresh
-        ? extractPecosStatus(pecosArtifact)
-        : 'UNKNOWN';
+  const pecosStatus: PecosStatus = resolvePecosCurrentStatus({
+    checked: pecosSnapshot.checked,
+    status: pecosSnapshot.status,
+    fresh: pecosFresh,
+  });
   const credentialCount = candidateCredentials.length + artifacts.filter((artifact) => {
     const normalizedStatus = artifact.status.toUpperCase();
     const unexpired = !artifact.expiresAt || artifact.expiresAt.getTime() > now.getTime();
@@ -1432,7 +1433,12 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
     reason:
       pecosMock
         ? 'PECOS evidence is mock and excluded from decision-grade trust'
-        : pecosCoverageReason(pecosStatus, pecosArtifact, pecosFresh),
+        : pecosCoverageReason({
+          status: pecosStatus,
+          checked: pecosSnapshot.checked,
+          fresh: pecosFresh,
+          daysRemaining: pecosDaysRemaining,
+        }),
     mock: pecosMock,
   });
 
@@ -1528,7 +1534,12 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
         ? confidenceScoreForLabel('UNCERTAIN')
         : confidenceScoreForLabel('HIGH'),
     blocker: pecosBlocker(pecosStatus),
-    gap: pecosGap(pecosStatus, pecosArtifact, pecosFresh),
+    gap: pecosGap({
+      status: pecosStatus,
+      checked: pecosSnapshot.checked,
+      fresh: pecosFresh,
+      daysRemaining: pecosDaysRemaining,
+    }),
     sourceCoverage: [enrollmentCoverage],
   };
 
@@ -1564,11 +1575,10 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
     L0: 'Not ready — critical issues detected',
   };
   let readiness_status = readinessStatusMap[trustBand];
+  const pecosReadinessHeadline = pecosReadinessStatus(pecosStatus);
   if (readiness.blockers.some((blocker) => /exclusion confirmed|excluded/i.test(blocker))) readiness_status = 'Not ready — excluded from federal healthcare programs';
   else if (readiness.blockers.some((blocker) => /license expired/i.test(blocker))) readiness_status = 'Blocked — state license expired';
-  else if (readiness.blockers.some((blocker) => /pecos quarterly enrollment not found/i.test(blocker))) readiness_status = 'Blocked — PECOS quarterly enrollment not found';
-  else if (pecosStatus === 'UNKNOWN') readiness_status = 'Unresolved — PECOS enrollment outcome is unknown';
-  else if (pecosStatus === 'UNCHECKED') readiness_status = 'Unresolved — PECOS enrollment has not been checked';
+  else if (pecosReadinessHeadline) readiness_status = pecosReadinessHeadline;
   else if (reviewRequired) readiness_status = 'Review required — OIG/LEIE screening needs manual adjudication';
 
   const state: ClinicianTrustState = {

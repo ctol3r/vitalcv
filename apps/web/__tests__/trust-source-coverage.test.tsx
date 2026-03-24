@@ -87,6 +87,35 @@ describe('trust source coverage contract', () => {
     expect(findPassportSourceCoverageCheck(report, ['OIG', 'LEIE'])?.state).toBe('reviewRequired');
   });
 
+  it('preserves parser and freshness metadata when normalizing coverage checks', () => {
+    const report: PassportSourceCoverageReport = {
+      checks: [
+        {
+          sourceId: 'PECOS_PUBLIC',
+          state: 'live',
+          reason: 'quarterly enrollment checked',
+          parserVersion: 'v1.2.0',
+          freshnessWindowHours: 2160,
+        },
+      ],
+      summary: {
+        live: ['PECOS_PUBLIC'],
+        gated: [],
+        partial: [],
+        stale: [],
+        notDecisionGrade: [],
+        notChecked: [],
+        unavailable: [],
+        accessRequired: [],
+        reviewRequired: [],
+        mock: [],
+      },
+    };
+
+    expect(findPassportSourceCoverageCheck(report, ['PECOS'])?.parserVersion).toBe('v1.2.0');
+    expect(findPassportSourceCoverageCheck(report, ['PECOS'])?.freshnessWindowHours).toBe(2160);
+  });
+
   it('keeps homepage, passport, and review source aliases on the same canonical report', () => {
     const report: PassportSourceCoverageReport = {
       checks: [

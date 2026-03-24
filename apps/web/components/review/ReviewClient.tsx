@@ -73,6 +73,24 @@ function latestCredentialObservationDate(
   return values.sort((left, right) => Date.parse(right) - Date.parse(left))[0] ?? null;
 }
 
+function authorityMethodLabel(c: PassportData['authority']['credentials'][0]): string {
+  switch (c.sourceScope) {
+    case 'STATE_BOARD_CA_API':
+      return 'Live CA state board';
+    case 'STATE_BOARD_MANUAL':
+      return c.jurisdiction
+        ? `${c.jurisdiction} state board (manual)`
+        : 'State board (manual)';
+    case 'FSMB_MED_API':
+    case 'FSMB_PDC':
+      return 'FSMB';
+    case 'NURSYS_AUTHORIZED_PATH':
+      return 'Nursys';
+    default:
+      return c.issuerName ?? c.sourceId ?? 'Authority source';
+  }
+}
+
 function claimCodeToNote(c: PassportData['authority']['credentials'][0]): string | null {
   const code = c.authorityClaimCode;
   const severity = c.boardOrderSeverity;
@@ -84,8 +102,12 @@ function claimCodeToNote(c: PassportData['authority']['credentials'][0]): string
     const p = c.participationStatus;
     if (p === 'non_participating_state' && c.jurisdiction)
       return `${c.jurisdiction} does not participate in automated license verification. Request a board-issued verification letter directly.`;
+    if (p === 'manual_verification_required' && c.jurisdiction)
+      return `${c.jurisdiction} is outside the current CA physician licensure launch lane. Manual state board verification is required and is not decision-grade.`;
     if (p === 'institution_access_unavailable')
-      return 'Requires institutional FSMB or Nursys agreement. Contact your administrator.';
+      return c.sourceScope === 'STATE_BOARD_MANUAL' || c.sourceScope === 'STATE_BOARD_CA_API'
+        ? 'CA physician licensure requires live California board access or an institutional FSMB agreement before it becomes decision-grade.'
+        : 'Requires institutional FSMB or Nursys agreement. Contact your administrator.';
     return 'Authority source access not configured for this record.';
   }
   if (code === 'RN_LICENSE_DISCIPLINED')
@@ -169,9 +191,13 @@ function buildAuthorityRow(credential: PassportData['authority']['credentials'][
     isDisciplined ? `License disciplinary action${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}` :
     isExpired ? `License expired${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}` :
     isUnavailable ? (
+      credential.participationStatus === 'manual_verification_required'
+        ? `License verification manual only${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}`
+        : (
       credential.participationStatus === 'non_participating_state'
         ? `License source unavailable${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}`
         : 'License source not configured'
+        )
     ) :
     isActive ? `License active${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}` :
     `License${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}`;
@@ -182,13 +208,17 @@ function buildAuthorityRow(credential: PassportData['authority']['credentials'][
     isUnavailable ? 'unchecked' :
     isActive ? 'confirmed' :
     'unchecked';
+  const availabilityLabel =
+    credential.participationStatus === 'manual_verification_required'
+      ? 'Manual only'
+      : credential.participationStatus === 'institution_access_unavailable'
+        ? 'Access required'
+        : 'Unavailable';
 
   // MS16-E: note carries dataFreshness + confidenceLabel (row contract)
   const note = joinNoteParts([
     isUnavailable
-      ? credential.participationStatus === 'institution_access_unavailable'
-        ? 'Access required'
-        : 'Unavailable'
+      ? availabilityLabel
       : isExpired
         ? 'Blocked'
         : isBoardOrder || isDisciplined
@@ -218,7 +248,7 @@ function buildEligibilityRow(standing: PassportData['standing'], status: 'ENROLL
 } {
   const quarterNote  = formatAsOfQuarter(standing.enrollmentObservedAt, standing.enrollmentDataVersion);
   // MS16-E: note contract — dataFreshness · confidenceLabel · checkedAt (· action-flag)
-  const freshness    = standing.enrollmentDataFreshness ?? standing.enrollmentFreshnessLabel ?? null;
+  const freshness    = standing.enrollmentFreshnessLabel ?? standing.enrollmentDataFreshness ?? null;
   const confidence   = standing.enrollmentConfidenceLabel ?? null;
 
   switch (status) {
@@ -719,7 +749,7 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
                             key={credential.id}
                             status={row.status}
                             label={row.label}
-                            source={credential.issuerName ?? credential.sourceId ?? 'Authority source'}
+                            source={authorityMethodLabel(credential)}
                             timestamp={credential.observedAt || credential.verifiedAt ? `checked ${formatProofDate(credential.observedAt ?? credential.verifiedAt)}` : undefined}
                             note={row.note}
                             explanation={row.explanation}
@@ -743,9 +773,9 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
                         <TrustLabel
                           status="unchecked"
                           label="Authority"
-                          source="FSMB / Nursys"
+                          source="CA State Board / FSMB"
                           note="Access required · requires verification"
-                          explanation="No source-backed authority record is attached yet. Institutional access or manual verification is still required."
+                          explanation="No source-backed authority record is attached yet. Only the CA physician licensure launch lane can become decision-grade in this release."
                         />
                       )}
                     </div>

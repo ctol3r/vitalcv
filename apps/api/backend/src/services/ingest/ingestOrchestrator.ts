@@ -3,11 +3,12 @@ import { log } from '../../obs/logger';
 import { buildPassport } from '../entity/passportService';
 import { resolveEntityFromNpi } from '../entity/entityResolutionService';
 import { ingestClinicianIdentity, type IngestionResult } from '../identity/identityIngestionPipeline';
-import { fetchFsmbClaims, isFsmbEnabled } from '../identity/fsmbClaimMapper';
+import { extractPracticeStates } from '../identity/phase3Sources';
+import { loadClaimRecordsForNpi } from '../identity/identityStore';
+import { resolvePhysicianLicensureLaunchLane } from '../identity/physicianLicensureLaunchLane';
 import { fetchNursysClaim } from '../identity/nursysClaimMapper';
 import { env } from '../../config/env';
 import { upsertVcvCredential } from '../entity/upsertVcvCredential';
-import { computeClaimId } from '../identity/evidenceModel';
 import type { PersistedIngestRun, IngestSourceId } from './contracts';
 import {
   appendIngestEvent,
@@ -223,45 +224,67 @@ async function runPipeline(runId: string, npi: string): Promise<void> {
       }
     }
 
-    // ── Authority stage: FSMB (physician licensure + board certs) ────────────
-    if (isFsmbEnabled()) {
-      await emitSourceStart(runId, 'fsmb');
-      try {
-        const fsmbResult = await fetchFsmbClaims(npi, new Date().toISOString());
-        const fsmbCredIds: string[] = [];
-        for (const claim of fsmbResult.claims) {
-          const cred = await upsertVcvCredential(claim, entityRecord.entity.id);
-          if (cred) fsmbCredIds.push(cred.credentialId);
-        }
-        await finalizeSourceResult(runId, 'fsmb', {
-          npi,
-          source:        'FSMB',
-          status:        fsmbResult.sourced ? 'SUCCESS' : 'FAILED',
-          claimsEmitted: fsmbResult.claims.length,
-          credentialIds: fsmbCredIds,
-          claimIds:      fsmbResult.claims.map(c => c.claimId),
-          artifactId:    fsmbResult.claims[0]?.artifactId ?? undefined,
-          sourceRunId:   `fsmb-${npi}`,
-          deltaEvents:   [],
-          latencyMs:     0,
-          error:         fsmbResult.error,
-        });
-      } catch (err) {
-        log('warn', 'fsmb_stage_failed', { npi, error: String(err) });
-        await finalizeSourceResult(runId, 'fsmb', {
-          npi,
-          source:        'FSMB',
-          status:        'FAILED',
-          claimsEmitted: 0,
-          credentialIds: [],
-          claimIds:      [],
-          artifactId:    null,
-          sourceRunId:   undefined,
-          deltaEvents:   [],
-          latencyMs:     0,
-          error:         String(err),
-        });
+    // ── Physician licensure launch lane: CA only, explicit fallback/manual ───
+    await emitSourceStart(runId, 'fsmb');
+    try {
+      const existingClaims = await loadClaimRecordsForNpi(npi);
+      const practiceStates = extractPracticeStates(existingClaims);
+      const licensureResult = await resolvePhysicianLicensureLaunchLane({
+        npi,
+        observedAt: new Date().toISOString(),
+        candidateStates: practiceStates,
+      });
+      const credentialIds: string[] = [];
+      for (const claim of licensureResult.claims) {
+        const cred = await upsertVcvCredential(claim, entityRecord.entity.id);
+        if (cred) credentialIds.push(cred.credentialId);
       }
+
+      await finalizeSourceResult(
+        runId,
+        'fsmb',
+        {
+          npi,
+          source:
+            licensureResult.route === 'fsmb'
+              ? 'FSMB'
+              : 'STATE_BOARD',
+          status: licensureResult.claims.length > 0 ? 'SUCCESS' : 'SKIPPED',
+          claimsEmitted: licensureResult.claims.length,
+          credentialIds,
+          claimIds: licensureResult.claims.map((claim) => claim.claimId),
+          artifactId: licensureResult.claims[0]?.artifactId ?? null,
+          sourceRunId: `physician-licensure-${npi}`,
+          deltaEvents: [],
+          latencyMs: 0,
+          error:
+            licensureResult.route === 'manual'
+              ? 'CA physician licensure lane requires source access'
+              : licensureResult.route === 'unsupported'
+                ? 'Requested state is outside the CA physician licensure launch lane'
+                : undefined,
+        },
+        {
+          route: licensureResult.route,
+          launchState: licensureResult.launchState,
+          candidateStates: practiceStates,
+        },
+      );
+    } catch (err) {
+      log('warn', 'physician_licensure_launch_lane_failed', { npi, error: String(err) });
+      await finalizeSourceResult(runId, 'fsmb', {
+        npi,
+        source: 'STATE_BOARD',
+        status: 'FAILED',
+        claimsEmitted: 0,
+        credentialIds: [],
+        claimIds: [],
+        artifactId: null,
+        sourceRunId: undefined,
+        deltaEvents: [],
+        latencyMs: 0,
+        error: String(err),
+      });
     }
 
     const passport = await buildPassport(entityRecord.entity.id);

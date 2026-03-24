@@ -44,8 +44,15 @@ describe('readinessActions', () => {
       gaps: ['PECOS enrollment outcome unresolved'],
       pecosEnrollmentStatus: 'UNKNOWN',
     });
+    const unchecked = buildReadinessNextActions({
+      missingBlockingDomains: [],
+      blockers: [],
+      gaps: [],
+      pecosEnrollmentStatus: 'UNCHECKED',
+    });
 
     expect(notFound.map((action) => action.id)).toContain('submit-pecos-enrollment');
     expect(unknown.map((action) => action.id)).toContain('verify-medicare-enrollment');
+    expect(unchecked.map((action) => action.id)).toContain('verify-medicare-enrollment');
   });
 });

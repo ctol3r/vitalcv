@@ -156,6 +156,24 @@ function claimCodeToStatus(
   return 'pending';
 }
 
+function authorityMethodLabel(c: PassportData['authority']['credentials'][0]): string {
+  switch (c.sourceScope) {
+    case 'STATE_BOARD_CA_API':
+      return 'Live CA state board';
+    case 'STATE_BOARD_MANUAL':
+      return c.jurisdiction
+        ? `${c.jurisdiction} state board (manual)`
+        : 'State board (manual)';
+    case 'FSMB_MED_API':
+    case 'FSMB_PDC':
+      return 'FSMB';
+    case 'NURSYS_AUTHORIZED_PATH':
+      return 'Nursys';
+    default:
+      return c.issuerName ?? c.sourceId ?? 'Unknown source';
+  }
+}
+
 function claimCodeToTitle(c: PassportData['authority']['credentials'][0]): string {
   const code = c.authorityClaimCode;
   const state = c.jurisdiction ? ` (${c.jurisdiction})` : '';
@@ -169,7 +187,8 @@ function claimCodeToTitle(c: PassportData['authority']['credentials'][0]): strin
   if (code === 'AUTHORITY_UNAVAILABLE') {
     const participation = c.participationStatus;
     if (participation === 'non_participating_state')       return `License verification — state not in network${state}`;
-    if (participation === 'institution_access_unavailable') return `License verification — source not configured${state}`;
+    if (participation === 'manual_verification_required')   return `License verification — manual lane only${state}`;
+    if (participation === 'institution_access_unavailable') return `License verification — access required${state}`;
     return `License verification — unavailable${state}`;
   }
   // Fallback: use domain
@@ -189,8 +208,12 @@ function claimCodeToNote(c: PassportData['authority']['credentials'][0]): string
     const p = c.participationStatus;
     if (p === 'non_participating_state' && c.jurisdiction)
       return `${c.jurisdiction} does not participate in automated license verification. Request a board-issued verification letter directly.`;
+    if (p === 'manual_verification_required' && c.jurisdiction)
+      return `${c.jurisdiction} is outside the current CA physician licensure launch lane. Manual state board verification is required and is not decision-grade.`;
     if (p === 'institution_access_unavailable')
-      return 'Access required. Institutional FSMB or Nursys agreement is not configured.';
+      return c.sourceScope === 'STATE_BOARD_MANUAL' || c.sourceScope === 'STATE_BOARD_CA_API'
+        ? 'Access required. CA physician licensure needs live California board access or an institutional FSMB agreement.'
+        : 'Access required. Institutional FSMB or Nursys agreement is not configured.';
     return 'Authority source access not configured for this record.';
   }
   if (code === 'RN_LICENSE_DISCIPLINED')
@@ -226,7 +249,7 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
             key={c.id}
             title={claimCodeToTitle(c)}
             status={claimCodeToStatus(c.authorityClaimCode, c.participationStatus, c.reviewRequired, c.status)}
-            sourceLabel={c.issuerName ?? c.sourceId ?? 'Unknown source'}
+            sourceLabel={authorityMethodLabel(c)}
             checkedAt={c.observedAt ? formatProofDate(c.observedAt) : null}
             confidence={c.claimConfidenceLabel}
             freshness={c.dataFreshnessLabel}
@@ -239,8 +262,8 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
           <AuthorityRow
             title="License verification"
             status="access required"
-            sourceLabel="FSMB / Nursys"
-            note="Access required. Neither FSMB nor Nursys is currently connected."
+            sourceLabel="CA State Board / FSMB"
+            note="Access required. Only the CA physician licensure launch lane is production-enabled in this release."
           />
         )}
 
@@ -435,7 +458,7 @@ function buildEligibilitySection(passport: PassportData): AccordionItem {
           sourceLabel={standing.enrollmentSourceLabel ?? 'CMS PECOS'}
           checkedAt={standing.enrollmentObservedAt ? formatProofDate(standing.enrollmentObservedAt) : null}
           dataVersion={quarterLabel}
-          freshness={standing.enrollmentDataFreshness ?? standing.enrollmentFreshnessLabel ?? 'Quarterly'}
+          freshness={standing.enrollmentFreshnessLabel ?? standing.enrollmentDataFreshness ?? 'Quarterly'}
           confidence={standing.enrollmentConfidenceLabel ?? undefined}
           note={standing.enrollmentNote ?? undefined}
         />

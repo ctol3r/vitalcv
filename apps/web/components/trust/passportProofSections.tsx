@@ -40,6 +40,26 @@ function uniqueCredentialSources(credentials: PassportData['authority']['credent
   return sources.length > 0 ? sources.join(' · ') : fallback;
 }
 
+function authorityMethodLabel(
+  credential: PassportData['authority']['credentials'][0],
+): string {
+  switch (credential.sourceScope) {
+    case 'STATE_BOARD_CA_API':
+      return 'Live CA state board';
+    case 'STATE_BOARD_MANUAL':
+      return credential.jurisdiction
+        ? `${credential.jurisdiction} state board (manual)`
+        : 'State board (manual)';
+    case 'FSMB_MED_API':
+    case 'FSMB_PDC':
+      return 'FSMB';
+    case 'NURSYS_AUTHORIZED_PATH':
+      return 'Nursys';
+    default:
+      return credential.issuerName ?? credential.sourceId ?? credential.verificationLevel;
+  }
+}
+
 function credentialAccordionStatus(
   credential: PassportData['authority']['credentials'][0],
 ): NonNullable<AccordionItem['status']> {
@@ -155,8 +175,13 @@ function claimCodeToNote(credential: PassportData['authority']['credentials'][0]
     if (participationStatus === 'non_participating_state' && credential.jurisdiction) {
       return `${credential.jurisdiction} does not participate in automated license verification. Request a board-issued verification letter directly.`;
     }
+    if (participationStatus === 'manual_verification_required' && credential.jurisdiction) {
+      return `${credential.jurisdiction} is outside the current CA physician licensure launch lane. Manual state board verification is required and should not be treated as decision-grade.`;
+    }
     if (participationStatus === 'institution_access_unavailable') {
-      return 'Requires institutional FSMB or Nursys agreement. Contact your administrator.';
+      return credential.sourceScope === 'STATE_BOARD_MANUAL' || credential.sourceScope === 'STATE_BOARD_CA_API'
+        ? 'CA physician licensure requires live California board access or an institutional FSMB agreement before it becomes decision-grade.'
+        : 'Requires institutional FSMB or Nursys agreement. Contact your administrator.';
     }
     return 'Authority source access not configured for this record.';
   }
@@ -186,7 +211,7 @@ function credentialRecordsValue(credentials: PassportData['authority']['credenti
           </div>
           <p className="mt-1 text-white/45">
             {joinNoteParts([
-              credential.issuerName ?? credential.sourceId ?? credential.verificationLevel,
+              authorityMethodLabel(credential),
               formatAsOfDate(credential.observedAt ?? credential.verifiedAt),
               credential.dataFreshnessLabel,
               credential.claimConfidenceLabel,
@@ -246,6 +271,11 @@ function authorityProofSection(passport: PassportData): AccordionItem {
     (credential) => credential.domain === 'LICENSURE',
   );
   const checkedAt = latestCredentialDate(licensureCredentials);
+  const hasDecisionGradeLicensure = licensureCredentials.some((credential) => (
+    credential.authorityClaimCode !== 'AUTHORITY_UNAVAILABLE'
+    && credential.status === 'ACTIVE'
+    && !credential.reviewRequired
+  ));
   const status = credentialGroupStatus(
     licensureCredentials,
     passport.authority.summary.missing.includes('LICENSURE') ? 'pending' : 'access_required',
@@ -266,7 +296,7 @@ function authorityProofSection(passport: PassportData): AccordionItem {
           {
             id: 'source',
             label: 'Source',
-            value: uniqueCredentialSources(licensureCredentials, 'State Board / FSMB'),
+            value: uniqueCredentialSources(licensureCredentials, 'CA State Board / FSMB'),
             tone: 'strong',
           },
           { id: 'checked', label: 'Last checked', value: formatProofDate(checkedAt) ?? 'Not checked' },
@@ -279,14 +309,16 @@ function authorityProofSection(passport: PassportData): AccordionItem {
             id: 'trust-note',
             label: 'Trust note',
             value:
-              licensureCredentials.length > 0
+              hasDecisionGradeLicensure
                 ? 'Primary-source authority records are attached for this review.'
-                : 'No decision-grade licensure proof is attached yet.',
+                : licensureCredentials.length > 0
+                  ? 'The attached licensure entries are honest status markers, but they are not yet decision-grade for employer reliance.'
+                  : 'Only the CA physician licensure lane can become decision-grade in this launch wedge.',
           },
           {
             id: 'status-note',
             label: 'Status note',
-            value: credentialStatusNote(status, 'Licensure remains incomplete until a source-backed record is attached.'),
+            value: credentialStatusNote(status, 'Licensure remains incomplete until the CA launch lane returns a source-backed record.'),
             tone: 'muted',
           },
           {
@@ -529,7 +561,7 @@ function eligibilityProofSection(passport: PassportData): AccordionItem | null {
           {
             id: 'freshness',
             label: 'Freshness',
-            value: passport.standing.enrollmentDataFreshness ?? passport.standing.enrollmentFreshnessLabel ?? 'Quarterly',
+            value: passport.standing.enrollmentFreshnessLabel ?? passport.standing.enrollmentDataFreshness ?? 'Quarterly',
           },
           {
             id: 'trust-note',

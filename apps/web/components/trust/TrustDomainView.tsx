@@ -269,6 +269,32 @@ function renderTextList(values: string[]): ReactNode {
   );
 }
 
+function authorityMethodLabel(
+  credential: PassportData['authority']['credentials'][0] | undefined,
+): string | null {
+  if (!credential) {
+    return null;
+  }
+
+  switch (credential.sourceScope) {
+    case 'STATE_BOARD_CA_API':
+      return 'Live CA state board';
+    case 'STATE_BOARD_MANUAL':
+      return credential.jurisdiction
+        ? `${credential.jurisdiction} state board (manual)`
+        : 'State board (manual)';
+    case 'FSMB_MED_API':
+    case 'FSMB_PDC':
+      return 'FSMB';
+    case 'NURSYS_AUTHORIZED_PATH':
+      return 'Nursys';
+    default:
+      return toTrimmedString(credential.issuerName)
+        ?? toTrimmedString(credential.sourceId)
+        ?? null;
+  }
+}
+
 function resolveIdentityDomain(passport: PassportData): TrustDomain {
   const trustPassport = asTrustPassport(passport);
   const fullName = toTrimmedString(trustPassport.identity.fullName) ?? toTrimmedString(trustPassport.identity.displayName);
@@ -352,6 +378,7 @@ function resolveLicensureDomain(passport: PassportData): TrustDomain {
     ...licensureCredentials.map((credential) => credential.observedAt ?? credential.verifiedAt),
     ...((stateAuthority?.licenses ?? []).map((license) => license.observedAt ?? license.verifiedAt)),
   ]);
+  const methodLabel = authorityMethodLabel(licensureCredentials[0]);
 
   const hasVerifiedAuthority = passport.standing.licensureStatus === 'verified'
     || licensureCredentials.some((credential) => credential.status === 'ACTIVE')
@@ -383,12 +410,13 @@ function resolveLicensureDomain(passport: PassportData): TrustDomain {
     lastChecked: checkedAt ?? coverage.lastChecked,
     coverage,
     rows: [
+      ...(methodLabel ? [{ label: 'Method', value: methodLabel }] : []),
       ...(states.length > 0 ? [{ label: 'Licensed states', value: states.join(', ') }] : []),
       ...(licenseNumbers.length > 0 ? [{ label: 'License numbers', value: licenseNumbers.join(', ') }] : []),
       { label: 'Licensure status', value: humanizeToken(passport.standing.licensureStatus) },
     ],
     note: status === 'access-required'
-      ? 'State licensure verification requires institutional source access.'
+      ? 'Only the CA physician licensure lane is production-enabled. Other states remain manual or access-required.'
       : null,
   };
 }

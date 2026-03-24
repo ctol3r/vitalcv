@@ -46,6 +46,16 @@ import {
   type CanonicalSourceCoverageReport,
 } from '../../../../../../packages/trust-state';
 import { getSourceFreshnessWindowHours } from '../identity/sourceCatalog';
+import {
+  buildPecosEnrollmentNote,
+  buildPecosFreshnessLabel,
+  isPecosFresh,
+  normalizePecosEnrollmentStatus,
+  pecosRevalidationDaysRemaining,
+  pecosCoverageReason,
+  PECOS_SOURCE_LABEL,
+  type PecosEnrollmentStatus,
+} from '../identity/pecosContract';
 
 export type { ReadinessNextAction };
 
@@ -100,9 +110,11 @@ export interface PassportCredential {
   claimState?:       string;
   statusLabel?:      string;
   dataVersion?:      string;
+  revalidationDue?:  string;
   leieVersionDate?:  string;
   identityOnly?:     boolean;
   sourceDisclaimer?: string;
+  nextReverifyAt?:   string;
   reviewRequired:      boolean;
   // Authority truth fields (M14/MS15) — read from metadata JSONB
   authorityClaimCode?:  string;   // e.g. 'PHYSICIAN_LICENSE_ACTIVE', 'BOARD_ORDER_PRESENT', 'AUTHORITY_UNAVAILABLE'
@@ -131,15 +143,6 @@ export interface PassportEducationRecord {
   completed:      boolean;
   verificationLevel: string;
 }
-
-/**
- * MS16-A: Normalized PECOS enrollment state — distinct from legacy pecosStatus.
- *   ENROLLED    — found in CMS PECOS data (source-confirmed)
- *   NOT_FOUND   — source checked, record absent (may indicate not enrolled or data lag)
- *   UNKNOWN     — source was checked but result inconclusive
- *   UNCHECKED   — PECOS source has not been queried yet
- */
-export type PecosEnrollmentStatus = 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED';
 
 export interface PassportStanding {
   exclusionClear:   boolean;
@@ -354,19 +357,39 @@ function buildFallbackPassportSourceCoverage(input: {
   const licensureCredential = input.authority.credentials.find(
     (credential) => credential.domain === 'LICENSURE',
   );
+  const pecosCredential = input.authority.credentials.find(
+    (credential) => credential.domain === 'MEDICARE_ENROLLMENT',
+  );
   const licensureSourceId = licensureCredential?.sourceId ?? 'STATE_BOARD';
-  const licensureState = licensureCredential?.connectorState === 'unavailable'
-    || licensureCredential?.connectorState === 'unresolved'
-    ? 'unavailable'
-    : licensureCredential?.reviewRequired
-      ? 'reviewRequired'
-      : licensureCredential?.stale
-        ? 'stale'
-        : licensureCredential
-          ? 'live'
-          : 'notChecked';
+  const licensureState =
+    licensureCredential?.authorityClaimCode === 'AUTHORITY_UNAVAILABLE'
+      ? licensureCredential.participationStatus === 'institution_access_unavailable'
+        ? 'accessRequired'
+        : licensureCredential.participationStatus === 'manual_verification_required'
+          ? 'notDecisionGrade'
+          : 'unavailable'
+      : licensureCredential?.reviewRequired
+        ? 'reviewRequired'
+        : licensureCredential?.stale
+          ? 'stale'
+          : licensureCredential
+            ? 'live'
+            : 'notChecked';
+  const pecosDaysRemaining = pecosRevalidationDaysRemaining(
+    pecosCredential?.nextReverifyAt ?? pecosCredential?.revalidationDue ?? null,
+  );
+  const pecosFresh = isPecosFresh({
+    status: input.standing.pecosEnrollmentStatus,
+    revalidationDue:
+      pecosCredential?.nextReverifyAt
+      ?? pecosCredential?.revalidationDue
+      ?? null,
+    observedAt: pecosCredential?.observedAt ?? null,
+  });
   const pecosState = input.standing.pecosEnrollmentStatus === 'UNCHECKED'
     ? 'notChecked'
+    : !pecosFresh
+      ? 'stale'
     : input.standing.pecosEnrollmentStatus === 'UNKNOWN'
       ? 'partial'
       : 'live';
@@ -407,6 +430,10 @@ function buildFallbackPassportSourceCoverage(input: {
       reason:
         licensureState === 'live'
           ? 'Licensure checked'
+          : licensureState === 'accessRequired'
+            ? 'CA physician licensure lane requires live state-board or FSMB access'
+            : licensureState === 'notDecisionGrade'
+              ? 'State licensure is outside the current production lane and must be verified manually'
           : licensureState === 'reviewRequired'
             ? 'Licensure source requires manual review'
             : licensureState === 'stale'
@@ -422,14 +449,12 @@ function buildFallbackPassportSourceCoverage(input: {
     createCanonicalSourceCoverage({
       sourceId: 'PECOS_PUBLIC',
       state: pecosState,
-      reason:
-        input.standing.pecosEnrollmentStatus === 'ENROLLED'
-          ? 'PECOS quarterly enrollment checked'
-          : input.standing.pecosEnrollmentStatus === 'NOT_FOUND'
-            ? 'PECOS quarterly release does not show Medicare enrollment for this NPI'
-            : input.standing.pecosEnrollmentStatus === 'UNKNOWN'
-              ? 'PECOS enrollment outcome could not be resolved from the quarterly release'
-              : 'PECOS enrollment source not yet checked',
+      reason: pecosCoverageReason({
+        status: input.standing.pecosEnrollmentStatus,
+        checked: input.standing.pecosEnrollmentStatus !== 'UNCHECKED',
+        fresh: pecosFresh,
+        daysRemaining: pecosDaysRemaining,
+      }),
       checkedAt: input.standing.enrollmentObservedAt ?? null,
     }),
   ];
@@ -462,6 +487,8 @@ function buildPassportSourceCoverage(input: {
       sourceUrl: check.sourceUrl ?? null,
       rawArtifactRef: check.rawArtifactRef ?? check.artifactId ?? null,
       checksum: check.checksum ?? null,
+      parserVersion: check.parserVersion ?? null,
+      freshnessWindowHours: check.freshnessWindowHours ?? null,
       proof: input.proofBySource.get(check.sourceId) ?? null,
     }))
     .sort((left, right) => left.sourceId.localeCompare(right.sourceId));
@@ -620,6 +647,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
       expiresAt:         c.expiresAt?.toISOString(),
       verifiedAt:        c.verifiedAt?.toISOString(),
       observedAt,
+      nextReverifyAt:    c.nextReverifyAt?.toISOString(),
       daysUntilExpiry:   expiry ?? undefined,
       stale,
       confidenceLabel:    claimConfidenceLabel,
@@ -636,6 +664,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
         ?? stringValue(claimValue.verdict),
       statusLabel:     stringValue(meta.statusLabel) ?? stringValue(claimValue.statusLabel),
       dataVersion:      stringValue(meta.dataVersion) ?? stringValue(claimValue.dataVersion),
+      revalidationDue:  stringValue(meta.revalidationDue) ?? stringValue(claimValue.revalidationDue),
       leieVersionDate:  stringValue(meta.leieVersionDate) ?? stringValue(claimValue.leieVersionDate),
       identityOnly:     (meta.identityOnly as boolean | undefined) ?? (claimValue.identityOnly as boolean | undefined),
       sourceDisclaimer:    stringValue(meta.sourceDisclaimer) ?? stringValue(claimValue.sourceDisclaimer),
@@ -746,41 +775,61 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     if (!pecosCred) return 'UNCHECKED';
 
     // Explicit claim state signals (credential-level, highest fidelity)
-    if (pecosClaimState === 'ENROLLMENT_NOT_FOUND' || pecosClaimState === 'NOT_FOUND') return 'NOT_FOUND';
-    if (pecosClaimState === 'UNKNOWN') return 'UNKNOWN';
-    if (pecosClaimState === 'UNCHECKED') return 'UNCHECKED';
-    if (pecosClaimState === 'ENROLLED') return 'ENROLLED';
+    const normalizedClaimState = normalizePecosEnrollmentStatus({
+      claimState: pecosClaimState,
+      source: 'PECOS',
+    });
+    if (normalizedClaimState !== 'UNKNOWN' || pecosClaimState === 'UNKNOWN') {
+      return normalizedClaimState;
+    }
 
     // Trust state engine has its own PecosStatus vocabulary — map to canonical
-    if (trustState?.pecosStatus === 'NOT_FOUND') return 'NOT_FOUND';
-    if (trustState?.pecosStatus === 'UNKNOWN') return 'UNKNOWN';
-    if (trustState?.pecosStatus === 'ENROLLED') return 'ENROLLED';
+    if (trustState?.pecosStatus) {
+      return normalizePecosEnrollmentStatus({
+        claimState: trustState.pecosStatus,
+        source: 'PECOS',
+      });
+    }
 
     // Fallback: use credential object state
-    if (isCredentialSatisfied(pecosCred)) return 'ENROLLED';
-    if (pecosCred.status === 'ACTIVE') return 'ENROLLED';
-    if (pecosCred.status === 'REVIEW_REQUIRED' || pecosCred.status === 'UNRESOLVED') return 'UNKNOWN';
-    return 'UNKNOWN';
+    return normalizePecosEnrollmentStatus({
+      claimState:
+        pecosCred.status === 'REVIEW_REQUIRED' || pecosCred.status === 'UNRESOLVED'
+          ? 'UNKNOWN'
+          : undefined,
+      enrolled: isCredentialSatisfied(pecosCred) || pecosCred.status === 'ACTIVE',
+      source: 'PECOS',
+    });
   }
 
   const pecosEnrollmentStatus = derivePecosEnrollmentStatus();
-
-  function buildEnrollmentNote(status: PecosEnrollmentStatus, dataVersion?: string): string | null {
-    const versionSuffix = dataVersion ? ` — ${dataVersion}` : '';
-    switch (status) {
-      case 'ENROLLED':
-        return `Medicare enrolled${versionSuffix}`;
-      case 'NOT_FOUND':
-        return `Not found in the quarterly CMS PECOS release${versionSuffix ? ` (${dataVersion})` : ''} — may indicate non-enrollment or publication lag`;
-      case 'UNKNOWN':
-        return 'Enrollment status could not be resolved from the current quarterly PECOS data';
-      case 'UNCHECKED':
-        return 'Medicare enrollment has not been checked';
-    }
-  }
+  const pecosRevalidationDue =
+    pecosCredEntry?.nextReverifyAt
+    ?? pecosCredEntry?.revalidationDue
+    ?? null;
+  const pecosFreshnessLabel = buildPecosFreshnessLabel({
+    status: pecosEnrollmentStatus,
+    observedAt: pecosCredEntry?.observedAt ?? null,
+    revalidationDue: pecosRevalidationDue,
+  });
+  const pecosDaysRemaining = pecosRevalidationDaysRemaining(pecosRevalidationDue);
+  const pecosEnrollmentNoteBase = buildPecosEnrollmentNote(
+    pecosEnrollmentStatus,
+    pecosCredEntry?.dataVersion ?? undefined,
+  );
+  const pecosEnrollmentNote =
+    pecosFreshnessLabel === 'Stale — refresh required'
+      ? `${pecosEnrollmentNoteBase} Quarterly PECOS evidence is stale and must be refreshed.`
+      : pecosFreshnessLabel.startsWith('Revalidation due')
+        ? `${pecosEnrollmentNoteBase} ${pecosFreshnessLabel}.`
+        : pecosEnrollmentNoteBase;
 
   const legacyPecosStatus: PassportStanding['pecosStatus'] =
-    pecosEnrollmentStatus === 'ENROLLED' ? 'enrolled' : 'unknown';
+    pecosEnrollmentStatus === 'ENROLLED'
+      ? 'enrolled'
+      : pecosEnrollmentStatus === 'NOT_FOUND'
+        ? 'not_enrolled'
+        : 'unknown';
 
   const standing: PassportStanding = {
     exclusionClear,
@@ -793,18 +842,15 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     pecosStatus: legacyPecosStatus,
     // MS16-A canonical fields
     pecosEnrollmentStatus,
-    enrollmentSourceLabel: 'CMS PECOS',
+    enrollmentSourceLabel: PECOS_SOURCE_LABEL,
     // MS16-A: Always human-readable "Quarterly" — normalize raw QUARTERLY token
     enrollmentDataFreshness: 'Quarterly',
     enrollmentSourceLatency: pecosCredEntry?.sourceLatency ?? 'QUARTERLY',
-    enrollmentNote: buildEnrollmentNote(
-      pecosEnrollmentStatus,
-      pecosCredEntry?.dataVersion ?? undefined,
-    ),
+    enrollmentNote: pecosEnrollmentNote,
     enrollmentObservedAt: pecosCredEntry?.observedAt,
     enrollmentDataVersion: pecosCredEntry?.dataVersion,
     enrollmentStatusLabel: pecosCredEntry?.statusLabel,
-    enrollmentFreshnessLabel: pecosCredEntry?.dataFreshnessLabel,
+    enrollmentFreshnessLabel: pecosFreshnessLabel || pecosCredEntry?.dataFreshnessLabel,
     enrollmentConfidenceLabel: pecosCredEntry?.claimConfidenceLabel,
     negativeFindings,
   };
@@ -821,6 +867,16 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   }
   if (pecosEnrollmentStatus === 'UNCHECKED') {
     eligibilityGaps.push('Medicare enrollment not yet checked');
+  }
+  if (pecosFreshnessLabel === 'Stale — refresh required') {
+    eligibilityGaps.push('PECOS enrollment verification stale');
+  } else if (
+    pecosFreshnessLabel.startsWith('Revalidation due')
+    && pecosDaysRemaining !== null
+  ) {
+    eligibilityGaps.push(
+      `PECOS revalidation due in ${pecosDaysRemaining} day${pecosDaysRemaining === 1 ? '' : 's'}`,
+    );
   }
 
   const blockers: string[] = [

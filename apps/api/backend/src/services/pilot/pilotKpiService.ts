@@ -741,16 +741,27 @@ export async function computePilotKpis(
   const READY_MIN = 60;
   const PARTIAL_MIN = 30;
 
-  // reviewEvents is ordered eventTimestamp asc — iterate forward so the last write
-  // per entityId is the most recent score (last-write-wins).
-  const latestScoreByEntity = new Map<string, number | null>();
+  // Bucket against the newest review event per entity using the event timestamp,
+  // not query order, and preserve explicit null scores as "No Score".
+  const latestScoreByEntity = new Map<string, {
+    score: number | null;
+    eventTimestampMs: number;
+  }>();
   for (const event of reviewEvents) {
-    const score = event.readinessScoreAtEvent ?? null;
-    // Always overwrite — last event per entity is the latest
-    const prev = latestScoreByEntity.get(event.entityId);
-    if (prev === undefined || score !== null) {
-      latestScoreByEntity.set(event.entityId, score);
+    const eventTimestampMs = event.eventTimestamp.getTime();
+    if (!Number.isFinite(eventTimestampMs)) {
+      continue;
     }
+
+    const prev = latestScoreByEntity.get(event.entityId);
+    if (prev && prev.eventTimestampMs > eventTimestampMs) {
+      continue;
+    }
+
+    latestScoreByEntity.set(event.entityId, {
+      score: event.readinessScoreAtEvent ?? null,
+      eventTimestampMs,
+    });
   }
 
   let readyCount = 0;
@@ -758,7 +769,7 @@ export async function computePilotKpis(
   let blockedCount = 0;
   let noScoreCount = 0;
 
-  for (const score of latestScoreByEntity.values()) {
+  for (const { score } of latestScoreByEntity.values()) {
     if (score === null) { noScoreCount++; continue; }
     if (score >= READY_MIN) readyCount++;
     else if (score >= PARTIAL_MIN) partialCount++;

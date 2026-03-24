@@ -171,6 +171,40 @@ describe('upsertVcvCredential', () => {
     expect(result?.domain).toBe('MEDICARE_ENROLLMENT');
   });
 
+  it('computes the PECOS revalidation window when upserting enrollment credentials', async () => {
+    (mockPrisma.vcvCredential.findFirst as jest.Mock).mockResolvedValue(null);
+
+    let capturedData: Record<string, unknown> = {};
+    (mockPrisma.vcvCredential.create as jest.Mock).mockImplementation(({ data }) => {
+      capturedData = data as Record<string, unknown>;
+      return Promise.resolve({ id: 'cred-enrl-2' });
+    });
+
+    const claim = makeClaim({
+      claimType: 'ENROLLMENT_STATUS',
+      sourceId: 'PECOS_PUBLIC',
+      observedAt: '2026-03-22T18:00:00.000Z',
+      value: {
+        _type: 'ENROLLMENT_STATUS',
+        claimState: 'ENROLLED' as const,
+        enrolled: true,
+        enrollmentType: 'INDIVIDUAL',
+        eligibleToOrderRefer: null,
+        source: 'PECOS',
+        observedAt: '2026-03-22T18:00:00.000Z',
+        dataVersion: '2026-Q1',
+      },
+    });
+
+    await upsertVcvCredential(claim, 'entity-1');
+
+    expect((capturedData.nextReverifyAt as Date).toISOString()).toBe('2026-06-20T18:00:00.000Z');
+    expect(capturedData.metadata).toEqual(expect.objectContaining({
+      sourceId: 'PECOS_PUBLIC',
+      dataFreshness: 'Updated quarterly',
+    }));
+  });
+
   it('maps TRAINING_COMPLETION → TRAINING domain with authority metadata', async () => {
     (mockPrisma.vcvCredential.findFirst as jest.Mock).mockResolvedValue(null);
     (mockPrisma.vcvCredential.create as jest.Mock).mockResolvedValue({ id: 'cred-training-1' });

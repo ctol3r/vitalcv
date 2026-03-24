@@ -47,6 +47,10 @@ import {
   type AuthorityTargetDomain,
   type BoardOrderSeverity,
 } from '../authority/contracts';
+import {
+  computePecosRevalidationDue,
+  normalizePecosEnrollmentStatus,
+} from '../identity/pecosContract';
 
 // ── Source metadata ────────────────────────────────────────────────────────────
 
@@ -308,7 +312,26 @@ function credentialStatusFromClaim(claim: NormalizedClaim): string {
 
 // ── Freshness window → nextReverifyAt ─────────────────────────────────────────
 
-function computeNextReverify(domain: VcvCredentialDomain, verifiedAt: Date): Date {
+function computeNextReverify(claim: NormalizedClaim, domain: VcvCredentialDomain, verifiedAt: Date): Date {
+  if (claim.sourceId === 'PECOS_PUBLIC' && claim.claimType === 'ENROLLMENT_STATUS') {
+    const value = asRecord(claim.value);
+    const explicitDue = stringValue(value['revalidationDue']);
+    if (explicitDue) {
+      return new Date(explicitDue);
+    }
+    const pecosDue = computePecosRevalidationDue({
+      status: normalizePecosEnrollmentStatus({
+        claimState: value['claimState'],
+        enrolled: typeof value['enrolled'] === 'boolean' ? value['enrolled'] : null,
+        source: value['source'],
+      }),
+      observedAt: stringValue(value['observedAt']) ?? claim.observedAt,
+    });
+    if (pecosDue) {
+      return new Date(pecosDue);
+    }
+  }
+
   const days = FRESHNESS_WINDOWS_DAYS[domain as keyof typeof FRESHNESS_WINDOWS_DAYS] ?? 90;
   const d = new Date(verifiedAt);
   d.setDate(d.getDate() + days);
@@ -444,7 +467,7 @@ export async function upsertVcvCredential(
   const jurisdiction      = extractJurisdiction(claim.claimType, claim.value);
   const { issuedAt, expiresAt } = extractDates(claim.claimType, claim.value);
   const verifiedAt        = new Date(claim.observedAt);
-  const nextReverifyAt    = computeNextReverify(domain, verifiedAt);
+  const nextReverifyAt    = computeNextReverify(claim, domain, verifiedAt);
   const issuerId          = await getIssuerId(claim.sourceId);
   const authorityMetadata = authorityMetadataFromClaim(claim);
 

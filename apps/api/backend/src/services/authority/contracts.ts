@@ -9,6 +9,8 @@ export type AuthorityClaimCode =
   | 'AUTHORITY_UNAVAILABLE';
 
 export type AuthoritySourceScope =
+  | 'STATE_BOARD_CA_API'
+  | 'STATE_BOARD_MANUAL'
   | 'FSMB_MED_API'
   | 'FSMB_PDC'
   | 'FSMB_TRAINING'
@@ -28,6 +30,7 @@ export type AuthorityParticipationStatus =
   | 'participating_state'
   | 'non_participating_state'
   | 'institution_access_unavailable'
+  | 'manual_verification_required'
   | 'unresolved';
 
 export type AuthorityTargetDomain =

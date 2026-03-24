@@ -124,6 +124,8 @@ function normalizeCoverage(input: TrustSourceCoverage): TrustSourceCoverage {
     sourceUrl: input.sourceUrl ?? null,
     rawArtifactRef: input.rawArtifactRef ?? input.artifactId ?? null,
     checksum: input.checksum ?? null,
+    parserVersion: input.parserVersion ?? null,
+    freshnessWindowHours: input.freshnessWindowHours ?? null,
     proof: input.proof ?? null,
   });
 }

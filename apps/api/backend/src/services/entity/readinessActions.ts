@@ -1,3 +1,5 @@
+import type { PecosEnrollmentStatus } from '../identity/pecosContract';
+
 export type ReadinessActionPriority = 'HIGH' | 'MEDIUM' | 'LOW';
 
 export interface ReadinessNextAction {
@@ -55,9 +57,6 @@ function actionForMissingDomain(domain: string): ReadinessNextAction {
       );
   }
 }
-
-/** MS16-C/D: Direct PECOS enrollment status — avoids string matching */
-export type PecosEnrollmentStatus = 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED';
 
 export function buildReadinessNextActions(input: {
   missingBlockingDomains: readonly string[];
@@ -170,11 +169,14 @@ export function buildReadinessNextActions(input: {
     }
   }
 
-  if (input.gaps.some((gap) => gap.toLowerCase().includes('stale'))) {
+  if (input.gaps.some((gap) => {
+    const normalized = gap.toLowerCase();
+    return normalized.includes('stale') || normalized.includes('revalidation due');
+  })) {
     const action = buildAction(
       'refresh-stale-data',
       'Refresh stale sources',
-      'Re-run stale source checks to restore freshness and keep readiness current.',
+      'Refresh sources that are stale or nearing revalidation so readiness stays decision-grade.',
       'MEDIUM',
     );
     if (!seen.has(action.id)) {

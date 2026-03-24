@@ -56,6 +56,12 @@ export function normalizePassportSourceCoverageChecks(
       sourceUrl: toTrimmedString(entry?.sourceUrl) ?? null,
       rawArtifactRef: toTrimmedString(entry?.rawArtifactRef) ?? null,
       checksum: toTrimmedString(entry?.checksum) ?? null,
+      parserVersion: toTrimmedString(entry?.parserVersion) ?? null,
+      freshnessWindowHours:
+        typeof entry?.freshnessWindowHours === 'number'
+        && Number.isFinite(entry.freshnessWindowHours)
+          ? entry.freshnessWindowHours
+          : null,
       proof: entry?.proof
         ? {
             artifactIds: Array.isArray(entry.proof.artifactIds)

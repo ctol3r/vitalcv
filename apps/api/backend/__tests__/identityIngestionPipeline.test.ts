@@ -747,6 +747,25 @@ describe('identity ingestion pipeline hardening', () => {
     expect(receipts.length).toBeGreaterThan(0)
   })
 
+  test('queries the single-provider PECOS endpoint and stamps the quarterly refresh contract once', async () => {
+    await ingestClinicianIdentity('1558302470', ['PECOS_PUBLIC'])
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://data.cms.gov/data-api/v1/dataset/2457ea29-fc82-48b0-86ec-3b0755de7515/data?filter%5BNPI%5D=1558302470&size=5',
+      expect.objectContaining({
+        headers: { Accept: 'application/json' },
+      }),
+    )
+
+    const pecosArtifact = [...state.verificationArtifacts]
+      .reverse()
+      .find((artifact) => artifact.source === 'PECOS_PUBLIC')
+    const rawPayload = pecosArtifact?.rawPayload as Record<string, unknown> | undefined
+
+    expect(rawPayload?.dataVersion).toBe('2026-Q1')
+    expect(rawPayload?.revalidationDue).toBe('2026-06-12T12:00:00.000Z')
+  })
+
   test('marks PECOS not-found captures as quarterly NOT_FOUND evidence instead of active enrollment', async () => {
     pecosFixture = []
 

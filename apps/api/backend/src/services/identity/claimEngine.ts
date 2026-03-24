@@ -32,6 +32,15 @@ import {
   type BoardCertValue,
 } from './evidenceModel';
 import { getSource, type ClaimType } from './sourceCatalog';
+import {
+  buildPecosStatusLabel,
+  computePecosRevalidationDue,
+  normalizePecosEnrollmentStatus,
+  PECOS_DATA_FRESHNESS,
+  PECOS_SOURCE_DISCLAIMER,
+  PECOS_SOURCE_LATENCY,
+  PECOS_SOURCE_NAME,
+} from './pecosContract';
 
 function computeClaimExpiry(sourceId: string, timestamp: string): string | null {
   const source = getSource(sourceId);
@@ -70,6 +79,7 @@ function makeClaim(
     status?:      ClaimStatus;
     reviewRequired?: boolean;
     reviewReason?: string | null;
+    freshnessWindowHours?: number | null;
   }
 ): NormalizedClaim {
   const claimId = computeClaimId(params.claimType, params.sourceId, params.subjectNpi, params.value);
@@ -112,6 +122,7 @@ function makeClaim(
     reviewRequired:   params.reviewRequired ?? false,
     reviewReason:     params.reviewReason ?? null,
     humanReviewAt:    null,
+    freshnessWindowHours: params.freshnessWindowHours ?? null,
   };
 }
 
@@ -461,72 +472,12 @@ interface PecosRecord {
   source?: string;
   observedAt?: string | null;
   dataVersion?: string | null;
+  revalidationDue?: string | null;
   sourceLatency?: string | null;
   dataFreshness?: string | null;
 }
 
 const PECOS_PARSER_VERSION = 'v1.2.0';
-
-function normalizePecosClaimState(raw: PecosRecord): EnrollmentValue['claimState'] {
-  const explicit = typeof raw.claimState === 'string' ? raw.claimState.trim().toUpperCase() : '';
-  if (explicit === 'ENROLLED') return 'ENROLLED';
-  if (explicit === 'NOT_FOUND') return 'NOT_FOUND';
-  if (explicit === 'UNKNOWN') return 'UNKNOWN';
-  if (explicit === 'UNCHECKED') return 'UNCHECKED';
-  if (raw.enrolled === true) return 'ENROLLED';
-  if (raw.enrolled === false) return raw.source === 'PECOS_UNAVAILABLE' ? 'UNKNOWN' : 'NOT_FOUND';
-  return 'UNKNOWN';
-}
-
-function quarterLabelFromVersion(dataVersion: string | null | undefined): string | null {
-  if (!dataVersion) {
-    return null;
-  }
-
-  const normalized = dataVersion.trim();
-  const compactMatch =
-    normalized.match(/\b([12]\d{3})[-_ ]?Q([1-4])\b/i)
-    ?? normalized.match(/\bQ([1-4])[-_ ]?([12]\d{3})\b/i)
-    ?? normalized.match(/\bQ([1-4])\s+([12]\d{3})\b/i)
-    ?? normalized.match(/\b([12]\d{3})\s+Q([1-4])\b/i);
-
-  if (compactMatch) {
-    const first = compactMatch[1] ?? '';
-    const second = compactMatch[2] ?? '';
-    const year = first.length === 4 ? first : second;
-    const quarter = first.toUpperCase().startsWith('Q') ? first.slice(1) : second;
-    if (year && quarter) {
-      return `Q${quarter} ${year}`;
-    }
-  }
-
-  const timestamp = Date.parse(normalized);
-  if (!Number.isNaN(timestamp)) {
-    const date = new Date(timestamp);
-    const quarter = Math.floor(date.getUTCMonth() / 3) + 1;
-    return `Q${quarter} ${date.getUTCFullYear()}`;
-  }
-
-  return normalized;
-}
-
-function pecosLabel(
-  claimState: EnrollmentValue['claimState'],
-  dataVersion: string | null | undefined,
-): string {
-  const quarterLabel = quarterLabelFromVersion(dataVersion);
-  const suffix = quarterLabel ? `as of ${quarterLabel}` : 'as of the latest quarterly CMS PECOS release';
-  if (claimState === 'ENROLLED') {
-    return `Medicare enrolled — ${suffix}`;
-  }
-  if (claimState === 'NOT_FOUND') {
-    return `Medicare enrollment not found in quarterly PECOS snapshot — ${suffix}`;
-  }
-  if (claimState === 'UNCHECKED') {
-    return `Medicare enrollment not yet checked — ${suffix}`;
-  }
-  return `Medicare enrollment unresolved — ${suffix}`;
-}
 
 export function parsePecosRecord(
   npi: string,
@@ -536,7 +487,11 @@ export function parsePecosRecord(
   observedAt: string,
   sourceMeta?: { sourceUrl?: string; retrievedAt?: string },
 ): { claims: NormalizedClaim[]; receipts: VerificationReceipt[] } {
-  const claimState = normalizePecosClaimState(raw);
+  const claimState = normalizePecosEnrollmentStatus({
+    claimState: raw.claimState,
+    enrolled: typeof raw.enrolled === 'boolean' ? raw.enrolled : null,
+    source: raw.source,
+  });
   const enrolled =
     claimState === 'ENROLLED'
       ? true
@@ -547,21 +502,42 @@ export function parsePecosRecord(
     claimState === 'ENROLLED' || claimState === 'NOT_FOUND' ? 'HIGH' : 'UNCERTAIN';
   const confidenceScore =
     claimState === 'ENROLLED' || claimState === 'NOT_FOUND' ? 0.95 : 0.25;
-  const label = pecosLabel(claimState, raw.dataVersion ?? null);
+  const label = buildPecosStatusLabel(claimState, raw.dataVersion ?? null);
+  const enrollmentObservedAt = raw.observedAt ?? observedAt;
+  const revalidationDue =
+    raw.revalidationDue
+    ?? computePecosRevalidationDue({
+      status: claimState,
+      observedAt: enrollmentObservedAt,
+    });
+  const reviewRequired =
+    claimState === 'UNKNOWN'
+    || claimState === 'UNCHECKED'
+    || (claimState === 'ENROLLED' && !raw.dataVersion);
+  const reviewReason =
+    claimState === 'UNKNOWN'
+      ? 'Quarterly PECOS release could not be resolved for this NPI'
+      : claimState === 'UNCHECKED'
+        ? 'Quarterly PECOS release has not been checked for this NPI'
+        : claimState === 'ENROLLED' && !raw.dataVersion
+          ? 'PECOS enrollment result is missing a normalized quarterly data version'
+          : null;
+  const freshnessWindowHours = getSource('PECOS_PUBLIC')?.refreshSlaHours ?? null;
   const value: EnrollmentValue = {
     _type: 'ENROLLMENT_STATUS',
     enrolled,
     claimState,
     enrollmentType: raw.enrollmentType ?? null,
     eligibleToOrderRefer: raw.eligibleToOrderRefer ?? null,
-    source: 'PECOS',
-    observedAt: raw.observedAt ?? observedAt,
+    source: PECOS_SOURCE_NAME,
+    observedAt: enrollmentObservedAt,
     dataVersion: raw.dataVersion ?? null,
+    revalidationDue,
     label,
     statusLabel: label,
-    sourceLatency: 'QUARTERLY',
-    dataFreshness: 'QUARTERLY',
-    sourceDisclaimer: 'Medicare enrollment status is point-in-time quarterly PECOS data and may lag current enrollment changes.',
+    sourceLatency: PECOS_SOURCE_LATENCY,
+    dataFreshness: PECOS_DATA_FRESHNESS,
+    sourceDisclaimer: PECOS_SOURCE_DISCLAIMER,
   };
 
   const claim = makeClaim({
@@ -577,6 +553,9 @@ export function parsePecosRecord(
     observedAt,
     expiresAt: computeClaimExpiry('PECOS_PUBLIC', observedAt),
     status: claimState === 'ENROLLED' ? 'ACTIVE' : 'UNVERIFIED',
+    reviewRequired,
+    reviewReason,
+    freshnessWindowHours,
   });
 
   const explanation =

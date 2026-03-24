@@ -144,10 +144,12 @@ describe('computeClinicianTrustState authority readiness', () => {
           authorityClaimCode: 'PHYSICIAN_LICENSE_ACTIVE',
           sourceScope: 'FSMB_MED_API',
           sourceId: 'FSMB',
+          jurisdiction: 'CA',
         },
         claimValue: {
           authorityClaimCode: 'PHYSICIAN_LICENSE_ACTIVE',
           sourceScope: 'FSMB_MED_API',
+          state: 'CA',
         },
       },
       {
@@ -163,11 +165,13 @@ describe('computeClinicianTrustState authority readiness', () => {
           sourceScope: 'FSMB_PDC',
           sourceId: 'FSMB',
           boardOrderSeverity: 'MEDIUM',
+          jurisdiction: 'CA',
         },
         claimValue: {
           authorityClaimCode: 'BOARD_ORDER_PRESENT',
           sourceScope: 'FSMB_PDC',
           boardOrderSeverity: 'MEDIUM',
+          state: 'CA',
         },
       },
     ]);
@@ -195,10 +199,12 @@ describe('computeClinicianTrustState authority readiness', () => {
           authorityClaimCode: 'AUTHORITY_UNAVAILABLE',
           sourceScope: 'FSMB_MED_API',
           sourceId: 'FSMB',
+          jurisdiction: 'CA',
         },
         claimValue: {
           authorityClaimCode: 'AUTHORITY_UNAVAILABLE',
           sourceScope: 'FSMB_MED_API',
+          jurisdiction: 'CA',
         },
       },
     ]);
@@ -210,6 +216,68 @@ describe('computeClinicianTrustState authority readiness', () => {
     expect(state.readiness_status).toBe('Unresolved — authority source unavailable for licensure');
     expect(state.gap_summary).toContain('Authority source unavailable: FSMB_MED_API licensure unresolved');
     expect(state.readiness_score).toBeLessThanOrEqual(59);
+  });
+
+  it('only lets the CA physician licensure lane affect readiness when access is unavailable', async () => {
+    prismaMock.vcvCredential.findMany.mockResolvedValue([
+      {
+        id: 'cred-ca-manual',
+        domain: 'LICENSURE',
+        status: 'UNRESOLVED',
+        credentialType: 'AUTHORITY_UNAVAILABLE_STATE_BOARD_MANUAL',
+        verifiedAt: new Date('2026-03-23T12:00:00.000Z'),
+        expiresAt: null,
+        observedAt: new Date('2026-03-23T12:00:00.000Z'),
+        metadata: {
+          authorityClaimCode: 'AUTHORITY_UNAVAILABLE',
+          sourceScope: 'STATE_BOARD_MANUAL',
+          sourceId: 'STATE_BOARD',
+          participationStatus: 'institution_access_unavailable',
+        },
+        claimValue: {
+          authorityClaimCode: 'AUTHORITY_UNAVAILABLE',
+          sourceScope: 'STATE_BOARD_MANUAL',
+          jurisdiction: 'CA',
+          participationStatus: 'institution_access_unavailable',
+        },
+      },
+    ]);
+
+    const state = await computeClinicianTrustState('1234567890');
+
+    expect(state.readiness_status).toBe('Unresolved — authority source unavailable for licensure');
+    expect(state.gap_summary).toContain('Authority source unavailable: STATE_BOARD_MANUAL licensure unresolved');
+  });
+
+  it('does not let unsupported physician states drag readiness into the launch lane', async () => {
+    prismaMock.vcvCredential.findMany.mockResolvedValue([
+      {
+        id: 'cred-tx-manual',
+        domain: 'LICENSURE',
+        status: 'UNRESOLVED',
+        credentialType: 'AUTHORITY_UNAVAILABLE_STATE_BOARD_MANUAL',
+        verifiedAt: new Date('2026-03-23T12:00:00.000Z'),
+        expiresAt: null,
+        observedAt: new Date('2026-03-23T12:00:00.000Z'),
+        metadata: {
+          authorityClaimCode: 'AUTHORITY_UNAVAILABLE',
+          sourceScope: 'STATE_BOARD_MANUAL',
+          sourceId: 'STATE_BOARD',
+          participationStatus: 'manual_verification_required',
+        },
+        claimValue: {
+          authorityClaimCode: 'AUTHORITY_UNAVAILABLE',
+          sourceScope: 'STATE_BOARD_MANUAL',
+          jurisdiction: 'TX',
+          participationStatus: 'manual_verification_required',
+        },
+      },
+    ]);
+
+    const state = await computeClinicianTrustState('1234567890');
+
+    expect(state.readiness_status).not.toBe('Unresolved — authority source unavailable for licensure');
+    expect(state.gap_summary).not.toContain('Authority source unavailable: STATE_BOARD_MANUAL licensure unresolved');
   });
 
   it('treats PECOS not-found as a blocker without implying real-time disenrollment', async () => {
@@ -259,6 +327,42 @@ describe('computeClinicianTrustState authority readiness', () => {
     expect(state.blockers).not.toContain('PECOS quarterly enrollment not found');
     expect(state.gap_summary).toContain('PECOS enrollment outcome unresolved');
     expect(state.readiness_score).toBeLessThanOrEqual(59);
+  });
+
+  it('treats stale PECOS snapshots as refresh-required instead of a fresh enrolled truth', async () => {
+    const artifacts = baseArtifacts();
+    artifacts[2] = {
+      ...artifacts[2],
+      rawPayload: {
+        revalidationDue: '2000-01-01T00:00:00.000Z',
+        _claims: [
+          {
+            claimType: 'ENROLLMENT_STATUS',
+            value: {
+              claimState: 'ENROLLED',
+              enrolled: true,
+              observedAt: '2025-01-01T00:00:00.000Z',
+            },
+          },
+        ],
+      },
+    };
+    prismaMock.verificationArtifact.findMany.mockResolvedValue(artifacts);
+
+    const state = await computeClinicianTrustState('1234567890');
+
+    expect(state.pecosStatus).toBe('UNKNOWN');
+    expect(state.readiness_status).toBe('Unresolved — PECOS enrollment outcome is unknown');
+    expect(state.gap_summary).toContain('PECOS enrollment verification stale');
+    expect(state.sourceCoverage).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceId: 'PECOS_PUBLIC',
+          state: 'stale',
+          reason: 'PECOS evidence is stale and must be refreshed',
+        }),
+      ]),
+    );
   });
 
   it('excludes mock PECOS coverage from decision-grade trust', async () => {

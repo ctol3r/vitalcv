@@ -80,10 +80,12 @@ describe('claimEngine reality alignment', () => {
     expect(claims).toHaveLength(1);
     expect((claims[0]?.value as Record<string, unknown>).dataFreshness).toBe('QUARTERLY');
     expect((claims[0]?.value as Record<string, unknown>).dataVersion).toBe('2026-Q1');
+    expect((claims[0]?.value as Record<string, unknown>).revalidationDue).toBe('2026-04-15T00:00:00.000Z');
     expect((claims[0]?.value as Record<string, unknown>).label).toBe('Medicare enrolled — as of Q1 2026');
     expect(
       String((claims[0]?.value as Record<string, unknown>).sourceDisclaimer ?? '').toLowerCase(),
     ).toContain('point-in-time');
+    expect(claims[0]?.freshnessWindowHours).toBe(2160);
   });
 
   it('distinguishes quarterly not-found enrollment from unknown enrollment status', () => {

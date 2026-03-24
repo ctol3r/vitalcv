@@ -18,6 +18,10 @@ import prisma, { Prisma } from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
 import { lookupProvider as leieLookupProvider, type LookupProviderInput } from './leieCache';
 import {
+  buildPecosFetchedRecord,
+  buildPecosSingleProviderQueryUrl,
+} from './pecosContract';
+import {
   checksumOf,
   parseNppesResult,
   parseOigResult,
@@ -35,6 +39,7 @@ import {
   fetchStateBoardLicense, parseStateBoardResult,
   extractPracticeStates,
 } from './phase3Sources';
+import { selectPhysicianLicensureLaunchState } from './physicianLicensureLaunchLane';
 import {
   fetchOpenAlex, parseOpenAlexResult,
   fetchClinicalTrials, parseClinicalTrialsResult,
@@ -532,25 +537,8 @@ async function fetchOig(input: LookupProviderInput): Promise<SourceFetchResult> 
   }
 }
 
-function quarterVersionFromTimestamp(value: string | null | undefined): string | null {
-  if (!value) {
-    return null;
-  }
-
-  const timestamp = Date.parse(value);
-  if (!Number.isFinite(timestamp)) {
-    return null;
-  }
-
-  const date = new Date(timestamp);
-  const quarter = Math.floor(date.getUTCMonth() / 3) + 1;
-  return `${date.getUTCFullYear()}-Q${quarter}`;
-}
-
 async function fetchPecos(npi: string): Promise<SourceFetchResult> {
-  // filter[NPI] must be URL-encoded — bare [ ] in query strings fail in some environments
-  const sourceUrl =
-    `https://data.cms.gov/data-api/v1/dataset/2457ea29-fc82-48b0-86ec-3b0755de7515/data?filter%5BNPI%5D=${npi}&size=5`;
+  const sourceUrl = buildPecosSingleProviderQueryUrl(npi);
 
   try {
     const resp = await fetch(sourceUrl, { headers: { Accept: 'application/json' } });
@@ -560,34 +548,14 @@ async function fetchPecos(npi: string): Promise<SourceFetchResult> {
 
     const data = (await resp.json()) as unknown[];
     const fetchedAt = new Date().toISOString();
-    const dataVersion = quarterVersionFromTimestamp(resp.headers.get('last-modified'));
     const row =
       Array.isArray(data) && data.length > 0 ? (data[0] as Record<string, unknown>) : null;
-    const raw = row
-      ? {
-          claimState: 'ENROLLED' as const,
-          enrolled: true,
-          enrollmentType: row.ENRLMT_CLSFCTN_TYPE_DESC ?? null,
-          eligibleToOrderRefer: row.GNDR_CD !== undefined,
-          source: 'PECOS',
-          npi,
-          observedAt: fetchedAt,
-          dataVersion,
-          sourceLatency: 'QUARTERLY',
-          dataFreshness: 'QUARTERLY',
-        }
-      : {
-          claimState: 'NOT_FOUND' as const,
-          enrolled: false,
-          enrollmentType: null,
-          eligibleToOrderRefer: null,
-          source: 'PECOS',
-          npi,
-          observedAt: fetchedAt,
-          dataVersion,
-          sourceLatency: 'QUARTERLY',
-          dataFreshness: 'QUARTERLY',
-        };
+    const raw = buildPecosFetchedRecord({
+      npi,
+      row,
+      fetchedAt,
+      lastModified: resp.headers.get('last-modified'),
+    });
 
     return {
       raw,
@@ -598,17 +566,11 @@ async function fetchPecos(npi: string): Promise<SourceFetchResult> {
     };
   } catch (error) {
     log('warn', 'identityPipeline: PECOS fetch failed', { npi, error: String(error) });
-    const raw = {
-      claimState: 'UNKNOWN' as const,
-      enrolled: null,
-      enrollmentType: null,
-      source: 'PECOS_UNAVAILABLE',
+    const raw = buildPecosFetchedRecord({
       npi,
-      observedAt: new Date().toISOString(),
-      dataVersion: null,
-      sourceLatency: 'QUARTERLY',
-      dataFreshness: 'QUARTERLY',
-    };
+      fetchedAt: new Date().toISOString(),
+      unavailable: true,
+    });
 
     return {
       raw,
@@ -1744,11 +1706,12 @@ const handlers: Record<string, SourceHandler> = {
     }),
 
   STATE_BOARD: async (npi, observedAt) => {
-    // Multi-state: fetch existing claims to find practice states, then verify each
+    // Physician licensure launch wedge: only verify the production-enabled CA lane.
     const existingClaims = await loadClaimRecordsForNpi(npi);
     const states = extractPracticeStates(existingClaims);
+    const primaryState = selectPhysicianLicensureLaunchState(states);
 
-    if (states.length === 0) {
+    if (!primaryState) {
       return {
         npi, source: 'STATE_BOARD', status: 'SKIPPED' as const,
         artifactId: null, claimsEmitted: 0, deltaEvents: [],
@@ -1756,8 +1719,6 @@ const handlers: Record<string, SourceHandler> = {
       };
     }
 
-    // Run first state (most common) through the pipeline
-    const primaryState = states[0]!;
     const nameClaim = existingClaims.find(c => c.claimType === 'PERSONAL_IDENTITY');
     const lastName = (nameClaim?.value as Record<string, unknown>)?.lastName as string | undefined;
 
@@ -1774,7 +1735,7 @@ const handlers: Record<string, SourceHandler> = {
           status: claims.length > 0 ? 'SUCCESS' : 'SKIPPED',
           claims, receipts,
           matchingStrategy: 'NPI_EXACT',
-          mergeReason: `State board verification for ${primaryState}${states.length > 1 ? ` (+ ${states.length - 1} additional states pending)` : ''}`,
+          mergeReason: `State board verification for the ${primaryState} physician launch lane`,
         };
       },
     });

@@ -255,22 +255,28 @@ describe('kpiSnapshotToCsv — blocker section', () => {
       blockerResolutionEvents: 6, startOutcomeEvents: 2,
       employerAcceptances: 2, startAttestations: 2,
     },
+    readinessDistribution: {
+      ready: 1,
+      partial: 1,
+      blocked: 0,
+      total: 2,
+      noScore: 0,
+    },
     gaps: [],
   };
 
   it('includes blocker section in CSV output', () => {
     const csv = kpiSnapshotToCsv(snapshot);
-    expect(csv).toContain('Pilot ID,(all)');
-    expect(csv).toContain('=== BLOCKERS ===');
-    expect(csv).toContain('LICENSE_EXPIRED');
-    expect(csv).toContain('ENROLLMENT_NOT_FOUND');
+    expect(csv).toContain('filters,pilot_id,(all)');
+    expect(csv).toContain('blocker:license_expired,open_count,2');
+    expect(csv).toContain('blocker:license_expired,resolved_count,3');
+    expect(csv).toContain('blocker:enrollment_not_found,open_count,1');
   });
 
   it('includes avg and median resolution days in blocker rows', () => {
     const csv = kpiSnapshotToCsv(snapshot);
-    // LICENSE_EXPIRED row: 2 open, 3 resolved, avgResolutionDays=6, medianResolutionDays=5
-    // CSV format: CODE,open,resolved,avg,median (raw numbers, no 'd' suffix)
-    expect(csv).toContain('LICENSE_EXPIRED,2,3,6,5');
+    expect(csv).toContain('blocker:license_expired,avg_resolution_days,6');
+    expect(csv).toContain('blocker:license_expired,median_resolution_days,5');
   });
 
   it('outputs n/a for unresolved blockers', () => {
@@ -292,7 +298,7 @@ describe('kpiSnapshotToCsv — blocker section', () => {
 
   it('outputs No gaps message when gaps array is empty', () => {
     const csv = kpiSnapshotToCsv(snapshot);
-    expect(csv).toContain('None — all event tables are populating.');
+    expect(csv).toContain('gaps,status,none');
   });
 
   it('outputs gap messages when gaps are present', () => {
@@ -308,7 +314,7 @@ describe('kpiSnapshotToCsv — blocker section', () => {
       gaps: ['Missing: employer review events.'],
     };
     const csv = kpiSnapshotToCsv(withGaps);
-    expect(csv).toContain('Pilot ID,acme-q1');
-    expect(csv).toContain('Missing: employer review events.');
+    expect(csv).toContain('filters,pilot_id,acme-q1');
+    expect(csv).toContain('gaps,gap_1,Missing: employer review events.');
   });
 });

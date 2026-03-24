@@ -294,6 +294,7 @@ export interface EnrollmentValue {
   source: 'PECOS' | 'DOCTORS_CLINICIANS';
   observedAt?: string | null;
   dataVersion?: string | null;
+  revalidationDue?: string | null;
   label?: string | null;
   statusLabel?: string | null;
   sourceLatency?: string | null;

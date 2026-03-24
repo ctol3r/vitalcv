@@ -268,6 +268,51 @@ describe('pilotKpiService', () => {
     );
   });
 
+  it('buckets readiness distribution from the latest review event per clinician', async () => {
+    prismaMock.advisoryOutcomeEvent.findMany.mockResolvedValue([
+      {
+        id: 'review-1',
+        entityId: 'entity-1',
+        organizationContextId: 'org-1',
+        eventType: 'EMPLOYER_REVIEW',
+        eventTimestamp: new Date('2026-03-02T00:00:00.000Z'),
+        readinessScoreAtEvent: 72,
+        blockersAtEvent: [],
+        metadata: {},
+      },
+      {
+        id: 'review-2',
+        entityId: 'entity-2',
+        organizationContextId: 'org-1',
+        eventType: 'EMPLOYER_REVIEW',
+        eventTimestamp: new Date('2026-03-03T00:00:00.000Z'),
+        readinessScoreAtEvent: 25,
+        blockersAtEvent: ['LICENSE_EXPIRED'],
+        metadata: {},
+      },
+      {
+        id: 'review-3',
+        entityId: 'entity-1',
+        organizationContextId: 'org-1',
+        eventType: 'EMPLOYER_REVIEW',
+        eventTimestamp: new Date('2026-03-04T00:00:00.000Z'),
+        readinessScoreAtEvent: null,
+        blockersAtEvent: ['MANUAL_REVIEW'],
+        metadata: {},
+      },
+    ]);
+
+    const snapshot = await computePilotKpis({ windowDays: 30 });
+
+    expect(snapshot.readinessDistribution).toEqual({
+      ready: 0,
+      partial: 0,
+      blocked: 1,
+      total: 2,
+      noScore: 1,
+    });
+  });
+
   it('exports normalized row-shaped data for downstream spreadsheets', () => {
     const snapshot: PilotKpiSnapshot = {
       generatedAt: '2026-03-23T21:00:00.000Z',
@@ -334,6 +379,13 @@ describe('pilotKpiService', () => {
         startOutcomeEvents: 1,
         employerAcceptances: 1,
         startAttestations: 1,
+      },
+      readinessDistribution: {
+        ready: 1,
+        partial: 1,
+        blocked: 0,
+        total: 2,
+        noScore: 0,
       },
       gaps: [],
     };
