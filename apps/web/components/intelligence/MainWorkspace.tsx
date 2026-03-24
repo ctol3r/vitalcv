@@ -53,6 +53,7 @@ interface MainWorkspaceProps {
   };
   onNavigate: (section: WorkspaceSectionId) => void;
   onSelectProvider: (providerNpi: string) => void;
+  mapSearchQuery?: string;
   onRefreshProviders: () => void;
   onRefreshInvestigation: () => void;
   onRefreshSystemHealth: () => void;
@@ -71,6 +72,7 @@ export function MainWorkspace({
   errors,
   onNavigate,
   onSelectProvider,
+  mapSearchQuery = '',
   onRefreshProviders,
   onRefreshInvestigation,
   onRefreshSystemHealth,
@@ -169,7 +171,10 @@ export function MainWorkspace({
     case 'map':
       workspaceContent = (
         <div className="h-full min-h-[540px]">
-          <GlobalMapWorkspace onSelectProvider={onSelectProvider} />
+          <GlobalMapWorkspace
+            onSelectProvider={onSelectProvider}
+            searchQuery={mapSearchQuery}
+          />
         </div>
       );
       break;

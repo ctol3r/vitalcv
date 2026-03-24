@@ -259,6 +259,7 @@ export function IntelligenceConsolePage() {
             setActiveSection(section);
           });
         }}
+        mapSearchQuery={deferredQuery}
         onSelectProvider={selectProvider}
         onRefreshProviders={providers.refresh}
         onRefreshInvestigation={() => {

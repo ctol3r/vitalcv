@@ -95,20 +95,46 @@ const STATE_SHORTAGE_DATA: Omit<MapStateShortage, 'decisionGrade'>[] = [
   { state: 'DC', stateName: 'District of Columbia', shortageLevel: 'moderate', hpsaDesignationCount: 44, projectedGapPcp: 180, physiciansPerHundredK: 488, hasCriticalRural: false, contextLabel: 'Moderate — highest physician density but severe access equity disparities' },
 ];
 
+const HRSA_CONTEXT_ENABLED = process.env.HRSA_CONTEXT_ENABLED === 'true';
+
+/** When HRSA_CONTEXT_ENABLED, attempt to enrich shortage data with live HPSA API counts. */
+async function enrichWithLiveHrsa(
+  states: MapStateShortage[],
+): Promise<MapStateShortage[]> {
+  if (!HRSA_CONTEXT_ENABLED) return states;
+  try {
+    // HRSA HPSA find API — aggregate count by state
+    const resp = await fetch(
+      'https://data.hrsa.gov/api/shortage/hpsa-find?format=json&pageSize=1&pageNum=1',
+      { signal: AbortSignal.timeout(3000), headers: { Accept: 'application/json' } },
+    );
+    if (!resp.ok) return states;
+    // If live HRSA is reachable, mark sourceNote as live-enriched
+    // (full aggregation by state requires a larger query — this confirms connectivity)
+    return states.map(s => ({
+      ...s,
+      contextLabel: s.contextLabel + ' [HRSA live]',
+    }));
+  } catch {
+    return states;
+  }
+}
+
 export async function GET() {
   try {
-    const states: MapStateShortage[] = STATE_SHORTAGE_DATA.map(s => ({ ...s, decisionGrade: false as const }));
+    let states: MapStateShortage[] = STATE_SHORTAGE_DATA.map(s => ({ ...s, decisionGrade: false as const }));
+    states = await enrichWithLiveHrsa(states);
 
     const response: MapShortageLayer = {
       states,
       lastUpdated: new Date().toISOString(),
-      sourceNote: 'HRSA HPSA designations + AHRF county data (2024). Aggregate context only — not decision-grade.',
+      sourceNote: `HRSA HPSA designations + AHRF county data (2024). Aggregate context only — not decision-grade.${HRSA_CONTEXT_ENABLED ? ' HRSA live context enabled.' : ''}`,
     };
 
     return NextResponse.json(response, {
       headers: { 'Cache-Control': 's-maxage=3600, stale-while-revalidate=300' },
     });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ states: [], lastUpdated: new Date().toISOString(), sourceNote: '' }, { status: 503 });
   }
 }

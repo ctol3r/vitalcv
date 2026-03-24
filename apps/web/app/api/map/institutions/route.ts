@@ -57,13 +57,62 @@ const DEMO_INSTITUTIONS: MapInstitution[] = [
   { id: 'inst-15', name: 'Allina Health', npi: '1184666282', lat: 44.9778, lng: -93.2650, state: 'MN', city: 'Minneapolis', institutionType: 'health_system', providerCount: 640, readyCount: 510, partialCount: 98, blockedCount: 32, avgTrustScore: 81 },
 ];
 
+function getBackendBase(): string {
+  return (
+    process.env.BACKEND_URL ||
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    ''
+  );
+}
+
+/** Attempt to pull live institution affiliation data from the backend graph API. */
+async function fetchLiveInstitutions(): Promise<MapInstitution[] | null> {
+  const base = getBackendBase();
+  if (!base) return null;
+  try {
+    const resp = await fetch(`${base}/api/network/global`, {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json() as { nodes?: Array<Record<string, unknown>> };
+    const nodes = data.nodes ?? [];
+    // Map backend graph nodes that look like institutions to MapInstitution shape
+    const institutions: MapInstitution[] = nodes
+      .filter(n => n.type === 'institution' || n.type === 'health_system')
+      .map((n, idx) => ({
+        id: String(n.id ?? `live-${idx}`),
+        name: String(n.label ?? n.name ?? 'Unknown Institution'),
+        npi: typeof n.npi === 'string' ? n.npi : null,
+        lat: typeof n.lat === 'number' ? n.lat : 0,
+        lng: typeof n.lng === 'number' ? n.lng : 0,
+        state: String(n.state ?? 'XX'),
+        city: String(n.city ?? ''),
+        institutionType: 'hospital' as const,
+        providerCount: typeof n.providerCount === 'number' ? n.providerCount : 0,
+        readyCount: typeof n.readyCount === 'number' ? n.readyCount : 0,
+        partialCount: typeof n.partialCount === 'number' ? n.partialCount : 0,
+        blockedCount: typeof n.blockedCount === 'number' ? n.blockedCount : 0,
+        avgTrustScore: typeof n.trustScore === 'number' ? n.trustScore : null,
+      }))
+      .filter(i => i.lat !== 0 && i.lng !== 0);
+    return institutions.length > 0 ? institutions : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const state = searchParams.get('state');
     const minScore = searchParams.get('minScore') ? Number(searchParams.get('minScore')) : null;
 
-    let institutions = DEMO_INSTITUTIONS;
+    // Try live backend first, fall back to curated demo set
+    const liveData = await fetchLiveInstitutions();
+    let institutions = liveData ?? DEMO_INSTITUTIONS;
+    const isLive = liveData !== null;
 
     if (state) {
       institutions = institutions.filter(i => i.state === state.toUpperCase());
@@ -72,16 +121,17 @@ export async function GET(request: Request) {
       institutions = institutions.filter(i => (i.avgTrustScore ?? 0) >= minScore);
     }
 
-    const response: MapInstitutionLayer = {
+    const response: MapInstitutionLayer & { dataSource: string } = {
       institutions,
       totalCount: institutions.length,
       lastUpdated: new Date().toISOString(),
+      dataSource: isLive ? 'live_graph' : 'demo',
     };
 
     return NextResponse.json(response, {
-      headers: { 'Cache-Control': 's-maxage=300, stale-while-revalidate=60' },
+      headers: { 'Cache-Control': isLive ? 's-maxage=60, stale-while-revalidate=30' : 's-maxage=300, stale-while-revalidate=60' },
     });
-  } catch (err) {
-    return NextResponse.json({ error: 'Failed to load institution data', institutions: [], totalCount: 0, lastUpdated: new Date().toISOString() }, { status: 503 });
+  } catch {
+    return NextResponse.json({ error: 'Failed to load institution data', institutions: [], totalCount: 0, lastUpdated: new Date().toISOString(), dataSource: 'error' }, { status: 503 });
   }
 }

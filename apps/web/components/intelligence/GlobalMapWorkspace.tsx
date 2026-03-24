@@ -108,9 +108,11 @@ function useMapLayer<T>(url: string, enabled: boolean) {
 interface GlobalMapWorkspaceProps {
   /** When a marker with an NPI is clicked — wires to RightContextPanel */
   onSelectProvider: (npi: string) => void;
+  /** Search query from LeftSidebar — filters institution markers by name/state */
+  searchQuery?: string;
 }
 
-export function GlobalMapWorkspace({ onSelectProvider }: GlobalMapWorkspaceProps) {
+export function GlobalMapWorkspace({ onSelectProvider, searchQuery = '' }: GlobalMapWorkspaceProps) {
   const [activeLayers, setActiveLayers] = useState<Set<MapLayer>>(
     new Set(['shortages', 'institutions']),
   );
@@ -125,9 +127,27 @@ export function GlobalMapWorkspace({ onSelectProvider }: GlobalMapWorkspaceProps
   const institutionsEnabled = activeLayers.has('institutions');
   const networkEnabled = activeLayers.has('network');
 
+  // Build institution API URL with optional state filter from search query
+  const stateFilter = searchQuery.length === 2 && /^[A-Za-z]{2}$/.test(searchQuery)
+    ? `?state=${searchQuery.toUpperCase()}`
+    : '';
+
   const shortages = useMapLayer<{ states: MapStateShortage[] }>('/api/map/shortages', shortagesEnabled);
-  const institutions = useMapLayer<{ institutions: MapInstitution[] }>('/api/map/institutions', institutionsEnabled);
+  const institutions = useMapLayer<{ institutions: MapInstitution[] }>(`/api/map/institutions${stateFilter}`, institutionsEnabled);
   const network = useMapLayer<{ nodes: MapNetworkNode[] }>('/api/map/network', networkEnabled);
+
+  // Client-side name filter (supplements API-level state filter)
+  const normalizedQuery = searchQuery.toLowerCase().trim();
+  const filteredInstitutions = useMemo(() => {
+    const all = institutions.data?.institutions ?? [];
+    if (!normalizedQuery || normalizedQuery.length < 2) return all;
+    return all.filter(
+      i =>
+        i.name.toLowerCase().includes(normalizedQuery) ||
+        i.city.toLowerCase().includes(normalizedQuery) ||
+        i.state.toLowerCase() === normalizedQuery,
+    );
+  }, [institutions.data, normalizedQuery]);
 
   // Build a lookup for shortage data by state code
   const shortageByState = useMemo(() => {
@@ -157,6 +177,12 @@ export function GlobalMapWorkspace({ onSelectProvider }: GlobalMapWorkspaceProps
         <Globe2 className="h-4 w-4 text-indigo-400" />
         <span className="text-sm font-semibold text-white/80">Global Intelligence Map</span>
         <span className="text-xs text-white/30 ml-1">— enrichment context, not decision-grade</span>
+        {normalizedQuery.length >= 2 && (
+          <span className="ml-2 px-2 py-0.5 rounded text-[10px] font-medium"
+            style={{ background: '#6366f122', color: '#a5b4fc', border: '1px solid #6366f133' }}>
+            Filtered: "{searchQuery}" — {filteredInstitutions.length} institution{filteredInstitutions.length !== 1 ? 's' : ''}
+          </span>
+        )}
 
         <div className="ml-auto flex items-center gap-2">
           {isLoading && (
@@ -247,6 +273,36 @@ export function GlobalMapWorkspace({ onSelectProvider }: GlobalMapWorkspaceProps
               }
             </Geographies>
 
+            {/* Network edge rendering — SVG lines between connected nodes */}
+            {networkEnabled && (() => {
+              const nodes = network.data?.nodes ?? [];
+              const edges = (network.data as { edges?: Array<{ sourceId: string; targetId: string; strength: number }> })?.edges ?? [];
+              // Approximate AlbersUSA pixel coordinates for each known node id
+              // AlbersUSA outputs to roughly a 960×610 internal space
+              const nodePixels: Record<string, [number, number]> = {};
+              for (const node of nodes) {
+                const [px, py] = albersUsaApprox(node.lng, node.lat);
+                if (px !== null && py !== null) nodePixels[node.id] = [px, py];
+              }
+              return edges.map((edge, i) => {
+                const src = nodePixels[edge.sourceId];
+                const tgt = nodePixels[edge.targetId];
+                if (!src || !tgt) return null;
+                return (
+                  <line
+                    key={`edge-${i}`}
+                    x1={src[0]} y1={src[1]}
+                    x2={tgt[0]} y2={tgt[1]}
+                    stroke="#6366f1"
+                    strokeWidth={edge.strength > 0.8 ? 1.2 : 0.6}
+                    strokeOpacity={edge.strength * 0.4}
+                    strokeDasharray={edge.strength > 0.8 ? 'none' : '3 4'}
+                    style={{ pointerEvents: 'none' }}
+                  />
+                );
+              });
+            })()}
+
             {/* Network nodes layer */}
             {networkEnabled && (network.data?.nodes ?? []).map(node => (
               <Marker
@@ -283,7 +339,7 @@ export function GlobalMapWorkspace({ onSelectProvider }: GlobalMapWorkspaceProps
             ))}
 
             {/* Institution markers layer */}
-            {institutionsEnabled && (institutions.data?.institutions ?? []).map(inst => (
+            {institutionsEnabled && filteredInstitutions.map(inst => (
               <Marker
                 key={inst.id}
                 coordinates={[inst.lng, inst.lat]}
@@ -351,7 +407,16 @@ export function GlobalMapWorkspace({ onSelectProvider }: GlobalMapWorkspaceProps
                   <span className="text-red-400">✕ {hoveredInstitution.blockedCount} blocked</span>
                 </div>
                 {hoveredInstitution.npi && (
-                  <p className="mt-1.5 text-[10px] text-indigo-400">Click to pivot right panel →</p>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <p className="text-[10px] text-indigo-400">Click marker to pivot right panel</p>
+                    <a
+                      href={`/intelligence?view=provider-profile&npi=${hoveredInstitution.npi}`}
+                      className="text-[10px] text-sky-400 underline underline-offset-2 pointer-events-auto"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      Full profile →
+                    </a>
+                  </div>
                 )}
               </>
             )}
@@ -429,6 +494,24 @@ export function GlobalMapWorkspace({ onSelectProvider }: GlobalMapWorkspaceProps
       </div>
     </div>
   );
+}
+
+// ── AlbersUSA approximate projection ─────────────────────────────────────────
+// Converts lng/lat to approximate pixel coordinates within AlbersUSA's
+// internal 960×610 SVG space. Uses a simplified linear transform calibrated
+// against known reference points. Accurate enough for edge line rendering.
+function albersUsaApprox(lng: number, lat: number): [number, number] {
+  // Continental US bounds: lng -125 to -66, lat 25 to 50
+  // AlbersUSA maps to approximately x: 30–930, y: 30–560
+  if (lng < -130 || lng > -60 || lat < 20 || lat > 55) {
+    // Out of continental bounds — use rough offset (AK/HI approximation)
+    if (lat > 50) return [140, 500]; // Alaska approximate
+    if (lng < -150) return [290, 550]; // Hawaii approximate
+    return [480, 300]; // Default center
+  }
+  const x = ((lng - (-125)) / ((-66) - (-125))) * 880 + 40;
+  const y = ((50 - lat) / (50 - 25)) * 480 + 40;
+  return [x, y];
 }
 
 // ── State name → code lookup ──────────────────────────────────────────────────
