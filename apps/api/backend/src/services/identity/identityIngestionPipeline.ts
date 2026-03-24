@@ -40,6 +40,7 @@ import {
   extractPracticeStates,
 } from './phase3Sources';
 import { selectPhysicianLicensureLaunchState } from './physicianLicensureLaunchLane';
+import { fetchOfacSdnList, runOfacCheck, type OfacSubjectIdentity } from './ofacAdapter';
 import {
   fetchOpenAlex, parseOpenAlexResult,
   fetchClinicalTrials, parseClinicalTrialsResult,

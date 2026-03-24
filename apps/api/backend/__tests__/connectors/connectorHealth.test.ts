@@ -2,6 +2,13 @@
  * connectorHealth.test.ts — Wave 127: Connector Health Tracker Tests
  */
 
+import { ConnectorHealthMonitor } from '../../../../../core/connectors/healthMonitor';
+import { InMemoryTrustAlertsRepository } from '../../repositories/trustAlerts.repo';
+import {
+  initializeTrustAlertsPersistence,
+  resetTrustAlertsRepository,
+  setTrustAlertsRepository,
+} from '../../src/services/alerts/trustAlerts';
 import {
   getConnectorAlerts,
   getConnectorDiagnostics,
@@ -12,8 +19,14 @@ import {
   resetConnectorHealth,
 } from '../../src/services/providers/connectors/connectorHealthTracker';
 
-beforeEach(() => {
+beforeEach(async () => {
   resetConnectorHealth();
+  setTrustAlertsRepository(new InMemoryTrustAlertsRepository());
+  await initializeTrustAlertsPersistence();
+});
+
+afterEach(() => {
+  resetTrustAlertsRepository();
 });
 
 describe('connectorHealthTracker', () => {
@@ -161,6 +174,44 @@ describe('connectorHealthTracker', () => {
       expect(entry).toBeDefined();
       expect(entry!.status).toBe('CRITICAL');
       expect(entry!.recentAlerts.some((alert) => alert.type === 'QUARANTINE')).toBe(true);
+    });
+
+    it('deduplicates repeated identical failure alerts inside the cooldown window', () => {
+      const monitor = new ConnectorHealthMonitor({ alertCooldownMs: 60_000 });
+
+      monitor.recordFailure({
+        connector: 'STATE_BOARD',
+        error: 'upstream timeout',
+        recordedAt: '2026-03-24T10:00:00.000Z',
+      });
+      monitor.recordFailure({
+        connector: 'STATE_BOARD',
+        error: 'upstream timeout',
+        recordedAt: '2026-03-24T10:00:30.000Z',
+      });
+      monitor.recordFailure({
+        connector: 'STATE_BOARD',
+        error: 'upstream timeout',
+        recordedAt: '2026-03-24T10:02:00.000Z',
+      });
+
+      const alerts = monitor.getAlerts('STATE_BOARD');
+      expect(alerts.filter((alert) => alert.type === 'FAILURE')).toHaveLength(2);
+    });
+
+    it('tracks the latest status transition metadata', () => {
+      recordConnectorFailure('STATE_BOARD', 'timeout');
+      recordConnectorFailure('STATE_BOARD', 'timeout');
+
+      const degraded = getConnectorHealth().connectors.find((entry) => entry.connector === 'STATE_BOARD');
+      expect(degraded!.status).toBe('DEGRADED');
+      expect(degraded!.latestStatusChangeAt).toBeTruthy();
+      expect(degraded!.latestStatusChangeReason).toContain('timeout');
+
+      recordConnectorSuccess('STATE_BOARD');
+      const recovered = getConnectorHealth().connectors.find((entry) => entry.connector === 'STATE_BOARD');
+      expect(recovered!.status).toBe('HEALTHY');
+      expect(recovered!.latestStatusChangeReason).toContain('recovered');
     });
   });
 });

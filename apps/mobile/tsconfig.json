@@ -2,7 +2,11 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "types": ["react", "react-native", "node", "vitest/globals"]
+    "types": ["react", "react-native", "node"],
+    "paths": {
+      "vitest": ["../../vitest/index.d.ts"],
+      "vitest/config": ["../../vitest/config.d.ts"]
+    }
   },
   "include": [
     "**/*.ts",

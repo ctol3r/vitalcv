@@ -201,6 +201,40 @@ export interface VerificationReceipt {
 
 // ── Claim value union ─────────────────────────────────────────────────────────
 
+/**
+ * OfacSanctionValue — represents a result from OFAC SDN list matching.
+ *
+ * Match class semantics:
+ *   no_match         → clear, decision-grade
+ *   potential_match  → review_required=true, NOT decision-grade (name-only hit; human must adjudicate)
+ *   confirmed_match  → decision-grade blocker (exact name+DOB; must not be auto-resolved)
+ *
+ * Important: OFAC matching is name-based (not NPI). False-positive risk is high for
+ * common names. Potential matches must NEVER auto-block — they require operator review.
+ */
+export interface OfacSanctionValue {
+  _type: 'OFAC_SANCTION';
+  /** Result of matching clinician identity against the OFAC SDN consolidated list. */
+  matchClass: 'no_match' | 'potential_match' | 'confirmed_match';
+  /** Whether the match constitutes a hard blocker (only true for confirmed_match). */
+  sanctioned: boolean;
+  /** OFAC SDN entry UID(s) that were matched — null for no_match. */
+  matchedUids: string[] | null;
+  /** Sanctions programs the matched entry belongs to (e.g., 'SDGT', 'SDNTK'). */
+  sanctionPrograms: string[] | null;
+  /** Fields used in the match — informs confidence in potential_match cases. */
+  matchedFields: Array<'name' | 'dob' | 'address'>;
+  /** Match confidence score 0–1 — below 0.9 must be potential_match regardless. */
+  matchScore: number;
+  /** Source for this sanction record. */
+  source: 'OFAC_SDN';
+  observedAt: string;
+  dataVersion: string | null;
+  /** Human-readable label for employer-facing surfaces. */
+  label: string;
+  sourceDisclaimer: string;
+}
+
 export type ClaimValue =
   | NpiIdentityValue
   | PersonalIdentityValue
@@ -213,6 +247,7 @@ export type ClaimValue =
   | TrainingCompletionValue
   | AuthorityUnavailableValue
   | ExclusionValue
+  | OfacSanctionValue
   | IndustryPaymentValue
   | PublicationValue
   | ClinicalTrialValue
@@ -288,10 +323,16 @@ export interface EndpointValue {
 export interface EnrollmentValue {
   _type: 'ENROLLMENT_STATUS';
   enrolled: boolean | null;
-  claimState: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED';
+  claimState:
+    | 'ENROLLED'
+    | 'NOT_FOUND'
+    | 'UNKNOWN'
+    | 'UNCHECKED'
+    /** Provider affirmatively opted out of Medicare participation (CMS Opt-Out Affidavits). */
+    | 'OPTED_OUT';
   enrollmentType: string | null;
   eligibleToOrderRefer: boolean | null;
-  source: 'PECOS' | 'DOCTORS_CLINICIANS';
+  source: 'PECOS' | 'DOCTORS_CLINICIANS' | 'CMS_OPT_OUT' | 'CMS_ORDER_REFERRING';
   observedAt?: string | null;
   dataVersion?: string | null;
   revalidationDue?: string | null;

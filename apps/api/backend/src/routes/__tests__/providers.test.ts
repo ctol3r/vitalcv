@@ -38,10 +38,16 @@ jest.mock('../../graphql/prisma_client', () => ({
 
 import { buildProviderInvestigationPayload } from '../../services/investigation/investigationWorkbenchService';
 import prisma from '../../graphql/prisma_client';
+import {
+  getConnectorAlerts,
+  getConnectorDiagnostics,
+} from '../../services/providers/connectors/connectorHealthTracker';
 import { registerProviderRoutes } from '../providers';
 
 const buildProviderInvestigationPayloadMock =
   buildProviderInvestigationPayload as jest.MockedFunction<typeof buildProviderInvestigationPayload>;
+const getConnectorAlertsMock = getConnectorAlerts as jest.MockedFunction<typeof getConnectorAlerts>;
+const getConnectorDiagnosticsMock = getConnectorDiagnostics as jest.MockedFunction<typeof getConnectorDiagnostics>;
 const prismaMock = prisma as unknown as {
   provider: {
     count: jest.Mock;
@@ -65,6 +71,8 @@ function buildApp() {
 describe('provider routes', () => {
   beforeEach(() => {
     buildProviderInvestigationPayloadMock.mockReset();
+    getConnectorAlertsMock.mockReset();
+    getConnectorDiagnosticsMock.mockReset();
     prismaMock.provider.count.mockReset();
     prismaMock.provider.findMany.mockReset();
     prismaMock.graphNode.findMany.mockReset();
@@ -202,5 +210,51 @@ describe('provider routes', () => {
     await request(buildApp())
       .get('/api/providers/not-an-npi/investigation')
       .expect(400);
+  });
+
+  it('returns connector diagnostics from the health endpoint', async () => {
+    getConnectorDiagnosticsMock.mockReturnValue({
+      overall: 'DEGRADED',
+      generatedAt: '2026-03-24T12:00:00.000Z',
+      connectors: [{
+        connector: 'OIG',
+        status: 'DEGRADED',
+        statusReasons: ['Connector is near its quota limit (85% used).'],
+        nextAction: 'Slow polling or spread traffic before hard blocking begins.',
+        health: {} as never,
+        quota: {} as never,
+        schema: {} as never,
+        recentAlerts: [],
+        recommendations: [],
+      }],
+    });
+
+    const response = await request(buildApp())
+      .get('/api/providers/health/diagnostics')
+      .expect(200);
+
+    expect(response.body.overall).toBe('DEGRADED');
+    expect(response.body.connectors[0].statusReasons[0]).toContain('quota');
+  });
+
+  it('returns connector alerts from the health alerts endpoint', async () => {
+    getConnectorAlertsMock.mockReturnValue([{
+      id: 'alert-1',
+      connector: 'NPDB',
+      type: 'QUARANTINE',
+      severity: 'CRITICAL',
+      message: 'NPDB quarantined after critical schema drift',
+      createdAt: '2026-03-24T12:00:00.000Z',
+    }]);
+
+    const response = await request(buildApp())
+      .get('/api/providers/health/alerts')
+      .expect(200);
+
+    expect(response.body.alerts).toHaveLength(1);
+    expect(response.body.alerts[0]).toMatchObject({
+      connector: 'NPDB',
+      severity: 'CRITICAL',
+    });
   });
 });

@@ -23,6 +23,8 @@ import {
   connectorSchemaDriftDetector,
   type ConnectorSchemaState,
 } from '../../../../../../../core/connectors/schemaDrift';
+import { log } from '../../../obs/logger';
+import { emitAlert } from '../../alerts/trustAlerts';
 import type { ConnectorMode, ConnectorName } from './connectorFactory';
 import { getConnectorMode } from './connectorFactory';
 
@@ -39,17 +41,25 @@ export interface ConnectorHealthEntry {
   quarantined: boolean;
   quarantinedUntil: string | null;
   quarantineReason: string | null;
+  latestStatusChangeAt: string | null;
+  latestStatusChangeReason: string | null;
   alertCount: number;
   totalRequests: number;
   totalRetries: number;
   rateLimitHits: number;
   remainingQuota: number;
   quotaResetAt: string | null;
+  quotaWindowRemainingMs: number;
+  quotaUtilizationRatio: number;
+  nearQuotaLimit: boolean;
+  quotaAlertThreshold: number;
   lastRetryAfterMs: number | null;
   lastLatencyMs: number | null;
   averageLatencyMs: number | null;
   schemaDriftDetected: boolean;
   schemaDriftSeverity: ConnectorSchemaState['severity'];
+  schemaBaselineState: ConnectorSchemaState['baselineState'];
+  schemaCandidateSamples: number;
 }
 
 export interface ConnectorHealthReport {
@@ -85,19 +95,98 @@ function computeEntryStatus(
     return 'UNREACHABLE';
   }
 
-  if (baseStatus === 'DEGRADED' || isQuotaBlocked(quota) || schema.detected) {
+  if (baseStatus === 'DEGRADED' || isQuotaBlocked(quota) || schema.severity === 'WARN') {
     return 'DEGRADED';
   }
 
   return 'HEALTHY';
 }
 
+function mapAlertSeverity(alert: ConnectorAlert): 'INFO' | 'WARNING' | 'CRITICAL' {
+  if (alert.severity === 'CRITICAL') {
+    return 'CRITICAL';
+  }
+  if (alert.severity === 'WARN') {
+    return 'WARNING';
+  }
+  return 'INFO';
+}
+
+function buildAlertTitle(alert: ConnectorAlert): string {
+  switch (alert.type) {
+    case 'RATE_LIMIT':
+      return `${alert.connector} connector rate limited`;
+    case 'SCHEMA_DRIFT':
+      return `${alert.connector} connector schema drift`;
+    case 'QUARANTINE':
+      return `${alert.connector} connector quarantined`;
+    case 'FAILURE':
+      return `${alert.connector} connector failure`;
+    case 'RECOVERY':
+      return `${alert.connector} connector recovered`;
+    default:
+      return `${alert.connector} connector alert`;
+  }
+}
+
+function buildRecommendedAction(alert: ConnectorAlert): string {
+  switch (alert.type) {
+    case 'RATE_LIMIT':
+      return 'Honor Retry-After, reduce connector traffic, and confirm upstream quota settings.';
+    case 'SCHEMA_DRIFT':
+      return 'Review connector contract changes and update mappings before restoring normal traffic.';
+    case 'QUARANTINE':
+      return 'Run a successful probe or clear the quarantine explicitly before re-enabling connector traffic.';
+    case 'FAILURE':
+      return 'Inspect upstream reachability, credentials, and recent connector changes.';
+    case 'RECOVERY':
+      return 'Monitor the connector to confirm stability after recovery.';
+    default:
+      return 'Review connector diagnostics and operator recommendations.';
+  }
+}
+
+function emitConnectorTrustAlert(alert: ConnectorAlert): void {
+  if (alert.type === 'RECOVERY') {
+    return;
+  }
+
+  void emitAlert({
+    type: 'verification_failure',
+    severity: mapAlertSeverity(alert),
+    title: buildAlertTitle(alert),
+    description: alert.message,
+    subject: `connector:${alert.connector}`,
+    recommendedAction: buildRecommendedAction(alert),
+  }).catch((error) => {
+    log('error', 'connector_trust_alert_emit_failed', {
+      connector: alert.connector,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
+}
+
+function captureNewAlerts<T>(connector: ConnectorName, action: () => T): T {
+  const before = connectorHealthMonitor.getHealth(connector).alertCount;
+  const result = action();
+  const after = connectorHealthMonitor.getHealth(connector).alertCount;
+  const newAlerts = connectorHealthMonitor
+    .getAlerts(connector, Math.max(0, after - before))
+    .reverse();
+
+  for (const alert of newAlerts) {
+    emitConnectorTrustAlert(alert);
+  }
+
+  return result;
+}
+
 export function recordConnectorSuccess(connector: ConnectorName, metrics: ConnectorCallMetrics = {}): void {
-  connectorHealthMonitor.recordSuccess({
+  captureNewAlerts(connector, () => connectorHealthMonitor.recordSuccess({
     connector,
     latencyMs: metrics.latencyMs,
     retries: metrics.retries,
-  });
+  }));
 }
 
 export function recordConnectorFailure(
@@ -105,13 +194,13 @@ export function recordConnectorFailure(
   error: string,
   metrics: ConnectorCallMetrics = {},
 ): void {
-  connectorHealthMonitor.recordFailure({
+  captureNewAlerts(connector, () => connectorHealthMonitor.recordFailure({
     connector,
     error,
     latencyMs: metrics.latencyMs,
     retries: metrics.retries,
     details: metrics.details,
-  });
+  }));
 }
 
 export function recordConnectorRetry(
@@ -119,13 +208,21 @@ export function recordConnectorRetry(
   attempt: number,
   delayMs: number,
   reason?: string,
+  details: {
+    classification?: 'retry-after' | 'backoff';
+    retryAfterMs?: number | null;
+    totalDelayMs?: number;
+  } = {},
 ): void {
-  connectorHealthMonitor.recordRetry({
+  captureNewAlerts(connector, () => connectorHealthMonitor.recordRetry({
     connector,
     attempt,
     delayMs,
     reason,
-  });
+    classification: details.classification,
+    retryAfterMs: details.retryAfterMs,
+    totalDelayMs: details.totalDelayMs,
+  }));
 }
 
 export function recordConnectorRateLimit(
@@ -133,11 +230,11 @@ export function recordConnectorRateLimit(
   retryAfterMs?: number | null,
   message?: string,
 ): void {
-  connectorHealthMonitor.recordRateLimit({
+  captureNewAlerts(connector, () => connectorHealthMonitor.recordRateLimit({
     connector,
     retryAfterMs: retryAfterMs ?? undefined,
     message,
-  });
+  }));
 }
 
 export function recordConnectorSchemaDrift(connector: ConnectorName, state: ConnectorSchemaState): void {
@@ -152,7 +249,7 @@ export function recordConnectorSchemaDrift(connector: ConnectorName, state: Conn
     state.missingFields.length > 0 ? `missing fields: ${state.missingFields.join(', ')}` : null,
   ].filter(Boolean);
 
-  connectorHealthMonitor.recordSchemaDrift({
+  captureNewAlerts(connector, () => connectorHealthMonitor.recordSchemaDrift({
     connector,
     severity: state.severity === 'CRITICAL' ? 'CRITICAL' : 'WARN',
     message:
@@ -162,8 +259,9 @@ export function recordConnectorSchemaDrift(connector: ConnectorName, state: Conn
     details: {
       baselineFingerprint: state.baselineFingerprint,
       currentFingerprint: state.currentFingerprint,
+      baselineState: state.baselineState,
     },
-  });
+  }));
 }
 
 export function quarantineConnector(
@@ -171,11 +269,11 @@ export function quarantineConnector(
   reason: string,
   durationMs: number,
 ): void {
-  connectorHealthMonitor.quarantine({
+  captureNewAlerts(connector, () => connectorHealthMonitor.quarantine({
     connector,
     reason,
     durationMs,
-  });
+  }));
 }
 
 export function clearConnectorQuarantine(connector: ConnectorName): void {
@@ -210,17 +308,25 @@ export function getConnectorHealth(): ConnectorHealthReport {
       quarantined: snapshot.status === 'QUARANTINED',
       quarantinedUntil: snapshot.quarantinedUntil,
       quarantineReason: snapshot.quarantineReason,
+      latestStatusChangeAt: snapshot.latestStatusChangeAt,
+      latestStatusChangeReason: snapshot.latestStatusChangeReason,
       alertCount: snapshot.alertCount,
       totalRequests: snapshot.telemetry.totalRequests,
       totalRetries: snapshot.telemetry.totalRetries,
       rateLimitHits: quota.rateLimitHits,
       remainingQuota: quota.remaining,
       quotaResetAt: quota.resetAt,
+      quotaWindowRemainingMs: quota.windowRemainingMs,
+      quotaUtilizationRatio: quota.utilizationRatio,
+      nearQuotaLimit: quota.nearLimit,
+      quotaAlertThreshold: quota.alertThreshold,
       lastRetryAfterMs: quota.lastRetryAfterMs,
       lastLatencyMs: snapshot.telemetry.lastLatencyMs,
       averageLatencyMs: snapshot.telemetry.averageLatencyMs,
-      schemaDriftDetected: schema.detected,
+      schemaDriftDetected: schema.detected || schema.additionalFields.length > 0,
       schemaDriftSeverity: schema.severity,
+      schemaBaselineState: schema.baselineState,
+      schemaCandidateSamples: schema.candidateSamples,
     };
   });
 

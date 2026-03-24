@@ -42,6 +42,7 @@ function createDelta(
   details: Omit<WatchtowerClaimDelta, 'deltaId' | 'subjectId' | 'kind' | 'claimId' | 'claimType' | 'sourceId' | 'detectedAt'>,
 ): WatchtowerClaimDelta {
   const deltaSeed = {
+    subscriptionId: snapshot.subscriptionId,
     subjectId: snapshot.subjectId,
     kind,
     claimId: claim.claimId,

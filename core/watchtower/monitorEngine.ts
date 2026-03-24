@@ -1,15 +1,18 @@
 import { evaluateAlertRules, type WatchtowerAlertRuleConfig } from './alertRules';
 import { detectClaimChanges } from './deltaDetector';
 import {
+  alertSeverityRank,
   computeWatchtowerHash,
   type WatchtowerAlert,
   type WatchtowerClaim,
   type WatchtowerClaimDelta,
   type WatchtowerEvent,
+  type WatchtowerEventQuery,
   type WatchtowerEventStore,
   type WatchtowerNotificationRequest,
   type WatchtowerSnapshot,
   type WatchtowerSubscription,
+  type WatchtowerSubscriptionQuery,
 } from './eventStore';
 import {
   buildMonitoringSubscription,
@@ -85,8 +88,13 @@ export class CollectingWatchtowerNotifier implements WatchtowerNotifier {
   }
 }
 
-function eventId(type: WatchtowerEvent['type'], subjectId: string, occurredAt: string, payload: Record<string, unknown>): string {
-  return `event_${computeWatchtowerHash({ type, subjectId, occurredAt, payload }).slice(0, 24)}`;
+function toIsoString(value: string | Date, fieldName: string): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (!Number.isFinite(date.getTime())) {
+    throw new Error(`${fieldName} must be a valid date.`);
+  }
+
+  return date.toISOString();
 }
 
 function createEvent(
@@ -97,7 +105,13 @@ function createEvent(
   subscriptionId?: string | null,
 ): WatchtowerEvent {
   return {
-    eventId: eventId(type, subjectId, occurredAt, payload),
+    eventId: `event_${computeWatchtowerHash({
+      type,
+      subjectId,
+      occurredAt,
+      subscriptionId: subscriptionId ?? null,
+      payload,
+    }).slice(0, 24)}`,
     type,
     subjectId,
     occurredAt,
@@ -119,20 +133,33 @@ export class WatchtowerMonitorEngine {
     this.includeAddedClaimsOnInitialCheck = options.includeAddedClaimsOnInitialCheck ?? false;
   }
 
+  async getSubscription(subscriptionId: string): Promise<WatchtowerSubscription | null> {
+    return this.options.eventStore.getSubscription(subscriptionId);
+  }
+
+  async listSubscriptions(query?: WatchtowerSubscriptionQuery): Promise<readonly WatchtowerSubscription[]> {
+    return this.options.eventStore.listSubscriptions(query);
+  }
+
+  async listEventHistory(query?: WatchtowerEventQuery): Promise<readonly WatchtowerEvent[]> {
+    return this.options.eventStore.listEvents(query);
+  }
+
   async createSubscription(
     input: MonitoringSubscriptionInput,
     now: string = new Date().toISOString(),
   ): Promise<WatchtowerSubscription> {
-    const subscription = buildMonitoringSubscription(input, now);
+    const occurredAt = toIsoString(now, 'now');
+    const subscription = buildMonitoringSubscription(input, occurredAt);
     const savedSubscription = await this.options.eventStore.saveSubscription(subscription);
 
     await this.options.eventStore.appendEvents([
-      createEvent('SUBSCRIPTION_SAVED', savedSubscription.subjectId, now, {
+      createEvent('SUBSCRIPTION_SAVED', savedSubscription.subjectId, occurredAt, {
         subscriptionId: savedSubscription.subscriptionId,
         checkIntervalMinutes: savedSubscription.checkIntervalMinutes,
         alertSeverityFloor: savedSubscription.alertSeverityFloor,
       }, savedSubscription.subscriptionId),
-      createEvent('CHECK_SCHEDULED', savedSubscription.subjectId, now, {
+      createEvent('CHECK_SCHEDULED', savedSubscription.subjectId, occurredAt, {
         subscriptionId: savedSubscription.subscriptionId,
         nextCheckAt: savedSubscription.nextCheckAt,
       }, savedSubscription.subscriptionId),
@@ -146,16 +173,17 @@ export class WatchtowerMonitorEngine {
     patch: MonitoringSubscriptionPatch,
     now: string = new Date().toISOString(),
   ): Promise<WatchtowerSubscription> {
+    const occurredAt = toIsoString(now, 'now');
     const existingSubscription = await this.options.eventStore.getSubscription(subscriptionId);
     if (!existingSubscription) {
       throw new Error(`Unknown watchtower subscription: ${subscriptionId}`);
     }
 
-    const updatedSubscription = updateMonitoringSubscription(existingSubscription, patch, now);
+    const updatedSubscription = updateMonitoringSubscription(existingSubscription, patch, occurredAt);
     const savedSubscription = await this.options.eventStore.saveSubscription(updatedSubscription);
 
     await this.options.eventStore.appendEvents([
-      createEvent('SUBSCRIPTION_SAVED', savedSubscription.subjectId, now, {
+      createEvent('SUBSCRIPTION_SAVED', savedSubscription.subjectId, occurredAt, {
         subscriptionId: savedSubscription.subscriptionId,
         checkIntervalMinutes: savedSubscription.checkIntervalMinutes,
         alertSeverityFloor: savedSubscription.alertSeverityFloor,
@@ -170,16 +198,17 @@ export class WatchtowerMonitorEngine {
     nextCheckAt: string,
     occurredAt: string = new Date().toISOString(),
   ): Promise<WatchtowerSubscription> {
+    const scheduledAt = toIsoString(occurredAt, 'occurredAt');
     const existingSubscription = await this.options.eventStore.getSubscription(subscriptionId);
     if (!existingSubscription) {
       throw new Error(`Unknown watchtower subscription: ${subscriptionId}`);
     }
 
-    const updatedSubscription = updateMonitoringSubscription(existingSubscription, { nextCheckAt }, occurredAt);
+    const updatedSubscription = updateMonitoringSubscription(existingSubscription, { nextCheckAt }, scheduledAt);
     const savedSubscription = await this.options.eventStore.saveSubscription(updatedSubscription);
 
     await this.options.eventStore.appendEvents([
-      createEvent('CHECK_SCHEDULED', savedSubscription.subjectId, occurredAt, {
+      createEvent('CHECK_SCHEDULED', savedSubscription.subjectId, scheduledAt, {
         subscriptionId: savedSubscription.subscriptionId,
         nextCheckAt: savedSubscription.nextCheckAt,
       }, savedSubscription.subscriptionId),
@@ -189,12 +218,13 @@ export class WatchtowerMonitorEngine {
   }
 
   async runDueChecks(now: string = new Date().toISOString()): Promise<WatchtowerRunResult[]> {
-    const subscriptions = await this.options.eventStore.listSubscriptions({ activeOnly: true, dueBefore: now });
-    const dueSubscriptions = listDueSubscriptions(subscriptions, now);
+    const checkedAt = toIsoString(now, 'now');
+    const subscriptions = await this.options.eventStore.listSubscriptions({ activeOnly: true, dueBefore: checkedAt });
+    const dueSubscriptions = listDueSubscriptions(subscriptions, checkedAt);
     const results: WatchtowerRunResult[] = [];
 
     for (const subscription of dueSubscriptions) {
-      results.push(await this.runCheck({ subscriptionId: subscription.subscriptionId, checkedAt: now }));
+      results.push(await this.runCheck({ subscriptionId: subscription.subscriptionId, checkedAt }));
     }
 
     return results;
@@ -206,15 +236,16 @@ export class WatchtowerMonitorEngine {
       throw new Error(`Unknown watchtower subscription: ${input.subscriptionId}`);
     }
 
-    const checkedAt = input.checkedAt ?? new Date().toISOString();
+    const checkedAt = input.checkedAt ? toIsoString(input.checkedAt, 'checkedAt') : new Date().toISOString();
     const claims = input.claims ?? await this.claimsProvider.fetchClaims(subscription);
     const snapshot: WatchtowerSnapshot = {
+      subscriptionId: subscription.subscriptionId,
       subjectId: subscription.subjectId,
       checkedAt,
       claims,
       metadata: input.metadata,
     };
-    const previousSnapshot = await this.options.eventStore.getLatestSnapshot(subscription.subjectId);
+    const previousSnapshot = await this.options.eventStore.getLatestSnapshot(subscription.subscriptionId, subscription.subjectId);
     const allDeltas = detectClaimChanges(previousSnapshot, snapshot, {
       includeAddedClaimsOnInitialCheck: this.includeAddedClaimsOnInitialCheck,
     });
@@ -225,7 +256,7 @@ export class WatchtowerMonitorEngine {
       checkedAt,
       subscription,
       config: this.alertRuleConfig,
-    });
+    }).filter((alert) => alertSeverityRank(alert.severity) >= alertSeverityRank(subscription.alertSeverityFloor));
 
     const historicalEvents = await this.options.eventStore.listEvents({
       subscriptionId: subscription.subscriptionId,

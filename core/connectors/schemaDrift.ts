@@ -11,12 +11,17 @@ export interface SchemaTypeChange {
   actual: string;
 }
 
+export type ConnectorSchemaBaselineState = 'UNSET' | 'LEARNING' | 'LEARNED' | 'SEEDED';
+
 export interface ConnectorSchemaState {
   connector: string;
   baselineFingerprint: string | null;
   currentFingerprint: string | null;
   checkedAt: string | null;
   samplesSeen: number;
+  baselineState: ConnectorSchemaBaselineState;
+  candidateFingerprint: string | null;
+  candidateSamples: number;
   detected: boolean;
   severity: 'NONE' | 'WARN' | 'CRITICAL';
   missingFields: string[];
@@ -28,9 +33,13 @@ export interface ConnectorSchemaState {
 interface MutableSchemaState {
   baselinePaths: Map<string, string> | null;
   baselineFingerprint: string | null;
+  candidatePaths: Map<string, string> | null;
+  candidateFingerprint: string | null;
+  candidateSamples: number;
   currentFingerprint: string | null;
   checkedAt: string | null;
   samplesSeen: number;
+  baselineState: ConnectorSchemaBaselineState;
   detected: boolean;
   severity: 'NONE' | 'WARN' | 'CRITICAL';
   missingFields: string[];
@@ -39,6 +48,8 @@ interface MutableSchemaState {
   typeChanges: SchemaTypeChange[];
   policy: ConnectorSchemaPolicy;
 }
+
+const REQUIRED_STABLE_SAMPLES = 2;
 
 function stableFingerprint(paths: Map<string, string>): string {
   const normalized = [...paths.entries()]
@@ -128,14 +139,8 @@ export class ConnectorSchemaDriftDetector {
     state.currentFingerprint = currentFingerprint;
 
     if (!state.baselinePaths) {
-      state.baselinePaths = currentPaths;
-      state.baselineFingerprint = currentFingerprint;
-      state.detected = false;
-      state.severity = 'NONE';
-      state.missingFields = [];
-      state.additionalFields = [];
-      state.missingRequiredFields = [];
-      state.typeChanges = [];
+      this.observeLearningCandidate(state, currentPaths, currentFingerprint);
+      this.resetDriftState(state);
       return this.getStateSnapshot(connector);
     }
 
@@ -167,7 +172,7 @@ export class ConnectorSchemaDriftDetector {
     let severity: ConnectorSchemaState['severity'] = 'NONE';
     if (typeChanges.length > 0 || missingRequiredFields.length > 0) {
       severity = 'CRITICAL';
-    } else if (missingFields.length > 0 || (!resolvedPolicy.allowAdditionalFields && additionalFields.length > 0) || additionalFields.length > 0) {
+    } else if (missingFields.length > 0 || (!resolvedPolicy.allowAdditionalFields && additionalFields.length > 0)) {
       severity = 'WARN';
     }
 
@@ -181,7 +186,12 @@ export class ConnectorSchemaDriftDetector {
     return this.getStateSnapshot(connector);
   }
 
-  setBaseline(connector: string, payload: unknown, policy: ConnectorSchemaPolicy = {}, recordedAt?: string): ConnectorSchemaState {
+  setBaseline(
+    connector: string,
+    payload: unknown,
+    policy: ConnectorSchemaPolicy = {},
+    recordedAt?: string,
+  ): ConnectorSchemaState {
     const state = this.ensureState(connector);
     const checkedAt = nowIso(recordedAt);
     state.policy = {
@@ -193,12 +203,11 @@ export class ConnectorSchemaDriftDetector {
     state.baselinePaths = collectSchemaPaths(payload);
     state.baselineFingerprint = stableFingerprint(state.baselinePaths);
     state.currentFingerprint = state.baselineFingerprint;
-    state.detected = false;
-    state.severity = 'NONE';
-    state.missingFields = [];
-    state.additionalFields = [];
-    state.missingRequiredFields = [];
-    state.typeChanges = [];
+    state.baselineState = 'SEEDED';
+    state.candidatePaths = null;
+    state.candidateFingerprint = null;
+    state.candidateSamples = 0;
+    this.resetDriftState(state);
     return this.getStateSnapshot(connector);
   }
 
@@ -215,9 +224,13 @@ export class ConnectorSchemaDriftDetector {
       this.states.set(connector, {
         baselinePaths: null,
         baselineFingerprint: null,
+        candidatePaths: null,
+        candidateFingerprint: null,
+        candidateSamples: 0,
         currentFingerprint: null,
         checkedAt: null,
         samplesSeen: 0,
+        baselineState: 'UNSET',
         detected: false,
         severity: 'NONE',
         missingFields: [],
@@ -233,6 +246,41 @@ export class ConnectorSchemaDriftDetector {
     return this.states.get(connector)!;
   }
 
+  private observeLearningCandidate(
+    state: MutableSchemaState,
+    currentPaths: Map<string, string>,
+    currentFingerprint: string,
+  ): void {
+    if (state.candidateFingerprint === currentFingerprint) {
+      state.candidateSamples += 1;
+    } else {
+      state.candidatePaths = currentPaths;
+      state.candidateFingerprint = currentFingerprint;
+      state.candidateSamples = 1;
+    }
+
+    if (state.candidateSamples >= REQUIRED_STABLE_SAMPLES && state.candidatePaths) {
+      state.baselinePaths = new Map(state.candidatePaths);
+      state.baselineFingerprint = currentFingerprint;
+      state.baselineState = 'LEARNED';
+      state.candidatePaths = null;
+      state.candidateFingerprint = null;
+      state.candidateSamples = 0;
+      return;
+    }
+
+    state.baselineState = 'LEARNING';
+  }
+
+  private resetDriftState(state: MutableSchemaState): void {
+    state.detected = false;
+    state.severity = 'NONE';
+    state.missingFields = [];
+    state.additionalFields = [];
+    state.missingRequiredFields = [];
+    state.typeChanges = [];
+  }
+
   private getStateSnapshot(connector: string): ConnectorSchemaState {
     const state = this.ensureState(connector);
     return {
@@ -241,6 +289,9 @@ export class ConnectorSchemaDriftDetector {
       currentFingerprint: state.currentFingerprint,
       checkedAt: state.checkedAt,
       samplesSeen: state.samplesSeen,
+      baselineState: state.baselineState,
+      candidateFingerprint: state.candidateFingerprint,
+      candidateSamples: state.candidateSamples,
       detected: state.detected,
       severity: state.severity,
       missingFields: [...state.missingFields],

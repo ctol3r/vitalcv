@@ -33,8 +33,36 @@ export interface MonitoringSubscriptionPatch {
   metadata?: Record<string, unknown>;
 }
 
-function toIsoString(value: string | Date): string {
-  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+function toIsoString(value: string | Date, fieldName: string): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (!Number.isFinite(date.getTime())) {
+    throw new Error(`${fieldName} must be a valid date.`);
+  }
+
+  return date.toISOString();
+}
+
+function normalizeIntervalMinutes(value: number | undefined, fallback: number): number {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (!Number.isFinite(value)) {
+    throw new Error('checkIntervalMinutes must be a finite number.');
+  }
+
+  return Math.max(1, Math.floor(value));
+}
+
+function normalizeNullableTimestamp(
+  value: string | null | undefined,
+  fieldName: string,
+): string | null | undefined {
+  if (value === undefined || value === null) {
+    return value;
+  }
+
+  return toIsoString(value, fieldName);
 }
 
 function sanitizeClaimTypes(claimTypes?: readonly string[]): readonly string[] | undefined {
@@ -55,7 +83,12 @@ function normalizeTrigger(
     throw new Error('Notification trigger channel is required.');
   }
 
-  const cooldownMinutes = Math.max(0, Math.floor(trigger.cooldownMinutes ?? 0));
+  const rawCooldownMinutes = trigger.cooldownMinutes ?? 0;
+  if (!Number.isFinite(rawCooldownMinutes)) {
+    throw new Error('Notification trigger cooldownMinutes must be a finite number.');
+  }
+
+  const cooldownMinutes = Math.max(0, Math.floor(rawCooldownMinutes));
   const deltaKinds = trigger.deltaKinds && trigger.deltaKinds.length > 0
     ? [...new Set(trigger.deltaKinds)]
     : undefined;
@@ -79,9 +112,30 @@ function normalizeTrigger(
   };
 }
 
+function triggerSeed(
+  trigger: Partial<WatchtowerNotificationTrigger>,
+  fallbackSeverity: WatchtowerAlertSeverity,
+): Record<string, unknown> {
+  const rawCooldownMinutes = trigger.cooldownMinutes ?? 0;
+  if (!Number.isFinite(rawCooldownMinutes)) {
+    throw new Error('Notification trigger cooldownMinutes must be a finite number.');
+  }
+
+  return {
+    channel: trigger.channel ?? null,
+    destination: trigger.destination ?? null,
+    severityAtLeast: trigger.severityAtLeast ?? fallbackSeverity,
+    deltaKinds: trigger.deltaKinds && trigger.deltaKinds.length > 0
+      ? [...new Set(trigger.deltaKinds)].sort()
+      : null,
+    cooldownMinutes: Math.max(0, Math.floor(rawCooldownMinutes)),
+    enabled: trigger.enabled ?? true,
+  };
+}
+
 export function scheduleNextCheckAt(from: string | Date, intervalMinutes: number): string {
-  const baseTime = new Date(from);
-  const nextTime = new Date(baseTime.getTime() + Math.max(1, Math.floor(intervalMinutes)) * 60 * 1000);
+  const baseTime = new Date(toIsoString(from, 'from'));
+  const nextTime = new Date(baseTime.getTime() + normalizeIntervalMinutes(intervalMinutes, 1) * 60 * 1000);
   return nextTime.toISOString();
 }
 
@@ -93,27 +147,32 @@ export function buildMonitoringSubscription(
     throw new Error('subjectId is required.');
   }
 
-  const intervalMinutes = Math.max(1, Math.floor(input.checkIntervalMinutes ?? 60));
-  const createdAt = toIsoString(now);
+  const subjectId = input.subjectId.trim();
+  const intervalMinutes = normalizeIntervalMinutes(input.checkIntervalMinutes, 60);
+  const createdAt = toIsoString(now, 'now');
   const claimTypes = sanitizeClaimTypes(input.claimTypes);
   const alertSeverityFloor = input.alertSeverityFloor ?? 'MEDIUM';
-  const subscriptionId = input.subscriptionId ?? `watchsub_${computeWatchtowerHash({
-    subjectId: input.subjectId,
-    createdAt,
-    intervalMinutes,
-    claimTypes: claimTypes ?? null,
-  }).slice(0, 24)}`;
+  const nextCheckAt = input.nextCheckAt !== undefined ? toIsoString(input.nextCheckAt, 'nextCheckAt') : createdAt;
   const rawTriggers: Partial<WatchtowerNotificationTrigger>[] = input.triggers && input.triggers.length > 0
     ? [...input.triggers]
     : [{ channel: 'INTERNAL', severityAtLeast: alertSeverityFloor }];
+  const subscriptionId = input.subscriptionId ?? `watchsub_${computeWatchtowerHash({
+    subjectId,
+    createdAt,
+    intervalMinutes,
+    nextCheckAt,
+    alertSeverityFloor,
+    claimTypes: claimTypes ?? null,
+    triggers: rawTriggers.map((trigger) => triggerSeed(trigger, alertSeverityFloor)),
+  }).slice(0, 24)}`;
 
   return {
     subscriptionId,
-    subjectId: input.subjectId.trim(),
+    subjectId,
     active: input.active ?? true,
     checkIntervalMinutes: intervalMinutes,
-    nextCheckAt: input.nextCheckAt ?? createdAt,
-    lastCheckedAt: input.lastCheckedAt ?? null,
+    nextCheckAt,
+    lastCheckedAt: normalizeNullableTimestamp(input.lastCheckedAt, 'lastCheckedAt') ?? null,
     alertSeverityFloor,
     claimTypes,
     triggers: rawTriggers.map((trigger) => normalizeTrigger(subscriptionId, trigger, alertSeverityFloor)),
@@ -128,17 +187,15 @@ export function updateMonitoringSubscription(
   patch: MonitoringSubscriptionPatch,
   now: string | Date = new Date(),
 ): WatchtowerSubscription {
-  const updatedAt = toIsoString(now);
+  const updatedAt = toIsoString(now, 'now');
   const alertSeverityFloor = patch.alertSeverityFloor ?? subscription.alertSeverityFloor;
 
   return {
     ...subscription,
     active: patch.active ?? subscription.active,
-    checkIntervalMinutes: patch.checkIntervalMinutes
-      ? Math.max(1, Math.floor(patch.checkIntervalMinutes))
-      : subscription.checkIntervalMinutes,
-    nextCheckAt: patch.nextCheckAt ?? subscription.nextCheckAt,
-    lastCheckedAt: patch.lastCheckedAt !== undefined ? patch.lastCheckedAt : subscription.lastCheckedAt ?? null,
+    checkIntervalMinutes: normalizeIntervalMinutes(patch.checkIntervalMinutes, subscription.checkIntervalMinutes),
+    nextCheckAt: patch.nextCheckAt !== undefined ? toIsoString(patch.nextCheckAt, 'nextCheckAt') : subscription.nextCheckAt,
+    lastCheckedAt: normalizeNullableTimestamp(patch.lastCheckedAt, 'lastCheckedAt') ?? subscription.lastCheckedAt ?? null,
     alertSeverityFloor,
     claimTypes: patch.claimTypes !== undefined ? sanitizeClaimTypes(patch.claimTypes) : subscription.claimTypes,
     triggers: patch.triggers !== undefined
@@ -157,7 +214,7 @@ export function isSubscriptionDue(
     return false;
   }
 
-  return Date.parse(subscription.nextCheckAt) <= Date.parse(toIsoString(now));
+  return Date.parse(subscription.nextCheckAt) <= Date.parse(toIsoString(now, 'now'));
 }
 
 export function listDueSubscriptions(
@@ -214,7 +271,7 @@ export function buildNotificationRequests(
   historicalEvents: readonly WatchtowerEvent[],
   now: string | Date = new Date(),
 ): WatchtowerNotificationRequest[] {
-  const occurredAt = toIsoString(now);
+  const occurredAt = toIsoString(now, 'now');
   const requests: WatchtowerNotificationRequest[] = [];
 
   for (const alert of alerts) {

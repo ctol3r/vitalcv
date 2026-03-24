@@ -4,6 +4,16 @@ export interface ConnectorRetryPolicy {
   maxRetries: number;
   baseDelayMs: number;
   maxDelayMs: number;
+  jitterRatio: number;
+  maxCumulativeDelayMs: number;
+}
+
+export type RetryDelayReason = 'retry-after' | 'backoff';
+
+export interface RetryDelayComputation {
+  delayMs: number;
+  reason: RetryDelayReason;
+  retryAfterMs: number | null;
 }
 
 export interface RetryAttemptContext {
@@ -11,6 +21,9 @@ export interface RetryAttemptContext {
   attempt: number;
   delayMs: number;
   error: Error;
+  reason: RetryDelayReason;
+  retryAfterMs: number | null;
+  totalDelayMs: number;
 }
 
 export interface ExecuteWithRetryOptions<T> {
@@ -20,6 +33,7 @@ export interface ExecuteWithRetryOptions<T> {
   shouldRetry?: (error: unknown, attempt: number) => boolean;
   onRetry?: (context: RetryAttemptContext) => void | Promise<void>;
   sleep?: (ms: number) => Promise<void>;
+  random?: () => number;
 }
 
 export interface ExecuteWithRetryResult<T> {
@@ -32,6 +46,8 @@ const DEFAULT_POLICY: ConnectorRetryPolicy = {
   maxRetries: 3,
   baseDelayMs: 250,
   maxDelayMs: 5_000,
+  jitterRatio: 0.2,
+  maxCumulativeDelayMs: 20_000,
 };
 
 function defaultSleep(ms: number): Promise<void> {
@@ -77,6 +93,16 @@ function inferRetryAfterMs(error: unknown): number | null {
   return null;
 }
 
+function applyJitter(delayMs: number, jitterRatio: number, random: () => number): number {
+  if (jitterRatio <= 0) {
+    return delayMs;
+  }
+
+  const spread = delayMs * Math.min(Math.max(jitterRatio, 0), 1);
+  const offset = (random() * 2 - 1) * spread;
+  return Math.max(0, Math.round(delayMs + offset));
+}
+
 export class ConnectorRetryableError extends Error {
   readonly retryAfterMs: number | null;
   readonly statusCode?: number;
@@ -99,18 +125,37 @@ export class ConnectorRateLimitError extends ConnectorRetryableError {
   }
 }
 
+export function computeRetryDelay(
+  attempt: number,
+  policy: ConnectorRetryPolicy,
+  retryAfterMs?: number | null,
+  random: () => number = Math.random,
+): RetryDelayComputation {
+  if (typeof retryAfterMs === 'number' && Number.isFinite(retryAfterMs) && retryAfterMs >= 0) {
+    return {
+      delayMs: Math.max(0, Math.round(retryAfterMs)),
+      reason: 'retry-after',
+      retryAfterMs,
+    };
+  }
+
+  const exponent = Math.max(0, attempt - 1);
+  const computed = Math.min(policy.maxDelayMs, policy.baseDelayMs * 2 ** exponent);
+
+  return {
+    delayMs: applyJitter(computed, policy.jitterRatio, random),
+    reason: 'backoff',
+    retryAfterMs: null,
+  };
+}
+
 export function computeRetryDelayMs(
   attempt: number,
   policy: ConnectorRetryPolicy,
   retryAfterMs?: number | null,
+  random?: () => number,
 ): number {
-  if (typeof retryAfterMs === 'number' && Number.isFinite(retryAfterMs) && retryAfterMs >= 0) {
-    return Math.min(policy.maxDelayMs, Math.max(policy.baseDelayMs, retryAfterMs));
-  }
-
-  const exponent = Math.max(0, attempt - 1);
-  const computed = policy.baseDelayMs * 2 ** exponent;
-  return Math.min(policy.maxDelayMs, computed);
+  return computeRetryDelay(attempt, policy, retryAfterMs, random).delayMs;
 }
 
 export function isRetryableConnectorError(error: unknown): boolean {
@@ -131,16 +176,23 @@ export function isRetryableConnectorError(error: unknown): boolean {
   };
 
   const statusCode = candidate.statusCode ?? candidate.status;
-  if (typeof statusCode === 'number' && (statusCode === 408 || statusCode === 409 || statusCode === 425 || statusCode === 429 || statusCode >= 500)) {
+  if (
+    typeof statusCode === 'number'
+    && (statusCode === 408 || statusCode === 409 || statusCode === 425 || statusCode === 429 || statusCode >= 500)
+  ) {
     return true;
   }
 
-  if (typeof candidate.code === 'string' && ['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'EAI_AGAIN'].includes(candidate.code)) {
+  if (
+    typeof candidate.code === 'string'
+    && ['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'EAI_AGAIN'].includes(candidate.code)
+  ) {
     return true;
   }
 
   const message = candidate.message?.toLowerCase() ?? '';
-  return ['timeout', 'temporarily unavailable', 'rate limit', 'too many requests', 'connection reset'].some((token) => message.includes(token));
+  return ['timeout', 'temporarily unavailable', 'rate limit', 'too many requests', 'connection reset']
+    .some((token) => message.includes(token));
 }
 
 export async function executeWithRetry<T>(options: ExecuteWithRetryOptions<T>): Promise<ExecuteWithRetryResult<T>> {
@@ -151,6 +203,7 @@ export async function executeWithRetry<T>(options: ExecuteWithRetryOptions<T>): 
 
   const shouldRetry = options.shouldRetry ?? isRetryableConnectorError;
   const sleep = options.sleep ?? defaultSleep;
+  const random = options.random ?? Math.random;
 
   let attempts = 0;
   let totalDelayMs = 0;
@@ -172,19 +225,26 @@ export async function executeWithRetry<T>(options: ExecuteWithRetryOptions<T>): 
         throw normalizedError;
       }
 
-      const delayMs = computeRetryDelayMs(attempts, policy, inferRetryAfterMs(error));
-      totalDelayMs += delayMs;
+      const delay = computeRetryDelay(attempts, policy, inferRetryAfterMs(error), random);
+      if (totalDelayMs + delay.delayMs > policy.maxCumulativeDelayMs) {
+        throw normalizedError;
+      }
+
+      totalDelayMs += delay.delayMs;
 
       if (options.onRetry) {
         await options.onRetry({
           connector: options.connector,
           attempt: attempts,
-          delayMs,
+          delayMs: delay.delayMs,
           error: normalizedError,
+          reason: delay.reason,
+          retryAfterMs: delay.retryAfterMs,
+          totalDelayMs,
         });
       }
 
-      await sleep(delayMs);
+      await sleep(delay.delayMs);
     }
   }
 

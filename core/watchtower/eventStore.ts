@@ -31,6 +31,7 @@ export interface WatchtowerClaim {
 }
 
 export interface WatchtowerSnapshot {
+  subscriptionId: string;
   subjectId: string;
   checkedAt: string;
   claims: readonly WatchtowerClaim[];
@@ -137,15 +138,18 @@ export interface WatchtowerEventStore {
   appendEvents(events: readonly WatchtowerEvent[]): Promise<void>;
   listEvents(query?: WatchtowerEventQuery): Promise<readonly WatchtowerEvent[]>;
   putSnapshot(snapshot: WatchtowerSnapshot): Promise<void>;
-  getLatestSnapshot(subjectId: string): Promise<WatchtowerSnapshot | null>;
+  getLatestSnapshot(subscriptionId: string, subjectId?: string): Promise<WatchtowerSnapshot | null>;
   saveSubscription(subscription: WatchtowerSubscription): Promise<WatchtowerSubscription>;
   getSubscription(subscriptionId: string): Promise<WatchtowerSubscription | null>;
   listSubscriptions(query?: WatchtowerSubscriptionQuery): Promise<readonly WatchtowerSubscription[]>;
 }
 
+type LegacyWatchtowerSnapshot = Omit<WatchtowerSnapshot, 'subscriptionId'>;
+type PersistedWatchtowerSnapshot = WatchtowerSnapshot | LegacyWatchtowerSnapshot;
+
 type PersistedWatchtowerState = {
   events: WatchtowerEvent[];
-  snapshots: Record<string, WatchtowerSnapshot>;
+  snapshots: Record<string, PersistedWatchtowerSnapshot>;
   subscriptions: Record<string, WatchtowerSubscription>;
 };
 
@@ -215,17 +219,100 @@ function createEmptyState(): PersistedWatchtowerState {
   };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizePersistedSnapshot(value: unknown): PersistedWatchtowerSnapshot | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const subjectId = typeof value.subjectId === 'string' ? value.subjectId : null;
+  const checkedAt = typeof value.checkedAt === 'string' ? value.checkedAt : null;
+  const claims = Array.isArray(value.claims) ? value.claims as WatchtowerClaim[] : null;
+  const subscriptionId = typeof value.subscriptionId === 'string' && value.subscriptionId.trim().length > 0
+    ? value.subscriptionId.trim()
+    : null;
+
+  if (!subjectId || !checkedAt || !claims) {
+    return null;
+  }
+
+  const metadata = isRecord(value.metadata) ? value.metadata as Record<string, unknown> : undefined;
+
+  return subscriptionId
+    ? {
+      subscriptionId,
+      subjectId,
+      checkedAt,
+      claims,
+      metadata,
+    }
+    : {
+      subjectId,
+      checkedAt,
+      claims,
+      metadata,
+    };
+}
+
 function normalizePersistedState(value: unknown): PersistedWatchtowerState {
   const candidate = value && typeof value === 'object' ? (value as Partial<PersistedWatchtowerState>) : undefined;
+  const snapshots: Record<string, PersistedWatchtowerSnapshot> = {};
+
+  if (candidate?.snapshots && typeof candidate.snapshots === 'object') {
+    for (const [key, snapshot] of Object.entries(candidate.snapshots)) {
+      const normalized = normalizePersistedSnapshot(snapshot);
+      if (normalized) {
+        snapshots[key] = normalized;
+      }
+    }
+  }
+
   return {
     events: Array.isArray(candidate?.events) ? candidate.events as WatchtowerEvent[] : [],
-    snapshots: candidate?.snapshots && typeof candidate.snapshots === 'object'
-      ? candidate.snapshots as Record<string, WatchtowerSnapshot>
-      : {},
+    snapshots,
     subscriptions: candidate?.subscriptions && typeof candidate.subscriptions === 'object'
       ? candidate.subscriptions as Record<string, WatchtowerSubscription>
       : {},
   };
+}
+
+function materializeSnapshot(
+  snapshot: PersistedWatchtowerSnapshot,
+  subscriptionId: string,
+): WatchtowerSnapshot {
+  if ('subscriptionId' in snapshot && typeof snapshot.subscriptionId === 'string') {
+    return snapshot;
+  }
+
+  return {
+    ...snapshot,
+    subscriptionId,
+  };
+}
+
+function getPersistedSnapshot(
+  state: PersistedWatchtowerState,
+  subscriptionId: string,
+  subjectId?: string,
+): WatchtowerSnapshot | null {
+  const scopedSnapshot = state.snapshots[subscriptionId];
+  if (scopedSnapshot) {
+    return materializeSnapshot(scopedSnapshot, subscriptionId);
+  }
+
+  if (!subjectId) {
+    return null;
+  }
+
+  const legacySnapshot = state.snapshots[subjectId];
+  if (!legacySnapshot) {
+    return null;
+  }
+
+  return materializeSnapshot(legacySnapshot, subscriptionId);
 }
 
 function filterEvents(state: PersistedWatchtowerState, query?: WatchtowerEventQuery): WatchtowerEvent[] {
@@ -288,11 +375,11 @@ export class InMemoryWatchtowerEventStore implements WatchtowerEventStore {
   }
 
   async putSnapshot(snapshot: WatchtowerSnapshot): Promise<void> {
-    this.state.snapshots[snapshot.subjectId] = cloneJson(snapshot);
+    this.state.snapshots[snapshot.subscriptionId] = cloneJson(snapshot);
   }
 
-  async getLatestSnapshot(subjectId: string): Promise<WatchtowerSnapshot | null> {
-    return cloneJson(this.state.snapshots[subjectId] ?? null);
+  async getLatestSnapshot(subscriptionId: string, subjectId?: string): Promise<WatchtowerSnapshot | null> {
+    return cloneJson(getPersistedSnapshot(this.state, subscriptionId, subjectId));
   }
 
   async saveSubscription(subscription: WatchtowerSubscription): Promise<WatchtowerSubscription> {
@@ -354,13 +441,13 @@ export class FileWatchtowerEventStore implements WatchtowerEventStore {
 
   async putSnapshot(snapshot: WatchtowerSnapshot): Promise<void> {
     await this.ensureLoaded();
-    this.state.snapshots[snapshot.subjectId] = cloneJson(snapshot);
+    this.state.snapshots[snapshot.subscriptionId] = cloneJson(snapshot);
     await this.persist();
   }
 
-  async getLatestSnapshot(subjectId: string): Promise<WatchtowerSnapshot | null> {
+  async getLatestSnapshot(subscriptionId: string, subjectId?: string): Promise<WatchtowerSnapshot | null> {
     await this.ensureLoaded();
-    return cloneJson(this.state.snapshots[subjectId] ?? null);
+    return cloneJson(getPersistedSnapshot(this.state, subscriptionId, subjectId));
   }
 
   async saveSubscription(subscription: WatchtowerSubscription): Promise<WatchtowerSubscription> {

@@ -36,6 +36,10 @@ export interface ConnectorHealthSnapshot {
   consecutiveFailures: number;
   quarantinedUntil: string | null;
   quarantineReason: string | null;
+  latestStatusChangeAt: string | null;
+  latestStatusChangeFrom: ConnectorHealthStatus | null;
+  latestStatusChangeTo: ConnectorHealthStatus | null;
+  latestStatusChangeReason: string | null;
   telemetry: ConnectorTelemetrySnapshot;
   alertCount: number;
 }
@@ -63,12 +67,17 @@ export interface RecordConnectorFailureInput {
   details?: Record<string, unknown>;
 }
 
+export type RetryDelayClassification = 'retry-after' | 'backoff';
+
 export interface RecordConnectorRetryInput {
   connector: string;
   attempt: number;
   delayMs: number;
   reason?: string;
   recordedAt?: string;
+  classification?: RetryDelayClassification;
+  retryAfterMs?: number | null;
+  totalDelayMs?: number;
 }
 
 export interface RecordConnectorRateLimitInput {
@@ -95,6 +104,13 @@ export interface ConnectorQuarantineInput {
   details?: Record<string, unknown>;
 }
 
+interface ConnectorStatusTransition {
+  at: string | null;
+  from: ConnectorHealthStatus | null;
+  to: ConnectorHealthStatus | null;
+  reason: string | null;
+}
+
 interface MutableConnectorState {
   successCount: number;
   failureCount: number;
@@ -104,6 +120,8 @@ interface MutableConnectorState {
   lastError: string | null;
   quarantinedUntil: string | null;
   quarantineReason: string | null;
+  currentStatus: ConnectorHealthStatus;
+  latestStatusTransition: ConnectorStatusTransition;
   telemetry: {
     totalRequests: number;
     totalSuccesses: number;
@@ -118,6 +136,7 @@ interface MutableConnectorState {
     lastAttemptAt: string | null;
   };
   alerts: ConnectorAlert[];
+  alertCooldowns: Map<string, string>;
 }
 
 export interface ConnectorHealthMonitorOptions {
@@ -126,6 +145,7 @@ export interface ConnectorHealthMonitorOptions {
   quarantineThreshold?: number;
   defaultQuarantineMs?: number;
   maxAlertsPerConnector?: number;
+  alertCooldownMs?: number;
 }
 
 const DEFAULT_OPTIONS: Required<ConnectorHealthMonitorOptions> = {
@@ -134,7 +154,13 @@ const DEFAULT_OPTIONS: Required<ConnectorHealthMonitorOptions> = {
   quarantineThreshold: 7,
   defaultQuarantineMs: 15 * 60_000,
   maxAlertsPerConnector: 50,
+  alertCooldownMs: 5 * 60_000,
 };
+
+interface PushAlertOptions {
+  dedupeKey?: string;
+  bypassCooldown?: boolean;
+}
 
 function nowIso(value?: string): string {
   return value ?? new Date().toISOString();
@@ -158,8 +184,7 @@ export class ConnectorHealthMonitor {
   recordSuccess(input: RecordConnectorSuccessInput): ConnectorHealthSnapshot {
     const state = this.getState(input.connector);
     const recordedAt = nowIso(input.recordedAt);
-    const previouslyDegraded = state.consecutiveFailures >= this.options.degradedThreshold;
-    const wasQuarantined = this.isQuarantineActive(state, recordedAt);
+    const previousStatus = state.currentStatus;
 
     state.successCount += 1;
     state.consecutiveFailures = 0;
@@ -175,22 +200,35 @@ export class ConnectorHealthMonitor {
       state.telemetry.totalRetries += input.retries;
     }
 
-    if (typeof input.latencyMs === 'number' && Number.isFinite(input.latencyMs) && input.latencyMs >= 0) {
-      state.telemetry.lastLatencyMs = input.latencyMs;
-      state.telemetry.latencySamples += 1;
-      state.telemetry.latencyTotalMs += input.latencyMs;
+    this.recordLatency(state, input.latencyMs);
+    this.updateStatusTransition(
+      state,
+      recordedAt,
+      previousStatus === 'QUARANTINED'
+        ? `${input.connector} recovered after a successful probe cleared quarantine`
+        : `${input.connector} recovered after connector failures`,
+    );
+
+    if (previousStatus !== 'HEALTHY') {
+      this.pushAlert(
+        input.connector,
+        {
+          type: 'RECOVERY',
+          severity: 'INFO',
+          message:
+            previousStatus === 'QUARANTINED'
+              ? `${input.connector} recovered and cleared quarantine`
+              : `${input.connector} recovered after connector failures`,
+          createdAt: recordedAt,
+          details: {
+            previousStatus,
+          },
+        },
+        { bypassCooldown: true },
+      );
     }
 
-    if (previouslyDegraded || wasQuarantined) {
-      this.pushAlert(input.connector, {
-        type: 'RECOVERY',
-        severity: 'INFO',
-        message: `${input.connector} recovered after connector failures`,
-        createdAt: recordedAt,
-      });
-    }
-
-    return this.getHealth(input.connector, recordedAt);
+    return this.getHealth(input.connector);
   }
 
   recordFailure(input: RecordConnectorFailureInput): ConnectorHealthSnapshot {
@@ -209,16 +247,13 @@ export class ConnectorHealthMonitor {
       state.telemetry.totalRetries += input.retries;
     }
 
-    if (typeof input.latencyMs === 'number' && Number.isFinite(input.latencyMs) && input.latencyMs >= 0) {
-      state.telemetry.lastLatencyMs = input.latencyMs;
-      state.telemetry.latencySamples += 1;
-      state.telemetry.latencyTotalMs += input.latencyMs;
-    }
+    this.recordLatency(state, input.latencyMs);
 
     const severity =
       input.severity
       ?? (state.consecutiveFailures >= this.options.unreachableThreshold ? 'CRITICAL' : 'WARN');
 
+    this.updateStatusTransition(state, recordedAt, input.error);
     this.pushAlert(input.connector, {
       type: 'FAILURE',
       severity,
@@ -226,13 +261,14 @@ export class ConnectorHealthMonitor {
       createdAt: recordedAt,
       details: {
         consecutiveFailures: state.consecutiveFailures,
+        status: state.currentStatus,
         ...(input.details ?? {}),
       },
     });
 
     if (
       state.consecutiveFailures >= this.options.quarantineThreshold
-      && !this.isQuarantineActive(state, recordedAt)
+      && !this.isQuarantineActive(state)
     ) {
       this.quarantine({
         connector: input.connector,
@@ -245,7 +281,7 @@ export class ConnectorHealthMonitor {
       });
     }
 
-    return this.getHealth(input.connector, recordedAt);
+    return this.getHealth(input.connector);
   }
 
   recordRetry(input: RecordConnectorRetryInput): ConnectorHealthSnapshot {
@@ -255,19 +291,32 @@ export class ConnectorHealthMonitor {
     state.telemetry.totalRetries += 1;
     state.telemetry.lastAttemptAt = recordedAt;
 
-    this.pushAlert(input.connector, {
-      type: 'FAILURE',
-      severity: 'INFO',
-      message: `Retry ${input.attempt} scheduled for ${input.connector}`,
-      createdAt: recordedAt,
-      details: {
-        attempt: input.attempt,
-        delayMs: input.delayMs,
-        ...(input.reason ? { reason: input.reason } : {}),
+    this.pushAlert(
+      input.connector,
+      {
+        type: 'FAILURE',
+        severity: 'INFO',
+        message: `Retry ${input.attempt} scheduled for ${input.connector}`,
+        createdAt: recordedAt,
+        details: {
+          attempt: input.attempt,
+          delayMs: input.delayMs,
+          classification: input.classification ?? 'backoff',
+          ...(typeof input.retryAfterMs === 'number' ? { retryAfterMs: input.retryAfterMs } : {}),
+          ...(typeof input.totalDelayMs === 'number' ? { totalDelayMs: input.totalDelayMs } : {}),
+          ...(input.reason ? { reason: input.reason } : {}),
+        },
       },
-    });
+      {
+        dedupeKey: [
+          'RETRY',
+          input.classification ?? 'backoff',
+          input.reason ?? 'scheduled',
+        ].join(':'),
+      },
+    );
 
-    return this.getHealth(input.connector, recordedAt);
+    return this.getHealth(input.connector);
   }
 
   recordRateLimit(input: RecordConnectorRateLimitInput): ConnectorHealthSnapshot {
@@ -287,7 +336,7 @@ export class ConnectorHealthMonitor {
       },
     });
 
-    return this.getHealth(input.connector, recordedAt);
+    return this.getHealth(input.connector);
   }
 
   recordSchemaDrift(input: RecordConnectorSchemaDriftInput): ConnectorHealthSnapshot {
@@ -304,7 +353,7 @@ export class ConnectorHealthMonitor {
       details: input.details,
     });
 
-    return this.getHealth(input.connector, recordedAt);
+    return this.getHealth(input.connector);
   }
 
   quarantine(input: ConnectorQuarantineInput): ConnectorHealthSnapshot {
@@ -315,53 +364,66 @@ export class ConnectorHealthMonitor {
     state.quarantineReason = input.reason;
     state.telemetry.totalQuarantines += 1;
 
-    this.pushAlert(input.connector, {
-      type: 'QUARANTINE',
-      severity: 'CRITICAL',
-      message: input.reason,
-      createdAt: recordedAt,
-      details: {
-        durationMs: input.durationMs,
-        quarantinedUntil: state.quarantinedUntil,
-        ...(input.details ?? {}),
+    this.updateStatusTransition(state, recordedAt, input.reason);
+    this.pushAlert(
+      input.connector,
+      {
+        type: 'QUARANTINE',
+        severity: 'CRITICAL',
+        message: input.reason,
+        createdAt: recordedAt,
+        details: {
+          durationMs: input.durationMs,
+          quarantinedUntil: state.quarantinedUntil,
+          ...(input.details ?? {}),
+        },
       },
-    });
+      { bypassCooldown: true },
+    );
 
-    return this.getHealth(input.connector, recordedAt);
+    return this.getHealth(input.connector);
   }
 
-  clearQuarantine(connector: string): ConnectorHealthSnapshot {
+  clearQuarantine(connector: string, recordedAt?: string, reason?: string): ConnectorHealthSnapshot {
     const state = this.getState(connector);
+    const clearedAt = nowIso(recordedAt);
     state.quarantinedUntil = null;
     state.quarantineReason = null;
+    this.updateStatusTransition(
+      state,
+      clearedAt,
+      reason ?? `${connector} quarantine cleared manually`,
+    );
     return this.getHealth(connector);
   }
 
-  isQuarantined(connector: string, atIso?: string): boolean {
+  isQuarantined(connector: string): boolean {
     const state = this.getState(connector);
-    return this.isQuarantineActive(state, nowIso(atIso));
+    return this.isQuarantineActive(state);
   }
 
-  getHealth(connector: string, atIso?: string): ConnectorHealthSnapshot {
+  getHealth(connector: string): ConnectorHealthSnapshot {
     const state = this.getState(connector);
-    const recordedAt = nowIso(atIso);
-    const status =
-      this.isQuarantineActive(state, recordedAt) ? 'QUARANTINED'
-      : state.consecutiveFailures >= this.options.unreachableThreshold ? 'UNREACHABLE'
-      : state.consecutiveFailures >= this.options.degradedThreshold ? 'DEGRADED'
-      : 'HEALTHY';
+    const averageLatencyMs =
+      state.telemetry.latencySamples > 0
+        ? Math.round((state.telemetry.latencyTotalMs / state.telemetry.latencySamples) * 100) / 100
+        : null;
 
     return {
       connector,
-      status,
+      status: this.computeStatus(state),
       lastSuccessAt: state.lastSuccessAt,
       lastFailureAt: state.lastFailureAt,
       lastError: state.lastError,
       successCount: state.successCount,
       failureCount: state.failureCount,
       consecutiveFailures: state.consecutiveFailures,
-      quarantinedUntil: this.isQuarantineActive(state, recordedAt) ? state.quarantinedUntil : null,
-      quarantineReason: this.isQuarantineActive(state, recordedAt) ? state.quarantineReason : null,
+      quarantinedUntil: this.isQuarantineActive(state) ? state.quarantinedUntil : null,
+      quarantineReason: this.isQuarantineActive(state) ? state.quarantineReason : null,
+      latestStatusChangeAt: state.latestStatusTransition.at,
+      latestStatusChangeFrom: state.latestStatusTransition.from,
+      latestStatusChangeTo: state.latestStatusTransition.to,
+      latestStatusChangeReason: state.latestStatusTransition.reason,
       telemetry: {
         totalRequests: state.telemetry.totalRequests,
         totalSuccesses: state.telemetry.totalSuccesses,
@@ -371,10 +433,7 @@ export class ConnectorHealthMonitor {
         totalSchemaDriftEvents: state.telemetry.totalSchemaDriftEvents,
         totalQuarantines: state.telemetry.totalQuarantines,
         lastLatencyMs: state.telemetry.lastLatencyMs,
-        averageLatencyMs:
-          state.telemetry.latencySamples > 0
-            ? Math.round((state.telemetry.latencyTotalMs / state.telemetry.latencySamples) * 100) / 100
-            : null,
+        averageLatencyMs,
         lastAttemptAt: state.telemetry.lastAttemptAt,
       },
       alertCount: state.alerts.length,
@@ -432,6 +491,13 @@ export class ConnectorHealthMonitor {
         lastError: null,
         quarantinedUntil: null,
         quarantineReason: null,
+        currentStatus: 'HEALTHY',
+        latestStatusTransition: {
+          at: null,
+          from: null,
+          to: null,
+          reason: null,
+        },
         telemetry: {
           totalRequests: 0,
           totalSuccesses: 0,
@@ -446,31 +512,89 @@ export class ConnectorHealthMonitor {
           lastAttemptAt: null,
         },
         alerts: [],
+        alertCooldowns: new Map<string, string>(),
       });
     }
 
     return this.states.get(connector)!;
   }
 
-  private isQuarantineActive(state: MutableConnectorState, atIso: string): boolean {
-    return Boolean(state.quarantinedUntil && Date.parse(state.quarantinedUntil) > Date.parse(atIso));
+  private computeStatus(state: MutableConnectorState): ConnectorHealthStatus {
+    if (this.isQuarantineActive(state)) {
+      return 'QUARANTINED';
+    }
+    if (state.consecutiveFailures >= this.options.unreachableThreshold) {
+      return 'UNREACHABLE';
+    }
+    if (state.consecutiveFailures >= this.options.degradedThreshold) {
+      return 'DEGRADED';
+    }
+    return 'HEALTHY';
+  }
+
+  private isQuarantineActive(state: MutableConnectorState): boolean {
+    return Boolean(state.quarantineReason);
+  }
+
+  private updateStatusTransition(
+    state: MutableConnectorState,
+    recordedAt: string,
+    reason: string,
+  ): void {
+    const nextStatus = this.computeStatus(state);
+    if (nextStatus === state.currentStatus) {
+      return;
+    }
+
+    state.latestStatusTransition = {
+      at: recordedAt,
+      from: state.currentStatus,
+      to: nextStatus,
+      reason,
+    };
+    state.currentStatus = nextStatus;
+  }
+
+  private recordLatency(state: MutableConnectorState, latencyMs?: number): void {
+    if (typeof latencyMs !== 'number' || !Number.isFinite(latencyMs) || latencyMs < 0) {
+      return;
+    }
+
+    state.telemetry.lastLatencyMs = latencyMs;
+    state.telemetry.latencySamples += 1;
+    state.telemetry.latencyTotalMs += latencyMs;
   }
 
   private pushAlert(
     connector: string,
     input: Omit<ConnectorAlert, 'id' | 'connector'>,
-  ): void {
+    options: PushAlertOptions = {},
+  ): boolean {
     const state = this.getState(connector);
+    const dedupeKey = options.dedupeKey ?? `${input.type}:${input.severity}:${input.message}`;
+    const lastEmittedAt = state.alertCooldowns.get(dedupeKey);
+
+    if (
+      !options.bypassCooldown
+      && lastEmittedAt
+      && Date.parse(input.createdAt) - Date.parse(lastEmittedAt) < this.options.alertCooldownMs
+    ) {
+      return false;
+    }
+
     const alert: ConnectorAlert = {
       id: `${connector}-${Date.now()}-${state.alerts.length + 1}`,
       connector,
       ...input,
     };
 
+    state.alertCooldowns.set(dedupeKey, input.createdAt);
     state.alerts.unshift(alert);
     if (state.alerts.length > this.options.maxAlertsPerConnector) {
       state.alerts.length = this.options.maxAlertsPerConnector;
     }
+
+    return true;
   }
 }
 

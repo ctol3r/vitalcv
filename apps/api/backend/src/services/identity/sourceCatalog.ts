@@ -63,6 +63,21 @@ export interface SourceDefinition {
   parserVersion:  string;          // bump when parser logic changes; triggers re-derivation
   envFlag:        string;          // set to 'true' to enable live calls
   liveAvailable:  boolean;
+  /**
+   * Whether claims produced by this source are eligible to influence readiness decisions.
+   *
+   * decisionGrade=true  → source is authoritative, production-enabled, and may set
+   *                       blockers or readiness gates.
+   * decisionGrade=false → enrichment only; must never appear as VERIFIED/CLEAR/ENROLLED
+   *                       in readiness or employer packet without explicit override.
+   *
+   * Rule: a claim is only decision-grade when ALL of the following are true:
+   *   1. source.decisionGrade === true
+   *   2. source.envFlag env var is set to 'true' in production
+   *   3. claim.reviewRequired === false
+   *   4. claim.confidence is not 'UNCERTAIN'
+   */
+  decisionGrade:  boolean;
   notes:          string;
   phase:          0 | 1 | 2 | 3 | 4 | 5;  // which build phase introduces this source
 }
@@ -81,6 +96,7 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     bulkFileUrl: null,
     claimTypes: ['NPI_IDENTITY', 'PERSONAL_IDENTITY', 'SPECIALTY', 'PRACTICE_LOCATION', 'MAILING_ADDRESS', 'ENDPOINT'],
     parserVersion: 'v1.2.0', envFlag: 'NPPES_API_ENABLED', liveAvailable: true,
+    decisionGrade: true,
     notes: 'CMS FOIA-disclosable. Treat as identity registration only: NPI issuance does not validate licensure or credential status. V2.1 returns addresses, taxonomies, endpoints, identifiers.',
   },
 
@@ -92,6 +108,7 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     bulkFileUrl: 'https://download.cms.gov/nppes/NPI_Files.html',
     claimTypes: ['NPI_IDENTITY', 'PERSONAL_IDENTITY', 'SPECIALTY', 'PRACTICE_LOCATION', 'MAILING_ADDRESS', 'ENDPOINT'],
     parserVersion: 'v1.0.0', envFlag: 'NPPES_BULK_ENABLED', liveAvailable: true,
+    decisionGrade: true,
     notes: 'Monthly full file + weekly incremental. Primary source for universe-scale NPI coverage.',
   },
 
@@ -103,6 +120,7 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     bulkFileUrl: 'https://data.cms.gov/provider-characteristics/medicare-provider-supplier-enrollment/medicare-fee-for-service-public-provider-enrollment',
     claimTypes: ['ENROLLMENT_STATUS', 'ORDER_REFERRAL', 'GROUP_AFFILIATION'],
     parserVersion: 'v1.2.0', envFlag: 'PECOS_ENABLED', liveAvailable: true,
+    decisionGrade: true,
     notes: 'CMS Public Provider Enrollment file — key PECOS enrollment data. Treat as point-in-time quarterly data, not real-time enrollment.',
   },
 
@@ -114,6 +132,7 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     bulkFileUrl: 'https://data.cms.gov/provider-data/dataset/mj5m-pzi6',
     claimTypes: ['PRACTICE_PROFILE', 'PRACTICE_LOCATION', 'GROUP_AFFILIATION', 'BOARD_CERT_FLAG', 'SPECIALTY'],
     parserVersion: 'v1.0.0', envFlag: 'DOCTORS_CLINICIANS_ENABLED', liveAvailable: true,
+    decisionGrade: false,
     notes: 'General info from PECOS; some details claims-verified; board cert from certifying orgs. Dataset ID: mj5m-pzi6.',
   },
 
@@ -125,6 +144,7 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     bulkFileUrl: 'https://oig.hhs.gov/exclusions/exclusions_list.asp',
     claimTypes: ['EXCLUSION_STATUS', 'SANCTION_RECORD'],
     parserVersion: 'v1.2.0', envFlag: 'OIG_LEIE_ENABLED', liveAvailable: true,
+    decisionGrade: true,
     notes: 'Monthly bulk CSV with optional CSV supplement ingestion. Hard blocker on exact NPI matches only; name/state/specialty fuzzy matches remain POSSIBLE_MATCH and require manual review.',
   },
 
@@ -138,6 +158,7 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     bulkFileUrl: 'https://openpaymentsdata.cms.gov/datasets',
     claimTypes: ['INDUSTRY_PAYMENT', 'RESEARCH_PAYMENT', 'OWNERSHIP_INTEREST'],
     parserVersion: 'v1.0.0', envFlag: 'OPEN_PAYMENTS_ENABLED', liveAvailable: true,
+    decisionGrade: false,
     notes: 'Requires NPI-to-Covered Recipient ID mapping. General + research + ownership interest records.',
   },
 
@@ -149,6 +170,7 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     bulkFileUrl: null,
     claimTypes: ['FEDERAL_EXCLUSION', 'EXCLUSION_STATUS'],
     parserVersion: 'v1.0.0', envFlag: 'SAM_GOV_ENABLED', liveAvailable: false,
+    decisionGrade: true,
     notes: 'Requires SAM.gov API key. Covers debarment, suspension, proposed debarment beyond healthcare.',
   },
 
@@ -160,6 +182,7 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     bulkFileUrl: null,
     claimTypes: ['LICENSE', 'LICENSE_DISCIPLINE'],
     parserVersion: 'v1.0.0', envFlag: 'STATE_BOARD_ENABLED', liveAvailable: false,
+    decisionGrade: true,
     notes: 'State-specific implementation required per state. FSMB DocInfo is an aggregator (subscription).',
   },
 
@@ -173,6 +196,7 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     bulkFileUrl: null,
     claimTypes: ['NURSING_LICENSE', 'NURSING_DISCIPLINE'],
     parserVersion: 'v1.0.0', envFlag: 'NURSYS_ENABLED', liveAvailable: false,
+    decisionGrade: true,
     notes: 'e-Notify for real-time alerts. Participating jurisdictions only. UNI/NCSBN ID is the canonical nurse identifier.',
   },
 
@@ -186,6 +210,7 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     bulkFileUrl: 'https://docs.openalex.org/download-all-data/openalex-snapshot',
     claimTypes: ['PUBLICATION', 'CITATION_METRIC', 'INSTITUTION_AFFILIATION'],
     parserVersion: 'v1.0.0', envFlag: 'OPENALEX_ENABLED', liveAvailable: true,
+    decisionGrade: false,
     notes: 'Free, no API key needed for polite pool. Use email param for higher rate limits. ROR IDs for institution linking.',
   },
 
@@ -197,6 +222,7 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     bulkFileUrl: null,
     claimTypes: ['PUBLICATION'],
     parserVersion: 'v1.0.0', envFlag: 'PUBMED_ENABLED', liveAvailable: true,
+    decisionGrade: false,
     notes: 'Free API. Author disambiguation weaker than OpenAlex. Use as corroboration.',
   },
 
@@ -208,6 +234,7 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     bulkFileUrl: null,
     claimTypes: ['CLINICAL_TRIAL', 'INSTITUTION_AFFILIATION'],
     parserVersion: 'v1.0.0', envFlag: 'CLINICAL_TRIALS_ENABLED', liveAvailable: true,
+    decisionGrade: false,
     notes: 'API version 2.0.5. dataTimestamp available. Search by investigator name. No auth required.',
   },
 
@@ -221,6 +248,7 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     bulkFileUrl: 'https://data.cms.gov/provider-data/sites/default/files/resources/',
     claimTypes: ['ENROLLMENT_STATUS', 'SPECIALTY', 'PRACTICE_LOCATION', 'INSTITUTION_AFFILIATION', 'BOARD_CERT_FLAG', 'GROUP_AFFILIATION'],
     parserVersion: 'v1.0.0', envFlag: 'CMS_NDF_ENABLED', liveAvailable: false,
+    decisionGrade: true,
     notes: 'DISTINCT from D&C API — NDF bulk has fields API does not expose (medical school, graduation year, telehealth, assignment). Biweekly refresh. Delta comparison required. This is the Gold-tier bulk backbone.',
   },
 
@@ -234,6 +262,7 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     bulkFileUrl: null,
     claimTypes: ['NURSING_LICENSE', 'NURSING_DISCIPLINE'],
     parserVersion: 'v1.0.0', envFlag: 'NURSYS_ENOTIFY_ENABLED', liveAvailable: false,
+    decisionGrade: true,
     notes: 'Requires NCSBN institutional enrollment. Push notifications on status changes. This is the path VitalCV should pursue for nursing.',
   },
 
@@ -246,6 +275,7 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     baseUrl: '', bulkFileUrl: null,
     claimTypes: ['INSTITUTION_AFFILIATION'],
     parserVersion: 'v1.0.0', envFlag: 'HOSPITAL_DIR_ENABLED', liveAvailable: false,
+    decisionGrade: false,
     notes: 'Low priority. Requires per-institution scrape pipelines. Silver tier only. Build AFTER all Gold sources are solid.',
   },
 
@@ -260,6 +290,7 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     bulkFileUrl: 'https://orcid.org/organizations/integrators/API',
     claimTypes: ['PUBLICATION', 'CITATION_METRIC', 'CLINICAL_TRIAL', 'INSTITUTION_AFFILIATION'],
     parserVersion: 'v0.0.0', envFlag: 'ORCID_ENABLED', liveAvailable: false,
+    decisionGrade: false,
     notes: 'RESERVED for Wave M6. ORCID public API is free. Creates moat for AMC/research customers. Requires NPI→ORCID linking heuristic (name + affiliation match). Priority after all healthcare Gold sources stable.',
   },
 
@@ -271,7 +302,48 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     bulkFileUrl: 'https://reporter.nih.gov/exporter',
     claimTypes: ['CLINICAL_TRIAL', 'INSTITUTION_AFFILIATION', 'CITATION_METRIC'],
     parserVersion: 'v0.0.0', envFlag: 'NIH_REPORTER_ENABLED', liveAvailable: false,
+    decisionGrade: false,
     notes: 'RESERVED for Wave M6. Free public API. Gold tier — direct government source. Key for research-active clinicians at AMCs. Enables: funded investigator claims, federal funding disclosure, PI verification.',
+  },
+
+  // ── Wave 3: CMS Medicare Posture Expansion ────────────────────────────────
+
+  CMS_OPT_OUT: {
+    id: 'CMS_OPT_OUT', name: 'CMS Medicare Opt-Out Affidavits', phase: 1,
+    description: 'List of providers who have opted out of Medicare. Negative participation signal — opted-out clinicians cannot bill Medicare for covered services.',
+    tier: 'GOLD', accessPattern: 'BULK_FILE', refreshCadence: 'MONTHLY', refreshSlaHours: 720,
+    baseUrl: 'https://data.cms.gov/provider-characteristics/medicare-provider-supplier-enrollment/',
+    bulkFileUrl: 'https://data.cms.gov/provider-characteristics/medicare-provider-supplier-enrollment/opt-out-affidavits',
+    claimTypes: ['ENROLLMENT_STATUS'],
+    parserVersion: 'v1.0.0', envFlag: 'CMS_OPT_OUT_ENABLED', liveAvailable: false,
+    decisionGrade: true,
+    notes: 'Monthly CMS data file. Clinicians on this list opted out of Medicare entirely — cannot bill Medicare for covered services. Must be reconciled with PECOS enrollment: PECOS enrolled + Opt-Out = contradiction requiring review.',
+  },
+
+  CMS_ORDER_REFERRING: {
+    id: 'CMS_ORDER_REFERRING', name: 'CMS Order and Referring (Eligible Clinicians)', phase: 1,
+    description: 'Monthly CMS file of providers eligible to order/refer Medicare services. Distinct from enrollment — requires active enrollment and no deactivation.',
+    tier: 'GOLD', accessPattern: 'BULK_FILE', refreshCadence: 'MONTHLY', refreshSlaHours: 720,
+    baseUrl: 'https://data.cms.gov/provider-characteristics/medicare-provider-supplier-enrollment/',
+    bulkFileUrl: 'https://data.cms.gov/provider-characteristics/medicare-provider-supplier-enrollment/order-and-referring',
+    claimTypes: ['ORDER_REFERRAL'],
+    parserVersion: 'v1.0.0', envFlag: 'CMS_ORDER_REFERRING_ENABLED', liveAvailable: false,
+    decisionGrade: true,
+    notes: 'Monthly CMS bulk file. Eligible-to-order/refer status is a distinct Medicare gate from enrollment. Clinicians enrolled in PECOS may still not appear here if specialty exclusions or deactivations apply.',
+  },
+
+  // ── Wave 4: OFAC Compliance Layer ────────────────────────────────────────
+
+  OFAC_SDN: {
+    id: 'OFAC_SDN', name: 'OFAC Specially Designated Nationals (SDN) List', phase: 2,
+    description: 'US Treasury OFAC Specially Designated Nationals and Blocked Persons list. Name-based matching against consolidation list — NOT NPI-keyed. Only confirmed matches (name+DOB) are decision-grade.',
+    tier: 'GOLD', accessPattern: 'BULK_FILE', refreshCadence: 'DAILY', refreshSlaHours: 24,
+    baseUrl: 'https://www.treasury.gov/ofac/downloads/',
+    bulkFileUrl: 'https://www.treasury.gov/ofac/downloads/consolidated/consolidated.json',
+    claimTypes: ['SANCTION_RECORD'],
+    parserVersion: 'v1.0.0', envFlag: 'OFAC_SDN_ENABLED', liveAvailable: true,
+    decisionGrade: true,
+    notes: 'Consolidated OFAC list in JSON format. Matching is name-based (not NPI). CONFIRMED matches (exact name+DOB) are hard blockers. POTENTIAL matches (name-only) must be review_required=true and NOT decision-grade. False-positive handling is critical — name-only hits must never auto-block.',
   },
 };
 
@@ -306,7 +378,7 @@ export function listSources(): SourceDefinition[] {
  */
 export function getAutomationSafeSources(): SourceDefinition[] {
   // Import avoided for circular-dep safety; inline the check
-  const safeIds = ['NPPES_API', 'NPPES_BULK', 'PECOS_PUBLIC', 'DOCTORS_CLINICIANS', 'CMS_NDF', 'OIG_LEIE', 'OPEN_PAYMENTS', 'OPENALEX', 'PUBMED', 'CLINICAL_TRIALS'];
+  const safeIds = ['NPPES_API', 'NPPES_BULK', 'PECOS_PUBLIC', 'DOCTORS_CLINICIANS', 'CMS_NDF', 'OIG_LEIE', 'OPEN_PAYMENTS', 'OPENALEX', 'PUBMED', 'CLINICAL_TRIALS', 'OFAC_SDN', 'CMS_OPT_OUT', 'CMS_ORDER_REFERRING'];
   return Object.values(SOURCE_CATALOG).filter(s => safeIds.includes(s.id));
 }
 
@@ -329,3 +401,4 @@ export function isLaunchSpineSource(id: string): id is LaunchSpineSourceId {
 export function getSourceFreshnessWindowHours(sourceId: string): number {
   return SOURCE_CATALOG[sourceId]?.refreshSlaHours ?? 168;
 }
+

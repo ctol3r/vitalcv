@@ -9,8 +9,12 @@ export interface ConnectorQuotaSnapshot {
   limit: number;
   used: number;
   remaining: number;
+  utilizationRatio: number;
+  nearLimit: boolean;
+  alertThreshold: number;
   windowStartedAt: string;
   resetAt: string;
+  windowRemainingMs: number;
   blockedUntil: string | null;
   rateLimitHits: number;
   lastRetryAfterMs: number | null;
@@ -30,14 +34,14 @@ export interface RecordConnectorRateLimitHeadersInput {
   policy?: Partial<ConnectorQuotaPolicy>;
 }
 
-const DEFAULT_POLICY: ConnectorQuotaPolicy = {
+const DEFAULT_POLICY: Required<ConnectorQuotaPolicy> = {
   limit: 60,
   windowMs: 60_000,
   alertThreshold: 0.15,
 };
 
 interface MutableQuotaState {
-  policy: ConnectorQuotaPolicy;
+  policy: Required<ConnectorQuotaPolicy>;
   used: number;
   windowStartedAt: string;
   resetAt: string;
@@ -62,7 +66,10 @@ function normalizeHeaderValue(value: string | string[] | undefined): string | un
   return value;
 }
 
-export function parseRetryAfterMs(retryAfter: string | undefined, recordedAtIso = new Date().toISOString()): number | null {
+export function parseRetryAfterMs(
+  retryAfter: string | undefined,
+  recordedAtIso = new Date().toISOString(),
+): number | null {
   if (!retryAfter) {
     return null;
   }
@@ -78,6 +85,36 @@ export function parseRetryAfterMs(retryAfter: string | undefined, recordedAtIso 
   }
 
   return null;
+}
+
+function clampAlertThreshold(value: number): number {
+  return Math.min(1, Math.max(0, value));
+}
+
+function buildSnapshot(
+  connector: string,
+  state: MutableQuotaState,
+  recordedAtIso: string,
+): ConnectorQuotaSnapshot {
+  const remaining = Math.max(0, state.policy.limit - state.used);
+  const utilizationRatio = state.policy.limit > 0 ? state.used / state.policy.limit : 1;
+  const remainingRatio = state.policy.limit > 0 ? remaining / state.policy.limit : 0;
+
+  return {
+    connector,
+    limit: state.policy.limit,
+    used: state.used,
+    remaining,
+    utilizationRatio: Math.round(utilizationRatio * 10_000) / 10_000,
+    nearLimit: remainingRatio <= state.policy.alertThreshold,
+    alertThreshold: state.policy.alertThreshold,
+    windowStartedAt: state.windowStartedAt,
+    resetAt: state.resetAt,
+    windowRemainingMs: Math.max(0, Date.parse(state.resetAt) - Date.parse(recordedAtIso)),
+    blockedUntil: state.blockedUntil,
+    rateLimitHits: state.rateLimitHits,
+    lastRetryAfterMs: state.lastRetryAfterMs,
+  };
 }
 
 export class ConnectorQuotaExceededError extends Error {
@@ -97,10 +134,11 @@ export class ConnectorQuotaExceededError extends Error {
 export class ConnectorQuotaManager {
   private readonly states = new Map<string, MutableQuotaState>();
 
-  configure(connector: string, policy: Partial<ConnectorQuotaPolicy>): ConnectorQuotaSnapshot {
+  configure(connector: string, policy: Partial<ConnectorQuotaPolicy>, recordedAt?: string): ConnectorQuotaSnapshot {
     const state = this.getState(connector, policy);
+    const now = nowIso(recordedAt);
     state.policy = this.mergePolicy(state.policy, policy);
-    return this.getSnapshot(connector);
+    return buildSnapshot(connector, state, now);
   }
 
   consume(input: ConsumeConnectorQuotaInput): ConnectorQuotaSnapshot {
@@ -115,14 +153,14 @@ export class ConnectorQuotaManager {
       throw new ConnectorQuotaExceededError(
         input.connector,
         `${input.connector} is temporarily blocked by connector quota controls`,
-        this.getSnapshot(input.connector),
+        buildSnapshot(input.connector, state, recordedAt),
         Date.parse(state.blockedUntil) - Date.parse(recordedAt),
       );
     }
 
     if (state.used + cost > state.policy.limit) {
       state.blockedUntil = state.resetAt;
-      const snapshot = this.getSnapshot(input.connector);
+      const snapshot = buildSnapshot(input.connector, state, recordedAt);
       throw new ConnectorQuotaExceededError(
         input.connector,
         `${input.connector} exceeded its configured connector quota`,
@@ -132,7 +170,7 @@ export class ConnectorQuotaManager {
     }
 
     state.used += cost;
-    return this.getSnapshot(input.connector);
+    return buildSnapshot(input.connector, state, recordedAt);
   }
 
   recordRateLimit(
@@ -151,7 +189,7 @@ export class ConnectorQuotaManager {
     state.blockedUntil = retryAfterMs != null ? toFutureIso(now, retryAfterMs) : state.resetAt;
     state.used = state.policy.limit;
 
-    return this.getSnapshot(connector);
+    return buildSnapshot(connector, state, now);
   }
 
   recordHeaders(input: RecordConnectorRateLimitHeadersInput): ConnectorQuotaSnapshot {
@@ -205,22 +243,12 @@ export class ConnectorQuotaManager {
       state.used = state.policy.limit;
     }
 
-    return this.getSnapshot(input.connector);
+    return buildSnapshot(input.connector, state, recordedAt);
   }
 
-  getSnapshot(connector: string): ConnectorQuotaSnapshot {
+  getSnapshot(connector: string, recordedAt?: string): ConnectorQuotaSnapshot {
     const state = this.getState(connector);
-    return {
-      connector,
-      limit: state.policy.limit,
-      used: state.used,
-      remaining: Math.max(0, state.policy.limit - state.used),
-      windowStartedAt: state.windowStartedAt,
-      resetAt: state.resetAt,
-      blockedUntil: state.blockedUntil,
-      rateLimitHits: state.rateLimitHits,
-      lastRetryAfterMs: state.lastRetryAfterMs,
-    };
+    return buildSnapshot(connector, state, nowIso(recordedAt));
   }
 
   reset(): void {
@@ -246,14 +274,15 @@ export class ConnectorQuotaManager {
   }
 
   private mergePolicy(
-    existing: ConnectorQuotaPolicy,
+    existing: Required<ConnectorQuotaPolicy>,
     incoming?: Partial<ConnectorQuotaPolicy>,
-  ): ConnectorQuotaPolicy {
+  ): Required<ConnectorQuotaPolicy> {
     return {
       ...existing,
       ...(incoming ?? {}),
       limit: Math.max(1, Math.floor(incoming?.limit ?? existing.limit)),
       windowMs: Math.max(1_000, Math.floor(incoming?.windowMs ?? existing.windowMs)),
+      alertThreshold: clampAlertThreshold(incoming?.alertThreshold ?? existing.alertThreshold),
     };
   }
 

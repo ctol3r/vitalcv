@@ -26,12 +26,23 @@ jest.mock('../../obs/logger', () => ({
 }));
 
 import prisma from '../../graphql/prisma_client';
+import { InMemoryTrustAlertsRepository } from '../../../repositories/trustAlerts.repo';
+import {
+  initializeTrustAlertsPersistence,
+  resetTrustAlertsRepository,
+  setTrustAlertsRepository,
+} from '../../services/alerts/trustAlerts';
 import {
   recordCacheLookup,
   recordResolverRuntime,
   recordTrustStateLatency,
   resetPilotTelemetry,
 } from '../../services/system/pilotTelemetry';
+import {
+  recordConnectorFailure,
+  recordConnectorSuccess,
+  resetConnectorHealth,
+} from '../../services/providers/connectors/connectorHealthTracker';
 import { registerTelemetryRoutes } from '../telemetry';
 
 const prismaMock = prisma as unknown as {
@@ -50,8 +61,11 @@ function buildApp() {
 }
 
 describe('telemetry routes', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     resetPilotTelemetry();
+    resetConnectorHealth();
+    setTrustAlertsRepository(new InMemoryTrustAlertsRepository());
+    await initializeTrustAlertsPersistence();
     prismaMock.provider.count.mockReset();
     prismaMock.verificationArtifact.count.mockReset();
     prismaMock.verificationArtifact.groupBy.mockReset();
@@ -64,6 +78,10 @@ describe('telemetry routes', () => {
       { source: 'STATE_BOARD', _count: true },
     ]);
     prismaMock.auditEvent.count.mockResolvedValue(5);
+  });
+
+  afterEach(() => {
+    resetTrustAlertsRepository();
   });
 
   it('exports trust-state latency, cache-hit ratio, and resolver runtime via the telemetry endpoint', async () => {
@@ -84,5 +102,34 @@ describe('telemetry routes', () => {
     expect(response.body.trustState.metrics.trust_state_latency.total_samples).toBe(1);
     expect(response.body.trustState.metrics.cache_hit_ratio.by_source.trust_state_route.misses).toBe(1);
     expect(response.body.trustState.metrics.resolver_runtime.total_samples).toBe(1);
+  });
+
+  it('includes additive connector telemetry in the system telemetry payload', async () => {
+    recordConnectorSuccess('STATE_BOARD', { latencyMs: 80 });
+    recordConnectorFailure('OIG', 'upstream timeout', { latencyMs: 150 });
+    recordConnectorFailure('OIG', 'upstream timeout', { latencyMs: 175 });
+
+    const response = await request(buildApp())
+      .get('/api/system/telemetry')
+      .expect(200);
+
+    expect(response.body.connectors).toEqual(expect.objectContaining({
+      overall: 'DEGRADED',
+      total: 6,
+      totalRequests: 3,
+      totalRetries: 0,
+    }));
+    expect(response.body.connectors.connectors).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        connector: 'STATE_BOARD',
+        status: 'HEALTHY',
+        requests: 1,
+      }),
+      expect.objectContaining({
+        connector: 'OIG',
+        status: 'DEGRADED',
+        requests: 2,
+      }),
+    ]));
   });
 });
