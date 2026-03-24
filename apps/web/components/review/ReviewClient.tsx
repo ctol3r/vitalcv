@@ -22,11 +22,20 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRoleContext } from '@/components/auth/RoleContext';
 import { Accordion, type AccordionItem } from '@/components/ui/vcv-accordion';
 import { ProofDetailsList } from '@/components/trust/ProofDetailsList';
+import {
+  buildPassportProofSections,
+  summarizePassportProofSections,
+} from '@/components/trust/passportProofSections';
 import { TrustLabel, type TrustStatus } from '@/components/ui/trust-label';
 import type { PassportData } from '@/app/passport/[id]/page';
 import { EmployerAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
+import {
+  CLERK_PROVIDER_ENABLED,
+  CLERK_SIGN_IN_URL,
+} from '@/lib/auth/clerkConfig';
 import {
   VStatusPill,
   type TrustStatusLabel,
@@ -876,7 +885,7 @@ type ActionState =
 
 // ── M2: API call helpers ───────────────────────────────────────────────────
 
-const API = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000';
+const API = '';
 
 async function postAction(
   entityId: string,
@@ -885,12 +894,7 @@ async function postAction(
 ): Promise<{ ok: boolean; auditEventId: string; timestamp: string }> {
   const res = await fetch(`${API}/api/employer-review/${entityId}/${endpoint}`, {
     method:  'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      // Clerk user ID from session cookie — passed by Next.js middleware in production;
-      // in dev/pilot use the anonymous placeholder so the audit event is still written.
-      'x-clerk-user-id': 'employer-review-pilot',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body ?? {}),
   });
   if (!res.ok) {
@@ -900,8 +904,9 @@ async function postAction(
   return res.json() as Promise<{ ok: boolean; auditEventId: string; timestamp: string }>;
 }
 
-export default function ReviewClient({ passport, contextId: _contextId, sharedBy }: Props) {
+export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
   const [actionState, setActionState] = useState<ActionState>({ phase: 'idle' });
+  const { isLoaded, isSignedIn, isEmployer } = useRoleContext();
 
   const { identity, readiness, standing, authority } = passport;
   const readinessStatus: TrustStatusLabel =
@@ -919,9 +924,27 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
     ...readiness.blockers,
     ...missingDomains.map((domain) => domain.replace(/_/g, ' ').toLowerCase()),
   ]));
-  const proofItems = buildProofSections(passport);
+  const proofItems = buildPassportProofSections(passport);
+  const proofSummary = summarizePassportProofSections(proofItems);
   const safetyRow = buildSafetyRow(standing);
   const eligibilityRow = buildEligibilityRow(standing, pecosEnrollmentStatus);
+  const lastSyncedAt =
+    passport.lastCheckedAt
+    ?? standing.exclusionCheckedAt
+    ?? authority.credentials[0]?.observedAt
+    ?? standing.enrollmentObservedAt
+    ?? null;
+  const previewOnlyMessage =
+    !CLERK_PROVIDER_ENABLED
+      ? 'Preview only. Authentication is unavailable in this environment, so employer actions are intentionally disabled.'
+      : !isLoaded
+        ? 'Checking employer session before enabling actions.'
+        : !isSignedIn
+          ? 'Preview only. Sign in with an employer workspace to persist decisions.'
+          : !isEmployer
+            ? 'Preview only. Switch into an employer workspace to persist decisions.'
+            : null;
+  const canPersistActions = previewOnlyMessage === null;
 
   // M2: Freshness entries for pre-action panel
   const freshnessEntries: FreshnessEntry[] = [
@@ -956,9 +979,15 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
       unchecked: pecosEnrollmentStatus === 'UNCHECKED',
     },
   ];
+  const freshnessState = freshnessEntries.some((entry) => entry.stale)
+    ? 'Stale sources present'
+    : freshnessEntries.some((entry) => entry.unchecked)
+      ? 'Partial source coverage'
+      : 'Current attached checks';
 
   // M2: Handlers with real API calls + mandatory audit
   async function handleAccept() {
+    if (!canPersistActions) return;
     setActionState({ phase: 'loading', intent: 'accept' });
     try {
       const result = await postAction(passport.entityId, 'accept', {
@@ -972,6 +1001,7 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
   }
 
   async function handleRequestRefresh() {
+    if (!canPersistActions) return;
     setActionState({ phase: 'loading', intent: 'refresh' });
     try {
       const result = await postAction(passport.entityId, 'request-refresh', {
@@ -985,6 +1015,7 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
   }
 
   async function handleRouteToReview() {
+    if (!canPersistActions) return;
     setActionState({ phase: 'loading', intent: 'review' });
     try {
       const result = await postAction(passport.entityId, 'route-to-review', {
@@ -1000,14 +1031,10 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
   }
 
   async function handleDownloadPacket() {
+    if (!canPersistActions) return;
     setActionState({ phase: 'downloading' });
     try {
-      const res = await fetch(
-        `${API}/api/employer-review/${passport.entityId}/packet`,
-        {
-          headers: { 'x-clerk-user-id': 'employer-review-pilot' },
-        },
-      );
+      const res = await fetch(`${API}/api/employer-review/${passport.entityId}/packet`);
       if (!res.ok) throw new Error(`Export failed (${res.status})`);
       const blob = await res.blob();
       const url  = URL.createObjectURL(blob);
@@ -1025,7 +1052,7 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
 
   return (
     <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center px-4 pt-10 sm:pt-16 pb-28">
-      <div className="w-full max-w-sm space-y-6">
+      <div className="w-full max-w-3xl space-y-6">
 
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between">
@@ -1034,16 +1061,24 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
         </div>
 
         {/* ── Share context (if accessed via share link) ───────────────────── */}
-        {sharedBy && (
+        {(sharedBy || contextId) && (
           <div className="rounded-xl border border-white/8 bg-white/3 px-4 py-3">
-            <div className="flex justify-between text-xs">
-              <span className="text-white/35">Shared by</span>
-              <span className="text-white/55">{sharedBy}</span>
-            </div>
-            <div className="flex justify-between text-xs mt-1">
+            {sharedBy && (
+              <div className="flex justify-between text-xs">
+                <span className="text-white/35">Shared by</span>
+                <span className="text-white/55">{sharedBy}</span>
+              </div>
+            )}
+            <div className={`flex justify-between text-xs ${sharedBy ? 'mt-1' : ''}`}>
               <span className="text-white/35">Purpose</span>
               <span className="text-white/55">Employment review</span>
             </div>
+            {contextId && (
+              <div className="flex justify-between text-xs mt-1">
+                <span className="text-white/35">Review context</span>
+                <span className="text-white/45 font-mono">{contextId.slice(0, 8)}…</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -1059,6 +1094,47 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
             )}
             <div className="mt-3">
               <VStatusPill status={readinessStatus} size="sm" />
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Readiness</p>
+              <p className="mt-1 text-lg font-semibold text-white">{readiness.score}/100</p>
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Trust band</p>
+              <p className="mt-1 text-lg font-semibold text-white">{readiness.level}</p>
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Freshness</p>
+              <p className="mt-1 text-sm font-medium text-white">{freshnessState}</p>
+              <p className="mt-1 text-[11px] text-white/30">{formatProofDate(lastSyncedAt) ?? 'Not checked'}</p>
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Proof completeness</p>
+              <p className="mt-1 text-sm font-medium text-white">
+                {proofSummary.decisionGradeCount + proofSummary.informationalCount}/{proofSummary.total} attached
+              </p>
+              <p className="mt-1 text-[11px] text-white/30">
+                {proofSummary.warningCount > 0 ? `${proofSummary.warningCount} review warning${proofSummary.warningCount === 1 ? '' : 's'}` : 'No review warnings'}
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Decision snapshot</p>
+                <p className="mt-1 text-sm leading-relaxed text-white/56">
+                  {blocked.length > 0
+                    ? `Proceed only as a head start. ${blocked.length} blocker${blocked.length === 1 ? '' : 's'} still need review or refresh.`
+                    : 'No visible blockers are attached to this review right now.'}
+                </p>
+              </div>
+              <p className="text-xs text-white/34">
+                Estimated start: {readiness.estimatedStartDays === null ? 'Cannot estimate while blocked' : readiness.estimatedStartDays === 0 ? '0 days' : `~${readiness.estimatedStartDays} days`}
+              </p>
             </div>
           </div>
 
@@ -1210,7 +1286,16 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
         {/* ── Proof panel — collapsible ────────────────────────────────────── */}
         {proofItems.length > 0 && (
           <div>
-            <p className="text-white/25 text-xs uppercase tracking-widest mb-3">Proof</p>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-white/25 text-xs uppercase tracking-widest">Proof</p>
+              <button
+                onClick={handleDownloadPacket}
+                disabled={!canPersistActions || actionState.phase === 'downloading'}
+                className="rounded-xl border border-white/10 px-4 py-2 text-[11px] font-medium text-white/45 transition hover:border-white/20 hover:text-white/70 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {actionState.phase === 'downloading' ? 'Exporting…' : 'Export packet'}
+              </button>
+            </div>
             <Accordion items={proofItems} />
           </div>
         )}
@@ -1218,13 +1303,41 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
         {/* ── M2: Freshness panel — visible before any action ───────────────── */}
         <FreshnessPanel entries={freshnessEntries} />
 
+        <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Last synced</p>
+              <p className="mt-1 text-sm text-white/62">{formatProofDate(lastSyncedAt) ?? 'Not checked'}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Freshness</p>
+              <p className="mt-1 text-sm text-white/62">{freshnessState}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Proof completeness</p>
+              <p className="mt-1 text-sm text-white/62">
+                {proofSummary.decisionGradeCount + proofSummary.informationalCount}/{proofSummary.total} sections attached
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Review warnings</p>
+              <p className="mt-1 text-sm text-white/62">
+                {blocked.length > 0 ? `${blocked.length} blocker${blocked.length === 1 ? '' : 's'}` : 'No blockers'}
+              </p>
+            </div>
+          </div>
+          <p className="mt-4 text-xs leading-relaxed text-white/36">
+            {previewOnlyMessage ?? 'Employer actions below are real. VitalCV waits for the backend audit event before it renders success.'}
+          </p>
+        </div>
+
         {/* ── M2: Action panel — all actions write audit events ────────────── */}
         {actionState.phase === 'idle' || actionState.phase === 'downloading' ? (
           <div className="space-y-3 pt-2">
             {/* Primary — Accept as head start */}
             <button
               onClick={handleAccept}
-              disabled={actionState.phase === 'downloading'}
+              disabled={!canPersistActions || actionState.phase === 'downloading'}
               className="h-14 w-full rounded-xl bg-[var(--vt-success)] text-sm font-medium text-white transition hover:opacity-90 active:opacity-80 disabled:opacity-40"
             >
               Accept as head start
@@ -1234,36 +1347,39 @@ export default function ReviewClient({ passport, contextId: _contextId, sharedBy
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={handleRequestRefresh}
-                disabled={actionState.phase === 'downloading'}
+                disabled={!canPersistActions || actionState.phase === 'downloading'}
                 className="rounded-xl border border-white/10 bg-white/4 text-white/55 hover:text-white/80 hover:bg-white/8 disabled:opacity-40 text-xs py-3.5 min-h-[48px] transition-all"
               >
                 Request refresh
               </button>
               <button
                 onClick={handleRouteToReview}
-                disabled={actionState.phase === 'downloading'}
+                disabled={!canPersistActions || actionState.phase === 'downloading'}
                 className="rounded-xl border border-white/10 bg-white/4 text-white/55 hover:text-white/80 hover:bg-white/8 disabled:opacity-40 text-xs py-3.5 min-h-[48px] transition-all"
               >
                 Route to review
               </button>
             </div>
 
-            {/* Tertiary */}
-            <div className="flex justify-center gap-5 pt-1">
-              <Link
-                href={`/passport/${passport.entityId}`}
-                className="text-white/25 hover:text-white/45 text-xs transition-colors min-h-[44px] flex items-center"
-              >
-                Full profile
-              </Link>
-              <button
-                onClick={handleDownloadPacket}
-                disabled={actionState.phase === 'downloading'}
-                className="text-white/25 hover:text-white/45 disabled:opacity-40 text-xs transition-colors min-h-[44px]"
-              >
-                {actionState.phase === 'downloading' ? 'Exporting…' : 'Download packet'}
-              </button>
-            </div>
+            {!canPersistActions && (
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                {CLERK_PROVIDER_ENABLED && !isSignedIn ? (
+                  <Link
+                    href={CLERK_SIGN_IN_URL}
+                    className="text-xs text-white/38 transition-colors hover:text-white/58"
+                  >
+                    Sign in with employer workspace
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/passport/${passport.entityId}`}
+                    className="text-xs text-white/38 transition-colors hover:text-white/58"
+                  >
+                    Open full passport
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
 
         ) : actionState.phase === 'loading' ? (
