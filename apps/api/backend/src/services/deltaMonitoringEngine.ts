@@ -22,6 +22,8 @@ import { appendArtifactLifecycleEntry } from './transparencyLedger';
 import { isStrictTransitionMode } from '../utils/environment';
 import { isSameLifecycleState } from '../utils/lifecycleState';
 import { log } from '../obs/logger';
+// Wave X-2 Watchtower: enqueue trust-state refresh when a delta is detected
+import { enqueueEvent } from './async/eventQueue';
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -161,6 +163,33 @@ export async function processCredentialDelta(
     changeCount: changes.length,
     changedFields: changes.map((c) => c.field),
   });
+
+  // ── Wave X-2 Watchtower: enqueue trust-state refresh ─────────────────────
+  //
+  // A detected delta means a credential's source, status, hash, or expiry changed.
+  // This MUST trigger a trust-state refresh so the passport reflects current reality.
+  // We use the in-memory event queue (asyncTrustEngine picks these up on next cycle).
+  //
+  // Only enqueue if we have an NPI — without it we can't target the passport.
+  if (currentState.npi) {
+    enqueueEvent({
+      eventId: crypto.randomUUID(),
+      npi: currentState.npi,
+      type: 'MONITORING_ALERT',
+      occurredAt: new Date().toISOString(),
+      source: currentState.source,
+      payload: {
+        artifactId: currentState.id,
+        changedFields: changes.map((c) => c.field),
+        lifecycleState: currentState.lifecycleState,
+      },
+    });
+    log('info', 'watchtower_trust_refresh_enqueued', {
+      npi: currentState.npi,
+      artifactId: currentState.id,
+      changedFields: changes.map((c) => c.field),
+    });
+  }
 
   return { artifactId: currentState.id, deltaDetected: true, changes };
 }

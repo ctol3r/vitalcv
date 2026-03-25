@@ -47,6 +47,7 @@ import { registerHiringRoutes } from './routes/hiring';
 import { registerEmployerActionRoutes } from './routes/employerActions'; // M2: Accept with Confidence
 import { registerSealTrainingRoutes }   from './routes/sealTraining';    // SEAL: training pipeline
 import { registerPilotKpiRoutes }       from './routes/pilotKpi';         // Pilot KPI loop
+import { registerReportRoutes }         from './routes/report';            // Credential Intelligence Report
 // Wave 43: Public Trust Profile — NPI-keyed
 import { registerPublicProfileRoutes } from './routes/publicProfile';
 // Wave 47: Human-in-the-Loop review queue
@@ -3502,6 +3503,7 @@ registerHiringRoutes(app);           // Wave 41: ON Loop — EmployerAcceptance 
 registerEmployerActionRoutes(app);   // M2: Accept with Confidence — accept/refresh/review/packet
 registerSealTrainingRoutes(app);     // SEAL: training event capture + dataset export
 registerPilotKpiRoutes(app);         // Pilot KPI loop: 7 velocity KPIs + CSV export
+registerReportRoutes(app);           // Credential Intelligence Report: POST /api/report
 registerPublicProfileRoutes(app); // Wave 43: Public Trust Profile — NPI-keyed
 registerHitlRoutes(app);         // Wave 47: AI HITL Review Queue
 registerGraphRoutes(app);        // Wave 82: Trust Graph Intelligence

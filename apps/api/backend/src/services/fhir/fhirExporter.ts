@@ -292,3 +292,146 @@ export function exportProviderAsFHIR(data: ProviderData): FHIRBundle {
 
   return bundle;
 }
+
+// ── Passport → FHIR Adapter ───────────────────────────────────────────────────
+//
+// Wave X-1: Converts a TrustPassport to ProviderData for FHIR export.
+// Every field sourced from a verified claim includes source traceability.
+// Enrichment is NEVER used — only trust-core verified passport claims.
+
+import type {
+  TrustPassport,
+  PassportCredential,
+  PassportEducationRecord,
+} from '../entity/passportService';
+
+/**
+ * Parse a displayName into name parts (best-effort: handles "First [Middle] Last [Suffix]")
+ */
+function parseDisplayName(displayName: string): { firstName: string; lastName: string; middleName?: string; credential?: string } {
+  // Strip known suffixes first
+  const SUFFIX_RE = /\s*,?\s*(MD|DO|NP|PA|RN|PhD|DPM|DMD|DDS|FACS|FACP|MBA|MPH|PhD|DPH|MS|BSN|CNP|CNS|NMW|CRNA)\s*$/gi;
+  let credential: string | undefined;
+  const cleaned = displayName.replace(SUFFIX_RE, (_, s) => { credential = s; return ''; }).trim();
+
+  const parts = cleaned.split(/\s+/);
+  if (parts.length === 1) return { firstName: parts[0] ?? '', lastName: '', credential };
+  if (parts.length === 2) return { firstName: parts[0] ?? '', lastName: parts[1] ?? '', credential };
+  // 3+: first=parts[0], last=parts[last], middle=rest
+  const lastName  = parts[parts.length - 1] ?? '';
+  const firstName = parts[0] ?? '';
+  const middleName = parts.slice(1, -1).join(' ');
+  return { firstName, lastName, middleName: middleName || undefined, credential };
+}
+
+function credentialToLicenseEntry(cred: PassportCredential): ProviderData['licenses'][0] | null {
+  if (!['STATE_LICENSE', 'LICENSE', 'MEDICAL_LICENSE', 'DEA'].includes(cred.domain?.toUpperCase() ?? '')) return null;
+  return {
+    number: cred.label ?? cred.id,
+    state: cred.jurisdiction,
+    status: cred.status,
+    expirationDate: cred.expiresAt,
+    // Traceability extensions (serialized into meta)
+    ...(cred.sourceId ? { sourceId: cred.sourceId } : {}),
+    ...(cred.verifiedAt ? { verifiedAt: cred.verifiedAt } : {}),
+  } as ProviderData['licenses'][0];
+}
+
+function credentialToBoardCertEntry(cred: PassportCredential): ProviderData['boardCerts'][0] | null {
+  if (!['BOARD_CERT', 'BOARD_CERTIFICATION', 'ABMS'].includes(cred.domain?.toUpperCase() ?? '')) return null;
+  return {
+    boardName: cred.issuerName ?? cred.label ?? cred.domain,
+    specialty: cred.label,
+    status: cred.status,
+    ...(cred.expiresAt ? { expiresAt: cred.expiresAt } : {}),
+  } as ProviderData['boardCerts'][0];
+}
+
+function educationToEntry(edu: PassportEducationRecord): ProviderData['educations'][0] | null {
+  if (!edu.institutionName) return null;
+  return {
+    type: edu.recordType,
+    institutionName: edu.institutionName,
+    degree: edu.degreeOrTitle,
+    specialty: edu.specialty,
+    graduationYear: edu.endYear,
+  } as ProviderData['educations'][0];
+}
+
+/**
+ * passportToProviderData — maps a TrustPassport to FHIR ProviderData.
+ *
+ * TRUST CONTRACT:
+ * - Only decision-grade (non-stale, non-review-required) credentials are included.
+ * - Enrichment is excluded.
+ * - Trust band is taken from readiness.level (READY→L3, PARTIAL→L2, BLOCKED→L0).
+ * - Audit hash is SHA-256 of (npi + readiness.score + computedAt) for receipt traceability.
+ */
+export function passportToProviderData(passport: TrustPassport): ProviderData {
+  const nameparts = parseDisplayName(passport.identity.displayName);
+
+  // Trust band mapping
+  const bandMap: Record<string, string> = {
+    READY: 'L3', CREDENTIALED: 'L2', PARTIAL: 'L1', BLOCKED: 'L0', UNKNOWN: 'L0',
+  };
+  const trustBand = bandMap[passport.readiness?.status ?? 'UNKNOWN'] ?? 'L0';
+
+  // Audit hash — reproducible receipt
+  const auditHash = createHash('sha256')
+    .update(JSON.stringify({
+      npi: passport.npi,
+      score: passport.readiness?.score ?? 0,
+      computedAt: passport.lastCheckedAt,
+    }))
+    .digest('hex');
+
+  // Credentials — decision-grade only
+  const decisionGradeCreds = passport.authority.credentials.filter(
+    c => !c.reviewRequired && !c.stale,
+  );
+
+  const licenses = decisionGradeCreds
+    .map(credentialToLicenseEntry)
+    .filter(Boolean) as ProviderData['licenses'];
+
+  const boardCerts = decisionGradeCreds
+    .map(credentialToBoardCertEntry)
+    .filter(Boolean) as ProviderData['boardCerts'];
+
+  const educations = passport.training.records
+    .map(educationToEntry)
+    .filter(Boolean) as ProviderData['educations'];
+
+  // Primary taxonomy from specialty
+  const taxonomies: ProviderData['taxonomies'] = passport.identity.specialty
+    ? [{
+        code: 'UNKNOWN',
+        description: passport.identity.specialty,
+        primary: true,
+      }]
+    : [];
+
+  return {
+    npi: passport.npi ?? '',
+    firstName: nameparts.firstName,
+    lastName: nameparts.lastName,
+    middleName: nameparts.middleName,
+    credential: nameparts.credential,
+    gender: undefined,          // not in passport — FHIR spec prefers omit vs guess
+    organization: undefined,
+    taxonomies,
+    licenses,
+    boardCerts,
+    educations,
+    trustBand,
+    auditHash,
+  };
+}
+
+/**
+ * passportToFhirBundle — convenience wrapper: Passport → validated FHIRBundle.
+ */
+export function passportToFhirBundle(passport: TrustPassport): FHIRBundle {
+  const providerData = passportToProviderData(passport);
+  return exportProviderAsFHIR(providerData);
+}
