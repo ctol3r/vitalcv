@@ -715,7 +715,13 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
       ['MEDICAL_DEGREE', 'NURSING_DEGREE', 'ADVANCED_PRACTICE_CERT'].includes(r.recordType) &&
       r.completed && ['SOURCE_VERIFIED', 'CRYPTOGRAPHICALLY_SIGNED'].includes(r.verificationLevel),
     ),
-    hasResidency: eduRecords.some(r => r.recordType === 'RESIDENCY_COMPLETION' && r.completed),
+    // verificationLevel guard: mirrors degreeVerified — self-attested residency must not
+    // render as 'verified' in the training accordion. Requires SOURCE_VERIFIED or better.
+    hasResidency: eduRecords.some(
+      r => r.recordType === 'RESIDENCY_COMPLETION'
+        && r.completed
+        && ['SOURCE_VERIFIED', 'CRYPTOGRAPHICALLY_SIGNED'].includes(r.verificationLevel),
+    ),
     fellowshipCount: eduRecords.filter(r => r.recordType === 'FELLOWSHIP_COMPLETION' && r.completed).length,
   };
 

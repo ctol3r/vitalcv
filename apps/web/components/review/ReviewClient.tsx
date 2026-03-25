@@ -60,6 +60,8 @@ import {
 } from '@/lib/employer-review-actions';
 import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
 import { VStatusPill } from '@/components/vds/primitives';
+import { SourceCoverageTag } from '@/components/trust/SourceCoverageTag';
+import { normalizePassportSourceCoverageChecks } from '@/lib/trust/source-coverage';
 import {
   resolveAuthorityMethodLabel,
   resolveAuthorityNote,
@@ -828,6 +830,35 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
             </p>
           )}
         </div>
+
+        {/* ── Source coverage — explicit live/stale/gated/mock per source ──── */}
+        {(() => {
+          const checks = normalizePassportSourceCoverageChecks(passport.sourceCoverage);
+          if (checks.length === 0) return null;
+          return (
+            <div className="rounded-2xl border border-white/8 bg-white/3 px-5 py-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
+                  Sources checked for this review
+                </p>
+                <span className="text-[10px] text-white/20 border border-white/8 rounded-full px-2 py-0.5">
+                  Only live = decision-grade
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {checks.map(c => (
+                  <SourceCoverageTag
+                    key={c.sourceId}
+                    source={c.sourceId}
+                    status={c.state}
+                    decisionGrade={c.state === 'live'}
+                    lastChecked={c.checkedAt ?? undefined}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── Decision basis — what you're acting on (no assumptions) ──────── */}
         {(actionState.phase === 'idle' || actionState.phase === 'downloading') && (

@@ -40,6 +40,8 @@ import {
   resolveAuthorityTitle,
   resolveAuthorityVdsStatus,
 } from '@/lib/trust/passport-truth';
+import { SourceCoverageTag } from '@/components/trust/SourceCoverageTag';
+import { normalizePassportSourceCoverageChecks } from '@/lib/trust/source-coverage';
 
 // ── Status configuration ──────────────────────────────────────────────────────
 // NO colour on status. Hierarchy via opacity only.
@@ -551,6 +553,34 @@ export default function PassportWallet({ passport }: Props) {
             ))}
           </div>
         )}
+
+        {/* ── Source coverage — explicit live/stale/gated/mock per source ──── */}
+        {(() => {
+          const checks = normalizePassportSourceCoverageChecks(passport.sourceCoverage);
+          if (checks.length === 0) return null;
+          return (
+            <div className="rounded-2xl border border-white/8 bg-white/3 px-5 py-4 space-y-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
+                Sources checked
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {checks.map(c => (
+                  <SourceCoverageTag
+                    key={c.sourceId}
+                    source={c.sourceId}
+                    status={c.state}
+                    decisionGrade={c.state === 'live'}
+                    lastChecked={c.checkedAt ?? undefined}
+                  />
+                ))}
+              </div>
+              <p className="text-white/20 text-[10px] leading-4">
+                Only <span className="text-white/40 font-semibold">live</span> sources are decision-grade.
+                Stale, gated, and mock sources inform context but do not constitute primary-source verification.
+              </p>
+            </div>
+          );
+        })()}
 
         {/* ── Details accordion ─────────────────────────────────────────────── */}
         <div>

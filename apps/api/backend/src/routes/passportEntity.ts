@@ -52,12 +52,18 @@ export function registerPassportEntityRoutes(app: Express): void {
           eventType:             'PASSPORT_VIEW',
           blockersAtEvent:       passport.readiness.blockers,
           readinessScoreAtEvent: passport.readiness.score,
-          sourceCoverageAtEvent: {
-            live:       ['NPPES', 'OIG / LEIE'],
-            gated:      ['Nursys', 'FSMB'],
-            mock:       ['CMS PECOS'],
-            notChecked: ['NPDB', 'DEA', 'ABMS'],
-          },
+          // Derive real source coverage from passport — never hardcode
+          sourceCoverageAtEvent: (() => {
+            const checks = Array.isArray(passport.sourceCoverage?.checks)
+              ? passport.sourceCoverage.checks
+              : [];
+            const byState: Record<string, string[]> = {};
+            for (const c of checks) {
+              const state = c.state ?? 'notChecked';
+              (byState[state] ??= []).push(c.sourceId);
+            }
+            return byState;
+          })(),
           metadata: { npiPrefix: passport.identity.npi?.slice(0, 4) ?? null },
         }).catch(() => void 0);
       }
