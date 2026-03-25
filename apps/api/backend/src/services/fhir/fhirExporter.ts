@@ -49,6 +49,27 @@ export interface ProviderData {
     licenseNumber?: string;
     state?: string;
   }>;
+  licenses: Array<{
+    number?: string;
+    state?: string;
+    status?: string;
+    expirationDate?: string;
+    sourceId?: string;
+    verifiedAt?: string;
+  }>;
+  boardCerts: Array<{
+    boardName?: string;
+    specialty?: string;
+    status?: string;
+    expiresAt?: string;
+  }>;
+  educations: Array<{
+    type?: string;
+    institutionName?: string;
+    degree?: string;
+    specialty?: string;
+    graduationYear?: number;
+  }>;
   trustBand?: string;
   auditHash?: string;
 }

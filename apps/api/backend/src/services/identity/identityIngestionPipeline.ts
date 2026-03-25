@@ -1812,10 +1812,27 @@ const handlers: Record<string, SourceHandler> = {
       parserVersion: 'v1.0.0',
       matchingStrategy: 'NAME_FUZZY',
       fetchSource: async (_npi: string) => {
+        // Load identity claims from NPPES (must have run first in the pipeline)
+        const existingClaims = await loadClaimRecordsForNpi(_npi);
+        const nameValue = asObject(existingClaims.find((c) => c.claimType === 'PERSONAL_IDENTITY')?.value);
         const result = await fetchOfacSdnList();
-        const checksum = checksumOf({ sdnCount: result.entries?.length ?? 0, fetchedAt: result.fetchedAt });
+        const subject: OfacSubjectIdentity = {
+          firstName: typeof nameValue.firstName === 'string' ? nameValue.firstName : null,
+          lastName:  typeof nameValue.lastName  === 'string' ? nameValue.lastName  : '',
+          dateOfBirth: typeof nameValue.dateOfBirth === 'string' ? nameValue.dateOfBirth : null,
+        };
+        const checksum = checksumOf({
+          sdnCount: result.entries?.length ?? 0,
+          fetchedAt: result.fetchedAt,
+          lastName: subject.lastName,
+        });
         return {
-          raw: { entries: result.entries, fetchedAt: result.fetchedAt, dataVersion: result.dataVersion },
+          raw: {
+            entries: result.entries,
+            fetchedAt: result.fetchedAt,
+            dataVersion: result.dataVersion,
+            subject,
+          },
           checksum,
           fetchedAt: result.fetchedAt,
           sourceUrl: 'https://www.treasury.gov/ofac/downloads/consolidated/consolidated.json',
@@ -1826,10 +1843,12 @@ const handlers: Record<string, SourceHandler> = {
         const rawObj = raw as Record<string, unknown>;
         const entries = Array.isArray(rawObj.entries) ? rawObj.entries : null;
         const dataVersion = typeof rawObj.dataVersion === 'string' ? rawObj.dataVersion : null;
-
-        // Build subject identity from claims already stored (NPPES must have run first)
-        const subject: OfacSubjectIdentity = { npi };
-        // Subject fields populated after promise resolution — use sync path only
+        const subjectRaw = asObject(rawObj.subject);
+        const subject: OfacSubjectIdentity = {
+          firstName:   typeof subjectRaw.firstName   === 'string' ? subjectRaw.firstName   : null,
+          lastName:    typeof subjectRaw.lastName     === 'string' ? subjectRaw.lastName     : '',
+          dateOfBirth: typeof subjectRaw.dateOfBirth  === 'string' ? subjectRaw.dateOfBirth  : null,
+        };
         const { claims, receipts } = runOfacCheck(
           npi,
           subject,

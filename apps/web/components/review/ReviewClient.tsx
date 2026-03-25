@@ -27,7 +27,7 @@ import { Accordion } from '@/components/ui/vcv-accordion';
 import {
   buildPassportProofSections,
   summarizePassportProofSections,
-} from '@/components/trust/passportProofSections';
+} from '@/components/trust/passport-proof-sections';
 import { TrustLabel, type TrustStatus } from '@/components/ui/trust-label';
 import type { PassportData } from '@/app/passport/[id]/page';
 import { EmployerAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';

@@ -7,7 +7,7 @@ import { useRoleContext } from '@/components/auth/RoleContext';
 import {
   buildPassportProofSections,
   summarizePassportProofSections,
-} from '@/components/trust/passportProofSections';
+} from '@/components/trust/passport-proof-sections';
 import { Accordion } from '@/components/ui/vcv-accordion';
 import {
   CLERK_PROVIDER_ENABLED,

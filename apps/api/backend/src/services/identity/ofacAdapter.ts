@@ -191,7 +191,7 @@ function scoreEntryMatch(entry: SdnEntry, subject: OfacSubjectIdentity): number 
   // Build candidate name pairs from primary + aliases
   const candidates: Array<{ first: string | null; last: string }> = [
     { first: entry.firstName, last: entry.lastName },
-    ...entry.akas,
+    ...entry.akas.map(a => ({ first: a.firstName, last: a.lastName })),
   ];
 
   let bestNameScore = 0;
