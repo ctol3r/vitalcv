@@ -2,6 +2,9 @@ import { randomUUID } from 'node:crypto';
 import type { Prisma } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import { sha256ForPayload } from '../../utils/deterministic';
+import { buildPassportByNpi } from './passportService';
+import { computeTrustScoreV1 } from '../trust/trustScoreV1';
+import { log } from '../../obs/logger';
 
 export type EmployerReviewActionIntent = 'accept' | 'refresh' | 'review';
 export type EmployerReviewPriority = 'LOW' | 'NORMAL' | 'HIGH';
@@ -31,6 +34,165 @@ export interface EmployerReviewActionPersistence {
   reviewItemCreated: boolean;
 }
 
+// ── Decision Trust Snapshot ──────────────────────────────────────────────────
+//
+// Captured at the moment an employer takes an action.
+// Stored in the audit event metadata — immutable record of passport state
+// at time of decision. Used for:
+//   - Audit trail: "what state was the passport in when this was accepted?"
+//   - Dispute resolution
+//   - Pilot ROI measurement
+//
+// TRUTH CONTRACT: Every field comes from the trust spine. No assumptions.
+// Missing/unavailable fields → explicit null, never omitted.
+
+export interface DecisionTrustSnapshot {
+  /** SHA-256 of the snapshot payload — verifiable receipt */
+  snapshotHash: string;
+  capturedAt: string;
+  npi: string;
+  readinessStatus: string;
+  readinessScore: number;
+  readinessLevel: string;
+  trustBand: string;
+  trustBandLabel: string;
+  trustScore: number;
+  trustScoreConfidence: number;
+  exclusionStatus: string;
+  exclusionCheckedAt: string | null;
+  pecosEnrollmentStatus: string;
+  verifiedCredentialCount: number;
+  staleCredentialCount: number;
+  reviewRequiredCount: number;
+  blockerCount: number;
+  topBlockers: string[];
+  missingDomains: string[];
+  gatedDomains: string[];
+  lastCheckedAt: string | null;
+}
+
+/**
+ * Builds a DecisionTrustSnapshot from real passport + trust score data.
+ * Non-blocking: returns a minimal snapshot on any failure so actions are never blocked.
+ */
+export async function buildDecisionTrustSnapshot(
+  npi: string,
+): Promise<DecisionTrustSnapshot> {
+  const capturedAt = new Date().toISOString();
+
+  try {
+    const [passport, trustScore] = await Promise.all([
+      buildPassportByNpi(npi).catch(() => null),
+      computeTrustScoreV1(npi).catch(() => null),
+    ]);
+
+    if (!passport) {
+      const minimal: DecisionTrustSnapshot = {
+        snapshotHash: '',
+        capturedAt,
+        npi,
+        readinessStatus: 'UNKNOWN',
+        readinessScore: 0,
+        readinessLevel: 'L0',
+        trustBand: 'L0',
+        trustBandLabel: 'UNVERIFIED',
+        trustScore: 0,
+        trustScoreConfidence: 0,
+        exclusionStatus: 'UNCHECKED',
+        exclusionCheckedAt: null,
+        pecosEnrollmentStatus: 'UNKNOWN',
+        verifiedCredentialCount: 0,
+        staleCredentialCount: 0,
+        reviewRequiredCount: 0,
+        blockerCount: 0,
+        topBlockers: [],
+        missingDomains: [],
+        gatedDomains: [],
+        lastCheckedAt: null,
+      };
+      minimal.snapshotHash = sha256ForPayload(minimal);
+      return minimal;
+    }
+
+    const creds = passport.authority.credentials;
+    const staleCount = creds.filter(c => c.stale).length;
+    const reviewCount = creds.filter(c => c.reviewRequired).length;
+    const verifiedCount = creds.filter(c => !c.stale && !c.reviewRequired).length;
+
+    const blockers = passport.readiness?.nextActions ?? [];
+    const gatedDomains: string[] = [];
+    if (passport.standing.licensureStatus === 'unknown') gatedDomains.push('STATE_LICENSE');
+    if (creds.some(c => c.connectorState === 'unavailable')) gatedDomains.push('FSMB_AUTHORITY');
+
+    const bandMap: Record<string, string> = {
+      READY: 'L3', PARTIAL: 'L2', BLOCKED: 'L0', UNKNOWN: 'L0',
+    };
+
+    const snapshot: DecisionTrustSnapshot = {
+      snapshotHash: '',
+      capturedAt,
+      npi,
+      readinessStatus: passport.readiness?.status ?? 'UNKNOWN',
+      readinessScore: passport.readiness?.score ?? 0,
+      readinessLevel: passport.readiness?.level ?? 'L0',
+      trustBand: trustScore?.band ?? bandMap[passport.readiness?.status ?? 'UNKNOWN'] ?? 'L0',
+      trustBandLabel: trustScore?.bandLabel ?? 'UNVERIFIED',
+      trustScore: trustScore?.score ?? 0,
+      trustScoreConfidence: trustScore?.confidence ?? 0,
+      exclusionStatus: passport.standing.exclusionStatus,
+      exclusionCheckedAt: passport.standing.exclusionCheckedAt ?? null,
+      pecosEnrollmentStatus: passport.standing.pecosEnrollmentStatus,
+      verifiedCredentialCount: verifiedCount,
+      staleCredentialCount: staleCount,
+      reviewRequiredCount: reviewCount,
+      blockerCount: blockers.length,
+      topBlockers: blockers.slice(0, 5).map(b => b.title),
+      missingDomains: passport.authority.summary.missing.slice(0, 10),
+      gatedDomains,
+      lastCheckedAt: passport.lastCheckedAt ?? null,
+    };
+
+    snapshot.snapshotHash = sha256ForPayload(snapshot);
+
+    log('info', 'decision_trust_snapshot_captured', {
+      npi,
+      readinessStatus: snapshot.readinessStatus,
+      trustBand: snapshot.trustBand,
+      trustScore: snapshot.trustScore,
+      blockerCount: snapshot.blockerCount,
+    });
+
+    return snapshot;
+  } catch (err) {
+    log('error', 'decision_trust_snapshot_failed', { npi, err: String(err) });
+    const fallback: DecisionTrustSnapshot = {
+      snapshotHash: '',
+      capturedAt,
+      npi,
+      readinessStatus: 'UNKNOWN',
+      readinessScore: 0,
+      readinessLevel: 'L0',
+      trustBand: 'L0',
+      trustBandLabel: 'UNVERIFIED',
+      trustScore: 0,
+      trustScoreConfidence: 0,
+      exclusionStatus: 'UNCHECKED',
+      exclusionCheckedAt: null,
+      pecosEnrollmentStatus: 'UNKNOWN',
+      verifiedCredentialCount: 0,
+      staleCredentialCount: 0,
+      reviewRequiredCount: 0,
+      blockerCount: 0,
+      topBlockers: [],
+      missingDomains: [],
+      gatedDomains: [],
+      lastCheckedAt: null,
+    };
+    fallback.snapshotHash = sha256ForPayload(fallback);
+    return fallback;
+  }
+}
+
 interface EmployerReviewActionAuditMetadata {
   action: EmployerReviewActionIntent;
   employerId: string;
@@ -45,6 +207,8 @@ interface EmployerReviewActionAuditMetadata {
     facility: string | null;
     notes: string | null;
   };
+  /** Immutable trust state at time of decision — core of the audit trail */
+  trustSnapshot: DecisionTrustSnapshot;
 }
 
 export interface EmployerReviewActionState {
@@ -56,6 +220,8 @@ export interface EmployerReviewActionState {
   persistence: EmployerReviewActionPersistence;
   summary: EmployerReviewActionSummary;
   details: EmployerReviewActionDetails;
+  /** Trust state captured at the moment of this action — immutable audit record */
+  trustSnapshot: DecisionTrustSnapshot;
 }
 
 export interface EmployerReviewActionResponse {
@@ -214,6 +380,7 @@ function buildState(input: {
     persistence: input.metadata.persistence,
     summary: input.metadata.summary,
     details: input.metadata.details,
+    trustSnapshot: input.metadata.trustSnapshot,
   };
 }
 
@@ -313,6 +480,9 @@ export async function recordEmployerReviewAcceptance(input: {
     notes: sanitizeString(input.notes, 500),
   };
 
+  // ── Capture trust snapshot BEFORE transaction — immutable audit record ──
+  const trustSnapshot = await buildDecisionTrustSnapshot(input.clinicianNpi);
+
   const persistenceBase: EmployerReviewActionPersistence = {
     mode: 'durable_record',
     target: 'employer_acceptance',
@@ -347,6 +517,7 @@ export async function recordEmployerReviewAcceptance(input: {
       summary: buildActionSummary('accept', persistence),
       details: buildEmptyDetails(),
       context,
+      trustSnapshot,
     };
 
     const auditEvent = await writeEmployerReviewAuditEvent(
@@ -376,6 +547,9 @@ export async function recordEmployerReviewRefreshRequest(input: {
   missingDomains?: unknown;
   message?: unknown;
 }): Promise<EmployerReviewActionState> {
+  // Capture snapshot before write
+  const trustSnapshot = await buildDecisionTrustSnapshot(input.clinicianNpi);
+
   const metadata: EmployerReviewActionAuditMetadata = {
     action: 'refresh',
     employerId: input.employerId,
@@ -406,6 +580,7 @@ export async function recordEmployerReviewRefreshRequest(input: {
       facility: null,
       notes: null,
     },
+    trustSnapshot,
   };
 
   const auditEvent = await writeEmployerReviewAuditEvent(prisma as unknown as AuditWriter, {
@@ -434,6 +609,9 @@ export async function recordEmployerReviewRouting(input: {
   const normalizedReason =
     sanitizeString(input.reason, 500)
     ?? 'Employer routed for manual review.';
+
+  // Capture snapshot before transaction
+  const trustSnapshot = await buildDecisionTrustSnapshot(input.clinicianNpi);
 
   const { auditEvent, metadata } = await prisma.$transaction(async (tx) => {
     let reviewItemId: string | null = null;
@@ -481,6 +659,7 @@ export async function recordEmployerReviewRouting(input: {
         facility: null,
         notes: null,
       },
+      trustSnapshot,
     };
 
     const auditEvent = await writeEmployerReviewAuditEvent(

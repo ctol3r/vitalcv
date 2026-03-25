@@ -829,6 +829,99 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
           )}
         </div>
 
+        {/* ── Decision basis — what you're acting on (no assumptions) ──────── */}
+        {(actionState.phase === 'idle' || actionState.phase === 'downloading') && (
+          <div className="rounded-2xl border border-white/8 bg-white/3 px-5 py-4 space-y-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
+              Decision basis — what you're acting on
+            </p>
+
+            {/* Verified */}
+            {passport.authority.credentials.filter(c => !c.stale && !c.reviewRequired).length > 0 ? (
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase tracking-[0.15em] text-emerald-400/60 mb-1">Verified from primary sources</p>
+                {passport.authority.credentials
+                  .filter(c => !c.stale && !c.reviewRequired)
+                  .slice(0, 4)
+                  .map((c, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs">
+                      <span className="text-emerald-400 text-[10px] w-3 text-center">✓</span>
+                      <span className="text-white/65">{c.statusLabel ?? c.type ?? c.domain}</span>
+                      {c.jurisdiction && <span className="text-white/30 text-[10px]">{c.jurisdiction}</span>}
+                      {c.sourceId && <span className="text-white/20 text-[10px]">· {c.sourceId}</span>}
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-xs text-white/40">
+                <span className="text-white/20 w-3 text-center">–</span>
+                No decision-grade credentials verified yet
+              </div>
+            )}
+
+            {/* Stale */}
+            {passport.authority.credentials.filter(c => c.stale).length > 0 && (
+              <div className="pt-2 border-t border-white/6 space-y-1">
+                <p className="text-[10px] uppercase tracking-[0.15em] text-amber-400/60 mb-1">Stale — verification data aging</p>
+                {passport.authority.credentials
+                  .filter(c => c.stale)
+                  .slice(0, 3)
+                  .map((c, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs">
+                      <span className="text-amber-400/70 text-[10px] w-3 text-center">⚠</span>
+                      <span className="text-white/50">{c.statusLabel ?? c.type ?? c.domain}</span>
+                      <span className="text-white/25 text-[10px]">· last checked {c.observedAt ? new Date(c.observedAt).toLocaleDateString() : 'unknown'}</span>
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            {/* Missing */}
+            {authority.summary.missing.length > 0 && (
+              <div className="pt-2 border-t border-white/6 space-y-1">
+                <p className="text-[10px] uppercase tracking-[0.15em] text-white/25 mb-1">Missing — not yet verified</p>
+                {authority.summary.missing.slice(0, 4).map((domain, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs">
+                    <span className="text-white/20 w-3 text-center">–</span>
+                    <span className="text-white/35">{domain.replace(/_/g, ' ').toLowerCase()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Gated data */}
+            {passport.authority.credentials.some(c => c.connectorState === 'unavailable') && (
+              <div className="pt-2 border-t border-white/6">
+                <p className="text-[10px] uppercase tracking-[0.15em] text-sky-400/50 mb-1">Gated — institutional access required</p>
+                {passport.authority.credentials
+                  .filter(c => c.connectorState === 'unavailable')
+                  .slice(0, 2)
+                  .map((c, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs">
+                      <span className="text-sky-400/40 w-3 text-center">⊗</span>
+                      <span className="text-white/30">{c.statusLabel ?? c.type ?? c.domain} — {c.sourceDisclaimer ?? 'access not yet configured'}</span>
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            {/* Active blockers callout */}
+            {blocked.length > 0 && (
+              <div className="pt-2 border-t border-white/6 flex items-start gap-2 bg-amber-500/6 rounded-xl px-3 py-2">
+                <span className="text-amber-400/70 text-xs mt-0.5">⚠</span>
+                <div>
+                  <p className="text-amber-300/80 text-xs font-medium">
+                    {blocked.length} active blocker{blocked.length === 1 ? '' : 's'} — you&apos;re accepting with known gaps
+                  </p>
+                  <p className="text-amber-400/50 text-[10px] mt-0.5">
+                    "Accept as head start" records your decision and these blockers in the audit trail.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── M2: Action panel — all actions write audit events ────────────── */}
         {actionState.phase === 'idle' || actionState.phase === 'downloading' ? (
           <div className="space-y-3 pt-2">
@@ -838,7 +931,7 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
               disabled={!canPersistActions || actionState.phase === 'downloading'}
               className="h-14 w-full rounded-xl bg-[var(--vt-success)] text-sm font-medium text-white transition hover:opacity-90 active:opacity-80 disabled:opacity-40"
             >
-              Accept as head start
+              {blocked.length > 0 ? `Accept as head start (${blocked.length} blocker${blocked.length === 1 ? '' : 's'} noted)` : 'Accept as head start'}
             </button>
 
             {/* Secondary row */}
@@ -846,13 +939,19 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
               <button
                 onClick={handleRequestRefresh}
                 disabled={!canPersistActions || actionState.phase === 'downloading'}
+                title={freshnessEntries.filter(e => e.stale || e.unchecked).length > 0
+                  ? `${freshnessEntries.filter(e => e.stale || e.unchecked).length} stale source${freshnessEntries.filter(e => e.stale || e.unchecked).length === 1 ? '' : 's'} will be included`
+                  : 'Request the clinician refresh their data'}
                 className="rounded-xl border border-white/10 bg-white/4 text-white/55 hover:text-white/80 hover:bg-white/8 disabled:opacity-40 text-xs py-3.5 min-h-[48px] transition-all"
               >
-                Request refresh
+                {freshnessEntries.filter(e => e.stale || e.unchecked).length > 0
+                  ? `Request refresh (${freshnessEntries.filter(e => e.stale || e.unchecked).length} stale)`
+                  : 'Request refresh'}
               </button>
               <button
                 onClick={handleRouteToReview}
                 disabled={!canPersistActions || actionState.phase === 'downloading'}
+                title="Route to your credentialing committee for manual review"
                 className="rounded-xl border border-white/10 bg-white/4 text-white/55 hover:text-white/80 hover:bg-white/8 disabled:opacity-40 text-xs py-3.5 min-h-[48px] transition-all"
               >
                 Route to review
@@ -897,11 +996,29 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
               <p className="text-white/75 text-sm font-medium">{actionState.state.summary.title}</p>
             </div>
             <p className="text-white/35 text-xs">{actionState.state.summary.description}</p>
-            {/* Audit event ID — verifiable, not just a UI label */}
-            <div className="rounded-lg border border-white/8 bg-white/3 px-3 py-2 mt-1">
-              <p className="text-white/20 text-[10px] uppercase tracking-widest mb-0.5">Audit event</p>
+            {/* Audit event + trust snapshot at time of decision */}
+            <div className="rounded-lg border border-white/8 bg-white/3 px-3 py-2 mt-1 space-y-1.5">
+              <p className="text-white/20 text-[10px] uppercase tracking-widest">Audit record</p>
               <p className="text-white/45 text-[10px] font-mono break-all">{actionState.state.auditEventId}</p>
-              <p className="text-white/20 text-[10px] mt-0.5">{new Date(actionState.state.timestamp).toLocaleString()}</p>
+              <p className="text-white/20 text-[10px]">{new Date(actionState.state.timestamp).toLocaleString()}</p>
+              {actionState.state.trustSnapshot && (
+                <div className="mt-2 pt-2 border-t border-white/6 space-y-1">
+                  <p className="text-white/20 text-[10px] uppercase tracking-widest">Trust state recorded at decision</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                    <span className="text-white/25 text-[10px]">Readiness</span>
+                    <span className="text-white/50 text-[10px]">{actionState.state.trustSnapshot.readinessStatus} · {actionState.state.trustSnapshot.readinessScore}%</span>
+                    <span className="text-white/25 text-[10px]">Trust band</span>
+                    <span className="text-white/50 text-[10px]">{actionState.state.trustSnapshot.trustBand} · {actionState.state.trustSnapshot.trustBandLabel}</span>
+                    <span className="text-white/25 text-[10px]">Blockers noted</span>
+                    <span className="text-white/50 text-[10px]">{actionState.state.trustSnapshot.blockerCount}</span>
+                    <span className="text-white/25 text-[10px]">Exclusion</span>
+                    <span className="text-white/50 text-[10px]">{actionState.state.trustSnapshot.exclusionStatus}</span>
+                  </div>
+                  <p className="text-white/15 text-[10px] font-mono break-all mt-1">
+                    receipt: {actionState.state.trustSnapshot.snapshotHash?.slice(0, 16)}…
+                  </p>
+                </div>
+              )}
             </div>
             <button
               onClick={() => setActionState({ phase: 'idle' })}

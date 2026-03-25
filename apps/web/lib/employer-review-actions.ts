@@ -13,6 +13,31 @@ export interface EmployerReviewActionDetails {
   priority: EmployerReviewPriority | null;
 }
 
+/** Immutable trust state at moment of employer decision — core of audit trail */
+export interface DecisionTrustSnapshot {
+  snapshotHash: string;
+  capturedAt: string;
+  npi: string;
+  readinessStatus: string;
+  readinessScore: number;
+  readinessLevel: string;
+  trustBand: string;
+  trustBandLabel: string;
+  trustScore: number;
+  trustScoreConfidence: number;
+  exclusionStatus: string;
+  exclusionCheckedAt: string | null;
+  pecosEnrollmentStatus: string;
+  verifiedCredentialCount: number;
+  staleCredentialCount: number;
+  reviewRequiredCount: number;
+  blockerCount: number;
+  topBlockers: string[];
+  missingDomains: string[];
+  gatedDomains: string[];
+  lastCheckedAt: string | null;
+}
+
 export interface EmployerReviewActionState {
   action: EmployerReviewActionIntent;
   entityId: string;
@@ -31,6 +56,8 @@ export interface EmployerReviewActionState {
     description: string;
   };
   details: EmployerReviewActionDetails;
+  /** Immutable trust state at decision — present in all actions from this wave forward */
+  trustSnapshot: DecisionTrustSnapshot;
 }
 
 export interface EmployerReviewActionResponse {
