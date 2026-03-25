@@ -176,7 +176,7 @@ export function generateRoiReport(snap: PilotKpiSnapshot): RoiReport {
     observedTts !== null
       ? Math.round(BASELINES.medianDaysToStart.value - observedTts)
       : null;
-  const ttsConf = confidence(snap.startOutcomes.total);
+  const ttsConf = confidence(snap.startOutcomes.totalStarts);
 
   const ttsMetric: RoiMetric = {
     id: 'time_to_start',
@@ -189,7 +189,7 @@ export function generateRoiReport(snap: PilotKpiSnapshot): RoiReport {
     delta: ttsDelta,
     deltaLabel: deltaLabel(ttsDelta, 'days'),
     confidence: ttsConf,
-    sampleSize: snap.startOutcomes.total,
+    sampleSize: snap.startOutcomes.totalStarts,
     note: snap.startOutcomes.totalStarts === 0
       ? 'No confirmed start outcomes yet — record start outcomes via POST /api/internal/pilot/start-outcome'
       : null,
@@ -327,7 +327,7 @@ export function generateRoiReport(snap: PilotKpiSnapshot): RoiReport {
   // ── Data gaps ──────────────────────────────────────────────────────────────
   const dataGaps: string[] = [...(snap.gaps ?? [])];
 
-  if (snap.startOutcomes.total === 0) {
+  if (snap.startOutcomes.totalStarts === 0) {
     dataGaps.push('No start outcomes recorded — POST /api/internal/pilot/start-outcome when a clinician starts');
   }
   if (decisionCount < MIN_DECISIONS_FOR_HIGH_CONFIDENCE) {

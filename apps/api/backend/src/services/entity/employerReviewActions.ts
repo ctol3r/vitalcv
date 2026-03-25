@@ -207,8 +207,9 @@ interface EmployerReviewActionAuditMetadata {
     facility: string | null;
     notes: string | null;
   };
-  /** Immutable trust state at time of decision — core of the audit trail */
-  trustSnapshot: DecisionTrustSnapshot;
+  /** Immutable trust state at time of decision — core of the audit trail.
+   *  Optional for backwards compat: records written before a43b82d0 won't have it. */
+  trustSnapshot?: DecisionTrustSnapshot;
 }
 
 export interface EmployerReviewActionState {
@@ -220,8 +221,9 @@ export interface EmployerReviewActionState {
   persistence: EmployerReviewActionPersistence;
   summary: EmployerReviewActionSummary;
   details: EmployerReviewActionDetails;
-  /** Trust state captured at the moment of this action — immutable audit record */
-  trustSnapshot: DecisionTrustSnapshot;
+  /** Trust state captured at the moment of this action — immutable audit record.
+   *  Optional for backwards compat: records written before a43b82d0 won't have it. */
+  trustSnapshot?: DecisionTrustSnapshot;
 }
 
 export interface EmployerReviewActionResponse {

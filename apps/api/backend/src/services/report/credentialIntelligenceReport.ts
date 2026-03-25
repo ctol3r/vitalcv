@@ -26,7 +26,7 @@
 import { createHash } from 'node:crypto';
 import { buildPassportByNpi } from '../entity/passportService';
 import { computeTrustScoreV1 } from '../trust/trustScoreV1';
-import { getPilotKpiSnapshot } from '../pilot/pilotKpiService';
+import { computePilotKpis as getPilotKpiSnapshot } from '../pilot/pilotKpiService';
 import { log } from '../../obs/logger';
 
 // ── Report types ──────────────────────────────────────────────────────────────
@@ -411,7 +411,7 @@ export async function generateCredentialIntelligenceReport(
   // KPI velocity — best-effort (never blocks report)
   let kpiMedianDays: number | null = null;
   try {
-    const kpi = await getPilotKpiSnapshot({ pilotId: null, workflowLane: null, orgContextId: null, geographyTag: null });
+    const kpi = await getPilotKpiSnapshot({ filter: { pilotId: null, workflowLane: null, orgContextId: null, geographyTag: null } });
     kpiMedianDays = kpi?.velocity?.medianDaysFirstReviewToStart ?? null;
   } catch {
     // non-blocking — report continues without KPI history

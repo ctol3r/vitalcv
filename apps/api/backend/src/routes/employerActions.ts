@@ -104,6 +104,7 @@ export function registerEmployerActionRoutes(app: Express): void {
       });
 
       // SEAL: fire-and-forget employer decision signal with full trust snapshot
+      const snap = state.trustSnapshot;
       void captureEmployerDecision({
         entityId,
         decision:                'PROCEED',
@@ -111,17 +112,17 @@ export function registerEmployerActionRoutes(app: Express): void {
         auditEventId:            state.auditEventId,
         trustSnapshotAtDecision: {
           acceptanceId:          state.persistence.acceptanceId,
-          readinessStatus:       state.trustSnapshot.readinessStatus,
-          readinessScore:        state.trustSnapshot.readinessScore,
-          trustBand:             state.trustSnapshot.trustBand,
-          trustScore:            state.trustSnapshot.trustScore,
-          blockerCount:          state.trustSnapshot.blockerCount,
-          exclusionStatus:       state.trustSnapshot.exclusionStatus,
-          verifiedCredentials:   state.trustSnapshot.verifiedCredentialCount,
-          staleCredentials:      state.trustSnapshot.staleCredentialCount,
-          snapshotHash:          state.trustSnapshot.snapshotHash,
+          readinessStatus:       snap?.readinessStatus,
+          readinessScore:        snap?.readinessScore,
+          trustBand:             snap?.trustBand,
+          trustScore:            snap?.trustScore,
+          blockerCount:          snap?.blockerCount,
+          exclusionStatus:       snap?.exclusionStatus,
+          verifiedCredentials:   snap?.verifiedCredentialCount,
+          staleCredentials:      snap?.staleCredentialCount,
+          snapshotHash:          snap?.snapshotHash,
         },
-        blockersAtDecision:      state.trustSnapshot.topBlockers,
+        blockersAtDecision:      snap?.topBlockers ?? [],
         metadata:                { role: role ?? null, facility: facility ?? null },
       });
 
@@ -225,20 +226,23 @@ export function registerEmployerActionRoutes(app: Express): void {
         decision:                'ROUTE_TO_REVIEW',
         reviewerRole:            'EMPLOYER',
         auditEventId:            state.auditEventId,
-        trustSnapshotAtDecision: {
-          priority:            state.details.priority,
-          reviewItemCreated:   state.persistence.reviewItemCreated,
-          reviewItemId:        state.persistence.reviewItemId,
-          readinessStatus:     state.trustSnapshot.readinessStatus,
-          readinessScore:      state.trustSnapshot.readinessScore,
-          trustBand:           state.trustSnapshot.trustBand,
-          trustScore:          state.trustSnapshot.trustScore,
-          blockerCount:        state.trustSnapshot.blockerCount,
-          topBlockers:         state.trustSnapshot.topBlockers,
-          exclusionStatus:     state.trustSnapshot.exclusionStatus,
-          snapshotHash:        state.trustSnapshot.snapshotHash,
-        },
-        blockersAtDecision:      state.trustSnapshot.topBlockers,
+        trustSnapshotAtDecision: (() => {
+          const s = state.trustSnapshot;
+          return {
+            priority:            state.details.priority,
+            reviewItemCreated:   state.persistence.reviewItemCreated,
+            reviewItemId:        state.persistence.reviewItemId,
+            readinessStatus:     s?.readinessStatus,
+            readinessScore:      s?.readinessScore,
+            trustBand:           s?.trustBand,
+            trustScore:          s?.trustScore,
+            blockerCount:        s?.blockerCount,
+            topBlockers:         s?.topBlockers,
+            exclusionStatus:     s?.exclusionStatus,
+            snapshotHash:        s?.snapshotHash,
+          };
+        })(),
+        blockersAtDecision:      state.trustSnapshot?.topBlockers ?? [],
         metadata:                {
           reason: state.details.reason,
           reviewItemCreated: state.persistence.reviewItemCreated,

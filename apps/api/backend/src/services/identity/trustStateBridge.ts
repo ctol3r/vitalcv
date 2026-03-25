@@ -30,7 +30,7 @@ export interface IdentityEnrichment {
   /** Key verdicts derived from claims */
   exclusionVerdict:   'CLEAR' | 'EXCLUDED' | 'POSSIBLE_MATCH' | 'UNCHECKED';
   licensureVerdict:   'ACTIVE' | 'EXPIRED' | 'REVOKED' | 'SUSPENDED' | 'UNKNOWN';
-  enrollmentVerdict:  'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED';
+  enrollmentVerdict:  'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED' | 'OPTED_OUT';
   boardCertVerdict:   'CERTIFIED' | 'LAPSED' | 'NOT_CERTIFIED' | 'UNKNOWN';
 
   /** Confidence scores (from Gold-tier sources) */

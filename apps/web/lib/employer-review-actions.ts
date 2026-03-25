@@ -57,7 +57,7 @@ export interface EmployerReviewActionState {
   };
   details: EmployerReviewActionDetails;
   /** Immutable trust state at decision — present in all actions from this wave forward */
-  trustSnapshot: DecisionTrustSnapshot;
+  trustSnapshot?: DecisionTrustSnapshot;
 }
 
 export interface EmployerReviewActionResponse {
