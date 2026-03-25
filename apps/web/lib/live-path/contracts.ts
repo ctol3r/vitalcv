@@ -48,8 +48,10 @@ export function resolveLivePathReadinessStatus(status: ReadinessStatus): TrustSt
     case 'BLOCKED':
       return 'blocked';
     case 'PARTIAL':
+      // PARTIAL = some checks done, some pending — NOT the same as "review required" (human review)
+      return 'pending';
     default:
-      return 'review required';
+      return 'pending';
   }
 }
 

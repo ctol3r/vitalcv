@@ -67,6 +67,7 @@ const VDS_TRUST_STATUS_LABELS = {
   clear: 'Clear',
   enrolled: 'Enrolled',
   pending: 'Pending',
+  stale: 'Stale',
   'review required': 'Review required',
   unavailable: 'Unavailable',
   'access required': 'Access required',
@@ -120,6 +121,16 @@ export function canonicalCredStatus(raw: string): string {
     unverified: 'Pending',
     EXPIRED: 'Unavailable',
     expired: 'Unavailable',
+    STALE: 'Stale',
+    stale: 'Stale',
+    GATED: 'Access required',
+    gated: 'Access required',
+    REVIEW_REQUIRED: 'Review required',
+    review_required: 'Review required',
+    REVOKED: 'Unavailable',
+    revoked: 'Unavailable',
+    NOT_DECISION_GRADE: 'Not decision-grade',
+    not_decision_grade: 'Not decision-grade',
   };
 
   return map[raw] ?? raw.toLowerCase().replace(/_/g, ' ');

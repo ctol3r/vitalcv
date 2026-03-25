@@ -92,7 +92,9 @@ function buildIdentitySection(passport: PassportData): AccordionItem {
   return {
     id:      'identity',
     trigger: 'Identity',
-    status:  identity.status === 'ACTIVE' ? 'verified' : 'pending',
+    // NPPES ACTIVE = NPI is valid and active — not a credential verification.
+    // 'checked' is the honest status: we confirmed the NPI exists, nothing more.
+    status:  identity.status === 'ACTIVE' ? 'checked' : 'pending',
     content: (
       <div className="py-1">
         <DetailRow label="Name"       value={identity.displayName} />

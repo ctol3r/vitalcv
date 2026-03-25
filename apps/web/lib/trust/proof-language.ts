@@ -124,7 +124,14 @@ export function buildPassportFreshnessEntries(
       layer: 'Eligibility (PECOS)',
       checkedAt: passport.standing.enrollmentObservedAt ?? null,
       source: passport.standing.enrollmentSourceLabel ?? 'CMS PECOS',
-      stale: false,
+      // PECOS data expires — treat as stale if past revalidation due date on the PECOS credential,
+      // or >180 days since the enrollment was observed. Previously hardcoded false (always fresh).
+      stale: (() => {
+        const pecosCred = passport.authority.credentials.find(c => c.domain === 'MEDICARE_ENROLLMENT');
+        const revalDue = pecosCred?.nextReverifyAt ?? pecosCred?.revalidationDue ?? null;
+        if (revalDue) return new Date(revalDue) < new Date();
+        return isStale(passport.standing.enrollmentObservedAt, 180);
+      })(),
       unchecked: pecosEnrollmentStatus === 'UNCHECKED',
     },
   ];

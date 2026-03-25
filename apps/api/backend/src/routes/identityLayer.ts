@@ -31,6 +31,7 @@ import {
 import { createGraphNodeId } from '../services/graph-engine/ids';
 import { getWatchtowerState, registerWatchlist } from '../services/identity/watchtowerEngine';
 import { listWatchlists } from '../services/identity/watchtowerStore';
+import { refreshTrustState } from '../services/trust/trustStateEngine';
 import { exclusionClaimState } from '../services/entity/credentialTrustMetadata';
 import {
   DEFAULT_MOBILE_DEPTH,
@@ -789,6 +790,13 @@ export function registerIdentityLayerRoutes(app: Express): void {
           events:   criticals,
         } : null,
       });
+
+      // Post-ingest: refresh trust state so the passport picks up the new artifacts.
+      // Fire-and-forget — ingest response is already sent; failure here does not affect the caller.
+      // Without this, passport would serve stale trust state until the next monitoring cycle.
+      void refreshTrustState(npi).catch(err =>
+        log('warn', 'identity: post-ingest trust refresh failed', { npi, error: String(err) }),
+      );
     } catch (err) {
       log('error', 'identity: ingest failed', { npi, error: String(err) });
       res.status(500).json({ error: 'Ingestion failed', detail: String(err) });

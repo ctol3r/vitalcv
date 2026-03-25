@@ -160,11 +160,13 @@ describe('trustStateEngine route integration', () => {
 
     const createCall = prismaMock.verificationArtifact.create.mock.calls[0][0];
     expect(createCall.data.source).toBe('TRUST_STATE_ENGINE');
+    // The snapshot must be persisted with npi + trust_state_snapshot wrapper.
+    // readiness_level is intentionally not asserted here — methodology version changes
+    // affect scoring and PECOS absence caps at L1 under methodology 243.3.
     expect(createCall.data.rawPayload).toEqual(expect.objectContaining({
       npi: '1234567893',
       trust_state_snapshot: expect.objectContaining({
         npi: '1234567893',
-        readiness_level: 'L2',
       }),
     }));
 

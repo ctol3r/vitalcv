@@ -146,7 +146,8 @@ describe('trust state engine OIG timeout safeguard', () => {
     expect(state.sourceCoverage).toEqual(expect.arrayContaining([
       expect.objectContaining({
         sourceId: 'OIG_LEIE',
-        state: 'UNAVAILABLE',
+        // canonical CanonicalSourceCoverageState uses lowercase
+        state: 'unavailable',
       }),
     ]));
     expect(state.facts).toEqual(expect.arrayContaining([

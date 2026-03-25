@@ -907,6 +907,23 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
               </div>
             )}
 
+            {/* Review required — must not be invisible to employer */}
+            {passport.authority.credentials.filter(c => c.reviewRequired && !c.stale).length > 0 && (
+              <div className="pt-2 border-t border-white/6 space-y-1">
+                <p className="text-[10px] uppercase tracking-[0.15em] text-rose-400/60 mb-1">Review required — cannot be auto-verified</p>
+                {passport.authority.credentials
+                  .filter(c => c.reviewRequired && !c.stale)
+                  .slice(0, 3)
+                  .map((c, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs">
+                      <span className="text-rose-400/60 text-[10px] w-3 text-center">!</span>
+                      <span className="text-white/50">{c.statusLabel ?? c.type ?? c.domain}</span>
+                      {c.sourceDisclaimer && <span className="text-white/25 text-[10px]">· {c.sourceDisclaimer}</span>}
+                    </div>
+                  ))}
+              </div>
+            )}
+
             {/* Missing */}
             {authority.summary.missing.length > 0 && (
               <div className="pt-2 border-t border-white/6 space-y-1">

@@ -68,6 +68,7 @@ const TRUST_STATUS_TONES: Record<TrustStatusLabel, BadgeTone> = {
   clear: 'success',
   enrolled: 'success',
   pending: 'info',
+  stale: 'warning',
   'review required': 'warning',
   unavailable: 'neutral',
   'access required': 'neutral',
