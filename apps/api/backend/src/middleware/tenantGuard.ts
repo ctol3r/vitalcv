@@ -56,6 +56,7 @@ export function shouldSkipTenantContext(path: string): boolean {
     || normalized === '/verify'
     || normalized.startsWith('/psv')
     || normalized.startsWith('/identity')
+    || normalized.startsWith('/api/identity')
     || normalized.startsWith('/demo')
     || normalized.startsWith('/.well-known')
     || normalized.startsWith('/api/.well-known')
