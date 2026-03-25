@@ -55,7 +55,7 @@ export interface EmployerReviewPayloadV1 {
     licensureStatus: string;
     deaStatus: string;
     pecosStatus: string;
-    pecosEnrollmentStatus?: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED';
+    pecosEnrollmentStatus?: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED' | 'OPTED_OUT';
     enrollmentSourceLabel?: string;
     enrollmentDataFreshness?: string;
     enrollmentSourceLatency?: string;

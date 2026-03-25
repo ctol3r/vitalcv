@@ -25,6 +25,7 @@ import { randomUUID } from 'node:crypto';
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
 import { mergeScope, type PilotScope } from './pilotScope';
+import { appendAuditEvent } from '../audit/auditLedger';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

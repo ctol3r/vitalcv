@@ -30,6 +30,7 @@ export type AuditCategory =
   | 'ADMIN'
   | 'SYSTEM'
   | 'TRUST_STATE_CHANGE'
+  | 'READINESS_CHANGE'
   | 'BUNDLE_EXPORT'
   | 'SIMULATION';
 

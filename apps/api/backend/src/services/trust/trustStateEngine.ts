@@ -1689,7 +1689,12 @@ export async function refreshTrustState(npi: string): Promise<ClinicianTrustStat
   const state = await computeClinicianTrustState(npi);
   const persistedPayload = buildPersistedTrustStatePayload(state);
 
+  // Update LRU cache immediately — decouple from DB write so a transient DB failure
+  // does not discard a freshly computed trust state. Passport will hit LRU on next call.
+  const cachedState = setTrustStateMemoryCache(npi, state);
+
   // Persist as a VerificationArtifact with source='TRUST_STATE_ENGINE'
+  // Non-fatal: if DB write fails, LRU is already primed for the next 60s.
   try {
     const checksum = Buffer.from(`${npi}:${state.computedAt}`).toString('base64');
     await prisma.verificationArtifact.create({
@@ -1706,10 +1711,8 @@ export async function refreshTrustState(npi: string): Promise<ClinicianTrustStat
     });
   } catch (err) {
     log('error', 'trust_state_persist_error', { npi, error: String(err) });
-    throw err;
+    // Do not re-throw: LRU is updated above, passport can still serve fresh state for 60s.
   }
-
-  const cachedState = setTrustStateMemoryCache(npi, state);
 
   // Emit audit event
   try {
