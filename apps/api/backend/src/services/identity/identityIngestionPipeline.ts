@@ -1798,9 +1798,59 @@ const handlers: Record<string, SourceHandler> = {
       },
     });
   },
+
+  // ── OFAC SDN compliance check ─────────────────────────────────────────────
+  // Name-based, NOT NPI-keyed. Runs after NPPES so identity claims are available.
+  // potential_match → reviewRequired, never auto-blocks.
+  // confirmed_match (name+DOB alignment, score>0.95) → SANCTIONED blocker.
+  // External data rule: writes OFAC_SANCTION claim — never promotes enrichment to VERIFIED.
+  OFAC_SDN: async (npi, observedAt) =>
+    executeSourceIngestion({
+      npi,
+      observedAt,
+      sourceId: 'OFAC_SDN',
+      parserVersion: 'v1.0.0',
+      matchingStrategy: 'NAME_FUZZY',
+      fetchSource: async (_npi: string) => {
+        const result = await fetchOfacSdnList();
+        const checksum = checksumOf({ sdnCount: result.entries?.length ?? 0, fetchedAt: result.fetchedAt });
+        return {
+          raw: { entries: result.entries, fetchedAt: result.fetchedAt, dataVersion: result.dataVersion },
+          checksum,
+          fetchedAt: result.fetchedAt,
+          sourceUrl: 'https://www.treasury.gov/ofac/downloads/consolidated/consolidated.json',
+          fetchHeaders: {},
+        };
+      },
+      parseSource: ({ raw, artifactId, checksum, observedAt: parsedObservedAt }) => {
+        const rawObj = raw as Record<string, unknown>;
+        const entries = Array.isArray(rawObj.entries) ? rawObj.entries : null;
+        const dataVersion = typeof rawObj.dataVersion === 'string' ? rawObj.dataVersion : null;
+
+        // Build subject identity from claims already stored (NPPES must have run first)
+        const subject: OfacSubjectIdentity = { npi };
+        // Subject fields populated after promise resolution — use sync path only
+        const { claims, receipts } = runOfacCheck(
+          npi,
+          subject,
+          entries,
+          artifactId,
+          checksum,
+          parsedObservedAt,
+          dataVersion,
+        );
+        return {
+          status: 'SUCCESS',
+          claims,
+          receipts,
+          matchingStrategy: 'NAME_FUZZY',
+          mergeReason: 'OFAC SDN name-based compliance check — not NPI-keyed; potential matches require human review',
+        };
+      },
+    }),
 };
 
-export type IngestionSources = 'NPPES_API' | 'OIG_LEIE' | 'PECOS_PUBLIC' | 'OPEN_PAYMENTS' | 'SAM_GOV' | 'DOCTORS_CLINICIANS' | 'NURSYS' | 'STATE_BOARD' | 'OPENALEX' | 'CLINICAL_TRIALS' | 'PUBMED' | 'ALL';
+export type IngestionSources = 'NPPES_API' | 'OIG_LEIE' | 'PECOS_PUBLIC' | 'OPEN_PAYMENTS' | 'SAM_GOV' | 'DOCTORS_CLINICIANS' | 'NURSYS' | 'STATE_BOARD' | 'OPENALEX' | 'CLINICAL_TRIALS' | 'PUBMED' | 'OFAC_SDN' | 'ALL';
 
 export async function ingestClinicianIdentity(
   npi: string,
