@@ -215,6 +215,16 @@ function dedupeStrings(values: readonly string[]): string[] {
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).sort((left, right) => left.localeCompare(right));
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function onlyUuids(values: string[]): string[] {
+  return values.filter((v) => UUID_RE.test(v));
+}
+
+const HEX32_RE = /^[0-9a-f]{32}$/i;
+function onlyReceiptIds(values: string[]): string[] {
+  return values.filter((v) => UUID_RE.test(v) || HEX32_RE.test(v));
+}
+
 function asRecord(value: unknown): JsonRecord {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     return value as JsonRecord;
@@ -536,8 +546,8 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
       { createdAt: 'desc' },
     ],
   });
-  const artifactIds = dedupeStrings(credentials.flatMap((credential) => credential.artifactIds));
-  const receiptIds = dedupeStrings(credentials.flatMap((credential) => credential.receiptIds));
+  const artifactIds = onlyUuids(dedupeStrings(credentials.flatMap((credential) => credential.artifactIds)));
+  const receiptIds = onlyReceiptIds(dedupeStrings(credentials.flatMap((credential) => credential.receiptIds)));
   const [artifacts, receipts] = await Promise.all([
     artifactIds.length > 0
       ? prisma.verificationArtifact.findMany({

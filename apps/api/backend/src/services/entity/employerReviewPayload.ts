@@ -93,6 +93,15 @@ function mergeStrings(values: readonly string[][]): string[] {
   return Array.from(new Set(values.flatMap((value) => value))).sort((left, right) => left.localeCompare(right));
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const HEX32_RE = /^[0-9a-f]{32}$/i;
+function onlyUuids(values: string[]): string[] {
+  return values.filter((v) => UUID_RE.test(v));
+}
+function onlyReceiptIds(values: string[]): string[] {
+  return values.filter((v) => UUID_RE.test(v) || HEX32_RE.test(v));
+}
+
 export function buildEmployerReviewSourceCoverage(input: {
   passportSourceCoverage: CanonicalSourceCoverageReport;
   domains: readonly string[];
@@ -154,8 +163,8 @@ export async function buildEmployerReviewPayload(input: {
     ],
   });
 
-  const artifactIds = mergeStrings(credentials.map((credential) => credential.artifactIds));
-  const receiptIds = mergeStrings(credentials.map((credential) => credential.receiptIds));
+  const artifactIds = onlyUuids(mergeStrings(credentials.map((credential) => credential.artifactIds)));
+  const receiptIds = onlyReceiptIds(mergeStrings(credentials.map((credential) => credential.receiptIds)));
   const passportCredentialsById = new Map(
     passport.authority.credentials.map((credential) => [credential.id, credential] as const),
   );
