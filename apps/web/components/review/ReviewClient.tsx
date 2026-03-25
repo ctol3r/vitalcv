@@ -1049,24 +1049,28 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
               <p className="text-white/20 text-[10px] uppercase tracking-widest">Audit record</p>
               <p className="text-white/45 text-[10px] font-mono break-all">{actionState.state.auditEventId}</p>
               <p className="text-white/20 text-[10px]">{new Date(actionState.state.timestamp).toLocaleString()}</p>
-              {actionState.state.trustSnapshot && (
-                <div className="mt-2 pt-2 border-t border-white/6 space-y-1">
-                  <p className="text-white/20 text-[10px] uppercase tracking-widest">Trust state recorded at decision</p>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-                    <span className="text-white/25 text-[10px]">Readiness</span>
-                    <span className="text-white/50 text-[10px]">{actionState.state.trustSnapshot.readinessStatus} · {actionState.state.trustSnapshot.readinessScore}%</span>
-                    <span className="text-white/25 text-[10px]">Trust band</span>
-                    <span className="text-white/50 text-[10px]">{actionState.state.trustSnapshot.trustBand} · {actionState.state.trustSnapshot.trustBandLabel}</span>
-                    <span className="text-white/25 text-[10px]">Blockers noted</span>
-                    <span className="text-white/50 text-[10px]">{actionState.state.trustSnapshot.blockerCount}</span>
-                    <span className="text-white/25 text-[10px]">Exclusion</span>
-                    <span className="text-white/50 text-[10px]">{actionState.state.trustSnapshot.exclusionStatus}</span>
+              {(() => {
+                const snap = actionState.state.trustSnapshot;
+                if (!snap) return null;
+                return (
+                  <div className="mt-2 pt-2 border-t border-white/6 space-y-1">
+                    <p className="text-white/20 text-[10px] uppercase tracking-widest">Trust state recorded at decision</p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                      <span className="text-white/25 text-[10px]">Readiness</span>
+                      <span className="text-white/50 text-[10px]">{snap.readinessStatus} · {snap.readinessScore}%</span>
+                      <span className="text-white/25 text-[10px]">Trust band</span>
+                      <span className="text-white/50 text-[10px]">{snap.trustBand} · {snap.trustBandLabel}</span>
+                      <span className="text-white/25 text-[10px]">Blockers noted</span>
+                      <span className="text-white/50 text-[10px]">{snap.blockerCount}</span>
+                      <span className="text-white/25 text-[10px]">Exclusion</span>
+                      <span className="text-white/50 text-[10px]">{snap.exclusionStatus}</span>
+                    </div>
+                    <p className="text-white/15 text-[10px] font-mono break-all mt-1">
+                      receipt: {snap.snapshotHash?.slice(0, 16)}…
+                    </p>
                   </div>
-                  <p className="text-white/15 text-[10px] font-mono break-all mt-1">
-                    receipt: {actionState.state.trustSnapshot.snapshotHash?.slice(0, 16)}…
-                  </p>
-                </div>
-              )}
+                );
+              })()}
             </div>
             <button
               onClick={() => setActionState({ phase: 'idle' })}
