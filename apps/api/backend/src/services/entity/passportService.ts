@@ -29,6 +29,7 @@ import {
   isCredentialCurrentStatus,
   isCredentialSatisfied,
   isCredentialStale,
+  isDecisionGrade,
   normalizeExclusionCredentialStatus,
 } from '../../domain/entity/contracts';
 import { log } from '../../obs/logger';
@@ -612,6 +613,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
 
   // ── Authority ─────────────────────────────────────────────────────────────
   const credList: PassportCredential[] = usableCredentials.map(c => {
+    // TRUTH INTEGRITY: use the fixed isCredentialStale that treats null verifiedAt as stale
     const stale   = isCredentialStale({ domain: c.domain, verifiedAt: c.verifiedAt });
     const expiry  = daysUntilExpiry(c.expiresAt);
     const meta = asRecord(c.metadata);
@@ -666,7 +668,10 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
       leieVersionDate:  stringValue(meta.leieVersionDate) ?? stringValue(claimValue.leieVersionDate),
       identityOnly:     (meta.identityOnly as boolean | undefined) ?? (claimValue.identityOnly as boolean | undefined),
       sourceDisclaimer:    stringValue(meta.sourceDisclaimer) ?? stringValue(claimValue.sourceDisclaimer),
-      reviewRequired:      (meta.reviewRequired as boolean | undefined) ?? false,
+      // TRUTH INTEGRITY: reviewRequired is true if:
+      //   (a) explicitly flagged in metadata, OR
+      //   (b) sourceId is missing — no traceable source means not decision-grade
+      reviewRequired: (meta.reviewRequired as boolean | undefined) ?? (!stringValue(meta.sourceId) ? true : false),
       // Authority truth fields (M14/MS15)
       authorityClaimCode:  stringValue(meta.authorityClaimCode) ?? undefined,
       boardOrderSeverity:  stringValue(meta.boardOrderSeverity) ?? undefined,

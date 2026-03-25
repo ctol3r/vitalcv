@@ -185,10 +185,42 @@ export function isCredentialStale(
   credential: { domain: string; verifiedAt?: string | Date | null },
 ): boolean {
   const window = FRESHNESS_WINDOWS_DAYS[credential.domain];
-  if (!window || !credential.verifiedAt) return false;
+  // No freshness window defined for this domain → cannot determine staleness
+  if (!window) return false;
+  // VIOLATION FIX: null/missing verifiedAt for a domain WITH a freshness window
+  // means we have NO timestamp to determine recency — treat as stale.
+  // Previously returned false (not stale), which allowed source-less credentials
+  // to pass as decision-grade. This fixes the gap.
+  if (!credential.verifiedAt) return true;
   const verifiedMs = new Date(credential.verifiedAt).getTime();
   const windowMs   = window * 24 * 60 * 60 * 1000;
   return Date.now() - verifiedMs > windowMs;
+}
+
+/**
+ * isDecisionGrade — unified guard for whether a credential can be used in
+ * employer decisions, FHIR export, or trust score calculation.
+ *
+ * A credential is decision-grade ONLY IF:
+ *   1. It is not stale
+ *   2. It has a verifiedAt timestamp (receipt anchor)
+ *   3. It has a sourceId (traceable to a primary source)
+ *   4. It is not flagged for manual review
+ *
+ * TRUTH CONTRACT: Missing any of these → not decision-grade. No exceptions.
+ */
+export function isDecisionGrade(
+  credential: {
+    domain:         string;
+    verifiedAt?:    string | Date | null;
+    sourceId?:      string | null;
+    reviewRequired: boolean;
+  },
+): boolean {
+  if (credential.reviewRequired) return false;
+  if (!credential.sourceId) return false;
+  if (!credential.verifiedAt) return false;
+  return !isCredentialStale(credential);
 }
 
 /**

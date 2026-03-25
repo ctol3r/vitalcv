@@ -18,6 +18,7 @@ import { capsuleEngine } from '../decision/capsuleEngine';
 import { emitAlert } from '../alerts/trustAlerts';
 import { log } from '../../obs/logger';
 import { type CredentialEvent } from './eventQueue';
+import { captureReadinessChange } from '../seal/sealEventCapture';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -170,6 +171,21 @@ export async function processCredentialEvent(event: CredentialEvent): Promise<Tr
     } catch (err) {
       log('warn', 'async_trust_engine: audit_error', { npi, error: String(err) });
     }
+  }
+
+  // Wave ROI: Capture readiness change for pilot KPI tracking
+  // Only capture when band actually changed (or first time computed)
+  if (previousBand !== newBand || previousBand === null) {
+    void captureReadinessChange({
+      npi,
+      previousBand,
+      newBand,
+      degraded,
+      triggerEventType: type,
+      triggerEventId: eventId,
+      affectedCapsuleCount: affectedCapsules.length,
+      processedAt,
+    });
   }
 
   log('info', 'async_trust_engine: event_processed', {

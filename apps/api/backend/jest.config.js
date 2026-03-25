@@ -19,6 +19,8 @@ module.exports = {
   moduleNameMapper: {
     '^@vitalcv/psv-adapters$': '<rootDir>/../../../packages/psv-adapters/index.ts',
     '^@vitalcv/psv-adapters/(.*)$': '<rootDir>/../../../packages/psv-adapters/$1',
+    '^@vitalcv/trust-state$': '<rootDir>/../../../packages/trust-state/index.ts',
+    '^@vitalcv/trust-state/(.*)$': '<rootDir>/../../../packages/trust-state/$1',
     // core/graph/* package resolution (relative depth varies by caller)
     '^(?:\\.\\./){4,8}core/graph/(.*)$': '<rootDir>/../../../core/graph/$1',
   },

@@ -18,6 +18,7 @@ import {
   kpiSnapshotToCsv,
   type PilotFilter,
 } from '../services/pilot/pilotKpiService';
+import { generateRoiReport, roiReportToHtml } from '../services/pilot/roiReportService';
 import {
   captureAdvisoryEvent,
   captureStartOutcome,
@@ -75,6 +76,36 @@ export function registerPilotKpiRoutes(app: Express): void {
     const snapshot = await computePilotKpis({ windowDays, filter });
 
     void res.json(snapshot);
+  }));
+
+  // ── GET /api/internal/pilot/roi-report ─────────────────────────────────────
+  // ROI executive report — JSON. Buyer-readable with baselines + deltas.
+  app.get('/api/internal/pilot/roi-report', asyncHandler(async (req, res): Promise<void> => {
+    if (!requireMonitoringSecret(req, res)) return;
+
+    const windowDays = readWindowDays(req.query.days);
+    const filter = readPilotFilter(req.query as Record<string, unknown>);
+    const snapshot = await computePilotKpis({ windowDays, filter });
+    const report = generateRoiReport(snapshot);
+
+    void res.json(report);
+  }));
+
+  // ── GET /api/internal/pilot/roi-report/html ─────────────────────────────────
+  // ROI executive report — self-contained print-ready HTML. Buyer handout.
+  app.get('/api/internal/pilot/roi-report/html', asyncHandler(async (req, res): Promise<void> => {
+    if (!requireMonitoringSecret(req, res)) return;
+
+    const windowDays = readWindowDays(req.query.days);
+    const filter = readPilotFilter(req.query as Record<string, unknown>);
+    const snapshot = await computePilotKpis({ windowDays, filter });
+    const report = generateRoiReport(snapshot);
+    const html = roiReportToHtml(report);
+
+    const filename = `vitalcv-roi-report-${new Date().toISOString().slice(0, 10)}.html`;
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    void res.send(html);
   }));
 
   app.get('/api/internal/pilot/kpis/export', asyncHandler(async (req, res): Promise<void> => {
@@ -167,6 +198,8 @@ export function registerPilotKpiRoutes(app: Express): void {
     routes: [
       'GET  /api/internal/pilot/kpis',
       'GET  /api/internal/pilot/kpis/export',
+      'GET  /api/internal/pilot/roi-report',
+      'GET  /api/internal/pilot/roi-report/html',
       'POST /api/employer-review/:entityId/view',
       'POST /api/internal/pilot/start-outcome',
     ],

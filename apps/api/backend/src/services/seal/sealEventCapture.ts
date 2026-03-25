@@ -467,3 +467,65 @@ export async function captureStartOutcome(input: CaptureStartOutcomeInput): Prom
     });
   }
 }
+
+// ── 5. Readiness Change Event ─────────────────────────────────────────────────
+//
+// Wave ROI: Captures band transitions from the async trust engine.
+// Written to AuditEvent (no new model — consistent with audit chain).
+// category: ['READINESS_CHANGE']
+// Queryable by pilotKpiService for readinessChangeCount and velocity deltas.
+
+export interface CaptureReadinessChangeInput {
+  npi: string;
+  entityId?: string | null;
+  previousBand: string | null;
+  newBand: string;
+  degraded: boolean;
+  triggerEventType: string;
+  triggerEventId?: string | null;
+  affectedCapsuleCount: number;
+  processedAt: string;
+}
+
+export async function captureReadinessChange(input: CaptureReadinessChangeInput): Promise<void> {
+  try {
+    const direction = input.degraded
+      ? 'DEGRADED'
+      : input.previousBand === null
+        ? 'INITIAL'
+        : 'IMPROVED';
+
+    await appendAuditEvent({
+      category: ['READINESS_CHANGE'],
+      actor: 'async-trust-engine',
+      resource: `trust-state:${input.npi}`,
+      severity: input.degraded ? 'WARNING' : 'INFO',
+      requestFields: {
+        npi:              input.npi,
+        entityId:         input.entityId ?? null,
+        triggerEventType: input.triggerEventType,
+        triggerEventId:   input.triggerEventId ?? null,
+      },
+      resultFields: {
+        previousBand:          input.previousBand,
+        newBand:               input.newBand,
+        direction,
+        degraded:              input.degraded,
+        affectedCapsuleCount:  input.affectedCapsuleCount,
+        processedAt:           input.processedAt,
+      },
+    });
+
+    log('info', 'seal_readiness_change_captured', {
+      npi: input.npi.slice(0, 4) + '····',
+      previousBand: input.previousBand,
+      newBand: input.newBand,
+      direction,
+    });
+  } catch (err) {
+    log('warn', 'seal_readiness_change_capture_failed', {
+      npi: input.npi,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}

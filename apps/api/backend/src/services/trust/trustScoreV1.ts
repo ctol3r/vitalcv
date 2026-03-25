@@ -486,8 +486,37 @@ function scoreFreshness(freshnessReport: ClaimFreshnessReport): DimensionScore {
   };
 }
 
+// ── Academic dimension enrichment isolation guard ────────────────────────────
+//
+// TRUTH DOCTRINE ENFORCEMENT:
+// Academic sources (OPENALEX, PUBMED, ORCID, CLINICAL_TRIALS) are
+// ENRICHMENT-ONLY. They are NOT primary-source verification. Including
+// them in the trust score would allow enrichment to influence trust.
+//
+// FIX: academic dimension is DISABLED by default (returns 0/NOT_CHECKED).
+// It can be enabled via ACADEMIC_TRUST_SCORE_ENABLED=true ONLY when:
+//   1. The academic identity is verified via a signed credential (not name-match)
+//   2. The source has a proper verification artifact with receipt
+//
+// Current academic enrichment uses name-based matching (0.65 confidence) —
+// this is not primary-source verification and MUST NOT affect trust score.
+//
+const ACADEMIC_TRUST_SCORE_ENABLED =
+  process.env.ACADEMIC_TRUST_SCORE_ENABLED === 'true';
+
 function scoreAcademic(artifacts: ArtifactSummary[]): DimensionScore {
   const MAX: number = w(DIMENSION_WEIGHTS.academic);
+
+  // Guard: academic dimension disabled — returns NOT_CHECKED (0 score)
+  // This prevents enrichment data from influencing the trust spine.
+  if (!ACADEMIC_TRUST_SCORE_ENABLED) {
+    return {
+      score: 0, max: MAX, pct: 0, status: 'NOT_CHECKED',
+      sources: [], confidence: 0,
+      explanation: 'Academic identity dimension is not active. Academic context is provided as enrichment only — it does not affect trust score.',
+      gaps: [],
+    };
+  }
 
   const academicArts = artifacts.filter(a =>
     a.source === 'OPENALEX' || a.source === 'PUBMED' ||
@@ -518,8 +547,8 @@ function scoreAcademic(artifacts: ArtifactSummary[]): DimensionScore {
     score, max: MAX, pct: Math.round(score / MAX * 100),
     status: score === MAX ? 'VERIFIED' : 'PARTIAL',
     sources: academicArts.map(a => a.source),
-    confidence: 0.65, // Silver tier — name-based matching
-    explanation: `Academic identity found via ${academicArts.map(a => a.source).join(', ')}.`,
+    confidence: 0.65, // Silver tier — name-based matching, not primary-source
+    explanation: `Academic identity found via ${academicArts.map(a => a.source).join(', ')}. Note: name-match only.`,
     gaps: !hasPublications ? ['No publications found in OpenAlex/PubMed'] : [],
   };
 }
