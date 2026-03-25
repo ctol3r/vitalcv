@@ -32,6 +32,7 @@ type IngestSource    = 'nppes' | 'oig' | 'pecos' | 'entity';
 interface IngestEvent {
   type:      IngestEventType;
   source?:   IngestSource;
+  sourceId?: string;
   timestamp: string;
   payload:   Record<string, unknown>;
 }
@@ -95,11 +96,13 @@ const INITIAL_STATE: IngestStreamState = {
 
 function applyEvent(prev: IngestStreamState, event: IngestEvent): IngestStreamState {
   const events = [...prev.events, event];
+  // Backend sends sourceId at top level; normalize to source
+  const normalizedSource = (event.source ?? event.sourceId ?? event.payload?.sourceId) as IngestSource | undefined;
 
   switch (event.type) {
 
     case 'source_start': {
-      const src = event.source;
+      const src = normalizedSource;
       if (src === 'nppes') {
         return { ...prev, events, phase: 'nppes', sources: { ...prev.sources, nppes: 'checking' } };
       }
@@ -114,7 +117,7 @@ function applyEvent(prev: IngestStreamState, event: IngestEvent): IngestStreamSt
 
     case 'source_complete': {
       const p = event.payload;
-      if (event.source === 'nppes') {
+      if (normalizedSource === 'nppes') {
         return {
           ...prev, events,
           sources: { ...prev.sources, nppes: 'done' },
@@ -127,7 +130,7 @@ function applyEvent(prev: IngestStreamState, event: IngestEvent): IngestStreamSt
           },
         };
       }
-      if (event.source === 'oig') {
+      if (normalizedSource === 'oig') {
         return {
           ...prev, events,
           phase: 'enrollment',
@@ -140,7 +143,7 @@ function applyEvent(prev: IngestStreamState, event: IngestEvent): IngestStreamSt
           },
         };
       }
-      if (event.source === 'pecos') {
+      if (normalizedSource === 'pecos') {
         return {
           ...prev, events,
           sources: { ...prev.sources, pecos: 'done' },
@@ -211,7 +214,11 @@ export function useIngestStream() {
       const es = new EventSource(`/api/ingest/stream/${runId}`);
       esRef.current = es;
 
-      es.onmessage = (e: MessageEvent<string>) => {
+      // The backend sends named SSE events (event: source_start, source_complete, etc.)
+      // EventSource.onmessage only fires for unnamed events.
+      // We must listen for each named event type individually.
+      const EVENT_TYPES = ['source_start', 'source_complete', 'claim_update', 'passport_ready', 'done', 'error'] as const;
+      const handler = (e: MessageEvent<string>) => {
         try {
           const event = JSON.parse(e.data) as IngestEvent;
           setState(prev => applyEvent(prev, event));
@@ -221,6 +228,11 @@ export function useIngestStream() {
           }
         } catch { /* malformed event — ignore */ }
       };
+      for (const eventType of EVENT_TYPES) {
+        es.addEventListener(eventType, handler as EventListener);
+      }
+      // Also listen for unnamed events (fallback)
+      es.onmessage = handler;
 
       es.onerror = () => {
         setState(prev => ({
