@@ -55,6 +55,177 @@ const STATUS_CONFIG: Record<ReadinessStatus, {
   BLOCKED: { cardBorder: 'border-white/8', cardBg: 'bg-white/3' },
 };
 
+// ── Trust Posture card ────────────────────────────────────────────────────────
+// Surfaces the system's computed trust assessment: band, score, contributing
+// dimensions, freshness, and what is safe to rely on now.
+// Risk doctrine: nothing here implies privileging or credentialing approval.
+
+const BAND_CONFIG: Record<string, { label: string; opacity: string; scoreColor: string }> = {
+  L3: { label: 'High trust',    opacity: 'text-white/90', scoreColor: 'text-white' },
+  L2: { label: 'Moderate trust', opacity: 'text-white/70', scoreColor: 'text-white/80' },
+  L1: { label: 'Partial trust', opacity: 'text-white/55', scoreColor: 'text-white/65' },
+  L0: { label: 'Insufficient',  opacity: 'text-white/35', scoreColor: 'text-white/45' },
+};
+
+interface TrustDimension {
+  label:  string;
+  state:  'verified' | 'stale' | 'pending' | 'gated' | 'unavailable' | 'clear';
+  note?:  string;
+}
+
+function PostureDimensionRow({ dim }: { dim: TrustDimension }) {
+  const icon: Record<TrustDimension['state'], string> = {
+    verified:    '✓',
+    clear:       '✓',
+    stale:       '~',
+    pending:     '◌',
+    gated:       '⊘',
+    unavailable: '—',
+  };
+  const color: Record<TrustDimension['state'], string> = {
+    verified:    'text-white/50',
+    clear:       'text-white/50',
+    stale:       'text-white/40',
+    pending:     'text-white/30',
+    gated:       'text-white/20',
+    unavailable: 'text-white/20',
+  };
+  return (
+    <div className="flex items-start gap-3">
+      <span className={`text-xs w-4 text-center select-none mt-0.5 ${color[dim.state]}`} aria-hidden>
+        {icon[dim.state]}
+      </span>
+      <div className="min-w-0">
+        <span className="text-white/60 text-xs">{dim.label}</span>
+        {dim.note && <span className="text-white/30 text-xs ml-2">— {dim.note}</span>}
+      </div>
+    </div>
+  );
+}
+
+function TrustPostureCard({ passport }: { passport: PassportData }) {
+  const { readiness, standing, training } = passport;
+  const level = readiness.level ?? 'L1';
+  const band  = BAND_CONFIG[level] ?? BAND_CONFIG['L1']!;
+
+  // Build contributing dimensions from what is in the passport
+  const dims: TrustDimension[] = [];
+
+  // Identity
+  dims.push({
+    label: 'Identity (NPI / CMS)',
+    state: passport.identity.displayName ? 'verified' : 'pending',
+  });
+
+  // Exclusion
+  dims.push({
+    label: 'Exclusion check (OIG/LEIE)',
+    state: standing.exclusionStatus === 'CLEAR'          ? 'clear'
+         : standing.exclusionStatus === 'EXCLUDED'       ? 'unavailable'
+         : standing.exclusionStatus === 'POSSIBLE_MATCH' ? 'pending'
+         : standing.exclusionStatus === 'UNCHECKED'      ? 'pending'
+         : 'unavailable',
+    note:  standing.exclusionStatus === 'EXCLUDED'       ? 'Blocked'
+         : standing.exclusionStatus === 'POSSIBLE_MATCH' ? 'Review required'
+         : undefined,
+  });
+
+  // Licensure
+  dims.push({
+    label: 'State licensure',
+    state: standing.licensureStatus === 'verified' ? 'verified'
+         : standing.licensureStatus === 'pending'  ? 'stale'
+         : standing.licensureStatus === 'expired'  ? 'unavailable'
+         : 'pending',
+  });
+
+  // Enrollment
+  const pecos = standing.pecosEnrollmentStatus ?? 'UNCHECKED';
+  dims.push({
+    label: 'Medicare enrollment (PECOS)',
+    state: pecos === 'ENROLLED'  ? 'verified'
+         : pecos === 'NOT_FOUND' ? 'unavailable'
+         : pecos === 'OPTED_OUT' ? 'gated'
+         : 'pending',
+    note:  pecos === 'NOT_FOUND' ? 'Not found' : undefined,
+  });
+
+  // Training (degree + residency — advisory, not blocking)
+  if (training.hasDegree || training.hasResidency) {
+    dims.push({
+      label: 'Training record',
+      state: training.degreeVerified ? 'verified' : 'pending',
+      note:  training.degreeVerified ? undefined : 'Self-reported',
+    });
+  }
+
+  // Determine what is safe to rely on now
+  const reliableCount = dims.filter(d => d.state === 'verified' || d.state === 'clear').length;
+  const reliableLabel = reliableCount === 0 ? 'No source-backed claims yet'
+    : reliableCount === 1 ? '1 source-backed claim'
+    : `${reliableCount} source-backed claims`;
+
+  return (
+    <div className="rounded-xl border border-white/8 bg-white/3 px-4 py-4 space-y-3">
+      {/* Header */}
+      <div className="flex items-baseline justify-between">
+        <p className="text-white/30 text-[10px] uppercase tracking-widest">Trust posture</p>
+        <span className={`text-[10px] uppercase tracking-widest ${band.opacity}`}>{band.label}</span>
+      </div>
+
+      {/* Score + Band */}
+      <div className="flex items-end gap-3">
+        <span className={`text-4xl font-semibold tabular-nums tracking-tight ${band.scoreColor}`}>
+          {readiness.score}
+        </span>
+        <div className="pb-1 space-y-0.5">
+          <p className="text-white/25 text-[10px]">/ 100</p>
+          <p className="text-white/25 text-[10px] font-mono">{level}</p>
+        </div>
+      </div>
+
+      {/* Dimensions */}
+      <div className="space-y-1.5 pt-1 border-t border-white/6">
+        {dims.map((dim, i) => <PostureDimensionRow key={i} dim={dim} />)}
+      </div>
+
+      {/* Blockers */}
+      {readiness.blockers.length > 0 && (
+        <div className="pt-2 border-t border-white/6 space-y-1">
+          <p className="text-white/20 text-[10px] uppercase tracking-widest">Blocking readiness</p>
+          {readiness.blockers.slice(0, 3).map((b, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <span className="text-white/25 text-xs mt-0.5 select-none">✕</span>
+              <span className="text-white/50 text-xs">{b}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Staleness / gaps */}
+      {readiness.gaps.length > 0 && readiness.blockers.length === 0 && (
+        <div className="pt-2 border-t border-white/6">
+          <p className="text-white/20 text-[10px] uppercase tracking-widest mb-1">Gaps to resolve</p>
+          {readiness.gaps.slice(0, 2).map((g, i) => (
+            <div key={i} className="text-white/35 text-xs">{g}</div>
+          ))}
+        </div>
+      )}
+
+      {/* What is safe to rely on */}
+      <div className="pt-2 border-t border-white/6 flex items-center justify-between">
+        <span className="text-white/20 text-[10px]">Source-backed now</span>
+        <span className="text-white/45 text-[10px] tabular-nums">{reliableLabel}</span>
+      </div>
+
+      {/* Disclaimer */}
+      <p className="text-white/15 text-[10px] leading-relaxed">
+        Trust posture reflects available source data only. Does not constitute privileging, credentialing, or employment approval.
+      </p>
+    </div>
+  );
+}
+
 // ── Row primitives ─────────────────────────────────────────────────────────────
 
 function VerifiedRow({ label }: { label: string }) {
@@ -505,33 +676,31 @@ export default function PassportWallet({ passport }: Props) {
           {/* Status pill removed to match spec, keeping just Name and Specialty locally here */}
         </div>
 
-        {/* ── Readiness section ─────────────────────────────────────────────── */}
-        <div className="space-y-4">
-          <div className="space-y-2">
-            {verifiedItems.length > 0 && verifiedItems.slice(0, 6).map((item, i) => (
-              <VerifiedRow key={i} label={item} />
-            ))}
-          </div>
+        {/* ── Trust Posture ─────────────────────────────────────────────────── */}
+        <TrustPostureCard passport={passport} />
 
-          {missingItems.length > 0 && (
-            <div className="space-y-2 pt-2 border-t border-white/6">
-              <div className="flex items-center gap-3 text-sm">
-                <span className="text-[var(--vt-warning)] text-xs w-4 text-center select-none" aria-hidden>⚠</span>
-                <span className="text-white/70">Readiness blockers</span>
-              </div>
-              <div className="pl-7 space-y-1">
-                {missingItems.slice(0, 4).map((item, i) => (
-                  <div key={i} className="text-white/40 text-xs">{item}</div>
+        {/* ── What is verified / what is missing ────────────────────────────── */}
+        {/* Supporting detail — Trust Posture (above) is the primary signal. */}
+        {(verifiedItems.length > 0 || missingItems.length > 0) && (
+          <div className="space-y-3">
+            {verifiedItems.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-white/20 text-[10px] uppercase tracking-widest">Verified</p>
+                {verifiedItems.slice(0, 6).map((item, i) => (
+                  <VerifiedRow key={i} label={item} />
                 ))}
               </div>
-            </div>
-          )}
-
-          <div className="pt-4 border-t border-white/6 flex items-baseline justify-between">
-            <span className="text-white/50 text-sm font-medium">Readiness:</span>
-            <span className="text-white text-xl font-semibold tabular-nums tracking-tight">{readiness.score}%</span>
+            )}
+            {missingItems.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-white/6">
+                <p className="text-white/20 text-[10px] uppercase tracking-widest">Missing or unresolved</p>
+                {missingItems.slice(0, 4).map((item, i) => (
+                  <MissingRow key={i} label={item} />
+                ))}
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
         {/* ── NPI disclaimer — identity anchor clarification ─────────────── */}
         {passport.npi && (

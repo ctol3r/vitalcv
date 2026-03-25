@@ -157,7 +157,7 @@ function buildAuthorityRow(credential: PassportData['authority']['credentials'][
   };
 }
 
-function buildEligibilityRow(standing: PassportData['standing'], status: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED'): {
+function buildEligibilityRow(standing: PassportData['standing'], status: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED' | 'OPTED_OUT'): {
   status: TrustStatus;
   label: string;
   note?: string;
@@ -306,7 +306,7 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
 
   const { identity, readiness, standing, authority } = passport;
   const readinessStatus = resolveLivePathReadinessStatus(readiness.status);
-  const pecosEnrollmentStatus: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED' =
+  const pecosEnrollmentStatus: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED' | 'OPTED_OUT' =
     standing.pecosEnrollmentStatus ?? (
       standing.pecosStatus === 'enrolled' ? 'ENROLLED' :
       standing.pecosStatus === 'not_enrolled' ? 'NOT_FOUND' : 'UNCHECKED'
@@ -866,6 +866,27 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
               Decision basis — what you're acting on
             </p>
+
+            {/* Trust posture summary — inherited from Passport truth */}
+            {(() => {
+              const BAND_LABELS: Record<string, string> = {
+                L3: 'High trust', L2: 'Moderate trust', L1: 'Partial trust', L0: 'Insufficient',
+              };
+              const level = readiness.level ?? 'L1';
+              const bandLabel = BAND_LABELS[level] ?? level;
+              return (
+                <div className="rounded-lg border border-white/6 bg-white/2 px-3 py-2.5 flex items-center justify-between">
+                  <div>
+                    <p className="text-white/20 text-[10px] uppercase tracking-widest">Trust posture</p>
+                    <p className="text-white/60 text-sm font-medium mt-0.5">{bandLabel} <span className="text-white/25 text-xs font-mono ml-1">{level}</span></p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-white/20 text-[10px] uppercase tracking-widest">Score</p>
+                    <p className="text-white/70 text-lg font-semibold tabular-nums">{readiness.score}<span className="text-white/25 text-xs">/100</span></p>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Verified */}
             {passport.authority.credentials.filter(c => !c.stale && !c.reviewRequired).length > 0 ? (

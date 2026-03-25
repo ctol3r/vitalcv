@@ -91,7 +91,7 @@ export interface PassportData {
     /** @deprecated Use pecosEnrollmentStatus */
     pecosStatus:      'enrolled' | 'not_enrolled' | 'unknown';
     /** MS16-A: Canonical PECOS state — ENROLLED | NOT_FOUND | UNKNOWN | UNCHECKED */
-    pecosEnrollmentStatus: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED';
+    pecosEnrollmentStatus: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED' | 'OPTED_OUT';
     /** MS16-A: Always "CMS PECOS" */
     enrollmentSourceLabel: string;
     /** MS16-A: Always "Quarterly" */
