@@ -10,7 +10,7 @@ export default defineConfig({
   timeout: 30_000,
 
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://127.0.0.1:3000',
     trace: 'on-first-retry',
   },
 
@@ -22,8 +22,13 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:3000',
+    command: 'pnpm exec next start -H 127.0.0.1 -p 3000',
+    env: {
+      ...process.env,
+      CLERK_SECRET_KEY: '',
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: '',
+    },
+    url: 'http://127.0.0.1:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

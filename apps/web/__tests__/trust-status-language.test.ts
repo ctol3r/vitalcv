@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getStatusDisplayLabel,
+  getStatusTone,
   getTrustStatusLabel,
   getVdsTrustStatusLabel,
+  isBlockingStatus,
+  isInspectableStatus,
+  isPositiveStatus,
   mapSourceCoverageStateToTrustStatus,
   resolveTrustUiStatus,
 } from '../lib/trust/status-language';
@@ -35,5 +40,27 @@ describe('trust status language', () => {
       kind: 'verification',
       satisfied: true,
     })).toBe('demo');
+  });
+
+  it('exposes shared tone and inspection helpers for canonical statuses', () => {
+    expect(getStatusTone('verified')).toBe('positive');
+    expect(getStatusTone('checked')).toBe('informational');
+    expect(getStatusTone('access_required')).toBe('warning');
+    expect(getStatusTone('review_required')).toBe('critical');
+    expect(getStatusTone('demo')).toBe('demo');
+
+    expect(isPositiveStatus('checked')).toBe(true);
+    expect(isPositiveStatus('pending')).toBe(false);
+    expect(isBlockingStatus('review_required')).toBe(true);
+    expect(isBlockingStatus('clear')).toBe(false);
+    expect(isInspectableStatus('demo')).toBe(true);
+    expect(isInspectableStatus('access_required')).toBe(false);
+  });
+
+  it('keeps domain-specific labels from overstating canonical truth', () => {
+    expect(getStatusDisplayLabel('clear', 'No sanctions found')).toBe('No sanctions found');
+    expect(getStatusDisplayLabel('demo', 'Preview only')).toBe('Preview only');
+    expect(getStatusDisplayLabel('checked', 'Enrolled')).toBe('Checked');
+    expect(getStatusDisplayLabel('pending', 'Verified')).toBe('Pending');
   });
 });

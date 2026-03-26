@@ -2,7 +2,8 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import {
-  getTrustStatusLabel,
+  getStatusDisplayLabel,
+  getTrustStatusBadgeClassName,
   getVdsTrustStatusLabel,
   type TrustUiStatus,
   type VdsTrustStatus,
@@ -11,56 +12,13 @@ import {
 void React;
 
 export type TrustBadgeStatus = TrustUiStatus | VdsTrustStatus;
+type SupplementalVdsTrustStatus = Exclude<VdsTrustStatus, TrustUiStatus>;
 
-const TRUST_STATUS_META: Record<TrustBadgeStatus, { className: string; label: string }> = {
-  verified: {
-    className:
-      'border-[var(--vt-badge-success-border)] bg-[var(--vt-badge-success-bg)] text-[var(--vt-badge-success-text)]',
-    label: getVdsTrustStatusLabel('verified'),
-  },
-  clear: {
-    className:
-      'border-[var(--vt-badge-success-border)] bg-[var(--vt-badge-success-bg)] text-[var(--vt-badge-success-text)]',
-    label: getVdsTrustStatusLabel('clear'),
-  },
+const VDS_STATUS_META: Record<SupplementalVdsTrustStatus, { className: string; label: string }> = {
   enrolled: {
     className:
       'border-[var(--vt-badge-success-border)] bg-[var(--vt-badge-success-bg)] text-[var(--vt-badge-success-text)]',
     label: getVdsTrustStatusLabel('enrolled'),
-  },
-  checked: {
-    className: 'border-white/12 bg-white/6 text-white/72',
-    label: getTrustStatusLabel('checked'),
-  },
-  pending: {
-    className:
-      'border-[var(--vt-badge-info-border)] bg-[var(--vt-badge-info-bg)] text-[var(--vt-badge-info-text)]',
-    label: getVdsTrustStatusLabel('pending'),
-  },
-  stale: {
-    className:
-      'border-[var(--vt-badge-warning-border)] bg-[var(--vt-badge-warning-bg)] text-[var(--vt-badge-warning-text)]',
-    label: getVdsTrustStatusLabel('stale'),
-  },
-  unavailable: {
-    className:
-      'border-[var(--vt-badge-neutral-border)] bg-[var(--vt-badge-neutral-bg)] text-[var(--vt-badge-neutral-text)]',
-    label: getVdsTrustStatusLabel('unavailable'),
-  },
-  access_required: {
-    className:
-      'border-[var(--vt-badge-warning-border)] bg-[var(--vt-badge-warning-bg)] text-[var(--vt-badge-warning-text)]',
-    label: getTrustStatusLabel('access_required'),
-  },
-  review_required: {
-    className:
-      'border-[var(--vt-badge-critical-border)] bg-[var(--vt-badge-critical-bg)] text-[var(--vt-badge-critical-text)]',
-    label: getTrustStatusLabel('review_required'),
-  },
-  demo: {
-    className:
-      'border-[var(--vt-badge-info-border)] bg-[var(--vt-badge-info-bg)] text-[var(--vt-badge-info-text)]',
-    label: getTrustStatusLabel('demo'),
   },
   'review required': {
     className:
@@ -84,6 +42,18 @@ const TRUST_STATUS_META: Record<TrustBadgeStatus, { className: string; label: st
   },
 };
 
+const CANONICAL_TRUST_BADGE_STATUSES = new Set<TrustUiStatus>([
+  'verified',
+  'clear',
+  'checked',
+  'pending',
+  'stale',
+  'unavailable',
+  'access_required',
+  'review_required',
+  'demo',
+]);
+
 interface TrustStatusBadgeProps {
   status: TrustBadgeStatus;
   label?: string;
@@ -97,7 +67,15 @@ function TrustStatusBadge({
   size = 'md',
   className,
 }: TrustStatusBadgeProps) {
-  const meta = TRUST_STATUS_META[status];
+  const meta = CANONICAL_TRUST_BADGE_STATUSES.has(status as TrustUiStatus)
+    ? {
+        className: getTrustStatusBadgeClassName(status as TrustUiStatus),
+        label: getStatusDisplayLabel(status as TrustUiStatus, label),
+      }
+    : {
+        className: VDS_STATUS_META[status as SupplementalVdsTrustStatus].className,
+        label: label ?? VDS_STATUS_META[status as SupplementalVdsTrustStatus].label,
+      };
 
   return (
     <Badge
@@ -109,7 +87,7 @@ function TrustStatusBadge({
         className,
       )}
     >
-      {label ?? meta.label}
+      {meta.label}
     </Badge>
   );
 }

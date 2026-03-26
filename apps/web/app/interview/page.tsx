@@ -55,10 +55,10 @@ export default async function InterviewPage({
             Enter your NPI first to generate your proof card.
           </p>
           <Link
-            href="/passport"
+            href="/"
             className="block w-full rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold py-4 transition-all text-center"
           >
-            Look up my NPI
+            Start with NPI lookup
           </Link>
           <Link href="/" className="block text-white/20 hover:text-white/40 text-xs transition-colors">
             Back to home
@@ -85,10 +85,10 @@ export default async function InterviewPage({
             Start from your NPI lookup so the packet is anchored to a real passport object.
           </p>
           <Link
-            href="/passport"
+            href="/"
             className="block w-full rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold py-4 transition-all text-center"
           >
-            Look up my NPI
+            Start with NPI lookup
           </Link>
           <Link href="/" className="block text-white/20 hover:text-white/40 text-xs transition-colors">
             Back to home

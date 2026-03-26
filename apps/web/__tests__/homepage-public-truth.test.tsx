@@ -18,6 +18,7 @@ describe('homepage public truth', () => {
     expect(markup).toContain('CA State Board / FSMB');
     expect(markup).toContain('Checked');
     expect(markup).toContain('Access required');
+    expect(markup).toContain('Homepage preview starts with NPPES and OIG.');
     expect(markup).not.toContain('Verified');
   });
 
@@ -28,5 +29,8 @@ describe('homepage public truth', () => {
     expect(markup).toContain('Synthetic layout');
     expect(markup).toContain('not live data');
     expect(markup).toContain('Preview only');
+    expect(markup).toContain('Preview Interview Packet');
+    expect(markup).toContain('Registry record only');
+    expect(markup).toContain('Institutional access');
   });
 });

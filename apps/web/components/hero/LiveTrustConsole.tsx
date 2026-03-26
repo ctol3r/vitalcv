@@ -45,6 +45,8 @@ interface SourceStage {
   status: 'waiting' | 'loading' | 'ok' | 'skipped' | 'failed';
 }
 
+const INVALID_NPI_MESSAGE = 'Enter a valid 10-digit NPI to build a live or demo snapshot.';
+
 const INITIAL_STAGES: SourceStage[] = [
   { id: 'NPPES_API', label: 'Primary identity (NPPES)', status: 'waiting' },
   { id: 'OIG_LEIE', label: 'Sanctions (OIG / LEIE)', status: 'waiting' },
@@ -76,18 +78,18 @@ const STAGE_COLOR: Record<SourceStage['status'], string> = {
 };
 
 function stageBadge(stage: SourceStage): {
-  status: 'pending' | 'verified' | 'review_required' | 'access_required';
+  status: 'pending' | 'checked' | 'review_required' | 'unavailable';
   label: string;
 } {
   switch (stage.status) {
     case 'loading':
       return { status: 'pending', label: 'Checking' };
     case 'ok':
-      return { status: 'verified', label: 'Complete' };
+      return { status: 'checked', label: 'Checked' };
     case 'failed':
       return { status: 'review_required', label: 'Needs review' };
     case 'skipped':
-      return { status: 'access_required', label: 'Unavailable' };
+      return { status: 'unavailable', label: 'Unavailable' };
     case 'waiting':
     default:
       return { status: 'pending', label: 'Queued' };
@@ -160,6 +162,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
   const [realState, setRealState] = useState<ClinicianTrustState | null>(null);
   const [isDemo,    setIsDemo]    = useState(false);
   const [previewNotice, setPreviewNotice] = useState<string | null>(null);
+  const [formMessage, setFormMessage] = useState<string | null>(null);
   const [showLoadingPanel, setShowLoadingPanel] = useState(false);
   const [loadingPanelFading, setLoadingPanelFading] = useState(false);
   const { isLoaded, isSignedIn } = useRoleContext();
@@ -231,12 +234,30 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
     }, delayMs));
   }
 
+  function trackPreviewError(errorType: 'invalid_npi' | 'backend_unavailable' | 'partial_coverage') {
+    trackUxEvent({
+      event_name: 'preview_error',
+      component_id: 'homepage_npi_flow',
+      duration_ms: submitStartedAtRef.current === null
+        ? null
+        : performance.now() - submitStartedAtRef.current,
+      metadata: {
+        auth_state: authState,
+        error_type: errorType,
+        interaction_result: errorType === 'invalid_npi' ? 'cancel' : 'error',
+        npi_length: npi.trim().length,
+        source_mode: errorType === 'invalid_npi' ? 'live' : 'demo',
+      },
+    });
+  }
+
   function resetPreviewState() {
     setStages(INITIAL_STAGES.map((stage) => ({ ...stage, status: 'waiting' })));
     setPreviewIn(false);
     setRealState(null);
     setIsDemo(false);
     setPreviewNotice(null);
+    setFormMessage(null);
   }
 
   useEffect(() => {
@@ -252,12 +273,27 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
     if (phase !== 'idle') return;
 
     const trimmed = npi.trim();
+    if (!LIVE_PATH_NPI_RE.test(trimmed)) {
+      setFormMessage(INVALID_NPI_MESSAGE);
+      inputRef.current?.focus({ preventScroll: true });
+      trackPreviewError('invalid_npi');
+      return;
+    }
+
     const submitId = activeSubmitIdRef.current + 1;
     let previewName = 'Provider';
+    let previewErrorType: 'backend_unavailable' | 'partial_coverage' | null = null;
+
+    function recordPreviewError(errorType: 'backend_unavailable' | 'partial_coverage') {
+      if (previewErrorType === null) {
+        previewErrorType = errorType;
+      }
+    }
 
     activeSubmitIdRef.current = submitId;
     previewTrackedSubmitIdRef.current = null;
     submitStartedAtRef.current = performance.now();
+    setFormMessage(null);
 
     trackUxEvent({
       event_name: 'npi_submit',
@@ -313,6 +349,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
         }));
         setIsDemo(true);
         setPreviewNotice(LIVE_PATH_PREVIEW_NOTICE.backendUnavailable);
+        recordPreviewError('backend_unavailable');
       } else {
         const resultMap: Record<string, string> = {};
         (ingestData.results ?? []).forEach(r => { resultMap[r.source] = r.status; });
@@ -333,6 +370,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
       }));
       setIsDemo(true);
       setPreviewNotice(LIVE_PATH_PREVIEW_NOTICE.backendUnavailable);
+      recordPreviewError('backend_unavailable');
     }
 
     // ── Step 2: Fetch real trust state ───────────────────────
@@ -354,20 +392,27 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
           setIsDemo(true);
           setPreviewNotice(LIVE_PATH_PREVIEW_NOTICE.partialCoverage);
           setStages(prev => setStageStatus(prev, 'READINESS', 'failed'));
+          recordPreviewError('partial_coverage');
         }
       } catch {
         if (!isActiveSubmit(submitId)) return;
         setIsDemo(true);
         setPreviewNotice(LIVE_PATH_PREVIEW_NOTICE.partialCoverage);
         setStages(prev => setStageStatus(prev, 'READINESS', 'failed'));
+        recordPreviewError('partial_coverage');
       }
     } else if (!ingestOk) {
       setIsDemo(true);
       setPreviewNotice((prev) => prev ?? LIVE_PATH_PREVIEW_NOTICE.partialCoverage);
       setStages(prev => setStageStatus(prev, 'READINESS', 'skipped'));
+      recordPreviewError('partial_coverage');
     }
 
     if (!isActiveSubmit(submitId)) return;
+
+    if (previewErrorType) {
+      trackPreviewError(previewErrorType);
+    }
 
     // ── Step 3: Transition to preview ────────────────────────
     setPhase('preview');
@@ -375,12 +420,12 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
     queueTimer(() => {
       if (!isActiveSubmit(submitId)) return;
       setPreviewIn(true);
-    }, 70);
+    }, 120);
     queueTimer(() => {
       if (!isActiveSubmit(submitId)) return;
       setShowLoadingPanel(false);
       onPreviewReady?.(trimmed, previewName);
-    }, 240);
+    }, 180);
   }
 
   function handleContinue() {
@@ -444,11 +489,18 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
               readOnly={phase === 'loading'}
               aria-busy={phase === 'loading'}
               aria-disabled={phase === 'loading'}
-              onChange={e => setNpi(e.target.value.replace(/\D/g, ''))}
+              onChange={(e) => {
+                if (formMessage) {
+                  setFormMessage(null);
+                }
+                setNpi(e.target.value.replace(/\D/g, ''));
+              }}
               placeholder="Enter your 10-digit NPI"
               aria-label="NPI number"
               className={`h-14 flex-1 min-w-0 rounded-xl border-white/12 bg-white/5 px-4 text-[16px] text-white placeholder:text-white/30 shadow-none transition-[opacity,border-color,background-color] duration-150 focus-visible:border-emerald-500/40 focus-visible:bg-white/7 focus-visible:ring-white/10 ${
                 phase === 'loading' ? 'cursor-default bg-white/6 opacity-80' : ''
+              } ${
+                formMessage ? 'border-amber-400/30' : ''
               }`}
             />
             <Button
@@ -460,6 +512,12 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
               <span aria-live="polite">{phase === 'loading' ? loadingCopy : 'See readiness'}</span>
             </Button>
           </form>
+        )}
+
+        {!isPreviewPhase && formMessage && (
+          <p className="mt-3 text-xs leading-relaxed text-amber-200/80">
+            {formMessage}
+          </p>
         )}
 
         {(showLoadingPanel || phase === 'preview') && (

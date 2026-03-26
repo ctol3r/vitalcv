@@ -606,6 +606,29 @@ describe('live path regression hardening', () => {
     await view.unmount();
   });
 
+  it('keeps invalid NPIs in place and explains the next step', async () => {
+    const fetchMock = vi.mocked(fetch);
+    const view = await renderNode(<LiveTrustConsole />);
+
+    await setInputValue(view.container, 'NPI number', '1234');
+    await clickByText(view.container, 'See readiness');
+    await flush();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(textContent(view.container)).toContain('Enter a valid 10-digit NPI to build a live or demo snapshot.');
+
+    const previewErrorCall = trackUxEventMock.mock.calls
+      .map((call) => call[0])
+      .find((event) => event?.event_name === 'preview_error');
+    expect(previewErrorCall?.metadata).toMatchObject({
+      error_type: 'invalid_npi',
+      interaction_result: 'cancel',
+      source_mode: 'live',
+    });
+
+    await view.unmount();
+  });
+
   it('falls back to the degraded readiness preview when the trust-state call fails', async () => {
     const fetchMock = vi.mocked(fetch);
 
@@ -631,8 +654,16 @@ describe('live path regression hardening', () => {
     const previewVisibleCall = trackUxEventMock.mock.calls
       .map((call) => call[0])
       .find((event) => event?.event_name === 'preview_visible');
+    const previewErrorCall = trackUxEventMock.mock.calls
+      .map((call) => call[0])
+      .find((event) => event?.event_name === 'preview_error');
     expect(previewVisibleCall?.metadata).toMatchObject({
       interaction_result: 'fallback',
+      source_mode: 'demo',
+    });
+    expect(previewErrorCall?.metadata).toMatchObject({
+      error_type: 'partial_coverage',
+      interaction_result: 'error',
       source_mode: 'demo',
     });
 
