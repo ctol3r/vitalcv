@@ -34,7 +34,7 @@ export default function ExplorePage() {
         </p>
         <div className="mt-8 flex items-center justify-center gap-3 flex-wrap">
           <PrequalifyTrigger
-            label="Get Verified Free"
+            label="Check Readiness Free"
             className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-vt-surface-ops-base hover:bg-white/90"
           />
           <Link

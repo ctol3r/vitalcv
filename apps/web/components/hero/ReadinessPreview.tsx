@@ -567,7 +567,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
               </div>
               {confirmedItems.length > 0 ? (
                 <div className="space-y-3 border-t border-white/6 pt-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Ready in this run</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Confirmed in this run</p>
                   <div className="flex flex-wrap gap-2">
                     {confirmedItems.map(item => (
                       <Badge key={item} variant="outline" className={CHIPS_CLASSNAME}>

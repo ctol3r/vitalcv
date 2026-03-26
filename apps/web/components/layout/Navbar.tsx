@@ -21,7 +21,7 @@ import { useState } from 'react';
 // Three primary paths. Features (passport, interview) are reachable from within flows.
 // Developers is secondary — present but not the wedge.
 const NAV_ITEMS = [
-  { href: '/get-ready',   label: 'Get Verified' },
+  { href: '/get-ready',   label: 'Get Ready' },
   { href: '/explore',     label: 'Explore Roles' },
   { href: '/employers',   label: 'For Employers' },
   { href: '/developers',  label: 'Developers' },
