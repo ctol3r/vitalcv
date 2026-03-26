@@ -3,8 +3,44 @@ name: Deploy Preflight
 on:
   pull_request:
     branches: [main, develop]
+    paths:
+      - 'apps/api/**'
+      - 'apps/authz/**'
+      - 'apps/verifier-api/**'
+      - 'packages/command-registry/**'
+      - 'packages/crs/**'
+      - 'packages/haip-config/**'
+      - 'packages/ingest/**'
+      - 'packages/poe-engine/**'
+      - 'packages/psv/**'
+      - 'packages/psv-adapters/**'
+      - 'package.json'
+      - 'pnpm-workspace.yaml'
+      - 'railway.toml'
+      - 'pnpm-lock.yaml'
+      - 'scripts/env/**'
+      - 'scripts/railway/**'
+      - '.github/workflows/ci-preflight.yml'
   push:
     branches: [main, develop]
+    paths:
+      - 'apps/api/**'
+      - 'apps/authz/**'
+      - 'apps/verifier-api/**'
+      - 'packages/command-registry/**'
+      - 'packages/crs/**'
+      - 'packages/haip-config/**'
+      - 'packages/ingest/**'
+      - 'packages/poe-engine/**'
+      - 'packages/psv/**'
+      - 'packages/psv-adapters/**'
+      - 'package.json'
+      - 'pnpm-workspace.yaml'
+      - 'railway.toml'
+      - 'pnpm-lock.yaml'
+      - 'scripts/env/**'
+      - 'scripts/railway/**'
+      - '.github/workflows/ci-preflight.yml'
 
 permissions:
   contents: read

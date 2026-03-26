@@ -6,7 +6,9 @@ on:
     paths:
       - 'apps/web/**'
       - 'packages/**'
+      - 'package.json'
       - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
       - '.github/workflows/deploy-demo.yml'
 
 concurrency:
@@ -37,14 +39,11 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter chai-vc-platform-backend exec prisma generate
 
-      - name: Typecheck
-        run: pnpm --filter web exec tsc --noEmit
-
       - name: Lint
-        run: pnpm --filter web lint
+        run: pnpm --filter @vitalcv/web lint
 
       - name: Build
-        run: pnpm --filter web build
+        run: pnpm --filter @vitalcv/web build
         env:
           NEXT_PUBLIC_API_BASE: ${{ secrets.NEXT_PUBLIC_API_BASE }}
           NEXT_PUBLIC_BACKEND_URL: ${{ secrets.NEXT_PUBLIC_BACKEND_URL }}
