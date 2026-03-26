@@ -1,6 +1,7 @@
 // apps/web/__tests__/middleware.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
+import { clerkMiddleware } from '@clerk/nextjs/server';
 
 // Mock Clerk before importing middleware
 vi.mock('@clerk/nextjs/server', () => {
@@ -109,5 +110,36 @@ describe('Route leak sentinel', () => {
 describe('Demo removal', () => {
   it('/demo is not a public route (no longer bypassed)', () => {
     expect(isPublicRoute('/demo')).toBe(false);
+  });
+});
+
+describe('middleware preview fallback', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('passes public API routes through when Clerk server secrets are missing', async () => {
+    vi.resetModules();
+    vi.stubEnv('CLERK_SECRET_KEY', '');
+
+    const middlewareModule = await import('../middleware');
+    const req = new NextRequest('http://localhost:3000/api/health');
+    const response = await middlewareModule.default(req, {} as any);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('x-middleware-next')).toBe('1');
+  });
+
+  it('keeps protected routes gated when Clerk server secrets are missing', async () => {
+    vi.resetModules();
+    vi.stubEnv('CLERK_SECRET_KEY', '');
+
+    const middlewareModule = await import('../middleware');
+    const req = new NextRequest('http://localhost:3000/holder');
+    const response = await middlewareModule.default(req, {} as any);
+
+    expect(response.status).toBeGreaterThanOrEqual(300);
+    expect(response.headers.get('location')).toContain('/sign-in');
+    expect(response.headers.get('location')).toContain('redirect_url=%2Fholder');
   });
 });

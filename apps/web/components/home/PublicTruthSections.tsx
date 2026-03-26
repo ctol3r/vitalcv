@@ -34,7 +34,7 @@ export function TrustStrip() {
           </div>
         </div>
         <p className="mt-3 text-[10px] text-white/20">
-          Homepage preview runs NPPES and OIG first. Other sources appear only when connected and actually checked.
+          Homepage preview starts with NPPES and OIG. Other lanes stay marked as access required, pending, or preview-only until a connected source actually runs.
         </p>
       </div>
     </div>
@@ -58,14 +58,13 @@ export function InterviewModeTeaser() {
                     Preview your<br className="hidden sm:block" /> interview packet.
                   </h2>
                   <p className="text-sm text-white/50 leading-relaxed mb-5">
-                    After your NPI lookup, you can turn a readiness record into a concise packet
-                    for employer conversations.
+                    After your NPI lookup, VitalCV can turn that readiness snapshot into a concise packet for employer conversations. Preview cards stay explicitly labeled until they are backed by a real packet.
                   </p>
                   <Link
                     href="/interview"
                     className="inline-flex items-center justify-center gap-2 min-h-[48px] rounded-xl bg-emerald-500 hover:bg-emerald-400 px-6 text-sm font-bold text-white transition-all active:scale-[0.98] shadow-[0_0_24px_rgba(16,185,129,0.2)] w-full sm:w-auto"
                   >
-                    Open Interview Preview
+                    Preview Interview Packet
                   </Link>
                 </div>
 

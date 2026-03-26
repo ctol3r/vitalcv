@@ -206,6 +206,12 @@ export function SdkDocs() {
         </div>
       </div>
 
+      <div className="border-b border-zinc-800 bg-sky-500/[0.05] px-6 py-3">
+        <p className="text-xs leading-relaxed text-zinc-400">
+          These examples mirror the workspace SDK packages and the configured API base. Issuer and wallet flows still depend on environment-specific credentials, enabled routes, and organization setup.
+        </p>
+      </div>
+
       <div className="flex">
         {/* SDK Selector */}
         <div className="w-48 border-r border-zinc-800 p-3 shrink-0">

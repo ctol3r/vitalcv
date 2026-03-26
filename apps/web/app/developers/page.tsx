@@ -17,7 +17,7 @@ import { HealthStartDocs } from '@/components/developers/HealthStartDocs';
 import { SdkDocs } from '@/components/developers/SdkDocs';
 import { WebhookLog } from '@/components/developers/WebhookLog';
 import { GatewayConnections } from '@/components/network/GatewayConnections';
-import { getPublicApiHostLabel } from '@/lib/api';
+import { getPublicApiBase, getPublicApiHostLabel } from '@/lib/api';
 import {
     ArrowRight,
     BookOpen,
@@ -52,10 +52,10 @@ function buildDeveloperPortalStats() {
 
 const RESOURCES = [
   { icon: BookOpen, label: 'API Reference',   href: '/docs/api',      desc: 'Current route guide plus API-host links' },
-  { icon: Code2,    label: 'SDKs',            href: '/docs/sdk',      desc: 'Verifier SDK, Issuer SDK, Wallet SDK'    },
+  { icon: Code2,    label: 'SDKs',            href: '/docs/sdk',      desc: 'Workspace SDK packages for verifier, issuer, and wallet flows'    },
   { icon: Webhook,  label: 'Webhook Guide',   href: '/docs/webhooks', desc: 'Registration route, event catalog, and signatures'    },
-  { icon: Lock,     label: 'Wallet Export',   href: '/docs/api',      desc: 'CHAPI + SMART Health Card export API'   },
-  { icon: Globe,    label: 'Compliance API',  href: '/docs/api',      desc: 'AI-assisted compliance checking'         },
+  { icon: Lock,     label: 'Wallet Export',   href: '/docs/api',      desc: 'CHAPI and SMART Health Card export routes when wallet export is enabled'   },
+  { icon: Globe,    label: 'Compliance API',  href: '/docs/api',      desc: 'Compliance and emergency-readiness routes exposed by the current backend'         },
   { icon: GitBranch, label: 'Examples',       href: 'https://github.com/ctol3r/vitalcv/tree/main/examples', desc: 'ATS integration, webhook verification' },
 ];
 
@@ -63,6 +63,7 @@ const RESOURCES = [
 
 export default function DeveloperPortalPage() {
   const stats = buildDeveloperPortalStats();
+  const publicApiBase = getPublicApiBase();
 
   return (
     <div className="min-h-screen bg-ops-gradient text-white">
@@ -86,14 +87,13 @@ export default function DeveloperPortalPage() {
           </span>
 
           <h1 className="heading-xl mt-4 text-white">
-            Build with the
+            Build against the
             <br />
-            <span className="text-vt-success">Trust Protocol.</span>
+            <span className="text-vt-success">current VitalCV API.</span>
           </h1>
 
           <p className="body-lg mt-5 text-vt-neutral-200 max-w-xl mx-auto">
-            Use the current API host, SDKs, and webhook routes that exist in this branch.
-            Preview surfaces stay clearly labeled when they are simulated.
+            Use the configured API host, workspace SDKs, and backend routes that exist in this branch. Sample snippets stay explicit when they are illustrative rather than proof of a live end-to-end workflow.
           </p>
 
           <div className="mt-8 flex items-center justify-center gap-4">
@@ -178,34 +178,42 @@ export default function DeveloperPortalPage() {
           </div>
           <div className="rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 p-6 space-y-6">
             <p className="text-sm text-vt-neutral-200">
-              Integrate VitalCV credential verification into hospitals, ATS systems, and third-party platforms using the Verifier SDK.
+              These examples use the current verifier SDK package and live route contracts exposed by this branch. They are sample integrations, not evidence that every downstream workflow is enabled in this environment.
             </p>
 
             <div className="space-y-4">
               <div>
-                <p className="text-xs font-semibold text-vt-success mb-2">verifyCredential()</p>
-                <pre className="rounded-xl bg-vt-surface-ops-base border border-white/6 p-4 text-xs text-vt-neutral-200 overflow-x-auto"><code>{`import { VerifierSDK } from '@vitalcv/sdk';
+                <p className="text-xs font-semibold text-vt-success mb-2">getPublicProfile()</p>
+                <pre className="rounded-xl bg-vt-surface-ops-base border border-white/6 p-4 text-xs text-vt-neutral-200 overflow-x-auto"><code>{`import { VitalCVVerifier } from '@vitalcv/verifier-sdk';
 
-const result = await VerifierSDK.verifyCredential(credential);
-// result: { valid: boolean, payload?: VerifiableCredential, error?: string }`}</code></pre>
+const verifier = new VitalCVVerifier({
+  baseUrl: '${publicApiBase}',
+  apiKey: process.env.VITALCV_API_KEY,
+});
+
+const profile = await verifier.getPublicProfile('1234567890');
+// profile: { npi, trustBand, credentials }`}</code></pre>
               </div>
 
               <div>
                 <p className="text-xs font-semibold text-vt-success mb-2">verifyPresentation()</p>
-                <pre className="rounded-xl bg-vt-surface-ops-base border border-white/6 p-4 text-xs text-vt-neutral-200 overflow-x-auto"><code>{`const result = await VerifierSDK.verifyPresentation(presentation);
-// result: { valid: boolean, credentials?: VerifiableCredential[], holderDID?: string }`}</code></pre>
+                <pre className="rounded-xl bg-vt-surface-ops-base border border-white/6 p-4 text-xs text-vt-neutral-200 overflow-x-auto"><code>{`const result = await verifier.verifyPresentation({ vpJwt });
+// result: { valid, credentials, verifiedAt, errors }`}</code></pre>
               </div>
 
               <div>
                 <p className="text-xs font-semibold text-vt-success mb-2">checkRevocation()</p>
-                <pre className="rounded-xl bg-vt-surface-ops-base border border-white/6 p-4 text-xs text-vt-neutral-200 overflow-x-auto"><code>{`const result = await VerifierSDK.checkRevocation('vc:vitalcv:12345');
-// result: { revoked: boolean, reason?: string, revokedAt?: string }`}</code></pre>
+                <pre className="rounded-xl bg-vt-surface-ops-base border border-white/6 p-4 text-xs text-vt-neutral-200 overflow-x-auto"><code>{`const result = await verifier.checkRevocation('vc:vitalcv:12345');
+// result: { revoked, reason, revokedAt }`}</code></pre>
               </div>
             </div>
 
             <div className="flex items-center gap-2 text-xs text-vt-neutral-800">
               <span className="inline-block w-2 h-2 rounded-full bg-vt-success" />
-              API endpoint: <code className="text-vt-success ml-1">POST /api/credentials/verify</code>
+              Current routes:
+              <code className="text-vt-success ml-1">GET /api/public/profile/npi/:npi</code>
+              <code className="text-vt-success ml-1">POST /api/credentials/verify/presentation</code>
+              <code className="text-vt-success ml-1">GET /api/revocation/:credentialId</code>
             </div>
           </div>
         </div>
@@ -220,7 +228,7 @@ const result = await VerifierSDK.verifyCredential(credential);
           </div>
           <div className="rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 p-6 space-y-4">
             <p className="text-sm text-vt-neutral-200">
-              The VitalCV trust network operates under the following governance rules. These rules enforce automated safeguards for issuer trust levels, revocation escalation, and peer network acceptance.
+              The configured backend exposes governance rules. The cards below summarize the current rule set in a readable form instead of implying a separate launch-only product surface.
             </p>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

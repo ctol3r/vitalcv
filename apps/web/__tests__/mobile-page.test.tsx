@@ -149,7 +149,7 @@ describe('/mobile page', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    const { default: MobilePage } = await import('../app/mobile/page');
+    const { default: MobilePage } = await import('../app/_archive/mobile/page');
     const markup = renderToStaticMarkup(await MobilePage({
       searchParams: Promise.resolve({ tab: 'roles' }),
     }));

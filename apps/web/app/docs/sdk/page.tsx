@@ -3,13 +3,13 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'SDKs | VitalCV Docs',
-  description: 'Official VitalCV client libraries for Node.js, Python, and Go.',
+  description: 'Current VitalCV TypeScript SDK packages for verifier, issuer, and wallet flows.',
 };
 
 const SDKS = [
   {
-    id: 'node',
-    lang: 'Node.js',
+    id: 'verifier',
+    lang: 'Verifier SDK',
     pkg: '@vitalcv/verifier-sdk',
     badge: 'TypeScript',
     badgeColor: 'text-sky-400 bg-sky-500/10 border-sky-500/20',
@@ -17,14 +17,18 @@ const SDKS = [
     example: `import { VitalCVVerifier } from '@vitalcv/verifier-sdk';
 
 const verifier = new VitalCVVerifier({
+  baseUrl: process.env.NEXT_PUBLIC_API_BASE!,
   apiKey: process.env.VITALCV_API_KEY,
 });
 
-// Verify a clinician by NPI
-const result = await verifier.verify('1234567890');
-console.log(result.trustBand); // 'L3' | 'L2' | 'L1' | 'L0'
-console.log(result.credentials);`,
-    methods: ['verify(npi)', 'verifyBundle(credentials)', 'acceptPresentation(presentationId)', 'verifyWebhookSignature(rawBody, sig, secret)', 'listPending()'],
+// Fast trust-band check
+const band = await verifier.getTrustBand('1234567890');
+console.log(band.band);
+
+// Verify a VP-JWT presentation
+const result = await verifier.verifyPresentation({ vpJwt });
+console.log(result.valid);`,
+    methods: ['getTrustBand(npi)', 'getSubstrateTrustState(npi)', 'getPublicProfile(npi)', 'verifyPresentation({ vpJwt })', 'acceptPresentation({ presentationId })'],
   },
   {
     id: 'issuer',
@@ -36,17 +40,18 @@ console.log(result.credentials);`,
     example: `import { VitalCVIssuer } from '@vitalcv/issuer-sdk';
 
 const issuer = new VitalCVIssuer({
+  baseUrl: process.env.NEXT_PUBLIC_API_BASE!,
   apiKey: process.env.VITALCV_ISSUER_KEY,
-  did: 'did:vitalcv:issuer:ca-medical-board',
+  issuerId: 'did:vitalcv:issuer:ca-medical-board',
 });
 
 // Issue a medical license credential
-const credential = await issuer.issue({
-  subjectNpi: '1234567890',
-  type: 'medical_license',
+const credential = await issuer.issueCredential({
+  npi: '1234567890',
+  credentialType: 'MedicalLicense',
   claims: { state: 'CA', licenseNumber: 'A123456', specialty: 'Internal Medicine' },
 });`,
-    methods: ['issue(payload)', 'revoke(credentialId, reason)', 'listIssued()', 'register()'],
+    methods: ['issueCredential(req)', 'createOID4VCICredentialOffer(req)', 'revokeCredential(credentialId, opts)', 'updateCredentialStatuses(updates)', 'registerIssuer(params)'],
   },
   {
     id: 'wallet',
@@ -57,16 +62,21 @@ const credential = await issuer.issue({
     install: 'pnpm add @vitalcv/wallet-sdk',
     example: `import { VitalCVWallet } from '@vitalcv/wallet-sdk';
 
-const wallet = new VitalCVWallet({ holderId: 'npi:1234567890' });
+const wallet = new VitalCVWallet({
+  baseUrl: process.env.NEXT_PUBLIC_API_BASE!,
+  npi: '1234567890',
+});
 
-// Store a received credential
-await wallet.store(credential);
+// Inspect wallet state
+const summary = await wallet.getSummary();
+const credentials = await wallet.listCredentials();
 
-// Generate selective disclosure — reveal only specialty
-const presentation = await wallet.present(credentialId, {
-  revealClaims: ['specialty', 'licenseNumber'],
+// Generate a presentation for a verifier
+const presentation = await wallet.createPresentation({
+  credentialIds: [credentials[0].credentialId],
+  challenge: crypto.randomUUID(),
 });`,
-    methods: ['store(credential)', 'list()', 'present(id, options)', 'remove(id)', 'getWalletSummary()'],
+    methods: ['getSummary()', 'listCredentials(filter?)', 'createPresentation(req)', 'presentSelectiveDisclosure(req)', 'respondToOID4VPRequest(req)', 'getTrustState()'],
   },
 ];
 
@@ -84,8 +94,7 @@ export default function SdkDocsPage() {
         <p className="text-xs font-mono uppercase tracking-widest text-emerald-400 mb-3">SDKs</p>
         <h1 className="text-3xl font-bold tracking-tight mb-4">Client Libraries</h1>
         <p className="text-zinc-400 leading-relaxed">
-          Three focused TypeScript SDKs — verifier, issuer, and wallet. Each ships with full type definitions,
-          version compatibility checks, and built-in diagnostics.
+          Three focused TypeScript SDKs ship in this workspace: verifier, issuer, and wallet. The examples below reflect the current package APIs, and environment-specific flows still depend on the backend routes and credentials available in your deployment.
         </p>
       </div>
 

@@ -31,6 +31,7 @@ const isSignInPage = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)']);
  * failures are caught and the request passes through to route handlers.
  */
 const INTELLIGENCE_API = /^\/api\/(intelligence|investigation)(\/.*)?$/;
+const CLERK_MIDDLEWARE_ENABLED = Boolean(process.env.CLERK_SECRET_KEY);
 
 const clerkHandler = clerkMiddleware(async (auth, req) => {
   const { pathname } = req.nextUrl;
@@ -104,6 +105,22 @@ const clerkHandler = clerkMiddleware(async (auth, req) => {
 });
 
 export default async function middleware(req: NextRequest, event: NextFetchEvent) {
+  if (!CLERK_MIDDLEWARE_ENABLED) {
+    if (isPublicRoute(req.nextUrl.pathname)) {
+      return NextResponse.next();
+    }
+
+    const requiredRole = getRequiredRole(req.nextUrl.pathname);
+    if (!requiredRole) {
+      return NextResponse.next();
+    }
+
+    const signInUrl = req.nextUrl.clone();
+    signInUrl.pathname = '/sign-in';
+    signInUrl.searchParams.set('redirect_url', req.nextUrl.pathname);
+    return NextResponse.redirect(signInUrl);
+  }
+
   if (INTELLIGENCE_API.test(req.nextUrl.pathname)) {
     try {
       return await clerkHandler(req, event);

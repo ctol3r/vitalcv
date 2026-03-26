@@ -22,6 +22,13 @@ import {
 export type { TrustEvidenceKind, TrustUiStatus };
 
 export type SourceCoverageState = PassportSourceCoverageState;
+export type TrustStatusTone =
+  | 'positive'
+  | 'informational'
+  | 'warning'
+  | 'critical'
+  | 'neutral'
+  | 'demo';
 
 const TRUST_STATUS_META: Record<TrustUiStatus, { label: string; badgeClassName: string }> = {
   verified: {
@@ -62,6 +69,18 @@ const TRUST_STATUS_META: Record<TrustUiStatus, { label: string; badgeClassName: 
   },
 };
 
+const SAFE_DISPLAY_LABELS: Record<TrustUiStatus, readonly string[]> = {
+  verified: ['Verified'],
+  clear: ['Clear', 'No sanctions found'],
+  checked: ['Checked'],
+  pending: ['Pending'],
+  stale: ['Stale'],
+  unavailable: ['Unavailable'],
+  access_required: ['Access required'],
+  review_required: ['Review required'],
+  demo: ['Demo', 'Preview only'],
+};
+
 const VDS_TRUST_STATUS_LABELS = {
   verified: 'Verified',
   clear: 'Clear',
@@ -85,6 +104,72 @@ export function getVdsTrustStatusLabel(
 
 export function getTrustStatusBadgeClassName(status: TrustUiStatus): string {
   return TRUST_STATUS_META[status].badgeClassName;
+}
+
+function normalizeDisplayLabel(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+export function getStatusTone(status: TrustUiStatus): TrustStatusTone {
+  switch (status) {
+    case 'verified':
+    case 'clear':
+      return 'positive';
+    case 'checked':
+      return 'informational';
+    case 'stale':
+    case 'access_required':
+      return 'warning';
+    case 'review_required':
+      return 'critical';
+    case 'demo':
+      return 'demo';
+    case 'pending':
+    case 'unavailable':
+    default:
+      return 'neutral';
+  }
+}
+
+export function isPositiveStatus(status: TrustUiStatus): boolean {
+  return status === 'verified' || status === 'clear' || status === 'checked';
+}
+
+export function isBlockingStatus(status: TrustUiStatus): boolean {
+  return (
+    status === 'pending'
+    || status === 'stale'
+    || status === 'unavailable'
+    || status === 'access_required'
+    || status === 'review_required'
+  );
+}
+
+export function isInspectableStatus(status: TrustUiStatus): boolean {
+  return (
+    status === 'verified'
+    || status === 'clear'
+    || status === 'checked'
+    || status === 'stale'
+    || status === 'review_required'
+    || status === 'demo'
+  );
+}
+
+export function getStatusDisplayLabel(
+  status: TrustUiStatus,
+  preferredLabel?: string | null,
+): string {
+  if (!preferredLabel) {
+    return TRUST_STATUS_META[status].label;
+  }
+
+  const normalizedPreferred = normalizeDisplayLabel(preferredLabel);
+  const safeLabel = SAFE_DISPLAY_LABELS[status].find((label) => (
+    normalizeDisplayLabel(label) === normalizedPreferred
+  ));
+
+  return safeLabel ?? TRUST_STATUS_META[status].label;
 }
 
 export {

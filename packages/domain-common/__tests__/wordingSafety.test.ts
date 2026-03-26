@@ -11,9 +11,10 @@ describe('wording safety guards', () => {
   const uiFiles = [
     'apps/web/app/intake/page.tsx',
     'apps/web/app/intake/IntakeContent.tsx',
-    'apps/web/app/verifier/page.tsx',
+    'apps/web/app/interview/page.tsx',
     'apps/web/components/employer/VerifierPortal.tsx',
     'apps/web/components/employer/TrustStatePanel.tsx',
+    'apps/web/components/review/ReviewClient.tsx',
     'apps/web/components/clinician/intake-types.ts',
   ];
 

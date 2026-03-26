@@ -509,7 +509,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
 
     return (
       <div
-        className="mt-4 transition-all duration-500"
+        className="mt-4 transition-[opacity,transform] duration-[180ms] ease-out"
         style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(6px)' }}
         aria-live="polite"
       >
@@ -543,7 +543,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
                   <p className="mt-1 text-[11px] text-white/45">{ts.readiness_score}/100 · {ts.readiness_level}</p>
                 </div>
                 <p className="text-[11px] leading-relaxed text-white/42 sm:max-w-[220px] sm:text-right">
-                  Connected sources only move into trust-core verification when the run returns real evidence.
+                  Real source evidence upgrades trust posture. Missing or gated lanes stay visibly incomplete.
                 </p>
               </div>
             </div>
@@ -567,7 +567,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
               </div>
               {confirmedItems.length > 0 ? (
                 <div className="space-y-3 border-t border-white/6 pt-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Confirmed in this run</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Ready in this run</p>
                   <div className="flex flex-wrap gap-2">
                     {confirmedItems.map(item => (
                       <Badge key={item} variant="outline" className={CHIPS_CLASSNAME}>
@@ -601,7 +601,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
                 onClick={onContinue}
                 className="h-14 w-full rounded-xl px-5 text-sm font-semibold"
               >
-                Continue with VitalCV →
+                Share in your next interview
               </Button>
               <p className="mt-2 text-center text-[10px] text-white/20">
                 Snapshot built from connected sources · {ts.methodology_version}
@@ -622,7 +622,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
 
   return (
     <div
-      className="mt-4 transition-all duration-500"
+      className="mt-4 transition-[opacity,transform] duration-[180ms] ease-out"
       style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(6px)' }}
       aria-live="polite"
     >
@@ -717,7 +717,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
               onClick={onContinue}
               className="h-14 w-full rounded-xl px-5 text-sm font-semibold"
             >
-              Continue with VitalCV →
+              Share in your next interview
             </Button>
             <p className="mt-2 text-center text-[10px] text-white/20">
               Demo preview only · live data appears after a real source run

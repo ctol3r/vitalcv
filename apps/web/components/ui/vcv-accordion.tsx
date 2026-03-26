@@ -10,11 +10,14 @@
  */
 
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
+import * as React from 'react';
 import type { ReactNode } from 'react';
 import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
 import { cn } from '@/lib/utils';
 import type { TrustUiStatus } from '@/lib/trust/status-language';
 import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
+
+void React;
 
 export type AccordionStatus = TrustUiStatus;
 

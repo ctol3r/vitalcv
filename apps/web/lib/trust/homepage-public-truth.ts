@@ -33,7 +33,7 @@ export const HOMEPAGE_PUBLIC_TRUTH_SOURCES = [
     sourceState: 'live',
     evidenceKind: 'generic',
     satisfied: false,
-    detailLabel: 'NPPES checked',
+    detailLabel: 'Registry record only',
   },
   {
     id: 'sanctions',
@@ -43,7 +43,7 @@ export const HOMEPAGE_PUBLIC_TRUTH_SOURCES = [
     sourceState: 'live',
     evidenceKind: 'generic',
     satisfied: false,
-    detailLabel: 'OIG checked',
+    detailLabel: 'OIG run only',
   },
   {
     id: 'enrollment',
@@ -53,7 +53,7 @@ export const HOMEPAGE_PUBLIC_TRUTH_SOURCES = [
     sourceState: 'notDecisionGrade',
     evidenceKind: 'generic',
     satisfied: false,
-    detailLabel: 'Not decision-grade',
+    detailLabel: 'Quarterly dataset',
   },
   {
     id: 'licensure',
@@ -63,7 +63,7 @@ export const HOMEPAGE_PUBLIC_TRUTH_SOURCES = [
     sourceState: 'accessRequired',
     evidenceKind: 'generic',
     satisfied: false,
-    detailLabel: 'CA lane access required',
+    detailLabel: 'Institutional access',
   },
 ] as const satisfies readonly HomepagePublicTruthSource[];
 
