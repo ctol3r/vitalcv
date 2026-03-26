@@ -22,14 +22,17 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'pnpm exec next start -H 127.0.0.1 -p 3000',
+    command: 'pnpm build && pnpm exec next start -H 127.0.0.1 -p 3000',
     env: {
       ...process.env,
+      NEXT_DISABLE_PWA: process.env.NEXT_DISABLE_PWA ?? '1',
       CLERK_SECRET_KEY: '',
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: '',
+      NEXT_PUBLIC_CLERK_SIGN_IN_URL: '/sign-in',
+      NEXT_PUBLIC_CLERK_SIGN_UP_URL: '/sign-up',
     },
     url: 'http://127.0.0.1:3000',
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 300_000,
   },
 });

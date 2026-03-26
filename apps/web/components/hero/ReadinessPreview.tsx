@@ -31,9 +31,6 @@ import { ProofDetailsList } from '@/components/trust/ProofDetailsList';
 import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCard';
 import { getDemoProfile, type DemoProfile } from '@/lib/demo/demoProfiles';
 import { formatCompactProofDate } from '@/lib/trust/proof-language';
-import {
-  resolveTrustUiStatus,
-} from '@/lib/trust/status-language';
 import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
 
 // ── Real trust-state shape (matches trustStateEngine output) ─
@@ -87,7 +84,7 @@ const READINESS_TONE_STYLES: Record<ReadinessTone, { panel: string }> = {
 };
 
 const READINESS_TONE_LABELS: Record<ReadinessTone, string> = {
-  clear: 'Clear',
+  clear: 'Checked',
   pending: 'Pending',
   blocked: 'Blocked',
 };
@@ -109,9 +106,9 @@ function readinessBadgeStatus(tone: ReadinessTone): 'clear' | 'pending' | 'block
 
 function buildConfirmedItems(ts: ClinicianTrustState): string[] {
   return [
-    ts.identityVerified ? 'Identity verified' : null,
-    ts.exclusionClear ? 'OIG clear' : null,
-    ts.licensureStatus === 'verified' ? 'Licensure confirmed' : null,
+    ts.identityVerified ? 'Identity checked' : null,
+    ts.exclusionClear ? 'OIG / LEIE checked' : null,
+    ts.licensureStatus === 'verified' ? 'Licensure checked' : null,
   ].filter((item): item is string => item !== null);
 }
 
@@ -167,9 +164,13 @@ function accordionMeta(label: string) {
 function buildRealAccordion(ts: ClinicianTrustState): AccordionItem[] {
   const checkedAt = ts.computed_at;
   const checkedMeta = checkedAt ? `checked ${formatCompactProofDate(checkedAt)}` : 'not checked';
-  const npiStatus = resolveTrustUiStatus({ state: 'live', kind: 'verification', satisfied: ts.identityVerified });
-  const licStatus = ts.licensureStatus === 'verified' ? 'verified' : 'access_required';
-  const exclStatus = resolveTrustUiStatus({ state: 'live', kind: 'clearance', satisfied: ts.exclusionClear });
+  const npiStatus: AccordionItem['status'] = ts.identityVerified ? 'checked' : 'pending';
+  const licStatus: AccordionItem['status'] = ts.licensureStatus === 'verified' ? 'checked' : 'access_required';
+  const exclStatus: AccordionItem['status'] = ts.exclusionClear
+    ? 'checked'
+    : ts.exclusionStatus === 'EXCLUDED'
+      ? 'review_required'
+      : 'pending';
 
   return [
     {
@@ -188,7 +189,7 @@ function buildRealAccordion(ts: ClinicianTrustState): AccordionItem[] {
               label: 'Trust note',
               value: ts.identityVerified
                 ? 'Decision-grade identity evidence is attached from the public NPI registry.'
-                : 'The current run found a registry record, but identity is not yet strong enough to render a positive verification state.',
+                : 'The current run found a registry record, but identity is not yet strong enough to anchor a stronger source-backed claim.',
             },
             {
               id: 'status-note',
@@ -205,7 +206,7 @@ function buildRealAccordion(ts: ClinicianTrustState): AccordionItem[] {
     {
       id: 'licensure',
       trigger: 'State Licensure / Authority',
-      triggerRight: accordionMeta(licStatus === 'verified' ? checkedMeta : 'access required'),
+      triggerRight: accordionMeta(licStatus === 'checked' ? checkedMeta : 'access required'),
       status: licStatus,
       content: (
         <ProofDetailsList
@@ -213,28 +214,28 @@ function buildRealAccordion(ts: ClinicianTrustState): AccordionItem[] {
             {
               id: 'source',
               label: 'Source',
-              value: licStatus === 'verified' ? 'State Board (Nursys / FSMB)' : 'State Board access required',
+              value: licStatus === 'checked' ? 'State Board (Nursys / FSMB)' : 'State Board access required',
               tone: 'strong',
             },
-            { id: 'checked', label: 'Last checked', value: formatFullDate(licStatus === 'verified' ? checkedAt : undefined) },
+            { id: 'checked', label: 'Last checked', value: formatFullDate(licStatus === 'checked' ? checkedAt : undefined) },
             {
               id: 'freshness',
               label: 'Freshness',
-              value: licStatus === 'verified' ? 'Current run' : 'Institutional source required',
+              value: licStatus === 'checked' ? 'Current run' : 'Institutional source required',
             },
             {
               id: 'trust-note',
               label: 'Trust note',
-              value: licStatus === 'verified'
+              value: licStatus === 'checked'
                 ? 'Primary-source authority evidence is attached for this run.'
                 : 'Licensure needs connected institutional source access before it can become decision-grade proof.',
             },
             {
               id: 'status-note',
               label: 'Status note',
-              value: licStatus === 'verified'
+              value: licStatus === 'checked'
                 ? 'Authority coverage is present in this snapshot.'
-                : 'Do not treat licensure as verified until a real board source has run.',
+                : 'Do not treat licensure as source-backed until a real board source has run.',
               tone: 'muted',
             },
           ]}
@@ -260,7 +261,7 @@ function buildRealAccordion(ts: ClinicianTrustState): AccordionItem[] {
             {
               id: 'status-note',
               label: 'Status note',
-              value: 'Unsupported board checks must remain clearly non-verified.',
+              value: 'Unsupported board checks must stay clearly marked as access required.',
               tone: 'muted',
             },
           ]}
@@ -309,14 +310,14 @@ function buildRealAccordion(ts: ClinicianTrustState): AccordionItem[] {
               label: 'Trust note',
               value: ts.exclusionClear
                 ? 'The current OIG LEIE check returned no exclusion finding.'
-                : 'This run does not attach enough evidence to render a positive exclusion clearance.',
+                : 'This run does not attach enough evidence to mark sanctions as checked.',
             },
             {
               id: 'status-note',
               label: 'Status note',
               value: ts.exclusionClear
                 ? 'NPDB and SAM.gov remain separate institutional checks outside this preview.'
-                : 'Absence of a clear state is not evidence of exclusion, but it does block a stronger trust claim.',
+                : 'Without a checked result, sanctions still need more source coverage before stronger trust claims can be made.',
               tone: 'muted',
             },
           ]}
@@ -406,7 +407,7 @@ function buildDemoAccordion(demo: DemoProfile): AccordionItem[] {
             {
               id: 'status-note',
               label: 'Status note',
-              value: 'Example gaps stay explicitly non-verified until a real board-history source is attached.',
+              value: 'Example gaps stay explicitly labeled as preview or access required until a real board-history source is attached.',
               tone: 'muted',
             },
           ]}
@@ -458,7 +459,7 @@ function buildDemoAccordion(demo: DemoProfile): AccordionItem[] {
               id: 'trust-note',
               label: 'Trust note',
               value: exclusionFlag
-                ? 'This example shows how an exclusion blocker will appear when the OIG result is not clear.'
+                ? 'This example shows how an exclusion blocker will appear when the OIG result still blocks progress.'
                 : 'A real exclusion result appears only after a live OIG run.',
             },
             {
@@ -518,7 +519,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/35">
-                  {ts.identityVerified ? 'Identity verified' : 'Identity record found'}
+                  {ts.identityVerified ? 'Identity checked' : 'Identity record found'}
                 </p>
                 <p className="text-lg font-bold leading-tight text-white">{displayName}</p>
                 <p className="text-sm text-white/40">{displaySpec}</p>
@@ -543,7 +544,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
                   <p className="mt-1 text-[11px] text-white/45">{ts.readiness_score}/100 · {ts.readiness_level}</p>
                 </div>
                 <p className="text-[11px] leading-relaxed text-white/42 sm:max-w-[220px] sm:text-right">
-                  Real source evidence upgrades trust posture. Missing or gated lanes stay visibly incomplete.
+                  Source-backed checks strengthen this snapshot. Missing or gated lanes stay visibly incomplete.
                 </p>
               </div>
             </div>
@@ -567,7 +568,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
               </div>
               {confirmedItems.length > 0 ? (
                 <div className="space-y-3 border-t border-white/6 pt-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Confirmed in this run</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Checked in this run</p>
                   <div className="flex flex-wrap gap-2">
                     {confirmedItems.map(item => (
                       <Badge key={item} variant="outline" className={CHIPS_CLASSNAME}>
@@ -581,8 +582,8 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
 
             <EvidenceDisclosureCard
               eyebrow="Proof"
-              title="Source verification"
-              description="Expand each section to see where the snapshot is source-backed, gated, or still missing."
+              title="Source checks"
+              description="Expand each section to see where the snapshot is checked, access required, or still missing."
               className="rounded-xl border-white/6 bg-black/10"
               contentClassName="px-5 py-1"
             >
@@ -601,10 +602,10 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
                 onClick={onContinue}
                 className="h-14 w-full rounded-xl px-5 text-sm font-semibold"
               >
-                Share in your next interview
+                Continue to packet preview
               </Button>
               <p className="mt-2 text-center text-[10px] text-white/20">
-                Snapshot built from connected sources · {ts.methodology_version}
+                Source-backed preview · {ts.methodology_version}
               </p>
             </div>
           </CardFooter>
@@ -684,7 +685,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
               </div>
             ) : null}
             <div className="space-y-3 border-t border-white/6 pt-3">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Ready in this example</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Checked in this example</p>
               <div className="flex flex-wrap gap-2">
                 {demo.verifiedItems.map(item => (
                   <Badge key={item} variant="outline" className={CHIPS_CLASSNAME}>
@@ -697,7 +698,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
 
           <EvidenceDisclosureCard
             eyebrow="Proof"
-            title="Source verification"
+            title="Source checks"
             description="Demo states stay clearly labeled so preview structure never stands in for live evidence."
             className="rounded-xl border-white/6 bg-black/10"
             contentClassName="px-5 py-1"

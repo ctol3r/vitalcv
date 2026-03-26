@@ -81,6 +81,7 @@ export const PUBLIC_ROUTE_PATTERNS = [
   /^\/simulation(\/.*)?$/, // public simulation surface
   /^\/mobile(\/.*)?$/, // mobile landing
   /^\/developers(\/.*)?$/, // public developer docs
+  /^\/docs(\/.*)?$/, // public docs
   /^\/investors(\/.*)?$/, // public investor page
   /^\/partners(\/.*)?$/, // public partners page
   /^\/sign-in(\/.*)?$/,
@@ -92,6 +93,7 @@ export const PUBLIC_ROUTE_PATTERNS = [
   /^\/updates(\/.*)?$/, // public updates / changelog
   /^\/apply(\/.*)?$/, // public apply flow
   /^\/intake(\/.*)?$/,
+  /^\/review(\/.*)?$/, // public review packet links
   /^\/verify(\/.*)?$/,
   /^\/trust-state(\/.*)?$/,
   /^\/clip(\/.*)?$/, // App Clip zero-install verification receipts

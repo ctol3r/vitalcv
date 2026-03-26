@@ -173,11 +173,11 @@ const STEPS = [
   {
     step: '02',
     icon: ShieldCheck,
-    title: 'Primary sources run on your NPI',
+    title: 'Source-backed readiness snapshot',
     // M1: List only live/configured sources. NPDB and DEA are not integrated.
     description: 'We run NPPES identity and OIG exclusion first. PECOS and state board coverage appear only when those sources are actually available.',
     accent: 'emerald',
-    detail: 'Real sources, not document copies',
+    detail: 'Checked from live sources',
   },
   {
     step: '03',
