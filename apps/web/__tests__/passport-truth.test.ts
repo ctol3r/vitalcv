@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { PassportData } from '../app/passport/[id]/page';
+import type { PassportData } from '../lib/trust/passport-contract';
 import {
+  isDecisionGradeAuthorityCredential,
   resolveAuthorityAccordionStatus,
+  resolveAuthorityDecisionBasisBucket,
   resolveAuthorityEvidenceLabel,
   resolveAuthorityMethodLabel,
   resolveAuthorityNote,
@@ -53,8 +55,11 @@ describe('passport truth helpers', () => {
     expect(resolveAuthorityVdsStatus(credential)).toBe('unavailable');
     expect(resolveAuthorityTrustStatus(credential)).toBe('unchecked');
     expect(resolveAuthorityAccordionStatus(credential)).toBe('unavailable');
+    expect(resolveAuthoritySectionStatus([credential], [])).toBe('unavailable');
     expect(resolveAuthorityEvidenceLabel(credential)).toBe('License source (TX)');
     expect(resolveAuthorityNote(credential)).toContain('is not decision-grade');
+    expect(isDecisionGradeAuthorityCredential(credential)).toBe(false);
+    expect(resolveAuthorityDecisionBasisBucket(credential)).toBe('missingOrAccessRequired');
   });
 
   it('marks institutional access gaps as access-required instead of verified', () => {
@@ -70,6 +75,8 @@ describe('passport truth helpers', () => {
     expect(resolveAuthorityTrustStatus(credential)).toBe('unchecked');
     expect(resolveAuthorityAccordionStatus(credential)).toBe('access_required');
     expect(resolveAuthorityNote(credential)).toContain('Access required.');
+    expect(isDecisionGradeAuthorityCredential(credential)).toBe(false);
+    expect(resolveAuthorityDecisionBasisBucket(credential)).toBe('missingOrAccessRequired');
   });
 
   it('keeps mixed authority states from collapsing to verified at the section level', () => {
@@ -85,5 +92,12 @@ describe('passport truth helpers', () => {
     expect(resolveAuthoritySectionStatus([active], [])).toBe('verified');
     expect(resolveAuthoritySectionStatus([gated], [])).toBe('access_required');
     expect(resolveAuthoritySectionStatus([active, gated], [])).toBe('review_required');
+    expect(isDecisionGradeAuthorityCredential(active)).toBe(true);
+    expect(resolveAuthorityDecisionBasisBucket(active)).toBe('sourceBackedNow');
+    expect(resolveAuthorityDecisionBasisBucket({
+      ...active,
+      id: 'cred-3',
+      stale: true,
+    })).toBe('stale');
   });
 });

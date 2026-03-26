@@ -1,6 +1,6 @@
 import RootChrome from '@/components/layout/RootChrome';
 import { CommandPalette } from '@/components/ui/CommandPalette';
-import { Toaster } from '@/components/ui/toaster';
+import { Toaster } from '@/components/ui/sonner';
 import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
 import { vdsCssVariables } from '@/src/styles';
 import { ClerkProvider } from '@clerk/nextjs';
@@ -84,7 +84,7 @@ export default async function RootLayout({
         <Providers initialUserId={initialUserId} initialClerkRole={initialClerkRole}>
           <RootChrome clerkEnabled={clerkEnabled}>{children}</RootChrome>
           <CommandPalette />
-          <Toaster />
+          <Toaster position="top-right" closeButton richColors />
         </Providers>
       </body>
     </html>

@@ -39,6 +39,21 @@ function dedupeKey(
   return [type, sourceId ?? 'run', suffix ?? 'default'].join(':');
 }
 
+function readJsonString(value: unknown, key: string): string | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  const candidate = record[key];
+  if (typeof candidate !== 'string') {
+    return null;
+  }
+
+  const trimmed = candidate.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 async function reviewRequiredCount(claimIds: readonly string[] | undefined): Promise<number> {
   if (!claimIds || claimIds.length === 0) {
     return 0;
@@ -176,10 +191,12 @@ async function runPipeline(runId: string, npi: string): Promise<void> {
     }
 
     await finalizeSourceResult(runId, 'nppes', resultBySource.get('nppes') ?? null, {
+      resultStatus: resultBySource.get('nppes')?.status ?? 'FAILED',
       entityId: entityRecord.entity.id,
       displayName: entityRecord.entity.displayName,
       entityType: entityRecord.entity.entityType,
       npiType: entityRecord.entity.npiType,
+      identityStatus: readJsonString(entityRecord.entity.metadata, 'status'),
     });
     await finalizeSourceResult(runId, 'oig', resultBySource.get('oig') ?? null);
     await finalizeSourceResult(runId, 'pecos', resultBySource.get('pecos') ?? null);
@@ -299,7 +316,18 @@ async function runPipeline(runId: string, npi: string): Promise<void> {
         ),
         payload: {
           entityId: passport.entityId,
+          displayName: passport.identity.displayName,
+          specialty: passport.identity.specialty,
+          entityType: passport.identity.entityType,
+          identityStatus: passport.identity.status,
+          exclusionChecked: passport.standing.exclusionStatus !== 'UNCHECKED',
+          exclusionClear: passport.standing.exclusionClear,
+          exclusionStatus: passport.standing.exclusionStatus,
+          enrollmentChecked: passport.standing.pecosEnrollmentStatus !== 'UNCHECKED',
+          enrollmentStatus: passport.standing.pecosEnrollmentStatus,
           readinessStatus: passport.readiness.status,
+          readinessScore: passport.readiness.score,
+          readinessLevel: passport.readiness.level,
           blockerCount: passport.readiness.blockers.length,
           credentialCount: passport.authority.credentials.length,
           checkedAt: passport.lastCheckedAt,

@@ -1,9 +1,15 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import {
+  PassportSourceCoveragePanel,
+  PASSPORT_SOURCE_COVERAGE_COPY,
+  PASSPORT_SOURCE_COVERAGE_TITLE,
+} from '../components/trust/PassportSourceCoveragePanel';
 import { SourceCoverageTag } from '../components/trust/SourceCoverageTag';
 import {
   findPassportSourceCoverageCheck,
+  findPassportSourceCoverageChecks,
   normalizePassportSourceCoverageState,
   sourceCoverageBadgeLabel,
   sourceCoveragePosture,
@@ -51,6 +57,32 @@ describe('trust source coverage contract', () => {
     expect(staleMarkup).toContain('STATE_BOARD');
     expect(staleMarkup).toContain('Stale');
     expect(reviewMarkup).toContain('Review required');
+  });
+
+  it('renders shared passport and review source coverage copy from one presenter', () => {
+    const markup = renderToStaticMarkup(
+      <PassportSourceCoveragePanel
+        checks={[
+          {
+            sourceId: 'NPPES_API',
+            state: 'live',
+            reason: 'identity checked',
+            checkedAt: '2026-03-20T00:00:00.000Z',
+            artifactId: null,
+            sourceUrl: null,
+            rawArtifactRef: null,
+            checksum: null,
+            parserVersion: null,
+            freshnessWindowHours: null,
+            proof: null,
+          },
+        ]}
+      />,
+    );
+
+    expect(markup).toContain(PASSPORT_SOURCE_COVERAGE_TITLE);
+    expect(markup).toContain('NPPES_API');
+    expect(markup).toContain(PASSPORT_SOURCE_COVERAGE_COPY);
   });
 
   it('finds canonical coverage checks by source alias from the passport report', () => {
@@ -142,5 +174,6 @@ describe('trust source coverage contract', () => {
     expect(findPassportSourceCoverageCheck(report, ['OIG / LEIE', 'OIG LEIE'])?.sourceId).toBe('OIG_LEIE');
     expect(findPassportSourceCoverageCheck(report, ['CMS PECOS', 'PECOS'])?.state).toBe('notDecisionGrade');
     expect(findPassportSourceCoverageCheck(report, ['State Boards', 'FSMB', 'Nursys'])?.state).toBe('accessRequired');
+    expect(findPassportSourceCoverageChecks(report, ['State Boards', 'FSMB', 'Nursys'])).toHaveLength(1);
   });
 });

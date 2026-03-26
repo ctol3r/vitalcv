@@ -45,6 +45,7 @@ import {
   summarizeCanonicalSourceCoverage,
   type CanonicalSourceCoverage,
   type CanonicalSourceCoverageReport,
+  type CanonicalSourceCoverageState,
 } from '../../../../../../packages/trust-state';
 import { getSourceFreshnessWindowHours } from '../identity/sourceCatalog';
 import {
@@ -188,6 +189,57 @@ export interface PassportSources {
   lastFetch: Record<string, string>;  // source → ISO timestamp
 }
 
+export type PassportTrustPostureState =
+  | 'current'
+  | 'stale'
+  | 'gated'
+  | 'review_required'
+  | 'blocked'
+  | 'missing';
+
+export type PassportTrustPostureDimensionId =
+  | 'identity'
+  | 'safety'
+  | 'authority'
+  | 'eligibility';
+
+export interface PassportTrustPostureDimension {
+  id: PassportTrustPostureDimensionId;
+  label: string;
+  state: PassportTrustPostureState;
+  detail: string;
+  checkedAt?: string;
+}
+
+export interface PassportTrustPostureFreshnessItem {
+  id: PassportTrustPostureDimensionId;
+  label: string;
+  source: string;
+  state: 'current' | 'partial' | 'stale';
+  checkedAt?: string;
+  note: string;
+}
+
+export interface PassportTrustPostureFreshness {
+  state: 'current' | 'partial' | 'stale';
+  label: string;
+  items: PassportTrustPostureFreshnessItem[];
+}
+
+export interface PassportTrustPosture {
+  band: string;
+  bandLabel: string;
+  score: number;
+  dimensions: PassportTrustPostureDimension[];
+  freshness: PassportTrustPostureFreshness;
+  safeToRelyOnNow: string[];
+  missingItems: string[];
+  gatedItems: string[];
+  reviewRequiredItems: string[];
+  staleItems: string[];
+  blockers: string[];
+}
+
 export interface TrustPassport {
   entityId:       string;
   npi?:           string;
@@ -198,6 +250,7 @@ export interface TrustPassport {
   readiness:      PassportReadiness;
   sources:        PassportSources;
   sourceCoverage: CanonicalSourceCoverageReport;
+  trustPosture:   PassportTrustPosture;
   lastCheckedAt:  string;
 }
 
@@ -511,6 +564,541 @@ function buildPassportSourceCoverage(input: {
   return {
     checks,
     summary: summarizeCanonicalSourceCoverage(checks),
+  };
+}
+
+const TRUST_POSTURE_BAND_LABELS: Record<string, string> = {
+  L3: 'High trust',
+  L2: 'Moderate trust',
+  L1: 'Partial trust',
+  L0: 'Insufficient trust',
+};
+
+const COVERAGE_REASON_PRIORITY: Record<CanonicalSourceCoverageState, number> = {
+  reviewRequired: 0,
+  stale: 1,
+  accessRequired: 2,
+  gated: 3,
+  partial: 4,
+  notDecisionGrade: 5,
+  notChecked: 6,
+  unavailable: 7,
+  mock: 8,
+  live: 9,
+};
+
+const COVERAGE_GATED_STATES: readonly CanonicalSourceCoverageState[] = ['gated', 'accessRequired'];
+const COVERAGE_MISSING_STATES: readonly CanonicalSourceCoverageState[] = [
+  'notDecisionGrade',
+  'notChecked',
+  'partial',
+  'unavailable',
+  'mock',
+];
+
+function pushUniqueValue(values: string[], value?: string | null): void {
+  if (!value) {
+    return;
+  }
+
+  const normalized = value.trim();
+  if (!normalized || values.includes(normalized)) {
+    return;
+  }
+
+  values.push(normalized);
+}
+
+function findCoverageChecks(
+  report: CanonicalSourceCoverageReport,
+  sourceIds: readonly string[],
+): CanonicalSourceCoverage[] {
+  const aliases = new Set(sourceIds.filter((value) => value.trim().length > 0));
+  if (aliases.size === 0) {
+    return [];
+  }
+
+  return report.checks.filter((check) => aliases.has(check.sourceId));
+}
+
+function hasCoverageState(
+  checks: readonly CanonicalSourceCoverage[],
+  states: readonly CanonicalSourceCoverageState[],
+): boolean {
+  return checks.some((check) => states.includes(check.state));
+}
+
+function findPrioritizedCoverageCheck(
+  checks: readonly CanonicalSourceCoverage[],
+  states?: readonly CanonicalSourceCoverageState[],
+): CanonicalSourceCoverage | undefined {
+  const filtered = states
+    ? checks.filter((check) => states.includes(check.state))
+    : [...checks];
+
+  return [...filtered].sort((left, right) => (
+    COVERAGE_REASON_PRIORITY[left.state] - COVERAGE_REASON_PRIORITY[right.state]
+    || left.sourceId.localeCompare(right.sourceId)
+  ))[0];
+}
+
+function latestCheckedAtFromChecks(
+  checks: readonly CanonicalSourceCoverage[],
+): string | undefined {
+  return checks.reduce<string | undefined>(
+    (latest, check) => latestIso(latest, check.checkedAt ?? undefined),
+    undefined,
+  );
+}
+
+function latestCredentialTimestamp(
+  credentials: readonly Pick<PassportCredential, 'observedAt' | 'verifiedAt'>[],
+): string | undefined {
+  return credentials.reduce<string | undefined>(
+    (latest, credential) => latestIso(latestIso(latest, credential.observedAt), credential.verifiedAt),
+    undefined,
+  );
+}
+
+function resolvePostureState(input: {
+  blocked?: boolean;
+  reviewRequired?: boolean;
+  stale?: boolean;
+  gated?: boolean;
+  current?: boolean;
+}): PassportTrustPostureState {
+  if (input.blocked) return 'blocked';
+  if (input.reviewRequired) return 'review_required';
+  if (input.stale) return 'stale';
+  if (input.gated) return 'gated';
+  if (input.current) return 'current';
+  return 'missing';
+}
+
+function freshnessStateForLayer(input: {
+  checks: readonly CanonicalSourceCoverage[];
+  stale: boolean;
+}): PassportTrustPostureFreshnessItem['state'] {
+  if (input.stale || hasCoverageState(input.checks, ['stale'])) {
+    return 'stale';
+  }
+
+  if (input.checks.length > 0 && input.checks.every((check) => check.state === 'live')) {
+    return 'current';
+  }
+
+  return 'partial';
+}
+
+function buildPassportTrustPosture(input: {
+  identity: PassportIdentity;
+  authority: PassportAuthority;
+  training: PassportTraining;
+  standing: PassportStanding;
+  readiness: PassportReadiness;
+  sourceCoverage: CanonicalSourceCoverageReport;
+  lastCheckedAt: string;
+}): PassportTrustPosture {
+  const safeToRelyOnNow: string[] = [];
+  const missingItems: string[] = [];
+  const gatedItems: string[] = [];
+  const reviewRequiredItems: string[] = [];
+  const staleItems: string[] = [];
+  const blockers = [...input.readiness.blockers];
+
+  const identityChecks = findCoverageChecks(input.sourceCoverage, ['NPPES_API', 'NPPES']);
+  const safetyChecks = findCoverageChecks(input.sourceCoverage, ['OIG_LEIE', 'OIG']);
+  const licensureCredentials = input.authority.credentials.filter((credential) => credential.domain === 'LICENSURE');
+  const authorityChecks = findCoverageChecks(
+    input.sourceCoverage,
+    dedupeStrings([
+      'STATE_BOARD',
+      'FSMB_MED_API',
+      'FSMB_PDC',
+      'NURSYS',
+      'NURSYS_AUTHORIZED_PATH',
+      ...licensureCredentials
+        .map((credential) => credential.sourceId)
+        .filter((value): value is string => typeof value === 'string' && value.trim().length > 0),
+    ]),
+  );
+  const eligibilityChecks = findCoverageChecks(input.sourceCoverage, ['PECOS_PUBLIC']);
+
+  const identityCurrent = Boolean(input.identity.displayName && input.identity.npi && hasCoverageState(identityChecks, ['live']));
+  const identityStale = Boolean(input.identity.displayName && hasCoverageState(identityChecks, ['stale']));
+  const identityGated = hasCoverageState(identityChecks, COVERAGE_GATED_STATES);
+  const identityReviewRequired = hasCoverageState(identityChecks, ['reviewRequired']);
+  const identityState = resolvePostureState({
+    current: identityCurrent,
+    stale: identityStale,
+    gated: identityGated,
+    reviewRequired: identityReviewRequired,
+  });
+  const identityCheckedAt = latestIso(
+    latestCheckedAtFromChecks(identityChecks),
+    input.lastCheckedAt,
+  );
+  const identityDetail =
+    identityState === 'current'
+      ? 'Identity is confirmed in CMS NPPES and is safe to rely on now.'
+      : identityState === 'stale'
+        ? findPrioritizedCoverageCheck(identityChecks, ['stale'])?.reason ?? 'CMS NPPES identity evidence is stale and should be refreshed.'
+        : identityState === 'gated'
+          ? findPrioritizedCoverageCheck(identityChecks, COVERAGE_GATED_STATES)?.reason ?? 'CMS NPPES identity access is currently gated.'
+          : identityState === 'review_required'
+            ? findPrioritizedCoverageCheck(identityChecks, ['reviewRequired'])?.reason ?? 'CMS NPPES identity evidence requires review before relying on it.'
+            : findPrioritizedCoverageCheck(identityChecks, COVERAGE_MISSING_STATES)?.reason ?? 'CMS NPPES identity has not been confirmed yet.';
+  if (identityState === 'current') {
+    pushUniqueValue(safeToRelyOnNow, 'Identity confirmed via CMS NPPES.');
+  } else if (identityState === 'stale') {
+    pushUniqueValue(staleItems, identityDetail);
+  } else if (identityState === 'gated') {
+    pushUniqueValue(gatedItems, identityDetail);
+  } else if (identityState === 'review_required') {
+    pushUniqueValue(reviewRequiredItems, identityDetail);
+  } else {
+    pushUniqueValue(missingItems, identityDetail);
+  }
+
+  const safetyBlocked = input.standing.exclusionStatus === 'EXCLUDED';
+  const safetyReviewRequired =
+    input.standing.exclusionStatus === 'POSSIBLE_MATCH'
+    || hasCoverageState(safetyChecks, ['reviewRequired']);
+  const safetyStale =
+    input.standing.exclusionStatus === 'CLEAR'
+    && hasCoverageState(safetyChecks, ['stale']);
+  const safetyGated = hasCoverageState(safetyChecks, COVERAGE_GATED_STATES);
+  const safetyCurrent =
+    input.standing.exclusionStatus === 'CLEAR'
+    && hasCoverageState(safetyChecks, ['live'])
+    && !safetyStale;
+  const safetyState = resolvePostureState({
+    blocked: safetyBlocked,
+    reviewRequired: safetyReviewRequired,
+    stale: safetyStale,
+    gated: safetyGated,
+    current: safetyCurrent,
+  });
+  const safetyCheckedAt = latestIso(
+    latestCheckedAtFromChecks(safetyChecks),
+    input.standing.exclusionCheckedAt,
+  );
+  const safetyDetail =
+    safetyState === 'current'
+      ? 'Current OIG/LEIE exclusion screening is clear.'
+      : safetyState === 'blocked'
+        ? 'Current OIG/LEIE screening shows an exclusion record that blocks readiness.'
+        : safetyState === 'review_required'
+          ? findPrioritizedCoverageCheck(safetyChecks, ['reviewRequired'])?.reason ?? 'OIG/LEIE returned a possible match and requires manual review.'
+          : safetyState === 'stale'
+            ? findPrioritizedCoverageCheck(safetyChecks, ['stale'])?.reason ?? 'OIG/LEIE screening is stale and should be refreshed.'
+            : safetyState === 'gated'
+              ? findPrioritizedCoverageCheck(safetyChecks, COVERAGE_GATED_STATES)?.reason ?? 'OIG/LEIE access is currently gated.'
+              : findPrioritizedCoverageCheck(safetyChecks, COVERAGE_MISSING_STATES)?.reason ?? 'OIG/LEIE screening has not been confirmed yet.';
+  if (safetyState === 'current') {
+    pushUniqueValue(safeToRelyOnNow, 'OIG/LEIE exclusion check is clear.');
+  } else if (safetyState === 'blocked') {
+    pushUniqueValue(blockers, safetyDetail);
+  } else if (safetyState === 'review_required') {
+    pushUniqueValue(reviewRequiredItems, safetyDetail);
+  } else if (safetyState === 'stale') {
+    pushUniqueValue(staleItems, safetyDetail);
+  } else if (safetyState === 'gated') {
+    pushUniqueValue(gatedItems, safetyDetail);
+  } else {
+    pushUniqueValue(missingItems, safetyDetail);
+  }
+
+  const authorityHasBlockingFinding = input.standing.negativeFindings.some((finding) => (
+    /license expired|license discipline|board order severity blocks readiness/i.test(finding)
+  ));
+  const authorityHasBlockingCredential = licensureCredentials.some((credential) => (
+    credential.status === 'EXPIRED'
+    || credential.authorityClaimCode === 'RN_LICENSE_EXPIRED'
+    || credential.authorityClaimCode === 'RN_LICENSE_DISCIPLINED'
+    || (
+      credential.authorityClaimCode === 'BOARD_ORDER_PRESENT'
+      && ['HIGH', 'CRITICAL'].includes((credential.boardOrderSeverity ?? '').toUpperCase())
+    )
+  ));
+  const authorityBlocked = input.standing.licensureStatus === 'expired'
+    || authorityHasBlockingFinding
+    || authorityHasBlockingCredential;
+  const authorityReviewRequired = !authorityBlocked && (
+    licensureCredentials.some((credential) => (
+      credential.reviewRequired
+      || credential.authorityClaimCode === 'BOARD_ORDER_PRESENT'
+    ))
+    || hasCoverageState(authorityChecks, ['reviewRequired'])
+    || input.standing.negativeFindings.some((finding) => /board order requires manual review/i.test(finding))
+  );
+  const authorityGated = !authorityBlocked && !authorityReviewRequired && (
+    licensureCredentials.some((credential) => credential.participationStatus === 'institution_access_unavailable')
+    || hasCoverageState(authorityChecks, COVERAGE_GATED_STATES)
+  );
+  const authorityStale = !authorityBlocked && !authorityReviewRequired && !authorityGated && (
+    licensureCredentials.some((credential) => credential.stale)
+    || hasCoverageState(authorityChecks, ['stale'])
+  );
+  const authorityCurrent = !authorityBlocked && !authorityReviewRequired && !authorityGated && !authorityStale
+    && input.standing.licensureStatus === 'verified'
+    && licensureCredentials.some((credential) => (
+      isCredentialCurrentStatus(credential.domain, credential.status)
+      && isDecisionGrade({
+        domain: credential.domain,
+        verifiedAt: credential.verifiedAt,
+        sourceId: credential.sourceId,
+        reviewRequired: credential.reviewRequired,
+      })
+    ))
+    && hasCoverageState(authorityChecks, ['live']);
+  const authorityState = resolvePostureState({
+    blocked: authorityBlocked,
+    reviewRequired: authorityReviewRequired,
+    stale: authorityStale,
+    gated: authorityGated,
+    current: authorityCurrent,
+  });
+  const authorityCheckedAt = latestIso(
+    latestCheckedAtFromChecks(authorityChecks),
+    latestCredentialTimestamp(licensureCredentials),
+  );
+  const authorityDetail =
+    authorityState === 'current'
+      ? 'Active state licensure is verified from a live authority source.'
+      : authorityState === 'blocked'
+        ? input.standing.negativeFindings.find((finding) => /license expired|license discipline|board order/i.test(finding))
+          ?? 'Licensure issues currently block readiness.'
+        : authorityState === 'review_required'
+          ? input.standing.negativeFindings.find((finding) => /board order requires manual review/i.test(finding))
+            ?? findPrioritizedCoverageCheck(authorityChecks, ['reviewRequired'])?.reason
+            ?? 'Licensure evidence requires manual review before it is decision-grade.'
+          : authorityState === 'gated'
+            ? findPrioritizedCoverageCheck(authorityChecks, COVERAGE_GATED_STATES)?.reason
+              ?? 'Licensure verification requires institutional source access.'
+            : authorityState === 'stale'
+              ? findPrioritizedCoverageCheck(authorityChecks, ['stale'])?.reason
+                ?? 'Licensure evidence is stale and should be refreshed.'
+              : findPrioritizedCoverageCheck(authorityChecks, COVERAGE_MISSING_STATES)?.reason
+                ?? 'Live state licensure proof is not available yet.';
+  if (authorityState === 'current') {
+    pushUniqueValue(safeToRelyOnNow, 'Active state licensure is verified from a live authority source.');
+  } else if (authorityState === 'blocked') {
+    pushUniqueValue(blockers, authorityDetail);
+  } else if (authorityState === 'review_required') {
+    pushUniqueValue(reviewRequiredItems, authorityDetail);
+  } else if (authorityState === 'gated') {
+    pushUniqueValue(gatedItems, authorityDetail);
+  } else if (authorityState === 'stale') {
+    pushUniqueValue(staleItems, authorityDetail);
+  } else {
+    pushUniqueValue(missingItems, authorityDetail);
+  }
+
+  const eligibilityReviewRequired = hasCoverageState(eligibilityChecks, ['reviewRequired'])
+    || input.readiness.blockers.some((blocker) => /enrollment.*review/i.test(blocker));
+  const eligibilityGated = hasCoverageState(eligibilityChecks, COVERAGE_GATED_STATES);
+  const eligibilityStale =
+    input.standing.pecosEnrollmentStatus === 'ENROLLED'
+    && (
+      hasCoverageState(eligibilityChecks, ['stale'])
+      || input.standing.enrollmentFreshnessLabel === 'Stale — refresh required'
+      || (input.standing.enrollmentFreshnessLabel ?? '').startsWith('Revalidation due')
+    );
+  const eligibilityCurrent =
+    input.standing.pecosEnrollmentStatus === 'ENROLLED'
+    && hasCoverageState(eligibilityChecks, ['live'])
+    && !eligibilityStale;
+  const eligibilityState = resolvePostureState({
+    blocked: input.standing.pecosEnrollmentStatus === 'NOT_FOUND',
+    reviewRequired: eligibilityReviewRequired,
+    stale: eligibilityStale,
+    gated: eligibilityGated,
+    current: eligibilityCurrent,
+  });
+  const eligibilityCheckedAt = latestIso(
+    latestCheckedAtFromChecks(eligibilityChecks),
+    input.standing.enrollmentObservedAt,
+  );
+  const pecosCurrentSuffix = input.standing.enrollmentDataVersion
+    ? ` (${input.standing.enrollmentDataVersion})`
+    : '';
+  const eligibilityDetail =
+    eligibilityState === 'current'
+      ? `CMS PECOS shows Medicare enrollment${pecosCurrentSuffix}.`
+      : eligibilityState === 'blocked'
+        ? input.standing.enrollmentNote ?? 'CMS PECOS does not show an enrolled provider record, which blocks readiness.'
+        : eligibilityState === 'review_required'
+          ? findPrioritizedCoverageCheck(eligibilityChecks, ['reviewRequired'])?.reason
+            ?? 'PECOS enrollment requires review before relying on it.'
+          : eligibilityState === 'gated'
+            ? findPrioritizedCoverageCheck(eligibilityChecks, COVERAGE_GATED_STATES)?.reason
+              ?? 'PECOS access is currently gated.'
+            : eligibilityState === 'stale'
+              ? input.standing.enrollmentFreshnessLabel
+                ?? findPrioritizedCoverageCheck(eligibilityChecks, ['stale'])?.reason
+                ?? 'PECOS evidence is stale and should be refreshed.'
+              : findPrioritizedCoverageCheck(eligibilityChecks, COVERAGE_MISSING_STATES)?.reason
+                ?? input.standing.enrollmentNote
+                ?? 'PECOS enrollment has not been confirmed yet.';
+  if (eligibilityState === 'current') {
+    pushUniqueValue(safeToRelyOnNow, `CMS PECOS shows Medicare enrollment${pecosCurrentSuffix}.`);
+  } else if (eligibilityState === 'blocked') {
+    pushUniqueValue(blockers, eligibilityDetail);
+  } else if (eligibilityState === 'review_required') {
+    pushUniqueValue(reviewRequiredItems, eligibilityDetail);
+  } else if (eligibilityState === 'gated') {
+    pushUniqueValue(gatedItems, eligibilityDetail);
+  } else if (eligibilityState === 'stale') {
+    pushUniqueValue(staleItems, eligibilityDetail);
+  } else {
+    pushUniqueValue(missingItems, eligibilityDetail);
+  }
+
+  if (input.training.degreeVerified) {
+    pushUniqueValue(safeToRelyOnNow, 'Medical degree is source-verified.');
+  }
+  if (input.training.hasResidency) {
+    pushUniqueValue(safeToRelyOnNow, 'Residency completion is source-verified.');
+  }
+
+  for (const gap of input.readiness.gaps) {
+    if (/stale|revalidation due/i.test(gap)) {
+      pushUniqueValue(staleItems, gap);
+      continue;
+    }
+    if (/review/i.test(gap)) {
+      pushUniqueValue(reviewRequiredItems, gap);
+      continue;
+    }
+    if (/access required|institution|not connected|gated/i.test(gap)) {
+      pushUniqueValue(gatedItems, gap);
+      continue;
+    }
+
+    pushUniqueValue(missingItems, gap);
+  }
+
+  const freshnessItems: PassportTrustPostureFreshnessItem[] = [
+    {
+      id: 'identity',
+      label: 'Identity',
+      source: 'CMS NPPES',
+      state: freshnessStateForLayer({
+        checks: identityChecks,
+        stale: identityStale,
+      }),
+      checkedAt: identityCheckedAt,
+      note: identityStale ? identityDetail : identityCurrent ? 'Current attached check' : identityDetail,
+    },
+    {
+      id: 'safety',
+      label: 'Safety',
+      source: 'OIG LEIE',
+      state: freshnessStateForLayer({
+        checks: safetyChecks,
+        stale: safetyStale,
+      }),
+      checkedAt: safetyCheckedAt,
+      note: safetyStale ? safetyDetail : safetyChecks.every((check) => check.state === 'live') ? 'Current attached check' : safetyDetail,
+    },
+    {
+      id: 'authority',
+      label: 'Authority',
+      source: licensureCredentials[0]?.issuerName ?? licensureCredentials[0]?.sourceId ?? 'State Boards / FSMB',
+      state: freshnessStateForLayer({
+        checks: authorityChecks,
+        stale: authorityStale,
+      }),
+      checkedAt: authorityCheckedAt,
+      note: authorityStale ? authorityDetail : authorityChecks.length > 0 && authorityChecks.every((check) => check.state === 'live') ? 'Current attached check' : authorityDetail,
+    },
+    {
+      id: 'eligibility',
+      label: 'Eligibility',
+      source: input.standing.enrollmentSourceLabel ?? 'CMS PECOS',
+      state: freshnessStateForLayer({
+        checks: eligibilityChecks,
+        stale: eligibilityStale,
+      }),
+      checkedAt: eligibilityCheckedAt,
+      note: eligibilityStale ? eligibilityDetail : eligibilityChecks.length > 0 && eligibilityChecks.every((check) => check.state === 'live') ? 'Current attached check' : eligibilityDetail,
+    },
+  ];
+
+  const freshnessState: PassportTrustPostureFreshness['state'] =
+    freshnessItems.some((item) => item.state === 'stale')
+      ? 'stale'
+      : freshnessItems.some((item) => item.state === 'partial')
+        ? 'partial'
+        : 'current';
+  const freshnessLabel =
+    freshnessState === 'stale'
+      ? 'Stale sources present'
+      : freshnessState === 'partial'
+        ? 'Partial source coverage'
+        : 'Current attached checks';
+  const normalizedBlockers = blockers.filter((blocker) => {
+    const normalized = blocker.trim().toUpperCase();
+
+    if (normalized === 'MISSING: IDENTITY' && identityState === 'current') {
+      return false;
+    }
+    if (normalized === 'MISSING: EXCLUSION_CHECK' && safetyState !== 'missing') {
+      return false;
+    }
+    if (normalized === 'MISSING: LICENSURE' && authorityState !== 'missing') {
+      return false;
+    }
+
+    return true;
+  });
+
+  return {
+    band: input.readiness.level,
+    bandLabel: TRUST_POSTURE_BAND_LABELS[input.readiness.level] ?? 'Trust posture',
+    score: input.readiness.score,
+    dimensions: [
+      {
+        id: 'identity',
+        label: 'Identity',
+        state: identityState,
+        detail: identityDetail,
+        checkedAt: identityCheckedAt,
+      },
+      {
+        id: 'safety',
+        label: 'Safety',
+        state: safetyState,
+        detail: safetyDetail,
+        checkedAt: safetyCheckedAt,
+      },
+      {
+        id: 'authority',
+        label: 'Authority',
+        state: authorityState,
+        detail: authorityDetail,
+        checkedAt: authorityCheckedAt,
+      },
+      {
+        id: 'eligibility',
+        label: 'Eligibility',
+        state: eligibilityState,
+        detail: eligibilityDetail,
+        checkedAt: eligibilityCheckedAt,
+      },
+    ],
+    freshness: {
+      state: freshnessState,
+      label: freshnessLabel,
+      items: freshnessItems,
+    },
+    safeToRelyOnNow,
+    missingItems,
+    gatedItems,
+    reviewRequiredItems,
+    staleItems,
+    blockers: normalizedBlockers,
   };
 }
 
@@ -1005,6 +1593,15 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
       artifactsById,
     }),
   });
+  const trustPosture = buildPassportTrustPosture({
+    identity,
+    authority,
+    training,
+    standing,
+    readiness,
+    sourceCoverage,
+    lastCheckedAt,
+  });
 
   log('info', 'passport_built', {
     entityId, npi, readinessStatus, score: readiness.score,
@@ -1021,6 +1618,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     readiness,
     sources,
     sourceCoverage,
+    trustPosture,
     lastCheckedAt,
   };
 }

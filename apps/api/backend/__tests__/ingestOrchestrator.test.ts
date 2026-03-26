@@ -16,6 +16,12 @@ jest.mock('../src/graphql/prisma_client', () => ({
 const mockBuildPassport = jest.fn();
 const mockResolveEntityFromNpi = jest.fn();
 const mockIngestClinicianIdentity = jest.fn();
+const mockExtractPracticeStates = jest.fn();
+const mockLoadClaimRecordsForNpi = jest.fn();
+const mockResolvePhysicianLicensureLaunchLane = jest.fn();
+const mockFetchNursysClaim = jest.fn();
+const mockUpsertVcvCredential = jest.fn();
+const mockEnv = jest.fn();
 
 const mockAppendIngestEvent = jest.fn();
 const mockCompleteIngestRun = jest.fn();
@@ -37,6 +43,30 @@ jest.mock('../src/services/entity/entityResolutionService', () => ({
 
 jest.mock('../src/services/identity/identityIngestionPipeline', () => ({
   ingestClinicianIdentity: (...args: unknown[]) => mockIngestClinicianIdentity(...args),
+}));
+
+jest.mock('../src/services/identity/phase3Sources', () => ({
+  extractPracticeStates: (...args: unknown[]) => mockExtractPracticeStates(...args),
+}));
+
+jest.mock('../src/services/identity/identityStore', () => ({
+  loadClaimRecordsForNpi: (...args: unknown[]) => mockLoadClaimRecordsForNpi(...args),
+}));
+
+jest.mock('../src/services/identity/physicianLicensureLaunchLane', () => ({
+  resolvePhysicianLicensureLaunchLane: (...args: unknown[]) => mockResolvePhysicianLicensureLaunchLane(...args),
+}));
+
+jest.mock('../src/services/identity/nursysClaimMapper', () => ({
+  fetchNursysClaim: (...args: unknown[]) => mockFetchNursysClaim(...args),
+}));
+
+jest.mock('../src/services/entity/upsertVcvCredential', () => ({
+  upsertVcvCredential: (...args: unknown[]) => mockUpsertVcvCredential(...args),
+}));
+
+jest.mock('../src/config/env', () => ({
+  env: () => mockEnv(),
 }));
 
 jest.mock('../src/services/ingest/ingestEventStore', () => ({
@@ -83,15 +113,43 @@ describe('ingestOrchestrator', () => {
         displayName: 'Ada Lovelace',
         entityType: 'PERSON',
         npiType: 'TYPE_1',
+        metadata: {
+          status: 'ACTIVE',
+        },
       },
     });
     mockUpdateIngestRun.mockResolvedValue(undefined);
     mockUpdateIngestSourceRun.mockResolvedValue(undefined);
     mockAppendIngestEvent.mockResolvedValue(undefined);
+    mockExtractPracticeStates.mockReturnValue(['CA']);
+    mockLoadClaimRecordsForNpi.mockResolvedValue([]);
+    mockResolvePhysicianLicensureLaunchLane.mockResolvedValue({
+      route: 'manual',
+      launchState: 'CA',
+      claims: [],
+    });
+    mockFetchNursysClaim.mockResolvedValue(null);
+    mockUpsertVcvCredential.mockResolvedValue(null);
+    mockEnv.mockReturnValue({
+      REAL_NURSYS_ENABLED: false,
+    });
     mockBuildPassport.mockResolvedValue({
       entityId: 'entity-1',
+      identity: {
+        displayName: 'Ada Lovelace',
+        specialty: 'Family Medicine',
+        entityType: 'PERSON',
+        status: 'ACTIVE',
+      },
+      standing: {
+        exclusionClear: true,
+        exclusionStatus: 'CLEAR',
+        pecosEnrollmentStatus: 'ENROLLED',
+      },
       readiness: {
         status: 'READY',
+        score: 91,
+        level: 'L3',
         blockers: [],
       },
       authority: {
@@ -103,6 +161,7 @@ describe('ingestOrchestrator', () => {
       { sourceId: 'nppes', status: 'DONE', claimCount: 1, credentialCount: 1 },
       { sourceId: 'oig', status: 'DONE', claimCount: 1, credentialCount: 1 },
       { sourceId: 'pecos', status: 'DONE', claimCount: 1, credentialCount: 1 },
+      { sourceId: 'fsmb', status: 'DONE', claimCount: 0, credentialCount: 0 },
     ]);
     mockCompleteIngestRun.mockResolvedValue(undefined);
     mockGetIngestRun.mockResolvedValue({
@@ -167,9 +226,14 @@ describe('ingestOrchestrator', () => {
     await flushAsyncWork();
     await flushAsyncWork();
 
-    const emittedTypes = mockAppendIngestEvent.mock.calls.map(
-      ([event]) => (event as { type: string }).type,
+    const emittedEvents = mockAppendIngestEvent.mock.calls.map(
+      ([event]) => event as {
+        type: string;
+        sourceId?: string;
+        payload?: Record<string, unknown>;
+      },
     );
+    const emittedTypes = emittedEvents.map((event) => event.type);
 
     expect(emittedTypes).toEqual([
       'source_start',
@@ -181,6 +245,8 @@ describe('ingestOrchestrator', () => {
       'claim_update',
       'source_complete',
       'claim_update',
+      'source_start',
+      'source_complete',
       'passport_ready',
       'done',
     ]);
@@ -191,6 +257,36 @@ describe('ingestOrchestrator', () => {
     expect(mockCompleteIngestRun.mock.invocationCallOrder[0]).toBeLessThan(
       mockAppendIngestEvent.mock.invocationCallOrder.at(-1) ?? Number.MAX_SAFE_INTEGER,
     );
+
+    const nppesComplete = emittedEvents.find(
+      (event) => event.type === 'source_complete' && event.sourceId === 'nppes',
+    );
+    expect(nppesComplete?.payload).toMatchObject({
+      resultStatus: 'SUCCESS',
+      identityStatus: 'ACTIVE',
+    });
+
+    const passportReady = emittedEvents.find((event) => event.type === 'passport_ready');
+    expect(passportReady?.payload).toMatchObject({
+      entityId: 'entity-1',
+      displayName: 'Ada Lovelace',
+      readinessStatus: 'READY',
+      readinessScore: 91,
+      readinessLevel: 'L3',
+      exclusionStatus: 'CLEAR',
+      enrollmentStatus: 'ENROLLED',
+      checkedAt: '2026-03-22T12:05:00.000Z',
+    });
+    const fsmbComplete = emittedEvents.find(
+      (event) => event.type === 'source_complete' && event.sourceId === 'fsmb',
+    );
+    expect(fsmbComplete?.payload).toMatchObject({
+      status: 'SKIPPED',
+      route: 'manual',
+      launchState: 'CA',
+      candidateStates: ['CA'],
+    });
+    expect(emittedTypes.indexOf('passport_ready')).toBeLessThan(emittedTypes.indexOf('done'));
   });
 
   it('reuses an open run instead of starting a second one for the same NPI', async () => {

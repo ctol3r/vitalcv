@@ -1,5 +1,5 @@
-import type { ReadinessStatus } from '@/app/passport/[id]/page';
-import type { TrustStatusLabel } from '@/components/vds/primitives';
+import type { ReadinessStatus } from '@/lib/trust/passport-contract';
+import type { VdsTrustStatus } from '@/lib/trust/status-language';
 
 export type LivePathAuthState = 'loading' | 'anon' | 'authenticated' | 'employer';
 export type LivePathSourceMode = 'live' | 'demo' | 'fallback';
@@ -41,7 +41,7 @@ export function resolveLivePathAuthState(input: {
   return input.isEmployer ? 'employer' : 'authenticated';
 }
 
-export function resolveLivePathReadinessStatus(status: ReadinessStatus): TrustStatusLabel {
+export function resolveLivePathReadinessStatus(status: ReadinessStatus): VdsTrustStatus {
   switch (status) {
     case 'READY':
       return 'clear';

@@ -22,6 +22,10 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useRoleContext } from '@/components/auth/RoleContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
+import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import {
   LIVE_PATH_NPI_RE,
   LIVE_PATH_PREVIEW_NOTICE,
@@ -70,6 +74,25 @@ const STAGE_COLOR: Record<SourceStage['status'], string> = {
   skipped: 'text-amber-200',
   failed:  'text-rose-200',
 };
+
+function stageBadge(stage: SourceStage): {
+  status: 'pending' | 'verified' | 'review_required' | 'access_required';
+  label: string;
+} {
+  switch (stage.status) {
+    case 'loading':
+      return { status: 'pending', label: 'Checking' };
+    case 'ok':
+      return { status: 'verified', label: 'Complete' };
+    case 'failed':
+      return { status: 'review_required', label: 'Needs review' };
+    case 'skipped':
+      return { status: 'access_required', label: 'Unavailable' };
+    case 'waiting':
+    default:
+      return { status: 'pending', label: 'Queued' };
+  }
+}
 
 function setStageStatus(
   stages: SourceStage[],
@@ -405,16 +428,14 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
               </p>
             </div>
             {isDemo && (
-              <span className="inline-flex items-center rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-200">
-                Demo preview
-              </span>
+              <TrustStatusBadge status="demo" label="Preview only" size="sm" />
             )}
           </div>
         )}
 
         {!isPreviewPhase && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <input
+            <Input
               ref={inputRef}
               type="text"
               inputMode="numeric"
@@ -426,50 +447,40 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
               onChange={e => setNpi(e.target.value.replace(/\D/g, ''))}
               placeholder="Enter your 10-digit NPI"
               aria-label="NPI number"
-              className={`flex-1 min-w-0 rounded-xl border border-white/12 bg-white/5 px-4 py-3.5 text-[16px] text-white placeholder:text-white/30 transition-[opacity,border-color,background-color] duration-150 focus:border-emerald-500/40 focus:bg-white/7 focus:outline-none ${
+              className={`h-14 flex-1 min-w-0 rounded-xl border-white/12 bg-white/5 px-4 text-[16px] text-white placeholder:text-white/30 shadow-none transition-[opacity,border-color,background-color] duration-150 focus-visible:border-emerald-500/40 focus-visible:bg-white/7 focus-visible:ring-white/10 ${
                 phase === 'loading' ? 'cursor-default bg-white/6 opacity-80' : ''
               }`}
             />
-            <button
+            <Button
               type="submit"
+              variant="success"
               disabled={phase === 'loading'}
-              className="w-full shrink-0 whitespace-nowrap rounded-xl bg-gradient-to-b from-emerald-500 to-emerald-600 px-5 py-3.5 text-sm font-semibold text-white transition-all hover:from-emerald-400 hover:to-emerald-500 active:scale-95 disabled:scale-100 disabled:from-emerald-700 disabled:to-emerald-800 sm:w-auto"
+              className="h-14 w-full shrink-0 whitespace-nowrap rounded-xl px-5 text-sm font-semibold sm:w-auto"
             >
               <span aria-live="polite">{phase === 'loading' ? loadingCopy : 'See readiness'}</span>
-            </button>
+            </Button>
           </form>
         )}
 
         {(showLoadingPanel || phase === 'preview') && (
           <div className={`relative ${showLoadingPanel ? 'min-h-[188px] sm:min-h-[206px]' : ''}`}>
             {showLoadingPanel && (
-              <div
+              <TrustStateCard
                 aria-live="polite"
-                className={`absolute left-0 right-0 top-0 z-10 mt-5 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-4 transition-[opacity,transform] duration-150 ease-out ${
+                title={loadingCopy}
+                description={previewNotice ?? 'Connected sources only flip complete when they actually return.'}
+                className={`absolute left-0 right-0 top-0 z-10 mt-5 transition-[opacity,transform] duration-150 ease-out ${
                   loadingPanelFading ? 'pointer-events-none opacity-0 translate-y-1' : 'opacity-100 translate-y-0'
                 }`}
               >
-                <p className="text-sm font-semibold text-white">{loadingCopy}</p>
-                <p className="mt-1 text-xs text-white/35">
-                  {previewNotice ?? 'Connected sources only flip complete when they actually return.'}
-                </p>
-                <div className="mt-4 space-y-2">
+                <div className="space-y-2">
                   {stages.map((stage, index) => {
-                    const statusLabel =
-                      stage.status === 'loading'
-                        ? 'In progress'
-                        : stage.status === 'ok'
-                          ? 'Complete'
-                          : stage.status === 'skipped'
-                            ? 'Unavailable'
-                            : stage.status === 'failed'
-                              ? 'Needs review'
-                              : 'Queued';
+                    const badge = stageBadge(stage);
 
                     return (
                       <div
                         key={stage.id}
-                        className="flex items-center justify-between gap-3"
+                        className="flex items-center justify-between gap-3 rounded-xl border border-white/6 bg-black/10 px-3 py-2.5"
                         style={{ animation: `vcv-stage-in 150ms ease-out ${index * 140}ms both` }}
                       >
                         <div className="flex items-center gap-2.5">
@@ -486,16 +497,16 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
                             {stage.label}
                           </span>
                         </div>
-                        <span className={`text-[10px] font-medium uppercase tracking-[0.16em] ${
-                          stage.status === 'loading' ? 'text-sky-200' : stage.status === 'ok' ? 'text-sky-200' : stage.status === 'failed' ? 'text-rose-200' : stage.status === 'skipped' ? 'text-amber-200' : 'text-white/25'
-                        }`}>
-                          {statusLabel}
-                        </span>
+                        <TrustStatusBadge
+                          status={badge.status}
+                          label={badge.label}
+                          size="sm"
+                        />
                       </div>
                     );
                   })}
                 </div>
-              </div>
+              </TrustStateCard>
             )}
 
             {phase === 'preview' && (

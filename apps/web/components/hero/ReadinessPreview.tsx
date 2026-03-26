@@ -18,13 +18,23 @@
  */
 
 import { cn } from '@/lib/utils';
-import { Accordion, type AccordionItem } from '@/components/ui/vcv-accordion';
+import { Accordion, type AccordionItem } from '@/components/ui/accordion';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from '@/components/ui/card';
 import { ProofDetailsList } from '@/components/trust/ProofDetailsList';
+import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCard';
 import { getDemoProfile, type DemoProfile } from '@/lib/demo/demoProfiles';
 import { formatCompactProofDate } from '@/lib/trust/proof-language';
 import {
   resolveTrustUiStatus,
 } from '@/lib/trust/status-language';
+import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
 
 // ── Real trust-state shape (matches trustStateEngine output) ─
 
@@ -64,17 +74,14 @@ const DEMO_PROFILE_ALIASES: Record<string, string> = {
 
 type ReadinessTone = 'clear' | 'pending' | 'blocked';
 
-const READINESS_TONE_STYLES: Record<ReadinessTone, { badge: string; panel: string }> = {
+const READINESS_TONE_STYLES: Record<ReadinessTone, { panel: string }> = {
   clear: {
-    badge: 'border-sky-500/25 bg-sky-500/10 text-sky-200',
     panel: 'border-sky-500/15 bg-sky-500/[0.05]',
   },
   pending: {
-    badge: 'border-amber-500/25 bg-amber-500/10 text-amber-200',
     panel: 'border-amber-500/15 bg-amber-500/[0.05]',
   },
   blocked: {
-    badge: 'border-rose-500/25 bg-rose-500/10 text-rose-200',
     panel: 'border-rose-500/15 bg-rose-500/[0.06]',
   },
 };
@@ -84,6 +91,21 @@ const READINESS_TONE_LABELS: Record<ReadinessTone, string> = {
   pending: 'Pending',
   blocked: 'Blocked',
 };
+
+const CHIPS_CLASSNAME =
+  'rounded-full border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-white/60';
+
+function readinessBadgeStatus(tone: ReadinessTone): 'clear' | 'pending' | 'blocked' {
+  switch (tone) {
+    case 'clear':
+      return 'clear';
+    case 'blocked':
+      return 'blocked';
+    case 'pending':
+    default:
+      return 'pending';
+  }
+}
 
 function buildConfirmedItems(ts: ClinicianTrustState): string[] {
   return [
@@ -133,9 +155,12 @@ function formatFullDate(value?: string, fallback = 'Not checked in this run') {
 
 function accordionMeta(label: string) {
   return (
-    <span className="inline-flex items-center rounded-full border border-white/8 bg-white/4 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">
+    <Badge
+      variant="outline"
+      className="rounded-full border-white/8 bg-white/4 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/35"
+    >
       {label}
-    </span>
+    </Badge>
   );
 }
 
@@ -488,92 +513,102 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
         style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(6px)' }}
         aria-live="polite"
       >
-        <div className="rounded-2xl border border-white/8 bg-white/4 overflow-hidden">
-
-          {/* Header — real provenance */}
-          <div className="px-5 py-4 border-b border-white/6 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-white/20" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/35">
-                {ts.identityVerified ? 'Identity verified' : 'Identity record found'}
-              </span>
+        <Card className="overflow-hidden rounded-2xl border-white/8 bg-white/[0.04] py-0 shadow-none">
+          <CardHeader className="border-b border-white/6 px-5 py-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/35">
+                  {ts.identityVerified ? 'Identity verified' : 'Identity record found'}
+                </p>
+                <p className="text-lg font-bold leading-tight text-white">{displayName}</p>
+                <p className="text-sm text-white/40">{displaySpec}</p>
+              </div>
+              <div className="space-y-2 text-right">
+                <TrustStatusBadge
+                  status={readinessBadgeStatus(readinessTone)}
+                  label={READINESS_TONE_LABELS[readinessTone]}
+                  size="sm"
+                />
+                <p className="text-[10px] font-mono text-white/20">Checked {checkedTime}</p>
+              </div>
             </div>
-            <span className="text-[10px] text-white/20 font-mono">
-              Checked {checkedTime}
-            </span>
-          </div>
+          </CardHeader>
 
-          {/* Name + specialty from real data */}
-          <div className="px-5 py-4 border-b border-white/6">
-            <p className="text-lg font-bold text-white leading-tight">{displayName}</p>
-            <p className="text-sm text-white/40 mt-0.5">{displaySpec}</p>
-            <div className={cn('mt-4 rounded-xl border px-4 py-3', READINESS_TONE_STYLES[readinessTone].panel)}>
+          <CardContent className="space-y-5 px-5 py-4">
+            <div className={cn('rounded-xl border px-4 py-4', READINESS_TONE_STYLES[readinessTone].panel)}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">Readiness</p>
                   <p className="mt-2 text-sm font-semibold text-white">{ts.readiness_status}</p>
                   <p className="mt-1 text-[11px] text-white/45">{ts.readiness_score}/100 · {ts.readiness_level}</p>
                 </div>
-                <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]', READINESS_TONE_STYLES[readinessTone].badge)}>
-                  {READINESS_TONE_LABELS[readinessTone]}
-                </span>
+                <p className="text-[11px] leading-relaxed text-white/42 sm:max-w-[220px] sm:text-right">
+                  Connected sources only move into trust-core verification when the run returns real evidence.
+                </p>
               </div>
             </div>
-          </div>
 
-          {/* Blockers + confirmed state */}
-          <div className="px-5 py-4 border-b border-white/6">
-            <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/25 mb-3">
-              {gaps.length === 0 ? 'Current blockers' : 'What still needs attention'}
-            </p>
-            <div className="space-y-2">
-              {gaps.length === 0 ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-white/55 text-sm leading-none shrink-0">✔</span>
-                  <span className="text-xs text-white/45">No blockers surfaced in this run.</span>
+            <div className="space-y-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">
+                {gaps.length === 0 ? 'Current blockers' : 'What still needs attention'}
+              </p>
+              <div className="space-y-2">
+                {gaps.length === 0 ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-white/55 text-sm leading-none shrink-0">✔</span>
+                    <span className="text-xs text-white/45">No blockers surfaced in this run.</span>
+                  </div>
+                ) : gaps.slice(0, 3).map(gap => (
+                  <div key={gap} className="flex items-start gap-2">
+                    <span className="mt-px shrink-0 text-sm leading-none text-white/25">✖</span>
+                    <span className="text-xs leading-tight text-white/55">{gap}</span>
+                  </div>
+                ))}
+              </div>
+              {confirmedItems.length > 0 ? (
+                <div className="space-y-3 border-t border-white/6 pt-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Confirmed in this run</p>
+                  <div className="flex flex-wrap gap-2">
+                    {confirmedItems.map(item => (
+                      <Badge key={item} variant="outline" className={CHIPS_CLASSNAME}>
+                        {item}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-              ) : gaps.slice(0, 3).map(gap => (
-                <div key={gap} className="flex items-start gap-2">
-                  <span className="text-white/25 text-sm leading-none shrink-0 mt-px">✖</span>
-                  <span className="text-xs text-white/55 leading-tight">{gap}</span>
-                </div>
-              ))}
+              ) : null}
             </div>
-            {confirmedItems.length > 0 && (
-              <>
-                <p className="mt-4 text-[9px] font-bold uppercase tracking-[0.18em] text-white/25">Confirmed in this run</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {confirmedItems.map(item => (
-                    <span key={item} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/60">
-                      {item}
-                    </span>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
 
-          {/* Source accordion — real provenance */}
-          <div className="px-5 py-4 border-b border-white/6">
-            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/20 mb-2">Source verification</p>
-            <Accordion
-              items={accordionItems}
-              telemetryComponentId="homepage_readiness_proof"
-            />
-          </div>
+            <EvidenceDisclosureCard
+              eyebrow="Proof"
+              title="Source verification"
+              description="Expand each section to see where the snapshot is source-backed, gated, or still missing."
+              className="rounded-xl border-white/6 bg-black/10"
+              contentClassName="px-5 py-1"
+            >
+              <Accordion
+                items={accordionItems}
+                telemetryComponentId="homepage_readiness_proof"
+              />
+            </EvidenceDisclosureCard>
+          </CardContent>
 
-          {/* CTA */}
-          <div className="px-5 py-4">
-            <button type="button" onClick={onContinue}
-              className="w-full rounded-xl bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 px-5 py-3.5 font-semibold text-white text-sm transition-all active:scale-[0.98]">
-              Continue with VitalCV →
-            </button>
-            <p className="mt-2 text-center text-[10px] text-white/20">
-              Snapshot built from connected sources · {ts.methodology_version}
-            </p>
-          </div>
-
-        </div>
+          <CardFooter className="border-t border-white/6 px-5 py-4">
+            <div className="w-full">
+              <Button
+                type="button"
+                variant="success"
+                onClick={onContinue}
+                className="h-14 w-full rounded-xl px-5 text-sm font-semibold"
+              >
+                Continue with VitalCV →
+              </Button>
+              <p className="mt-2 text-center text-[10px] text-white/20">
+                Snapshot built from connected sources · {ts.methodology_version}
+              </p>
+            </div>
+          </CardFooter>
+        </Card>
       </div>
     );
   }
@@ -591,92 +626,105 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
       style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(6px)' }}
       aria-live="polite"
     >
-      <div className="rounded-2xl border border-white/8 bg-white/4 overflow-hidden">
+      <Card className="overflow-hidden rounded-2xl border-white/8 bg-white/[0.04] py-0 shadow-none">
+        <CardHeader className="border-b border-amber-500/20 bg-amber-500/10 px-5 py-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-100/80">Example preview</p>
+              <p className="text-lg font-bold leading-tight text-white">{demo.name}</p>
+              <p className="text-sm text-white/45">{demo.specialty}</p>
+            </div>
+            <TrustStatusBadge status="demo" label="Preview only" size="sm" />
+          </div>
+        </CardHeader>
 
-        {/* Demo banner — clearly labelled */}
-        <div className="border-b border-amber-500/20 bg-amber-500/10 px-5 py-3">
-          <p className="text-[11px] font-semibold text-amber-100">Example — sign in for real data</p>
-        </div>
-
-        {/* Name + specialty */}
-        <div className="px-5 py-4 border-b border-white/6">
-          <p className="text-lg font-bold text-white leading-tight">{demo.name}</p>
-          <p className="text-sm text-white/40 mt-0.5">{demo.specialty}</p>
-          <div className={cn('mt-4 rounded-xl border px-4 py-3', READINESS_TONE_STYLES[readinessTone].panel)}>
+        <CardContent className="space-y-5 px-5 py-4">
+          <div className={cn('rounded-xl border px-4 py-4', READINESS_TONE_STYLES[readinessTone].panel)}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">Readiness</p>
                 <p className="mt-2 text-sm font-semibold text-white">Estimated start: {demo.estimatedStart}</p>
                 <p className="mt-1 text-[11px] text-white/45">Example preview only</p>
               </div>
-              <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]', READINESS_TONE_STYLES[readinessTone].badge)}>
-                {READINESS_TONE_LABELS[readinessTone]}
-              </span>
+              <TrustStatusBadge
+                status={readinessBadgeStatus(readinessTone)}
+                label={READINESS_TONE_LABELS[readinessTone]}
+                size="sm"
+              />
             </div>
           </div>
-        </div>
 
-        {/* Ready / Missing */}
-        <div className="px-5 py-4 border-b border-white/6">
-          <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/25 mb-3">
-            {attentionItems.length === 0 ? 'Current blockers' : attentionHeading}
-          </p>
-          <div className="space-y-2">
-            {attentionItems.length === 0 ? (
-              <div className="flex items-center gap-2">
-                <span className="text-white/55 text-sm leading-none shrink-0">✔</span>
-                <span className="text-xs text-white/45">No blockers in this example.</span>
+          <div className="space-y-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">
+              {attentionItems.length === 0 ? 'Current blockers' : attentionHeading}
+            </p>
+            <div className="space-y-2">
+              {attentionItems.length === 0 ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-white/55 text-sm leading-none shrink-0">✔</span>
+                  <span className="text-xs text-white/45">No blockers in this example.</span>
+                </div>
+              ) : attentionItems.slice(0, 3).map(item => (
+                <div key={item} className="flex items-center gap-2">
+                  <span className="text-white/25 text-sm leading-none shrink-0">✖</span>
+                  <span className="text-xs text-white/55">{item}</span>
+                </div>
+              ))}
+            </div>
+            {demo.gatedItems.length > 0 ? (
+              <div className="space-y-3 border-t border-white/6 pt-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Access required in this example</p>
+                <div className="flex flex-wrap gap-2">
+                  {demo.gatedItems.map(item => (
+                    <Badge key={item} variant="outline" className={CHIPS_CLASSNAME}>
+                      {item}
+                    </Badge>
+                  ))}
+                </div>
               </div>
-            ) : attentionItems.slice(0, 3).map(item => (
-              <div key={item} className="flex items-center gap-2">
-                <span className="text-white/25 text-sm leading-none shrink-0">✖</span>
-                <span className="text-xs text-white/55">{item}</span>
-              </div>
-            ))}
-          </div>
-          {demo.gatedItems.length > 0 && (
-            <>
-              <p className="mt-4 text-[9px] font-bold uppercase tracking-[0.18em] text-white/25">Access required in this example</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {demo.gatedItems.map(item => (
-                  <span key={item} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/60">
+            ) : null}
+            <div className="space-y-3 border-t border-white/6 pt-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Ready in this example</p>
+              <div className="flex flex-wrap gap-2">
+                {demo.verifiedItems.map(item => (
+                  <Badge key={item} variant="outline" className={CHIPS_CLASSNAME}>
                     {item}
-                  </span>
+                  </Badge>
                 ))}
               </div>
-            </>
-          )}
-          <p className="mt-4 text-[9px] font-bold uppercase tracking-[0.18em] text-white/25">Ready in this example</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {demo.verifiedItems.map(item => (
-              <span key={item} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/60">
-                {item}
-              </span>
-            ))}
+            </div>
           </div>
-        </div>
 
-        {/* Source accordion */}
-        <div className="px-5 py-4 border-b border-white/6">
-          <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/20 mb-2">Source verification</p>
-          <Accordion
-            items={accordion}
-            telemetryComponentId="homepage_readiness_proof"
-          />
-        </div>
+          <EvidenceDisclosureCard
+            eyebrow="Proof"
+            title="Source verification"
+            description="Demo states stay clearly labeled so preview structure never stands in for live evidence."
+            className="rounded-xl border-white/6 bg-black/10"
+            contentClassName="px-5 py-1"
+          >
+            <Accordion
+              items={accordion}
+              telemetryComponentId="homepage_readiness_proof"
+            />
+          </EvidenceDisclosureCard>
+        </CardContent>
 
-        {/* CTA */}
-        <div className="px-5 py-4">
-          <button type="button" onClick={onContinue}
-            className="w-full rounded-xl bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 px-5 py-3.5 font-semibold text-white text-sm transition-all active:scale-[0.98]">
-            Continue with VitalCV →
-          </button>
-          <p className="mt-2 text-center text-[10px] text-white/20">
-            Demo preview only · live data appears after a real source run
-          </p>
-        </div>
-
-      </div>
+        <CardFooter className="border-t border-white/6 px-5 py-4">
+          <div className="w-full">
+            <Button
+              type="button"
+              variant="success"
+              onClick={onContinue}
+              className="h-14 w-full rounded-xl px-5 text-sm font-semibold"
+            >
+              Continue with VitalCV →
+            </Button>
+            <p className="mt-2 text-center text-[10px] text-white/20">
+              Demo preview only · live data appears after a real source run
+            </p>
+          </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

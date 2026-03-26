@@ -1,7 +1,9 @@
 import React from 'react';
-import type { PassportData } from '@/app/passport/[id]/page';
+import type { PassportData } from '@/lib/trust/passport-contract';
+import { Badge } from '@/components/ui/badge';
 import { ProofDetailsList } from '@/components/trust/ProofDetailsList';
-import type { AccordionItem } from '@/components/ui/vcv-accordion';
+import type { AccordionItem } from '@/components/ui/accordion';
+import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
 import {
   formatAsOfDate,
   formatCompactProofDate,
@@ -12,17 +14,23 @@ import {
   renderCredentialGroupFreshness,
 } from '@/lib/trust/proof-language';
 import {
+  isDecisionGradeAuthorityCredential,
   resolveAuthorityAccordionStatus,
   resolveAuthorityEvidenceLabel,
   resolveAuthorityMethodLabel,
   resolveAuthorityNote,
 } from '@/lib/trust/passport-truth';
 
+void React;
+
 function accordionMeta(label: string) {
   return (
-    <span className="inline-flex items-center rounded-full border border-white/8 bg-white/4 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">
+    <Badge
+      variant="outline"
+      className="rounded-full border-white/8 bg-white/4 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/35"
+    >
       {label}
-    </span>
+    </Badge>
   );
 }
 
@@ -103,9 +111,7 @@ function credentialRecordsValue(credentials: PassportData['authority']['credenti
         >
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <span className="text-white/70">{credentialEvidenceLabel(credential)}</span>
-            <span className="text-white/35 uppercase tracking-[0.14em]">
-              {credentialAccordionStatus(credential).replaceAll('_', ' ')}
-            </span>
+            <TrustStatusBadge status={credentialAccordionStatus(credential)} size="sm" />
           </div>
           <p className="mt-1 text-white/45">
             {joinNoteParts([
@@ -169,11 +175,7 @@ function authorityProofSection(passport: PassportData): AccordionItem {
     (credential) => credential.domain === 'LICENSURE',
   );
   const checkedAt = latestCredentialDate(licensureCredentials);
-  const hasDecisionGradeLicensure = licensureCredentials.some((credential) => (
-    credential.authorityClaimCode !== 'AUTHORITY_UNAVAILABLE'
-    && credential.status === 'ACTIVE'
-    && !credential.reviewRequired
-  ));
+  const hasDecisionGradeLicensure = licensureCredentials.some(isDecisionGradeAuthorityCredential);
   const status = credentialGroupStatus(
     licensureCredentials,
     passport.authority.summary.missing.includes('LICENSURE') ? 'pending' : 'access_required',
@@ -235,6 +237,7 @@ function boardProofSection(passport: PassportData): AccordionItem {
     (credential) => credential.domain === 'BOARD_CERTIFICATION',
   );
   const checkedAt = latestCredentialDate(boardCredentials);
+  const hasDecisionGradeBoard = boardCredentials.some(isDecisionGradeAuthorityCredential);
   const status = credentialGroupStatus(
     boardCredentials,
     passport.authority.summary.missing.includes('BOARD_CERTIFICATION') ? 'pending' : 'access_required',
@@ -268,8 +271,10 @@ function boardProofSection(passport: PassportData): AccordionItem {
             id: 'trust-note',
             label: 'Trust note',
             value:
-              boardCredentials.length > 0
+              hasDecisionGradeBoard
                 ? 'Board evidence is attached from the issuing authority path.'
+                : boardCredentials.length > 0
+                  ? 'Board evidence is attached, but it is not currently decision-grade for employer reliance.'
                 : 'Board coverage is not attached for this review yet.',
           },
           {
@@ -294,6 +299,7 @@ function deaProofSection(passport: PassportData): AccordionItem {
     (credential) => credential.domain === 'DEA_REGISTRATION',
   );
   const checkedAt = latestCredentialDate(deaCredentials);
+  const hasDecisionGradeDea = deaCredentials.some(isDecisionGradeAuthorityCredential);
   const status = credentialGroupStatus(
     deaCredentials,
     passport.standing.deaStatus === 'unknown' ? 'access_required' : 'checked',
@@ -329,8 +335,10 @@ function deaProofSection(passport: PassportData): AccordionItem {
             id: 'trust-note',
             label: 'Trust note',
             value:
-              deaCredentials.length > 0
+              hasDecisionGradeDea
                 ? 'Controlled-substance authority evidence is attached for this review.'
+                : deaCredentials.length > 0
+                  ? 'Controlled-substance authority evidence is attached, but it is not currently decision-grade for employer reliance.'
                 : passport.standing.deaStatus === 'unknown'
                   ? 'No decision-grade DEA proof is attached yet.'
                   : `The review carries a DEA status field (${passport.standing.deaStatus}), but no portable record is attached.`,

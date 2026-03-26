@@ -198,6 +198,19 @@ describe('passportService', () => {
       ),
     );
     expect(passport?.readiness.gaps).toContain('PECOS enrollment verification stale');
+    expect(passport?.trustPosture.band).toBe('L1');
+    expect(passport?.trustPosture.dimensions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'identity', state: 'current' }),
+        expect.objectContaining({ id: 'safety', state: 'current' }),
+        expect.objectContaining({ id: 'authority', state: 'gated' }),
+        expect.objectContaining({ id: 'eligibility', state: 'stale' }),
+      ]),
+    );
+    expect(passport?.trustPosture.gatedItems).toContain(
+      'CA physician licensure lane requires live state-board or FSMB access',
+    );
+    expect(passport?.trustPosture.staleItems).toContain('PECOS enrollment verification stale');
     expect('enrichment' in (passport ?? {})).toBe(false);
   });
 
@@ -240,5 +253,154 @@ describe('passportService', () => {
       state: 'notChecked',
       freshnessWindowHours: 2160,
     }));
+    expect(passport?.trustPosture.safeToRelyOnNow).toContain('Identity confirmed via CMS NPPES.');
+    expect(passport?.trustPosture.missingItems).toEqual(
+      expect.arrayContaining([
+        'State licensure is outside the current production lane and must be verified manually',
+        'OIG LEIE source not yet checked',
+        'PECOS enrollment source not yet checked',
+      ]),
+    );
+    expect(passport?.trustPosture.dimensions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'identity', state: 'current' }),
+        expect.objectContaining({ id: 'authority', state: 'missing' }),
+        expect.objectContaining({ id: 'safety', state: 'missing' }),
+        expect.objectContaining({ id: 'eligibility', state: 'missing' }),
+      ]),
+    );
+  });
+
+  it('surfaces a healthy posture with source-backed claims that are safe to rely on now', async () => {
+    const checks = [
+      createCanonicalSourceCoverage({
+        sourceId: 'NPPES_API',
+        state: 'live',
+        reason: 'NPPES identity checked',
+      }),
+      createCanonicalSourceCoverage({
+        sourceId: 'OIG_LEIE',
+        state: 'live',
+        reason: 'OIG LEIE check clear',
+      }),
+      createCanonicalSourceCoverage({
+        sourceId: 'STATE_BOARD',
+        state: 'live',
+        reason: 'Licensure checked',
+      }),
+      createCanonicalSourceCoverage({
+        sourceId: 'PECOS_PUBLIC',
+        state: 'live',
+        reason: 'CMS PECOS confirms enrolled status in the current quarterly release',
+      }),
+    ];
+    (getCachedTrustState as jest.Mock).mockResolvedValue({
+      licensureStatus: 'verified',
+      exclusionStatus: 'CLEAR',
+      pecosStatus: 'ENROLLED',
+      readiness_level: 'L3',
+      readiness_score: 91,
+      gap_summary: [],
+      blockers: [],
+      sourceCoverage: checks,
+    });
+
+    const passport = await buildPassport('entity-1');
+
+    expect(passport).not.toBeNull();
+    expect(passport?.trustPosture.band).toBe('L3');
+    expect(passport?.trustPosture.bandLabel).toBe('High trust');
+    expect(passport?.trustPosture.safeToRelyOnNow).toEqual(
+      expect.arrayContaining([
+        'Identity confirmed via CMS NPPES.',
+        'OIG/LEIE exclusion check is clear.',
+        'Active state licensure is verified from a live authority source.',
+        'CMS PECOS shows Medicare enrollment (2026-Q1).',
+      ]),
+    );
+    expect(passport?.trustPosture.blockers).toEqual([]);
+    expect(passport?.trustPosture.freshness.state).toBe('current');
+  });
+
+  it('explains review-required safety states when exclusion returns a possible match', async () => {
+    prismaMock.vcvCredential.findMany.mockResolvedValue([
+      buildCredential(),
+      buildCredential({
+        id: 'cred-exclusion-review',
+        domain: 'EXCLUSION_CHECK',
+        credentialType: 'OIG_LEIE_CHECK',
+        metadata: {
+          sourceId: 'OIG_LEIE',
+          claimState: 'POSSIBLE_MATCH',
+          claimConfidenceLabel: 'MEDIUM',
+          dataFreshnessLabel: 'Daily',
+        },
+        claimValue: {
+          claimState: 'POSSIBLE_MATCH',
+        },
+      }),
+      buildCredential({
+        id: 'cred-pecos',
+        domain: 'MEDICARE_ENROLLMENT',
+        credentialType: 'PECOS_ENROLLMENT',
+        metadata: {
+          sourceId: 'PECOS_PUBLIC',
+          claimState: 'ENROLLED',
+          dataVersion: '2026-Q1',
+          claimConfidenceLabel: 'HIGH',
+          dataFreshnessLabel: 'Quarterly',
+        },
+        claimValue: {
+          claimState: 'ENROLLED',
+        },
+      }),
+    ]);
+    (getCachedTrustState as jest.Mock).mockResolvedValue({
+      licensureStatus: 'verified',
+      exclusionStatus: 'POSSIBLE_MATCH',
+      pecosStatus: 'ENROLLED',
+      readiness_level: 'L1',
+      readiness_score: 52,
+      gap_summary: [],
+      blockers: [],
+      sourceCoverage: [
+        createCanonicalSourceCoverage({
+          sourceId: 'NPPES_API',
+          state: 'live',
+          reason: 'NPPES identity checked',
+        }),
+        createCanonicalSourceCoverage({
+          sourceId: 'OIG_LEIE',
+          state: 'reviewRequired',
+          reason: 'OIG LEIE returned a possible match and requires human adjudication',
+        }),
+        createCanonicalSourceCoverage({
+          sourceId: 'STATE_BOARD',
+          state: 'live',
+          reason: 'Licensure checked',
+        }),
+        createCanonicalSourceCoverage({
+          sourceId: 'PECOS_PUBLIC',
+          state: 'live',
+          reason: 'CMS PECOS confirms enrolled status in the current quarterly release',
+        }),
+      ],
+    });
+
+    const passport = await buildPassport('entity-1');
+
+    expect(passport).not.toBeNull();
+    expect(passport?.trustPosture.dimensions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'safety',
+          state: 'review_required',
+        }),
+      ]),
+    );
+    expect(passport?.trustPosture.reviewRequiredItems).toContain(
+      'OIG LEIE returned a possible match and requires human adjudication',
+    );
+    expect(passport?.trustPosture.blockers).toContain('OIG/LEIE possible match requires review');
   });
 });

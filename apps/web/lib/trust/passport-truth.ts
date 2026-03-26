@@ -1,9 +1,7 @@
-import type { PassportData } from '@/app/passport/[id]/page';
-import type { AccordionStatus } from '@/components/ui/vcv-accordion';
+import type { PassportAuthorityCredential } from '@/lib/trust/passport-contract';
+import type { AccordionStatus } from '@/components/ui/accordion';
 import type { TrustStatus } from '@/components/ui/trust-label';
-import type { TrustStatusLabel } from '@/components/vds/primitives';
-
-export type PassportAuthorityCredential = PassportData['authority']['credentials'][number];
+import type { VdsTrustStatus } from '@/lib/trust/status-language';
 
 export type AuthorityEvidenceStatus =
   | 'verified'
@@ -12,6 +10,12 @@ export type AuthorityEvidenceStatus =
   | 'access_required'
   | 'unavailable'
   | 'pending';
+
+export type AuthorityDecisionBasisBucket =
+  | 'sourceBackedNow'
+  | 'stale'
+  | 'needsReview'
+  | 'missingOrAccessRequired';
 
 function licensureJurisdiction(credential: PassportAuthorityCredential): string {
   return credential.jurisdiction ? ` (${credential.jurisdiction})` : '';
@@ -83,7 +87,7 @@ export function resolveAuthorityAccordionStatus(
 
 export function resolveAuthorityVdsStatus(
   credential: PassportAuthorityCredential,
-): TrustStatusLabel {
+): VdsTrustStatus {
   const status = resolveAuthorityEvidenceStatus(credential);
 
   switch (status) {
@@ -276,4 +280,30 @@ export function resolveAuthoritySectionStatus(
   if (missingDomains.includes('LICENSURE')) return 'pending';
   if (hasVerified) return 'review_required';
   return 'pending';
+}
+
+export function isDecisionGradeAuthorityCredential(
+  credential: PassportAuthorityCredential,
+): boolean {
+  return !credential.stale && resolveAuthorityEvidenceStatus(credential) === 'verified';
+}
+
+export function resolveAuthorityDecisionBasisBucket(
+  credential: PassportAuthorityCredential,
+): AuthorityDecisionBasisBucket {
+  if (credential.stale) {
+    return 'stale';
+  }
+
+  const status = resolveAuthorityEvidenceStatus(credential);
+
+  if (status === 'verified') {
+    return 'sourceBackedNow';
+  }
+
+  if (status === 'review_required' || status === 'blocked') {
+    return 'needsReview';
+  }
+
+  return 'missingOrAccessRequired';
 }

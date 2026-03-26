@@ -1,4 +1,12 @@
-import type { PassportData } from '@/app/passport/[id]/page';
+import type { PassportData } from '@/lib/trust/passport-contract';
+import { resolveAuthorityEvidenceStatus } from '@/lib/trust/passport-truth';
+import {
+  findPassportSourceCoverageChecks,
+  findPriorityCanonicalSourceCoverage,
+  sourceCoverageStateLabel,
+  type PassportSourceCoverageCheck,
+  type PassportSourceCoverageState,
+} from '@/lib/trust/source-coverage';
 
 export type PassportFreshnessEntry = {
   layer: string;
@@ -6,6 +14,8 @@ export type PassportFreshnessEntry = {
   source: string;
   stale: boolean;
   unchecked: boolean;
+  sourceState: PassportSourceCoverageState | null;
+  stateLabel: string | null;
 };
 
 export type PassportFreshnessState = 'current' | 'partial' | 'stale';
@@ -64,9 +74,22 @@ export function renderCredentialGroupFreshness(
     return 'No attached record';
   }
 
-  return credentials.some((credential) => credential.stale)
-    ? 'Mixed freshness'
-    : 'Within freshness window';
+  if (credentials.some((credential) => credential.stale)) {
+    return 'Mixed freshness';
+  }
+
+  const statuses = credentials.map(resolveAuthorityEvidenceStatus);
+  if (statuses.some((status) => status === 'review_required' || status === 'blocked')) {
+    return 'Review required';
+  }
+  if (statuses.some((status) => status === 'access_required')) {
+    return 'Access required';
+  }
+  if (statuses.some((status) => status === 'unavailable' || status === 'pending')) {
+    return 'Unavailable';
+  }
+
+  return 'Within freshness window';
 }
 
 function latestObservedAt(
@@ -81,6 +104,107 @@ function latestObservedAt(
   }
 
   return values.sort((left, right) => Date.parse(right) - Date.parse(left))[0] ?? null;
+}
+
+const COVERAGE_LAYER_PRIORITIES: readonly PassportSourceCoverageState[] = [
+  'live',
+  'stale',
+  'reviewRequired',
+  'accessRequired',
+  'unavailable',
+  'gated',
+  'notDecisionGrade',
+  'partial',
+  'mock',
+  'notChecked',
+];
+
+const NPPES_ALIASES = ['NPPES', 'NPPES_API', 'NPI Registry'];
+const OIG_ALIASES = ['OIG', 'LEIE', 'OIG_LEIE'];
+const LICENSURE_ALIASES = [
+  'STATE_BOARD',
+  'STATE_BOARD_CA_API',
+  'STATE_BOARD_MANUAL',
+  'FSMB',
+  'FSMB_MED_API',
+  'FSMB_PDC',
+  'NURSYS',
+  'NURSYS_ENOTIFY',
+];
+const PECOS_ALIASES = ['PECOS', 'PECOS_PUBLIC'];
+
+function isPastFreshnessWindowHours(
+  checkedAt: string | null | undefined,
+  freshnessWindowHours: number | null | undefined,
+): boolean {
+  if (!checkedAt || !freshnessWindowHours) {
+    return false;
+  }
+
+  const timestamp = Date.parse(checkedAt);
+  if (Number.isNaN(timestamp)) {
+    return false;
+  }
+
+  return Date.now() - timestamp > freshnessWindowHours * 60 * 60 * 1000;
+}
+
+function resolveCoverageFreshnessState(
+  check: PassportSourceCoverageCheck,
+): PassportSourceCoverageState {
+  if (
+    check.state === 'live'
+    && isPastFreshnessWindowHours(check.checkedAt, check.freshnessWindowHours)
+  ) {
+    return 'stale';
+  }
+
+  return check.state;
+}
+
+function buildCoverageFreshnessEntry(
+  passport: PassportData,
+  config: {
+    layer: string;
+    source: string;
+    aliases: string[];
+    fallback: () => Omit<PassportFreshnessEntry, 'layer' | 'source' | 'sourceState' | 'stateLabel'>;
+  },
+): PassportFreshnessEntry {
+  const matchingChecks = findPassportSourceCoverageChecks(
+    passport.sourceCoverage,
+    config.aliases,
+  );
+  const prioritizedCheck = findPriorityCanonicalSourceCoverage(
+    matchingChecks,
+    COVERAGE_LAYER_PRIORITIES,
+  );
+
+  if (!prioritizedCheck) {
+    return {
+      layer: config.layer,
+      source: config.source,
+      sourceState: null,
+      stateLabel: null,
+      ...config.fallback(),
+    };
+  }
+
+  const sourceState = resolveCoverageFreshnessState(prioritizedCheck);
+  const fallback = config.fallback();
+
+  return {
+    layer: config.layer,
+    checkedAt: prioritizedCheck.checkedAt ?? fallback.checkedAt,
+    source: config.source,
+    stale: sourceState === 'stale',
+    unchecked: sourceState !== 'live' && sourceState !== 'stale',
+    sourceState,
+    stateLabel:
+      sourceState === 'live' || sourceState === 'stale'
+        ? null
+        : sourceCoverageStateLabel(sourceState),
+  };
 }
 
 export function buildPassportFreshnessEntries(
@@ -99,41 +223,56 @@ export function buildPassportFreshnessEntries(
   );
 
   return [
-    {
+    buildCoverageFreshnessEntry(passport, {
       layer: 'Identity (NPPES)',
-      checkedAt: passport.lastCheckedAt ?? null,
       source: 'CMS NPPES',
-      stale: isStale(passport.lastCheckedAt, 30),
-      unchecked: !passport.lastCheckedAt,
-    },
-    {
+      aliases: NPPES_ALIASES,
+      fallback: () => ({
+        checkedAt: passport.lastCheckedAt ?? null,
+        stale: isStale(passport.lastCheckedAt, 30),
+        unchecked: !passport.lastCheckedAt,
+      }),
+    }),
+    buildCoverageFreshnessEntry(passport, {
       layer: 'Safety (OIG)',
-      checkedAt: passport.standing.exclusionCheckedAt ?? null,
       source: 'OIG LEIE',
-      stale: isStale(passport.standing.exclusionCheckedAt, 90),
-      unchecked: passport.standing.exclusionStatus === 'UNCHECKED',
-    },
-    {
+      aliases: OIG_ALIASES,
+      fallback: () => ({
+        checkedAt: passport.standing.exclusionCheckedAt ?? null,
+        stale: isStale(passport.standing.exclusionCheckedAt, 90),
+        unchecked: passport.standing.exclusionStatus === 'UNCHECKED',
+      }),
+    }),
+    buildCoverageFreshnessEntry(passport, {
       layer: 'Authority (Licenses)',
-      checkedAt: licensureCheckedAt,
       source: 'State Boards / FSMB',
-      stale: licensureCredentials.length > 0 && licensureCredentials.some((credential) => credential.stale),
-      unchecked: licensureCredentials.length === 0,
-    },
-    {
+      aliases: LICENSURE_ALIASES,
+      fallback: () => ({
+        checkedAt: licensureCheckedAt,
+        stale: licensureCredentials.length > 0
+          && licensureCredentials.some((credential) => credential.stale),
+        unchecked: licensureCredentials.length === 0,
+      }),
+    }),
+    buildCoverageFreshnessEntry(passport, {
       layer: 'Eligibility (PECOS)',
-      checkedAt: passport.standing.enrollmentObservedAt ?? null,
       source: passport.standing.enrollmentSourceLabel ?? 'CMS PECOS',
-      // PECOS data expires — treat as stale if past revalidation due date on the PECOS credential,
-      // or >180 days since the enrollment was observed. Previously hardcoded false (always fresh).
-      stale: (() => {
-        const pecosCred = passport.authority.credentials.find(c => c.domain === 'MEDICARE_ENROLLMENT');
-        const revalDue = pecosCred?.nextReverifyAt ?? pecosCred?.revalidationDue ?? null;
-        if (revalDue) return new Date(revalDue) < new Date();
-        return isStale(passport.standing.enrollmentObservedAt, 180);
-      })(),
-      unchecked: pecosEnrollmentStatus === 'UNCHECKED',
-    },
+      aliases: PECOS_ALIASES,
+      fallback: () => ({
+        checkedAt: passport.standing.enrollmentObservedAt ?? null,
+        // PECOS data expires — treat as stale if past revalidation due date on the PECOS credential,
+        // or >180 days since the enrollment was observed. Previously hardcoded false (always fresh).
+        stale: (() => {
+          const pecosCred = passport.authority.credentials.find((credential) => (
+            credential.domain === 'MEDICARE_ENROLLMENT'
+          ));
+          const revalDue = pecosCred?.nextReverifyAt ?? pecosCred?.revalidationDue ?? null;
+          if (revalDue) return new Date(revalDue) < new Date();
+          return isStale(passport.standing.enrollmentObservedAt, 180);
+        })(),
+        unchecked: pecosEnrollmentStatus === 'UNCHECKED',
+      }),
+    }),
   ];
 }
 

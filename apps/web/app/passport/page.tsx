@@ -19,9 +19,14 @@ export const dynamic = 'force-dynamic';
  * No polling. No full-page reload. No fake refresh.
  */
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { useIngestStream, type StreamPhase, type SourceStatus } from '@/hooks/useIngestStream';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { TrustStateCard } from '@/components/trust/TrustStateCard';
+import { TrustStatusBadge, type TrustBadgeStatus } from '@/components/ui/trust-status-badge';
+import { useIngestStream, type StreamPhase } from '@/hooks/useIngestStream';
 
 // ── Status label helper ────────────────────────────────────────────────────────
 
@@ -39,7 +44,53 @@ const PHASE_LABEL: Record<StreamPhase, string> = {
 
 type SourceState = 'pending' | 'checking' | 'done' | 'error';
 
+function resolveSourceBadge(state: SourceState, displayValue: string): {
+  status: TrustBadgeStatus;
+  label: string;
+} {
+  if (state === 'checking') {
+    return { status: 'pending', label: 'Checking' };
+  }
+
+  if (state === 'pending') {
+    return { status: 'pending', label: 'Queued' };
+  }
+
+  if (state === 'error') {
+    return { status: 'unavailable', label: 'Unavailable' };
+  }
+
+  switch (displayValue) {
+    case 'Verified':
+      return { status: 'verified', label: displayValue };
+    case 'Clear':
+      return { status: 'clear', label: displayValue };
+    case 'Enrolled':
+      return { status: 'enrolled', label: displayValue };
+    case 'Flag found':
+    case 'Possible match':
+    case 'Not found':
+    case 'Opted out':
+      return { status: 'review required', label: displayValue };
+    case 'Excluded':
+      return { status: 'blocked', label: displayValue };
+    case 'No profile yet':
+      return { status: 'unavailable', label: displayValue };
+    case 'Checked':
+    case 'Done':
+    default:
+      return { status: 'checked', label: displayValue };
+  }
+}
+
 function SourceRow({ label, state, value }: { label: string; state: SourceState; value?: string }) {
+  const displayValue =
+    state === 'checking' ? 'Checking…'
+    : state === 'done' ? (value ?? 'Done')
+    : state === 'error' ? 'Unavailable'
+    : '—';
+  const badge = resolveSourceBadge(state, displayValue);
+
   return (
     <div className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
       <div className="flex items-center gap-2.5">
@@ -56,14 +107,70 @@ function SourceRow({ label, state, value }: { label: string; state: SourceState;
         />
         <span className="text-white/55 text-sm">{label}</span>
       </div>
-      <span className="text-white/30 text-xs">
-        {state === 'checking' ? 'Checking…'
-       : state === 'done'     ? (value ?? 'Done')
-       : state === 'error'    ? 'Unavailable'
-       :                        '—'}
-      </span>
+      <TrustStatusBadge status={badge.status} label={badge.label} size="sm" />
     </div>
   );
+}
+
+function formatExclusionLabel(
+  checked: boolean,
+  exclusionClear: boolean | undefined,
+  exclusionStatus: string | undefined,
+  state: SourceState,
+): string | undefined {
+  if (state === 'error') {
+    return undefined;
+  }
+
+  if (!checked) {
+    return state === 'done' ? 'Checked' : undefined;
+  }
+
+  if (exclusionClear === true) {
+    return 'Clear';
+  }
+
+  if (exclusionClear === false) {
+    return 'Flag found';
+  }
+
+  if (exclusionStatus === 'POSSIBLE_MATCH') {
+    return 'Possible match';
+  }
+
+  if (exclusionStatus === 'EXCLUDED') {
+    return 'Excluded';
+  }
+
+  return 'Checked';
+}
+
+function formatEnrollmentLabel(
+  checked: boolean,
+  enrollmentStatus: string | undefined,
+  state: SourceState,
+): string | undefined {
+  if (state === 'error') {
+    return undefined;
+  }
+
+  if (!checked) {
+    return state === 'done' ? 'Checked' : undefined;
+  }
+
+  if (enrollmentStatus === 'ENROLLED') {
+    return 'Enrolled';
+  }
+
+  if (enrollmentStatus === 'NOT_FOUND') {
+    return 'Not found';
+  }
+
+  if (enrollmentStatus === 'OPTED_OUT') {
+    return 'Opted out';
+  }
+
+  return enrollmentStatus ?? 'Checked';
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
@@ -73,10 +180,30 @@ export default function PassportPage() {
   const [inputError, setInputError] = useState<string | null>(null);
   const { state, startIngest, reset } = useIngestStream();
 
-  const isActive  = state.phase !== 'idle';
-  const isDone    = state.phase === 'done';
-  const isError   = state.phase === 'error';
-  const isRunning = !isDone && !isError && isActive;
+  const isActive = state.phase !== 'idle';
+  const hasTerminalState = Boolean(state.completedAt) || state.phase === 'done' || state.phase === 'error';
+  const anchorEntityId = state.anchorEntityId ?? state.identity.entityId;
+  const canViewPassport = state.isUsable && Boolean(anchorEntityId);
+  const noProfileYet =
+    hasTerminalState
+    && !canViewPassport
+    && (
+      state.identity.sourceResult === 'SKIPPED'
+      || (state.sources.nppes === 'done' && state.identity.status === 'UNKNOWN')
+    );
+  const disconnected = state.disconnected && !canViewPassport;
+  const runCompletedWithoutAnchor =
+    hasTerminalState
+    && !canViewPassport
+    && !noProfileYet
+    && !disconnected
+    && state.identity.authoritative;
+  const genericError =
+    state.phase === 'error'
+    && !canViewPassport
+    && !disconnected
+    && !noProfileYet;
+  const isRunning = isActive && !hasTerminalState && !canViewPassport && !disconnected;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -88,17 +215,25 @@ export default function PassportPage() {
 
   const { identity, standing, sources } = state;
 
-  const exclusionLabel =
-    !standing.exclusionChecked              ? undefined
-    : standing.exclusionClear === true      ? 'Clear'
-    : standing.exclusionClear === false     ? 'Flag found'
-    :                                         'Checking…';
-
-  const enrollmentLabel =
-    !standing.enrollmentChecked             ? undefined
-    : standing.enrollmentStatus === 'ENROLLED' ? 'Enrolled'
-    : standing.enrollmentStatus             ? standing.enrollmentStatus
-    :                                         'Unknown';
+  const exclusionLabel = formatExclusionLabel(
+    standing.exclusionChecked,
+    standing.exclusionClear,
+    standing.exclusionStatus,
+    sources.oig,
+  );
+  const enrollmentLabel = formatEnrollmentLabel(
+    standing.enrollmentChecked,
+    standing.enrollmentStatus,
+    sources.pecos,
+  );
+  const identityLabel =
+    identity.authoritative
+      ? 'Verified'
+      : noProfileYet
+        ? 'No profile yet'
+        : state.identity.sourceResult === 'FAILED'
+          ? 'Unavailable'
+          : undefined;
 
   return (
     <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center px-4 pt-16 sm:pt-24 pb-24">
@@ -121,7 +256,7 @@ export default function PassportPage() {
         {!isActive && (
           <form onSubmit={handleSubmit} className="space-y-3">
             <label htmlFor="passport-npi" className="sr-only">Your NPI number</label>
-            <input
+            <Input
               id="passport-npi"
               type="text"
               inputMode="numeric"
@@ -130,20 +265,21 @@ export default function PassportPage() {
               value={npi}
               onChange={e => setNpi(e.target.value.replace(/\D/g, ''))}
               placeholder="1234567890"
-              className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-4 text-white placeholder:text-white/20 text-[16px] tracking-widest text-center focus:outline-none focus:border-white/30 focus:bg-white/10 transition-all"
+              className="h-14 w-full rounded-xl border-white/12 bg-white/6 px-4 text-[16px] tracking-widest text-center text-white placeholder:text-white/20 shadow-none focus-visible:border-white/30 focus-visible:bg-white/10 focus-visible:ring-white/10"
               aria-label="NPI number"
               autoComplete="off"
             />
             {inputError && (
               <p className="text-red-400/70 text-xs text-center">{inputError}</p>
             )}
-            <button
+            <Button
               type="submit"
+              variant="success"
               disabled={npi.length !== 10}
-              className="w-full bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 disabled:opacity-40 text-white rounded-full py-3.5 text-sm font-medium transition-all min-h-[48px]"
+              className="h-14 w-full rounded-full text-sm font-medium"
             >
               Check my readiness
-            </button>
+            </Button>
           </form>
         )}
 
@@ -159,8 +295,8 @@ export default function PassportPage() {
             )}
 
             {/* Identity block — appears when NPPES resolves */}
-            {identity.displayName && (
-              <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4">
+            {identity.authoritative && identity.displayName && (
+              <Card className="gap-2 rounded-2xl border-white/10 bg-white/5 px-5 py-4 shadow-none">
                 <p className="text-white/30 text-xs uppercase tracking-widest mb-1">Provider</p>
                 <h2 className="text-white text-xl font-semibold leading-tight">
                   {identity.displayName}
@@ -169,15 +305,15 @@ export default function PassportPage() {
                   <p className="text-white/50 text-sm mt-0.5">{identity.specialty}</p>
                 )}
                 <p className="text-white/25 text-xs mt-1">NPI {state.npi}</p>
-              </div>
+              </Card>
             )}
 
             {/* Source status rows */}
-            <div className="rounded-xl border border-white/8 bg-white/3 px-4 py-2">
+            <Card className="gap-0 rounded-xl border-white/8 bg-white/3 px-4 py-2 shadow-none">
               <SourceRow
                 label="Identity"
                 state={sources.nppes}
-                value={identity.displayName ? 'Verified' : undefined}
+                value={identityLabel}
               />
               <SourceRow
                 label="Sanctions (OIG)"
@@ -189,7 +325,7 @@ export default function PassportPage() {
                 state={sources.pecos}
                 value={enrollmentLabel}
               />
-            </div>
+            </Card>
 
             {/* Readiness score — appears when claims update */}
             {state.readiness.score !== undefined && (
@@ -201,56 +337,69 @@ export default function PassportPage() {
               </div>
             )}
 
-            {/* Done state — full passport available */}
-            {isDone && identity.entityId && (
+            {/* Usable state — passport anchor is available */}
+            {canViewPassport && anchorEntityId && (
               <div className="space-y-3">
-                <Link
-                  href={`/passport/${identity.entityId}`}
-                  className="block w-full bg-emerald-500 hover:bg-emerald-400 text-white text-center rounded-full py-3.5 text-sm font-medium transition-all min-h-[48px] leading-[48px]"
-                >
-                  View full passport
-                </Link>
-                <Link
-                  href={`/review/${identity.entityId}`}
-                  className="block w-full rounded-full border border-white/10 bg-white/4 py-3.5 text-center text-sm font-medium text-white/60 transition-all hover:border-white/20 hover:bg-white/7 hover:text-white"
-                >
-                  View as employer
-                </Link>
+                <Button asChild variant="success" className="h-14 w-full rounded-full text-sm font-medium">
+                  <Link href={`/passport/${anchorEntityId}`}>
+                    View full passport
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="h-14 w-full rounded-full border-white/10 bg-white/4 text-sm font-medium text-white/60 hover:border-white/20 hover:bg-white/7 hover:text-white">
+                  <Link href={`/review/${anchorEntityId}`}>
+                    View as employer
+                  </Link>
+                </Button>
               </div>
             )}
 
-            {/* Done but no entityId — NPPES resolved without entity anchor */}
-            {isDone && !identity.entityId && (
-              <div className="rounded-xl border border-white/8 bg-white/3 px-4 py-3 text-center space-y-2">
-                <p className="text-white/45 text-sm">
-                  Profile resolved but not yet anchored.
-                </p>
-                <p className="text-white/25 text-xs">
-                  Run completed — try again in a moment or use a different NPI.
-                </p>
-              </div>
+            {/* Terminal no-profile state */}
+            {noProfileYet && (
+              <TrustStateCard
+                title="No profile found for this NPI yet."
+                description="The ingest run completed, but NPPES did not return an authoritative provider record."
+                centered
+              />
+            )}
+
+            {/* Terminal completion without anchor */}
+            {runCompletedWithoutAnchor && (
+              <TrustStateCard
+                title="Profile resolved but not yet anchored."
+                description="The run finished, but no passport anchor was returned for this profile."
+                centered
+              />
+            )}
+
+            {/* Disconnect state */}
+            {disconnected && (
+              <TrustStateCard
+                title="Stream disconnected before your passport finished hydrating."
+                description="Start the ingest again to reopen the live stream."
+                tone="warning"
+                centered
+              />
             )}
 
             {/* Error state */}
-            {isError && (
-              <div className="rounded-xl border border-white/8 bg-white/3 px-4 py-3 text-center space-y-2">
-                <p className="text-white/45 text-sm">
-                  {state.error ?? 'Something went wrong.'}
-                </p>
-                <p className="text-white/25 text-xs">
-                  Data may still be available from prior ingest.
-                </p>
-              </div>
+            {genericError && (
+              <TrustStateCard
+                title={state.error ?? 'Something went wrong.'}
+                description="No fallback passport was assumed for this run."
+                tone="critical"
+                centered
+              />
             )}
 
             {/* Start over */}
             <div className="text-center">
-              <button
+              <Button
                 onClick={reset}
-                className="text-white/25 hover:text-white/45 text-xs transition-colors min-h-[44px] px-4"
+                variant="ghost"
+                className="min-h-[44px] px-4 text-xs text-white/25 hover:bg-transparent hover:text-white/45"
               >
-                {isDone ? 'Check another NPI' : 'Cancel'}
-              </button>
+                {canViewPassport || hasTerminalState ? 'Check another NPI' : 'Cancel'}
+              </Button>
             </div>
           </div>
         )}

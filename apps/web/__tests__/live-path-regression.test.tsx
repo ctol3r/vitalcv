@@ -4,7 +4,7 @@ import * as React from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PassportData } from '@/app/passport/[id]/page';
+import type { PassportData } from '@/lib/trust/passport-contract';
 import type { RoleContextValue } from '@/components/auth/RoleContext';
 import { LiveTrustConsole } from '@/components/hero/LiveTrustConsole';
 import InterviewClient from '@/app/interview/InterviewClient';
@@ -97,7 +97,7 @@ vi.mock('@/components/trust/ProofDetailsList', () => ({
   ),
 }));
 
-vi.mock('@/components/ui/vcv-accordion', () => ({
+vi.mock('@/components/ui/accordion', () => ({
   Accordion: ({
     items,
   }: {
@@ -254,6 +254,90 @@ function buildPassport(
         OIG: '2026-03-20T10:30:00.000Z',
       },
     },
+    trustPosture: {
+      band: 'L2',
+      bandLabel: 'Moderate trust',
+      score: 88,
+      dimensions: [
+        {
+          id: 'identity',
+          label: 'Identity',
+          state: 'current',
+          detail: 'Identity is confirmed in CMS NPPES and is safe to rely on now.',
+          checkedAt: '2026-03-20T10:30:00.000Z',
+        },
+        {
+          id: 'safety',
+          label: 'Safety',
+          state: 'current',
+          detail: 'Current OIG/LEIE exclusion screening is clear.',
+          checkedAt: '2026-03-20T10:30:00.000Z',
+        },
+        {
+          id: 'authority',
+          label: 'Authority',
+          state: 'current',
+          detail: 'Active state licensure is verified from a live authority source.',
+          checkedAt: '2026-03-20T10:00:00.000Z',
+        },
+        {
+          id: 'eligibility',
+          label: 'Eligibility',
+          state: 'current',
+          detail: 'CMS PECOS shows Medicare enrollment (Q1 2026).',
+          checkedAt: '2026-03-01T00:00:00.000Z',
+        },
+      ],
+      freshness: {
+        state: 'partial',
+        label: 'Partial source coverage',
+        items: [
+          {
+            id: 'identity',
+            label: 'Identity',
+            source: 'CMS NPPES',
+            state: 'current',
+            checkedAt: '2026-03-20T10:30:00.000Z',
+            note: 'Current attached check',
+          },
+          {
+            id: 'safety',
+            label: 'Safety',
+            source: 'OIG LEIE',
+            state: 'current',
+            checkedAt: '2026-03-20T10:30:00.000Z',
+            note: 'Current attached check',
+          },
+          {
+            id: 'authority',
+            label: 'Authority',
+            source: 'Oregon Board of Nursing',
+            state: 'current',
+            checkedAt: '2026-03-20T10:00:00.000Z',
+            note: 'Current attached check',
+          },
+          {
+            id: 'eligibility',
+            label: 'Eligibility',
+            source: 'CMS PECOS',
+            state: 'current',
+            checkedAt: '2026-03-01T00:00:00.000Z',
+            note: 'Current attached check',
+          },
+        ],
+      },
+      safeToRelyOnNow: [
+        'Identity confirmed via CMS NPPES.',
+        'OIG/LEIE exclusion check is clear.',
+        'Active state licensure is verified from a live authority source.',
+        'CMS PECOS shows Medicare enrollment (Q1 2026).',
+      ],
+      missingItems: [],
+      gatedItems: [],
+      reviewRequiredItems: [],
+      staleItems: [],
+      blockers: ['DEA_REGISTRATION'],
+    },
     lastCheckedAt: '2026-03-20T10:30:00.000Z',
   };
 
@@ -298,6 +382,22 @@ function buildPassport(
         ...base.sources.lastFetch,
         ...overrides.sources?.lastFetch,
       },
+    },
+    trustPosture: {
+      ...base.trustPosture,
+      ...overrides.trustPosture,
+      dimensions: overrides.trustPosture?.dimensions ?? base.trustPosture.dimensions,
+      freshness: {
+        ...base.trustPosture.freshness,
+        ...overrides.trustPosture?.freshness,
+        items: overrides.trustPosture?.freshness?.items ?? base.trustPosture.freshness.items,
+      },
+      safeToRelyOnNow: overrides.trustPosture?.safeToRelyOnNow ?? base.trustPosture.safeToRelyOnNow,
+      missingItems: overrides.trustPosture?.missingItems ?? base.trustPosture.missingItems,
+      gatedItems: overrides.trustPosture?.gatedItems ?? base.trustPosture.gatedItems,
+      reviewRequiredItems: overrides.trustPosture?.reviewRequiredItems ?? base.trustPosture.reviewRequiredItems,
+      staleItems: overrides.trustPosture?.staleItems ?? base.trustPosture.staleItems,
+      blockers: overrides.trustPosture?.blockers ?? base.trustPosture.blockers,
     },
   };
 }
@@ -587,6 +687,70 @@ describe('live path regression hardening', () => {
     await view.unmount();
   });
 
+  it('renders passport-derived employer truth buckets without collapsing contextual proof', async () => {
+    buildPassportProofSectionsMock.mockReturnValue([
+      {
+        id: 'identity',
+        trigger: 'Identity Verification',
+        status: 'verified',
+        content: <div>Decision-grade identity proof.</div>,
+      },
+      {
+        id: 'eligibility',
+        trigger: 'Enrollment / Eligibility',
+        status: 'checked',
+        content: <div>Quarterly enrollment context.</div>,
+      },
+      {
+        id: 'dea',
+        trigger: 'DEA / Controlled Substance',
+        status: 'access_required',
+        content: <div>DEA access still missing.</div>,
+      },
+    ]);
+    summarizePassportProofSectionsMock.mockReturnValue({
+      decisionGradeCount: 1,
+      informationalCount: 1,
+      total: 3,
+      warningCount: 0,
+      incompleteCount: 1,
+    });
+
+    const passport = buildPassport({
+      sourceCoverage: {
+        checks: [
+          { sourceId: 'NPPES_API', state: 'live', reason: 'identity checked', checkedAt: '2026-03-20T10:30:00.000Z' },
+          { sourceId: 'PECOS_PUBLIC', state: 'notDecisionGrade', reason: 'quarterly dataset', checkedAt: '2026-03-01T00:00:00.000Z' },
+        ],
+        summary: {
+          live: ['NPPES_API'],
+          gated: [],
+          partial: [],
+          stale: [],
+          notDecisionGrade: ['PECOS_PUBLIC'],
+          notChecked: [],
+          unavailable: [],
+          accessRequired: [],
+          reviewRequired: [],
+          mock: [],
+        },
+      },
+    });
+    const view = await renderNode(<ReviewClient passport={passport} contextId="ctx_truth" />);
+
+    expect(textContent(view.container)).toContain('Passport truth in this review');
+    expect(textContent(view.container)).toContain('Source-backed now');
+    expect(textContent(view.container)).toContain('Identity Verification');
+    expect(textContent(view.container)).toContain('Contextual only');
+    expect(textContent(view.container)).toContain('Enrollment / Eligibility');
+    expect(textContent(view.container)).toContain('Missing or access required');
+    expect(textContent(view.container)).toContain('DEA / Controlled Substance');
+    expect(textContent(view.container)).toContain('Sources checked');
+    expect(textContent(view.container)).toContain('Only live sources are decision-grade.');
+
+    await view.unmount();
+  });
+
   it('persists employer accept actions and renders the audit success state', async () => {
     roleContextValue = {
       ...roleContextValue,
@@ -665,6 +829,40 @@ describe('live path regression hardening', () => {
       'employer_action_clicked',
       'employer_action_result',
     ]));
+
+    await view.unmount();
+  });
+
+  it('keeps review authority buckets aligned with Passport truth for mixed licensure states', async () => {
+    const passport = buildPassport({
+      authority: {
+        credentials: [
+          buildCredential(),
+          buildCredential({
+            id: 'cred_manual',
+            status: 'UNRESOLVED',
+            authorityClaimCode: 'AUTHORITY_UNAVAILABLE',
+            participationStatus: 'manual_verification_required',
+            sourceScope: 'STATE_BOARD_MANUAL',
+            jurisdiction: 'TX',
+            stale: false,
+          }),
+        ],
+        summary: {
+          active: 1,
+          expired: 0,
+          stale: 0,
+          missing: ['DEA_REGISTRATION'],
+        },
+      },
+    });
+    const view = await renderNode(<ReviewClient passport={passport} />);
+
+    expect(textContent(view.container)).toContain('Source-backed now');
+    expect(textContent(view.container)).toContain('Nursing license (OR)');
+    expect(textContent(view.container)).toContain('Missing or access required');
+    expect(textContent(view.container)).toContain('License verification — manual lane only (TX)');
+    expect(textContent(view.container)).not.toContain('State Licensure / Authority');
 
     await view.unmount();
   });

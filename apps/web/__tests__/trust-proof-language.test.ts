@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PassportData } from '../app/passport/[id]/page';
+import type { PassportData } from '../lib/trust/passport-contract';
 import { buildPassportProofSections } from '../components/trust/passportProofSections';
+import { buildPassportReviewTruthModel } from '../lib/trust/passport-review-truth';
 import {
   buildPassportFreshnessEntries,
   renderAttachedCheckFreshness,
@@ -79,6 +80,89 @@ function buildPassport(overrides: Partial<PassportData> = {}): PassportData {
       checked: ['STATE_BOARD', 'CMS PECOS', 'OIG_LEIE'],
       lastFetch: {},
     },
+    trustPosture: {
+      band: 'L2',
+      bandLabel: 'Moderate trust',
+      score: 92,
+      dimensions: [
+        {
+          id: 'identity',
+          label: 'Identity',
+          state: 'current',
+          detail: 'Identity is confirmed in CMS NPPES and is safe to rely on now.',
+          checkedAt: '2026-03-20T00:00:00.000Z',
+        },
+        {
+          id: 'safety',
+          label: 'Safety',
+          state: 'current',
+          detail: 'Current OIG/LEIE exclusion screening is clear.',
+          checkedAt: '2026-03-20T00:00:00.000Z',
+        },
+        {
+          id: 'authority',
+          label: 'Authority',
+          state: 'current',
+          detail: 'Active state licensure is verified from a live authority source.',
+          checkedAt: '2026-01-01T00:00:00.000Z',
+        },
+        {
+          id: 'eligibility',
+          label: 'Eligibility',
+          state: 'current',
+          detail: 'CMS PECOS shows Medicare enrollment.',
+          checkedAt: '2026-03-20T00:00:00.000Z',
+        },
+      ],
+      freshness: {
+        state: 'current',
+        label: 'Current attached checks',
+        items: [
+          {
+            id: 'identity',
+            label: 'Identity',
+            source: 'CMS NPPES',
+            state: 'current',
+            checkedAt: '2026-03-20T00:00:00.000Z',
+            note: 'Current attached check',
+          },
+          {
+            id: 'safety',
+            label: 'Safety',
+            source: 'OIG LEIE',
+            state: 'current',
+            checkedAt: '2026-03-20T00:00:00.000Z',
+            note: 'Current attached check',
+          },
+          {
+            id: 'authority',
+            label: 'Authority',
+            source: 'State Board',
+            state: 'current',
+            checkedAt: '2026-01-01T00:00:00.000Z',
+            note: 'Current attached check',
+          },
+          {
+            id: 'eligibility',
+            label: 'Eligibility',
+            source: 'CMS PECOS',
+            state: 'current',
+            checkedAt: '2026-03-20T00:00:00.000Z',
+            note: 'Current attached check',
+          },
+        ],
+      },
+      safeToRelyOnNow: [
+        'Identity confirmed via CMS NPPES.',
+        'OIG/LEIE exclusion check is clear.',
+        'Active state licensure is verified from a live authority source.',
+      ],
+      missingItems: [],
+      gatedItems: [],
+      reviewRequiredItems: [],
+      staleItems: [],
+      blockers: [],
+    },
     lastCheckedAt: '2026-03-20T00:00:00.000Z',
     ...overrides,
   };
@@ -109,6 +193,15 @@ describe('trust proof language', () => {
         stale: true,
       },
     ])).toBe('Mixed freshness');
+    expect(renderCredentialGroupFreshness([
+      {
+        ...buildPassport().authority.credentials[0],
+        status: 'UNRESOLVED',
+        authorityClaimCode: 'AUTHORITY_UNAVAILABLE',
+        participationStatus: 'manual_verification_required',
+        sourceScope: 'STATE_BOARD_MANUAL',
+      },
+    ])).toBe('Unavailable');
   });
 
   it('summarizes freshness with stale taking precedence over unchecked coverage', () => {
@@ -152,6 +245,64 @@ describe('trust proof language', () => {
     ).toEqual({
       state: 'partial',
       label: 'Partial source coverage',
+    });
+  });
+
+  it('derives freshness state labels from canonical source coverage before heuristics', () => {
+    const passport = buildPassport({
+      sourceCoverage: {
+        checks: [
+          {
+            sourceId: 'NPPES_API',
+            state: 'live',
+            reason: 'identity checked',
+            checkedAt: '2026-03-20T00:00:00.000Z',
+            freshnessWindowHours: 24,
+          },
+          {
+            sourceId: 'OIG_LEIE',
+            state: 'reviewRequired',
+            reason: 'possible match',
+            checkedAt: '2026-03-20T00:00:00.000Z',
+          },
+          {
+            sourceId: 'PECOS_PUBLIC',
+            state: 'notDecisionGrade',
+            reason: 'quarterly enrollment snapshot',
+            checkedAt: '2026-03-01T00:00:00.000Z',
+          },
+        ],
+        summary: {
+          live: ['NPPES_API'],
+          gated: [],
+          partial: [],
+          stale: [],
+          notDecisionGrade: ['PECOS_PUBLIC'],
+          notChecked: [],
+          unavailable: [],
+          accessRequired: [],
+          reviewRequired: ['OIG_LEIE'],
+          mock: [],
+        },
+      },
+    });
+
+    const entries = buildPassportFreshnessEntries(passport);
+
+    expect(entries.find((entry) => entry.layer === 'Identity (NPPES)')).toMatchObject({
+      sourceState: 'stale',
+      stale: true,
+      unchecked: false,
+    });
+    expect(entries.find((entry) => entry.layer === 'Safety (OIG)')).toMatchObject({
+      sourceState: 'reviewRequired',
+      stateLabel: 'Review required',
+      unchecked: true,
+    });
+    expect(entries.find((entry) => entry.layer === 'Eligibility (PECOS)')).toMatchObject({
+      sourceState: 'notDecisionGrade',
+      stateLabel: 'Not decision-grade',
+      unchecked: true,
     });
   });
 
@@ -204,5 +355,29 @@ describe('trust proof language', () => {
     const licensureSection = proofItems.find((item) => item.id === 'licensure');
 
     expect(licensureSection?.status).toBe('unavailable');
+  });
+
+  it('keeps PECOS enrollment contextual in review truth instead of source-backed', () => {
+    const truth = buildPassportReviewTruthModel(buildPassport());
+
+    expect(truth.buckets.contextualOnly.map((item) => item.label)).toContain('Enrollment / Eligibility');
+    expect(truth.buckets.sourceBackedNow.map((item) => item.label)).not.toContain('Enrollment / Eligibility');
+  });
+
+  it('reuses freshness summary labels across passport and review truth', () => {
+    const partialPassport = buildPassport({
+      authority: {
+        credentials: [],
+        summary: { active: 0, expired: 0, stale: 0, missing: ['LICENSURE'] },
+      },
+      standing: {
+        ...buildPassport().standing,
+        pecosEnrollmentStatus: 'UNCHECKED',
+      },
+    });
+
+    expect(buildPassportReviewTruthModel(partialPassport).freshness).toMatchObject(
+      summarizePassportFreshnessEntries(buildPassportFreshnessEntries(partialPassport)),
+    );
   });
 });

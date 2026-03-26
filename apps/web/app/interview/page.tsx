@@ -12,7 +12,7 @@
  */
 
 import Link from 'next/link';
-import type { PassportData } from '@/app/passport/[id]/page';
+import type { PassportData } from '@/lib/trust/passport-contract';
 import InterviewClient from './InterviewClient';
 
 const B =

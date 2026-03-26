@@ -13,7 +13,7 @@
  * Version: mf-1.0
  */
 
-import type { PassportData } from '@/app/passport/[id]/page';
+import type { PassportData } from '@/lib/trust/passport-contract';
 
 // ── Input context ─────────────────────────────────────────────────────────────
 

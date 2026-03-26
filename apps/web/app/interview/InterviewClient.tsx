@@ -2,13 +2,13 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import type { PassportData } from '@/app/passport/[id]/page';
+import type { PassportData } from '@/lib/trust/passport-contract';
 import { useRoleContext } from '@/components/auth/RoleContext';
 import {
   buildPassportProofSections,
   summarizePassportProofSections,
-} from '@/components/trust/passport-proof-sections';
-import { Accordion } from '@/components/ui/vcv-accordion';
+} from '@/components/trust/passportProofSections';
+import { Accordion } from '@/components/ui/accordion';
 import {
   CLERK_PROVIDER_ENABLED,
   CLERK_SIGN_IN_URL,

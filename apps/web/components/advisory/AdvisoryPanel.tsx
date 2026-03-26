@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { PassportData } from '@/app/passport/[id]/page';
+import type { PassportData } from '@/lib/trust/passport-contract';
 import { isMirofishEnabled, simulateDecision, type MirofishContext } from '@/lib/mirofish/mirofishEngine';
 import { Compass } from 'lucide-react';
 

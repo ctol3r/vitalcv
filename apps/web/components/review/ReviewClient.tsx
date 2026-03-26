@@ -23,26 +23,29 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRoleContext } from '@/components/auth/RoleContext';
-import { Accordion } from '@/components/ui/vcv-accordion';
+import { Accordion } from '@/components/ui/accordion';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
 import {
   buildPassportProofSections,
-  summarizePassportProofSections,
-} from '@/components/trust/passport-proof-sections';
+} from '@/components/trust/passportProofSections';
+import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCard';
+import { PassportSourceCoveragePanel } from '@/components/trust/PassportSourceCoveragePanel';
+import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { TrustLabel, type TrustStatus } from '@/components/ui/trust-label';
-import type { PassportData } from '@/app/passport/[id]/page';
+import type { PassportData } from '@/lib/trust/passport-contract';
 import { EmployerAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
 import {
   CLERK_PROVIDER_ENABLED,
   CLERK_SIGN_IN_URL,
 } from '@/lib/auth/clerkConfig';
 import {
-  buildPassportFreshnessEntries,
   formatAsOfDate,
   formatAsOfQuarter,
   formatProofDate,
   joinNoteParts,
   type PassportFreshnessEntry,
-  summarizePassportFreshnessEntries,
 } from '@/lib/trust/proof-language';
 import {
   resolveLivePathAuthState,
@@ -59,9 +62,10 @@ import {
   type EmployerReviewStatusResponse,
 } from '@/lib/employer-review-actions';
 import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
-import { VStatusPill } from '@/components/vds/primitives';
-import { SourceCoverageTag } from '@/components/trust/SourceCoverageTag';
-import { normalizePassportSourceCoverageChecks } from '@/lib/trust/source-coverage';
+import {
+  buildPassportReviewTruthModel,
+  type PassportTruthListItem,
+} from '@/lib/trust/passport-review-truth';
 import {
   resolveAuthorityMethodLabel,
   resolveAuthorityNote,
@@ -222,12 +226,15 @@ function FreshnessPanel({ entries }: { entries: PassportFreshnessEntry[] }) {
   if (!hasWarning) return null;
 
   return (
-    <div className="rounded-xl border border-[var(--vt-badge-warning-border)] bg-[var(--vt-surface-2)] px-4 py-3 space-y-1.5">
-      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--vt-badge-warning-text)]">
-        Source freshness
-      </p>
+    <Card className="gap-3 rounded-2xl border-[var(--vt-badge-warning-border)] bg-[var(--vt-surface-2)] px-4 py-4 shadow-none">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--vt-badge-warning-text)]">
+          Source freshness
+        </p>
+        <TrustStatusBadge status="stale" label="Refresh recommended" size="sm" />
+      </div>
       {entries.map(e => (
-        <div key={e.layer} className="flex items-start justify-between gap-2">
+        <div key={e.layer} className="flex items-start justify-between gap-3 rounded-xl border border-white/6 bg-black/10 px-3 py-2.5">
           <div className="flex items-center gap-1.5">
             <span className="w-2 shrink-0 text-[10px] text-[var(--vt-text-3)]">
               {e.stale ? '⚠' : e.unchecked ? '○' : '✔'}
@@ -237,16 +244,64 @@ function FreshnessPanel({ entries }: { entries: PassportFreshnessEntry[] }) {
             </span>
           </div>
           <span className="shrink-0 text-right text-[10px] text-[var(--vt-text-3)]">
-            {e.unchecked
-              ? 'Unavailable'
-              : e.stale
-                ? `stale — ${e.checkedAt ? new Date(e.checkedAt).toLocaleDateString() : 'date unknown'}`
+            {e.stale
+              ? `stale — ${e.checkedAt ? new Date(e.checkedAt).toLocaleDateString() : 'date unknown'}`
+              : e.unchecked
+                ? e.stateLabel ?? 'Unavailable'
                 : e.checkedAt
                   ? new Date(e.checkedAt).toLocaleDateString()
                   : 'unknown'}
           </span>
         </div>
       ))}
+    </Card>
+  );
+}
+
+function ReviewTruthBucket({
+  title,
+  items,
+  icon,
+  accentClassName,
+  emptyLabel,
+}: {
+  title: string;
+  items: PassportTruthListItem[];
+  icon: string;
+  accentClassName: string;
+  emptyLabel?: string;
+}) {
+  if (items.length === 0 && !emptyLabel) return null;
+
+  return (
+    <div className="space-y-1.5">
+      <p className={`text-[10px] uppercase tracking-[0.15em] ${accentClassName}`}>
+        {title}
+      </p>
+      {items.length > 0 ? (
+        items.slice(0, 4).map((item) => (
+          <div key={item.id} className="flex items-start gap-2 text-xs">
+            <span className={`w-3 shrink-0 text-center ${accentClassName}`} aria-hidden>
+              {icon}
+            </span>
+            <div>
+              <p className="text-white/62">{item.label}</p>
+              {item.detail && (
+                <p className="mt-0.5 text-[10px] leading-relaxed text-white/28">
+                  {item.detail}
+                </p>
+              )}
+            </div>
+          </div>
+        ))
+      ) : (
+        <div className="flex items-center gap-2 text-xs text-white/40">
+          <span className="w-3 shrink-0 text-center text-white/20" aria-hidden>
+            {icon}
+          </span>
+          <span>{emptyLabel}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -318,8 +373,9 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
     ...readiness.blockers,
     ...missingDomains.map((domain) => domain.replace(/_/g, ' ').toLowerCase()),
   ]));
+  const reviewTruth = buildPassportReviewTruthModel(passport);
   const proofItems = buildPassportProofSections(passport);
-  const proofSummary = summarizePassportProofSections(proofItems);
+  const proofSummary = reviewTruth.proofSummary;
   const safetyRow = buildSafetyRow(standing);
   const eligibilityRow = buildEligibilityRow(standing, pecosEnrollmentStatus);
   const lastSyncedAt =
@@ -348,8 +404,8 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
     };
   }, []);
 
-  const freshnessEntries = buildPassportFreshnessEntries(passport);
-  const freshnessState = summarizePassportFreshnessEntries(freshnessEntries).label;
+  const freshnessEntries = reviewTruth.freshness.entries;
+  const freshnessState = reviewTruth.freshness.label;
 
   useEffect(() => {
     if (reviewOpenedTrackedRef.current || (CLERK_PROVIDER_ENABLED && !isLoaded)) return;
@@ -536,7 +592,7 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
 
         {/* ── Share context (if accessed via share link) ───────────────────── */}
         {(sharedBy || contextId) && (
-          <div className="rounded-xl border border-white/8 bg-white/3 px-4 py-3">
+          <Card className="gap-2 rounded-xl border-white/8 bg-white/[0.03] px-4 py-3 shadow-none">
             {sharedBy && (
               <div className="flex justify-between text-xs">
                 <span className="text-white/35">Shared by</span>
@@ -553,11 +609,11 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
                 <span className="text-white/45 font-mono">{contextId.slice(0, 8)}…</span>
               </div>
             )}
-          </div>
+          </Card>
         )}
 
         {/* ── Decision card — Exact Layout ──────────────────────────────── */}
-        <div className="rounded-2xl border border-white/8 bg-white/3 p-5 space-y-6 mb-6">
+        <Card className="mb-6 gap-6 rounded-2xl border-white/8 bg-white/3 px-5 py-5 shadow-none">
           {/* Identity */}
           <div>
             <h1 className="text-white text-xl font-semibold leading-tight">
@@ -567,7 +623,7 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
               <p className="text-white/50 text-sm mt-0.5">{identity.specialty}</p>
             )}
             <div className="mt-3">
-              <VStatusPill status={readinessStatus} size="sm" />
+              <TrustStatusBadge status={readinessStatus} size="sm" />
             </div>
           </div>
 
@@ -736,14 +792,14 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
               </p>
 
               {/* Q6: What do I do? — sourced from readiness.nextActions[] */}
-              {readiness.nextActions.length > 0 && (
+              {reviewTruth.buckets.nextActions.length > 0 && (
                 <div className="pt-3 mt-1 border-t border-white/8 space-y-2">
                   <p className="text-white/25 text-[10px] uppercase tracking-widest">Next actions</p>
-                  {readiness.nextActions.slice(0, 4).map(action => (
+                  {reviewTruth.buckets.nextActions.slice(0, 4).map((action) => (
                     <div key={action.id} className="flex items-start gap-2">
                       <span className="text-white/15 text-xs w-3 shrink-0 mt-0.5">·</span>
                       <div>
-                        <p className="text-white/55 text-xs font-medium">{action.title}</p>
+                        <p className="text-white/55 text-xs font-medium">{action.label}</p>
                         <p className="text-white/30 text-xs mt-0.5 leading-relaxed">{action.detail}</p>
                       </div>
                     </div>
@@ -752,7 +808,7 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
               )}
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* ── Advisory Panel — gated, clearly labeled, below readiness ── */}
         <EmployerAdvisoryPanel passport={passport} />
@@ -762,30 +818,36 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
 
         {/* ── Proof panel — collapsible ────────────────────────────────────── */}
         {proofItems.length > 0 && (
-          <div>
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <p className="text-white/25 text-xs uppercase tracking-widest">Proof</p>
-              <button
+          <EvidenceDisclosureCard
+            eyebrow="Proof"
+            title="Source-backed evidence"
+            description="Expand each section to see the trust-core proof, contextual notes, and decision-grade gaps attached to this review."
+            action={(
+              <Button
                 onClick={handleDownloadPacket}
                 disabled={!canPersistActions || actionState.phase === 'downloading'}
+                variant="outline"
                 title={
                   !canPersistActions
                     ? (previewOnlyMessage ?? 'Sign in with an employer workspace to export')
                     : undefined
                 }
-                className="rounded-xl border border-white/10 px-4 py-2 text-[11px] font-medium text-white/45 transition hover:border-white/20 hover:text-white/70 disabled:cursor-not-allowed disabled:opacity-40"
+                className="h-9 rounded-xl border-white/10 px-4 py-2 text-[11px] font-medium text-white/45 hover:border-white/20 hover:text-white/70"
               >
                 {actionState.phase === 'downloading' ? 'Exporting…' : 'Export packet'}
-              </button>
-            </div>
+              </Button>
+            )}
+            className="rounded-2xl border-white/8 bg-white/[0.03]"
+            contentClassName="px-5 py-1"
+          >
             <Accordion
               items={proofItems}
               telemetryComponentId="employer_review_proof"
             />
-          </div>
+          </EvidenceDisclosureCard>
         )}
 
-        <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-4">
+        <Card className="gap-0 rounded-2xl border-white/8 bg-white/[0.03] px-4 py-4 shadow-none">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <div>
               <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Last synced</p>
@@ -829,150 +891,106 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
               Employer actions below are real. VitalCV waits for the backend audit event before it renders success.
             </p>
           )}
-        </div>
+        </Card>
 
-        {/* ── Source coverage — explicit live/stale/gated/mock per source ──── */}
-        {(() => {
-          const checks = normalizePassportSourceCoverageChecks(passport.sourceCoverage);
-          if (checks.length === 0) return null;
-          return (
-            <div className="rounded-2xl border border-white/8 bg-white/3 px-5 py-4 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
-                  Sources checked for this review
-                </p>
-                <span className="text-[10px] text-white/20 border border-white/8 rounded-full px-2 py-0.5">
-                  Only live = decision-grade
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {checks.map(c => (
-                  <SourceCoverageTag
-                    key={c.sourceId}
-                    source={c.sourceId}
-                    status={c.state}
-                    decisionGrade={c.state === 'live'}
-                    lastChecked={c.checkedAt ?? undefined}
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })()}
+        <PassportSourceCoveragePanel checks={reviewTruth.sourceCoverageChecks} />
 
         {/* ── Decision basis — what you're acting on (no assumptions) ──────── */}
         {(actionState.phase === 'idle' || actionState.phase === 'downloading') && (
-          <div className="rounded-2xl border border-white/8 bg-white/3 px-5 py-4 space-y-3">
+          <Card className="gap-3 rounded-2xl border-white/8 bg-white/3 px-5 py-4 shadow-none">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
-              Decision basis — what you're acting on
+              Passport truth in this review
             </p>
 
-            {/* Trust posture summary — inherited from Passport truth */}
-            {(() => {
-              const BAND_LABELS: Record<string, string> = {
-                L3: 'High trust', L2: 'Moderate trust', L1: 'Partial trust', L0: 'Insufficient',
-              };
-              const level = readiness.level ?? 'L1';
-              const bandLabel = BAND_LABELS[level] ?? level;
-              return (
-                <div className="rounded-lg border border-white/6 bg-white/2 px-3 py-2.5 flex items-center justify-between">
-                  <div>
-                    <p className="text-white/20 text-[10px] uppercase tracking-widest">Trust posture</p>
-                    <p className="text-white/60 text-sm font-medium mt-0.5">{bandLabel} <span className="text-white/25 text-xs font-mono ml-1">{level}</span></p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-white/20 text-[10px] uppercase tracking-widest">Score</p>
-                    <p className="text-white/70 text-lg font-semibold tabular-nums">{readiness.score}<span className="text-white/25 text-xs">/100</span></p>
-                  </div>
+            <div className="rounded-lg border border-white/6 bg-white/2 px-3 py-2.5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-white/20 text-[10px] uppercase tracking-widest">
+                    Trust posture
+                  </p>
+                  <p className="mt-0.5 text-sm font-medium text-white/60">
+                    {reviewTruth.posture.bandLabel}
+                    <span className="ml-1 text-xs font-mono text-white/25">
+                      {reviewTruth.posture.level}
+                    </span>
+                  </p>
+                  <p className="mt-1 text-[11px] text-white/30">
+                    {reviewTruth.posture.reliableLabel}
+                  </p>
                 </div>
-              );
-            })()}
-
-            {/* Verified */}
-            {passport.authority.credentials.filter(c => !c.stale && !c.reviewRequired).length > 0 ? (
-              <div className="space-y-1">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-emerald-400/60 mb-1">Verified from primary sources</p>
-                {passport.authority.credentials
-                  .filter(c => !c.stale && !c.reviewRequired)
-                  .slice(0, 4)
-                  .map((c, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs">
-                      <span className="text-emerald-400 text-[10px] w-3 text-center">✓</span>
-                      <span className="text-white/65">{c.statusLabel ?? c.type ?? c.domain}</span>
-                      {c.jurisdiction && <span className="text-white/30 text-[10px]">{c.jurisdiction}</span>}
-                      {c.sourceId && <span className="text-white/20 text-[10px]">· {c.sourceId}</span>}
-                    </div>
-                  ))}
+                <div className="text-right">
+                  <p className="text-white/20 text-[10px] uppercase tracking-widest">Score</p>
+                  <p className="text-lg font-semibold tabular-nums text-white/70">
+                    {reviewTruth.posture.score}
+                    <span className="text-xs text-white/25">/100</span>
+                  </p>
+                </div>
               </div>
-            ) : (
-              <div className="flex items-center gap-2 text-xs text-white/40">
-                <span className="text-white/20 w-3 text-center">–</span>
-                No decision-grade credentials verified yet
+              <p className="mt-3 text-[10px] leading-relaxed text-white/20">
+                {reviewTruth.posture.disclaimer}
+              </p>
+            </div>
+
+            <ReviewTruthBucket
+              title="Source-backed now"
+              items={reviewTruth.buckets.sourceBackedNow}
+              icon="✓"
+              accentClassName="text-emerald-400/60"
+              emptyLabel="No source-backed Passport proof is attached yet."
+            />
+
+            {reviewTruth.buckets.contextualOnly.length > 0 && (
+              <div className="border-t border-white/6 pt-2">
+                <ReviewTruthBucket
+                  title="Contextual only"
+                  items={reviewTruth.buckets.contextualOnly}
+                  icon="·"
+                  accentClassName="text-sky-300/45"
+                />
               </div>
             )}
 
-            {/* Stale */}
-            {passport.authority.credentials.filter(c => c.stale).length > 0 && (
-              <div className="pt-2 border-t border-white/6 space-y-1">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-amber-400/60 mb-1">Stale — verification data aging</p>
-                {passport.authority.credentials
-                  .filter(c => c.stale)
-                  .slice(0, 3)
-                  .map((c, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs">
-                      <span className="text-amber-400/70 text-[10px] w-3 text-center">⚠</span>
-                      <span className="text-white/50">{c.statusLabel ?? c.type ?? c.domain}</span>
-                      <span className="text-white/25 text-[10px]">· last checked {c.observedAt ? new Date(c.observedAt).toLocaleDateString() : 'unknown'}</span>
-                    </div>
-                  ))}
+            {reviewTruth.buckets.stale.length > 0 && (
+              <div className="border-t border-white/6 pt-2">
+                <ReviewTruthBucket
+                  title="Stale"
+                  items={reviewTruth.buckets.stale}
+                  icon="⚠"
+                  accentClassName="text-amber-400/60"
+                />
               </div>
             )}
 
-            {/* Review required — must not be invisible to employer */}
-            {passport.authority.credentials.filter(c => c.reviewRequired && !c.stale).length > 0 && (
-              <div className="pt-2 border-t border-white/6 space-y-1">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-rose-400/60 mb-1">Review required — cannot be auto-verified</p>
-                {passport.authority.credentials
-                  .filter(c => c.reviewRequired && !c.stale)
-                  .slice(0, 3)
-                  .map((c, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs">
-                      <span className="text-rose-400/60 text-[10px] w-3 text-center">!</span>
-                      <span className="text-white/50">{c.statusLabel ?? c.type ?? c.domain}</span>
-                      {c.sourceDisclaimer && <span className="text-white/25 text-[10px]">· {c.sourceDisclaimer}</span>}
-                    </div>
-                  ))}
+            {reviewTruth.buckets.needsReview.length > 0 && (
+              <div className="border-t border-white/6 pt-2">
+                <ReviewTruthBucket
+                  title="Needs review"
+                  items={reviewTruth.buckets.needsReview}
+                  icon="!"
+                  accentClassName="text-rose-400/60"
+                />
               </div>
             )}
 
-            {/* Missing */}
-            {authority.summary.missing.length > 0 && (
-              <div className="pt-2 border-t border-white/6 space-y-1">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-white/25 mb-1">Missing — not yet verified</p>
-                {authority.summary.missing.slice(0, 4).map((domain, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs">
-                    <span className="text-white/20 w-3 text-center">–</span>
-                    <span className="text-white/35">{domain.replace(/_/g, ' ').toLowerCase()}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="border-t border-white/6 pt-2">
+              <ReviewTruthBucket
+                title="Missing or access required"
+                items={reviewTruth.buckets.missingOrAccessRequired}
+                icon="–"
+                accentClassName="text-white/28"
+                emptyLabel="No missing Passport proof sections are flagged right now."
+              />
+            </div>
 
-            {/* Gated data */}
-            {passport.authority.credentials.some(c => c.connectorState === 'unavailable') && (
-              <div className="pt-2 border-t border-white/6">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-sky-400/50 mb-1">Gated — institutional access required</p>
-                {passport.authority.credentials
-                  .filter(c => c.connectorState === 'unavailable')
-                  .slice(0, 2)
-                  .map((c, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs">
-                      <span className="text-sky-400/40 w-3 text-center">⊗</span>
-                      <span className="text-white/30">{c.statusLabel ?? c.type ?? c.domain} — {c.sourceDisclaimer ?? 'access not yet configured'}</span>
-                    </div>
-                  ))}
-              </div>
-            )}
+            <div className="border-t border-white/6 pt-2">
+              <ReviewTruthBucket
+                title="Next action"
+                items={reviewTruth.buckets.nextActions}
+                icon="→"
+                accentClassName="text-white/46"
+                emptyLabel="No follow-up action is attached right now."
+              />
+            </div>
 
             {/* Active blockers callout */}
             {blocked.length > 0 && (
@@ -988,43 +1006,46 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
                 </div>
               </div>
             )}
-          </div>
+          </Card>
         )}
 
         {/* ── M2: Action panel — all actions write audit events ────────────── */}
         {actionState.phase === 'idle' || actionState.phase === 'downloading' ? (
-          <div className="space-y-3 pt-2">
+          <Card className="gap-4 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-5 shadow-none">
             {/* Primary — Accept as head start */}
-            <button
+            <Button
               onClick={handleAccept}
               disabled={!canPersistActions || actionState.phase === 'downloading'}
-              className="h-14 w-full rounded-xl bg-[var(--vt-success)] text-sm font-medium text-white transition hover:opacity-90 active:opacity-80 disabled:opacity-40"
+              variant="success"
+              className="h-14 w-full rounded-xl text-sm font-medium"
             >
               {blocked.length > 0 ? `Accept as head start (${blocked.length} blocker${blocked.length === 1 ? '' : 's'} noted)` : 'Accept as head start'}
-            </button>
+            </Button>
 
             {/* Secondary row */}
             <div className="grid grid-cols-2 gap-2">
-              <button
+              <Button
                 onClick={handleRequestRefresh}
                 disabled={!canPersistActions || actionState.phase === 'downloading'}
+                variant="outline"
                 title={freshnessEntries.filter(e => e.stale || e.unchecked).length > 0
                   ? `${freshnessEntries.filter(e => e.stale || e.unchecked).length} stale source${freshnessEntries.filter(e => e.stale || e.unchecked).length === 1 ? '' : 's'} will be included`
                   : 'Request the clinician refresh their data'}
-                className="rounded-xl border border-white/10 bg-white/4 text-white/55 hover:text-white/80 hover:bg-white/8 disabled:opacity-40 text-xs py-3.5 min-h-[48px] transition-all"
+                className="min-h-[48px] rounded-xl border-white/10 bg-white/4 py-3.5 text-xs text-white/55 hover:border-white/20 hover:bg-white/8 hover:text-white/80"
               >
                 {freshnessEntries.filter(e => e.stale || e.unchecked).length > 0
                   ? `Request refresh (${freshnessEntries.filter(e => e.stale || e.unchecked).length} stale)`
                   : 'Request refresh'}
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleRouteToReview}
                 disabled={!canPersistActions || actionState.phase === 'downloading'}
+                variant="outline"
                 title="Route to your credentialing committee for manual review"
-                className="rounded-xl border border-white/10 bg-white/4 text-white/55 hover:text-white/80 hover:bg-white/8 disabled:opacity-40 text-xs py-3.5 min-h-[48px] transition-all"
+                className="min-h-[48px] rounded-xl border-white/10 bg-white/4 py-3.5 text-xs text-white/55 hover:border-white/20 hover:bg-white/8 hover:text-white/80"
               >
                 Route to review
-              </button>
+              </Button>
             </div>
 
             {!canPersistActions && (
@@ -1046,25 +1067,37 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
                 )}
               </div>
             )}
-          </div>
+          </Card>
 
         ) : actionState.phase === 'loading' ? (
           /* Loading state */
-          <div className="rounded-xl border border-white/10 bg-white/4 px-5 py-5 text-center">
-            <p className="text-white/40 text-sm animate-pulse motion-reduce:animate-none">
-              {employerReviewLoadingLabel(actionState.intent)}
-            </p>
-            <p className="text-white/20 text-xs mt-1">Writing the persisted audit record...</p>
-          </div>
+          <TrustStateCard
+            title={employerReviewLoadingLabel(actionState.intent)}
+            description="Writing the persisted audit record..."
+            centered
+          />
 
         ) : actionState.phase === 'done' ? (
           /* Success — show audit event ID for verifiability */
-          <div className="rounded-xl border border-white/12 bg-white/4 px-5 py-4 space-y-2">
+          <TrustStateCard
+            title={actionState.state.summary.title}
+            description={actionState.state.summary.description}
+            tone="success"
+            className="rounded-xl"
+            actions={(
+              <Button
+                onClick={() => setActionState({ phase: 'idle' })}
+                variant="ghost"
+                className="min-h-[44px] w-full text-xs text-white/25 hover:bg-transparent hover:text-white/40"
+              >
+                Back
+              </Button>
+            )}
+          >
             <div className="flex items-center gap-2">
               <span className="text-[var(--vt-success)] text-sm">✔</span>
-              <p className="text-white/75 text-sm font-medium">{actionState.state.summary.title}</p>
+              <p className="text-white/75 text-sm font-medium">Audit trail recorded</p>
             </div>
-            <p className="text-white/35 text-xs">{actionState.state.summary.description}</p>
             {/* Audit event + trust snapshot at time of decision */}
             <div className="rounded-lg border border-white/8 bg-white/3 px-3 py-2 mt-1 space-y-1.5">
               <p className="text-white/20 text-[10px] uppercase tracking-widest">Audit record</p>
@@ -1093,25 +1126,23 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
                 );
               })()}
             </div>
-            <button
-              onClick={() => setActionState({ phase: 'idle' })}
-              className="text-white/25 hover:text-white/40 text-xs transition-colors min-h-[44px] block w-full"
-            >
-              Back
-            </button>
-          </div>
+          </TrustStateCard>
 
         ) : /* error */ (
-          <div className="rounded-xl border border-[var(--vt-badge-critical-border)] bg-[var(--vt-surface-2)] px-5 py-4 space-y-2">
-            <p className="text-white/60 text-sm font-medium">Action failed</p>
-            <p className="text-white/35 text-xs">{actionState.message}</p>
-            <button
-              onClick={() => setActionState({ phase: 'idle' })}
-              className="text-white/25 hover:text-white/40 text-xs transition-colors min-h-[44px] block w-full"
-            >
-              Try again
-            </button>
-          </div>
+          <TrustStateCard
+            title="Action failed"
+            description={actionState.message}
+            tone="critical"
+            actions={(
+              <Button
+                onClick={() => setActionState({ phase: 'idle' })}
+                variant="ghost"
+                className="min-h-[44px] w-full text-xs text-white/25 hover:bg-transparent hover:text-white/40"
+              >
+                Try again
+              </Button>
+            )}
+          />
         )}
 
       </div>

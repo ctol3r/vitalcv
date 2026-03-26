@@ -1,6 +1,6 @@
 'use client';
 
-import type { PassportData } from '@/app/passport/[id]/page';
+import type { PassportData } from '@/lib/trust/passport-contract';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { OpsCard, OpsBadge } from '../intelligence-ops/primitives';
 import { formatAbsoluteTime, formatRelativeTime } from '@/lib/intelligence/time';

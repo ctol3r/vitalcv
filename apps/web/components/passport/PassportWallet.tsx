@@ -24,14 +24,17 @@ import Link from 'next/link';
  */
 
 import { useState } from 'react';
-import { Accordion } from '@/components/ui/vcv-accordion';
-import type { AccordionItem } from '@/components/ui/vcv-accordion';
-import type { PassportData, ReadinessStatus } from '@/app/passport/[id]/page';
+import { Accordion } from '@/components/ui/accordion';
+import type { AccordionItem } from '@/components/ui/accordion';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
+import type { PassportData, ReadinessStatus } from '@/lib/trust/passport-contract';
 import { PassportAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
-import {
-  VStatusPill,
-  type TrustStatusLabel,
-} from '@/components/vds/primitives';
+import { PassportTrustPosture } from '@/components/passport/PassportTrustPosture';
+import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCard';
+import { PassportSourceCoveragePanel } from '@/components/trust/PassportSourceCoveragePanel';
+import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { formatProofDate } from '@/lib/trust/proof-language';
 import {
   resolveAuthorityMethodLabel,
@@ -40,8 +43,11 @@ import {
   resolveAuthorityTitle,
   resolveAuthorityVdsStatus,
 } from '@/lib/trust/passport-truth';
-import { SourceCoverageTag } from '@/components/trust/SourceCoverageTag';
-import { normalizePassportSourceCoverageChecks } from '@/lib/trust/source-coverage';
+import {
+  normalizePassportSourceCoverageChecks,
+  type PassportSourceCoverageCheck,
+} from '@/lib/trust/source-coverage';
+import type { VdsTrustStatus } from '@/lib/trust/status-language';
 
 // ── Status configuration ──────────────────────────────────────────────────────
 // NO colour on status. Hierarchy via opacity only.
@@ -55,196 +61,76 @@ const STATUS_CONFIG: Record<ReadinessStatus, {
   BLOCKED: { cardBorder: 'border-white/8', cardBg: 'bg-white/3' },
 };
 
-// ── Trust Posture card ────────────────────────────────────────────────────────
-// Surfaces the system's computed trust assessment: band, score, contributing
-// dimensions, freshness, and what is safe to rely on now.
-// Risk doctrine: nothing here implies privileging or credentialing approval.
-
-const BAND_CONFIG: Record<string, { label: string; opacity: string; scoreColor: string }> = {
-  L3: { label: 'High trust',    opacity: 'text-white/90', scoreColor: 'text-white' },
-  L2: { label: 'Moderate trust', opacity: 'text-white/70', scoreColor: 'text-white/80' },
-  L1: { label: 'Partial trust', opacity: 'text-white/55', scoreColor: 'text-white/65' },
-  L0: { label: 'Insufficient',  opacity: 'text-white/35', scoreColor: 'text-white/45' },
+const SOURCE_COVERAGE_ORDER: Record<string, number> = {
+  live: 0,
+  stale: 1,
+  reviewRequired: 2,
+  accessRequired: 3,
+  gated: 3,
+  notDecisionGrade: 4,
+  notChecked: 4,
+  partial: 4,
+  unavailable: 4,
+  mock: 4,
 };
 
-interface TrustDimension {
-  label:  string;
-  state:  'verified' | 'stale' | 'pending' | 'gated' | 'unavailable' | 'clear';
-  note?:  string;
+function sortPassportSourceCoverageChecks(
+  checks: PassportSourceCoverageCheck[],
+): PassportSourceCoverageCheck[] {
+  return [...checks].sort((left, right) => (
+    (SOURCE_COVERAGE_ORDER[left.state] ?? 5) - (SOURCE_COVERAGE_ORDER[right.state] ?? 5)
+    || left.sourceId.localeCompare(right.sourceId)
+  ));
 }
 
-function PostureDimensionRow({ dim }: { dim: TrustDimension }) {
-  const icon: Record<TrustDimension['state'], string> = {
-    verified:    '✓',
-    clear:       '✓',
-    stale:       '~',
-    pending:     '◌',
-    gated:       '⊘',
-    unavailable: '—',
-  };
-  const color: Record<TrustDimension['state'], string> = {
-    verified:    'text-white/50',
-    clear:       'text-white/50',
-    stale:       'text-white/40',
-    pending:     'text-white/30',
-    gated:       'text-white/20',
-    unavailable: 'text-white/20',
-  };
-  return (
-    <div className="flex items-start gap-3">
-      <span className={`text-xs w-4 text-center select-none mt-0.5 ${color[dim.state]}`} aria-hidden>
-        {icon[dim.state]}
-      </span>
-      <div className="min-w-0">
-        <span className="text-white/60 text-xs">{dim.label}</span>
-        {dim.note && <span className="text-white/30 text-xs ml-2">— {dim.note}</span>}
-      </div>
-    </div>
-  );
-}
-
-function TrustPostureCard({ passport }: { passport: PassportData }) {
-  const { readiness, standing, training } = passport;
-  const level = readiness.level ?? 'L1';
-  const band  = BAND_CONFIG[level] ?? BAND_CONFIG['L1']!;
-
-  // Build contributing dimensions from what is in the passport
-  const dims: TrustDimension[] = [];
-
-  // Identity
-  dims.push({
-    label: 'Identity (NPI / CMS)',
-    state: passport.identity.displayName ? 'verified' : 'pending',
-  });
-
-  // Exclusion
-  dims.push({
-    label: 'Exclusion check (OIG/LEIE)',
-    state: standing.exclusionStatus === 'CLEAR'          ? 'clear'
-         : standing.exclusionStatus === 'EXCLUDED'       ? 'unavailable'
-         : standing.exclusionStatus === 'POSSIBLE_MATCH' ? 'pending'
-         : standing.exclusionStatus === 'UNCHECKED'      ? 'pending'
-         : 'unavailable',
-    note:  standing.exclusionStatus === 'EXCLUDED'       ? 'Blocked'
-         : standing.exclusionStatus === 'POSSIBLE_MATCH' ? 'Review required'
-         : undefined,
-  });
-
-  // Licensure
-  dims.push({
-    label: 'State licensure',
-    state: standing.licensureStatus === 'verified' ? 'verified'
-         : standing.licensureStatus === 'pending'  ? 'stale'
-         : standing.licensureStatus === 'expired'  ? 'unavailable'
-         : 'pending',
-  });
-
-  // Enrollment
-  const pecos = standing.pecosEnrollmentStatus ?? 'UNCHECKED';
-  dims.push({
-    label: 'Medicare enrollment (PECOS)',
-    state: pecos === 'ENROLLED'  ? 'verified'
-         : pecos === 'NOT_FOUND' ? 'unavailable'
-         : pecos === 'OPTED_OUT' ? 'gated'
-         : 'pending',
-    note:  pecos === 'NOT_FOUND' ? 'Not found' : undefined,
-  });
-
-  // Training (degree + residency — advisory, not blocking)
-  if (training.hasDegree || training.hasResidency) {
-    dims.push({
-      label: 'Training record',
-      state: training.degreeVerified ? 'verified' : 'pending',
-      note:  training.degreeVerified ? undefined : 'Self-reported',
-    });
-  }
-
-  // Determine what is safe to rely on now
-  const reliableCount = dims.filter(d => d.state === 'verified' || d.state === 'clear').length;
-  const reliableLabel = reliableCount === 0 ? 'No source-backed claims yet'
-    : reliableCount === 1 ? '1 source-backed claim'
-    : `${reliableCount} source-backed claims`;
+function PassportFreshnessCard({
+  freshness,
+}: {
+  freshness: PassportData['trustPosture']['freshness'];
+}) {
+  const summaryBadge =
+    freshness.state === 'current'
+      ? { status: 'verified' as const, label: 'Current' }
+      : freshness.state === 'stale'
+        ? { status: 'stale' as const, label: 'Stale' }
+        : { status: 'pending' as const, label: 'Partial' };
 
   return (
-    <div className="rounded-xl border border-white/8 bg-white/3 px-4 py-4 space-y-3">
-      {/* Header */}
-      <div className="flex items-baseline justify-between">
-        <p className="text-white/30 text-[10px] uppercase tracking-widest">Trust posture</p>
-        <span className={`text-[10px] uppercase tracking-widest ${band.opacity}`}>{band.label}</span>
-      </div>
-
-      {/* Score + Band */}
-      <div className="flex items-end gap-3">
-        <span className={`text-4xl font-semibold tabular-nums tracking-tight ${band.scoreColor}`}>
-          {readiness.score}
-        </span>
-        <div className="pb-1 space-y-0.5">
-          <p className="text-white/25 text-[10px]">/ 100</p>
-          <p className="text-white/25 text-[10px] font-mono">{level}</p>
+    <Card className="gap-3 rounded-2xl border-white/8 bg-white/3 px-5 py-4 shadow-none">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-white/30 text-[10px] uppercase tracking-widest">Freshness</p>
+          <p className="mt-1 text-sm text-white/65">{freshness.label}</p>
         </div>
+        <TrustStatusBadge status={summaryBadge.status} label={summaryBadge.label} size="sm" />
       </div>
-
-      {/* Dimensions */}
-      <div className="space-y-1.5 pt-1 border-t border-white/6">
-        {dims.map((dim, i) => <PostureDimensionRow key={i} dim={dim} />)}
-      </div>
-
-      {/* Blockers */}
-      {readiness.blockers.length > 0 && (
-        <div className="pt-2 border-t border-white/6 space-y-1">
-          <p className="text-white/20 text-[10px] uppercase tracking-widest">Blocking readiness</p>
-          {readiness.blockers.slice(0, 3).map((b, i) => (
-            <div key={i} className="flex items-start gap-2">
-              <span className="text-white/25 text-xs mt-0.5 select-none">✕</span>
-              <span className="text-white/50 text-xs">{b}</span>
+      <div className="space-y-2 border-t border-white/6 pt-3">
+        {freshness.items.map((item) => (
+          <div key={item.id} className="rounded-xl border border-white/6 bg-black/10 px-3 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs text-white/70">{item.label}</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-white/42">{item.note}</p>
+              </div>
+              <TrustStatusBadge
+                status={item.state === 'current' ? 'verified' : item.state === 'stale' ? 'stale' : 'pending'}
+                label={item.state}
+                size="sm"
+                className="shrink-0"
+              />
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* Staleness / gaps */}
-      {readiness.gaps.length > 0 && readiness.blockers.length === 0 && (
-        <div className="pt-2 border-t border-white/6">
-          <p className="text-white/20 text-[10px] uppercase tracking-widest mb-1">Gaps to resolve</p>
-          {readiness.gaps.slice(0, 2).map((g, i) => (
-            <div key={i} className="text-white/35 text-xs">{g}</div>
-          ))}
-        </div>
-      )}
-
-      {/* What is safe to rely on */}
-      <div className="pt-2 border-t border-white/6 flex items-center justify-between">
-        <span className="text-white/20 text-[10px]">Source-backed now</span>
-        <span className="text-white/45 text-[10px] tabular-nums">{reliableLabel}</span>
+            <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-white/24">
+              <span>{item.source}</span>
+              <span>{item.checkedAt ? `Checked ${formatProofDate(item.checkedAt)}` : 'Not yet checked'}</span>
+            </div>
+          </div>
+        ))}
       </div>
-
-      {/* Disclaimer */}
-      <p className="text-white/15 text-[10px] leading-relaxed">
-        Trust posture reflects available source data only. Does not constitute privileging, credentialing, or employment approval.
-      </p>
-    </div>
+    </Card>
   );
 }
 
 // ── Row primitives ─────────────────────────────────────────────────────────────
-
-function VerifiedRow({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-3 text-sm">
-      <span className="text-white/40 text-xs w-4 text-center select-none" aria-hidden>✓</span>
-      <span className="text-white/70">{label}</span>
-    </div>
-  );
-}
-
-function MissingRow({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-3 text-sm">
-      <span className="text-white/20 text-xs w-4 text-center select-none" aria-hidden>✕</span>
-      <span className="text-white/40">{label}</span>
-    </div>
-  );
-}
 
 function DetailRow({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
@@ -284,7 +170,7 @@ function buildIdentitySection(passport: PassportData): AccordionItem {
 
 interface AuthorityRowProps {
   title:       string;
-  status:      TrustStatusLabel;
+  status:      VdsTrustStatus;
   sourceLabel: string;
   checkedAt?:  string | null;
   confidence?: string | null;
@@ -297,7 +183,7 @@ function AuthorityRow({ title, status, sourceLabel, checkedAt, confidence, fresh
     <div className="py-1.5 border-b border-white/5 last:border-0">
       <div className="flex justify-between text-xs">
         <span className="text-white/65">{title}</span>
-        <VStatusPill status={status} size="sm" />
+        <TrustStatusBadge status={status} size="sm" />
       </div>
       <div className="flex justify-between text-xs mt-0.5">
         <span className="text-white/25">Source: {sourceLabel}</span>
@@ -355,7 +241,7 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
         {!hasBoardCert && (
           <div className="flex items-center justify-between gap-2 py-1.5 border-b border-white/5 last:border-0">
             <span className="text-xs text-white/20">Board certification</span>
-            <VStatusPill status="not decision-grade" size="sm" />
+            <TrustStatusBadge status="not decision-grade" size="sm" />
           </div>
         )}
 
@@ -365,7 +251,7 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
           .map(d => (
             <div key={d} className="flex items-center justify-between gap-2 py-1.5 border-b border-white/5 last:border-0">
               <span className="text-xs text-white/20">{d.replace(/_/g, ' ').toLowerCase()}</span>
-              <VStatusPill status="blocked" size="sm" />
+              <TrustStatusBadge status="blocked" size="sm" />
             </div>
           ))}
       </div>
@@ -462,7 +348,7 @@ function buildStandingSection(passport: PassportData): AccordionItem {
 
 interface EligibilityRowProps {
   title:        string;
-  status:       TrustStatusLabel;
+  status:       VdsTrustStatus;
   sourceLabel:  string;
   checkedAt?:   string | null;
   dataVersion?: string | null;
@@ -478,7 +364,7 @@ function EligibilityRow({
     <div className="py-1.5 border-b border-white/5 last:border-0">
       <div className="flex justify-between text-xs gap-2">
         <span className="flex items-center gap-1.5 text-white/65">{title}</span>
-        <VStatusPill status={status} size="sm" />
+        <TrustStatusBadge status={status} size="sm" />
       </div>
       <div className="flex justify-between text-xs mt-0.5 pl-4">
         <span className="text-white/25">Source: {sourceLabel}</span>
@@ -573,37 +459,11 @@ export default function PassportWallet({ passport }: Props) {
   const [shared,  setShared]  = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
 
-  const { identity, readiness } = passport;
+  const { identity, readiness, trustPosture } = passport;
   const cfg = STATUS_CONFIG[readiness.status];
-
-  const verifiedItems: string[] = [];
-  const missingItems:  string[] = [];
-
-  // MS16-B: verifiedItems uses canonical pecosEnrollmentStatus
-  const pecosStatus = passport.standing.pecosEnrollmentStatus ?? (
-    passport.standing.pecosStatus === 'enrolled' ? 'ENROLLED' :
-    passport.standing.pecosStatus === 'not_enrolled' ? 'NOT_FOUND' : 'UNCHECKED'
+  const sourceCoverageChecks = sortPassportSourceCoverageChecks(
+    normalizePassportSourceCoverageChecks(passport.sourceCoverage),
   );
-
-  if (passport.identity.displayName)                          verifiedItems.push('Identity (CMS)');
-  if (passport.standing.exclusionClear)                       verifiedItems.push('Not excluded (OIG)');
-  if (pecosStatus === 'ENROLLED')                             verifiedItems.push('Medicare enrolled (PECOS)');
-  if (passport.standing.licensureStatus === 'verified')       verifiedItems.push('State license (Board)');
-  if (passport.standing.deaStatus === 'registered')           verifiedItems.push('DEA registration');
-  if (passport.training.hasDegree)                            verifiedItems.push('Medical degree');
-  if (passport.training.hasResidency)                         verifiedItems.push('Residency');
-
-  if (passport.standing.exclusionStatus === 'UNCHECKED')                missingItems.push('Exclusion check pending');
-  if (passport.standing.exclusionStatus === 'POSSIBLE_MATCH')           missingItems.push('Exclusion review required');
-  if (passport.standing.exclusionStatus === 'EXCLUDED')                 missingItems.push('Exclusion blocked');
-  if (passport.standing.licensureStatus !== 'verified')                 missingItems.push('License unresolved');
-  if (passport.standing.deaStatus === 'none')                           missingItems.push('No DEA registration');
-  // MS16-B: Eligibility missing items — per canonical state
-  if (pecosStatus === 'NOT_FOUND')   missingItems.push('Medicare enrollment review required');
-  if (pecosStatus === 'UNCHECKED')   missingItems.push('Medicare enrollment unavailable');
-  [...readiness.blockers, ...passport.authority.summary.missing.map(d =>
-    `${d.replace(/_/g, ' ').toLowerCase()} missing`)
-  ].forEach(b => { if (!missingItems.includes(b)) missingItems.push(b); });
 
   // MS16-F: Trust stack order — Identity → Safety → Authority → Eligibility → Readiness
   const accordionItems: AccordionItem[] = [
@@ -664,7 +524,7 @@ export default function PassportWallet({ passport }: Props) {
         </div>
 
         {/* ── Passport card — primary object ────────────────────────────────── */}
-        <div className={`rounded-2xl border ${cfg.cardBorder} ${cfg.cardBg} px-5 py-5`}>
+        <Card className={`gap-0 rounded-2xl border ${cfg.cardBorder} ${cfg.cardBg} px-5 py-5 shadow-none`}>
           {/* Identity */}
           <h1 className="text-white text-2xl font-semibold tracking-tight leading-tight">
             {identity.displayName}
@@ -674,33 +534,10 @@ export default function PassportWallet({ passport }: Props) {
           )}
 
           {/* Status pill removed to match spec, keeping just Name and Specialty locally here */}
-        </div>
+        </Card>
 
         {/* ── Trust Posture ─────────────────────────────────────────────────── */}
-        <TrustPostureCard passport={passport} />
-
-        {/* ── What is verified / what is missing ────────────────────────────── */}
-        {/* Supporting detail — Trust Posture (above) is the primary signal. */}
-        {(verifiedItems.length > 0 || missingItems.length > 0) && (
-          <div className="space-y-3">
-            {verifiedItems.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-white/20 text-[10px] uppercase tracking-widest">Verified</p>
-                {verifiedItems.slice(0, 6).map((item, i) => (
-                  <VerifiedRow key={i} label={item} />
-                ))}
-              </div>
-            )}
-            {missingItems.length > 0 && (
-              <div className="space-y-2 pt-2 border-t border-white/6">
-                <p className="text-white/20 text-[10px] uppercase tracking-widest">Missing or unresolved</p>
-                {missingItems.slice(0, 4).map((item, i) => (
-                  <MissingRow key={i} label={item} />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        <PassportTrustPosture posture={trustPosture} />
 
         {/* ── NPI disclaimer — identity anchor clarification ─────────────── */}
         {passport.npi && (
@@ -709,11 +546,28 @@ export default function PassportWallet({ passport }: Props) {
           </p>
         )}
 
+        {/* ── Freshness ─────────────────────────────────────────────────────── */}
+        <PassportFreshnessCard freshness={trustPosture.freshness} />
+
+        {/* ── Source coverage — explicit live/stale/gated/mock per source ──── */}
+        <PassportSourceCoveragePanel checks={sourceCoverageChecks} />
+
+        {/* ── Details accordion ─────────────────────────────────────────────── */}
+        <EvidenceDisclosureCard
+          eyebrow="Proof"
+          title="View source-backed evidence by section"
+          description="Each disclosure keeps trust-core proof, contextual notes, and gaps explicit."
+          className="rounded-2xl border-white/8 bg-white/[0.03]"
+          contentClassName="px-5 py-1"
+        >
+          <Accordion items={accordionItems} />
+        </EvidenceDisclosureCard>
+
         {/* ── Next actions (from readiness engine) ──────────────────────────── */}
-        {readiness.nextActions && readiness.nextActions.length > 0 && (
-          <div className="space-y-2 border-t border-white/6 pt-4">
-            <p className="text-white/50 text-sm font-medium mb-3">Next steps:</p>
-            {readiness.nextActions.slice(0, 4).map(action => (
+        {readiness.nextActions.length > 0 && (
+          <Card className="gap-3 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-4 shadow-none">
+            <p className="text-white/50 text-sm font-medium">What should happen next</p>
+            {readiness.nextActions.slice(0, 4).map((action) => (
               <div key={action.id} className="flex items-start gap-3">
                 <span className="text-white/25 mt-1 select-none text-xs">—</span>
                 <div>
@@ -722,42 +576,8 @@ export default function PassportWallet({ passport }: Props) {
                 </div>
               </div>
             ))}
-          </div>
+          </Card>
         )}
-
-        {/* ── Source coverage — explicit live/stale/gated/mock per source ──── */}
-        {(() => {
-          const checks = normalizePassportSourceCoverageChecks(passport.sourceCoverage);
-          if (checks.length === 0) return null;
-          return (
-            <div className="rounded-2xl border border-white/8 bg-white/3 px-5 py-4 space-y-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
-                Sources checked
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {checks.map(c => (
-                  <SourceCoverageTag
-                    key={c.sourceId}
-                    source={c.sourceId}
-                    status={c.state}
-                    decisionGrade={c.state === 'live'}
-                    lastChecked={c.checkedAt ?? undefined}
-                  />
-                ))}
-              </div>
-              <p className="text-white/20 text-[10px] leading-4">
-                Only <span className="text-white/40 font-semibold">live</span> sources are decision-grade.
-                Stale, gated, and mock sources inform context but do not constitute primary-source verification.
-              </p>
-            </div>
-          );
-        })()}
-
-        {/* ── Details accordion ─────────────────────────────────────────────── */}
-        <div>
-          <p className="text-white/25 text-xs uppercase tracking-widest mb-3">Proof — view source per section</p>
-          <Accordion items={accordionItems} />
-        </div>
 
         {/* ── Advisory Panel — clinician-facing, clearly advisory ─── */}
         <PassportAdvisoryPanel passport={passport} />
@@ -766,28 +586,29 @@ export default function PassportWallet({ passport }: Props) {
         <div className="space-y-3 pt-2">
           {!shared ? (
             <>
-              <button
+              <Button
                 onClick={handleShare}
                 disabled={sharing}
-                className="w-full rounded-xl bg-[var(--vt-success)] h-14 text-sm font-medium text-white transition hover:opacity-90 active:opacity-80 disabled:opacity-50"
+                variant="success"
+                className="h-14 w-full rounded-xl text-sm font-medium"
                 aria-label="Share passport with employer"
               >
                 {sharing ? 'Confirming…' : 'Share with employer'}
-              </button>
+              </Button>
               {shareError && (
                 <p className="text-[var(--vt-critical)] text-xs text-center">{shareError}</p>
               )}
-              <p className="text-center text-white/20 text-xs">
-                Requires biometric confirmation
+              <p className="text-center text-white/20 text-xs leading-relaxed">
+                Sharing sends the current Passport proof surface shown above. Requires biometric confirmation.
               </p>
             </>
           ) : (
-            <div className="rounded-xl border border-white/10 bg-white/4 px-5 py-4 text-center space-y-1">
-              <p className="text-white/70 text-sm font-medium">Passport shared</p>
-              <p className="text-white/30 text-xs">
-                Employer notified. Access expires in 24 hours.
-              </p>
-            </div>
+            <TrustStateCard
+              title="Passport shared"
+              description="Employer notified. Access expires in 24 hours."
+              tone="success"
+              centered
+            />
           )}
         </div>
 

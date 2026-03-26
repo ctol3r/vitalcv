@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import ReviewClient from '@/components/review/ReviewClient';
-import type { PassportData } from '@/app/passport/[id]/page';
+import { Button } from '@/components/ui/button';
+import { TrustStateCard } from '@/components/trust/TrustStateCard';
+import type { PassportData } from '@/lib/trust/passport-contract';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,22 +90,31 @@ export default async function ReviewPage({
   if (!passport) {
     return (
       <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center justify-center px-4">
-        <div className="w-full max-w-sm rounded-2xl border border-white/8 bg-white/[0.03] px-5 py-5 text-center">
-          <p className="text-white/60 text-sm font-medium">Employer review unavailable</p>
-          <p className="mt-2 text-xs leading-relaxed text-white/38">
-            {errorMessage ?? DEFAULT_REVIEW_ERROR}
-          </p>
-          <p className="mt-2 text-xs leading-relaxed text-white/28">
-            No decision card is rendered until VitalCV can hydrate a passport record for this entity. Shared review context must also still be valid when one is supplied.
-          </p>
-          <div className="mt-4 flex items-center justify-center gap-4">
-            <Link href={retryHref} className="inline-flex text-white/52 text-xs underline underline-offset-2">
-              Try again
-            </Link>
-            <Link href="/" className="inline-flex text-white/40 text-xs underline underline-offset-2">
-              Back to home
-            </Link>
-          </div>
+        <div className="w-full max-w-sm">
+          <TrustStateCard
+            eyebrow="Employer review"
+            title="Employer review unavailable"
+            description={(
+              <>
+                <span>{errorMessage ?? DEFAULT_REVIEW_ERROR}</span>
+                <span className="block pt-2 text-white/30">
+                  No decision card is rendered until VitalCV can hydrate a passport record for this entity. Shared review context must also still be valid when one is supplied.
+                </span>
+              </>
+            )}
+            tone="warning"
+            centered
+            actions={(
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <Button asChild variant="outline" className="h-11 rounded-full border-white/10 bg-white/4 text-white/70 hover:border-white/20 hover:bg-white/8 hover:text-white">
+                  <Link href={retryHref}>Try again</Link>
+                </Button>
+                <Button asChild variant="ghost" className="h-11 rounded-full text-white/45 hover:bg-white/5 hover:text-white/70">
+                  <Link href="/">Back to home</Link>
+                </Button>
+              </div>
+            )}
+          />
         </div>
       </main>
     );

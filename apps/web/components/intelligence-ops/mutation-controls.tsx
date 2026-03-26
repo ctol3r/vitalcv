@@ -3,7 +3,7 @@
 import { Loader2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { mutate } from 'swr';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { mutateMatchingIntelligenceResources, mutateIntelligenceResource } from '@/hooks/useIntelligenceResource';
 

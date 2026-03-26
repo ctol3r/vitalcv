@@ -1,5 +1,6 @@
 import {
   createCanonicalSourceCoverage,
+  findPriorityCanonicalSourceCoverage,
   normalizeCanonicalSourceCoverageState,
   sourceCoverageBadgeLabel,
   sourceCoveragePosture,
@@ -84,18 +85,26 @@ export function findPassportSourceCoverageCheck(
   report: PassportSourceCoverageReport | null | undefined,
   aliases: string[],
 ): PassportSourceCoverageCheck | null {
+  return findPassportSourceCoverageChecks(report, aliases)[0] ?? null;
+}
+
+export function findPassportSourceCoverageChecks(
+  report: PassportSourceCoverageReport | null | undefined,
+  aliases: string[],
+): PassportSourceCoverageCheck[] {
   const normalizedAliases = aliases.map((alias) => normalizeCoverageSource(alias));
 
-  return normalizePassportSourceCoverageChecks(report).find((entry) => {
+  return normalizePassportSourceCoverageChecks(report).filter((entry) => {
     const normalizedSource = normalizeCoverageSource(entry.sourceId);
 
     return normalizedAliases.some((alias) => (
       normalizedSource.includes(alias) || alias.includes(normalizedSource)
     ));
-  }) ?? null;
+  });
 }
 
 export {
+  findPriorityCanonicalSourceCoverage,
   sourceCoverageBadgeLabel,
   sourceCoveragePosture,
   sourceCoverageStateLabel,

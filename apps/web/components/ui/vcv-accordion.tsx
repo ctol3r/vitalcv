@@ -13,11 +13,8 @@ import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import type { ReactNode } from 'react';
 import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
 import { cn } from '@/lib/utils';
-import {
-  getTrustStatusBadgeClassName,
-  getTrustStatusLabel,
-  type TrustUiStatus,
-} from '@/lib/trust/status-language';
+import type { TrustUiStatus } from '@/lib/trust/status-language';
+import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
 
 export type AccordionStatus = TrustUiStatus;
 
@@ -55,19 +52,6 @@ function ChevronIcon() {
     >
       <polyline points="6 9 12 15 18 9" />
     </svg>
-  );
-}
-
-function StatusPill({ status }: { status: AccordionStatus }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] whitespace-nowrap',
-        getTrustStatusBadgeClassName(status),
-      )}
-    >
-      {getTrustStatusLabel(status)}
-    </span>
   );
 }
 
@@ -121,7 +105,7 @@ export function Accordion({
                     {item.triggerRight}
                   </span>
                 )}
-                {item.status && <StatusPill status={item.status} />}
+                {item.status && <TrustStatusBadge status={item.status} size="sm" />}
               </span>
             </AccordionPrimitive.Trigger>
           </AccordionPrimitive.Header>

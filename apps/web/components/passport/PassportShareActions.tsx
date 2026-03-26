@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { toast } from 'sonner';
 
 type PassportShareActionsProps = {
   npi: string;
@@ -41,23 +43,13 @@ export default function PassportShareActions({
   name,
 }: PassportShareActionsProps) {
   const clinicianName = name?.trim() || `Clinician ${npi}`;
-  const [toast, setToast] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!toast) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => setToast(null), 1800);
-    return () => window.clearTimeout(timer);
-  }, [toast]);
 
   async function copyText(value: string, label: string): Promise<void> {
     try {
       await navigator.clipboard.writeText(value);
-      setToast(label);
+      toast.success(label);
     } catch {
-      setToast('Clipboard unavailable');
+      toast.error('Clipboard unavailable');
     }
   }
 
@@ -66,7 +58,7 @@ export default function PassportShareActions({
   const linkedInMarkdown = buildLinkedInMarkdown(clinicianName, shareUrl);
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 shadow-[0_20px_60px_rgba(8,14,26,0.28)]">
+    <Card className="gap-5 rounded-3xl border-white/10 bg-white/[0.03] p-5 shadow-[0_20px_60px_rgba(8,14,26,0.28)]">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-300/80">
@@ -76,41 +68,39 @@ export default function PassportShareActions({
             Copy the public link, embed badge, or a LinkedIn-ready markdown snippet.
           </p>
         </div>
-        {toast && (
-          <p className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-200">
-            {toast}
-          </p>
-        )}
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-3">
-        <button
+      <div className="grid gap-3 md:grid-cols-3">
+        <Button
           type="button"
+          variant="outline"
           onClick={() => copyText(shareUrl, 'Copied link')}
-          className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-4 text-left transition hover:border-emerald-400/40 hover:bg-slate-950/70"
+          className="h-auto rounded-2xl border-white/10 bg-slate-950/40 px-4 py-4 text-left text-inherit hover:border-emerald-400/40 hover:bg-slate-950/70"
         >
           <span className="block text-sm font-semibold text-white">Copy Link</span>
           <span className="mt-1 block text-xs text-slate-400">Public URL for direct sharing.</span>
-        </button>
+        </Button>
 
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={() => copyText(embedCode, 'Copied embed code')}
-          className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-4 text-left transition hover:border-emerald-400/40 hover:bg-slate-950/70"
+          className="h-auto rounded-2xl border-white/10 bg-slate-950/40 px-4 py-4 text-left text-inherit hover:border-emerald-400/40 hover:bg-slate-950/70"
         >
           <span className="block text-sm font-semibold text-white">Copy Embed Code</span>
           <span className="mt-1 block text-xs text-slate-400">HTML snippet for the SVG badge.</span>
-        </button>
+        </Button>
 
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={() => copyText(linkedInMarkdown, 'Copied LinkedIn markdown')}
-          className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-4 text-left transition hover:border-emerald-400/40 hover:bg-slate-950/70"
+          className="h-auto rounded-2xl border-white/10 bg-slate-950/40 px-4 py-4 text-left text-inherit hover:border-emerald-400/40 hover:bg-slate-950/70"
         >
           <span className="block text-sm font-semibold text-white">Copy LinkedIn Markdown</span>
           <span className="mt-1 block text-xs text-slate-400">Short markdown snippet naming the clinician.</span>
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 }
