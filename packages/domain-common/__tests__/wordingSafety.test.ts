@@ -51,6 +51,7 @@ describe('public surface truth guards — post-release drift prevention', () => 
     'apps/web/components/hero/ReadinessPreview.tsx',
     'apps/web/app/explore/page.tsx',
     'apps/web/app/labs/page.tsx',
+    'apps/web/components/explore/ExploreClient.tsx',
   ];
 
   function readPublic(): string {
@@ -63,6 +64,9 @@ describe('public surface truth guards — post-release drift prevention', () => 
     expect(combined).not.toContain('real verified readiness');
     expect(combined).not.toContain('verified readiness');
     expect(combined).not.toContain('primary sources verify you');
+    expect(combined).not.toContain('full primary source verification');
+    expect(combined).not.toContain('unlock your verified');
+    expect(combined).not.toContain('already cleared for');
   });
 
   it('does not use "Get Verified" as a nav or CTA label on public surfaces', () => {
