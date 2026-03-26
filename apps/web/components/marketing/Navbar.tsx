@@ -84,7 +84,7 @@ export default function Navbar() {
             <Link href="/sign-in">Sign In</Link>
           </Button>
           <Button asChild size="sm">
-            <Link href="/onboarding">Get Verified</Link>
+            <Link href="/onboarding">Get Started</Link>
           </Button>
         </div>
 
@@ -126,7 +126,7 @@ export default function Navbar() {
                   <Link href="/sign-in">Sign In</Link>
                 </Button>
                 <Button asChild size="sm" onClick={closeMobile} className="w-full">
-                  <Link href="/onboarding">Get Verified</Link>
+                  <Link href="/onboarding">Get Started</Link>
                 </Button>
               </div>
             </div>

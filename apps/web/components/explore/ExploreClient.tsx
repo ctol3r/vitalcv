@@ -70,9 +70,9 @@ const HIRING_TYPE_LABELS: Record<string, string> = {
 };
 
 const LEVEL_LABELS: Record<string, string> = {
-  L1: 'Basic verification',
-  L2: 'Standard verification',
-  L3: 'Full primary source verification',
+  L1: 'Basic source check',
+  L2: 'Standard source check',
+  L3: 'Source-backed preview',
 };
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -839,7 +839,7 @@ function OpportunityCard({
              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 flex items-center gap-1.5">
                <ShieldCheck className="w-3 h-3" /> Readiness Engine
              </p>
-             <p className="text-xs text-white/70 mt-1">Unlock your verified start timeline</p>
+             <p className="text-xs text-white/70 mt-1">Preview your start-readiness timeline</p>
            </div>
            <Link href="/onboarding" className="text-xs font-semibold px-4 py-2 rounded-full bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors shrink-0 ml-4">
               Calculate Fit

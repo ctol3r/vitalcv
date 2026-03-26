@@ -41,3 +41,54 @@ describe('wording safety guards', () => {
     expect(combined).toContain(required);
   });
 });
+
+describe('public surface truth guards — post-release drift prevention', () => {
+  const publicSurfaces = [
+    'apps/web/app/interview/page.tsx',
+    'apps/web/components/layout/Navbar.tsx',
+    'apps/web/components/marketing/Navbar.tsx',
+    'apps/web/components/marketing/HomeSections.tsx',
+    'apps/web/components/hero/ReadinessPreview.tsx',
+    'apps/web/app/explore/page.tsx',
+    'apps/web/app/labs/page.tsx',
+    'apps/web/components/explore/ExploreClient.tsx',
+  ];
+
+  function readPublic(): string {
+    return publicSurfaces.map((f) => readFile(f)).join('\n');
+  }
+
+  it('does not contain verified-overclaiming strings on public surfaces', () => {
+    const combined = readPublic().toLowerCase();
+
+    expect(combined).not.toContain('real verified readiness');
+    expect(combined).not.toContain('verified readiness');
+    expect(combined).not.toContain('primary sources verify you');
+    expect(combined).not.toContain('full primary source verification');
+    expect(combined).not.toContain('unlock your verified');
+    expect(combined).not.toContain('already cleared for');
+  });
+
+  it('does not use "Get Verified" as a nav or CTA label on public surfaces', () => {
+    const combined = readPublic();
+
+    // "Get Verified" is an overclaim — nav should say "Get Ready" or "Get Started"
+    expect(combined).not.toContain('>Get Verified<');
+    expect(combined).not.toContain('"Get Verified"');
+    expect(combined).not.toContain("'Get Verified'");
+    expect(combined).not.toContain('label="Get Verified"');
+  });
+
+  it('does not use "Ready in this run" framing in readiness surfaces', () => {
+    const readinessSrc = readFile('apps/web/components/hero/ReadinessPreview.tsx');
+
+    expect(readinessSrc).not.toContain('Ready in this run');
+  });
+
+  it('interview blocked state does not imply verified readiness', () => {
+    const interviewSrc = readFile('apps/web/app/interview/page.tsx').toLowerCase();
+
+    expect(interviewSrc).not.toContain('real verified readiness');
+    expect(interviewSrc).not.toContain('verified readiness');
+  });
+});

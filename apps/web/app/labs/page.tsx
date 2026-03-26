@@ -28,7 +28,7 @@ interface LabEntry {
 const LABS: LabEntry[] = [
   {
     title: 'Interview Mode',
-    description: 'Share a verified readiness snapshot in real time — designed for the clinical interview moment.',
+    description: 'Share a source-backed readiness snapshot in real time — designed for the clinical interview moment.',
     href: '/interview',
     status: 'PREVIEW',
     tags: ['Your readiness'],

@@ -12,7 +12,7 @@ import PrequalifyTrigger from '@/components/prequalify/PrequalifyTrigger';
 export const metadata: Metadata = {
   title: 'Explore Opportunities — VitalCV',
   description:
-    'Trust-native clinical opportunities matched to your verified credential state. Know your readiness before you apply.',
+    'Trust-native clinical opportunities matched to your source-backed readiness snapshot. Know what is checked before you apply.',
 };
 
 export default function ExplorePage() {
@@ -26,7 +26,7 @@ export default function ExplorePage() {
         </span>
         <h1 className="heading-xl mt-3 text-white">
           Opportunities You&apos;re<br />
-          <span className="text-vt-success">Already Cleared For.</span>
+          <span className="text-vt-success">Already Matched For.</span>
         </h1>
         <p className="body-lg mx-auto mt-4 max-w-xl text-vt-neutral-200">
           Every role maps to your readiness state. Know exactly what&apos;s
@@ -34,7 +34,7 @@ export default function ExplorePage() {
         </p>
         <div className="mt-8 flex items-center justify-center gap-3 flex-wrap">
           <PrequalifyTrigger
-            label="Get Verified Free"
+            label="Check Readiness Free"
             className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-vt-surface-ops-base hover:bg-white/90"
           />
           <Link

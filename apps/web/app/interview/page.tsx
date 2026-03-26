@@ -49,10 +49,10 @@ export default async function InterviewPage({
       <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#080e1a' }}>
         <div className="w-full max-w-sm space-y-5 text-center">
           <p className="text-white/50 text-base leading-relaxed">
-            Interview Mode shows your real verified readiness to an employer.
+            Interview mode turns your source-backed readiness snapshot into a packet preview.
           </p>
           <p className="text-white/30 text-sm">
-            Enter your NPI first to generate your proof card.
+            Enter your NPI first to open a packet preview.
           </p>
           <Link
             href="/"
@@ -79,10 +79,10 @@ export default async function InterviewPage({
       <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#080e1a' }}>
         <div className="w-full max-w-sm space-y-5 text-center">
           <p className="text-white/50 text-base leading-relaxed">
-            VitalCV could not build an interview packet from that input yet.
+            VitalCV could not build a packet preview from that input yet.
           </p>
           <p className="text-white/30 text-sm">
-            Start from your NPI lookup so the packet is anchored to a real passport object.
+            Start from your NPI lookup so the packet preview is anchored to a real passport object.
           </p>
           <Link
             href="/"

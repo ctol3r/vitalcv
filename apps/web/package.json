@@ -10,7 +10,9 @@
     "start": "next start",
     "storybook": "storybook dev -p 6006",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
     "analyze": "cross-env ANALYZE=true next build",
     "analyze:server": "cross-env BUNDLE_ANALYZE=server next build",
     "analyze:browser": "cross-env BUNDLE_ANALYZE=browser next build"
