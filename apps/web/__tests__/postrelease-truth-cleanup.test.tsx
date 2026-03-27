@@ -135,9 +135,10 @@ describe('post-release truth cleanup', () => {
     const reviewMarkup = renderToStaticMarkup(<ReviewLandingPage />);
     const sdkMarkup = renderToStaticMarkup(<SdkDocsPage />);
 
-    expect(interviewMarkup).toContain('packet preview');
-    expect(interviewMarkup).toContain('source-backed readiness snapshot');
+    // PR #79: InterviewBlockedState component renders title/description props
+    expect(interviewMarkup).toContain('homepage NPI lookup');
     expect(interviewMarkup).not.toContain('real verified readiness');
+    expect(interviewMarkup).not.toContain('verified readiness');
 
     expect(reviewMarkup).toContain('Open a shared packet preview');
     expect(reviewMarkup).toContain('share when a real packet exists');

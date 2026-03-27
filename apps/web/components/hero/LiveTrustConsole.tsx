@@ -24,8 +24,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useRoleContext } from '@/components/auth/RoleContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
+import {
+  getTrustStatusDescriptor,
+  TrustStatusBadge,
+} from '@/components/ui/trust-status-badge';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
+import { UX_EVENTS } from '@/lib/analytics/ux-events';
 import {
   LIVE_PATH_NPI_RE,
   LIVE_PATH_PREVIEW_NOTICE,
@@ -33,6 +37,10 @@ import {
   resolveLivePathSourceMode,
 } from '@/lib/live-path/contracts';
 import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
+import {
+  getStatusDisplayLabel,
+  getTrustStatusLabel,
+} from '@/lib/trust/status-language';
 import { ReadinessPreview, type ClinicianTrustState } from './ReadinessPreview';
 
 type Phase = 'idle' | 'loading' | 'preview';
@@ -130,6 +138,41 @@ function resolveLoadingCopy(stages: SourceStage[], isDemo: boolean): string {
   return 'Resolving readiness…';
 }
 
+const FLOW_STEPS = [
+  'Enter NPI',
+  'Review readiness',
+  'Share intent',
+] as const;
+
+function resolveFlowStepState(
+  phase: Phase,
+  stepIndex: number,
+): 'complete' | 'active' | 'upcoming' {
+  if (phase === 'idle') {
+    return stepIndex === 0 ? 'active' : 'upcoming';
+  }
+
+  if (phase === 'loading') {
+    if (stepIndex === 0) return 'complete';
+    return stepIndex === 1 ? 'active' : 'upcoming';
+  }
+
+  if (stepIndex <= 1) return 'complete';
+  return stepIndex === 2 ? 'active' : 'upcoming';
+}
+
+function flowStepClassName(state: 'complete' | 'active' | 'upcoming'): string {
+  switch (state) {
+    case 'complete':
+      return 'border-white/8 bg-white/[0.03] text-white/58';
+    case 'active':
+      return 'border-white/12 bg-white/[0.06] text-white/78';
+    case 'upcoming':
+    default:
+      return 'border-white/6 bg-black/10 text-white/34';
+  }
+}
+
 // ── Ingest response shape (subset) ───────────────────────────
 
 interface IngestSourceResult {
@@ -202,7 +245,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
     if (previewTrackedSubmitIdRef.current === submitId) return;
 
     trackUxEvent({
-      event_name: 'preview_visible',
+      event_name: UX_EVENTS.READINESS_REVEALED,
       component_id: 'homepage_npi_flow',
       duration_ms: submitStartedAtRef.current === null
         ? null
@@ -273,10 +316,32 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
     if (phase !== 'idle') return;
 
     const trimmed = npi.trim();
-    if (!LIVE_PATH_NPI_RE.test(trimmed)) {
+    const isValidNpi = LIVE_PATH_NPI_RE.test(trimmed);
+
+    trackUxEvent({
+      event_name: UX_EVENTS.NPI_SUBMIT_ATTEMPT,
+      component_id: 'homepage_npi_flow',
+      metadata: {
+        auth_state: authState,
+        npi_length: trimmed.length,
+        source_mode: 'live',
+        validation_state: isValidNpi ? 'valid' : 'invalid',
+      },
+    });
+
+    if (!isValidNpi) {
       setFormMessage(INVALID_NPI_MESSAGE);
       inputRef.current?.focus({ preventScroll: true });
-      trackPreviewError('invalid_npi');
+      trackUxEvent({
+        event_name: UX_EVENTS.NPI_INVALID,
+        component_id: 'homepage_npi_flow',
+        metadata: {
+          auth_state: authState,
+          interaction_result: 'cancel',
+          npi_length: trimmed.length,
+          source_mode: 'live',
+        },
+      });
       return;
     }
 
@@ -295,20 +360,10 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
     submitStartedAtRef.current = performance.now();
     setFormMessage(null);
 
-    trackUxEvent({
-      event_name: 'npi_submit',
-      component_id: 'homepage_npi_flow',
-      metadata: {
-        auth_state: authState,
-        npi_length: trimmed.length,
-        source_mode: 'live',
-      },
-    });
-
     setPhase('loading');
     resetPreviewState();
     trackUxEvent({
-      event_name: 'loader_started',
+      event_name: UX_EVENTS.SOURCE_CHECK_STARTED,
       component_id: 'homepage_npi_flow',
       metadata: {
         auth_state: authState,
@@ -433,11 +488,27 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
     const dest = LIVE_PATH_NPI_RE.test(trimmed)
       ? `/interview?npi=${trimmed}`
       : '/passport';
+
+    trackUxEvent({
+      event_name: UX_EVENTS.SHARE_INTENT,
+      component_id: 'homepage_npi_flow',
+      metadata: {
+        auth_state: authState,
+        npi_length: trimmed.length,
+        source_mode: sourceMode,
+      },
+    });
+
     router.push(dest);
   }
 
   const isPreviewPhase = phase === 'preview';
   const loadingCopy = resolveLoadingCopy(stages, isDemo);
+  const checkedLabel = getTrustStatusLabel('checked');
+  const pendingLabel = getTrustStatusLabel('pending');
+  const accessRequiredLabel = getTrustStatusLabel('access_required');
+  const unavailableLabel = getTrustStatusLabel('unavailable');
+  const previewOnlyLabel = getStatusDisplayLabel('demo', 'Preview only');
 
   return (
     <section className="relative" style={{ background: '#080e1a' }}>
@@ -449,6 +520,23 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
       />
 
       <div className={`relative z-10 mx-auto w-full max-w-xl px-4 sm:px-6 ${isPreviewPhase ? 'pt-5 sm:pt-10 pb-6 sm:pb-10' : 'pt-12 sm:pt-20 pb-10 sm:pb-18'}`}>
+        <div className="mb-5 grid gap-2 sm:grid-cols-3">
+          {FLOW_STEPS.map((step, index) => {
+            const stepState = resolveFlowStepState(phase, index);
+
+            return (
+              <div
+                key={step}
+                className={`rounded-2xl border px-4 py-3 transition-colors ${flowStepClassName(stepState)}`}
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/28">
+                  Step {index + 1}
+                </p>
+                <p className="mt-1 text-xs font-medium">{step}</p>
+              </div>
+            );
+          })}
+        </div>
 
         {!isPreviewPhase ? (
           <>
@@ -459,7 +547,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
               See your readiness snapshot in <span className="text-emerald-400">about 10 seconds.</span>
             </h1>
             <p className="mb-6 text-sm leading-relaxed text-white/50 sm:text-base">
-              VitalCV resolves your public NPI identity first, runs connected sources, and clearly labels anything missing, blocked, or preview-only.
+              VitalCV starts with your NPI, then labels each lane as {checkedLabel}, {pendingLabel}, {accessRequiredLabel}, {unavailableLabel}, or {previewOnlyLabel} before you move forward.
             </p>
           </>
         ) : (
@@ -469,7 +557,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
                 Readiness snapshot
               </p>
               <p className="mt-1 text-xs text-white/40 sm:text-sm">
-                Source-backed where available. Explicit when preview-only.
+                Step 2 is visible. Step 3 keeps this snapshot honest in interview mode.
               </p>
             </div>
             {isDemo && (
@@ -509,7 +597,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
               disabled={phase === 'loading'}
               className="h-14 w-full shrink-0 whitespace-nowrap rounded-xl px-5 text-sm font-semibold sm:w-auto"
             >
-              <span aria-live="polite">{phase === 'loading' ? loadingCopy : 'See readiness'}</span>
+              <span aria-live="polite">{phase === 'loading' ? loadingCopy : 'Start with NPI lookup'}</span>
             </Button>
           </form>
         )}
@@ -534,6 +622,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
                 <div className="space-y-2">
                   {stages.map((stage, index) => {
                     const badge = stageBadge(stage);
+                    const statusDescriptor = getTrustStatusDescriptor(badge.status, badge.label);
 
                     return (
                       <div
@@ -541,7 +630,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
                         className="flex items-center justify-between gap-3 rounded-xl border border-white/6 bg-black/10 px-3 py-2.5"
                         style={{ animation: `vcv-stage-in 150ms ease-out ${index * 140}ms both` }}
                       >
-                        <div className="flex items-center gap-2.5">
+                        <div className="flex items-start gap-2.5">
                           {stage.status === 'loading' ? (
                             <span className="h-3.5 w-3.5 rounded-full border border-sky-300/50 border-t-transparent animate-spin" />
                           ) : (
@@ -549,11 +638,18 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
                               {STAGE_SYMBOL[stage.status]}
                             </span>
                           )}
-                          <span className={`text-xs transition-colors duration-150 ${
-                            stage.status === 'loading' ? 'text-white/72' : stage.status === 'waiting' ? 'text-white/25' : 'text-white/52'
-                          }`}>
-                            {stage.label}
-                          </span>
+                          <div>
+                            <span className={`text-xs transition-colors duration-150 ${
+                              stage.status === 'loading' ? 'text-white/72' : stage.status === 'waiting' ? 'text-white/25' : 'text-white/52'
+                            }`}>
+                              {stage.label}
+                            </span>
+                            {statusDescriptor ? (
+                              <p className="mt-1 text-[10px] leading-relaxed text-white/24">
+                                {statusDescriptor}
+                              </p>
+                            ) : null}
+                          </div>
                         </div>
                         <TrustStatusBadge
                           status={badge.status}

@@ -24,12 +24,16 @@ export type PilotMetricEventType =
   | 'route_failure'
   // UX-8: UX friction telemetry events
   | 'npi_submitted'
+  | 'npi_submit_attempt'
+  | 'npi_invalid'
   | 'source_check_started'
   | 'readiness_revealed'
   | 'accordion_expanded'
   | 'evidence_viewer_opened'
   | 'share_cta_clicked'
+  | 'share_intent'
   | 'employer_action_clicked'
+  | 'interview_blocked_view'
   | 'page_load_timing'
   | 'dead_end_reached'
   | 'nav_item_clicked';

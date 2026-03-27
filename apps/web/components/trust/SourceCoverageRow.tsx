@@ -1,6 +1,10 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { TrustStatusBadge, type TrustBadgeStatus } from '@/components/ui/trust-status-badge';
+import {
+  getTrustStatusDescriptor,
+  TrustStatusBadge,
+  type TrustBadgeStatus,
+} from '@/components/ui/trust-status-badge';
 import { formatProofDate } from '@/lib/trust/proof-language';
 import {
   sourceCoverageBadgeLabel,
@@ -40,6 +44,7 @@ function resolveCoverageBadge(check: PassportSourceCoverageCheck): {
 export function SourceCoverageRow({ check }: SourceCoverageRowProps) {
   const decisionGrade = check.state === 'live';
   const badge = resolveCoverageBadge(check);
+  const statusDescriptor = getTrustStatusDescriptor(badge.status, badge.label);
 
   return (
     <div className="flex items-start justify-between gap-4 py-3">
@@ -53,6 +58,9 @@ export function SourceCoverageRow({ check }: SourceCoverageRowProps) {
             {decisionGrade ? 'Decision grade' : 'Not decision grade'}
           </Badge>
         </div>
+        {statusDescriptor ? (
+          <p className="text-[11px] leading-relaxed text-white/28">{statusDescriptor}</p>
+        ) : null}
         <p className="text-xs leading-relaxed text-white/42">{check.reason}</p>
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-white/24">
           <span>{check.checkedAt ? `Checked ${formatProofDate(check.checkedAt)}` : 'Not yet checked'}</span>

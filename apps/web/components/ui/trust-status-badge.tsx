@@ -54,6 +54,14 @@ const CANONICAL_TRUST_BADGE_STATUSES = new Set<TrustUiStatus>([
   'demo',
 ]);
 
+const TRUST_STATUS_DESCRIPTORS: Record<string, string> = {
+  checked: 'Confirmed in this run from the source',
+  'access required': 'This source requires institutional access',
+  pending: 'Not yet checked in this session',
+  'preview only': 'Example data - not from a live source run',
+  demo: 'Example data - not from a live source run',
+};
+
 interface TrustStatusBadgeProps {
   status: TrustBadgeStatus;
   label?: string;
@@ -61,13 +69,15 @@ interface TrustStatusBadgeProps {
   className?: string;
 }
 
-function TrustStatusBadge({
-  status,
-  label,
-  size = 'md',
-  className,
-}: TrustStatusBadgeProps) {
-  const meta = CANONICAL_TRUST_BADGE_STATUSES.has(status as TrustUiStatus)
+function normalizeDescriptorKey(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function resolveTrustBadgeMeta(
+  status: TrustBadgeStatus,
+  label?: string,
+): { className: string; label: string } {
+  return CANONICAL_TRUST_BADGE_STATUSES.has(status as TrustUiStatus)
     ? {
         className: getTrustStatusBadgeClassName(status as TrustUiStatus),
         label: getStatusDisplayLabel(status as TrustUiStatus, label),
@@ -76,6 +86,24 @@ function TrustStatusBadge({
         className: VDS_STATUS_META[status as SupplementalVdsTrustStatus].className,
         label: label ?? VDS_STATUS_META[status as SupplementalVdsTrustStatus].label,
       };
+}
+
+export function getTrustStatusDescriptor(
+  status: TrustBadgeStatus,
+  label?: string,
+): string | null {
+  const descriptor = TRUST_STATUS_DESCRIPTORS[normalizeDescriptorKey(resolveTrustBadgeMeta(status, label).label)];
+
+  return descriptor ?? null;
+}
+
+function TrustStatusBadge({
+  status,
+  label,
+  size = 'md',
+  className,
+}: TrustStatusBadgeProps) {
+  const meta = resolveTrustBadgeMeta(status, label);
 
   return (
     <Badge

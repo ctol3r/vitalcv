@@ -31,7 +31,15 @@ import { ProofDetailsList } from '@/components/trust/ProofDetailsList';
 import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCard';
 import { getDemoProfile, type DemoProfile } from '@/lib/demo/demoProfiles';
 import { formatCompactProofDate } from '@/lib/trust/proof-language';
-import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
+import {
+  getStatusDisplayLabel,
+  getTrustStatusLabel,
+  resolveTrustUiStatus,
+} from '@/lib/trust/status-language';
+import {
+  getTrustStatusDescriptor,
+  TrustStatusBadge,
+} from '@/components/ui/trust-status-badge';
 
 // ── Real trust-state shape (matches trustStateEngine output) ─
 
@@ -488,6 +496,14 @@ interface Props {
 }
 
 export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }: Props) {
+  const checkedLabel = getTrustStatusLabel('checked');
+  const clearLabel = getTrustStatusLabel('clear');
+  const pendingLabel = getTrustStatusLabel('pending');
+  const accessRequiredLabel = getTrustStatusLabel('access_required');
+  const reviewRequiredLabel = getTrustStatusLabel('review_required');
+  const unavailableLabel = getTrustStatusLabel('unavailable');
+  const previewOnlyLabel = getStatusDisplayLabel('demo', 'Preview only');
+  const demoDescriptor = getTrustStatusDescriptor('demo', previewOnlyLabel);
 
   // ── Real-data path ───────────────────────────────────────
   if (realState && !isDemo) {
@@ -595,12 +611,19 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
           </CardContent>
 
           <CardFooter className="border-t border-white/6 px-5 py-4">
-            <div className="w-full">
+            <div className="w-full rounded-2xl border border-white/6 bg-black/15 p-4">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/24">Next step</p>
+                <p className="mt-1 text-sm font-medium text-white/72">Carry this snapshot into interview mode.</p>
+                <p className="mt-1 text-xs leading-relaxed text-white/38">
+                  {checkedLabel} or {clearLabel} sections stay attached. {pendingLabel}, {accessRequiredLabel}, {reviewRequiredLabel}, and {unavailableLabel} sections remain visible.
+                </p>
+              </div>
               <Button
                 type="button"
                 variant="success"
                 onClick={onContinue}
-                className="h-14 w-full rounded-xl px-5 text-sm font-semibold"
+                className="mt-4 h-14 w-full rounded-xl px-5 text-sm font-semibold"
               >
                 Continue to packet preview
               </Button>
@@ -635,7 +658,12 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
               <p className="text-lg font-bold leading-tight text-white">{demo.name}</p>
               <p className="text-sm text-white/45">{demo.specialty}</p>
             </div>
-            <TrustStatusBadge status="demo" label="Preview only" size="sm" />
+            <div className="space-y-2 text-right">
+              <TrustStatusBadge status="demo" label={previewOnlyLabel} size="sm" />
+              {demoDescriptor ? (
+                <p className="text-[10px] leading-relaxed text-white/24">{demoDescriptor}</p>
+              ) : null}
+            </div>
           </div>
         </CardHeader>
 
@@ -711,17 +739,24 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
         </CardContent>
 
         <CardFooter className="border-t border-white/6 px-5 py-4">
-          <div className="w-full">
+          <div className="w-full rounded-2xl border border-white/6 bg-black/15 p-4">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/24">Next step</p>
+              <p className="mt-1 text-sm font-medium text-white/72">Carry this example into interview mode.</p>
+              <p className="mt-1 text-xs leading-relaxed text-white/38">
+                This route stays {previewOnlyLabel} until a live run returns {checkedLabel} source results.
+              </p>
+            </div>
             <Button
               type="button"
               variant="success"
               onClick={onContinue}
-              className="h-14 w-full rounded-xl px-5 text-sm font-semibold"
+              className="mt-4 h-14 w-full rounded-xl px-5 text-sm font-semibold"
             >
               Share in your next interview
             </Button>
             <p className="mt-2 text-center text-[10px] text-white/20">
-              Demo preview only · live data appears after a real source run
+              {previewOnlyLabel} only - live data appears after a real source run
             </p>
           </div>
         </CardFooter>

@@ -11,9 +11,13 @@
  * Status is conveyed through opacity, not color.
  */
 
-import Link from 'next/link';
 import type { PassportData } from '@/lib/trust/passport-contract';
+import {
+  getStatusDisplayLabel,
+  getTrustStatusLabel,
+} from '@/lib/trust/status-language';
 import InterviewClient from './InterviewClient';
+import InterviewBlockedState from './InterviewBlockedState';
 
 const B =
   process.env.BACKEND_URL ||
@@ -43,28 +47,18 @@ export default async function InterviewPage({
   searchParams: Promise<{ entityId?: string; npi?: string; contextId?: string }>;
 }) {
   const { entityId, npi, contextId } = await searchParams;
+  const checkedLabel = getTrustStatusLabel('checked');
+  const pendingLabel = getTrustStatusLabel('pending');
+  const unavailableLabel = getTrustStatusLabel('unavailable');
+  const previewOnlyLabel = getStatusDisplayLabel('demo', 'Preview only');
 
   if (!entityId && !npi) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#080e1a' }}>
-        <div className="w-full max-w-sm space-y-5 text-center">
-          <p className="text-white/50 text-base leading-relaxed">
-            Interview mode turns your source-backed readiness snapshot into a packet preview.
-          </p>
-          <p className="text-white/30 text-sm">
-            Enter your NPI first to open a packet preview.
-          </p>
-          <Link
-            href="/"
-            className="block w-full rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold py-4 transition-all text-center"
-          >
-            Start with NPI lookup
-          </Link>
-          <Link href="/" className="block text-white/20 hover:text-white/40 text-xs transition-colors">
-            Back to home
-          </Link>
-        </div>
-      </div>
+      <InterviewBlockedState
+        title="Interview mode needs a homepage NPI lookup before it can open."
+        description="This route does not have NPI lookup context yet. Start from the homepage lookup, then continue from the readiness snapshot once the current source states are visible."
+        telemetryReason="missing_npi_context"
+      />
     );
   }
 
@@ -76,25 +70,10 @@ export default async function InterviewPage({
 
   if (!passport) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#080e1a' }}>
-        <div className="w-full max-w-sm space-y-5 text-center">
-          <p className="text-white/50 text-base leading-relaxed">
-            VitalCV could not build a packet preview from that input yet.
-          </p>
-          <p className="text-white/30 text-sm">
-            Start from your NPI lookup so the packet preview is anchored to a real passport object.
-          </p>
-          <Link
-            href="/"
-            className="block w-full rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold py-4 transition-all text-center"
-          >
-            Start with NPI lookup
-          </Link>
-          <Link href="/" className="block text-white/20 hover:text-white/40 text-xs transition-colors">
-            Back to home
-          </Link>
-        </div>
-      </div>
+      <InterviewBlockedState
+        title="VitalCV could not load a source-backed interview packet for that NPI yet."
+        description={`Run the homepage lookup again to confirm which sections are ${checkedLabel}, ${pendingLabel}, ${unavailableLabel}, or ${previewOnlyLabel} before you continue.`}
+      />
     );
   }
 
