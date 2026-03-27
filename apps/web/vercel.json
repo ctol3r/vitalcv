@@ -1,0 +1,14 @@
+{
+  "framework": "nextjs",
+  "installCommand": "npm install -g pnpm@10.6.1 && cd ../.. && pnpm install --frozen-lockfile",
+  "buildCommand": "cd ../.. && pnpm --filter @vitalcv/web build",
+  "outputDirectory": ".next",
+  "headers": [
+    {
+      "source": "/api/deploy-info",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=60, stale-while-revalidate=300" }
+      ]
+    }
+  ]
+}

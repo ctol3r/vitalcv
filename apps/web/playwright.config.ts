@@ -1,11 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const isCI = !!process.env.CI;
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  forbidOnly: isCI,
+  retries: isCI ? 1 : 0,
+  workers: isCI ? 1 : undefined,
   reporter: 'list',
   timeout: 30_000,
 
@@ -22,17 +24,14 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'pnpm build && pnpm exec next start -H 127.0.0.1 -p 3000',
+    command: isCI ? 'pnpm run preview:e2e' : 'pnpm run dev:e2e',
     env: {
       ...process.env,
-      NEXT_DISABLE_PWA: process.env.NEXT_DISABLE_PWA ?? '1',
       CLERK_SECRET_KEY: '',
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: '',
-      NEXT_PUBLIC_CLERK_SIGN_IN_URL: '/sign-in',
-      NEXT_PUBLIC_CLERK_SIGN_UP_URL: '/sign-up',
     },
     url: 'http://127.0.0.1:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 300_000,
+    reuseExistingServer: !isCI,
+    timeout: 180_000,
   },
 });

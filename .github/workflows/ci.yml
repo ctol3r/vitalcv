@@ -2,13 +2,32 @@ name: CI
 
 on:
   push:
-    branches: [main, 'feature/**', 'fix/**', 'wave/**']
+    branches: [main, 'feature/**', 'fix/**', 'wave/**', 'chore/**']
+    paths:
+      - 'apps/web/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
+      - '.github/workflows/ci.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
+      - '.github/workflows/ci.yml'
+
+env:
+  NODE_VERSION: '22'
 
 jobs:
-  build:
-    name: Build
+  web-quality:
+    name: Web Quality
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,43 +35,13 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'pnpm'
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Generate Prisma client
-        run: pnpm --filter chai-vc-platform-backend exec prisma generate
-      - name: Build all packages
-        run: pnpm turbo build
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Lint web app
-        run: pnpm --filter web lint
-
-  typecheck:
-    name: Type Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'pnpm'
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Generate Prisma client
-        run: pnpm --filter chai-vc-platform-backend exec prisma generate
-      - name: Type check API
-        run: pnpm exec tsc -p apps/api/backend/tsconfig.json --noEmit
+        run: pnpm --filter @vitalcv/web lint
+      - name: Run web unit tests
+        run: pnpm --filter @vitalcv/web test
+      - name: Build web app
+        run: pnpm --filter @vitalcv/web build

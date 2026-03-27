@@ -4,12 +4,14 @@
     "lib": ["ES2022"],
     "module": "CommonJS",
     "moduleResolution": "Node",
+    "ignoreDeprecations": "5.0",
     "strict": true,
 
     "rootDir": "../../..",
     "baseUrl": "../../..",
 
     "paths": {
+      "@vitalcv/command-registry": ["packages/command-registry/src/index"],
       "@vitalcv/domain/*": ["packages/domain/*"],
       "@vitalcv/domain-common": ["packages/domain-common/src"],
       "@vitalcv/psv": ["packages/psv"],

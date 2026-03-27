@@ -3,8 +3,22 @@ name: Monorepo CI/CD
 on:
   push:
     branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+    paths:
+      - 'apps/api/**'
+      - 'apps/authz/**'
+      - 'apps/marketing/**'
+      - 'apps/web/**'
+      - 'apps/verifier-api/**'
+      - 'apps/issuer-api/**'
+      - 'apps/admin-api/**'
+      - 'apps/status-api/**'
+      - 'packages/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
+      - '.github/workflows/monorepo.yml'
 
 env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
@@ -44,7 +58,17 @@ jobs:
         run: pnpm turbo run build --filter='./packages/*'
 
       - name: Build apps
-        run: pnpm turbo run build
+        run: |
+          pnpm -r \
+            --filter @vitalcv/api \
+            --filter @vitalcv/admin-api \
+            --filter @vitalcv/authz \
+            --filter @vitalcv/issuer-api \
+            --filter @vitalcv/marketing \
+            --filter @vitalcv/status-api \
+            --filter @vitalcv/verifier-api \
+            --filter @vitalcv/web \
+            run build
 
       - name: Run typecheck
         run: pnpm turbo run typecheck
