@@ -581,7 +581,7 @@ describe('live path regression hardening', () => {
     const view = await renderNode(<LiveTrustConsole onPreviewReady={onPreviewReady} />);
 
     await setInputValue(view.container, 'NPI number', '1234567890');
-    await clickByText(view.container, 'See readiness');
+    await clickByText(view.container, 'Start with NPI lookup');
     await flush();
     await advance(260);
     await flush();
@@ -598,9 +598,9 @@ describe('live path regression hardening', () => {
     expect(onPreviewReady).toHaveBeenCalledWith('1234567890', 'Ada Lovelace');
     expect(trackedEventNames()).toEqual(expect.arrayContaining([
       'page_loaded',
-      'npi_submit',
-      'loader_started',
-      'preview_visible',
+      'npi_submit_attempt',
+      'source_check_started',
+      'readiness_revealed',
     ]));
 
     await view.unmount();
@@ -611,17 +611,17 @@ describe('live path regression hardening', () => {
     const view = await renderNode(<LiveTrustConsole />);
 
     await setInputValue(view.container, 'NPI number', '1234');
-    await clickByText(view.container, 'See readiness');
+    await clickByText(view.container, 'Start with NPI lookup');
     await flush();
 
     expect(fetchMock).not.toHaveBeenCalled();
     expect(textContent(view.container)).toContain('Enter a valid 10-digit NPI to build a live or demo snapshot.');
 
-    const previewErrorCall = trackUxEventMock.mock.calls
+    // PR #79: invalid NPI now fires npi_invalid event (not preview_error)
+    const npiInvalidCall = trackUxEventMock.mock.calls
       .map((call) => call[0])
-      .find((event) => event?.event_name === 'preview_error');
-    expect(previewErrorCall?.metadata).toMatchObject({
-      error_type: 'invalid_npi',
+      .find((event) => event?.event_name === 'npi_invalid');
+    expect(npiInvalidCall?.metadata).toMatchObject({
       interaction_result: 'cancel',
       source_mode: 'live',
     });
@@ -643,7 +643,7 @@ describe('live path regression hardening', () => {
     const view = await renderNode(<LiveTrustConsole />);
 
     await setInputValue(view.container, 'NPI number', '1234567890');
-    await clickByText(view.container, 'See readiness');
+    await clickByText(view.container, 'Start with NPI lookup');
     await flush();
     await advance(260);
     await flush();
@@ -653,7 +653,7 @@ describe('live path regression hardening', () => {
 
     const previewVisibleCall = trackUxEventMock.mock.calls
       .map((call) => call[0])
-      .find((event) => event?.event_name === 'preview_visible');
+      .find((event) => event?.event_name === 'readiness_revealed');
     const previewErrorCall = trackUxEventMock.mock.calls
       .map((call) => call[0])
       .find((event) => event?.event_name === 'preview_error');
