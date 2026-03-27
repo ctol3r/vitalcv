@@ -491,7 +491,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
       : '/passport';
 
     trackUxEvent({
-      event_name: UX_EVENTS.SHARE_INTENT,
+      event_name: UX_EVENTS.SHARE_CTA_CLICKED,
       component_id: 'homepage_npi_flow',
       metadata: {
         auth_state: authState,
@@ -617,7 +617,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
                 aria-live="polite"
                 title={loadingCopy}
                 description={previewNotice ?? 'Connected sources only flip complete when they actually return.'}
-                className={`absolute left-0 right-0 top-0 z-10 mt-5 transition-[opacity,transform] duration-150 ease-out ${
+                className={`absolute left-0 right-0 top-0 z-10 mt-5 animate-panel-enter transition-[opacity,transform] duration-150 ease-out ${
                   loadingPanelFading ? 'pointer-events-none opacity-0 translate-y-1' : 'opacity-100 translate-y-0'
                 }`}
               >

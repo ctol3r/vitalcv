@@ -23,6 +23,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRoleContext } from '@/components/auth/RoleContext';
+import { SectionReveal } from '@/components/motion/ScrollMotion';
 import { Accordion } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -657,7 +658,8 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
         )}
 
         {/* ── Decision card — Exact Layout ──────────────────────────────── */}
-        <Card className="mb-6 gap-6 rounded-2xl border-white/8 bg-white/3 px-5 py-5 shadow-none">
+        <SectionReveal delay={0}>
+          <Card className="mb-6 gap-6 rounded-2xl border-white/8 bg-white/3 px-5 py-5 shadow-none">
           {/* Identity */}
           <div>
             <h1 className="text-white text-xl font-semibold leading-tight">
@@ -859,7 +861,8 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
               )}
             </div>
           </div>
-        </Card>
+          </Card>
+        </SectionReveal>
 
         {/* ── Advisory Panel — gated, clearly labeled, below readiness ── */}
         <EmployerAdvisoryPanel passport={passport} />
@@ -948,7 +951,8 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
 
         {/* ── Decision basis — what you're acting on (no assumptions) ──────── */}
         {(actionState.phase === 'idle' || actionState.phase === 'downloading') && (
-          <Card className="gap-3 rounded-2xl border-white/8 bg-white/3 px-5 py-4 shadow-none">
+          <SectionReveal delay={0.05}>
+            <Card className="gap-3 rounded-2xl border-white/8 bg-white/3 px-5 py-4 shadow-none">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
               Passport truth in this review
             </p>
@@ -1057,12 +1061,14 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
                 </div>
               </div>
             )}
-          </Card>
+            </Card>
+          </SectionReveal>
         )}
 
         {/* ── M2: Action panel — all actions write audit events ────────────── */}
         {actionState.phase === 'idle' || actionState.phase === 'downloading' ? (
-          <Card className="gap-4 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-5 shadow-none">
+          <SectionReveal delay={0.1}>
+            <Card className="gap-4 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-5 shadow-none">
             {/* Primary — Accept as head start */}
             <Button
               onClick={handleAccept}
@@ -1118,82 +1124,89 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
                 )}
               </div>
             )}
-          </Card>
+            </Card>
+          </SectionReveal>
 
         ) : actionState.phase === 'loading' ? (
           /* Loading state */
-          <TrustStateCard
-            title={employerReviewLoadingLabel(actionState.intent)}
-            description="Writing the persisted audit record..."
-            centered
-          />
+          <SectionReveal delay={0.1}>
+            <TrustStateCard
+              title={employerReviewLoadingLabel(actionState.intent)}
+              description="Writing the persisted audit record..."
+              centered
+            />
+          </SectionReveal>
 
         ) : actionState.phase === 'done' ? (
           /* Success — show audit event ID for verifiability */
-          <TrustStateCard
-            title={actionState.state.summary.title}
-            description={actionState.state.summary.description}
-            tone="success"
-            className="rounded-xl"
-            actions={(
-              <Button
-                onClick={() => setActionState({ phase: 'idle' })}
-                variant="ghost"
-                className="min-h-[44px] w-full text-xs text-white/25 hover:bg-transparent hover:text-white/40"
-              >
-                Back
-              </Button>
-            )}
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-[var(--vt-success)] text-sm">✔</span>
-              <p className="text-white/75 text-sm font-medium">Audit trail recorded</p>
-            </div>
-            {/* Audit event + trust snapshot at time of decision */}
-            <div className="rounded-lg border border-white/8 bg-white/3 px-3 py-2 mt-1 space-y-1.5">
-              <p className="text-white/20 text-[10px] uppercase tracking-widest">Audit record</p>
-              <p className="text-white/45 text-[10px] font-mono break-all">{actionState.state.auditEventId}</p>
-              <p className="text-white/20 text-[10px]">{new Date(actionState.state.timestamp).toLocaleString()}</p>
-              {(() => {
-                const snap = actionState.state.trustSnapshot;
-                if (!snap) return null;
-                return (
-                  <div className="mt-2 pt-2 border-t border-white/6 space-y-1">
-                    <p className="text-white/20 text-[10px] uppercase tracking-widest">Trust state recorded at decision</p>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-                      <span className="text-white/25 text-[10px]">Readiness</span>
-                      <span className="text-white/50 text-[10px]">{snap.readinessStatus} · {snap.readinessScore}%</span>
-                      <span className="text-white/25 text-[10px]">Trust band</span>
-                      <span className="text-white/50 text-[10px]">{snap.trustBand} · {snap.trustBandLabel}</span>
-                      <span className="text-white/25 text-[10px]">Blockers noted</span>
-                      <span className="text-white/50 text-[10px]">{snap.blockerCount}</span>
-                      <span className="text-white/25 text-[10px]">Exclusion</span>
-                      <span className="text-white/50 text-[10px]">{snap.exclusionStatus}</span>
+          <SectionReveal delay={0.1}>
+            <TrustStateCard
+              title={actionState.state.summary.title}
+              description={actionState.state.summary.description}
+              tone="success"
+              className="rounded-xl"
+              actions={(
+                <Button
+                  onClick={() => setActionState({ phase: 'idle' })}
+                  variant="ghost"
+                  className="min-h-[44px] w-full text-xs text-white/25 hover:bg-transparent hover:text-white/40"
+                >
+                  Back
+                </Button>
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-[var(--vt-success)] text-sm">✔</span>
+                <p className="text-white/75 text-sm font-medium">Audit trail recorded</p>
+              </div>
+              {/* Audit event + trust snapshot at time of decision */}
+              <div className="rounded-lg border border-white/8 bg-white/3 px-3 py-2 mt-1 space-y-1.5">
+                <p className="text-white/20 text-[10px] uppercase tracking-widest">Audit record</p>
+                <p className="text-white/45 text-[10px] font-mono break-all">{actionState.state.auditEventId}</p>
+                <p className="text-white/20 text-[10px]">{new Date(actionState.state.timestamp).toLocaleString()}</p>
+                {(() => {
+                  const snap = actionState.state.trustSnapshot;
+                  if (!snap) return null;
+                  return (
+                    <div className="mt-2 pt-2 border-t border-white/6 space-y-1">
+                      <p className="text-white/20 text-[10px] uppercase tracking-widest">Trust state recorded at decision</p>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                        <span className="text-white/25 text-[10px]">Readiness</span>
+                        <span className="text-white/50 text-[10px]">{snap.readinessStatus} · {snap.readinessScore}%</span>
+                        <span className="text-white/25 text-[10px]">Trust band</span>
+                        <span className="text-white/50 text-[10px]">{snap.trustBand} · {snap.trustBandLabel}</span>
+                        <span className="text-white/25 text-[10px]">Blockers noted</span>
+                        <span className="text-white/50 text-[10px]">{snap.blockerCount}</span>
+                        <span className="text-white/25 text-[10px]">Exclusion</span>
+                        <span className="text-white/50 text-[10px]">{snap.exclusionStatus}</span>
+                      </div>
+                      <p className="text-white/15 text-[10px] font-mono break-all mt-1">
+                        receipt: {snap.snapshotHash?.slice(0, 16)}…
+                      </p>
                     </div>
-                    <p className="text-white/15 text-[10px] font-mono break-all mt-1">
-                      receipt: {snap.snapshotHash?.slice(0, 16)}…
-                    </p>
-                  </div>
-                );
-              })()}
-            </div>
-          </TrustStateCard>
+                  );
+                })()}
+              </div>
+            </TrustStateCard>
+          </SectionReveal>
 
         ) : /* error */ (
-          <TrustStateCard
-            title="Action failed"
-            description={actionState.message}
-            tone="critical"
-            actions={(
-              <Button
-                onClick={() => setActionState({ phase: 'idle' })}
-                variant="ghost"
-                className="min-h-[44px] w-full text-xs text-white/25 hover:bg-transparent hover:text-white/40"
-              >
-                Try again
-              </Button>
-            )}
-          />
+          <SectionReveal delay={0.1}>
+            <TrustStateCard
+              title="Action failed"
+              description={actionState.message}
+              tone="critical"
+              actions={(
+                <Button
+                  onClick={() => setActionState({ phase: 'idle' })}
+                  variant="ghost"
+                  className="min-h-[44px] w-full text-xs text-white/25 hover:bg-transparent hover:text-white/40"
+                >
+                  Try again
+                </Button>
+              )}
+            />
+          </SectionReveal>
         )}
 
       </div>

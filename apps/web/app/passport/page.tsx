@@ -320,7 +320,7 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
             )}
 
             {/* Source status rows */}
-            <Card className="gap-0 rounded-xl border-white/8 bg-white/3 px-4 py-2 shadow-none">
+            <Card className="animate-panel-enter gap-0 rounded-xl border-white/8 bg-white/3 px-4 py-2 shadow-none">
               <SourceRow
                 label="Identity"
                 state={sources.nppes}

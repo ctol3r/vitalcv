@@ -1,9 +1,64 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { motion, useInView, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import styles from './ScrollMotion.module.css';
+
+interface SafeInViewOptions {
+  once?: boolean;
+  margin?: string;
+}
+
+function useSafeInView<T extends Element>(
+  ref: React.RefObject<T | null>,
+  options: SafeInViewOptions = {},
+): boolean {
+  const { once = false, margin = '0px' } = options;
+  const [isInView, setIsInView] = useState(false);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) {
+      return;
+    }
+
+    if (typeof IntersectionObserver === 'undefined') {
+      setIsInView(true);
+      return;
+    }
+
+    if (once && isInView) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry) {
+          return;
+        }
+
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          if (once) {
+            observer.disconnect();
+          }
+          return;
+        }
+
+        if (!once) {
+          setIsInView(false);
+        }
+      },
+      { rootMargin: margin },
+    );
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [isInView, margin, once, ref]);
+
+  return isInView;
+}
 
 /* ── Section Reveal ───────────────────────────────────────── */
 
@@ -28,7 +83,7 @@ export function SectionReveal({
   delay = 0,
 }: SectionRevealProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: '-60px' });
+  const isInView = useSafeInView(ref, { once: true, margin: '-60px' });
 
   const { x: initialX, y: initialY } = directionMap[direction];
 
@@ -96,7 +151,7 @@ interface GraphExpansionProps {
 
 export function GraphExpansion({ children, className = '' }: GraphExpansionProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: '-100px' });
+  const isInView = useSafeInView(ref, { once: true, margin: '-100px' });
 
   return (
     <motion.div
@@ -151,7 +206,7 @@ interface TerminalTypingProps {
 
 export function TerminalTyping({ text, className = '', speed = 30 }: TerminalTypingProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: '-40px' });
+  const isInView = useSafeInView(ref, { once: true, margin: '-40px' });
   const [displayed, setDisplayed] = useState('');
 
   useEffect(() => {

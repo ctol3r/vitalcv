@@ -24,6 +24,7 @@ import Link from 'next/link';
  */
 
 import { useState } from 'react';
+import { SectionReveal } from '@/components/motion/ScrollMotion';
 import { Accordion } from '@/components/ui/accordion';
 import type { AccordionItem } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
@@ -62,16 +63,15 @@ const STATUS_CONFIG: Record<ReadinessStatus, {
 };
 
 const SOURCE_COVERAGE_ORDER: Record<string, number> = {
-  live: 0,
+  checked: 0,
   stale: 1,
   reviewRequired: 2,
   accessRequired: 3,
   gated: 3,
   notDecisionGrade: 4,
-  notChecked: 4,
-  partial: 4,
+  pending: 4,
   unavailable: 4,
-  mock: 4,
+  previewOnly: 4,
 };
 
 function sortPassportSourceCoverageChecks(
@@ -537,80 +537,94 @@ export default function PassportWallet({ passport }: Props) {
         </Card>
 
         {/* ── Trust Posture ─────────────────────────────────────────────────── */}
-        <PassportTrustPosture posture={trustPosture} />
+        <SectionReveal delay={0}>
+          <PassportTrustPosture posture={trustPosture} />
+        </SectionReveal>
 
         {/* ── NPI disclaimer — identity anchor clarification ─────────────── */}
         {passport.npi && (
-          <p className="text-white/20 text-xs text-center leading-relaxed border border-white/6 rounded-xl px-4 py-2.5">
-            NPI {passport.npi} confirms identity only — does not confirm licensure, enrollment, or credential status.
-          </p>
+          <SectionReveal delay={0.05}>
+            <p className="text-white/20 text-xs text-center leading-relaxed border border-white/6 rounded-xl px-4 py-2.5">
+              NPI {passport.npi} confirms identity only — does not confirm licensure, enrollment, or credential status.
+            </p>
+          </SectionReveal>
         )}
 
         {/* ── Freshness ─────────────────────────────────────────────────────── */}
-        <PassportFreshnessCard freshness={trustPosture.freshness} />
+        <SectionReveal delay={0.1}>
+          <PassportFreshnessCard freshness={trustPosture.freshness} />
+        </SectionReveal>
 
         {/* ── Source coverage — explicit live/stale/gated/mock per source ──── */}
-        <PassportSourceCoveragePanel checks={sourceCoverageChecks} />
+        <SectionReveal delay={0.15}>
+          <PassportSourceCoveragePanel checks={sourceCoverageChecks} />
+        </SectionReveal>
 
         {/* ── Details accordion ─────────────────────────────────────────────── */}
-        <EvidenceDisclosureCard
-          eyebrow="Proof"
-          title="View source-backed evidence by section"
-          description="Each disclosure keeps trust-core proof, contextual notes, and gaps explicit."
-          className="rounded-2xl border-white/8 bg-white/[0.03]"
-          contentClassName="px-5 py-1"
-        >
-          <Accordion items={accordionItems} />
-        </EvidenceDisclosureCard>
+        <SectionReveal delay={0.2}>
+          <EvidenceDisclosureCard
+            eyebrow="Proof"
+            title="View source-backed evidence by section"
+            description="Each disclosure keeps trust-core proof, contextual notes, and gaps explicit."
+            className="rounded-2xl border-white/8 bg-white/[0.03]"
+            contentClassName="px-5 py-1"
+          >
+            <Accordion items={accordionItems} />
+          </EvidenceDisclosureCard>
+        </SectionReveal>
 
         {/* ── Next actions (from readiness engine) ──────────────────────────── */}
         {readiness.nextActions.length > 0 && (
-          <Card className="gap-3 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-4 shadow-none">
-            <p className="text-white/50 text-sm font-medium">What should happen next</p>
-            {readiness.nextActions.slice(0, 4).map((action) => (
-              <div key={action.id} className="flex items-start gap-3">
-                <span className="text-white/25 mt-1 select-none text-xs">—</span>
-                <div>
-                  <p className="text-white/70 text-sm">{action.title}</p>
-                  <p className="text-white/40 text-xs mt-0.5">{action.detail}</p>
+          <SectionReveal delay={0.25}>
+            <Card className="gap-3 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-4 shadow-none">
+              <p className="text-white/50 text-sm font-medium">What should happen next</p>
+              {readiness.nextActions.slice(0, 4).map((action) => (
+                <div key={action.id} className="flex items-start gap-3">
+                  <span className="text-white/25 mt-1 select-none text-xs">—</span>
+                  <div>
+                    <p className="text-white/70 text-sm">{action.title}</p>
+                    <p className="text-white/40 text-xs mt-0.5">{action.detail}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </Card>
+              ))}
+            </Card>
+          </SectionReveal>
         )}
 
         {/* ── Advisory Panel — clinician-facing, clearly advisory ─── */}
         <PassportAdvisoryPanel passport={passport} />
 
         {/* ── Share section ─────────────────────────────────────────────────── */}
-        <div className="space-y-3 pt-2">
-          {!shared ? (
-            <>
-              <Button
-                onClick={handleShare}
-                disabled={sharing}
-                variant="success"
-                className="h-14 w-full rounded-xl text-sm font-medium"
-                aria-label="Share passport with employer"
-              >
-                {sharing ? 'Confirming…' : 'Share with employer'}
-              </Button>
-              {shareError && (
-                <p className="text-[var(--vt-critical)] text-xs text-center">{shareError}</p>
-              )}
-              <p className="text-center text-white/20 text-xs leading-relaxed">
-                Sharing sends the current Passport proof surface shown above. Requires biometric confirmation.
-              </p>
-            </>
-          ) : (
-            <TrustStateCard
-              title="Passport shared"
-              description="Employer notified. Access expires in 24 hours."
-              tone="success"
-              centered
-            />
-          )}
-        </div>
+        <SectionReveal delay={0.3}>
+          <div className="space-y-3 pt-2">
+            {!shared ? (
+              <>
+                <Button
+                  onClick={handleShare}
+                  disabled={sharing}
+                  variant="success"
+                  className="h-14 w-full rounded-xl text-sm font-medium"
+                  aria-label="Share passport with employer"
+                >
+                  {sharing ? 'Confirming…' : 'Share with employer'}
+                </Button>
+                {shareError && (
+                  <p className="text-[var(--vt-critical)] text-xs text-center">{shareError}</p>
+                )}
+                <p className="text-center text-white/20 text-xs leading-relaxed">
+                  Sharing sends the current Passport proof surface shown above. Requires biometric confirmation.
+                </p>
+              </>
+            ) : (
+              <TrustStateCard
+                title="Passport shared"
+                description="Employer notified. Access expires in 24 hours."
+                tone="success"
+                centered
+              />
+            )}
+          </div>
+        </SectionReveal>
 
         {/* ── Footer nav ───────────────────────────────────────────────────── */}
         <div className="text-center pt-2">

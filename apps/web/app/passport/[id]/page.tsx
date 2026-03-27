@@ -40,7 +40,7 @@ export default async function PassportEntityPage({
   if (!passport) {
     return (
       <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center justify-center px-4">
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-sm animate-fade-in-up">
           <TrustStateCard
             eyebrow="Passport"
             title="Passport not found"
