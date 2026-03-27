@@ -26,7 +26,7 @@ export default function PrequalifyTrigger({
     : 'inline-flex items-center gap-2 rounded-full vt-glass px-6 py-3 text-sm font-medium text-white hover:bg-vt-surface-ops-raised transition';
 
   return (
-    <Link href="/onboarding" className={`${base} ${className}`}>
+    <Link href="/passport" className={`${base} ${className}`}>
       <Zap className="h-4 w-4" />
       {label}
     </Link>
