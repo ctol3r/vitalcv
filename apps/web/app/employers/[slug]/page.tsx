@@ -137,7 +137,7 @@ export default async function EmployerProfilePage({ params }: Props) {
 
             <div className="w-full max-w-sm space-y-3">
               <div className="rounded-3xl border border-white/10 bg-black/20 p-5">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Launch-ready actions</p>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Current actions</p>
                 <div className="mt-4 flex flex-col gap-3">
                   <Link
                     href={scopedOnboardingHref}
@@ -194,7 +194,7 @@ export default async function EmployerProfilePage({ params }: Props) {
           <StatCard
             label="Open roles"
             value={String(opportunityPayload.total > 0 ? opportunityPayload.total : employer.openRoles)}
-            detail="Live roles tied to this employer."
+            detail="Current public roles tied to this employer."
           />
           <StatCard
             label="Trust score"
@@ -235,7 +235,7 @@ export default async function EmployerProfilePage({ params }: Props) {
             <div id="roles" className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Live opportunity feed</p>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Current opportunity feed</p>
                   <h2 className="mt-2 text-2xl font-semibold text-white">Current roles from this employer</h2>
                 </div>
                 <Link
@@ -249,9 +249,9 @@ export default async function EmployerProfilePage({ params }: Props) {
 
               {opportunityPayload.opportunities.length === 0 ? (
                 <div className="mt-5 rounded-3xl border border-amber-400/20 bg-amber-400/10 p-5">
-                  <h3 className="text-lg font-semibold text-white">No live roles are attached right now</h3>
+                  <h3 className="text-lg font-semibold text-white">No current public roles are attached right now</h3>
                   <p className="mt-2 text-sm leading-6 text-white/65">
-                    The employer profile is live, but no active public opportunities are currently attached to this organization slug.
+                    The employer profile is available, but no active public opportunities are currently attached to this organization slug.
                     Next step: confirm opportunity seeding or browse the broader explore feed.
                   </p>
                 </div>

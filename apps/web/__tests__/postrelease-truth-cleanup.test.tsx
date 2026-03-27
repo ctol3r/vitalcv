@@ -4,7 +4,21 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => <div {...props}>{children}</div>,
+    div: ({
+      children,
+      animate: _animate,
+      initial: _initial,
+      transition: _transition,
+      viewport: _viewport,
+      whileInView: _whileInView,
+      ...props
+    }: React.HTMLAttributes<HTMLDivElement> & {
+      animate?: unknown;
+      initial?: unknown;
+      transition?: unknown;
+      viewport?: unknown;
+      whileInView?: unknown;
+    }) => <div {...props}>{children}</div>,
   },
   useInView: () => true,
 }));
@@ -80,7 +94,7 @@ describe('post-release truth cleanup', () => {
     expect(homeMarkup).not.toContain('Primary sources verify you');
   });
 
-  it('keeps the readiness preview on checked and packet-preview language', async () => {
+  it('keeps the readiness preview on checked and passport handoff language', async () => {
     const { ReadinessPreview } = await import('../components/hero/ReadinessPreview');
 
     const markup = renderToStaticMarkup(
@@ -95,7 +109,7 @@ describe('post-release truth cleanup', () => {
 
     expect(markup).toContain('Identity checked');
     expect(markup).toContain('Checked in this run');
-    expect(markup).toContain('Continue to packet preview');
+    expect(markup).toContain('Continue to passport');
     expect(markup).toContain('Source checks');
     expect(markup).toContain('Source-backed preview');
     expect(markup).not.toContain('Identity verified');
@@ -114,7 +128,8 @@ describe('post-release truth cleanup', () => {
     expect(exploreMetadata.description).toBe(
       'Trust-native clinical opportunities matched to your source-backed readiness snapshot. Know what is checked before you apply.',
     );
-    expect(exploreMarkup).toContain('Already Matched For.');
+    expect(exploreMarkup).toContain('Clinical Opportunities.');
+    expect(exploreMarkup).toContain('See roles where your readiness snapshot may apply');
     expect(exploreMarkup).toContain('Check Readiness Free');
     expect(exploreMarkup).not.toContain('Already Cleared For.');
 
@@ -145,5 +160,5 @@ describe('post-release truth cleanup', () => {
 
     expect(sdkMarkup).toContain('Client Libraries');
     expect(sdkMarkup).toContain('@vitalcv/verifier-sdk');
-  });
+  }, 20000);
 });

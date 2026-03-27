@@ -57,13 +57,7 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
       onClick={() => setTheme(next)}
       title={`Switch to ${next} mode`}
       aria-label={`Switch to ${next} mode`}
-      className={`
-        flex h-8 w-8 items-center justify-center rounded-lg border transition-colors duration-200 ease-out
-        border-[var(--vt-border)] bg-[var(--vt-surface)]
-        text-[var(--vt-text-secondary)] hover:text-[var(--vt-text-primary)]
-        hover:bg-[var(--vt-surface-subtle)]
-        ${className}
-      `}
+      className={`rounded-lg p-2 text-white/70 transition hover:bg-white/10 hover:text-white ${className}`}
     >
       {isDark ? (
         <Sun className="h-4 w-4" />

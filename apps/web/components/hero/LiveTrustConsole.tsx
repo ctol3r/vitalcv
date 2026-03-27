@@ -3,7 +3,7 @@
 /**
  * LiveTrustConsole — Hero
  *
- * State machine:  idle → loading → preview → (Continue) → /interview?npi=
+ * State machine:  idle → loading → preview → (Continue) → /passport?npi=
  *
  * loading:
  *   1. POST /api/identity/[npi]/ingest  — real NPPES + OIG/LEIE query
@@ -19,6 +19,7 @@
  * Color rule: green is used ONLY on the CTA button.
  */
 
+import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useRoleContext } from '@/components/auth/RoleContext';
@@ -141,7 +142,7 @@ function resolveLoadingCopy(stages: SourceStage[], isDemo: boolean): string {
 const FLOW_STEPS = [
   'Enter NPI',
   'Review readiness',
-  'Share intent',
+  'Open passport',
 ] as const;
 
 function resolveFlowStepState(
@@ -486,7 +487,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
   function handleContinue() {
     const trimmed = npi.trim();
     const dest = LIVE_PATH_NPI_RE.test(trimmed)
-      ? `/interview?npi=${trimmed}`
+      ? `/passport?npi=${trimmed}`
       : '/passport';
 
     trackUxEvent({
@@ -539,7 +540,11 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
         </div>
 
         {!isPreviewPhase ? (
-          <>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}
+          >
             <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/35">
               NPI first. Honest coverage.
             </p>
@@ -547,9 +552,48 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
               See your readiness snapshot in <span className="text-emerald-400">about 10 seconds.</span>
             </h1>
             <p className="mb-6 text-sm leading-relaxed text-white/50 sm:text-base">
-              VitalCV starts with your NPI, then labels each lane as {checkedLabel}, {pendingLabel}, {accessRequiredLabel}, {unavailableLabel}, or {previewOnlyLabel} before you move forward.
+              VitalCV gives healthcare professionals a source-backed credentialing snapshot from NPPES, OIG, and available PECOS coverage in seconds, then labels each lane as {checkedLabel}, {pendingLabel}, {accessRequiredLabel}, {unavailableLabel}, or {previewOnlyLabel}.
             </p>
-          </>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Input
+                ref={inputRef}
+                type="text"
+                inputMode="numeric"
+                maxLength={10}
+                value={npi}
+                readOnly={phase === 'loading'}
+                aria-busy={phase === 'loading'}
+                aria-disabled={phase === 'loading'}
+                onChange={(e) => {
+                  if (formMessage) {
+                    setFormMessage(null);
+                  }
+                  setNpi(e.target.value.replace(/\D/g, ''));
+                }}
+                placeholder="Enter your 10-digit NPI"
+                aria-label="NPI number"
+                className={`h-14 flex-1 min-w-0 rounded-xl border-white/12 bg-white/5 px-4 text-[16px] text-white placeholder:text-white/30 shadow-none transition-[opacity,border-color,background-color] duration-150 focus-visible:border-emerald-500/40 focus-visible:bg-white/7 focus-visible:ring-white/10 ${
+                  phase === 'loading' ? 'cursor-default bg-white/6 opacity-80' : ''
+                } ${
+                  formMessage ? 'border-amber-400/30' : ''
+                }`}
+              />
+              <Button
+                type="submit"
+                variant="success"
+                disabled={phase === 'loading'}
+                className="h-14 w-full shrink-0 whitespace-nowrap rounded-xl px-5 text-sm font-semibold sm:w-auto"
+              >
+                <span aria-live="polite">{phase === 'loading' ? loadingCopy : 'Start with NPI lookup'}</span>
+              </Button>
+            </form>
+
+            {formMessage && (
+              <p className="mt-3 text-xs leading-relaxed text-amber-200/80">
+                {formMessage}
+              </p>
+            )}
+          </motion.div>
         ) : (
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
@@ -557,55 +601,13 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
                 Readiness snapshot
               </p>
               <p className="mt-1 text-xs text-white/40 sm:text-sm">
-                Step 2 is visible. Step 3 keeps this snapshot honest in interview mode.
+                Step 2 is visible. Step 3 carries this snapshot into your passport flow.
               </p>
             </div>
             {isDemo && (
               <TrustStatusBadge status="demo" label="Preview only" size="sm" />
             )}
           </div>
-        )}
-
-        {!isPreviewPhase && (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Input
-              ref={inputRef}
-              type="text"
-              inputMode="numeric"
-              maxLength={10}
-              value={npi}
-              readOnly={phase === 'loading'}
-              aria-busy={phase === 'loading'}
-              aria-disabled={phase === 'loading'}
-              onChange={(e) => {
-                if (formMessage) {
-                  setFormMessage(null);
-                }
-                setNpi(e.target.value.replace(/\D/g, ''));
-              }}
-              placeholder="Enter your 10-digit NPI"
-              aria-label="NPI number"
-              className={`h-14 flex-1 min-w-0 rounded-xl border-white/12 bg-white/5 px-4 text-[16px] text-white placeholder:text-white/30 shadow-none transition-[opacity,border-color,background-color] duration-150 focus-visible:border-emerald-500/40 focus-visible:bg-white/7 focus-visible:ring-white/10 ${
-                phase === 'loading' ? 'cursor-default bg-white/6 opacity-80' : ''
-              } ${
-                formMessage ? 'border-amber-400/30' : ''
-              }`}
-            />
-            <Button
-              type="submit"
-              variant="success"
-              disabled={phase === 'loading'}
-              className="h-14 w-full shrink-0 whitespace-nowrap rounded-xl px-5 text-sm font-semibold sm:w-auto"
-            >
-              <span aria-live="polite">{phase === 'loading' ? loadingCopy : 'Start with NPI lookup'}</span>
-            </Button>
-          </form>
-        )}
-
-        {!isPreviewPhase && formMessage && (
-          <p className="mt-3 text-xs leading-relaxed text-amber-200/80">
-            {formMessage}
-          </p>
         )}
 
         {(showLoadingPanel || phase === 'preview') && (
@@ -664,7 +666,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
             )}
 
             {phase === 'preview' && (
-              <div className="relative z-0">
+              <div className={`relative z-0 ${previewIn ? 'animate-fade-in-up' : ''}`}>
                 {previewNotice && isDemo && (
                   <p className="pt-3 text-[10px] font-medium uppercase tracking-[0.16em] text-amber-200/80">
                     {previewNotice}

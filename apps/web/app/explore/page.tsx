@@ -25,12 +25,12 @@ export default function ExplorePage() {
           Trust-Native Matching
         </span>
         <h1 className="heading-xl mt-3 text-white">
-          Opportunities You&apos;re<br />
-          <span className="text-vt-success">Already Matched For.</span>
+          Explore<br />
+          <span className="text-vt-success">Clinical Opportunities.</span>
         </h1>
         <p className="body-lg mx-auto mt-4 max-w-xl text-vt-neutral-200">
-          Every role maps to your readiness state. Know exactly what&apos;s
-          blocking you — and resolve it before you apply.
+          See roles where your readiness snapshot may apply, then review likely
+          blockers before you decide to apply.
         </p>
         <div className="mt-8 flex items-center justify-center gap-3 flex-wrap">
           <PrequalifyTrigger

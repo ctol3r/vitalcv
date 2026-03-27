@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { HeroWithAuthPrompt } from '@/components/hero/HeroWithAuthPrompt';
-import { InterviewModeTeaser, TrustStrip } from '@/components/home/PublicTruthSections';
+import { TrustStrip } from '@/components/home/PublicTruthSections';
 import { HowItWorksSection } from '@/components/marketing/HomeSections';
 
 export default function HomePage() {
@@ -11,7 +11,6 @@ export default function HomePage() {
       <HeroWithAuthPrompt />
       <TrustStrip />
       <HowItWorksSection />
-      <InterviewModeTeaser />
     </div>
   );
 }

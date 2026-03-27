@@ -246,7 +246,14 @@ export function HowItWorksSection() {
             const Icon = s.icon;
             const colors = STEP_ACCENT[s.accent];
             return (
-              <FadeIn key={s.step} delay={i * 0.14} className="h-full" immediate>
+              <motion.div
+                key={s.step}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-50px' }}
+                transition={{ duration: 0.5, delay: i * 0.1, ease: 'easeOut' }}
+                className="h-full"
+              >
                 <div
                   className={`group relative h-full rounded-2xl border bg-white/3 backdrop-blur-sm p-7 transition-all hover:bg-white/5 ${colors.border}`}
                 >
@@ -274,7 +281,7 @@ export function HowItWorksSection() {
                     {s.detail}
                   </div>
                 </div>
-              </FadeIn>
+              </motion.div>
             );
           })}
         </div>

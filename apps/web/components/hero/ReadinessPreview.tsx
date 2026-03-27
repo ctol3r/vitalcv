@@ -614,7 +614,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
             <div className="w-full rounded-2xl border border-white/6 bg-black/15 p-4">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/24">Next step</p>
-                <p className="mt-1 text-sm font-medium text-white/72">Carry this snapshot into interview mode.</p>
+                <p className="mt-1 text-sm font-medium text-white/72">Carry this snapshot into your passport.</p>
                 <p className="mt-1 text-xs leading-relaxed text-white/38">
                   {checkedLabel} or {clearLabel} sections stay attached. {pendingLabel}, {accessRequiredLabel}, {reviewRequiredLabel}, and {unavailableLabel} sections remain visible.
                 </p>
@@ -625,7 +625,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
                 onClick={onContinue}
                 className="mt-4 h-14 w-full rounded-xl px-5 text-sm font-semibold"
               >
-                Continue to packet preview
+                Continue to passport
               </Button>
               <p className="mt-2 text-center text-[10px] text-white/20">
                 Source-backed preview · {ts.methodology_version}
@@ -742,7 +742,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
           <div className="w-full rounded-2xl border border-white/6 bg-black/15 p-4">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/24">Next step</p>
-              <p className="mt-1 text-sm font-medium text-white/72">Carry this example into interview mode.</p>
+              <p className="mt-1 text-sm font-medium text-white/72">Carry this example into passport.</p>
               <p className="mt-1 text-xs leading-relaxed text-white/38">
                 This route stays {previewOnlyLabel} until a live run returns {checkedLabel} source results.
               </p>
@@ -753,7 +753,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
               onClick={onContinue}
               className="mt-4 h-14 w-full rounded-xl px-5 text-sm font-semibold"
             >
-              Share in your next interview
+              Continue to passport
             </Button>
             <p className="mt-2 text-center text-[10px] text-white/20">
               {previewOnlyLabel} only - live data appears after a real source run
