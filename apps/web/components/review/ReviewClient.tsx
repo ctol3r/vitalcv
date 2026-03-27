@@ -64,6 +64,7 @@ import {
 import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
 import {
   buildPassportReviewTruthModel,
+  resolvePassportTruthSet,
   type PassportTruthListItem,
 } from '@/lib/trust/passport-review-truth';
 import {
@@ -73,6 +74,7 @@ import {
   resolveAuthorityTitle,
   resolveAuthorityTrustStatus,
 } from '@/lib/trust/passport-truth';
+import type { CanonicalTruthSet } from '../../../../packages/trust-state';
 
 function latestCredentialObservationDate(
   credentials: PassportData['authority']['credentials'],
@@ -86,24 +88,80 @@ function latestCredentialObservationDate(
   return values.sort((left, right) => Date.parse(right) - Date.parse(left))[0] ?? null;
 }
 
-function buildSafetyRow(standing: PassportData['standing']): {
+function buildTruthStatusLabelRow(input: {
+  truth: CanonicalTruthSet[keyof CanonicalTruthSet];
+  label: string;
+  confirmedExplanation: string;
+  confirmedNote?: string;
+  missingExplanation: string;
+}): {
   status: TrustStatus;
   label: string;
   note?: string;
   explanation: string;
 } {
+  switch (input.truth.status) {
+    case 'VERIFIED':
+    case 'CLEAR':
+    case 'ENROLLED':
+      return {
+        status: 'confirmed',
+        label: input.label,
+        note: input.confirmedNote,
+        explanation: input.confirmedExplanation,
+      };
+    case 'REVIEW REQUIRED':
+      return {
+        status: 'review',
+        label: input.label,
+        note: joinNoteParts(['Review required', 'requires verification']),
+        explanation: input.truth.coverage.reason || input.missingExplanation,
+      };
+    case 'ACCESS REQUIRED':
+      return {
+        status: 'unchecked',
+        label: input.label,
+        note: joinNoteParts(['Access required', 'requires verification']),
+        explanation: input.truth.coverage.reason || input.missingExplanation,
+      };
+    case 'UNAVAILABLE':
+      return {
+        status: 'unchecked',
+        label: input.label,
+        note: joinNoteParts(['Unavailable', 'requires verification']),
+        explanation: input.truth.coverage.reason || input.missingExplanation,
+      };
+    case 'NOT DECISION-GRADE':
+      return {
+        status: 'info',
+        label: input.label,
+        note: joinNoteParts(['Not decision-grade', 'context only']),
+        explanation: input.truth.coverage.reason || input.missingExplanation,
+      };
+    case 'PENDING':
+    default:
+      return {
+        status: 'unchecked',
+        label: input.label,
+        note: joinNoteParts(['Pending', 'requires verification']),
+        explanation: input.truth.coverage.reason || input.missingExplanation,
+      };
+  }
+}
+
+function buildSafetyRow(passport: PassportData): {
+  status: TrustStatus;
+  label: string;
+  note?: string;
+  explanation: string;
+} {
+  const { standing } = passport;
+  const truth = resolvePassportTruthSet(passport);
   // MS16-E: note contract — checkedAt · dataFreshness · confidenceLabel (· action-flag)
   const checkedNote = formatAsOfDate(standing.exclusionCheckedAt);
   const confidence  = standing.exclusionConfidenceLabel ?? null;
 
   switch (standing.exclusionStatus) {
-    case 'CLEAR':
-      return {
-        status: 'confirmed',
-        label: 'Exclusion check',
-        note: joinNoteParts(['Clear', checkedNote, confidence]),
-        explanation: 'No exclusion entry was found in the current OIG LEIE check.',
-      };
     case 'POSSIBLE_MATCH':
       return {
         status: 'review',
@@ -118,21 +176,17 @@ function buildSafetyRow(standing: PassportData['standing']): {
         note: joinNoteParts(['Blocked', checkedNote, confidence, 'requires verification']),
         explanation: 'An exclusion record is attached to this provider. Employment should not proceed until it is resolved.',
       };
+    case 'CLEAR':
     case 'UNKNOWN':
-      return {
-        status: 'review',
-        label: 'Exclusion check',
-        note: joinNoteParts(['Unavailable', confidence, 'requires verification']),
-        explanation: 'The exclusion result could not be resolved from the current OIG check.',
-      };
     case 'UNCHECKED':
     default:
-      return {
-        status: 'unchecked',
+      return buildTruthStatusLabelRow({
+        truth: truth.safety,
         label: 'Exclusion check',
-        note: 'Unavailable · requires verification',
-        explanation: 'No current OIG exclusion check is attached to this review.',
-      };
+        confirmedNote: joinNoteParts(['Clear', checkedNote, confidence]),
+        confirmedExplanation: 'No exclusion entry was found in the current OIG LEIE check.',
+        missingExplanation: 'No current OIG exclusion check is attached to this review.',
+      });
   }
 }
 
@@ -161,26 +215,20 @@ function buildAuthorityRow(credential: PassportData['authority']['credentials'][
   };
 }
 
-function buildEligibilityRow(standing: PassportData['standing'], status: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED' | 'OPTED_OUT'): {
+function buildEligibilityRow(passport: PassportData, status: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED' | 'OPTED_OUT'): {
   status: TrustStatus;
   label: string;
   note?: string;
   explanation: string;
 } {
+  const { standing } = passport;
+  const truth = resolvePassportTruthSet(passport);
   const quarterNote  = formatAsOfQuarter(standing.enrollmentObservedAt, standing.enrollmentDataVersion);
   // MS16-E: note contract — dataFreshness · confidenceLabel · checkedAt (· action-flag)
   const freshness    = standing.enrollmentFreshnessLabel ?? standing.enrollmentDataFreshness ?? null;
   const confidence   = standing.enrollmentConfidenceLabel ?? null;
 
   switch (status) {
-    case 'ENROLLED':
-      return {
-        status: 'confirmed',
-        label: 'Medicare enrollment',
-        // MS16-A explicit label: "Medicare enrolled — as of Q4 2025"
-        note: joinNoteParts(['Enrolled', freshness, confidence, quarterNote]),
-        explanation: standing.enrollmentNote ?? 'CMS PECOS confirms an enrolled provider record in the current quarterly release.',
-      };
     case 'NOT_FOUND':
       return {
         status: 'review',
@@ -191,23 +239,18 @@ function buildEligibilityRow(standing: PassportData['standing'], status: 'ENROLL
           standing.enrollmentNote
           ?? 'Not finding a record may indicate non-enrollment or a quarterly CMS publication lag. Verify at pecos.cms.hhs.gov before relying on this layer.',
       };
+    case 'ENROLLED':
     case 'UNKNOWN':
-      return {
-        status: 'review',
-        label: 'Medicare enrollment',
-        note: joinNoteParts(['Unavailable', freshness, confidence, quarterNote, 'requires verification']),
-        explanation:
-          standing.enrollmentNote
-          ?? 'The CMS PECOS result could not be resolved from the current quarterly release. Manual verification required.',
-      };
     case 'UNCHECKED':
     default:
-      return {
-        status: 'unchecked',
+      return buildTruthStatusLabelRow({
+        truth: truth.eligibility,
         label: 'Medicare enrollment',
-        note: joinNoteParts(['Unavailable', freshness ?? 'Quarterly', 'Source: CMS PECOS', 'requires verification']),
-        explanation: 'No CMS PECOS lookup has been performed yet. Enrollment eligibility is unknown.',
-      };
+        confirmedNote: joinNoteParts(['Enrolled', freshness, confidence, quarterNote]),
+        confirmedExplanation:
+          standing.enrollmentNote ?? 'CMS PECOS confirms an enrolled provider record in the current quarterly release.',
+        missingExplanation: 'No CMS PECOS lookup has been performed yet. Enrollment eligibility is unknown.',
+      });
   }
 }
 
@@ -360,6 +403,7 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
   const reviewOpenedTrackedRef = useRef(false);
 
   const { identity, readiness, standing, authority } = passport;
+  const truth = resolvePassportTruthSet(passport);
   const readinessStatus = resolveLivePathReadinessStatus(readiness.status);
   const pecosEnrollmentStatus: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED' | 'OPTED_OUT' =
     standing.pecosEnrollmentStatus ?? (
@@ -376,8 +420,8 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
   const reviewTruth = buildPassportReviewTruthModel(passport);
   const proofItems = buildPassportProofSections(passport);
   const proofSummary = reviewTruth.proofSummary;
-  const safetyRow = buildSafetyRow(standing);
-  const eligibilityRow = buildEligibilityRow(standing, pecosEnrollmentStatus);
+  const safetyRow = buildSafetyRow(passport);
+  const eligibilityRow = buildEligibilityRow(passport, pecosEnrollmentStatus);
   const lastSyncedAt =
     passport.lastCheckedAt
     ?? standing.exclusionCheckedAt
@@ -569,7 +613,7 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
       const a    = document.createElement('a');
       a.href     = url;
       const npi  = passport.identity.npi ?? passport.entityId;
-      a.download = `vitalcv-packet-${npi}-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `vitalcv-passport-${npi}-${new Date().toISOString().slice(0, 10)}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -674,14 +718,21 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
             <div className="space-y-2">
               <h2 className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2">Identity</h2>
               <TrustLabel
-                status={identity.npi ? 'confirmed' : 'unchecked'}
-                label={identity.npi ? 'Identity confirmed' : 'Identity missing'}
-                source={identity.npi ? 'CMS NPPES' : undefined}
-                note={identity.npi ? formatAsOfDate(passport.lastCheckedAt) ?? undefined : 'requires verification'}
+                status={truth.identity.status === 'VERIFIED' ? 'confirmed' : 'unchecked'}
+                label={truth.identity.status === 'VERIFIED' ? 'Identity confirmed' : 'Identity missing'}
+                source="CMS NPPES"
+                note={
+                  truth.identity.status === 'VERIFIED'
+                    ? formatAsOfDate(truth.identity.coverage.checkedAt ?? passport.lastCheckedAt) ?? undefined
+                    : joinNoteParts([
+                        truth.identity.coverage.reason,
+                        'requires verification',
+                      ])
+                }
                 explanation={
-                  identity.npi
+                  truth.identity.status === 'VERIFIED'
                     ? 'Identity confirmed against the national provider registry.'
-                    : 'Identity must resolve to CMS NPPES before the rest of the trust stack can be relied on.'
+                    : truth.identity.coverage.reason || 'Identity must resolve to CMS NPPES before the rest of the trust stack can be relied on.'
                 }
               />
             </div>
@@ -834,7 +885,7 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
                 }
                 className="h-9 rounded-xl border-white/10 px-4 py-2 text-[11px] font-medium text-white/45 hover:border-white/20 hover:text-white/70"
               >
-                {actionState.phase === 'downloading' ? 'Exporting…' : 'Export packet'}
+                {actionState.phase === 'downloading' ? 'Exporting…' : 'Export passport proof'}
               </Button>
             )}
             className="rounded-2xl border-white/8 bg-white/[0.03]"
