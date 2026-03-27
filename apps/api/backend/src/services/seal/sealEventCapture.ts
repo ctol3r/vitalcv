@@ -51,10 +51,15 @@ export type BlockerResolutionMethod =
   | 'UNKNOWN';
 
 export interface SourceCoverageSnapshot {
-  live:       string[];
+  checked:    string[];
+  stale:      string[];
+  pending:    string[];
   gated:      string[];
-  mock:       string[];
-  notChecked: string[];
+  unavailable: string[];
+  accessRequired: string[];
+  reviewRequired: string[];
+  notDecisionGrade: string[];
+  previewOnly: string[];
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

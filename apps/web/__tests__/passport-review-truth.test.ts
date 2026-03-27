@@ -1,10 +1,40 @@
 import { describe, expect, it } from 'vitest';
 import type { PassportData } from '../lib/trust/passport-contract';
 import { buildPassportReviewTruthModel } from '../lib/trust/passport-review-truth';
+import {
+  createCanonicalSourceCoverage,
+  summarizeCanonicalSourceCoverage,
+} from '../../../packages/trust-state';
 
 function buildPassport(
   overrides: Partial<PassportData> = {},
 ): PassportData {
+  const checks = [
+    createCanonicalSourceCoverage({
+      sourceId: 'NPPES_API',
+      state: 'checked',
+      reason: 'NPPES identity checked',
+      checkedAt: '2026-03-20T00:00:00.000Z',
+    }),
+    createCanonicalSourceCoverage({
+      sourceId: 'OIG_LEIE',
+      state: 'checked',
+      reason: 'OIG LEIE check clear',
+      checkedAt: '2026-03-20T00:00:00.000Z',
+    }),
+    createCanonicalSourceCoverage({
+      sourceId: 'STATE_BOARD',
+      state: 'checked',
+      reason: 'Licensure checked',
+      checkedAt: '2026-03-20T00:00:00.000Z',
+    }),
+    createCanonicalSourceCoverage({
+      sourceId: 'PECOS_PUBLIC',
+      state: 'checked',
+      reason: 'CMS PECOS confirms enrolled status in the current quarterly release',
+      checkedAt: '2026-03-20T00:00:00.000Z',
+    }),
+  ] as const;
   const base: PassportData = {
     entityId: 'entity-1',
     npi: '1234567890',
@@ -84,6 +114,40 @@ function buildPassport(
       checked: ['NPPES', 'OIG'],
       lastFetch: {},
     },
+    sourceCoverage: {
+      checks: [...checks],
+      summary: summarizeCanonicalSourceCoverage(checks),
+    },
+    truth: {
+      identity: {
+        kind: 'verification',
+        status: 'VERIFIED',
+        satisfied: true,
+        decisionGrade: true,
+        coverage: checks[0],
+      },
+      safety: {
+        kind: 'clearance',
+        status: 'CLEAR',
+        satisfied: true,
+        decisionGrade: true,
+        coverage: checks[1],
+      },
+      authority: {
+        kind: 'verification',
+        status: 'VERIFIED',
+        satisfied: true,
+        decisionGrade: true,
+        coverage: checks[2],
+      },
+      eligibility: {
+        kind: 'enrollment',
+        status: 'ENROLLED',
+        satisfied: true,
+        decisionGrade: true,
+        coverage: checks[3],
+      },
+    },
     trustPosture: {
       band: 'L2',
       bandLabel: 'Moderate trust',
@@ -146,6 +210,8 @@ function buildPassport(
         ...overrides.sources?.lastFetch,
       },
     },
+    sourceCoverage: overrides.sourceCoverage ?? base.sourceCoverage,
+    truth: overrides.truth ?? base.truth,
     trustPosture: {
       ...base.trustPosture,
       ...overrides.trustPosture,
@@ -167,7 +233,38 @@ function buildPassport(
 
 describe('passport review truth', () => {
   it('maps proof states into source-backed, contextual, stale, review, and missing buckets', () => {
+    const reviewRequiredSafetyCoverage = createCanonicalSourceCoverage({
+      sourceId: 'OIG_LEIE',
+      state: 'reviewRequired',
+      reason: 'Potential exclusion match requires manual review',
+      checkedAt: '2026-03-20T00:00:00.000Z',
+    });
+    const coverageChecks = [
+      createCanonicalSourceCoverage({
+        sourceId: 'NPPES_API',
+        state: 'checked',
+        reason: 'NPPES identity checked',
+        checkedAt: '2026-03-20T00:00:00.000Z',
+      }),
+      reviewRequiredSafetyCoverage,
+      createCanonicalSourceCoverage({
+        sourceId: 'STATE_BOARD',
+        state: 'checked',
+        reason: 'Licensure checked',
+        checkedAt: '2026-03-20T00:00:00.000Z',
+      }),
+      createCanonicalSourceCoverage({
+        sourceId: 'PECOS_PUBLIC',
+        state: 'checked',
+        reason: 'CMS PECOS confirms enrolled status in the current quarterly release',
+        checkedAt: '2026-03-20T00:00:00.000Z',
+      }),
+    ] as const;
     const passport = buildPassport({
+      sourceCoverage: {
+        checks: [...coverageChecks],
+        summary: summarizeCanonicalSourceCoverage(coverageChecks),
+      },
       authority: {
         credentials: [
           buildPassport().authority.credentials[0],
@@ -192,6 +289,16 @@ describe('passport review truth', () => {
         exclusionStatus: 'POSSIBLE_MATCH',
         deaStatus: 'unknown',
       },
+      truth: {
+        ...buildPassport().truth,
+        safety: {
+          ...buildPassport().truth.safety,
+          status: 'REVIEW REQUIRED',
+          satisfied: false,
+          decisionGrade: false,
+          coverage: reviewRequiredSafetyCoverage,
+        },
+      },
     });
 
     const truth = buildPassportReviewTruthModel(passport);
@@ -199,9 +306,7 @@ describe('passport review truth', () => {
     expect(truth.buckets.sourceBackedNow.map((item) => item.label)).toEqual(
       expect.arrayContaining(['Identity Verification', 'Physician license (OR)']),
     );
-    expect(truth.buckets.contextualOnly.map((item) => item.label)).toEqual(
-      expect.arrayContaining(['Enrollment / Eligibility']),
-    );
+    expect(truth.buckets.sourceBackedNow.map((item) => item.label)).toContain('Enrollment / Eligibility');
     expect(truth.buckets.contextualOnly.map((item) => item.label)).not.toContain('Physician license (OR)');
     expect(truth.buckets.stale.map((item) => item.label)).toContain('Board certified');
     expect(truth.buckets.needsReview.map((item) => item.label)).toContain('Sanctions & Exclusions');

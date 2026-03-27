@@ -2,16 +2,15 @@
 
 import React from 'react';
 import { HeroWithAuthPrompt } from '@/components/hero/HeroWithAuthPrompt';
-import { InterviewModeTeaser, TrustStrip } from '@/components/home/PublicTruthSections';
+import { TrustStrip } from '@/components/home/PublicTruthSections';
 import { HowItWorksSection } from '@/components/marketing/HomeSections';
 
 export default function HomePage() {
   return (
-    <div style={{ background: '#080e1a' }} className="min-h-screen">
+    <div className="min-h-screen bg-[#080e1a] dark:bg-[#080e1a]">
       <HeroWithAuthPrompt />
       <TrustStrip />
       <HowItWorksSection />
-      <InterviewModeTeaser />
     </div>
   );
 }

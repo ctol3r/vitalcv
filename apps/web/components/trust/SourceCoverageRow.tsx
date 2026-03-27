@@ -22,7 +22,7 @@ function resolveCoverageBadge(check: PassportSourceCoverageCheck): {
   status: TrustBadgeStatus;
   label: string;
 } {
-  if (check.state === 'live') {
+  if (check.state === 'checked') {
     return {
       status: 'verified',
       label: sourceCoverageBadgeLabel({
@@ -42,7 +42,7 @@ function resolveCoverageBadge(check: PassportSourceCoverageCheck): {
 }
 
 export function SourceCoverageRow({ check }: SourceCoverageRowProps) {
-  const decisionGrade = check.state === 'live';
+  const decisionGrade = check.state === 'checked';
   const badge = resolveCoverageBadge(check);
   const statusDescriptor = getTrustStatusDescriptor(badge.status, badge.label);
 

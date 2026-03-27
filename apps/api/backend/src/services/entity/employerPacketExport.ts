@@ -1,0 +1,135 @@
+import archiver from 'archiver';
+import { PassThrough } from 'stream';
+import { stableStringify } from '../../utils/deterministic';
+import {
+  EMPLOYER_EVIDENCE_PACKET_BUNDLE_FILES,
+  type EmployerEvidencePacketV1,
+} from './employerPacket';
+
+export interface EmployerEvidencePacketBundleContents {
+  packetJson: string;
+  manifestJson: string;
+  sourceCoverageJson: string;
+  statusJson: string;
+  readmeTxt: string;
+}
+
+export interface EmployerEvidencePacketSourceCoverageV1 {
+  schema: 'vitalcv.employer.packet-source-coverage.v1';
+  exportedAt: string;
+  exportedBy: string;
+  entityId: string;
+  clinicianNpi: string;
+  sourceCoverage: EmployerEvidencePacketV1['sourceCoverage'];
+  sourceCoverageSummary: EmployerEvidencePacketV1['sourceCoverageSummary'];
+  manifestSources: EmployerEvidencePacketV1['manifest']['sources'];
+}
+
+export interface EmployerEvidencePacketStatusV1 {
+  schema: 'vitalcv.employer.packet-status.v1';
+  exportedAt: string;
+  exportedBy: string;
+  entityId: string;
+  clinicianNpi: string;
+  truth: EmployerEvidencePacketV1['truth'];
+  freshness: EmployerEvidencePacketV1['freshness'];
+  readiness: EmployerEvidencePacketV1['readiness'];
+  sourceCoverageSummary: EmployerEvidencePacketV1['sourceCoverageSummary'];
+}
+
+function buildSourceCoverageDocument(
+  packet: EmployerEvidencePacketV1,
+): EmployerEvidencePacketSourceCoverageV1 {
+  return {
+    schema: 'vitalcv.employer.packet-source-coverage.v1',
+    exportedAt: packet.exportedAt,
+    exportedBy: packet.exportedBy,
+    entityId: packet.entityId,
+    clinicianNpi: packet.clinicianNpi,
+    sourceCoverage: packet.sourceCoverage,
+    sourceCoverageSummary: packet.sourceCoverageSummary,
+    manifestSources: packet.manifest.sources,
+  };
+}
+
+function buildStatusDocument(
+  packet: EmployerEvidencePacketV1,
+): EmployerEvidencePacketStatusV1 {
+  return {
+    schema: 'vitalcv.employer.packet-status.v1',
+    exportedAt: packet.exportedAt,
+    exportedBy: packet.exportedBy,
+    entityId: packet.entityId,
+    clinicianNpi: packet.clinicianNpi,
+    truth: packet.truth,
+    freshness: packet.freshness,
+    readiness: packet.readiness,
+    sourceCoverageSummary: packet.sourceCoverageSummary,
+  };
+}
+
+function buildReadme(packet: EmployerEvidencePacketV1): string {
+  const summary = packet.sourceCoverageSummary;
+
+  return [
+    'VitalCV Employer Evidence Packet',
+    '',
+    `Entity ID: ${packet.entityId}`,
+    `Clinician NPI: ${packet.clinicianNpi}`,
+    `Exported At: ${packet.exportedAt}`,
+    `Exported By: ${packet.exportedBy}`,
+    '',
+    'Truth Statuses',
+    `- Identity: ${packet.truth.identity.status}`,
+    `- Safety: ${packet.truth.safety.status}`,
+    `- Authority: ${packet.truth.authority.status}`,
+    `- Eligibility: ${packet.truth.eligibility.status}`,
+    '',
+    'Launch Spine Coverage',
+    `- Checked: ${summary.checked.join(', ') || 'none'}`,
+    `- Stale: ${summary.stale.join(', ') || 'none'}`,
+    `- Pending: ${summary.pending.join(', ') || 'none'}`,
+    `- Access required: ${summary.accessRequired.join(', ') || 'none'}`,
+    `- Review required: ${summary.reviewRequired.join(', ') || 'none'}`,
+    `- Unavailable: ${summary.unavailable.join(', ') || 'none'}`,
+    '',
+    `Receipt References: ${packet.receiptReferences.length}`,
+    `Artifact References: ${packet.artifactReferences.length}`,
+    `Freshness State: ${packet.freshness.state}`,
+    `Freshness Label: ${packet.freshness.label}`,
+    '',
+    'Bundle Files',
+    ...EMPLOYER_EVIDENCE_PACKET_BUNDLE_FILES.map((file) => `- ${file}`),
+  ].join('\n');
+}
+
+export function buildEmployerEvidencePacketBundleContents(
+  packet: EmployerEvidencePacketV1,
+): EmployerEvidencePacketBundleContents {
+  return {
+    packetJson: stableStringify(packet),
+    manifestJson: stableStringify(packet.manifest),
+    sourceCoverageJson: stableStringify(buildSourceCoverageDocument(packet)),
+    statusJson: stableStringify(buildStatusDocument(packet)),
+    readmeTxt: buildReadme(packet),
+  };
+}
+
+export function createEmployerEvidencePacketZipStream(
+  packet: EmployerEvidencePacketV1,
+): PassThrough {
+  const passthrough = new PassThrough();
+  const archive = archiver('zip', { zlib: { level: 9 } });
+  const bundle = buildEmployerEvidencePacketBundleContents(packet);
+  const prefix = `vitalcv-packet-${packet.clinicianNpi || packet.entityId}`;
+
+  archive.pipe(passthrough);
+  archive.append(bundle.packetJson, { name: `${prefix}/packet.json` });
+  archive.append(bundle.manifestJson, { name: `${prefix}/manifest.json` });
+  archive.append(bundle.sourceCoverageJson, { name: `${prefix}/source-coverage.json` });
+  archive.append(bundle.statusJson, { name: `${prefix}/status.json` });
+  archive.append(bundle.readmeTxt, { name: `${prefix}/README.txt` });
+  void archive.finalize();
+
+  return passthrough;
+}

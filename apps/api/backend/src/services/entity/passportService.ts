@@ -41,11 +41,14 @@ import {
 import { buildReadinessNextActions, type ReadinessNextAction } from './readinessActions';
 import { syncBlockerEvents } from '../seal/sealEventCapture';
 import {
+  coverageSatisfiesDecisionGradeTruth,
+  createCanonicalTruth,
   createCanonicalSourceCoverage,
   summarizeCanonicalSourceCoverage,
   type CanonicalSourceCoverage,
   type CanonicalSourceCoverageReport,
   type CanonicalSourceCoverageState,
+  type CanonicalTruthSet,
 } from '../../../../../../packages/trust-state';
 import { getSourceFreshnessWindowHours } from '../identity/sourceCatalog';
 import {
@@ -250,6 +253,7 @@ export interface TrustPassport {
   readiness:      PassportReadiness;
   sources:        PassportSources;
   sourceCoverage: CanonicalSourceCoverageReport;
+  truth:          CanonicalTruthSet;
   trustPosture:   PassportTrustPosture;
   lastCheckedAt:  string;
 }
@@ -273,9 +277,8 @@ function onlyUuids(values: string[]): string[] {
   return values.filter((v) => UUID_RE.test(v));
 }
 
-const HEX32_RE = /^[0-9a-f]{32}$/i;
 function onlyReceiptIds(values: string[]): string[] {
-  return values.filter((v) => UUID_RE.test(v) || HEX32_RE.test(v));
+  return dedupeStrings(values);
 }
 
 function asRecord(value: unknown): JsonRecord {
@@ -364,6 +367,18 @@ type SourceProofRefs = {
   receiptIds: string[];
 };
 
+type SourceProofArtifact = {
+  id: string;
+  source: string;
+  parserVersion: string | null;
+  checksum: string;
+  sourceUrl: string | null;
+  fetchedAt: Date | null;
+  observedAt: Date | null;
+  verifiedAt: Date;
+  expiresAt: Date | null;
+};
+
 function buildProofRefsBySource(input: {
   credentials: readonly Pick<PassportCredential, 'id' | 'sourceId'>[];
   credentialEvidence: ReadonlyMap<string, CredentialEvidenceResolution>;
@@ -437,8 +452,8 @@ function buildFallbackPassportSourceCoverage(input: {
         : licensureCredential?.stale
           ? 'stale'
           : licensureCredential
-            ? 'live'
-            : 'notChecked';
+            ? 'checked'
+            : 'pending';
   const pecosDaysRemaining = pecosRevalidationDaysRemaining(
     pecosCredential?.nextReverifyAt ?? pecosCredential?.revalidationDue ?? null,
   );
@@ -451,17 +466,21 @@ function buildFallbackPassportSourceCoverage(input: {
     observedAt: pecosCredential?.observedAt ?? null,
   });
   const pecosState = input.standing.pecosEnrollmentStatus === 'UNCHECKED'
-    ? 'notChecked'
+    ? 'pending'
     : !pecosFresh
       ? 'stale'
-    : input.standing.pecosEnrollmentStatus === 'UNKNOWN'
-      ? 'partial'
-      : 'live';
+      : (
+        input.standing.pecosEnrollmentStatus === 'ENROLLED'
+        || input.standing.pecosEnrollmentStatus === 'NOT_FOUND'
+        || input.standing.pecosEnrollmentStatus === 'OPTED_OUT'
+      )
+        ? 'checked'
+        : 'pending';
 
   return [
     createCanonicalSourceCoverage({
       sourceId: 'NPPES_API',
-      state: input.identity.npi ? 'live' : 'notChecked',
+      state: input.identity.npi ? 'checked' : 'pending',
       reason: input.identity.npi
         ? 'NPPES identity checked'
         : 'NPPES identity source not yet checked',
@@ -471,12 +490,12 @@ function buildFallbackPassportSourceCoverage(input: {
     createCanonicalSourceCoverage({
       sourceId: 'OIG_LEIE',
       state: input.standing.exclusionStatus === 'UNCHECKED'
-        ? 'notChecked'
+        ? 'pending'
         : input.standing.exclusionStatus === 'POSSIBLE_MATCH'
           ? 'reviewRequired'
           : input.standing.exclusionStatus === 'UNKNOWN'
-            ? 'partial'
-            : 'live',
+            ? 'pending'
+            : 'checked',
       reason:
         input.standing.exclusionStatus === 'CLEAR'
           ? 'OIG LEIE check clear'
@@ -494,10 +513,10 @@ function buildFallbackPassportSourceCoverage(input: {
       sourceId: licensureSourceId,
       state: licensureState,
       reason:
-        licensureState === 'live'
+        licensureState === 'checked'
           ? 'Licensure checked'
           : licensureState === 'accessRequired'
-            ? 'CA physician licensure lane requires live state-board or FSMB access'
+            ? 'CA physician licensure lane requires checked state-board or FSMB access'
             : licensureState === 'notDecisionGrade'
               ? 'State licensure is outside the current production lane and must be verified manually'
           : licensureState === 'reviewRequired'
@@ -535,7 +554,33 @@ function buildPassportSourceCoverage(input: {
   standing: PassportStanding;
   lastCheckedAt: string;
   proofBySource: ReadonlyMap<string, SourceProofRefs>;
+  artifactsById: ReadonlyMap<string, SourceProofArtifact>;
 }): CanonicalSourceCoverageReport {
+  const latestArtifactForSource = (sourceId: string): SourceProofArtifact | null => {
+    const proofArtifactIds = input.proofBySource.get(sourceId)?.artifactIds ?? [];
+    const sourceArtifacts = proofArtifactIds
+      .map((artifactId) => input.artifactsById.get(artifactId))
+      .filter((artifact): artifact is SourceProofArtifact => (
+        artifact != null && artifact.source === sourceId
+      ));
+
+    if (sourceArtifacts.length === 0) {
+      return null;
+    }
+
+    return [...sourceArtifacts].sort((left, right) => {
+      const leftTimestamp =
+        left.observedAt?.getTime()
+        ?? left.fetchedAt?.getTime()
+        ?? left.verifiedAt.getTime();
+      const rightTimestamp =
+        right.observedAt?.getTime()
+        ?? right.fetchedAt?.getTime()
+        ?? right.verifiedAt.getTime();
+      return rightTimestamp - leftTimestamp;
+    })[0] ?? null;
+  };
+
   const baseChecks = input.trustState?.sourceCoverage?.length
     ? input.trustState.sourceCoverage
     : buildFallbackPassportSourceCoverage({
@@ -546,19 +591,38 @@ function buildPassportSourceCoverage(input: {
       });
 
   const checks = baseChecks
-    .map((check) => createCanonicalSourceCoverage({
-      sourceId: check.sourceId,
-      state: check.state,
-      reason: check.reason,
-      checkedAt: check.checkedAt ?? null,
-      artifactId: check.artifactId ?? null,
-      sourceUrl: check.sourceUrl ?? null,
-      rawArtifactRef: check.rawArtifactRef ?? check.artifactId ?? null,
-      checksum: check.checksum ?? null,
-      parserVersion: check.parserVersion ?? null,
-      freshnessWindowHours: check.freshnessWindowHours ?? null,
-      proof: input.proofBySource.get(check.sourceId) ?? null,
-    }))
+    .map((check) => {
+      const proof = input.proofBySource.get(check.sourceId) ?? null;
+      const latestArtifact = latestArtifactForSource(check.sourceId);
+      const artifactId = check.artifactId ?? latestArtifact?.id ?? null;
+      const checkedAt = check.checkedAt
+        ?? latestArtifact?.observedAt?.toISOString()
+        ?? latestArtifact?.fetchedAt?.toISOString()
+        ?? latestArtifact?.verifiedAt.toISOString()
+        ?? null;
+      const observedAt = check.observedAt
+        ?? latestArtifact?.observedAt?.toISOString()
+        ?? latestArtifact?.fetchedAt?.toISOString()
+        ?? checkedAt
+        ?? null;
+      const expiresAt = check.expiresAt ?? latestArtifact?.expiresAt?.toISOString() ?? null;
+
+      return createCanonicalSourceCoverage({
+        sourceId: check.sourceId,
+        state: check.state,
+        reason: check.reason,
+        checkedAt,
+        observedAt,
+        expiresAt,
+        artifactId,
+        sourceUrl: check.sourceUrl ?? latestArtifact?.sourceUrl ?? null,
+        rawArtifactRef: check.rawArtifactRef ?? artifactId,
+        checksum: check.checksum ?? latestArtifact?.checksum ?? null,
+        parserVersion: check.parserVersion ?? latestArtifact?.parserVersion ?? null,
+        freshnessWindowHours: check.freshnessWindowHours ?? null,
+        proof,
+      });
+    })
     .sort((left, right) => left.sourceId.localeCompare(right.sourceId));
 
   return {
@@ -579,21 +643,19 @@ const COVERAGE_REASON_PRIORITY: Record<CanonicalSourceCoverageState, number> = {
   stale: 1,
   accessRequired: 2,
   gated: 3,
-  partial: 4,
-  notDecisionGrade: 5,
-  notChecked: 6,
-  unavailable: 7,
-  mock: 8,
-  live: 9,
+  notDecisionGrade: 4,
+  unavailable: 5,
+  previewOnly: 6,
+  pending: 7,
+  checked: 8,
 };
 
 const COVERAGE_GATED_STATES: readonly CanonicalSourceCoverageState[] = ['gated', 'accessRequired'];
 const COVERAGE_MISSING_STATES: readonly CanonicalSourceCoverageState[] = [
   'notDecisionGrade',
-  'notChecked',
-  'partial',
+  'pending',
   'unavailable',
-  'mock',
+  'previewOnly',
 ];
 
 function pushUniqueValue(values: string[], value?: string | null): void {
@@ -660,6 +722,104 @@ function latestCredentialTimestamp(
   );
 }
 
+function selectCoverageCheck(
+  report: CanonicalSourceCoverageReport,
+  sourceIds: readonly string[],
+  fallback: {
+    sourceId: string;
+    reason: string;
+  },
+): CanonicalSourceCoverage {
+  return findPrioritizedCoverageCheck(findCoverageChecks(report, sourceIds))
+    ?? createCanonicalSourceCoverage({
+      sourceId: fallback.sourceId,
+      state: 'pending',
+      reason: fallback.reason,
+    });
+}
+
+function buildPassportTruth(input: {
+  identity: PassportIdentity;
+  authority: PassportAuthority;
+  standing: PassportStanding;
+  sourceCoverage: CanonicalSourceCoverageReport;
+}): CanonicalTruthSet {
+  const licensureCredentials = input.authority.credentials.filter(
+    (credential) => credential.domain === 'LICENSURE',
+  );
+  const authorityCoverage = selectCoverageCheck(
+    input.sourceCoverage,
+    dedupeStrings([
+      'STATE_BOARD',
+      'FSMB_MED_API',
+      'FSMB_PDC',
+      'NURSYS',
+      'NURSYS_AUTHORIZED_PATH',
+      ...licensureCredentials
+        .map((credential) => credential.sourceId)
+        .filter((value): value is string => typeof value === 'string' && value.trim().length > 0),
+    ]),
+    {
+      sourceId: licensureCredentials[0]?.sourceId ?? 'STATE_BOARD',
+      reason: 'Licensure source not yet checked',
+    },
+  );
+
+  const authoritySatisfied = licensureCredentials.some((credential) => (
+    input.standing.licensureStatus === 'verified'
+    && isDecisionGrade({
+      domain: credential.domain,
+      verifiedAt: credential.verifiedAt,
+      sourceId: credential.sourceId,
+      reviewRequired: credential.reviewRequired,
+    })
+  ));
+
+  return Object.freeze({
+    identity: createCanonicalTruth({
+      kind: 'verification',
+      satisfied: Boolean(input.identity.displayName && input.identity.npi),
+      coverage: selectCoverageCheck(
+        input.sourceCoverage,
+        ['NPPES_API', 'NPPES'],
+        {
+          sourceId: 'NPPES_API',
+          reason: 'NPPES identity source not yet checked',
+        },
+      ),
+    }),
+    safety: createCanonicalTruth({
+      kind: 'clearance',
+      satisfied: input.standing.exclusionStatus === 'CLEAR',
+      coverage: selectCoverageCheck(
+        input.sourceCoverage,
+        ['OIG_LEIE', 'OIG'],
+        {
+          sourceId: 'OIG_LEIE',
+          reason: 'OIG LEIE source not yet checked',
+        },
+      ),
+    }),
+    authority: createCanonicalTruth({
+      kind: 'verification',
+      satisfied: authoritySatisfied,
+      coverage: authorityCoverage,
+    }),
+    eligibility: createCanonicalTruth({
+      kind: 'enrollment',
+      satisfied: input.standing.pecosEnrollmentStatus === 'ENROLLED',
+      coverage: selectCoverageCheck(
+        input.sourceCoverage,
+        ['PECOS_PUBLIC'],
+        {
+          sourceId: 'PECOS_PUBLIC',
+          reason: 'PECOS enrollment source not yet checked',
+        },
+      ),
+    }),
+  });
+}
+
 function resolvePostureState(input: {
   blocked?: boolean;
   reviewRequired?: boolean;
@@ -683,7 +843,7 @@ function freshnessStateForLayer(input: {
     return 'stale';
   }
 
-  if (input.checks.length > 0 && input.checks.every((check) => check.state === 'live')) {
+  if (input.checks.length > 0 && input.checks.every((check) => check.state === 'checked')) {
     return 'current';
   }
 
@@ -697,6 +857,7 @@ function buildPassportTrustPosture(input: {
   standing: PassportStanding;
   readiness: PassportReadiness;
   sourceCoverage: CanonicalSourceCoverageReport;
+  truth: CanonicalTruthSet;
   lastCheckedAt: string;
 }): PassportTrustPosture {
   const safeToRelyOnNow: string[] = [];
@@ -724,10 +885,10 @@ function buildPassportTrustPosture(input: {
   );
   const eligibilityChecks = findCoverageChecks(input.sourceCoverage, ['PECOS_PUBLIC']);
 
-  const identityCurrent = Boolean(input.identity.displayName && input.identity.npi && hasCoverageState(identityChecks, ['live']));
-  const identityStale = Boolean(input.identity.displayName && hasCoverageState(identityChecks, ['stale']));
-  const identityGated = hasCoverageState(identityChecks, COVERAGE_GATED_STATES);
-  const identityReviewRequired = hasCoverageState(identityChecks, ['reviewRequired']);
+  const identityCurrent = input.truth.identity.status === 'VERIFIED';
+  const identityStale = input.truth.identity.coverage.state === 'stale';
+  const identityGated = input.truth.identity.status === 'ACCESS REQUIRED';
+  const identityReviewRequired = input.truth.identity.status === 'REVIEW REQUIRED';
   const identityState = resolvePostureState({
     current: identityCurrent,
     stale: identityStale,
@@ -747,7 +908,7 @@ function buildPassportTrustPosture(input: {
           ? findPrioritizedCoverageCheck(identityChecks, COVERAGE_GATED_STATES)?.reason ?? 'CMS NPPES identity access is currently gated.'
           : identityState === 'review_required'
             ? findPrioritizedCoverageCheck(identityChecks, ['reviewRequired'])?.reason ?? 'CMS NPPES identity evidence requires review before relying on it.'
-            : findPrioritizedCoverageCheck(identityChecks, COVERAGE_MISSING_STATES)?.reason ?? 'CMS NPPES identity has not been confirmed yet.';
+            : input.truth.identity.coverage.reason || findPrioritizedCoverageCheck(identityChecks, COVERAGE_MISSING_STATES)?.reason || 'CMS NPPES identity has not been confirmed yet.';
   if (identityState === 'current') {
     pushUniqueValue(safeToRelyOnNow, 'Identity confirmed via CMS NPPES.');
   } else if (identityState === 'stale') {
@@ -763,14 +924,14 @@ function buildPassportTrustPosture(input: {
   const safetyBlocked = input.standing.exclusionStatus === 'EXCLUDED';
   const safetyReviewRequired =
     input.standing.exclusionStatus === 'POSSIBLE_MATCH'
-    || hasCoverageState(safetyChecks, ['reviewRequired']);
+    || input.truth.safety.status === 'REVIEW REQUIRED';
   const safetyStale =
     input.standing.exclusionStatus === 'CLEAR'
-    && hasCoverageState(safetyChecks, ['stale']);
-  const safetyGated = hasCoverageState(safetyChecks, COVERAGE_GATED_STATES);
+    && input.truth.safety.coverage.state === 'stale';
+  const safetyGated = input.truth.safety.status === 'ACCESS REQUIRED';
   const safetyCurrent =
     input.standing.exclusionStatus === 'CLEAR'
-    && hasCoverageState(safetyChecks, ['live'])
+    && input.truth.safety.status === 'CLEAR'
     && !safetyStale;
   const safetyState = resolvePostureState({
     blocked: safetyBlocked,
@@ -794,7 +955,7 @@ function buildPassportTrustPosture(input: {
             ? findPrioritizedCoverageCheck(safetyChecks, ['stale'])?.reason ?? 'OIG/LEIE screening is stale and should be refreshed.'
             : safetyState === 'gated'
               ? findPrioritizedCoverageCheck(safetyChecks, COVERAGE_GATED_STATES)?.reason ?? 'OIG/LEIE access is currently gated.'
-              : findPrioritizedCoverageCheck(safetyChecks, COVERAGE_MISSING_STATES)?.reason ?? 'OIG/LEIE screening has not been confirmed yet.';
+              : input.truth.safety.coverage.reason || findPrioritizedCoverageCheck(safetyChecks, COVERAGE_MISSING_STATES)?.reason || 'OIG/LEIE screening has not been confirmed yet.';
   if (safetyState === 'current') {
     pushUniqueValue(safeToRelyOnNow, 'OIG/LEIE exclusion check is clear.');
   } else if (safetyState === 'blocked') {
@@ -829,16 +990,14 @@ function buildPassportTrustPosture(input: {
       credential.reviewRequired
       || credential.authorityClaimCode === 'BOARD_ORDER_PRESENT'
     ))
-    || hasCoverageState(authorityChecks, ['reviewRequired'])
+    || input.truth.authority.status === 'REVIEW REQUIRED'
     || input.standing.negativeFindings.some((finding) => /board order requires manual review/i.test(finding))
   );
-  const authorityGated = !authorityBlocked && !authorityReviewRequired && (
-    licensureCredentials.some((credential) => credential.participationStatus === 'institution_access_unavailable')
-    || hasCoverageState(authorityChecks, COVERAGE_GATED_STATES)
-  );
+  const authorityGated = !authorityBlocked && !authorityReviewRequired
+    && input.truth.authority.status === 'ACCESS REQUIRED';
   const authorityStale = !authorityBlocked && !authorityReviewRequired && !authorityGated && (
     licensureCredentials.some((credential) => credential.stale)
-    || hasCoverageState(authorityChecks, ['stale'])
+    || input.truth.authority.coverage.state === 'stale'
   );
   const authorityCurrent = !authorityBlocked && !authorityReviewRequired && !authorityGated && !authorityStale
     && input.standing.licensureStatus === 'verified'
@@ -851,7 +1010,7 @@ function buildPassportTrustPosture(input: {
         reviewRequired: credential.reviewRequired,
       })
     ))
-    && hasCoverageState(authorityChecks, ['live']);
+    && input.truth.authority.status === 'VERIFIED';
   const authorityState = resolvePostureState({
     blocked: authorityBlocked,
     reviewRequired: authorityReviewRequired,
@@ -865,7 +1024,7 @@ function buildPassportTrustPosture(input: {
   );
   const authorityDetail =
     authorityState === 'current'
-      ? 'Active state licensure is verified from a live authority source.'
+      ? 'Active state licensure is verified from a source-backed authority check.'
       : authorityState === 'blocked'
         ? input.standing.negativeFindings.find((finding) => /license expired|license discipline|board order/i.test(finding))
           ?? 'Licensure issues currently block readiness.'
@@ -879,10 +1038,11 @@ function buildPassportTrustPosture(input: {
             : authorityState === 'stale'
               ? findPrioritizedCoverageCheck(authorityChecks, ['stale'])?.reason
                 ?? 'Licensure evidence is stale and should be refreshed.'
-              : findPrioritizedCoverageCheck(authorityChecks, COVERAGE_MISSING_STATES)?.reason
-                ?? 'Live state licensure proof is not available yet.';
+              : input.truth.authority.coverage.reason
+                || findPrioritizedCoverageCheck(authorityChecks, COVERAGE_MISSING_STATES)?.reason
+                || 'Source-backed state licensure proof is not available yet.';
   if (authorityState === 'current') {
-    pushUniqueValue(safeToRelyOnNow, 'Active state licensure is verified from a live authority source.');
+    pushUniqueValue(safeToRelyOnNow, 'Active state licensure is verified from a source-backed authority check.');
   } else if (authorityState === 'blocked') {
     pushUniqueValue(blockers, authorityDetail);
   } else if (authorityState === 'review_required') {
@@ -895,19 +1055,19 @@ function buildPassportTrustPosture(input: {
     pushUniqueValue(missingItems, authorityDetail);
   }
 
-  const eligibilityReviewRequired = hasCoverageState(eligibilityChecks, ['reviewRequired'])
+  const eligibilityReviewRequired = input.truth.eligibility.status === 'REVIEW REQUIRED'
     || input.readiness.blockers.some((blocker) => /enrollment.*review/i.test(blocker));
-  const eligibilityGated = hasCoverageState(eligibilityChecks, COVERAGE_GATED_STATES);
+  const eligibilityGated = input.truth.eligibility.status === 'ACCESS REQUIRED';
   const eligibilityStale =
     input.standing.pecosEnrollmentStatus === 'ENROLLED'
     && (
-      hasCoverageState(eligibilityChecks, ['stale'])
+      input.truth.eligibility.coverage.state === 'stale'
       || input.standing.enrollmentFreshnessLabel === 'Stale — refresh required'
       || (input.standing.enrollmentFreshnessLabel ?? '').startsWith('Revalidation due')
     );
   const eligibilityCurrent =
     input.standing.pecosEnrollmentStatus === 'ENROLLED'
-    && hasCoverageState(eligibilityChecks, ['live'])
+    && input.truth.eligibility.status === 'ENROLLED'
     && !eligibilityStale;
   const eligibilityState = resolvePostureState({
     blocked: input.standing.pecosEnrollmentStatus === 'NOT_FOUND',
@@ -938,9 +1098,10 @@ function buildPassportTrustPosture(input: {
               ? input.standing.enrollmentFreshnessLabel
                 ?? findPrioritizedCoverageCheck(eligibilityChecks, ['stale'])?.reason
                 ?? 'PECOS evidence is stale and should be refreshed.'
-              : findPrioritizedCoverageCheck(eligibilityChecks, COVERAGE_MISSING_STATES)?.reason
-                ?? input.standing.enrollmentNote
-                ?? 'PECOS enrollment has not been confirmed yet.';
+              : input.truth.eligibility.coverage.reason
+                || findPrioritizedCoverageCheck(eligibilityChecks, COVERAGE_MISSING_STATES)?.reason
+                || input.standing.enrollmentNote
+                || 'PECOS enrollment has not been confirmed yet.';
   if (eligibilityState === 'current') {
     pushUniqueValue(safeToRelyOnNow, `CMS PECOS shows Medicare enrollment${pecosCurrentSuffix}.`);
   } else if (eligibilityState === 'blocked') {
@@ -1000,7 +1161,7 @@ function buildPassportTrustPosture(input: {
         stale: safetyStale,
       }),
       checkedAt: safetyCheckedAt,
-      note: safetyStale ? safetyDetail : safetyChecks.every((check) => check.state === 'live') ? 'Current attached check' : safetyDetail,
+      note: safetyStale ? safetyDetail : safetyChecks.every((check) => check.state === 'checked') ? 'Current attached check' : safetyDetail,
     },
     {
       id: 'authority',
@@ -1011,7 +1172,7 @@ function buildPassportTrustPosture(input: {
         stale: authorityStale,
       }),
       checkedAt: authorityCheckedAt,
-      note: authorityStale ? authorityDetail : authorityChecks.length > 0 && authorityChecks.every((check) => check.state === 'live') ? 'Current attached check' : authorityDetail,
+      note: authorityStale ? authorityDetail : authorityChecks.length > 0 && authorityChecks.every((check) => check.state === 'checked') ? 'Current attached check' : authorityDetail,
     },
     {
       id: 'eligibility',
@@ -1022,7 +1183,7 @@ function buildPassportTrustPosture(input: {
         stale: eligibilityStale,
       }),
       checkedAt: eligibilityCheckedAt,
-      note: eligibilityStale ? eligibilityDetail : eligibilityChecks.length > 0 && eligibilityChecks.every((check) => check.state === 'live') ? 'Current attached check' : eligibilityDetail,
+      note: eligibilityStale ? eligibilityDetail : eligibilityChecks.length > 0 && eligibilityChecks.every((check) => check.state === 'checked') ? 'Current attached check' : eligibilityDetail,
     },
   ];
 
@@ -1146,6 +1307,12 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
             id: true,
             source: true,
             parserVersion: true,
+            checksum: true,
+            sourceUrl: true,
+            fetchedAt: true,
+            observedAt: true,
+            verifiedAt: true,
+            expiresAt: true,
           },
         })
       : Promise.resolve([]),
@@ -1279,17 +1446,15 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     };
   });
 
-  const satisfiedCredentials = usableCredentials.filter((credential) => isCredentialSatisfied(credential));
-  const activeDomains  = new Set(satisfiedCredentials.map(c => c.domain));
-  const missingBlocking = BLOCKING_DOMAINS.filter(d => !activeDomains.has(d as import('@prisma/client').VcvCredentialDomain));
+  let missingBlocking: string[] = [];
 
-  const authority: PassportAuthority = {
+  let authority: PassportAuthority = {
     credentials: credList,
     summary: {
       active:  credList.filter(c => isCredentialSatisfied(c)).length,
       expired: credList.filter(c => c.status === 'EXPIRED').length,
       stale:   credList.filter(c => c.stale).length,
-      missing: missingBlocking,
+      missing: [],
     },
   };
 
@@ -1462,6 +1627,70 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     negativeFindings,
   };
 
+  const meta = entity.metadata as Record<string, unknown>;
+  const lastCheckedAt = entity.verifiedAt?.toISOString() ?? new Date().toISOString();
+  const identity: PassportIdentity = {
+    entityId,
+    displayName: entity.displayName,
+    npi,
+    specialty: meta.specialty as string | undefined,
+    entityType: entity.entityType,
+    status: (meta.status as string | undefined) ?? 'ACTIVE',
+  };
+  const sourceCoverage = buildPassportSourceCoverage({
+    trustState,
+    identity,
+    authority,
+    standing,
+    lastCheckedAt,
+    proofBySource: buildProofRefsBySource({
+      credentials: credList,
+      credentialEvidence,
+      artifactsById,
+    }),
+    artifactsById,
+  });
+  const truth = buildPassportTruth({
+    identity,
+    authority,
+    standing,
+    sourceCoverage,
+  });
+  const decisionGradeSatisfiedCredentials = authority.credentials.filter((credential) => {
+    if (!isCredentialSatisfied(credential)) {
+      return false;
+    }
+
+    const sourceId = credential.sourceId?.trim();
+    if (!sourceId) {
+      return false;
+    }
+
+    const coverage = sourceCoverage.checks.find((check) => check.sourceId === sourceId);
+    if (!coverage || !coverageSatisfiesDecisionGradeTruth(coverage)) {
+      return false;
+    }
+
+    return isDecisionGrade({
+      domain: credential.domain,
+      verifiedAt: credential.verifiedAt,
+      sourceId,
+      reviewRequired: credential.reviewRequired,
+    });
+  });
+  const activeDomains = new Set(decisionGradeSatisfiedCredentials.map((credential) => credential.domain));
+  missingBlocking = BLOCKING_DOMAINS.filter(
+    (domain) => !activeDomains.has(domain as import('@prisma/client').VcvCredentialDomain),
+  );
+  authority = {
+    ...authority,
+    summary: {
+      ...authority.summary,
+      active: decisionGradeSatisfiedCredentials.length,
+      missing: missingBlocking,
+    },
+  };
+
   // ── Readiness ─────────────────────────────────────────────────────────────
   // MS16-C: Eligibility layer must produce blockers (NOT just negativeFindings)
   const eligibilityBlockers: string[] = [];
@@ -1498,6 +1727,9 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   const gaps: string[] = [
     ...(trustState?.gap_summary ?? []),
     ...eligibilityGaps,
+    ...Object.values(truth)
+      .filter((entry) => entry.status === 'NOT DECISION-GRADE')
+      .map((entry) => entry.coverage.reason),
     ...credList
       .filter((credential) => credential.stale && isCredentialCurrentStatus(credential.domain, credential.status))
       .map((credential) => `Stale: ${credential.domain}`),
@@ -1571,28 +1803,6 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     lastFetch: Object.fromEntries(Array.from(sourceLastFetch.entries()).sort(([left], [right]) => left.localeCompare(right))),
   };
 
-  const meta = entity.metadata as Record<string, unknown>;
-  const lastCheckedAt = entity.verifiedAt?.toISOString() ?? new Date().toISOString();
-  const identity: PassportIdentity = {
-    entityId,
-    displayName: entity.displayName,
-    npi,
-    specialty: meta.specialty as string | undefined,
-    entityType: entity.entityType,
-    status: (meta.status as string | undefined) ?? 'ACTIVE',
-  };
-  const sourceCoverage = buildPassportSourceCoverage({
-    trustState,
-    identity,
-    authority,
-    standing,
-    lastCheckedAt,
-    proofBySource: buildProofRefsBySource({
-      credentials: credList,
-      credentialEvidence,
-      artifactsById,
-    }),
-  });
   const trustPosture = buildPassportTrustPosture({
     identity,
     authority,
@@ -1600,6 +1810,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     standing,
     readiness,
     sourceCoverage,
+    truth,
     lastCheckedAt,
   });
 
@@ -1618,6 +1829,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     readiness,
     sources,
     sourceCoverage,
+    truth,
     trustPosture,
     lastCheckedAt,
   };

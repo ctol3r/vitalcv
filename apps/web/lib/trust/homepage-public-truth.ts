@@ -30,7 +30,7 @@ export const HOMEPAGE_PUBLIC_TRUTH_SOURCES = [
     proofLabel: 'Identity',
     name: 'NPPES',
     sublabel: 'NPI identity',
-    sourceState: 'live',
+    sourceState: 'checked',
     evidenceKind: 'generic',
     satisfied: false,
     detailLabel: 'Registry record only',
@@ -40,7 +40,7 @@ export const HOMEPAGE_PUBLIC_TRUTH_SOURCES = [
     proofLabel: 'Sanctions',
     name: 'OIG / LEIE',
     sublabel: 'Exclusion check',
-    sourceState: 'live',
+    sourceState: 'checked',
     evidenceKind: 'generic',
     satisfied: false,
     detailLabel: 'OIG run only',
@@ -71,7 +71,7 @@ export const HOMEPAGE_SYNTHETIC_PREVIEW_COPY = {
   badge: 'Synthetic preview',
   footerLead: 'Synthetic layout',
   footerNote: 'not live data',
-  panelNote: 'Preview only · live shares depend on a real review flow',
+  panelNote: 'Preview only · source-backed shares depend on a real review flow',
 } as const;
 
 export type HomepagePublicTruthSourceView = HomepagePublicTruthSource & {

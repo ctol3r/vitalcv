@@ -5,6 +5,11 @@ import { sha256ForPayload } from '../../utils/deterministic';
 import { buildPassportByNpi } from './passportService';
 import { computeTrustScoreV1 } from '../trust/trustScoreV1';
 import { log } from '../../obs/logger';
+import type {
+  CanonicalSourceCoverageSummary,
+  CanonicalTruthDimensionId,
+  CanonicalTruthStatus,
+} from '../../../../../../packages/trust-state';
 
 export type EmployerReviewActionIntent = 'accept' | 'refresh' | 'review';
 export type EmployerReviewPriority = 'LOW' | 'NORMAL' | 'HIGH';
@@ -12,6 +17,7 @@ export type EmployerReviewPersistenceMode = 'durable_record' | 'audit_only';
 export type EmployerReviewPersistenceTarget =
   | 'employer_acceptance'
   | 'review_queue_item'
+  | 'outbox_event'
   | 'audit_event';
 
 export interface EmployerReviewActionDetails {
@@ -31,6 +37,7 @@ export interface EmployerReviewActionPersistence {
   target: EmployerReviewPersistenceTarget;
   acceptanceId: string | null;
   reviewItemId: string | null;
+  outboxEventId: string | null;
   reviewItemCreated: boolean;
 }
 
@@ -68,7 +75,32 @@ export interface DecisionTrustSnapshot {
   topBlockers: string[];
   missingDomains: string[];
   gatedDomains: string[];
+  truthStatuses: Record<CanonicalTruthDimensionId, CanonicalTruthStatus>;
+  sourceCoverageSummary: CanonicalSourceCoverageSummary;
   lastCheckedAt: string | null;
+}
+
+function emptyTruthStatuses(): Record<CanonicalTruthDimensionId, CanonicalTruthStatus> {
+  return {
+    identity: 'PENDING',
+    safety: 'PENDING',
+    authority: 'PENDING',
+    eligibility: 'PENDING',
+  };
+}
+
+function emptySourceCoverageSummary(): CanonicalSourceCoverageSummary {
+  return {
+    checked: [],
+    stale: [],
+    pending: [],
+    gated: [],
+    unavailable: [],
+    accessRequired: [],
+    reviewRequired: [],
+    notDecisionGrade: [],
+    previewOnly: [],
+  };
 }
 
 /**
@@ -108,6 +140,8 @@ export async function buildDecisionTrustSnapshot(
         topBlockers: [],
         missingDomains: [],
         gatedDomains: [],
+        truthStatuses: emptyTruthStatuses(),
+        sourceCoverageSummary: emptySourceCoverageSummary(),
         lastCheckedAt: null,
       };
       minimal.snapshotHash = sha256ForPayload(minimal);
@@ -121,8 +155,8 @@ export async function buildDecisionTrustSnapshot(
 
     const blockers = passport.readiness?.nextActions ?? [];
     const gatedDomains: string[] = [];
-    if (passport.standing.licensureStatus === 'unknown') gatedDomains.push('STATE_LICENSE');
-    if (creds.some(c => c.connectorState === 'unavailable')) gatedDomains.push('FSMB_AUTHORITY');
+    if (passport.truth.authority.status === 'ACCESS REQUIRED') gatedDomains.push('STATE_LICENSE');
+    if (passport.truth.eligibility.status === 'ACCESS REQUIRED') gatedDomains.push('MEDICARE_ENROLLMENT');
 
     const bandMap: Record<string, string> = {
       READY: 'L3', PARTIAL: 'L2', BLOCKED: 'L0', UNKNOWN: 'L0',
@@ -149,6 +183,13 @@ export async function buildDecisionTrustSnapshot(
       topBlockers: blockers.slice(0, 5).map(b => b.title),
       missingDomains: passport.authority.summary.missing.slice(0, 10),
       gatedDomains,
+      truthStatuses: {
+        identity: passport.truth.identity.status,
+        safety: passport.truth.safety.status,
+        authority: passport.truth.authority.status,
+        eligibility: passport.truth.eligibility.status,
+      },
+      sourceCoverageSummary: passport.sourceCoverage.summary,
       lastCheckedAt: passport.lastCheckedAt ?? null,
     };
 
@@ -186,6 +227,8 @@ export async function buildDecisionTrustSnapshot(
       topBlockers: [],
       missingDomains: [],
       gatedDomains: [],
+      truthStatuses: emptyTruthStatuses(),
+      sourceCoverageSummary: emptySourceCoverageSummary(),
       lastCheckedAt: null,
     };
     fallback.snapshotHash = sha256ForPayload(fallback);
@@ -272,6 +315,12 @@ type AuditWriter = {
   };
 };
 
+type OutboxWriter = {
+  outboxEvent: {
+    upsert: (args: Record<string, unknown>) => Promise<{ id: string }>;
+  };
+};
+
 type AcceptanceWriter = {
   employerAcceptance: {
     create: (args: {
@@ -339,7 +388,9 @@ function buildActionSummary(
     case 'refresh':
       return {
         title: 'Refresh request recorded',
-        description: 'The refresh request was persisted in the audit trail. No clinician notification is persisted here yet.',
+        description: persistence.outboxEventId
+          ? 'The refresh request was persisted and queued for downstream processing.'
+          : 'The refresh request was persisted in the audit trail.',
       };
     case 'review':
       return persistence.reviewItemCreated
@@ -347,6 +398,11 @@ function buildActionSummary(
             title: 'Routed to review',
             description: 'The routing decision and manual review queue item were both persisted.',
           }
+        : persistence.outboxEventId
+          ? {
+              title: 'Review routing recorded',
+              description: 'The routing decision was persisted and queued for backend follow-up, but no durable manual review queue item was created in this environment.',
+            }
         : {
             title: 'Review routing recorded',
             description: 'The routing decision was persisted in the audit trail, but no durable manual review queue item was created in this environment.',
@@ -411,11 +467,73 @@ function readMetadata(metadata: unknown): EmployerReviewActionAuditMetadata | nu
     entityId: record.entityId,
     clinicianNpi: record.clinicianNpi,
     requestId: typeof record.requestId === 'string' ? record.requestId : 'unknown',
-    persistence: record.persistence,
+    persistence: {
+      ...record.persistence,
+      outboxEventId: record.persistence.outboxEventId ?? null,
+    },
     summary: record.summary,
     details: record.details,
     context: record.context ?? { role: null, facility: null, notes: null },
+    trustSnapshot:
+      record.trustSnapshot && typeof record.trustSnapshot === 'object'
+        ? record.trustSnapshot
+        : undefined,
   };
+}
+
+function buildEmployerReviewOutboxPayload(
+  metadata: EmployerReviewActionAuditMetadata,
+): Prisma.InputJsonValue {
+  return toJsonValue({
+    schema: 'vitalcv.employer-review.action.v1',
+    action: metadata.action,
+    employerId: metadata.employerId,
+    entityId: metadata.entityId,
+    clinicianNpi: metadata.clinicianNpi,
+    requestId: metadata.requestId,
+    summary: metadata.summary,
+    details: metadata.details,
+    context: metadata.context,
+    trustSnapshot: metadata.trustSnapshot ?? null,
+  });
+}
+
+async function writeEmployerReviewOutboxEvent(
+  writer: OutboxWriter,
+  input: {
+    type: EmployerActionAuditType;
+    metadata: EmployerReviewActionAuditMetadata;
+    availableAt: Date;
+  },
+): Promise<{ id: string }> {
+  const dedupeKey = [
+    'employer-review',
+    input.metadata.action,
+    input.metadata.employerId,
+    input.metadata.entityId,
+    input.metadata.requestId,
+  ].join(':');
+
+  return writer.outboxEvent.upsert({
+    where: { dedupeKey },
+    update: {
+      payload: buildEmployerReviewOutboxPayload(input.metadata),
+      status: 'PENDING',
+      availableAt: input.availableAt,
+      lastError: null,
+    },
+    create: {
+      eventType: input.type,
+      aggregateType: 'EMPLOYER_REVIEW',
+      aggregateId: input.metadata.entityId,
+      payload: buildEmployerReviewOutboxPayload(input.metadata),
+      dedupeKey,
+      status: 'PENDING',
+      attemptCount: 0,
+      availableAt: input.availableAt,
+    },
+    select: { id: true },
+  });
 }
 
 async function writeEmployerReviewAuditEvent(
@@ -490,6 +608,7 @@ export async function recordEmployerReviewAcceptance(input: {
     target: 'employer_acceptance',
     acceptanceId: null,
     reviewItemId: null,
+    outboxEventId: null,
     reviewItemCreated: false,
   };
 
@@ -505,9 +624,33 @@ export async function recordEmployerReviewAcceptance(input: {
       },
     });
 
-    const persistence: EmployerReviewActionPersistence = {
+    const seededPersistence: EmployerReviewActionPersistence = {
       ...persistenceBase,
       acceptanceId: acceptance.id,
+    };
+    const outboxEvent = await writeEmployerReviewOutboxEvent(
+      tx as unknown as OutboxWriter,
+      {
+        type: 'EMPLOYER_REVIEW_ACCEPTED',
+        availableAt: now,
+        metadata: {
+          action: 'accept',
+          employerId: input.employerId,
+          entityId: input.entityId,
+          clinicianNpi: input.clinicianNpi,
+          requestId,
+          persistence: seededPersistence,
+          summary: buildActionSummary('accept', seededPersistence),
+          details: buildEmptyDetails(),
+          context,
+          trustSnapshot,
+        },
+      },
+    );
+
+    const persistence: EmployerReviewActionPersistence = {
+      ...seededPersistence,
+      outboxEventId: outboxEvent.id,
     };
     const metadata: EmployerReviewActionAuditMetadata = {
       action: 'accept',
@@ -551,44 +694,68 @@ export async function recordEmployerReviewRefreshRequest(input: {
 }): Promise<EmployerReviewActionState> {
   // Capture snapshot before write
   const trustSnapshot = await buildDecisionTrustSnapshot(input.clinicianNpi);
-
-  const metadata: EmployerReviewActionAuditMetadata = {
-    action: 'refresh',
-    employerId: input.employerId,
-    entityId: input.entityId,
-    clinicianNpi: input.clinicianNpi,
-    requestId: randomUUID(),
-    persistence: {
-      mode: 'audit_only',
-      target: 'audit_event',
-      acceptanceId: null,
-      reviewItemId: null,
-      reviewItemCreated: false,
-    },
-    summary: buildActionSummary('refresh', {
-      mode: 'audit_only',
-      target: 'audit_event',
-      acceptanceId: null,
-      reviewItemId: null,
-      reviewItemCreated: false,
-    }),
-    details: buildEmptyDetails({
-      staleSources: sanitizeStringList(input.staleSources),
-      missingDomains: sanitizeStringList(input.missingDomains),
-      reason: sanitizeString(input.message, 500),
-    }),
-    context: {
-      role: null,
-      facility: null,
-      notes: null,
-    },
-    trustSnapshot,
+  const requestId = randomUUID();
+  const details = buildEmptyDetails({
+    staleSources: sanitizeStringList(input.staleSources),
+    missingDomains: sanitizeStringList(input.missingDomains),
+    reason: sanitizeString(input.message, 500),
+  });
+  const basePersistence: EmployerReviewActionPersistence = {
+    mode: 'durable_record',
+    target: 'outbox_event',
+    acceptanceId: null,
+    reviewItemId: null,
+    outboxEventId: null,
+    reviewItemCreated: false,
   };
 
-  const auditEvent = await writeEmployerReviewAuditEvent(prisma as unknown as AuditWriter, {
-    type: 'EMPLOYER_REVIEW_REFRESH_REQUESTED',
-    referenceId: input.entityId,
-    metadata,
+  const { auditEvent, metadata } = await prisma.$transaction(async (tx) => {
+    const seededMetadata: EmployerReviewActionAuditMetadata = {
+      action: 'refresh',
+      employerId: input.employerId,
+      entityId: input.entityId,
+      clinicianNpi: input.clinicianNpi,
+      requestId,
+      persistence: basePersistence,
+      summary: buildActionSummary('refresh', basePersistence),
+      details,
+      context: {
+        role: null,
+        facility: null,
+        notes: null,
+      },
+      trustSnapshot,
+    };
+
+    const outboxEvent = await writeEmployerReviewOutboxEvent(
+      tx as unknown as OutboxWriter,
+      {
+        type: 'EMPLOYER_REVIEW_REFRESH_REQUESTED',
+        metadata: seededMetadata,
+        availableAt: new Date(),
+      },
+    );
+
+    const persistence: EmployerReviewActionPersistence = {
+      ...basePersistence,
+      outboxEventId: outboxEvent.id,
+    };
+    const metadata: EmployerReviewActionAuditMetadata = {
+      ...seededMetadata,
+      persistence,
+      summary: buildActionSummary('refresh', persistence),
+    };
+
+    const auditEvent = await writeEmployerReviewAuditEvent(
+      tx as unknown as AuditWriter,
+      {
+        type: 'EMPLOYER_REVIEW_REFRESH_REQUESTED',
+        referenceId: input.entityId,
+        metadata,
+      },
+    );
+
+    return { auditEvent, metadata };
   });
 
   return buildState({
@@ -637,21 +804,22 @@ export async function recordEmployerReviewRouting(input: {
       reviewItemId = null;
     }
 
-    const persistence: EmployerReviewActionPersistence = {
-      mode: reviewItemId ? 'durable_record' : 'audit_only',
-      target: reviewItemId ? 'review_queue_item' : 'audit_event',
+    const seededPersistence: EmployerReviewActionPersistence = {
+      mode: 'durable_record',
+      target: reviewItemId ? 'review_queue_item' : 'outbox_event',
       acceptanceId: null,
       reviewItemId,
+      outboxEventId: null,
       reviewItemCreated: Boolean(reviewItemId),
     };
-    const metadata: EmployerReviewActionAuditMetadata = {
+    const seededMetadata: EmployerReviewActionAuditMetadata = {
       action: 'review',
       employerId: input.employerId,
       entityId: input.entityId,
       clinicianNpi: input.clinicianNpi,
       requestId,
-      persistence,
-      summary: buildActionSummary('review', persistence),
+      persistence: seededPersistence,
+      summary: buildActionSummary('review', seededPersistence),
       details: buildEmptyDetails({
         reason: normalizedReason,
         priority: normalizedPriority,
@@ -662,6 +830,25 @@ export async function recordEmployerReviewRouting(input: {
         notes: null,
       },
       trustSnapshot,
+    };
+
+    const outboxEvent = await writeEmployerReviewOutboxEvent(
+      tx as unknown as OutboxWriter,
+      {
+        type: 'EMPLOYER_REVIEW_ROUTED_TO_REVIEW',
+        metadata: seededMetadata,
+        availableAt: now,
+      },
+    );
+
+    const persistence: EmployerReviewActionPersistence = {
+      ...seededPersistence,
+      outboxEventId: outboxEvent.id,
+    };
+    const metadata: EmployerReviewActionAuditMetadata = {
+      ...seededMetadata,
+      persistence,
+      summary: buildActionSummary('review', persistence),
     };
 
     const auditEvent = await writeEmployerReviewAuditEvent(

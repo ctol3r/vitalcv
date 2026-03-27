@@ -243,20 +243,24 @@ describe('Enrichment isolation — academic trust dimension', () => {
 // ── 6. sourceCoverage state contract (regression) ─────────────────────────────
 
 describe('sourceCoverage state contract', () => {
-  it('only "live" is decision-grade — all other states are non-decision-grade', () => {
+  it('only "checked" is decision-grade — all other canonical states are non-decision-grade', () => {
     // Import and verify the contract from trust-state package
     const { DECISION_GRADE_SOURCE_COVERAGE_STATES, CANONICAL_SOURCE_COVERAGE_STATES } =
       require('../../../../../../../packages/trust-state/sourceCoverage');
 
-    expect(DECISION_GRADE_SOURCE_COVERAGE_STATES).toEqual(['live']);
+    expect(DECISION_GRADE_SOURCE_COVERAGE_STATES).toEqual(['checked']);
     expect(CANONICAL_SOURCE_COVERAGE_STATES).toContain('stale');
     expect(CANONICAL_SOURCE_COVERAGE_STATES).toContain('gated');
     expect(CANONICAL_SOURCE_COVERAGE_STATES).toContain('unavailable');
-    expect(CANONICAL_SOURCE_COVERAGE_STATES).toContain('notChecked');
-    expect(CANONICAL_SOURCE_COVERAGE_STATES).toContain('mock');
-    // 'mock' is explicitly never decision-grade
-    expect(DECISION_GRADE_SOURCE_COVERAGE_STATES).not.toContain('mock');
+    expect(CANONICAL_SOURCE_COVERAGE_STATES).toContain('pending');
+    expect(CANONICAL_SOURCE_COVERAGE_STATES).toContain('accessRequired');
+    expect(CANONICAL_SOURCE_COVERAGE_STATES).toContain('reviewRequired');
+    expect(CANONICAL_SOURCE_COVERAGE_STATES).toContain('notDecisionGrade');
+    expect(CANONICAL_SOURCE_COVERAGE_STATES).toContain('previewOnly');
+    // Preview-only surfaces are explicitly never decision-grade.
+    expect(DECISION_GRADE_SOURCE_COVERAGE_STATES).not.toContain('previewOnly');
     expect(DECISION_GRADE_SOURCE_COVERAGE_STATES).not.toContain('stale');
     expect(DECISION_GRADE_SOURCE_COVERAGE_STATES).not.toContain('gated');
+    expect(DECISION_GRADE_SOURCE_COVERAGE_STATES).not.toContain('pending');
   });
 });

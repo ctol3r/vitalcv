@@ -363,7 +363,7 @@ function buildDemoAccordion(demo: DemoProfile): AccordionItem[] {
             {
               id: 'status-note',
               label: 'Status note',
-              value: 'Demo states never stand in for live evidence.',
+              value: 'Demo states never stand in for source-backed evidence.',
               tone: 'muted',
             },
           ]}
@@ -380,7 +380,7 @@ function buildDemoAccordion(demo: DemoProfile): AccordionItem[] {
           rows={[
             { id: 'source', label: 'Source', value: 'Nursys / state board access required', tone: 'strong' },
             { id: 'checked', label: 'Last checked', value: formatFullDate(undefined) },
-            { id: 'freshness', label: 'Freshness', value: 'No live source attached' },
+            { id: 'freshness', label: 'Freshness', value: 'No checked source attached' },
             {
               id: 'trust-note',
               label: 'Trust note',
@@ -406,7 +406,7 @@ function buildDemoAccordion(demo: DemoProfile): AccordionItem[] {
           rows={[
             { id: 'source', label: 'Source', value: 'FSMB access required', tone: 'strong' },
             { id: 'checked', label: 'Last checked', value: formatFullDate(undefined) },
-            { id: 'freshness', label: 'Freshness', value: 'No live source attached' },
+            { id: 'freshness', label: 'Freshness', value: 'No checked source attached' },
             {
               id: 'trust-note',
               label: 'Trust note',
@@ -432,7 +432,7 @@ function buildDemoAccordion(demo: DemoProfile): AccordionItem[] {
           rows={[
             { id: 'source', label: 'Source', value: 'CMS PECOS', tone: 'strong' },
             { id: 'checked', label: 'Last checked', value: 'Preview payload' },
-            { id: 'freshness', label: 'Freshness', value: demo.sources.pecos.status === 'live' ? 'Live source' : 'Quarterly dataset preview' },
+            { id: 'freshness', label: 'Freshness', value: demo.sources.pecos.status === 'checked' ? 'Checked source' : 'Quarterly dataset preview' },
             {
               id: 'trust-note',
               label: 'Trust note',
@@ -614,7 +614,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
             <div className="w-full rounded-2xl border border-white/6 bg-black/15 p-4">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/24">Next step</p>
-                <p className="mt-1 text-sm font-medium text-white/72">Carry this snapshot into interview mode.</p>
+                <p className="mt-1 text-sm font-medium text-white/72">Carry this snapshot into your passport.</p>
                 <p className="mt-1 text-xs leading-relaxed text-white/38">
                   {checkedLabel} or {clearLabel} sections stay attached. {pendingLabel}, {accessRequiredLabel}, {reviewRequiredLabel}, and {unavailableLabel} sections remain visible.
                 </p>
@@ -625,7 +625,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
                 onClick={onContinue}
                 className="mt-4 h-14 w-full rounded-xl px-5 text-sm font-semibold"
               >
-                Continue to packet preview
+                Continue to passport
               </Button>
               <p className="mt-2 text-center text-[10px] text-white/20">
                 Source-backed preview · {ts.methodology_version}
@@ -727,7 +727,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
           <EvidenceDisclosureCard
             eyebrow="Proof"
             title="Source checks"
-            description="Demo states stay clearly labeled so preview structure never stands in for live evidence."
+            description="Demo states stay clearly labeled so preview structure never stands in for source-backed evidence."
             className="rounded-xl border-white/6 bg-black/10"
             contentClassName="px-5 py-1"
           >
@@ -742,9 +742,9 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
           <div className="w-full rounded-2xl border border-white/6 bg-black/15 p-4">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/24">Next step</p>
-              <p className="mt-1 text-sm font-medium text-white/72">Carry this example into interview mode.</p>
+              <p className="mt-1 text-sm font-medium text-white/72">Carry this example into passport.</p>
               <p className="mt-1 text-xs leading-relaxed text-white/38">
-                This route stays {previewOnlyLabel} until a live run returns {checkedLabel} source results.
+                This route stays {previewOnlyLabel} until a real run returns {checkedLabel} source results.
               </p>
             </div>
             <Button
@@ -753,7 +753,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
               onClick={onContinue}
               className="mt-4 h-14 w-full rounded-xl px-5 text-sm font-semibold"
             >
-              Share in your next interview
+              Continue to passport
             </Button>
             <p className="mt-2 text-center text-[10px] text-white/20">
               {previewOnlyLabel} only - live data appears after a real source run

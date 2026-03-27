@@ -51,12 +51,12 @@ function buildDeveloperPortalStats() {
 // ── Resource links ────────────────────────────────────────────────────────
 
 const RESOURCES = [
-  { icon: BookOpen, label: 'API Reference',   href: '/docs/api',      desc: 'Current route guide plus API-host links' },
-  { icon: Code2,    label: 'SDKs',            href: '/docs/sdk',      desc: 'Workspace SDK packages for verifier, issuer, and wallet flows'    },
-  { icon: Webhook,  label: 'Webhook Guide',   href: '/docs/webhooks', desc: 'Registration route, event catalog, and signatures'    },
-  { icon: Lock,     label: 'Wallet Export',   href: '/docs/api',      desc: 'CHAPI and SMART Health Card export routes when wallet export is enabled'   },
-  { icon: Globe,    label: 'Compliance API',  href: '/docs/api',      desc: 'Compliance and emergency-readiness routes exposed by the current backend'         },
-  { icon: GitBranch, label: 'Examples',       href: 'https://github.com/ctol3r/vitalcv/tree/main/examples', desc: 'ATS integration, webhook verification' },
+  { icon: BookOpen, label: 'API Reference', href: '/docs/api', desc: 'Current route guide plus preview API-host links' },
+  { icon: Code2, label: 'SDKs', href: '/docs/sdk', desc: 'Preview SDK packages for verifier, issuer, and wallet flows on this branch' },
+  { icon: Webhook, label: 'Webhook Guide', href: '/docs/webhooks', desc: 'Webhook registration and event-signature docs for the current preview surface' },
+  { icon: Lock, label: 'Wallet Export', href: '/docs/api', desc: 'Preview CHAPI and SMART Health Card export routes when wallet export is enabled' },
+  { icon: Globe, label: 'Compliance API', href: '/docs/api', desc: 'Current compliance and emergency-readiness routes exposed in this environment' },
+  { icon: GitBranch, label: 'Examples', href: 'https://github.com/ctol3r/vitalcv/tree/main/examples', desc: 'Illustrative integrations for ATS handoff and webhook verification' },
 ];
 
 // ── Page ──────────────────────────────────────────────────────────────────
@@ -83,17 +83,17 @@ export default function DeveloperPortalPage() {
         <div className="relative z-10 mx-auto max-w-3xl">
           <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-vt-success/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-vt-success ring-1 ring-vt-success/30">
             <Code2 className="h-3.5 w-3.5" />
-            Developer Portal
+            Developer Portal Preview
           </span>
 
           <h1 className="heading-xl mt-4 text-white">
             Build against the
             <br />
-            <span className="text-vt-success">current VitalCV API.</span>
+            <span className="text-vt-success">current VitalCV API preview.</span>
           </h1>
 
           <p className="body-lg mt-5 text-vt-neutral-200 max-w-xl mx-auto">
-            Use the configured API host, workspace SDKs, and backend routes that exist in this branch. Sample snippets stay explicit when they are illustrative rather than proof of a live end-to-end workflow.
+            Use the configured API host, workspace SDKs, and backend routes that exist in this branch today. Sample snippets stay explicit when they are illustrative rather than proof of a production-ready end-to-end workflow.
           </p>
 
           <div className="mt-8 flex items-center justify-center gap-4">
@@ -210,7 +210,7 @@ const profile = await verifier.getPublicProfile('1234567890');
 
             <div className="flex items-center gap-2 text-xs text-vt-neutral-800">
               <span className="inline-block w-2 h-2 rounded-full bg-vt-success" />
-              Current routes:
+              Current preview routes:
               <code className="text-vt-success ml-1">GET /api/public/profile/npi/:npi</code>
               <code className="text-vt-success ml-1">POST /api/credentials/verify/presentation</code>
               <code className="text-vt-success ml-1">GET /api/revocation/:credentialId</code>

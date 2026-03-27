@@ -430,7 +430,7 @@ export function EvidenceViewer({
 function passportCoverageClaim(
   state: ReturnType<typeof normalizePassportSourceCoverageChecks>[number]['state'],
 ): string {
-  if (state === 'live') {
+  if (state === 'checked') {
     return `${sourceCoverageStateLabel(state)}. Decision grade.`;
   }
 
@@ -442,10 +442,10 @@ export function passportEvidenceItems(passport: PassportData): EvidenceItem[] {
       source: entry.sourceId,
       field: 'Source coverage',
       claim: passportCoverageClaim(entry.state),
-      confidence: entry.state === 'live' ? 0.92 : 0.56,
+      confidence: entry.state === 'checked' ? 0.92 : 0.56,
       observedAt: entry.checkedAt ?? null,
       provenanceChain: [entry.sourceId, 'sourceCoverage'],
-      qualityRating: entry.state === 'live' ? 'ADEQUATE' : 'WEAK',
+      qualityRating: entry.state === 'checked' ? 'ADEQUATE' : 'WEAK',
       corroborationCount: 0,
   }));
 }

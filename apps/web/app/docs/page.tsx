@@ -4,7 +4,7 @@ import { ArrowRight, BookOpen, Code2, Shield, Webhook, Zap, Globe } from 'lucide
 
 export const metadata: Metadata = {
   title: 'Documentation | VitalCV',
-  description: 'Everything you need to build on the VitalCV Trust Protocol.',
+  description: 'Everything you need to build on the current VitalCV API and documentation surface.',
 };
 
 const SECTIONS = [
@@ -65,8 +65,9 @@ export default function DocsPage() {
           Build on VitalCV
         </h1>
         <p className="text-[var(--vt-text-2)] leading-relaxed">
-          The VitalCV Trust Protocol provides cryptographic healthcare credentialing as a service.
-          Verify clinician licenses, board certifications, and NPI attestations in a single API call.
+          VitalCV provides cryptographic healthcare credentialing workflows through the current API,
+          SDK, and webhook surfaces in this workspace. Verify clinician licenses, board certifications,
+          and NPI attestations against the routes documented here.
         </p>
       </header>
 

@@ -55,7 +55,7 @@ export default async function InterviewPage({
   if (!entityId && !npi) {
     return (
       <InterviewBlockedState
-        title="Interview mode needs a homepage NPI lookup before it can open."
+        title="This view needs a homepage NPI lookup before it can open."
         description="This route does not have NPI lookup context yet. Start from the homepage lookup, then continue from the readiness snapshot once the current source states are visible."
         telemetryReason="missing_npi_context"
       />
@@ -71,7 +71,7 @@ export default async function InterviewPage({
   if (!passport) {
     return (
       <InterviewBlockedState
-        title="VitalCV could not load a source-backed interview packet for that NPI yet."
+        title="VitalCV could not load a source-backed passport for that NPI yet."
         description={`Run the homepage lookup again to confirm which sections are ${checkedLabel}, ${pendingLabel}, ${unavailableLabel}, or ${previewOnlyLabel} before you continue.`}
       />
     );

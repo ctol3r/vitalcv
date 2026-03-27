@@ -17,16 +17,15 @@ import type {
 } from '@/lib/mission-ops/sourceOpsTypes';
 
 const COVERAGE_STATE_STYLES: Record<SourceOpsCoverageState, string> = {
-  live: 'bg-vt-success/10 text-vt-success border-vt-success/20',
-  partial: 'bg-vt-warning/10 text-vt-warning border-vt-warning/20',
+  checked: 'bg-vt-success/10 text-vt-success border-vt-success/20',
+  pending: 'bg-vt-warning/10 text-vt-warning border-vt-warning/20',
   stale: 'bg-vt-danger/10 text-vt-danger/90 border-vt-danger/30',
   unavailable: 'bg-white/5 text-white/45 border-white/10',
   gated: 'bg-vt-info/10 text-vt-info border-vt-info/20',
   accessRequired: 'bg-vt-info/10 text-vt-info border-vt-info/20',
   reviewRequired: 'bg-vt-warning/10 text-vt-warning border-vt-warning/20',
-  mock: 'bg-vt-warning/10 text-vt-warning border-vt-warning/20',
+  previewOnly: 'bg-vt-warning/10 text-vt-warning border-vt-warning/20',
   notDecisionGrade: 'bg-white/10 text-white/60 border-white/20',
-  notChecked: 'bg-white/10 text-white/60 border-white/20',
 };
 
 const SPINE_STATUS_STYLES: Record<SourceOpsReport['spineStatus'], string> = {
@@ -40,12 +39,14 @@ function formatCoverageState(state: SourceOpsCoverageState): string {
   switch (state) {
     case 'notDecisionGrade':
       return 'Not Decision-Grade';
-    case 'notChecked':
-      return 'Not Checked';
+    case 'pending':
+      return 'Pending';
     case 'accessRequired':
       return 'Access Required';
     case 'reviewRequired':
       return 'Review Required';
+    case 'previewOnly':
+      return 'Preview Only';
     default:
       return state.charAt(0).toUpperCase() + state.slice(1);
   }
@@ -68,7 +69,7 @@ function readErrorMessage(error: unknown): string {
 }
 
 function readStateIcon(state: SourceOpsCoverageState) {
-  if (state === 'live') {
+  if (state === 'checked') {
     return <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />;
   }
 
@@ -274,7 +275,7 @@ export function SourceOpsPanel() {
         </div>
 
         <p className="mt-4 text-[11px] text-white/45">
-          Canonical coverage labels stay literal here: live, stale, gated, unavailable, and not checked are not softened.
+          Canonical coverage labels stay literal here: checked, stale, gated, unavailable, pending, and preview-only are not softened.
         </p>
 
         {report.alerts.length > 0 && (

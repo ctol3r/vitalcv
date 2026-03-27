@@ -1,22 +1,20 @@
 export const CANONICAL_SOURCE_COVERAGE_STATES = [
-  'live',
-  'gated',
-  'partial',
+  'checked',
   'stale',
-  'notDecisionGrade',
-  'notChecked',
+  'pending',
+  'gated',
   'unavailable',
   'accessRequired',
   'reviewRequired',
-  // 'mock': source is connected but uses stubbed/demo data — not decision-grade.
-  // Used by PECOS (quarterly snapshot, not live) and any source in mock mode.
-  'mock',
+  'notDecisionGrade',
+  // Synthetic/demo payloads are allowed only for explicit preview surfaces.
+  'previewOnly',
 ] as const;
 
 export type CanonicalSourceCoverageState =
   (typeof CANONICAL_SOURCE_COVERAGE_STATES)[number];
 
-export const DECISION_GRADE_SOURCE_COVERAGE_STATES = ['live'] as const;
+export const DECISION_GRADE_SOURCE_COVERAGE_STATES = ['checked'] as const;
 
 /**
  * The authoritative launch spine — sources that MUST run on every ingest.
@@ -27,6 +25,7 @@ export const LAUNCH_SPINE_SOURCE_IDS = [
   'NPPES_API',
   'OIG_LEIE',
   'PECOS_PUBLIC',
+  'STATE_BOARD',
 ] as const;
 
 export type LaunchSpineSourceId = (typeof LAUNCH_SPINE_SOURCE_IDS)[number];
@@ -50,13 +49,25 @@ export const CANONICAL_TRUTH_STATUSES = [
   'PENDING',
   'UNAVAILABLE',
   'ACCESS REQUIRED',
+  'REVIEW REQUIRED',
+  'NOT DECISION-GRADE',
 ] as const;
 
 export type CanonicalTruthStatus = (typeof CANONICAL_TRUTH_STATUSES)[number];
 
 export type CanonicalTruthKind = 'verification' | 'clearance' | 'enrollment';
 
-export type DecisionGradeTruthStatus = Extract<
+export const CANONICAL_TRUTH_DIMENSIONS = [
+  'identity',
+  'safety',
+  'authority',
+  'eligibility',
+] as const;
+
+export type CanonicalTruthDimensionId =
+  (typeof CANONICAL_TRUTH_DIMENSIONS)[number];
+
+export type DecisionGradePositiveTruthStatus = Extract<
   CanonicalTruthStatus,
   'VERIFIED' | 'CLEAR' | 'ENROLLED'
 >;
@@ -66,11 +77,36 @@ export type CanonicalSourceProof = Readonly<{
   receiptIds: readonly string[];
 }>;
 
+export type CanonicalSourceCoverageFreshnessStatus =
+  | 'current'
+  | 'stale'
+  | 'unknown';
+
+export type CanonicalSourceCoverageFreshness = Readonly<{
+  status: CanonicalSourceCoverageFreshnessStatus;
+  checkedAt: string | null;
+  observedAt: string | null;
+  expiresAt: string | null;
+  freshnessWindowHours: number | null;
+}>;
+
+export type CanonicalSourceProvenance = Readonly<{
+  artifactId: string | null;
+  artifactIds: readonly string[];
+  receiptIds: readonly string[];
+  sourceUrl: string | null;
+  rawArtifactRef: string | null;
+  checksum: string | null;
+  parserVersion: string | null;
+}>;
+
 export type CanonicalSourceCoverage = Readonly<{
   sourceId: string;
   state: CanonicalSourceCoverageState;
   reason: string;
   checkedAt?: string | null;
+  observedAt?: string | null;
+  expiresAt?: string | null;
   artifactId?: string | null;
   sourceUrl?: string | null;
   rawArtifactRef?: string | null;
@@ -80,6 +116,8 @@ export type CanonicalSourceCoverage = Readonly<{
   /** Hours until this source's data becomes stale — derived from sourceCatalog.refreshSlaHours. */
   freshnessWindowHours?: number | null;
   proof?: CanonicalSourceProof;
+  freshness?: CanonicalSourceCoverageFreshness;
+  provenance?: CanonicalSourceProvenance;
 }>;
 
 export type CanonicalSourceCoverageSummary = Readonly<
@@ -90,6 +128,18 @@ export type CanonicalSourceCoverageReport = Readonly<{
   checks: readonly CanonicalSourceCoverage[];
   summary: CanonicalSourceCoverageSummary;
 }>;
+
+export type CanonicalTruth = Readonly<{
+  kind: CanonicalTruthKind;
+  status: CanonicalTruthStatus;
+  satisfied: boolean;
+  decisionGrade: boolean;
+  coverage: CanonicalSourceCoverage;
+}>;
+
+export type CanonicalTruthSet = Readonly<
+  Record<CanonicalTruthDimensionId, CanonicalTruth>
+>;
 
 export const SOURCE_COVERAGE_POSTURES = [
   'current',
@@ -119,34 +169,42 @@ export const CANONICAL_TRUTH_RENDER_RULES: Readonly<
   Record<CanonicalTruthStatus, string>
 > = Object.freeze({
   VERIFIED:
-    'Only a live source result may render VERIFIED, and only when that live result satisfies the verification claim.',
+    'Only a checked source result may render VERIFIED, and only when that checked result satisfies the verification claim.',
   CLEAR:
-    'Only a live source result may render CLEAR, and only when that live result confirms a clear safety outcome.',
+    'Only a checked source result may render CLEAR, and only when that checked result confirms a clear safety outcome.',
   ENROLLED:
-    'Only a live source result may render ENROLLED, and only when that live result confirms enrollment.',
+    'Only a checked source result may render ENROLLED, and only when that checked result confirms enrollment.',
   PENDING:
-    'Any notDecisionGrade, stale, partial, unchecked, review-required, or unresolved source result must render as PENDING.',
+    'Stale, pending, or unsatisfied checked source results must render as PENDING.',
   UNAVAILABLE:
     'Only sources that were actually attempted but unavailable may render UNAVAILABLE.',
   'ACCESS REQUIRED':
-    'Only gated sources that require external or institutional access may render ACCESS REQUIRED.',
+    'Only gated or access-controlled sources may render ACCESS REQUIRED.',
+  'REVIEW REQUIRED':
+    'Only source results that require manual adjudication may render REVIEW REQUIRED.',
+  'NOT DECISION-GRADE':
+    'Unsupported, manual-only, synthetic preview, or otherwise non-decision-grade results must render NOT DECISION-GRADE.',
 });
 
 type CreateCanonicalSourceCoverageInput = {
   sourceId: string;
   reason: string;
-  state?: CanonicalSourceCoverageState;
+  state?: CanonicalSourceCoverageState | string;
   checked?: boolean;
   fresh?: boolean;
   unavailable?: boolean;
   gated?: boolean;
   reviewRequired?: boolean;
   notDecisionGrade?: boolean;
+  pending?: boolean;
   partial?: boolean;
   accessRequired?: boolean;
-  /** mock: source connected but using stubbed/demo data — not decision-grade */
+  previewOnly?: boolean;
+  /** Backward-compatible alias for preview-only/mock payloads. */
   mock?: boolean;
   checkedAt?: string | null;
+  observedAt?: string | null;
+  expiresAt?: string | null;
   artifactId?: string | null;
   sourceUrl?: string | null;
   rawArtifactRef?: string | null;
@@ -173,6 +231,19 @@ function normalizeNullableString(value: string | null | undefined): string | nul
   return normalized.length > 0 ? normalized : null;
 }
 
+function addHours(timestamp: string | null, hours: number | null): string | null {
+  if (!timestamp || typeof hours !== 'number' || hours <= 0) {
+    return null;
+  }
+
+  const base = Date.parse(timestamp);
+  if (!Number.isFinite(base)) {
+    return null;
+  }
+
+  return new Date(base + hours * 3_600_000).toISOString();
+}
+
 export function isCanonicalSourceCoverageState(
   value: unknown,
 ): value is CanonicalSourceCoverageState {
@@ -191,23 +262,25 @@ function normalizeCoverageStateToken(value: string): string {
 const CANONICAL_SOURCE_COVERAGE_STATE_ALIASES: Readonly<
   Record<string, CanonicalSourceCoverageState>
 > = Object.freeze({
-  live: 'live',
-  checked: 'live',
-  current: 'live',
-  gated: 'gated',
-  partial: 'partial',
-  pending: 'partial',
+  checked: 'checked',
+  current: 'checked',
+  live: 'checked',
   stale: 'stale',
-  notdecisiongrade: 'notDecisionGrade',
-  unsupported: 'notDecisionGrade',
-  notchecked: 'notChecked',
-  unchecked: 'notChecked',
+  pending: 'pending',
+  partial: 'pending',
+  notchecked: 'pending',
+  unchecked: 'pending',
+  gated: 'gated',
   unavailable: 'unavailable',
   accessrequired: 'accessRequired',
   reviewrequired: 'reviewRequired',
   humanrequired: 'reviewRequired',
-  mock: 'mock',
-  demo: 'mock',
+  notdecisiongrade: 'notDecisionGrade',
+  unsupported: 'notDecisionGrade',
+  previewonly: 'previewOnly',
+  preview: 'previewOnly',
+  demo: 'previewOnly',
+  mock: 'previewOnly',
 });
 
 export function normalizeCanonicalSourceCoverageState(
@@ -233,11 +306,15 @@ export function resolveCanonicalSourceCoverageState(input: {
   gated?: boolean;
   reviewRequired?: boolean;
   notDecisionGrade?: boolean;
+  pending?: boolean;
   partial?: boolean;
   accessRequired?: boolean;
+  previewOnly?: boolean;
   mock?: boolean;
 }): CanonicalSourceCoverageState {
-  if (input.mock) return 'mock';
+  if (input.previewOnly || input.mock) {
+    return 'previewOnly';
+  }
   if (input.reviewRequired) {
     return 'reviewRequired';
   }
@@ -253,16 +330,16 @@ export function resolveCanonicalSourceCoverageState(input: {
   if (input.gated) {
     return 'gated';
   }
-  if (input.partial) {
-    return 'partial';
+  if (input.pending || input.partial) {
+    return 'pending';
   }
   if (input.checked && input.fresh === false) {
     return 'stale';
   }
   if (input.checked) {
-    return 'live';
+    return 'checked';
   }
-  return 'notChecked';
+  return 'pending';
 }
 
 export function createCanonicalSourceCoverage(
@@ -278,16 +355,44 @@ export function createCanonicalSourceCoverage(
     typeof input.freshnessWindowHours === 'number' && input.freshnessWindowHours > 0
       ? input.freshnessWindowHours
       : null;
+  const checkedAt = normalizeNullableString(input.checkedAt);
+  const observedAt = normalizeNullableString(input.observedAt) ?? checkedAt;
+  const expiresAt =
+    normalizeNullableString(input.expiresAt)
+    ?? addHours(observedAt ?? checkedAt, freshnessWindowHours);
+  const freshness: CanonicalSourceCoverageFreshness = Object.freeze({
+    status:
+      state === 'stale'
+        ? 'stale'
+        : state === 'checked' && (observedAt || checkedAt)
+          ? 'current'
+          : 'unknown',
+    checkedAt,
+    observedAt,
+    expiresAt,
+    freshnessWindowHours,
+  });
+  const provenance: CanonicalSourceProvenance = Object.freeze({
+    artifactId: normalizeNullableString(input.artifactId),
+    artifactIds: Object.freeze(proofArtifactIds),
+    receiptIds: Object.freeze(proofReceiptIds),
+    sourceUrl: normalizeNullableString(input.sourceUrl),
+    rawArtifactRef: normalizeNullableString(input.rawArtifactRef),
+    checksum: normalizeNullableString(input.checksum),
+    parserVersion,
+  });
 
   return Object.freeze({
     sourceId: input.sourceId.trim(),
     state,
     reason: input.reason.trim(),
-    checkedAt: normalizeNullableString(input.checkedAt),
-    artifactId: normalizeNullableString(input.artifactId),
-    sourceUrl: normalizeNullableString(input.sourceUrl),
-    rawArtifactRef: normalizeNullableString(input.rawArtifactRef),
-    checksum: normalizeNullableString(input.checksum),
+    checkedAt,
+    observedAt,
+    expiresAt,
+    artifactId: provenance.artifactId,
+    sourceUrl: provenance.sourceUrl,
+    rawArtifactRef: provenance.rawArtifactRef,
+    checksum: provenance.checksum,
     ...(parserVersion ? { parserVersion } : {}),
     ...(freshnessWindowHours !== null ? { freshnessWindowHours } : {}),
     ...(proofArtifactIds.length > 0 || proofReceiptIds.length > 0
@@ -298,6 +403,8 @@ export function createCanonicalSourceCoverage(
           }),
         }
       : {}),
+    freshness,
+    provenance,
   });
 }
 
@@ -320,13 +427,22 @@ export function resolveCanonicalTruthStatus(input: {
   satisfied: boolean;
   coverage: Pick<CanonicalSourceCoverage, 'state'>;
 }): CanonicalTruthStatus {
+  if (input.coverage.state === 'reviewRequired') {
+    return 'REVIEW REQUIRED';
+  }
   if (input.coverage.state === 'unavailable') {
     return 'UNAVAILABLE';
   }
   if (input.coverage.state === 'gated' || input.coverage.state === 'accessRequired') {
     return 'ACCESS REQUIRED';
   }
-  if (input.coverage.state !== 'live' || !input.satisfied) {
+  if (
+    input.coverage.state === 'notDecisionGrade'
+    || input.coverage.state === 'previewOnly'
+  ) {
+    return 'NOT DECISION-GRADE';
+  }
+  if (input.coverage.state !== 'checked' || !input.satisfied) {
     return 'PENDING';
   }
   if (input.kind === 'clearance') {
@@ -338,25 +454,38 @@ export function resolveCanonicalTruthStatus(input: {
   return 'VERIFIED';
 }
 
-export function isDecisionGradeTruthStatus(
+export function createCanonicalTruth(input: {
+  kind: CanonicalTruthKind;
+  satisfied: boolean;
+  coverage: CanonicalSourceCoverage;
+}): CanonicalTruth {
+  return Object.freeze({
+    kind: input.kind,
+    status: resolveCanonicalTruthStatus(input),
+    satisfied: Boolean(input.satisfied),
+    decisionGrade: coverageSatisfiesDecisionGradeTruth(input.coverage),
+    coverage: input.coverage,
+  });
+}
+
+export function isDecisionGradePositiveTruthStatus(
   status: CanonicalTruthStatus,
-): status is DecisionGradeTruthStatus {
+): status is DecisionGradePositiveTruthStatus {
   return status === 'VERIFIED' || status === 'CLEAR' || status === 'ENROLLED';
 }
 
 const SOURCE_COVERAGE_STATE_LABELS: Readonly<
   Record<CanonicalSourceCoverageState, string>
 > = Object.freeze({
-  live: 'Live',
-  gated: 'Gated',
-  partial: 'Partial coverage',
+  checked: 'Checked',
   stale: 'Stale',
-  notDecisionGrade: 'Not decision-grade',
-  notChecked: 'Not checked',
+  pending: 'Pending',
+  gated: 'Gated',
   unavailable: 'Unavailable',
   accessRequired: 'Access required',
   reviewRequired: 'Review required',
-  mock: 'Demo',
+  notDecisionGrade: 'Not decision-grade',
+  previewOnly: 'Preview only',
 });
 
 const TRUST_UI_STATUS_LABELS: Readonly<Record<TrustUiStatus, string>> = Object.freeze({
@@ -368,7 +497,7 @@ const TRUST_UI_STATUS_LABELS: Readonly<Record<TrustUiStatus, string>> = Object.f
   unavailable: 'Unavailable',
   access_required: 'Access required',
   review_required: 'Review required',
-  demo: 'Demo',
+  demo: 'Preview only',
 });
 
 export function sourceCoverageStateLabel(
@@ -381,8 +510,8 @@ export function sourceCoverageBadgeLabel(input: {
   state: CanonicalSourceCoverageState;
   decisionGrade: boolean;
 }): string {
-  if (input.state === 'live') {
-    return input.decisionGrade ? 'Decision grade' : 'Informational only';
+  if (input.state === 'checked') {
+    return input.decisionGrade ? 'Decision grade' : 'Checked';
   }
 
   return sourceCoverageStateLabel(input.state);
@@ -392,18 +521,17 @@ export function sourceCoveragePosture(
   state: CanonicalSourceCoverageState,
 ): SourceCoveragePosture {
   switch (state) {
-    case 'live':
+    case 'checked':
       return 'current';
     case 'stale':
     case 'unavailable':
     case 'reviewRequired':
       return 'degraded';
+    case 'pending':
     case 'gated':
-    case 'partial':
-    case 'notDecisionGrade':
-    case 'notChecked':
     case 'accessRequired':
-    case 'mock':
+    case 'notDecisionGrade':
+    case 'previewOnly':
       return 'partial';
   }
 }
@@ -422,7 +550,7 @@ export function mapSourceCoverageStateToTrustStatus(
   const { kind = 'generic', satisfied = false } = options;
 
   switch (state) {
-    case 'mock':
+    case 'previewOnly':
       return 'demo';
     case 'stale':
       return 'stale';
@@ -433,7 +561,7 @@ export function mapSourceCoverageStateToTrustStatus(
       return 'access_required';
     case 'reviewRequired':
       return 'review_required';
-    case 'live':
+    case 'checked':
       if (!satisfied) {
         return kind === 'generic' ? 'checked' : 'pending';
       }
@@ -443,9 +571,8 @@ export function mapSourceCoverageStateToTrustStatus(
       }
 
       return kind === 'generic' ? 'checked' : 'verified';
-    case 'partial':
+    case 'pending':
     case 'notDecisionGrade':
-    case 'notChecked':
       return 'pending';
   }
 }
@@ -460,7 +587,7 @@ export function resolveTrustUiStatus(input: {
     return 'demo';
   }
 
-  return mapSourceCoverageStateToTrustStatus(input.state ?? 'notChecked', {
+  return mapSourceCoverageStateToTrustStatus(input.state ?? 'pending', {
     kind: input.kind,
     satisfied: input.satisfied,
   });
@@ -492,16 +619,15 @@ export function summarizeCanonicalSourceCoverage(
   checks: readonly Pick<CanonicalSourceCoverage, 'sourceId' | 'state'>[],
 ): CanonicalSourceCoverageSummary {
   const buckets: Record<CanonicalSourceCoverageState, string[]> = {
-    live: [],
-    gated: [],
-    partial: [],
+    checked: [],
     stale: [],
-    notDecisionGrade: [],
-    notChecked: [],
+    pending: [],
+    gated: [],
     unavailable: [],
     accessRequired: [],
     reviewRequired: [],
-    mock: [],
+    notDecisionGrade: [],
+    previewOnly: [],
   };
 
   for (const check of checks) {
@@ -517,15 +643,14 @@ export function summarizeCanonicalSourceCoverage(
   }
 
   return Object.freeze({
-    live: Object.freeze(buckets.live),
-    gated: Object.freeze(buckets.gated),
-    partial: Object.freeze(buckets.partial),
+    checked: Object.freeze(buckets.checked),
     stale: Object.freeze(buckets.stale),
-    notDecisionGrade: Object.freeze(buckets.notDecisionGrade),
-    notChecked: Object.freeze(buckets.notChecked),
+    pending: Object.freeze(buckets.pending),
+    gated: Object.freeze(buckets.gated),
     unavailable: Object.freeze(buckets.unavailable),
     accessRequired: Object.freeze(buckets.accessRequired),
     reviewRequired: Object.freeze(buckets.reviewRequired),
-    mock: Object.freeze(buckets.mock),
+    notDecisionGrade: Object.freeze(buckets.notDecisionGrade),
+    previewOnly: Object.freeze(buckets.previewOnly),
   });
 }

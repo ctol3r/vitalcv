@@ -1,71 +1,50 @@
 # VitalCV Public Truth Audit
 
-## 1. Claims Review by Surface
+## 1. Claims Review by Route
 
-### Homepage
-
-#### Core Value Prop
+### Route: `/` (Homepage)
 - **Claim:** "Interview Mode: Share proof in the room. Employer sees what's verified, what's missing, what can proceed."
 - **Status:** **[Partial]**
-- **Correction Needed:** "Share verified proof before the interview starts. The employer sees exactly what is verified (and when), what is pending, and the current readiness state."
-- **Reason:** 'What can proceed' implies we make the final call; we do not. The employer makes the call based on the readiness state we provide.
+- **Allowed Wording:** "Share verified proof before the interview starts. The employer sees exactly what is verified (and when), what is pending, and the current readiness state."
+- **Prohibited Wording:** "What can proceed" (implies we make the final call, which is false; employers make the call based on readiness state).
 
-#### Trust Layer
 - **Claim:** "Verified against State Medical Boards, NPDB, DEA, OIG / LEIE, ABMS, NPPES."
 - **Status:** **[Live]**
-- **Correction Needed:** None. We actually check against these sources. But we must ensure the UI shows exactly when the verification happened.
+- **Allowed Wording:** "Verified against State Medical Boards, NPDB, DEA, OIG / LEIE, ABMS, NPPES at [Timestamp]."
+- **Prohibited Wording:** Any mention of verification without a clear mechanism or path to see the timestamp.
 
-### Employers
+### Route: `/explore` (Explore)
+- **Claim:** "Find every verified clinician in your state."
+- **Status:** **[Aspirational]**
+- **Allowed Wording:** "Search our directory of source-verified clinician profiles."
+- **Prohibited Wording:** "Every clinician", "100% of clinicians" (we only have the ones integrated/verified).
 
-#### Speed & Conversion
+### Route: `/employers` (Employers)
 - **Claim:** "Launch-safe entry point for hiring teams."
 - **Status:** **[Live]**
-- **Correction Needed:** Keep, but ensure we never say "Zero friction onboarding" without caveats. Replace aspirational speed claims (if any exist in marketing campaigns like 'Cut time by 80%') with: "Accelerate interview-to-start velocity by removing manual source queries."
+- **Allowed Wording:** "Accelerate interview-to-start velocity by removing manual source queries."
+- **Prohibited Wording:** "Zero friction onboarding", "Cut time by 80%" (unless mathematically tracked and proven on the dashboard).
 
-#### Trust and Compliance
 - **Claim:** "Verified Employers" label
 - **Status:** **[Inconsistent]**
-- **Correction Needed:** "Source-Verified Employer" or clearly detail what exactly is verified. Define what makes an employer "verified" (e.g., matching recognized NPI / facility registries).
+- **Allowed Wording:** "Source-Verified Employer" (when matching recognized NPI / facility registries).
+- **Prohibited Wording:** "Verified" without context of what makes them verified.
 
-### Developers
-
-#### Real-time Claims
+### Route: `/developers` (Developers)
 - **Claim:** "Real-time sync with all state licensing boards."
 - **Status:** **[Inconsistent]**
-- **Correction Needed:** "High-frequency synchronization with supported state and federal primary sources."
-- **Reason:** "All" is a legal and technical liability. "Real-time" is often technically false for batch-updated state boards. Use "high-frequency".
+- **Allowed Wording:** "High-frequency synchronization with supported state and federal primary sources."
+- **Prohibited Wording:** "Real-time" (most states are batch-updated), "All state licensing boards" (we only support specific ones).
 
-#### Integration
 - **Claim:** "Instant Integration"
 - **Status:** **[Aspirational]**
-- **Correction Needed:** "Developer-ready APIs optimized for rapid integration." 
+- **Allowed Wording:** "Developer-ready APIs optimized for rapid integration."
+- **Prohibited Wording:** "Instant Integration", "Zero setup".
 
-### Pricing
+## 2. Global Copy Rules
 
-#### Usage Rules
-- **Claim:** "Unlimited verifications per candidate."
-- **Status:** **[Aspirational]**
-- **Correction Needed:** "Comprehensive verification bundled per candidate." 
-- **Reason:** 'Unlimited' creates unbounded operational risk if vendors or state scrapers change rate limits.
-
-#### Financial ROI
-- **Claim:** "Pay only when you hire."
-- **Status:** **[Live] / [Partial]**
-- **Correction Needed:** Align with the strict billing logic. If billing is strictly per accepted audit packet, ensure the messaging conveys that exactly.
-
----
-
-## 2. Source Coverage Disclosure Requirements
-- **Rule:** Never imply total national coverage if the feature relies on a state-by-state rollout. 
-- **Disclosure:** We must maintain a public, continually updated sub-page or tooltip listing the exact state boards, federal registries (e.g., DEA, PECOS, LEIE), and institutions we currently support. 
-- **Transparency:** Any "Unavailable", "Pending Integration", or "Maintenance" source must be explicitly marked as such in the UI. We do not fake certainty. If a board's API goes down, we report the board as down—we don't show a cached "Verified" status without an explicit timestamp of the last known good state.
-
----
-
-## 3. Launch-Safe Wording Rules
-
-- **No Absolute Guarantees:** Remove "all", "instant", "100%", "never", and "guaranteed" across the site, unless programmatically enforced and mathematically true.
-- **Show the Work (Timestamping):** Replace abstract "Trust us" copy with objective facts: "Verified from [Source] at [Timestamp]". Trust is an output, not a marketing claim. 
-- **Focus on Leverage, Not Magic:** Pitch the product as a powerful tool that accelerates and clarifies the credentialing workflow. It does not replace human oversight; it supercharges it.
-- **Align with Data Reality:** Do not claim a candidate is "Cleared". Instead, use "Source Data Verified". The employer makes the clearing decision.
-- **Jargon Removal:** Do not use internal meta-terms in marketing facing pages (e.g., "The OpenClaw Truth Layer"). Keep it about the output: "Audit-ready proof."
+- **No Absolute Guarantees:** Remove "all", "instant", "100%", "never", and "guaranteed" across the site, unless programmatically enforced.
+- **Show the Work (Timestamping):** Replace abstract "Trust us" copy with objective facts: "Verified from [Source] at [Timestamp]".
+- **Focus on Leverage, Not Magic:** Pitch the product as a powerful tool that accelerates the credentialing workflow.
+- **Align with Data Reality:** Do not claim a candidate is "Cleared". Use "Source Data Verified".
+- **Jargon Removal:** Do not use internal meta-terms (e.g., "OpenClaw Truth Layer") in marketing facing pages. Keep it about the output: "Audit-ready proof."

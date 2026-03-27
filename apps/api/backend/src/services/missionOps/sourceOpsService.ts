@@ -6,6 +6,7 @@ import { getIntegrationHealth } from '../externalIntegrations/integrationHealthT
 import {
   isImplementedIngestSource,
   isSourceFlagEnabled,
+  LAUNCH_SPINE_SOURCE_IDS,
   listSources,
   type SourceDefinition,
 } from '../identity/sourceCatalog';
@@ -38,7 +39,7 @@ export interface SourceOpsEntry {
   freshnessSlaHours: number;
 }
 
-export const OFFICIAL_SPINE_SOURCES = ['NPPES_API', 'OIG_LEIE', 'PECOS_PUBLIC', 'NURSYS'] as const;
+export const OFFICIAL_SPINE_SOURCES = LAUNCH_SPINE_SOURCE_IDS;
 
 function readSourceEnabled(source: SourceDefinition): boolean {
   return isSourceFlagEnabled(source);
@@ -130,18 +131,18 @@ export function computeSourceOpsReport(): SourceOpsReport {
     const coverageState = !sourceImplemented
       ? sourceEnabled
         ? 'unavailable'
-        : 'notChecked'
+        : 'pending'
       : !sourceEnabled
-        ? 'notChecked'
+        ? 'pending'
         : resolveCanonicalSourceCoverageState({
             checked: Boolean(sourceHealth.lastSuccessAt),
             fresh,
             unavailable: connectorEntry?.status === 'UNREACHABLE',
             gated: governance?.accessBoundary === 'institutional' || governance?.accessBoundary === 'gated',
-            notDecisionGrade: source.tier !== 'GOLD' && source.tier !== 'SILVER',
+            notDecisionGrade: !source.decisionGrade,
           });
 
-    const decisionGrade = coverageState === 'live';
+    const decisionGrade = coverageState === 'checked';
     const isUnavailable = coverageState === 'unavailable';
     const isStale = coverageState === 'stale';
 

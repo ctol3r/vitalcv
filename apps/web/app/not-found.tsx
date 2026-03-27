@@ -3,12 +3,9 @@ import { NotFoundTracker } from '@/lib/analytics/not-found-tracker';
 
 export default function NotFound() {
   return (
-    <div
-      className="flex min-h-screen flex-col items-center justify-center"
-      style={{ background: '#080e1a', color: '#e2e8f0' }}
-    >
+    <div className="flex min-h-screen flex-col items-center justify-center bg-vt-surface-ops-base text-slate-200">
       <NotFoundTracker />
-      <div className="text-center max-w-md px-6">
+      <div className="max-w-md animate-fade-in-up px-6 text-center">
         <div className="text-6xl font-bold mb-4 text-white/20">404</div>
         <h1 className="text-2xl font-semibold mb-3 text-white">
           Page not found

@@ -9,8 +9,38 @@ import {
   renderCredentialGroupFreshness,
   summarizePassportFreshnessEntries,
 } from '../lib/trust/proof-language';
+import {
+  createCanonicalSourceCoverage,
+  summarizeCanonicalSourceCoverage,
+} from '../../../packages/trust-state';
 
 function buildPassport(overrides: Partial<PassportData> = {}): PassportData {
+  const checks = [
+    createCanonicalSourceCoverage({
+      sourceId: 'NPPES_API',
+      state: 'checked',
+      reason: 'identity checked',
+      checkedAt: '2026-03-20T00:00:00.000Z',
+    }),
+    createCanonicalSourceCoverage({
+      sourceId: 'OIG_LEIE',
+      state: 'checked',
+      reason: 'exclusion checked',
+      checkedAt: '2026-03-20T00:00:00.000Z',
+    }),
+    createCanonicalSourceCoverage({
+      sourceId: 'STATE_BOARD',
+      state: 'checked',
+      reason: 'Licensure checked',
+      checkedAt: '2026-01-01T00:00:00.000Z',
+    }),
+    createCanonicalSourceCoverage({
+      sourceId: 'PECOS_PUBLIC',
+      state: 'checked',
+      reason: 'CMS PECOS confirms enrolled status in the current quarterly release',
+      checkedAt: '2026-03-20T00:00:00.000Z',
+    }),
+  ] as const;
   return {
     entityId: 'entity-1',
     npi: '1234567890',
@@ -80,6 +110,40 @@ function buildPassport(overrides: Partial<PassportData> = {}): PassportData {
       checked: ['STATE_BOARD', 'CMS PECOS', 'OIG_LEIE'],
       lastFetch: {},
     },
+    sourceCoverage: {
+      checks: [...checks],
+      summary: summarizeCanonicalSourceCoverage(checks),
+    },
+    truth: {
+      identity: {
+        kind: 'verification',
+        status: 'VERIFIED',
+        satisfied: true,
+        decisionGrade: true,
+        coverage: checks[0],
+      },
+      safety: {
+        kind: 'clearance',
+        status: 'CLEAR',
+        satisfied: true,
+        decisionGrade: true,
+        coverage: checks[1],
+      },
+      authority: {
+        kind: 'verification',
+        status: 'VERIFIED',
+        satisfied: true,
+        decisionGrade: true,
+        coverage: checks[2],
+      },
+      eligibility: {
+        kind: 'enrollment',
+        status: 'ENROLLED',
+        satisfied: true,
+        decisionGrade: true,
+        coverage: checks[3],
+      },
+    },
     trustPosture: {
       band: 'L2',
       bandLabel: 'Moderate trust',
@@ -103,7 +167,7 @@ function buildPassport(overrides: Partial<PassportData> = {}): PassportData {
           id: 'authority',
           label: 'Authority',
           state: 'current',
-          detail: 'Active state licensure is verified from a live authority source.',
+          detail: 'Active state licensure is verified from a source-backed authority check.',
           checkedAt: '2026-01-01T00:00:00.000Z',
         },
         {
@@ -155,7 +219,7 @@ function buildPassport(overrides: Partial<PassportData> = {}): PassportData {
       safeToRelyOnNow: [
         'Identity confirmed via CMS NPPES.',
         'OIG/LEIE exclusion check is clear.',
-        'Active state licensure is verified from a live authority source.',
+        'Active state licensure is verified from a source-backed authority check.',
       ],
       missingItems: [],
       gatedItems: [],
@@ -206,6 +270,45 @@ describe('trust proof language', () => {
 
   it('summarizes freshness with stale taking precedence over unchecked coverage', () => {
     const stalePassport = buildPassport({
+      sourceCoverage: {
+        checks: [
+          createCanonicalSourceCoverage({
+            sourceId: 'NPPES_API',
+            state: 'checked',
+            reason: 'identity checked',
+            checkedAt: '2026-03-20T00:00:00.000Z',
+          }),
+          createCanonicalSourceCoverage({
+            sourceId: 'OIG_LEIE',
+            state: 'checked',
+            reason: 'exclusion checked',
+            checkedAt: '2026-03-20T00:00:00.000Z',
+          }),
+          createCanonicalSourceCoverage({
+            sourceId: 'STATE_BOARD',
+            state: 'stale',
+            reason: 'licensure check is outside the freshness window',
+            checkedAt: '2025-10-01T00:00:00.000Z',
+          }),
+          createCanonicalSourceCoverage({
+            sourceId: 'PECOS_PUBLIC',
+            state: 'checked',
+            reason: 'CMS PECOS confirms enrolled status in the current quarterly release',
+            checkedAt: '2026-03-20T00:00:00.000Z',
+          }),
+        ],
+        summary: {
+          checked: ['NPPES_API', 'OIG_LEIE', 'PECOS_PUBLIC'],
+          stale: ['STATE_BOARD'],
+          pending: [],
+          gated: [],
+          notDecisionGrade: [],
+          unavailable: [],
+          accessRequired: [],
+          reviewRequired: [],
+          previewOnly: [],
+        },
+      },
       authority: {
         credentials: [
           {
@@ -230,6 +333,43 @@ describe('trust proof language', () => {
     });
 
     const partialPassport = buildPassport({
+      sourceCoverage: {
+        checks: [
+          createCanonicalSourceCoverage({
+            sourceId: 'NPPES_API',
+            state: 'checked',
+            reason: 'identity checked',
+            checkedAt: '2026-03-20T00:00:00.000Z',
+          }),
+          createCanonicalSourceCoverage({
+            sourceId: 'OIG_LEIE',
+            state: 'checked',
+            reason: 'exclusion checked',
+            checkedAt: '2026-03-20T00:00:00.000Z',
+          }),
+          createCanonicalSourceCoverage({
+            sourceId: 'STATE_BOARD',
+            state: 'pending',
+            reason: 'licensure not yet checked',
+          }),
+          createCanonicalSourceCoverage({
+            sourceId: 'PECOS_PUBLIC',
+            state: 'pending',
+            reason: 'PECOS not yet checked',
+          }),
+        ],
+        summary: {
+          checked: ['NPPES_API', 'OIG_LEIE'],
+          stale: [],
+          pending: ['PECOS_PUBLIC', 'STATE_BOARD'],
+          gated: [],
+          notDecisionGrade: [],
+          unavailable: [],
+          accessRequired: [],
+          reviewRequired: [],
+          previewOnly: [],
+        },
+      },
       authority: {
         credentials: [],
         summary: { active: 0, expired: 0, stale: 0, missing: ['LICENSURE'] },
@@ -254,7 +394,7 @@ describe('trust proof language', () => {
         checks: [
           {
             sourceId: 'NPPES_API',
-            state: 'live',
+            state: 'checked',
             reason: 'identity checked',
             checkedAt: '2026-03-20T00:00:00.000Z',
             freshnessWindowHours: 24,
@@ -273,16 +413,15 @@ describe('trust proof language', () => {
           },
         ],
         summary: {
-          live: ['NPPES_API'],
-          gated: [],
-          partial: [],
+          checked: ['NPPES_API'],
           stale: [],
+          pending: [],
+          gated: [],
           notDecisionGrade: ['PECOS_PUBLIC'],
-          notChecked: [],
           unavailable: [],
           accessRequired: [],
           reviewRequired: ['OIG_LEIE'],
-          mock: [],
+          previewOnly: [],
         },
       },
     });
@@ -308,6 +447,45 @@ describe('trust proof language', () => {
 
   it('keeps degraded proof sections aligned with freshness state', () => {
     const degradedPassport = buildPassport({
+      sourceCoverage: {
+        checks: [
+          createCanonicalSourceCoverage({
+            sourceId: 'NPPES_API',
+            state: 'checked',
+            reason: 'identity checked',
+            checkedAt: '2026-03-20T00:00:00.000Z',
+          }),
+          createCanonicalSourceCoverage({
+            sourceId: 'OIG_LEIE',
+            state: 'checked',
+            reason: 'exclusion checked',
+            checkedAt: '2026-03-20T00:00:00.000Z',
+          }),
+          createCanonicalSourceCoverage({
+            sourceId: 'STATE_BOARD',
+            state: 'stale',
+            reason: 'licensure check is outside the freshness window',
+            checkedAt: '2025-10-01T00:00:00.000Z',
+          }),
+          createCanonicalSourceCoverage({
+            sourceId: 'PECOS_PUBLIC',
+            state: 'checked',
+            reason: 'CMS PECOS confirms enrolled status in the current quarterly release',
+            checkedAt: '2026-03-20T00:00:00.000Z',
+          }),
+        ],
+        summary: {
+          checked: ['NPPES_API', 'OIG_LEIE', 'PECOS_PUBLIC'],
+          stale: ['STATE_BOARD'],
+          pending: [],
+          gated: [],
+          notDecisionGrade: [],
+          unavailable: [],
+          accessRequired: [],
+          reviewRequired: [],
+          previewOnly: [],
+        },
+      },
       authority: {
         credentials: [
           {
@@ -360,8 +538,8 @@ describe('trust proof language', () => {
   it('keeps PECOS enrollment contextual in review truth instead of source-backed', () => {
     const truth = buildPassportReviewTruthModel(buildPassport());
 
-    expect(truth.buckets.contextualOnly.map((item) => item.label)).toContain('Enrollment / Eligibility');
-    expect(truth.buckets.sourceBackedNow.map((item) => item.label)).not.toContain('Enrollment / Eligibility');
+    expect(truth.buckets.sourceBackedNow.map((item) => item.label)).toContain('Enrollment / Eligibility');
+    expect(truth.buckets.contextualOnly.map((item) => item.label)).not.toContain('Enrollment / Eligibility');
   });
 
   it('reuses freshness summary labels across passport and review truth', () => {

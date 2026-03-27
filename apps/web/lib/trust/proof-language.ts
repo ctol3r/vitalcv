@@ -107,16 +107,15 @@ function latestObservedAt(
 }
 
 const COVERAGE_LAYER_PRIORITIES: readonly PassportSourceCoverageState[] = [
-  'live',
+  'checked',
   'stale',
   'reviewRequired',
   'accessRequired',
   'unavailable',
   'gated',
   'notDecisionGrade',
-  'partial',
-  'mock',
-  'notChecked',
+  'previewOnly',
+  'pending',
 ];
 
 const NPPES_ALIASES = ['NPPES', 'NPPES_API', 'NPI Registry'];
@@ -153,7 +152,7 @@ function resolveCoverageFreshnessState(
   check: PassportSourceCoverageCheck,
 ): PassportSourceCoverageState {
   if (
-    check.state === 'live'
+    check.state === 'checked'
     && isPastFreshnessWindowHours(check.checkedAt, check.freshnessWindowHours)
   ) {
     return 'stale';
@@ -198,10 +197,10 @@ function buildCoverageFreshnessEntry(
     checkedAt: prioritizedCheck.checkedAt ?? fallback.checkedAt,
     source: config.source,
     stale: sourceState === 'stale',
-    unchecked: sourceState !== 'live' && sourceState !== 'stale',
+    unchecked: sourceState !== 'checked' && sourceState !== 'stale',
     sourceState,
     stateLabel:
-      sourceState === 'live' || sourceState === 'stale'
+      sourceState === 'checked' || sourceState === 'stale'
         ? null
         : sourceCoverageStateLabel(sourceState),
   };

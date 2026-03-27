@@ -36,7 +36,7 @@ export function ApplyWidgetSection({ npi }: Props) {
         Share Your Credentials
       </p>
       <p className="text-xs text-zinc-400">
-        Generate a verified bundle link to share with employers — no account needed on their end.
+        Generate the current passport share flow for employer review from the live wedge.
       </p>
       <div className="pt-1">
         <ApplyWithVitalCV npi={npi} label="Generate Credential Bundle" />

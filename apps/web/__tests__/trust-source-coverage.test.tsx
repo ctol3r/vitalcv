@@ -21,10 +21,10 @@ describe('trust source coverage contract', () => {
   it('normalizes canonical source coverage states without dropping aliases', () => {
     expect(normalizePassportSourceCoverageState('access-required')).toBe('accessRequired');
     expect(normalizePassportSourceCoverageState('review_required')).toBe('reviewRequired');
-    expect(normalizePassportSourceCoverageState('not checked')).toBe('notChecked');
+    expect(normalizePassportSourceCoverageState('not checked')).toBe('pending');
     expect(normalizePassportSourceCoverageState('notDecisionGrade')).toBe('notDecisionGrade');
-    expect(normalizePassportSourceCoverageState('CHECKED')).toBe('live');
-    expect(normalizePassportSourceCoverageState('demo')).toBe('mock');
+    expect(normalizePassportSourceCoverageState('CHECKED')).toBe('checked');
+    expect(normalizePassportSourceCoverageState('demo')).toBe('previewOnly');
     expect(normalizePassportSourceCoverageState('bogus')).toBeNull();
   });
 
@@ -65,7 +65,7 @@ describe('trust source coverage contract', () => {
         checks={[
           {
             sourceId: 'NPPES_API',
-            state: 'live',
+            state: 'checked',
             reason: 'identity checked',
             checkedAt: '2026-03-20T00:00:00.000Z',
             artifactId: null,
@@ -90,7 +90,7 @@ describe('trust source coverage contract', () => {
       checks: [
         {
           sourceId: 'NPPES_API',
-          state: 'live',
+          state: 'checked',
           reason: 'identity checked',
           checkedAt: '2026-03-20T00:00:00.000Z',
         },
@@ -102,20 +102,19 @@ describe('trust source coverage contract', () => {
         },
       ],
       summary: {
-        live: ['NPPES_API'],
+        checked: ['NPPES_API'],
         gated: [],
-        partial: [],
+        pending: [],
         stale: [],
         notDecisionGrade: [],
-        notChecked: [],
+        previewOnly: [],
         unavailable: [],
         accessRequired: [],
         reviewRequired: ['OIG_LEIE'],
-        mock: [],
       },
     };
 
-    expect(findPassportSourceCoverageCheck(report, ['NPI Registry', 'NPPES'])?.state).toBe('live');
+    expect(findPassportSourceCoverageCheck(report, ['NPI Registry', 'NPPES'])?.state).toBe('checked');
     expect(findPassportSourceCoverageCheck(report, ['OIG', 'LEIE'])?.state).toBe('reviewRequired');
   });
 
@@ -124,23 +123,22 @@ describe('trust source coverage contract', () => {
       checks: [
         {
           sourceId: 'PECOS_PUBLIC',
-          state: 'live',
+          state: 'checked',
           reason: 'quarterly enrollment checked',
           parserVersion: 'v1.2.0',
           freshnessWindowHours: 2160,
         },
       ],
       summary: {
-        live: ['PECOS_PUBLIC'],
+        checked: ['PECOS_PUBLIC'],
         gated: [],
-        partial: [],
+        pending: [],
         stale: [],
         notDecisionGrade: [],
-        notChecked: [],
+        previewOnly: [],
         unavailable: [],
         accessRequired: [],
         reviewRequired: [],
-        mock: [],
       },
     };
 
@@ -151,22 +149,21 @@ describe('trust source coverage contract', () => {
   it('keeps homepage, passport, and review source aliases on the same canonical report', () => {
     const report: PassportSourceCoverageReport = {
       checks: [
-        { sourceId: 'NPPES_API', state: 'live', reason: 'identity checked' },
-        { sourceId: 'OIG_LEIE', state: 'live', reason: 'exclusion checked' },
+        { sourceId: 'NPPES_API', state: 'checked', reason: 'identity checked' },
+        { sourceId: 'OIG_LEIE', state: 'checked', reason: 'exclusion checked' },
         { sourceId: 'PECOS_PUBLIC', state: 'notDecisionGrade', reason: 'quarterly informational dataset' },
         { sourceId: 'STATE_BOARD', state: 'accessRequired', reason: 'institutional access required' },
       ],
       summary: {
-        live: ['NPPES_API', 'OIG_LEIE'],
+        checked: ['NPPES_API', 'OIG_LEIE'],
         gated: [],
-        partial: [],
+        pending: [],
         stale: [],
         notDecisionGrade: ['PECOS_PUBLIC'],
-        notChecked: [],
+        previewOnly: [],
         unavailable: [],
         accessRequired: ['STATE_BOARD'],
         reviewRequired: [],
-        mock: [],
       },
     };
 

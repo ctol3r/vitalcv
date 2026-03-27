@@ -1,6 +1,6 @@
 import type { Prisma, VcvCredentialDomain } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
-import { buildPassport, type ReadinessNextAction } from './passportService';
+import { buildPassport, type ReadinessNextAction, type TrustPassport } from './passportService';
 import { resolveCredentialEvidence } from './evidenceIntegrity';
 import type { CanonicalSourceCoverageReport } from '../../../../../../packages/trust-state';
 
@@ -72,6 +72,7 @@ export interface EmployerReviewPayloadV1 {
   receiptReferences: string[];
   proofReferences: string[];
   checkedAt: string;
+  truth: TrustPassport['truth'];
   sourceCoverage: CanonicalSourceCoverageReport & {
     sources: string[];
     domains: string[];
@@ -94,12 +95,11 @@ function mergeStrings(values: readonly string[][]): string[] {
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const HEX32_RE = /^[0-9a-f]{32}$/i;
 function onlyUuids(values: string[]): string[] {
   return values.filter((v) => UUID_RE.test(v));
 }
 function onlyReceiptIds(values: string[]): string[] {
-  return values.filter((v) => UUID_RE.test(v) || HEX32_RE.test(v));
+  return mergeStrings(values.map((value) => [value]));
 }
 
 export function buildEmployerReviewSourceCoverage(input: {
@@ -294,6 +294,7 @@ export async function buildEmployerReviewPayload(input: {
     receiptReferences,
     proofReferences: [...receiptReferences],
     checkedAt: passport.lastCheckedAt,
+    truth: passport.truth,
     sourceCoverage: buildEmployerReviewSourceCoverage({
       passportSourceCoverage: passport.sourceCoverage,
       domains: reviewableCredentials.map(({ credential }) => credential.domain),

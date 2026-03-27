@@ -52,19 +52,19 @@ export function InterviewModeTeaser() {
                 <div className="flex-1 max-w-lg">
                   <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/8 px-3 py-1 mb-4">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400">Interview Mode</span>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400">Passport Preview</span>
                   </div>
                   <h2 className="text-xl sm:text-2xl font-bold text-white leading-tight mb-3">
-                    Preview your<br className="hidden sm:block" /> interview packet.
+                    Preview your<br className="hidden sm:block" /> passport proof.
                   </h2>
                   <p className="text-sm text-white/50 leading-relaxed mb-5">
-                    After your NPI lookup, VitalCV can turn that readiness snapshot into a concise packet for employer conversations. Preview cards stay explicitly labeled until they are backed by a real packet.
+                    After your NPI lookup, VitalCV turns that readiness snapshot into a passport view for employer conversations. Sections stay explicitly labeled until backed by a real source run.
                   </p>
                   <Link
                     href="/interview"
                     className="inline-flex items-center justify-center gap-2 min-h-[48px] rounded-xl bg-emerald-500 hover:bg-emerald-400 px-6 text-sm font-bold text-white transition-all active:scale-[0.98] shadow-[0_0_24px_rgba(16,185,129,0.2)] w-full sm:w-auto"
                   >
-                    Preview Interview Packet
+                    Preview Passport Proof
                   </Link>
                 </div>
 

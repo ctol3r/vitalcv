@@ -24,8 +24,8 @@ import { getRequiredDomainsForContext } from '../orgContextService';
 // ── S2: Credential domain contracts ──────────────────────────────────────────
 
 describe('isCredentialStale', () => {
-  it('returns false if no verifiedAt', () => {
-    expect(isCredentialStale({ domain: 'LICENSURE', verifiedAt: null })).toBe(false);
+  it('returns true if no verifiedAt for a freshness-bound domain', () => {
+    expect(isCredentialStale({ domain: 'LICENSURE', verifiedAt: null })).toBe(true);
   });
 
   it('returns false if domain has no freshness window', () => {

@@ -11,6 +11,8 @@ import type {
 } from './contracts';
 import { INGEST_SOURCE_IDS } from './contracts';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 function toJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
@@ -22,6 +24,10 @@ function isUniqueConstraintError(error: unknown): boolean {
     && 'code' in error
     && (error as { code?: string }).code === 'P2002'
   );
+}
+
+function isUuid(value: string): boolean {
+  return UUID_RE.test(value);
 }
 
 function toPersistedRun(row: {
@@ -127,6 +133,10 @@ export async function getOrCreateIngestRun(
 }
 
 export async function getIngestRun(runId: string): Promise<PersistedIngestRun | null> {
+  if (!isUuid(runId)) {
+    return null;
+  }
+
   const run = await prisma.ingestRun.findUnique({
     where: { id: runId },
   });

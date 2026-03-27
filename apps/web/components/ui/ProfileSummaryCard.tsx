@@ -52,7 +52,7 @@ export function ProfileSummaryCard({
       </GlassCardHeader>
 
       <GlassCardContent className="text-[var(--muted-foreground)] leading-relaxed mt-4 text-center md:text-left">
-        This profile and its credentials have been verified according to the Antigravity Trust Protocol.
+        This profile reflects the current credential status shown on this surface.
       </GlassCardContent>
     </GlassCard>
   );

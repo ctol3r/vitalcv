@@ -23,7 +23,7 @@ type CoverageTone = {
 };
 
 function resolveTone(status: SourceCoverageTagProps['status'], decisionGrade: boolean): CoverageTone {
-  if (status === 'live' && decisionGrade) {
+  if (status === 'checked' && decisionGrade) {
     return {
       container: 'border-[var(--vt-badge-success-border)] bg-[var(--vt-badge-success-bg)] text-[var(--vt-text-1)]',
       dot: 'bg-[var(--vt-success)]',
@@ -32,7 +32,7 @@ function resolveTone(status: SourceCoverageTagProps['status'], decisionGrade: bo
     };
   }
 
-  if (status === 'live') {
+  if (status === 'checked') {
     return {
       container: 'border-[var(--vt-badge-warning-border)] bg-[var(--vt-badge-warning-bg)] text-[var(--vt-text-1)]',
       dot: 'bg-[var(--vt-warning)]',
@@ -41,7 +41,7 @@ function resolveTone(status: SourceCoverageTagProps['status'], decisionGrade: bo
     };
   }
 
-  if (status === 'gated' || status === 'notChecked' || status === 'mock') {
+  if (status === 'gated' || status === 'pending' || status === 'previewOnly') {
     return {
       container: 'border-[var(--vt-badge-neutral-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-2)]',
       dot: 'bg-[var(--vt-text-3)]',
@@ -68,7 +68,7 @@ function resolveTone(status: SourceCoverageTagProps['status'], decisionGrade: bo
     };
   }
 
-  if (status === 'partial' || status === 'notDecisionGrade') {
+  if (status === 'notDecisionGrade') {
     return {
       container: 'border-[var(--vt-badge-warning-border)] bg-[var(--vt-badge-warning-bg)] text-[var(--vt-text-1)]',
       dot: 'bg-[var(--vt-warning)]',

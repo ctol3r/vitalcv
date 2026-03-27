@@ -29,7 +29,7 @@ describe('homepage public truth', () => {
     expect(markup).toContain('Synthetic layout');
     expect(markup).toContain('not live data');
     expect(markup).toContain('Preview only');
-    expect(markup).toContain('Preview Interview Packet');
+    expect(markup).toContain('Preview Passport Proof');
     expect(markup).toContain('Registry record only');
     expect(markup).toContain('Institutional access');
   });

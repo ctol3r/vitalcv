@@ -39,10 +39,15 @@ const prismaMock = prisma as unknown as {
 };
 
 const EMPTY_COVERAGE = {
-  live: [],
+  checked: [],
+  stale: [],
+  pending: [],
   gated: [],
-  mock: [],
-  notChecked: [],
+  unavailable: [],
+  accessRequired: [],
+  reviewRequired: [],
+  notDecisionGrade: [],
+  previewOnly: [],
 };
 
 describe('captureStartOutcome', () => {

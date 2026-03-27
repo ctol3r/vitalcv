@@ -19,10 +19,7 @@ export default function Error({
   }, [error]);
 
   return (
-    <div
-      className="flex min-h-screen flex-col items-center justify-center"
-      style={{ background: '#080e1a', color: '#e2e8f0' }}
-    >
+    <div className="flex min-h-screen flex-col items-center justify-center bg-vt-surface-ops-base text-slate-200">
       <PilotFailureSignal
         title="View interrupted"
         message={error.message}
@@ -32,7 +29,7 @@ export default function Error({
         }}
         dedupeKey={`app-error:${error.digest ?? error.message}`}
       />
-      <div className="text-center max-w-md px-6">
+      <div className="max-w-md animate-fade-in-up px-6 text-center">
         <div className="text-5xl mb-6 opacity-80">💭</div>
         <h1 className="text-2xl font-semibold mb-3 text-white">
           View Interrupted

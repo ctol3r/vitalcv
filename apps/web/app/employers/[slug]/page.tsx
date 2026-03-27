@@ -112,7 +112,7 @@ export default async function EmployerProfilePage({ params }: Props) {
                     </span>
                     {employer.verifiedSince ? (
                       <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65">
-                        Verified
+                        Directory profile
                       </span>
                     ) : null}
                   </div>
@@ -137,7 +137,7 @@ export default async function EmployerProfilePage({ params }: Props) {
 
             <div className="w-full max-w-sm space-y-3">
               <div className="rounded-3xl border border-white/10 bg-black/20 p-5">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Launch-ready actions</p>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Current actions</p>
                 <div className="mt-4 flex flex-col gap-3">
                   <Link
                     href={scopedOnboardingHref}
@@ -150,22 +150,22 @@ export default async function EmployerProfilePage({ params }: Props) {
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                   <Link
-                    href="/verifier/inbox"
+                    href="/review"
                     className="inline-flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white/75 transition hover:text-white"
                   >
                     <span className="inline-flex items-center gap-2">
                       <BriefcaseBusiness className="h-4 w-4" />
-                      Employer workspace
+                      Employer review
                     </span>
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                   <Link
-                    href="/intelligence?view=dashboard"
+                    href={scopedExploreHref}
                     className="inline-flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white/75 transition hover:text-white"
                   >
                     <span className="inline-flex items-center gap-2">
                       <ShieldCheck className="h-4 w-4" />
-                      Operator dashboard
+                      Current roles
                     </span>
                     <ArrowRight className="h-4 w-4" />
                   </Link>
@@ -194,12 +194,12 @@ export default async function EmployerProfilePage({ params }: Props) {
           <StatCard
             label="Open roles"
             value={String(opportunityPayload.total > 0 ? opportunityPayload.total : employer.openRoles)}
-            detail="Live roles tied to this employer."
+            detail="Current public roles tied to this employer."
           />
           <StatCard
-            label="Trust score"
+            label="Directory signal"
             value={String(employer.trustScore)}
-            detail="Current public employer trust signal."
+            detail="Current public employer directory signal."
           />
           <StatCard
             label="Time to start"
@@ -235,7 +235,7 @@ export default async function EmployerProfilePage({ params }: Props) {
             <div id="roles" className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Live opportunity feed</p>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Current opportunity feed</p>
                   <h2 className="mt-2 text-2xl font-semibold text-white">Current roles from this employer</h2>
                 </div>
                 <Link
@@ -249,9 +249,9 @@ export default async function EmployerProfilePage({ params }: Props) {
 
               {opportunityPayload.opportunities.length === 0 ? (
                 <div className="mt-5 rounded-3xl border border-amber-400/20 bg-amber-400/10 p-5">
-                  <h3 className="text-lg font-semibold text-white">No live roles are attached right now</h3>
+                  <h3 className="text-lg font-semibold text-white">No current public roles are attached right now</h3>
                   <p className="mt-2 text-sm leading-6 text-white/65">
-                    The employer profile is live, but no active public opportunities are currently attached to this organization slug.
+                    The employer profile is available, but no active public opportunities are currently attached to this organization slug.
                     Next step: confirm opportunity seeding or browse the broader explore feed.
                   </p>
                 </div>
@@ -339,7 +339,7 @@ export default async function EmployerProfilePage({ params }: Props) {
                 <p>Hiring types: {employer.hiringTypes.join(', ') || 'Not disclosed'}</p>
                 <p>Time to start: {employer.timeToStart}</p>
                 <p>Time to onboard: {employer.timeToOnboard}</p>
-                <p>Verified since: {employer.verifiedSince ? employer.verifiedSince.slice(0, 10) : 'Seeded launch profile'}</p>
+                <p>Profile first listed: {employer.verifiedSince ? employer.verifiedSince.slice(0, 10) : 'Current launch profile'}</p>
                 <p>
                   Website:{' '}
                   {employer.website ? (
