@@ -35,7 +35,7 @@ export default function InterviewBlockedState({
   }, [telemetryReason]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#080e1a' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-vt-surface-ops-base">
       <div className="w-full max-w-sm animate-fade-in-up space-y-5 text-center">
         <p className="text-white/58 text-base leading-relaxed">{title}</p>
         <p className="text-white/32 text-sm leading-relaxed">{description}</p>
