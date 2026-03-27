@@ -21,7 +21,7 @@ import { useState } from 'react';
 // Three primary paths. Features (passport, interview) are reachable from within flows.
 // Developers is secondary — present but not the wedge.
 const NAV_ITEMS = [
-  { href: '/get-ready',   label: 'Get Ready' },
+  { href: '/passport',    label: 'Check Readiness' },
   { href: '/explore',     label: 'Explore Roles' },
   { href: '/employers',   label: 'For Employers' },
   { href: '/developers',  label: 'Developers' },
@@ -90,10 +90,10 @@ export default function Navbar() {
             Sign In
           </Link>
           <Link
-            href="/get-ready"
+            href="/passport"
             className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-[oklch(0.22_0.01_60)] hover:bg-white/90 transition"
           >
-            Get Started
+            Check Readiness
           </Link>
         </div>
 
@@ -137,11 +137,11 @@ export default function Navbar() {
               Sign In
             </Link>
             <Link
-              href="/get-ready"
+              href="/passport"
               onClick={closeMenu}
               className="flex-1 rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-[oklch(0.22_0.01_60)]"
             >
-              Get Started
+              Check Readiness
             </Link>
           </div>
         </nav>

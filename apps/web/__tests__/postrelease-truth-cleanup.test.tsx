@@ -251,7 +251,7 @@ describe('post-release truth cleanup', () => {
     const navbarMarkup = renderToStaticMarkup(<Navbar />);
     const homeMarkup = renderToStaticMarkup(<HowItWorksSection />);
 
-    expect(navbarMarkup).toContain('Get Ready');
+    expect(navbarMarkup).toContain('Check Readiness');
     expect(navbarMarkup).toContain('Explore Roles');
     expect(navbarMarkup).toContain('For Employers');
     expect(navbarMarkup).toContain('Developers');
