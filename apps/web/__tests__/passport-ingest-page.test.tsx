@@ -10,6 +10,10 @@ vi.mock('@/hooks/useIngestStream', () => ({
   useIngestStream: () => useIngestStreamMock(),
 }));
 
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => null,
+}));
+
 vi.mock('next/link', () => ({
   default: ({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
     <a href={href} {...props}>

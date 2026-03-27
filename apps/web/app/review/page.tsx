@@ -8,12 +8,12 @@ export default function ReviewLandingPage() {
       <div className="w-full max-w-sm">
         <TrustStateCard
           eyebrow="Employer review"
-          title="Open a shared packet preview"
+          title="Open a shared passport review"
           description={(
             <>
-              <span>Employer review opens from a real packet preview link.</span>
+              <span>Employer review opens from a real passport share link.</span>
               <span className="block pt-2 text-white/30">
-                Access required lanes stay attached to the packet itself. Start from NPI lookup, then share when a real packet exists.
+                Access required lanes stay attached to the passport itself. Start from NPI lookup, then share when a real passport exists.
               </span>
             </>
           )}
@@ -25,7 +25,7 @@ export default function ReviewLandingPage() {
                 <Link href="/">Start with NPI lookup</Link>
               </Button>
               <Button asChild variant="ghost" className="h-11 rounded-full text-white/45 hover:bg-white/5 hover:text-white/70">
-                <Link href="/interview">Packet preview</Link>
+                <Link href="/passport">View passport</Link>
               </Button>
             </div>
           )}

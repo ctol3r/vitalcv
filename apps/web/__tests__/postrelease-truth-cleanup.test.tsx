@@ -90,7 +90,7 @@ describe('post-release truth cleanup', () => {
     expect(navbarMarkup).not.toContain('Get Verified');
 
     expect(homeMarkup).toContain('Source-backed readiness snapshot');
-    expect(homeMarkup).toContain('Checked from live sources');
+    expect(homeMarkup).toContain('Checked from source runs');
     expect(homeMarkup).not.toContain('Primary sources verify you');
   });
 
@@ -155,8 +155,8 @@ describe('post-release truth cleanup', () => {
     expect(interviewMarkup).not.toContain('real verified readiness');
     expect(interviewMarkup).not.toContain('verified readiness');
 
-    expect(reviewMarkup).toContain('Open a shared packet preview');
-    expect(reviewMarkup).toContain('share when a real packet exists');
+    expect(reviewMarkup).toContain('Open a shared passport review');
+    expect(reviewMarkup).toContain('share when a real passport exists');
 
     expect(sdkMarkup).toContain('Client Libraries');
     expect(sdkMarkup).toContain('@vitalcv/verifier-sdk');

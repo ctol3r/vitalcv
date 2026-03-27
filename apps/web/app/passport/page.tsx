@@ -19,8 +19,9 @@ export const dynamic = 'force-dynamic';
  * No polling. No full-page reload. No fake refresh.
  */
 
-import React, { useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -175,10 +176,20 @@ function formatEnrollmentLabel(
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
-export default function PassportPage() {
+function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
+  const autoTriggered = useRef(false);
   const [npi,       setNpi]       = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
   const { state, startIngest, reset } = useIngestStream();
+
+  useEffect(() => {
+    if (initialNpi && /^\d{10}$/.test(initialNpi) && !autoTriggered.current) {
+      autoTriggered.current = true;
+      setInputError(null);
+      setNpi(initialNpi);
+      void startIngest(initialNpi);
+    }
+  }, [initialNpi, startIngest]);
 
   const isActive = state.phase !== 'idle';
   const hasTerminalState = Boolean(state.completedAt) || state.phase === 'done' || state.phase === 'error';
@@ -416,5 +427,18 @@ export default function PassportPage() {
 
       </div>
     </main>
+  );
+}
+
+function PassportPageSearchParams() {
+  const searchParams = useSearchParams();
+  return <PassportPageContent initialNpi={searchParams?.get('npi') ?? null} />;
+}
+
+export default function PassportPage() {
+  return (
+    <Suspense fallback={<PassportPageContent initialNpi={null} />}>
+      <PassportPageSearchParams />
+    </Suspense>
   );
 }

@@ -34,7 +34,7 @@ type ShareState =
   | { phase: 'success'; eventId: string; timestamp: string; status: string }
   | { phase: 'error'; message: string };
 
-const SHARE_UNAVAILABLE_MESSAGE = 'Share is unavailable for this packet right now.';
+const SHARE_UNAVAILABLE_MESSAGE = 'Share is unavailable for this passport right now.';
 
 function formatDateTime(value?: string | null): string {
   if (!value) return 'Not checked';
@@ -114,12 +114,12 @@ function buildMissingTags(passport: PassportData): string[] {
 function readinessProceedNote(passport: PassportData): string {
   switch (passport.readiness.status) {
     case 'READY':
-      return 'This packet is strong enough for employer review and next-step interview conversations right now.';
+      return 'This passport is strong enough for employer review and next-step hiring conversations right now.';
     case 'BLOCKED':
-      return 'Use this packet for review context only. Employment decisions still need the blocking items resolved first.';
+      return 'Use this passport for review context only. Employment decisions still need the blocking items resolved first.';
     case 'PARTIAL':
     default:
-      return 'Identity and completed checks can travel with the packet, but missing domains stay visible until they are resolved.';
+      return 'Identity and completed checks can travel with the passport, but missing domains stay visible until they are resolved.';
   }
 }
 
@@ -142,7 +142,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
       <div className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center justify-center px-4">
         <div className="w-full max-w-sm space-y-4 text-center">
           <p className="text-white/40 text-sm">
-            Could not load readiness data for this provider.
+            Could not load passport data for this provider.
           </p>
           <p className="text-white/25 text-xs">
             The data may still be ingesting. Try again in a moment.
@@ -217,7 +217,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
 
       if (!response.ok) {
         if (response.status === 401) {
-          throw new Error('Sign in to share this interview packet.');
+          throw new Error('Sign in to share this passport.');
         }
         if (response.status === 404) {
           throw new Error('The employer review context is no longer available.');
@@ -267,7 +267,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
       <div className="w-full max-w-3xl space-y-6">
         <div className="space-y-2 text-center sm:text-left">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/25">
-            Interview packet
+            Passport view
           </p>
           <h1 className="text-3xl font-semibold tracking-tight text-white">
             Portable readiness for the next employer conversation.
@@ -341,7 +341,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
                     </span>
                   )) : (
                     <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/62">
-                      No visible blockers on this packet
+                      No visible blockers on this passport
                     </span>
                   )}
                 </div>
@@ -389,7 +389,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
                 href={proofHref}
                 className="hidden rounded-xl border border-white/10 px-4 py-2 text-xs font-medium text-white/48 transition hover:border-white/20 hover:text-white/70 sm:inline-flex"
               >
-                Export packet
+                Export passport proof
               </Link>
             )}
           </div>
@@ -409,7 +409,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
                 Share with employer
               </p>
               <p className="mt-1 max-w-xl text-sm leading-relaxed text-white/42">
-                Share stays live only when this packet was opened with a real employer review context. No public link or success state is fabricated here.
+                Share stays live only when this passport was opened with a real employer review context. No public link or success state is fabricated here.
               </p>
             </div>
             {hasShareContext && (
@@ -458,7 +458,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
                 <div className="rounded-2xl border border-white/10 bg-black/15 px-4 py-4">
                   <p className="text-sm font-medium text-white/70">Preview only</p>
                   <p className="mt-1 text-xs leading-relaxed text-white/38">
-                    A real employer review context is required before this packet can be shared. Continue from your passport flow or from an employer request that carries a valid context.
+                    A real employer review context is required before this passport can be shared. Continue from your passport flow or from an employer request that carries a valid context.
                   </p>
                 </div>
               )}
@@ -520,7 +520,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
                   href={`/passport/${passport.entityId}`}
                   className="inline-flex min-h-[44px] items-center rounded-xl border border-white/10 px-5 text-sm font-medium text-white/56 transition hover:border-white/20 hover:text-white"
                 >
-                  Continue with VitalCV
+                  Return to passport
                 </Link>
               </div>
             </div>
