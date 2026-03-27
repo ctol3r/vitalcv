@@ -555,7 +555,7 @@ export default function PassportWallet({ passport }: Props) {
           <PassportFreshnessCard freshness={trustPosture.freshness} />
         </SectionReveal>
 
-        {/* ── Source coverage — explicit live/stale/gated/mock per source ──── */}
+        {/* ── Source coverage — explicit checked/stale/gated/preview-only per source ──── */}
         <SectionReveal delay={0.15}>
           <PassportSourceCoveragePanel checks={sourceCoverageChecks} />
         </SectionReveal>

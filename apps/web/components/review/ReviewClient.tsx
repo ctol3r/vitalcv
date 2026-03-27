@@ -37,6 +37,7 @@ import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { TrustLabel, type TrustStatus } from '@/components/ui/trust-label';
 import type { PassportData } from '@/lib/trust/passport-contract';
 import { EmployerAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
+import { UX_EVENTS } from '@/lib/analytics/ux-events';
 import {
   CLERK_PROVIDER_ENABLED,
   CLERK_SIGN_IN_URL,
@@ -500,7 +501,7 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
 
   function trackEmployerActionClicked(action: EmployerReviewActionIntent) {
     trackUxEvent({
-      event_name: 'employer_action_clicked',
+      event_name: UX_EVENTS.EMPLOYER_ACTION_CLICKED,
       component_id: 'employer_review_actions',
       metadata: {
         action,

@@ -1,14 +1,13 @@
 export type SourceOpsCoverageState =
-  | 'live'
+  | 'checked'
   | 'gated'
-  | 'partial'
+  | 'pending'
   | 'stale'
   | 'notDecisionGrade'
-  | 'notChecked'
   | 'unavailable'
   | 'accessRequired'
   | 'reviewRequired'
-  | 'mock';
+  | 'previewOnly';
 
 export interface SourceOpsEntry {
   sourceId: string;

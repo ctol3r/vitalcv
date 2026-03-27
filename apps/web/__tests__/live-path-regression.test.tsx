@@ -5,6 +5,10 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PassportData } from '@/lib/trust/passport-contract';
+import {
+  createCanonicalSourceCoverage,
+  summarizeCanonicalSourceCoverage,
+} from '../../../packages/trust-state';
 import type { RoleContextValue } from '@/components/auth/RoleContext';
 import { LiveTrustConsole } from '@/components/hero/LiveTrustConsole';
 import InterviewClient from '@/app/interview/InterviewClient';
@@ -184,6 +188,32 @@ function buildCredential(
 function buildPassport(
   overrides: Partial<PassportData> = {},
 ): PassportData {
+  const checks = [
+    createCanonicalSourceCoverage({
+      sourceId: 'NPPES_API',
+      state: 'checked',
+      reason: 'NPPES identity checked',
+      checkedAt: '2026-03-20T10:30:00.000Z',
+    }),
+    createCanonicalSourceCoverage({
+      sourceId: 'OIG_LEIE',
+      state: 'checked',
+      reason: 'OIG LEIE check clear',
+      checkedAt: '2026-03-20T10:30:00.000Z',
+    }),
+    createCanonicalSourceCoverage({
+      sourceId: 'STATE_BOARD',
+      state: 'checked',
+      reason: 'Licensure checked',
+      checkedAt: '2026-03-20T10:00:00.000Z',
+    }),
+    createCanonicalSourceCoverage({
+      sourceId: 'PECOS_PUBLIC',
+      state: 'checked',
+      reason: 'CMS PECOS confirms enrolled status in the current quarterly release',
+      checkedAt: '2026-03-01T00:00:00.000Z',
+    }),
+  ] as const;
   const base: PassportData = {
     entityId: 'entity_123',
     npi: '1234567890',
@@ -254,6 +284,40 @@ function buildPassport(
         OIG: '2026-03-20T10:30:00.000Z',
       },
     },
+    sourceCoverage: {
+      checks: [...checks],
+      summary: summarizeCanonicalSourceCoverage(checks),
+    },
+    truth: {
+      identity: {
+        kind: 'verification',
+        status: 'VERIFIED',
+        satisfied: true,
+        decisionGrade: true,
+        coverage: checks[0],
+      },
+      safety: {
+        kind: 'clearance',
+        status: 'CLEAR',
+        satisfied: true,
+        decisionGrade: true,
+        coverage: checks[1],
+      },
+      authority: {
+        kind: 'verification',
+        status: 'VERIFIED',
+        satisfied: true,
+        decisionGrade: true,
+        coverage: checks[2],
+      },
+      eligibility: {
+        kind: 'enrollment',
+        status: 'ENROLLED',
+        satisfied: true,
+        decisionGrade: true,
+        coverage: checks[3],
+      },
+    },
     trustPosture: {
       band: 'L2',
       bandLabel: 'Moderate trust',
@@ -277,7 +341,7 @@ function buildPassport(
           id: 'authority',
           label: 'Authority',
           state: 'current',
-          detail: 'Active state licensure is verified from a live authority source.',
+          detail: 'Active state licensure is verified from a source-backed authority check.',
           checkedAt: '2026-03-20T10:00:00.000Z',
         },
         {
@@ -329,7 +393,7 @@ function buildPassport(
       safeToRelyOnNow: [
         'Identity confirmed via CMS NPPES.',
         'OIG/LEIE exclusion check is clear.',
-        'Active state licensure is verified from a live authority source.',
+        'Active state licensure is verified from a source-backed authority check.',
         'CMS PECOS shows Medicare enrollment (Q1 2026).',
       ],
       missingItems: [],
@@ -383,6 +447,8 @@ function buildPassport(
         ...overrides.sources?.lastFetch,
       },
     },
+    sourceCoverage: overrides.sourceCoverage ?? base.sourceCoverage,
+    truth: overrides.truth ?? base.truth,
     trustPosture: {
       ...base.trustPosture,
       ...overrides.trustPosture,
@@ -750,20 +816,34 @@ describe('live path regression hardening', () => {
     const passport = buildPassport({
       sourceCoverage: {
         checks: [
-          { sourceId: 'NPPES_API', state: 'live', reason: 'identity checked', checkedAt: '2026-03-20T10:30:00.000Z' },
+          { sourceId: 'NPPES_API', state: 'checked', reason: 'identity checked', checkedAt: '2026-03-20T10:30:00.000Z' },
           { sourceId: 'PECOS_PUBLIC', state: 'notDecisionGrade', reason: 'quarterly dataset', checkedAt: '2026-03-01T00:00:00.000Z' },
         ],
         summary: {
-          live: ['NPPES_API'],
+          checked: ['NPPES_API'],
           gated: [],
-          partial: [],
+          pending: [],
           stale: [],
           notDecisionGrade: ['PECOS_PUBLIC'],
-          notChecked: [],
+          previewOnly: [],
           unavailable: [],
           accessRequired: [],
           reviewRequired: [],
-          mock: [],
+        },
+      },
+      truth: {
+        ...buildPassport().truth,
+        eligibility: {
+          kind: 'enrollment',
+          status: 'NOT DECISION-GRADE',
+          satisfied: true,
+          decisionGrade: false,
+          coverage: createCanonicalSourceCoverage({
+            sourceId: 'PECOS_PUBLIC',
+            state: 'notDecisionGrade',
+            reason: 'quarterly dataset',
+            checkedAt: '2026-03-01T00:00:00.000Z',
+          }),
         },
       },
     });
@@ -777,9 +857,79 @@ describe('live path regression hardening', () => {
     expect(textContent(view.container)).toContain('Missing or access required');
     expect(textContent(view.container)).toContain('DEA / Controlled Substance');
     expect(textContent(view.container)).toContain('Sources checked');
-    expect(textContent(view.container)).toContain('Only live sources are decision-grade.');
+    expect(textContent(view.container)).toContain('Only checked sources are decision-grade.');
 
     await view.unmount();
+  });
+
+  it('keeps review and interview surfaces aligned with passport truth when raw standing looks healthier', async () => {
+    const staleSafetyCoverage = createCanonicalSourceCoverage({
+      sourceId: 'OIG_LEIE',
+      state: 'stale',
+      reason: 'OIG evidence stale',
+      checkedAt: '2026-03-01T00:00:00.000Z',
+    });
+    const contextualEligibilityCoverage = createCanonicalSourceCoverage({
+      sourceId: 'PECOS_PUBLIC',
+      state: 'notDecisionGrade',
+      reason: 'Quarterly snapshot is contextual only',
+      checkedAt: '2026-03-01T00:00:00.000Z',
+    });
+    const passport = buildPassport({
+      truth: {
+        ...buildPassport().truth,
+        safety: {
+          kind: 'clearance',
+          status: 'PENDING',
+          satisfied: true,
+          decisionGrade: false,
+          coverage: staleSafetyCoverage,
+        },
+        eligibility: {
+          kind: 'enrollment',
+          status: 'NOT DECISION-GRADE',
+          satisfied: true,
+          decisionGrade: false,
+          coverage: contextualEligibilityCoverage,
+        },
+      },
+      sourceCoverage: {
+        checks: [
+          buildPassport().truth.identity.coverage,
+          staleSafetyCoverage,
+          buildPassport().truth.authority.coverage,
+          contextualEligibilityCoverage,
+        ],
+        summary: summarizeCanonicalSourceCoverage([
+          buildPassport().truth.identity.coverage,
+          staleSafetyCoverage,
+          buildPassport().truth.authority.coverage,
+          contextualEligibilityCoverage,
+        ]),
+      },
+      trustPosture: {
+        ...buildPassport().trustPosture,
+        safeToRelyOnNow: [
+          'Identity confirmed via CMS NPPES.',
+          'Active state licensure is verified from a source-backed authority check.',
+        ],
+        missingItems: ['Quarterly snapshot is contextual only'],
+        staleItems: ['OIG evidence stale'],
+      },
+    });
+
+    const reviewView = await renderNode(<ReviewClient passport={passport} contextId="ctx_truth_alignment" />);
+    expect(textContent(reviewView.container)).toContain('OIG evidence stale');
+    expect(textContent(reviewView.container)).toContain('Quarterly snapshot is contextual only');
+    expect(textContent(reviewView.container)).not.toContain('No exclusion entry was found in the current OIG LEIE check.');
+    await reviewView.unmount();
+
+    const interviewView = await renderNode(<InterviewClient entityId={passport.entityId} passport={passport} />);
+    expect(textContent(interviewView.container)).not.toContain('Sanctions clear');
+    expect(textContent(interviewView.container)).not.toContain('Enrollment checked');
+    expect(textContent(interviewView.container)).toContain('OIG evidence stale');
+    expect(textContent(interviewView.container)).toContain('Quarterly snapshot is contextual only');
+    await interviewView.unmount();
   });
 
   it('persists employer accept actions and renders the audit success state', async () => {

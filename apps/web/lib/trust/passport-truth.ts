@@ -249,7 +249,7 @@ export function resolveAuthorityNote(
     }
     if (credential.participationStatus === 'institution_access_unavailable') {
       return credential.sourceScope === 'STATE_BOARD_MANUAL' || credential.sourceScope === 'STATE_BOARD_CA_API'
-        ? 'Access required. CA physician licensure needs live California board access or an institutional FSMB agreement.'
+        ? 'Access required. CA physician licensure needs source-backed California board access or an institutional FSMB agreement.'
         : 'Access required. Institutional FSMB or Nursys agreement is not configured.';
     }
 

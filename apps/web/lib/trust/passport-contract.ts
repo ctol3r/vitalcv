@@ -1,4 +1,5 @@
 import type { PassportSourceCoverageReport } from '@/lib/trust/source-coverage';
+import type { CanonicalTruthSet } from '../../../../packages/trust-state';
 
 export type ReadinessStatus = 'READY' | 'PARTIAL' | 'BLOCKED';
 export type PassportTrustPostureState =
@@ -153,7 +154,8 @@ export interface PassportData {
     }>;
   };
   sources: { checked: string[]; lastFetch: Record<string, string> };
-  sourceCoverage?: PassportSourceCoverageReport;
+  sourceCoverage: PassportSourceCoverageReport;
+  truth?: CanonicalTruthSet;
   trustPosture: PassportTrustPosture;
   lastCheckedAt: string;
 }

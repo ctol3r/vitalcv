@@ -265,16 +265,6 @@ describe('passport review truth', () => {
         checks: [...coverageChecks],
         summary: summarizeCanonicalSourceCoverage(coverageChecks),
       },
-      truth: {
-        ...buildPassport().truth,
-        safety: {
-          ...buildPassport().truth.safety,
-          status: 'REVIEW REQUIRED',
-          satisfied: false,
-          decisionGrade: false,
-          coverage: reviewRequiredSafetyCoverage,
-        },
-      },
       authority: {
         credentials: [
           buildPassport().authority.credentials[0],
@@ -304,13 +294,9 @@ describe('passport review truth', () => {
         safety: {
           ...buildPassport().truth.safety,
           status: 'REVIEW REQUIRED',
+          satisfied: false,
           decisionGrade: false,
-          coverage: createCanonicalSourceCoverage({
-            sourceId: 'OIG_LEIE',
-            state: 'reviewRequired',
-            reason: 'OIG LEIE returned a possible match and requires human adjudication',
-            checkedAt: '2026-03-20T00:00:00.000Z',
-          }),
+          coverage: reviewRequiredSafetyCoverage,
         },
       },
     });

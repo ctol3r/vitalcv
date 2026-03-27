@@ -25,9 +25,9 @@ export interface DemoProfile {
   blockers: string[];
   estimatedStart: string;
   sources: {
-    nppes: { status: 'live'; npiVerified: boolean };
-    oigLeie: { status: 'live'; exclusionClear: boolean };
-    pecos: { status: 'live' | 'mock'; enrolled: boolean };
+    nppes: { status: 'checked'; npiVerified: boolean };
+    oigLeie: { status: 'checked'; exclusionClear: boolean };
+    pecos: { status: 'checked' | 'previewOnly'; enrolled: boolean };
     nursys: { status: 'access-required' };
     fsmb: { status: 'access-required' };
   };
@@ -46,9 +46,9 @@ export const DEMO_PROFILES: Record<string, DemoProfile> = {
     blockers: [],
     estimatedStart: '7-14 days',
     sources: {
-      nppes: { status: 'live', npiVerified: true },
-      oigLeie: { status: 'live', exclusionClear: true },
-      pecos: { status: 'mock', enrolled: true },
+      nppes: { status: 'checked', npiVerified: true },
+      oigLeie: { status: 'checked', exclusionClear: true },
+      pecos: { status: 'previewOnly', enrolled: true },
       nursys: { status: 'access-required' },
       fsmb: { status: 'access-required' },
     },
@@ -65,9 +65,9 @@ export const DEMO_PROFILES: Record<string, DemoProfile> = {
     blockers: ['Medicare enrollment not found'],
     estimatedStart: '45-60 days',
     sources: {
-      nppes: { status: 'live', npiVerified: true },
-      oigLeie: { status: 'live', exclusionClear: true },
-      pecos: { status: 'mock', enrolled: false },
+      nppes: { status: 'checked', npiVerified: true },
+      oigLeie: { status: 'checked', exclusionClear: true },
+      pecos: { status: 'previewOnly', enrolled: false },
       nursys: { status: 'access-required' },
       fsmb: { status: 'access-required' },
     },
@@ -84,9 +84,9 @@ export const DEMO_PROFILES: Record<string, DemoProfile> = {
     blockers: ['OIG / LEIE exclusion flag detected - provider is excluded from federal programs'],
     estimatedStart: 'Not ready',
     sources: {
-      nppes: { status: 'live', npiVerified: true },
-      oigLeie: { status: 'live', exclusionClear: false },
-      pecos: { status: 'mock', enrolled: false },
+      nppes: { status: 'checked', npiVerified: true },
+      oigLeie: { status: 'checked', exclusionClear: false },
+      pecos: { status: 'previewOnly', enrolled: false },
       nursys: { status: 'access-required' },
       fsmb: { status: 'access-required' },
     },

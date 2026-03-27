@@ -1,5 +1,11 @@
 import type { PassportData } from '@/lib/trust/passport-contract';
 import {
+  createCanonicalSourceCoverage,
+  createCanonicalTruth,
+  type CanonicalSourceCoverageState,
+  type CanonicalTruthSet,
+} from '../../../../packages/trust-state';
+import {
   buildPassportProofSections,
   summarizePassportProofSections,
 } from '@/components/trust/passportProofSections';
@@ -14,6 +20,8 @@ import {
   type PassportFreshnessState,
 } from '@/lib/trust/proof-language';
 import {
+  findPassportSourceCoverageChecks,
+  findPriorityCanonicalSourceCoverage,
   normalizePassportSourceCoverageChecks,
   type PassportSourceCoverageCheck,
 } from '@/lib/trust/source-coverage';
@@ -30,6 +38,7 @@ export type PassportTrustDimensionState =
   | 'pending'
   | 'gated'
   | 'unavailable'
+  | 'review_required'
   | 'clear';
 
 export interface PassportTrustDimension {
@@ -82,8 +91,62 @@ const TRUST_POSTURE_BAND_LABELS: Record<string, string> = {
   L0: 'Insufficient',
 };
 
+function dimensionStateFromTruthStatus(
+  status: CanonicalTruthSet[keyof CanonicalTruthSet]['status'],
+): PassportTrustDimensionState {
+  switch (status) {
+    case 'VERIFIED':
+    case 'ENROLLED':
+      return 'verified';
+    case 'CLEAR':
+      return 'clear';
+    case 'ACCESS REQUIRED':
+      return 'gated';
+    case 'REVIEW REQUIRED':
+      return 'review_required';
+    case 'UNAVAILABLE':
+    case 'NOT DECISION-GRADE':
+      return 'unavailable';
+    case 'PENDING':
+    default:
+      return 'pending';
+  }
+}
+
+function bucketForTruthStatus(
+  status: CanonicalTruthSet[keyof CanonicalTruthSet]['status'],
+): keyof PassportReviewTruthModel['buckets'] {
+  switch (status) {
+    case 'VERIFIED':
+    case 'CLEAR':
+    case 'ENROLLED':
+      return 'sourceBackedNow';
+    case 'NOT DECISION-GRADE':
+      return 'contextualOnly';
+    case 'REVIEW REQUIRED':
+      return 'needsReview';
+    case 'PENDING':
+    case 'UNAVAILABLE':
+    case 'ACCESS REQUIRED':
+    default:
+      return 'missingOrAccessRequired';
+  }
+}
+
 export const PASSPORT_TRUST_POSTURE_DISCLAIMER =
   'Trust posture reflects available source data only. Does not constitute privileging, credentialing, or employment approval.';
+
+const TRUTH_COVERAGE_PRIORITY: readonly CanonicalSourceCoverageState[] = [
+  'reviewRequired',
+  'stale',
+  'accessRequired',
+  'gated',
+  'notDecisionGrade',
+  'unavailable',
+  'previewOnly',
+  'pending',
+  'checked',
+] as const;
 
 const PROOF_SECTION_LABELS: Record<string, string> = {
   identity: 'Identity verification',
@@ -194,6 +257,90 @@ function proofSectionDetail(
   }
 }
 
+function fallbackCoverage(sourceId: string, reason: string) {
+  return createCanonicalSourceCoverage({
+    sourceId,
+    state: 'pending',
+    reason,
+  });
+}
+
+function selectCoverage(
+  passport: PassportData,
+  aliases: string[],
+  fallback: { sourceId: string; reason: string },
+) {
+  return findPriorityCanonicalSourceCoverage(
+    findPassportSourceCoverageChecks(passport.sourceCoverage, aliases),
+    TRUTH_COVERAGE_PRIORITY,
+  ) ?? fallbackCoverage(fallback.sourceId, fallback.reason);
+}
+
+export function resolvePassportTruthSet(
+  passport: PassportData,
+): CanonicalTruthSet {
+  if (passport.truth) {
+    return passport.truth;
+  }
+
+  const licensureCredentials = passport.authority.credentials.filter(
+    (credential) => credential.domain === 'LICENSURE',
+  );
+
+  return {
+    identity: createCanonicalTruth({
+      kind: 'verification',
+      satisfied: Boolean(passport.identity.displayName && (passport.identity.npi ?? passport.npi)),
+      coverage: selectCoverage(passport, ['NPPES_API', 'NPPES', 'NPI Registry'], {
+        sourceId: 'NPPES_API',
+        reason: 'NPPES identity source not yet checked',
+      }),
+    }),
+    safety: createCanonicalTruth({
+      kind: 'clearance',
+      satisfied: passport.standing.exclusionStatus === 'CLEAR',
+      coverage: selectCoverage(passport, ['OIG_LEIE', 'OIG', 'LEIE'], {
+        sourceId: 'OIG_LEIE',
+        reason: 'OIG LEIE source not yet checked',
+      }),
+    }),
+    authority: createCanonicalTruth({
+      kind: 'verification',
+      satisfied: passport.standing.licensureStatus === 'verified'
+        && licensureCredentials.some((credential) => (
+          credential.status === 'ACTIVE'
+          && !credential.stale
+          && !credential.reviewRequired
+        )),
+      coverage: selectCoverage(
+        passport,
+        [
+          'STATE_BOARD',
+          'FSMB',
+          'FSMB_MED_API',
+          'FSMB_PDC',
+          'NURSYS',
+          ...licensureCredentials
+            .map((credential) => credential.sourceId)
+            .filter((value): value is string => typeof value === 'string' && value.trim().length > 0),
+        ],
+        {
+          sourceId: licensureCredentials[0]?.sourceId ?? 'STATE_BOARD',
+          reason: 'Licensure source not yet checked',
+        },
+      ),
+    }),
+    eligibility: createCanonicalTruth({
+      kind: 'enrollment',
+      satisfied: passport.standing.pecosEnrollmentStatus === 'ENROLLED',
+      coverage: selectCoverage(passport, ['PECOS_PUBLIC', 'PECOS'], {
+        sourceId: 'PECOS_PUBLIC',
+        reason: 'PECOS enrollment source not yet checked',
+      }),
+    }),
+  };
+}
+
 function truthItemFromProofSection(
   passport: PassportData,
   item: AccordionItem,
@@ -258,53 +405,35 @@ export function resolvePassportTrustBandLabel(
 export function buildPassportTrustPosture(
   passport: PassportData,
 ): PassportTrustPostureModel {
-  const { readiness, standing, training } = passport;
+  const { readiness, training } = passport;
+  const truth = resolvePassportTruthSet(passport);
   const level = readiness.level ?? 'L1';
   const dimensions: PassportTrustDimension[] = [
     {
       label: 'Identity (NPI / CMS)',
-      state: passport.identity.displayName ? 'verified' : 'pending',
+      state: dimensionStateFromTruthStatus(truth.identity.status),
+      note: truth.identity.status === 'PENDING' ? truth.identity.coverage.reason : undefined,
     },
     {
       label: 'Exclusion check (OIG/LEIE)',
-      state: standing.exclusionStatus === 'CLEAR'
-        ? 'clear'
-        : standing.exclusionStatus === 'EXCLUDED'
-          ? 'unavailable'
-          : standing.exclusionStatus === 'POSSIBLE_MATCH'
-            ? 'pending'
-            : standing.exclusionStatus === 'UNCHECKED'
-              ? 'pending'
-              : 'unavailable',
-      note: standing.exclusionStatus === 'EXCLUDED'
-        ? 'Blocked'
-        : standing.exclusionStatus === 'POSSIBLE_MATCH'
-          ? 'Review required'
+      state: dimensionStateFromTruthStatus(truth.safety.status),
+      note: truth.safety.status === 'REVIEW REQUIRED'
+        ? 'Review required'
+        : truth.safety.status === 'PENDING'
+          ? truth.safety.coverage.reason
           : undefined,
     },
     {
       label: 'State licensure',
-      state: standing.licensureStatus === 'verified'
-        ? 'verified'
-        : standing.licensureStatus === 'pending'
-          ? 'stale'
-          : standing.licensureStatus === 'expired'
-            ? 'unavailable'
-            : 'pending',
+      state: dimensionStateFromTruthStatus(truth.authority.status),
+      note: truth.authority.status === 'PENDING' ? truth.authority.coverage.reason : undefined,
     },
   ];
 
-  const pecosStatus = standing.pecosEnrollmentStatus ?? 'UNCHECKED';
   dimensions.push({
     label: 'Medicare enrollment (PECOS)',
-    state: pecosStatus === 'ENROLLED'
-      ? 'verified'
-      : pecosStatus === 'NOT_FOUND'
-        ? 'unavailable'
-        : pecosStatus === 'OPTED_OUT'
-          ? 'gated'
-          : 'pending',
-    note: pecosStatus === 'NOT_FOUND' ? 'Not found' : undefined,
+    state: dimensionStateFromTruthStatus(truth.eligibility.status),
+    note: truth.eligibility.status === 'PENDING' ? truth.eligibility.coverage.reason : undefined,
   });
 
   if (training.hasDegree || training.hasResidency) {
@@ -357,6 +486,7 @@ function bucketForProofStatus(
 export function buildPassportReviewTruthModel(
   passport: PassportData,
 ): PassportReviewTruthModel {
+  const truth = resolvePassportTruthSet(passport);
   const proofItems = buildPassportProofSections(passport);
   const freshnessEntries = buildPassportFreshnessEntries(passport);
   const freshnessSummary = summarizePassportFreshnessEntries(freshnessEntries);
@@ -374,6 +504,11 @@ export function buildPassportReviewTruthModel(
       detail: action.detail,
     })),
   };
+  const topLevelTruthBuckets = new Map<string, keyof PassportReviewTruthModel['buckets']>([
+    ['identity', bucketForTruthStatus(truth.identity.status)],
+    ['sanctions', bucketForTruthStatus(truth.safety.status)],
+    ['eligibility', bucketForTruthStatus(truth.eligibility.status)],
+  ]);
 
   for (const item of proofItems) {
     if (item.id in AUTHORITY_SECTION_DOMAINS) {
@@ -387,7 +522,7 @@ export function buildPassportReviewTruthModel(
       }
     }
 
-    const bucket = bucketForProofStatus(item.status);
+    const bucket = topLevelTruthBuckets.get(item.id) ?? bucketForProofStatus(item.status);
     if (!bucket) {
       continue;
     }

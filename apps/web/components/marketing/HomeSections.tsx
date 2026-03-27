@@ -177,7 +177,7 @@ const STEPS = [
     // M1: List only live/configured sources. NPDB and DEA are not integrated.
     description: 'We run NPPES identity and OIG exclusion first. PECOS and state board coverage appear only when those sources are actually available.',
     accent: 'emerald',
-    detail: 'Checked from live sources',
+    detail: 'Checked from source runs',
   },
   {
     step: '03',

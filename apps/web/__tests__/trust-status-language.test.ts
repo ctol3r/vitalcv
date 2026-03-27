@@ -22,21 +22,21 @@ describe('trust status language', () => {
   });
 
   it('maps canonical source coverage states into honest trust UI states', () => {
-    expect(mapSourceCoverageStateToTrustStatus('live', { kind: 'verification', satisfied: true })).toBe('verified');
-    expect(mapSourceCoverageStateToTrustStatus('live', { kind: 'clearance', satisfied: true })).toBe('clear');
-    expect(mapSourceCoverageStateToTrustStatus('live', { kind: 'generic', satisfied: false })).toBe('checked');
+    expect(mapSourceCoverageStateToTrustStatus('checked', { kind: 'verification', satisfied: true })).toBe('verified');
+    expect(mapSourceCoverageStateToTrustStatus('checked', { kind: 'clearance', satisfied: true })).toBe('clear');
+    expect(mapSourceCoverageStateToTrustStatus('checked', { kind: 'generic', satisfied: false })).toBe('checked');
     expect(mapSourceCoverageStateToTrustStatus('stale')).toBe('stale');
     expect(mapSourceCoverageStateToTrustStatus('accessRequired')).toBe('access_required');
     expect(mapSourceCoverageStateToTrustStatus('reviewRequired')).toBe('review_required');
     expect(mapSourceCoverageStateToTrustStatus('notDecisionGrade')).toBe('pending');
-    expect(mapSourceCoverageStateToTrustStatus('notChecked')).toBe('pending');
-    expect(mapSourceCoverageStateToTrustStatus('mock')).toBe('demo');
+    expect(mapSourceCoverageStateToTrustStatus('pending')).toBe('pending');
+    expect(mapSourceCoverageStateToTrustStatus('previewOnly')).toBe('demo');
   });
 
   it('lets demo mode override the underlying source state', () => {
     expect(resolveTrustUiStatus({
       demo: true,
-      state: 'live',
+      state: 'checked',
       kind: 'verification',
       satisfied: true,
     })).toBe('demo');

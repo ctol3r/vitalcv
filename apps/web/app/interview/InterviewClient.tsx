@@ -13,6 +13,7 @@ import {
   CLERK_PROVIDER_ENABLED,
   CLERK_SIGN_IN_URL,
 } from '@/lib/auth/clerkConfig';
+import { resolvePassportTruthSet } from '@/lib/trust/passport-review-truth';
 import {
   normalizeLivePathShareResponse,
   resolveLivePathAuthState,
@@ -71,9 +72,10 @@ function dedupe(values: string[]): string[] {
 
 function buildVerifiedTags(passport: PassportData): string[] {
   const tags: string[] = [];
+  const truth = resolvePassportTruthSet(passport);
 
-  if (passport.identity.npi) tags.push('Identity anchored');
-  if (passport.authority.credentials.some((credential) => credential.domain === 'LICENSURE' && credential.status === 'ACTIVE')) {
+  if (truth.identity.status === 'VERIFIED') tags.push('Identity anchored');
+  if (truth.authority.status === 'VERIFIED') {
     tags.push('Licensure attached');
   }
   if (passport.authority.credentials.some((credential) => credential.domain === 'BOARD_CERTIFICATION' && credential.status === 'ACTIVE')) {
@@ -82,33 +84,21 @@ function buildVerifiedTags(passport: PassportData): string[] {
   if (passport.authority.credentials.some((credential) => credential.domain === 'DEA_REGISTRATION' && credential.status === 'ACTIVE')) {
     tags.push('DEA evidence attached');
   }
-  if (passport.standing.exclusionStatus === 'CLEAR') tags.push('Sanctions clear');
-  if (passport.standing.pecosEnrollmentStatus === 'ENROLLED') tags.push('Enrollment checked');
+  if (truth.safety.status === 'CLEAR') tags.push('Sanctions clear');
+  if (truth.eligibility.status === 'ENROLLED') tags.push('Enrollment checked');
 
   return dedupe(tags);
 }
 
 function buildMissingTags(passport: PassportData): string[] {
-  const blockers = passport.readiness.blockers.map((blocker) => blocker.replace(/_/g, ' '));
-  const missingDomains = passport.authority.summary.missing.map((domain) => domain.replace(/_/g, ' ').toLowerCase());
-
-  if (passport.standing.exclusionStatus === 'POSSIBLE_MATCH') {
-    blockers.push('sanctions review required');
-  }
-  if (passport.standing.exclusionStatus === 'EXCLUDED') {
-    blockers.push('active exclusion');
-  }
-  if (passport.standing.exclusionStatus === 'UNCHECKED' || passport.standing.exclusionStatus === 'UNKNOWN') {
-    blockers.push('sanctions check unavailable');
-  }
-  if (passport.standing.pecosEnrollmentStatus === 'NOT_FOUND') {
-    blockers.push('enrollment review required');
-  }
-  if (passport.standing.pecosEnrollmentStatus === 'UNCHECKED') {
-    blockers.push('enrollment unavailable');
-  }
-
-  return dedupe([...blockers, ...missingDomains]).slice(0, 6);
+  return dedupe([
+    ...passport.readiness.blockers.map((blocker) => blocker.replace(/_/g, ' ')),
+    ...passport.authority.summary.missing.map((domain) => domain.replace(/_/g, ' ').toLowerCase()),
+    ...passport.trustPosture.reviewRequiredItems,
+    ...passport.trustPosture.gatedItems,
+    ...passport.trustPosture.staleItems,
+    ...passport.trustPosture.missingItems,
+  ]).slice(0, 6);
 }
 
 function readinessProceedNote(passport: PassportData): string {

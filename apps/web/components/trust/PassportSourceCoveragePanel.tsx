@@ -13,7 +13,7 @@ void React;
 
 export const PASSPORT_SOURCE_COVERAGE_TITLE = 'Sources checked';
 export const PASSPORT_SOURCE_COVERAGE_COPY =
-  'Only live sources are decision-grade. Stale, review-required, access-required, and not-decision-grade sources inform context but do not constitute primary-source verification.';
+  'Only checked sources are decision-grade. Pending, stale, review-required, access-required, preview-only, and not-decision-grade sources inform context but do not constitute primary-source verification.';
 
 interface PassportSourceCoveragePanelProps {
   checks: PassportSourceCoverageCheck[];
