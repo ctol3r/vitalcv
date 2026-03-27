@@ -15,19 +15,23 @@
  * Every mutating action writes an AuditEvent row in a transaction BEFORE
  * returning 2xx. No action can succeed silently.
  *
- * Packet export is read-only — no audit event required, but logs the access.
+ * Packet export is treated as a trust-distribution event and always writes an
+ * audit record before returning the bundle.
  */
 
 import type { Express, NextFunction, Request, Response } from 'express';
+import type { Prisma } from '@prisma/client';
 import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
 import { HttpError } from '../utils/httpError';
+import { sha256ForPayload } from '../utils/deterministic';
 import {
   captureAdvisoryEvent,
   captureEmployerDecision,
 } from '../services/seal/sealEventCapture';
 import { buildPassport } from '../services/entity/passportService';
 import { buildEmployerEvidencePacket } from '../services/entity/employerPacket';
+import { createEmployerEvidencePacketZipStream } from '../services/entity/employerPacketExport';
 import {
   loadEmployerReviewStatus,
   recordEmployerReviewAcceptance,
@@ -45,6 +49,29 @@ function requireClerkUserId(req: Request): string {
   const id = (req.headers['x-clerk-user-id'] as string | undefined)?.trim();
   if (!id) throw new HttpError(401, 'Missing x-clerk-user-id header.');
   return id;
+}
+
+function resolvePacketExportFormat(req: Request): 'json' | 'zip' {
+  const queryFormat = typeof req.query.format === 'string'
+    ? req.query.format.trim().toLowerCase()
+    : null;
+
+  if (queryFormat && queryFormat !== 'json' && queryFormat !== 'zip') {
+    throw new HttpError(400, 'format must be either json or zip.');
+  }
+
+  if (queryFormat === 'zip') {
+    return 'zip';
+  }
+  if (queryFormat === 'json') {
+    return 'json';
+  }
+
+  return (req.get('accept') ?? '').includes('application/zip') ? 'zip' : 'json';
+}
+
+function toJsonValue(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
 // ── Route registration ─────────────────────────────────────────────────────
@@ -276,9 +303,8 @@ export function registerEmployerActionRoutes(app: Express): void {
 
   // ─────────────────────────────────────────────────────────────────────────
   // GET /api/employer-review/:entityId/packet
-  // Evidence packet export — structured JSON of current trust state.
-  // Read-only. Logs the access. No audit event required (read, not decision).
-  // Returns: { entityId, npi, exportedAt, packet: { identity, safety, authority, eligibility, readiness } }
+  // Evidence packet export — structured JSON or ZIP bundle of current trust state.
+  // Every export writes an ARTIFACT_EXPORTED audit record before the payload is returned.
   // ─────────────────────────────────────────────────────────────────────────
   app.get(
     '/api/employer-review/:entityId/packet',
@@ -301,9 +327,44 @@ export function registerEmployerActionRoutes(app: Express): void {
       }
 
       const clinicianNpi = entity.npi;
+      const format = resolvePacketExportFormat(req);
       const packet = buildEmployerEvidencePacket({
         passport,
         employerId,
+      });
+      const auditMetadata = toJsonValue(JSON.parse(JSON.stringify({
+        schema: 'vitalcv.employer.packet-export.v1',
+        exportType: 'EMPLOYER_PACKET',
+        format,
+        employerId,
+        entityId,
+        clinicianNpi,
+        exportedAt: packet.exportedAt,
+        manifestHash: sha256ForPayload(packet.manifest),
+        sourceIds: packet.manifest.sources.map((source) => source.sourceId),
+        staleSources: packet.manifest.sources
+          .filter((source) => source.state === 'stale')
+          .map((source) => source.sourceId),
+        reviewRequiredSources: packet.manifest.sources
+          .filter((source) => source.reviewRequired)
+          .map((source) => source.sourceId),
+        receiptReferenceCount: packet.receiptReferences.length,
+        artifactReferenceCount: packet.artifactReferences.length,
+        sourceCoverageSummary: packet.sourceCoverageSummary,
+        freshness: packet.freshness,
+      })));
+      await prisma.auditEvent.create({
+        data: {
+          type: 'ARTIFACT_EXPORTED',
+          hash: sha256ForPayload({
+            type: 'ARTIFACT_EXPORTED',
+            referenceId: entityId,
+            metadata: auditMetadata,
+          }),
+          referenceId: entityId,
+          clinicianId: clinicianNpi,
+          metadata: auditMetadata,
+        },
       });
 
       log('info', 'employer_packet_exported', {
@@ -311,14 +372,25 @@ export function registerEmployerActionRoutes(app: Express): void {
         employerId,
         npi_prefix:  clinicianNpi.slice(0, 4) + '····',
         exportedAt: packet.exportedAt,
+        format,
         score:       packet.readiness.score,
         blockers:    packet.readiness.blockers.length,
       });
 
-      // Set filename hint for browser download
+      const filenameStem = `vitalcv-packet-${clinicianNpi}-${new Date().toISOString().slice(0, 10)}`;
+      if (format === 'zip') {
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename="${filenameStem}.zip"`,
+        );
+        res.setHeader('Content-Type', 'application/zip');
+        createEmployerEvidencePacketZipStream(packet).pipe(res);
+        return;
+      }
+
       res.setHeader(
         'Content-Disposition',
-        `attachment; filename="vitalcv-packet-${clinicianNpi}-${new Date().toISOString().slice(0, 10)}.json"`,
+        `attachment; filename="${filenameStem}.json"`,
       );
       res.setHeader('Content-Type', 'application/json');
       void res.json(packet);

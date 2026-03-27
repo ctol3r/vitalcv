@@ -149,16 +149,16 @@ describe('TrustStateResolver', () => {
     expect(result.blocking_reasons).toContain('CRS_BELOW_THRESHOLD');
   });
 
-  it('excludes mock receipt provenance from decision-grade readiness', async () => {
+  it('excludes preview-only receipt provenance from decision-grade readiness', async () => {
     const { deps } = createDependencies({
       receipts: {
         listByClinician: vi.fn().mockResolvedValue([
           {
-            receipt_id: 'rcpt-mock',
+            receipt_id: 'rcpt-preview',
             fetched_at: '2026-02-06T17:00:00.000Z',
             ttl_seconds: 7200,
             revoked: false,
-            source_coverage_state: 'mock',
+            source_coverage_state: 'previewOnly',
           } satisfies PsvReceiptRecord,
         ]),
       },
@@ -169,6 +169,28 @@ describe('TrustStateResolver', () => {
 
     expect(result.start_ready).toBe(false);
     expect(result.band).toBe('RED');
+    expect(result.blocking_reasons).toContain('MISSING_PSV');
+  });
+
+  it('excludes access-required receipt provenance from decision-grade readiness', async () => {
+    const { deps } = createDependencies({
+      receipts: {
+        listByClinician: vi.fn().mockResolvedValue([
+          {
+            receipt_id: 'rcpt-gated',
+            fetched_at: '2026-02-06T17:00:00.000Z',
+            ttl_seconds: 7200,
+            revoked: false,
+            source_coverage_state: 'accessRequired',
+          } satisfies PsvReceiptRecord,
+        ]),
+      },
+    });
+
+    const resolver = new TrustStateResolver(deps);
+    const result = await resolver.resolve('clin-1');
+
+    expect(result.start_ready).toBe(false);
     expect(result.blocking_reasons).toContain('MISSING_PSV');
   });
 

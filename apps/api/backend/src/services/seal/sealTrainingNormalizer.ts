@@ -112,12 +112,12 @@ function inferEnrollmentStatus(blockers: string[]): string {
 }
 
 function inferConfidenceMix(sourceCoverage: Record<string, unknown>): string {
-  const live = (sourceCoverage['live'] as string[] | undefined) ?? [];
+  const checked = (sourceCoverage.checked as string[] | undefined) ?? [];
   const gated = (sourceCoverage['gated'] as string[] | undefined) ?? [];
-  const mock = (sourceCoverage['mock'] as string[] | undefined) ?? [];
-  if (live.length >= 2 && gated.length > 0) return 'HIGH';
-  if (live.length >= 2) return 'MIXED';
-  if (live.length > 0 || mock.length > 0) return 'LOW';
+  const previewOnly = (sourceCoverage.previewOnly as string[] | undefined) ?? [];
+  if (checked.length >= 2 && gated.length > 0) return 'HIGH';
+  if (checked.length >= 2) return 'MIXED';
+  if (checked.length > 0 || previewOnly.length > 0) return 'LOW';
   return 'UNKNOWN';
 }
 
@@ -243,7 +243,7 @@ export async function buildTrainingRows(opts: {
           exclusion_status:  inferExclusionStatus(blockers),
           authority_status:  inferAuthorityStatus(blockers),
           enrollment_status: inferEnrollmentStatus(blockers),
-          source_coverage:   (sourceCov['live'] as string[] | undefined) ?? [],
+          source_coverage:   (sourceCov.checked as string[] | undefined) ?? [],
           confidence_mix:    inferConfidenceMix(sourceCov),
           blocker_count:     blockers.length,
         },

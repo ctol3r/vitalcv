@@ -139,12 +139,12 @@ export default async function EmployersPage() {
               Current Employer Directory
             </span>
             <h1 className="mt-5 text-4xl font-semibold tracking-tight text-white">
-              Launch-safe entry point for hiring teams and clinician demos.
+              See current employers, roles, and review entry points.
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-white/65">
-              This page reads from the current employer and opportunity feeds in this environment.
-              Counts stay aligned with available directory data so demos and pilot reviews do not
-              overstate network activity.
+              This page stays scoped to the current employer directory and public opportunity feed in
+              this environment. Counts reflect what is visible here so the directory does not imply
+              broader coverage than the current feed can support.
             </p>
           </div>
 
@@ -175,23 +175,23 @@ export default async function EmployersPage() {
             <RoleEntryCard
               icon={<Stethoscope className="h-5 w-5" />}
               title="Clinician entry"
-              detail="Resolve your profile, see current role fit, and apply from a source-backed readiness workspace."
+              detail="Check clinician readiness, then continue into the current explore flow with the same public role context."
               href="/onboarding?returnTo=%2Fexplore"
-              action="Start clinician onboarding"
+              action="Check clinician readiness"
             />
             <RoleEntryCard
               icon={<BriefcaseBusiness className="h-5 w-5" />}
               title="Employer entry"
-              detail="Open the employer workspace to review applicants, actions, and launch-day queue state."
-              href="/verifier/inbox"
-              action="Open employer workspace"
+              detail="Employer review opens from a real passport share. Start there when a clinician has shared current packet context."
+              href="/review"
+              action="Open employer review"
             />
             <RoleEntryCard
               icon={<ShieldCheck className="h-5 w-5" />}
-              title="Verifier / demo reviewer"
-              detail="Open the operator dashboard with route checks, counts, graph truth, and launch alerts."
-              href="/intelligence?view=dashboard"
-              action="Open launch dashboard"
+              title="Current roles"
+              detail="Browse the current public role feed attached to this employer directory without leaving the public wedge."
+              href="/explore"
+              action="Browse current roles"
             />
           </div>
         </div>
@@ -217,8 +217,8 @@ export default async function EmployersPage() {
             <div className="rounded-3xl border border-amber-400/20 bg-amber-400/10 p-6">
               <h3 className="text-lg font-semibold text-white">Employer directory is empty right now</h3>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
-                No employers were returned from the current directory. The next step is to
-                confirm seeded launch employers finished bootstrapping before using this page for a demo.
+                No employers were returned from the current directory yet. Check back after the
+                public employer feed publishes a visible employer set for this environment.
               </p>
             </div>
           ) : (
@@ -304,16 +304,17 @@ export default async function EmployersPage() {
           <div className="mt-10 rounded-3xl border border-white/10 bg-white/[0.03] p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="max-w-2xl">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Launch note</p>
-                <h3 className="mt-2 text-xl font-semibold text-white">Use this surface for real counts, not synthetic demo claims</h3>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Directory note</p>
+                <h3 className="mt-2 text-xl font-semibold text-white">Use this surface for current directory counts and public role coverage</h3>
                 <p className="mt-3 text-sm leading-6 text-white/65">
-                  Employer cards and counts are pulled from the live launch set. If a pilot reviewer needs
-                  the broader operator truth, move directly into the intelligence dashboard from here.
+                  Employer cards and counts are pulled from the current directory feed. When a real
+                  passport share exists, continue into employer review from the review entry point instead
+                  of assuming private workspace access from this page.
                 </p>
               </div>
               <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/70">
                 <Users className="h-4 w-4" />
-                Public directory + operator handoff
+                Public directory + review handoff
               </div>
             </div>
           </div>

@@ -415,7 +415,12 @@ export function getAutomationSafeSources(): SourceDefinition[] {
  * Phase 2+ sources are never automatically added here.
  * Matches packages/trust-state/sourceCoverage.ts LAUNCH_SPINE_SOURCE_IDS.
  */
-export const LAUNCH_SPINE_SOURCE_IDS = ['NPPES_API', 'OIG_LEIE', 'PECOS_PUBLIC'] as const;
+export const LAUNCH_SPINE_SOURCE_IDS = [
+  'NPPES_API',
+  'OIG_LEIE',
+  'PECOS_PUBLIC',
+  'STATE_BOARD',
+] as const;
 export type LaunchSpineSourceId = (typeof LAUNCH_SPINE_SOURCE_IDS)[number];
 
 export function isLaunchSpineSource(id: string): id is LaunchSpineSourceId {

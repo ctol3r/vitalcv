@@ -23,6 +23,12 @@ export type ArtifactEventType =
   | 'ARTIFACT_EXPORTED'
   | 'BUNDLE_GENERATED';
 
+// ── Employer review lifecycle ───────────────────────────────
+export type EmployerReviewEventType =
+  | 'EMPLOYER_REVIEW_ACCEPTED'
+  | 'EMPLOYER_REVIEW_REFRESH_REQUESTED'
+  | 'EMPLOYER_REVIEW_ROUTED_TO_REVIEW';
+
 // ── Trust chain (wedge domain) ───────────────────────────────
 export type TrustChainEventType =
   | 'RECOGNITION_EMITTED'
@@ -43,5 +49,6 @@ export type AuditEventType =
   | VerificationEventType
   | MonitoringEventType
   | ArtifactEventType
+  | EmployerReviewEventType
   | TrustChainEventType
   | OperationalEventType;

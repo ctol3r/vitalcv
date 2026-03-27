@@ -2,17 +2,15 @@ import crypto from 'crypto';
 
 export const SOURCE_AUTHORITIES = ['ABMS', 'FSMB', 'NPI', 'LEIE', 'OTHER'] as const;
 export const RECEIPT_SOURCE_COVERAGE_STATES = [
-  'live',
-  'gated',
-  'partial',
+  'checked',
   'stale',
-  'mock',
-  'notChecked',
+  'pending',
+  'gated',
   'unavailable',
-  'reviewRequired',
-  // Extended to match CanonicalSourceCoverageState in packages/trust-state
-  'notDecisionGrade',
   'accessRequired',
+  'reviewRequired',
+  'notDecisionGrade',
+  'previewOnly',
 ] as const;
 
 export type SourceAuthority = (typeof SOURCE_AUTHORITIES)[number];
@@ -68,7 +66,7 @@ function assertReceiptSourceCoverageState(
     !RECEIPT_SOURCE_COVERAGE_STATES.includes(value as ReceiptSourceCoverageState)
   ) {
     throw new Error(
-      'source_coverage_state must be one of: live | gated | partial | stale | mock | notChecked | unavailable | reviewRequired | notDecisionGrade | accessRequired',
+      'source_coverage_state must be one of: checked | stale | pending | gated | unavailable | accessRequired | reviewRequired | notDecisionGrade | previewOnly',
     );
   }
 }

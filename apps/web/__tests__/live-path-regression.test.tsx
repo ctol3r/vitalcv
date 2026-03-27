@@ -13,6 +13,7 @@ import type { RoleContextValue } from '@/components/auth/RoleContext';
 import { LiveTrustConsole } from '@/components/hero/LiveTrustConsole';
 import InterviewClient from '@/app/interview/InterviewClient';
 import ReviewClient from '@/components/review/ReviewClient';
+import { PUBLIC_WEDGE_ROUTE_TARGETS } from './helpers/public-copy-guard';
 
 const {
   buildPassportProofSectionsMock,
@@ -672,6 +673,34 @@ describe('live path regression hardening', () => {
     await view.unmount();
   });
 
+  it('routes the homepage continue CTA into the passport wedge with the resolved NPI', async () => {
+    const fetchMock = vi.mocked(fetch);
+
+    fetchMock.mockResolvedValueOnce(jsonResponse({
+      npi: '1234567890',
+      results: [
+        { source: 'NPPES_API', status: 'SUCCESS', claimsEmitted: 1, latencyMs: 12 },
+        { source: 'OIG_LEIE', status: 'SUCCESS', claimsEmitted: 1, latencyMs: 9 },
+      ],
+    }) as never);
+    fetchMock.mockResolvedValueOnce(jsonResponse(buildTrustState()) as never);
+
+    const view = await renderNode(<LiveTrustConsole />);
+
+    await setInputValue(view.container, 'NPI number', '1234567890');
+    await clickByText(view.container, 'Start with NPI lookup');
+    await flush();
+    await advance(260);
+    await flush();
+    await clickByText(view.container, 'Continue to passport');
+    await flush();
+
+    expect(routerPushMock).toHaveBeenCalledWith('/passport?npi=1234567890');
+    expect(trackedEventNames()).toContain('share_cta_clicked');
+
+    await view.unmount();
+  });
+
   it('keeps invalid NPIs in place and explains the next step', async () => {
     const fetchMock = vi.mocked(fetch);
     const view = await renderNode(<LiveTrustConsole />);
@@ -773,7 +802,9 @@ describe('live path regression hardening', () => {
     });
     expect(textContent(view.container)).toContain('Share recorded');
     expect(textContent(view.container)).toContain('share_evt_123');
-    expect(hrefForText(view.container, 'Open employer review')).toBe(
+    const reviewHref = hrefForText(view.container, 'Open employer review');
+    expect(reviewHref?.startsWith(PUBLIC_WEDGE_ROUTE_TARGETS.interviewReviewPrefix)).toBe(true);
+    expect(reviewHref).toBe(
       `/review/${passport.entityId}?contextId=ctx_abc123&from=Ada%20Lovelace`,
     );
     expect(trackedEventNames()).toEqual(expect.arrayContaining([

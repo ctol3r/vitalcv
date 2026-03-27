@@ -112,7 +112,7 @@ export default async function EmployerProfilePage({ params }: Props) {
                     </span>
                     {employer.verifiedSince ? (
                       <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65">
-                        Verified
+                        Directory profile
                       </span>
                     ) : null}
                   </div>
@@ -150,22 +150,22 @@ export default async function EmployerProfilePage({ params }: Props) {
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                   <Link
-                    href="/verifier/inbox"
+                    href="/review"
                     className="inline-flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white/75 transition hover:text-white"
                   >
                     <span className="inline-flex items-center gap-2">
                       <BriefcaseBusiness className="h-4 w-4" />
-                      Employer workspace
+                      Employer review
                     </span>
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                   <Link
-                    href="/intelligence?view=dashboard"
+                    href={scopedExploreHref}
                     className="inline-flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white/75 transition hover:text-white"
                   >
                     <span className="inline-flex items-center gap-2">
                       <ShieldCheck className="h-4 w-4" />
-                      Operator dashboard
+                      Current roles
                     </span>
                     <ArrowRight className="h-4 w-4" />
                   </Link>
@@ -197,9 +197,9 @@ export default async function EmployerProfilePage({ params }: Props) {
             detail="Current public roles tied to this employer."
           />
           <StatCard
-            label="Trust score"
+            label="Directory signal"
             value={String(employer.trustScore)}
-            detail="Current public employer trust signal."
+            detail="Current public employer directory signal."
           />
           <StatCard
             label="Time to start"
@@ -339,7 +339,7 @@ export default async function EmployerProfilePage({ params }: Props) {
                 <p>Hiring types: {employer.hiringTypes.join(', ') || 'Not disclosed'}</p>
                 <p>Time to start: {employer.timeToStart}</p>
                 <p>Time to onboard: {employer.timeToOnboard}</p>
-                <p>Verified since: {employer.verifiedSince ? employer.verifiedSince.slice(0, 10) : 'Seeded launch profile'}</p>
+                <p>Profile first listed: {employer.verifiedSince ? employer.verifiedSince.slice(0, 10) : 'Current launch profile'}</p>
                 <p>
                   Website:{' '}
                   {employer.website ? (

@@ -6,7 +6,7 @@ import {
 
 describe('trust core readiness', () => {
   it('maps source coverage into explicit state-machine outputs', () => {
-    expect(resolveSourceCoverageState({ sourceId: 'OIG_LEIE', checked: true, fresh: true })).toBe('live');
+    expect(resolveSourceCoverageState({ sourceId: 'OIG_LEIE', checked: true, fresh: true })).toBe('checked');
     expect(resolveSourceCoverageState({ sourceId: 'OIG_LEIE', checked: true, fresh: false })).toBe('stale');
     expect(resolveSourceCoverageState({ sourceId: 'OIG_LEIE', unavailable: true })).toBe('unavailable');
     expect(resolveSourceCoverageState({ sourceId: 'OIG_LEIE', humanRequired: true })).toBe('reviewRequired');
@@ -14,31 +14,31 @@ describe('trust core readiness', () => {
     expect(defaultCoverageStateForSource('NURSYS_ENOTIFY')).toBe('gated');
   });
 
-  it('computes readiness from live-only source results', () => {
+  it('computes readiness from checked decision-grade source results', () => {
     const readiness = computeDeterministicTrustReadiness({
       identity: {
         dimension: 'identity',
         status: 'MET',
         confidence: 0.99,
-        sourceCoverage: [{ sourceId: 'NPPES_API', state: 'live', reason: 'checked' }],
+        sourceCoverage: [{ sourceId: 'NPPES_API', state: 'checked', reason: 'checked' }],
       },
       exclusion: {
         dimension: 'exclusion',
         status: 'MET',
         confidence: 0.95,
-        sourceCoverage: [{ sourceId: 'OIG_LEIE', state: 'live', reason: 'clear' }],
+        sourceCoverage: [{ sourceId: 'OIG_LEIE', state: 'checked', reason: 'clear' }],
       },
       licensure: {
         dimension: 'licensure',
         status: 'MET',
         confidence: 0.95,
-        sourceCoverage: [{ sourceId: 'STATE_BOARD', state: 'live', reason: 'checked' }],
+        sourceCoverage: [{ sourceId: 'STATE_BOARD', state: 'checked', reason: 'checked' }],
       },
       enrollment: {
         dimension: 'enrollment',
         status: 'MET',
         confidence: 0.95,
-        sourceCoverage: [{ sourceId: 'PECOS_PUBLIC', state: 'live', reason: 'checked' }],
+        sourceCoverage: [{ sourceId: 'PECOS_PUBLIC', state: 'checked', reason: 'checked' }],
       },
     });
 
@@ -55,13 +55,13 @@ describe('trust core readiness', () => {
         dimension: 'identity',
         status: 'MET',
         confidence: 0.99,
-        sourceCoverage: [{ sourceId: 'NPPES_API', state: 'live', reason: 'checked' }],
+        sourceCoverage: [{ sourceId: 'NPPES_API', state: 'checked', reason: 'checked' }],
       },
       exclusion: {
         dimension: 'exclusion',
         status: 'MET',
         confidence: 0.95,
-        sourceCoverage: [{ sourceId: 'OIG_LEIE', state: 'live', reason: 'checked' }],
+        sourceCoverage: [{ sourceId: 'OIG_LEIE', state: 'checked', reason: 'checked' }],
       },
       licensure: {
         dimension: 'licensure',
@@ -73,7 +73,7 @@ describe('trust core readiness', () => {
         dimension: 'enrollment',
         status: 'MET',
         confidence: 0.95,
-        sourceCoverage: [{ sourceId: 'PECOS_PUBLIC', state: 'live', reason: 'checked' }],
+        sourceCoverage: [{ sourceId: 'PECOS_PUBLIC', state: 'checked', reason: 'checked' }],
       },
     });
 
@@ -89,13 +89,13 @@ describe('trust core readiness', () => {
         dimension: 'identity',
         status: 'MET',
         confidence: 0.99,
-        sourceCoverage: [{ sourceId: 'NPPES_API', state: 'live', reason: 'checked' }],
+        sourceCoverage: [{ sourceId: 'NPPES_API', state: 'checked', reason: 'checked' }],
       },
       exclusion: {
         dimension: 'exclusion',
         status: 'MET',
         confidence: 0.95,
-        sourceCoverage: [{ sourceId: 'OIG_LEIE', state: 'live', reason: 'checked' }],
+        sourceCoverage: [{ sourceId: 'OIG_LEIE', state: 'checked', reason: 'checked' }],
       },
       licensure: {
         dimension: 'licensure',
@@ -109,7 +109,7 @@ describe('trust core readiness', () => {
         status: 'UNMET',
         confidence: 0.25,
         gap: 'PECOS enrollment artifact missing',
-        sourceCoverage: [{ sourceId: 'PECOS_PUBLIC', state: 'notChecked', reason: 'not checked' }],
+        sourceCoverage: [{ sourceId: 'PECOS_PUBLIC', state: 'pending', reason: 'not checked' }],
       },
     });
 
@@ -129,19 +129,19 @@ describe('trust core readiness', () => {
         dimension: 'identity',
         status: 'MET',
         confidence: 0.99,
-        sourceCoverage: [{ sourceId: 'NPPES_API', state: 'live', reason: 'checked' }],
+        sourceCoverage: [{ sourceId: 'NPPES_API', state: 'checked', reason: 'checked' }],
       },
       exclusion: {
         dimension: 'exclusion',
         status: 'MET',
         confidence: 0.95,
-        sourceCoverage: [{ sourceId: 'OIG_LEIE', state: 'live', reason: 'checked' }],
+        sourceCoverage: [{ sourceId: 'OIG_LEIE', state: 'checked', reason: 'checked' }],
       },
       licensure: {
         dimension: 'licensure',
         status: 'MET',
         confidence: 0.95,
-        sourceCoverage: [{ sourceId: 'STATE_BOARD', state: 'live', reason: 'checked' }],
+        sourceCoverage: [{ sourceId: 'STATE_BOARD', state: 'checked', reason: 'checked' }],
       },
       enrollment: {
         dimension: 'enrollment',
@@ -173,13 +173,13 @@ describe('trust core readiness', () => {
         dimension: 'identity',
         status: 'MET',
         confidence: 0.99,
-        sourceCoverage: [{ sourceId: 'NPPES_API', state: 'live', reason: 'checked' }],
+        sourceCoverage: [{ sourceId: 'NPPES_API', state: 'checked', reason: 'checked' }],
       },
       exclusion: {
         dimension: 'exclusion',
         status: 'MET',
         confidence: 0.95,
-        sourceCoverage: [{ sourceId: 'OIG_LEIE', state: 'live', reason: 'checked' }],
+        sourceCoverage: [{ sourceId: 'OIG_LEIE', state: 'checked', reason: 'checked' }],
       },
       licensure: {
         dimension: 'licensure',
@@ -196,7 +196,7 @@ describe('trust core readiness', () => {
         dimension: 'enrollment',
         status: 'MET',
         confidence: 0.95,
-        sourceCoverage: [{ sourceId: 'PECOS_PUBLIC', state: 'live', reason: 'checked' }],
+        sourceCoverage: [{ sourceId: 'PECOS_PUBLIC', state: 'checked', reason: 'checked' }],
       },
     });
 

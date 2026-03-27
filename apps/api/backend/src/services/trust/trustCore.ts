@@ -51,10 +51,9 @@ const READINESS_GAP_SOURCE_PRIORITY: readonly SourceCoverageState[] = [
   'accessRequired',
   'gated',
   'notDecisionGrade',
-  'partial',
   'unavailable',
-  'notChecked',
-  'mock',
+  'previewOnly',
+  'pending',
 ];
 
 function clampConfidence(value: number): number {
@@ -81,7 +80,7 @@ export function defaultCoverageStateForSource(sourceId: string): SourceCoverageS
     return 'gated';
   }
 
-  return 'notChecked';
+  return 'pending';
 }
 
 export function resolveSourceCoverageState(input: {
@@ -93,9 +92,11 @@ export function resolveSourceCoverageState(input: {
   gated?: boolean;
   reviewRequired?: boolean;
   notDecisionGrade?: boolean;
+  pending?: boolean;
   partial?: boolean;
   accessRequired?: boolean;
-  /** mock: source connected but using stubbed/demo data — not decision-grade */
+  previewOnly?: boolean;
+  /** Backward-compatible alias for preview-only/mock data. */
   mock?: boolean;
 }): SourceCoverageState {
   const defaultState = defaultCoverageStateForSource(input.sourceId);
@@ -109,7 +110,9 @@ export function resolveSourceCoverageState(input: {
     accessRequired: input.accessRequired ?? (defaultState === 'accessRequired' && !input.checked),
     reviewRequired: input.reviewRequired ?? input.humanRequired,
     notDecisionGrade: input.notDecisionGrade || isUnsupported,
+    pending: input.pending,
     partial: input.partial,
+    previewOnly: input.previewOnly,
     mock: input.mock,
   });
 }
@@ -120,6 +123,8 @@ function normalizeCoverage(input: TrustSourceCoverage): TrustSourceCoverage {
     state: input.state,
     reason: input.reason,
     checkedAt: input.checkedAt ?? null,
+    observedAt: input.observedAt ?? input.checkedAt ?? null,
+    expiresAt: input.expiresAt ?? null,
     artifactId: input.artifactId ?? null,
     sourceUrl: input.sourceUrl ?? null,
     rawArtifactRef: input.rawArtifactRef ?? input.artifactId ?? null,

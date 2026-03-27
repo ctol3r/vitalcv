@@ -77,7 +77,7 @@ function normalizeAttestorId(value: unknown): string | null {
 function receiptCoverageState(
   receipt: { source_coverage_state?: CanonicalSourceCoverageState },
 ): CanonicalSourceCoverageState {
-  return receipt.source_coverage_state ?? 'live';
+  return receipt.source_coverage_state ?? 'checked';
 }
 
 function readHashAnchor(record: AcceptanceScopeRecord): string | null {

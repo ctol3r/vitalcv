@@ -336,7 +336,11 @@ runDbSuite('passport entity share contracts', () => {
     expect(sourceCoverage).toEqual(
       expect.objectContaining({
         credentialCount: 3,
-        sources: expect.arrayContaining(['NPPES', 'OIG', 'STATE_BOARD']),
+        sources: expect.arrayContaining(['NPPES_API', 'OIG_LEIE', 'STATE_BOARD']),
+        summary: expect.objectContaining({
+          checked: expect.arrayContaining(['NPPES_API', 'OIG_LEIE']),
+          reviewRequired: ['STATE_BOARD'],
+        }),
       }),
     );
     expect(submissionData).toEqual(

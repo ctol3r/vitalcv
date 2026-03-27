@@ -30,9 +30,9 @@ NPI → Onboarding → Passport → Review → Employer Decision
 
 ```
 POST /api/ingest/npi/:npi
-  → sourceVerifier (NPPES live)
-  → oigLeieChecker (OIG/LEIE live)
-  → nursysAdapter (Nursys, gated: REAL_NURSYS_ENABLED=true)
+  → sourceVerifier (NPPES source-backed)
+  → oigLeieChecker (OIG/LEIE source-backed)
+  → physicianLicensureLaunchLane / authority adapters (STATE_BOARD today; Nursys gated when configured)
   → trustStateEngine → readinessEngine
   → passportService.buildPassport(entityId)
 
@@ -58,7 +58,8 @@ Every mutating action writes an `AuditEvent` row before returning 2xx. This is t
 |---|---|---|
 | **NPPES** (CMS NPI Registry) | ✅ Always on | — |
 | **OIG/LEIE** (Exclusion registry) | ✅ Always on | `OIG_LEIE_ENABLED` (default true) |
-| **CMS PECOS** (Medicare enrollment) | ⚠ Mock data in prod | `PECOS_ENABLED` |
+| **STATE_BOARD** (launch physician licensure lane) | ⚠ Source-backed when the configured launch-state adapter is enabled; otherwise access required | `STATE_BOARD_ENABLED` |
+| **CMS PECOS** (Medicare enrollment) | ⚠ Quarterly CMS snapshot, source-backed but not real-time | `PECOS_ENABLED` |
 | **Nursys** (State board network) | 🔒 Gated | `REAL_NURSYS_ENABLED=true` when institutional access ready |
 | **FSMB** | 🔒 Gated | `FSMB_ENABLED=true` + institutional agreement |
 
@@ -77,11 +78,11 @@ A clinician is **decision-grade** (employer can accept) when:
 
 1. Identity confirmed (NPPES — L2+)
 2. Safety clear (OIG/LEIE — `CLEAR`)
-3. Authority verified (state license ACTIVE — requires Nursys or manual upload)
+3. Authority verified (state license ACTIVE — requires the configured state-board lane or other contracted authority access)
 4. Eligibility (PECOS enrolled, or `NOT_FOUND` with explicit action shown)
 5. `readinessEngine` score ≥ 60 → L2+; all blockers resolved → L3
 
-If any source is `gated` or `unchecked`, it's honest-unavailable — not decision-grade, but employer can still proceed with explicit acknowledgment.
+If any source is `gated` or `pending`, it's honest-unavailable — not decision-grade, but employer can still proceed with explicit acknowledgment.
 
 **Key type:** `PecosEnrollmentStatus = 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED'`
 - `NOT_FOUND` → blocker + action shown ("Submit PECOS enrollment, 45–60 days")
@@ -172,7 +173,8 @@ Export: `GET /api/seal/training-set` — requires `SEAL_TRAINING_EXPORT_ENABLED=
 REAL_NURSYS_ENABLED=false       # Set true when institutional E-Notify access ready
 FSMB_ENABLED=false              # Set true when FSMB institutional agreement active
 OIG_LEIE_ENABLED=true           # OIG LEIE CSV cache — always on in prod
-PECOS_ENABLED=true              # CMS PECOS model live, mock data (quarterly)
+STATE_BOARD_ENABLED=false       # Set true when the launch-state board adapter is configured
+PECOS_ENABLED=true              # CMS PECOS quarterly source-backed snapshot (not real-time)
 MONITORING_ENABLED=false        # Wave 245 async trust engine — enable in prod
 SEAL_TRAINING_EXPORT_ENABLED=false  # Training dataset export gate
 OCR_PROVIDER=stub               # Set to 'openai' when OpenAI key available

@@ -154,23 +154,63 @@ describe('passportService', () => {
     const checks = [
       createCanonicalSourceCoverage({
         sourceId: 'NPPES_API',
-        state: 'live',
+        state: 'checked',
         reason: 'NPPES identity checked',
+        checkedAt: '2026-03-23T12:00:00.000Z',
+        observedAt: '2026-03-23T12:00:00.000Z',
+        artifactId: 'artifact-nppes',
+        sourceUrl: 'https://api.nppes.cms.hhs.gov/api',
+        rawArtifactRef: 'artifacts/nppes/entity-1.json',
+        checksum: 'sha256:nppes',
+        parserVersion: 'nppes@2026.03.23',
+        freshnessWindowHours: 168,
+        proof: {
+          artifactIds: ['artifact-nppes'],
+          receiptIds: ['receipt-nppes'],
+        },
       }),
       createCanonicalSourceCoverage({
         sourceId: 'OIG_LEIE',
-        state: 'live',
+        state: 'checked',
         reason: 'OIG LEIE check clear',
+        checkedAt: '2026-03-23T12:00:00.000Z',
+        observedAt: '2026-03-23T12:00:00.000Z',
+        artifactId: 'artifact-oig',
+        sourceUrl: 'https://oig.hhs.gov/exclusions/',
+        rawArtifactRef: 'artifacts/oig/entity-1.csv',
+        checksum: 'sha256:oig',
+        parserVersion: 'oig@2026.03.23',
+        freshnessWindowHours: 168,
+        proof: {
+          artifactIds: ['artifact-oig'],
+          receiptIds: ['receipt-oig'],
+        },
       }),
       createCanonicalSourceCoverage({
         sourceId: 'STATE_BOARD',
         state: 'accessRequired',
-        reason: 'CA physician licensure lane requires live state-board or FSMB access',
+        reason: 'CA physician licensure lane requires checked state-board or FSMB access',
+        checkedAt: '2026-03-23T12:00:00.000Z',
+        freshnessWindowHours: 168,
+        sourceUrl: 'https://www.mbc.ca.gov/',
+        parserVersion: 'state-board@2026.03.23',
       }),
       createCanonicalSourceCoverage({
         sourceId: 'PECOS_PUBLIC',
         state: 'stale',
         reason: 'PECOS evidence is stale and must be refreshed',
+        checkedAt: '2026-03-23T12:00:00.000Z',
+        observedAt: '2025-12-01T12:00:00.000Z',
+        artifactId: 'artifact-pecos',
+        sourceUrl: 'https://data.cms.gov/provider-characteristics/medicare-provider-supplier-enrollment',
+        rawArtifactRef: 'artifacts/pecos/entity-1.csv',
+        checksum: 'sha256:pecos',
+        parserVersion: 'pecos@2026.03.23',
+        freshnessWindowHours: 2160,
+        proof: {
+          artifactIds: ['artifact-pecos'],
+          receiptIds: ['receipt-pecos'],
+        },
       }),
     ];
     (getCachedTrustState as jest.Mock).mockResolvedValue({
@@ -208,9 +248,26 @@ describe('passportService', () => {
       ]),
     );
     expect(passport?.trustPosture.gatedItems).toContain(
-      'CA physician licensure lane requires live state-board or FSMB access',
+      'CA physician licensure lane requires checked state-board or FSMB access',
     );
     expect(passport?.trustPosture.staleItems).toContain('PECOS enrollment verification stale');
+    expect(passport?.truth.identity.status).toBe('VERIFIED');
+    expect(passport?.truth.safety.status).toBe('CLEAR');
+    expect(passport?.truth.authority.status).toBe('ACCESS REQUIRED');
+    expect(passport?.truth.eligibility.status).toBe('PENDING');
+    expect(passport?.sourceCoverage.checks).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        sourceId: 'NPPES_API',
+        observedAt: '2026-03-23T12:00:00.000Z',
+        freshness: expect.objectContaining({
+          status: 'current',
+        }),
+        provenance: expect.objectContaining({
+          artifactId: expect.any(String),
+          artifactIds: expect.any(Array),
+        }),
+      }),
+    ]));
     expect('enrichment' in (passport ?? {})).toBe(false);
   });
 
@@ -244,14 +301,24 @@ describe('passportService', () => {
     expect(stateBoard).toEqual(expect.objectContaining({
       state: 'notDecisionGrade',
       freshnessWindowHours: 168,
+      freshness: expect.objectContaining({
+        status: 'unknown',
+      }),
     }));
     expect(nppes).toEqual(expect.objectContaining({
-      state: 'live',
+      state: 'checked',
       freshnessWindowHours: 168,
+      observedAt: '2026-03-23T12:00:00.000Z',
+      freshness: expect.objectContaining({
+        status: 'current',
+      }),
     }));
     expect(pecos).toEqual(expect.objectContaining({
-      state: 'notChecked',
+      state: 'pending',
       freshnessWindowHours: 2160,
+      freshness: expect.objectContaining({
+        status: 'unknown',
+      }),
     }));
     expect(passport?.trustPosture.safeToRelyOnNow).toContain('Identity confirmed via CMS NPPES.');
     expect(passport?.trustPosture.missingItems).toEqual(
@@ -275,22 +342,22 @@ describe('passportService', () => {
     const checks = [
       createCanonicalSourceCoverage({
         sourceId: 'NPPES_API',
-        state: 'live',
+        state: 'checked',
         reason: 'NPPES identity checked',
       }),
       createCanonicalSourceCoverage({
         sourceId: 'OIG_LEIE',
-        state: 'live',
+        state: 'checked',
         reason: 'OIG LEIE check clear',
       }),
       createCanonicalSourceCoverage({
         sourceId: 'STATE_BOARD',
-        state: 'live',
+        state: 'checked',
         reason: 'Licensure checked',
       }),
       createCanonicalSourceCoverage({
         sourceId: 'PECOS_PUBLIC',
-        state: 'live',
+        state: 'checked',
         reason: 'CMS PECOS confirms enrolled status in the current quarterly release',
       }),
     ];
@@ -314,7 +381,7 @@ describe('passportService', () => {
       expect.arrayContaining([
         'Identity confirmed via CMS NPPES.',
         'OIG/LEIE exclusion check is clear.',
-        'Active state licensure is verified from a live authority source.',
+        'Active state licensure is verified from a source-backed authority check.',
         'CMS PECOS shows Medicare enrollment (2026-Q1).',
       ]),
     );
@@ -366,7 +433,7 @@ describe('passportService', () => {
       sourceCoverage: [
         createCanonicalSourceCoverage({
           sourceId: 'NPPES_API',
-          state: 'live',
+          state: 'checked',
           reason: 'NPPES identity checked',
         }),
         createCanonicalSourceCoverage({
@@ -376,12 +443,12 @@ describe('passportService', () => {
         }),
         createCanonicalSourceCoverage({
           sourceId: 'STATE_BOARD',
-          state: 'live',
+          state: 'checked',
           reason: 'Licensure checked',
         }),
         createCanonicalSourceCoverage({
           sourceId: 'PECOS_PUBLIC',
-          state: 'live',
+          state: 'checked',
           reason: 'CMS PECOS confirms enrolled status in the current quarterly release',
         }),
       ],
@@ -402,5 +469,58 @@ describe('passportService', () => {
       'OIG LEIE returned a possible match and requires human adjudication',
     );
     expect(passport?.trustPosture.blockers).toContain('OIG/LEIE possible match requires review');
+  });
+
+  it('withholds unbacked credentials from public-safe passport truth and readiness', async () => {
+    prismaMock.vcvCredential.findMany.mockResolvedValue([
+      buildCredential({
+        id: 'cred-licensure-unbacked',
+      }),
+      buildCredential({
+        id: 'cred-exclusion',
+        domain: 'EXCLUSION_CHECK',
+        credentialType: 'OIG_LEIE_CHECK',
+        metadata: {
+          sourceId: 'OIG_LEIE',
+          claimState: 'CLEAR',
+          claimConfidenceLabel: 'HIGH',
+          dataFreshnessLabel: 'Daily',
+        },
+        claimValue: {
+          claimState: 'CLEAR',
+        },
+      }),
+    ]);
+    (resolveCredentialEvidence as jest.Mock).mockImplementation(({ credential }: { credential: { id: string } }) => (
+      credential.id === 'cred-licensure-unbacked'
+        ? {
+            publicSafe: false,
+            validArtifactIds: [],
+            validReceiptIds: [],
+            issues: ['missing_receipt'],
+          }
+        : {
+            publicSafe: true,
+            validArtifactIds: [],
+            validReceiptIds: [],
+            issues: [],
+          }
+    ));
+    (getCachedTrustState as jest.Mock).mockResolvedValue(null);
+
+    const passport = await buildPassport('entity-1');
+
+    expect(passport).not.toBeNull();
+    expect(passport?.authority.credentials).toEqual(
+      expect.not.arrayContaining([
+        expect.objectContaining({ id: 'cred-licensure-unbacked' }),
+      ]),
+    );
+    expect(passport?.authority.summary.active).toBe(0);
+    expect(passport?.readiness.blockers).toContain('Proof missing: LICENSURE');
+    expect(passport?.truth.authority.status).not.toBe('VERIFIED');
+    expect(passport?.trustPosture.safeToRelyOnNow).not.toContain(
+      'Active state licensure is verified from a source-backed authority check.',
+    );
   });
 });

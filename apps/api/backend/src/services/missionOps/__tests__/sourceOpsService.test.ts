@@ -21,6 +21,7 @@ describe('sourceOpsService', () => {
     process.env.NPPES_API_ENABLED = 'true';
     process.env.OIG_LEIE_ENABLED = 'true';
     process.env.PECOS_ENABLED = 'true';
+    process.env.STATE_BOARD_ENABLED = 'true';
     process.env.NURSYS_ENABLED = 'true';
     delete process.env.OFAC_SDN_ENABLED;
     mockIntegrationHealth();
@@ -30,11 +31,12 @@ describe('sourceOpsService', () => {
     delete process.env.NPPES_API_ENABLED;
     delete process.env.OIG_LEIE_ENABLED;
     delete process.env.PECOS_ENABLED;
+    delete process.env.STATE_BOARD_ENABLED;
     delete process.env.NURSYS_ENABLED;
     delete process.env.OFAC_SDN_ENABLED;
   });
 
-  it('marks a source live only after a successful fetch is observed', () => {
+  it('marks a source checked only after a successful fetch is observed', () => {
     (getConnectorHealth as jest.Mock).mockReturnValue({
       connectors: [
         {
@@ -51,9 +53,9 @@ describe('sourceOpsService', () => {
     const nppes = report.sources.find((entry) => entry.sourceId === 'NPPES_API');
     const oig = report.sources.find((entry) => entry.sourceId === 'OIG_LEIE');
 
-    expect(nppes?.coverageState).toBe('live');
+    expect(nppes?.coverageState).toBe('checked');
     expect(nppes?.decisionGrade).toBe(true);
-    expect(oig?.coverageState).toBe('notChecked');
+    expect(oig?.coverageState).toBe('pending');
     expect(oig?.decisionGrade).toBe(false);
   });
 
@@ -73,6 +75,27 @@ describe('sourceOpsService', () => {
     (getConnectorHealth as jest.Mock).mockReturnValue({
       connectors: [
         {
+          connector: 'OPENALEX',
+          status: 'HEALTHY',
+          lastSuccessAt: new Date().toISOString(),
+          lastErrorAt: null,
+          consecutiveErrors: 0,
+        },
+      ],
+    });
+
+    const report = computeSourceOpsReport();
+    const openAlex = report.sources.find((entry) => entry.sourceId === 'OPENALEX');
+
+    expect(openAlex?.featureFlag.enabled).toBe(false);
+    expect(openAlex?.coverageState).toBe('pending');
+    expect(openAlex?.decisionGrade).toBe(false);
+  });
+
+  it('treats the physician licensure launch lane as part of the official spine', () => {
+    (getConnectorHealth as jest.Mock).mockReturnValue({
+      connectors: [
+        {
           connector: 'STATE_BOARD',
           status: 'HEALTHY',
           lastSuccessAt: new Date().toISOString(),
@@ -85,9 +108,9 @@ describe('sourceOpsService', () => {
     const report = computeSourceOpsReport();
     const stateBoard = report.sources.find((entry) => entry.sourceId === 'STATE_BOARD');
 
-    expect(stateBoard?.featureFlag.enabled).toBe(false);
-    expect(stateBoard?.coverageState).toBe('notChecked');
-    expect(stateBoard?.decisionGrade).toBe(false);
+    expect(stateBoard?.isSpine).toBe(true);
+    expect(stateBoard?.featureFlag.enabled).toBe(true);
+    expect(stateBoard?.coverageState).toBe('checked');
   });
 
   it('treats flag-enabled but unimplemented sources as unavailable and alerts operators', () => {

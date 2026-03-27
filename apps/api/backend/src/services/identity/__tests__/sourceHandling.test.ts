@@ -1,4 +1,5 @@
 import { parseNursysResult, parseStateBoardResult } from '../phase3Sources';
+import { resolvePhysicianLicensureLaunchLane } from '../physicianLicensureLaunchLane';
 
 describe('Source handling, gated truth isolation, and replay integrity', () => {
   it('prevents gated Nursys from being mistaken for live production coverage', () => {
@@ -56,6 +57,44 @@ describe('Source handling, gated truth isolation, and replay integrity', () => {
     const licValue = claims[0]?.value as any;
     expect(licValue.licenseStatus).toBe('ACTIVE');
     expect(licValue.state).toBe('TX');
+  });
+
+  it('maintains the live physician licensure success path for the launch state board lane', async () => {
+    const observedAt = '2026-03-24T12:00:00.000Z';
+    const result = await resolvePhysicianLicensureLaunchLane({
+      npi: '1234567890',
+      observedAt,
+      candidateStates: ['CA', 'NV'],
+      stateBoardLookup: async () => ({
+        npi: '1234567890',
+        state: 'CA',
+        licenseNumber: 'A12345',
+        licenseStatus: 'ACTIVE',
+        licensee: 'Test Physician',
+        expirationDate: '2028-01-01T00:00:00.000Z',
+        boardName: 'Medical Board of California',
+        sourceUrl: 'https://mbc.ca.gov/breeze/',
+        lastVerifiedAt: observedAt,
+      }),
+    });
+
+    expect(result.route).toBe('state_board');
+    expect(result.launchState).toBe('CA');
+    expect(result.claims).toHaveLength(1);
+    expect(result.claims[0]).toEqual(expect.objectContaining({
+      sourceId: 'STATE_BOARD',
+      claimType: 'LICENSE',
+      confidence: 'HIGH',
+      reviewRequired: false,
+      parserVersion: 'physician-licensure-launch-lane/v1',
+      observedAt,
+      freshnessWindowHours: 168,
+    }));
+
+    const licenseValue = result.claims[0]?.value as Record<string, unknown>;
+    expect(licenseValue.state).toBe('CA');
+    expect(licenseValue.licenseStatus).toBe('ACTIVE');
+    expect(licenseValue.source).toBe('STATE_BOARD');
   });
 
   it('provides parser drift quarantine path context by linking artifacts exactly', () => {
