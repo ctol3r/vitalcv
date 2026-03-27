@@ -639,7 +639,7 @@ export default function ExploreClient() {
         <p className="body-sm mx-auto mt-2 max-w-md text-vt-neutral-200">
           Start with your public NPI profile and VitalCV will show which live roles align with your current readiness state before you submit.
         </p>
-        <Link href="/onboarding" className="mt-5 inline-flex items-center gap-2 rounded-full bg-vt-success px-6 py-3 text-sm font-semibold text-black hover:bg-vt-success/90 transition-transform active:scale-95">
+        <Link href="/passport" className="mt-5 inline-flex items-center gap-2 rounded-full bg-vt-success px-6 py-3 text-sm font-semibold text-black hover:bg-vt-success/90 transition-transform active:scale-95">
           Preview my fit
         </Link>
       </div>
@@ -841,7 +841,7 @@ function OpportunityCard({
              </p>
              <p className="text-xs text-white/70 mt-1">Preview your start-readiness timeline</p>
            </div>
-           <Link href="/onboarding" className="text-xs font-semibold px-4 py-2 rounded-full bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors shrink-0 ml-4">
+           <Link href="/passport" className="text-xs font-semibold px-4 py-2 rounded-full bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors shrink-0 ml-4">
               Calculate Fit
            </Link>
         </div>

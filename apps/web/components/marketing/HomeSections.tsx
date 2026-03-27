@@ -400,8 +400,8 @@ export function TractionSection() {
             See the product working in real time.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <Link href="/onboarding" className="glue-btn glue-btn-primary">
-              Preview my fit <ArrowRight className="h-4 w-4" />
+            <Link href="/passport" className="glue-btn glue-btn-primary">
+              Check my readiness <ArrowRight className="h-4 w-4" />
             </Link>
             <Link href="/employers" className="glue-btn glue-btn-secondary">
               For employers
