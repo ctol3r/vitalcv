@@ -227,7 +227,7 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
           />
         ))}
 
-        {/* Honest placeholder: no licensure credentials at all */}
+        {/* Gap: no licensure credentials attached — show access-required state */}
         {!hasLicensure && (
           <AuthorityRow
             title="License verification"
@@ -237,7 +237,7 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
           />
         )}
 
-        {/* Board cert placeholder */}
+        {/* Gap: no board certification attached — show not-decision-grade state */}
         {!hasBoardCert && (
           <div className="flex items-center justify-between gap-2 py-1.5 border-b border-white/5 last:border-0">
             <span className="text-xs text-white/20">Board certification</span>
@@ -501,7 +501,7 @@ export default function PassportWallet({ passport }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           entityId:              passport.entityId,
-          organizationContextId: 'demo', // replaced when org context flow is wired
+          organizationContextId: 'direct-share', // org context wired when employer workspace is connected
         }),
       });
 
@@ -612,13 +612,13 @@ export default function PassportWallet({ passport }: Props) {
                   <p className="text-[var(--vt-critical)] text-xs text-center">{shareError}</p>
                 )}
                 <p className="text-center text-white/20 text-xs leading-relaxed">
-                  Sharing sends the current Passport proof surface shown above. Requires biometric confirmation.
+                  Sharing records the current passport proof surface shown above. Biometric confirmation is used when available.
                 </p>
               </>
             ) : (
               <TrustStateCard
-                title="Passport shared"
-                description="Employer notified. Access expires in 24 hours."
+                title="Share recorded"
+                description="A share event was persisted for this passport. Employer access depends on your organization context."
                 tone="success"
                 centered
               />
