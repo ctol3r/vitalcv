@@ -15,6 +15,7 @@ jest.mock('../../graphql/prisma_client', () => ({
     auditEvent: {
       create: jest.fn(),
       findFirst: jest.fn(),
+      findMany: jest.fn(),
     },
     outboxEvent: {
       upsert: jest.fn(),
@@ -72,6 +73,7 @@ const prismaMock = prisma as unknown as {
   auditEvent: {
     create: jest.Mock;
     findFirst: jest.Mock;
+    findMany: jest.Mock;
   };
   outboxEvent: {
     upsert: jest.Mock;
@@ -336,6 +338,7 @@ describe('employer action routes', () => {
     prismaMock.employerAcceptance.create.mockReset();
     prismaMock.auditEvent.create.mockReset();
     prismaMock.auditEvent.findFirst.mockReset();
+    prismaMock.auditEvent.findMany.mockReset();
     prismaMock.outboxEvent.upsert.mockReset();
     prismaMock.$transaction.mockReset();
     captureAdvisoryEventMock.mockReset();
@@ -357,6 +360,7 @@ describe('employer action routes', () => {
       id: 'audit-1',
       createdAt: new Date('2026-03-23T18:00:00.000Z'),
     });
+    prismaMock.auditEvent.findMany.mockResolvedValue([]);
     prismaMock.outboxEvent.upsert.mockResolvedValue({
       id: 'outbox-1',
     });
@@ -551,7 +555,7 @@ describe('employer action routes', () => {
 
   it('keeps status reads backward compatible with legacy audit-only review metadata', async () => {
     prismaMock.employerAcceptance.findFirst.mockResolvedValueOnce(null);
-    prismaMock.auditEvent.findFirst.mockResolvedValueOnce({
+    prismaMock.auditEvent.findMany.mockResolvedValueOnce([{
       id: 'audit-review-1',
       createdAt: new Date('2026-03-23T19:30:00.000Z'),
       metadata: {
@@ -583,9 +587,19 @@ describe('employer action routes', () => {
             facility: null,
             notes: null,
           },
+          attribution: {
+            source: 'unscoped',
+            organizationContextId: null,
+            bundleShareEventId: null,
+            bundleId: null,
+            requestorEntityId: null,
+            organizationId: null,
+            organizationName: null,
+            purposeOfUse: null,
+          },
         },
       },
-    });
+    ]);
 
     const response = await request(buildApp())
       .get('/api/employer-review/entity-1/status')
@@ -600,6 +614,16 @@ describe('employer action routes', () => {
         clinicianNpi: '1234567890',
         auditEventId: 'audit-review-1',
         timestamp: '2026-03-23T19:30:00.000Z',
+        attribution: {
+          source: 'unscoped',
+          organizationContextId: null,
+          bundleShareEventId: null,
+          bundleId: null,
+          requestorEntityId: null,
+          organizationId: null,
+          organizationName: null,
+          purposeOfUse: null,
+        },
         persistence: {
           mode: 'audit_only',
           target: 'audit_event',
@@ -623,14 +647,7 @@ describe('employer action routes', () => {
   });
 
   it('loads persisted acceptance state with the linked outbox and audit metadata', async () => {
-    prismaMock.employerAcceptance.findFirst.mockResolvedValueOnce({
-      id: 'accept-1',
-      acceptedAt: new Date('2026-03-23T19:45:00.000Z'),
-      status: 'ACCEPTED',
-    });
-    prismaMock.auditEvent.findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
+    prismaMock.auditEvent.findMany.mockResolvedValueOnce([{
         id: 'audit-accept-1',
         createdAt: new Date('2026-03-23T19:46:00.000Z'),
         metadata: {
@@ -662,6 +679,16 @@ describe('employer action routes', () => {
               role: 'Recruiter',
               facility: 'Providence',
               notes: 'Head start only',
+            },
+            attribution: {
+              source: 'unscoped',
+              organizationContextId: null,
+              bundleShareEventId: null,
+              bundleId: null,
+              requestorEntityId: null,
+              organizationId: null,
+              organizationName: null,
+              purposeOfUse: null,
             },
             trustSnapshot: {
               snapshotHash: 'snapshot-hash-1',
@@ -705,7 +732,8 @@ describe('employer action routes', () => {
             },
           },
         },
-      });
+      },
+    }]);
 
     const response = await request(buildApp())
       .get('/api/employer-review/entity-1/status')
@@ -720,6 +748,16 @@ describe('employer action routes', () => {
         clinicianNpi: '1234567890',
         auditEventId: 'audit-accept-1',
         timestamp: '2026-03-23T19:46:00.000Z',
+        attribution: {
+          source: 'unscoped',
+          organizationContextId: null,
+          bundleShareEventId: null,
+          bundleId: null,
+          requestorEntityId: null,
+          organizationId: null,
+          organizationName: null,
+          purposeOfUse: null,
+        },
         persistence: {
           mode: 'durable_record',
           target: 'employer_acceptance',

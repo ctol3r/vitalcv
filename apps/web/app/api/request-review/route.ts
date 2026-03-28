@@ -14,14 +14,18 @@
  *
  * Response:
  *   {
- *     contextId:  string,              // UUID to embed in the review link
- *     reviewUrl:  string,              // /review/[entityId]?contextId=[contextId]
- *     entityId:   string,
- *     status:     string,
+ *     contextId:    string,            // UUID to embed in the review link
+ *     reviewUrl:    string,            // /review/[entityId]?contextId=[contextId]
+ *     entityId:     string,
+ *     status:       string,
+ *     npi:          string,
+ *     displayName:  string | null,
  *   }
  */
-import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  resolveEmployerWorkspaceRequestorContext,
+} from '@/lib/server/employer-workspace';
 
 export const runtime = 'nodejs';
 
@@ -31,21 +35,19 @@ const B =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   'http://localhost:4000';
 
-export async function POST(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json(
-      { error: 'Sign in with an employer workspace to request a review.' },
-      { status: 401 },
-    );
-  }
+const NPI_RE = /^\d{10}$/;
 
+function jsonError(
+  body: Record<string, unknown>,
+  status: number,
+) {
+  return NextResponse.json(body, { status });
+}
+
+export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   if (!body || !body.npi) {
-    return NextResponse.json(
-      { error: 'npi is required.' },
-      { status: 400 },
-    );
+    return jsonError({ error: 'npi is required.' }, 400);
   }
 
   const { npi, contextType = 'EMPLOYMENT_REVIEW', title, description } = body as {
@@ -55,47 +57,68 @@ export async function POST(req: NextRequest) {
     description?: string;
   };
 
-  if (!/^\d{10}$/.test(npi)) {
-    return NextResponse.json({ error: 'npi must be a 10-digit number.' }, { status: 400 });
+  if (!NPI_RE.test(npi)) {
+    return jsonError({ error: 'npi must be a 10-digit number.' }, 400);
   }
 
-  // Step 1: Resolve the NPI to an entity ID
+  // Resolve employer workspace — validates session, active org, and entity registration
+  const workspaceCtx = await resolveEmployerWorkspaceRequestorContext();
+  if (workspaceCtx.status === 'blocked') {
+    const { status, ...body } = workspaceCtx.response;
+    return jsonError(body, status);
+  }
+
+  const { userId, email, activeOrg, requestorEntityId } = workspaceCtx;
+
+  // Resolve clinician passport
   const passportRes = await fetch(`${B}/api/passport/npi/${npi}`, {
     headers: { Accept: 'application/json' },
     cache: 'no-store',
+    signal: AbortSignal.timeout(8_000),
   });
 
   if (!passportRes.ok) {
     if (passportRes.status === 404) {
-      return NextResponse.json(
-        { error: 'No passport found for that NPI. The clinician must run a readiness check first.' },
-        { status: 404 },
+      return jsonError(
+        {
+          code: 'CLINICIAN_PASSPORT_REQUIRED',
+          error: 'No passport found for that NPI. The clinician must run a readiness check first.',
+          hint: 'Ask the clinician to run a readiness check before creating an employer review context.',
+          nextStep: 'run_clinician_readiness',
+        },
+        404,
       );
     }
-    return NextResponse.json(
+    return jsonError(
       { error: 'Could not resolve passport for that NPI.' },
-      { status: passportRes.status },
+      passportRes.status,
     );
   }
 
-  const passport = await passportRes.json() as { entityId: string; identity?: { displayName?: string } };
+  const passport = await passportRes.json() as {
+    entityId: string;
+    identity?: { displayName?: string };
+  };
   const entityId = passport.entityId;
   if (!entityId) {
-    return NextResponse.json(
-      { error: 'Passport record found but entity ID is missing.' },
-      { status: 500 },
-    );
+    return jsonError({ error: 'Passport found but entity ID is missing.' }, 500);
   }
 
-  // Step 2: Create the org context
+  // Create organization context
+  const orgHeaders = new Headers({
+    'Content-Type': 'application/json',
+    'x-clerk-user-id': userId,
+    'x-org-id': activeOrg.organizationId,
+  });
+  if (email) {
+    orgHeaders.set('x-clerk-user-email', email);
+  }
+
   const orgRes = await fetch(`${B}/api/organization-context`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-clerk-user-id': userId,
-    },
+    headers: orgHeaders,
     body: JSON.stringify({
-      requestorEntityId: userId,   // employer's Clerk user ID (backend maps to entity if registered)
+      requestorEntityId,
       contextType,
       title: title ?? `Employment review — NPI ${npi}`,
       description: description ?? `Employer-initiated review for clinician NPI ${npi}.`,
@@ -103,19 +126,14 @@ export async function POST(req: NextRequest) {
     }),
   });
 
-  // If the requestor isn't registered as a VcvEntity, fall back to a direct context stub
-  // that still lets the review flow work with the share/review infrastructure.
   if (!orgRes.ok) {
     const orgErr = await orgRes.json().catch(() => ({})) as { error?: string };
-
-    // If it's a foreign-key error (requestorEntityId not in vcv_entities), we note this clearly.
-    const errMsg = orgErr.error ?? 'Could not create review context.';
-    return NextResponse.json(
+    return jsonError(
       {
-        error: errMsg,
+        error: orgErr.error ?? 'Could not create review context.',
         hint: 'Employer must be registered as a VcvEntity. Contact VitalCV to set up an employer workspace.',
       },
-      { status: orgRes.status },
+      orgRes.status,
     );
   }
 

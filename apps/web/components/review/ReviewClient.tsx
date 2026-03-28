@@ -275,7 +275,7 @@ function buildEligibilityRow(passport: PassportData, status: 'ENROLLED' | 'NOT_F
 interface Props {
   passport:   PassportData;
   contextId?: string;
-  bundleId?: string;
+  bundleId?:  string;
   sharedBy?:  string;
 }
 
@@ -695,7 +695,7 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
           <span className="text-white/25 text-xs">Employer review</span>
         </div>
 
-        {/* ── Share context (if accessed via share link) ───────────────────── */}
+        {/* ── Review context attribution ────────────────────────────────────── */}
         {(sharedBy || contextId || bundleId) && (
           <Card className="gap-2 rounded-xl border-white/8 bg-white/[0.03] px-4 py-3 shadow-none">
             {sharedBy && (
@@ -735,7 +735,10 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
             </div>
             <p className="text-[10px] text-white/28 leading-relaxed mt-0.5">
               Actions here are not tied to a confirmed employer context.{' '}
-              <Link href="/review/request" className="text-white/45 underline underline-offset-2 hover:text-white/65 transition-colors">
+              <Link
+                href="/review/request"
+                className="text-white/45 underline underline-offset-2 hover:text-white/65 transition-colors"
+              >
                 Request a review context
               </Link>{' '}
               for auditable decisions.

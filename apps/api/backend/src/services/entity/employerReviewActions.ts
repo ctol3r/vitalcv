@@ -10,6 +10,12 @@ import type {
   CanonicalTruthDimensionId,
   CanonicalTruthStatus,
 } from '../../../../../../packages/trust-state';
+import type { EmployerReviewAttribution } from './employerReviewAttribution';
+import {
+  matchesEmployerReviewAttribution,
+  normalizeEmployerReviewAttribution,
+  resolveEmployerReviewAttribution,
+} from './employerReviewAttribution';
 
 export type EmployerReviewActionIntent = 'accept' | 'refresh' | 'review';
 export type EmployerReviewPriority = 'LOW' | 'NORMAL' | 'HIGH';
@@ -250,6 +256,7 @@ interface EmployerReviewActionAuditMetadata {
     facility: string | null;
     notes: string | null;
   };
+  attribution: EmployerReviewAttribution;
   /** Immutable trust state at time of decision — core of the audit trail.
    *  Optional for backwards compat: records written before a43b82d0 won't have it. */
   trustSnapshot?: DecisionTrustSnapshot;
@@ -261,6 +268,7 @@ export interface EmployerReviewActionState {
   clinicianNpi: string;
   auditEventId: string;
   timestamp: string;
+  attribution: EmployerReviewAttribution;
   persistence: EmployerReviewActionPersistence;
   summary: EmployerReviewActionSummary;
   details: EmployerReviewActionDetails;
@@ -312,6 +320,7 @@ type AuditWriter = {
       data: Prisma.AuditEventUncheckedCreateInput;
     }) => Promise<{ id: string; createdAt: Date }>;
     findFirst?: (args: Record<string, unknown>) => Promise<EmployerAuditEventRecord | null>;
+    findMany?: (args: Record<string, unknown>) => Promise<EmployerAuditEventRecord[]>;
   };
 };
 
@@ -435,6 +444,7 @@ function buildState(input: {
     clinicianNpi: input.metadata.clinicianNpi,
     auditEventId: input.auditEventId,
     timestamp: input.timestamp,
+    attribution: input.metadata.attribution,
     persistence: input.metadata.persistence,
     summary: input.metadata.summary,
     details: input.metadata.details,
@@ -474,6 +484,7 @@ function readMetadata(metadata: unknown): EmployerReviewActionAuditMetadata | nu
     summary: record.summary,
     details: record.details,
     context: record.context ?? { role: null, facility: null, notes: null },
+    attribution: normalizeEmployerReviewAttribution(record.attribution),
     trustSnapshot:
       record.trustSnapshot && typeof record.trustSnapshot === 'object'
         ? record.trustSnapshot
@@ -494,6 +505,7 @@ function buildEmployerReviewOutboxPayload(
     summary: metadata.summary,
     details: metadata.details,
     context: metadata.context,
+    attribution: metadata.attribution,
     trustSnapshot: metadata.trustSnapshot ?? null,
   });
 }
@@ -557,6 +569,7 @@ async function writeEmployerReviewAuditEvent(
       hash: actionHash,
       referenceId: input.referenceId,
       clinicianId: input.metadata.clinicianNpi,
+      organizationId: input.metadata.attribution.organizationId ?? undefined,
       anchored: false,
       metadata: toJsonValue({
         employerReviewAction: input.metadata,
@@ -588,12 +601,19 @@ export async function recordEmployerReviewAcceptance(input: {
   entityId: string;
   employerId: string;
   clinicianNpi: string;
+  organizationContextId?: unknown;
+  bundleId?: unknown;
   role?: unknown;
   facility?: unknown;
   notes?: unknown;
 }): Promise<EmployerReviewActionState> {
   const now = new Date();
   const requestId = randomUUID();
+  const attribution = await resolveEmployerReviewAttribution({
+    entityId: input.entityId,
+    organizationContextId: input.organizationContextId,
+    bundleId: input.bundleId,
+  });
   const context = {
     role: sanitizeString(input.role, 80),
     facility: sanitizeString(input.facility, 120),
@@ -643,6 +663,7 @@ export async function recordEmployerReviewAcceptance(input: {
           summary: buildActionSummary('accept', seededPersistence),
           details: buildEmptyDetails(),
           context,
+          attribution,
           trustSnapshot,
         },
       },
@@ -662,6 +683,7 @@ export async function recordEmployerReviewAcceptance(input: {
       summary: buildActionSummary('accept', persistence),
       details: buildEmptyDetails(),
       context,
+      attribution,
       trustSnapshot,
     };
 
@@ -688,6 +710,8 @@ export async function recordEmployerReviewRefreshRequest(input: {
   entityId: string;
   employerId: string;
   clinicianNpi: string;
+  organizationContextId?: unknown;
+  bundleId?: unknown;
   staleSources?: unknown;
   missingDomains?: unknown;
   message?: unknown;
@@ -695,6 +719,11 @@ export async function recordEmployerReviewRefreshRequest(input: {
   // Capture snapshot before write
   const trustSnapshot = await buildDecisionTrustSnapshot(input.clinicianNpi);
   const requestId = randomUUID();
+  const attribution = await resolveEmployerReviewAttribution({
+    entityId: input.entityId,
+    organizationContextId: input.organizationContextId,
+    bundleId: input.bundleId,
+  });
   const details = buildEmptyDetails({
     staleSources: sanitizeStringList(input.staleSources),
     missingDomains: sanitizeStringList(input.missingDomains),
@@ -724,6 +753,7 @@ export async function recordEmployerReviewRefreshRequest(input: {
         facility: null,
         notes: null,
       },
+      attribution,
       trustSnapshot,
     };
 
@@ -769,11 +799,18 @@ export async function recordEmployerReviewRouting(input: {
   entityId: string;
   employerId: string;
   clinicianNpi: string;
+  organizationContextId?: unknown;
+  bundleId?: unknown;
   reason?: unknown;
   priority?: unknown;
 }): Promise<EmployerReviewActionState> {
   const now = new Date();
   const requestId = randomUUID();
+  const attribution = await resolveEmployerReviewAttribution({
+    entityId: input.entityId,
+    organizationContextId: input.organizationContextId,
+    bundleId: input.bundleId,
+  });
   const normalizedPriority = normalizePriority(input.priority);
   const normalizedReason =
     sanitizeString(input.reason, 500)
@@ -829,6 +866,7 @@ export async function recordEmployerReviewRouting(input: {
         facility: null,
         notes: null,
       },
+      attribution,
       trustSnapshot,
     };
 
@@ -874,92 +912,61 @@ export async function loadEmployerReviewStatus(input: {
   entityId: string;
   employerId: string;
   clinicianNpi: string;
+  organizationContextId?: unknown;
+  bundleId?: unknown;
 }): Promise<EmployerReviewActionState | null> {
-  const [latestAcceptance, latestAuditOnly] = await Promise.all([
-    prisma.employerAcceptance.findFirst({
-      where: {
-        employerId: input.employerId,
-        clinicianNpi: input.clinicianNpi,
-        status: 'ACCEPTED',
-      },
-      select: {
-        id: true,
-        acceptedAt: true,
-        status: true,
-      },
-      orderBy: {
-        acceptedAt: 'desc',
-      },
-    }),
-    prisma.auditEvent.findFirst({
-      where: {
-        referenceId: input.entityId,
-        type: {
-          in: [
-            'EMPLOYER_REVIEW_REFRESH_REQUESTED',
-            'EMPLOYER_REVIEW_ROUTED_TO_REVIEW',
-          ],
-        },
-        metadata: {
-          path: ['employerReviewAction', 'employerId'],
-          equals: input.employerId,
-        },
-      },
-      select: {
-        id: true,
-        createdAt: true,
-        metadata: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    }),
-  ]);
+  const requestedAttribution = await resolveEmployerReviewAttribution({
+    entityId: input.entityId,
+    organizationContextId: input.organizationContextId,
+    bundleId: input.bundleId,
+  });
 
-  let latestAcceptanceState: EmployerReviewActionState | null = null;
-  if (latestAcceptance) {
-    const acceptanceAudit = await prisma.auditEvent.findFirst({
-      where: {
-        referenceId: latestAcceptance.id,
-        type: 'EMPLOYER_REVIEW_ACCEPTED',
-        metadata: {
-          path: ['employerReviewAction', 'employerId'],
-          equals: input.employerId,
-        },
+  const auditEvents = await prisma.auditEvent.findMany({
+    where: {
+      type: {
+        in: [
+          'EMPLOYER_REVIEW_ACCEPTED',
+          'EMPLOYER_REVIEW_REFRESH_REQUESTED',
+          'EMPLOYER_REVIEW_ROUTED_TO_REVIEW',
+        ],
       },
-      select: {
-        id: true,
-        createdAt: true,
-        metadata: true,
+      metadata: {
+        path: ['employerReviewAction', 'employerId'],
+        equals: input.employerId,
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    },
+    select: {
+      id: true,
+      createdAt: true,
+      metadata: true,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: 25,
+  });
 
-    const metadata = readMetadata(acceptanceAudit?.metadata);
-    if (acceptanceAudit && metadata) {
-      latestAcceptanceState = buildState({
-        auditEventId: acceptanceAudit.id,
-        timestamp: acceptanceAudit.createdAt.toISOString(),
-        metadata,
-      });
+  for (const auditEvent of auditEvents) {
+    const metadata = readMetadata(auditEvent.metadata);
+    if (!metadata) {
+      continue;
     }
+
+    if (
+      metadata.employerId !== input.employerId
+      || metadata.entityId !== input.entityId
+      || metadata.clinicianNpi !== input.clinicianNpi
+      || !matchesEmployerReviewAttribution(requestedAttribution, metadata.attribution)
+    ) {
+      continue;
+    }
+
+    return buildState({
+      auditEventId: auditEvent.id,
+      timestamp: auditEvent.createdAt.toISOString(),
+      metadata,
+    });
   }
 
-  const latestAuditOnlyMetadata = readMetadata(latestAuditOnly?.metadata);
-  const latestAuditOnlyState = latestAuditOnly && latestAuditOnlyMetadata
-    ? buildState({
-        auditEventId: latestAuditOnly.id,
-        timestamp: latestAuditOnly.createdAt.toISOString(),
-        metadata: latestAuditOnlyMetadata,
-      })
-    : null;
-
-  if (!latestAcceptanceState) return latestAuditOnlyState;
-  if (!latestAuditOnlyState) return latestAcceptanceState;
-
-  return Date.parse(latestAcceptanceState.timestamp) >= Date.parse(latestAuditOnlyState.timestamp)
-    ? latestAcceptanceState
-    : latestAuditOnlyState;
+  return null;
 }

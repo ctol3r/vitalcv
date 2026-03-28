@@ -111,12 +111,16 @@ export function registerEmployerActionRoutes(app: Express): void {
         role?:     string;
         facility?: string;
         notes?:    string;
+        organizationContextId?: string;
+        bundleId?: string;
       };
 
       const state = await recordEmployerReviewAcceptance({
         entityId,
         employerId,
         clinicianNpi: subject.clinicianNpi,
+        organizationContextId: req.body?.organizationContextId,
+        bundleId: req.body?.bundleId,
         role,
         facility,
         notes,
@@ -178,11 +182,15 @@ export function registerEmployerActionRoutes(app: Express): void {
         staleSources?:    string[];
         missingDomains?:  string[];
         message?:         string;
+        organizationContextId?: string;
+        bundleId?: string;
       };
       const state = await recordEmployerReviewRefreshRequest({
         entityId,
         employerId,
         clinicianNpi: subject.clinicianNpi,
+        organizationContextId: req.body?.organizationContextId,
+        bundleId: req.body?.bundleId,
         staleSources,
         missingDomains,
         message,
@@ -228,11 +236,18 @@ export function registerEmployerActionRoutes(app: Express): void {
       const subject = await resolveEmployerReviewSubject(entityId);
       if (!subject) throw new HttpError(404, `Entity ${entityId} not found.`);
 
-      const { reason, priority } = (req.body ?? {}) as { reason?: string; priority?: string };
+      const { reason, priority } = (req.body ?? {}) as {
+        reason?: string;
+        priority?: string;
+        organizationContextId?: string;
+        bundleId?: string;
+      };
       const state = await recordEmployerReviewRouting({
         entityId,
         employerId,
         clinicianNpi: subject.clinicianNpi,
+        organizationContextId: req.body?.organizationContextId,
+        bundleId: req.body?.bundleId,
         reason,
         priority,
       });
@@ -295,6 +310,12 @@ export function registerEmployerActionRoutes(app: Express): void {
         entityId,
         employerId,
         clinicianNpi: subject.clinicianNpi,
+        organizationContextId: typeof req.query.organizationContextId === 'string'
+          ? req.query.organizationContextId
+          : undefined,
+        bundleId: typeof req.query.bundleId === 'string'
+          ? req.query.bundleId
+          : undefined,
       });
 
       return void res.status(200).json({ ok: true, state });

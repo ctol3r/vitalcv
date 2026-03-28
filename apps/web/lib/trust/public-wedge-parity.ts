@@ -34,6 +34,7 @@ export function buildEmployerReviewHref(
   entityId: string,
   options: {
     contextId?: string | null;
+    bundleId?: string | null;
     from?: string | null;
   } = {},
 ): string {
@@ -41,6 +42,10 @@ export function buildEmployerReviewHref(
 
   if (typeof options.contextId === 'string' && options.contextId.trim().length > 0) {
     params.set('contextId', options.contextId.trim());
+  }
+
+  if (typeof options.bundleId === 'string' && options.bundleId.trim().length > 0) {
+    params.set('bundleId', options.bundleId.trim());
   }
 
   if (typeof options.from === 'string' && options.from.trim().length > 0) {
