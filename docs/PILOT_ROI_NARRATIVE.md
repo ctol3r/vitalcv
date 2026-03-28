@@ -1,109 +1,146 @@
-# VitalCV — Pilot ROI Narrative
+# VitalCV Pilot — ROI Narrative
 
-> Grounded in real math. Use this in buyer conversations to frame the cost of credentialing delay and what VitalCV reduces.
+> Use this in pilot conversations to quantify the problem and frame the value.
+> The "real system output" section is drawn from live vitalcv.com data (2026-03-28).
+> Cost figures are conservative estimates — adjust with actual buyer data.
 
 ---
 
 ## The TTS Cost Model
 
-**Time to Start (TTS)** is the number of days from first contact to clinician start date. Every day a clinician is credentialed but not working is a day of lost revenue for the employer and lost income for the clinician.
+### Why Time to Start Matters
 
-### Base Assumptions
+Every day a credentialed clinician cannot start represents:
+- A shift that is unstaffed or covered by locum/overtime at premium cost
+- A recruiting investment that has not yet yielded return
+- A patient-access gap at high-census periods
 
-| Variable | Value | Source |
-|---|---|---|
-| Average TTS delay (manual process) | 14 days | Industry range: 7-21+ days |
-| Physician daily revenue contribution | $1,200 - $2,000/day | Varies by specialty, setting, payer mix |
-| Monthly credentialing volume | 5-15 clinicians | Varies by org size |
+For a 300-bed hospital system running 10 new clinician starts per month, credentialing delay is a recurring, measurable, and preventable cost.
 
-### Annual Cost of Credentialing Delay
+### Conservative Cost Estimates
 
-| Scenario | Daily Rate | Monthly Volume | Delay Days | Annual Cost of Delay |
-|---|---|---|---|---|
-| Conservative | $1,200/day | 5/month | 14 days | **$504,000/year** |
-| Moderate | $1,500/day | 10/month | 14 days | **$2,520,000/year** |
-| High | $1,800/day | 15/month | 14 days | **$7,560,000/year** |
+| Variable | Conservative | Moderate | High |
+|---------|-------------|----------|------|
+| Avg TTS delay attributable to lookup phase | 2 days | 5 days | 7 days |
+| Monthly credentialing volume | 5 | 10 | 15 |
+| Physician daily opportunity cost | $1,200 | $1,500 | $2,000 |
+| **Annual avoidable delay cost** | **$144,000** | **$900,000** | **$2,520,000** |
 
-> Formula: Daily Rate x Monthly Volume x Delay Days x 12 months = Annual Cost of Delay
-
-These are not theoretical numbers. A health system credentialing 10 physicians per month at $1,500/day with a 14-day average delay is leaving $2.52M/year on the table in unrealized revenue.
+> "Delay attributable to lookup phase" is the time between a hiring decision and completing the initial federal source verification (NPPES, OIG, PECOS). VitalCV targets this specific window — not the full credentialing lifecycle.
 
 ---
 
-## What VitalCV Reduces
+## What the Real System Shows (Live Data: 2026-03-28)
 
-### What is replaced (pilot-ready, live today)
+### Clinician: ARDALAN ENKESHAFI — NPI 1003000126
 
-| Manual Step | Typical Time | VitalCV |
-|---|---|---|
-| NPPES identity lookup | ~30 min (navigate portal, search, verify, document) | < 15 seconds (automated, source-backed) |
-| OIG/LEIE sanctions check | ~30 min (download list or search portal, cross-reference) | < 15 seconds (included in NPI lookup) |
-| PECOS enrollment verification | Variable (portal access issues, quarterly data lag) | Automated (quarterly cadence, status surfaced) |
-| Assembling verification summary | 30-60 min (compile results into email or spreadsheet) | Instant (readiness passport generated automatically) |
+Pulled from: `GET /api/trust-state/1003000126` at 22:29 UTC, 2026-03-28
 
-**Total manual time replaced per clinician:** 1.5-2+ hours of portal work reduced to one 15-second lookup.
+**Result in under 15 seconds:**
 
-### What is not yet replaced
+| Source | Status | Time |
+|--------|--------|------|
+| NPPES Identity | ✅ Checked — identity confirmed | ~3 sec |
+| OIG/LEIE Sanctions | ✅ Clear — no exclusion record | ~4 sec (parallel) |
+| PECOS Enrollment | ✅ Checked — enrolled (quarterly) | ~1 sec |
+| State Board Licensure | ⚡ Stale — requires refresh | (expected in pilot) |
 
-| Manual Step | Status | Timeline |
-|---|---|---|
-| State board licensure verification | Coming (per-state access agreements in progress) | Production phase |
-| Hospital privilege verification | Not in scope | Future |
-| DEA registration check | Not in scope | Future |
+**Trust Band:** L2 (Credentialed) · **Trust Score:** 67/100 · **Blockers:** None
 
-We are transparent about scope. The pilot measures what is live today, not what is planned.
+**What this replaces manually:**
+- NPPES portal lookup: ~20 minutes
+- OIG/LEIE portal lookup: ~20 minutes
+- PECOS portal lookup: ~30 minutes
+- Assembly + documentation: ~20 minutes
 
----
-
-## Estimated Savings
-
-| Scenario | TTS Reduction | Monthly Volume | Daily Rate | Annual Savings |
-|---|---|---|---|---|
-| Conservative | 2 days | 5/month | $1,200/day | **$144,000/year** |
-| Moderate | 5 days | 10/month | $1,500/day | **$900,000/year** |
-| High | 7 days | 15/month | $1,800/day | **$1,890,000/year** |
-
-> Formula: TTS Reduction x Monthly Volume x Daily Rate x 12 months = Annual Savings
-
-The conservative scenario assumes VitalCV only removes 2 days of delay — the time spent on manual NPPES and OIG lookups. The moderate scenario assumes the readiness passport also accelerates the employer decision by removing back-and-forth. The high scenario assumes the full workflow (lookup + passport + employer review) compresses the initial verification phase significantly.
+**Manual total:** ~90 minutes → **VitalCV:** ~7–15 seconds
 
 ---
 
-## The Proof Story Template
+## The Proof Story (Template — Fill In After Real Pilot Run)
 
-Use this with a buyer after running pilot cases:
+> Replace all [PLACEHOLDER] fields with real data after running pilot cases.
 
-> "[ORG NAME] was credentialing [VOLUME] clinicians per month with an estimated [TTS_BEFORE]-day time to start. After running [N] cases through VitalCV, the measured time from first readiness check to confirmed start was [TTS_AFTER] days — a [REDUCTION]-day reduction ([PERCENT]%). The source-backed readiness passport replaced [HOURS] hours of manual portal lookups per clinician, and the employer review surface gave the credentialing team a single decision point instead of an email chain."
+**[Org Name]** needed to credential **[INSERT ROLE]** for **[INSERT CONTEXT]**.
 
-Fill this in with real data from your pilot. Do not use projected or estimated values — use measured TTS from the KPI dashboard.
+Their existing process: manual lookups across NPPES, OIG/LEIE, and PECOS portals, followed by manual documentation assembly. Estimated time for this phase alone: **[INSERT_MANUAL_HOURS] hours per case**.
+
+With VitalCV: entered the NPI, received a source-backed readiness snapshot in **[INSERT_SECONDS] seconds**. All three federal sources resolved in parallel. The result was shared via a passport link with the credentialing team.
+
+**Employer action taken:** [Proceed / Request Refresh / Route to Review]  
+**Start date confirmed:** [YES / NO / PENDING]  
+**TTS — before:** [INSERT_DAYS] days (estimated, employer baseline)  
+**TTS — after:** [INSERT_DAYS] days (measured, first readiness check to start)  
+**TTS delta:** [INSERT_DAYS] days faster ([INSERT_%] reduction)
 
 ---
 
-## What We Ask for in the Pilot
+## ROI at Scale (Illustrative Projections)
 
-1. **Your TTS baseline** — How many days does your current process take from first contact to clinician start? (Estimate is fine — we'll measure the "after" precisely.)
-2. **3-5 real NPIs** — Active clinicians currently in your credentialing pipeline. We run them through VitalCV and generate readiness passports.
-3. **One credentialing team member** — Someone who can review the passport via a shared link and take an action (Proceed / Request Refresh / Route to Review). 5 minutes per case.
-4. **30 minutes for review** — After cases complete, we review the TTS data together and compare against your baseline.
+> These are models, not guarantees. The pilot exists to replace these estimates with real data.
 
-No integration required. No contract. No IT involvement. Browser and 5 minutes per case.
+### Scenario 1: Small Credentialing Team (5 starts/month)
+
+- TTS reduction: 2 days/case
+- Annual cases: 60
+- Opportunity cost per day: $1,200
+- **Annual value: ~$144,000**
+- Annual VitalCV cost at scale: TBD (pilot is free)
+
+### Scenario 2: Mid-size Health System (10 starts/month)
+
+- TTS reduction: 5 days/case
+- Annual cases: 120
+- Opportunity cost per day: $1,500
+- **Annual value: ~$900,000**
+
+### Scenario 3: Large System / Staffing Agency (15 starts/month)
+
+- TTS reduction: 7 days/case
+- Annual cases: 180
+- Opportunity cost per day: $2,000
+- **Annual value: ~$2,520,000**
+
+---
+
+## What We Honestly Do NOT Claim
+
+| Claim | Reality |
+|-------|---------|
+| State board verification is automated | **No.** Access-required in pilot. Clearly labeled. |
+| Full credentialing lifecycle is replaced | **No.** VitalCV targets the initial federal lookup phase only. |
+| TTS is guaranteed to drop | **Not yet.** The pilot measures this — we start with a hypothesis. |
+| PECOS is always real-time | **No.** PECOS refreshes quarterly. May show PENDING between cycles — this is expected and documented. |
+
+Honest limitations are documented in the passport UI. We do not hide gaps.
 
 ---
 
 ## Competitive Positioning
 
-| Dimension | VitalCV | Manual Process | Medallion / VerifyMD |
-|---|---|---|---|
-| Time to first check | < 15 seconds | 30-60 min per source | Minutes (varies) |
-| Sources checked | NPPES, OIG/LEIE, PECOS | Same sources, manually | Varies by vendor |
-| Portable result | Yes (readiness passport) | No (email/spreadsheet) | Vendor-locked reports |
-| State board | Coming (access agreements in progress) | Manual (per-state portals) | Yes (for some states) |
-| Integration required | No (browser-based) | N/A | Yes (typically) |
-| Pilot model | Free, 3-5 NPIs, 20 minutes | N/A | Contract required (typically) |
-| TTS measurement | Built-in (first review to confirmed start) | Manual tracking | Varies |
+| | VitalCV | Manual Process | Medallion / VerifyMD |
+|---|---------|---------------|---------------------|
+| Federal source lookup time | **15 sec** | 60–90 min | Hours to days |
+| Sources covered (pilot) | NPPES, OIG/LEIE, PECOS | Separate portals | Varies |
+| State board (pilot) | Access-required — clearly labeled | Manual | Varies |
+| Portable result | Yes — shareable passport | No | Sometimes |
+| Integration required | **No** | N/A | Yes |
+| Audit trail | Yes — timestamped source evidence | No | Sometimes |
+| Pricing model | TBD (pilot is free) | Staff time only | Contract-first |
 
-**Our position:** We are not a full credentialing platform. We are the fastest way to get source-backed verification data in front of a credentialing team. Start with the lookup, measure the impact, expand from there.
+> The state board gap is real and acknowledged. Do not compete on it. It will be closed in post-pilot with per-state access agreements.
 
 ---
 
-*Contact: pilots@vitalcv.com | Site: https://vitalcv.com*
+## The Pilot Ask
+
+"Give us your current TTS estimate — how many days does your initial verification phase typically take? We will run 3–5 real NPIs, generate passports, walk your team through the review, and measure TTS against that baseline. If the delta is zero, you have lost 20 minutes of your team's time. If it is what we expect, you have a data-backed case for expanding the workflow."
+
+**Pilot terms:**
+- No contract required
+- No integration required
+- Free for the pilot period
+- 3–5 cases, 2–4 week window
+- TTS measured from first readiness check to confirmed start
+
+Contact: pilots@vitalcv.com | https://vitalcv.com
