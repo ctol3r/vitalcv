@@ -34,6 +34,8 @@ import {
   getPublicWedgeSurfaceBadgeMeta,
   type PublicWedgeSurfaceState,
 } from '@/lib/trust/public-wedge-parity';
+import { trackPilotEvent } from '@/lib/pilot-ops/client';
+import { UX_EVENTS } from '@/lib/analytics/ux-events';
 
 // ── Status label helper ────────────────────────────────────────────────────────
 
@@ -204,6 +206,15 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
       void startIngest(initialNpi);
     }
   }, [initialNpi, startIngest]);
+
+  useEffect(() => {
+    void trackPilotEvent({
+      eventType: UX_EVENTS.PASSPORT_VIEWED,
+      route: '/passport',
+      oncePerSession: true,
+      message: 'Passport page viewed',
+    });
+  }, []);
 
   const isActive = state.phase !== 'idle';
   const hasTerminalState = Boolean(state.completedAt) || state.phase === 'done' || state.phase === 'error';

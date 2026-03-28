@@ -14,7 +14,7 @@
  *   not_signed_in  → sign-in prompt (Clerk enabled) or direct form (no Clerk)
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,8 @@ import {
   CLERK_PROVIDER_ENABLED,
   CLERK_SIGN_IN_URL,
 } from '@/lib/auth/clerkConfig';
+import { trackPilotEvent } from '@/lib/pilot-ops/client';
+import { UX_EVENTS } from '@/lib/analytics/ux-events';
 
 interface ReviewRequestResult {
   contextId: string;
@@ -49,6 +51,15 @@ export function RequestReviewPanel() {
   const lastNpiRef = useRef<string>('');
 
   const { isLoaded, isSignedIn } = useRoleContext();
+
+  useEffect(() => {
+    void trackPilotEvent({
+      eventType: UX_EVENTS.REVIEW_REQUESTED,
+      route: '/review/request',
+      oncePerSession: true,
+      message: 'Review request page viewed',
+    });
+  }, []);
 
   async function submitRequest(npiValue: string) {
     setNpiError(null);
@@ -90,6 +101,12 @@ export function RequestReviewPanel() {
 
       setResult(data);
       setPhase('done');
+      void trackPilotEvent({
+        eventType: UX_EVENTS.REVIEW_REQUESTED,
+        route: '/review/request',
+        oncePerSession: false,
+        message: 'Review context submitted',
+      });
     } catch {
       setErrorMsg('Request failed. Check your connection and try again.');
       setPhase('error');

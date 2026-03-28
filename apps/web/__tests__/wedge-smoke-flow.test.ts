@@ -218,3 +218,30 @@ describe('KPI event type contract', () => {
     expect(values).toContain('share_intent');
   });
 });
+
+describe('KPI funnel instrumentation completeness', () => {
+  it('UX_EVENTS includes PASSPORT_VIEWED', async () => {
+    const { UX_EVENTS } = await import('../lib/analytics/ux-events');
+    expect(UX_EVENTS.PASSPORT_VIEWED).toBe('passport_viewed');
+  });
+
+  it('UX_EVENTS includes REVIEW_REQUESTED', async () => {
+    const { UX_EVENTS } = await import('../lib/analytics/ux-events');
+    expect(UX_EVENTS.REVIEW_REQUESTED).toBe('review_requested');
+  });
+
+  it('PilotMetricEventType covers full wedge funnel', async () => {
+    const { UX_EVENTS } = await import('../lib/analytics/ux-events');
+    const wedgeFunnel = [
+      UX_EVENTS.NPI_SUBMIT_ATTEMPT,
+      UX_EVENTS.READINESS_REVEALED,
+      UX_EVENTS.PASSPORT_VIEWED,
+      UX_EVENTS.REVIEW_REQUESTED,
+      UX_EVENTS.EMPLOYER_ACTION_CLICKED,
+    ];
+    for (const event of wedgeFunnel) {
+      expect(typeof event).toBe('string');
+      expect(event.length).toBeGreaterThan(0);
+    }
+  });
+});

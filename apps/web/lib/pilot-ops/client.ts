@@ -36,7 +36,10 @@ export type PilotMetricEventType =
   | 'interview_blocked_view'
   | 'page_load_timing'
   | 'dead_end_reached'
-  | 'nav_item_clicked';
+  | 'nav_item_clicked'
+  | 'passport_viewed'
+  | 'review_requested'
+  | 'review_opened';
 
 export interface PilotEntityContext {
   kind?: string | null;

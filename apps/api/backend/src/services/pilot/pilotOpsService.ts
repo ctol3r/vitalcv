@@ -28,6 +28,9 @@ export const PILOT_METRIC_EVENT_TYPES = [
   'support_triggered',
   'auth_failure',
   'route_failure',
+  'passport_viewed',
+  'review_requested',
+  'review_opened',
 ] as const;
 
 export const PILOT_QUEUE_STATUSES = [
@@ -144,6 +147,9 @@ export interface PilotOpsMetrics {
   onboardingStarted: number;
   onboardingCompleted: number;
   readinessViewed: number;
+  passportViewed: number;
+  reviewRequested: number;
+  reviewOpened: number;
   blockerOpened: number;
   blockerResolved: number;
   opportunityViewed: number;
@@ -987,6 +993,9 @@ export async function getPilotOpsSummary(options: {
       onboardingStarted: metricEventCount(metricRows, 'onboarding_started'),
       onboardingCompleted: metricEventCount(metricRows, 'onboarding_completed'),
       readinessViewed: metricEventCount(metricRows, 'readiness_viewed'),
+      passportViewed: metricEventCount(metricRows, 'passport_viewed'),
+      reviewRequested: metricEventCount(metricRows, 'review_requested'),
+      reviewOpened: metricEventCount(metricRows, 'review_opened'),
       blockerOpened: metricEventCount(metricRows, 'blocker_opened'),
       blockerResolved: metricEventCount(metricRows, 'blocker_resolved'),
       opportunityViewed: metricEventCount(metricRows, 'opportunity_viewed'),

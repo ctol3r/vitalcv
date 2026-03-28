@@ -20,4 +20,6 @@ export const UX_EVENTS = {
   PAGE_LOAD_TIMING: 'page_load_timing',
   DEAD_END_REACHED: 'dead_end_reached',
   NAV_ITEM_CLICKED: 'nav_item_clicked',
+  PASSPORT_VIEWED: 'passport_viewed',
+  REVIEW_REQUESTED: 'review_requested',
 } as const satisfies Record<string, import('@/lib/pilot-ops/client').PilotMetricEventType>;
