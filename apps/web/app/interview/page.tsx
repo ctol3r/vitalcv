@@ -55,9 +55,11 @@ export default async function InterviewPage({
   if (!entityId && !npi) {
     return (
       <InterviewBlockedState
-        title="This view needs a homepage NPI lookup before it can open."
-        description="This route does not have NPI lookup context yet. Start from the homepage lookup, then continue from the readiness snapshot once the current source states are visible."
+        title="Start with an NPI to open this view."
+        description="Enter your NPI from the passport page to get a real readiness snapshot first, then continue here once source checks are visible."
         telemetryReason="missing_npi_context"
+        primaryHref="/passport"
+        primaryLabel="Go to passport"
       />
     );
   }
