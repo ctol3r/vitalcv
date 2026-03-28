@@ -21,6 +21,10 @@ import type {
   EmployerReviewActionState,
   DecisionTrustSnapshot,
 } from '../lib/employer-review-actions';
+import {
+  CANONICAL_SOURCE_COVERAGE_STATES,
+  LAUNCH_SPINE_SOURCE_IDS,
+} from '../../../packages/trust-state';
 
 const SAMPLE_NPI = '1003000126';
 const SAMPLE_ENTITY_ID = 'entity_abc123';
@@ -158,5 +162,59 @@ describe('wedge smoke flow', () => {
         /^\/api\/employer-review\/[^/]+\/route-to-review$/,
       );
     });
+  });
+});
+
+describe('readiness lane state constants', () => {
+  it('CANONICAL_SOURCE_COVERAGE_STATES includes the 4 core lane states', () => {
+    expect(CANONICAL_SOURCE_COVERAGE_STATES).toContain('checked');
+    expect(CANONICAL_SOURCE_COVERAGE_STATES).toContain('pending');
+    expect(CANONICAL_SOURCE_COVERAGE_STATES).toContain('accessRequired');
+    expect(CANONICAL_SOURCE_COVERAGE_STATES).toContain('stale');
+  });
+
+  it('no coverage state is an empty string', () => {
+    for (const state of CANONICAL_SOURCE_COVERAGE_STATES) {
+      expect(state.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('LAUNCH_SPINE_SOURCE_IDS covers the 4 pilot ingest sources', () => {
+    expect(LAUNCH_SPINE_SOURCE_IDS).toContain('NPPES_API');
+    expect(LAUNCH_SPINE_SOURCE_IDS).toContain('OIG_LEIE');
+    expect(LAUNCH_SPINE_SOURCE_IDS).toContain('PECOS_PUBLIC');
+    expect(LAUNCH_SPINE_SOURCE_IDS).toContain('STATE_BOARD');
+    expect(LAUNCH_SPINE_SOURCE_IDS).toHaveLength(4);
+  });
+});
+
+describe('KPI event type contract', () => {
+  it('UX_EVENTS contains core wedge funnel events', async () => {
+    const { UX_EVENTS } = await import('../lib/analytics/ux-events');
+    const values = Object.values(UX_EVENTS);
+    expect(values).toContain('npi_submit_attempt');
+    expect(values).toContain('readiness_revealed');
+    expect(values).toContain('employer_action_clicked');
+  });
+
+  it('no UX event type is an empty string', async () => {
+    const { UX_EVENTS } = await import('../lib/analytics/ux-events');
+    for (const value of Object.values(UX_EVENTS)) {
+      expect(value.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('UX_EVENTS keys follow SCREAMING_SNAKE naming convention', async () => {
+    const { UX_EVENTS } = await import('../lib/analytics/ux-events');
+    for (const key of Object.keys(UX_EVENTS)) {
+      expect(key).toMatch(/^[A-Z][A-Z0-9_]+$/);
+    }
+  });
+
+  it('UX_EVENTS covers dead-end and share-intent friction signals', async () => {
+    const { UX_EVENTS } = await import('../lib/analytics/ux-events');
+    const values = Object.values(UX_EVENTS);
+    expect(values).toContain('dead_end_reached');
+    expect(values).toContain('share_intent');
   });
 });
