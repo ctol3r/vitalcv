@@ -25,6 +25,7 @@ import Link from 'next/link';
 
 import { useState } from 'react';
 import { SectionReveal } from '@/components/motion/ScrollMotion';
+import { resolveLivePathReadinessStatus } from '@/lib/live-path/contracts';
 import { Accordion } from '@/components/ui/accordion';
 import type { AccordionItem } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
@@ -49,6 +50,7 @@ import {
   type PassportSourceCoverageCheck,
 } from '@/lib/trust/source-coverage';
 import type { VdsTrustStatus } from '@/lib/trust/status-language';
+import { PUBLIC_WEDGE_ROUTE_TARGETS } from '@/lib/trust/public-wedge-parity';
 
 // ── Status configuration ──────────────────────────────────────────────────────
 // NO colour on status. Hierarchy via opacity only.
@@ -505,7 +507,10 @@ export default function PassportWallet({ passport }: Props) {
         }),
       });
 
-      if (!res.ok) throw new Error('Share failed. Try again.');
+      if (!res.ok) {
+        if (res.status === 401) throw new Error('Sign in to share this passport with an employer.');
+        throw new Error('Share failed. Try again.');
+      }
       setShared(true);
     } catch (err) {
       setShareError(err instanceof Error ? err.message : 'Share failed.');
@@ -533,7 +538,13 @@ export default function PassportWallet({ passport }: Props) {
             <p className="text-white/50 text-sm mt-0.5">{identity.specialty}</p>
           )}
 
-          {/* Status pill removed to match spec, keeping just Name and Specialty locally here */}
+          {/* Readiness status — employer-visible trust level */}
+          <div className="mt-3">
+            <TrustStatusBadge
+              status={resolveLivePathReadinessStatus(readiness.status)}
+              size="sm"
+            />
+          </div>
         </Card>
 
         {/* ── Trust Posture ─────────────────────────────────────────────────── */}
@@ -629,7 +640,7 @@ export default function PassportWallet({ passport }: Props) {
         {/* ── Footer nav ───────────────────────────────────────────────────── */}
         <div className="text-center pt-2">
           <Link
-            href="/passport"
+            href={PUBLIC_WEDGE_ROUTE_TARGETS.passportEntry}
             className="text-white/20 hover:text-white/40 text-xs transition-colors"
           >
             View another NPI
