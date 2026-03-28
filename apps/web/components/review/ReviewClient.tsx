@@ -275,7 +275,7 @@ function buildEligibilityRow(passport: PassportData, status: 'ENROLLED' | 'NOT_F
 interface Props {
   passport:   PassportData;
   contextId?: string;
-  bundleId?: string;
+  bundleId?:  string;
   sharedBy?:  string;
 }
 
@@ -696,7 +696,8 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
         </div>
 
         {/* ── Share context (if accessed via share link) ───────────────────── */}
-        {(sharedBy || contextId || bundleId) && (
+        {/* ── Review context attribution ────────────────────────────────────── */}
+        {(sharedBy || contextId || bundleId) ? (
           <Card className="gap-2 rounded-xl border-white/8 bg-white/[0.03] px-4 py-3 shadow-none">
             {sharedBy && (
               <div className="flex justify-between text-xs">
@@ -725,9 +726,8 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
               <span className="text-white/45">Actions tied to this context</span>
             </div>
           </Card>
-        )}
-        {/* No context — direct view, actions not context-attributed */}
-        {!sharedBy && !contextId && !bundleId && (
+        ) : (
+          /* No context — direct view without employer-initiated context */
           <Card className="gap-2 rounded-xl border-amber-500/15 bg-amber-500/5 px-4 py-3 shadow-none">
             <div className="flex justify-between text-xs">
               <span className="text-white/35">Review context</span>
@@ -735,7 +735,10 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
             </div>
             <p className="text-[10px] text-white/28 leading-relaxed mt-0.5">
               Actions here are not tied to a confirmed employer context.{' '}
-              <Link href="/review/request" className="text-white/45 underline underline-offset-2 hover:text-white/65 transition-colors">
+              <Link
+                href="/review/request"
+                className="text-white/45 underline underline-offset-2 hover:text-white/65 transition-colors"
+              >
                 Request a review context
               </Link>{' '}
               for auditable decisions.

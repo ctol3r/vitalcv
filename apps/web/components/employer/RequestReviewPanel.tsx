@@ -1,26 +1,26 @@
 'use client';
 
-import React from 'react';
-
 /**
- * RequestReviewPanel — Employer-initiated org context creation.
+ * RequestReviewPanel — Employer-initiated review context creation.
  *
- * Flow:
- *   1. Employer enters clinician NPI
- *   2. POST /api/request-review → backend creates vcvOrganizationContext
- *   3. Returns a review link: /review/[entityId]?contextId=[contextId]
- *   4. Employer copies link and sends to clinician (or opens directly)
+ * States:
+ *   idle           → NPI form
+ *   loading        → creating context
+ *   needs_setup    → employer workspace not found; shows EmployerWorkspaceSetup inline
+ *   done           → context created, review link ready
+ *   error          → generic error with retry
  *
- * Auth: requires employer workspace sign-in.
- * If not signed in, shows a clear sign-in prompt.
+ * Auth:
+ *   not_signed_in  → sign-in prompt (Clerk enabled) or direct form (no Clerk)
  */
 
-import { useState, useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
+import { EmployerWorkspaceSetup } from './EmployerWorkspaceSetup';
 import { useRoleContext } from '@/components/auth/RoleContext';
 import {
   CLERK_PROVIDER_ENABLED,
@@ -36,7 +36,7 @@ interface ReviewRequestResult {
   status: string;
 }
 
-type Phase = 'idle' | 'loading' | 'done' | 'error';
+type Phase = 'idle' | 'loading' | 'needs_setup' | 'done' | 'error';
 
 export function RequestReviewPanel() {
   const [npi, setNpi] = useState('');
@@ -44,37 +44,46 @@ export function RequestReviewPanel() {
   const [phase, setPhase] = useState<Phase>('idle');
   const [result, setResult] = useState<ReviewRequestResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [setupHint, setSetupHint] = useState<string | undefined>(undefined);
   const [copied, setCopied] = useState(false);
-  const autoTriggered = useRef(false);
+  const lastNpiRef = useRef<string>('');
 
   const { isLoaded, isSignedIn } = useRoleContext();
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const trimmed = npi.trim();
-    if (!/^\d{10}$/.test(trimmed)) {
-      setNpiError('Enter a valid 10-digit NPI.');
-      return;
-    }
+  async function submitRequest(npiValue: string) {
     setNpiError(null);
     setPhase('loading');
     setResult(null);
     setErrorMsg(null);
     setCopied(false);
+    lastNpiRef.current = npiValue;
 
     try {
       const res = await fetch('/api/request-review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ npi: trimmed }),
+        body: JSON.stringify({ npi: npiValue }),
       });
 
-      const data = await res.json() as ReviewRequestResult & { error?: string; hint?: string };
+      const data = await res.json() as ReviewRequestResult & {
+        error?: string;
+        hint?: string;
+      };
 
       if (!res.ok) {
-        const msg = data.error ?? 'Could not create review context.';
-        const hint = data.hint ? `\n${data.hint}` : '';
-        setErrorMsg(msg + hint);
+        // Employer workspace not registered — show bootstrap inline
+        if (res.status === 404 && data.hint?.includes('VcvEntity')) {
+          setSetupHint(data.hint);
+          setPhase('needs_setup');
+          return;
+        }
+        if (res.status === 422 && data.hint?.includes('VcvEntity')) {
+          setSetupHint(data.hint);
+          setPhase('needs_setup');
+          return;
+        }
+
+        setErrorMsg(data.error ?? 'Could not create review context.');
         setPhase('error');
         return;
       }
@@ -87,15 +96,23 @@ export function RequestReviewPanel() {
     }
   }
 
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = npi.trim();
+    if (!/^\d{10}$/.test(trimmed)) {
+      setNpiError('Enter a valid 10-digit NPI.');
+      return;
+    }
+    void submitRequest(trimmed);
+  }
+
   async function handleCopy() {
     if (!result?.reviewUrl) return;
     try {
       await navigator.clipboard.writeText(result.reviewUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 3000);
-    } catch {
-      // Fallback: select the text
-    }
+    } catch { /* silent — URL visible in DOM */ }
   }
 
   function handleReset() {
@@ -105,10 +122,10 @@ export function RequestReviewPanel() {
     setNpi('');
     setNpiError(null);
     setCopied(false);
-    autoTriggered.current = false;
+    setSetupHint(undefined);
   }
 
-  // Not signed in — show sign-in prompt
+  // Not signed in
   if (CLERK_PROVIDER_ENABLED && isLoaded && !isSignedIn) {
     return (
       <TrustStateCard
@@ -142,7 +159,8 @@ export function RequestReviewPanel() {
         </p>
       </div>
 
-      {phase === 'idle' || phase === 'error' ? (
+      {/* NPI form — idle or error */}
+      {(phase === 'idle' || phase === 'error') && (
         <form onSubmit={handleSubmit} className="space-y-3">
           <label htmlFor="employer-npi" className="sr-only">Clinician NPI</label>
           <Input
@@ -158,12 +176,10 @@ export function RequestReviewPanel() {
             placeholder="Clinician NPI (10 digits)"
             className="h-14 w-full rounded-xl border-white/12 bg-white/6 px-4 text-[16px] text-white placeholder:text-white/30 shadow-none focus-visible:border-white/30 focus-visible:bg-white/8 focus-visible:ring-white/10"
           />
-          {npiError && (
-            <p className="text-xs text-red-400/70">{npiError}</p>
-          )}
-          {errorMsg && (
+          {npiError && <p className="text-xs text-red-400/70">{npiError}</p>}
+          {phase === 'error' && errorMsg && (
             <Card className="rounded-xl border-rose-500/20 bg-rose-500/8 px-4 py-3 shadow-none">
-              <p className="text-sm text-rose-300/80 leading-relaxed whitespace-pre-line">{errorMsg}</p>
+              <p className="text-sm text-rose-300/80 leading-relaxed">{errorMsg}</p>
             </Card>
           )}
           <Button
@@ -175,14 +191,35 @@ export function RequestReviewPanel() {
             Create review context
           </Button>
         </form>
-      ) : phase === 'loading' ? (
+      )}
+
+      {/* Loading */}
+      {phase === 'loading' && (
         <Card className="rounded-xl border-white/8 bg-white/3 px-5 py-6 shadow-none text-center">
           <p className="text-white/50 text-sm">Creating review context…</p>
-          <p className="mt-1 text-white/25 text-xs">Resolving NPI and registering context with the audit trail.</p>
+          <p className="mt-1 text-white/25 text-xs">Resolving NPI and registering context.</p>
         </Card>
-      ) : result ? (
+      )}
+
+      {/* Needs workspace setup */}
+      {phase === 'needs_setup' && (
+        <EmployerWorkspaceSetup
+          hint={setupHint}
+          onSetupComplete={() => {
+            // Auto-retry context creation after workspace is set up
+            const npiToRetry = lastNpiRef.current;
+            if (npiToRetry) {
+              void submitRequest(npiToRetry);
+            } else {
+              setPhase('idle');
+            }
+          }}
+        />
+      )}
+
+      {/* Success */}
+      {phase === 'done' && result && (
         <div className="space-y-4 animate-fade-in-up">
-          {/* Context created confirmation */}
           <Card className="rounded-xl border-emerald-500/20 bg-emerald-500/8 px-5 py-4 shadow-none">
             <div className="flex items-center gap-2">
               <span className="text-emerald-400 text-sm">✔</span>
@@ -201,13 +238,13 @@ export function RequestReviewPanel() {
             </div>
           </Card>
 
-          {/* Review link */}
           <Card className="rounded-xl border-white/8 bg-white/3 px-5 py-4 shadow-none space-y-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
               Review link
             </p>
             <p className="text-xs leading-relaxed text-white/40">
-              Send this to the clinician, or open it yourself to see their passport in employer review mode.
+              Send this to the clinician, or open it yourself to see their passport in employer
+              review mode. Employer actions on this review will be recorded in the audit trail.
             </p>
             <div className="rounded-lg border border-white/8 bg-black/15 px-3 py-2">
               <p className="text-[11px] font-mono text-white/55 break-all">{result.reviewUrl}</p>
@@ -228,9 +265,8 @@ export function RequestReviewPanel() {
             </div>
           </Card>
 
-          {/* Attribution note */}
           <p className="text-center text-white/20 text-xs leading-relaxed">
-            Employer actions on this review will be recorded against context{' '}
+            Employer actions on this review are recorded against context{' '}
             <span className="font-mono">{result.contextId.slice(0, 8)}…</span> in the audit trail.
           </p>
 
@@ -242,7 +278,7 @@ export function RequestReviewPanel() {
             Request another review
           </Button>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
