@@ -275,6 +275,7 @@ function buildEligibilityRow(passport: PassportData, status: 'ENROLLED' | 'NOT_F
 interface Props {
   passport:   PassportData;
   contextId?: string;
+  bundleId?: string;
   sharedBy?:  string;
 }
 
@@ -380,15 +381,41 @@ type EmployerActionEndpoint = 'accept' | 'request-refresh' | 'route-to-review';
 
 const API = '';
 
+function buildReviewScopeSearchParams(scope?: {
+  contextId?: string;
+  bundleId?: string;
+}): string {
+  const params = new URLSearchParams();
+
+  if (scope?.contextId) {
+    params.set('organizationContextId', scope.contextId);
+  }
+
+  if (scope?.bundleId) {
+    params.set('bundleId', scope.bundleId);
+  }
+
+  const query = params.toString();
+  return query ? `?${query}` : '';
+}
+
 async function postAction(
   entityId: string,
   endpoint: 'accept' | 'request-refresh' | 'route-to-review',
   body?: Record<string, unknown>,
+  scope?: {
+    contextId?: string;
+    bundleId?: string;
+  },
 ): Promise<EmployerReviewActionResponse> {
   const res = await fetch(`${API}/api/employer-review/${entityId}/${endpoint}`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body ?? {}),
+    body: JSON.stringify({
+      ...(body ?? {}),
+      ...(scope?.contextId ? { organizationContextId: scope.contextId } : {}),
+      ...(scope?.bundleId ? { bundleId: scope.bundleId } : {}),
+    }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({})) as { error_description?: string };
@@ -397,10 +424,19 @@ async function postAction(
   return res.json() as Promise<EmployerReviewActionResponse>;
 }
 
-async function getPersistedActionState(entityId: string): Promise<EmployerReviewActionState | null> {
-  const res = await fetch(`${API}/api/employer-review/${entityId}/status`, {
-    headers: { Accept: 'application/json' },
-  });
+async function getPersistedActionState(
+  entityId: string,
+  scope?: {
+    contextId?: string;
+    bundleId?: string;
+  },
+): Promise<EmployerReviewActionState | null> {
+  const res = await fetch(
+    `${API}/api/employer-review/${entityId}/status${buildReviewScopeSearchParams(scope)}`,
+    {
+      headers: { Accept: 'application/json' },
+    },
+  );
   if (!res.ok) {
     const err = await res.json().catch(() => ({})) as { error_description?: string };
     throw new Error(err.error_description ?? `Status lookup failed (${res.status})`);
@@ -410,7 +446,7 @@ async function getPersistedActionState(entityId: string): Promise<EmployerReview
   return payload.state ?? null;
 }
 
-export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
+export default function ReviewClient({ passport, contextId, bundleId, sharedBy }: Props) {
   const [actionState, setActionState] = useState<ActionState>({ phase: 'idle' });
   const [persistedActionState, setPersistedActionState] = useState<EmployerReviewActionState | null>(null);
   const { isLoaded, isSignedIn, isEmployer } = useRoleContext();
@@ -478,13 +514,13 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
         auth_state: authState,
         blockers_count: blocked.length,
         interaction_result: canPersistActions ? 'ready' : 'preview_only',
-        shared_context: Boolean(sharedBy || contextId),
+        shared_context: Boolean(sharedBy || contextId || bundleId),
         source_mode: 'live',
       },
     });
 
     reviewOpenedTrackedRef.current = true;
-  }, [authState, blocked.length, canPersistActions, contextId, isLoaded, sharedBy]);
+  }, [authState, blocked.length, bundleId, canPersistActions, contextId, isLoaded, sharedBy]);
 
   useEffect(() => {
     if (!canPersistActions) {
@@ -498,7 +534,10 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
 
     void (async () => {
       try {
-        const state = await getPersistedActionState(passport.entityId);
+        const state = await getPersistedActionState(passport.entityId, {
+          contextId,
+          bundleId,
+        });
         if (!cancelled && mountedRef.current) {
           setPersistedActionState(state);
         }
@@ -512,7 +551,7 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [canPersistActions, passport.entityId]);
+  }, [bundleId, canPersistActions, contextId, passport.entityId]);
 
   function trackEmployerActionClicked(action: EmployerReviewActionIntent) {
     trackUxEvent({
@@ -563,7 +602,12 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
     }
 
     try {
-      const result = await postAction(passport.entityId, config.endpoint, config.body);
+      const result = await postAction(
+        passport.entityId,
+        config.endpoint,
+        config.body,
+        { contextId, bundleId },
+      );
       if (!mountedRef.current) return;
 
       setPersistedActionState(result.state);
@@ -652,7 +696,7 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
         </div>
 
         {/* ── Share context (if accessed via share link) ───────────────────── */}
-        {(sharedBy || contextId) && (
+        {(sharedBy || contextId || bundleId) && (
           <Card className="gap-2 rounded-xl border-white/8 bg-white/[0.03] px-4 py-3 shadow-none">
             {sharedBy && (
               <div className="flex justify-between text-xs">
@@ -670,6 +714,32 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
                 <span className="text-white/45 font-mono">{contextId.slice(0, 8)}…</span>
               </div>
             )}
+            {bundleId && (
+              <div className="flex justify-between text-xs mt-1">
+                <span className="text-white/35">Bundle review</span>
+                <span className="text-white/45 font-mono">{bundleId.slice(0, 8)}…</span>
+              </div>
+            )}
+            <div className="flex justify-between text-xs mt-1">
+              <span className="text-white/35">Audit trail</span>
+              <span className="text-white/45">Actions tied to this context</span>
+            </div>
+          </Card>
+        )}
+        {/* No context — direct view, actions not context-attributed */}
+        {!sharedBy && !contextId && !bundleId && (
+          <Card className="gap-2 rounded-xl border-amber-500/15 bg-amber-500/5 px-4 py-3 shadow-none">
+            <div className="flex justify-between text-xs">
+              <span className="text-white/35">Review context</span>
+              <span className="text-amber-300/70">None — direct view</span>
+            </div>
+            <p className="text-[10px] text-white/28 leading-relaxed mt-0.5">
+              Actions here are not tied to a confirmed employer context.{' '}
+              <Link href="/review/request" className="text-white/45 underline underline-offset-2 hover:text-white/65 transition-colors">
+                Request a review context
+              </Link>{' '}
+              for auditable decisions.
+            </p>
           </Card>
         )}
 

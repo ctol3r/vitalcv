@@ -1,3 +1,4 @@
+import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
@@ -6,7 +7,7 @@ import { PUBLIC_WEDGE_ROUTE_TARGETS } from '@/lib/trust/public-wedge-parity';
 export default function ReviewLandingPage() {
   return (
     <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center justify-center px-4">
-      <div className="w-full max-w-sm animate-fade-in-up">
+      <div className="w-full max-w-sm animate-fade-in-up space-y-4">
         <TrustStateCard
           eyebrow="Employer review"
           title="Open a shared passport review"
@@ -31,6 +32,13 @@ export default function ReviewLandingPage() {
             </div>
           )}
         />
+        {/* Employer path */}
+        <div className="text-center pt-2">
+          <p className="text-white/25 text-xs mb-2">Are you an employer?</p>
+          <Button asChild variant="outline" className="h-10 rounded-full border-white/10 bg-white/4 text-xs text-white/55 hover:border-white/20 hover:bg-white/7 hover:text-white">
+            <Link href="/review/request">Request a passport review</Link>
+          </Button>
+        </div>
       </div>
     </main>
   );
