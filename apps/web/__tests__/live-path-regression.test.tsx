@@ -1028,20 +1028,20 @@ describe('live path regression hardening', () => {
     await clickByText(view.container, 'Accept as head start');
     await flush();
 
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      1,
-      `/api/employer-review/${passport.entityId}/status`,
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/employer-review/${passport.entityId}/status?organizationContextId=ctx_employer`,
       {
         headers: { Accept: 'application/json' },
       },
     );
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
+    expect(fetchMock).toHaveBeenCalledWith(
       `/api/employer-review/${passport.entityId}/accept`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          organizationContextId: 'ctx_employer',
+        }),
       },
     );
     expect(textContent(view.container)).toContain('Head start accepted');
@@ -1114,8 +1114,7 @@ describe('live path regression hardening', () => {
     await clickByText(view.container, 'Route to review');
     await flush();
 
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
+    expect(fetchMock).toHaveBeenCalledWith(
       `/api/employer-review/${passport.entityId}/route-to-review`,
       {
         method: 'POST',
@@ -1123,6 +1122,7 @@ describe('live path regression hardening', () => {
         body: JSON.stringify({
           reason: 'Employer routed to review. Blockers: DEA_REGISTRATION, dea registration',
           priority: 'HIGH',
+          organizationContextId: 'ctx_review',
         }),
       },
     );
