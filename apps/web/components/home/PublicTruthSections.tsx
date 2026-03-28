@@ -61,7 +61,7 @@ export function InterviewModeTeaser() {
                     After your NPI lookup, VitalCV turns that readiness snapshot into a passport view for employer conversations. Sections stay explicitly labeled until backed by a real source run.
                   </p>
                   <Link
-                    href="/interview"
+                    href="/passport"
                     className="inline-flex items-center justify-center gap-2 min-h-[48px] rounded-xl bg-emerald-500 hover:bg-emerald-400 px-6 text-sm font-bold text-white transition-all active:scale-[0.98] shadow-[0_0_24px_rgba(16,185,129,0.2)] w-full sm:w-auto"
                   >
                     Preview Passport Proof
