@@ -5,6 +5,10 @@ import { ProofDetailsList } from '@/components/trust/ProofDetailsList';
 import type { AccordionItem } from '@/components/ui/accordion';
 import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
 import {
+  getPublicWedgeSurfaceStateLabel,
+  resolvePublicWedgeSurfaceStateFromTruth,
+} from '@/lib/trust/public-wedge-parity';
+import {
   formatAsOfDate,
   formatCompactProofDate,
   formatProofDate,
@@ -20,6 +24,8 @@ import {
   resolveAuthorityMethodLabel,
   resolveAuthorityNote,
 } from '@/lib/trust/passport-truth';
+import { resolvePassportTruthSet } from '@/lib/trust/passport-truth-set';
+import type { CanonicalTruth } from '../../../../packages/trust-state';
 
 void React;
 
@@ -72,11 +78,52 @@ function credentialGroupStatus(
 
   const statuses = credentials.map(credentialAccordionStatus);
   if (statuses.includes('review_required')) return 'review_required';
-  if (statuses.includes('verified')) return 'verified';
   if (statuses.includes('stale')) return 'stale';
+  if (statuses.includes('verified')) return 'verified';
   if (statuses.includes('access_required')) return 'access_required';
   if (statuses.includes('unavailable')) return 'unavailable';
   return 'pending';
+}
+
+function truthAccordionStatus(
+  truth: CanonicalTruth,
+  checkedStatus: NonNullable<AccordionItem['status']>,
+): NonNullable<AccordionItem['status']> {
+  const surfaceState = resolvePublicWedgeSurfaceStateFromTruth(truth);
+
+  switch (surfaceState) {
+    case 'checked':
+      return checkedStatus;
+    case 'stale':
+      return 'stale';
+    case 'access_required':
+      return 'access_required';
+    case 'unavailable':
+      return 'unavailable';
+    case 'review_required':
+      return 'review_required';
+    case 'preview_only':
+      return 'demo';
+    case 'pending':
+    default:
+      return 'pending';
+  }
+}
+
+function truthFreshnessLabel(
+  truth: CanonicalTruth,
+  checkedAt: string | null,
+  kind: 'check' | 'record',
+): string {
+  const surfaceState = resolvePublicWedgeSurfaceStateFromTruth(truth);
+
+  if (surfaceState === 'checked' || surfaceState === 'pending') {
+    return kind === 'record'
+      ? renderAttachedRecordFreshness(checkedAt)
+      : renderAttachedCheckFreshness(checkedAt);
+  }
+
+  return getPublicWedgeSurfaceStateLabel(surfaceState);
 }
 
 function credentialStatusNote(status: AccordionItem['status'], emptyFallback: string): string {
@@ -134,7 +181,9 @@ function credentialRecordsValue(credentials: PassportData['authority']['credenti
 }
 
 function identityProofSection(passport: PassportData): AccordionItem {
-  const checkedAt = passport.lastCheckedAt ?? null;
+  const truth = resolvePassportTruthSet(passport).identity;
+  const checkedAt = truth.coverage.checkedAt ?? passport.lastCheckedAt ?? null;
+  const status = truthAccordionStatus(truth, 'checked');
 
   return {
     id: 'identity',
@@ -142,26 +191,26 @@ function identityProofSection(passport: PassportData): AccordionItem {
     triggerRight: accordionMeta(
       checkedAt ? `checked ${formatCompactProofDate(checkedAt)}` : 'not checked',
     ),
-    status: passport.identity.npi ? 'verified' : 'pending',
+    status,
     content: (
       <ProofDetailsList
         rows={[
           { id: 'source', label: 'Source', value: 'CMS NPPES', tone: 'strong' },
           { id: 'checked', label: 'Last checked', value: formatProofDate(checkedAt) ?? 'Not checked' },
-          { id: 'freshness', label: 'Freshness', value: renderAttachedRecordFreshness(checkedAt) },
+          { id: 'freshness', label: 'Freshness', value: truthFreshnessLabel(truth, checkedAt, 'record') },
           {
             id: 'trust-note',
             label: 'Trust note',
-            value: passport.identity.npi
+            value: status === 'checked'
               ? 'The candidate identity resolves to a source-backed NPI record.'
-              : 'The review does not yet have a resolved NPI anchor.',
+              : truth.coverage.reason || 'The review does not yet have a resolved NPI anchor.',
           },
           {
             id: 'status-note',
             label: 'Status note',
-            value: passport.identity.npi
+            value: status === 'checked'
               ? 'Identity can anchor the rest of the employer review.'
-              : 'Identity needs to resolve before the rest of the trust stack can be treated as reliable.',
+              : 'Identity needs a current source-backed anchor before the rest of the trust stack can be treated as reliable.',
             tone: 'muted',
           },
         ]}
@@ -376,8 +425,27 @@ function exclusionAccordionStatus(status: PassportData['standing']['exclusionSta
 }
 
 function sanctionsProofSection(passport: PassportData): AccordionItem {
-  const checkedAt = passport.standing.exclusionCheckedAt ?? passport.lastCheckedAt ?? null;
-  const status = exclusionAccordionStatus(passport.standing.exclusionStatus);
+  const truth = resolvePassportTruthSet(passport).safety;
+  const checkedAt = truth.coverage.checkedAt ?? passport.standing.exclusionCheckedAt ?? passport.lastCheckedAt ?? null;
+  const status = passport.standing.exclusionStatus === 'POSSIBLE_MATCH' || passport.standing.exclusionStatus === 'EXCLUDED'
+    ? exclusionAccordionStatus(passport.standing.exclusionStatus)
+    : truthAccordionStatus(truth, 'clear');
+  const trustNote =
+    passport.standing.exclusionStatus === 'CLEAR' && status === 'clear'
+      ? 'The attached OIG LEIE check returned no exclusion entry.'
+      : passport.standing.exclusionStatus === 'POSSIBLE_MATCH'
+        ? 'A potential exclusion match needs employer review before proceeding.'
+        : passport.standing.exclusionStatus === 'EXCLUDED'
+          ? 'An exclusion record is attached to this provider.'
+          : truth.coverage.reason || 'The exclusion layer does not have a reliable result attached yet.';
+  const statusNote =
+    passport.standing.negativeFindings.length > 0
+      ? passport.standing.negativeFindings.join(' · ')
+      : status === 'stale'
+        ? 'Refresh the exclusion check before relying on this layer.'
+        : status === 'demo'
+          ? 'This exclusion result is contextual only and not decision-grade.'
+          : 'NPDB and SAM.gov remain separate institutional checks outside this review.';
 
   return {
     id: 'sanctions',
@@ -394,27 +462,17 @@ function sanctionsProofSection(passport: PassportData): AccordionItem {
           {
             id: 'freshness',
             label: 'Freshness',
-            value: renderAttachedCheckFreshness(checkedAt),
+            value: truthFreshnessLabel(truth, checkedAt, 'check'),
           },
           {
             id: 'trust-note',
             label: 'Trust note',
-            value:
-              passport.standing.exclusionStatus === 'CLEAR'
-                ? 'The attached OIG LEIE check returned no exclusion entry.'
-                : passport.standing.exclusionStatus === 'POSSIBLE_MATCH'
-                  ? 'A potential exclusion match needs employer review before proceeding.'
-                  : passport.standing.exclusionStatus === 'EXCLUDED'
-                    ? 'An exclusion record is attached to this provider.'
-                    : 'The exclusion layer does not have a reliable result attached yet.',
+            value: trustNote,
           },
           {
             id: 'status-note',
             label: 'Status note',
-            value:
-              passport.standing.negativeFindings.length > 0
-                ? passport.standing.negativeFindings.join(' · ')
-                : 'NPDB and SAM.gov remain separate institutional checks outside this review.',
+            value: statusNote,
             tone: 'muted',
           },
         ]}
@@ -424,6 +482,7 @@ function sanctionsProofSection(passport: PassportData): AccordionItem {
 }
 
 function eligibilityProofSection(passport: PassportData): AccordionItem | null {
+  const truth = resolvePassportTruthSet(passport).eligibility;
   const pecosStatus = passport.standing.pecosEnrollmentStatus ?? (
     passport.standing.pecosStatus === 'enrolled' ? 'ENROLLED'
       : passport.standing.pecosStatus === 'not_enrolled' ? 'NOT_FOUND'
@@ -436,17 +495,30 @@ function eligibilityProofSection(passport: PassportData): AccordionItem | null {
     return null;
   }
 
+  const checkedAt = truth.coverage.checkedAt ?? passport.standing.enrollmentObservedAt ?? null;
   const status: AccordionItem['status'] =
-    pecosStatus === 'ENROLLED' ? 'checked'
-      : pecosStatus === 'UNCHECKED' ? 'pending'
-        : 'review_required';
+    pecosStatus === 'NOT_FOUND'
+      ? 'review_required'
+      : truthAccordionStatus(truth, 'checked');
+  const trustNote =
+    status === 'checked'
+      ? 'CMS PECOS confirms an enrolled provider record in the current quarterly release.'
+      : pecosStatus === 'NOT_FOUND'
+        ? passport.standing.enrollmentNote ?? 'Enrollment still needs manual confirmation.'
+        : truth.coverage.reason || passport.standing.enrollmentNote || 'Enrollment still needs manual confirmation.';
+  const statusNote =
+    status === 'checked'
+      ? 'Enrollment is informative and current, but should still be read in the context of quarterly publication cadence.'
+      : status === 'demo'
+        ? 'This PECOS result is contextual only and should not be treated as a strong trust outcome.'
+        : passport.standing.enrollmentNote ?? 'Do not treat eligibility as satisfied until a current PECOS result is attached.';
 
   return {
     id: 'eligibility',
     trigger: 'Enrollment / Eligibility',
     triggerRight: accordionMeta(
-      passport.standing.enrollmentObservedAt
-        ? `checked ${formatCompactProofDate(passport.standing.enrollmentObservedAt)}`
+      checkedAt
+        ? `checked ${formatCompactProofDate(checkedAt)}`
         : 'quarterly',
     ),
     status,
@@ -462,28 +534,24 @@ function eligibilityProofSection(passport: PassportData): AccordionItem | null {
           {
             id: 'checked',
             label: 'Last checked',
-            value: formatProofDate(passport.standing.enrollmentObservedAt) ?? 'Not checked',
+            value: formatProofDate(checkedAt) ?? 'Not checked',
           },
           {
             id: 'freshness',
             label: 'Freshness',
-            value: passport.standing.enrollmentFreshnessLabel ?? passport.standing.enrollmentDataFreshness ?? 'Quarterly',
+            value: status === 'checked'
+              ? passport.standing.enrollmentFreshnessLabel ?? passport.standing.enrollmentDataFreshness ?? 'Quarterly'
+              : truthFreshnessLabel(truth, checkedAt, 'check'),
           },
           {
             id: 'trust-note',
             label: 'Trust note',
-            value:
-              pecosStatus === 'ENROLLED'
-                ? 'CMS PECOS confirms an enrolled provider record in the current quarterly release.'
-                : passport.standing.enrollmentNote ?? 'Enrollment still needs manual confirmation.',
+            value: trustNote,
           },
           {
             id: 'status-note',
             label: 'Status note',
-            value:
-              pecosStatus === 'ENROLLED'
-                ? 'Enrollment is informative and current, but should still be read in the context of quarterly publication cadence.'
-                : passport.standing.enrollmentNote ?? 'Do not treat eligibility as satisfied until a current PECOS result is attached.',
+            value: statusNote,
             tone: 'muted',
           },
         ]}

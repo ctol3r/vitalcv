@@ -38,6 +38,7 @@ import {
   resolveLivePathSourceMode,
 } from '@/lib/live-path/contracts';
 import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
+import { buildPassportLookupHref } from '@/lib/trust/public-wedge-parity';
 import {
   getStatusDisplayLabel,
   getTrustStatusLabel,
@@ -486,9 +487,9 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
 
   function handleContinue() {
     const trimmed = npi.trim();
-    const dest = LIVE_PATH_NPI_RE.test(trimmed)
-      ? `/passport?npi=${trimmed}`
-      : '/passport';
+    const dest = buildPassportLookupHref(
+      LIVE_PATH_NPI_RE.test(trimmed) ? trimmed : null,
+    );
 
     trackUxEvent({
       event_name: UX_EVENTS.SHARE_CTA_CLICKED,

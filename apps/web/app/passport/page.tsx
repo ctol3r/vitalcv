@@ -28,6 +28,12 @@ import { Input } from '@/components/ui/input';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { TrustStatusBadge, type TrustBadgeStatus } from '@/components/ui/trust-status-badge';
 import { useIngestStream, type StreamPhase } from '@/hooks/useIngestStream';
+import {
+  buildEmployerReviewHref,
+  buildPassportEntityHref,
+  getPublicWedgeSurfaceBadgeMeta,
+  type PublicWedgeSurfaceState,
+} from '@/lib/trust/public-wedge-parity';
 
 // ── Status label helper ────────────────────────────────────────────────────────
 
@@ -58,30 +64,38 @@ function resolveSourceBadge(state: SourceState, displayValue: string): {
   }
 
   if (state === 'error') {
-    return { status: 'unavailable', label: 'Unavailable' };
+    const meta = getPublicWedgeSurfaceBadgeMeta('unavailable');
+    return { status: meta.status, label: meta.label };
   }
 
+  let surfaceState: PublicWedgeSurfaceState = 'checked';
+
   switch (displayValue) {
-    case 'Verified':
-      return { status: 'verified', label: displayValue };
-    case 'Clear':
-      return { status: 'clear', label: displayValue };
-    case 'Enrolled':
-      return { status: 'enrolled', label: displayValue };
     case 'Flag found':
     case 'Possible match':
     case 'Not found':
     case 'Opted out':
-      return { status: 'review required', label: displayValue };
     case 'Excluded':
-      return { status: 'blocked', label: displayValue };
+      surfaceState = 'review_required';
+      break;
     case 'No profile yet':
-      return { status: 'unavailable', label: displayValue };
+      surfaceState = 'unavailable';
+      break;
+    case 'Verified':
+    case 'Clear':
+    case 'Enrolled':
     case 'Checked':
     case 'Done':
     default:
-      return { status: 'checked', label: displayValue };
+      surfaceState = 'checked';
+      break;
   }
+
+  const meta = getPublicWedgeSurfaceBadgeMeta(surfaceState);
+  return {
+    status: meta.status,
+    label: meta.label,
+  };
 }
 
 function SourceRow({ label, state, value }: { label: string; state: SourceState; value?: string }) {
@@ -352,12 +366,12 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
             {canViewPassport && anchorEntityId && (
               <div className="space-y-3">
                 <Button asChild variant="success" className="h-14 w-full rounded-full text-sm font-medium">
-                  <Link href={`/passport/${anchorEntityId}`}>
+                  <Link href={buildPassportEntityHref(anchorEntityId)}>
                     View full passport
                   </Link>
                 </Button>
                 <Button asChild variant="outline" className="h-14 w-full rounded-full border-white/10 bg-white/4 text-sm font-medium text-white/60 hover:border-white/20 hover:bg-white/7 hover:text-white">
-                  <Link href={`/review/${anchorEntityId}`}>
+                  <Link href={buildEmployerReviewHref(anchorEntityId)}>
                     View as employer
                   </Link>
                 </Button>

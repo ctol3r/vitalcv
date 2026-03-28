@@ -1,0 +1,23 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - main [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - text: VitalCV
+          - heading "Check your readiness" [level=1] [ref=e7]
+          - paragraph [ref=e8]: Enter your NPI. No login required.
+        - generic [ref=e9]:
+          - generic [ref=e10]: Your NPI number
+          - textbox "NPI number" [active] [ref=e11]:
+            - /placeholder: "1234567890"
+            - text: "1003000126"
+          - button "Check my readiness" [ref=e18]
+        - paragraph [ref=e12]:
+          - text: Already have an account?
+          - link "Sign in" [ref=e13] [cursor=pointer]:
+            - /url: /sign-in
+    - button "Send feedback" [ref=e14]:
+      - img [ref=e15]
+      - text: Feedback
+  - region "Notifications alt+T"
+  - alert [ref=e17]

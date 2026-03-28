@@ -114,16 +114,18 @@ export function resolveAuthorityTrustStatus(
 
   switch (status) {
     case 'verified':
-      return 'confirmed';
+      return 'checked';
     case 'review_required':
-      return 'review';
+      return 'review_required';
     case 'blocked':
       return 'blocked';
     case 'access_required':
+      return 'access_required';
     case 'unavailable':
+      return 'unavailable';
     case 'pending':
     default:
-      return 'unchecked';
+      return 'pending';
   }
 }
 

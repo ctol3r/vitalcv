@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
 import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
+import { PUBLIC_WEDGE_ROUTE_TARGETS } from '@/lib/trust/public-wedge-parity';
 
 interface InterviewBlockedStateProps {
   title: string;
@@ -40,7 +41,7 @@ export default function InterviewBlockedState({
         <p className="text-white/58 text-base leading-relaxed">{title}</p>
         <p className="text-white/32 text-sm leading-relaxed">{description}</p>
         <Link
-          href="/"
+          href={PUBLIC_WEDGE_ROUTE_TARGETS.homepageLookup}
           className="block w-full rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold py-4 transition-all text-center"
         >
           Start with NPI lookup

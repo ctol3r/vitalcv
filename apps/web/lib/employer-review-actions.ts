@@ -98,6 +98,31 @@ export function formatEmployerReviewPersistedLabel(state: EmployerReviewActionSt
   }
 }
 
+function formatPersistenceConfirmation(state: EmployerReviewActionState): string | null {
+  if (state.persistence.target === 'employer_acceptance' && state.persistence.acceptanceId) {
+    return `Acceptance record ${state.persistence.acceptanceId} was stored.`;
+  }
+
+  if (state.persistence.target === 'review_queue_item' && state.persistence.reviewItemCreated) {
+    return state.persistence.reviewItemId
+      ? `Review queue item ${state.persistence.reviewItemId} was created.`
+      : 'A durable review queue item was created.';
+  }
+
+  if (state.persistence.mode === 'audit_only') {
+    return 'This environment persisted the audit trail only.';
+  }
+
+  return null;
+}
+
 export function formatEmployerReviewPersistedDetail(state: EmployerReviewActionState): string {
-  return `${state.summary.description} Audit event ${state.auditEventId} was recorded ${new Date(state.timestamp).toLocaleString()}.`;
+  const details = [
+    state.summary.description,
+    formatPersistenceConfirmation(state),
+    `Audit event ${state.auditEventId} was recorded ${new Date(state.timestamp).toLocaleString()}.`,
+    state.trustSnapshot ? `Trust snapshot ${state.trustSnapshot.snapshotHash.slice(0, 12)}... was captured with the decision.` : null,
+  ].filter((value): value is string => Boolean(value && value.trim()));
+
+  return details.join(' ');
 }

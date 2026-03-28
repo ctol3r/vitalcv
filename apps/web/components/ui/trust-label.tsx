@@ -2,22 +2,26 @@ import * as React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { TrustStatusBadge, type TrustBadgeStatus } from '@/components/ui/trust-status-badge';
+import {
+  getPublicWedgeSurfaceBadgeMeta,
+  type PublicWedgeSurfaceState,
+} from '@/lib/trust/public-wedge-parity';
 
 /**
  * TrustLabel — source-backed row for trust surfaces.
  *
  * Doctrine: no color on status. All hierarchy via opacity only.
- *   confirmed → high opacity
- *   review    → medium opacity
- *   unchecked → low opacity
- *   blocked   → present but needs action
- *   info      → text-white/35  (neutral annotation)
+ *   checked        → high opacity
+ *   review/stale   → medium opacity
+ *   pending/missing → low opacity
+ *   blocked        → explicit hard stop
+ *   preview only   → neutral annotation
  *
  * Icons are glyph-only (✔  ⚠  ○  ✕  ·), not colored.
  * Green (emerald-*) is reserved exclusively for CTA buttons.
  */
 
-export type TrustStatus = 'confirmed' | 'review' | 'unchecked' | 'blocked' | 'info';
+export type TrustStatus = PublicWedgeSurfaceState | 'blocked';
 
 interface TrustLabelProps extends React.HTMLAttributes<HTMLDivElement> {
   status:       TrustStatus;
@@ -29,24 +33,33 @@ interface TrustLabelProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const STATUS_STYLE: Record<TrustStatus, { glyph: string; text: string; glyph_opacity: string }> = {
-  confirmed: { glyph: '✔', text: 'text-white/72', glyph_opacity: 'text-white/35' },
-  review:    { glyph: '⚠', text: 'text-white/56', glyph_opacity: 'text-white/30' },
-  unchecked: { glyph: '○', text: 'text-white/36', glyph_opacity: 'text-white/20' },
-  blocked:   { glyph: '✕', text: 'text-white/45', glyph_opacity: 'text-white/24' },
-  info:      { glyph: '·', text: 'text-white/35', glyph_opacity: 'text-white/20' },
+  checked: { glyph: '✔', text: 'text-white/72', glyph_opacity: 'text-white/35' },
+  pending: { glyph: '○', text: 'text-white/36', glyph_opacity: 'text-white/20' },
+  stale: { glyph: '⚠', text: 'text-white/56', glyph_opacity: 'text-white/30' },
+  access_required: { glyph: '○', text: 'text-white/40', glyph_opacity: 'text-white/22' },
+  unavailable: { glyph: '○', text: 'text-white/36', glyph_opacity: 'text-white/20' },
+  review_required: { glyph: '⚠', text: 'text-white/56', glyph_opacity: 'text-white/30' },
+  preview_only: { glyph: '·', text: 'text-white/35', glyph_opacity: 'text-white/20' },
+  blocked: { glyph: '✕', text: 'text-white/45', glyph_opacity: 'text-white/24' },
 };
 
-const STATUS_BADGE_META: Record<TrustStatus, { badgeStatus: TrustBadgeStatus; badgeLabel: string }> = {
-  confirmed: { badgeStatus: 'verified', badgeLabel: 'Confirmed' },
-  review: { badgeStatus: 'review required', badgeLabel: 'Review required' },
-  unchecked: { badgeStatus: 'unavailable', badgeLabel: 'Unavailable' },
-  blocked: { badgeStatus: 'blocked', badgeLabel: 'Blocked' },
-  info: { badgeStatus: 'checked', badgeLabel: 'Context only' },
-};
+function resolveBadgeMeta(
+  status: TrustStatus,
+): { badgeStatus: TrustBadgeStatus; badgeLabel: string } {
+  if (status === 'blocked') {
+    return { badgeStatus: 'blocked', badgeLabel: 'Blocked' };
+  }
+
+  const meta = getPublicWedgeSurfaceBadgeMeta(status);
+  return {
+    badgeStatus: meta.status,
+    badgeLabel: meta.label,
+  };
+}
 
 export function TrustLabel({ status, label, source, timestamp, note, explanation, className, ...props }: TrustLabelProps) {
   const { glyph, text, glyph_opacity } = STATUS_STYLE[status];
-  const { badgeStatus, badgeLabel } = STATUS_BADGE_META[status];
+  const { badgeStatus, badgeLabel } = resolveBadgeMeta(status);
 
   return (
     <Card
