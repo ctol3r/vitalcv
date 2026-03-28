@@ -477,40 +477,36 @@ export default function PassportWallet({ passport }: Props) {
   ];
 
   async function handleShare() {
+    if (!passport.npi) {
+      setShareError('This passport is missing an NPI and cannot be shared.');
+      return;
+    }
     setSharing(true);
     setShareError(null);
     try {
-      // Biometric confirmation (WebAuthn) — fallback gracefully if unavailable
-      if (typeof window !== 'undefined' && window.PublicKeyCredential) {
-        try {
-          const optRes = await fetch('/api/webauthn/authenticate-options');
-          if (optRes.ok) {
-            const { startAuthentication } = await import('@simplewebauthn/browser');
-            const opts = await optRes.json();
-            const assertion = await startAuthentication({ optionsJSON: opts });
-            await fetch('/api/webauthn/verify-assertion', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(assertion),
-            });
-          }
-        } catch { /* biometric unavailable — proceed with log-only share */ }
-      }
-
-      // POST /api/share
-      const res = await fetch('/api/share', {
+      // Generate a shareable apply bundle — no employer context required.
+      // The employer opens the bundle URL to view this passport in review mode.
+      const res = await fetch('/api/apply/bundle', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          entityId:              passport.entityId,
-          organizationContextId: 'direct-share', // org context wired when employer workspace is connected
-        }),
+        body: JSON.stringify({ npi: passport.npi }),
       });
 
       if (!res.ok) {
-        if (res.status === 401) throw new Error('Sign in to share this passport with an employer.');
-        throw new Error('Share failed. Try again.');
+        if (res.status === 401) throw new Error('Sign in to generate a shareable passport link.');
+        if (res.status === 404) throw new Error('Passport data not found. Run an NPI lookup first.');
+        throw new Error('Could not generate share link. Try again.');
       }
+
+      const data = await res.json() as { bundleId?: string; bundleUrl?: string; error?: string };
+      if (!data.bundleId) throw new Error(data.error ?? 'Share link generation failed.');
+
+      // Copy bundle URL to clipboard
+      const shareUrl = data.bundleUrl ?? `${window.location.origin}/apply/${data.bundleId}`;
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl);
+      }
+
       setShared(true);
     } catch (err) {
       setShareError(err instanceof Error ? err.message : 'Share failed.');
@@ -615,21 +611,21 @@ export default function PassportWallet({ passport }: Props) {
                   disabled={sharing}
                   variant="success"
                   className="h-14 w-full rounded-xl text-sm font-medium"
-                  aria-label="Share passport with employer"
+                  aria-label="Generate shareable passport link"
                 >
-                  {sharing ? 'Confirming…' : 'Share with employer'}
+                  {sharing ? 'Generating link…' : 'Copy share link for employer'}
                 </Button>
                 {shareError && (
                   <p className="text-[var(--vt-critical)] text-xs text-center">{shareError}</p>
                 )}
                 <p className="text-center text-white/20 text-xs leading-relaxed">
-                  Sharing records the current passport proof surface shown above. Biometric confirmation is used when available.
+                  Generates a shareable link to this passport. Send it to an employer to open the review surface.
                 </p>
               </>
             ) : (
               <TrustStateCard
-                title="Share recorded"
-                description="A share event was persisted for this passport. Employer access depends on your organization context."
+                title="Link copied"
+                description="The passport share link has been copied to your clipboard. Send it to an employer to open the review surface."
                 tone="success"
                 centered
               />

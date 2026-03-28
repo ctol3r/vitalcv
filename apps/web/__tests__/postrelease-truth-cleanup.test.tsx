@@ -322,8 +322,8 @@ describe('post-release truth cleanup', () => {
     }));
     const reviewMarkup = renderToStaticMarkup(<ReviewLandingPage />);
 
-    expect(interviewMarkup).toContain('homepage NPI lookup');
-    expect(findHrefByText(interviewMarkup, 'Start with NPI lookup')).toBe(PUBLIC_WEDGE_ROUTE_TARGETS.interviewBlocked);
+    expect(interviewMarkup).toContain('Start with an NPI');
+    expect(findHrefByText(interviewMarkup, 'Go to passport')).toBe('/passport');
     expectMarkupExcludes(interviewMarkup, [
       'real verified readiness',
       'verified readiness',

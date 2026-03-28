@@ -10,12 +10,16 @@ interface InterviewBlockedStateProps {
   title: string;
   description: string;
   telemetryReason?: string;
+  primaryHref?: string;
+  primaryLabel?: string;
 }
 
 export default function InterviewBlockedState({
   title,
   description,
   telemetryReason,
+  primaryHref,
+  primaryLabel,
 }: InterviewBlockedStateProps) {
   const trackedRef = useRef(false);
 
@@ -41,10 +45,10 @@ export default function InterviewBlockedState({
         <p className="text-white/58 text-base leading-relaxed">{title}</p>
         <p className="text-white/32 text-sm leading-relaxed">{description}</p>
         <Link
-          href={PUBLIC_WEDGE_ROUTE_TARGETS.homepageLookup}
+          href={primaryHref ?? PUBLIC_WEDGE_ROUTE_TARGETS.homepageLookup}
           className="block w-full rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold py-4 transition-all text-center"
         >
-          Start with NPI lookup
+          {primaryLabel ?? 'Start with NPI lookup'}
         </Link>
       </div>
     </div>
