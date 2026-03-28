@@ -90,7 +90,7 @@ export default function BillingPage() {
         >
           {[
             { label: 'Clinicians', note: 'Free forever', desc: 'Build, share, and own your readiness profile at no cost.' },
-            { label: 'Issuers', note: 'Free forever', desc: 'Issue credentials and connect to the trust network at no cost.' },
+            { label: 'Issuers', note: 'Free forever', desc: 'Issue credentials in the current preview environment at no cost.' },
             { label: 'Organizations', note: 'Pay for workflow', desc: 'Verified pulls, monitoring refreshes, exports, and API access.' },
           ].map(({ label, note, desc }) => (
             <div key={label} className="rounded-xl border border-border bg-card px-4 py-3">

@@ -679,22 +679,22 @@ const PILLARS = [
   {
     number: '02',
     title: 'Free Specialty Job Board',
-    body: 'Every healthcare job, every specialty, free to post. Physicians, NPs, CRNAs, therapists — one platform for all of medicine. Employers stop paying $5,000 for a single oncology posting.',
-    tags: ['All Specialties', 'All Provider Types', 'Free to Post', 'Auto-Aggregated'],
+    body: 'Role listings attached to the current employer cohort. Clinicians can browse open roles connected to employers in this environment.',
+    tags: ['Current Cohort', 'All Provider Types', 'Preview', 'Employer-Attached'],
     color: 'emerald',
   },
   {
     number: '03',
-    title: 'MATCHA — AI Career Matching',
-    body: 'Not keyword matching. Credential-aware AI that knows your exact qualifications, your gaps, your trajectory. Surfaces opportunities you\'re actually eligible for — before you go looking.',
-    tags: ['Gap Analysis', 'Career Paths', 'Readiness Score', 'Match Intelligence'],
+    title: 'Career Signal',
+    body: 'Readiness-aware role matching in preview. Surfaces roles you are eligible for based on source-checked credentials — not keyword matching.',
+    tags: ['Preview', 'Credential-Aware', 'Readiness-Based', 'Not Production'],
     color: 'violet',
   },
   {
     number: '04',
     title: 'Clinic Capacity Intelligence',
-    body: 'For the first time, health systems can measure hiring capacity — not just headcount. How many physicians can actually start this quarter? VitalCV tells you, and tells you how to increase it.',
-    tags: ['Staffing Projections', 'Credentialing Velocity', 'Capacity Model', 'New Metric'],
+    body: 'Credentialing velocity signals for health systems. Understand which positions have clear source coverage and which are blocked pending source access.',
+    tags: ['Preview', 'Credentialing Velocity', 'Source Coverage', 'Pilot Only'],
     color: 'amber',
   },
   {
@@ -722,8 +722,8 @@ const NOVEL_CLAIMS = [
     detail: 'NPI → credentials → publications → career history — one traversable, source-backed, cryptographically-signed graph. No one has built this for healthcare.',
   },
   {
-    claim: 'Credential-aware job matching',
-    detail: 'MATCHA knows what you\'re qualified for today, what you\'re 6 months from qualifying for, and what your peers pivoted to. That\'s not a job board — it\'s a career engine.',
+    claim: 'Credential-aware job matching (preview)',
+    detail: 'Career Signal surfaces roles you are eligible for based on source-checked credentials — not keyword matching. Gap-aware matching is in preview, not production.',
   },
   {
     // M1: "trusted forever" removed — credentials expire and sources have freshness windows
