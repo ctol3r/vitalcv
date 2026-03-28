@@ -128,6 +128,29 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
             reason: null,
             priority: null,
           },
+          trustSnapshot: {
+            snapshotHash: 'snap_hash_1234567890abcdef',
+            capturedAt: '2026-03-23T20:00:00.000Z',
+            npi: '1234567890',
+            readinessStatus: 'PARTIAL',
+            readinessScore: 88,
+            readinessLevel: 'L2',
+            trustBand: 'L2',
+            trustBandLabel: 'Moderate trust',
+            trustScore: 88,
+            trustScoreConfidence: 0.91,
+            exclusionStatus: 'CLEAR',
+            exclusionCheckedAt: '2026-03-23T19:30:00.000Z',
+            pecosEnrollmentStatus: 'ENROLLED',
+            verifiedCredentialCount: 2,
+            staleCredentialCount: 0,
+            reviewRequiredCount: 0,
+            blockerCount: 0,
+            topBlockers: [],
+            missingDomains: [],
+            gatedDomains: [],
+            lastCheckedAt: '2026-03-23T19:30:00.000Z',
+          },
         },
       }),
       {
@@ -159,6 +182,9 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
       state: expect.objectContaining({
         action: 'accept',
         auditEventId: 'audit-accept-1',
+        trustSnapshot: expect.objectContaining({
+          snapshotHash: 'snap_hash_1234567890abcdef',
+        }),
       }),
     });
   });

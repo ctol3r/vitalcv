@@ -70,11 +70,16 @@ import {
   type PassportTruthListItem,
 } from '@/lib/trust/passport-review-truth';
 import {
+  buildPassportEntityHref,
+  resolvePublicWedgeSurfaceStateFromAccordionStatus,
+  resolvePublicWedgeSurfaceStateFromTruth,
+} from '@/lib/trust/public-wedge-parity';
+import {
+  resolveAuthorityAccordionStatus,
   resolveAuthorityMethodLabel,
   resolveAuthorityNote,
   resolveAuthorityStatusLead,
   resolveAuthorityTitle,
-  resolveAuthorityTrustStatus,
 } from '@/lib/trust/passport-truth';
 import type { CanonicalTruthSet } from '../../../../packages/trust-state';
 
@@ -102,48 +107,55 @@ function buildTruthStatusLabelRow(input: {
   note?: string;
   explanation: string;
 } {
-  switch (input.truth.status) {
-    case 'VERIFIED':
-    case 'CLEAR':
-    case 'ENROLLED':
+  const status = resolvePublicWedgeSurfaceStateFromTruth(input.truth);
+
+  switch (status) {
+    case 'checked':
       return {
-        status: 'confirmed',
+        status,
         label: input.label,
         note: input.confirmedNote,
         explanation: input.confirmedExplanation,
       };
-    case 'REVIEW REQUIRED':
+    case 'review_required':
       return {
-        status: 'review',
+        status,
         label: input.label,
         note: joinNoteParts(['Review required', 'requires verification']),
         explanation: input.truth.coverage.reason || input.missingExplanation,
       };
-    case 'ACCESS REQUIRED':
+    case 'access_required':
       return {
-        status: 'unchecked',
+        status,
         label: input.label,
         note: joinNoteParts(['Access required', 'requires verification']),
         explanation: input.truth.coverage.reason || input.missingExplanation,
       };
-    case 'UNAVAILABLE':
+    case 'unavailable':
       return {
-        status: 'unchecked',
+        status,
         label: input.label,
         note: joinNoteParts(['Unavailable', 'requires verification']),
         explanation: input.truth.coverage.reason || input.missingExplanation,
       };
-    case 'NOT DECISION-GRADE':
+    case 'preview_only':
       return {
-        status: 'info',
+        status,
         label: input.label,
-        note: joinNoteParts(['Not decision-grade', 'context only']),
+        note: joinNoteParts(['Preview only', 'context only']),
         explanation: input.truth.coverage.reason || input.missingExplanation,
       };
-    case 'PENDING':
+    case 'stale':
+      return {
+        status,
+        label: input.label,
+        note: joinNoteParts(['Stale', 'requires verification']),
+        explanation: input.truth.coverage.reason || input.missingExplanation,
+      };
+    case 'pending':
     default:
       return {
-        status: 'unchecked',
+        status: 'pending',
         label: input.label,
         note: joinNoteParts(['Pending', 'requires verification']),
         explanation: input.truth.coverage.reason || input.missingExplanation,
@@ -166,7 +178,7 @@ function buildSafetyRow(passport: PassportData): {
   switch (standing.exclusionStatus) {
     case 'POSSIBLE_MATCH':
       return {
-        status: 'review',
+        status: 'review_required',
         label: 'Exclusion check',
         note: joinNoteParts(['Review required', checkedNote, confidence, 'requires verification']),
         explanation: 'A potential OIG match needs manual adjudication before the employer can rely on this safety layer.',
@@ -198,7 +210,9 @@ function buildAuthorityRow(credential: PassportData['authority']['credentials'][
   note?: string;
   explanation?: string;
 } {
-  const status = resolveAuthorityTrustStatus(credential);
+  const status = resolvePublicWedgeSurfaceStateFromAccordionStatus(
+    resolveAuthorityAccordionStatus(credential),
+  );
 
   // MS16-E: note carries dataFreshness + confidenceLabel (row contract)
   const note = joinNoteParts([
@@ -206,7 +220,7 @@ function buildAuthorityRow(credential: PassportData['authority']['credentials'][
     formatAsOfDate(credential.observedAt ?? credential.verifiedAt),
     credential.dataFreshnessLabel ?? null,
     credential.claimConfidenceLabel ?? null,
-    status !== 'confirmed' ? 'requires verification' : null,
+    status !== 'checked' ? 'requires verification' : null,
   ]);
 
   return {
@@ -233,7 +247,7 @@ function buildEligibilityRow(passport: PassportData, status: 'ENROLLED' | 'NOT_F
   switch (status) {
     case 'NOT_FOUND':
       return {
-        status: 'review',
+        status: 'review_required',
         label: 'Medicare enrollment',
         // MS16-A explicit label: "Not found in CMS enrollment data — may indicate not enrolled or data lag"
         note: joinNoteParts(['Review required', freshness, confidence, quarterNote, 'estimated quarterly publication lag possible', 'requires verification']),
@@ -422,6 +436,7 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
   const reviewTruth = buildPassportReviewTruthModel(passport);
   const proofItems = buildPassportProofSections(passport);
   const proofSummary = reviewTruth.proofSummary;
+  const identityStatus = resolvePublicWedgeSurfaceStateFromTruth(truth.identity);
   const safetyRow = buildSafetyRow(passport);
   const eligibilityRow = buildEligibilityRow(passport, pecosEnrollmentStatus);
   const lastSyncedAt =
@@ -721,11 +736,11 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
             <div className="space-y-2">
               <h2 className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2">Identity</h2>
               <TrustLabel
-                status={truth.identity.status === 'VERIFIED' ? 'confirmed' : 'unchecked'}
-                label={truth.identity.status === 'VERIFIED' ? 'Identity confirmed' : 'Identity missing'}
+                status={identityStatus}
+                label={identityStatus === 'checked' ? 'Identity checked' : 'Identity'}
                 source="CMS NPPES"
                 note={
-                  truth.identity.status === 'VERIFIED'
+                  identityStatus === 'checked'
                     ? formatAsOfDate(truth.identity.coverage.checkedAt ?? passport.lastCheckedAt) ?? undefined
                     : joinNoteParts([
                         truth.identity.coverage.reason,
@@ -733,8 +748,8 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
                       ])
                 }
                 explanation={
-                  truth.identity.status === 'VERIFIED'
-                    ? 'Identity confirmed against the national provider registry.'
+                  identityStatus === 'checked'
+                    ? 'Identity checked against the national provider registry.'
                     : truth.identity.coverage.reason || 'Identity must resolve to CMS NPPES before the rest of the trust stack can be relied on.'
                 }
               />
@@ -787,7 +802,7 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
                       {certCreds.map((credential) => (
                         <TrustLabel
                           key={credential.id}
-                          status="confirmed"
+                          status="checked"
                           label={`Board certified${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}`}
                           source={credential.issuerName ?? credential.sourceId ?? 'ABMS'}
                           timestamp={credential.observedAt || credential.verifiedAt ? `checked ${formatProofDate(credential.observedAt ?? credential.verifiedAt)}` : undefined}
@@ -798,7 +813,7 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
 
                       {!hasAny && (
                         <TrustLabel
-                          status="unchecked"
+                          status="access_required"
                           label="Authority"
                           source="CA State Board / FSMB"
                           note="Access required · requires verification"
@@ -1117,7 +1132,7 @@ export default function ReviewClient({ passport, contextId, sharedBy }: Props) {
                   </Link>
                 ) : (
                   <Link
-                    href={`/passport/${passport.entityId}`}
+                    href={buildPassportEntityHref(passport.entityId)}
                     className="text-xs text-white/38 transition-colors hover:text-white/58"
                   >
                     Open full passport

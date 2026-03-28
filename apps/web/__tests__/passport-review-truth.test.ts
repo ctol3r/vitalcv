@@ -365,4 +365,61 @@ describe('passport review truth', () => {
     expect(truth.buckets.sourceBackedNow.map((item) => item.label)).toContain('Physician license (OR)');
     expect(truth.buckets.missingOrAccessRequired.map((item) => item.label)).toContain('License verification — access required (CA)');
   });
+
+  it('keeps stale and contextual top-level truth out of source-backed review buckets', () => {
+    const staleSafetyCoverage = createCanonicalSourceCoverage({
+      sourceId: 'OIG_LEIE',
+      state: 'stale',
+      reason: 'OIG evidence stale',
+      checkedAt: '2026-03-01T00:00:00.000Z',
+    });
+    const contextualEligibilityCoverage = createCanonicalSourceCoverage({
+      sourceId: 'PECOS_PUBLIC',
+      state: 'notDecisionGrade',
+      reason: 'Quarterly snapshot is contextual only',
+      checkedAt: '2026-03-01T00:00:00.000Z',
+    });
+    const passport = buildPassport({
+      truth: {
+        ...buildPassport().truth,
+        safety: {
+          ...buildPassport().truth.safety,
+          status: 'PENDING',
+          satisfied: true,
+          decisionGrade: false,
+          coverage: staleSafetyCoverage,
+        },
+        eligibility: {
+          ...buildPassport().truth.eligibility,
+          status: 'NOT DECISION-GRADE',
+          satisfied: true,
+          decisionGrade: false,
+          coverage: contextualEligibilityCoverage,
+        },
+      },
+      sourceCoverage: {
+        checks: [
+          buildPassport().truth.identity.coverage,
+          staleSafetyCoverage,
+          buildPassport().truth.authority.coverage,
+          contextualEligibilityCoverage,
+        ],
+        summary: summarizeCanonicalSourceCoverage([
+          buildPassport().truth.identity.coverage,
+          staleSafetyCoverage,
+          buildPassport().truth.authority.coverage,
+          contextualEligibilityCoverage,
+        ]),
+      },
+    });
+
+    const truth = buildPassportReviewTruthModel(passport);
+
+    expect(truth.buckets.stale.map((item) => item.label)).toContain('Sanctions & Exclusions');
+    expect(truth.buckets.contextualOnly.map((item) => item.label)).toContain('Enrollment / Eligibility');
+    expect(truth.buckets.sourceBackedNow.map((item) => item.label)).not.toContain('Sanctions & Exclusions');
+    expect(truth.buckets.sourceBackedNow.map((item) => item.label)).not.toContain('Enrollment / Eligibility');
+    expect(truth.posture.dimensions.find((item) => item.label === 'Exclusion check (OIG/LEIE)')?.state).toBe('stale');
+    expect(truth.posture.dimensions.find((item) => item.label === 'Medicare enrollment (PECOS)')?.state).toBe('unavailable');
+  });
 });

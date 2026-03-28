@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
+import { PUBLIC_WEDGE_ROUTE_TARGETS } from '@/lib/trust/public-wedge-parity';
 
 export default function ReviewLandingPage() {
   return (
@@ -22,10 +23,10 @@ export default function ReviewLandingPage() {
           actions={(
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Button asChild variant="outline" className="h-11 rounded-full border-white/10 bg-white/4 text-white/70 hover:border-white/20 hover:bg-white/8 hover:text-white">
-                <Link href="/">Start with NPI lookup</Link>
+                <Link href={PUBLIC_WEDGE_ROUTE_TARGETS.homepageLookup}>Start with NPI lookup</Link>
               </Button>
               <Button asChild variant="ghost" className="h-11 rounded-full text-white/45 hover:bg-white/5 hover:text-white/70">
-                <Link href="/passport">View passport</Link>
+                <Link href={PUBLIC_WEDGE_ROUTE_TARGETS.passportEntry}>View passport</Link>
               </Button>
             </div>
           )}

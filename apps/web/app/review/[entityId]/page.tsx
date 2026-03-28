@@ -3,6 +3,7 @@ import ReviewClient from '@/components/review/ReviewClient';
 import { Button } from '@/components/ui/button';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import type { PassportData } from '@/lib/trust/passport-contract';
+import { PUBLIC_WEDGE_ROUTE_TARGETS } from '@/lib/trust/public-wedge-parity';
 
 export const dynamic = 'force-dynamic';
 
@@ -110,7 +111,7 @@ export default async function ReviewPage({
                   <Link href={retryHref}>Try again</Link>
                 </Button>
                 <Button asChild variant="ghost" className="h-11 rounded-full text-white/45 hover:bg-white/5 hover:text-white/70">
-                  <Link href="/">Back to home</Link>
+                  <Link href={PUBLIC_WEDGE_ROUTE_TARGETS.homepageLookup}>Back to home</Link>
                 </Button>
               </div>
             )}

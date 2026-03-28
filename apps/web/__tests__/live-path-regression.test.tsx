@@ -13,6 +13,10 @@ import type { RoleContextValue } from '@/components/auth/RoleContext';
 import { LiveTrustConsole } from '@/components/hero/LiveTrustConsole';
 import InterviewClient from '@/app/interview/InterviewClient';
 import ReviewClient from '@/components/review/ReviewClient';
+import {
+  buildEmployerReviewHref,
+  buildPassportLookupHref,
+} from '@/lib/trust/public-wedge-parity';
 import { PUBLIC_WEDGE_ROUTE_TARGETS } from './helpers/public-copy-guard';
 
 const {
@@ -695,7 +699,7 @@ describe('live path regression hardening', () => {
     await clickByText(view.container, 'Continue to passport');
     await flush();
 
-    expect(routerPushMock).toHaveBeenCalledWith('/passport?npi=1234567890');
+    expect(routerPushMock).toHaveBeenCalledWith(buildPassportLookupHref('1234567890'));
     expect(trackedEventNames()).toContain('share_cta_clicked');
 
     await view.unmount();
@@ -804,9 +808,10 @@ describe('live path regression hardening', () => {
     expect(textContent(view.container)).toContain('share_evt_123');
     const reviewHref = hrefForText(view.container, 'Open employer review');
     expect(reviewHref?.startsWith(PUBLIC_WEDGE_ROUTE_TARGETS.interviewReviewPrefix)).toBe(true);
-    expect(reviewHref).toBe(
-      `/review/${passport.entityId}?contextId=ctx_abc123&from=Ada%20Lovelace`,
-    );
+    expect(reviewHref).toBe(buildEmployerReviewHref(passport.entityId, {
+      contextId: 'ctx_abc123',
+      from: 'Ada Lovelace',
+    }));
     expect(trackedEventNames()).toEqual(expect.arrayContaining([
       'share_click',
       'share_success',
@@ -956,8 +961,13 @@ describe('live path regression hardening', () => {
     await reviewView.unmount();
 
     const interviewView = await renderNode(<InterviewClient entityId={passport.entityId} passport={passport} />);
+    expect(textContent(interviewView.container)).toContain('Checked now');
+    expect(textContent(interviewView.container)).toContain('Identity checked');
     expect(textContent(interviewView.container)).not.toContain('Sanctions clear');
     expect(textContent(interviewView.container)).not.toContain('Enrollment checked');
+    expect(textContent(interviewView.container)).not.toContain('Verified now');
+    expect(textContent(interviewView.container)).not.toContain('Identity anchored');
+    expect(textContent(interviewView.container)).not.toContain('Licensure attached');
     expect(textContent(interviewView.container)).toContain('OIG evidence stale');
     expect(textContent(interviewView.container)).toContain('Quarterly snapshot is contextual only');
     await interviewView.unmount();

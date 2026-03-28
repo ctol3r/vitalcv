@@ -512,6 +512,70 @@ describe('trust proof language', () => {
     ).toBe('stale');
   });
 
+  it('derives proof-section status from canonical truth instead of raw standing shortcuts', () => {
+    const staleSafetyCoverage = createCanonicalSourceCoverage({
+      sourceId: 'OIG_LEIE',
+      state: 'stale',
+      reason: 'OIG evidence stale',
+      checkedAt: '2026-03-01T00:00:00.000Z',
+    });
+    const contextualEligibilityCoverage = createCanonicalSourceCoverage({
+      sourceId: 'PECOS_PUBLIC',
+      state: 'notDecisionGrade',
+      reason: 'Quarterly snapshot is contextual only',
+      checkedAt: '2026-03-01T00:00:00.000Z',
+    });
+    const passport = buildPassport({
+      truth: {
+        ...buildPassport().truth,
+        safety: {
+          ...buildPassport().truth.safety,
+          status: 'PENDING',
+          satisfied: true,
+          decisionGrade: false,
+          coverage: staleSafetyCoverage,
+        },
+        eligibility: {
+          ...buildPassport().truth.eligibility,
+          status: 'NOT DECISION-GRADE',
+          satisfied: true,
+          decisionGrade: false,
+          coverage: contextualEligibilityCoverage,
+        },
+      },
+      sourceCoverage: {
+        checks: [
+          buildPassport().truth.identity.coverage,
+          staleSafetyCoverage,
+          buildPassport().truth.authority.coverage,
+          contextualEligibilityCoverage,
+        ],
+        summary: summarizeCanonicalSourceCoverage([
+          buildPassport().truth.identity.coverage,
+          staleSafetyCoverage,
+          buildPassport().truth.authority.coverage,
+          contextualEligibilityCoverage,
+        ]),
+      },
+    });
+
+    const proofItems = buildPassportProofSections(passport);
+    const sanctions = proofItems.find((item) => item.id === 'sanctions');
+    const eligibility = proofItems.find((item) => item.id === 'eligibility');
+    const sanctionsRows = ((sanctions?.content as { props?: { rows?: Array<{ id: string; value: unknown }> } })?.props?.rows ?? []);
+    const eligibilityRows = ((eligibility?.content as { props?: { rows?: Array<{ id: string; value: unknown }> } })?.props?.rows ?? []);
+    const sanctionsTrustNote = sanctionsRows.find((row) => row.id === 'trust-note')?.value;
+    const eligibilityTrustNote = eligibilityRows.find((row) => row.id === 'trust-note')?.value;
+
+    expect(proofItems.find((item) => item.id === 'identity')?.status).toBe('checked');
+    expect(sanctions?.status).toBe('stale');
+    expect(eligibility?.status).toBe('demo');
+    expect(sanctionsTrustNote).toBe('OIG evidence stale');
+    expect(eligibilityTrustNote).toBe('Quarterly snapshot is contextual only');
+    expect(sanctionsTrustNote).not.toBe('The attached OIG LEIE check returned no exclusion entry.');
+    expect(eligibilityTrustNote).not.toBe('CMS PECOS confirms an enrolled provider record in the current quarterly release.');
+  });
+
   it('renders manual-only authority as contextual proof instead of verified truth', () => {
     const manualOnlyPassport = buildPassport({
       authority: {
@@ -533,6 +597,33 @@ describe('trust proof language', () => {
     const licensureSection = proofItems.find((item) => item.id === 'licensure');
 
     expect(licensureSection?.status).toBe('unavailable');
+  });
+
+  it('surfaces mixed stale authority groups as stale instead of verified', () => {
+    const passport = buildPassport({
+      authority: {
+        credentials: [
+          buildPassport().authority.credentials[0],
+          {
+            ...buildPassport().authority.credentials[0],
+            id: 'cred-board',
+            domain: 'BOARD_CERTIFICATION',
+            type: 'BOARD_CERT',
+            issuerName: 'ABMS',
+            sourceId: 'ABMS',
+            stale: true,
+            observedAt: '2025-10-01T00:00:00.000Z',
+            verifiedAt: '2025-10-01T00:00:00.000Z',
+            authorityClaimCode: 'BOARD_CERTIFIED',
+          },
+        ],
+        summary: { active: 2, expired: 0, stale: 1, missing: [] },
+      },
+    });
+
+    const boardSection = buildPassportProofSections(passport).find((item) => item.id === 'board');
+
+    expect(boardSection?.status).toBe('stale');
   });
 
   it('keeps PECOS enrollment contextual in review truth instead of source-backed', () => {

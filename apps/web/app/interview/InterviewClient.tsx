@@ -22,6 +22,13 @@ import {
 } from '@/lib/live-path/contracts';
 import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
 import { VStatusPill } from '@/components/vds/primitives';
+import {
+  buildEmployerReviewHref,
+  buildPassportEntityHref,
+  resolvePublicWedgeSurfaceStateFromAccordionStatus,
+  resolvePublicWedgeSurfaceStateFromTruth,
+} from '@/lib/trust/public-wedge-parity';
+import { resolveAuthorityAccordionStatus } from '@/lib/trust/passport-truth';
 
 interface Props {
   entityId: string;
@@ -70,22 +77,38 @@ function dedupe(values: string[]): string[] {
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
 }
 
-function buildVerifiedTags(passport: PassportData): string[] {
+function buildCheckedTags(passport: PassportData): string[] {
   const tags: string[] = [];
   const truth = resolvePassportTruthSet(passport);
 
-  if (truth.identity.status === 'VERIFIED') tags.push('Identity anchored');
-  if (truth.authority.status === 'VERIFIED') {
-    tags.push('Licensure attached');
+  if (resolvePublicWedgeSurfaceStateFromTruth(truth.identity) === 'checked') {
+    tags.push('Identity checked');
   }
-  if (passport.authority.credentials.some((credential) => credential.domain === 'BOARD_CERTIFICATION' && credential.status === 'ACTIVE')) {
-    tags.push('Board evidence attached');
+  if (resolvePublicWedgeSurfaceStateFromTruth(truth.authority) === 'checked') {
+    tags.push('Licensure checked');
   }
-  if (passport.authority.credentials.some((credential) => credential.domain === 'DEA_REGISTRATION' && credential.status === 'ACTIVE')) {
-    tags.push('DEA evidence attached');
+  if (passport.authority.credentials.some((credential) => (
+    credential.domain === 'BOARD_CERTIFICATION'
+    && resolvePublicWedgeSurfaceStateFromAccordionStatus(
+      resolveAuthorityAccordionStatus(credential),
+    ) === 'checked'
+  ))) {
+    tags.push('Board certification checked');
   }
-  if (truth.safety.status === 'CLEAR') tags.push('Sanctions clear');
-  if (truth.eligibility.status === 'ENROLLED') tags.push('Enrollment checked');
+  if (passport.authority.credentials.some((credential) => (
+    credential.domain === 'DEA_REGISTRATION'
+    && resolvePublicWedgeSurfaceStateFromAccordionStatus(
+      resolveAuthorityAccordionStatus(credential),
+    ) === 'checked'
+  ))) {
+    tags.push('DEA checked');
+  }
+  if (resolvePublicWedgeSurfaceStateFromTruth(truth.safety) === 'checked') {
+    tags.push('Sanctions checked');
+  }
+  if (resolvePublicWedgeSurfaceStateFromTruth(truth.eligibility) === 'checked') {
+    tags.push('Enrollment checked');
+  }
 
   return dedupe(tags);
 }
@@ -153,7 +176,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
   const readinessStatus = resolveLivePathReadinessStatus(passport.readiness.status);
   const proofItems = buildPassportProofSections(passport);
   const proofSummary = summarizePassportProofSections(proofItems);
-  const verifiedTags = buildVerifiedTags(passport);
+  const checkedTags = buildCheckedTags(passport);
   const missingTags = buildMissingTags(passport);
   const hasShareContext = Boolean(contextId);
   const canShare = hasShareContext && isLoaded && isSignedIn;
@@ -163,9 +186,10 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
   const proofHref = passport.identity.npi
     ? `/api/trust-proof/${encodeURIComponent(passport.identity.npi)}?format=pdf`
     : null;
-  const reviewHref = contextId
-    ? `/review/${passport.entityId}?contextId=${encodeURIComponent(contextId)}&from=${encodeURIComponent(displayName)}`
-    : `/review/${passport.entityId}`;
+  const reviewHref = buildEmployerReviewHref(passport.entityId, {
+    contextId,
+    from: displayName,
+  });
 
   async function handleShare() {
     if (!contextId || !canShare || shareInFlightRef.current) {
@@ -302,9 +326,9 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
           <div className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-4">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Verified now</p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Checked now</p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {verifiedTags.length > 0 ? verifiedTags.map((tag) => (
+                  {checkedTags.length > 0 ? checkedTags.map((tag) => (
                     <span
                       key={tag}
                       className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/62"
@@ -348,7 +372,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
               </p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <Link
-                  href={`/passport/${passport.entityId}`}
+                  href={buildPassportEntityHref(passport.entityId)}
                   className="inline-flex min-h-[44px] items-center rounded-xl border border-white/10 px-4 text-sm font-medium text-white/62 transition hover:border-white/20 hover:text-white"
                 >
                   Open full passport
@@ -435,7 +459,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
                   Open employer review
                 </Link>
                 <Link
-                  href={`/passport/${passport.entityId}`}
+                  href={buildPassportEntityHref(passport.entityId)}
                   className="inline-flex min-h-[44px] items-center rounded-xl border border-white/10 px-4 text-sm font-medium text-white/56 transition hover:border-white/20 hover:text-white"
                 >
                   Return to passport
@@ -507,7 +531,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
                 )}
 
                 <Link
-                  href={`/passport/${passport.entityId}`}
+                  href={buildPassportEntityHref(passport.entityId)}
                   className="inline-flex min-h-[44px] items-center rounded-xl border border-white/10 px-5 text-sm font-medium text-white/56 transition hover:border-white/20 hover:text-white"
                 >
                   Return to passport

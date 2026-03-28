@@ -53,7 +53,7 @@ describe('passport truth helpers', () => {
     expect(resolveAuthorityMethodLabel(credential)).toBe('TX state board (manual)');
     expect(resolveAuthorityStatusLead(credential)).toBe('Manual only');
     expect(resolveAuthorityVdsStatus(credential)).toBe('unavailable');
-    expect(resolveAuthorityTrustStatus(credential)).toBe('unchecked');
+    expect(resolveAuthorityTrustStatus(credential)).toBe('unavailable');
     expect(resolveAuthorityAccordionStatus(credential)).toBe('unavailable');
     expect(resolveAuthoritySectionStatus([credential], [])).toBe('unavailable');
     expect(resolveAuthorityEvidenceLabel(credential)).toBe('License source (TX)');
@@ -72,7 +72,7 @@ describe('passport truth helpers', () => {
 
     expect(resolveAuthorityStatusLead(credential)).toBe('Access required');
     expect(resolveAuthorityVdsStatus(credential)).toBe('access required');
-    expect(resolveAuthorityTrustStatus(credential)).toBe('unchecked');
+    expect(resolveAuthorityTrustStatus(credential)).toBe('access_required');
     expect(resolveAuthorityAccordionStatus(credential)).toBe('access_required');
     expect(resolveAuthorityNote(credential)).toContain('Access required.');
     expect(isDecisionGradeAuthorityCredential(credential)).toBe(false);

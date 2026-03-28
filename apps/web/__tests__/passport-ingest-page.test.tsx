@@ -3,6 +3,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PassportPage from '../app/passport/page';
 import { createInitialIngestStreamState, type IngestStreamState } from '../hooks/ingestStreamState';
+import {
+  buildEmployerReviewHref,
+  buildPassportEntityHref,
+} from '../lib/trust/public-wedge-parity';
 
 const useIngestStreamMock = vi.fn();
 
@@ -85,9 +89,9 @@ describe('/passport ingest page', () => {
     }));
 
     expect(markup).toContain('View full passport');
-    expect(markup).toContain('/passport/entity-1');
+    expect(markup).toContain(buildPassportEntityHref('entity-1'));
     expect(markup).toContain('View as employer');
-    expect(markup).toContain('/review/entity-1');
+    expect(markup).toContain(buildEmployerReviewHref('entity-1'));
   });
 
   it('renders an honest no-profile state when NPPES did not return an authoritative record', () => {

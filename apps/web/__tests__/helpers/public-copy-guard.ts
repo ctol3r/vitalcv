@@ -1,3 +1,5 @@
+import { PUBLIC_WEDGE_ROUTE_TARGETS as RUNTIME_PUBLIC_WEDGE_ROUTE_TARGETS } from '@/lib/trust/public-wedge-parity';
+
 export const APPROVED_PUBLIC_WORDING = {
   checked: 'Checked',
   sourceBacked: 'source-backed',
@@ -30,12 +32,12 @@ export const PROHIBITED_EMPLOYER_PUBLIC_STRINGS = [
 ] as const;
 
 export const PUBLIC_WEDGE_ROUTE_TARGETS = {
-  homepageContinuePrefix: '/passport?npi=',
+  homepageContinuePrefix: `${RUNTIME_PUBLIC_WEDGE_ROUTE_TARGETS.passportEntry}?npi=`,
   explorePrimary: '/onboarding',
   exploreSecondary: '/ask',
-  interviewBlocked: '/',
-  interviewReviewPrefix: '/review/',
-  employerEntry: '/review',
+  interviewBlocked: RUNTIME_PUBLIC_WEDGE_ROUTE_TARGETS.homepageLookup,
+  interviewReviewPrefix: `${RUNTIME_PUBLIC_WEDGE_ROUTE_TARGETS.reviewEntry}/`,
+  employerEntry: RUNTIME_PUBLIC_WEDGE_ROUTE_TARGETS.reviewEntry,
 } as const;
 
 function stripTags(input: string): string {
