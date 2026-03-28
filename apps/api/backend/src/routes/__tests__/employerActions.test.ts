@@ -599,7 +599,7 @@ describe('employer action routes', () => {
           },
         },
       },
-    ]);
+    }]);
 
     const response = await request(buildApp())
       .get('/api/employer-review/entity-1/status')
@@ -733,7 +733,7 @@ describe('employer action routes', () => {
           },
         },
       },
-    }]);
+    ]);
 
     const response = await request(buildApp())
       .get('/api/employer-review/entity-1/status')

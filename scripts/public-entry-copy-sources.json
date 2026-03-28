@@ -1,0 +1,25 @@
+{
+  "surfaces": [
+    {
+      "id": "homepage",
+      "label": "Homepage",
+      "entryFile": "apps/web/app/page.tsx",
+      "copySources": [
+        "apps/web/components/layout/Navbar.tsx",
+        "apps/web/components/hero/HeroWithAuthPrompt.tsx",
+        "apps/web/components/hero/LiveTrustConsole.tsx",
+        "apps/web/components/home/PublicTruthSections.tsx",
+        "apps/web/components/marketing/HomeSections.tsx"
+      ]
+    },
+    {
+      "id": "developer-shell",
+      "label": "Developer shell",
+      "entryFile": "apps/web/app/developers/page.tsx",
+      "copySources": [
+        "apps/web/app/docs/page.tsx",
+        "apps/api/backend/src/services/search/searchIndex.ts"
+      ]
+    }
+  ]
+}

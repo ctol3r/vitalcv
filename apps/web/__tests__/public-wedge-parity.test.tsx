@@ -4,9 +4,11 @@ import { describe, expect, it } from 'vitest';
 import { TrustLabel } from '@/components/ui/trust-label';
 import {
   PUBLIC_WEDGE_ROUTE_TARGETS,
+  PUBLIC_WEDGE_SURFACE_STATES,
   buildEmployerReviewHref,
   buildPassportEntityHref,
   buildPassportLookupHref,
+  getPublicWedgeSurfaceStateLabel,
   isPublicWedgeStrongOutcome,
   resolvePublicWedgeSurfaceStateFromAccordionStatus,
   resolvePublicWedgeSurfaceStateFromCoverage,
@@ -82,6 +84,20 @@ describe('public wedge parity helpers', () => {
     expect(isPublicWedgeStrongOutcome('checked')).toBe(true);
     expect(isPublicWedgeStrongOutcome('review_required')).toBe(false);
     expect(isPublicWedgeStrongOutcome('preview_only')).toBe(false);
+  });
+
+  it('keeps shared wedge state labels explicit across homepage, passport, review, and request surfaces', () => {
+    expect(
+      PUBLIC_WEDGE_SURFACE_STATES.map((state) => [state, getPublicWedgeSurfaceStateLabel(state)]),
+    ).toEqual([
+      ['checked', 'Checked'],
+      ['pending', 'Pending'],
+      ['stale', 'Stale'],
+      ['access_required', 'Access required'],
+      ['unavailable', 'Unavailable'],
+      ['review_required', 'Review required'],
+      ['preview_only', 'Preview only'],
+    ]);
   });
 
   it('renders unsupported source states without escalating them into strong trust badges', () => {

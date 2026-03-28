@@ -67,6 +67,26 @@ describe('/passport ingest page', () => {
     useIngestStreamMock.mockReset();
   });
 
+  it('renders loading copy and queued source lanes while the ingest is still running', () => {
+    const markup = renderForState(buildState({
+      phase: 'nppes',
+      npi: '1234567890',
+      sources: {
+        nppes: 'checking',
+        oig: 'pending',
+        pecos: 'pending',
+      },
+    }));
+
+    expect(markup).toContain('Checking primary sources…');
+    expect(markup).toContain('Identity');
+    expect(markup).toContain('Sanctions (OIG)');
+    expect(markup).toContain('Enrollment (CMS)');
+    expect(markup).toContain('Checking');
+    expect(markup).toContain('Pending');
+    expect(markup).not.toContain('View full passport');
+  });
+
   it('renders the passport CTA as soon as the profile is usable', () => {
     const markup = renderForState(buildState({
       phase: 'enrollment',
@@ -134,6 +154,32 @@ describe('/passport ingest page', () => {
     }));
 
     expect(markup).toContain('Profile resolved but not yet anchored.');
+    expect(markup).not.toContain('View full passport');
+  });
+
+  it('renders unavailable and review-required source states without upgrading them into checked proof', () => {
+    const markup = renderForState(buildState({
+      phase: 'done',
+      completedAt: '2026-03-25T22:10:00.000Z',
+      npi: '1234567890',
+      identity: {
+        authoritative: false,
+        sourceResult: 'FAILED',
+        status: 'UNKNOWN',
+      },
+      standing: {
+        exclusionChecked: true,
+        exclusionStatus: 'POSSIBLE_MATCH',
+      },
+      sources: {
+        nppes: 'error',
+        oig: 'done',
+        pecos: 'pending',
+      },
+    }));
+
+    expect(markup).toContain('Unavailable');
+    expect(markup).toContain('Review required');
     expect(markup).not.toContain('View full passport');
   });
 

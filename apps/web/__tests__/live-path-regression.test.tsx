@@ -636,6 +636,33 @@ describe('live path regression hardening', () => {
     document.body.innerHTML = '';
   });
 
+  it('keeps the homepage NPI lookup as the only primary CTA before preview and during loading', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockImplementation(() => new Promise(() => {}) as never);
+
+    const view = await renderNode(<LiveTrustConsole />);
+
+    expect(
+      Array.from(view.container.querySelectorAll('button')).map((node) => node.textContent?.trim()),
+    ).toEqual(['Start with NPI lookup']);
+    expect(textContent(view.container)).toContain('NPI first. Honest coverage.');
+    expect(textContent(view.container)).not.toContain('Continue to passport');
+    expect(textContent(view.container)).not.toContain('Get Verified');
+
+    await setInputValue(view.container, 'NPI number', '1234567890');
+    await clickByText(view.container, 'Start with NPI lookup');
+    await flush();
+    await advance(1);
+    await flush();
+
+    expect(textContent(view.container)).toContain('Checking primary sources…');
+    expect(textContent(view.container)).toContain('Primary identity (NPPES)');
+    expect(textContent(view.container)).toContain('Sanctions (OIG / LEIE)');
+    expect(textContent(view.container)).not.toContain('Continue to passport');
+
+    await view.unmount();
+  });
+
   it('submits homepage NPI lookups and reveals the live readiness snapshot', async () => {
     const fetchMock = vi.mocked(fetch);
     const onPreviewReady = vi.fn();
