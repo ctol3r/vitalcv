@@ -677,4 +677,34 @@ describe('post-release truth cleanup', () => {
     expect(findHrefByText(employerProfileMarkup, 'Current roles')).toBe('/explore?organizationSlug=sample-health');
     expectMarkupExcludes(employerProfileMarkup, PROHIBITED_EMPLOYER_PUBLIC_STRINGS);
   }, 20000);
+
+  it('keeps HomeSections pillars scoped to the current wedge', async () => {
+    const { PlatformVisionSection } = await import(
+      '../components/marketing/HomeSections'
+    );
+    const markup = renderToStaticMarkup(<PlatformVisionSection />);
+
+    // Pillar 02: job board must not overstate scope
+    expect(markup).not.toContain(
+      'Every healthcare job, every specialty, free to post',
+    );
+    // Pillar 03: MATCHA branding removed
+    expect(markup).not.toContain('MATCHA — AI Career Matching');
+    expect(markup).not.toContain(
+      'credential-aware AI that knows your exact qualifications',
+    );
+    // Pillar 03 replacement
+    expect(markup).toContain('Career Signal');
+    // Pillar 04: capacity model scoped
+    expect(markup).not.toContain('New Metric');
+    expect(markup).toContain('Pilot Only');
+  });
+
+  it('keeps billing issuers card off trust-network overstatement', async () => {
+    const { default: BillingPage } = await import('../app/billing/page');
+    const markup = renderToStaticMarkup(<BillingPage />);
+
+    expect(markup).not.toContain('connect to the trust network');
+    expect(markup).toContain('current preview environment');
+  });
 });

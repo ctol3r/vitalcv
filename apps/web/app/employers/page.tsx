@@ -301,6 +301,31 @@ export default async function EmployersPage() {
             </div>
           )}
 
+          {/* Pilot CTA */}
+          <div className="mt-10 rounded-3xl border border-emerald-400/20 bg-emerald-400/[0.04] p-8 text-center">
+            <h3 className="text-xl font-semibold text-white">
+              Using VitalCV for clinician review?
+            </h3>
+            <p className="mt-3 max-w-xl mx-auto text-sm leading-7 text-white/65">
+              Request pilot access to connect employer review to source-backed readiness.
+              One workflow, one NPI, one audit trail.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/pilot"
+                className="inline-flex items-center gap-2 rounded-2xl bg-emerald-500 hover:bg-emerald-400 px-6 py-3 text-sm font-bold text-black transition-all shadow-lg shadow-emerald-500/20"
+              >
+                Request pilot access
+              </Link>
+              <Link
+                href="/review"
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-3 text-sm font-medium text-white/70 hover:text-white transition"
+              >
+                See how review works
+              </Link>
+            </div>
+          </div>
+
           <div className="mt-10 rounded-3xl border border-white/10 bg-white/[0.03] p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="max-w-2xl">

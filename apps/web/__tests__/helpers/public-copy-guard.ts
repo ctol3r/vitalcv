@@ -27,6 +27,9 @@ export const PROHIBITED_PUBLIC_STRINGS = [
   'TRUST_THRESHOLD',
   'REVOCATION_ESCALATION',
   'PEER_ACCEPTANCE',
+  'Every healthcare job, every specialty',
+  'MATCHA — AI Career Matching',
+  'connect to the trust network',
 ] as const;
 
 export const PROHIBITED_EMPLOYER_PUBLIC_STRINGS = [
