@@ -4,15 +4,19 @@ import { describe, expect, it } from 'vitest';
 import { TrustLabel } from '@/components/ui/trust-label';
 import {
   PUBLIC_WEDGE_ROUTE_TARGETS,
+  PUBLIC_WEDGE_SURFACE_STATES,
   buildEmployerReviewHref,
   buildPassportEntityHref,
   buildPassportLookupHref,
+  getPublicWedgeSurfaceStateLabel,
   isPublicWedgeStrongOutcome,
   resolvePublicWedgeSurfaceStateFromAccordionStatus,
   resolvePublicWedgeSurfaceStateFromCoverage,
   resolvePublicWedgeSurfaceStateFromTruth,
 } from '@/lib/trust/public-wedge-parity';
 import {
+  CANONICAL_SOURCE_COVERAGE_STATES,
+  LAUNCH_SPINE_SOURCE_IDS,
   createCanonicalSourceCoverage,
   type CanonicalTruth,
 } from '../../../packages/trust-state';
@@ -82,6 +86,44 @@ describe('public wedge parity helpers', () => {
     expect(isPublicWedgeStrongOutcome('checked')).toBe(true);
     expect(isPublicWedgeStrongOutcome('review_required')).toBe(false);
     expect(isPublicWedgeStrongOutcome('preview_only')).toBe(false);
+  });
+
+  it('keeps shared wedge state labels explicit across homepage, passport, review, and request surfaces', () => {
+    expect(
+      PUBLIC_WEDGE_SURFACE_STATES.map((state) => [state, getPublicWedgeSurfaceStateLabel(state)]),
+    ).toEqual([
+      ['checked', 'Checked'],
+      ['pending', 'Pending'],
+      ['stale', 'Stale'],
+      ['access_required', 'Access required'],
+      ['unavailable', 'Unavailable'],
+      ['review_required', 'Review required'],
+      ['preview_only', 'Preview only'],
+    ]);
+  });
+
+  it('CANONICAL_SOURCE_COVERAGE_STATES core 4 states are represented in PUBLIC_WEDGE_SURFACE_STATES', () => {
+    // The web surface maps camelCase states to snake_case labels.
+    // This test ensures the parity contract holds for the core lane states.
+    const coreCanonical = ['checked', 'pending', 'stale', 'accessRequired'] as const;
+    const surfaceEquivalents = ['checked', 'pending', 'stale', 'access_required'] as const;
+
+    for (const state of coreCanonical) {
+      expect(CANONICAL_SOURCE_COVERAGE_STATES).toContain(state);
+    }
+    for (const state of surfaceEquivalents) {
+      expect(PUBLIC_WEDGE_SURFACE_STATES).toContain(state);
+    }
+  });
+
+  it('LAUNCH_SPINE_SOURCE_IDS covers the pilot ingest set', () => {
+    expect(LAUNCH_SPINE_SOURCE_IDS).toEqual(
+      expect.arrayContaining(['NPPES_API', 'OIG_LEIE', 'PECOS_PUBLIC', 'STATE_BOARD']),
+    );
+  });
+
+  it('employer entry route target resolves to /review', () => {
+    expect(PUBLIC_WEDGE_ROUTE_TARGETS.reviewEntry).toBe('/review');
   });
 
   it('renders unsupported source states without escalating them into strong trust badges', () => {

@@ -507,8 +507,9 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
   useEffect(() => {
     if (reviewOpenedTrackedRef.current || (CLERK_PROVIDER_ENABLED && !isLoaded)) return;
 
+    // review_opened is in PilotMetricEventType — counted by getPilotOpsSummary
     trackUxEvent({
-      event_name: 'review_opened',
+      event_name: 'review_opened' as const,
       component_id: 'employer_review_surface',
       metadata: {
         auth_state: authState,

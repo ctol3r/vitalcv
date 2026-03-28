@@ -161,10 +161,11 @@ export default function DeveloperPortalPage() {
         <div>
           <div className="flex items-center gap-3 mb-4">
             <p className="text-xs font-semibold uppercase tracking-widest text-vt-neutral-800">
-              Network Gateway
+              Connected Organizations (Preview)
             </p>
             <div className="vt-divider-ops" />
           </div>
+          <p className="text-xs text-vt-neutral-800 mb-4">Live connection status for organizations connected to this preview environment.</p>
           <GatewayConnections />
         </div>
 
@@ -222,42 +223,12 @@ const profile = await verifier.getPublicProfile('1234567890');
         <div id="governance" className="scroll-mt-20">
           <div className="flex items-center gap-3 mb-6">
             <p className="text-xs font-semibold uppercase tracking-widest text-vt-neutral-800">
-              Trust Governance
+              Governance API
             </p>
             <div className="vt-divider-ops" />
           </div>
           <div className="rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 p-6 space-y-4">
-            <p className="text-sm text-vt-neutral-200">
-              The configured backend exposes governance rules. The cards below summarize the current rule set in a readable form instead of implying a separate launch-only product surface.
-            </p>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="rounded-xl border border-white/6 bg-vt-surface-ops-base/60 p-4 space-y-2">
-                <p className="text-xs font-semibold text-vt-warning">TRUST_THRESHOLD</p>
-                <p className="text-sm font-semibold text-white">Minimum Issuer Trust Score</p>
-                <p className="text-xs text-vt-neutral-800">Issuers with trust score below <span className="text-white font-medium">60</span> are automatically suspended pending review.</p>
-                <span className="inline-block text-xs rounded-full bg-vt-danger/10 text-vt-danger border border-vt-danger/20 px-2 py-0.5">SUSPEND_ISSUER</span>
-              </div>
-
-              <div className="rounded-xl border border-white/6 bg-vt-surface-ops-base/60 p-4 space-y-2">
-                <p className="text-xs font-semibold text-vt-warning">REVOCATION_ESCALATION</p>
-                <p className="text-sm font-semibold text-white">Revocation Escalation</p>
-                <p className="text-xs text-vt-neutral-800">Issuers exceeding <span className="text-white font-medium">5</span> revocations in a 30-day window are flagged for human review.</p>
-                <span className="inline-block text-xs rounded-full bg-vt-warning/10 text-vt-warning border border-vt-warning/20 px-2 py-0.5">FLAG_FOR_REVIEW</span>
-              </div>
-
-              <div className="rounded-xl border border-white/6 bg-vt-surface-ops-base/60 p-4 space-y-2">
-                <p className="text-xs font-semibold text-vt-warning">PEER_ACCEPTANCE</p>
-                <p className="text-sm font-semibold text-white">Network Peer Acceptance</p>
-                <p className="text-xs text-vt-neutral-800">AUTHORITATIVE issuers require endorsement from <span className="text-white font-medium">3</span> existing peers before full activation.</p>
-                <span className="inline-block text-xs rounded-full bg-vt-info/10 text-vt-info border border-vt-info/20 px-2 py-0.5">REQUIRE_PEER_APPROVAL</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs text-vt-neutral-800">
-              <span className="inline-block w-2 h-2 rounded-full bg-vt-warning" />
-              API endpoint: <code className="text-vt-warning ml-1">GET /api/governance/rules</code>
-            </div>
+            <p className="text-sm text-vt-neutral-200 mt-2">Backend governance rules are configured per-environment. Use <code className="text-vt-warning">GET /api/governance/rules</code> to inspect the current rule set.</p>
           </div>
         </div>
 
@@ -289,7 +260,7 @@ const profile = await verifier.getPublicProfile('1234567890');
         <div id="conformance" className="scroll-mt-20">
           <div className="flex items-center gap-3 mb-4">
             <p className="text-xs font-semibold uppercase tracking-widest text-vt-neutral-800">
-              Standards Conformance · Wave 114
+              Standards Conformance
             </p>
             <div className="vt-divider-ops" />
           </div>
@@ -300,7 +271,7 @@ const profile = await verifier.getPublicProfile('1234567890');
         <div id="healthstart" className="scroll-mt-20">
           <div className="flex items-center gap-3 mb-4">
             <p className="text-xs font-semibold uppercase tracking-widest text-vt-neutral-800">
-              HealthStart · Wave 118
+              HealthStart Control Inheritance
             </p>
             <div className="vt-divider-ops" />
           </div>
@@ -311,7 +282,7 @@ const profile = await verifier.getPublicProfile('1234567890');
         <div id="sdks" className="scroll-mt-20">
           <div className="flex items-center gap-3 mb-4">
             <p className="text-xs font-semibold uppercase tracking-widest text-vt-neutral-800">
-              Developer SDKs · Phase 7
+              Developer SDKs
             </p>
             <div className="vt-divider-ops" />
           </div>

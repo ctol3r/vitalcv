@@ -1,3 +1,14 @@
+import { PILOT_METRIC_EVENT_TYPES } from '../pilotOpsService';
+
+describe('PILOT_METRIC_EVENT_TYPES funnel coverage', () => {
+  it('includes passport_viewed, review_requested, review_opened for funnel tracking', () => {
+    const types = PILOT_METRIC_EVENT_TYPES as readonly string[];
+    expect(types).toContain('passport_viewed');
+    expect(types).toContain('review_requested');
+    expect(types).toContain('review_opened');
+  });
+});
+
 jest.mock('../../../graphql/prisma_client', () => ({
   __esModule: true,
   default: {

@@ -236,6 +236,32 @@ describe('ReviewClient context attribution', () => {
     expect(src).toContain('sharedBy || contextId || bundleId');   // has-context branch
     expect(src).toContain('!sharedBy && !contextId && !bundleId'); // no-context branch
   });
+
+  it('ReviewClient context attribution includes Purpose field with Employment review value', async () => {
+    const { readFileSync } = await import('fs');
+    const { resolve } = await import('path');
+    const src = readFileSync(
+      resolve(__dirname, '../components/review/ReviewClient.tsx'),
+      'utf-8',
+    );
+
+    expect(src).toContain('Purpose');
+    expect(src).toContain('Employment review');
+  });
+
+  it('request-review API response shape documents contextId in success path', async () => {
+    const { readFileSync } = await import('fs');
+    const { resolve } = await import('path');
+    const src = readFileSync(
+      resolve(__dirname, '../app/api/request-review/route.ts'),
+      'utf-8',
+    );
+
+    // The success response must include contextId, entityId, and reviewUrl
+    expect(src).toContain('contextId: context.id');
+    expect(src).toContain('entityId');
+    expect(src).toContain('reviewUrl');
+  });
 });
 
 // ── Minimal passport fixture ───────────────────────────────────────────────

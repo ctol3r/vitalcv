@@ -2,9 +2,20 @@ import fs from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
 
+type PublicEntryCopySurface = {
+  id: string;
+  label: string;
+  entryFile: string;
+  copySources: string[];
+};
+
 function readFile(relativePath: string): string {
   const absolutePath = path.resolve(__dirname, '../../..', relativePath);
   return fs.readFileSync(absolutePath, 'utf8');
+}
+
+function readJson<T>(relativePath: string): T {
+  return JSON.parse(readFile(relativePath)) as T;
 }
 
 describe('wording safety guards', () => {
@@ -43,7 +54,20 @@ describe('wording safety guards', () => {
 });
 
 describe('public surface truth guards — post-release drift prevention', () => {
-  const publicSurfaces = [
+  const publicEntryCopyManifest = readJson<{ surfaces: PublicEntryCopySurface[] }>(
+    'scripts/public-entry-copy-sources.json',
+  );
+
+  const publicEntryCopyFiles = Array.from(
+    new Set(
+      publicEntryCopyManifest.surfaces.flatMap((surface) => [
+        surface.entryFile,
+        ...surface.copySources,
+      ]),
+    ),
+  );
+
+  const publicSurfaces = Array.from(new Set([
     'apps/web/app/interview/page.tsx',
     'apps/web/components/layout/Navbar.tsx',
     'apps/web/components/marketing/Navbar.tsx',
@@ -52,11 +76,40 @@ describe('public surface truth guards — post-release drift prevention', () => 
     'apps/web/app/explore/page.tsx',
     'apps/web/app/labs/page.tsx',
     'apps/web/components/explore/ExploreClient.tsx',
-  ];
+    ...publicEntryCopyFiles,
+  ]));
 
   function readPublic(): string {
     return publicSurfaces.map((f) => readFile(f)).join('\n');
   }
+
+  it('tracks canonical homepage and developer-shell copy sources', () => {
+    const surfaceIds = publicEntryCopyManifest.surfaces.map((surface) => surface.id);
+    expect(surfaceIds).toEqual(expect.arrayContaining(['homepage', 'developer-shell']));
+
+    const homepage = publicEntryCopyManifest.surfaces.find(
+      (surface) => surface.id === 'homepage',
+    );
+    const developerShell = publicEntryCopyManifest.surfaces.find(
+      (surface) => surface.id === 'developer-shell',
+    );
+
+    expect(homepage?.entryFile).toBe('apps/web/app/page.tsx');
+    expect(homepage?.copySources).toEqual(
+      expect.arrayContaining([
+        'apps/web/components/hero/HeroWithAuthPrompt.tsx',
+        'apps/web/components/home/PublicTruthSections.tsx',
+        'apps/web/components/marketing/HomeSections.tsx',
+      ]),
+    );
+    expect(developerShell?.entryFile).toBe('apps/web/app/developers/page.tsx');
+    expect(developerShell?.copySources).toEqual(
+      expect.arrayContaining([
+        'apps/web/app/docs/page.tsx',
+        'apps/api/backend/src/services/search/searchIndex.ts',
+      ]),
+    );
+  });
 
   it('does not contain verified-overclaiming strings on public surfaces', () => {
     const combined = readPublic().toLowerCase();
@@ -67,6 +120,9 @@ describe('public surface truth guards — post-release drift prevention', () => 
     expect(combined).not.toContain('full primary source verification');
     expect(combined).not.toContain('unlock your verified');
     expect(combined).not.toContain('already cleared for');
+    expect(combined).not.toContain('open interview preview');
+    expect(combined).not.toContain('build with the trust protocol');
+    expect(combined).not.toContain('build with the vitalcv trust protocol');
   });
 
   it('does not use "Get Verified" as a nav or CTA label on public surfaces', () => {

@@ -13,6 +13,7 @@
     "lint": "turbo lint",
     "test": "turbo test",
     "build": "turbo build",
+    "report:public-copy": "node scripts/report-public-entry-copy-sources.js",
     "test:backend:db": "bash scripts/backend-test-db.sh"
   },
   "devDependencies": {

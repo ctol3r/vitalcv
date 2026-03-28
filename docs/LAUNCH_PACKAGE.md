@@ -1,3 +1,6 @@
+> **UPDATED:** See docs/LAUNCH_GATE.md (generated 2026-03-28) for the current pilot-readiness gate.
+> This file reflects state as of 2026-03-20 and is preserved for reference.
+
 # VitalCV Launch Package
 
 **Generated:** 2026-03-20 15:25 PDT

@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -8,6 +10,55 @@ import {
   PUBLIC_WEDGE_ROUTE_TARGETS,
   findHrefByText,
 } from './helpers/public-copy-guard';
+
+type PublicEntryCopySurface = {
+  id: string;
+  label: string;
+  entryFile: string;
+  copySources: string[];
+};
+
+const REPO_ROOT = path.resolve(process.cwd(), '../..');
+const PUBLIC_ENTRY_COPY_SOURCE_MANIFEST = JSON.parse(
+  fs.readFileSync(
+    path.resolve(REPO_ROOT, 'scripts/public-entry-copy-sources.json'),
+    'utf8',
+  ),
+) as { surfaces: PublicEntryCopySurface[] };
+
+const REQUIRED_PUBLIC_SHELL_PROHIBITIONS = [
+  'Get Verified',
+  'Primary sources verify you',
+  'Open Interview Preview',
+  'Build with the Trust Protocol',
+] as const;
+
+function readRepoFile(relativePath: string): string {
+  return fs.readFileSync(path.resolve(REPO_ROOT, relativePath), 'utf8');
+}
+
+function getPublicEntryCopySurface(id: string): PublicEntryCopySurface {
+  const surface = PUBLIC_ENTRY_COPY_SOURCE_MANIFEST.surfaces.find(
+    (candidate) => candidate.id === id,
+  );
+
+  if (!surface) {
+    throw new Error(`Missing public-entry copy surface "${id}"`);
+  }
+
+  return surface;
+}
+
+function getCanonicalPublicEntryCopyFiles(): string[] {
+  return Array.from(
+    new Set(
+      PUBLIC_ENTRY_COPY_SOURCE_MANIFEST.surfaces.flatMap((surface) => [
+        surface.entryFile,
+        ...surface.copySources,
+      ]),
+    ),
+  );
+}
 
 const {
   fetchLaunchEmployerMock,
@@ -62,6 +113,43 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+vi.mock('@/components/motion/ScrollMotion', () => ({
+  SectionReveal: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+vi.mock('@/components/auth/RoleContext', () => ({
+  useRoleContext: () => ({
+    isLoaded: true,
+    isSignedIn: false,
+    clerkRole: null,
+    persona: null,
+    role: 'guest',
+    landingRoute: '/sign-in',
+    isClinician: false,
+    isEmployer: false,
+    clinicianNpi: null,
+    employerOrgId: null,
+    workspace: null,
+    refresh: async () => undefined,
+  }),
+}));
+
+vi.mock('@/hooks/useAuthPrompt', () => ({
+  useAuthPrompt: () => ({
+    shouldPrompt: false,
+    dismiss: vi.fn(),
+  }),
+}));
+
+vi.mock('@/components/auth/CreateAccountModal', () => ({
+  CreateAccountModal: () => null,
+}));
+
+vi.mock('@/lib/auth/clerkConfig', () => ({
+  CLERK_PROVIDER_ENABLED: false,
+  CLERK_SIGN_IN_URL: '/sign-in',
+}));
+
 vi.mock('@/hooks/useUxTelemetry', () => ({
   useUxTelemetry: () => ({ track: vi.fn() }),
 }));
@@ -82,6 +170,10 @@ vi.mock('@/components/prequalify/PrequalifyTrigger', () => ({
 
 vi.mock('@/components/apply/ApplyWithVitalCV', () => ({
   ApplyWithVitalCV: ({ label }: { label: string }) => <button type="button">{label}</button>,
+}));
+
+vi.mock('@/components/capacity/SystemCapacityBadge', () => ({
+  default: () => <div>System capacity badge</div>,
 }));
 
 vi.mock('@/lib/api', () => ({
@@ -242,6 +334,52 @@ afterEach(() => {
 });
 
 describe('post-release truth cleanup', () => {
+  it('locks the required public-shell prohibited phrases into the shared guard list', () => {
+    expect(PROHIBITED_PUBLIC_STRINGS).toEqual(
+      expect.arrayContaining(REQUIRED_PUBLIC_SHELL_PROHIBITIONS),
+    );
+  });
+
+  it('tracks canonical homepage and developer-shell copy sources', () => {
+    const homepage = getPublicEntryCopySurface('homepage');
+    const developerShell = getPublicEntryCopySurface('developer-shell');
+
+    expect(homepage.entryFile).toBe('apps/web/app/page.tsx');
+    expect(homepage.copySources).toEqual(
+      expect.arrayContaining([
+        'apps/web/components/layout/Navbar.tsx',
+        'apps/web/components/hero/HeroWithAuthPrompt.tsx',
+        'apps/web/components/hero/LiveTrustConsole.tsx',
+        'apps/web/components/home/PublicTruthSections.tsx',
+        'apps/web/components/marketing/HomeSections.tsx',
+      ]),
+    );
+
+    expect(developerShell.entryFile).toBe('apps/web/app/developers/page.tsx');
+    expect(developerShell.copySources).toEqual(
+      expect.arrayContaining([
+        'apps/web/app/docs/page.tsx',
+        'apps/api/backend/src/services/search/searchIndex.ts',
+      ]),
+    );
+
+    const homepageEntrySource = readRepoFile(homepage.entryFile);
+    expect(homepageEntrySource).toContain('<HeroWithAuthPrompt />');
+    expect(homepageEntrySource).toContain('<TrustStrip />');
+    expect(homepageEntrySource).toContain('<HowItWorksSection />');
+
+    for (const file of getCanonicalPublicEntryCopyFiles()) {
+      expect(fs.existsSync(path.resolve(REPO_ROOT, file))).toBe(true);
+    }
+  });
+
+  it('keeps canonical public-entry copy sources off prohibited wording drift', () => {
+    for (const file of getCanonicalPublicEntryCopyFiles()) {
+      const source = readRepoFile(file);
+      expectMarkupExcludes(source, PROHIBITED_PUBLIC_STRINGS);
+    }
+  });
+
   it('keeps public nav and homepage language aligned with checked/preview wording', async () => {
     const [{ default: Navbar }, { HowItWorksSection }] = await Promise.all([
       import('../components/layout/Navbar'),
@@ -262,7 +400,51 @@ describe('post-release truth cleanup', () => {
     expect(homeMarkup).toContain('Portable across employers');
     expect(homeMarkup).toContain(APPROVED_PUBLIC_WORDING.sourceBacked);
     expect(homeMarkup).toContain(APPROVED_PUBLIC_WORDING.checked);
-    expectMarkupExcludes(homeMarkup, ['Primary sources verify you']);
+    expectMarkupExcludes(homeMarkup, PROHIBITED_PUBLIC_STRINGS);
+  });
+
+  it('renders the homepage route plus adjacent interview teaser with the live public-shell copy', async () => {
+    const [
+      { default: HomePage },
+      { default: Navbar },
+      { InterviewModeTeaser },
+    ] = await Promise.all([
+      import('../app/page'),
+      import('../components/layout/Navbar'),
+      import('../components/home/PublicTruthSections'),
+    ]);
+
+    const homepageMarkup = renderToStaticMarkup(<HomePage />);
+    const navbarMarkup = renderToStaticMarkup(<Navbar />);
+    const interviewTeaserMarkup = renderToStaticMarkup(<InterviewModeTeaser />);
+
+    expect(homepageMarkup).toContain('NPI first. Honest coverage.');
+    expect(homepageMarkup).toContain('Start with NPI lookup');
+    expect(homepageMarkup).toContain('Current source coverage');
+    expect(homepageMarkup).toContain('Homepage preview starts with NPPES and OIG.');
+    expect(homepageMarkup).toContain('How It Works');
+    expect(homepageMarkup).toContain('Source-backed readiness snapshot');
+    expect(homepageMarkup).toContain('Primary sources first. Signed proof where coverage exists. Explicit gaps where it does not.');
+
+    expect(navbarMarkup).toContain('Check Readiness');
+    expect(navbarMarkup).toContain('Explore Roles');
+    expect(navbarMarkup).toContain('For Employers');
+    expect(navbarMarkup).toContain('Developers');
+    expect(findHrefByText(navbarMarkup, 'Check Readiness')).toBe('/passport');
+    expect(findHrefByText(navbarMarkup, 'Explore Roles')).toBe('/explore');
+    expect(findHrefByText(navbarMarkup, 'For Employers')).toBe('/employers');
+    expect(findHrefByText(navbarMarkup, 'Developers')).toBe('/developers');
+
+    expect(interviewTeaserMarkup).toContain('Passport Preview');
+    expect(interviewTeaserMarkup).toContain('Preview your');
+    expect(interviewTeaserMarkup).toContain('passport proof.');
+    expect(interviewTeaserMarkup).toContain('Preview Passport Proof');
+    expect(interviewTeaserMarkup).toContain('Synthetic preview');
+    expect(findHrefByText(interviewTeaserMarkup, 'Preview Passport Proof')).toBe('/passport');
+
+    expectMarkupExcludes(homepageMarkup, PROHIBITED_PUBLIC_STRINGS);
+    expectMarkupExcludes(navbarMarkup, PROHIBITED_PUBLIC_STRINGS);
+    expectMarkupExcludes(interviewTeaserMarkup, PROHIBITED_PUBLIC_STRINGS);
   });
 
   it('keeps the readiness preview on checked and passport handoff language', async () => {
@@ -324,13 +506,7 @@ describe('post-release truth cleanup', () => {
 
     expect(interviewMarkup).toContain('Start with an NPI');
     expect(findHrefByText(interviewMarkup, 'Go to passport')).toBe('/passport');
-    expectMarkupExcludes(interviewMarkup, [
-      'real verified readiness',
-      'verified readiness',
-      'signed link',
-      'expires in 24h',
-      'no account needed',
-    ]);
+    expectMarkupExcludes(interviewMarkup, PROHIBITED_PUBLIC_STRINGS);
 
     expect(reviewMarkup).toContain('Open a shared passport review');
     expect(reviewMarkup).toContain('share when a real passport exists');
@@ -338,32 +514,105 @@ describe('post-release truth cleanup', () => {
     expect(findHrefByText(reviewMarkup, 'View passport')).toBe('/passport');
   }, 20000);
 
-  it('keeps developers and docs pages on current/preview wording', async () => {
-    const [{ default: DeveloperPortalPage, metadata: developerMetadata }, { default: DocsPage, metadata: docsMetadata }] = await Promise.all([
+  it('keeps the developers hero and key resource blocks on current/preview wording', async () => {
+    const [{ default: DeveloperPortalPage, metadata: developerMetadata }] = await Promise.all([
       import('../app/developers/page'),
-      import('../app/docs/page'),
     ]);
 
     const developerMarkup = renderToStaticMarkup(<DeveloperPortalPage />);
-    const docsMarkup = renderToStaticMarkup(<DocsPage />);
 
     expect(developerMetadata.description).toBe(
       'Current VitalCV API routes, SDKs, and webhook registration surfaces backed by this branch.',
     );
+    expect(developerMarkup).toContain('Developer Portal Preview');
     expect(developerMarkup).toContain('Build against the');
     expect(developerMarkup).toContain('current VitalCV API preview.');
+    expect(developerMarkup).toContain('Use the configured API host, workspace SDKs, and backend routes that exist in this branch today.');
+    expect(findHrefByText(developerMarkup, 'Try the Sandbox')).toBe('#sandbox');
+    expect(findHrefByText(developerMarkup, 'Read the Docs')).toBe('/docs');
     expect(findHrefByText(developerMarkup, 'API Reference')).toBe('/docs/api');
     expect(findHrefByText(developerMarkup, 'SDKs')).toBe('/docs/sdk');
     expect(findHrefByText(developerMarkup, 'Webhook Guide')).toBe('/docs/webhooks');
+    expect(findHrefByText(developerMarkup, 'Wallet Export')).toBe('/docs/api');
+    expect(findHrefByText(developerMarkup, 'Compliance API')).toBe('/docs/api');
+    expect(findHrefByText(developerMarkup, 'Examples')).toBe('https://github.com/ctol3r/vitalcv/tree/main/examples');
     expect(developerMarkup).toContain(APPROVED_PUBLIC_WORDING.current);
     expect(developerMarkup).toContain(APPROVED_PUBLIC_WORDING.preview);
+
+    // Governance cards must be absent after public-shell narrowing
+    expectMarkupExcludes(developerMarkup, [
+      'TRUST_THRESHOLD',
+      'REVOCATION_ESCALATION',
+      'PEER_ACCEPTANCE',
+      'Network Peer Acceptance',
+      'AUTHORITATIVE issuers require',
+    ]);
+    // Section label should be "Governance API", not "Trust Governance"
+    expect(developerMarkup).toContain('Governance API');
+    expect(developerMarkup).not.toContain('Trust Governance');
+    // Wave/Phase numbers should be stripped from section labels
+    expect(developerMarkup).not.toContain('Wave 114');
+    expect(developerMarkup).not.toContain('Wave 118');
+    expect(developerMarkup).not.toContain('Phase 7');
+    // Network section demoted
+    expect(developerMarkup).toContain('Connected Organizations (Preview)');
+    expect(developerMarkup).not.toContain('Network Gateway');
+
+    expectMarkupExcludes(developerMarkup, PROHIBITED_PUBLIC_STRINGS);
+  });
+
+  it('keeps the docs CTA routed into the developer surface without inflated wording', async () => {
+    const [{ default: DocsPage, metadata: docsMetadata }] = await Promise.all([
+      import('../app/docs/page'),
+    ]);
+
+    const docsMarkup = renderToStaticMarkup(<DocsPage />);
 
     expect(docsMetadata.description).toBe(
       'Everything you need to build on the current VitalCV API and documentation surface.',
     );
     expect(docsMarkup).toContain('Build on VitalCV');
-    expectMarkupExcludes(developerMarkup, ['Trust Protocol']);
-    expectMarkupExcludes(docsMarkup, ['Trust Protocol']);
+    expect(docsMarkup).toContain('Ready to integrate?');
+    expect(docsMarkup).toContain('Get an API key and start verifying credentials in minutes.');
+    expect(findHrefByText(docsMarkup, 'API Reference')).toBe('/docs/api');
+    expect(findHrefByText(docsMarkup, 'SDKs')).toBe('/docs/sdk');
+    expect(findHrefByText(docsMarkup, 'Webhooks')).toBe('/docs/webhooks');
+    expect(findHrefByText(docsMarkup, 'Design System')).toBe('/docs/design-system');
+    expect(findHrefByText(docsMarkup, 'Get API Key')).toBe('/developers');
+    expectMarkupExcludes(docsMarkup, PROHIBITED_PUBLIC_STRINGS);
+  });
+
+  it('keeps public CTA alignment on the approved wedge routes', async () => {
+    const [
+      { default: Navbar },
+      { InterviewModeTeaser },
+      { default: InterviewBlockedState },
+      { default: DeveloperPortalPage },
+      { default: DocsPage },
+    ] = await Promise.all([
+      import('../components/layout/Navbar'),
+      import('../components/home/PublicTruthSections'),
+      import('../app/interview/InterviewBlockedState'),
+      import('../app/developers/page'),
+      import('../app/docs/page'),
+    ]);
+
+    const navbarMarkup = renderToStaticMarkup(<Navbar />);
+    const interviewTeaserMarkup = renderToStaticMarkup(<InterviewModeTeaser />);
+    const blockedMarkup = renderToStaticMarkup(
+      <InterviewBlockedState
+        title="Start with an NPI"
+        description="Run the homepage lookup before continuing."
+      />,
+    );
+    const developerMarkup = renderToStaticMarkup(<DeveloperPortalPage />);
+    const docsMarkup = renderToStaticMarkup(<DocsPage />);
+
+    expect(findHrefByText(navbarMarkup, 'Check Readiness')).toBe('/passport');
+    expect(findHrefByText(interviewTeaserMarkup, 'Preview Passport Proof')).toBe('/passport');
+    expect(findHrefByText(blockedMarkup, 'Start with NPI lookup')).toBe(PUBLIC_WEDGE_ROUTE_TARGETS.interviewBlocked);
+    expect(findHrefByText(developerMarkup, 'Read the Docs')).toBe('/docs');
+    expect(findHrefByText(docsMarkup, 'Get API Key')).toBe('/developers');
   });
 
   it('keeps adjacent share and profile surfaces off unsupported share promises', async () => {
@@ -386,6 +635,26 @@ describe('post-release truth cleanup', () => {
     expect(profileMarkup).toContain('current credential status');
     expectMarkupExcludes(applyMarkup, ['verified bundle link', 'no account needed']);
     expectMarkupExcludes(profileMarkup, ['Trust Protocol']);
+  });
+
+  it('keeps PlatformVisionSection pillar content as regression guard', async () => {
+    const { PlatformVisionSection } = await import('../components/marketing/HomeSections');
+    const markup = renderToStaticMarkup(<PlatformVisionSection />);
+
+    // Pillar 01 — Universal Clinical Identity
+    expect(markup).toContain('Universal Clinical Identity');
+    expect(markup).toContain('NPPES');
+    expect(markup).toContain('OIG / LEIE');
+
+    // Pillar 02 — current state: still contains "Every healthcare job" wording
+    // TODO: Content cleanup needed — "Every healthcare job" is aspirational, not current
+    expect(markup).toContain('Free Specialty Job Board');
+
+    // Pillar 03 — current state: still uses MATCHA branding
+    // TODO: Content cleanup needed — MATCHA is an internal project name, not public brand
+    expect(markup).toContain('MATCHA');
+
+    expectMarkupExcludes(markup, PROHIBITED_PUBLIC_STRINGS);
   });
 
   it('keeps employers hero, card, and status copy aligned with the public review wedge', async () => {

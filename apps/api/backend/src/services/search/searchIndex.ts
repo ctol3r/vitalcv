@@ -717,7 +717,7 @@ export async function seedPublicPages(): Promise<number> {
     },
     {
       title: 'Developer Portal',
-      body: 'Build with the VitalCV Trust Protocol. API keys, webhooks, Verifier SDK, Issuer SDK, OpenID4VP, HAIP.',
+      body: 'Build against the current VitalCV API preview. API keys, webhooks, verifier and issuer SDKs, OpenID4VP, and HAIP routes backed by this branch.',
       sourceUrl: '/developers',
     },
     {
