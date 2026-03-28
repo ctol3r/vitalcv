@@ -13,12 +13,20 @@ export const APPROVED_PUBLIC_WORDING = {
 export const PROHIBITED_PUBLIC_STRINGS = [
   'Get Verified',
   'Primary sources verify you',
+  'Open Interview Preview',
   'Already Cleared For',
   'Get Verified Free',
+  'Build with the Trust Protocol',
+  'Build with the VitalCV Trust Protocol',
   'Trust Protocol',
   'signed link',
   'expires in 24h',
   'no account needed',
+  'Network Peer Acceptance',
+  'AUTHORITATIVE issuers require',
+  'TRUST_THRESHOLD',
+  'REVOCATION_ESCALATION',
+  'PEER_ACCEPTANCE',
 ] as const;
 
 export const PROHIBITED_EMPLOYER_PUBLIC_STRINGS = [
