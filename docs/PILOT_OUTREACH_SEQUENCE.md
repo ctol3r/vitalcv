@@ -1,152 +1,181 @@
 # VitalCV — Pilot Outreach Sequence
+**Updated:** 2026-03-28 | **Source:** Real system data (NPI 1003000126, vitalcv.com live)
 
-> 3-touch outreach sequence for 10-20 warm operators over 2 weeks.
-
----
-
-## Target Audience
-
-Healthcare employers responsible for getting clinicians through credentialing and into active roles:
-
-- **Credentialing directors** — own the verification process, feel the pain of manual portal lookups daily
-- **Staffing operations leads** — manage clinician pipelines, measure time-to-fill
-- **Physician recruitment** — source and onboard physicians, track days from offer to start
-
-These buyers care about speed (days saved), compliance (source-backed verification), and reducing manual work. They are not looking for another software platform — they want fewer portals and faster starts.
+> 3-touch sequence for 10 warm healthcare operators.
+> Goal: book one 15-minute demo call per contact.
+> Tone: direct, ROI-first, no fluff.
 
 ---
 
-## Touch 1 — Day 0: Introduction
+## Why Now (Internal Context — Know Before You Reach Out)
 
-**Channel:** Email or LinkedIn message
-**Subject:** Faster credentialing starts — pilot opening
-
-> Hi [FIRST NAME],
->
-> I'm working on a tool that resolves clinician identity, sanctions, and enrollment against NPPES, OIG, and PECOS in a single lookup — under 15 seconds, source-backed, no manual portal work.
->
-> We're opening pilot spots for credentialing teams that want to measure whether faster source checks translate to faster starts.
->
-> Would 5 minutes make sense to show you how it works with a real NPI?
->
-> — [YOUR NAME], VitalCV
-
-**Goal:** Get a reply or a 5-minute call. Do not oversell. Do not attach PDFs.
+- Federal source lookups (NPPES + OIG/LEIE + PECOS) take 60–90 min manually per clinician
+- VitalCV runs them in **15 seconds** from one NPI — live system, not a demo
+- We have real data: NPI 1003000126 — NPPES ✅ checked, OIG/LEIE ✅ clear, PECOS ✅ checked, in ~7 seconds
+- The pilot is free, no integration needed, 3–5 cases over 2–4 weeks
+- We measure TTS (time to start) before and after — that's the entire ask
 
 ---
 
-## Touch 2 — Day 5: Value Add
+## Target List (10 Warm Operators)
 
-**Channel:** Email reply or LinkedIn follow-up
-**Subject:** Re: Faster credentialing starts — pilot opening
+| # | Title | Why They Care |
+|---|-------|--------------|
+| 1 | Director of Medical Staff Services | Owns the manual lookup workflow daily |
+| 2 | VP of Physician Recruitment | Measures days from offer to start |
+| 3 | Credentialing Coordinator (Manager+) | Does the portal work, hates it |
+| 4 | Chief Medical Officer (smaller system) | Hiring velocity is a direct concern |
+| 5 | Staffing Agency Operations Lead | High volume, daily re-verifications |
+| 6 | Locum Tenens Placement Director | Speed to place = revenue |
+| 7 | Health System Talent Acquisition Director | Owns TTS metric |
+| 8 | Regional CMO / Chief of Staff | Approves credentialing decisions |
+| 9 | Medical Group Practice Administrator | Credentialing for 10–50 physicians |
+| 10 | Hospital COO (smaller hospital) | Hiring delays = capacity constraints |
 
-> Hi [FIRST NAME],
->
-> Quick follow-up — here's what a lookup looks like in practice:
->
-> Enter NPI 1003000126 at https://vitalcv.com and you'll see identity, sanctions, and enrollment resolve in seconds. That's the starting point for the pilot — your team reviews a source-backed readiness snapshot instead of assembling it from three portals.
->
-> We're measuring Time to Start (days from first check to clinician start date) across pilot cases. Happy to walk through a real NPI from your pipeline if useful.
->
-> — [YOUR NAME]
+---
 
-**Goal:** Drive them to try the demo NPI. Anchor on the experience, not the pitch.
+## Touch 1 — Day 0: Short Ask
+
+**Channel:** Email or LinkedIn DM
+**Subject:** 15-second NPI lookup — pilot spot open
+
+---
+
+Hi [FIRST NAME],
+
+Quick one: we built a tool that checks NPPES identity, OIG/LEIE sanctions, and PECOS enrollment from a single NPI in about 15 seconds. No portal logins, no manual assembly.
+
+We're running a silent pilot with credentialing teams right now. The ask is simple: share 3–5 real NPIs, we generate the readiness snapshots, your team reviews them, and we measure whether it saves time on starts.
+
+Worth a 15-minute look?
+
+[Your name]
+pilots@vitalcv.com | vitalcv.com
+
+---
+
+**Why this works:** One concrete claim (15 seconds), one concrete ask (15 minutes), no jargon.
+
+---
+
+## Touch 2 — Day 5: Show Proof
+
+**Channel:** Same thread + attach or link proof
+**Subject:** Re: 15-second NPI lookup
+
+---
+
+Hi [FIRST NAME],
+
+Following up. Here's what the system actually returns for a real NPI:
+
+```
+NPI 1003000126 — checked on 2026-03-28 at 22:29 UTC
+
+NPPES Identity       ✓ Checked     99% confidence
+OIG / LEIE           ✓ Clear       No exclusion record (monthly LEIE CSV)
+PECOS Enrollment     ✓ Checked     95% confidence (quarterly)
+State Board          ⚡ Stale       Refresh required (access-required in pilot)
+
+Trust Band: L2 (Credentialed) · Score: 67/100
+Blockers: None · Review Required: No
+Time to result: ~7 seconds
+```
+
+What normally takes 60–90 minutes of manual portal work.
+
+If you want to see it live with one of your own NPIs, I can show you in 15 minutes.
+
+[Your name]
+
+---
+
+**Why this works:** Real data, honest about state board gap, concrete time comparison.
 
 ---
 
 ## Touch 3 — Day 10: Final Ask
 
-**Channel:** Email or LinkedIn
-**Subject:** Re: Faster credentialing starts — closing pilot spots
-
-> Hi [FIRST NAME],
->
-> Last note — we're closing pilot spots at the end of this month. If your team is spending time on manual NPPES/OIG lookups, this is a low-commitment way to measure whether source-backed verification speeds up starts.
->
-> You can try it now at https://vitalcv.com — enter any active NPI and see what resolves. If you want to run a real case, I just need 3 NPIs from your pipeline and 20 minutes.
->
-> Either way, happy to share what we're learning from other pilot cases.
->
-> — [YOUR NAME]
-
-**Goal:** Close on a pilot commitment or get a clear no. Do not send a fourth touch.
+**Channel:** Same thread
+**Subject:** Re: 15-second NPI lookup — last note
 
 ---
 
-## Qualification Signals
+Hi [FIRST NAME],
 
-Respond immediately when a prospect mentions any of these:
+Last note. We're closing pilot spots this month.
 
-| Signal | Why It Matters |
-|---|---|
-| "We're stuck in credentialing" / "credentialing is the bottleneck" | Direct pain — they feel the delay daily |
-| Questions about OIG/NPPES check speed or accuracy | They're doing it manually and want better |
-| Mentions a competitor (Medallion, VerifyMD, Modio) | Active buyer — already evaluating solutions |
-| New facility opening, new contract, rapid hiring | Time pressure creates urgency for faster starts |
-| "Our credentialing team is overwhelmed" | Volume problem — automation has clear ROI |
+If reducing your initial credentialing lookup time is a priority right now — 15 minutes at vitalcv.com will show you exactly what we do and don't solve.
+
+If the timing is off, I'll check back next quarter.
+
+[Your name]
 
 ---
 
-## Lead Priority
-
-| Priority | Buyer Type | Why |
-|---|---|---|
-| P1 | Hospital credentialing operations | Highest volume, most manual pain, clearest TTS metric |
-| P2 | Locums / staffing agencies | Speed is revenue — every day delayed is a lost billing day |
-| P3 | Large group practice (50+ providers) | Recurring credentialing volume, standardized process |
-| P4 | Health system talent acquisition | Longer sales cycle but large contract potential |
+**Why this works:** Closes the loop, no pressure, respects their time.
 
 ---
 
-## First Call Flow (20 minutes)
+## What the Demo Shows (15-minute script)
 
-### Minutes 0-5: Listen
+**Minute 0–2:** Their current process
+> "How does your team handle the initial NPPES / OIG / PECOS lookups right now? How long does that typically take?"
 
-- "Walk me through what happens after you decide to bring on a new clinician."
-- "Where does the process slow down?"
-- "How many clinicians are you typically credentialing at once?"
-- "What's your rough time from offer to first day?"
+**Minute 2–7:** Live NPI lookup
+> Go to vitalcv.com. Enter NPI **1003000126** (or their NPI if they brought one).
+> Watch NPPES check (~3 sec), OIG/LEIE check (~4 sec parallel), PECOS (~1 sec).
+> Say: *"That's the entire manual portal phase — automated. About 7 seconds."*
 
-Do not pitch during this phase. Write down their language — use it back to them later.
+**Minute 7–10:** Passport view
+> Click "View Passport". Show the source-backed readiness summary.
+> Point to the state board row: *"State board is stale — we flag it honestly instead of hiding it. State board access agreements are next."*
 
-### Minutes 5-15: Demo
+**Minute 10–13:** Employer review
+> Show /review/request. Explain: *"When you're reviewing a clinician, this is what your team sees instead of a pile of screenshots."*
+> Show the Proceed / Request Refresh / Route to Review actions.
 
-Follow [PILOT_DEMO_SCRIPT.md](./PILOT_DEMO_SCRIPT.md):
-
-1. Enter their real NPI (or demo NPI 1003000126 if they don't have one ready)
-2. Show readiness reveal — walk through each source lane
-3. Show the passport — portable, source-backed snapshot
-4. Show employer review surface — action buttons, recorded decisions
-5. Explain what's live vs. what's coming (state board is coming)
-
-### Minutes 15-20: Pilot Ask + Close
-
-- "I'd like to run 3 real cases through VitalCV and measure your Time to Start."
-- "Can you give me 3 NPIs from your current pipeline?"
-- "We'll generate passports, your team reviews them, and we measure the delta."
-- Close on specific next step: "Can we start with those 3 NPIs this week?"
+**Minute 13–15:** Pilot ask
+> *"Give me 3–5 real NPIs from your active pipeline. We'll run them, share the passports, you tell us what your normal lookup time is, and we'll measure TTS together. Two weeks, completely free."*
 
 ---
 
-## Pilot Ask Script
+## What Proof Exists (Use When Asked)
 
-> "Here's what I'd like to do: give me 3 real NPIs from your current credentialing pipeline. We'll run them through VitalCV, generate source-backed readiness passports, and send your team a review link. You tell us how long your current process takes for those same clinicians, and we measure whether the source-backed approach gets to a decision faster. No integration, no contract — just 3 NPIs and 20 minutes of your team's time."
+**"Is this live or a demo?"**
+> "Live. You can go to vitalcv.com right now and enter any active NPI. The NPPES and OIG/LEIE checks run in real time. PECOS data refreshes quarterly — most recent check is current."
+
+**"What does it not do?"**
+> "State board licensure is not automated in this pilot — that requires per-state data agreements we're building out. It's clearly labeled as 'access required' rather than silently missing. We're honest about the gaps."
+
+**"What's the ROI?"**
+> "At 10 new clinician starts per month, if we save 5 days per case at $1,500/day opportunity cost, that's $900,000/year in reduced delay. The pilot will tell us if the 5-day estimate is real for your workflow."
+
+**"What's the catch?"**
+> "No catch. Pilot is free. No integration. No contract. You're measuring our impact on your TTS — if we don't move the number, you have 20 minutes of your team's time back and some honest data about where your bottleneck actually is."
 
 ---
 
-## Tracking Table
+## Qualification Signals (Respond Immediately)
 
-| # | Contact | Org | Role | Priority | Touch 1 | Touch 2 | Touch 3 | Status | NPIs Received | Notes |
-|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | | | | | | | | | | |
-| 2 | | | | | | | | | | |
-| 3 | | | | | | | | | | |
-| 4 | | | | | | | | | | |
-| 5 | | | | | | | | | | |
-| 6 | | | | | | | | | | |
-| 7 | | | | | | | | | | |
-| 8 | | | | | | | | | | |
-| 9 | | | | | | | | | | |
-| 10 | | | | | | | | | | |
+- They mention a position "stuck in credentialing" or "delayed start"
+- They ask about OIG or NPPES verification speed specifically
+- They mention Medallion, VerifyMD, Nursys, or CAQH as current tools
+- They are opening a new facility, expanding a team, or hiring for an urgent vacancy
 
-**Status values:** NOT_STARTED / SENT_T1 / SENT_T2 / SENT_T3 / REPLIED / CALL_SCHEDULED / PILOT_ACTIVE / CLOSED_NO / CLOSED_LATER
+---
+
+## Tracking Sheet
+
+| # | Name | Org | Title | T1 Sent | T2 Sent | T3 Sent | Call | Pilot | NPIs Shared | TTS Baseline | TTS Measured |
+|---|------|-----|-------|---------|---------|---------|------|-------|-------------|--------------|--------------|
+| 1 | | | | | | | | | | | |
+| 2 | | | | | | | | | | | |
+| 3 | | | | | | | | | | | |
+| 4 | | | | | | | | | | | |
+| 5 | | | | | | | | | | | |
+| 6 | | | | | | | | | | | |
+| 7 | | | | | | | | | | | |
+| 8 | | | | | | | | | | | |
+| 9 | | | | | | | | | | | |
+| 10 | | | | | | | | | | | |
