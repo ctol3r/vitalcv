@@ -775,7 +775,7 @@ describe('live path regression hardening', () => {
     await flush();
 
     expect(textContent(view.container)).toContain('Demo preview');
-    expect(textContent(view.container)).toContain('Partial source coverage · demo preview only');
+    expect(textContent(view.container)).toContain('Coverage data is being refreshed');
 
     const previewVisibleCall = trackUxEventMock.mock.calls
       .map((call) => call[0])

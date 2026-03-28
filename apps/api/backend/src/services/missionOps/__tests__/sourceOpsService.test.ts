@@ -176,4 +176,75 @@ describe('sourceOpsService', () => {
     );
     expect(report.alerts.some((alert) => alert.includes('STALE:') && alert.includes('CMS NPI Registry API'))).toBe(false);
   });
+
+  it('returns HEALTHY spine status when all spine sources are fresh', () => {
+    (getConnectorHealth as jest.Mock).mockReturnValue({
+      connectors: [
+        {
+          connector: 'NPPES',
+          status: 'HEALTHY',
+          lastSuccessAt: new Date().toISOString(),
+          lastErrorAt: null,
+          consecutiveErrors: 0,
+        },
+        {
+          connector: 'OIG',
+          status: 'HEALTHY',
+          lastSuccessAt: new Date().toISOString(),
+          lastErrorAt: null,
+          consecutiveErrors: 0,
+        },
+        {
+          connector: 'STATE_BOARD',
+          status: 'HEALTHY',
+          lastSuccessAt: new Date().toISOString(),
+          lastErrorAt: null,
+          consecutiveErrors: 0,
+        },
+      ],
+    });
+
+    const report = computeSourceOpsReport();
+    expect(report.spineStatus).toBe('HEALTHY');
+  });
+
+  it('returns STALE spine status when a spine source is stale', () => {
+    const staleTimestamp = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+    (getConnectorHealth as jest.Mock).mockReturnValue({
+      connectors: [
+        {
+          connector: 'NPPES',
+          status: 'HEALTHY',
+          lastSuccessAt: staleTimestamp,
+          lastErrorAt: null,
+          consecutiveErrors: 0,
+        },
+      ],
+    });
+
+    const report = computeSourceOpsReport();
+    expect(report.spineStatus).toBe('STALE');
+  });
+
+  it('includes a stale alert for stale decision-grade sources', () => {
+    const staleTimestamp = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+    (getConnectorHealth as jest.Mock).mockReturnValue({
+      connectors: [
+        {
+          connector: 'NPPES',
+          status: 'HEALTHY',
+          lastSuccessAt: staleTimestamp,
+          lastErrorAt: null,
+          consecutiveErrors: 0,
+        },
+      ],
+    });
+
+    const report = computeSourceOpsReport();
+    const staleAlert = report.alerts.find(
+      (a) => a.includes('STALE:') && a.includes('CMS NPI Registry API'),
+    );
+    expect(staleAlert).toBeDefined();
+    expect(staleAlert).toContain('missed its freshness SLA');
+  });
 });

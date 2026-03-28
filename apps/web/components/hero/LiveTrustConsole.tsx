@@ -97,7 +97,7 @@ function stageBadge(stage: SourceStage): {
     case 'ok':
       return { status: 'checked', label: 'Checked' };
     case 'failed':
-      return { status: 'review_required', label: 'Needs review' };
+      return { status: 'unavailable', label: 'Unavailable — retrying' };
     case 'skipped':
       return { status: 'unavailable', label: 'Unavailable' };
     case 'waiting':

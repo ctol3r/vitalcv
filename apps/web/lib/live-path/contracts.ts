@@ -21,8 +21,8 @@ export interface LivePathShareResponseShape {
 export const LIVE_PATH_NPI_RE = /^\d{10}$/;
 
 export const LIVE_PATH_PREVIEW_NOTICE = {
-  backendUnavailable: 'Backend unavailable · demo preview only',
-  partialCoverage: 'Partial source coverage · demo preview only',
+  backendUnavailable: 'Readiness check temporarily unavailable — showing preview data',
+  partialCoverage: 'Coverage data is being refreshed — some sources may show preview data',
 } as const;
 
 export function resolveLivePathAuthState(input: {
