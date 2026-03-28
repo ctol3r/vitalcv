@@ -1,3 +1,4 @@
+import React from 'react';
 import Link from 'next/link';
 import ReviewClient from '@/components/review/ReviewClient';
 import { Button } from '@/components/ui/button';
@@ -52,6 +53,7 @@ async function fireReviewOpenedEvent(
   entityId: string,
   passport: { readiness: { score?: number; blockers?: string[] } } | null,
   contextId?: string,
+  bundleId?: string,
 ): Promise<void> {
   // POST /api/employer-review/:entityId/view — always 202, non-blocking
   try {
@@ -60,6 +62,7 @@ async function fireReviewOpenedEvent(
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
         organizationContextId: contextId ?? null,
+        bundleId:              bundleId ?? null,
         readinessScore:        passport?.readiness?.score ?? null,
         blockers:              passport?.readiness?.blockers ?? [],
       }),
@@ -76,15 +79,16 @@ export default async function ReviewPage({
   searchParams,
 }: {
   params:       Promise<{ entityId: string }>;
-  searchParams: Promise<{ contextId?: string; from?: string }>;
+  searchParams: Promise<{ contextId?: string; bundleId?: string; from?: string }>;
 }) {
-  const { entityId }          = await params;
-  const { contextId, from }   = await searchParams;
-  const { passport, errorMessage } = await fetchReviewPageData(entityId);
-  const retryHref = `/review/${entityId}${contextId || from
+  const { entityId }                    = await params;
+  const { contextId, bundleId, from }   = await searchParams;
+  const { passport, errorMessage }      = await fetchReviewPageData(entityId);
+  const retryHref = `/review/${entityId}${contextId || bundleId || from
     ? `?${new URLSearchParams({
         ...(contextId ? { contextId } : {}),
-        ...(from ? { from } : {}),
+        ...(bundleId  ? { bundleId  } : {}),
+        ...(from      ? { from      } : {}),
       }).toString()}`
     : ''}`;
 
@@ -122,12 +126,13 @@ export default async function ReviewPage({
   }
 
   // KPI: record employer review open — fire-and-forget, never blocks render
-  void fireReviewOpenedEvent(entityId, passport, contextId);
+  void fireReviewOpenedEvent(entityId, passport, contextId, bundleId);
 
   return (
     <ReviewClient
       passport={passport}
       contextId={contextId}
+      bundleId={bundleId}
       sharedBy={from}
     />
   );

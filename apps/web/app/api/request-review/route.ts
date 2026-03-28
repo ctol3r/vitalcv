@@ -1,7 +1,30 @@
-import { auth } from '@clerk/nextjs/server';
+/**
+ * POST /api/request-review
+ *
+ * Proxy to POST /api/organization-context on the backend.
+ * Creates a typed org context for an employer-initiated review.
+ *
+ * Body:
+ *   {
+ *     npi:           string,           // clinician NPI to review
+ *     contextType?:  string,           // defaults to EMPLOYMENT_REVIEW
+ *     title?:        string,
+ *     description?:  string,
+ *   }
+ *
+ * Response:
+ *   {
+ *     contextId:    string,            // UUID to embed in the review link
+ *     reviewUrl:    string,            // /review/[entityId]?contextId=[contextId]
+ *     entityId:     string,
+ *     status:       string,
+ *     npi:          string,
+ *     displayName:  string | null,
+ *   }
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  resolveEmployerWorkspaceAuthContext,
+  resolveEmployerWorkspaceRequestorContext,
 } from '@/lib/server/employer-workspace';
 
 export const runtime = 'nodejs';
@@ -22,14 +45,6 @@ function jsonError(
 }
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session.userId) {
-    return jsonError(
-      { error: 'Sign in with an employer workspace to request a review.' },
-      401,
-    );
-  }
-
   const body = await req.json().catch(() => null);
   if (!body || !body.npi) {
     return jsonError({ error: 'npi is required.' }, 400);
@@ -46,68 +61,16 @@ export async function POST(req: NextRequest) {
     return jsonError({ error: 'npi must be a 10-digit number.' }, 400);
   }
 
-  const workspaceContext = await resolveEmployerWorkspaceAuthContext();
-  if (workspaceContext.status === 'missing_workspace') {
-    return jsonError(
-      {
-        error: 'Employer workspace required to request a review.',
-        hint: 'Create or switch into an employer workspace before requesting a clinician review.',
-      },
-      403,
-    );
+  // Resolve employer workspace — validates session, active org, and entity registration
+  const workspaceCtx = await resolveEmployerWorkspaceRequestorContext();
+  if (workspaceCtx.status === 'blocked') {
+    const { status, ...body } = workspaceCtx.response;
+    return jsonError(body, status);
   }
 
-  if (workspaceContext.status === 'workspace_lookup_failed') {
-    return jsonError(
-      { error: 'Employer workspace lookup unavailable.' },
-      workspaceContext.lookupStatus,
-    );
-  }
+  const { userId, email, activeOrg, requestorEntityId } = workspaceCtx;
 
-  if (workspaceContext.status === 'missing_session') {
-    return jsonError(
-      { error: 'Sign in with an employer workspace to request a review.' },
-      401,
-    );
-  }
-
-  const employerWorkspaceNpi = workspaceContext.activeOrg.npi?.trim() ?? '';
-  if (!NPI_RE.test(employerWorkspaceNpi)) {
-    return jsonError(
-      {
-        error: 'Employer workspace is missing a resolvable organization NPI.',
-        hint: 'Add a valid Type 2 NPI to the active employer workspace before requesting a clinician review.',
-      },
-      409,
-    );
-  }
-
-  const requestorEntityRes = await fetch(`${B}/api/entity/resolve/npi/${employerWorkspaceNpi}`, {
-    headers: { Accept: 'application/json' },
-    cache: 'no-store',
-    signal: AbortSignal.timeout(8_000),
-  });
-  if (!requestorEntityRes.ok) {
-    return jsonError(
-      { error: 'Employer workspace could not be linked to a requestor entity.' },
-      requestorEntityRes.status,
-    );
-  }
-
-  const requestorEntityPayload = await requestorEntityRes.json().catch(() => ({})) as {
-    entity?: {
-      id?: string;
-      npiType?: string;
-    };
-  };
-  const requestorEntityId = requestorEntityPayload.entity?.id?.trim();
-  if (!requestorEntityId) {
-    return jsonError(
-      { error: 'Employer workspace entity resolution returned no entity id.' },
-      502,
-    );
-  }
-
+  // Resolve clinician passport
   const passportRes = await fetch(`${B}/api/passport/npi/${npi}`, {
     headers: { Accept: 'application/json' },
     cache: 'no-store',
@@ -117,7 +80,12 @@ export async function POST(req: NextRequest) {
   if (!passportRes.ok) {
     if (passportRes.status === 404) {
       return jsonError(
-        { error: 'No passport found for that NPI. The clinician must run a readiness check first.' },
+        {
+          code: 'CLINICIAN_PASSPORT_REQUIRED',
+          error: 'No passport found for that NPI. The clinician must run a readiness check first.',
+          hint: 'Ask the clinician to run a readiness check before creating an employer review context.',
+          nextStep: 'run_clinician_readiness',
+        },
         404,
       );
     }
@@ -136,14 +104,19 @@ export async function POST(req: NextRequest) {
     return jsonError({ error: 'Passport found but entity ID is missing.' }, 500);
   }
 
+  // Create organization context
+  const orgHeaders = new Headers({
+    'Content-Type': 'application/json',
+    'x-clerk-user-id': userId,
+    'x-org-id': activeOrg.organizationId,
+  });
+  if (email) {
+    orgHeaders.set('x-clerk-user-email', email);
+  }
+
   const orgRes = await fetch(`${B}/api/organization-context`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-clerk-user-id': workspaceContext.userId ?? '',
-      ...(workspaceContext.email ? { 'x-clerk-user-email': workspaceContext.email } : {}),
-      'x-org-id': workspaceContext.activeOrg.organizationId,
-    },
+    headers: orgHeaders,
     body: JSON.stringify({
       requestorEntityId,
       contextType,

@@ -695,9 +695,8 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
           <span className="text-white/25 text-xs">Employer review</span>
         </div>
 
-        {/* ── Share context (if accessed via share link) ───────────────────── */}
         {/* ── Review context attribution ────────────────────────────────────── */}
-        {(sharedBy || contextId || bundleId) ? (
+        {(sharedBy || contextId || bundleId) && (
           <Card className="gap-2 rounded-xl border-white/8 bg-white/[0.03] px-4 py-3 shadow-none">
             {sharedBy && (
               <div className="flex justify-between text-xs">
@@ -726,8 +725,9 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
               <span className="text-white/45">Actions tied to this context</span>
             </div>
           </Card>
-        ) : (
-          /* No context — direct view without employer-initiated context */
+        )}
+        {/* No context — direct view, actions not context-attributed */}
+        {!sharedBy && !contextId && !bundleId && (
           <Card className="gap-2 rounded-xl border-amber-500/15 bg-amber-500/5 px-4 py-3 shadow-none">
             <div className="flex justify-between text-xs">
               <span className="text-white/35">Review context</span>
