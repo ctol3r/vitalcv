@@ -61,13 +61,24 @@ function normalizePilotFilter(filter: PilotFilter | undefined): PilotFilter {
 }
 
 const REVIEW_OPEN_EVENT_TYPE = 'EMPLOYER_REVIEW' as const;
+const REVIEW_OPEN_ADVISORY_VERSION = 'pilot-review-open' as const;
 const READY_READINESS_THRESHOLD = 60;
+const PILOT_OPS_EVENT_AUDIT_TYPE = 'PILOT_OPS_EVENT' as const;
+const PILOT_PROOF_EVENT_AUDIT_TYPE = 'PILOT_PROOF_EVENT' as const;
+const BLOCKER_RESOLVED_EVENT_TYPE = 'blocker_resolved' as const;
+const DID_NOT_START_OUTCOME_STATUS = 'DID_NOT_START' as const;
 const DECISION_BUCKETS = [
   ['proceedCount', 'PROCEED'],
   ['refreshCount', 'REQUEST_REFRESH'],
   ['routeCount', 'ROUTE_TO_REVIEW'],
   ['rejectCount', 'REJECT'],
   ['holdCount', 'HOLD'],
+] as const;
+const CORE_PROOF_CHAIN_EVENTS = [
+  'packet_shared',
+  'employer_review_opened',
+  'employer_decision_recorded',
+  'start_outcome_recorded',
 ] as const;
 const METADATA_SCOPE_FIELDS = [
   { key: 'pilotId', path: ['pilotId'] },
@@ -156,6 +167,7 @@ function startOutcomeWhere(
 
 const SHARE_EVENT_SELECT = {
   id: true,
+  bundleId: true,
   subjectEntityId: true,
   organizationContextId: true,
   organizationId: true,
@@ -168,6 +180,7 @@ const ADVISORY_EVENT_SELECT = {
   id: true,
   entityId: true,
   organizationContextId: true,
+  advisoryVersion: true,
   eventType: true,
   eventTimestamp: true,
   readinessScoreAtEvent: true,
@@ -210,7 +223,66 @@ const START_OUTCOME_SELECT = {
   metadata: true,
 } satisfies Prisma.StartOutcomeEventSelect;
 
+const AUDIT_EVENT_SELECT = {
+  id: true,
+  type: true,
+  referenceId: true,
+  clinicianId: true,
+  organizationId: true,
+  metadata: true,
+  createdAt: true,
+} satisfies Prisma.AuditEventSelect;
+
 type StartOutcomeRow = Prisma.StartOutcomeEventGetPayload<{ select: typeof START_OUTCOME_SELECT }>;
+type AuditEventRow = Prisma.AuditEventGetPayload<{ select: typeof AUDIT_EVENT_SELECT }>;
+type AdvisoryEventRow = Prisma.AdvisoryOutcomeEventGetPayload<{ select: typeof ADVISORY_EVENT_SELECT }>;
+
+export type PilotProofChainEventName =
+  | 'packet_shared'
+  | 'employer_review_opened'
+  | 'employer_decision_recorded'
+  | 'readiness_changed'
+  | 'blocker_resolved'
+  | 'start_outcome_recorded';
+
+export interface PilotProofChainEvent {
+  eventName: PilotProofChainEventName;
+  occurredAt: string;
+  caseKey: string;
+  entityId: string | null;
+  npi: string | null;
+  organizationContextId: string | null;
+  organizationId: string | null;
+  pilotId: string | null;
+  workflowLane: string | null;
+  geographyTag: string | null;
+  sourceRecordType: string;
+  sourceRecordId: string;
+  outcomeStatus: string | null;
+  detail: string | null;
+}
+
+export interface PilotProofChainCase {
+  caseKey: string;
+  entityId: string | null;
+  npi: string | null;
+  organizationContextId: string | null;
+  organizationId: string | null;
+  eventNames: PilotProofChainEventName[];
+  missingCoreEvents: Array<(typeof CORE_PROOF_CHAIN_EVENTS)[number]>;
+  replayable: boolean;
+  lastOccurredAt: string;
+  nonStartReason: string | null;
+}
+
+export interface PilotProofChainSummary {
+  totalEvents: number;
+  totalCases: number;
+  replayableCases: number;
+  partialCases: number;
+  cases: PilotProofChainCase[];
+  events: PilotProofChainEvent[];
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -283,6 +355,9 @@ export interface ReadinessDistribution {
 
 export interface StartOutcomeStats {
   totalStarts: number;
+  totalOutcomeRecords: number;
+  didNotStartCount: number;
+  nonStartReasons: Array<{ reason: string; count: number }>;
   distinctEntities: number;
   readinessAtStart: {
     avgScore: number | null;
@@ -324,13 +399,19 @@ export interface PilotKpiSnapshot {
     advisoryOutcomeEvents: number;
     employerDecisionEvents: number;
     blockerResolutionEvents: number;
+    blockerResolvedMetricEvents: number;
+    readinessChangeEvents: number;
     startOutcomeEvents: number;
+    nonStartOutcomeEvents: number;
     employerAcceptances: number;
     startAttestations: number;
   };
 
   /** Readiness distribution — READY/PARTIAL/BLOCKED counts for reviewed clinicians */
   readinessDistribution: ReadinessDistribution;
+
+  /** Normalized proof chain — replayable live pilot event sequence */
+  proofChain: PilotProofChainSummary;
 
   /** Missing fields in this window — informs what to collect next */
   gaps: string[];
@@ -362,7 +443,7 @@ function average(values: number[]): number | null {
   return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
 }
 
-function readJson(value: Prisma.JsonValue | null | undefined): Record<string, unknown> {
+function readJson(value: unknown): Record<string, unknown> {
   if (!value || Array.isArray(value) || typeof value !== 'object') return {};
   return value as Record<string, unknown>;
 }
@@ -414,6 +495,155 @@ function readTimestampMs(value: unknown): number | null {
   if (typeof value !== 'string') return null;
   const parsed = Date.parse(value);
   return Number.isNaN(parsed) ? null : parsed;
+}
+
+function readString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function readScopeFields(metadata: Record<string, unknown>): {
+  pilotId: string | null;
+  workflowLane: string | null;
+  geographyTag: string | null;
+} {
+  return {
+    pilotId: readString(metadata.pilotId),
+    workflowLane: readString(metadata.workflowLane),
+    geographyTag: readString(metadata.geographyTag),
+  };
+}
+
+function matchesEventScope(metadata: Record<string, unknown>, filter: PilotFilter): boolean {
+  if (filter.orgContextId) {
+    const orgContextId =
+      readString(metadata.organizationContextId)
+      ?? readString(metadata.orgContextId)
+      ?? null;
+    if (orgContextId !== filter.orgContextId) {
+      return false;
+    }
+  }
+
+  const scope = readScopeFields(metadata);
+  if (filter.pilotId && scope.pilotId !== filter.pilotId) {
+    return false;
+  }
+  if (filter.workflowLane && scope.workflowLane !== filter.workflowLane) {
+    return false;
+  }
+  if (filter.geographyTag && scope.geographyTag !== filter.geographyTag) {
+    return false;
+  }
+
+  return true;
+}
+
+function reviewChainKey(
+  entityId: string | null | undefined,
+  organizationContextId: string | null | undefined,
+  metadata?: unknown,
+): string | null {
+  if (!entityId) {
+    return null;
+  }
+
+  const scope = readScopeFields(readJson(metadata));
+  return [
+    entityId,
+    organizationContextId ?? '(global)',
+    scope.pilotId ?? '(all)',
+    scope.workflowLane ?? '(all)',
+    scope.geographyTag ?? '(all)',
+  ].join('|');
+}
+
+function shareDecisionChainKey(
+  entityId: string | null | undefined,
+  organizationContextId: string | null | undefined,
+): string | null {
+  return entityId ? `${entityId}|${organizationContextId ?? '(global)'}` : null;
+}
+
+function hasMetadataScopedFilter(filter: PilotFilter): boolean {
+  return Boolean(filter.pilotId || filter.workflowLane || filter.geographyTag);
+}
+
+function isReviewOpenEvent(event: AdvisoryEventRow): boolean {
+  if (event.eventType !== REVIEW_OPEN_EVENT_TYPE) {
+    return false;
+  }
+
+  if (event.advisoryVersion === REVIEW_OPEN_ADVISORY_VERSION) {
+    return true;
+  }
+
+  const metadata = readJson(event.metadata);
+  const eventName = readString(metadata.eventName);
+  if (eventName && eventName !== 'employer_review_opened') {
+    return false;
+  }
+
+  return readString(metadata.reason) !== 'refresh_requested';
+}
+
+function proofChainCaseKey(event: {
+  entityId: string | null;
+  npi: string | null;
+  organizationContextId: string | null;
+}): string {
+  return [
+    event.entityId ?? event.npi ?? 'unscoped',
+    event.organizationContextId ?? 'global',
+  ].join('|');
+}
+
+function buildProofChainSummary(
+  events: PilotProofChainEvent[],
+): PilotProofChainSummary {
+  const eventsByCase = new Map<string, PilotProofChainEvent[]>();
+
+  for (const event of events) {
+    const existing = eventsByCase.get(event.caseKey) ?? [];
+    existing.push(event);
+    eventsByCase.set(event.caseKey, existing);
+  }
+
+  const cases = [...eventsByCase.entries()].map(([caseKey, caseEvents]) => {
+    const sortedEvents = [...caseEvents].sort(
+      (left, right) => Date.parse(left.occurredAt) - Date.parse(right.occurredAt),
+    );
+    const eventNames: PilotProofChainEventName[] = [...new Set(sortedEvents.map((event) => event.eventName))];
+    const missingCoreEvents = CORE_PROOF_CHAIN_EVENTS.filter((eventName) => !eventNames.includes(eventName));
+    const lastEvent = sortedEvents[sortedEvents.length - 1];
+    const latestNonStart = [...sortedEvents]
+      .reverse()
+      .find((event) => (
+        event.eventName === 'start_outcome_recorded'
+        && event.outcomeStatus === DID_NOT_START_OUTCOME_STATUS
+      ));
+
+    return {
+      caseKey,
+      entityId: lastEvent?.entityId ?? null,
+      npi: lastEvent?.npi ?? null,
+      organizationContextId: lastEvent?.organizationContextId ?? null,
+      organizationId: lastEvent?.organizationId ?? null,
+      eventNames,
+      missingCoreEvents,
+      replayable: missingCoreEvents.length === 0,
+      lastOccurredAt: lastEvent?.occurredAt ?? new Date(0).toISOString(),
+      nonStartReason: latestNonStart?.detail ?? null,
+    } satisfies PilotProofChainCase;
+  }).sort((left, right) => Date.parse(right.lastOccurredAt) - Date.parse(left.lastOccurredAt));
+
+  return {
+    totalEvents: events.length,
+    totalCases: cases.length,
+    replayableCases: cases.filter((item) => item.replayable).length,
+    partialCases: cases.filter((item) => !item.replayable).length,
+    cases,
+    events: [...events].sort((left, right) => Date.parse(left.occurredAt) - Date.parse(right.occurredAt)),
+  };
 }
 
 function startOutcomeCorrectionKey(row: StartOutcomeRow): string {
@@ -484,6 +714,7 @@ export async function computePilotKpis(
     decisionEvents,
     blockerEvents,
     startOutcomeRows,
+    proofAuditRows,
     auditCounts,
   ] = await Promise.all([
     prisma.bundleShareEvent.findMany({
@@ -518,6 +749,15 @@ export async function computePilotKpis(
       orderBy: { startedAt: 'asc' },
     }),
 
+    prisma.auditEvent.findMany({
+      where: {
+        createdAt: { gte: since },
+        type: { in: [PILOT_OPS_EVENT_AUDIT_TYPE, PILOT_PROOF_EVENT_AUDIT_TYPE] },
+      },
+      select: AUDIT_EVENT_SELECT,
+      orderBy: { createdAt: 'asc' },
+    }),
+
     Promise.all([
       prisma.bundleShareEvent.count({
         where: {
@@ -547,7 +787,42 @@ export async function computePilotKpis(
   ]);
 
   const effectiveStartOutcomeRows = collapseCorrectedStartOutcomes(startOutcomeRows);
-  const reviewEvents = advisoryEvents.filter((event) => event.eventType === REVIEW_OPEN_EVENT_TYPE);
+  const reviewEvents = advisoryEvents.filter(isReviewOpenEvent);
+  const relevantAuditRows = proofAuditRows.filter((row) => {
+    const metadata = readJson(row.metadata);
+
+    if (row.type === PILOT_OPS_EVENT_AUDIT_TYPE) {
+      if (readString(metadata.eventType) !== BLOCKER_RESOLVED_EVENT_TYPE) {
+        return false;
+      }
+    } else if (row.type === PILOT_PROOF_EVENT_AUDIT_TYPE) {
+      const eventName = readString(metadata.eventName);
+      if (eventName !== 'readiness_changed' && eventName !== 'start_outcome_recorded') {
+        return false;
+      }
+    } else {
+      return false;
+    }
+
+    return matchesEventScope(metadata, filter);
+  });
+  const readinessChangeAuditRows = relevantAuditRows.filter((row) => (
+    row.type === PILOT_PROOF_EVENT_AUDIT_TYPE
+    && readString(readJson(row.metadata).eventName) === 'readiness_changed'
+  ));
+  const nonStartOutcomeAuditRows = relevantAuditRows.filter((row) => {
+    if (row.type !== PILOT_PROOF_EVENT_AUDIT_TYPE) {
+      return false;
+    }
+
+    const metadata = readJson(row.metadata);
+    return readString(metadata.eventName) === 'start_outcome_recorded'
+      && readString(metadata.outcomeStatus) === DID_NOT_START_OUTCOME_STATUS;
+  });
+  const blockerResolvedMetricRows = relevantAuditRows.filter((row) => (
+    row.type === PILOT_OPS_EVENT_AUDIT_TYPE
+    && readString(readJson(row.metadata).eventType) === BLOCKER_RESOLVED_EVENT_TYPE
+  ));
 
   const [
     bundleShareCount,
@@ -619,34 +894,42 @@ export async function computePilotKpis(
   }
 
   // ── KPI 4–6: Velocity calculations ───────────────────────────────────
-  const firstReviewByEntity = earliestDateByKey(
+  const firstReviewByChain = earliestDateByKey(
     reviewEvents,
-    (event) => event.entityId,
+    (event) => reviewChainKey(event.entityId, event.organizationContextId, event.metadata),
     (event) => event.eventTimestamp,
   );
-  const firstDecisionByEntity = earliestDateByKey(
+  const firstDecisionByReviewChain = earliestDateByKey(
     decisionEvents,
-    (event) => event.entityId,
+    (event) => reviewChainKey(event.entityId, event.organizationContextId, event.metadata),
     (event) => event.decidedAt,
   );
-  const firstShareByEntity = earliestDateByKey(
+  const firstDecisionByShareChain = earliestDateByKey(
+    decisionEvents,
+    (event) => shareDecisionChainKey(event.entityId, event.organizationContextId),
+    (event) => event.decidedAt,
+  );
+  const firstShareByChain = earliestDateByKey(
     shareEvents,
-    (event) => event.subjectEntityId,
+    (event) => shareDecisionChainKey(event.subjectEntityId, event.organizationContextId),
     (event) => event.sharedAt,
   );
 
   const reviewToDecisionDays: number[] = [];
-  firstReviewByEntity.forEach((reviewAt, entityId) => {
-    const decisionAt = firstDecisionByEntity.get(entityId);
+  firstReviewByChain.forEach((reviewAt, chainKey) => {
+    const decisionAt = firstDecisionByReviewChain.get(chainKey);
     if (decisionAt && decisionAt >= reviewAt) {
       reviewToDecisionDays.push(daysBetween(reviewAt, decisionAt));
     }
   });
 
   const reviewToReadyDays: number[] = [];
-  const advisoryEventsByEntity = groupRowsByKey(advisoryEvents, (event) => event.entityId);
-  advisoryEventsByEntity.forEach((events, entityId) => {
-    const firstReview = firstReviewByEntity.get(entityId);
+  const advisoryEventsByChain = groupRowsByKey(
+    advisoryEvents,
+    (event) => reviewChainKey(event.entityId, event.organizationContextId, event.metadata),
+  );
+  advisoryEventsByChain.forEach((events, chainKey) => {
+    const firstReview = firstReviewByChain.get(chainKey);
     if (!firstReview) return;
 
     const readyEvent = events.find((event) =>
@@ -664,8 +947,8 @@ export async function computePilotKpis(
     .filter((value): value is number => value !== null);
 
   const shareToDecisionDays: number[] = [];
-  firstShareByEntity.forEach((sharedAt, entityId) => {
-    const decisionAt = firstDecisionByEntity.get(entityId);
+  firstShareByChain.forEach((sharedAt, chainKey) => {
+    const decisionAt = firstDecisionByShareChain.get(chainKey);
     if (decisionAt && decisionAt >= sharedAt) {
       shareToDecisionDays.push(daysBetween(sharedAt, decisionAt));
     }
@@ -714,16 +997,40 @@ export async function computePilotKpis(
   // Filtered views intentionally do not infer pilot scope from canonical starts because
   // StartAttestation and EmployerAcceptance do not carry pilot metadata today.
   const totalStarts = effectiveStartOutcomeRows.length || (filtered ? 0 : startAttestationCount);
+  const recordedStartCount = effectiveStartOutcomeRows.length;
+  const distinctOutcomeSubjects = new Set([
+    ...effectiveStartOutcomeRows.map((row) => row.entityId),
+    ...nonStartOutcomeAuditRows.map((row) => {
+      const metadata = readJson(row.metadata);
+      return (
+        readString(metadata.entityId)
+        ?? row.referenceId
+        ?? readString(metadata.npi)
+        ?? row.clinicianId
+      );
+    }),
+  ].filter((value): value is string => Boolean(value))).size;
   const distinctStartEntities = new Set(
     effectiveStartOutcomeRows.map((row) => row.entityId),
   ).size;
   const scoresAtStart = effectiveStartOutcomeRows
     .map((row) => row.readinessScoreAtStart)
     .filter((value): value is number => value !== null);
+  const nonStartReasonCounts = new Map<string, number>();
+
+  for (const row of nonStartOutcomeAuditRows) {
+    const reason = readString(readJson(row.metadata).nonStartReason) ?? 'unspecified';
+    nonStartReasonCounts.set(reason, (nonStartReasonCounts.get(reason) ?? 0) + 1);
+  }
 
   const startOutcomes: StartOutcomeStats = {
     totalStarts,
-    distinctEntities: distinctStartEntities || totalStarts,
+    totalOutcomeRecords: recordedStartCount + nonStartOutcomeAuditRows.length,
+    didNotStartCount: nonStartOutcomeAuditRows.length,
+    nonStartReasons: [...nonStartReasonCounts.entries()]
+      .map(([reason, count]) => ({ reason, count }))
+      .sort((left, right) => right.count - left.count || left.reason.localeCompare(right.reason)),
+    distinctEntities: distinctOutcomeSubjects || distinctStartEntities || totalStarts,
     readinessAtStart: {
       avgScore: average(scoresAtStart),
       medianScore: median(scoresAtStart),
@@ -784,6 +1091,151 @@ export async function computePilotKpis(
     noScore: noScoreCount,
   };
 
+  const proofChainEvents = [
+    ...shareEvents.map((event) => ({
+      eventName: 'packet_shared',
+      occurredAt: event.sharedAt.toISOString(),
+      entityId: event.subjectEntityId ?? null,
+      npi: event.npi ?? null,
+      organizationContextId: event.organizationContextId ?? null,
+      organizationId: event.organizationId ?? null,
+      pilotId: null,
+      workflowLane: null,
+      geographyTag: null,
+      sourceRecordType: 'BundleShareEvent',
+      sourceRecordId: event.id,
+      outcomeStatus: null,
+      detail: event.bundleId ?? event.deliveryStatus,
+    } satisfies Omit<PilotProofChainEvent, 'caseKey'>)),
+    ...reviewEvents.map((event) => {
+      const metadata = readJson(event.metadata);
+      const scope = readScopeFields(metadata);
+      return {
+        eventName: 'employer_review_opened',
+        occurredAt: event.eventTimestamp.toISOString(),
+        entityId: event.entityId,
+        npi: null,
+        organizationContextId: event.organizationContextId ?? readString(metadata.organizationContextId),
+        organizationId: readString(metadata.organizationId),
+        pilotId: scope.pilotId,
+        workflowLane: scope.workflowLane,
+        geographyTag: scope.geographyTag,
+        sourceRecordType: 'AdvisoryOutcomeEvent',
+        sourceRecordId: event.id,
+        outcomeStatus: null,
+        detail: readString(metadata.bundleId) ?? 'employer_review_opened',
+      } satisfies Omit<PilotProofChainEvent, 'caseKey'>;
+    }),
+    ...decisionEvents.map((event) => {
+      const metadata = readJson(event.metadata);
+      const scope = readScopeFields(metadata);
+      return {
+        eventName: 'employer_decision_recorded',
+        occurredAt: event.decidedAt.toISOString(),
+        entityId: event.entityId,
+        npi: null,
+        organizationContextId: event.organizationContextId ?? readString(metadata.organizationContextId),
+        organizationId: readString(metadata.organizationId),
+        pilotId: scope.pilotId,
+        workflowLane: scope.workflowLane,
+        geographyTag: scope.geographyTag,
+        sourceRecordType: 'EmployerDecisionEvent',
+        sourceRecordId: event.id,
+        outcomeStatus: event.decision,
+        detail: event.decision,
+      } satisfies Omit<PilotProofChainEvent, 'caseKey'>;
+    }),
+    ...readinessChangeAuditRows.map((row) => {
+      const metadata = readJson(row.metadata);
+      const scope = readScopeFields(metadata);
+      const previousBand = readString(metadata.previousBand);
+      const newBand = readString(metadata.newBand);
+      return {
+        eventName: 'readiness_changed',
+        occurredAt: readString(metadata.occurredAt) ?? row.createdAt.toISOString(),
+        entityId: readString(metadata.entityId),
+        npi: readString(metadata.npi) ?? row.clinicianId ?? null,
+        organizationContextId: readString(metadata.organizationContextId),
+        organizationId: row.organizationId ?? readString(metadata.organizationId),
+        pilotId: scope.pilotId,
+        workflowLane: scope.workflowLane,
+        geographyTag: scope.geographyTag,
+        sourceRecordType: 'AuditEvent',
+        sourceRecordId: row.id,
+        outcomeStatus: newBand,
+        detail: [previousBand, newBand].filter((value): value is string => value !== null).join(' -> ') || null,
+      } satisfies Omit<PilotProofChainEvent, 'caseKey'>;
+    }),
+    ...blockerResolvedMetricRows.map((row) => {
+      const metadata = readJson(row.metadata);
+      const scope = readScopeFields(metadata);
+      const entity = readJson(metadata.entity);
+      const details = readJson(metadata.details);
+      return {
+        eventName: 'blocker_resolved',
+        occurredAt: row.createdAt.toISOString(),
+        entityId: readString(entity.id) ?? readString(metadata.entityId),
+        npi: readString(metadata.npi) ?? row.clinicianId ?? null,
+        organizationContextId: readString(metadata.organizationContextId),
+        organizationId: row.organizationId ?? readString(metadata.organizationId),
+        pilotId: scope.pilotId,
+        workflowLane: scope.workflowLane,
+        geographyTag: scope.geographyTag,
+        sourceRecordType: 'PilotOpsAuditEvent',
+        sourceRecordId: row.id,
+        outcomeStatus: null,
+        detail:
+          readString(details.blockerCode)
+          ?? readString(metadata.message)
+          ?? readString(entity.label)
+          ?? BLOCKER_RESOLVED_EVENT_TYPE,
+      } satisfies Omit<PilotProofChainEvent, 'caseKey'>;
+    }),
+    ...effectiveStartOutcomeRows.map((row) => {
+      const metadata = readJson(row.metadata);
+      const scope = readScopeFields(metadata);
+      return {
+        eventName: 'start_outcome_recorded',
+        occurredAt: row.startedAt.toISOString(),
+        entityId: row.entityId,
+        npi: readString(metadata.npi),
+        organizationContextId: row.organizationContextId ?? readString(metadata.organizationContextId),
+        organizationId: readString(metadata.organizationId),
+        pilotId: scope.pilotId,
+        workflowLane: scope.workflowLane,
+        geographyTag: scope.geographyTag,
+        sourceRecordType: 'StartOutcomeEvent',
+        sourceRecordId: row.id,
+        outcomeStatus: 'STARTED',
+        detail: readString(metadata.note) ?? 'started',
+      } satisfies Omit<PilotProofChainEvent, 'caseKey'>;
+    }),
+    ...nonStartOutcomeAuditRows.map((row) => {
+      const metadata = readJson(row.metadata);
+      const scope = readScopeFields(metadata);
+      return {
+        eventName: 'start_outcome_recorded',
+        occurredAt: readString(metadata.occurredAt) ?? row.createdAt.toISOString(),
+        entityId: readString(metadata.entityId) ?? row.referenceId ?? null,
+        npi: readString(metadata.npi) ?? row.clinicianId ?? null,
+        organizationContextId: readString(metadata.organizationContextId),
+        organizationId: row.organizationId ?? readString(metadata.organizationId),
+        pilotId: scope.pilotId,
+        workflowLane: scope.workflowLane,
+        geographyTag: scope.geographyTag,
+        sourceRecordType: 'AuditEvent',
+        sourceRecordId: row.id,
+        outcomeStatus: readString(metadata.outcomeStatus),
+        detail: readString(metadata.nonStartReason),
+      } satisfies Omit<PilotProofChainEvent, 'caseKey'>;
+    }),
+  ].map((event) => ({
+    ...event,
+    caseKey: proofChainCaseKey(event),
+  })) satisfies PilotProofChainEvent[];
+
+  const proofChain = buildProofChainSummary(proofChainEvents);
+
   // ── Gaps detection ────────────────────────────────────────────────────
   const gaps: string[] = [];
   if (reviewEvents.length === 0) {
@@ -801,8 +1253,14 @@ export async function computePilotKpis(
   if (shareEvents.length === 0) {
     gaps.push('No bundle share events in the window — confirm ApplyBundle.share() writes BundleShareEvent.');
   }
+  if (!filter.orgContextId && hasMetadataScopedFilter(filter)) {
+    gaps.push('Bundle share events are only org-context scoped today. Exact packet-share attribution still requires bundle-share scope metadata when multiple pilots or lanes are active.');
+  }
   if (filtered && startAttestationCount > 0 && effectiveStartOutcomeRows.length === 0) {
     gaps.push('Scoped start KPIs rely on start_outcome_events. Canonical start_attestations are unscoped health signals only and are excluded from filtered start metrics.');
+  }
+  if (proofChain.partialCases > 0) {
+    gaps.push(`${proofChain.partialCases} pilot case${proofChain.partialCases === 1 ? '' : 's'} are missing at least one core proof-chain event for full replay.`);
   }
 
   log('info', 'pilot_kpi_computed', {
@@ -810,10 +1268,12 @@ export async function computePilotKpis(
     pilotId: filter.pilotId ?? null,
     workflowLane: filter.workflowLane ?? null,
     orgContextId: filter.orgContextId ?? null,
+    geographyTag: filter.geographyTag ?? null,
     packets: packetShares.total,
     reviews: reviewsOpened.total,
     decisions: decisions.total,
     starts: startOutcomes.totalStarts,
+    replayableCases: proofChain.replayableCases,
     gaps: gaps.length,
   });
 
@@ -835,10 +1295,14 @@ export async function computePilotKpis(
       advisoryOutcomeEvents: advisoryOutcomeCount,
       employerDecisionEvents: employerDecisionCount,
       blockerResolutionEvents: blockerCount,
+      blockerResolvedMetricEvents: blockerResolvedMetricRows.length,
+      readinessChangeEvents: readinessChangeAuditRows.length,
       startOutcomeEvents: startOutcomeCount,
+      nonStartOutcomeEvents: nonStartOutcomeAuditRows.length,
       employerAcceptances: acceptanceCount,
       startAttestations: startAttestationCount,
     },
+    proofChain,
     gaps,
   };
 }
@@ -920,6 +1384,8 @@ export function kpiSnapshotToExportRows(snap: PilotKpiSnapshot): PilotKpiExportR
     { section: 'decisions', label: 'reject_count', value: String(snap.decisions.rejectCount) },
     { section: 'decisions', label: 'hold_count', value: String(snap.decisions.holdCount) },
     { section: 'start_outcomes', label: 'total_starts', value: String(snap.startOutcomes.totalStarts) },
+    { section: 'start_outcomes', label: 'total_outcome_records', value: String(snap.startOutcomes.totalOutcomeRecords) },
+    { section: 'start_outcomes', label: 'did_not_start_count', value: String(snap.startOutcomes.didNotStartCount) },
     { section: 'start_outcomes', label: 'distinct_entities', value: String(snap.startOutcomes.distinctEntities) },
     {
       section: 'start_outcomes',
@@ -936,6 +1402,10 @@ export function kpiSnapshotToExportRows(snap: PilotKpiSnapshot): PilotKpiExportR
       label: 'starts_with_blockers',
       value: String(snap.startOutcomes.readinessAtStart.withBlockers),
     },
+    { section: 'proof_chain_summary', label: 'total_events', value: String(snap.proofChain.totalEvents) },
+    { section: 'proof_chain_summary', label: 'total_cases', value: String(snap.proofChain.totalCases) },
+    { section: 'proof_chain_summary', label: 'replayable_cases', value: String(snap.proofChain.replayableCases) },
+    { section: 'proof_chain_summary', label: 'partial_cases', value: String(snap.proofChain.partialCases) },
   ];
 
   for (const [deliveryStatus, count] of Object.entries(snap.packetShares.byDeliveryStatus).sort(([left], [right]) => left.localeCompare(right))) {
@@ -1008,6 +1478,50 @@ export function kpiSnapshotToExportRows(snap: PilotKpiSnapshot): PilotKpiExportR
       value: String(count),
     });
   }
+
+  for (const { reason, count } of snap.startOutcomes.nonStartReasons) {
+    rows.push({
+      section: 'non_start_reasons',
+      label: reason,
+      value: String(count),
+    });
+  }
+
+  snap.proofChain.cases.forEach((proofCase, index) => {
+    const section = `proof_chain_case:${index + 1}`;
+    rows.push(
+      { section, label: 'case_key', value: proofCase.caseKey },
+      { section, label: 'entity_id', value: proofCase.entityId ?? 'none' },
+      { section, label: 'npi', value: proofCase.npi ?? 'none' },
+      { section, label: 'organization_context_id', value: proofCase.organizationContextId ?? 'none' },
+      { section, label: 'organization_id', value: proofCase.organizationId ?? 'none' },
+      { section, label: 'replayable', value: String(proofCase.replayable) },
+      { section, label: 'event_names', value: proofCase.eventNames.join('|') || 'none' },
+      { section, label: 'missing_core_events', value: proofCase.missingCoreEvents.join('|') || 'none' },
+      { section, label: 'last_occurred_at', value: proofCase.lastOccurredAt },
+      { section, label: 'non_start_reason', value: proofCase.nonStartReason ?? 'none' },
+    );
+  });
+
+  snap.proofChain.events.forEach((event, index) => {
+    const section = `proof_chain_event:${index + 1}`;
+    rows.push(
+      { section, label: 'case_key', value: event.caseKey },
+      { section, label: 'event_name', value: event.eventName },
+      { section, label: 'occurred_at', value: event.occurredAt },
+      { section, label: 'entity_id', value: event.entityId ?? 'none' },
+      { section, label: 'npi', value: event.npi ?? 'none' },
+      { section, label: 'organization_context_id', value: event.organizationContextId ?? 'none' },
+      { section, label: 'organization_id', value: event.organizationId ?? 'none' },
+      { section, label: 'pilot_id', value: event.pilotId ?? 'none' },
+      { section, label: 'workflow_lane', value: event.workflowLane ?? 'none' },
+      { section, label: 'geography_tag', value: event.geographyTag ?? 'none' },
+      { section, label: 'source_record_type', value: event.sourceRecordType },
+      { section, label: 'source_record_id', value: event.sourceRecordId },
+      { section, label: 'outcome_status', value: event.outcomeStatus ?? 'none' },
+      { section, label: 'detail', value: event.detail ?? 'none' },
+    );
+  });
 
   if (snap.gaps.length === 0) {
     rows.push({ section: 'gaps', label: 'status', value: 'none' });

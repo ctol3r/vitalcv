@@ -22,8 +22,10 @@ import { generateRoiReport, roiReportToHtml } from '../services/pilot/roiReportS
 import {
   captureAdvisoryEvent,
   captureStartOutcome,
+  recordPilotProofEvent,
 } from '../services/seal/sealEventCapture';
 import { parseScopeFromQuery } from '../services/seal/pilotScope';
+import { resolveEmployerReviewAttribution } from '../services/entity/employerReviewAttribution';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -130,18 +132,43 @@ export function registerPilotKpiRoutes(app: Express): void {
       return;
     }
 
-    const { organizationContextId, readinessScore, blockers, sharedBy } = req.body ?? {};
-    const scope = readPilotFilter((req.body ?? {}) as Record<string, unknown>);
+    const {
+      organizationContextId,
+      bundleId,
+      readinessScore,
+      blockers,
+      sharedBy,
+    } = req.body ?? {};
+    const attribution = await resolveEmployerReviewAttribution({
+      entityId,
+      organizationContextId,
+      bundleId,
+    });
+    const resolvedOrganizationContextId =
+      attribution.organizationContextId
+      ?? readOptionalString(organizationContextId);
+    const scope = readPilotFilter({
+      ...((req.body ?? {}) as Record<string, unknown>),
+      organizationContextId: resolvedOrganizationContextId,
+    });
 
     void captureAdvisoryEvent({
       entityId,
-      organizationContextId: readOptionalString(organizationContextId),
+      organizationContextId: resolvedOrganizationContextId,
       advisoryVersion: 'pilot-review-open',
       eventType: 'EMPLOYER_REVIEW',
       blockersAtEvent: Array.isArray(blockers) ? blockers as string[] : [],
       readinessScoreAtEvent: typeof readinessScore === 'number' ? readinessScore : null,
       sourceCoverageAtEvent: { live: ['NPPES', 'OIG / LEIE'], gated: [], mock: ['CMS PECOS'], notChecked: [] },
       metadata: {
+        eventName: 'employer_review_opened',
+        source: attribution.source,
+        bundleId: attribution.bundleId,
+        bundleShareEventId: attribution.bundleShareEventId,
+        requestorEntityId: attribution.requestorEntityId,
+        organizationId: attribution.organizationId,
+        organizationName: attribution.organizationName,
+        purposeOfUse: attribution.purposeOfUse,
         sharedBy: sharedBy ?? null,
         reviewerClerkId: req.headers['x-clerk-user-id'] ?? null,
       },
@@ -158,26 +185,81 @@ export function registerPilotKpiRoutes(app: Express): void {
 
     const {
       entityId,
+      status,
       startedAt,
+      recordedAt,
       organizationContextId,
       readinessScoreAtStart,
       blockers,
+      nonStartReason,
+      nonStartCategory,
       note,
     } = req.body ?? {};
+    const normalizedStatus = readOptionalString(status)?.toUpperCase() ?? 'STARTED';
 
     if (!entityId || !UUID_RE.test(entityId)) {
       void res.status(400).json({ error: 'entityId must be a valid UUID.' });
       return;
     }
 
-    if (!startedAt || isNaN(Date.parse(startedAt as string))) {
+    if (normalizedStatus !== 'STARTED' && normalizedStatus !== 'DID_NOT_START') {
+      void res.status(400).json({ error: 'status must be STARTED or DID_NOT_START.' });
+      return;
+    }
+
+    if (normalizedStatus === 'STARTED' && (!startedAt || isNaN(Date.parse(startedAt as string)))) {
       void res.status(400).json({ error: 'startedAt must be a valid ISO date string.' });
+      return;
+    }
+
+    if (normalizedStatus === 'DID_NOT_START' && recordedAt && isNaN(Date.parse(recordedAt as string))) {
+      void res.status(400).json({ error: 'recordedAt must be a valid ISO date string.' });
+      return;
+    }
+
+    const scope = readPilotFilter((req.body ?? {}) as Record<string, unknown>);
+    const resolvedOrganizationContextId = readOptionalString(organizationContextId);
+
+    if (normalizedStatus === 'DID_NOT_START') {
+      const effectiveRecordedAt =
+        readOptionalString(recordedAt)
+        ?? new Date().toISOString();
+
+      void recordPilotProofEvent({
+        eventName: 'start_outcome_recorded',
+        entityId,
+        organizationContextId: resolvedOrganizationContextId,
+        occurredAt: effectiveRecordedAt,
+        metadata: {
+          outcomeStatus: 'DID_NOT_START',
+          nonStartReason: readOptionalString(nonStartReason),
+          nonStartCategory: readOptionalString(nonStartCategory),
+          note: typeof note === 'string' ? note : null,
+          pilotId: scope.pilotId ?? null,
+          workflowLane: scope.workflowLane ?? null,
+          geographyTag: scope.geographyTag ?? null,
+        },
+      });
+
+      log('info', 'pilot_non_start_outcome_recorded_manually', {
+        entityId,
+        nonStartReason: readOptionalString(nonStartReason),
+        recordedAt: effectiveRecordedAt,
+      });
+      void res.status(202).json({
+        ok: true,
+        queued: true,
+        entityId,
+        status: 'DID_NOT_START',
+        nonStartReason: readOptionalString(nonStartReason),
+        recordedAt: effectiveRecordedAt,
+      });
       return;
     }
 
     void captureStartOutcome({
       entityId,
-      organizationContextId: readOptionalString(organizationContextId),
+      organizationContextId: resolvedOrganizationContextId,
       startedAt: new Date(startedAt as string),
       readinessScoreAtStart: typeof readinessScoreAtStart === 'number' ? readinessScoreAtStart : null,
       blockersAtStart: Array.isArray(blockers) ? blockers as string[] : [],
@@ -187,7 +269,7 @@ export function registerPilotKpiRoutes(app: Express): void {
         note: typeof note === 'string' ? note : null,
         monitoredAt: new Date().toISOString(),
       },
-      scope: readPilotFilter((req.body ?? {}) as Record<string, unknown>),
+      scope,
     });
 
     log('info', 'pilot_start_outcome_recorded_manually', { entityId, startedAt });

@@ -73,6 +73,25 @@ describe('Canonical Source Coverage Contracts', () => {
     expect(coverage).not.toHaveProperty('proof');
   });
 
+  it('normalizes unsupported source states into notDecisionGrade without pretending they are current', () => {
+    const coverage = createCanonicalSourceCoverage({
+      sourceId: 'UNSUPPORTED_SOURCE',
+      state: 'unsupported',
+      reason: 'unsupported source',
+      checkedAt: '2026-03-23T12:00:00.000Z',
+      freshnessWindowHours: 24,
+    });
+
+    expect(coverage.state).toBe('notDecisionGrade');
+    expect(coverage.freshness).toEqual({
+      status: 'unknown',
+      checkedAt: '2026-03-23T12:00:00.000Z',
+      observedAt: '2026-03-23T12:00:00.000Z',
+      expiresAt: '2026-03-24T12:00:00.000Z',
+      freshnessWindowHours: 24,
+    });
+  });
+
   it('summarizes canonically across all exact statuses', () => {
     const checks = [
       createCanonicalSourceCoverage({ sourceId: 'A', state: 'checked', reason: 'A' }),

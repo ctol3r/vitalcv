@@ -55,4 +55,25 @@ describe('pricing model', () => {
     expect(summary.monitoringRefreshes).toBe(3);
     expect(summary.exportRuns).toBe(1);
   });
+
+  it('keeps repeat-access protection scoped to the same organization', () => {
+    const summary = summarizePricingAccess([
+      {
+        activity: 'credential_access',
+        organizationId: 'org-1',
+        credentialKey: 'npi:1234567890',
+        freshnessBand: 'static',
+      },
+      {
+        activity: 'credential_access',
+        organizationId: 'org-2',
+        credentialKey: 'npi:1234567890',
+        freshnessBand: 'static',
+      },
+    ]);
+
+    expect(summary.billableCredentialPulls).toBe(2);
+    expect(summary.includedRepeatViews).toBe(0);
+    expect(summary.billablePullsByFreshnessBand.static).toBe(2);
+  });
 });

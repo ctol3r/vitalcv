@@ -6,8 +6,6 @@ import {
   type SourceOpsReport,
 } from '@/lib/mission-ops/sourceOpsTypes';
 
-const PILOT_SOURCE_IDS = ['NPPES_API', 'OIG_LEIE', 'PECOS_PUBLIC'];
-
 const POLL_INTERVAL_MS = 60_000;
 
 function coverageColor(state: SourceOpsEntry['coverageState']): string {
@@ -15,8 +13,14 @@ function coverageColor(state: SourceOpsEntry['coverageState']): string {
     case 'checked':
       return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400';
     case 'stale':
+    case 'reviewRequired':
       return 'border-amber-500/30 bg-amber-500/10 text-amber-400';
+    case 'accessRequired':
+    case 'gated':
+      return 'border-sky-500/30 bg-sky-500/10 text-sky-400';
     case 'pending':
+    case 'notDecisionGrade':
+    case 'previewOnly':
       return 'border-zinc-500/30 bg-zinc-500/10 text-zinc-400';
     case 'unavailable':
       return 'border-rose-500/30 bg-rose-500/10 text-rose-400';
@@ -54,9 +58,15 @@ function formatAge(isoDate: string | null): string {
 }
 
 function filterPilotSources(sources: SourceOpsEntry[]): SourceOpsEntry[] {
-  return sources.filter(
-    (s) => PILOT_SOURCE_IDS.includes(s.sourceId) || s.isSpine,
-  );
+  return sources.filter((source) => (
+    source.isSpine
+    || source.decisionGrade
+    || source.consecutiveFailures > 0
+    || source.lastFailureAt !== null
+    || source.coverageState === 'accessRequired'
+    || source.coverageState === 'reviewRequired'
+    || source.coverageState === 'gated'
+  ));
 }
 
 export function SourceHealthPanel() {

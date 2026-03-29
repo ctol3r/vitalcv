@@ -1,5 +1,6 @@
 import { ApplicationStatus, Prisma } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
+import { computePilotKpis, type PilotKpiSnapshot } from './pilotKpiService';
 import {
   listAllOrgApplications,
   listClinicianApplications,
@@ -187,6 +188,20 @@ export interface PilotProofSummary {
   recentProgress: OutcomeStateChange[];
   topProofGaps: PilotProofGap[];
   remainingGaps: PilotProofGap[];
+  livePilot: {
+    windowDays: number;
+    measuredDelta: PilotKpiSnapshot['velocity'];
+    startOutcomes: Pick<
+      PilotKpiSnapshot['startOutcomes'],
+      'totalStarts' | 'totalOutcomeRecords' | 'didNotStartCount' | 'nonStartReasons'
+    >;
+    eventChain: PilotKpiSnapshot['eventChain'];
+    proofChain: PilotKpiSnapshot['proofChain'];
+    exports: {
+      json: true;
+      csv: true;
+    };
+  };
 }
 
 const FIXED_PROOF_GAPS: PilotProofGap[] = [
@@ -1077,6 +1092,7 @@ export async function getPilotProofSummary(
   options: { lookbackHours?: number } = {},
 ): Promise<PilotProofSummary> {
   const lookbackHours = options.lookbackHours ?? DEFAULT_LOOKBACK_HOURS;
+  const livePilotWindowDays = Math.max(1, Math.round(lookbackHours / 24));
   const since = new Date(Date.now() - lookbackHours * 60 * 60 * 1000);
   const historyWindowSince = new Date(Date.now() - DEFAULT_HISTORY_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
@@ -1095,6 +1111,7 @@ export async function getPilotProofSummary(
     earliestTrustArtifact,
     earliestFinding,
     earliestStoryline,
+    livePilotSnapshot,
   ] = await Promise.all([
     prisma.auditEvent.findMany({
       where: {
@@ -1192,6 +1209,7 @@ export async function getPilotProofSummary(
       orderBy: { createdAt: 'asc' },
       select: { createdAt: true },
     }),
+    computePilotKpis({ windowDays: livePilotWindowDays }),
   ]);
 
   const trustHistory: ClinicianTrustState[] = [];
@@ -1257,9 +1275,18 @@ export async function getPilotProofSummary(
         applications: applications.filter((application) => application.createdAt.getTime() <= baselineAt.getTime()).length,
         readinessCompleted: trustHistory.filter((row) => Date.parse(row.computedAt) <= baselineAt.getTime())
           .reduce((set, row) => set.add(row.npi), new Set<string>()).size,
-        findings: recentFindings.filter((finding) => finding.createdAt.getTime() <= baselineAt.getTime()).length,
-        storylines: recentStorylines.filter((storyline) => storyline.createdAt.getTime() <= baselineAt.getTime()).length,
-        employerActionsGenerated: recentActions.filter((action) => action.createdAt.getTime() <= baselineAt.getTime()).length,
+        findings: await prisma.investigatorFinding.count({
+          where: { createdAt: { lte: baselineAt } },
+        }),
+        storylines: await prisma.storyline.count({
+          where: { createdAt: { lte: baselineAt } },
+        }),
+        employerActionsGenerated: await prisma.actionRecommendation.count({
+          where: {
+            dismissedAt: null,
+            createdAt: { lte: baselineAt },
+          },
+        }),
       }
     : {
         applications: 0,
@@ -1336,10 +1363,10 @@ export async function getPilotProofSummary(
         && application.status !== ApplicationStatus.WITHDRAWN
       )).length,
       trustChangesSurfaced: trustChanges.length,
-      findingsSurfaced: recentFindings.length,
-      storylinesSurfaced: recentStorylines.length,
+      findingsSurfaced: currentFindingsCount,
+      storylinesSurfaced: currentStorylinesCount,
       employerReviews: applications.filter((application) => application.reviewedAt !== null).length,
-      employerActionsGenerated: recentActions.length,
+      employerActionsGenerated: currentActionsCount,
     },
     onboardingCompletion: {
       sampleSize: onboardingSamples.length,
@@ -1407,7 +1434,107 @@ export async function getPilotProofSummary(
     recentProgress,
     topProofGaps: FIXED_PROOF_GAPS,
     remainingGaps: REMAINING_PROOF_GAPS,
+    livePilot: {
+      windowDays: livePilotSnapshot.windowDays,
+      measuredDelta: livePilotSnapshot.velocity,
+      startOutcomes: {
+        totalStarts: livePilotSnapshot.startOutcomes.totalStarts,
+        totalOutcomeRecords: livePilotSnapshot.startOutcomes.totalOutcomeRecords,
+        didNotStartCount: livePilotSnapshot.startOutcomes.didNotStartCount,
+        nonStartReasons: livePilotSnapshot.startOutcomes.nonStartReasons,
+      },
+      eventChain: livePilotSnapshot.eventChain,
+      proofChain: livePilotSnapshot.proofChain,
+      exports: {
+        json: true,
+        csv: true,
+      },
+    },
   };
+}
+
+export interface PilotProofExportRow {
+  section: string;
+  label: string;
+  value: string;
+}
+
+function csvCell(cell: string): string {
+  return cell.includes(',') || cell.includes('"') || cell.includes('\n')
+    ? `"${cell.replace(/"/g, '""')}"`
+    : cell;
+}
+
+function exportValue(value: number | string | null | undefined): string {
+  if (value === null || value === undefined) {
+    return 'none';
+  }
+
+  return String(value);
+}
+
+export function pilotProofSummaryToExportRows(summary: PilotProofSummary): PilotProofExportRow[] {
+  const rows: PilotProofExportRow[] = [
+    { section: 'metadata', label: 'generated_at', value: summary.generatedAt },
+    { section: 'metadata', label: 'lookback_hours', value: String(summary.lookbackHours) },
+    { section: 'live_pilot', label: 'window_days', value: String(summary.livePilot.windowDays) },
+    { section: 'live_pilot', label: 'median_days_first_review_to_decision', value: exportValue(summary.livePilot.measuredDelta.medianDaysFirstReviewToDecision) },
+    { section: 'live_pilot', label: 'median_days_first_review_to_ready', value: exportValue(summary.livePilot.measuredDelta.medianDaysFirstReviewToReady) },
+    { section: 'live_pilot', label: 'median_days_first_review_to_start', value: exportValue(summary.livePilot.measuredDelta.medianDaysFirstReviewToStart) },
+    { section: 'live_pilot', label: 'median_days_share_to_decision', value: exportValue(summary.livePilot.measuredDelta.medianDaysShareToDecision) },
+    { section: 'live_pilot', label: 'sample_review_to_decision', value: String(summary.livePilot.measuredDelta.sampleSizes.reviewToDecision) },
+    { section: 'live_pilot', label: 'sample_review_to_ready', value: String(summary.livePilot.measuredDelta.sampleSizes.reviewToReady) },
+    { section: 'live_pilot', label: 'sample_review_to_start', value: String(summary.livePilot.measuredDelta.sampleSizes.reviewToStart) },
+    { section: 'live_pilot', label: 'sample_share_to_decision', value: String(summary.livePilot.measuredDelta.sampleSizes.shareToDecision) },
+    { section: 'start_outcomes', label: 'total_starts', value: String(summary.livePilot.startOutcomes.totalStarts) },
+    { section: 'start_outcomes', label: 'total_outcome_records', value: String(summary.livePilot.startOutcomes.totalOutcomeRecords) },
+    { section: 'start_outcomes', label: 'did_not_start_count', value: String(summary.livePilot.startOutcomes.didNotStartCount) },
+    { section: 'proof_chain', label: 'total_events', value: String(summary.livePilot.proofChain.totalEvents) },
+    { section: 'proof_chain', label: 'total_cases', value: String(summary.livePilot.proofChain.totalCases) },
+    { section: 'proof_chain', label: 'replayable_cases', value: String(summary.livePilot.proofChain.replayableCases) },
+    { section: 'proof_chain', label: 'partial_cases', value: String(summary.livePilot.proofChain.partialCases) },
+  ];
+
+  summary.livePilot.startOutcomes.nonStartReasons.forEach((entry) => {
+    rows.push({
+      section: 'non_start_reasons',
+      label: entry.reason,
+      value: String(entry.count),
+    });
+  });
+
+  summary.livePilot.proofChain.cases.forEach((proofCase, index) => {
+    const section = `proof_chain_case:${index + 1}`;
+    rows.push(
+      { section, label: 'case_key', value: proofCase.caseKey },
+      { section, label: 'replayable', value: String(proofCase.replayable) },
+      { section, label: 'missing_core_events', value: proofCase.missingCoreEvents.join('|') || 'none' },
+      { section, label: 'non_start_reason', value: proofCase.nonStartReason ?? 'none' },
+    );
+  });
+
+  summary.livePilot.proofChain.events.forEach((event, index) => {
+    const section = `proof_chain_event:${index + 1}`;
+    rows.push(
+      { section, label: 'event_name', value: event.eventName },
+      { section, label: 'occurred_at', value: event.occurredAt },
+      { section, label: 'case_key', value: event.caseKey },
+      { section, label: 'entity_id', value: event.entityId ?? 'none' },
+      { section, label: 'organization_context_id', value: event.organizationContextId ?? 'none' },
+      { section, label: 'outcome_status', value: event.outcomeStatus ?? 'none' },
+      { section, label: 'detail', value: event.detail ?? 'none' },
+    );
+  });
+
+  return rows;
+}
+
+export function pilotProofSummaryToCsv(summary: PilotProofSummary): string {
+  const rows = pilotProofSummaryToExportRows(summary);
+  return [
+    ['section', 'label', 'value'],
+    ...rows.map((row) => [row.section, row.label, row.value]),
+  ].map((row) => row.map(csvCell).join(',')).join('\n');
 }
 
 export async function getPilotProofSnapshot(

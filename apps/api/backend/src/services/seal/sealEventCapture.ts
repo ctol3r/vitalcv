@@ -22,10 +22,12 @@
  */
 
 import { randomUUID } from 'node:crypto';
+import { Prisma } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
 import { mergeScope, type PilotScope } from './pilotScope';
 import { appendAuditEvent } from '../audit/auditLedger';
+import { sha256ForPayload } from '../../utils/deterministic';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -64,6 +66,13 @@ export interface SourceCoverageSnapshot {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const READY_READINESS_THRESHOLD = 60;
+const REVIEW_OPEN_ADVISORY_VERSION = 'pilot-review-open';
+const PILOT_PROOF_EVENT_AUDIT_TYPE = 'PILOT_PROOF_EVENT';
+const PILOT_PROOF_EVENT_SCHEMA = 'vitalcv.pilot-proof.event.v1';
+
+function readOptionalString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
 
 function isUuid(value: string): boolean {
   return UUID_RE.test(value);
@@ -103,22 +112,43 @@ function scopedOrgWhere(organizationContextId: string | null | undefined): {
   return organizationContextId ? { organizationContextId } : {};
 }
 
+function hasScopeMetadata(scope: PilotScope | null | undefined): boolean {
+  return Boolean(scope?.pilotId || scope?.workflowLane || scope?.geographyTag);
+}
+
+function scopeMetadataWhere(scope: PilotScope | null | undefined): {
+  AND?: Array<{ metadata: { path: string[]; equals: string } }>;
+} {
+  const clauses = [
+    scope?.pilotId ? { metadata: { path: ['pilotId'], equals: scope.pilotId } } : null,
+    scope?.workflowLane ? { metadata: { path: ['workflowLane'], equals: scope.workflowLane } } : null,
+    scope?.geographyTag ? { metadata: { path: ['geographyTag'], equals: scope.geographyTag } } : null,
+  ].filter((value): value is { metadata: { path: string[]; equals: string } } => value !== null);
+
+  return clauses.length > 0 ? { AND: clauses } : {};
+}
+
 async function findFirstShareTimestamp(
   entityId: string,
   organizationContextId: string | null | undefined,
+  scope: PilotScope | null | undefined,
 ): Promise<Date | null> {
   const orgWhere = scopedOrgWhere(organizationContextId);
-  const firstBundleShare = await prisma.bundleShareEvent.findFirst({
-    where: {
-      subjectEntityId: entityId,
-      ...orgWhere,
-    },
-    orderBy: { sharedAt: 'asc' },
-    select: { sharedAt: true },
-  });
+  const scopeWhere = scopeMetadataWhere(scope);
 
-  if (firstBundleShare?.sharedAt) {
-    return firstBundleShare.sharedAt;
+  if (!hasScopeMetadata(scope)) {
+    const firstBundleShare = await prisma.bundleShareEvent.findFirst({
+      where: {
+        subjectEntityId: entityId,
+        ...orgWhere,
+      },
+      orderBy: { sharedAt: 'asc' },
+      select: { sharedAt: true },
+    });
+
+    if (firstBundleShare?.sharedAt) {
+      return firstBundleShare.sharedAt;
+    }
   }
 
   // Legacy fallback for older rows captured before BundleShareEvent was the source of truth.
@@ -127,6 +157,7 @@ async function findFirstShareTimestamp(
       entityId,
       eventType: 'SHARE_INITIATED',
       ...orgWhere,
+      ...scopeWhere,
     },
     orderBy: { eventTimestamp: 'asc' },
     select: { eventTimestamp: true },
@@ -139,28 +170,33 @@ async function deriveStartOutcomeTimings(
   entityId: string,
   startedAt: Date,
   organizationContextId: string | null | undefined,
+  scope: PilotScope | null | undefined,
 ): Promise<{
   daysFromFirstReview: number | null;
   daysFromShare: number | null;
   daysFromReady: number | null;
 }> {
   const orgWhere = scopedOrgWhere(organizationContextId);
+  const scopeWhere = scopeMetadataWhere(scope);
   const [firstReview, firstShareAt, firstReady] = await Promise.all([
     prisma.advisoryOutcomeEvent.findFirst({
       where: {
         entityId,
         eventType: 'EMPLOYER_REVIEW',
+        advisoryVersion: REVIEW_OPEN_ADVISORY_VERSION,
         ...orgWhere,
+        ...scopeWhere,
       },
       orderBy: { eventTimestamp: 'asc' },
       select: { eventTimestamp: true },
     }),
-    findFirstShareTimestamp(entityId, organizationContextId),
+    findFirstShareTimestamp(entityId, organizationContextId, scope),
     prisma.advisoryOutcomeEvent.findFirst({
       where: {
         entityId,
         readinessScoreAtEvent: { gte: READY_READINESS_THRESHOLD },
         ...orgWhere,
+        ...scopeWhere,
       },
       orderBy: { eventTimestamp: 'asc' },
       select: { eventTimestamp: true },
@@ -442,6 +478,7 @@ export async function captureStartOutcome(input: CaptureStartOutcomeInput): Prom
       entityId,
       input.startedAt,
       input.organizationContextId ?? null,
+      input.scope ?? null,
     );
     const capturedAt = new Date().toISOString();
 
@@ -459,6 +496,9 @@ export async function captureStartOutcome(input: CaptureStartOutcomeInput): Prom
         sourceCoverageAtStart: JSON.parse(JSON.stringify(input.sourceCoverageAtStart)),
         metadata:              JSON.parse(JSON.stringify(mergeScope({
           ...(input.metadata ?? {}),
+          eventName: 'start_outcome_recorded',
+          outcomeStatus: 'STARTED',
+          organizationContextId: input.organizationContextId ?? null,
           capturedAt,
         }, input.scope))),
       },
@@ -469,6 +509,65 @@ export async function captureStartOutcome(input: CaptureStartOutcomeInput): Prom
     });
   } catch (err) {
     log('warn', 'seal_start_outcome_capture_failed', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+export interface RecordPilotProofEventInput {
+  eventName: 'readiness_changed' | 'start_outcome_recorded';
+  entityId?: string | null;
+  organizationContextId?: string | null;
+  organizationId?: string | null;
+  occurredAt?: string | null;
+  npi?: string | null;
+  metadata?: Record<string, unknown>;
+}
+
+export async function recordPilotProofEvent(input: RecordPilotProofEventInput): Promise<void> {
+  try {
+    const entityRef = readOptionalString(input.entityId) ?? readOptionalString(input.npi);
+    const resolvedEntityId = entityRef ? await resolveStartOutcomeEntityId(entityRef) : null;
+    const npi = readOptionalString(input.npi);
+    const occurredAt = readOptionalString(input.occurredAt) ?? new Date().toISOString();
+    const createdAt = new Date(occurredAt);
+
+    const metadata = JSON.parse(JSON.stringify({
+      ...(input.metadata ?? {}),
+      schema: PILOT_PROOF_EVENT_SCHEMA,
+      eventName: input.eventName,
+      entityId: resolvedEntityId,
+      npi,
+      organizationContextId: input.organizationContextId ?? null,
+      occurredAt,
+    })) as Record<string, unknown>;
+
+    const organizationId =
+      readOptionalString(input.organizationId)
+      ?? readOptionalString(metadata.organizationId);
+    const hash = sha256ForPayload({
+      type: PILOT_PROOF_EVENT_AUDIT_TYPE,
+      referenceId: resolvedEntityId,
+      clinicianId: npi,
+      organizationId,
+      createdAt: createdAt.toISOString(),
+      metadata,
+    });
+
+    await prisma.auditEvent.create({
+      data: {
+        type: PILOT_PROOF_EVENT_AUDIT_TYPE,
+        hash,
+        referenceId: resolvedEntityId,
+        clinicianId: npi,
+        organizationId,
+        createdAt,
+        metadata: metadata as Prisma.InputJsonObject,
+      },
+    });
+  } catch (err) {
+    log('warn', 'pilot_proof_event_capture_failed', {
+      eventName: input.eventName,
       error: err instanceof Error ? err.message : String(err),
     });
   }
@@ -495,6 +594,9 @@ export interface CaptureReadinessChangeInput {
 
 export async function captureReadinessChange(input: CaptureReadinessChangeInput): Promise<void> {
   try {
+    const resolvedEntityId = input.entityId
+      ? await resolveStartOutcomeEntityId(input.entityId)
+      : await resolveStartOutcomeEntityId(input.npi);
     const direction = input.degraded
       ? 'DEGRADED'
       : input.previousBand === null
@@ -508,7 +610,7 @@ export async function captureReadinessChange(input: CaptureReadinessChangeInput)
       severity: input.degraded ? 'WARNING' : 'INFO',
       requestFields: {
         npi:              input.npi,
-        entityId:         input.entityId ?? null,
+        entityId:         resolvedEntityId ?? input.entityId ?? null,
         triggerEventType: input.triggerEventType,
         triggerEventId:   input.triggerEventId ?? null,
       },
@@ -519,6 +621,23 @@ export async function captureReadinessChange(input: CaptureReadinessChangeInput)
         degraded:              input.degraded,
         affectedCapsuleCount:  input.affectedCapsuleCount,
         processedAt:           input.processedAt,
+      },
+    });
+
+    await recordPilotProofEvent({
+      eventName: 'readiness_changed',
+      entityId: resolvedEntityId ?? input.entityId ?? null,
+      npi: input.npi,
+      occurredAt: input.processedAt,
+      metadata: {
+        previousBand: input.previousBand,
+        newBand: input.newBand,
+        direction,
+        degraded: input.degraded,
+        affectedCapsuleCount: input.affectedCapsuleCount,
+        triggerEventType: input.triggerEventType,
+        triggerEventId: input.triggerEventId ?? null,
+        processedAt: input.processedAt,
       },
     });
 
