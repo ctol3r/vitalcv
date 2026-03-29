@@ -2,6 +2,31 @@
 
 **MISSION:** The dashboard exists to prove whether the live wedge is reducing start delay without drifting from product truth.
 
+**Last updated:** 2026-03-28 | **Full KPI funnel wired** | Wave 19 merged to main
+
+## Wired Event Chain (as of 2026-03-28)
+
+All events fire automatically. No manual instrumentation required for these steps:
+
+| Step | Event | DB / Source |
+|------|-------|------------|
+| NPI submitted | `npi_submit_attempt` | `pilot_metric_events` |
+| Readiness revealed | `readiness_revealed` | `pilot_metric_events` |
+| Passport viewed | `passport_viewed` | `pilot_metric_events` |
+| Review requested | `review_requested` | `pilot_metric_events` |
+| Review opened | `review_opened` | `pilot_metric_events` |
+| Employer action | `employer_action_clicked` | `pilot_metric_events` |
+| Packet shared | `BundleShareEvent` | `bundle_share_events` |
+| Employer decision | `EmployerDecisionEvent` | `employer_decision_events` |
+| Start outcome | `StartOutcomeEvent` | `start_outcome_events` (operator-captured) |
+
+**Only start outcome requires manual operator action.** See REAL_PILOT_RUNBOOK.md for the curl command.
+
+## KPI API
+- JSON: `GET /api/internal/pilot/kpis` (X-Monitoring-Secret required)
+- CSV: `GET /api/internal/pilot/kpis/export`
+- Quick report: `./scripts/pilot-kpi-report.sh $MONITORING_SECRET`
+
 ## Metric Hierarchy
 
 - **Core KPI:** **Interview-to-Start Velocity** = median days from first employer review to recorded start outcome.
@@ -29,7 +54,7 @@
 
 | Metric | Definition | Source / Contract | Target / Interpretation |
 | --- | --- | --- | --- |
-| Wedge route completion rate | Percent of pilot sessions that make it through `/onboarding` -> `/passport/[id]` -> `/review/[entityId]` on the canonical path. | Route analytics and operator walkthrough logs. | Should trend upward as the pilot becomes easier to run without human rescue. |
+| Wedge route completion rate | Percent of pilot sessions that make it through `vitalcv.com (NPI input)` -> `/passport?npi=[NPI]` -> `/review/request` -> `/review/[entityId]?contextId=[ctx]` on the canonical path. | Route analytics and operator walkthrough logs. | Should trend upward as the pilot becomes easier to run without human rescue. |
 | First value latency | Median seconds from NPI submit to first visible readiness snapshot. | Onboarding + passport telemetry or manual stopwatch during launch gate. | Must stay under 30 seconds for approved pilot NPIs. |
 | Packet truth parity | Percent of packet exports whose readiness and `sourceCoverage` match the employer review payload at export time. | Employer packet contract and review payload checks. | Must remain 100%. Any mismatch is a launch blocker. |
 | Source coverage explicitness | Percent of rendered source checks carrying an explicit canonical coverage state. | Source coverage contract across passport, review, and packet surfaces. | Must remain 100%. |

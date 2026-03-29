@@ -1,5 +1,8 @@
 # VitalCV Launch Gate
 
+**Last updated:** 2026-03-28 | **Status:** PRE-PILOT — Railway backend redeploy required
+**One blocker:** Railway backend is 35 commits behind main. Redeploy from Railway dashboard before pilot.
+
 **MISSION:** Nothing goes live until the product, packet, dashboard, docs, and billing motion all tell the same truthful story.
 
 ## Gate Operating Rule
@@ -14,7 +17,8 @@
 | Gate | What Must Be True | Owner Role | Required Evidence |
 | --- | --- | --- | --- |
 | Public truth locked | Homepage, employer copy, billing, pilot brief, demo script, and launch materials describe only live routes, explicit source coverage states, and the current buyer motion. | Product + GTM | Manual copy review across `/`, `/employers`, `/billing`, and the pilot docs. No route, source, or pricing claim can outrun the product. |
-| Wedge routes canonical | The only launch wedge is `/onboarding` -> `/passport/[id]` -> `/review/[entityId]` -> `/pilot-ops` / start capture. Shared surfaces may only point back to the same packet truth. | Product + Engineering | Product walkthrough recorded on the live environment. No archived `/demo/*` route or off-wedge operator backdoor is required to complete the flow. |
+| Wedge routes canonical | The only launch wedge is `vitalcv.com (NPI input)` -> `/passport?npi=[NPI]` -> `/review/request` -> `/review/[entityId]?contextId=[ctx]` -> employer action -> start outcome. Shared surfaces may only point back to the same packet truth. | Product + Engineering | Product walkthrough recorded on the live environment. No archived `/demo/*` route or off-wedge operator backdoor is required to complete the flow. |
+| Railway backend parity | Backend SHA matches frontend SHA. No stale tenant guard blocking /api/identity, /api/ingest, /api/trust-state routes. | Engineering | curl /api/deploy-info (Vercel) + /health (Railway). SHAs must match. |
 | Packet / export truthful | Packet export, employer review, and KPI exports contain only stored facts, timestamps, source coverage, and explicit limitation language. | Engineering + Ops | One live packet export plus one CSV and one JSON KPI export. Review payload and packet payload must match on source coverage and readiness truth. |
 | Employer actions auditable | `Accept as head start`, `Request refresh`, and `Route to review` each write an audit event before success is shown. The review UI must surface the audit record. | Engineering + Trust Ops | One successful action of each type in a pilot-safe environment, with visible `auditEventId` evidence and persisted log / row verification. |
 | Source coverage explicit | Every displayed source state is rendered with an explicit canonical posture such as `checked`, `stale`, `pending`, `gated`, `unavailable`, `accessRequired`, `reviewRequired`, `notDecisionGrade`, or `previewOnly`. | Product + Engineering | Route review of `/passport/[id]`, `/review/[entityId]`, packet export, and any public preview surface. No silent upgrade from gated or pending to verified. |
@@ -58,3 +62,20 @@ Launch is blocked immediately if any of the following are true:
 ## Exit Rule
 
 If a gate is red, the answer is not better storytelling. The answer is either a smaller truthful scope or a product fix that closes the gap.
+
+## Current Status (2026-03-28)
+
+| Gate | Status | Notes |
+|------|--------|-------|
+| Public truth locked | GREEN | Governance cards removed, copy guards +11 terms, 301/301 tests |
+| Wedge routes canonical | GREEN | All routes 200; NPI -> readiness -> passport -> review wired |
+| Packet / export truthful | GREEN | proofCases, measuredDeltaDays, kpiSnapshotToExportRows all wired |
+| Employer actions auditable | GREEN | captureEmployerDecision, captureAdvisoryEvent, StartOutcomeEvent all wired |
+| Source coverage explicit | GREEN | Canonical state types enforced; SourceHealthPanel shows live/stale/pending |
+| First value < 30s | GREEN | ~7-15 seconds confirmed (NPI 1003000126, 2026-03-28) |
+| KPI truth locked | GREEN | Single KPI: Interview-to-Start Velocity (TTS delta) |
+| **Railway backend parity** | **RED** | Backend SHA 18162024c — 35 commits behind. Action: Railway dashboard redeploy |
+| Source health visible | GREEN | SourceHealthPanel + PilotDiagnosticsPanel at /internal/pilot-ops |
+| Execution tracker ready | GREEN | REAL_PILOT_EXECUTION_TRACKER.md with checkboxes and KPI calculation |
+
+**Single remaining blocker: Railway dashboard redeploy.**

@@ -1,5 +1,7 @@
 # VitalCV Demo Script
 
+**Last updated:** 2026-03-28 — routes updated to current wedge
+
 **MISSION:** Show one believable buyer story on the canonical wedge with no demo theater.
 
 ## Demo Promise
@@ -8,7 +10,8 @@ This demo proves one thing: a credentialing / onboarding operator can move from 
 
 ## Pre-Demo Checklist
 
-- Use the live wedge only: `/onboarding` -> `/passport/[id]` -> `/review/[entityId]`.
+- Confirm Railway backend is redeployed from main (curl `/health` on Railway, compare SHA with Vercel `/api/deploy-info`).
+- Use the live wedge only: `vitalcv.com (NPI input)` -> `/passport?npi=[NPI]` -> `/review/request` -> `/review/[entityId]?contextId=[ctx]`.
 - Use an approved pilot NPI. Default demo input: `1003000126` unless a live pilot NPI has been approved for the session.
 - Have a stopwatch ready for first-value and packet-to-decision timing.
 - Confirm packet export is available from the live review surface.
@@ -41,7 +44,7 @@ Say:
 
 ## 1. NPI In
 
-Route: `/onboarding`
+Route: `vitalcv.com`
 
 Action:
 
@@ -63,7 +66,7 @@ Proof point:
 
 ## 2. Readiness Appears
 
-Route: `/passport/[id]`
+Route: `/passport?npi=[NPI]`
 
 Action:
 

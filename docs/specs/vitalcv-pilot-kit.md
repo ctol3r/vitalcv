@@ -1,29 +1,40 @@
-# VitalCV Pilot Kit (Milestone 5)
+# VitalCV Pilot Kit
+**Last updated:** 2026-03-28 | **Status:** Complete — all artifacts in repo
 
-## Overview
-This kit provides the minimal necessary assets to execute our initial deployment. It eschews enterprise theater and focuses directly on tangible impact and alignment with our single wedge Strategy.
+## One Buyer · One Workflow · One KPI · One Proof Story
+- **Buyer:** Healthcare employer (credentialing director / staffing ops)
+- **Workflow:** NPI -> readiness -> passport -> employer review -> start outcome
+- **KPI:** Time to Start (TTS) — days from first employer review to confirmed start
+- **Terrain:** Northern California (default)
 
-## Included Artifacts
+## Artifact Inventory
 
-1. **One-Page Buyer Brief:** 
-   A dense, jargon-free summary of the specific problem we are solving, how we solve it, and what the buyer must commit to. No fluff.
+| Artifact | File | Status |
+|----------|------|--------|
+| Buyer brief (1 page) | docs/PILOT_BUYER_BRIEF.md | Ready |
+| Demo script (step-by-step) | docs/PILOT_DEMO_SCRIPT.md | Ready — 4 NPIs, current routes |
+| Proof pack (real data) | docs/PILOT_PROOF_PACK.md | Ready — NPI 1003000126 real output |
+| ROI narrative | docs/PILOT_ROI_NARRATIVE.md | Ready — $144k-$2.52M model |
+| Outreach sequence | docs/PILOT_OUTREACH_SEQUENCE.md | Ready — 10 operators, 3 touches |
+| Metric definitions | docs/PILOT_METRIC_DEFINITIONS.md | Ready |
+| Proof story template | docs/PILOT_PROOF_STORY.md | Ready — fill after real case |
+| Real pilot runbook | docs/REAL_PILOT_RUNBOOK.md | Ready — event chain, curl commands |
+| Pre-flight checklist | docs/REAL_PILOT_CHECKLIST.md | Ready |
+| Execution tracker | docs/REAL_PILOT_EXECUTION_TRACKER.md | Ready — per-case checkboxes |
+| Evidence template | docs/REAL_PILOT_EVIDENCE_TEMPLATE.md | Ready |
+| KPI export script | scripts/pilot-kpi-snapshot.sh | Ready |
+| KPI report script | scripts/pilot-kpi-report.sh | Ready |
+| Pack index | docs/PILOT_PACK_INDEX.md | Ready |
 
-2. **ROI Narrative:** 
-   A clear, mathematical breakdown of the value provided. Focuses on time saved in credential verification, reduction in compliance risk, and speed to hire. No abstract concepts.
+## What Is Still Missing (fill in after first real case)
+- Real TTS data (PILOT_PROOF_PACK.md metric table)
+- Real buyer org name (PILOT_PROOF_PACK.md header)
+- Completed REAL_PILOT_EVIDENCE_TEMPLATE.md instance
+- Post-pilot PILOT_PROOF_STORY.md with real numbers
 
-3. **Demo Script:** 
-   A strict, step-by-step path through the product that highlights the exact workflow the buyer will use. Avoids showing settings, edge cases, or future roadmap items. Keep it on the critical path.
-
-4. **Implementation Checklist:** 
-   A rigorous, tactical list of technical and operational steps required to go live. Includes API key generation, compliance sign-offs, and initial user provisioning.
-
-5. **Evidence Packet Example:** 
-   A sample of the exact output the system generates (e.g., a verifiable credential report) so the buyer knows precisely what they are getting.
-
-6. **Success Criteria for First 30 Days:** 
-   A binary checklist of outcomes that must be achieved within the first month to declare the pilot a success (e.g., "100% of incoming clinician licenses verified automatically within X seconds").
-
-## Constraints
-- *No rebrand work*: Assets use existing styles and branding.
-- *No enterprise theater*: No massive PowerPoint decks, empty consulting deliverables, or extensive steering committee proposals.
-- *Aligned to the single wedge*: The entire kit supports the singular workflow chosen for the pilot.
+## Quick Start
+1. Confirm Railway backend is redeployed from main
+2. Use PILOT_OUTREACH_SEQUENCE.md Touch 1 to contact first operator
+3. Demo with PILOT_DEMO_SCRIPT.md (NPI 1003000126)
+4. Use REAL_PILOT_EXECUTION_TRACKER.md to track the case
+5. After pilot: fill REAL_PILOT_EVIDENCE_TEMPLATE.md and update PILOT_PROOF_PACK.md metrics
