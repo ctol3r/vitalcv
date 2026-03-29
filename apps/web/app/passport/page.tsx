@@ -39,6 +39,41 @@ import { UX_EVENTS } from '@/lib/analytics/ux-events';
 
 // ── Status label helper ────────────────────────────────────────────────────────
 
+/**
+ * Translate internal API error codes into user-readable messages.
+ * Raw codes like 'organization_context_required' must never surface to users.
+ */
+function resolveIngestErrorCopy(raw: string | undefined | null): {
+  title: string;
+  description: string;
+} {
+  const degradedCopy = {
+    title: "We couldn't load your readiness snapshot right now.",
+    description: 'Try this NPI again in a moment.',
+  } as const;
+
+  if (!raw) return degradedCopy;
+  const normalized = raw.toLowerCase().replace(/[_\s]+/g, '_');
+
+  if (normalized.includes('organization_context') || normalized.includes('org_required')) {
+    return degradedCopy;
+  }
+  if (normalized.includes('npi') && normalized.includes('invalid')) {
+    return {
+      title: 'That NPI was not found.',
+      description: 'Check the 10-digit number and try this NPI again.',
+    };
+  }
+  if (normalized.includes('timeout') || normalized.includes('timed_out')) {
+    return degradedCopy;
+  }
+  if (normalized.includes('unavailable') || normalized.includes('backend')) {
+    return degradedCopy;
+  }
+
+  return degradedCopy;
+}
+
 const PHASE_LABEL: Record<StreamPhase, string> = {
   idle:       '',
   starting:   'Connecting to primary sources…',
@@ -240,6 +275,8 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
     && !disconnected
     && !noProfileYet;
   const isRunning = isActive && !hasTerminalState && !canViewPassport && !disconnected;
+  const retryNpi = state.npi ?? npi.trim();
+  const errorCopy = genericError ? resolveIngestErrorCopy(state.error) : null;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -247,6 +284,16 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
     if (!/^\d{10}$/.test(trimmed)) { setInputError('Enter a valid 10-digit NPI.'); return; }
     setInputError(null);
     startIngest(trimmed);
+  }
+
+  function handleSecondaryAction() {
+    if (genericError && /^\d{10}$/.test(retryNpi)) {
+      setInputError(null);
+      void startIngest(retryNpi);
+      return;
+    }
+
+    reset();
   }
 
   const { identity, standing, sources } = state;
@@ -420,8 +467,8 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
             {/* Error state */}
             {genericError && (
               <TrustStateCard
-                title={state.error ?? 'Something went wrong.'}
-                description="No fallback passport was assumed for this run."
+                title={errorCopy?.title ?? "We couldn't load your readiness snapshot right now."}
+                description={errorCopy?.description ?? 'Try this NPI again in a moment.'}
                 tone="critical"
                 centered
               />
@@ -430,11 +477,15 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
             {/* Start over */}
             <div className="text-center">
               <Button
-                onClick={reset}
+                onClick={handleSecondaryAction}
                 variant="ghost"
                 className="min-h-[44px] px-4 text-xs text-white/25 hover:bg-transparent hover:text-white/45"
               >
-                {canViewPassport || hasTerminalState ? 'Check another NPI' : 'Cancel'}
+                {genericError && /^\d{10}$/.test(retryNpi)
+                  ? 'Try this NPI again'
+                  : canViewPassport || hasTerminalState
+                    ? 'Check another NPI'
+                    : 'Cancel'}
               </Button>
             </div>
           </div>

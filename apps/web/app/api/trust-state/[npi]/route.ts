@@ -18,7 +18,13 @@ export async function GET(
 ) {
   const { npi } = await params;
   try {
-    const res = await fetch(`${B}/api/trust-state/${npi}`);
+    const res = await fetch(`${B}/api/trust-state/${npi}`, {
+      headers: {
+        // Public wedge uses the demo pilot org context.
+        // Required while backend tenant guard awaits Railway redeploy (commit 5d42b1c6 in main).
+        'x-org-id': process.env.PUBLIC_WEDGE_ORG_ID ?? 'demo-pilot-org-alpha',
+      },
+    });
     return NextResponse.json(await res.json().catch(() => ({})), { status: res.status });
   } catch {
     return NextResponse.json({ error: 'Backend unavailable' }, { status: 502 });

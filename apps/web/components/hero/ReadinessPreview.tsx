@@ -6,14 +6,14 @@
  * Data priority:
  *   1. realState (ClinicianTrustState from /api/trust-state/:npi)
  *      → name, specialty, exclusion status, gaps, readiness from real artifacts
- *   2. Demo fallback (when isDemo=true or backend unreachable)
- *      → hardcoded profiles keyed by NPI; clearly labelled as demo
+ *   2. Degraded fallback (when isDemo=true or backend unreachable)
+ *      → preserve the entered NPI and show only limited preview structure
  *
  * Non-negotiables:
  *   - "Verified" only appears when identityVerified=true from real claim
  *   - "Clear" on exclusion only when exclusionClear=true from real artifact
  *   - Gaps are surfaced directly from trustStateEngine output
- *   - Demo fallback is always labelled — never presented as verified truth
+ *   - Degraded fallback never substitutes a different clinician identity
  *   - Source names and checked timestamps shown where available
  */
 
@@ -29,12 +29,10 @@ import {
 } from '@/components/ui/card';
 import { ProofDetailsList } from '@/components/trust/ProofDetailsList';
 import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCard';
-import { getDemoProfile, type DemoProfile } from '@/lib/demo/demoProfiles';
 import { formatCompactProofDate } from '@/lib/trust/proof-language';
 import {
   getStatusDisplayLabel,
   getTrustStatusLabel,
-  resolveTrustUiStatus,
 } from '@/lib/trust/status-language';
 import {
   getTrustStatusDescriptor,
@@ -69,15 +67,16 @@ export interface ClinicianTrustState {
   gaps:              string[];
 }
 
-// ── Demo fallback profiles ────────────────────────────────────
-
-const DEMO_PROFILE_ALIASES: Record<string, string> = {
-  '1234567890': '1003000126',
-  '9876543210': '1942788324',
-  '1111111111': '1841498016',
-};
-
 type ReadinessTone = 'clear' | 'pending' | 'blocked';
+
+export type DegradedPreviewReason = 'backendUnavailable' | 'partialCoverage';
+export type DegradedPreviewSourceStatus = 'waiting' | 'loading' | 'ok' | 'skipped' | 'failed';
+
+export interface DegradedPreviewSources {
+  nppes: DegradedPreviewSourceStatus;
+  oig: DegradedPreviewSourceStatus;
+  readiness: DegradedPreviewSourceStatus;
+}
 
 const READINESS_TONE_STYLES: Record<ReadinessTone, { panel: string }> = {
   clear: {
@@ -134,17 +133,6 @@ function resolveLiveReadinessTone(ts: ClinicianTrustState, gaps: string[]): Read
   }
 
   return 'pending';
-}
-
-function resolveDemoReadinessTone(demo: DemoProfile): ReadinessTone {
-  switch (demo.readiness) {
-    case 'READY':
-      return 'clear';
-    case 'BLOCKED':
-      return 'blocked';
-    default:
-      return 'pending';
-  }
 }
 
 // ── Accordion builder — real facts ───────────────────────────
@@ -335,35 +323,45 @@ function buildRealAccordion(ts: ClinicianTrustState): AccordionItem[] {
   ];
 }
 
-function buildDemoAccordion(demo: DemoProfile): AccordionItem[] {
-  const previewMeta = accordionMeta('demo preview');
+function buildDegradedAccordion(
+  sources: DegradedPreviewSources,
+  reason: DegradedPreviewReason,
+): AccordionItem[] {
+  const previewMeta = accordionMeta('preview only');
   const accessRequiredMeta = accordionMeta('access required');
-  const pecosGap = [...demo.blockers, ...demo.missingItems]
-    .some((item) => item.toLowerCase().includes('medicare enrollment'));
-  const exclusionFlag = demo.blockers
-    .some((item) => item.toLowerCase().includes('exclusion'));
+  const unavailableMeta = accordionMeta('temporarily unavailable');
+  const nppesChecked = sources.nppes === 'ok';
+  const oigChecked = sources.oig === 'ok';
+  const degradedReasonCopy =
+    reason === 'backendUnavailable'
+      ? 'The readiness service could not be reached during this lookup.'
+      : 'The live lookup started, but the full readiness snapshot did not finish loading.';
 
   return [
     {
       id: 'identity',
       trigger: 'Identity Verification',
-      triggerRight: previewMeta,
-      status: 'demo',
+      triggerRight: nppesChecked ? accordionMeta('checked in this lookup') : unavailableMeta,
+      status: nppesChecked ? 'checked' : 'unavailable',
       content: (
         <ProofDetailsList
           rows={[
             { id: 'source', label: 'Source', value: 'CMS NPPES · NPI Registry', tone: 'strong' },
-            { id: 'checked', label: 'Last checked', value: 'Demo preview only' },
-            { id: 'freshness', label: 'Freshness', value: 'Preview payload' },
+            { id: 'checked', label: 'Last checked', value: nppesChecked ? 'Current homepage lookup' : 'Not available in this lookup' },
+            { id: 'freshness', label: 'Freshness', value: nppesChecked ? 'Current run' : 'Retry required' },
             {
               id: 'trust-note',
               label: 'Trust note',
-              value: 'This section shows how identity proof will appear after a real lookup.',
+              value: nppesChecked
+                ? 'NPPES responded for this NPI, but VitalCV did not finish loading a resolved clinician profile.'
+                : degradedReasonCopy,
             },
             {
               id: 'status-note',
               label: 'Status note',
-              value: 'Demo states never stand in for source-backed evidence.',
+              value: nppesChecked
+                ? 'The entered NPI is preserved, but clinician identity details stay hidden until a full live run completes.'
+                : 'Do not treat identity as source-backed until a live retry completes.',
               tone: 'muted',
             },
           ]}
@@ -425,27 +423,23 @@ function buildDemoAccordion(demo: DemoProfile): AccordionItem[] {
     {
       id: 'pecos',
       trigger: 'Medicare Enrollment',
-      triggerRight: accordionMeta(pecosGap ? 'not found in example' : 'demo preview'),
-      status: pecosGap ? 'pending' : 'demo',
+      triggerRight: previewMeta,
+      status: 'demo',
       content: (
         <ProofDetailsList
           rows={[
             { id: 'source', label: 'Source', value: 'CMS PECOS', tone: 'strong' },
-            { id: 'checked', label: 'Last checked', value: 'Preview payload' },
-            { id: 'freshness', label: 'Freshness', value: demo.sources.pecos.status === 'checked' ? 'Checked source' : 'Quarterly dataset preview' },
+            { id: 'checked', label: 'Last checked', value: 'Passport retry required' },
+            { id: 'freshness', label: 'Freshness', value: 'Preview structure only' },
             {
               id: 'trust-note',
               label: 'Trust note',
-              value: pecosGap
-                ? 'This example shows how a Medicare enrollment gap appears when PECOS does not show an active enrollment.'
-                : 'This section shows how Medicare enrollment evidence will appear after a real PECOS-backed run.',
+              value: 'Homepage preview does not attach a live PECOS enrollment result in this degraded state.',
             },
             {
               id: 'status-note',
               label: 'Status note',
-              value: pecosGap
-                ? 'Preview gaps remain clearly labeled and never stand in for a positive enrollment result.'
-                : 'Demo rows show structure only and never claim decision-grade proof.',
+              value: 'PECOS remains preview only until passport can complete a live retry.',
               tone: 'muted',
             },
           ]}
@@ -455,27 +449,27 @@ function buildDemoAccordion(demo: DemoProfile): AccordionItem[] {
     {
       id: 'sanctions',
       trigger: 'Sanctions & Exclusions',
-      triggerRight: accordionMeta(exclusionFlag ? 'flagged in example' : 'demo preview'),
-      status: exclusionFlag ? 'review_required' : 'demo',
+      triggerRight: oigChecked ? accordionMeta('checked in this lookup') : unavailableMeta,
+      status: oigChecked ? 'checked' : 'unavailable',
       content: (
         <ProofDetailsList
           rows={[
             { id: 'source', label: 'Source', value: 'OIG / LEIE', tone: 'strong' },
-            { id: 'checked', label: 'Last checked', value: 'Preview payload' },
-            { id: 'freshness', label: 'Freshness', value: 'Example only' },
+            { id: 'checked', label: 'Last checked', value: oigChecked ? 'Current homepage lookup' : 'Not available in this lookup' },
+            { id: 'freshness', label: 'Freshness', value: oigChecked ? 'Current run' : 'Retry required' },
             {
               id: 'trust-note',
               label: 'Trust note',
-              value: exclusionFlag
-                ? 'This example shows how an exclusion blocker will appear when the OIG result still blocks progress.'
-                : 'A real exclusion result appears only after a live OIG run.',
+              value: oigChecked
+                ? 'OIG / LEIE responded in this lookup, but VitalCV could not finish the full readiness snapshot.'
+                : degradedReasonCopy,
             },
             {
               id: 'status-note',
               label: 'Status note',
-              value: exclusionFlag
-                ? 'Blocked examples remain clearly labeled and still require a live source run before anyone can rely on them.'
-                : 'NPDB and SAM.gov remain separate institutional checks outside this preview.',
+              value: oigChecked
+                ? 'This preview does not attach a clinician-level exclusion conclusion until passport completes a live retry.'
+                : 'Unavailable lanes stay unavailable instead of pending when the backend is degraded.',
               tone: 'muted',
             },
           ]}
@@ -493,9 +487,19 @@ interface Props {
   isDemo:     boolean;
   visible:    boolean;
   onContinue: () => void;
+  fallbackReason?: DegradedPreviewReason | null;
+  fallbackSources?: DegradedPreviewSources | null;
 }
 
-export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }: Props) {
+export function ReadinessPreview({
+  npi,
+  realState,
+  isDemo,
+  visible,
+  onContinue,
+  fallbackReason = null,
+  fallbackSources = null,
+}: Props) {
   const checkedLabel = getTrustStatusLabel('checked');
   const clearLabel = getTrustStatusLabel('clear');
   const pendingLabel = getTrustStatusLabel('pending');
@@ -637,12 +641,28 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
     );
   }
 
-  // ── Demo fallback path ───────────────────────────────────
-  const demo = getDemoProfile(DEMO_PROFILE_ALIASES[npi] ?? npi);
-  const attentionItems = demo.blockers.length > 0 ? demo.blockers : demo.missingItems;
-  const attentionHeading = demo.blockers.length > 0 ? 'Current blockers' : 'What this example is missing';
-  const accordion = buildDemoAccordion(demo);
-  const readinessTone = resolveDemoReadinessTone(demo);
+  // ── Degraded fallback path ───────────────────────────────
+  const degradedReason = fallbackReason ?? 'partialCoverage';
+  const degradedSources: DegradedPreviewSources = fallbackSources ?? {
+    nppes: 'skipped',
+    oig: 'skipped',
+    readiness: 'failed',
+  };
+  const attentionItems =
+    degradedReason === 'backendUnavailable'
+      ? [
+          'VitalCV could not reach the readiness service for this lookup.',
+          'No clinician identity is shown until a live retry resolves this NPI.',
+        ]
+      : [
+          'VitalCV preserved the entered NPI, but the full readiness snapshot did not finish loading.',
+          'Unavailable lanes will retry on passport instead of showing a placeholder clinician.',
+        ];
+  const checkedItems = [
+    degradedSources.nppes === 'ok' ? 'NPPES checked in this lookup' : null,
+    degradedSources.oig === 'ok' ? 'OIG / LEIE checked in this lookup' : null,
+  ].filter((item): item is string => item !== null);
+  const accordion = buildDegradedAccordion(degradedSources, degradedReason);
 
   return (
     <div
@@ -654,9 +674,12 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
         <CardHeader className="border-b border-amber-500/20 bg-amber-500/10 px-5 py-4">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-100/80">Example preview</p>
-              <p className="text-lg font-bold leading-tight text-white">{demo.name}</p>
-              <p className="text-sm text-white/45">{demo.specialty}</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-100/80">Degraded preview</p>
+              <p className="text-lg font-bold leading-tight text-white">NPI {npi}</p>
+              <p className="text-sm text-white/45">Limited preview only</p>
+              <p className="text-[9px] text-amber-200/50 leading-relaxed mt-1">
+                VitalCV kept your entered NPI, but this card does not claim a resolved clinician identity until a live retry succeeds.
+              </p>
             </div>
             <div className="space-y-2 text-right">
               <TrustStatusBadge status="demo" label={previewOnlyLabel} size="sm" />
@@ -668,30 +691,26 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
         </CardHeader>
 
         <CardContent className="space-y-5 px-5 py-4">
-          <div className={cn('rounded-xl border px-4 py-4', READINESS_TONE_STYLES[readinessTone].panel)}>
+          <div className="rounded-xl border border-amber-500/15 bg-amber-500/[0.05] px-4 py-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">Readiness</p>
-                <p className="mt-2 text-sm font-semibold text-white">Estimated start: {demo.estimatedStart}</p>
-                <p className="mt-1 text-[11px] text-white/45">Example preview only</p>
+                <p className="mt-2 text-sm font-semibold text-white">Full readiness snapshot unavailable</p>
+                <p className="mt-1 text-[11px] text-white/45">Only completed checks stay visible in this degraded preview.</p>
               </div>
-              <TrustStatusBadge
-                status={readinessBadgeStatus(readinessTone)}
-                label={READINESS_TONE_LABELS[readinessTone]}
-                size="sm"
-              />
+              <TrustStatusBadge status="unavailable" size="sm" />
             </div>
           </div>
 
           <div className="space-y-3">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">
-              {attentionItems.length === 0 ? 'Current blockers' : attentionHeading}
+              What this degraded preview means
             </p>
             <div className="space-y-2">
               {attentionItems.length === 0 ? (
                 <div className="flex items-center gap-2">
                   <span className="text-white/55 text-sm leading-none shrink-0">✔</span>
-                  <span className="text-xs text-white/45">No blockers in this example.</span>
+                  <span className="text-xs text-white/45">No additional degraded warnings.</span>
                 </div>
               ) : attentionItems.slice(0, 3).map(item => (
                 <div key={item} className="flex items-center gap-2">
@@ -700,11 +719,11 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
                 </div>
               ))}
             </div>
-            {demo.gatedItems.length > 0 ? (
+            {checkedItems.length > 0 ? (
               <div className="space-y-3 border-t border-white/6 pt-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Access required in this example</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Completed in this lookup</p>
                 <div className="flex flex-wrap gap-2">
-                  {demo.gatedItems.map(item => (
+                  {checkedItems.map(item => (
                     <Badge key={item} variant="outline" className={CHIPS_CLASSNAME}>
                       {item}
                     </Badge>
@@ -712,22 +731,12 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
                 </div>
               </div>
             ) : null}
-            <div className="space-y-3 border-t border-white/6 pt-3">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Checked in this example</p>
-              <div className="flex flex-wrap gap-2">
-                {demo.verifiedItems.map(item => (
-                  <Badge key={item} variant="outline" className={CHIPS_CLASSNAME}>
-                    {item}
-                  </Badge>
-                ))}
-              </div>
-            </div>
           </div>
 
           <EvidenceDisclosureCard
             eyebrow="Proof"
             title="Source checks"
-            description="Demo states stay clearly labeled so preview structure never stands in for source-backed evidence."
+            description="Completed checks stay marked as checked. Unavailable lanes stay unavailable, and preview-only sections stay explicitly non-decision-grade."
             className="rounded-xl border-white/6 bg-black/10"
             contentClassName="px-5 py-1"
           >
@@ -742,9 +751,9 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
           <div className="w-full rounded-2xl border border-white/6 bg-black/15 p-4">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/24">Next step</p>
-              <p className="mt-1 text-sm font-medium text-white/72">Carry this example into passport.</p>
+              <p className="mt-1 text-sm font-medium text-white/72">Continue to passport with this NPI.</p>
               <p className="mt-1 text-xs leading-relaxed text-white/38">
-                This route stays {previewOnlyLabel} until a real run returns {checkedLabel} source results.
+                Passport retries the live lookup. Completed checks stay visible, and unresolved lanes remain marked as {unavailableLabel} or {previewOnlyLabel}.
               </p>
             </div>
             <Button
@@ -756,7 +765,7 @@ export function ReadinessPreview({ npi, realState, isDemo, visible, onContinue }
               Continue to passport
             </Button>
             <p className="mt-2 text-center text-[10px] text-white/20">
-              {previewOnlyLabel} only - live data appears after a real source run
+              {previewOnlyLabel} only - the entered NPI is preserved until a live source run finishes
             </p>
           </div>
         </CardFooter>
